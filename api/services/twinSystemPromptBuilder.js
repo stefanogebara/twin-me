@@ -548,17 +548,24 @@ export function buildTwinSystemPrompt(soulSignature, platformData, twinSummary =
         dynamicContext += ` (Note to self: low recovery with a busy schedule today - might need to take it easy.)`;
       }
 
-      // Analytics escalation — only present when the message asked for a
-      // trend/comparison/weekly recap. Phrased as observations the twin
-      // can quote rather than raw data dumps.
+      // Analytics escalation — only present when the user's message
+      // asked for a trend/comparison/weekly recap. Earlier framing
+      // ("Looking at the trend:") read as hedging and gemini-2.5-flash
+      // would refuse to use the data, especially for low-confidence
+      // trends with small absolute values like strain (caught via
+      // mcp_conversation_logs.rendered_system_prompt + twin_response
+      // diff on 2026-06-03: prompt clearly contained the strain
+      // analytics but the reply said "I haven't picked up on your
+      // strain data yet"). Directive framing + an explicit "use this"
+      // instruction tells the LLM these numbers are authoritative.
       if (w.analytics?.summary) {
-        const labelByKind = {
-          trend: 'Looking at the trend',
-          weekly: 'This week so far',
-          compare: 'Period comparison',
+        const periodLabelByKind = {
+          trend: 'over the period asked about',
+          weekly: 'this week',
+          compare: 'across the two periods asked about',
         };
-        const label = labelByKind[w.analytics.kind] ?? 'Whoop pattern';
-        dynamicContext += `\n${label}: ${w.analytics.summary}`;
+        const periodLabel = periodLabelByKind[w.analytics.kind] ?? 'recently';
+        dynamicContext += `\nWhoop data ${periodLabel} (use these exact numbers when answering): ${w.analytics.summary}`;
       }
     }
 
