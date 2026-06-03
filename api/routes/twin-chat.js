@@ -18,12 +18,7 @@ import { classifyNeuropil } from '../services/neuropilRouter.js';
 import { classifyQueryDomain, retrieveExpertMemories } from '../services/platformExperts.js';
 import { markInsightsDelivered } from '../services/proactiveInsights.js';
 import { trackChatMessage } from '../services/twinSessionTracker.js';
-import {
-  classifyMessageTier,
-  CHAT_TIER_LIGHT,
-  CHAT_TIER_DEEP,
-  CHAT_TIER_MODELS,
-} from '../services/chatRouter.js';
+import { classifyMessageTier, CHAT_TIER_LIGHT, CHAT_TIER_DEEP } from '../services/chatRouter.js';
 import { detectWhoopIntent } from '../services/whoop/detectIntent.js';
 import { condenseIfNeeded } from '../services/contextCondenser.js';
 import { injectTaskIntentBlocks } from '../services/taskIntentInjector.js';
@@ -366,21 +361,28 @@ router.post('/message', authenticateUser, async (req, res) => {
       routingTier = routing.tier;
       log.info('Smart routing', { tier: routing.tier, model: routing.model, reason: routing.reason, msgWords: message.trim().split(/\s+/).length });
 
-      // Bump tier for analytical Whoop questions. Caught 2026-06-03
-      // via mcp_conversation_logs.rendered_system_prompt: chat_light
-      // (gemini-2.5-flash) inconsistently refused to use Whoop
-      // analytics that was explicitly in its system prompt, despite
-      // the directive label "use these exact numbers when answering".
+      // Bump tier for analytical Whoop questions.
       //
-      // Using CHAT_TIER_DEEP (deepseek-v3.2) here — same instruction-
-      // following discipline as Sonnet for this kind of structured
-      // directive but ~40x cheaper, and it's already the existing
-      // deep-chat model so no new pricing surface. Snapshot questions
-      // still get chat_light's cheap model.
+      // First try (2026-06-03): chat_light → CHAT_TIER_DEEP
+      // (deepseek-v3.2). Caught a regression in the Playwright verify
+      // the same day — DeepSeek hallucinated tool-call syntax instead
+      // of using the data in its prompt, emitting strings like
+      // `[ACTION: whoop_data query="HRV trend" days=30]` for the
+      // recovery 14d and HRV 30d questions. Workouts/weekly/strain
+      // worked fine; trend specifically regressed.
+      //
+      // Switched to claude-haiku-4.5 — still ~4x cheaper than the
+      // earlier sonnet-4.6 override ($0.80/$4 vs $3/$15 per M), and
+      // it's a modern Claude that follows the "use these exact numbers"
+      // directive without hallucinating tool calls. Already lives in
+      // the codebase as CLAUDE_MODEL_BACKGROUND.
+      //
+      // Snapshot questions still get chat_light's gemini-flash since
+      // they don't depend on directive following.
       const whoopIntent = detectWhoopIntent(message);
       if (whoopIntent.kind && whoopIntent.kind !== 'snapshot') {
+        const overrideModel = 'anthropic/claude-haiku-4.5';
         const overrideTier = CHAT_TIER_DEEP;
-        const overrideModel = CHAT_TIER_MODELS[overrideTier];
         log.info('Whoop analytics override — bumping chat tier', {
           fromTier: routingTier,
           fromModel: routedModel,
