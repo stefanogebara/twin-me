@@ -391,3 +391,23 @@ The orchestrator uses path #1 (the broken one). Path #2 is correct but not what 
 - **Any platform with an `expires_in` in its OAuth response must use `ensureFreshToken`, never direct decrypt-and-use.** The token IS going to expire; the only question is whether the extraction silently dies when it does.
 - **Two extraction paths for the same platform = one of them is wrong.** Either consolidate (use the class-based one everywhere and delete the function-style one) or document loudly why both exist and keep them in sync. The current state — two paths with subtly different behavior, orchestrator using the worse one — is the worst of both worlds.
 - **Audit the 11 other extractors before declaring this class of bug fixed.** A dedicated sweep should: (a) check each platform's actual token lifetime, (b) verify the extractor uses `ensureFreshToken` if expiry is real, (c) write a smoke test that flips `token_expires_at` to the past and confirms the next extraction refreshes successfully.
+
+---
+
+## 2026-06-03 — Desktop Google sign-in landed on session_expired; claim fetch dropped the refresh cookie (Bug D1)
+
+**Incident**: TwinMe Desktop (Tauri) Google sign-in. User clicked Continue with Google, completed the web login in the system browser, the app deep-linked back (`twinme://auth?auth_code=...`) and reopened — but landed on `/auth?error=session_expired` instead of signed in. The hard part (deep-link round-trip) worked; the session just didn't persist.
+
+**Diagnosis method that worked**: Vercel `get_runtime_logs` (query="claim") showed `GET /api/auth/oauth/claim` returned **200**. That single fact split the two hypotheses cleanly: the deep-link DID fire and the claim DID succeed (token returned) → the bug was post-claim session persistence, NOT the Rust/`on_open_url` wiring. Checking the logs first saved hours of poking at Tauri.
+
+**Root cause**: `OAuthCallback.tsx`'s GET `/oauth/claim` fetch omitted `credentials: 'include'`. The backend `/oauth/claim` sets `refresh_token` via `Set-Cookie`, but without credentials the browser/WebView2 **silently drops the Set-Cookie**. The returned access token is in-memory only (apiBase `currentAccessToken`), so the post-claim hard nav (`window.location.href = '/soul-reveal'`) wiped it, and the next `/auth/refresh` arrived with no cookie → 401 → `refreshDisabledForSession` → `/soul-reveal` isn't public → `window.location.replace('/auth?error=session_expired')`.
+
+**The damning detail**: the EXACT same bug was already found and fixed for the sibling POST `/oauth/callback` branch *in the same file*, complete with a big inline comment ("credentials:'include' is REQUIRED here. Without it the browser silently DROPS the Set-Cookie... That was the cause of the 'session_expired' loop"). The fix was applied to the POST path but never to the GET claim path (the desktop/mobile deep-link path).
+
+**Fix shipped** (PR #74): one line — add `{ credentials: 'include' }` to the claim fetch. Guarded by a source-audit regression test (Bug D1 in `tests/unit/authBugFixes.test.ts`) that asserts BOTH the claim fetch and the sibling POST callback carry credentials. Confirmed RED before, GREEN after.
+
+**Rules**:
+- **When a fetch hits an endpoint that sets/reads an httpOnly cookie, it MUST pass `credentials: 'include'`.** This includes every auth path: login, signup, refresh, oauth/callback, **oauth/claim**, logout. A missing-credentials cookie drop is invisible — the request returns 200, the body looks right, and the failure only surfaces one navigation later.
+- **When you fix a cookie/credentials bug on one fetch path, grep for ALL sibling paths that touch the same cookie and fix them in the same pass.** `session_expired` has now bitten three times (C1 = singleFlight refresh race, the POST callback credentials fix, D1 = claim credentials). Same symptom, different code path each time, because the fix was applied locally instead of to the whole class.
+- **For "deep-link returned but session is wrong" desktop bugs, check the server runtime logs for the claim/callback status code FIRST.** A 200 means the native wiring is fine and the bug is in the webview/session layer; absence of the request means the native deep-link never fired. Don't debug Rust until the logs rule it out.
+- **The desktop app loads the live web app**, so frontend auth fixes ship via the normal Vercel deploy — no desktop reinstall. Tell the user to just reopen the app.
