@@ -112,3 +112,38 @@ export function formatWeekly(week) {
   }
   return parts.join(' ');
 }
+
+/**
+ * @param {object} workouts  Output of analytics/getWorkouts.js
+ * @returns {string}
+ */
+export function formatWorkouts(workouts) {
+  if (!workouts) return null;
+  const days = workouts.period?.days ?? '?';
+  const t = workouts.totals ?? {};
+  if (!t.count) {
+    return `Workouts in the last ${days} days: 0 scored sessions.`;
+  }
+  const sports = (workouts.sports ?? [])
+    .map((s) => {
+      const minPart = s.total_minutes ? `, ${s.total_minutes} min` : '';
+      const hrPart = s.avg_hr ? `, avg HR ${s.avg_hr}` : '';
+      return `${s.sport} ×${s.count} (strain ${fmtNum(s.total_strain)}${minPart}${hrPart})`;
+    })
+    .join('; ');
+  const listSummary = (workouts.list ?? [])
+    .slice(0, 5)
+    .map((w) => {
+      const when = w.start?.slice(0, 10) ?? '?';
+      const dur = w.duration_minutes ? `, ${w.duration_minutes}min` : '';
+      const strain = w.strain != null ? `, strain ${fmtNum(w.strain)}` : '';
+      return `${when} ${w.sport}${dur}${strain}`;
+    })
+    .join(' | ');
+  const parts = [
+    `Workouts over the last ${days} days: ${t.count} session${t.count === 1 ? '' : 's'}, total strain ${fmtNum(t.total_strain)}, ${fmtInt(t.total_kj)}kJ, ${fmtInt(t.total_minutes)} min.`,
+    sports && `By sport: ${sports}.`,
+    listSummary && `Most recent: ${listSummary}.`,
+  ].filter(Boolean);
+  return parts.join(' ');
+}

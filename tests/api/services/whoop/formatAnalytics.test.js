@@ -5,7 +5,12 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { formatTrend, formatCompare, formatWeekly } from '../../../../api/services/whoop/formatAnalytics.js';
+import {
+  formatTrend,
+  formatCompare,
+  formatWeekly,
+  formatWorkouts,
+} from '../../../../api/services/whoop/formatAnalytics.js';
 
 describe('formatTrend', () => {
   const baseTrend = {
@@ -145,5 +150,61 @@ describe('formatWeekly', () => {
   it('appends a (partial) note when warnings present', () => {
     const out = formatWeekly({ ...baseWeek, warnings: ['sleep: 500'] });
     expect(out).toContain('partial: 1 endpoint unavailable');
+  });
+});
+
+describe('formatWorkouts', () => {
+  const baseWorkouts = {
+    period: { start: '2026-05-21T00:00:00.000Z', end: '2026-05-28T00:00:00.000Z', days: 7 },
+    totals: { count: 5, total_strain: 56.5, total_kj: 5200, total_minutes: 220 },
+    sports: [
+      { sport: 'Running', count: 3, total_strain: 36, total_kj: 2800, total_minutes: 135, avg_hr: 150 },
+      { sport: 'Tennis', count: 2, total_strain: 17, total_kj: 1300, total_minutes: 60, avg_hr: 130 },
+    ],
+    list: [
+      { id: 'w3', sport: 'Running', start: '2026-05-27T10:00:00.000Z', duration_minutes: 45, strain: 14, avg_hr: 155, kj: 1100 },
+      { id: 'w2', sport: 'Tennis', start: '2026-05-26T18:00:00.000Z', duration_minutes: 30, strain: 9, avg_hr: 132, kj: 700 },
+    ],
+  };
+
+  it('returns null for null input', () => {
+    expect(formatWorkouts(null)).toBeNull();
+  });
+
+  it('handles empty-state with a clear zero-message', () => {
+    const out = formatWorkouts({ ...baseWorkouts, totals: { count: 0, total_strain: 0, total_kj: 0, total_minutes: 0 }, sports: [], list: [] });
+    expect(out).toContain('0 scored sessions');
+    expect(out).toContain('7 days');
+  });
+
+  it('renders the totals line', () => {
+    const out = formatWorkouts(baseWorkouts);
+    expect(out).toContain('5 sessions');
+    expect(out).toContain('total strain 56.5');
+    expect(out).toContain('5200kJ');
+    expect(out).toContain('220 min');
+  });
+
+  it('renders the per-sport breakdown', () => {
+    const out = formatWorkouts(baseWorkouts);
+    expect(out).toContain('Running ×3');
+    expect(out).toContain('strain 36.0');
+    expect(out).toContain('135 min');
+    expect(out).toContain('avg HR 150');
+    expect(out).toContain('Tennis ×2');
+  });
+
+  it('renders the most-recent list (up to 5)', () => {
+    const out = formatWorkouts(baseWorkouts);
+    expect(out).toContain('2026-05-27 Running');
+    expect(out).toContain('45min');
+    expect(out).toContain('strain 14.0');
+    expect(out).toContain('2026-05-26 Tennis');
+  });
+
+  it('singular session count when count === 1', () => {
+    const out = formatWorkouts({ ...baseWorkouts, totals: { ...baseWorkouts.totals, count: 1 } });
+    expect(out).toContain('1 session,');
+    expect(out).not.toContain('1 sessions');
   });
 });

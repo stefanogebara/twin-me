@@ -8,3 +8,4 @@
 export { getTrend } from './getTrend.js';
 export { comparePeriods } from './comparePeriods.js';
 export { getWeeklySummary } from './getWeeklySummary.js';
+export { getWorkouts } from './getWorkouts.js';

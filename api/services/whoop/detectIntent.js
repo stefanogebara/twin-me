@@ -81,6 +81,21 @@ const WHOOP_NOUN_PATTERNS = [
   /\bspo2\b/i,
   /\brespiratory rate\b/i,
   /\bwhoop\b/i,
+  /\bworkouts?\b/i,
+  /\bactivit(y|ies)\b/i,
+  /\bexercis(e|ing|es)\b/i,
+  /\bsessions?\b/i,
+];
+
+// Workouts intent — "what workouts did I do", "show me my activities",
+// "how often am I working out", "list my sessions". Triggered by any
+// of the workout-shaped nouns; days extracted same way as trend (default
+// 7d so "this week"-flavoured questions DTRT).
+const WORKOUTS_PATTERNS = [
+  /\bworkouts?\b/i,
+  /\bactivit(y|ies)\b/i,
+  /\bexercis(e|ing|es)\b/i,
+  /\bsessions?\b/i,
 ];
 
 // Metric extraction for trend. Order matters — "sleep performance"
@@ -275,7 +290,15 @@ export function detectWhoopIntent(message) {
     return { kind: 'weekly', weekStart: extractWeekStart(text) };
   }
 
-  // 4. Snapshot. Any Whoop noun. Today's data is already in the system
+  // 4. Workouts list/breakdown. Triggered by any workout-shaped noun
+  //    (workouts, activities, exercises, sessions). Distinct from
+  //    snapshot because the answer needs the full /v2/activity/workout
+  //    fetch + sport grouping, not just today's recovery row.
+  if (any(WORKOUTS_PATTERNS, text)) {
+    return { kind: 'workouts', days: extractDays(text) };
+  }
+
+  // 5. Snapshot. Any Whoop noun. Today's data is already in the system
   //    prompt by default, so this kind is mostly a hint to the caller
   //    that the message IS about Whoop and the existing context is
   //    relevant.
@@ -283,6 +306,6 @@ export function detectWhoopIntent(message) {
     return { kind: 'snapshot' };
   }
 
-  // 5. Nothing Whoop-related.
+  // 6. Nothing Whoop-related.
   return { kind: null };
 }

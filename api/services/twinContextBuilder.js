@@ -32,8 +32,14 @@ import {
   getTrend as whoopGetTrend,
   comparePeriods as whoopComparePeriods,
   getWeeklySummary as whoopGetWeeklySummary,
+  getWorkouts as whoopGetWorkouts,
 } from './whoop/analytics/index.js';
-import { formatTrend, formatCompare, formatWeekly } from './whoop/formatAnalytics.js';
+import {
+  formatTrend,
+  formatCompare,
+  formatWeekly,
+  formatWorkouts,
+} from './whoop/formatAnalytics.js';
 
 // Hard cap for the analytics tool call. Sits in POST-processing, after
 // the 10s parent fan-out breaker, so it doesn't compete for that
@@ -76,6 +82,12 @@ async function runWhoopAnalytics(intent, accessToken) {
         week_start: intent.weekStart, // dateUtils handles the expression
       });
       return { kind: 'weekly', summary: formatWeekly(week), raw: week };
+    }
+    if (intent.kind === 'workouts') {
+      const workouts = await whoopGetWorkouts(client, {
+        days: intent.days,
+      });
+      return { kind: 'workouts', summary: formatWorkouts(workouts), raw: workouts };
     }
     if (intent.kind === 'compare') {
       // Convert the friendly period expressions into the ISO start/end

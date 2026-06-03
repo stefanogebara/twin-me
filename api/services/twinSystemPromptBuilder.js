@@ -563,6 +563,7 @@ export function buildTwinSystemPrompt(soulSignature, platformData, twinSummary =
           trend: 'over the period asked about',
           weekly: 'this week',
           compare: 'across the two periods asked about',
+          workouts: 'for the workouts the user is asking about',
         };
         const periodLabel = periodLabelByKind[w.analytics.kind] ?? 'recently';
         dynamicContext += `\nWhoop data ${periodLabel} (use these exact numbers when answering): ${w.analytics.summary}`;
