@@ -249,7 +249,7 @@ export function usePlatformConnect({
         return;
       }
 
-      const nangoPlatforms = ['fitbit', 'microsoft_outlook', 'whoop', 'twitch'];
+      const nangoPlatforms = ['fitbit', 'microsoft_outlook', 'whoop', 'twitch', 'oura'];
 
       // Pre-open a blank popup while still inside the user-gesture call stack.
       // Browsers block window.open() called after any await, so we must open
