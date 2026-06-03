@@ -40,14 +40,16 @@ import { formatTrend, formatCompare, formatWeekly } from './whoop/formatAnalytic
 // budget. The cap covers BOTH the second getValidAccessToken call
 // (Nango proxy adds ~3s of overhead per call — measured 2026-06-02
 // via scripts/_time-whoop-analytics.mjs) AND the analytics fetch
-// itself. Under real Nango contention (one Whoop call in the snapshot
-// fan-out + ours here) the second call can stretch to 13-16s — caught
-// via scripts/_inspect-whoop-prompt.mjs the same day on a strain trend
-// 7d query that took 16.3s end-to-end. 15s is the smallest cap that
-// reliably captures the worst case without making the user wait
-// uncomfortably long for an analytics question. Future optimisation:
-// reuse the snapshot's token instead of double-fetching.
-const WHOOP_ANALYTICS_TIMEOUT_MS = 15000;
+// itself. The Playwright UI verify (2026-06-03) caught strain trend 7d
+// consistently failing in prod even after the 15s bump — local repro
+// via scripts/_inspect-whoop-prompt.mjs showed analytics completing in
+// 6.9s locally, but prod added ~10s on top from Nango contention +
+// network. 25s is generous and covers the worst case I've measured.
+// User is already waiting ~10-15s for an analytics question by the
+// time the LLM streams; another 10s of upper-bound headroom is the
+// cost of consistency. Future optimisation: reuse the snapshot's
+// token instead of double-fetching.
+const WHOOP_ANALYTICS_TIMEOUT_MS = 25000;
 
 /**
  * Run a single Whoop analytics tool based on a detected intent. Returns
