@@ -329,10 +329,33 @@ router.post('/message', authenticateUser, async (req, res) => {
 
     // Google Workspace actions — inject available tools (already fetched in parallel above)
     let workspaceActionsEnabled = false;
-    if (workspaceBlock) {
+    // Gate workspace actions OFF the prompt for analytical Whoop
+    // questions. Caught 2026-06-03 via Playwright verify + Supabase
+    // twin_response inspection: haiku saw "show me my last workouts"
+    // and reached for the workspace `github_list_prs` tool ("You've
+    // got 10 open PRs..."), and saw "how is my recovery trending..."
+    // and pivoted to MEETING_PREP, both times ignoring the Whoop
+    // analytics that was sitting right in the prompt. Removing the
+    // workspace tool catalog from the prompt eliminates the
+    // competing affordance — the only data path available to the
+    // model is the Whoop analytics line.
+    //
+    // Snapshot intent stays workspace-enabled because a question like
+    // "what's on my plate today" wants both calendar AND today's
+    // recovery; we only suppress for trend / weekly / compare /
+    // workouts intents where the user is explicitly asking for the
+    // Whoop numbers we just computed.
+    const whoopIntentForGate = detectWhoopIntent(message);
+    const suppressWorkspaceForWhoop =
+      whoopIntentForGate.kind &&
+      whoopIntentForGate.kind !== 'snapshot' &&
+      whoopIntentForGate.kind !== null;
+    if (workspaceBlock && !suppressWorkspaceForWhoop) {
       systemPrompt.push({ type: 'text', text: `\n${workspaceBlock}` });
       workspaceActionsEnabled = true;
       chatLog('Workspace actions injected into system prompt');
+    } else if (workspaceBlock && suppressWorkspaceForWhoop) {
+      chatLog(`Workspace actions suppressed — Whoop ${whoopIntentForGate.kind} intent`);
     }
 
     // Conversational probes (proactive deep question + ambient interview hint)
