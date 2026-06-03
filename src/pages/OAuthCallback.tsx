@@ -84,8 +84,17 @@ const OAuthCallback = () => {
         // Handle one-time auth code from GET redirect (secure: tokens stored server-side)
         const authCodeParam = searchParams.get('auth_code');
         if (authCodeParam && !code) {
+          // CRITICAL: credentials:'include' is REQUIRED. /oauth/claim sets the
+          // refresh_token via a Set-Cookie header; without credentials the
+          // browser/WebView2 silently DROPS it. The access token returned here
+          // lives in-memory only, so the post-claim hard nav to /soul-reveal
+          // loses it — and the next /auth/refresh comes through with no cookie,
+          // returns 401, and the user lands on /auth?error=session_expired.
+          // This is the desktop (Tauri) deep-link path; it broke desktop Google
+          // sign-in. Same fix as the POST /oauth/callback branch below.
           const claimResponse = await fetch(
-            `${API_URL}/auth/oauth/claim?auth_code=${encodeURIComponent(authCodeParam)}`
+            `${API_URL}/auth/oauth/claim?auth_code=${encodeURIComponent(authCodeParam)}`,
+            { credentials: 'include' }
           );
           if (!claimResponse.ok) {
             setStatus('error');
