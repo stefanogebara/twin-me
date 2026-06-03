@@ -19,6 +19,7 @@ import { classifyQueryDomain, retrieveExpertMemories } from '../services/platfor
 import { markInsightsDelivered } from '../services/proactiveInsights.js';
 import { trackChatMessage } from '../services/twinSessionTracker.js';
 import { classifyMessageTier, CHAT_TIER_LIGHT, CHAT_TIER_DEEP } from '../services/chatRouter.js';
+import { detectWhoopIntent } from '../services/whoop/detectIntent.js';
 import { condenseIfNeeded } from '../services/contextCondenser.js';
 import { injectTaskIntentBlocks } from '../services/taskIntentInjector.js';
 import { runWorkspaceActionChain } from '../services/workspaceActionChain.js';
@@ -359,6 +360,29 @@ router.post('/message', authenticateUser, async (req, res) => {
       routedModel = routing.model;
       routingTier = routing.tier;
       log.info('Smart routing', { tier: routing.tier, model: routing.model, reason: routing.reason, msgWords: message.trim().split(/\s+/).length });
+
+      // Force claude-sonnet for analytical Whoop questions. Caught
+      // 2026-06-03 via mcp_conversation_logs.rendered_system_prompt:
+      // gemini-2.5-flash (chat_light) inconsistently refused to use
+      // Whoop analytics that was explicitly in its system prompt,
+      // despite the directive label "use these exact numbers when
+      // answering". Sonnet follows the instruction reliably. The
+      // override only fires for trend / weekly / compare intents —
+      // snapshot questions (which work fine on light tier) still get
+      // the cheap model.
+      const whoopIntent = detectWhoopIntent(message);
+      if (whoopIntent.kind && whoopIntent.kind !== 'snapshot') {
+        const overrideModel = 'anthropic/claude-sonnet-4.6';
+        log.info('Whoop analytics override — bumping chat tier', {
+          fromTier: routingTier,
+          fromModel: routedModel,
+          toModel: overrideModel,
+          whoopKind: whoopIntent.kind,
+          whoopMetric: whoopIntent.metric,
+        });
+        routedModel = overrideModel;
+        routingTier = CHAT_TIER_DEEP;
+      }
     }
 
     // Send message via LLM Gateway
