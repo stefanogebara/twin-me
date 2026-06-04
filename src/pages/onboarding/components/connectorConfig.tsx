@@ -331,6 +331,11 @@ export const AVAILABLE_CONNECTORS: ConnectorConfig[] = [
     setupTime: '10 seconds',
     privacyLevel: 'low',
     category: 'health',
+    // Hidden until the Nango 'oura' integration is configured (Oura OAuth
+    // client id/secret added in the Nango dashboard). Connect routing already
+    // goes through Nango (usePlatformConnect nangoPlatforms includes 'oura'),
+    // so re-enabling is just deleting this flag once the integration exists.
+    comingSoon: true,
   },
   {
     provider: 'whoop' as DataProvider,
