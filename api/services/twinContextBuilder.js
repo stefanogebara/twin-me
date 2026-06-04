@@ -40,6 +40,10 @@ import {
   formatWeekly,
   formatWorkouts,
 } from './whoop/formatAnalytics.js';
+import {
+  persistTrendAnomalyInsight,
+  persistWeeklyReflection,
+} from './whoop/learningHooks.js';
 
 // Hard cap for the analytics tool call. Sits in POST-processing, after
 // the 10s parent fan-out breaker, so it doesn't compete for that
@@ -63,10 +67,17 @@ const WHOOP_ANALYTICS_TIMEOUT_MS = 25000;
  * or any failure. Never throws — twin context must keep building even
  * if Whoop is down.
  *
+ * Also fires fire-and-forget learning hooks: trend anomalies get
+ * persisted as proactive insights so the twin spontaneously surfaces
+ * them next turn, and weekly summaries get persisted as reflection
+ * memories so they shape long-term identity context. Both writes are
+ * non-blocking and swallow their own errors.
+ *
  * @param {object} intent  Output of detectWhoopIntent
  * @param {string} accessToken
+ * @param {string} [userId]  Required to fire learning hooks; omit to skip them.
  */
-async function runWhoopAnalytics(intent, accessToken) {
+async function runWhoopAnalytics(intent, accessToken, userId) {
   if (!intent || intent.kind === 'snapshot' || intent.kind === null) return null;
   const client = createWhoopClient({ accessToken });
   try {
@@ -75,13 +86,22 @@ async function runWhoopAnalytics(intent, accessToken) {
         metric: intent.metric,
         days: intent.days,
       });
-      return { kind: 'trend', summary: formatTrend(trend), raw: trend };
+      const summary = formatTrend(trend);
+      if (userId) {
+        // Fire-and-forget — never block the chat reply on a learning write.
+        persistTrendAnomalyInsight(userId, intent, trend).catch(() => {});
+      }
+      return { kind: 'trend', summary, raw: trend };
     }
     if (intent.kind === 'weekly') {
       const week = await whoopGetWeeklySummary(client, {
         week_start: intent.weekStart, // dateUtils handles the expression
       });
-      return { kind: 'weekly', summary: formatWeekly(week), raw: week };
+      const summary = formatWeekly(week);
+      if (userId && summary) {
+        persistWeeklyReflection(userId, week, summary).catch(() => {});
+      }
+      return { kind: 'weekly', summary, raw: week };
     }
     if (intent.kind === 'workouts') {
       const workouts = await whoopGetWorkouts(client, {
@@ -483,7 +503,7 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
         const whoopAnalyticsStart = Date.now();
         const tok = await getValidAccessToken(userId, 'whoop');
         if (tok.success && tok.accessToken) {
-          const analyticsPromise = runWhoopAnalytics(intent, tok.accessToken);
+          const analyticsPromise = runWhoopAnalytics(intent, tok.accessToken, userId);
           const timeoutPromise = new Promise((resolve) =>
             setTimeout(() => resolve(null), WHOOP_ANALYTICS_TIMEOUT_MS),
           );
