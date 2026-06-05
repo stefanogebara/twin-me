@@ -50,21 +50,25 @@ import { detectSpotifyIntent } from './spotify/detectIntent.js';
 import { createSpotifyClient } from './spotify/client.js';
 import { getRecentListening } from './spotify/analytics/getRecentListening.js';
 import { formatRecentListening } from './spotify/formatAnalytics.js';
+import { persistSpotifyLearning } from './spotify/learningHooks.js';
 
 import { detectCalendarIntent } from './calendar/detectIntent.js';
 import { createCalendarClient } from './calendar/client.js';
 import { getMeetingBreakdown } from './calendar/analytics/getMeetingBreakdown.js';
 import { formatMeetingBreakdown } from './calendar/formatAnalytics.js';
+import { persistCalendarLearning } from './calendar/learningHooks.js';
 
 import { detectGithubIntent } from './github/detectIntent.js';
 import { createGithubClient } from './github/client.js';
 import { getRecentActivity as getGithubActivity } from './github/analytics/getRecentActivity.js';
 import { formatRecentActivity as formatGithubActivity } from './github/formatAnalytics.js';
+import { persistGithubLearning } from './github/learningHooks.js';
 
 import { detectYoutubeIntent } from './youtube/detectIntent.js';
 import { createYoutubeClient } from './youtube/client.js';
 import { getRecentWatching } from './youtube/analytics/getRecentWatching.js';
 import { formatRecentWatching } from './youtube/formatAnalytics.js';
+import { persistYoutubeLearning } from './youtube/learningHooks.js';
 
 const PLATFORM_ANALYTICS_TIMEOUT_MS = 8000;
 
@@ -559,6 +563,7 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
         const recent = await getRecentListening(client, {});
         return { kind: 'recent_listening', summary: formatRecentListening(recent), raw: recent };
       },
+      learn: persistSpotifyLearning,
     },
     {
       key: 'calendar',
@@ -569,6 +574,7 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
         const breakdown = await getMeetingBreakdown(client, {});
         return { kind: 'breakdown', summary: formatMeetingBreakdown(breakdown), raw: breakdown };
       },
+      learn: persistCalendarLearning,
     },
     {
       key: 'github',
@@ -583,6 +589,7 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
         if (!activity) return null;
         return { kind: 'activity', summary: formatGithubActivity(activity), raw: activity };
       },
+      learn: persistGithubLearning,
     },
     {
       key: 'youtube',
@@ -593,6 +600,7 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
         const watching = await getRecentWatching(client, {});
         return { kind: 'watching', summary: formatRecentWatching(watching), raw: watching };
       },
+      learn: persistYoutubeLearning,
     },
   ];
 
@@ -615,6 +623,17 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
         const result = await Promise.race([analyticsPromise, timeoutPromise]);
         if (result?.summary) {
           platformAnalytics[cfg.key] = result;
+          // Fire the per-platform learning hook (reflection memory +
+          // optional anomaly insight). Awaited inline because Vercel
+          // kills fire-and-forget tasks once the function responds
+          // (caught during the Whoop arc — fire-and-forget never
+          // landed). Each hook is bounded (one dedup query + one
+          // insert ~200ms) and self-try/catches.
+          if (typeof cfg.learn === 'function') {
+            const learnStart = Date.now();
+            await cfg.learn(userId, result.raw, result.summary);
+            timings[`${cfg.key}LearnMs`] = Date.now() - learnStart;
+          }
         }
         timings[`${cfg.key}AnalyticsMs`] = Date.now() - tStart;
         timings[`${cfg.key}AnalyticsKind`] = intent.kind;
