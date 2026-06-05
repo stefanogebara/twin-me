@@ -112,7 +112,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // "Failed to load transactions (401)" instead of redirecting to sign-in).
     const initAuth = async () => {
       if (!getAccessToken()) {
-        const refreshed = await refreshAccessToken();
+        // Bug D2 — desktop (Tauri WebView2) deep-link bootstrap. OAuthCallback
+        // stashes the freshly-claimed access token here because WebView2 drops the
+        // refresh_token cookie that /oauth/claim sets (so the cookie-based refresh
+        // below 401s and the user lands on session_expired). Recover the session
+        // from the stashed token — checkAuth() verifies it via the Authorization
+        // header, which does NOT depend on the cookie — before falling back to the
+        // refresh. One-time use: removed immediately so a stale token can't
+        // resurrect a signed-out session on a later load.
+        let bootstrapped = false;
+        try {
+          const bootstrapToken = sessionStorage.getItem('oauth_bootstrap_token');
+          if (bootstrapToken) {
+            sessionStorage.removeItem('oauth_bootstrap_token');
+            setAccessToken(bootstrapToken);
+            bootstrapped = true;
+          }
+        } catch { /* sessionStorage unavailable — fall through to cookie refresh */ }
+
+        const refreshed = bootstrapped ? true : await refreshAccessToken();
         if (!refreshed) {
           // Session expired. Wipe any stale cached user so ProtectedRoute kicks in
           // before API calls hit the page and show 401 error banners.
