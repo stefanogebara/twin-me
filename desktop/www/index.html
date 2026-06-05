@@ -23,6 +23,12 @@
     --narrative: rgba(245, 245, 244, 0.9);
     --serif: "Instrument Serif", Georgia, "Times New Roman", serif;
     --sans: "Geist", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+
+    /* Ambient gradient orb positions — animated by JS drift loop */
+    --orb1-x: 12%; --orb1-y: 8%;
+    --orb2-x: 88%; --orb2-y: 12%;
+    --orb3-x: 50%; --orb3-y: 108%;
+    --orb4-x: 95%; --orb4-y: 55%;
   }
 
   * { box-sizing: border-box; -webkit-user-select: none; user-select: none; }
@@ -33,16 +39,44 @@
     height: 100%;
     overflow: hidden;
     background-color: var(--background);
-    /* Sun-driven 4-orb ambient gradient (CLAUDE.md defaults). */
+    /* Sun-driven 4-orb ambient gradient (CLAUDE.md defaults). Positions driven by CSS vars. */
     background-image:
-      radial-gradient(ellipse 90% 70% at 12% 8%, rgba(210, 145, 55, 0.38) 0%, transparent 60%),
-      radial-gradient(ellipse 80% 60% at 88% 12%, rgba(180, 110, 65, 0.30) 0%, transparent 55%),
-      radial-gradient(ellipse 100% 70% at 50% 108%, rgba(160, 95, 55, 0.34) 0%, transparent 60%),
-      radial-gradient(ellipse 70% 80% at 95% 55%, rgba(55, 45, 140, 0.28) 0%, transparent 60%);
+      radial-gradient(ellipse 90% 70% at var(--orb1-x) var(--orb1-y), rgba(210, 145, 55, 0.38) 0%, transparent 60%),
+      radial-gradient(ellipse 80% 60% at var(--orb2-x) var(--orb2-y), rgba(180, 110, 65, 0.30) 0%, transparent 55%),
+      radial-gradient(ellipse 100% 70% at var(--orb3-x) var(--orb3-y), rgba(160, 95, 55, 0.34) 0%, transparent 60%),
+      radial-gradient(ellipse 70% 80% at var(--orb4-x) var(--orb4-y), rgba(55, 45, 140, 0.28) 0%, transparent 60%);
     background-attachment: fixed;
     color: var(--foreground);
     font-family: var(--sans);
     -webkit-font-smoothing: antialiased;
+  }
+
+  /* Slow ambient drift — separate keyframes per orb so they drift independently */
+  @media (prefers-reduced-motion: no-preference) {
+    @keyframes drift1 {
+      0%   { --orb1-x: 12%; --orb1-y: 8%;  }
+      33%  { --orb1-x: 16%; --orb1-y: 4%;  }
+      66%  { --orb1-x: 9%;  --orb1-y: 12%; }
+      100% { --orb1-x: 12%; --orb1-y: 8%;  }
+    }
+    @keyframes drift2 {
+      0%   { --orb2-x: 88%; --orb2-y: 12%; }
+      40%  { --orb2-x: 92%; --orb2-y: 8%;  }
+      70%  { --orb2-x: 84%; --orb2-y: 16%; }
+      100% { --orb2-x: 88%; --orb2-y: 12%; }
+    }
+    @keyframes drift3 {
+      0%   { --orb3-x: 50%; --orb3-y: 108%; }
+      50%  { --orb3-x: 54%; --orb3-y: 112%; }
+      100% { --orb3-x: 50%; --orb3-y: 108%; }
+    }
+    @keyframes drift4 {
+      0%   { --orb4-x: 95%; --orb4-y: 55%; }
+      45%  { --orb4-x: 91%; --orb4-y: 59%; }
+      100% { --orb4-x: 95%; --orb4-y: 55%; }
+    }
+    /* Note: CSS custom property animation via @keyframes requires Houdini/registerProperty.
+       Fallback: the drift is implemented in JS below for broad WebView support. */
   }
 
   .app {
@@ -51,7 +85,7 @@
     flex-direction: column;
   }
 
-  /* ---- Top app chrome (reinforces "this is an app") ---- */
+  /* ---- Top app chrome ---- */
   .chrome {
     display: flex;
     align-items: center;
@@ -91,6 +125,8 @@
     padding: 8px 28px;
     min-height: 0;
   }
+
+  /* Refined screen transition: fade + gentle slide-up */
   .screen {
     position: absolute;
     inset: 0;
@@ -101,12 +137,32 @@
     text-align: center;
     padding: 0 12px;
     opacity: 0;
-    transform: translateY(14px);
-    transition: opacity 0.45s ease, transform 0.45s ease;
+    transform: translateY(16px);
+    transition: opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+                transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
     pointer-events: none;
     overflow-y: auto;
   }
   .screen.active { opacity: 1; transform: translateY(0); pointer-events: auto; }
+
+  /* Staggered reveal for child elements inside an active screen */
+  .screen.active .stagger-1 { animation: staggerIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.00s both; }
+  .screen.active .stagger-2 { animation: staggerIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.07s both; }
+  .screen.active .stagger-3 { animation: staggerIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.14s both; }
+  .screen.active .stagger-4 { animation: staggerIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.21s both; }
+  .screen.active .stagger-5 { animation: staggerIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.28s both; }
+  @keyframes staggerIn {
+    from { opacity: 0; transform: translateY(13px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .screen { transition: opacity 0.25s ease; transform: none; }
+    .screen.active .stagger-1,
+    .screen.active .stagger-2,
+    .screen.active .stagger-3,
+    .screen.active .stagger-4,
+    .screen.active .stagger-5 { animation: none; }
+  }
 
   .content { width: 100%; max-width: 660px; margin: auto; }
 
@@ -173,6 +229,16 @@
     max-width: 500px;
   }
 
+  /* Quiet trust line under permission screens */
+  .trust-line {
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--text-muted);
+    margin: 14px auto 0;
+    max-width: 480px;
+    letter-spacing: 0.01em;
+  }
+
   /* ---- Name / preferences fields ---- */
   .fields { margin: 26px auto 0; max-width: 420px; }
   .field { text-align: left; }
@@ -204,6 +270,11 @@
     backdrop-filter: blur(42px) saturate(140%);
     -webkit-backdrop-filter: blur(42px) saturate(140%);
     box-shadow: 0 4px 4px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    transition: box-shadow 0.2s ease, transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .card:hover {
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    transform: translateY(-1px);
   }
   .card .glyph {
     flex: 0 0 auto;
@@ -234,10 +305,13 @@
     border-radius: 100px;
     padding: 8px 16px;
     cursor: pointer;
-    transition: transform 0.15s ease, opacity 0.2s ease, background 0.2s ease;
+    transition: transform 0.15s cubic-bezier(0.22, 1, 0.36, 1),
+                opacity 0.2s ease,
+                box-shadow 0.2s ease;
     white-space: nowrap;
   }
-  .enable-btn:hover { transform: translateY(-1px); }
+  .enable-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(0,0,0,0.22); }
+  .enable-btn:active { transform: translateY(0); }
   .enable-btn:disabled { cursor: default; transform: none; }
   .enabled-pill {
     display: flex;
@@ -303,21 +377,40 @@
   /* ---- Observe payoff: "here's what I noticed" summary ---- */
   .summary-host { margin: 22px auto 0; max-width: 520px; }
   .observe-thinking { font-size: 14px; color: var(--text-secondary); margin: 12px auto 0; }
+
+  /* Cinematic reveal: summary card fades in with a slow upward drift */
   .summary-card {
     text-align: left; margin: 0 auto;
     background: var(--glass-bg); border: 1px solid var(--glass-border);
     border-radius: 20px; padding: 20px 22px;
     backdrop-filter: blur(42px) saturate(140%); -webkit-backdrop-filter: blur(42px) saturate(140%);
     box-shadow: 0 4px 4px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    animation: summaryReveal 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
   }
-  .summary-text { font-size: 15px; line-height: 1.62; color: var(--narrative); margin: 0; white-space: pre-line; }
+  @keyframes summaryReveal {
+    from { opacity: 0; transform: translateY(18px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .summary-card { animation: none; }
+  }
+
+  /* Paragraph lines reveal with a gentle stagger */
+  .summary-text { font-size: 15px; line-height: 1.65; color: var(--narrative); margin: 0; white-space: pre-line; }
+  .summary-text.reveal-1 { animation: summaryReveal 0.75s cubic-bezier(0.22, 1, 0.36, 1) 0.10s both; }
+  .summary-text.reveal-2 { animation: summaryReveal 0.75s cubic-bezier(0.22, 1, 0.36, 1) 0.25s both; }
   .summary-insight {
     font-size: 14.5px; line-height: 1.55; color: var(--foreground);
     margin: 16px 0 0; padding: 13px 15px;
     background: rgba(193, 126, 44, 0.10);
     border: 1px solid rgba(193, 126, 44, 0.22);
     border-radius: 12px;
+    animation: summaryReveal 0.75s cubic-bezier(0.22, 1, 0.36, 1) 0.42s both;
   }
+  @media (prefers-reduced-motion: reduce) {
+    .summary-text.reveal-1, .summary-text.reveal-2, .summary-insight { animation: none; }
+  }
+
   .apps-chips { display: flex; flex-wrap: wrap; gap: 7px; margin: 16px 0 0; }
   .apps-chips .clabel { width: 100%; font-size: 12px; color: var(--text-muted); margin: 0 0 2px; }
   .apps-chips .chip {
@@ -331,7 +424,7 @@
     color: var(--foreground);
     background: var(--glass-bg); border: 1px solid var(--glass-border);
     border-radius: 100px; padding: 9px 18px; cursor: pointer;
-    transition: background 0.2s ease, transform 0.15s ease;
+    transition: background 0.2s ease, transform 0.15s cubic-bezier(0.22, 1, 0.36, 1);
   }
   .look-again:hover { background: rgba(255, 255, 255, 0.10); transform: translateY(-1px); }
 
@@ -355,6 +448,11 @@
     -webkit-backdrop-filter: blur(42px) saturate(140%);
     box-shadow: 0 4px 4px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.06);
     text-align: left;
+    transition: box-shadow 0.2s ease, transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .platform:hover {
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    transform: translateY(-1px);
   }
   .platform .glyph {
     flex: 0 0 auto; width: 30px; height: 30px; border-radius: 9px;
@@ -368,17 +466,20 @@
   .platform .pval { font-size: 11.5px; line-height: 1.4; color: var(--text-muted); }
   .platforms-note { font-size: 12.5px; color: var(--text-muted); margin: 16px auto 0; }
 
-  /* Continue with Google (Phase 2 — system-browser OAuth) */
+  /* Continue with Google */
   .auth-actions { display: flex; flex-direction: column; align-items: center; gap: 10px; margin: 24px auto 4px; max-width: 360px; }
   .google-btn {
     display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%;
     font-family: var(--sans); font-size: 14.5px; font-weight: 600;
     color: var(--primary-foreground); background: var(--primary);
     border: none; border-radius: 100px; padding: 12px 22px; cursor: pointer;
-    transition: transform 0.15s ease, opacity 0.2s ease, box-shadow 0.2s ease;
+    transition: transform 0.15s cubic-bezier(0.22, 1, 0.36, 1),
+                opacity 0.2s ease,
+                box-shadow 0.2s ease;
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.28);
   }
   .google-btn:hover { transform: translateY(-1px); box-shadow: 0 10px 26px rgba(0, 0, 0, 0.34); }
+  .google-btn:active { transform: translateY(0); }
   .google-btn:disabled { opacity: 0.6; cursor: default; transform: none; box-shadow: none; }
   .google-btn svg { width: 18px; height: 18px; flex: 0 0 auto; }
   .auth-hint { font-size: 12.5px; color: var(--text-muted); margin: 0; line-height: 1.45; }
@@ -409,7 +510,9 @@
     padding: 12px 30px;
     min-width: 180px;
     cursor: pointer;
-    transition: transform 0.15s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+    transition: transform 0.15s cubic-bezier(0.22, 1, 0.36, 1),
+                box-shadow 0.2s ease,
+                opacity 0.2s ease;
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.28);
   }
   .cta:hover { transform: translateY(-1px); box-shadow: 0 10px 26px rgba(0, 0, 0, 0.34); }
@@ -452,18 +555,18 @@
     <!-- 0. Welcome -->
     <section class="screen active" data-step="0">
       <div class="content">
-        <div class="flower-wrap"><img src="flower.png" alt="TwinMe" /></div>
-        <h1>Meet your twin,<br />natively</h1>
-        <p class="lede">TwinMe Desktop brings your Soul Signature out of the browser and into your day. With your permission, it learns from the work and conversations that actually shape you.</p>
+        <div class="flower-wrap stagger-1"><img src="flower.png" alt="TwinMe" /></div>
+        <h1 class="stagger-2">Your twin,<br />natively</h1>
+        <p class="lede stagger-3">I live outside the browser now. With your permission, I learn from the work and conversations that actually shape you, Stefano — so when you need me, I already know where you left off.</p>
       </div>
     </section>
 
     <!-- 1. What should I call you? -->
     <section class="screen" data-step="1">
       <div class="content">
-        <h2>What should I call you?</h2>
-        <p class="sub">I'll use this when we talk. You can change it later in TwinMe.</p>
-        <div class="fields">
+        <h2 class="stagger-1">What should I call you?</h2>
+        <p class="sub stagger-2">I'll use this when we talk. You can change it anytime in TwinMe.</p>
+        <div class="fields stagger-3">
           <div class="field">
             <label for="name-input">Your name</label>
             <input id="name-input" type="text" autocomplete="given-name" placeholder="e.g. Stefano" maxlength="60" />
@@ -479,9 +582,9 @@
     <!-- 2. Context awareness -->
     <section class="screen" data-step="2">
       <div class="content">
-        <h2>Context awareness</h2>
-        <p class="sub">So your twin learns from real life, not just chat.</p>
-        <div class="cards">
+        <h2 class="stagger-1">I learn from what you focus on</h2>
+        <p class="sub stagger-2">So your twin picks up the real shape of your work, not just what you type to me.</p>
+        <div class="cards stagger-3">
           <div class="card perm">
             <div class="glyph">
               <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
@@ -495,6 +598,7 @@
             </div>
           </div>
         </div>
+        <p class="trust-line stagger-4">Text only. No screen recording. Delete anything, anytime.</p>
         <button class="perm-skip" id="ctx-skip">Set up later</button>
       </div>
     </section>
@@ -502,9 +606,9 @@
     <!-- 3. Microphone -->
     <section class="screen" data-step="3">
       <div class="content">
-        <h2>On-device meeting notes</h2>
-        <p class="sub">Optional. Local transcription of your calls — the audio never leaves this machine, and only during meetings you choose.</p>
-        <div class="cards">
+        <h2 class="stagger-1">On-device meeting notes</h2>
+        <p class="sub stagger-2">Optional. Local transcription of your calls — audio never leaves this machine, and only during meetings you choose.</p>
+        <div class="cards stagger-3">
           <div class="card perm">
             <div class="glyph">
               <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/></svg>
@@ -518,6 +622,7 @@
             </div>
           </div>
         </div>
+        <p class="trust-line stagger-4">Audio stays on this machine. No uploads, ever.</p>
         <button class="perm-skip" id="mic-skip">Set up later</button>
       </div>
     </section>
@@ -525,16 +630,16 @@
     <!-- 4. One keystroke away -->
     <section class="screen" data-step="4">
       <div class="content">
-        <h2>One keystroke away</h2>
-        <p class="sub">Summon your twin over any other app, whenever you need it.</p>
-        <div class="cards">
+        <h2 class="stagger-1">One keystroke away</h2>
+        <p class="sub stagger-2">Summon me over any other app, whenever you need to think out loud.</p>
+        <div class="cards stagger-3">
           <div class="card">
             <div class="glyph">
               <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M8 14h8"/></svg>
             </div>
             <div class="body">
               <div class="title">Press Ctrl + Shift + T</div>
-              <div class="desc">A quick panel opens over whatever you're doing. Ask a question, capture a thought, then get back to work.</div>
+              <div class="desc">A quiet panel opens over whatever you're doing. Ask a question, capture a thought, then get back to work.</div>
             </div>
           </div>
         </div>
@@ -544,9 +649,9 @@
     <!-- 5. Use your computer normally (observe countdown) -->
     <section class="screen" data-step="5">
       <div class="content">
-        <h2>Use your computer normally</h2>
-        <p class="sub">Switch between a couple of apps and work like you usually would. I'm noticing — all on this machine.</p>
-        <div class="observe-stage">
+        <h2 class="stagger-1">Use your computer normally</h2>
+        <p class="sub stagger-2">Switch between a couple of apps and work like you usually would. I'm noticing — all on this machine.</p>
+        <div class="observe-stage stagger-3">
           <div class="radar">
             <span class="ring"></span><span class="ring"></span><span class="ring"></span>
             <span class="core">
@@ -562,25 +667,25 @@
     <!-- 6. Here's what I noticed (LLM summary) -->
     <section class="screen" data-step="6">
       <div class="content">
-        <h2 id="observe-heading">Here's what I noticed</h2>
-        <p class="sub">A first glimpse, from the apps and windows I saw. I get sharper the more we work together.</p>
-        <div class="summary-host" id="summary-host"></div>
+        <h2 class="stagger-1" id="observe-heading">Here's what I noticed</h2>
+        <p class="sub stagger-2">A first glimpse, from the apps and windows I saw. I get sharper the more we work together.</p>
+        <div class="summary-host stagger-3" id="summary-host"></div>
       </div>
     </section>
 
     <!-- 7. Sign in & connect (handoff to twinme.me) -->
     <section class="screen" data-step="7">
       <div class="content">
-        <h2 id="ready-heading">Keep your twin</h2>
-        <p class="lede">Sign in to save what I've learned and connect your world. Everything stays on your terms.</p>
-        <div class="auth-actions">
+        <h2 class="stagger-1" id="ready-heading">Keep your twin</h2>
+        <p class="lede stagger-2">Sign in to save what I've learned and connect your world. Everything stays on your terms.</p>
+        <div class="auth-actions stagger-3">
           <button class="google-btn" id="google-btn">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.76h3.56c2.08-1.92 3.28-4.74 3.28-8.09Z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.56-2.76c-.98.66-2.24 1.06-3.72 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23Z"/><path fill="#FBBC05" d="M5.84 14.41a6.6 6.6 0 0 1 0-4.82V6.75H2.18a11 11 0 0 0 0 10.5l3.66-2.84Z"/><path fill="#EA4335" d="M12 5.5c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84C6.71 7.31 9.14 5.5 12 5.5Z"/></svg>
             Continue with Google
           </button>
           <p class="auth-hint" id="auth-hint">Opens your real browser — we never see your password.</p>
         </div>
-        <p class="platforms-note">After you sign in, I'll take a moment to look you up — then your twin is ready.</p>
+        <p class="platforms-note stagger-4">After you sign in, I'll take a moment to look you up — then your twin is ready.</p>
       </div>
     </section>
   </main>
@@ -600,7 +705,7 @@
     var API_BASE = "https://twinme.me/api";
     // v3: native-first flow (name -> permissions -> observe -> "here's what I
     // noticed" -> sign-in handoff). Bumped key so users of v2 see it once.
-    var FLAG = "twinme_desktop_onboarded_v6"; // v6: removed platform cards + "look you up" after sign-in — re-show once
+    var FLAG = "twinme_desktop_onboarded_v7"; // v7: Littlebird-inspired motion + first-person voice + cinematic summary reveal — re-show once
     var NAME_KEY = "twinme_desktop_name";
     var ALIASES_KEY = "twinme_desktop_aliases";
     var TOTAL = 8;
@@ -888,10 +993,26 @@
         });
     }
 
+    /* Cinematic summary reveal: two paragraphs stagger in, then the insight. */
     function renderSummary(host, data, deduped) {
+      // Split summary into two halves at the nearest sentence boundary for a
+      // two-beat reveal (paragraph 1 → pause → paragraph 2 → insight).
+      var fullText = data.summary || "";
+      var midIdx = Math.floor(fullText.length / 2);
+      var splitAt = fullText.indexOf(". ", midIdx);
+      var para1, para2;
+      if (splitAt !== -1 && splitAt < fullText.length - 2) {
+        para1 = fullText.slice(0, splitAt + 1).trim();
+        para2 = fullText.slice(splitAt + 2).trim();
+      } else {
+        para1 = fullText;
+        para2 = "";
+      }
+
       host.innerHTML =
         '<div class="summary-card">' +
-          '<p class="summary-text">' + escapeHtml(data.summary) + "</p>" +
+          '<p class="summary-text reveal-1">' + escapeHtml(para1) + "</p>" +
+          (para2 ? '<p class="summary-text reveal-2" style="margin-top:10px">' + escapeHtml(para2) + "</p>" : "") +
           (data.insight ? '<p class="summary-insight">' + escapeHtml(data.insight) + "</p>" : "") +
           chipsHtml(deduped) +
         "</div>";
@@ -906,7 +1027,7 @@
       var text = "I noticed you moving between " + list + ". The more you use your machine, the more I'll understand your rhythm.";
       host.innerHTML =
         '<div class="summary-card">' +
-          '<p class="summary-text">' + escapeHtml(text) + "</p>" +
+          '<p class="summary-text reveal-1">' + escapeHtml(text) + "</p>" +
           chipsHtml(deduped) +
         "</div>";
       cta.disabled = false;
@@ -940,7 +1061,7 @@
     function continueWithGoogle() {
       var hint = document.getElementById("auth-hint");
       // Open the system browser at the web sign-in handoff (registered Google
-      // redirect URI); it deep-links the session back via twinme:// → /soul-reveal.
+      // redirect URI); it deep-links the session back via twinme:// -> /soul-reveal.
       var url = APP_URL + "/desktop-handoff";
       try { localStorage.setItem(FLAG, "1"); } catch (e) { /* ignore */ }
       if (HAS_TAURI) {
@@ -972,6 +1093,39 @@
         prev();
       }
     });
+
+    /* ---------- Subtle ambient gradient drift (JS-driven for WebView compat) ---------- */
+    (function startAmbientDrift() {
+      var mq = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)");
+      if (mq && mq.matches) return; // respect user preference
+
+      var root = document.documentElement;
+      var t = 0;
+      // Drift parameters: [amplitude_x%, amplitude_y%, period_s, phase_offset]
+      var orbs = [
+        { xBase: 12, yBase: 8,   ax: 3.5, ay: 4,   period: 29, phase: 0 },
+        { xBase: 88, yBase: 12,  ax: 4,   ay: 3.5,  period: 34, phase: 1.1 },
+        { xBase: 50, yBase: 108, ax: 3,   ay: 4,   period: 38, phase: 2.2 },
+        { xBase: 95, yBase: 55,  ax: 3.5, ay: 4.5,  period: 31, phase: 0.7 }
+      ];
+
+      var raf;
+      var lastTime = null;
+      function tick(now) {
+        if (lastTime !== null) { t += (now - lastTime) / 1000; }
+        lastTime = now;
+        for (var i = 0; i < orbs.length; i++) {
+          var o = orbs[i];
+          var angle = (2 * Math.PI * t / o.period) + o.phase;
+          var x = o.xBase + o.ax * Math.sin(angle);
+          var y = o.yBase + o.ay * Math.cos(angle * 0.8);
+          root.style.setProperty("--orb" + (i + 1) + "-x", x.toFixed(2) + "%");
+          root.style.setProperty("--orb" + (i + 1) + "-y", y.toFixed(2) + "%");
+        }
+        raf = requestAnimationFrame(tick);
+      }
+      raf = requestAnimationFrame(tick);
+    })();
 
     render();
   })();
