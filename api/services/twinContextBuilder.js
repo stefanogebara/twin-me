@@ -70,6 +70,12 @@ import { getRecentWatching } from './youtube/analytics/getRecentWatching.js';
 import { formatRecentWatching } from './youtube/formatAnalytics.js';
 import { persistYoutubeLearning } from './youtube/learningHooks.js';
 
+import { detectGmailIntent } from './gmail/detectIntent.js';
+import { createGmailClient } from './gmail/client.js';
+import { getEmailBehavior } from './gmail/analytics/getEmailBehavior.js';
+import { formatEmailBehavior } from './gmail/formatAnalytics.js';
+import { persistGmailLearning } from './gmail/learningHooks.js';
+
 const PLATFORM_ANALYTICS_TIMEOUT_MS = 8000;
 
 // Hard cap for the analytics tool call. Sits in POST-processing, after
@@ -602,6 +608,17 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
       },
       learn: persistYoutubeLearning,
     },
+    {
+      key: 'gmail',
+      detect: detectGmailIntent,
+      tokenPlatform: 'google_gmail',
+      run: async (token) => {
+        const client = createGmailClient({ accessToken: token });
+        const behavior = await getEmailBehavior(client, {});
+        return { kind: 'behavior', summary: formatEmailBehavior(behavior), raw: behavior };
+      },
+      learn: persistGmailLearning,
+    },
   ];
 
   const platformAnalytics = {};
@@ -682,6 +699,13 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
     returnedPlatformData = {
       ...(returnedPlatformData ?? {}),
       youtube: { ...(returnedPlatformData?.youtube ?? {}), analytics: youtubeAnalytics },
+    };
+  }
+  const gmailAnalytics = platformAnalytics.gmail ?? null;
+  if (gmailAnalytics?.summary) {
+    returnedPlatformData = {
+      ...(returnedPlatformData ?? {}),
+      gmail: { ...(returnedPlatformData?.gmail ?? {}), analytics: gmailAnalytics },
     };
   }
 

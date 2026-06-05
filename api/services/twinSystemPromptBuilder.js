@@ -556,6 +556,14 @@ export function buildTwinSystemPrompt(soulSignature, platformData, twinSummary =
       }
     }
 
+    if (platformData.gmail) {
+      const gm = platformData.gmail;
+      if (gm.analytics?.summary) {
+        dynamicContext += `\n\nMy email behavior:`;
+        dynamicContext += `\nGmail data for the period asked about (use these exact numbers when answering): ${gm.analytics.summary}`;
+      }
+    }
+
     if (platformData.whoop) {
       const w = platformData.whoop;
       dynamicContext += `\n\nMy body today:`;
