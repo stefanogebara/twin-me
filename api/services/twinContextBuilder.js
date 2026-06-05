@@ -44,15 +44,29 @@ import {
   persistTrendAnomalyInsight,
   persistWeeklyReflection,
 } from './whoop/learningHooks.js';
-// Spotify analytics — same per-turn escalation pattern as Whoop, on
-// the only other platform with high enough data flow for it to be
-// worthwhile right now (calendar gets the next pass).
+// Platform analytics escalations — same per-turn pattern as Whoop,
+// on each platform with high enough data flow for it to be worthwhile.
 import { detectSpotifyIntent } from './spotify/detectIntent.js';
 import { createSpotifyClient } from './spotify/client.js';
 import { getRecentListening } from './spotify/analytics/getRecentListening.js';
 import { formatRecentListening } from './spotify/formatAnalytics.js';
 
-const SPOTIFY_ANALYTICS_TIMEOUT_MS = 8000;
+import { detectCalendarIntent } from './calendar/detectIntent.js';
+import { createCalendarClient } from './calendar/client.js';
+import { getMeetingBreakdown } from './calendar/analytics/getMeetingBreakdown.js';
+import { formatMeetingBreakdown } from './calendar/formatAnalytics.js';
+
+import { detectGithubIntent } from './github/detectIntent.js';
+import { createGithubClient } from './github/client.js';
+import { getRecentActivity as getGithubActivity } from './github/analytics/getRecentActivity.js';
+import { formatRecentActivity as formatGithubActivity } from './github/formatAnalytics.js';
+
+import { detectYoutubeIntent } from './youtube/detectIntent.js';
+import { createYoutubeClient } from './youtube/client.js';
+import { getRecentWatching } from './youtube/analytics/getRecentWatching.js';
+import { formatRecentWatching } from './youtube/formatAnalytics.js';
+
+const PLATFORM_ANALYTICS_TIMEOUT_MS = 8000;
 
 // Hard cap for the analytics tool call. Sits in POST-processing, after
 // the 10s parent fan-out breaker, so it doesn't compete for that
@@ -531,41 +545,108 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
     }
   }
 
-  // Spotify analytics escalation — same pattern as Whoop. Fires only
-  // when the user's message wants more than today's currently-playing
-  // snapshot ("what have I been listening to", "who am I listening to
-  // most", "top tracks"). Cheap-ish to run (two parallel Spotify API
-  // calls), but only on demand so we don't pay it on every chat turn.
-  let spotifyAnalytics = null;
-  if (userMessage) {
+  // Generic per-platform analytics escalation. Same shape as Whoop:
+  // detect intent, fetch token, run the platform's analytics tool
+  // with a Promise.race timeout, attach result. Each platform's
+  // adapter is just { detect, tokenPlatform, build, hit, attachKey }.
+  const PLATFORM_ANALYTICS = [
+    {
+      key: 'spotify',
+      detect: detectSpotifyIntent,
+      tokenPlatform: 'spotify',
+      run: async (token) => {
+        const client = createSpotifyClient({ accessToken: token });
+        const recent = await getRecentListening(client, {});
+        return { kind: 'recent_listening', summary: formatRecentListening(recent), raw: recent };
+      },
+    },
+    {
+      key: 'calendar',
+      detect: detectCalendarIntent,
+      tokenPlatform: 'google_calendar',
+      run: async (token) => {
+        const client = createCalendarClient({ accessToken: token });
+        const breakdown = await getMeetingBreakdown(client, {});
+        return { kind: 'breakdown', summary: formatMeetingBreakdown(breakdown), raw: breakdown };
+      },
+    },
+    {
+      key: 'github',
+      detect: detectGithubIntent,
+      tokenPlatform: 'github',
+      // Username probe from existing platform_data — set per call below.
+      run: async (token, { username }) => {
+        if (!username) return null;
+        const client = createGithubClient({ accessToken: token });
+        const activity = await getGithubActivity(client, { username });
+        return { kind: 'activity', summary: formatGithubActivity(activity), raw: activity };
+      },
+    },
+    {
+      key: 'youtube',
+      detect: detectYoutubeIntent,
+      tokenPlatform: 'youtube',
+      run: async (token) => {
+        const client = createYoutubeClient({ accessToken: token });
+        const watching = await getRecentWatching(client, {});
+        return { kind: 'watching', summary: formatRecentWatching(watching), raw: watching };
+      },
+    },
+  ];
+
+  // GitHub needs the username — pull from platform_connections.
+  // Cached cheaply via _ghUsername to avoid two queries when calendar
+  // also fires (rare but possible).
+  let _ghUsername = null;
+  const _resolveGhUsername = async () => {
+    if (_ghUsername !== null) return _ghUsername;
     try {
-      const intent = detectSpotifyIntent(userMessage);
-      if (intent.kind && intent.kind !== 'snapshot') {
-        const spotifyAnalyticsStart = Date.now();
-        const tok = await getValidAccessToken(userId, 'spotify');
-        if (tok.success && tok.accessToken) {
-          const client = createSpotifyClient({ accessToken: tok.accessToken });
-          const analyticsPromise = (async () => {
-            const recent = await getRecentListening(client, {});
-            return {
-              kind: 'recent_listening',
-              summary: formatRecentListening(recent),
-              raw: recent,
-            };
-          })();
-          const timeoutPromise = new Promise((resolve) =>
-            setTimeout(() => resolve(null), SPOTIFY_ANALYTICS_TIMEOUT_MS),
-          );
-          spotifyAnalytics = await Promise.race([analyticsPromise, timeoutPromise]);
+      const { data } = await supabaseAdmin
+        .from('platform_connections')
+        .select('platform_user_id')
+        .eq('user_id', userId)
+        .eq('platform', 'github')
+        .single();
+      _ghUsername = data?.platform_user_id || '';
+    } catch {
+      _ghUsername = '';
+    }
+    return _ghUsername;
+  };
+
+  const platformAnalytics = {};
+  if (userMessage) {
+    for (const cfg of PLATFORM_ANALYTICS) {
+      try {
+        const intent = cfg.detect(userMessage);
+        if (!intent.kind || intent.kind === 'snapshot') continue;
+        const tStart = Date.now();
+        const tok = await getValidAccessToken(userId, cfg.tokenPlatform);
+        if (!tok.success || !tok.accessToken) {
+          timings[`${cfg.key}AnalyticsHit`] = 'no_token';
+          continue;
         }
-        timings.spotifyAnalyticsMs = Date.now() - spotifyAnalyticsStart;
-        timings.spotifyAnalyticsKind = intent.kind;
-        timings.spotifyAnalyticsHit = spotifyAnalytics?.summary ? 'yes' : 'no';
+        const extras = cfg.key === 'github' ? { username: await _resolveGhUsername() } : {};
+        const analyticsPromise = cfg.run(tok.accessToken, extras);
+        const timeoutPromise = new Promise((resolve) =>
+          setTimeout(() => resolve(null), PLATFORM_ANALYTICS_TIMEOUT_MS),
+        );
+        const result = await Promise.race([analyticsPromise, timeoutPromise]);
+        if (result?.summary) {
+          platformAnalytics[cfg.key] = result;
+        }
+        timings[`${cfg.key}AnalyticsMs`] = Date.now() - tStart;
+        timings[`${cfg.key}AnalyticsKind`] = intent.kind;
+        timings[`${cfg.key}AnalyticsHit`] = result?.summary ? 'yes' : 'no';
+      } catch (err) {
+        log.warn(`${cfg.key} analytics escalation failed: ${err?.message ?? err}`);
       }
-    } catch (err) {
-      log.warn(`Spotify analytics escalation failed: ${err?.message ?? err}`);
     }
   }
+  const spotifyAnalytics = platformAnalytics.spotify ?? null;
+  const calendarAnalytics = platformAnalytics.calendar ?? null;
+  const githubAnalytics = platformAnalytics.github ?? null;
+  const youtubeAnalytics = platformAnalytics.youtube ?? null;
 
   // Shallow-copy platformData so we can attach analytics for the
   // current turn without mutating the cached entry. If the snapshot
@@ -583,6 +664,24 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
     returnedPlatformData = {
       ...(returnedPlatformData ?? {}),
       spotify: { ...(returnedPlatformData?.spotify ?? {}), analytics: spotifyAnalytics },
+    };
+  }
+  if (calendarAnalytics?.summary) {
+    returnedPlatformData = {
+      ...(returnedPlatformData ?? {}),
+      calendar: { ...(returnedPlatformData?.calendar ?? {}), analytics: calendarAnalytics },
+    };
+  }
+  if (githubAnalytics?.summary) {
+    returnedPlatformData = {
+      ...(returnedPlatformData ?? {}),
+      github: { ...(returnedPlatformData?.github ?? {}), analytics: githubAnalytics },
+    };
+  }
+  if (youtubeAnalytics?.summary) {
+    returnedPlatformData = {
+      ...(returnedPlatformData ?? {}),
+      youtube: { ...(returnedPlatformData?.youtube ?? {}), analytics: youtubeAnalytics },
     };
   }
 

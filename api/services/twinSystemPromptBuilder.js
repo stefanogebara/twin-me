@@ -535,6 +535,25 @@ export function buildTwinSystemPrompt(soulSignature, platformData, twinSummary =
           return `${e.summary}${idTag}`;
         }).join(', ')}.`;
       }
+      if (cal.analytics?.summary) {
+        dynamicContext += `\nCalendar data for the period asked about (use these exact numbers when answering): ${cal.analytics.summary}`;
+      }
+    }
+
+    if (platformData.github) {
+      const gh = platformData.github;
+      if (gh.analytics?.summary) {
+        dynamicContext += `\n\nMy coding activity:`;
+        dynamicContext += `\nGitHub data for the period asked about (use these exact numbers when answering): ${gh.analytics.summary}`;
+      }
+    }
+
+    if (platformData.youtube) {
+      const yt = platformData.youtube;
+      if (yt.analytics?.summary) {
+        dynamicContext += `\n\nMy YouTube library:`;
+        dynamicContext += `\nYouTube data for the period asked about (use these exact numbers when answering): ${yt.analytics.summary}`;
+      }
     }
 
     if (platformData.whoop) {

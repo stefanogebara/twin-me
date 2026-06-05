@@ -21,6 +21,9 @@ import { trackChatMessage } from '../services/twinSessionTracker.js';
 import { classifyMessageTier, CHAT_TIER_LIGHT, CHAT_TIER_DEEP } from '../services/chatRouter.js';
 import { detectWhoopIntent } from '../services/whoop/detectIntent.js';
 import { detectSpotifyIntent } from '../services/spotify/detectIntent.js';
+import { detectCalendarIntent } from '../services/calendar/detectIntent.js';
+import { detectGithubIntent } from '../services/github/detectIntent.js';
+import { detectYoutubeIntent } from '../services/youtube/detectIntent.js';
 import { condenseIfNeeded } from '../services/contextCondenser.js';
 import { injectTaskIntentBlocks } from '../services/taskIntentInjector.js';
 import { runWorkspaceActionChain } from '../services/workspaceActionChain.js';
@@ -346,20 +349,24 @@ router.post('/message', authenticateUser, async (req, res) => {
     // recovery; we only suppress for trend / weekly / compare /
     // workouts intents where the user is explicitly asking for the
     // Whoop numbers we just computed.
-    const whoopIntentForGate = detectWhoopIntent(message);
-    const spotifyIntentForGate = detectSpotifyIntent(message);
-    const suppressWorkspaceForAnalytics =
-      (whoopIntentForGate.kind && whoopIntentForGate.kind !== 'snapshot') ||
-      (spotifyIntentForGate.kind && spotifyIntentForGate.kind !== 'snapshot');
+    const gateIntents = {
+      whoop: detectWhoopIntent(message),
+      spotify: detectSpotifyIntent(message),
+      calendar: detectCalendarIntent(message),
+      github: detectGithubIntent(message),
+      youtube: detectYoutubeIntent(message),
+    };
+    const suppressingPlatform = Object.entries(gateIntents).find(
+      ([, v]) => v.kind && v.kind !== 'snapshot',
+    );
+    const suppressWorkspaceForAnalytics = !!suppressingPlatform;
     if (workspaceBlock && !suppressWorkspaceForAnalytics) {
       systemPrompt.push({ type: 'text', text: `\n${workspaceBlock}` });
       workspaceActionsEnabled = true;
       chatLog('Workspace actions injected into system prompt');
     } else if (workspaceBlock && suppressWorkspaceForAnalytics) {
-      const which = whoopIntentForGate.kind
-        ? `Whoop ${whoopIntentForGate.kind}`
-        : `Spotify ${spotifyIntentForGate.kind}`;
-      chatLog(`Workspace actions suppressed — ${which} intent`);
+      const [name, val] = suppressingPlatform;
+      chatLog(`Workspace actions suppressed — ${name} ${val.kind} intent`);
     }
 
     // Conversational probes (proactive deep question + ambient interview hint)
@@ -406,11 +413,16 @@ router.post('/message', authenticateUser, async (req, res) => {
       //
       // Snapshot questions still get chat_light's gemini-flash since
       // they don't depend on directive following.
-      const whoopIntent = detectWhoopIntent(message);
-      const spotifyIntent = detectSpotifyIntent(message);
-      const isAnalyticalPlatformQuestion =
-        (whoopIntent.kind && whoopIntent.kind !== 'snapshot') ||
-        (spotifyIntent.kind && spotifyIntent.kind !== 'snapshot');
+      const platformIntents = {
+        whoop: detectWhoopIntent(message),
+        spotify: detectSpotifyIntent(message),
+        calendar: detectCalendarIntent(message),
+        github: detectGithubIntent(message),
+        youtube: detectYoutubeIntent(message),
+      };
+      const isAnalyticalPlatformQuestion = Object.values(platformIntents).some(
+        (i) => i.kind && i.kind !== 'snapshot',
+      );
       if (isAnalyticalPlatformQuestion) {
         const overrideModel = 'anthropic/claude-haiku-4.5';
         const overrideTier = CHAT_TIER_DEEP;
@@ -419,8 +431,11 @@ router.post('/message', authenticateUser, async (req, res) => {
           fromModel: routedModel,
           toTier: overrideTier,
           toModel: overrideModel,
-          whoopKind: whoopIntent.kind,
-          spotifyKind: spotifyIntent.kind,
+          intents: Object.fromEntries(
+            Object.entries(platformIntents)
+              .filter(([, v]) => v.kind && v.kind !== 'snapshot')
+              .map(([k, v]) => [k, v.kind]),
+          ),
         });
         routedModel = overrideModel;
         routingTier = overrideTier;
