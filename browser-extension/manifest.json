@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "TwinMe - Digital Twin",
-  "version": "3.9.3",
+  "version": "3.9.4",
   "description": "Your AI twin learns from your browsing patterns, interests, and digital footprint. Privacy-first, incognito excluded.",
   "permissions": [
     "storage",
@@ -66,6 +66,12 @@
       "matches": ["https://www.twitch.tv/*"],
       "js": ["collectors/twitch.js"],
       "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://www.netflix.com/*"],
+      "js": ["collectors/netflix-inject.js"],
+      "run_at": "document_start",
+      "world": "MAIN"
     },
     {
       "matches": ["https://www.netflix.com/*"],
