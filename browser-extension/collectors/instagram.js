@@ -368,10 +368,22 @@ setInterval(() => {
   }
   // Trigger an early ship (in addition to whatever the rest of the collector does)
   try {
+    // Per-item events (NOT a single {likedPosts:[...]} blob): background.js does
+    // `message.events || [message.data]`, and extension-data.js B2 reads title/url
+    // off each event — a blob collapses to one useless "Unknown" observation.
     chrome.runtime.sendMessage({
       type: 'SEND_PLATFORM_DATA',
       platform: 'instagram',
-      data: { likedPosts: items, _liveLikeBatch: true },
+      events: items.map((it) => ({
+        eventType: 'like',
+        platform: 'instagram',
+        timestamp: it.likedAt || new Date().toISOString(),
+        data: {
+          title: it.caption ? String(it.caption).slice(0, 140) : 'Liked an Instagram post',
+          type: 'like',
+          url: it.postUrl || (it.shortcode ? `https://www.instagram.com/p/${it.shortcode}/` : ''),
+        },
+      })),
     }, () => { void chrome.runtime.lastError; });
     console.log(`[Soul Signature] shipped ${items.length} live likes`);
   } catch (e) {

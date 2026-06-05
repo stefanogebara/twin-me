@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "TwinMe - Digital Twin",
-  "version": "3.9.4",
+  "version": "3.9.5",
   "description": "Your AI twin learns from your browsing patterns, interests, and digital footprint. Privacy-first, incognito excluded.",
   "permissions": [
     "storage",
@@ -79,26 +79,6 @@
       "run_at": "document_idle"
     },
     {
-      "matches": ["https://www.hulu.com/*"],
-      "js": ["collectors/hulu.js"],
-      "run_at": "document_idle"
-    },
-    {
-      "matches": ["https://www.hbomax.com/*", "https://max.com/*"],
-      "js": ["collectors/hbomax.js"],
-      "run_at": "document_idle"
-    },
-    {
-      "matches": ["https://www.primevideo.com/*", "https://www.amazon.com/gp/video/*"],
-      "js": ["collectors/primevideo.js"],
-      "run_at": "document_idle"
-    },
-    {
-      "matches": ["https://www.disneyplus.com/*"],
-      "js": ["collectors/disneyplus.js"],
-      "run_at": "document_idle"
-    },
-    {
       "matches": ["https://www.instagram.com/*"],
       "js": ["collectors/instagram.js"],
       "run_at": "document_idle"
@@ -121,13 +101,7 @@
       "exclude_matches": [
         "https://www.youtube.com/*",
         "https://www.twitch.tv/*",
-        "https://www.netflix.com/*",
-        "https://www.hulu.com/*",
-        "https://www.hbomax.com/*",
-        "https://max.com/*",
-        "https://www.primevideo.com/*",
-        "https://www.amazon.com/gp/video/*",
-        "https://www.disneyplus.com/*"
+        "https://www.netflix.com/*"
       ]
     }
   ],

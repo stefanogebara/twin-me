@@ -433,7 +433,10 @@ router.post('/batch', authenticateUser, async (req, res) => {
     }
 
     // B2: Route streaming/social platform data → memory stream (non-blocking)
-    const STREAMING_PLATFORMS = new Set(['netflix', 'disneyplus', 'hbomax', 'hulu', 'primevideo', 'instagram']);
+    // Trimmed 2026-06-05: the disney+/hbo/hulu/prime collectors were double-broken
+    // (isolated-world fetch + blob send-shape) with ~0 real volume and were removed
+    // from the manifest. Netflix (MAIN-world interceptor) + Instagram remain.
+    const STREAMING_PLATFORMS = new Set(['netflix', 'instagram']);
     const streamingEvents = events.filter(e => {
       const p = (e.platform || platform || '').toLowerCase();
       return STREAMING_PLATFORMS.has(p);
@@ -458,6 +461,33 @@ router.post('/batch', authenticateUser, async (req, res) => {
       ingestWebObservations(userId, observations).catch(err =>
         log.warn(`${streamPlatform} observation ingestion failed (non-fatal):`, err.message)
       );
+
+      // Surface extension-only platforms as "connected" so they appear in the
+      // platforms UI. The extension has no OAuth, so without a platform_connections
+      // row these feed the twin's memory but stay invisible as platforms. Only
+      // Netflix is surfaced (pure extension capture; no fetch-cron fetcher exists,
+      // so the row is display-only). Instagram keeps its own connection model
+      // (instagram_sessions) and is intentionally not surfaced here.
+      if (streamPlatform === 'netflix') {
+        const nowIso = new Date().toISOString();
+        supabaseAdmin
+          .from('platform_connections')
+          .upsert(
+            {
+              user_id: userId,
+              platform: 'netflix',
+              status: 'connected',
+              last_sync_status: 'success',
+              last_sync_at: nowIso,
+              connected_at: nowIso,
+              metadata: { source: 'browser_extension' },
+            },
+            { onConflict: 'user_id,platform' }
+          )
+          .then(({ error }) => {
+            if (error) log.warn('Surface netflix connection failed (non-fatal):', error.message);
+          });
+      }
     }
 
     res.json({
