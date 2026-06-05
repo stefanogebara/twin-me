@@ -574,11 +574,13 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
       key: 'github',
       detect: detectGithubIntent,
       tokenPlatform: 'github',
-      // Username probe from existing platform_data — set per call below.
-      run: async (token, { username }) => {
-        if (!username) return null;
+      // Username is auto-resolved from the GitHub /user endpoint when
+      // the client is authenticated — no need to pre-fetch from
+      // platform_connections (which doesn't store the GitHub login).
+      run: async (token) => {
         const client = createGithubClient({ accessToken: token });
-        const activity = await getGithubActivity(client, { username });
+        const activity = await getGithubActivity(client, {});
+        if (!activity) return null;
         return { kind: 'activity', summary: formatGithubActivity(activity), raw: activity };
       },
     },
@@ -594,26 +596,6 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
     },
   ];
 
-  // GitHub needs the username — pull from platform_connections.
-  // Cached cheaply via _ghUsername to avoid two queries when calendar
-  // also fires (rare but possible).
-  let _ghUsername = null;
-  const _resolveGhUsername = async () => {
-    if (_ghUsername !== null) return _ghUsername;
-    try {
-      const { data } = await supabaseAdmin
-        .from('platform_connections')
-        .select('platform_user_id')
-        .eq('user_id', userId)
-        .eq('platform', 'github')
-        .single();
-      _ghUsername = data?.platform_user_id || '';
-    } catch {
-      _ghUsername = '';
-    }
-    return _ghUsername;
-  };
-
   const platformAnalytics = {};
   if (userMessage) {
     for (const cfg of PLATFORM_ANALYTICS) {
@@ -626,8 +608,7 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
           timings[`${cfg.key}AnalyticsHit`] = 'no_token';
           continue;
         }
-        const extras = cfg.key === 'github' ? { username: await _resolveGhUsername() } : {};
-        const analyticsPromise = cfg.run(tok.accessToken, extras);
+        const analyticsPromise = cfg.run(tok.accessToken);
         const timeoutPromise = new Promise((resolve) =>
           setTimeout(() => resolve(null), PLATFORM_ANALYTICS_TIMEOUT_MS),
         );

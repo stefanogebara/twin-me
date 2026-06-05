@@ -28,17 +28,32 @@ function dayKey(iso) {
 
 /**
  * @param {object} client — { get(path) -> Promise<any> }
- * @param {{ username: string, days?: number }} params
+ * @param {{ username?: string, days?: number }} params
+ *
+ * If username is omitted, resolves it from /user (requires an
+ * authenticated client — public-client callers must pass username
+ * explicitly).
  */
 export async function getRecentActivity(client, params = {}) {
-  if (!params.username) {
-    throw new Error('getRecentActivity: username is required');
+  let username = params.username;
+  if (!username) {
+    try {
+      const me = await client.get('/user');
+      username = me?.login;
+    } catch {
+      // No way to know who to query for. Surface empty result rather
+      // than throwing — caller (the per-turn analytics dispatcher) will
+      // skip the prompt-line injection.
+      return null;
+    }
   }
+  if (!username) return null;
+
   const days = Math.min(params.days ?? DEFAULT_DAYS, MAX_DAYS);
   const cutoffMs = Date.now() - days * 24 * 60 * 60 * 1000;
 
   const events = await client
-    .get(`/users/${encodeURIComponent(params.username)}/events/public?per_page=100`)
+    .get(`/users/${encodeURIComponent(username)}/events/public?per_page=100`)
     .catch(() => []);
   const list = Array.isArray(events) ? events : [];
 
