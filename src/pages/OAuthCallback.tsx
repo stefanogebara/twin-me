@@ -107,6 +107,18 @@ const OAuthCallback = () => {
           if (claimData.token) {
             localStorage.removeItem('demo_mode');
             setAccessToken(claimData.token);
+            // Bug D2 — desktop (Tauri WebView2) drops the refresh_token cookie that
+            // /oauth/claim sets when this page was reached via a twinme:// deep link
+            // (sameSite=Strict + custom-scheme navigation). credentials:'include'
+            // (Bug D1) is necessary but not sufficient: the claim returns 200 yet the
+            // post-reload /auth/refresh still 401s -> session_expired (proven in prod:
+            // claim 200 followed by three refresh 401s). Stash the just-claimed access
+            // token so AuthContext rehydrates the session from it via the Authorization
+            // header (cookie-independent) on the next load. sessionStorage IS persisted
+            // by WebView2 across same-origin navigations. One-time use — AuthContext
+            // removes it immediately. No added XSS surface: the in-memory token is
+            // already reachable to same-origin JS via window.__twinmeGetAccessToken.
+            try { sessionStorage.setItem('oauth_bootstrap_token', claimData.token); } catch { /* sessionStorage unavailable */ }
             localStorage.setItem('auth_provider', claimData.provider || searchParams.get('provider') || 'google');
             setStatus('success');
             setMessage('Authentication successful! Redirecting...');

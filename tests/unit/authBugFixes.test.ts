@@ -120,3 +120,34 @@ describe('Bug D1 — desktop deep-link claim must persist the refresh cookie', (
     expect(callbackWithCreds.test(oauthCallbackSrc)).toBe(true);
   });
 });
+
+describe('Bug D2 — desktop claim session survives WebView2 dropping the refresh cookie', () => {
+  // Even WITH credentials:'include' (Bug D1), the Tauri WebView2 still drops the
+  // refresh_token cookie that /oauth/claim sets when the page was reached via a
+  // twinme:// deep link (sameSite=Strict + custom-scheme navigation). The claim
+  // returns 200 but the post-reload /auth/refresh 401s -> session_expired.
+  // Proven in prod: claim 200 followed by three /auth/refresh 401s.
+  // Fix: OAuthCallback stashes the freshly-claimed access token in sessionStorage
+  // (which WebView2 DOES persist across same-origin navigations); AuthContext
+  // rehydrates the session from it via the Authorization header (cookie-
+  // independent) before falling back to the cookie-based refresh.
+  it('OAuthCallback stashes the claimed access token for cookie-less recovery', () => {
+    const stash = /sessionStorage\.setItem\(\s*['"]oauth_bootstrap_token['"]\s*,\s*claimData\.token/;
+    expect(stash.test(oauthCallbackSrc)).toBe(true);
+  });
+
+  it('AuthContext reads and clears the bootstrap token (one-time use)', () => {
+    expect(authContextSrc).toMatch(/sessionStorage\.getItem\(\s*['"]oauth_bootstrap_token['"]\s*\)/);
+    expect(authContextSrc).toMatch(/sessionStorage\.removeItem\(\s*['"]oauth_bootstrap_token['"]\s*\)/);
+  });
+
+  it('AuthContext consults the bootstrap token BEFORE the cookie refresh fallback', () => {
+    // Ordering matters: if the cookie refresh runs first and trips
+    // refreshDisabledForSession, the bootstrap recovery is moot.
+    const bootstrapIdx = authContextSrc.indexOf('oauth_bootstrap_token');
+    const refreshFallbackIdx = authContextSrc.indexOf('await refreshAccessToken()');
+    expect(bootstrapIdx).toBeGreaterThan(-1);
+    expect(refreshFallbackIdx).toBeGreaterThan(-1);
+    expect(bootstrapIdx).toBeLessThan(refreshFallbackIdx);
+  });
+});
