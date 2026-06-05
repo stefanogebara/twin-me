@@ -504,6 +504,15 @@ export function buildTwinSystemPrompt(soulSignature, platformData, twinSummary =
       if (sp.genres?.length > 0) {
         dynamicContext += ` My genres: ${sp.genres.slice(0, 5).join(', ')}.`;
       }
+
+      // Spotify analytics escalation — same directive framing as the
+      // Whoop side. Fires only when detectSpotifyIntent in
+      // twinContextBuilder.js routed to recent_listening (i.e. the
+      // user asked about their plays, not just a music-adjacent
+      // mention).
+      if (sp.analytics?.summary) {
+        dynamicContext += `\nSpotify data for the period asked about (use these exact numbers when answering): ${sp.analytics.summary}`;
+      }
     }
 
     if (platformData.calendar) {

@@ -44,6 +44,15 @@ import {
   persistTrendAnomalyInsight,
   persistWeeklyReflection,
 } from './whoop/learningHooks.js';
+// Spotify analytics — same per-turn escalation pattern as Whoop, on
+// the only other platform with high enough data flow for it to be
+// worthwhile right now (calendar gets the next pass).
+import { detectSpotifyIntent } from './spotify/detectIntent.js';
+import { createSpotifyClient } from './spotify/client.js';
+import { getRecentListening } from './spotify/analytics/getRecentListening.js';
+import { formatRecentListening } from './spotify/formatAnalytics.js';
+
+const SPOTIFY_ANALYTICS_TIMEOUT_MS = 8000;
 
 // Hard cap for the analytics tool call. Sits in POST-processing, after
 // the 10s parent fan-out breaker, so it doesn't compete for that
@@ -522,16 +531,58 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
     }
   }
 
+  // Spotify analytics escalation — same pattern as Whoop. Fires only
+  // when the user's message wants more than today's currently-playing
+  // snapshot ("what have I been listening to", "who am I listening to
+  // most", "top tracks"). Cheap-ish to run (two parallel Spotify API
+  // calls), but only on demand so we don't pay it on every chat turn.
+  let spotifyAnalytics = null;
+  if (userMessage) {
+    try {
+      const intent = detectSpotifyIntent(userMessage);
+      if (intent.kind && intent.kind !== 'snapshot') {
+        const spotifyAnalyticsStart = Date.now();
+        const tok = await getValidAccessToken(userId, 'spotify');
+        if (tok.success && tok.accessToken) {
+          const client = createSpotifyClient({ accessToken: tok.accessToken });
+          const analyticsPromise = (async () => {
+            const recent = await getRecentListening(client, {});
+            return {
+              kind: 'recent_listening',
+              summary: formatRecentListening(recent),
+              raw: recent,
+            };
+          })();
+          const timeoutPromise = new Promise((resolve) =>
+            setTimeout(() => resolve(null), SPOTIFY_ANALYTICS_TIMEOUT_MS),
+          );
+          spotifyAnalytics = await Promise.race([analyticsPromise, timeoutPromise]);
+        }
+        timings.spotifyAnalyticsMs = Date.now() - spotifyAnalyticsStart;
+        timings.spotifyAnalyticsKind = intent.kind;
+        timings.spotifyAnalyticsHit = spotifyAnalytics?.summary ? 'yes' : 'no';
+      }
+    } catch (err) {
+      log.warn(`Spotify analytics escalation failed: ${err?.message ?? err}`);
+    }
+  }
+
   // Shallow-copy platformData so we can attach analytics for the
   // current turn without mutating the cached entry. If the snapshot
-  // leg failed (platformData.whoop is undefined), we still create
-  // platformData.whoop with just the analytics so the prompt builder's
-  // existing `if (platformData.whoop)` path renders our line.
+  // leg failed (platformData.whoop / .spotify is undefined), we still
+  // create the key with just the analytics so the prompt builder's
+  // existing `if (platformData.X)` paths render our line.
   let returnedPlatformData = platformData;
   if (whoopAnalytics?.summary) {
     returnedPlatformData = {
       ...(platformData ?? {}),
       whoop: { ...(platformData?.whoop ?? {}), analytics: whoopAnalytics },
+    };
+  }
+  if (spotifyAnalytics?.summary) {
+    returnedPlatformData = {
+      ...(returnedPlatformData ?? {}),
+      spotify: { ...(returnedPlatformData?.spotify ?? {}), analytics: spotifyAnalytics },
     };
   }
 

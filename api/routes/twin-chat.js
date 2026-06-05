@@ -20,6 +20,7 @@ import { markInsightsDelivered } from '../services/proactiveInsights.js';
 import { trackChatMessage } from '../services/twinSessionTracker.js';
 import { classifyMessageTier, CHAT_TIER_LIGHT, CHAT_TIER_DEEP } from '../services/chatRouter.js';
 import { detectWhoopIntent } from '../services/whoop/detectIntent.js';
+import { detectSpotifyIntent } from '../services/spotify/detectIntent.js';
 import { condenseIfNeeded } from '../services/contextCondenser.js';
 import { injectTaskIntentBlocks } from '../services/taskIntentInjector.js';
 import { runWorkspaceActionChain } from '../services/workspaceActionChain.js';
@@ -346,16 +347,19 @@ router.post('/message', authenticateUser, async (req, res) => {
     // workouts intents where the user is explicitly asking for the
     // Whoop numbers we just computed.
     const whoopIntentForGate = detectWhoopIntent(message);
-    const suppressWorkspaceForWhoop =
-      whoopIntentForGate.kind &&
-      whoopIntentForGate.kind !== 'snapshot' &&
-      whoopIntentForGate.kind !== null;
-    if (workspaceBlock && !suppressWorkspaceForWhoop) {
+    const spotifyIntentForGate = detectSpotifyIntent(message);
+    const suppressWorkspaceForAnalytics =
+      (whoopIntentForGate.kind && whoopIntentForGate.kind !== 'snapshot') ||
+      (spotifyIntentForGate.kind && spotifyIntentForGate.kind !== 'snapshot');
+    if (workspaceBlock && !suppressWorkspaceForAnalytics) {
       systemPrompt.push({ type: 'text', text: `\n${workspaceBlock}` });
       workspaceActionsEnabled = true;
       chatLog('Workspace actions injected into system prompt');
-    } else if (workspaceBlock && suppressWorkspaceForWhoop) {
-      chatLog(`Workspace actions suppressed — Whoop ${whoopIntentForGate.kind} intent`);
+    } else if (workspaceBlock && suppressWorkspaceForAnalytics) {
+      const which = whoopIntentForGate.kind
+        ? `Whoop ${whoopIntentForGate.kind}`
+        : `Spotify ${spotifyIntentForGate.kind}`;
+      chatLog(`Workspace actions suppressed — ${which} intent`);
     }
 
     // Conversational probes (proactive deep question + ambient interview hint)
@@ -403,16 +407,20 @@ router.post('/message', authenticateUser, async (req, res) => {
       // Snapshot questions still get chat_light's gemini-flash since
       // they don't depend on directive following.
       const whoopIntent = detectWhoopIntent(message);
-      if (whoopIntent.kind && whoopIntent.kind !== 'snapshot') {
+      const spotifyIntent = detectSpotifyIntent(message);
+      const isAnalyticalPlatformQuestion =
+        (whoopIntent.kind && whoopIntent.kind !== 'snapshot') ||
+        (spotifyIntent.kind && spotifyIntent.kind !== 'snapshot');
+      if (isAnalyticalPlatformQuestion) {
         const overrideModel = 'anthropic/claude-haiku-4.5';
         const overrideTier = CHAT_TIER_DEEP;
-        log.info('Whoop analytics override — bumping chat tier', {
+        log.info('Platform analytics override — bumping chat tier', {
           fromTier: routingTier,
           fromModel: routedModel,
           toTier: overrideTier,
           toModel: overrideModel,
           whoopKind: whoopIntent.kind,
-          whoopMetric: whoopIntent.metric,
+          spotifyKind: spotifyIntent.kind,
         });
         routedModel = overrideModel;
         routingTier = overrideTier;
