@@ -88,8 +88,12 @@ async function runWhoopAnalytics(intent, accessToken, userId) {
       });
       const summary = formatTrend(trend);
       if (userId) {
-        // Fire-and-forget — never block the chat reply on a learning write.
-        persistTrendAnomalyInsight(userId, intent, trend).catch(() => {});
+        // Await the learning write — fire-and-forget gets killed mid-
+        // flight by Vercel when the function responds, so the
+        // proactive_insights row never lands. The hook is internally
+        // bounded (one dedup query + one insert ≈ 200ms) and itself
+        // try/catches, so awaiting can't block the chat reply.
+        await persistTrendAnomalyInsight(userId, intent, trend);
       }
       return { kind: 'trend', summary, raw: trend };
     }
@@ -99,7 +103,7 @@ async function runWhoopAnalytics(intent, accessToken, userId) {
       });
       const summary = formatWeekly(week);
       if (userId && summary) {
-        persistWeeklyReflection(userId, week, summary).catch(() => {});
+        await persistWeeklyReflection(userId, week, summary);
       }
       return { kind: 'weekly', summary, raw: week };
     }
