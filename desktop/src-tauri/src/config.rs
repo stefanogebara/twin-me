@@ -14,6 +14,10 @@ use std::path::PathBuf;
 
 const KEYRING_SERVICE: &str = "twinme-desktop";
 const KEYRING_USER: &str = "auth-token";
+// Phase 6: the long-lived REFRESH token lives in its own keyring entry so the
+// sync loop + webview can mint fresh access tokens without the refresh cookie
+// (which WebView2 drops). Kept separate from the access token above.
+const KEYRING_REFRESH_USER: &str = "refresh-token";
 
 #[allow(dead_code)]
 pub fn auth_path() -> Option<PathBuf> {
@@ -46,6 +50,28 @@ pub fn load_auth() -> Option<String> {
     let token = auth_path().and_then(|p| load_auth_from(&p))?;
     let _ = store_auth(&token); // best-effort migration; ignore failure
     Some(token)
+}
+
+/// Store the long-lived REFRESH token in its own keyring entry. Called from the
+/// `store_refresh_token` command (web → keyring bridge, desktop sign-in) and
+/// from `auth_refresh::refresh_access_token` after a successful rotation. The
+/// refresh token never leaves Rust/the keyring.
+pub fn store_refresh(token: &str) -> Result<(), String> {
+    let entry =
+        keyring::Entry::new(KEYRING_SERVICE, KEYRING_REFRESH_USER).map_err(|e| e.to_string())?;
+    entry.set_password(token).map_err(|e| e.to_string())
+}
+
+/// Read the REFRESH token from the keyring. Returns None if absent/empty.
+pub fn load_refresh() -> Option<String> {
+    let entry = keyring::Entry::new(KEYRING_SERVICE, KEYRING_REFRESH_USER).ok()?;
+    let token = entry.get_password().ok()?;
+    let t = token.trim();
+    if t.is_empty() {
+        None
+    } else {
+        Some(t.to_string())
+    }
 }
 
 pub fn load_auth_from(path: &std::path::Path) -> Option<String> {

@@ -37,8 +37,9 @@ dirs = "5"
 reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-features = false }
 # tokio is a transitive dep of tauri, but we use the `tokio::` crate name directly
 # in clip_indexer.rs + sync.rs for tokio::time::sleep. Add it explicitly so the
-# name resolves in our crate scope. "time" + "rt" cover our sleep + spawn needs.
-tokio = { version = "1", features = ["time", "rt", "macros"] }
+# name resolves in our crate scope. "time" + "rt" cover our sleep + spawn needs;
+# "sync" adds the Mutex that auth_refresh.rs uses to serialize token refreshes.
+tokio = { version = "1", features = ["time", "rt", "macros", "sync"] }
 # Phase 3: parse the JWT the web app writes to <config_dir>/twinme/auth.toml.
 toml = "0.8"
 # Phase 4: OS keyring (macOS Keychain / Windows Credential Manager / Linux
