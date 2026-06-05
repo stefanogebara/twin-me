@@ -7,8 +7,9 @@ fn main() {
     //
     // NOTE: `commands()` RESTRICTS the invokable set to this list, so it must
     // name every command registered in `generate_handler!` (lib.rs). Keep the
-    // two lists in sync. The remote capability still grants only
-    // `store_auth_token` to twinme.me; the rest stay local-only.
+    // two lists in sync. The remote capability grants only the three auth-bridge
+    // commands (store_auth_token, store_refresh_token, get_fresh_access_token) to
+    // twinme.me; the rest stay local-only.
     tauri_build::try_build(
         tauri_build::Attributes::new().app_manifest(
             tauri_build::AppManifest::new().commands(&[
@@ -16,6 +17,8 @@ fn main() {
                 "open_main_window",
                 "open_route",
                 "store_auth_token",
+                "store_refresh_token",
+                "get_fresh_access_token",
                 "settings_get",
                 "settings_set_paused",
                 "settings_unexclude",

@@ -120,4 +120,32 @@ describe('desktop handoff flow (mint -> claim -> /soul-reveal)', () => {
     const claim2 = await request(app).get(`/api/auth/oauth/claim?auth_code=${code}`);
     expect(claim2.status).toBe(404);
   });
+
+  it('a desktop (client=mobile) claim also returns the refresh token (Phase 6 sync auth)', async () => {
+    // The desktop hands this refresh token to the OS keyring so the headless
+    // sync + webview can mint fresh access tokens via body-based /auth/refresh
+    // (no cookie). Without client=mobile, shouldExposeRefreshToken() withholds it.
+    const app = createApp();
+    const mint = await request(app)
+      .post('/api/auth/desktop-handoff')
+      .set('Authorization', `Bearer ${signToken()}`)
+      .send({});
+    const claim = await request(app)
+      .get(`/api/auth/oauth/claim?auth_code=${mint.body.auth_code}&client=mobile`);
+    expect(claim.status).toBe(200);
+    expect(typeof claim.body.refreshToken).toBe('string');
+    expect(claim.body.refreshToken.length).toBeGreaterThan(0);
+  });
+
+  it('a web (default) claim does NOT expose the refresh token', async () => {
+    const app = createApp();
+    const mint = await request(app)
+      .post('/api/auth/desktop-handoff')
+      .set('Authorization', `Bearer ${signToken()}`)
+      .send({});
+    const claim = await request(app)
+      .get(`/api/auth/oauth/claim?auth_code=${mint.body.auth_code}`);
+    expect(claim.status).toBe(200);
+    expect(claim.body.refreshToken).toBeUndefined();
+  });
 });

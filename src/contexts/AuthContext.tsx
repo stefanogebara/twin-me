@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
-import { setAccessToken, getAccessToken, clearAccessToken, authFetch } from '../services/api/apiBase';
+import { setAccessToken, getAccessToken, clearAccessToken, authFetch, getDesktopFreshAccessToken } from '../services/api/apiBase';
 import { queryClient } from '@/lib/queryClient';
 import { singleFlight } from '@/utils/singleFlight';
 
@@ -130,7 +130,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           }
         } catch { /* sessionStorage unavailable — fall through to cookie refresh */ }
 
-        const refreshed = bootstrapped ? true : await refreshAccessToken();
+        // Desktop (Tauri) restart (Phase 6): on a fresh app start the in-memory
+        // token and the sessionStorage bootstrap are both gone, and the cookie
+        // refresh 401s in WebView2. Ask Rust to mint a fresh access token from the
+        // refresh token in the OS keyring (cookie-independent) so the user stays
+        // signed in across restarts. No-op on web (returns null → falls through to
+        // the normal cookie refresh below).
+        let refreshed = bootstrapped;
+        if (!refreshed) {
+          const desktopToken = await getDesktopFreshAccessToken();
+          if (desktopToken) {
+            setAccessToken(desktopToken);
+            refreshed = true;
+          }
+        }
+        if (!refreshed) {
+          refreshed = await refreshAccessToken();
+        }
         if (!refreshed) {
           // Session expired. Wipe any stale cached user so ProtectedRoute kicks in
           // before API calls hit the page and show 401 error banners.

@@ -40,11 +40,13 @@ const AUTH_CONTEXT_FILE = resolve(__dirname, '../../src/contexts/AuthContext.tsx
 const AUTH_SIMPLE_FILE = resolve(__dirname, '../../api/routes/auth-simple.js');
 const SINGLE_FLIGHT_FILE = resolve(__dirname, '../../src/utils/singleFlight.ts');
 const OAUTH_CALLBACK_FILE = resolve(__dirname, '../../src/pages/OAuthCallback.tsx');
+const API_BASE_FILE = resolve(__dirname, '../../src/services/api/apiBase.ts');
 
 const authContextSrc = readFileSync(AUTH_CONTEXT_FILE, 'utf8');
 const authSimpleSrc = readFileSync(AUTH_SIMPLE_FILE, 'utf8');
 const singleFlightSrc = readFileSync(SINGLE_FLIGHT_FILE, 'utf8');
 const oauthCallbackSrc = readFileSync(OAUTH_CALLBACK_FILE, 'utf8');
+const apiBaseSrc = readFileSync(API_BASE_FILE, 'utf8');
 
 describe('Bug C1 — refresh token race fix', () => {
   it('AuthContext imports singleFlight from utils', () => {
@@ -107,8 +109,10 @@ describe('Bug D1 — desktop deep-link claim must persist the refresh cookie', (
     // The claim fetch (the desktop/mobile deep-link path) MUST pass
     // credentials:'include' or the Set-Cookie (refresh_token) is dropped and
     // the session can't survive the post-claim hard nav to /soul-reveal.
+    // (Loose span: Phase 6 appends a `+ (client=mobile)` to the URL between the
+    // template literal and the options object, so don't anchor on the backtick.)
     const claimWithCreds =
-      /fetch\(\s*`[^`]*\/auth\/oauth\/claim[^`]*`\s*,\s*\{[^}]*credentials:\s*['"]include['"]/;
+      /\/auth\/oauth\/claim[\s\S]{0,200}credentials:\s*['"]include['"]/;
     expect(claimWithCreds.test(oauthCallbackSrc)).toBe(true);
   });
 
@@ -149,5 +153,36 @@ describe('Bug D2 — desktop claim session survives WebView2 dropping the refres
     expect(bootstrapIdx).toBeGreaterThan(-1);
     expect(refreshFallbackIdx).toBeGreaterThan(-1);
     expect(bootstrapIdx).toBeLessThan(refreshFallbackIdx);
+  });
+});
+
+describe('Phase 6 — desktop sync token refresh (keyring + body-based /auth/refresh)', () => {
+  // The headless clip/meeting sync ran on a 30-min access token with no refresh
+  // path, so uploads 401ed once it expired (zero successful syncs in 24h). Fix:
+  // the desktop claims as a 'mobile'-class client to receive the rotating refresh
+  // token, hands it to the OS keyring (Rust), and the sync + webview mint fresh
+  // access tokens via the backend's body-based /auth/refresh (no cookie needed).
+  it('OAuthCallback claims as a mobile client on desktop to receive the refresh token', () => {
+    // Gated on __TAURI__ so only the desktop opts in — web claims stay cookie-only.
+    expect(oauthCallbackSrc).toMatch(/__TAURI__[\s\S]{0,300}client=mobile/);
+  });
+
+  it('OAuthCallback hands the claimed refresh token to the desktop keyring', () => {
+    expect(oauthCallbackSrc).toMatch(/pushRefreshTokenToDesktop\(\s*claimData\.refreshToken/);
+  });
+
+  it('apiBase bridges store_refresh_token + get_fresh_access_token to Tauri', () => {
+    expect(apiBaseSrc).toMatch(/export function pushRefreshTokenToDesktop/);
+    expect(apiBaseSrc).toMatch(/invoke\(\s*['"]store_refresh_token['"]/);
+    expect(apiBaseSrc).toMatch(/export async function getDesktopFreshAccessToken/);
+    expect(apiBaseSrc).toMatch(/invoke\(\s*['"]get_fresh_access_token['"]/);
+  });
+
+  it('AuthContext tries the desktop keyring token before the cookie refresh', () => {
+    const desktopIdx = authContextSrc.indexOf('getDesktopFreshAccessToken()');
+    const cookieRefreshIdx = authContextSrc.indexOf('await refreshAccessToken()');
+    expect(desktopIdx).toBeGreaterThan(-1);
+    expect(cookieRefreshIdx).toBeGreaterThan(-1);
+    expect(desktopIdx).toBeLessThan(cookieRefreshIdx);
   });
 });

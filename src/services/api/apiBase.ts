@@ -74,6 +74,55 @@ function pushTokenToDesktop(token: string | null): void {
   }
 }
 
+/** Resolve the Tauri invoke fn if running inside the desktop app, else null. */
+function tauriInvoke():
+  | ((cmd: string, args?: Record<string, unknown>) => Promise<unknown>)
+  | null {
+  if (typeof window === 'undefined') return null;
+  const invoke = (window as unknown as {
+    __TAURI__?: { core?: { invoke?: (cmd: string, args?: Record<string, unknown>) => Promise<unknown> } };
+  }).__TAURI__?.core?.invoke;
+  return typeof invoke === 'function' ? invoke : null;
+}
+
+/**
+ * Hand the long-lived REFRESH token to the desktop app (Tauri) so the headless
+ * sync (Rust) and the webview can mint fresh access tokens via the OS keyring
+ * WITHOUT the refresh cookie that WebView2 drops on twinme:// deep-link
+ * navigations. Only called on the desktop OAuth claim path (OAuthCallback),
+ * where the backend returns the refresh token to the mobile/desktop client. The
+ * token is handed straight to Rust (store_refresh_token → keyring) and never
+ * persisted in JS storage. No-op in a normal browser.
+ */
+export function pushRefreshTokenToDesktop(refreshToken: string | null): void {
+  if (!refreshToken) return;
+  const invoke = tauriInvoke();
+  if (!invoke) return;
+  try {
+    void invoke('store_refresh_token', { token: refreshToken }).catch(() => { /* desktop-only; ignore */ });
+  } catch {
+    // Not running in Tauri / command unavailable; ignore.
+  }
+}
+
+/**
+ * Desktop only: ask the Tauri app to mint a fresh access token from the refresh
+ * token in the OS keyring (cookie-independent — see desktop auth_refresh.rs).
+ * Returns the token, or null if not on desktop / no stored refresh token / the
+ * refresh failed. AuthContext uses this to restore the session on app restart
+ * without re-signing-in.
+ */
+export async function getDesktopFreshAccessToken(): Promise<string | null> {
+  const invoke = tauriInvoke();
+  if (!invoke) return null;
+  try {
+    const token = await invoke('get_fresh_access_token');
+    return typeof token === 'string' && token.length > 0 ? token : null;
+  } catch {
+    return null;
+  }
+}
+
 export function setAccessToken(token: string | null) {
   currentAccessToken = token;
   notifyExtensionTokenChange(token);

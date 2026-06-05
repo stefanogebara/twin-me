@@ -18,6 +18,7 @@
 
 mod active_window;
 mod audio_permission;
+mod auth_refresh;
 mod clip_indexer;
 mod clips;
 mod config;
@@ -123,6 +124,42 @@ fn store_auth_token(token: String) {
         // next push succeeds.
         eprintln!("[twinme-desktop] store_auth_token: keyring write failed: {err}");
     }
+}
+
+/// Loose shape check for the opaque REFRESH token. Unlike the access token it is
+/// NOT a JWT (the backend mints it as crypto.randomBytes(64).toString('hex') →
+/// 128 lowercase hex chars), so looks_like_jwt would wrongly reject it. We only
+/// stop obvious junk (empty/short/non-hex) from landing in the keyring; the
+/// backend re-validates the token on every /auth/refresh anyway.
+fn looks_like_refresh_token(token: &str) -> bool {
+    (32..=256).contains(&token.len()) && token.chars().all(|c| c.is_ascii_hexdigit())
+}
+
+/// Command: persist the long-lived REFRESH token the web app pushes after a
+/// desktop sign-in into its own keyring entry, so the sync loop (and the webview,
+/// via get_fresh_access_token) can mint fresh access tokens WITHOUT the refresh
+/// cookie that WebView2 drops on twinme:// deep-link navigations. Same narrow
+/// remote-origin scoping as store_auth_token (capabilities/twinme-auth-bridge.json).
+#[tauri::command]
+fn store_refresh_token(token: String) {
+    let token = token.trim();
+    if !looks_like_refresh_token(token) {
+        eprintln!("[twinme-desktop] store_refresh_token: rejected malformed refresh token");
+        return;
+    }
+    if let Err(err) = config::store_refresh(token) {
+        eprintln!("[twinme-desktop] store_refresh_token: keyring write failed: {err}");
+    }
+}
+
+/// Command: exchange the stored refresh token for a fresh access token
+/// (cookie-independent — see auth_refresh.rs). Returns the access token so the
+/// webview can restore its session on app restart without re-signing-in; the
+/// refresh token itself never leaves Rust. Returns None when there is no stored
+/// refresh token or the refresh fails (the webview then falls back to sign-in).
+#[tauri::command]
+async fn get_fresh_access_token() -> Option<String> {
+    auth_refresh::refresh_access_token().await
 }
 
 /// Command: bring the full app forward (and dismiss the panel).
@@ -445,6 +482,8 @@ pub fn run() {
             open_main_window,
             open_route,
             store_auth_token,
+            store_refresh_token,
+            get_fresh_access_token,
             settings_get,
             settings_set_paused,
             settings_unexclude,

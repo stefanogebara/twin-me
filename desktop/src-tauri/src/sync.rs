@@ -127,6 +127,50 @@ pub async fn post_meetings(
     resp.json::<SyncResult>().await
 }
 
+/// `post_batch` with one-shot auth recovery: on HTTP 401 (the access token
+/// expired), refresh it from the stored refresh token, update `token` in place,
+/// and retry once. Any other error (network/5xx) propagates unchanged so the
+/// caller leaves the batch unsynced for the next tick. If the refresh itself
+/// fails (no/invalid refresh token) the original 401 is returned.
+async fn post_batch_authed(
+    endpoint: &str,
+    token: &mut String,
+    clips: &[clips::Clip],
+) -> Result<SyncResult, reqwest::Error> {
+    match post_batch(endpoint, token.as_str(), clips).await {
+        Err(err) if err.status() == Some(reqwest::StatusCode::UNAUTHORIZED) => {
+            match crate::auth_refresh::refresh_access_token().await {
+                Some(fresh) => {
+                    *token = fresh;
+                    post_batch(endpoint, token.as_str(), clips).await
+                }
+                None => Err(err),
+            }
+        }
+        other => other,
+    }
+}
+
+/// Mirror of `post_batch_authed` for the meeting endpoint.
+async fn post_meetings_authed(
+    endpoint: &str,
+    token: &mut String,
+    meetings: &[meetings::Meeting],
+) -> Result<SyncResult, reqwest::Error> {
+    match post_meetings(endpoint, token.as_str(), meetings).await {
+        Err(err) if err.status() == Some(reqwest::StatusCode::UNAUTHORIZED) => {
+            match crate::auth_refresh::refresh_access_token().await {
+                Some(fresh) => {
+                    *token = fresh;
+                    post_meetings(endpoint, token.as_str(), meetings).await
+                }
+                None => Err(err),
+            }
+        }
+        other => other,
+    }
+}
+
 pub async fn run() {
     let conn = match clips::open() {
         Ok(c) => c,
@@ -139,7 +183,7 @@ pub async fn run() {
     loop {
         tokio::time::sleep(SYNC_INTERVAL).await;
 
-        let Some(token) = config::load_auth() else {
+        let Some(mut token) = config::load_auth() else {
             continue; // not signed in yet
         };
 
@@ -160,7 +204,7 @@ pub async fn run() {
             }
         };
         if !pending.is_empty() {
-            match post_batch(&endpoint, &token, &pending).await {
+            match post_batch_authed(&endpoint, &mut token, &pending).await {
                 Ok(result) => {
                     let synced_ids: Vec<i64> = result.synced.iter().map(|r| r.local_id).collect();
                     if !synced_ids.is_empty() {
@@ -221,7 +265,7 @@ pub async fn run() {
             }
 
             if !to_post.is_empty() {
-                match post_meetings(&meeting_endpoint, &token, &to_post).await {
+                match post_meetings_authed(&meeting_endpoint, &mut token, &to_post).await {
                     Ok(result) => {
                         let synced_ids: Vec<i64> =
                             result.synced.iter().map(|r| r.local_id).collect();

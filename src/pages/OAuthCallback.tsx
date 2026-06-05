@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAnalytics } from '@/contexts/AnalyticsContext';
-import { API_URL, setAccessToken } from '@/services/api/apiBase';
+import { API_URL, setAccessToken, pushRefreshTokenToDesktop } from '@/services/api/apiBase';
 
 const CHROME_EXTENSION_ID = (import.meta.env.VITE_CHROME_EXTENSION_ID as string | undefined) || 'acnofcjjfjaikcfnalggkkbghjaijepc';
 
@@ -92,8 +92,17 @@ const OAuthCallback = () => {
           // returns 401, and the user lands on /auth?error=session_expired.
           // This is the desktop (Tauri) deep-link path; it broke desktop Google
           // sign-in. Same fix as the POST /oauth/callback branch below.
+          // On desktop (Tauri) claim as a 'mobile'-class native client so the
+          // backend ALSO returns the rotating refresh token
+          // (shouldExposeRefreshToken). We hand it to the OS keyring below so the
+          // headless sync + the webview can mint fresh access tokens without the
+          // refresh cookie WebView2 drops. Web claims stay cookie-only (no flag).
+          const isDesktopClient =
+            typeof window !== 'undefined' &&
+            !!(window as unknown as { __TAURI__?: unknown }).__TAURI__;
           const claimResponse = await fetch(
-            `${API_URL}/auth/oauth/claim?auth_code=${encodeURIComponent(authCodeParam)}`,
+            `${API_URL}/auth/oauth/claim?auth_code=${encodeURIComponent(authCodeParam)}` +
+              (isDesktopClient ? '&client=mobile' : ''),
             { credentials: 'include' }
           );
           if (!claimResponse.ok) {
@@ -119,6 +128,14 @@ const OAuthCallback = () => {
             // removes it immediately. No added XSS surface: the in-memory token is
             // already reachable to same-origin JS via window.__twinmeGetAccessToken.
             try { sessionStorage.setItem('oauth_bootstrap_token', claimData.token); } catch { /* sessionStorage unavailable */ }
+            // Desktop: persist the refresh token into the OS keyring (Rust) so the
+            // headless sync AND the webview can self-refresh the access token via
+            // get_fresh_access_token — surviving access-token expiry and app
+            // restarts without re-signing-in. No-op on web (the claim returns no
+            // refreshToken there, and there's no Tauri bridge).
+            if (claimData.refreshToken) {
+              pushRefreshTokenToDesktop(claimData.refreshToken);
+            }
             localStorage.setItem('auth_provider', claimData.provider || searchParams.get('provider') || 'google');
             setStatus('success');
             setMessage('Authentication successful! Redirecting...');
