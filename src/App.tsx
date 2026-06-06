@@ -46,6 +46,7 @@ const Settings = lazy(() => import("./pages/Settings"));
 const VoiceSetupPage = lazy(() => import("./pages/VoiceSetupPage"));
 const InstantTwinOnboarding = lazy(() => import("./pages/InstantTwinOnboarding"));
 const BrainPage = lazy(() => import("./pages/BrainPage"));
+const DataExportsPage = lazy(() => import("./pages/DataExportsPage"));
 const TalkToTwin = lazy(loadTalkToTwin);
 const Widget = lazy(() => import("./pages/Widget"));
 const AdminLLMCosts = lazy(() => import("./pages/AdminLLMCosts"));
@@ -284,6 +285,17 @@ const App = () => {
               </ProtectedRoute>
             } />
             <Route path="/memories" element={<Navigate to="/brain" replace />} />
+
+            {/* GDPR data-export uploads (Discord/LinkedIn/Instagram) */}
+            <Route path="/data-exports" element={
+              <ProtectedRoute>
+                <SidebarLayout>
+                  <ErrorBoundary>
+                    <DataExportsPage />
+                  </ErrorBoundary>
+                </SidebarLayout>
+              </ProtectedRoute>
+            } />
 
 
             {/* LLM Wiki Knowledge Base */}
