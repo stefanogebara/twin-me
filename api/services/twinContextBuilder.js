@@ -82,6 +82,25 @@ import { getRedditActivity } from './reddit/analytics/getRedditActivity.js';
 import { formatRedditActivity } from './reddit/formatAnalytics.js';
 import { persistRedditLearning } from './reddit/learningHooks.js';
 
+// Upload-based export platforms (Discord/LinkedIn/Instagram). No OAuth
+// token — the dispatcher reads cached aggregates from platform_exports
+// and falls through if the user hasn't uploaded an export yet.
+import {
+  detectDiscordExportIntent,
+  discordExportRun,
+  discordExportLearn,
+} from './exports/chat/discord.js';
+import {
+  detectLinkedInExportIntent,
+  linkedinExportRun,
+  linkedinExportLearn,
+} from './exports/chat/linkedin.js';
+import {
+  detectInstagramExportIntent,
+  instagramExportRun,
+  instagramExportLearn,
+} from './exports/chat/instagram.js';
+
 const PLATFORM_ANALYTICS_TIMEOUT_MS = 8000;
 
 // Hard cap for the analytics tool call. Sits in POST-processing, after
@@ -637,6 +656,30 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
       },
       learn: persistRedditLearning,
     },
+    // tokenPlatform: null signals no-OAuth path. The loop skips the token
+    // fetch and calls run(null, { userId }) directly so the adapter can
+    // pull cached aggregates from platform_exports.
+    {
+      key: 'discord_export',
+      detect: detectDiscordExportIntent,
+      tokenPlatform: null,
+      run: discordExportRun,
+      learn: discordExportLearn,
+    },
+    {
+      key: 'linkedin_export',
+      detect: detectLinkedInExportIntent,
+      tokenPlatform: null,
+      run: linkedinExportRun,
+      learn: linkedinExportLearn,
+    },
+    {
+      key: 'instagram_export',
+      detect: detectInstagramExportIntent,
+      tokenPlatform: null,
+      run: instagramExportRun,
+      learn: instagramExportLearn,
+    },
   ];
 
   const platformAnalytics = {};
@@ -646,12 +689,19 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
         const intent = cfg.detect(userMessage);
         if (!intent.kind || intent.kind === 'snapshot') continue;
         const tStart = Date.now();
-        const tok = await getValidAccessToken(userId, cfg.tokenPlatform);
-        if (!tok.success || !tok.accessToken) {
-          timings[`${cfg.key}AnalyticsHit`] = 'no_token';
-          continue;
+        // No-token (upload-based) platforms pass the userId as run context
+        // so the adapter can pull cached aggregates without an OAuth token.
+        let analyticsPromise;
+        if (cfg.tokenPlatform === null) {
+          analyticsPromise = cfg.run(null, { userId });
+        } else {
+          const tok = await getValidAccessToken(userId, cfg.tokenPlatform);
+          if (!tok.success || !tok.accessToken) {
+            timings[`${cfg.key}AnalyticsHit`] = 'no_token';
+            continue;
+          }
+          analyticsPromise = cfg.run(tok.accessToken);
         }
-        const analyticsPromise = cfg.run(tok.accessToken);
         const timeoutPromise = new Promise((resolve) =>
           setTimeout(() => resolve(null), PLATFORM_ANALYTICS_TIMEOUT_MS),
         );
@@ -732,6 +782,18 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
       ...(returnedPlatformData ?? {}),
       reddit: { ...(returnedPlatformData?.reddit ?? {}), analytics: redditAnalytics },
     };
+  }
+  for (const exportKey of ['discord_export', 'linkedin_export', 'instagram_export']) {
+    const exportAnalytics = platformAnalytics[exportKey] ?? null;
+    if (exportAnalytics?.summary) {
+      returnedPlatformData = {
+        ...(returnedPlatformData ?? {}),
+        [exportKey]: {
+          ...(returnedPlatformData?.[exportKey] ?? {}),
+          analytics: exportAnalytics,
+        },
+      };
+    }
   }
 
   timings._postProcessingMs = Date.now() - postProcessingStart;

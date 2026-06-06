@@ -26,6 +26,9 @@ import { detectGithubIntent } from '../services/github/detectIntent.js';
 import { detectYoutubeIntent } from '../services/youtube/detectIntent.js';
 import { detectGmailIntent } from '../services/gmail/detectIntent.js';
 import { detectRedditIntent } from '../services/reddit/detectIntent.js';
+import { detectDiscordExportIntent } from '../services/exports/chat/discord.js';
+import { detectLinkedInExportIntent } from '../services/exports/chat/linkedin.js';
+import { detectInstagramExportIntent } from '../services/exports/chat/instagram.js';
 import { condenseIfNeeded } from '../services/contextCondenser.js';
 import { injectTaskIntentBlocks } from '../services/taskIntentInjector.js';
 import { runWorkspaceActionChain } from '../services/workspaceActionChain.js';
@@ -359,6 +362,9 @@ router.post('/message', authenticateUser, async (req, res) => {
       youtube: detectYoutubeIntent(message),
       gmail: detectGmailIntent(message),
       reddit: detectRedditIntent(message),
+      discord_export: detectDiscordExportIntent(message),
+      linkedin_export: detectLinkedInExportIntent(message),
+      instagram_export: detectInstagramExportIntent(message),
     };
     const suppressingPlatform = Object.entries(gateIntents).find(
       ([, v]) => v.kind && v.kind !== 'snapshot',
@@ -425,6 +431,9 @@ router.post('/message', authenticateUser, async (req, res) => {
         youtube: detectYoutubeIntent(message),
         gmail: detectGmailIntent(message),
         reddit: detectRedditIntent(message),
+        discord_export: detectDiscordExportIntent(message),
+        linkedin_export: detectLinkedInExportIntent(message),
+        instagram_export: detectInstagramExportIntent(message),
       };
       const isAnalyticalPlatformQuestion = Object.values(platformIntents).some(
         (i) => i.kind && i.kind !== 'snapshot',

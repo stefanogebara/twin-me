@@ -435,6 +435,7 @@ import desktopObserveSummaryRoutes from './routes/desktop-observe-summary.js';
 import extractionStatusRoutes from './routes/extraction-status.js';
 import profileEnrichmentRoutes from './routes/profile-enrichment.js';
 import resumeUploadRoutes from './routes/resume-upload.js';
+import exportsUploadRoutes from './routes/exports-upload.js';
 import transactionsRoutes from './routes/transactions.js';
 import pluggyRoutes from './routes/pluggy.js';
 // pluggyWebhookRoutes extracted to standalone Vercel function at api/webhook-pluggy.js
@@ -697,6 +698,7 @@ app.use('/api/desktop-download', desktopDownloadRoutes); // Same-origin installe
 app.use('/api/desktop', desktopObserveSummaryRoutes); // TwinMe Desktop: onboarding "here's what I noticed" summary (unauthenticated, body-only)
 app.use('/api/enrichment', profileEnrichmentRoutes); // Profile enrichment via Perplexity Sonar (enrichment-first onboarding)
 app.use('/api/resume', resumeUploadRoutes); // Resume/CV upload and parsing for enrichment
+app.use('/api/exports', exportsUploadRoutes); // GDPR data-export upload + parse (Discord/LinkedIn/Instagram)
 app.use('/api/transactions/pluggy', pluggyRoutes); // Phase 3.1 — Pluggy Open Finance authed endpoints (mount BEFORE /api/transactions)
 app.use('/api/truelayer', trueLayerRoutes); // Phase 4 — TrueLayer EU/UK Open Banking (OAuth redirect)
 app.use('/api/plaid', plaidRoutes); // Phase 4.1 — Plaid US Open Banking (Link drawer + cursor sync)
