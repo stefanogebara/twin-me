@@ -564,6 +564,14 @@ export function buildTwinSystemPrompt(soulSignature, platformData, twinSummary =
       }
     }
 
+    if (platformData.reddit) {
+      const rd = platformData.reddit;
+      if (rd.analytics?.summary) {
+        dynamicContext += `\n\nMy Reddit activity:`;
+        dynamicContext += `\nReddit data for the period asked about (use these exact numbers when answering): ${rd.analytics.summary}`;
+      }
+    }
+
     if (platformData.whoop) {
       const w = platformData.whoop;
       dynamicContext += `\n\nMy body today:`;

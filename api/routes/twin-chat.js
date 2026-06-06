@@ -25,6 +25,7 @@ import { detectCalendarIntent } from '../services/calendar/detectIntent.js';
 import { detectGithubIntent } from '../services/github/detectIntent.js';
 import { detectYoutubeIntent } from '../services/youtube/detectIntent.js';
 import { detectGmailIntent } from '../services/gmail/detectIntent.js';
+import { detectRedditIntent } from '../services/reddit/detectIntent.js';
 import { condenseIfNeeded } from '../services/contextCondenser.js';
 import { injectTaskIntentBlocks } from '../services/taskIntentInjector.js';
 import { runWorkspaceActionChain } from '../services/workspaceActionChain.js';
@@ -357,6 +358,7 @@ router.post('/message', authenticateUser, async (req, res) => {
       github: detectGithubIntent(message),
       youtube: detectYoutubeIntent(message),
       gmail: detectGmailIntent(message),
+      reddit: detectRedditIntent(message),
     };
     const suppressingPlatform = Object.entries(gateIntents).find(
       ([, v]) => v.kind && v.kind !== 'snapshot',
@@ -422,6 +424,7 @@ router.post('/message', authenticateUser, async (req, res) => {
         github: detectGithubIntent(message),
         youtube: detectYoutubeIntent(message),
         gmail: detectGmailIntent(message),
+        reddit: detectRedditIntent(message),
       };
       const isAnalyticalPlatformQuestion = Object.values(platformIntents).some(
         (i) => i.kind && i.kind !== 'snapshot',

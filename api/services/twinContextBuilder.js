@@ -76,6 +76,12 @@ import { getEmailBehavior } from './gmail/analytics/getEmailBehavior.js';
 import { formatEmailBehavior } from './gmail/formatAnalytics.js';
 import { persistGmailLearning } from './gmail/learningHooks.js';
 
+import { detectRedditIntent } from './reddit/detectIntent.js';
+import { createRedditClient } from './reddit/client.js';
+import { getRedditActivity } from './reddit/analytics/getRedditActivity.js';
+import { formatRedditActivity } from './reddit/formatAnalytics.js';
+import { persistRedditLearning } from './reddit/learningHooks.js';
+
 const PLATFORM_ANALYTICS_TIMEOUT_MS = 8000;
 
 // Hard cap for the analytics tool call. Sits in POST-processing, after
@@ -619,6 +625,18 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
       },
       learn: persistGmailLearning,
     },
+    {
+      key: 'reddit',
+      detect: detectRedditIntent,
+      tokenPlatform: 'reddit',
+      run: async (token) => {
+        const client = createRedditClient({ accessToken: token });
+        const activity = await getRedditActivity(client);
+        if (!activity) return null;
+        return { kind: 'activity', summary: formatRedditActivity(activity), raw: activity };
+      },
+      learn: persistRedditLearning,
+    },
   ];
 
   const platformAnalytics = {};
@@ -706,6 +724,13 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
     returnedPlatformData = {
       ...(returnedPlatformData ?? {}),
       gmail: { ...(returnedPlatformData?.gmail ?? {}), analytics: gmailAnalytics },
+    };
+  }
+  const redditAnalytics = platformAnalytics.reddit ?? null;
+  if (redditAnalytics?.summary) {
+    returnedPlatformData = {
+      ...(returnedPlatformData ?? {}),
+      reddit: { ...(returnedPlatformData?.reddit ?? {}), analytics: redditAnalytics },
     };
   }
 
