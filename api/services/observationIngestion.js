@@ -253,9 +253,15 @@ export async function ingestWebObservations(userId, events) {
       const deduped = await isDuplicate(userId, 'web', content, 'current_state');
       if (deduped) continue;
 
-      await addPlatformObservation(userId, content, {
+      // 2026-06-06: signature is (userId, content, platform, metadata).
+      // Previously the metadata object was passed as the `platform` arg,
+      // so every extension-driven memory landed with metadata.source =
+      // {source, platform, data_type} (a nested object) instead of the
+      // expected 'browser_extension' string. Filters like
+      // .eq('metadata->>source','browser_extension') silently matched
+      // zero rows — invisible to verify scripts and downstream queries.
+      await addPlatformObservation(userId, content, 'web', {
         source: 'browser_extension',
-        platform: 'web',
         data_type: dataType,
       });
       count++;
