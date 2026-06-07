@@ -345,14 +345,32 @@ export default function DataExportsPage() {
           className="text-[32px] leading-[1.1] tracking-[-0.64px]"
           style={{ color: 'var(--text-primary)', fontFamily: 'Instrument Serif, serif' }}
         >
-          Data Exports
+          One-time history import
         </h1>
-        <p className="text-[14px] mt-2 max-w-[560px]" style={{ color: 'var(--text-secondary)' }}>
-          For platforms whose APIs hide the data we want, your own GDPR data export fills the gap.
-          Upload the zip — your twin pulls behavioural signals out, the raw file is parsed in memory
-          and discarded.
+        <p className="text-[14px] mt-2 max-w-[600px]" style={{ color: 'var(--text-secondary)' }}>
+          The browser extension already captures your live activity on Discord, LinkedIn and
+          Instagram while you browse. Use this page for the one-time retroactive sweep — years of
+          history from before you installed TwinMe — by uploading the platform's own GDPR export.
+          The zip is parsed in memory and discarded.
         </p>
       </header>
+
+      <div
+        className="mb-6 rounded-[14px] px-4 py-3 text-[12.5px] leading-relaxed flex items-start gap-3"
+        style={{
+          background: 'rgba(255,255,255,0.04)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          color: 'var(--text-secondary)',
+        }}
+      >
+        <Upload size={14} className="mt-0.5 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
+        <span>
+          The TwinMe browser extension already streams ongoing activity (channel visits, post
+          reactions, search queries) without any upload step. Install it once and your twin keeps
+          learning automatically. This page is the one-shot backfill for everything that happened
+          before then.
+        </span>
+      </div>
 
       {loading ? (
         <div className="flex items-center justify-center py-16" style={{ color: 'var(--text-muted)' }}>

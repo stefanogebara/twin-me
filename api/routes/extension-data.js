@@ -95,6 +95,17 @@ function mapEventType(eventType, platform = '') {
     'post_like': 'extension_page_visit',
     'story_view': 'extension_page_visit',
     'follow': 'extension_page_visit',
+    // Discord live-collector events (3.10.0)
+    'channel_visit': 'extension_page_visit',
+    'channel_dwell': 'extension_page_visit',
+    'message_sent': 'extension_chat',
+    'server_sidebar': 'extension_page_visit',
+    // LinkedIn live-collector events (3.10.0)
+    'page_dwell': 'extension_page_visit',
+    'profile_view': 'extension_page_visit',
+    'reaction_click': 'extension_page_visit',
+    'connect_click': 'extension_page_visit',
+    'share_click': 'extension_page_visit',
     // Web browsing events
     'tab_visit': 'extension_page_visit',
     'page_visit': 'extension_page_visit',
@@ -436,17 +447,38 @@ router.post('/batch', authenticateUser, async (req, res) => {
     // Trimmed 2026-06-05: the disney+/hbo/hulu/prime collectors were double-broken
     // (isolated-world fetch + blob send-shape) with ~0 real volume and were removed
     // from the manifest. Netflix (MAIN-world interceptor) + Instagram remain.
-    const STREAMING_PLATFORMS = new Set(['netflix', 'instagram']);
+    // Extended 2026-06-06 (extension v3.10.0): the new Discord + LinkedIn
+    // collectors ship per-event payloads with title/url shaped the same way
+    // Instagram does, so they ride the exact same memory-stream path.
+    const STREAMING_PLATFORMS = new Set(['netflix', 'instagram', 'discord', 'linkedin']);
     const streamingEvents = events.filter(e => {
       const p = (e.platform || platform || '').toLowerCase();
       return STREAMING_PLATFORMS.has(p);
     });
     if (streamingEvents.length > 0) {
       const streamPlatform = (streamingEvents[0].platform || platform || 'streaming').toLowerCase();
+      const isInteractionPlatform = streamPlatform === 'discord' || streamPlatform === 'linkedin';
       const observations = streamingEvents.map(e => {
         const inner = e.raw_data || e.data || e;
         const title = inner.title || inner.name || 'Unknown';
         const type = inner.type || 'content';
+        if (isInteractionPlatform) {
+          // Discord + LinkedIn collectors ship pre-phrased rich titles
+          // ("Sent a message in Discord channel X", "Spent 12m scrolling
+          // LinkedIn feed") — pass them through the generic page-visit
+          // branch of ingestWebObservations so the observation reads
+          // naturally instead of getting wrapped as "Watched ...".
+          return {
+            data_type: 'extension_page_visit',
+            raw_data: {
+              title,
+              domain: streamPlatform === 'discord' ? 'discord.com' : 'linkedin.com',
+              platform: streamPlatform,
+              url: inner.url || '',
+              timestamp: e.timestamp || new Date().toISOString(),
+            },
+          };
+        }
         return {
           data_type: 'extension_video_watch',
           raw_data: {
