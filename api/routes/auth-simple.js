@@ -1741,6 +1741,28 @@ router.get('/oauth/claim', oauthClaimLimiter, async (req, res) => {
   // Set refresh token as httpOnly cookie instead of exposing in response body
   if (session.refresh_token) {
     setRefreshCookie(res, session.refresh_token, req);
+    // CRITICAL (root cause of the desktop-sync 401 loop): persist the claimed
+    // refresh token to user_refresh_tokens so /auth/refresh can validate it.
+    // The desktop-handoff mint creates the token pair but — unlike /signin,
+    // /signup, and the web OAuth callbacks — never wrote it to that table. So
+    // every desktop /auth/refresh (body for the headless sync AND cookie for the
+    // webview) 401'd from the very first use: the webview session silently died
+    // after one ~30-min access-token lifetime, and the capture sync could never
+    // authenticate. The user id isn't on the pending_auth_codes row, so recover
+    // it from the freshly-minted (<=120s old) access-token JWT.
+    try {
+      const decoded = jwt.verify(session.access_token, JWT_SECRET);
+      const claimUserId = decoded?.id || decoded?.userId;
+      if (claimUserId) {
+        await persistRefreshToken({
+          userId: claimUserId,
+          tokenHash: hashToken(session.refresh_token),
+          deviceLabel: deriveDeviceLabel(req),
+        });
+      }
+    } catch (err) {
+      log.warn('oauth/claim: could not persist refresh token', { error: err?.message });
+    }
   }
 
   return res.json({

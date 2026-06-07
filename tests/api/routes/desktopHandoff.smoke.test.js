@@ -25,6 +25,9 @@ process.env.NODE_ENV = 'test';
 
 // Stateful pending_auth_codes so mint stores and claim reads/deletes — like prod.
 const pendingCodes = new Map();
+// Captures persistRefreshToken() inserts so we can assert the claim writes the
+// refresh token to user_refresh_tokens (the table /auth/refresh validates against).
+const persistedRefreshTokens = [];
 
 vi.mock('../../../api/config/supabase.js', () => ({
   supabase: {},
@@ -50,7 +53,16 @@ vi.mock('../../../api/config/supabase.js', () => ({
           }),
         };
       }
-      // users — the auth middleware's email-verification lookup
+      if (table === 'user_refresh_tokens') {
+        return {
+          insert: async (row) => {
+            persistedRefreshTokens.push(Array.isArray(row) ? row[0] : row);
+            return { data: null, error: null };
+          },
+        };
+      }
+      // users — the auth middleware's email-verification lookup (select) AND
+      // persistRefreshToken's legacy refresh_token_hash write (update).
       return {
         select: () => ({
           eq: () => ({
@@ -60,6 +72,7 @@ vi.mock('../../../api/config/supabase.js', () => ({
             }),
           }),
         }),
+        update: () => ({ eq: async () => ({ data: null, error: null }) }),
       };
     },
   },
@@ -79,7 +92,7 @@ function createApp() {
 }
 
 describe('desktop handoff flow (mint -> claim -> /soul-reveal)', () => {
-  beforeEach(() => pendingCodes.clear());
+  beforeEach(() => { pendingCodes.clear(); persistedRefreshTokens.length = 0; });
 
   it('rejects an unauthenticated mint with 401', async () => {
     const res = await request(createApp()).post('/api/auth/desktop-handoff').send({});
@@ -147,5 +160,29 @@ describe('desktop handoff flow (mint -> claim -> /soul-reveal)', () => {
       .get(`/api/auth/oauth/claim?auth_code=${mint.body.auth_code}`);
     expect(claim.status).toBe(200);
     expect(claim.body.refreshToken).toBeUndefined();
+  });
+
+  it('the claim PERSISTS the refresh token to user_refresh_tokens so /auth/refresh can validate it', async () => {
+    // ROOT-CAUSE regression guard. The desktop-handoff/claim path minted a refresh
+    // token but never wrote it to user_refresh_tokens (unlike /signin, /signup, and
+    // the web OAuth callbacks). So every desktop /auth/refresh — body AND cookie —
+    // 401'd from the first use: the webview session silently died after one
+    // access-token lifetime, and the headless capture sync could never authenticate.
+    const app = createApp();
+    const mint = await request(app)
+      .post('/api/auth/desktop-handoff')
+      .set('Authorization', `Bearer ${signToken()}`)
+      .send({});
+    expect(persistedRefreshTokens).toHaveLength(0); // nothing persisted at mint
+
+    const claim = await request(app)
+      .get(`/api/auth/oauth/claim?auth_code=${mint.body.auth_code}&client=mobile`);
+    expect(claim.status).toBe(200);
+
+    // The claimed refresh token must now be in user_refresh_tokens, keyed to the user.
+    const persisted = persistedRefreshTokens.find(
+      (r) => r.user_id === TEST_USER && typeof r.token_hash === 'string' && r.token_hash.length > 0
+    );
+    expect(persisted).toBeTruthy();
   });
 });
