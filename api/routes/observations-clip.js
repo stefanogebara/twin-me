@@ -41,10 +41,16 @@ const CLIP_IMPORTANCE = 4;
 const ClipSchema = z.object({
   local_id: z.number().int(),
   app_name: z.string().min(1).max(128),
-  window_title: z.string().max(MAX_WINDOW_TITLE_CHARS).optional(),
-  content: z.string().max(HARD_CONTENT_CEILING).optional(),
+  // .nullish() (not .optional()) because the desktop serializes ABSENT optional
+  // fields as `null`, not by omitting them — and z.string().optional() REJECTS
+  // null. On Windows `content` is always null (no content extraction), so every
+  // clip was silently dropped. The sibling MEETING schema already uses .nullish()
+  // for title/ended_at, which is the exact reason meetings landed and clips never
+  // did. Match it here.
+  window_title: z.string().max(MAX_WINDOW_TITLE_CHARS).nullish(),
+  content: z.string().max(HARD_CONTENT_CEILING).nullish(),
   started_at: z.number().int().positive(),
-  ended_at: z.number().int().positive().optional(),
+  ended_at: z.number().int().positive().nullish(),
 });
 
 // Outer shape only — clips must be a bounded array. Each clip is validated

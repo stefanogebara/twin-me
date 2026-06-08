@@ -173,4 +173,24 @@ describe('observations clip route smoke', () => {
     const [, , , metadata] = addMemoryMock.mock.calls[0];
     expect(Number.isInteger(metadata.started_at) && metadata.started_at > 0).toBe(true);
   });
+
+  it('accepts a clip with null window_title/content/ended_at (the real bug: desktop sends null, not omitted)', async () => {
+    // THE root-cause regression. The desktop serializes absent optional fields as
+    // `null`. z.string().optional() rejects null (accepts only undefined), so on
+    // Windows — where content is always null — EVERY clip was silently dropped
+    // (200 OK, zero rows). The meeting schema used .nullish() and worked; the clip
+    // schema used .optional() and didn't. Now .nullish() on both schemas.
+    addMemoryMock.mockResolvedValue({ id: 'mem-null-fields' });
+    const res = await request(createApp())
+      .post('/api/observations/clip')
+      .set('Authorization', `Bearer ${signToken()}`)
+      .send({
+        clips: [
+          { local_id: 41, app_name: 'Notepad', window_title: null, content: null, started_at: 1716800006, ended_at: null },
+        ],
+      });
+    expect(res.status).toBe(200);
+    expect(res.body.synced).toEqual([{ local_id: 41, memory_id: 'mem-null-fields' }]);
+    expect(res.body.dropped).toEqual([]);
+  });
 });
