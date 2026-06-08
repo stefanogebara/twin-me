@@ -3,7 +3,6 @@ import { shouldShowInterviewCTA } from '../../src/utils/shouldShowInterviewCTA';
 
 describe('shouldShowInterviewCTA', () => {
   const base = {
-    isDemoMode: false,
     interviewCompleted: false,
     interviewStatusLoaded: true,
     connectedPlatformCount: 0,
@@ -12,10 +11,6 @@ describe('shouldShowInterviewCTA', () => {
 
   it('shows CTA for brand-new users', () => {
     expect(shouldShowInterviewCTA(base)).toBe(true);
-  });
-
-  it('hides CTA in demo mode', () => {
-    expect(shouldShowInterviewCTA({ ...base, isDemoMode: true })).toBe(false);
   });
 
   it('hides CTA when interview is completed', () => {
