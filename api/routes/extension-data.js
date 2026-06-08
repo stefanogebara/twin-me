@@ -251,12 +251,40 @@ router.post('/batch', authenticateUser, async (req, res) => {
         // source_url) NULLS NOT DISTINCT. Null source_url collapses all events
         // for one (user, platform, data_type) into one row → 23505 without
         // upsert. Pull a URL from wherever the collectors stash it.
-        const sourceUrl =
+        let sourceUrl =
           event?.url ||
           event?.source_url ||
           event?.raw_data?.url ||
           event?.raw_data?.source_url ||
           null;
+
+        // OCCURRENCE EVENTS (each one a distinct moment) must NOT upsert-
+        // collapse onto each other. Without this, two reaction_clicks on
+        // the same LinkedIn feed page would collide on (user_id, platform,
+        // 'extension_page_visit', 'https://www.linkedin.com/feed/') and
+        // only the last one would survive. Same for message_sent on the
+        // same Discord channel.
+        //
+        // Fix: append the event's own timestamp as a URL fragment so each
+        // occurrence has a unique conflict key while preserving the human-
+        // readable URL prefix. Hash fragments don't affect routing or
+        // any downstream URL processing.
+        const innerType = event?.raw_data?.type ?? event?.data?.type ?? event?.eventType ?? null;
+        const OCCURRENCE_TYPES = new Set([
+          'message_sent',
+          'reaction_click',
+          'connect_click',
+          'share_click',
+          'profile_view',
+          'channel_visit',
+          'channel_dwell',
+          'page_dwell',
+          'search_query',
+        ]);
+        if (sourceUrl && innerType && OCCURRENCE_TYPES.has(innerType)) {
+          const ts = event?.timestamp || event?.raw_data?.timestamp || new Date().toISOString();
+          sourceUrl = `${sourceUrl}#t=${ts}&e=${innerType}`;
+        }
 
         // raw_data must be JSON-serializable. DOM-scraped collector payloads
         // can carry circular refs / non-plain values that throw when the

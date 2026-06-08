@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "TwinMe - Digital Twin",
-  "version": "3.10.1",
+  "version": "3.10.2",
   "description": "Your AI twin learns from your browsing patterns, interests, and digital footprint. Privacy-first, incognito excluded.",
   "permissions": [
     "storage",
@@ -89,6 +89,12 @@
       "matches": ["https://discord.com/*"],
       "js": ["collectors/discord.js"],
       "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://discord.com/*"],
+      "js": ["collectors/discord-main.js"],
+      "run_at": "document_start",
+      "world": "MAIN"
     },
     {
       "matches": ["https://www.linkedin.com/*"],

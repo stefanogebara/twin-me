@@ -234,48 +234,44 @@ setInterval(() => {
 }, 1000);
 
 // ---------------------------------------------------------------------------
-// message_sent detection via fetch interception.
-// Discord posts to /api/v9/channels/<id>/messages on every send. Body is
-// NEVER inspected — we only stamp { channel_id, sent_at }.
+// message_sent detection.
+//
+// Discord's send POSTs to /api/v9/channels/<id>/messages. Content scripts
+// run in the ISOLATED world, where window.fetch is a separate function
+// from the page's fetch — overriding it here would never see Discord's
+// page-world requests. So the fetch interceptor lives in
+// collectors/discord-main.js (manifest world:"MAIN") and dispatches a
+// CustomEvent that this listener picks up.
+//
+// Body is NEVER read on either side — only the channel ID (which is in
+// the URL path) and a timestamp.
 // ---------------------------------------------------------------------------
 
-const MESSAGE_POST_RX = /\/api\/v\d+\/channels\/(\d+)\/messages(?:\?|$)/;
-
-const _origFetch = window.fetch;
-window.fetch = function (...args) {
+window.addEventListener('twinme:discord:message_sent', (e) => {
   try {
-    const req = args[0];
-    const init = args[1] || {};
-    const url = typeof req === 'string' ? req : req?.url || '';
-    const method = (typeof req !== 'string' && req?.method) || init?.method || 'GET';
-    if (method.toUpperCase() === 'POST') {
-      const m = MESSAGE_POST_RX.exec(url);
-      if (m) {
-        const channelId = m[1];
-        const loc = parseDiscordLocation(location.href);
-        pushEvent({
-          eventType: 'message_sent',
-          platform: 'discord',
-          timestamp: new Date().toISOString(),
-          data: {
-            channel_id: channelId,
-            server_id: loc.kind === 'guild_channel' ? loc.server_id : '@me',
-            kind: loc.kind,
-            url: location.href,
-            title:
-              loc.kind === 'guild_channel'
-                ? `Sent a message in Discord channel ${channelId} (server ${loc.server_id})`
-                : 'Sent a Discord DM',
-            type: 'message_sent',
-          },
-        });
-      }
-    }
+    const d = e?.detail ?? {};
+    const channelId = d.channel_id;
+    if (!channelId) return;
+    pushEvent({
+      eventType: 'message_sent',
+      platform: 'discord',
+      timestamp: new Date().toISOString(),
+      data: {
+        channel_id: channelId,
+        server_id: d.server_id ?? '@me',
+        kind: d.kind ?? 'other',
+        url: d.url ?? location.href,
+        title:
+          d.kind === 'guild_channel'
+            ? `Sent a message in Discord channel ${channelId} (server ${d.server_id})`
+            : 'Sent a Discord DM',
+        type: 'message_sent',
+      },
+    });
   } catch {
-    // never let the interceptor break the page
+    /* never let the listener crash */
   }
-  return _origFetch.apply(this, args);
-};
+});
 
 // ---------------------------------------------------------------------------
 // Periodic server-sidebar snapshot — once per 10 min while page open.
