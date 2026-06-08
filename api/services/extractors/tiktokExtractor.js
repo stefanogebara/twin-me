@@ -5,6 +5,7 @@
 
 import { supabaseAdmin } from '../database.js';
 import { ensureFreshToken } from '../tokenRefreshService.js';
+import { addPlatformObservation } from '../memoryStreamService.js';
 import { createLogger } from '../logger.js';
 
 const log = createLogger('TiktokExtractor');
@@ -132,6 +133,23 @@ class TikTokExtractor {
           extracted_at: new Date().toISOString()
         }, user.profile_deep_link);
 
+        // Surface to the memory stream so the twin can actually use it — the
+        // raw user_platform_data row alone never reached user_memories (2026-06-08 audit).
+        try {
+          const parts = [`You're on TikTok as "${user.display_name}"${user.is_verified ? ' (verified)' : ''}`];
+          if (user.bio_description) parts.push(`your bio reads "${String(user.bio_description).slice(0, 200)}"`);
+          if (typeof user.follower_count === 'number') {
+            parts.push(`you have ${user.follower_count} followers and follow ${user.following_count ?? 0} accounts`);
+          }
+          if (typeof user.video_count === 'number') parts.push(`you've posted ${user.video_count} videos`);
+          await addPlatformObservation(userId, parts.join('; ') + '.', 'tiktok', {
+            ingestion_source: 'tiktok_profile',
+            open_id: user.open_id,
+          });
+        } catch (obsErr) {
+          log.warn('Failed to store TikTok profile observation', { error: obsErr.message });
+        }
+
         log.info(`Extracted user info for ${user.display_name}`);
         return 1;
       }
@@ -153,6 +171,10 @@ class TikTokExtractor {
       let totalVideos = 0;
       let cursor = null;
       let hasMore = true;
+      // Cap memory-stream observations so a prolific account doesn't flood the
+      // stream — raw rows still capture everything in user_platform_data.
+      const MAX_VIDEO_OBSERVATIONS = 25;
+      let videoObservations = 0;
 
       // TikTok API supports pagination with cursor
       while (hasMore) {
@@ -188,6 +210,21 @@ class TikTokExtractor {
               created_at: new Date(video.create_time * 1000).toISOString(),
               extracted_at: new Date().toISOString()
             }, video.share_url);
+
+            // Surface video content (titles/descriptions) to the memory stream —
+            // this is the taste signal the twin reasons over.
+            const tiktokDesc = (video.title || video.video_description || '').trim();
+            if (tiktokDesc && videoObservations < MAX_VIDEO_OBSERVATIONS) {
+              try {
+                await addPlatformObservation(userId, `On TikTok you posted: "${tiktokDesc.slice(0, 200)}".`, 'tiktok', {
+                  ingestion_source: 'tiktok_video',
+                  video_id: video.id,
+                });
+                videoObservations++;
+              } catch (obsErr) {
+                log.warn('Failed to store TikTok video observation', { error: obsErr.message });
+              }
+            }
 
             totalVideos++;
           }
