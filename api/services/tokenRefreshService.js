@@ -113,6 +113,16 @@ function getPlatformRefreshConfig(platform) {
       clientId: process.env.OURA_CLIENT_ID,
       clientSecret: process.env.OURA_CLIENT_SECRET,
     },
+
+    // Strava — OAuth2 refresh. Access tokens expire every ~6h, so a directly
+    // connected Strava token dies and is never refreshed without this entry
+    // (Nango-managed connections are refreshed by Nango). Standard
+    // client_secret_post: credentials go in the body, no Basic auth.
+    strava: {
+      tokenUrl: 'https://www.strava.com/oauth/token',
+      clientId: process.env.STRAVA_CLIENT_ID,
+      clientSecret: process.env.STRAVA_CLIENT_SECRET,
+    },
   };
   return configs[platform];
 }

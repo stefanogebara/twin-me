@@ -53,6 +53,8 @@ describe('requiresTokenRefresh', () => {
     expect(requiresTokenRefresh('youtube')).toBe(true);
     expect(requiresTokenRefresh('google_gmail')).toBe(true);
     expect(requiresTokenRefresh('google_calendar')).toBe(true);
+    // Strava added 2026-06-08 — direct-OAuth tokens expire ~6h and need refresh.
+    expect(requiresTokenRefresh('strava')).toBe(true);
   });
 
   it('returns true for github (non-expiring but checked)', () => {
