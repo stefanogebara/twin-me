@@ -133,12 +133,44 @@ describe('observations clip route smoke', () => {
       .send({
         clips: [
           { local_id: 21, app_name: 'Code', window_title: 'ok.js', started_at: 1716800003 },
-          { local_id: 22, app_name: 'Bad', window_title: 'x', started_at: -5 }, // non-positive → invalid
+          { local_id: 22.5, app_name: 'Bad', window_title: 'x', started_at: 1716800004 }, // non-integer local_id → uncoercible → invalid
         ],
       });
     expect(res.status).toBe(200);
     expect(res.body.synced).toEqual([{ local_id: 21, memory_id: 'mem-ok' }]);
-    expect(res.body.dropped).toEqual([{ local_id: 22, reason: 'invalid_clip' }]);
+    expect(res.body.dropped).toEqual([{ local_id: 22.5, reason: 'invalid_clip' }]);
     expect(addMemoryMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('coerces a blank app_name to a default instead of silently dropping the clip', async () => {
+    // Regression: real desktop clips were silently rejected (200 OK, zero rows)
+    // when a field tripped the schema. Coerce-and-keep, never drop a real clip.
+    addMemoryMock.mockResolvedValue({ id: 'mem-blank-app' });
+    const res = await request(createApp())
+      .post('/api/observations/clip')
+      .set('Authorization', `Bearer ${signToken()}`)
+      .send({
+        clips: [{ local_id: 31, app_name: '', window_title: 'x', started_at: 1716800005 }],
+      });
+    expect(res.status).toBe(200);
+    expect(res.body.synced).toEqual([{ local_id: 31, memory_id: 'mem-blank-app' }]);
+    expect(res.body.dropped).toEqual([]);
+    const [, , , metadata] = addMemoryMock.mock.calls[0];
+    expect(metadata.app).toBe('Unknown'); // blank app coerced
+  });
+
+  it('coerces a non-positive started_at to a valid timestamp instead of dropping', async () => {
+    addMemoryMock.mockResolvedValue({ id: 'mem-bad-ts' });
+    const res = await request(createApp())
+      .post('/api/observations/clip')
+      .set('Authorization', `Bearer ${signToken()}`)
+      .send({
+        clips: [{ local_id: 32, app_name: 'Notepad', started_at: 0 }], // zero → coerced to now()
+      });
+    expect(res.status).toBe(200);
+    expect(res.body.synced).toEqual([{ local_id: 32, memory_id: 'mem-bad-ts' }]);
+    expect(res.body.dropped).toEqual([]);
+    const [, , , metadata] = addMemoryMock.mock.calls[0];
+    expect(Number.isInteger(metadata.started_at) && metadata.started_at > 0).toBe(true);
   });
 });
