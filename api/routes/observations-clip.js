@@ -56,18 +56,43 @@ const BatchSchema = z.object({
   clips: z.array(z.unknown()).max(MAX_CLIPS_PER_BATCH),
 });
 
-// Truncate oversized free-text fields BEFORE per-clip validation so a long
-// window title or large content body is KEPT (clipped to the schema ceiling)
-// rather than rejected. Returns a new object — never mutates the request data.
+// Coerce edge-case clip fields BEFORE per-clip validation so a real captured
+// clip is KEPT (cleaned up) rather than silently rejected. Returns a new object
+// — never mutates the request data. Only `local_id` (the response key) can still
+// fail validation, since we can't invent one.
+//
+// Why coerce instead of validate-and-drop: a rejected clip is dropped SILENTLY
+// (no error log) and the observation is lost forever. We'd rather store a clip
+// with a clamped title or a defaulted timestamp than lose what the user did.
 function coerceClipFields(raw) {
   if (!raw || typeof raw !== 'object') return raw;
   const next = { ...raw };
+
+  // app_name: required, 1..128 chars. Blank/missing → 'Unknown'; overlong → clip.
+  if (typeof next.app_name !== 'string' || next.app_name.trim().length === 0) {
+    next.app_name = 'Unknown';
+  } else if (next.app_name.length > 128) {
+    next.app_name = next.app_name.slice(0, 128);
+  }
+
+  // window_title / content: truncate to their ceilings so length never rejects.
   if (typeof next.window_title === 'string' && next.window_title.length > MAX_WINDOW_TITLE_CHARS) {
     next.window_title = next.window_title.slice(0, MAX_WINDOW_TITLE_CHARS);
   }
   if (typeof next.content === 'string' && next.content.length > HARD_CONTENT_CEILING) {
     next.content = next.content.slice(0, HARD_CONTENT_CEILING);
   }
+
+  // started_at: required positive int. Missing/zero/negative/float → now(), so a
+  // bad clock value never silently drops the clip.
+  if (!Number.isInteger(next.started_at) || next.started_at <= 0) {
+    next.started_at = Date.now();
+  }
+  // ended_at: optional positive int. Drop an invalid value so .optional() passes.
+  if (next.ended_at !== undefined && (!Number.isInteger(next.ended_at) || next.ended_at <= 0)) {
+    delete next.ended_at;
+  }
+
   return next;
 }
 
@@ -97,6 +122,11 @@ router.post('/clip', authenticateUser, async (req, res) => {
     const clipParse = ClipSchema.safeParse(coerceClipFields(rawClip));
     if (!clipParse.success) {
       const localId = rawClip && typeof rawClip.local_id === 'number' ? rawClip.local_id : -1;
+      // Diagnostic: put the failing field+code IN the message string (field names
+      // only, never values) so it survives log truncation. After coercion the only
+      // expected rejection is a non-integer local_id.
+      const issues = clipParse.error.issues.map((i) => `${i.path.join('.') || '?'}:${i.code}`).join(',');
+      log.warn(`clip rejected invalid_clip local_id=${localId} issues=[${issues}]`);
       dropped.push({ local_id: localId, reason: 'invalid_clip' });
       continue;
     }
@@ -135,7 +165,12 @@ router.post('/clip', authenticateUser, async (req, res) => {
     }
   }
 
-  log.info('Clip batch processed', { userId, received: clips.length, synced: synced.length, dropped: dropped.length });
+  // Counts in the message string so they survive log truncation (the JSON meta
+  // was getting cut off, hiding that every clip was being dropped).
+  log.info(`Clip batch processed received=${clips.length} synced=${synced.length} dropped=${dropped.length}`, {
+    userId,
+    dropReasons: dropped.map((d) => d.reason),
+  });
   // Note: addMemory dedups exact content within 24h, so two identical clips in
   // one batch (or across desktop retries) map to the SAME memory_id — making
   // retries idempotent. Envelope includes `success: true` to match the repo's
