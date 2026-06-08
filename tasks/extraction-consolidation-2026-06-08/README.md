@@ -62,9 +62,11 @@ Principles:
 - **DONE:** the orchestrator's `case 'spotify'` now ALSO emits memory observations via `observationFetchers/spotify.js` (canonical, token-refreshing), so on-demand Spotify extraction updates the memory stream like every other platform (it previously wrote raw only → the stream only refreshed via the cron). Additive, no deletions.
 - **Deferred to Phase 4:** unifying the two raw producers (`comprehensive_music_profile` vs the granular rows) — requires a `data_type` consumer audit first.
 
-**Phase 2 — Standardize tokens in the fetcher layer.**
-- Audit each `observationFetchers/*` to ensure it calls `ensureFreshToken` (or the platform's correct refresh) before API calls. Fix any that decrypt-and-use raw tokens.
-- Removes the "first 401 → connection drifts to expired" class.
+**Phase 2 — Standardize token handling in the fetcher layer (DONE 2026-06-08).**
+- Audit finding: token *refresh* is already standardized — every OAuth fetcher uses `getValidAccessToken` or Nango (both refresh); the only `decryptToken` is github's PAT fallback (PATs don't expire). No refresh bugs remain.
+- The real gap was *error surfacing*: `spotify` + `youtube` threw a tagged `AUTH_FAILED` on token failure (→ ingestion records `auth_failed` → /inbox Reconnect CTA), but `discord/calendar/gmail/googleDrive/linkedin/oura/reddit/slack/whoop/twitch/strava` silently `return []`, masked as `no_new_data` — expired connections produced nothing with no Reconnect prompt.
+- **DONE:** those 11 fetchers now throw the tagged error (matching `spotify.js`). `observationIngestion.js:549` already flips `status='auth_failed'` on `code:'AUTH_FAILED'`, so expired connections surface a Reconnect CTA consistently. Full suite green.
+- Deferred: `appleMusic` (two-token flow — risky single-branch swap); `garmin`/`instagram`/`web`/`location` are non-OAuth (N/A).
 
 **Phase 3 — Fold P2 into the unified dispatcher.**
 - Replace `extractionOrchestrator`'s hand-written `switch` with `PLATFORM_FETCHERS` dispatch (it already mostly delegates to the same fetchers after #86). Keep the on-demand wrapper (jobs table, `twin_summaries` invalidation, feature-extractor hooks) as a thin layer around the shared dispatcher.

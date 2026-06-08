@@ -260,8 +260,12 @@ async function fetchOuraObservations(userId) {
   // ── Direct OAuth path ───────────────────────────────────────────────────
   const tokenResult = await getValidAccessToken(userId, 'oura');
   if (!tokenResult.success || !tokenResult.accessToken) {
-    log.warn('Oura: no valid token', { userId });
-    return observations;
+    // Phase 2 (2026-06-08): throw a tagged error instead of silently returning []
+    // so observationIngestion records auth_failed and surfaces a Reconnect CTA
+    // (matches spotify.js). Silent [] was masked as no_new_data.
+    const err = new Error(tokenResult.error || 'Oura token unavailable');
+    err.code = tokenResult.requiresReauth ? 'AUTH_FAILED' : 'TOKEN_UNAVAILABLE';
+    throw err;
   }
 
   const ouraHeaders = { Authorization: `Bearer ${tokenResult.accessToken}` };

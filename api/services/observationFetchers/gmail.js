@@ -20,8 +20,12 @@ async function fetchGmailObservations(userId) {
 
   const tokenResult = await getValidAccessToken(userId, 'google_gmail');
   if (!tokenResult.success || !tokenResult.accessToken) {
-    log.warn('Gmail: no valid token', { userId });
-    return observations;
+    // Phase 2 (2026-06-08): throw a tagged error instead of silently returning []
+    // so observationIngestion records auth_failed and surfaces a Reconnect CTA
+    // (matches spotify.js). Silent [] was masked as no_new_data.
+    const err = new Error(tokenResult.error || 'Gmail token unavailable');
+    err.code = tokenResult.requiresReauth ? 'AUTH_FAILED' : 'TOKEN_UNAVAILABLE';
+    throw err;
   }
 
   const headers = { Authorization: `Bearer ${tokenResult.accessToken}` };
