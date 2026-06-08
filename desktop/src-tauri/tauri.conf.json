@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "TwinMe",
-  "version": "0.2.8",
+  "version": "0.2.9",
   "identifier": "ai.twinme.desktop",
   "build": {
     "beforeBuildCommand": "",
@@ -86,7 +86,7 @@
     "shortDescription": "Your AI twin, always one keystroke away.",
     "longDescription": "TwinMe Desktop is a native home for your Soul Signature: a guided first-run that explains on-device meeting notes, context awareness, and the global hotkey (Cmd+Shift+T), plus a system tray and native notifications. Inspired by Littlebird and jo.",
     "copyright": "Copyright © 2026 TwinMe",
-    "createUpdaterArtifacts": false,
+    "createUpdaterArtifacts": true,
     "macOS": {
       "minimumSystemVersion": "10.15",
       "exceptionDomain": "twinme.me"
@@ -112,6 +112,15 @@
     "deep-link": {
       "desktop": {
         "schemes": ["twinme"]
+      }
+    },
+    "updater": {
+      "endpoints": [
+        "https://github.com/stefanogebara/twin-me/releases/latest/download/latest.json"
+      ],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDhGM0JDMDM0NDMyRjkyNUIKUldSYmtpOUROTUE3anhiM3FHd3V5YlJCVzJOWjhHanNxZDlURkRNRkJadmpDSU5BbUJFdzYyYzkK",
+      "windows": {
+        "installMode": "passive"
       }
     }
   }

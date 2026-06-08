@@ -24,6 +24,7 @@ mod clips;
 mod config;
 mod meetings;
 mod sync;
+mod update;
 
 use tauri::{
     menu::{Menu, MenuItem, PredefinedMenuItem, Submenu},
@@ -462,6 +463,12 @@ pub fn run() {
                 let _ = win.set_focus();
             }
         }));
+
+        // Auto-updater: self-update from signed GitHub releases so binary fixes
+        // reach users without a manual re-download. The check is kicked off from
+        // setup() (see update::check_and_install); registering the plugin here
+        // gives that call the `app.updater()` extension. Desktop-only.
+        builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
     }
 
     builder
@@ -645,6 +652,17 @@ pub fn run() {
             // active_window::current() returns None.
             tauri::async_runtime::spawn(clip_indexer::run());
             tauri::async_runtime::spawn(sync::run());
+
+            // Auto-update: one silent check shortly after startup. Best-effort —
+            // any failure is logged and swallowed (see update.rs). A newer version
+            // is downloaded + installed in the background and applies on next launch.
+            #[cfg(desktop)]
+            {
+                let handle = app.handle().clone();
+                tauri::async_runtime::spawn(async move {
+                    update::check_and_install(handle).await;
+                });
+            }
 
             Ok(())
         })
