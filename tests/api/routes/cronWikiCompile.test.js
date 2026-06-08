@@ -157,11 +157,16 @@ describe('cron /wiki-compile', () => {
         { user_id: 'u_old_wiki', updated_at: '2026-04-01T00:00:00Z' },
         { user_id: 'u_recent_wiki', updated_at: '2026-05-20T00:00:00Z' },
       ];
-      // MAX_USERS_PER_RUN=1 so we'll only see the first.
+      // MAX_USERS_PER_RUN=5, so all three are processed — but ordering matters:
+      // the no-wiki user (infinitely stale) first, then oldest-wiki, then recent.
       await request(makeApp())
         .post('/cron')
         .set('Authorization', `Bearer ${TEST_CRON_SECRET}`);
-      expect(compileCalls).toEqual([{ userId: 'u_no_wiki' }]);
+      expect(compileCalls).toEqual([
+        { userId: 'u_no_wiki' },
+        { userId: 'u_old_wiki' },
+        { userId: 'u_recent_wiki' },
+      ]);
     });
 
     it('among users WITH wiki rows, processes the oldest one first', async () => {
@@ -176,7 +181,7 @@ describe('cron /wiki-compile', () => {
       await request(makeApp())
         .post('/cron')
         .set('Authorization', `Bearer ${TEST_CRON_SECRET}`);
-      expect(compileCalls).toEqual([{ userId: 'u_old' }]);
+      expect(compileCalls).toEqual([{ userId: 'u_old' }, { userId: 'u_recent' }]);
     });
   });
 
