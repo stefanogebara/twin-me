@@ -22,7 +22,12 @@ use std::sync::OnceLock;
 use std::time::Duration;
 use tokio::sync::Mutex;
 
-const DEFAULT_REFRESH_ENDPOINT: &str = "https://twinme.me/api/auth/refresh";
+// Canonical host (www), NOT the apex — see sync.rs DEFAULT_ENDPOINT. The apex
+// 307-redirects to www and reqwest strips the Authorization header across it.
+// Refresh sends its token in the BODY (which survives the redirect), so this
+// worked even on the apex — but we target www anyway to avoid the needless
+// redirect round-trip and keep both endpoints consistent.
+const DEFAULT_REFRESH_ENDPOINT: &str = "https://www.twinme.me/api/auth/refresh";
 
 fn refresh_lock() -> &'static Mutex<()> {
     static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
@@ -139,5 +144,19 @@ mod tests {
             .await;
         let url = format!("{}/api/auth/refresh", server.url());
         assert!(refresh_with(&url, "bad").await.is_none());
+    }
+
+    // Sibling of sync.rs's canonical-host guard: keep the refresh endpoint on
+    // www so it never silently regresses to the redirecting apex.
+    #[test]
+    fn default_refresh_endpoint_targets_canonical_www_host_not_apex() {
+        assert!(
+            DEFAULT_REFRESH_ENDPOINT.starts_with("https://www.twinme.me/"),
+            "DEFAULT_REFRESH_ENDPOINT must use the canonical www host, got {DEFAULT_REFRESH_ENDPOINT}"
+        );
+        assert!(
+            !DEFAULT_REFRESH_ENDPOINT.contains("//twinme.me/"),
+            "DEFAULT_REFRESH_ENDPOINT must NOT use the bare apex"
+        );
     }
 }

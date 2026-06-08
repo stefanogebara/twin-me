@@ -9,7 +9,13 @@ use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
 const SYNC_INTERVAL: Duration = Duration::from_secs(120);
-const DEFAULT_ENDPOINT: &str = "https://twinme.me/api/observations/clip";
+// MUST be the canonical host (www), NOT the bare apex. The apex twinme.me
+// 307-redirects to www.twinme.me, and reqwest STRIPS the Authorization header
+// across that host change — so every clip/meeting POST would arrive with no
+// auth ("Missing authorization header" → 401). The body survives the redirect,
+// which is why /auth/refresh (token in body) worked while capture silently
+// 401'd. Hitting www directly = no redirect = the bearer token is preserved.
+const DEFAULT_ENDPOINT: &str = "https://www.twinme.me/api/observations/clip";
 const BATCH_SIZE: usize = 50;
 // Meeting sessions shorter than this are treated as noise (accidental focus on
 // a meeting window, a misfire of classify_meeting) and never posted — they're
@@ -348,5 +354,22 @@ mod tests {
         let url = format!("{}/api/observations/clip", server.url());
         let result = post_batch(&url, "t", &[]).await;
         assert!(result.is_err());
+    }
+
+    // Regression guard for the capture-401 saga: the sync endpoint MUST target
+    // the canonical www host. The apex twinme.me 307-redirects to www, and
+    // reqwest drops the Authorization header on that host change, so an apex URL
+    // makes every authenticated clip/meeting POST 401 with "missing auth header".
+    #[test]
+    fn default_endpoint_targets_canonical_www_host_not_apex() {
+        assert!(
+            DEFAULT_ENDPOINT.starts_with("https://www.twinme.me/"),
+            "DEFAULT_ENDPOINT must use the canonical www host, got {DEFAULT_ENDPOINT}"
+        );
+        // The apex form is "https://twinme.me/..." → contains "//twinme.me/".
+        assert!(
+            !DEFAULT_ENDPOINT.contains("//twinme.me/"),
+            "DEFAULT_ENDPOINT must NOT use the bare apex (it 307-redirects, stripping auth)"
+        );
     }
 }
