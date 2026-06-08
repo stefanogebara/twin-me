@@ -41,19 +41,36 @@ let currentEnteredAt = null;
 let isAuthenticated = false;
 
 // ---------------------------------------------------------------------------
-// Auth handshake — same gating Instagram uses.
+// Auth handshake. Instagram's collector treats GET_AUTH_STATUS as advisory:
+// it captures events into a local batch regardless and lets background.js
+// drop the ship if no token is around yet. We do the same — capture freely,
+// gate only the ship — so the collector still records the first 30s of
+// page activity when the user happened to open Discord/LinkedIn before the
+// TwinMe tab had finished refreshing its token.
+//
+// The handshake runs on a 10s timer so a slow auth bridge (token relayed
+// after the collector loads) eventually flips the flag. Without the
+// re-check the collector would silently no-op for the rest of the session.
 // ---------------------------------------------------------------------------
 
-chrome.runtime.sendMessage({ type: 'GET_AUTH_STATUS' }, (response) => {
-  if (chrome.runtime.lastError) return;
-  if (response?.authenticated) {
-    isAuthenticated = true;
-    console.log('[Soul Signature] Discord collector authenticated');
-    onLocationChanged();
-  } else {
-    console.log('[Soul Signature] Discord collector waiting for auth');
+function pingAuthStatus() {
+  try {
+    chrome.runtime.sendMessage({ type: 'GET_AUTH_STATUS' }, (response) => {
+      if (chrome.runtime.lastError) return;
+      const wasAuthed = isAuthenticated;
+      isAuthenticated = Boolean(response?.authenticated);
+      if (!wasAuthed && isAuthenticated) {
+        console.log('[Soul Signature] Discord collector authenticated');
+        onLocationChanged();
+      }
+    });
+  } catch {
+    // service worker not awake yet — try again on the next interval
   }
-});
+}
+
+pingAuthStatus();
+setInterval(pingAuthStatus, 10_000);
 
 // ---------------------------------------------------------------------------
 // URL parser — extract { kind, server_id, channel_id } from a Discord path.
@@ -154,7 +171,10 @@ function discordEventTitle(loc, seconds) {
 }
 
 function onLocationChanged() {
-  if (!isAuthenticated) return;
+  // No auth gate on capture — background.js drops the eventual ship if
+  // there's no token. Gating here would silently lose the first 30s
+  // of activity when the user opens Discord before the TwinMe tab
+  // finishes refreshing.
   const next = parseDiscordLocation(location.href);
   // Flush dwell from previous location if any
   flushDwell('navigation');
@@ -230,7 +250,7 @@ window.fetch = function (...args) {
     const method = (typeof req !== 'string' && req?.method) || init?.method || 'GET';
     if (method.toUpperCase() === 'POST') {
       const m = MESSAGE_POST_RX.exec(url);
-      if (m && isAuthenticated) {
+      if (m) {
         const channelId = m[1];
         const loc = parseDiscordLocation(location.href);
         pushEvent({
@@ -262,7 +282,7 @@ window.fetch = function (...args) {
 // ---------------------------------------------------------------------------
 
 function shipSidebarSnapshot() {
-  if (!isAuthenticated) return;
+  // Capture freely; background.js handles the auth gate at ship time.
   const items = snapshotServerSidebar();
   if (items.length === 0) return;
   pushEvent({

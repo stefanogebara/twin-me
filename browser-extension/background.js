@@ -88,6 +88,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       sendResponse({ userId, active: !!userId });
       break;
 
+    case 'GET_AUTH_STATUS':
+      // Collectors use this to gate expensive operations until the auth
+      // bridge has relayed a token. authToken can land asynchronously
+      // (post page-load), so collectors should NOT use this to gate
+      // event CAPTURE — only one-shot heavy work.
+      sendResponse({ authenticated: !!(userId && authToken), userId });
+      break;
+
     case 'NETFLIX_DATA':
       handleNetflixData(message.data);
       sendResponse({ success: true });

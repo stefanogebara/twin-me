@@ -39,19 +39,30 @@ let currentLocation = null;
 let currentEnteredAt = null;
 
 // ---------------------------------------------------------------------------
-// Auth handshake.
+// Auth handshake. Advisory only — capture freely; background.js handles
+// the auth gate at ship time. Re-ping on a 10s timer so a slow bridge
+// eventually flips the flag (one-shot ping misses if the bridge hasn't
+// relayed the token by the time the content script fires).
 // ---------------------------------------------------------------------------
 
-chrome.runtime.sendMessage({ type: 'GET_AUTH_STATUS' }, (response) => {
-  if (chrome.runtime.lastError) return;
-  if (response?.authenticated) {
-    isAuthenticated = true;
-    console.log('[Soul Signature] LinkedIn collector authenticated');
-    onLocationChanged();
-  } else {
-    console.log('[Soul Signature] LinkedIn collector waiting for auth');
+function pingAuthStatus() {
+  try {
+    chrome.runtime.sendMessage({ type: 'GET_AUTH_STATUS' }, (response) => {
+      if (chrome.runtime.lastError) return;
+      const wasAuthed = isAuthenticated;
+      isAuthenticated = Boolean(response?.authenticated);
+      if (!wasAuthed && isAuthenticated) {
+        console.log('[Soul Signature] LinkedIn collector authenticated');
+        onLocationChanged();
+      }
+    });
+  } catch {
+    // service worker not awake yet — try again on the next interval
   }
-});
+}
+
+pingAuthStatus();
+setInterval(pingAuthStatus, 10_000);
 
 // ---------------------------------------------------------------------------
 // URL parser.
@@ -125,7 +136,7 @@ function linkedInDwellTitle(loc, seconds) {
 }
 
 function onLocationChanged() {
-  if (!isAuthenticated) return;
+  // No capture-time auth gate — see auth handshake comment above.
   const next = parseLinkedInLocation(location.href);
   flushDwell('navigation');
 
@@ -215,7 +226,6 @@ function classifyButton(label) {
 document.addEventListener(
   'click',
   (e) => {
-    if (!isAuthenticated) return;
     if (!(e.target instanceof Element)) return;
     const btn = e.target.closest('button, [role="button"], a');
     if (!btn) return;
