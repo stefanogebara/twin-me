@@ -11,6 +11,25 @@ import { createLogger } from '../logger.js';
 
 const log = createLogger('Reflectionstore');
 
+// `reflection_history.confidence` is a NUMERIC column, but reflections carry a
+// human label ('high' | 'medium' | 'low'). Writing the raw label failed the
+// insert ("invalid input syntax for type numeric: high"), so reflections never
+// cached and every insights load re-ran the LLM (~15-20s). Map label<->numeric
+// at the storage boundary; the API/UI keep using the label.
+const CONFIDENCE_LABEL_TO_NUMERIC = { high: 0.9, medium: 0.6, low: 0.3 };
+
+function toConfidenceNumeric(confidence) {
+  if (typeof confidence === 'number') return confidence;
+  return CONFIDENCE_LABEL_TO_NUMERIC[confidence] ?? CONFIDENCE_LABEL_TO_NUMERIC.medium;
+}
+
+export function toConfidenceLabel(confidence) {
+  if (typeof confidence === 'number') {
+    return confidence >= 0.8 ? 'high' : confidence >= 0.5 ? 'medium' : 'low';
+  }
+  return confidence || 'medium';
+}
+
 /**
  * Store reflection in database
  *
@@ -29,7 +48,7 @@ export async function storeReflection(userId, platform, reflection) {
       platform,
       reflection_text: reflection.text,
       themes: reflection.themes,
-      confidence: reflection.confidence,
+      confidence: toConfidenceNumeric(reflection.confidence),
       reflection_type: 'observation',
       expires_at: expiresAt.toISOString(),
       data_snapshot: {
@@ -119,7 +138,7 @@ export function formatResponse(reflection, history, lifeContext = null, visualDa
         text: reflection.reflection_text,
         generatedAt: reflection.generated_at,
         expiresAt: reflection.expires_at,
-        confidence: reflection.confidence,
+        confidence: toConfidenceLabel(reflection.confidence),
         themes: reflection.themes || [],
         source: reflection.source || 'ai'
       }
@@ -128,7 +147,7 @@ export function formatResponse(reflection, history, lifeContext = null, visualDa
         text: reflection.text,
         generatedAt: new Date().toISOString(),
         expiresAt: null,
-        confidence: reflection.confidence,
+        confidence: toConfidenceLabel(reflection.confidence),
         themes: reflection.themes || [],
         source: reflection.source || 'ai'
       };

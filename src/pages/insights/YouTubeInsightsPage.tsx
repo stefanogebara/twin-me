@@ -5,16 +5,14 @@
  * about what your YouTube patterns reveal about you.
  */
 
-import React, { useEffect, useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { API_URL, getAccessToken, isAbortError } from '@/services/api/apiBase';
+import React from 'react';
+import { usePlatformInsights } from '@/hooks/usePlatformInsights';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { TwinReflection, PatternObservation } from './components/TwinReflection';
 import { EvidenceSection } from './components/EvidenceSection';
 import { Video, RefreshCw, ArrowLeft, AlertCircle, Users, ThumbsUp, PieChart, BookOpen, History, Search, Download } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { PieChart as RechartsPie, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
-import { toast } from 'sonner';
 
 interface Reflection {
   id: string | null;
@@ -91,89 +89,18 @@ interface InsightsResponse {
 const CATEGORY_COLORS = ['#FF0000', '#FF4444', '#60a5fa', '#a78bfa', '#fbbf24', '#4ade80'];
 
 const YouTubeInsightsPage: React.FC = () => {
-  const { token } = useAuth();
   const navigate = useNavigate();
 
   useDocumentTitle('YouTube Insights');
 
-  const [insights, setInsights] = useState<InsightsResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  // Use API_URL from apiBase — same-origin /api in browser, localhost in dev.
-  // Previous fallback dropped /api and produced 404s when VITE_API_URL was unset.
-  const API_BASE = API_URL;
+  const { insights, loading, generating, refreshing, error, refresh } =
+    usePlatformInsights<InsightsResponse>('youtube', 'Please sign in to see your content world');
 
   const colors = {
     text: 'var(--foreground)',
     textSecondary: 'rgba(255,255,255,0.4)',
     youtubeRed: '#FF0000',
     youtubeBg: 'rgba(255, 0, 0, 0.1)'
-  };
-
-  useEffect(() => {
-    const controller = new AbortController();
-    fetchInsights(controller.signal);
-    return () => controller.abort();
-  }, []);
-
-  const fetchInsights = async (signal?: AbortSignal) => {
-    const authToken = token || getAccessToken();
-    if (!authToken) {
-      setError('Please sign in to see your content world');
-      setLoading(false);
-      return;
-    }
-
-    try {
-      const response = await fetch(`${API_BASE}/insights/youtube`, {
-        headers: { 'Authorization': `Bearer ${authToken}` },
-        signal,
-      });
-
-      if (!response.ok) throw new Error(`Server error: ${response.status}`);
-      const data = await response.json();
-
-      if (data.success) {
-        setInsights(data);
-        setError(null);
-      } else {
-        setError(data.error || 'Failed to load insights');
-      }
-    } catch (err) {
-      // audit-2026-05-08 frontend HIGH-2 + MED-1: AbortError fires when React 18
-      // StrictMode unmounts the effect on the first run — it's not a real error,
-      // don't pollute the console or flip the UI to an error state.
-      if (isAbortError(err)) return;
-      // Browser may cancel with TypeError before AbortController fires.
-      // Yield a microtask so cleanup can flip signal.aborted, then re-check.
-      if (signal && !signal.aborted) await new Promise((r) => setTimeout(r, 0));
-      if (signal?.aborted) return;
-      console.error('Failed to fetch YouTube insights:', err);
-      setError('Unable to connect to your content world right now');
-    } finally {
-      if (!signal?.aborted) setLoading(false);
-    }
-  };
-
-  const handleRefresh = async () => {
-    setRefreshing(true);
-
-    const authToken = token || getAccessToken();
-
-    try {
-      await fetch(`${API_BASE}/insights/youtube/refresh`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${authToken}` }
-      });
-      await fetchInsights();
-    } catch (err) {
-      console.error('Failed to refresh insights:', err);
-      toast.error('Refresh failed', { description: 'Unable to refresh YouTube insights. Please try again.' });
-    } finally {
-      setRefreshing(false);
-    }
   };
 
   const SkeletonPulse = ({ className = '', style = {} }: { className?: string; style?: React.CSSProperties }) => (
@@ -186,7 +113,7 @@ const YouTubeInsightsPage: React.FC = () => {
     />
   );
 
-  if (loading) {
+  if (loading || generating) {
     return (
       <div className="max-w-[680px] mx-auto px-6 py-16">
         <div className="flex items-center justify-between mb-8">
@@ -277,7 +204,7 @@ const YouTubeInsightsPage: React.FC = () => {
           </div>
         </div>
         <button
-          onClick={handleRefresh}
+          onClick={refresh}
           disabled={refreshing}
           className="p-2 rounded-lg"
           title="Get a fresh observation"

@@ -41,6 +41,28 @@ function withTimeout(promise, ms = INSIGHTS_TIMEOUT_MS) {
   return Promise.race([promise, timeout]);
 }
 
+// Warm-path timeout: a cache hit still re-fetches platform visual data, so allow
+// some headroom but far less than a cold LLM generation (which is handled in the
+// background instead of blocking the request).
+const WARM_TIMEOUT_MS = 12_000;
+
+// Cold-path peek: how long to wait on a fresh generation before giving up and
+// returning `generating: true`. Long enough to return fast results inline (a
+// no-data short-circuit, or a quick generation) so connected-but-empty platforms
+// still show their empty state immediately; short enough that a slow LLM call
+// doesn't block the request (it finishes in the background and warms the cache).
+const COLD_PEEK_MS = 4_000;
+
+// In-memory lock: while a cold generation runs for a (user, platform), repeated
+// requests (the frontend polls while "generating") must NOT each spawn another
+// LLM call. Single-instance scope — mirrors the inbox/relationships refresh locks.
+const insightsGenerating = new Map(); // `${userId}:${platform}` -> startedAt ms
+const GENERATION_LOCK_MS = 90_000;
+function isInsightGenerating(key) {
+  const startedAt = insightsGenerating.get(key);
+  return !!(startedAt && Date.now() - startedAt < GENERATION_LOCK_MS);
+}
+
 // Valid platforms
 const VALID_PLATFORMS = ['spotify', 'calendar', 'youtube', 'web', 'discord', 'linkedin'];
 
@@ -763,7 +785,7 @@ router.get('/:platform', authenticateUser, async (req, res) => {
   }
 
   try {
-    // Pre-check: verify platform is actually connected before calling reflection service
+    // Pre-check: verify platform is actually connected before doing any work.
     // Map URL platform name to DB name (e.g. 'calendar' -> 'google_calendar')
     const dbPlatformName = PLATFORM_DB_NAMES[platform] || platform;
 
@@ -784,30 +806,61 @@ router.get('/:platform', authenticateUser, async (req, res) => {
       });
     }
 
-    const result = await withTimeout(platformReflectionService.getReflections(userId, platform));
+    // Cache-first. Cold generation (context + platform data + LLM) can exceed the
+    // request timeout; blocking on it returned a fallback the UI mistook for
+    // "not connected" (2026-06-06 audit).
+    //
+    // Warm cache -> return real data (with headroom for the visual-data fetch).
+    if (await platformReflectionService.hasFreshReflection(userId, platform)) {
+      const result = await withTimeout(platformReflectionService.getReflections(userId, platform), WARM_TIMEOUT_MS);
+      return res.json(result?.success ? result : { success: true, platform, generating: true });
+    }
 
-    if (!result.success) {
-      // Return a graceful response instead of 400 for downstream failures
+    // Cold cache. Start ONE generation (the lock guards against frontend
+    // poll-storms spawning duplicate LLM calls), then race it against a short
+    // peek deadline:
+    //   - settles fast with data   -> return it (no LLM was needed, or it was quick)
+    //   - settles fast without data -> connected-but-empty: show empty state NOW
+    //   - still pending past peek   -> `generating: true`; the background job
+    //                                  finishes and warms the cache for the next poll
+    const lockKey = `${userId}:${platform}`;
+    if (isInsightGenerating(lockKey)) {
+      return res.json({ success: true, platform, generating: true });
+    }
+
+    insightsGenerating.set(lockKey, Date.now());
+    const genPromise = platformReflectionService.getReflections(userId, platform);
+    genPromise
+      .catch(err => log.error('Background reflection generation failed', { platform, userId, error: err?.message }))
+      .finally(() => insightsGenerating.delete(lockKey));
+
+    const raced = await Promise.race([
+      genPromise.then(r => ({ kind: 'settled', result: r }), () => ({ kind: 'failed' })),
+      new Promise(resolve => setTimeout(() => resolve({ kind: 'pending' }), COLD_PEEK_MS)),
+    ]);
+
+    if (raced.kind === 'settled' && raced.result?.success) {
+      return res.json(raced.result);
+    }
+    if (raced.kind === 'settled' && !raced.result?.success) {
+      // Connected but no usable data yet — surface the empty state immediately
+      // instead of a spinner that never resolves.
       return res.json({
         success: true,
         platform,
-        reflection: result.error || `Unable to generate ${platform} insights right now. Try again later.`,
-        fallback: true
+        reflection: raced.result?.error || `No ${platform} data to reflect on yet.`,
+        fallback: true,
       });
     }
 
-    res.json(result);
+    // Slow LLM generation still running — tell the client we're generating; the
+    // background job warms the cache so the next poll returns real data.
+    return res.json({ success: true, platform, generating: true });
   } catch (error) {
     log.error('Platform insights error', { platform, error });
-    const isTimeout = error.message?.includes('timed out');
-    res.json({
-      success: true,
-      platform,
-      reflection: isTimeout
-        ? `Your ${platform} insights are taking longer than expected. Try refreshing in a moment.`
-        : `Unable to generate ${platform} insights right now. Try again later.`,
-      fallback: true
-    });
+    // Any unexpected error/timeout -> show "still generating", never a misleading
+    // not-connected/empty state. Background generation (if started) continues.
+    res.json({ success: true, platform, generating: true });
   }
 });
 
@@ -829,23 +882,22 @@ router.post('/:platform/refresh', authenticateUser, async (req, res) => {
     });
   }
 
-  try {
-    const result = await withTimeout(platformReflectionService.refreshReflection(userId, platform));
-
-    if (!result.success) {
-      return res.status(400).json(result);
-    }
-
-    res.json(result);
-  } catch (error) {
-    log.error('Refresh error', { platform, error });
-    const isTimeout = error.message?.includes('timed out');
-    res.status(isTimeout ? 504 : 500).json({
-      success: false,
-      error: isTimeout ? 'Reflection generation timed out' : 'Failed to refresh reflection',
-      message: error.message
-    });
+  // Regenerate in the background (LLM ~15-25s) instead of blocking the request
+  // and 504-ing. The lock (shared with the cold-start GET path) prevents
+  // double-clicks / concurrent cold loads from burning duplicate LLM budget.
+  // The client refetches GET /:platform, which returns `generating: true` and
+  // polls until the fresh reflection lands.
+  const lockKey = `${userId}:${platform}`;
+  if (isInsightGenerating(lockKey)) {
+    return res.json({ success: true, regenerating: true, alreadyRunning: true });
   }
+
+  insightsGenerating.set(lockKey, Date.now());
+  platformReflectionService.refreshReflection(userId, platform)
+    .catch(err => log.error('Background reflection refresh failed', { platform, userId, error: err?.message }))
+    .finally(() => insightsGenerating.delete(lockKey));
+
+  res.json({ success: true, regenerating: true });
 });
 
 /**

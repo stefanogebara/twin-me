@@ -5,9 +5,8 @@
  * about what your browsing patterns reveal about you.
  */
 
-import React, { useEffect, useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { API_URL, getAccessToken, isAbortError } from '@/services/api/apiBase';
+import React from 'react';
+import { usePlatformInsights } from '@/hooks/usePlatformInsights';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { TwinReflection, PatternObservation } from './components/TwinReflection';
 import { EvidenceSection } from './components/EvidenceSection';
@@ -17,22 +16,14 @@ import { WebBrowsingCharts } from './components/WebBrowsingCharts';
 import type { InsightsResponse } from './components/webBrowsingTypes';
 import { Globe, RefreshCw, Layout } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
 
 const WebBrowsingInsightsPage: React.FC = () => {
   useDocumentTitle('Web Browsing Insights');
 
-  const { token } = useAuth();
   const navigate = useNavigate();
 
-  const [insights, setInsights] = useState<InsightsResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  // Use API_URL from apiBase — same-origin /api in browser, localhost in dev.
-  // Previous fallback dropped /api and produced 404s when VITE_API_URL was unset.
-  const API_BASE = API_URL;
+  const { insights, loading, generating, refreshing, error, refresh } =
+    usePlatformInsights<InsightsResponse>('web', 'Please sign in to see your digital life insights');
 
   const colors = {
     text: 'var(--foreground)',
@@ -41,96 +32,7 @@ const WebBrowsingInsightsPage: React.FC = () => {
     webBg: 'rgba(99, 102, 241, 0.1)'
   };
 
-  useEffect(() => {
-    let ignore = false;
-
-    const authToken = token || getAccessToken();
-    if (!authToken) {
-      setError('Please sign in to see your digital life insights');
-      setLoading(false);
-      return;
-    }
-
-    (async () => {
-      try {
-        const response = await fetch(`${API_BASE}/insights/web`, {
-          headers: { 'Authorization': `Bearer ${authToken}` }
-        });
-
-        if (!response.ok) throw new Error(`Server error: ${response.status}`);
-        const data = await response.json();
-
-        if (ignore) return;
-
-        if (data.success) {
-          setInsights(data);
-          setError(null);
-        } else {
-          setError(data.error || 'Failed to load insights');
-        }
-      } catch (err) {
-        if (ignore) return;
-        console.error('Failed to fetch web browsing insights:', err);
-        setError('Unable to connect to your digital life insights right now');
-      } finally {
-        if (!ignore) setLoading(false);
-      }
-    })();
-
-    return () => { ignore = true; };
-  }, []);
-
-  const fetchInsights = async () => {
-    const authToken = token || getAccessToken();
-    if (!authToken) {
-      setError('Please sign in to see your digital life insights');
-      setLoading(false);
-      return;
-    }
-
-    try {
-      const response = await fetch(`${API_BASE}/insights/web`, {
-        headers: { 'Authorization': `Bearer ${authToken}` }
-      });
-
-      if (!response.ok) throw new Error(`Server error: ${response.status}`);
-      const data = await response.json();
-
-      if (data.success) {
-        setInsights(data);
-        setError(null);
-      } else {
-        setError(data.error || 'Failed to load insights');
-      }
-    } catch (err) {
-      if (isAbortError(err)) return;
-      console.error('Failed to fetch web browsing insights:', err);
-      setError('Unable to connect to your digital life insights right now');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleRefresh = async () => {
-    setRefreshing(true);
-
-    const authToken = token || getAccessToken();
-
-    try {
-      await fetch(`${API_BASE}/insights/web/refresh`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${authToken}` }
-      });
-      await fetchInsights();
-    } catch (err) {
-      console.error('Failed to refresh insights:', err);
-      toast.error('Refresh failed', { description: 'Unable to refresh Web Browsing insights. Please try again.' });
-    } finally {
-      setRefreshing(false);
-    }
-  };
-
-  if (loading) {
+  if (loading || generating) {
     return <WebBrowsingSkeleton />;
   }
 
@@ -145,7 +47,7 @@ const WebBrowsingInsightsPage: React.FC = () => {
         <h1 style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontStyle: 'italic', fontSize: '28px', fontWeight: 400, color: 'var(--foreground)', letterSpacing: '-0.02em' }}>
           Your Digital Life
         </h1>
-        <button onClick={handleRefresh} disabled={refreshing} className="p-2 rounded-lg transition-opacity hover:opacity-60" style={{ color: 'rgba(255,255,255,0.3)' }} title="Refresh">
+        <button onClick={refresh} disabled={refreshing} className="p-2 rounded-lg transition-opacity hover:opacity-60" style={{ color: 'rgba(255,255,255,0.3)' }} title="Refresh">
           <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
         </button>
       </div>

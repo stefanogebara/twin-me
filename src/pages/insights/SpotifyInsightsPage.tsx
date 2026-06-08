@@ -7,15 +7,13 @@
  * REDESIGNED: Typography-driven dark design system
  */
 
-import React, { useEffect, useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import React from 'react';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
-import { API_URL, getAccessToken, isAbortError } from '@/services/api/apiBase';
+import { usePlatformInsights } from '@/hooks/usePlatformInsights';
 import { TwinReflection, PatternObservation } from './components/TwinReflection';
 import { EvidenceSection } from './components/EvidenceSection';
 import { Music, RefreshCw, ArrowLeft, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
 import type { InsightsResponse } from './components/spotifyTypes';
 import { SpotifySkeleton } from './components/SpotifySkeleton';
 import { SpotifyCharts } from './components/SpotifyCharts';
@@ -24,17 +22,9 @@ import { SpotifyEmptyState } from './components/SpotifyEmptyState';
 const SpotifyInsightsPage: React.FC = () => {
   useDocumentTitle('Spotify Insights');
 
-  const { token } = useAuth();
   const navigate = useNavigate();
-
-  const [insights, setInsights] = useState<InsightsResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  // Use API_URL from apiBase — same-origin /api in browser, localhost in dev.
-  // Previous fallback dropped /api and produced 404s when VITE_API_URL was unset.
-  const API_BASE = API_URL;
+  const { insights, loading, generating, refreshing, error, refresh } =
+    usePlatformInsights<InsightsResponse>('spotify', 'Please sign in to see your musical soul');
 
   const colors = {
     text: 'var(--foreground)',
@@ -43,71 +33,9 @@ const SpotifyInsightsPage: React.FC = () => {
     spotifyBg: 'rgba(29, 185, 84, 0.1)'
   };
 
-  useEffect(() => {
-    const controller = new AbortController();
-    fetchInsights(controller.signal);
-    return () => controller.abort();
-  }, []);
-
-  const fetchInsights = async (signal?: AbortSignal) => {
-    const authToken = token || getAccessToken();
-    if (!authToken) {
-      setError('Please sign in to see your musical soul');
-      setLoading(false);
-      return;
-    }
-
-    try {
-      const response = await fetch(`${API_BASE}/insights/spotify`, {
-        headers: { 'Authorization': `Bearer ${authToken}` },
-        signal,
-      });
-
-      if (!response.ok) throw new Error(`Server error: ${response.status}`);
-      const data = await response.json();
-
-      if (data.success) {
-        setInsights(data);
-        setError(null);
-      } else {
-        setError(data.error || 'Failed to load insights');
-      }
-    } catch (err) {
-      if (isAbortError(err)) return;
-      // Browser cancels in-flight requests at the network layer when the
-      // user navigates away, throwing TypeError before our AbortController
-      // cleanup fires. Yield a microtask so cleanup can flip signal.aborted,
-      // then re-check before logging.
-      if (signal && !signal.aborted) await new Promise((r) => setTimeout(r, 0));
-      if (signal?.aborted) return;
-      console.error('Failed to fetch Spotify insights:', err);
-      setError('Unable to connect to your musical soul right now');
-    } finally {
-      if (!signal?.aborted) setLoading(false);
-    }
-  };
-
-  const handleRefresh = async () => {
-    setRefreshing(true);
-
-    const authToken = token || getAccessToken();
-
-    try {
-      await fetch(`${API_BASE}/insights/spotify/refresh`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${authToken}` }
-      });
-      await fetchInsights();
-    } catch (err) {
-      console.error('Failed to refresh insights:', err);
-      toast.error('Refresh failed', { description: 'Unable to refresh Spotify insights. Please try again.' });
-    } finally {
-      setRefreshing(false);
-    }
-  };
-
-  // Loading state with skeleton loaders
-  if (loading) {
+  // Loading / generating: show the skeleton while the twin's reflection is
+  // generated in the background (cold cache) rather than a misleading empty state.
+  if (loading || generating) {
     return <SpotifySkeleton />;
   }
 
@@ -199,7 +127,7 @@ const SpotifyInsightsPage: React.FC = () => {
 
         {/* Refresh Button */}
         <button
-          onClick={handleRefresh}
+          onClick={refresh}
           disabled={refreshing}
           className="p-2 rounded-lg"
           title="Get a fresh observation"

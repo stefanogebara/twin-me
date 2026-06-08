@@ -5,16 +5,14 @@
  * about what your professional profile reveals about your identity.
  */
 
-import React, { useEffect, useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { API_URL, getAccessToken, isAbortError } from '@/services/api/apiBase';
+import React from 'react';
+import { usePlatformInsights } from '@/hooks/usePlatformInsights';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { TwinReflection, PatternObservation } from './components/TwinReflection';
 import { EvidenceSection } from './components/EvidenceSection';
 import { InsightsPageHeader } from './components/InsightsPageHeader';
 import { Briefcase, AlertCircle, MapPin, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
 
 interface Reflection {
   id: string | null;
@@ -60,17 +58,10 @@ interface InsightsResponse {
 const LinkedInInsightsPage: React.FC = () => {
   useDocumentTitle('LinkedIn Insights');
 
-  const { token } = useAuth();
   const navigate = useNavigate();
 
-  const [insights, setInsights] = useState<InsightsResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  // Use API_URL from apiBase — same-origin /api in browser, localhost in dev.
-  // Previous fallback dropped /api and produced 404s when VITE_API_URL was unset.
-  const API_BASE = API_URL;
+  const { insights, loading, generating, refreshing, error, refresh } =
+    usePlatformInsights<InsightsResponse>('linkedin', 'Please sign in to see your professional insights');
 
   const colors = {
     text: 'var(--foreground)',
@@ -79,68 +70,7 @@ const LinkedInInsightsPage: React.FC = () => {
     linkedinBg: 'rgba(10, 102, 194, 0.1)',
   };
 
-  useEffect(() => {
-    const controller = new AbortController();
-    fetchInsights(controller.signal);
-    return () => controller.abort();
-  }, []);
-
-  const fetchInsights = async (signal?: AbortSignal) => {
-    const authToken = token || getAccessToken();
-    if (!authToken) {
-      setError('Please sign in to see your professional insights');
-      setLoading(false);
-      return;
-    }
-
-    try {
-      const response = await fetch(`${API_BASE}/insights/linkedin`, {
-        headers: { Authorization: `Bearer ${authToken}` },
-        signal,
-      });
-
-      if (!response.ok) throw new Error(`Server error: ${response.status}`);
-      const data = await response.json();
-
-      if (data.success) {
-        setInsights(data);
-        setError(null);
-      } else {
-        setError(data.error || 'Failed to load insights');
-      }
-    } catch (err) {
-      if (isAbortError(err)) return;
-      if (signal && !signal.aborted) await new Promise((r) => setTimeout(r, 0));
-      if (signal?.aborted) return;
-      console.error('Failed to fetch LinkedIn insights:', err);
-      setError('Unable to read your professional profile right now');
-    } finally {
-      if (!signal?.aborted) setLoading(false);
-    }
-  };
-
-  const handleRefresh = async () => {
-    setRefreshing(true);
-
-    const authToken = token || getAccessToken();
-
-    try {
-      await fetch(`${API_BASE}/insights/linkedin/refresh`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${authToken}` },
-      });
-      await fetchInsights();
-    } catch (err) {
-      console.error('Failed to refresh insights:', err);
-      toast.error('Refresh failed', {
-        description: 'Unable to refresh LinkedIn insights. Please try again.',
-      });
-    } finally {
-      setRefreshing(false);
-    }
-  };
-
-  if (loading) {
+  if (loading || generating) {
     return (
       <div className="max-w-[680px] mx-auto px-6 py-16">
         <div className="animate-pulse space-y-4">
@@ -181,7 +111,7 @@ const LinkedInInsightsPage: React.FC = () => {
         textColor={colors.text}
         textSecondaryColor={colors.textSecondary}
         onBack={() => navigate('/dashboard')}
-        onRefresh={handleRefresh}
+        onRefresh={refresh}
         isRefreshing={refreshing}
       />
 

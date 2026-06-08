@@ -61,6 +61,9 @@ vi.mock('../../../api/services/database.js', () => {
 
 vi.mock('../../../api/services/platformReflectionService.js', () => ({
   default: {
+    // Warm cache so GET /:platform takes the real-data path (the route is
+    // cache-first as of the 2026-06-06 cold-start fix).
+    hasFreshReflection: vi.fn().mockResolvedValue(true),
     getReflections: vi.fn().mockResolvedValue({ success: true, reflection: { text: 'test' } }),
     refreshReflection: vi.fn().mockResolvedValue({ success: true }),
   },

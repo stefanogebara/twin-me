@@ -118,6 +118,27 @@ class PlatformReflectionService {
   }
 
   /**
+   * Cheap check: does a non-expired cached reflection exist for this platform?
+   * Used by the route's cache-first path to decide between returning real data
+   * (warm) and a fast `generating` response + background warm (cold) — instead
+   * of blocking ~20s on LLM generation and timing out into a misleading
+   * "not connected" empty state (2026-06-06 audit).
+   *
+   * @param {string} userId
+   * @param {string} platform
+   * @returns {Promise<boolean>}
+   */
+  async hasFreshReflection(userId, platform) {
+    try {
+      const cached = await getCachedReflection(userId, platform);
+      return !!(cached && !isExpired(cached));
+    } catch (error) {
+      log.warn(`hasFreshReflection check failed for ${platform}: ${error.message}`);
+      return false;
+    }
+  }
+
+  /**
    * Force refresh a reflection (ignore cache)
    */
   async refreshReflection(userId, platform) {
