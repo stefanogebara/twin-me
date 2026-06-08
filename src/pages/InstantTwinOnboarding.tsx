@@ -13,6 +13,7 @@ import { API_URL, getAccessToken, authFetch } from '@/services/api/apiBase';
 import { useAnalytics } from '@/contexts/AnalyticsContext';
 import { useToast } from '@/components/ui/use-toast';
 import { usePlatformStatus } from '../hooks/usePlatformStatus';
+import { usePlatformsSummary } from '../hooks/usePlatformsSummary';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { DataProvider } from '@/types/data-integration';
 
@@ -45,6 +46,12 @@ const InstantTwinOnboarding = () => {
     optimisticDisconnect,
     revertOptimisticUpdate
   } = usePlatformStatus(user?.id);
+
+  // Canonical platform counts (single source of truth — same hook /dashboard,
+  // /talk-to-twin, and the settings sidebar use). Drives the *displayed* counts
+  // so onboarding agrees with the rest of the app; the activeConnections /
+  // expiredConnections arrays below still drive the tiles + reconnect banner.
+  const { data: platformsSummary } = usePlatformsSummary({ enabled: !!user });
 
   // Fetch discovered platforms from enrichment (Holehe + breach data)
   const { data: enrichmentData } = useQuery({
@@ -94,6 +101,15 @@ const InstantTwinOnboarding = () => {
     const status = platformStatusData[provider];
     return status?.tokenExpired || status?.status === 'token_expired';
   });
+
+  // Displayed counts come from the canonical summary (active excludes stale;
+  // "needs reconnection" = expired + stale), falling back to the local arrays
+  // while the summary query loads. Fixes onboarding showing more "active" than
+  // the rest of the app because it ignored stale connections (2026-06-08 audit).
+  const activeCount = platformsSummary?.active ?? activeConnections.length;
+  const reconnectCount = platformsSummary
+    ? platformsSummary.expired + platformsSummary.stale
+    : expiredConnections.length;
 
   // --- OAuth message listener ---
   React.useEffect(() => {
@@ -272,8 +288,8 @@ const InstantTwinOnboarding = () => {
 
         <OnboardingHeader
           connectedServices={connectedServices}
-          activeConnections={activeConnections}
-          expiredConnections={expiredConnections}
+          activeCount={activeCount}
+          reconnectCount={reconnectCount}
           currentStep={currentStep}
         />
 
@@ -319,8 +335,8 @@ const InstantTwinOnboarding = () => {
             />
             <GenerateCTA
               connectedServices={connectedServices}
-              activeConnections={activeConnections}
-              expiredConnections={expiredConnections}
+              activeCount={activeCount}
+              reconnectCount={reconnectCount}
               isGenerating={isGenerating}
               onGenerate={startTwinGeneration}
               onSkip={() => {

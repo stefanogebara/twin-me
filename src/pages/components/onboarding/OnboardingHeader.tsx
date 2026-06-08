@@ -9,15 +9,18 @@ import { DataProvider } from '@/types/data-integration';
 
 interface OnboardingHeaderProps {
   connectedServices: DataProvider[];
-  activeConnections: DataProvider[];
-  expiredConnections: DataProvider[];
+  // Canonical counts from usePlatformsSummary (single source of truth) so the
+  // onboarding header agrees with /dashboard, /talk-to-twin, etc. It previously
+  // counted stale-but-connected platforms as active (2026-06-08 audit).
+  activeCount: number;
+  reconnectCount: number;
   currentStep: number;
 }
 
 export const OnboardingHeader: React.FC<OnboardingHeaderProps> = ({
   connectedServices,
-  activeConnections,
-  expiredConnections,
+  activeCount,
+  reconnectCount,
   currentStep,
 }) => (
   <>
@@ -53,21 +56,21 @@ export const OnboardingHeader: React.FC<OnboardingHeaderProps> = ({
       >
         <CheckCircle2
           className="w-4 h-4 flex-shrink-0"
-          style={{ color: expiredConnections.length > 0 ? '#C9B99A' : '#10b981' }}
+          style={{ color: reconnectCount > 0 ? '#C9B99A' : '#10b981' }}
         />
         <div>
           <span
             className="text-[13px]"
             style={{ color: 'rgba(255,255,255,0.60)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
           >
-            {activeConnections.length} platform{activeConnections.length !== 1 ? 's' : ''} active
+            {activeCount} platform{activeCount !== 1 ? 's' : ''} active
           </span>
-          {expiredConnections.length > 0 && (
+          {reconnectCount > 0 && (
             <span
               className="text-[13px] ml-2"
               style={{ color: '#C9B99A', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
             >
-              ({expiredConnections.length} need{expiredConnections.length === 1 ? 's' : ''} reconnection)
+              ({reconnectCount} need{reconnectCount === 1 ? 's' : ''} reconnection)
             </span>
           )}
         </div>
