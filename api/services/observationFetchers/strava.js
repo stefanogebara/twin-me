@@ -82,8 +82,12 @@ async function fetchStravaObservations(userId) {
     // ── Direct OAuth path ───────────────────────────────────────────────────
     const tokenResult = await getValidAccessToken(userId, 'strava');
     if (!tokenResult.success || !tokenResult.accessToken) {
-      log.warn('Strava: no valid token', { userId });
-      return observations;
+      // Phase 2 (2026-06-08): throw a tagged error instead of silently returning []
+      // so observationIngestion records auth_failed and surfaces a Reconnect CTA
+      // (matches spotify.js). Silent [] was masked as no_new_data.
+      const err = new Error(tokenResult.error || 'Strava token unavailable');
+      err.code = tokenResult.requiresReauth ? 'AUTH_FAILED' : 'TOKEN_UNAVAILABLE';
+      throw err;
     }
     directHeaders = { Authorization: `Bearer ${tokenResult.accessToken}` };
 
