@@ -809,7 +809,7 @@ function LoadingSkeleton() {
 }
 
 export default function MeetingsPage() {
-  useDocumentTitle('Meetings · TwinMe');
+  useDocumentTitle('Meetings');
 
   const [inProgress, setInProgress] = useState<MeetingBriefing[]>([]);
   const [upcoming, setUpcoming] = useState<MeetingBriefing[]>([]);

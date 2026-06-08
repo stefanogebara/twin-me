@@ -62,7 +62,7 @@ function dateBucket(iso: string): DateBucket {
 }
 
 const InboxPage: React.FC = () => {
-  useDocumentTitle('Inbox | Twin Me');
+  useDocumentTitle('Inbox');
 
   const queryClient = useQueryClient();
   const [filter, setFilter] = useState<InboxFilterValue>('all');

@@ -21,6 +21,7 @@
 import { useEffect, useMemo, useRef, useState, type DragEvent, type ChangeEvent } from 'react';
 import { Briefcase, Hash, Instagram, Upload, Trash2, ExternalLink, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { exportsAPI, type ExportPlatform, type ExportRow } from '@/services/api/exportsAPI';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 interface PlatformCardConfig {
   id: ExportPlatform;
@@ -263,6 +264,7 @@ const PlatformCard = ({
 };
 
 export default function DataExportsPage() {
+  useDocumentTitle('Data Exports');
   const [rows, setRows] = useState<ExportRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [statuses, setStatuses] = useState<Record<ExportPlatform, UploadStatus>>({
