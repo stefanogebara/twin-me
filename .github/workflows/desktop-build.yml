@@ -117,14 +117,39 @@ jobs:
         shell: bash
         run: rm -rf "desktop/src-tauri/target/${{ matrix.platform.target }}/release/bundle"
 
-      - name: Build TwinMe Desktop (unsigned)
-        working-directory: desktop
-        # No --bundles: each platform produces its native default targets
-        # (Mac: .app/.dmg; Win: .msi/.nsis; Linux: .deb/.appimage). Without
-        # APPLE_SIGNING_IDENTITY env, tauri skips codesign instead of erroring.
-        run: npm run build -- --target ${{ matrix.platform.target }}
+      # Build the signed updater artifacts AND, on desktop-v* tags, publish the
+      # GitHub Release with a merged latest.json so v0.2.9+ self-updates. We use
+      # tauri-action (not a hand-rolled upload) specifically because it knows the
+      # correct per-platform update-artifact + signature manifest shape, which a
+      # custom script would get wrong across mac/win/linux. On push/PR (empty
+      # tagName) it just builds — catching breakage without publishing.
+      #
+      # App/code signing (Apple Developer ID / Windows Authenticode) is still
+      # absent — installers remain unsigned + SmartScreen/Gatekeeper-warned, as
+      # documented on /download. The UPDATER signature (minisign, below) is a
+      # separate mechanism and IS configured.
+      - name: Build + release (tauri-action)
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Minisign key for the auto-updater. When the secret is absent (forks,
+          # or before it's configured) the build still succeeds but emits no
+          # .sig / latest.json — auto-update is simply inert until it's set.
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          projectPath: desktop
+          args: --target ${{ matrix.platform.target }}
+          # Create/attach the Release only on desktop-v* tags; build-only otherwise.
+          tagName: ${{ startsWith(github.ref, 'refs/tags/desktop-v') && github.ref_name || '' }}
+          releaseName: ${{ startsWith(github.ref, 'refs/tags/desktop-v') && format('TwinMe Desktop {0}', github.ref_name) || '' }}
+          releaseBody: 'Automatic updates are enabled from this version onward. Installers are attached below.'
+          releaseDraft: false
+          prerelease: false
+          includeUpdaterJson: true
+          updaterJsonPreferNsis: true
 
-      - name: Upload bundles
+      - name: Upload bundles (workflow artifacts)
         uses: actions/upload-artifact@v4
         with:
           name: twinme-desktop-${{ matrix.platform.target }}
@@ -136,15 +161,3 @@ jobs:
             desktop/src-tauri/target/${{ matrix.platform.target }}/release/bundle/**/*.deb
           if-no-files-found: warn
           retention-days: 14
-
-      - name: Attach to GitHub Release (tag pushes only)
-        if: startsWith(github.ref, 'refs/tags/desktop-v')
-        uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            desktop/src-tauri/target/${{ matrix.platform.target }}/release/bundle/**/*.dmg
-            desktop/src-tauri/target/${{ matrix.platform.target }}/release/bundle/**/*.msi
-            desktop/src-tauri/target/${{ matrix.platform.target }}/release/bundle/**/*.exe
-            desktop/src-tauri/target/${{ matrix.platform.target }}/release/bundle/**/*.AppImage
-            desktop/src-tauri/target/${{ matrix.platform.target }}/release/bundle/**/*.deb
-          fail_on_unmatched_files: false
