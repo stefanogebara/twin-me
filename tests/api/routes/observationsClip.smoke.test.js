@@ -102,4 +102,43 @@ describe('observations clip route smoke', () => {
     expect(res.body.dropped).toEqual([{ local_id: 7, reason: 'content_too_long' }]);
     expect(addMemoryMock).not.toHaveBeenCalled();
   });
+
+  it('truncates an over-long window_title instead of 400-ing the batch (keeps the clip)', async () => {
+    // Windows captures raw OS window titles with no length cap; long browser/doc
+    // titles routinely exceed the 512 schema limit. A reject here 400s the whole
+    // batch, which the desktop then retries forever — poisoning the queue. We must
+    // truncate and keep the clip instead.
+    addMemoryMock.mockResolvedValue({ id: 'mem-long-title' });
+    const longTitle = 'T'.repeat(600); // > 512
+    const res = await request(createApp())
+      .post('/api/observations/clip')
+      .set('Authorization', `Bearer ${signToken()}`)
+      .send({
+        clips: [
+          { local_id: 11, app_name: 'Chrome', window_title: longTitle, started_at: 1716800002 },
+        ],
+      });
+    expect(res.status).toBe(200);
+    expect(res.body.synced).toEqual([{ local_id: 11, memory_id: 'mem-long-title' }]);
+    expect(res.body.dropped).toEqual([]);
+    const [, , , metadata] = addMemoryMock.mock.calls[0];
+    expect(metadata.window.length).toBe(512); // truncated, not rejected
+  });
+
+  it('drops only the malformed clip and still syncs the valid ones (one bad clip cannot poison the batch)', async () => {
+    addMemoryMock.mockResolvedValue({ id: 'mem-ok' });
+    const res = await request(createApp())
+      .post('/api/observations/clip')
+      .set('Authorization', `Bearer ${signToken()}`)
+      .send({
+        clips: [
+          { local_id: 21, app_name: 'Code', window_title: 'ok.js', started_at: 1716800003 },
+          { local_id: 22, app_name: 'Bad', window_title: 'x', started_at: -5 }, // non-positive → invalid
+        ],
+      });
+    expect(res.status).toBe(200);
+    expect(res.body.synced).toEqual([{ local_id: 21, memory_id: 'mem-ok' }]);
+    expect(res.body.dropped).toEqual([{ local_id: 22, reason: 'invalid_clip' }]);
+    expect(addMemoryMock).toHaveBeenCalledTimes(1);
+  });
 });

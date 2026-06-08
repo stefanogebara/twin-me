@@ -30,6 +30,10 @@ const MAX_CONTENT_CHARS = 8000;
 // clip doesn't 400 the whole batch). This ceiling only guards against absurd
 // payloads abusing the endpoint.
 const HARD_CONTENT_CEILING = 200_000;
+// Window titles are captured raw from the OS (Windows GetWindowTextW is
+// uncapped); long browser/doc titles routinely exceed this. We TRUNCATE to the
+// cap rather than reject, so a long title never costs us the observation.
+const MAX_WINDOW_TITLE_CHARS = 512;
 const SUMMARY_MAX_CHARS = 4000;
 const MAX_CLIPS_PER_BATCH = 100;
 const CLIP_IMPORTANCE = 4;
@@ -37,15 +41,35 @@ const CLIP_IMPORTANCE = 4;
 const ClipSchema = z.object({
   local_id: z.number().int(),
   app_name: z.string().min(1).max(128),
-  window_title: z.string().max(512).optional(),
+  window_title: z.string().max(MAX_WINDOW_TITLE_CHARS).optional(),
   content: z.string().max(HARD_CONTENT_CEILING).optional(),
   started_at: z.number().int().positive(),
   ended_at: z.number().int().positive().optional(),
 });
 
+// Outer shape only — clips must be a bounded array. Each clip is validated
+// INDIVIDUALLY in the handler (NOT via z.array(ClipSchema)) so one malformed
+// clip is dropped on its own instead of 400-ing the whole batch. A batch-level
+// 400 is left unsynced and retried forever by the desktop, so a single bad clip
+// (e.g. an over-long title before we truncated) would poison the queue forever.
 const BatchSchema = z.object({
-  clips: z.array(ClipSchema).max(MAX_CLIPS_PER_BATCH),
+  clips: z.array(z.unknown()).max(MAX_CLIPS_PER_BATCH),
 });
+
+// Truncate oversized free-text fields BEFORE per-clip validation so a long
+// window title or large content body is KEPT (clipped to the schema ceiling)
+// rather than rejected. Returns a new object — never mutates the request data.
+function coerceClipFields(raw) {
+  if (!raw || typeof raw !== 'object') return raw;
+  const next = { ...raw };
+  if (typeof next.window_title === 'string' && next.window_title.length > MAX_WINDOW_TITLE_CHARS) {
+    next.window_title = next.window_title.slice(0, MAX_WINDOW_TITLE_CHARS);
+  }
+  if (typeof next.content === 'string' && next.content.length > HARD_CONTENT_CEILING) {
+    next.content = next.content.slice(0, HARD_CONTENT_CEILING);
+  }
+  return next;
+}
 
 // ====================================================================
 // POST /clip — batch-ingest desktop activity clips
@@ -66,8 +90,17 @@ router.post('/clip', authenticateUser, async (req, res) => {
   const synced = [];
   const dropped = [];
 
-  for (const clip of clips) {
-    const { local_id, app_name, window_title, content, started_at, ended_at } = clip;
+  for (const rawClip of clips) {
+    // Validate each clip on its own (after truncating oversized fields) so a
+    // single malformed clip is dropped individually rather than failing — and
+    // then endlessly retrying — the entire batch.
+    const clipParse = ClipSchema.safeParse(coerceClipFields(rawClip));
+    if (!clipParse.success) {
+      const localId = rawClip && typeof rawClip.local_id === 'number' ? rawClip.local_id : -1;
+      dropped.push({ local_id: localId, reason: 'invalid_clip' });
+      continue;
+    }
+    const { local_id, app_name, window_title, content, started_at, ended_at } = clipParse.data;
 
     // Oversized content: zod already caps content at MAX_CONTENT_CHARS, but
     // defence-in-depth — drop explicitly rather than silently truncating, so
