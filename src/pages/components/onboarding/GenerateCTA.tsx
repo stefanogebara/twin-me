@@ -12,8 +12,10 @@ import { authFetch } from '@/services/api/apiBase';
 
 interface GenerateCTAProps {
   connectedServices: DataProvider[];
-  activeConnections: DataProvider[];
-  expiredConnections: DataProvider[];
+  // Canonical counts from usePlatformsSummary (same source as OnboardingHeader)
+  // so the count matches the rest of the app (2026-06-08 audit).
+  activeCount: number;
+  reconnectCount: number;
   isGenerating: boolean;
   onGenerate: () => void;
   onSkip: () => void;
@@ -21,8 +23,8 @@ interface GenerateCTAProps {
 
 export const GenerateCTA: React.FC<GenerateCTAProps> = ({
   connectedServices,
-  activeConnections,
-  expiredConnections,
+  activeCount,
+  reconnectCount,
   isGenerating,
   onGenerate,
   onSkip,
@@ -60,10 +62,10 @@ export const GenerateCTA: React.FC<GenerateCTAProps> = ({
             className="text-[13px]"
             style={{ color: 'rgba(255,255,255,0.40)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
           >
-            {activeConnections.length} platform{activeConnections.length !== 1 ? 's' : ''} active
-            {expiredConnections.length > 0 && (
+            {activeCount} platform{activeCount !== 1 ? 's' : ''} active
+            {reconnectCount > 0 && (
               <span className="ml-1" style={{ color: '#C9B99A' }}>
-                ({expiredConnections.length} expired)
+                ({reconnectCount} need{reconnectCount === 1 ? 's' : ''} reconnection)
               </span>
             )}
           </span>
