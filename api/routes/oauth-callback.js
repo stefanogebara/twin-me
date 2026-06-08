@@ -641,14 +641,14 @@ async function storeOAuthTokens(userId, provider, tokens) {
 
   // Insert or update data connector
   const result = await serverDb.query(`
-    INSERT INTO platform_connections (user_id, platform, access_token, refresh_token, expires_at, connected_at, is_active, last_sync_status)
-    VALUES ($1, $2, $3, $4, $5, NOW(), true, 'pending')
+    INSERT INTO platform_connections (user_id, platform, access_token, refresh_token, token_expires_at, connected_at, status, last_sync_status)
+    VALUES ($1, $2, $3, $4, $5, NOW(), 'connected', 'pending')
     ON CONFLICT (user_id, platform) DO UPDATE SET
       access_token = EXCLUDED.access_token,
       refresh_token = EXCLUDED.refresh_token,
-      expires_at = EXCLUDED.expires_at,
+      token_expires_at = EXCLUDED.token_expires_at,
       connected_at = NOW(),
-      is_active = true,
+      status = 'connected',
       last_sync_status = 'pending'
     RETURNING id
   `, [userId, provider, encryptedAccessToken, encryptedRefreshToken, expiresAt]);
@@ -695,9 +695,9 @@ async function extractDataInBackground(userId, provider, accessToken, connectorI
     // Update connector with last sync time
     await serverDb.query(`
       UPDATE platform_connections
-      SET last_sync = NOW(), last_sync_status = 'success', total_synced = total_synced + $1
-      WHERE id = $2
-    `, [result.itemsExtracted || 0, connectorId]);
+      SET last_sync_at = NOW(), last_sync_status = 'success'
+      WHERE id = $1
+    `, [connectorId]);
 
     // Chain observation ingestion (platform_data -> user_memories) so the user
     // has something in their memory stream by the time they land on the next
@@ -723,7 +723,7 @@ async function extractDataInBackground(userId, provider, accessToken, connectorI
     // Update connector with error status
     await serverDb.query(`
       UPDATE platform_connections
-      SET last_sync = NOW(), last_sync_status = 'error', error_count = error_count + 1
+      SET last_sync_at = NOW(), last_sync_status = 'error'
       WHERE id = $1
     `, [connectorId]);
   }
@@ -745,7 +745,7 @@ router.post('/extract/:provider', authenticateUser, async (req, res) => {
 
     // Get stored tokens from database
     const connector = await serverDb.query(`
-      SELECT id, access_token, refresh_token, expires_at, is_active
+      SELECT id, access_token, refresh_token, token_expires_at, status
       FROM platform_connections
       WHERE user_id = $1 AND platform = $2
     `, [userId, provider]);
@@ -759,7 +759,7 @@ router.post('/extract/:provider', authenticateUser, async (req, res) => {
 
     const connectorData = connector.rows[0];
 
-    if (!connectorData.is_active) {
+    if (connectorData.status !== 'connected') {
       return res.status(400).json({
         error: 'Connector inactive',
         message: `Your ${provider} connection is inactive. Please reconnect.`
@@ -770,7 +770,7 @@ router.post('/extract/:provider', authenticateUser, async (req, res) => {
     const accessToken = decryptToken(connectorData.access_token);
 
     // Check if token is expired
-    if (connectorData.expires_at && new Date(connectorData.expires_at) < new Date()) {
+    if (connectorData.token_expires_at && new Date(connectorData.token_expires_at) < new Date()) {
       return res.status(401).json({
         error: 'Token expired',
         message: `Your ${provider} token has expired. Please reconnect.`
@@ -786,9 +786,9 @@ router.post('/extract/:provider', authenticateUser, async (req, res) => {
     // Update last sync
     await serverDb.query(`
       UPDATE platform_connections
-      SET last_sync = NOW(), last_sync_status = 'success', total_synced = total_synced + $1
-      WHERE id = $2
-    `, [result.itemsExtracted || 0, connectorData.id]);
+      SET last_sync_at = NOW(), last_sync_status = 'success'
+      WHERE id = $1
+    `, [connectorData.id]);
 
     res.json({
       success: true,
@@ -822,10 +822,9 @@ router.get('/status/:userId', authenticateUser, async (req, res) => {
       SELECT
         dc.platform,
         dc.connected_at,
-        dc.last_sync,
+        dc.last_sync_at,
         dc.last_sync_status,
-        dc.total_synced,
-        dc.is_active,
+        dc.status,
         es.extraction_stage,
         es.total_items_extracted,
         es.next_extraction_scheduled
@@ -860,10 +859,12 @@ router.delete('/disconnect/:provider', authenticateUser, async (req, res) => {
     }
     const userId = req.user.id;
 
-    // Soft delete - mark as inactive instead of deleting
+    // Soft delete - mark as disconnected instead of deleting.
+    // (status='disconnected' is the canonical column; last_sync_status only
+    // accepts sync-result values, not 'disconnected'.)
     await serverDb.query(`
       UPDATE platform_connections
-      SET is_active = false, last_sync_status = 'disconnected'
+      SET status = 'disconnected'
       WHERE user_id = $1 AND platform = $2
     `, [userId, provider]);
 
