@@ -18,10 +18,15 @@ import { createLogger } from '../logger.js';
 
 const log = createLogger('PinterestExtractor');
 
-// Use sandbox for dev; production is https://api.pinterest.com/v5
-const PINTEREST_API_BASE = process.env.PINTEREST_USE_PRODUCTION === 'true'
-  ? 'https://api.pinterest.com/v5'
-  : 'https://api-sandbox.pinterest.com/v5';
+// Production by default. Previously this defaulted to the sandbox unless
+// PINTEREST_USE_PRODUCTION was set, so a prod deploy that forgot that env var
+// silently queried the (deprecated) sandbox API and returned no real user data
+// (2026-06-08 audit). Now: production whenever NODE_ENV=production or the legacy
+// opt-in is set; sandbox only in non-prod.
+const PINTEREST_API_BASE =
+  (process.env.NODE_ENV === 'production' || process.env.PINTEREST_USE_PRODUCTION === 'true')
+    ? 'https://api.pinterest.com/v5'
+    : 'https://api-sandbox.pinterest.com/v5';
 
 // Limits — keep import under Vercel 60s maxDuration
 const MAX_BOARDS = 20;
