@@ -499,6 +499,75 @@ class ExtractionOrchestrator {
           }
           break;
 
+        // Health/utility platforms: real observation fetchers existed in the
+        // background ingestion pipeline but were missing from this on-demand
+        // switch, so a manual/on-demand extraction hit the `default` "Unknown
+        // platform" branch (2026-06-08 audit). Delegate to the same fetchers.
+        case 'garmin':
+          try {
+            const { fetchGarminObservations } = await import('./observationFetchers/garmin.js');
+            const garminObs = await fetchGarminObservations(userId);
+            itemsExtracted = await storeObservationsToMemory(userId, 'garmin', garminObs);
+            result = { success: true, itemsExtracted };
+            log.info('Extracted Garmin observations', { fetched: garminObs.length, stored: itemsExtracted });
+          } catch (garminError) {
+            log.error('Garmin extraction error', { error: garminError });
+            result = { success: false, error: garminError.message };
+          }
+          break;
+
+        case 'fitbit':
+          try {
+            const { fetchFitbitObservations } = await import('./observationFetchers/fitbit.js');
+            const fitbitObs = await fetchFitbitObservations(userId);
+            itemsExtracted = await storeObservationsToMemory(userId, 'fitbit', fitbitObs);
+            result = { success: true, itemsExtracted };
+            log.info('Extracted Fitbit observations', { fetched: fitbitObs.length, stored: itemsExtracted });
+          } catch (fitbitError) {
+            log.error('Fitbit extraction error', { error: fitbitError });
+            result = { success: false, error: fitbitError.message };
+          }
+          break;
+
+        case 'slack':
+          try {
+            const { fetchSlackObservations } = await import('./observationFetchers/slack.js');
+            const slackObs = await fetchSlackObservations(userId);
+            itemsExtracted = await storeObservationsToMemory(userId, 'slack', slackObs);
+            result = { success: true, itemsExtracted };
+            log.info('Extracted Slack observations', { fetched: slackObs.length, stored: itemsExtracted });
+          } catch (slackError) {
+            log.error('Slack extraction error', { error: slackError });
+            result = { success: false, error: slackError.message };
+          }
+          break;
+
+        case 'google_drive':
+          try {
+            const { fetchGoogleDriveObservations } = await import('./observationFetchers/googleDrive.js');
+            const driveObs = await fetchGoogleDriveObservations(userId);
+            itemsExtracted = await storeObservationsToMemory(userId, 'google_drive', driveObs);
+            result = { success: true, itemsExtracted };
+            log.info('Extracted Google Drive observations', { fetched: driveObs.length, stored: itemsExtracted });
+          } catch (driveError) {
+            log.error('Google Drive extraction error', { error: driveError });
+            result = { success: false, error: driveError.message };
+          }
+          break;
+
+        case 'apple_music':
+          try {
+            const { fetchAppleMusicObservations } = await import('./observationFetchers/appleMusic.js');
+            const appleMusicObs = await fetchAppleMusicObservations(userId);
+            itemsExtracted = await storeObservationsToMemory(userId, 'apple_music', appleMusicObs);
+            result = { success: true, itemsExtracted };
+            log.info('Extracted Apple Music observations', { fetched: appleMusicObs.length, stored: itemsExtracted });
+          } catch (appleMusicError) {
+            log.error('Apple Music extraction error', { error: appleMusicError });
+            result = { success: false, error: appleMusicError.message };
+          }
+          break;
+
         default:
           log.info('Unknown platform', { platform });
           result = { success: false, error: 'Unknown platform' };
