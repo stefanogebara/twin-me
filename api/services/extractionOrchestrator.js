@@ -158,10 +158,24 @@ class ExtractionOrchestrator {
 
       switch (platform.toLowerCase()) {
         case 'spotify':
-          // Use both data extraction and feature extraction
+          // Raw 'comprehensive_music_profile' (audio-feature mood, era prefs) is
+          // uniquely consumed downstream, so keep producing it via extractSpotifyData
+          // (which already refreshes tokens through ensureFreshToken).
           result = await extractSpotifyData(userId);
           itemsExtracted = result.itemsExtracted || 0;
-          // Feature extraction removed (OCEAN pipeline removed)
+          // Also emit NL observations to the memory stream via the canonical,
+          // token-refreshing fetcher, so on-demand Spotify extraction updates the
+          // twin's memory like every other platform — it previously wrote raw data
+          // only, so the memory stream only refreshed via the cron (2026-06-08
+          // consolidation Phase 1).
+          try {
+            const { fetchSpotifyObservations } = await import('./observationFetchers/spotify.js');
+            const spotifyObs = await fetchSpotifyObservations(userId);
+            itemsExtracted += await storeObservationsToMemory(userId, 'spotify', spotifyObs);
+            log.info('Extracted Spotify observations', { fetched: spotifyObs.length });
+          } catch (obsErr) {
+            log.warn('Spotify observation fetch error (non-blocking)', { error: obsErr.message });
+          }
           break;
 
         case 'google_calendar':
