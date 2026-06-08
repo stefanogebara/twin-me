@@ -82,6 +82,20 @@ import { getRedditActivity } from './reddit/analytics/getRedditActivity.js';
 import { formatRedditActivity } from './reddit/formatAnalytics.js';
 import { persistRedditLearning } from './reddit/learningHooks.js';
 
+// Live Discord + LinkedIn dispatchers — read cached OAuth profile
+// from user_platform_data + extension activity from the same table
+// (data_type='extension_*'). No live OAuth fetch needed; tokenPlatform
+// stays null so the dispatcher fires whenever there's data on disk.
+import { detectDiscordIntent } from './discord/detectIntent.js';
+import { getDiscordSnapshot } from './discord/analytics/getDiscordSnapshot.js';
+import { formatDiscordSnapshot } from './discord/formatAnalytics.js';
+import { persistDiscordLearning } from './discord/learningHooks.js';
+
+import { detectLinkedInIntent } from './linkedin/detectIntent.js';
+import { getLinkedInSnapshot } from './linkedin/analytics/getLinkedInSnapshot.js';
+import { formatLinkedInSnapshot } from './linkedin/formatAnalytics.js';
+import { persistLinkedInLearning } from './linkedin/learningHooks.js';
+
 // Upload-based export platforms (Discord/LinkedIn/Instagram). No OAuth
 // token — the dispatcher reads cached aggregates from platform_exports
 // and falls through if the user hasn't uploaded an export yet.
@@ -656,6 +670,35 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
       },
       learn: persistRedditLearning,
     },
+    // Live Discord + LinkedIn — tokenPlatform: null because the
+    // snapshot reads from user_platform_data (cached OAuth + extension
+    // events) instead of hitting the platform APIs.
+    {
+      key: 'discord',
+      detect: detectDiscordIntent,
+      tokenPlatform: null,
+      run: async (_token, ctx) => {
+        const snapshot = await getDiscordSnapshot(ctx?.userId);
+        if (!snapshot) return null;
+        const summary = formatDiscordSnapshot(snapshot);
+        if (!summary) return null;
+        return { kind: 'activity', summary, raw: snapshot };
+      },
+      learn: persistDiscordLearning,
+    },
+    {
+      key: 'linkedin',
+      detect: detectLinkedInIntent,
+      tokenPlatform: null,
+      run: async (_token, ctx) => {
+        const snapshot = await getLinkedInSnapshot(ctx?.userId);
+        if (!snapshot) return null;
+        const summary = formatLinkedInSnapshot(snapshot);
+        if (!summary) return null;
+        return { kind: 'activity', summary, raw: snapshot };
+      },
+      learn: persistLinkedInLearning,
+    },
     // tokenPlatform: null signals no-OAuth path. The loop skips the token
     // fetch and calls run(null, { userId }) directly so the adapter can
     // pull cached aggregates from platform_exports.
@@ -781,6 +824,20 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
     returnedPlatformData = {
       ...(returnedPlatformData ?? {}),
       reddit: { ...(returnedPlatformData?.reddit ?? {}), analytics: redditAnalytics },
+    };
+  }
+  const discordAnalytics = platformAnalytics.discord ?? null;
+  if (discordAnalytics?.summary) {
+    returnedPlatformData = {
+      ...(returnedPlatformData ?? {}),
+      discord: { ...(returnedPlatformData?.discord ?? {}), analytics: discordAnalytics },
+    };
+  }
+  const linkedinAnalytics = platformAnalytics.linkedin ?? null;
+  if (linkedinAnalytics?.summary) {
+    returnedPlatformData = {
+      ...(returnedPlatformData ?? {}),
+      linkedin: { ...(returnedPlatformData?.linkedin ?? {}), analytics: linkedinAnalytics },
     };
   }
   for (const exportKey of ['discord_export', 'linkedin_export', 'instagram_export']) {

@@ -26,6 +26,8 @@ import { detectGithubIntent } from '../services/github/detectIntent.js';
 import { detectYoutubeIntent } from '../services/youtube/detectIntent.js';
 import { detectGmailIntent } from '../services/gmail/detectIntent.js';
 import { detectRedditIntent } from '../services/reddit/detectIntent.js';
+import { detectDiscordIntent } from '../services/discord/detectIntent.js';
+import { detectLinkedInIntent } from '../services/linkedin/detectIntent.js';
 import { detectDiscordExportIntent } from '../services/exports/chat/discord.js';
 import { detectLinkedInExportIntent } from '../services/exports/chat/linkedin.js';
 import { detectInstagramExportIntent } from '../services/exports/chat/instagram.js';
@@ -362,6 +364,8 @@ router.post('/message', authenticateUser, async (req, res) => {
       youtube: detectYoutubeIntent(message),
       gmail: detectGmailIntent(message),
       reddit: detectRedditIntent(message),
+      discord: detectDiscordIntent(message),
+      linkedin: detectLinkedInIntent(message),
       discord_export: detectDiscordExportIntent(message),
       linkedin_export: detectLinkedInExportIntent(message),
       instagram_export: detectInstagramExportIntent(message),
@@ -431,6 +435,8 @@ router.post('/message', authenticateUser, async (req, res) => {
         youtube: detectYoutubeIntent(message),
         gmail: detectGmailIntent(message),
         reddit: detectRedditIntent(message),
+        discord: detectDiscordIntent(message),
+        linkedin: detectLinkedInIntent(message),
         discord_export: detectDiscordExportIntent(message),
         linkedin_export: detectLinkedInExportIntent(message),
         instagram_export: detectInstagramExportIntent(message),

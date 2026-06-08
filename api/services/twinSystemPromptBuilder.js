@@ -572,6 +572,16 @@ export function buildTwinSystemPrompt(soulSignature, platformData, twinSummary =
       }
     }
 
+    if (platformData.discord?.analytics?.summary) {
+      dynamicContext += `\n\nMy Discord activity:`;
+      dynamicContext += `\nDiscord data for the period asked about (use these exact numbers when answering): ${platformData.discord.analytics.summary}`;
+    }
+
+    if (platformData.linkedin?.analytics?.summary) {
+      dynamicContext += `\n\nMy LinkedIn activity:`;
+      dynamicContext += `\nLinkedIn data for the period asked about (use these exact numbers when answering): ${platformData.linkedin.analytics.summary}`;
+    }
+
     if (platformData.discord_export?.analytics?.summary) {
       dynamicContext += `\n\nMy Discord history (uploaded data export):`;
       dynamicContext += `\nDiscord export data (use these exact numbers when answering): ${platformData.discord_export.analytics.summary}`;
