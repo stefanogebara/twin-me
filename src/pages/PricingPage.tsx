@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Check, Loader2 } from 'lucide-react';
 import { getAccessToken, API_URL } from '@/services/api/apiBase';
 import { safeRedirect } from '@/lib/safeRedirect';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 const PLANS = [
   {
@@ -60,6 +61,7 @@ const PLANS = [
 ];
 
 const PricingPage: React.FC = () => {
+  useDocumentTitle('Pricing');
   const navigate = useNavigate();
   const [loading, setLoading] = useState<string | null>(null);
 
