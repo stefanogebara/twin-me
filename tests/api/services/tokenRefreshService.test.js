@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Shared mutable result container — tests override per-case via a setter.
 // Uses globalThis so the vi.mock factory (hoisted) and tests share the ref.
-globalThis.__tokenRefreshTestResult = { data: null, error: { message: 'not found' } };
+globalThis.__tokenRefreshTestResult = { data: null, error: null };
 const setSingleResult = (r) => { globalThis.__tokenRefreshTestResult = r; };
 
 vi.mock('../../../api/services/database.js', () => {
@@ -19,6 +19,10 @@ vi.mock('../../../api/services/database.js', () => {
     order: () => chain,
     limit: () => Promise.resolve(globalThis.__tokenRefreshTestResult),
     single: () => Promise.resolve(globalThis.__tokenRefreshTestResult),
+    // getValidAccessToken switched to .maybeSingle() (2026-05-26 refactor); the
+    // mock chain must expose it or every getValidAccessToken case throws
+    // "maybeSingle is not a function" and returns { success: false }.
+    maybeSingle: () => Promise.resolve(globalThis.__tokenRefreshTestResult),
   });
   return { supabaseAdmin: chain, serverDb: {} };
 });
@@ -63,11 +67,11 @@ describe('requiresTokenRefresh', () => {
 
 describe('getValidAccessToken', () => {
   beforeEach(() => {
-    setSingleResult({ data: null, error: { message: 'not found' } });
+    setSingleResult({ data: null, error: null });
   });
 
   it('returns error when no connection in DB', async () => {
-    setSingleResult({ data: null, error: { message: 'not found' } });
+    setSingleResult({ data: null, error: null });
     const result = await getValidAccessToken('user-123', 'spotify');
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/No active connection/);
