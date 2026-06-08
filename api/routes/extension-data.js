@@ -256,6 +256,8 @@ router.post('/batch', authenticateUser, async (req, res) => {
           event?.source_url ||
           event?.raw_data?.url ||
           event?.raw_data?.source_url ||
+          event?.data?.url ||
+          event?.data?.source_url ||
           null;
 
         // OCCURRENCE EVENTS (each one a distinct moment) must NOT upsert-
@@ -281,9 +283,14 @@ router.post('/batch', authenticateUser, async (req, res) => {
           'page_dwell',
           'search_query',
         ]);
-        if (sourceUrl && innerType && OCCURRENCE_TYPES.has(innerType)) {
+        if (innerType && OCCURRENCE_TYPES.has(innerType)) {
+          // Apply even when sourceUrl is null — without it, all occurrence
+          // events for this user/platform/data_type collapse to one row
+          // under NULLS NOT DISTINCT. Synthesize a synthetic-prefix URL
+          // so each occurrence gets its own slot.
           const ts = event?.timestamp || event?.raw_data?.timestamp || new Date().toISOString();
-          sourceUrl = `${sourceUrl}#t=${ts}&e=${innerType}`;
+          const base = sourceUrl || `extension://event/${eventPlatform}`;
+          sourceUrl = `${base}#t=${ts}&e=${innerType}`;
         }
 
         // raw_data must be JSON-serializable. DOM-scraped collector payloads
