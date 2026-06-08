@@ -15,7 +15,7 @@ The codebase has **three parallel data-extraction paths**, and most platforms ar
 | **P3** | `dataExtractionService.js` | OAuth-connect / queue (legacy "soul signature") | raw `user_platform_data` + `data_extraction_jobs` | `extractors/*` |
 
 **Concrete hazards (verified):**
-- **Spotify has 3 implementations** with 2 token strategies: `observationFetchers/spotify.js` (P1/P2), `spotifyExtraction.js` (P2's switch — historically didn't refresh, per `lessons.md`), `extractors/spotifyExtractor.js` (P3, correct `ensureFreshToken`). The orchestrator uses the function-style one.
+- **Spotify has 3 implementations serving DIFFERENT purposes** (correction 2026-06-08 — all now refresh tokens; the `lessons.md` no-refresh bug is already FIXED): `observationFetchers/spotify.js` → memory observations (`getValidAccessToken`); `spotifyExtraction.js` → raw `user_platform_data` as `data_type: 'comprehensive_music_profile'` (`ensureFreshToken`, used by the orchestrator); `extractors/spotifyExtractor.js` → raw `user_platform_data` as *granular* rows (`recently_played`/`top_track`/`top_artist`/`playlist`/`saved_track`, used by P3). These are NOT redundant copies — 1 observation producer + 2 raw producers writing **different `data_type` shapes**. The genuine redundancy is the two raw producers, but unifying them needs a consumer audit of which `data_type`s are read (deferred to Phase 4).
 - **GitHub/Discord/LinkedIn/Reddit/Calendar/Whoop** each exist in all three directories (`observationFetchers/`, `featureExtractors/`, `extractors/`) — a fix to one silently misses the others.
 - **Whoop divergence:** P3 is a no-op stub; P1/P2 run the real fetcher → data presence depends on which path fired.
 - **Gmail in P3 is dead-on-arrival:** imports `fetchGmailObservations` from `observationIngestion.js`, which doesn't export it (`dataExtractionService.js:16-24`).
@@ -57,10 +57,10 @@ Principles:
 - Add a one-screen "extraction ownership" table to repo docs: platform → canonical fetcher. Mark the duplicates.
 - Log `ingestion_source` everywhere extraction runs, so prod shows which path actually fires per platform before deleting anything.
 
-**Phase 1 — Kill the Spotify triple (the proven bug).**
-- Make P2's `case 'spotify'` use `observationFetchers/spotify.js` (already used by P1) instead of `spotifyExtraction.js`.
-- Delete `spotifyExtraction.js` once nothing imports it. Verify refresh via `ensureFreshToken`.
-- *Lowest-risk, highest-symbolic-value — directly closes the `lessons.md` item.*
+**Phase 1 — Spotify observation parity (REVISED + DONE 2026-06-08).**
+- The original plan ("swap orchestrator to `observationFetchers/spotify.js` + delete `spotifyExtraction.js`") was **dropped after verification**: the `lessons.md` token bug is already fixed (`spotifyExtraction.js:48` uses `ensureFreshToken`), and `spotifyExtraction.js` is the sole producer of the `comprehensive_music_profile` raw row — deleting it would lose data. The two raw extractors also write *different* `data_type` shapes, so they aren't trivially mergeable.
+- **DONE:** the orchestrator's `case 'spotify'` now ALSO emits memory observations via `observationFetchers/spotify.js` (canonical, token-refreshing), so on-demand Spotify extraction updates the memory stream like every other platform (it previously wrote raw only → the stream only refreshed via the cron). Additive, no deletions.
+- **Deferred to Phase 4:** unifying the two raw producers (`comprehensive_music_profile` vs the granular rows) — requires a `data_type` consumer audit first.
 
 **Phase 2 — Standardize tokens in the fetcher layer.**
 - Audit each `observationFetchers/*` to ensure it calls `ensureFreshToken` (or the platform's correct refresh) before API calls. Fix any that decrypt-and-use raw tokens.
