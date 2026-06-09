@@ -354,6 +354,12 @@ async function runObservationIngestion(options = {}) {
         .from('platform_connections')
         .select('user_id, platform')
         .not('connected_at', 'is', null)
+        // Only poll live connections. 'disconnected'/needs-reauth rows can never
+        // decrypt (the user must reconnect) yet were re-polled every 15min,
+        // burning function time (-> 504s) and polluting telemetry. 'expired' is
+        // kept — its token is refreshable via getValidAccessToken (matches the
+        // pollable set in mcp-server service-adapters).
+        .in('status', ['connected', 'expired'])
         .in('platform', SUPPORTED_PLATFORMS),
       supabase
         .from('nango_connection_mappings')
