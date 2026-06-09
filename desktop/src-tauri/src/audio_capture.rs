@@ -15,6 +15,7 @@
 // is unit-testable without a microphone; the cpal stream path is exercised by
 // the "Test mic capture" tray item on real hardware.
 
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
@@ -151,6 +152,123 @@ pub fn record_to_wav(out_path: &str, seconds: u32) -> Result<(), String> {
     write_wav_16k_mono(out_path, &resampled)?;
 
     Ok(())
+}
+
+/// Record the default input device into a 16kHz mono buffer until `stop` is set
+/// (the meeting ended) OR `max_secs` elapses (a safety cap on very long
+/// meetings). Mirrors `record_to_wav`'s capture path — native-rate mono in the
+/// data callback, then one linear resample to 16kHz — but returns the samples
+/// instead of writing a WAV, and runs for a stop-flagged (unbounded) duration.
+///
+/// Deliberately self-contained rather than refactoring `record_to_wav`: this is
+/// untestable-in-CI native code, so keeping the proven fixed-duration path
+/// byte-for-byte and duplicating the (simple) capture setup is the safer trade.
+///
+/// Like `record_to_wav` it owns a `!Send` cpal `Stream`, so the caller must run
+/// it on a blocking thread (spawn_blocking) and never hold it across an `.await`.
+/// `stop` is the only cross-thread channel — the meeting recorder sets it from
+/// the indexer when the session ends.
+#[allow(dead_code)] // wired into the meeting recorder in the next 5B unit
+pub fn record_until_stopped(stop: &AtomicBool, max_secs: u32) -> Result<Vec<f32>, String> {
+    let host = cpal::default_host();
+    let device = host
+        .default_input_device()
+        .ok_or_else(|| "no input device available".to_string())?;
+    let supported = device
+        .default_input_config()
+        .map_err(|e| format!("failed to get default input config: {e}"))?;
+    let sample_format = supported.sample_format();
+    let channels = supported.channels().max(1) as usize;
+    let src_rate = supported.sample_rate().0;
+    let config: cpal::StreamConfig = supported.into();
+
+    let captured: Arc<Mutex<Vec<f32>>> = Arc::new(Mutex::new(Vec::new()));
+    let err_fn = |err: cpal::StreamError| {
+        eprintln!("[audio_capture] stream error: {err}");
+    };
+
+    let stream = match sample_format {
+        SampleFormat::F32 => {
+            let buf = Arc::clone(&captured);
+            device.build_input_stream(
+                &config,
+                move |data: &[f32], _: &cpal::InputCallbackInfo| {
+                    if let Ok(mut out) = buf.lock() {
+                        for frame in data.chunks(channels) {
+                            let sum: f32 = frame.iter().copied().sum();
+                            out.push(sum / channels as f32);
+                        }
+                    }
+                },
+                err_fn,
+                None,
+            )
+        }
+        SampleFormat::I16 => {
+            let buf = Arc::clone(&captured);
+            device.build_input_stream(
+                &config,
+                move |data: &[i16], _: &cpal::InputCallbackInfo| {
+                    if let Ok(mut out) = buf.lock() {
+                        for frame in data.chunks(channels) {
+                            let sum: f32 = frame.iter().map(|&s| s as f32 / 32_768.0).sum();
+                            out.push(sum / channels as f32);
+                        }
+                    }
+                },
+                err_fn,
+                None,
+            )
+        }
+        SampleFormat::U16 => {
+            let buf = Arc::clone(&captured);
+            device.build_input_stream(
+                &config,
+                move |data: &[u16], _: &cpal::InputCallbackInfo| {
+                    if let Ok(mut out) = buf.lock() {
+                        for frame in data.chunks(channels) {
+                            let sum: f32 = frame
+                                .iter()
+                                .map(|&s| (s as f32 - 32_768.0) / 32_768.0)
+                                .sum();
+                            out.push(sum / channels as f32);
+                        }
+                    }
+                },
+                err_fn,
+                None,
+            )
+        }
+        other => return Err(format!("unsupported sample format: {other:?}")),
+    }
+    .map_err(|e| format!("failed to build input stream: {e}"))?;
+
+    stream
+        .play()
+        .map_err(|e| format!("failed to start input stream: {e}"))?;
+
+    // Poll the stop flag (and the safety cap) on a coarse interval. 200ms keeps
+    // stop latency low without busy-spinning; audio accumulates on cpal's own
+    // thread regardless of this loop's cadence. 5 ticks/sec * max_secs = the cap.
+    let max_ticks = (max_secs as u64).saturating_mul(5);
+    let mut ticks: u64 = 0;
+    while !stop.load(Ordering::Relaxed) && ticks < max_ticks {
+        std::thread::sleep(Duration::from_millis(200));
+        ticks += 1;
+    }
+    drop(stream);
+
+    let mono = {
+        let guard = captured
+            .lock()
+            .map_err(|_| "capture buffer lock poisoned".to_string())?;
+        guard.clone()
+    };
+    if mono.is_empty() {
+        return Err("no audio captured (is a microphone connected and permitted?)".to_string());
+    }
+
+    Ok(resample_linear(&mono, src_rate, TARGET_SAMPLE_RATE))
 }
 
 /// Write a mono f32 buffer (already at 16kHz) as a 16kHz mono i16 WAV.

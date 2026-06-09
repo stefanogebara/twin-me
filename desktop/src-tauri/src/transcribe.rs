@@ -37,33 +37,41 @@ const WHISPER_SAMPLE_RATE: u32 = 16_000;
 /// types across the IPC boundary.
 #[allow(dead_code)] // wired into the capture -> transcribe pipeline in a later 5B unit
 pub fn transcribe_wav(model_path: &str, wav_path: &str) -> Result<String, String> {
-    // 1. Load the WAV into a mono f32 buffer at 16kHz.
+    // Load the WAV into a 16kHz mono f32 buffer, then run the shared core.
     let samples = load_wav_mono_f32(wav_path)?;
+    transcribe_samples(model_path, &samples)
+}
 
-    // 2. Build a whisper context from the model file. Default params = CPU,
-    //    GPU off (whisper-rs 0.16 has no GPU features enabled in our build).
-    //    &str implements AsRef<Path>, so we pass model_path directly.
+/// Transcribe a 16kHz mono f32 PCM buffer with the whisper model at
+/// `model_path`. The in-memory counterpart to `transcribe_wav` — the meeting
+/// recorder feeds captured samples here directly, skipping the WAV round-trip.
+/// Same CPU-only whisper path: greedy sampling, segments joined by single
+/// spaces, lossy UTF-8 at chunk boundaries.
+#[allow(dead_code)] // wired into the meeting recorder in the next 5B unit
+pub fn transcribe_samples(model_path: &str, samples: &[f32]) -> Result<String, String> {
+    // Build a whisper context from the model file. Default params = CPU, GPU off
+    // (whisper-rs 0.16 has no GPU features enabled in our build). &str implements
+    // AsRef<Path>, so we pass model_path directly.
     let ctx = WhisperContext::new_with_params(model_path, WhisperContextParameters::default())
         .map_err(|e| format!("failed to load whisper model '{model_path}': {e}"))?;
 
-    // 3. Each decode needs its own state (holds the KV cache + results).
+    // Each decode needs its own state (holds the KV cache + results).
     let mut state = ctx
         .create_state()
         .map_err(|e| format!("failed to create whisper state: {e}"))?;
 
-    // 4. Greedy sampling with best_of = 1 — fastest, deterministic, fine for
-    //    meeting notes. (Beam search is a later quality tuning knob.)
+    // Greedy sampling with best_of = 1 — fastest, deterministic, fine for meeting
+    // notes. (Beam search is a later quality tuning knob.)
     let params = FullParams::new(SamplingStrategy::Greedy { best_of: 1 });
 
-    // 5. Run the full transcription over the PCM buffer.
     state
-        .full(params, &samples)
+        .full(params, samples)
         .map_err(|e| format!("whisper transcription failed: {e}"))?;
 
-    // 6. Concatenate every segment's text into the final transcript.
-    //    full_n_segments() returns a c_int (not a Result); get_segment(i)
-    //    yields the WhisperSegment, and to_str_lossy() tolerates any invalid
-    //    UTF-8 at chunk boundaries instead of erroring the whole transcript.
+    // Concatenate every segment's text. full_n_segments() returns a c_int (not a
+    // Result); get_segment(i) yields the WhisperSegment, and to_str_lossy()
+    // tolerates invalid UTF-8 at chunk boundaries instead of failing the whole
+    // transcript.
     let n_segments = state.full_n_segments();
     let mut transcript = String::new();
     for i in 0..n_segments {
