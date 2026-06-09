@@ -54,11 +54,20 @@ toml = "0.8"
 # (CI only compiles + runs the TOML-fallback unit tests), so the choice of
 # Linux backend only affects compilation, not test behaviour.
 keyring = { version = "3", features = ["apple-native", "windows-native", "linux-native"] }
-# Onboarding: open the default input device briefly to trigger the OS microphone
-# permission prompt (macOS TCC). We never record or transcribe — the stream is
-# opened, played, and dropped after a short sleep. cpal is the same crate the
-# README earmarks for Phase 5B meeting capture, so this also lays that groundwork.
+# cpal: cross-platform audio I/O. Two uses now:
+#  1. Onboarding — open the default input device briefly to trigger the OS mic
+#     permission prompt (macOS TCC); audio_permission.rs records nothing.
+#  2. Phase 5B meeting capture — audio_capture.rs records the mic to a 16kHz
+#     mono WAV for on-device whisper transcription.
 cpal = "0.15"
+# Phase 5B: on-device meeting transcription via whisper.cpp. whisper-rs 0.16
+# ships ZERO default features, so this is a CPU-only build on every platform
+# (no CUDA/Metal/CoreML/OpenBLAS) — maximally portable across the CI matrix.
+# whisper-rs-sys builds whisper.cpp with cmake and runs bindgen (needs libclang).
+whisper-rs = { version = "0.16", default-features = false }
+# WAV reader: Phase 5B mic capture writes 16kHz mono WAVs; transcribe_wav reads
+# them and converts i16 PCM -> f32 for whisper.
+hound = "3"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 accessibility-sys = "0.1"

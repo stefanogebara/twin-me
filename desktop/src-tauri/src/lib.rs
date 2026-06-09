@@ -17,13 +17,16 @@
 // drive the main window.
 
 mod active_window;
+mod audio_capture;
 mod audio_permission;
 mod auth_refresh;
 mod clip_indexer;
 mod clips;
 mod config;
 mod meetings;
+mod model;
 mod sync;
+mod transcribe;
 mod update;
 
 use tauri::{
@@ -32,6 +35,7 @@ use tauri::{
     AppHandle, Manager, Runtime, RunEvent, WindowEvent,
 };
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
+use tauri_plugin_notification::NotificationExt;
 
 /// Show + focus the main TwinMe window. Used by the tray click handler,
 /// the tray menu, and the global hotkey.
@@ -47,6 +51,28 @@ fn focus_main_window(app: &AppHandle) {
 fn hide_main_window(app: &AppHandle) {
     if let Some(window) = app.get_webview_window("main") {
         let _ = window.hide();
+    }
+}
+
+/// Show a native notification (via the notification plugin). The body is
+/// truncated to ~200 chars so a long transcript doesn't overflow the OS toast.
+/// Falls back to eprintln! if the notification can't be shown (e.g. permission
+/// denied) so the result is never silently lost.
+fn notify(app: &AppHandle, title: &str, body: &str) {
+    let body = if body.chars().count() > 200 {
+        let truncated: String = body.chars().take(200).collect();
+        format!("{truncated}…")
+    } else {
+        body.to_string()
+    };
+    if let Err(err) = app
+        .notification()
+        .builder()
+        .title(title)
+        .body(&body)
+        .show()
+    {
+        eprintln!("[twinme-desktop] notification failed ({title}): {err} — body: {body}");
     }
 }
 
@@ -551,6 +577,13 @@ pub fn run() {
             let exclude_item =
                 MenuItem::with_id(app, "exclude_current", "Exclude current app", true, None::<&str>)?;
 
+            // Phase 5B live test: record 10s from the mic, run it through the
+            // whisper model (downloading it on first use), and show the
+            // transcript in a notification. Proves capture + model + whisper
+            // work end-to-end on real hardware (no mic exists in CI).
+            let test_mic_item =
+                MenuItem::with_id(app, "test_mic", "Test mic capture (10s)", true, None::<&str>)?;
+
             // Excluded apps submenu — one re-include item per excluded app,
             // populated from the DB now and rebuilt in place on every change.
             let excluded_submenu = Submenu::with_id(app, "excluded_menu", "Excluded apps", true)?;
@@ -567,6 +600,7 @@ pub fn run() {
                     &settings_item,
                     &pause_item,
                     &exclude_item,
+                    &test_mic_item,
                     &excluded_submenu,
                     &separator,
                     &quit_item,
@@ -616,6 +650,52 @@ pub fn run() {
                                 }
                             }
                             let _ = populate_excluded_submenu(app, &excluded_handle);
+                        }
+                        "test_mic" => {
+                            // Live mic->transcript test. Recording (10s) + model
+                            // download (~141MB first run) + whisper are blocking,
+                            // and cpal's Stream is !Send, so the heavy work runs
+                            // on a blocking thread. ensure_model is async, so the
+                            // outer task is spawned on the async runtime; the
+                            // blocking record+transcribe goes through
+                            // spawn_blocking (Stream never crosses an .await).
+                            let app_handle = app.clone();
+                            tauri::async_runtime::spawn(async move {
+                                let model = match crate::model::ensure_model().await {
+                                    Ok(p) => p,
+                                    Err(e) => {
+                                        notify(&app_handle, "TwinMe", &format!("Model error: {e}"));
+                                        return;
+                                    }
+                                };
+                                let wav = std::env::temp_dir().join("twinme-mic-test.wav");
+                                let wav_s = wav.to_string_lossy().to_string();
+                                let model_s = model.to_string_lossy().to_string();
+                                let result = tauri::async_runtime::spawn_blocking(move || {
+                                    crate::audio_capture::record_to_wav(&wav_s, 10)?;
+                                    crate::transcribe::transcribe_wav(&model_s, &wav_s)
+                                })
+                                .await;
+                                match result {
+                                    Ok(Ok(text)) => notify(
+                                        &app_handle,
+                                        "Mic test transcript",
+                                        if text.trim().is_empty() {
+                                            "(no speech detected)"
+                                        } else {
+                                            text.trim()
+                                        },
+                                    ),
+                                    Ok(Err(e)) => {
+                                        notify(&app_handle, "TwinMe mic test failed", &e)
+                                    }
+                                    Err(e) => notify(
+                                        &app_handle,
+                                        "TwinMe mic test failed",
+                                        &format!("task: {e}"),
+                                    ),
+                                }
+                            });
                         }
                         "quit" => {
                             app.exit(0);
