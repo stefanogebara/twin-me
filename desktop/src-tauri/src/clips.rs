@@ -83,11 +83,33 @@ pub(crate) fn init_schema(conn: &Connection) -> Result<()> {
           title TEXT,
           started_at INTEGER NOT NULL,
           ended_at INTEGER,
+          transcript TEXT,
           synced_at INTEGER
         );
         CREATE INDEX IF NOT EXISTS meetings_unsynced ON meetings(synced_at);
         "#,
     )?;
+    // Forward migration for DBs created before Phase 5B: the meetings table
+    // existed without `transcript`, and CREATE TABLE IF NOT EXISTS won't add it.
+    ensure_column(conn, "meetings", "transcript", "TEXT")?;
+    Ok(())
+}
+
+/// Add `column` (`decl` type) to `table` only when it isn't already present —
+/// SQLite has no `ADD COLUMN IF NOT EXISTS`. New installs get the column from
+/// CREATE TABLE; older installs get it via the ALTER here. `table`/`column` are
+/// always hardcoded literals (never user input), so the format!ed SQL is safe.
+fn ensure_column(conn: &Connection, table: &str, column: &str, decl: &str) -> Result<()> {
+    let mut stmt = conn.prepare(&format!("PRAGMA table_info({table})"))?;
+    // PRAGMA table_info columns: cid(0), name(1), type(2), notnull(3), ...
+    let present = stmt
+        .query_map([], |r| r.get::<_, String>(1))?
+        .filter_map(|c| c.ok())
+        .any(|name| name == column);
+    drop(stmt); // release the borrow on `conn` before the ALTER below
+    if !present {
+        conn.execute(&format!("ALTER TABLE {table} ADD COLUMN {column} {decl}"), [])?;
+    }
     Ok(())
 }
 
@@ -305,6 +327,31 @@ mod tests {
         // Recent clips are returned even when never synced / still open.
         assert!(recent[0].window_title.is_none());
         assert!(recent[0].synced_at.is_none());
+    }
+
+    #[test]
+    fn ensure_column_adds_missing_meetings_transcript() {
+        let conn = Connection::open_in_memory().unwrap();
+        // Simulate a pre-5B DB: a meetings table WITHOUT the transcript column.
+        conn.execute_batch(
+            "CREATE TABLE meetings (id INTEGER PRIMARY KEY AUTOINCREMENT, platform TEXT NOT NULL, \
+             title TEXT, started_at INTEGER NOT NULL, ended_at INTEGER, synced_at INTEGER);",
+        )
+        .unwrap();
+        // Migrate it in.
+        ensure_column(&conn, "meetings", "transcript", "TEXT").unwrap();
+        // The column is now present + writable.
+        conn.execute(
+            "INSERT INTO meetings (platform, started_at, transcript) VALUES ('Zoom', 1, 'hi')",
+            [],
+        )
+        .unwrap();
+        let got: Option<String> = conn
+            .query_row("SELECT transcript FROM meetings WHERE platform = 'Zoom'", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(got.as_deref(), Some("hi"));
+        // Idempotent: a second call on an existing column is a no-op, not an error.
+        ensure_column(&conn, "meetings", "transcript", "TEXT").unwrap();
     }
 
     #[test]

@@ -55,6 +55,9 @@ pub struct Meeting {
     pub title: Option<String>,
     pub started_at: i64,
     pub ended_at: Option<i64>,
+    // On-device whisper transcript (Phase 5B). None until the meeting recorder
+    // attaches one on session close; sync.rs omits the key when None.
+    pub transcript: Option<String>,
 }
 
 pub fn insert_meeting(conn: &Connection, platform: &str, title: Option<&str>, started_at: i64) -> Result<i64> {
@@ -70,11 +73,24 @@ pub fn close_meeting(conn: &Connection, id: i64, ended_at: i64) -> Result<()> {
     Ok(())
 }
 
+/// Attach an on-device whisper transcript to a meeting session (Phase 5B).
+/// Called by the meeting recorder when a session ends — BEFORE sync.rs picks the
+/// row up — so the transcript rides along in the upload. Best-effort: a meeting
+/// with no transcript simply syncs without one.
+#[allow(dead_code)] // wired into the meeting recorder in the next 5B unit
+pub fn set_transcript(conn: &Connection, id: i64, transcript: &str) -> Result<()> {
+    conn.execute(
+        "UPDATE meetings SET transcript = ?1 WHERE id = ?2",
+        params![transcript, id],
+    )?;
+    Ok(())
+}
+
 /// Unsynced meetings that have already ENDED (ended_at IS NOT NULL) — we only
 /// sync completed sessions, never the one currently in progress.
 pub fn list_unsynced(conn: &Connection, limit: usize) -> Result<Vec<Meeting>> {
     let mut stmt = conn.prepare(
-        "SELECT id, platform, title, started_at, ended_at FROM meetings
+        "SELECT id, platform, title, started_at, ended_at, transcript FROM meetings
          WHERE synced_at IS NULL AND ended_at IS NOT NULL
          ORDER BY started_at ASC LIMIT ?1",
     )?;
@@ -85,6 +101,7 @@ pub fn list_unsynced(conn: &Connection, limit: usize) -> Result<Vec<Meeting>> {
             title: r.get(2)?,
             started_at: r.get(3)?,
             ended_at: r.get(4)?,
+            transcript: r.get(5)?,
         })
     })?;
     rows.collect()
@@ -136,5 +153,22 @@ mod tests {
         assert_eq!(pending[0].platform, "Zoom");
         mark_synced(&conn, &[id]).unwrap();
         assert!(list_unsynced(&conn, 10).unwrap().is_empty());
+    }
+
+    #[test]
+    fn transcript_attaches_and_rides_list_unsynced() {
+        let conn = Connection::open_in_memory().unwrap();
+        clips::init_schema(&conn).unwrap();
+        let id = insert_meeting(&conn, "Zoom", Some("Roadmap"), 1_000).unwrap();
+        close_meeting(&conn, id, 1_000 + 30 * 60_000).unwrap();
+        // Before a transcript is attached, the row syncs without one.
+        assert_eq!(list_unsynced(&conn, 10).unwrap()[0].transcript, None);
+        set_transcript(&conn, id, "We agreed to ship the API on Friday.").unwrap();
+        let pending = list_unsynced(&conn, 10).unwrap();
+        assert_eq!(pending.len(), 1);
+        assert_eq!(
+            pending[0].transcript.as_deref(),
+            Some("We agreed to ship the API on Friday."),
+        );
     }
 }

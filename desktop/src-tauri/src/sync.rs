@@ -40,7 +40,9 @@ struct OutgoingClip<'a> {
 // backend zod schema rejects an explicit `null` on `.optional()` keys). `title`
 // stays an Option so an untitled session emits NO key, not `"title":null`.
 // `ended_at` is always Some here (list_unsynced only returns ended sessions),
-// but kept Option to mirror the wire shape and avoid an unwrap.
+// but kept Option to mirror the wire shape and avoid an unwrap. `transcript`
+// (Phase 5B, on-device whisper) is None until the meeting recorder attaches one;
+// None omits the key, which the backend's `.nullish()` transcript field accepts.
 #[derive(Debug, Serialize)]
 struct OutgoingMeeting<'a> {
     local_id: i64,
@@ -48,6 +50,7 @@ struct OutgoingMeeting<'a> {
     title: Option<&'a str>,
     started_at: i64,
     ended_at: Option<i64>,
+    transcript: Option<&'a str>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -117,6 +120,7 @@ pub async fn post_meetings(
             title: m.title.as_deref(),
             started_at: m.started_at,
             ended_at: m.ended_at,
+            transcript: m.transcript.as_deref(),
         })
         .collect();
 
