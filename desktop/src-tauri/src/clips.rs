@@ -133,6 +133,31 @@ pub fn is_paused(conn: &Connection) -> Result<bool> {
     Ok(row.as_deref() == Some("1"))
 }
 
+/// Persist the meeting-transcription opt-in. Stored in `app_settings`, default
+/// OFF — recording a meeting captures other people's voices, so it never runs
+/// until the user explicitly enables it (tray toggle). The indexer reads this
+/// when a meeting opens to decide whether to spawn a recorder.
+pub fn set_transcription_enabled(conn: &Connection, enabled: bool) -> Result<()> {
+    conn.execute(
+        "INSERT INTO app_settings (key, value) VALUES ('meeting_transcription', ?1)
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+        params![if enabled { "1" } else { "0" }],
+    )?;
+    Ok(())
+}
+
+/// True if meeting transcription is opted in. Absent row → OFF (default).
+pub fn is_transcription_enabled(conn: &Connection) -> Result<bool> {
+    let row: Option<String> = conn
+        .query_row(
+            "SELECT value FROM app_settings WHERE key = 'meeting_transcription'",
+            [],
+            |r| r.get(0),
+        )
+        .optional()?;
+    Ok(row.as_deref() == Some("1"))
+}
+
 /// Start a new clip for a freshly-focused (app, title). Returns the new
 /// row id, which the indexer keeps until the focus changes again.
 pub fn insert_clip(conn: &Connection, app: &str, title: Option<&str>) -> Result<i64> {

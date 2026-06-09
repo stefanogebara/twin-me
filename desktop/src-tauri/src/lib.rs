@@ -23,6 +23,7 @@ mod auth_refresh;
 mod clip_indexer;
 mod clips;
 mod config;
+mod meeting_recorder;
 mod meetings;
 mod model;
 mod sync;
@@ -372,6 +373,15 @@ fn pause_label(paused: bool) -> &'static str {
     }
 }
 
+/// Label for the meeting-transcription opt-in toggle given the current state.
+fn transcription_label(on: bool) -> &'static str {
+    if on {
+        "Meeting transcription: On"
+    } else {
+        "Meeting transcription: Off"
+    }
+}
+
 /// (Re)populate the "Excluded apps" submenu from the persisted exclude list.
 /// Clears any existing children, then adds one re-include item per excluded
 /// app (id `unexclude:<app>`), or a single disabled "(none)" placeholder when
@@ -584,6 +594,22 @@ pub fn run() {
             let test_mic_item =
                 MenuItem::with_id(app, "test_mic", "Test mic capture (10s)", true, None::<&str>)?;
 
+            // Phase 5B opt-in: meeting transcription (default OFF). When on, the
+            // indexer records the mic during detected meetings, transcribes
+            // on-device, and attaches the transcript to the synced session. Off
+            // until the user explicitly enables it — it captures others' voices.
+            let transcription_on = clips::open()
+                .ok()
+                .and_then(|c| clips::is_transcription_enabled(&c).ok())
+                .unwrap_or(false);
+            let transcription_item = MenuItem::with_id(
+                app,
+                "toggle_transcription",
+                transcription_label(transcription_on),
+                true,
+                None::<&str>,
+            )?;
+
             // Excluded apps submenu — one re-include item per excluded app,
             // populated from the DB now and rebuilt in place on every change.
             let excluded_submenu = Submenu::with_id(app, "excluded_menu", "Excluded apps", true)?;
@@ -601,6 +627,7 @@ pub fn run() {
                     &pause_item,
                     &exclude_item,
                     &test_mic_item,
+                    &transcription_item,
                     &excluded_submenu,
                     &separator,
                     &quit_item,
@@ -611,6 +638,7 @@ pub fn run() {
             // live menu after the setup closure returns. Both are Arc-backed,
             // so the clones point at the same underlying menu items.
             let pause_handle = pause_item.clone();
+            let transcription_handle = transcription_item.clone();
             let excluded_handle = excluded_submenu.clone();
 
             // Build the tray icon. menuOnLeftClick is false in tauri.conf.json,
@@ -636,6 +664,19 @@ pub fn run() {
                                     eprintln!("[tray] set_pause: {err}");
                                 } else {
                                     let _ = pause_handle.set_text(pause_label(next));
+                                }
+                            }
+                        }
+                        "toggle_transcription" => {
+                            // Flip the meeting-transcription opt-in + relabel. The
+                            // indexer reads the flag when a meeting opens.
+                            if let Ok(conn) = clips::open() {
+                                let now = clips::is_transcription_enabled(&conn).unwrap_or(false);
+                                let next = !now;
+                                if let Err(err) = clips::set_transcription_enabled(&conn, next) {
+                                    eprintln!("[tray] set_transcription_enabled: {err}");
+                                } else {
+                                    let _ = transcription_handle.set_text(transcription_label(next));
                                 }
                             }
                         }
