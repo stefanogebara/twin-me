@@ -419,6 +419,61 @@
     border-radius: 100px; padding: 5px 11px;
   }
 
+  /* ---- v2 #7: Mockup briefing cards screen ---- */
+  /* Shown between the observe reveal and sign-in handoff. Two-column grid
+     of fictional-but-plausible cards that pre-load the user's perception
+     of value ("tomorrow your twin will surface things like this"). On
+     narrow viewports collapses to one column. Each card has a small action
+     pill so the visual rhythm matches the action pills on the summary
+     reveal — both use the amber-on-dark accent. */
+  .mockup-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin: 22px auto 0;
+    max-width: 580px;
+    text-align: left;
+  }
+  @media (max-width: 600px) {
+    .mockup-grid { grid-template-columns: 1fr; }
+  }
+  .mockup-card {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 14px;
+    padding: 12px 14px;
+    backdrop-filter: blur(42px) saturate(140%);
+    -webkit-backdrop-filter: blur(42px) saturate(140%);
+    box-shadow: 0 4px 4px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    transition: box-shadow 0.2s ease, transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .mockup-card:hover {
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+    transform: translateY(-1px);
+  }
+  .mockup-card .mctitle {
+    font-size: 13px; font-weight: 600; color: var(--foreground);
+    margin: 0 0 4px;
+    display: flex; align-items: center; gap: 7px;
+  }
+  .mockup-card .mctitle svg {
+    width: 13px; height: 13px; stroke: var(--accent-glyph); flex-shrink: 0;
+  }
+  .mockup-card .mcdesc {
+    font-size: 11.5px; line-height: 1.5; color: var(--text-secondary);
+    margin: 0 0 8px;
+  }
+  .mockup-card .mcaction {
+    font-family: var(--sans);
+    font-size: 11px; font-weight: 500;
+    color: var(--foreground);
+    background: rgba(231, 176, 106, 0.10);
+    border: 1px solid rgba(231, 176, 106, 0.22);
+    border-radius: 100px;
+    padding: 4px 11px;
+    display: inline-block;
+  }
+
   /* Suggested follow-ups — the Littlebird-style action pills below the
      insight. Carried by .summary-card so they reveal in the same cinematic
      beat as the rest of the summary. */
@@ -682,6 +737,7 @@
           <p class="observe-status">Observing your activity</p>
           <p class="observe-count" id="observe-count"></p>
         </div>
+        <p class="trust-line stagger-4">Everything you see is local to this machine. Nothing is saved until you sign in.</p>
       </div>
     </section>
 
@@ -691,11 +747,77 @@
         <h2 class="stagger-1" id="observe-heading">Here's what I noticed</h2>
         <p class="sub stagger-2">A first glimpse, from the apps and windows I saw. I get sharper the more we work together.</p>
         <div class="summary-host stagger-3" id="summary-host"></div>
+        <p class="trust-line stagger-4">Only the app names and window titles were used to write this. Nothing is saved until you sign in.</p>
       </div>
     </section>
 
-    <!-- 7. Sign in & connect (handoff to twinme.me) -->
+    <!-- 7. Tomorrow your twin will surface things like this (mockup briefing cards, v2 #7) -->
+    <!-- New screen between the observe reveal and sign-in. Pre-loads the
+         user's perception of value with 6 fictional-but-plausible briefing
+         cards across the categories AskJo uses (work, travel, family,
+         finance, social, content). The trust line at the bottom makes the
+         framing explicit so the user doesn't think we've extracted these
+         from their machine. -->
     <section class="screen" data-step="7">
+      <div class="content">
+        <h2 class="stagger-1">Tomorrow, your twin surfaces things like this</h2>
+        <p class="sub stagger-2">A glimpse of the cards I'll build once we're working together.</p>
+        <div class="mockup-grid stagger-3">
+          <div class="mockup-card">
+            <div class="mctitle">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+              Your focus block starts in 2 hours
+            </div>
+            <p class="mcdesc">Last Tuesday you shipped 4 PRs in this window.</p>
+            <span class="mcaction">Block 90 min</span>
+          </div>
+          <div class="mockup-card">
+            <div class="mctitle">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg>
+              Flight to Madrid leaves Thursday
+            </div>
+            <p class="mcdesc">You usually pack the night before — want a checklist?</p>
+            <span class="mcaction">Build packing list</span>
+          </div>
+          <div class="mockup-card">
+            <div class="mctitle">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/></svg>
+              Mom's birthday is in 6 days
+            </div>
+            <p class="mcdesc">She mentioned a cookbook on your last call.</p>
+            <span class="mcaction">Suggest gifts</span>
+          </div>
+          <div class="mockup-card">
+            <div class="mctitle">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              Car insurance renews Monday
+            </div>
+            <p class="mcdesc">Two competitors are 18% cheaper this month.</p>
+            <span class="mcaction">Compare quotes</span>
+          </div>
+          <div class="mockup-card">
+            <div class="mctitle">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              Dinner with friends at 7:30 tonight
+            </div>
+            <p class="mcdesc">One person is running 10 min late.</p>
+            <span class="mcaction">Remind in 2h</span>
+          </div>
+          <div class="mockup-card">
+            <div class="mctitle">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>
+              New Dwarkesh episode
+            </div>
+            <p class="mcdesc">Jim Keller on chip design — you usually listen on walks.</p>
+            <span class="mcaction">Add to queue</span>
+          </div>
+        </div>
+        <p class="trust-line stagger-4">These are examples. Your real cards will be built from what you choose to connect.</p>
+      </div>
+    </section>
+
+    <!-- 8. Sign in & connect (handoff to twinme.me) -->
+    <section class="screen" data-step="8">
       <div class="content">
         <h2 class="stagger-1" id="ready-heading">Keep your twin</h2>
         <p class="lede stagger-2">Sign in to save what I've learned and connect your world. Everything stays on your terms.</p>
@@ -706,14 +828,14 @@
           </button>
           <p class="auth-hint" id="auth-hint">Opens your real browser — we never see your password.</p>
         </div>
-        <p class="platforms-note stagger-4">After you sign in, I'll take a moment to look you up — then your twin is ready.</p>
+        <p class="trust-line stagger-4">Signing in saves what I learned. You can delete everything at any time.</p>
       </div>
     </section>
   </main>
 
   <footer class="footer">
     <button class="cta" id="cta">Get started</button>
-    <div class="dots" id="dots"><b class="on"></b><b></b><b></b><b></b><b></b><b></b><b></b><b></b></div>
+    <div class="dots" id="dots"><b class="on"></b><b></b><b></b><b></b><b></b><b></b><b></b><b></b><b></b></div>
   </footer>
   <button class="back" id="back">Back</button>
 </div>
@@ -729,7 +851,7 @@
     var FLAG = "twinme_desktop_onboarded_v8"; // v8: specificity-pushed reveal w/ proper-noun summary + action pills — re-show once so returning users see the upgrade
     var NAME_KEY = "twinme_desktop_name";
     var ALIASES_KEY = "twinme_desktop_aliases";
-    var TOTAL = 8;
+    var TOTAL = 9;
     var OBSERVE_MS = 75000;     // ~75s "observing" demo
     var SKIP_AFTER_MS = 20000;  // allow an early "Skip ahead" after 20s
     var step = 0;
@@ -761,8 +883,9 @@
     var back = document.getElementById("back");
     var skip = document.getElementById("skip");
 
-    //                 0            1           2           3           4           5              6           7
-    var CTA_LABELS = ["Get started", "Continue", "Continue", "Continue", "Continue", "Observing…", "Continue", "Sign in with email"];
+    //                 0            1           2           3           4           5              6           7           8
+    // 7 = new mockup briefing cards screen, 8 = sign-in handoff
+    var CTA_LABELS = ["Get started", "Continue", "Continue", "Continue", "Continue", "Observing…", "Continue", "Continue", "Sign in with email"];
 
     function escapeHtml(s) {
       return String(s == null ? "" : s)
@@ -779,16 +902,19 @@
       }
       cta.textContent = CTA_LABELS[step];
       cta.disabled = false;
-      // Screen 7: Google is the in-content primary, so de-emphasize the footer
-      // "Sign in with email" CTA there.
-      cta.classList.toggle("secondary", step === 7);
+      // Sign-in screen (step 8 after the v2 mockup-cards screen was inserted
+      // at step 7): Google is the in-content primary, so de-emphasize the
+      // footer "Sign in with email" CTA there.
+      cta.classList.toggle("secondary", step === 8);
       // Hide Back during the observe countdown and the summary reveal so the
       // "noticing" moment isn't interrupted mid-flight.
       back.classList.toggle("show", step > 0 && step !== 5 && step !== 6);
 
       if (step === 1) { setTimeout(focusName, 80); }
-      if (step === 6) { setReadyHeadings(); }
-      if (step === 7) { setReadyHeadings(); }
+      // Personalized headings: step 6 = "Here's what I noticed, ${name}",
+      // step 8 = "Keep your twin, ${name}". Step 7 (mockup cards) doesn't
+      // need name interpolation in its current copy.
+      if (step === 6 || step === 8) { setReadyHeadings(); }
       if (step === 5) { startObserve(); }
       if (step === 6) { loadSummary(); }
     }
