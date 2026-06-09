@@ -31,6 +31,7 @@ import { tagSensitivity } from './sensitivityClassifier.js';
 import { calculateAllActivityMetrics, detectActivityAnomaly } from './activityMetricsService.js';
 
 import { createLogger } from './logger.js';
+import { logExtractionRun, INGESTION_SOURCE } from './extractionTelemetry.js';
 import {
   sanitizeExternal,
   contentHash,
@@ -463,6 +464,8 @@ async function runObservationIngestion(options = {}) {
               platformFetchResults[platform] = { observations: [], error: null };
               return { platform, status: 'no_fetcher', ms: 0 };
             }
+            // Phase 0 telemetry: record that the P1 (cron) path fired for this platform.
+            logExtractionRun({ source: INGESTION_SOURCE.BACKGROUND, platform, userId });
             const platformStart = Date.now();
             try {
               const obs = await Promise.race([
@@ -932,6 +935,10 @@ async function runPostOnboardingIngestion(userId) {
     for (const platform of platforms) {
       try {
         const fetcher = PLATFORM_FETCHERS[platform];
+        if (fetcher) {
+          // Phase 0 telemetry: record that the P1 (post-onboarding) path fired.
+          logExtractionRun({ source: INGESTION_SOURCE.POST_ONBOARDING, platform, userId });
+        }
         const observations = fetcher ? await fetcher(userId) : [];
 
         for (const obs of observations) {

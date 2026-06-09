@@ -15,6 +15,7 @@ import patternLearningBridge from './patternLearningBridge.js';
 
 import { addPlatformObservation } from './memoryStreamService.js';
 import { createLogger } from './logger.js';
+import { logExtractionRun, INGESTION_SOURCE } from './extractionTelemetry.js';
 
 const log = createLogger('ExtractionOrchestrator');
 
@@ -148,6 +149,8 @@ class ExtractionOrchestrator {
 
     try {
       log.info('Extracting platform data', { platform, userId });
+      // Phase 0 telemetry: record that the P2 (on-demand) path fired for this platform.
+      logExtractionRun({ source: INGESTION_SOURCE.ON_DEMAND, platform, userId });
 
       // 1. Create extraction job record
       const jobId = await this.createExtractionJob(userId, platform);
