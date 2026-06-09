@@ -16,6 +16,7 @@ import patternLearningBridge from './patternLearningBridge.js';
 import { addPlatformObservation } from './memoryStreamService.js';
 import { createLogger } from './logger.js';
 import { logExtractionRun, INGESTION_SOURCE } from './extractionTelemetry.js';
+import { getDescriptor, normalizeRawExtractorResult } from './extractionDispatch.js';
 
 const log = createLogger('ExtractionOrchestrator');
 
@@ -43,6 +44,102 @@ async function storeObservationsToMemory(userId, platform, observations) {
     }
   }
   return stored;
+}
+
+/**
+ * Run an 'observation' descriptor: fetch NL observations -> memory stream, then
+ * optionally run the behavioral feature extractor (non-blocking, matching the
+ * prior switch). Throws on fetch failure (caught by runPlatformExtraction).
+ * @returns {Promise<{success: boolean, itemsExtracted: number}>}
+ */
+async function extractObservationPlatform(userId, platform, descriptor) {
+  const storeAs = descriptor.storeAs || platform;
+  const mod = await import(descriptor.module);
+  const observations = await mod[descriptor.fn](userId);
+  const itemsExtracted = await storeObservationsToMemory(userId, storeAs, observations);
+  log.info('Extracted observations', { platform: storeAs, fetched: observations.length, stored: itemsExtracted });
+
+  if (descriptor.feature) {
+    // Behavioral feature extraction is best-effort: never fail the run for it.
+    try {
+      const featureMod = await import(descriptor.feature);
+      const features = await featureMod.default.extractFeatures(userId);
+      if (features && features.length > 0) {
+        await featureMod.default.saveFeatures(features);
+        log.info('Extracted behavioral features', { platform: storeAs, count: features.length });
+      }
+    } catch (featureError) {
+      log.warn('Feature extraction error (non-blocking)', { platform: storeAs, error: featureError.message });
+    }
+  }
+
+  return { success: true, itemsExtracted };
+}
+
+/**
+ * Run the Spotify descriptor: raw `comprehensive_music_profile` via
+ * extractSpotifyData PLUS memory observations (consolidation Phase 1, #93).
+ * Preserves extractSpotifyData's success/requiresReauth flags verbatim; the
+ * observation fetch is non-blocking. Throws on raw-extract failure (caught by
+ * runPlatformExtraction -> job marked failed so retry can pick it up).
+ */
+async function extractSpotifyAndObservations(userId) {
+  const result = await extractSpotifyData(userId);
+  let itemsExtracted = result.itemsExtracted || 0;
+  try {
+    const { fetchSpotifyObservations } = await import('./observationFetchers/spotify.js');
+    const spotifyObs = await fetchSpotifyObservations(userId);
+    itemsExtracted += await storeObservationsToMemory(userId, 'spotify', spotifyObs);
+    log.info('Extracted Spotify observations', { fetched: spotifyObs.length });
+  } catch (obsErr) {
+    log.warn('Spotify observation fetch error (non-blocking)', { error: obsErr.message });
+  }
+  // Spread first so the augmented itemsExtracted wins, success/requiresReauth pass through.
+  return { ...result, itemsExtracted };
+}
+
+/**
+ * Run a 'raw_extractor' descriptor: niche extractors/* that write raw
+ * user_platform_data via extractAll(userId, connectorId).
+ */
+async function extractRawPlatform(userId, platform, descriptor) {
+  const { extractAll } = await import(descriptor.module);
+  const raw = await extractAll(userId, null);
+  const normalized = normalizeRawExtractorResult(descriptor, raw);
+  log.info('Extracted observations', { platform, stored: normalized.itemsExtracted });
+  return normalized;
+}
+
+/**
+ * Generic per-platform extraction dispatcher (consolidation Phase 3). Replaces
+ * the orchestrator's former 430-line switch with a data-driven lookup. Never
+ * throws: a platform failure is normalized to { success: false } so the caller's
+ * job-status logic runs identically for every kind.
+ * @returns {Promise<{success: boolean, itemsExtracted?: number, error?: string, requiresReauth?: boolean}>}
+ */
+async function runPlatformExtraction(userId, platform) {
+  const descriptor = getDescriptor(platform);
+  if (!descriptor) {
+    log.info('Unknown platform', { platform });
+    return { success: false, error: 'Unknown platform', itemsExtracted: 0 };
+  }
+
+  try {
+    switch (descriptor.kind) {
+      case 'spotify':
+        return await extractSpotifyAndObservations(userId);
+      case 'observation':
+        return await extractObservationPlatform(userId, platform, descriptor);
+      case 'raw_extractor':
+        return await extractRawPlatform(userId, platform, descriptor);
+      default:
+        log.info('Unknown platform kind', { platform, kind: descriptor.kind });
+        return { success: false, error: 'Unknown platform', itemsExtracted: 0 };
+    }
+  } catch (err) {
+    log.error('Platform extraction error', { platform, error: err });
+    return { success: false, error: err.message, itemsExtracted: 0 };
+  }
 }
 
 
@@ -155,440 +252,9 @@ class ExtractionOrchestrator {
       // 1. Create extraction job record
       const jobId = await this.createExtractionJob(userId, platform);
 
-      // 2. Call platform-specific extractor
-      let result;
-      let itemsExtracted = 0;
-
-      switch (platform.toLowerCase()) {
-        case 'spotify':
-          // Raw 'comprehensive_music_profile' (audio-feature mood, era prefs) is
-          // uniquely consumed downstream, so keep producing it via extractSpotifyData
-          // (which already refreshes tokens through ensureFreshToken).
-          result = await extractSpotifyData(userId);
-          itemsExtracted = result.itemsExtracted || 0;
-          // Also emit NL observations to the memory stream via the canonical,
-          // token-refreshing fetcher, so on-demand Spotify extraction updates the
-          // twin's memory like every other platform — it previously wrote raw data
-          // only, so the memory stream only refreshed via the cron (2026-06-08
-          // consolidation Phase 1).
-          try {
-            const { fetchSpotifyObservations } = await import('./observationFetchers/spotify.js');
-            const spotifyObs = await fetchSpotifyObservations(userId);
-            itemsExtracted += await storeObservationsToMemory(userId, 'spotify', spotifyObs);
-            log.info('Extracted Spotify observations', { fetched: spotifyObs.length });
-          } catch (obsErr) {
-            log.warn('Spotify observation fetch error (non-blocking)', { error: obsErr.message });
-          }
-          break;
-
-        case 'google_calendar':
-          try {
-            const { fetchCalendarObservations } = await import('./observationFetchers/calendar.js');
-            const calObs = await fetchCalendarObservations(userId);
-            const calStored = await storeObservationsToMemory(userId, 'google_calendar', calObs);
-            itemsExtracted = calStored;
-            // fetchCalendarObservations also upserts raw forward-window events
-            // into user_platform_data as data_type='events' for downstream
-            // readers (purchase-bot, goal tracker).
-            result = { success: true, itemsExtracted };
-            log.info('Extracted Calendar observations', { fetched: calObs.length, stored: calStored });
-          } catch (calError) {
-            log.error('Calendar extraction error', { error: calError.message });
-            result = { success: false, error: calError.message };
-          }
-          break;
-
-        case 'discord':
-          try {
-            const { fetchDiscordObservations } = await import('./observationFetchers/discord.js');
-            const discordObs = await fetchDiscordObservations(userId);
-            const discordStored = await storeObservationsToMemory(userId, 'discord', discordObs);
-            itemsExtracted = discordStored;
-            result = { success: true, itemsExtracted };
-            log.info('Extracted Discord observations', { fetched: discordObs.length, stored: discordStored });
-            // Extract behavioral features for personality
-            try {
-              const discordExtractor = await import('./featureExtractors/discordExtractor.js');
-              const features = await discordExtractor.default.extractFeatures(userId);
-              if (features && features.length > 0) {
-                await discordExtractor.default.saveFeatures(features);
-                log.info('Extracted Discord behavioral features', { count: features.length });
-              }
-            } catch (featureError) {
-              log.warn('Discord feature extraction error (non-blocking)', { error: featureError.message });
-            }
-          } catch (discordError) {
-            log.error('Discord extraction error', { error: discordError });
-            result = { success: false, error: discordError.message };
-          }
-          break;
-
-        case 'github':
-          try {
-            const { fetchGitHubObservations } = await import('./observationFetchers/github.js');
-            const githubObs = await fetchGitHubObservations(userId);
-            const githubStored = await storeObservationsToMemory(userId, 'github', githubObs);
-            itemsExtracted = githubStored;
-            result = { success: true, itemsExtracted };
-            log.info('Extracted GitHub observations', { fetched: githubObs.length, stored: githubStored });
-            // Extract behavioral features for personality
-            try {
-              const githubExtractor = await import('./featureExtractors/githubExtractor.js');
-              const features = await githubExtractor.default.extractFeatures(userId);
-              if (features && features.length > 0) {
-                await githubExtractor.default.saveFeatures(features);
-                log.info('Extracted GitHub behavioral features', { count: features.length });
-              }
-            } catch (featureError) {
-              log.warn('GitHub feature extraction error (non-blocking)', { error: featureError.message });
-            }
-          } catch (githubError) {
-            log.error('GitHub extraction error', { error: githubError });
-            result = { success: false, error: githubError.message };
-          }
-          break;
-
-        case 'youtube': {
-          try {
-            const { fetchYouTubeObservations } = await import('./observationFetchers/youtube.js');
-            const observations = await fetchYouTubeObservations(userId);
-            const stored = await storeObservationsToMemory(userId, 'youtube', observations);
-            itemsExtracted = stored;
-            result = { success: true, itemsExtracted };
-            log.info('Extracted YouTube observations', { fetched: observations.length, stored });
-            // Also extract behavioral features for personality
-            try {
-              const ytExtractor = await import('./featureExtractors/youtubeFeatureExtractor.js');
-              const features = await ytExtractor.default.extractFeatures(userId);
-              if (features && features.length > 0) {
-                await ytExtractor.default.saveFeatures(features);
-                log.info('Extracted YouTube behavioral features', { count: features.length });
-              }
-            } catch (featureError) {
-              log.warn('YouTube feature extraction error (non-blocking)', { error: featureError.message });
-            }
-          } catch (youtubeError) {
-            log.error('YouTube extraction error', { error: youtubeError });
-            result = { success: false, error: youtubeError.message };
-          }
-          break;
-        }
-
-        case 'gmail':
-        case 'google_gmail':
-          try {
-            const { fetchGmailObservations } = await import('./observationFetchers/gmail.js');
-            const gmailObs = await fetchGmailObservations(userId);
-            const gmailStored = await storeObservationsToMemory(userId, 'google_gmail', gmailObs);
-            itemsExtracted = gmailStored;
-            result = { success: true, itemsExtracted };
-            log.info('Extracted Gmail observations', { fetched: gmailObs.length, stored: gmailStored });
-            // Extract behavioral features for personality
-            try {
-              const gmailExtractor = await import('./featureExtractors/gmailExtractor.js');
-              const features = await gmailExtractor.default.extractFeatures(userId);
-              if (features && features.length > 0) {
-                await gmailExtractor.default.saveFeatures(features);
-                log.info('Extracted Gmail behavioral features', { count: features.length });
-              }
-            } catch (featureError) {
-              log.warn('Gmail feature extraction error (non-blocking)', { error: featureError.message });
-            }
-          } catch (gmailError) {
-            log.error('Gmail extraction error', { error: gmailError });
-            result = { success: false, error: gmailError.message };
-          }
-          break;
-
-        case 'outlook':
-          try {
-            const { fetchOutlookObservations } = await import('./observationFetchers/outlook.js');
-            const outlookObs = await fetchOutlookObservations(userId);
-            const outlookStored = await storeObservationsToMemory(userId, 'outlook', outlookObs);
-            itemsExtracted = outlookStored;
-            result = { success: true, itemsExtracted };
-            log.info('Extracted Outlook observations', { fetched: outlookObs.length, stored: outlookStored });
-          } catch (outlookError) {
-            log.error('Outlook extraction error', { error: outlookError });
-            result = { success: false, error: outlookError.message };
-          }
-          break;
-
-        case 'linkedin':
-          try {
-            const { fetchLinkedInObservations } = await import('./observationFetchers/linkedin.js');
-            const linkedinObs = await fetchLinkedInObservations(userId);
-            const linkedinStored = await storeObservationsToMemory(userId, 'linkedin', linkedinObs);
-            itemsExtracted = linkedinStored;
-            result = { success: true, itemsExtracted };
-            log.info('Extracted LinkedIn observations', { fetched: linkedinObs.length, stored: linkedinStored });
-            // Extract behavioral features for personality
-            try {
-              const linkedinExtractor = await import('./featureExtractors/linkedinExtractor.js');
-              const features = await linkedinExtractor.default.extractFeatures(userId);
-              if (features && features.length > 0) {
-                await linkedinExtractor.default.saveFeatures(features);
-                log.info('Extracted LinkedIn behavioral features', { count: features.length });
-              }
-            } catch (featureError) {
-              log.warn('LinkedIn feature extraction error (non-blocking)', { error: featureError.message });
-            }
-          } catch (linkedinError) {
-            log.error('LinkedIn extraction error', { error: linkedinError });
-            result = { success: false, error: linkedinError.message };
-          }
-          break;
-
-        case 'whoop':
-          try {
-            const { fetchWhoopObservations } = await import('./observationFetchers/whoop.js');
-            const observations = await fetchWhoopObservations(userId);
-            const whoopStored = await storeObservationsToMemory(userId, 'whoop', observations);
-            itemsExtracted = whoopStored;
-            result = { success: true, itemsExtracted };
-            log.info('Extracted Whoop observations', { fetched: observations.length, stored: whoopStored });
-            // Extract behavioral features for personality
-            try {
-              const whoopExtractor = await import('./featureExtractors/whoopExtractor.js');
-              const features = await whoopExtractor.default.extractFeatures(userId);
-              if (features && features.length > 0) {
-                await whoopExtractor.default.saveFeatures(features);
-                log.info('Extracted Whoop behavioral features', { count: features.length });
-              }
-            } catch (featureError) {
-              log.warn('Whoop feature extraction error (non-blocking)', { error: featureError.message });
-            }
-          } catch (whoopError) {
-            log.error('Whoop extraction error', { error: whoopError });
-            result = { success: false, error: whoopError.message };
-          }
-          break;
-
-        case 'oura':
-          try {
-            const { fetchOuraObservations } = await import('./observationFetchers/oura.js');
-            const ouraObs = await fetchOuraObservations(userId);
-            const ouraStored = await storeObservationsToMemory(userId, 'oura', ouraObs);
-            itemsExtracted = ouraStored;
-            result = { success: true, itemsExtracted };
-            log.info('Extracted Oura observations', { fetched: ouraObs.length, stored: ouraStored });
-            // Extract behavioral features for personality
-            try {
-              const ouraExtractor = await import('./featureExtractors/ouraExtractor.js');
-              const features = await ouraExtractor.default.extractFeatures(userId);
-              if (features && features.length > 0) {
-                await ouraExtractor.default.saveFeatures(features);
-                log.info('Extracted Oura behavioral features', { count: features.length });
-              }
-            } catch (featureError) {
-              log.warn('Oura feature extraction error (non-blocking)', { error: featureError.message });
-            }
-          } catch (ouraError) {
-            log.error('Oura extraction error', { error: ouraError });
-            result = { success: false, error: ouraError.message };
-          }
-          break;
-
-        case 'twitch':
-          try {
-            const { fetchTwitchObservations } = await import('./observationFetchers/twitch.js');
-            const twitchObs = await fetchTwitchObservations(userId);
-            const twitchStored = await storeObservationsToMemory(userId, 'twitch', twitchObs);
-            itemsExtracted = twitchStored;
-            result = { success: true, itemsExtracted };
-            log.info('Extracted Twitch observations', { fetched: twitchObs.length, stored: twitchStored });
-            // Extract behavioral features for personality
-            try {
-              const twitchExtractor = await import('./featureExtractors/twitchExtractor.js');
-              const features = await twitchExtractor.default.extractFeatures(userId);
-              if (features && features.length > 0) {
-                await twitchExtractor.default.saveFeatures(features);
-                log.info('Extracted Twitch behavioral features', { count: features.length });
-              }
-            } catch (featureError) {
-              log.warn('Twitch feature extraction error (non-blocking)', { error: featureError.message });
-            }
-          } catch (twitchError) {
-            log.error('Twitch extraction error', { error: twitchError });
-            result = { success: false, error: twitchError.message };
-          }
-          break;
-
-        case 'reddit':
-          try {
-            const { fetchRedditObservations } = await import('./observationFetchers/reddit.js');
-            const redditObs = await fetchRedditObservations(userId);
-            const redditStored = await storeObservationsToMemory(userId, 'reddit', redditObs);
-            itemsExtracted = redditStored;
-            result = { success: true, itemsExtracted };
-            log.info('Extracted Reddit observations', { fetched: redditObs.length, stored: redditStored });
-            // Extract behavioral features for personality
-            try {
-              const redditExtractor = await import('./featureExtractors/redditExtractor.js');
-              const features = await redditExtractor.default.extractFeatures(userId);
-              if (features && features.length > 0) {
-                await redditExtractor.default.saveFeatures(features);
-                log.info('Extracted Reddit behavioral features', { count: features.length });
-              }
-            } catch (featureError) {
-              log.warn('Reddit feature extraction error (non-blocking)', { error: featureError.message });
-            }
-          } catch (redditError) {
-            log.error('Reddit extraction error', { error: redditError });
-            result = { success: false, error: redditError.message };
-          }
-          break;
-
-        case 'strava':
-          try {
-            const { fetchStravaObservations } = await import('./observationFetchers/strava.js');
-            const stravaObs = await fetchStravaObservations(userId);
-            const stravaStored = await storeObservationsToMemory(userId, 'strava', stravaObs);
-            itemsExtracted = stravaStored;
-            result = { success: true, itemsExtracted };
-            log.info('Extracted Strava observations', { fetched: stravaObs.length, stored: stravaStored });
-            // Extract behavioral features for personality
-            try {
-              const stravaExtractor = await import('./featureExtractors/stravaExtractor.js');
-              const features = await stravaExtractor.default.extractFeatures(userId);
-              if (features && features.length > 0) {
-                await stravaExtractor.default.saveFeatures(features);
-                log.info('Extracted Strava behavioral features', { count: features.length });
-              }
-            } catch (featureError) {
-              log.warn('Strava feature extraction error (non-blocking)', { error: featureError.message });
-            }
-          } catch (stravaError) {
-            log.error('Strava extraction error', { error: stravaError });
-            result = { success: false, error: stravaError.message };
-          }
-          break;
-
-        case 'notion':
-          try {
-            const { extractAll: extractNotion } = await import('./extractors/notionExtractor.js');
-            const notionResult = await extractNotion(userId, null);
-            itemsExtracted = notionResult.itemsExtracted || 0;
-            result = { success: true, itemsExtracted };
-            log.info('Extracted Notion observations', { stored: itemsExtracted });
-          } catch (notionError) {
-            log.error('Notion extraction error', { error: notionError });
-            result = { success: false, error: notionError.message };
-          }
-          break;
-
-        case 'pinterest':
-          try {
-            const { extractAll: extractPinterest } = await import('./extractors/pinterestExtractor.js');
-            const pinterestResult = await extractPinterest(userId, null);
-            itemsExtracted = pinterestResult.itemsExtracted || 0;
-            result = { success: true, itemsExtracted };
-            log.info('Extracted Pinterest observations', { stored: itemsExtracted });
-          } catch (pinterestError) {
-            log.error('Pinterest extraction error', { error: pinterestError });
-            result = { success: false, error: pinterestError.message };
-          }
-          break;
-
-        case 'soundcloud':
-          try {
-            const { extractAll: extractSoundCloud } = await import('./extractors/soundcloudExtractor.js');
-            const soundcloudResult = await extractSoundCloud(userId, null);
-            itemsExtracted = soundcloudResult.itemsExtracted || 0;
-            result = { success: soundcloudResult.success !== false, itemsExtracted, error: soundcloudResult.error };
-            log.info('Extracted SoundCloud observations', { stored: itemsExtracted });
-          } catch (soundcloudError) {
-            log.error('SoundCloud extraction error', { error: soundcloudError });
-            result = { success: false, error: soundcloudError.message };
-          }
-          break;
-
-        case 'steam':
-          try {
-            const { extractAll: extractSteam } = await import('./extractors/steamExtractor.js');
-            const steamResult = await extractSteam(userId, null);
-            itemsExtracted = steamResult.itemsExtracted || 0;
-            result = { success: steamResult.success !== false, itemsExtracted, error: steamResult.error };
-            log.info('Extracted Steam observations', { stored: itemsExtracted });
-          } catch (steamError) {
-            log.error('Steam extraction error', { error: steamError });
-            result = { success: false, error: steamError.message };
-          }
-          break;
-
-        // Health/utility platforms: real observation fetchers existed in the
-        // background ingestion pipeline but were missing from this on-demand
-        // switch, so a manual/on-demand extraction hit the `default` "Unknown
-        // platform" branch (2026-06-08 audit). Delegate to the same fetchers.
-        case 'garmin':
-          try {
-            const { fetchGarminObservations } = await import('./observationFetchers/garmin.js');
-            const garminObs = await fetchGarminObservations(userId);
-            itemsExtracted = await storeObservationsToMemory(userId, 'garmin', garminObs);
-            result = { success: true, itemsExtracted };
-            log.info('Extracted Garmin observations', { fetched: garminObs.length, stored: itemsExtracted });
-          } catch (garminError) {
-            log.error('Garmin extraction error', { error: garminError });
-            result = { success: false, error: garminError.message };
-          }
-          break;
-
-        case 'fitbit':
-          try {
-            const { fetchFitbitObservations } = await import('./observationFetchers/fitbit.js');
-            const fitbitObs = await fetchFitbitObservations(userId);
-            itemsExtracted = await storeObservationsToMemory(userId, 'fitbit', fitbitObs);
-            result = { success: true, itemsExtracted };
-            log.info('Extracted Fitbit observations', { fetched: fitbitObs.length, stored: itemsExtracted });
-          } catch (fitbitError) {
-            log.error('Fitbit extraction error', { error: fitbitError });
-            result = { success: false, error: fitbitError.message };
-          }
-          break;
-
-        case 'slack':
-          try {
-            const { fetchSlackObservations } = await import('./observationFetchers/slack.js');
-            const slackObs = await fetchSlackObservations(userId);
-            itemsExtracted = await storeObservationsToMemory(userId, 'slack', slackObs);
-            result = { success: true, itemsExtracted };
-            log.info('Extracted Slack observations', { fetched: slackObs.length, stored: itemsExtracted });
-          } catch (slackError) {
-            log.error('Slack extraction error', { error: slackError });
-            result = { success: false, error: slackError.message };
-          }
-          break;
-
-        case 'google_drive':
-          try {
-            const { fetchGoogleDriveObservations } = await import('./observationFetchers/googleDrive.js');
-            const driveObs = await fetchGoogleDriveObservations(userId);
-            itemsExtracted = await storeObservationsToMemory(userId, 'google_drive', driveObs);
-            result = { success: true, itemsExtracted };
-            log.info('Extracted Google Drive observations', { fetched: driveObs.length, stored: itemsExtracted });
-          } catch (driveError) {
-            log.error('Google Drive extraction error', { error: driveError });
-            result = { success: false, error: driveError.message };
-          }
-          break;
-
-        case 'apple_music':
-          try {
-            const { fetchAppleMusicObservations } = await import('./observationFetchers/appleMusic.js');
-            const appleMusicObs = await fetchAppleMusicObservations(userId);
-            itemsExtracted = await storeObservationsToMemory(userId, 'apple_music', appleMusicObs);
-            result = { success: true, itemsExtracted };
-            log.info('Extracted Apple Music observations', { fetched: appleMusicObs.length, stored: itemsExtracted });
-          } catch (appleMusicError) {
-            log.error('Apple Music extraction error', { error: appleMusicError });
-            result = { success: false, error: appleMusicError.message };
-          }
-          break;
-
-        default:
-          log.info('Unknown platform', { platform });
-          result = { success: false, error: 'Unknown platform' };
-      }
+      // 2. Run platform-specific extraction via the unified dispatcher
+      const result = await runPlatformExtraction(userId, platform);
+      const itemsExtracted = result.itemsExtracted || 0;
 
       // 3. Update job status
       if (result.success) {

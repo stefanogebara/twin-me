@@ -98,21 +98,29 @@ describe('Extractor upsert regression (commit 6aad5fb1)', () => {
     });
   });
 
-  describe('extractionOrchestrator.js', () => {
-    const src = readSource('services/extractionOrchestrator.js');
+  describe('extractionDispatch.js (Phase 3: switch -> config)', () => {
+    // The orchestrator's per-platform switch became a declarative config in
+    // extractionDispatch.js (2026-06-08). The regression guard moved with it:
+    // google_calendar must still resolve to the REAL calendar fetcher, never a
+    // stub returning itemsExtracted: 0.
+    const dispatchSrc = readSource('services/extractionDispatch.js');
+    const orchestratorSrc = readSource('services/extractionOrchestrator.js');
 
-    it('google_calendar case calls fetchCalendarObservations (not the stub)', () => {
+    it('google_calendar maps to fetchCalendarObservations (not the stub)', () => {
       // The previous stub returned { success: true, itemsExtracted: 0,
       // message: 'Calendar feature extraction removed' }. If anyone reverts,
       // this test fails loudly.
-      expect(src).not.toMatch(/Calendar feature extraction removed/);
-      expect(src).toMatch(/fetchCalendarObservations/);
+      expect(dispatchSrc).not.toMatch(/Calendar feature extraction removed/);
+      expect(orchestratorSrc).not.toMatch(/Calendar feature extraction removed/);
+      expect(dispatchSrc).toMatch(/google_calendar[\s\S]{0,160}fetchCalendarObservations/);
     });
 
-    it('does not declare a redundant `case \'calendar\':` alias (M6)', () => {
-      // M6: the codebase consistently uses 'google_calendar' — the bare
-      // 'calendar' alias was dead code that confused the routing surface.
-      expect(src).not.toMatch(/case\s*['"]calendar['"]\s*:/);
+    it('does not declare a redundant bare `calendar` platform key (M6)', () => {
+      // M6: the codebase consistently uses 'google_calendar' — a bare
+      // 'calendar' key would be dead code that confuses the routing surface.
+      expect(dispatchSrc).not.toMatch(/^\s*calendar:\s*\{/m);
+      // And the orchestrator must not reintroduce a hand-written platform switch.
+      expect(orchestratorSrc).not.toMatch(/case\s*['"]calendar['"]\s*:/);
     });
   });
 
