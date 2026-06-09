@@ -68,9 +68,11 @@ Principles:
 - **DONE:** those 11 fetchers now throw the tagged error (matching `spotify.js`). `observationIngestion.js:549` already flips `status='auth_failed'` on `code:'AUTH_FAILED'`, so expired connections surface a Reconnect CTA consistently. Full suite green.
 - Deferred: `appleMusic` (two-token flow — risky single-branch swap); `garmin`/`instagram`/`web`/`location` are non-OAuth (N/A).
 
-**Phase 3 — Fold P2 into the unified dispatcher.**
-- Replace `extractionOrchestrator`'s hand-written `switch` with `PLATFORM_FETCHERS` dispatch (it already mostly delegates to the same fetchers after #86). Keep the on-demand wrapper (jobs table, `twin_summaries` invalidation, feature-extractor hooks) as a thin layer around the shared dispatcher.
-- Decide feature-extractors' fate: keep as opt-in post-step, or retire (CLAUDE.md hints OCEAN was partly removed).
+**Phase 3 — Fold P2 into the unified dispatcher (DONE 2026-06-08).**
+- **DONE:** the orchestrator's hand-written 430-line `switch` became a declarative config — new `api/services/extractionDispatch.js` holds a frozen `PLATFORM_EXTRACTION` table (platform → descriptor) + pure helpers (`getDescriptor`, `normalizeRawExtractorResult`). `extractionOrchestrator.js` now has a single generic `runPlatformExtraction()` dispatcher over three descriptor kinds (`observation` / `spotify` / `raw_extractor`). The on-demand wrapper (job records, `twin_summaries` invalidation, pattern-learning hook, telemetry) is unchanged — a thin layer around the dispatcher.
+- **Behavior preserved 1:1:** verified the new table covers the exact same 17 observation fetchers (+ Spotify special), 10 feature extractors, and 4 raw extractors as the old switch, including the `google_gmail` alias and `storeAs`. 15 new config tests + updated the source-text regression guard. Full suite green (2167 passed).
+- **One intentional fix:** a Spotify raw-extract throw now marks the job `failed` (was: left `running`, so retry never picked it up) — the unified dispatcher catches uniformly for every platform.
+- **Feature-extractors' fate:** KEPT as the opt-in non-blocking post-step (descriptor `feature` field). Retiring them is deferred to Phase 5 (directory de-dup) where their relationship to `extractors/*` is resolved.
 
 **Phase 4 — Re-home P3's unique capabilities, then retire it.**
 - Move raw-`user_platform_data` production into the fetcher layer as a per-platform `writesRawData` capability (only platforms with raw consumers).
