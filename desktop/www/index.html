@@ -418,6 +418,27 @@
     background: rgba(255, 255, 255, 0.05); border: 1px solid var(--glass-border);
     border-radius: 100px; padding: 5px 11px;
   }
+
+  /* Suggested follow-ups — the Littlebird-style action pills below the
+     insight. Carried by .summary-card so they reveal in the same cinematic
+     beat as the rest of the summary. */
+  .action-pills { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 0; }
+  .action-pills .alabel { width: 100%; font-size: 12px; color: var(--text-muted); margin: 0 0 2px; }
+  .action-pills .apill {
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--foreground);
+    background: rgba(231, 176, 106, 0.10);
+    border: 1px solid rgba(231, 176, 106, 0.22);
+    border-radius: 100px;
+    padding: 6px 14px;
+    transition: background 0.2s ease, transform 0.15s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .action-pills .apill:hover {
+    background: rgba(231, 176, 106, 0.16);
+    transform: translateY(-1px);
+  }
   .look-again {
     margin: 14px auto 0;
     font-family: var(--sans); font-size: 13px; font-weight: 600;
@@ -705,7 +726,7 @@
     var API_BASE = "https://twinme.me/api";
     // v3: native-first flow (name -> permissions -> observe -> "here's what I
     // noticed" -> sign-in handoff). Bumped key so users of v2 see it once.
-    var FLAG = "twinme_desktop_onboarded_v7"; // v7: Littlebird-inspired motion + first-person voice + cinematic summary reveal — re-show once
+    var FLAG = "twinme_desktop_onboarded_v8"; // v8: specificity-pushed reveal w/ proper-noun summary + action pills — re-show once so returning users see the upgrade
     var NAME_KEY = "twinme_desktop_name";
     var ALIASES_KEY = "twinme_desktop_aliases";
     var TOTAL = 8;
@@ -908,9 +929,12 @@
       { app: "Brave", title: "twinme.me" },
       { app: "Slack", title: "#engineering" }
     ];
+    // v2: keep the mock specific (proper nouns + plausible actions) so users
+    // testing the desktop without the backend still see the new shape.
     var MOCK_SUMMARY = {
-      summary: "You moved between your code editor and the browser on twinme.me, with a quick stop in Slack. It looks like a focused build session.",
-      insight: "I can help you pick this back up tomorrow and keep the thread going."
+      summary: "You moved between Cursor on twin-ai-learn and Brave on twinme.me, with a quick stop in #engineering on Slack.",
+      insight: "It looks like a focused build session on the desktop app itself.",
+      actions: ["Recap today's commits on twin-ai-learn", "Draft a Slack update for #engineering"]
     };
 
     function normalizeClips(raw) {
@@ -944,6 +968,20 @@
         chips += '<span class="chip">' + escapeHtml(deduped[i].app) + "</span>";
       }
       return '<div class="apps-chips"><span class="clabel">Apps I saw</span>' + chips + "</div>";
+    }
+
+    // Render the v2 LLM-suggested follow-up actions as Littlebird-style
+    // amber pills below the insight. Non-interactive for now — clicking
+    // a pill should kick off a chat with that prompt, but the chat surface
+    // doesn't exist on the desktop yet, so we display only. Wire up when
+    // the post-sign-in chat handoff is built.
+    function actionPillsHtml(actions) {
+      if (!Array.isArray(actions) || actions.length === 0) return "";
+      var pills = "";
+      for (var i = 0; i < actions.length; i++) {
+        pills += '<button class="apill" type="button">' + escapeHtml(actions[i]) + "</button>";
+      }
+      return '<div class="action-pills"><span class="alabel">I could help with</span>' + pills + "</div>";
     }
 
     function loadSummary() {
@@ -1014,6 +1052,7 @@
           '<p class="summary-text reveal-1">' + escapeHtml(para1) + "</p>" +
           (para2 ? '<p class="summary-text reveal-2" style="margin-top:10px">' + escapeHtml(para2) + "</p>" : "") +
           (data.insight ? '<p class="summary-insight">' + escapeHtml(data.insight) + "</p>" : "") +
+          actionPillsHtml(data.actions) +
           chipsHtml(deduped) +
         "</div>";
       cta.disabled = false;

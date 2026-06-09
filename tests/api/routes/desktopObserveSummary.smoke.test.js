@@ -47,11 +47,12 @@ describe('desktop observe-summary route smoke', () => {
     expect(completeMock).not.toHaveBeenCalled();
   });
 
-  it('summarizes clips into {summary, insight} and sends apps + name to TIER_ANALYSIS', async () => {
+  it('summarizes clips into {summary, insight, actions} and sends apps + name to TIER_ANALYSIS', async () => {
     completeMock.mockResolvedValue({
       content: JSON.stringify({
         summary: 'You moved between Cursor and Brave while working on twin-ai-learn.',
         insight: 'I could help you turn that into a quick task list.',
+        actions: ['Recap today commits', 'Draft a status update'],
       }),
     });
     const res = await request(createApp())
@@ -67,6 +68,8 @@ describe('desktop observe-summary route smoke', () => {
     expect(res.body.success).toBe(true);
     expect(res.body.summary).toContain('Cursor');
     expect(res.body.insight).toBeTruthy();
+    expect(Array.isArray(res.body.actions)).toBe(true);
+    expect(res.body.actions).toEqual(['Recap today commits', 'Draft a status update']);
     expect(completeMock).toHaveBeenCalledTimes(1);
     const arg = completeMock.mock.calls[0][0];
     expect(arg.tier).toBe('analysis');
@@ -74,6 +77,60 @@ describe('desktop observe-summary route smoke', () => {
     expect(promptText).toContain('Cursor');
     expect(promptText).toContain('Brave');
     expect(promptText).toContain('Stefano');
+  });
+
+  it('v2 prompt instructs the model to quote proper nouns and propose actions', async () => {
+    // The v2 specificity push is pure prompt work — these assertions pin the
+    // intent so the prompt cannot regress to the generic v1 form without
+    // tripping the tests.
+    completeMock.mockResolvedValue({
+      content: JSON.stringify({ summary: 'x', insight: 'y' }),
+    });
+    await request(createApp())
+      .post('/api/desktop/observe-summary')
+      .send({ clips: [{ app: 'Cursor', title: 'x' }] });
+    const system = completeMock.mock.calls[0][0].system || '';
+    expect(system).toMatch(/proper noun/i);
+    expect(system).toMatch(/verbatim/i);
+    expect(system).toMatch(/INTENT/i);
+    expect(system).toMatch(/actions/i);
+    // Honesty constraint kept from v1 — guards against the prompt drifting
+    // into "fabricate something specific".
+    expect(system).toMatch(/never invent/i);
+  });
+
+  it('returns actions=[] (not null) when the model omits the field', async () => {
+    completeMock.mockResolvedValue({
+      content: JSON.stringify({ summary: 'x', insight: 'y' }),
+    });
+    const res = await request(createApp())
+      .post('/api/desktop/observe-summary')
+      .send({ clips: [{ app: 'Cursor', title: 'x' }] });
+    expect(res.status).toBe(200);
+    expect(res.body.actions).toEqual([]);
+  });
+
+  it('caps actions at 3, drops non-strings + empties, trims whitespace', async () => {
+    completeMock.mockResolvedValue({
+      content: JSON.stringify({
+        summary: 'x',
+        insight: 'y',
+        actions: [
+          '  Action one  ',
+          'Action two',
+          '',
+          null,
+          { not: 'a string' },
+          'Action three',
+          'Action four (should be dropped)',
+        ],
+      }),
+    });
+    const res = await request(createApp())
+      .post('/api/desktop/observe-summary')
+      .send({ clips: [{ app: 'Cursor', title: 'x' }] });
+    expect(res.status).toBe(200);
+    expect(res.body.actions).toEqual(['Action one', 'Action two', 'Action three']);
   });
 
   it('parses a ```json-fenced LLM response', async () => {
