@@ -23,6 +23,8 @@
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 
+use tauri::AppHandle;
+
 // Safety cap on a single recording. ~2h of 16kHz mono f32 is ~460MB held in
 // memory before transcription; the cap bounds worst-case RAM and a runaway
 // "meeting" left focused indefinitely.
@@ -31,7 +33,9 @@ const MAX_RECORD_SECS: u32 = 2 * 60 * 60;
 /// Start a recorder for an open meeting session. `stop` is shared with the clip
 /// indexer, which sets it when the session ends. Fire-and-forget: the recorder
 /// finalizes the row on its own DB connection and never blocks the indexer loop.
-pub fn start(meeting_id: i64, stop: Arc<AtomicBool>) {
+/// `app` is used only to surface a recording indicator (consent/transparency);
+/// `platform` labels that notification.
+pub fn start(app: AppHandle, meeting_id: i64, platform: String, stop: Arc<AtomicBool>) {
     tauri::async_runtime::spawn(async move {
         // Model download is async; do it before the blocking capture so a missing
         // model never holds a cpal stream open. On failure we record None and
@@ -43,6 +47,15 @@ pub fn start(meeting_id: i64, stop: Arc<AtomicBool>) {
                 None
             }
         };
+
+        // Recording indicator (consent): tell the user, every time, that this
+        // meeting is being recorded for transcription and that the audio stays
+        // local. Fires once recording is actually about to begin (model ready).
+        crate::notify(
+            &app,
+            "TwinMe is transcribing this meeting",
+            &format!("Recording the {platform} call for your notes. Audio stays on your device — only the text transcript syncs. Turn this off from the tray."),
+        );
 
         // Capture-until-stop + transcribe on a blocking thread (cpal Stream is
         // !Send, whisper is blocking). Returns (ended_at, transcript).
@@ -79,6 +92,13 @@ pub fn start(meeting_id: i64, stop: Arc<AtomicBool>) {
                     let _ = crate::meetings::set_transcript(&conn, meeting_id, transcript);
                 }
                 let _ = crate::meetings::close_meeting(&conn, meeting_id, ended_at);
+                if !transcript.is_empty() {
+                    crate::notify(
+                        &app,
+                        "Meeting transcript saved",
+                        &format!("Your {platform} meeting was transcribed on-device and added to your twin's memory."),
+                    );
+                }
             }
             Ok(Err(e)) => {
                 eprintln!("[meeting_recorder] capture/transcribe failed for meeting {meeting_id}: {e}");

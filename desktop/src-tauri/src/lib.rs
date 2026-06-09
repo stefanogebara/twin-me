@@ -677,6 +677,14 @@ pub fn run() {
                                     eprintln!("[tray] set_transcription_enabled: {err}");
                                 } else {
                                     let _ = transcription_handle.set_text(transcription_label(next));
+                                    if next {
+                                        // One-time consent confirmation at opt-in.
+                                        notify(
+                                            app,
+                                            "Meeting transcription on",
+                                            "TwinMe will record + transcribe detected meetings on-device. Audio never leaves your device — only the text transcript syncs. Turn it off here anytime.",
+                                        );
+                                    }
                                 }
                             }
                         }
@@ -771,7 +779,7 @@ pub fn run() {
             // tasks no-op safely on errors (DB open failure → early return)
             // and during Phase 2 the indexer effectively idles because
             // active_window::current() returns None.
-            tauri::async_runtime::spawn(clip_indexer::run());
+            tauri::async_runtime::spawn(clip_indexer::run(app.handle().clone()));
             tauri::async_runtime::spawn(sync::run());
 
             // Auto-update: one silent check shortly after startup. Best-effort —

@@ -24,6 +24,7 @@ use crate::{active_window, clips, meetings};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
+use tauri::AppHandle;
 
 const POLL_INTERVAL: Duration = Duration::from_secs(5);
 
@@ -40,10 +41,15 @@ struct MeetingTrack {
 /// Start a meeting recorder when transcription is opted in; returns the shared
 /// stop flag to store on the track. None when transcription is off → the indexer
 /// closes the session itself, exactly as in the original no-audio path.
-fn maybe_start_recorder(conn: &rusqlite::Connection, meeting_id: i64) -> Option<Arc<AtomicBool>> {
+fn maybe_start_recorder(
+    app: &AppHandle,
+    conn: &rusqlite::Connection,
+    meeting_id: i64,
+    platform: &str,
+) -> Option<Arc<AtomicBool>> {
     if clips::is_transcription_enabled(conn).unwrap_or(false) {
         let stop = Arc::new(AtomicBool::new(false));
-        crate::meeting_recorder::start(meeting_id, Arc::clone(&stop));
+        crate::meeting_recorder::start(app.clone(), meeting_id, platform.to_string(), Arc::clone(&stop));
         Some(stop)
     } else {
         None
@@ -61,7 +67,7 @@ fn end_track(conn: &rusqlite::Connection, track: &MeetingTrack, ended_at: i64) {
     }
 }
 
-pub async fn run() {
+pub async fn run(app: AppHandle) {
     let conn = match clips::open() {
         Ok(c) => c,
         Err(err) => {
@@ -124,7 +130,7 @@ pub async fn run() {
                 let now = chrono::Utc::now().timestamp_millis();
                 match meetings::insert_meeting(&conn, platform, window.title.as_deref(), now) {
                     Ok(id) => {
-                        let recorder_stop = maybe_start_recorder(&conn, id);
+                        let recorder_stop = maybe_start_recorder(&app, &conn, id, platform);
                         current_meeting = Some(MeetingTrack {
                             id,
                             platform: platform.to_string(),
@@ -143,7 +149,7 @@ pub async fn run() {
                     end_track(&conn, track, now);
                     match meetings::insert_meeting(&conn, new_platform, window.title.as_deref(), now) {
                         Ok(new_id) => {
-                            let recorder_stop = maybe_start_recorder(&conn, new_id);
+                            let recorder_stop = maybe_start_recorder(&app, &conn, new_id, new_platform);
                             current_meeting = Some(MeetingTrack {
                                 id: new_id,
                                 platform: new_platform.to_string(),
