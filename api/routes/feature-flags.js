@@ -25,7 +25,7 @@ const FLAG_DEFAULTS = {
   personality_oracle: false,    // opt-in — requires trained model
   neurotransmitter_modes: true, // on by default
   connectome_neuropils: true,   // on by default
-  graph_retrieval: false,       // opt-in — experimental
+  graph_retrieval: true,        // on by default — validated by twin-research (2026-03-10); consumer defaults ON (memoryStreamService graph traversal). Display now matches runtime.
   llm_wiki: false,              // opt-in — compiled wiki injected into twin context
 };
 
