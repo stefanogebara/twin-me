@@ -1024,7 +1024,11 @@ async function retrieveMemories(userId, query, limit = 10, weights = 'default', 
     let graphCount = 0;
     try {
       const flags = await getFeatureFlags(userId);
-      if (flags?.graphRetrieval !== false) {
+      // Canonical flag key is snake_case `graph_retrieval` (feature-flags.js
+      // USER_FLAGS + the Settings toggle). This previously read the camelCase
+      // `graphRetrieval` left over from a March rename, so the user-facing toggle
+      // was a no-op (the consumer read a key nothing wrote). Default ON preserved.
+      if (flags?.graph_retrieval !== false) {
         const seedIds = reranked.slice(0, 5).map(m => m.id);
         const existingIdSet = new Set(reranked.map(m => m.id));
         const linked = await traverseLinksForRetrieval(userId, seedIds, existingIdSet, 5);
