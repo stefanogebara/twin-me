@@ -53,9 +53,9 @@ Principles:
 
 ## 4. Migration phases (each independently shippable + reversible)
 
-**Phase 0 — Freeze + characterize (no behavior change).**
-- Add a one-screen "extraction ownership" table to repo docs: platform → canonical fetcher. Mark the duplicates.
-- Log `ingestion_source` everywhere extraction runs, so prod shows which path actually fires per platform before deleting anything.
+**Phase 0 — Freeze + characterize (no behavior change) (DONE 2026-06-08).**
+- **DONE:** one-screen "extraction ownership" table at `docs/extraction-ownership/README.md` (platform → canonical fetcher, duplicates flagged, only-in-one-path preserved).
+- **DONE:** `ingestion_source` telemetry — new `api/services/extractionTelemetry.js` emits a single greppable `extraction_run` event with a frozen `INGESTION_SOURCE` enum (`background`/`post_onboarding`/`on_demand`/`oauth_callback`). Wired into all four dispatch points (P1 cron + post-onboarding, P2 orchestrator, P3 dataExtractionService). Pure logging, no behavior change. Aggregate prod logs by `ingestion_source`+`platform` to see which paths actually fire per platform before any deletion in P3-P5.
 
 **Phase 1 — Spotify observation parity (REVISED + DONE 2026-06-08).**
 - The original plan ("swap orchestrator to `observationFetchers/spotify.js` + delete `spotifyExtraction.js`") was **dropped after verification**: the `lessons.md` token bug is already fixed (`spotifyExtraction.js:48` uses `ensureFreshToken`), and `spotifyExtraction.js` is the sole producer of the `comprehensive_music_profile` raw row — deleting it would lose data. The two raw extractors also write *different* `data_type` shapes, so they aren't trivially mergeable.

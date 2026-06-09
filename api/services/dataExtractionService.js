@@ -44,6 +44,7 @@ import { invalidatePlatformStatusCache } from './redisClient.js';
 import { clearStatusMemoryCache } from '../routes/connectors.js';
 import { addPlatformMemory } from './mem0Service.js';
 import { createLogger } from './logger.js';
+import { logExtractionRun, INGESTION_SOURCE } from './extractionTelemetry.js';
 
 const log = createLogger('DataExtraction');
 
@@ -54,6 +55,8 @@ class DataExtractionService {
    */
   async extractPlatformData(userId, platform) {
     log.info(`Starting extraction for ${platform}...`);
+    // Phase 0 telemetry: record that the P3 (oauth-callback / queue) path fired.
+    logExtractionRun({ source: INGESTION_SOURCE.OAUTH_CALLBACK, platform, userId });
 
     // Create extraction job record
     let jobId = null;
