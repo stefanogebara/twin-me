@@ -562,6 +562,118 @@
     margin: 0;
   }
 
+  /* ---- v2 #4: Hummingbird hotkey panel demo on step 4 ---- */
+  /* Reuses .perm-split from #3 above to put the existing "Press
+     Ctrl/Cmd+Shift+T" card on the left and a small visual demo on the
+     right: a faded "app window" backdrop with macOS-style chrome dots,
+     and a glass hummingbird panel floating over it with a chat input
+     and the kbd combo. Communicates "we appear over any app you're
+     using, without breaking focus" — the value that the old single-
+     card screen described in words but never showed. */
+  .hb-mock {
+    position: relative;
+    height: 240px;
+    border-radius: 14px;
+    overflow: hidden;
+    background: rgba(20, 18, 26, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  /* Faded "background app window" — pure CSS, no image. Three stripes
+     suggest content; the macOS chrome dots anchor the metaphor. */
+  .hb-app-bg {
+    position: absolute; inset: 0;
+    opacity: 0.40;
+    padding: 14px;
+    pointer-events: none;
+  }
+  .hb-app-chrome { display: flex; gap: 6px; margin-bottom: 16px; }
+  .hb-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .hb-dot.red    { background: #ff5f57; }
+  .hb-dot.yellow { background: #ffbd2e; }
+  .hb-dot.green  { background: #28ca42; }
+  .hb-line {
+    height: 9px;
+    background: rgba(255, 255, 255, 0.10);
+    border-radius: 4px;
+    margin-bottom: 8px;
+  }
+  .hb-line.short { width: 60%; }
+  .hb-line.medium { width: 80%; }
+
+  /* The floating hummingbird panel — sized roughly to the real
+     460×600 quick-panel but proportional to the mockup frame, with
+     amber-tinted accents matching the rest of the app. */
+  .hb-panel {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 232px;
+    background: rgba(40, 38, 50, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 12px;
+    padding: 12px;
+    backdrop-filter: blur(22px) saturate(140%);
+    -webkit-backdrop-filter: blur(22px) saturate(140%);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+    text-align: left;
+  }
+  .hb-panel-head {
+    display: flex; align-items: center; gap: 6px;
+    font-family: var(--serif);
+    font-size: 13px;
+    letter-spacing: -0.02em;
+    color: var(--foreground);
+    margin: 0 0 9px;
+  }
+  .hb-panel-head img { width: 14px; height: 14px; flex-shrink: 0; }
+  .hb-panel-input {
+    font-size: 11px;
+    color: rgba(245, 245, 244, 0.45);
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 7px;
+    padding: 7px 10px;
+    margin-bottom: 8px;
+  }
+  .hb-panel-suggest {
+    font-size: 10.5px;
+    color: var(--foreground);
+    background: rgba(231, 176, 106, 0.10);
+    border: 1px solid rgba(231, 176, 106, 0.22);
+    border-radius: 100px;
+    padding: 4px 10px;
+    display: inline-block;
+    margin-bottom: 11px;
+  }
+  .hb-panel-keys {
+    display: flex; align-items: center; gap: 4px;
+    justify-content: flex-end;
+    font-size: 10px;
+    color: var(--text-muted);
+  }
+  .hb-kbd {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-bottom-width: 2px;
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-family: var(--sans);
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--foreground);
+    min-width: 14px;
+    text-align: center;
+    line-height: 1.3;
+  }
+  .hb-plus { opacity: 0.5; }
+
+  .hb-mock-foot {
+    font-size: 12.5px;
+    color: var(--text-muted);
+    margin: 14px 0 0;
+    text-align: left;
+  }
+
   /* ---- v2 #7: Mockup briefing cards screen ---- */
   /* Shown between the observe reveal and sign-in handoff. Two-column grid
      of fictional-but-plausible cards that pre-load the user's perception
@@ -921,21 +1033,64 @@
       </div>
     </section>
 
-    <!-- 4. One keystroke away -->
+    <!-- 4. One keystroke away (v2 #4: split-screen w/ Hummingbird mock) -->
     <section class="screen" data-step="4">
-      <div class="content">
-        <h2 class="stagger-1">One keystroke away</h2>
-        <p class="sub stagger-2">Summon me over any other app, whenever you need to think out loud.</p>
-        <div class="cards stagger-3">
-          <div class="card">
-            <div class="glyph">
-              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M8 14h8"/></svg>
-            </div>
-            <div class="body">
-              <div class="title">Press Ctrl + Shift + T</div>
-              <div class="desc">A quiet panel opens over whatever you're doing. Ask a question, capture a thought, then get back to work.</div>
+      <div class="content perm-split">
+        <div class="perm-left">
+          <h2 class="stagger-1">One keystroke away</h2>
+          <p class="sub stagger-2">Summon me over any other app, whenever you need to think out loud.</p>
+          <div class="cards stagger-3">
+            <div class="card">
+              <div class="glyph">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M8 14h8"/></svg>
+              </div>
+              <div class="body">
+                <!-- "Press Ctrl + Shift + T" — primary text is set by
+                     renderHotkeyLabels() to match the macOS / Win-Linux
+                     binding registered in src-tauri/src/lib.rs. Default
+                     here matches non-mac so a UA-detect failure shows the
+                     more-common case. -->
+                <div class="title" id="hotkey-title">Press Ctrl + Shift + T</div>
+                <div class="desc">A quiet panel opens over whatever you're doing. Ask a question, capture a thought, then get back to work.</div>
+              </div>
             </div>
           </div>
+        </div>
+        <!-- Right rail: Hummingbird panel mock floating over a faded
+             "app window" backdrop. Visible only on ≥900px viewport
+             (via .perm-split media query). The kbd combo is rendered
+             dynamically by renderHotkeyLabels() to match platform. -->
+        <div class="perm-right stagger-3">
+          <div class="hb-mock">
+            <div class="hb-app-bg">
+              <div class="hb-app-chrome">
+                <span class="hb-dot red"></span>
+                <span class="hb-dot yellow"></span>
+                <span class="hb-dot green"></span>
+              </div>
+              <div class="hb-line"></div>
+              <div class="hb-line short"></div>
+              <div class="hb-line medium"></div>
+              <div class="hb-line"></div>
+              <div class="hb-line short"></div>
+            </div>
+            <div class="hb-panel">
+              <div class="hb-panel-head">
+                <img src="flower.png" alt="" />
+                <span>TwinMe</span>
+              </div>
+              <div class="hb-panel-input">Ask anything…</div>
+              <span class="hb-panel-suggest">Summarize what I'm reading</span>
+              <div class="hb-panel-keys">
+                <kbd class="hb-kbd" id="hb-primary-key">Ctrl</kbd>
+                <span class="hb-plus">+</span>
+                <kbd class="hb-kbd">Shift</kbd>
+                <span class="hb-plus">+</span>
+                <kbd class="hb-kbd">T</kbd>
+              </div>
+            </div>
+          </div>
+          <p class="hb-mock-foot stagger-4">Your twin appears over any app you're using — without breaking focus.</p>
         </div>
       </div>
     </section>
@@ -1510,24 +1665,43 @@
       raf = requestAnimationFrame(tick);
     })();
 
-    /* ---- v2 #3: macOS Settings mock vs Win/Linux tip card ----------------
-     * The right rail on perm steps 2 and 3 shows a macOS System Settings
-     * preview by default. On Windows/Linux that would be misleading, so
-     * we swap in a generic tip card instead. Runs once on init — the
-     * detected platform doesn't change mid-session.
+    /* ---- v2 #3 + #4: platform-aware onboarding bits ---------------------
+     * Two cosmetic adjustments based on UA sniff:
      *
-     * UA sniff is good enough for cosmetic hints. A misclassification
-     * (e.g. an unusual Linux UA misidentified as Mac) just shows the
-     * wrong illustration; it never breaks the permission flow itself,
-     * which is driven entirely by the OS-native dialog on Enable click. */
-    (function togglePermMocks() {
+     * #3: right rail on perm steps 2/3 — mac shows the System Settings
+     *     mock, Win/Linux gets a simpler tip card. Default in HTML is
+     *     mac-friendly (mock visible, tip hidden); we hide-mock + show-
+     *     tip on non-mac.
+     *
+     * #4: step 4 hotkey label — the Rust side registers Cmd+Shift+T on
+     *     macOS and Ctrl+Shift+T on Windows/Linux (see lib.rs:209). HTML
+     *     default is "Ctrl + Shift + T" (the more-common case if UA detect
+     *     fails). On mac we swap to ⌘ in both the card title and the
+     *     kbd combo in the Hummingbird mock.
+     *
+     * UA sniff is good enough for COSMETIC hints. A misclassification
+     * never breaks anything functional — the actual permission flow is
+     * driven by the OS-native dialog, and the actual hotkey registration
+     * lives in Rust where it's compile-time conditional on target_os. */
+    (function adjustForPlatform() {
       var ua = navigator.userAgent || "";
       var isMac = /Macintosh|Mac OS X/.test(ua);
-      if (isMac) return; // defaults are correct (mock visible, tip hidden)
-      var mocks = document.querySelectorAll(".os-perm-mock");
-      var tips  = document.querySelectorAll(".os-perm-tip");
-      for (var i = 0; i < mocks.length; i++) mocks[i].style.display = "none";
-      for (var j = 0; j < tips.length; j++) tips[j].style.display = "block";
+
+      // #4: hotkey labels — mac gets ⌘, everything else stays "Ctrl"
+      if (isMac) {
+        var titleEl = document.getElementById("hotkey-title");
+        if (titleEl) titleEl.textContent = "Press ⌘ + Shift + T";
+        var primaryKey = document.getElementById("hb-primary-key");
+        if (primaryKey) primaryKey.textContent = "⌘";
+      }
+
+      // #3: perm mocks — non-mac swaps macOS panel for tip card
+      if (!isMac) {
+        var mocks = document.querySelectorAll(".os-perm-mock");
+        var tips  = document.querySelectorAll(".os-perm-tip");
+        for (var i = 0; i < mocks.length; i++) mocks[i].style.display = "none";
+        for (var j = 0; j < tips.length; j++) tips[j].style.display = "block";
+      }
     })();
 
     render();
