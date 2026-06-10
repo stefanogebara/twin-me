@@ -420,14 +420,37 @@ fn handle_deep_link(app: &AppHandle, urls: Vec<url::Url>) {
         if !query.contains("auth_code=") {
             continue;
         }
-        // Forward to the web app's existing /oauth/callback page (which exchanges
-        // the one-time code and stores the session via the keyring bridge). We
-        // use eval — already used elsewhere in this file, so it's a known-good
-        // API surface — and escape the query for the single-quoted JS string.
+        // Two delivery paths depending on what the main window is showing:
+        //
+        // 1. Bundled onboarding page (v2 #5 mid-flow sign-in): hand the query
+        //    INTO the page as a CustomEvent so onboarding survives the round
+        //    trip and can claim the code itself (it advances to the reveal +
+        //    extracted-facts screens). Navigating away here would kill the
+        //    onboarding state machine mid-flow.
+        //
+        // 2. Remote web app (post-onboarding sign-ins, re-auth): forward to
+        //    the existing /oauth/callback page, which exchanges the one-time
+        //    code and stores the session via the keyring bridge. Unchanged
+        //    legacy behavior.
+        //
+        // We detect case 1 by the window URL NOT being on twinme.me — the
+        // bundled page serves from tauri://localhost (macOS/Linux) or
+        // http://tauri.localhost (Windows). Checking "not twinme.me" rather
+        // than allow-listing local schemes keeps this robust across Tauri's
+        // per-platform origin differences.
         let escaped = query.replace('\\', "\\\\").replace('\'', "\\'");
         if let Some(win) = app.get_webview_window("main") {
-            let js =
-                format!("window.location.replace('https://twinme.me/oauth/callback?{escaped}')");
+            let on_onboarding = win
+                .url()
+                .map(|u| u.host_str().map_or(true, |h| !h.ends_with("twinme.me")))
+                .unwrap_or(false);
+            let js = if on_onboarding {
+                format!(
+                    "window.dispatchEvent(new CustomEvent('twinme:auth-code', {{ detail: '{escaped}' }}))"
+                )
+            } else {
+                format!("window.location.replace('https://twinme.me/oauth/callback?{escaped}')")
+            };
             let _ = win.eval(&js);
             let _ = win.show();
             let _ = win.unminimize();
