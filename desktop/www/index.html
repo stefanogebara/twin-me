@@ -419,6 +419,149 @@
     border-radius: 100px; padding: 5px 11px;
   }
 
+  /* ---- v2 #3: macOS Settings panel mock on permission steps ---- */
+  /* Steps 2 (Accessibility) and 3 (Mic) split into a 2-col layout on wide
+     viewports: form on the left, mock of the real macOS System Settings
+     panel on the right with TwinMe pre-toggled ON. The mock shows the
+     END STATE the user is aiming for after they click Enable. Windows
+     and Linux get a simpler "tip card" instead — the mac mock would be
+     misleading there.
+     This is a TARGETED split-screen (only steps 2 and 3) — v2 gap #1
+     covers the full-flow split-screen reshuffle separately. */
+  .perm-split {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 18px;
+    max-width: 540px;
+    margin: 0 auto;
+    align-items: start;
+  }
+  @media (min-width: 900px) {
+    .perm-split { grid-template-columns: minmax(0, 1fr) 360px; max-width: 880px; gap: 28px; }
+    .perm-split > .perm-left  { text-align: left; }
+    .perm-split > .perm-right { text-align: left; }
+  }
+  /* Hide the mock on narrow viewports so the form stays focused. */
+  .perm-split .perm-right { display: none; }
+  @media (min-width: 900px) { .perm-split .perm-right { display: block; } }
+
+  /* The mock panel itself — matches macOS System Settings dark-mode
+     aesthetic deliberately (NOT our amber glass-card aesthetic) so it
+     reads as "preview of the OS" rather than "another part of the app". */
+  .os-perm-mock {
+    background: rgba(40, 40, 45, 0.92);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    padding: 14px 12px 12px;
+    backdrop-filter: blur(20px) saturate(140%);
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+    color: #f5f5f7;
+  }
+  .os-perm-mock .opm-head {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 13px; font-weight: 600; color: #f5f5f7;
+    padding: 0 6px 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  }
+  .os-perm-mock .opm-head svg { width: 14px; height: 14px; stroke: rgba(245,245,247,0.55); }
+  .os-perm-mock .opm-sub {
+    font-size: 11.5px; line-height: 1.45;
+    color: rgba(245, 245, 247, 0.62);
+    padding: 10px 6px 12px;
+  }
+  .os-perm-row {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 10px;
+    padding: 8px 8px;
+    border-radius: 8px;
+    transition: background 0.2s ease;
+  }
+  .os-perm-row + .os-perm-row { border-top: 1px solid rgba(255, 255, 255, 0.04); }
+  .os-perm-row .opr-app {
+    display: flex; align-items: center; gap: 9px;
+    min-width: 0;
+  }
+  .os-perm-row .opr-icon {
+    width: 20px; height: 20px; border-radius: 5px;
+    background: rgba(255, 255, 255, 0.08);
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 600;
+    color: rgba(245, 245, 247, 0.55);
+  }
+  .os-perm-row .opr-name { font-size: 12.5px; color: rgba(245, 245, 247, 0.88); }
+  .os-perm-row.muted .opr-name { color: rgba(245, 245, 247, 0.45); }
+
+  /* The TwinMe row — pre-toggled ON, highlighted with our amber accent
+     so the user's eye lands on it. The "← flip this" annotation lives
+     to the left of the toggle. */
+  .os-perm-row.us {
+    background: rgba(231, 176, 106, 0.07);
+    border: 1px solid rgba(231, 176, 106, 0.28);
+    margin: 4px -2px;
+  }
+  .os-perm-row.us .opr-name { color: #f5f5f7; font-weight: 600; }
+  .os-perm-row.us .opr-icon {
+    background: rgba(193, 126, 44, 0.25);
+    color: #f5f5f4;
+  }
+  .opr-hint {
+    font-size: 10.5px;
+    color: rgba(231, 176, 106, 0.85);
+    margin-right: 6px;
+    white-space: nowrap;
+  }
+
+  /* iOS-style toggle: ON = Apple system blue (#007AFF), OFF = gray.
+     Pure CSS, not interactive — this is a static illustration. */
+  .opr-toggle {
+    width: 28px; height: 17px; border-radius: 100px;
+    flex-shrink: 0;
+    position: relative;
+    transition: background 0.2s ease;
+  }
+  .opr-toggle.off { background: rgba(120, 120, 128, 0.32); }
+  .opr-toggle.on  { background: #007AFF; }
+  .opr-toggle::after {
+    content: "";
+    position: absolute;
+    top: 1.5px; left: 1.5px;
+    width: 14px; height: 14px; border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.25);
+    transition: transform 0.2s ease;
+  }
+  .opr-toggle.on::after { transform: translateX(11px); }
+
+  .os-perm-mock .opm-foot {
+    font-size: 11px; line-height: 1.5;
+    color: rgba(245, 245, 247, 0.55);
+    padding: 12px 6px 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    margin-top: 10px;
+  }
+
+  /* Non-mac fallback — small glass tip card. Visible only on Windows/Linux. */
+  .os-perm-tip {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 14px;
+    padding: 14px 16px;
+    backdrop-filter: blur(42px) saturate(140%);
+    -webkit-backdrop-filter: blur(42px) saturate(140%);
+    text-align: left;
+  }
+  .os-perm-tip .otitle {
+    font-size: 13px; font-weight: 600; color: var(--foreground);
+    margin: 0 0 6px;
+  }
+  .os-perm-tip .odesc {
+    font-size: 12.5px; line-height: 1.5; color: var(--text-secondary);
+    margin: 0;
+  }
+
   /* ---- v2 #7: Mockup briefing cards screen ---- */
   /* Shown between the observe reveal and sign-in handoff. Two-column grid
      of fictional-but-plausible cards that pre-load the user's perception
@@ -657,49 +800,124 @@
 
     <!-- 2. Context awareness -->
     <section class="screen" data-step="2">
-      <div class="content">
-        <h2 class="stagger-1">I learn from what you focus on</h2>
-        <p class="sub stagger-2">So your twin picks up the real shape of your work, not just what you type to me.</p>
-        <div class="cards stagger-3">
-          <div class="card perm">
-            <div class="glyph">
-              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
-            </div>
-            <div class="body">
-              <div class="title">Notice the apps I focus on</div>
-              <div class="desc">Text only — the app name and window title, never what you type and never screen recording. You control which apps to include and can delete everything anytime in Settings.</div>
-            </div>
-            <div class="perm-action" id="perm-ctx-action">
-              <button class="enable-btn" id="perm-ctx-btn">Enable</button>
+      <div class="content perm-split">
+        <div class="perm-left">
+          <h2 class="stagger-1">I learn from what you focus on</h2>
+          <p class="sub stagger-2">So your twin picks up the real shape of your work, not just what you type to me.</p>
+          <div class="cards stagger-3">
+            <div class="card perm">
+              <div class="glyph">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+              </div>
+              <div class="body">
+                <div class="title">Notice the apps I focus on</div>
+                <div class="desc">Text only — the app name and window title, never what you type and never screen recording. You control which apps to include and can delete everything anytime in Settings.</div>
+              </div>
+              <div class="perm-action" id="perm-ctx-action">
+                <button class="enable-btn" id="perm-ctx-btn">Enable</button>
+              </div>
             </div>
           </div>
+          <p class="trust-line stagger-4">Text only. No screen recording. Delete anything, anytime.</p>
+          <button class="perm-skip" id="ctx-skip">Set up later</button>
         </div>
-        <p class="trust-line stagger-4">Text only. No screen recording. Delete anything, anytime.</p>
-        <button class="perm-skip" id="ctx-skip">Set up later</button>
+        <!-- Right rail: macOS Accessibility panel preview (visible only on
+             ≥900px viewport, only on Macintosh UA — see togglePermMocks()).
+             On Win/Linux the .os-perm-tip card replaces this. -->
+        <div class="perm-right stagger-3">
+          <div class="os-perm-mock" data-perm-mock="accessibility">
+            <div class="opm-head">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+              Accessibility
+            </div>
+            <div class="opm-sub">Allow the applications below to control your computer.</div>
+            <div class="os-perm-row muted">
+              <div class="opr-app"><div class="opr-icon">C</div><div class="opr-name">Calendar</div></div>
+              <div class="opr-toggle off"></div>
+            </div>
+            <div class="os-perm-row muted">
+              <div class="opr-app"><div class="opr-icon">N</div><div class="opr-name">Notes</div></div>
+              <div class="opr-toggle off"></div>
+            </div>
+            <div class="os-perm-row us">
+              <div class="opr-app"><div class="opr-icon">T</div><div class="opr-name">TwinMe</div></div>
+              <div style="display:flex;align-items:center;"><span class="opr-hint">flip this on</span><div class="opr-toggle on"></div></div>
+            </div>
+            <div class="os-perm-row muted">
+              <div class="opr-app"><div class="opr-icon">S</div><div class="opr-name">Slack</div></div>
+              <div class="opr-toggle off"></div>
+            </div>
+            <div class="os-perm-row muted">
+              <div class="opr-app"><div class="opr-icon">Z</div><div class="opr-name">Zoom</div></div>
+              <div class="opr-toggle off"></div>
+            </div>
+            <div class="opm-foot">When System Settings opens after you click Enable, flip the TwinMe toggle on.</div>
+          </div>
+          <div class="os-perm-tip" data-perm-tip="accessibility" style="display:none">
+            <p class="otitle">Your OS will ask for permission</p>
+            <p class="odesc">Your system may show a dialog asking to allow TwinMe to read window titles. Approve it to continue.</p>
+          </div>
+        </div>
       </div>
     </section>
 
     <!-- 3. Microphone -->
     <section class="screen" data-step="3">
-      <div class="content">
-        <h2 class="stagger-1">On-device meeting notes</h2>
-        <p class="sub stagger-2">Optional. Local transcription of your calls — audio never leaves this machine, and only during meetings you choose.</p>
-        <div class="cards stagger-3">
-          <div class="card perm">
-            <div class="glyph">
-              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/></svg>
-            </div>
-            <div class="body">
-              <div class="title">Microphone</div>
-              <div class="desc">For on-device meeting notes. Never shared or stored remotely.</div>
-            </div>
-            <div class="perm-action" id="perm-mic-action">
-              <button class="enable-btn" id="perm-mic-btn">Enable</button>
+      <div class="content perm-split">
+        <div class="perm-left">
+          <h2 class="stagger-1">On-device meeting notes</h2>
+          <p class="sub stagger-2">Optional. Local transcription of your calls — audio never leaves this machine, and only during meetings you choose.</p>
+          <div class="cards stagger-3">
+            <div class="card perm">
+              <div class="glyph">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/></svg>
+              </div>
+              <div class="body">
+                <div class="title">Microphone</div>
+                <div class="desc">For on-device meeting notes. Never shared or stored remotely.</div>
+              </div>
+              <div class="perm-action" id="perm-mic-action">
+                <button class="enable-btn" id="perm-mic-btn">Enable</button>
+              </div>
             </div>
           </div>
+          <p class="trust-line stagger-4">Audio stays on this machine. No uploads, ever.</p>
+          <button class="perm-skip" id="mic-skip">Set up later</button>
         </div>
-        <p class="trust-line stagger-4">Audio stays on this machine. No uploads, ever.</p>
-        <button class="perm-skip" id="mic-skip">Set up later</button>
+        <div class="perm-right stagger-3">
+          <div class="os-perm-mock" data-perm-mock="microphone">
+            <div class="opm-head">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+              Microphone
+            </div>
+            <div class="opm-sub">Allow the apps below to access your microphone.</div>
+            <div class="os-perm-row muted">
+              <div class="opr-app"><div class="opr-icon">D</div><div class="opr-name">Discord</div></div>
+              <div class="opr-toggle off"></div>
+            </div>
+            <div class="os-perm-row muted">
+              <div class="opr-app"><div class="opr-icon">F</div><div class="opr-name">FaceTime</div></div>
+              <div class="opr-toggle off"></div>
+            </div>
+            <div class="os-perm-row us">
+              <div class="opr-app"><div class="opr-icon">T</div><div class="opr-name">TwinMe</div></div>
+              <div style="display:flex;align-items:center;"><span class="opr-hint">flip this on</span><div class="opr-toggle on"></div></div>
+            </div>
+            <div class="os-perm-row muted">
+              <div class="opr-app"><div class="opr-icon">Z</div><div class="opr-name">Zoom</div></div>
+              <div class="opr-toggle off"></div>
+            </div>
+            <div class="os-perm-row muted">
+              <div class="opr-app"><div class="opr-icon">S</div><div class="opr-name">Slack</div></div>
+              <div class="opr-toggle off"></div>
+            </div>
+            <div class="opm-foot">When System Settings opens after you click Enable, flip the TwinMe toggle on.</div>
+          </div>
+          <div class="os-perm-tip" data-perm-tip="microphone" style="display:none">
+            <p class="otitle">Your OS will ask for microphone access</p>
+            <p class="odesc">Your system may show a dialog asking to allow TwinMe to use the microphone. Approve it to continue.</p>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -1290,6 +1508,26 @@
         raf = requestAnimationFrame(tick);
       }
       raf = requestAnimationFrame(tick);
+    })();
+
+    /* ---- v2 #3: macOS Settings mock vs Win/Linux tip card ----------------
+     * The right rail on perm steps 2 and 3 shows a macOS System Settings
+     * preview by default. On Windows/Linux that would be misleading, so
+     * we swap in a generic tip card instead. Runs once on init — the
+     * detected platform doesn't change mid-session.
+     *
+     * UA sniff is good enough for cosmetic hints. A misclassification
+     * (e.g. an unusual Linux UA misidentified as Mac) just shows the
+     * wrong illustration; it never breaks the permission flow itself,
+     * which is driven entirely by the OS-native dialog on Enable click. */
+    (function togglePermMocks() {
+      var ua = navigator.userAgent || "";
+      var isMac = /Macintosh|Mac OS X/.test(ua);
+      if (isMac) return; // defaults are correct (mock visible, tip hidden)
+      var mocks = document.querySelectorAll(".os-perm-mock");
+      var tips  = document.querySelectorAll(".os-perm-tip");
+      for (var i = 0; i < mocks.length; i++) mocks[i].style.display = "none";
+      for (var j = 0; j < tips.length; j++) tips[j].style.display = "block";
     })();
 
     render();
