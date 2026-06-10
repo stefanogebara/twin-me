@@ -5,11 +5,15 @@
 
 import React, { useEffect, useState } from 'react';
 import { DataProvider } from '@/types/data-integration';
-import { PlatformStatusData } from './onboardingTypes';
 import { AVAILABLE_CONNECTORS } from '../../onboarding/components/connectorConfig';
 import { PlatformTile } from '../../onboarding/components/PlatformTile';
 import { Link2 } from 'lucide-react';
 import { API_URL, getAccessToken } from '@/services/api/apiBase';
+import {
+  usePlatformsSummary,
+  byPlatform,
+  type PlatformBreakdownEntry,
+} from '@/hooks/usePlatformsSummary';
 import SoulRichnessBar from '../../../components/onboarding/SoulRichnessBar';
 import { DataUploadPanel } from '@/components/brain/DataUploadPanel';
 import GoogleWorkspaceConnect from '../settings/GoogleWorkspaceConnect';
@@ -18,15 +22,27 @@ import { SectionLabel, Divider } from './SectionLabel';
 interface PlatformConnectionsStepProps {
   userId: string | undefined;
   connectedServices: DataProvider[];
-  activeConnections: DataProvider[];
-  platformStatusData: PlatformStatusData;
-  loadingPlatformStatus?: boolean;
   connectingProvider: DataProvider | null;
   disconnectingProvider: DataProvider | null;
   discoveredSet: Set<string>;
   connectService: (provider: DataProvider) => void;
   disconnectService: (provider: DataProvider) => void;
   navigate: (path: string) => void;
+}
+
+/**
+ * Soft informational copy for stale connections. Per the batch-3 spec
+ * (state-unification), 'stale' must NEVER demand a reconnect — only
+ * 'expired' (genuine auth failure) does, via the needsReconnect tile state.
+ */
+function staleAttentionCopy(entry: PlatformBreakdownEntry): string {
+  if (entry.lastSyncAt) {
+    const days = Math.floor((Date.now() - new Date(entry.lastSyncAt).getTime()) / (24 * 60 * 60 * 1000));
+    if (days > 0) {
+      return `No sync in ${days}d — your twin may be working from older data.`;
+    }
+  }
+  return 'Has not synced recently — your twin may be working from older data.';
 }
 
 function sortConnectors(
@@ -50,9 +66,6 @@ function sortConnectors(
 export const PlatformConnectionsStep: React.FC<PlatformConnectionsStepProps> = ({
   userId,
   connectedServices,
-  activeConnections,
-  platformStatusData,
-  loadingPlatformStatus = false,
   connectingProvider,
   disconnectingProvider,
   discoveredSet,
@@ -60,6 +73,12 @@ export const PlatformConnectionsStep: React.FC<PlatformConnectionsStepProps> = (
   disconnectService,
   navigate,
 }) => {
+  // Canonical platform state (batch-3 state-unification): per-tile expired/stale
+  // comes from the /platforms/summary breakdown — no local re-derivation of the
+  // stale threshold, which previously drifted from the backend's classification.
+  const { data: summary, isLoading: summaryLoading } = usePlatformsSummary();
+  const platformEntries = byPlatform(summary);
+
   // For the DISCOVERY sections (unconnected tiles) we still hide coming-soon
   // entries. But the CONNECTED list MUST show every row from the DB, even
   // those marked comingSoon in the catalog (e.g. slack, oura, notion)
@@ -67,26 +86,6 @@ export const PlatformConnectionsStep: React.FC<PlatformConnectionsStepProps> = (
   // /connect (audit-2026-05-12 H5).
   const availableConnectors = AVAILABLE_CONNECTORS.filter(c => !c.comingSoon);
   const connectorByProvider = new Map(AVAILABLE_CONNECTORS.map(c => [c.provider, c]));
-  // STALE_DAYS keeps the threshold in lockstep with /api/platforms/summary.
-  const STALE_DAYS = 7;
-  const STALE_MS = STALE_DAYS * 24 * 60 * 60 * 1000;
-  const computeAttention = (provider: string): string | null => {
-    const status = platformStatusData[provider];
-    if (!status) return null;
-    if (status.tokenExpired) return null; // surfaced via needsReconnect already
-    if (status.status === 'partial' || status.status === 'error') {
-      return 'Last sync was partial — some data may be missing.';
-    }
-    if (status.lastSync) {
-      const lastSyncMs = new Date(status.lastSync).getTime();
-      const ageMs = Date.now() - lastSyncMs;
-      if (ageMs > STALE_MS) {
-        const days = Math.floor(ageMs / (24 * 60 * 60 * 1000));
-        return `No sync in ${days}d — try reconnecting if data feels stale.`;
-      }
-    }
-    return null;
-  };
 
   // Personalized pitch hooks — fetched once per mount. Silent fallback on failure.
   const [pitchHooks, setPitchHooks] = useState<Record<string, string>>({});
@@ -130,10 +129,9 @@ export const PlatformConnectionsStep: React.FC<PlatformConnectionsStepProps> = (
 
   return (
     <div className="space-y-8">
-      <SoulRichnessBar isLoading={loadingPlatformStatus} connectedPlatforms={activeConnections.filter(p => {
-        const status = platformStatusData[p];
-        return !status?.tokenExpired && status?.status !== 'token_expired';
-      })} />
+      {/* Self-sufficient since batch-3 step 6: reads the canonical platforms
+          summary itself and renders the shared Soul Score number. */}
+      <SoulRichnessBar />
 
       {/* Connected Section — list every platform_connections row for the user,
           including providers marked comingSoon in the catalog (H5). */}
@@ -143,9 +141,10 @@ export const PlatformConnectionsStep: React.FC<PlatformConnectionsStepProps> = (
           <div className="space-y-2">
             {connectedServices.map(provider => {
               const c = connectorByProvider.get(provider);
-              const status = platformStatusData[provider];
-              const needsReconnect = status?.tokenExpired || status?.status === 'token_expired';
-              const attention = computeAttention(provider);
+              const entry = platformEntries[provider];
+              // Reconnect ONLY on genuine auth failure; stale gets soft copy.
+              const needsReconnect = entry?.state === 'expired';
+              const attention = entry?.state === 'stale' ? staleAttentionCopy(entry) : null;
               // Fallback presentation for platforms missing from the catalog —
               // shouldn't normally happen, but keeps connected rows visible.
               const display = c ?? {
@@ -166,8 +165,8 @@ export const PlatformConnectionsStep: React.FC<PlatformConnectionsStepProps> = (
                   syncing={connectingProvider === provider}
                   attention={attention}
                   note={c?.note || null}
-                  onConnect={() => connectService(provider as typeof activeConnections[number])}
-                  onManage={() => disconnectService(provider as typeof activeConnections[number])}
+                  onConnect={() => connectService(provider)}
+                  onManage={() => disconnectService(provider)}
                 />
               );
             })}
@@ -185,7 +184,7 @@ export const PlatformConnectionsStep: React.FC<PlatformConnectionsStepProps> = (
         Access emails, calendar, Drive files, Docs, and Sheets — your twin reads and understands your work
       </p>
       <GoogleWorkspaceConnect
-        connectorStatus={platformStatusData}
+        summary={summary}
         navigate={navigate}
       />
       <p

@@ -411,3 +411,29 @@ The orchestrator uses path #1 (the broken one). Path #2 is correct but not what 
 - **When you fix a cookie/credentials bug on one fetch path, grep for ALL sibling paths that touch the same cookie and fix them in the same pass.** `session_expired` has now bitten three times (C1 = singleFlight refresh race, the POST callback credentials fix, D1 = claim credentials). Same symptom, different code path each time, because the fix was applied locally instead of to the whole class.
 - **For "deep-link returned but session is wrong" desktop bugs, check the server runtime logs for the claim/callback status code FIRST.** A 200 means the native wiring is fine and the bug is in the webview/session layer; absence of the request means the native deep-link never fired. Don't debug Rust until the logs rule it out.
 - **The desktop app loads the live web app**, so frontend auth fixes ship via the normal Vercel deploy — no desktop reinstall. Tell the user to just reopen the app.
+
+---
+
+## 2026-06-10 — Mass-stage swept 14 unrelated files into a desktop release commit
+
+**Incident**: The v0.2.14 "polish-only" commit (`b1506327`) was created with a broad `git add` while the worktree carried another workstream's audit fixes in its index. 14 unrelated files (twin-chat.js, PrivacySpectrumDashboard.tsx, archetypeEngine.ts, ...) shipped under a commit message describing only 2 files. The code was a net positive (legitimate audit fixes), but the commit message lied about scope, and a worse version of this mistake ships broken WIP to prod.
+
+**Rules**:
+- **`git status --short` immediately before EVERY commit** — not at session start, not before review. The worktree state changes under you when multiple workstreams share a checkout.
+- **Stage explicit paths, never `git add .` or pattern adds** in a shared/multi-branch worktree.
+- **After committing, `git show --stat HEAD`** — if the file count surprises you, fix it before pushing, not after.
+
+## 2026-06-10 — Empty release tags push pointless updates to every install
+
+**Incident**: Nearly cut `desktop-v0.2.15` with zero changes under `desktop/` since the previous tag. The auto-updater does NOT skip same-content releases — it would have forced every install to download a byte-identical binary. Caught by checking `git diff <last-tag>..HEAD -- desktop/` first.
+
+**Rule**: Before any desktop tag, run `git diff desktop-vX.Y.Z..HEAD --stat -- desktop/`. Empty diff = no tag; the meaningful "final step" is usually verifying the deploy that DID change something (Vercel for api/src), not minting a version.
+
+## 2026-06-10 — Duplicated instruction blocks drift; one stale copy poisons judgment
+
+**Incident**: `twin-ai-learn/CLAUDE.md` carried a verbatim copy of the global Workflow Orchestration rules. The global copy got modernized; the project copy kept prescribing retired patterns (`TodoWrite`, "plan mode for ANY 3+ step task", `tasks/todo.md` plans that the doc-file hook itself blocks). Both files load in-session, so the model received contradictory instructions.
+
+**Rules**:
+- **Instructions live in exactly one file; other files point to it.** A pointer can't drift.
+- **When an instruction names a tool, verify the tool still exists in the harness** (TodoWrite → TaskCreate/TaskUpdate happened silently).
+- **When an instruction tells the model to write a file, check it against the active hooks** — `tasks/todo.md` plans were impossible to create under the `.md`-blocking hook for months and nobody noticed because models silently worked around it.

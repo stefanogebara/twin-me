@@ -1,10 +1,9 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ArrowRight, Check, SkipForward } from 'lucide-react';
 import { authFetch } from '@/services/api/apiBase';
-import { useAuth } from '@/contexts/AuthContext';
-import { usePlatformStatus } from '@/hooks/usePlatformStatus';
+import { usePlatformsSummary, connectedProviders as getConnectedProviders } from '@/hooks/usePlatformsSummary';
 import { CATEGORY_TOOLTIPS, CATEGORY_STARTERS } from './SoulInterviewHelpers';
 
 interface ExtractedFact {
@@ -18,8 +17,14 @@ interface SoulInterviewProps {
 }
 
 export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
-  const { user } = useAuth();
-  const { connectedProviders } = usePlatformStatus(user?.id);
+  // batch3 state-unification: connected set from the canonical summary.
+  // Memoized so the fetchNextQuestion useCallback keeps a stable identity
+  // between renders (react-query data identity is stable via structural sharing).
+  const { data: platformsSummary } = usePlatformsSummary();
+  const connectedProviders = useMemo(
+    () => getConnectedProviders(platformsSummary),
+    [platformsSummary]
+  );
 
   const [question, setQuestion] = useState('');
   const [category, setCategory] = useState('');

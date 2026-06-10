@@ -63,7 +63,7 @@ interface SoulSignature {
 
 const NewDiscoverFlow: React.FC = () => {
   const navigate = useNavigate();
-  const { user, isLoaded: authLoaded } = useAuth();
+  const { user, isLoaded: authLoaded, setNeedsOnboarding } = useAuth();
   const { trackFunnel } = useAnalytics();
 
   const setPhaseTracked = (next: FlowPhase, extra?: Record<string, unknown>) => {
@@ -133,6 +133,12 @@ const NewDiscoverFlow: React.FC = () => {
         // user returning from OAuth may already be confirmed — don't bounce them to
         // /dashboard mid-flow (audit-2026-06-10)
         if (status.isConfirmed && !resumedAtPlatforms) {
+          // A confirmed user can land here with needsOnboarding=true (e.g. they
+          // skipped after confirm last session, so new-user-check re-gated them).
+          // Clear the client gate BEFORE navigating, or ProtectedRoute bounces
+          // /dashboard straight back to /onboarding in an infinite redirect loop
+          // (audit-2026-06-10 follow-up, reviewer BLOCKER).
+          setNeedsOnboarding(false);
           navigate('/dashboard');
           return;
         }
@@ -563,7 +569,20 @@ const NewDiscoverFlow: React.FC = () => {
         if (!res.ok) console.error('Failed to persist onboarding completion:', res.status);
       })
       .catch(err => console.error('Failed to persist onboarding completion:', err));
+    // Clear the client-side gate too, or ProtectedRoute bounces the user
+    // straight back to /onboarding before the POST lands.
+    setNeedsOnboarding(false);
     setPhaseTracked('complete');
+    navigate('/dashboard');
+  };
+
+  // audit-2026-06-10 follow-up: the header Skip is an escape hatch, NOT a finish —
+  // it must not persist completion (no POST /onboarding/complete), so the server
+  // still re-gates this user into onboarding on their next session. Only the local
+  // needsOnboarding gate is cleared so the escape actually reaches /dashboard.
+  const handleSkipExit = () => {
+    trackFunnel('discover_skip_exited', { phase });
+    setNeedsOnboarding(false);
     navigate('/dashboard');
   };
 
@@ -612,7 +631,7 @@ const NewDiscoverFlow: React.FC = () => {
         </div>
         {phase !== 'complete' && (
           <button
-            onClick={handleComplete}
+            onClick={handleSkipExit}
             className="text-sm tracking-wide uppercase opacity-40 hover:opacity-80 transition-opacity"
             style={{ fontFamily: 'var(--font-body)', color: '#E8D5B7', letterSpacing: '0.1em' }}
           >

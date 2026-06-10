@@ -3,8 +3,7 @@ import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useAnalytics } from '../contexts/AnalyticsContext';
 import { API_URL, getAccessToken, authFetch } from '@/services/api/apiBase';
-import { usePlatformStatus } from '../hooks/usePlatformStatus';
-import { usePlatformsSummary } from '@/hooks/usePlatformsSummary';
+import { usePlatformsSummary, isConnected } from '@/hooks/usePlatformsSummary';
 import { useChatSession } from '../hooks/useChatSession';
 import { useToast } from '@/components/ui/use-toast';
 import { SpotifyLogo, GoogleCalendarLogo, YoutubeLogo, DiscordLogo, LinkedinLogo, GithubLogo, RedditLogo, TwitchLogo, WhoopLogo, GmailLogo } from '@/components/PlatformLogos';
@@ -105,19 +104,15 @@ const TalkToTwin = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  const {
-    data: platformStatus,
-    connectedCount,
-    isLoading: isLoadingPlatforms
-  } = usePlatformStatus(user?.id);
-  // H1 fix (audit-2026-05-12): canonical source so the chat footer chip
-  // matches /connect, /identity, /wiki and the empty-state copy.
+  // H1 fix (audit-2026-05-12) + batch-3 state unification (audit-2026-06-10):
+  // /platforms/summary is the ONLY platform-state source here — the legacy
+  // /connectors/status hook (divergent expired semantics, side-effecting GET)
+  // is no longer consulted.
   const { data: platformsSummary } = usePlatformsSummary({ enabled: !!user?.id });
-  // audit-2026-05-15 H1: prefer .active (excludes expired/stale connections)
-  // for the canonical "X platforms" chip. The audit found Spotify expired
-  // 16d ago but the count chip kept showing it. Falls back to .total then
-  // local count for older Summary payloads.
-  const canonicalPlatformCount = platformsSummary?.active ?? platformsSummary?.total ?? connectedCount;
+  // audit-2026-05-15 H1: the canonical "X platforms" chip counts .active only
+  // (excludes expired/stale connections). The audit found Spotify expired
+  // 16d ago but the count chip kept showing it.
+  const canonicalPlatformCount = platformsSummary?.active ?? 0;
   const { undelivered: pendingInsights, markEngaged } = useProactiveInsights();
   const {
     calendarEvents: sidebarCalendarEvents,
@@ -138,17 +133,21 @@ const TalkToTwin = () => {
   const [showInterviewChip, setShowInterviewChip] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
 
+  // batch-3 state unification: connected = has a breakdown entry in ANY state
+  // (expired/stale platforms stay in the chat context — the reconnect banner
+  // owns the "fix it" message, not this list). Note: the 'calendar' chat-context
+  // key intentionally differs from the 'google_calendar' summary platform id.
   const platforms = [
-    { name: 'Spotify',   icon: <SpotifyLogo className="w-4 h-4" />,         key: 'spotify',         color: '#1DB954', connected: platformStatus?.spotify?.connected },
-    { name: 'Calendar',  icon: <GoogleCalendarLogo className="w-4 h-4" />,   key: 'calendar',         color: '#4285F4', connected: platformStatus?.google_calendar?.connected },
-    { name: 'YouTube',   icon: <YoutubeLogo className="w-4 h-4" />,          key: 'youtube',          color: '#FF0000', connected: platformStatus?.youtube?.connected },
-    { name: 'Gmail',     icon: <GmailLogo className="w-4 h-4" />,            key: 'google_gmail',     color: '#EA4335', connected: platformStatus?.google_gmail?.connected },
-    { name: 'Discord',   icon: <DiscordLogo className="w-4 h-4" />,          key: 'discord',          color: '#5865F2', connected: platformStatus?.discord?.connected },
-    { name: 'LinkedIn',  icon: <LinkedinLogo className="w-4 h-4" />,         key: 'linkedin',         color: '#0A66C2', connected: platformStatus?.linkedin?.connected },
-    { name: 'GitHub',    icon: <GithubLogo className="w-4 h-4" />,           key: 'github',           color: '#FFFFFF', connected: platformStatus?.github?.connected },
-    { name: 'Reddit',    icon: <RedditLogo className="w-4 h-4" />,           key: 'reddit',           color: '#FF4500', connected: platformStatus?.reddit?.connected },
-    { name: 'Twitch',    icon: <TwitchLogo className="w-4 h-4" />,           key: 'twitch',           color: '#9146FF', connected: platformStatus?.twitch?.connected },
-    { name: 'Whoop',     icon: <WhoopLogo className="w-4 h-4" />,            key: 'whoop',            color: '#00F19F', connected: platformStatus?.whoop?.connected },
+    { name: 'Spotify',   icon: <SpotifyLogo className="w-4 h-4" />,         key: 'spotify',         color: '#1DB954', connected: isConnected(platformsSummary, 'spotify') },
+    { name: 'Calendar',  icon: <GoogleCalendarLogo className="w-4 h-4" />,   key: 'calendar',         color: '#4285F4', connected: isConnected(platformsSummary, 'google_calendar') },
+    { name: 'YouTube',   icon: <YoutubeLogo className="w-4 h-4" />,          key: 'youtube',          color: '#FF0000', connected: isConnected(platformsSummary, 'youtube') },
+    { name: 'Gmail',     icon: <GmailLogo className="w-4 h-4" />,            key: 'google_gmail',     color: '#EA4335', connected: isConnected(platformsSummary, 'google_gmail') },
+    { name: 'Discord',   icon: <DiscordLogo className="w-4 h-4" />,          key: 'discord',          color: '#5865F2', connected: isConnected(platformsSummary, 'discord') },
+    { name: 'LinkedIn',  icon: <LinkedinLogo className="w-4 h-4" />,         key: 'linkedin',         color: '#0A66C2', connected: isConnected(platformsSummary, 'linkedin') },
+    { name: 'GitHub',    icon: <GithubLogo className="w-4 h-4" />,           key: 'github',           color: '#FFFFFF', connected: isConnected(platformsSummary, 'github') },
+    { name: 'Reddit',    icon: <RedditLogo className="w-4 h-4" />,           key: 'reddit',           color: '#FF4500', connected: isConnected(platformsSummary, 'reddit') },
+    { name: 'Twitch',    icon: <TwitchLogo className="w-4 h-4" />,           key: 'twitch',           color: '#9146FF', connected: isConnected(platformsSummary, 'twitch') },
+    { name: 'Whoop',     icon: <WhoopLogo className="w-4 h-4" />,            key: 'whoop',            color: '#00F19F', connected: isConnected(platformsSummary, 'whoop') },
   ];
 
   const connectedPlatforms = platforms.filter(p => p.connected);
@@ -779,7 +778,7 @@ const TalkToTwin = () => {
         connectedPlatforms={connectedPlatforms}
         contextItems={contextItems}
         isLoadingContext={isLoadingContext}
-        connectedCount={connectedCount}
+        connectedCount={canonicalPlatformCount}
         messageCount={messages.filter(m => !m.failed).length}
       />
 

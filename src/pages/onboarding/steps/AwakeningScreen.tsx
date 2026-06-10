@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { ArrowRight, Brain, Music, Calendar, Link2 } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
-
+import { usePlatformsSummary, connectedProviders as getConnectedProviders } from '@/hooks/usePlatformsSummary';
 
 import { API_URL } from '@/services/api/apiBase';
 interface AwakeningScreenProps {
@@ -68,40 +68,21 @@ const AwakeningScreen: React.FC<AwakeningScreenProps> = ({ onEnter }) => {
   const [visible, setVisible] = useState(false);
   const [cardsIn, setCardsIn] = useState(false);
   const [buttonIn, setButtonIn] = useState(false);
-  // null = status unknown (loading) — render no cards rather than fake ones
-  const [connectedProviders, setConnectedProviders] = useState<string[] | null>(null);
   const chimeRef = useRef(false);
 
   // audit-2026-06-10: the finale cards previously hardcoded 'Patterns detected' /
-  // 'Syncing up' even for users who skipped every connection. Fetch the real
-  // connection state so the cards only claim what is actually happening.
-  useEffect(() => {
-    if (!user?.id) {
-      setConnectedProviders([]);
-      return;
-    }
-    let cancelled = false;
-    const fetchConnections = async () => {
-      try {
-        const res = await fetch(`${API_URL}/connectors/status/${encodeURIComponent(user.id)}`, {
-          headers: { 'Authorization': `Bearer ${authToken}` }
-        });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const result = await res.json();
-        if (!result.success) throw new Error(result.error || 'Status fetch failed');
-        const providers = Object.entries(result.data || {})
-          .filter(([, info]) => (info as { connected?: boolean }).connected)
-          .map(([platform]) => platform);
-        if (!cancelled) setConnectedProviders(providers);
-      } catch {
-        // Fall back to the neutral 'Ready to learn' card — truthful in every
-        // state, never fabricates platform activity.
-        if (!cancelled) setConnectedProviders([]);
-      }
-    };
-    fetchConnections();
-    return () => { cancelled = true; };
-  }, [user?.id, authToken]);
+  // 'Syncing up' even for users who skipped every connection. batch3
+  // state-unification: real connection state now comes from the canonical
+  // /platforms/summary hook (the fetcher resolves to an empty summary on
+  // failure, which lands on the neutral 'Ready to learn' card — truthful in
+  // every state, never fabricates platform activity).
+  const { data: platformsSummary } = usePlatformsSummary({ enabled: !!user?.id });
+  // null = status unknown (loading) — render no cards rather than fake ones
+  const connectedProviders = useMemo<string[] | null>(() => {
+    if (!user?.id) return [];
+    if (!platformsSummary) return null;
+    return getConnectedProviders(platformsSummary);
+  }, [user?.id, platformsSummary]);
 
   const statusCards = useMemo(() => {
     if (connectedProviders === null) return [];

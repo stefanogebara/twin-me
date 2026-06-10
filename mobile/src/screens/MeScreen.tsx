@@ -166,7 +166,7 @@ export function MeScreen({ user, onLogout }: Props) {
     const [s, st, pl, goals] = await Promise.all([
       fetchSoulSignature(),
       fetchMemoryStats(),
-      fetchPlatformConnections(user.id),
+      fetchPlatformConnections(),
       fetchGoals('active'),
     ]);
     setSoul(s);

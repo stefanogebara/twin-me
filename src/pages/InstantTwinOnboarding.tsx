@@ -12,8 +12,12 @@ import { useAuth } from '../contexts/AuthContext';
 import { API_URL, getAccessToken, authFetch } from '@/services/api/apiBase';
 import { useAnalytics } from '@/contexts/AnalyticsContext';
 import { useToast } from '@/components/ui/use-toast';
-import { usePlatformStatus } from '../hooks/usePlatformStatus';
-import { usePlatformsSummary, invalidatePlatformState } from '../hooks/usePlatformsSummary';
+import {
+  usePlatformsSummary,
+  invalidatePlatformState,
+  connectedProviders as summaryConnectedProviders,
+  type PlatformsSummary,
+} from '../hooks/usePlatformsSummary';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { DataProvider } from '@/types/data-integration';
 
@@ -30,6 +34,7 @@ import { GarminCredentialsModal } from './components/settings/GarminCredentialsM
 import { SteamConnectModal } from './components/settings/SteamConnectModal';
 import { InstagramConnectModal } from './components/settings/InstagramConnectModal';
 import { CONNECTION_INSIGHT_MESSAGES } from './components/onboarding/connectionInsights';
+import { removePlatformFromSummary } from './components/onboarding/onboardingHelpers';
 import ConnectionRevealCard from './components/onboarding/ConnectionRevealCard';
 
 const InstantTwinOnboarding = () => {
@@ -40,19 +45,29 @@ const InstantTwinOnboarding = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const {
-    data: platformStatusData,
-    connectedProviders,
-    refetch: refetchPlatformStatus,
-    optimisticDisconnect,
-    revertOptimisticUpdate
-  } = usePlatformStatus(user?.id);
-
-  // Canonical platform counts (single source of truth — same hook /dashboard,
-  // /talk-to-twin, and the settings sidebar use). Drives the *displayed* counts
-  // so onboarding agrees with the rest of the app; the activeConnections /
-  // expiredConnections arrays below still drive the tiles + reconnect banner.
+  // Canonical platform state (single source of truth — same hook /dashboard,
+  // /talk-to-twin, and the settings sidebar use). Batch-3 state-unification:
+  // this now drives the tiles, counts, AND the reconnect banner — the legacy
+  // usePlatformStatus hook is no longer consulted here.
   const { data: platformsSummary } = usePlatformsSummary({ enabled: !!user });
+
+  // Legacy-shaped callbacks for usePlatformConnect, reimplemented on the
+  // canonical ['platforms'] cache. Optimistic surgery keeps the
+  // instant-removal feel on disconnect (batch-3 spec risk item).
+  const refetchPlatformStatus = useCallback(
+    () => invalidatePlatformState(queryClient),
+    [queryClient]
+  );
+  const optimisticDisconnect = useCallback((provider: DataProvider) => {
+    queryClient.setQueryData<PlatformsSummary | undefined>(
+      ['platforms', 'summary'],
+      (old) => (old ? removePlatformFromSummary(old, provider) : old)
+    );
+  }, [queryClient]);
+  const revertOptimisticUpdate = useCallback(
+    () => invalidatePlatformState(queryClient),
+    [queryClient]
+  );
 
   // Fetch discovered platforms from enrichment (Holehe + breach data)
   const { data: enrichmentData } = useQuery({
@@ -92,25 +107,11 @@ const InstantTwinOnboarding = () => {
   // the user dismisses or moves on.
   const [revealProvider, setRevealProvider] = useState<string | null>(null);
 
-  const connectedServices = connectedProviders as DataProvider[];
-
-  const activeConnections = connectedServices.filter(provider => {
-    const status = platformStatusData[provider];
-    return !status?.tokenExpired && status?.status !== 'token_expired';
-  });
-  const expiredConnections = connectedServices.filter(provider => {
-    const status = platformStatusData[provider];
-    return status?.tokenExpired || status?.status === 'token_expired';
-  });
-
-  // Displayed counts come from the canonical summary (active excludes stale;
-  // "needs reconnection" = expired + stale), falling back to the local arrays
-  // while the summary query loads. Fixes onboarding showing more "active" than
-  // the rest of the app because it ignored stale connections (2026-06-08 audit).
-  const activeCount = platformsSummary?.active ?? activeConnections.length;
-  const reconnectCount = platformsSummary
-    ? platformsSummary.expired + platformsSummary.stale
-    : expiredConnections.length;
+  // Connected = has a breakdown entry in ANY state (display convention,
+  // batch-3 spec). Counts: primary = active; warning = expired + stale.
+  const connectedServices = summaryConnectedProviders(platformsSummary) as DataProvider[];
+  const activeCount = platformsSummary?.active ?? 0;
+  const reconnectCount = (platformsSummary?.expired ?? 0) + (platformsSummary?.stale ?? 0);
 
   // --- OAuth message listener ---
   React.useEffect(() => {
@@ -129,10 +130,9 @@ const InstantTwinOnboarding = () => {
       // grid. It polls the memory stream for observations created in the last
       // few minutes tagged with this provider and surfaces up to 3.
       setRevealProvider(provider);
-      // audit-2026-06-10: bust the canonical ['platforms'] cache alongside the
-      // legacy status refetch so summary counts update right after OAuth return.
+      // audit-2026-06-10: bust the canonical ['platforms'] cache so summary
+      // counts update right after OAuth return.
       setTimeout(() => {
-        refetchPlatformStatus();
         invalidatePlatformState(queryClient);
       }, 1500);
 
@@ -173,7 +173,6 @@ const InstantTwinOnboarding = () => {
         setConnectingProvider(null);
         setRevealProvider(rawProvider);
         setTimeout(() => {
-          refetchPlatformStatus();
           invalidatePlatformState(queryClient);
         }, 1500);
 
@@ -186,7 +185,7 @@ const InstantTwinOnboarding = () => {
 
     window.addEventListener('message', handleOAuthMessage);
     return () => window.removeEventListener('message', handleOAuthMessage);
-  }, [refetchPlatformStatus, toast, queryClient]);
+  }, [toast, queryClient]);
 
   // --- Platform connect/disconnect ---
   const { connectService, disconnectService } = usePlatformConnect({
@@ -291,8 +290,10 @@ const InstantTwinOnboarding = () => {
   return (
     <>
       <div className="max-w-[680px] mx-auto px-6 py-16">
-        {expiredConnections.length > 0 && (
-          <ExpiredTokenBanner userId={user?.id} />
+        {/* Banner ONLY for genuine auth failures (state === 'expired');
+            stale never demands a reconnect (batch-3 display convention). */}
+        {(platformsSummary?.expired ?? 0) > 0 && (
+          <ExpiredTokenBanner />
         )}
 
         <OnboardingHeader
@@ -333,8 +334,6 @@ const InstantTwinOnboarding = () => {
             <PlatformConnectionsStep
               userId={user?.id}
               connectedServices={connectedServices}
-              activeConnections={activeConnections}
-              platformStatusData={platformStatusData}
               connectingProvider={connectingProvider}
               disconnectingProvider={disconnectingProvider}
               discoveredSet={discoveredSet}
@@ -361,7 +360,6 @@ const InstantTwinOnboarding = () => {
         open={garminModalOpen}
         onClose={() => setGarminModalOpen(false)}
         onSuccess={() => {
-          refetchPlatformStatus();
           invalidatePlatformState(queryClient);
         }}
       />
@@ -370,7 +368,6 @@ const InstantTwinOnboarding = () => {
         open={steamModalOpen}
         onClose={() => setSteamModalOpen(false)}
         onSuccess={() => {
-          refetchPlatformStatus();
           invalidatePlatformState(queryClient);
         }}
       />
@@ -379,7 +376,6 @@ const InstantTwinOnboarding = () => {
         open={instagramModalOpen}
         onClose={() => setInstagramModalOpen(false)}
         onSuccess={() => {
-          refetchPlatformStatus();
           invalidatePlatformState(queryClient);
         }}
       />

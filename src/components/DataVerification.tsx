@@ -7,11 +7,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { Check, AlertCircle, Loader2, RefreshCw } from 'lucide-react';
-import { usePlatformStatus } from '@/hooks/usePlatformStatus';
+import { usePlatformsSummary } from '@/hooks/usePlatformsSummary';
 import { PlatformLogo } from '@/components/PlatformLogos';
 
 interface DataVerificationProps {
-  userId: string;
+  /** Ignored — /platforms/summary is JWT-scoped. Optional for call-site compatibility. */
+  userId?: string;
   connectedServices: string[];
 }
 
@@ -35,33 +36,25 @@ const PLATFORM_NAMES: Record<string, string> = {
   browser_extension: 'Browser',
 };
 
-export const DataVerification: React.FC<DataVerificationProps> = ({ userId, connectedServices }) => {
+export const DataVerification: React.FC<DataVerificationProps> = ({ connectedServices }) => {
   const [refreshing, setRefreshing] = useState(false);
 
-  const {
-    data: platformStatuses,
-    refetch: refetchPlatformStatus,
-    isLoading,
-  } = usePlatformStatus(userId, {
-    enableRealtime: true,
-    refetchInterval: 60000,
-  });
+  const { data: summary, refetch, isLoading } = usePlatformsSummary();
 
   useEffect(() => {
     if (connectedServices.length > 0) {
-      refetchPlatformStatus();
+      refetch();
     }
   }, [connectedServices]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await refetchPlatformStatus();
+    await refetch();
     setTimeout(() => setRefreshing(false), 500);
   };
 
-  const connectedPlatforms = Object.entries(platformStatuses).filter(
-    ([, s]) => s?.connected
-  );
+  // Any breakdown entry counts as connected (canonical batch-3 semantics).
+  const connectedPlatforms = summary?.breakdown ?? [];
 
   if (connectedPlatforms.length === 0 && !isLoading) return null;
 
@@ -94,20 +87,27 @@ export const DataVerification: React.FC<DataVerificationProps> = ({ userId, conn
         </div>
       ) : (
         <div className="flex flex-wrap gap-1.5">
-          {connectedPlatforms.map(([platform, status]) => {
-            const name = PLATFORM_NAMES[platform] || platform;
-            const expired = status?.tokenExpired || status?.status === 'token_expired';
+          {connectedPlatforms.map((entry) => {
+            const name = PLATFORM_NAMES[entry.platform] || entry.platform;
+            // Only a genuine auth failure gets the red treatment; 'stale'
+            // (no recent sync) just dims the check — never a reconnect demand.
+            const expired = entry.state === 'expired';
+            const stale = entry.state === 'stale';
+            const lastSync = entry.lastSyncAt
+              ? new Date(entry.lastSyncAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+              : null;
 
             return (
               <div
-                key={platform}
+                key={entry.platform}
                 className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg"
+                title={lastSync ? `Last synced ${lastSync}` : 'Not synced yet'}
                 style={{
                   backgroundColor: expired ? 'rgba(220,38,38,0.08)' : 'rgba(255,255,255,0.04)',
                   border: `1px solid ${expired ? 'rgba(220,38,38,0.15)' : 'rgba(255,255,255,0.06)'}`,
                 }}
               >
-                <PlatformLogo platform={platform} size={14} />
+                <PlatformLogo platform={entry.platform} size={14} />
                 <span
                   className="text-[12px]"
                   style={{
@@ -120,7 +120,11 @@ export const DataVerification: React.FC<DataVerificationProps> = ({ userId, conn
                 {expired ? (
                   <AlertCircle className="w-3 h-3" style={{ color: 'rgba(220,38,38,0.6)' }} />
                 ) : (
-                  <Check className="w-3 h-3" style={{ color: '#10b981' }} strokeWidth={2.5} />
+                  <Check
+                    className="w-3 h-3"
+                    style={{ color: stale ? 'rgba(255,255,255,0.30)' : '#10b981' }}
+                    strokeWidth={2.5}
+                  />
                 )}
               </div>
             );

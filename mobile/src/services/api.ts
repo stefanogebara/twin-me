@@ -216,17 +216,21 @@ export async function fetchPersonalityScores(): Promise<PersonalityScores | null
   }
 }
 
-export async function fetchPlatformConnections(userId: string): Promise<PlatformConnection[]> {
+export async function fetchPlatformConnections(): Promise<PlatformConnection[]> {
   try {
-    const res = await authFetch(`/connectors/status/${userId}`);
+    // Canonical platform-state endpoint (batch-3 state unification, audit-2026-06-10).
+    // A breakdown entry = connected; 'error' only for state==='expired' (genuine
+    // auth failure) — 'stale' (no recent sync) is NOT a reconnect signal.
+    const res = await authFetch('/connectors/summary');
     if (!res.ok) return [];
     const json = await res.json();
-    // Response: { success, data: { spotify: {isActive, ...}, youtube: {...}, ... } }
-    const platforms = json.data ?? {};
-    return Object.entries(platforms).map(([platform, info]) => ({
-      platform,
-      status: (info as Record<string, unknown>)?.isActive ? 'connected' : 'error',
-      last_sync_at: (info as Record<string, unknown>)?.lastSync as string | undefined,
+    if (!json.success) return [];
+    // Response: { success, total, active, expired, stale, breakdown: [{ platform, state, lastSyncAt }] }
+    const breakdown: Array<Record<string, unknown>> = Array.isArray(json.breakdown) ? json.breakdown : [];
+    return breakdown.map((entry) => ({
+      platform: entry.platform as string,
+      status: entry.state === 'expired' ? 'error' : 'connected',
+      last_sync_at: (entry.lastSyncAt as string | null) ?? undefined,
     }));
   } catch {
     return [];

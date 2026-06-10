@@ -7,12 +7,6 @@ import { supabase } from '../config/supabase.js';
 import { supabaseAdmin } from '../services/database.js';
 import { encryptToken, decryptToken, encryptState, decryptState } from '../services/encryption.js';
 import { authenticateUser, requireProfessor } from '../middleware/auth.js';
-import {
-  getCachedPlatformStatus,
-  setCachedPlatformStatus,
-  invalidatePlatformStatusCache
-} from '../services/redisClient.js';
-import { ensureFreshToken } from '../services/tokenRefreshService.js';
 import { buildPlatformsSummary } from '../services/platformStateService.js';
 import { createLogger, redact } from '../services/logger.js';
 import { getGoogleWorkspaceScopes } from '../config/googleWorkspaceScopes.js';
@@ -20,29 +14,6 @@ import { getAppUrl } from '../utils/oauthUtils.js';
 
 const log = createLogger('Connectors');
 const router = express.Router();
-
-// In-memory cache fallback for when Redis is unavailable
-const memoryCache = new Map();
-const MEMORY_CACHE_TTL = 3 * 60 * 1000; // 3 minutes
-
-function getMemoryCached(key) {
-  const entry = memoryCache.get(key);
-  if (entry && Date.now() - entry.ts < MEMORY_CACHE_TTL) return entry.data;
-  if (entry) memoryCache.delete(key);
-  return null;
-}
-
-function setMemoryCached(key, data) {
-  memoryCache.set(key, { data, ts: Date.now() });
-}
-
-/**
- * Clear in-memory status cache for a user.
- * Call after platform connect/disconnect in other route files.
- */
-export function clearStatusMemoryCache(userId) {
-  memoryCache.delete(`status:${userId}`);
-}
 
 // ====================================================================
 // OAUTH CONFIGURATIONS
@@ -414,10 +385,6 @@ router.get('/connect/:provider', authenticateUser, async (req, res) => {
         }
 
         log.info("Token refreshed successfully", { provider });
-
-        // Invalidate cache (both Redis and in-memory)
-        await invalidatePlatformStatusCache(userId);
-        clearStatusMemoryCache(userId);
 
         return res.json({
           success: true,
@@ -976,10 +943,6 @@ router.post('/callback', async (req, res) => {
 
       log.info("Connection stored", { platformKey, userId });
 
-      // Invalidate cached platform status for this user (both Redis and in-memory)
-      await invalidatePlatformStatusCache(userUuid);
-      clearStatusMemoryCache(userUuid);
-
       // Trigger background extraction using Bull queue (if available)
       // Falls back to direct execution if queue not available.
       //
@@ -1045,224 +1008,6 @@ router.post('/callback', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to process OAuth callback'
-    });
-  }
-});
-
-/**
- * GET /api/connectors/status/:userId
- * Get connection status for all providers for a user
- * Validates token expiration and returns accurate connection state
- *
- * CACHING: Uses Redis with 5-minute TTL for performance
- * - Cache HIT: ~5ms response time
- * - Cache MISS: ~200ms response time (database query)
- * - Cache invalidated on connect/disconnect/reset
- */
-router.get('/status/:userId', authenticateUser, async (req, res) => {
-  try {
-    const { userId } = req.params;
-
-    if (userId !== req.user.id) {
-      return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
-    }
-
-    // Convert email to UUID if needed
-    let userUuid = userId;
-    if (userId && !userId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
-      const { data: userData, error: userLookupErr } = await supabaseAdmin
-        .from('users')
-        .select('id')
-        .eq('email', userId)
-        .single();
-      if (userLookupErr) {
-        log.warn("Failed to resolve email to UUID", { error: userLookupErr });
-      } else if (userData) {
-        userUuid = userData.id;
-      }
-    }
-
-    // Check in-memory cache first (fastest, no external deps)
-    const memoryCached = getMemoryCached(`status:${userUuid}`);
-    if (memoryCached) {
-      return res.json({
-        success: true,
-        data: memoryCached,
-        cached: true
-      });
-    }
-
-    // Check Redis cache second
-    const cachedStatus = await getCachedPlatformStatus(userUuid);
-    if (cachedStatus) {
-      setMemoryCached(`status:${userUuid}`, cachedStatus);
-      return res.json({
-        success: true,
-        data: cachedStatus,
-        cached: true
-      });
-    }
-
-    // Cache miss - fetch from database with retry
-    // IMPORTANT: Include 'status' column to check for token_expired status
-    let connections, error;
-    for (let attempt = 0; attempt < 2; attempt++) {
-      const result = await supabaseAdmin
-        .from('platform_connections')
-        .select('platform, connected_at, token_expires_at, access_token, metadata, last_sync_at, last_sync_status, status') // access_token needed only for NANGO_MANAGED sentinel check — never returned to client
-        .eq('user_id', userUuid);
-      connections = result.data;
-      error = result.error;
-      if (!error) break;
-      if (attempt === 0) {
-        log.warn("Database error getting connections, retrying", { errorCode: error.code });
-        await new Promise(r => setTimeout(r, 1000));
-      }
-    }
-
-    if (error) {
-      log.error("Database error getting connections (after retry)", { error });
-      throw error;
-    }
-
-    // Transform to status object with token expiration validation
-    const connectionStatus = {};
-    const now = new Date();
-
-    // Use for...of to handle async token refresh
-    for (const connection of connections || []) {
-      // NANGO_MANAGED connections: Nango handles token lifecycle, skip expiry checks
-      const isNangoManaged = connection.access_token === 'NANGO_MANAGED';
-
-      // Check if token is expired (check both possible expiration columns)
-      const expiresAt = connection.token_expires_at;
-      let isTokenExpired = !isNangoManaged && expiresAt && new Date(expiresAt) < now;
-
-      // SPECIAL CASE: For Spotify and YouTube with encryption_key_mismatch,
-      // force connected=true to show "Token Expired" badge instead of "Connect"
-      // Check if connected_at exists to determine if platform is connected
-      let isConnected = !!connection.connected_at;
-      if ((connection.platform === 'spotify' || connection.platform === 'youtube') &&
-          connection.last_sync_status === 'encryption_key_mismatch') {
-        isConnected = true;  // Force true to show expired state in UI
-        log.info("Forcing connected due to encryption_key_mismatch", { platform: connection.platform });
-      }
-
-      // AUTOMATIC TOKEN REFRESH: Attempt to refresh expired tokens
-      // Skip for Nango-managed connections (Nango handles refresh automatically)
-      if (isConnected && isTokenExpired && !isNangoManaged) {
-        log.debug("Attempting automatic token refresh", { platform: connection.platform });
-        try {
-          await ensureFreshToken(userUuid, connection.platform);
-          log.info("Token automatically refreshed", { platform: connection.platform });
-          isTokenExpired = false;  // Token is now valid
-          // Invalidate cache so next request gets fresh status (both Redis and in-memory)
-          await invalidatePlatformStatusCache(userUuid);
-          clearStatusMemoryCache(userUuid);
-        } catch (refreshError) {
-          log.warn("Auto-refresh failed", { platform: connection.platform, error: refreshError });
-          // Keep isTokenExpired = true, user will need to reconnect
-        }
-      }
-
-      const isActive = isConnected && !isTokenExpired;
-
-      // Determine the current status
-      // Priority: database status if 'expired' or 'token_expired', then last_sync_status, then fallback
-      let status = connection.last_sync_status || connection.metadata?.last_sync_status || 'unknown';
-
-      // If database status is 'expired' or 'token_expired', use that as the primary status
-      // AND set isTokenExpired to true
-      // Also handle 'error' with 'auth_error' sync status — means token was rejected (401)
-      if (connection.status === 'expired' || connection.status === 'token_expired' || connection.status === 'needs_reauth'
-        || connection.status === 'requires_reauth'
-        || connection.status === 'auth_failed'
-        || connection.last_sync_status === 'requires_reauth'
-        || connection.last_sync_status === 'auth_failed'
-        || (connection.status === 'error' && connection.last_sync_status === 'auth_error')) {
-        status = 'token_expired';
-        isTokenExpired = true;  // Force token expired flag when status indicates expired
-        log.debug("Platform token expired", { platform: connection.platform, status: connection.status });
-      }
-      // Override with 'token_expired' if:
-      // 1. The token is actually expired NOW
-      // 2. AND the status is not meaningful (pending, success, unknown)
-      // This prevents overriding 'failed' or other error states
-      else if (isTokenExpired && (status === 'success' || status === 'unknown' || status === 'pending')) {
-        status = 'token_expired';
-      }
-
-      // Recalculate isActive after status check (in case isTokenExpired was updated)
-      const finalIsActive = isConnected && !isTokenExpired;
-
-      connectionStatus[connection.platform] = {
-        connected: isConnected,  // May be forced true for encryption_key_mismatch
-        isActive: finalIsActive,      // Actual usability - false if token expired
-        tokenExpired: isTokenExpired,
-        connectedAt: connection.metadata?.connected_at || connection.connected_at || null,
-        lastSync: connection.last_sync_at || connection.metadata?.last_sync || null,
-        status: status,
-        expiresAt: expiresAt
-      };
-    }
-
-    // Also include Nango-only connections (stored in nango_connection_mappings, not platform_connections)
-    const { data: nangoMappings } = await supabaseAdmin
-      .from('nango_connection_mappings')
-      .select('platform, status, created_at, updated_at, last_synced_at')
-      .eq('user_id', userUuid)
-      .in('status', ['connected', 'active']);
-
-    for (const mapping of nangoMappings || []) {
-      const nangoLastSync = mapping.last_synced_at || mapping.updated_at || null;
-      if (!connectionStatus[mapping.platform]) {
-        connectionStatus[mapping.platform] = {
-          connected: true,
-          isActive: true,
-          tokenExpired: false,
-          connectedAt: mapping.created_at || null,
-          lastSync: nangoLastSync,
-          status: 'active',
-          expiresAt: null,
-        };
-      } else {
-        // audit-2026-06-02: platform is in BOTH platform_connections and
-        // nango_connection_mappings (e.g. outlook). Nango is the live sync
-        // source for these, so its last_synced_at is authoritative — the
-        // platform_connections.last_sync_at is only bumped by the direct
-        // fetcher, which returns 0 obs for Nango-managed platforms and so goes
-        // stale, making a healthy connection look "partial/stale". Use the most
-        // recent of the two so health reflects the actual last sync.
-        const existing = connectionStatus[mapping.platform];
-        const existingMs = existing.lastSync ? new Date(existing.lastSync).getTime() : 0;
-        const nangoMs = nangoLastSync ? new Date(nangoLastSync).getTime() : 0;
-        if (nangoMs > existingMs) {
-          existing.lastSync = nangoLastSync;
-          existing.isActive = existing.isActive && !existing.tokenExpired;
-          if (['no_new_data', 'unknown', 'partial', 'pending'].includes(existing.status)) {
-            existing.status = 'active';
-          }
-        }
-      }
-    }
-
-    log.debug("Connection status", { userId });
-
-    // Cache the result in memory and Redis
-    setMemoryCached(`status:${userUuid}`, connectionStatus);
-    await setCachedPlatformStatus(userUuid, connectionStatus);
-
-    res.json({
-      success: true,
-      data: connectionStatus,
-      cached: false
-    });
-
-  } catch (error) {
-    log.error("Error getting connector status", { error });
-    res.status(500).json({
-      success: false,
-      error: 'Failed to get connector status'
     });
   }
 });
@@ -1350,10 +1095,6 @@ router.post('/reset/:userId', authenticateUser, async (req, res) => {
 
     const deletedCount = data?.length || 0;
     log.info("Deactivated connections", { deletedCount, userId });
-
-    // Invalidate cached platform status for this user (both Redis and in-memory)
-    await invalidatePlatformStatusCache(userUuid);
-    clearStatusMemoryCache(userUuid);
 
     res.json({
       success: true,
@@ -1450,11 +1191,6 @@ router.delete('/:provider/:userId', authenticateUser, async (req, res) => {
     if (!deletedSomething) {
       log.warn("No connection found", { provider, userUuid });
     }
-
-    // Invalidate cached platform status for this user BEFORE responding (both Redis and in-memory)
-    await invalidatePlatformStatusCache(userUuid);
-    clearStatusMemoryCache(userUuid);
-    log.debug("Cache invalidated", { userUuid });
 
     res.json({
       success: true,

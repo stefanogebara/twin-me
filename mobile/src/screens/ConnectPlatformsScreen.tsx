@@ -118,7 +118,7 @@ export function ConnectPlatformsScreen({ user }: Props) {
 
   const load = useCallback(async () => {
     try {
-      const data = await fetchPlatformConnections(user.id);
+      const data = await fetchPlatformConnections();
       setConnections(data);
     } catch {
       // silently keep previous state on error

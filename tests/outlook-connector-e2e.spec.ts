@@ -63,26 +63,18 @@ test.describe('Outlook connector auth flow', () => {
   test('2. Clicking Outlook connect — popup opens, not a page navigation', async ({ page, context }) => {
     await mockAuth(page);
 
-    // The previous mock pattern was `**/api/connectors/status**` AND it
-    // returned the wrong response shape (`{ platformStatus: {} }` instead
-    // of `{ data: {} }`). The HOOK that drives `isConnected` per-platform
-    // is usePlatformStatus, which fetches
-    //   ${API_URL}/connectors/status/${encodeURIComponent(userId)}
-    // and reads `result.data || {}`. Without the dev-server-served real
-    // state being overridden, the test ran against the actual user's
-    // real DB connections (Stefano has Outlook connected), so every
-    // platform card showed "Manage" not "Connect" and the click logic
-    // couldn't find a Connect button.
-    //
-    // Fix: use a regex pattern that matches the path with the userId
-    // suffix, and return the correct envelope so all platforms render
-    // as disconnected — including Outlook, which exposes the Connect
-    // button this test needs to click.
-    await page.route(/\/api\/connectors\/status(\/|\?|$)/, route =>
+    // Per-platform connect state is driven by usePlatformsSummary, which
+    // fetches /api/platforms/summary (the legacy /connectors/status/:userId
+    // route was deleted in batch-3 state unification, audit-2026-06-10).
+    // Return an empty summary so all platforms render as disconnected —
+    // including Outlook, which exposes the Connect button this test needs
+    // to click. Without this override the test runs against the real
+    // user's DB connections and every card shows "Manage" not "Connect".
+    await page.route('**/api/platforms/summary', route =>
       route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ success: true, data: {} }),
+        body: JSON.stringify({ success: true, total: 0, active: 0, expired: 0, stale: 0, breakdown: [] }),
       }),
     );
 
