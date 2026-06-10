@@ -527,7 +527,7 @@ const IdentityPage: React.FC = () => {
   // ── Drift signal ────────────────────────────────────────────────────────
 
   const growthEdges = layers?.growthEdges ?? layers?.growth_edges;
-  const driftIsStable = !growthEdges || growthEdges.isStable || growthEdges.shifts.length === 0;
+  const driftIsStable = !growthEdges || growthEdges.isStable || (growthEdges.shifts?.length ?? 0) === 0;
   const driftShiftCount = growthEdges?.shifts?.length ?? 0;
 
   // ── Share handler ──────────────────────────────────────────────────────
