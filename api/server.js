@@ -432,6 +432,7 @@ import notificationsRoutes from './routes/notifications.js';
 import deviceTokensRoutes from './routes/device-tokens.js';
 import desktopDownloadRoutes from './routes/desktop-download.js';
 import desktopObserveSummaryRoutes from './routes/desktop-observe-summary.js';
+import desktopExtractedFactsRoutes from './routes/desktop-extracted-facts.js';
 import extractionStatusRoutes from './routes/extraction-status.js';
 import profileEnrichmentRoutes from './routes/profile-enrichment.js';
 import resumeUploadRoutes from './routes/resume-upload.js';
@@ -696,6 +697,7 @@ app.use('/api/notifications', notificationsRoutes); // User notifications (token
 app.use('/api/device-tokens', deviceTokensRoutes);  // FCM/Expo push token registration
 app.use('/api/desktop-download', desktopDownloadRoutes); // Same-origin installer proxy (forces correct .exe/.dmg filename)
 app.use('/api/desktop', desktopObserveSummaryRoutes); // TwinMe Desktop: onboarding "here's what I noticed" summary (unauthenticated, body-only)
+app.use('/api/desktop', desktopExtractedFactsRoutes);  // TwinMe Desktop: onboarding "here's what I learned about you" extracted facts (authed, JWT bearer)
 app.use('/api/enrichment', profileEnrichmentRoutes); // Profile enrichment via Perplexity Sonar (enrichment-first onboarding)
 app.use('/api/resume', resumeUploadRoutes); // Resume/CV upload and parsing for enrichment
 app.use('/api/exports', exportsUploadRoutes); // GDPR data-export upload + parse (Discord/LinkedIn/Instagram)
