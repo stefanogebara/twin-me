@@ -1008,7 +1008,11 @@
         <div class="perm-right stagger-3">
           <div class="dashboard-mock" data-mock="welcome">
             <p class="dm-greeting" id="dm-greet-welcome">Good evening</p>
-            <p class="dm-sub" id="dm-sub-welcome">Your twin is learning about you</p>
+            <!-- v2 polish: id="dm-sub-welcome" was added speculatively
+                 but never used by JS. Dropped to avoid misleading
+                 future readers into hunting for a dynamic binding
+                 that doesn't exist. -->
+            <p class="dm-sub">Your twin is learning about you</p>
             <div class="dm-stack">
               <div class="dm-insight">
                 <p class="dmi-title">
@@ -1115,7 +1119,7 @@
           <button class="perm-skip" id="ctx-skip">Set up later</button>
         </div>
         <!-- Right rail: macOS Accessibility panel preview (visible only on
-             ≥900px viewport, only on Macintosh UA — see togglePermMocks()).
+             ≥900px viewport, only on Macintosh UA — see adjustForPlatform()).
              On Win/Linux the .os-perm-tip card replaces this. -->
         <div class="perm-right stagger-3">
           <div class="os-perm-mock" data-perm-mock="accessibility">
@@ -1301,7 +1305,12 @@
         <h2 class="stagger-1" id="observe-heading">Here's what I noticed</h2>
         <p class="sub stagger-2">A first glimpse, from the apps and windows I saw. I get sharper the more we work together.</p>
         <div class="summary-host stagger-3" id="summary-host"></div>
-        <p class="trust-line stagger-4">Only the app names and window titles were used to write this. Nothing is saved until you sign in.</p>
+        <!-- v2 polish (subagent D MEDIUM): "nothing is saved" was
+             ambiguous — the clips ARE sent over the wire to
+             /api/desktop/observe-summary → OpenRouter, which logs
+             requests. New copy is precise about what we DO with the
+             data without lying about transit. -->
+        <p class="trust-line stagger-4">Only app names and window titles were sent to write this. Nothing is stored in our database until you sign in.</p>
       </div>
     </section>
 
@@ -1524,9 +1533,17 @@
       var slot = document.getElementById("welcome-name");
       if (prefix) prefix.textContent = safe ? ", " : "";
       if (slot)   slot.textContent   = safe ? safe : "";
-      // Mock greetings — keep the time-of-day word generic so we don't
-      // have to compute it client-side. Just append the name if present.
-      var greet = safe ? "Good evening, " + safe : "Good evening";
+      // v2 polish (subagent C MEDIUM): compute the time-of-day word
+      // from the user's clock instead of always saying "Good evening".
+      // The right-rail mock is framed as "this is what you'll see" —
+      // a 9am opener seeing "Good evening" undermines that promise.
+      var hour = new Date().getHours();
+      var partOfDay = hour < 5 || hour >= 22 ? "night"
+                    : hour < 12 ? "morning"
+                    : hour < 18 ? "afternoon"
+                    : "evening";
+      var greetBase = "Good " + partOfDay;
+      var greet = safe ? greetBase + ", " + safe : greetBase;
       var dmWelcome = document.getElementById("dm-greet-welcome");
       var dmName    = document.getElementById("dm-greet-name");
       if (dmWelcome) dmWelcome.textContent = greet;
@@ -1712,7 +1729,15 @@
       if (!Array.isArray(actions) || actions.length === 0) return "";
       var pills = "";
       for (var i = 0; i < actions.length; i++) {
-        pills += '<button class="apill" type="button">' + escapeHtml(actions[i]) + "</button>";
+        // v2 polish (subagent C HIGH): rendered as <span> not <button>.
+        // The pills are visual only — no click handler yet, no chat
+        // surface to dispatch into. <button> announces as actionable
+        // to assistive tech and traps tab focus. Matches the .mcaction
+        // pattern on the mockup cards screen. When the post-sign-in
+        // chat handoff is wired and these become real "kick off chat
+        // with this prompt" pills, switch back to <button> with a
+        // click handler in the same change.
+        pills += '<span class="apill">' + escapeHtml(actions[i]) + "</span>";
       }
       return '<div class="action-pills"><span class="alabel">I could help with</span>' + pills + "</div>";
     }
@@ -1908,7 +1933,9 @@
      *     tip on non-mac.
      *
      * #4: step 4 hotkey label — the Rust side registers Cmd+Shift+T on
-     *     macOS and Ctrl+Shift+T on Windows/Linux (see lib.rs:209). HTML
+     *     macOS and Ctrl+Shift+T on Windows/Linux (see settings_get in
+     *     src-tauri/src/lib.rs — symbol name beats a line number that
+     *     rots as the Rust file evolves). HTML
      *     default is "Ctrl + Shift + T" (the more-common case if UA detect
      *     fails). On mac we swap to ⌘ in both the card title and the
      *     kbd combo in the Hummingbird mock.

@@ -408,9 +408,14 @@ async function generateProactiveInsights(userId) {
       // found a "🤑" leaking through to the chat sidebar from a stored
       // insight. Even though the generation prompt instructs no emojis,
       // models occasionally include them in JSON output — defense in depth.
+      // audit-2026-06-10: models occasionally prefix the insight body with its
+      // own category tag ("[celebration] You've created 8 branches...") which
+      // rendered raw on the dashboard. The category belongs in item.category,
+      // never in the text — strip any short leading bracketed tag.
+      const insightText = stripEmoji(item.insight).replace(/^\s*\[[a-z_ -]{2,24}\]\s*/i, '');
       const insertData = {
         user_id: userId,
-        insight: stripEmoji(item.insight).substring(0, 500),
+        insight: insightText.substring(0, 500),
         urgency: ['low', 'medium', 'high'].includes(item.urgency) ? item.urgency : 'low',
         category: validCategories.includes(item.category) ? item.category : null,
         department: validDepartments.includes(item.department) ? item.department : null,

@@ -1175,7 +1175,9 @@ router.get('/status/:userId', authenticateUser, async (req, res) => {
       // Also handle 'error' with 'auth_error' sync status — means token was rejected (401)
       if (connection.status === 'expired' || connection.status === 'token_expired' || connection.status === 'needs_reauth'
         || connection.status === 'requires_reauth'
+        || connection.status === 'auth_failed'
         || connection.last_sync_status === 'requires_reauth'
+        || connection.last_sync_status === 'auth_failed'
         || (connection.status === 'error' && connection.last_sync_status === 'auth_error')) {
         status = 'token_expired';
         isTokenExpired = true;  // Force token expired flag when status indicates expired
@@ -1306,15 +1308,22 @@ router.get('/summary', authenticateUser, async (req, res) => {
     const seen = new Set();
 
     for (const c of pcResult.data || []) {
-      const isNangoManaged = c.access_token === 'NANGO_MANAGED';
+      // audit-2026-06-10: "needs reconnection" must mean the USER has to act.
+      // Access tokens lapse hourly by design and getValidAccessToken refreshes
+      // them automatically on next use, so `token_expires_at < now` is NOT a
+      // reconnect signal — counting it flagged healthy platforms ("5 need
+      // reconnection" on the chat header while extraction ran fine). Conversely
+      // 'auth_failed' (set by observationIngestion when a refresh genuinely
+      // fails) was missing from this list, so REAL failures weren't counted.
       const tokenExpired =
         c.status === 'expired' ||
         c.status === 'token_expired' ||
         c.status === 'needs_reauth' ||
         c.status === 'requires_reauth' ||
+        c.status === 'auth_failed' ||
         c.last_sync_status === 'requires_reauth' ||
-        (c.status === 'error' && c.last_sync_status === 'auth_error') ||
-        (!isNangoManaged && c.token_expires_at && new Date(c.token_expires_at).getTime() < now);
+        c.last_sync_status === 'auth_failed' ||
+        (c.status === 'error' && c.last_sync_status === 'auth_error');
 
       // Only count platforms the user has actually connected (not just empty rows).
       const isConnected = !!c.connected_at;

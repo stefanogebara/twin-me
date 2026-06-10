@@ -139,7 +139,9 @@ export function InsightsFeed({
                   className="text-sm leading-relaxed"
                   style={{ color: 'var(--foreground)' }}
                 >
-                  {insight.insight}
+                  {/* Defensive: stored insights generated before 2026-06-10 may
+                      still carry a leaked leading category tag like "[celebration]" */}
+                  {insight.insight.replace(/^\s*\[[a-z_ -]{2,24}\]\s*/i, '')}
                 </p>
 
                 {/* Nudge action */}

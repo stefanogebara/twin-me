@@ -92,8 +92,15 @@ router.post('/message', authenticateUser, async (req, res) => {
     log.info('chat.hop', { traceId, hop, elapsedMs, ...extra });
   };
   let stream = null;
+  // audit-2026-06-10: these three are referenced by the catch block (orphan
+  // conversation cleanup). They were declared inside the try, so the FIRST
+  // statement of the catch threw ReferenceError on every pipeline error —
+  // killing the cleanup and the SSE error event. Hoist them out.
+  let userId = null;
+  let conversationId = null;
+  let conversationCreatedHere = false;
   try {
-    const userId = req.user.id;
+    userId = req.user.id;
     const { context } = req.body || {};
     hopLog('start', { userId, messageLen: req.body?.message?.length || 0 });
 
@@ -107,7 +114,7 @@ router.post('/message', authenticateUser, async (req, res) => {
       return res.status(validated.status).json(validated.body);
     }
     const { message } = validated;
-    let conversationId = validated.conversationId;
+    conversationId = validated.conversationId;
     chatLog(`Message received from ${userId}: "${message.substring(0, 50)}..."`);
 
     // Pre-flight gates (feature flags + subscription + usage quota +
@@ -155,7 +162,7 @@ router.post('/message', authenticateUser, async (req, res) => {
     // and BEFORE persistChatTurn (LLM timeout, tool-use error, SSE write
     // failure, context-builder crash) still leaves an empty conversation.
     // Track createdHere so the catch block can clean it up.
-    let conversationCreatedHere = false;
+    // (declared before the try — see audit-2026-06-10 hoist note above)
     if (!conversationId) {
       conversationId = await autoCreateConversation(userId, message);
       conversationCreatedHere = !!conversationId;

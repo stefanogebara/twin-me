@@ -284,14 +284,22 @@ const Settings = () => {
     try {
       setDisconnectingService(provider);
       optimisticDisconnect(provider);
-      const response = await fetch(`${API_URL}/connectors/${provider}/${user?.id}`, { method: 'DELETE' });
+      // audit-2026-06-10: this DELETE was sent without an Authorization header
+      // against an authenticateUser-protected route, so EVERY disconnect got a
+      // 401 and silently reverted — the platform reappeared with no feedback.
+      const response = await fetch(`${API_URL}/connectors/${provider}/${user?.id}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+      });
       if (response.ok) {
         await refetch();
       } else {
         await revertOptimisticUpdate();
+        toast.error(`Could not disconnect ${provider}. Please try again.`);
       }
     } catch {
       await revertOptimisticUpdate();
+      toast.error(`Could not disconnect ${provider}. Please try again.`);
     } finally {
       setDisconnectingService(null);
     }

@@ -73,7 +73,12 @@ interface SoulSignatureLayers {
   rhythms: SoulRhythms;
   taste: SoulTaste;
   connections: SoulConnections;
-  growth_edges: SoulGrowthEdges;
+  // audit-2026-06-10: the backend emits camelCase `growthEdges`
+  // (soulSignatureService.js:907); `growth_edges` never existed on the wire,
+  // so the drift UI was permanently stuck on "Stable signal"/"Consistent".
+  // Accept both for resilience against any older cached payloads.
+  growthEdges?: SoulGrowthEdges;
+  growth_edges?: SoulGrowthEdges;
   generated_at: string;
 }
 
@@ -521,8 +526,9 @@ const IdentityPage: React.FC = () => {
 
   // ── Drift signal ────────────────────────────────────────────────────────
 
-  const driftIsStable = !layers?.growth_edges || layers.growth_edges.isStable || layers.growth_edges.shifts.length === 0;
-  const driftShiftCount = layers?.growth_edges?.shifts?.length ?? 0;
+  const growthEdges = layers?.growthEdges ?? layers?.growth_edges;
+  const driftIsStable = !growthEdges || growthEdges.isStable || growthEdges.shifts.length === 0;
+  const driftShiftCount = growthEdges?.shifts?.length ?? 0;
 
   // ── Share handler ──────────────────────────────────────────────────────
 
@@ -1036,7 +1042,7 @@ const IdentityPage: React.FC = () => {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {layers!.growth_edges.shifts.map((shift) => (
+                  {growthEdges!.shifts.map((shift) => (
                     <div key={shift.domain} className="flex items-start gap-3">
                       <span className="px-2 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider flex-shrink-0 mt-0.5" style={growthTypeBadgeStyle(shift.type)}>
                         {shift.domain}

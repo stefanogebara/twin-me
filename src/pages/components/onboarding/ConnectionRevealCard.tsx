@@ -150,7 +150,8 @@ const ConnectionRevealCard: React.FC<Props> = ({ provider, onDismiss }) => {
     const prompt = encodeURIComponent(
       `What did you just learn from my ${platformLabel} data? Give me the most non-obvious observation.`
     );
-    navigate(`/talk-to-twin?prompt=${prompt}`);
+    // audit-2026-06-10: TalkToTwin reads ?prefill= (not ?prompt=)
+    navigate(`/talk-to-twin?prefill=${prompt}`);
   }, [navigate, platformLabel, provider]);
 
   return (
