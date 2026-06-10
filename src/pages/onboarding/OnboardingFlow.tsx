@@ -2,6 +2,7 @@ import React, { Suspense, lazy, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAnalytics } from '../../contexts/AnalyticsContext';
+import { authFetch } from '@/services/api/apiBase';
 
 const WelcomeStep = lazy(() => import('./steps/WelcomeStep'));
 const InterviewStep = lazy(() => import('./steps/InterviewStep'));
@@ -48,6 +49,13 @@ const OnboardingFlow: React.FC = () => {
   const handleComplete = () => {
     const elapsed = Math.round((Date.now() - startTime.current) / 1000);
     trackFunnel('onboarding_completed', { total_duration_seconds: elapsed });
+    // audit-2026-06-10: persist completion server-side so new-user-check
+    // never re-gates this user. Fire-and-forget — navigation must not block.
+    authFetch('/onboarding/complete', { method: 'POST' })
+      .then(res => {
+        if (!res.ok) console.error('Failed to persist onboarding completion:', res.status);
+      })
+      .catch(err => console.error('Failed to persist onboarding completion:', err));
     // Mark onboarding done — ProtectedRoute gate releases
     setNeedsOnboarding(false);
     navigate('/dashboard', { replace: true });

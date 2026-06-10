@@ -13,6 +13,8 @@ import { EvidenceSection } from './components/EvidenceSection';
 import { Video, RefreshCw, ArrowLeft, AlertCircle, Users, ThumbsUp, PieChart, BookOpen, History, Search, Download } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { PieChart as RechartsPie, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
+import { RefreshingIndicator } from './components/RefreshingIndicator';
+import { InsightsGenerationError } from './components/InsightsGenerationError';
 
 interface Reflection {
   id: string | null;
@@ -96,7 +98,7 @@ const YouTubeInsightsPage: React.FC = () => {
 
   useDocumentTitle('YouTube Insights');
 
-  const { insights, loading, generating, refreshing, error, refresh } =
+  const { insights, loading, generating, isRefreshing, error, generationError, refresh } =
     usePlatformInsights<InsightsResponse>('youtube', 'Please sign in to see your content world');
 
   const colors = {
@@ -116,7 +118,9 @@ const YouTubeInsightsPage: React.FC = () => {
     />
   );
 
-  if (loading || generating) {
+  // Keep previous insights rendered during a refresh (audit-2026-06-10);
+  // the skeleton is only for the no-data cold start.
+  if ((loading || generating) && !insights) {
     return (
       <div className="max-w-[680px] mx-auto px-6 py-16">
         <div className="flex items-center justify-between mb-8">
@@ -150,6 +154,11 @@ const YouTubeInsightsPage: React.FC = () => {
         </div>
       </div>
     );
+  }
+
+  // Generation failed with nothing to show — inline retry, not a connect CTA.
+  if (generationError && !insights) {
+    return <InsightsGenerationError message={generationError} onRetry={refresh} retrying={isRefreshing} />;
   }
 
   if (error) {
@@ -208,14 +217,16 @@ const YouTubeInsightsPage: React.FC = () => {
         </div>
         <button
           onClick={refresh}
-          disabled={refreshing}
+          disabled={isRefreshing}
           className="p-2 rounded-lg"
           title="Get a fresh observation"
           style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
         >
-          <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} style={{ color: colors.text }} />
+          <RefreshCw className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`} style={{ color: colors.text }} />
         </button>
       </div>
+
+      <RefreshingIndicator visible={isRefreshing} />
 
       {/* Extension Install Banner */}
       {!insights?.hasExtensionData && (

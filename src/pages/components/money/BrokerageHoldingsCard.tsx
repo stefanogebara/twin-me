@@ -117,7 +117,7 @@ const EmptyState: React.FC<{ itemsScanned: number; itemsWithError: number; onRef
         }}
       >
         <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
-        {loading ? 'Atualizando…' : 'Atualizar'}
+        {loading ? 'Refreshing…' : 'Refresh'}
       </button>
     </div>
   );

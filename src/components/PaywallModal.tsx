@@ -133,7 +133,8 @@ const PaywallModal: React.FC<Props> = ({ isOpen }) => {
 
         {/* Footer */}
         <p className="text-xs text-center" style={{ color: 'rgba(255,255,255,0.4)' }}>
-          Cancel anytime. Annual plans available — 2 months free.
+          {/* audit-2026-06-10: monthly billing only — no annual checkout exists */}
+          Cancel anytime.
         </p>
       </div>
     </div>

@@ -18,6 +18,8 @@ import { WeeklyHeatmap } from './components/WeeklyHeatmap';
 import { TodayTimeline } from './components/TodayTimeline';
 import { CalendarEmptyState } from './components/CalendarEmptyState';
 import { CalendarSkeleton } from './components/CalendarSkeleton';
+import { RefreshingIndicator } from './components/RefreshingIndicator';
+import { InsightsGenerationError } from './components/InsightsGenerationError';
 import { Calendar, AlertCircle, Clock, CalendarDays } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -120,7 +122,7 @@ const CalendarInsightsPage: React.FC = () => {
 
   const navigate = useNavigate();
 
-  const { insights, loading, generating, refreshing, error, refresh } =
+  const { insights, loading, generating, isRefreshing, error, generationError, refresh } =
     usePlatformInsights<InsightsResponse>('calendar', 'Please sign in to see your time patterns');
 
   const colors = {
@@ -130,12 +132,19 @@ const CalendarInsightsPage: React.FC = () => {
     calendarBg: 'rgba(66, 133, 244, 0.1)'
   };
 
-  if (loading || generating) {
+  // Keep previous insights rendered during a refresh (audit-2026-06-10);
+  // the skeleton is only for the no-data cold start.
+  if ((loading || generating) && !insights) {
     return (
       <div className="max-w-[680px] mx-auto px-6 py-16">
         <CalendarSkeleton />
       </div>
     );
+  }
+
+  // Generation failed with nothing to show — inline retry, not a connect CTA.
+  if (generationError && !insights) {
+    return <InsightsGenerationError message={generationError} onRetry={refresh} retrying={isRefreshing} />;
   }
 
   if (error) {
@@ -171,8 +180,10 @@ const CalendarInsightsPage: React.FC = () => {
         textSecondaryColor={colors.textSecondary}
         onBack={() => navigate('/dashboard')}
         onRefresh={refresh}
-        isRefreshing={refreshing}
+        isRefreshing={isRefreshing}
       />
+
+      <RefreshingIndicator visible={isRefreshing} />
 
       {insights?.todayEvents && insights.todayEvents.length > 0 && (
         <TodayTimeline

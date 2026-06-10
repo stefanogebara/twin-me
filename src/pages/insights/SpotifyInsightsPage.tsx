@@ -18,12 +18,14 @@ import type { InsightsResponse } from './components/spotifyTypes';
 import { SpotifySkeleton } from './components/SpotifySkeleton';
 import { SpotifyCharts } from './components/SpotifyCharts';
 import { SpotifyEmptyState } from './components/SpotifyEmptyState';
+import { RefreshingIndicator } from './components/RefreshingIndicator';
+import { InsightsGenerationError } from './components/InsightsGenerationError';
 
 const SpotifyInsightsPage: React.FC = () => {
   useDocumentTitle('Spotify Insights');
 
   const navigate = useNavigate();
-  const { insights, loading, generating, refreshing, error, refresh } =
+  const { insights, loading, generating, isRefreshing, error, generationError, refresh } =
     usePlatformInsights<InsightsResponse>('spotify', 'Please sign in to see your musical soul');
 
   const colors = {
@@ -34,9 +36,16 @@ const SpotifyInsightsPage: React.FC = () => {
   };
 
   // Loading / generating: show the skeleton while the twin's reflection is
-  // generated in the background (cold cache) rather than a misleading empty state.
-  if (loading || generating) {
+  // generated in the background (cold cache) rather than a misleading empty
+  // state. With previous insights on screen (refresh), keep them rendered and
+  // show the inline refreshing indicator instead (audit-2026-06-10).
+  if ((loading || generating) && !insights) {
     return <SpotifySkeleton />;
+  }
+
+  // Generation failed with nothing to show — inline retry, not a connect CTA.
+  if (generationError && !insights) {
+    return <InsightsGenerationError message={generationError} onRetry={refresh} retrying={isRefreshing} />;
   }
 
   // Error state
@@ -128,7 +137,7 @@ const SpotifyInsightsPage: React.FC = () => {
         {/* Refresh Button */}
         <button
           onClick={refresh}
-          disabled={refreshing}
+          disabled={isRefreshing}
           className="p-2 rounded-lg"
           title="Get a fresh observation"
           style={{
@@ -137,10 +146,12 @@ const SpotifyInsightsPage: React.FC = () => {
           }}
         >
           <RefreshCw
-            className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`}
+            className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`}
           />
         </button>
       </div>
+
+      <RefreshingIndicator visible={isRefreshing} />
 
       {/* Charts: Recent Tracks, Top Artists, Genre Distribution, Listening Hours, Current Mood */}
       {insights && (

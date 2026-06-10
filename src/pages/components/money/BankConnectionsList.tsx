@@ -26,21 +26,21 @@ function statusStyle(status: string): { bg: string; fg: string; label: string } 
   switch (status) {
     case 'UPDATED':
     case 'CONNECTED':                                    // Plaid: successful link
-      return { bg: 'rgba(34, 197, 94, 0.12)', fg: 'rgba(134, 239, 172, 0.95)', label: 'sincronizado' };
+      return { bg: 'rgba(34, 197, 94, 0.12)', fg: 'rgba(134, 239, 172, 0.95)', label: 'synced' };
     case 'UPDATING':
-      return { bg: 'rgba(217, 119, 6, 0.12)', fg: 'rgba(232, 160, 80, 0.95)', label: 'sincronizando' };
+      return { bg: 'rgba(217, 119, 6, 0.12)', fg: 'rgba(232, 160, 80, 0.95)', label: 'syncing' };
     case 'LOGIN_ERROR':
     case 'LOGIN_REQUIRED':                               // Plaid ITEM_LOGIN_REQUIRED equivalent
     case 'ERROR':                                        // Plaid generic error state
-      return { bg: 'rgba(239, 68, 68, 0.12)', fg: 'rgba(248, 113, 113, 0.95)', label: 'reconectar' };
+      return { bg: 'rgba(239, 68, 68, 0.12)', fg: 'rgba(248, 113, 113, 0.95)', label: 'reconnect' };
     case 'WAITING_USER_INPUT':
-      return { bg: 'rgba(217, 119, 6, 0.12)', fg: 'rgba(232, 160, 80, 0.95)', label: 'precisa de MFA' };
+      return { bg: 'rgba(217, 119, 6, 0.12)', fg: 'rgba(232, 160, 80, 0.95)', label: 'needs MFA' };
     case 'PENDING_EXPIRATION':                           // Plaid consent about to expire
-      return { bg: 'rgba(217, 119, 6, 0.12)', fg: 'rgba(232, 160, 80, 0.95)', label: 'expira em breve' };
+      return { bg: 'rgba(217, 119, 6, 0.12)', fg: 'rgba(232, 160, 80, 0.95)', label: 'expires soon' };
     case 'REVOKED':                                      // Plaid USER_PERMISSION_REVOKED
-      return { bg: 'rgba(239, 68, 68, 0.12)', fg: 'rgba(248, 113, 113, 0.95)', label: 'revogado' };
+      return { bg: 'rgba(239, 68, 68, 0.12)', fg: 'rgba(248, 113, 113, 0.95)', label: 'revoked' };
     case 'OUTDATED':
-      return { bg: 'rgba(255,255,255,0.06)', fg: 'rgba(255,255,255,0.55)', label: 'desatualizado' };
+      return { bg: 'rgba(255,255,255,0.06)', fg: 'rgba(255,255,255,0.55)', label: 'out of date' };
     default:
       return { bg: 'rgba(255,255,255,0.06)', fg: 'rgba(255,255,255,0.55)', label: status.toLowerCase() };
   }
@@ -65,12 +65,12 @@ function relativeTime(iso: string | null): string {
   if (!iso) return '—';
   const diffMs = Date.now() - new Date(iso).getTime();
   const mins = Math.floor(diffMs / 60_000);
-  if (mins < 1) return 'agora';
-  if (mins < 60) return `${mins}min atrás`;
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
   const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h atrás`;
+  if (hours < 24) return `${hours}h ago`;
   const days = Math.floor(hours / 24);
-  return `${days}d atrás`;
+  return `${days}d ago`;
 }
 
 interface Props {
@@ -112,7 +112,7 @@ export function BankConnectionsList({ onChanged }: Props) {
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('Desconectar este banco? Suas transações anteriores serão mantidas.')) return;
+    if (!window.confirm('Disconnect this bank? Your previous transactions will be kept.')) return;
     setBusyId(id);
     try {
       const provider = connections.find(c => c.id === id)?.provider;
@@ -189,7 +189,7 @@ export function BankConnectionsList({ onChanged }: Props) {
                   className="text-xs"
                   style={{ color: 'rgba(255,255,255,0.45)', fontFamily: "'Geist', 'Inter', sans-serif" }}
                 >
-                  última sync {relativeTime(c.last_synced_at)}
+                  last sync {relativeTime(c.last_synced_at)}
                 </div>
               </div>
             </div>
@@ -209,8 +209,8 @@ export function BankConnectionsList({ onChanged }: Props) {
                 disabled={busyId === c.id}
                 className="p-1.5 rounded-md transition-colors disabled:opacity-50"
                 style={{ color: 'rgba(255,255,255,0.55)' }}
-                title="Sincronizar agora"
-                aria-label="Sincronizar"
+                title="Sync now"
+                aria-label="Sync"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${busyId === c.id ? 'animate-spin' : ''}`} />
               </button>
@@ -219,8 +219,8 @@ export function BankConnectionsList({ onChanged }: Props) {
                 disabled={busyId === c.id}
                 className="p-1.5 rounded-md transition-colors disabled:opacity-50"
                 style={{ color: 'rgba(255,255,255,0.45)' }}
-                title="Desconectar"
-                aria-label="Desconectar"
+                title="Disconnect"
+                aria-label="Disconnect"
               >
                 <Trash2 className="w-3.5 h-3.5" />
               </button>

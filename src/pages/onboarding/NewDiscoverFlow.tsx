@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAnalytics } from '@/contexts/AnalyticsContext';
-import { API_URL, getAccessToken } from '@/services/api/apiBase';
+import { API_URL, getAccessToken, authFetch } from '@/services/api/apiBase';
 import { enrichmentService, QuickEnrichmentData, EnrichmentData, PersonalizedQuestion, OnboardingBriefing } from '@/services/enrichmentService';
 import ParticleField from './components/ParticleField';
 import PlatformConnectStep from './components/PlatformConnectStep';
@@ -556,6 +556,13 @@ const NewDiscoverFlow: React.FC = () => {
   }, [navigate]);
 
   const handleComplete = () => {
+    // audit-2026-06-10: persist completion server-side so new-user-check
+    // never re-gates this user. Fire-and-forget — navigation must not block.
+    authFetch('/onboarding/complete', { method: 'POST' })
+      .then(res => {
+        if (!res.ok) console.error('Failed to persist onboarding completion:', res.status);
+      })
+      .catch(err => console.error('Failed to persist onboarding completion:', err));
     setPhaseTracked('complete');
     navigate('/dashboard');
   };

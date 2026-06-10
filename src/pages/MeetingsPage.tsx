@@ -37,24 +37,24 @@ function timeUntil(iso: string | null): string {
   const ms = new Date(iso).getTime() - Date.now();
   const abs = Math.abs(ms);
   const minutes = Math.round(abs / 60_000);
-  if (minutes < 1) return ms >= 0 ? 'agora mesmo' : 'agora';
-  if (minutes < 60) return ms >= 0 ? `em ${minutes} min` : `há ${minutes} min`;
+  if (minutes < 1) return ms >= 0 ? 'right now' : 'just now';
+  if (minutes < 60) return ms >= 0 ? `in ${minutes} min` : `${minutes} min ago`;
   const hours = Math.round(minutes / 60);
-  if (hours < 24) return ms >= 0 ? `em ${hours}h` : `há ${hours}h`;
+  if (hours < 24) return ms >= 0 ? `in ${hours}h` : `${hours}h ago`;
   const days = Math.round(hours / 24);
-  return ms >= 0 ? `em ${days}d` : `há ${days}d`;
+  return ms >= 0 ? `in ${days}d` : `${days}d ago`;
 }
 
 /**
- * "Hoje" / "Amanhã" / "Ontem" when the date is within a day of now —
+ * "Today" / "Tomorrow" / "Yesterday" when the date is within a day of now —
  * otherwise null and the caller falls back to the weekday+date format.
  */
 function relativeDayLabel(d: Date): string | null {
   const startOfDay = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
   const diffDays = Math.round((startOfDay(d) - startOfDay(new Date())) / 86_400_000);
-  if (diffDays === 0) return 'Hoje';
-  if (diffDays === 1) return 'Amanhã';
-  if (diffDays === -1) return 'Ontem';
+  if (diffDays === 0) return 'Today';
+  if (diffDays === 1) return 'Tomorrow';
+  if (diffDays === -1) return 'Yesterday';
   return null;
 }
 
@@ -62,8 +62,8 @@ function formatTimeRange(start: string | null, end: string | null): string {
   if (!start) return '';
   const s = new Date(start);
   const e = end ? new Date(end) : null;
-  const dayFmt = new Intl.DateTimeFormat('pt-BR', { weekday: 'short', day: '2-digit', month: 'short' });
-  const timeFmt = new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  const dayFmt = new Intl.DateTimeFormat('en-US', { weekday: 'short', day: '2-digit', month: 'short' });
+  const timeFmt = new Intl.DateTimeFormat('en-US', { hour: '2-digit', minute: '2-digit' });
   const dayLabel = relativeDayLabel(s) || dayFmt.format(s);
   if (e) return `${dayLabel} · ${timeFmt.format(s)} – ${timeFmt.format(e)}`;
   return `${dayLabel} · ${timeFmt.format(s)}`;
@@ -79,7 +79,7 @@ function DebriefSection({ debrief }: { debrief: NonNullable<MeetingBriefing['bri
       }}
     >
       <p style={{ ...LABEL, color: 'rgba(165,164,224,0.90)', marginBottom: 8 }}>
-        <RefreshCw className="w-3 h-3 inline-block mr-1.5 -mt-0.5" /> Depois da reunião — leitura do twin
+        <RefreshCw className="w-3 h-3 inline-block mr-1.5 -mt-0.5" /> After the meeting — the twin's read
       </p>
 
       {debrief.summary && (
@@ -99,7 +99,7 @@ function DebriefSection({ debrief }: { debrief: NonNullable<MeetingBriefing['bri
 
       {debrief.likelyCovered && debrief.likelyCovered.length > 0 && (
         <div className="mb-3">
-          <p style={{ ...LABEL, fontSize: 10, marginBottom: 6 }}>Provavelmente abordado</p>
+          <p style={{ ...LABEL, fontSize: 10, marginBottom: 6 }}>Likely covered</p>
           <ul className="space-y-1">
             {debrief.likelyCovered.map((t, i) => (
               <li
@@ -123,7 +123,7 @@ function DebriefSection({ debrief }: { debrief: NonNullable<MeetingBriefing['bri
       {debrief.probableActionItems && debrief.probableActionItems.length > 0 && (
         <div className="mb-3">
           <p style={{ ...LABEL, fontSize: 10, marginBottom: 6 }}>
-            <CheckSquare className="w-3 h-3 inline-block mr-1 -mt-0.5" /> Ações prováveis
+            <CheckSquare className="w-3 h-3 inline-block mr-1 -mt-0.5" /> Probable action items
           </p>
           <div className="space-y-1.5">
             {debrief.probableActionItems.map((ai, i) => (
@@ -144,7 +144,7 @@ function DebriefSection({ debrief }: { debrief: NonNullable<MeetingBriefing['bri
                     color: ai.owner === 'me' ? 'rgba(232,160,80,0.95)' : 'rgba(255,255,255,0.55)',
                   }}
                 >
-                  {ai.owner === 'me' ? 'você' : ai.owner}
+                  {ai.owner === 'me' ? 'you' : ai.owner}
                 </span>
                 <span
                   style={{
@@ -165,7 +165,7 @@ function DebriefSection({ debrief }: { debrief: NonNullable<MeetingBriefing['bri
       {debrief.followUpsRecommended && debrief.followUpsRecommended.length > 0 && (
         <div className="mb-3">
           <p style={{ ...LABEL, fontSize: 10, marginBottom: 6 }}>
-            <ArrowRight className="w-3 h-3 inline-block mr-1 -mt-0.5" /> Próximos passos sugeridos
+            <ArrowRight className="w-3 h-3 inline-block mr-1 -mt-0.5" /> Suggested next steps
           </p>
           <ul className="space-y-1">
             {debrief.followUpsRecommended.map((f, i) => (
@@ -190,7 +190,7 @@ function DebriefSection({ debrief }: { debrief: NonNullable<MeetingBriefing['bri
       {debrief.relationshipNotes && debrief.relationshipNotes.length > 0 && (
         <div>
           <p style={{ ...LABEL, fontSize: 10, marginBottom: 6 }}>
-            <Heart className="w-3 h-3 inline-block mr-1 -mt-0.5" /> Pra lembrar
+            <Heart className="w-3 h-3 inline-block mr-1 -mt-0.5" /> Worth remembering
           </p>
           <div className="space-y-1.5">
             {debrief.relationshipNotes.map((rn, i) => (
@@ -221,7 +221,7 @@ function DebriefSection({ debrief }: { debrief: NonNullable<MeetingBriefing['bri
  * actual calendar invite only goes out when THEY confirm it.
  */
 function buildFollowUpUrl(briefing: MeetingBriefing): string {
-  const base = briefing.summary || briefing.briefing?.headline || 'Reunião';
+  const base = briefing.summary || briefing.briefing?.headline || 'Meeting';
   const text = `Follow-up: ${base}`;
   const attendeeEmails = (briefing.attendees || [])
     .filter((a) => a.email && !a.organizer)
@@ -230,7 +230,7 @@ function buildFollowUpUrl(briefing: MeetingBriefing): string {
   const detailLines: string[] = [];
   if (debrief?.summary) detailLines.push(debrief.summary);
   if (debrief?.followUpsRecommended?.length) {
-    detailLines.push('', 'Próximos passos:');
+    detailLines.push('', 'Next steps:');
     debrief.followUpsRecommended.forEach((f) => detailLines.push(`- ${f}`));
   }
   const params = new URLSearchParams({ action: 'TEMPLATE', text });
@@ -276,7 +276,7 @@ const VARIANT_STYLE: Record<CardVariant, {
 
 function BriefingCard({ briefing, variant }: { briefing: MeetingBriefing; variant: CardVariant }) {
   const b = briefing.briefing || {};
-  const title = briefing.summary || briefing.headline || 'Reunião sem título';
+  const title = briefing.summary || briefing.headline || 'Untitled meeting';
   const until = timeUntil(briefing.startTime);
   const range = formatTimeRange(briefing.startTime, briefing.endTime);
   const hasDebrief = !!b.debrief;
@@ -340,7 +340,7 @@ function BriefingCard({ briefing, variant }: { briefing: MeetingBriefing; varian
                   style={{ width: 6, height: 6, background: 'rgba(110,210,160,0.95)' }}
                 />
               )}
-              {isInProgress ? 'Acontecendo agora' : until}
+              {isInProgress ? 'Happening now' : until}
             </p>
           )}
           <h2
@@ -387,7 +387,7 @@ function BriefingCard({ briefing, variant }: { briefing: MeetingBriefing; varian
             fontWeight: 600,
           }}
         >
-          <ExternalLink className="w-3.5 h-3.5" /> Entrar na reunião
+          <ExternalLink className="w-3.5 h-3.5" /> Join meeting
         </a>
       )}
 
@@ -411,7 +411,7 @@ function BriefingCard({ briefing, variant }: { briefing: MeetingBriefing; varian
               color: 'rgba(165,164,224,0.95)',
             }}
           >
-            Debrief a caminho — o twin está processando
+            Debrief on the way — the twin is processing
           </span>
         </div>
       )}
@@ -429,8 +429,8 @@ function BriefingCard({ briefing, variant }: { briefing: MeetingBriefing; varian
             fontStyle: 'italic',
           }}
         >
-          O twin não encontrou contexto suficiente para um briefing completo —
-          tente "Atualizar" mais perto da hora, ou abra a reunião para conferir os detalhes.
+          The twin couldn't find enough context for a full briefing —
+          try "Refresh" closer to the start time, or open the meeting to check the details.
         </p>
       )}
 
@@ -456,7 +456,7 @@ function BriefingCard({ briefing, variant }: { briefing: MeetingBriefing; varian
 
       {hasDebrief && (
         <p style={{ ...LABEL, fontSize: 10, marginBottom: 8, color: 'rgba(255,255,255,0.35)' }}>
-          O que o twin preparou antes
+          What the twin prepped beforehand
         </p>
       )}
 
@@ -464,7 +464,7 @@ function BriefingCard({ briefing, variant }: { briefing: MeetingBriefing; varian
       {b.attendees && b.attendees.length > 0 && (
         <div className="mb-4">
           <p style={{ ...LABEL, marginBottom: 8 }}>
-            <Users className="w-3 h-3 inline-block mr-1.5 -mt-0.5" /> Quem está na sala
+            <Users className="w-3 h-3 inline-block mr-1.5 -mt-0.5" /> Who's in the room
           </p>
           <div className="space-y-2">
             {b.attendees.map((a, i) => (
@@ -511,7 +511,7 @@ function BriefingCard({ briefing, variant }: { briefing: MeetingBriefing; varian
                       fontStyle: 'italic',
                     }}
                   >
-                    Último contato: {a.lastTouchpoint}
+                    Last touchpoint: {a.lastTouchpoint}
                   </p>
                 )}
               </div>
@@ -524,7 +524,7 @@ function BriefingCard({ briefing, variant }: { briefing: MeetingBriefing; varian
       {b.talkingPoints && b.talkingPoints.length > 0 && (
         <div className="mb-4">
           <p style={{ ...LABEL, marginBottom: 8 }}>
-            <Sparkles className="w-3 h-3 inline-block mr-1.5 -mt-0.5" /> Pontos a abordar
+            <Sparkles className="w-3 h-3 inline-block mr-1.5 -mt-0.5" /> Talking points
           </p>
           <ul className="space-y-1.5">
             {b.talkingPoints.map((tp, i) => (
@@ -550,7 +550,7 @@ function BriefingCard({ briefing, variant }: { briefing: MeetingBriefing; varian
       {b.watchOuts && b.watchOuts.length > 0 && (
         <div className="mb-4">
           <p style={{ ...LABEL, color: 'rgba(248,113,113,0.85)', marginBottom: 8 }}>
-            <AlertCircle className="w-3 h-3 inline-block mr-1.5 -mt-0.5" /> Cuidados
+            <AlertCircle className="w-3 h-3 inline-block mr-1.5 -mt-0.5" /> Watch out for
           </p>
           <ul className="space-y-1.5">
             {b.watchOuts.map((w, i) => (
@@ -575,7 +575,7 @@ function BriefingCard({ briefing, variant }: { briefing: MeetingBriefing; varian
       {/* My context */}
       {b.myContext && (
         <div className="mb-4">
-          <p style={{ ...LABEL, marginBottom: 6 }}>O que você traz</p>
+          <p style={{ ...LABEL, marginBottom: 6 }}>What you bring</p>
           <p
             style={{
               fontFamily: "'Geist', 'Inter', sans-serif",
@@ -605,7 +605,7 @@ function BriefingCard({ briefing, variant }: { briefing: MeetingBriefing; varian
               fontWeight: 500,
             }}
           >
-            <Calendar className="w-3 h-3" /> Abrir reunião
+            <Calendar className="w-3 h-3" /> Open meeting
           </a>
         )}
 
@@ -615,8 +615,8 @@ function BriefingCard({ briefing, variant }: { briefing: MeetingBriefing; varian
           onClick={handleRecap}
           disabled={!hasDebrief || recapState === 'loading'}
           title={hasDebrief
-            ? 'O twin redige um e-mail de recap a partir do debrief'
-            : 'Disponível depois que o debrief pós-reunião for gerado'}
+            ? 'The twin drafts a recap email from the debrief'
+            : 'Available once the post-meeting debrief is generated'}
           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[100px] transition-colors disabled:opacity-40"
           style={{
             background: hasDebrief ? 'rgba(193,126,44,0.14)' : 'rgba(255,255,255,0.06)',
@@ -629,10 +629,10 @@ function BriefingCard({ briefing, variant }: { briefing: MeetingBriefing; varian
           }}
         >
           {recapState === 'loading'
-            ? <><Loader2 className="w-3 h-3 animate-spin" /> Redigindo…</>
+            ? <><Loader2 className="w-3 h-3 animate-spin" /> Drafting…</>
             : recapState === 'done'
-              ? <><Check className="w-3 h-3" /> Recap pronto</>
-              : <><Mail className="w-3 h-3" /> Recap por e-mail</>}
+              ? <><Check className="w-3 h-3" /> Recap ready</>
+              : <><Mail className="w-3 h-3" /> Email recap</>}
         </button>
 
         {/* Follow-up — pre-filled Google Calendar create form, client-side */}
@@ -640,7 +640,7 @@ function BriefingCard({ briefing, variant }: { briefing: MeetingBriefing; varian
           href={buildFollowUpUrl(briefing)}
           target="_blank"
           rel="noreferrer"
-          title="Abre o Google Calendar com título e convidados pré-preenchidos — você escolhe o horário"
+          title="Opens Google Calendar with title and guests pre-filled — you pick the time"
           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[100px] transition-colors"
           style={{
             background: 'rgba(255,255,255,0.06)',
@@ -651,7 +651,7 @@ function BriefingCard({ briefing, variant }: { briefing: MeetingBriefing; varian
             fontWeight: 500,
           }}
         >
-          <CalendarPlus className="w-3 h-3" /> Agendar follow-up
+          <CalendarPlus className="w-3 h-3" /> Schedule follow-up
         </a>
       </div>
 
@@ -675,13 +675,13 @@ function BriefingCard({ briefing, variant }: { briefing: MeetingBriefing; varian
                 lineHeight: 1.4,
               }}
             >
-              {recap.error || 'Não foi possível gerar o recap.'}
+              {recap.error || 'Could not generate the recap.'}
             </p>
           ) : (
             <>
               <div className="flex items-center justify-between gap-3 mb-2">
                 <p style={{ ...LABEL, color: 'rgba(232,160,80,0.85)' }}>
-                  <Mail className="w-3 h-3 inline-block mr-1.5 -mt-0.5" /> Rascunho do twin
+                  <Mail className="w-3 h-3 inline-block mr-1.5 -mt-0.5" /> The twin's draft
                 </p>
                 {recap.gmailUrl && (
                   <a
@@ -696,7 +696,7 @@ function BriefingCard({ briefing, variant }: { briefing: MeetingBriefing; varian
                       color: 'rgba(232,160,80,0.95)',
                     }}
                   >
-                    Abrir no Gmail <ExternalLink className="w-3 h-3" />
+                    Open in Gmail <ExternalLink className="w-3 h-3" />
                   </a>
                 )}
               </div>
@@ -709,7 +709,7 @@ function BriefingCard({ briefing, variant }: { briefing: MeetingBriefing; varian
                     marginBottom: 4,
                   }}
                 >
-                  Para: {recap.to}
+                  To: {recap.to}
                 </p>
               )}
               <p
@@ -770,7 +770,7 @@ function EmptyState() {
           letterSpacing: '-0.01em',
         }}
       >
-        Nenhuma reunião por aqui ainda
+        No meetings here yet
       </p>
       <p
         style={{
@@ -780,9 +780,9 @@ function EmptyState() {
           lineHeight: 1.6,
         }}
       >
-        Quando você tiver reuniões agendadas no Google Calendar com convidados externos,<br />
-        o twin gera um briefing automático aqui — uma hora antes você sabe quem é quem,<br />
-        o que falar, e o que evitar.
+        When you have meetings on Google Calendar with external guests,<br />
+        the twin generates a briefing here automatically — an hour ahead you know who's who,<br />
+        what to say, and what to avoid.
       </p>
     </div>
   );
@@ -826,7 +826,7 @@ export default function MeetingsPage() {
     try {
       const res = await fetchMeetingBriefings(signal);
       if (!res.success) {
-        setError(res.error || 'Falha ao carregar briefings');
+        setError(res.error || 'Failed to load briefings');
         return;
       }
       setInProgress(res.inProgress || []);
@@ -855,32 +855,32 @@ export default function MeetingsPage() {
     return () => clearTimeout(t);
   }, [scanNote]);
 
-  // "Atualizar" — scan the calendar now, then reload the list.
+  // "Refresh" — scan the calendar now, then reload the list.
   const handleScan = useCallback(async () => {
     setScanning(true);
     setScanNote(null);
     try {
       const res = await scanMeetings();
       if (!res.success) {
-        setScanNote(res.error || 'Não foi possível escanear o calendário');
+        setScanNote(res.error || 'Could not scan the calendar');
         return;
       }
       const generated = res.briefingsGenerated ?? 0;
       const scanned = res.scanned ?? 0;
       const deferred = res.deferred ?? 0;
       const base = generated > 0
-        ? `${generated} ${generated === 1 ? 'reunião nova preparada' : 'reuniões novas preparadas'}`
+        ? `${generated} new ${generated === 1 ? 'meeting' : 'meetings'} prepped`
         : scanned > 0
-          ? `${scanned} ${scanned === 1 ? 'reunião já estava' : 'reuniões já estavam'} em dia`
-          : 'Nenhuma reunião nas próximas 26h';
+          ? `${scanned} ${scanned === 1 ? 'meeting was' : 'meetings were'} already up to date`
+          : 'No meetings in the next 26h';
       setScanNote(
         deferred > 0
-          ? `${base} · ${deferred} ${deferred === 1 ? 'reunião ficará' : 'reuniões ficarão'} para o preparo automático`
+          ? `${base} · ${deferred} ${deferred === 1 ? 'meeting' : 'meetings'} left for automatic prep`
           : base,
       );
       await load();
     } catch {
-      setScanNote('Erro ao escanear o calendário');
+      setScanNote('Error scanning the calendar');
     } finally {
       setScanning(false);
     }
@@ -918,10 +918,10 @@ export default function MeetingsPage() {
             fontFamily: "'Geist', 'Inter', sans-serif",
             flexShrink: 0,
           }}
-          title="Escaneia seu Google Calendar agora e prepara as reuniões das próximas 26h"
+          title="Scans your Google Calendar now and preps the meetings in the next 26h"
         >
           <RefreshCw className={`w-3 h-3 ${scanning ? 'animate-spin' : ''}`} />
-          {scanning ? 'Escaneando…' : 'Atualizar'}
+          {scanning ? 'Scanning…' : 'Refresh'}
         </button>
       </div>
       {scanNote && (
@@ -946,7 +946,7 @@ export default function MeetingsPage() {
           letterSpacing: '-0.01em',
         }}
       >
-        Seu twin chega antes de você. Em cada reunião.
+        Your twin gets there before you. To every meeting.
       </p>
 
       {error && (
@@ -980,7 +980,7 @@ export default function MeetingsPage() {
       {!loading && inProgress.length > 0 && (
         <>
           <p style={{ ...LABEL, marginBottom: 10, color: 'rgba(110,210,160,0.95)' }}>
-            Acontecendo agora · {inProgress.length}
+            Happening now · {inProgress.length}
           </p>
           <div className="space-y-4 mb-8">
             {inProgress.map((m) => (
@@ -992,7 +992,7 @@ export default function MeetingsPage() {
 
       {!loading && hero && (
         <>
-          <p style={{ ...LABEL, marginBottom: 10 }}>Próxima</p>
+          <p style={{ ...LABEL, marginBottom: 10 }}>Next</p>
           <div className="mb-8">
             <BriefingCard briefing={hero} variant="hero" />
           </div>
@@ -1001,7 +1001,7 @@ export default function MeetingsPage() {
 
       {!loading && restUpcoming.length > 0 && (
         <>
-          <p style={{ ...LABEL, marginBottom: 10 }}>Em breve · {restUpcoming.length}</p>
+          <p style={{ ...LABEL, marginBottom: 10 }}>Coming up · {restUpcoming.length}</p>
           <div className="space-y-4 mb-8">
             {restUpcoming.map((m) => (
               <BriefingCard key={m.id} briefing={m} variant="normal" />
@@ -1013,7 +1013,7 @@ export default function MeetingsPage() {
       {!loading && recent.length > 0 && (
         <>
           <p style={{ ...LABEL, marginBottom: 10 }}>
-            <RefreshCw className="w-3 h-3 inline-block mr-1.5 -mt-0.5" /> Últimas · {recent.length}
+            <RefreshCw className="w-3 h-3 inline-block mr-1.5 -mt-0.5" /> Recent · {recent.length}
           </p>
           <div className="space-y-4 mb-8">
             {recent.map((m) => (
@@ -1025,7 +1025,7 @@ export default function MeetingsPage() {
 
       {!loading && undated.length > 0 && (
         <>
-          <p style={{ ...LABEL, marginBottom: 10 }}>Sem horário · {undated.length}</p>
+          <p style={{ ...LABEL, marginBottom: 10 }}>No time set · {undated.length}</p>
           <div className="space-y-4">
             {undated.map((m) => (
               <BriefingCard key={m.id} briefing={m} variant="normal" />

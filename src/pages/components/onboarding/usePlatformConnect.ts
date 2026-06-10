@@ -4,8 +4,10 @@
  */
 
 import { useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { DataProvider } from '@/types/data-integration';
 import { API_URL, getAccessToken } from '@/services/api/apiBase';
+import { invalidatePlatformState } from '@/hooks/usePlatformsSummary';
 import { useAnalytics } from '@/contexts/AnalyticsContext';
 import { useToast } from '@/components/ui/use-toast';
 import { AVAILABLE_CONNECTORS } from '../../onboarding/components/connectorConfig';
@@ -65,6 +67,7 @@ export function usePlatformConnect({
 }: UsePlatformConnectOptions) {
   const { trackFunnel } = useAnalytics();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const handleNangoPopup = useCallback((provider: DataProvider, connectUrl: string, preOpened?: Window | null) => {
     let popup: Window | null = null;
@@ -115,6 +118,9 @@ export function usePlatformConnect({
           toast({ title: 'Connected', description: CONNECTION_INSIGHT_MESSAGES[provider] || `${platformName} is now connected` });
           trackFunnel('platform_connection_verified', { platform: provider, retries: retryCount });
           await refetchPlatformStatus();
+          // audit-2026-06-10: also bust the canonical ['platforms'] cache so
+          // summary counts update immediately (nothing invalidated it before).
+          invalidatePlatformState(queryClient);
           setConnectingProvider(null);
           return;
         }
@@ -188,7 +194,7 @@ export function usePlatformConnect({
       trackFunnel('platform_connection_abandoned', { platform: provider });
       setConnectingProvider(null);
     }, 120000);
-  }, [toast, trackFunnel, refetchPlatformStatus, setConnectingProvider]);
+  }, [toast, trackFunnel, refetchPlatformStatus, setConnectingProvider, queryClient]);
 
   const connectService = useCallback(async (provider: DataProvider) => {
     // Handle external URL connectors (e.g. Browser Extension -> Chrome Web Store)
@@ -387,6 +393,7 @@ export function usePlatformConnect({
         handleNangoPopup(provider, result.connectUrl, preOpenedPopup);
       } else if (result.success) {
         await refetchPlatformStatus();
+        invalidatePlatformState(queryClient);
         toast({
           title: "Connected",
           description: CONNECTION_INSIGHT_MESSAGES[provider] || `${AVAILABLE_CONNECTORS.find(c => c.provider === provider)?.name} is now connected`,
@@ -407,7 +414,7 @@ export function usePlatformConnect({
     } finally {
       setConnectingProvider(null);
     }
-  }, [toast, userId, refetchPlatformStatus, trackFunnel, setConnectingProvider, setGarminModalOpen, setSteamModalOpen, setInstagramModalOpen, handleNangoPopup]);
+  }, [toast, userId, refetchPlatformStatus, trackFunnel, setConnectingProvider, setGarminModalOpen, setSteamModalOpen, setInstagramModalOpen, handleNangoPopup, queryClient]);
 
   const disconnectService = useCallback(async (provider: DataProvider) => {
     if (!userId) return;
@@ -437,6 +444,7 @@ export function usePlatformConnect({
       }
 
       await refetchPlatformStatus();
+      invalidatePlatformState(queryClient);
 
       toast({
         title: "Disconnected",
@@ -454,7 +462,7 @@ export function usePlatformConnect({
     } finally {
       setDisconnectingProvider(null);
     }
-  }, [userId, toast, refetchPlatformStatus, optimisticDisconnect, revertOptimisticUpdate, setDisconnectingProvider]);
+  }, [userId, toast, refetchPlatformStatus, optimisticDisconnect, revertOptimisticUpdate, setDisconnectingProvider, queryClient]);
 
   return { connectService, disconnectService };
 }

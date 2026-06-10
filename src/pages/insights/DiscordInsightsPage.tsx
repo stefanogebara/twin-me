@@ -11,6 +11,8 @@ import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { TwinReflection, PatternObservation } from './components/TwinReflection';
 import { EvidenceSection } from './components/EvidenceSection';
 import { InsightsPageHeader } from './components/InsightsPageHeader';
+import { RefreshingIndicator } from './components/RefreshingIndicator';
+import { InsightsGenerationError } from './components/InsightsGenerationError';
 import { MessageSquare, AlertCircle, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -81,7 +83,7 @@ const DiscordInsightsPage: React.FC = () => {
 
   const navigate = useNavigate();
 
-  const { insights, loading, generating, refreshing, error, refresh } =
+  const { insights, loading, generating, isRefreshing, error, generationError, refresh } =
     usePlatformInsights<InsightsResponse>('discord', 'Please sign in to see your community insights');
 
   const colors = {
@@ -91,7 +93,9 @@ const DiscordInsightsPage: React.FC = () => {
     discordBg: 'rgba(88, 101, 242, 0.1)',
   };
 
-  if (loading || generating) {
+  // Keep previous insights rendered during a refresh (audit-2026-06-10);
+  // the skeleton is only for the no-data cold start.
+  if ((loading || generating) && !insights) {
     return (
       <div className="max-w-[680px] mx-auto px-6 py-16">
         <div className="animate-pulse space-y-4">
@@ -101,6 +105,11 @@ const DiscordInsightsPage: React.FC = () => {
         </div>
       </div>
     );
+  }
+
+  // Generation failed with nothing to show — inline retry, not a connect CTA.
+  if (generationError && !insights) {
+    return <InsightsGenerationError message={generationError} onRetry={refresh} retrying={isRefreshing} />;
   }
 
   if (error) {
@@ -133,8 +142,10 @@ const DiscordInsightsPage: React.FC = () => {
         textSecondaryColor={colors.textSecondary}
         onBack={() => navigate('/dashboard')}
         onRefresh={refresh}
-        isRefreshing={refreshing}
+        isRefreshing={isRefreshing}
       />
+
+      <RefreshingIndicator visible={isRefreshing} />
 
       {/* Server Tags */}
       {insights?.discordServers && insights.discordServers.length > 0 && (

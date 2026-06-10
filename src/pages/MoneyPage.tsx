@@ -77,14 +77,14 @@ function formatBRL(value: number): string {
 
 function formatDate(iso: string): string {
   const d = new Date(iso);
-  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+  return d.toLocaleDateString('en-US', { day: '2-digit', month: 'short' });
 }
 
 function stressChipColor(score: number | null): { bg: string; fg: string; label: string } {
-  if (score === null) return { bg: 'rgba(255,255,255,0.06)', fg: 'rgba(255,255,255,0.35)', label: 'sem sinal' };
+  if (score === null) return { bg: 'rgba(255,255,255,0.06)', fg: 'rgba(255,255,255,0.35)', label: 'no signal' };
   if (score >= 0.6) return { bg: 'rgba(217, 119, 6, 0.15)', fg: 'rgba(232, 160, 80, 0.95)', label: `stress ${Math.round(score * 100)}%` };
-  if (score >= 0.4) return { bg: 'rgba(255,255,255,0.06)', fg: 'rgba(255,255,255,0.55)', label: `moderado ${Math.round(score * 100)}%` };
-  return { bg: 'rgba(34, 197, 94, 0.12)', fg: 'rgba(134, 239, 172, 0.90)', label: `calmo ${Math.round(score * 100)}%` };
+  if (score >= 0.4) return { bg: 'rgba(255,255,255,0.06)', fg: 'rgba(255,255,255,0.55)', label: `moderate ${Math.round(score * 100)}%` };
+  return { bg: 'rgba(34, 197, 94, 0.12)', fg: 'rgba(134, 239, 172, 0.90)', label: `calm ${Math.round(score * 100)}%` };
 }
 
 interface UploadZoneProps {
@@ -101,12 +101,12 @@ function UploadZone({ onUpload, onError }: UploadZoneProps) {
     try {
       const result = await uploadStatement(file);
       if (!result.success) {
-        onError(result.error || 'Upload falhou');
+        onError(result.error || 'Upload failed');
       } else {
         onUpload(result);
       }
     } catch (err) {
-      onError(err instanceof Error ? err.message : 'Upload falhou');
+      onError(err instanceof Error ? err.message : 'Upload failed');
     } finally {
       setUploading(false);
     }
@@ -168,7 +168,7 @@ function UploadZone({ onUpload, onError }: UploadZoneProps) {
           marginBottom: 6,
         }}
       >
-        {uploading ? 'Lendo seu extrato…' : 'Arraste seu extrato aqui'}
+        {uploading ? 'Reading your statement…' : 'Drop your statement here'}
       </p>
       <p
         style={{
@@ -178,8 +178,8 @@ function UploadZone({ onUpload, onError }: UploadZoneProps) {
           lineHeight: 1.5,
         }}
       >
-        Nubank, Itaú, Bradesco, Santander — CSV, OFX ou XLSX.<br />
-        Seus dados ficam privados. Nada sai da sua conta.
+        Nubank, Itau, Bradesco, Santander — CSV, OFX, or XLSX.<br />
+        Your data stays private. Nothing leaves your account.
       </p>
     </label>
   );
@@ -206,7 +206,7 @@ function SummaryBar({ summary, currency, mixedCurrency }: { summary: Transaction
   return (
     <div style={{ ...CARD_STYLE, padding: 24 }}>
       <div className="flex items-center gap-2 mb-2">
-        <p style={{ ...LABEL_STYLE, marginBottom: 0 }}>Últimos 30 dias</p>
+        <p style={{ ...LABEL_STYLE, marginBottom: 0 }}>Last 30 days</p>
         {mixedCurrency && (
           <span
             className="px-2 py-0.5 rounded-full text-xs"
@@ -219,7 +219,7 @@ function SummaryBar({ summary, currency, mixedCurrency }: { summary: Transaction
             }}
             title="You have transactions in more than one currency. Amounts are NOT converted — each total is shown in its own currency below."
           >
-            multi-moeda
+            multi-currency
           </span>
         )}
       </div>
@@ -237,7 +237,7 @@ function SummaryBar({ summary, currency, mixedCurrency }: { summary: Transaction
             {formatCurrency(headlineOutflow, currency)}
           </p>
           <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginTop: 4, fontFamily: "'Geist', 'Inter', sans-serif" }}>
-            {mixedCurrency ? `Gasto total (${currency})` : 'Gasto total'}
+            {mixedCurrency ? `Total spending (${currency})` : 'Total spending'}
           </p>
         </div>
         <div>
@@ -253,7 +253,7 @@ function SummaryBar({ summary, currency, mixedCurrency }: { summary: Transaction
             {emotionalPct !== null ? `${emotionalPct}%` : '—'}
           </p>
           <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginTop: 4, fontFamily: "'Geist', 'Inter', sans-serif" }}>
-            Sob stress
+            Under stress
           </p>
         </div>
         <div>
@@ -269,7 +269,7 @@ function SummaryBar({ summary, currency, mixedCurrency }: { summary: Transaction
             {summary.stress_shop_count}
           </p>
           <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginTop: 4, fontFamily: "'Geist', 'Inter', sans-serif" }}>
-            Compras impulsivas
+            Impulse purchases
           </p>
         </div>
       </div>
@@ -315,21 +315,21 @@ function SummaryBar({ summary, currency, mixedCurrency }: { summary: Transaction
 
 const CATEGORY_LABELS: Record<string, string> = {
   food_delivery: 'delivery',
-  groceries: 'mercado',
-  transport: 'transporte',
-  fuel: 'combustível',
-  shopping: 'compras',
+  groceries: 'groceries',
+  transport: 'transport',
+  fuel: 'fuel',
+  shopping: 'shopping',
   streaming: 'streaming',
-  health: 'saúde',
-  fitness: 'academia',
-  travel: 'viagem',
-  utilities: 'contas',
-  entertainment: 'lazer',
-  fees: 'tarifa',
-  subscription: 'assinatura',
-  salary: 'salário',
-  transfer: 'transferência',
-  other: 'outros',
+  health: 'health',
+  fitness: 'gym',
+  travel: 'travel',
+  utilities: 'bills',
+  entertainment: 'entertainment',
+  fees: 'fees',
+  subscription: 'subscription',
+  salary: 'salary',
+  transfer: 'transfer',
+  other: 'other',
 };
 
 function FeedbackToggle({ txId, initial }: { txId: string; initial: boolean | null }) {
@@ -360,8 +360,8 @@ function FeedbackToggle({ txId, initial }: { txId: string; initial: boolean | nu
   };
 
   return (
-    <div className="flex items-center gap-1.5 mt-1" title="Foi uma compra por estresse?">
-      <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.30)', fontFamily: "'Geist','Inter',sans-serif" }}>estresse?</span>
+    <div className="flex items-center gap-1.5 mt-1" title="Was this a stress purchase?">
+      <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.30)', fontFamily: "'Geist','Inter',sans-serif" }}>stress?</span>
       <button
         onClick={() => { void toggle(true); }}
         style={{
@@ -371,7 +371,7 @@ function FeedbackToggle({ txId, initial }: { txId: string; initial: boolean | nu
           background: value === true ? 'rgba(217,119,6,0.12)' : 'transparent',
         }}
       >
-        sim
+        yes
       </button>
       <button
         onClick={() => { void toggle(false); }}
@@ -382,7 +382,7 @@ function FeedbackToggle({ txId, initial }: { txId: string; initial: boolean | nu
           background: value === false ? 'rgba(34,197,94,0.08)' : 'transparent',
         }}
       >
-        nao
+        no
       </button>
     </div>
   );
@@ -414,7 +414,7 @@ function TransactionRow({ tx }: { tx: Transaction }) {
             color: 'var(--foreground)',
           }}
         >
-          {displayMerchant || '(sem descrição)'}
+          {displayMerchant || '(no description)'}
         </p>
         <div className="flex items-center gap-2 mt-1" style={{ flexWrap: 'wrap' }}>
           <span
@@ -470,7 +470,7 @@ function TransactionRow({ tx }: { tx: Transaction }) {
                 fontWeight: 500,
               }}
             >
-              impulso
+              impulse
             </span>
           )}
           {tx.is_recurring && (
@@ -485,9 +485,9 @@ function TransactionRow({ tx }: { tx: Transaction }) {
                 fontWeight: 500,
                 letterSpacing: '0.02em',
               }}
-              title="Charge recorrente — não conta como impulso"
+              title="Recurring charge — does not count as impulse"
             >
-              recorrente
+              recurring
             </span>
           )}
           {ec?.music_valence !== null && ec?.music_valence !== undefined && (
@@ -500,9 +500,9 @@ function TransactionRow({ tx }: { tx: Transaction }) {
                 color: 'rgba(255,255,255,0.50)',
                 fontFamily: "'Geist', 'Inter', sans-serif",
               }}
-              title={`Música valence ${ec.music_valence.toFixed(2)}`}
+              title={`Music valence ${ec.music_valence.toFixed(2)}`}
             >
-              <Music className="w-3 h-3 inline-block mr-1 -mt-0.5" /> {ec.music_valence < 0.3 ? 'triste' : ec.music_valence > 0.6 ? 'feliz' : 'neutro'}
+              <Music className="w-3 h-3 inline-block mr-1 -mt-0.5" /> {ec.music_valence < 0.3 ? 'sad' : ec.music_valence > 0.6 ? 'happy' : 'neutral'}
             </span>
           )}
           {ec?.recovery_score !== null && ec?.recovery_score !== undefined && (
@@ -551,7 +551,7 @@ function NudgesTab({ nudgeStats, currency }: { nudgeStats: NudgeStats | null; cu
             marginBottom: 8,
           }}
         >
-          Ainda sem avisos
+          No alerts yet
         </p>
         <p
           style={{
@@ -561,8 +561,8 @@ function NudgesTab({ nudgeStats, currency }: { nudgeStats: NudgeStats | null; cu
             lineHeight: 1.6,
           }}
         >
-          Quando o twin detectar que voce esta prestes a gastar sob stress,<br />
-          ele te avisa antes. Os avisos aparecem aqui com os resultados.
+          When your twin detects you are about to spend under stress,<br />
+          it warns you first. Alerts show up here along with their outcomes.
         </p>
       </div>
     );
@@ -584,7 +584,7 @@ function NudgesTab({ nudgeStats, currency }: { nudgeStats: NudgeStats | null; cu
         }}
       >
         <p style={{ ...LABEL_STYLE, color: 'rgba(134,239,172,0.85)', marginBottom: 10 }}>
-          Nudges & Wins · {nudgeStats.window_days} dias
+          Nudges & Wins · {nudgeStats.window_days} days
         </p>
         <div className="grid grid-cols-3 gap-4">
           <div>
@@ -600,7 +600,7 @@ function NudgesTab({ nudgeStats, currency }: { nudgeStats: NudgeStats | null; cu
               {nudgeStats.followed_count}
             </p>
             <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginTop: 4, fontFamily: "'Geist','Inter',sans-serif" }}>
-              pausas
+              pauses
             </p>
           </div>
           <div>
@@ -616,7 +616,7 @@ function NudgesTab({ nudgeStats, currency }: { nudgeStats: NudgeStats | null; cu
               {winRate !== null ? `${winRate}%` : '—'}
             </p>
             <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginTop: 4, fontFamily: "'Geist','Inter',sans-serif" }}>
-              taxa de pausa
+              pause rate
             </p>
           </div>
           <div>
@@ -632,7 +632,7 @@ function NudgesTab({ nudgeStats, currency }: { nudgeStats: NudgeStats | null; cu
               {nudgeStats.est_saved > 0 ? formatCurrency(nudgeStats.est_saved, currency) : '—'}
             </p>
             <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginTop: 4, fontFamily: "'Geist','Inter',sans-serif" }}>
-              economizado
+              saved
             </p>
           </div>
         </div>
@@ -641,17 +641,17 @@ function NudgesTab({ nudgeStats, currency }: { nudgeStats: NudgeStats | null; cu
       {/* Recent nudge list */}
       {Array.isArray(nudgeStats.recent) && nudgeStats.recent.length > 0 && (
         <div style={{ ...CARD_STYLE, padding: '16px 0 4px' }}>
-          <p style={{ ...LABEL_STYLE, padding: '0 16px', marginBottom: 10 }}>Historico</p>
+          <p style={{ ...LABEL_STYLE, padding: '0 16px', marginBottom: 10 }}>History</p>
           <div>
             {nudgeStats.recent.map((n) => {
-              const whenTxt = new Date(n.created_at).toLocaleString('pt-BR', {
+              const whenTxt = new Date(n.created_at).toLocaleString('en-US', {
                 day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
               });
               let outcome: { text: string; bg: string; fg: string } | null = null;
               if (n.checked) {
                 outcome = n.followed
-                  ? { text: 'pausou', bg: 'rgba(134,239,172,0.14)', fg: 'rgba(134,239,172,0.95)' }
-                  : { text: 'continuou', bg: 'rgba(255,255,255,0.06)', fg: 'rgba(255,255,255,0.55)' };
+                  ? { text: 'paused', bg: 'rgba(134,239,172,0.14)', fg: 'rgba(134,239,172,0.95)' }
+                  : { text: 'went ahead', bg: 'rgba(255,255,255,0.06)', fg: 'rgba(255,255,255,0.55)' };
               }
               return (
                 <div
@@ -681,7 +681,7 @@ function NudgesTab({ nudgeStats, currency }: { nudgeStats: NudgeStats | null; cu
                       }}
                     >
                       {n.merchant
-                        ? `${formatCurrency(n.amount, currency)} em ${n.merchant}${n.stress_score !== null ? ` · stress ${Math.round(n.stress_score * 100)}%` : ''}`
+                        ? `${formatCurrency(n.amount, currency)} at ${n.merchant}${n.stress_score !== null ? ` · stress ${Math.round(n.stress_score * 100)}%` : ''}`
                         : n.body}
                     </p>
                     <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.30)', marginTop: 3, fontFamily: "'Geist','Inter',sans-serif" }}>
@@ -711,7 +711,7 @@ function NudgesTab({ nudgeStats, currency }: { nudgeStats: NudgeStats | null; cu
                         color: 'rgba(255,255,255,0.30)',
                       }}
                     >
-                      avaliando
+                      evaluating
                     </span>
                   )}
                 </div>
@@ -732,7 +732,7 @@ function NudgesTab({ nudgeStats, currency }: { nudgeStats: NudgeStats | null; cu
               lineHeight: 1.5,
             }}
           >
-            {nudgeStats.total_sent} aviso{nudgeStats.total_sent === 1 ? '' : 's'} enviado{nudgeStats.total_sent === 1 ? '' : 's'} — avaliando resultados.
+            {nudgeStats.total_sent} alert{nudgeStats.total_sent === 1 ? '' : 's'} sent — evaluating outcomes.
           </p>
         </div>
       )}
@@ -804,7 +804,7 @@ export default function MoneyPage() {
       setForecast(fc);
       setTimeline(tl);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha ao carregar transações');
+      setError(err instanceof Error ? err.message : 'Failed to load transactions');
     } finally {
       setLoading(false);
     }
@@ -853,7 +853,7 @@ export default function MoneyPage() {
       await retagTransactions();
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Retag falhou');
+      setError(err instanceof Error ? err.message : 'Retag failed');
     } finally {
       setRetagging(false);
     }
@@ -909,7 +909,7 @@ export default function MoneyPage() {
               title="Recompute emotional context with latest HRV/music/calendar data"
             >
               <RefreshCw className={`w-3 h-3 ${retagging ? 'animate-spin' : ''}`} />
-              {retagging ? 'Recalculando…' : 'Re-tag'}
+              {retagging ? 'Recalculating…' : 'Re-tag'}
             </button>
           )}
         </div>
@@ -924,7 +924,7 @@ export default function MoneyPage() {
           letterSpacing: '-0.01em',
         }}
       >
-        Seu dinheiro tem sentimentos. A gente traduz.
+        Your money has feelings. We translate them.
       </p>
 
       {/* Tab bar */}
@@ -937,7 +937,8 @@ export default function MoneyPage() {
         }}
       >
         {(['gastos', 'nudges'] as const).map((tab) => {
-          const labels = { gastos: 'Gastos', nudges: 'Nudges & Wins' };
+          // Tab key 'gastos' is internal state only — label is user-facing English.
+          const labels = { gastos: 'Spending', nudges: 'Nudges & Wins' };
           const isActive = activeTab === tab;
           return (
             <button
@@ -1002,7 +1003,7 @@ export default function MoneyPage() {
             fontFamily: "'Geist', 'Inter', sans-serif",
           }}
         >
-          ou envie um extrato CSV/OFX abaixo
+          or upload a CSV/OFX statement below
         </span>
       </div>
 
@@ -1065,7 +1066,7 @@ export default function MoneyPage() {
                 lineHeight: 1.4,
               }}
             >
-              {lastUpload.inserted} transaç{lastUpload.inserted === 1 ? 'ão' : 'ões'} salv{lastUpload.inserted === 1 ? 'a' : 'as'} · {lastUpload.source_bank} · {lastUpload.account_type === 'credit_card' ? 'cartão' : 'conta'}
+              {lastUpload.inserted} transaction{lastUpload.inserted === 1 ? '' : 's'} saved · {lastUpload.source_bank} · {lastUpload.account_type === 'credit_card' ? 'credit card' : 'account'}
             </p>
             <p
               style={{
@@ -1075,11 +1076,11 @@ export default function MoneyPage() {
                 fontFamily: "'Geist', 'Inter', sans-serif",
               }}
             >
-              Estou conectando cada compra com seu humor, stress e corpo. Volta em alguns segundos.
+              I am connecting each purchase with your mood, stress, and body. Check back in a few seconds.
             </p>
             {lastUpload.parse_errors && lastUpload.parse_errors.length > 0 && (
               <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.40)', marginTop: 6, fontFamily: 'monospace' }}>
-                {lastUpload.parse_errors.length} linha(s) ignorada(s)
+                {lastUpload.parse_errors.length} line{lastUpload.parse_errors.length === 1 ? '' : 's'} skipped
               </p>
             )}
           </div>
@@ -1132,7 +1133,7 @@ export default function MoneyPage() {
               marginBottom: 10,
             }}
           >
-            TwinMe economizou pra você · {savings.window_days} dias
+            TwinMe saved you money · {savings.window_days} days
           </p>
           <p
             style={{
@@ -1154,8 +1155,8 @@ export default function MoneyPage() {
               lineHeight: 1.55,
             }}
           >
-            {savings.waited_count} {savings.waited_count === 1 ? 'vez' : 'vezes'} que você esperou depois do aviso.
-            {savings.biggest_save > 0 && <> Maior pausa: {formatCurrency(savings.biggest_save, dominantCurrency)}.</>}
+            {savings.waited_count} time{savings.waited_count === 1 ? '' : 's'} you waited after an alert.
+            {savings.biggest_save > 0 && <> Biggest pause: {formatCurrency(savings.biggest_save, dominantCurrency)}.</>}
           </p>
         </div>
       )}
@@ -1182,7 +1183,7 @@ export default function MoneyPage() {
               marginBottom: 6,
             }}
           >
-            Hoje
+            Today
           </p>
           <p
             style={{
@@ -1236,8 +1237,8 @@ export default function MoneyPage() {
             </p>
             <p style={{ fontFamily: "'Instrument Serif',Georgia,serif", fontSize: 16, color: 'var(--foreground)', lineHeight: 1.3 }}>
               {nudgeStats.followed_count > 0
-                ? `${nudgeStats.followed_count} pausa${nudgeStats.followed_count === 1 ? '' : 's'} · ${formatCurrency(nudgeStats.est_saved, dominantCurrency)} economizados`
-                : `${nudgeStats.total_sent} aviso${nudgeStats.total_sent === 1 ? '' : 's'} enviados`}
+                ? `${nudgeStats.followed_count} pause${nudgeStats.followed_count === 1 ? '' : 's'} · ${formatCurrency(nudgeStats.est_saved, dominantCurrency)} saved`
+                : `${nudgeStats.total_sent} alert${nudgeStats.total_sent === 1 ? '' : 's'} sent`}
             </p>
           </div>
           <span style={{ fontSize: 18, color: 'rgba(255,255,255,0.30)' }}>›</span>
@@ -1249,7 +1250,7 @@ export default function MoneyPage() {
       {patterns && patterns.hasData && patterns.patterns.length > 0 && (
         <div className="mb-6" style={{ ...CARD_STYLE, padding: '24px 24px 18px' }}>
           <p style={{ ...LABEL_STYLE, color: 'rgba(232, 160, 80, 0.85)' }}>
-            Seus padrões · últimos 90 dias
+            Your patterns · last 90 days
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
             {patterns.patterns.map((p: SpendingPattern, i: number) => (
@@ -1292,7 +1293,7 @@ export default function MoneyPage() {
       {/* Not-enough-data state — teaches user what's needed */}
       {patterns && patterns.hasData === false && patterns.minTransactionsReached === false && patterns.txCount !== undefined && (
         <div className="mb-6" style={{ ...CARD_STYLE, padding: '20px 24px' }}>
-          <p style={LABEL_STYLE}>Padrões em breve</p>
+          <p style={LABEL_STYLE}>Patterns coming soon</p>
           <p
             style={{
               fontFamily: "'Instrument Serif', Georgia, serif",
@@ -1303,11 +1304,11 @@ export default function MoneyPage() {
               marginBottom: 6,
             }}
           >
-            Preciso de {(patterns.minRequired || 14) - patterns.txCount} transaç
-            {(patterns.minRequired || 14) - patterns.txCount === 1 ? 'ão' : 'ões'} a mais pra começar a te mostrar padrões.
+            I need {(patterns.minRequired || 14) - patterns.txCount} more transaction
+            {(patterns.minRequired || 14) - patterns.txCount === 1 ? '' : 's'} before I can start showing you patterns.
           </p>
           <p style={{ fontFamily: "'Geist', 'Inter', sans-serif", fontSize: 12.5, color: 'rgba(255,255,255,0.45)' }}>
-            Quando houver dados suficientes, aqui aparecem correlações entre seu stress, seu corpo e seus gastos.
+            Once there is enough data, correlations between your stress, your body, and your spending will appear here.
           </p>
         </div>
       )}
@@ -1315,7 +1316,7 @@ export default function MoneyPage() {
       {/* Got enough transactions, but no pattern passed confidence threshold yet */}
       {patterns && patterns.hasData === true && patterns.patterns.length === 0 && (
         <div className="mb-6" style={{ ...CARD_STYLE, padding: '20px 24px' }}>
-          <p style={LABEL_STYLE}>Ainda analisando</p>
+          <p style={LABEL_STYLE}>Still analyzing</p>
           <p
             style={{
               fontFamily: "'Instrument Serif', Georgia, serif",
@@ -1326,10 +1327,10 @@ export default function MoneyPage() {
               marginBottom: 6,
             }}
           >
-            Seus {patterns.txCount} gastos ainda não formam um padrão claro.
+            Your {patterns.txCount} purchases do not form a clear pattern yet.
           </p>
           <p style={{ fontFamily: "'Geist', 'Inter', sans-serif", fontSize: 12.5, color: 'rgba(255,255,255,0.45)' }}>
-            Prefiro não te mostrar padrões fracos. Quando tiver sinal forte entre stress, corpo e gasto, aparece aqui.
+            I would rather not show you weak patterns. When there is a strong signal between stress, body, and spending, it appears here.
           </p>
         </div>
       )}
@@ -1350,7 +1351,7 @@ export default function MoneyPage() {
         </div>
       ) : hasTransactions ? (
         <div style={CARD_STYLE}>
-          <p style={{ ...LABEL_STYLE, padding: '16px 16px 0' }}>Últimas transações</p>
+          <p style={{ ...LABEL_STYLE, padding: '16px 16px 0' }}>Recent transactions</p>
           <div>
             {/* audit-2026-05-23 M5: list fetched with limit:50 (line 772). 50 DOM
                 nodes is comfortable — react-window is only worth the complexity
@@ -1374,7 +1375,7 @@ export default function MoneyPage() {
               letterSpacing: '-0.01em',
             }}
           >
-            Nada por aqui ainda
+            Nothing here yet
           </p>
           <p
             style={{
@@ -1384,8 +1385,8 @@ export default function MoneyPage() {
               lineHeight: 1.6,
             }}
           >
-            Solta um extrato CSV ou OFX aí em cima.<br />
-            Seu corpo, seu humor e seu stress vão contar o resto da história.
+            Drop a CSV or OFX statement above.<br />
+            Your body, your mood, and your stress will tell the rest of the story.
           </p>
         </div>
       )}
@@ -1403,8 +1404,8 @@ export default function MoneyPage() {
             lineHeight: 1.5,
           }}
         >
-          Onde encontro meu extrato? Nubank → Perfil → Exportar → OFX ou CSV.<br />
-          Funciona também com o PDF do fatura? Ainda não — só CSV/OFX por enquanto.
+          Where do I find my statement? Nubank → Profile → Export → OFX or CSV.<br />
+          Does the PDF bill work too? Not yet — CSV/OFX only for now.
         </p>
       )}
 
@@ -1423,7 +1424,7 @@ export default function MoneyPage() {
                   letterSpacing: '-0.01em',
                 }}
               >
-                {Math.round(summary.emotional_spend_ratio * 100)}% do seu gasto foi em dias de stress alto.
+                {Math.round(summary.emotional_spend_ratio * 100)}% of your spending happened on high-stress days.
               </p>
               <p
                 style={{
@@ -1434,7 +1435,7 @@ export default function MoneyPage() {
                   lineHeight: 1.55,
                 }}
               >
-                Em breve vou te avisar <em>antes</em> da próxima compra impulsiva — assim você pode escolher.
+                Soon I will warn you <em>before</em> your next impulse purchase — so you get to choose.
               </p>
             </div>
           </div>

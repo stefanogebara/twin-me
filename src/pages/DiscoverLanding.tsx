@@ -24,7 +24,6 @@ interface DataPoint {
 // ── Main component ─────────────────────────────────────────────────────
 export default function DiscoverLanding() {
   const navigate  = useNavigate();
-  const [billingAnnual, setBillingAnnual] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const { trackFunnel } = useAnalytics();
@@ -268,11 +267,7 @@ export default function DiscoverLanding() {
 
       <DiscoverFeatures />
 
-      <DiscoverPricing
-        billingAnnual={billingAnnual}
-        onToggleBilling={setBillingAnnual}
-        onNavigate={navigate}
-      />
+      <DiscoverPricing onNavigate={navigate} />
 
       <DiscoverFAQ onNavigate={navigate} />
 
