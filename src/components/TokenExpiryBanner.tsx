@@ -12,7 +12,7 @@ import { API_URL, getAccessToken } from '@/services/api/apiBase';
 import { AlertTriangle, X, RefreshCw, Bell } from 'lucide-react';
 import { PLATFORM_DISPLAY_NAMES } from '@/lib/platformNames';
 import { useAuth } from '@/contexts/AuthContext';
-import { usePlatformStatus } from '@/hooks/usePlatformStatus';
+import { usePlatformsSummary, isConnected, needsReconnect } from '@/hooks/usePlatformsSummary';
 import { cn } from '@/lib/utils';
 
 interface TokenNotification {
@@ -44,8 +44,7 @@ export const TokenExpiryBanner: React.FC<TokenExpiryBannerProps> = ({
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(false);
 
-
-  const { data: platformStatus } = usePlatformStatus(user?.id);
+  const { data: platformsSummary } = usePlatformsSummary();
 
   const searchParams = new URLSearchParams(location.search);
   const justConnected = searchParams.get('connected') === 'true';
@@ -118,8 +117,11 @@ export const TokenExpiryBanner: React.FC<TokenExpiryBannerProps> = ({
       return false;
     }
 
-    const status = platformStatus[n.platform.toLowerCase()];
-    if (status && status.connected && !status.tokenExpired) {
+    // Suppress when the platform is connected and not in genuine auth failure
+    // (state === 'expired') — canonical batch-3 semantics; 'stale' never
+    // resurrects an expiry notification.
+    const platformId = n.platform.toLowerCase();
+    if (isConnected(platformsSummary, platformId) && !needsReconnect(platformsSummary, platformId)) {
       return false;
     }
 

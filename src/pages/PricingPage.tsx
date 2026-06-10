@@ -46,12 +46,14 @@ const PLANS = [
     price: '$100',
     period: '/ month',
     description: 'The complete soul signature experience',
+    // audit-2026-06-10 follow-up: 'WhatsApp twin access' and 'Twin goals +
+    // auto-tracking' removed — neither is plan-gated anywhere (no whatsapp/goals
+    // keys in subscriptionService PLAN_LIMITS, no requirePlan on those routes),
+    // so a paid tier must not claim them as exclusives.
     features: [
       'Unlimited messages',
       'All platform connections',
       'Advanced personality oracle',
-      'Twin goals + auto-tracking',
-      'WhatsApp twin access',
       'Priority support',
     ],
     cta: 'Upgrade to Pro',

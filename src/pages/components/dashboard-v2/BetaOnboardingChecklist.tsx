@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { authFetch } from '@/services/api/apiBase';
+import { usePlatformsSummary } from '@/hooks/usePlatformsSummary';
 
 const STORAGE_KEY = 'twinme_beta_onboarding_dismissed';
 
@@ -29,33 +30,6 @@ interface OnboardingStep {
   action: () => void;
   actionLabel: string;
   isComplete: boolean;
-}
-
-function useConnectedPlatformCount(): number {
-  const { data } = useQuery<number>({
-    queryKey: ['beta-onboarding-platform-count'],
-    queryFn: async () => {
-      try {
-        const userId = JSON.parse(localStorage.getItem('auth_user') || '{}')?.id;
-        if (!userId) return 0;
-        const res = await authFetch(`/connectors/status/${userId}`);
-        if (!res.ok) return 0;
-        const json = await res.json();
-        if (!json.success) return 0;
-        // API returns data as a platform-keyed object — convert to array
-        const raw = json.connectors || json.data || [];
-        const statuses: { connected?: boolean; status?: string }[] = Array.isArray(raw)
-          ? raw
-          : Object.values(raw);
-        return statuses.filter(c => c.connected === true).length;
-      } catch {
-        return 0;
-      }
-    },
-    staleTime: 60_000,
-    refetchOnWindowFocus: false,
-  });
-  return data ?? 0;
 }
 
 function useHasMessagedTwin(): boolean {
@@ -83,7 +57,11 @@ interface BetaOnboardingChecklistProps {
 
 export function BetaOnboardingChecklist({ onDismiss }: BetaOnboardingChecklistProps) {
   const navigate = useNavigate();
-  const connectedCount = useConnectedPlatformCount();
+  // batch3 state-unification: count from the canonical /platforms/summary hook
+  // (replaces a rogue per-component query against the legacy /connectors/status
+  // route). Primary count = summary.active per the spec's display convention.
+  const { data: platformsSummary } = usePlatformsSummary();
+  const connectedCount = platformsSummary?.active ?? 0;
   const hasMessaged = useHasMessagedTwin();
 
   const [visible, setVisible] = useState(() => {

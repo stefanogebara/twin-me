@@ -15,7 +15,8 @@
  * immediately instead of waiting out staleTime.
  */
 
-import { useQuery, type QueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { authFetch } from '@/services/api/apiBase';
 
 export type PlatformState = 'active' | 'expired' | 'stale';
@@ -115,4 +116,62 @@ export function connectedProviders(summary: PlatformsSummary | undefined): strin
  */
 export function invalidatePlatformState(queryClient: QueryClient): Promise<void> {
   return queryClient.invalidateQueries({ queryKey: ['platforms'] });
+}
+
+/**
+ * Immutably remove one platform from a summary, decrementing total and the
+ * per-state count of the removed entry. Returns the input unchanged when the
+ * platform has no breakdown entry. Used for the optimistic disconnect below.
+ */
+export function removePlatformFromSummary(
+  summary: PlatformsSummary,
+  platform: string
+): PlatformsSummary {
+  const entry = summary.breakdown.find((e) => e.platform === platform);
+  if (!entry) return summary;
+  return {
+    ...summary,
+    total: Math.max(0, summary.total - 1),
+    active: entry.state === 'active' ? Math.max(0, summary.active - 1) : summary.active,
+    expired: entry.state === 'expired' ? Math.max(0, summary.expired - 1) : summary.expired,
+    stale: entry.state === 'stale' ? Math.max(0, summary.stale - 1) : summary.stale,
+    breakdown: summary.breakdown.filter((e) => e.platform !== platform),
+  };
+}
+
+/**
+ * Canonical disconnect mutation (batch-3 state unification). Optimistically
+ * removes the platform from the ['platforms','summary'] cache so the row
+ * disappears instantly (spec: disconnect must keep the instant-removal feel),
+ * reverts + toasts on failure, and invalidates the ['platforms'] prefix on
+ * settle so every surface reconverges on server truth.
+ */
+export function useDisconnectPlatform(userId: string | undefined) {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, string, { previous?: PlatformsSummary }>({
+    mutationFn: async (provider: string) => {
+      if (!userId) throw new Error('Not signed in');
+      const res = await authFetch(`/connectors/${provider}/${userId}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error(`Disconnect failed (${res.status})`);
+    },
+    onMutate: async (provider) => {
+      await queryClient.cancelQueries({ queryKey: ['platforms', 'summary'] });
+      const previous = queryClient.getQueryData<PlatformsSummary>(['platforms', 'summary']);
+      if (previous) {
+        queryClient.setQueryData(
+          ['platforms', 'summary'],
+          removePlatformFromSummary(previous, provider)
+        );
+      }
+      return { previous };
+    },
+    onError: (_err, provider, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(['platforms', 'summary'], context.previous);
+      }
+      toast.error(`Could not disconnect ${provider}. Please try again.`);
+    },
+    onSettled: () => invalidatePlatformState(queryClient),
+  });
 }

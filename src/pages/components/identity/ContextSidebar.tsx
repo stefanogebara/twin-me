@@ -14,7 +14,7 @@ import { MessageCircle, ArrowRight, Clock, Zap, Loader2, AlertCircle } from 'luc
 import { motion } from 'framer-motion';
 import { authFetch } from '@/services/api/apiBase';
 import { useAuth } from '@/contexts/AuthContext';
-import { usePlatformStatus } from '@/hooks/usePlatformStatus';
+import { usePlatformsSummary } from '@/hooks/usePlatformsSummary';
 import SoulScore from './SoulScore';
 import InsightCards from './InsightCards';
 import SidebarTabs, { type SidebarTab } from './SidebarTabs';
@@ -40,13 +40,16 @@ const ContextSidebar: React.FC<ContextSidebarProps> = ({ className = '' }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
 
+  // batch3 state-unification: canonical /platforms/summary hook. Display
+  // convention from the spec — the primary count is summary.active (expired/
+  // stale platforms are not "active sources" the twin is learning from).
   const {
-    connectedProviders,
+    data: platformsSummary,
     isLoading: platformsLoading,
     error: platformsError,
     refetch: refetchPlatforms,
-  } = usePlatformStatus(user?.id);
-  const activeCount = connectedProviders.length;
+  } = usePlatformsSummary();
+  const activeCount = platformsSummary?.active ?? 0;
 
   // audit-2026-06-10: InsightCards was rendered with zero data props, so the
   // Insights tab permanently showed placeholder stats ('0 memories',

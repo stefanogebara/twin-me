@@ -2,9 +2,11 @@ import React, { useState, useMemo } from 'react';
 import { Check, Lock, ArrowRight, X } from 'lucide-react';
 import { PlatformLogo } from '@/components/PlatformLogos';
 import { API_URL, getAccessToken } from '@/services/api/apiBase';
+import type { PlatformsSummary } from '@/hooks/usePlatformsSummary';
 
-interface GoogleWorkspaceConnectProps {
-  connectorStatus: Record<string, any>;
+export interface GoogleWorkspaceConnectProps {
+  /** Canonical platform state from usePlatformsSummary (batch-3 unification). */
+  summary: PlatformsSummary | undefined;
   navigate: (path: string) => void;
 }
 
@@ -24,19 +26,20 @@ const GOOGLE_SERVICES: GoogleService[] = [
 ];
 
 const GoogleWorkspaceConnect: React.FC<GoogleWorkspaceConnectProps> = ({
-  connectorStatus,
+  summary,
   navigate,
 }) => {
   const [showCheckboxModal, setShowCheckboxModal] = useState(false);
   const [connecting, setConnecting] = useState(false);
 
-  // If ANY Google service is connected, all are connected (bundled scopes)
+  // If ANY Google service is connected, all are connected (bundled scopes).
+  // Batch-3 convention: only state==='expired' (genuine auth failure) is not
+  // connected; stale entries still count.
   const isAnyGoogleConnected = useMemo(() => {
-    return GOOGLE_SERVICES.some((service) => {
-      const info = connectorStatus[service.id];
-      return info?.connected && !info?.tokenExpired && info?.status !== 'expired';
-    });
-  }, [connectorStatus]);
+    return !!summary?.breakdown.some(
+      (entry) => entry.platform.startsWith('google_') && entry.state !== 'expired'
+    );
+  }, [summary]);
 
   const handleConnect = () => {
     setShowCheckboxModal(true);

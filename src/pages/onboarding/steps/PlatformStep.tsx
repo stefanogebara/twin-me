@@ -3,6 +3,7 @@ import { CheckCircle2, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { safeRedirect } from '@/lib/safeRedirect';
+import { usePlatformsSummary, connectedProviders } from '@/hooks/usePlatformsSummary';
 
 
 import { API_URL } from '@/services/api/apiBase';
@@ -130,6 +131,13 @@ const PlatformStep: React.FC<PlatformStepProps> = ({ onContinue }) => {
   const [connecting, setConnecting] = useState<string | null>(null);
   const [showMore, setShowMore] = useState(false);
 
+  // Canonical platform state (batch-3 state-unification): merge platforms the
+  // user already connected (any state in the summary breakdown) into the local
+  // just-connected set — previously this step only seeded from the ?connected=
+  // URL param, so a returning 9-platform user saw all tiles as CONNECT.
+  const { data: platformsSummary } = usePlatformsSummary({ enabled: !!user });
+  const connectedSet = new Set([...connected, ...connectedProviders(platformsSummary)]);
+
   // Restore connected state when returning from OAuth redirect
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -201,7 +209,7 @@ const PlatformStep: React.FC<PlatformStepProps> = ({ onContinue }) => {
     }
   };
 
-  const anyConnected = connected.size > 0;
+  const anyConnected = connectedSet.size > 0;
 
   return (
     <div className="min-h-screen flex flex-col items-center overflow-y-auto px-4 py-12" >
@@ -235,7 +243,7 @@ const PlatformStep: React.FC<PlatformStepProps> = ({ onContinue }) => {
               description={p.description}
               color={p.color}
               icon={p.icon}
-              connected={connected.has(p.id)}
+              connected={connectedSet.has(p.id)}
               connecting={connecting === p.id}
               onConnect={() => handleConnect(p)}
             />

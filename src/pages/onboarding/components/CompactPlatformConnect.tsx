@@ -5,6 +5,7 @@ import type { PlatformDataPoint } from '@/services/enrichmentService';
 import TwinLearningOverlay from './TwinLearningOverlay';
 import { API_URL, getAccessToken } from '@/services/api/apiBase';
 import { safeRedirect } from '@/lib/safeRedirect';
+import { usePlatformsSummary, connectedProviders } from '@/hooks/usePlatformsSummary';
 
 
 interface Platform {
@@ -40,12 +41,12 @@ const PLATFORMS: Platform[] = [
 ];
 
 interface CompactPlatformConnectProps {
-  userId: string;
+  /** Unused since batch-3 state-unification — the summary endpoint is JWT-scoped. */
+  userId?: string;
   onPlatformConnected?: (platformId: string) => void;
 }
 
 const CompactPlatformConnect: React.FC<CompactPlatformConnectProps> = ({
-  userId,
   onPlatformConnected,
 }) => {
   const [connecting, setConnecting] = useState<string | null>(null);
@@ -61,33 +62,12 @@ const CompactPlatformConnect: React.FC<CompactPlatformConnectProps> = ({
     isReady: boolean;
   }>({ insight: '', dataPoints: [], twinReaction: '', isReady: false });
 
-  // Fetch already-connected platforms on mount
-  useEffect(() => {
-    const fetchExisting = async () => {
-      try {
-        const token = getAccessToken();
-        const response = await fetch(`${API_URL}/connectors/status/${encodeURIComponent(userId)}`, {
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-          },
-        });
-        if (!response.ok) return;
-        const result = await response.json();
-        if (result.success && result.data) {
-          const alreadyConnected = Object.entries(result.data)
-            .filter(([, info]) => (info as { connected: boolean }).connected)
-            .map(([platform]) => platform);
-          if (alreadyConnected.length > 0) {
-            setConnected(prev => [...new Set([...prev, ...alreadyConnected])]);
-          }
-        }
-      } catch {
-        // Silent — not critical for onboarding
-      }
-    };
-    fetchExisting();
-  }, [userId]);
+  // Already-connected platforms from the canonical summary (batch-3
+  // state-unification — replaces the raw /connectors/status mount fetch).
+  // Merged with the local just-connected list from the sessionStorage
+  // OAuth-return flow below.
+  const { data: platformsSummary } = usePlatformsSummary();
+  const connectedAll = [...new Set([...connected, ...connectedProviders(platformsSummary)])];
 
   // Check if returning from OAuth — show learning overlay immediately, fetch data in parallel
   useEffect(() => {
@@ -125,7 +105,7 @@ const CompactPlatformConnect: React.FC<CompactPlatformConnectProps> = ({
   }, [onPlatformConnected]);
 
   const handleConnect = useCallback(async (platform: Platform) => {
-    if (connecting || connected.includes(platform.id)) return;
+    if (connecting || connectedAll.includes(platform.id)) return;
     setConnecting(platform.id);
 
     try {
@@ -174,7 +154,7 @@ const CompactPlatformConnect: React.FC<CompactPlatformConnectProps> = ({
     } finally {
       setConnecting(null);
     }
-  }, [connecting, connected, userId, onPlatformConnected]);
+  }, [connecting, connectedAll, onPlatformConnected]);
 
   return (
     <div>
@@ -186,7 +166,7 @@ const CompactPlatformConnect: React.FC<CompactPlatformConnectProps> = ({
       </p>
       <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
         {PLATFORMS.map((platform, i) => {
-          const isConnected = connected.includes(platform.id);
+          const isConnected = connectedAll.includes(platform.id);
           const isConnecting = connecting === platform.id;
 
           return (

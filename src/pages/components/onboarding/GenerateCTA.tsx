@@ -65,7 +65,9 @@ export const GenerateCTA: React.FC<GenerateCTAProps> = ({
             {activeCount} platform{activeCount !== 1 ? 's' : ''} active
             {reconnectCount > 0 && (
               <span className="ml-1" style={{ color: '#C9B99A' }}>
-                ({reconnectCount} need{reconnectCount === 1 ? 's' : ''} reconnection)
+                {/* Combined expired + stale warning — "attention", not "reconnection"
+                    (batch-3 display convention: only expired demands a reconnect). */}
+                ({reconnectCount} need{reconnectCount === 1 ? 's' : ''} attention)
               </span>
             )}
           </span>

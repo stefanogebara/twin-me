@@ -81,7 +81,6 @@ function getRedisClient() {
  * Cache TTL configurations (in seconds)
  */
 const CACHE_TTL = {
-  PLATFORM_STATUS: 300,      // 5 minutes - platform connection status
   USER_PROFILE: 600,         // 10 minutes - user profile data
   SOUL_SIGNATURE: 900,       // 15 minutes - soul signature data
   EXTRACTION_JOB: 60,        // 1 minute - extraction job status (more dynamic)
@@ -93,80 +92,12 @@ const CACHE_TTL = {
  * Cache key generators
  */
 const CACHE_KEYS = {
-  platformStatus: (userId) => `platform_status:${userId}`,
   userProfile: (userId) => `user_profile:${userId}`,
   soulSignature: (userId) => `soul_signature:${userId}`,
   extractionJob: (jobId) => `extraction_job:${jobId}`,
   identityContext: (userId) => `identity_context:${userId}`,
   dashboardContext: (userId) => `dashboardCtx:${userId}`,
 };
-
-/**
- * Get cached platform connection status
- * @param {string} userId - User UUID
- * @returns {Promise<Object|null>} Cached status or null
- */
-async function getCachedPlatformStatus(userId) {
-  const client = getRedisClient();
-  if (!client || !redisAvailable) return null;
-
-  try {
-    const key = CACHE_KEYS.platformStatus(userId);
-    const cached = await client.get(key);
-
-    if (cached) {
-      log.info(`Cache HIT: platform_status for user ${userId}`);
-      return JSON.parse(cached);
-    }
-
-    log.info(`Cache MISS: platform_status for user ${userId}`);
-    return null;
-  } catch (error) {
-    log.error('Error getting cached platform status:', error.message);
-    return null; // Fail gracefully
-  }
-}
-
-/**
- * Set cached platform connection status
- * @param {string} userId - User UUID
- * @param {Object} status - Connection status object
- * @param {number} ttl - Time to live in seconds (default: 5 minutes)
- */
-async function setCachedPlatformStatus(userId, status, ttl = CACHE_TTL.PLATFORM_STATUS) {
-  const client = getRedisClient();
-  if (!client || !redisAvailable) return;
-
-  try {
-    const key = CACHE_KEYS.platformStatus(userId);
-    await client.setex(key, ttl, JSON.stringify(status));
-    log.info(`Cached platform_status for user ${userId} (TTL: ${ttl}s)`);
-  } catch (error) {
-    log.error('Error setting cached platform status:', error.message);
-    // Fail gracefully - don't throw
-  }
-}
-
-/**
- * Invalidate cached platform connection status
- * Called when user connects/disconnects a platform
- * @param {string} userId - User UUID
- */
-async function invalidatePlatformStatusCache(userId) {
-  const client = getRedisClient();
-  if (!client || !redisAvailable) return;
-
-  try {
-    const key = CACHE_KEYS.platformStatus(userId);
-    const deleted = await client.del(key);
-
-    if (deleted) {
-      log.info(`Invalidated platform_status cache for user ${userId}`);
-    }
-  } catch (error) {
-    log.error('Error invalidating platform status cache:', error.message);
-  }
-}
 
 // In-memory fallback cache when Redis is unavailable (dev, cold starts, Redis down)
 const _memCache = new Map();
@@ -283,9 +214,6 @@ async function getCacheStats() {
 export {
   getRedisClient,
   isRedisAvailable,
-  getCachedPlatformStatus,
-  setCachedPlatformStatus,
-  invalidatePlatformStatusCache,
   get,
   set,
   del,
@@ -297,9 +225,6 @@ export {
 export default {
   getRedisClient,
   isRedisAvailable,
-  getCachedPlatformStatus,
-  setCachedPlatformStatus,
-  invalidatePlatformStatusCache,
   get,
   set,
   del,

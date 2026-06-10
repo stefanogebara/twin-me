@@ -15,7 +15,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { authFetch } from '@/services/api/apiBase';
 import { useLenis } from '@/hooks/useLenis';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
-import { usePlatformStatus } from '@/hooks/usePlatformStatus';
+import { usePlatformsSummary, connectedProviders as getConnectedProviders } from '@/hooks/usePlatformsSummary';
 import { IdentityData, PersonalityProfile } from './components/identity/types';
 import { determineArchetypeFromSoulLayers, generateTraitBadgesFromSoulLayers, formatArchetypeName } from '@/utils/archetypeEngine';
 import PersonalityAxes from './components/identity/PersonalityAxes';
@@ -96,7 +96,7 @@ const EXPERT_LABELS: { key: string; label: string }[] = [
 // Map lowercased keyword mentions -> { platform connector key, route, label }
 
 interface InsightLinkSpec {
-  platform: string; // connector key used by usePlatformStatus
+  platform: string; // connector key as reported in the platforms-summary breakdown
   route: string;
   label: string;
 }
@@ -420,11 +420,14 @@ const IdentityPage: React.FC = () => {
   }, []);
 
   // Hooks must be declared BEFORE any early return (isLoading / hasAnyData
-  // guards below). Previously usePlatformStatus + useState(expandedLens) were
-  // positioned after those guards, causing React error #310 ("Rendered more
-  // hooks than during the previous render") on transition from loading to
+  // guards below). Previously the platform-status hook + useState(expandedLens)
+  // were positioned after those guards, causing React error #310 ("Rendered
+  // more hooks than during the previous render") on transition from loading to
   // loaded state.
-  const { connectedProviders } = usePlatformStatus(user?.id);
+  // batch3 state-unification: connected set comes from the canonical
+  // /platforms/summary breakdown (any state counts as connected for lens gating).
+  const { data: platformsSummary } = usePlatformsSummary();
+  const connectedProviders = getConnectedProviders(platformsSummary);
   const [expandedLens, setExpandedLens] = useState<string | null>(null);
 
   // ── Guards ─────────────────────────────────────────────────────────────

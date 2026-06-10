@@ -8,9 +8,10 @@ import {
 } from 'lucide-react';
 import { PlatformLogo } from '@/components/PlatformLogos';
 import GoogleWorkspaceConnect from './GoogleWorkspaceConnect';
+import { byPlatform, type PlatformsSummary } from '@/hooks/usePlatformsSummary';
 
 interface ConnectedPlatformsSettingsProps {
-  connectorStatus: Record<string, unknown>;
+  summary: PlatformsSummary | undefined;
   isLoading: boolean;
   error: string | null;
   disconnectingService: string | null;
@@ -39,7 +40,7 @@ const connectorConfig: ConnectorConfig[] = [
 ];
 
 const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
-  connectorStatus,
+  summary,
   isLoading,
   error,
   disconnectingService,
@@ -47,11 +48,13 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
   navigate,
   handleDisconnectService,
 }) => {
+  const platformMap = byPlatform(summary);
+
   return (
     <div>
       {/* Google Workspace — bundled connect card */}
       <GoogleWorkspaceConnect
-        connectorStatus={connectorStatus as Record<string, any>}
+        summary={summary}
         navigate={navigate}
       />
 
@@ -82,10 +85,12 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
       ) : (
         <div className="space-y-0">
           {connectorConfig.map((connector) => {
-            const connectionInfo = connectorStatus[connector.id];
-            const isConnected = connectionInfo?.connected;
-            const isExpired = connectionInfo?.tokenExpired || connectionInfo?.status === 'expired';
-            const isActiveConnection = isConnected && !isExpired;
+            // Batch-3 convention: a breakdown entry = connected; only
+            // state==='expired' (genuine auth failure) demands a reconnect.
+            // Stale (no recent sync) still renders as connected.
+            const entry = platformMap[connector.id];
+            const isExpired = entry?.state === 'expired';
+            const isActiveConnection = !!entry && !isExpired;
 
             return (
               <div

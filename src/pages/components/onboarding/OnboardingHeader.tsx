@@ -70,7 +70,10 @@ export const OnboardingHeader: React.FC<OnboardingHeaderProps> = ({
               className="text-[13px] ml-2"
               style={{ color: '#C9B99A', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
             >
-              ({reconnectCount} need{reconnectCount === 1 ? 's' : ''} reconnection)
+              {/* reconnectCount = expired + stale; stale is not an auth failure,
+                  so the combined warning says "need attention", never "reconnect"
+                  (batch-3 display convention). */}
+              ({reconnectCount} need{reconnectCount === 1 ? 's' : ''} attention)
             </span>
           )}
         </div>

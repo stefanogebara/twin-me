@@ -11,8 +11,6 @@ import { supabaseAdmin } from '../config/supabase.js';
 import fs from 'fs/promises';
 import path from 'path';
 import PLATFORM_CONFIGS from '../config/platformConfigs.js';
-import { clearStatusMemoryCache } from './connectors.js';
-import { invalidatePlatformStatusCache } from '../services/redisClient.js';
 import { generatePKCEParams } from '../services/pkce.js';
 import {
   oauthAuthorizationLimiter,
@@ -679,11 +677,6 @@ router.post('/oauth/callback', oauthCallbackLimiter, async (req, res) => {
     }
 
     log.info('Tokens stored', { platform, userId });
-
-    // Invalidate platform status cache so frontend gets fresh status immediately
-    clearStatusMemoryCache(userId);
-    await invalidatePlatformStatusCache(userId);
-    log.info('Status cache cleared after reconnect', { userId, platform });
 
     // Trigger data extraction in background (non-blocking)
     log.info('Starting background data extraction', { platform });

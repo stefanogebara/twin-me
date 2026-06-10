@@ -40,8 +40,6 @@ import {
   notifyConnectionStatus,
   notifyPlatformSync,
 } from './websocketService.js';
-import { invalidatePlatformStatusCache } from './redisClient.js';
-import { clearStatusMemoryCache } from '../routes/connectors.js';
 import { addPlatformMemory } from './mem0Service.js';
 import { createLogger } from './logger.js';
 import { logExtractionRun, INGESTION_SOURCE } from './extractionTelemetry.js';
@@ -284,9 +282,6 @@ class DataExtractionService {
           notifyExtractionFailed(userId, jobId, platform, new Error(result.error || result.message || 'Extraction failed'));
         }
 
-        // Invalidate cached platform status (last_sync_status changed, both Redis and in-memory)
-        await invalidatePlatformStatusCache(userId);
-        clearStatusMemoryCache(userId);
       }
 
       // Update connector metadata

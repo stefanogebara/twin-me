@@ -19,7 +19,6 @@ import {
   notifyConnectionStatus,
   notifyPlatformSync,
 } from './websocketService.js';
-import { invalidatePlatformStatusCache } from './redisClient.js';
 import { createLogger } from './logger.js';
 
 const log = createLogger('Queue');

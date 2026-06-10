@@ -5,7 +5,7 @@
 
 import { useNavigate, useLocation } from 'react-router-dom';
 import { AlertTriangle } from 'lucide-react';
-import { usePlatformStatus } from '@/hooks/usePlatformStatus';
+import { usePlatformsSummary } from '@/hooks/usePlatformsSummary';
 
 const PLATFORM_NAMES: Record<string, string> = {
   spotify: 'Spotify',
@@ -21,15 +21,20 @@ const PLATFORM_NAMES: Record<string, string> = {
   strava: 'Strava',
 };
 
-export function ExpiredTokenBanner({ userId }: { userId?: string } = {}) {
+// userId prop is ignored — the /platforms/summary endpoint is JWT-scoped.
+// Kept optional so existing call sites keep compiling during the batch-3
+// state-unification migration (audit-2026-06-10).
+export function ExpiredTokenBanner(_props: { userId?: string } = {}) {
   const navigate = useNavigate();
   const location = useLocation();
   const onConnectPage = location.pathname === '/connect' || location.pathname === '/get-started';
-  const { data: platformStatus } = usePlatformStatus(userId);
+  const { data: summary } = usePlatformsSummary();
 
-  const expired = Object.entries(platformStatus || {})
-    .filter(([, v]) => v.connected && (v.tokenExpired || v.status === 'expired' || v.status === 'token_expired'))
-    .map(([k]) => PLATFORM_NAMES[k] || k);
+  // Canonical semantics: only state === 'expired' (genuine auth failure) earns
+  // a reconnect demand. 'stale' (no recent sync) never triggers this banner.
+  const expired = (summary?.breakdown ?? [])
+    .filter((entry) => entry.state === 'expired')
+    .map((entry) => PLATFORM_NAMES[entry.platform] || entry.platform);
 
   if (expired.length === 0) return null;
 

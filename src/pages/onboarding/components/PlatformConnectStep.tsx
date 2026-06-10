@@ -3,6 +3,7 @@ import { CheckCircle2, Loader2, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { API_URL, getAccessToken } from '@/services/api/apiBase';
 import { safeRedirect } from '@/lib/safeRedirect';
+import { usePlatformsSummary, connectedProviders } from '@/hooks/usePlatformsSummary';
 
 
 interface Platform {
@@ -85,31 +86,12 @@ const PlatformConnectStep: React.FC<PlatformConnectStepProps> = ({ userId, onCon
   const [connected, setConnected] = useState<string[]>([]);
   const [expanded, setExpanded] = useState<string | null>(null);
 
-  // Fetch already-connected platforms on mount
-  useEffect(() => {
-    const fetchExisting = async () => {
-      try {
-        const token = getAccessToken();
-        const response = await fetch(`${API_URL}/connectors/status/${encodeURIComponent(userId)}`, {
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-        });
-        if (!response.ok) return;
-        const result = await response.json();
-        if (result.success && result.data) {
-          const alreadyConnected = Object.entries(result.data)
-            .filter(([, info]) => (info as { connected: boolean }).connected)
-            .map(([platform]) => platform);
-          if (alreadyConnected.length > 0) setConnected(alreadyConnected);
-        }
-      } catch {
-        // Silent
-      }
-    };
-    fetchExisting();
-  }, [userId]);
+  // Already-connected platforms from the canonical summary (batch-3
+  // state-unification — replaces the raw /connectors/status mount fetch).
+  // Merged with the local just-connected list from the sessionStorage
+  // OAuth-return flow below.
+  const { data: platformsSummary } = usePlatformsSummary();
+  const connectedAll = [...new Set([...connected, ...connectedProviders(platformsSummary)])];
 
   // Check if returning from OAuth
   useEffect(() => {
@@ -121,7 +103,7 @@ const PlatformConnectStep: React.FC<PlatformConnectStepProps> = ({ userId, onCon
   }, []);
 
   const handleConnect = useCallback(async (platform: Platform) => {
-    if (connecting || connected.includes(platform.id)) return;
+    if (connecting || connectedAll.includes(platform.id)) return;
     setConnecting(platform.id);
 
     try {
@@ -173,9 +155,9 @@ const PlatformConnectStep: React.FC<PlatformConnectStepProps> = ({ userId, onCon
     } finally {
       setConnecting(null);
     }
-  }, [connecting, connected, userId]);
+  }, [connecting, connectedAll, userId]);
 
-  const allConnected = PLATFORMS.every(p => connected.includes(p.id));
+  const allConnected = PLATFORMS.every(p => connectedAll.includes(p.id));
 
   return (
     <div
@@ -202,7 +184,7 @@ const PlatformConnectStep: React.FC<PlatformConnectStepProps> = ({ userId, onCon
       {/* Platform cards */}
       <div className="flex flex-col gap-3 mb-8">
         {PLATFORMS.map((platform, i) => {
-          const isConnected = connected.includes(platform.id);
+          const isConnected = connectedAll.includes(platform.id);
           const isConnecting = connecting === platform.id;
           const isExpanded = expanded === platform.id;
 
@@ -320,23 +302,23 @@ const PlatformConnectStep: React.FC<PlatformConnectStepProps> = ({ userId, onCon
         className="flex flex-col items-center gap-3"
       >
         <button
-          onClick={() => onContinue(connected)}
+          onClick={() => onContinue(connectedAll)}
           className="w-full py-3.5 rounded-xl text-sm font-medium transition-all duration-200 hover:opacity-90"
           style={{
-            backgroundColor: connected.length > 0 ? '#E8D5B7' : 'rgba(232, 213, 183, 0.1)',
-            color: connected.length > 0 ? '#0C0C0C' : 'rgba(232, 213, 183, 0.5)',
+            backgroundColor: connectedAll.length > 0 ? '#E8D5B7' : 'rgba(232, 213, 183, 0.1)',
+            color: connectedAll.length > 0 ? '#0C0C0C' : 'rgba(232, 213, 183, 0.5)',
             fontFamily: "'Inter', sans-serif",
-            border: connected.length > 0 ? 'none' : '1px solid rgba(232, 213, 183, 0.15)',
+            border: connectedAll.length > 0 ? 'none' : '1px solid rgba(232, 213, 183, 0.15)',
           }}
         >
           {allConnected
             ? "Perfect — let's go deeper"
-            : connected.length > 0
-            ? `Continue with ${connected.length} platform${connected.length > 1 ? 's' : ''} connected`
+            : connectedAll.length > 0
+            ? `Continue with ${connectedAll.length} platform${connectedAll.length > 1 ? 's' : ''} connected`
             : 'Continue'}
         </button>
 
-        {connected.length === 0 && (
+        {connectedAll.length === 0 && (
           <button
             onClick={() => onContinue([])}
             className="text-xs opacity-25 hover:opacity-50 transition-opacity"

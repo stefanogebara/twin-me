@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuth } from '../contexts/AuthContext';
 import { API_URL, getAccessToken } from '@/services/api/apiBase';
-import { usePlatformStatus } from '../hooks/usePlatformStatus';
+import { usePlatformsSummary, useDisconnectPlatform } from '../hooks/usePlatformsSummary';
 import { useBackgroundMode } from '../contexts/BackgroundModeContext';
 import { Download, Info, ArrowRight, Send, ExternalLink, Check, Brain } from 'lucide-react';
 import ConnectedPlatformsSettings from './components/settings/ConnectedPlatformsSettings';
@@ -199,7 +199,6 @@ const Settings = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, signOut } = useAuth();
-  const [disconnectingService, setDisconnectingService] = useState<string | null>(null);
   const [memoryCount, setMemoryCount] = useState<number | null>(null);
 
   // Subscription state
@@ -224,14 +223,19 @@ const Settings = () => {
     graph_retrieval: false,
   });
 
+  // Batch-3 state unification: settings reads the canonical /platforms/summary
+  // (breakdown entry = connected; state==='expired' = needs reconnection).
   const {
-    data: connectorStatus,
+    data: platformsSummary,
     isLoading,
     error: statusError,
     refetch,
-    optimisticDisconnect,
-    revertOptimisticUpdate
-  } = usePlatformStatus(user?.id);
+  } = usePlatformsSummary();
+
+  const disconnectPlatform = useDisconnectPlatform(user?.id);
+  const disconnectingService = disconnectPlatform.isPending
+    ? disconnectPlatform.variables ?? null
+    : null;
 
   const error = statusError?.message || null;
 
@@ -281,29 +285,10 @@ const Settings = () => {
     }
   };
 
-  const handleDisconnectService = async (provider: string) => {
-    try {
-      setDisconnectingService(provider);
-      optimisticDisconnect(provider);
-      // audit-2026-06-10: this DELETE was sent without an Authorization header
-      // against an authenticateUser-protected route, so EVERY disconnect got a
-      // 401 and silently reverted — the platform reappeared with no feedback.
-      const response = await fetch(`${API_URL}/connectors/${provider}/${user?.id}`, {
-        method: 'DELETE',
-        headers: getAuthHeaders(),
-      });
-      if (response.ok) {
-        await refetch();
-      } else {
-        await revertOptimisticUpdate();
-        toast.error(`Could not disconnect ${provider}. Please try again.`);
-      }
-    } catch {
-      await revertOptimisticUpdate();
-      toast.error(`Could not disconnect ${provider}. Please try again.`);
-    } finally {
-      setDisconnectingService(null);
-    }
+  // Optimistic removal, auth headers, revert + error toast on failure, and
+  // ['platforms'] invalidation all live inside useDisconnectPlatform.
+  const handleDisconnectService = (provider: string) => {
+    disconnectPlatform.mutate(provider);
   };
 
   const handleToggleFeature = async (key: keyof typeof featureToggles) => {
@@ -644,7 +629,7 @@ const Settings = () => {
       <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
         <SectionLabel label="Connected Platforms" />
         <ConnectedPlatformsSettings
-          connectorStatus={connectorStatus}
+          summary={platformsSummary}
           isLoading={isLoading}
           error={error}
           disconnectingService={disconnectingService}
