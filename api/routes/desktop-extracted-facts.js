@@ -195,28 +195,31 @@ function buildCadenceFact(events) {
  */
 function buildFocusBlocksFact(events) {
   if (!Array.isArray(events) || events.length < 5) return null;
+  // normalized key → { count, display }. The display string keeps the
+  // user's ORIGINAL casing (first occurrence wins) with only the
+  // volatile numeric tokens stripped. We deliberately do NOT re-case:
+  // JS \b\w title-casing is ASCII-only and mangles accented titles
+  // ("Tênis Segovia" → "TêNis Segovia", "Álvaro psicólogo" →
+  // "áLvaro PsicóLogo" — caught live in the 2026-06-10 prod smoke).
+  // The original casing is also truer to the verbatim-proof spirit.
+  const stripVolatile = (s) =>
+    s.replace(/\b\d{1,4}([-/]\d{1,4})*\b/g, '').replace(/\s+/g, ' ').trim();
   const counts = new Map();
   for (const ev of events) {
     const raw = (ev?.summary || '').trim();
     if (!raw) continue;
-    // Normalize: lowercase, strip leading dates/numbers, collapse whitespace.
-    const normalized = raw
-      .toLowerCase()
-      .replace(/\b\d{1,4}([-/]\d{1,4})*\b/g, '')
-      .replace(/\s+/g, ' ')
-      .trim();
+    const display = stripVolatile(raw);
+    const normalized = display.toLowerCase();
     if (normalized.length < 3) continue;
-    counts.set(normalized, (counts.get(normalized) || 0) + 1);
+    const entry = counts.get(normalized);
+    if (entry) entry.count += 1;
+    else counts.set(normalized, { count: 1, display });
   }
-  const recurring = Array.from(counts.entries())
-    .filter(([, n]) => n >= 2)
-    .sort((a, b) => b[1] - a[1])
+  const recurring = Array.from(counts.values())
+    .filter((e) => e.count >= 2)
+    .sort((a, b) => b.count - a.count)
     .slice(0, 3)
-    .map(([title]) => {
-      // Title-case the first 60 chars for display
-      const t = title.slice(0, 60);
-      return t.replace(/\b\w/g, (c) => c.toUpperCase());
-    });
+    .map((e) => e.display.slice(0, 60));
   if (recurring.length < 2) return null;
   return {
     id: 'focus_blocks',

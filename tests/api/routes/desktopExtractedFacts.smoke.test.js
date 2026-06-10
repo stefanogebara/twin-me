@@ -152,10 +152,10 @@ describe('buildFocusBlocksFact', () => {
     expect(f.text).toMatch(/Email Zero Sprint/i);
   });
 
-  it('normalizes case + numeric volatility ("Standup 2026-06-10" -> "standup")', () => {
+  it('groups case-insensitively + strips dates, displays FIRST-SEEN original casing', () => {
     // The fact requires AT LEAST 2 distinct recurring titles to fire — a
     // single recurring block on its own isn't strong enough signal for the
-    // "your calendar has structure" pitch. Need standup + 1:1 both recurring.
+    // "your calendar has structure" pitch. Need standup + sprint both recurring.
     const events = [
       { summary: 'Standup 2026-06-10' },
       { summary: 'standup 2026-06-11' },
@@ -166,8 +166,31 @@ describe('buildFocusBlocksFact', () => {
     ];
     const f = buildFocusBlocksFact(events);
     expect(f).not.toBeNull();
-    expect(f.text.toLowerCase()).toContain('standup');
-    expect(f.text.toLowerCase()).toContain('email zero sprint');
+    // First occurrence was "Standup ..." — display keeps that casing, date stripped.
+    expect(f.text).toContain('Standup');
+    expect(f.text).not.toContain('2026');
+    expect(f.text).toContain('Email Zero Sprint');
+  });
+
+  it('REGRESSION: accented titles render verbatim, never re-cased', () => {
+    // Caught in the 2026-06-10 prod smoke: the old \b\w title-caser is
+    // ASCII-only, so "Tênis Segovia" rendered as "TêNis Segovia" and
+    // "Álvaro psicólogo" as "áLvaro PsicóLogo". Original casing must
+    // survive untouched.
+    const events = [
+      { summary: 'Tênis Segovia' },
+      { summary: 'Tênis Segovia' },
+      { summary: 'Álvaro psicólogo' },
+      { summary: 'Álvaro psicólogo' },
+      { summary: 'one-off' },
+    ];
+    const f = buildFocusBlocksFact(events);
+    expect(f).not.toBeNull();
+    expect(f.text).toContain('Tênis Segovia');
+    expect(f.text).toContain('Álvaro psicólogo');
+    expect(f.text).not.toContain('TêNis');
+    expect(f.text).not.toContain('áLvaro');
+    expect(f.text).not.toContain('PsicóLogo');
   });
 });
 
