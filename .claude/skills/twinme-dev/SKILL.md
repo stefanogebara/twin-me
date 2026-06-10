@@ -12,9 +12,8 @@ All backend services follow this structure:
 
 ```javascript
 // api/services/newService.js
-import { supabaseAdmin } from '../config/supabase.js';
-import { callLLM } from './llmGateway.js';
-import { TIER_ANALYSIS } from '../config/aiModels.js';
+import { supabaseAdmin } from './database.js';
+import { complete, TIER_ANALYSIS } from './llmGateway.js';
 
 export async function myFunction(userId) {
   // 1. Always validate userId
@@ -36,10 +35,10 @@ export async function myFunction(userId) {
 ```javascript
 // api/routes/newRoute.js
 import { Router } from 'express';
-import { authMiddleware } from '../middleware/auth.js';
+import { authenticateUser } from '../middleware/auth.js';
 
 const router = Router();
-router.use(authMiddleware);
+router.use(authenticateUser);
 
 router.get('/', async (req, res) => {
   try {
@@ -79,15 +78,17 @@ export const newAPI = {
 When a new service needs to store observations:
 
 ```javascript
-import { addMemory } from './memoryStreamService.js';
+// addMemory takes POSITIONAL args (userId, content, memoryType, metadata) —
+// passing an options object stores "[object Object]" as the memory content.
+import { addPlatformObservation } from './memoryStreamService.js';
 
-await addMemory(userId, {
-  content: 'Natural language observation about what happened',
-  memory_type: 'platform_data', // or 'fact', 'reflection'
-  importance_score: 5, // 1-10, or use LLM rating
-  source: 'platform_name',
-  metadata: { raw_data: structuredData }
-});
+await addPlatformObservation(
+  userId,
+  'Natural language observation about what happened',
+  'platform_name',
+  { ingestion_source: 'on_demand', raw_data: structuredData }
+);
+// Lower-level alternative: addMemory(userId, content, 'observation', metadata)
 ```
 
 ## Twin Chat Context Integration
@@ -102,17 +103,17 @@ To add a new context source to twin chat:
 ALL LLM calls go through the gateway:
 
 ```javascript
-import { callLLM } from './llmGateway.js';
-import { TIER_ANALYSIS, TIER_EXTRACTION, TIER_CHAT } from '../config/aiModels.js';
+import { complete, TIER_ANALYSIS, TIER_EXTRACTION, TIER_CHAT } from './llmGateway.js';
 
-const result = await callLLM({
+const result = await complete({
   tier: TIER_ANALYSIS,  // Choose appropriate tier
   messages: [{ role: 'user', content: prompt }],
   temperature: 0.3,
   maxTokens: 1000,
   userId,
-  purpose: 'goal_suggestion' // For cost tracking
+  serviceName: 'goal_suggestion' // For cost tracking
 });
+// Streaming variant: stream({ ... }) from the same module.
 ```
 
 ## Database Migrations

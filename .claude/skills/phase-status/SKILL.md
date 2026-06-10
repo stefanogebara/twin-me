@@ -1,7 +1,11 @@
 # TwinMe Phase Status
 
 ## How to use this skill
-When asked "what's next", "phase status", or "what should we work on", read this file and display the current roadmap status clearly.
+This file is a HISTORICAL log of completed phases (last entry 2026-03-01) —
+useful for "when did we ship X" questions. For "what's next" / "what should we
+work on", do NOT answer from this file: check the harness task list, the
+latest `tasks/audit-*/` findings queue, and `.claude/plans/` for in-flight
+plans, then suggest the highest-priority incomplete item.
 
 ---
 
