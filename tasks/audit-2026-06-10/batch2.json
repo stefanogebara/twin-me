@@ -1,0 +1,419 @@
+[
+ {
+  "key": "deepening",
+  "items": [
+   {
+    "severity": "CRITICAL",
+    "title": "Deepening phase renders an empty screen with no forward CTA when personalized questions are missing",
+    "file": "src/pages/onboarding/components/DeepeningPhase.tsx",
+    "line": 69,
+    "detail": "When personalizedQuestions is empty and not loading, the component renders the heading 'A few quick taps' and then null (line 69-75) — no questions, no continue, no skip inside the phase. This is deterministic on the skip-enrichment path: NewDiscoverFlow.handleSkipEnrichment (NewDiscoverFlow.tsx:437-446) jumps phase to 'platforms' WITHOUT ever calling fetchQuickQuestions (only handleAdvanceToDeepening at line 292-312 fetches them), so after the platforms step the user lands in 'deepening' with zero questions, allQAnswered never fires, and the flow cannot complete. Also happens whenever fetchQuickQuestions fails (silently caught at NewDiscoverFlow.tsx:308). Only escape is the low-contrast 'Skip' in the page header.",
+    "evidence": "DeepeningPhase.tsx:69-75 `: personalizedQuestions.length > 0 ? (<PersonalizedQuestions .../>) : null`; NewDiscoverFlow.tsx:437-446 handleSkipEnrichment never loads questions",
+    "verifierReasoning": "Every element of the claim checks out against the code. (1) DeepeningPhase.tsx:69-75 renders exactly `: personalizedQuestions.length > 0 ? <PersonalizedQuestions/> : null`; with empty questions and loadingQuestions=false the phase shows only the 'A few quick taps' heading — all in-phase CTAs are gated behind `signature` or `allQAnswered`, and `allQAnswered` can only be set by PersonalizedQuestions, which never mounts. (2) handleSkipEnrichment (NewDiscoverFlow.tsx:437-446) jumps straight to 'platforms' without fetching questions; grep confirms fetchQuickQuestions is called only inside handleAdvanceToDeepening (line 304), so the skip path deterministically reaches 'deepening' with zero questions after the user clicks Continue/Skip in PlatformConnectStep. The fetch-failure path (silent catch at lines 308-309) and the success-with-zero-questions path produce the same dead end. (3) The path i"
+   },
+   {
+    "severity": "HIGH",
+    "title": "Forever-disabled spinner button when soul signature generation fails after answering questions",
+    "file": "src/pages/onboarding/components/DeepeningPhase.tsx",
+    "line": 172,
+    "detail": "After all questions are answered, if generateSignature fails (NewDiscoverFlow.tsx:511-515 catch leaves signature=null, generatingSignature=false), DeepeningPhase renders a permanently disabled button containing an infinitely spinning Loader2 (lines 172-186) with no error message, no retry, and no enabled CTA. The user who just invested in answering personality questions is stuck staring at a disabled spinner.",
+    "evidence": "DeepeningPhase.tsx:172-186 `{!signature && !generatingSignature && allQAnswered && (<button onClick={onComplete} disabled ...><Loader2 className=\"w-5 h-5 animate-spin\" /></button>)}`",
+    "verifierReasoning": "Verified against the code. (1) The cited branch exists verbatim at src/pages/onboarding/components/DeepeningPhase.tsx:172-186: when !signature && !generatingSignature && allQAnswered, it renders a hardcoded `disabled` button containing an infinitely spinning Loader2, with no error message and no retry; the component has no error prop. (2) The failure path is exactly as claimed: NewDiscoverFlow.tsx:466-516 sets signature only on response.ok && result.success && result.signature; on network error, 401, 500, or bad payload the catch only console.errors and finally sets generatingSignature=false. The triggering useEffect (lines 461-464) depends solely on [allQAnswered], which flips true once, so generateSignature is never re-invoked — the disabled-spinner state is permanent. The backend route (api/routes/onboarding-soul-signature.js:302-305) returns 500 {success:false} whenever the LLM call "
+   }
+  ]
+ },
+ {
+  "key": "welcome-skip",
+  "items": [
+   {
+    "severity": "HIGH",
+    "title": "'Already set up? Skip to chat' is a silent no-op loop for nearly everyone who sees it",
+    "file": "src/pages/onboarding/steps/WelcomeStep.tsx",
+    "line": 186,
+    "detail": "The skip link navigates to /talk-to-twin (line 62-64), but the only users who reach /onboarding are those gated there by needsOnboarding=true, and ProtectedRoute (src/components/ProtectedRoute.tsx:63-64) immediately bounces any needsOnboarding user from /talk-to-twin back to /onboarding. The click just remounts OnboardingFlow at the welcome step — the button visually does nothing. It neither calls setNeedsOnboarding(false) nor persists anything.",
+    "evidence": "WelcomeStep.tsx:62-64 `navigate('/talk-to-twin')`; ProtectedRoute.tsx:63 `if (needsOnboarding && location.pathname !== '/onboarding' && location.pathname !== '/soul-reveal') return <Navigate to=\"/onboarding\" replace />`",
+    "verifierReasoning": "All cited code verified. WelcomeStep.tsx:62-64 navigates to /talk-to-twin without clearing needsOnboarding; ProtectedRoute.tsx:63-64 bounces any needsOnboarding=true user from /talk-to-twin straight back to /onboarding, remounting OnboardingFlow at the welcome step (initialStep() defaults to 'welcome' with no ?step param). setNeedsOnboarding(false) is only called on sign-out and in OnboardingFlow.handleComplete after the final awakening step — never on skip. Grep confirms ProtectedRoute's gate is the only navigation to /onboarding in src, so virtually everyone who sees the welcome screen has needsOnboarding=true, making the skip a guaranteed loop. Worse, the backend gate (onboarding-calibration.js:926: isNew = !hasCalibration && memoriesCount<5 && connectionsCount===0) re-gates returning users who skipped the interview and connected nothing — the exact 'already set up' audience the link "
+   }
+  ]
+ },
+ {
+  "key": "awakening",
+  "items": [
+   {
+    "severity": "HIGH",
+    "title": "Awakening finale shows hardcoded fake status cards regardless of what the user actually connected",
+    "file": "src/pages/onboarding/steps/AwakeningScreen.tsx",
+    "line": 162,
+    "detail": "The three glass cards — 'Your memories: Already learning', 'Your music: Patterns detected', 'Your rhythm: Syncing up' — are a static array rendered as if live state. A user who skipped the interview AND skipped all platform connections (both fully skippable) is told music patterns were detected and their rhythm is syncing, which is false. This is the emotional peak of onboarding presenting mock data as real.",
+    "evidence": "AwakeningScreen.tsx:162-165 `[{ icon: Brain, label: 'Your memories', value: 'Already learning' }, { icon: Music, label: 'Your music', value: 'Patterns detected' }, { icon: Calendar, label: 'Your rhythm', value: 'Syncing up' }]`",
+    "verifierReasoning": "Verified all three prongs. (1) Code exists as cited: AwakeningScreen.tsx:162-165 is a hardcoded array ('Already learning', 'Patterns detected', 'Syncing up') rendered unconditionally; the component takes only an onEnter callback, fetches only /twin/first-message, and has zero awareness of connection state. The adjacent comment 'show what the twin already knows' confirms the cards are presented as live status. (2) Reachable: OnboardingFlow is routed at /onboarding (App.tsx:421-427) and ProtectedRoute.tsx:63 force-redirects new users there — it is the mandatory onboarding path, no feature flags. (3) Impact real: InterviewStep is skippable (OnboardingFlow.tsx:134) and PlatformStep's always-enabled button renders 'Skip for now →' with zero connections and still advances to awakening (PlatformStep.tsx:288-293). A user who skips everything is told music patterns were 'detected' (past tense) an"
+   }
+  ]
+ },
+ {
+  "key": "platform-connect-step",
+  "items": [
+   {
+    "severity": "HIGH",
+    "title": "Connecting a platform from /soul-reveal permanently ejects the user from the cinematic flow",
+    "file": "src/pages/onboarding/components/PlatformConnectStep.tsx",
+    "line": 155,
+    "detail": "PlatformConnectStep sets sessionStorage 'onboarding_platform_connect' before full-page OAuth redirect (lines 155-158). On return, OAuthCallback only checks 'onboarding_platform_step' (src/pages/OAuthCallback.tsx:348-354) — a different key set only by the /onboarding flow — so the user is redirected to /connect?connected=true, not back to /soul-reveal. The NewDiscoverFlow phase state is React state and is lost on the reload anyway, so even manual navigation back restarts at the reveal/entry phase. The 'wow' moment of connecting a platform mid-soul-reveal dumps the user into a completely different page (or into /onboarding if needsOnboarding is true).",
+    "evidence": "PlatformConnectStep.tsx:156 `sessionStorage.setItem('onboarding_platform_connect', platform.id)`; OAuthCallback.tsx:348 `const fromOnboarding = sessionStorage.getItem('onboarding_platform_step')` else `/connect?connected=true&provider=...`",
+    "verifierReasoning": "Every link in the claimed chain verifies. PlatformConnectStep.tsx:155-158 sets sessionStorage key 'onboarding_platform_connect' and performs a full-page redirect via safeRedirect (window.location.href — no popup, so window.opener is null on return). The backend (api/routes/entertainment-connectors.js:94) sets redirect_uri to the frontend /oauth/callback with an 'entertainment.'-prefixed encrypted state, which routes OAuthCallback.tsx into the connector-success branch. There, line 348 checks the DIFFERENT key 'onboarding_platform_step' (set only by src/pages/onboarding/steps/PlatformStep.tsx:171 in the separate /onboarding flow), so the check fails and the user is sent to /connect?connected=true&provider=X. The component is live and user-reachable: App.tsx:430 routes /soul-reveal to NewDiscoverFlow, which renders PlatformConnectStep at phase 'platforms' (line 621); DiscoverLanding and the"
+   },
+   {
+    "severity": "HIGH",
+    "title": "Soul-reveal platform connect fails silently — no user-visible error at the highest-investment moment",
+    "file": "src/pages/onboarding/components/PlatformConnectStep.tsx",
+    "line": 162,
+    "detail": "handleConnect's catch only does console.error (lines 162-166); there is also no else branch when result.success is false or authUrl/connectUrl missing (line 155). If /entertainment/connect/* errors, the spinner stops and nothing happens — no toast, no message, no retry hint. Compare with the /connect flow (usePlatformConnect.ts:398-406) which shows a destructive toast.",
+    "evidence": "PlatformConnectStep.tsx:162-166 `} catch (error) { console.error(`Failed to connect ${platform.id}:`, error); } finally { setConnecting(null); }`",
+    "verifierReasoning": "Verified all three prongs. (1) Code matches exactly: PlatformConnectStep.tsx:162-166 catch only console.errors; line 155 has no else branch, so a success:false response yields zero feedback of any kind. No toast import, no error state in the component. (2) Reachable: rendered by NewDiscoverFlow.tsx:621 at the 'platforms' phase, mounted at /soul-reveal (App.tsx:430), which DiscoverLanding.tsx:212 redirects new users into after auth and ProtectedRoute.tsx:60-63 explicitly allows during onboarding. No feature flag or admin gating. (3) Failure modes are realistic: backend handlers for all three platforms (spotify/youtube/google_calendar in api/routes/entertainment-connectors.js) sit behind authenticateUser and oauthAuthorizationLimiter, so 401/429/network errors all funnel into the silent catch — spinner stops, button resets, nothing shown. The contrast cited also verified: usePlatformConnec"
+   }
+  ]
+ },
+ {
+  "key": "regate-loop",
+  "items": [
+   {
+    "severity": "HIGH",
+    "title": "Onboarding re-gate loop: new-user-check counts only Nango connections, not the classic platform_connections table",
+    "file": "api/routes/onboarding-calibration.js",
+    "line": 916,
+    "detail": "new-user-check decides isNew via onboarding_calibration + user_memories count + nango_connection_mappings only. But the top recommended platforms (Spotify, Google Calendar, YouTube, Discord, Gmail) connect through the classic OAuth flow which writes to platform_connections (api/routes/oauth-callback.js:644), never nango_connection_mappings. A new user who skips the interview, connects Spotify, and finishes onboarding still has hasCalibration=false, memoriesCount<5 (ingestion is async), connectionsCount=0 -> isNew=true, so the next page load re-gates them into /onboarding via ProtectedRoute (src/components/ProtectedRoute.tsx:63). The Bug #35 comment in this file describes exactly this loop but the fix only covered Nango platforms. OnboardingFlow.handleComplete (src/pages/onboarding/OnboardingFlow.tsx:48-54) also never persists completion server-side — it only sets client state.",
+    "evidence": "onboarding-calibration.js:916-926 `.from('nango_connection_mappings')... const isNew = !hasCalibration && memoriesCount < 5 && connectionsCount === 0;` vs oauth-callback.js:644 `INSERT INTO platform_connections ...`",
+    "verifierReasoning": "Every element of the claim verified against the code. (1) new-user-check (api/routes/onboarding-calibration.js:889-933) computes isNew from onboarding_calibration.completed_at, user_memories count < 5, and a count of nango_connection_mappings only — exactly as cited at lines 916-926. (2) The onboarding PlatformStep's five recommended platforms (spotify, google_calendar, youtube, gmail, discord) call GET /api/connectors/connect/:id, which for a first-time connection returns a classic OAuth authUrl (connectors.js:336-341, no Nango branch in that handler); the callback's storeOAuthTokens inserts only into platform_connections (oauth-callback.js:644) and never writes nango_connection_mappings. (3) The interview skip path is first-class (InterviewStep onSkip) and completed_at is written only on actual interview completion (onboarding-calibration.js:670) or voice interview completion — so a sk"
+   }
+  ]
+ },
+ {
+  "key": "next-meeting-card",
+  "items": [
+   {
+    "severity": "HIGH",
+    "title": "NextMeetingCard ships Portuguese UI strings on an otherwise all-English dashboard",
+    "file": "src/pages/components/dashboard-v2/NextMeetingCard.tsx",
+    "line": 34,
+    "detail": "The meeting-prep card on the dashboard home renders entirely in Portuguese: timeUntilLabel returns 'agora', 'em X min', 'em Xh', 'em Xd' (lines 34-38); clockLabel uses Intl.DateTimeFormat('pt-BR') (line 43); title fallback is 'Reuniao' (line 79); header label is 'Proxima reuniao' (line 113); footer link is 'Ver prep completo' (line 175). Every other card on DashboardV2 is English. Any user with a meeting in the next 24h sees a mixed-language home screen.",
+    "evidence": "if (minutes < 1) return 'agora'; if (minutes < 60) return `em ${minutes} min`; ... 'Proxima reuniao · {timeUntilLabel(...)}' ... 'Ver prep completo'",
+    "verifierReasoning": "Verified every cited line in src/pages/components/dashboard-v2/NextMeetingCard.tsx: 'agora'/'em X min'/'em Xh'/'em Xd' at lines 34-38, Intl.DateTimeFormat('pt-BR') at line 43, 'Reunião' fallback at line 79, 'Próxima reunião' at line 113, 'Ver prep completo' at line 175. The component is rendered unconditionally in DashboardV2.tsx (line 124), which is the main /dashboard route in App.tsx behind a plain ProtectedRoute — no feature flag or admin gating. The backing GET /api/meeting-briefings endpoint is mounted in api/server.js (line 803) and populated by a live cron (cron-meeting-prep.js), so the card is reachable in production. The card self-hides unless a briefed meeting starts within 24h, so impact is limited to calendar-connected users with imminent meetings — exactly the cohort the claim names. Grep confirms the Portuguese strings are unique to this file; all sibling dashboard-v2 card"
+   }
+  ]
+ },
+ {
+  "key": "department-widget",
+  "items": [
+   {
+    "severity": "HIGH",
+    "title": "DepartmentWidget renders hardcoded FALLBACK_DEPARTMENTS as real status while loading and on API error",
+    "file": "src/pages/components/dashboard-v2/DepartmentWidget.tsx",
+    "line": 22,
+    "detail": "useQuery default `data: departments = FALLBACK_DEPARTMENTS` (line 38) means during loading AND whenever GET /api/departments fails, the 'YOUR AI TEAM' section shows 7 fabricated departments with invented enabled/disabled states (Communications/Scheduling/Health/Content/Research active; Finance/Social off) and fake budgets/action counts (e.g. actionsThisWeek: 12). The user cannot tell this is placeholder — the chips look identical to live data. On persistent API failure the fake team is shown indefinitely with no error indication.",
+    "evidence": "const { data: departments = FALLBACK_DEPARTMENTS } = useQuery<Department[]>({ queryKey: ['departments'], queryFn: () => departmentsAPI.getDepartments(), staleTime: 30_000 });",
+    "verifierReasoning": "Verified line-by-line. src/pages/components/dashboard-v2/DepartmentWidget.tsx:38 has `const { data: departments = FALLBACK_DEPARTMENTS } = useQuery<Department[]>(...)` and FALLBACK_DEPARTMENTS (lines 22-30) contains exactly the claimed fabricated data (5 enabled / 2 disabled departments, actionsThisWeek: 12, fake budgets). The component never reads isLoading or isError, so during loading AND whenever GET /api/departments fails (departmentsAPI.getDepartments throws on !response.ok, leaving useQuery data undefined and triggering the destructure default), the 'YOUR AI TEAM' section renders the 7 hardcoded departments with invented enabled/disabled states, styled identically to live data, with no error indication — indefinitely on persistent failure. Reachability confirmed: rendered unconditionally at DashboardV2.tsx:176 on the main /dashboard route (App.tsx:185-193), behind only auth, no fe"
+   }
+  ]
+ },
+ {
+  "key": "beta-checklist",
+  "items": [
+   {
+    "severity": "HIGH",
+    "title": "Onboarding step 'Pick a Life Operating System' navigates to a page with no template picker — step is impossible to complete via its CTA",
+    "file": "src/pages/components/dashboard-v2/BetaOnboardingChecklist.tsx",
+    "line": 127,
+    "detail": "Step 2 of the beta checklist says 'Choose a template to activate your AI departments' and navigates to '/departments' (line 132). App.tsx:468 redirects /departments to /inbox, and InboxPage (src/pages/InboxPage.tsx + src/pages/inbox/*) contains no template UI. src/services/api/templatesAPI.ts exists but is imported by zero components — there is no Life Operating System template picker anywhere in the frontend. The step's isComplete requires departmentCount >= 3 enabled departments, which the user cannot achieve from this CTA. New beta users hit a dead end on their very first checklist.",
+    "evidence": "action: () => navigate('/departments') ... isComplete: departmentCount >= 3; App.tsx:468: <Route path=\"/departments\" element={<Navigate to=\"/inbox\" replace />} />; grep for templatesAPI consumers in src/**/*.tsx returns nothing",
+    "verifierReasoning": "All cited evidence verified against the code. (1) BetaOnboardingChecklist.tsx:127-135 contains the 'Pick a Life Operating System' step with action navigate('/departments') and isComplete: departmentCount >= 3, exactly as claimed. (2) App.tsx:468 redirects /departments to /inbox. (3) The component is genuinely reachable: DashboardV2 (routed at /dashboard behind ProtectedRoute only, no feature flag) renders the checklist whenever connectedCount < 2 — the exact state of a new beta user. (4) InboxPage and its children (InboxTile, InboxEmptyState, InboxFilter, DepartmentStatusPanel) contain no template picker; DepartmentStatusPanel's only mutation lowers autonomy to Watch — it cannot enable departments. (5) templatesAPI.ts (getTemplates/applyTemplate) has zero consumers; grep for 'Life Operating System|LifeOS|applyTemplate' across src matches nothing else relevant. The claim even understates "
+   }
+  ]
+ },
+ {
+  "key": "chat-retry",
+  "items": [
+   {
+    "severity": "HIGH",
+    "title": "Retry after mid-stream failure pre-fills the composer with the twin's partial reply instead of the user's question",
+    "file": "src/components/chat/MessageList.tsx",
+    "line": 326,
+    "detail": "When a stream errors AFTER chunks started (SSE `error` event or network drop mid-stream), TalkToTwin marks the ASSISTANT message failed (TalkToTwin.tsx:507-514 and 532-538). MessageList renders 'Try again' under that assistant bubble and calls `onRetry(message.content, message.id)` — but `message.content` here is the twin's half-finished response text. `handleRetry` (TalkToTwin.tsx:551-555) then removes the assistant bubble and sets the INPUT to that partial twin text. The user's original question is gone from the composer; pressing send would submit the twin's own truncated answer back to the twin. Retry only works correctly for pre-first-chunk failures (where the user message is the failed one). Fix: for failed assistant messages, look up the preceding user message and retry with that content.",
+    "evidence": "MessageList.tsx L326 `onClick={() => onRetry(message.content, message.id)}` inside the assistant-failed branch (L306-341); TalkToTwin.tsx L551-555 `handleRetry` does `setMessages(prev => prev.filter(...)); setInputMessage(content);`.",
+    "verifierReasoning": "Verified every element of the claim. (1) MessageList.tsx L326 calls onRetry(message.content, message.id) inside the message.failed block of the ASSISTANT rendering branch (L254+); message.content for assistant messages is the accumulated streamed twin text (TalkToTwin.tsx L396-410). (2) TalkToTwin.tsx L507-514 (SSE error event) and L532-538 (catch for network drop) both mark the assistant message failed when chunks already arrived, with errorType 'generic'/'network' — so the 'Try again' button renders (only 'rate_limit' suppresses it, L323). (3) handleRetry (L551-555) removes the message and sets the composer input to the passed content — i.e., the twin's partial reply, not the user's question. Wiring confirmed: MessageList rendered with onRetry={handleRetry} at TalkToTwin.tsx L734-739; page is the core chat at /talk-to-twin (App.tsx L486-496), behind ProtectedRoute only, no feature flag"
+   }
+  ]
+ },
+ {
+  "key": "chat-sidebar-navy",
+  "items": [
+   {
+    "severity": "HIGH",
+    "title": "Right-hand 'Today' sidebar uses navy-blue gradients — explicitly forbidden by the design system",
+    "file": "src/components/chat/ChatContextSidebar.tsx",
+    "line": 8,
+    "detail": "CLAUDE.md: background must be #13121a or the amber/copper sun-gradient system, 'NEVER navy blue'. getTimeGradient (lines 8-18) returns steel-blue/navy gradients for every time slot: morning `#4a6fa5 → #2d4a7a → #1e3560`, afternoon `#2d3a5c → #1e2747 → #1a1f3a`, evening purple-navy `#3d2a5c → #2a1e47`. These paint the entire desktop sidebar (line 403) and mobile overlay (line 436), plus a blue inset glow `rgba(100,130,255,0.04)` (lines 404, 437) and a slate-blue top overlay `rgba(45,55,72,0.3)` (lines 413, 459). This is the most prominent colored surface on the core chat screen and it is the one palette the product rules ban.",
+    "evidence": "L10 `'linear-gradient(165deg, #4a6fa5 0%, #2d4a7a 30%, #1e3560 60%, #151825 100%)'`; L404 `boxShadow: ... 'inset 0 0 80px rgba(100, 130, 255, 0.04)'`; L413 `'linear-gradient(180deg, rgba(45,55,72,0.3) 0%, ...)'`.",
+    "verifierReasoning": "Verified against the actual file: getTimeGradient (ChatContextSidebar.tsx:8-18) returns steel-blue/navy gradients (#4a6fa5/#2d4a7a/#1e3560 morning, #2d3a5c/#1e2747/#1a1f3a afternoon, #3d2a5c/#2a1e47 evening) exactly as quoted, applied as the background of both the desktop sidebar (line 403) and mobile overlay (line 436), plus the blue inset glow rgba(100,130,255,0.04) (lines 404, 437) and slate-blue top overlay rgba(45,55,72,0.3) (lines 413, 459). The component is rendered unconditionally in TalkToTwin.tsx:786 on the /talk-to-twin route (App.tsx:486), the core chat screen for all authenticated users — no feature flag or admin gating, and the sidebar is expanded by default. The palette is a local hardcoded function, not part of the sanctioned SunContext amber/copper gradient system, and CLAUDE.md says backgrounds must be #13121a or the sun-gradient system, 'NEVER navy blue'. The rule is a"
+   }
+  ]
+ },
+ {
+  "key": "chat-intro-emoji",
+  "items": [
+   {
+    "severity": "HIGH",
+    "title": "First-visit /chat/intro greeting has no anti-emoji instruction and no strip — emoji can be the user's first impression",
+    "file": "api/routes/twin-conversations.js",
+    "line": 258,
+    "detail": "The main chat path injects ANTI_EMOJI_RULE via twinPromptAssembly.js:27, but the /intro endpoint builds its own standalone prompt (lines 258-271) with zero emoji prohibition, runs TIER_CHAT at temperature 0.8 asking for a 'short, warm' greeting — exactly the register where LLMs emit emoji — and returns it verbatim (line 281-283). useChatSession.ts (lines 142-152) renders it as the first assistant message with no client-side stripEmoji. The prior audit (2026-05-15 H7) added stripEmoji defense-in-depth to sidebar insights and email subjects (ChatContextSidebar.tsx:223,229,277) but the two LLM text paths actually rendered in the chat stream — the intro and streamed twin chunks in MessageList.tsx — have no strip at all. Per the product's hard NO EMOJIS rule, add the anti-emoji line to the intro prompt and run stripEmoji on intro + rendered assistant content.",
+    "evidence": "twin-conversations.js L258-271 greeting prompt contains no emoji instruction (contrast twinPromptAssembly.js L27 ANTI_EMOJI_RULE); MessageList.tsx renders `message.content` straight into ReactMarkdown (L153-155) with no stripEmoji import.",
+    "verifierReasoning": "Verified every citation. (1) api/routes/twin-conversations.js L258-271: the /intro greeting prompt contains no anti-emoji instruction; L273-280 calls TIER_CHAT at temperature 0.8; L281-283 returns the LLM output with only .trim(). llmGateway.js does no emoji stripping. (2) twinPromptAssembly.js L27/L109 confirms the main chat path injects ANTI_EMOJI_RULE, so the intro path is a genuine inconsistency. (3) Reachable: route mounted at api/server.js:578 under /api/chat with only authenticateUser; src/hooks/useChatSession.ts L134-155 fetches /chat/intro for any logged-in user with zero messages and renders the response as the first assistant message with no stripEmoji. No feature flag. (4) Render path has no strip: MessageList.tsx passes message.content to AssistantMessageBody, whose parseDepartmentSuggestions (DepartmentSuggestionCard.tsx L149-182) only removes DEPT_SUGGEST tags, then render"
+   }
+  ]
+ },
+ {
+  "key": "chronotype-emoji",
+  "items": [
+   {
+    "severity": "HIGH",
+    "title": "chronotypeIcon returns emoji characters (crescent moon, sun, sun-behind-cloud, watch) rendered into JSX",
+    "file": "src/pages/components/identity/InsightCards.tsx",
+    "line": 42,
+    "detail": "chronotypeIcon (lines 42-48) returns '\\u{1F319}' (crescent moon emoji), '\\u{2600}' (sun), '\\u{26C5}' (sun behind cloud), '\\u{231A}' (watch) and the result is rendered at line 132: <span className=\"text-2xl\">{chronotypeIcon(chronotype)}</span> inside the 'Your Energy Rhythm' card. Direct violation of the strict NO EMOJIS rule in CLAUDE.md and of the lucide-icons-only design rule. Currently the chronotype prop is never passed (see CRITICAL InsightCards finding) so the emoji is dormant — the moment anyone wires real data, emojis ship to users. Should be a lucide icon (Moon, Sun, CloudSun, Watch).",
+    "evidence": "InsightCards.tsx:44-47 `if (raw.includes('night')...) return '\\u{1F319}'; ... return '\\u{231A}';` rendered at line 132 `<span className=\"text-2xl\">{chronotypeIcon(chronotype)}</span>`",
+    "verifierReasoning": "Every cited fact verified. chronotypeIcon (InsightCards.tsx:42-48) returns four emoji characters (U+1F319 crescent moon, U+2600 sun, U+26C5 sun-behind-cloud, U+231A watch) and is rendered at line 132 in the 'Your Energy Rhythm' card via <span className=\"text-2xl\">{chronotypeIcon(chronotype)}</span>. The component is live, user-reachable code: App.tsx:267 routes /identity (plain ProtectedRoute, no flag/admin gate) -> IdentityPage.tsx:1140 renders ContextSidebar -> ContextSidebar.tsx:97 renders InsightCards on the Insights tab. This directly violates the project CLAUDE.md 'NO EMOJIS' rule and is inconsistent with the file's own lucide-icon usage (line 10 imports Music/Zap/Sparkles/Database/Target for every other card). The finding is real. However, userImpact is 'none' today: the only call site passes no chronotype prop, so chronotypeIcon(undefined) returns '' (line 43) and the span render"
+   }
+  ]
+ },
+ {
+  "key": "identity-page",
+  "items": [
+   {
+    "severity": "HIGH",
+    "title": "'Try again' on the /identity error screen is a dead button when the soul-signature query failed — it only refetches the identity query",
+    "file": "src/pages/IdentityPage.tsx",
+    "line": 438,
+    "detail": "The error screen renders when `identityError || soulError` (line 423), but the retry button calls only `refetchIdentity()` (line 438) which refetches the 'twin-identity' query. If the failure came from /soul-signature/layers (soulError), clicking 'Try again' never refetches that query, soulError persists, and the error screen never clears — the recovery affordance is broken for half the failure modes it covers. The soul query's `refetch` is destructured but never wired (line 353 has no refetch).",
+    "evidence": "IdentityPage.tsx:423 `if (identityError || soulError)` ... :438 `onClick={() => refetchIdentity()}` — no refetch for the 'soul-signature-layers' query",
+    "verifierReasoning": "Verified against src/pages/IdentityPage.tsx: line 423 gates the full-page error screen on `identityError || soulError`, line 438's Try-again button calls only `refetchIdentity()` (the 'twin-identity' query), and line 353 destructures no refetch from the 'soul-signature-layers' query. The soul query throws on !res.ok (line 357), so soulError is a real failure mode. /identity is a normal ProtectedRoute (App.tsx:267) — no feature flag, reachable by all logged-in users. queryClient.ts is `new QueryClient()` with no overrides, so after default retries the soul query stays in error state; clicking Try again refetches identity only, soulError persists, and the same error screen re-renders — a visible no-op. A soul-only failure also blanks the page even when identity data loaded. Not blocks-user because default refetchOnWindowFocus/remount behavior (tab away and back, navigate away and return, o"
+   },
+   {
+    "severity": "HIGH",
+    "title": "'Try again' button text is near-invisible: color uses var(--background) = #13121a on a #252222 button",
+    "file": "src/pages/IdentityPage.tsx",
+    "line": 440,
+    "detail": "The error-state button uses `color: 'var(--background, #fdfcfb)'`. The fallback #fdfcfb betrays this was written for the old light theme; in the current dark-only theme --background IS defined as #13121a (src/index.css:21), so the label renders #13121a text on a #252222 background (`var(--button-bg-dark, #252222)` — --button-bg-dark is not defined anywhere in src/index.css, confirmed by grep). Contrast ratio is roughly 1.2:1: the only recovery CTA on the error screen has an effectively unreadable label.",
+    "evidence": "IdentityPage.tsx:440 `style={{ backgroundColor: 'var(--button-bg-dark, #252222)', color: 'var(--background, #fdfcfb)' }}` ; src/index.css:21 `--background: #13121a;`",
+    "verifierReasoning": "Every element of the claim verified. (1) Code exists verbatim at src/pages/IdentityPage.tsx:440: backgroundColor 'var(--button-bg-dark, #252222)', color 'var(--background, #fdfcfb)'. (2) --background is defined as #13121a at src/index.css:21 (sole definition; dark-only theme, no .dark toggle), so the #fdfcfb fallback never applies and the label renders #13121a. --button-bg-dark is defined nowhere in src/ or public/ (only 3 var() usages with fallbacks; SunContext's setProperty calls only touch gradient vars), so the button bg resolves to #252222. Computed contrast: 1.19:1 — matches the claimed ~1.2:1, far below WCAG 4.5:1. Sibling code Settings.tsx:168 uses the same button bg with the correct 'var(--foreground)', confirming this is a light-theme leftover bug. (3) Reachable: /identity is a primary nav route (App.tsx:267-275) gated only by auth, no feature flag; the error branch fires on an"
+   },
+   {
+    "severity": "HIGH",
+    "title": "Frontend ignores 'generating' and 'insufficient' responses from /soul-signature/layers — new users see 'usually takes a couple of days' while their signature finishes in ~15 seconds",
+    "file": "src/pages/IdentityPage.tsx",
+    "line": 353,
+    "detail": "api/routes/soul-signature.js:739-757 returns `{ data: null, generating: true, message: 'Your soul signature is being generated...', retryAfter: 15 }` when generation exceeds 5s, and `{ data: null, message: 'Need more data... (N memories found, minimum 10 required)' }` when insufficient. IdentityPage's soul query (lines 353-362) never reads `generating`, `retryAfter`, or `message`, has no polling/refetchInterval, and caches the null result with staleTime 10 minutes (line 360). A brand-new user landing on /identity mid-generation falls into EmptyState (line 451), which tells them 'Connect Spotify, Calendar, or YouTube... Usually takes a couple of days' (lines 1243-1245) — and because of the 10-minute staleTime, even revisiting the route won't pick up the finished signature without a hard reload. The backend's precise messaging and retry hint are discarded.",
+    "evidence": "soul-signature.js:741-747 `return res.json({ success: true, data: null, generating: true, ... retryAfter: 15 });` vs IdentityPage.tsx:353-362 (no generating handling, staleTime: 10 * 60 * 1000) and :449-451 `if (!hasAnyData) return <EmptyState />;`",
+    "verifierReasoning": "Every cited line verified. Backend (api/routes/soul-signature.js:734-757) races generation against a 5s timeout and returns success:true/data:null with generating:true + retryAfter:15 (or an insufficient-data message); generation continues in background via the pendingGenerations map in soulSignatureService.js:827-872 and caches on completion, so the signature really does finish shortly after. Frontend (src/pages/IdentityPage.tsx:353-362) never reads generating/retryAfter/message (zero grep hits in the file), has no refetchInterval, and caches the null payload as a successful query result with staleTime 10 minutes (queryClient is a bare new QueryClient(), so no global mitigation; refetchOnWindowFocus only refires stale queries). For a brand-new user, summary from /twin/identity (fetchTwinSummary on twin_summaries) is also null, so hasAnyData=false at line 449 routes to EmptyState (451), "
+   }
+  ]
+ },
+ {
+  "key": "identity-context-sidebar",
+  "items": [
+   {
+    "severity": "CRITICAL",
+    "title": "Insights tab on /identity renders permanently fake data: '0 memories', '0 platforms', 'Connect Spotify' even when connected",
+    "file": "src/pages/components/identity/ContextSidebar.tsx",
+    "line": 97,
+    "detail": "ContextSidebar renders <InsightCards className=... /> with NO data props. InsightCards (src/pages/components/identity/InsightCards.tsx:78-86) defaults axes=[], memoryCount=0, platformCount=0, fidelityScore=undefined, chronotype=undefined. Result for EVERY user, always: 'Your Listening DNA' shows 'Connect Spotify to discover' even when Spotify is connected (line 119); 'Your Energy Rhythm' shows 'Unknown' (line 137 via formatChronotype(undefined)); 'Your Data Footprint' shows hardcoded '0 memories / 0 platforms' (lines 186, 200) presented as the user's real stats; 'Twin Accuracy' always shows 'Chat more to measure accuracy'; 'Your Top Dimension' card never renders (axes.length always 0). This is the only usage of InsightCards in the codebase, so the entire component is shipped placeholder content masquerading as live data on the canonical identity page.",
+    "evidence": "ContextSidebar.tsx:97 `<InsightCards className=\"[&>div]:flex-col...\" />` — no axes/memoryCount/platformCount/chronotype/fidelityScore props; InsightCards.tsx:186 `{memoryCount.toLocaleString('en-US')}` renders '0'",
+    "verifierReasoning": "VERIFIED — every element of the claim checks out against the working tree.\n\n(1) Cited code exists exactly as described. C:/Users/stefa/twin-ai-learn/src/pages/components/identity/ContextSidebar.tsx:97 renders `<InsightCards className=\"[&>div]:flex-col [&>div]:overflow-visible [&>div]:gap-3\" />` with NO data props. C:/Users/stefa/twin-ai-learn/src/pages/components/identity/InsightCards.tsx:78-86 destructures with defaults axes=[], memoryCount=0, platformCount=0; fidelityScore/joinedAt/chronotype are undefined. All cited line numbers are exact: line 119 = \"Connect Spotify to discover\", line 137 = formatChronotype(chronotype) which returns 'Unknown' for undefined (line 32), line 186 = memoryCount.toLocaleString('en-US') rendering \"0\", line 200 = platformCount rendering \"0\". InsightCards is purely props-driven — it contains no hooks, no queries, no internal data fetching whatsoever, so there"
+   }
+  ]
+ },
+ {
+  "key": "insights-hook",
+  "items": [
+   {
+    "severity": "HIGH",
+    "title": "Refresh button ('Get a fresh observation') is a silent no-op while the reflection cache is warm",
+    "file": "src/hooks/usePlatformInsights.ts",
+    "line": 128,
+    "detail": "refresh() POSTs /insights/:platform/refresh, which starts regeneration in the background and returns immediately (platform-insights.js:871-901). The hook then refetches GET /:platform — but the GET checks hasFreshReflection BEFORE the generation lock (platform-insights.js:814-817), and the OLD reflection row is still unexpired (6h TTL, reflectionConstants.js:8), so the GET returns the same stale reflection. Polling never starts, the spinner stops in ~1s, and the freshly generated observation (landing ~15-25s later) is never displayed until a later visit. The backend's own comment (platform-insights.js:888-889: 'The client refetches GET /:platform, which returns generating: true and polls until the fresh reflection lands') describes behavior that only occurs when the cache is already expired. This affects the primary action on all six insights pages. Additionally, if the POST fails, refresh() only console.errors (usePlatformInsights.ts:140-142) — no user-visible feedback.",
+    "evidence": "platform-insights.js:814 `if (await platformReflectionService.hasFreshReflection(...))` runs before the lock check at :827; refreshReflection (platformReflectionService.js:144-171) does not invalidate the old row before regenerating; reflectionStore.js:70-86 getCachedReflection returns latest non-dismissed row",
+    "verifierReasoning": "Verified every link in the chain. (1) usePlatformInsights.ts:128-145: refresh() POSTs /insights/:platform/refresh, ignores the {regenerating:true} response, and immediately refetches GET /:platform. (2) platform-insights.js:871-901: the POST acquires the lock and runs refreshReflection fire-and-forget, returning in ~ms while the LLM takes 15-25s. (3) platform-insights.js:814-817: GET checks hasFreshReflection BEFORE the lock check at :827, so while a warm row exists the lock-based generating:true response is unreachable. (4) refreshReflection (platformReflectionService.js:144-171) never dismisses/invalidates the old row; storeReflection only inserts the new row after the LLM finishes, and getCachedReflection (reflectionStore.js:70-86) returns the latest non-dismissed row with a 6h TTL (reflectionConstants.js:8). Therefore the refetch lands on the warm path, returns the OLD reflection wit"
+   },
+   {
+    "severity": "HIGH",
+    "title": "Persistent backend errors masquerade as 'Connect <platform>' for already-connected users after a silent 90s give-up",
+    "file": "src/hooks/usePlatformInsights.ts",
+    "line": 83,
+    "detail": "The route's catch-all returns {generating: true} on ANY unexpected error (platform-insights.js:859-864), forever. The hook polls 15 times at 6s (usePlatformInsights.ts:19-20) and then gives up at lines 83-86 setting generating=false with insights=null and error=null — no error message is surfaced. Every page then falls through to its connect/empty state: e.g., SpotifyInsightsPage.tsx:259-261 renders SpotifyEmptyState with a 'Connect Spotify' button and 'Your twin is collecting data...' for a user whose Spotify is connected but whose backend is failing (DB outage, bad LLM key, etc.). This is exactly the misleading state the hook's own header comment (lines 8-13) says it was built to prevent — it is merely delayed by 90 seconds.",
+    "evidence": "usePlatformInsights.ts:84-86 `// Gave up after MAX_POLLS ... setGenerating(false);` with no setError; platform-insights.js:861-863 `// Any unexpected error/timeout -> show \"still generating\" ... res.json({ success: true, platform, generating: true })`",
+    "verifierReasoning": "Every cited element verified against source. (1) api/routes/platform-insights.js:859-864: the GET /:platform catch-all returns 200 {success:true, generating:true} on ANY throw, exactly as quoted; additionally line 838 maps rejected getReflections promises to kind:'failed' which falls through to line 858's generating:true, and the lock is released in .finally() (line 835), so a persistently failing backend (bad LLM key, warm-path withTimeout rejection after 12s, reflection-service errors) returns generating:true on every 6s poll indefinitely. Because the response is 200/success:true, neither frontend error branch (response.ok check line 72, data.success===false check line 90) can ever fire. (2) src/hooks/usePlatformInsights.ts:19-20 confirm POLL_INTERVAL_MS=6000/MAX_POLLS=15 (~90s), and lines 83-86 confirm the give-up sets generating=false with no setError and insights still null — final "
+   }
+  ]
+ },
+ {
+  "key": "insights-youtube",
+  "items": [
+   {
+    "severity": "HIGH",
+    "title": "YouTube page renders a blank observation card and suppresses its connect/empty state for notConnected and fallback responses",
+    "file": "src/pages/insights/YouTubeInsightsPage.tsx",
+    "line": 507,
+    "detail": "The backend returns `reflection` as a plain STRING in two cases: not connected (platform-insights.js:800-807) and connected-but-no-data fallback (platform-insights.js:845-854). YouTubeInsightsPage checks `insights?.reflection` (object truthiness) at lines 507 and 574 instead of `.reflection?.text` like the Spotify/Calendar/Discord/LinkedIn pages do. A string is truthy, so the page renders <TwinReflection reflection={insights.reflection.text}> with undefined text — an empty 'Your Twin's Observation' card with no body — AND `!insights?.reflection` is false, so the empty state with its data-syncing guidance never appears. A user who hasn't connected YouTube sees: stale 'Coming soon' banner + a blank observation card + no connect CTA anywhere on the page.",
+    "evidence": "YouTubeInsightsPage.tsx:507 `{insights?.reflection && (`, :510 `reflection={insights.reflection.text}`, :574 `{!insights?.reflection && (`; compare SpotifyInsightsPage.tsx:151 `{insights?.reflection?.text ? (`",
+    "verifierReasoning": "Every cited line matches: YouTubeInsightsPage.tsx:507 checks `insights?.reflection &&` (truthy object check) and :510 renders `insights.reflection.text`; :574 gates the empty state on `!insights?.reflection`. The backend (api/routes/platform-insights.js:800-807 notConnected, :845-854 fallback) returns `reflection` as a plain STRING with success:true, and the shared usePlatformInsights hook passes these payloads through untouched (it only intercepts `generating` and `success===false`). A string is truthy, so TwinReflection renders with text=undefined — a card showing only the \"Your Twin's Observation\" header and an empty body (no crash, timestamp/confidence are guarded) — while the line-574 empty state with data-syncing guidance is suppressed. The \"Coming soon\" banner (line 218) renders since hasExtensionData is absent, and the only \"Connect YouTube\" CTA is in the error branch which never"
+   },
+   {
+    "severity": "HIGH",
+    "title": "YouTube 'Coming soon' extension banner is false: the extension is shipped and this very page renders its data",
+    "file": "src/pages/insights/YouTubeInsightsPage.tsx",
+    "line": 217,
+    "detail": "The banner (lines 217-247) says 'Coming soon — A browser extension will capture watch history, search queries, and viewing patterns that the YouTube API can't access.' But the extension exists (browser-extension/ in the repo, soul-signature-extension.zip shipped), the backend already ingests extension_video_watch and extension_search rows (api/services/reflections/otherDataFetchers.js:53-70), and the SAME page renders that data ('Recent Watch History' line 250, 'Search Interests' line 299). The sibling Web page (WebBrowsingInsightsPage.tsx:60-78) tells users to 'Install the browser extension' today. The banner also has no install link or click handler — it's an inert div — so even a user who believes it has no path forward. Misinforms users and hides a shipped feature.",
+    "evidence": "YouTubeInsightsPage.tsx:238 `Coming soon` badge; :242 'A browser extension will capture watch history...'; otherDataFetchers.js:53 `d.data_type === 'extension_video_watch'`; WebBrowsingInsightsPage.tsx:70 'Install the browser extension to unlock your digital life'",
+    "verifierReasoning": "Every cited fact checks out. (1) YouTubeInsightsPage.tsx lines 217-247 contain the exact \"Coming soon\" badge (line 238) and future-tense copy (line 242), in an inert div with no onClick/link — confirmed by reading the file. (2) The page is user-reachable: routed at /insights/youtube in App.tsx:213 with no feature flag or gating; the banner shows whenever hasExtensionData is falsy, the default for any user without the extension. (3) The \"coming soon\" claim is demonstrably false: the extension is published on the Chrome Web Store (connectorConfig.tsx:185 links chromewebstore.google.com/detail/twinme/..., ConnectorCard.tsx:161 shows an \"Install Extension\" button in onboarding with no comingSoon flag), manifest.json v3.10.2 ships collectors/youtube.js on youtube.com, api/routes/extension-data.js maps its events to extension_video_watch/extension_search, otherDataFetchers.js:53-70 ingests the"
+   }
+  ]
+ },
+ {
+  "key": "insights-spotify-empty",
+  "items": [
+   {
+    "severity": "HIGH",
+    "title": "Empty states show 'Connect X' button and 'Your twin is collecting data... check back soon' simultaneously — contradictory status",
+    "file": "src/pages/insights/components/SpotifyEmptyState.tsx",
+    "line": 27,
+    "detail": "Because the frontend ignores the API's `notConnected` and `fallback` flags, the empty states cannot distinguish 'not connected' from 'connected, awaiting data', so they hedge by showing both: a Connect CTA (implying not connected) directly above a pulsing 'Your twin is collecting data... check back soon' badge (implying connected and active). Locations: SpotifyEmptyState.tsx:27-44, CalendarEmptyState.tsx:35-52, DiscordInsightsPage.tsx:314-327 ('Connect Discord' + 'Collecting your server activity...'), LinkedInInsightsPage.tsx:286-299 ('Connect LinkedIn' + 'Awaiting your profile data...'). YouTube has the inverse defect: its empty state (YouTubeInsightsPage.tsx:594-604) shows only 'Your twin is collecting data... check back soon' with NO connect button, which is false for never-connected users. The backend already sends the disambiguating flag (platform-insights.js:806 `notConnected: true`); no page or the shared hook reads it.",
+    "evidence": "SpotifyEmptyState.tsx:32 'Connect Spotify' button + :43 'Your twin is collecting data... check back soon' in the same card; DiscordInsightsPage.tsx:319 'Connect Discord' + :326 'Collecting your server activity...'",
+    "verifierReasoning": "Verified by reading all cited files. SpotifyEmptyState.tsx (lines 27-44) and CalendarEmptyState.tsx (lines 35-52) unconditionally render a Connect CTA directly above a pulsing 'Your twin is collecting data... check back soon' badge in the same card; DiscordInsightsPage.tsx:314-327 ('Connect Discord' + 'Collecting your server activity...') and LinkedInInsightsPage.tsx:286-299 ('Connect LinkedIn' + 'Awaiting your profile data...') match the claim at the exact cited lines. The backend (api/routes/platform-insights.js:805) returns notConnected:true for unconnected users and fallback:true (line 852) for connected-but-empty, but grep confirms neither flag is read anywhere in src/ — the shared hook usePlatformInsights.ts only handles 'generating'. All five pages are live routes in App.tsx behind ProtectedRoute only (no feature flag, not admin-only), so any signed-in user hits these states. Trac"
+   }
+  ]
+ },
+ {
+  "key": "brain-silent",
+  "items": [
+   {
+    "severity": "HIGH",
+    "title": "Memory fetch failures swallowed silently and misrendered as 'No memories found — Connect platforms'",
+    "file": "src/pages/BrainPage.tsx",
+    "line": 85,
+    "detail": "fetchMemories bails with bare `return` on !res.ok (line 85) and !json.success (line 88), and the catch block is literally `// silently fail` (lines 100-101). There is no error state, toast, or retry. Because loading flips to false with memories=[], any 500/401/network failure renders the empty state 'No memories found ... Connect platforms to start building memories' (lines 323-341) — telling a user with thousands of memories that they have none and pushing them to /get-started. This violates the project's own error-handling rules and misleads on a core page. The lazy snapshots fetch (lines 122-129) has the same silent .catch(() => {}).",
+    "evidence": "if (!res.ok) return; ... if (!json.success) return; ... } catch { // silently fail }",
+    "verifierReasoning": "Verified verbatim: BrainPage.tsx line 85 `if (!res.ok) return;`, line 88 `if (!json.success) return;`, lines 100-101 `catch { // silently fail }`, and the lazy snapshots fetch (lines 122-129) ending in `.catch(() => {})`. No error state, toast, or retry exists in the component. Reachability confirmed: /brain is a primary nav destination (BottomNav 'Memories', src/components/layout/BottomNav.tsx:21), registered in App.tsx:278-286 behind only ProtectedRoute, with /memories, /memory-explorer, and /journal all redirecting to it — not dead code or feature-flagged. Upstream mitigation ruled out: authFetch (src/services/api/apiBase.ts:168-178) is a thin fetch wrapper with no 401 refresh-retry, no global interceptor, and no window.fetch patch in src/. Therefore any 500/401/network failure on GET /memories leaves memories=[] with loading=false, rendering the lines 323-341 empty state ('No memorie"
+   }
+  ]
+ },
+ {
+  "key": "inbox-reconnect",
+  "items": [
+   {
+    "severity": "HIGH",
+    "title": "Reconnect CTA deep-links to /settings?reconnect=gmail|calendar but nothing handles that param",
+    "file": "src/pages/inbox/InboxTile.tsx",
+    "line": 42,
+    "detail": "detectReconnect() builds CTAs pointing to '/settings?reconnect=gmail' and '/settings?reconnect=calendar' (lines 42-43), and the comment at line 35 claims it links to 'the Settings reconnect URL pattern that handles this'. A grep across all of src/ shows no code reads a 'reconnect' query param; src/pages/Settings.tsx never calls useSearchParams/location.search. A user whose Gmail token died clicks 'Reconnect Gmail' on a failed inbox tile and lands at the top of the generic Settings page with no reconnect flow triggered, no scroll to the platforms section, and no indication of what to do next. This is the only remediation path surfaced for failed proposals, and it is a dead link parameter.",
+    "evidence": "InboxTile.tsx:41-44 RECONNECT_TARGETS urls '/settings?reconnect=gmail' / '/settings?reconnect=calendar'; Grep for 'reconnect' over src/ shows no consumer; Settings.tsx has zero matches for useSearchParams/location.search/location.hash.",
+    "verifierReasoning": "Verified all three legs of the claim. (1) Code exists as cited: src/pages/inbox/InboxTile.tsx:41-44 builds CTAs to '/settings?reconnect=gmail' and '/settings?reconnect=calendar', and the line-35 comment falsely asserts Settings handles that pattern. (2) Reachable: /inbox is a live unflagged route (App.tsx:457); the backend really produces the triggering failureReason ('Token decryption failed - user must reconnect google_gmail') at api/services/tokenRefreshService.js:643 with real provider keys, so the CTA renders for genuine token failures. (3) No consumer: repo-wide grep shows nothing reads a 'reconnect' query param; Settings.tsx never uses useSearchParams/location.search/location.hash; TokenExpiryBanner reads only 'connected'/'provider'; even the '#connections' fallback anchor is dead because Settings section ids are 'section-platforms' etc. and scrollToSection fires only on user clic"
+   }
+  ]
+ },
+ {
+  "key": "settings-twin-intel",
+  "items": [
+   {
+    "severity": "HIGH",
+    "title": "Twin Intelligence section crashes entire Settings page when readiness query errors; infinite spinner on non-OK response",
+    "file": "src/pages/components/settings/TwinIntelligence.tsx",
+    "line": 248,
+    "detail": "Two failure modes: (1) fetchReadiness (lines 37-42) returns null when /finetuning/readiness responds non-OK (401/500), so readiness=null and readinessError=false forever — the Model Status (line 188) and Training Data (line 240) rows show endless spinners with no error state and no retry. (2) If the fetch throws (network error, after retry:1), isError=true and data=undefined; the spinner guard `(loadingReadiness || (!readiness && !readinessError))` evaluates false, and the IIFE at line 248 executes `const count = readiness.conversations || 0;` on undefined — TypeError that unmounts the whole Settings page into the route ErrorBoundary. One flaky request to a secondary stats endpoint takes down all of Settings.",
+    "evidence": "Line 37-42: `if (!res.ok) return null;` then line 240-248: `{(loadingReadiness || (!readiness && !readinessError)) ? <Loader2/> : (() => { const count = readiness.conversations || 0;` — readiness can be undefined when isError is true",
+    "verifierReasoning": "Verified both failure modes against the actual code. (1) src/pages/components/settings/TwinIntelligence.tsx:37-42 returns null on non-OK because authFetch (src/services/api/apiBase.ts:168) never throws on HTTP errors; React Query v5.83 treats null as successful data, so readiness=null, readinessError=false, loadingReadiness=false — the guard `(loadingReadiness || (!readiness && !readinessError))` at lines 188 and 240 stays true forever, leaving permanent spinners on the Model Status and Training Data rows with no error state or retry. The backend route (api/routes/finetuning.js:347) can return 401 (authenticateUser, expired token — authFetch has no 401 refresh) or 500. (2) On fetch rejection (network error), after retry:1 the query settles with isError=true, data=undefined; the guard evaluates false ((!undefined && !true) = false), so the IIFE at line 248 executes `readiness.conversation"
+   }
+  ]
+ },
+ {
+  "key": "settings-dead-connect",
+  "items": [
+   {
+    "severity": "HIGH",
+    "title": "GitHub/Reddit/Twitch 'Connect' buttons in Settings dead-end: target page hides those tiles as 'Soon'",
+    "file": "src/pages/components/settings/ConnectedPlatformsSettings.tsx",
+    "line": 140,
+    "detail": "Settings lists github, reddit, twitch (connectorConfig lines 35-37) with a green 'Connect' button that does navigate('/get-started') (line 141). But on /get-started, PlatformConnectionsStep.tsx:68 filters out comingSoon connectors from all discovery sections, and src/pages/onboarding/components/connectorConfig.tsx marks reddit (line 283), github (line 296) and twitch (line 393) comingSoon: true. So the user lands on /get-started and the platform they clicked Connect for does not exist anywhere on the page — a complete dead end. Backend connect endpoints for all three exist (additional-entertainment-connectors.js: reddit:111, github:165; twitch via Nango in usePlatformConnect nangoPlatforms), and CLAUDE.md lists all three among the 10 active integrations. The Whoop comment in connectorConfig.tsx:351-357 documents this exact bug class previously: 'The flag was leftover... hiding the tile from /connect, blocking the reconnect flow entirely.'",
+    "evidence": "ConnectedPlatformsSettings.tsx:140-146 `<button onClick={() => navigate('/get-started')} ...>Connect</button>` + connectorConfig.tsx:283/296/393 `comingSoon: true` + PlatformConnectionsStep.tsx:68 `AVAILABLE_CONNECTORS.filter(c => !c.comingSoon)`",
+    "verifierReasoning": "Verified end-to-end. (1) ConnectedPlatformsSettings.tsx lines 35-37 list github/reddit/twitch and lines 140-146 show a green Connect button doing navigate('/get-started') for unconnected platforms — exact match. (2) connectorConfig.tsx marks reddit (283), github (296), twitch (393) comingSoon: true — exact match. (3) PlatformConnectionsStep.tsx line 68 filters out all comingSoon connectors from every discovery section (file is at src/pages/components/onboarding/, not src/pages/onboarding/ as the auditor wrote — only inaccuracy, line/content exact). (4) Fully reachable: /settings renders ConnectedPlatformsSettings ungated; /get-started renders InstantTwinOnboarding with currentStep defaulting to 1 which renders PlatformConnectionsStep; the Connected section only shows already-connected providers, so a user clicking Connect (unconnected by definition) finds no tile for their platform anywh"
+   }
+  ]
+ },
+ {
+  "key": "pricing-page",
+  "items": [
+   {
+    "severity": "HIGH",
+    "title": "Plan state hardcoded — page always shows Free as 'Current plan' regardless of actual subscription",
+    "file": "src/pages/PricingPage.tsx",
+    "line": 21,
+    "detail": "The Free card is hardcoded cta:'Current plan', ctaDisabled:true and the paid CTAs are always active. The page never fetches the user's subscription even though GET /api/billing/subscription exists (api/routes/billing.js:228) and a ready-made hook consumes it (src/hooks/useSubscription.ts:14, also used by Settings.tsx:247). A Plus or Pro subscriber visiting /pricing sees 'Current plan' under Free, an active 'Upgrade to Plus' button for the plan they already pay for, and can open a duplicate Stripe checkout session.",
+    "evidence": "PLANS[0]: cta: 'Current plan', ctaDisabled: true (lines 21-22); no useSubscription/fetch of billing state anywhere in the file; useSubscription.ts:14 fetches `${API_URL}/billing/subscription`",
+    "verifierReasoning": "All cited code verified. PricingPage.tsx:21-22 hardcodes cta:'Current plan'/ctaDisabled:true on Free and the full file contains no subscription fetch — plan state is purely static. The page is live: App.tsx:407 routes /pricing behind ProtectedRoute only (no flag/admin gate), linked from LimitReachedBanner.tsx:69 and Settings.tsx:274. GET /api/billing/subscription exists at billing.js:228 and useSubscription.ts:14 fetches it (minor audit imprecision: Settings.tsx:247 fetches the endpoint inline rather than via the hook, which is actually unused — substance unaffected). Impact confirmed: the /checkout handler (billing.js:281-349) never checks existing plan/status, so a Plus/Pro subscriber sees 'Current plan' under Free, gets an active upgrade button for their own plan, and can open a real Stripe checkout; completing it would create a second Stripe subscription whose webhook upsert overwrit"
+   },
+   {
+    "severity": "HIGH",
+    "title": "Upgrade button fails silently on every error path (try/finally with no catch, no user feedback)",
+    "file": "src/pages/PricingPage.tsx",
+    "line": 68,
+    "detail": "handleUpgrade has try{...}finally{...} with no catch and no error UI. If /api/billing/checkout returns 503 ('Billing not configured' when STRIPE_SECRET_KEY or price IDs are missing), 400, 429, or 500, data.url is undefined and the function exits silently — the spinner resets and nothing happens. If fetch itself rejects, the async onClick produces an unhandled promise rejection. The boolean return of safeRedirect(data.url) is also ignored, so a blocked redirect is silent too. On the monetization page, a user clicking 'Upgrade to Pro' can get zero feedback of any kind.",
+    "evidence": "lines 72-82: try { const res = await fetch(...); const data = await res.json(); if (data.url) safeRedirect(data.url); } finally { setLoading(null); } — no catch, no else, no toast",
+    "verifierReasoning": "Verified exactly as claimed. src/pages/PricingPage.tsx:68-83 contains handleUpgrade with try/finally, no catch, no else, no error state, no toast — on error responses (data.url undefined) the spinner resets and nothing happens; on fetch rejection the un-awaited async onClick (line 188) yields an unhandled promise rejection; safeRedirect's boolean return (src/lib/safeRedirect.ts:20) is ignored at line 79. The page is live: routed at /pricing (src/App.tsx:407), linked from Settings.tsx (274, 597) and LimitReachedBanner.tsx (69), which is the chat-limit upsell funnel. Backend api/routes/billing.js /checkout (281-348) confirms the cited error paths: 400 'Invalid plan' (286), 503 'Billing not configured' when stripe is null (289) or price env vars missing (295), 500 on Stripe/DB errors (347), 429 via billingMutateLimiter — all return JSON without 'url'. No fetch wrapper, interceptor, or error"
+   }
+  ]
+ },
+ {
+  "key": "money-connections",
+  "items": [
+   {
+    "severity": "HIGH",
+    "title": "Sync button is broken for TrueLayer and Plaid connections — provider never passed, request hits the Pluggy route and fails silently",
+    "file": "src/pages/components/money/BankConnectionsList.tsx",
+    "line": 80,
+    "detail": "handleSync calls 'await syncBankConnection(id)' without the provider argument (BankConnectionsList.tsx:80; button at line 181), so syncBankConnection (src/services/api/transactionsAPI.ts:351-363) always falls through to the default '/transactions/pluggy/sync/:id' endpoint. The backend explicitly rejects TrueLayer rows with 400 'use /api/truelayer/sync/:id' (api/routes/pluggy.js:315-319), and for Plaid rows it calls pluggy.triggerSync(row.pluggy_item_id) with a null pluggy_item_id, producing a 500. syncBankConnection returns false on !ok, handleSync ignores the return value and has no catch, so the user sees the spinner stop and nothing else — sync silently never happens for any non-Pluggy bank. Compare handleDelete (line 92-93) which correctly passes the provider.",
+    "evidence": "BankConnectionsList.tsx:80 'await syncBankConnection(id);' vs transactionsAPI.ts:354-358 provider dispatch; api/routes/pluggy.js:318 'return res.status(400).json({ success: false, error: \"use /api/truelayer/sync/:id for TrueLayer connections\" });'",
+    "verifierReasoning": "Every cited line checks out. BankConnectionsList.tsx:80 calls syncBankConnection(id) without the provider arg (button at line 181), while handleDelete at lines 92-93 correctly passes it. transactionsAPI.ts:351-363 dispatches on provider and defaults to /transactions/pluggy/sync/:id when undefined. The backend pluggy.js sync handler (lines 300-333) rejects TrueLayer rows with the exact quoted 400 at lines 315-319, and Plaid rows fall through the truelayer-only guard to pluggy.triggerSync(row.pluggy_item_id) with a null pluggy_item_id (Plaid rows store plaid_item_id instead), producing a PATCH to /items/null on the Pluggy API and a 500. The code is fully reachable: BankConnectionsList renders on MoneyPage (line 962) at the live /money route, the shared GET /connections endpoint is explicitly provider-agnostic and returns Pluggy + TrueLayer + Plaid rows, and both TrueLayer OAuth and Plaid L"
+   },
+   {
+    "severity": "HIGH",
+    "title": "US (Plaid) bank connections are labeled with a 'BR' chip and 'BR via Pluggy Open Finance' tooltip",
+    "file": "src/pages/components/money/BankConnectionsList.tsx",
+    "line": 157,
+    "detail": "The provider chip only distinguishes 'truelayer' from everything else: c.provider === 'truelayer' ? 'EU/UK' : 'BR' (line 157) with tooltip 'BR via Pluggy Open Finance' (line 155). The backend GET /connections is provider-agnostic and returns Plaid rows too (api/routes/pluggy.js:111-126 selects provider from user_bank_connections; api/routes/plaid.js writes rows with provider='plaid', e.g. lines 69-72, 207-210). The component even handles Plaid statuses (statusStyle cases 'CONNECTED', 'LOGIN_REQUIRED', 'PENDING_EXPIRATION', 'REVOKED' at lines 27-40), proving Plaid rows render here — a connected Chase or Schwab account shows a 'BR' badge. The BankConnection type also omits 'plaid' from the provider union (transactionsAPI.ts:248: provider?: 'pluggy' | 'truelayer').",
+    "evidence": "BankConnectionsList.tsx:157 \"{c.provider === 'truelayer' ? 'EU/UK' : 'BR'}\" and line 155 title=\"...'BR via Pluggy Open Finance'\"",
+    "verifierReasoning": "Verified end-to-end. (1) The cited code exists verbatim: BankConnectionsList.tsx:157 renders the chip as `c.provider === 'truelayer' ? 'EU/UK' : 'BR'` with tooltip 'BR via Pluggy Open Finance' (line 155) for any non-truelayer provider. (2) Plaid rows reach this component: plaidIngestion.js:303-319 upserts user_bank_connections rows with provider='plaid'; plaid routes are mounted at /api/plaid (server.js:704); the frontend ConnectBankButton has an unflagged 'Conectar banco US' Plaid Link flow on MoneyPage, which is routed in App.tsx:339 and renders BankConnectionsList (MoneyPage.tsx:962). listBankConnections hits GET /transactions/pluggy/connections (pluggy.js:111-126), which selects all of the user's rows with no provider filter, so provider='plaid' rows are returned. (3) The component's own statusStyle (lines 26-40) explicitly handles Plaid statuses (CONNECTED, LOGIN_REQUIRED, ERROR, PE"
+   }
+  ]
+ },
+ {
+  "key": "money-page",
+  "items": [
+   {
+    "severity": "HIGH",
+    "title": "TrueLayer OAuth return params (?truelayer_connected=1 / ?truelayer_error=...) are never read — user gets zero feedback after the full-page bank-connect redirect",
+    "file": "src/pages/MoneyPage.tsx",
+    "line": 732,
+    "detail": "The EU/UK connect flow does a full-page redirect (ConnectBankButton.tsx:200 window.location.assign). The backend callback redirects back to '/money?truelayer_connected=1' on success and '/money?truelayer_error=access_denied|missing_params|callback_failed' on failure (api/routes/truelayer.js:92, 95, 138, 144). MoneyPage contains no useSearchParams/location.search handling at all — a repo-wide grep for 'truelayer_connected|truelayer_error' in src/ matches only a comment in AuthContext.tsx:111. A user whose bank consent FAILED lands back on /money with no error banner, no toast, nothing; a user who succeeded gets no confirmation either and just sees the page in its previous state until the background sync eventually surfaces transactions.",
+    "evidence": "api/routes/truelayer.js:144 \"return res.redirect('/money?truelayer_error=callback_failed');\" — only consumer match in src/ is a code comment (AuthContext.tsx:111)",
+    "verifierReasoning": "Every factual element checks out. api/routes/truelayer.js:92/95/138/144 redirect to /money?truelayer_connected=1 or /money?truelayer_error=<code> exactly as cited. ConnectBankButton.tsx:200 does window.location.assign for the EU/UK flow (full-page, no in-page callback unlike Pluggy/Plaid widgets), and the button is rendered unconditionally on the protected /money route (MoneyPage.tsx:944, App.tsx:335) with no feature flag — fully user-reachable when TrueLayer is configured. A repo-wide grep confirms zero consumers of truelayer_connected/truelayer_error: the only src/ reference is a code comment at AuthContext.tsx:111. MoneyPage.tsx and all src/pages/components/money/* files contain no useSearchParams/location.search/URLSearchParams/toast handling. So a user whose bank consent fails lands back on /money with absolutely no error feedback and a stale ?truelayer_error param left in the URL —"
+   },
+   {
+    "severity": "CRITICAL",
+    "title": "Mixed-currency totals are raw cross-currency sums displayed under one currency symbol, and the tooltip falsely claims conversion",
+    "file": "src/pages/MoneyPage.tsx",
+    "line": 226,
+    "detail": "Backend /transactions/summary adds EUR+BRL+GBP amounts together with no FX conversion (api/routes/transactions.js:427 'totalOutflow += Math.abs(t.amount)' regardless of t.currency; returned at line 470). The frontend then renders this raw sum with the dominant currency symbol (formatCurrency(summary.total_outflow, currency) at MoneyPage.tsx:226), so EUR 100 + BRL 100 shows as 'R$ 200,00'. Worse, the 'multi-moeda' chip tooltip (MoneyPage.tsx:209) says 'Totais exibidos convertidos aproximadamente em moeda dominante' — no conversion exists anywhere in the pipeline. The headline spend number of the page is factually wrong money data for any multi-currency user (the product explicitly targets BR + EU/UK + US banks simultaneously). emotional_spend_ratio (line 455 backend) is also computed over the mixed-currency sum. Additionally the frontend derives 'dominant' by transaction count over the last 50 txs (MoneyPage.tsx:756-765) while the backend sorts currencies by outflow (transactions.js:464) — two different dominance definitions that can disagree.",
+    "evidence": "MoneyPage.tsx:209 title=\"...Totais exibidos convertidos aproximadamente em moeda dominante.\" — no conversion code exists; api/routes/transactions.js:427 'if (t.amount < 0) { totalOutflow += Math.abs(t.amount); ... }' sums across all currencies",
+    "verifierReasoning": "Every element of the claim verified. Backend (api/routes/transactions.js:424-428) sums Math.abs(t.amount) into one totalOutflow across all currencies with no FX conversion; returned as total_outflow at line 470. Frontend (src/pages/MoneyPage.tsx:226) renders it via formatCurrency(summary.total_outflow, currency) where currency=dominantCurrency (passed at line 1168), stamping one currency symbol on a mixed-currency sum. Tooltip at line 209 is verbatim 'Totais exibidos convertidos aproximadamente em moeda dominante' yet grep across api/ and src/ finds zero conversion code (no exchangeRate/fxRate/convertCurrency anywhere) — the frontend comment at lines 751-755 even admits the total is 'a raw sum across currencies'. emotional_spend_ratio (transactions.js:455) divides two mixed-currency sums, skewing the ratio by numeric magnitude (BRL ~6x EUR). Dominance mismatch confirmed: frontend uses tx"
+   }
+  ]
+ }
+]

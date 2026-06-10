@@ -245,7 +245,7 @@ export async function getNudgeStats(): Promise<NudgeStats | null> {
 
 export interface BankConnection {
   id: string;
-  provider?: 'pluggy' | 'truelayer';
+  provider?: 'pluggy' | 'truelayer' | 'plaid';
   connector_name: string;
   status: string;
   status_detail: unknown;

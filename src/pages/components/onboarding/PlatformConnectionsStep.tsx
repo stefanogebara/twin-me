@@ -62,7 +62,7 @@ export const PlatformConnectionsStep: React.FC<PlatformConnectionsStepProps> = (
 }) => {
   // For the DISCOVERY sections (unconnected tiles) we still hide coming-soon
   // entries. But the CONNECTED list MUST show every row from the DB, even
-  // those marked comingSoon in the catalog (e.g. github, reddit, whoop, twitch)
+  // those marked comingSoon in the catalog (e.g. slack, oura, notion)
   // — otherwise platforms the user actually connected silently disappear from
   // /connect (audit-2026-05-12 H5).
   const availableConnectors = AVAILABLE_CONNECTORS.filter(c => !c.comingSoon);

@@ -7,7 +7,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Music, Zap, Sparkles, Database, Target } from 'lucide-react';
+import { Music, Zap, Sparkles, Database, Target, Moon, Sun, CloudSun, Watch } from 'lucide-react';
 
 // ── Types ────────────────────────────────────────────────────────────────
 
@@ -39,12 +39,14 @@ function formatChronotype(raw: string | null | undefined): string {
   return labels[raw] ?? raw.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-function chronotypeIcon(raw: string | null | undefined): string {
-  if (!raw) return '';
-  if (raw.includes('night') || raw.includes('owl')) return '\u{1F319}';
-  if (raw.includes('early') || raw.includes('bird')) return '\u{2600}';
-  if (raw.includes('afternoon')) return '\u{26C5}';
-  return '\u{231A}';
+// audit-2026-06-10: lucide icons only — emoji characters are banned in user-facing UI
+function chronotypeIcon(raw: string | null | undefined): React.ReactNode {
+  if (!raw) return null;
+  const iconProps = { className: 'w-6 h-6', style: { color: 'rgba(251,191,36,0.7)' } };
+  if (raw.includes('night') || raw.includes('owl')) return <Moon {...iconProps} />;
+  if (raw.includes('early') || raw.includes('bird')) return <Sun {...iconProps} />;
+  if (raw.includes('afternoon')) return <CloudSun {...iconProps} />;
+  return <Watch {...iconProps} />;
 }
 
 function daysSinceJoined(joinedAt: string | null | undefined): number {
@@ -129,7 +131,7 @@ function buildCards(props: InsightCardsProps): CardDef[] {
     icon: <Zap className="w-4 h-4" style={{ color: 'rgba(251,191,36,0.5)' }} />,
     content: (
       <div className="flex items-center gap-3">
-        <span className="text-2xl">{chronotypeIcon(chronotype)}</span>
+        {chronotypeIcon(chronotype)}
         <p
           className="text-sm font-semibold"
           style={{ color: 'rgba(255,255,255,0.85)', fontFamily: "'Inter', sans-serif" }}

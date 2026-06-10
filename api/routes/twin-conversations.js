@@ -23,7 +23,9 @@ import { complete, TIER_CHAT } from '../services/llmGateway.js';
 import { getMemoryStats } from '../services/memoryStreamService.js';
 import { getTwinSummary } from '../services/twinSummaryService.js';
 import { deduplicateByTheme } from '../services/twinSystemPromptBuilder.js';
+import { ANTI_EMOJI_RULE } from '../services/twinPromptAssembly.js';
 import { getSoulSignature } from '../services/soulSignatureService.js';
+import { stripEmoji } from '../utils/stripEmoji.js';
 import { createLogger } from '../services/logger.js';
 
 const log = createLogger('TwinChatHistory');
@@ -268,7 +270,8 @@ Write a short, warm, genuinely curious greeting (2-3 sentences max).
 - End with an open, curious question that invites them to explore something together
 - Speak as their twin — intimate, direct, a bit knowing
 - No fluff, no "I'm an AI" disclaimers, no corporate language
-- Sound like someone who already knows them a little and is eager to know them better`;
+- Sound like someone who already knows them a little and is eager to know them better
+${ANTI_EMOJI_RULE.trim()}`;
 
     const result = await complete({
       tier: TIER_CHAT,
@@ -278,7 +281,10 @@ Write a short, warm, genuinely curious greeting (2-3 sentences max).
       userId,
       serviceName: 'twin-chat-intro',
     });
-    const intro = result?.content?.trim() || null;
+    // audit-2026-06-10: strip emoji at generation time too (defense in
+    // depth, same pattern as proactiveInsights). The intro is the user's
+    // very first impression of the twin — no emoji may slip through.
+    const intro = stripEmoji(result?.content?.trim()) || null;
 
     res.json({ success: true, intro });
   } catch (err) {

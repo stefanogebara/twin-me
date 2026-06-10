@@ -417,7 +417,7 @@ router.get('/summary', authenticateUser, async (req, res) => {
     const byCurrency = new Map();
     function bucket(cur) {
       const k = (cur || DEFAULT_CURRENCY).toUpperCase();
-      if (!byCurrency.has(k)) byCurrency.set(k, { currency: k, outflow: 0, inflow: 0, count: 0, stress_shop_total: 0 });
+      if (!byCurrency.has(k)) byCurrency.set(k, { currency: k, outflow: 0, inflow: 0, count: 0, stress_shop_total: 0, high_stress_outflow: 0 });
       return byCurrency.get(k);
     }
 
@@ -449,19 +449,28 @@ router.get('/summary', authenticateUser, async (req, res) => {
       }
       if (isHighStressDebit) {
         highStressOutflow += Math.abs(t.amount);
+        b.high_stress_outflow += Math.abs(t.amount);
       }
     }
 
-    const emotionalSpendRatio = totalOutflow > 0 ? highStressOutflow / totalOutflow : null;
-    const currencies = [...byCurrency.values()]
-      .map((b) => ({
-        currency: b.currency,
-        outflow: Math.round(b.outflow * 100) / 100,
-        inflow: Math.round(b.inflow * 100) / 100,
-        count: b.count,
-        stress_shop_total: Math.round(b.stress_shop_total * 100) / 100,
-      }))
-      .sort((a, b) => b.outflow - a.outflow);
+    // audit-2026-06-10 (money-page): never divide sums of mixed currencies —
+    // there is no FX conversion anywhere in the pipeline, and BRL vs EUR
+    // magnitudes (~6x) skew the ratio. Compute the ratio inside the dominant
+    // (highest-outflow) currency bucket; for single-currency users this is
+    // byte-identical to the old highStressOutflow / totalOutflow math.
+    const sortedBuckets = [...byCurrency.values()].sort((a, b) => b.outflow - a.outflow);
+    const dominantBucket = sortedBuckets[0];
+    const emotionalSpendRatio = dominantBucket && dominantBucket.outflow > 0
+      ? dominantBucket.high_stress_outflow / dominantBucket.outflow
+      : null;
+    const currencies = sortedBuckets.map((b) => ({
+      currency: b.currency,
+      outflow: Math.round(b.outflow * 100) / 100,
+      inflow: Math.round(b.inflow * 100) / 100,
+      count: b.count,
+      stress_shop_total: Math.round(b.stress_shop_total * 100) / 100,
+      high_stress_outflow: Math.round(b.high_stress_outflow * 100) / 100,
+    }));
 
     return res.json({
       success: true,

@@ -2,7 +2,7 @@
  * BetaOnboardingChecklist
  *
  * Guided checklist for beta users after their first sign-in.
- * Shows progress through 5 key steps to get the most out of TwinMe.
+ * Shows progress through key steps to get the most out of TwinMe.
  * Auto-dismisses after completion or manual dismiss.
  */
 
@@ -11,14 +11,13 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Cable,
-  LayoutGrid,
   Zap,
   MessageCircle,
   X,
   ChevronRight,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import { authFetch, API_URL } from '@/services/api/apiBase';
+import { authFetch } from '@/services/api/apiBase';
 
 const STORAGE_KEY = 'twinme_beta_onboarding_dismissed';
 
@@ -59,28 +58,6 @@ function useConnectedPlatformCount(): number {
   return data ?? 0;
 }
 
-function useDepartmentCount(): number {
-  const { data } = useQuery<number>({
-    queryKey: ['beta-onboarding-dept-count'],
-    queryFn: async () => {
-      try {
-        const res = await authFetch('/departments');
-        if (!res.ok) return 0;
-        const json = await res.json();
-        const depts = json.data || json.departments || [];
-        return depts.filter(
-          (d: { isEnabled?: boolean }) => d.isEnabled
-        ).length;
-      } catch {
-        return 0;
-      }
-    },
-    staleTime: 60_000,
-    refetchOnWindowFocus: false,
-  });
-  return data ?? 0;
-}
-
 function useHasMessagedTwin(): boolean {
   const { data } = useQuery<boolean>({
     queryKey: ['beta-onboarding-messaged'],
@@ -107,7 +84,6 @@ interface BetaOnboardingChecklistProps {
 export function BetaOnboardingChecklist({ onDismiss }: BetaOnboardingChecklistProps) {
   const navigate = useNavigate();
   const connectedCount = useConnectedPlatformCount();
-  const departmentCount = useDepartmentCount();
   const hasMessaged = useHasMessagedTwin();
 
   const [visible, setVisible] = useState(() => {
@@ -124,15 +100,11 @@ export function BetaOnboardingChecklist({ onDismiss }: BetaOnboardingChecklistPr
       actionLabel: 'Connect',
       isComplete: connectedCount >= 2,
     },
-    {
-      id: 'template',
-      icon: LayoutGrid,
-      title: 'Pick a Life Operating System',
-      description: 'Choose a template to activate your AI departments.',
-      action: () => navigate('/departments'),
-      actionLabel: 'Choose',
-      isComplete: departmentCount >= 3,
-    },
+    // audit-2026-06-10: the 'Pick a Life Operating System' step was removed —
+    // /departments redirects to /inbox, no template picker UI exists, and
+    // GET /api/departments rows carry no isEnabled field, so its completion
+    // condition (3+ enabled departments) was unreachable. Do not re-add until
+    // the template picker ships.
     {
       id: 'heartbeat',
       icon: Zap,

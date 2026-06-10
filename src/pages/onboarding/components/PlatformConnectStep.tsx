@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { CheckCircle2, Loader2, ChevronRight } from 'lucide-react';
+import { toast } from 'sonner';
 import { API_URL, getAccessToken } from '@/services/api/apiBase';
 import { safeRedirect } from '@/lib/safeRedirect';
 
@@ -152,15 +153,23 @@ const PlatformConnectStep: React.FC<PlatformConnectStepProps> = ({ userId, onCon
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const result = await response.json();
 
-      if (result.success && (result.authUrl || result.connectUrl)) {
-        sessionStorage.setItem('onboarding_platform_connect', platform.id);
-        sessionStorage.setItem('connecting_provider', platform.id);
-        if (!safeRedirect(result.authUrl || result.connectUrl)) {
-          console.error('Platform connect blocked: untrusted redirect URL');
-        }
+      if (!result.success || !(result.authUrl || result.connectUrl)) {
+        throw new Error(result.error || 'No authorization URL returned');
+      }
+
+      sessionStorage.setItem('onboarding_platform_connect', platform.id);
+      sessionStorage.setItem('connecting_provider', platform.id);
+      if (!safeRedirect(result.authUrl || result.connectUrl)) {
+        // Stale keys would falsely mark the platform connected on the next mount (audit-2026-06-10)
+        sessionStorage.removeItem('onboarding_platform_connect');
+        sessionStorage.removeItem('connecting_provider');
+        throw new Error('Blocked untrusted redirect URL');
       }
     } catch (error) {
       console.error(`Failed to connect ${platform.id}:`, error);
+      toast.error(`Couldn't connect ${platform.name}`, {
+        description: 'Something went wrong on our end. Please try again.',
+      });
     } finally {
       setConnecting(null);
     }

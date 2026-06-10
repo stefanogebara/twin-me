@@ -109,6 +109,9 @@ interface InsightsResponse {
   eventTypeDistribution?: EventTypeDistribution[];
   weeklyHeatmap?: WeeklyHeatmapDay[];
   scheduleStats?: ScheduleStats;
+  // True when the user hasn't connected the platform — the backend then returns
+  // `reflection` as a plain string placeholder, not a Reflection object (audit-2026-06-10).
+  notConnected?: boolean;
   error?: string;
 }
 
@@ -350,6 +353,7 @@ const CalendarInsightsPage: React.FC = () => {
         <CalendarEmptyState
           colors={colors}
           onConnect={() => navigate('/get-started')}
+          notConnected={insights?.notConnected === true}
         />
       )}
     </div>

@@ -806,6 +806,16 @@ router.get('/:platform', authenticateUser, async (req, res) => {
       });
     }
 
+    // A generation/refresh for this user+platform is already in flight. Must be
+    // checked BEFORE the warm-cache path: after POST /refresh the old reflection
+    // row is still unexpired, so the warm path would re-serve the stale
+    // reflection and the client would never poll for the fresh one
+    // (audit-2026-06-10: refresh was a silent no-op while the cache was warm).
+    const lockKey = `${userId}:${platform}`;
+    if (isInsightGenerating(lockKey)) {
+      return res.json({ success: true, platform, generating: true });
+    }
+
     // Cache-first. Cold generation (context + platform data + LLM) can exceed the
     // request timeout; blocking on it returned a fallback the UI mistook for
     // "not connected" (2026-06-06 audit).
@@ -823,11 +833,6 @@ router.get('/:platform', authenticateUser, async (req, res) => {
     //   - settles fast without data -> connected-but-empty: show empty state NOW
     //   - still pending past peek   -> `generating: true`; the background job
     //                                  finishes and warms the cache for the next poll
-    const lockKey = `${userId}:${platform}`;
-    if (isInsightGenerating(lockKey)) {
-      return res.json({ success: true, platform, generating: true });
-    }
-
     insightsGenerating.set(lockKey, Date.now());
     const genPromise = platformReflectionService.getReflections(userId, platform);
     genPromise

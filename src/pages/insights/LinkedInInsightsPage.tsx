@@ -53,6 +53,9 @@ interface InsightsResponse {
   linkedinLocale?: string;
   linkedinSkills?: string[];
   linkedinConnectionCount?: number;
+  // True when the user hasn't connected the platform — the backend then returns
+  // `reflection` as a plain string placeholder, not a Reflection object (audit-2026-06-10).
+  notConnected?: boolean;
 }
 
 const LinkedInInsightsPage: React.FC = () => {
@@ -281,22 +284,27 @@ const LinkedInInsightsPage: React.FC = () => {
               Your professional story awaits
             </h3>
             <p className="text-sm max-w-sm mx-auto mb-6 leading-relaxed" style={{ color: colors.textSecondary }}>
-              Connect LinkedIn and your twin will decode what your career trajectory, skills, and network reveal about your ambitions and professional identity.
+              {insights?.notConnected
+                ? 'Connect LinkedIn and your twin will decode what your career trajectory, skills, and network reveal about your ambitions and professional identity.'
+                : 'As your LinkedIn profile syncs, your twin will decode what your career trajectory, skills, and network reveal about your ambitions and professional identity.'}
             </p>
-            <button
-              onClick={() => navigate('/get-started')}
-              className="px-5 py-2.5 rounded-xl text-sm font-medium text-white transition-all hover:scale-[1.02]"
-              style={{ backgroundColor: '#10b77f' }}
-            >
-              Connect LinkedIn
-            </button>
-            <div
-              className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm"
-              style={{ background: colors.linkedinBg, color: colors.linkedinBlue, border: '1px solid rgba(10, 102, 194, 0.2)' }}
-            >
-              <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: colors.linkedinBlue }} />
-              Awaiting your profile data...
-            </div>
+            {insights?.notConnected ? (
+              <button
+                onClick={() => navigate('/get-started')}
+                className="px-5 py-2.5 rounded-xl text-sm font-medium text-white transition-all hover:scale-[1.02]"
+                style={{ backgroundColor: '#10b77f' }}
+              >
+                Connect LinkedIn
+              </button>
+            ) : (
+              <div
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm"
+                style={{ background: colors.linkedinBg, color: colors.linkedinBlue, border: '1px solid rgba(10, 102, 194, 0.2)' }}
+              >
+                <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: colors.linkedinBlue }} />
+                Awaiting your profile data...
+              </div>
+            )}
           </div>
           {/* Preview skeleton */}
           <div aria-hidden="true" className="opacity-40 pointer-events-none space-y-3">

@@ -63,6 +63,9 @@ interface InsightsResponse {
   discordServers?: DiscordServer[];
   discordTotalServers?: number;
   discordCategoryBreakdown?: CategoryBreakdown[];
+  // True when the user hasn't connected the platform — the backend then returns
+  // `reflection` as a plain string placeholder, not a Reflection object (audit-2026-06-10).
+  notConnected?: boolean;
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -309,22 +312,27 @@ const DiscordInsightsPage: React.FC = () => {
               Your twin is listening in
             </h3>
             <p className="text-sm max-w-sm mx-auto mb-6 leading-relaxed" style={{ color: colors.textSecondary }}>
-              As your Discord activity syncs, your twin will uncover what your communities and conversations reveal about your social world.
+              {insights?.notConnected
+                ? 'Connect Discord and your twin will uncover what your communities and conversations reveal about your social world.'
+                : 'As your Discord activity syncs, your twin will uncover what your communities and conversations reveal about your social world.'}
             </p>
-            <button
-              onClick={() => navigate('/get-started')}
-              className="px-5 py-2.5 rounded-xl text-sm font-medium text-white transition-all hover:scale-[1.02]"
-              style={{ background: '#10b77f' }}
-            >
-              Connect Discord
-            </button>
-            <div
-              className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm"
-              style={{ background: colors.discordBg, color: colors.discordPurple, border: '1px solid rgba(88, 101, 242, 0.2)' }}
-            >
-              <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: colors.discordPurple }} />
-              Collecting your server activity...
-            </div>
+            {insights?.notConnected ? (
+              <button
+                onClick={() => navigate('/get-started')}
+                className="px-5 py-2.5 rounded-xl text-sm font-medium text-white transition-all hover:scale-[1.02]"
+                style={{ background: '#10b77f' }}
+              >
+                Connect Discord
+              </button>
+            ) : (
+              <div
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm"
+                style={{ background: colors.discordBg, color: colors.discordPurple, border: '1px solid rgba(88, 101, 242, 0.2)' }}
+              >
+                <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: colors.discordPurple }} />
+                Collecting your server activity...
+              </div>
+            )}
           </div>
           {/* Preview skeleton */}
           <div aria-hidden="true" className="opacity-40 pointer-events-none space-y-3">

@@ -18,24 +18,20 @@ const LABEL_STYLE = 'text-[11px] uppercase tracking-[0.12em] font-medium mb-4';
 const DEFAULT_DEPT_COLOR = 'rgba(255,255,255,0.15)';
 const DISABLED_COLOR = 'rgba(255,255,255,0.08)';
 
-// Fallback departments matching real departmentConfig.js names
-const FALLBACK_DEPARTMENTS: Department[] = [
-  { name: 'communications', config: { name: 'Communications', description: 'Email drafts in your voice', icon: 'Mail', color: '#14B8A6' }, autonomyLevel: 1, budget: { spent: 0.04, total: 0.15 }, actionsThisWeek: 12, isEnabled: true },
-  { name: 'scheduling', config: { name: 'Scheduling', description: 'Calendar optimization', icon: 'Calendar', color: '#8B5CF6' }, autonomyLevel: 1, budget: { spent: 0.02, total: 0.10 }, actionsThisWeek: 5, isEnabled: true },
-  { name: 'health', config: { name: 'Health', description: 'Recovery analysis', icon: 'HeartPulse', color: '#EF4444' }, autonomyLevel: 1, budget: { spent: 0.01, total: 0.05 }, actionsThisWeek: 3, isEnabled: true },
-  { name: 'content', config: { name: 'Content', description: 'Posts in your style', icon: 'PenLine', color: '#F59E0B' }, autonomyLevel: 1, budget: { spent: 0.03, total: 0.10 }, actionsThisWeek: 8, isEnabled: true },
-  { name: 'finance', config: { name: 'Finance', description: 'Spending patterns', icon: 'Wallet', color: '#10B981' }, autonomyLevel: 0, budget: { spent: 0, total: 0.05 }, actionsThisWeek: 0, isEnabled: false },
-  { name: 'research', config: { name: 'Research', description: 'Deep research', icon: 'Search', color: '#6366F1' }, autonomyLevel: 1, budget: { spent: 0.02, total: 0.10 }, actionsThisWeek: 4, isEnabled: true },
-  { name: 'social', config: { name: 'Social', description: 'Relationship management', icon: 'Users', color: '#EC4899' }, autonomyLevel: 0, budget: { spent: 0, total: 0.05 }, actionsThisWeek: 0, isEnabled: false },
-];
-
 export function DepartmentWidget() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const [approvingId, setApprovingId] = useState<string | null>(null);
 
-  const { data: departments = FALLBACK_DEPARTMENTS } = useQuery<Department[]>({
+  // audit-2026-06-10: no hardcoded fallback departments — loading shows a
+  // skeleton and errors are surfaced inline, never fake status chips.
+  const {
+    data: departments = [],
+    isLoading: departmentsLoading,
+    isError: departmentsError,
+    refetch: refetchDepartments,
+  } = useQuery<Department[]>({
     queryKey: ['departments'],
     queryFn: () => departmentsAPI.getDepartments(),
     staleTime: 30_000,
@@ -96,6 +92,41 @@ export function DepartmentWidget() {
         }}
       >
         {/* Department status chips */}
+        {departmentsLoading ? (
+          <div className="flex flex-wrap items-center gap-2 mb-4">
+            {[0, 1, 2, 3, 4].map((i) => (
+              <div
+                key={i}
+                className="h-[22px] w-24 rounded-full bg-white/[0.04] animate-pulse"
+              />
+            ))}
+          </div>
+        ) : departmentsError ? (
+          <div className="flex items-center justify-between gap-3 mb-4">
+            <p
+              className="text-xs"
+              style={{
+                color: 'rgba(255,255,255,0.45)',
+                fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
+              }}
+            >
+              Could not load your AI team.
+            </p>
+            <button
+              onClick={() => refetchDepartments()}
+              className="px-2 py-1 rounded-full text-[10px] font-medium transition-all duration-150 ease-out hover:opacity-80 active:scale-[0.97] flex-shrink-0"
+              style={{
+                backgroundColor: 'rgba(255,255,255,0.08)',
+                color: 'var(--foreground)',
+                border: 'none',
+                cursor: 'pointer',
+                fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
+              }}
+            >
+              Retry
+            </button>
+          </div>
+        ) : (
         <div className="flex flex-wrap items-center gap-2 mb-4">
           {departments.map((dept) => (
             <div
@@ -140,6 +171,7 @@ export function DepartmentWidget() {
             </span>
           )}
         </div>
+        )}
 
         {/* Pending proposals (compact) */}
         {proposals.length > 0 ? (
@@ -198,7 +230,7 @@ export function DepartmentWidget() {
               </button>
             )}
           </div>
-        ) : (
+        ) : !departmentsLoading && !departmentsError ? (
           <p
             className="text-xs"
             style={{
@@ -208,7 +240,7 @@ export function DepartmentWidget() {
           >
             All quiet. Your departments are watching.
           </p>
-        )}
+        ) : null}
       </div>
     </section>
   );

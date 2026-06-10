@@ -6,7 +6,8 @@
  */
 
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
+import { toast } from 'sonner';
 import { Upload, FileText, AlertCircle, Loader2, TrendingDown, Sparkles, RefreshCw, Music } from 'lucide-react';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import {
@@ -192,6 +193,16 @@ function SummaryBar({ summary, currency, mixedCurrency }: { summary: Transaction
     ? Math.round(summary.emotional_spend_ratio * 100)
     : null;
 
+  // audit-2026-06-10 (money-page): total_outflow is a raw sum across
+  // currencies — no FX conversion exists anywhere in the pipeline, so for
+  // mixed-currency users that number under a single symbol is wrong money
+  // data (EUR 100 + BRL 100 is not "R$ 200,00"). Headline the dominant
+  // currency's own outflow; the per-currency breakdown below carries the rest.
+  const dominantBucket = summary.currencies?.find((c) => c.currency === currency);
+  const headlineOutflow = mixedCurrency && dominantBucket
+    ? dominantBucket.outflow
+    : summary.total_outflow;
+
   return (
     <div style={{ ...CARD_STYLE, padding: 24 }}>
       <div className="flex items-center gap-2 mb-2">
@@ -206,7 +217,7 @@ function SummaryBar({ summary, currency, mixedCurrency }: { summary: Transaction
               letterSpacing: 0,
               textTransform: 'none',
             }}
-            title="Você tem transações em várias moedas. Totais exibidos convertidos aproximadamente em moeda dominante."
+            title="You have transactions in more than one currency. Amounts are NOT converted — each total is shown in its own currency below."
           >
             multi-moeda
           </span>
@@ -223,10 +234,10 @@ function SummaryBar({ summary, currency, mixedCurrency }: { summary: Transaction
               lineHeight: 1.1,
             }}
           >
-            {formatCurrency(summary.total_outflow, currency)}
+            {formatCurrency(headlineOutflow, currency)}
           </p>
           <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginTop: 4, fontFamily: "'Geist', 'Inter', sans-serif" }}>
-            Gasto total
+            {mixedCurrency ? `Gasto total (${currency})` : 'Gasto total'}
           </p>
         </div>
         <div>
@@ -735,6 +746,7 @@ export default function MoneyPage() {
   // two spellings). Pass just the page label.
   useDocumentTitle('Money');
 
+  const [searchParams, setSearchParams] = useSearchParams();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [summary, setSummary] = useState<TransactionsSummary | null>(null);
   const [savings, setSavings] = useState<SavingsSummary | null>(null);
@@ -748,12 +760,19 @@ export default function MoneyPage() {
   const [lastUpload, setLastUpload] = useState<UploadResult | null>(null);
   const [retagging, setRetagging] = useState(false);
 
-  // Derive the dominant currency from the current tx window. Summary totals
-  // come from the backend as a raw sum across currencies — until the backend
-  // groups per-currency, rendering with the dominant currency is the
-  // least-wrong display. If the user has mixed, show a "multi-moeda" chip so
-  // they know the total is an approximation.
+  // audit-2026-06-10 (money-page): derive dominance from the backend's
+  // per-currency summary breakdown (full window, sorted by outflow desc) so
+  // it can never disagree with the summary numbers themselves. The previous
+  // tx-count-over-last-50 heuristic used a different dominance definition
+  // than the backend's outflow sort; keep it only as a fallback when the
+  // summary failed to load.
   const { dominantCurrency, hasMixedCurrency } = useMemo(() => {
+    if (summary?.currencies && summary.currencies.length > 0) {
+      return {
+        dominantCurrency: summary.currencies[0].currency,
+        hasMixedCurrency: summary.currencies.length > 1,
+      };
+    }
     const counts = new Map<string, number>();
     for (const t of transactions) {
       const c = (t.currency || 'BRL').toUpperCase();
@@ -762,7 +781,7 @@ export default function MoneyPage() {
     if (!counts.size) return { dominantCurrency: 'BRL', hasMixedCurrency: false };
     const sorted = [...counts.entries()].sort((a, b) => b[1] - a[1]);
     return { dominantCurrency: sorted[0][0], hasMixedCurrency: counts.size > 1 };
-  }, [transactions]);
+  }, [summary, transactions]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -792,6 +811,34 @@ export default function MoneyPage() {
   }, []);
 
   useEffect(() => { void load(); }, [load]);
+
+  // audit-2026-06-10 (money-page): the TrueLayer callback (api/routes/
+  // truelayer.js) full-page-redirects back here with ?truelayer_connected=1
+  // or ?truelayer_error=<code>, but nothing consumed them — a failed bank
+  // consent landed on /money with zero feedback. Surface the outcome, then
+  // strip the params so refresh/back doesn't replay it. Declared AFTER the
+  // load() effect: load() synchronously clears `error` on mount, so this
+  // must run second or the error banner would be wiped.
+  useEffect(() => {
+    const connected = searchParams.get('truelayer_connected');
+    const tlError = searchParams.get('truelayer_error');
+    if (connected === null && tlError === null) return;
+    if (connected === '1') {
+      // The backend only redirects with this flag after the token exchange
+      // and connection insert succeeded, so success feedback is truthful.
+      toast.success('Bank connected. Your transactions are being imported and will appear here shortly.');
+    } else if (tlError !== null) {
+      setError(
+        tlError === 'access_denied'
+          ? 'Bank connection cancelled — no account was linked. You can try again anytime.'
+          : 'We could not finish connecting your bank. Try again, or upload a CSV/OFX statement below.'
+      );
+    }
+    const next = new URLSearchParams(searchParams);
+    next.delete('truelayer_connected');
+    next.delete('truelayer_error');
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
 
   const handleUpload = useCallback(async (result: UploadResult) => {
     setLastUpload(result);

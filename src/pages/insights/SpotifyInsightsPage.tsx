@@ -257,7 +257,7 @@ const SpotifyInsightsPage: React.FC = () => {
 
       {/* Empty State - show when no reflection AND no music data */}
       {!insights?.reflection?.text && !insights?.recentTracks?.length && !insights?.topArtistsWithPlays?.length && (
-        <SpotifyEmptyState colors={colors} navigate={navigate} />
+        <SpotifyEmptyState colors={colors} navigate={navigate} notConnected={insights?.notConnected === true} />
       )}
     </div>
   );

@@ -10,6 +10,7 @@ import { DepartmentProposalBubble, type ProposalData, type ProposalStatus } from
 import { ProposalSummaryCard } from './ProposalSummaryCard';
 import { DepartmentSuggestionCard, parseDepartmentSuggestions } from './DepartmentSuggestionCard';
 import { ThinkingIndicator } from './ThinkingIndicator';
+import { stripEmoji } from '../../utils/stripEmoji';
 
 type ChatErrorType = 'timeout' | 'rate_limit' | 'network' | 'generic';
 
@@ -135,8 +136,12 @@ const AssistantMessageBody = memo(function AssistantMessageBody({
   content: string;
   onApproveDepartmentSuggestion?: (department: string, action: string, toolName?: string) => Promise<void>;
 }) {
+  // audit-2026-06-10: stripEmoji before rendering — intro and streamed twin
+  // chunks reach the chat stream without any display-layer strip, and the
+  // product rule is hard NO EMOJIS. Strip before parsing so suggestion-card
+  // action strings are cleaned too. No-op fast path when content is clean.
   const { suggestions, cleanText } = useMemo(
-    () => parseDepartmentSuggestions(content),
+    () => parseDepartmentSuggestions(stripEmoji(content)),
     [content]
   );
 
@@ -323,7 +328,17 @@ export const MessageList = memo(forwardRef<HTMLDivElement, MessageListProps>(
                         {onRetry && message.errorType !== 'rate_limit' && (
                           <div className="mt-2.5 flex justify-start">
                             <button
-                              onClick={() => onRetry(message.content, message.id)}
+                              onClick={() => {
+                                // audit-2026-06-10: for a failed assistant message,
+                                // message.content is the twin's half-streamed reply.
+                                // Retry must re-send the user's original question,
+                                // not feed the partial twin text back into the composer.
+                                const prevUserMsg = messages
+                                  .slice(0, index)
+                                  .reverse()
+                                  .find(m => m.role === 'user');
+                                onRetry(prevUserMsg?.content ?? '', message.id);
+                              }}
                               className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-medium transition-colors"
                               style={{
                                 backgroundColor: 'rgba(239,68,68,0.1)',

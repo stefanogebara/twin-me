@@ -5,15 +5,24 @@ import { stripEmoji } from '../../utils/stripEmoji';
 
 const COLLAPSED_KEY = 'chat_sidebar_collapsed';
 
+/* audit-2026-06-10: these washes previously used navy/steel-blue hexes,
+   which the design system explicitly forbids ("NEVER navy blue").
+   Time-of-day tones are now drawn from the sanctioned amber/copper orb
+   palette (see DARK_ANCHORS in src/utils/skyGradients.ts) layered over
+   the #13121a charcoal base. */
 function getTimeGradient(hour: number): string {
   if (hour >= 6 && hour < 12) {
-    return 'linear-gradient(165deg, #4a6fa5 0%, #2d4a7a 30%, #1e3560 60%, #151825 100%)';
+    // Morning — warm amber sunrise
+    return 'linear-gradient(165deg, rgba(210, 145, 55, 0.30) 0%, rgba(180, 110, 65, 0.18) 40%, rgba(160, 95, 55, 0.10) 70%, rgba(19, 18, 26, 0) 100%), #13121a';
   } else if (hour >= 12 && hour < 18) {
-    return 'linear-gradient(165deg, #2d3a5c 0%, #1e2747 30%, #1a1f3a 60%, #151825 100%)';
+    // Afternoon — warm gold daylight
+    return 'linear-gradient(165deg, rgba(230, 178, 75, 0.24) 0%, rgba(200, 140, 60, 0.15) 40%, rgba(170, 110, 50, 0.08) 70%, rgba(19, 18, 26, 0) 100%), #13121a';
   } else if (hour >= 18 && hour < 21) {
-    return 'linear-gradient(165deg, #3d2a5c 0%, #2a1e47 30%, #221a3a 60%, #151825 100%)';
+    // Evening — copper sunset with subtle purple accent
+    return 'linear-gradient(165deg, rgba(220, 95, 45, 0.26) 0%, rgba(170, 85, 50, 0.16) 40%, rgba(55, 45, 140, 0.10) 75%, rgba(19, 18, 26, 0) 100%), #13121a';
   } else {
-    return 'linear-gradient(165deg, #1e1533 0%, #16102a 30%, #120e22 60%, #0e0b1a 100%)';
+    // Night — faint warm amber glow on charcoal
+    return 'linear-gradient(165deg, rgba(180, 120, 50, 0.14) 0%, rgba(150, 95, 45, 0.09) 40%, rgba(140, 85, 45, 0.05) 70%, rgba(19, 18, 26, 0) 100%), #13121a';
   }
 }
 
@@ -401,7 +410,7 @@ export const ChatContextSidebar = ({
             opacity: collapsed ? 0 : 1,
             transition: 'width 200ms ease, opacity 150ms ease',
             background: gradient,
-            boxShadow: collapsed ? 'none' : 'inset 0 0 80px rgba(100, 130, 255, 0.04)',
+            boxShadow: collapsed ? 'none' : 'inset 0 0 80px rgba(193, 126, 44, 0.05)',
             borderLeft: collapsed ? 'none' : '1px solid var(--glass-surface-border)',
           }}
         >
@@ -410,7 +419,7 @@ export const ChatContextSidebar = ({
             className="pointer-events-none absolute inset-x-0 top-0 h-[160px] rounded-tl-[20px]"
             style={{
               background:
-                'linear-gradient(180deg, rgba(45,55,72,0.3) 0%, rgba(17,17,17,0) 100%)',
+                'linear-gradient(180deg, rgba(19,18,26,0.35) 0%, rgba(19,18,26,0) 100%)',
             }}
           />
 
@@ -434,7 +443,7 @@ export const ChatContextSidebar = ({
             className="absolute right-0 top-0 bottom-0 w-[300px] max-w-[85vw] flex flex-col overflow-y-auto"
             style={{
               background: gradient,
-              boxShadow: 'inset 0 0 80px rgba(100, 130, 255, 0.04)',
+              boxShadow: 'inset 0 0 80px rgba(193, 126, 44, 0.05)',
               borderLeft: '1px solid var(--glass-surface-border)',
               animation: 'slideInRight 200ms ease forwards',
             }}
@@ -456,7 +465,7 @@ export const ChatContextSidebar = ({
               className="pointer-events-none absolute inset-x-0 top-0 h-[160px]"
               style={{
                 background:
-                  'linear-gradient(180deg, rgba(45,55,72,0.3) 0%, rgba(17,17,17,0) 100%)',
+                  'linear-gradient(180deg, rgba(19,18,26,0.35) 0%, rgba(19,18,26,0) 100%)',
               }}
             />
 

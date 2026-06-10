@@ -280,7 +280,11 @@ export const AVAILABLE_CONNECTORS: ConnectorConfig[] = [
     setupTime: '5 seconds',
     privacyLevel: 'low',
     category: 'social',
-    comingSoon: true,
+    // comingSoon flag cleared 2026-06-10 (audit settings-dead-connect): the
+    // Reddit OAuth flow is fully wired (POST /entertainment/connect/reddit +
+    // oauth-callback.js), and Settings' Connect button sends users to
+    // /get-started where this flag hid the tile — same leftover-flag bug
+    // class as Whoop below.
   },
   {
     provider: 'github' as DataProvider,
@@ -293,7 +297,10 @@ export const AVAILABLE_CONNECTORS: ConnectorConfig[] = [
     setupTime: '5 seconds',
     privacyLevel: 'low',
     category: 'professional',
-    comingSoon: true,
+    // comingSoon flag cleared 2026-06-10 (audit settings-dead-connect): the
+    // GitHub OAuth flow is fully wired (POST /entertainment/connect/github +
+    // oauth-callback.js) — flag was a leftover hiding the tile from
+    // /get-started, dead-ending Settings' Connect button.
   },
   {
     provider: 'slack' as DataProvider,
@@ -390,7 +397,10 @@ export const AVAILABLE_CONNECTORS: ConnectorConfig[] = [
     setupTime: '5 seconds',
     privacyLevel: 'low',
     category: 'entertainment',
-    comingSoon: true,
+    // comingSoon flag cleared 2026-06-10 (audit settings-dead-connect):
+    // Twitch connects via Nango (usePlatformConnect nangoPlatforms) like
+    // Whoop above — flag was a leftover hiding the tile from /get-started,
+    // dead-ending Settings' Connect button.
   },
   {
     provider: 'notion' as DataProvider,

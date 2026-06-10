@@ -8,11 +8,14 @@ interface SpotifyEmptyStateProps {
     spotifyGreen: string;
   };
   navigate: (path: string) => void;
+  /** Backend `notConnected` flag — decides Connect CTA vs "collecting data" badge (audit-2026-06-10). */
+  notConnected?: boolean;
 }
 
 export const SpotifyEmptyState: React.FC<SpotifyEmptyStateProps> = ({
   colors,
   navigate,
+  notConnected = false,
 }) => {
   return (
     <div className="space-y-4">
@@ -22,26 +25,31 @@ export const SpotifyEmptyState: React.FC<SpotifyEmptyStateProps> = ({
           Your twin is listening
         </h3>
         <p className="mt-2 mb-6 max-w-sm mx-auto" style={{ color: colors.textSecondary }}>
-          As you listen to music, your twin will notice patterns and share observations.
+          {notConnected
+            ? 'Connect Spotify and your twin will notice patterns in your listening and share observations.'
+            : 'As you listen to music, your twin will notice patterns and share observations.'}
         </p>
-        <button
-          onClick={() => navigate('/get-started')}
-          className="px-5 py-2.5 rounded-xl text-sm font-medium transition-all hover:scale-[1.02]"
-          style={{ backgroundColor: colors.spotifyGreen, color: '#fff' }}
-        >
-          Connect Spotify
-        </button>
-        <div
-          className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm"
-          style={{
-            backgroundColor: 'rgba(29, 185, 84, 0.05)',
-            color: colors.spotifyGreen,
-            border: '1px solid rgba(29, 185, 84, 0.2)',
-          }}
-        >
-          <div aria-hidden="true" className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: colors.spotifyGreen }} />
-          Your twin is collecting data... check back soon
-        </div>
+        {notConnected ? (
+          <button
+            onClick={() => navigate('/get-started')}
+            className="px-5 py-2.5 rounded-xl text-sm font-medium transition-all hover:scale-[1.02]"
+            style={{ backgroundColor: colors.spotifyGreen, color: '#fff' }}
+          >
+            Connect Spotify
+          </button>
+        ) : (
+          <div
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm"
+            style={{
+              backgroundColor: 'rgba(29, 185, 84, 0.05)',
+              color: colors.spotifyGreen,
+              border: '1px solid rgba(29, 185, 84, 0.2)',
+            }}
+          >
+            <div aria-hidden="true" className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: colors.spotifyGreen }} />
+            Your twin is collecting data... check back soon
+          </div>
+        )}
       </div>
 
       {/* Preview cards showing what insights will look like */}

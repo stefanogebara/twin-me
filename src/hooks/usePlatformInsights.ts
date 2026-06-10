@@ -13,6 +13,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { API_URL, getAccessToken, isAbortError } from '@/services/api/apiBase';
 
@@ -46,6 +47,9 @@ export function usePlatformInsights<T = unknown>(
   const pollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pollCount = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
+  // Mirrors `insights` so the give-up branch (inside a stale closure) can tell
+  // whether anything is on screen before deciding to surface an error.
+  const insightsRef = useRef<T | null>(null);
 
   const clearPoll = () => {
     if (pollTimer.current) {
@@ -81,8 +85,15 @@ export function usePlatformInsights<T = unknown>(
             clearPoll();
             pollTimer.current = setTimeout(() => fetchInsights(signal), POLL_INTERVAL_MS);
           } else {
-            // Gave up after MAX_POLLS — surface whatever state we have.
+            // Gave up after MAX_POLLS. The backend also reports `generating`
+            // on persistent errors, so with no data loaded, going quiet here
+            // would render the misleading "Connect <platform>" empty state for
+            // an already-connected user (audit-2026-06-10). Surface an error
+            // instead; keep existing insights on screen if we have them.
             setGenerating(false);
+            if (!insightsRef.current) {
+              setError('Your insights are taking longer than expected. Please try again in a few minutes.');
+            }
           }
           return;
         }
@@ -94,6 +105,7 @@ export function usePlatformInsights<T = unknown>(
         }
 
         setInsights(data as T);
+        insightsRef.current = data as T;
         setGenerating(false);
         setError(null);
         pollCount.current = 0;
@@ -129,16 +141,21 @@ export function usePlatformInsights<T = unknown>(
     setRefreshing(true);
     const authToken = token || getAccessToken();
     try {
-      await fetch(`${API_URL}/insights/${platform}/refresh`, {
+      const response = await fetch(`${API_URL}/insights/${platform}/refresh`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${authToken}` },
       });
-      // Backend regenerates in the background, so the refetch returns
-      // generating:true and the poll loop picks up the fresh reflection.
+      if (!response.ok) throw new Error(`Server error: ${response.status}`);
+      // Backend regenerates in the background while holding the generation
+      // lock, so the refetch returns generating:true and the poll loop picks
+      // up the fresh reflection once it lands.
       pollCount.current = 0;
       await fetchInsights(abortRef.current?.signal);
     } catch (err) {
       console.error(`Failed to refresh ${platform} insights:`, err);
+      // The current reflection is still valid, so report the failure as a
+      // toast instead of replacing the page with an error state.
+      toast.error('Could not refresh your insights. Please try again.');
     } finally {
       setRefreshing(false);
     }

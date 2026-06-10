@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuth } from '../contexts/AuthContext';
 import { API_URL, getAccessToken } from '@/services/api/apiBase';
@@ -197,6 +197,7 @@ const TelegramConnect: React.FC = () => {
 const Settings = () => {
   useDocumentTitle('Settings');
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, signOut } = useAuth();
   const [disconnectingService, setDisconnectingService] = useState<string | null>(null);
   const [memoryCount, setMemoryCount] = useState<number | null>(null);
@@ -408,6 +409,29 @@ const Settings = () => {
       if (el) observer.observe(el);
     });
     return () => observer.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Deep link: /settings?reconnect=<platform> (inbox failed-proposal CTAs) and
+  // /settings#connections both target the Connected Platforms section.
+  // audit-2026-06-10: InboxTile emitted these URLs but nothing consumed them,
+  // so users landed at the top of Settings with no guidance.
+  useEffect(() => {
+    const reconnectTarget = new URLSearchParams(location.search).get('reconnect');
+    if (!reconnectTarget && location.hash !== '#connections') return;
+    // Small delay so the sections above have rendered before scrolling.
+    const timer = setTimeout(() => {
+      scrollToSection('section-platforms');
+      if (reconnectTarget) {
+        const PLATFORM_LABELS: Record<string, string> = {
+          gmail: 'Gmail',
+          calendar: 'Google Calendar',
+        };
+        const label = PLATFORM_LABELS[reconnectTarget] || 'your platform';
+        toast.info(`Reconnect ${label} under Connected Platforms to restore access.`);
+      }
+    }, 150);
+    return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

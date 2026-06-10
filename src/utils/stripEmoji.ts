@@ -35,7 +35,9 @@ export function stripEmoji(text: string | null | undefined): string {
   return text
     .replace(EMOJI_REGEX, '')
     .replace(VARIATION_SELECTORS, '')
-    // Collapse double spaces and trim trailing whitespace that emojis left behind.
-    .replace(/\s{2,}/g, ' ')
+    // Collapse double spaces that emojis left behind. Horizontal whitespace
+    // only — this now runs on multi-paragraph chat markdown (audit-2026-06-10)
+    // where collapsing \n\n would merge paragraphs.
+    .replace(/[^\S\r\n]{2,}/g, ' ')
     .trim();
 }

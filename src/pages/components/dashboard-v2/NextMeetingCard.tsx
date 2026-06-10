@@ -31,16 +31,16 @@ function timeUntilLabel(iso: string | null): string {
   const h = hoursUntil(iso);
   if (h === null) return '';
   const minutes = Math.round(h * 60);
-  if (minutes < 1) return 'agora';
-  if (minutes < 60) return `em ${minutes} min`;
+  if (minutes < 1) return 'now';
+  if (minutes < 60) return `in ${minutes} min`;
   const hours = Math.round(h);
-  if (hours < 24) return `em ${hours}h`;
-  return `em ${Math.round(hours / 24)}d`;
+  if (hours < 24) return `in ${hours}h`;
+  return `in ${Math.round(hours / 24)}d`;
 }
 
 function clockLabel(iso: string | null): string {
   if (!iso) return '';
-  return new Intl.DateTimeFormat('pt-BR', {
+  return new Intl.DateTimeFormat('en-US', {
     weekday: 'short', hour: '2-digit', minute: '2-digit',
   }).format(new Date(iso));
 }
@@ -76,7 +76,7 @@ export function NextMeetingCard() {
   if (!loaded || !meeting) return null;
 
   const b = meeting.briefing || {};
-  const title = meeting.summary || meeting.headline || 'Reunião';
+  const title = meeting.summary || meeting.headline || 'Meeting';
   const h = hoursUntil(meeting.startTime);
   const isSoon = h !== null && h <= SOON_HOURS;
   const topPoints = (b.talkingPoints || []).slice(0, 2);
@@ -110,7 +110,7 @@ export function NextMeetingCard() {
               color: isSoon ? 'rgba(232,160,80,0.85)' : 'rgba(255,255,255,0.45)',
             }}
           >
-            Próxima reunião · {timeUntilLabel(meeting.startTime)}
+            Next meeting · {timeUntilLabel(meeting.startTime)}
           </span>
         </div>
         <span
@@ -172,7 +172,7 @@ export function NextMeetingCard() {
           color: isSoon ? 'rgba(232,160,80,0.95)' : 'rgba(255,255,255,0.55)',
         }}
       >
-        Ver prep completo <ArrowRight className="w-3 h-3" />
+        View full prep <ArrowRight className="w-3 h-3" />
       </span>
     </button>
   );

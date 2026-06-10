@@ -894,7 +894,7 @@ router.get('/new-user-check', authenticateUser, async (req, res) => {
       return res.json({ success: true, isNew: false, memoriesCount: 0, hasCalibration: false });
     }
 
-    const [calibRes, memRes, connRes] = await Promise.all([
+    const [calibRes, memRes, nangoConnRes, classicConnRes] = await Promise.all([
       supabaseAdmin
         .from('onboarding_calibration')
         .select('completed_at')
@@ -918,11 +918,26 @@ router.get('/new-user-check', authenticateUser, async (req, res) => {
         .select('id', { count: 'exact', head: true })
         .eq('user_id', userId)
         .in('status', ['active', 'needs_reconnect']),
+      // audit-2026-06-10: the Bug #35 fix above only counted Nango
+      // connections, but the top recommended platforms (Spotify, Google
+      // Calendar, YouTube, Gmail, Discord) connect via the classic OAuth
+      // flow which writes platform_connections (oauth-callback.js
+      // storeOAuthTokens) and never nango_connection_mappings — so the
+      // re-gate loop persisted for them. Rows in platform_connections are
+      // only created by user-initiated connect flows; disconnect either
+      // hard-deletes the row (connectors.js) or marks status='disconnected'
+      // (oauth-callback.js soft delete). Either way any surviving row —
+      // even expired or disconnected — proves a prior connect, so the user
+      // is past the new-user gate. No status filter on purpose.
+      supabaseAdmin
+        .from('platform_connections')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', userId),
     ]);
 
     const hasCalibration = !!(calibRes.data?.completed_at);
     const memoriesCount = memRes.count ?? 0;
-    const connectionsCount = connRes.count ?? 0;
+    const connectionsCount = (nangoConnRes.count ?? 0) + (classicConnRes.count ?? 0);
     const isNew = !hasCalibration && memoriesCount < 5 && connectionsCount === 0;
 
     return res.json({ success: true, isNew, memoriesCount, hasCalibration, connectionsCount });

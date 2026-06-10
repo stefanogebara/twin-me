@@ -16,9 +16,11 @@ interface CalendarEmptyStateProps {
     calendarBlue: string;
   };
   onConnect: () => void;
+  /** Backend `notConnected` flag — decides Connect CTA vs "collecting data" badge (audit-2026-06-10). */
+  notConnected?: boolean;
 }
 
-export const CalendarEmptyState: React.FC<CalendarEmptyStateProps> = ({ colors, onConnect }) => {
+export const CalendarEmptyState: React.FC<CalendarEmptyStateProps> = ({ colors, onConnect, notConnected = false }) => {
   return (
     <div className="space-y-4">
       <div
@@ -30,26 +32,31 @@ export const CalendarEmptyState: React.FC<CalendarEmptyStateProps> = ({ colors, 
           Your twin is studying your schedule
         </h3>
         <p className="mt-2 mb-6 max-w-sm mx-auto" style={{ color: 'rgba(255,255,255,0.4)' }}>
-          As your calendar fills with events, your twin will notice patterns in how you structure your time.
+          {notConnected
+            ? 'Connect Google Calendar and your twin will notice patterns in how you structure your time.'
+            : 'As your calendar fills with events, your twin will notice patterns in how you structure your time.'}
         </p>
-        <button
-          onClick={onConnect}
-          className="px-5 py-2.5 rounded-xl text-sm font-medium transition-all hover:scale-[1.02]"
-          style={{ backgroundColor: '#10b77f', color: '#fff' }}
-        >
-          Connect Calendar
-        </button>
-        <div
-          className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm"
-          style={{
-            backgroundColor: 'rgba(16, 183, 127, 0.05)',
-            color: '#10b77f',
-            border: '1px solid rgba(16, 183, 127, 0.2)',
-          }}
-        >
-          <div aria-hidden="true" className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: '#10b77f' }} />
-          Your twin is collecting data... check back soon
-        </div>
+        {notConnected ? (
+          <button
+            onClick={onConnect}
+            className="px-5 py-2.5 rounded-xl text-sm font-medium transition-all hover:scale-[1.02]"
+            style={{ backgroundColor: '#10b77f', color: '#fff' }}
+          >
+            Connect Calendar
+          </button>
+        ) : (
+          <div
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm"
+            style={{
+              backgroundColor: 'rgba(16, 183, 127, 0.05)',
+              color: '#10b77f',
+              border: '1px solid rgba(16, 183, 127, 0.2)',
+            }}
+          >
+            <div aria-hidden="true" className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: '#10b77f' }} />
+            Your twin is collecting data... check back soon
+          </div>
+        )}
       </div>
 
       <div aria-hidden="true" className="opacity-50 pointer-events-none space-y-3">

@@ -9,7 +9,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Share2, Sparkles, ArrowRight, Fingerprint, AlertCircle, ChevronLeft } from 'lucide-react';
+import { Share2, Sparkles, ArrowRight, Fingerprint, AlertCircle, ChevronLeft, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { authFetch } from '@/services/api/apiBase';
@@ -355,7 +355,18 @@ const IdentityPage: React.FC = () => {
     enabled: !!user,
   });
 
-  const { data: soulData, isLoading: soulLoading, error: soulError } = useQuery<{ success: boolean; data: SoulSignatureLayers }>({
+  // audit-2026-06-10: /soul-signature/layers returns { data: null, generating:
+  // true, retryAfter } while generation runs in the background (~15-25s), and
+  // { data: null, message } when there aren't enough memories yet. Poll while
+  // generating so the finished signature appears without a hard reload
+  // (staleTime alone would cache the null payload for 10 minutes).
+  const { data: soulData, isLoading: soulLoading, error: soulError, refetch: refetchSoul } = useQuery<{
+    success: boolean;
+    data: (SoulSignatureLayers & { layers?: SoulSignatureLayers }) | null;
+    generating?: boolean;
+    message?: string;
+    retryAfter?: number;
+  }>({
     queryKey: ['soul-signature-layers'],
     queryFn: async () => {
       const res = await authFetch('/soul-signature/layers');
@@ -363,6 +374,8 @@ const IdentityPage: React.FC = () => {
       return res.json();
     },
     staleTime: 10 * 60 * 1000,
+    refetchInterval: (query) =>
+      query.state.data?.generating ? (query.state.data.retryAfter ?? 15) * 1000 : false,
     enabled: !!user,
   });
 
@@ -440,9 +453,14 @@ const IdentityPage: React.FC = () => {
             </span>
           </div>
           <button
-            onClick={() => refetchIdentity()}
+            onClick={() => {
+              // audit-2026-06-10: retry must refetch the query that actually
+              // failed — refetching identity alone left soulError in place.
+              if (identityError) refetchIdentity();
+              if (soulError) refetchSoul();
+            }}
             className="text-sm font-medium px-4 py-2 rounded-[100px] transition-all duration-150 ease-out hover:opacity-80 active:scale-[0.97]"
-            style={{ backgroundColor: 'var(--button-bg-dark, #252222)', color: 'var(--background, #fdfcfb)' }}
+            style={{ backgroundColor: 'var(--button-bg-dark, #252222)', color: 'var(--foreground)' }}
           >
             Try again
           </button>
@@ -453,7 +471,12 @@ const IdentityPage: React.FC = () => {
 
   const hasAnyData = !!(summary || hasLayers);
 
-  if (!hasAnyData) return <EmptyState />;
+  // audit-2026-06-10: while the signature is generating in the background
+  // (~15-25s, polled above), show that — not the "takes a couple of days"
+  // empty state.
+  if (!hasAnyData && soulData?.generating) return <GeneratingState message={soulData?.message} />;
+
+  if (!hasAnyData) return <EmptyState message={soulData?.message} />;
 
   const showStillLearning = !hasLayers;
 
@@ -1227,9 +1250,33 @@ const LoadingSkeleton: React.FC = () => (
   </div>
 );
 
+// ── Generating state ─────────────────────────────────────────────────────
+// audit-2026-06-10: shown while /soul-signature/layers reports generating:true.
+// The query above polls every retryAfter seconds, so this resolves on its own.
+
+const GeneratingState: React.FC<{ message?: string }> = ({ message }) => (
+  <div className="max-w-xl mx-auto px-6 py-20 text-center">
+    <Loader2 className="w-8 h-8 mx-auto mb-4 animate-spin" style={{ color: 'rgba(255,255,255,0.35)' }} />
+    <h2
+      className="text-xl mb-3"
+      style={{
+        fontFamily: "'Instrument Serif', Georgia, serif",
+        fontStyle: 'italic',
+        color: 'var(--foreground)',
+        opacity: 0.8,
+      }}
+    >
+      Reading your signals
+    </h2>
+    <p className="text-sm" style={{ color: 'rgba(255,255,255,0.35)' }}>
+      {message || 'Your soul signature is being generated. This usually takes under a minute.'}
+    </p>
+  </div>
+);
+
 // ── Empty state ──────────────────────────────────────────────────────────
 
-const EmptyState: React.FC = () => {
+const EmptyState: React.FC<{ message?: string }> = ({ message }) => {
   const navigate = useNavigate();
 
   return (
@@ -1247,7 +1294,9 @@ const EmptyState: React.FC = () => {
         I'm still figuring you out
       </h2>
       <p className="text-sm mb-6" style={{ color: 'rgba(255,255,255,0.35)' }}>
-        Connect Spotify, Calendar, or YouTube and I'll build a real picture of you. Usually takes a couple of days.
+        {/* audit-2026-06-10: prefer the backend's precise reason (e.g. "N
+            memories found, minimum 10 required") over the generic claim. */}
+        {message || "Connect Spotify, Calendar, or YouTube and I'll build a real picture of you. Usually takes a couple of days."}
       </p>
       <div className="flex flex-col sm:flex-row gap-3 justify-center">
         <button

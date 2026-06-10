@@ -71,8 +71,16 @@ const NewDiscoverFlow: React.FC = () => {
     setPhase(next);
   };
 
+  // Returning from a platform OAuth full-page redirect: phase state was lost on the
+  // reload, so resume at the platforms step. PlatformConnectStep sets this key before
+  // redirecting and consumes it on mount to mark the platform connected (audit-2026-06-10)
+  const [resumedAtPlatforms] = useState(
+    () => !!sessionStorage.getItem('onboarding_platform_connect')
+  );
+
   // Flow state — show explainer on first visit (no sessionStorage flag)
   const [phase, setPhase] = useState<FlowPhase>(() => {
+    if (resumedAtPlatforms) return 'platforms';
     const seen = sessionStorage.getItem('twinme_explainer_seen');
     return seen ? 'entry' : 'explainer';
   });
@@ -90,6 +98,7 @@ const NewDiscoverFlow: React.FC = () => {
   const [allQAnswered, setAllQAnswered] = useState(false);
   const [signature, setSignature] = useState<SoulSignature | null>(null);
   const [generatingSignature, setGeneratingSignature] = useState(false);
+  const [signatureError, setSignatureError] = useState<string | null>(null);
   const [twinIntro, setTwinIntro] = useState('');
 
   // Correction flow state
@@ -120,7 +129,10 @@ const NewDiscoverFlow: React.FC = () => {
     const checkStatus = async () => {
       try {
         const status = await enrichmentService.getStatus(user.id);
-        if (status.isConfirmed) {
+        // handleAdvanceToDeepening confirms enrichment BEFORE the platforms phase, so a
+        // user returning from OAuth may already be confirmed — don't bounce them to
+        // /dashboard mid-flow (audit-2026-06-10)
+        if (status.isConfirmed && !resumedAtPlatforms) {
           navigate('/dashboard');
           return;
         }
@@ -135,6 +147,13 @@ const NewDiscoverFlow: React.FC = () => {
   useEffect(() => {
     if (loading || !user || hasStartedRef.current) return;
     hasStartedRef.current = true;
+    if (resumedAtPlatforms) {
+      // Don't restart the reveal (startReveal forces phase back to 'reveal'); prefetch
+      // the deepening questions handleAdvanceToDeepening would have loaded before the
+      // OAuth redirect wiped them (audit-2026-06-10)
+      loadQuickQuestions();
+      return;
+    }
     startReveal();
   }, [loading, user]);
 
@@ -274,21 +293,7 @@ const NewDiscoverFlow: React.FC = () => {
     }
   };
 
-  const handleAdvanceToDeepening = async () => {
-    if (user && enrichmentDataRef.current) {
-      const data = enrichmentDataRef.current;
-      enrichmentService.confirm(user.id, {
-        name: data.discovered_name || quickDataRef.current?.discovered_name || undefined,
-        company: data.discovered_company || quickDataRef.current?.discovered_company || undefined,
-        title: data.discovered_title || undefined,
-        location: data.discovered_location || quickDataRef.current?.discovered_location || undefined,
-        bio: data.discovered_bio || data.discovered_summary || quickDataRef.current?.discovered_bio || undefined,
-        github_url: data.discovered_github_url || quickDataRef.current?.discovered_github_url || undefined,
-      }).catch(() => {});
-    }
-
-    setPhase('platforms');
-
+  const loadQuickQuestions = async () => {
     setLoadingQuestions(true);
     try {
       const enrichment = enrichmentDataRef.current;
@@ -306,10 +311,27 @@ const NewDiscoverFlow: React.FC = () => {
         setPersonalizedQuestions(result.questions);
       }
     } catch {
-      // empty
+      // Failure is surfaced by DeepeningPhase's no-questions fallback CTA (audit-2026-06-10)
     } finally {
       setLoadingQuestions(false);
     }
+  };
+
+  const handleAdvanceToDeepening = async () => {
+    if (user && enrichmentDataRef.current) {
+      const data = enrichmentDataRef.current;
+      enrichmentService.confirm(user.id, {
+        name: data.discovered_name || quickDataRef.current?.discovered_name || undefined,
+        company: data.discovered_company || quickDataRef.current?.discovered_company || undefined,
+        title: data.discovered_title || undefined,
+        location: data.discovered_location || quickDataRef.current?.discovered_location || undefined,
+        bio: data.discovered_bio || data.discovered_summary || quickDataRef.current?.discovered_bio || undefined,
+        github_url: data.discovered_github_url || quickDataRef.current?.discovered_github_url || undefined,
+      }).catch(() => {});
+    }
+
+    setPhase('platforms');
+    await loadQuickQuestions();
   };
 
   const [isLinkedInSearching, setIsLinkedInSearching] = useState(false);
@@ -443,6 +465,8 @@ const NewDiscoverFlow: React.FC = () => {
     }
     enrichmentDataRef.current = null;
     setPhaseTracked('platforms');
+    // Skip path must still load questions or the deepening phase dead-ends (audit-2026-06-10)
+    await loadQuickQuestions();
   };
 
   const handlePlatformsComplete = (_connectedPlatforms: string[]) => {
@@ -466,6 +490,7 @@ const NewDiscoverFlow: React.FC = () => {
   const generateSignature = async () => {
     if (!user) return;
     setGeneratingSignature(true);
+    setSignatureError(null);
 
     try {
       const token = getAccessToken();
@@ -506,10 +531,15 @@ const NewDiscoverFlow: React.FC = () => {
           if (result.twinIntro) {
             setTwinIntro(result.twinIntro);
           }
+        } else {
+          setSignatureError("We couldn't craft your soul signature right now.");
         }
+      } else {
+        setSignatureError("We couldn't craft your soul signature right now.");
       }
     } catch (error) {
       console.error('Signature generation error:', error);
+      setSignatureError("We couldn't craft your soul signature right now.");
     } finally {
       setGeneratingSignature(false);
     }
@@ -629,11 +659,13 @@ const NewDiscoverFlow: React.FC = () => {
           <DeepeningPhase
             signature={signature}
             generatingSignature={generatingSignature}
+            signatureError={signatureError}
             allQAnswered={allQAnswered}
             loadingQuestions={loadingQuestions}
             personalizedQuestions={personalizedQuestions}
             onQuestionAnswer={handleQuestionAnswer}
             onAllQuestionsAnswered={handleAllQuestionsAnswered}
+            onRetrySignature={generateSignature}
             onComplete={handleComplete}
             onGoDeeper={() => setPhaseTracked('deep-interview')}
           />

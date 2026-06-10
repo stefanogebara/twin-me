@@ -13,11 +13,13 @@ interface SoulSignature {
 interface DeepeningPhaseProps {
   signature: SoulSignature | null;
   generatingSignature: boolean;
+  signatureError: string | null;
   allQAnswered: boolean;
   loadingQuestions: boolean;
   personalizedQuestions: PersonalizedQuestion[];
   onQuestionAnswer: (questionId: string, answer: string, domain: string) => void;
   onAllQuestionsAnswered: () => void;
+  onRetrySignature: () => void;
   onComplete: () => void;
   onGoDeeper: () => void;
 }
@@ -25,11 +27,13 @@ interface DeepeningPhaseProps {
 const DeepeningPhase: React.FC<DeepeningPhaseProps> = ({
   signature,
   generatingSignature,
+  signatureError,
   allQAnswered,
   loadingQuestions,
   personalizedQuestions,
   onQuestionAnswer,
   onAllQuestionsAnswered,
+  onRetrySignature,
   onComplete,
   onGoDeeper,
 }) => {
@@ -72,7 +76,42 @@ const DeepeningPhase: React.FC<DeepeningPhaseProps> = ({
               onAnswer={onQuestionAnswer}
               onAllAnswered={onAllQuestionsAnswered}
             />
-          ) : null}
+          ) : (
+            /* Questions unavailable (skip path or fetch failure) — never dead-end the phase (audit-2026-06-10) */
+            <div className="flex flex-col gap-3 mb-8">
+              <p
+                className="text-sm text-center mb-2"
+                style={{ color: 'rgba(232, 213, 183, 0.6)', fontFamily: 'var(--font-body)' }}
+              >
+                We couldn't load your questions right now. You can continue — your twin will keep learning as you go.
+              </p>
+              <button
+                onClick={onComplete}
+                className="w-full px-6 py-4 rounded-xl text-base font-medium transition-all duration-200 hover:scale-[1.01] flex items-center justify-center gap-2"
+                style={{
+                  background: 'linear-gradient(135deg, #E8D5B7 0%, #D4C4A8 100%)',
+                  color: '#0C0C0C',
+                  fontFamily: 'var(--font-body)',
+                }}
+              >
+                Continue
+                <ArrowRight className="w-4 h-4" />
+              </button>
+              <button
+                onClick={onGoDeeper}
+                className="w-full px-6 py-3 rounded-xl text-sm transition-all duration-200 hover:scale-[1.01] flex items-center justify-center gap-2"
+                style={{
+                  background: 'transparent',
+                  border: '1px solid rgba(232, 213, 183, 0.2)',
+                  color: 'rgba(232, 213, 183, 0.7)',
+                  fontFamily: 'var(--font-body)',
+                }}
+              >
+                <Sparkles className="w-4 h-4" />
+                Go Deeper — Let your twin really know you
+              </button>
+            </div>
+          )}
         </>
       )}
 
@@ -168,21 +207,47 @@ const DeepeningPhase: React.FC<DeepeningPhaseProps> = ({
         </div>
       )}
 
-      {/* Pre-signature CTA (questions done, waiting for signature) */}
+      {/* Pre-signature: questions done, generation failed or about to start (audit-2026-06-10) */}
       {!signature && !generatingSignature && allQAnswered && (
-        <button
-          onClick={onComplete}
-          disabled
-          className="w-full px-6 py-4 rounded-xl text-base font-medium flex items-center justify-center gap-2 mb-8 opacity-40"
-          style={{
-            background: 'transparent',
-            color: '#E8D5B7',
-            border: '1px solid rgba(232, 213, 183, 0.2)',
-            fontFamily: 'var(--font-body)',
-          }}
-        >
-          <Loader2 className="w-5 h-5 animate-spin" />
-        </button>
+        signatureError ? (
+          <div className="flex flex-col gap-3 mb-8">
+            <p
+              className="text-sm text-center mb-2"
+              style={{ color: 'rgba(232, 213, 183, 0.7)', fontFamily: 'var(--font-body)' }}
+            >
+              {signatureError}
+            </p>
+            <button
+              onClick={onRetrySignature}
+              className="w-full px-6 py-4 rounded-xl text-base font-medium transition-all duration-200 hover:scale-[1.01] flex items-center justify-center gap-2"
+              style={{
+                background: 'linear-gradient(135deg, #E8D5B7 0%, #D4C4A8 100%)',
+                color: '#0C0C0C',
+                fontFamily: 'var(--font-body)',
+              }}
+            >
+              Try again
+            </button>
+            <button
+              onClick={onComplete}
+              className="w-full px-6 py-3 rounded-xl text-sm transition-all duration-200 hover:scale-[1.01] flex items-center justify-center gap-2"
+              style={{
+                background: 'transparent',
+                border: '1px solid rgba(232, 213, 183, 0.2)',
+                color: 'rgba(232, 213, 183, 0.7)',
+                fontFamily: 'var(--font-body)',
+              }}
+            >
+              Continue without it
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+        ) : (
+          /* Momentary: render gap between allQAnswered flipping and generateSignature starting */
+          <div className="flex items-center justify-center gap-3 py-6 mb-8">
+            <Loader2 className="w-5 h-5 animate-spin" style={{ color: '#E8D5B7' }} />
+          </div>
+        )
       )}
     </div>
   );

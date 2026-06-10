@@ -35,10 +35,13 @@ async function fetchFidelity(): Promise<FidelityData | null> {
 }
 
 async function fetchReadiness(): Promise<ReadinessData | null> {
+  // audit-2026-06-10: throw on non-OK so React Query enters its error state.
+  // Returning null here cached the failure as success, leaving the readiness
+  // rows on an infinite spinner with no error or retry.
   const res = await authFetch('/finetuning/readiness');
-  if (!res.ok) return null;
+  if (!res.ok) throw new Error('Failed to load training readiness');
   const json = await res.json();
-  return json.data;
+  return json.data ?? null;
 }
 
 async function triggerTraining(): Promise<void> {
@@ -82,7 +85,13 @@ const TwinIntelligence: React.FC = () => {
     retry: 1,
   });
 
-  const { data: readiness, isLoading: loadingReadiness, isError: readinessError } = useQuery({
+  const {
+    data: readiness,
+    isLoading: loadingReadiness,
+    isError: readinessError,
+    isFetching: fetchingReadiness,
+    refetch: refetchReadiness,
+  } = useQuery({
     queryKey: ['finetuning', 'readiness'],
     queryFn: fetchReadiness,
     staleTime: 5 * 60 * 1000,
@@ -103,6 +112,11 @@ const TwinIntelligence: React.FC = () => {
   const fidelityPercent = fidelity?.fidelity_score != null
     ? Math.round(fidelity.fidelity_score * 100)
     : null;
+
+  // audit-2026-06-10: readiness is undefined when the query errors (and null if
+  // the backend omits data) — both rows must render an explicit error state
+  // instead of spinning forever or crashing on readiness.conversations below.
+  const readinessUnavailable = !loadingReadiness && (readinessError || !readiness);
 
   return (
     <div className="mb-10">
@@ -185,8 +199,19 @@ const TwinIntelligence: React.FC = () => {
               </p>
             </div>
           </div>
-          {(loadingReadiness || (!readiness && !readinessError)) ? (
+          {loadingReadiness ? (
             <Loader2 className="w-3 h-3 animate-spin" style={{ color: 'rgba(255,255,255,0.3)' }} />
+          ) : readinessUnavailable ? (
+            <span
+              className="text-xs px-2 py-1 rounded-full"
+              style={{
+                background: 'rgba(255,140,160,0.08)',
+                color: 'rgba(255,140,160,0.8)',
+                fontFamily: 'Inter, sans-serif',
+              }}
+            >
+              Unavailable
+            </span>
           ) : readiness?.eligible && !readiness?.model ? (
             <button
               onClick={() => trainMutation.mutate()}
@@ -237,16 +262,20 @@ const TwinIntelligence: React.FC = () => {
               </p>
             </div>
           </div>
-          {(loadingReadiness || (!readiness && !readinessError)) ? (
+          {loadingReadiness ? (
             <Loader2 className="w-3 h-3 animate-spin" style={{ color: 'rgba(255,255,255,0.3)' }} />
+          ) : readinessUnavailable ? (
+            <span className="text-xs" style={{ color: 'rgba(255,140,160,0.8)', fontFamily: 'Inter, sans-serif' }}>
+              Unavailable
+            </span>
           ) : (() => {
             // audit-2026-05-12 M8: the old denominator (`conversationsRequired || 50`)
             // was a tiny fixed target that real beta users were already 60x past,
             // producing nonsense readouts like "3,062 / 50". Until model training
             // exposes a real progress metric, show just the count. If the backend
             // sets a non-trivial target (>= count), surface it as progress.
-            const count = readiness.conversations || 0;
-            const target = readiness.conversationsRequired || 0;
+            const count = readiness?.conversations || 0;
+            const target = readiness?.conversationsRequired || 0;
             const showProgress = target > count;
             return (
               <span className="text-sm tabular-nums" style={{ color: 'rgba(255,255,255,0.5)', fontFamily: 'Inter, sans-serif' }}>
@@ -257,6 +286,22 @@ const TwinIntelligence: React.FC = () => {
             );
           })()}
         </div>
+
+        {readinessUnavailable && (
+          <div className="flex items-center gap-2 py-2">
+            <p className="text-xs" style={{ color: 'rgba(255,140,160,0.8)' }}>
+              Could not load model status.
+            </p>
+            <button
+              onClick={() => refetchReadiness()}
+              disabled={fetchingReadiness}
+              className="text-xs font-medium underline underline-offset-2 transition-opacity hover:opacity-80 disabled:opacity-40"
+              style={{ color: 'rgba(255,255,255,0.6)' }}
+            >
+              {fetchingReadiness ? 'Retrying...' : 'Retry'}
+            </button>
+          </div>
+        )}
 
         {/* Progress bar — only render while target > count (otherwise the bar
             would always be 100% and add no information). */}

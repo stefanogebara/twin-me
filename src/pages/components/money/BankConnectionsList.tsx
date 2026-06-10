@@ -14,6 +14,7 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { RefreshCw, Trash2, AlertCircle } from 'lucide-react';
+import { toast } from 'sonner';
 import {
   listBankConnections,
   deleteBankConnection,
@@ -42,6 +43,21 @@ function statusStyle(status: string): { bg: string; fg: string; label: string } 
       return { bg: 'rgba(255,255,255,0.06)', fg: 'rgba(255,255,255,0.55)', label: 'desatualizado' };
     default:
       return { bg: 'rgba(255,255,255,0.06)', fg: 'rgba(255,255,255,0.55)', label: status.toLowerCase() };
+  }
+}
+
+// audit-2026-06-10: chip must distinguish all three providers — Plaid (US) rows
+// were previously labeled 'BR via Pluggy Open Finance'.
+function providerChip(provider: string): { label: string; title: string } {
+  switch (provider) {
+    case 'truelayer':
+      return { label: 'EU/UK', title: 'EU/UK via TrueLayer' };
+    case 'plaid':
+      return { label: 'US', title: 'US via Plaid' };
+    case 'pluggy':
+      return { label: 'BR', title: 'BR via Pluggy Open Finance' };
+    default:
+      return { label: provider.toUpperCase(), title: provider };
   }
 }
 
@@ -77,9 +93,19 @@ export function BankConnectionsList({ onChanged }: Props) {
   const handleSync = async (id: string) => {
     setBusyId(id);
     try {
-      await syncBankConnection(id);
+      // audit-2026-06-10: provider routes the request to the right backend sync
+      // endpoint — without it TrueLayer rows get a 400 and Plaid rows a 500 on
+      // the default Pluggy route.
+      const provider = connections?.find(c => c.id === id)?.provider;
+      const ok = await syncBankConnection(id, provider);
+      if (!ok) {
+        toast.error('Sync failed. Please try again.');
+        return;
+      }
       await load();
       onChanged?.();
+    } catch {
+      toast.error('Sync failed. Please try again.');
     } finally {
       setBusyId(null);
     }
@@ -104,6 +130,7 @@ export function BankConnectionsList({ onChanged }: Props) {
     <div className="mb-6 flex flex-col gap-2">
       {connections.map((c) => {
         const chip = statusStyle(c.status);
+        const provChip = c.provider ? providerChip(c.provider) : null;
         const needsReconnect =
           c.status === 'LOGIN_ERROR' ||
           c.status === 'WAITING_USER_INPUT' ||
@@ -142,7 +169,7 @@ export function BankConnectionsList({ onChanged }: Props) {
                   >
                     {c.connector_name}
                   </div>
-                  {c.provider && (
+                  {provChip && (
                     <span
                       className="text-[10px] px-1.5 py-0.5 rounded-full flex-shrink-0"
                       style={{
@@ -152,9 +179,9 @@ export function BankConnectionsList({ onChanged }: Props) {
                         letterSpacing: '0.04em',
                         textTransform: 'uppercase',
                       }}
-                      title={c.provider === 'truelayer' ? 'EU/UK via TrueLayer' : 'BR via Pluggy Open Finance'}
+                      title={provChip.title}
                     >
-                      {c.provider === 'truelayer' ? 'EU/UK' : 'BR'}
+                      {provChip.label}
                     </span>
                   )}
                 </div>
