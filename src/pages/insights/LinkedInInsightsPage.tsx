@@ -11,6 +11,8 @@ import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { TwinReflection, PatternObservation } from './components/TwinReflection';
 import { EvidenceSection } from './components/EvidenceSection';
 import { InsightsPageHeader } from './components/InsightsPageHeader';
+import { RefreshingIndicator } from './components/RefreshingIndicator';
+import { InsightsGenerationError } from './components/InsightsGenerationError';
 import { Briefcase, AlertCircle, MapPin, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -63,7 +65,7 @@ const LinkedInInsightsPage: React.FC = () => {
 
   const navigate = useNavigate();
 
-  const { insights, loading, generating, refreshing, error, refresh } =
+  const { insights, loading, generating, isRefreshing, error, generationError, refresh } =
     usePlatformInsights<InsightsResponse>('linkedin', 'Please sign in to see your professional insights');
 
   const colors = {
@@ -73,7 +75,9 @@ const LinkedInInsightsPage: React.FC = () => {
     linkedinBg: 'rgba(10, 102, 194, 0.1)',
   };
 
-  if (loading || generating) {
+  // Keep previous insights rendered during a refresh (audit-2026-06-10);
+  // the skeleton is only for the no-data cold start.
+  if ((loading || generating) && !insights) {
     return (
       <div className="max-w-[680px] mx-auto px-6 py-16">
         <div className="animate-pulse space-y-4">
@@ -83,6 +87,11 @@ const LinkedInInsightsPage: React.FC = () => {
         </div>
       </div>
     );
+  }
+
+  // Generation failed with nothing to show — inline retry, not a connect CTA.
+  if (generationError && !insights) {
+    return <InsightsGenerationError message={generationError} onRetry={refresh} retrying={isRefreshing} />;
   }
 
   if (error) {
@@ -115,8 +124,10 @@ const LinkedInInsightsPage: React.FC = () => {
         textSecondaryColor={colors.textSecondary}
         onBack={() => navigate('/dashboard')}
         onRefresh={refresh}
-        isRefreshing={refreshing}
+        isRefreshing={isRefreshing}
       />
+
+      <RefreshingIndicator visible={isRefreshing} />
 
       {/* Professional Profile Card */}
       {(insights?.linkedinHeadline || insights?.linkedinIndustry) && (

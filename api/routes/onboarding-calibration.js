@@ -881,6 +881,68 @@ router.get('/calibration-data/:userId', authenticateUser, async (req, res) => {
 });
 
 /**
+ * POST /api/onboarding/complete
+ * audit-2026-06-10: a user who finishes the onboarding flow — even after
+ * skipping the interview and connecting nothing — counts as onboarded.
+ * Persists completed_at on onboarding_calibration so new-user-check's
+ * hasCalibration flag short-circuits isNew and the user is never re-gated.
+ * Only stamps completed_at when currently null, so a real interview
+ * completion timestamp is never overwritten. The "Already set up? Skip to
+ * chat" escape link deliberately does NOT call this — it stays session-only.
+ */
+router.post('/complete', authenticateUser, async (req, res) => {
+  try {
+    const userId = req.user?.id;
+
+    if (!supabaseAdmin) {
+      return res.status(503).json({ success: false, error: 'Database unavailable' });
+    }
+
+    const { data: existing, error: fetchError } = await supabaseAdmin
+      .from('onboarding_calibration')
+      .select('completed_at, enrichment_context')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (fetchError) {
+      log.error('Completion lookup failed', { error: fetchError });
+      return res.status(500).json({ success: false, error: 'Failed to persist onboarding completion' });
+    }
+
+    if (existing?.completed_at) {
+      return res.json({ success: true, alreadyCompleted: true, completedAt: existing.completed_at });
+    }
+
+    const completedAt = new Date().toISOString();
+    // No dedicated metadata column on this table (20260304 migration) — the
+    // completion_source marker rides in the enrichment_context jsonb, merged
+    // so interview-written keys are never clobbered.
+    const { error: saveError } = await supabaseAdmin
+      .from('onboarding_calibration')
+      .upsert({
+        user_id: userId,
+        completed_at: completedAt,
+        enrichment_context: {
+          ...(existing?.enrichment_context || {}),
+          completion_source: 'flow_finish',
+        },
+        updated_at: completedAt,
+      }, { onConflict: 'user_id' });
+
+    if (saveError) {
+      log.error('Completion save failed', { error: saveError });
+      return res.status(500).json({ success: false, error: 'Failed to persist onboarding completion' });
+    }
+
+    log.info('Onboarding completion persisted', { userId, source: 'flow_finish' });
+    return res.json({ success: true, alreadyCompleted: false, completedAt });
+  } catch (error) {
+    log.error('Completion error', { error });
+    return res.status(500).json({ success: false, error: 'Failed to persist onboarding completion' });
+  }
+});
+
+/**
  * GET /api/onboarding/new-user-check
  * Returns whether the user needs to complete the cinematic onboarding flow.
  * Checks calibration completion + memory count to distinguish new vs returning users.

@@ -13,6 +13,8 @@ import { EvidenceSection } from './components/EvidenceSection';
 import { WebBrowsingSkeleton } from './components/WebBrowsingSkeleton';
 import { WebBrowsingErrorState } from './components/WebBrowsingErrorState';
 import { WebBrowsingCharts } from './components/WebBrowsingCharts';
+import { RefreshingIndicator } from './components/RefreshingIndicator';
+import { InsightsGenerationError } from './components/InsightsGenerationError';
 import type { InsightsResponse } from './components/webBrowsingTypes';
 import { Globe, RefreshCw, Layout } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -22,7 +24,7 @@ const WebBrowsingInsightsPage: React.FC = () => {
 
   const navigate = useNavigate();
 
-  const { insights, loading, generating, refreshing, error, refresh } =
+  const { insights, loading, generating, isRefreshing, error, generationError, refresh } =
     usePlatformInsights<InsightsResponse>('web', 'Please sign in to see your digital life insights');
 
   const colors = {
@@ -32,8 +34,15 @@ const WebBrowsingInsightsPage: React.FC = () => {
     webBg: 'rgba(99, 102, 241, 0.1)'
   };
 
-  if (loading || generating) {
+  // Keep previous insights rendered during a refresh (audit-2026-06-10);
+  // the skeleton is only for the no-data cold start.
+  if ((loading || generating) && !insights) {
     return <WebBrowsingSkeleton />;
+  }
+
+  // Generation failed with nothing to show — inline retry, not a connect CTA.
+  if (generationError && !insights) {
+    return <InsightsGenerationError message={generationError} onRetry={refresh} retrying={isRefreshing} />;
   }
 
   if (error) {
@@ -47,14 +56,16 @@ const WebBrowsingInsightsPage: React.FC = () => {
         <h1 style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontStyle: 'italic', fontSize: '28px', fontWeight: 400, color: 'var(--foreground)', letterSpacing: '-0.02em' }}>
           Your Digital Life
         </h1>
-        <button onClick={refresh} disabled={refreshing} className="p-2 rounded-lg transition-opacity hover:opacity-60" style={{ color: 'rgba(255,255,255,0.3)' }} title="Refresh">
-          <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+        <button onClick={refresh} disabled={isRefreshing} className="p-2 rounded-lg transition-opacity hover:opacity-60" style={{ color: 'rgba(255,255,255,0.3)' }} title="Refresh">
+          <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
         </button>
       </div>
       <p className="text-sm mb-10" style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', sans-serif" }}>
         What your browsing reveals about you
       </p>
       <div style={{ borderTop: '1px solid var(--border-glass)' }} className="mb-8" />
+
+      <RefreshingIndicator visible={isRefreshing} />
 
       {/* Extension Install Banner */}
       {!insights?.hasExtensionData && (

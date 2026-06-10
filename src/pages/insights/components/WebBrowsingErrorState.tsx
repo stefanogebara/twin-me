@@ -8,7 +8,8 @@ interface WebBrowsingErrorStateProps {
     webAccent: string;
     webBg: string;
   };
-  theme: string;
+  /** Unused legacy prop — callers don't pass it (dark-only design system). */
+  theme?: string;
   navigate: (path: string) => void;
 }
 

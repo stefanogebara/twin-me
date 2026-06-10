@@ -13,6 +13,7 @@ import {
   invalidatePlatformStatusCache
 } from '../services/redisClient.js';
 import { ensureFreshToken } from '../services/tokenRefreshService.js';
+import { buildPlatformsSummary } from '../services/platformStateService.js';
 import { createLogger, redact } from '../services/logger.js';
 import { getGoogleWorkspaceScopes } from '../config/googleWorkspaceScopes.js';
 import { getAppUrl } from '../utils/oauthUtils.js';
@@ -1277,95 +1278,21 @@ router.get('/status/:userId', authenticateUser, async (req, res) => {
  * /talk-to-twin said 11 for the same user (audit 2026-05-12 H1).
  *
  * A platform is considered:
- *   - active:  connected, token NOT expired, last_sync within STALE_DAYS days
- *   - expired: connected but token expired (or status='expired'/'token_expired')
- *   - stale:   connected, token OK, but hasn't synced in >= STALE_DAYS
+ *   - active:  connected, auth OK, last_sync within STALE_DAYS days
+ *   - expired: genuine auth failure — the user must reconnect
+ *   - stale:   connected, auth OK, but hasn't synced in >= STALE_DAYS
  *   - total:   active + expired + stale
  *
- * Response: { success, total, active, expired, stale, breakdown: [{platform, state}] }
+ * Classification lives in platformStateService.js (batch-3 state unification,
+ * audit-2026-06-10) — this route is a thin wrapper. Breakdown entries also
+ * carry { connectedAt, lastSyncAt, source } (additive).
+ *
+ * Response: { success, total, active, expired, stale, breakdown: [{platform, state, ...}] }
  */
-const STALE_DAYS = 7;
-
 router.get('/summary', authenticateUser, async (req, res) => {
   try {
-    const userId = req.user.id;
-    const now = Date.now();
-    const staleThresholdMs = STALE_DAYS * 24 * 60 * 60 * 1000;
-
-    const [pcResult, nangoResult] = await Promise.all([
-      supabaseAdmin
-        .from('platform_connections')
-        .select('platform, status, last_sync_at, last_sync_status, token_expires_at, access_token, connected_at')
-        .eq('user_id', userId),
-      supabaseAdmin
-        .from('nango_connection_mappings')
-        .select('platform, status, last_synced_at, updated_at, created_at')
-        .eq('user_id', userId)
-        .in('status', ['connected', 'active']),
-    ]);
-
-    const breakdown = [];
-    const seen = new Set();
-
-    for (const c of pcResult.data || []) {
-      // audit-2026-06-10: "needs reconnection" must mean the USER has to act.
-      // Access tokens lapse hourly by design and getValidAccessToken refreshes
-      // them automatically on next use, so `token_expires_at < now` is NOT a
-      // reconnect signal — counting it flagged healthy platforms ("5 need
-      // reconnection" on the chat header while extraction ran fine). Conversely
-      // 'auth_failed' (set by observationIngestion when a refresh genuinely
-      // fails) was missing from this list, so REAL failures weren't counted.
-      const tokenExpired =
-        c.status === 'expired' ||
-        c.status === 'token_expired' ||
-        c.status === 'needs_reauth' ||
-        c.status === 'requires_reauth' ||
-        c.status === 'auth_failed' ||
-        c.last_sync_status === 'requires_reauth' ||
-        c.last_sync_status === 'auth_failed' ||
-        (c.status === 'error' && c.last_sync_status === 'auth_error');
-
-      // Only count platforms the user has actually connected (not just empty rows).
-      const isConnected = !!c.connected_at;
-      if (!isConnected) continue;
-
-      let state;
-      if (tokenExpired) {
-        state = 'expired';
-      } else {
-        const lastSync = c.last_sync_at ? new Date(c.last_sync_at).getTime() : null;
-        const isStale = lastSync && now - lastSync > staleThresholdMs;
-        const isPartial = c.last_sync_status === 'partial' || c.last_sync_status === 'error';
-        state = isStale || isPartial ? 'stale' : 'active';
-      }
-
-      breakdown.push({ platform: c.platform, state });
-      seen.add(c.platform);
-    }
-
-    for (const n of nangoResult.data || []) {
-      if (seen.has(n.platform)) continue;
-      const lastSync = n.last_synced_at ? new Date(n.last_synced_at).getTime() : null;
-      const isStale = lastSync && now - lastSync > staleThresholdMs;
-      breakdown.push({ platform: n.platform, state: isStale ? 'stale' : 'active' });
-    }
-
-    const counts = breakdown.reduce(
-      (acc, b) => {
-        acc[b.state]++;
-        return acc;
-      },
-      { active: 0, expired: 0, stale: 0 }
-    );
-
-    res.json({
-      success: true,
-      total: breakdown.length,
-      active: counts.active,
-      expired: counts.expired,
-      stale: counts.stale,
-      breakdown,
-    });
+    const summary = await buildPlatformsSummary(req.user.id);
+    res.json({ success: true, ...summary });
   } catch (error) {
     log.error('Error getting platform summary', { error });
     res.status(500).json({ success: false, error: 'Failed to get platform summary' });

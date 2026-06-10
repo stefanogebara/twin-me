@@ -27,7 +27,7 @@ const STRESS_THRESHOLD = 0.6;
 
 function formatDay(dateStr: string): string {
   const d = new Date(dateStr + 'T12:00:00Z');
-  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+  return d.toLocaleDateString('en-US', { day: '2-digit', month: 'short' });
 }
 
 function formatSpend(value: number, currency: string): string {
@@ -67,7 +67,7 @@ function CustomTooltip({ active, payload, label, currency }: CustomTooltipProps)
     }}>
       <div style={{ color: 'rgba(255,255,255,0.55)', marginBottom: 6, fontSize: 11 }}>{formatDay(label)}</div>
       <div style={{ color: '#F5F5F4', marginBottom: 4 }}>
-        {formatSpend(spend, currency)} gastos
+        {formatSpend(spend, currency)} spent
       </div>
       {stress !== null && (
         <div style={{ color: stress >= STRESS_THRESHOLD * 100 ? 'rgba(232,160,80,0.95)' : 'rgba(134,239,172,0.85)' }}>
@@ -100,7 +100,7 @@ export function StressSpendTimeline({ days, currency = 'BRL' }: Props) {
         fontFamily: "'Geist','Inter',sans-serif",
         fontSize: 14,
       }}>
-        Sem dados suficientes para gerar o grafico de linha do tempo.
+        Not enough data to draw the timeline chart yet.
       </div>
     );
   }
@@ -122,7 +122,7 @@ export function StressSpendTimeline({ days, currency = 'BRL' }: Props) {
           fontSize: 13,
           color: 'rgba(232,160,80,0.95)',
         }}>
-          {correlatedDays} {correlatedDays === 1 ? 'dia com' : 'dias com'} alto estresse e alto gasto coincidindo nos ultimos 30 dias.
+          {correlatedDays} {correlatedDays === 1 ? 'day' : 'days'} where high stress and high spending coincided in the last 30 days.
         </div>
       )}
 
@@ -197,15 +197,15 @@ export function StressSpendTimeline({ days, currency = 'BRL' }: Props) {
       <div style={{ display: 'flex', gap: 20, marginTop: 12, fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <span style={{ width: 12, height: 12, borderRadius: 2, background: 'rgba(255,255,255,0.18)', display: 'inline-block' }} />
-          Gasto diario
+          Daily spending
         </span>
         <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <span style={{ width: 16, height: 2, background: 'rgba(232,160,80,0.85)', display: 'inline-block', borderRadius: 1 }} />
-          Nivel de estresse
+          Stress level
         </span>
         <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <span style={{ width: 16, height: 1, background: 'rgba(217,119,6,0.5)', display: 'inline-block', borderStyle: 'dashed' }} />
-          Limiar de estresse (60%)
+          Stress threshold (60%)
         </span>
       </div>
     </div>

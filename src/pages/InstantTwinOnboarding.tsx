@@ -7,13 +7,13 @@
 
 import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
 import { API_URL, getAccessToken, authFetch } from '@/services/api/apiBase';
 import { useAnalytics } from '@/contexts/AnalyticsContext';
 import { useToast } from '@/components/ui/use-toast';
 import { usePlatformStatus } from '../hooks/usePlatformStatus';
-import { usePlatformsSummary } from '../hooks/usePlatformsSummary';
+import { usePlatformsSummary, invalidatePlatformState } from '../hooks/usePlatformsSummary';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { DataProvider } from '@/types/data-integration';
 
@@ -38,6 +38,7 @@ const InstantTwinOnboarding = () => {
   const { user } = useAuth();
   const { trackFunnel } = useAnalytics();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const {
     data: platformStatusData,
@@ -128,7 +129,12 @@ const InstantTwinOnboarding = () => {
       // grid. It polls the memory stream for observations created in the last
       // few minutes tagged with this provider and surfaces up to 3.
       setRevealProvider(provider);
-      setTimeout(() => refetchPlatformStatus(), 1500);
+      // audit-2026-06-10: bust the canonical ['platforms'] cache alongside the
+      // legacy status refetch so summary counts update right after OAuth return.
+      setTimeout(() => {
+        refetchPlatformStatus();
+        invalidatePlatformState(queryClient);
+      }, 1500);
 
       // Strip the URL params so a refresh doesn't re-trigger the reveal
       // (the toast + reveal are a one-time moment).
@@ -166,7 +172,10 @@ const InstantTwinOnboarding = () => {
         });
         setConnectingProvider(null);
         setRevealProvider(rawProvider);
-        setTimeout(() => refetchPlatformStatus(), 1500);
+        setTimeout(() => {
+          refetchPlatformStatus();
+          invalidatePlatformState(queryClient);
+        }, 1500);
 
         // Mirror of redirect-flow handling above: trigger insight generation.
         // Idempotent 10-min window on the server prevents duplicate cost when
@@ -177,7 +186,7 @@ const InstantTwinOnboarding = () => {
 
     window.addEventListener('message', handleOAuthMessage);
     return () => window.removeEventListener('message', handleOAuthMessage);
-  }, [refetchPlatformStatus, toast]);
+  }, [refetchPlatformStatus, toast, queryClient]);
 
   // --- Platform connect/disconnect ---
   const { connectService, disconnectService } = usePlatformConnect({
@@ -351,19 +360,28 @@ const InstantTwinOnboarding = () => {
       <GarminCredentialsModal
         open={garminModalOpen}
         onClose={() => setGarminModalOpen(false)}
-        onSuccess={() => refetchPlatformStatus()}
+        onSuccess={() => {
+          refetchPlatformStatus();
+          invalidatePlatformState(queryClient);
+        }}
       />
 
       <SteamConnectModal
         open={steamModalOpen}
         onClose={() => setSteamModalOpen(false)}
-        onSuccess={() => refetchPlatformStatus()}
+        onSuccess={() => {
+          refetchPlatformStatus();
+          invalidatePlatformState(queryClient);
+        }}
       />
 
       <InstagramConnectModal
         open={instagramModalOpen}
         onClose={() => setInstagramModalOpen(false)}
-        onSuccess={() => refetchPlatformStatus()}
+        onSuccess={() => {
+          refetchPlatformStatus();
+          invalidatePlatformState(queryClient);
+        }}
       />
     </>
   );
