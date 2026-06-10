@@ -562,6 +562,117 @@
     margin: 0;
   }
 
+  /* ---- v2 #1: Right-rail previews on welcome / name / sign-in ----------
+   * Steps 0 (welcome), 1 (name input) and 8 (sign-in) share the .perm-split
+   * grid from #3 above with two domain-specific mocks:
+   *   .dashboard-mock — stylized peek of the home dashboard (used on
+   *                     steps 0 and 1; name binds live on step 1)
+   *   .soul-mock      — stylized peek of the soul-signature surface
+   *                     (used on step 8 to show what sign-in unlocks)
+   * Unlike the OS perm mocks in #3 (which deliberately mimic macOS
+   * System Settings aesthetic), these mocks USE our own glass + amber
+   * design system because they preview OUR app — they should feel
+   * native to TwinMe, not foreign. */
+  .dashboard-mock,
+  .soul-mock {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    padding: 18px 18px 16px;
+    backdrop-filter: blur(42px) saturate(140%);
+    -webkit-backdrop-filter: blur(42px) saturate(140%);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.32),
+                inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+
+  /* Dashboard mock: serif greeting + 3 stacked sample insights */
+  .dashboard-mock .dm-greeting {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: 22px;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    color: var(--foreground);
+    margin: 0 0 4px;
+  }
+  .dashboard-mock .dm-sub {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin: 0 0 14px;
+  }
+  .dashboard-mock .dm-stack { display: flex; flex-direction: column; gap: 8px; }
+  .dashboard-mock .dm-insight {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 10px;
+    padding: 9px 11px;
+    text-align: left;
+  }
+  .dashboard-mock .dm-insight .dmi-title {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--foreground);
+    margin: 0 0 3px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .dashboard-mock .dm-insight .dmi-title svg {
+    width: 11px; height: 11px; stroke: var(--accent-glyph); flex-shrink: 0;
+  }
+  .dashboard-mock .dm-insight .dmi-body {
+    font-size: 10.5px;
+    line-height: 1.45;
+    color: var(--text-secondary);
+    margin: 0;
+  }
+  .dashboard-mock .dm-foot {
+    font-size: 10.5px;
+    color: var(--text-muted);
+    margin: 12px 0 0;
+    text-align: left;
+  }
+
+  /* Soul-signature mock: one large hero insight + theme filter chips */
+  .soul-mock .sm-quote {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: 16px;
+    line-height: 1.35;
+    letter-spacing: -0.015em;
+    color: var(--foreground);
+    margin: 0 0 10px;
+    text-align: left;
+  }
+  .soul-mock .sm-provenance {
+    font-size: 10.5px;
+    color: var(--text-muted);
+    margin: 0 0 14px;
+    text-align: left;
+  }
+  .soul-mock .sm-themes {
+    display: flex; flex-wrap: wrap; gap: 6px;
+  }
+  .soul-mock .sm-theme {
+    font-size: 10.5px;
+    color: var(--text-secondary);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--glass-border);
+    border-radius: 100px;
+    padding: 3px 9px;
+  }
+  .soul-mock .sm-theme.active {
+    color: var(--foreground);
+    background: rgba(231, 176, 106, 0.10);
+    border-color: rgba(231, 176, 106, 0.28);
+  }
+
+  /* The previews share a small caption slot below the mock card. */
+  .preview-foot {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin: 12px 0 0;
+    text-align: left;
+  }
+
   /* ---- v2 #4: Hummingbird hotkey panel demo on step 4 ---- */
   /* Reuses .perm-split from #3 above to put the existing "Press
      Ctrl/Cmd+Shift+T" card on the left and a small visual demo on the
@@ -885,26 +996,96 @@
   <main class="stage" id="stage">
     <!-- 0. Welcome -->
     <section class="screen active" data-step="0">
-      <div class="content">
-        <div class="flower-wrap stagger-1"><img src="flower.png" alt="TwinMe" /></div>
-        <h1 class="stagger-2">Your twin,<br />natively</h1>
-        <p class="lede stagger-3">I live outside the browser now. With your permission, I learn from the work and conversations that actually shape you, Stefano — so when you need me, I already know where you left off.</p>
+      <div class="content perm-split">
+        <div class="perm-left">
+          <div class="flower-wrap stagger-1"><img src="flower.png" alt="TwinMe" /></div>
+          <h1 class="stagger-2">Your twin,<br />natively</h1>
+          <!-- Lede previously hardcoded "Stefano" which broke for every
+               user not named Stefano. Now interpolated via #welcome-name:
+               cold-start shows no name, returning users see their own. -->
+          <p class="lede stagger-3">I live outside the browser now. With your permission, I learn from the work and conversations that actually shape you<span id="welcome-name-prefix"></span><span id="welcome-name"></span> — so when you need me, I already know where you left off.</p>
+        </div>
+        <div class="perm-right stagger-3">
+          <div class="dashboard-mock" data-mock="welcome">
+            <p class="dm-greeting" id="dm-greet-welcome">Good evening</p>
+            <p class="dm-sub" id="dm-sub-welcome">Your twin is learning about you</p>
+            <div class="dm-stack">
+              <div class="dm-insight">
+                <p class="dmi-title">
+                  <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                  Recent shift
+                </p>
+                <p class="dmi-body">You're sleeping 38 minutes later this week than last.</p>
+              </div>
+              <div class="dm-insight">
+                <p class="dmi-title">
+                  <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                  Pattern noticed
+                </p>
+                <p class="dmi-body">Your best focus blocks happen on Tuesdays from 9 to 11.</p>
+              </div>
+              <div class="dm-insight">
+                <p class="dmi-title">
+                  <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                  Thread to pick up
+                </p>
+                <p class="dmi-body">You started a thread with Alex yesterday and never replied.</p>
+              </div>
+            </div>
+            <p class="dm-foot">A taste of what you'll see daily.</p>
+          </div>
+        </div>
       </div>
     </section>
 
     <!-- 1. What should I call you? -->
     <section class="screen" data-step="1">
-      <div class="content">
-        <h2 class="stagger-1">What should I call you?</h2>
-        <p class="sub stagger-2">I'll use this when we talk. You can change it anytime in TwinMe.</p>
-        <div class="fields stagger-3">
-          <div class="field">
-            <label for="name-input">Your name</label>
-            <input id="name-input" type="text" autocomplete="given-name" placeholder="e.g. Stefano" maxlength="60" />
+      <div class="content perm-split">
+        <div class="perm-left">
+          <h2 class="stagger-1">What should I call you?</h2>
+          <p class="sub stagger-2">I'll use this when we talk. You can change it anytime in TwinMe.</p>
+          <div class="fields stagger-3">
+            <div class="field">
+              <label for="name-input">Your name</label>
+              <input id="name-input" type="text" autocomplete="given-name" placeholder="e.g. Stefano" maxlength="60" />
+            </div>
+            <div class="field">
+              <label for="aliases-input">Other names you go by (optional)</label>
+              <input id="aliases-input" type="text" placeholder="usernames, nicknames, handles" maxlength="120" />
+            </div>
           </div>
-          <div class="field">
-            <label for="aliases-input">Other names you go by (optional)</label>
-            <input id="aliases-input" type="text" placeholder="usernames, nicknames, handles" maxlength="120" />
+        </div>
+        <!-- Live dashboard preview: the greeting at the top of this mock
+             updates as the user types in #name-input, demonstrating where
+             their name will land before they even commit to it. -->
+        <div class="perm-right stagger-3">
+          <div class="dashboard-mock" data-mock="name">
+            <p class="dm-greeting" id="dm-greet-name">Good evening</p>
+            <p class="dm-sub">Your twin is learning about you</p>
+            <div class="dm-stack">
+              <div class="dm-insight">
+                <p class="dmi-title">
+                  <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                  Recent shift
+                </p>
+                <p class="dmi-body">You're sleeping 38 minutes later this week than last.</p>
+              </div>
+              <div class="dm-insight">
+                <p class="dmi-title">
+                  <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                  Pattern noticed
+                </p>
+                <p class="dmi-body">Your best focus blocks happen on Tuesdays from 9 to 11.</p>
+              </div>
+              <div class="dm-insight">
+                <p class="dmi-title">
+                  <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                  Thread to pick up
+                </p>
+                <p class="dmi-body">You started a thread with Alex yesterday and never replied.</p>
+              </div>
+            </div>
+            <p class="dm-foot">Your name will live here.</p>
           </div>
         </div>
       </div>
@@ -1191,17 +1372,36 @@
 
     <!-- 8. Sign in & connect (handoff to twinme.me) -->
     <section class="screen" data-step="8">
-      <div class="content">
-        <h2 class="stagger-1" id="ready-heading">Keep your twin</h2>
-        <p class="lede stagger-2">Sign in to save what I've learned and connect your world. Everything stays on your terms.</p>
-        <div class="auth-actions stagger-3">
-          <button class="google-btn" id="google-btn">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.76h3.56c2.08-1.92 3.28-4.74 3.28-8.09Z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.56-2.76c-.98.66-2.24 1.06-3.72 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23Z"/><path fill="#FBBC05" d="M5.84 14.41a6.6 6.6 0 0 1 0-4.82V6.75H2.18a11 11 0 0 0 0 10.5l3.66-2.84Z"/><path fill="#EA4335" d="M12 5.5c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84C6.71 7.31 9.14 5.5 12 5.5Z"/></svg>
-            Continue with Google
-          </button>
-          <p class="auth-hint" id="auth-hint">Opens your real browser — we never see your password.</p>
+      <div class="content perm-split">
+        <div class="perm-left">
+          <h2 class="stagger-1" id="ready-heading">Keep your twin</h2>
+          <p class="lede stagger-2">Sign in to save what I've learned and connect your world. Everything stays on your terms.</p>
+          <div class="auth-actions stagger-3">
+            <button class="google-btn" id="google-btn">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.76h3.56c2.08-1.92 3.28-4.74 3.28-8.09Z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.56-2.76c-.98.66-2.24 1.06-3.72 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23Z"/><path fill="#FBBC05" d="M5.84 14.41a6.6 6.6 0 0 1 0-4.82V6.75H2.18a11 11 0 0 0 0 10.5l3.66-2.84Z"/><path fill="#EA4335" d="M12 5.5c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84C6.71 7.31 9.14 5.5 12 5.5Z"/></svg>
+              Continue with Google
+            </button>
+            <p class="auth-hint" id="auth-hint">Opens your real browser — we never see your password.</p>
+          </div>
+          <p class="trust-line stagger-4">Signing in saves what I learned. You can delete everything at any time.</p>
         </div>
-        <p class="trust-line stagger-4">Signing in saves what I learned. You can delete everything at any time.</p>
+        <!-- Right rail: soul-signature surface preview — what sign-in
+             unlocks. One hero insight + the theme chips that organize
+             the full signature page. -->
+        <div class="perm-right stagger-3">
+          <div class="soul-mock">
+            <p class="sm-quote">"You're most yourself between 9 and 11pm — that's when your curiosity stretches widest."</p>
+            <p class="sm-provenance">Drawn from 80 evenings, your music, and the depth of what you read.</p>
+            <div class="sm-themes">
+              <span class="sm-theme active">Curiosity</span>
+              <span class="sm-theme">Communication</span>
+              <span class="sm-theme">Cultural</span>
+              <span class="sm-theme">Social</span>
+              <span class="sm-theme">Motivation</span>
+            </div>
+          </div>
+          <p class="preview-foot stagger-4">Sign in to see your full signature, built from what you connect.</p>
+        </div>
       </div>
     </section>
   </main>
@@ -1297,6 +1497,40 @@
       if (!el) return;
       if (userName && !el.value) el.value = userName;
       try { el.focus(); } catch (e) { /* ignore */ }
+      // Keep the right-rail dashboard greeting in sync with whatever
+      // is in the name field — runs once on screen entry to pick up a
+      // previously-saved name; the input event below handles live edits.
+      updateMockGreetings(el.value || userName);
+    }
+
+    /**
+     * v2 #1 right-rail bindings.
+     *
+     * Updates THREE name slots from the same source of truth:
+     *   1. The welcome lede on step 0 — was hardcoded "Stefano" pre-#1
+     *      which broke for everyone else. Now interpolated via
+     *      #welcome-name-prefix + #welcome-name spans.
+     *   2. The dashboard mock greeting on step 0 — "Good evening,
+     *      ${name}" or "Good evening" on cold start.
+     *   3. The dashboard mock greeting on step 1 — same shape, but
+     *      kept in sync LIVE as the user types in #name-input.
+     *
+     * Safe to call with empty input — falls back to no-name greetings.
+     */
+    function updateMockGreetings(name) {
+      var safe = (name || "").trim().slice(0, 60);
+      // Welcome lede: insert ", <name>" before the em-dash, or nothing.
+      var prefix = document.getElementById("welcome-name-prefix");
+      var slot = document.getElementById("welcome-name");
+      if (prefix) prefix.textContent = safe ? ", " : "";
+      if (slot)   slot.textContent   = safe ? safe : "";
+      // Mock greetings — keep the time-of-day word generic so we don't
+      // have to compute it client-side. Just append the name if present.
+      var greet = safe ? "Good evening, " + safe : "Good evening";
+      var dmWelcome = document.getElementById("dm-greet-welcome");
+      var dmName    = document.getElementById("dm-greet-name");
+      if (dmWelcome) dmWelcome.textContent = greet;
+      if (dmName)    dmName.textContent    = greet;
     }
 
     function setReadyHeadings() {
@@ -1702,6 +1936,21 @@
         for (var i = 0; i < mocks.length; i++) mocks[i].style.display = "none";
         for (var j = 0; j < tips.length; j++) tips[j].style.display = "block";
       }
+    })();
+
+    /* v2 #1: live name binding for the right-rail dashboard mock.
+     * Seed once from localStorage so returning users immediately see
+     * their saved name in the welcome lede + both dashboard greetings.
+     * Then bind to #name-input's input event so the right rail on
+     * step 1 updates LIVE as the user types — the visible payoff
+     * of filling in the field. */
+    updateMockGreetings(userName);
+    (function bindNameInput() {
+      var el = document.getElementById("name-input");
+      if (!el) return;
+      el.addEventListener("input", function () {
+        updateMockGreetings(el.value);
+      });
     })();
 
     render();
