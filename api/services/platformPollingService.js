@@ -52,10 +52,8 @@ const POLLING_CONFIGS = {
       },
     ],
   },
-  twitch: {
-    interval: '0 */3 * * *', // Every 3 hours
-    endpoints: [], // Handled by Nango
-  },
+  // twitch + linkedin polling removed (replan-2026-06-10 Track C portfolio
+  // cut): killed platforms stop being polled; existing connection rows stay.
   discord: {
     interval: '0 */4 * * *', // Every 4 hours
     endpoints: [
@@ -74,10 +72,6 @@ const POLLING_CONFIGS = {
         params: { maxResults: 100, q: 'newer_than:1d' },
       },
     ],
-  },
-  linkedin: {
-    interval: '0 */6 * * *', // Every 6 hours (profile data changes infrequently)
-    endpoints: [], // Handled by Nango
   },
 };
 
@@ -357,17 +351,7 @@ function startPlatformPolling() {
     await pollPlatformForAllUsers('google_gmail');
   });
 
-  // Twitch - Every 3 hours
-  cron.schedule('0 */3 * * *', async () => {
-    log.info('Running Twitch polling job');
-    await pollPlatformForAllUsers('twitch');
-  });
-
-  // LinkedIn - Every 6 hours
-  cron.schedule('0 */6 * * *', async () => {
-    log.info('Running LinkedIn polling job');
-    await pollPlatformForAllUsers('linkedin');
-  });
+  // Twitch + LinkedIn polling jobs removed (replan-2026-06-10 Track C).
 
   log.info('Platform polling service started with multiple schedules');
 }

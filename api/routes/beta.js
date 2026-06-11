@@ -17,17 +17,16 @@ import { createLogger } from '../services/logger.js';
 const log = createLogger('BetaSignup');
 const router = Router();
 
+// linkedin, reddit and twitch removed (replan-2026-06-10 Track C portfolio
+// cut) — do not collect beta interest for platforms we no longer connect.
 const VALID_PLATFORMS = [
   'spotify',
   'calendar',
   'youtube',
   'whoop',
   'discord',
-  'linkedin',
   'gmail',
   'github',
-  'reddit',
-  'twitch',
 ];
 
 const signupLimiter = rateLimit({

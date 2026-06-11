@@ -110,22 +110,18 @@ router.post('/verify-connection', authenticateUser, async (req, res) => {
       return res.status(400).json({ success: false, error: 'integrationId is required' });
     }
 
-    // Allowlist: only permit known Nango integration IDs to prevent SSRF via arbitrary provider keys
+    // Allowlist: only permit known Nango integration IDs to prevent SSRF via arbitrary provider keys.
+    // replan-2026-06-10 Track C: killed platforms (reddit, linkedin, strava, oura,
+    // twitch, fitbit, garmin) removed — existing connections stop being verified/
+    // registered, no new ones can be created. Discord/outlook stay (demoted only).
     const ALLOWED_INTEGRATION_IDS = new Set([
       'spotify', 'spotify-getting-started',
       'google-calendar', 'google-calendar-getting-started',
       'google-mail', 'google-mail-getting-started',
       'youtube', 'youtube-getting-started',
       'discord', 'discord-getting-started',
-      'reddit', 'reddit-getting-started',
-      'linkedin', 'linkedin-getting-started',
       'whoop', 'whoop-getting-started',
-      'strava', 'strava-getting-started',
-      'oura', 'oura-getting-started',
-      'twitch', 'twitch-getting-started',
       'github', 'github-getting-started',
-      'fitbit', 'fitbit-getting-started',
-      'garmin', 'garmin-getting-started',
       'outlook', 'outlook-getting-started',
     ]);
     if (!ALLOWED_INTEGRATION_IDS.has(integrationId)) {
@@ -160,15 +156,8 @@ router.post('/verify-connection', authenticateUser, async (req, res) => {
       'github': 'github',
       'github-getting-started': 'github',
       'youtube': 'youtube',
-      'reddit': 'reddit',
       'outlook': 'outlook',
-      'linkedin': 'linkedin',
       'whoop': 'whoop',
-      'strava': 'strava',
-      'oura': 'oura',
-      'twitch': 'twitch',
-      'fitbit': 'fitbit',
-      'garmin': 'garmin',
     };
 
     const platformKey = platformKeyMap[integrationId] || integrationId;
@@ -417,7 +406,6 @@ router.get('/extract/:platform', authenticateUser, async (req, res) => {
       'google_calendar': 'google-calendar',
       'google_mail': 'google-mail',
       'google_gmail': 'google-mail',
-      'google_drive': 'google-drive',
     };
     platform = platformNameMap[platform] || platform;
 
@@ -687,18 +675,6 @@ router.get('/youtube/subscriptions', authenticateUser, async (req, res) => {
 });
 
 /**
- * GET /api/nango/reddit/subreddits - Get subscribed subreddits
- */
-router.get('/reddit/subreddits', authenticateUser, async (req, res) => {
-  try {
-    const result = await nangoService.reddit.getSubreddits(req.user.id);
-    res.json(result);
-  } catch (error) {
-    res.status(500).json({ success: false, error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error' });
-  }
-});
-
-/**
  * GET /api/nango/outlook/profile - Get Microsoft/Outlook profile
  */
 router.get('/outlook/profile', authenticateUser, async (req, res) => {
@@ -767,38 +743,6 @@ router.get('/outlook/contacts', authenticateUser, async (req, res) => {
 router.get('/outlook/mail-folders', authenticateUser, async (req, res) => {
   try {
     const result = await nangoService.outlook.getMailFolders(req.user.id);
-    res.json(result);
-  } catch (error) {
-    res.status(500).json({ success: false, error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error' });
-  }
-});
-
-/**
- * GET /api/nango/twitch/user - Get Twitch user info
- */
-router.get('/twitch/user', authenticateUser, async (req, res) => {
-  try {
-    const result = await nangoService.twitch.getUser(req.user.id);
-    res.json(result);
-  } catch (error) {
-    res.status(500).json({ success: false, error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error' });
-  }
-});
-
-/**
- * GET /api/nango/twitch/followed - Get Twitch followed channels
- */
-router.get('/twitch/followed', authenticateUser, async (req, res) => {
-  try {
-    // First get Twitch user ID
-    const userResult = await nangoService.twitch.getUser(req.user.id);
-    if (!userResult.success || !userResult.data?.data?.[0]?.id) {
-      return res.status(400).json({ success: false, error: 'Could not get Twitch user ID' });
-    }
-    const twitchUserId = userResult.data.data[0].id;
-
-    // Then get followed channels
-    const result = await nangoService.twitch.getFollowedChannels(req.user.id, twitchUserId);
     res.json(result);
   } catch (error) {
     res.status(500).json({ success: false, error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error' });

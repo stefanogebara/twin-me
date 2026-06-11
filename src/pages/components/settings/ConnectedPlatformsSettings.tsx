@@ -9,6 +9,8 @@ import {
 import { PlatformLogo } from '@/components/PlatformLogos';
 import GoogleWorkspaceConnect from './GoogleWorkspaceConnect';
 import { byPlatform, type PlatformsSummary } from '@/hooks/usePlatformsSummary';
+import { RETIRED_PLATFORMS } from '@/lib/retiredPlatforms';
+import { PLATFORM_DISPLAY_NAMES } from '@/lib/platformNames';
 
 interface ConnectedPlatformsSettingsProps {
   summary: PlatformsSummary | undefined;
@@ -27,16 +29,24 @@ interface ConnectorConfig {
   isOAuth: boolean;
 }
 
-// Google services (Gmail, Calendar, Drive, etc.) are handled by GoogleWorkspaceConnect above
+// Google services (Gmail, Calendar) are handled by GoogleWorkspaceConnect above.
+// replan-2026-06-10 Track C: LinkedIn/Reddit/Twitch removed (OAuth stacks
+// retired — existing connections render in the retired section below).
 const connectorConfig: ConnectorConfig[] = [
   { id: 'spotify', name: 'Spotify', description: 'Music preferences and listening patterns', isOAuth: true },
   { id: 'youtube', name: 'YouTube', description: 'Content preferences and watch history', isOAuth: true },
-  { id: 'discord', name: 'Discord', description: 'Community activity and communication style', isOAuth: true },
-  { id: 'linkedin', name: 'LinkedIn', description: 'Career trajectory and professional skills', isOAuth: true },
   { id: 'github', name: 'GitHub', description: 'Coding activity and open source contributions', isOAuth: true },
-  { id: 'reddit', name: 'Reddit', description: 'Community interests and discussion patterns', isOAuth: true },
-  { id: 'twitch', name: 'Twitch', description: 'Gaming identity and streaming preferences', isOAuth: true },
   { id: 'whoop', name: 'Whoop', description: 'Recovery, strain, sleep, and HRV patterns', isOAuth: true },
+];
+
+// Demoted platforms (Discord, Outlook) shown ONLY when the user already has
+// a connection — they keep working and can be disconnected, but we never
+// invite new connections (a Connect button here would dead-end on
+// /get-started, where their tiles no longer exist — the settings-dead-connect
+// bug class from audit-2026-06-10). replan-2026-06-10 Track C demote.
+const connectedOnlyConfig: ConnectorConfig[] = [
+  { id: 'discord', name: 'Discord', description: 'Community activity and communication style', isOAuth: true },
+  { id: 'microsoft_outlook', name: 'Outlook', description: 'Email patterns and calendar events', isOAuth: true },
 ];
 
 const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
@@ -49,6 +59,18 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
   handleDisconnectService,
 }) => {
   const platformMap = byPlatform(summary);
+
+  // Demoted rows appear only for users who already connected them.
+  const visibleConnectors = [
+    ...connectorConfig,
+    ...connectedOnlyConfig.filter((c) => !!platformMap[c.id]),
+  ];
+
+  // Retired platforms (Track C portfolio cut) with a leftover connection row:
+  // no Connect/Reconnect affordance — just an honest label and a Disconnect.
+  const retiredConnected = Object.keys(platformMap)
+    .filter((p) => RETIRED_PLATFORMS.has(p))
+    .sort();
 
   return (
     <div>
@@ -84,7 +106,7 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
         </div>
       ) : (
         <div className="space-y-0">
-          {connectorConfig.map((connector) => {
+          {visibleConnectors.map((connector) => {
             // Batch-3 convention: a breakdown entry = connected; only
             // state==='expired' (genuine auth failure) demands a reconnect.
             // Stale (no recent sync) still renders as connected.
@@ -155,6 +177,39 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
               </div>
             );
           })}
+
+          {retiredConnected.map((platform) => (
+            <div
+              key={platform}
+              className="flex items-center justify-between gap-3 py-3"
+              style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
+            >
+              <div className="flex items-center gap-3 min-w-0 flex-1" style={{ opacity: 0.55 }}>
+                <PlatformLogo platform={platform} size={18} />
+                <div className="min-w-0">
+                  <span className="text-sm" style={{ color: 'var(--foreground)' }}>
+                    {PLATFORM_DISPLAY_NAMES[platform] ||
+                      platform.replace(/_/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase())}
+                  </span>
+                  <p className="text-[11px] truncate" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                    No longer supported — your past data stays in your twin
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  if (window.confirm(`Disconnect ${PLATFORM_DISPLAY_NAMES[platform] || platform}?`)) {
+                    handleDisconnectService(platform);
+                  }
+                }}
+                disabled={disconnectingService === platform}
+                className="text-[11px] min-h-[44px] px-2 transition-opacity hover:opacity-60 flex-shrink-0"
+                style={{ color: 'rgba(255,255,255,0.3)' }}
+              >
+                {disconnectingService === platform ? '...' : 'Disconnect'}
+              </button>
+            </div>
+          ))}
         </div>
       )}
     </div>

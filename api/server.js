@@ -482,7 +482,6 @@ import memoryHealthRoutes from './routes/memory-health.js';
 import memoriesRoutes from './routes/memories.js';
 import memoryLinksRoutes from './routes/memory-links.js';
 import githubConnectRoutes from './routes/github-connect.js';
-import steamConnectRoutes from './routes/steam-connect.js';
 import instagramRoutes from './routes/instagram.js';
 import whatsappImportRoutes from './routes/whatsapp-import.js';
 import evalRoutes from './routes/eval.js';
@@ -652,7 +651,7 @@ app.patch('/api/users/preferences', authenticateUser, async (req, res) => {
 });
 app.use('/api/dashboard/context', dashboardContextRoutes);
 app.use('/api/dashboard', dashboardRoutes);
-app.use('/api/webhooks', webhookRoutes); // Real-time webhook receivers (GitHub, Gmail, Slack)
+app.use('/api/webhooks', webhookRoutes); // Real-time webhook receivers (GitHub, Gmail)
 app.use('/api/sse', sseRoutes); // Server-Sent Events for real-time updates
 app.use('/api/queues', queueDashboardRoutes); // Bull Board job queue dashboard
 app.use('/api/soul-signature', soulSignatureRoutes); // Soul Signature Analysis with Claude AI
@@ -736,7 +735,6 @@ app.use('/api/nango', nangoRoutes); // Nango unified API for 10 platform connect
 app.use('/api/nango-webhooks', nangoWebhooksRoutes); // Nango webhook receiver
 app.use('/api/extension', extensionDataRoutes); // Browser extension data capture (YouTube, Twitch, Netflix)
 app.use('/api/github', githubConnectRoutes);   // GitHub PAT connection + status
-app.use('/api/steam', steamConnectRoutes);     // Steam Web API connection (user provides Steam ID, no OAuth)
 app.use('/api/instagram', instagramRoutes);    // Instagram vanilla-Playwright scraper (no OAuth — uses browser cookies)
 app.use('/api/whatsapp', whatsappKapsoWebhookRoutes); // WhatsApp Kapso inbound webhook
 app.use('/api/whatsapp', whatsappImportRoutes); // WhatsApp export file parser

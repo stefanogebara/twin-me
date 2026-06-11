@@ -203,10 +203,15 @@ describe('POST /api/insights/:platform/refresh — non-blocking regeneration', (
   });
 
   it('does not block: a slow refresh still responds fast and is not double-spawned', async () => {
+    // 'calendar' (not 'linkedin'): linkedin was dropped from VALID_PLATFORMS in
+    // the replan-2026-06-10 Track C portfolio cut. The generation lock map is
+    // module-level and keyed `${userId}:${platform}`, so this test needs a
+    // platform whose lock is not still held by an earlier never-resolving test
+    // (spotify/discord) — calendar only runs the warm path above and never locks.
     refreshImpl = () => new Promise(() => {}); // never resolves: simulates slow LLM
     const app = makeApp();
-    const r1 = await request(app).post('/api/insights/linkedin/refresh').set('Authorization', `Bearer ${token()}`);
-    const r2 = await request(app).post('/api/insights/linkedin/refresh').set('Authorization', `Bearer ${token()}`);
+    const r1 = await request(app).post('/api/insights/calendar/refresh').set('Authorization', `Bearer ${token()}`);
+    const r2 = await request(app).post('/api/insights/calendar/refresh').set('Authorization', `Bearer ${token()}`);
 
     expect(r1.status).toBe(200);
     expect(r1.body.regenerating).toBe(true);

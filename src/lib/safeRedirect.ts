@@ -1,18 +1,13 @@
+// replan-2026-06-10 Track C: hosts for retired OAuth stacks (reddit, twitch,
+// linkedin, notion, pinterest, strava, fitbit, soundcloud) removed — nothing
+// redirects there anymore.
 const TRUSTED_HOSTS = new Set([
   'accounts.google.com',
   'accounts.spotify.com',
   'discord.com',
-  'www.reddit.com',
   'github.com',
-  'api.twitch.tv',
-  'www.linkedin.com',
-  'api.notion.com',
-  'www.pinterest.com',
-  'www.strava.com',
-  'www.fitbit.com',
   'api.prod.whoop.com',
   'login.microsoftonline.com',
-  'soundcloud.com',
   'checkout.stripe.com',
   'billing.stripe.com',
 ]);

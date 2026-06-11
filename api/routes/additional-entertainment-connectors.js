@@ -5,6 +5,10 @@
  * "We search in the branches for what we only find in the roots"
  */
 
+// replan-2026-06-10 Track C portfolio cut: apple-music, tiktok, reddit, strava,
+// and linkedin connect endpoints removed (OAuth/live-fetch stacks retired).
+// LinkedIn remains available via the GDPR export upload path.
+
 import express from 'express';
 import { VALID_DEMO_PLATFORMS } from '../config/platformConfigs.js';
 import { platformAPIMappings } from '../services/platformAPIMappings.js';
@@ -19,60 +23,6 @@ import { getGoogleWorkspaceScopes } from '../config/googleWorkspaceScopes.js';
 const log = createLogger('AdditionalConnectors');
 
 const router = express.Router();
-
-// Apple Music Connector
-router.post('/connect/apple-music', authenticateUser, async (req, res) => {
-  try {
-    const userId = req.user.id;
-
-    res.json({
-      success: true,
-      method: 'musickit-js',
-      message: 'Initialize Apple Music connection',
-      instructions: [
-        'Authenticate with Apple ID',
-        'Grant music library access',
-        'Analyzing your curated playlists and preferences'
-      ],
-      insights: platformAPIMappings.entertainment.appleMusic.insights
-    });
-  } catch (error) {
-    log.error('Apple Music connection error', { error });
-    res.status(500).json({ error: 'Failed to initialize Apple Music connection' });
-  }
-});
-
-// TikTok Connector
-router.post('/connect/tiktok', authenticateUser, async (req, res) => {
-  try {
-    const userId = req.user.id;
-
-    const clientKey = process.env.TIKTOK_CLIENT_KEY;
-    if (!clientKey) {
-      return res.status(503).json({ error: 'TikTok integration not configured' });
-    }
-    const redirectUri = encodeURIComponent(`${getAppUrl(req)}/oauth/callback`);
-    const state = encryptState({
-      platform: 'tiktok',
-      userId,
-      timestamp: Date.now()
-    }, 'entertainment');
-
-    const authUrl = `https://www.tiktok.com/auth/authorize/?` +
-      `client_key=${clientKey}&scope=user.info.basic,video.list&` +
-      `response_type=code&redirect_uri=${redirectUri}&state=${state}`;
-
-    res.json({
-      success: true,
-      authUrl,
-      message: 'Connect your TikTok trends and interests',
-      insights: platformAPIMappings.entertainment.tiktok.insights
-    });
-  } catch (error) {
-    log.error('TikTok connection error', { error });
-    res.status(500).json({ error: 'Failed to initialize TikTok connection' });
-  }
-});
 
 // Discord Connector
 router.post('/connect/discord', authenticateUser, async (req, res) => {
@@ -104,60 +54,6 @@ router.post('/connect/discord', authenticateUser, async (req, res) => {
   } catch (error) {
     log.error('Discord connection error', { error });
     res.status(500).json({ error: 'Failed to initialize Discord connection' });
-  }
-});
-
-// Reddit Connector
-router.post('/connect/reddit', authenticateUser, async (req, res) => {
-  try {
-    const userId = req.user.id;
-
-    const clientId = process.env.REDDIT_CLIENT_ID;
-    if (!clientId) {
-      return res.status(503).json({ error: 'Reddit integration not configured' });
-    }
-    const redirectUri = `${getAppUrl(req)}/oauth/callback`;
-
-    // Generate PKCE parameters
-    const pkce = generatePKCEParams();
-
-    const state = encryptState({
-      platform: 'reddit',
-      userId,
-      codeVerifier: pkce.codeVerifier
-    }, 'entertainment');
-
-    // Store state + code_verifier in DB (CSRF + PKCE)
-    const { error: stateInsertError } = await supabaseAdmin
-      .from('oauth_states')
-      .insert({
-        state,
-        code_verifier: encryptToken(pkce.codeVerifier),
-        data: { userId, platform: 'reddit' },
-        expires_at: new Date(Date.now() + 1800000)
-      });
-
-    if (stateInsertError) {
-      log.error('Failed to store Reddit OAuth state', { error: stateInsertError });
-      throw new Error('Failed to initialize Reddit connection');
-    }
-
-    const authUrl = `https://www.reddit.com/api/v1/authorize?` +
-      `client_id=${clientId}&response_type=code&` +
-      `state=${state}&redirect_uri=${encodeURIComponent(redirectUri)}&` +
-      `duration=permanent&scope=identity history read`;
-
-    log.info('Reddit OAuth initiated', { userId });
-
-    res.json({
-      success: true,
-      authUrl,
-      message: 'Connect your Reddit communities and interests',
-      insights: platformAPIMappings.social.reddit.insights
-    });
-  } catch (error) {
-    log.error('Reddit connection error', { error });
-    res.status(500).json({ error: 'Failed to initialize Reddit connection' });
   }
 });
 
@@ -296,39 +192,6 @@ router.post('/connect/medium', authenticateUser, async (req, res) => {
   }
 });
 
-// Strava Connector (fitness personality)
-router.post('/connect/strava', authenticateUser, async (req, res) => {
-  try {
-    const userId = req.user.id;
-
-    const clientId = process.env.STRAVA_CLIENT_ID;
-    if (!clientId) {
-      return res.status(503).json({ error: 'Strava integration not configured' });
-    }
-    const redirectUri = encodeURIComponent(`${getAppUrl(req)}/oauth/callback`);
-    const state = encryptState({
-      platform: 'strava',
-      userId,
-      timestamp: Date.now()
-    }, 'entertainment');
-
-    const authUrl = `https://www.strava.com/oauth/authorize?` +
-      `client_id=${clientId}&response_type=code&` +
-      `redirect_uri=${redirectUri}&approval_prompt=force&` +
-      `scope=read,activity:read_all&state=${state}`;
-
-    res.json({
-      success: true,
-      authUrl,
-      message: 'Connect your fitness personality',
-      insights: platformAPIMappings.fitness.strava.insights
-    });
-  } catch (error) {
-    log.error('Strava connection error', { error });
-    res.status(500).json({ error: 'Failed to initialize Strava connection' });
-  }
-});
-
 // Gmail Connector (email patterns)
 router.post('/connect/google_gmail', authenticateUser, async (req, res) => {
   try {
@@ -383,60 +246,6 @@ router.post('/connect/google_gmail', authenticateUser, async (req, res) => {
   } catch (error) {
     log.error('Gmail connection error', { error });
     res.status(500).json({ error: 'Failed to initialize Gmail connection' });
-  }
-});
-
-// LinkedIn Connector (professional identity)
-router.post('/connect/linkedin', authenticateUser, async (req, res) => {
-  try {
-    const userId = req.user.id;
-
-    const clientId = process.env.LINKEDIN_CLIENT_ID;
-    if (!clientId) {
-      return res.status(503).json({ error: 'LinkedIn integration not configured' });
-    }
-    const redirectUri = `${getAppUrl(req)}/oauth/callback`;
-    const scope = 'openid profile email';
-
-    // Generate PKCE parameters
-    const pkce = generatePKCEParams();
-
-    const state = encryptState({
-      platform: 'linkedin',
-      userId,
-      codeVerifier: pkce.codeVerifier
-    }, 'entertainment');
-
-    // Store state + code_verifier in DB (CSRF + PKCE)
-    const { error: stateInsertError } = await supabaseAdmin
-      .from('oauth_states')
-      .insert({
-        state,
-        code_verifier: encryptToken(pkce.codeVerifier),
-        data: { userId, platform: 'linkedin' },
-        expires_at: new Date(Date.now() + 1800000)
-      });
-
-    if (stateInsertError) {
-      log.error('Failed to store LinkedIn OAuth state', { error: stateInsertError });
-      throw new Error('Failed to initialize LinkedIn connection');
-    }
-
-    const authUrl = `https://www.linkedin.com/oauth/v2/authorization?` +
-      `client_id=${clientId}&response_type=code&` +
-      `redirect_uri=${encodeURIComponent(redirectUri)}&` +
-      `scope=${encodeURIComponent(scope)}&state=${state}`;
-
-    log.info('LinkedIn OAuth initiated', { userId });
-
-    res.json({
-      success: true,
-      authUrl,
-      message: 'Connect your professional identity',
-    });
-  } catch (error) {
-    log.error('LinkedIn connection error', { error });
-    res.status(500).json({ error: 'Failed to initialize LinkedIn connection' });
   }
 });
 
@@ -593,26 +402,6 @@ function generateDemoSoulSignature(platform) {
         'Quality over quantity viewer',
         'Prestige drama enthusiast',
         'Behind-the-scenes content lover'
-      ]
-    },
-    'apple-music': {
-      musicalDiversity: 7.8,
-      curatorPersonality: 'Playlist Architect',
-      discoveryRate: 'Early Adopter',
-      uniquenessMarkers: [
-        'Spatial audio enthusiast',
-        'Full album listener',
-        'Morning jazz, evening electronic'
-      ]
-    },
-    tiktok: {
-      trendParticipation: 'Selective Engager',
-      contentPreferences: ['Educational', 'Comedy', 'Art'],
-      scrollPattern: 'Deep Diver',
-      uniquenessMarkers: [
-        'Long-form TikTok watcher',
-        'Saves recipes never cooks',
-        'Algorithm trainer'
       ]
     },
     discord: {

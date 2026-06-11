@@ -788,8 +788,7 @@ router.get('/today-insights', authenticateUser, async (req, res) => {
       whoop: !!context.whoop,
       calendar: !!context.calendar,
       spotify: !!context.spotify,
-      youtube: !!context.youtube,
-      twitch: !!context.twitch
+      youtube: !!context.youtube
     };
 
     // 1. Health/Recovery Insight (from Whoop)
@@ -1007,26 +1006,8 @@ router.get('/today-insights', authenticateUser, async (req, res) => {
       });
     }
 
-    // 5. Twitch Insight (from stored Nango data)
-    if (context.twitch?.connected) {
-      const tw = context.twitch;
-      const topGames = tw.gamingPreferences?.slice(0, 3).join(', ') || 'various games';
-      insights.push({
-        id: `twitch-${Date.now()}`,
-        type: 'gaming',
-        title: 'Your Gaming World',
-        summary: tw.followedChannelCount > 0
-          ? `Following ${tw.followedChannelCount} channels`
-          : `Engaged with ${topGames}`,
-        detail: tw.gamingPreferences?.length > 0
-          ? `Your Twitch activity shows interest in: ${topGames}`
-          : 'Your Twitch profile reveals your streaming and gaming preferences.',
-        platforms: ['twitch'],
-        priority: 'low',
-        icon: 'gamepad',
-        action: { label: 'Explore Gaming World', route: '/insights/twitch' }
-      });
-    }
+    // Twitch insight removed (replan-2026-06-10 Track C portfolio cut):
+    // the /insights/twitch page no longer exists, so the action was a dead link.
 
     // 6. Cross-Platform Pattern Insight (if multiple sources)
     const connectedCount = Object.values(sources).filter(Boolean).length;

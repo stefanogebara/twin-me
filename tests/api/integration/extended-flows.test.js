@@ -1097,14 +1097,16 @@ describe('Auth Middleware Edge Cases', () => {
 
 describe('Platform Insights Validation', () => {
   it('validates platform names', () => {
-    const VALID_PLATFORMS = ['spotify', 'calendar', 'youtube', 'web', 'discord', 'linkedin'];
+    // Mirrors VALID_PLATFORMS in api/routes/platform-insights.js.
+    // linkedin removed (replan-2026-06-10 Track C portfolio cut).
+    const VALID_PLATFORMS = ['spotify', 'calendar', 'youtube', 'web', 'discord'];
 
     expect(VALID_PLATFORMS.includes('spotify')).toBe(true);
     expect(VALID_PLATFORMS.includes('youtube')).toBe(true);
     expect(VALID_PLATFORMS.includes('calendar')).toBe(true);
     expect(VALID_PLATFORMS.includes('web')).toBe(true);
     expect(VALID_PLATFORMS.includes('discord')).toBe(true);
-    expect(VALID_PLATFORMS.includes('linkedin')).toBe(true);
+    expect(VALID_PLATFORMS.includes('linkedin')).toBe(false);
     expect(VALID_PLATFORMS.includes('whoop')).toBe(false);
     expect(VALID_PLATFORMS.includes('github')).toBe(false);
     expect(VALID_PLATFORMS.includes('')).toBe(false);

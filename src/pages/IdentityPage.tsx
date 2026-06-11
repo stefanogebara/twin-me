@@ -106,7 +106,8 @@ const INSIGHT_PLATFORMS: Array<{ match: RegExp; spec: InsightLinkSpec }> = [
   { match: /\byoutube\b/i,                spec: { platform: 'youtube',  route: '/insights/youtube',  label: 'YouTube' } },
   { match: /\b(calendar|google calendar)\b/i, spec: { platform: 'google_calendar', route: '/insights/calendar', label: 'Calendar' } },
   { match: /\bdiscord\b/i,                spec: { platform: 'discord',  route: '/insights/discord',  label: 'Discord' } },
-  { match: /\blinkedin\b/i,               spec: { platform: 'linkedin', route: '/insights/linkedin', label: 'LinkedIn' } },
+  // linkedin removed (replan-2026-06-10 Track C): the /insights/linkedin page
+  // and route were deleted along with the LinkedIn OAuth stack.
 ];
 
 function detectInsightLink(text: string, connectedProviders: string[]): InsightLinkSpec | null {

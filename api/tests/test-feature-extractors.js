@@ -1,5 +1,5 @@
 /**
- * Test script for Gmail, Outlook, and LinkedIn Feature Extractors
+ * Test script for Gmail and Outlook Feature Extractors
  *
  * Tests the complete extraction pipeline:
  * 1. Extract features from user_platform_data
@@ -14,12 +14,10 @@ dotenv.config();
 
 import gmailFeatureExtractor from '../services/featureExtractors/gmailFeatureExtractor.js';
 import outlookFeatureExtractor from '../services/featureExtractors/outlookFeatureExtractor.js';
-import linkedinFeatureExtractor from '../services/featureExtractors/linkedinFeatureExtractor.js';
 import { supabaseAdmin } from '../services/database.js';
 
 const TEST_USER_GMAIL = 'ac667726-2a31-46de-bd84-a863ee7b5b10';  // has google_gmail data
 const TEST_USER_OUTLOOK = 'ac667726-2a31-46de-bd84-a863ee7b5b10';  // has outlook data
-const TEST_USER_LINKEDIN = 'ac667726-2a31-46de-bd84-a863ee7b5b10';  // has linkedin data
 
 let passed = 0;
 let failed = 0;
@@ -136,55 +134,6 @@ async function testOutlookExtractor() {
   console.log('\n  Outlook feature types:', features.map(f => `${f.feature_type}=${f.feature_value}`).join(', '));
 }
 
-async function testLinkedInExtractor() {
-  console.log('\n========================================');
-  console.log('TEST: LinkedIn Feature Extractor');
-  console.log('========================================');
-
-  // Verify test data exists
-  const { data: platformData } = await supabaseAdmin
-    .from('user_platform_data')
-    .select('data_type')
-    .eq('user_id', TEST_USER_LINKEDIN)
-    .eq('platform', 'linkedin');
-
-  assert(platformData && platformData.length > 0, `LinkedIn platform data exists (${platformData?.length} records)`);
-
-  // Extract features
-  const features = await linkedinFeatureExtractor.extractFeatures(TEST_USER_LINKEDIN);
-  console.log(`\n  Extracted features: ${features.length}`);
-  assert(features.length > 0, 'LinkedIn extractor returned features');
-
-  // Validate feature structure
-  for (const f of features) {
-    assert(f.user_id === TEST_USER_LINKEDIN, `Feature ${f.feature_type}: correct user_id`);
-    assert(f.platform === 'linkedin', `Feature ${f.feature_type}: platform is 'linkedin'`);
-    assert(typeof f.feature_value === 'number', `Feature ${f.feature_type}: feature_value is number (${f.feature_value})`);
-    assert(f.feature_value >= 0 && f.feature_value <= 100, `Feature ${f.feature_type}: value in range 0-100 (${f.feature_value})`);
-    assert(f.confidence_score === 40, `Feature ${f.feature_type}: confidence is 40 (limited data)`);
-  }
-
-  // Check expected features
-  const featureTypes = features.map(f => f.feature_type);
-  assert(featureTypes.includes('profile_completeness'), 'Has profile_completeness feature');
-  assert(featureTypes.includes('professional_presence'), 'Has professional_presence feature');
-
-  // Save features
-  const saveResult = await linkedinFeatureExtractor.saveFeatures(features);
-  assert(saveResult.success, `LinkedIn features saved successfully (${saveResult.saved} rows)`);
-
-  // Verify in database
-  const { data: stored } = await supabaseAdmin
-    .from('behavioral_features')
-    .select('*')
-    .eq('user_id', TEST_USER_LINKEDIN)
-    .eq('platform', 'linkedin');
-
-  assert(stored && stored.length === features.length, `Database has ${stored?.length} LinkedIn features (expected ${features.length})`);
-
-  console.log('\n  LinkedIn feature types:', features.map(f => `${f.feature_type}=${f.feature_value}`).join(', '));
-}
-
 async function testIdempotency() {
   console.log('\n========================================');
   console.log('TEST: Idempotency (re-running extractors)');
@@ -216,14 +165,13 @@ async function testCrossExtractorIntegration() {
     .from('behavioral_features')
     .select('platform, feature_type, feature_value, contributes_to')
     .eq('user_id', TEST_USER_GMAIL)
-    .in('platform', ['gmail', 'outlook', 'linkedin']);
+    .in('platform', ['gmail', 'outlook']);
 
   assert(allFeatures && allFeatures.length > 0, `Found ${allFeatures?.length} total features across platforms`);
 
   const platforms = [...new Set(allFeatures?.map(f => f.platform) || [])];
   assert(platforms.includes('gmail'), 'Gmail features present');
   assert(platforms.includes('outlook'), 'Outlook features present');
-  assert(platforms.includes('linkedin'), 'LinkedIn features present');
 
   // Check trait coverage
   const traits = [...new Set(allFeatures?.map(f => f.contributes_to) || [])];
@@ -246,7 +194,6 @@ async function runAllTests() {
   try {
     await testGmailExtractor();
     await testOutlookExtractor();
-    await testLinkedInExtractor();
     await testIdempotency();
     await testCrossExtractorIntegration();
   } catch (error) {

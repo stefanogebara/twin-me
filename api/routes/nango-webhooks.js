@@ -219,16 +219,11 @@ const NANGO_TO_PLATFORM = {
   'whoop': 'whoop',
   'discord': 'discord',
   'github-getting-started': 'github',
-  'linkedin': 'linkedin',
   'youtube': 'youtube',
-  'reddit': 'reddit',
   'google-mail': 'google_gmail',
-  'twitch': 'twitch',
   'outlook': 'outlook',
-  'garmin': 'garmin',
-  'strava': 'strava',
-  'fitbit': 'fitbit',
-  'oura': 'oura',
+  // linkedin/reddit/twitch/garmin/strava/fitbit/oura removed in the 2026-06-10
+  // portfolio cut — webhooks for them fall through to "unknown platform".
 };
 
 /**
@@ -303,15 +298,8 @@ async function ingestPlatformObservations(userId, platform, providerConfigKey) {
     whoop: () => import('../services/observationFetchers/whoop.js').then(m => m.fetchWhoopObservations),
     discord: () => import('../services/observationFetchers/discord.js').then(m => m.fetchDiscordObservations),
     github: () => import('../services/observationFetchers/github.js').then(m => m.fetchGitHubObservations),
-    linkedin: () => import('../services/observationFetchers/linkedin.js').then(m => m.fetchLinkedInObservations),
-    reddit: () => import('../services/observationFetchers/reddit.js').then(m => m.fetchRedditObservations),
     google_gmail: () => import('../services/observationFetchers/gmail.js').then(m => m.fetchGmailObservations),
-    twitch: () => import('../services/observationFetchers/twitch.js').then(m => m.fetchTwitchObservations),
     outlook: () => import('../services/observationFetchers/outlook.js').then(m => m.fetchOutlookObservations),
-    garmin: () => import('../services/observationFetchers/garmin.js').then(m => m.fetchGarminObservations),
-    strava: () => import('../services/observationFetchers/strava.js').then(m => m.fetchStravaObservations),
-    fitbit: () => import('../services/observationFetchers/fitbit.js').then(m => m.fetchFitbitObservations),
-    oura: () => import('../services/observationFetchers/oura.js').then(m => m.fetchOuraObservations),
   };
 
   const fetcherFactory = fetcherMap[platform];
