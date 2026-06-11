@@ -18,6 +18,14 @@ import SoulRichnessBar from '../../../components/onboarding/SoulRichnessBar';
 import { DataUploadPanel } from '@/components/brain/DataUploadPanel';
 import GoogleWorkspaceConnect from '../settings/GoogleWorkspaceConnect';
 import { SectionLabel, Divider } from './SectionLabel';
+import { MirrorSourceTiles } from './MirrorSourceTiles';
+
+/**
+ * Mirror sources (replan-2026-06-10 Track C): synthetic 'web' / 'desktop'
+ * breakdown entries get dedicated first-class cards, NOT generic connected
+ * tiles (they have no token to manage and no catalog entry to fall back on).
+ */
+const MIRROR_PLATFORMS = new Set(['web', 'desktop']);
 
 interface PlatformConnectionsStepProps {
   userId: string | undefined;
@@ -79,12 +87,21 @@ export const PlatformConnectionsStep: React.FC<PlatformConnectionsStepProps> = (
   const { data: summary, isLoading: summaryLoading } = usePlatformsSummary();
   const platformEntries = byPlatform(summary);
 
+  // Mirror entries drive the first-class extension/desktop cards; everything
+  // else flows through the generic connected/unconnected tile lists.
+  const webEntry = platformEntries['web'];
+  const desktopEntry = platformEntries['desktop'];
+  const oauthConnectedServices = connectedServices.filter(p => !MIRROR_PLATFORMS.has(p));
+
   // For the DISCOVERY sections (unconnected tiles) we still hide coming-soon
-  // entries. But the CONNECTED list MUST show every row from the DB, even
-  // those marked comingSoon in the catalog (e.g. slack, oura, notion)
-  // — otherwise platforms the user actually connected silently disappear from
-  // /connect (audit-2026-05-12 H5).
-  const availableConnectors = AVAILABLE_CONNECTORS.filter(c => !c.comingSoon);
+  // entries — and the browser extension, which now lives in the Always-On
+  // Sources cards above instead of a generic tile. But the CONNECTED list
+  // MUST show every row from the DB, even those marked comingSoon in the
+  // catalog (e.g. slack, oura, notion) — otherwise platforms the user
+  // actually connected silently disappear from /connect (audit-2026-05-12 H5).
+  const availableConnectors = AVAILABLE_CONNECTORS.filter(
+    c => !c.comingSoon && c.provider !== 'browser_extension'
+  );
   const connectorByProvider = new Map(AVAILABLE_CONNECTORS.map(c => [c.provider, c]));
 
   // Personalized pitch hooks — fetched once per mount. Silent fallback on failure.
@@ -106,7 +123,6 @@ export const PlatformConnectionsStep: React.FC<PlatformConnectionsStepProps> = (
   const healthConnectors = sort(availableConnectors.filter(c => c.category === 'health'));
   const socialConnectors = sort(availableConnectors.filter(c => c.category === 'social'));
   const professionalConnectors = sort(availableConnectors.filter(c => c.category === 'professional'));
-  const browsingConnectors = sort(availableConnectors.filter(c => c.category === 'browsing'));
 
   const renderUnconnectedTiles = (connectors: typeof AVAILABLE_CONNECTORS) =>
     sort(connectors)
@@ -133,13 +149,26 @@ export const PlatformConnectionsStep: React.FC<PlatformConnectionsStepProps> = (
           summary itself and renders the shared Soul Score number. */}
       <SoulRichnessBar />
 
+      {/* Always-On Sources — extension + desktop mirrors as first-class cards
+          (replan-2026-06-10 Track C: these see everything; treat them like
+          the moat, not a buried "Connect" tile). */}
+      <SectionLabel label="Always-On Sources" />
+      <MirrorSourceTiles
+        webEntry={webEntry}
+        desktopEntry={desktopEntry}
+        onInstallExtension={() => connectService('browser_extension')}
+        onDownloadDesktop={() => navigate('/download')}
+      />
+      <Divider />
+
       {/* Connected Section — list every platform_connections row for the user,
-          including providers marked comingSoon in the catalog (H5). */}
-      {connectedServices.length > 0 && (
+          including providers marked comingSoon in the catalog (H5). Mirrors
+          are excluded — they render in Always-On Sources above. */}
+      {oauthConnectedServices.length > 0 && (
         <>
           <SectionLabel label="Connected" />
           <div className="space-y-2">
-            {connectedServices.map(provider => {
+            {oauthConnectedServices.map(provider => {
               const c = connectorByProvider.get(provider);
               const entry = platformEntries[provider];
               // Reconnect ONLY on genuine auth failure; stale gets soft copy.
@@ -228,12 +257,12 @@ export const PlatformConnectionsStep: React.FC<PlatformConnectionsStepProps> = (
       )}
 
       {/* Professional */}
-      {[...professionalConnectors, ...browsingConnectors].some(c => !connectedServices.includes(c.provider)) && (
+      {professionalConnectors.some(c => !connectedServices.includes(c.provider)) && (
         <>
           <Divider />
           <SectionLabel label="Professional" />
           <div className="space-y-2">
-            {renderUnconnectedTiles([...professionalConnectors, ...browsingConnectors])}
+            {renderUnconnectedTiles(professionalConnectors)}
           </div>
         </>
       )}

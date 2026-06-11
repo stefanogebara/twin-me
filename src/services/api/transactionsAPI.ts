@@ -614,10 +614,13 @@ export async function setTransactionFeedback(transactionId: string, isStressDriv
   return !!json.success;
 }
 
-export async function getTimelineAnalysis(): Promise<TimelineDay[]> {
+export async function getTimelineAnalysis(windowDays = 30): Promise<TimelineDay[]> {
   // audit-2026-05-08 frontend HIGH-1: route is mounted at /api/transactions/timeline-analysis,
   // not /api/timeline-analysis (server.js:626 mounts transactionsRoutes at /api/transactions).
-  const res = await authFetch('/transactions/timeline-analysis');
+  // replan-2026-06-10 Track D: every consumer labels this chart "30 days"
+  // (MoneyPage card header, StressSpendTimeline banner) but the backend
+  // default window is 90 — pin the request to the labeled window.
+  const res = await authFetch(`/transactions/timeline-analysis?window_days=${windowDays}`);
   if (!res.ok) return [];
   const json = await res.json();
   return (json.days || []).map((d: TimelineDay) => ({

@@ -87,6 +87,18 @@ describe('isNoise — sender filter for relationships + inbox', () => {
     });
   });
 
+  describe('AI-assistant notification bots (replan-2026-06-10)', () => {
+    // The twin drafted a reply to askjo.ai's bot briefing email in the
+    // user's voice ("Got it... I'll start working through the PR queue").
+    // AI assistants' notification senders are machines, never recipients.
+    it.each([
+      'Jo <briefing@askjo.ai>',
+      'askjo <hello@askjo.ai>',
+    ])('rejects AI-assistant sender: %s', (sender) => {
+      expect(isNoise(sender)).toBe(true);
+    });
+  });
+
   describe('Real humans pass through', () => {
     it.each([
       'Murilo Lima <murilo.lima@gmail.com>',

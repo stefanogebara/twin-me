@@ -24,6 +24,7 @@ import { supabaseAdmin } from '../services/database.js';
 import { decryptToken } from '../services/encryption.js';
 import * as plaid from '../services/transactions/plaidClient.js';
 import { bootstrapItem, syncItem } from '../services/transactions/plaidIngestion.js';
+import { getPlaidSandboxState, isSandboxConnection } from '../services/transactions/sandboxGuard.js';
 import { createLogger } from '../services/logger.js';
 
 const log = createLogger('plaid-routes');
@@ -203,14 +204,23 @@ router.get('/holdings', async (req, res) => {
       return res.status(503).json({ success: false, error: 'plaid not configured', code: 'PLAID_NOT_CONFIGURED' });
     }
 
-    const { data: rows, error } = await supabaseAdmin
+    const { data: allRows, error } = await supabaseAdmin
       .from('user_bank_connections')
-      .select('id, plaid_item_id, plaid_access_token_encrypted, connector_name')
+      .select('id, plaid_item_id, plaid_access_token_encrypted, connector_name, plaid_institution_id')
       .eq('user_id', userId)
       .eq('provider', 'plaid')
       .is('deleted_at', null)
       .not('plaid_access_token_encrypted', 'is', null);
     if (error) throw new Error(error.message);
+
+    // replan-2026-06-10 Track D P0: a sandbox item must never render a fake
+    // portfolio (+1,234,467% P&L on First Platypus cash) in production
+    // runtimes. The id set covers stored is_sandbox flags; the institution-id
+    // check covers rows the migration backfill hasn't touched.
+    const sandbox = await getPlaidSandboxState(userId);
+    const rows = sandbox.hideActive
+      ? (allRows || []).filter((r) => !sandbox.sandboxConnectionIds.has(r.id) && !isSandboxConnection(r))
+      : allRows;
 
     if (!rows?.length) {
       return res.json({
@@ -338,6 +348,14 @@ router.get('/investment-activity', async (req, res) => {
     const limit = Math.min(Math.max(parseInt(String(req.query.limit ?? '30'), 10) || 30, 1), 100);
     const sinceDays = Math.min(Math.max(parseInt(String(req.query.sinceDays ?? '90'), 10) || 90, 7), 730);
     const sinceDate = new Date(Date.now() - sinceDays * 86400_000).toISOString().slice(0, 10);
+
+    // replan-2026-06-10 Track D P0: this surface is 100% plaid-sourced, so
+    // when the user has no live (non-sandbox) Plaid connection there is
+    // nothing real to show — return the empty shape instead of sandbox trades.
+    const sandbox = await getPlaidSandboxState(userId);
+    if (sandbox.excludePlaidTransactions) {
+      return res.json({ success: true, events: [], range: { since: sinceDate, limit } });
+    }
 
     const { data, error } = await supabaseAdmin
       .from('user_transactions')

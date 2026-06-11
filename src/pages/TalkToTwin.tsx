@@ -13,8 +13,6 @@ import { ChatInputArea } from '@/components/chat/ChatInputArea';
 import { ChatHeader } from '@/components/chat/ChatHeader';
 import { LimitReachedBanner } from '@/components/chat/LimitReachedBanner';
 import { ContextSidebar } from '@/components/chat/ContextSidebar';
-import { ChatContextSidebar } from '@/components/chat/ChatContextSidebar';
-import { InsightsBanner } from '@/components/chat/InsightsBanner';
 import { ConversationList } from '@/components/chat/ConversationList';
 import { SoulInterview } from '@/components/chat/SoulInterview';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
@@ -109,15 +107,12 @@ const TalkToTwin = () => {
   // /connectors/status hook (divergent expired semantics, side-effecting GET)
   // is no longer consulted.
   const { data: platformsSummary } = usePlatformsSummary({ enabled: !!user?.id });
-  // audit-2026-05-15 H1: the canonical "X platforms" chip counts .active only
-  // (excludes expired/stale connections). The audit found Spotify expired
-  // 16d ago but the count chip kept showing it.
-  const canonicalPlatformCount = platformsSummary?.active ?? 0;
-  const { undelivered: pendingInsights, markEngaged } = useProactiveInsights();
+  const { undelivered: pendingInsights } = useProactiveInsights();
+  // replan-2026-06-10 chat declutter: the 'Today' ChatContextSidebar is gone;
+  // this hook now feeds ONLY the empty-state suggestion chips.
   const {
     calendarEvents: sidebarCalendarEvents,
     recentEmails: sidebarRecentEmails,
-    isLoading: isLoadingSidebar,
   } = useSidebarContext(user?.id);
 
   const [messages, setMessages] = useState<Message[]>(loadChatHistory);
@@ -128,7 +123,6 @@ const TalkToTwin = () => {
   );
   const [showContext, setShowContext] = useState(false);
   const [showConversationList, setShowConversationList] = useState(false);
-  const [showRightSidebar, setShowRightSidebar] = useState(false);
   const [showInterview, setShowInterview] = useState(false);
   const [showInterviewChip, setShowInterviewChip] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -702,11 +696,9 @@ const TalkToTwin = () => {
           hasMessages={messages.length > 0}
           showContext={showContext}
           showConversationList={showConversationList}
-          showRightSidebar={showRightSidebar}
           onClearChat={handleClearChat}
           onToggleContext={() => setShowContext(!showContext)}
           onToggleConversationList={() => setShowConversationList(prev => !prev)}
-          onToggleRightSidebar={() => setShowRightSidebar(prev => !prev)}
           onBack={() => navigate(-1)}
         />
 
@@ -719,7 +711,6 @@ const TalkToTwin = () => {
               platforms={platforms}
               onQuickAction={handleQuickAction}
               onSendMessage={handleSendMessage}
-              insightsCount={pendingInsights.length}
               showInterviewChip={showInterviewChip}
               onStartInterview={() => setShowInterview(true)}
               // audit-2026-05-13 L1: pass today's signals so the empty-state
@@ -765,38 +756,20 @@ const TalkToTwin = () => {
           isTyping={isTyping}
           isDisabled={limitReached}
           limitReached={limitReached}
-          hasConnectedPlatforms={connectedPlatforms.length > 0}
           chatUsage={chatUsage}
           ghostSuggestion={ghostSuggestion}
         />
       </div>
 
+      {/* replan-2026-06-10 chat declutter: the 'Today' ChatContextSidebar
+          (weather/calendar/emails/insights/stats) was deleted — it duplicated
+          DashboardV2 item-for-item and its signals already feed the chips. */}
       <ContextSidebar
         showContext={showContext}
         onClose={() => setShowContext(false)}
         platforms={platforms}
-        connectedPlatforms={connectedPlatforms}
         contextItems={contextItems}
         isLoadingContext={isLoadingContext}
-        connectedCount={canonicalPlatformCount}
-        messageCount={messages.filter(m => !m.failed).length}
-      />
-
-      <ChatContextSidebar
-        calendarEvents={sidebarCalendarEvents}
-        recentEmails={sidebarRecentEmails}
-        isLoadingSidebar={isLoadingSidebar}
-        insights={
-          [...messages]
-            .reverse()
-            .find(m => m.role === 'assistant' && m.contextUsed?.proactiveInsights?.length)
-            ?.contextUsed?.proactiveInsights ?? []
-        }
-        platformCount={canonicalPlatformCount}
-        messageCount={messages.filter(m => !m.failed).length}
-        onMorningBriefing={() => handleQuickAction('Give me my morning briefing')}
-        mobileOpen={showRightSidebar}
-        onCloseMobile={() => setShowRightSidebar(false)}
       />
 
       {/* Soul Interview overlay */}

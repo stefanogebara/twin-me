@@ -30,6 +30,10 @@ export const NOISE_PATTERNS = [
   'opentable', 'sevenrooms', 'resy', 'thefork',
   // Exam / education service senders (PS_Exams in audit)
   'ps_exams', 'ps-exams', 'cambridgeenglish', 'britishcouncil-noreply',
+  // AI-assistant notification bots (replan-2026-06-10: the twin drafted a
+  // reply to askjo.ai's daily briefing email — bot answering bot in the
+  // user's voice, committing him to work he never saw).
+  'askjo.ai',
 ];
 
 /**

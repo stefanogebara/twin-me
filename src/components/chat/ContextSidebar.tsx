@@ -22,11 +22,8 @@ interface ContextSidebarProps {
   showContext: boolean;
   onClose: () => void;
   platforms: Platform[];
-  connectedPlatforms: Platform[];
   contextItems: ContextItem[];
   isLoadingContext: boolean;
-  connectedCount: number;
-  messageCount: number;
 }
 
 export const ContextSidebar = ({
@@ -35,8 +32,6 @@ export const ContextSidebar = ({
   platforms,
   contextItems,
   isLoadingContext,
-  connectedCount,
-  messageCount,
 }: ContextSidebarProps) => {
   const navigate = useNavigate();
 
@@ -156,30 +151,9 @@ export const ContextSidebar = ({
             </p>
           )}
         </div>
-
-        <div className="mb-6" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }} />
-
-        {/* Stats */}
-        <div className="flex gap-6">
-          <div>
-            <div
-              className="text-lg font-medium"
-              style={{ color: 'var(--foreground)', opacity: 0.8 }}
-            >
-              {connectedCount || '--'}
-            </div>
-            <div className="text-[11px]" style={{ color: 'rgba(255,255,255,0.25)' }}>Platforms</div>
-          </div>
-          <div>
-            <div
-              className="text-lg font-medium"
-              style={{ color: 'var(--foreground)', opacity: 0.8 }}
-            >
-              {messageCount}
-            </div>
-            <div className="text-[11px]" style={{ color: 'rgba(255,255,255,0.25)' }}>Messages</div>
-          </div>
-        </div>
+        {/* replan-2026-06-10 chat declutter: Platforms/Messages stats block
+            deleted — vanity counts, duplicated the (also deleted) Today
+            sidebar stats row. */}
       </div>
     </aside>
   );
