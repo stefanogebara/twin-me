@@ -15,6 +15,7 @@ import {
   normalizePlatformTag,
   aggregatePlatformYield,
   FEATURED_KEEPERS,
+  ALWAYS_DEMOTED,
   MIRROR_PLATFORMS,
   FEATURE_YIELD_THRESHOLD,
   YIELD_WINDOW_DAYS,
@@ -36,9 +37,27 @@ describe('shouldFeaturePlatform', () => {
     }
   });
 
-  it('keeps a non-keeper at or above the threshold (youtube as passenger)', () => {
-    expect(shouldFeaturePlatform('youtube', FEATURE_YIELD_THRESHOLD)).toBe('keep');
-    expect(shouldFeaturePlatform('youtube', 69)).toBe('keep');
+  it('keeps a non-keeper, non-demoted platform at or above the threshold', () => {
+    expect(shouldFeaturePlatform('instagram', FEATURE_YIELD_THRESHOLD)).toBe('keep');
+    expect(shouldFeaturePlatform('instagram', 69)).toBe('keep');
+  });
+
+  // Deliberate contract change (product decision 2026-06-11): this previously
+  // asserted youtube earns featuring on yield. Raw volume is not signal
+  // quality — the demote list now beats the yield rule.
+  it('ALWAYS_DEMOTED beats the yield rule (youtube volume is not signal)', () => {
+    for (const demoted of ALWAYS_DEMOTED) {
+      expect(shouldFeaturePlatform(demoted, 0), demoted).toBe('demote');
+      expect(shouldFeaturePlatform(demoted, 9999), demoted).toBe('demote');
+    }
+    expect(shouldFeaturePlatform('YouTube', 69)).toBe('demote');
+  });
+
+  it('demote list and keeper list never overlap', () => {
+    for (const demoted of ALWAYS_DEMOTED) {
+      expect(FEATURED_KEEPERS.includes(demoted), demoted).toBe(false);
+      expect(MIRROR_PLATFORMS.includes(demoted), demoted).toBe(false);
+    }
   });
 
   it('demotes a non-keeper below the threshold (the kill-list yield profile)', () => {
