@@ -25,6 +25,22 @@ export const STALE_DAYS = 7;
 const STALE_THRESHOLD_MS = STALE_DAYS * 24 * 60 * 60 * 1000;
 
 /**
+ * Retired platforms (replan-2026-06-10 Track C portfolio cut). A user who
+ * connected one of these before the cut keeps the platform_connections row
+ * (their data is preserved), so the summary still SURFACES the entry — but it
+ * must not count toward total/active/expired/stale. The entry stays in the
+ * breakdown tagged `retired: true` so Settings can render its "No longer
+ * supported" row with a Disconnect button; everything else (header counts,
+ * Soul Score, reconnect prompts) treats it as gone. Mirror of the frontend
+ * src/lib/retiredPlatforms.ts — keep the two lists in sync.
+ */
+export const RETIRED_PLATFORMS = new Set([
+  'strava', 'oura', 'fitbit', 'garmin', 'notion', 'pinterest', 'soundcloud',
+  'slack', 'steam', 'tiktok', 'apple_music', 'google_drive',
+  'reddit', 'linkedin', 'twitch',
+]);
+
+/**
  * Classify a platform_connections row as 'active' | 'expired' | 'stale'.
  *
  * Pure function — logic extracted verbatim from the /connectors/summary route
@@ -216,6 +232,7 @@ export async function buildPlatformsSummary(userId) {
       connectedAt: c.connected_at,
       lastSyncAt: c.last_sync_at || null,
       source: 'oauth',
+      retired: RETIRED_PLATFORMS.has(c.platform),
     });
     seen.add(c.platform);
   }
@@ -228,6 +245,7 @@ export async function buildPlatformsSummary(userId) {
       connectedAt: n.created_at || null,
       lastSyncAt: n.last_synced_at || null,
       source: 'nango',
+      retired: RETIRED_PLATFORMS.has(n.platform),
     });
     seen.add(n.platform);
   }
@@ -245,19 +263,33 @@ export async function buildPlatformsSummary(userId) {
     seen.add(m.platform);
   }
 
-  const counts = breakdown.reduce(
-    (acc, b) => {
-      acc[b.state]++;
-      return acc;
-    },
-    { active: 0, expired: 0, stale: 0 }
-  );
-
   return {
-    total: breakdown.length,
-    active: counts.active,
-    expired: counts.expired,
-    stale: counts.stale,
+    ...summarizeBreakdown(breakdown),
     breakdown,
   };
+}
+
+/**
+ * Reduce a breakdown array to its headline counts. Pure & exported so the
+ * retired-exclusion rule is unit-testable without a DB mock.
+ *
+ * Retired platforms (replan-2026-06-10 Track C) stay in the breakdown — so
+ * Settings can render their "No longer supported" row with a Disconnect
+ * button — but never count toward total/active/expired/stale: a pre-cut
+ * reddit/linkedin row must not inflate the connections header or Soul Score.
+ *
+ * @param {Array<{ state: 'active'|'expired'|'stale', retired?: boolean }>} breakdown
+ * @returns {{ total: number, active: number, expired: number, stale: number }}
+ */
+export function summarizeBreakdown(breakdown) {
+  const counts = (breakdown || []).reduce(
+    (acc, b) => {
+      if (b.retired) return acc;
+      acc[b.state]++;
+      acc.total++;
+      return acc;
+    },
+    { total: 0, active: 0, expired: 0, stale: 0 }
+  );
+  return counts;
 }

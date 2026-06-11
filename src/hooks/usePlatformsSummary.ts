@@ -18,6 +18,7 @@
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { authFetch } from '@/services/api/apiBase';
+import { isRetiredPlatform } from '@/lib/retiredPlatforms';
 
 export type PlatformState = 'active' | 'expired' | 'stale';
 
@@ -36,6 +37,13 @@ export interface PlatformBreakdownEntry {
   source?: 'oauth' | 'nango' | 'mirror';
   /** Mirror entries only: rows captured in the last 7 days (extension yield). */
   observations7d?: number;
+  /**
+   * Retired platform (replan-2026-06-10 Track C). The connection row still
+   * exists and surfaces here so Settings can show a "No longer supported" row
+   * with Disconnect, but the entry is excluded from total/active/expired/stale
+   * counts server-side — it must not inflate the header or Soul Score.
+   */
+  retired?: boolean;
 }
 
 export interface PlatformsSummary {
@@ -109,9 +117,21 @@ export function needsReconnect(summary: PlatformsSummary | undefined, platform: 
   );
 }
 
-/** All connected platform ids (any state), for "connected set" consumers. */
+/**
+ * All connected platform ids (any state), for "connected set" consumers.
+ *
+ * Excludes RETIRED_PLATFORMS (replan-2026-06-10 Track C): a user with a
+ * pre-cut reddit/linkedin/twitch row stays in platform_connections (their
+ * data is kept), and the summary endpoint still returns it, but a retired
+ * platform must not inflate "X platforms connected" counts, the Soul Score,
+ * or seed an "already connected" set for a tile that no longer exists. The
+ * retired connection still surfaces in Settings' "No longer supported"
+ * section, which reads the raw breakdown directly — not this selector.
+ */
 export function connectedProviders(summary: PlatformsSummary | undefined): string[] {
-  return summary?.breakdown.map((entry) => entry.platform) ?? [];
+  return summary?.breakdown
+    .map((entry) => entry.platform)
+    .filter((p) => !isRetiredPlatform(p)) ?? [];
 }
 
 /**
@@ -128,6 +148,11 @@ export function invalidatePlatformState(queryClient: QueryClient): Promise<void>
  * Immutably remove one platform from a summary, decrementing total and the
  * per-state count of the removed entry. Returns the input unchanged when the
  * platform has no breakdown entry. Used for the optimistic disconnect below.
+ *
+ * Retired entries (replan-2026-06-10 Track C) are dropped from the breakdown
+ * but leave the counts untouched — they never contributed to total/active/
+ * expired/stale, so decrementing on their disconnect would under-count the
+ * live platforms.
  */
 export function removePlatformFromSummary(
   summary: PlatformsSummary,
@@ -135,12 +160,13 @@ export function removePlatformFromSummary(
 ): PlatformsSummary {
   const entry = summary.breakdown.find((e) => e.platform === platform);
   if (!entry) return summary;
+  const counted = !entry.retired;
   return {
     ...summary,
-    total: Math.max(0, summary.total - 1),
-    active: entry.state === 'active' ? Math.max(0, summary.active - 1) : summary.active,
-    expired: entry.state === 'expired' ? Math.max(0, summary.expired - 1) : summary.expired,
-    stale: entry.state === 'stale' ? Math.max(0, summary.stale - 1) : summary.stale,
+    total: counted ? Math.max(0, summary.total - 1) : summary.total,
+    active: counted && entry.state === 'active' ? Math.max(0, summary.active - 1) : summary.active,
+    expired: counted && entry.state === 'expired' ? Math.max(0, summary.expired - 1) : summary.expired,
+    stale: counted && entry.state === 'stale' ? Math.max(0, summary.stale - 1) : summary.stale,
     breakdown: summary.breakdown.filter((e) => e.platform !== platform),
   };
 }
