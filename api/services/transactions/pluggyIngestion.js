@@ -16,14 +16,9 @@
 import { supabaseAdmin } from '../database.js';
 import { createLogger } from '../logger.js';
 import { normalizeMerchant } from './merchantNormalizer.js';
-import { detectAndMarkRecurring } from './recurrenceDetector.js';
-import { tagTransactionsBatch } from './transactionEmotionTagger.js';
-import { maybeNudgeForTransactions } from './transactionNudgeService.js';
-import { addPlatformObservation } from '../memoryStreamService.js';
+import { runSharedDownstreamPipeline } from './rawIngestion.js';
 import * as pluggy from './pluggyClient.js';
 import { DEFAULT_CURRENCY } from '../../config/financialThresholds.js';
-
-const MEMORY_MIN_AMOUNT = 50; // BRL — only material tx enter the memory stream
 
 const log = createLogger('pluggy-ingestion');
 
@@ -149,94 +144,13 @@ async function upsertTransactions(userId, pluggyAccountId, source, accountType, 
 }
 
 /**
- * Run the Phase 2 pipeline downstream of ingestion. Both steps are idempotent
- * and already gate internally when there's nothing to do. Errors are logged
- * and swallowed — we never want a tagger blip to fail a webhook 200.
+ * Downstream pipeline (recurrence -> tagging -> memory dual-write -> nudges)
+ * now lives in rawIngestion.runSharedDownstreamPipeline — one copy shared by
+ * Pluggy, the CSV upload route, and the WhatsApp/Gmail statement sources.
+ * This wrapper just pins the 'pluggy' memory-platform tag.
  */
-async function runDownstreamPipeline(userId, insertedIds, { allowNudge = false } = {}) {
-  try {
-    await detectAndMarkRecurring(userId);
-  } catch (err) {
-    log.warn(`recurrence detector failed for user ${userId}: ${err.message}`);
-  }
-  if (insertedIds.length) {
-    try {
-      await tagTransactionsBatch(userId, insertedIds);
-    } catch (err) {
-      log.warn(`emotion tagger failed for user ${userId}: ${err.message}`);
-    }
-    // Dual-write material transactions to user_memories so the twin can
-    // reflect on spending patterns in chat and in the reflection engine.
-    // Filtered to abs(amount) >= MEMORY_MIN_AMOUNT to avoid stream pollution.
-    try {
-      // NOTE: column list must match the real transaction_emotional_context
-      // schema (computed_stress_score, is_stress_shop_candidate — there is no
-      // emotion_label column). A 2026-06-10 regression selected a non-existent
-      // column AND ignored `error`, so the query 42703'd and zero transactions
-      // ever reached the memory stream. Errors here are now surfaced, never
-      // swallowed into an empty list.
-      const { data: txRows, error: txErr } = await supabaseAdmin
-        .from('user_transactions')
-        .select(`
-          id, amount, merchant_normalized, merchant_raw, category,
-          transaction_date,
-          emotional_context:transaction_emotional_context (
-            computed_stress_score, is_stress_shop_candidate
-          )
-        `)
-        .in('id', insertedIds)
-        .eq('user_id', userId)
-        .lt('amount', 0);
-      if (txErr) throw new Error(`material-tx select failed: ${txErr.message}`);
-
-      const material = (txRows || []).filter(
-        (r) => Math.abs(Number(r.amount) || 0) >= MEMORY_MIN_AMOUNT
-      );
-
-      await Promise.all(
-        material.map((r) => {
-          const merchant = r.merchant_normalized || r.merchant_raw || 'unknown';
-          const amountStr = new Intl.NumberFormat('pt-BR', {
-            style: 'currency', currency: 'BRL',
-          }).format(Math.abs(r.amount));
-          const date = r.transaction_date?.slice(0, 10) || 'unknown date';
-          // PostgREST embeds to-one relations as an object, but be tolerant of
-          // array shape (composite-key edge) — take the first row either way.
-          const ecRaw = r.emotional_context;
-          const ec = Array.isArray(ecRaw) ? ecRaw[0] : ecRaw;
-          const stressPct = ec?.computed_stress_score != null
-            ? Math.round(ec.computed_stress_score * 100)
-            : null;
-          const emotionNote = ec?.is_stress_shop_candidate
-            ? `; emotional context: possible stress purchase${stressPct != null ? `, stress=${stressPct}%` : ''}`
-            : stressPct != null
-              ? `; stress at purchase time=${stressPct}%`
-              : '';
-          const content = `Spent ${amountStr} at ${merchant} on ${date}${emotionNote}.`;
-          return addPlatformObservation(userId, content, 'pluggy', {
-            category: r.category,
-            source_tx_id: r.id,
-          }).catch((err) => log.warn(`memory write failed for tx ${r.id}: ${err.message}`));
-        })
-      );
-
-      if (material.length) {
-        log.info(`wrote ${material.length} tx observations to memory stream for user ${userId}`);
-      }
-    } catch (err) {
-      log.warn(`memory stream dual-write failed for user ${userId}: ${err.message}`);
-    }
-    // Phase 3.4: pre-transaction nudges. Only on webhook-sourced ingests
-    // (live tx), not the 90d seed backfill — historical tx are never "fresh
-    // enough" to nudge about.
-    if (allowNudge) {
-      try {
-        await maybeNudgeForTransactions(userId, insertedIds);
-      } catch (err) {
-        log.warn(`nudge check failed for user ${userId}: ${err.message}`);
-      }
-    }
-  }
+function runDownstreamPipeline(userId, insertedIds, { allowNudge = false } = {}) {
+  return runSharedDownstreamPipeline(userId, insertedIds, { allowNudge, platform: 'pluggy' });
 }
 
 /**

@@ -15,6 +15,7 @@ import { parseBankStatement } from '../services/transactions/parserDispatcher.js
 import { tagTransactionsBatch } from '../services/transactions/transactionEmotionTagger.js';
 import { syncAllSignals } from '../services/transactions/platformSignalExtractor.js';
 import { normalizeMerchant } from '../services/transactions/merchantNormalizer.js';
+import { writeTransactionMemories } from '../services/transactions/rawIngestion.js';
 import { detectAndMarkRecurring, isNonSubscriptionRow } from '../services/transactions/recurrenceDetector.js';
 import { STRESS_HIGH, NUDGE_TRIGGER, DEFAULT_CURRENCY } from '../config/financialThresholds.js';
 import { createLogger } from '../services/logger.js';
@@ -277,6 +278,15 @@ router.post('/upload', authenticateUser, uploadLimiter, uploadSingleFile('file')
       tagResult = await tagTransactionsBatch(userId, insertedIds);
     } catch (err) {
       log.warn(`tagger failed (non-fatal): ${err.message}`);
+    }
+
+    // Memory dual-write: until 2026-06 only aggregator ingests reached
+    // user_memories — uploaded statements never taught the twin anything.
+    // Material outflows (>= R$50) now land as observations, same as Pluggy.
+    try {
+      await writeTransactionMemories(userId, insertedIds, 'bank_statement');
+    } catch (err) {
+      log.warn(`memory dual-write failed (non-fatal): ${err.message}`);
     }
 
     return res.json({
