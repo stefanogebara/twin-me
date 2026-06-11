@@ -169,18 +169,25 @@ async function runDownstreamPipeline(userId, insertedIds, { allowNudge = false }
     // reflect on spending patterns in chat and in the reflection engine.
     // Filtered to abs(amount) >= MEMORY_MIN_AMOUNT to avoid stream pollution.
     try {
-      const { data: txRows } = await supabaseAdmin
+      // NOTE: column list must match the real transaction_emotional_context
+      // schema (computed_stress_score, is_stress_shop_candidate — there is no
+      // emotion_label column). A 2026-06-10 regression selected a non-existent
+      // column AND ignored `error`, so the query 42703'd and zero transactions
+      // ever reached the memory stream. Errors here are now surfaced, never
+      // swallowed into an empty list.
+      const { data: txRows, error: txErr } = await supabaseAdmin
         .from('user_transactions')
         .select(`
           id, amount, merchant_normalized, merchant_raw, category,
           transaction_date,
           emotional_context:transaction_emotional_context (
-            computed_stress_score, emotion_label
+            computed_stress_score, is_stress_shop_candidate
           )
         `)
         .in('id', insertedIds)
         .eq('user_id', userId)
         .lt('amount', 0);
+      if (txErr) throw new Error(`material-tx select failed: ${txErr.message}`);
 
       const material = (txRows || []).filter(
         (r) => Math.abs(Number(r.amount) || 0) >= MEMORY_MIN_AMOUNT
@@ -193,10 +200,18 @@ async function runDownstreamPipeline(userId, insertedIds, { allowNudge = false }
             style: 'currency', currency: 'BRL',
           }).format(Math.abs(r.amount));
           const date = r.transaction_date?.slice(0, 10) || 'unknown date';
-          const ec = r.emotional_context;
-          const emotionNote = ec?.emotion_label
-            ? `; emotional context: ${ec.emotion_label}${ec.computed_stress_score != null ? `, stress=${Math.round(ec.computed_stress_score * 100)}%` : ''}`
-            : '';
+          // PostgREST embeds to-one relations as an object, but be tolerant of
+          // array shape (composite-key edge) — take the first row either way.
+          const ecRaw = r.emotional_context;
+          const ec = Array.isArray(ecRaw) ? ecRaw[0] : ecRaw;
+          const stressPct = ec?.computed_stress_score != null
+            ? Math.round(ec.computed_stress_score * 100)
+            : null;
+          const emotionNote = ec?.is_stress_shop_candidate
+            ? `; emotional context: possible stress purchase${stressPct != null ? `, stress=${stressPct}%` : ''}`
+            : stressPct != null
+              ? `; stress at purchase time=${stressPct}%`
+              : '';
           const content = `Spent ${amountStr} at ${merchant} on ${date}${emotionNote}.`;
           return addPlatformObservation(userId, content, 'pluggy', {
             category: r.category,

@@ -285,6 +285,28 @@ export function ConnectBankButton({ onConnected }: Props) {
         </div>
       )}
 
+      {/* Open Finance BR guidance: real Brazilian banks connect through
+          MeuPluggy (Pluggy's free consumer app + regulated Open Finance
+          participant). Without this hint a first-time user opens the widget,
+          sees only "MeuPluggy", and has no idea what to do with it. */}
+      <div
+        className="mt-2 w-full text-xs leading-relaxed"
+        style={{ color: 'var(--text-muted)', fontFamily: "'Geist', 'Inter', sans-serif", maxWidth: 560 }}
+      >
+        To connect Brazilian banks (Nubank, Itau, Santander, Bradesco and others) via Open Finance:
+        create a free account at{' '}
+        <a
+          href="https://meu.pluggy.ai"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ color: 'var(--text-narrative-secondary)', textDecoration: 'underline' }}
+        >
+          meu.pluggy.ai
+        </a>
+        , link your banks there, then click Connect BR bank and choose MeuPluggy.
+        Your data flows in automatically and refreshes daily.
+      </div>
+
       {connectToken && (
         <PluggyConnect
           connectToken={connectToken}
