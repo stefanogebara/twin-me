@@ -423,7 +423,7 @@ export function registerExtendedTools() {
   registerTool({
     name: 'get_recurring_subscriptions',
     platform: null,
-    description: 'List the user\'s recurring subscriptions detected from their bank/card transactions across all providers (Pluggy / TrueLayer / Plaid / CSV). Use this when the user asks "what am I paying for?", "what subscriptions do I have?", "where is my money leaking?". Each subscription shows merchant, monthly average, last-charge date, total charges. ChatGPT Personal Finance shows a flat subscription list; this one also surfaces the emotional context AT THE FIRST CHARGE — useful for the "I signed up for this gym on a low-recovery weekend, never used it" insight.',
+    description: 'List the user\'s recurring subscriptions detected from their bank/card transactions across all providers (Pluggy / Plaid / CSV). Use this when the user asks "what am I paying for?", "what subscriptions do I have?", "where is my money leaking?". Each subscription shows merchant, monthly average, last-charge date, total charges. ChatGPT Personal Finance shows a flat subscription list; this one also surfaces the emotional context AT THE FIRST CHARGE — useful for the "I signed up for this gym on a low-recovery weekend, never used it" insight.',
     category: 'finance',
     parameters: {
       type: 'object',

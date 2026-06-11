@@ -21,7 +21,7 @@
  *   - Plaid's production-grade verification is JWS-signed via the
  *     `plaid-verification` header, validated against /webhook_verification_key/get.
  *     That's the right long-term path. For now we use a shared-secret header
- *     (PLAID_WEBHOOK_SECRET) matching the Pluggy/TrueLayer pattern, which is
+ *     (PLAID_WEBHOOK_SECRET) matching the Pluggy pattern, which is
  *     fine for sandbox + early production but should be upgraded before scale.
  *   - Same rate-limit + dedup belts as the Pluggy lambda.
  */

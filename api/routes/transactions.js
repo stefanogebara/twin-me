@@ -345,6 +345,10 @@ router.get('/', authenticateUser, async (req, res) => {
     const accountType = typeof req.query.account_type === 'string' ? req.query.account_type : null;
     const since = typeof req.query.since === 'string' ? req.query.since : null;
 
+    // Note: user_transactions (and user_bank_connections) still carry
+    // truelayer_* columns even though the TrueLayer integration was deleted
+    // (replan-2026-06-10 Track D). Kept deliberately — no migration; they are
+    // simply never written or selected anymore.
     let query = supabaseAdmin
       .from('user_transactions')
       .select(`

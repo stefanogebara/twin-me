@@ -48,20 +48,17 @@ vi.mock('../../src/services/api/apiBase', () => ({
 }));
 
 // Imports must follow the mock so the mock is in place at module load.
+// (replan-2026-06-10 Track D: patterns/savings/nudge-stats/risk-forecast
+// fetchers and the TrueLayer client were deleted with their UI surfaces.)
 const {
   listTransactions,
   getTransactionsSummary,
   retagTransactions,
-  getSpendingPatterns,
-  getSavings,
-  getNudgeStats,
-  getRiskForecast,
   getPluggyConnectToken,
   registerPluggyItem,
   listBankConnections,
   deleteBankConnection,
   syncBankConnection,
-  getTrueLayerAuthUrl,
   getPlaidLinkToken,
   exchangePlaidPublicToken,
   syncPlaidConnection,
@@ -213,12 +210,6 @@ describe('Provider dispatch on syncBankConnection + deleteBankConnection', () =>
     expect(authFetchCalls[0].init?.method).toBe('POST');
   });
 
-  it('syncBankConnection routes TrueLayer to /truelayer/sync/:id', async () => {
-    authFetchImpl = async () => ok({ success: true });
-    await syncBankConnection('cx_77', 'truelayer');
-    expect(authFetchCalls[0].url).toBe('/truelayer/sync/cx_77');
-  });
-
   it('syncBankConnection defaults to Pluggy when provider is undefined', async () => {
     authFetchImpl = async () => ok({ success: true });
     await syncBankConnection('cx_55');
@@ -234,9 +225,8 @@ describe('Provider dispatch on syncBankConnection + deleteBankConnection', () =>
 
   it('deleteBankConnection defaults to Pluggy for unknown providers', async () => {
     authFetchImpl = async () => ok({ success: true });
-    await deleteBankConnection('cx_55', 'truelayer');
-    // Per the source, TrueLayer ALSO routes through the pluggy connection
-    // endpoint — only Plaid takes the dedicated route.
+    await deleteBankConnection('cx_55', 'some_future_provider');
+    // Only Plaid takes the dedicated route; everything else goes through pluggy.
     expect(authFetchCalls[0].url).toBe('/transactions/pluggy/connections/cx_55');
   });
 
@@ -413,30 +403,10 @@ describe('Plaid holdings + investment-activity safe fallbacks', () => {
 });
 
 describe('Other null-on-error fetchers (smoke)', () => {
-  it.each([
-    ['getSpendingPatterns', () => getSpendingPatterns(), '/transactions/patterns'],
-    ['getSavings',          () => getSavings(),          '/transactions/savings'],
-    ['getNudgeStats',       () => getNudgeStats(),       '/transactions/nudge-stats'],
-    ['getRiskForecast',     () => getRiskForecast(),     '/transactions/risk-forecast'],
-  ])('%s returns null on !ok and hits the expected route', async (_name, run, expectedUrl) => {
-    authFetchImpl = async () => notOk(500, { error: 'boom' });
-    const r = await run();
-    expect(r).toBeNull();
-    expect(authFetchCalls[0].url).toBe(expectedUrl);
-  });
-
   it('listBankConnections returns [] on !ok', async () => {
     authFetchImpl = async () => notOk(500, { error: 'boom' });
     const r = await listBankConnections();
     expect(r).toEqual([]);
-  });
-
-  it('getTrueLayerAuthUrl POSTs providers and surfaces TRUELAYER_NOT_CONFIGURED on !ok', async () => {
-    authFetchImpl = async () =>
-      notOk(503, { success: false, error: 'tl not configured', code: 'TRUELAYER_NOT_CONFIGURED' });
-    const r = await getTrueLayerAuthUrl('uk-ob-monzo');
-    expect(r.code).toBe('TRUELAYER_NOT_CONFIGURED');
-    expect(JSON.parse(authFetchCalls[0].init?.body as string)).toEqual({ providers: 'uk-ob-monzo' });
   });
 
   it('registerPluggyItem POSTs itemId and surfaces structured code on !ok', async () => {

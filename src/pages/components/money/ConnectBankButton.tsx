@@ -11,10 +11,10 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { PluggyConnect } from 'react-pluggy-connect';
 import { usePlaidLink } from 'react-plaid-link';
-import { Wallet, Loader2, Globe, Building2 } from 'lucide-react';
+import { Wallet, Loader2, Building2 } from 'lucide-react';
+import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import {
   getPluggyConnectToken,
-  getTrueLayerAuthUrl,
   registerPluggyItem,
   getPlaidLinkToken,
   exchangePlaidPublicToken,
@@ -29,6 +29,10 @@ export function ConnectBankButton({ onConnected }: Props) {
   const [environment, setEnvironment] = useState<'sandbox' | 'production'>('sandbox');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // replan-2026-06-10 Track D: the Plaid (US) rail is sandbox-only — parked
+  // behind this flag until a real US launch. Code paths stay intact.
+  const plaidEnabled = useFeatureFlag('money_plaid');
 
   // Plaid Link state. usePlaidLink REQUIRES a token at hook-call time, but we
   // mint the token lazily on button click — so we keep linkToken in state and
@@ -175,36 +179,6 @@ export function ConnectBankButton({ onConnected }: Props) {
     }
   }, []);
 
-  const openTrueLayer = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await getTrueLayerAuthUrl();
-      if (!res.success || !res.authUrl) {
-        // audit-2026-05-08 C1: same pattern as Pluggy — show friendly message
-        // and point user to CSV upload when TL isn't configured.
-        if (res.code === 'TRUELAYER_NOT_CONFIGURED') {
-          // Dev-mode actionable hint; production message kept friendly.
-          const isDev = import.meta.env?.DEV === true;
-          setError(
-            isDev
-              ? 'TrueLayer is not configured. Add TRUELAYER_CLIENT_ID and TRUELAYER_CLIENT_SECRET to .env, restart the backend, and try again.'
-              : 'EU/UK bank linking is temporarily unavailable. Use the CSV/OFX statement upload below in the meantime.',
-          );
-        } else {
-          setError(res.error || 'Could not start the EU/UK connection');
-        }
-        return;
-      }
-      // Full-page redirect: TrueLayer's consent page is not widget-embeddable.
-      window.location.assign(res.authUrl);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unexpected error');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
   return (
     <>
       <button
@@ -228,53 +202,33 @@ export function ConnectBankButton({ onConnected }: Props) {
         {loading ? 'Preparing…' : 'Connect BR bank'}
       </button>
 
-      <button
-        onClick={openPlaid}
-        disabled={loading || !!plaidLinkToken}
-        className="inline-flex items-center gap-2 px-4 py-2.5 rounded-[100px] transition-colors disabled:opacity-60"
-        style={{
-          background: 'rgba(255,255,255,0.08)',
-          color: 'rgba(255,255,255,0.90)',
-          border: '1px solid rgba(255,255,255,0.12)',
-          fontFamily: "'Geist', 'Inter', sans-serif",
-          fontWeight: 500,
-          fontSize: 14,
-        }}
-        title="Chase, Schwab, Fidelity, Robinhood, Amex, Capital One, and 12,000+ US institutions (via Plaid)"
-      >
-        {loading || (plaidLinkToken && !plaidReady) ? (
-          <Loader2 className="w-4 h-4 animate-spin" />
-        ) : (
-          <Building2 className="w-4 h-4" />
-        )}
-        {loading
-          ? 'Preparing…'
-          : plaidLinkToken && !plaidReady
-            ? 'Opening Plaid…'
-            : 'Connect US bank'}
-      </button>
-
-      <button
-        onClick={openTrueLayer}
-        disabled={loading}
-        className="inline-flex items-center gap-2 px-4 py-2.5 rounded-[100px] transition-colors disabled:opacity-60"
-        style={{
-          background: 'rgba(255,255,255,0.08)',
-          color: 'rgba(255,255,255,0.90)',
-          border: '1px solid rgba(255,255,255,0.12)',
-          fontFamily: "'Geist', 'Inter', sans-serif",
-          fontWeight: 500,
-          fontSize: 14,
-        }}
-        title="Santander Spain, Revolut, N26, Monzo, EU/UK banks (via TrueLayer)"
-      >
-        {loading ? (
-          <Loader2 className="w-4 h-4 animate-spin" />
-        ) : (
-          <Globe className="w-4 h-4" />
-        )}
-        {loading ? 'Preparing…' : 'Connect EU/UK bank'}
-      </button>
+      {plaidEnabled && (
+        <button
+          onClick={openPlaid}
+          disabled={loading || !!plaidLinkToken}
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-[100px] transition-colors disabled:opacity-60"
+          style={{
+            background: 'rgba(255,255,255,0.08)',
+            color: 'rgba(255,255,255,0.90)',
+            border: '1px solid rgba(255,255,255,0.12)',
+            fontFamily: "'Geist', 'Inter', sans-serif",
+            fontWeight: 500,
+            fontSize: 14,
+          }}
+          title="Chase, Schwab, Fidelity, Robinhood, Amex, Capital One, and 12,000+ US institutions (via Plaid)"
+        >
+          {loading || (plaidLinkToken && !plaidReady) ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <Building2 className="w-4 h-4" />
+          )}
+          {loading
+            ? 'Preparing…'
+            : plaidLinkToken && !plaidReady
+              ? 'Opening Plaid…'
+              : 'Connect US bank'}
+        </button>
+      )}
 
       {error && (
         <div

@@ -1,33 +1,28 @@
 /**
- * MoneyPage — Financial-Emotional Twin (Phase 2A)
- * ================================================
- * Upload bank statement (CSV/OFX), see transactions with emotional context:
- * HRV, music valence, calendar load, composite stress score at moment of purchase.
+ * MoneyPage — Financial-Emotional Twin (honest MVP, replan-2026-06-10 Track D)
+ * ============================================================================
+ * Connect a BR bank (Pluggy) or upload a statement (CSV/OFX/XLSX), see
+ * transactions with emotional context (HRV, music valence, calendar load,
+ * composite stress score at moment of purchase), and one honest unlock
+ * card stating what appears once enough spend/biology overlap exists.
+ * Plaid brokerage surfaces are parked behind the `money_plaid` flag;
+ * TrueLayer was removed entirely.
  */
 
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
-import { toast } from 'sonner';
-import { Upload, FileText, AlertCircle, Loader2, TrendingDown, Sparkles, RefreshCw, Music } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Upload, FileText, AlertCircle, Loader2, Sparkles, RefreshCw, Music } from 'lucide-react';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import {
   uploadStatement,
   listTransactions,
   getTransactionsSummary,
   retagTransactions,
-  getSavings,
-  getSpendingPatterns,
-  getNudgeStats,
-  getRiskForecast,
   getTimelineAnalysis,
   setTransactionFeedback,
   type Transaction,
   type TransactionsSummary,
-  type SavingsSummary,
-  type PatternsResult,
-  type SpendingPattern,
-  type NudgeStats,
-  type RiskForecast,
   type UploadResult,
   type TimelineDay,
 } from '@/services/api/transactionsAPI';
@@ -36,6 +31,7 @@ import { BankConnectionsList } from './components/money/BankConnectionsList';
 import { StressSpendTimeline } from './components/money/StressSpendTimeline';
 import { BrokerageHoldingsCard } from './components/money/BrokerageHoldingsCard';
 import { BrokerageActivityCard } from './components/money/BrokerageActivityCard';
+import { UnlockProgressCard } from './components/money/UnlockProgressCard';
 
 const CARD_STYLE: React.CSSProperties = {
   background: 'var(--glass-surface-bg)',           // rgba(255,255,255,0.06) per design system
@@ -56,9 +52,9 @@ const LABEL_STYLE: React.CSSProperties = {
 };
 
 /**
- * Multi-currency aware formatter. Transactions from TrueLayer ship with
- * EUR/GBP, Pluggy ships BRL. The summary card path has no single currency —
- * pass `null` to render without a symbol and show a chip alongside.
+ * Multi-currency aware formatter. Pluggy ships BRL; statement uploads can
+ * carry EUR/GBP/USD. The summary card path has no single currency — pass
+ * `null` to render without a symbol and show a chip alongside.
  */
 function formatCurrency(value: number, currency: string | null | undefined): string {
   const cur = (currency || 'BRL').toUpperCase();
@@ -68,11 +64,6 @@ function formatCurrency(value: number, currency: string | null | undefined): str
     currency: cur,
     minimumFractionDigits: 2,
   }).format(value);
-}
-
-/** Back-compat wrapper for BRL-only sites still in migration. */
-function formatBRL(value: number): string {
-  return formatCurrency(value, 'BRL');
 }
 
 function formatDate(iso: string): string {
@@ -540,227 +531,23 @@ function TransactionRow({ tx }: { tx: Transaction }) {
   );
 }
 
-function NudgesTab({ nudgeStats, currency }: { nudgeStats: NudgeStats | null; currency: string }) {
-  if (!nudgeStats || nudgeStats.total_sent === 0) {
-    return (
-      <div style={{ ...CARD_STYLE, padding: '40px 24px', textAlign: 'center' }}>
-        <p
-          style={{
-            fontFamily: "'Instrument Serif', Georgia, serif",
-            fontSize: 20,
-            color: 'rgba(255,255,255,0.65)',
-            letterSpacing: '-0.01em',
-            marginBottom: 8,
-          }}
-        >
-          No alerts yet
-        </p>
-        <p
-          style={{
-            fontFamily: "'Geist', 'Inter', sans-serif",
-            fontSize: 13,
-            color: 'rgba(255,255,255,0.40)',
-            lineHeight: 1.6,
-          }}
-        >
-          When your twin detects you are about to spend under stress,<br />
-          it warns you first. Alerts show up here along with their outcomes.
-        </p>
-      </div>
-    );
-  }
-
-  const winRate = nudgeStats.follow_rate !== null ? Math.round(nudgeStats.follow_rate * 100) : null;
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      {/* Hero — win counter */}
-      <div
-        style={{
-          ...CARD_STYLE,
-          padding: '24px 24px 20px',
-          background: nudgeStats.followed_count > 0
-            ? 'linear-gradient(135deg, rgba(134,239,172,0.08) 0%, rgba(255,255,255,0.03) 80%)'
-            : undefined,
-          borderColor: nudgeStats.followed_count > 0 ? 'rgba(134,239,172,0.20)' : undefined,
-        }}
-      >
-        <p style={{ ...LABEL_STYLE, color: 'rgba(134,239,172,0.85)', marginBottom: 10 }}>
-          Nudges & Wins · {nudgeStats.window_days} days
-        </p>
-        <div className="grid grid-cols-3 gap-4">
-          <div>
-            <p
-              style={{
-                fontFamily: "'Instrument Serif', Georgia, serif",
-                fontSize: 32,
-                letterSpacing: '-0.03em',
-                color: 'rgba(134,239,172,0.95)',
-                lineHeight: 1.05,
-              }}
-            >
-              {nudgeStats.followed_count}
-            </p>
-            <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginTop: 4, fontFamily: "'Geist','Inter',sans-serif" }}>
-              pauses
-            </p>
-          </div>
-          <div>
-            <p
-              style={{
-                fontFamily: "'Instrument Serif', Georgia, serif",
-                fontSize: 32,
-                letterSpacing: '-0.03em',
-                color: 'var(--foreground)',
-                lineHeight: 1.05,
-              }}
-            >
-              {winRate !== null ? `${winRate}%` : '—'}
-            </p>
-            <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginTop: 4, fontFamily: "'Geist','Inter',sans-serif" }}>
-              pause rate
-            </p>
-          </div>
-          <div>
-            <p
-              style={{
-                fontFamily: "'Instrument Serif', Georgia, serif",
-                fontSize: 32,
-                letterSpacing: '-0.03em',
-                color: nudgeStats.est_saved > 0 ? 'rgba(134,239,172,0.95)' : 'rgba(255,255,255,0.40)',
-                lineHeight: 1.05,
-              }}
-            >
-              {nudgeStats.est_saved > 0 ? formatCurrency(nudgeStats.est_saved, currency) : '—'}
-            </p>
-            <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginTop: 4, fontFamily: "'Geist','Inter',sans-serif" }}>
-              saved
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Recent nudge list */}
-      {Array.isArray(nudgeStats.recent) && nudgeStats.recent.length > 0 && (
-        <div style={{ ...CARD_STYLE, padding: '16px 0 4px' }}>
-          <p style={{ ...LABEL_STYLE, padding: '0 16px', marginBottom: 10 }}>History</p>
-          <div>
-            {nudgeStats.recent.map((n) => {
-              const whenTxt = new Date(n.created_at).toLocaleString('en-US', {
-                day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
-              });
-              let outcome: { text: string; bg: string; fg: string } | null = null;
-              if (n.checked) {
-                outcome = n.followed
-                  ? { text: 'paused', bg: 'rgba(134,239,172,0.14)', fg: 'rgba(134,239,172,0.95)' }
-                  : { text: 'went ahead', bg: 'rgba(255,255,255,0.06)', fg: 'rgba(255,255,255,0.55)' };
-              }
-              return (
-                <div
-                  key={n.id}
-                  className="flex items-start gap-3 px-4 py-3"
-                  style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}
-                >
-                  <div className="flex-1 min-w-0">
-                    <p
-                      style={{
-                        fontFamily: "'Geist','Inter',sans-serif",
-                        fontSize: 14,
-                        color: 'var(--foreground)',
-                        fontWeight: 500,
-                        lineHeight: 1.4,
-                      }}
-                    >
-                      {n.title}
-                    </p>
-                    <p
-                      style={{
-                        fontFamily: "'Geist','Inter',sans-serif",
-                        fontSize: 12.5,
-                        color: 'rgba(255,255,255,0.55)',
-                        marginTop: 2,
-                        lineHeight: 1.45,
-                      }}
-                    >
-                      {n.merchant
-                        ? `${formatCurrency(n.amount, currency)} at ${n.merchant}${n.stress_score !== null ? ` · stress ${Math.round(n.stress_score * 100)}%` : ''}`
-                        : n.body}
-                    </p>
-                    <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.30)', marginTop: 3, fontFamily: "'Geist','Inter',sans-serif" }}>
-                      {whenTxt}
-                    </p>
-                  </div>
-                  {outcome ? (
-                    <span
-                      className="flex-shrink-0 px-2 py-0.5 rounded-full"
-                      style={{
-                        fontSize: 11,
-                        fontFamily: "'Geist','Inter',sans-serif",
-                        fontWeight: 500,
-                        background: outcome.bg,
-                        color: outcome.fg,
-                      }}
-                    >
-                      {outcome.text}
-                    </span>
-                  ) : (
-                    <span
-                      className="flex-shrink-0 px-2 py-0.5 rounded-full"
-                      style={{
-                        fontSize: 11,
-                        fontFamily: "'Geist','Inter',sans-serif",
-                        background: 'rgba(255,255,255,0.04)',
-                        color: 'rgba(255,255,255,0.30)',
-                      }}
-                    >
-                      evaluating
-                    </span>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* If nudges were sent but no recent detail returned */}
-      {(!nudgeStats.recent || nudgeStats.recent.length === 0) && nudgeStats.total_sent > 0 && (
-        <div style={{ ...CARD_STYLE, padding: '20px 24px' }}>
-          <p
-            style={{
-              fontFamily: "'Instrument Serif', Georgia, serif",
-              fontSize: 16,
-              color: 'rgba(255,255,255,0.65)',
-              lineHeight: 1.5,
-            }}
-          >
-            {nudgeStats.total_sent} alert{nudgeStats.total_sent === 1 ? '' : 's'} sent — evaluating outcomes.
-          </p>
-        </div>
-      )}
-    </div>
-  );
-}
-
 export default function MoneyPage() {
   // audit-2026-05-12 M3: hook already appends " | Twin Me", so passing
   // "Money · TwinMe" produced "Money · TwinMe | Twin Me" (brand duplicated,
   // two spellings). Pass just the page label.
   useDocumentTitle('Money');
 
-  const [searchParams, setSearchParams] = useSearchParams();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [summary, setSummary] = useState<TransactionsSummary | null>(null);
-  const [savings, setSavings] = useState<SavingsSummary | null>(null);
-  const [patterns, setPatterns] = useState<PatternsResult | null>(null);
-  const [nudgeStats, setNudgeStats] = useState<NudgeStats | null>(null);
-  const [forecast, setForecast] = useState<RiskForecast | null>(null);
   const [timeline, setTimeline] = useState<TimelineDay[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'gastos' | 'nudges'>('gastos');
   const [lastUpload, setLastUpload] = useState<UploadResult | null>(null);
   const [retagging, setRetagging] = useState(false);
+
+  // replan-2026-06-10 Track D: Plaid (US) brokerage surfaces are parked
+  // behind this flag — sandbox-only rail, no real US user can connect yet.
+  const plaidEnabled = useFeatureFlag('money_plaid');
 
   // audit-2026-06-10 (money-page): derive dominance from the backend's
   // per-currency summary breakdown (full window, sorted by outflow desc) so
@@ -789,21 +576,13 @@ export default function MoneyPage() {
     setLoading(true);
     setError(null);
     try {
-      const [txns, sum, sav, pat, nudges, fc, tl] = await Promise.all([
+      const [txns, sum, tl] = await Promise.all([
         listTransactions({ limit: 50 }),
         getTransactionsSummary(),
-        getSavings(),
-        getSpendingPatterns(),
-        getNudgeStats(),
-        getRiskForecast(),
         getTimelineAnalysis(),
       ]);
       setTransactions(txns);
       setSummary(sum);
-      setSavings(sav);
-      setPatterns(pat);
-      setNudgeStats(nudges);
-      setForecast(fc);
       setTimeline(tl);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load transactions');
@@ -813,34 +592,6 @@ export default function MoneyPage() {
   }, []);
 
   useEffect(() => { void load(); }, [load]);
-
-  // audit-2026-06-10 (money-page): the TrueLayer callback (api/routes/
-  // truelayer.js) full-page-redirects back here with ?truelayer_connected=1
-  // or ?truelayer_error=<code>, but nothing consumed them — a failed bank
-  // consent landed on /money with zero feedback. Surface the outcome, then
-  // strip the params so refresh/back doesn't replay it. Declared AFTER the
-  // load() effect: load() synchronously clears `error` on mount, so this
-  // must run second or the error banner would be wiped.
-  useEffect(() => {
-    const connected = searchParams.get('truelayer_connected');
-    const tlError = searchParams.get('truelayer_error');
-    if (connected === null && tlError === null) return;
-    if (connected === '1') {
-      // The backend only redirects with this flag after the token exchange
-      // and connection insert succeeded, so success feedback is truthful.
-      toast.success('Bank connected. Your transactions are being imported and will appear here shortly.');
-    } else if (tlError !== null) {
-      setError(
-        tlError === 'access_denied'
-          ? 'Bank connection cancelled — no account was linked. You can try again anytime.'
-          : 'We could not finish connecting your bank. Try again, or upload a CSV/OFX statement below.'
-      );
-    }
-    const next = new URLSearchParams(searchParams);
-    next.delete('truelayer_connected');
-    next.delete('truelayer_error');
-    setSearchParams(next, { replace: true });
-  }, [searchParams, setSearchParams]);
 
   const handleUpload = useCallback(async (result: UploadResult) => {
     setLastUpload(result);
@@ -929,64 +680,6 @@ export default function MoneyPage() {
         Your money has feelings. We translate them.
       </p>
 
-      {/* Tab bar */}
-      <div
-        className="flex gap-1 mb-6 p-1 rounded-[12px]"
-        style={{
-          background: 'rgba(255,255,255,0.04)',
-          border: '1px solid rgba(255,255,255,0.06)',
-          display: 'inline-flex',
-        }}
-      >
-        {(['gastos', 'nudges'] as const).map((tab) => {
-          // Tab key 'gastos' is internal state only — label is user-facing English.
-          const labels = { gastos: 'Spending', nudges: 'Nudges & Wins' };
-          const isActive = activeTab === tab;
-          return (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              style={{
-                fontFamily: "'Geist','Inter',sans-serif",
-                fontSize: 13,
-                fontWeight: 500,
-                padding: '6px 16px',
-                borderRadius: 8,
-                border: 'none',
-                cursor: 'pointer',
-                transition: 'all 120ms ease-out',
-                background: isActive ? 'rgba(255,255,255,0.10)' : 'transparent',
-                color: isActive ? 'var(--foreground)' : 'rgba(255,255,255,0.40)',
-              }}
-            >
-              {labels[tab]}
-              {tab === 'nudges' && nudgeStats && nudgeStats.followed_count > 0 && (
-                <span
-                  style={{
-                    marginLeft: 6,
-                    fontSize: 10,
-                    padding: '1px 6px',
-                    borderRadius: 20,
-                    background: 'rgba(134,239,172,0.20)',
-                    color: 'rgba(134,239,172,0.95)',
-                  }}
-                >
-                  {nudgeStats.followed_count}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Nudges tab — dedicated view */}
-      {activeTab === 'nudges' && (
-        <NudgesTab nudgeStats={nudgeStats} currency={dominantCurrency} />
-      )}
-
-      {/* Main gastos view */}
-      {activeTab === 'gastos' && (<>
-
       {/* Connect a BR bank in real time via Pluggy Open Finance. Falls back to
           CSV/OFX upload below for banks Pluggy doesn't cover or users who
           prefer the manual flow. */}
@@ -1011,37 +704,33 @@ export default function MoneyPage() {
 
       <BankConnectionsList onChanged={load} />
 
-      {/* Moat headline — Phase 4.2 visual treatment. Stress-Spend Timeline +
-          Brokerage Activity side-by-side: "why you spent" next to "why you
-          traded". This is the pair that distinguishes us from ChatGPT
-          Personal Finance, so it lands above the portfolio snapshot and
-          spend detail. Each card hides itself when empty, so the grid
-          gracefully collapses to one column when only one has data. */}
-      {(timeline.length > 0) && (
+      {/* Spending timeline (30d). When the parked Plaid brokerage surface is
+          flag-enabled it returns as the second cell of the old "moat" pair;
+          by default the timeline is a single full-width card. */}
+      {timeline.length > 0 && (
         <div
-          className="mb-6 grid grid-cols-1 lg:grid-cols-2 gap-4"
+          className={plaidEnabled ? 'mb-6 grid grid-cols-1 lg:grid-cols-2 gap-4' : 'mb-6'}
           data-testid="moat-headline-grid"
         >
-          {timeline.length > 0 && (
-            <div style={{ ...CARD_STYLE, padding: '20px 20px 16px' }}>
-              <p style={{ ...LABEL_STYLE, marginBottom: 16 }}>Why you spend · 30 days</p>
-              <StressSpendTimeline days={timeline} currency={dominantCurrency} />
+          <div style={{ ...CARD_STYLE, padding: '20px 20px 16px' }}>
+            <p style={{ ...LABEL_STYLE, marginBottom: 16 }}>Why you spend · 30 days</p>
+            <StressSpendTimeline days={timeline} currency={dominantCurrency} />
+          </div>
+          {plaidEnabled && (
+            <div>
+              {/* BrokerageActivityCard is self-headered; wrap so it sits in
+                  the same grid cell. The card returns null when empty so the
+                  grid collapses to single-column gracefully. */}
+              <BrokerageActivityCard />
             </div>
           )}
-          <div>
-            {/* BrokerageActivityCard is self-headered; wrap so it sits in the
-                same grid cell. The card returns null when empty so the grid
-                collapses to single-column gracefully. */}
-            <BrokerageActivityCard />
-          </div>
         </div>
       )}
 
-      {/* Brokerage holdings — Phase 4.1 (US Plaid). Reads /api/plaid/holdings,
-          renders an empty CTA when no brokerage is linked. Quietly returns
-          null when Plaid is unconfigured so we don't double up on the
-          connect-button hint. */}
-      <BrokerageHoldingsCard />
+      {/* Brokerage holdings — parked behind money_plaid (replan-2026-06-10
+          Track D). The card also self-gates on the flag, so MoneyInsightsPage
+          parks without changes. */}
+      {plaidEnabled && <BrokerageHoldingsCard />}
 
       {/* Upload zone */}
       <div className="mb-6">
@@ -1113,227 +802,10 @@ export default function MoneyPage() {
         </div>
       )}
 
-      {/* Stress-Spend Timeline moved to the moat-headline grid above
-          (alongside BrokerageActivityCard) so it lands at the top of the
-          page as the headline pair, not buried below the upload zone. */}
-
-      {/* Savings hero — the ROI proof card, only when there's a positive total */}
-      {savings && savings.total_saved > 0 && (
-        <div
-          className="mb-6"
-          style={{
-            ...CARD_STYLE,
-            padding: '24px 24px 22px',
-            background: 'linear-gradient(135deg, rgba(134, 239, 172, 0.08) 0%, rgba(255,255,255,0.04) 80%)',
-            borderColor: 'rgba(134, 239, 172, 0.22)',
-          }}
-        >
-          <p
-            style={{
-              ...LABEL_STYLE,
-              color: 'rgba(134, 239, 172, 0.85)',
-              marginBottom: 10,
-            }}
-          >
-            TwinMe saved you money · {savings.window_days} days
-          </p>
-          <p
-            style={{
-              fontFamily: "'Instrument Serif', Georgia, serif",
-              fontSize: 36,
-              letterSpacing: '-0.03em',
-              color: 'var(--foreground)',
-              lineHeight: 1.05,
-              marginBottom: 8,
-            }}
-          >
-            {formatCurrency(savings.total_saved, dominantCurrency)}
-          </p>
-          <p
-            style={{
-              fontFamily: "'Geist', 'Inter', sans-serif",
-              fontSize: 13,
-              color: 'rgba(255,255,255,0.55)',
-              lineHeight: 1.55,
-            }}
-          >
-            {savings.waited_count} time{savings.waited_count === 1 ? '' : 's'} you waited after an alert.
-            {savings.biggest_save > 0 && <> Biggest pause: {formatCurrency(savings.biggest_save, dominantCurrency)}.</>}
-          </p>
-        </div>
-      )}
-
-      {/* Phase 3.5 — "before it happens" daily risk forecast. Appears only when
-          the backend has enough signal to say something meaningful. */}
-      {forecast && (forecast.status === 'high_risk' || forecast.status === 'low_risk') && (
-        <div
-          className="mb-6 px-5 py-4"
-          style={{
-            ...CARD_STYLE,
-            background: forecast.status === 'high_risk'
-              ? 'rgba(217, 119, 6, 0.06)'
-              : 'rgba(134, 239, 172, 0.04)',
-            borderColor: forecast.status === 'high_risk'
-              ? 'rgba(217, 119, 6, 0.20)'
-              : 'rgba(134, 239, 172, 0.14)',
-          }}
-        >
-          <p
-            style={{
-              ...LABEL_STYLE,
-              color: forecast.status === 'high_risk' ? 'rgba(232, 160, 80, 0.85)' : 'rgba(134, 239, 172, 0.85)',
-              marginBottom: 6,
-            }}
-          >
-            Today
-          </p>
-          <p
-            style={{
-              fontFamily: "'Instrument Serif', Georgia, serif",
-              fontSize: 24,
-              color: 'var(--foreground)',
-              lineHeight: 1.2,
-              letterSpacing: '-0.01em',
-              marginBottom: 6,
-            }}
-          >
-            {forecast.headline}
-          </p>
-          <p
-            style={{
-              fontFamily: "'Geist', 'Inter', sans-serif",
-              fontSize: 13,
-              lineHeight: 1.5,
-              color: 'rgba(255,255,255,0.70)',
-            }}
-          >
-            {forecast.detail}
-          </p>
-        </div>
-      )}
-
       {/* Summary — currency derived from the tx list (dominant). */}
       {summary && (
         <div className="mb-6">
           <SummaryBar summary={summary} currency={dominantCurrency} mixedCurrency={hasMixedCurrency} />
-        </div>
-      )}
-
-      {/* Inline nudge summary in the gastos tab — just the counter, points to the tab */}
-      {nudgeStats && nudgeStats.total_sent > 0 && (
-        <div
-          className="mb-6 px-4 py-3 flex items-center justify-between gap-3 cursor-pointer hover:opacity-80 transition-opacity"
-          style={{
-            ...CARD_STYLE,
-            background: 'rgba(134,239,172,0.04)',
-            borderColor: 'rgba(134,239,172,0.14)',
-          }}
-          onClick={() => setActiveTab('nudges')}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => { if (e.key === 'Enter') setActiveTab('nudges'); }}
-        >
-          <div>
-            <p style={{ ...LABEL_STYLE, color: 'rgba(134,239,172,0.85)', marginBottom: 4 }}>
-              Nudges & Wins
-            </p>
-            <p style={{ fontFamily: "'Instrument Serif',Georgia,serif", fontSize: 16, color: 'var(--foreground)', lineHeight: 1.3 }}>
-              {nudgeStats.followed_count > 0
-                ? `${nudgeStats.followed_count} pause${nudgeStats.followed_count === 1 ? '' : 's'} · ${formatCurrency(nudgeStats.est_saved, dominantCurrency)} saved`
-                : `${nudgeStats.total_sent} alert${nudgeStats.total_sent === 1 ? '' : 's'} sent`}
-            </p>
-          </div>
-          <span style={{ fontSize: 18, color: 'rgba(255,255,255,0.30)' }}>›</span>
-        </div>
-      )}
-
-
-      {/* Stress-spending patterns — the "WHY you spend" UVP card */}
-      {patterns && patterns.hasData && patterns.patterns.length > 0 && (
-        <div className="mb-6" style={{ ...CARD_STYLE, padding: '24px 24px 18px' }}>
-          <p style={{ ...LABEL_STYLE, color: 'rgba(232, 160, 80, 0.85)' }}>
-            Your patterns · last 90 days
-          </p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-            {patterns.patterns.map((p: SpendingPattern, i: number) => (
-              <div
-                key={i}
-                style={{
-                  borderLeft: '2px solid rgba(232, 160, 80, 0.35)',
-                  paddingLeft: 14,
-                }}
-              >
-                <p
-                  style={{
-                    fontFamily: "'Instrument Serif', Georgia, serif",
-                    fontSize: 19,
-                    lineHeight: 1.35,
-                    color: 'var(--foreground)',
-                    letterSpacing: '-0.01em',
-                    margin: 0,
-                  }}
-                >
-                  {p.headline}
-                </p>
-                <p
-                  style={{
-                    fontFamily: "'Geist', 'Inter', sans-serif",
-                    fontSize: 12.5,
-                    color: 'rgba(255,255,255,0.50)',
-                    marginTop: 6,
-                    lineHeight: 1.5,
-                  }}
-                >
-                  {p.detail}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Not-enough-data state — teaches user what's needed */}
-      {patterns && patterns.hasData === false && patterns.minTransactionsReached === false && patterns.txCount !== undefined && (
-        <div className="mb-6" style={{ ...CARD_STYLE, padding: '20px 24px' }}>
-          <p style={LABEL_STYLE}>Patterns coming soon</p>
-          <p
-            style={{
-              fontFamily: "'Instrument Serif', Georgia, serif",
-              fontSize: 17,
-              lineHeight: 1.4,
-              color: 'rgba(255,255,255,0.75)',
-              letterSpacing: '-0.01em',
-              marginBottom: 6,
-            }}
-          >
-            I need {(patterns.minRequired || 14) - patterns.txCount} more transaction
-            {(patterns.minRequired || 14) - patterns.txCount === 1 ? '' : 's'} before I can start showing you patterns.
-          </p>
-          <p style={{ fontFamily: "'Geist', 'Inter', sans-serif", fontSize: 12.5, color: 'rgba(255,255,255,0.45)' }}>
-            Once there is enough data, correlations between your stress, your body, and your spending will appear here.
-          </p>
-        </div>
-      )}
-
-      {/* Got enough transactions, but no pattern passed confidence threshold yet */}
-      {patterns && patterns.hasData === true && patterns.patterns.length === 0 && (
-        <div className="mb-6" style={{ ...CARD_STYLE, padding: '20px 24px' }}>
-          <p style={LABEL_STYLE}>Still analyzing</p>
-          <p
-            style={{
-              fontFamily: "'Instrument Serif', Georgia, serif",
-              fontSize: 17,
-              lineHeight: 1.4,
-              color: 'rgba(255,255,255,0.75)',
-              letterSpacing: '-0.01em',
-              marginBottom: 6,
-            }}
-          >
-            Your {patterns.txCount} purchases do not form a clear pattern yet.
-          </p>
-          <p style={{ fontFamily: "'Geist', 'Inter', sans-serif", fontSize: 12.5, color: 'rgba(255,255,255,0.45)' }}>
-            I would rather not show you weak patterns. When there is a strong signal between stress, body, and spending, it appears here.
-          </p>
         </div>
       )}
 
@@ -1411,40 +883,10 @@ export default function MoneyPage() {
         </p>
       )}
 
-      {/* Visual balance accent */}
-      {hasTransactions && summary && summary.emotional_spend_ratio !== null && summary.emotional_spend_ratio > 0.3 && (
-        <div className="mt-8" style={{ ...CARD_STYLE, padding: 20 }}>
-          <div className="flex items-start gap-3">
-            <TrendingDown className="w-4 h-4 mt-1 flex-shrink-0" style={{ color: 'rgba(232, 160, 80, 0.95)' }} />
-            <div>
-              <p
-                style={{
-                  fontFamily: "'Instrument Serif', Georgia, serif",
-                  fontSize: 17,
-                  lineHeight: 1.4,
-                  color: 'var(--foreground)',
-                  letterSpacing: '-0.01em',
-                }}
-              >
-                {Math.round(summary.emotional_spend_ratio * 100)}% of your spending happened on high-stress days.
-              </p>
-              <p
-                style={{
-                  fontFamily: "'Geist', 'Inter', sans-serif",
-                  fontSize: 13,
-                  color: 'rgba(255,255,255,0.55)',
-                  marginTop: 6,
-                  lineHeight: 1.55,
-                }}
-              >
-                Soon I will warn you <em>before</em> your next impulse purchase — so you get to choose.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      </>)}
+      {/* The ONE unlock card (replan-2026-06-10 Track D): replaces the four
+          permanently-empty promise surfaces (patterns, risk forecast,
+          nudges & wins, savings hero) with a single honest progress meter. */}
+      {!loading && <UnlockProgressCard timeline={timeline} transactions={transactions} />}
     </div>
   );
 }

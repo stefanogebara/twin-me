@@ -43,7 +43,7 @@ import * as plaid from './plaidClient.js';
 const log = createLogger('plaid-ingestion');
 
 // USD threshold — Plaid is US-centric so default to USD-equivalent of the
-// Pluggy/TrueLayer 50-unit floor (matches the existing "only material tx
+// Pluggy 50-unit floor (matches the existing "only material tx
 // land in the memory stream" rule). Roughly $50.
 const MEMORY_MIN_AMOUNT = 50;
 

@@ -18,6 +18,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { TrendingUp, TrendingDown, Loader2, Briefcase, AlertCircle, RefreshCw } from 'lucide-react';
+import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { getPlaidHoldings, type PlaidHolding, type PlaidHoldingsResponse } from '@/services/api/transactionsAPI';
 
 interface Props {
@@ -128,6 +129,10 @@ export const BrokerageHoldingsCard: React.FC<Props> = ({ refreshNonce = 0 }) => 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // replan-2026-06-10 Track D: Plaid is sandbox-only — the whole card is
+  // parked behind money_plaid (default off) on every page that mounts it.
+  const plaidEnabled = useFeatureFlag('money_plaid');
+
   const load = React.useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -149,7 +154,12 @@ export const BrokerageHoldingsCard: React.FC<Props> = ({ refreshNonce = 0 }) => 
     }
   }, []);
 
-  useEffect(() => { void load(); }, [load, refreshNonce]);
+  useEffect(() => {
+    if (!plaidEnabled) return; // parked — skip the fetch entirely
+    void load();
+  }, [plaidEnabled, load, refreshNonce]);
+
+  if (!plaidEnabled) return null;
 
   // Hide entirely when Plaid is not configured. Connect button below covers
   // the actionable hint; we don't need to repeat ourselves.
