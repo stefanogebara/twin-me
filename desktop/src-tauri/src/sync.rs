@@ -495,14 +495,19 @@ pub async fn run(app: tauri::AppHandle) {
                             if let Err(err) = mark_briefing_shown(&conn, &today) {
                                 eprintln!("[briefing] mark shown failed: {err}");
                             }
-                            // Nudge the bundled page (if that's what the main
-                            // window is showing) so the card is already up when
-                            // the toast click focuses the app. Same CustomEvent
-                            // channel as handle_deep_link; the remote twinme.me
-                            // page simply ignores the event.
+                            // Ready the Brief in whichever surface the main
+                            // window is showing. The bundled page listens for
+                            // 'twinme:briefing-ready' and renders its in-page
+                            // briefing-detail screen. The REMOTE twinme.me app
+                            // has no such screen, so send it to the /briefing
+                            // route (replan-2026-06-10 desktop-product P2) — the
+                            // hostname guard mirrors handle_deep_link's
+                            // bundled-vs-remote detection (lib.rs), so the
+                            // bundled page (tauri.localhost) never navigates.
                             if let Some(win) = app.get_webview_window("main") {
                                 let _ = win.eval(
-                                    "window.dispatchEvent(new CustomEvent('twinme:briefing-ready'))",
+                                    "window.dispatchEvent(new CustomEvent('twinme:briefing-ready'));\
+                                     if(location.hostname.endsWith('twinme.me')&&!location.pathname.startsWith('/briefing')){location.assign('https://twinme.me/briefing')}",
                                 );
                             }
                         }

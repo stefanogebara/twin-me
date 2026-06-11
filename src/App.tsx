@@ -76,6 +76,7 @@ const WikiPage = lazy(() => import("./pages/WikiGraphPage"));
 const GoalsPage = lazy(() => import("./pages/GoalsPage"));
 const MoneyPage = lazy(loadMoneyPage);
 const MoneyInsightsPage = lazy(loadMoneyInsightsPage);
+const BriefingPage = lazy(() => import("./pages/BriefingPage"));
 const MeetingsPage = lazy(() => import("./pages/MeetingsPage"));
 const TwinSoulPage = lazy(() => import("./pages/TwinSoulPage"));
 const PricingPage = lazy(() => import("./pages/PricingPage"));
@@ -186,6 +187,17 @@ const App = () => {
                 <SidebarLayout>
                   <ErrorBoundary>
                     <DashboardV2 />
+                  </ErrorBoundary>
+                </SidebarLayout>
+              </ProtectedRoute>
+            } />
+            {/* Daily Brief — deep-link target for the desktop morning toast
+                (replan-2026-06-10 desktop-product P2). */}
+            <Route path="/briefing" element={
+              <ProtectedRoute>
+                <SidebarLayout>
+                  <ErrorBoundary>
+                    <BriefingPage />
                   </ErrorBoundary>
                 </SidebarLayout>
               </ProtectedRoute>
