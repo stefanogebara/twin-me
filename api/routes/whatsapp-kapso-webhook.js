@@ -31,6 +31,7 @@ import { createLogger } from '../services/logger.js';
 import { buildPurchaseContext } from '../services/purchaseContextBuilder.js';
 import { generatePurchaseReflection } from '../services/purchaseReflection.js';
 import { isStatementDocument, handleStatementDocument } from '../services/transactions/whatsappStatementIngest.js';
+import { handleReceiptImage } from '../services/transactions/pixReceiptIngest.js';
 
 const log = createLogger('WhatsAppKapsoWebhook');
 const router = express.Router();
@@ -199,6 +200,24 @@ function parseIncomingMessage(body) {
     };
   }
 
+  // Kapso v2 image message (strategy Phase 3): a forwarded Pix comprovante
+  // screenshot. Meta's image shape — { image: { id, mime_type, caption? } }.
+  if (body?.message?.type === 'image' && body?.message?.from) {
+    const msg = body.message;
+    return {
+      phone: msg.from,
+      text: null,
+      image: {
+        id: msg.image?.id,
+        mimeType: msg.image?.mime_type || null,
+        caption: msg.image?.caption || null,
+      },
+      messageId: msg.id,
+      contactName: msg.username || null,
+      format: 'kapso_v2_image',
+    };
+  }
+
   // Legacy Kapso v1 format (kept for backward compat):
   // { event: "whatsapp.message.received", data: { from, message: { id, type, text: { body } }, contact } }
   if (body?.event === 'whatsapp.message.received' && body?.data?.message) {
@@ -305,7 +324,7 @@ router.post('/webhook', async (req, res) => {
     // 4. Parse message (supports Kapso + Meta native fallback). Either text
     // (chat) or a document (statement ingestion) is processable.
     const parsed = parseIncomingMessage(req.body);
-    if (!parsed || !parsed.phone || (!parsed.text && !parsed.document)) {
+    if (!parsed || !parsed.phone || (!parsed.text && !parsed.document && !parsed.image)) {
       log.info('Non-text or unparseable message, skipping', {
         event: req.body?.event,
         format: parsed?.format,
@@ -392,6 +411,31 @@ router.post('/webhook', async (req, res) => {
       });
 
       log.info('WhatsApp statement processed', {
+        userId,
+        ok: result.ok,
+        inserted: result.inserted ?? 0,
+      });
+      return;
+    }
+
+    // 6c. Receipt image (strategy Phase 3): a forwarded Pix comprovante
+    // screenshot. Vision-extract the transaction, dedupe against statements,
+    // ingest, and echo a structured confirmation (Magie pattern: parse ->
+    // echo -> confirm; the thread is the ledger).
+    if (parsed.image) {
+      const result = await handleReceiptImage(userId, parsed.image);
+      await sendWhatsAppMessage(phone, result.reply);
+
+      await addConversationMemory(
+        userId,
+        `[sent payment receipt image${parsed.image.caption ? `: ${parsed.image.caption}` : ''}]`,
+        result.reply,
+        { source: 'whatsapp', messageId, contactName },
+      ).catch(err => {
+        log.warn('Failed to store receipt conversation memory', { userId, error: err.message });
+      });
+
+      log.info('WhatsApp receipt processed', {
         userId,
         ok: result.ok,
         inserted: result.inserted ?? 0,

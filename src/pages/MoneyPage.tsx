@@ -32,6 +32,7 @@ import {
   type TimelineDay,
 } from '@/services/api/transactionsAPI';
 import { ConnectBankButton } from './components/money/ConnectBankButton';
+import { GmailCourierToggle } from './components/money/GmailCourierToggle';
 import { BankConnectionsList } from './components/money/BankConnectionsList';
 import { StressSpendTimeline } from './components/money/StressSpendTimeline';
 import { BrokerageHoldingsCard } from './components/money/BrokerageHoldingsCard';
@@ -1005,6 +1006,9 @@ export default function MoneyPage() {
         >
           or upload a CSV/OFX statement below
         </span>
+        {/* Phase 2 (bank-integration strategy): auto-import OFX statements the
+            bank emails you (e.g. Nubank Exportar Extrato) from Gmail. */}
+        <GmailCourierToggle />
       </div>
 
       <BankConnectionsList onChanged={load} />
