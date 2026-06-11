@@ -41,11 +41,11 @@
  *   X-2   Inline nudge card has role=button + tabIndex=0
  *
  * C — CX / Content
- *   C-1   Tagline "Seu dinheiro tem sentimentos. A gente traduz." present
- *   C-2   Empty state shows "Nada por aqui ainda" + upload guidance
- *   C-3   Footer hint mentions "Nubank → Perfil → Exportar" in empty state
+ *   C-1   Tagline "Your money has feelings. We translate them." present
+ *   C-2   Empty state shows "Nothing here yet" + upload guidance
+ *   C-3   Footer hint mentions "Nubank → Profile → Export" in empty state
  *   C-4   Insufficient-data patterns state names exact additional-tx count
- *   C-7   Multi-currency triggers "multi-moeda" chip
+ *   C-7   Multi-currency triggers "multi-currency" chip
  *
  * Opt-in: TWINME_RUN_MONEY_AUDIT=true
  */
@@ -314,7 +314,7 @@ test.describe('/money — authenticated UI with data', () => {
     const h1 = page.getByRole('heading', { name: 'Money', level: 1 });
     await expect(h1, 'F-3 H1').toBeVisible();
 
-    await expect(page.getByText('Seu dinheiro tem sentimentos. A gente traduz.'), 'C-1 tagline').toBeVisible();
+    await expect(page.getByText('Your money has feelings. We translate them.'), 'C-1 tagline').toBeVisible();
 
     const rows = page.locator('[data-testid="transaction-row"]');
     await expect(rows, 'F-3 tx rows count').toHaveCount(TX.length);
@@ -329,9 +329,9 @@ test.describe('/money — authenticated UI with data', () => {
     const nudgesTab = page.getByRole('button', { name: /Nudges & Wins/i }).first();
     await nudgesTab.click();
     await page.waitForTimeout(300);
-    await expect(page.getByText('pausas').first(), 'F-4 after switch').toBeVisible();
+    await expect(page.getByText(/Nudges & Wins · \d+ days/i).first(), 'F-4 after switch').toBeVisible();
 
-    const gastosTab = page.getByRole('button', { name: /^Gastos$/i });
+    const gastosTab = page.getByRole('button', { name: /^Spending$/i });
     await gastosTab.click();
     await page.waitForTimeout(300);
     await expect(rows.first(), 'F-4 back to gastos').toBeVisible();
@@ -389,7 +389,7 @@ test.describe('/money — authenticated UI with data', () => {
     await mockMoneyAPIs(page, { transactions: multiTx, summary: multiSummary });
     await page.goto(`${BASE_URL}/money`, { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(1200);
-    await expect(page.getByText('multi-moeda'), 'C-7 chip').toBeVisible();
+    await expect(page.getByText('multi-currency'), 'C-7 chip').toBeVisible();
   });
 });
 
@@ -409,10 +409,10 @@ test.describe('/money — empty state', () => {
     await page.goto(`${BASE_URL}/money`, { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(1500);
 
-    await expect(page.getByText('Nada por aqui ainda'), 'F-2/C-2 headline').toBeVisible();
-    await expect(page.getByText(/Solta um extrato CSV ou OFX/i), 'C-2 upload prompt').toBeVisible();
-    await expect(page.getByText(/Nubank.*Perfil.*Exportar/i), 'C-3 Nubank steps').toBeVisible();
-    await expect(page.getByText(/Preciso de \d+ transaç/i), 'C-4 patterns insufficient').toBeVisible();
+    await expect(page.getByText('Nothing here yet'), 'F-2/C-2 headline').toBeVisible();
+    await expect(page.getByText(/Drop a CSV or OFX statement/i), 'C-2 upload prompt').toBeVisible();
+    await expect(page.getByText(/Nubank.*Profile.*Export/i), 'C-3 Nubank steps').toBeVisible();
+    await expect(page.getByText(/I need \d+ more transaction/i), 'C-4 patterns insufficient').toBeVisible();
 
     await expect(page.getByRole('button', { name: /Re-tag/i }), 'F-3 no re-tag in empty').not.toBeVisible();
 
