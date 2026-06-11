@@ -72,7 +72,7 @@ add_env "WHOOP_CLIENT_SECRET" "$(get_env_value WHOOP_CLIENT_SECRET)"
 add_env "WHOOP_REDIRECT_URI" "$PROD_CALLBACK"
 add_env "NANGO_SECRET_KEY" "$(get_env_value NANGO_SECRET_KEY)"
 add_env "NANGO_PUBLIC_KEY" "$(get_env_value NANGO_PUBLIC_KEY)"
-add_env "TWITCH_CLIENT_ID" "$(get_env_value TWITCH_CLIENT_ID)"
+# TWITCH_CLIENT_ID removed (replan-2026-06-10 Track C): Twitch OAuth stack retired
 add_env "SCRAPIN_API_KEY" "$(get_env_value SCRAPIN_API_KEY)"
 add_env "VITE_POSTHOG_KEY" "$(get_env_value VITE_POSTHOG_KEY)"
 add_env "VITE_POSTHOG_HOST" "$(get_env_value VITE_POSTHOG_HOST)"
@@ -88,8 +88,7 @@ add_env "PIPEDREAM_CLIENT_ID" "$(get_env_value PIPEDREAM_CLIENT_ID)"
 add_env "PIPEDREAM_CLIENT_SECRET" "$(get_env_value PIPEDREAM_CLIENT_SECRET)"
 add_env "PIPEDREAM_PROJECT_ID" "$(get_env_value PIPEDREAM_PROJECT_ID)"
 add_env "PIPEDREAM_ENV" "production"
-# Override redirect URI to production
-add_env "REDDIT_REDIRECT_URI" "$PROD_CALLBACK"
+# REDDIT_REDIRECT_URI removed (replan-2026-06-10 Track C): Reddit OAuth stack retired
 
 echo ""
 echo "--- EXISTING VARS (verify redirect URIs point to production) ---"
@@ -97,8 +96,8 @@ echo "--- EXISTING VARS (verify redirect URIs point to production) ---"
 # These may already exist but should be verified/overridden to prod URLs
 add_env "DISCORD_REDIRECT_URI" "$PROD_CALLBACK"
 add_env "GITHUB_REDIRECT_URI" "$PROD_CALLBACK"
-add_env "SLACK_REDIRECT_URI" "$PROD_CALLBACK"
-add_env "LINKEDIN_REDIRECT_URI" "$PROD_CALLBACK"
+# SLACK_REDIRECT_URI and LINKEDIN_REDIRECT_URI removed (replan-2026-06-10
+# Track C): those OAuth stacks are retired.
 add_env "YOUTUBE_REDIRECT_URI" "$PROD_CALLBACK"
 add_env "GMAIL_REDIRECT_URI" "$PROD_CALLBACK"
 add_env "GOOGLE_REDIRECT_URI" "$PROD_CALLBACK"

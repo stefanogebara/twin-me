@@ -24,7 +24,6 @@ import { complete, TIER_ANALYSIS } from './llmGateway.js';
 import { sendPushToUser } from './pushNotificationService.js';
 import { supabaseAdmin } from './database.js';
 import { createLogger } from './logger.js';
-import { scoreForInsightSelection } from './inSilicoEngine.js';
 import { stripEmoji } from '../utils/stripEmoji.js';
 import { computeCategorySuppression, buildSuppressionPromptSection } from './insightSuppression.js';
 
@@ -405,26 +404,9 @@ async function generateProactiveInsights(userId) {
       return 0;
     }
 
-    // 4b. In-silico scoring: rank candidates by predicted engagement (TRIBE v2 Phase B)
-    // Non-fatal — if ICA axes don't exist yet or scoring fails, continue with LLM order
-    try {
-      const scored = await scoreForInsightSelection(userId, insights.map(i => i.insight));
-      if (scored.length > 0 && scored[0]?.engagement_score != null) {
-        const nudge = insights.find(i => i.category === 'nudge');
-        const nonNudges = insights
-          .filter(i => i.category !== 'nudge')
-          .sort((a, b) => {
-            const scoreA = scored.find(s => s.text === a.insight)?.engagement_score ?? 0;
-            const scoreB = scored.find(s => s.text === b.insight)?.engagement_score ?? 0;
-            return scoreB - scoreA;
-          });
-        insights = nudge ? [nudge, ...nonNudges] : nonNudges;
-        log.info('In-silico ranked insights', { userId, topScore: scored[0]?.engagement_score?.toFixed(3) });
-      }
-    } catch (scoringErr) {
-      // Non-fatal: if in-silico scoring fails, continue with LLM-ordered insights
-      log.warn('In-silico scoring skipped', { error: scoringErr.message });
-    }
+    // replan-2026-06-10 cycle 4: in-silico engagement ranking removed — the
+    // engine scored against ICA axes hardcoded to [], so the "ranking" was a
+    // static centroid prior. Insights keep the LLM's own ordering.
 
     // audit-2026-05-16: build the grounding corpus from the same observations
     // and reflections we just handed the LLM. The grounding gate below rejects

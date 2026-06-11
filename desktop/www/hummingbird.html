@@ -217,6 +217,13 @@
     function openRoute(path) { invoke("open_route", { path: path }); }
     function openApp() { invoke("open_main_window"); }
 
+    // NOTE: this file is a legacy local panel — the live "hummingbird" window
+    // loads https://twinme.me/widget?panel=1 directly (see tauri.conf.json).
+    // P1 context seeding therefore happens Rust-side: show_hummingbird()
+    // (lib.rs) evals sessionStorage 'hummingbird_context' into the remote
+    // /widget page on every summon. Do NOT add seeding here; it would never
+    // run (and would land on the wrong origin if it did).
+
     // Wire route buttons (primary + ghost) and the full-app button.
     document.querySelectorAll("[data-route]").forEach(function (el) {
       el.addEventListener("click", function () { openRoute(el.getAttribute("data-route")); });

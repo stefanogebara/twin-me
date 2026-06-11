@@ -4,9 +4,19 @@
 // load auth token -> pull a batch of unsynced clips -> POST -> mark the ones
 // the server accepted (and the ones it explicitly dropped, so we don't retry
 // rejects forever). On network/5xx error we leave them unsynced for next tick.
+//
+// P1 wire-the-loop: the same 2-min loop also carries the MORNING BRIEFING
+// poll — between 7 and 9am local, once per day, fetch the briefing from
+// GET /api/morning-briefing/generate and surface it as a native notification
+// (greeting + schedule summary only; the full JSON goes into BriefingState
+// for the bundled briefing-detail screen).
 use crate::{clips, config, meetings};
+use chrono::Timelike;
+use rusqlite::OptionalExtension;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
+use tauri::Manager;
+use tauri_plugin_notification::NotificationExt;
 
 const SYNC_INTERVAL: Duration = Duration::from_secs(120);
 // MUST be the canonical host (www), NOT the bare apex. The apex twinme.me
@@ -21,6 +31,9 @@ const BATCH_SIZE: usize = 50;
 // a meeting window, a misfire of classify_meeting) and never posted — they're
 // marked synced locally so they clear the queue without spamming the backend.
 const MIN_MEETING_MS: i64 = 60_000; // 1 minute
+// Windows silently drops toast bodies past ~256 BYTES, so the briefing toast
+// body is truncated to fit; the full briefing renders in the in-app card.
+const TOAST_BODY_MAX_BYTES: usize = 256;
 
 // WIRE CONTRACT: serde_json omits `None` fields here (no key emitted). The
 // backend's zod schema uses `.optional()`, which accepts a MISSING key but
@@ -177,7 +190,129 @@ async fn post_meetings_authed(
     }
 }
 
-pub async fn run() {
+// ── Morning briefing (P1 wire-the-loop) ──────────────────────────────────
+
+/// Envelope of GET /api/morning-briefing/generate. The briefing itself stays an
+/// untyped serde_json::Value: the desktop only reads two string fields for the
+/// toast and hands the rest verbatim to the briefing-detail screen, so a typed
+/// mirror of the backend shape would just be a second contract to keep in sync.
+#[derive(Debug, Deserialize)]
+struct BriefingEnvelope {
+    #[serde(default)]
+    success: bool,
+    briefing: Option<serde_json::Value>,
+}
+
+/// Resolve the briefing endpoint from the sync endpoint convention — same
+/// path-swap pattern as the meeting endpoint and auth_refresh::refresh_endpoint,
+/// so a TWINME_SYNC_ENDPOINT override redirects all desktop traffic at once.
+fn briefing_endpoint_from(clip_endpoint: &str) -> String {
+    clip_endpoint.replace("/observations/clip", "/morning-briefing/generate")
+}
+
+/// GET the morning briefing. Returns Ok(Some(briefing)) on a successful
+/// envelope, Ok(None) when the backend answered 2xx but had no briefing, and
+/// Err on network / non-2xx (incl. 401, which the authed wrapper handles).
+pub async fn fetch_briefing(
+    endpoint: &str,
+    token: &str,
+) -> Result<Option<serde_json::Value>, reqwest::Error> {
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(30))
+        .build()?;
+    let resp = client
+        .get(endpoint)
+        .bearer_auth(token)
+        .send()
+        .await?
+        .error_for_status()?;
+    let body: BriefingEnvelope = resp.json().await?;
+    Ok(if body.success { body.briefing } else { None })
+}
+
+/// `fetch_briefing` with the same one-shot 401 auth recovery as
+/// `post_batch_authed`: refresh the access token from the stored refresh token
+/// and retry once; any other error propagates so the caller retries next tick.
+async fn fetch_briefing_authed(
+    endpoint: &str,
+    token: &mut String,
+) -> Result<Option<serde_json::Value>, reqwest::Error> {
+    match fetch_briefing(endpoint, token.as_str()).await {
+        Err(err) if err.status() == Some(reqwest::StatusCode::UNAUTHORIZED) => {
+            match crate::auth_refresh::refresh_access_token().await {
+                Some(fresh) => {
+                    *token = fresh;
+                    fetch_briefing(endpoint, token.as_str()).await
+                }
+                None => Err(err),
+            }
+        }
+        other => other,
+    }
+}
+
+/// On-demand entry point for the `poll_morning_briefing` command (lib.rs):
+/// keyring token -> GET briefing -> JSON or None. None covers every miss case
+/// (not signed in, network error, backend had nothing) — the webview falls
+/// back to its no-briefing state; the error itself is logged here.
+pub async fn fetch_morning_briefing() -> Option<serde_json::Value> {
+    let Some(mut token) = config::load_auth() else {
+        return None; // not signed in — nothing to poll
+    };
+    let endpoint = std::env::var("TWINME_SYNC_ENDPOINT")
+        .unwrap_or_else(|_| DEFAULT_ENDPOINT.to_string());
+    match fetch_briefing_authed(&briefing_endpoint_from(&endpoint), &mut token).await {
+        Ok(briefing) => briefing,
+        Err(err) => {
+            eprintln!("[briefing] on-demand fetch failed: {err}");
+            None
+        }
+    }
+}
+
+/// Truncate to at most `max_bytes` BYTES on a char boundary, appending "..."
+/// when cut. Windows toasts silently drop bodies past ~256 bytes, so the
+/// schedule summary must be clipped rather than risk a blank notification.
+fn truncate_toast(s: &str, max_bytes: usize) -> String {
+    if s.len() <= max_bytes {
+        return s.to_string();
+    }
+    // Reserve 3 bytes for the ellipsis, then back up to a char boundary so we
+    // never slice mid-UTF-8-sequence (which would panic).
+    let mut end = max_bytes.saturating_sub(3);
+    while end > 0 && !s.is_char_boundary(end) {
+        end -= 1;
+    }
+    format!("{}...", &s[..end])
+}
+
+/// Local calendar date ("YYYY-MM-DD") the briefing notification last fired, or
+/// None if never. Same app_settings key/value pattern as clips::is_paused.
+fn briefing_shown_on(conn: &rusqlite::Connection) -> Option<String> {
+    conn.query_row(
+        "SELECT value FROM app_settings WHERE key = 'briefing_shown_on'",
+        [],
+        |r| r.get(0),
+    )
+    .optional()
+    .unwrap_or_else(|err| {
+        eprintln!("[briefing] briefing_shown_on read failed: {err}");
+        None
+    })
+}
+
+/// Persist today's local date as "briefing shown", so the 2-min loop fires the
+/// notification at most once per day. Mirrors clips::set_pause's upsert.
+fn mark_briefing_shown(conn: &rusqlite::Connection, date: &str) -> rusqlite::Result<()> {
+    conn.execute(
+        "INSERT INTO app_settings (key, value) VALUES ('briefing_shown_on', ?1)
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+        rusqlite::params![date],
+    )?;
+    Ok(())
+}
+
+pub async fn run(app: tauri::AppHandle) {
     let conn = match clips::open() {
         Ok(c) => c,
         Err(err) => {
@@ -307,6 +442,82 @@ pub async fn run() {
                 println!("[sync] uploaded 0 meetings (skipped {} short)", skip_ids.len());
             }
         }
+
+        // ── Morning briefing notification (P1 wire-the-loop) ─────────────
+        // Between 7 and 9am LOCAL, at most once per day (persisted across
+        // restarts via app_settings, like the pause flag): fetch the briefing
+        // and surface it as a native toast. The toast carries only greeting +
+        // schedule summary (Windows drops bodies past ~256 bytes); the FULL
+        // JSON goes into BriefingState so the bundled briefing-detail screen
+        // can render the whole card. Fetch failures retry on the next 2-min
+        // tick while still inside the window; "shown" is only recorded after
+        // the notification actually went out.
+        let now_local = chrono::Local::now();
+        let today = now_local.format("%Y-%m-%d").to_string();
+        if (7..9).contains(&now_local.hour())
+            && briefing_shown_on(&conn).as_deref() != Some(today.as_str())
+        {
+            let briefing_endpoint = briefing_endpoint_from(&endpoint);
+            match fetch_briefing_authed(&briefing_endpoint, &mut token).await {
+                Ok(Some(briefing)) => {
+                    let greeting = briefing
+                        .get("greeting")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("Good morning")
+                        .to_string();
+                    // schedule_summary is absent on the backend's no-data
+                    // fallback briefing — degrade to the suggestion, then to a
+                    // generic line, so the toast never ships an empty body.
+                    let body = briefing
+                        .get("schedule_summary")
+                        .and_then(|v| v.as_str())
+                        .or_else(|| briefing.get("suggestion").and_then(|v| v.as_str()))
+                        .unwrap_or("Your morning briefing is ready.");
+                    let body = truncate_toast(body, TOAST_BODY_MAX_BYTES);
+
+                    // Stash the full briefing BEFORE notifying, so the card is
+                    // ready the moment the user clicks through.
+                    if let Some(state) = app.try_state::<crate::BriefingState>() {
+                        if let Ok(mut slot) = state.0.lock() {
+                            *slot = Some(briefing.clone());
+                        }
+                    }
+
+                    match app
+                        .notification()
+                        .builder()
+                        .title(greeting.as_str())
+                        .body(body.as_str())
+                        .show()
+                    {
+                        Ok(()) => {
+                            println!("[briefing] notified: {greeting}");
+                            if let Err(err) = mark_briefing_shown(&conn, &today) {
+                                eprintln!("[briefing] mark shown failed: {err}");
+                            }
+                            // Nudge the bundled page (if that's what the main
+                            // window is showing) so the card is already up when
+                            // the toast click focuses the app. Same CustomEvent
+                            // channel as handle_deep_link; the remote twinme.me
+                            // page simply ignores the event.
+                            if let Some(win) = app.get_webview_window("main") {
+                                let _ = win.eval(
+                                    "window.dispatchEvent(new CustomEvent('twinme:briefing-ready'))",
+                                );
+                            }
+                        }
+                        Err(err) => eprintln!("[briefing] notification failed: {err}"),
+                    }
+                }
+                Ok(None) => {
+                    // 2xx but no briefing in the envelope — retry next tick.
+                    eprintln!("[briefing] backend returned no briefing — retrying next tick");
+                }
+                Err(err) => {
+                    eprintln!("[briefing] fetch failed: {err} — retrying next tick")
+                }
+            }
+        }
     }
 }
 
@@ -354,6 +565,107 @@ mod tests {
         let url = format!("{}/api/observations/clip", server.url());
         let result = post_batch(&url, "t", &[]).await;
         assert!(result.is_err());
+    }
+
+    // ── Morning briefing (P1 wire-the-loop) ──────────────────────────────
+
+    #[tokio::test]
+    async fn fetch_briefing_returns_briefing_json_on_200() {
+        let mut server = Server::new_async().await;
+        let mock = server
+            .mock("GET", "/api/morning-briefing/generate")
+            .match_header("authorization", "Bearer test-token")
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(
+                r#"{"success":true,"briefing":{"greeting":"Good Morning, Stefano","schedule_summary":"Two meetings, then clear."},"cached":true}"#,
+            )
+            .create_async()
+            .await;
+
+        let url = format!("{}/api/morning-briefing/generate", server.url());
+        let briefing = fetch_briefing(&url, "test-token").await.unwrap().unwrap();
+        assert_eq!(
+            briefing.get("greeting").and_then(|v| v.as_str()),
+            Some("Good Morning, Stefano")
+        );
+        mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn fetch_briefing_returns_none_when_success_false() {
+        let mut server = Server::new_async().await;
+        let _mock = server
+            .mock("GET", "/api/morning-briefing/generate")
+            .with_status(200)
+            .with_body(r#"{"success":false,"error":"Failed to generate morning briefing"}"#)
+            .create_async()
+            .await;
+        let url = format!("{}/api/morning-briefing/generate", server.url());
+        assert!(fetch_briefing(&url, "t").await.unwrap().is_none());
+    }
+
+    #[tokio::test]
+    async fn fetch_briefing_errs_on_401() {
+        let mut server = Server::new_async().await;
+        let _mock = server
+            .mock("GET", "/api/morning-briefing/generate")
+            .with_status(401)
+            .create_async()
+            .await;
+        let url = format!("{}/api/morning-briefing/generate", server.url());
+        assert!(fetch_briefing(&url, "expired").await.is_err());
+    }
+
+    #[test]
+    fn briefing_endpoint_derives_from_clip_endpoint() {
+        assert_eq!(
+            briefing_endpoint_from(DEFAULT_ENDPOINT),
+            "https://www.twinme.me/api/morning-briefing/generate"
+        );
+        assert_eq!(
+            briefing_endpoint_from("http://127.0.0.1:3004/api/observations/clip"),
+            "http://127.0.0.1:3004/api/morning-briefing/generate"
+        );
+    }
+
+    #[test]
+    fn truncate_toast_passes_short_strings_through() {
+        assert_eq!(truncate_toast("Two meetings today.", 256), "Two meetings today.");
+        // Exactly at the limit: untouched.
+        let exact = "x".repeat(256);
+        assert_eq!(truncate_toast(&exact, 256), exact);
+    }
+
+    #[test]
+    fn truncate_toast_clips_to_byte_budget_with_ellipsis() {
+        let long = "a".repeat(300);
+        let out = truncate_toast(&long, 256);
+        assert!(out.len() <= 256, "got {} bytes", out.len());
+        assert!(out.ends_with("..."));
+    }
+
+    #[test]
+    fn truncate_toast_never_splits_a_multibyte_char() {
+        // "é" is 2 bytes in UTF-8; a naive byte slice at the budget would
+        // panic on a char boundary violation.
+        let long = "é".repeat(200); // 400 bytes
+        let out = truncate_toast(&long, 256);
+        assert!(out.len() <= 256);
+        assert!(out.ends_with("..."));
+        // If we got here without panicking, the boundary backoff worked.
+    }
+
+    #[test]
+    fn briefing_shown_marker_round_trips() {
+        let conn = rusqlite::Connection::open_in_memory().unwrap();
+        clips::init_schema(&conn).unwrap();
+        assert!(briefing_shown_on(&conn).is_none());
+        mark_briefing_shown(&conn, "2026-06-11").unwrap();
+        assert_eq!(briefing_shown_on(&conn).as_deref(), Some("2026-06-11"));
+        // Next day overwrites in place (single-row upsert, like the pause flag).
+        mark_briefing_shown(&conn, "2026-06-12").unwrap();
+        assert_eq!(briefing_shown_on(&conn).as_deref(), Some("2026-06-12"));
     }
 
     // Regression guard for the capture-401 saga: the sync endpoint MUST target

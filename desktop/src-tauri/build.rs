@@ -25,6 +25,8 @@ fn main() {
                 "request_mic_permission",
                 "demo_get_clips",
                 "open_external",
+                "poll_morning_briefing",
+                "get_latest_briefing",
             ]),
         ),
     )

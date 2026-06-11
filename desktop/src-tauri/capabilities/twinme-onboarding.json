@@ -1,12 +1,14 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "twinme-onboarding",
-  "description": "First-run onboarding page (www/index.html) in the main window. Grants the bundled page the onboarding app-commands: trigger the mic permission prompt, peek at recent local clips for the 'what TwinMe noticed' demo, and enable context capture (settings_set_paused reused). No remote origin is involved (no remote.urls), so this is local-only — once index.html redirects to https://twinme.me the remote capabilities take over.",
+  "description": "First-run onboarding page (www/index.html) in the main window. Grants the bundled page the onboarding app-commands: trigger the mic permission prompt, peek at recent local clips for the 'what TwinMe noticed' demo, enable context capture (settings_set_paused reused), and read/poll the morning briefing for the briefing-detail screen (P1 wire-the-loop). No remote origin is involved (no remote.urls), so this is local-only — once index.html redirects to https://twinme.me the remote capabilities take over.",
   "windows": ["main"],
   "permissions": [
     "allow-request-mic-permission",
     "allow-demo-get-clips",
     "allow-settings-set-paused",
-    "allow-open-external"
+    "allow-open-external",
+    "allow-poll-morning-briefing",
+    "allow-get-latest-briefing"
   ]
 }
