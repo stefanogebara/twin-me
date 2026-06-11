@@ -20,6 +20,7 @@ import { complete, TIER_ANALYSIS } from '../services/llmGateway.js';
 import { supabaseAdmin } from '../services/database.js';
 import { createLogger } from '../services/logger.js';
 import { getProfile } from '../services/personalityProfileService.js';
+import { filterBriefingInsights, BRIEFING_CATEGORY_WHITELIST } from '../services/briefingInsightFilter.js';
 
 // First-party sources that contain authentic user voice (same list used by twin chat).
 // Kept local to avoid importing the full context builder for a simple DB query.
@@ -106,8 +107,11 @@ router.get('/generate', authenticateUser, async (req, res) => {
       userId,
     });
 
-    // 5. Cache and return
+    // 5. Cache, mark included insights as briefing-delivered, and return
     await cacheBriefing(userId, briefing);
+    if (recentInsights.length > 0) {
+      await markInsightsDeliveredInBriefing(userId, recentInsights);
+    }
 
     return res.json({ success: true, briefing, cached: false });
   } catch (err) {
@@ -201,17 +205,44 @@ async function fetchCalendarEvents(userId) {
 async function fetchRecentInsights(userId) {
   const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
+  // replan-2026-06-10 Track B: only editorial categories reach the briefing.
+  // This used to be a blanket last-24h dump (meeting_prep headlines, reauth
+  // notices rendered as "insights"). The whitelist narrows the query; the
+  // pure filter enforces the no-redeliver rule and the 3-item cap.
   const { data } = await supabaseAdmin
     .from('proactive_insights')
-    .select('insight, category, urgency')
+    .select('id, insight, category, urgency, metadata')
     .eq('user_id', userId)
-    .neq('category', 'morning_briefing_cache')
-    .neq('category', 'briefing_email')
+    .in('category', BRIEFING_CATEGORY_WHITELIST)
     .gte('created_at', dayAgo)
     .order('created_at', { ascending: false })
-    .limit(5);
+    .limit(10);
 
-  return data || [];
+  return filterBriefingInsights(data || []);
+}
+
+/**
+ * Mark insight rows as shown in a briefing so the next briefing never
+ * re-delivers them (replan-2026-06-10 Track B). Uses a metadata flag instead
+ * of the `delivered` column because `delivered` means "sent via chat or a
+ * messaging channel" and gates cron-deliver-insights double-send.
+ */
+async function markInsightsDeliveredInBriefing(userId, insightRows) {
+  const results = await Promise.all(
+    insightRows.map(row =>
+      supabaseAdmin
+        .from('proactive_insights')
+        .update({ metadata: { ...(row.metadata || {}), delivered_in_briefing: true } })
+        .eq('id', row.id)
+        .eq('user_id', userId)
+    )
+  );
+
+  const failed = results.filter(r => r?.error).length;
+  if (failed > 0) {
+    // Non-fatal: the briefing already rendered; worst case the row repeats once.
+    log.warn('Failed to mark briefing insights as delivered_in_briefing', { userId, failed });
+  }
 }
 
 async function fetchSleepRecovery(userId) {
@@ -365,7 +396,8 @@ Be concise — max 30 words per field. Match the voice samples above. Do NOT sou
       greeting: `${greeting}, ${firstName}`,
       schedule: calendarEvents.slice(0, 5),
       schedule_summary: parsed.schedule_summary || 'No schedule data available',
-      insights: recentInsights.slice(0, 3).map(i => i.insight),
+      // Already whitelist-filtered and capped at 3 by filterBriefingInsights
+      insights: recentInsights.map(i => i.insight),
       patterns: parsed.patterns || [],
       rest: parsed.rest_summary || null,
       music: parsed.music_summary || null,
@@ -382,7 +414,7 @@ Be concise — max 30 words per field. Match the voice samples above. Do NOT sou
       schedule_summary: calendarEvents.length > 0
         ? `You have ${calendarEvents.length} event${calendarEvents.length > 1 ? 's' : ''} on your calendar.`
         : 'Your day is wide open.',
-      insights: recentInsights.slice(0, 3).map(i => i.insight),
+      insights: recentInsights.map(i => i.insight),
       patterns: [],
       rest: sleepData ? 'Recovery data is available from your Whoop.' : null,
       music: recentMusic.length > 0 ? 'You were listening to music recently.' : null,

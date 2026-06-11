@@ -1,7 +1,5 @@
 import { forwardRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Send, Loader2 } from 'lucide-react';
-import { PlatformLogo } from '@/components/PlatformLogos';
 
 // Audit bug C2 (2026-05-12): unlimited tiers (max) return limit=null /
 // remaining=null. All consumers must guard against null before rendering.
@@ -21,21 +19,9 @@ interface ChatInputAreaProps {
   isTyping: boolean;
   isDisabled: boolean;
   limitReached: boolean;
-  hasConnectedPlatforms: boolean;
   chatUsage: ChatUsage | null;
   ghostSuggestion?: string;
 }
-
-const TOOL_PLATFORMS = [
-  'gmail',
-  'calendar',
-  'spotify',
-  'youtube',
-  'discord',
-  'github',
-  'linkedin',
-  'reddit',
-] as const;
 
 const getSmartPlaceholder = (): string => {
   const hour = new Date().getHours();
@@ -54,11 +40,9 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
     isTyping,
     isDisabled,
     limitReached,
-    hasConnectedPlatforms,
     chatUsage,
     ghostSuggestion,
   }, ref) => {
-    const navigate = useNavigate();
     const hasText = inputMessage.trim().length > 0;
     const [isFocused, setIsFocused] = useState(false);
 
@@ -167,31 +151,9 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
             </button>
           </div>
         </div>
-
-        {/* Connected Platforms Bar */}
-        <div
-          className="flex items-center gap-3 mt-2 px-3 cursor-pointer group overflow-x-auto"
-          onClick={() => navigate('/get-started')}
-          role="link"
-          tabIndex={0}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              navigate('/get-started');
-            }
-          }}
-        >
-          <span className="text-[11px] text-[rgba(255,255,255,0.25)] group-hover:text-[rgba(255,255,255,0.4)] transition-colors">
-            Connect Your Tools
-          </span>
-          <div className="flex items-center gap-1.5">
-            {TOOL_PLATFORMS.map((platform) => (
-              <div key={platform} className="opacity-50 group-hover:opacity-70 transition-opacity">
-                <PlatformLogo platform={platform} size={14} />
-              </div>
-            ))}
-          </div>
-        </div>
+        {/* replan-2026-06-10 chat declutter: 'Connect Your Tools' row deleted —
+            a permanent acquisition CTA under the composer served no job for
+            connected users; the empty-state Connect CTA covers the rest. */}
       </div>
     );
   }

@@ -337,6 +337,15 @@ describe('getInvestmentCorrelationInsights — Phase 4.4 moat surface', () => {
 });
 
 describe('getTimelineAnalysis — Number coercion of timeline days', () => {
+  it('requests a 30-day window so the chart matches its "30 days" labels (replan-2026-06-10)', async () => {
+    // The MoneyPage card says "Why you spend · 30 days" and the chart banner
+    // says "in the last 30 days", but the backend default window is 90 — the
+    // chart silently rendered ~60 days of data under a 30-day label.
+    authFetchImpl = async () => ok({ days: [] });
+    await getTimelineAnalysis();
+    expect(authFetchCalls[0].url).toBe('/transactions/timeline-analysis?window_days=30');
+  });
+
   it('coerces strings to numbers for the chart components', async () => {
     // The server sometimes returns numeric strings (Postgres COUNT()
     // returns text in some clients). The frontend chart libs need

@@ -16,6 +16,7 @@ import { DEPARTMENTS, DEPARTMENT_NAMES, getDepartmentConfig, getToolCostEstimate
 import { queueActionForApproval, getAutonomyBySkillName, AUTONOMY_LEVELS } from './autonomyService.js';
 import { checkDepartmentBudget } from './departmentBudgetService.js';
 import { supabaseAdmin } from './database.js';
+import { isNoise } from './noiseSenders.js';
 import { get as cacheGet, set as cacheSet } from './redisClient.js';
 import { complete, TIER_EXTRACTION, TIER_ANALYSIS } from './llmGateway.js';
 import { createLogger } from './logger.js';
@@ -39,8 +40,12 @@ const HEARTBEAT_TOOL_WHITELIST = {
  * Validate an LLM-emitted suggestion against the heartbeat whitelist.
  * Returns { ok: true } if the proposal is safe to queue, otherwise
  * { ok: false, reason, details } explaining why it was dropped.
+ *
+ * Pass `userEmail` when known so gmail_draft proposals addressed to the
+ * user themselves are rejected (replan-2026-06-10: the heartbeat queued
+ * "triage" drafts TO the user and a reply to askjo.ai's notification bot).
  */
-export function validateHeartbeatProposal(suggestion) {
+export function validateHeartbeatProposal(suggestion, { userEmail } = {}) {
   const toolName = suggestion.toolName || 'suggest';
   const required = HEARTBEAT_TOOL_WHITELIST[toolName];
   if (!required) {
@@ -53,6 +58,23 @@ export function validateHeartbeatProposal(suggestion) {
   });
   if (missing.length > 0) {
     return { ok: false, reason: 'missing_required_params', details: { toolName, missing } };
+  }
+  if (toolName === 'gmail_draft') {
+    const to = String(params.to || '').trim();
+    // No-reply addresses, notification mailers, and AI-assistant briefing
+    // bots are machines — drafting a reply to them is wasted work at best
+    // and bot-to-bot commitments in the user's voice at worst.
+    if (isNoise(to)) {
+      return { ok: false, reason: 'recipient_is_automation', details: { toolName, to } };
+    }
+    // Placeholder recipients (the old prompt example literally used
+    // user@example.com) can never be a real draft target.
+    if (/@example\.(com|org|net)$/i.test(to)) {
+      return { ok: false, reason: 'recipient_is_placeholder', details: { toolName, to } };
+    }
+    if (userEmail && to.toLowerCase() === String(userEmail).toLowerCase()) {
+      return { ok: false, reason: 'recipient_is_self', details: { toolName, to } };
+    }
   }
   return { ok: true, toolName, params };
 }
@@ -993,7 +1015,7 @@ YOUR TASK: Based on the data above, output a JSON array of 2-3 specific proposal
 
 OUTPUT FORMAT (must be valid JSON):
 [
-  {"department":"communications","description":"Draft a triage email to unsubscribe from 5 Substack newsletters in your inbox","toolName":"gmail_draft","params":{"to":"user@example.com","subject":"Inbox Triage: 39,723 unread, unsubscribe targets","body":"Top promotional senders this week: substack.com, github.com, vercel.com. A 15-minute unsubscribe sprint on these three would cut future inflow ~40%."},"priority":3,"reasoning":"Gmail shows 39,723 unread (92% unread rate); top 3 senders are newsletters not people"},
+  {"department":"communications","description":"Draft a reply to Pedro Alves about the partnership proposal deadline","toolName":"gmail_draft","params":{"to":"pedro.alves@acme.com.br","subject":"Re: Partnership proposal","body":"Thanks for the nudge — reviewing the proposal today and will send notes before Friday."},"priority":3,"reasoning":"Gmail shows Pedro's proposal email unanswered for 3 days; he asked for a response before Friday"},
   {"department":"scheduling","description":"Block 90 minutes for deep work tomorrow at 9-10:30am","toolName":"calendar_create","params":{"summary":"Deep work","start":"${tomorrowDate}T09:00:00","end":"${tomorrowDate}T10:30:00"},"priority":4,"reasoning":"Calendar has zero focus blocks this week and your Whoop recovery is above 75% three days running"},
   {"department":"health","description":"Schedule a low-strain recovery day tomorrow given Whoop recovery 42%","toolName":"suggest","params":{},"priority":5,"reasoning":"Whoop reports recovery 42% with SpO2 89.5% — both indicate impaired recovery overnight"}
 ]
@@ -1005,6 +1027,7 @@ RULES:
 3. For Health/Finance/Social/Research → toolName: "suggest" (these are observation departments)
 4. For Communications → toolName: "gmail_draft" (only if you have a concrete recipient email from observations), else "suggest"
    - gmail_draft params MUST include: to (recipient email address), subject (string), body (draft content string). Without ALL THREE, the action CANNOT execute — use "suggest" instead.
+   - "to" MUST be a real external PERSON seen in the observations. NEVER the user's own address, NEVER a no-reply/notification/bot sender (newsletters, GitHub, AI assistants) — drafting to a machine is discarded.
 5. For Scheduling → toolName: "calendar_create" (only for new events)
    - calendar_create params MUST include: summary (string, event title), start (ISO local time like "${tomorrowDate}T14:00:00" — no Z suffix), end (ISO local time). Optionally: description, location.
    - Without summary + start + end, the action CANNOT execute. Emit specific times grounded in the user's observed schedule.
@@ -1095,6 +1118,16 @@ GO. Return only the JSON array, no other text:`;
       departments: suggestions.map(s => s.department)
     });
 
+    // The gmail_draft recipient guards in validateHeartbeatProposal need
+    // the user's own email — drafts addressed to the user themselves were
+    // the most common junk proposal (replan-2026-06-10).
+    const { data: hbUser } = await supabaseAdmin
+      .from('users')
+      .select('email')
+      .eq('id', userId)
+      .single();
+    const heartbeatUserEmail = hbUser?.email || null;
+
     const createdProposals = [];
     const skipped = [];
     for (const s of suggestions.slice(0, 3)) {
@@ -1110,7 +1143,7 @@ GO. Return only the JSON array, no other text:`;
       // Defense-in-depth: even with the hardened prompt, validate the tool + params
       // against the heartbeat whitelist so an off-script LLM emission never produces
       // an unexecutable ghost proposal.
-      const validation = validateHeartbeatProposal(s);
+      const validation = validateHeartbeatProposal(s, { userEmail: heartbeatUserEmail });
       if (!validation.ok) {
         skipped.push({ reason: validation.reason, department: s.department, ...validation.details });
         continue;

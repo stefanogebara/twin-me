@@ -75,22 +75,81 @@ export function classifyNangoConnection(row, nowMs = Date.now()) {
 }
 
 /**
+ * Mirror sources (replan-2026-06-10 Track C: extension + desktop are
+ * first-class). Neither writes a platform_connections row — the browser
+ * extension writes user_platform_data platform='web' and the desktop app
+ * writes user_memories metadata.source='desktop_*' — so the summary
+ * synthesizes breakdown entries from recent data presence instead.
+ * A mirror with data in the last MIRROR_WINDOW_DAYS is 'active'; without
+ * recent data it simply has no entry. Mirrors NEVER contribute to the
+ * expired/stale alarm counts (there is no token to expire).
+ */
+export const MIRROR_WINDOW_DAYS = 14;
+
+/**
+ * Build synthetic breakdown entries for the mirror sources. Pure — callers
+ * pass the freshest row timestamps (null/undefined when no recent data).
+ *
+ * @param {object} input
+ * @param {string|null} [input.webLastSeenAt] - freshest user_platform_data
+ *   extracted_at for platform='web' within the mirror window
+ * @param {number} [input.webObservations7d] - web rows captured in the last
+ *   7 days (drives the "N pages observed this week" yield on /connect)
+ * @param {string|null} [input.desktopLastSeenAt] - freshest desktop-tagged
+ *   user_memories created_at within the mirror window
+ * @returns {Array<object>} breakdown entries (same shape as OAuth/Nango
+ *   entries, source: 'mirror')
+ */
+export function buildMirrorEntries({
+  webLastSeenAt = null,
+  webObservations7d = 0,
+  desktopLastSeenAt = null,
+} = {}) {
+  const entries = [];
+  if (webLastSeenAt) {
+    entries.push({
+      platform: 'web',
+      state: 'active',
+      connectedAt: null,
+      lastSyncAt: webLastSeenAt,
+      source: 'mirror',
+      observations7d: webObservations7d,
+    });
+  }
+  if (desktopLastSeenAt) {
+    entries.push({
+      platform: 'desktop',
+      state: 'active',
+      connectedAt: null,
+      lastSyncAt: desktopLastSeenAt,
+      source: 'mirror',
+    });
+  }
+  return entries;
+}
+
+/**
  * Build the canonical platforms summary for a user.
  *
  * Response shape is backward compatible with the old /connectors/summary
  * route; breakdown entries additionally carry { connectedAt, lastSyncAt,
- * source } (additive, batch-3 step 1).
+ * source } (additive, batch-3 step 1). Mirror sources (web/desktop) are
+ * appended as synthetic 'active' entries when recent data exists
+ * (replan-2026-06-10 Track C) — they count toward total/active but can
+ * never be expired or stale.
  *
  * @param {string} userId - public.users id
  * @returns {Promise<{ total: number, active: number, expired: number,
  *   stale: number, breakdown: Array<{ platform: string,
  *   state: 'active'|'expired'|'stale', connectedAt: string|null,
- *   lastSyncAt: string|null, source: 'oauth'|'nango' }> }>}
+ *   lastSyncAt: string|null, source: 'oauth'|'nango'|'mirror' }> }>}
  */
 export async function buildPlatformsSummary(userId) {
   const now = Date.now();
+  const mirrorSince = new Date(now - MIRROR_WINDOW_DAYS * 24 * 60 * 60 * 1000).toISOString();
+  const weekSince = new Date(now - 7 * 24 * 60 * 60 * 1000).toISOString();
 
-  const [pcResult, nangoResult] = await Promise.all([
+  const [pcResult, nangoResult, webFreshResult, webWeekResult, desktopFreshResult] = await Promise.all([
     supabaseAdmin
       .from('platform_connections')
       .select('platform, status, last_sync_at, last_sync_status, token_expires_at, access_token, connected_at')
@@ -100,6 +159,32 @@ export async function buildPlatformsSummary(userId) {
       .select('platform, status, last_synced_at, updated_at, created_at')
       .eq('user_id', userId)
       .in('status', ['connected', 'active']),
+    // Mirror: browser extension — freshest captured row in the mirror window.
+    supabaseAdmin
+      .from('user_platform_data')
+      .select('extracted_at')
+      .eq('user_id', userId)
+      .eq('platform', 'web')
+      .gte('extracted_at', mirrorSince)
+      .order('extracted_at', { ascending: false })
+      .limit(1),
+    // Mirror: extension yield for the last 7 days (count only, no rows).
+    supabaseAdmin
+      .from('user_platform_data')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('platform', 'web')
+      .gte('extracted_at', weekSince),
+    // Mirror: desktop app — freshest desktop-tagged memory (desktop_clip /
+    // desktop_meeting, see observations-clip.js / observations-meeting.js).
+    supabaseAdmin
+      .from('user_memories')
+      .select('created_at')
+      .eq('user_id', userId)
+      .like('metadata->>source', 'desktop%')
+      .gte('created_at', mirrorSince)
+      .order('created_at', { ascending: false })
+      .limit(1),
   ]);
 
   if (pcResult.error) {
@@ -107,6 +192,15 @@ export async function buildPlatformsSummary(userId) {
   }
   if (nangoResult.error) {
     log.warn('nango_connection_mappings query failed for summary', { userId, error: nangoResult.error.message });
+  }
+  if (webFreshResult.error || webWeekResult.error) {
+    log.warn('web mirror query failed for summary', {
+      userId,
+      error: webFreshResult.error?.message || webWeekResult.error?.message,
+    });
+  }
+  if (desktopFreshResult.error) {
+    log.warn('desktop mirror query failed for summary', { userId, error: desktopFreshResult.error.message });
   }
 
   const breakdown = [];
@@ -135,6 +229,20 @@ export async function buildPlatformsSummary(userId) {
       lastSyncAt: n.last_synced_at || null,
       source: 'nango',
     });
+    seen.add(n.platform);
+  }
+
+  // Mirror sources (replan-2026-06-10 Track C): no OAuth flow ever creates a
+  // 'web' or 'desktop' connection row, so synthesize entries from recent data.
+  const mirrorEntries = buildMirrorEntries({
+    webLastSeenAt: webFreshResult.data?.[0]?.extracted_at ?? null,
+    webObservations7d: webWeekResult.count ?? 0,
+    desktopLastSeenAt: desktopFreshResult.data?.[0]?.created_at ?? null,
+  });
+  for (const m of mirrorEntries) {
+    if (seen.has(m.platform)) continue; // defensive — should never collide
+    breakdown.push(m);
+    seen.add(m.platform);
   }
 
   const counts = breakdown.reduce(

@@ -18,6 +18,7 @@ import * as pluggy from '../services/transactions/pluggyClient.js';
 import * as tl from '../services/transactions/trueLayerClient.js';
 import { decryptToken } from '../services/encryption.js';
 import { upsertConnectionFromItem, seedItemTransactions } from '../services/transactions/pluggyIngestion.js';
+import { getPlaidSandboxState, isSandboxConnection } from '../services/transactions/sandboxGuard.js';
 import { createLogger } from '../services/logger.js';
 
 const log = createLogger('pluggy-routes');
@@ -113,12 +114,24 @@ router.get('/connections', async (req, res) => {
     const userId = req.user?.id;
     const { data, error } = await supabaseAdmin
       .from('user_bank_connections')
-      .select('id, provider, connector_name, status, status_detail, last_synced_at, consent_expires_at, created_at')
+      .select('id, provider, connector_name, status, status_detail, last_synced_at, consent_expires_at, created_at, plaid_institution_id')
       .eq('user_id', userId)
       .is('deleted_at', null)
       .order('created_at', { ascending: false });
     if (error) throw new Error(error.message);
-    return res.json({ success: true, connections: data || [] });
+
+    // replan-2026-06-10 Track D P0: never show a Plaid sandbox item ("First
+    // Platypus Bank · CONNECTED") as a real bank in production runtimes — the
+    // FE must fall through to its connect/empty state instead. Stored
+    // is_sandbox flags arrive via getPlaidSandboxState (which tolerates the
+    // column not existing yet); the institution-id check covers the rest.
+    const sandbox = await getPlaidSandboxState(userId);
+    const visible = sandbox.hideActive
+      ? (data || []).filter((row) => !sandbox.sandboxConnectionIds.has(row.id) && !isSandboxConnection(row))
+      : (data || []);
+    const connections = visible.map(({ plaid_institution_id: _pi, ...row }) => row);
+
+    return res.json({ success: true, connections });
   } catch (err) {
     log.error(`list connections: ${err.message}`);
     return res.status(500).json({ success: false, error: 'failed to list connections' });

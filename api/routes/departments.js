@@ -583,7 +583,9 @@ router.post('/:name/propose', authenticateUser, proposeLimiter, async (req, res)
     // validation gate the heartbeat path uses so the only proposals the
     // user can manually queue are ones the department system could have
     // generated on its own.
-    const validation = validateHeartbeatProposal({ toolName, params });
+    // userEmail enables the gmail_draft recipient guards (no drafts to the
+    // user themselves or to automation senders — replan-2026-06-10).
+    const validation = validateHeartbeatProposal({ toolName, params }, { userEmail: req.user.email });
     if (!validation.ok) {
       return res.status(400).json({
         success: false,

@@ -6,7 +6,12 @@
 import axios from 'axios';
 import { getValidAccessToken } from '../tokenRefreshService.js';
 import { createLogger } from '../logger.js';
-import { sanitizeExternal } from '../observationUtils.js';
+import { sanitizeExternal, getSupabase } from '../observationUtils.js';
+import {
+  shouldMentionLifetimeTotal,
+  buildUnreadDeltaObservation,
+  nextGmailCounters,
+} from './gmailUnreadDelta.js';
 
 const log = createLogger('ObservationIngestion');
 
@@ -31,6 +36,32 @@ async function fetchGmailObservations(userId) {
   const headers = { Authorization: `Bearer ${tokenResult.accessToken}` };
   const BASE = 'https://gmail.googleapis.com/gmail/v1/users/me';
 
+  // ── 0. Previous counters snapshot ──────────────────────────────────────────
+  // replan-2026-06-10 Track B: daily observations must be deltas, not lifetime
+  // totals (the "40k unread" stat echoed 6+ times in 3 days). The stored
+  // counters row holds the previous unread snapshot + when the lifetime total
+  // was last mentioned. Platform key 'google_gmail' (matching the token key,
+  // not 'gmail') keeps this state row out of gmailExtractor's data corpus.
+  let prevCounters = null;
+  let countersSupabase = null;
+  try {
+    countersSupabase = await getSupabase();
+    if (countersSupabase) {
+      const { data } = await countersSupabase
+        .from('user_platform_data')
+        .select('raw_data')
+        .eq('user_id', userId)
+        .eq('platform', 'google_gmail')
+        .eq('data_type', 'gmail_counters')
+        .eq('source_url', 'gmail:counters')
+        .maybeSingle();
+      prevCounters = data?.raw_data ?? null;
+    }
+  } catch (e) {
+    log.warn('Gmail counters read error', { error: e.message });
+  }
+  const mentionLifetime = shouldMentionLifetimeTotal(prevCounters);
+
   // ── 1. Profile: inbox size category ────────────────────────────────────────
   let totalMessages = null;
   try {
@@ -41,7 +72,8 @@ async function fetchGmailObservations(userId) {
     return observations;
   }
 
-  if (totalMessages !== null) {
+  // Lifetime mailbox size is mentioned at most weekly (replan-2026-06-10).
+  if (totalMessages !== null && mentionLifetime) {
     const sizeLabel =
       totalMessages > 50000 ? 'a very large mailbox (50 000+ messages)' :
       totalMessages > 10000 ? `a large mailbox (~${Math.round(totalMessages / 1000)}k messages)` :
@@ -50,24 +82,26 @@ async function fetchGmailObservations(userId) {
     observations.push({ content: `Manages ${sizeLabel}`, contentType: 'weekly_summary' });
   }
 
-  // ── 1b. Unread email count — reveals email engagement ──────────────────────
+  // ── 1b. Unread email count — delta vs previous snapshot ────────────────────
+  let inboxUnread = null;
+  let unreadObservation = null;
+  let unreadKind = null;
   try {
     const [inboxLabel, unreadLabel] = await Promise.all([
       axios.get(`${BASE}/labels/INBOX`, { headers, timeout: 8000 }).catch(() => null),
       axios.get(`${BASE}/labels/UNREAD`, { headers, timeout: 8000 }).catch(() => null),
     ]);
-    const inboxUnread = inboxLabel?.data?.messagesUnread ?? null;
+    inboxUnread = inboxLabel?.data?.messagesUnread ?? null;
     const totalUnread = unreadLabel?.data?.messagesUnread ?? null;
 
-    if (inboxUnread !== null) {
-      if (inboxUnread === 0) {
-        observations.push({ content: 'Practices inbox zero — 0 unread emails in inbox', contentType: 'daily_summary' });
-      } else {
-        const urgency = inboxUnread > 50 ? 'a backlog of' : inboxUnread > 20 ? 'a moderate pile of' : '';
-        observations.push({ content: `Has ${urgency ? urgency + ' ' : ''}${inboxUnread} unread emails in inbox`, contentType: 'daily_summary' });
-      }
+    const unreadResult = buildUnreadDeltaObservation(inboxUnread, prevCounters);
+    if (unreadResult) {
+      unreadObservation = unreadResult.observation;
+      unreadKind = unreadResult.kind;
+      observations.push(unreadObservation);
     }
-    if (totalUnread !== null && inboxUnread !== null && totalMessages) {
+    // Read-percentage derives from lifetime totals — same weekly gate.
+    if (mentionLifetime && totalUnread !== null && inboxUnread !== null && totalMessages) {
       const inboxTotal = inboxLabel?.data?.messagesTotal ?? totalMessages;
       if (inboxTotal > 0) {
         const readPct = Math.round(((inboxTotal - inboxUnread) / inboxTotal) * 100);
@@ -76,6 +110,30 @@ async function fetchGmailObservations(userId) {
     }
   } catch (e) {
     log.warn('Gmail unread tracking error', { error: e.message });
+  }
+
+  // Persist the counters snapshot so tomorrow's run can compute the delta.
+  try {
+    if (countersSupabase) {
+      const { error: counterErr } = await countersSupabase.from('user_platform_data').upsert({
+        user_id: userId,
+        platform: 'google_gmail',
+        data_type: 'gmail_counters',
+        source_url: 'gmail:counters',
+        raw_data: nextGmailCounters({
+          inboxUnread,
+          totalMessages,
+          previous: prevCounters,
+          mentionedTotal: mentionLifetime && totalMessages !== null,
+        }),
+        extracted_at: new Date().toISOString(),
+      }, { onConflict: 'user_id,platform,data_type,source_url' });
+      if (counterErr) {
+        log.warn('Gmail counters upsert error', { error: counterErr.message });
+      }
+    }
+  } catch (e) {
+    log.warn('Gmail counters persist error', { error: e.message });
   }
 
   // ── 2. Custom labels — reveals organization habits ─────────────────────────
@@ -359,6 +417,11 @@ async function fetchGmailObservations(userId) {
           content: `Most frequent email senders this week: ${topSenders.join(', ')}`,
           contentType: 'weekly_summary',
         });
+        // replan-2026-06-10: fold the top sender into the daily delta line
+        // ("Inbox grew by N since yesterday; most frequent sender X").
+        if (unreadKind === 'delta' && unreadObservation) {
+          unreadObservation.content += `; most frequent sender: ${topSenders[0]}`;
+        }
       }
 
       // Semantic sender clustering — group domains into buckets to surface
