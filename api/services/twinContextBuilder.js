@@ -115,6 +115,13 @@ import {
   instagramExportLearn,
 } from './exports/chat/instagram.js';
 
+// Desktop activity context (P1 wire-the-loop): the pure section builder
+// lives in desktopActivityContext.js (this file is too heavy to import in
+// unit tests — see tests/api/services/whoop/runWhoopAnalytics.test.js).
+// Re-exported here because this is the documented home for prompt-context
+// builders shared across twin interfaces.
+export { buildRecentActivitySection } from './desktopActivityContext.js';
+
 const PLATFORM_ANALYTICS_TIMEOUT_MS = 8000;
 
 // Hard cap for the analytics tool call. Sits in POST-processing, after

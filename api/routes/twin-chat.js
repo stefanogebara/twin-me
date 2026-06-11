@@ -13,7 +13,7 @@ import express from 'express';
 import crypto from 'crypto';
 import { authenticateUser } from '../middleware/auth.js';
 import { supabaseAdmin } from '../services/database.js';
-import { buildContextSourcesMeta } from '../services/twinContextBuilder.js';
+import { buildContextSourcesMeta, buildRecentActivitySection } from '../services/twinContextBuilder.js';
 import { classifyNeuropil } from '../services/neuropilRouter.js';
 import { classifyQueryDomain, retrieveExpertMemories } from '../services/platformExperts.js';
 import { markInsightsDelivered } from '../services/proactiveInsights.js';
@@ -344,6 +344,17 @@ router.post('/message', authenticateUser, async (req, res) => {
     const memoriesInContext = additional.memoriesInContext;
     if (additional.creativityLog) chatLog(additional.creativityLog);
     appendAdditionalContextToPrompt(systemPrompt, additional.additionalContext);
+
+    // Desktop activity context (P1 wire-the-loop): the Hummingbird panel
+    // seeds the request with recent window activity. Clips were sanitized
+    // at the validation boundary (max 6, control chars stripped, 200-char
+    // fields) — buildRecentActivitySection re-sanitizes idempotently and
+    // returns null when there is nothing to show.
+    const recentActivitySection = buildRecentActivitySection(validated.hummingbirdClips);
+    if (recentActivitySection) {
+      systemPrompt.push({ type: 'text', text: `\n${recentActivitySection}` });
+      chatLog(`Desktop recent activity injected (${validated.hummingbirdClips.length} clips)`);
+    }
 
     // Google Workspace actions — inject available tools (already fetched in parallel above)
     let workspaceActionsEnabled = false;
