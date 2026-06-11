@@ -1,7 +1,14 @@
 /**
  * Cron: Plaid Fallback Sync — Financial-Emotional Twin US safety net
  * ====================================================================
- * Runs daily at 7am UTC (= 3am ET, low-US-traffic window).
+ * PARKED (replan-2026-06-10 Track D): NOT mounted in server.js and NOT
+ * scheduled in vercel.json. Plaid is sandbox-only and sits behind the
+ * default-off `money_plaid` feature flag, so this daily sync would only
+ * burn Vercel invocations re-pulling sandbox data. The file is kept (not
+ * deleted) so un-parking is a two-line revert: remount in server.js and
+ * re-add the vercel.json cron entry ("0 7 * * *").
+ *
+ * Original schedule: daily at 7am UTC (= 3am ET, low-US-traffic window).
  *
  * WHY THIS CRON EXISTS
  * --------------------

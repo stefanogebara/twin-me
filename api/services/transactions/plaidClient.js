@@ -5,8 +5,7 @@
  * bank aggregator (~12,000 institutions: Chase, Schwab, Fidelity, Robinhood,
  * Amex, Capital One, etc.). OpenAI shipped their ChatGPT Personal Finance
  * dashboard on top of this same provider on 2026-05-15; this client closes
- * the geography gap left by our existing Pluggy (BR) + TrueLayer (UK/EU)
- * integrations.
+ * the geography gap left by our existing Pluggy (BR) integration.
  *
  * Auth model (simpler than Pluggy):
  *   - PLAID_CLIENT_ID + PLAID_SECRET passed in EVERY request body — no apiKey

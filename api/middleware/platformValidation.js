@@ -23,24 +23,22 @@ const supabase = createClient(
 /**
  * Supported platforms configuration
  */
+// replan-2026-06-10 Track C portfolio cut: twitch, steam, linkedin, slack and
+// reddit removed — soul extraction for killed platforms now fails validation
+// with a clear error instead of reaching the 501 fallthrough in the route.
 export const SUPPORTED_PLATFORMS = {
   // Entertainment platforms
   spotify: { name: 'Spotify', category: 'entertainment', requiresAuth: true },
   netflix: { name: 'Netflix', category: 'entertainment', requiresAuth: false },
   youtube: { name: 'YouTube', category: 'entertainment', requiresAuth: true },
   discord: { name: 'Discord', category: 'social', requiresAuth: true },
-  twitch: { name: 'Twitch', category: 'entertainment', requiresAuth: true },
-  steam: { name: 'Steam', category: 'gaming', requiresAuth: false },
 
   // Professional platforms
   google_gmail: { name: 'Gmail', category: 'professional', requiresAuth: true },
   google_calendar: { name: 'Google Calendar', category: 'professional', requiresAuth: true },
   github: { name: 'GitHub', category: 'professional', requiresAuth: true },
-  linkedin: { name: 'LinkedIn', category: 'professional', requiresAuth: true },
-  slack: { name: 'Slack', category: 'professional', requiresAuth: true },
 
   // Social platforms
-  reddit: { name: 'Reddit', category: 'social', requiresAuth: true },
   twitter: { name: 'Twitter/X', category: 'social', requiresAuth: true },
 
   // Browser extension platforms

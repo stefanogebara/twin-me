@@ -6,9 +6,7 @@
 import { supabaseAdmin } from './database.js';
 import GitHubExtractor from './extractors/githubExtractor.js';
 import DiscordExtractor from './extractors/discordExtractor.js';
-import LinkedInExtractor from './extractors/linkedinExtractor.js';
 import SpotifyExtractor from './extractors/spotifyExtractor.js';
-import RedditExtractor from './extractors/redditExtractor.js';
 // Gmail, Teams extractors removed (TIER 1 cleanup) — stub classes so `new XExtractor()` doesn't throw
 class GmailExtractor {
   constructor() {}
@@ -23,14 +21,12 @@ class GmailExtractor {
     }
   }
 }
-import SlackExtractor from './extractors/slackExtractor.js';
 import CalendarExtractor from './extractors/calendarExtractor.js';
 class TeamsExtractor {
   constructor() {}
   async extract() { return {}; }
   async extractAll() { return { success: false, error: 'Teams extraction not implemented', itemsExtracted: 0 }; }
 }
-import TikTokExtractor from './extractors/tiktokExtractor.js';
 import { decryptToken } from './encryption.js';
 import { getValidAccessToken } from './tokenRefreshService.js';
 import {
@@ -135,31 +131,6 @@ class DataExtractionService {
         return { success: false, platform, message: ytResult.error || 'YouTube extraction failed', itemsExtracted: 0, skipped: false };
       }
 
-      if (platform === 'twitch') {
-        const { extractPlatformData, storeNangoExtractionData } = await import('./nangoService.js');
-        const twitchResult = await extractPlatformData(userId, 'twitch');
-        if (twitchResult.success) {
-          await storeNangoExtractionData(userId, 'twitch', twitchResult);
-          const twitchItems = Object.keys(twitchResult.data || {}).length;
-          if (jobId) {
-            const { error: twitchCompleteErr } = await supabaseAdmin
-              .from('data_extraction_jobs')
-              .update({ status: 'completed', items_extracted: twitchItems, completed_at: new Date().toISOString() })
-              .eq('id', jobId);
-            if (twitchCompleteErr) log.warn('Failed to mark Twitch job completed:', twitchCompleteErr.message);
-          }
-          return { success: true, platform, message: 'Twitch data extracted via Nango', itemsExtracted: twitchItems, skipped: false };
-        }
-        if (jobId) {
-          const { error: twitchFailErr } = await supabaseAdmin
-            .from('data_extraction_jobs')
-            .update({ status: 'failed', error_message: twitchResult.error || 'Nango extraction failed', completed_at: new Date().toISOString() })
-            .eq('id', jobId);
-          if (twitchFailErr) log.warn('Failed to mark Twitch job failed:', twitchFailErr.message);
-        }
-        return { success: false, platform, message: twitchResult.error || 'Twitch extraction failed', itemsExtracted: 0, skipped: false };
-      }
-
       if (platform === 'whoop') {
         log.info(`Whoop uses direct API extraction via featureExtractor - skipping raw data storage`);
         if (jobId) {
@@ -216,14 +187,8 @@ class DataExtractionService {
         case 'discord':
           extractor = new DiscordExtractor(accessToken);
           break;
-        case 'linkedin':
-          extractor = new LinkedInExtractor(accessToken);
-          break;
         case 'spotify':
           extractor = new SpotifyExtractor(userId, 'spotify');
-          break;
-        case 'reddit':
-          extractor = new RedditExtractor(accessToken);
           break;
         case 'google_gmail':
           extractor = new GmailExtractor(accessToken);
@@ -231,15 +196,9 @@ class DataExtractionService {
         case 'google_calendar':
           extractor = new CalendarExtractor(accessToken);
           break;
-        case 'slack':
-          extractor = new SlackExtractor(accessToken);
-          break;
         case 'teams':
         case 'microsoft_teams':
           extractor = new TeamsExtractor(userId, 'teams');
-          break;
-        case 'tiktok':
-          extractor = new TikTokExtractor(userId, 'tiktok');
           break;
         default:
           throw new Error(`Unsupported platform: ${platform}`);

@@ -2,8 +2,8 @@
  * usePlatformInsights
  *
  * Shared data hook for the per-platform Insights pages (Spotify, YouTube,
- * Calendar, Discord, LinkedIn, Web). Replaces the fetch logic that was
- * copy-pasted across all six pages.
+ * Calendar, Discord, Web). Replaces the fetch logic that was
+ * copy-pasted across the pages.
  *
  * Handles the cold-start `generating` contract (2026-06-06 audit fix):
  * GET /api/insights/:platform returns `{ generating: true }` immediately when

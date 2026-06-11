@@ -7,7 +7,7 @@
  *   POST /api/plaid/sync/:id            — force-pull cursor sync for one connection
  *   DELETE /api/plaid/connections/:id   — disconnect a Plaid item
  *
- * Connections LIST is shared with Pluggy/TrueLayer — the existing
+ * Connections LIST is shared with Pluggy — the existing
  * `GET /api/transactions/pluggy/connections` route already returns all
  * providers from user_bank_connections, so no duplicate route is needed
  * here. The frontend reads from that endpoint and dispatches the Connect/
@@ -15,7 +15,13 @@
  *
  * Webhook endpoint (public, signature-verified) lives separately at
  * api/webhook-plaid.js so it can skip JWT and run as a thin lambda — same
- * pattern as Pluggy/TrueLayer webhooks per server.js mount notes.
+ * pattern as the Pluggy webhook per server.js mount notes.
+ *
+ * PARKED (replan-2026-06-10 Track D): Plaid is sandbox-only in every
+ * deployment (PLAID_ENV=sandbox; production Plaid access is an unstarted
+ * compliance project), so the whole router is gated behind the per-user
+ * `money_plaid` feature flag — default OFF, explicit opt-in like llm_wiki.
+ * When the flag is off every endpoint returns 503 PLAID_PARKED.
  */
 
 import express from 'express';
@@ -25,12 +31,28 @@ import { decryptToken } from '../services/encryption.js';
 import * as plaid from '../services/transactions/plaidClient.js';
 import { bootstrapItem, syncItem } from '../services/transactions/plaidIngestion.js';
 import { getPlaidSandboxState, isSandboxConnection } from '../services/transactions/sandboxGuard.js';
+import { getFeatureFlags } from '../services/featureFlagsService.js';
 import { createLogger } from '../services/logger.js';
 
 const log = createLogger('plaid-routes');
 const router = express.Router();
 
 router.use(authenticateUser);
+
+// money_plaid gate — opt-in flag, absent row = OFF (unlike most flags, which
+// default on; same explicit `=== true` pattern as llm_wiki). 503 + stable code
+// so the FE can render a "feature unavailable" state instead of a generic error.
+router.use(async (req, res, next) => {
+  const flags = await getFeatureFlags(req.user?.id);
+  if (flags?.money_plaid !== true) {
+    return res.status(503).json({
+      success: false,
+      error: 'US bank linking is currently unavailable',
+      code: 'PLAID_PARKED',
+    });
+  }
+  return next();
+});
 
 if (!plaid.isPlaidConfigured()) {
   log.warn('Plaid disabled: PLAID_CLIENT_ID or PLAID_SECRET unset. /plaid/link/token will return 503.');
@@ -460,7 +482,7 @@ router.post('/sync/:id', async (req, res) => {
  *
  * Provider-aware: refuses to act on non-plaid rows so the generic
  * disconnect route on /api/transactions/pluggy/connections/:id can keep
- * owning the Pluggy/TrueLayer paths.
+ * owning the Pluggy path.
  */
 router.delete('/connections/:id', async (req, res) => {
   try {

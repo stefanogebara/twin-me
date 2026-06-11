@@ -2,18 +2,19 @@
  * /money page — comprehensive quality audit
  * ==========================================
  *
- * The page lives at src/pages/MoneyPage.tsx and exercises 7 GET endpoints
- * under /api/transactions plus uploads, retag, and feedback POST routes.
+ * The page lives at src/pages/MoneyPage.tsx. Honest-MVP shape
+ * (replan-2026-06-10 Track D): header + tagline, connect row (Pluggy BR +
+ * CSV/OFX upload), spending timeline (30d), summary bar, transaction list
+ * with category chips + Re-tag, and ONE unlock progress card. The old
+ * patterns / savings / nudges / risk-forecast surfaces and the TrueLayer
+ * rail were removed; Plaid brokerage surfaces are parked behind the
+ * `money_plaid` feature flag (default off).
  *
  * STANDARDS — every assertion below maps to one of these IDs.
  *
  * B — Backend Contract
  *   B-1   GET /transactions       → array (empty array OK, never 4xx for new users)
  *   B-2   GET /transactions/summary → { window_days, transaction_count, total_outflow, ... }
- *   B-3   GET /transactions/patterns → { hasData, patterns[], txCount?, minRequired? }
- *   B-4   GET /transactions/savings → { window_days, total_saved, waited_count, biggest_save }
- *   B-5   GET /transactions/nudge-stats → { window_days, total_sent, followed_count, follow_rate }
- *   B-6   GET /transactions/risk-forecast → { status }; backend may envelope under `forecast`
  *   B-7   GET /transactions/timeline-analysis → { days: [] }
  *   B-8   All routes return 401 for missing/invalid auth
  *
@@ -21,7 +22,7 @@
  *   F-1   Unauthenticated → redirect to /auth
  *   F-2   Authenticated, zero tx → empty state + upload zone
  *   F-3   Authenticated, with tx → summary bar + tx list + re-tag button
- *   F-4   Tab Gastos ↔ Nudges switches the rendered subtree
+ *   F-5   Unlock progress card renders exactly once (the ONE promise surface)
  *
  * E — Error & Loading
  *   E-1   500 on the page's GET endpoints → page still renders, error visible
@@ -37,14 +38,10 @@
  *   U-7   Page container max-width 720px
  *   U-8   Upload label htmlFor links to hidden input#money-upload
  *
- * X — UX
- *   X-2   Inline nudge card has role=button + tabIndex=0
- *
  * C — CX / Content
  *   C-1   Tagline "Your money has feelings. We translate them." present
  *   C-2   Empty state shows "Nothing here yet" + upload guidance
  *   C-3   Footer hint mentions "Nubank → Profile → Export" in empty state
- *   C-4   Insufficient-data patterns state names exact additional-tx count
  *   C-7   Multi-currency triggers "multi-currency" chip
  *
  * Opt-in: TWINME_RUN_MONEY_AUDIT=true
@@ -60,8 +57,8 @@ test.skip(
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Fixtures (wrap responses per service contract — most endpoints unwrap
-// { success: true, ...fields }, risk-forecast nests as { forecast: {...} },
-// list returns { transactions: [] }, timeline returns { days: [] }).
+// { success: true, ...fields }, list returns { transactions: [] }, timeline
+// returns { days: [] }).
 // ─────────────────────────────────────────────────────────────────────────────
 
 const TX = [
@@ -102,18 +99,6 @@ const SUMMARY = {
   currencies: [{ currency: 'BRL', outflow: 195.50, inflow: 0, count: 2, stress_shop_total: 150.50 }],
 };
 
-const PATTERNS = {
-  hasData: true,
-  patterns: [{ headline: 'Você gasta 3x mais em delivery em dias de stress alto.', detail: 'Quando seu HRV cai abaixo de 50 e o calendário fica cheio.', pattern_type: 'stress_food' }],
-  txCount: 90, minRequired: 14, minTransactionsReached: true,
-};
-
-const SAVINGS = { window_days: 30, total_saved: 420.00, waited_count: 5, biggest_save: 180.00 };
-const NUDGE_STATS = {
-  window_days: 30, total_sent: 8, followed_count: 5, follow_rate: 0.625, est_saved: 420.00, dominant_currency: 'BRL',
-  recent: [{ id: 'nudge-1', title: 'Pausa antes do iFood?', body: 'HRV baixo.', merchant: 'iFood', category: 'food_delivery', amount: 85.00, stress_score: 0.78, followed: true, checked: true, created_at: '2026-05-10T20:25:00Z' }],
-};
-const FORECAST = { status: 'high_risk', headline: 'Hoje tem risco alto de gasto por stress.', detail: 'Seu sono foi curto.' };
 const TIMELINE = [
   { day: '2026-05-08', spend: 50, stress_avg: 0.4, stress_shop_count: 0, tx_count: 1 },
   { day: '2026-05-09', spend: 45, stress_avg: 0.25, stress_shop_count: 0, tx_count: 1 },
@@ -121,10 +106,6 @@ const TIMELINE = [
 ];
 
 const EMPTY_SUMMARY = { window_days: 30, transaction_count: 0, total_outflow: 0, total_inflow: 0, stress_shop_count: 0, stress_shop_total: 0, high_stress_outflow: 0, emotional_spend_ratio: null, currencies: [] };
-const EMPTY_PATTERNS = { hasData: false, patterns: [], txCount: 3, minRequired: 14, minTransactionsReached: false };
-const EMPTY_SAVINGS = { window_days: 30, total_saved: 0, waited_count: 0, biggest_save: 0 };
-const EMPTY_NUDGE_STATS = { window_days: 30, total_sent: 0, followed_count: 0, follow_rate: null, est_saved: 0, dominant_currency: 'BRL', recent: [] };
-const NEUTRAL_FORECAST = { status: 'no_history' };
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Mock helpers (string globs — regex caused Vite dynamic-import starvation)
@@ -133,10 +114,6 @@ const NEUTRAL_FORECAST = { status: 'no_history' };
 interface MockState {
   transactions: unknown[];
   summary: unknown;
-  patterns: unknown;
-  savings: unknown;
-  nudgeStats: unknown;
-  forecast: unknown;
   timeline: unknown[];
 }
 
@@ -150,21 +127,14 @@ async function mockMoneyAPIs(page: Page, state: Partial<MockState> = {}): Promis
   const f: MockState = {
     transactions: state.transactions ?? TX,
     summary: state.summary ?? SUMMARY,
-    patterns: state.patterns ?? PATTERNS,
-    savings: state.savings ?? SAVINGS,
-    nudgeStats: state.nudgeStats ?? NUDGE_STATS,
-    forecast: state.forecast ?? FORECAST,
     timeline: state.timeline ?? TIMELINE,
   };
   // Specific endpoints first (Playwright matches in registration order).
   await jsonRoute(page, '**/api/transactions/summary*', 200, { success: true, ...(f.summary as object) });
-  await jsonRoute(page, '**/api/transactions/patterns*', 200, { success: true, ...(f.patterns as object) });
-  await jsonRoute(page, '**/api/transactions/savings*', 200, { success: true, ...(f.savings as object) });
-  await jsonRoute(page, '**/api/transactions/nudge-stats*', 200, { success: true, ...(f.nudgeStats as object) });
-  await jsonRoute(page, '**/api/transactions/risk-forecast*', 200, { success: true, forecast: f.forecast });
   await jsonRoute(page, '**/api/transactions/timeline-analysis*', 200, { days: f.timeline });
   await jsonRoute(page, '**/api/transactions/pluggy/connections*', 200, { connections: [] });
-  await jsonRoute(page, '**/api/truelayer/connections*', 200, { connections: [] });
+  // money_plaid stays OFF — the page must not mount brokerage surfaces.
+  await jsonRoute(page, '**/api/feature-flags*', 200, { success: true, flags: {} });
   // Bare list — must come last among /transactions matchers.
   await jsonRoute(page, '**/api/transactions?*', 200, { transactions: f.transactions });
 }
@@ -172,13 +142,9 @@ async function mockMoneyAPIs(page: Page, state: Partial<MockState> = {}): Promis
 async function mockEndpoints500(page: Page): Promise<void> {
   const err = { success: false, error: 'simulated server error' };
   await jsonRoute(page, '**/api/transactions/summary*', 500, err);
-  await jsonRoute(page, '**/api/transactions/patterns*', 500, err);
-  await jsonRoute(page, '**/api/transactions/savings*', 500, err);
-  await jsonRoute(page, '**/api/transactions/nudge-stats*', 500, err);
-  await jsonRoute(page, '**/api/transactions/risk-forecast*', 500, err);
   await jsonRoute(page, '**/api/transactions/timeline-analysis*', 500, err);
   await jsonRoute(page, '**/api/transactions/pluggy/connections*', 500, err);
-  await jsonRoute(page, '**/api/truelayer/connections*', 500, err);
+  await jsonRoute(page, '**/api/feature-flags*', 500, err);
   await jsonRoute(page, '**/api/transactions?*', 500, err);
 }
 
@@ -247,9 +213,7 @@ function attachQuietConsoleListener(page: Page): { errors: string[]; pageErrors:
 test.describe('/money — backend contract', () => {
   test('B-8: all endpoints return 401 without auth', async ({ request }) => {
     const paths = [
-      '/transactions', '/transactions/summary', '/transactions/patterns',
-      '/transactions/savings', '/transactions/nudge-stats',
-      '/transactions/risk-forecast', '/transactions/timeline-analysis',
+      '/transactions', '/transactions/summary', '/transactions/timeline-analysis',
     ];
     for (const p of paths) {
       const res = await request.get(`${API_URL}${p}`);
@@ -257,7 +221,7 @@ test.describe('/money — backend contract', () => {
     }
   });
 
-  test('B-1…B-7: authenticated calls return well-shaped JSON', async ({ request }) => {
+  test('B-1, B-2, B-7: authenticated calls return well-shaped JSON', async ({ request }) => {
     const token = mintTestToken();
     const headers = { Authorization: `Bearer ${token}` };
 
@@ -273,25 +237,6 @@ test.describe('/money — backend contract', () => {
     expect(sumBody, 'B-2 transaction_count').toHaveProperty('transaction_count');
     expect(sumBody, 'B-2 total_outflow').toHaveProperty('total_outflow');
 
-    const pat = await (await request.get(`${API_URL}/transactions/patterns`, { headers })).json();
-    expect(pat, 'B-3 hasData').toHaveProperty('hasData');
-    expect(Array.isArray(pat.patterns), 'B-3 patterns array').toBe(true);
-
-    const sav = await (await request.get(`${API_URL}/transactions/savings`, { headers })).json();
-    expect(sav, 'B-4 total_saved').toHaveProperty('total_saved');
-
-    const nudge = await (await request.get(`${API_URL}/transactions/nudge-stats`, { headers })).json();
-    expect(nudge, 'B-5 total_sent').toHaveProperty('total_sent');
-    expect(nudge, 'B-5 followed_count').toHaveProperty('followed_count');
-
-    const fcJson = await (await request.get(`${API_URL}/transactions/risk-forecast`, { headers })).json();
-    const fc = fcJson.forecast ?? fcJson;
-    expect(fc, 'B-6 status').toHaveProperty('status');
-    expect(
-      ['high_risk', 'low_risk', 'neutral', 'no_history', 'no_biology', 'insufficient_data'],
-      'B-6 status enum',
-    ).toContain(fc.status);
-
     const tl = await (await request.get(`${API_URL}/transactions/timeline-analysis`, { headers })).json();
     const tlArr = Array.isArray(tl) ? tl : (tl.days ?? []);
     expect(Array.isArray(tlArr), 'B-7 days array').toBe(true);
@@ -303,7 +248,7 @@ test.describe('/money — backend contract', () => {
 // ═════════════════════════════════════════════════════════════════════════════
 
 test.describe('/money — authenticated UI with data', () => {
-  test('F-3, U-*, X-*, C-*: renders full state correctly', async ({ page }) => {
+  test('F-3, F-5, U-*, C-1: renders full state correctly', async ({ page }) => {
     const sink = attachQuietConsoleListener(page);
     await injectAuth(page);
     await mockMoneyAPIs(page);
@@ -325,27 +270,17 @@ test.describe('/money — authenticated UI with data', () => {
     const retagRadius = parseFloat(await retag.evaluate((el) => getComputedStyle(el).borderTopLeftRadius));
     expect(retagRadius, 'U-4 re-tag pill ≥ 100px').toBeGreaterThanOrEqual(100);
 
-    // F-4: tab switch. The tab and inline-card both match "Nudges & Wins" — use .first() (tab is first in DOM).
-    const nudgesTab = page.getByRole('button', { name: /Nudges & Wins/i }).first();
-    await nudgesTab.click();
-    await page.waitForTimeout(300);
-    await expect(page.getByText(/Nudges & Wins · \d+ days/i).first(), 'F-4 after switch').toBeVisible();
+    // F-5: exactly ONE unlock progress card — the consolidated promise surface.
+    const unlockCard = page.locator('[data-testid="unlock-progress-card"]');
+    await expect(unlockCard, 'F-5 unlock card').toHaveCount(1);
+    await expect(unlockCard, 'F-5 unlock card visible').toBeVisible();
 
-    const gastosTab = page.getByRole('button', { name: /^Spending$/i });
-    await gastosTab.click();
-    await page.waitForTimeout(300);
-    await expect(rows.first(), 'F-4 back to gastos').toBeVisible();
-
-    // X-2: inline nudge card accessibility
-    const inlineNudge = page.locator('[role="button"][tabindex="0"]').filter({ hasText: /Nudges & Wins/ });
-    if (await inlineNudge.count() > 0) {
-      const attrs = await inlineNudge.first().evaluate((el) => ({
-        role: el.getAttribute('role'),
-        tabIndex: el.getAttribute('tabindex'),
-      }));
-      expect(attrs.role, 'X-2 role').toBe('button');
-      expect(attrs.tabIndex, 'X-2 tabIndex').toBe('0');
-    }
+    // Parked surfaces must NOT render with money_plaid off.
+    await expect(page.getByRole('button', { name: /Connect US bank/i }), 'parked Plaid button').toHaveCount(0);
+    await expect(page.locator('[data-testid="brokerage-activity-card"]'), 'parked activity card').toHaveCount(0);
+    // Removed promise surfaces must stay gone.
+    await expect(page.getByText(/Nudges & Wins/i), 'nudges surface removed').toHaveCount(0);
+    await expect(page.getByRole('button', { name: /Connect EU\/UK bank/i }), 'TrueLayer removed').toHaveCount(0);
 
     // U-8: upload label htmlFor links to hidden input
     await expect(page.locator('label[for="money-upload"]'), 'U-8 label').toBeVisible();
@@ -398,13 +333,11 @@ test.describe('/money — authenticated UI with data', () => {
 // ═════════════════════════════════════════════════════════════════════════════
 
 test.describe('/money — empty state', () => {
-  test('F-2, C-2, C-3, C-4: empty state shows guidance', async ({ page }) => {
+  test('F-2, C-2, C-3, F-5: empty state shows guidance + unlock meter at zero', async ({ page }) => {
     const sink = attachQuietConsoleListener(page);
     await injectAuth(page);
     await mockMoneyAPIs(page, {
-      transactions: [], summary: EMPTY_SUMMARY, patterns: EMPTY_PATTERNS,
-      savings: EMPTY_SAVINGS, nudgeStats: EMPTY_NUDGE_STATS,
-      forecast: NEUTRAL_FORECAST, timeline: [],
+      transactions: [], summary: EMPTY_SUMMARY, timeline: [],
     });
     await page.goto(`${BASE_URL}/money`, { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(1500);
@@ -412,7 +345,10 @@ test.describe('/money — empty state', () => {
     await expect(page.getByText('Nothing here yet'), 'F-2/C-2 headline').toBeVisible();
     await expect(page.getByText(/Drop a CSV or OFX statement/i), 'C-2 upload prompt').toBeVisible();
     await expect(page.getByText(/Nubank.*Profile.*Export/i), 'C-3 Nubank steps').toBeVisible();
-    await expect(page.getByText(/I need \d+ more transaction/i), 'C-4 patterns insufficient').toBeVisible();
+
+    // F-5: unlock card still renders for brand-new users with honest zeros.
+    await expect(page.locator('[data-testid="unlock-progress-card"]'), 'F-5 unlock card').toBeVisible();
+    await expect(page.getByText(/Connect your bank and wear your Whoop/i), 'F-5 unlock copy').toBeVisible();
 
     await expect(page.getByRole('button', { name: /Re-tag/i }), 'F-3 no re-tag in empty').not.toBeVisible();
 
@@ -460,10 +396,10 @@ test.describe('/money — error handling', () => {
       'E-1 header rendered',
     ).toBeVisible({ timeout: 10000 });
 
-    // The error text could be either the PT-BR fallback or the English thrown
+    // The error text could be either the fallback or the English thrown
     // message from listTransactions (it throws "Failed to load transactions (500)"
     // when res.ok is false). Either is acceptable evidence the error path fired.
-    const errorBanner = page.getByText(/Falha ao carregar|Failed to load transactions|simulated server error/i).first();
+    const errorBanner = page.getByText(/Failed to load transactions|simulated server error/i).first();
     await expect(errorBanner, 'E-1 visible error banner').toBeVisible({ timeout: 5000 });
   });
 });

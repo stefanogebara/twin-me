@@ -20,7 +20,9 @@ import { createLogger } from './logger.js';
 const log = createLogger('ConnectPitchHooks');
 
 // Platforms we have hooks for. Add new rules sparingly.
-const SUPPORTED_PLATFORMS = ['strava', 'outlook', 'pinterest', 'notion', 'apple_health', 'linkedin'];
+// replan-2026-06-10 Track C portfolio cut: strava, pinterest, notion and
+// linkedin hooks removed — those platforms can no longer be connected.
+const SUPPORTED_PLATFORMS = ['outlook', 'apple_health'];
 
 /**
  * Build the hook map for a given user.
@@ -72,34 +74,13 @@ export async function getPitchHooks(userId) {
 
 function buildHookFor(platform, connected, memories) {
   switch (platform) {
-    case 'strava':
-      return stravaHook(connected, memories);
     case 'outlook':
       return outlookHook(connected, memories);
-    case 'pinterest':
-      return pinterestHook(connected, memories);
-    case 'notion':
-      return notionHook(connected, memories);
     case 'apple_health':
       return appleHealthHook(connected, memories);
-    case 'linkedin':
-      return linkedinHook(connected, memories);
     default:
       return null;
   }
-}
-
-function stravaHook(connected, memories) {
-  if (!connected.has('whoop')) return null;
-  // Look for recent low-recovery signals in Whoop data
-  const redDays = memories.filter(m => {
-    const hay = `${m.content || ''} ${JSON.stringify(m.platform_data || {})}`.toLowerCase();
-    return hay.includes('recovery') && (hay.includes('red') || hay.includes('low recovery'));
-  }).length;
-  if (redDays >= 2) {
-    return 'Your Whoop shows repeated low-recovery days — Strava would help diagnose training load.';
-  }
-  return 'Your Whoop recovery data pairs with Strava workouts to reveal what actually drains you.';
 }
 
 function outlookHook(connected, memories) {
@@ -115,39 +96,9 @@ function outlookHook(connected, memories) {
   return 'You already share your personal email patterns — Outlook would connect the work side.';
 }
 
-function pinterestHook(connected, memories) {
-  if (!connected.has('spotify')) return null;
-  // Diverse music taste heuristic: look for 3+ distinct genre-like tokens
-  const text = memories.map(m => (m.content || '').toLowerCase()).join(' ');
-  const genreTokens = ['funk', 'latin', 'indie', 'electronic', 'hip hop', 'jazz', 'pop', 'rock', 'classical', 'reggaeton', 'bossa'];
-  const distinct = genreTokens.filter(g => text.includes(g)).length;
-  if (distinct >= 3) {
-    return 'Your Spotify taste spans multiple moods — Pinterest boards would reveal the visual aesthetic matching those shifts.';
-  }
-  return null;
-}
-
-function notionHook(connected, memories) {
-  if (!connected.has('google_calendar') && !connected.has('calendar')) return null;
-  const meetingHeavy = memories.filter(m => {
-    const hay = `${m.content || ''}`.toLowerCase();
-    return hay.includes('meeting') || hay.includes('calendar');
-  }).length;
-  if (meetingHeavy >= 8) {
-    return 'Your calendar shows a packed meeting schedule — Notion would reveal what you actually think between the meetings.';
-  }
-  return null;
-}
-
 function appleHealthHook(connected, memories) {
+  // 'garmin' covers users with a historical (pre-cut) Garmin connection row.
   if (connected.has('whoop') || connected.has('garmin')) return null; // already covered
   // Only useful signal when nothing health-related is connected
-  return null;
-}
-
-function linkedinHook(connected, memories) {
-  if (connected.has('github')) {
-    return 'Your GitHub shows what you build — LinkedIn would add the trajectory behind it.';
-  }
   return null;
 }
