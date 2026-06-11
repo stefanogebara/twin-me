@@ -47,32 +47,27 @@ import { fetchDiscordObservations } from './observationFetchers/discord.js';
 import { fetchGmailObservations } from './observationFetchers/gmail.js';
 import { fetchGitHubObservations } from './observationFetchers/github.js';
 import { fetchWhoopObservations } from './observationFetchers/whoop.js';
-import { fetchLinkedInObservations } from './observationFetchers/linkedin.js';
-import { fetchSlackObservations } from './observationFetchers/slack.js';
-import { fetchRedditObservations } from './observationFetchers/reddit.js';
-import { fetchGoogleDriveObservations } from './observationFetchers/googleDrive.js';
 import { fetchOutlookObservations } from './observationFetchers/outlook.js';
-import { fetchStravaObservations } from './observationFetchers/strava.js';
-import { fetchGarminObservations } from './observationFetchers/garmin.js';
-import { fetchFitbitObservations } from './observationFetchers/fitbit.js';
-import { fetchTwitchObservations } from './observationFetchers/twitch.js';
-import { fetchOuraObservations } from './observationFetchers/oura.js';
-import { fetchAppleMusicObservations } from './observationFetchers/appleMusic.js';
 import { fetchInstagramObservations } from './observationFetchers/instagram.js';
 
 const log = createLogger('ObservationIngestion');
 
-// Platforms we know how to ingest
-const SUPPORTED_PLATFORMS = ['spotify', 'google_calendar', 'youtube', 'discord', 'linkedin', 'reddit', 'whoop', 'github', 'google_gmail', 'google_drive', 'outlook', 'strava', 'garmin', 'fitbit', 'twitch', 'oura', 'slack', 'apple_music', 'instagram'];
+// Platforms we know how to ingest.
+// replan-2026-06-10 Track C portfolio cut: killed-platform stacks (strava, oura,
+// fitbit, garmin, slack, google_drive, apple_music, reddit, linkedin, twitch)
+// are no longer polled. Existing platform_connections rows for those platforms
+// simply stop matching this list — no data is deleted. GDPR upload paths
+// (LinkedIn/Discord/Instagram exports) are unaffected; only live OAuth fetch dies.
+const SUPPORTED_PLATFORMS = ['spotify', 'google_calendar', 'youtube', 'discord', 'whoop', 'github', 'google_gmail', 'outlook', 'instagram'];
 
 // ====================================================================
 // Prospective memory: extract metrics from observations for condition triggers
 // ====================================================================
 
 // Platform categories for skill triggers and metric extraction
-const HEALTH_PLATFORMS = ['whoop', 'oura', 'garmin', 'fitbit', 'strava'];
+const HEALTH_PLATFORMS = ['whoop'];
 const CALENDAR_PLATFORMS = ['google_calendar', 'outlook'];
-const MUSIC_PLATFORMS = ['spotify', 'apple_music'];
+const MUSIC_PLATFORMS = ['spotify'];
 
 // Registry of metric extractors per platform — add new platforms here
 const METRIC_EXTRACTORS = {
@@ -85,39 +80,10 @@ const METRIC_EXTRACTORS = {
     [/sleep performance\s+(\d+)%/i, 'sleep_performance', parseInt],
     [/strain[:\s]+(\d+\.?\d*)/i, 'strain', parseFloat],
   ],
-  oura: [
-    [/Readiness(?:\s+score)?:\s*(\d+)/i, 'readiness', parseInt],
-    [/Slept\s+([\d.]+)\s+hours/i, 'sleep_hours', parseFloat],
-    [/Sleep score:\s*(\d+)/i, 'sleep_score', parseInt],
-    [/HRV\s+(\d+)/i, 'hrv', parseInt],
-    [/activity score:\s*(\d+)/i, 'activity_score', parseInt],
-  ],
-  garmin: [
-    [/Body Battery:\s*(\d+)/i, 'body_battery', parseInt],
-    [/Stress:\s*(\d+)/i, 'stress', parseInt],
-    [/(\d[\d,]*)\s*steps/i, 'steps', s => parseInt(s.replace(/,/g, ''), 10)],
-    [/Slept\s+([\d.]+)\s+hours/i, 'sleep_hours', parseFloat],
-    [/VO2\s*Max:\s*(\d+)/i, 'vo2_max', parseInt],
-  ],
-  fitbit: [
-    [/(\d[\d,]*)\s*steps/i, 'steps', s => parseInt(s.replace(/,/g, ''), 10)],
-    [/Slept\s+([\d.]+)\s+hours/i, 'sleep_hours', parseFloat],
-    [/Sleep score:\s*(\d+)/i, 'sleep_score', parseInt],
-    [/resting heart rate\s+(\d+)/i, 'resting_heart_rate', parseInt],
-    [/active minutes:\s*(\d+)/i, 'active_minutes', parseInt],
-  ],
-  strava: [
-    [/(\d+\.?\d*)\s*(?:km|miles)/i, 'distance', parseFloat],
-    [/(\d+)\s*min(?:utes)?\s+(?:run|ride|swim|activity)/i, 'activity_minutes', parseInt],
-    [/(?:average|avg)\s+(?:heart rate|HR):\s*(\d+)/i, 'avg_heart_rate', parseInt],
-  ],
   // Music platforms
   spotify: [
     [/Currently listening/i, 'is_playing', () => 1],
     [/(\d+)\s*minutes?\s+of\s+listening/i, 'listening_minutes', parseInt],
-  ],
-  apple_music: [
-    [/Currently listening/i, 'is_playing', () => 1],
   ],
   // Calendar/schedule platforms
   google_calendar: [
@@ -306,20 +272,10 @@ const PLATFORM_FETCHERS = {
   google_calendar: fetchCalendarObservations,
   youtube: fetchYouTubeObservations,
   discord: fetchDiscordObservations,
-  linkedin: fetchLinkedInObservations,
-  slack: fetchSlackObservations,
-  reddit: fetchRedditObservations,
   whoop: fetchWhoopObservations,
   github: fetchGitHubObservations,
   google_gmail: fetchGmailObservations,
-  google_drive: fetchGoogleDriveObservations,
   outlook: fetchOutlookObservations,
-  strava: fetchStravaObservations,
-  garmin: fetchGarminObservations,
-  fitbit: fetchFitbitObservations,
-  twitch: fetchTwitchObservations,
-  oura: fetchOuraObservations,
-  apple_music: fetchAppleMusicObservations,
   instagram: fetchInstagramObservations,
 };
 

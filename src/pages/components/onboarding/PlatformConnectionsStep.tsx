@@ -19,6 +19,7 @@ import { DataUploadPanel } from '@/components/brain/DataUploadPanel';
 import GoogleWorkspaceConnect from '../settings/GoogleWorkspaceConnect';
 import { SectionLabel, Divider } from './SectionLabel';
 import { MirrorSourceTiles } from './MirrorSourceTiles';
+import { RETIRED_PLATFORMS } from '@/lib/retiredPlatforms';
 
 /**
  * Mirror sources (replan-2026-06-10 Track C): synthetic 'web' / 'desktop'
@@ -91,7 +92,12 @@ export const PlatformConnectionsStep: React.FC<PlatformConnectionsStepProps> = (
   // else flows through the generic connected/unconnected tile lists.
   const webEntry = platformEntries['web'];
   const desktopEntry = platformEntries['desktop'];
-  const oauthConnectedServices = connectedServices.filter(p => !MIRROR_PLATFORMS.has(p));
+  // Retired platforms (Track C portfolio cut) render NOTHING here — their
+  // connection rows still exist in the DB but are no longer polled; Settings
+  // is the only surface that still surfaces them (as "No longer supported").
+  const oauthConnectedServices = connectedServices.filter(
+    p => !MIRROR_PLATFORMS.has(p) && !RETIRED_PLATFORMS.has(p)
+  );
 
   // For the DISCOVERY sections (unconnected tiles) we still hide coming-soon
   // entries — and the browser extension, which now lives in the Always-On
@@ -99,8 +105,11 @@ export const PlatformConnectionsStep: React.FC<PlatformConnectionsStepProps> = (
   // MUST show every row from the DB, even those marked comingSoon in the
   // catalog (e.g. slack, oura, notion) — otherwise platforms the user
   // actually connected silently disappear from /connect (audit-2026-05-12 H5).
+  // unlisted = demoted platforms (Discord, Outlook): connected rows still
+  // render via connectorByProvider below, but no discovery tile invites new
+  // connections (replan-2026-06-10 Track C).
   const availableConnectors = AVAILABLE_CONNECTORS.filter(
-    c => !c.comingSoon && c.provider !== 'browser_extension'
+    c => !c.comingSoon && !c.unlisted && c.provider !== 'browser_extension'
   );
   const connectorByProvider = new Map(AVAILABLE_CONNECTORS.map(c => [c.provider, c]));
 
@@ -210,7 +219,7 @@ export const PlatformConnectionsStep: React.FC<PlatformConnectionsStepProps> = (
         className="text-[13px] -mt-2 mb-4 leading-relaxed"
         style={{ color: 'rgba(255,255,255,0.40)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
       >
-        Access emails, calendar, Drive files, Docs, and Sheets — your twin reads and understands your work
+        Access your email and calendar — your twin reads and understands your schedule and communication patterns
       </p>
       <GoogleWorkspaceConnect
         summary={summary}

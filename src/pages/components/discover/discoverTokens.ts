@@ -56,7 +56,9 @@ export const FOOTER_GLOW_3 = `radial-gradient(ellipse at 45.3% 148%,
   rgba(93,92,174,0.3) 74.519%, rgba(73,56,57,0) 96.635%
 )`;
 
-export const PLATFORM_LOGOS = ['Spotify', 'YouTube', 'Gmail', 'Calendar', 'Discord', 'LinkedIn', 'GitHub', 'Whoop'];
+// replan-2026-06-10 Track C: featured keepers only (LinkedIn retired,
+// Discord demoted out of marketing surfaces).
+export const PLATFORM_LOGOS = ['Spotify', 'YouTube', 'Gmail', 'Calendar', 'GitHub', 'Whoop'];
 
 export const FAQ_ITEMS = [
   { q: 'What is a soul signature?' },
@@ -74,7 +76,7 @@ export const FAQ_ANSWERS: Record<string, string> = {
   'How is my data used?':
     'Your data never leaves our secure infrastructure and is never used to train AI models. You own your soul signature completely.',
   'What platforms can I connect?':
-    'Spotify, Google Calendar, YouTube, Gmail, Discord, LinkedIn, GitHub, Reddit, Whoop, Twitch, and Google Drive. Plus a browser extension for web activity.',
+    'Spotify, Google Calendar, YouTube, Gmail, GitHub, and Whoop. Plus a browser extension and desktop app that capture your real activity as it happens.',
   'How accurate is the twin?':
     'Twin accuracy improves over time as memories accumulate. Most users notice meaningful personality alignment within a few days of connecting platforms.',
   'Can I delete my data?':

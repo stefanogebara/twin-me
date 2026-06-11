@@ -13,7 +13,6 @@ import spotifyEnhancedExtractor from '../services/spotifyEnhancedExtractor.js';
 import youtubeEnhancedExtractor from '../services/youtubeEnhancedExtractor.js';
 import GitHubExtractor from '../services/extractors/githubExtractor.js';
 import DiscordExtractor from '../services/extractors/discordExtractor.js';
-import SlackExtractor from '../services/extractors/slackExtractor.js';
 import { createClient } from '@supabase/supabase-js';
 import { decryptToken } from '../services/encryption.js';
 import { getValidAccessToken } from '../services/tokenRefreshService.js';
@@ -117,9 +116,7 @@ router.post('/extract/platform/:platform',
           extraction = await extractor.extractYouTubeSignature(accessToken, userId);
           break;
 
-        case 'netflix':
-        case 'steam':
-case 'github':
+        case 'github':
           const githubExtractor = new GitHubExtractor(accessToken);
           extraction = await githubExtractor.extractAll(userId, null);
           break;
@@ -127,11 +124,6 @@ case 'github':
         case 'discord':
           const discordExtractor = new DiscordExtractor(accessToken);
           extraction = await discordExtractor.extractAll(userId, null);
-          break;
-
-        case 'slack':
-          const slackExtractor = new SlackExtractor(accessToken);
-          extraction = await slackExtractor.extractAll(userId, null);
           break;
 
         default:
@@ -1184,8 +1176,11 @@ router.get('/extract/professional/:userId', authenticateUser, async (req, res) =
       };
 
       // Generate recommendations
+      // (LinkedIn OAuth retired in the replan-2026-06-10 Track C cut — point
+      // users at the GDPR export upload instead of a connect flow that no
+      // longer exists.)
       if (professionalSignature.professionalDNA.authenticityScore < 80) {
-        professionalSignature.recommendations.push('Connect LinkedIn for professional network analysis');
+        professionalSignature.recommendations.push('Upload your LinkedIn data export for professional network analysis');
       }
       if (calendarInsights?.lifestyleBalance?.balanceScore < 30) {
         professionalSignature.recommendations.push('Consider blocking personal time in calendar for better work-life balance');

@@ -16,13 +16,13 @@ interface GoogleService {
   logoKey: string;
 }
 
+// replan-2026-06-10 Track C: only promise what the product actually reads.
+// The Drive fetcher was deleted (Drive/Docs/Sheets are no longer ingested);
+// the shared Google OAuth scopes are unchanged, but the UI promises only
+// Gmail + Calendar.
 const GOOGLE_SERVICES: GoogleService[] = [
   { id: 'google_gmail', name: 'Gmail', logoKey: 'google_gmail' },
   { id: 'google_calendar', name: 'Calendar', logoKey: 'google_calendar' },
-  { id: 'google_drive', name: 'Drive', logoKey: 'drive' },
-  { id: 'google_docs', name: 'Docs', logoKey: 'google' },
-  { id: 'google_sheets', name: 'Sheets', logoKey: 'google' },
-  { id: 'google_contacts', name: 'Contacts', logoKey: 'google' },
 ];
 
 const GoogleWorkspaceConnect: React.FC<GoogleWorkspaceConnectProps> = ({
@@ -104,7 +104,7 @@ const GoogleWorkspaceConnect: React.FC<GoogleWorkspaceConnectProps> = ({
 
         {/* Description */}
         <p className="text-[12px] leading-relaxed mb-4" style={{ color: 'rgba(255,255,255,0.4)' }}>
-          Connect once to unlock Gmail, Calendar, Drive, Docs, Sheets, and Contacts.
+          Connect once to unlock Gmail and Calendar.
         </p>
 
         {/* Service badges */}
@@ -143,7 +143,7 @@ const GoogleWorkspaceConnect: React.FC<GoogleWorkspaceConnectProps> = ({
 
         {/* Capability description */}
         <p className="text-[11px] leading-relaxed mb-5" style={{ color: 'rgba(255,255,255,0.3)' }}>
-          Your twin can read emails, check your schedule, search files, and draft documents — all in your voice.
+          Your twin can read your emails and check your schedule — all in your voice.
         </p>
 
         {/* CTA or Connected state */}
@@ -231,7 +231,7 @@ const GoogleWorkspaceConnect: React.FC<GoogleWorkspaceConnectProps> = ({
             <p className="text-[13px] leading-relaxed mb-5" style={{ color: 'rgba(255,255,255,0.5)' }}>
               Google will ask you to approve permissions. Make sure to{' '}
               <strong style={{ color: 'var(--foreground)' }}>check all the boxes</strong>{' '}
-              so your twin can access Gmail, Calendar, Drive, and more.
+              so your twin can access Gmail and Calendar.
             </p>
 
             {/* Visual hint */}
@@ -242,6 +242,10 @@ const GoogleWorkspaceConnect: React.FC<GoogleWorkspaceConnectProps> = ({
               <p className="text-[11px] font-medium mb-3" style={{ color: 'rgba(255,255,255,0.4)' }}>
                 On the Google consent screen:
               </p>
+              {/* This list mirrors Google's consent screen. The shared OAuth
+                  scopes still include Drive/Contacts (Track C keeps the scopes,
+                  kills the Drive fetcher), so the boxes the user sees there are
+                  unchanged — do not trim this list without trimming scopes. */}
               {['View and send email', 'View and edit calendar', 'View files in Drive', 'View contacts'].map(
                 (item) => (
                   <div key={item} className="flex items-center gap-2 py-1">

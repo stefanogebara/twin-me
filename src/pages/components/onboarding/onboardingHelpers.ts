@@ -27,19 +27,14 @@ export function removePlatformFromSummary(
   };
 }
 
+// replan-2026-06-10 Track C: retired-platform entries (linkedin, reddit,
+// strava, fitbit, garmin, twitch, oura) removed with their OAuth stacks.
 export const NANGO_PROVIDER_MAP: Record<string, string> = {
-  'linkedin': 'linkedin',
   'github': 'github-getting-started',
-  'reddit': 'reddit',
   'spotify': 'spotify',
   'youtube': 'youtube',
   'google-calendar': 'google-calendar',
-  'strava': 'strava',
-  'fitbit': 'fitbit',
-  'garmin': 'garmin',
-  'twitch': 'twitch',
   'whoop': 'whoop',
-  'oura': 'oura',
   'microsoft_outlook': 'outlook',
 };
 

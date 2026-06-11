@@ -30,8 +30,6 @@ import {
 } from './components/onboarding';
 import { ExpiredTokenBanner } from './components/dashboard-v2/ExpiredTokenBanner';
 import type { RevealedArchetype } from './components/onboarding';
-import { GarminCredentialsModal } from './components/settings/GarminCredentialsModal';
-import { SteamConnectModal } from './components/settings/SteamConnectModal';
 import { InstagramConnectModal } from './components/settings/InstagramConnectModal';
 import { CONNECTION_INSIGHT_MESSAGES } from './components/onboarding/connectionInsights';
 import { removePlatformFromSummary } from './components/onboarding/onboardingHelpers';
@@ -96,8 +94,6 @@ const InstantTwinOnboarding = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [connectingProvider, setConnectingProvider] = useState<DataProvider | null>(null);
   const [disconnectingProvider, setDisconnectingProvider] = useState<DataProvider | null>(null);
-  const [garminModalOpen, setGarminModalOpen] = useState(false);
-  const [steamModalOpen, setSteamModalOpen] = useState(false);
   const [instagramModalOpen, setInstagramModalOpen] = useState(false);
   const [revealedArchetype, setRevealedArchetype] = useState<RevealedArchetype | null>(null);
 
@@ -195,8 +191,6 @@ const InstantTwinOnboarding = () => {
     revertOptimisticUpdate,
     setConnectingProvider,
     setDisconnectingProvider,
-    setGarminModalOpen,
-    setSteamModalOpen,
     setInstagramModalOpen,
   });
 
@@ -355,22 +349,6 @@ const InstantTwinOnboarding = () => {
           </>
         )}
       </div>
-
-      <GarminCredentialsModal
-        open={garminModalOpen}
-        onClose={() => setGarminModalOpen(false)}
-        onSuccess={() => {
-          invalidatePlatformState(queryClient);
-        }}
-      />
-
-      <SteamConnectModal
-        open={steamModalOpen}
-        onClose={() => setSteamModalOpen(false)}
-        onSuccess={() => {
-          invalidatePlatformState(queryClient);
-        }}
-      />
 
       <InstagramConnectModal
         open={instagramModalOpen}

@@ -158,14 +158,15 @@ class ExtractionOrchestrator {
     log.info('Starting extraction for all platforms', { userId });
 
     try {
-      // 1. Get all connected platforms.
-      // Most platforms require an access_token; Steam is API-key based (no OAuth)
-      // and stores its identifier in metadata.steamId, so we include it explicitly.
+      // 1. Get all connected platforms (access_token required).
+      // The Steam special-case (API-key rows without access_token) was removed
+      // with the Steam stack (replan-2026-06-10 Track C) — existing Steam rows
+      // simply stop being extracted.
       const { data: connections, error } = await supabaseAdmin
         .from('platform_connections')
         .select('*')
         .eq('user_id', userId)
-        .or('access_token.not.is.null,platform.eq.steam');
+        .not('access_token', 'is', null);
 
       if (error) {
         throw new Error(`Failed to fetch connections: ${error.message}`);

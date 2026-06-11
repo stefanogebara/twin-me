@@ -66,7 +66,6 @@ const CalendarInsightsPage = lazy(() => import("./pages/insights/CalendarInsight
 const YouTubeInsightsPage = lazy(() => import("./pages/insights/YouTubeInsightsPage"));
 const WebBrowsingInsightsPage = lazy(() => import("./pages/insights/WebBrowsingInsightsPage"));
 const DiscordInsightsPage = lazy(() => import("./pages/insights/DiscordInsightsPage"));
-const LinkedInInsightsPage = lazy(() => import("./pages/insights/LinkedInInsightsPage"));
 const PrivacySpectrumDashboard = lazy(() => import("./pages/PrivacySpectrumDashboard"));
 const MemoryHealth = lazy(() => import("./pages/MemoryHealth"));
 const EvalDashboard = lazy(() => import("./pages/EvalDashboard"));
@@ -237,16 +236,6 @@ const App = () => {
                 </SidebarLayout>
               </ProtectedRoute>
             } />
-            <Route path="/insights/linkedin" element={
-              <ProtectedRoute>
-                <SidebarLayout>
-                  <ErrorBoundary>
-                    <LinkedInInsightsPage />
-                  </ErrorBoundary>
-                </SidebarLayout>
-              </ProtectedRoute>
-            } />
-
             {/* Soul Signature → redirect to Identity (canonical "Who You Are" page) */}
             <Route path="/soul-signature" element={<Navigate to="/identity" replace />} />
             <Route path="/me" element={<Navigate to="/identity" replace />} />

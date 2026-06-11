@@ -35,13 +35,9 @@ const OAUTH_CONFIGS = {
     authUrl: 'https://accounts.google.com/o/oauth2/v2/auth',
     tokenUrl: 'https://oauth2.googleapis.com/token'
   },
-  google_drive: {
-    clientId: process.env.GOOGLE_CLIENT_ID,
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    scopes: getGoogleWorkspaceScopes(),
-    authUrl: 'https://accounts.google.com/o/oauth2/v2/auth',
-    tokenUrl: 'https://oauth2.googleapis.com/token'
-  },
+  // google_drive removed (replan-2026-06-10 Track C). The shared Google
+  // Workspace scopes above stay as-is — only the Drive fetcher/config died.
+  // The product now promises Gmail + Calendar reading only.
 
   // YouTube (uses Google OAuth)
   youtube: {
@@ -91,52 +87,6 @@ const OAUTH_CONFIGS = {
     tokenUrl: 'https://discord.com/api/oauth2/token'
   },
 
-  // Slack - User Token Scopes (not bot scopes)
-  slack: {
-    clientId: process.env.SLACK_CLIENT_ID,
-    clientSecret: process.env.SLACK_CLIENT_SECRET,
-    scopes: [
-      'channels:read',
-      'files:read',
-      'groups:read',
-      'users:read',
-      'users:read.email',
-      'search:read',
-      'team.preferences:read',
-      'lists:read',
-      'reminders:read'
-    ],
-    authUrl: 'https://slack.com/oauth/v2/authorize',
-    tokenUrl: 'https://slack.com/api/oauth.v2.access'
-  },
-
-  // LinkedIn (if available)
-  linkedin: {
-    clientId: process.env.LINKEDIN_CLIENT_ID,
-    clientSecret: process.env.LINKEDIN_CLIENT_SECRET,
-    scopes: ['openid', 'profile', 'email'],
-    authUrl: 'https://www.linkedin.com/oauth/v2/authorization',
-    tokenUrl: 'https://www.linkedin.com/oauth/v2/accessToken'
-  },
-
-  // Reddit
-  reddit: {
-    clientId: process.env.REDDIT_CLIENT_ID,
-    clientSecret: process.env.REDDIT_CLIENT_SECRET,
-    scopes: ['identity', 'history', 'read', 'mysubreddits'],
-    authUrl: 'https://www.reddit.com/api/v1/authorize',
-    tokenUrl: 'https://www.reddit.com/api/v1/access_token'
-  },
-
-  // Twitch
-  twitch: {
-    clientId: process.env.TWITCH_CLIENT_ID,
-    clientSecret: process.env.TWITCH_CLIENT_SECRET,
-    scopes: ['user:read:follows', 'user:read:email'],
-    authUrl: 'https://id.twitch.tv/oauth2/authorize',
-    tokenUrl: 'https://id.twitch.tv/oauth2/token'
-  },
-
   // Whoop
   whoop: {
     clientId: process.env.WHOOP_CLIENT_ID,
@@ -146,66 +96,11 @@ const OAUTH_CONFIGS = {
     tokenUrl: 'https://api.prod.whoop.com/oauth/oauth2/token'
   },
 
-  // Strava
-  strava: {
-    clientId: process.env.STRAVA_CLIENT_ID,
-    clientSecret: process.env.STRAVA_CLIENT_SECRET,
-    scopes: ['read', 'activity:read_all'],
-    authUrl: 'https://www.strava.com/oauth/authorize',
-    tokenUrl: 'https://www.strava.com/oauth/token'
-  },
-
-  // Notion — uses Basic Auth for token exchange (see POST /callback)
-  // Notion does not use traditional scopes; users grant page-level access at auth time.
-  notion: {
-    clientId: process.env.NOTION_CLIENT_ID,
-    clientSecret: process.env.NOTION_CLIENT_SECRET,
-    scopes: [],
-    authUrl: 'https://api.notion.com/v1/oauth/authorize',
-    tokenUrl: 'https://api.notion.com/v1/oauth/token'
-  },
-
-  // Pinterest — v5 OAuth, Basic-auth token exchange, 30-day access / 365-day refresh tokens
-  pinterest: {
-    clientId: process.env.PINTEREST_APP_ID,
-    clientSecret: process.env.PINTEREST_APP_SECRET,
-    scopes: [
-      'boards:read',
-      'boards:read_secret',
-      'pins:read',
-      'pins:read_secret',
-      'user_accounts:read',
-    ],
-    authUrl: 'https://www.pinterest.com/oauth/',
-    tokenUrl: 'https://api.pinterest.com/v5/oauth/token'
-  },
-
-  // SoundCloud — v2 OAuth 2.1 with PKCE (mandatory since 2024), Basic-auth token exchange
-  soundcloud: {
-    clientId: process.env.SOUNDCLOUD_CLIENT_ID,
-    clientSecret: process.env.SOUNDCLOUD_CLIENT_SECRET,
-    scopes: [],
-    authUrl: 'https://secure.soundcloud.com/authorize',
-    tokenUrl: 'https://secure.soundcloud.com/oauth/token'
-  },
-
-  // Oura Ring
-  oura: {
-    clientId: process.env.OURA_CLIENT_ID,
-    clientSecret: process.env.OURA_CLIENT_SECRET,
-    scopes: ['daily', 'session', 'heartrate', 'workout', 'tag', 'personal', 'email', 'spo2', 'ring_configuration'],
-    authUrl: 'https://cloud.ouraring.com/oauth/authorize',
-    tokenUrl: 'https://cloud.ouraring.com/oauth/token'
-  },
-
+  // replan-2026-06-10 Track C portfolio cut: slack, linkedin, reddit, twitch,
+  // strava, notion, pinterest, soundcloud, oura OAuth configs deleted.
+  // LinkedIn/Discord GDPR export uploads remain the replacement story for the
+  // social platforms; the extension already mirrors their browsing signal.
 };
-
-// Debug: Check LinkedIn config on load
-log.debug('LinkedIn config on file load', {
-  hasLinkedIn: !!OAUTH_CONFIGS.linkedin,
-  hasClientId: !!OAUTH_CONFIGS.linkedin?.clientId,
-  hasClientSecret: !!OAUTH_CONFIGS.linkedin?.clientSecret
-});
 
 // ====================================================================
 // ROUTES
@@ -279,13 +174,12 @@ router.get('/connect/:provider', authenticateUser, async (req, res) => {
         log.error("Failed to store CSRF state for connect", { error: stateInsertErr1 });
       }
 
-      const scopeSeparator = (provider === 'slack' || provider === 'strava') ? ',' : ' ';
-      const scope = config.scopes.join(scopeSeparator);
+      const scope = config.scopes.join(' ');
       const authParams = new URLSearchParams({
         client_id: config.clientId,
         response_type: 'code',
         redirect_uri: redirectUri,
-        [provider === 'slack' ? 'user_scope' : 'scope']: scope,
+        scope,
         state,
       });
 
@@ -295,14 +189,8 @@ router.get('/connect/:provider', authenticateUser, async (req, res) => {
       } else if (provider.startsWith('google') || provider === 'youtube') {
         authParams.set('access_type', 'offline');
         authParams.set('prompt', 'consent');
-      } else if (provider === 'reddit') {
-        authParams.set('duration', 'permanent');
-      } else if (provider === 'twitch') {
-        authParams.set('force_verify', 'true');
       } else if (provider === 'discord') {
         authParams.set('prompt', 'consent');
-      } else if (provider === 'strava') {
-        authParams.set('approval_prompt', 'force');
       }
 
       const authUrl = `${config.authUrl}?${authParams.toString()}`;
@@ -417,13 +305,12 @@ router.get('/connect/:provider', authenticateUser, async (req, res) => {
           log.error("Failed to store CSRF state for reconnect", { error: stateInsertErr2 });
         }
 
-        const scopeSeparator = (provider === 'slack' || provider === 'strava') ? ',' : ' ';
-      const scope = config.scopes.join(scopeSeparator);
+        const scope = config.scopes.join(' ');
         const reAuthParams = new URLSearchParams({
           client_id: config.clientId,
           response_type: 'code',
           redirect_uri: redirectUri,
-          [provider === 'slack' ? 'user_scope' : 'scope']: scope,
+          scope,
           state,
         });
 
@@ -432,14 +319,8 @@ router.get('/connect/:provider', authenticateUser, async (req, res) => {
         } else if (provider.startsWith('google') || provider === 'youtube') {
           reAuthParams.set('access_type', 'offline');
           reAuthParams.set('prompt', 'consent');
-        } else if (provider === 'reddit') {
-          reAuthParams.set('duration', 'permanent');
-        } else if (provider === 'twitch') {
-          reAuthParams.set('force_verify', 'true');
         } else if (provider === 'discord') {
           reAuthParams.set('prompt', 'consent');
-        } else if (provider === 'strava') {
-          reAuthParams.set('approval_prompt', 'force');
         }
 
         const authUrl = `${config.authUrl}?${reAuthParams.toString()}`;
@@ -475,13 +356,12 @@ router.get('/connect/:provider', authenticateUser, async (req, res) => {
         log.error("Failed to store CSRF state for /auth/:provider", { error: stateInsertErr3 });
       }
 
-      const scopeSeparator = (provider === 'slack' || provider === 'strava') ? ',' : ' ';
-      const scope = config.scopes.join(scopeSeparator);
+      const scope = config.scopes.join(' ');
       const noRefreshParams = new URLSearchParams({
         client_id: config.clientId,
         response_type: 'code',
         redirect_uri: redirectUri,
-        [provider === 'slack' ? 'user_scope' : 'scope']: scope,
+        scope,
         state,
       });
 
@@ -490,14 +370,8 @@ router.get('/connect/:provider', authenticateUser, async (req, res) => {
       } else if (provider.startsWith('google') || provider === 'youtube') {
         noRefreshParams.set('access_type', 'offline');
         noRefreshParams.set('prompt', 'consent');
-      } else if (provider === 'reddit') {
-        noRefreshParams.set('duration', 'permanent');
-      } else if (provider === 'twitch') {
-        noRefreshParams.set('force_verify', 'true');
       } else if (provider === 'discord') {
         noRefreshParams.set('prompt', 'consent');
-      } else if (provider === 'strava') {
-        noRefreshParams.set('approval_prompt', 'force');
       }
 
       const authUrl = `${config.authUrl}?${noRefreshParams.toString()}`;
@@ -554,22 +428,6 @@ router.get('/auth/:provider', authenticateUser, (req, res) => {
 
     if (!config.clientId) {
       log.warn("No clientId for provider", { provider });
-      // Graceful 503 when an optional integration isn't configured yet
-      // (mirrors the finetuning fix — better UX than a raw 500).
-      if (provider === 'notion') {
-        return res.status(503).json({
-          success: false,
-          error: 'not_configured',
-          message: 'Notion integration is not configured yet. Check back soon.'
-        });
-      }
-      if (provider === 'pinterest') {
-        return res.status(503).json({
-          success: false,
-          error: 'not_configured',
-          message: 'Pinterest integration is not configured yet. Check back soon.'
-        });
-      }
       return res.status(500).json({
         success: false,
         error: 'OAuth not configured for this provider'
@@ -592,15 +450,10 @@ router.get('/auth/:provider', authenticateUser, (req, res) => {
     log.debug("OAuth URL generation", { provider });
     log.debug("Redirect URI", { redirectUri });
 
-    // Slack requires 'user_scope' parameter for user tokens (not 'scope' which is for bot tokens)
-    // Slack also uses comma-separated scopes, while most others use space-separated
-    const scopeParam = provider === 'slack' ? 'user_scope' : 'scope';
-    const scopeSeparator = (provider === 'slack' || provider === 'strava') ? ',' : ' ';
-
     const params = new URLSearchParams({
       client_id: config.clientId,
       redirect_uri: redirectUri,
-      [scopeParam]: config.scopes.join(scopeSeparator),
+      scope: config.scopes.join(' '),
       response_type: 'code',
       state
     });
@@ -609,21 +462,10 @@ router.get('/auth/:provider', authenticateUser, (req, res) => {
     if (provider.startsWith('google') || provider === 'youtube') {
       params.set('access_type', 'offline');
       params.set('prompt', 'consent');
-    } else if (provider === 'reddit') {
-      params.set('duration', 'permanent'); // Required for refresh tokens
-    } else if (provider === 'twitch') {
-      params.set('force_verify', 'true');
     } else if (provider === 'discord') {
       params.set('prompt', 'consent');
     } else if (provider === 'whoop') {
       params.set('scope', [...config.scopes, 'offline'].join(' '));
-    } else if (provider === 'strava') {
-      params.set('approval_prompt', 'force');
-    } else if (provider === 'notion') {
-      // Notion requires owner=user on the authorize URL for user-scoped tokens.
-      params.set('owner', 'user');
-      // No scopes for Notion — remove empty scope param to avoid auth errors.
-      params.delete('scope');
     }
 
     const authUrl = `${config.authUrl}?${params.toString()}`;
@@ -771,65 +613,6 @@ router.post('/callback', async (req, res) => {
           redirect_uri: redirectUri
         })
       });
-    } else if (provider === 'slack') {
-      // Slack uses OAuth v2 with special response format
-      tokenResponse = await fetch(config.tokenUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({
-          client_id: config.clientId,
-          client_secret: config.clientSecret,
-          code,
-          redirect_uri: redirectUri
-        })
-      });
-    } else if (provider === 'reddit') {
-      // Reddit uses Basic Authentication like Spotify
-      tokenResponse = await fetch(config.tokenUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Authorization': `Basic ${Buffer.from(`${config.clientId}:${config.clientSecret}`).toString('base64')}`
-        },
-        body: new URLSearchParams({
-          grant_type: 'authorization_code',
-          code,
-          redirect_uri: redirectUri
-        })
-      });
-    } else if (provider === 'pinterest') {
-      // Pinterest v5 uses Basic Auth + form-urlencoded body
-      // https://developers.pinterest.com/docs/getting-started/connect-app/
-      tokenResponse = await fetch(config.tokenUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Authorization': `Basic ${Buffer.from(`${config.clientId}:${config.clientSecret}`).toString('base64')}`
-        },
-        body: new URLSearchParams({
-          grant_type: 'authorization_code',
-          code,
-          redirect_uri: redirectUri
-        })
-      });
-    } else if (provider === 'notion') {
-      // Notion uses Basic Authentication with JSON body
-      // https://developers.notion.com/reference/create-a-token
-      tokenResponse = await fetch(config.tokenUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': `Basic ${Buffer.from(`${config.clientId}:${config.clientSecret}`).toString('base64')}`
-        },
-        body: JSON.stringify({
-          grant_type: 'authorization_code',
-          code,
-          redirect_uri: redirectUri
-        })
-      });
     } else {
       // Standard OAuth2 flow (Google, Discord, etc.)
       tokenResponse = await fetch(config.tokenUrl, {
@@ -875,25 +658,7 @@ router.post('/callback', async (req, res) => {
     const tokenData = await tokenResponse.json();
     log.info("Token exchange successful", { provider });
 
-    // Handle Slack's special response format
-    let tokens;
-    if (provider === 'slack') {
-      if (!tokenData.ok) {
-        return res.status(400).json({
-          success: false,
-          error: `Slack OAuth error: ${tokenData.error || 'Unknown error'}`
-        });
-      }
-      // Extract user token from Slack response
-      tokens = {
-        access_token: tokenData.authed_user?.access_token || tokenData.access_token,
-        refresh_token: tokenData.authed_user?.refresh_token || tokenData.refresh_token,
-        expires_in: tokenData.authed_user?.expires_in || tokenData.expires_in,
-        scope: tokenData.scope
-      };
-    } else {
-      tokens = tokenData;
-    }
+    const tokens = tokenData;
 
     if (tokens.error) {
       return res.status(400).json({
@@ -1223,7 +988,7 @@ router.post('/connect/:platform', authenticateUser, async (req, res) => {
     log.info("OAuth connection request", { platform, userId });
 
     // Platforms handled by entertainment-connectors
-    const entertainmentPlatforms = ['spotify', 'youtube', 'netflix', 'tiktok'];
+    const entertainmentPlatforms = ['spotify', 'youtube', 'netflix'];
 
     if (entertainmentPlatforms.includes(platform)) {
       // Forward to entertainment connectors endpoint
@@ -1283,13 +1048,10 @@ router.post('/connect/:platform', authenticateUser, async (req, res) => {
     // Build authorization URL
     const redirectUri = `${getAppUrl(req)}/oauth/callback`;
 
-    const scopeParam = platform === 'slack' ? 'user_scope' : 'scope';
-    const scopeSeparator = (platform === 'slack' || platform === 'strava') ? ',' : ' ';
-
     const params = new URLSearchParams({
       client_id: config.clientId,
       redirect_uri: redirectUri,
-      [scopeParam]: config.scopes.join(scopeSeparator),
+      scope: config.scopes.join(' '),
       response_type: 'code',
       state
     });
@@ -1298,14 +1060,8 @@ router.post('/connect/:platform', authenticateUser, async (req, res) => {
     if (platform.startsWith('google') || platform === 'youtube') {
       params.set('access_type', 'offline');
       params.set('prompt', 'consent');
-    } else if (platform === 'reddit') {
-      params.set('duration', 'permanent');
-    } else if (platform === 'twitch') {
-      params.set('force_verify', 'true');
     } else if (platform === 'discord') {
       params.set('prompt', 'consent');
-    } else if (platform === 'strava') {
-      params.set('approval_prompt', 'force');
     }
 
     const authUrl = `${config.authUrl}?${params.toString()}`;
@@ -1391,58 +1147,6 @@ router.post('/test-add-connection', authenticateUser, requireProfessor, async (r
       success: false,
       error: 'Failed to add test connection'
     });
-  }
-});
-
-/**
- * POST /api/connectors/garmin/credentials
- * Save Garmin credentials (email + password) for direct web-session access.
- * Validates immediately by attempting auth before storing.
- */
-router.post('/garmin/credentials', authenticateUser, async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const { email, password } = req.body;
-
-    if (!email || !password) {
-      return res.status(400).json({ success: false, error: 'email and password are required' });
-    }
-
-    const garmin = await import('../services/garminDirectService.js');
-    await garmin.saveCredentials(userId, email, password);
-
-    res.json({ success: true, message: 'Garmin connected' });
-  } catch (err) {
-    log.error('Garmin credential save failed', { error: err.message });
-    const userMsg = err.message?.includes('Invalid sign in') || err.message?.includes('auth failed')
-      ? 'Invalid Garmin credentials'
-      : 'Failed to connect Garmin';
-    res.status(400).json({ success: false, error: userMsg });
-  }
-});
-
-/**
- * DELETE /api/connectors/garmin/credentials
- * Disconnect Garmin (mark inactive).
- */
-router.delete('/garmin/credentials', authenticateUser, async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const { getSupabase } = await import('../services/observationUtils.js');
-    const db = await getSupabase();
-    if (!db) {
-      return res.status(503).json({ success: false, error: 'Database unavailable' });
-    }
-
-    await db.from('platform_connections')
-      .update({ is_active: false })
-      .eq('user_id', userId)
-      .eq('platform', 'garmin');
-
-    res.json({ success: true });
-  } catch (err) {
-    log.error('Garmin credential disconnect failed', { error: err.message });
-    res.status(500).json({ success: false, error: 'Failed to disconnect Garmin' });
   }
 });
 

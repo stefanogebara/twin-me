@@ -381,28 +381,29 @@ test.describe('Step 3: Platform step', () => {
     expect(bgColor).toBe('rgb(29, 185, 84)'); // #1DB954
   });
 
-  test('all 5 recommended platforms have Connect buttons', async ({ page }) => {
-    // RECOMMENDED grew from 3 → 5 platforms (Spotify, Google Calendar, YouTube, Gmail, Discord).
-    for (const platform of ['Spotify', 'Google Calendar', 'YouTube', 'Gmail', 'Discord']) {
+  test('all 4 recommended platforms have Connect buttons', async ({ page }) => {
+    // replan-2026-06-10 Track C: Discord demoted out of RECOMMENDED — the
+    // featured list is now Spotify, Google Calendar, YouTube, Gmail.
+    for (const platform of ['Spotify', 'Google Calendar', 'YouTube', 'Gmail']) {
       await expect(page.locator('p').filter({ hasText: new RegExp(`^${platform}$`) }).first()).toBeVisible();
     }
     // The button label is uppercased CSS, but the DOM text is "Connect".
     const connectBtns = page.getByRole('button', { name: 'Connect' });
-    await expect(connectBtns).toHaveCount(5);
+    await expect(connectBtns).toHaveCount(4);
   });
 
-  test('More platforms toggle reveals LinkedIn / Whoop / GitHub', async ({ page }) => {
-    // MORE_PLATFORMS list in PlatformStep.tsx: LinkedIn, Whoop, GitHub.
-    // YouTube + Gmail moved into RECOMMENDED, so they're already visible above.
+  test('More platforms toggle reveals Whoop / GitHub', async ({ page }) => {
+    // MORE_PLATFORMS list in PlatformStep.tsx: Whoop, GitHub.
+    // replan-2026-06-10 Track C: LinkedIn removed (OAuth stack retired).
     const moreBtn = page.getByRole('button', { name: /More platforms/i });
     await expect(moreBtn).toBeVisible();
     await moreBtn.click();
-    for (const platform of ['LinkedIn', 'Whoop', 'GitHub']) {
+    for (const platform of ['Whoop', 'GitHub']) {
       await expect(page.getByText(platform, { exact: true })).toBeVisible({ timeout: 5_000 });
     }
     await page.getByRole('button', { name: /Show less/i }).click();
-    // After Show less, the LinkedIn/Whoop/GitHub names should be gone again.
-    await expect(page.getByText('LinkedIn', { exact: true })).not.toBeVisible();
+    // After Show less, the Whoop/GitHub names should be gone again.
+    await expect(page.getByText('Whoop', { exact: true })).not.toBeVisible();
   });
 
   test('"Skip for now" button exists and is clickable', async ({ page }) => {

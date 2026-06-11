@@ -74,7 +74,9 @@ function isInsightGenerating(key) {
 }
 
 // Valid platforms
-const VALID_PLATFORMS = ['spotify', 'calendar', 'youtube', 'web', 'discord', 'linkedin'];
+// linkedin removed (replan-2026-06-10 Track C): the /insights/linkedin page
+// was deleted with the LinkedIn OAuth stack, so nothing requests it anymore.
+const VALID_PLATFORMS = ['spotify', 'calendar', 'youtube', 'web', 'discord'];
 
 // Map URL platform names to database platform names
 // Calendar is stored as 'google_calendar' in platform_connections

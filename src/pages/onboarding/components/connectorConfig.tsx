@@ -23,12 +23,6 @@ const DiscordLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
   </svg>
 );
 
-const RedditLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z"/>
-  </svg>
-);
-
 const GmailLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor">
     <path d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L5.455 4.64 12 9.548l6.545-4.91 1.528-1.145C21.69 2.28 24 3.434 24 5.457z"/>
@@ -41,18 +35,6 @@ const CalendarLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
   </svg>
 );
 
-const SlackLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zM18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312zM15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z"/>
-  </svg>
-);
-
-const LinkedInLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
-  </svg>
-);
-
 const GithubLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor">
     <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
@@ -60,50 +42,11 @@ const GithubLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
 );
 
 
-const OuraLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" strokeWidth="2"/>
-    <circle cx="12" cy="12" r="6" fill="none" stroke="currentColor" strokeWidth="2"/>
-    <circle cx="12" cy="12" r="2"/>
-  </svg>
-);
-
-const StravaLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.599h4.172L10.463 0 4 13.828h4.172"/>
-  </svg>
-);
-
 const WhoopLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
   <svg className={className} viewBox="3 13 40 22" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
     <path d="M16.47,26.68l-3.7097,-11.047" />
     <path d="M18.38,32.368l5.6196,-16.735" />
     <path d="M25.91,21.32l3.7097,11.047,5.6196,-16.735" />
-  </svg>
-);
-
-const FitbitLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <circle cx="12" cy="4" r="2.5"/>
-    <circle cx="12" cy="12" r="2.5"/>
-    <circle cx="12" cy="20" r="2.5"/>
-    <circle cx="4" cy="8" r="2"/>
-    <circle cx="4" cy="16" r="2"/>
-    <circle cx="20" cy="8" r="2"/>
-    <circle cx="20" cy="16" r="2"/>
-  </svg>
-);
-
-const GarminLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/>
-    <path d="M12 4c-4.42 0-8 3.58-8 8h2c0-3.31 2.69-6 6-6s6 2.69 6 6h2c0-4.42-3.58-8-8-8z"/>
-  </svg>
-);
-
-const TwitchLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714z"/>
   </svg>
 );
 
@@ -122,31 +65,6 @@ const OutlookLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
   </svg>
 );
 
-const NotionLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M4.459 4.208c.746.606 1.026.56 2.428.466l13.215-.793c.28 0 .047-.28-.046-.326L17.86 1.968c-.42-.326-.981-.7-2.055-.607L3.01 2.295c-.466.046-.56.28-.374.466zm.793 3.08v13.904c0 .747.373 1.027 1.214.98l14.523-.84c.841-.046.935-.56.935-1.167V6.354c0-.606-.233-.933-.748-.887l-15.177.887c-.56.047-.747.327-.747.933zm14.337.745c.093.42 0 .84-.42.888l-.7.14v10.264c-.608.327-1.168.514-1.635.514-.748 0-.935-.234-1.495-.933l-4.577-7.186v6.952L12.21 19s0 .84-1.168.84l-3.222.186c-.093-.186 0-.653.327-.746l.84-.233V9.854L7.822 9.76c-.094-.42.14-1.026.793-1.073l3.456-.233 4.764 7.279v-6.44l-1.215-.139c-.093-.514.28-.887.747-.933zM1.936.585l13.31-.98c1.634-.14 2.055-.047 3.082.7l4.249 2.986c.7.513.934.653.934 1.213v16.378c0 1.026-.373 1.634-1.68 1.726l-15.458.934c-.98.047-1.448-.093-1.962-.747l-3.129-4.06c-.56-.747-.793-1.306-.793-1.96V2.667c0-.839.374-1.54 1.447-1.96z"/>
-  </svg>
-);
-
-const SteamLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M12 0C5.625 0 .395 4.957.026 11.235l6.428 2.66c.545-.371 1.203-.59 1.911-.59.063 0 .126 0 .19.006l2.866-4.146v-.061c0-2.504 2.038-4.542 4.541-4.542s4.542 2.038 4.542 4.542-2.039 4.541-4.541 4.541h-.107l-4.075 2.91c0 .053.005.105.005.16 0 1.875-1.515 3.396-3.39 3.396-1.635 0-3.004-1.165-3.32-2.708l-4.6-1.91C2.36 20.221 6.79 24 12 24c6.626 0 12-5.375 12-12 0-6.626-5.375-12-12-12zM7.531 18.176c.366.155.785.245 1.227.245 1.31 0 2.371-1.061 2.371-2.367 0-1.31-1.061-2.376-2.371-2.376-.43 0-.836.116-1.184.32l1.55.644c.964.398 1.418 1.498.953 2.45-.398.962-1.498 1.416-2.45.953l-1.498-.624c.27.31.621.553 1.402.755zm10.969-9.847c0-1.671-1.355-3.026-3.026-3.026-1.676 0-3.031 1.355-3.031 3.026 0 1.671 1.355 3.026 3.031 3.026 1.671 0 3.026-1.355 3.026-3.026zm-5.305.013c0-1.255 1.018-2.273 2.273-2.273s2.273 1.018 2.273 2.273-1.018 2.273-2.273 2.273S13.195 9.6 13.195 8.342z"/>
-  </svg>
-);
-
-const PinterestLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M12 0C5.373 0 0 5.372 0 12c0 5.084 3.163 9.426 7.627 11.174-.105-.949-.2-2.405.042-3.441.218-.937 1.407-5.965 1.407-5.965s-.359-.719-.359-1.782c0-1.668.967-2.914 2.171-2.914 1.023 0 1.518.769 1.518 1.69 0 1.029-.655 2.568-.994 3.995-.283 1.194.599 2.169 1.777 2.169 2.133 0 3.772-2.249 3.772-5.495 0-2.873-2.064-4.882-5.012-4.882-3.414 0-5.418 2.561-5.418 5.207 0 1.031.397 2.138.893 2.738.098.119.112.224.083.345l-.333 1.36c-.053.22-.174.267-.402.161-1.499-.698-2.436-2.889-2.436-4.649 0-3.785 2.75-7.262 7.929-7.262 4.163 0 7.398 2.967 7.398 6.931 0 4.136-2.607 7.464-6.227 7.464-1.216 0-2.359-.631-2.75-1.378l-.748 2.853c-.271 1.043-1.002 2.35-1.492 3.146C9.57 23.812 10.763 24 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0z"/>
-  </svg>
-);
-
-const SoundcloudLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M7 17.939h-1v-8.068c.308-.231.639-.429 1-.566v8.634zm3 0h1v-9.224c-.229-.265-.443-.548-.621-.857l-.379.184v9.897zm-2 0h1v-9.072c-.327.116-.66.249-1 .398v8.674zm-4 0h1v-7.358c-.354.247-.689.527-1 .836v6.522zm-2-5.74c-.484.96-.762 2.041-.762 3.18 0 .888.171 1.733.481 2.51l.281.05v-5.74zm22.117-1.541c.207-.428.323-.907.323-1.413 0-1.802-1.451-3.262-3.243-3.262-.494 0-.961.115-1.378.314-.494-2.428-2.726-4.265-5.404-4.265-.625 0-1.227.106-1.789.293-.225.075-.281.156-.281.345v15.502c0 .203.143.371.341.394.012.001.711.024 1.66.024 4.797 0 7.851-.043 8.026-.069 2.197-.337 3.831-2.218 3.831-4.394 0-1.555-.85-2.926-2.137-3.665"/>
-  </svg>
-);
-
-
 // ====================================================================
 // CONNECTOR CONFIGURATION
 // ====================================================================
@@ -163,6 +81,10 @@ export interface ConnectorConfig {
   privacyLevel: 'low' | 'medium' | 'high';
   category: 'entertainment' | 'social' | 'professional' | 'health' | 'browsing';
   comingSoon?: boolean;
+  // Demoted platforms (replan-2026-06-10 Track C): keep working for already-
+  // connected users (catalog entry needed for the Connected list), but never
+  // render a discovery/featured tile inviting new connections.
+  unlisted?: boolean;
   externalUrl?: string; // For non-OAuth connectors (e.g. Chrome Web Store)
   // Inline caveat shown beneath the description (e.g. "Work/school accounts only").
   // Use for known platform limitations so users learn upfront instead of via silent
@@ -230,19 +152,11 @@ export const AVAILABLE_CONNECTORS: ConnectorConfig[] = [
     estimatedInsights: 7,
     setupTime: '5 seconds',
     privacyLevel: 'low',
-    category: 'social'
-  },
-  {
-    provider: 'linkedin' as DataProvider,
-    name: 'LinkedIn',
-    description: 'Your professional network reveals career trajectory, skills, and how you present yourself professionally',
-    icon: <LinkedInLogo className="w-6 h-6" />,
-    color: '#0077B5',
-    dataTypes: ['Career History', 'Skills', 'Professional Network'],
-    estimatedInsights: 9,
-    setupTime: '10 seconds',
-    privacyLevel: 'medium',
-    category: 'professional'
+    category: 'social',
+    // Demoted (replan-2026-06-10 Track C): existing Discord connections keep
+    // working and syncing, but the platform is no longer featured for new
+    // connections — the extension + GDPR upload cover the same signal.
+    unlisted: true,
   },
   {
     provider: 'instagram' as DataProvider,
@@ -270,23 +184,6 @@ export const AVAILABLE_CONNECTORS: ConnectorConfig[] = [
     comingSoon: true,
   },
   {
-    provider: 'reddit' as DataProvider,
-    name: 'Reddit',
-    description: 'The communities you follow reveal your real interests, curiosities, and intellectual depth',
-    icon: <RedditLogo className="w-6 h-6" />,
-    color: '#FF4500',
-    dataTypes: ['Community Interests', 'Content Preferences', 'Curiosities'],
-    estimatedInsights: 8,
-    setupTime: '5 seconds',
-    privacyLevel: 'low',
-    category: 'social',
-    // comingSoon flag cleared 2026-06-10 (audit settings-dead-connect): the
-    // Reddit OAuth flow is fully wired (POST /entertainment/connect/reddit +
-    // oauth-callback.js), and Settings' Connect button sends users to
-    // /get-started where this flag hid the tile — same leftover-flag bug
-    // class as Whoop below.
-  },
-  {
     provider: 'github' as DataProvider,
     name: 'GitHub',
     description: 'Your repositories and activity reveal how you think about problems and what you build',
@@ -301,48 +198,6 @@ export const AVAILABLE_CONNECTORS: ConnectorConfig[] = [
     // GitHub OAuth flow is fully wired (POST /entertainment/connect/github +
     // oauth-callback.js) — flag was a leftover hiding the tile from
     // /get-started, dead-ending Settings' Connect button.
-  },
-  {
-    provider: 'slack' as DataProvider,
-    name: 'Slack',
-    description: 'Workspace channels reveal professional focus areas, team dynamics, and how you collaborate',
-    icon: <SlackLogo className="w-6 h-6" />,
-    color: '#4A154B',
-    dataTypes: ['Work Focus', 'Collaboration Style', 'Channel Interests'],
-    estimatedInsights: 5,
-    setupTime: '5 seconds',
-    privacyLevel: 'medium',
-    category: 'professional',
-    comingSoon: true,
-  },
-  {
-    provider: 'strava' as DataProvider,
-    name: 'Strava',
-    description: 'Training data reveals discipline, consistency, and how physical effort shapes your mindset',
-    icon: <StravaLogo className="w-6 h-6" />,
-    color: '#FC4C02',
-    dataTypes: ['Fitness Activities', 'Training Patterns', 'Consistency'],
-    estimatedInsights: 7,
-    setupTime: '10 seconds',
-    privacyLevel: 'low',
-    category: 'health'
-  },
-  {
-    provider: 'oura' as DataProvider,
-    name: 'Oura Ring',
-    description: 'Sleep, HRV, and recovery data reveal how your biology shapes your mood and energy patterns',
-    icon: <OuraLogo className="w-6 h-6" />,
-    color: '#6366F1',
-    dataTypes: ['Sleep Quality', 'Recovery', 'HRV Trends'],
-    estimatedInsights: 9,
-    setupTime: '10 seconds',
-    privacyLevel: 'low',
-    category: 'health',
-    // Hidden until the Nango 'oura' integration is configured (Oura OAuth
-    // client id/secret added in the Nango dashboard). Connect routing already
-    // goes through Nango (usePlatformConnect nangoPlatforms includes 'oura'),
-    // so re-enabling is just deleting this flag once the integration exists.
-    comingSoon: true,
   },
   {
     provider: 'whoop' as DataProvider,
@@ -363,97 +218,6 @@ export const AVAILABLE_CONNECTORS: ConnectorConfig[] = [
     // tile from /connect, blocking the reconnect flow entirely.
   },
   {
-    provider: 'fitbit' as DataProvider,
-    name: 'Fitbit',
-    description: 'Steps, sleep, and heart rate data reveal your daily activity rhythm and recovery patterns',
-    icon: <FitbitLogo className="w-6 h-6" />,
-    color: '#00B0B9',
-    dataTypes: ['Steps', 'Sleep Quality', 'Heart Rate', 'Activity Zones'],
-    estimatedInsights: 8,
-    setupTime: '10 seconds',
-    privacyLevel: 'low',
-    category: 'health'
-  },
-  {
-    provider: 'garmin' as DataProvider,
-    name: 'Garmin',
-    description: 'Training load, recovery, and VO2 max reveal your fitness discipline and how you push your limits',
-    icon: <GarminLogo className="w-6 h-6" />,
-    color: '#007CC3',
-    dataTypes: ['Training Load', 'Recovery', 'VO2 Max', 'Body Battery'],
-    estimatedInsights: 7,
-    setupTime: '10 seconds',
-    privacyLevel: 'low',
-    category: 'health'
-  },
-  {
-    provider: 'twitch' as DataProvider,
-    name: 'Twitch',
-    description: 'Followed channels and watch patterns reveal your gaming identity and community interests',
-    icon: <TwitchLogo className="w-6 h-6" />,
-    color: '#9146FF',
-    dataTypes: ['Followed Channels', 'Watch Patterns', 'Game Preferences'],
-    estimatedInsights: 6,
-    setupTime: '5 seconds',
-    privacyLevel: 'low',
-    category: 'entertainment',
-    // comingSoon flag cleared 2026-06-10 (audit settings-dead-connect):
-    // Twitch connects via Nango (usePlatformConnect nangoPlatforms) like
-    // Whoop above — flag was a leftover hiding the tile from /get-started,
-    // dead-ending Settings' Connect button.
-  },
-  {
-    provider: 'notion' as DataProvider,
-    name: 'Notion',
-    description: 'Journals, goals, reading lists, life OS pages — the richest authentic self-record available.',
-    icon: <NotionLogo className="w-6 h-6" />,
-    color: '#000000',
-    dataTypes: ['Journals', 'Goals', 'Reading Lists', 'Life OS'],
-    estimatedInsights: 15,
-    setupTime: '15 seconds',
-    privacyLevel: 'high',
-    category: 'professional',
-    comingSoon: true,
-  },
-  {
-    provider: 'steam' as DataProvider,
-    name: 'Steam',
-    description: 'Owned games + playtime + achievements — reveals gaming identity, obsessions, and completion style. Public profile required.',
-    icon: <SteamLogo className="w-6 h-6" />,
-    color: '#171A21',
-    dataTypes: ['Owned Games', 'Playtime', 'Achievements', 'Recent Activity'],
-    estimatedInsights: 10,
-    setupTime: '15 seconds',
-    privacyLevel: 'medium',
-    category: 'entertainment',
-  },
-  {
-    provider: 'pinterest' as DataProvider,
-    name: 'Pinterest',
-    description: 'Board names, pins, and saved aesthetic — reveals taste, aspirational lifestyle, and curated identity.',
-    icon: <PinterestLogo className="w-6 h-6" />,
-    color: '#E60023',
-    dataTypes: ['Boards', 'Pins', 'Aesthetic', 'Taste'],
-    estimatedInsights: 10,
-    setupTime: '15 seconds',
-    privacyLevel: 'medium',
-    category: 'entertainment',
-    comingSoon: true,
-  },
-  {
-    provider: 'soundcloud' as DataProvider,
-    name: 'SoundCloud',
-    description: 'Likes, follows, playlists, and your own uploads — indie, electronic, and DJ-mix taste that Spotify often misses.',
-    icon: <SoundcloudLogo className="w-6 h-6" />,
-    color: '#FF5500',
-    dataTypes: ['Likes', 'Follows', 'Playlists', 'Uploads'],
-    estimatedInsights: 10,
-    setupTime: '15 seconds',
-    privacyLevel: 'low',
-    category: 'entertainment',
-    comingSoon: true,
-  },
-  {
     provider: 'microsoft_outlook' as DataProvider,
     name: 'Outlook',
     description: 'Email patterns and calendar events reveal how you structure your professional life and communicate',
@@ -469,5 +233,8 @@ export const AVAILABLE_CONNECTORS: ConnectorConfig[] = [
     // Microsoft Graph rejects subsequent calls with AADSTS50194-class errors and
     // sync silently fails. Warning users upfront avoids the dead-end experience.
     note: 'Work or school account required',
+    // Demoted (replan-2026-06-10 Track C): existing Outlook connections keep
+    // working; no featured tile for new connections.
+    unlisted: true,
   },
 ];

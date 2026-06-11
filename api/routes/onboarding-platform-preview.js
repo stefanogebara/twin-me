@@ -17,7 +17,6 @@ import { authenticateUser } from '../middleware/auth.js';
 import { fetchSpotifyObservations } from '../services/observationFetchers/spotify.js';
 import { fetchCalendarObservations } from '../services/observationFetchers/calendar.js';
 import { fetchDiscordObservations } from '../services/observationFetchers/discord.js';
-import { fetchLinkedInObservations } from '../services/observationFetchers/linkedin.js';
 import { addPlatformObservation } from '../services/memoryStreamService.js';
 import { getValidAccessToken } from '../services/tokenRefreshService.js';
 import axios from 'axios';
@@ -31,7 +30,6 @@ const PLATFORM_FETCHERS = {
   spotify: fetchSpotifyObservations,
   google_calendar: fetchCalendarObservations,
   discord: fetchDiscordObservations,
-  linkedin: fetchLinkedInObservations,
 };
 
 // ====================================================================

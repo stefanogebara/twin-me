@@ -10,27 +10,21 @@ import {
   SpotifyLogo,
   GoogleCalendarLogo,
   YoutubeLogo,
-  DiscordLogo,
-  LinkedinLogo,
   GithubLogo,
   GmailLogo,
-  RedditLogo,
-  TwitchLogo,
   WhoopLogo,
 } from '../components/PlatformLogos';
 import '../styles/landing.css';
 
-/* ── Active platform integrations ── */
+/* ── Active platform integrations ──
+ * replan-2026-06-10 Track C: only the featured keepers — LinkedIn/Reddit/
+ * Twitch OAuth retired; Discord demoted (works, not featured). */
 const PLATFORMS = [
   { id: 'spotify',   name: 'Spotify',            Icon: SpotifyLogo,         color: '#1DB954' },
   { id: 'calendar',  name: 'Google Calendar',     Icon: GoogleCalendarLogo,  color: '#4285F4' },
   { id: 'youtube',   name: 'YouTube',             Icon: YoutubeLogo,         color: '#FF0000' },
   { id: 'github',    name: 'GitHub',              Icon: GithubLogo,          color: '#E5E5E5' },
   { id: 'gmail',     name: 'Gmail',               Icon: GmailLogo,           color: '#EA4335' },
-  { id: 'discord',   name: 'Discord',             Icon: DiscordLogo,         color: '#5865F2' },
-  { id: 'linkedin',  name: 'LinkedIn',            Icon: LinkedinLogo,        color: '#0A66C2' },
-  { id: 'reddit',    name: 'Reddit',              Icon: RedditLogo,          color: '#FF4500' },
-  { id: 'twitch',    name: 'Twitch',              Icon: TwitchLogo,          color: '#9147FF' },
   { id: 'whoop',     name: 'Whoop',               Icon: WhoopLogo,           color: '#C5F135' },
 ];
 
@@ -282,7 +276,7 @@ const Index = () => {
             className="grid grid-cols-1 md:grid-cols-3 gap-5"
           >
             {[
-              { value: '10', label: 'Platform integrations', sub: 'Spotify, YouTube, Discord, Reddit, Twitch & more' },
+              { value: '7', label: 'Deep integrations', sub: 'Spotify, YouTube, Gmail, Calendar, GitHub, Whoop & your browser' },
               { value: '5-layer', label: 'Personality portrait', sub: 'From your real data' },
               { value: '< 60s', label: 'Time to first insight', sub: 'After connecting' },
             ].map((stat, i) => (

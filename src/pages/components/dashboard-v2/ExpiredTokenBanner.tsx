@@ -6,6 +6,7 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import { AlertTriangle } from 'lucide-react';
 import { usePlatformsSummary } from '@/hooks/usePlatformsSummary';
+import { RETIRED_PLATFORMS } from '@/lib/retiredPlatforms';
 
 const PLATFORM_NAMES: Record<string, string> = {
   spotify: 'Spotify',
@@ -13,12 +14,8 @@ const PLATFORM_NAMES: Record<string, string> = {
   youtube: 'YouTube',
   google_gmail: 'Gmail',
   discord: 'Discord',
-  linkedin: 'LinkedIn',
   github: 'GitHub',
-  reddit: 'Reddit',
-  twitch: 'Twitch',
   whoop: 'WHOOP',
-  strava: 'Strava',
 };
 
 // userId prop is ignored — the /platforms/summary endpoint is JWT-scoped.
@@ -32,8 +29,10 @@ export function ExpiredTokenBanner(_props: { userId?: string } = {}) {
 
   // Canonical semantics: only state === 'expired' (genuine auth failure) earns
   // a reconnect demand. 'stale' (no recent sync) never triggers this banner.
+  // Retired platforms (Track C portfolio cut) never demand a reconnect —
+  // there is no live stack left to reconnect to.
   const expired = (summary?.breakdown ?? [])
-    .filter((entry) => entry.state === 'expired')
+    .filter((entry) => entry.state === 'expired' && !RETIRED_PLATFORMS.has(entry.platform))
     .map((entry) => PLATFORM_NAMES[entry.platform] || entry.platform);
 
   if (expired.length === 0) return null;

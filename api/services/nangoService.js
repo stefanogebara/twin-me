@@ -1,24 +1,19 @@
 /**
  * NANGO UNIFIED API SERVICE (v3.0 - Dynamic connections, retry logic, error handling)
  *
- * Manages OAuth connections and data extraction for 14 platforms:
+ * Manages OAuth connections and data extraction for the kept platforms
+ * (replan-2026-06-10 Track C portfolio cut removed linkedin, reddit, twitch,
+ * garmin, strava, fitbit, oura):
  * 1. Spotify - Music/entertainment patterns
  * 2. Google Calendar - Schedule/productivity
  * 3. Whoop - Health/biometrics
  * 4. Discord - Social/gaming
  * 5. GitHub - Professional/coding
- * 6. LinkedIn - Professional/career
- * 7. YouTube - Entertainment/learning
- * 8. Reddit - Social/interests
- * 9. Gmail - Communication patterns
- * 10. Twitch - Entertainment/gaming
- * 11. Outlook - Communication patterns
- * 12. Garmin - Health/fitness (NEW)
- * 13. Strava - Health/fitness (NEW)
- * 14. Fitbit - Health/fitness (NEW)
+ * 6. YouTube - Entertainment/learning
+ * 7. Gmail - Communication patterns
+ * 8. Outlook - Communication patterns
  */
 
-import axios from 'axios';
 import { Nango } from '@nangohq/node';
 import { getConnectionId as getDbConnectionId, updateLastSynced, markConnectionNeedsReconnect } from './connectionMappingService.js';
 import { withRetry } from './retryService.js';
@@ -52,11 +47,8 @@ const FALLBACK_CONNECTION_IDS = {
   'discord': '74263fd1-b2e2-4a31-b4b3-c6917dcebff1',
   'github': 'd983f21d-0648-462d-8168-ade982c0d4d3',
   'github-getting-started': 'd983f21d-0648-462d-8168-ade982c0d4d3',
-  'linkedin': 'f2c0b934-10d9-4aaf-ae22-6010762c90be',
   'youtube': 'aa34e681-f825-432f-954f-c400ce6f6597',
-  'reddit': 'd0ff07a2-437d-4ee2-a073-c097682809ac',
   'google-mail': 'bedc8ec1-4c7a-44ca-8e73-e0b62d50fdd9',
-  'twitch': 'd6aec2c3-3191-4a2c-98a2-e0433356942a',
   'outlook': 'e4ed0f1b-c626-496a-8cbf-83f5f3635358'
 };
 
@@ -165,21 +157,6 @@ export const PLATFORM_CONFIGS = {
     soulDataPoints: ['coding_style', 'tech_interests', 'collaboration_patterns', 'project_types']
   },
 
-  linkedin: {
-    providerConfigKey: 'linkedin',
-    name: 'LinkedIn',
-    category: 'professional',
-    // LinkedIn v2 API requires Marketing Developer Platform access
-    // Use OpenID Connect userinfo endpoint which works with basic OAuth
-    baseUrl: 'https://api.linkedin.com',
-    endpoints: {
-      // OpenID Connect userinfo - works with basic Sign In with LinkedIn
-      profile: '/v2/userinfo'
-    },
-    soulDataPoints: ['professional_identity', 'career_context'],
-    note: 'Full LinkedIn API access requires Marketing Developer Platform approval'
-  },
-
   youtube: {
     providerConfigKey: 'youtube',
     name: 'YouTube',
@@ -195,21 +172,6 @@ export const PLATFORM_CONFIGS = {
     soulDataPoints: ['content_interests', 'learning_topics', 'entertainment_preferences']
   },
 
-  reddit: {
-    providerConfigKey: 'reddit',
-    name: 'Reddit',
-    category: 'social',
-    baseUrl: 'https://oauth.reddit.com',
-    endpoints: {
-      profile: '/api/v1/me',
-      savedPosts: '/user/{username}/saved?limit=50',
-      upvoted: '/user/{username}/upvoted?limit=50',
-      subreddits: '/subreddits/mine/subscriber?limit=100',
-      comments: '/user/{username}/comments?limit=50'
-    },
-    soulDataPoints: ['interests', 'discussion_topics', 'community_engagement', 'expertise_areas']
-  },
-
   'google-mail': {
     providerConfigKey: 'google-mail',
     name: 'Gmail',
@@ -222,19 +184,6 @@ export const PLATFORM_CONFIGS = {
       messages: '/users/me/messages?maxResults=50'
     },
     soulDataPoints: ['communication_patterns', 'response_time', 'email_volume', 'contact_network']
-  },
-
-  twitch: {
-    providerConfigKey: 'twitch',
-    name: 'Twitch',
-    category: 'entertainment',
-    baseUrl: 'https://api.twitch.tv/helix',
-    endpoints: {
-      user: '/users',
-      followedChannels: '/channels/followed?user_id={userId}&first=100',
-      streams: '/streams/followed?user_id={userId}&first=100'
-    },
-    soulDataPoints: ['gaming_preferences', 'content_interests', 'community_involvement']
   },
 
   outlook: {
@@ -253,75 +202,6 @@ export const PLATFORM_CONFIGS = {
     },
     soulDataPoints: ['communication_patterns', 'email_frequency', 'calendar_commitments', 'contact_network', 'work_life_balance']
   },
-
-  // ============================================================================
-  // HEALTH & FITNESS PLATFORMS (NEW)
-  // ============================================================================
-
-  garmin: {
-    providerConfigKey: 'garmin',
-    name: 'Garmin Connect',
-    category: 'health',
-    baseUrl: 'https://apis.garmin.com',
-    endpoints: {
-      userProfile: '/wellness-api/rest/user/id',
-      dailySummary: '/wellness-api/rest/dailies',
-      activities: '/wellness-api/rest/activities',
-      sleepData: '/wellness-api/rest/sleepData',
-      heartRate: '/wellness-api/rest/heartRate/latest'
-    },
-    soulDataPoints: ['fitness_activities', 'sleep_patterns', 'heart_rate_trends', 'training_load']
-  },
-
-  strava: {
-    providerConfigKey: 'strava',
-    name: 'Strava',
-    category: 'health',
-    baseUrl: 'https://www.strava.com/api/v3',
-    endpoints: {
-      athlete: '/athlete',
-      activities: '/athlete/activities?per_page=50',
-      stats: '/athletes/{athleteId}/stats',
-      zones: '/athlete/zones'
-    },
-    soulDataPoints: ['running_patterns', 'cycling_habits', 'training_consistency', 'social_fitness']
-  },
-
-  // DEPRECATED: legacy Fitbit Web API (api.fitbit.com) is sunset by Google in Sept 2026.
-  // Migrate to Google Health API v4 (providerConfigKey 'google-health', base
-  // https://health.googleapis.com/v4). Full plan in tasks/todo.md ("Fitbit -> Google
-  // Health API v4 migration"). 0 connections today, so this path is currently dormant.
-  fitbit: {
-    providerConfigKey: 'fitbit',
-    name: 'Fitbit',
-    category: 'health',
-    baseUrl: 'https://api.fitbit.com',
-    endpoints: {
-      profile: '/1/user/-/profile.json',
-      activities: '/1/user/-/activities/date/today.json',
-      sleep: '/1.2/user/-/sleep/date/today.json',
-      heartRate: '/1/user/-/activities/heart/date/today/1d.json',
-      weight: '/1/user/-/body/log/weight/date/today.json'
-    },
-    soulDataPoints: ['daily_activity', 'sleep_quality', 'heart_health', 'weight_trends']
-  },
-
-  oura: {
-    providerConfigKey: 'oura',
-    name: 'Oura Ring',
-    category: 'health',
-    baseUrl: 'https://api.ouraring.com/v2',
-    endpoints: {
-      dailyReadiness: '/usercollection/daily_readiness',
-      dailySleep: '/usercollection/daily_sleep',
-      dailyStress: '/usercollection/daily_stress',
-      dailyResilience: '/usercollection/daily_resilience',
-      workouts: '/usercollection/workout',
-      enhancedTags: '/usercollection/enhanced_tag',
-      sleepTime: '/usercollection/sleep_time'
-    },
-    soulDataPoints: ['chronotype', 'stress_pattern', 'resilience_trend', 'workout_timing', 'self_annotations']
-  }
 };
 
 /**
@@ -652,63 +532,12 @@ export async function extractPlatformData(userId, platform) {
   // Platform-specific options
   const platformOptions = {};
 
-  // Twitch requires Client-Id header
-  if (platform === 'twitch') {
-    platformOptions.headers = { 'Client-Id': process.env.TWITCH_CLIENT_ID };
-  }
-
-  // For Reddit, we need to get the actual username first
-  let redditUsername = null;
-  if (platform === 'reddit') {
-    const profileResult = await proxyRequest(userId, platform, '/api/v1/me', platformOptions);
-    if (profileResult.success && profileResult.data?.name) {
-      redditUsername = profileResult.data.name;
-      data.profile = profileResult.data;
-    } else {
-      errors.push({ endpoint: 'profile', error: profileResult });
-    }
-  }
-
-  // For Twitch, we need to get the user ID first
-  let twitchUserId = null;
-  if (platform === 'twitch') {
-    const userResult = await proxyRequest(userId, platform, '/users', platformOptions);
-    if (userResult.success && userResult.data?.data?.[0]?.id) {
-      twitchUserId = userResult.data.data[0].id;
-      data.user = userResult.data;
-    } else {
-      errors.push({ endpoint: 'user', error: userResult });
-    }
-  }
-
   // Fetch all endpoints
   for (const [key, endpoint] of Object.entries(config.endpoints)) {
     try {
-      // Skip if we already fetched this endpoint
-      if (platform === 'reddit' && key === 'profile') continue;
-      if (platform === 'twitch' && key === 'user') continue;
-
       // Replace placeholders in endpoint
       let finalEndpoint = endpoint
         .replace('{now}', new Date().toISOString());
-
-      // Handle username placeholder for Reddit
-      if (platform === 'reddit' && endpoint.includes('{username}')) {
-        if (!redditUsername) {
-          errors.push({ endpoint: key, error: { message: 'Could not get Reddit username' } });
-          continue;
-        }
-        finalEndpoint = finalEndpoint.replace('{username}', redditUsername);
-      }
-
-      // Handle userId placeholder for Twitch
-      if (platform === 'twitch' && endpoint.includes('{userId}')) {
-        if (!twitchUserId) {
-          errors.push({ endpoint: key, error: { message: 'Could not get Twitch user ID' } });
-          continue;
-        }
-        finalEndpoint = finalEndpoint.replace('{userId}', twitchUserId);
-      }
 
       // Handle username placeholder for GitHub
       if (platform === 'github' && endpoint.includes('{username}')) {
@@ -758,8 +587,7 @@ export async function extractPlatformData(userId, platform) {
   const platformKeyMap = {
     'spotify': 'spotify', 'google-calendar': 'google_calendar', 'whoop': 'whoop',
     'discord': 'discord', 'github': 'github', 'youtube': 'youtube',
-    'reddit': 'reddit', 'twitch': 'twitch', 'outlook': 'outlook',
-    'linkedin': 'linkedin', 'google-mail': 'google_gmail'
+    'outlook': 'outlook', 'google-mail': 'google_gmail'
   };
   const dbPlatformKey = platformKeyMap[platform] || platform;
   if (supabaseAdmin) {
@@ -800,11 +628,10 @@ export async function storeNangoExtractionData(userId, platform, extractionResul
   if (!supabaseAdmin || (!extractionResult?.success && !extractionResult?.partial) || !extractionResult.data) return;
 
   const platformKeyMap = {
-    'youtube': 'youtube', 'twitch': 'twitch', 'spotify': 'spotify',
-    'discord': 'discord', 'github': 'github', 'reddit': 'reddit',
+    'youtube': 'youtube', 'spotify': 'spotify',
+    'discord': 'discord', 'github': 'github',
     'google-calendar': 'google_calendar', 'whoop': 'whoop',
-    'google-mail': 'google_gmail', 'linkedin': 'linkedin',
-    'outlook': 'outlook'
+    'google-mail': 'google_gmail', 'outlook': 'outlook'
   };
   const dbPlatform = platformKeyMap[platform] || platform;
 
@@ -913,63 +740,6 @@ export const youtube = {
   getLikedVideos: (userId) => proxyRequest(userId, 'youtube', '/videos?part=snippet&myRating=like&maxResults=50')
 };
 
-export const reddit = {
-  getProfile: (userId) => proxyRequest(userId, 'reddit', '/api/v1/me'),
-  getSubreddits: (userId) => proxyRequest(userId, 'reddit', '/subreddits/mine/subscriber?limit=100')
-};
-
-export const linkedin = {
-  getProfile: (userId) => proxyRequest(userId, 'linkedin', '/me')
-};
-
-// Twitch bypasses nango.proxy() — empirical bug in SDK v0.69.30 where the
-// Client-Id header is dropped on the lambda forward path (works locally,
-// fails in cron). nango.getToken handles refresh-on-expiry; we then call
-// Twitch directly with axios so we control headers fully.
-async function twitchDirectGet(userId, endpoint) {
-  const connectionId = await getDbConnectionId(userId, 'twitch');
-  if (!connectionId) return { success: false, error: 'No twitch connection mapping' };
-  const clientId = process.env.TWITCH_CLIENT_ID;
-  if (!clientId) return { success: false, error: 'TWITCH_CLIENT_ID not set' };
-
-  const call = async (forceRefresh = false) => {
-    const token = await nango.getToken('twitch', connectionId, forceRefresh);
-    return axios.get(`https://api.twitch.tv/helix${endpoint}`, {
-      headers: { Authorization: `Bearer ${token}`, 'Client-Id': clientId },
-      timeout: 10000,
-    });
-  };
-
-  try {
-    const response = await call(false);
-    return { success: true, data: response.data };
-  } catch (error) {
-    if (error.response?.status === 401) {
-      try {
-        const response = await call(true);
-        return { success: true, data: response.data };
-      } catch (retryErr) {
-        const retryStatus = retryErr.response?.status;
-        log.warn(`Twitch direct ${endpoint} 401-retry failed: ${retryErr.message}`);
-        // Force-refresh + retry still 401 = token is unrecoverable at the
-        // provider (revoked or scope removed). Flip status so the user gets
-        // an amber reconnect pill and silent retry loops stop.
-        if (retryStatus === 401) {
-          markConnectionNeedsReconnect(userId, 'twitch', `direct ${endpoint} 401 after refresh-retry`).catch(() => {});
-        }
-        return { success: false, error: retryErr.message, status: retryStatus };
-      }
-    }
-    log.warn(`Twitch direct ${endpoint} failed: ${error.message}`);
-    return { success: false, error: error.message, status: error.response?.status };
-  }
-}
-
-export const twitch = {
-  getUser: (userId) => twitchDirectGet(userId, '/users'),
-  getFollowedChannels: (userId, twitchUserId) => twitchDirectGet(userId, `/channels/followed?user_id=${twitchUserId}&first=100`),
-};
-
 export const gmail = {
   getProfile: (userId) => proxyRequest(userId, 'google-mail', '/users/me/profile'),
   getLabels: (userId) => proxyRequest(userId, 'google-mail', '/users/me/labels'),
@@ -983,49 +753,6 @@ export const outlook = {
   getCalendarEvents: (userId, limit = 100) => proxyRequest(userId, 'outlook', `/me/events?$top=${limit}&$orderby=start/dateTime`),
   getCalendars: (userId) => proxyRequest(userId, 'outlook', '/me/calendars'),
   getContacts: (userId, limit = 100) => proxyRequest(userId, 'outlook', `/me/contacts?$top=${limit}`)
-};
-
-// ============================================================================
-// HEALTH & FITNESS PLATFORM CONVENIENCE METHODS (NEW)
-// ============================================================================
-
-export const garmin = {
-  getUserProfile: (userId) => proxyRequest(userId, 'garmin', '/wellness-api/rest/user/id'),
-  getDailySummary: (userId) => proxyRequest(userId, 'garmin', '/wellness-api/rest/dailies'),
-  getActivities: (userId) => proxyRequest(userId, 'garmin', '/wellness-api/rest/activities'),
-  getSleepData: (userId) => proxyRequest(userId, 'garmin', '/wellness-api/rest/sleepData'),
-  getHeartRate: (userId) => proxyRequest(userId, 'garmin', '/wellness-api/rest/heartRate/latest')
-};
-
-export const strava = {
-  getAthlete: (userId) => proxyRequest(userId, 'strava', '/athlete'),
-  getActivities: (userId, page = 1) => proxyRequest(userId, 'strava', `/athlete/activities?per_page=50&page=${page}`),
-  getStats: (userId, athleteId) => proxyRequest(userId, 'strava', `/athletes/${athleteId}/stats`),
-  getZones: (userId) => proxyRequest(userId, 'strava', '/athlete/zones')
-};
-
-export const fitbit = {
-  getProfile: (userId) => proxyRequest(userId, 'fitbit', '/1/user/-/profile.json'),
-  getActivities: (userId, date = 'today') => proxyRequest(userId, 'fitbit', `/1/user/-/activities/date/${date}.json`),
-  getSleep: (userId, date = 'today') => proxyRequest(userId, 'fitbit', `/1.2/user/-/sleep/date/${date}.json`),
-  getHeartRate: (userId, date = 'today') => proxyRequest(userId, 'fitbit', `/1/user/-/activities/heart/date/${date}/1d.json`)
-};
-
-export const oura = {
-  getDailyReadiness: (userId, startDate, endDate) =>
-    proxyRequest(userId, 'oura', `/usercollection/daily_readiness?start_date=${startDate}&end_date=${endDate}`),
-  getDailyStress: (userId, startDate, endDate) =>
-    proxyRequest(userId, 'oura', `/usercollection/daily_stress?start_date=${startDate}&end_date=${endDate}`),
-  getDailyResilience: (userId, startDate, endDate) =>
-    proxyRequest(userId, 'oura', `/usercollection/daily_resilience?start_date=${startDate}&end_date=${endDate}`),
-  getSleep: (userId, startDate, endDate) =>
-    proxyRequest(userId, 'oura', `/usercollection/daily_sleep?start_date=${startDate}&end_date=${endDate}`),
-  getSleepTime: (userId, startDate, endDate) =>
-    proxyRequest(userId, 'oura', `/usercollection/sleep_time?start_date=${startDate}&end_date=${endDate}`),
-  getWorkouts: (userId, startDate, endDate) =>
-    proxyRequest(userId, 'oura', `/usercollection/workout?start_date=${startDate}&end_date=${endDate}`),
-  getEnhancedTags: (userId, startDate, endDate) =>
-    proxyRequest(userId, 'oura', `/usercollection/enhanced_tag?start_date=${startDate}&end_date=${endDate}`)
 };
 
 export default {
@@ -1045,13 +772,6 @@ export default {
   github,
   discord,
   youtube,
-  reddit,
-  linkedin,
-  twitch,
   gmail,
-  outlook,
-  garmin,
-  strava,
-  fitbit,
-  oura
+  outlook
 };

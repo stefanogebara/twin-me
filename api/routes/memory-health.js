@@ -11,6 +11,8 @@
  * - Expert breakdown (memories per platform expert)
  * - Forgetting preview (what the next weekly cron would do)
  * - Top 10 memories by importance
+ * - Per-platform 14-day yield (replan-2026-06-10 Track C): raw-signal
+ *   memories per platform, plus the would-be featured-tile verdict
  */
 
 import express from 'express';
@@ -18,6 +20,13 @@ import { authenticateUser } from '../middleware/auth.js';
 import { supabaseAdmin } from '../services/database.js';
 import { get as redisGet, set as redisSet } from '../services/redisClient.js';
 import { getTwinReadinessScore } from '../services/memoryStreamService.js';
+import {
+  aggregatePlatformYield,
+  shouldFeaturePlatform,
+  MIRROR_PLATFORMS,
+  YIELD_WINDOW_DAYS,
+  FEATURE_YIELD_THRESHOLD,
+} from '../services/platformYield.js';
 import { createLogger } from '../services/logger.js';
 
 const log = createLogger('MemoryHealth');
@@ -71,6 +80,7 @@ router.get('/', authenticateUser, async (req, res) => {
       forgettingT3Result,
       topMemoriesResult,
       readinessResult,
+      platformYieldResult,
     ] = await Promise.all([
       // Retrieval coverage: exact count with retrieval_count > 0
       supabaseAdmin
@@ -134,6 +144,18 @@ router.get('/', authenticateUser, async (req, res) => {
 
       // 9. Twin Readiness Score — uses its own getMemoryStats internally
       getTwinReadinessScore(userId),
+
+      // 10. Per-platform 14-day yield (replan Track C). Raw signal only
+      //     (platform_data + observation) — reflections/conversations are
+      //     derived and would inflate a platform's apparent yield. Two tag
+      //     fields are enough; aggregation happens in JS (no group-by RPC).
+      supabaseAdmin
+        .from('user_memories')
+        .select("platform:metadata->>platform, source:metadata->>source")
+        .eq('user_id', userId)
+        .gte('created_at', fourteenDaysAgo)
+        .in('memory_type', ['platform_data', 'observation'])
+        .limit(20000),
     ]);
 
     // Process composition from per-type exact counts
@@ -167,6 +189,28 @@ router.get('/', authenticateUser, async (req, res) => {
       expertBreakdown[expertName] = (expertBreakdown[expertName] || 0) + 1;
     }
 
+    // Per-platform 14-day yield + would-be featured verdict (informational
+    // only — nothing renders or hides tiles off this yet; replan Track C)
+    if (platformYieldResult.error) {
+      log.error('Platform yield query failed', { error: platformYieldResult.error });
+    }
+    const yieldCounts = aggregatePlatformYield(platformYieldResult.data || []);
+    const platformYield = {
+      windowDays: YIELD_WINDOW_DAYS,
+      featureThreshold: FEATURE_YIELD_THRESHOLD,
+      platforms: Object.entries(yieldCounts)
+        .sort((a, b) => b[1] - a[1])
+        .map(([platform, count]) => ({
+          platform,
+          memoriesLast14d: count,
+          wouldFeature: shouldFeaturePlatform(
+            platform,
+            count,
+            MIRROR_PLATFORMS.includes(platform)
+          ),
+        })),
+    };
+
     // Format top memories
     const topMemories = (topMemoriesResult.data || []).map(m => ({
       id: m.id,
@@ -191,6 +235,7 @@ router.get('/', authenticateUser, async (req, res) => {
         wouldDecayFact: forgettingT3Result.count || 0,
       },
       topMemories,
+      platformYield,
       readiness: {
         score: readinessResult.score,
         label: readinessResult.label,
