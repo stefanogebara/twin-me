@@ -527,6 +527,7 @@ import cronRelationshipsRoutes from './routes/cron-relationships.js';
 import cronActionReflectionRoutes from './routes/cron-action-reflection.js';
 import cronPluggySyncRoutes from './routes/cron-pluggy-sync.js';
 import cronPlaidSyncRoutes from './routes/cron-plaid-sync.js';
+import cronStatementNagRoutes from './routes/cron-statement-nag.js';
 import cronBankConsentRoutes from './routes/cron-bank-consent.js';
 import cronInvestmentCorrelationRoutes from './routes/cron-investment-correlation.js';
 import cronNudgeRetroRoutes from './routes/cron-nudge-retrospective.js';
@@ -773,6 +774,7 @@ app.use('/api/cron/relationships', cronRelationshipsRoutes); // Daily unanswered
 app.use('/api/cron/action-reflection', cronActionReflectionRoutes); // Daily action reflection (5am UTC)
 app.use('/api/cron/pluggy-sync', cronPluggySyncRoutes); // Daily Pluggy bank sync fallback for missed webhooks (6am UTC)
 app.use('/api/cron/plaid-sync', cronPlaidSyncRoutes); // Daily Plaid (US) bank sync fallback for missed webhooks (7am UTC)
+app.use('/api/cron/statement-nag', cronStatementNagRoutes); // Monthly (1st, 12 UTC) WhatsApp ask for last month's bank statement
 app.use('/api/cron/bank-consent', cronBankConsentRoutes); // Daily consent-expiry reminder for Pluggy + TrueLayer connections
 app.use('/api/cron/investment-correlation', cronInvestmentCorrelationRoutes); // Daily moat-pattern detector across users (Phase 4.4)
 app.use('/api/cron/nudge-retrospective', cronNudgeRetroRoutes); // Phase 3.4b — 24h after-nudge effectiveness check

@@ -194,6 +194,10 @@
       "schedule": "0 7 * * *"
     },
     {
+      "path": "/api/cron/statement-nag",
+      "schedule": "0 12 1 * *"
+    },
+    {
       "path": "/api/cron/bank-consent",
       "schedule": "0 10 * * *"
     },

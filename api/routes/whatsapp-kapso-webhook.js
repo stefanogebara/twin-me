@@ -30,6 +30,7 @@ import { addConversationMemory } from '../services/memoryStreamService.js';
 import { createLogger } from '../services/logger.js';
 import { buildPurchaseContext } from '../services/purchaseContextBuilder.js';
 import { generatePurchaseReflection } from '../services/purchaseReflection.js';
+import { isStatementDocument, handleStatementDocument } from '../services/transactions/whatsappStatementIngest.js';
 
 const log = createLogger('WhatsAppKapsoWebhook');
 const router = express.Router();
@@ -177,6 +178,27 @@ function parseIncomingMessage(body) {
     };
   }
 
+  // Kapso v2 document message (bank-integration strategy Phase 1): the user
+  // forwards a statement file (OFX/CSV/XLSX) to the twin. Meta's document
+  // shape — { document: { id, filename, mime_type } } — rides through Kapso
+  // unchanged. Before this branch every attachment fell into the "Non-text or
+  // unparseable" silent drop.
+  if (body?.message?.type === 'document' && body?.message?.from) {
+    const msg = body.message;
+    return {
+      phone: msg.from,
+      text: null,
+      document: {
+        id: msg.document?.id,
+        filename: msg.document?.filename || null,
+        mimeType: msg.document?.mime_type || null,
+      },
+      messageId: msg.id,
+      contactName: msg.username || null,
+      format: 'kapso_v2_document',
+    };
+  }
+
   // Legacy Kapso v1 format (kept for backward compat):
   // { event: "whatsapp.message.received", data: { from, message: { id, type, text: { body } }, contact } }
   if (body?.event === 'whatsapp.message.received' && body?.data?.message) {
@@ -280,9 +302,10 @@ router.post('/webhook', async (req, res) => {
   // idempotency check above catches duplicates so the user only gets
   // one reply.
   try {
-    // 4. Parse message (supports Kapso + Meta native fallback)
+    // 4. Parse message (supports Kapso + Meta native fallback). Either text
+    // (chat) or a document (statement ingestion) is processable.
     const parsed = parseIncomingMessage(req.body);
-    if (!parsed || !parsed.phone || !parsed.text) {
+    if (!parsed || !parsed.phone || (!parsed.text && !parsed.document)) {
       log.info('Non-text or unparseable message, skipping', {
         event: req.body?.event,
         format: parsed?.format,
@@ -333,6 +356,48 @@ router.post('/webhook', async (req, res) => {
     const userId = channel.user_id;
     const userPrefs = channel.preferences || {};
     const purchaseBotEnabledForUser = userPrefs.purchase_bot_enabled !== false;
+
+    // 6b. Statement document (bank-integration strategy Phase 1): the user
+    // forwarded a bank-statement file. Ingest it through the same pipeline as
+    // the /money upload zone and reply with a deterministic confirmation —
+    // this path never touches the LLM chat pipeline.
+    if (parsed.document) {
+      if (!isStatementDocument(parsed.document)) {
+        log.info('Unsupported document attachment, skipping', {
+          userId,
+          filename: parsed.document.filename,
+          mimeType: parsed.document.mimeType,
+        });
+        await sendWhatsAppMessage(
+          phone,
+          'I can read bank statements in OFX, CSV, or XLSX format. ' +
+          'Export one from your bank app and send it here and I\'ll import it.',
+        );
+        return;
+      }
+
+      const result = await handleStatementDocument(userId, parsed.document);
+      await sendWhatsAppMessage(phone, result.reply);
+
+      // Keep the exchange in the conversation memory so the twin remembers
+      // the user shared a statement (the transactions themselves land as
+      // platform observations via the ingest pipeline).
+      await addConversationMemory(
+        userId,
+        `[sent bank statement: ${parsed.document.filename || 'file'}]`,
+        result.reply,
+        { source: 'whatsapp', messageId, contactName },
+      ).catch(err => {
+        log.warn('Failed to store statement conversation memory', { userId, error: err.message });
+      });
+
+      log.info('WhatsApp statement processed', {
+        userId,
+        ok: result.ok,
+        inserted: result.inserted ?? 0,
+      });
+      return;
+    }
 
     // 7a. Pre-purchase intent — fires BEFORE the generic twin chat pipeline.
     // Same gates as the direct-Meta webhook: env kill switch + per-user
