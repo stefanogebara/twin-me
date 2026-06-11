@@ -11,8 +11,8 @@
  */
 
 import { getModelId } from './finetuneManager.js';
-import { buildPersonalitySystemPrompt } from './trainingDataExporter.js';
 import { get as cacheGet, set as cacheSet } from '../redisClient.js';
+import { supabaseAdmin } from '../database.js';
 import { createLogger } from '../logger.js';
 import crypto from 'crypto';
 
@@ -22,6 +22,139 @@ const TOGETHER_API = 'https://api.together.xyz/v1';
 const ORACLE_FETCH_TIMEOUT_MS = 8000; // 8s total (DB prep ~400ms + together.ai cold start ~3s)
 const ORACLE_MAX_TOKENS = 100;
 const CACHE_TTL = 60; // 60s cache on oracle drafts
+
+/**
+ * Build a condensed personality system prompt for the oracle model.
+ * Pulls: twin summary, top reflections, OCEAN scores, interview archetype.
+ * Target: ~800 tokens (focused signal, not full context dump).
+ *
+ * Moved here from trainingDataExporter.js when the DPO/fine-tuning TRAINING
+ * stack was deleted (replan-2026-06-10 cycle 4) — this builder is part of the
+ * SERVING path and has no training dependencies.
+ */
+export async function buildPersonalitySystemPrompt(userId) {
+  const [summaryResult, reflectionsResult, profileResult, calibrationResult, axesResult, multimodalResult] = await Promise.all([
+    supabaseAdmin
+      .from('twin_summaries')
+      .select('summary')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabaseAdmin
+      .from('user_memories')
+      .select('content')
+      .eq('user_id', userId)
+      .eq('memory_type', 'reflection')
+      .gte('importance_score', 7)
+      .order('importance_score', { ascending: false })
+      .limit(10),
+    supabaseAdmin
+      .from('user_personality_profiles')
+      .select('ocean_scores, stylometric_fingerprint')
+      .eq('user_id', userId)
+      .maybeSingle(),
+    supabaseAdmin
+      .from('onboarding_calibration')
+      .select('archetype, calibration_data')
+      .eq('user_id', userId)
+      .maybeSingle(),
+    supabaseAdmin
+      .from('personality_axes')
+      .select('label, description')
+      .eq('user_id', userId)
+      .order('variance_explained', { ascending: false })
+      .limit(10),
+    supabaseAdmin
+      .from('multimodal_profiles')
+      .select('modalities_present, spotify_features, whoop_features, calendar_features')
+      .eq('user_id', userId)
+      .maybeSingle(),
+  ]);
+
+  const parts = [
+    'You are a digital twin — an AI that embodies this specific person\'s personality, knowledge, and communication style.',
+    'You speak as if you ARE the person, in first person. Match their tone exactly.',
+  ];
+
+  // Archetype from onboarding
+  if (calibrationResult.data?.archetype) {
+    parts.push(`\nArchetype: ${calibrationResult.data.archetype}`);
+  }
+
+  // Twin summary (most concentrated personality signal)
+  if (summaryResult.data?.summary) {
+    const summary = summaryResult.data.summary.slice(0, 1500);
+    parts.push(`\n[WHO YOU ARE]\n${summary}`);
+  }
+
+  // OCEAN personality
+  if (profileResult.data?.ocean_scores) {
+    const o = profileResult.data.ocean_scores;
+    const traits = [];
+    if (o.openness > 0.65) traits.push('highly creative and open');
+    if (o.openness < 0.35) traits.push('practical and concrete');
+    if (o.conscientiousness > 0.65) traits.push('organized and precise');
+    if (o.conscientiousness < 0.35) traits.push('spontaneous and flexible');
+    if (o.extraversion > 0.65) traits.push('energetic and social');
+    if (o.extraversion < 0.35) traits.push('introspective and measured');
+    if (o.agreeableness > 0.65) traits.push('warm and supportive');
+    if (o.agreeableness < 0.35) traits.push('direct and blunt');
+    if (o.neuroticism > 0.65) traits.push('emotionally intense');
+    if (o.neuroticism < 0.35) traits.push('calm and steady');
+    if (traits.length > 0) {
+      parts.push(`\n[PERSONALITY] ${traits.join(', ')}`);
+    }
+  }
+
+  // Stylometric fingerprint
+  if (profileResult.data?.stylometric_fingerprint) {
+    const s = profileResult.data.stylometric_fingerprint;
+    const style = [];
+    if (s.avg_sentence_length < 12) style.push('short punchy sentences');
+    else if (s.avg_sentence_length > 20) style.push('longer flowing sentences');
+    if (s.formality < 0.3) style.push('casual tone');
+    else if (s.formality > 0.6) style.push('formal tone');
+    if (s.humor_markers > 0.02) style.push('uses humor');
+    if (s.emotional_expressiveness > 0.05) style.push('emotionally expressive');
+    if (style.length > 0) {
+      parts.push(`[WRITING STYLE] ${style.join(', ')}`);
+    }
+  }
+
+  // Top reflections (distilled personality insights)
+  if (reflectionsResult.data?.length > 0) {
+    const reflections = reflectionsResult.data.map(r => `- ${r.content.slice(0, 200)}`).join('\n');
+    parts.push(`\n[KEY INSIGHTS ABOUT THIS PERSON]\n${reflections}`);
+  }
+
+  // ICA personality axes — data-driven personality dimensions
+  if (axesResult.data?.length > 0) {
+    const axes = axesResult.data
+      .filter(a => a.label && !a.label.startsWith('Axis '))
+      .slice(0, 8)
+      .map(a => `- ${a.label}${a.description ? ': ' + a.description.slice(0, 100) : ''}`)
+      .join('\n');
+    if (axes) parts.push(`\n[PERSONALITY DIMENSIONS]\n${axes}`);
+  }
+
+  // Multimodal behavioral signals
+  if (multimodalResult.data?.modalities_present?.length > 0) {
+    const mm = multimodalResult.data;
+    const signals = [];
+    if (mm.whoop_features?.some(v => v !== 0.5)) {
+      const w = mm.whoop_features;
+      signals.push(`Health: recovery=${(w[1] * 100).toFixed(0)}%, workout freq=${(w[3] * 100).toFixed(0)}%, HRV stability=${(w[4] * 100).toFixed(0)}%`);
+    }
+    if (mm.calendar_features?.some(v => v !== 0.5)) {
+      const c = mm.calendar_features;
+      signals.push(`Schedule: social density=${(c[0] * 100).toFixed(0)}%, flexibility=${(c[1] * 100).toFixed(0)}%, work-life=${(c[3] * 100).toFixed(0)}%`);
+    }
+    if (signals.length > 0) parts.push(`\n[BEHAVIORAL SIGNALS] ${signals.join('. ')}`);
+  }
+
+  return parts.join('\n');
+}
 
 /**
  * Generate a personality-aligned draft response using the finetuned model.

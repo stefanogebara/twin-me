@@ -9,14 +9,13 @@
  * GET  /fidelity        — Get latest fidelity score
  * GET  /ica-axes        — Get latest cached ICA axes, never rebuilds on read
  * POST /ica-axes        — Retired rebuild endpoint
- * POST /in-silico       — Score hypothetical stimuli
+ * POST /in-silico       — Retired engagement-prediction endpoint
  */
 
 import { Router } from 'express';
 import { authenticateUser } from '../middleware/auth.js';
 import { measureScalingPoint, getScalingHistory } from '../services/scalingMetricsService.js';
 import { measureTwinFidelity, getLatestFidelity } from '../services/twinFidelityService.js';
-import { predictEngagement } from '../services/inSilicoEngine.js';
 import { supabaseAdmin } from '../services/database.js';
 import { createLogger } from '../services/logger.js';
 
@@ -176,32 +175,17 @@ router.post('/ica-axes', authenticateUser, async (req, res) => {
   });
 });
 
-// --- In-Silico Experimentation (Phase B) ---
+// --- In-Silico Experimentation — retired ---
+// replan-2026-06-10 cycle 4: the in-silico engine scored against ICA axes that
+// were hardcoded to [] — a static prior wearing an engagement costume. Removed
+// with the rest of the DPO/fine-tuning dead stack.
 
-router.post('/in-silico', authenticateUser, async (req, res) => {
-  try {
-    const { stimuli } = req.body;
-    if (!Array.isArray(stimuli) || stimuli.length === 0) {
-      return res.status(400).json({ success: false, error: 'stimuli must be a non-empty array of { text }' });
-    }
-    if (stimuli.length > 50) {
-      return res.status(400).json({ success: false, error: 'Maximum 50 stimuli per request' });
-    }
-    const result = await predictEngagement(req.user.id, stimuli);
-    const predictions = Array.isArray(result) ? result : (result?.predictions || []);
-    // Store experiment (non-blocking, don't fail the request if DB insert fails)
-    try {
-      await supabaseAdmin.from('in_silico_experiments').insert({
-        user_id: req.user.id,
-        stimuli: stimuli.map(s => ({ text: s.text, id: s.id })),
-        predicted_rankings: predictions.map((r, i) => ({ rank: i + 1, text: r.text, score: r.predictedEngagement })),
-      });
-    } catch { /* non-fatal */ }
-    res.json({ success: true, data: predictions });
-  } catch (error) {
-    log.error('In-silico prediction failed', { error: error.message });
-    res.status(500).json({ success: false, error: 'Failed to predict engagement' });
-  }
+router.post('/in-silico', authenticateUser, (_req, res) => {
+  return res.status(410).json({
+    success: false,
+    error: 'in_silico_retired',
+    message: 'In-silico engagement prediction was retired. Use soul signature layers for personality insight.',
+  });
 });
 
 export default router;
