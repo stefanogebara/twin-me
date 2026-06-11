@@ -35,6 +35,7 @@ import {
   mapInvestmentType,
 } from './plaidMappers.js';
 import { tagTransactionsBatch } from './transactionEmotionTagger.js';
+import { PLAID_SANDBOX_INSTITUTION_IDS } from './sandboxGuard.js';
 import { maybeNudgeForTransactions } from './transactionNudgeService.js';
 import { addPlatformObservation } from '../memoryStreamService.js';
 import * as plaid from './plaidClient.js';
@@ -306,6 +307,11 @@ export async function upsertConnectionFromItem(userId, plaidItemId, accessToken,
     plaid_item_id: plaidItemId,
     plaid_access_token_encrypted: encryptToken(accessToken),
     plaid_institution_id: institutionId,
+    // replan-2026-06-10 Track D P0: stamp sandbox items at link time so the
+    // render guard (sandboxGuard.js) can exclude them in production runtimes
+    // even when getItem failed and institutionId is null.
+    is_sandbox: (process.env.PLAID_ENV || 'sandbox').toLowerCase() === 'sandbox'
+      || PLAID_SANDBOX_INSTITUTION_IDS.has(institutionId),
     connector_id: 0,                         // Plaid doesn't have a numeric connector id; keep schema happy
     connector_name: institutionName,
     status,

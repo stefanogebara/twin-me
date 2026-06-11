@@ -34,6 +34,9 @@ const log = createLogger('GoalTracking');
 // Throttle: max once per 24 hours per user
 const SUGGESTION_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 const MAX_PENDING_SUGGESTIONS = 2;
+// replan-2026-06-10 Track A item 4: explicitly dismissed goals (status=
+// 'abandoned') stay excluded from re-suggestion for 90 days.
+const DECLINED_EXCLUSION_WINDOW_MS = 90 * 24 * 60 * 60 * 1000;
 
 // audit-2026-05-23 H7: cooldown moved from in-memory Map → user_platform_data.
 // Vercel serverless boots cold instances frequently; an in-memory cooldown was
@@ -583,7 +586,7 @@ Categories: sleep, fitness, focus, schedule, balance
 Recent observations about this person:
 {observations}
 
-Their existing active goals (avoid duplicates):
+Their existing goals (avoid duplicates; entries marked "previously declined" were rejected by the user — never re-suggest them or close variants):
 {existingGoals}
 
 Generate 1-2 goal suggestions as a JSON array. Each goal should be:
@@ -605,6 +608,31 @@ Return JSON array only:
   "target_unit": "hours",
   "duration_days": 14
 }]`;
+
+/**
+ * Build the duplicate-exclusion context for goal suggestions.
+ * Pure helper (replan-2026-06-10 Track A item 4): folds recently declined
+ * goals into both the prompt text (labeled so the LLM avoids them) and the
+ * hard metric_type filter (so a rejected goal cannot come back even if the
+ * LLM ignores the label).
+ *
+ * @param {Array<{title: string, metric_type: string|null}>} activeGoals
+ * @param {Array<{title: string, metric_type: string|null}>} declinedGoals
+ * @returns {{ existingGoalText: string, excludedMetricTypes: Set<string> }}
+ */
+function buildSuggestionExclusions(activeGoals, declinedGoals) {
+  const lines = [
+    ...activeGoals.map(g => `- ${g.title} (${g.metric_type})`),
+    ...declinedGoals.map(g => `- ${g.title} (${g.metric_type}) [previously declined — do not re-suggest]`),
+  ];
+
+  return {
+    existingGoalText: lines.length > 0 ? lines.join('\n') : 'None',
+    excludedMetricTypes: new Set(
+      [...activeGoals, ...declinedGoals].map(g => g.metric_type).filter(Boolean)
+    ),
+  };
+}
 
 /**
  * Generate goal suggestions for a user based on recent platform data.
@@ -643,11 +671,24 @@ async function generateGoalSuggestions(userId) {
       return 0;
     }
 
-    // Fetch existing active goals to avoid duplicates
-    const activeGoals = await getUserGoals(userId, ['active', 'suggested']);
-    const existingGoalText = activeGoals.length > 0
-      ? activeGoals.map(g => `- ${g.title} (${g.metric_type})`).join('\n')
-      : 'None';
+    // Fetch existing active goals to avoid duplicates, plus goals the user
+    // explicitly declined in the last 90 days (status='abandoned') so the
+    // twin never re-suggests a rejected goal (replan-2026-06-10 Track A 4).
+    const declinedCutoff = new Date(Date.now() - DECLINED_EXCLUSION_WINDOW_MS).toISOString();
+    const [activeGoals, declinedResult] = await Promise.all([
+      getUserGoals(userId, ['active', 'suggested']),
+      supabase
+        .from('twin_goals')
+        .select('title, metric_type')
+        .eq('user_id', userId)
+        .eq('status', 'abandoned')
+        .gte('updated_at', declinedCutoff),
+    ]);
+    if (declinedResult.error) {
+      log.warn('Failed to fetch declined goals for exclusion', { error: declinedResult.error });
+    }
+    const { existingGoalText, excludedMetricTypes } =
+      buildSuggestionExclusions(activeGoals, declinedResult.data || []);
 
     // Format observations
     const observations = recentMemories
@@ -691,9 +732,8 @@ async function generateGoalSuggestions(userId) {
     for (const s of suggestions.slice(0, 2)) {
       if (!s.title || !s.metric_type) continue;
 
-      // Check for duplicate metric_type among active/suggested goals
-      const isDuplicate = activeGoals.some(g => g.metric_type === s.metric_type);
-      if (isDuplicate) continue;
+      // Check for duplicate metric_type among active/suggested/declined goals
+      if (excludedMetricTypes.has(s.metric_type)) continue;
 
       const { error } = await supabase
         .from('twin_goals')
@@ -969,6 +1009,7 @@ export {
   getGoalSummary,
   extractMetricFromPlatformData,
   evaluateTarget,
+  buildSuggestionExclusions,
   generateGoalSuggestions,
   trackGoalProgress,
 };

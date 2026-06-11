@@ -980,19 +980,28 @@ router.post('/proactive/:id/engage', authenticateUser, async (req, res) => {
   res.json({ success: true });
 
   // Non-blocking: seed an EWC++ topic_affinity pattern from the engaged insight
-  // so the twin learns which topics the user finds interesting over time
+  // so the twin learns which topics the user finds interesting over time.
+  // replan-2026-06-10 Track A: this previously selected the nonexistent
+  // `content` column and swallowed the error in an empty catch — twin_patterns
+  // stayed empty for months. The column is `insight`; failures must be loud.
   supabaseAdmin
     .from('proactive_insights')
-    .select('content, category')
+    .select('insight, category')
     .eq('id', id)
     .single()
-    .then(({ data }) => {
-      if (!data?.content) return;
+    .then(({ data, error: seedError }) => {
+      if (seedError || !data?.insight) {
+        log.warn('Pattern seed skipped — could not load engaged insight', { id, error: seedError?.message });
+        return;
+      }
       const patternName = data.category || 'engaged_insight';
-      seedPatternFromInsight(userId, patternName, data.content)
+      seedPatternFromInsight(userId, patternName, data.insight)
+        .then((patternId) => {
+          if (patternId) log.info('Seeded topic pattern from engaged insight', { id, patternId });
+        })
         .catch(err => log.warn('Pattern seed failed', { error: err }));
     })
-    .catch(() => {});
+    .catch(err => log.warn('Pattern seed lookup failed', { id, error: err?.message }));
 });
 
 /**

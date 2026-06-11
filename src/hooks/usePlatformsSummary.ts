@@ -28,8 +28,14 @@ export interface PlatformBreakdownEntry {
   connectedAt?: string | null;
   /** ISO timestamp of the last sync attempt (null if never synced). */
   lastSyncAt?: string | null;
-  /** Which connection pipeline owns this platform. */
-  source?: 'oauth' | 'nango';
+  /**
+   * Which connection pipeline owns this platform. 'mirror' = synthetic entry
+   * for the always-on sources (browser extension 'web' / 'desktop') derived
+   * from recent data presence, not a connection row (replan-2026-06-10).
+   */
+  source?: 'oauth' | 'nango' | 'mirror';
+  /** Mirror entries only: rows captured in the last 7 days (extension yield). */
+  observations7d?: number;
 }
 
 export interface PlatformsSummary {

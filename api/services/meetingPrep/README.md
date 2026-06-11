@@ -83,7 +83,8 @@ the API response instead.
 
 | File | Responsibility |
 |------|----------------|
-| `meetingPrepService.js` | Orchestrator. `fetchUpcomingExternalEvents` (calendar scan, 0–26h, skips all-day/declined/generic blocks), `generateBriefing` (cron path, idempotent on event+etag), `generateBriefingForChat` (on-demand), `listMeetingBriefingsForChat` (the `get_meeting_prep` read path), `buildUserContext` (richer memory retrieval for solo appointments) |
+| `meetingPrepService.js` | Orchestrator. `fetchUpcomingExternalEvents` (calendar scan, 0–26h, filtered by `shouldPrepEvent`), `generateBriefing` (cron path, idempotent on event+etag), `generateBriefingForChat` (on-demand), `listMeetingBriefingsForChat` (the `get_meeting_prep` read path), `buildUserContext` (richer memory retrieval for solo appointments) |
+| `eventPrepFilter.js` | Pure skip rules (`shouldPrepEvent`): all-day/declined/generic blocks, attendee-less personal events unless title/description signals external stakes (pitch, interview, contract...), and NEVER agent-created events (tagged `extendedProperties.private.twinme_origin=agent` by `createEvent`). replan-2026-06-10 Track B. |
 | `meetingDebriefService.js` | `generateDebrief`, `generateRecapEmail`, `findDebriefCandidates` (meetings ended 25–180 min ago without a debrief) |
 | `briefingPromptBuilder.js` | Builds the LLM prompt; branches for solo appointments (tells the LLM not to invent attendees) |
 | `attendeeResearcher.js` | `getEmailHistory` (Gmail), merges email history + memories into `pastInteractions` |

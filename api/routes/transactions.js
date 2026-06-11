@@ -17,6 +17,7 @@ import { syncAllSignals } from '../services/transactions/platformSignalExtractor
 import { normalizeMerchant } from '../services/transactions/merchantNormalizer.js';
 import { writeTransactionMemories } from '../services/transactions/rawIngestion.js';
 import { detectAndMarkRecurring, isNonSubscriptionRow } from '../services/transactions/recurrenceDetector.js';
+import { getPlaidSandboxState, excludePlaidRows } from '../services/transactions/sandboxGuard.js';
 import { STRESS_HIGH, NUDGE_TRIGGER, DEFAULT_CURRENCY } from '../config/financialThresholds.js';
 import { createLogger } from '../services/logger.js';
 
@@ -371,6 +372,11 @@ router.get('/', authenticateUser, async (req, res) => {
     if (accountType) query = query.eq('account_type', accountType);
     if (since) query = query.gte('transaction_date', since);
 
+    // replan-2026-06-10 Track D P0: never render Plaid sandbox rows as real
+    // money in production runtimes.
+    const sandbox = await getPlaidSandboxState(userId);
+    if (sandbox.excludePlaidTransactions) query = excludePlaidRows(query);
+
     const { data, error } = await query;
     if (error) throw error;
 
@@ -400,7 +406,7 @@ router.get('/summary', authenticateUser, async (req, res) => {
     const windowDays = parseWindowDays(req.query, 90);
     const since = new Date(Date.now() - windowDays * 24 * 60 * 60 * 1000).toISOString();
 
-    const { data, error } = await supabaseAdmin
+    let summaryQuery = supabaseAdmin
       .from('user_transactions')
       .select(`
         amount,
@@ -412,6 +418,12 @@ router.get('/summary', authenticateUser, async (req, res) => {
       `)
       .eq('user_id', userId)
       .gte('transaction_date', since);
+
+    // replan-2026-06-10 Track D P0: sandbox rows must not inflate the totals.
+    const sandbox = await getPlaidSandboxState(userId);
+    if (sandbox.excludePlaidTransactions) summaryQuery = excludePlaidRows(summaryQuery);
+
+    const { data, error } = await summaryQuery;
 
     if (error) throw error;
 
@@ -585,12 +597,18 @@ router.get('/by-category', authenticateUser, async (req, res) => {
     const windowDays = parseWindowDays(req.query, 90);
     const since = new Date(Date.now() - windowDays * 24 * 60 * 60 * 1000).toISOString();
 
-    const { data, error } = await supabaseAdmin
+    let categoryQuery = supabaseAdmin
       .from('user_transactions')
       .select('amount, category')
       .eq('user_id', userId)
       .lt('amount', 0) // outflows only
       .gte('transaction_date', since);
+
+    // replan-2026-06-10 Track D P0: keep sandbox rows out of the breakdown.
+    const sandbox = await getPlaidSandboxState(userId);
+    if (sandbox.excludePlaidTransactions) categoryQuery = excludePlaidRows(categoryQuery);
+
+    const { data, error } = await categoryQuery;
 
     if (error) throw error;
 
@@ -1045,7 +1063,7 @@ router.get('/timeline-analysis', authenticateUser, async (req, res) => {
     // y-axis topped out at the highest 30-day-recent spend (often R$ 100)
     // while the totals card disagreed. Computing inline keeps one window
     // applied to every panel on /money.
-    const { data: rows, error } = await supabaseAdmin
+    let timelineQuery = supabaseAdmin
       .from('user_transactions')
       .select(`
         transaction_date,
@@ -1057,6 +1075,12 @@ router.get('/timeline-analysis', authenticateUser, async (req, res) => {
       .eq('user_id', userId)
       .lt('amount', 0)
       .gte('transaction_date', since);
+
+    // replan-2026-06-10 Track D P0: sandbox rows must not draw the chart.
+    const sandbox = await getPlaidSandboxState(userId);
+    if (sandbox.excludePlaidTransactions) timelineQuery = excludePlaidRows(timelineQuery);
+
+    const { data: rows, error } = await timelineQuery;
 
     if (error) throw error;
 
@@ -1114,7 +1138,7 @@ router.get('/recurring-subscriptions', authenticateUser, async (req, res) => {
     const limit = Math.min(Math.max(parseInt(String(req.query.limit ?? '15'), 10) || 15, 1), 50);
     const minMonthly = Math.max(Number(req.query.minMonthly) || 0, 0);
 
-    const { data: rows, error } = await supabaseAdmin
+    let subsQuery = supabaseAdmin
       .from('user_transactions')
       .select(`
         id, amount, currency, merchant_normalized, merchant_raw, category,
@@ -1129,6 +1153,13 @@ router.get('/recurring-subscriptions', authenticateUser, async (req, res) => {
       .neq('account_type', 'investment')   // brokerage trades own a different surface
       .order('transaction_date', { ascending: false })
       .limit(2000);
+
+    // replan-2026-06-10 Track D P0: sandbox "subscriptions" (Tectra Inc et al)
+    // must not show up as real recurring charges.
+    const sandbox = await getPlaidSandboxState(userId);
+    if (sandbox.excludePlaidTransactions) subsQuery = excludePlaidRows(subsQuery);
+
+    const { data: rows, error } = await subsQuery;
 
     if (error) {
       log.error('recurring-subscriptions query failed', { error: error.message });

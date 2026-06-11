@@ -30,7 +30,7 @@ router.post('/:id/feedback', authenticateUser, async (req, res) => {
     // Verify the insight belongs to this user
     const { data: insight, error: fetchError } = await supabaseAdmin
       .from('proactive_insights')
-      .select('id, user_id, category, insight')
+      .select('id, user_id, category, insight, metadata')
       .eq('id', id)
       .single();
 
@@ -42,10 +42,26 @@ router.post('/:id/feedback', authenticateUser, async (req, res) => {
       return res.status(403).json({ error: 'Not your insight' });
     }
 
-    // Update insight engagement status
+    // Record the feedback. replan-2026-06-10 Track A: thumbs-down used to
+    // write engaged=false, which (a) made an explicit rejection look identical
+    // to an insight the user never saw, and (b) un-engaged rows the user HAD
+    // engaged with. Only thumbs-up touches `engaged`; the negative signal
+    // lives in metadata.feedback so ignored vs rejected stay distinguishable.
+    const updatePayload = {
+      metadata: {
+        ...(insight.metadata || {}),
+        feedback: rating === 1 ? 'up' : 'down',
+        feedback_at: new Date().toISOString(),
+      },
+    };
+    if (rating === 1) {
+      updatePayload.engaged = true;
+      updatePayload.engaged_at = new Date().toISOString();
+    }
+
     const { error: updateError } = await supabaseAdmin
       .from('proactive_insights')
-      .update({ engaged: rating === 1 })
+      .update(updatePayload)
       .eq('id', id);
 
     if (updateError) {

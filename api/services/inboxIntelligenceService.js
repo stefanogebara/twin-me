@@ -175,6 +175,12 @@ async function getEmailBody(userId, email) {
  * Generate a short draft reply for a single email in the user's voice.
  */
 async function generateDraft(userId, email, senderContext) {
+  // Never draft a reply to automation — a no-reply sender or another AI
+  // assistant's notification bot. The upstream isNoise filter should have
+  // caught these; this is the last gate before we put words in the user's
+  // mouth addressed to a machine (replan-2026-06-10 Track B).
+  if (isNoise(email.from)) return null;
+
   const body = await getEmailBody(userId, email);
   const contextSection = senderContext
     ? `\nContext from past interactions with this person: ${senderContext}`

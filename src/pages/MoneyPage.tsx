@@ -207,7 +207,9 @@ function SummaryBar({ summary, currency, mixedCurrency }: { summary: Transaction
   return (
     <div style={{ ...CARD_STYLE, padding: 24 }}>
       <div className="flex items-center gap-2 mb-2">
-        <p style={{ ...LABEL_STYLE, marginBottom: 0 }}>Last 30 days</p>
+        {/* replan-2026-06-10 Track D: label must reflect the actual queried
+            window — /summary defaults to 90 days, not 30. */}
+        <p style={{ ...LABEL_STYLE, marginBottom: 0 }}>Last {summary.window_days} days</p>
         {mixedCurrency && (
           <span
             className="px-2 py-0.5 rounded-full text-xs"
