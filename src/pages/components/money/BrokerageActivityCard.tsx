@@ -20,6 +20,7 @@ import { useNavigate } from 'react-router-dom';
 import { TrendingUp, TrendingDown, ArrowDownToLine, ArrowUpFromLine, Coins, AlertCircle, Activity, Heart } from 'lucide-react';
 import { getPlaidInvestmentActivity, type PlaidInvestmentEvent } from '@/services/api/transactionsAPI';
 import { usePlatformsSummary, needsReconnect } from '@/hooks/usePlatformsSummary';
+import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 
 interface Props {
   /** Bump to force a re-fetch (e.g. after a new Plaid link). */
@@ -158,6 +159,10 @@ export const BrokerageActivityCard: React.FC<Props> = ({ refreshNonce = 0 }) => 
   const navigate = useNavigate();
   const { data: platformsSummary } = usePlatformsSummary();
 
+  // replan-2026-06-10 Track D: Plaid is sandbox-only — the whole card is
+  // parked behind money_plaid (default off) on every page that mounts it.
+  const plaidEnabled = useFeatureFlag('money_plaid');
+
   // The moat surface composes signals from Whoop (recovery) + Spotify (music
   // valence) + Calendar (load). Each missing platform dims a column. The
   // most impactful one to surface contextually is Whoop, because recovery
@@ -194,7 +199,12 @@ export const BrokerageActivityCard: React.FC<Props> = ({ refreshNonce = 0 }) => 
     }
   }, []);
 
-  useEffect(() => { void load(); }, [load, refreshNonce]);
+  useEffect(() => {
+    if (!plaidEnabled) return; // parked — skip the fetch entirely
+    void load();
+  }, [plaidEnabled, load, refreshNonce]);
+
+  if (!plaidEnabled) return null;
 
   // Render nothing when there's no activity yet — BrokerageHoldingsCard
   // already explains the "connect a brokerage" angle above us, no need

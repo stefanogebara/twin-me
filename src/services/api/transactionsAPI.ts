@@ -141,111 +141,13 @@ export async function retagTransactions(): Promise<{ tagged: number; errors: num
   return { tagged: json.tagged || 0, errors: json.errors || 0 };
 }
 
-export interface SavingsSummary {
-  window_days: number;
-  waited_count: number;
-  proceeded_count: number;
-  dismissed_count: number;
-  total_saved: number;
-  biggest_save: number;
-  median_discretionary_amount: number;
-}
-
-export interface SpendingPattern {
-  kind: 'category_stress' | 'weekday' | 'biology_impulse' | 'music_mood';
-  headline: string;
-  detail: string;
-  impact_score?: number;
-  ratio?: number;
-  [key: string]: unknown;
-}
-
-export interface PatternsResult {
-  hasData: boolean;
-  minTransactionsReached?: boolean;
-  patterns: SpendingPattern[];
-  txCount?: number;
-  minRequired?: number;
-}
-
-export async function getSpendingPatterns(): Promise<PatternsResult | null> {
-  const res = await authFetch('/transactions/patterns');
-  if (!res.ok) return null;
-  const json = await res.json();
-  if (!json.success) return null;
-  const { success: _success, ...result } = json;
-  return result as PatternsResult;
-}
-
-export async function getSavings(): Promise<SavingsSummary | null> {
-  const res = await authFetch('/transactions/savings');
-  if (!res.ok) return null;
-  const json = await res.json();
-  if (!json.success) return null;
-  const { success: _success, ...summary } = json;
-  return summary as SavingsSummary;
-}
-
-export interface NudgeRecent {
-  id: string;
-  title: string;
-  body: string;
-  amount: number;
-  merchant: string;
-  category: string | null;
-  stress_score: number | null;
-  followed: boolean | null;
-  checked: boolean;
-  created_at: string;
-}
-
-export interface NudgeStats {
-  window_days: number;
-  total_sent: number;
-  checked_count: number;
-  followed_count: number;
-  follow_rate: number | null;
-  est_saved: number;
-  dominant_currency: string;
-  recent?: NudgeRecent[];
-}
-
-/** Phase 3.5 "before it happens": daily risk forecast for impulse spending. */
-export interface RiskForecast {
-  status: 'high_risk' | 'low_risk' | 'no_history' | 'no_biology' | 'insufficient_data';
-  headline?: string;
-  detail?: string;
-  message?: string;
-  expected_extra?: number;
-  current_biology?: { recovery: number | null; sleep: number | null; hrv: number | null; source: string; at: string };
-  baseline?: { stress_days: number; normal_days: number; stress_avg_discretionary: number | null; normal_avg_discretionary: number | null; currency: string };
-}
-
-export async function getRiskForecast(): Promise<RiskForecast | null> {
-  const res = await authFetch('/transactions/risk-forecast');
-  if (!res.ok) return null;
-  const json = await res.json();
-  if (!json.success) return null;
-  return (json.forecast || null) as RiskForecast | null;
-}
-
-/** Phase 3.4b affirmation card: how did the user respond to stress nudges? */
-export async function getNudgeStats(): Promise<NudgeStats | null> {
-  const res = await authFetch('/transactions/nudge-stats');
-  if (!res.ok) return null;
-  const json = await res.json();
-  if (!json.success) return null;
-  const { success: _success, ...stats } = json;
-  return stats as NudgeStats;
-}
-
 /* -------------------------------------------------------------------------- */
 /* Pluggy real-time bank sync (Phase 3.2)                                     */
 /* -------------------------------------------------------------------------- */
 
 export interface BankConnection {
   id: string;
-  provider?: 'pluggy' | 'truelayer' | 'plaid';
+  provider?: 'pluggy' | 'plaid';
   connector_name: string;
   status: string;
   status_detail: unknown;
@@ -336,9 +238,8 @@ export async function listBankConnections(): Promise<BankConnection[]> {
 }
 
 export async function deleteBankConnection(id: string, provider?: string): Promise<boolean> {
-  // Plaid disconnect lives on its own route. Pluggy + TrueLayer share the
-  // pluggy route which dispatches internally. Frontend doesn't need to know
-  // the split — pass the provider from the row.
+  // Plaid disconnect lives on its own route; everything else goes through
+  // the pluggy route. Frontend passes the provider from the row.
   const endpoint = provider === 'plaid'
     ? `/plaid/connections/${id}`
     : `/transactions/pluggy/connections/${id}`;
@@ -351,55 +252,10 @@ export async function deleteBankConnection(id: string, provider?: string): Promi
 export async function syncBankConnection(id: string, provider?: string): Promise<boolean> {
   // Each provider's sync route lives under its own router — dispatch here so
   // the caller doesn't have to know about the URL split.
-  const endpoint = provider === 'truelayer'
-    ? `/truelayer/sync/${id}`
-    : provider === 'plaid'
-      ? `/plaid/sync/${id}`
-      : `/transactions/pluggy/sync/${id}`;
+  const endpoint = provider === 'plaid'
+    ? `/plaid/sync/${id}`
+    : `/transactions/pluggy/sync/${id}`;
   const res = await authFetch(endpoint, { method: 'POST' });
-  if (!res.ok) return false;
-  const json = await res.json();
-  return !!json.success;
-}
-
-/* -------------------------------------------------------------------------- */
-/* TrueLayer EU/UK bank sync (Phase 4)                                        */
-/* -------------------------------------------------------------------------- */
-
-export interface TrueLayerAuthUrlResponse {
-  success: boolean;
-  authUrl?: string;
-  error?: string;
-  // audit-2026-05-08 C1: stable error code surfaced for UI fallback messaging
-  code?: 'TRUELAYER_NOT_CONFIGURED' | string;
-}
-
-/**
- * Request a TrueLayer OAuth authorization URL. The frontend then window.location
- * assigns to it — TrueLayer handles bank selection + consent, redirects back to
- * /api/truelayer/callback which completes the handshake and redirects to /money.
- */
-export async function getTrueLayerAuthUrl(providers?: string): Promise<TrueLayerAuthUrlResponse> {
-  const res = await authFetch('/truelayer/auth-url', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(providers ? { providers } : {}),
-  });
-  // audit-2026-05-08 C1: read body on !ok too, to surface structured `code`.
-  let body: TrueLayerAuthUrlResponse | null = null;
-  try { body = await res.json(); } catch { /* non-JSON is fine */ }
-  if (!res.ok) {
-    return {
-      success: false,
-      error: body?.error || `auth-url failed (${res.status})`,
-      code: body?.code,
-    };
-  }
-  return body || { success: false, error: 'empty response' };
-}
-
-export async function syncTrueLayerConnection(id: string): Promise<boolean> {
-  const res = await authFetch(`/truelayer/sync/${id}`, { method: 'POST' });
   if (!res.ok) return false;
   const json = await res.json();
   return !!json.success;

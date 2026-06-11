@@ -46,12 +46,11 @@ function statusStyle(status: string): { bg: string; fg: string; label: string } 
   }
 }
 
-// audit-2026-06-10: chip must distinguish all three providers — Plaid (US) rows
-// were previously labeled 'BR via Pluggy Open Finance'.
+// audit-2026-06-10: chip must distinguish providers — Plaid (US) rows were
+// previously labeled 'BR via Pluggy Open Finance'. (TrueLayer removed
+// entirely in replan-2026-06-10 Track D.)
 function providerChip(provider: string): { label: string; title: string } {
   switch (provider) {
-    case 'truelayer':
-      return { label: 'EU/UK', title: 'EU/UK via TrueLayer' };
     case 'plaid':
       return { label: 'US', title: 'US via Plaid' };
     case 'pluggy':
@@ -94,8 +93,7 @@ export function BankConnectionsList({ onChanged }: Props) {
     setBusyId(id);
     try {
       // audit-2026-06-10: provider routes the request to the right backend sync
-      // endpoint — without it TrueLayer rows get a 400 and Plaid rows a 500 on
-      // the default Pluggy route.
+      // endpoint — without it Plaid rows get a 500 on the default Pluggy route.
       const provider = connections?.find(c => c.id === id)?.provider;
       const ok = await syncBankConnection(id, provider);
       if (!ok) {
@@ -173,8 +171,8 @@ export function BankConnectionsList({ onChanged }: Props) {
                     <span
                       className="text-[10px] px-1.5 py-0.5 rounded-full flex-shrink-0"
                       style={{
-                        background: c.provider === 'truelayer' ? 'rgba(129, 140, 248, 0.12)' : 'rgba(255,255,255,0.06)',
-                        color: c.provider === 'truelayer' ? 'rgba(165, 180, 252, 0.90)' : 'rgba(255,255,255,0.50)',
+                        background: 'rgba(255,255,255,0.06)',
+                        color: 'rgba(255,255,255,0.50)',
                         fontFamily: "'Geist', 'Inter', sans-serif",
                         letterSpacing: '0.04em',
                         textTransform: 'uppercase',

@@ -101,9 +101,11 @@ vi.mock('../../../api/services/transactions/pluggyClient.js', () => ({
   createConnectToken: vi.fn(),
   deleteItem: vi.fn(),
 }));
-vi.mock('../../../api/services/transactions/trueLayerClient.js', () => ({
-  isTrueLayerConfigured: () => false,
-  revokeConsent: vi.fn(),
+// Plaid routes are parked behind the default-off money_plaid flag
+// (replan-2026-06-10 Track D). Enable it here — the flag gate has its own
+// dedicated test (plaidFlagGate.test.js); these tests pin the sandbox guard.
+vi.mock('../../../api/services/featureFlagsService.js', () => ({
+  getFeatureFlags: vi.fn(async () => ({ money_plaid: true })),
 }));
 vi.mock('../../../api/services/transactions/pluggyIngestion.js', () => ({
   upsertConnectionFromItem: vi.fn(),

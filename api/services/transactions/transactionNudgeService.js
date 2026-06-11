@@ -7,7 +7,7 @@
  * before the next impulse.
  *
  * Trigger flow:
- *   Pluggy/TrueLayer webhook → tx ingested → emotion tagger computed
+ *   Pluggy webhook → tx ingested → emotion tagger computed
  *   computed_stress_score per tx → maybeNudgeForTransactions(userId, txIds)
  *   → filter → send push → mark nudged to avoid re-firing.
  *
@@ -118,7 +118,7 @@ function formatBRL(n) {
 
 /**
  * Given a set of transaction ids we just inserted (from pluggyIngestion or
- * trueLayerIngestion), fetch them with their emotional context, pick the
+ * plaidIngestion), fetch them with their emotional context, pick the
  * highest-stress qualifying one, and fire a push.
  *
  * Idempotent: if anything fails, it's logged and swallowed — we never want a
