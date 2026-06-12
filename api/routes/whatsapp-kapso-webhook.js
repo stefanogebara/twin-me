@@ -30,6 +30,7 @@ import { addConversationMemory } from '../services/memoryStreamService.js';
 import { createLogger } from '../services/logger.js';
 import { buildPurchaseContext } from '../services/purchaseContextBuilder.js';
 import { generatePurchaseReflection } from '../services/purchaseReflection.js';
+import { classifyProtocolReply, resolveProtocolReply, offerNextProposal } from '../services/threadApprovals.js';
 import { tryCaptureTransaction, checkAndBumpCaptureQuota } from '../services/transactions/whatsappTransactionCapture.js';
 import { isStatementDocument, handleStatementDocument } from '../services/transactions/whatsappStatementIngest.js';
 import { handleReceiptImage } from '../services/transactions/pixReceiptIngest.js';
@@ -454,6 +455,26 @@ router.post('/webhook', async (req, res) => {
       return res.sendStatus(200);
     }
 
+    // 7pre0. Thread approvals (one-interface, 2026-06-12) — the /inbox page is
+    // gone; a SHORT "yes"/"skip" reply resolves the proposal the twin offered
+    // in this thread. Deterministic rail, no LLM: same approve/reject paths
+    // the inbox buttons used. A protocol-shaped reply with NOTHING awaiting
+    // falls through to normal chat (a bare "yes" can answer the twin too).
+    const protocolIntent = classifyProtocolReply(text);
+    if (protocolIntent) {
+      const confirmation = await resolveProtocolReply(userId, protocolIntent);
+      if (confirmation) {
+        await sendWhatsAppMessage(phone, confirmation);
+        await addConversationMemory(userId, text, confirmation, {
+          source: 'whatsapp', messageId, contactName,
+        }).catch(err => {
+          log.warn('Failed to store approval memory', { userId, error: err.message });
+        });
+        log.info('Thread approval resolved', { userId, intent: protocolIntent });
+        return;
+      }
+    }
+
     // 7pre. Text transaction capture (replan-2026-06-12) — forwarded bank/Pix
     // notification TEXTS and "gastei 80 no ifood" statements become
     // user_transactions rows. Images/documents were handled above by the
@@ -527,6 +548,19 @@ router.post('/webhook', async (req, res) => {
     }
 
     log.info('WhatsApp response sent', { userId, phone: phone.slice(-4), responseLen: response.length });
+
+    // 10. Offer the next pending proposal (one-interface): rides the same open
+    // service window, one proposal at a time, never re-offered. Replaces the
+    // /inbox page as the approval surface. Non-fatal by design.
+    try {
+      const offer = await offerNextProposal(userId);
+      if (offer) {
+        await sendWhatsAppMessage(phone, offer);
+        log.info('Proposal offered in thread', { userId });
+      }
+    } catch (err) {
+      log.warn('Proposal offer failed (non-fatal)', { userId, error: err.message });
+    }
   } catch (err) {
     log.error('WhatsApp webhook processing error', { error: err.message, stack: err.stack });
   }
