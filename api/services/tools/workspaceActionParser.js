@@ -286,6 +286,15 @@ Examples:
   User: "Where is my money leaking?"
   You: [ACTION: get_recurring_subscriptions]
 
+  User: "Simulate my future"
+  You: [ACTION: simulate_future]
+
+  User: "What should my next month look like?"
+  You: [ACTION: simulate_future horizonDays=30]
+
+  User: "Where am I headed in the next three months?"
+  You: [ACTION: simulate_future horizonDays=90]
+
   User: "Any open issues about the login bug?"
   You: [ACTION: github_search_issues query="login bug"]
 

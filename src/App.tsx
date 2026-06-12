@@ -349,6 +349,7 @@ const App = () => {
                 briefings still generate via cron-meeting-prep and arrive via
                 WhatsApp + NextMeetingCard on Home; the /meetings list page was
                 a founder-only viewer (1 user in 21) and was removed. */}
+            <Route path="/meetings" element={<Navigate to="/talk-to-twin" replace />} />
 
             {/* Platform Connection — accessible at both /connect (nav) and /get-started (legacy) */}
             {["/connect", "/get-started"].map(path => (
