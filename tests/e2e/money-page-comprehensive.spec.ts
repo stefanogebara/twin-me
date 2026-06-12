@@ -3,12 +3,11 @@
  * ==========================================
  *
  * The page lives at src/pages/MoneyPage.tsx. Honest-MVP shape
- * (replan-2026-06-10 Track D): header + tagline, connect row (Pluggy BR +
- * CSV/OFX upload), spending timeline (30d), summary bar, transaction list
- * with category chips + Re-tag, and ONE unlock progress card. The old
- * patterns / savings / nudges / risk-forecast surfaces and the TrueLayer
- * rail were removed; Plaid brokerage surfaces are parked behind the
- * `money_plaid` feature flag (default off).
+ * (replan-2026-06-12): header + tagline, WhatsApp capture card + CSV/OFX
+ * upload, spending timeline (30d), summary bar, transaction list with
+ * category chips + Re-tag, and ONE unlock progress card. Bank aggregators
+ * (Pluggy/Plaid/TrueLayer) were removed entirely along with the old
+ * patterns / savings / nudges / risk-forecast surfaces.
  *
  * STANDARDS — every assertion below maps to one of these IDs.
  *
@@ -132,8 +131,7 @@ async function mockMoneyAPIs(page: Page, state: Partial<MockState> = {}): Promis
   // Specific endpoints first (Playwright matches in registration order).
   await jsonRoute(page, '**/api/transactions/summary*', 200, { success: true, ...(f.summary as object) });
   await jsonRoute(page, '**/api/transactions/timeline-analysis*', 200, { days: f.timeline });
-  await jsonRoute(page, '**/api/transactions/pluggy/connections*', 200, { connections: [] });
-  // money_plaid stays OFF — the page must not mount brokerage surfaces.
+  await jsonRoute(page, '**/api/whatsapp-link/status*', 200, { success: true, linked: false, phone: null });
   await jsonRoute(page, '**/api/feature-flags*', 200, { success: true, flags: {} });
   // Bare list — must come last among /transactions matchers.
   await jsonRoute(page, '**/api/transactions?*', 200, { transactions: f.transactions });
@@ -143,7 +141,7 @@ async function mockEndpoints500(page: Page): Promise<void> {
   const err = { success: false, error: 'simulated server error' };
   await jsonRoute(page, '**/api/transactions/summary*', 500, err);
   await jsonRoute(page, '**/api/transactions/timeline-analysis*', 500, err);
-  await jsonRoute(page, '**/api/transactions/pluggy/connections*', 500, err);
+  await jsonRoute(page, '**/api/whatsapp-link/status*', 500, err);
   await jsonRoute(page, '**/api/feature-flags*', 500, err);
   await jsonRoute(page, '**/api/transactions?*', 500, err);
 }
@@ -275,12 +273,12 @@ test.describe('/money — authenticated UI with data', () => {
     await expect(unlockCard, 'F-5 unlock card').toHaveCount(1);
     await expect(unlockCard, 'F-5 unlock card visible').toBeVisible();
 
-    // Parked surfaces must NOT render with money_plaid off.
-    await expect(page.getByRole('button', { name: /Connect US bank/i }), 'parked Plaid button').toHaveCount(0);
-    await expect(page.locator('[data-testid="brokerage-activity-card"]'), 'parked activity card').toHaveCount(0);
-    // Removed promise surfaces must stay gone.
+    // WhatsApp capture CTA replaces the bank-connect rail (replan-2026-06-12).
+    await expect(page.locator('[data-testid="whatsapp-capture-card"]'), 'WhatsApp capture card').toHaveCount(1);
+    // Removed aggregator surfaces must stay gone.
+    await expect(page.getByRole('button', { name: /Connect (BR|US|EU\/UK) bank/i }), 'bank connect buttons removed').toHaveCount(0);
+    await expect(page.locator('[data-testid="brokerage-activity-card"]'), 'brokerage card removed').toHaveCount(0);
     await expect(page.getByText(/Nudges & Wins/i), 'nudges surface removed').toHaveCount(0);
-    await expect(page.getByRole('button', { name: /Connect EU\/UK bank/i }), 'TrueLayer removed').toHaveCount(0);
 
     // U-8: upload label htmlFor links to hidden input
     await expect(page.locator('label[for="money-upload"]'), 'U-8 label').toBeVisible();

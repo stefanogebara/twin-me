@@ -3,15 +3,9 @@
  *
  * This is the FE client that every money-related page (MoneyPage,
  * MoneyInsightsPage, SettingsBilling) calls into. Bugs here look like
- * "the page shows blank cards" or "Plaid disconnect button does nothing"
- * — both have happened in past audits. Specifically:
- *
- *   - The Pluggy connect-token endpoint used to ignore the structured
- *     `code` field on !ok responses, so the UI couldn't differentiate
- *     "PLUGGY_NOT_CONFIGURED" from "server is on fire" (2026-05-08 C1).
- *   - Phase 3.5 risk-forecast and Phase 4.4 investment-correlation
- *     each call distinct routes; one provider-dispatch typo silently
- *     hit the wrong endpoint and returned 404s the user never saw.
+ * "the page shows blank cards" — it has happened in past audits.
+ * (Bank-aggregator client functions deleted in replan-2026-06-12 with
+ * the Pluggy/Plaid removal; their tests went with them.)
  *
  * Strategy: mock the entire apiBase module so we control authFetch +
  * API_URL deterministically. We then assert on:
@@ -54,21 +48,9 @@ const {
   listTransactions,
   getTransactionsSummary,
   retagTransactions,
-  getPluggyConnectToken,
-  registerPluggyItem,
-  listBankConnections,
-  deleteBankConnection,
-  syncBankConnection,
-  getPlaidLinkToken,
-  exchangePlaidPublicToken,
-  syncPlaidConnection,
-  deletePlaidConnection,
   setTransactionFeedback,
   getTimelineAnalysis,
   getRecurringSubscriptions,
-  getInvestmentCorrelationInsights,
-  getPlaidInvestmentActivity,
-  getPlaidHoldings,
 } = await import('../../src/services/api/transactionsAPI');
 
 /** Helper to mint an ok JSON Response with a given body. */
@@ -163,107 +145,6 @@ describe('retagTransactions — POST with JSON body, throws on failure', () => {
   });
 });
 
-describe('getPluggyConnectToken — audit-2026-05-08 C1 (surface error code on !ok)', () => {
-  it('returns the connect token + environment on success', async () => {
-    authFetchImpl = async () =>
-      ok({ success: true, connectToken: 'ct_abc', environment: 'sandbox' });
-    const r = await getPluggyConnectToken();
-    expect(r.success).toBe(true);
-    expect(r.connectToken).toBe('ct_abc');
-    expect(r.environment).toBe('sandbox');
-  });
-
-  it('forwards itemId in the body when reconnecting', async () => {
-    authFetchImpl = async () => ok({ success: true, connectToken: 'ct_x' });
-    await getPluggyConnectToken('item_99');
-    expect(authFetchCalls[0].init?.body).toBe(JSON.stringify({ itemId: 'item_99' }));
-  });
-
-  it('sends an empty object body when itemId is omitted', async () => {
-    authFetchImpl = async () => ok({ success: true });
-    await getPluggyConnectToken();
-    expect(authFetchCalls[0].init?.body).toBe('{}');
-  });
-
-  it('surfaces PLUGGY_NOT_CONFIGURED code on 503 (UI uses this for the friendly hint)', async () => {
-    authFetchImpl = async () =>
-      notOk(503, { success: false, error: 'pluggy not configured', code: 'PLUGGY_NOT_CONFIGURED' });
-    const r = await getPluggyConnectToken();
-    expect(r.success).toBe(false);
-    expect(r.code).toBe('PLUGGY_NOT_CONFIGURED');
-    expect(r.error).toBe('pluggy not configured');
-  });
-
-  it('synthesises a generic error message when the response body is empty', async () => {
-    authFetchImpl = async () => new Response('', { status: 500 });
-    const r = await getPluggyConnectToken();
-    expect(r.success).toBe(false);
-    expect(r.error).toMatch(/Failed to create connect token \(500\)/);
-  });
-});
-
-describe('Provider dispatch on syncBankConnection + deleteBankConnection', () => {
-  it('syncBankConnection routes Plaid to /plaid/sync/:id', async () => {
-    authFetchImpl = async () => ok({ success: true });
-    await syncBankConnection('cx_42', 'plaid');
-    expect(authFetchCalls[0].url).toBe('/plaid/sync/cx_42');
-    expect(authFetchCalls[0].init?.method).toBe('POST');
-  });
-
-  it('syncBankConnection defaults to Pluggy when provider is undefined', async () => {
-    authFetchImpl = async () => ok({ success: true });
-    await syncBankConnection('cx_55');
-    expect(authFetchCalls[0].url).toBe('/transactions/pluggy/sync/cx_55');
-  });
-
-  it('deleteBankConnection routes Plaid to /plaid/connections/:id', async () => {
-    authFetchImpl = async () => ok({ success: true });
-    await deleteBankConnection('cx_42', 'plaid');
-    expect(authFetchCalls[0].url).toBe('/plaid/connections/cx_42');
-    expect(authFetchCalls[0].init?.method).toBe('DELETE');
-  });
-
-  it('deleteBankConnection defaults to Pluggy for unknown providers', async () => {
-    authFetchImpl = async () => ok({ success: true });
-    await deleteBankConnection('cx_55', 'some_future_provider');
-    // Only Plaid takes the dedicated route; everything else goes through pluggy.
-    expect(authFetchCalls[0].url).toBe('/transactions/pluggy/connections/cx_55');
-  });
-
-  it('sync/delete return false when the server returns !ok (UI shows the failed toast)', async () => {
-    authFetchImpl = async () => notOk(500, { error: 'sync_failed' });
-    expect(await syncBankConnection('cx_1', 'plaid')).toBe(false);
-    expect(await deleteBankConnection('cx_1', 'plaid')).toBe(false);
-  });
-});
-
-describe('Plaid Link flow', () => {
-  it('getPlaidLinkToken sends opts as JSON body and surfaces the linkToken', async () => {
-    authFetchImpl = async () => ok({ success: true, linkToken: 'link-token-xyz' });
-    const r = await getPlaidLinkToken({ products: ['transactions'], countryCodes: ['US'] });
-    const sent = JSON.parse(authFetchCalls[0].init?.body as string);
-    expect(sent).toEqual({ products: ['transactions'], countryCodes: ['US'] });
-    expect(r.linkToken).toBe('link-token-xyz');
-  });
-
-  it('getPlaidLinkToken surfaces PLAID_NOT_CONFIGURED on !ok', async () => {
-    authFetchImpl = async () =>
-      notOk(503, { success: false, error: 'plaid not configured', code: 'PLAID_NOT_CONFIGURED' });
-    const r = await getPlaidLinkToken();
-    expect(r.success).toBe(false);
-    expect(r.code).toBe('PLAID_NOT_CONFIGURED');
-  });
-
-  it('exchangePlaidPublicToken POSTs publicToken in body', async () => {
-    authFetchImpl = async () => ok({ success: true, itemId: 'item_42', inserted: 17 });
-    const r = await exchangePlaidPublicToken('public-token-abc');
-    expect(JSON.parse(authFetchCalls[0].init?.body as string)).toEqual({
-      publicToken: 'public-token-abc',
-    });
-    expect(r.inserted).toBe(17);
-  });
-});
-
 describe('getRecurringSubscriptions', () => {
   it('builds limit + minMonthly query params', async () => {
     authFetchImpl = async () =>
@@ -285,44 +166,6 @@ describe('getRecurringSubscriptions', () => {
     expect(r.subscriptions).toEqual([]);
     expect(typeof r.currency).toBe('string'); // never undefined
     expect(typeof r.synthesis).toBe('string');
-  });
-});
-
-describe('getInvestmentCorrelationInsights — Phase 4.4 moat surface', () => {
-  it('always pins subcategory=investment_correlation in the query', async () => {
-    authFetchImpl = async () => ok({ insights: [] });
-    await getInvestmentCorrelationInsights();
-    const url = authFetchCalls[0].url;
-    expect(url.startsWith('/insights/proactive?')).toBe(true);
-    const qs = new URLSearchParams(url.split('?')[1]);
-    expect(qs.get('subcategory')).toBe('investment_correlation');
-  });
-
-  it('adds include_delivered=true when opted in', async () => {
-    authFetchImpl = async () => ok({ insights: [] });
-    await getInvestmentCorrelationInsights({ limit: 5, includeDelivered: true });
-    const qs = new URLSearchParams(authFetchCalls[0].url.split('?')[1]);
-    expect(qs.get('include_delivered')).toBe('true');
-    expect(qs.get('limit')).toBe('5');
-  });
-
-  it('returns [] on !ok (page renders empty moat panel, never throws)', async () => {
-    authFetchImpl = async () => notOk(500, { error: 'boom' });
-    const r = await getInvestmentCorrelationInsights();
-    expect(r).toEqual([]);
-  });
-
-  it('returns [] when the response body is not JSON-parseable', async () => {
-    authFetchImpl = async () => new Response('<html>500</html>', { status: 200 });
-    const r = await getInvestmentCorrelationInsights();
-    expect(r).toEqual([]);
-  });
-
-  it('returns [] when insights is missing or not an array', async () => {
-    authFetchImpl = async () => ok({ success: true });
-    expect(await getInvestmentCorrelationInsights()).toEqual([]);
-    authFetchImpl = async () => ok({ insights: 'not_an_array' });
-    expect(await getInvestmentCorrelationInsights()).toEqual([]);
   });
 });
 
@@ -378,53 +221,10 @@ describe('setTransactionFeedback', () => {
   });
 });
 
-describe('Plaid holdings + investment-activity safe fallbacks', () => {
-  it('getPlaidHoldings returns a fully-shaped empty body on !ok', async () => {
-    authFetchImpl = async () => notOk(500, { error: 'fail' });
-    const r = await getPlaidHoldings();
-    expect(r.success).toBe(false);
-    expect(r.holdings).toEqual([]);
-    expect(typeof r.totalValue).toBe('number');
-    expect(typeof r.currency).toBe('string');
-    expect(r.itemsScanned).toBe(0);
-  });
-
-  it('getPlaidInvestmentActivity returns empty events on !ok with a helpful error', async () => {
-    authFetchImpl = async () => notOk(503, { error: 'plaid down' });
-    const r = await getPlaidInvestmentActivity({ limit: 25, sinceDays: 30 });
-    expect(r.success).toBe(false);
-    expect(r.events).toEqual([]);
-    expect(r.error).toBe('plaid down');
-    // limit + sinceDays params should still appear in the URL.
-    const qs = new URLSearchParams(authFetchCalls[0].url.split('?')[1]);
-    expect(qs.get('limit')).toBe('25');
-    expect(qs.get('sinceDays')).toBe('30');
-  });
-});
-
 describe('Other null-on-error fetchers (smoke)', () => {
-  it('listBankConnections returns [] on !ok', async () => {
+  it('getRecurringSubscriptions returns empty fallback shape on !ok', async () => {
     authFetchImpl = async () => notOk(500, { error: 'boom' });
-    const r = await listBankConnections();
-    expect(r).toEqual([]);
-  });
-
-  it('registerPluggyItem POSTs itemId and surfaces structured code on !ok', async () => {
-    authFetchImpl = async () =>
-      notOk(409, { success: false, error: 'already linked', code: 'ITEM_ALREADY_LINKED' });
-    const r = await registerPluggyItem('item_99');
-    expect(JSON.parse(authFetchCalls[0].init?.body as string)).toEqual({ itemId: 'item_99' });
-    expect(r.success).toBe(false);
-    expect(r.code).toBe('ITEM_ALREADY_LINKED');
-  });
-
-  it('syncPlaidConnection / deletePlaidConnection hit dedicated /plaid routes', async () => {
-    authFetchImpl = async () => ok({ success: true });
-    await syncPlaidConnection('cx_42');
-    expect(authFetchCalls[0].url).toBe('/plaid/sync/cx_42');
-    authFetchCalls.length = 0;
-    await deletePlaidConnection('cx_42');
-    expect(authFetchCalls[0].url).toBe('/plaid/connections/cx_42');
-    expect(authFetchCalls[0].init?.method).toBe('DELETE');
+    const r = await getRecurringSubscriptions();
+    expect(r.subscriptions).toEqual([]);
   });
 });

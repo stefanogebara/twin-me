@@ -1,19 +1,20 @@
 /**
- * MoneyPage — Financial-Emotional Twin (honest MVP, replan-2026-06-10 Track D)
+ * MoneyPage — Financial-Emotional Twin (replan-2026-06-12)
  * ============================================================================
- * Connect a BR bank (Pluggy) or upload a statement (CSV/OFX/XLSX), see
- * transactions with emotional context (HRV, music valence, calendar load,
- * composite stress score at moment of purchase), and one honest unlock
- * card stating what appears once enough spend/biology overlap exists.
- * Plaid brokerage surfaces are parked behind the `money_plaid` flag;
- * TrueLayer was removed entirely.
+ * Upload a statement (CSV/OFX/XLSX) or link WhatsApp so the twin captures
+ * spending from forwarded bank notifications and receipts. Transactions get
+ * emotional context (HRV, music valence, calendar load, composite stress
+ * score at moment of purchase) plus one honest unlock card stating what
+ * appears once enough spend/biology overlap exists.
+ * Bank aggregators (Pluggy/Plaid/TrueLayer) were removed — no prod budget,
+ * sandbox-only data.
  */
 
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Upload, FileText, AlertCircle, Loader2, Sparkles, RefreshCw, Music } from 'lucide-react';
+import { Upload, FileText, AlertCircle, Loader2, Sparkles, RefreshCw, Music, MessageCircle, Check } from 'lucide-react';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
-import { useFeatureFlag } from '@/hooks/useFeatureFlag';
+import { API_URL, getAccessToken } from '@/services/api/apiBase';
 import {
   uploadStatement,
   listTransactions,
@@ -26,11 +27,7 @@ import {
   type UploadResult,
   type TimelineDay,
 } from '@/services/api/transactionsAPI';
-import { ConnectBankButton } from './components/money/ConnectBankButton';
-import { BankConnectionsList } from './components/money/BankConnectionsList';
 import { StressSpendTimeline } from './components/money/StressSpendTimeline';
-import { BrokerageHoldingsCard } from './components/money/BrokerageHoldingsCard';
-import { BrokerageActivityCard } from './components/money/BrokerageActivityCard';
 import { UnlockProgressCard } from './components/money/UnlockProgressCard';
 
 const CARD_STYLE: React.CSSProperties = {
@@ -52,7 +49,7 @@ const LABEL_STYLE: React.CSSProperties = {
 };
 
 /**
- * Multi-currency aware formatter. Pluggy ships BRL; statement uploads can
+ * Multi-currency aware formatter. BR sources ship BRL; statement uploads can
  * carry EUR/GBP/USD. The summary card path has no single currency — pass
  * `null` to render without a symbol and show a chip alongside.
  */
@@ -381,6 +378,91 @@ function FeedbackToggle({ txId, initial }: { txId: string; initial: boolean | nu
   );
 }
 
+/**
+ * WhatsApp capture CTA (replan-2026-06-12). The capture itself is server-side
+ * (Kapso webhook -> LLM extraction -> user_transactions), so this card only
+ * reflects link status and routes to Settings for the linking flow.
+ */
+function WhatsAppCaptureCard() {
+  const [linked, setLinked] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const token = getAccessToken();
+        const res = await fetch(`${API_URL}/whatsapp-link/status`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        const data = await res.json();
+        if (!cancelled) setLinked(data.success ? !!data.linked : false);
+      } catch {
+        if (!cancelled) setLinked(false); // CTA still renders; linking lives in Settings
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  return (
+    <div
+      className="mb-4 px-5 py-4 flex items-center gap-4 flex-wrap"
+      style={CARD_STYLE}
+      data-testid="whatsapp-capture-card"
+    >
+      <MessageCircle size={20} style={{ color: 'rgba(255,255,255,0.70)', flexShrink: 0 }} />
+      <div className="flex-1 min-w-[220px]">
+        <p
+          style={{
+            fontFamily: "'Geist', 'Inter', sans-serif",
+            fontSize: 14,
+            fontWeight: 500,
+            color: 'var(--text-primary)',
+            marginBottom: 2,
+          }}
+        >
+          Capture spending on WhatsApp
+        </p>
+        <p
+          style={{
+            fontFamily: "'Geist', 'Inter', sans-serif",
+            fontSize: 12,
+            color: 'rgba(255,255,255,0.50)',
+          }}
+        >
+          Forward bank notifications, Pix receipts, or just say "gastei 80 no iFood" — it lands here with emotional context. Or upload a CSV/OFX statement below.
+        </p>
+      </div>
+      {linked ? (
+        <span
+          className="flex items-center gap-1.5 text-xs"
+          style={{
+            color: 'rgba(134,239,172,0.90)',
+            fontFamily: "'Geist', 'Inter', sans-serif",
+          }}
+        >
+          <Check size={14} /> WhatsApp linked
+        </span>
+      ) : (
+        <Link
+          to="/settings"
+          className="px-3 py-2"
+          style={{
+            background: '#F5F5F4',
+            color: '#110f0f',
+            borderRadius: 100,
+            fontFamily: "'Geist', 'Inter', sans-serif",
+            fontSize: 13,
+            fontWeight: 500,
+            whiteSpace: 'nowrap',
+          }}
+        >
+          Link WhatsApp
+        </Link>
+      )}
+    </div>
+  );
+}
+
 function TransactionRow({ tx }: { tx: Transaction }) {
   const isOutflow = tx.amount < 0;
   const ec = tx.emotional_context;
@@ -545,10 +627,6 @@ export default function MoneyPage() {
   const [lastUpload, setLastUpload] = useState<UploadResult | null>(null);
   const [retagging, setRetagging] = useState(false);
 
-  // replan-2026-06-10 Track D: Plaid (US) brokerage surfaces are parked
-  // behind this flag — sandbox-only rail, no real US user can connect yet.
-  const plaidEnabled = useFeatureFlag('money_plaid');
-
   // audit-2026-06-10 (money-page): derive dominance from the backend's
   // per-currency summary breakdown (full window, sorted by outflow desc) so
   // it can never disagree with the summary numbers themselves. The previous
@@ -680,57 +758,20 @@ export default function MoneyPage() {
         Your money has feelings. We translate them.
       </p>
 
-      {/* Connect a BR bank in real time via Pluggy Open Finance. Falls back to
-          CSV/OFX upload below for banks Pluggy doesn't cover or users who
-          prefer the manual flow. */}
-      <div className="mb-4 flex items-center gap-3 flex-wrap">
-        <ConnectBankButton
-          onConnected={() => {
-            // Webhook has already ingested 90d of tx; refresh the view after
-            // a small delay so the background pipeline has time to tag them.
-            window.setTimeout(() => { load(); }, 2500);
-          }}
-        />
-        <span
-          className="text-xs"
-          style={{
-            color: 'rgba(255,255,255,0.45)',
-            fontFamily: "'Geist', 'Inter', sans-serif",
-          }}
-        >
-          or upload a CSV/OFX statement below
-        </span>
-      </div>
+      {/* Magie-style WhatsApp capture: forward bank notifications / receipts
+          to the twin's WhatsApp and they land here as transactions. CSV/OFX
+          upload below stays as the bulk/manual path. */}
+      <WhatsAppCaptureCard />
 
-      <BankConnectionsList onChanged={load} />
-
-      {/* Spending timeline (30d). When the parked Plaid brokerage surface is
-          flag-enabled it returns as the second cell of the old "moat" pair;
-          by default the timeline is a single full-width card. */}
+      {/* Spending timeline (30d), full-width single card. */}
       {timeline.length > 0 && (
-        <div
-          className={plaidEnabled ? 'mb-6 grid grid-cols-1 lg:grid-cols-2 gap-4' : 'mb-6'}
-          data-testid="moat-headline-grid"
-        >
+        <div className="mb-6" data-testid="moat-headline-grid">
           <div style={{ ...CARD_STYLE, padding: '20px 20px 16px' }}>
             <p style={{ ...LABEL_STYLE, marginBottom: 16 }}>Why you spend · 30 days</p>
             <StressSpendTimeline days={timeline} currency={dominantCurrency} />
           </div>
-          {plaidEnabled && (
-            <div>
-              {/* BrokerageActivityCard is self-headered; wrap so it sits in
-                  the same grid cell. The card returns null when empty so the
-                  grid collapses to single-column gracefully. */}
-              <BrokerageActivityCard />
-            </div>
-          )}
         </div>
       )}
-
-      {/* Brokerage holdings — parked behind money_plaid (replan-2026-06-10
-          Track D). The card also self-gates on the flag, so MoneyInsightsPage
-          parks without changes. */}
-      {plaidEnabled && <BrokerageHoldingsCard />}
 
       {/* Upload zone */}
       <div className="mb-6">
