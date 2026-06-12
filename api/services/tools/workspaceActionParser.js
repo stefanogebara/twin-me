@@ -274,18 +274,6 @@ Examples:
   User: "What PRs do I have open?"
   You: [ACTION: github_list_prs]
 
-  User: "What did I sell last month?"
-  You: [ACTION: get_brokerage_activity sinceDays=30 typeFilter="sell"]
-
-  User: "Show me my buys when I was stressed"
-  You: [ACTION: get_brokerage_activity sinceDays=60 typeFilter="buy"]
-
-  User: "Did I trade on low-recovery days?"
-  You: [ACTION: get_brokerage_activity sinceDays=90]
-
-  User: "What's my brokerage activity?"
-  You: [ACTION: get_brokerage_activity sinceDays=30]
-
   User: "What am I paying for monthly?"
   You: [ACTION: get_recurring_subscriptions]
 
@@ -596,36 +584,6 @@ FORMATTING OVERRIDE for this tool — IGNORE the numbered-list / bold-everything
 - Lead with the HEADLINE sentence verbatim.
 - Then 2-3 sentences of prose that call out 1-2 specific subscriptions (most expensive, longest-running, OR ones with notable first-charge emotional context).
 - If first-charge context shows stress/low-recovery/somber-music on multiple signups, name that pattern explicitly.
-- Casual register, no bullet points, no bold, no emojis.`);
-    let block = parts.join('\n');
-    if (block.length > MAX_RESULT_CHARS) block = block.substring(0, MAX_RESULT_CHARS) + '\n... (truncated)';
-    return block;
-  }
-
-  // get_brokerage_activity: narrative-first formatting. The default JSON dump
-  // makes the twin reply with a numbered list (per FOLLOW_UP_FORMATTING_
-  // INSTRUCTIONS), but for the moat surface we want flowing prose like
-  // "you sold AAPL on a 38% recovery day, then bought NFLX two days later
-  // when stress hit 72%". Seed the LLM with a narrative draft so it has
-  // something prose-like to polish instead of structured rows to list.
-  if (result.toolName === 'get_brokerage_activity' && result.data?.events) {
-    const d = result.data;
-    const parts = [`[ACTION RESULT: get_brokerage_activity — SUCCESS (${result.elapsedMs}ms)]`];
-    if (d.synthesis) parts.push(`\nHEADLINE PATTERN (use as the opening line of your reply):\n${d.synthesis}\n`);
-    parts.push(`\nWindow: last ${d.sinceDays} days from ${d.sinceDate}. ${d.count} events found.\n`);
-    parts.push('EVENTS (one line each, in raw form — turn into a SHORT NARRATIVE not a numbered list):');
-    for (const e of d.events) {
-      const ctx = e.emotionalContext ? ` — ${e.emotionalContext}` : '';
-      const amt = new Intl.NumberFormat('en-US', { style: 'currency', currency: e.currency || 'USD', maximumFractionDigits: 0 }).format(Math.abs(e.amountUSD || 0));
-      const verb = e.type === 'sell' ? 'sold' : e.type === 'buy' ? 'bought' : e.type === 'dividend' ? 'collected dividend on' : e.type === 'fee' ? 'paid fee on' : e.type;
-      parts.push(`- ${e.date}: ${verb} ${amt} of ${e.ticker || e.name}${ctx}`);
-    }
-    parts.push(`
-FORMATTING OVERRIDE for this tool — IGNORE the numbered-list / bold-everything rules from the standard follow-up instructions. Instead:
-- Write 2-3 sentences of flowing prose, like a perceptive friend texting.
-- LEAD with the HEADLINE PATTERN sentence verbatim if present.
-- Cite 1-2 specific trades by ticker + date + emotional context, not all of them.
-- If no signals were captured, say so briefly ("no emotional context tagged for these — likely Whoop disconnected").
 - Casual register, no bullet points, no bold, no emojis.`);
     let block = parts.join('\n');
     if (block.length > MAX_RESULT_CHARS) block = block.substring(0, MAX_RESULT_CHARS) + '\n... (truncated)';

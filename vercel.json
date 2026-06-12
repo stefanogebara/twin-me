@@ -67,23 +67,9 @@
   "functions": {
     "api/index.js": {
       "maxDuration": 60
-    },
-    "api/webhook-pluggy.js": {
-      "maxDuration": 60
-    },
-    "api/webhook-plaid.js": {
-      "maxDuration": 60
     }
   },
   "routes": [
-    {
-      "src": "/api/webhooks/pluggy",
-      "dest": "/api/webhook-pluggy.js"
-    },
-    {
-      "src": "/api/webhooks/plaid",
-      "dest": "/api/webhook-plaid.js"
-    },
     {
       "src": "/api/(.*)",
       "dest": "/api/index.js"
@@ -177,18 +163,6 @@
     {
       "path": "/api/cron/action-reflection",
       "schedule": "0 5 * * *"
-    },
-    {
-      "path": "/api/cron/pluggy-sync",
-      "schedule": "0 6 * * *"
-    },
-    {
-      "path": "/api/cron/bank-consent",
-      "schedule": "0 10 * * *"
-    },
-    {
-      "path": "/api/cron/investment-correlation",
-      "schedule": "0 8 * * *"
     },
     {
       "path": "/api/cron/twin-summary-refresh",

@@ -436,15 +436,10 @@ import profileEnrichmentRoutes from './routes/profile-enrichment.js';
 import resumeUploadRoutes from './routes/resume-upload.js';
 import exportsUploadRoutes from './routes/exports-upload.js';
 import transactionsRoutes from './routes/transactions.js';
-import pluggyRoutes from './routes/pluggy.js';
-// pluggyWebhookRoutes extracted to standalone Vercel function at api/webhook-pluggy.js
-// vercel.json routes /api/webhooks/pluggy → that file, bypassing the Express monolith.
-// TrueLayer (EU/UK Open Banking) deleted in replan-2026-06-10 Track D — it was
-// never configured in any deployment (TRUELAYER_CLIENT_ID unset). The
-// truelayer_* columns on user_bank_connections/user_transactions stay in the
-// DB (no migration); git history has the code if EU ever matters.
-import plaidRoutes from './routes/plaid.js';
-// plaid webhook also lives at api/webhook-plaid.js (standalone lambda).
+// Bank aggregators (Pluggy/Plaid/TrueLayer) removed in replan-2026-06-12: no
+// budget for prod aggregator fees and sandbox data is fake. Money feature now
+// feeds from CSV/OFX upload, WhatsApp capture, and notification-listener
+// purchases. DB keeps inert provider columns; git history has the code.
 import claudeSyncRoutes from './routes/claude-sync.js';
 import cronClaudeSyncRoutes from './routes/cron-claude-sync.js';
 import twinsBrainRoutes from './routes/twins-brain.js';
@@ -524,13 +519,6 @@ import cronMorningBriefingEmailRoutes from './routes/cron-morning-briefing-email
 import cronInboxIntelligenceRoutes from './routes/cron-inbox-intelligence.js';
 import cronRelationshipsRoutes from './routes/cron-relationships.js';
 import cronActionReflectionRoutes from './routes/cron-action-reflection.js';
-import cronPluggySyncRoutes from './routes/cron-pluggy-sync.js';
-// cron-plaid-sync.js is PARKED (replan-2026-06-10 Track D): Plaid sits behind
-// the default-off `money_plaid` feature flag, so the daily sync would only
-// burn Vercel invocations on sandbox data. File kept for un-parking — remount
-// here + re-add the vercel.json cron entry when a US launch is real.
-import cronBankConsentRoutes from './routes/cron-bank-consent.js';
-import cronInvestmentCorrelationRoutes from './routes/cron-investment-correlation.js';
 import cronNudgeRetroRoutes from './routes/cron-nudge-retrospective.js';
 import cronTwinSummaryRefreshHandler from './routes/cron-twin-summary-refresh.js';
 import cronCalendarOptimizationRoutes from './routes/cron-calendar-optimization.js';
@@ -703,11 +691,7 @@ app.use('/api/desktop', desktopExtractedFactsRoutes);  // TwinMe Desktop: onboar
 app.use('/api/enrichment', profileEnrichmentRoutes); // Profile enrichment via Perplexity Sonar (enrichment-first onboarding)
 app.use('/api/resume', resumeUploadRoutes); // Resume/CV upload and parsing for enrichment
 app.use('/api/exports', exportsUploadRoutes); // GDPR data-export upload + parse (Discord/LinkedIn/Instagram)
-app.use('/api/transactions/pluggy', pluggyRoutes); // Phase 3.1 — Pluggy Open Finance authed endpoints (mount BEFORE /api/transactions)
-app.use('/api/plaid', plaidRoutes); // Phase 4.1 — Plaid US Open Banking, parked behind default-off `money_plaid` flag (router 503s when off)
-app.use('/api/transactions', transactionsRoutes); // Financial-Emotional Twin — bank statement ingestion + emotional tagging
-// /api/webhooks/pluggy and /api/webhooks/plaid are routed to standalone
-// lambdas (api/webhook-pluggy.js, api/webhook-plaid.js) by vercel.json
+app.use('/api/transactions', transactionsRoutes); // Financial-Emotional Twin — statement upload + WhatsApp/notification capture + emotional tagging
 app.use('/api/imports', importsRoutes); // GDPR / platform data export ingestion
 app.use('/api/claude-sync', claudeSyncRoutes); // Claude Desktop conversation sync
 app.use('/api/cron/claude-sync', cronClaudeSyncRoutes); // Claude Desktop cron sync and AI analysis processing
@@ -771,10 +755,6 @@ app.use('/api/cron/morning-briefing-email', cronMorningBriefingEmailRoutes); // 
 app.use('/api/cron/inbox-intelligence', cronInboxIntelligenceRoutes); // Daily inbox triage (10:05 UTC)
 app.use('/api/cron/relationships', cronRelationshipsRoutes); // Daily unanswered-thread scan (10:10 UTC)
 app.use('/api/cron/action-reflection', cronActionReflectionRoutes); // Daily action reflection (5am UTC)
-app.use('/api/cron/pluggy-sync', cronPluggySyncRoutes); // Daily Pluggy bank sync fallback for missed webhooks (6am UTC)
-// /api/cron/plaid-sync unmounted — Plaid parked behind `money_plaid` flag (see cron-plaid-sync.js import note above)
-app.use('/api/cron/bank-consent', cronBankConsentRoutes); // Daily consent-expiry reminder for bank connections (Pluggy)
-app.use('/api/cron/investment-correlation', cronInvestmentCorrelationRoutes); // Daily moat-pattern detector across users (Phase 4.4)
 app.use('/api/cron/nudge-retrospective', cronNudgeRetroRoutes); // Phase 3.4b — 24h after-nudge effectiveness check
 app.all('/api/cron/twin-summary-refresh', cronTwinSummaryRefreshHandler); // Daily summary pre-warm (6am UTC)
 app.use('/api/cron/calendar-optimization', cronCalendarOptimizationRoutes); // Weekday calendar optimization (8am UTC / 5am São Paulo)

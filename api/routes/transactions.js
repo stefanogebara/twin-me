@@ -16,7 +16,6 @@ import { tagTransactionsBatch } from '../services/transactions/transactionEmotio
 import { syncAllSignals } from '../services/transactions/platformSignalExtractor.js';
 import { normalizeMerchant } from '../services/transactions/merchantNormalizer.js';
 import { detectAndMarkRecurring, isNonSubscriptionRow } from '../services/transactions/recurrenceDetector.js';
-import { getPlaidSandboxState, excludePlaidRows } from '../services/transactions/sandboxGuard.js';
 import { STRESS_HIGH, NUDGE_TRIGGER, DEFAULT_CURRENCY } from '../config/financialThresholds.js';
 import { createLogger } from '../services/logger.js';
 
@@ -345,10 +344,10 @@ router.get('/', authenticateUser, async (req, res) => {
     const accountType = typeof req.query.account_type === 'string' ? req.query.account_type : null;
     const since = typeof req.query.since === 'string' ? req.query.since : null;
 
-    // Note: user_transactions (and user_bank_connections) still carry
-    // truelayer_* columns even though the TrueLayer integration was deleted
-    // (replan-2026-06-10 Track D). Kept deliberately — no migration; they are
-    // simply never written or selected anymore.
+    // Note: user_transactions (and user_bank_connections) still carry inert
+    // pluggy_*/plaid_*/truelayer_* provider columns from the removed bank
+    // aggregators (replan-2026-06-12). Kept deliberately — no migration; they
+    // are simply never written or selected anymore.
     let query = supabaseAdmin
       .from('user_transactions')
       .select(`
@@ -366,10 +365,7 @@ router.get('/', authenticateUser, async (req, res) => {
     if (accountType) query = query.eq('account_type', accountType);
     if (since) query = query.gte('transaction_date', since);
 
-    // replan-2026-06-10 Track D P0: never render Plaid sandbox rows as real
     // money in production runtimes.
-    const sandbox = await getPlaidSandboxState(userId);
-    if (sandbox.excludePlaidTransactions) query = excludePlaidRows(query);
 
     const { data, error } = await query;
     if (error) throw error;
@@ -412,10 +408,6 @@ router.get('/summary', authenticateUser, async (req, res) => {
       `)
       .eq('user_id', userId)
       .gte('transaction_date', since);
-
-    // replan-2026-06-10 Track D P0: sandbox rows must not inflate the totals.
-    const sandbox = await getPlaidSandboxState(userId);
-    if (sandbox.excludePlaidTransactions) summaryQuery = excludePlaidRows(summaryQuery);
 
     const { data, error } = await summaryQuery;
 
@@ -597,10 +589,6 @@ router.get('/by-category', authenticateUser, async (req, res) => {
       .eq('user_id', userId)
       .lt('amount', 0) // outflows only
       .gte('transaction_date', since);
-
-    // replan-2026-06-10 Track D P0: keep sandbox rows out of the breakdown.
-    const sandbox = await getPlaidSandboxState(userId);
-    if (sandbox.excludePlaidTransactions) categoryQuery = excludePlaidRows(categoryQuery);
 
     const { data, error } = await categoryQuery;
 
@@ -1070,10 +1058,6 @@ router.get('/timeline-analysis', authenticateUser, async (req, res) => {
       .lt('amount', 0)
       .gte('transaction_date', since);
 
-    // replan-2026-06-10 Track D P0: sandbox rows must not draw the chart.
-    const sandbox = await getPlaidSandboxState(userId);
-    if (sandbox.excludePlaidTransactions) timelineQuery = excludePlaidRows(timelineQuery);
-
     const { data: rows, error } = await timelineQuery;
 
     if (error) throw error;
@@ -1147,11 +1131,6 @@ router.get('/recurring-subscriptions', authenticateUser, async (req, res) => {
       .neq('account_type', 'investment')   // brokerage trades own a different surface
       .order('transaction_date', { ascending: false })
       .limit(2000);
-
-    // replan-2026-06-10 Track D P0: sandbox "subscriptions" (Tectra Inc et al)
-    // must not show up as real recurring charges.
-    const sandbox = await getPlaidSandboxState(userId);
-    if (sandbox.excludePlaidTransactions) subsQuery = excludePlaidRows(subsQuery);
 
     const { data: rows, error } = await subsQuery;
 
