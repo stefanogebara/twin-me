@@ -11,37 +11,13 @@ import { buildPurchaseContext } from '../services/purchaseContextBuilder.js';
 import { generatePurchaseReflection } from '../services/purchaseReflection.js';
 import { sendWhatsAppMessage } from '../services/whatsappService.js';
 import { supabaseAdmin } from '../services/database.js';
+// Cooldown state shared with the WhatsApp capture path (one reflection budget
+// across both sources — replan-2026-06-12). See api/services/purchaseCooldown.js.
+import { loadPurchaseCooldown, savePurchaseCooldown, COOLDOWN_MS, MAX_DAILY } from '../services/purchaseCooldown.js';
 import { createLogger } from '../services/logger.js';
 
 const router = Router();
 const log = createLogger('PurchaseNotification');
-
-const COOLDOWN_MS = 5 * 60 * 1000;
-const MAX_DAILY = 2;
-
-// Persistent state via Supabase — survives Vercel cold starts / multi-instance
-async function loadState(userId) {
-  const { data } = await supabaseAdmin
-    .from('user_platform_data')
-    .select('raw_data, extracted_at')
-    .eq('user_id', userId)
-    .eq('platform', '_internal')
-    .eq('data_type', 'purchase_cooldown')
-    .maybeSingle();
-  return data?.raw_data ?? { last_sent_at: null, day_date: null, daily_count: 0 };
-}
-
-async function saveState(userId, state) {
-  await supabaseAdmin
-    .from('user_platform_data')
-    .upsert({
-      user_id: userId,
-      platform: '_internal',
-      data_type: 'purchase_cooldown',
-      raw_data: state,
-      extracted_at: new Date().toISOString(),
-    }, { onConflict: 'user_id,platform,data_type' });
-}
 
 // Minimum amount in BRL to trigger on a routine weekday (9am–10pm)
 const ROUTINE_MIN_AMOUNT = 80;
@@ -108,7 +84,7 @@ router.post('/trigger', authenticateUser, async (req, res) => {
 
   try {
     // Load persistent state first (cooldown + daily cap)
-    const state = await loadState(userId);
+    const state = await loadPurchaseCooldown(userId);
 
     // 5-min cooldown check (persistent)
     if (state.last_sent_at && Date.now() - new Date(state.last_sent_at).getTime() < COOLDOWN_MS) {
@@ -148,7 +124,7 @@ router.post('/trigger', authenticateUser, async (req, res) => {
     }
 
     // Persist new state before sending (prevents duplicate on retry)
-    await saveState(userId, {
+    await savePurchaseCooldown(userId, {
       last_sent_at: new Date().toISOString(),
       day_date: today,
       daily_count: todayCount + 1,

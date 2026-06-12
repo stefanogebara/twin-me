@@ -29,6 +29,8 @@ import { normalizeMerchant } from './merchantNormalizer.js';
 import { detectAndMarkRecurring } from './recurrenceDetector.js';
 import { tagTransactionsBatch } from './transactionEmotionTagger.js';
 import { downloadWhatsAppMedia } from '../whatsappService.js';
+import { getFeatureFlags } from '../featureFlagsService.js';
+import { checkPurchaseCooldown, bumpPurchaseCooldown } from '../purchaseCooldown.js';
 import { createLogger } from '../logger.js';
 
 const log = createLogger('WhatsAppTxCapture');
@@ -457,4 +459,112 @@ function logCaptureOutcome(outcome, sourceText) {
     ? crypto.createHash('sha256').update(String(sourceText)).digest('hex').slice(0, 32)
     : null;
   log.info('capture outcome', { outcome, text_hash: hash });
+}
+
+// ── Webhook orchestrator ─────────────────────────────────────────────────────
+/**
+ * Single entry point for the WhatsApp webhooks. Decides whether the inbound
+ * message is a transaction-capture candidate and, if so, runs the full
+ * pipeline and returns the reply to send. Non-candidates return
+ * { handled: false } so the webhook's existing purchase-intent -> twin-chat
+ * fallthrough is untouched.
+ *
+ * Runs AFTER signature verification + dedup + rate limit + user lookup —
+ * only linked, verified users ever reach an LLM call from here.
+ *
+ * @param {string} userId
+ * @param {object} parsed — webhook-parsed message: { messageType: 'text'|'image',
+ *   text?, mediaId?, mimeType?, caption? }
+ * @param {object} [opts] — { timezone }
+ * @returns {{ handled: boolean, reply?: string, stored?: boolean }}
+ */
+export async function tryCaptureTransaction(userId, parsed, opts = {}) {
+  try {
+    const isImage = parsed?.messageType === 'image';
+
+    // Cheap gates first (Vercel early-return discipline): classifier before
+    // flag lookup for text; flag before quota; quota before download/LLM.
+    let kind = null;
+    if (!isImage) {
+      const cls = classifyTransactionText(parsed?.text);
+      if (!cls.isCandidate) return { handled: false };
+      kind = cls.kind;
+    }
+
+    const flags = await getFeatureFlags(userId);
+    if (flags.whatsapp_tx_capture === false) return { handled: false }; // default ON
+
+    const quota = await checkAndBumpCaptureQuota(userId, isImage ? 'image' : 'text');
+    if (!quota.allowed) {
+      // Text over-quota falls through to twin chat (still rate-limited there);
+      // images have no fallthrough value — reply with a polite static limit.
+      if (isImage) {
+        return { handled: true, reply: 'Limite diário de comprovantes por imagem atingido — me manda em texto que eu anoto.', stored: false };
+      }
+      return { handled: false };
+    }
+
+    const extraction = isImage
+      ? await extractTransactionFromImage(userId, {
+          mediaId: parsed.mediaId,
+          mimeType: parsed.mimeType,
+          caption: parsed.caption,
+          timezone: opts.timezone,
+        })
+      : await extractTransactionFromText(userId, parsed.text, { timezone: opts.timezone });
+
+    if (!extraction.ok) {
+      if (extraction.clarifyingQuestion) {
+        return { handled: true, reply: extraction.clarifyingQuestion, stored: false };
+      }
+      // Confident "not a transaction" (or unusable image) — let the message
+      // flow to twin chat for text; for images, acknowledge inability.
+      if (isImage) {
+        return { handled: true, reply: 'Não consegui ler essa imagem como um comprovante. Se foi uma compra, me conta em texto que eu anoto.', stored: false };
+      }
+      return { handled: false };
+    }
+
+    const result = await storeWhatsAppTransaction(userId, extraction.tx);
+    if (!result.txRow) {
+      return { handled: true, reply: 'Tive um problema pra anotar essa agora. Tenta de novo daqui a pouco?', stored: false };
+    }
+
+    const weeklyCount = result.stored
+      ? await countMerchantThisWeek(userId, result.txRow.merchant_normalized).catch(() => 0)
+      : 0;
+    let reply = buildConfirmationMessage(result.txRow, { weeklyCount, duplicate: result.duplicate });
+
+    // Behavioral reflection piggyback — shares the purchase_cooldown budget
+    // with the mobile notification path so total reflection volume stays
+    // bounded (5 min cooldown, 2/day) regardless of capture source.
+    if (result.stored && result.txRow.amount < 0) {
+      const refl = await maybeAppendReflection(userId, extraction.tx, opts).catch(() => null);
+      if (refl) reply += `\n\n${refl}`;
+    }
+
+    return { handled: true, reply, stored: result.stored };
+  } catch (err) {
+    log.error('tryCaptureTransaction crashed — falling through to twin chat', { userId, error: err.message });
+    return { handled: false };
+  }
+}
+
+async function maybeAppendReflection(userId, tx, opts = {}) {
+  if (process.env.PURCHASE_BOT_ENABLED !== 'true') return null;
+  if (opts.purchaseBotEnabledForUser === false) return null;
+
+  const gate = await checkPurchaseCooldown(userId);
+  if (!gate.allowed) return null;
+
+  // Lazy imports: the reflection stack is only loaded when the gates pass.
+  const { buildPurchaseContext } = await import('../purchaseContextBuilder.js');
+  const { generatePurchaseReflection } = await import('../purchaseReflection.js');
+
+  const ctx = await buildPurchaseContext(userId, opts.timezone ? { timezone: opts.timezone } : undefined);
+  const summary = `Acabei de gastar ${tx.currency} ${Math.abs(tx.amount).toFixed(2)} em ${tx.merchant}`;
+  const refl = await generatePurchaseReflection(ctx, summary);
+
+  await bumpPurchaseCooldown(userId, { today: gate.today, todayCount: gate.todayCount });
+  return refl.text || null;
 }

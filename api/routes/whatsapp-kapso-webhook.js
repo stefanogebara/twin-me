@@ -30,6 +30,7 @@ import { addConversationMemory } from '../services/memoryStreamService.js';
 import { createLogger } from '../services/logger.js';
 import { buildPurchaseContext } from '../services/purchaseContextBuilder.js';
 import { generatePurchaseReflection } from '../services/purchaseReflection.js';
+import { tryCaptureTransaction } from '../services/transactions/whatsappTransactionCapture.js';
 
 const log = createLogger('WhatsAppKapsoWebhook');
 const router = express.Router();
@@ -173,6 +174,29 @@ function parseIncomingMessage(body) {
       text: msg.text?.body,
       messageId: msg.id,
       contactName: msg.username || null,
+      messageType: 'text',
+      format: 'kapso_v2',
+    };
+  }
+
+  // Kapso v2 image message (receipt screenshots for transaction capture,
+  // replan-2026-06-12). Shape inferred from the Kapso SDK's Meta-compatible
+  // payloads: { message: { id, from, type: 'image', image: { id, mime_type,
+  // sha256, caption? }, kapso?: { media_url? } } }. Parse defensively and
+  // verify against a real forwarded image in prod logs before trusting
+  // (see plan binary-humming-meadow, risk 3).
+  if (body?.message?.type === 'image' && body?.message?.from) {
+    const msg = body.message;
+    return {
+      phone: msg.from,
+      text: msg.image?.caption || '',
+      caption: msg.image?.caption || '',
+      mediaId: msg.image?.id || null,
+      mimeType: msg.image?.mime_type || null,
+      kapsoMediaUrl: msg.kapso?.media_url || null,
+      messageId: msg.id,
+      contactName: msg.username || null,
+      messageType: 'image',
       format: 'kapso_v2',
     };
   }
@@ -280,14 +304,17 @@ router.post('/webhook', async (req, res) => {
   // idempotency check above catches duplicates so the user only gets
   // one reply.
   try {
-    // 4. Parse message (supports Kapso + Meta native fallback)
+    // 4. Parse message (supports Kapso + Meta native fallback). Images are
+    // allowed through when they carry a media id (transaction capture);
+    // everything else non-text still drops silently.
     const parsed = parseIncomingMessage(req.body);
-    if (!parsed || !parsed.phone || !parsed.text) {
+    const isCapturableImage = parsed?.messageType === 'image' && parsed?.mediaId;
+    if (!parsed || !parsed.phone || (!parsed.text && !isCapturableImage)) {
       log.info('Non-text or unparseable message, skipping', {
         event: req.body?.event,
         format: parsed?.format,
       });
-      return;
+      return res.sendStatus(200); // respond — a bare return leaves Kapso hanging until delivery timeout
     }
 
     const { phone, text, messageId, contactName, format } = parsed;
@@ -297,7 +324,7 @@ router.post('/webhook', async (req, res) => {
     if (isRateLimited(phone)) {
       log.warn('Rate limited', { phone: phone.slice(-4) });
       await sendWhatsAppMessage(phone, 'You\'re sending messages too fast. Please wait a moment.');
-      return;
+      return res.sendStatus(200);
     }
 
     // 6. Look up user by phone number in messaging_channels. Both forms
@@ -327,19 +354,36 @@ router.post('/webhook', async (req, res) => {
         '4. Enter your phone number\n\n' +
         'Once linked, you can chat with your digital twin right here!'
       );
-      return;
+      return res.sendStatus(200);
     }
 
     const userId = channel.user_id;
     const userPrefs = channel.preferences || {};
     const purchaseBotEnabledForUser = userPrefs.purchase_bot_enabled !== false;
 
+    // 7pre. Transaction capture (replan-2026-06-12) — forwarded bank/Pix
+    // notifications, "gastei 80 no ifood" statements, and receipt images
+    // become user_transactions rows. Runs BEFORE purchase-intent because the
+    // two are disjoint by construction (capture = past tense / receipts;
+    // intent = future tense) and capture handles images intent can't.
+    // Non-candidates return { handled: false } and fall through untouched.
+    const capture = await tryCaptureTransaction(userId, parsed, {
+      purchaseBotEnabledForUser,
+    });
+
     // 7a. Pre-purchase intent — fires BEFORE the generic twin chat pipeline.
     // Same gates as the direct-Meta webhook: env kill switch + per-user
     // opt-out + try/catch with fallback string. The Kapso route already has
     // its own per-phone rate limit (line 56), so we don't double-gate.
     let response;
-    if (matchesPurchaseIntent(text)) {
+    if (capture.handled) {
+      response = capture.reply;
+    } else if (parsed.messageType === 'image') {
+      // Image that capture declined (flag off / no fallthrough value) — keep
+      // the historical silent-skip behavior for non-text content.
+      log.info('Image message not captured, skipping', { userId });
+      return res.sendStatus(200);
+    } else if (matchesPurchaseIntent(text)) {
       if (process.env.PURCHASE_BOT_ENABLED !== 'true') {
         log.info('Purchase intent detected but bot disabled (env)', { userId });
         logPurchaseReflection(userId, 'kill_switch', text);
