@@ -56,27 +56,8 @@ async function measureOverflow(page: Page) {
   });
 }
 
-test('mobile /meetings — no horizontal overflow, cards fit', async ({ page }) => {
-  await injectAuth(page);
-  await page.goto(`${PROD}/meetings`, { waitUntil: 'domcontentloaded' });
-  await page.getByRole('heading', { name: 'Meetings', level: 1 }).waitFor({ timeout: 30_000 });
-  await page.waitForTimeout(2500);
-
-  const m = await measureOverflow(page);
-  console.log('\n=== /meetings mobile ===');
-  console.log('viewport scrollW=' + m.overflow.scrollW + ' clientW=' + m.overflow.clientW);
-  console.log('overflow px:', m.overflow.overflowPx);
-  if (m.offscreen.length) {
-    console.log('offscreen elements:');
-    m.offscreen.forEach((e) => console.log('  ' + e.tag + '.' + e.cls + ' right=' + e.right + ' w=' + e.width + ' "' + e.text + '"'));
-  } else {
-    console.log('no offscreen elements');
-  }
-
-  await page.screenshot({ path: 'prod-mobile-meetings.png', fullPage: true });
-
-  expect(m.overflow.overflowPx, '/meetings no horizontal overflow').toBeLessThanOrEqual(2);
-});
+// One-interface (2026-06-12): /meetings page removed — prep lives in the twin
+// thread + NextMeetingCard on Home; the mobile-overflow check for it went with it.
 
 test('mobile /pricing — no horizontal overflow, plan cards fit', async ({ page }) => {
   await injectAuth(page);
