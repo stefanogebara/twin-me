@@ -21,6 +21,7 @@ export const EXTENDED_TOOL_NAMES = [
   'meeting_prep',
   'get_meeting_prep',
   'get_recurring_subscriptions',
+  'simulate_future',
 ];
 
 export function registerExtendedTools() {
@@ -423,6 +424,45 @@ export function registerExtendedTools() {
         synthesis,
         subscriptions: top,
       };
+    },
+  });
+
+  // ========================================================================
+  // FUTURE SIMULATION — Doctor Strange mode (MiroFish-lite, Level 1)
+  // ========================================================================
+  // "What should my next month look like?" / "simulate my future" — runs N
+  // parallel twin variations over the memory stream and reports the consensus.
+  registerTool({
+    name: 'simulate_future',
+    platform: null,
+    description:
+      'Simulate the user\'s near future: run several independent variations of their next month ' +
+      'grounded in their real behavioral patterns, then report the consensus recommendation. ' +
+      'Use when the user asks what they should do next, what their month could look like, ' +
+      'or to "simulate/predict my future".',
+    category: 'insight',
+    parameters: {
+      type: 'object',
+      properties: {
+        horizonDays: { type: 'number', description: 'Days to simulate ahead (default 30, max 90)' },
+      },
+      required: [],
+    },
+    requiresConnection: false,
+    minAutonomyLevel: 1,
+    skillName: 'future_simulation',
+    executor: async (userId, params) => {
+      const { simulateFutures } = await import('../futureSimulationService.js');
+      const result = await simulateFutures(userId, {
+        horizonDays: Math.min(Math.max(params?.horizonDays || 30, 7), 90),
+      });
+      if (!result) {
+        return {
+          success: false,
+          error: 'Not enough memory data yet to simulate honestly — connect more platforms or keep chatting.',
+        };
+      }
+      return { success: true, runs: result.runs, consensus: result.insight };
     },
   });
 

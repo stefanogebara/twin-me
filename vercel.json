@@ -169,6 +169,10 @@
       "schedule": "0 12 1 * *"
     },
     {
+      "path": "/api/cron/future-simulation",
+      "schedule": "0 18 * * 0"
+    },
+    {
       "path": "/api/cron/twin-summary-refresh",
       "schedule": "0 6 * * *"
     },
