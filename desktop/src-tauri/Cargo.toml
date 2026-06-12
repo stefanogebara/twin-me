@@ -84,6 +84,12 @@ windows = { version = "0.58", features = [
     "Win32_UI_WindowsAndMessaging",
     "Win32_System_Threading",
 ] }
+# Phase 5B.3: system-audio loopback (capture what the speakers play, i.e. the
+# OTHER side of a call). Safe wrapper over WASAPI; loopback mode = open the
+# default RENDER device and initialize with Direction::Capture (shared mode).
+# wasapi 0.23 depends on windows 0.62 — a different semver major than our 0.58
+# above, so Cargo compiles both side by side; no types cross between them.
+wasapi = "0.23"
 
 [target.'cfg(target_os = "linux")'.dependencies]
 # Phase 4: active-window detection on X11. We query the root window's

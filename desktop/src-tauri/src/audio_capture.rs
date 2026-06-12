@@ -332,6 +332,277 @@ fn resample_linear(input: &[f32], src_rate: u32, dst_rate: u32) -> Vec<f32> {
     out
 }
 
+/// Capture the SYSTEM'S OUTPUT (what the speakers/headphones are playing — the
+/// other side of a meeting) until `stop` is set or `max_secs` elapses, returned
+/// as 16kHz mono f32 like the mic path (Phase 5B.3).
+///
+/// Windows: WASAPI loopback. Loopback mode has no explicit flag in the wasapi
+/// crate — it's inferred from opening the default RENDER device and then
+/// initializing the client with `Direction::Capture` in shared mode (the crate
+/// maps that mismatch to AUDCLNT_STREAMFLAGS_LOOPBACK; exclusive+loopback is a
+/// hard error upstream). We request f32 stereo 44.1kHz with `autoconvert: true`
+/// (engine-side conversion), downmix to mono, then reuse `resample_linear` —
+/// the same proven tail as the mic path.
+///
+/// Key loopback gotcha: the capture event only fires while the engine is
+/// rendering. With nothing playing there are no events at all, so an event
+/// timeout means "silence right now", NOT an error — we keep polling the stop
+/// flag instead of breaking (unlike the upstream record example, which is a
+/// fixed-duration recorder and treats timeout as fatal).
+#[cfg(target_os = "windows")]
+pub fn record_system_until_stopped(stop: &AtomicBool, max_secs: u32) -> Result<Vec<f32>, String> {
+    use std::collections::VecDeque;
+    use wasapi::{initialize_mta, DeviceEnumerator, Direction, SampleType, StreamMode, WaveFormat};
+
+    // Per-thread COM init (MTA). Belt-and-suspenders: joining an existing
+    // process MTA is fine; if this thread were somehow STA the device
+    // enumerator below would fail loudly with a real error.
+    let _ = initialize_mta();
+
+    let enumerator =
+        DeviceEnumerator::new().map_err(|e| format!("loopback: device enumerator: {e}"))?;
+    let device = enumerator
+        .get_default_device(&Direction::Render)
+        .map_err(|e| format!("loopback: no default render device: {e}"))?;
+    let mut audio_client = device
+        .get_iaudioclient()
+        .map_err(|e| format!("loopback: get_iaudioclient: {e}"))?;
+
+    // Same conservative format as the crate's record example: f32 stereo
+    // 44.1kHz with autoconvert, so the engine hands us exactly this regardless
+    // of the device's mix format.
+    const SRC_RATE: usize = 44_100;
+    const CHANNELS: usize = 2;
+    let desired_format = WaveFormat::new(32, 32, &SampleType::Float, SRC_RATE, CHANNELS, None);
+    let blockalign = desired_format.get_blockalign() as usize; // bytes per frame (8: 2ch x f32)
+
+    let (_def_time, min_time) = audio_client
+        .get_device_period()
+        .map_err(|e| format!("loopback: get_device_period: {e}"))?;
+    let mode = StreamMode::EventsShared {
+        autoconvert: true,
+        buffer_duration_hns: min_time,
+    };
+    audio_client
+        .initialize_client(&desired_format, &Direction::Capture, &mode)
+        .map_err(|e| format!("loopback: initialize_client: {e}"))?;
+    let h_event = audio_client
+        .set_get_eventhandle()
+        .map_err(|e| format!("loopback: set_get_eventhandle: {e}"))?;
+    let capture_client = audio_client
+        .get_audiocaptureclient()
+        .map_err(|e| format!("loopback: get_audiocaptureclient: {e}"))?;
+    audio_client
+        .start_stream()
+        .map_err(|e| format!("loopback: start_stream: {e}"))?;
+
+    let mut byte_queue: VecDeque<u8> = VecDeque::new();
+    let mut mono: Vec<f32> = Vec::new();
+    let started = std::time::Instant::now();
+    let max = Duration::from_secs(max_secs as u64);
+
+    while !stop.load(Ordering::Relaxed) && started.elapsed() < max {
+        // Drain all pending packets FIRST, then wait — the upstream examples'
+        // proven loop order.
+        if let Err(e) = capture_client.read_from_device_to_deque(&mut byte_queue) {
+            eprintln!("[audio_capture] loopback read error (continuing): {e}");
+        }
+        // Decode whole frames: blockalign bytes = CHANNELS interleaved LE f32s.
+        while byte_queue.len() >= blockalign {
+            let mut sum = 0.0f32;
+            for _ in 0..CHANNELS {
+                let mut b = [0u8; 4];
+                for byte in b.iter_mut() {
+                    // Queue length was checked against blockalign above.
+                    *byte = byte_queue.pop_front().unwrap_or(0);
+                }
+                sum += f32::from_le_bytes(b);
+            }
+            mono.push(sum / CHANNELS as f32);
+        }
+        // 500ms timeout keeps stop latency low through silent stretches.
+        let _ = h_event.wait_for_event(500);
+    }
+    let _ = audio_client.stop_stream();
+
+    // Empty is legitimate here (nothing played the whole meeting) — the mixed
+    // recorder treats it as "mic only", unlike the mic path where empty means
+    // a broken/unpermitted microphone.
+    Ok(resample_linear(&mono, SRC_RATE as u32, TARGET_SAMPLE_RATE))
+}
+
+/// Linux: PulseAudio/PipeWire expose every output's monitor as a normal input
+/// device ("Monitor of ..."), so system audio is just a cpal capture of that
+/// device. If no monitor source is visible (bare ALSA without Pulse/PipeWire),
+/// we return Err and the mixed recorder degrades to mic-only.
+#[cfg(target_os = "linux")]
+pub fn record_system_until_stopped(stop: &AtomicBool, max_secs: u32) -> Result<Vec<f32>, String> {
+    let host = cpal::default_host();
+    let monitor = host
+        .input_devices()
+        .map_err(|e| format!("loopback: enumerate input devices: {e}"))?
+        .find(|d| {
+            d.name()
+                .map(|n| n.to_lowercase().contains("monitor"))
+                .unwrap_or(false)
+        })
+        .ok_or_else(|| "loopback: no monitor (system-audio) input device found".to_string())?;
+    record_cpal_device_until_stopped(&monitor, stop, max_secs)
+}
+
+/// macOS system audio needs ScreenCaptureKit bindings — its own follow-up
+/// unit. Until then the mixed recorder degrades to mic-only on Mac.
+#[cfg(target_os = "macos")]
+pub fn record_system_until_stopped(_stop: &AtomicBool, _max_secs: u32) -> Result<Vec<f32>, String> {
+    Err("loopback: system-audio capture not yet supported on macOS (ScreenCaptureKit follow-up)".to_string())
+}
+
+/// cpal capture of a SPECIFIC input device until stopped — the Linux monitor
+/// path. Same body shape as `record_until_stopped`, which deliberately stays
+/// untouched (proven, hardware-only-testable code; see its doc comment) — this
+/// variant only differs in taking the device instead of using the default.
+#[cfg(target_os = "linux")]
+fn record_cpal_device_until_stopped(
+    device: &cpal::Device,
+    stop: &AtomicBool,
+    max_secs: u32,
+) -> Result<Vec<f32>, String> {
+    let supported = device
+        .default_input_config()
+        .map_err(|e| format!("failed to get input config: {e}"))?;
+    let sample_format = supported.sample_format();
+    let channels = supported.channels().max(1) as usize;
+    let src_rate = supported.sample_rate().0;
+    let config: cpal::StreamConfig = supported.into();
+
+    let captured: Arc<Mutex<Vec<f32>>> = Arc::new(Mutex::new(Vec::new()));
+    let err_fn = |err: cpal::StreamError| {
+        eprintln!("[audio_capture] stream error: {err}");
+    };
+
+    let stream = match sample_format {
+        SampleFormat::F32 => {
+            let buf = Arc::clone(&captured);
+            device.build_input_stream(
+                &config,
+                move |data: &[f32], _: &cpal::InputCallbackInfo| {
+                    if let Ok(mut out) = buf.lock() {
+                        for frame in data.chunks(channels) {
+                            let sum: f32 = frame.iter().copied().sum();
+                            out.push(sum / channels as f32);
+                        }
+                    }
+                },
+                err_fn,
+                None,
+            )
+        }
+        SampleFormat::I16 => {
+            let buf = Arc::clone(&captured);
+            device.build_input_stream(
+                &config,
+                move |data: &[i16], _: &cpal::InputCallbackInfo| {
+                    if let Ok(mut out) = buf.lock() {
+                        for frame in data.chunks(channels) {
+                            let sum: f32 = frame.iter().map(|&s| s as f32 / 32_768.0).sum();
+                            out.push(sum / channels as f32);
+                        }
+                    }
+                },
+                err_fn,
+                None,
+            )
+        }
+        SampleFormat::U16 => {
+            let buf = Arc::clone(&captured);
+            device.build_input_stream(
+                &config,
+                move |data: &[u16], _: &cpal::InputCallbackInfo| {
+                    if let Ok(mut out) = buf.lock() {
+                        for frame in data.chunks(channels) {
+                            let sum: f32 = frame
+                                .iter()
+                                .map(|&s| (s as f32 - 32_768.0) / 32_768.0)
+                                .sum();
+                            out.push(sum / channels as f32);
+                        }
+                    }
+                },
+                err_fn,
+                None,
+            )
+        }
+        other => return Err(format!("unsupported sample format: {other:?}")),
+    }
+    .map_err(|e| format!("failed to build input stream: {e}"))?;
+
+    stream
+        .play()
+        .map_err(|e| format!("failed to start input stream: {e}"))?;
+
+    let max_ticks = (max_secs as u64).saturating_mul(5);
+    let mut ticks: u64 = 0;
+    while !stop.load(Ordering::Relaxed) && ticks < max_ticks {
+        std::thread::sleep(Duration::from_millis(200));
+        ticks += 1;
+    }
+    drop(stream);
+
+    let mono = {
+        let guard = captured
+            .lock()
+            .map_err(|_| "capture buffer lock poisoned".to_string())?;
+        guard.clone()
+    };
+    Ok(resample_linear(&mono, src_rate, TARGET_SAMPLE_RATE))
+}
+
+/// Record mic AND system audio simultaneously until `stop` is set, returning
+/// one mixed 16kHz mono track (Phases 5B.3 + 5B.4). The system stream runs on
+/// its own thread (each capture owns a `!Send` audio handle); the mic runs on
+/// the calling (blocking) thread — same threading contract as
+/// `record_until_stopped`.
+///
+/// Degradation ladder — a missing loopback device must never cost the meeting:
+///   mic ok + system audio    -> mixed
+///   mic ok + system empty/err-> mic only (full gain, not halved)
+///   mic err + system audio   -> system only (the other side is still notes)
+///   both fail                -> the mic error
+pub fn record_until_stopped_mixed(stop: Arc<AtomicBool>, max_secs: u32) -> Result<Vec<f32>, String> {
+    let sys_stop = Arc::clone(&stop);
+    let sys_handle = std::thread::Builder::new()
+        .name("twinme-system-audio".to_string())
+        .spawn(move || record_system_until_stopped(&sys_stop, max_secs))
+        .map_err(|e| format!("failed to spawn system-audio thread: {e}"))?;
+
+    let mic = record_until_stopped(&stop, max_secs);
+
+    // Join AFTER mic capture finishes — both watch the same stop flag, so this
+    // does not extend the recording window; it only collects the result.
+    let system = match sys_handle.join() {
+        Ok(Ok(samples)) => samples,
+        Ok(Err(e)) => {
+            eprintln!("[audio_capture] system loopback unavailable ({e}); continuing with mic only");
+            Vec::new()
+        }
+        Err(_) => {
+            eprintln!("[audio_capture] system-audio thread panicked; continuing with mic only");
+            Vec::new()
+        }
+    };
+
+    match (mic, system) {
+        (Ok(m), s) if s.is_empty() => Ok(m),
+        (Ok(m), s) if m.is_empty() => Ok(s),
+        (Ok(m), s) => Ok(mix_streams(&m, &s)),
+        (Err(mic_err), s) if !s.is_empty() => {
+            eprintln!("[audio_capture] mic capture failed ({mic_err}); using system audio only");
+            Ok(s)
+        }
+        (Err(mic_err), _) => Err(mic_err),
+    }
+}
+
 /// Mix two mono f32 streams — already resampled to the same 16kHz rate — into a
 /// single mono track (Phase 5B.4). The mic and system-loopback streams run on
 /// independent clocks and either may be shorter (or silent, when nothing is
@@ -341,7 +612,6 @@ fn resample_linear(input: &[f32], src_rate: u32, dst_rate: u32) -> Vec<f32> {
 /// speakers, then soft-clamped to [-1.0, 1.0] — the same range `write_wav_16k_mono`
 /// and `transcribe_samples` expect. Pure and hardware-free, so it's unit-tested
 /// directly (the cpal/WASAPI capture paths are exercised on real hardware).
-#[allow(dead_code)] // wired into record_until_stopped_mixed in the loopback unit
 pub fn mix_streams(a: &[f32], b: &[f32]) -> Vec<f32> {
     let n = a.len().max(b.len());
     let mut out = Vec::with_capacity(n);

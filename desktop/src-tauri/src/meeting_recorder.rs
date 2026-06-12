@@ -54,13 +54,15 @@ pub fn start(app: AppHandle, meeting_id: i64, platform: String, stop: Arc<Atomic
         crate::notify(
             &app,
             "TwinMe is transcribing this meeting",
-            &format!("Recording the {platform} call for your notes. Audio stays on your device — only the text transcript syncs. Turn this off from the tray."),
+            &format!("Recording the {platform} call — your mic and the call audio — for your notes. Audio stays on your device — only the text transcript syncs. Turn this off from the tray."),
         );
 
         // Capture-until-stop + transcribe on a blocking thread (cpal Stream is
-        // !Send, whisper is blocking). Returns (ended_at, transcript).
+        // !Send, whisper is blocking). Mixed capture = mic + system loopback
+        // (both sides of the call); degrades to mic-only where loopback is
+        // unavailable (e.g. macOS for now). Returns (ended_at, transcript).
         let result = tauri::async_runtime::spawn_blocking(move || {
-            let samples = crate::audio_capture::record_until_stopped(&stop, MAX_RECORD_SECS)?;
+            let samples = crate::audio_capture::record_until_stopped_mixed(stop, MAX_RECORD_SECS)?;
             // Stamp the end time at the moment capture stops — NOT when the
             // (minutes-long) transcription finishes — so the meeting's duration
             // reflects the real session, not the processing time.
