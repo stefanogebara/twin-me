@@ -63,6 +63,29 @@ async function getKapsoClient() {
 }
 
 /**
+ * Download inbound media (receipt images) by Kapso media ID.
+ * Used by WhatsApp transaction capture (replan-2026-06-12). Kapso resolves
+ * the short-lived Meta media URL server-side; we get bytes back.
+ * No Meta fallback — Kapso is the only prod inbound path.
+ *
+ * @returns {{ ok: true, buffer: Buffer } | { ok: false, error: string }}
+ */
+export async function downloadWhatsAppMedia(mediaId) {
+  try {
+    const client = await getKapsoClient();
+    const phoneNumberId = process.env.KAPSO_PHONE_NUMBER_ID || process.env.TWINME_WHATSAPP_PHONE_NUMBER_ID;
+    if (!client?.media?.download || !phoneNumberId) {
+      return { ok: false, error: 'kapso_client_unavailable' };
+    }
+    const arrayBuffer = await client.media.download({ mediaId, phoneNumberId });
+    return { ok: true, buffer: Buffer.from(arrayBuffer) };
+  } catch (err) {
+    log.warn('WhatsApp media download failed', { mediaId, error: err.message });
+    return { ok: false, error: err.message };
+  }
+}
+
+/**
  * Send a text message via WhatsApp (Kapso or Meta Cloud API fallback).
  *
  * SAFETY: When TWINME_DISABLE_OUTBOUND_SEND=true, returns a no-op success.
