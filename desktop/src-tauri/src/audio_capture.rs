@@ -332,9 +332,69 @@ fn resample_linear(input: &[f32], src_rate: u32, dst_rate: u32) -> Vec<f32> {
     out
 }
 
+/// Mix two mono f32 streams — already resampled to the same 16kHz rate — into a
+/// single mono track (Phase 5B.4). The mic and system-loopback streams run on
+/// independent clocks and either may be shorter (or silent, when nothing is
+/// playing), so we mix over the overlap and append the tail of the longer one.
+///
+/// Each input is summed at 0.5 gain to leave headroom for two simultaneous
+/// speakers, then soft-clamped to [-1.0, 1.0] — the same range `write_wav_16k_mono`
+/// and `transcribe_samples` expect. Pure and hardware-free, so it's unit-tested
+/// directly (the cpal/WASAPI capture paths are exercised on real hardware).
+#[allow(dead_code)] // wired into record_until_stopped_mixed in the loopback unit
+pub fn mix_streams(a: &[f32], b: &[f32]) -> Vec<f32> {
+    let n = a.len().max(b.len());
+    let mut out = Vec::with_capacity(n);
+    for i in 0..n {
+        let x = a.get(i).copied().unwrap_or(0.0);
+        let y = b.get(i).copied().unwrap_or(0.0);
+        out.push(((x + y) * 0.5).clamp(-1.0, 1.0));
+    }
+    out
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn mix_equal_length_averages_samples() {
+        let a = vec![1.0, -1.0, 0.5];
+        let b = vec![1.0, 1.0, 0.5];
+        // (x + y) * 0.5: (2)*.5=1 clamped, (0)*.5=0, (1)*.5=0.5
+        assert_eq!(mix_streams(&a, &b), vec![1.0, 0.0, 0.5]);
+    }
+
+    #[test]
+    fn mix_unequal_length_keeps_tail_of_longer() {
+        let a = vec![0.4, 0.4];
+        let b = vec![0.4, 0.4, 0.8, 0.8];
+        let out = mix_streams(&a, &b);
+        assert_eq!(out.len(), 4);
+        // overlap mixed at 0.5 gain; tail is b alone at 0.5 gain.
+        assert!((out[0] - 0.4).abs() < 1e-6);
+        assert!((out[2] - 0.4).abs() < 1e-6); // (0 + 0.8)*0.5
+    }
+
+    #[test]
+    fn mix_with_silent_stream_is_other_at_half_gain() {
+        let a = vec![1.0, 0.6, 0.2];
+        let silent = vec![0.0, 0.0, 0.0];
+        assert_eq!(mix_streams(&a, &silent), vec![0.5, 0.3, 0.1]);
+    }
+
+    #[test]
+    fn mix_clamps_when_both_loud() {
+        // Two near-full-scale signals: (1.9 + 1.9)*0.5 = 1.9 -> clamped to 1.0.
+        let out = mix_streams(&[1.9], &[1.9]);
+        assert_eq!(out, vec![1.0]);
+    }
+
+    #[test]
+    fn mix_empty_inputs() {
+        assert!(mix_streams(&[], &[]).is_empty());
+        assert_eq!(mix_streams(&[], &[0.3, 0.3]), vec![0.15, 0.15]);
+    }
 
     #[test]
     fn resample_preserves_endpoints_and_length() {
