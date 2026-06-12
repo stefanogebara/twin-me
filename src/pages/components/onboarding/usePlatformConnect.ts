@@ -4,8 +4,10 @@
  */
 
 import { useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { DataProvider } from '@/types/data-integration';
 import { API_URL, getAccessToken } from '@/services/api/apiBase';
+import { invalidatePlatformState } from '@/hooks/usePlatformsSummary';
 import { useAnalytics } from '@/contexts/AnalyticsContext';
 import { useToast } from '@/components/ui/use-toast';
 import { AVAILABLE_CONNECTORS } from '../../onboarding/components/connectorConfig';
@@ -32,8 +34,6 @@ interface UsePlatformConnectOptions {
   revertOptimisticUpdate: () => Promise<unknown>;
   setConnectingProvider: (provider: DataProvider | null) => void;
   setDisconnectingProvider: (provider: DataProvider | null) => void;
-  setGarminModalOpen?: (open: boolean) => void;
-  setSteamModalOpen?: (open: boolean) => void;
   setInstagramModalOpen?: (open: boolean) => void;
 }
 
@@ -59,12 +59,11 @@ export function usePlatformConnect({
   revertOptimisticUpdate,
   setConnectingProvider,
   setDisconnectingProvider,
-  setGarminModalOpen,
-  setSteamModalOpen,
   setInstagramModalOpen,
 }: UsePlatformConnectOptions) {
   const { trackFunnel } = useAnalytics();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const handleNangoPopup = useCallback((provider: DataProvider, connectUrl: string, preOpened?: Window | null) => {
     let popup: Window | null = null;
@@ -115,6 +114,9 @@ export function usePlatformConnect({
           toast({ title: 'Connected', description: CONNECTION_INSIGHT_MESSAGES[provider] || `${platformName} is now connected` });
           trackFunnel('platform_connection_verified', { platform: provider, retries: retryCount });
           await refetchPlatformStatus();
+          // audit-2026-06-10: also bust the canonical ['platforms'] cache so
+          // summary counts update immediately (nothing invalidated it before).
+          invalidatePlatformState(queryClient);
           setConnectingProvider(null);
           return;
         }
@@ -188,7 +190,7 @@ export function usePlatformConnect({
       trackFunnel('platform_connection_abandoned', { platform: provider });
       setConnectingProvider(null);
     }, 120000);
-  }, [toast, trackFunnel, refetchPlatformStatus, setConnectingProvider]);
+  }, [toast, trackFunnel, refetchPlatformStatus, setConnectingProvider, queryClient]);
 
   const connectService = useCallback(async (provider: DataProvider) => {
     // Handle external URL connectors (e.g. Browser Extension -> Chrome Web Store)
@@ -216,28 +218,6 @@ export function usePlatformConnect({
 
       const baseUrl = API_URL;
 
-      // Garmin uses direct credential login (no OAuth developer approval available)
-      if (provider === 'garmin') {
-        setConnectingProvider(null);
-        if (setGarminModalOpen) {
-          setGarminModalOpen(true);
-        } else {
-          toast({ title: 'Garmin', description: 'Open Settings > Platforms to connect Garmin.', variant: 'default' });
-        }
-        return;
-      }
-
-      // Steam uses user-provided profile URL/ID (Steam Web API, not OAuth)
-      if (provider === 'steam') {
-        setConnectingProvider(null);
-        if (setSteamModalOpen) {
-          setSteamModalOpen(true);
-        } else {
-          toast({ title: 'Steam', description: 'Open Settings > Platforms to connect Steam.', variant: 'default' });
-        }
-        return;
-      }
-
       // Instagram uses vanilla-Playwright scraping with user-provided cookies (no OAuth)
       if (provider === 'instagram') {
         setConnectingProvider(null);
@@ -249,7 +229,9 @@ export function usePlatformConnect({
         return;
       }
 
-      const nangoPlatforms = ['fitbit', 'microsoft_outlook', 'whoop', 'twitch', 'oura'];
+      // replan-2026-06-10 Track C: fitbit/twitch/oura retired — only the two
+      // surviving Nango-routed platforms remain.
+      const nangoPlatforms = ['microsoft_outlook', 'whoop'];
 
       // Pre-open a blank popup while still inside the user-gesture call stack.
       // Browsers block window.open() called after any await, so we must open
@@ -313,58 +295,9 @@ export function usePlatformConnect({
         return result;
       };
 
-      const runStravaConnection = async (): Promise<ConnectResult> => {
-        const nangoIntegrationId = NANGO_PROVIDER_MAP[provider] || provider;
-        const attempts = [
-          {
-            apiUrl: `${baseUrl}/nango/connect-session`,
-            fetchOptions: {
-              method: 'POST',
-              headers: authHeaders,
-              body: JSON.stringify({ integrationId: nangoIntegrationId }),
-            },
-          },
-          {
-            apiUrl: `${baseUrl}/entertainment/connect/${provider}`,
-            fetchOptions: {
-              method: 'POST',
-              headers: authHeaders,
-              body: JSON.stringify({ userId: effectiveUserId }),
-            },
-          },
-        ];
-
-        const failures: ConnectError[] = [];
-
-        for (const attempt of attempts) {
-          try {
-            return await runConnectionRequest(attempt.apiUrl, attempt.fetchOptions);
-          } catch (error) {
-            failures.push(error as ConnectError);
-          }
-        }
-
-        const notConfigured = failures.every((error) =>
-          error.code === 'INTEGRATION_NOT_CONFIGURED' ||
-          /not configured/i.test(error.message)
-        );
-
-        if (notConfigured) {
-          throw createConnectError(
-            'Strava is not configured on this server yet. Configure the Strava Nango integration or STRAVA_CLIENT_ID / STRAVA_CLIENT_SECRET.',
-            failures[failures.length - 1]?.status,
-            'STRAVA_NOT_CONFIGURED'
-          );
-        }
-
-        throw failures[failures.length - 1] || createConnectError('Connection failed');
-      };
-
       let result: ConnectResult;
 
-      if (provider === 'strava') {
-        result = await runStravaConnection();
-      } else if (nangoPlatforms.includes(provider as string)) {
+      if (nangoPlatforms.includes(provider as string)) {
         const nangoIntegrationId = NANGO_PROVIDER_MAP[provider] || provider;
         result = await runConnectionRequest(`${baseUrl}/nango/connect-session`, {
           method: 'POST',
@@ -387,6 +320,7 @@ export function usePlatformConnect({
         handleNangoPopup(provider, result.connectUrl, preOpenedPopup);
       } else if (result.success) {
         await refetchPlatformStatus();
+        invalidatePlatformState(queryClient);
         toast({
           title: "Connected",
           description: CONNECTION_INSIGHT_MESSAGES[provider] || `${AVAILABLE_CONNECTORS.find(c => c.provider === provider)?.name} is now connected`,
@@ -407,7 +341,7 @@ export function usePlatformConnect({
     } finally {
       setConnectingProvider(null);
     }
-  }, [toast, userId, refetchPlatformStatus, trackFunnel, setConnectingProvider, setGarminModalOpen, setSteamModalOpen, setInstagramModalOpen, handleNangoPopup]);
+  }, [toast, userId, refetchPlatformStatus, trackFunnel, setConnectingProvider, setInstagramModalOpen, handleNangoPopup, queryClient]);
 
   const disconnectService = useCallback(async (provider: DataProvider) => {
     if (!userId) return;
@@ -437,6 +371,7 @@ export function usePlatformConnect({
       }
 
       await refetchPlatformStatus();
+      invalidatePlatformState(queryClient);
 
       toast({
         title: "Disconnected",
@@ -454,7 +389,7 @@ export function usePlatformConnect({
     } finally {
       setDisconnectingProvider(null);
     }
-  }, [userId, toast, refetchPlatformStatus, optimisticDisconnect, revertOptimisticUpdate, setDisconnectingProvider]);
+  }, [userId, toast, refetchPlatformStatus, optimisticDisconnect, revertOptimisticUpdate, setDisconnectingProvider, queryClient]);
 
   return { connectService, disconnectService };
 }

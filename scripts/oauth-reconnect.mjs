@@ -271,14 +271,14 @@ if (page.url().includes('accounts.google.com')) {
   }
 }
 
-// Check final status
+// Check final status (canonical summary endpoint — legacy /connectors/status was deleted)
 console.log('Verifying connection status...');
-const statusRes = await fetch(`${APP_URL}/api/connectors/status/${USER_ID}`, {
+const statusRes = await fetch(`${APP_URL}/api/connectors/summary`, {
   headers: { 'Authorization': `Bearer ${token}` },
 });
 const statusData = await statusRes.json();
-const ytStatus = statusData.data?.[platform];
-console.log(`${platform} status:`, ytStatus ? `${ytStatus.status}, expired=${ytStatus.tokenExpired}` : 'not found');
+const entry = (statusData.breakdown || []).find((e) => e.platform === platform);
+console.log(`${platform} status:`, entry ? `state=${entry.state}, lastSyncAt=${entry.lastSyncAt}` : 'not found');
 
 await context.close();
 process.exit(0);

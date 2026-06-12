@@ -37,9 +37,7 @@ vi.mock('../../../api/services/tokenRefreshService.js', () => ({
   getValidAccessToken: vi.fn().mockResolvedValue({ success: false }),
 }));
 
-vi.mock('../../../api/services/inSilicoEngine.js', () => ({
-  scoreForInsightSelection: vi.fn().mockResolvedValue([]),
-}));
+// inSilicoEngine mock removed — the engine was deleted (replan-2026-06-10 cycle 4).
 
 vi.mock('../../../api/services/logger.js', () => ({
   createLogger: () => ({

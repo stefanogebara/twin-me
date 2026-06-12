@@ -14,7 +14,10 @@
  *   'spotify'       - special: raw `comprehensive_music_profile` (extractSpotifyData)
  *                     PLUS memory observations. Two producers, see Phase 1 (#93).
  *   'raw_extractor' - niche `extractors/*` modules that write raw `user_platform_data`
- *                     via `extractAll(userId, connectorId)` (notion/pinterest/etc.).
+ *                     via `extractAll(userId, connectorId)`. No platforms use this
+ *                     kind since the replan-2026-06-10 portfolio cut (notion/
+ *                     pinterest/soundcloud/steam deleted); the runner support and
+ *                     normalizeRawExtractorResult stay for future niche platforms.
  *
  * Module paths are stored as strings and dynamically imported at run time to
  * preserve the original lazy-loading (avoids loading every fetcher/extractor at
@@ -38,29 +41,11 @@ export const PLATFORM_EXTRACTION = Object.freeze({
   github: { kind: 'observation', module: `${OBS}/github.js`, fn: 'fetchGitHubObservations', feature: `${FEAT}/githubExtractor.js` },
   youtube: { kind: 'observation', module: `${OBS}/youtube.js`, fn: 'fetchYouTubeObservations', feature: `${FEAT}/youtubeFeatureExtractor.js` },
   gmail: { kind: 'observation', module: `${OBS}/gmail.js`, fn: 'fetchGmailObservations', feature: `${FEAT}/gmailExtractor.js`, storeAs: 'google_gmail' },
-  linkedin: { kind: 'observation', module: `${OBS}/linkedin.js`, fn: 'fetchLinkedInObservations', feature: `${FEAT}/linkedinExtractor.js` },
   whoop: { kind: 'observation', module: `${OBS}/whoop.js`, fn: 'fetchWhoopObservations', feature: `${FEAT}/whoopExtractor.js` },
-  oura: { kind: 'observation', module: `${OBS}/oura.js`, fn: 'fetchOuraObservations', feature: `${FEAT}/ouraExtractor.js` },
-  twitch: { kind: 'observation', module: `${OBS}/twitch.js`, fn: 'fetchTwitchObservations', feature: `${FEAT}/twitchExtractor.js` },
-  reddit: { kind: 'observation', module: `${OBS}/reddit.js`, fn: 'fetchRedditObservations', feature: `${FEAT}/redditExtractor.js` },
-  strava: { kind: 'observation', module: `${OBS}/strava.js`, fn: 'fetchStravaObservations', feature: `${FEAT}/stravaExtractor.js` },
 
   // --- Observation platforms WITHOUT a feature extractor ---
   google_calendar: { kind: 'observation', module: `${OBS}/calendar.js`, fn: 'fetchCalendarObservations' },
   outlook: { kind: 'observation', module: `${OBS}/outlook.js`, fn: 'fetchOutlookObservations' },
-  garmin: { kind: 'observation', module: `${OBS}/garmin.js`, fn: 'fetchGarminObservations' },
-  fitbit: { kind: 'observation', module: `${OBS}/fitbit.js`, fn: 'fetchFitbitObservations' },
-  slack: { kind: 'observation', module: `${OBS}/slack.js`, fn: 'fetchSlackObservations' },
-  google_drive: { kind: 'observation', module: `${OBS}/googleDrive.js`, fn: 'fetchGoogleDriveObservations' },
-  apple_music: { kind: 'observation', module: `${OBS}/appleMusic.js`, fn: 'fetchAppleMusicObservations' },
-
-  // --- Niche raw extractors (write user_platform_data via extractAll) ---
-  // notion/pinterest were always treated as success; soundcloud/steam pass
-  // through the extractor's own success flag + error message.
-  notion: { kind: 'raw_extractor', module: './extractors/notionExtractor.js', successAlways: true },
-  pinterest: { kind: 'raw_extractor', module: './extractors/pinterestExtractor.js', successAlways: true },
-  soundcloud: { kind: 'raw_extractor', module: './extractors/soundcloudExtractor.js' },
-  steam: { kind: 'raw_extractor', module: './extractors/steamExtractor.js' },
 
   // --- Alias: legacy 'google_gmail' platform name maps to the gmail descriptor ---
   google_gmail: { kind: 'observation', module: `${OBS}/gmail.js`, fn: 'fetchGmailObservations', feature: `${FEAT}/gmailExtractor.js`, storeAs: 'google_gmail' },
@@ -80,8 +65,8 @@ export function getDescriptor(platform) {
 /**
  * Normalize a niche raw-extractor's `extractAll` return into the orchestrator's
  * uniform result shape. Pure — mirrors the prior switch semantics exactly:
- *   - successAlways descriptors (notion/pinterest) -> always success: true
- *   - others (soundcloud/steam) -> success unless the extractor returned success:false,
+ *   - successAlways descriptors -> always success: true
+ *   - others -> success unless the extractor returned success:false,
  *     passing through its error message.
  * @param {object} descriptor
  * @param {{ itemsExtracted?: number, success?: boolean, error?: string }} [r]

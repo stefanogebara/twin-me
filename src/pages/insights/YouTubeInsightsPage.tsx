@@ -13,6 +13,8 @@ import { EvidenceSection } from './components/EvidenceSection';
 import { Video, RefreshCw, ArrowLeft, AlertCircle, Users, ThumbsUp, PieChart, BookOpen, History, Search, Download } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { PieChart as RechartsPie, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
+import { RefreshingIndicator } from './components/RefreshingIndicator';
+import { InsightsGenerationError } from './components/InsightsGenerationError';
 
 interface Reflection {
   id: string | null;
@@ -83,6 +85,9 @@ interface InsightsResponse {
   youtubeWatchHistory?: WatchHistoryItem[];
   youtubeSearchQueries?: string[];
   hasExtensionData?: boolean;
+  // When true, the backend returned a plain-string `reflection` placeholder and
+  // the user has not connected YouTube (audit-2026-06-10).
+  notConnected?: boolean;
   error?: string;
 }
 
@@ -93,7 +98,7 @@ const YouTubeInsightsPage: React.FC = () => {
 
   useDocumentTitle('YouTube Insights');
 
-  const { insights, loading, generating, refreshing, error, refresh } =
+  const { insights, loading, generating, isRefreshing, error, generationError, refresh } =
     usePlatformInsights<InsightsResponse>('youtube', 'Please sign in to see your content world');
 
   const colors = {
@@ -113,7 +118,9 @@ const YouTubeInsightsPage: React.FC = () => {
     />
   );
 
-  if (loading || generating) {
+  // Keep previous insights rendered during a refresh (audit-2026-06-10);
+  // the skeleton is only for the no-data cold start.
+  if ((loading || generating) && !insights) {
     return (
       <div className="max-w-[680px] mx-auto px-6 py-16">
         <div className="flex items-center justify-between mb-8">
@@ -147,6 +154,11 @@ const YouTubeInsightsPage: React.FC = () => {
         </div>
       </div>
     );
+  }
+
+  // Generation failed with nothing to show — inline retry, not a connect CTA.
+  if (generationError && !insights) {
+    return <InsightsGenerationError message={generationError} onRetry={refresh} retrying={isRefreshing} />;
   }
 
   if (error) {
@@ -205,41 +217,36 @@ const YouTubeInsightsPage: React.FC = () => {
         </div>
         <button
           onClick={refresh}
-          disabled={refreshing}
+          disabled={isRefreshing}
           className="p-2 rounded-lg"
           title="Get a fresh observation"
           style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
         >
-          <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} style={{ color: colors.text }} />
+          <RefreshCw className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`} style={{ color: colors.text }} />
         </button>
       </div>
 
-      {/* Extension Coming Soon Banner */}
+      <RefreshingIndicator visible={isRefreshing} />
+
+      {/* Extension Install Banner */}
       {!insights?.hasExtensionData && (
         <div
-          className="p-4 rounded-lg mb-6"
+          className="p-4 rounded-lg mb-6 cursor-pointer transition-opacity hover:opacity-80"
           style={{
             border: '1px solid var(--border-glass)',
             backgroundColor: 'rgba(255,255,255,0.02)',
             borderLeft: `3px solid ${colors.youtubeRed}`
           }}
+          onClick={() => navigate('/get-started')}
         >
           <div className="flex items-center gap-3">
             <Download className="w-5 h-5 flex-shrink-0" style={{ color: colors.youtubeRed }} />
             <div className="flex-1">
-              <div className="flex items-center gap-2">
-                <p className="text-sm font-medium" style={{ color: colors.text }}>
-                  Deeper YouTube insights
-                </p>
-                <span
-                  className="text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wider"
-                  style={{ background: 'rgba(255,0,0,0.08)', color: colors.youtubeRed }}
-                >
-                  Coming soon
-                </span>
-              </div>
+              <p className="text-sm font-medium" style={{ color: colors.text }}>
+                Install the browser extension for deeper YouTube insights
+              </p>
               <p className="text-xs mt-0.5" style={{ color: colors.textSecondary }}>
-                A browser extension will capture watch history, search queries, and viewing patterns that the YouTube API can't access.
+                The TwinMe extension captures watch history, search queries, and viewing patterns that the YouTube API can't access.
               </p>
             </div>
           </div>
@@ -503,8 +510,10 @@ const YouTubeInsightsPage: React.FC = () => {
         </div>
       )}
 
-      {/* Primary Reflection */}
-      {insights?.reflection && (
+      {/* Primary Reflection — check .text, not object truthiness: the backend
+          returns `reflection` as a plain STRING for notConnected/fallback
+          responses, which would render a blank card (audit-2026-06-10) */}
+      {insights?.reflection?.text && (
         <div className="mb-8">
           <TwinReflection
             reflection={insights.reflection.text}
@@ -571,7 +580,7 @@ const YouTubeInsightsPage: React.FC = () => {
       )}
 
       {/* Empty State */}
-      {!insights?.reflection && (
+      {!insights?.reflection?.text && (
         <div className="space-y-4">
           <div
             className="text-center py-10 p-4 rounded-lg"
@@ -589,19 +598,31 @@ const YouTubeInsightsPage: React.FC = () => {
               Your twin is exploring
             </h3>
             <p className="mt-2 mb-4 max-w-sm mx-auto" style={{ color: colors.textSecondary }}>
-              As your YouTube data syncs, your twin will discover patterns and share observations about your content world.
+              {insights?.notConnected
+                ? 'Connect YouTube so your twin can discover patterns and share observations about your content world.'
+                : 'As your YouTube data syncs, your twin will discover patterns and share observations about your content world.'}
             </p>
-            <div
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm"
-              style={{
-                backgroundColor: 'rgba(255, 0, 0, 0.05)',
-                color: colors.youtubeRed,
-                border: '1px solid rgba(255, 0, 0, 0.15)',
-              }}
-            >
-              <div aria-hidden="true" className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: colors.youtubeRed }} />
-              Your twin is collecting data... check back soon
-            </div>
+            {insights?.notConnected ? (
+              <button
+                onClick={() => navigate('/get-started')}
+                className="px-4 py-2 rounded-lg text-sm font-medium"
+                style={{ backgroundColor: '#10b77f', color: '#fff' }}
+              >
+                Connect YouTube
+              </button>
+            ) : (
+              <div
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm"
+                style={{
+                  backgroundColor: 'rgba(255, 0, 0, 0.05)',
+                  color: colors.youtubeRed,
+                  border: '1px solid rgba(255, 0, 0, 0.15)',
+                }}
+              >
+                <div aria-hidden="true" className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: colors.youtubeRed }} />
+                Your twin is collecting data... check back soon
+              </div>
+            )}
           </div>
 
           {/* Skeleton preview of what insights will look like */}

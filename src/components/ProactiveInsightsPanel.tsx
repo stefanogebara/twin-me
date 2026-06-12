@@ -6,9 +6,8 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
 import { API_URL, authFetch, getAccessToken } from '@/services/api/apiBase';
-import { usePlatformStatus } from '@/hooks/usePlatformStatus';
+import { usePlatformsSummary } from '@/hooks/usePlatformsSummary';
 import { toSecondPerson } from '@/lib/utils';
 import {
   MessageCircle,
@@ -68,9 +67,11 @@ const panelStyle: React.CSSProperties = {
 };
 
 export const ProactiveInsightsPanel: React.FC = () => {
-  const { user } = useAuth();
   const navigate = useNavigate();
-  const { connectedCount } = usePlatformStatus(user?.id);
+  // batch3 state-unification: empty-state gate uses summary.active per the
+  // spec's display convention (primary count = active).
+  const { data: platformsSummary } = usePlatformsSummary();
+  const connectedCount = platformsSummary?.active ?? 0;
   const [engagedIds, setEngagedIds] = useState<Set<string>>(new Set());
   const [expandedId, setExpandedId] = useState<string | null>(null);
 

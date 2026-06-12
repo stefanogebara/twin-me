@@ -33,9 +33,7 @@ vi.mock('../../../api/services/pushNotificationService.js', () => ({
   sendPushToUser: vi.fn().mockResolvedValue(true),
 }));
 
-vi.mock('../../../api/services/inSilicoEngine.js', () => ({
-  scoreForInsightSelection: vi.fn().mockResolvedValue([]),
-}));
+// inSilicoEngine mock removed — the engine was deleted (replan-2026-06-10 cycle 4).
 
 vi.mock('../../../twin-research/insight-config.js', () => ({
   INSIGHT_PROMPT_TEMPLATE: 'obs: {observations}\nrefl: {reflections}',
@@ -58,6 +56,7 @@ const updateCalls = [];
 let pendingNudges = [];
 let platformDataForEval = [];
 let nudgeHistoryRows = [];
+let recentInsightRows = [];
 
 vi.mock('../../../api/services/database.js', () => ({
   supabaseAdmin: {
@@ -101,10 +100,13 @@ vi.mock('../../../api/services/database.js', () => ({
           order: vi.fn().mockReturnThis(),
           limit: vi.fn(() => Promise.resolve({
             // decide response based on current mode:
+            // if recentInsightRows populated → isInsightDuplicate fetch
             // if pendingNudges populated → evaluateNudgeOutcomes fetch
             // if nudgeHistoryRows populated → getNudgeHistory fetch
             // else empty
-            data: pendingNudges.length ? pendingNudges : nudgeHistoryRows,
+            data: recentInsightRows.length
+              ? recentInsightRows
+              : (pendingNudges.length ? pendingNudges : nudgeHistoryRows),
             error: null,
           })),
         };
@@ -136,7 +138,10 @@ const {
   generateProactiveInsights,
   evaluateNudgeOutcomes,
   getNudgeHistory,
+  isInsightDuplicate,
   _findUngroundedNumbers,
+  _stripDigitsForDedup,
+  _extractInsightTheme,
 } = await import('../../../api/services/proactiveInsights.js');
 
 const USER_ID = '167c27b5-a40b-49fb-8d00-deb1b1c57f4d';
@@ -149,6 +154,7 @@ describe('proactiveInsights', () => {
     pendingNudges = [];
     platformDataForEval = [];
     nudgeHistoryRows = [];
+    recentInsightRows = [];
   });
 
   describe('generateProactiveInsights', () => {
@@ -362,5 +368,127 @@ describe('_findUngroundedNumbers — hallucination guard (audit-2026-05-16)', ()
     const ungrounded = _findUngroundedNumbers(insight, evidence);
     expect(ungrounded).toContain('1500');
     expect(ungrounded).not.toContain('18'); // 18.5 includes "18" so partial-match grounds it
+  });
+});
+
+/**
+ * Dedup hardening (replan-2026-06-10 Track B).
+ *
+ * Audit found the 40k-unread email stat delivered 6+ times in 3 days: the
+ * lexical dedup layers compare digits, so a daily-incrementing count
+ * ("40,381 unread" → "40,448 unread") defeats both the prefix match and the
+ * keyword Jaccard every single day. Two fixes under test:
+ *   1. Digits are stripped before the lexical comparison.
+ *   2. A per-THEME cooldown (keyword-set themes, 7 days) rejects reworded
+ *      re-deliveries even when no lexical layer fires.
+ */
+describe('_stripDigitsForDedup (replan-2026-06-10)', () => {
+  it('makes incrementing counts compare equal', () => {
+    expect(_stripDigitsForDedup('40,381 unread emails'))
+      .toBe(_stripDigitsForDedup('40,448 unread emails'));
+  });
+
+  it('removes digit runs including separators and decimals', () => {
+    expect(_stripDigitsForDedup('strain hit 18.5 after 3 meetings')).toBe('strain hit after meetings');
+  });
+
+  it('preserves digit-free text and collapses whitespace', () => {
+    expect(_stripDigitsForDedup('your inbox keeps growing')).toBe('your inbox keeps growing');
+  });
+
+  it('handles null / undefined / empty', () => {
+    expect(_stripDigitsForDedup(null)).toBe('');
+    expect(_stripDigitsForDedup(undefined)).toBe('');
+    expect(_stripDigitsForDedup('')).toBe('');
+  });
+});
+
+describe('_extractInsightTheme (replan-2026-06-10)', () => {
+  it('detects the email-backlog theme from unread-count phrasing', () => {
+    expect(_extractInsightTheme('Your Gmail inbox has 40,381 unread emails piling up'))
+      .toBe('email-backlog');
+  });
+
+  it('detects email-backlog from a reworded variant with no shared numbers', () => {
+    expect(_extractInsightTheme('that email backlog keeps growing — archive a few senders tonight'))
+      .toBe('email-backlog');
+  });
+
+  it('detects the github-backlog theme from PR-review phrasing', () => {
+    expect(_extractInsightTheme('158 open PRs on GitHub — block 90 minutes tomorrow for review'))
+      .toBe('github-backlog');
+  });
+
+  it('requires at least 2 theme keywords — a lone mention is not a theme', () => {
+    // Only "email" matches; one keyword must not lock the whole theme for a week.
+    expect(_extractInsightTheme('reply to Sarah by email tonight')).toBe(null);
+    // Only "github" matches; a commits celebration is not the PR-backlog theme.
+    expect(_extractInsightTheme('you crossed 5000 GitHub contributions this year')).toBe(null);
+  });
+
+  it('returns null for themeless text', () => {
+    expect(_extractInsightTheme('you played OK Computer twice yesterday')).toBe(null);
+    expect(_extractInsightTheme('')).toBe(null);
+  });
+});
+
+describe('isInsightDuplicate — digit-strip + theme cooldown (replan-2026-06-10)', () => {
+  const daysAgo = (n) => new Date(Date.now() - n * 24 * 3600 * 1000).toISOString();
+
+  it('rejects the same insight when only the count incremented (digit-strip)', async () => {
+    recentInsightRows = [{
+      insight: 'Your Gmail inbox has 40,381 unread emails piling up — archive the top 50 senders tonight',
+      category: 'concern',
+      created_at: daysAgo(3),
+    }];
+    const dup = await isInsightDuplicate(
+      USER_ID,
+      'Your Gmail inbox has 40,448 unread emails piling up — archive the top 50 senders tonight',
+      'trend'
+    );
+    expect(dup).toBe(true);
+  });
+
+  it('rejects a fully reworded insight on the same theme within 7 days', async () => {
+    // No shared prefix, near-zero keyword overlap — only the theme matches.
+    recentInsightRows = [{
+      insight: 'you ignored your gmail inbox again — 40,448 unread messages and counting',
+      category: 'trend',
+      created_at: daysAgo(2),
+    }];
+    const dup = await isInsightDuplicate(
+      USER_ID,
+      'that email backlog keeps growing; archive a few senders tonight',
+      'concern'
+    );
+    expect(dup).toBe(true);
+  });
+
+  it('allows an insight on a different theme', async () => {
+    recentInsightRows = [{
+      insight: 'you ignored your gmail inbox again — 40,448 unread messages and counting',
+      category: 'trend',
+      created_at: daysAgo(2),
+    }];
+    const dup = await isInsightDuplicate(
+      USER_ID,
+      'your Whoop recovery jumped after two rest days — schedule the long run Saturday',
+      'celebration'
+    );
+    expect(dup).toBe(false);
+  });
+
+  it('allows a themeless insight that shares nothing with recent rows', async () => {
+    recentInsightRows = [{
+      insight: 'Your Gmail inbox has 40,381 unread emails piling up',
+      category: 'concern',
+      created_at: daysAgo(3),
+    }];
+    const dup = await isInsightDuplicate(
+      USER_ID,
+      'you played OK Computer twice yesterday — tonight after 7 your calendar is clear, put it on',
+      'nudge'
+    );
+    expect(dup).toBe(false);
   });
 });

@@ -145,8 +145,11 @@ const WaitlistPage = () => {
                 disabled={loading}
                 className="h-11 px-6 rounded-[100px] text-sm font-medium transition-opacity hover:opacity-90 disabled:opacity-50"
                 style={{
-                  backgroundColor: 'rgba(255,255,255,0.85)',
-                  color: '#fff',
+                  // audit-2026-06-10: was white text on a white pill — the
+                  // page's only CTA label was invisible. Use the design-system
+                  // primary pill: #F5F5F4 bg with dark #110f0f text.
+                  backgroundColor: '#F5F5F4',
+                  color: '#110f0f',
                   fontFamily: "'Inter', sans-serif",
                 }}
               >

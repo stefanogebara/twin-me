@@ -18,6 +18,7 @@
 
 import { researchAttendees } from './attendeeResearcher.js';
 import { buildBriefingPrompt } from './briefingPromptBuilder.js';
+import { shouldPrepEvent, isAgentCreatedEvent } from './eventPrepFilter.js';
 import { complete, TIER_ANALYSIS, TIER_CHAT } from '../llmGateway.js';
 import { retrieveMemories } from '../memoryStreamService.js';
 import { getValidAccessToken } from '../tokenRefreshService.js';
@@ -27,8 +28,6 @@ import { createLogger } from '../logger.js';
 
 const log = createLogger('MeetingPrepService');
 
-const USER_EMAIL_DOMAINS = new Set(); // populated per-call from user's own email
-
 // Look-ahead window for the calendar scan. Widened from the original 2-4h
 // to 0-26h so the dashboard's 24h "next meeting" card actually has
 // something to show, and a meeting 30 min out that somehow wasn't briefed
@@ -36,44 +35,17 @@ const USER_EMAIL_DOMAINS = new Set(); // populated per-call from user's own emai
 const LOOK_AHEAD_MIN_HOURS = 0;
 const LOOK_AHEAD_MAX_HOURS = 26;
 
-// Generic calendar-block titles that aren't real appointments — focus time,
-// lunch holds, "busy" exports from other calendars, etc. Briefing these is
-// noise. Matched case-insensitively against the whole title.
-const GENERIC_BLOCK_PATTERNS = [
-  /^busy$/i,
-  /^blocked?$/i,
-  /^focus(\s*time)?$/i,
-  /^lunch$/i,
-  /^break$/i,
-  /^hold$/i,
-  /^ooo$/i,
-  /^out of office$/i,
-  /^dnd$/i,
-  /^do not disturb$/i,
-  /^free$/i,
-  /^tentative$/i,
-  /^private$/i,
-];
-
-function isGenericBlock(summary) {
-  if (!summary) return true; // untitled events aren't worth briefing
-  const trimmed = summary.trim();
-  return GENERIC_BLOCK_PATTERNS.some((p) => p.test(trimmed));
-}
-
 /**
  * Scan the user's Google Calendar for upcoming events worth briefing
- * (0-26h ahead). Briefs ANY real timed appointment — multi-person business
- * meetings AND solo appointments (a doctor, a hairdresser, a 1:1) — because
- * a real personal calendar is mostly the latter and they're all worth
- * walking in prepared for.
+ * (0-26h ahead). Briefs meetings with other attendees, plus solo events
+ * whose title/description signals external stakes (pitch, interview,
+ * contract...).
  *
- * Skips: all-day events (no dateTime), events the user has declined,
- * and generic calendar blocks (focus time, "busy", lunch holds).
+ * Skips (see eventPrepFilter.js — replan-2026-06-10 Track B): all-day
+ * events, declined events, generic calendar blocks, attendee-less
+ * personal events (tennis, therapy), and agent-created blocks.
  *
  * Shared by the cron and the on-demand /scan endpoint.
- * (Kept the name fetchUpcomingExternalEvents for import compat — the
- *  behaviour is now "all real meetings", not "external-attendee only".)
  */
 export async function fetchUpcomingExternalEvents(userId) {
   const tokenResult = await getValidAccessToken(userId, 'google_calendar');
@@ -106,21 +78,11 @@ export async function fetchUpcomingExternalEvents(userId) {
   const userEmail = userRow?.email || '';
 
   return (data.items || []).filter((event) => {
-    // Timed events only — all-day events (start.date instead of dateTime)
-    // are usually birthdays, OOO, multi-day trips — not appointments to prep.
-    if (!event.start?.dateTime) return false;
-
-    // Skip generic calendar blocks (focus time, busy, lunch).
-    if (isGenericBlock(event.summary)) return false;
-
-    // Skip events the user explicitly declined.
-    const selfAttendee = (event.attendees || []).find((a) => a.email === userEmail || a.self);
-    if (selfAttendee?.responseStatus === 'declined') return false;
-
-    // Everything else — solo appointments AND multi-person meetings — is
-    // worth a briefing. Attendee research just runs lighter when there
-    // are no other attendees.
-    return true;
+    const decision = shouldPrepEvent(event, userEmail);
+    if (!decision.prep) {
+      log.debug('Skipping event for prep', { title: event.summary, reason: decision.reason });
+    }
+    return decision.prep;
   });
 }
 
@@ -150,7 +112,10 @@ function parseAttendees(gcalEvent, userEmail) {
   const userDomain = userEmail ? userEmail.split('@')[1] : null;
 
   return attendees
-    .filter(a => a.email !== userEmail && !a.resource)
+    // `!a.self` matters when the attendee email is an alias of the user's —
+    // without it the researcher profiles the user as a stranger it googled
+    // (replan-2026-06-10: "Stefano Gebara — likely a developer...").
+    .filter(a => a.email !== userEmail && !a.resource && !a.self)
     .map(a => ({
       email: a.email,
       name: a.displayName || null,
@@ -334,6 +299,14 @@ async function generateBriefingForEvent(userId, gcalEvent) {
 }
 
 export async function generateBriefing(userId, gcalEvent) {
+  // Defense in depth: the scan filter already drops agent-created events,
+  // but any future caller passing a raw event must not brief the agent's
+  // own blocks either (replan-2026-06-10 circular content loop).
+  if (isAgentCreatedEvent(gcalEvent)) {
+    log.debug('Skipping agent-created event', { eventId: gcalEvent.id, title: gcalEvent.summary });
+    return null;
+  }
+
   const eventId = gcalEvent.id;
   const etag = gcalEvent.etag;
 

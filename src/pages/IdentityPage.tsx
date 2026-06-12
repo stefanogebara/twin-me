@@ -9,13 +9,13 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Share2, Sparkles, ArrowRight, Fingerprint, AlertCircle, ChevronLeft } from 'lucide-react';
+import { Share2, Sparkles, ArrowRight, Fingerprint, AlertCircle, ChevronLeft, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { authFetch } from '@/services/api/apiBase';
 import { useLenis } from '@/hooks/useLenis';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
-import { usePlatformStatus } from '@/hooks/usePlatformStatus';
+import { usePlatformsSummary, connectedProviders as getConnectedProviders } from '@/hooks/usePlatformsSummary';
 import { IdentityData, PersonalityProfile } from './components/identity/types';
 import { determineArchetypeFromSoulLayers, generateTraitBadgesFromSoulLayers, formatArchetypeName } from '@/utils/archetypeEngine';
 import PersonalityAxes from './components/identity/PersonalityAxes';
@@ -73,7 +73,12 @@ interface SoulSignatureLayers {
   rhythms: SoulRhythms;
   taste: SoulTaste;
   connections: SoulConnections;
-  growth_edges: SoulGrowthEdges;
+  // audit-2026-06-10: the backend emits camelCase `growthEdges`
+  // (soulSignatureService.js:907); `growth_edges` never existed on the wire,
+  // so the drift UI was permanently stuck on "Stable signal"/"Consistent".
+  // Accept both for resilience against any older cached payloads.
+  growthEdges?: SoulGrowthEdges;
+  growth_edges?: SoulGrowthEdges;
   generated_at: string;
 }
 
@@ -91,7 +96,7 @@ const EXPERT_LABELS: { key: string; label: string }[] = [
 // Map lowercased keyword mentions -> { platform connector key, route, label }
 
 interface InsightLinkSpec {
-  platform: string; // connector key used by usePlatformStatus
+  platform: string; // connector key as reported in the platforms-summary breakdown
   route: string;
   label: string;
 }
@@ -101,7 +106,8 @@ const INSIGHT_PLATFORMS: Array<{ match: RegExp; spec: InsightLinkSpec }> = [
   { match: /\byoutube\b/i,                spec: { platform: 'youtube',  route: '/insights/youtube',  label: 'YouTube' } },
   { match: /\b(calendar|google calendar)\b/i, spec: { platform: 'google_calendar', route: '/insights/calendar', label: 'Calendar' } },
   { match: /\bdiscord\b/i,                spec: { platform: 'discord',  route: '/insights/discord',  label: 'Discord' } },
-  { match: /\blinkedin\b/i,               spec: { platform: 'linkedin', route: '/insights/linkedin', label: 'LinkedIn' } },
+  // linkedin removed (replan-2026-06-10 Track C): the /insights/linkedin page
+  // and route were deleted along with the LinkedIn OAuth stack.
 ];
 
 function detectInsightLink(text: string, connectedProviders: string[]): InsightLinkSpec | null {
@@ -350,7 +356,18 @@ const IdentityPage: React.FC = () => {
     enabled: !!user,
   });
 
-  const { data: soulData, isLoading: soulLoading, error: soulError } = useQuery<{ success: boolean; data: SoulSignatureLayers }>({
+  // audit-2026-06-10: /soul-signature/layers returns { data: null, generating:
+  // true, retryAfter } while generation runs in the background (~15-25s), and
+  // { data: null, message } when there aren't enough memories yet. Poll while
+  // generating so the finished signature appears without a hard reload
+  // (staleTime alone would cache the null payload for 10 minutes).
+  const { data: soulData, isLoading: soulLoading, error: soulError, refetch: refetchSoul } = useQuery<{
+    success: boolean;
+    data: (SoulSignatureLayers & { layers?: SoulSignatureLayers }) | null;
+    generating?: boolean;
+    message?: string;
+    retryAfter?: number;
+  }>({
     queryKey: ['soul-signature-layers'],
     queryFn: async () => {
       const res = await authFetch('/soul-signature/layers');
@@ -358,6 +375,8 @@ const IdentityPage: React.FC = () => {
       return res.json();
     },
     staleTime: 10 * 60 * 1000,
+    refetchInterval: (query) =>
+      query.state.data?.generating ? (query.state.data.retryAfter ?? 15) * 1000 : false,
     enabled: !!user,
   });
 
@@ -402,11 +421,14 @@ const IdentityPage: React.FC = () => {
   }, []);
 
   // Hooks must be declared BEFORE any early return (isLoading / hasAnyData
-  // guards below). Previously usePlatformStatus + useState(expandedLens) were
-  // positioned after those guards, causing React error #310 ("Rendered more
-  // hooks than during the previous render") on transition from loading to
+  // guards below). Previously the platform-status hook + useState(expandedLens)
+  // were positioned after those guards, causing React error #310 ("Rendered
+  // more hooks than during the previous render") on transition from loading to
   // loaded state.
-  const { connectedProviders } = usePlatformStatus(user?.id);
+  // batch3 state-unification: connected set comes from the canonical
+  // /platforms/summary breakdown (any state counts as connected for lens gating).
+  const { data: platformsSummary } = usePlatformsSummary();
+  const connectedProviders = getConnectedProviders(platformsSummary);
   const [expandedLens, setExpandedLens] = useState<string | null>(null);
 
   // ── Guards ─────────────────────────────────────────────────────────────
@@ -435,9 +457,14 @@ const IdentityPage: React.FC = () => {
             </span>
           </div>
           <button
-            onClick={() => refetchIdentity()}
+            onClick={() => {
+              // audit-2026-06-10: retry must refetch the query that actually
+              // failed — refetching identity alone left soulError in place.
+              if (identityError) refetchIdentity();
+              if (soulError) refetchSoul();
+            }}
             className="text-sm font-medium px-4 py-2 rounded-[100px] transition-all duration-150 ease-out hover:opacity-80 active:scale-[0.97]"
-            style={{ backgroundColor: 'var(--button-bg-dark, #252222)', color: 'var(--background, #fdfcfb)' }}
+            style={{ backgroundColor: 'var(--button-bg-dark, #252222)', color: 'var(--foreground)' }}
           >
             Try again
           </button>
@@ -448,7 +475,12 @@ const IdentityPage: React.FC = () => {
 
   const hasAnyData = !!(summary || hasLayers);
 
-  if (!hasAnyData) return <EmptyState />;
+  // audit-2026-06-10: while the signature is generating in the background
+  // (~15-25s, polled above), show that — not the "takes a couple of days"
+  // empty state.
+  if (!hasAnyData && soulData?.generating) return <GeneratingState message={soulData?.message} />;
+
+  if (!hasAnyData) return <EmptyState message={soulData?.message} />;
 
   const showStillLearning = !hasLayers;
 
@@ -521,8 +553,9 @@ const IdentityPage: React.FC = () => {
 
   // ── Drift signal ────────────────────────────────────────────────────────
 
-  const driftIsStable = !layers?.growth_edges || layers.growth_edges.isStable || layers.growth_edges.shifts.length === 0;
-  const driftShiftCount = layers?.growth_edges?.shifts?.length ?? 0;
+  const growthEdges = layers?.growthEdges ?? layers?.growth_edges;
+  const driftIsStable = !growthEdges || growthEdges.isStable || (growthEdges.shifts?.length ?? 0) === 0;
+  const driftShiftCount = growthEdges?.shifts?.length ?? 0;
 
   // ── Share handler ──────────────────────────────────────────────────────
 
@@ -1036,7 +1069,7 @@ const IdentityPage: React.FC = () => {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {layers!.growth_edges.shifts.map((shift) => (
+                  {growthEdges!.shifts.map((shift) => (
                     <div key={shift.domain} className="flex items-start gap-3">
                       <span className="px-2 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider flex-shrink-0 mt-0.5" style={growthTypeBadgeStyle(shift.type)}>
                         {shift.domain}
@@ -1221,9 +1254,33 @@ const LoadingSkeleton: React.FC = () => (
   </div>
 );
 
+// ── Generating state ─────────────────────────────────────────────────────
+// audit-2026-06-10: shown while /soul-signature/layers reports generating:true.
+// The query above polls every retryAfter seconds, so this resolves on its own.
+
+const GeneratingState: React.FC<{ message?: string }> = ({ message }) => (
+  <div className="max-w-xl mx-auto px-6 py-20 text-center">
+    <Loader2 className="w-8 h-8 mx-auto mb-4 animate-spin" style={{ color: 'rgba(255,255,255,0.35)' }} />
+    <h2
+      className="text-xl mb-3"
+      style={{
+        fontFamily: "'Instrument Serif', Georgia, serif",
+        fontStyle: 'italic',
+        color: 'var(--foreground)',
+        opacity: 0.8,
+      }}
+    >
+      Reading your signals
+    </h2>
+    <p className="text-sm" style={{ color: 'rgba(255,255,255,0.35)' }}>
+      {message || 'Your soul signature is being generated. This usually takes under a minute.'}
+    </p>
+  </div>
+);
+
 // ── Empty state ──────────────────────────────────────────────────────────
 
-const EmptyState: React.FC = () => {
+const EmptyState: React.FC<{ message?: string }> = ({ message }) => {
   const navigate = useNavigate();
 
   return (
@@ -1241,7 +1298,9 @@ const EmptyState: React.FC = () => {
         I'm still figuring you out
       </h2>
       <p className="text-sm mb-6" style={{ color: 'rgba(255,255,255,0.35)' }}>
-        Connect Spotify, Calendar, or YouTube and I'll build a real picture of you. Usually takes a couple of days.
+        {/* audit-2026-06-10: prefer the backend's precise reason (e.g. "N
+            memories found, minimum 10 required") over the generic claim. */}
+        {message || "Connect Spotify, Calendar, or YouTube and I'll build a real picture of you. Usually takes a couple of days."}
       </p>
       <div className="flex flex-col sm:flex-row gap-3 justify-center">
         <button

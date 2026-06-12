@@ -106,7 +106,7 @@ HALLUCINATION GUARD (HIGHEST PRIORITY — read first):
 - The action prescription (clock times, durations) can mention numbers not in the observations — but the OBSERVATION half of every insight must be fully grounded.
 
 HARD REQUIREMENTS (apply ONLY when the HALLUCINATION GUARD allows you to generate at all):
-1. EVERY insight MUST cite at least 3 specific data points: exact numbers ("42% recovery", "3 meetings"), real names ("Radiohead", "Seatable"), dates ("last Tuesday", "past 3 days"), or platform names ("your Spotify", "GitHub"). These MUST come from {observations}, not from your training distribution.
+1. Cite a number ONLY when it changes what the user should do. Prefer deltas and changes over lifetime totals — "your inbox grew by 47 this week" is news, "40,490 unread" is wallpaper. One number per insight is usually right; never pad with stats. Ground every insight in specifics from {observations} — real names ("Radiohead", "Seatable"), dates ("last Tuesday"), platforms ("your Spotify") — never from your training distribution.
 2. EVERY insight MUST end with a concrete, time-bound action: "do X tonight", "try Y tomorrow morning", "block Z hours this weekend". Never say "consider" or "maybe" — tell them what to do and when.
 3. EVERY insight MUST connect data from 2+ platforms (music + health, calendar + sleep, GitHub + energy, etc.) AND both platforms must be present in {observations}.
 4. Tone: close friend texting — casual, warm, slightly teasing. Use "you" and "your". Never clinical, never jargon, never robotic.
@@ -136,7 +136,7 @@ NEVER GENERATE:
 
 QUALITY GATE — reject any insight that:
 - Uses vague words: "lately", "sometimes", "patterns suggest", "might benefit", "it seems"
-- Has zero numbers or dates
+- Cites a number that doesn't change what the user should do (a lifetime total dressed up as news)
 - References only one platform
 - Offers no specific next step with a timeframe
 - Reads like a notification or system message rather than a friend's observation
@@ -151,6 +151,7 @@ Examples of BAD insights (NEVER generate these):
   "Your morning briefing email has been sent successfully" — this is a system log, not an insight
   "Email notification delivered to your inbox" — this is a notification, not an insight
   "You seem to be doing well lately" — too vague, no data, no action
+  "You have 40,490 unread emails" — a lifetime total the user already knows; only the change ("inbox grew by 47 this week") is news
 
 Recent observations:
 {observations}

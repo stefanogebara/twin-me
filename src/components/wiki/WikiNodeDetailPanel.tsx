@@ -110,7 +110,10 @@ const WikiNodeDetailPanel: React.FC<Props> = ({ selectedNode, onClose }) => {
       setMemories([]);
       try {
         const q = encodeURIComponent(title);
-        const res = await authFetch(`/api/mem0/search?query=${q}&limit=5`);
+        // audit-2026-06-10: authFetch prepends API_URL which already ends in
+        // /api — the old '/api/mem0/...' path resolved to /api/api/mem0/... and
+        // 404'd on every node click.
+        const res = await authFetch(`/mem0/search?query=${q}&limit=5`);
         if (!res.ok) {
           throw new Error(`Search failed (${res.status})`);
         }
@@ -133,8 +136,10 @@ const WikiNodeDetailPanel: React.FC<Props> = ({ selectedNode, onClose }) => {
   }, [title]);
 
   const handleAskTwin = () => {
+    // audit-2026-06-10: TalkToTwin reads ?prefill= (not ?prompt=) — the old
+    // param was silently ignored and the chat opened empty.
     const prompt = encodeURIComponent(`Tell me about ${title} -- what does it say about me?`);
-    navigate(`/talk-to-twin?prompt=${prompt}`);
+    navigate(`/talk-to-twin?prefill=${prompt}`);
   };
 
   return (

@@ -3,19 +3,16 @@ import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useAnalytics } from '../contexts/AnalyticsContext';
 import { API_URL, getAccessToken, authFetch } from '@/services/api/apiBase';
-import { usePlatformStatus } from '../hooks/usePlatformStatus';
-import { usePlatformsSummary } from '@/hooks/usePlatformsSummary';
+import { usePlatformsSummary, isConnected } from '@/hooks/usePlatformsSummary';
 import { useChatSession } from '../hooks/useChatSession';
 import { useToast } from '@/components/ui/use-toast';
-import { SpotifyLogo, GoogleCalendarLogo, YoutubeLogo, DiscordLogo, LinkedinLogo, GithubLogo, RedditLogo, TwitchLogo, WhoopLogo, GmailLogo } from '@/components/PlatformLogos';
+import { SpotifyLogo, GoogleCalendarLogo, YoutubeLogo, DiscordLogo, GithubLogo, WhoopLogo, GmailLogo } from '@/components/PlatformLogos';
 import { ChatEmptyState } from '@/components/chat/ChatEmptyState';
 import { MessageList } from '@/components/chat/MessageList';
 import { ChatInputArea } from '@/components/chat/ChatInputArea';
 import { ChatHeader } from '@/components/chat/ChatHeader';
 import { LimitReachedBanner } from '@/components/chat/LimitReachedBanner';
 import { ContextSidebar } from '@/components/chat/ContextSidebar';
-import { ChatContextSidebar } from '@/components/chat/ChatContextSidebar';
-import { InsightsBanner } from '@/components/chat/InsightsBanner';
 import { ConversationList } from '@/components/chat/ConversationList';
 import { SoulInterview } from '@/components/chat/SoulInterview';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
@@ -105,24 +102,17 @@ const TalkToTwin = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  const {
-    data: platformStatus,
-    connectedCount,
-    isLoading: isLoadingPlatforms
-  } = usePlatformStatus(user?.id);
-  // H1 fix (audit-2026-05-12): canonical source so the chat footer chip
-  // matches /connect, /identity, /wiki and the empty-state copy.
+  // H1 fix (audit-2026-05-12) + batch-3 state unification (audit-2026-06-10):
+  // /platforms/summary is the ONLY platform-state source here — the legacy
+  // /connectors/status hook (divergent expired semantics, side-effecting GET)
+  // is no longer consulted.
   const { data: platformsSummary } = usePlatformsSummary({ enabled: !!user?.id });
-  // audit-2026-05-15 H1: prefer .active (excludes expired/stale connections)
-  // for the canonical "X platforms" chip. The audit found Spotify expired
-  // 16d ago but the count chip kept showing it. Falls back to .total then
-  // local count for older Summary payloads.
-  const canonicalPlatformCount = platformsSummary?.active ?? platformsSummary?.total ?? connectedCount;
-  const { undelivered: pendingInsights, markEngaged } = useProactiveInsights();
+  const { undelivered: pendingInsights } = useProactiveInsights();
+  // replan-2026-06-10 chat declutter: the 'Today' ChatContextSidebar is gone;
+  // this hook now feeds ONLY the empty-state suggestion chips.
   const {
     calendarEvents: sidebarCalendarEvents,
     recentEmails: sidebarRecentEmails,
-    isLoading: isLoadingSidebar,
   } = useSidebarContext(user?.id);
 
   const [messages, setMessages] = useState<Message[]>(loadChatHistory);
@@ -133,22 +123,24 @@ const TalkToTwin = () => {
   );
   const [showContext, setShowContext] = useState(false);
   const [showConversationList, setShowConversationList] = useState(false);
-  const [showRightSidebar, setShowRightSidebar] = useState(false);
   const [showInterview, setShowInterview] = useState(false);
   const [showInterviewChip, setShowInterviewChip] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
 
+  // batch-3 state unification: connected = has a breakdown entry in ANY state
+  // (expired/stale platforms stay in the chat context — the reconnect banner
+  // owns the "fix it" message, not this list). Note: the 'calendar' chat-context
+  // key intentionally differs from the 'google_calendar' summary platform id.
   const platforms = [
-    { name: 'Spotify',   icon: <SpotifyLogo className="w-4 h-4" />,         key: 'spotify',         color: '#1DB954', connected: platformStatus?.spotify?.connected },
-    { name: 'Calendar',  icon: <GoogleCalendarLogo className="w-4 h-4" />,   key: 'calendar',         color: '#4285F4', connected: platformStatus?.google_calendar?.connected },
-    { name: 'YouTube',   icon: <YoutubeLogo className="w-4 h-4" />,          key: 'youtube',          color: '#FF0000', connected: platformStatus?.youtube?.connected },
-    { name: 'Gmail',     icon: <GmailLogo className="w-4 h-4" />,            key: 'google_gmail',     color: '#EA4335', connected: platformStatus?.google_gmail?.connected },
-    { name: 'Discord',   icon: <DiscordLogo className="w-4 h-4" />,          key: 'discord',          color: '#5865F2', connected: platformStatus?.discord?.connected },
-    { name: 'LinkedIn',  icon: <LinkedinLogo className="w-4 h-4" />,         key: 'linkedin',         color: '#0A66C2', connected: platformStatus?.linkedin?.connected },
-    { name: 'GitHub',    icon: <GithubLogo className="w-4 h-4" />,           key: 'github',           color: '#FFFFFF', connected: platformStatus?.github?.connected },
-    { name: 'Reddit',    icon: <RedditLogo className="w-4 h-4" />,           key: 'reddit',           color: '#FF4500', connected: platformStatus?.reddit?.connected },
-    { name: 'Twitch',    icon: <TwitchLogo className="w-4 h-4" />,           key: 'twitch',           color: '#9146FF', connected: platformStatus?.twitch?.connected },
-    { name: 'Whoop',     icon: <WhoopLogo className="w-4 h-4" />,            key: 'whoop',            color: '#00F19F', connected: platformStatus?.whoop?.connected },
+    { name: 'Spotify',   icon: <SpotifyLogo className="w-4 h-4" />,         key: 'spotify',         color: '#1DB954', connected: isConnected(platformsSummary, 'spotify') },
+    { name: 'Calendar',  icon: <GoogleCalendarLogo className="w-4 h-4" />,   key: 'calendar',         color: '#4285F4', connected: isConnected(platformsSummary, 'google_calendar') },
+    { name: 'YouTube',   icon: <YoutubeLogo className="w-4 h-4" />,          key: 'youtube',          color: '#FF0000', connected: isConnected(platformsSummary, 'youtube') },
+    { name: 'Gmail',     icon: <GmailLogo className="w-4 h-4" />,            key: 'google_gmail',     color: '#EA4335', connected: isConnected(platformsSummary, 'google_gmail') },
+    { name: 'Discord',   icon: <DiscordLogo className="w-4 h-4" />,          key: 'discord',          color: '#5865F2', connected: isConnected(platformsSummary, 'discord') },
+    { name: 'GitHub',    icon: <GithubLogo className="w-4 h-4" />,           key: 'github',           color: '#FFFFFF', connected: isConnected(platformsSummary, 'github') },
+    { name: 'Whoop',     icon: <WhoopLogo className="w-4 h-4" />,            key: 'whoop',            color: '#00F19F', connected: isConnected(platformsSummary, 'whoop') },
+    // LinkedIn/Reddit/Twitch removed (replan-2026-06-10 Track C): their OAuth
+    // stacks are retired — leftover connection rows no longer render here.
   ];
 
   const connectedPlatforms = platforms.filter(p => p.connected);
@@ -703,11 +695,9 @@ const TalkToTwin = () => {
           hasMessages={messages.length > 0}
           showContext={showContext}
           showConversationList={showConversationList}
-          showRightSidebar={showRightSidebar}
           onClearChat={handleClearChat}
           onToggleContext={() => setShowContext(!showContext)}
           onToggleConversationList={() => setShowConversationList(prev => !prev)}
-          onToggleRightSidebar={() => setShowRightSidebar(prev => !prev)}
           onBack={() => navigate(-1)}
         />
 
@@ -720,7 +710,6 @@ const TalkToTwin = () => {
               platforms={platforms}
               onQuickAction={handleQuickAction}
               onSendMessage={handleSendMessage}
-              insightsCount={pendingInsights.length}
               showInterviewChip={showInterviewChip}
               onStartInterview={() => setShowInterview(true)}
               // audit-2026-05-13 L1: pass today's signals so the empty-state
@@ -766,38 +755,20 @@ const TalkToTwin = () => {
           isTyping={isTyping}
           isDisabled={limitReached}
           limitReached={limitReached}
-          hasConnectedPlatforms={connectedPlatforms.length > 0}
           chatUsage={chatUsage}
           ghostSuggestion={ghostSuggestion}
         />
       </div>
 
+      {/* replan-2026-06-10 chat declutter: the 'Today' ChatContextSidebar
+          (weather/calendar/emails/insights/stats) was deleted — it duplicated
+          DashboardV2 item-for-item and its signals already feed the chips. */}
       <ContextSidebar
         showContext={showContext}
         onClose={() => setShowContext(false)}
         platforms={platforms}
-        connectedPlatforms={connectedPlatforms}
         contextItems={contextItems}
         isLoadingContext={isLoadingContext}
-        connectedCount={connectedCount}
-        messageCount={messages.filter(m => !m.failed).length}
-      />
-
-      <ChatContextSidebar
-        calendarEvents={sidebarCalendarEvents}
-        recentEmails={sidebarRecentEmails}
-        isLoadingSidebar={isLoadingSidebar}
-        insights={
-          [...messages]
-            .reverse()
-            .find(m => m.role === 'assistant' && m.contextUsed?.proactiveInsights?.length)
-            ?.contextUsed?.proactiveInsights ?? []
-        }
-        platformCount={canonicalPlatformCount}
-        messageCount={messages.filter(m => !m.failed).length}
-        onMorningBriefing={() => handleQuickAction('Give me my morning briefing')}
-        mobileOpen={showRightSidebar}
-        onCloseMobile={() => setShowRightSidebar(false)}
       />
 
       {/* Soul Interview overlay */}

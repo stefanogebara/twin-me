@@ -23,6 +23,25 @@ const log = createLogger('CronMorningBriefing');
 const router = express.Router();
 
 /**
+ * Strip a leading greeting from an LLM-generated briefing section.
+ *
+ * audit-2026-06-10: sections sometimes open with their own greeting
+ * ("Morning Stefano. ..."), which doubled up with the prepended b.greeting
+ * ("Good morning, Stefano. Morning Stefano. ..."). Deliberately
+ * case-SENSITIVE on the no-comma addressee: a greeting is the time-of-day
+ * word followed by at most a capitalized name then ./! ("Morning Stefano."),
+ * while legitimate content continues lowercase ("Morning meetings dominate
+ * your week.") and must NOT be stripped. Exported for tests.
+ */
+export const stripLeadingGreeting = (s) =>
+  typeof s === 'string'
+    ? s.replace(
+        /^\s*(?:[Gg]ood\s+)?(?:[Mm]orning|[Aa]fternoon|[Ee]vening)(?:,\s*[A-Za-z][\w'-]*|\s+[A-Z][\w'-]*)?\s*[.!]\s*/,
+        ''
+      )
+    : s;
+
+/**
  * Generate a plain-text morning briefing for WhatsApp/Telegram delivery.
  * Reads cached structured briefing from morning_briefing_cache if available,
  * otherwise falls back to a simple LLM-composed text.
@@ -43,10 +62,10 @@ async function generateBriefingText(userId) {
   if (cached?.metadata?.briefing) {
     const b = cached.metadata.briefing;
     const parts = [b.greeting || 'Good morning'];
-    if (b.schedule_summary) parts.push(b.schedule_summary);
-    if (b.rest) parts.push(b.rest);
-    if (b.music) parts.push(b.music);
-    if (b.suggestion) parts.push(b.suggestion);
+    if (b.schedule_summary) parts.push(stripLeadingGreeting(b.schedule_summary));
+    if (b.rest) parts.push(stripLeadingGreeting(b.rest));
+    if (b.music) parts.push(stripLeadingGreeting(b.music));
+    if (b.suggestion) parts.push(stripLeadingGreeting(b.suggestion));
     return parts.filter(Boolean).join(' ');
   }
 

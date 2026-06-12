@@ -464,6 +464,10 @@ export async function createEvent(userId, { summary, description, start, end, at
       summary,
       description: description || undefined,
       location: location || undefined,
+      // Every agent/department calendar write goes through this function.
+      // Tag it so meeting prep never briefs the agent's own blocks
+      // (replan-2026-06-10: prep briefed a self-created "Deep Work" block).
+      extendedProperties: { private: { twinme_origin: 'agent' } },
       start: typeof start === 'string'
         ? (start.length <= 10 ? { date: start } : { dateTime: start, timeZone: tz })
         : start,

@@ -46,9 +46,6 @@ vi.mock('../../../api/services/database.js', () => {
 vi.mock('../../../api/services/redisClient.js', () => ({
   getRedisClient: vi.fn().mockReturnValue(null),
   isRedisAvailable: vi.fn().mockReturnValue(false),
-  getCachedPlatformStatus: vi.fn().mockResolvedValue(null),
-  setCachedPlatformStatus: vi.fn().mockResolvedValue(undefined),
-  invalidatePlatformStatusCache: vi.fn().mockResolvedValue(undefined),
   get: vi.fn().mockResolvedValue(null),
   set: vi.fn().mockResolvedValue(undefined),
   del: vi.fn().mockResolvedValue(undefined),

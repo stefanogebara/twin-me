@@ -10,7 +10,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { API_URL, getAccessToken } from '@/services/api/apiBase';
 import { FeedbackWidget } from './FeedbackWidget';
-import { usePlatformStatus } from '../hooks/usePlatformStatus';
+import { usePlatformsSummary, isConnected, needsReconnect } from '@/hooks/usePlatformsSummary';
 import {
   Activity,
   Calendar,
@@ -102,14 +102,16 @@ export const TodayInsights: React.FC = () => {
   const navigate = useNavigate();
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  // Get real platform status to check token expiry
-  const { data: platformStatus, isLoading: platformStatusLoading } = usePlatformStatus(user?.id);
+  // batch-3 state unification (audit-2026-06-10): canonical platform state.
+  // isPending (not isLoading) so a disabled query — user id not resolved yet —
+  // also suppresses the "Connect X" rows instead of flashing them.
+  const { data: platformsSummary, isPending: platformStatusLoading } =
+    usePlatformsSummary({ enabled: !!user?.id });
 
-  // Helper to check if platform is truly active (connected AND token not expired)
-  const isPlatformActive = (platform: string) => {
-    const status = platformStatus[platform];
-    return status?.connected && !status?.tokenExpired && status?.status !== 'token_expired';
-  };
+  // Connected in ANY state (incl. expired/stale) counts as connected here:
+  // a connected-but-expired platform gets the reconnect banner elsewhere,
+  // never a "Connect X" pitch from this component.
+  const isPlatformActive = (platform: string) => isConnected(platformsSummary, platform);
 
   const { data, isLoading, error, refetch, isFetching } = useQuery<TodayInsightsResponse>({
     queryKey: ['today-insights'],
@@ -277,22 +279,25 @@ export const TodayInsights: React.FC = () => {
           const SpotifyIcon = getPlatformLogo('spotify') || Music;
           return (
             <>
+              {/* Genuine auth failure (state === 'expired') outranks the
+                  connected check so real failures stay visible; stale never
+                  shows amber (batch-3 state unification). */}
               <span className="flex items-center gap-1">
                 <CalendarIcon className="w-3 h-3" />
-                Calendar {isPlatformActive('google_calendar') ? (
+                Calendar {needsReconnect(platformsSummary, 'google_calendar') ? (
+                  <AlertCircle className="w-3 h-3 text-amber-500" title="Needs reconnection" />
+                ) : isPlatformActive('google_calendar') ? (
                   <CheckCircle className="w-3 h-3 text-green-500" />
-                ) : platformStatus['google_calendar']?.tokenExpired ? (
-                  <AlertCircle className="w-3 h-3 text-amber-500" title="Token expired" />
                 ) : (
                   <AlertCircle className="w-3 h-3 text-[#D4CBBE]" />
                 )}
               </span>
               <span className="flex items-center gap-1">
                 <SpotifyIcon className="w-3 h-3" />
-                Spotify {isPlatformActive('spotify') ? (
+                Spotify {needsReconnect(platformsSummary, 'spotify') ? (
+                  <AlertCircle className="w-3 h-3 text-amber-500" title="Needs reconnection" />
+                ) : isPlatformActive('spotify') ? (
                   <CheckCircle className="w-3 h-3 text-green-500" />
-                ) : platformStatus['spotify']?.tokenExpired ? (
-                  <AlertCircle className="w-3 h-3 text-amber-500" title="Token expired" />
                 ) : (
                   <AlertCircle className="w-3 h-3 text-[#D4CBBE]" />
                 )}

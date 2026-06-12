@@ -66,7 +66,6 @@ const CalendarInsightsPage = lazy(() => import("./pages/insights/CalendarInsight
 const YouTubeInsightsPage = lazy(() => import("./pages/insights/YouTubeInsightsPage"));
 const WebBrowsingInsightsPage = lazy(() => import("./pages/insights/WebBrowsingInsightsPage"));
 const DiscordInsightsPage = lazy(() => import("./pages/insights/DiscordInsightsPage"));
-const LinkedInInsightsPage = lazy(() => import("./pages/insights/LinkedInInsightsPage"));
 const PrivacySpectrumDashboard = lazy(() => import("./pages/PrivacySpectrumDashboard"));
 const MemoryHealth = lazy(() => import("./pages/MemoryHealth"));
 const EvalDashboard = lazy(() => import("./pages/EvalDashboard"));
@@ -77,6 +76,7 @@ const WikiPage = lazy(() => import("./pages/WikiGraphPage"));
 const GoalsPage = lazy(() => import("./pages/GoalsPage"));
 const MoneyPage = lazy(loadMoneyPage);
 const MoneyInsightsPage = lazy(loadMoneyInsightsPage);
+const BriefingPage = lazy(() => import("./pages/BriefingPage"));
 const MeetingsPage = lazy(() => import("./pages/MeetingsPage"));
 const TwinSoulPage = lazy(() => import("./pages/TwinSoulPage"));
 const PricingPage = lazy(() => import("./pages/PricingPage"));
@@ -191,6 +191,17 @@ const App = () => {
                 </SidebarLayout>
               </ProtectedRoute>
             } />
+            {/* Daily Brief — deep-link target for the desktop morning toast
+                (replan-2026-06-10 desktop-product P2). */}
+            <Route path="/briefing" element={
+              <ProtectedRoute>
+                <SidebarLayout>
+                  <ErrorBoundary>
+                    <BriefingPage />
+                  </ErrorBoundary>
+                </SidebarLayout>
+              </ProtectedRoute>
+            } />
             {/* Twin Insight Pages */}
             <Route path="/insights/spotify" element={
               <ProtectedRoute>
@@ -237,16 +248,6 @@ const App = () => {
                 </SidebarLayout>
               </ProtectedRoute>
             } />
-            <Route path="/insights/linkedin" element={
-              <ProtectedRoute>
-                <SidebarLayout>
-                  <ErrorBoundary>
-                    <LinkedInInsightsPage />
-                  </ErrorBoundary>
-                </SidebarLayout>
-              </ProtectedRoute>
-            } />
-
             {/* Soul Signature → redirect to Identity (canonical "Who You Are" page) */}
             <Route path="/soul-signature" element={<Navigate to="/identity" replace />} />
             <Route path="/me" element={<Navigate to="/identity" replace />} />

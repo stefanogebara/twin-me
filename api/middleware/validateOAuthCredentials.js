@@ -42,21 +42,8 @@ export function validateOAuthCredentials() {
       optional: [],
       name: 'Google (YouTube, Gmail, Calendar)'
     },
-    slack: {
-      required: ['SLACK_CLIENT_ID', 'SLACK_CLIENT_SECRET'],
-      optional: [],
-      name: 'Slack'
-    },
-    linkedin: {
-      required: ['LINKEDIN_CLIENT_ID', 'LINKEDIN_CLIENT_SECRET'],
-      optional: [],
-      name: 'LinkedIn'
-    },
-    reddit: {
-      required: ['REDDIT_CLIENT_ID', 'REDDIT_CLIENT_SECRET'],
-      optional: [],
-      name: 'Reddit'
-    }
+    // slack, linkedin and reddit entries removed (replan-2026-06-10 Track C
+    // portfolio cut) — their OAuth connect stacks no longer exist.
   };
 
   log.info('Validating OAuth credentials');

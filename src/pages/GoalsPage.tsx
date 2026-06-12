@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { ChevronLeft, Plus, Check } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
@@ -262,19 +263,34 @@ export default function GoalsPage() {
     return () => { cancelled = true; };
   }, [loading, isSignedIn, hasTriedGeneration, active.length, suggestions.length]);
 
+  // audit-2026-06-10: these three had no error handling — a failed accept/
+  // dismiss/complete was an unhandled rejection with zero user feedback (the
+  // button un-disabled and the card just stayed put).
   async function handleComplete(id: string) {
-    await completeGoal(id);
-    await load();
+    try {
+      await completeGoal(id);
+      await load();
+    } catch {
+      toast.error('Could not complete the goal. Please try again.');
+    }
   }
 
   async function handleAccept(id: string) {
-    await acceptGoal(id);
-    await load();
+    try {
+      await acceptGoal(id);
+      await load();
+    } catch {
+      toast.error('Could not accept the goal. Please try again.');
+    }
   }
 
   async function handleDismiss(id: string) {
-    await dismissGoal(id);
-    setSuggestions(prev => prev.filter(g => g.id !== id));
+    try {
+      await dismissGoal(id);
+      setSuggestions(prev => prev.filter(g => g.id !== id));
+    } catch {
+      toast.error('Could not dismiss the goal. Please try again.');
+    }
   }
 
   async function handleAdd() {
@@ -288,6 +304,7 @@ export default function GoalsPage() {
       await load();
     } catch (err) {
       console.error('Failed to create goal:', err);
+      toast.error('Could not create the goal. Please try again.');
     } finally {
       setAdding(false);
     }

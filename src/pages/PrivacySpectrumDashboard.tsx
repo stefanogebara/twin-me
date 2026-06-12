@@ -243,12 +243,20 @@ const PrivacySpectrumDashboard: React.FC = () => {
 
   const currentGlobal = globalLevel ?? settings?.global_privacy ?? 50;
 
+  // audit-2026-06-10: success toasts used to fire synchronously BEFORE the
+  // mutation settled, and no mutation had an onError — failed saves looked
+  // successful and silently reverted on next load. Toast on actual outcomes.
   const handleGlobalCommit = useCallback(
     (values: number[]) => {
       const level = values[0];
       setGlobalLevel(level);
-      updateSettings({ globalPrivacy: level } as Parameters<typeof updateSettings>[0]);
-      toast.success(`Global privacy set to ${level}%`);
+      updateSettings({ globalPrivacy: level } as Parameters<typeof updateSettings>[0], {
+        onSuccess: () => toast.success(`Global privacy set to ${level}%`),
+        onError: () => {
+          setGlobalLevel(null);
+          toast.error('Could not save your privacy level. Please try again.');
+        },
+      });
     },
     [updateSettings]
   );
@@ -256,22 +264,33 @@ const PrivacySpectrumDashboard: React.FC = () => {
   const handlePresetApply = useCallback(
     (level: number) => {
       setGlobalLevel(level);
-      updateSettings({ globalPrivacy: level } as Parameters<typeof updateSettings>[0]);
-      toast.success(`Privacy level set to ${level}%`);
+      updateSettings({ globalPrivacy: level } as Parameters<typeof updateSettings>[0], {
+        onSuccess: () => toast.success(`Privacy level set to ${level}%`),
+        onError: () => {
+          setGlobalLevel(null);
+          toast.error('Could not apply the preset. Please try again.');
+        },
+      });
     },
     [updateSettings]
   );
 
   const handleClusterPrivacy = useCallback(
     (clusterId: string, value: number) => {
-      updateClusterPrivacy({ clusterId, privacyLevel: value });
+      updateClusterPrivacy(
+        { clusterId, privacyLevel: value },
+        { onError: () => toast.error('Could not save the cluster privacy level.') }
+      );
     },
     [updateClusterPrivacy]
   );
 
   const handleClusterToggle = useCallback(
     (clusterId: string, enabled: boolean) => {
-      toggleCluster({ clusterId, enabled });
+      toggleCluster(
+        { clusterId, enabled },
+        { onError: () => toast.error('Could not toggle the cluster.') }
+      );
     },
     [toggleCluster]
   );
@@ -279,11 +298,15 @@ const PrivacySpectrumDashboard: React.FC = () => {
   const handleActivateTwin = useCallback(
     (twinId: string) => {
       if (activeTwin?.id === twinId) {
-        deactivateAllTwins(undefined);
-        toast.success('Twin deactivated');
+        deactivateAllTwins(undefined, {
+          onSuccess: () => toast.success('Twin deactivated'),
+          onError: () => toast.error('Could not deactivate the twin. Please try again.'),
+        });
       } else {
-        activateTwin(twinId);
-        toast.success('Twin activated');
+        activateTwin(twinId, {
+          onSuccess: () => toast.success('Twin activated'),
+          onError: () => toast.error('Could not activate the twin. Please try again.'),
+        });
       }
     },
     [activeTwin, activateTwin, deactivateAllTwins]

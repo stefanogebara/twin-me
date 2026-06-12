@@ -76,6 +76,9 @@ export interface InsightsResponse {
     energy: number;
     valence: number;
   };
+  // True when the user hasn't connected the platform — the backend then returns
+  // `reflection` as a plain string placeholder, not a Reflection object (audit-2026-06-10).
+  notConnected?: boolean;
   error?: string;
 }
 

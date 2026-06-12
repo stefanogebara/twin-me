@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { authFetch } from '@/services/api/apiBase';
 import { usePlatformsSummary } from '@/hooks/usePlatformsSummary';
+import { computeSoulScore, computeDomainScore, deriveAxesCount } from '@/lib/soulScoring';
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -70,28 +71,6 @@ function getQualitativeLabel(score: number): { text: string; color: string } {
   if (score > 75) return { text: 'Deep', color: '#22c55e' };
   if (score >= 40) return { text: 'Growing', color: '#f59e0b' };
   return { text: 'New', color: 'rgba(255,255,255,0.35)' };
-}
-
-function computeSoulScore(
-  platformCount: number,
-  memoryCount: number,
-  axesCount: number,
-  multimodalCount: number,
-): number {
-  return Math.round(
-    (Math.min(platformCount, 10) / 10) * 25 +
-    (memoryCount > 1000 ? 25 : (memoryCount / 1000) * 25) +
-    (axesCount > 0 ? 25 : 0) +
-    (Math.min(multimodalCount, 4) / 4) * 25,
-  );
-}
-
-function computeDomainScore(connected: boolean, memoryCount: number): number {
-  if (!connected) return 0;
-  if (memoryCount > 500) return 85;
-  if (memoryCount > 200) return 65;
-  if (memoryCount > 50) return 45;
-  return 25;
 }
 
 /* ------------------------------------------------------------------ */
@@ -310,21 +289,17 @@ const SoulScore: React.FC<SoulScoreProps> = ({ className = '', compact = false }
   //   audit-2026-05-12 M5 fix: previously a 100% score was possible even with
   //   every platform stale or expired.
   const connectedPlatforms = Object.keys(connectors || {}).map((k) => k.toLowerCase());
-  const platformCount = connectedPlatforms.length;
-  const activeCount = platformsSummary?.active ?? platformCount;
-  const totalCount = platformsSummary?.total ?? platformCount;
+  const activeCount = platformsSummary?.active ?? 0;
   const memoryCount = memorySummary?.total ?? 0;
-  // Axes: assume present if user has connected platforms (ICA runs after extraction)
-  const axesCount = platformCount > 0 ? 1 : 0;
-  // Multimodal: count distinct platform categories (proxy by ACTIVE platform count, cap at 4)
-  const multimodalCount = Math.min(activeCount, 4);
 
-  // Score uses active (not total) so stale/expired platforms don't pad it.
-  const rawScore = computeSoulScore(activeCount, memoryCount, axesCount, multimodalCount);
-  // M5: if ANY connected platform is stale or expired, cap at 95% — a perfect
-  // score should only be reachable when every connected platform is fresh.
-  const hasUnhealthy = totalCount > 0 && activeCount < totalCount;
-  const score = hasUnhealthy ? Math.min(rawScore, 95) : rawScore;
+  // Shared formula (src/lib/soulScoring.ts) — active-only numerator + M5
+  // 95-cap when any connected platform is stale/expired. Same number as the
+  // onboarding SoulRichnessBar (batch-3 step 6).
+  const score = computeSoulScore({
+    summary: platformsSummary,
+    memoryCount,
+    axesCount: deriveAxesCount(platformsSummary),
+  });
   const connectedSet = new Set(connectedPlatforms);
 
   return (
@@ -352,7 +327,10 @@ const SoulScore: React.FC<SoulScoreProps> = ({ className = '', compact = false }
           className="text-[13px]"
           style={{ fontFamily: "'Inter', sans-serif", color: 'rgba(255,255,255,0.35)' }}
         >
-          Identity richness across {platformCount} source{platformCount !== 1 ? 's' : ''}
+          {/* Sources = ACTIVELY syncing platforms (summary.active), matching the
+              score numerator — total counted expired/stale rows ("10 sources" bug,
+              batch-3 display convention). */}
+          Identity richness across {activeCount} source{activeCount !== 1 ? 's' : ''}
         </p>
       </div>
 

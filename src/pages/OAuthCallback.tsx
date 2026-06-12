@@ -73,6 +73,9 @@ const OAuthCallback = () => {
         }
 
         if (error) {
+          // Drop the soul-reveal connect marker on provider denial/error so a later
+          // /soul-reveal visit doesn't falsely show the platform as connected (audit-2026-06-10)
+          sessionStorage.removeItem('onboarding_platform_connect');
           setStatus('error');
           setMessage(`Authentication failed: ${error}`);
           // Delay showing error to prevent transient 401 flash
@@ -346,9 +349,16 @@ const OAuthCallback = () => {
               } else {
                 // If we came from the onboarding flow, return there
                 const fromOnboarding = sessionStorage.getItem('onboarding_platform_step');
+                // Soul-reveal flow (PlatformConnectStep) uses its own key; intentionally NOT
+                // removed here — the step consumes it on remount to mark the platform
+                // connected and NewDiscoverFlow uses it to resume at the platforms phase
+                // (audit-2026-06-10)
+                const fromSoulReveal = sessionStorage.getItem('onboarding_platform_connect');
                 if (fromOnboarding) {
                   sessionStorage.removeItem('onboarding_platform_step');
                   window.location.href = '/onboarding?step=platform&connected=' + connectedProvider;
+                } else if (fromSoulReveal) {
+                  window.location.href = '/soul-reveal';
                 } else {
                   window.location.href = '/connect?connected=true&provider=' + connectedProvider;
                 }
@@ -550,6 +560,10 @@ const OAuthCallback = () => {
           const processedKey = `oauth_processed_${code.substring(0, 32)}`;
           sessionStorage.removeItem(processedKey);
         }
+
+        // Drop the soul-reveal connect marker so a later /soul-reveal visit doesn't
+        // falsely show the platform as connected (audit-2026-06-10)
+        sessionStorage.removeItem('onboarding_platform_connect');
 
         setStatus('error');
         setMessage('Connection failed. Please try again.');

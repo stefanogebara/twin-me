@@ -65,6 +65,64 @@ const log = createLogger('ReflectionEngine');
 const DEDUP_COSINE_THRESHOLD = 0.80;
 const DEDUP_BIGRAM_THRESHOLD = 0.65;
 
+// replan-2026-06-10 Track B: CULTURE and SOCIAL experts shipped the same
+// sentence because dedup only looked within one expert's reflections. Looser
+// than the same-expert threshold — different domains legitimately describe
+// adjacent facets of the same person.
+const CROSS_EXPERT_COSINE_THRESHOLD = 0.90;
+
+// replan-2026-06-10 Track B: hourly re-runs on an unchanged evidence window
+// stored the same thesis twice in one evening (9/10 identical evidence IDs).
+// Skip the whole expert run when overlap with its previous run exceeds this.
+const EVIDENCE_OVERLAP_SKIP_THRESHOLD = 0.80;
+
+/**
+ * Fraction of the current run's evidence IDs already cited by the previous run.
+ * Tolerant by design: missing/empty inputs score 0 (never block a run on
+ * absent data — older reflections may predate evidence_memory_ids storage).
+ */
+function evidenceOverlapRatio(previousIds, currentIds) {
+  if (!Array.isArray(previousIds) || previousIds.length === 0) return 0;
+  if (!Array.isArray(currentIds) || currentIds.length === 0) return 0;
+  const previous = new Set(previousIds);
+  let shared = 0;
+  for (const id of currentIds) {
+    if (previous.has(id)) shared++;
+  }
+  return shared / currentIds.length;
+}
+
+/** True when the expert run should be skipped: evidence overlap strictly above 80%. */
+function shouldSkipExpertRun(previousIds, currentIds) {
+  return evidenceOverlapRatio(previousIds, currentIds) > EVIDENCE_OVERLAP_SKIP_THRESHOLD;
+}
+
+/**
+ * Evidence IDs cited by this expert's most recent reflection, or null.
+ * Reads metadata.evidence_memory_ids with grounding_ids as fallback —
+ * both written by addReflection().
+ */
+async function getPreviousRunEvidenceIds(userId, expertId) {
+  try {
+    const { data } = await supabaseAdmin
+      .from('user_memories')
+      .select('metadata, grounding_ids')
+      .eq('user_id', userId)
+      .eq('memory_type', 'reflection')
+      .filter('metadata->>expert', 'eq', expertId)
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    const row = data?.[0];
+    if (!row) return null;
+    const ids = row.metadata?.evidence_memory_ids || row.grounding_ids;
+    return Array.isArray(ids) && ids.length > 0 ? ids : null;
+  } catch (err) {
+    log.warn('Previous-run evidence fetch failed (non-fatal)', { error: err });
+    return null; // tolerant: no data means no skip
+  }
+}
+
 /** Dot-product cosine similarity between two equal-length float arrays. */
 function cosineSim(a, b) {
   let dot = 0, normA = 0, normB = 0;
@@ -110,33 +168,37 @@ function bigramSimilarity(a, b) {
 }
 
 /**
- * Returns true if a semantically similar reflection already exists for this expert.
+ * Returns true if a semantically similar reflection already exists for this user.
  *
- * Primary: cosine similarity on stored embeddings (threshold 0.85).
+ * Scope is ALL the user's reflections, not just this expert's (replan-2026-06-10
+ * Track B — cross-expert duplicates were invisible to the per-expert filter):
+ * - same expert:  cosine > 0.80, bigram Jaccard > 0.65 (unchanged thresholds)
+ * - other expert: cosine > 0.90
+ *
  * The new observation's embedding is generated here and cached — addMemory() will
  * re-request it and hit the in-memory cache, so no duplicate API call.
- *
- * Fallback: bigram Jaccard (threshold 0.72) when no embeddings are stored yet.
  */
 async function isDuplicateReflection(userId, expertId, newObservation) {
   try {
     const { data } = await supabaseAdmin
       .from('user_memories')
-      .select('content, embedding')
+      .select('content, embedding, metadata')
       .eq('user_id', userId)
       .eq('memory_type', 'reflection')
-      .filter('metadata->>expert', 'eq', expertId)
       .order('created_at', { ascending: false })
-      .limit(50);
+      .limit(100);
 
     if (!data || data.length === 0) return false;
 
-    // Cheap check first: bigram Jaccard on all rows (no API call needed)
+    // Cheap check first: bigram Jaccard on same-expert rows (no API call needed)
     // Catches obvious duplicates without paying for an embedding
-    const bigramMax = Math.max(...data.map(r => bigramSimilarity(newObservation, r.content)));
-    if (bigramMax > DEDUP_BIGRAM_THRESHOLD) {
-      log.info('Dedup skip (bigram)', { expertId, similarity: bigramMax.toFixed(2), threshold: DEDUP_BIGRAM_THRESHOLD });
-      return true;
+    const sameExpertRows = data.filter(r => r.metadata?.expert === expertId);
+    if (sameExpertRows.length > 0) {
+      const bigramMax = Math.max(...sameExpertRows.map(r => bigramSimilarity(newObservation, r.content)));
+      if (bigramMax > DEDUP_BIGRAM_THRESHOLD) {
+        log.info('Dedup skip (bigram)', { expertId, similarity: bigramMax.toFixed(2), threshold: DEDUP_BIGRAM_THRESHOLD });
+        return true;
+      }
     }
 
     // Cosine path: only pay for embedding when bigram didn't catch it
@@ -147,9 +209,11 @@ async function isDuplicateReflection(userId, expertId, newObservation) {
         for (const row of rowsWithEmbeddings) {
           const existingVec = parseEmbedding(row.embedding);
           if (!existingVec) continue;
+          const sameExpert = row.metadata?.expert === expertId;
+          const threshold = sameExpert ? DEDUP_COSINE_THRESHOLD : CROSS_EXPERT_COSINE_THRESHOLD;
           const sim = cosineSim(newVec, existingVec);
-          if (sim > DEDUP_COSINE_THRESHOLD) {
-            log.info('Dedup skip (cosine)', { expertId, similarity: sim.toFixed(3), threshold: DEDUP_COSINE_THRESHOLD });
+          if (sim > threshold) {
+            log.info('Dedup skip (cosine)', { expertId, sameExpert, similarity: sim.toFixed(3), threshold });
             return true;
           }
         }
@@ -449,6 +513,22 @@ async function runExpertAnalysis(userId, expert, formattedObservations, depth, i
   try {
     // Retrieve domain-relevant memories via vector search (reflection weights: relevance dominant, no recency bias)
     const domainMemories = await retrieveMemories(userId, expert.retrievalQuery, 10, 'reflection');
+    const evidenceIds = domainMemories.map(m => m.id);
+
+    // replan-2026-06-10 Track B: re-running an expert on an essentially unchanged
+    // evidence window re-derives the same thesis in new words. Skip the run (and
+    // its LLM spend) when >80% of this evidence was already cited last run.
+    if (evidenceIds.length > 0) {
+      const previousEvidenceIds = await getPreviousRunEvidenceIds(userId, expert.id);
+      if (shouldSkipExpertRun(previousEvidenceIds, evidenceIds)) {
+        log.info('Expert run skipped — evidence window unchanged since previous run', {
+          expert: expert.id,
+          overlap: evidenceOverlapRatio(previousEvidenceIds, evidenceIds).toFixed(2),
+          threshold: EVIDENCE_OVERLAP_SKIP_THRESHOLD,
+        });
+        return [];
+      }
+    }
 
     const evidence = domainMemories.length > 0
       ? domainMemories
@@ -496,7 +576,6 @@ async function runExpertAnalysis(userId, expert, formattedObservations, depth, i
 
     // Store each observation as a reflection
     const stored = [];
-    const evidenceIds = domainMemories.map(m => m.id);
 
     // S3.5: Reasoning string for the proposition reasoning column
     const reasoning = `${expert.name} analyzed ${domainMemories.length} domain-specific memories to identify ${expert.retrievalQuery.split(',')[0].trim()} patterns.`;
@@ -825,4 +904,8 @@ export {
   shouldTriggerReflection,
   seedReflections,
   EXPERT_PERSONAS,
+  // Exported for unit tests of the dedup threshold decisions (replan-2026-06-10)
+  isDuplicateReflection,
+  evidenceOverlapRatio,
+  shouldSkipExpertRun,
 };

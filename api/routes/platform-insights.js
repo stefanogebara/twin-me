@@ -46,6 +46,16 @@ function withTimeout(promise, ms = INSIGHTS_TIMEOUT_MS) {
 // background instead of blocking the request).
 const WARM_TIMEOUT_MS = 12_000;
 
+// Transient = a `withTimeout` deadline fired (the reflection cache is warm or
+// being warmed, a retry will likely succeed), so the client should keep its
+// `generating` poll loop. Anything else is a persistent failure that must be
+// reported honestly — audit-2026-06-10: persistent errors masqueraded as
+// `generating: true`, forcing the client to poll 90s before a fake empty state.
+// Exported for tests.
+export function isTransientInsightsError(err) {
+  return /timed out/i.test(err?.message || '');
+}
+
 // Cold-path peek: how long to wait on a fresh generation before giving up and
 // returning `generating: true`. Long enough to return fast results inline (a
 // no-data short-circuit, or a quick generation) so connected-but-empty platforms
@@ -64,7 +74,9 @@ function isInsightGenerating(key) {
 }
 
 // Valid platforms
-const VALID_PLATFORMS = ['spotify', 'calendar', 'youtube', 'web', 'discord', 'linkedin'];
+// linkedin removed (replan-2026-06-10 Track C): the /insights/linkedin page
+// was deleted with the LinkedIn OAuth stack, so nothing requests it anymore.
+const VALID_PLATFORMS = ['spotify', 'calendar', 'youtube', 'web', 'discord'];
 
 // Map URL platform names to database platform names
 // Calendar is stored as 'google_calendar' in platform_connections
@@ -789,21 +801,51 @@ router.get('/:platform', authenticateUser, async (req, res) => {
     // Map URL platform name to DB name (e.g. 'calendar' -> 'google_calendar')
     const dbPlatformName = PLATFORM_DB_NAMES[platform] || platform;
 
-    const { data: connection, error: connErr } = await supabaseAdmin
-      .from('platform_connections')
-      .select('id')
-      .eq('user_id', userId)
-      .eq('platform', dbPlatformName)
-      .single();
-    if (connErr && connErr.code !== 'PGRST116') log.error('Connection fetch error', { error: connErr });
+    if (platform === 'web') {
+      // No OAuth flow ever creates a platform_connections row for 'web' — the
+      // browser extension writes captured events straight to user_platform_data
+      // (see ingestWebObservations), so data presence is the real "connected"
+      // signal (audit-2026-06-10).
+      const { data: webRows, error: webErr } = await supabaseAdmin
+        .from('user_platform_data')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('platform', 'web')
+        .limit(1);
+      if (webErr) log.error('Web data presence check error', { error: webErr });
 
-    if (!connection) {
-      return res.json({
-        success: true,
-        platform,
-        reflection: `You haven't connected ${platform} yet. Connect it to get personalized insights!`,
-        notConnected: true
-      });
+      if (!webErr && (!webRows || webRows.length === 0)) {
+        // hasExtensionData:false drives the extension-install CTA on
+        // WebBrowsingInsightsPage instead of a bogus "Connect web" state.
+        return res.json({ success: true, platform, hasExtensionData: false });
+      }
+    } else {
+      const { data: connection, error: connErr } = await supabaseAdmin
+        .from('platform_connections')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('platform', dbPlatformName)
+        .single();
+      if (connErr && connErr.code !== 'PGRST116') log.error('Connection fetch error', { error: connErr });
+
+      if (!connection) {
+        return res.json({
+          success: true,
+          platform,
+          reflection: `You haven't connected ${platform} yet. Connect it to get personalized insights!`,
+          notConnected: true
+        });
+      }
+    }
+
+    // A generation/refresh for this user+platform is already in flight. Must be
+    // checked BEFORE the warm-cache path: after POST /refresh the old reflection
+    // row is still unexpired, so the warm path would re-serve the stale
+    // reflection and the client would never poll for the fresh one
+    // (audit-2026-06-10: refresh was a silent no-op while the cache was warm).
+    const lockKey = `${userId}:${platform}`;
+    if (isInsightGenerating(lockKey)) {
+      return res.json({ success: true, platform, generating: true });
     }
 
     // Cache-first. Cold generation (context + platform data + LLM) can exceed the
@@ -823,11 +865,6 @@ router.get('/:platform', authenticateUser, async (req, res) => {
     //   - settles fast without data -> connected-but-empty: show empty state NOW
     //   - still pending past peek   -> `generating: true`; the background job
     //                                  finishes and warms the cache for the next poll
-    const lockKey = `${userId}:${platform}`;
-    if (isInsightGenerating(lockKey)) {
-      return res.json({ success: true, platform, generating: true });
-    }
-
     insightsGenerating.set(lockKey, Date.now());
     const genPromise = platformReflectionService.getReflections(userId, platform);
     genPromise
@@ -839,6 +876,17 @@ router.get('/:platform', authenticateUser, async (req, res) => {
       new Promise(resolve => setTimeout(() => resolve({ kind: 'pending' }), COLD_PEEK_MS)),
     ]);
 
+    if (raced.kind === 'failed') {
+      // Generation threw outright — non-transient. Flag it honestly instead of
+      // `generating: true`, which forced the client to poll for 90s before
+      // rendering a fake empty/connect state (audit-2026-06-10).
+      return res.json({
+        success: false,
+        platform,
+        error: true,
+        message: 'Your twin hit a problem generating these insights. Please try again.',
+      });
+    }
     if (raced.kind === 'settled' && raced.result?.success) {
       return res.json(raced.result);
     }
@@ -858,9 +906,20 @@ router.get('/:platform', authenticateUser, async (req, res) => {
     return res.json({ success: true, platform, generating: true });
   } catch (error) {
     log.error('Platform insights error', { platform, error });
-    // Any unexpected error/timeout -> show "still generating", never a misleading
-    // not-connected/empty state. Background generation (if started) continues.
-    res.json({ success: true, platform, generating: true });
+    // Transient timeout (warm-path visual fetch was slow) -> keep the
+    // `generating` poll contract; a retry will likely succeed.
+    if (isTransientInsightsError(error)) {
+      return res.json({ success: true, platform, generating: true });
+    }
+    // Persistent failure -> flag it honestly so the client can show an inline
+    // error with retry, instead of polling 90s on a fake `generating: true`
+    // and then rendering a misleading state (audit-2026-06-10).
+    res.json({
+      success: false,
+      platform,
+      error: true,
+      message: 'Your twin hit a problem loading these insights. Please try again.',
+    });
   }
 });
 
@@ -923,19 +982,28 @@ router.post('/proactive/:id/engage', authenticateUser, async (req, res) => {
   res.json({ success: true });
 
   // Non-blocking: seed an EWC++ topic_affinity pattern from the engaged insight
-  // so the twin learns which topics the user finds interesting over time
+  // so the twin learns which topics the user finds interesting over time.
+  // replan-2026-06-10 Track A: this previously selected the nonexistent
+  // `content` column and swallowed the error in an empty catch — twin_patterns
+  // stayed empty for months. The column is `insight`; failures must be loud.
   supabaseAdmin
     .from('proactive_insights')
-    .select('content, category')
+    .select('insight, category')
     .eq('id', id)
     .single()
-    .then(({ data }) => {
-      if (!data?.content) return;
+    .then(({ data, error: seedError }) => {
+      if (seedError || !data?.insight) {
+        log.warn('Pattern seed skipped — could not load engaged insight', { id, error: seedError?.message });
+        return;
+      }
       const patternName = data.category || 'engaged_insight';
-      seedPatternFromInsight(userId, patternName, data.content)
+      seedPatternFromInsight(userId, patternName, data.insight)
+        .then((patternId) => {
+          if (patternId) log.info('Seeded topic pattern from engaged insight', { id, patternId });
+        })
         .catch(err => log.warn('Pattern seed failed', { error: err }));
     })
-    .catch(() => {});
+    .catch(err => log.warn('Pattern seed lookup failed', { id, error: err?.message }));
 });
 
 /**

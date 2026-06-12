@@ -7,41 +7,13 @@ import { supabase } from '../config/supabase.js';
 import { supabaseAdmin } from '../services/database.js';
 import { encryptToken, decryptToken, encryptState, decryptState } from '../services/encryption.js';
 import { authenticateUser, requireProfessor } from '../middleware/auth.js';
-import {
-  getCachedPlatformStatus,
-  setCachedPlatformStatus,
-  invalidatePlatformStatusCache
-} from '../services/redisClient.js';
-import { ensureFreshToken } from '../services/tokenRefreshService.js';
+import { buildPlatformsSummary } from '../services/platformStateService.js';
 import { createLogger, redact } from '../services/logger.js';
 import { getGoogleWorkspaceScopes } from '../config/googleWorkspaceScopes.js';
 import { getAppUrl } from '../utils/oauthUtils.js';
 
 const log = createLogger('Connectors');
 const router = express.Router();
-
-// In-memory cache fallback for when Redis is unavailable
-const memoryCache = new Map();
-const MEMORY_CACHE_TTL = 3 * 60 * 1000; // 3 minutes
-
-function getMemoryCached(key) {
-  const entry = memoryCache.get(key);
-  if (entry && Date.now() - entry.ts < MEMORY_CACHE_TTL) return entry.data;
-  if (entry) memoryCache.delete(key);
-  return null;
-}
-
-function setMemoryCached(key, data) {
-  memoryCache.set(key, { data, ts: Date.now() });
-}
-
-/**
- * Clear in-memory status cache for a user.
- * Call after platform connect/disconnect in other route files.
- */
-export function clearStatusMemoryCache(userId) {
-  memoryCache.delete(`status:${userId}`);
-}
 
 // ====================================================================
 // OAUTH CONFIGURATIONS
@@ -63,13 +35,9 @@ const OAUTH_CONFIGS = {
     authUrl: 'https://accounts.google.com/o/oauth2/v2/auth',
     tokenUrl: 'https://oauth2.googleapis.com/token'
   },
-  google_drive: {
-    clientId: process.env.GOOGLE_CLIENT_ID,
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    scopes: getGoogleWorkspaceScopes(),
-    authUrl: 'https://accounts.google.com/o/oauth2/v2/auth',
-    tokenUrl: 'https://oauth2.googleapis.com/token'
-  },
+  // google_drive removed (replan-2026-06-10 Track C). The shared Google
+  // Workspace scopes above stay as-is — only the Drive fetcher/config died.
+  // The product now promises Gmail + Calendar reading only.
 
   // YouTube (uses Google OAuth)
   youtube: {
@@ -119,52 +87,6 @@ const OAUTH_CONFIGS = {
     tokenUrl: 'https://discord.com/api/oauth2/token'
   },
 
-  // Slack - User Token Scopes (not bot scopes)
-  slack: {
-    clientId: process.env.SLACK_CLIENT_ID,
-    clientSecret: process.env.SLACK_CLIENT_SECRET,
-    scopes: [
-      'channels:read',
-      'files:read',
-      'groups:read',
-      'users:read',
-      'users:read.email',
-      'search:read',
-      'team.preferences:read',
-      'lists:read',
-      'reminders:read'
-    ],
-    authUrl: 'https://slack.com/oauth/v2/authorize',
-    tokenUrl: 'https://slack.com/api/oauth.v2.access'
-  },
-
-  // LinkedIn (if available)
-  linkedin: {
-    clientId: process.env.LINKEDIN_CLIENT_ID,
-    clientSecret: process.env.LINKEDIN_CLIENT_SECRET,
-    scopes: ['openid', 'profile', 'email'],
-    authUrl: 'https://www.linkedin.com/oauth/v2/authorization',
-    tokenUrl: 'https://www.linkedin.com/oauth/v2/accessToken'
-  },
-
-  // Reddit
-  reddit: {
-    clientId: process.env.REDDIT_CLIENT_ID,
-    clientSecret: process.env.REDDIT_CLIENT_SECRET,
-    scopes: ['identity', 'history', 'read', 'mysubreddits'],
-    authUrl: 'https://www.reddit.com/api/v1/authorize',
-    tokenUrl: 'https://www.reddit.com/api/v1/access_token'
-  },
-
-  // Twitch
-  twitch: {
-    clientId: process.env.TWITCH_CLIENT_ID,
-    clientSecret: process.env.TWITCH_CLIENT_SECRET,
-    scopes: ['user:read:follows', 'user:read:email'],
-    authUrl: 'https://id.twitch.tv/oauth2/authorize',
-    tokenUrl: 'https://id.twitch.tv/oauth2/token'
-  },
-
   // Whoop
   whoop: {
     clientId: process.env.WHOOP_CLIENT_ID,
@@ -174,66 +96,11 @@ const OAUTH_CONFIGS = {
     tokenUrl: 'https://api.prod.whoop.com/oauth/oauth2/token'
   },
 
-  // Strava
-  strava: {
-    clientId: process.env.STRAVA_CLIENT_ID,
-    clientSecret: process.env.STRAVA_CLIENT_SECRET,
-    scopes: ['read', 'activity:read_all'],
-    authUrl: 'https://www.strava.com/oauth/authorize',
-    tokenUrl: 'https://www.strava.com/oauth/token'
-  },
-
-  // Notion — uses Basic Auth for token exchange (see POST /callback)
-  // Notion does not use traditional scopes; users grant page-level access at auth time.
-  notion: {
-    clientId: process.env.NOTION_CLIENT_ID,
-    clientSecret: process.env.NOTION_CLIENT_SECRET,
-    scopes: [],
-    authUrl: 'https://api.notion.com/v1/oauth/authorize',
-    tokenUrl: 'https://api.notion.com/v1/oauth/token'
-  },
-
-  // Pinterest — v5 OAuth, Basic-auth token exchange, 30-day access / 365-day refresh tokens
-  pinterest: {
-    clientId: process.env.PINTEREST_APP_ID,
-    clientSecret: process.env.PINTEREST_APP_SECRET,
-    scopes: [
-      'boards:read',
-      'boards:read_secret',
-      'pins:read',
-      'pins:read_secret',
-      'user_accounts:read',
-    ],
-    authUrl: 'https://www.pinterest.com/oauth/',
-    tokenUrl: 'https://api.pinterest.com/v5/oauth/token'
-  },
-
-  // SoundCloud — v2 OAuth 2.1 with PKCE (mandatory since 2024), Basic-auth token exchange
-  soundcloud: {
-    clientId: process.env.SOUNDCLOUD_CLIENT_ID,
-    clientSecret: process.env.SOUNDCLOUD_CLIENT_SECRET,
-    scopes: [],
-    authUrl: 'https://secure.soundcloud.com/authorize',
-    tokenUrl: 'https://secure.soundcloud.com/oauth/token'
-  },
-
-  // Oura Ring
-  oura: {
-    clientId: process.env.OURA_CLIENT_ID,
-    clientSecret: process.env.OURA_CLIENT_SECRET,
-    scopes: ['daily', 'session', 'heartrate', 'workout', 'tag', 'personal', 'email', 'spo2', 'ring_configuration'],
-    authUrl: 'https://cloud.ouraring.com/oauth/authorize',
-    tokenUrl: 'https://cloud.ouraring.com/oauth/token'
-  },
-
+  // replan-2026-06-10 Track C portfolio cut: slack, linkedin, reddit, twitch,
+  // strava, notion, pinterest, soundcloud, oura OAuth configs deleted.
+  // LinkedIn/Discord GDPR export uploads remain the replacement story for the
+  // social platforms; the extension already mirrors their browsing signal.
 };
-
-// Debug: Check LinkedIn config on load
-log.debug('LinkedIn config on file load', {
-  hasLinkedIn: !!OAUTH_CONFIGS.linkedin,
-  hasClientId: !!OAUTH_CONFIGS.linkedin?.clientId,
-  hasClientSecret: !!OAUTH_CONFIGS.linkedin?.clientSecret
-});
 
 // ====================================================================
 // ROUTES
@@ -307,13 +174,12 @@ router.get('/connect/:provider', authenticateUser, async (req, res) => {
         log.error("Failed to store CSRF state for connect", { error: stateInsertErr1 });
       }
 
-      const scopeSeparator = (provider === 'slack' || provider === 'strava') ? ',' : ' ';
-      const scope = config.scopes.join(scopeSeparator);
+      const scope = config.scopes.join(' ');
       const authParams = new URLSearchParams({
         client_id: config.clientId,
         response_type: 'code',
         redirect_uri: redirectUri,
-        [provider === 'slack' ? 'user_scope' : 'scope']: scope,
+        scope,
         state,
       });
 
@@ -323,14 +189,8 @@ router.get('/connect/:provider', authenticateUser, async (req, res) => {
       } else if (provider.startsWith('google') || provider === 'youtube') {
         authParams.set('access_type', 'offline');
         authParams.set('prompt', 'consent');
-      } else if (provider === 'reddit') {
-        authParams.set('duration', 'permanent');
-      } else if (provider === 'twitch') {
-        authParams.set('force_verify', 'true');
       } else if (provider === 'discord') {
         authParams.set('prompt', 'consent');
-      } else if (provider === 'strava') {
-        authParams.set('approval_prompt', 'force');
       }
 
       const authUrl = `${config.authUrl}?${authParams.toString()}`;
@@ -414,10 +274,6 @@ router.get('/connect/:provider', authenticateUser, async (req, res) => {
 
         log.info("Token refreshed successfully", { provider });
 
-        // Invalidate cache (both Redis and in-memory)
-        await invalidatePlatformStatusCache(userId);
-        clearStatusMemoryCache(userId);
-
         return res.json({
           success: true,
           message: 'Token refreshed successfully'
@@ -449,13 +305,12 @@ router.get('/connect/:provider', authenticateUser, async (req, res) => {
           log.error("Failed to store CSRF state for reconnect", { error: stateInsertErr2 });
         }
 
-        const scopeSeparator = (provider === 'slack' || provider === 'strava') ? ',' : ' ';
-      const scope = config.scopes.join(scopeSeparator);
+        const scope = config.scopes.join(' ');
         const reAuthParams = new URLSearchParams({
           client_id: config.clientId,
           response_type: 'code',
           redirect_uri: redirectUri,
-          [provider === 'slack' ? 'user_scope' : 'scope']: scope,
+          scope,
           state,
         });
 
@@ -464,14 +319,8 @@ router.get('/connect/:provider', authenticateUser, async (req, res) => {
         } else if (provider.startsWith('google') || provider === 'youtube') {
           reAuthParams.set('access_type', 'offline');
           reAuthParams.set('prompt', 'consent');
-        } else if (provider === 'reddit') {
-          reAuthParams.set('duration', 'permanent');
-        } else if (provider === 'twitch') {
-          reAuthParams.set('force_verify', 'true');
         } else if (provider === 'discord') {
           reAuthParams.set('prompt', 'consent');
-        } else if (provider === 'strava') {
-          reAuthParams.set('approval_prompt', 'force');
         }
 
         const authUrl = `${config.authUrl}?${reAuthParams.toString()}`;
@@ -507,13 +356,12 @@ router.get('/connect/:provider', authenticateUser, async (req, res) => {
         log.error("Failed to store CSRF state for /auth/:provider", { error: stateInsertErr3 });
       }
 
-      const scopeSeparator = (provider === 'slack' || provider === 'strava') ? ',' : ' ';
-      const scope = config.scopes.join(scopeSeparator);
+      const scope = config.scopes.join(' ');
       const noRefreshParams = new URLSearchParams({
         client_id: config.clientId,
         response_type: 'code',
         redirect_uri: redirectUri,
-        [provider === 'slack' ? 'user_scope' : 'scope']: scope,
+        scope,
         state,
       });
 
@@ -522,14 +370,8 @@ router.get('/connect/:provider', authenticateUser, async (req, res) => {
       } else if (provider.startsWith('google') || provider === 'youtube') {
         noRefreshParams.set('access_type', 'offline');
         noRefreshParams.set('prompt', 'consent');
-      } else if (provider === 'reddit') {
-        noRefreshParams.set('duration', 'permanent');
-      } else if (provider === 'twitch') {
-        noRefreshParams.set('force_verify', 'true');
       } else if (provider === 'discord') {
         noRefreshParams.set('prompt', 'consent');
-      } else if (provider === 'strava') {
-        noRefreshParams.set('approval_prompt', 'force');
       }
 
       const authUrl = `${config.authUrl}?${noRefreshParams.toString()}`;
@@ -586,22 +428,6 @@ router.get('/auth/:provider', authenticateUser, (req, res) => {
 
     if (!config.clientId) {
       log.warn("No clientId for provider", { provider });
-      // Graceful 503 when an optional integration isn't configured yet
-      // (mirrors the finetuning fix — better UX than a raw 500).
-      if (provider === 'notion') {
-        return res.status(503).json({
-          success: false,
-          error: 'not_configured',
-          message: 'Notion integration is not configured yet. Check back soon.'
-        });
-      }
-      if (provider === 'pinterest') {
-        return res.status(503).json({
-          success: false,
-          error: 'not_configured',
-          message: 'Pinterest integration is not configured yet. Check back soon.'
-        });
-      }
       return res.status(500).json({
         success: false,
         error: 'OAuth not configured for this provider'
@@ -624,15 +450,10 @@ router.get('/auth/:provider', authenticateUser, (req, res) => {
     log.debug("OAuth URL generation", { provider });
     log.debug("Redirect URI", { redirectUri });
 
-    // Slack requires 'user_scope' parameter for user tokens (not 'scope' which is for bot tokens)
-    // Slack also uses comma-separated scopes, while most others use space-separated
-    const scopeParam = provider === 'slack' ? 'user_scope' : 'scope';
-    const scopeSeparator = (provider === 'slack' || provider === 'strava') ? ',' : ' ';
-
     const params = new URLSearchParams({
       client_id: config.clientId,
       redirect_uri: redirectUri,
-      [scopeParam]: config.scopes.join(scopeSeparator),
+      scope: config.scopes.join(' '),
       response_type: 'code',
       state
     });
@@ -641,21 +462,10 @@ router.get('/auth/:provider', authenticateUser, (req, res) => {
     if (provider.startsWith('google') || provider === 'youtube') {
       params.set('access_type', 'offline');
       params.set('prompt', 'consent');
-    } else if (provider === 'reddit') {
-      params.set('duration', 'permanent'); // Required for refresh tokens
-    } else if (provider === 'twitch') {
-      params.set('force_verify', 'true');
     } else if (provider === 'discord') {
       params.set('prompt', 'consent');
     } else if (provider === 'whoop') {
       params.set('scope', [...config.scopes, 'offline'].join(' '));
-    } else if (provider === 'strava') {
-      params.set('approval_prompt', 'force');
-    } else if (provider === 'notion') {
-      // Notion requires owner=user on the authorize URL for user-scoped tokens.
-      params.set('owner', 'user');
-      // No scopes for Notion — remove empty scope param to avoid auth errors.
-      params.delete('scope');
     }
 
     const authUrl = `${config.authUrl}?${params.toString()}`;
@@ -803,65 +613,6 @@ router.post('/callback', async (req, res) => {
           redirect_uri: redirectUri
         })
       });
-    } else if (provider === 'slack') {
-      // Slack uses OAuth v2 with special response format
-      tokenResponse = await fetch(config.tokenUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({
-          client_id: config.clientId,
-          client_secret: config.clientSecret,
-          code,
-          redirect_uri: redirectUri
-        })
-      });
-    } else if (provider === 'reddit') {
-      // Reddit uses Basic Authentication like Spotify
-      tokenResponse = await fetch(config.tokenUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Authorization': `Basic ${Buffer.from(`${config.clientId}:${config.clientSecret}`).toString('base64')}`
-        },
-        body: new URLSearchParams({
-          grant_type: 'authorization_code',
-          code,
-          redirect_uri: redirectUri
-        })
-      });
-    } else if (provider === 'pinterest') {
-      // Pinterest v5 uses Basic Auth + form-urlencoded body
-      // https://developers.pinterest.com/docs/getting-started/connect-app/
-      tokenResponse = await fetch(config.tokenUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Authorization': `Basic ${Buffer.from(`${config.clientId}:${config.clientSecret}`).toString('base64')}`
-        },
-        body: new URLSearchParams({
-          grant_type: 'authorization_code',
-          code,
-          redirect_uri: redirectUri
-        })
-      });
-    } else if (provider === 'notion') {
-      // Notion uses Basic Authentication with JSON body
-      // https://developers.notion.com/reference/create-a-token
-      tokenResponse = await fetch(config.tokenUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': `Basic ${Buffer.from(`${config.clientId}:${config.clientSecret}`).toString('base64')}`
-        },
-        body: JSON.stringify({
-          grant_type: 'authorization_code',
-          code,
-          redirect_uri: redirectUri
-        })
-      });
     } else {
       // Standard OAuth2 flow (Google, Discord, etc.)
       tokenResponse = await fetch(config.tokenUrl, {
@@ -907,25 +658,7 @@ router.post('/callback', async (req, res) => {
     const tokenData = await tokenResponse.json();
     log.info("Token exchange successful", { provider });
 
-    // Handle Slack's special response format
-    let tokens;
-    if (provider === 'slack') {
-      if (!tokenData.ok) {
-        return res.status(400).json({
-          success: false,
-          error: `Slack OAuth error: ${tokenData.error || 'Unknown error'}`
-        });
-      }
-      // Extract user token from Slack response
-      tokens = {
-        access_token: tokenData.authed_user?.access_token || tokenData.access_token,
-        refresh_token: tokenData.authed_user?.refresh_token || tokenData.refresh_token,
-        expires_in: tokenData.authed_user?.expires_in || tokenData.expires_in,
-        scope: tokenData.scope
-      };
-    } else {
-      tokens = tokenData;
-    }
+    const tokens = tokenData;
 
     if (tokens.error) {
       return res.status(400).json({
@@ -974,10 +707,6 @@ router.post('/callback', async (req, res) => {
       }
 
       log.info("Connection stored", { platformKey, userId });
-
-      // Invalidate cached platform status for this user (both Redis and in-memory)
-      await invalidatePlatformStatusCache(userUuid);
-      clearStatusMemoryCache(userUuid);
 
       // Trigger background extraction using Bull queue (if available)
       // Falls back to direct execution if queue not available.
@@ -1049,222 +778,6 @@ router.post('/callback', async (req, res) => {
 });
 
 /**
- * GET /api/connectors/status/:userId
- * Get connection status for all providers for a user
- * Validates token expiration and returns accurate connection state
- *
- * CACHING: Uses Redis with 5-minute TTL for performance
- * - Cache HIT: ~5ms response time
- * - Cache MISS: ~200ms response time (database query)
- * - Cache invalidated on connect/disconnect/reset
- */
-router.get('/status/:userId', authenticateUser, async (req, res) => {
-  try {
-    const { userId } = req.params;
-
-    if (userId !== req.user.id) {
-      return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
-    }
-
-    // Convert email to UUID if needed
-    let userUuid = userId;
-    if (userId && !userId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
-      const { data: userData, error: userLookupErr } = await supabaseAdmin
-        .from('users')
-        .select('id')
-        .eq('email', userId)
-        .single();
-      if (userLookupErr) {
-        log.warn("Failed to resolve email to UUID", { error: userLookupErr });
-      } else if (userData) {
-        userUuid = userData.id;
-      }
-    }
-
-    // Check in-memory cache first (fastest, no external deps)
-    const memoryCached = getMemoryCached(`status:${userUuid}`);
-    if (memoryCached) {
-      return res.json({
-        success: true,
-        data: memoryCached,
-        cached: true
-      });
-    }
-
-    // Check Redis cache second
-    const cachedStatus = await getCachedPlatformStatus(userUuid);
-    if (cachedStatus) {
-      setMemoryCached(`status:${userUuid}`, cachedStatus);
-      return res.json({
-        success: true,
-        data: cachedStatus,
-        cached: true
-      });
-    }
-
-    // Cache miss - fetch from database with retry
-    // IMPORTANT: Include 'status' column to check for token_expired status
-    let connections, error;
-    for (let attempt = 0; attempt < 2; attempt++) {
-      const result = await supabaseAdmin
-        .from('platform_connections')
-        .select('platform, connected_at, token_expires_at, access_token, metadata, last_sync_at, last_sync_status, status') // access_token needed only for NANGO_MANAGED sentinel check — never returned to client
-        .eq('user_id', userUuid);
-      connections = result.data;
-      error = result.error;
-      if (!error) break;
-      if (attempt === 0) {
-        log.warn("Database error getting connections, retrying", { errorCode: error.code });
-        await new Promise(r => setTimeout(r, 1000));
-      }
-    }
-
-    if (error) {
-      log.error("Database error getting connections (after retry)", { error });
-      throw error;
-    }
-
-    // Transform to status object with token expiration validation
-    const connectionStatus = {};
-    const now = new Date();
-
-    // Use for...of to handle async token refresh
-    for (const connection of connections || []) {
-      // NANGO_MANAGED connections: Nango handles token lifecycle, skip expiry checks
-      const isNangoManaged = connection.access_token === 'NANGO_MANAGED';
-
-      // Check if token is expired (check both possible expiration columns)
-      const expiresAt = connection.token_expires_at;
-      let isTokenExpired = !isNangoManaged && expiresAt && new Date(expiresAt) < now;
-
-      // SPECIAL CASE: For Spotify and YouTube with encryption_key_mismatch,
-      // force connected=true to show "Token Expired" badge instead of "Connect"
-      // Check if connected_at exists to determine if platform is connected
-      let isConnected = !!connection.connected_at;
-      if ((connection.platform === 'spotify' || connection.platform === 'youtube') &&
-          connection.last_sync_status === 'encryption_key_mismatch') {
-        isConnected = true;  // Force true to show expired state in UI
-        log.info("Forcing connected due to encryption_key_mismatch", { platform: connection.platform });
-      }
-
-      // AUTOMATIC TOKEN REFRESH: Attempt to refresh expired tokens
-      // Skip for Nango-managed connections (Nango handles refresh automatically)
-      if (isConnected && isTokenExpired && !isNangoManaged) {
-        log.debug("Attempting automatic token refresh", { platform: connection.platform });
-        try {
-          await ensureFreshToken(userUuid, connection.platform);
-          log.info("Token automatically refreshed", { platform: connection.platform });
-          isTokenExpired = false;  // Token is now valid
-          // Invalidate cache so next request gets fresh status (both Redis and in-memory)
-          await invalidatePlatformStatusCache(userUuid);
-          clearStatusMemoryCache(userUuid);
-        } catch (refreshError) {
-          log.warn("Auto-refresh failed", { platform: connection.platform, error: refreshError });
-          // Keep isTokenExpired = true, user will need to reconnect
-        }
-      }
-
-      const isActive = isConnected && !isTokenExpired;
-
-      // Determine the current status
-      // Priority: database status if 'expired' or 'token_expired', then last_sync_status, then fallback
-      let status = connection.last_sync_status || connection.metadata?.last_sync_status || 'unknown';
-
-      // If database status is 'expired' or 'token_expired', use that as the primary status
-      // AND set isTokenExpired to true
-      // Also handle 'error' with 'auth_error' sync status — means token was rejected (401)
-      if (connection.status === 'expired' || connection.status === 'token_expired' || connection.status === 'needs_reauth'
-        || connection.status === 'requires_reauth'
-        || connection.last_sync_status === 'requires_reauth'
-        || (connection.status === 'error' && connection.last_sync_status === 'auth_error')) {
-        status = 'token_expired';
-        isTokenExpired = true;  // Force token expired flag when status indicates expired
-        log.debug("Platform token expired", { platform: connection.platform, status: connection.status });
-      }
-      // Override with 'token_expired' if:
-      // 1. The token is actually expired NOW
-      // 2. AND the status is not meaningful (pending, success, unknown)
-      // This prevents overriding 'failed' or other error states
-      else if (isTokenExpired && (status === 'success' || status === 'unknown' || status === 'pending')) {
-        status = 'token_expired';
-      }
-
-      // Recalculate isActive after status check (in case isTokenExpired was updated)
-      const finalIsActive = isConnected && !isTokenExpired;
-
-      connectionStatus[connection.platform] = {
-        connected: isConnected,  // May be forced true for encryption_key_mismatch
-        isActive: finalIsActive,      // Actual usability - false if token expired
-        tokenExpired: isTokenExpired,
-        connectedAt: connection.metadata?.connected_at || connection.connected_at || null,
-        lastSync: connection.last_sync_at || connection.metadata?.last_sync || null,
-        status: status,
-        expiresAt: expiresAt
-      };
-    }
-
-    // Also include Nango-only connections (stored in nango_connection_mappings, not platform_connections)
-    const { data: nangoMappings } = await supabaseAdmin
-      .from('nango_connection_mappings')
-      .select('platform, status, created_at, updated_at, last_synced_at')
-      .eq('user_id', userUuid)
-      .in('status', ['connected', 'active']);
-
-    for (const mapping of nangoMappings || []) {
-      const nangoLastSync = mapping.last_synced_at || mapping.updated_at || null;
-      if (!connectionStatus[mapping.platform]) {
-        connectionStatus[mapping.platform] = {
-          connected: true,
-          isActive: true,
-          tokenExpired: false,
-          connectedAt: mapping.created_at || null,
-          lastSync: nangoLastSync,
-          status: 'active',
-          expiresAt: null,
-        };
-      } else {
-        // audit-2026-06-02: platform is in BOTH platform_connections and
-        // nango_connection_mappings (e.g. outlook). Nango is the live sync
-        // source for these, so its last_synced_at is authoritative — the
-        // platform_connections.last_sync_at is only bumped by the direct
-        // fetcher, which returns 0 obs for Nango-managed platforms and so goes
-        // stale, making a healthy connection look "partial/stale". Use the most
-        // recent of the two so health reflects the actual last sync.
-        const existing = connectionStatus[mapping.platform];
-        const existingMs = existing.lastSync ? new Date(existing.lastSync).getTime() : 0;
-        const nangoMs = nangoLastSync ? new Date(nangoLastSync).getTime() : 0;
-        if (nangoMs > existingMs) {
-          existing.lastSync = nangoLastSync;
-          existing.isActive = existing.isActive && !existing.tokenExpired;
-          if (['no_new_data', 'unknown', 'partial', 'pending'].includes(existing.status)) {
-            existing.status = 'active';
-          }
-        }
-      }
-    }
-
-    log.debug("Connection status", { userId });
-
-    // Cache the result in memory and Redis
-    setMemoryCached(`status:${userUuid}`, connectionStatus);
-    await setCachedPlatformStatus(userUuid, connectionStatus);
-
-    res.json({
-      success: true,
-      data: connectionStatus,
-      cached: false
-    });
-
-  } catch (error) {
-    log.error("Error getting connector status", { error });
-    res.status(500).json({
-      success: false,
-      error: 'Failed to get connector status'
-    });
-  }
-});
-
-/**
  * GET /api/connectors/summary
  * GET /api/platforms/summary (alias mounted in server.js)
  *
@@ -1275,88 +788,21 @@ router.get('/status/:userId', authenticateUser, async (req, res) => {
  * /talk-to-twin said 11 for the same user (audit 2026-05-12 H1).
  *
  * A platform is considered:
- *   - active:  connected, token NOT expired, last_sync within STALE_DAYS days
- *   - expired: connected but token expired (or status='expired'/'token_expired')
- *   - stale:   connected, token OK, but hasn't synced in >= STALE_DAYS
+ *   - active:  connected, auth OK, last_sync within STALE_DAYS days
+ *   - expired: genuine auth failure — the user must reconnect
+ *   - stale:   connected, auth OK, but hasn't synced in >= STALE_DAYS
  *   - total:   active + expired + stale
  *
- * Response: { success, total, active, expired, stale, breakdown: [{platform, state}] }
+ * Classification lives in platformStateService.js (batch-3 state unification,
+ * audit-2026-06-10) — this route is a thin wrapper. Breakdown entries also
+ * carry { connectedAt, lastSyncAt, source } (additive).
+ *
+ * Response: { success, total, active, expired, stale, breakdown: [{platform, state, ...}] }
  */
-const STALE_DAYS = 7;
-
 router.get('/summary', authenticateUser, async (req, res) => {
   try {
-    const userId = req.user.id;
-    const now = Date.now();
-    const staleThresholdMs = STALE_DAYS * 24 * 60 * 60 * 1000;
-
-    const [pcResult, nangoResult] = await Promise.all([
-      supabaseAdmin
-        .from('platform_connections')
-        .select('platform, status, last_sync_at, last_sync_status, token_expires_at, access_token, connected_at')
-        .eq('user_id', userId),
-      supabaseAdmin
-        .from('nango_connection_mappings')
-        .select('platform, status, last_synced_at, updated_at, created_at')
-        .eq('user_id', userId)
-        .in('status', ['connected', 'active']),
-    ]);
-
-    const breakdown = [];
-    const seen = new Set();
-
-    for (const c of pcResult.data || []) {
-      const isNangoManaged = c.access_token === 'NANGO_MANAGED';
-      const tokenExpired =
-        c.status === 'expired' ||
-        c.status === 'token_expired' ||
-        c.status === 'needs_reauth' ||
-        c.status === 'requires_reauth' ||
-        c.last_sync_status === 'requires_reauth' ||
-        (c.status === 'error' && c.last_sync_status === 'auth_error') ||
-        (!isNangoManaged && c.token_expires_at && new Date(c.token_expires_at).getTime() < now);
-
-      // Only count platforms the user has actually connected (not just empty rows).
-      const isConnected = !!c.connected_at;
-      if (!isConnected) continue;
-
-      let state;
-      if (tokenExpired) {
-        state = 'expired';
-      } else {
-        const lastSync = c.last_sync_at ? new Date(c.last_sync_at).getTime() : null;
-        const isStale = lastSync && now - lastSync > staleThresholdMs;
-        const isPartial = c.last_sync_status === 'partial' || c.last_sync_status === 'error';
-        state = isStale || isPartial ? 'stale' : 'active';
-      }
-
-      breakdown.push({ platform: c.platform, state });
-      seen.add(c.platform);
-    }
-
-    for (const n of nangoResult.data || []) {
-      if (seen.has(n.platform)) continue;
-      const lastSync = n.last_synced_at ? new Date(n.last_synced_at).getTime() : null;
-      const isStale = lastSync && now - lastSync > staleThresholdMs;
-      breakdown.push({ platform: n.platform, state: isStale ? 'stale' : 'active' });
-    }
-
-    const counts = breakdown.reduce(
-      (acc, b) => {
-        acc[b.state]++;
-        return acc;
-      },
-      { active: 0, expired: 0, stale: 0 }
-    );
-
-    res.json({
-      success: true,
-      total: breakdown.length,
-      active: counts.active,
-      expired: counts.expired,
-      stale: counts.stale,
-      breakdown,
-    });
+    const summary = await buildPlatformsSummary(req.user.id);
+    res.json({ success: true, ...summary });
   } catch (error) {
     log.error('Error getting platform summary', { error });
     res.status(500).json({ success: false, error: 'Failed to get platform summary' });
@@ -1414,10 +860,6 @@ router.post('/reset/:userId', authenticateUser, async (req, res) => {
 
     const deletedCount = data?.length || 0;
     log.info("Deactivated connections", { deletedCount, userId });
-
-    // Invalidate cached platform status for this user (both Redis and in-memory)
-    await invalidatePlatformStatusCache(userUuid);
-    clearStatusMemoryCache(userUuid);
 
     res.json({
       success: true,
@@ -1515,11 +957,6 @@ router.delete('/:provider/:userId', authenticateUser, async (req, res) => {
       log.warn("No connection found", { provider, userUuid });
     }
 
-    // Invalidate cached platform status for this user BEFORE responding (both Redis and in-memory)
-    await invalidatePlatformStatusCache(userUuid);
-    clearStatusMemoryCache(userUuid);
-    log.debug("Cache invalidated", { userUuid });
-
     res.json({
       success: true,
       data: {
@@ -1551,7 +988,7 @@ router.post('/connect/:platform', authenticateUser, async (req, res) => {
     log.info("OAuth connection request", { platform, userId });
 
     // Platforms handled by entertainment-connectors
-    const entertainmentPlatforms = ['spotify', 'youtube', 'netflix', 'tiktok'];
+    const entertainmentPlatforms = ['spotify', 'youtube', 'netflix'];
 
     if (entertainmentPlatforms.includes(platform)) {
       // Forward to entertainment connectors endpoint
@@ -1611,13 +1048,10 @@ router.post('/connect/:platform', authenticateUser, async (req, res) => {
     // Build authorization URL
     const redirectUri = `${getAppUrl(req)}/oauth/callback`;
 
-    const scopeParam = platform === 'slack' ? 'user_scope' : 'scope';
-    const scopeSeparator = (platform === 'slack' || platform === 'strava') ? ',' : ' ';
-
     const params = new URLSearchParams({
       client_id: config.clientId,
       redirect_uri: redirectUri,
-      [scopeParam]: config.scopes.join(scopeSeparator),
+      scope: config.scopes.join(' '),
       response_type: 'code',
       state
     });
@@ -1626,14 +1060,8 @@ router.post('/connect/:platform', authenticateUser, async (req, res) => {
     if (platform.startsWith('google') || platform === 'youtube') {
       params.set('access_type', 'offline');
       params.set('prompt', 'consent');
-    } else if (platform === 'reddit') {
-      params.set('duration', 'permanent');
-    } else if (platform === 'twitch') {
-      params.set('force_verify', 'true');
     } else if (platform === 'discord') {
       params.set('prompt', 'consent');
-    } else if (platform === 'strava') {
-      params.set('approval_prompt', 'force');
     }
 
     const authUrl = `${config.authUrl}?${params.toString()}`;
@@ -1719,58 +1147,6 @@ router.post('/test-add-connection', authenticateUser, requireProfessor, async (r
       success: false,
       error: 'Failed to add test connection'
     });
-  }
-});
-
-/**
- * POST /api/connectors/garmin/credentials
- * Save Garmin credentials (email + password) for direct web-session access.
- * Validates immediately by attempting auth before storing.
- */
-router.post('/garmin/credentials', authenticateUser, async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const { email, password } = req.body;
-
-    if (!email || !password) {
-      return res.status(400).json({ success: false, error: 'email and password are required' });
-    }
-
-    const garmin = await import('../services/garminDirectService.js');
-    await garmin.saveCredentials(userId, email, password);
-
-    res.json({ success: true, message: 'Garmin connected' });
-  } catch (err) {
-    log.error('Garmin credential save failed', { error: err.message });
-    const userMsg = err.message?.includes('Invalid sign in') || err.message?.includes('auth failed')
-      ? 'Invalid Garmin credentials'
-      : 'Failed to connect Garmin';
-    res.status(400).json({ success: false, error: userMsg });
-  }
-});
-
-/**
- * DELETE /api/connectors/garmin/credentials
- * Disconnect Garmin (mark inactive).
- */
-router.delete('/garmin/credentials', authenticateUser, async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const { getSupabase } = await import('../services/observationUtils.js');
-    const db = await getSupabase();
-    if (!db) {
-      return res.status(503).json({ success: false, error: 'Database unavailable' });
-    }
-
-    await db.from('platform_connections')
-      .update({ is_active: false })
-      .eq('user_id', userId)
-      .eq('platform', 'garmin');
-
-    res.json({ success: true });
-  } catch (err) {
-    log.error('Garmin credential disconnect failed', { error: err.message });
-    res.status(500).json({ success: false, error: 'Failed to disconnect Garmin' });
   }
 });
 

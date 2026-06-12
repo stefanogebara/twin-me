@@ -13,7 +13,7 @@ import express from 'express';
 import crypto from 'crypto';
 import { authenticateUser } from '../middleware/auth.js';
 import { supabaseAdmin } from '../services/database.js';
-import { buildContextSourcesMeta } from '../services/twinContextBuilder.js';
+import { buildContextSourcesMeta, buildRecentActivitySection } from '../services/twinContextBuilder.js';
 import { classifyNeuropil } from '../services/neuropilRouter.js';
 import { classifyQueryDomain, retrieveExpertMemories } from '../services/platformExperts.js';
 import { markInsightsDelivered } from '../services/proactiveInsights.js';
@@ -92,8 +92,15 @@ router.post('/message', authenticateUser, async (req, res) => {
     log.info('chat.hop', { traceId, hop, elapsedMs, ...extra });
   };
   let stream = null;
+  // audit-2026-06-10: these three are referenced by the catch block (orphan
+  // conversation cleanup). They were declared inside the try, so the FIRST
+  // statement of the catch threw ReferenceError on every pipeline error —
+  // killing the cleanup and the SSE error event. Hoist them out.
+  let userId = null;
+  let conversationId = null;
+  let conversationCreatedHere = false;
   try {
-    const userId = req.user.id;
+    userId = req.user.id;
     const { context } = req.body || {};
     hopLog('start', { userId, messageLen: req.body?.message?.length || 0 });
 
@@ -107,7 +114,7 @@ router.post('/message', authenticateUser, async (req, res) => {
       return res.status(validated.status).json(validated.body);
     }
     const { message } = validated;
-    let conversationId = validated.conversationId;
+    conversationId = validated.conversationId;
     chatLog(`Message received from ${userId}: "${message.substring(0, 50)}..."`);
 
     // Pre-flight gates (feature flags + subscription + usage quota +
@@ -155,7 +162,7 @@ router.post('/message', authenticateUser, async (req, res) => {
     // and BEFORE persistChatTurn (LLM timeout, tool-use error, SSE write
     // failure, context-builder crash) still leaves an empty conversation.
     // Track createdHere so the catch block can clean it up.
-    let conversationCreatedHere = false;
+    // (declared before the try — see audit-2026-06-10 hoist note above)
     if (!conversationId) {
       conversationId = await autoCreateConversation(userId, message);
       conversationCreatedHere = !!conversationId;
@@ -337,6 +344,17 @@ router.post('/message', authenticateUser, async (req, res) => {
     const memoriesInContext = additional.memoriesInContext;
     if (additional.creativityLog) chatLog(additional.creativityLog);
     appendAdditionalContextToPrompt(systemPrompt, additional.additionalContext);
+
+    // Desktop activity context (P1 wire-the-loop): the Hummingbird panel
+    // seeds the request with recent window activity. Clips were sanitized
+    // at the validation boundary (max 6, control chars stripped, 200-char
+    // fields) — buildRecentActivitySection re-sanitizes idempotently and
+    // returns null when there is nothing to show.
+    const recentActivitySection = buildRecentActivitySection(validated.hummingbirdClips);
+    if (recentActivitySection) {
+      systemPrompt.push({ type: 'text', text: `\n${recentActivitySection}` });
+      chatLog(`Desktop recent activity injected (${validated.hummingbirdClips.length} clips)`);
+    }
 
     // Google Workspace actions — inject available tools (already fetched in parallel above)
     let workspaceActionsEnabled = false;

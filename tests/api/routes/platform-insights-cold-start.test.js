@@ -100,16 +100,42 @@ describe('GET /api/insights/:platform — cold-start generating behavior', () =>
   }, 15000);
 
   it('connected + cold cache + no platform data -> returns empty-state fallback immediately (no endless spinner)', async () => {
+    // audit-2026-06-10: this test used 'web' as an arbitrary stand-in platform,
+    // but web now short-circuits on extension-data presence before the
+    // cold-generation race (see the dedicated web test below). Use a real
+    // OAuth platform to keep pinning the cold-start no-data contract — but NOT
+    // 'spotify': the slow-LLM test above leaves the module-level generation
+    // lock held for u1:spotify, which would short-circuit this request to
+    // generating:true.
     freshCache = false;
-    getReflectionsImpl = () => Promise.resolve({ success: false, error: 'No spotify data available' });
+    getReflectionsImpl = () => Promise.resolve({ success: false, error: 'No discord data available' });
     const res = await request(makeApp())
-      .get('/api/insights/web')
+      .get('/api/insights/discord')
       .set('Authorization', `Bearer ${token()}`);
 
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
     expect(res.body.generating).toBeUndefined();
     expect(res.body.fallback).toBe(true);
+  });
+
+  it('web + no extension data -> hasExtensionData:false immediately (no generation spawned)', async () => {
+    // audit-2026-06-10: no OAuth flow ever creates a platform_connections row
+    // for 'web' — the page is driven by actual extension data presence. With
+    // zero user_platform_data web rows (the mock chain resolves data: []),
+    // the route must short-circuit to the extension-install CTA signal
+    // without entering the cold-generation race.
+    freshCache = false;
+    const res = await request(makeApp())
+      .get('/api/insights/web')
+      .set('Authorization', `Bearer ${token()}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.hasExtensionData).toBe(false);
+    expect(res.body.generating).toBeUndefined();
+    expect(res.body.fallback).toBeUndefined();
+    expect(platformReflectionService.getReflections).not.toHaveBeenCalled();
   });
 
   it('connected + cold cache + fast generation -> returns the real reflection inline', async () => {
@@ -177,10 +203,15 @@ describe('POST /api/insights/:platform/refresh — non-blocking regeneration', (
   });
 
   it('does not block: a slow refresh still responds fast and is not double-spawned', async () => {
+    // 'calendar' (not 'linkedin'): linkedin was dropped from VALID_PLATFORMS in
+    // the replan-2026-06-10 Track C portfolio cut. The generation lock map is
+    // module-level and keyed `${userId}:${platform}`, so this test needs a
+    // platform whose lock is not still held by an earlier never-resolving test
+    // (spotify/discord) — calendar only runs the warm path above and never locks.
     refreshImpl = () => new Promise(() => {}); // never resolves: simulates slow LLM
     const app = makeApp();
-    const r1 = await request(app).post('/api/insights/linkedin/refresh').set('Authorization', `Bearer ${token()}`);
-    const r2 = await request(app).post('/api/insights/linkedin/refresh').set('Authorization', `Bearer ${token()}`);
+    const r1 = await request(app).post('/api/insights/calendar/refresh').set('Authorization', `Bearer ${token()}`);
+    const r2 = await request(app).post('/api/insights/calendar/refresh').set('Authorization', `Bearer ${token()}`);
 
     expect(r1.status).toBe(200);
     expect(r1.body.regenerating).toBe(true);

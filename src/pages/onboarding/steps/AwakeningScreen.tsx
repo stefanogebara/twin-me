@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
-import { ArrowRight, Brain, Music, Calendar } from 'lucide-react';
+import { ArrowRight, Brain, Music, Calendar, Link2 } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
-
+import { usePlatformsSummary, connectedProviders as getConnectedProviders } from '@/hooks/usePlatformsSummary';
 
 import { API_URL } from '@/services/api/apiBase';
 interface AwakeningScreenProps {
@@ -63,12 +63,49 @@ const GLASS = {
 } as const;
 
 const AwakeningScreen: React.FC<AwakeningScreenProps> = ({ onEnter }) => {
-  const { authToken } = useAuth();
+  const { user, authToken } = useAuth();
   const [shortMessage, setShortMessage] = useState('');
   const [visible, setVisible] = useState(false);
   const [cardsIn, setCardsIn] = useState(false);
   const [buttonIn, setButtonIn] = useState(false);
   const chimeRef = useRef(false);
+
+  // audit-2026-06-10: the finale cards previously hardcoded 'Patterns detected' /
+  // 'Syncing up' even for users who skipped every connection. batch3
+  // state-unification: real connection state now comes from the canonical
+  // /platforms/summary hook (the fetcher resolves to an empty summary on
+  // failure, which lands on the neutral 'Ready to learn' card — truthful in
+  // every state, never fabricates platform activity).
+  const { data: platformsSummary } = usePlatformsSummary({ enabled: !!user?.id });
+  // null = status unknown (loading) — render no cards rather than fake ones
+  const connectedProviders = useMemo<string[] | null>(() => {
+    if (!user?.id) return [];
+    if (!platformsSummary) return null;
+    return getConnectedProviders(platformsSummary);
+  }, [user?.id, platformsSummary]);
+
+  const statusCards = useMemo(() => {
+    if (connectedProviders === null) return [];
+    if (connectedProviders.length === 0) {
+      // Nothing connected (or status unavailable): make no claims about data
+      return [{ icon: Brain, label: 'Your twin', value: 'Ready to learn' }];
+    }
+    const cards = [{ icon: Brain, label: 'Your memories', value: 'Already learning' }];
+    if (connectedProviders.includes('spotify')) {
+      cards.push({ icon: Music, label: 'Your music', value: 'Syncing now' });
+    }
+    if (connectedProviders.includes('google_calendar')) {
+      cards.push({ icon: Calendar, label: 'Your rhythm', value: 'Syncing now' });
+    }
+    if (cards.length === 1) {
+      cards.push({
+        icon: Link2,
+        label: connectedProviders.length === 1 ? 'Your platform' : 'Your platforms',
+        value: connectedProviders.length === 1 ? '1 connected' : `${connectedProviders.length} connected`,
+      });
+    }
+    return cards.slice(0, 3);
+  }, [connectedProviders]);
 
   // Fetch twin's first message — but only use first sentence
   useEffect(() => {
@@ -159,11 +196,7 @@ const AwakeningScreen: React.FC<AwakeningScreenProps> = ({ onEnter }) => {
           transition: 'all 0.8s ease-out',
         }}
       >
-        {[
-          { icon: Brain, label: 'Your memories', value: 'Already learning' },
-          { icon: Music, label: 'Your music', value: 'Patterns detected' },
-          { icon: Calendar, label: 'Your rhythm', value: 'Syncing up' },
-        ].map(({ icon: Icon, label, value }) => (
+        {statusCards.map(({ icon: Icon, label, value }) => (
           <div
             key={label}
             className="flex items-center gap-3 px-5 py-4"

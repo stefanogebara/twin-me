@@ -277,6 +277,45 @@ export async function sendWhatsAppInsight(recipientPhone, insight) {
 }
 
 /**
+ * Download inbound WhatsApp media (statement attachments, receipts) by media id.
+ *
+ * Kapso proxies Meta's media endpoints: GET metadata resolves the short-lived
+ * URL, then the SDK fetches the bytes with client auth. Returns a Buffer or
+ * null — callers treat a failed download as "statement didn't arrive" and ask
+ * the user to resend, so this never throws.
+ *
+ * Size guard: bank statements are tens of KB; anything over the cap is not a
+ * statement and would only burn lambda memory.
+ */
+const MAX_MEDIA_BYTES = 10 * 1024 * 1024; // 10MB
+
+export async function downloadWhatsAppMedia(mediaId) {
+  if (!mediaId) return null;
+  if (!USE_KAPSO) {
+    log.warn('downloadWhatsAppMedia: Kapso not configured (no Meta-direct fallback implemented)');
+    return null;
+  }
+  try {
+    const client = await getKapsoClient();
+    if (!client?.media?.download) {
+      log.warn('downloadWhatsAppMedia: Kapso client has no media.download');
+      return null;
+    }
+    const phoneNumberId = process.env.KAPSO_PHONE_NUMBER_ID || process.env.TWINME_WHATSAPP_PHONE_NUMBER_ID;
+    const buf = await client.media.download({ mediaId, phoneNumberId, as: 'arrayBuffer' });
+    const buffer = Buffer.from(buf);
+    if (buffer.length > MAX_MEDIA_BYTES) {
+      log.warn('downloadWhatsAppMedia: media exceeds size cap', { mediaId, bytes: buffer.length });
+      return null;
+    }
+    return buffer;
+  } catch (err) {
+    log.warn('downloadWhatsAppMedia failed', { mediaId, error: err.message });
+    return null;
+  }
+}
+
+/**
  * Mark a message as read (shows blue checkmarks to the sender).
  *
  * M8: Routes through Kapso when configured. Previous version always hit

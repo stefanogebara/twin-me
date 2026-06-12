@@ -31,7 +31,6 @@ interface ChatEmptyStateProps {
   platforms: Platform[];
   onQuickAction: (text: string) => void;
   onSendMessage?: () => void;
-  insightsCount?: number;
   showInterviewChip?: boolean;
   onStartInterview?: () => void;
   // audit-2026-05-13 L1: signal data for dynamic chips. All optional — when
@@ -44,7 +43,6 @@ interface ChatEmptyStateProps {
 export const ChatEmptyState = ({
   connectedPlatforms,
   onQuickAction,
-  insightsCount = 0,
   showInterviewChip = false,
   onStartInterview,
   pendingInsights,
@@ -62,16 +60,11 @@ export const ChatEmptyState = ({
   const greeting = getGreeting(firstName, localHour);
   const dateStr = formatDateInTimezone(timezone);
 
-  // H1 fix (audit-2026-05-12): use canonical platforms summary so the empty-state
-  // chip ("N platforms connected") matches the footer chip ("N Platforms") and
-  // every other surface (/connect, /identity, /wiki). Falls back to
-  // connectedPlatforms.length while the summary loads.
+  // Canonical platform state (audit-2026-05-12 H1). The count is no longer
+  // rendered (replan-2026-06-10 chat declutter) — it only branches the
+  // greeting vs the get-to-know-you zero state. `.active` excludes
+  // expired/stale (audit-2026-05-15 H1).
   const { data: platformsSummary } = usePlatformsSummary();
-  // audit-2026-05-15 H1: use `.active` not `.total` so the "X platforms
-  // connected" chip excludes expired/stale connections. The audit found
-  // Spotify expired 16d ago but the chip still showed it as connected —
-  // misleading users into thinking their soul signature was up-to-date
-  // when 4 of 10 platforms were actually silent.
   const platformCount = platformsSummary?.active ?? platformsSummary?.total ?? connectedPlatforms.length;
   const expiredCount = platformsSummary?.expired ?? 0;
   const staleCount = platformsSummary?.stale ?? 0;
@@ -121,7 +114,9 @@ export const ChatEmptyState = ({
         }
       </h2>
 
-      {/* Context subtitle — dynamic briefing line */}
+      {/* replan-2026-06-10 chat declutter: subtitle carries no counts —
+          platform/insight tallies changed nothing about what the user types
+          (the reconnect chip below is the one count that does). */}
       {platformCount > 0 && (
         <p
           className="text-center mb-8 max-w-sm"
@@ -132,19 +127,7 @@ export const ChatEmptyState = ({
             fontFamily: "'Inter', sans-serif",
           }}
         >
-          {insightsCount > 0
-            ? (
-              <>
-                Your twin noticed <span style={{ color: 'rgba(255,255,255,0.7)', fontWeight: 400 }}>{insightsCount} thing{insightsCount > 1 ? 's' : ''}</span> about you today.{' '}
-                <span style={{ color: 'rgba(255,255,255,0.7)', fontWeight: 400 }}>{platformCount} platform{platformCount > 1 ? 's' : ''}</span> fueling your soul signature.
-              </>
-            )
-            : (
-              <>
-                <span style={{ color: 'rgba(255,255,255,0.7)', fontWeight: 400 }}>{platformCount} platform{platformCount > 1 ? 's' : ''}</span> connected. Ask me anything — I know more than you think.
-              </>
-            )
-          }
+          Ask me anything — I know more than you think.
         </p>
       )}
 

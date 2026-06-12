@@ -24,7 +24,10 @@ import { createLogger } from './logger.js';
 
 const log = createLogger('TwinPromptAssembly');
 
-const ANTI_EMOJI_RULE = '\nCRITICAL STYLE RULE: NEVER use emojis in your responses. No emoji characters whatsoever. Use plain text, markdown bold, and line breaks for structure instead.';
+// Exported so the /intro greeting (twin-conversations.js) shares the exact
+// same prohibition as the main chat path (audit-2026-06-10: intro prompt had
+// no anti-emoji instruction).
+export const ANTI_EMOJI_RULE = '\nCRITICAL STYLE RULE: NEVER use emojis in your responses. No emoji characters whatsoever. Use plain text, markdown bold, and line breaks for structure instead.';
 
 function buildVoiceBlock(voiceExamples) {
   if (!voiceExamples || voiceExamples.length === 0) return null;

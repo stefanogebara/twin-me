@@ -11,10 +11,10 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { PluggyConnect } from 'react-pluggy-connect';
 import { usePlaidLink } from 'react-plaid-link';
-import { Wallet, Loader2, Globe, Building2 } from 'lucide-react';
+import { Wallet, Loader2, Building2 } from 'lucide-react';
+import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import {
   getPluggyConnectToken,
-  getTrueLayerAuthUrl,
   registerPluggyItem,
   getPlaidLinkToken,
   exchangePlaidPublicToken,
@@ -29,6 +29,10 @@ export function ConnectBankButton({ onConnected }: Props) {
   const [environment, setEnvironment] = useState<'sandbox' | 'production'>('sandbox');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // replan-2026-06-10 Track D: the Plaid (US) rail is sandbox-only — parked
+  // behind this flag until a real US launch. Code paths stay intact.
+  const plaidEnabled = useFeatureFlag('money_plaid');
 
   // Plaid Link state. usePlaidLink REQUIRES a token at hook-call time, but we
   // mint the token lazily on button click — so we keep linkToken in state and
@@ -46,22 +50,22 @@ export function ConnectBankButton({ onConnected }: Props) {
         // configured (dev or prod-misconfig). Direct user to CSV upload below.
         if (res.code === 'PLUGGY_NOT_CONFIGURED') {
           // In dev mode the user IS the operator — surface the actionable
-          // configuration step instead of the production-facing "indisponível".
+          // configuration step instead of the production-facing "unavailable".
           const isDev = import.meta.env?.DEV === true;
           setError(
             isDev
-              ? 'Pluggy não configurado. Adicione PLUGGY_CLIENT_ID e PLUGGY_CLIENT_SECRET no .env, reinicie o backend e tente de novo. (Conta grátis em dashboard.pluggy.ai)'
-              : 'Vinculação bancária BR está temporariamente indisponível. Use o upload de extrato CSV/OFX abaixo enquanto isso.',
+              ? 'Pluggy is not configured. Add PLUGGY_CLIENT_ID and PLUGGY_CLIENT_SECRET to .env, restart the backend, and try again. (Free account at dashboard.pluggy.ai)'
+              : 'BR bank linking is temporarily unavailable. Use the CSV/OFX statement upload below in the meantime.',
           );
         } else {
-          setError(res.error || 'Não foi possível iniciar a conexão bancária');
+          setError(res.error || 'Could not start the bank connection');
         }
         return;
       }
       setEnvironment(res.environment || 'sandbox');
       setConnectToken(res.connectToken);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro inesperado');
+      setError(err instanceof Error ? err.message : 'Unexpected error');
     } finally {
       setLoading(false);
     }
@@ -104,12 +108,12 @@ export function ConnectBankButton({ onConnected }: Props) {
       try {
         const result = await exchangePlaidPublicToken(publicToken);
         if (!result.success || !result.itemId) {
-          setError(result.error || 'Falha ao conectar conta US (Plaid).');
+          setError(result.error || 'Failed to connect US account (Plaid).');
           return;
         }
         onConnected?.(result.itemId);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Erro inesperado ao trocar token Plaid');
+        setError(err instanceof Error ? err.message : 'Unexpected error exchanging Plaid token');
       }
     },
     [onConnected],
@@ -122,14 +126,14 @@ export function ConnectBankButton({ onConnected }: Props) {
       if (err) {
         // Plaid LinkOnExitMetadata has a stable error_code we can map.
         const friendly: Record<string, string> = {
-          INVALID_CREDENTIALS: 'Credenciais inválidas. Verifique seu login e senha bancários.',
-          ITEM_LOGIN_REQUIRED: 'Conta requer autenticação. Tente novamente.',
-          INSUFFICIENT_CREDENTIALS: 'Faltou MFA ou alguma etapa de autenticação.',
-          INVALID_MFA: 'Código de verificação inválido.',
-          RATE_LIMIT_EXCEEDED: 'Muitas tentativas seguidas. Aguarde alguns minutos.',
+          INVALID_CREDENTIALS: 'Invalid credentials. Check your bank login and password.',
+          ITEM_LOGIN_REQUIRED: 'Account requires authentication. Please try again.',
+          INSUFFICIENT_CREDENTIALS: 'A multi-factor or authentication step was missing.',
+          INVALID_MFA: 'Invalid verification code.',
+          RATE_LIMIT_EXCEEDED: 'Too many attempts in a row. Wait a few minutes.',
         };
         const code = (err as { error_code?: string }).error_code || '';
-        setError(friendly[code] || 'Falha na conexão com o banco US. Tente novamente.');
+        setError(friendly[code] || 'US bank connection failed. Please try again.');
       }
       setPlaidLinkToken(null);
     },
@@ -159,47 +163,17 @@ export function ConnectBankButton({ onConnected }: Props) {
           const isDev = import.meta.env?.DEV === true;
           setError(
             isDev
-              ? 'Plaid não configurado. Adicione PLAID_CLIENT_ID e PLAID_SECRET no .env, reinicie o backend e tente de novo. (Conta grátis em dashboard.plaid.com)'
-              : 'Vinculação bancária US está temporariamente indisponível. Use o upload de extrato CSV/OFX abaixo enquanto isso.',
+              ? 'Plaid is not configured. Add PLAID_CLIENT_ID and PLAID_SECRET to .env, restart the backend, and try again. (Free account at dashboard.plaid.com)'
+              : 'US bank linking is temporarily unavailable. Use the CSV/OFX statement upload below in the meantime.',
           );
         } else {
-          setError(res.error || 'Não foi possível iniciar a conexão US');
+          setError(res.error || 'Could not start the US connection');
         }
         return;
       }
       setPlaidLinkToken(res.linkToken);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro inesperado');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const openTrueLayer = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await getTrueLayerAuthUrl();
-      if (!res.success || !res.authUrl) {
-        // audit-2026-05-08 C1: same pattern as Pluggy — show friendly message
-        // and point user to CSV upload when TL isn't configured.
-        if (res.code === 'TRUELAYER_NOT_CONFIGURED') {
-          // Dev-mode actionable hint; production message kept friendly.
-          const isDev = import.meta.env?.DEV === true;
-          setError(
-            isDev
-              ? 'TrueLayer não configurado. Adicione TRUELAYER_CLIENT_ID e TRUELAYER_CLIENT_SECRET no .env, reinicie o backend e tente de novo.'
-              : 'Vinculação bancária EU/UK está temporariamente indisponível. Use o upload de extrato CSV/OFX abaixo enquanto isso.',
-          );
-        } else {
-          setError(res.error || 'Não foi possível iniciar a conexão EU/UK');
-        }
-        return;
-      }
-      // Full-page redirect: TrueLayer's consent page is not widget-embeddable.
-      window.location.assign(res.authUrl);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro inesperado');
+      setError(err instanceof Error ? err.message : 'Unexpected error');
     } finally {
       setLoading(false);
     }
@@ -225,56 +199,36 @@ export function ConnectBankButton({ onConnected }: Props) {
         ) : (
           <Wallet className="w-4 h-4" />
         )}
-        {loading ? 'Preparando…' : 'Conectar banco BR'}
+        {loading ? 'Preparing…' : 'Connect BR bank'}
       </button>
 
-      <button
-        onClick={openPlaid}
-        disabled={loading || !!plaidLinkToken}
-        className="inline-flex items-center gap-2 px-4 py-2.5 rounded-[100px] transition-colors disabled:opacity-60"
-        style={{
-          background: 'rgba(255,255,255,0.08)',
-          color: 'rgba(255,255,255,0.90)',
-          border: '1px solid rgba(255,255,255,0.12)',
-          fontFamily: "'Geist', 'Inter', sans-serif",
-          fontWeight: 500,
-          fontSize: 14,
-        }}
-        title="Chase, Schwab, Fidelity, Robinhood, Amex, Capital One e 12 mil instituições US (via Plaid)"
-      >
-        {loading || (plaidLinkToken && !plaidReady) ? (
-          <Loader2 className="w-4 h-4 animate-spin" />
-        ) : (
-          <Building2 className="w-4 h-4" />
-        )}
-        {loading
-          ? 'Preparando…'
-          : plaidLinkToken && !plaidReady
-            ? 'Abrindo Plaid…'
-            : 'Conectar banco US'}
-      </button>
-
-      <button
-        onClick={openTrueLayer}
-        disabled={loading}
-        className="inline-flex items-center gap-2 px-4 py-2.5 rounded-[100px] transition-colors disabled:opacity-60"
-        style={{
-          background: 'rgba(255,255,255,0.08)',
-          color: 'rgba(255,255,255,0.90)',
-          border: '1px solid rgba(255,255,255,0.12)',
-          fontFamily: "'Geist', 'Inter', sans-serif",
-          fontWeight: 500,
-          fontSize: 14,
-        }}
-        title="Santander Spain, Revolut, N26, Monzo, EU/UK banks (via TrueLayer)"
-      >
-        {loading ? (
-          <Loader2 className="w-4 h-4 animate-spin" />
-        ) : (
-          <Globe className="w-4 h-4" />
-        )}
-        {loading ? 'Preparando…' : 'Conectar banco EU/UK'}
-      </button>
+      {plaidEnabled && (
+        <button
+          onClick={openPlaid}
+          disabled={loading || !!plaidLinkToken}
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-[100px] transition-colors disabled:opacity-60"
+          style={{
+            background: 'rgba(255,255,255,0.08)',
+            color: 'rgba(255,255,255,0.90)',
+            border: '1px solid rgba(255,255,255,0.12)',
+            fontFamily: "'Geist', 'Inter', sans-serif",
+            fontWeight: 500,
+            fontSize: 14,
+          }}
+          title="Chase, Schwab, Fidelity, Robinhood, Amex, Capital One, and 12,000+ US institutions (via Plaid)"
+        >
+          {loading || (plaidLinkToken && !plaidReady) ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <Building2 className="w-4 h-4" />
+          )}
+          {loading
+            ? 'Preparing…'
+            : plaidLinkToken && !plaidReady
+              ? 'Opening Plaid…'
+              : 'Connect US bank'}
+        </button>
+      )}
 
       {error && (
         <div
@@ -285,6 +239,28 @@ export function ConnectBankButton({ onConnected }: Props) {
         </div>
       )}
 
+      {/* Open Finance BR guidance: real Brazilian banks connect through
+          MeuPluggy (Pluggy's free consumer app + regulated Open Finance
+          participant). Without this hint a first-time user opens the widget,
+          sees only "MeuPluggy", and has no idea what to do with it. */}
+      <div
+        className="mt-2 w-full text-xs leading-relaxed"
+        style={{ color: 'var(--text-muted)', fontFamily: "'Geist', 'Inter', sans-serif", maxWidth: 560 }}
+      >
+        To connect Brazilian banks (Nubank, Itau, Santander, Bradesco and others) via Open Finance:
+        create a free account at{' '}
+        <a
+          href="https://meu.pluggy.ai"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ color: 'var(--text-narrative-secondary)', textDecoration: 'underline' }}
+        >
+          meu.pluggy.ai
+        </a>
+        , link your banks there, then click Connect BR bank and choose MeuPluggy.
+        Your data flows in automatically and refreshes daily.
+      </div>
+
       {connectToken && (
         <PluggyConnect
           connectToken={connectToken}
@@ -294,17 +270,17 @@ export function ConnectBankButton({ onConnected }: Props) {
             const code = err?.message || '';
             const friendly: Record<string, string> = {
               TRIAL_CLIENT_ITEM_CREATE_NOT_ALLOWED:
-                'Conexão bancária indisponível no momento. Entre em contato com o suporte.',
+                'Bank connection is unavailable right now. Please contact support.',
               ITEM_ALREADY_EXISTS:
-                'Este banco já está conectado à sua conta.',
+                'This bank is already connected to your account.',
               INVALID_CREDENTIALS:
-                'Credenciais inválidas. Verifique seu login e senha bancários.',
+                'Invalid credentials. Check your bank login and password.',
               ACCOUNT_LOCKED:
-                'Conta bloqueada no banco. Desbloqueie pelo app do banco e tente novamente.',
+                'Account locked at the bank. Unlock it in your bank app and try again.',
               CONNECTION_ERROR:
-                'Erro de conexão com o banco. Tente novamente em alguns instantes.',
+                'Connection error with the bank. Try again in a moment.',
             };
-            setError(friendly[code] || 'Falha na conexão com o banco. Tente novamente.');
+            setError(friendly[code] || 'Bank connection failed. Please try again.');
             setConnectToken(null);
           }}
           onClose={handleExit}

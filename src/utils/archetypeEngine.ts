@@ -209,6 +209,16 @@ export interface SoulSignatureLayers {
     summary?: string;
     patterns?: string[];
   };
+  // audit-2026-06-10: backend emits camelCase `growthEdges`; the snake_case
+  // variant is kept only for resilience against older cached payloads.
+  growthEdges?: {
+    shifts?: Array<{
+      domain?: string;
+      description?: string;
+      type?: 'exploration' | 'growth' | 'stress_response';
+    }>;
+    isStable?: boolean;
+  };
   growth_edges?: {
     shifts?: Array<{
       domain?: string;
@@ -232,7 +242,8 @@ export function determineArchetypeFromSoulLayers(layers: SoulSignatureLayers): A
     ? values.reduce((sum, value) => sum + (value.strength ?? 0.6), 0) / values.length
     : 0.6;
 
-  const growthShifts = layers.growth_edges?.shifts ?? [];
+  const growthEdges = layers.growthEdges ?? layers.growth_edges;
+  const growthShifts = growthEdges?.shifts ?? [];
   const connectionText = `${layers.connections?.style ?? ''} ${layers.connections?.summary ?? ''}`.toLowerCase();
   const valuesText = values.map((value) => `${value.name ?? ''} ${value.evidence ?? ''}`).join(' ').toLowerCase();
   const tasteDiversity = layers.taste?.diversity ?? 0.65;
@@ -248,7 +259,7 @@ export function determineArchetypeFromSoulLayers(layers: SoulSignatureLayers): A
   const conscientiousness = clamp01(0.45 + avgValueStrength * 0.35 + countSignals(valuesText, structureSignals) * 0.06);
   const extraversion = clamp01(0.35 + countSignals(connectionText, socialSignals) * 0.12);
   const agreeableness = clamp01(0.45 + countSignals(`${valuesText} ${connectionText}`, empathySignals) * 0.08);
-  const neuroticism = clamp01(layers.growth_edges?.isStable === false ? 0.58 : 0.38);
+  const neuroticism = clamp01(growthEdges?.isStable === false ? 0.58 : 0.38);
 
   return determineArchetype(openness, conscientiousness, extraversion, agreeableness, neuroticism);
 }
@@ -274,9 +285,10 @@ export function generateTraitBadgesFromSoulLayers(layers: SoulSignatureLayers): 
 
   // Skip topSignals — these are artist/content names (e.g. "Drake"), not identity traits
 
-  if (layers.growth_edges?.isStable) {
+  const badgeGrowthEdges = layers.growthEdges ?? layers.growth_edges;
+  if (badgeGrowthEdges?.isStable) {
     badges.add('Stable Core');
-  } else if ((layers.growth_edges?.shifts?.length ?? 0) > 0) {
+  } else if ((badgeGrowthEdges?.shifts?.length ?? 0) > 0) {
     badges.add('Evolving Edge');
   }
 

@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Check, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { getAccessToken, API_URL } from '@/services/api/apiBase';
 import { safeRedirect } from '@/lib/safeRedirect';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { useSubscription } from '@/hooks/useSubscription';
 
 const PLANS = [
   {
@@ -18,8 +20,7 @@ const PLANS = [
       'Basic soul signature',
       '7-day memory window',
     ],
-    cta: 'Current plan',
-    ctaDisabled: true,
+    cta: 'Free plan',
     highlight: false,
   },
   {
@@ -37,7 +38,6 @@ const PLANS = [
       'Proactive insights',
     ],
     cta: 'Upgrade to Plus',
-    ctaDisabled: false,
     highlight: true,
   },
   {
@@ -46,37 +46,58 @@ const PLANS = [
     price: '$100',
     period: '/ month',
     description: 'The complete soul signature experience',
+    // audit-2026-06-10 follow-up: 'WhatsApp twin access' and 'Twin goals +
+    // auto-tracking' removed — neither is plan-gated anywhere (no whatsapp/goals
+    // keys in subscriptionService PLAN_LIMITS, no requirePlan on those routes),
+    // so a paid tier must not claim them as exclusives.
     features: [
       'Unlimited messages',
       'All platform connections',
       'Advanced personality oracle',
-      'Twin goals + auto-tracking',
-      'WhatsApp twin access',
       'Priority support',
     ],
     cta: 'Upgrade to Pro',
-    ctaDisabled: false,
     highlight: false,
   },
 ];
+
+// DB plan keys -> pricing card ids. Mirrors PLAN_DISPLAY_TO_DB in
+// api/routes/billing.js: DB 'pro' is the $20 Plus tier, DB 'max' is the
+// $100 Pro tier (audit-2026-06-10).
+const DB_PLAN_TO_PAGE_ID: Record<string, string> = { free: 'free', pro: 'plus', max: 'pro' };
 
 const PricingPage: React.FC = () => {
   useDocumentTitle('Pricing');
   const navigate = useNavigate();
   const [loading, setLoading] = useState<string | null>(null);
+  const { plan: dbPlan, loading: planLoading } = useSubscription();
+  const currentPlanId = DB_PLAN_TO_PAGE_ID[dbPlan] ?? 'free';
+  const onPaidPlan = currentPlanId !== 'free';
 
   const handleUpgrade = async (planId: string) => {
     const token = getAccessToken();
     if (!token) { navigate('/auth'); return; }
     setLoading(planId);
     try {
-      const res = await fetch(`${API_URL}/billing/checkout`, {
+      // audit-2026-06-10: existing subscribers must change plans via the Stripe
+      // billing portal — /billing/checkout always creates a NEW subscription,
+      // which would double-charge anyone already on a paid plan.
+      const endpoint = onPaidPlan ? 'portal' : 'checkout';
+      const res = await fetch(`${API_URL}/billing/${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ plan: planId }),
+        body: JSON.stringify(endpoint === 'checkout' ? { plan: planId } : {}),
       });
-      const data = await res.json();
-      if (data.url) safeRedirect(data.url);
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data?.url || !safeRedirect(data.url)) {
+        toast.error(
+          typeof data?.error === 'string' && data.error
+            ? data.error
+            : 'Could not open the billing page. Please try again.',
+        );
+      }
+    } catch {
+      toast.error('Could not open the billing page. Please check your connection and try again.');
     } finally {
       setLoading(null);
     }
@@ -104,7 +125,17 @@ const PricingPage: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {PLANS.map((plan) => (
+          {PLANS.map((plan) => {
+            const isCurrent = !planLoading && plan.id === currentPlanId;
+            // While the subscription is loading every CTA is disabled so a
+            // subscriber cannot open a checkout based on stale plan state.
+            const ctaDisabled = planLoading || isCurrent || plan.id === 'free';
+            const ctaLabel = isCurrent
+              ? 'Current plan'
+              : plan.id !== 'free' && onPaidPlan
+                ? 'Change plan'
+                : plan.cta;
+            return (
             <div
               key={plan.id}
               style={{
@@ -184,21 +215,21 @@ const PricingPage: React.FC = () => {
               </ul>
 
               <button
-                disabled={plan.ctaDisabled || loading === plan.id}
-                onClick={() => { if (!plan.ctaDisabled) handleUpgrade(plan.id); }}
+                disabled={ctaDisabled || loading === plan.id}
+                onClick={() => { if (!ctaDisabled) handleUpgrade(plan.id); }}
                 style={{
                   width: '100%',
                   padding: '10px 0',
                   borderRadius: '100px',
                   fontSize: '14px',
                   fontWeight: 500,
-                  cursor: plan.ctaDisabled ? 'default' : 'pointer',
+                  cursor: ctaDisabled ? 'default' : 'pointer',
                   transition: 'opacity 0.15s',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: '6px',
-                  ...(plan.ctaDisabled
+                  ...(ctaDisabled
                     ? {
                         background: 'transparent',
                         border: '1px solid rgba(255,255,255,0.08)',
@@ -218,10 +249,13 @@ const PricingPage: React.FC = () => {
                 }}
               >
                 {loading === plan.id && <Loader2 size={14} className="animate-spin" />}
-                {loading === plan.id ? 'Opening checkout...' : plan.cta}
+                {loading === plan.id
+                  ? (onPaidPlan ? 'Opening billing portal...' : 'Opening checkout...')
+                  : ctaLabel}
               </button>
             </div>
-          ))}
+            );
+          })}
         </div>
 
         <p

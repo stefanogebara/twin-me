@@ -1,5 +1,5 @@
 ---
-allowed-tools: Grep, Read, Edit, Write, WebFetch, TodoWrite, WebSearch, BashOutput, KillShell, mcp__context7__resolve-library-id, mcp__context7__get-library-docs, Bash, Glob
+allowed-tools: Grep, Read, Edit, Write, WebFetch, TaskCreate, TaskUpdate, WebSearch, BashOutput, KillShell, mcp__context7__resolve-library-id, mcp__context7__get-library-docs, Bash, Glob
 description: Conduct a comprehensive code review of the pending changes on the current branch for the Soul Signature platform based on the Pragmatic Quality framework. This command analyzes architecture, security, functionality, maintainability, and testing to ensure code meets world-class engineering standards while maintaining development velocity.
 ---
 

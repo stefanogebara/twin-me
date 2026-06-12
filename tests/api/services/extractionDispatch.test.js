@@ -3,7 +3,12 @@
  *
  * The dispatch table is where Phase 3's regression risk lives: a dropped
  * platform, a wrong store-as alias, or a mis-wired feature extractor. These
- * assertions pin the table 1:1 against the behavior of the prior switch.
+ * assertions pin the table against the post-cut platform portfolio
+ * (replan-2026-06-10 Track C): killed platforms (linkedin, oura, twitch,
+ * reddit, strava, garmin, fitbit, slack, google_drive, apple_music, notion,
+ * pinterest, soundcloud, steam) must NOT reappear; keepers must stay wired
+ * exactly as before. Discord and outlook are demoted in the UI but keep full
+ * backend function.
  */
 import { describe, it, expect } from 'vitest';
 import {
@@ -12,31 +17,35 @@ import {
   normalizeRawExtractorResult,
 } from '../../../api/services/extractionDispatch.js';
 
-// The exact platform set the old switch handled.
-const OBSERVATION_WITH_FEATURE = [
-  'discord', 'github', 'youtube', 'gmail', 'linkedin',
-  'whoop', 'oura', 'twitch', 'reddit', 'strava',
+// The post-cut platform set (replan-2026-06-10 Track C).
+const OBSERVATION_WITH_FEATURE = ['discord', 'github', 'youtube', 'gmail', 'whoop'];
+const OBSERVATION_NO_FEATURE = ['google_calendar', 'outlook'];
+const KILLED_PLATFORMS = [
+  'strava', 'oura', 'fitbit', 'garmin', 'notion', 'pinterest', 'soundcloud',
+  'slack', 'steam', 'tiktok', 'apple_music', 'google_drive', 'reddit',
+  'linkedin', 'twitch',
 ];
-const OBSERVATION_NO_FEATURE = [
-  'google_calendar', 'outlook', 'garmin', 'fitbit', 'slack',
-  'google_drive', 'apple_music',
-];
-const RAW_EXTRACTORS = ['notion', 'pinterest', 'soundcloud', 'steam'];
 
 describe('PLATFORM_EXTRACTION table', () => {
   it('is frozen', () => {
     expect(Object.isFrozen(PLATFORM_EXTRACTION)).toBe(true);
   });
 
-  it('covers every platform the old switch handled (incl. google_gmail alias)', () => {
+  it('covers exactly the post-cut platform set (incl. google_gmail alias)', () => {
     const expected = [
       'spotify',
       ...OBSERVATION_WITH_FEATURE,
       ...OBSERVATION_NO_FEATURE,
-      ...RAW_EXTRACTORS,
       'google_gmail',
     ].sort();
     expect(Object.keys(PLATFORM_EXTRACTION).sort()).toEqual(expected);
+  });
+
+  it('contains no killed platform (replan-2026-06-10 Track C)', () => {
+    for (const p of KILLED_PLATFORMS) {
+      expect(PLATFORM_EXTRACTION[p], p).toBeUndefined();
+      expect(getDescriptor(p), p).toBeNull();
+    }
   });
 
   it('marks spotify as the special kind', () => {
@@ -53,7 +62,7 @@ describe('PLATFORM_EXTRACTION table', () => {
     }
   });
 
-  it('the 10 feature platforms have a featureExtractors module', () => {
+  it('the feature platforms have a featureExtractors module', () => {
     for (const p of OBSERVATION_WITH_FEATURE) {
       expect(PLATFORM_EXTRACTION[p].feature, p).toMatch(/^\.\/featureExtractors\/.+\.js$/);
     }
@@ -73,23 +82,16 @@ describe('PLATFORM_EXTRACTION table', () => {
     }
   });
 
-  it('raw extractors point at extractors/* and set successAlways correctly', () => {
-    for (const p of RAW_EXTRACTORS) {
-      expect(PLATFORM_EXTRACTION[p].kind, p).toBe('raw_extractor');
-      expect(PLATFORM_EXTRACTION[p].module, p).toMatch(/^\.\/extractors\/.+\.js$/);
-    }
-    // notion/pinterest were always treated as success; soundcloud/steam were not.
-    expect(PLATFORM_EXTRACTION.notion.successAlways).toBe(true);
-    expect(PLATFORM_EXTRACTION.pinterest.successAlways).toBe(true);
-    expect(PLATFORM_EXTRACTION.soundcloud.successAlways).toBeUndefined();
-    expect(PLATFORM_EXTRACTION.steam.successAlways).toBeUndefined();
+  it('no raw_extractor descriptors remain (notion/pinterest/soundcloud/steam deleted)', () => {
+    const rawKinds = Object.values(PLATFORM_EXTRACTION).filter(d => d.kind === 'raw_extractor');
+    expect(rawKinds).toEqual([]);
   });
 });
 
 describe('getDescriptor', () => {
   it('resolves known platforms', () => {
     expect(getDescriptor('spotify')).toBe(PLATFORM_EXTRACTION.spotify);
-    expect(getDescriptor('notion').kind).toBe('raw_extractor');
+    expect(getDescriptor('whoop').kind).toBe('observation');
   });
 
   it('is case-insensitive (matches old switch .toLowerCase())', () => {
@@ -106,8 +108,11 @@ describe('getDescriptor', () => {
   });
 });
 
+// normalizeRawExtractorResult stays exported for the orchestrator's
+// 'raw_extractor' runner even though no current platform uses the kind —
+// these tests pin its contract for any future niche platform.
 describe('normalizeRawExtractorResult', () => {
-  it('successAlways descriptors are always success: true (notion/pinterest)', () => {
+  it('successAlways descriptors are always success: true', () => {
     const d = { successAlways: true };
     expect(normalizeRawExtractorResult(d, { itemsExtracted: 5 })).toEqual({
       success: true,
@@ -120,7 +125,7 @@ describe('normalizeRawExtractorResult', () => {
     });
   });
 
-  it('non-successAlways passes through success flag + error (soundcloud/steam)', () => {
+  it('non-successAlways passes through success flag + error', () => {
     const d = {};
     expect(normalizeRawExtractorResult(d, { success: true, itemsExtracted: 3 })).toEqual({
       success: true,
@@ -137,8 +142,6 @@ describe('normalizeRawExtractorResult', () => {
   });
 
   it('treats a missing result (null/undefined) as a failure (matches old switch throw)', () => {
-    // The old switch did `result.itemsExtracted` and threw on undefined -> the
-    // outer catch marked the job failed. Preserve that: no result === failure.
     expect(normalizeRawExtractorResult({}, undefined)).toEqual({
       success: false,
       itemsExtracted: 0,
@@ -152,7 +155,6 @@ describe('normalizeRawExtractorResult', () => {
   });
 
   it('treats an empty result object as success with 0 items (matches old switch)', () => {
-    // extractAll returning {} -> old code: itemsExtracted 0, success true.
     expect(normalizeRawExtractorResult({}, {}).success).toBe(true);
     expect(normalizeRawExtractorResult({}, {}).itemsExtracted).toBe(0);
     expect(normalizeRawExtractorResult({ successAlways: true }, {}).success).toBe(true);

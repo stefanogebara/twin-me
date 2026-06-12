@@ -95,17 +95,8 @@ export default async function handler(req, res) {
         log.warn('Insights summary pre-warm setup failed', { error: e.message });
       }
 
-      // Auto-retrain personality oracle if enough new memories accumulated (200+ since last train, 7-day cooldown)
-      try {
-        const { checkBatchRetrain } = await import('../services/finetuning/autoRetrain.js');
-        checkBatchRetrain(result.processedUserIds).then(retrainResult => {
-          if (retrainResult.triggered > 0) {
-            log.info('Auto-retrain triggered', { checked: retrainResult.checked, triggered: retrainResult.triggered });
-          }
-        }).catch(e => log.warn('Auto-retrain check failed', { error: e.message }));
-      } catch (e) {
-        log.warn('Auto-retrain setup failed', { error: e.message });
-      }
+      // replan-2026-06-10 cycle 4: auto-retrain hook removed — the DPO/
+      // fine-tuning training stack was deleted (training infra never existed).
 
       // Check if departments should propose actions (SoulOS heartbeat)
       try {

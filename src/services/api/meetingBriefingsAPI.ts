@@ -133,7 +133,7 @@ export interface ScanResponse {
 /**
  * On-demand: scan the user's calendar now and generate briefings for any
  * upcoming external meetings that aren't briefed yet. Powers the
- * "Atualizar" button — no waiting for the 30-min cron.
+ * "Refresh" button — no waiting for the 30-min cron.
  */
 export async function scanMeetings(): Promise<ScanResponse> {
   try {

@@ -2,7 +2,10 @@
  * OFX Parser for Brazilian banks (Itaú, Bradesco, Santander, BB, Caixa, C6, Inter).
  * =================================================================================
  * Brazilian banks export SGML 1.x OFX (not XML 2.x) encoded in Windows-1252.
- * We decode with iconv-lite, then extract transactions via `ofx-data-extractor`.
+ * We decode with iconv-lite, then extract transactions with a native SGML
+ * regex parser (no external dep — the former `ofx-data-extractor` package was
+ * ESM-only and threw "Unexpected token 'export'" in Vercel's serverless
+ * runtime, breaking every OFX upload).
  *
  * Quirks handled:
  *   - Windows-1252 encoding (not UTF-8) — must decode first
@@ -17,22 +20,43 @@
 import crypto from 'crypto';
 import { parseBrlAmount } from './nubankCsvParser.js';
 
-// Lazy-loaded heavy deps. Loaded on first use so a broken package can't crash
-// the serverless cold start and take down /api/* with it.
-// `ofx-data-extractor` ships UMD/CJS — ESM interop is fragile on Vercel.
+// iconv-lite is lazy-loaded on first use (only needed for Windows-1252 files)
+// so a cold start never pays for it on the UTF-8 happy path.
 let _iconv = null;
-let _Ofx = null;
 async function loadIconv() {
   if (_iconv) return _iconv;
   const mod = await import('iconv-lite');
   _iconv = mod.default || mod;
   return _iconv;
 }
-async function loadOfx() {
-  if (_Ofx) return _Ofx;
-  const mod = await import('ofx-data-extractor');
-  _Ofx = mod.Ofx || mod.default?.Ofx || mod.default || mod;
-  return _Ofx;
+/**
+ * Native SGML OFX transaction extractor — replaces the ESM-only
+ * `ofx-data-extractor` dependency, which threw "Unexpected token 'export'"
+ * in Vercel's serverless runtime (prod bug 2026-06-11) and broke every OFX
+ * upload + the WhatsApp/Gmail OFX flows. Brazilian OFX is SGML 1.x: leaf tags
+ * are `<TAG>value` with no closing tag, value running to the next `<` or EOL.
+ * A focused regex parse is strictly more robust here and has zero deps.
+ */
+function ofxLeaf(body, tag) {
+  const m = body.match(new RegExp(`<${tag}>([^<\\r\\n]*)`, 'i'));
+  return m ? m[1].trim() : undefined;
+}
+
+function extractStmtTrnBlocks(text) {
+  const blocks = [];
+  const re = /<STMTTRN>([\s\S]*?)<\/STMTTRN>/gi;
+  let m;
+  while ((m = re.exec(text)) !== null) {
+    const body = m[1];
+    blocks.push({
+      TRNTYPE: ofxLeaf(body, 'TRNTYPE'),
+      DTPOSTED: ofxLeaf(body, 'DTPOSTED'),
+      TRNAMT: ofxLeaf(body, 'TRNAMT'),
+      FITID: ofxLeaf(body, 'FITID'),
+      MEMO: ofxLeaf(body, 'MEMO') ?? ofxLeaf(body, 'NAME'),
+    });
+  }
+  return blocks;
 }
 
 /**
@@ -121,33 +145,16 @@ export async function parseOfx(input) {
   const sourceBank = inferSourceBank(text);
 
   const errors = [];
-  let ofx;
-  try {
-    const OfxCtor = await loadOfx();
-    ofx = new OfxCtor(text);
-  } catch (err) {
-    return { accountType: 'checking', sourceBank, transactions: [], errors: [`OFX parse init failed: ${err.message}`] };
-  }
 
   // Detect whether this is a bank account (STMTRS) or credit card (CCSTMTRS).
-  // ofx-data-extractor exposes both getBankTransferList() and getCreditCardTransferList().
+  // The native extractor pulls all <STMTTRN> blocks regardless of section; the
+  // flag only drives the credit-card sign convention below.
   const isCreditCard = hasTag(text, 'CCSTMTRS') || hasTag(text, 'CCACCTFROM');
   const accountType = isCreditCard ? 'credit_card' : 'checking';
 
   let rawTxns = [];
   try {
-    if (isCreditCard && typeof ofx.getCreditCardTransferList === 'function') {
-      rawTxns = normalizeTxnList(ofx.getCreditCardTransferList());
-    } else if (typeof ofx.getBankTransferList === 'function') {
-      rawTxns = normalizeTxnList(ofx.getBankTransferList());
-    } else {
-      // Fallback — some package versions use different method names
-      const content = typeof ofx.getContent === 'function' ? ofx.getContent() : null;
-      const transferList =
-        content?.OFX?.BANKMSGSRSV1?.STMTTRNRS?.STMTRS?.BANKTRANLIST?.STMTTRN ||
-        content?.OFX?.CREDITCARDMSGSRSV1?.CCSTMTTRNRS?.CCSTMTRS?.BANKTRANLIST?.STMTTRN;
-      rawTxns = normalizeTxnList(transferList);
-    }
+    rawTxns = normalizeTxnList(extractStmtTrnBlocks(text));
   } catch (err) {
     errors.push(`Transaction list extraction failed: ${err.message}`);
   }

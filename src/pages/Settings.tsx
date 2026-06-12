@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuth } from '../contexts/AuthContext';
 import { API_URL, getAccessToken } from '@/services/api/apiBase';
-import { usePlatformStatus } from '../hooks/usePlatformStatus';
+import { usePlatformsSummary, useDisconnectPlatform } from '../hooks/usePlatformsSummary';
 import { useBackgroundMode } from '../contexts/BackgroundModeContext';
 import { Download, Info, ArrowRight, Send, ExternalLink, Check, Brain } from 'lucide-react';
 import ConnectedPlatformsSettings from './components/settings/ConnectedPlatformsSettings';
@@ -197,8 +197,8 @@ const TelegramConnect: React.FC = () => {
 const Settings = () => {
   useDocumentTitle('Settings');
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, signOut } = useAuth();
-  const [disconnectingService, setDisconnectingService] = useState<string | null>(null);
   const [memoryCount, setMemoryCount] = useState<number | null>(null);
 
   // Subscription state
@@ -223,14 +223,19 @@ const Settings = () => {
     graph_retrieval: false,
   });
 
+  // Batch-3 state unification: settings reads the canonical /platforms/summary
+  // (breakdown entry = connected; state==='expired' = needs reconnection).
   const {
-    data: connectorStatus,
+    data: platformsSummary,
     isLoading,
     error: statusError,
     refetch,
-    optimisticDisconnect,
-    revertOptimisticUpdate
-  } = usePlatformStatus(user?.id);
+  } = usePlatformsSummary();
+
+  const disconnectPlatform = useDisconnectPlatform(user?.id);
+  const disconnectingService = disconnectPlatform.isPending
+    ? disconnectPlatform.variables ?? null
+    : null;
 
   const error = statusError?.message || null;
 
@@ -280,21 +285,10 @@ const Settings = () => {
     }
   };
 
-  const handleDisconnectService = async (provider: string) => {
-    try {
-      setDisconnectingService(provider);
-      optimisticDisconnect(provider);
-      const response = await fetch(`${API_URL}/connectors/${provider}/${user?.id}`, { method: 'DELETE' });
-      if (response.ok) {
-        await refetch();
-      } else {
-        await revertOptimisticUpdate();
-      }
-    } catch {
-      await revertOptimisticUpdate();
-    } finally {
-      setDisconnectingService(null);
-    }
+  // Optimistic removal, auth headers, revert + error toast on failure, and
+  // ['platforms'] invalidation all live inside useDisconnectPlatform.
+  const handleDisconnectService = (provider: string) => {
+    disconnectPlatform.mutate(provider);
   };
 
   const handleToggleFeature = async (key: keyof typeof featureToggles) => {
@@ -400,6 +394,29 @@ const Settings = () => {
       if (el) observer.observe(el);
     });
     return () => observer.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Deep link: /settings?reconnect=<platform> (inbox failed-proposal CTAs) and
+  // /settings#connections both target the Connected Platforms section.
+  // audit-2026-06-10: InboxTile emitted these URLs but nothing consumed them,
+  // so users landed at the top of Settings with no guidance.
+  useEffect(() => {
+    const reconnectTarget = new URLSearchParams(location.search).get('reconnect');
+    if (!reconnectTarget && location.hash !== '#connections') return;
+    // Small delay so the sections above have rendered before scrolling.
+    const timer = setTimeout(() => {
+      scrollToSection('section-platforms');
+      if (reconnectTarget) {
+        const PLATFORM_LABELS: Record<string, string> = {
+          gmail: 'Gmail',
+          calendar: 'Google Calendar',
+        };
+        const label = PLATFORM_LABELS[reconnectTarget] || 'your platform';
+        toast.info(`Reconnect ${label} under Connected Platforms to restore access.`);
+      }
+    }, 150);
+    return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -612,7 +629,7 @@ const Settings = () => {
       <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
         <SectionLabel label="Connected Platforms" />
         <ConnectedPlatformsSettings
-          connectorStatus={connectorStatus}
+          summary={platformsSummary}
           isLoading={isLoading}
           error={error}
           disconnectingService={disconnectingService}

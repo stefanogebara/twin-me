@@ -25,8 +25,10 @@ import {
 /**
  * Stand up minimal stubs for every endpoint the audit pages hit so the specs
  * don't require a running backend or seeded DB state. The platform-count
- * tests pin the same set of 10 platforms behind /api/platforms/summary AND
- * /api/connectors/status/* so every surface should agree on "10".
+ * tests pin the same set of 10 platforms behind /api/platforms/summary —
+ * the single platform-state source since batch-3 state unification
+ * (the legacy /api/connectors/status/:userId route was deleted) — so every
+ * surface should agree on "10".
  */
 async function mockPlatformsAPI(page: import('@playwright/test').Page) {
   const breakdown = [
@@ -54,31 +56,6 @@ async function mockPlatformsAPI(page: import('@playwright/test').Page) {
         stale: breakdown.filter((p) => p.state === 'stale').length,
         breakdown,
       }),
-    });
-  });
-
-  await page.route('**/api/connectors/status/*', async (route) => {
-    const data: Record<string, unknown> = {};
-    const now = new Date();
-    for (const p of breakdown) {
-      const expired = p.state === 'expired';
-      const stale = p.state === 'stale';
-      data[p.platform] = {
-        connected: true,
-        isActive: !expired,
-        tokenExpired: expired,
-        connectedAt: new Date(now.getTime() - 30 * 24 * 3600 * 1000).toISOString(),
-        lastSync: stale
-          ? new Date(now.getTime() - 18 * 24 * 3600 * 1000).toISOString()
-          : new Date(now.getTime() - 1 * 3600 * 1000).toISOString(),
-        status: expired ? 'token_expired' : stale ? 'success' : 'success',
-        expiresAt: null,
-      };
-    }
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ success: true, data }),
     });
   });
 

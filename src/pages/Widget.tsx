@@ -5,6 +5,13 @@ import { useAuth } from '../contexts/AuthContext';
 import { API_URL, getAccessToken } from '@/services/api/apiBase';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { MessageList } from '@/components/chat/MessageList';
+import {
+  HUMMINGBIRD_CONTEXT_KEY,
+  parseHummingbirdContext,
+  summarizeActionStart,
+  summarizeActionResult,
+  summarizeActionFailure,
+} from '@/lib/hummingbirdWidget';
 
 /**
  * Widget — compact, chrome-less twin chat surface.
@@ -17,8 +24,19 @@ import { MessageList } from '@/components/chat/MessageList';
  * Reuses MessageList (markdown rendering, retry, copy, error/thinking states)
  * and the SAME streaming endpoint as TalkToTwin:
  *   POST /api/chat/message?stream=1
- * parsing only the chunk / done / error SSE events (the action/proposal/usage
- * machinery from TalkToTwin is intentionally dropped — it has no surface here).
+ * parsing chunk / done / error SSE events, plus a text-only rendering of
+ * action_start / action_result ("Checking Gmail..." -> "Found 3 emails.").
+ * The full interactive pill + confirmation machinery from TalkToTwin is
+ * intentionally NOT here — write tools (action_pending_confirmation) have no
+ * approval surface in the widget, so those events are still dropped.
+ *
+ * Desktop context seeding (P1 wire-the-loop): on every panel summon the
+ * desktop app (show_hummingbird in desktop/src-tauri/src/lib.rs) evals a
+ * sessionStorage write of recent local activity (app + window title only)
+ * under 'hummingbird_context' into this page; we read it fresh at send time
+ * and forward it as context.hummingbird_clips so the twin can ground answers
+ * in what the user was just doing. Absent/stale/malformed context degrades
+ * to a normal chat.
  */
 
 type ChatErrorType = 'timeout' | 'rate_limit' | 'network' | 'generic';
@@ -53,6 +71,20 @@ const Widget = () => {
   // (https://twinme.me/widget?panel=1). Round the corners (the transparent
   // window shows through) and let Esc dismiss the panel. Harmless in a browser.
   const isPanel = new URLSearchParams(window.location.search).get('panel') === '1';
+
+  // Desktop activity context seeded by the desktop app (see module comment).
+  // Read at SEND time, not mount time: the panel webview stays alive across
+  // summons and the Rust side (show_hummingbird in lib.rs) re-seeds
+  // sessionStorage on every summon, so a mount-time snapshot would go stale
+  // after the first one. parseHummingbirdContext never throws; the try/catch
+  // only guards sessionStorage access itself (blocked storage).
+  const readHummingbirdClips = useCallback((): ReturnType<typeof parseHummingbirdContext> => {
+    try {
+      return parseHummingbirdContext(sessionStorage.getItem(HUMMINGBIRD_CONTEXT_KEY));
+    } catch {
+      return [];
+    }
+  }, []);
 
   // Make the page transparent so the desktop window's rounded corners show
   // through; restore on unmount so other routes are unaffected.
@@ -118,6 +150,9 @@ const Widget = () => {
     setIsTyping(true);
 
     const assistantMsgId = crypto.randomUUID();
+    // Snapshot the desktop context fresh for THIS send (re-seeded by the
+    // desktop on every panel summon).
+    const hummingbirdClips = readHummingbirdClips();
 
     try {
       const token = getAccessToken();
@@ -130,7 +165,13 @@ const Widget = () => {
         body: JSON.stringify({
           message: trimmed,
           conversationId,
-          context: { platforms: [] },
+          context: {
+            platforms: [],
+            // Recent desktop activity from the Hummingbird panel (app +
+            // window title only) — lets the twin ground "what am I working
+            // on" answers. Omitted entirely when there is no fresh context.
+            ...(hummingbirdClips.length > 0 ? { hummingbird_clips: hummingbirdClips } : {}),
+          },
         }),
       });
 
@@ -153,6 +194,10 @@ const Widget = () => {
       let buffer = '';
       let firstChunk = true;
       let receivedDoneEvent = false;
+      // Per-tool count of outstanding "Checking {tool}..." lines, so each
+      // action_result can replace its own loading line (string-identical per
+      // tool, so replacing the first occurrence is always safe).
+      const pendingActionLines = new Map<string, number>();
 
       while (true) {
         const { done, value } = await reader.read();
@@ -185,6 +230,53 @@ const Widget = () => {
             } else if (event.type === 'done') {
               receivedDoneEvent = true;
               if (event.conversationId) setConversationId(event.conversationId);
+            } else if (event.type === 'action_start' && typeof event.tool === 'string') {
+              // Text-only action rendering: show a loading line that the
+              // matching action_result will replace. The trailing blank line
+              // keeps later prose chunks from gluing onto the summary.
+              const line = summarizeActionStart(event.tool);
+              pendingActionLines.set(event.tool, (pendingActionLines.get(event.tool) ?? 0) + 1);
+              if (firstChunk) {
+                firstChunk = false;
+                setIsTyping(false);
+                setMessages(prev => [...prev, {
+                  id: assistantMsgId,
+                  role: 'assistant',
+                  content: `${line}\n\n`,
+                  timestamp: new Date(),
+                }]);
+              } else {
+                setMessages(prev => prev.map(m =>
+                  m.id === assistantMsgId ? { ...m, content: `${m.content}${line}\n\n` } : m
+                ));
+              }
+            } else if (event.type === 'action_result' && typeof event.tool === 'string') {
+              const summary = event.success
+                ? summarizeActionResult(event.tool, event.data)
+                : summarizeActionFailure(event.tool);
+              const pendingCount = pendingActionLines.get(event.tool) ?? 0;
+              const startLine = summarizeActionStart(event.tool);
+              if (pendingCount > 0) pendingActionLines.set(event.tool, pendingCount - 1);
+              if (firstChunk) {
+                // Result-only stream (no action_start, no chunks yet).
+                firstChunk = false;
+                setIsTyping(false);
+                setMessages(prev => [...prev, {
+                  id: assistantMsgId,
+                  role: 'assistant',
+                  content: `${summary}\n\n`,
+                  timestamp: new Date(),
+                }]);
+              } else {
+                setMessages(prev => prev.map(m => {
+                  if (m.id !== assistantMsgId) return m;
+                  if (pendingCount > 0 && m.content.includes(startLine)) {
+                    return { ...m, content: m.content.replace(startLine, summary) };
+                  }
+                  // No loading line to replace: append instead.
+                  return { ...m, content: `${m.content}${summary}\n\n` };
+                }));
+              }
             } else if (event.type === 'error') {
               setMessages(prev => {
                 const hasMsg = prev.some(m => m.id === assistantMsgId);
@@ -194,12 +286,23 @@ const Widget = () => {
                 return prev.map(m => m.id === userMessage.id ? { ...m, failed: true, errorType: 'generic' as const } : m);
               });
             }
-            // action_start / action_result / action_pending_confirmation are
-            // intentionally ignored — the widget renders text-only replies.
+            // action_pending_confirmation is still intentionally ignored —
+            // the widget has no approval surface for write tools (Phase 2).
           } catch {
             // Skip malformed SSE lines
           }
         }
+      }
+
+      // Loading lines left unresolved (stream died mid-action) become visible
+      // failures rather than a permanently spinning "Checking ...".
+      for (const [tool, count] of pendingActionLines) {
+        if (count <= 0) continue;
+        const startLine = summarizeActionStart(tool);
+        const failLine = summarizeActionFailure(tool);
+        setMessages(prev => prev.map(m =>
+          m.id === assistantMsgId ? { ...m, content: m.content.split(startLine).join(failLine) } : m
+        ));
       }
 
       // Stream ended without any content chunks and no done event = timeout
@@ -221,7 +324,7 @@ const Widget = () => {
     } finally {
       setIsTyping(false);
     }
-  }, [inputMessage, user?.id, isTyping, conversationId]);
+  }, [inputMessage, user?.id, isTyping, conversationId, readHummingbirdClips]);
 
   const handleRetry = useCallback((content: string, messageId: string) => {
     setMessages(prev => prev.filter(m => m.id !== messageId));

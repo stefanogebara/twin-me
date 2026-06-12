@@ -2,8 +2,8 @@
  * usePlatformInsights
  *
  * Shared data hook for the per-platform Insights pages (Spotify, YouTube,
- * Calendar, Discord, LinkedIn, Web). Replaces the fetch logic that was
- * copy-pasted across all six pages.
+ * Calendar, Discord, Web). Replaces the fetch logic that was
+ * copy-pasted across the pages.
  *
  * Handles the cold-start `generating` contract (2026-06-06 audit fix):
  * GET /api/insights/:platform returns `{ generating: true }` immediately when
@@ -13,6 +13,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { API_URL, getAccessToken, isAbortError } from '@/services/api/apiBase';
 
@@ -26,9 +27,22 @@ export interface PlatformInsightsState<T> {
   loading: boolean;
   /** Backend is generating the reflection in the background; we're polling. */
   generating: boolean;
-  /** A user-triggered refresh is in flight. */
+  /** A user-triggered refresh POST is in flight. */
   refreshing: boolean;
+  /**
+   * Stale-while-revalidate signal (audit-2026-06-10): true for the whole
+   * refresh window — POST + the generating poll loop — while the previous
+   * insights stay rendered. Pages show a small inline "Refreshing..."
+   * indicator instead of swapping back to the skeleton.
+   */
+  isRefreshing: boolean;
   error: string | null;
+  /**
+   * Non-transient backend generation failure with nothing on screen.
+   * Pages render an inline error with a retry action — NOT a "Connect"
+   * CTA, since the platform is connected (audit-2026-06-10).
+   */
+  generationError: string | null;
   refresh: () => Promise<void>;
 }
 
@@ -42,10 +56,14 @@ export function usePlatformInsights<T = unknown>(
   const [generating, setGenerating] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [generationError, setGenerationError] = useState<string | null>(null);
 
   const pollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pollCount = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
+  // Mirrors `insights` so the give-up branch (inside a stale closure) can tell
+  // whether anything is on screen before deciding to surface an error.
+  const insightsRef = useRef<T | null>(null);
 
   const clearPoll = () => {
     if (pollTimer.current) {
@@ -76,13 +94,43 @@ export function usePlatformInsights<T = unknown>(
         // loading state and poll — never fall through to the empty/connect state.
         if (data?.generating) {
           setGenerating(true);
+          // A real generation is running again — drop any stale failure state
+          // (e.g. the user hit retry from the inline error).
+          setGenerationError(null);
           if (!signal?.aborted && pollCount.current < MAX_POLLS) {
             pollCount.current += 1;
             clearPoll();
             pollTimer.current = setTimeout(() => fetchInsights(signal), POLL_INTERVAL_MS);
           } else {
-            // Gave up after MAX_POLLS — surface whatever state we have.
+            // Gave up after MAX_POLLS — a legitimately slow generation can
+            // still exceed the 90s window. With no data loaded, going quiet
+            // here would render the misleading "Connect <platform>" empty
+            // state for an already-connected user (audit-2026-06-10). Surface
+            // an error instead; keep existing insights on screen if we have them.
             setGenerating(false);
+            if (!insightsRef.current) {
+              setError('Your insights are taking longer than expected. Please try again in a few minutes.');
+            }
+          }
+          return;
+        }
+
+        // Non-transient backend failure (audit-2026-06-10): the API flags these
+        // with { error: true, message } instead of masquerading as
+        // generating:true (which forced a 90s poll before a fake state).
+        if (data?.error === true) {
+          clearPoll();
+          setGenerating(false);
+          const message =
+            typeof data.message === 'string' && data.message
+              ? data.message
+              : 'Something went wrong while generating your insights.';
+          if (insightsRef.current) {
+            // Previous reflection is still valid — keep it rendered, report
+            // the failed refresh as a toast.
+            toast.error(message);
+          } else {
+            setGenerationError(message);
           }
           return;
         }
@@ -94,8 +142,10 @@ export function usePlatformInsights<T = unknown>(
         }
 
         setInsights(data as T);
+        insightsRef.current = data as T;
         setGenerating(false);
         setError(null);
+        setGenerationError(null);
         pollCount.current = 0;
         clearPoll();
       } catch (err) {
@@ -129,20 +179,29 @@ export function usePlatformInsights<T = unknown>(
     setRefreshing(true);
     const authToken = token || getAccessToken();
     try {
-      await fetch(`${API_URL}/insights/${platform}/refresh`, {
+      const response = await fetch(`${API_URL}/insights/${platform}/refresh`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${authToken}` },
       });
-      // Backend regenerates in the background, so the refetch returns
-      // generating:true and the poll loop picks up the fresh reflection.
+      if (!response.ok) throw new Error(`Server error: ${response.status}`);
+      // Backend regenerates in the background while holding the generation
+      // lock, so the refetch returns generating:true and the poll loop picks
+      // up the fresh reflection once it lands.
       pollCount.current = 0;
       await fetchInsights(abortRef.current?.signal);
     } catch (err) {
       console.error(`Failed to refresh ${platform} insights:`, err);
+      // The current reflection is still valid, so report the failure as a
+      // toast instead of replacing the page with an error state.
+      toast.error('Could not refresh your insights. Please try again.');
     } finally {
       setRefreshing(false);
     }
   }, [platform, token, fetchInsights]);
 
-  return { insights, loading, generating, refreshing, error, refresh };
+  // Stale-while-revalidate: covers both the refresh POST and the generating
+  // poll loop that follows it while previous insights are still on screen.
+  const isRefreshing = refreshing || (generating && insights !== null);
+
+  return { insights, loading, generating, refreshing, isRefreshing, error, generationError, refresh };
 }

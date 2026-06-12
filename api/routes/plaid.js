@@ -7,7 +7,7 @@
  *   POST /api/plaid/sync/:id            — force-pull cursor sync for one connection
  *   DELETE /api/plaid/connections/:id   — disconnect a Plaid item
  *
- * Connections LIST is shared with Pluggy/TrueLayer — the existing
+ * Connections LIST is shared with Pluggy — the existing
  * `GET /api/transactions/pluggy/connections` route already returns all
  * providers from user_bank_connections, so no duplicate route is needed
  * here. The frontend reads from that endpoint and dispatches the Connect/
@@ -15,7 +15,13 @@
  *
  * Webhook endpoint (public, signature-verified) lives separately at
  * api/webhook-plaid.js so it can skip JWT and run as a thin lambda — same
- * pattern as Pluggy/TrueLayer webhooks per server.js mount notes.
+ * pattern as the Pluggy webhook per server.js mount notes.
+ *
+ * PARKED (replan-2026-06-10 Track D): Plaid is sandbox-only in every
+ * deployment (PLAID_ENV=sandbox; production Plaid access is an unstarted
+ * compliance project), so the whole router is gated behind the per-user
+ * `money_plaid` feature flag — default OFF, explicit opt-in like llm_wiki.
+ * When the flag is off every endpoint returns 503 PLAID_PARKED.
  */
 
 import express from 'express';
@@ -24,12 +30,29 @@ import { supabaseAdmin } from '../services/database.js';
 import { decryptToken } from '../services/encryption.js';
 import * as plaid from '../services/transactions/plaidClient.js';
 import { bootstrapItem, syncItem } from '../services/transactions/plaidIngestion.js';
+import { getPlaidSandboxState, isSandboxConnection } from '../services/transactions/sandboxGuard.js';
+import { getFeatureFlags } from '../services/featureFlagsService.js';
 import { createLogger } from '../services/logger.js';
 
 const log = createLogger('plaid-routes');
 const router = express.Router();
 
 router.use(authenticateUser);
+
+// money_plaid gate — opt-in flag, absent row = OFF (unlike most flags, which
+// default on; same explicit `=== true` pattern as llm_wiki). 503 + stable code
+// so the FE can render a "feature unavailable" state instead of a generic error.
+router.use(async (req, res, next) => {
+  const flags = await getFeatureFlags(req.user?.id);
+  if (flags?.money_plaid !== true) {
+    return res.status(503).json({
+      success: false,
+      error: 'US bank linking is currently unavailable',
+      code: 'PLAID_PARKED',
+    });
+  }
+  return next();
+});
 
 if (!plaid.isPlaidConfigured()) {
   log.warn('Plaid disabled: PLAID_CLIENT_ID or PLAID_SECRET unset. /plaid/link/token will return 503.');
@@ -203,14 +226,23 @@ router.get('/holdings', async (req, res) => {
       return res.status(503).json({ success: false, error: 'plaid not configured', code: 'PLAID_NOT_CONFIGURED' });
     }
 
-    const { data: rows, error } = await supabaseAdmin
+    const { data: allRows, error } = await supabaseAdmin
       .from('user_bank_connections')
-      .select('id, plaid_item_id, plaid_access_token_encrypted, connector_name')
+      .select('id, plaid_item_id, plaid_access_token_encrypted, connector_name, plaid_institution_id')
       .eq('user_id', userId)
       .eq('provider', 'plaid')
       .is('deleted_at', null)
       .not('plaid_access_token_encrypted', 'is', null);
     if (error) throw new Error(error.message);
+
+    // replan-2026-06-10 Track D P0: a sandbox item must never render a fake
+    // portfolio (+1,234,467% P&L on First Platypus cash) in production
+    // runtimes. The id set covers stored is_sandbox flags; the institution-id
+    // check covers rows the migration backfill hasn't touched.
+    const sandbox = await getPlaidSandboxState(userId);
+    const rows = sandbox.hideActive
+      ? (allRows || []).filter((r) => !sandbox.sandboxConnectionIds.has(r.id) && !isSandboxConnection(r))
+      : allRows;
 
     if (!rows?.length) {
       return res.json({
@@ -339,6 +371,14 @@ router.get('/investment-activity', async (req, res) => {
     const sinceDays = Math.min(Math.max(parseInt(String(req.query.sinceDays ?? '90'), 10) || 90, 7), 730);
     const sinceDate = new Date(Date.now() - sinceDays * 86400_000).toISOString().slice(0, 10);
 
+    // replan-2026-06-10 Track D P0: this surface is 100% plaid-sourced, so
+    // when the user has no live (non-sandbox) Plaid connection there is
+    // nothing real to show — return the empty shape instead of sandbox trades.
+    const sandbox = await getPlaidSandboxState(userId);
+    if (sandbox.excludePlaidTransactions) {
+      return res.json({ success: true, events: [], range: { since: sinceDate, limit } });
+    }
+
     const { data, error } = await supabaseAdmin
       .from('user_transactions')
       .select(`
@@ -442,7 +482,7 @@ router.post('/sync/:id', async (req, res) => {
  *
  * Provider-aware: refuses to act on non-plaid rows so the generic
  * disconnect route on /api/transactions/pluggy/connections/:id can keep
- * owning the Pluggy/TrueLayer paths.
+ * owning the Pluggy path.
  */
 router.delete('/connections/:id', async (req, res) => {
   try {

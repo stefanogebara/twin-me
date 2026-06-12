@@ -10,11 +10,12 @@
 // Phases 3-5 filled in macOS/Windows/Linux active-window detection, real
 // HTTP sync, the OS keyring auth token, and on-device meeting transcription.
 //
-// Phase 6 (this change) adds the Hummingbird quick panel: a second,
-// always-on-top, frameless overlay window (label "hummingbird", loads
-// www/hummingbird.html). The global hotkey toggles it; it dismisses on blur
-// or Esc; its buttons call the open_route / open_main_window commands to
-// drive the main window.
+// Phase 6 added the Hummingbird quick panel: a second, always-on-top,
+// frameless overlay window (label "hummingbird", loads the remote
+// https://twinme.me/widget?panel=1 — see tauri.conf.json; www/hummingbird.html
+// is a legacy local panel no window loads anymore). The global hotkey toggles
+// it; it dismisses on blur or Esc. P1 wire-the-loop seeds that remote page
+// with recent local activity on every summon (see seed_hummingbird_context).
 
 mod active_window;
 mod audio_capture;
@@ -77,14 +78,70 @@ fn notify(app: &AppHandle, title: &str, body: &str) {
     }
 }
 
+/// P1 wire-the-loop: seed the Hummingbird webview with recent local activity
+/// before it is shown. The panel hosts the REMOTE https://twinme.me/widget
+/// page, which cannot invoke `demo_get_clips` itself (its capability only
+/// grants `hide_hummingbird`), so Rust gathers the clips (app name + window
+/// title only — never extracted content) and evals a sessionStorage write
+/// into the page. The /widget page reads 'hummingbird_context' at send time
+/// and forwards `context.hummingbird_clips` with each chat message.
+///
+/// Best-effort by design: an empty clip list, a serialization error, or a
+/// failed eval just means an unseeded chat — summoning the panel must never
+/// be blocked on it. sessionStorage survives in-page navigation (e.g. the
+/// /auth -> /widget bounce in show_hummingbird), so write order vs. that
+/// nudge does not matter.
+///
+/// Injection safety: the payload is serialized to JSON, then that JSON string
+/// is serialized AGAIN to produce a quoted, escaped JS string literal — so
+/// quotes/backslashes/control chars in window titles can never break out of
+/// the eval. The page-side parser treats malformed payloads as no context.
+fn seed_hummingbird_context(window: &tauri::WebviewWindow) {
+    let clips = demo_get_clips();
+    if clips.is_empty() {
+        return;
+    }
+    let timestamp_ms = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis() as u64)
+        .unwrap_or(0);
+    let payload = match serde_json::to_string(&serde_json::json!({
+        "clips": clips,
+        "timestamp": timestamp_ms,
+    })) {
+        Ok(p) => p,
+        Err(err) => {
+            eprintln!("[hummingbird] context payload serialize failed: {err}");
+            return;
+        }
+    };
+    let js_literal = match serde_json::to_string(&payload) {
+        Ok(l) => l,
+        Err(err) => {
+            eprintln!("[hummingbird] context literal serialize failed: {err}");
+            return;
+        }
+    };
+    let script = format!(
+        "try{{sessionStorage.setItem('hummingbird_context',{js_literal})}}catch(_e){{}}"
+    );
+    if let Err(err) = window.eval(&script) {
+        eprintln!("[hummingbird] context seed eval failed: {err}");
+>>>>>>> origin/main
+    }
+}
+
 /// Show + focus the Hummingbird quick panel (the always-on-top overlay).
 /// The panel loads https://twinme.me/widget, sharing the main window's session
 /// cookie. If it got bounced to /auth (e.g. summoned on first run, before the
 /// user logged in via the main window), nudge it back to /widget on show so it
 /// re-checks the now-present session. The guard makes it a no-op once it's
 /// already on /widget, so an in-progress conversation is preserved.
+/// Each summon also re-seeds the desktop-activity context (the panel can sit
+/// hidden for hours between summons, so a load-time-only seed would go stale).
 fn show_hummingbird(app: &AppHandle) {
     if let Some(window) = app.get_webview_window("hummingbird") {
+        seed_hummingbird_context(&window);
         let _ = window.eval(
             "if(!location.pathname.startsWith('/widget')){location.replace('https://twinme.me/widget?panel=1')}",
         );
@@ -115,6 +172,44 @@ fn hide_hummingbird(app: AppHandle) {
     if let Some(window) = app.get_webview_window("hummingbird") {
         let _ = window.hide();
     }
+}
+
+/// Latest morning briefing JSON, held in app state (P1 wire-the-loop). The
+/// native toast can only carry greeting + schedule summary (Windows drops
+/// bodies past ~256 bytes), so the FULL briefing lives here for the bundled
+/// briefing-detail screen. Written by the sync loop's 7-9am poll and by
+/// poll_morning_briefing; read by get_latest_briefing. std Mutex (not tokio):
+/// every lock is short and never held across an await.
+pub struct BriefingState(pub std::sync::Mutex<Option<serde_json::Value>>);
+
+/// Command: fetch the morning briefing on demand — keyring token ->
+/// GET /api/morning-briefing/generate -> briefing JSON, or null when not
+/// signed in / network error / the backend had nothing (the page falls back
+/// to its no-briefing state; the error itself is logged Rust-side). The
+/// result is also stashed in BriefingState so the briefing-detail screen can
+/// re-read it via get_latest_briefing without a second network round-trip.
+#[tauri::command]
+async fn poll_morning_briefing(app: AppHandle) -> Option<serde_json::Value> {
+    let briefing = sync::fetch_morning_briefing().await;
+    if let Some(b) = &briefing {
+        if let Some(state) = app.try_state::<BriefingState>() {
+            if let Ok(mut slot) = state.0.lock() {
+                *slot = Some(b.clone());
+            }
+        }
+    }
+    briefing
+}
+
+/// Command: read the most recently fetched morning briefing from app state
+/// (set by the sync loop's morning poll or poll_morning_briefing). Returns
+/// null when nothing has been fetched this session — state is in-memory only,
+/// matching the toast's lifetime; the card simply isn't shown after a restart.
+#[tauri::command]
+fn get_latest_briefing(app: AppHandle) -> Option<serde_json::Value> {
+    let state = app.try_state::<BriefingState>()?;
+    let slot = state.0.lock().ok()?;
+    slot.clone()
 }
 
 /// Loose shape check: does `token` look like a JWT (three non-empty,
@@ -456,14 +551,37 @@ fn handle_deep_link(app: &AppHandle, urls: Vec<url::Url>) {
         if !query.contains("auth_code=") {
             continue;
         }
-        // Forward to the web app's existing /oauth/callback page (which exchanges
-        // the one-time code and stores the session via the keyring bridge). We
-        // use eval — already used elsewhere in this file, so it's a known-good
-        // API surface — and escape the query for the single-quoted JS string.
+        // Two delivery paths depending on what the main window is showing:
+        //
+        // 1. Bundled onboarding page (v2 #5 mid-flow sign-in): hand the query
+        //    INTO the page as a CustomEvent so onboarding survives the round
+        //    trip and can claim the code itself (it advances to the reveal +
+        //    extracted-facts screens). Navigating away here would kill the
+        //    onboarding state machine mid-flow.
+        //
+        // 2. Remote web app (post-onboarding sign-ins, re-auth): forward to
+        //    the existing /oauth/callback page, which exchanges the one-time
+        //    code and stores the session via the keyring bridge. Unchanged
+        //    legacy behavior.
+        //
+        // We detect case 1 by the window URL NOT being on twinme.me — the
+        // bundled page serves from tauri://localhost (macOS/Linux) or
+        // http://tauri.localhost (Windows). Checking "not twinme.me" rather
+        // than allow-listing local schemes keeps this robust across Tauri's
+        // per-platform origin differences.
         let escaped = query.replace('\\', "\\\\").replace('\'', "\\'");
         if let Some(win) = app.get_webview_window("main") {
-            let js =
-                format!("window.location.replace('https://twinme.me/oauth/callback?{escaped}')");
+            let on_onboarding = win
+                .url()
+                .map(|u| u.host_str().map_or(true, |h| !h.ends_with("twinme.me")))
+                .unwrap_or(false);
+            let js = if on_onboarding {
+                format!(
+                    "window.dispatchEvent(new CustomEvent('twinme:auth-code', {{ detail: '{escaped}' }}))"
+                )
+            } else {
+                format!("window.location.replace('https://twinme.me/oauth/callback?{escaped}')")
+            };
             let _ = win.eval(&js);
             let _ = win.show();
             let _ = win.unminimize();
@@ -508,6 +626,10 @@ pub fn run() {
     }
 
     builder
+        // P1 wire-the-loop: holds the latest morning briefing JSON for the
+        // briefing-detail screen (managed before setup so it exists by the
+        // time the sync loop and the webview commands touch it).
+        .manage(BriefingState(std::sync::Mutex::new(None)))
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_deep_link::init())
@@ -532,7 +654,9 @@ pub fn run() {
             settings_unexclude,
             request_mic_permission,
             demo_get_clips,
-            open_external
+            open_external,
+            poll_morning_briefing,
+            get_latest_briefing
         ])
         .setup(move |app| {
             // --- Deep link (twinme://) — return path for system-browser OAuth ---
@@ -779,8 +903,11 @@ pub fn run() {
             // tasks no-op safely on errors (DB open failure → early return)
             // and during Phase 2 the indexer effectively idles because
             // active_window::current() returns None.
+            // Both loops need the AppHandle now: the indexer surfaces the
+            // meeting-recorder consent notification; the sync loop drives the
+            // morning-briefing leg (native toast + BriefingState + page nudge).
             tauri::async_runtime::spawn(clip_indexer::run(app.handle().clone()));
-            tauri::async_runtime::spawn(sync::run());
+            tauri::async_runtime::spawn(sync::run(app.handle().clone()));
 
             // Auto-update: one silent check shortly after startup. Best-effort —
             // any failure is logged and swallowed (see update.rs). A newer version

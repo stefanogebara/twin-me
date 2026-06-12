@@ -24,21 +24,54 @@ import { complete, TIER_ANALYSIS } from './llmGateway.js';
 import { sendPushToUser } from './pushNotificationService.js';
 import { supabaseAdmin } from './database.js';
 import { createLogger } from './logger.js';
-import { scoreForInsightSelection } from './inSilicoEngine.js';
 import { stripEmoji } from '../utils/stripEmoji.js';
+import { computeCategorySuppression, buildSuppressionPromptSection } from './insightSuppression.js';
 
 const log = createLogger('ProactiveInsights');
 
 // Import the research-tuned prompt template and parameters
 import { INSIGHT_PROMPT_TEMPLATE, INSIGHT_TEMPERATURE, INSIGHT_MAX_TOKENS, MEMORIES_TO_SCAN, REFLECTIONS_TO_INCLUDE, DEDUP_THRESHOLD } from '../../twin-research/insight-config.js';
 
-// Wrap the research template with nudge enforcement (production requirement)
-const INSIGHT_GENERATION_PROMPT = `${INSIGHT_PROMPT_TEMPLATE}
+// replan-2026-06-10 Track A: the "first insight MUST be a nudge" production
+// wrapper is gone — 20/20 stored nudges were never engaged, only 19% followed.
+// Nudges may still emerge naturally; they are no longer mandated per batch.
+const INSIGHT_GENERATION_PROMPT = INSIGHT_PROMPT_TEMPLATE;
 
-ADDITIONAL PRODUCTION REQUIREMENT:
-The FIRST insight in the array MUST have category "nudge" with a nudge_action field.
-A "nudge" is a specific micro-action suggestion (e.g., "block 30 min of focus time tomorrow at 9am").
-If generating 3 insights: 1 nudge + 2 others (trend/anomaly/celebration/concern).`;
+/**
+ * Strip digit runs (including thousand separators and decimals) before any
+ * lexical dedup comparison. replan-2026-06-10: a daily-incrementing count
+ * ("40,381 unread" -> "40,448 unread") defeated both the prefix match and
+ * the keyword Jaccard every day, so the same backlog stat shipped 6+ times
+ * in 3 days. Digits carry no theme identity; the words do.
+ */
+function _stripDigitsForDedup(text) {
+  return String(text || '')
+    .replace(/\d[\d,.]*/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * Theme-level dedup (replan-2026-06-10): keyword-set themes with a hard
+ * cooldown, so a reworded re-delivery of the same nag ("email backlog")
+ * is rejected even when no lexical layer fires. A theme needs >= 2 keyword
+ * hits — one lone mention of "email" must not lock the theme for a week.
+ */
+const THEME_COOLDOWN_DAYS = 7;
+const INSIGHT_THEMES = {
+  'email-backlog': ['email', 'emails', 'inbox', 'unread', 'gmail', 'backlog', 'archive', 'sender', 'senders'],
+  'github-backlog': ['github', 'prs', 'pull', 'branch', 'branches', 'review', 'merge'],
+  'recovery-strain': ['whoop', 'recovery', 'strain', 'hrv'],
+};
+
+function _extractInsightTheme(text) {
+  const words = new Set(_extractKeywords(_stripDigitsForDedup(text)));
+  for (const [theme, keywords] of Object.entries(INSIGHT_THEMES)) {
+    const hits = keywords.filter(k => words.has(k));
+    if (hits.length >= 2) return theme;
+  }
+  return null;
+}
 
 /**
  * Extract significant keywords from insight text for topic-based dedup.
@@ -107,10 +140,11 @@ function _keywordSimilarity(keywords1, keywords2) {
 
 /**
  * Check if a similar insight was already generated recently.
- * Uses three-layer dedup:
+ * Uses four-layer dedup (digits stripped before layers 1-2 — replan-2026-06-10):
  *   1. Exact 60-char prefix match (catches identical starts)
  *   2. Keyword Jaccard similarity > 0.35 (catches paraphrased duplicates)
- *   3. Per-category cooldown (max 1 per category per CATEGORY_COOLDOWN_HOURS)
+ *   3. Per-theme cooldown (max 1 per theme per THEME_COOLDOWN_DAYS)
+ *   4. Per-category cooldown (max 1 per category per CATEGORY_COOLDOWN_HOURS)
  */
 const CATEGORY_COOLDOWN_HOURS = {
   music_mood_match: 6,
@@ -190,21 +224,21 @@ async function isInsightDuplicate(userId, insightText, category = null) {
       .limit(200);
     if (!data?.length) return false;
 
-    // Layer 1: Exact 60-char prefix match (fast path)
-    const snippet = insightText.substring(0, 60).toLowerCase().replace(/[^a-z0-9\s]/g, '');
-    const prefixMatch = data.some(r => {
-      const existing = (r.insight || '').substring(0, 60).toLowerCase().replace(/[^a-z0-9\s]/g, '');
-      return existing === snippet;
-    });
+    // Layer 1: Exact 60-char prefix match (fast path).
+    // Digits are stripped first so an incrementing count can't defeat it.
+    const _prefixOf = (t) => _stripDigitsForDedup(t).substring(0, 60).toLowerCase().replace(/[^a-z\s]/g, '');
+    const snippet = _prefixOf(insightText);
+    const prefixMatch = data.some(r => _prefixOf(r.insight || '') === snippet);
     if (prefixMatch) return true;
 
     // Layer 2: Keyword similarity (catches paraphrased duplicates)
     // Uses Jaccard > 0.30 OR shared proper-noun-like words (capitalized in original) > 1
-    const newKeywords = _extractKeywords(insightText);
+    // Digit-stripped so number tokens don't dilute the Jaccard union.
+    const newKeywords = _extractKeywords(_stripDigitsForDedup(insightText));
     const newProperNouns = _extractProperNouns(insightText);
     if (newKeywords.length >= 3) {
       const isSimilar = data.some(r => {
-        const existingKeywords = _extractKeywords(r.insight || '');
+        const existingKeywords = _extractKeywords(_stripDigitsForDedup(r.insight || ''));
         const jaccardSim = _keywordSimilarity(newKeywords, existingKeywords);
         if (jaccardSim > 0.30) return true;
 
@@ -223,7 +257,20 @@ async function isInsightDuplicate(userId, insightText, category = null) {
       if (isSimilar) return true;
     }
 
-    // Layer 3: Per-category cooldown
+    // Layer 3: Per-theme cooldown (replan-2026-06-10). The 7-day fetch window
+    // above covers all rows (delivered or not), so a reworded re-delivery of
+    // a recently-shipped theme is rejected regardless of wording or numbers.
+    const newTheme = _extractInsightTheme(insightText);
+    if (newTheme) {
+      const themeSince = Date.now() - THEME_COOLDOWN_DAYS * 24 * 60 * 60 * 1000;
+      const themeMatch = data.some(r =>
+        new Date(r.created_at).getTime() >= themeSince &&
+        _extractInsightTheme(r.insight || '') === newTheme
+      );
+      if (themeMatch) return true;
+    }
+
+    // Layer 4: Per-category cooldown
     if (category) {
       const cooldownHours = CATEGORY_COOLDOWN_HOURS[category] || DEFAULT_CATEGORY_COOLDOWN;
       const cooldownSince = new Date(Date.now() - cooldownHours * 60 * 60 * 1000).toISOString();
@@ -299,6 +346,33 @@ async function generateProactiveInsights(userId) {
       })
       .join('\n') || 'No reflections yet.';
 
+    // 3b. Engagement-aware category suppression (replan-2026-06-10 Track A):
+    // read the per-category engaged/shown stats this table already collects
+    // (same query shape as GET /insights/proactive/engagement-stats) so
+    // generation finally adapts to what the user actually taps. Hard-suppressed
+    // categories are also filtered at insert time below.
+    let suppression = { suppressed: [], avoid: [] };
+    try {
+      const statsSince = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+      const { data: statRows, error: statsError } = await supabaseAdmin
+        .from('proactive_insights')
+        .select('category, urgency, engaged, delivered')
+        .eq('user_id', userId)
+        .gte('created_at', statsSince);
+      if (statsError) throw new Error(statsError.message);
+      suppression = computeCategorySuppression(statRows || []);
+      if (suppression.suppressed.length || suppression.avoid.length) {
+        log.info('Category suppression active', {
+          userId,
+          suppressed: suppression.suppressed,
+          avoid: suppression.avoid,
+        });
+      }
+    } catch (err) {
+      // Non-fatal: generation without suppression beats no generation at all.
+      log.warn('Category suppression stats unavailable — generating without them', { error: err?.message });
+    }
+
     // 4. Generate insights via LLM
     const result = await complete({
       tier: TIER_ANALYSIS,
@@ -306,7 +380,8 @@ async function generateProactiveInsights(userId) {
         role: 'user',
         content: INSIGHT_GENERATION_PROMPT
           .replace('{observations}', observations)
-          .replace('{reflections}', reflectionText),
+          .replace('{reflections}', reflectionText)
+          + buildSuppressionPromptSection(suppression),
       }],
       maxTokens: INSIGHT_MAX_TOKENS || 250,
       temperature: INSIGHT_TEMPERATURE || 0.65,
@@ -329,45 +404,9 @@ async function generateProactiveInsights(userId) {
       return 0;
     }
 
-    // 4b. Post-parse nudge enforcement: if no nudge category, promote the most actionable insight
-    const hasNudge = insights.some(i => i.category === 'nudge');
-    if (!hasNudge && insights.length > 0) {
-      // Find the most actionable-sounding insight (has nudge_action, or contains action verbs)
-      const actionableIdx = insights.findIndex(i => i.nudge_action);
-      if (actionableIdx >= 0) {
-        insights[actionableIdx] = { ...insights[actionableIdx], category: 'nudge' };
-      } else {
-        // Promote the first insight to nudge — extract a simple action from the insight text
-        const first = insights[0];
-        insights[0] = {
-          ...first,
-          category: 'nudge',
-          nudge_action: first.nudge_action || _extractActionFromInsight(first.insight),
-        };
-      }
-      log.info('No nudge from LLM, promoted one insight to nudge category');
-    }
-
-    // 4b. In-silico scoring: rank candidates by predicted engagement (TRIBE v2 Phase B)
-    // Non-fatal — if ICA axes don't exist yet or scoring fails, continue with LLM order
-    try {
-      const scored = await scoreForInsightSelection(userId, insights.map(i => i.insight));
-      if (scored.length > 0 && scored[0]?.engagement_score != null) {
-        const nudge = insights.find(i => i.category === 'nudge');
-        const nonNudges = insights
-          .filter(i => i.category !== 'nudge')
-          .sort((a, b) => {
-            const scoreA = scored.find(s => s.text === a.insight)?.engagement_score ?? 0;
-            const scoreB = scored.find(s => s.text === b.insight)?.engagement_score ?? 0;
-            return scoreB - scoreA;
-          });
-        insights = nudge ? [nudge, ...nonNudges] : nonNudges;
-        log.info('In-silico ranked insights', { userId, topScore: scored[0]?.engagement_score?.toFixed(3) });
-      }
-    } catch (scoringErr) {
-      // Non-fatal: if in-silico scoring fails, continue with LLM-ordered insights
-      log.warn('In-silico scoring skipped', { error: scoringErr.message });
-    }
+    // replan-2026-06-10 cycle 4: in-silico engagement ranking removed — the
+    // engine scored against ICA axes hardcoded to [], so the "ranking" was a
+    // static centroid prior. Insights keep the LLM's own ordering.
 
     // audit-2026-05-16: build the grounding corpus from the same observations
     // and reflections we just handed the LLM. The grounding gate below rejects
@@ -385,6 +424,14 @@ async function generateProactiveInsights(userId) {
       const validCategories = ['trend', 'anomaly', 'celebration', 'concern', 'goal_progress', 'goal_suggestion', 'nudge'];
       const validDepartments = ['communications', 'scheduling', 'health', 'content', 'finance', 'research', 'social'];
       const itemCategory = validCategories.includes(item.category) ? item.category : null;
+
+      // replan-2026-06-10 Track A: hard suppression — the user was shown 8+
+      // insights of this category in 30 days and engaged with none. The prompt
+      // already discourages these; this is the enforcement belt.
+      if (itemCategory && suppression.suppressed.includes(itemCategory)) {
+        log.info('Insight skipped — category suppressed by zero engagement', { userId, category: itemCategory });
+        continue;
+      }
 
       // audit-2026-05-16 HALLUCINATION GUARD: reject insights whose insight
       // body OR nudge_action cites stat-numbers not present in the source
@@ -408,9 +455,14 @@ async function generateProactiveInsights(userId) {
       // found a "🤑" leaking through to the chat sidebar from a stored
       // insight. Even though the generation prompt instructs no emojis,
       // models occasionally include them in JSON output — defense in depth.
+      // audit-2026-06-10: models occasionally prefix the insight body with its
+      // own category tag ("[celebration] You've created 8 branches...") which
+      // rendered raw on the dashboard. The category belongs in item.category,
+      // never in the text — strip any short leading bracketed tag.
+      const insightText = stripEmoji(item.insight).replace(/^\s*\[[a-z_ -]{2,24}\]\s*/i, '');
       const insertData = {
         user_id: userId,
-        insight: stripEmoji(item.insight).substring(0, 500),
+        insight: insightText.substring(0, 500),
         urgency: ['low', 'medium', 'high'].includes(item.urgency) ? item.urgency : 'low',
         category: validCategories.includes(item.category) ? item.category : null,
         department: validDepartments.includes(item.department) ? item.department : null,
@@ -857,13 +909,6 @@ async function getNudgeEffectivenessScore(userId) {
   }
 }
 
-/**
- * Best-effort extraction of an actionable suggestion from an insight string.
- * Used as fallback when the LLM fails to provide a nudge_action field.
- *
- * @param {string} insight
- * @returns {string} A simple action suggestion derived from the insight
- */
 const KNOWN_PLATFORMS = [
   'Spotify', 'YouTube', 'Gmail', 'GitHub', 'Whoop', 'Calendar', 'Discord',
   'Reddit', 'LinkedIn', 'Twitch', 'WhatsApp', 'Netflix', 'TikTok',
@@ -884,27 +929,6 @@ function _extractSourcesFromText(text) {
   return [...found];
 }
 
-function _extractActionFromInsight(insight) {
-  if (!insight) return 'take a short break today';
-  const lower = insight.toLowerCase();
-  if (lower.includes('sleep') || lower.includes('tired') || lower.includes('rest')) {
-    return 'try getting to bed 30 minutes earlier tonight';
-  }
-  if (lower.includes('busy') || lower.includes('meeting') || lower.includes('packed')) {
-    return 'block 30 min of free time on your calendar tomorrow';
-  }
-  if (lower.includes('music') || lower.includes('playlist') || lower.includes('listen')) {
-    return 'put on your favorite playlist during your next break';
-  }
-  if (lower.includes('exercise') || lower.includes('move') || lower.includes('walk')) {
-    return 'take a 10-minute walk after your next meal';
-  }
-  if (lower.includes('stress') || lower.includes('overwhelm') || lower.includes('anxious')) {
-    return 'take 5 deep breaths right now — seriously, it helps';
-  }
-  return 'take a short break and do something you enjoy today';
-}
-
 export {
   generateProactiveInsights,
   getUndeliveredInsights,
@@ -914,4 +938,6 @@ export {
   getNudgeEffectivenessScore,
   isInsightDuplicate,
   _findUngroundedNumbers,
+  _stripDigitsForDedup,
+  _extractInsightTheme,
 };

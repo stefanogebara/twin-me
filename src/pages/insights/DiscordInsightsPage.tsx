@@ -11,6 +11,8 @@ import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { TwinReflection, PatternObservation } from './components/TwinReflection';
 import { EvidenceSection } from './components/EvidenceSection';
 import { InsightsPageHeader } from './components/InsightsPageHeader';
+import { RefreshingIndicator } from './components/RefreshingIndicator';
+import { InsightsGenerationError } from './components/InsightsGenerationError';
 import { MessageSquare, AlertCircle, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -63,6 +65,9 @@ interface InsightsResponse {
   discordServers?: DiscordServer[];
   discordTotalServers?: number;
   discordCategoryBreakdown?: CategoryBreakdown[];
+  // True when the user hasn't connected the platform — the backend then returns
+  // `reflection` as a plain string placeholder, not a Reflection object (audit-2026-06-10).
+  notConnected?: boolean;
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -78,7 +83,7 @@ const DiscordInsightsPage: React.FC = () => {
 
   const navigate = useNavigate();
 
-  const { insights, loading, generating, refreshing, error, refresh } =
+  const { insights, loading, generating, isRefreshing, error, generationError, refresh } =
     usePlatformInsights<InsightsResponse>('discord', 'Please sign in to see your community insights');
 
   const colors = {
@@ -88,7 +93,9 @@ const DiscordInsightsPage: React.FC = () => {
     discordBg: 'rgba(88, 101, 242, 0.1)',
   };
 
-  if (loading || generating) {
+  // Keep previous insights rendered during a refresh (audit-2026-06-10);
+  // the skeleton is only for the no-data cold start.
+  if ((loading || generating) && !insights) {
     return (
       <div className="max-w-[680px] mx-auto px-6 py-16">
         <div className="animate-pulse space-y-4">
@@ -98,6 +105,11 @@ const DiscordInsightsPage: React.FC = () => {
         </div>
       </div>
     );
+  }
+
+  // Generation failed with nothing to show — inline retry, not a connect CTA.
+  if (generationError && !insights) {
+    return <InsightsGenerationError message={generationError} onRetry={refresh} retrying={isRefreshing} />;
   }
 
   if (error) {
@@ -130,8 +142,10 @@ const DiscordInsightsPage: React.FC = () => {
         textSecondaryColor={colors.textSecondary}
         onBack={() => navigate('/dashboard')}
         onRefresh={refresh}
-        isRefreshing={refreshing}
+        isRefreshing={isRefreshing}
       />
+
+      <RefreshingIndicator visible={isRefreshing} />
 
       {/* Server Tags */}
       {insights?.discordServers && insights.discordServers.length > 0 && (
@@ -309,22 +323,27 @@ const DiscordInsightsPage: React.FC = () => {
               Your twin is listening in
             </h3>
             <p className="text-sm max-w-sm mx-auto mb-6 leading-relaxed" style={{ color: colors.textSecondary }}>
-              As your Discord activity syncs, your twin will uncover what your communities and conversations reveal about your social world.
+              {insights?.notConnected
+                ? 'Connect Discord and your twin will uncover what your communities and conversations reveal about your social world.'
+                : 'As your Discord activity syncs, your twin will uncover what your communities and conversations reveal about your social world.'}
             </p>
-            <button
-              onClick={() => navigate('/get-started')}
-              className="px-5 py-2.5 rounded-xl text-sm font-medium text-white transition-all hover:scale-[1.02]"
-              style={{ background: '#10b77f' }}
-            >
-              Connect Discord
-            </button>
-            <div
-              className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm"
-              style={{ background: colors.discordBg, color: colors.discordPurple, border: '1px solid rgba(88, 101, 242, 0.2)' }}
-            >
-              <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: colors.discordPurple }} />
-              Collecting your server activity...
-            </div>
+            {insights?.notConnected ? (
+              <button
+                onClick={() => navigate('/get-started')}
+                className="px-5 py-2.5 rounded-xl text-sm font-medium text-white transition-all hover:scale-[1.02]"
+                style={{ background: '#10b77f' }}
+              >
+                Connect Discord
+              </button>
+            ) : (
+              <div
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm"
+                style={{ background: colors.discordBg, color: colors.discordPurple, border: '1px solid rgba(88, 101, 242, 0.2)' }}
+              >
+                <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: colors.discordPurple }} />
+                Collecting your server activity...
+              </div>
+            )}
           </div>
           {/* Preview skeleton */}
           <div aria-hidden="true" className="opacity-40 pointer-events-none space-y-3">

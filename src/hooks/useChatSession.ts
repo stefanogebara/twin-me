@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { API_URL, getAccessToken } from '@/services/api/apiBase';
+import { stripEmoji } from '@/utils/stripEmoji';
 
 const API_BASE = API_URL;
 
@@ -146,7 +147,10 @@ export function useChatSession({ userId, connectedPlatforms, messages, setMessag
           setMessages([{
             id: 'twin-intro',
             role: 'assistant',
-            content: data.intro,
+            // audit-2026-06-10: defense-in-depth — the intro prompt forbids
+            // emoji, but strip here too so an emoji can never be the user's
+            // first impression of the twin.
+            content: stripEmoji(data.intro),
             timestamp: new Date(),
           }]);
         }

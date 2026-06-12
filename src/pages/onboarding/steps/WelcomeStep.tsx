@@ -38,7 +38,7 @@ function playWelcomeChime() {
 }
 
 const WelcomeStep: React.FC<WelcomeStepProps> = ({ onBegin }) => {
-  const { user } = useAuth();
+  const { user, setNeedsOnboarding } = useAuth();
   const navigate = useNavigate();
   const [visible, setVisible] = useState(false);
   const chimePlayedRef = useRef(false);
@@ -60,8 +60,12 @@ const WelcomeStep: React.FC<WelcomeStepProps> = ({ onBegin }) => {
   const firstName = user?.firstName || user?.fullName?.split(' ')[0] || 'you';
 
   const handleSkipToChat = useCallback(() => {
+    // audit-2026-06-10: release the onboarding gate BEFORE navigating —
+    // ProtectedRoute bounces any needsOnboarding user off /talk-to-twin back
+    // to /onboarding, which made this link a silent no-op loop.
+    setNeedsOnboarding(false);
     navigate('/talk-to-twin');
-  }, [navigate]);
+  }, [navigate, setNeedsOnboarding]);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-6 relative overflow-hidden">

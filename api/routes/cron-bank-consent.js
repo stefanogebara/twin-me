@@ -6,10 +6,9 @@
  * the user reconnects before the bank stops sharing data.
  *
  * Pluggy OF consent: 12 months
- * TrueLayer UK OB:  90 days (some providers 180d)
  *
- * Both share the same consent_expires_at column. This cron is provider-
- * agnostic — it just reads the column and acts on whatever's there.
+ * This cron is provider-agnostic — it just reads the shared
+ * consent_expires_at column and acts on whatever's there.
  *
  * Reminder cadence: 14 days out, 7 days out, 1 day out. We mark the
  * reminder in proactive_insights.metadata.consent_remind_stage so we don't

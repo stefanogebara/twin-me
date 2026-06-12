@@ -218,4 +218,52 @@ describe('ingestTransactionsByIds — merchant_normalized written to DB', { time
     expect(mockGetAccounts).toHaveBeenCalledWith(FAKE_ITEM_ID);
     expect(mockGetTransaction).toHaveBeenCalledWith(FAKE_TX_ID);
   });
+
+  // Regression (2026-06-10): the memory dual-write selected a non-existent
+  // column (transaction_emotional_context.emotion_label), so the query 42703'd,
+  // the error was silently ignored, and NO transaction ever reached the memory
+  // stream. This case uses a MATERIAL outflow (>= MEMORY_MIN_AMOUNT, 50 BRL) and
+  // asserts the observation write actually fires — it runs the real Supabase
+  // query, so a schema mismatch fails it again.
+  it('writes a memory observation for a material transaction (>= 50 BRL)', async () => {
+    const materialTxId = `tx-material-mem-${Date.now()}`;
+    const materialExternalId = `pluggy:${materialTxId}`;
+
+    mockGetTransaction.mockResolvedValueOnce({
+      id: materialTxId,
+      accountId: FAKE_ACCOUNT_ID,
+      amount: -120,
+      type: 'DEBIT',
+      date: '2026-04-28',
+      currencyCode: 'BRL',
+      description: 'SUPERMERCADO PAGUE MENOS',
+      merchant: { name: 'SUPERMERCADO PAGUE MENOS' },
+    });
+
+    const { ingestTransactionsByIds } = await import(
+      '../../../api/services/transactions/pluggyIngestion.js'
+    );
+    const { addPlatformObservation } = await import(
+      '../../../api/services/memoryStreamService.js'
+    );
+    addPlatformObservation.mockClear();
+
+    await ingestTransactionsByIds(TEST_USER_ID, FAKE_ITEM_ID, [materialTxId]);
+
+    // The dual-write must fire exactly once for this material outflow, with a
+    // human-readable content line naming the merchant and the BRL amount.
+    expect(addPlatformObservation).toHaveBeenCalledTimes(1);
+    const [userArg, contentArg, platformArg] = addPlatformObservation.mock.calls[0];
+    expect(userArg).toBe(TEST_USER_ID);
+    expect(platformArg).toBe('pluggy');
+    expect(contentArg).toContain('Supermercado Pague Menos');
+    expect(contentArg).toMatch(/120/);
+
+    const { createClient } = await import('@supabase/supabase-js');
+    const sb = createClient(
+      process.env.VITE_SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY
+    );
+    await sb.from('user_transactions').delete().eq('external_id', materialExternalId);
+  });
 });

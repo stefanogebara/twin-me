@@ -2,9 +2,11 @@ import React, { useState, useMemo } from 'react';
 import { Check, Lock, ArrowRight, X } from 'lucide-react';
 import { PlatformLogo } from '@/components/PlatformLogos';
 import { API_URL, getAccessToken } from '@/services/api/apiBase';
+import type { PlatformsSummary } from '@/hooks/usePlatformsSummary';
 
-interface GoogleWorkspaceConnectProps {
-  connectorStatus: Record<string, any>;
+export interface GoogleWorkspaceConnectProps {
+  /** Canonical platform state from usePlatformsSummary (batch-3 unification). */
+  summary: PlatformsSummary | undefined;
   navigate: (path: string) => void;
 }
 
@@ -14,29 +16,30 @@ interface GoogleService {
   logoKey: string;
 }
 
+// replan-2026-06-10 Track C: only promise what the product actually reads.
+// The Drive fetcher was deleted (Drive/Docs/Sheets are no longer ingested);
+// the shared Google OAuth scopes are unchanged, but the UI promises only
+// Gmail + Calendar.
 const GOOGLE_SERVICES: GoogleService[] = [
   { id: 'google_gmail', name: 'Gmail', logoKey: 'google_gmail' },
   { id: 'google_calendar', name: 'Calendar', logoKey: 'google_calendar' },
-  { id: 'google_drive', name: 'Drive', logoKey: 'drive' },
-  { id: 'google_docs', name: 'Docs', logoKey: 'google' },
-  { id: 'google_sheets', name: 'Sheets', logoKey: 'google' },
-  { id: 'google_contacts', name: 'Contacts', logoKey: 'google' },
 ];
 
 const GoogleWorkspaceConnect: React.FC<GoogleWorkspaceConnectProps> = ({
-  connectorStatus,
+  summary,
   navigate,
 }) => {
   const [showCheckboxModal, setShowCheckboxModal] = useState(false);
   const [connecting, setConnecting] = useState(false);
 
-  // If ANY Google service is connected, all are connected (bundled scopes)
+  // If ANY Google service is connected, all are connected (bundled scopes).
+  // Batch-3 convention: only state==='expired' (genuine auth failure) is not
+  // connected; stale entries still count.
   const isAnyGoogleConnected = useMemo(() => {
-    return GOOGLE_SERVICES.some((service) => {
-      const info = connectorStatus[service.id];
-      return info?.connected && !info?.tokenExpired && info?.status !== 'expired';
-    });
-  }, [connectorStatus]);
+    return !!summary?.breakdown.some(
+      (entry) => entry.platform.startsWith('google_') && entry.state !== 'expired'
+    );
+  }, [summary]);
 
   const handleConnect = () => {
     setShowCheckboxModal(true);
@@ -101,7 +104,7 @@ const GoogleWorkspaceConnect: React.FC<GoogleWorkspaceConnectProps> = ({
 
         {/* Description */}
         <p className="text-[12px] leading-relaxed mb-4" style={{ color: 'rgba(255,255,255,0.4)' }}>
-          Connect once to unlock Gmail, Calendar, Drive, Docs, Sheets, and Contacts.
+          Connect once to unlock Gmail and Calendar.
         </p>
 
         {/* Service badges */}
@@ -140,7 +143,7 @@ const GoogleWorkspaceConnect: React.FC<GoogleWorkspaceConnectProps> = ({
 
         {/* Capability description */}
         <p className="text-[11px] leading-relaxed mb-5" style={{ color: 'rgba(255,255,255,0.3)' }}>
-          Your twin can read emails, check your schedule, search files, and draft documents — all in your voice.
+          Your twin can read your emails and check your schedule — all in your voice.
         </p>
 
         {/* CTA or Connected state */}
@@ -228,7 +231,7 @@ const GoogleWorkspaceConnect: React.FC<GoogleWorkspaceConnectProps> = ({
             <p className="text-[13px] leading-relaxed mb-5" style={{ color: 'rgba(255,255,255,0.5)' }}>
               Google will ask you to approve permissions. Make sure to{' '}
               <strong style={{ color: 'var(--foreground)' }}>check all the boxes</strong>{' '}
-              so your twin can access Gmail, Calendar, Drive, and more.
+              so your twin can access Gmail and Calendar.
             </p>
 
             {/* Visual hint */}
@@ -239,6 +242,10 @@ const GoogleWorkspaceConnect: React.FC<GoogleWorkspaceConnectProps> = ({
               <p className="text-[11px] font-medium mb-3" style={{ color: 'rgba(255,255,255,0.4)' }}>
                 On the Google consent screen:
               </p>
+              {/* This list mirrors Google's consent screen. The shared OAuth
+                  scopes still include Drive/Contacts (Track C keeps the scopes,
+                  kills the Drive fetcher), so the boxes the user sees there are
+                  unchanged — do not trim this list without trimming scopes. */}
               {['View and send email', 'View and edit calendar', 'View files in Drive', 'View contacts'].map(
                 (item) => (
                   <div key={item} className="flex items-center gap-2 py-1">

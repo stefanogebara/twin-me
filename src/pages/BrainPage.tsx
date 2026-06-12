@@ -11,6 +11,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { authFetch } from '@/services/api/apiBase';
 import { ChevronDown, Search } from 'lucide-react';
+import { toast } from 'sonner';
 import { SoulEvolutionTimeline } from '@/components/brain/SoulEvolutionTimeline';
 import { DataUploadPanel } from '@/components/brain/DataUploadPanel';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
@@ -48,11 +49,13 @@ const BrainPage: React.FC = () => {
   const [offset, setOffset] = useState(0);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   // Collapsible "More" section
   const [showMore, setShowMore] = useState(false);
   const [snapshots, setSnapshots] = useState<BrainSnapshot[]>([]);
+  const [snapshotsError, setSnapshotsError] = useState(false);
 
   // Fetch memories from API
   const fetchMemories = useCallback(async (opts: {
@@ -70,7 +73,18 @@ const BrainPage: React.FC = () => {
       setLoadingMore(true);
     } else {
       setLoading(true);
+      setLoadError(false);
     }
+
+    // audit-2026-06-10: failures must be visible — never fall through to the
+    // "No memories found / Connect platforms" empty state on a fetch error.
+    const reportFailure = () => {
+      if (isAppend) {
+        toast.error('Could not load more memories. Please try again.');
+      } else {
+        setLoadError(true);
+      }
+    };
 
     try {
       const params = new URLSearchParams();
@@ -82,10 +96,16 @@ const BrainPage: React.FC = () => {
       params.set('offset', String(opts.offset));
 
       const res = await authFetch(`/memories?${params.toString()}`);
-      if (!res.ok) return;
+      if (!res.ok) {
+        reportFailure();
+        return;
+      }
 
       const json = await res.json();
-      if (!json.success) return;
+      if (!json.success) {
+        reportFailure();
+        return;
+      }
 
       if (isAppend) {
         setMemories(prev => [...prev, ...(json.memories || [])]);
@@ -98,7 +118,7 @@ const BrainPage: React.FC = () => {
         setComposition(json.composition);
       }
     } catch {
-      // silently fail
+      reportFailure();
     } finally {
       setLoading(false);
       setLoadingMore(false);
@@ -116,18 +136,25 @@ const BrainPage: React.FC = () => {
   }, [activeExpert, activeType, sort, searchQuery, fetchMemories]);
 
   // Fetch snapshots for timeline (lazy)
+  const fetchSnapshots = useCallback(async () => {
+    setSnapshotsError(false);
+    try {
+      const res = await authFetch('/twins-brain/snapshots?limit=30');
+      const json = res.ok ? await res.json() : null;
+      if (json?.success && Array.isArray(json.snapshots)) {
+        setSnapshots(json.snapshots);
+      } else {
+        setSnapshotsError(true);
+      }
+    } catch {
+      setSnapshotsError(true);
+    }
+  }, []);
+
   useEffect(() => {
     if (!showMore || !isSignedIn || !user?.id || snapshots.length > 0) return;
-
-    authFetch('/twins-brain/snapshots?limit=30')
-      .then(r => r.ok ? r.json() : null)
-      .then(json => {
-        if (json?.success && Array.isArray(json.snapshots)) {
-          setSnapshots(json.snapshots);
-        }
-      })
-      .catch(() => {});
-  }, [showMore, isSignedIn, user?.id, snapshots.length]);
+    fetchSnapshots();
+  }, [showMore, isSignedIn, user?.id, snapshots.length, fetchSnapshots]);
 
   const handleLoadMore = () => {
     const newOffset = offset + PAGE_SIZE;
@@ -320,6 +347,22 @@ const BrainPage: React.FC = () => {
             </div>
           ))}
         </div>
+      ) : loadError ? (
+        <div className="py-16 text-center">
+          <p className="text-sm mb-1" style={{ color: 'rgba(255,255,255,0.5)' }}>
+            Couldn't load your memories
+          </p>
+          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
+            Something went wrong. Your memories are safe — try again in a moment.
+          </p>
+          <button
+            onClick={() => fetchMemories({ expert: activeExpert, type: activeType, sort, offset: 0, search: searchQuery })}
+            className="mt-4 px-5 py-2 rounded-full text-sm font-medium transition-opacity hover:opacity-90"
+            style={{ backgroundColor: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.10)', color: '#fdfcfb' }}
+          >
+            Try Again
+          </button>
+        </div>
       ) : memories.length === 0 ? (
         <div className="py-16 text-center">
           <p className="text-sm mb-1" style={{ color: 'rgba(255,255,255,0.5)' }}>
@@ -390,6 +433,19 @@ const BrainPage: React.FC = () => {
                 </span>
                 <DataUploadPanel userId={user.id} />
               </section>
+            )}
+
+            {snapshotsError && snapshots.length === 0 && (
+              <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                Couldn't load your soul signature timeline.{' '}
+                <button
+                  onClick={fetchSnapshots}
+                  className="underline transition-opacity hover:opacity-70"
+                  style={{ color: '#fdfcfb', background: 'transparent', border: 'none', padding: 0, font: 'inherit', cursor: 'pointer' }}
+                >
+                  Retry
+                </button>
+              </p>
             )}
 
             {snapshots.length >= 2 && (

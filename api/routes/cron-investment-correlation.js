@@ -84,7 +84,7 @@ async function findEligibleUsers() {
 /**
  * Find transactions in the lookback window whose emotional context still has a
  * null recovery_score and re-tag them. Closes the "user connected Whoop AFTER
- * the bank was already linked" gap: the Plaid/Pluggy/TrueLayer syncs only tag
+ * the bank was already linked" gap: the Plaid/Pluggy syncs only tag
  * the rows they just inserted, so older transactions remain recovery-less
  * until something kicks the tagger again. Returns the number of rows retagged
  * so the sweep log surfaces it.

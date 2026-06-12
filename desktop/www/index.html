@@ -418,6 +418,564 @@
     background: rgba(255, 255, 255, 0.05); border: 1px solid var(--glass-border);
     border-radius: 100px; padding: 5px 11px;
   }
+
+  /* ---- v2 #3: macOS Settings panel mock on permission steps ---- */
+  /* Steps 2 (Accessibility) and 3 (Mic) split into a 2-col layout on wide
+     viewports: form on the left, mock of the real macOS System Settings
+     panel on the right with TwinMe pre-toggled ON. The mock shows the
+     END STATE the user is aiming for after they click Enable. Windows
+     and Linux get a simpler "tip card" instead — the mac mock would be
+     misleading there.
+     This is a TARGETED split-screen (only steps 2 and 3) — v2 gap #1
+     covers the full-flow split-screen reshuffle separately. */
+  .perm-split {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 18px;
+    max-width: 540px;
+    margin: 0 auto;
+    align-items: start;
+  }
+  @media (min-width: 900px) {
+    .perm-split { grid-template-columns: minmax(0, 1fr) 360px; max-width: 880px; gap: 28px; }
+    .perm-split > .perm-left  { text-align: left; }
+    .perm-split > .perm-right { text-align: left; }
+  }
+  /* Hide the mock on narrow viewports so the form stays focused. */
+  .perm-split .perm-right { display: none; }
+  @media (min-width: 900px) { .perm-split .perm-right { display: block; } }
+
+  /* The mock panel itself — matches macOS System Settings dark-mode
+     aesthetic deliberately (NOT our amber glass-card aesthetic) so it
+     reads as "preview of the OS" rather than "another part of the app". */
+  .os-perm-mock {
+    background: rgba(40, 40, 45, 0.92);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    padding: 14px 12px 12px;
+    backdrop-filter: blur(20px) saturate(140%);
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+    color: #f5f5f7;
+  }
+  .os-perm-mock .opm-head {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 13px; font-weight: 600; color: #f5f5f7;
+    padding: 0 6px 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  }
+  .os-perm-mock .opm-head svg { width: 14px; height: 14px; stroke: rgba(245,245,247,0.55); }
+  .os-perm-mock .opm-sub {
+    font-size: 11.5px; line-height: 1.45;
+    color: rgba(245, 245, 247, 0.62);
+    padding: 10px 6px 12px;
+  }
+  .os-perm-row {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 10px;
+    padding: 8px 8px;
+    border-radius: 8px;
+    transition: background 0.2s ease;
+  }
+  .os-perm-row + .os-perm-row { border-top: 1px solid rgba(255, 255, 255, 0.04); }
+  .os-perm-row .opr-app {
+    display: flex; align-items: center; gap: 9px;
+    min-width: 0;
+  }
+  .os-perm-row .opr-icon {
+    width: 20px; height: 20px; border-radius: 5px;
+    background: rgba(255, 255, 255, 0.08);
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 600;
+    color: rgba(245, 245, 247, 0.55);
+  }
+  .os-perm-row .opr-name { font-size: 12.5px; color: rgba(245, 245, 247, 0.88); }
+  .os-perm-row.muted .opr-name { color: rgba(245, 245, 247, 0.45); }
+
+  /* The TwinMe row — pre-toggled ON, highlighted with our amber accent
+     so the user's eye lands on it. The "← flip this" annotation lives
+     to the left of the toggle. */
+  .os-perm-row.us {
+    background: rgba(231, 176, 106, 0.07);
+    border: 1px solid rgba(231, 176, 106, 0.28);
+    margin: 4px -2px;
+  }
+  .os-perm-row.us .opr-name { color: #f5f5f7; font-weight: 600; }
+  .os-perm-row.us .opr-icon {
+    background: rgba(193, 126, 44, 0.25);
+    color: #f5f5f4;
+  }
+  .opr-hint {
+    font-size: 10.5px;
+    color: rgba(231, 176, 106, 0.85);
+    margin-right: 6px;
+    white-space: nowrap;
+  }
+
+  /* iOS-style toggle: ON = Apple system blue (#007AFF), OFF = gray.
+     Pure CSS, not interactive — this is a static illustration. */
+  .opr-toggle {
+    width: 28px; height: 17px; border-radius: 100px;
+    flex-shrink: 0;
+    position: relative;
+    transition: background 0.2s ease;
+  }
+  .opr-toggle.off { background: rgba(120, 120, 128, 0.32); }
+  .opr-toggle.on  { background: #007AFF; }
+  .opr-toggle::after {
+    content: "";
+    position: absolute;
+    top: 1.5px; left: 1.5px;
+    width: 14px; height: 14px; border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.25);
+    transition: transform 0.2s ease;
+  }
+  .opr-toggle.on::after { transform: translateX(11px); }
+
+  .os-perm-mock .opm-foot {
+    font-size: 11px; line-height: 1.5;
+    color: rgba(245, 245, 247, 0.55);
+    padding: 12px 6px 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    margin-top: 10px;
+  }
+
+  /* Non-mac fallback — small glass tip card. Visible only on Windows/Linux. */
+  .os-perm-tip {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 14px;
+    padding: 14px 16px;
+    backdrop-filter: blur(42px) saturate(140%);
+    -webkit-backdrop-filter: blur(42px) saturate(140%);
+    text-align: left;
+  }
+  .os-perm-tip .otitle {
+    font-size: 13px; font-weight: 600; color: var(--foreground);
+    margin: 0 0 6px;
+  }
+  .os-perm-tip .odesc {
+    font-size: 12.5px; line-height: 1.5; color: var(--text-secondary);
+    margin: 0;
+  }
+
+  /* ---- v2 #1: Right-rail previews on welcome / name / sign-in ----------
+   * Steps 0 (welcome), 1 (name input) and 8 (sign-in) share the .perm-split
+   * grid from #3 above with two domain-specific mocks:
+   *   .dashboard-mock — stylized peek of the home dashboard (used on
+   *                     steps 0 and 1; name binds live on step 1)
+   *   .soul-mock      — stylized peek of the soul-signature surface
+   *                     (used on step 8 to show what sign-in unlocks)
+   * Unlike the OS perm mocks in #3 (which deliberately mimic macOS
+   * System Settings aesthetic), these mocks USE our own glass + amber
+   * design system because they preview OUR app — they should feel
+   * native to TwinMe, not foreign. */
+  .dashboard-mock,
+  .soul-mock {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    padding: 18px 18px 16px;
+    backdrop-filter: blur(42px) saturate(140%);
+    -webkit-backdrop-filter: blur(42px) saturate(140%);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.32),
+                inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+
+  /* Dashboard mock: serif greeting + 3 stacked sample insights */
+  .dashboard-mock .dm-greeting {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: 22px;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    color: var(--foreground);
+    margin: 0 0 4px;
+  }
+  .dashboard-mock .dm-sub {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin: 0 0 14px;
+  }
+  .dashboard-mock .dm-stack { display: flex; flex-direction: column; gap: 8px; }
+  .dashboard-mock .dm-insight {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 10px;
+    padding: 9px 11px;
+    text-align: left;
+  }
+  .dashboard-mock .dm-insight .dmi-title {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--foreground);
+    margin: 0 0 3px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .dashboard-mock .dm-insight .dmi-title svg {
+    width: 11px; height: 11px; stroke: var(--accent-glyph); flex-shrink: 0;
+  }
+  .dashboard-mock .dm-insight .dmi-body {
+    font-size: 10.5px;
+    line-height: 1.45;
+    color: var(--text-secondary);
+    margin: 0;
+  }
+  .dashboard-mock .dm-foot {
+    font-size: 10.5px;
+    color: var(--text-muted);
+    margin: 12px 0 0;
+    text-align: left;
+  }
+
+  /* Soul-signature mock: one large hero insight + theme filter chips */
+  .soul-mock .sm-quote {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: 16px;
+    line-height: 1.35;
+    letter-spacing: -0.015em;
+    color: var(--foreground);
+    margin: 0 0 10px;
+    text-align: left;
+  }
+  .soul-mock .sm-provenance {
+    font-size: 10.5px;
+    color: var(--text-muted);
+    margin: 0 0 14px;
+    text-align: left;
+  }
+  .soul-mock .sm-themes {
+    display: flex; flex-wrap: wrap; gap: 6px;
+  }
+  .soul-mock .sm-theme {
+    font-size: 10.5px;
+    color: var(--text-secondary);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--glass-border);
+    border-radius: 100px;
+    padding: 3px 9px;
+  }
+  .soul-mock .sm-theme.active {
+    color: var(--foreground);
+    background: rgba(231, 176, 106, 0.10);
+    border-color: rgba(231, 176, 106, 0.28);
+  }
+
+  /* The previews share a small caption slot below the mock card. */
+  .preview-foot {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin: 12px 0 0;
+    text-align: left;
+  }
+
+  /* ---- v2 #4: Hummingbird hotkey panel demo on step 4 ---- */
+  /* Reuses .perm-split from #3 above to put the existing "Press
+     Ctrl/Cmd+Shift+T" card on the left and a small visual demo on the
+     right: a faded "app window" backdrop with macOS-style chrome dots,
+     and a glass hummingbird panel floating over it with a chat input
+     and the kbd combo. Communicates "we appear over any app you're
+     using, without breaking focus" — the value that the old single-
+     card screen described in words but never showed. */
+  .hb-mock {
+    position: relative;
+    height: 240px;
+    border-radius: 14px;
+    overflow: hidden;
+    background: rgba(20, 18, 26, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  /* Faded "background app window" — pure CSS, no image. Three stripes
+     suggest content; the macOS chrome dots anchor the metaphor. */
+  .hb-app-bg {
+    position: absolute; inset: 0;
+    opacity: 0.40;
+    padding: 14px;
+    pointer-events: none;
+  }
+  .hb-app-chrome { display: flex; gap: 6px; margin-bottom: 16px; }
+  .hb-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .hb-dot.red    { background: #ff5f57; }
+  .hb-dot.yellow { background: #ffbd2e; }
+  .hb-dot.green  { background: #28ca42; }
+  .hb-line {
+    height: 9px;
+    background: rgba(255, 255, 255, 0.10);
+    border-radius: 4px;
+    margin-bottom: 8px;
+  }
+  .hb-line.short { width: 60%; }
+  .hb-line.medium { width: 80%; }
+
+  /* The floating hummingbird panel — sized roughly to the real
+     460×600 quick-panel but proportional to the mockup frame, with
+     amber-tinted accents matching the rest of the app. */
+  .hb-panel {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 232px;
+    background: rgba(40, 38, 50, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 12px;
+    padding: 12px;
+    backdrop-filter: blur(22px) saturate(140%);
+    -webkit-backdrop-filter: blur(22px) saturate(140%);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+    text-align: left;
+  }
+  .hb-panel-head {
+    display: flex; align-items: center; gap: 6px;
+    font-family: var(--serif);
+    font-size: 13px;
+    letter-spacing: -0.02em;
+    color: var(--foreground);
+    margin: 0 0 9px;
+  }
+  .hb-panel-head img { width: 14px; height: 14px; flex-shrink: 0; }
+  .hb-panel-input {
+    font-size: 11px;
+    color: rgba(245, 245, 244, 0.45);
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 7px;
+    padding: 7px 10px;
+    margin-bottom: 8px;
+  }
+  .hb-panel-suggest {
+    font-size: 10.5px;
+    color: var(--foreground);
+    background: rgba(231, 176, 106, 0.10);
+    border: 1px solid rgba(231, 176, 106, 0.22);
+    border-radius: 100px;
+    padding: 4px 10px;
+    display: inline-block;
+    margin-bottom: 11px;
+  }
+  .hb-panel-keys {
+    display: flex; align-items: center; gap: 4px;
+    justify-content: flex-end;
+    font-size: 10px;
+    color: var(--text-muted);
+  }
+  .hb-kbd {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-bottom-width: 2px;
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-family: var(--sans);
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--foreground);
+    min-width: 14px;
+    text-align: center;
+    line-height: 1.3;
+  }
+  .hb-plus { opacity: 0.5; }
+
+  .hb-mock-foot {
+    font-size: 12.5px;
+    color: var(--text-muted);
+    margin: 14px 0 0;
+    text-align: left;
+  }
+
+  /* ---- v2 #5: extracted-facts wow screen ---- */
+  /* One .fact-row per fact from POST /api/desktop/extracted-facts.
+     Editable (contenteditable on click) + dismissable (x). Dismissal
+     animates out via max-height + opacity so the list reflows smoothly. */
+  .facts-host {
+    display: flex; flex-direction: column; gap: 10px;
+    margin: 24px auto 0; max-width: 560px; text-align: left;
+  }
+  .fact-row {
+    display: flex; align-items: flex-start; gap: 14px;
+    padding: 14px 16px;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    backdrop-filter: blur(42px) saturate(140%);
+    -webkit-backdrop-filter: blur(42px) saturate(140%);
+    box-shadow: 0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.06);
+    transition: opacity 0.28s ease, max-height 0.32s ease, padding 0.28s ease,
+                margin 0.28s ease, border-width 0.28s ease;
+    max-height: 200px; overflow: hidden;
+  }
+  .fact-row.dismissed { opacity: 0; max-height: 0; padding-top: 0; padding-bottom: 0; margin: -5px 0; border-width: 0; }
+  .fact-row:hover { box-shadow: 0 6px 18px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.06); }
+  .fact-glyph {
+    flex: 0 0 auto; width: 30px; height: 30px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(193, 126, 44, 0.14);
+    border: 1px solid rgba(193, 126, 44, 0.22);
+  }
+  .fact-glyph svg { width: 15px; height: 15px; stroke: var(--accent-glyph); fill: none; stroke-width: 1.8; }
+  .fact-body { flex: 1 1 auto; min-width: 0; }
+  .fact-text {
+    font-size: 14px; line-height: 1.55; color: var(--foreground); margin: 0;
+    outline: none; cursor: text;
+    border-radius: 6px; padding: 1px 2px;
+    transition: background 0.15s ease;
+    -webkit-user-select: text; user-select: text;
+  }
+  .fact-text[contenteditable="true"] { background: rgba(255,255,255,0.08); }
+  .fact-source { font-size: 11.5px; color: var(--text-muted); margin: 4px 0 0; letter-spacing: 0.01em; }
+  .fact-dismiss {
+    flex: 0 0 auto; background: none; border: none; cursor: pointer;
+    width: 26px; height: 26px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-muted);
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .fact-dismiss:hover { background: rgba(255,255,255,0.06); color: var(--foreground); }
+  .fact-dismiss svg { width: 14px; height: 14px; stroke: currentColor; stroke-width: 1.8; fill: none; }
+  /* Fallback (no calendar connected / cold account): a summary-card with
+     an inline connect CTA, light-pill styled like the primary button. */
+  .facts-connect-cta {
+    margin: 14px auto 0;
+    font-family: var(--sans); font-size: 13px; font-weight: 600;
+    color: var(--primary-foreground);
+    background: var(--primary);
+    border: none; border-radius: 100px; padding: 9px 18px; cursor: pointer;
+    transition: transform 0.15s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s ease;
+  }
+  .facts-connect-cta:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(0,0,0,0.22); }
+
+  /* ---- v2 #7: Mockup briefing cards screen ---- */
+  /* Shown between the observe reveal and sign-in handoff. Two-column grid
+     of fictional-but-plausible cards that pre-load the user's perception
+     of value ("tomorrow your twin will surface things like this"). On
+     narrow viewports collapses to one column. Each card has a small action
+     pill so the visual rhythm matches the action pills on the summary
+     reveal — both use the amber-on-dark accent. */
+  .mockup-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin: 22px auto 0;
+    max-width: 580px;
+    text-align: left;
+  }
+  @media (max-width: 600px) {
+    .mockup-grid { grid-template-columns: 1fr; }
+  }
+  .mockup-card {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 14px;
+    padding: 12px 14px;
+    backdrop-filter: blur(42px) saturate(140%);
+    -webkit-backdrop-filter: blur(42px) saturate(140%);
+    box-shadow: 0 4px 4px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    transition: box-shadow 0.2s ease, transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .mockup-card:hover {
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+    transform: translateY(-1px);
+  }
+  .mockup-card .mctitle {
+    font-size: 13px; font-weight: 600; color: var(--foreground);
+    margin: 0 0 4px;
+    display: flex; align-items: center; gap: 7px;
+  }
+  .mockup-card .mctitle svg {
+    width: 13px; height: 13px; stroke: var(--accent-glyph); flex-shrink: 0;
+  }
+  .mockup-card .mcdesc {
+    font-size: 11.5px; line-height: 1.5; color: var(--text-secondary);
+    margin: 0 0 8px;
+  }
+  .mockup-card .mcaction {
+    font-family: var(--sans);
+    font-size: 11px; font-weight: 500;
+    color: var(--foreground);
+    background: rgba(231, 176, 106, 0.10);
+    border: 1px solid rgba(231, 176, 106, 0.22);
+    border-radius: 100px;
+    padding: 4px 11px;
+    display: inline-block;
+  }
+
+  /* ---- P1 wire-the-loop: morning briefing detail ---- */
+  /* Shown when sync.rs fires the 7-9am briefing toast while this bundled
+     page is up (event 'twinme:briefing-ready'). The toast only carries
+     greeting + schedule summary; this screen renders the FULL briefing from
+     app state: up to 3 insight glass cards, collapsible rest/music (absent
+     entirely when null), and the suggestion as the prominent closer. */
+  .briefing-host {
+    display: flex; flex-direction: column; gap: 10px;
+    margin: 22px auto 0; max-width: 560px; text-align: left;
+  }
+  .briefing-card {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 14px;
+    padding: 12px 14px;
+    backdrop-filter: blur(42px) saturate(140%);
+    -webkit-backdrop-filter: blur(42px) saturate(140%);
+    box-shadow: 0 4px 4px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+  .bc-label {
+    font-size: 11px; font-weight: 600;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--text-muted); margin: 0 0 4px;
+  }
+  .bc-text { font-size: 13.5px; line-height: 1.55; color: var(--foreground); margin: 0; }
+  /* The suggestion is THE next step — amber accent, same family as .apill. */
+  .briefing-suggestion {
+    background: rgba(231, 176, 106, 0.10);
+    border: 1px solid rgba(231, 176, 106, 0.22);
+    border-radius: 14px;
+    padding: 12px 14px;
+  }
+  .briefing-suggestion .bc-label { color: var(--accent-glyph); }
+  /* rest/music: collapsed by default, omitted entirely when null. */
+  details.briefing-fold {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 14px;
+    padding: 10px 14px;
+  }
+  details.briefing-fold summary {
+    cursor: pointer; list-style: none;
+    font-size: 12.5px; font-weight: 600; color: var(--text-secondary);
+  }
+  details.briefing-fold summary::-webkit-details-marker { display: none; }
+  details.briefing-fold summary::after { content: "+"; float: right; color: var(--text-muted); }
+  details.briefing-fold[open] summary::after { content: "\2013"; }
+  details.briefing-fold .bf-body {
+    font-size: 13px; line-height: 1.5; color: var(--text-secondary); margin: 8px 0 0;
+  }
+  /* While the briefing overlay is up, the stepper chrome is irrelevant. */
+  body.briefing-open .footer,
+  body.briefing-open .back,
+  body.briefing-open .skip { visibility: hidden; }
+
+  /* Suggested follow-ups — the Littlebird-style action pills below the
+     insight. Carried by .summary-card so they reveal in the same cinematic
+     beat as the rest of the summary. */
+  .action-pills { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 0; }
+  .action-pills .alabel { width: 100%; font-size: 12px; color: var(--text-muted); margin: 0 0 2px; }
+  .action-pills .apill {
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--foreground);
+    background: rgba(231, 176, 106, 0.10);
+    border: 1px solid rgba(231, 176, 106, 0.22);
+    border-radius: 100px;
+    padding: 6px 14px;
+    transition: background 0.2s ease, transform 0.15s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .action-pills .apill:hover {
+    background: rgba(231, 176, 106, 0.16);
+    transform: translateY(-1px);
+  }
   .look-again {
     margin: 14px auto 0;
     font-family: var(--sans); font-size: 13px; font-weight: 600;
@@ -554,26 +1112,100 @@
   <main class="stage" id="stage">
     <!-- 0. Welcome -->
     <section class="screen active" data-step="0">
-      <div class="content">
-        <div class="flower-wrap stagger-1"><img src="flower.png" alt="TwinMe" /></div>
-        <h1 class="stagger-2">Your twin,<br />natively</h1>
-        <p class="lede stagger-3">I live outside the browser now. With your permission, I learn from the work and conversations that actually shape you, Stefano — so when you need me, I already know where you left off.</p>
+      <div class="content perm-split">
+        <div class="perm-left">
+          <div class="flower-wrap stagger-1"><img src="flower.png" alt="TwinMe" /></div>
+          <h1 class="stagger-2">Your twin,<br />natively</h1>
+          <!-- Lede previously hardcoded "Stefano" which broke for every
+               user not named Stefano. Now interpolated via #welcome-name:
+               cold-start shows no name, returning users see their own. -->
+          <p class="lede stagger-3">I live outside the browser now. With your permission, I learn from the work and conversations that actually shape you<span id="welcome-name-prefix"></span><span id="welcome-name"></span> — so when you need me, I already know where you left off.</p>
+        </div>
+        <div class="perm-right stagger-3">
+          <div class="dashboard-mock" data-mock="welcome">
+            <p class="dm-greeting" id="dm-greet-welcome">Good evening</p>
+            <!-- v2 polish: id="dm-sub-welcome" was added speculatively
+                 but never used by JS. Dropped to avoid misleading
+                 future readers into hunting for a dynamic binding
+                 that doesn't exist. -->
+            <p class="dm-sub">Your twin is learning about you</p>
+            <div class="dm-stack">
+              <div class="dm-insight">
+                <p class="dmi-title">
+                  <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                  Recent shift
+                </p>
+                <p class="dmi-body">You're sleeping 38 minutes later this week than last.</p>
+              </div>
+              <div class="dm-insight">
+                <p class="dmi-title">
+                  <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                  Pattern noticed
+                </p>
+                <p class="dmi-body">Your best focus blocks happen on Tuesdays from 9 to 11.</p>
+              </div>
+              <div class="dm-insight">
+                <p class="dmi-title">
+                  <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                  Thread to pick up
+                </p>
+                <p class="dmi-body">You started a thread with Alex yesterday and never replied.</p>
+              </div>
+            </div>
+            <p class="dm-foot">A taste of what you'll see daily.</p>
+          </div>
+        </div>
       </div>
     </section>
 
     <!-- 1. What should I call you? -->
     <section class="screen" data-step="1">
-      <div class="content">
-        <h2 class="stagger-1">What should I call you?</h2>
-        <p class="sub stagger-2">I'll use this when we talk. You can change it anytime in TwinMe.</p>
-        <div class="fields stagger-3">
-          <div class="field">
-            <label for="name-input">Your name</label>
-            <input id="name-input" type="text" autocomplete="given-name" placeholder="e.g. Stefano" maxlength="60" />
+      <div class="content perm-split">
+        <div class="perm-left">
+          <h2 class="stagger-1">What should I call you?</h2>
+          <p class="sub stagger-2">I'll use this when we talk. You can change it anytime in TwinMe.</p>
+          <div class="fields stagger-3">
+            <div class="field">
+              <label for="name-input">Your name</label>
+              <input id="name-input" type="text" autocomplete="given-name" placeholder="e.g. Stefano" maxlength="60" />
+            </div>
+            <div class="field">
+              <label for="aliases-input">Other names you go by (optional)</label>
+              <input id="aliases-input" type="text" placeholder="usernames, nicknames, handles" maxlength="120" />
+            </div>
           </div>
-          <div class="field">
-            <label for="aliases-input">Other names you go by (optional)</label>
-            <input id="aliases-input" type="text" placeholder="usernames, nicknames, handles" maxlength="120" />
+        </div>
+        <!-- Live dashboard preview: the greeting at the top of this mock
+             updates as the user types in #name-input, demonstrating where
+             their name will land before they even commit to it. -->
+        <div class="perm-right stagger-3">
+          <div class="dashboard-mock" data-mock="name">
+            <p class="dm-greeting" id="dm-greet-name">Good evening</p>
+            <p class="dm-sub">Your twin is learning about you</p>
+            <div class="dm-stack">
+              <div class="dm-insight">
+                <p class="dmi-title">
+                  <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                  Recent shift
+                </p>
+                <p class="dmi-body">You're sleeping 38 minutes later this week than last.</p>
+              </div>
+              <div class="dm-insight">
+                <p class="dmi-title">
+                  <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                  Pattern noticed
+                </p>
+                <p class="dmi-body">Your best focus blocks happen on Tuesdays from 9 to 11.</p>
+              </div>
+              <div class="dm-insight">
+                <p class="dmi-title">
+                  <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                  Thread to pick up
+                </p>
+                <p class="dmi-body">You started a thread with Alex yesterday and never replied.</p>
+              </div>
+            </div>
+            <p class="dm-foot">Your name will live here.</p>
           </div>
         </div>
       </div>
@@ -581,67 +1213,185 @@
 
     <!-- 2. Context awareness -->
     <section class="screen" data-step="2">
-      <div class="content">
-        <h2 class="stagger-1">I learn from what you focus on</h2>
-        <p class="sub stagger-2">So your twin picks up the real shape of your work, not just what you type to me.</p>
-        <div class="cards stagger-3">
-          <div class="card perm">
-            <div class="glyph">
-              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
-            </div>
-            <div class="body">
-              <div class="title">Notice the apps I focus on</div>
-              <div class="desc">Text only — the app name and window title, never what you type and never screen recording. You control which apps to include and can delete everything anytime in Settings.</div>
-            </div>
-            <div class="perm-action" id="perm-ctx-action">
-              <button class="enable-btn" id="perm-ctx-btn">Enable</button>
+      <div class="content perm-split">
+        <div class="perm-left">
+          <h2 class="stagger-1">I learn from what you focus on</h2>
+          <p class="sub stagger-2">So your twin picks up the real shape of your work, not just what you type to me.</p>
+          <div class="cards stagger-3">
+            <div class="card perm">
+              <div class="glyph">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+              </div>
+              <div class="body">
+                <div class="title">Notice the apps I focus on</div>
+                <div class="desc">Text only — the app name and window title, never what you type and never screen recording. You control which apps to include and can delete everything anytime in Settings.</div>
+              </div>
+              <div class="perm-action" id="perm-ctx-action">
+                <button class="enable-btn" id="perm-ctx-btn">Enable</button>
+              </div>
             </div>
           </div>
+          <p class="trust-line stagger-4">Text only. No screen recording. Delete anything, anytime.</p>
+          <button class="perm-skip" id="ctx-skip">Set up later</button>
         </div>
-        <p class="trust-line stagger-4">Text only. No screen recording. Delete anything, anytime.</p>
-        <button class="perm-skip" id="ctx-skip">Set up later</button>
+        <!-- Right rail: macOS Accessibility panel preview (visible only on
+             ≥900px viewport, only on Macintosh UA — see adjustForPlatform()).
+             On Win/Linux the .os-perm-tip card replaces this. -->
+        <div class="perm-right stagger-3">
+          <div class="os-perm-mock" data-perm-mock="accessibility">
+            <div class="opm-head">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+              Accessibility
+            </div>
+            <div class="opm-sub">Allow the applications below to control your computer.</div>
+            <div class="os-perm-row muted">
+              <div class="opr-app"><div class="opr-icon">C</div><div class="opr-name">Calendar</div></div>
+              <div class="opr-toggle off"></div>
+            </div>
+            <div class="os-perm-row muted">
+              <div class="opr-app"><div class="opr-icon">N</div><div class="opr-name">Notes</div></div>
+              <div class="opr-toggle off"></div>
+            </div>
+            <div class="os-perm-row us">
+              <div class="opr-app"><div class="opr-icon">T</div><div class="opr-name">TwinMe</div></div>
+              <div style="display:flex;align-items:center;"><span class="opr-hint">flip this on</span><div class="opr-toggle on"></div></div>
+            </div>
+            <div class="os-perm-row muted">
+              <div class="opr-app"><div class="opr-icon">S</div><div class="opr-name">Slack</div></div>
+              <div class="opr-toggle off"></div>
+            </div>
+            <div class="os-perm-row muted">
+              <div class="opr-app"><div class="opr-icon">Z</div><div class="opr-name">Zoom</div></div>
+              <div class="opr-toggle off"></div>
+            </div>
+            <div class="opm-foot">When System Settings opens after you click Enable, flip the TwinMe toggle on.</div>
+          </div>
+          <div class="os-perm-tip" data-perm-tip="accessibility" style="display:none">
+            <p class="otitle">Your OS will ask for permission</p>
+            <p class="odesc">Your system may show a dialog asking to allow TwinMe to read window titles. Approve it to continue.</p>
+          </div>
+        </div>
       </div>
     </section>
 
     <!-- 3. Microphone -->
     <section class="screen" data-step="3">
-      <div class="content">
-        <h2 class="stagger-1">On-device meeting notes</h2>
-        <p class="sub stagger-2">Optional. Local transcription of your calls — audio never leaves this machine, and only during meetings you choose.</p>
-        <div class="cards stagger-3">
-          <div class="card perm">
-            <div class="glyph">
-              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/></svg>
-            </div>
-            <div class="body">
-              <div class="title">Microphone</div>
-              <div class="desc">For on-device meeting notes. Never shared or stored remotely.</div>
-            </div>
-            <div class="perm-action" id="perm-mic-action">
-              <button class="enable-btn" id="perm-mic-btn">Enable</button>
+      <div class="content perm-split">
+        <div class="perm-left">
+          <h2 class="stagger-1">On-device meeting notes</h2>
+          <p class="sub stagger-2">Optional. Local transcription of your calls — audio never leaves this machine, and only during meetings you choose.</p>
+          <div class="cards stagger-3">
+            <div class="card perm">
+              <div class="glyph">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/></svg>
+              </div>
+              <div class="body">
+                <div class="title">Microphone</div>
+                <div class="desc">For on-device meeting notes. Never shared or stored remotely.</div>
+              </div>
+              <div class="perm-action" id="perm-mic-action">
+                <button class="enable-btn" id="perm-mic-btn">Enable</button>
+              </div>
             </div>
           </div>
+          <p class="trust-line stagger-4">Audio stays on this machine. No uploads, ever.</p>
+          <button class="perm-skip" id="mic-skip">Set up later</button>
         </div>
-        <p class="trust-line stagger-4">Audio stays on this machine. No uploads, ever.</p>
-        <button class="perm-skip" id="mic-skip">Set up later</button>
+        <div class="perm-right stagger-3">
+          <div class="os-perm-mock" data-perm-mock="microphone">
+            <div class="opm-head">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+              Microphone
+            </div>
+            <div class="opm-sub">Allow the apps below to access your microphone.</div>
+            <div class="os-perm-row muted">
+              <div class="opr-app"><div class="opr-icon">D</div><div class="opr-name">Discord</div></div>
+              <div class="opr-toggle off"></div>
+            </div>
+            <div class="os-perm-row muted">
+              <div class="opr-app"><div class="opr-icon">F</div><div class="opr-name">FaceTime</div></div>
+              <div class="opr-toggle off"></div>
+            </div>
+            <div class="os-perm-row us">
+              <div class="opr-app"><div class="opr-icon">T</div><div class="opr-name">TwinMe</div></div>
+              <div style="display:flex;align-items:center;"><span class="opr-hint">flip this on</span><div class="opr-toggle on"></div></div>
+            </div>
+            <div class="os-perm-row muted">
+              <div class="opr-app"><div class="opr-icon">Z</div><div class="opr-name">Zoom</div></div>
+              <div class="opr-toggle off"></div>
+            </div>
+            <div class="os-perm-row muted">
+              <div class="opr-app"><div class="opr-icon">S</div><div class="opr-name">Slack</div></div>
+              <div class="opr-toggle off"></div>
+            </div>
+            <div class="opm-foot">When System Settings opens after you click Enable, flip the TwinMe toggle on.</div>
+          </div>
+          <div class="os-perm-tip" data-perm-tip="microphone" style="display:none">
+            <p class="otitle">Your OS will ask for microphone access</p>
+            <p class="odesc">Your system may show a dialog asking to allow TwinMe to use the microphone. Approve it to continue.</p>
+          </div>
+        </div>
       </div>
     </section>
 
-    <!-- 4. One keystroke away -->
+    <!-- 4. One keystroke away (v2 #4: split-screen w/ Hummingbird mock) -->
     <section class="screen" data-step="4">
-      <div class="content">
-        <h2 class="stagger-1">One keystroke away</h2>
-        <p class="sub stagger-2">Summon me over any other app, whenever you need to think out loud.</p>
-        <div class="cards stagger-3">
-          <div class="card">
-            <div class="glyph">
-              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M8 14h8"/></svg>
-            </div>
-            <div class="body">
-              <div class="title">Press Ctrl + Shift + T</div>
-              <div class="desc">A quiet panel opens over whatever you're doing. Ask a question, capture a thought, then get back to work.</div>
+      <div class="content perm-split">
+        <div class="perm-left">
+          <h2 class="stagger-1">One keystroke away</h2>
+          <p class="sub stagger-2">Summon me over any other app, whenever you need to think out loud.</p>
+          <div class="cards stagger-3">
+            <div class="card">
+              <div class="glyph">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M8 14h8"/></svg>
+              </div>
+              <div class="body">
+                <!-- "Press Ctrl + Shift + T" — primary text is set by
+                     renderHotkeyLabels() to match the macOS / Win-Linux
+                     binding registered in src-tauri/src/lib.rs. Default
+                     here matches non-mac so a UA-detect failure shows the
+                     more-common case. -->
+                <div class="title" id="hotkey-title">Press Ctrl + Shift + T</div>
+                <div class="desc">A quiet panel opens over whatever you're doing. Ask a question, capture a thought, then get back to work.</div>
+              </div>
             </div>
           </div>
+        </div>
+        <!-- Right rail: Hummingbird panel mock floating over a faded
+             "app window" backdrop. Visible only on ≥900px viewport
+             (via .perm-split media query). The kbd combo is rendered
+             dynamically by renderHotkeyLabels() to match platform. -->
+        <div class="perm-right stagger-3">
+          <div class="hb-mock">
+            <div class="hb-app-bg">
+              <div class="hb-app-chrome">
+                <span class="hb-dot red"></span>
+                <span class="hb-dot yellow"></span>
+                <span class="hb-dot green"></span>
+              </div>
+              <div class="hb-line"></div>
+              <div class="hb-line short"></div>
+              <div class="hb-line medium"></div>
+              <div class="hb-line"></div>
+              <div class="hb-line short"></div>
+            </div>
+            <div class="hb-panel">
+              <div class="hb-panel-head">
+                <img src="flower.png" alt="" />
+                <span>TwinMe</span>
+              </div>
+              <div class="hb-panel-input">Ask anything…</div>
+              <span class="hb-panel-suggest">Summarize what I'm reading</span>
+              <div class="hb-panel-keys">
+                <kbd class="hb-kbd" id="hb-primary-key">Ctrl</kbd>
+                <span class="hb-plus">+</span>
+                <kbd class="hb-kbd">Shift</kbd>
+                <span class="hb-plus">+</span>
+                <kbd class="hb-kbd">T</kbd>
+              </div>
+            </div>
+          </div>
+          <p class="hb-mock-foot stagger-4">Your twin appears over any app you're using — without breaking focus.</p>
         </div>
       </div>
     </section>
@@ -661,38 +1411,173 @@
           <p class="observe-status">Observing your activity</p>
           <p class="observe-count" id="observe-count"></p>
         </div>
+        <p class="trust-line stagger-4">Everything you see is local to this machine. Nothing is saved until you sign in.</p>
       </div>
     </section>
 
-    <!-- 6. Here's what I noticed (LLM summary) -->
+    <!-- 6. Sign in & connect (v2 #5: MOVED here from the end of the flow).
+         Mid-flow sign-in unblocks the extracted-facts screen (step 8) —
+         the JWT must exist before we can read the user's connected
+         platforms. The observe countdown just ended, so the ask lands
+         right when we've earned it ("sign in to keep what I noticed").
+         Completion is async: the system browser handles OAuth, the
+         twinme:// deep link hands the one-time code back into THIS page
+         (see handle_deep_link in lib.rs + the 'twinme:auth-code'
+         listener below), we claim it, then auto-advance to the reveal. -->
     <section class="screen" data-step="6">
+      <div class="content perm-split">
+        <div class="perm-left">
+          <h2 class="stagger-1" id="ready-heading">Keep your twin</h2>
+          <p class="lede stagger-2">Sign in to save what I noticed and unlock what I can learn from your world. Everything stays on your terms.</p>
+          <div class="auth-actions stagger-3">
+            <button class="google-btn" id="google-btn">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.76h3.56c2.08-1.92 3.28-4.74 3.28-8.09Z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.56-2.76c-.98.66-2.24 1.06-3.72 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23Z"/><path fill="#FBBC05" d="M5.84 14.41a6.6 6.6 0 0 1 0-4.82V6.75H2.18a11 11 0 0 0 0 10.5l3.66-2.84Z"/><path fill="#EA4335" d="M12 5.5c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84C6.71 7.31 9.14 5.5 12 5.5Z"/></svg>
+              Continue with Google
+            </button>
+            <p class="auth-hint" id="auth-hint">Opens your real browser — we never see your password.</p>
+          </div>
+          <p class="trust-line stagger-4">Signing in saves what I learned. You can delete everything at any time.</p>
+        </div>
+        <!-- Right rail: soul-signature surface preview — what sign-in
+             unlocks. One hero insight + the theme chips that organize
+             the full signature page. -->
+        <div class="perm-right stagger-3">
+          <div class="soul-mock">
+            <p class="sm-quote">"You're most yourself between 9 and 11pm — that's when your curiosity stretches widest."</p>
+            <p class="sm-provenance">Drawn from 80 evenings, your music, and the depth of what you read.</p>
+            <div class="sm-themes">
+              <span class="sm-theme active">Curiosity</span>
+              <span class="sm-theme">Communication</span>
+              <span class="sm-theme">Cultural</span>
+              <span class="sm-theme">Social</span>
+              <span class="sm-theme">Motivation</span>
+            </div>
+          </div>
+          <p class="preview-foot stagger-4">Sign in to see your full signature, built from what you connect.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 7. Here's what I noticed (LLM summary; renumbered from 6 in v2 #5) -->
+    <section class="screen" data-step="7">
       <div class="content">
         <h2 class="stagger-1" id="observe-heading">Here's what I noticed</h2>
         <p class="sub stagger-2">A first glimpse, from the apps and windows I saw. I get sharper the more we work together.</p>
         <div class="summary-host stagger-3" id="summary-host"></div>
+        <!-- v2 polish (subagent D MEDIUM): "nothing is saved" was
+             ambiguous — the clips ARE sent over the wire to
+             /api/desktop/observe-summary → OpenRouter, which logs
+             requests. New copy is precise about what we DO with the
+             data without lying about transit. -->
+        <p class="trust-line stagger-4">Only app names and window titles were sent to write this. Nothing is stored in our database until you sign in.</p>
       </div>
     </section>
 
-    <!-- 7. Sign in & connect (handoff to twinme.me) -->
-    <section class="screen" data-step="7">
+    <!-- 8. Here's what I learned about you (extracted facts, v2 #5).
+         Second wow moment: the clip summary proved we see the SCREEN;
+         this proves we see the LIFE. Pulls 4-6 real facts from the
+         user's connected Google account via POST /api/desktop/
+         extracted-facts (sign-in just happened at step 6). Each row is
+         editable inline and dismissable — the goal is to make the user
+         feel SEEN, then hand them agency to correct what's wrong.
+         Skipped entirely when the user skipped sign-in (see next()). -->
+    <section class="screen" data-step="8">
       <div class="content">
-        <h2 class="stagger-1" id="ready-heading">Keep your twin</h2>
-        <p class="lede stagger-2">Sign in to save what I've learned and connect your world. Everything stays on your terms.</p>
-        <div class="auth-actions stagger-3">
-          <button class="google-btn" id="google-btn">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.76h3.56c2.08-1.92 3.28-4.74 3.28-8.09Z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.56-2.76c-.98.66-2.24 1.06-3.72 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23Z"/><path fill="#FBBC05" d="M5.84 14.41a6.6 6.6 0 0 1 0-4.82V6.75H2.18a11 11 0 0 0 0 10.5l3.66-2.84Z"/><path fill="#EA4335" d="M12 5.5c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84C6.71 7.31 9.14 5.5 12 5.5Z"/></svg>
-            Continue with Google
-          </button>
-          <p class="auth-hint" id="auth-hint">Opens your real browser — we never see your password.</p>
-        </div>
-        <p class="platforms-note stagger-4">After you sign in, I'll take a moment to look you up — then your twin is ready.</p>
+        <h2 class="stagger-1" id="facts-heading">Here's what I learned about you</h2>
+        <p class="sub stagger-2">A first read on your world, from what you just connected. Tap a line to edit it, or remove what's off.</p>
+        <div class="facts-host stagger-3" id="facts-host"></div>
+        <p class="trust-line stagger-4">First impressions only. The more we work together, the sharper they get.</p>
       </div>
     </section>
+
+    <!-- 9. Tomorrow your twin will surface things like this (mockup briefing
+         cards, v2 #7; renumbered from 7 in v2 #5 — now the FINAL teaser
+         before launch). Pre-loads the user's perception of value with 6
+         fictional-but-plausible briefing cards across the categories AskJo
+         uses (work, travel, family, finance, social, content). After the
+         real extracted facts at step 8, these read as "tomorrow we get
+         even more concrete" rather than as a generic pitch. The trust
+         line keeps the fictional framing explicit. -->
+    <section class="screen" data-step="9">
+      <div class="content">
+        <h2 class="stagger-1">Tomorrow, your twin surfaces things like this</h2>
+        <p class="sub stagger-2">A glimpse of the cards I'll build once we're working together.</p>
+        <div class="mockup-grid stagger-3">
+          <div class="mockup-card">
+            <div class="mctitle">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+              Your focus block starts in 2 hours
+            </div>
+            <p class="mcdesc">Last Tuesday you shipped 4 PRs in this window.</p>
+            <span class="mcaction">Block 90 min</span>
+          </div>
+          <div class="mockup-card">
+            <div class="mctitle">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg>
+              Flight to Madrid leaves Thursday
+            </div>
+            <p class="mcdesc">You usually pack the night before — want a checklist?</p>
+            <span class="mcaction">Build packing list</span>
+          </div>
+          <div class="mockup-card">
+            <div class="mctitle">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/></svg>
+              Mom's birthday is in 6 days
+            </div>
+            <p class="mcdesc">She mentioned a cookbook on your last call.</p>
+            <span class="mcaction">Suggest gifts</span>
+          </div>
+          <div class="mockup-card">
+            <div class="mctitle">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              Car insurance renews Monday
+            </div>
+            <p class="mcdesc">Two competitors are 18% cheaper this month.</p>
+            <span class="mcaction">Compare quotes</span>
+          </div>
+          <div class="mockup-card">
+            <div class="mctitle">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              Dinner with friends at 7:30 tonight
+            </div>
+            <p class="mcdesc">One person is running 10 min late.</p>
+            <span class="mcaction">Remind in 2h</span>
+          </div>
+          <div class="mockup-card">
+            <div class="mctitle">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>
+              New Dwarkesh episode
+            </div>
+            <p class="mcdesc">Jim Keller on chip design — you usually listen on walks.</p>
+            <span class="mcaction">Add to queue</span>
+          </div>
+        </div>
+        <p class="trust-line stagger-4">These are examples. Your real cards will be built from what you choose to connect.</p>
+      </div>
+    </section>
+
+    <!-- P1 wire-the-loop: morning briefing detail. NOT part of the 0-9
+         stepper — it sits at index 10 in the .screen NodeList, which no step
+         value ever matches, so render() never activates it (and any render()
+         call deactivates it — that IS the dismiss path). sync.rs fires a
+         native toast between 7 and 9am local (greeting + schedule summary
+         only; Windows drops toast bodies past ~256 bytes) and dispatches
+         'twinme:briefing-ready' into this window; the full briefing JSON is
+         read back from Rust app state via get_latest_briefing. -->
+    <section class="screen" data-screen="briefing-detail" id="briefing-screen">
+      <div class="content">
+        <h2 class="stagger-1" id="briefing-greeting">Good morning</h2>
+        <p class="sub stagger-2" id="briefing-schedule"></p>
+        <div class="briefing-host stagger-3" id="briefing-host"></div>
+        <button class="look-again stagger-4" id="briefing-dismiss" type="button">Dismiss</button>
+      </div>
+    </section>
+
   </main>
 
   <footer class="footer">
     <button class="cta" id="cta">Get started</button>
-    <div class="dots" id="dots"><b class="on"></b><b></b><b></b><b></b><b></b><b></b><b></b><b></b></div>
+    <div class="dots" id="dots"><b class="on"></b><b></b><b></b><b></b><b></b><b></b><b></b><b></b><b></b><b></b></div>
   </footer>
   <button class="back" id="back">Back</button>
 </div>
@@ -705,10 +1590,10 @@
     var API_BASE = "https://twinme.me/api";
     // v3: native-first flow (name -> permissions -> observe -> "here's what I
     // noticed" -> sign-in handoff). Bumped key so users of v2 see it once.
-    var FLAG = "twinme_desktop_onboarded_v7"; // v7: Littlebird-inspired motion + first-person voice + cinematic summary reveal — re-show once
+    var FLAG = "twinme_desktop_onboarded_v9"; // v9: v2 #5 — mid-flow sign-in + extracted-facts wow screen; re-show once so returning users see the new flow
     var NAME_KEY = "twinme_desktop_name";
     var ALIASES_KEY = "twinme_desktop_aliases";
-    var TOTAL = 8;
+    var TOTAL = 10;
     var OBSERVE_MS = 75000;     // ~75s "observing" demo
     var SKIP_AFTER_MS = 20000;  // allow an early "Skip ahead" after 20s
     var step = 0;
@@ -740,8 +1625,12 @@
     var back = document.getElementById("back");
     var skip = document.getElementById("skip");
 
-    //                 0            1           2           3           4           5              6           7
-    var CTA_LABELS = ["Get started", "Continue", "Continue", "Continue", "Continue", "Observing…", "Continue", "Sign in with email"];
+    // v2 #5 flow: 0 welcome, 1 name, 2 ctx perm, 3 mic perm, 4 hotkey,
+    // 5 observe, 6 SIGN-IN (moved earlier), 7 reveal, 8 extracted facts,
+    // 9 mockup cards (final). Step 6's footer CTA is the skip path —
+    // Google in the content is the primary; step 9's CTA launches the app.
+    //                 0            1           2           3           4           5              6               7           8           9
+    var CTA_LABELS = ["Get started", "Continue", "Continue", "Continue", "Continue", "Observing…", "Skip for now", "Continue", "Continue", "Open TwinMe"];
 
     function escapeHtml(s) {
       return String(s == null ? "" : s)
@@ -758,18 +1647,35 @@
       }
       cta.textContent = CTA_LABELS[step];
       cta.disabled = false;
-      // Screen 7: Google is the in-content primary, so de-emphasize the footer
-      // "Sign in with email" CTA there.
-      cta.classList.toggle("secondary", step === 7);
-      // Hide Back during the observe countdown and the summary reveal so the
-      // "noticing" moment isn't interrupted mid-flight.
-      back.classList.toggle("show", step > 0 && step !== 5 && step !== 6);
+      // Sign-in screen (step 6 after the v2 #5 reorder): Google in the
+      // content is the primary action, so the footer "Skip for now" CTA
+      // renders de-emphasized.
+      cta.classList.toggle("secondary", step === 6);
+      // Hide Back through the observe → sign-in → reveal corridor: the
+      // countdown can't meaningfully re-run (observeStarted guard), and
+      // backing out of sign-in mid-claim would leave auth state ambiguous.
+      back.classList.toggle("show", step > 0 && step !== 5 && step !== 6 && step !== 7);
 
       if (step === 1) { setTimeout(focusName, 80); }
-      if (step === 6) { setReadyHeadings(); }
-      if (step === 7) { setReadyHeadings(); }
+      // Personalized headings: step 6 = "Keep your twin, ${name}",
+      // step 7 = "Here's what I noticed, ${name}".
+      if (step === 6 || step === 7) { setReadyHeadings(); }
       if (step === 5) { startObserve(); }
-      if (step === 6) { loadSummary(); }
+      if (step === 7) { loadSummary(); }
+      if (step === 8) { loadFacts(); }
+    }
+
+    // Browser-verification hook (HAS_TAURI false only — inert in the real
+    // desktop app). Lets the headless smoke script drive the ACTUAL state
+    // machine (so render-side effects like loadFacts fire) instead of
+    // faking it by toggling .active classes from outside the closure.
+    if (!HAS_TAURI) {
+      window.addEventListener("twinme:test-set-step", function (ev) {
+        var n = parseInt(ev && ev.detail, 10);
+        if (Number.isNaN(n) || n < 0 || n >= TOTAL) return;
+        step = n;
+        render();
+      });
     }
 
     function focusName() {
@@ -777,6 +1683,48 @@
       if (!el) return;
       if (userName && !el.value) el.value = userName;
       try { el.focus(); } catch (e) { /* ignore */ }
+      // Keep the right-rail dashboard greeting in sync with whatever
+      // is in the name field — runs once on screen entry to pick up a
+      // previously-saved name; the input event below handles live edits.
+      updateMockGreetings(el.value || userName);
+    }
+
+    /**
+     * v2 #1 right-rail bindings.
+     *
+     * Updates THREE name slots from the same source of truth:
+     *   1. The welcome lede on step 0 — was hardcoded "Stefano" pre-#1
+     *      which broke for everyone else. Now interpolated via
+     *      #welcome-name-prefix + #welcome-name spans.
+     *   2. The dashboard mock greeting on step 0 — "Good evening,
+     *      ${name}" or "Good evening" on cold start.
+     *   3. The dashboard mock greeting on step 1 — same shape, but
+     *      kept in sync LIVE as the user types in #name-input.
+     *
+     * Safe to call with empty input — falls back to no-name greetings.
+     */
+    function updateMockGreetings(name) {
+      var safe = (name || "").trim().slice(0, 60);
+      // Welcome lede: insert ", <name>" before the em-dash, or nothing.
+      var prefix = document.getElementById("welcome-name-prefix");
+      var slot = document.getElementById("welcome-name");
+      if (prefix) prefix.textContent = safe ? ", " : "";
+      if (slot)   slot.textContent   = safe ? safe : "";
+      // v2 polish (subagent C MEDIUM): compute the time-of-day word
+      // from the user's clock instead of always saying "Good evening".
+      // The right-rail mock is framed as "this is what you'll see" —
+      // a 9am opener seeing "Good evening" undermines that promise.
+      var hour = new Date().getHours();
+      var partOfDay = hour < 5 || hour >= 22 ? "night"
+                    : hour < 12 ? "morning"
+                    : hour < 18 ? "afternoon"
+                    : "evening";
+      var greetBase = "Good " + partOfDay;
+      var greet = safe ? greetBase + ", " + safe : greetBase;
+      var dmWelcome = document.getElementById("dm-greet-welcome");
+      var dmName    = document.getElementById("dm-greet-name");
+      if (dmWelcome) dmWelcome.textContent = greet;
+      if (dmName)    dmName.textContent    = greet;
     }
 
     function setReadyHeadings() {
@@ -805,11 +1753,19 @@
     function next() {
       if (step === 1) captureName();
       if (step >= TOTAL - 1) { launch(); return; }
+      // v2 #5: the extracted-facts screen (8) needs the JWT from the
+      // step-6 sign-in. A user who skipped sign-in jumps straight from
+      // the reveal (7) to the mockup cards (9) — the facts screen is
+      // hidden entirely rather than shown empty.
+      if (step === 7 && !desktopAuth.signedIn) { step = 9; render(); return; }
       step++;
       render();
     }
     function prev() {
       if (step <= 0) return;
+      // Mirror of the skip in next(): backing out of the mockup cards
+      // lands on the reveal, not on a facts screen that has no session.
+      if (step === 9 && !desktopAuth.signedIn) { step = 7; render(); return; }
       step--;
       render();
     }
@@ -908,9 +1864,12 @@
       { app: "Brave", title: "twinme.me" },
       { app: "Slack", title: "#engineering" }
     ];
+    // v2: keep the mock specific (proper nouns + plausible actions) so users
+    // testing the desktop without the backend still see the new shape.
     var MOCK_SUMMARY = {
-      summary: "You moved between your code editor and the browser on twinme.me, with a quick stop in Slack. It looks like a focused build session.",
-      insight: "I can help you pick this back up tomorrow and keep the thread going."
+      summary: "You moved between Cursor on twin-ai-learn and Brave on twinme.me, with a quick stop in #engineering on Slack.",
+      insight: "It looks like a focused build session on the desktop app itself.",
+      actions: ["Recap today's commits on twin-ai-learn", "Draft a Slack update for #engineering"]
     };
 
     function normalizeClips(raw) {
@@ -944,6 +1903,28 @@
         chips += '<span class="chip">' + escapeHtml(deduped[i].app) + "</span>";
       }
       return '<div class="apps-chips"><span class="clabel">Apps I saw</span>' + chips + "</div>";
+    }
+
+    // Render the v2 LLM-suggested follow-up actions as Littlebird-style
+    // amber pills below the insight. Non-interactive for now — clicking
+    // a pill should kick off a chat with that prompt, but the chat surface
+    // doesn't exist on the desktop yet, so we display only. Wire up when
+    // the post-sign-in chat handoff is built.
+    function actionPillsHtml(actions) {
+      if (!Array.isArray(actions) || actions.length === 0) return "";
+      var pills = "";
+      for (var i = 0; i < actions.length; i++) {
+        // v2 polish (subagent C HIGH): rendered as <span> not <button>.
+        // The pills are visual only — no click handler yet, no chat
+        // surface to dispatch into. <button> announces as actionable
+        // to assistive tech and traps tab focus. Matches the .mcaction
+        // pattern on the mockup cards screen. When the post-sign-in
+        // chat handoff is wired and these become real "kick off chat
+        // with this prompt" pills, switch back to <button> with a
+        // click handler in the same change.
+        pills += '<span class="apill">' + escapeHtml(actions[i]) + "</span>";
+      }
+      return '<div class="action-pills"><span class="alabel">I could help with</span>' + pills + "</div>";
     }
 
     function loadSummary() {
@@ -1014,6 +1995,7 @@
           '<p class="summary-text reveal-1">' + escapeHtml(para1) + "</p>" +
           (para2 ? '<p class="summary-text reveal-2" style="margin-top:10px">' + escapeHtml(para2) + "</p>" : "") +
           (data.insight ? '<p class="summary-insight">' + escapeHtml(data.insight) + "</p>" : "") +
+          actionPillsHtml(data.actions) +
           chipsHtml(deduped) +
         "</div>";
       cta.disabled = false;
@@ -1047,6 +2029,276 @@
       });
     }
 
+    /* ---------- Screen 6: mid-flow sign-in + auth-code claim (v2 #5) ----- */
+    // Sign-in moved mid-flow so the extracted-facts screen (8) has a JWT.
+    // The system browser handles OAuth; the backend redirects to
+    // twinme://auth?auth_code=...; handle_deep_link (lib.rs) detects we're
+    // still on the bundled onboarding page and dispatches the query into
+    // this window as a 'twinme:auth-code' CustomEvent instead of navigating
+    // away. We claim the one-time code against the SAME endpoint the web
+    // /oauth/callback uses, persist the tokens to the OS keyring via the
+    // auth-bridge commands (the bundled page is covered by
+    // capabilities/twinme-auth-bridge.json because remote.local defaults
+    // true), and auto-advance to the reveal.
+    var desktopAuth = { token: null, signedIn: false };
+
+    function claimAuthCode(query) {
+      var m = /(?:^|&)auth_code=([^&]+)/.exec(String(query || ""));
+      if (!m) return;
+      var hint = document.getElementById("auth-hint");
+      if (hint) hint.textContent = "Almost there…";
+      // client=mobile makes the claim return the refresh token in the body
+      // (shouldExposeRefreshToken) — same flag the web /oauth/callback sends
+      // for desktop claims. The webview can't rely on the httpOnly cookie
+      // (WebView2 drops it on custom-scheme flows), so the keyring is the
+      // session anchor here.
+      fetch(API_BASE + "/auth/oauth/claim?auth_code=" + encodeURIComponent(decodeURIComponent(m[1])) + "&client=mobile")
+        .then(function (resp) {
+          if (!resp.ok) throw new Error("http_" + resp.status);
+          return resp.json();
+        })
+        .then(function (data) {
+          if (!data || !data.token) throw new Error("no_token");
+          desktopAuth.token = data.token;
+          desktopAuth.signedIn = true;
+          invoke("store_auth_token", { token: data.token });
+          if (data.refreshToken) invoke("store_refresh_token", { token: data.refreshToken });
+          if (hint) hint.textContent = "Signed in.";
+          if (step === 6) { step = 7; render(); }
+        })
+        .catch(function (err) {
+          console.warn("[onboarding] auth-code claim failed:", err);
+          if (hint) hint.textContent = "Sign-in hit a snag — try again, or skip for now.";
+        });
+    }
+    window.addEventListener("twinme:auth-code", function (ev) {
+      claimAuthCode(ev && ev.detail);
+    });
+
+    /* ---------- Screen 8: extracted facts (v2 #5) ------------------------ */
+    var FACT_ICONS = {
+      briefcase: '<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>',
+      "map-pin": '<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>',
+      calendar: '<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>',
+      target: '<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>',
+      globe: '<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>',
+    };
+    // Browser-verification mock (HAS_TAURI false) — mirrors the real
+    // endpoint shape so the screen can be exercised without a session.
+    var MOCK_FACTS = [
+      { id: "location", icon: "map-pin", text: "Looks like you're in Sao Paulo (America).", source: "Google timezone", confidence: "high", editable: true },
+      { id: "calendar_cadence", icon: "calendar", text: "Your calendar leans heavily into Tuesday and Thursday — that's 58% of the last 30 days.", source: "Google Calendar", confidence: "medium", editable: true },
+      { id: "focus_blocks", icon: "target", text: "Recurring blocks on your calendar: Standup, Email Zero Sprint.", source: "Google Calendar", confidence: "medium", editable: true },
+    ];
+    var factsLoaded = false;
+
+    function loadFacts() {
+      if (factsLoaded) return;
+      factsLoaded = true;
+      var host = document.getElementById("facts-host");
+      cta.disabled = true;
+      host.innerHTML = '<p class="observe-thinking">Reading what you connected…</p>';
+      var tokenPromise = desktopAuth.token
+        ? Promise.resolve(desktopAuth.token)
+        : invoke("get_fresh_access_token");
+      tokenPromise
+        .then(function (token) {
+          if (!token) {
+            if (!HAS_TAURI) { renderFacts(host, MOCK_FACTS); return; }
+            renderFactsFallback(host, "no_session");
+            return;
+          }
+          return fetch(API_BASE + "/desktop/extracted-facts", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+            body: JSON.stringify({ name: userName }),
+          })
+            .then(function (resp) { return resp.json(); })
+            .then(function (data) {
+              if (data && data.success && data.facts && data.facts.length) {
+                renderFacts(host, data.facts);
+              } else {
+                renderFactsFallback(host, (data && data.fallback_reason) || "empty");
+              }
+            });
+        })
+        .catch(function (err) {
+          console.warn("[onboarding] extracted-facts failed:", err);
+          if (!HAS_TAURI) { renderFacts(host, MOCK_FACTS); return; }
+          renderFactsFallback(host, "error");
+        });
+    }
+
+    function renderFacts(host, facts) {
+      host.innerHTML = "";
+      for (var i = 0; i < facts.length; i++) {
+        host.appendChild(buildFactRow(facts[i]));
+      }
+      cta.disabled = false;
+    }
+
+    function buildFactRow(fact) {
+      var row = document.createElement("div");
+      row.className = "fact-row";
+      row.setAttribute("data-fact-id", String(fact.id || ""));
+      var icon = FACT_ICONS[fact.icon] || FACT_ICONS.target;
+      // Static-string SVG + escaped dynamic text — same XSS posture as
+      // renderSummary (every user/LLM-derived string passes escapeHtml).
+      row.innerHTML =
+        '<span class="fact-glyph">' + icon + "</span>" +
+        '<div class="fact-body">' +
+          '<p class="fact-text">' + escapeHtml(fact.text) + "</p>" +
+          '<p class="fact-source">' + escapeHtml(fact.source || "") + "</p>" +
+        "</div>" +
+        '<button class="fact-dismiss" type="button" aria-label="Remove this fact">' +
+          '<svg viewBox="0 0 24 24" stroke-linecap="round"><path d="M6 6l12 12M6 18L18 6"/></svg>' +
+        "</button>";
+      var text = row.querySelector(".fact-text");
+      // Tap to edit: contenteditable toggles on, blur/Enter commits. Edits
+      // persist to localStorage only in v1 — a follow-up endpoint ingests
+      // them as high-importance fact memories post-launch.
+      text.addEventListener("click", function () {
+        if (text.getAttribute("contenteditable") !== "true") {
+          text.setAttribute("contenteditable", "true");
+          text.focus();
+        }
+      });
+      text.addEventListener("blur", function () {
+        text.setAttribute("contenteditable", "false");
+        try { localStorage.setItem("twinme_fact_edit_" + fact.id, text.textContent.trim().slice(0, 200)); } catch (e) { /* ignore */ }
+      });
+      row.querySelector(".fact-dismiss").addEventListener("click", function () {
+        row.classList.add("dismissed");
+        try {
+          var dismissed = JSON.parse(localStorage.getItem("twinme_facts_dismissed") || "[]");
+          if (dismissed.indexOf(fact.id) < 0) dismissed.push(fact.id);
+          localStorage.setItem("twinme_facts_dismissed", JSON.stringify(dismissed));
+        } catch (e) { /* ignore */ }
+      });
+      return row;
+    }
+
+    function renderFactsFallback(host, reason) {
+      // Never dead-end. Two flavors:
+      //   no_calendar_connected / oauth_expired → pitch the calendar connect
+      //   anything else → honest "not enough yet" + continue
+      var needsConnect = reason === "no_calendar_connected" || reason === "oauth_expired";
+      var copy = needsConnect
+        ? "Connect Google Calendar and I'll read your rhythms — your cadence, your recurring blocks, the languages your life runs in."
+        : "I haven't read enough yet. The more you connect, the sharper this screen gets — check back after your first day.";
+      host.innerHTML =
+        '<div class="summary-card">' +
+          '<p class="summary-text">' + escapeHtml(copy) + "</p>" +
+        "</div>" +
+        (needsConnect ? '<button class="facts-connect-cta" id="facts-connect-btn" type="button">Connect Google Calendar</button>' : "");
+      var btn = document.getElementById("facts-connect-btn");
+      if (btn) btn.addEventListener("click", function () {
+        // The system browser still has the just-signed-in web session, so
+        // the connect page lands authenticated.
+        if (HAS_TAURI) { invoke("open_external", { url: APP_URL + "/connect" }); }
+        else { window.open(APP_URL + "/connect", "_blank"); }
+        btn.textContent = "Finish in your browser, then continue here";
+      });
+      cta.disabled = false;
+    }
+
+    /* ---------- P1: morning briefing detail (toast -> full card) --------- */
+    // sync.rs polls GET /api/morning-briefing/generate between 7 and 9am
+    // local (once per day), fires a native toast with greeting + schedule
+    // summary only (256-byte Windows toast limit), stashes the FULL briefing
+    // JSON in Rust app state, and dispatches 'twinme:briefing-ready' into
+    // this window — the same win.eval CustomEvent channel handle_deep_link
+    // uses for 'twinme:auth-code'. Here we pull the full JSON back out
+    // (get_latest_briefing) and render the whole card; clicking the toast
+    // focuses the app with the card already up. Dismiss returns to whatever
+    // step the user was on (render() reactivates it).
+    //
+    // Briefing shape (api/routes/morning-briefing.js composeBriefing):
+    // { greeting, schedule[], schedule_summary, insights[], patterns[],
+    //   rest, music, suggestion, generatedAt } — schedule_summary/rest/music
+    // can be null or missing on the no-data fallback briefing.
+    var MOCK_BRIEFING = {
+      greeting: "Good Morning, Stefano",
+      schedule_summary: "Two meetings this morning, then a clear afternoon for deep work.",
+      insights: [
+        "Your best focus blocks this week happened before 11am.",
+        "You picked Slack back up after midnight twice this week.",
+        "Three days since your last commit on twin-ai-learn."
+      ],
+      rest: "Slept 7h12 — recovery is back over 70% after two low days.",
+      music: null,
+      suggestion: "Block 9 to 11 for the proposal — that's your sharpest window today."
+    };
+
+    function briefingFoldHtml(label, text) {
+      if (!text) return ""; // null section -> no element at all (per spec)
+      return '<details class="briefing-fold"><summary>' + escapeHtml(label) + "</summary>" +
+        '<p class="bf-body">' + escapeHtml(text) + "</p></details>";
+    }
+
+    function showBriefing(briefing) {
+      if (!briefing) return;
+      var greetEl = document.getElementById("briefing-greeting");
+      var schedEl = document.getElementById("briefing-schedule");
+      var host = document.getElementById("briefing-host");
+      greetEl.textContent = briefing.greeting || "Good morning";
+      schedEl.textContent = briefing.schedule_summary || "Here's where your day stands.";
+
+      // Same XSS posture as renderSummary/buildFactRow: every LLM-derived
+      // string passes escapeHtml before touching innerHTML.
+      var html = "";
+      var insights = Array.isArray(briefing.insights) ? briefing.insights : [];
+      var shown = 0;
+      for (var i = 0; i < insights.length && shown < 3; i++) {
+        var text = typeof insights[i] === "string"
+          ? insights[i]
+          : (insights[i] && insights[i].insight) || "";
+        if (!text) continue;
+        shown++;
+        html += '<div class="briefing-card">' +
+          '<p class="bc-label">Noticed</p>' +
+          '<p class="bc-text">' + escapeHtml(text) + "</p></div>";
+      }
+      html += briefingFoldHtml("Rest & recovery", briefing.rest);
+      html += briefingFoldHtml("Music", briefing.music);
+      if (briefing.suggestion) {
+        html += '<div class="briefing-suggestion">' +
+          '<p class="bc-label">Today, I\'d start here</p>' +
+          '<p class="bc-text">' + escapeHtml(briefing.suggestion) + "</p></div>";
+      }
+      host.innerHTML = html;
+
+      // Manual activation: the briefing screen sits OUTSIDE the stepper
+      // (index 10 — render() never matches it), so toggle it directly.
+      for (var s = 0; s < screens.length; s++) screens[s].classList.remove("active");
+      document.getElementById("briefing-screen").classList.add("active");
+      document.body.classList.add("briefing-open");
+    }
+
+    function dismissBriefing() {
+      document.body.classList.remove("briefing-open");
+      render(); // reactivates the step the user was on
+    }
+    document.getElementById("briefing-dismiss").addEventListener("click", dismissBriefing);
+
+    window.addEventListener("twinme:briefing-ready", function () {
+      invoke("get_latest_briefing")
+        .then(function (briefing) {
+          if (briefing) { showBriefing(briefing); }
+        })
+        .catch(function (err) {
+          console.warn("[briefing] get_latest_briefing failed:", err);
+        });
+    });
+
+    // Browser-verification hook (HAS_TAURI false only — inert in the real
+    // desktop app): lets a headless smoke run exercise the card without Rust.
+    if (!HAS_TAURI) {
+      window.addEventListener("twinme:test-show-briefing", function (ev) {
+        showBriefing((ev && ev.detail) || MOCK_BRIEFING);
+      });
+    }
+
     /* ---------- Wiring ---------- */
     cta.addEventListener("click", function () {
       if (step === 5) { advanceFromObserve(); return; }
@@ -1055,21 +2307,20 @@
     back.addEventListener("click", prev);
     skip.addEventListener("click", launch);
 
-    // Screen 7: "Continue with Google" opens the system browser for OAuth
-    // (Google blocks it inside the webview). The signed-in session returns via
-    // the twinme:// deep link, which the app routes to /oauth/callback.
+    // Screen 6: "Continue with Google" opens the system browser for OAuth
+    // (Google blocks it inside the webview). Completion comes back via the
+    // twinme:// deep link → 'twinme:auth-code' event → claimAuthCode above.
+    // NOTE: this no longer marks onboarding complete — sign-in is mid-flow
+    // now, and only launch() sets the FLAG.
     function continueWithGoogle() {
       var hint = document.getElementById("auth-hint");
-      // Open the system browser at the web sign-in handoff (registered Google
-      // redirect URI); it deep-links the session back via twinme:// -> /soul-reveal.
       var url = APP_URL + "/desktop-handoff";
-      try { localStorage.setItem(FLAG, "1"); } catch (e) { /* ignore */ }
       if (HAS_TAURI) {
         invoke("open_external", { url: url })
           .then(function () { if (hint) hint.textContent = "Waiting for you to finish in your browser…"; })
           .catch(function (err) {
             console.warn("[onboarding] open_external failed:", err);
-            if (hint) hint.textContent = 'Couldn\'t open your browser. Use "Sign in with email" below.';
+            if (hint) hint.textContent = "Couldn't open your browser — you can skip for now and sign in later.";
           });
       } else {
         window.open(url, "_blank");
@@ -1080,6 +2331,19 @@
     if (googleBtn) googleBtn.addEventListener("click", continueWithGoogle);
 
     document.addEventListener("keydown", function (ev) {
+      // Briefing overlay up: Escape or Enter dismisses; swallow everything
+      // else so arrows/Backspace don't drive the stepper underneath it.
+      if (document.body.classList.contains("briefing-open")) {
+        if (ev.key === "Escape" || ev.key === "Enter") { ev.preventDefault(); dismissBriefing(); }
+        return;
+      }
+      // While editing a fact row (contenteditable), Enter commits the edit
+      // (blur) — it must NOT advance the flow, and arrows must move the
+      // caret. v2 #5.
+      if (ev.target && ev.target.isContentEditable) {
+        if (ev.key === "Enter") { ev.preventDefault(); ev.target.blur(); }
+        return;
+      }
       // While typing in a field, only Enter advances; arrows must edit text.
       if (ev.target && ev.target.tagName === "INPUT") {
         if (ev.key === "Enter") { ev.preventDefault(); if (!cta.disabled) { if (step === 5) advanceFromObserve(); else next(); } }
@@ -1125,6 +2389,62 @@
         raf = requestAnimationFrame(tick);
       }
       raf = requestAnimationFrame(tick);
+    })();
+
+    /* ---- v2 #3 + #4: platform-aware onboarding bits ---------------------
+     * Two cosmetic adjustments based on UA sniff:
+     *
+     * #3: right rail on perm steps 2/3 — mac shows the System Settings
+     *     mock, Win/Linux gets a simpler tip card. Default in HTML is
+     *     mac-friendly (mock visible, tip hidden); we hide-mock + show-
+     *     tip on non-mac.
+     *
+     * #4: step 4 hotkey label — the Rust side registers Cmd+Shift+T on
+     *     macOS and Ctrl+Shift+T on Windows/Linux (see settings_get in
+     *     src-tauri/src/lib.rs — symbol name beats a line number that
+     *     rots as the Rust file evolves). HTML
+     *     default is "Ctrl + Shift + T" (the more-common case if UA detect
+     *     fails). On mac we swap to ⌘ in both the card title and the
+     *     kbd combo in the Hummingbird mock.
+     *
+     * UA sniff is good enough for COSMETIC hints. A misclassification
+     * never breaks anything functional — the actual permission flow is
+     * driven by the OS-native dialog, and the actual hotkey registration
+     * lives in Rust where it's compile-time conditional on target_os. */
+    (function adjustForPlatform() {
+      var ua = navigator.userAgent || "";
+      var isMac = /Macintosh|Mac OS X/.test(ua);
+
+      // #4: hotkey labels — mac gets ⌘, everything else stays "Ctrl"
+      if (isMac) {
+        var titleEl = document.getElementById("hotkey-title");
+        if (titleEl) titleEl.textContent = "Press ⌘ + Shift + T";
+        var primaryKey = document.getElementById("hb-primary-key");
+        if (primaryKey) primaryKey.textContent = "⌘";
+      }
+
+      // #3: perm mocks — non-mac swaps macOS panel for tip card
+      if (!isMac) {
+        var mocks = document.querySelectorAll(".os-perm-mock");
+        var tips  = document.querySelectorAll(".os-perm-tip");
+        for (var i = 0; i < mocks.length; i++) mocks[i].style.display = "none";
+        for (var j = 0; j < tips.length; j++) tips[j].style.display = "block";
+      }
+    })();
+
+    /* v2 #1: live name binding for the right-rail dashboard mock.
+     * Seed once from localStorage so returning users immediately see
+     * their saved name in the welcome lede + both dashboard greetings.
+     * Then bind to #name-input's input event so the right rail on
+     * step 1 updates LIVE as the user types — the visible payoff
+     * of filling in the field. */
+    updateMockGreetings(userName);
+    (function bindNameInput() {
+      var el = document.getElementById("name-input");
+      if (!el) return;
+      el.addEventListener("input", function () {
+        updateMockGreetings(el.value);
+      });
     })();
 
     render();

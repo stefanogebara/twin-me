@@ -272,14 +272,14 @@ if (capturedCode && capturedState) {
   console.log('Backend response:', cbRes.status, JSON.stringify(cbData));
 }
 
-// Final status check
+// Final status check (canonical summary endpoint — legacy /connectors/status was deleted)
 const statusRes = await fetch(
-  `https://twin-ai-learn.vercel.app/api/connectors/status/${USER_ID}`,
+  'https://twin-ai-learn.vercel.app/api/connectors/summary',
   { headers: { 'Authorization': `Bearer ${token}` } }
 );
 const statusData = await statusRes.json();
-const ytStatus = statusData.data?.[platform];
-console.log(`\n${platform} final status:`, ytStatus ? `${ytStatus.status}, expired=${ytStatus.tokenExpired}` : 'not found');
+const entry = (statusData.breakdown || []).find((e) => e.platform === platform);
+console.log(`\n${platform} final status:`, entry ? `state=${entry.state}, lastSyncAt=${entry.lastSyncAt}` : 'not found');
 
 await context.close();
 process.exit(capturedCode ? 0 : 1);

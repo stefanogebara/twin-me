@@ -23,11 +23,13 @@ const log = createLogger('OAuthCallback');
 const router = express.Router();
 
 // Allowlist of valid OAuth providers — prevents path traversal / injection via :provider param
+// replan-2026-06-10 Track C portfolio cut: reddit, slack, tiktok, strava, notion,
+// pinterest, soundcloud, fitbit, twitch, linkedin, steam removed. Existing
+// platform_connections rows for those platforms keep their data but are no
+// longer extractable/connectable through this surface.
 const VALID_PROVIDERS = new Set([
   'spotify', 'youtube', 'google_gmail', 'google_calendar', 'discord', 'github',
-  'reddit', 'slack', 'tiktok', 'strava', 'notion', 'pinterest', 'soundcloud',
-  'whoop', 'fitbit', 'twitch', 'linkedin', 'instagram', 'outlook',
-  'steam',
+  'whoop', 'instagram', 'outlook',
 ]);
 
 // Encryption key for OAuth tokens
@@ -102,7 +104,7 @@ router.get('/callback', async (req, res) => {
 
     log.info(`Tokens stored in database - Connector ID: ${connectorId}`);
 
-    // Register webhooks for supported platforms (GitHub, Gmail, Slack)
+    // Register webhooks for supported platforms (GitHub, Gmail)
     await registerWebhooksIfSupported(userId, provider, tokens.access_token);
 
     // Trigger immediate data extraction
@@ -147,27 +149,6 @@ async function exchangeCodeForTokens(provider, code, appUrl, state) {
 
     case 'github':
       return await exchangeGitHubCode(code, redirectUri);
-
-    case 'reddit':
-      return await exchangeRedditCode(code, redirectUri);
-
-    case 'slack':
-      return await exchangeSlackCode(code, redirectUri);
-
-    case 'tiktok':
-      return await exchangeTikTokCode(code, redirectUri);
-
-    case 'strava':
-      return await exchangeStravaCode(code, redirectUri);
-
-    case 'notion':
-      return await exchangeNotionCode(code, redirectUri);
-
-    case 'pinterest':
-      return await exchangePinterestCode(code, redirectUri);
-
-    case 'soundcloud':
-      return await exchangeSoundCloudCode(code, redirectUri, state);
 
     default:
       throw new Error(`Unsupported provider: ${provider}`);
@@ -318,312 +299,6 @@ async function exchangeGitHubCode(code, redirectUri) {
   }
 
   return await response.json();
-}
-
-/**
- * Reddit token exchange
- */
-async function exchangeRedditCode(code, redirectUri) {
-  const clientId = process.env.REDDIT_CLIENT_ID;
-  const clientSecret = process.env.REDDIT_CLIENT_SECRET;
-
-  if (!clientId || !clientSecret) {
-    throw new Error('Reddit credentials not configured');
-  }
-
-  const response = await fetch('https://www.reddit.com/api/v1/access_token', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'Authorization': `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`
-    },
-    body: new URLSearchParams({
-      grant_type: 'authorization_code',
-      code,
-      redirect_uri: redirectUri
-    })
-  });
-
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Reddit token exchange failed: ${error}`);
-  }
-
-  return await response.json();
-}
-
-/**
- * Slack token exchange
- */
-async function exchangeSlackCode(code, redirectUri) {
-  const clientId = process.env.SLACK_CLIENT_ID;
-  const clientSecret = process.env.SLACK_CLIENT_SECRET;
-
-  if (!clientId || !clientSecret) {
-    throw new Error('Slack credentials not configured');
-  }
-
-  const response = await fetch('https://slack.com/api/oauth.v2.access', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      client_id: clientId,
-      client_secret: clientSecret,
-      code,
-      redirect_uri: redirectUri
-    })
-  });
-
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Slack token exchange failed: ${error}`);
-  }
-
-  const data = await response.json();
-
-  // Slack returns { ok: true/false, ... }
-  if (!data.ok) {
-    throw new Error(`Slack OAuth error: ${data.error || 'Unknown error'}`);
-  }
-
-  // Slack returns authed_user.access_token for user tokens
-  return {
-    access_token: data.authed_user?.access_token || data.access_token,
-    refresh_token: data.authed_user?.refresh_token || data.refresh_token,
-    expires_in: data.authed_user?.expires_in || data.expires_in,
-    scope: data.scope,
-    team: data.team
-  };
-}
-
-/**
- * Strava token exchange
- * Strava uses client_id/client_secret in POST body (not Basic Auth)
- */
-async function exchangeStravaCode(code, redirectUri) {
-  const clientId = process.env.STRAVA_CLIENT_ID;
-  const clientSecret = process.env.STRAVA_CLIENT_SECRET;
-
-  if (!clientId || !clientSecret) {
-    throw new Error('Strava credentials not configured');
-  }
-
-  const response = await fetch('https://www.strava.com/oauth/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      client_id: clientId,
-      client_secret: clientSecret,
-      code,
-      grant_type: 'authorization_code'
-    })
-  });
-
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Strava token exchange failed: ${error}`);
-  }
-
-  const data = await response.json();
-
-  // Strava returns athlete object alongside tokens
-  return {
-    access_token: data.access_token,
-    refresh_token: data.refresh_token,
-    expires_in: data.expires_in,
-    athlete: data.athlete
-  };
-}
-
-/**
- * Notion token exchange
- *
- * Notion uses Basic Auth (client_id:client_secret base64) with a JSON body.
- * Response: { access_token, bot_id, workspace_id, workspace_name, workspace_icon, owner, duplicated_template_id }
- * Notion tokens do NOT expire and CANNOT be refreshed (no refresh_token, no expires_in).
- * https://developers.notion.com/reference/create-a-token
- */
-async function exchangeNotionCode(code, redirectUri) {
-  const clientId = process.env.NOTION_CLIENT_ID;
-  const clientSecret = process.env.NOTION_CLIENT_SECRET;
-
-  if (!clientId || !clientSecret) {
-    throw new Error('Notion credentials not configured');
-  }
-
-  const response = await fetch('https://api.notion.com/v1/oauth/token', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      'Authorization': `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`
-    },
-    body: JSON.stringify({
-      grant_type: 'authorization_code',
-      code,
-      redirect_uri: redirectUri
-    })
-  });
-
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Notion token exchange failed: ${error}`);
-  }
-
-  const data = await response.json();
-
-  // Normalize to the shape storeOAuthTokens expects. No refresh_token or expires_in.
-  return {
-    access_token: data.access_token,
-    refresh_token: null,
-    expires_in: null,
-    bot_id: data.bot_id,
-    workspace_id: data.workspace_id,
-    workspace_name: data.workspace_name,
-    workspace_icon: data.workspace_icon,
-    owner: data.owner
-  };
-}
-
-/**
- * Pinterest token exchange (v5)
- *
- * Pinterest uses Basic Auth (app_id:app_secret base64) with an
- * application/x-www-form-urlencoded body.
- * Response: { access_token, refresh_token, expires_in, refresh_token_expires_in, token_type, scope }
- * Access tokens last ~30 days; refresh tokens last ~365 days.
- * https://developers.pinterest.com/docs/getting-started/connect-app/
- */
-async function exchangePinterestCode(code, redirectUri) {
-  const clientId = process.env.PINTEREST_APP_ID;
-  const clientSecret = process.env.PINTEREST_APP_SECRET;
-
-  if (!clientId || !clientSecret) {
-    throw new Error('Pinterest credentials not configured');
-  }
-
-  const response = await fetch('https://api.pinterest.com/v5/oauth/token', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'Accept': 'application/json',
-      'Authorization': `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`
-    },
-    body: new URLSearchParams({
-      grant_type: 'authorization_code',
-      code,
-      redirect_uri: redirectUri
-    })
-  });
-
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Pinterest token exchange failed: ${error}`);
-  }
-
-  return await response.json();
-}
-
-/**
- * SoundCloud token exchange (v2, OAuth 2.1 with PKCE)
- *
- * SoundCloud requires:
- *   - Basic Auth header (client_id:client_secret base64)
- *   - application/x-www-form-urlencoded body
- *   - code_verifier (PKCE — retrieved from oauth_states row keyed by state)
- * Access tokens live ~1 hour; refresh_token rotates on each refresh.
- * NOTE: SoundCloud developer key issuance has been closed since 2023,
- * so configuration may be absent in most environments — we throw a
- * clearly-labeled error so the callback surface becomes 503-equivalent.
- * https://developers.soundcloud.com/docs/api/guide
- */
-async function exchangeSoundCloudCode(code, redirectUri, state) {
-  const clientId = process.env.SOUNDCLOUD_CLIENT_ID;
-  const clientSecret = process.env.SOUNDCLOUD_CLIENT_SECRET;
-
-  if (!clientId || !clientSecret) {
-    throw new Error('SoundCloud credentials not configured');
-  }
-
-  // Look up the PKCE code_verifier we stored at the /connect/soundcloud step.
-  let codeVerifier = null;
-  try {
-    const stateRow = await serverDb.query(
-      `SELECT data FROM oauth_states WHERE state = $1 LIMIT 1`,
-      [state]
-    );
-    const row = stateRow?.rows?.[0] || stateRow?.[0] || null;
-    codeVerifier = row?.data?.codeVerifier || row?.data?.code_verifier || null;
-  } catch (err) {
-    // Non-fatal lookup error — we'll still attempt the exchange but it
-    // will fail with a clear message from SoundCloud.
-  }
-
-  if (!codeVerifier) {
-    throw new Error('SoundCloud PKCE code_verifier missing from oauth_states');
-  }
-
-  const response = await fetch('https://secure.soundcloud.com/oauth/token', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'Accept': 'application/json; charset=utf-8',
-      'Authorization': `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`
-    },
-    body: new URLSearchParams({
-      grant_type: 'authorization_code',
-      code,
-      redirect_uri: redirectUri,
-      code_verifier: codeVerifier
-    })
-  });
-
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`SoundCloud token exchange failed: ${error}`);
-  }
-
-  return await response.json();
-}
-
-/**
- * TikTok token exchange
- */
-async function exchangeTikTokCode(code, redirectUri) {
-  const clientKey = process.env.TIKTOK_CLIENT_KEY;
-  const clientSecret = process.env.TIKTOK_CLIENT_SECRET;
-
-  if (!clientKey || !clientSecret) {
-    throw new Error('TikTok credentials not configured');
-  }
-
-  const response = await fetch('https://open.tiktokapis.com/v2/oauth/token/', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      client_key: clientKey,
-      client_secret: clientSecret,
-      code,
-      grant_type: 'authorization_code',
-      redirect_uri: redirectUri
-    })
-  });
-
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`TikTok token exchange failed: ${error}`);
-  }
-
-  const data = await response.json();
-
-  // TikTok returns tokens in data object
-  return {
-    access_token: data.access_token,
-    refresh_token: data.refresh_token,
-    expires_in: data.expires_in,
-    open_id: data.open_id,
-    scope: data.scope
-  };
 }
 
 /**
@@ -914,13 +589,6 @@ async function registerWebhooksIfSupported(userId, provider, accessToken) {
         } else {
           log.warn(`Gmail push setup failed:`, gmailResult.error);
         }
-        break;
-
-      case 'slack':
-        // Slack supports event subscriptions, but requires additional setup
-        // in the Slack app configuration (event subscription URL)
-        log.info(`Slack webhooks require app-level configuration`);
-        log.info(`Configure event subscriptions at: https://api.slack.com/apps`);
         break;
 
       case 'discord':

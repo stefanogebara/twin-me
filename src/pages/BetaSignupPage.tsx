@@ -10,7 +10,8 @@ const PLATFORMS = [
   { id: 'youtube', label: 'YouTube' },
   { id: 'whoop', label: 'Whoop' },
   { id: 'discord', label: 'Discord' },
-  { id: 'linkedin', label: 'LinkedIn' },
+  // linkedin removed (replan-2026-06-10 Track C): OAuth stack retired,
+  // backend /api/beta no longer accepts it.
   { id: 'gmail', label: 'Gmail' },
   { id: 'github', label: 'GitHub' },
 ] as const;

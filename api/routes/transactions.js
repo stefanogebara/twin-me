@@ -15,7 +15,9 @@ import { parseBankStatement } from '../services/transactions/parserDispatcher.js
 import { tagTransactionsBatch } from '../services/transactions/transactionEmotionTagger.js';
 import { syncAllSignals } from '../services/transactions/platformSignalExtractor.js';
 import { normalizeMerchant } from '../services/transactions/merchantNormalizer.js';
+import { writeTransactionMemories } from '../services/transactions/rawIngestion.js';
 import { detectAndMarkRecurring, isNonSubscriptionRow } from '../services/transactions/recurrenceDetector.js';
+import { getPlaidSandboxState, excludePlaidRows } from '../services/transactions/sandboxGuard.js';
 import { STRESS_HIGH, NUDGE_TRIGGER, DEFAULT_CURRENCY } from '../config/financialThresholds.js';
 import { createLogger } from '../services/logger.js';
 
@@ -279,6 +281,15 @@ router.post('/upload', authenticateUser, uploadLimiter, uploadSingleFile('file')
       log.warn(`tagger failed (non-fatal): ${err.message}`);
     }
 
+    // Memory dual-write: until 2026-06 only aggregator ingests reached
+    // user_memories — uploaded statements never taught the twin anything.
+    // Material outflows (>= R$50) now land as observations, same as Pluggy.
+    try {
+      await writeTransactionMemories(userId, insertedIds, 'bank_statement');
+    } catch (err) {
+      log.warn(`memory dual-write failed (non-fatal): ${err.message}`);
+    }
+
     return res.json({
       success: true,
       format: parsed.format,
@@ -344,6 +355,10 @@ router.get('/', authenticateUser, async (req, res) => {
     const accountType = typeof req.query.account_type === 'string' ? req.query.account_type : null;
     const since = typeof req.query.since === 'string' ? req.query.since : null;
 
+    // Note: user_transactions (and user_bank_connections) still carry
+    // truelayer_* columns even though the TrueLayer integration was deleted
+    // (replan-2026-06-10 Track D). Kept deliberately — no migration; they are
+    // simply never written or selected anymore.
     let query = supabaseAdmin
       .from('user_transactions')
       .select(`
@@ -360,6 +375,11 @@ router.get('/', authenticateUser, async (req, res) => {
 
     if (accountType) query = query.eq('account_type', accountType);
     if (since) query = query.gte('transaction_date', since);
+
+    // replan-2026-06-10 Track D P0: never render Plaid sandbox rows as real
+    // money in production runtimes.
+    const sandbox = await getPlaidSandboxState(userId);
+    if (sandbox.excludePlaidTransactions) query = excludePlaidRows(query);
 
     const { data, error } = await query;
     if (error) throw error;
@@ -390,7 +410,7 @@ router.get('/summary', authenticateUser, async (req, res) => {
     const windowDays = parseWindowDays(req.query, 90);
     const since = new Date(Date.now() - windowDays * 24 * 60 * 60 * 1000).toISOString();
 
-    const { data, error } = await supabaseAdmin
+    let summaryQuery = supabaseAdmin
       .from('user_transactions')
       .select(`
         amount,
@@ -402,6 +422,12 @@ router.get('/summary', authenticateUser, async (req, res) => {
       `)
       .eq('user_id', userId)
       .gte('transaction_date', since);
+
+    // replan-2026-06-10 Track D P0: sandbox rows must not inflate the totals.
+    const sandbox = await getPlaidSandboxState(userId);
+    if (sandbox.excludePlaidTransactions) summaryQuery = excludePlaidRows(summaryQuery);
+
+    const { data, error } = await summaryQuery;
 
     if (error) throw error;
 
@@ -417,7 +443,7 @@ router.get('/summary', authenticateUser, async (req, res) => {
     const byCurrency = new Map();
     function bucket(cur) {
       const k = (cur || DEFAULT_CURRENCY).toUpperCase();
-      if (!byCurrency.has(k)) byCurrency.set(k, { currency: k, outflow: 0, inflow: 0, count: 0, stress_shop_total: 0 });
+      if (!byCurrency.has(k)) byCurrency.set(k, { currency: k, outflow: 0, inflow: 0, count: 0, stress_shop_total: 0, high_stress_outflow: 0 });
       return byCurrency.get(k);
     }
 
@@ -449,19 +475,28 @@ router.get('/summary', authenticateUser, async (req, res) => {
       }
       if (isHighStressDebit) {
         highStressOutflow += Math.abs(t.amount);
+        b.high_stress_outflow += Math.abs(t.amount);
       }
     }
 
-    const emotionalSpendRatio = totalOutflow > 0 ? highStressOutflow / totalOutflow : null;
-    const currencies = [...byCurrency.values()]
-      .map((b) => ({
-        currency: b.currency,
-        outflow: Math.round(b.outflow * 100) / 100,
-        inflow: Math.round(b.inflow * 100) / 100,
-        count: b.count,
-        stress_shop_total: Math.round(b.stress_shop_total * 100) / 100,
-      }))
-      .sort((a, b) => b.outflow - a.outflow);
+    // audit-2026-06-10 (money-page): never divide sums of mixed currencies —
+    // there is no FX conversion anywhere in the pipeline, and BRL vs EUR
+    // magnitudes (~6x) skew the ratio. Compute the ratio inside the dominant
+    // (highest-outflow) currency bucket; for single-currency users this is
+    // byte-identical to the old highStressOutflow / totalOutflow math.
+    const sortedBuckets = [...byCurrency.values()].sort((a, b) => b.outflow - a.outflow);
+    const dominantBucket = sortedBuckets[0];
+    const emotionalSpendRatio = dominantBucket && dominantBucket.outflow > 0
+      ? dominantBucket.high_stress_outflow / dominantBucket.outflow
+      : null;
+    const currencies = sortedBuckets.map((b) => ({
+      currency: b.currency,
+      outflow: Math.round(b.outflow * 100) / 100,
+      inflow: Math.round(b.inflow * 100) / 100,
+      count: b.count,
+      stress_shop_total: Math.round(b.stress_shop_total * 100) / 100,
+      high_stress_outflow: Math.round(b.high_stress_outflow * 100) / 100,
+    }));
 
     return res.json({
       success: true,
@@ -566,12 +601,18 @@ router.get('/by-category', authenticateUser, async (req, res) => {
     const windowDays = parseWindowDays(req.query, 90);
     const since = new Date(Date.now() - windowDays * 24 * 60 * 60 * 1000).toISOString();
 
-    const { data, error } = await supabaseAdmin
+    let categoryQuery = supabaseAdmin
       .from('user_transactions')
       .select('amount, category')
       .eq('user_id', userId)
       .lt('amount', 0) // outflows only
       .gte('transaction_date', since);
+
+    // replan-2026-06-10 Track D P0: keep sandbox rows out of the breakdown.
+    const sandbox = await getPlaidSandboxState(userId);
+    if (sandbox.excludePlaidTransactions) categoryQuery = excludePlaidRows(categoryQuery);
+
+    const { data, error } = await categoryQuery;
 
     if (error) throw error;
 
@@ -1026,7 +1067,7 @@ router.get('/timeline-analysis', authenticateUser, async (req, res) => {
     // y-axis topped out at the highest 30-day-recent spend (often R$ 100)
     // while the totals card disagreed. Computing inline keeps one window
     // applied to every panel on /money.
-    const { data: rows, error } = await supabaseAdmin
+    let timelineQuery = supabaseAdmin
       .from('user_transactions')
       .select(`
         transaction_date,
@@ -1038,6 +1079,12 @@ router.get('/timeline-analysis', authenticateUser, async (req, res) => {
       .eq('user_id', userId)
       .lt('amount', 0)
       .gte('transaction_date', since);
+
+    // replan-2026-06-10 Track D P0: sandbox rows must not draw the chart.
+    const sandbox = await getPlaidSandboxState(userId);
+    if (sandbox.excludePlaidTransactions) timelineQuery = excludePlaidRows(timelineQuery);
+
+    const { data: rows, error } = await timelineQuery;
 
     if (error) throw error;
 
@@ -1095,7 +1142,7 @@ router.get('/recurring-subscriptions', authenticateUser, async (req, res) => {
     const limit = Math.min(Math.max(parseInt(String(req.query.limit ?? '15'), 10) || 15, 1), 50);
     const minMonthly = Math.max(Number(req.query.minMonthly) || 0, 0);
 
-    const { data: rows, error } = await supabaseAdmin
+    let subsQuery = supabaseAdmin
       .from('user_transactions')
       .select(`
         id, amount, currency, merchant_normalized, merchant_raw, category,
@@ -1110,6 +1157,13 @@ router.get('/recurring-subscriptions', authenticateUser, async (req, res) => {
       .neq('account_type', 'investment')   // brokerage trades own a different surface
       .order('transaction_date', { ascending: false })
       .limit(2000);
+
+    // replan-2026-06-10 Track D P0: sandbox "subscriptions" (Tectra Inc et al)
+    // must not show up as real recurring charges.
+    const sandbox = await getPlaidSandboxState(userId);
+    if (sandbox.excludePlaidTransactions) subsQuery = excludePlaidRows(subsQuery);
+
+    const { data: rows, error } = await subsQuery;
 
     if (error) {
       log.error('recurring-subscriptions query failed', { error: error.message });

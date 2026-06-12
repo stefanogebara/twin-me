@@ -1,22 +1,20 @@
 /**
  * Diagnostic Endpoint: Platform Fetcher Direct Test
  * ===================================================
- * Calls fetchLinkedInObservations / fetchDiscordObservations / fetchTwitchObservations
- * directly for a specific user and returns the full result + token status + any errors.
+ * Calls fetchDiscordObservations directly for a specific user and returns
+ * the full result + token status + any errors.
  *
  * Used to diagnose why structured data isn't being written to user_platform_data.
  *
  * Usage:
- *   GET /api/debug/platform-fetch?userId=<uuid>&platform=linkedin
+ *   GET /api/debug/platform-fetch?userId=<uuid>&platform=discord
  *
  * Security: Protected by CRON_SECRET header (same as cron endpoints)
  */
 
 import express from 'express';
 import { verifyCronSecret } from '../middleware/verifyCronSecret.js';
-import { fetchLinkedInObservations } from '../services/observationFetchers/linkedin.js';
 import { fetchDiscordObservations } from '../services/observationFetchers/discord.js';
-import { fetchTwitchObservations } from '../services/observationFetchers/twitch.js';
 import { getValidAccessToken } from '../services/tokenRefreshService.js';
 import { supabaseAdmin } from '../services/database.js';
 import { createLogger } from '../services/logger.js';
@@ -25,9 +23,7 @@ const log = createLogger('DebugPlatformFetch');
 const router = express.Router();
 
 const FETCHERS = {
-  linkedin: fetchLinkedInObservations,
   discord: fetchDiscordObservations,
-  twitch: fetchTwitchObservations,
 };
 
 router.all('/', async (req, res) => {

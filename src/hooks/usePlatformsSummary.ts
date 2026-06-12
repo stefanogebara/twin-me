@@ -8,17 +8,50 @@
  * settings sidebar because each surface computed the count locally from a
  * different data source. This hook calls the unified /api/platforms/summary
  * endpoint which derives the counts from the platform_connections table.
+ *
+ * Batch-3 state unification (audit-2026-06-10): richer breakdown entries
+ * (connectedAt, lastSyncAt, source), pure selectors, and
+ * invalidatePlatformState() so connect/disconnect flows can bust the cache
+ * immediately instead of waiting out staleTime.
  */
 
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { authFetch } from '@/services/api/apiBase';
+import { isRetiredPlatform } from '@/lib/retiredPlatforms';
+
+export type PlatformState = 'active' | 'expired' | 'stale';
+
+export interface PlatformBreakdownEntry {
+  platform: string;
+  state: PlatformState;
+  /** ISO timestamp the user connected the platform (null for legacy rows). */
+  connectedAt?: string | null;
+  /** ISO timestamp of the last sync attempt (null if never synced). */
+  lastSyncAt?: string | null;
+  /**
+   * Which connection pipeline owns this platform. 'mirror' = synthetic entry
+   * for the always-on sources (browser extension 'web' / 'desktop') derived
+   * from recent data presence, not a connection row (replan-2026-06-10).
+   */
+  source?: 'oauth' | 'nango' | 'mirror';
+  /** Mirror entries only: rows captured in the last 7 days (extension yield). */
+  observations7d?: number;
+  /**
+   * Retired platform (replan-2026-06-10 Track C). The connection row still
+   * exists and surfaces here so Settings can show a "No longer supported" row
+   * with Disconnect, but the entry is excluded from total/active/expired/stale
+   * counts server-side — it must not inflate the header or Soul Score.
+   */
+  retired?: boolean;
+}
 
 export interface PlatformsSummary {
   total: number;
   active: number;
   expired: number;
   stale: number;
-  breakdown: Array<{ platform: string; state: 'active' | 'expired' | 'stale' }>;
+  breakdown: PlatformBreakdownEntry[];
 }
 
 const EMPTY_SUMMARY: PlatformsSummary = {
@@ -48,6 +81,129 @@ export function usePlatformsSummary(options?: { enabled?: boolean }) {
     queryKey: ['platforms', 'summary'],
     queryFn: fetchPlatformsSummary,
     staleTime: 60 * 1000, // 1 minute — platform connect/disconnect invalidates this
+    refetchInterval: 60 * 1000, // background freshness for long-lived pages (chat, dashboard)
     enabled: options?.enabled !== false,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Pure selectors — accept the (possibly undefined) summary so callers can use
+// them directly on the useQuery data without guards.
+// ---------------------------------------------------------------------------
+
+/** Map of platform id -> breakdown entry for O(1) per-platform lookups. */
+export function byPlatform(
+  summary: PlatformsSummary | undefined
+): Record<string, PlatformBreakdownEntry> {
+  if (!summary) return {};
+  return summary.breakdown.reduce<Record<string, PlatformBreakdownEntry>>((acc, entry) => {
+    acc[entry.platform] = entry;
+    return acc;
+  }, {});
+}
+
+/** True if the platform has a connection row in ANY state (incl. expired/stale). */
+export function isConnected(summary: PlatformsSummary | undefined, platform: string): boolean {
+  return !!summary?.breakdown.some((entry) => entry.platform === platform);
+}
+
+/**
+ * True only for genuine auth failures the USER must fix by reconnecting.
+ * Stale (no recent sync) is NOT a reconnect signal.
+ */
+export function needsReconnect(summary: PlatformsSummary | undefined, platform: string): boolean {
+  return !!summary?.breakdown.some(
+    (entry) => entry.platform === platform && entry.state === 'expired'
+  );
+}
+
+/**
+ * All connected platform ids (any state), for "connected set" consumers.
+ *
+ * Excludes RETIRED_PLATFORMS (replan-2026-06-10 Track C): a user with a
+ * pre-cut reddit/linkedin/twitch row stays in platform_connections (their
+ * data is kept), and the summary endpoint still returns it, but a retired
+ * platform must not inflate "X platforms connected" counts, the Soul Score,
+ * or seed an "already connected" set for a tile that no longer exists. The
+ * retired connection still surfaces in Settings' "No longer supported"
+ * section, which reads the raw breakdown directly — not this selector.
+ */
+export function connectedProviders(summary: PlatformsSummary | undefined): string[] {
+  return summary?.breakdown
+    .map((entry) => entry.platform)
+    .filter((p) => !isRetiredPlatform(p)) ?? [];
+}
+
+/**
+ * Invalidate every platform-state query (['platforms'] prefix). Call after
+ * any connect/disconnect mutation so counts update immediately — the audit
+ * 2026-06-10 found nothing invalidated ['platforms','summary'] after OAuth
+ * returns, leaving counts wrong for up to 60s+.
+ */
+export function invalidatePlatformState(queryClient: QueryClient): Promise<void> {
+  return queryClient.invalidateQueries({ queryKey: ['platforms'] });
+}
+
+/**
+ * Immutably remove one platform from a summary, decrementing total and the
+ * per-state count of the removed entry. Returns the input unchanged when the
+ * platform has no breakdown entry. Used for the optimistic disconnect below.
+ *
+ * Retired entries (replan-2026-06-10 Track C) are dropped from the breakdown
+ * but leave the counts untouched — they never contributed to total/active/
+ * expired/stale, so decrementing on their disconnect would under-count the
+ * live platforms.
+ */
+export function removePlatformFromSummary(
+  summary: PlatformsSummary,
+  platform: string
+): PlatformsSummary {
+  const entry = summary.breakdown.find((e) => e.platform === platform);
+  if (!entry) return summary;
+  const counted = !entry.retired;
+  return {
+    ...summary,
+    total: counted ? Math.max(0, summary.total - 1) : summary.total,
+    active: counted && entry.state === 'active' ? Math.max(0, summary.active - 1) : summary.active,
+    expired: counted && entry.state === 'expired' ? Math.max(0, summary.expired - 1) : summary.expired,
+    stale: counted && entry.state === 'stale' ? Math.max(0, summary.stale - 1) : summary.stale,
+    breakdown: summary.breakdown.filter((e) => e.platform !== platform),
+  };
+}
+
+/**
+ * Canonical disconnect mutation (batch-3 state unification). Optimistically
+ * removes the platform from the ['platforms','summary'] cache so the row
+ * disappears instantly (spec: disconnect must keep the instant-removal feel),
+ * reverts + toasts on failure, and invalidates the ['platforms'] prefix on
+ * settle so every surface reconverges on server truth.
+ */
+export function useDisconnectPlatform(userId: string | undefined) {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, string, { previous?: PlatformsSummary }>({
+    mutationFn: async (provider: string) => {
+      if (!userId) throw new Error('Not signed in');
+      const res = await authFetch(`/connectors/${provider}/${userId}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error(`Disconnect failed (${res.status})`);
+    },
+    onMutate: async (provider) => {
+      await queryClient.cancelQueries({ queryKey: ['platforms', 'summary'] });
+      const previous = queryClient.getQueryData<PlatformsSummary>(['platforms', 'summary']);
+      if (previous) {
+        queryClient.setQueryData(
+          ['platforms', 'summary'],
+          removePlatformFromSummary(previous, provider)
+        );
+      }
+      return { previous };
+    },
+    onError: (_err, provider, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(['platforms', 'summary'], context.previous);
+      }
+      toast.error(`Could not disconnect ${provider}. Please try again.`);
+    },
+    onSettled: () => invalidatePlatformState(queryClient),
   });
 }
