@@ -277,6 +277,85 @@ export async function sendWhatsAppInsight(recipientPhone, insight) {
 }
 
 /**
+ * Send a pre-approved template message (statement nag, future re-engagement).
+ *
+ * Templates are the ONLY way to reach a user outside Meta's 24h customer
+ * service window — a plain text send is silently dropped there, which is why
+ * the monthly statement nag needs this. Template must already exist on the
+ * WABA (scripts/register-statement-nag-template.mjs registers it; Meta reviews
+ * it before it becomes sendable).
+ *
+ * Kapso-only: the production number lives on Kapso, and a half-configured Meta
+ * fallback would mask "template not registered" errors. Returns
+ * { success:false } on any failure so callers can fall back to plain text
+ * (which still works inside the 24h window).
+ *
+ * @param {string} recipientPhone
+ * @param {string} templateName   e.g. 'statement_nag'
+ * @param {string} [languageCode] BCP-47-ish template language, default 'en'
+ */
+export async function sendWhatsAppTemplate(recipientPhone, templateName, languageCode = 'en') {
+  if (process.env.TWINME_DISABLE_OUTBOUND_SEND === 'true') {
+    log.info('Outbound WhatsApp template send suppressed (TWINME_DISABLE_OUTBOUND_SEND=true)', {
+      recipientPhone: recipientPhone?.slice(-4),
+      templateName,
+    });
+    return { success: true, suppressed: true };
+  }
+  if (!USE_KAPSO) {
+    return { success: false, error: 'whatsapp_not_configured' };
+  }
+
+  const client = await getKapsoClient();
+  const phoneNumberId = process.env.KAPSO_PHONE_NUMBER_ID || process.env.TWINME_WHATSAPP_PHONE_NUMBER_ID;
+  if (!client || !phoneNumberId) {
+    return { success: false, error: 'kapso_client_unavailable' };
+  }
+
+  try {
+    const result = await client.messages.sendTemplate({
+      phoneNumberId,
+      to: recipientPhone,
+      template: {
+        name: templateName,
+        language: { code: languageCode },
+      },
+    });
+    logOutbound({
+      recipient: recipientPhone,
+      recipient_input: recipientPhone,
+      text_preview: `[template:${templateName}]`,
+      text_len: 0,
+      provider: 'kapso',
+      success: true,
+      message_id: result?.messages?.[0]?.id || null,
+      wa_id: result?.contacts?.[0]?.wa_id || null,
+      raw_response: result || null,
+    });
+    return { success: true, messageId: result?.messages?.[0]?.id, provider: 'kapso' };
+  } catch (err) {
+    log.warn('Kapso template send failed', {
+      templateName,
+      error: err.message,
+      status: err.response?.status,
+      body: err.response?.data,
+    });
+    logOutbound({
+      recipient: recipientPhone,
+      recipient_input: recipientPhone,
+      text_preview: `[template:${templateName}]`,
+      text_len: 0,
+      provider: 'kapso',
+      success: false,
+      error_message: err.message,
+      http_status: err.response?.status || null,
+      raw_error: err.response?.data || null,
+    });
+    return { success: false, error: err.message };
+  }
+}
+
+/**
  * Download inbound WhatsApp media (statement attachments, receipts) by media id.
  *
  * Kapso proxies Meta's media endpoints: GET metadata resolves the short-lived

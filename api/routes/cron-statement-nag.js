@@ -11,17 +11,18 @@
  * LLM calls. WhatsApp ToS: the wording asks for "your statement", never for
  * account numbers or identifiers.
  *
- * Delivery caveat: a plain text message only reaches users inside Meta's 24h
- * customer-service window. Outside it Meta silently drops the send (logged in
- * whatsapp_outbound_log). A pre-approved utility template lifts that limit —
- * tracked as a follow-up; for early beta users who message their twin
- * regularly the window is usually open.
+ * Delivery: template-first. A plain text message only reaches users inside
+ * Meta's 24h customer-service window — outside it Meta silently drops the
+ * send. The pre-approved `statement_nag` utility template
+ * (scripts/register-statement-nag-template.mjs) lifts that limit; if the
+ * template send fails (not yet registered/approved), we fall back to plain
+ * text, which still lands for users who messaged their twin in the last 24h.
  */
 
 import express from 'express';
 import { supabaseAdmin } from '../services/database.js';
 import { verifyCronSecret } from '../middleware/verifyCronSecret.js';
-import { sendWhatsAppMessage } from '../services/whatsappService.js';
+import { sendWhatsAppMessage, sendWhatsAppTemplate } from '../services/whatsappService.js';
 import { createLogger } from '../services/logger.js';
 
 const log = createLogger('CronStatementNag');
@@ -37,6 +38,12 @@ const NAG_TEXT =
   'New month! Your bank statement from last month just closed. ' +
   'Export it from your bank app (OFX or CSV — in Nubank: Conta, Exportar extrato) ' +
   'and send the file here. I\'ll read it and keep your money picture sharp.';
+
+// Pre-approved WABA template mirroring NAG_TEXT (registered by
+// scripts/register-statement-nag-template.mjs, reviewed by Meta). Template
+// sends work OUTSIDE the 24h service window; plain text does not.
+const NAG_TEMPLATE = 'statement_nag';
+const NAG_TEMPLATE_LANG = 'en';
 
 router.all('/', async (req, res) => {
   const startTime = Date.now();
@@ -73,9 +80,18 @@ router.all('/', async (req, res) => {
     const staleChannels = channels.filter((c) => !freshUsers.has(c.user_id));
 
     let nagged = 0;
+    let viaTemplate = 0;
     const results = [];
     for (const ch of staleChannels.slice(0, MAX_NAGS_PER_RUN)) {
-      const sent = await sendWhatsAppMessage(ch.channel_id, NAG_TEXT);
+      // Template first — the only send that delivers outside the 24h window.
+      let sent = await sendWhatsAppTemplate(ch.channel_id, NAG_TEMPLATE, NAG_TEMPLATE_LANG);
+      if (sent?.success) {
+        viaTemplate++;
+      } else {
+        // Template missing/unapproved: plain text still lands inside the
+        // 24h window, so the nag degrades instead of vanishing.
+        sent = await sendWhatsAppMessage(ch.channel_id, NAG_TEXT);
+      }
       results.push({ user: ch.user_id, success: sent?.success === true });
       if (sent?.success) nagged++;
     }
