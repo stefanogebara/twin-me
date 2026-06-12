@@ -5,6 +5,7 @@
  * Applies smart filtering before generating a reflection — only stress-worthy
  * purchases get a message (late night, weekend, big spend, high calendar load).
  */
+import crypto from 'crypto';
 import { Router } from 'express';
 import { authenticateUser } from '../middleware/auth.js';
 import { buildPurchaseContext } from '../services/purchaseContextBuilder.js';
@@ -14,6 +15,9 @@ import { supabaseAdmin } from '../services/database.js';
 // Cooldown state shared with the WhatsApp capture path (one reflection budget
 // across both sources — replan-2026-06-12). See api/services/purchaseCooldown.js.
 import { loadPurchaseCooldown, savePurchaseCooldown, COOLDOWN_MS, MAX_DAILY } from '../services/purchaseCooldown.js';
+import { normalizeMerchant } from '../services/transactions/merchantNormalizer.js';
+import { tagTransactionsBatch } from '../services/transactions/transactionEmotionTagger.js';
+import { findLikelyDuplicate } from '../services/transactions/whatsappTransactionCapture.js';
 import { createLogger } from '../services/logger.js';
 
 const router = Router();
@@ -73,6 +77,62 @@ function isStressWorthy(amount, timezone, calendarEventCount) {
   return { worthy: false, reason: 'routine_small' };
 }
 
+/**
+ * Persist a notification-detected purchase into user_transactions
+ * (source='notification'). Best-effort: parse failures and DB errors are
+ * logged but never block the reflection flow. Dedup is two-layer — the
+ * cross-source ±2h heuristic (same purchase forwarded on WhatsApp) plus the
+ * per-day content-hash external_id (same app re-notifying).
+ */
+async function persistNotificationPurchase(userId, { appName, notificationText, amount }) {
+  try {
+    if (amount === null || amount < 0.01 || amount > 1_000_000) return; // no usable amount — nothing to store
+
+    const dup = await findLikelyDuplicate(userId, {
+      amount: -amount,
+      dateIso: new Date().toISOString(),
+      excludeSource: 'notification',
+    });
+    if (dup) {
+      log.info('notification purchase matches existing transaction — skipping insert', { userId, dupId: dup.id, dupSource: dup.source });
+      return;
+    }
+
+    const { brand, category } = normalizeMerchant(appName || notificationText);
+    const day = new Date().toISOString().slice(0, 10);
+    const external_id = `notif:${crypto.createHash('sha256')
+      .update(`${userId}|${amount.toFixed(2)}|${(appName || '').toLowerCase()}|${day}`)
+      .digest('hex').slice(0, 40)}`;
+
+    const { data, error } = await supabaseAdmin
+      .from('user_transactions')
+      .upsert([{
+        user_id: userId,
+        external_id,
+        amount: -amount,
+        currency: 'BRL',
+        merchant_raw: `${appName || 'app'}: ${String(notificationText).slice(0, 200)}`,
+        merchant_normalized: brand,
+        category,
+        transaction_date: new Date().toISOString(),
+        source: 'notification',
+        account_type: 'credit_card',
+      }], { onConflict: 'user_id,external_id', ignoreDuplicates: false })
+      .select('id');
+
+    if (error) {
+      log.warn('notification purchase insert failed (non-fatal)', { userId, error: error.message });
+      return;
+    }
+    if (data?.[0]?.id) {
+      await tagTransactionsBatch(userId, [data[0].id]).catch((err) =>
+        log.warn(`emotion tagger failed (non-fatal): ${err.message}`));
+    }
+  } catch (err) {
+    log.warn('persistNotificationPurchase crashed (non-fatal)', { userId, error: err.message });
+  }
+}
+
 router.post('/trigger', authenticateUser, async (req, res) => {
   const userId = req.user?.id;
   if (!userId) return res.status(401).json({ error: 'Unauthorized' });
@@ -83,6 +143,11 @@ router.post('/trigger', authenticateUser, async (req, res) => {
   const amount = parseAmount(rawAmount);
 
   try {
+    // Persist the purchase as a transaction BEFORE any messaging gates
+    // (replan-2026-06-12): storage is unconditional, only the reflection is
+    // cooldown/cap-gated. Awaited — Vercel kills post-response work.
+    await persistNotificationPurchase(userId, { appName, notificationText, amount });
+
     // Load persistent state first (cooldown + daily cap)
     const state = await loadPurchaseCooldown(userId);
 
