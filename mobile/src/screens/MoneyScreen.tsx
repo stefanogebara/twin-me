@@ -5,19 +5,23 @@
  *   - Summary stats (outflow, stress shop count, ratio)
  *   - Risk forecast card (Renan's "before it happens")
  *   - Recent stress nudges feed
- *   - Bank connections list
- *   - In-app Pluggy Connect widget (WebView modal — no browser jump needed)
+ *   - Data sources card (WhatsApp capture, notification listener, uploads)
+ *
+ * Bank aggregators (Pluggy/Plaid/TrueLayer) were removed in replan-2026-06-12
+ * — no prod budget, sandbox-only data. Spending now flows in via WhatsApp
+ * capture (forwarded bank notifications / receipts), the Android notification
+ * listener, and CSV/OFX statement uploads on the web app.
  */
 
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, RefreshControl, ActivityIndicator,
-  TouchableOpacity, Modal, Alert,
+  TouchableOpacity, Linking, Alert,
 } from 'react-native';
-import { WebView, WebViewMessageEvent } from 'react-native-webview';
 import { useFocusEffect } from '@react-navigation/native';
 import { COLORS } from '../constants';
 import { authFetch } from '../services/api';
+import { NotificationListenerModule } from '../native/NotificationListenerModule';
 import type { User } from '../types';
 
 // ── Types ─────────────────────────────────────────────────────────────────
@@ -31,14 +35,6 @@ interface TransactionsSummary {
   stress_shop_total: number;
   emotional_spend_ratio: number | null;
   currencies?: Array<{ currency: string; outflow: number; inflow: number; count: number; stress_shop_total: number }>;
-}
-
-interface BankConnection {
-  id: string;
-  provider?: 'pluggy' | 'truelayer';
-  connector_name: string;
-  status: string;
-  last_synced_at: string | null;
 }
 
 interface RiskForecast {
@@ -70,6 +66,11 @@ interface NudgeStats {
   recent?: NudgeRecent[];
 }
 
+interface LastTransaction {
+  transaction_date: string | null;
+  source: string | null;
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────
 
 function formatCurrency(value: number, currency: string = 'BRL'): string {
@@ -91,43 +92,58 @@ function timeAgo(isoString: string): string {
   return `${Math.floor(h / 24)}d atrás`;
 }
 
+const SOURCE_LABEL: Record<string, string> = {
+  csv_upload: 'extrato CSV',
+  ofx_upload: 'extrato OFX',
+  whatsapp: 'WhatsApp',
+  notification: 'notificação',
+};
+
 // ── Screen ────────────────────────────────────────────────────────────────
 
 export function MoneyScreen({ user: _user }: { user: User }) {
   const [summary, setSummary] = useState<TransactionsSummary | null>(null);
-  const [connections, setConnections] = useState<BankConnection[]>([]);
   const [forecast, setForecast] = useState<RiskForecast | null>(null);
   const [nudgeStats, setNudgeStats] = useState<NudgeStats | null>(null);
+  const [whatsappLinked, setWhatsappLinked] = useState<boolean | null>(null);
+  const [lastTx, setLastTx] = useState<LastTransaction | null>(null);
+  const [hasNotifPerm, setHasNotifPerm] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [widgetVisible, setWidgetVisible] = useState(false);
-  const [widgetUrl, setWidgetUrl] = useState<string | null>(null);
-  const webViewRef = useRef<WebView>(null);
 
   const loadAll = useCallback(async () => {
     try {
-      const [sumRes, connRes, forecastRes, nudgeRes] = await Promise.all([
+      const [sumRes, forecastRes, nudgeRes, waRes, txRes] = await Promise.all([
         authFetch('/transactions/summary').then(r => r.ok ? r.json() : null),
-        authFetch('/transactions/pluggy/connections').then(r => r.ok ? r.json() : null),
         authFetch('/transactions/risk-forecast').then(r => r.ok ? r.json() : null),
         authFetch('/transactions/nudge-stats').then(r => r.ok ? r.json() : null),
+        authFetch('/whatsapp-link/status').then(r => r.ok ? r.json() : null),
+        authFetch('/transactions?limit=1').then(r => r.ok ? r.json() : null),
       ]);
 
       if (sumRes?.success) {
         const { success: _, ...rest } = sumRes;
         setSummary(rest as TransactionsSummary);
       }
-      setConnections(connRes?.connections ?? []);
       setForecast(forecastRes?.forecast ?? null);
       if (nudgeRes?.success) {
         const { success: _, ...rest } = nudgeRes;
         setNudgeStats(rest as NudgeStats);
       }
+      setWhatsappLinked(waRes?.success ? !!waRes.linked : null);
+      const newest = txRes?.transactions?.[0];
+      setLastTx(newest ? { transaction_date: newest.transaction_date ?? null, source: newest.source ?? null } : null);
     } catch (err) {
       // Silent fail — UI degrades gracefully
     } finally {
       setLoading(false);
       setRefreshing(false);
+    }
+    // Native permission check is sync and free; gracefully false on iOS/Expo Go.
+    try {
+      setHasNotifPerm(NotificationListenerModule.hasNotificationPermission());
+    } catch {
+      setHasNotifPerm(false);
     }
   }, []);
 
@@ -139,42 +155,23 @@ export function MoneyScreen({ user: _user }: { user: User }) {
     loadAll();
   }, [loadAll]);
 
-  const onConnect = async (provider: 'br' | 'eu') => {
-    if (provider === 'eu') {
-      // TrueLayer uses a standard OAuth redirect — keep the external browser path
-      try {
-        const { Linking } = await import('react-native');
-        await Linking.openURL('https://twinme.me/money?autoconnect=truelayer');
-      } catch {
-        Alert.alert('Erro', 'Não foi possível abrir o navegador');
-      }
-      return;
-    }
-
-    // Pluggy: fetch a short-lived connect token and open the hosted widget in-app
+  const onLinkWhatsApp = async () => {
+    // Linking flow lives on the web app (Settings -> WhatsApp).
     try {
-      const res = await authFetch('/transactions/pluggy/connect-token', { method: 'POST' });
-      if (!res.ok) throw new Error('connect-token request failed');
-      const { connectToken, environment } = await res.json() as { connectToken: string; environment: string };
-      const includeSandbox = environment === 'sandbox' ? '&includeSandbox=true' : '';
-      setWidgetUrl(`https://connect.pluggy.ai/?connect_token=${connectToken}${includeSandbox}`);
-      setWidgetVisible(true);
-    } catch (err) {
-      Alert.alert('Erro', 'Não foi possível iniciar a conexão bancária');
+      await Linking.openURL('https://twinme.me/settings');
+    } catch {
+      Alert.alert('Erro', 'Não foi possível abrir o navegador');
     }
   };
 
-  const onWidgetMessage = (e: WebViewMessageEvent) => {
+  const onEnableNotifListener = () => {
     try {
-      const msg = JSON.parse(e.nativeEvent.data) as { event?: string; payload?: { itemId?: string } };
-      if (msg.event === 'pluggyConnect/success' || msg.event === 'pluggyConnect/updateSuccess') {
-        setWidgetVisible(false);
-        loadAll(); // refresh connections list
-      } else if (msg.event === 'pluggyConnect/close' || msg.event === 'pluggyConnect/error') {
-        setWidgetVisible(false);
-      }
+      NotificationListenerModule.requestNotificationPermission();
+      setTimeout(() => {
+        try { setHasNotifPerm(NotificationListenerModule.hasNotificationPermission()); } catch { /* no-op */ }
+      }, 1000);
     } catch {
-      // non-JSON postMessage from the widget page — ignore
+      Alert.alert('Indisponível', 'Acesso a notificações requer o app Android instalado.');
     }
   };
 
@@ -189,7 +186,6 @@ export function MoneyScreen({ user: _user }: { user: User }) {
   }
 
   return (
-    <>
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.content}
@@ -292,67 +288,68 @@ export function MoneyScreen({ user: _user }: { user: User }) {
         </View>
       )}
 
-      {/* Bank connections */}
+      {/* Data sources */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Bancos conectados</Text>
-        {connections.length === 0 ? (
-          <Text style={styles.emptyText}>Nenhum banco conectado ainda.</Text>
-        ) : (
-          connections.map((c) => (
-            <View key={c.id} style={styles.connectionItem}>
-              <View style={styles.connectionRow}>
-                <Text style={styles.connectionName}>{c.connector_name}</Text>
-                <Text style={[styles.connectionBadge, c.provider === 'truelayer' ? styles.badgeEU : styles.badgeBR]}>
-                  {c.provider === 'truelayer' ? 'EU/UK' : 'BR'}
-                </Text>
-              </View>
-              <Text style={styles.connectionMeta}>
-                {c.status === 'UPDATED' ? 'sincronizado' : c.status.toLowerCase()}
-                {c.last_synced_at ? ` · ${timeAgo(c.last_synced_at)}` : ''}
-              </Text>
-            </View>
-          ))
-        )}
-      </View>
+        <Text style={styles.sectionTitle}>Fontes de dados</Text>
 
-      {/* Connect buttons */}
-      <View style={styles.connectActions}>
-        <TouchableOpacity style={styles.connectBtn} onPress={() => onConnect('br')} activeOpacity={0.85}>
-          <Text style={styles.connectBtnText}>Conectar banco BR</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.connectBtn, styles.connectBtnSecondary]} onPress={() => onConnect('eu')} activeOpacity={0.85}>
-          <Text style={[styles.connectBtnText, styles.connectBtnTextSecondary]}>Conectar banco EU/UK</Text>
-        </TouchableOpacity>
+        {/* WhatsApp capture */}
+        <View style={styles.sourceItem}>
+          <View style={styles.sourceRow}>
+            <Text style={styles.sourceName}>WhatsApp</Text>
+            <Text style={[styles.sourceBadge, whatsappLinked ? styles.badgeOn : styles.badgeOff]}>
+              {whatsappLinked === null ? '—' : whatsappLinked ? 'conectado' : 'desconectado'}
+            </Text>
+          </View>
+          <Text style={styles.sourceMeta}>
+            Encaminhe notificações do banco, comprovantes Pix ou diga "gastei 80 no iFood".
+          </Text>
+          {whatsappLinked === false && (
+            <TouchableOpacity style={styles.sourceBtn} onPress={onLinkWhatsApp} activeOpacity={0.85}>
+              <Text style={styles.sourceBtnText}>Conectar WhatsApp</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* Notification listener */}
+        <View style={styles.sourceItem}>
+          <View style={styles.sourceRow}>
+            <Text style={styles.sourceName}>Notificações de compra</Text>
+            <Text style={[styles.sourceBadge, hasNotifPerm ? styles.badgeOn : styles.badgeOff]}>
+              {hasNotifPerm ? 'ativo' : 'inativo'}
+            </Text>
+          </View>
+          <Text style={styles.sourceMeta}>
+            Detecta compras em apps de delivery e e-commerce (iFood, Rappi, Amazon...).
+          </Text>
+          {!hasNotifPerm && (
+            <TouchableOpacity style={styles.sourceBtn} onPress={onEnableNotifListener} activeOpacity={0.85}>
+              <Text style={styles.sourceBtnText}>Ativar</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* Statement upload (web) */}
+        <View style={styles.sourceItem}>
+          <View style={styles.sourceRow}>
+            <Text style={styles.sourceName}>Extratos</Text>
+            {lastTx?.transaction_date ? (
+              <Text style={[styles.sourceBadge, styles.badgeOn]}>
+                último {timeAgo(lastTx.transaction_date)}
+              </Text>
+            ) : (
+              <Text style={[styles.sourceBadge, styles.badgeOff]}>nenhum</Text>
+            )}
+          </View>
+          <Text style={styles.sourceMeta}>
+            {lastTx?.source && SOURCE_LABEL[lastTx.source]
+              ? `Última entrada via ${SOURCE_LABEL[lastTx.source]}. Envie CSV/OFX em twinme.me/money.`
+              : 'Envie um extrato CSV/OFX em twinme.me/money.'}
+          </Text>
+        </View>
       </View>
 
       <View style={{ height: 40 }} />
     </ScrollView>
-
-    {/* Pluggy Connect in-app widget */}
-    <Modal
-      visible={widgetVisible}
-      animationType="slide"
-      onRequestClose={() => setWidgetVisible(false)}
-    >
-      <View style={styles.webViewContainer}>
-        <TouchableOpacity style={styles.webViewClose} onPress={() => setWidgetVisible(false)}>
-          <Text style={styles.webViewCloseText}>Fechar</Text>
-        </TouchableOpacity>
-        {widgetUrl ? (
-          <WebView
-            ref={webViewRef}
-            source={{ uri: widgetUrl }}
-            onMessage={onWidgetMessage}
-            javaScriptEnabled
-            domStorageEnabled
-            style={{ flex: 1 }}
-          />
-        ) : (
-          <ActivityIndicator color={COLORS.primary} style={{ flex: 1 }} />
-        )}
-      </View>
-    </Modal>
-    </>
   );
 }
 
@@ -445,12 +442,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     marginBottom: 8,
   },
-  emptyText: {
-    fontSize: 13,
-    fontFamily: 'Inter_400Regular',
-    color: COLORS.textMuted,
-    fontStyle: 'italic',
-  },
 
   nudgeItem: {
     backgroundColor: COLORS.card,
@@ -478,7 +469,7 @@ const styles = StyleSheet.create({
   outcomeFollowed: { backgroundColor: '#DCFCE7', color: '#166534' },
   outcomeProceeded: { backgroundColor: COLORS.border, color: COLORS.textMuted },
 
-  connectionItem: {
+  sourceItem: {
     backgroundColor: COLORS.card,
     borderRadius: 12,
     padding: 12,
@@ -486,9 +477,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
   },
-  connectionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  connectionName: { fontSize: 14, fontFamily: 'Inter_500Medium', color: COLORS.text },
-  connectionBadge: {
+  sourceRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  sourceName: { fontSize: 14, fontFamily: 'Inter_500Medium', color: COLORS.text },
+  sourceBadge: {
     fontSize: 10,
     fontFamily: 'Inter_500Medium',
     paddingHorizontal: 8,
@@ -496,41 +487,25 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     overflow: 'hidden',
   },
-  badgeBR: { backgroundColor: '#FEF3C7', color: '#92400E' },
-  badgeEU: { backgroundColor: '#DBEAFE', color: '#1E40AF' },
-  connectionMeta: {
+  badgeOn: { backgroundColor: '#DCFCE7', color: '#166534' },
+  badgeOff: { backgroundColor: COLORS.border, color: COLORS.textMuted },
+  sourceMeta: {
     marginTop: 4,
     fontSize: 11,
     fontFamily: 'Inter_400Regular',
     color: COLORS.textMuted,
+    lineHeight: 15,
   },
-
-  connectActions: { marginTop: 16, gap: 8 },
-  connectBtn: {
+  sourceBtn: {
+    marginTop: 10,
     backgroundColor: COLORS.primary,
     borderRadius: 100,
-    paddingVertical: 14,
+    paddingVertical: 10,
     alignItems: 'center',
   },
-  connectBtnSecondary: { backgroundColor: COLORS.card, borderWidth: 1, borderColor: COLORS.border },
-  connectBtnText: {
-    fontSize: 14,
+  sourceBtnText: {
+    fontSize: 13,
     fontFamily: 'Inter_500Medium',
     color: COLORS.primaryFg,
-  },
-  connectBtnTextSecondary: { color: COLORS.text },
-
-  webViewContainer: { flex: 1, backgroundColor: COLORS.background },
-  webViewClose: {
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    backgroundColor: COLORS.background,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
-  webViewCloseText: {
-    fontSize: 14,
-    fontFamily: 'Inter_500Medium',
-    color: COLORS.text,
   },
 });
