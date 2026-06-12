@@ -189,6 +189,7 @@ export function MoneyScreen({ user: _user }: { user: User }) {
   }
 
   return (
+    <>
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.content}
@@ -351,6 +352,7 @@ export function MoneyScreen({ user: _user }: { user: User }) {
         )}
       </View>
     </Modal>
+    </>
   );
 }
 
