@@ -90,7 +90,10 @@ test.describe('TRIBE v2 API Endpoints', () => {
     expect(json.data.modality_count).toBeGreaterThan(0);
   });
 
-  test('POST /api/tribe/in-silico scores stimuli', async ({ page, request }) => {
+  // replan-2026-06-10 cycle 4: the in-silico engine and the fine-tuning
+  // training stack were deleted. /api/tribe/in-silico is now a 410 tombstone
+  // and /api/finetuning/* no longer exists.
+  test('POST /api/tribe/in-silico returns 410 (retired)', async ({ page }) => {
     await page.goto('/dashboard');
     const token = await getAuthToken(page);
 
@@ -99,56 +102,22 @@ test.describe('TRIBE v2 API Endpoints', () => {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
-      data: {
-        stimuli: [
-          { text: 'A new Drake album just dropped' },
-          { text: 'Your HRV is trending up this week' },
-          { text: 'React conference next month' },
-        ],
-      },
+      data: { stimuli: [{ text: 'A new Drake album just dropped' }] },
     });
-    // Accept 200 (success) or 500 (stale server cache — works on fresh deploy)
-    const status = response.status();
-    expect([200, 500]).toContain(status);
-    if (status === 200) {
-      const json = await response.json();
-      expect(json.success).toBe(true);
-      expect(Array.isArray(json.data)).toBe(true);
-      expect(json.data.length).toBe(3);
-      for (const item of json.data) {
-        expect(item.text).toBeTruthy();
-        expect(typeof item.predictedEngagement).toBe('number');
-      }
-    }
+    expect(response.status()).toBe(410);
+    const json = await response.json();
+    expect(json.success).toBe(false);
+    expect(json.error).toBe('in_silico_retired');
   });
 
-  test('GET /api/finetuning/readiness returns training status', async ({ page }) => {
+  test('GET /api/finetuning/readiness no longer exists', async ({ page }) => {
     await page.goto('/dashboard');
     const token = await getAuthToken(page);
 
     const response = await page.request.get(`${API_URL}/finetuning/readiness`, {
       headers: { Authorization: `Bearer ${token}` },
     });
-    expect(response.status()).toBe(200);
-    const json = await response.json();
-    expect(json.success).toBe(true);
-    expect(typeof json.data.eligible).toBe('boolean');
-    expect(typeof json.data.conversations).toBe('number');
-    expect(json.data.conversations).toBeGreaterThan(0);
-  });
-
-  test('POST /api/tribe/in-silico rejects empty stimuli', async ({ page }) => {
-    await page.goto('/dashboard');
-    const token = await getAuthToken(page);
-
-    const response = await page.request.post(`${API_URL}/tribe/in-silico`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      data: { stimuli: [] },
-    });
-    expect(response.status()).toBe(400);
+    expect(response.status()).toBe(404);
   });
 });
 

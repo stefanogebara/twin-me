@@ -497,7 +497,7 @@ import emailUnsubscribeRoutes from './routes/email-unsubscribe.js';
 import personalityProfileRoutes from './routes/personality-profile.js';
 import systemHealthRoutes from './routes/system-health.js';
 import healthRoutes from './routes/health.js';
-import finetuningRoutes from './routes/finetuning.js';
+import chatFeedbackRoutes from './routes/chat-feedback.js';
 import betaPublicRoutes from './routes/beta-public.js';
 import betaSignupRoutes from './routes/beta.js';
 import { betaAdminRouter } from './routes/beta-admin.js';
@@ -819,8 +819,8 @@ if (process.env.NODE_ENV === 'development') {
   app.use('/api/debug/platform-fetch', debugPlatformFetchHandler);
 }
 
-app.use('/api/finetuning', finetuningRoutes); // Behavioral finetuning (together.ai personality oracle)
-app.use('/api/chat', finetuningRoutes); // Chat feedback endpoint (POST /api/chat/feedback) — shared router
+// /api/finetuning routes removed — DPO/fine-tuning training stack deleted (replan-2026-06-10 cycle 4)
+app.use('/api/chat', chatFeedbackRoutes); // Chat feedback endpoint (POST /api/chat/feedback)
 app.use('/api/health', healthRoutes); // Health check (non-blocking with timeout)
 if (process.env.NODE_ENV === 'development') {
   const { default: testEvidencePipelineRoutes } = await import('./routes/test-evidence-pipeline.js');

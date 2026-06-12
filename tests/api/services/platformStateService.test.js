@@ -3,6 +3,8 @@ import {
   classifyConnection,
   classifyNangoConnection,
   buildMirrorEntries,
+  summarizeBreakdown,
+  RETIRED_PLATFORMS,
   STALE_DAYS,
 } from '../../../api/services/platformStateService.js';
 
@@ -144,6 +146,57 @@ describe('buildMirrorEntries', () => {
     expect(entries).toHaveLength(2);
     for (const entry of entries) {
       expect(entry.state).toBe('active');
+    }
+  });
+});
+
+describe('summarizeBreakdown', () => {
+  // replan-2026-06-10 Track C: retired platforms stay in the breakdown (so
+  // Settings can show their "No longer supported" row) but must NOT count
+  // toward total/active/expired/stale — otherwise a pre-cut reddit/linkedin
+  // connection inflates the connections header and the Soul Score.
+
+  it('counts live platforms by state', () => {
+    expect(
+      summarizeBreakdown([
+        { platform: 'spotify', state: 'active' },
+        { platform: 'whoop', state: 'expired' },
+        { platform: 'github', state: 'stale' },
+        { platform: 'web', state: 'active' },
+      ])
+    ).toEqual({ total: 4, active: 2, expired: 1, stale: 0 + 1 });
+  });
+
+  it('excludes retired platforms from every count but they remain in the breakdown', () => {
+    const breakdown = [
+      { platform: 'spotify', state: 'active' },
+      { platform: 'github', state: 'active' },
+      { platform: 'reddit', state: 'active', retired: true },
+      { platform: 'linkedin', state: 'expired', retired: true },
+    ];
+    expect(summarizeBreakdown(breakdown)).toEqual({
+      total: 2,
+      active: 2,
+      expired: 0,
+      stale: 0,
+    });
+    // The breakdown array itself is untouched — Settings still sees the retired rows.
+    expect(breakdown).toHaveLength(4);
+  });
+
+  it('handles empty / missing input', () => {
+    expect(summarizeBreakdown([])).toEqual({ total: 0, active: 0, expired: 0, stale: 0 });
+    expect(summarizeBreakdown()).toEqual({ total: 0, active: 0, expired: 0, stale: 0 });
+  });
+});
+
+describe('RETIRED_PLATFORMS', () => {
+  it('contains the Track C cut list and not the keepers', () => {
+    for (const p of ['reddit', 'linkedin', 'twitch', 'strava', 'google_drive']) {
+      expect(RETIRED_PLATFORMS.has(p), p).toBe(true);
+    }
+    for (const p of ['spotify', 'github', 'whoop', 'google_gmail', 'google_calendar', 'youtube', 'discord', 'outlook', 'web', 'desktop']) {
+      expect(RETIRED_PLATFORMS.has(p), p).toBe(false);
     }
   });
 });

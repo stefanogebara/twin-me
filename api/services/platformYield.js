@@ -14,8 +14,14 @@
  *      always first-class regardless of week-to-week volume.
  *   2. It is on the explicitly-featured keeper list (replan Track C KEEP set).
  *   3. Its raw-signal yield is >= FEATURE_YIELD_THRESHOLD memories in the
- *      last YIELD_WINDOW_DAYS days.
+ *      last YIELD_WINDOW_DAYS days — UNLESS it is on ALWAYS_DEMOTED.
  * Everything else demotes (still works if connected, just not featured).
+ *
+ * ALWAYS_DEMOTED exists because raw volume is not signal quality: YouTube
+ * clears the threshold on watch-history noise (~69 rows/14d as of
+ * 2026-06-11) but is strategically a Google-OAuth passenger whose browsing
+ * signal the extension already mirrors. Product decision 2026-06-11: the
+ * demote list beats the yield rule.
  *
  * Tag normalization is driven by what the rows actually contain (inspected
  * 2026-06-10 against user_memories):
@@ -39,8 +45,6 @@ export const MIRROR_PLATFORMS = Object.freeze(['web', 'desktop']);
 /**
  * Replan Track C "KEEP + feature" set. Featured regardless of a slow week
  * (e.g. Whoop band left in a drawer for two weeks must not unfeature Whoop).
- * YouTube is deliberately absent: it stays connected as a Google-OAuth
- * passenger but only earns a featured tile on actual yield.
  */
 export const FEATURED_KEEPERS = Object.freeze([
   'spotify',
@@ -50,6 +54,16 @@ export const FEATURED_KEEPERS = Object.freeze([
   'github',
   'pluggy',
 ]);
+
+/**
+ * Demoted regardless of yield (product decision 2026-06-11, resolving the
+ * yield-metric agent's flagged conflict): these stay fully functional when
+ * connected but never earn a featured tile, even above the threshold.
+ *   - youtube: Google-OAuth passenger; ~69 watch-history rows/14d is volume,
+ *     not signal, and the extension already mirrors youtube.com browsing.
+ *   - discord, outlook: replan Track C DEMOTE set.
+ */
+export const ALWAYS_DEMOTED = Object.freeze(['youtube', 'discord', 'outlook']);
 
 /** metadata.source values that identify a mirror regardless of metadata.platform. */
 const SOURCE_TO_MIRROR = Object.freeze({
@@ -133,6 +147,9 @@ export function shouldFeaturePlatform(platform, yieldCount, isMirror = false) {
   const id = typeof platform === 'string' ? platform.trim().toLowerCase() : '';
 
   if (isMirror || MIRROR_PLATFORMS.includes(id)) return 'keep';
+  // Product demote list beats the yield rule — high-volume/low-signal
+  // platforms (youtube watch history) must not buy featuring with noise.
+  if (ALWAYS_DEMOTED.includes(id)) return 'demote';
   if (FEATURED_KEEPERS.includes(id)) return 'keep';
 
   const count = Number(yieldCount);

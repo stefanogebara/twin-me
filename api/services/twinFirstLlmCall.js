@@ -22,11 +22,7 @@
 import { complete, stream as streamLLM, TIER_CHAT } from './llmGateway.js';
 import { applyNeurotransmitterModifiers } from './neurotransmitterService.js';
 import { rerankByPersonality } from './personalityReranker.js';
-import { collectPreferencePair } from './finetuning/preferenceCollector.js';
 import { parseActions, stripActionTags } from './tools/workspaceActionParser.js';
-import { createLogger } from './logger.js';
-
-const log = createLogger('TwinFirstLlmCall');
 
 const FALLBACK_MESSAGE = 'I apologize, I could not generate a response.';
 
@@ -134,12 +130,8 @@ export async function runFirstLlmCall({
       personalityProfile.personality_embedding,
       personalityProfile,
     );
-
-    if (result?._rerankerMeta?.candidateCount > 1) {
-      const promptForDPO = llmMessages.slice(-3);
-      collectPreferencePair(userId, promptForDPO, result._rerankerMeta)
-        .catch(err => log.debug('Preference collection skipped', { error: err.message }));
-    }
+    // replan-2026-06-10 cycle 4: DPO preference-pair collection from reranker
+    // candidates removed with the fine-tuning training stack.
   }
 
   if (!result) {

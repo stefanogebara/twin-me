@@ -63,9 +63,8 @@ vi.mock('../../../api/services/autonomyService.js', () => ({
   logAgentAction: vi.fn().mockResolvedValue({ id: 'action-1' }),
 }));
 
-vi.mock('../../../api/services/finetuning/preferenceCollector.js', () => ({
-  collectFromActionFeedback: vi.fn().mockResolvedValue(undefined),
-}));
+// preferenceCollector mock removed — the DPO-pair branch was deleted from the
+// route along with the fine-tuning stack (replan-2026-06-10 cycle 4).
 
 const routes = (await import('../../../api/routes/insight-feedback.js')).default;
 

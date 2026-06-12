@@ -93,6 +93,60 @@ describe('validateChatInput — no eager conversation creation (audit bug H4)', 
     expect(mockInsert).not.toHaveBeenCalled();
   });
 
+  it('returns sanitized hummingbird clips from context (P1 wire-the-loop)', async () => {
+    const result = await validateChatInput({
+      userId: TEST_USER,
+      body: {
+        message: 'what was I just working on?',
+        context: {
+          hummingbird_clips: [
+            { app: 'VS Code', title: 'twin-chat.js' },
+            { app: 'Chrome', title: 'Bad' + String.fromCharCode(0x07) + 'Title' },
+          ],
+        },
+      },
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.hummingbirdClips).toEqual([
+      { app: 'VS Code', title: 'twin-chat.js' },
+      { app: 'Chrome', title: 'Bad Title' }, // control char stripped
+    ]);
+    expect(mockInsert).not.toHaveBeenCalled();
+  });
+
+  it('caps hummingbird clips at 6 and field length at 200 chars', async () => {
+    const result = await validateChatInput({
+      userId: TEST_USER,
+      body: {
+        message: 'hello',
+        context: {
+          hummingbird_clips: Array.from({ length: 12 }, (_, i) => ({
+            app: `App${i}`,
+            title: 'x'.repeat(500),
+          })),
+        },
+      },
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.hummingbirdClips).toHaveLength(6);
+    expect(result.hummingbirdClips[0].title).toHaveLength(200);
+  });
+
+  it('returns an empty clips array when context is absent or malformed', async () => {
+    for (const body of [
+      { message: 'hi' },
+      { message: 'hi', context: null },
+      { message: 'hi', context: { hummingbird_clips: 'garbage' } },
+      { message: 'hi', context: { hummingbird_clips: [{ app: '', title: '' }] } },
+    ]) {
+      const result = await validateChatInput({ userId: TEST_USER, body });
+      expect(result.ok).toBe(true);
+      expect(result.hummingbirdClips).toEqual([]);
+    }
+  });
+
   it('autoCreateConversation inserts only when called explicitly (post-pre-flight)', async () => {
     mockSingle.mockResolvedValueOnce({ data: { id: 'new-conv-id' }, error: null });
 

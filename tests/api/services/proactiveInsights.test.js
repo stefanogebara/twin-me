@@ -33,9 +33,7 @@ vi.mock('../../../api/services/pushNotificationService.js', () => ({
   sendPushToUser: vi.fn().mockResolvedValue(true),
 }));
 
-vi.mock('../../../api/services/inSilicoEngine.js', () => ({
-  scoreForInsightSelection: vi.fn().mockResolvedValue([]),
-}));
+// inSilicoEngine mock removed — the engine was deleted (replan-2026-06-10 cycle 4).
 
 vi.mock('../../../twin-research/insight-config.js', () => ({
   INSIGHT_PROMPT_TEMPLATE: 'obs: {observations}\nrefl: {reflections}',

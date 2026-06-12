@@ -9,11 +9,13 @@
  * Steps:
  *   1. gather-outcomes     — Query resolved agent_actions (last 7 days)
  *   2. analyze-patterns    — Group by skill, calculate acceptance rates
- *   3. collect-dpo-pairs   — Create DPO preference pairs from accepted vs rejected
- *   4. generate-procedures — Create procedure memories for repeated successes
- *   5. autonomy-suggestions — Suggest level changes based on acceptance rates
- *   6. compose-reflection  — LLM summarizes what the twin learned
- *   7. store-results       — Save procedures + deliver autonomy suggestions
+ *   3. generate-procedures — Create procedure memories for repeated successes
+ *   4. autonomy-suggestions — Suggest level changes based on acceptance rates
+ *   5. compose-reflection  — LLM summarizes what the twin learned
+ *   6. store-results       — Save procedures + deliver autonomy suggestions
+ *
+ * (DPO pair collection + auto-retrain steps removed in replan-2026-06-10
+ * cycle 4 — the fine-tuning training stack was deleted.)
  *
  * Cost: ~$0.002 per user (TIER_EXTRACTION for procedure + reflection)
  * Cron: daily 5am UTC
@@ -24,7 +26,6 @@ import { complete, TIER_EXTRACTION } from '../../services/llmGateway.js';
 import { addMemory } from '../../services/memoryStreamService.js';
 import { storeProcedure } from '../../services/proceduralMemoryService.js';
 import { getBlocks, updateBlock } from '../../services/coreMemoryService.js';
-import { collectFromActionFeedback } from '../../services/finetuning/preferenceCollector.js';
 import { supabaseAdmin } from '../../services/database.js';
 import { createLogger } from '../../services/logger.js';
 
@@ -109,29 +110,7 @@ export const actionReflectionFunction = inngest.createFunction(
       return bySkill;
     });
 
-    // Step 3: Collect DPO preference pairs from accepted vs rejected actions
-    const dpoPairs = await step.run('collect-dpo-pairs', async () => {
-      let totalCreated = 0;
-      let totalSkipped = 0;
-
-      for (const [skill, stats] of Object.entries(analysis)) {
-        // Need both accepted AND rejected to form a preference pair
-        if (stats.accepted === 0 || (stats.total - stats.accepted - stats.ignored) === 0) continue;
-
-        const skillActions = outcomes
-          .filter(a => (a.skill_name || 'general') === skill)
-          .map(a => ({ content: (a.action_content || '').slice(0, 500), response: a.user_response }));
-
-        const result = await collectFromActionFeedback(userId, skill, skillActions);
-        totalCreated += result.created;
-        totalSkipped += result.skipped;
-      }
-
-      log.info('DPO pairs collected from actions', { userId, created: totalCreated, skipped: totalSkipped });
-      return { created: totalCreated, skipped: totalSkipped };
-    });
-
-    // Step 4: Generate procedure memories for skills with 5+ accepted actions
+    // Step 3: Generate procedure memories for skills with 5+ accepted actions
     const procedures = await step.run('generate-procedures', async () => {
       const created = [];
 
@@ -194,7 +173,7 @@ Procedure:`
       return created;
     });
 
-    // Step 5: Check autonomy suggestions (14-day window)
+    // Step 4: Check autonomy suggestions (14-day window)
     const autonomySuggestions = await step.run('check-autonomy-suggestions', async () => {
       const suggestions = [];
       const cutoff = new Date(Date.now() - AUTONOMY_LOOKBACK_DAYS * 24 * 60 * 60 * 1000).toISOString();
@@ -250,7 +229,7 @@ Procedure:`
       return suggestions;
     });
 
-    // Step 6: Compose reflection summary
+    // Step 5: Compose reflection summary
     const reflection = await step.run('compose-reflection', async () => {
       const skillSummaries = Object.entries(analysis)
         .map(([skill, stats]) => `${skill}: ${stats.accepted} accepted, ${stats.rejected} rejected, ${stats.ignored} ignored (${Math.round(stats.acceptanceRate * 100)}% acceptance)`)
@@ -285,7 +264,7 @@ Write a brief reflection as if the twin is thinking about what it learned. Start
       }
     });
 
-    // Step 7: Store results and deliver suggestions
+    // Step 6: Store results and deliver suggestions
     const results = await step.run('store-and-deliver', async () => {
       const stored = { reflection: false, autonomySuggestions: 0 };
 
@@ -347,39 +326,20 @@ Write a brief reflection as if the twin is thinking about what it learned. Start
       return stored;
     });
 
-    // Step 8: Auto-retrain DPO if enough new preference pairs accumulated
-    const retrainResult = await step.run('check-auto-retrain', async () => {
-      try {
-        const { checkBatchRetrain } = await import('../../services/finetuning/autoRetrain.js');
-        const result = await checkBatchRetrain([userId]);
-        if (result.triggered > 0) {
-          log.info('Auto-retrain triggered from action reflection', { userId });
-        }
-        return { checked: true, triggered: result.triggered || 0 };
-      } catch (err) {
-        log.warn('Auto-retrain check failed', { userId, error: err.message });
-        return { checked: false, triggered: 0 };
-      }
-    });
-
     log.info('Action reflection complete', {
       userId,
       outcomes: outcomes.length,
-      dpoPairsCreated: dpoPairs.created,
       procedures: procedures.length,
       autonomySuggestions: autonomySuggestions.length,
       reflectionStored: results.reflection,
-      retrainTriggered: retrainResult.triggered,
     });
 
     return {
       success: true,
       outcomes: outcomes.length,
-      dpoPairsCreated: dpoPairs.created,
       procedures: procedures.length,
       autonomySuggestions: autonomySuggestions.length,
       reflectionStored: results.reflection,
-      retrainTriggered: retrainResult.triggered,
     };
   }
 );

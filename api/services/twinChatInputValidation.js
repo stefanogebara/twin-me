@@ -15,6 +15,7 @@
  */
 
 import { supabaseAdmin } from './database.js';
+import { sanitizeHummingbirdClips } from './desktopActivityContext.js';
 import { createLogger } from './logger.js';
 
 const log = createLogger('TwinChatInputValidation');
@@ -73,8 +74,16 @@ export async function validateChatInput({ userId: _userId, body }) {
     };
   }
 
+  // Desktop activity context (P1 wire-the-loop, 2026-06-11): the desktop
+  // Hummingbird panel sends context.hummingbird_clips ([{ app, title }]).
+  // Window titles are untrusted client input headed for the system prompt,
+  // so sanitize at the boundary: max 6 clips, control chars stripped,
+  // fields capped at 200 chars, empty titles dropped. Always an array
+  // (empty when absent/malformed) — never a reason to reject the request.
+  const hummingbirdClips = sanitizeHummingbirdClips(body?.context?.hummingbird_clips);
+
   // Note: conversationId here is whatever the client sent. The route is
   // responsible for calling autoCreateConversation() AFTER pre-flight gates
   // pass — see audit bug H4. We intentionally do NOT create a row here.
-  return { ok: true, message, conversationId: rawConversationId || null };
+  return { ok: true, message, conversationId: rawConversationId || null, hummingbirdClips };
 }
