@@ -519,6 +519,7 @@ import cronMorningBriefingEmailRoutes from './routes/cron-morning-briefing-email
 import cronInboxIntelligenceRoutes from './routes/cron-inbox-intelligence.js';
 import cronRelationshipsRoutes from './routes/cron-relationships.js';
 import cronActionReflectionRoutes from './routes/cron-action-reflection.js';
+import cronStatementNagRoutes from './routes/cron-statement-nag.js';
 import cronNudgeRetroRoutes from './routes/cron-nudge-retrospective.js';
 import cronTwinSummaryRefreshHandler from './routes/cron-twin-summary-refresh.js';
 import cronCalendarOptimizationRoutes from './routes/cron-calendar-optimization.js';
@@ -755,6 +756,7 @@ app.use('/api/cron/morning-briefing-email', cronMorningBriefingEmailRoutes); // 
 app.use('/api/cron/inbox-intelligence', cronInboxIntelligenceRoutes); // Daily inbox triage (10:05 UTC)
 app.use('/api/cron/relationships', cronRelationshipsRoutes); // Daily unanswered-thread scan (10:10 UTC)
 app.use('/api/cron/action-reflection', cronActionReflectionRoutes); // Daily action reflection (5am UTC)
+app.use('/api/cron/statement-nag', cronStatementNagRoutes); // Monthly (1st, 12 UTC) WhatsApp ask for last month's bank statement
 app.use('/api/cron/nudge-retrospective', cronNudgeRetroRoutes); // Phase 3.4b — 24h after-nudge effectiveness check
 app.all('/api/cron/twin-summary-refresh', cronTwinSummaryRefreshHandler); // Daily summary pre-warm (6am UTC)
 app.use('/api/cron/calendar-optimization', cronCalendarOptimizationRoutes); // Weekday calendar optimization (8am UTC / 5am São Paulo)

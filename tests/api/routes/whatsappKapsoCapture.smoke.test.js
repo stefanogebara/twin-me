@@ -32,8 +32,22 @@ vi.mock('../../../api/services/whatsappService.js', () => ({
 }));
 
 const captureMock = vi.fn();
+const quotaMock = vi.fn().mockResolvedValue({ allowed: true, used: 1, cap: 10 });
 vi.mock('../../../api/services/transactions/whatsappTransactionCapture.js', () => ({
   tryCaptureTransaction: (...a) => captureMock(...a),
+  checkAndBumpCaptureQuota: (...a) => quotaMock(...a),
+}));
+
+// Post-merge with the bank-integration strategy branch: receipt images are
+// owned by pixReceiptIngest, statement documents by whatsappStatementIngest.
+const receiptMock = vi.fn().mockResolvedValue({ ok: true, reply: 'Anotei: R$ 150,00 — Maria Silva.', inserted: 1 });
+vi.mock('../../../api/services/transactions/pixReceiptIngest.js', () => ({
+  handleReceiptImage: (...a) => receiptMock(...a),
+}));
+const statementMock = vi.fn().mockResolvedValue({ ok: true, reply: 'Importei 12 lançamentos.', inserted: 12 });
+vi.mock('../../../api/services/transactions/whatsappStatementIngest.js', () => ({
+  isStatementDocument: vi.fn().mockReturnValue(true),
+  handleStatementDocument: (...a) => statementMock(...a),
 }));
 
 const reflectionMock = vi.fn().mockResolvedValue({ text: 'reflexao-teste', lang: 'pt-BR', elapsed_ms: 5, cost: 0 });
@@ -129,6 +143,8 @@ async function postSigned(app, rawBody, headers = {}) {
 beforeEach(() => {
   vi.clearAllMocks();
   sendMock.mockResolvedValue({ success: true });
+  quotaMock.mockResolvedValue({ allowed: true, used: 1, cap: 10 });
+  receiptMock.mockResolvedValue({ ok: true, reply: 'Anotei: R$ 150,00 — Maria Silva.', inserted: 1 });
 });
 
 describe('whatsapp kapso webhook — transaction capture wiring', () => {
@@ -174,23 +190,25 @@ describe('whatsapp kapso webhook — transaction capture wiring', () => {
     expect(sendMock).toHaveBeenCalledWith('5511999990000', 'twin-chat-reply');
   });
 
-  it('Kapso v2 image payload parses and reaches capture with media fields', async () => {
-    captureMock.mockResolvedValue({ handled: true, reply: 'Anotei: R$ 150,00 — Maria Silva, hoje.', stored: true });
+  it('Kapso v2 image payload routes to pixReceiptIngest after the image quota', async () => {
     const res = await postSigned(createApp(), kapsoImagePayload());
     expect(res.status).toBe(200);
-    const [, parsed] = captureMock.mock.calls[0];
-    expect(parsed.messageType).toBe('image');
-    expect(parsed.mediaId).toBe('media-123');
-    expect(parsed.mimeType).toBe('image/jpeg');
-    expect(parsed.caption).toBe('comprovante');
-    expect(sendMock).toHaveBeenCalled();
+    expect(quotaMock).toHaveBeenCalledWith('user-1', 'image');
+    expect(receiptMock).toHaveBeenCalledTimes(1);
+    const [userId, image] = receiptMock.mock.calls[0];
+    expect(userId).toBe('user-1');
+    expect(image.id).toBe('media-123');
+    expect(image.mimeType).toBe('image/jpeg');
+    expect(image.caption).toBe('comprovante');
+    expect(sendMock).toHaveBeenCalledWith('5511999990000', 'Anotei: R$ 150,00 — Maria Silva.');
+    expect(captureMock).not.toHaveBeenCalled(); // text capture never sees images
   });
 
-  it('image that capture declines is silently skipped (no twin chat on empty text)', async () => {
-    captureMock.mockResolvedValue({ handled: false });
+  it('over-quota image gets the static limit reply, no vision call', async () => {
+    quotaMock.mockResolvedValue({ allowed: false, used: 10, cap: 10 });
     const res = await postSigned(createApp(), kapsoImagePayload());
     expect(res.status).toBe(200);
-    expect(completeMock).not.toHaveBeenCalled();
-    expect(sendMock).not.toHaveBeenCalled();
+    expect(receiptMock).not.toHaveBeenCalled();
+    expect(sendMock).toHaveBeenCalledWith('5511999990000', expect.stringMatching(/Limite diario/));
   });
 });

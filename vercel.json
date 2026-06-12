@@ -165,6 +165,10 @@
       "schedule": "0 5 * * *"
     },
     {
+      "path": "/api/cron/statement-nag",
+      "schedule": "0 12 1 * *"
+    },
+    {
       "path": "/api/cron/twin-summary-refresh",
       "schedule": "0 6 * * *"
     },

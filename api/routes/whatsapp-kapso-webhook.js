@@ -30,7 +30,9 @@ import { addConversationMemory } from '../services/memoryStreamService.js';
 import { createLogger } from '../services/logger.js';
 import { buildPurchaseContext } from '../services/purchaseContextBuilder.js';
 import { generatePurchaseReflection } from '../services/purchaseReflection.js';
-import { tryCaptureTransaction } from '../services/transactions/whatsappTransactionCapture.js';
+import { tryCaptureTransaction, checkAndBumpCaptureQuota } from '../services/transactions/whatsappTransactionCapture.js';
+import { isStatementDocument, handleStatementDocument } from '../services/transactions/whatsappStatementIngest.js';
+import { handleReceiptImage } from '../services/transactions/pixReceiptIngest.js';
 
 const log = createLogger('WhatsAppKapsoWebhook');
 const router = express.Router();
@@ -179,25 +181,42 @@ function parseIncomingMessage(body) {
     };
   }
 
-  // Kapso v2 image message (receipt screenshots for transaction capture,
-  // replan-2026-06-12). Shape inferred from the Kapso SDK's Meta-compatible
-  // payloads: { message: { id, from, type: 'image', image: { id, mime_type,
-  // sha256, caption? }, kapso?: { media_url? } } }. Parse defensively and
-  // verify against a real forwarded image in prod logs before trusting
-  // (see plan binary-humming-meadow, risk 3).
+  // Kapso v2 document message (bank-integration strategy Phase 1): the user
+  // forwards a statement file (OFX/CSV/XLSX) to the twin. Meta's document
+  // shape — { document: { id, filename, mime_type } } — rides through Kapso
+  // unchanged. Before this branch every attachment fell into the "Non-text or
+  // unparseable" silent drop.
+  if (body?.message?.type === 'document' && body?.message?.from) {
+    const msg = body.message;
+    return {
+      phone: msg.from,
+      text: null,
+      document: {
+        id: msg.document?.id,
+        filename: msg.document?.filename || null,
+        mimeType: msg.document?.mime_type || null,
+      },
+      messageId: msg.id,
+      contactName: msg.username || null,
+      format: 'kapso_v2_document',
+    };
+  }
+
+  // Kapso v2 image message (strategy Phase 3): a forwarded Pix comprovante
+  // screenshot. Meta's image shape — { image: { id, mime_type, caption? } }.
   if (body?.message?.type === 'image' && body?.message?.from) {
     const msg = body.message;
     return {
       phone: msg.from,
-      text: msg.image?.caption || '',
-      caption: msg.image?.caption || '',
-      mediaId: msg.image?.id || null,
-      mimeType: msg.image?.mime_type || null,
-      kapsoMediaUrl: msg.kapso?.media_url || null,
+      text: null,
+      image: {
+        id: msg.image?.id,
+        mimeType: msg.image?.mime_type || null,
+        caption: msg.image?.caption || null,
+      },
       messageId: msg.id,
       contactName: msg.username || null,
-      messageType: 'image',
-      format: 'kapso_v2',
+      format: 'kapso_v2_image',
     };
   }
 
@@ -304,12 +323,11 @@ router.post('/webhook', async (req, res) => {
   // idempotency check above catches duplicates so the user only gets
   // one reply.
   try {
-    // 4. Parse message (supports Kapso + Meta native fallback). Images are
-    // allowed through when they carry a media id (transaction capture);
-    // everything else non-text still drops silently.
+    // 4. Parse message (supports Kapso + Meta native fallback). Processable:
+    // text (chat / transaction capture), document (statement ingestion), or
+    // image (Pix receipt vision ingest).
     const parsed = parseIncomingMessage(req.body);
-    const isCapturableImage = parsed?.messageType === 'image' && parsed?.mediaId;
-    if (!parsed || !parsed.phone || (!parsed.text && !isCapturableImage)) {
+    if (!parsed || !parsed.phone || (!parsed.text && !parsed.document && !parsed.image)) {
       log.info('Non-text or unparseable message, skipping', {
         event: req.body?.event,
         format: parsed?.format,
@@ -361,13 +379,88 @@ router.post('/webhook', async (req, res) => {
     const userPrefs = channel.preferences || {};
     const purchaseBotEnabledForUser = userPrefs.purchase_bot_enabled !== false;
 
-    // 7pre. Transaction capture (replan-2026-06-12) — forwarded bank/Pix
-    // notifications, "gastei 80 no ifood" statements, and receipt images
-    // become user_transactions rows. Runs BEFORE purchase-intent because the
-    // two are disjoint by construction (capture = past tense / receipts;
-    // intent = future tense) and capture handles images intent can't.
-    // Non-candidates return { handled: false } and fall through untouched.
-    const capture = await tryCaptureTransaction(userId, parsed, {
+    // 6b. Statement document (bank-integration strategy Phase 1): the user
+    // forwarded a bank-statement file. Ingest it through the same pipeline as
+    // the /money upload zone and reply with a deterministic confirmation —
+    // this path never touches the LLM chat pipeline.
+    if (parsed.document) {
+      if (!isStatementDocument(parsed.document)) {
+        log.info('Unsupported document attachment, skipping', {
+          userId,
+          filename: parsed.document.filename,
+          mimeType: parsed.document.mimeType,
+        });
+        await sendWhatsAppMessage(
+          phone,
+          'I can read bank statements in OFX, CSV, or XLSX format. ' +
+          'Export one from your bank app and send it here and I\'ll import it.',
+        );
+        return;
+      }
+
+      const result = await handleStatementDocument(userId, parsed.document);
+      await sendWhatsAppMessage(phone, result.reply);
+
+      // Keep the exchange in the conversation memory so the twin remembers
+      // the user shared a statement (the transactions themselves land as
+      // platform observations via the ingest pipeline).
+      await addConversationMemory(
+        userId,
+        `[sent bank statement: ${parsed.document.filename || 'file'}]`,
+        result.reply,
+        { source: 'whatsapp', messageId, contactName },
+      ).catch(err => {
+        log.warn('Failed to store statement conversation memory', { userId, error: err.message });
+      });
+
+      log.info('WhatsApp statement processed', {
+        userId,
+        ok: result.ok,
+        inserted: result.inserted ?? 0,
+      });
+      return res.sendStatus(200);
+    }
+
+    // 6c. Receipt image (strategy Phase 3): a forwarded Pix comprovante
+    // screenshot. Vision-extract the transaction, dedupe against statements,
+    // ingest, and echo a structured confirmation (Magie pattern: parse ->
+    // echo -> confirm; the thread is the ledger).
+    if (parsed.image) {
+      // Cost cap (merge of replan-2026-06-12 capture quota with the strategy
+      // Phase 3 ingest): 10 vision extractions/user/day. The per-phone rate
+      // limit alone allows ~28k images/day — enough to matter on a vision model.
+      const quota = await checkAndBumpCaptureQuota(userId, 'image');
+      if (!quota.allowed) {
+        await sendWhatsAppMessage(phone, 'Limite diario de comprovantes por imagem atingido — me manda em texto que eu anoto.');
+        return res.sendStatus(200);
+      }
+      const result = await handleReceiptImage(userId, parsed.image);
+      await sendWhatsAppMessage(phone, result.reply);
+
+      await addConversationMemory(
+        userId,
+        `[sent payment receipt image${parsed.image.caption ? `: ${parsed.image.caption}` : ''}]`,
+        result.reply,
+        { source: 'whatsapp', messageId, contactName },
+      ).catch(err => {
+        log.warn('Failed to store receipt conversation memory', { userId, error: err.message });
+      });
+
+      log.info('WhatsApp receipt processed', {
+        userId,
+        ok: result.ok,
+        inserted: result.inserted ?? 0,
+      });
+      return res.sendStatus(200);
+    }
+
+    // 7pre. Text transaction capture (replan-2026-06-12) — forwarded bank/Pix
+    // notification TEXTS and "gastei 80 no ifood" statements become
+    // user_transactions rows. Images/documents were handled above by the
+    // strategy ingests; this hook runs BEFORE purchase-intent because the two
+    // are disjoint by construction (capture = past tense / receipts; intent =
+    // future tense). Non-candidates return { handled: false } untouched.
+    const capture = await tryCaptureTransaction(userId, { messageType: 'text', text }, {
       purchaseBotEnabledForUser,
     });
 
@@ -378,11 +471,6 @@ router.post('/webhook', async (req, res) => {
     let response;
     if (capture.handled) {
       response = capture.reply;
-    } else if (parsed.messageType === 'image') {
-      // Image that capture declined (flag off / no fallthrough value) — keep
-      // the historical silent-skip behavior for non-text content.
-      log.info('Image message not captured, skipping', { userId });
-      return res.sendStatus(200);
     } else if (matchesPurchaseIntent(text)) {
       if (process.env.PURCHASE_BOT_ENABLED !== 'true') {
         log.info('Purchase intent detected but bot disabled (env)', { userId });

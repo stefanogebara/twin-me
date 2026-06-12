@@ -63,29 +63,6 @@ async function getKapsoClient() {
 }
 
 /**
- * Download inbound media (receipt images) by Kapso media ID.
- * Used by WhatsApp transaction capture (replan-2026-06-12). Kapso resolves
- * the short-lived Meta media URL server-side; we get bytes back.
- * No Meta fallback — Kapso is the only prod inbound path.
- *
- * @returns {{ ok: true, buffer: Buffer } | { ok: false, error: string }}
- */
-export async function downloadWhatsAppMedia(mediaId) {
-  try {
-    const client = await getKapsoClient();
-    const phoneNumberId = process.env.KAPSO_PHONE_NUMBER_ID || process.env.TWINME_WHATSAPP_PHONE_NUMBER_ID;
-    if (!client?.media?.download || !phoneNumberId) {
-      return { ok: false, error: 'kapso_client_unavailable' };
-    }
-    const arrayBuffer = await client.media.download({ mediaId, phoneNumberId });
-    return { ok: true, buffer: Buffer.from(arrayBuffer) };
-  } catch (err) {
-    log.warn('WhatsApp media download failed', { mediaId, error: err.message });
-    return { ok: false, error: err.message };
-  }
-}
-
-/**
  * Send a text message via WhatsApp (Kapso or Meta Cloud API fallback).
  *
  * SAFETY: When TWINME_DISABLE_OUTBOUND_SEND=true, returns a no-op success.
@@ -297,6 +274,45 @@ export async function sendWhatsAppInsight(recipientPhone, insight) {
       })();
 
   return sendWhatsAppMessage(recipientPhone, text);
+}
+
+/**
+ * Download inbound WhatsApp media (statement attachments, receipts) by media id.
+ *
+ * Kapso proxies Meta's media endpoints: GET metadata resolves the short-lived
+ * URL, then the SDK fetches the bytes with client auth. Returns a Buffer or
+ * null — callers treat a failed download as "statement didn't arrive" and ask
+ * the user to resend, so this never throws.
+ *
+ * Size guard: bank statements are tens of KB; anything over the cap is not a
+ * statement and would only burn lambda memory.
+ */
+const MAX_MEDIA_BYTES = 10 * 1024 * 1024; // 10MB
+
+export async function downloadWhatsAppMedia(mediaId) {
+  if (!mediaId) return null;
+  if (!USE_KAPSO) {
+    log.warn('downloadWhatsAppMedia: Kapso not configured (no Meta-direct fallback implemented)');
+    return null;
+  }
+  try {
+    const client = await getKapsoClient();
+    if (!client?.media?.download) {
+      log.warn('downloadWhatsAppMedia: Kapso client has no media.download');
+      return null;
+    }
+    const phoneNumberId = process.env.KAPSO_PHONE_NUMBER_ID || process.env.TWINME_WHATSAPP_PHONE_NUMBER_ID;
+    const buf = await client.media.download({ mediaId, phoneNumberId, as: 'arrayBuffer' });
+    const buffer = Buffer.from(buf);
+    if (buffer.length > MAX_MEDIA_BYTES) {
+      log.warn('downloadWhatsAppMedia: media exceeds size cap', { mediaId, bytes: buffer.length });
+      return null;
+    }
+    return buffer;
+  } catch (err) {
+    log.warn('downloadWhatsAppMedia failed', { mediaId, error: err.message });
+    return null;
+  }
 }
 
 /**

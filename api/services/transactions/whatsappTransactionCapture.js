@@ -1,15 +1,16 @@
 /**
  * WhatsApp Transaction Capture (Magie-lite) — replan-2026-06-12
  * ==============================================================
- * Captures spending from WhatsApp messages: forwarded bank/Pix notification
- * texts, natural-language expense statements ("gastei 80 no ifood"), and
- * receipt screenshot images. Replaces the removed bank aggregators as the
- * Money feature's real-time data source.
+ * Captures spending from WhatsApp TEXT messages: forwarded bank/Pix
+ * notification texts and natural-language expense statements ("gastei 80 no
+ * ifood"). Receipt screenshot images are owned by pixReceiptIngest.js
+ * (bank-integration strategy Phase 3) — this module only contributes the
+ * daily image quota the webhook applies before that ingest. Together they
+ * replace the removed bank aggregators as the Money real-time data source.
  *
  * Pipeline (invoked from the Kapso webhook BEFORE purchase-intent/twin-chat):
  *   Stage A  classifyTransactionText()   — deterministic regex, zero cost
- *   Stage B  extractTransactionFromText/Image() — LLM JSON extraction
- *            (TIER_EXTRACTION for text, TIER_VISION for images)
+ *   Stage B  extractTransactionFromText() — LLM JSON extraction (TIER_EXTRACTION)
  *   validateExtractedTx()                — boundary validation + confidence gate
  *   storeWhatsAppTransaction()           — upsert into user_transactions,
  *            mirroring the CSV upload path (normalize → upsert → recurrence
@@ -24,11 +25,10 @@
  */
 import crypto from 'crypto';
 import { supabaseAdmin } from '../database.js';
-import { complete, TIER_EXTRACTION, TIER_VISION } from '../llmGateway.js';
+import { complete, TIER_EXTRACTION } from '../llmGateway.js';
 import { normalizeMerchant } from './merchantNormalizer.js';
 import { detectAndMarkRecurring } from './recurrenceDetector.js';
 import { tagTransactionsBatch } from './transactionEmotionTagger.js';
-import { downloadWhatsAppMedia } from '../whatsappService.js';
 import { getFeatureFlags } from '../featureFlagsService.js';
 import { checkPurchaseCooldown, bumpPurchaseCooldown } from '../purchaseCooldown.js';
 import { createLogger } from '../logger.js';
@@ -38,8 +38,6 @@ const log = createLogger('WhatsAppTxCapture');
 // ── Quotas / bounds ─────────────────────────────────────────────────────────
 export const TEXT_DAILY_CAP = 30;
 export const IMAGE_DAILY_CAP = 10;
-export const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
-const ALLOWED_IMAGE_MIMES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const MIN_AMOUNT = 0.01;
 const MAX_AMOUNT = 1_000_000;
 const CONFIDENCE_FLOOR = 0.6;
@@ -164,41 +162,6 @@ export async function extractTransactionFromText(userId, text, { timezone } = {}
     skipCache: true,
   });
   return interpretExtraction(result, text);
-}
-
-/**
- * Extract a transaction from a receipt image via TIER_VISION.
- * Downloads the media from Kapso, guards size/mime, sends as base64 data URL.
- */
-export async function extractTransactionFromImage(userId, { mediaId, mimeType, caption, timezone } = {}) {
-  if (!mediaId) return { ok: false, reason: 'no_media_id' };
-  if (mimeType && !ALLOWED_IMAGE_MIMES.has(mimeType)) {
-    return { ok: false, reason: 'unsupported_mime' };
-  }
-
-  const media = await downloadWhatsAppMedia(mediaId);
-  if (!media.ok) return { ok: false, reason: 'download_failed' };
-  if (media.buffer.length > MAX_IMAGE_BYTES) return { ok: false, reason: 'too_large' };
-
-  const dataUrl = `data:${mimeType || 'image/jpeg'};base64,${media.buffer.toString('base64')}`;
-  const result = await complete({
-    tier: TIER_VISION,
-    system: extractionSystemPrompt()
-      + '\nThe image is a payment receipt screenshot (Pix receipt, card notification, order confirmation). If it is not a receipt, set is_transaction=false.',
-    messages: [{
-      role: 'user',
-      content: [
-        { type: 'text', text: `TODAY_DATE: ${todayInTz(timezone)}${caption ? `\nCaption: ${sanitize(caption)}` : ''}` },
-        { type: 'image_url', image_url: { url: dataUrl } },
-      ],
-    }],
-    temperature: 0,
-    maxTokens: 250,
-    userId,
-    serviceName: 'whatsapp_tx_capture_image',
-    skipCache: true,
-  });
-  return interpretExtraction(result, caption || `image:${mediaId}`);
 }
 
 function interpretExtraction(result, sourceText) {
@@ -473,55 +436,33 @@ function logCaptureOutcome(outcome, sourceText) {
  * only linked, verified users ever reach an LLM call from here.
  *
  * @param {string} userId
- * @param {object} parsed — webhook-parsed message: { messageType: 'text'|'image',
- *   text?, mediaId?, mimeType?, caption? }
- * @param {object} [opts] — { timezone }
+ * @param {object} parsed — webhook-parsed message: { messageType: 'text', text }
+ * @param {object} [opts] — { timezone, purchaseBotEnabledForUser }
  * @returns {{ handled: boolean, reply?: string, stored?: boolean }}
  */
 export async function tryCaptureTransaction(userId, parsed, opts = {}) {
   try {
-    const isImage = parsed?.messageType === 'image';
-
     // Cheap gates first (Vercel early-return discipline): classifier before
-    // flag lookup for text; flag before quota; quota before download/LLM.
-    let kind = null;
-    if (!isImage) {
-      const cls = classifyTransactionText(parsed?.text);
-      if (!cls.isCandidate) return { handled: false };
-      kind = cls.kind;
-    }
+    // flag lookup; flag before quota; quota before LLM.
+    const cls = classifyTransactionText(parsed?.text);
+    if (!cls.isCandidate) return { handled: false };
 
     const flags = await getFeatureFlags(userId);
     if (flags.whatsapp_tx_capture === false) return { handled: false }; // default ON
 
-    const quota = await checkAndBumpCaptureQuota(userId, isImage ? 'image' : 'text');
+    const quota = await checkAndBumpCaptureQuota(userId, 'text');
     if (!quota.allowed) {
-      // Text over-quota falls through to twin chat (still rate-limited there);
-      // images have no fallthrough value — reply with a polite static limit.
-      if (isImage) {
-        return { handled: true, reply: 'Limite diário de comprovantes por imagem atingido — me manda em texto que eu anoto.', stored: false };
-      }
+      // Over-quota falls through to twin chat (still rate-limited there).
       return { handled: false };
     }
 
-    const extraction = isImage
-      ? await extractTransactionFromImage(userId, {
-          mediaId: parsed.mediaId,
-          mimeType: parsed.mimeType,
-          caption: parsed.caption,
-          timezone: opts.timezone,
-        })
-      : await extractTransactionFromText(userId, parsed.text, { timezone: opts.timezone });
+    const extraction = await extractTransactionFromText(userId, parsed.text, { timezone: opts.timezone });
 
     if (!extraction.ok) {
       if (extraction.clarifyingQuestion) {
         return { handled: true, reply: extraction.clarifyingQuestion, stored: false };
       }
-      // Confident "not a transaction" (or unusable image) — let the message
-      // flow to twin chat for text; for images, acknowledge inability.
-      if (isImage) {
-        return { handled: true, reply: 'Não consegui ler essa imagem como um comprovante. Se foi uma compra, me conta em texto que eu anoto.', stored: false };
-      }
+      // Confident "not a transaction" — let the message flow to twin chat.
       return { handled: false };
     }
 

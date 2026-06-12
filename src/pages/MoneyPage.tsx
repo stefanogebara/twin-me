@@ -27,6 +27,7 @@ import {
   type UploadResult,
   type TimelineDay,
 } from '@/services/api/transactionsAPI';
+import { GmailCourierToggle } from './components/money/GmailCourierToggle';
 import { StressSpendTimeline } from './components/money/StressSpendTimeline';
 import { UnlockProgressCard } from './components/money/UnlockProgressCard';
 
@@ -762,6 +763,12 @@ export default function MoneyPage() {
           to the twin's WhatsApp and they land here as transactions. CSV/OFX
           upload below stays as the bulk/manual path. */}
       <WhatsAppCaptureCard />
+
+      {/* Phase 2 (bank-integration strategy): auto-import OFX statements the
+          bank emails you (e.g. Nubank Exportar Extrato) from Gmail. */}
+      <div className="mb-4 flex items-center gap-3 flex-wrap">
+        <GmailCourierToggle />
+      </div>
 
       {/* Spending timeline (30d), full-width single card. */}
       {timeline.length > 0 && (

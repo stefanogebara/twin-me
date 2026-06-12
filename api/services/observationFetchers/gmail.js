@@ -5,6 +5,8 @@
 
 import axios from 'axios';
 import { getValidAccessToken } from '../tokenRefreshService.js';
+import { getFeatureFlags } from '../featureFlagsService.js';
+import { runGmailStatementCourier } from '../transactions/gmailStatementCourier.js';
 import { createLogger } from '../logger.js';
 import { sanitizeExternal, getSupabase } from '../observationUtils.js';
 import {
@@ -35,6 +37,20 @@ async function fetchGmailObservations(userId) {
 
   const headers = { Authorization: `Bearer ${tokenResult.accessToken}` };
   const BASE = 'https://gmail.googleapis.com/gmail/v1/users/me';
+
+  // Statement courier (bank-integration strategy Phase 2). This fetcher is
+  // metadata-only by contract; the courier reads OFX ATTACHMENT BYTES, so it
+  // runs ONLY behind the explicit gmail_statement_courier opt-in. Piggybacks
+  // here to reuse the cron cadence + the token we just validated. Non-fatal:
+  // courier problems never break observation ingestion.
+  try {
+    const flags = await getFeatureFlags(userId);
+    if (flags?.gmail_statement_courier === true) {
+      await runGmailStatementCourier(userId, tokenResult.accessToken);
+    }
+  } catch (e) {
+    log.warn('Gmail statement courier failed (non-fatal)', { error: e.message });
+  }
 
   // ── 0. Previous counters snapshot ──────────────────────────────────────────
   // replan-2026-06-10 Track B: daily observations must be deltas, not lifetime

@@ -10,7 +10,9 @@
  *   - validateExtractedTx: amount bounds, confidence floor, date clamping,
  *     currency fallback, direction mapping.
  *   - extractTransactionFromText: JSON parsing (fenced/malformed/refusal),
- *     tier + skipCache wiring.
+ *     tier + skipCache wiring. (Image extraction lives in pixReceiptIngest.js
+ *     post-merge with the bank-integration strategy branch; only the image
+ *     QUOTA remains here.)
  *   - storeWhatsAppTransaction: upsert payload shape, stable external_id,
  *     duplicate short-circuit, tagger invocation.
  *   - checkAndBumpCaptureQuota: caps + day rollover.
@@ -28,11 +30,6 @@ vi.mock('../../../../api/services/llmGateway.js', () => ({
   complete: (...a) => completeMock(...a),
   TIER_EXTRACTION: 'extraction',
   TIER_VISION: 'vision',
-}));
-
-const downloadMediaMock = vi.fn();
-vi.mock('../../../../api/services/whatsappService.js', () => ({
-  downloadWhatsAppMedia: (...a) => downloadMediaMock(...a),
 }));
 
 const detectRecurringMock = vi.fn().mockResolvedValue(undefined);
@@ -71,7 +68,6 @@ const {
   classifyTransactionText,
   validateExtractedTx,
   extractTransactionFromText,
-  extractTransactionFromImage,
   storeWhatsAppTransaction,
   checkAndBumpCaptureQuota,
   buildConfirmationMessage,
@@ -217,44 +213,6 @@ describe('extractTransactionFromText', () => {
     const r = await extractTransactionFromText('user-1', 'acho que gastei uns 80');
     expect(r.ok).toBe(false);
     expect(r.clarifyingQuestion).toBeTruthy();
-  });
-});
-
-// ── Image extraction ─────────────────────────────────────────────────────────
-describe('extractTransactionFromImage', () => {
-  it('downloads media, sends multimodal content to TIER_VISION', async () => {
-    downloadMediaMock.mockResolvedValue({ ok: true, buffer: Buffer.from('fake-image-bytes') });
-    completeMock.mockResolvedValue({ content: JSON.stringify({ is_transaction: true, amount: 150, currency: 'BRL', merchant: 'Maria Silva', date: null, direction: 'out', category_hint: 'transfer', confidence: 0.95 }) });
-
-    const r = await extractTransactionFromImage('user-1', { mediaId: 'media-1', mimeType: 'image/jpeg' });
-    expect(r.ok).toBe(true);
-    expect(downloadMediaMock).toHaveBeenCalledWith('media-1');
-    const call = completeMock.mock.calls[0][0];
-    expect(call.tier).toBe('vision');
-    expect(Array.isArray(call.messages[0].content)).toBe(true);
-    expect(call.messages[0].content[1].image_url.url).toMatch(/^data:image\/jpeg;base64,/);
-  });
-
-  it('rejects unsupported mime types without downloading', async () => {
-    const r = await extractTransactionFromImage('user-1', { mediaId: 'media-1', mimeType: 'application/pdf' });
-    expect(r.ok).toBe(false);
-    expect(r.reason).toBe('unsupported_mime');
-    expect(downloadMediaMock).not.toHaveBeenCalled();
-  });
-
-  it('rejects oversized images', async () => {
-    downloadMediaMock.mockResolvedValue({ ok: true, buffer: Buffer.alloc(5 * 1024 * 1024) });
-    const r = await extractTransactionFromImage('user-1', { mediaId: 'media-1', mimeType: 'image/png' });
-    expect(r.ok).toBe(false);
-    expect(r.reason).toBe('too_large');
-    expect(completeMock).not.toHaveBeenCalled();
-  });
-
-  it('propagates download failure', async () => {
-    downloadMediaMock.mockResolvedValue({ ok: false, error: 'boom' });
-    const r = await extractTransactionFromImage('user-1', { mediaId: 'media-1', mimeType: 'image/png' });
-    expect(r.ok).toBe(false);
-    expect(r.reason).toBe('download_failed');
   });
 });
 
