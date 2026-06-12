@@ -23,12 +23,12 @@ import { createLogger } from './logger.js';
 
 const log = createLogger('LLMGateway');
 import {
-  TIER_CHAT, TIER_CHAT_FINETUNED, TIER_ANALYSIS, TIER_EXTRACTION,
+  TIER_CHAT, TIER_CHAT_FINETUNED, TIER_ANALYSIS, TIER_EXTRACTION, TIER_VISION,
   OPENROUTER_MODELS, MODEL_PRICING, CACHE_TTL_BY_TIER,
 } from '../config/aiModels.js';
 
 // Re-export tier constants for convenience
-export { TIER_CHAT, TIER_CHAT_FINETUNED, TIER_ANALYSIS, TIER_EXTRACTION };
+export { TIER_CHAT, TIER_CHAT_FINETUNED, TIER_ANALYSIS, TIER_EXTRACTION, TIER_VISION };
 
 // ====================================================================
 // Circuit Breaker (4B)
@@ -120,6 +120,7 @@ const TIER_TIMEOUTS = {
   [TIER_CHAT]: 30000,
   [TIER_ANALYSIS]: 45000, // Must be < maxDuration (60s) so gateway can return error before Vercel kills the function
   [TIER_EXTRACTION]: 15000,
+  [TIER_VISION]: 20000, // Image upload + Gemini Flash inference, still well under maxDuration
 };
 
 // ====================================================================
@@ -403,8 +404,11 @@ export async function complete({
   skipCache = false, // Per-call cache bypass for hyper-personal responses
 }) {
   // Privacy routing: downgrade to cheapest tier for sensitive content (NemoClaw pattern)
-  // This minimizes data exposure for health/emotional/financial content
-  let effectiveTier = (sensitiveContent && tier !== TIER_EXTRACTION) ? TIER_EXTRACTION : tier;
+  // This minimizes data exposure for health/emotional/financial content.
+  // TIER_VISION is exempt from ALL downgrades: the fallback models cannot read
+  // images, so a downgraded vision call would silently hallucinate. Vision is
+  // already near-extraction cost (Gemini Flash) and quota-capped by callers.
+  let effectiveTier = (sensitiveContent && tier !== TIER_EXTRACTION && tier !== TIER_VISION) ? TIER_EXTRACTION : tier;
   // Model and TTL resolved after budget check (may be downgraded)
   let model;
   let ttl;
@@ -422,7 +426,7 @@ export async function complete({
     const budget = parseFloat(process.env.LLM_DAILY_BUDGET_USD) || 10;
     if (dailyCost >= budget) {
       // Soft cap: downgrade to cheapest tier instead of rejecting the request
-      if (effectiveTier !== TIER_EXTRACTION) {
+      if (effectiveTier !== TIER_EXTRACTION && effectiveTier !== TIER_VISION) {
         log.warn('Budget exceeded — downgrading to TIER_EXTRACTION', {
           dailyCost: dailyCost.toFixed(2), budget: budget.toFixed(2), originalTier: effectiveTier,
         });
@@ -433,7 +437,7 @@ export async function complete({
   }
 
   // Per-user budget guard — downgrade to cheapest tier (don't reject)
-  if (userId && !budgetDowngraded && effectiveTier !== TIER_EXTRACTION) {
+  if (userId && !budgetDowngraded && effectiveTier !== TIER_EXTRACTION && effectiveTier !== TIER_VISION) {
     const userDailyCost = await getUserDailyCost(userId);
     if (userDailyCost >= PER_USER_DAILY_BUDGET_USD) {
       log.warn('Per-user budget exceeded — downgrading to TIER_EXTRACTION', {
