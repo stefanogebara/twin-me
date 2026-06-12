@@ -127,7 +127,6 @@ fn seed_hummingbird_context(window: &tauri::WebviewWindow) {
     );
     if let Err(err) = window.eval(&script) {
         eprintln!("[hummingbird] context seed eval failed: {err}");
->>>>>>> origin/main
     }
 }
 
