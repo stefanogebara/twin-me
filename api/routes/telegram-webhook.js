@@ -23,6 +23,7 @@ import { buildPersonalityPrompt } from '../services/personalityPromptBuilder.js'
 import { getProfile, getSoulSignatureLayers } from '../services/personalityProfileService.js';
 import { addConversationMemory } from '../services/memoryStreamService.js';
 import { getRedisClient, isRedisAvailable } from '../services/redisClient.js';
+import { classifyProtocolReply, resolveProtocolReply, offerNextProposal } from '../services/threadApprovals.js';
 import { createLogger } from '../services/logger.js';
 
 const log = createLogger('TelegramWebhook');
@@ -256,6 +257,25 @@ function setupBotHandlers() {
       return;
     }
 
+    // Thread approvals (one-interface): a SHORT "yes"/"skip" resolves the
+    // proposal the twin offered in this thread, through the same approve/reject
+    // paths the old inbox buttons used. Channel-agnostic rail shared with the
+    // WhatsApp webhook. A protocol-shaped reply with nothing awaiting falls
+    // through to normal chat (a bare "yes" can answer the twin too).
+    try {
+      const intent = classifyProtocolReply(text);
+      if (intent) {
+        const confirmation = await resolveProtocolReply(userId, intent);
+        if (confirmation) {
+          await ctx.reply(confirmation);
+          await addConversationMemory(userId, text, confirmation, { source: 'telegram' }).catch(() => {});
+          return;
+        }
+      }
+    } catch (err) {
+      log.warn('Telegram thread-approval failed (non-fatal)', { userId, error: err.message });
+    }
+
     try {
       // Show typing indicator — refresh every 4s since it expires after 5s.
       // The LLM call takes 10-30s so we need to keep refreshing.
@@ -285,6 +305,15 @@ function setupBotHandlers() {
           for (const chunk of chunks) {
             await ctx.reply(chunk);
           }
+        }
+
+        // Offer the next pending proposal (one-interface): rides the same
+        // exchange, one at a time, never re-offered. Non-fatal.
+        try {
+          const offer = await offerNextProposal(userId);
+          if (offer) await ctx.reply(offer);
+        } catch (offerErr) {
+          log.warn('Telegram proposal offer failed (non-fatal)', { userId, error: offerErr.message });
         }
       } catch (innerErr) {
         clearInterval(typingInterval);
