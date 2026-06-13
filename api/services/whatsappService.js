@@ -45,6 +45,69 @@ async function logOutbound(row) {
 const GRAPH_API_VERSION = 'v21.0';
 const USE_KAPSO = !!process.env.KAPSO_API_KEY;
 
+// Z-API (unofficial WhatsApp-Web HTTP API) — the active provider for the
+// Brazilian money flow. Unlike Kapso/Meta there is NO 24h customer-service
+// window, so the twin can reply to a forwarded Pix receipt or statement at any
+// time. Configured by instance credentials; takes priority over Kapso/Meta
+// when present so a single number routes through one provider.
+//   ZAPI_INSTANCE_ID    — instance id from the Z-API dashboard
+//   ZAPI_INSTANCE_TOKEN — instance token (the per-instance secret)
+//   ZAPI_CLIENT_TOKEN   — account security token (Client-Token header)
+const USE_ZAPI = !!(process.env.ZAPI_INSTANCE_ID && process.env.ZAPI_INSTANCE_TOKEN);
+
+function zapiBaseUrl() {
+  return `https://api.z-api.io/instances/${process.env.ZAPI_INSTANCE_ID}/token/${process.env.ZAPI_INSTANCE_TOKEN}`;
+}
+
+// Z-API wants DDI+DDD+number digits only — no '+', no 'whatsapp:' prefix.
+function normalizeZapiPhone(phone) {
+  return String(phone || '').replace(/[^\d]/g, '');
+}
+
+/**
+ * Send a text message via Z-API. Returns the same { success, messageId,
+ * provider } shape as the Kapso/Meta paths. Audits to whatsapp_outbound_log.
+ */
+async function sendViaZapi(recipientPhone, text) {
+  const url = `${zapiBaseUrl()}/send-text`;
+  const phone = normalizeZapiPhone(recipientPhone);
+  const headers = { 'Content-Type': 'application/json' };
+  if (process.env.ZAPI_CLIENT_TOKEN) headers['Client-Token'] = process.env.ZAPI_CLIENT_TOKEN;
+
+  try {
+    const { data, status } = await axios.post(url, { phone, message: text }, { headers, timeout: 15000 });
+    // Z-API 200 response: { zaapId, messageId, id }
+    log.info('WhatsApp Z-API send response', { recipientSuffix: phone.slice(-4), httpStatus: status, messageId: data?.messageId });
+    logOutbound({
+      recipient: phone,
+      recipient_input: recipientPhone,
+      text_preview: text?.slice(0, 120) || null,
+      text_len: text?.length || 0,
+      provider: 'zapi',
+      success: true,
+      message_id: data?.messageId || data?.id || null,
+      http_status: status,
+      raw_response: data || null,
+    });
+    return { success: true, messageId: data?.messageId || data?.id, provider: 'zapi' };
+  } catch (err) {
+    const errMsg = err.response?.data?.error || err.response?.data?.message || err.message;
+    log.error('Z-API send failed', { recipientSuffix: phone.slice(-4), error: errMsg, httpStatus: err.response?.status });
+    logOutbound({
+      recipient: phone,
+      recipient_input: recipientPhone,
+      text_preview: text?.slice(0, 120) || null,
+      text_len: text?.length || 0,
+      provider: 'zapi',
+      success: false,
+      error_message: typeof errMsg === 'string' ? errMsg : JSON.stringify(errMsg),
+      http_status: err.response?.status || null,
+      raw_error: err.response?.data || null,
+    });
+    return { success: false, error: errMsg, provider: 'zapi' };
+  }
+}
+
 // Lazy-initialize Kapso client (only when needed)
 let kapsoClient = null;
 
@@ -76,6 +139,14 @@ export async function sendWhatsAppMessage(recipientPhone, text) {
       textLen: text?.length || 0,
     });
     return { success: true, suppressed: true };
+  }
+
+  // Z-API takes priority when configured — it's the active provider for the
+  // money flow (no 24h window). No Kapso/Meta fallback here: a Z-API instance
+  // and a Meta WABA can't share the same WhatsApp number, so falling through
+  // would send from the wrong sender.
+  if (USE_ZAPI) {
+    return sendViaZapi(recipientPhone, text);
   }
 
   // Try Kapso first
@@ -291,6 +362,26 @@ const MAX_MEDIA_BYTES = 10 * 1024 * 1024; // 10MB
 
 export async function downloadWhatsAppMedia(mediaId) {
   if (!mediaId) return null;
+
+  // Z-API delivers media as a direct URL in the inbound webhook (image.imageUrl,
+  // document.documentUrl) — no media-id resolution step. The inbound pipeline
+  // passes that URL through as `id`, so a download is just a GET. This also
+  // lets a Z-API-routed message work regardless of whether Kapso env is set.
+  if (typeof mediaId === 'string' && /^https?:\/\//i.test(mediaId)) {
+    try {
+      const { data } = await axios.get(mediaId, { responseType: 'arraybuffer', timeout: 20000, maxContentLength: MAX_MEDIA_BYTES });
+      const buffer = Buffer.from(data);
+      if (buffer.length > MAX_MEDIA_BYTES) {
+        log.warn('downloadWhatsAppMedia: media exceeds size cap', { bytes: buffer.length });
+        return null;
+      }
+      return buffer;
+    } catch (err) {
+      log.warn('downloadWhatsAppMedia (direct URL) failed', { error: err.message });
+      return null;
+    }
+  }
+
   if (!USE_KAPSO) {
     log.warn('downloadWhatsAppMedia: Kapso not configured (no Meta-direct fallback implemented)');
     return null;
