@@ -295,6 +295,12 @@ Examples:
   User: "Where am I headed in the next three months?"
   You: [ACTION: simulate_future horizonDays=90]
 
+  User: "What if I take the job in Lisbon?"
+  You: [ACTION: simulate_future scenario="taking the job in Lisbon"]
+
+  User: "Should I start training for a marathon?"
+  You: [ACTION: simulate_future scenario="starting marathon training" horizonDays=60]
+
   User: "Any open issues about the login bug?"
   You: [ACTION: github_search_issues query="login bug"]
 

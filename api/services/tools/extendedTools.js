@@ -439,12 +439,14 @@ export function registerExtendedTools() {
       'Simulate the user\'s near future: run several independent variations of their next month ' +
       'grounded in their real behavioral patterns, then report the consensus recommendation. ' +
       'Use when the user asks what they should do next, what their month could look like, ' +
-      'or to "simulate/predict my future".',
+      'to "simulate/predict my future", or asks a WHAT-IF about a decision ' +
+      '("what if I take the job?", "should I move to Lisbon?") — pass the decision as `scenario`.',
     category: 'insight',
     parameters: {
       type: 'object',
       properties: {
         horizonDays: { type: 'number', description: 'Days to simulate ahead (default 30, max 90)' },
+        scenario: { type: 'string', description: 'Optional what-if: a decision to condition every simulation on, e.g. "taking the job in Lisbon"' },
       },
       required: [],
     },
@@ -455,6 +457,7 @@ export function registerExtendedTools() {
       const { simulateFutures } = await import('../futureSimulationService.js');
       const result = await simulateFutures(userId, {
         horizonDays: Math.min(Math.max(params?.horizonDays || 30, 7), 90),
+        scenario: params?.scenario ? String(params.scenario).slice(0, 200) : null,
       });
       if (!result) {
         return {

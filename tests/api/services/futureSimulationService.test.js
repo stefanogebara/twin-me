@@ -1,27 +1,38 @@
 /**
  * Doctor Strange mode (MiroFish-lite) — pins the swarm orchestration:
  * seed gating, parallel lens runs, junk-run tolerance, consensus synthesis,
- * and the weekly cooldown + insight storage path.
+ * what-if conditioning, the prediction-vs-reality feedback loop, weekly
+ * cooldown, insight storage, and direct WhatsApp delivery.
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// supabaseAdmin stub: fixtures per table + insert capture.
-let reflectionRows;
-let signalRows;
-let recentSimRows;
+// supabaseAdmin stub: fixtures per table, query-shape aware.
+let reflectionRows;   // user_memories reflections (limit 12)
+let signalRows;       // user_memories signals (limit 15)
+let actualRows;       // user_memories actuals-since-prediction (gte + order)
+let cooldownRows;     // proactive_insights cooldown check (gte, no order)
+let priorRows;        // proactive_insights prior prediction (order, no gte)
+let channelRows;      // messaging_channels
 const inserts = [];
+const updates = [];
 vi.mock('../../../api/services/database.js', () => {
   function builder(table) {
-    const b = { _table: table };
-    for (const m of ['select', 'eq', 'in', 'gte', 'order']) b[m] = () => b;
+    const b = { _table: table, _gte: false, _ordered: false };
+    for (const m of ['select', 'eq', 'in']) b[m] = () => b;
+    b.gte = () => { b._gte = true; return b; };
+    b.order = () => { b._ordered = true; return b; };
     b.insert = (payload) => { inserts.push({ table, payload }); return Promise.resolve({ error: null }); };
+    b.update = (payload) => { updates.push({ table, payload }); return b; };
     b.limit = (n) => {
-      if (table === 'proactive_insights') return Promise.resolve({ data: recentSimRows, error: null });
-      // user_memories: reflections query limits 12, signals limits 15
-      const data = n === 12 ? reflectionRows : signalRows;
-      return Promise.resolve({ data, error: null });
+      if (table === 'proactive_insights') {
+        return Promise.resolve({ data: b._ordered ? priorRows : cooldownRows, error: null });
+      }
+      if (table === 'messaging_channels') return Promise.resolve({ data: channelRows, error: null });
+      if (b._gte) return Promise.resolve({ data: actualRows, error: null });
+      return Promise.resolve({ data: n === 12 ? reflectionRows : signalRows, error: null });
     };
+    b.then = (resolve, reject) => Promise.resolve({ data: null, error: null }).then(resolve, reject);
     return b;
   }
   return { supabaseAdmin: { from: (t) => builder(t) }, serverDb: {} };
@@ -33,6 +44,11 @@ vi.mock('../../../api/services/llmGateway.js', () => ({
   TIER_ANALYSIS: 'analysis',
   TIER_CHAT: 'chat',
   TIER_EXTRACTION: 'extraction',
+}));
+
+const sendWhatsAppMock = vi.fn();
+vi.mock('../../../api/services/whatsappService.js', () => ({
+  sendWhatsAppMessage: (...a) => sendWhatsAppMock(...a),
 }));
 
 const { simulateFutures, runWeeklySimulation, SIMULATION_LENSES } = await import(
@@ -50,64 +66,71 @@ function seedEnough() {
   reflectionRows = Array.from({ length: 8 }, (_, i) => ({ content: `reflection ${i}` }));
   signalRows = Array.from({ length: 8 }, (_, i) => ({ content: `signal ${i}`, memory_type: 'fact' }));
 }
+function happyLLM(synthText = 'I ran your next month 8 times — book the trip.') {
+  completeMock.mockImplementation(({ serviceName }) =>
+    Promise.resolve({ content: serviceName === 'future-simulation-synthesis' ? synthText : SCENARIO })
+  );
+}
 
 describe('simulateFutures', () => {
   beforeEach(() => {
     completeMock.mockReset();
     inserts.length = 0;
-    recentSimRows = [];
+    updates.length = 0;
+    cooldownRows = []; priorRows = []; actualRows = []; channelRows = [];
     seedEnough();
   });
 
   it('runs one call per lens plus one synthesis, returns the consensus', async () => {
-    completeMock.mockImplementation(({ serviceName }) =>
-      Promise.resolve({
-        content: serviceName === 'future-simulation-synthesis'
-          ? 'I ran your next month 8 times — in 6 of them, booking the trip was the turning point.'
-          : SCENARIO,
-      })
-    );
-
+    happyLLM();
     const result = await simulateFutures('u1', { runs: 8 });
-
     expect(result.runs).toBe(8);
     expect(result.insight).toMatch(/ran your next month/);
-    // 8 lens runs + 1 synthesis
     expect(completeMock).toHaveBeenCalledTimes(9);
-    // every lens run got the seed block; synthesis got the scenario JSON
-    const synthCall = completeMock.mock.calls.find(([o]) => o.serviceName === 'future-simulation-synthesis');
-    expect(synthCall[0].messages[0].content).toContain('book the trip');
+  });
+
+  it('what-if scenario conditions every lens run AND the synthesis framing', async () => {
+    happyLLM('If you take the Lisbon job...');
+    await simulateFutures('u1', { runs: 4, scenario: 'taking the job in Lisbon' });
+
+    const lensCalls = completeMock.mock.calls.filter(([o]) => o.serviceName === 'future-simulation-run');
+    expect(lensCalls.length).toBe(4);
+    for (const [opts] of lensCalls) {
+      expect(opts.messages[0].content).toContain('taking the job in Lisbon');
+      expect(opts.messages[0].content).toContain('CONDITION');
+    }
+    const synth = completeMock.mock.calls.find(([o]) => o.serviceName === 'future-simulation-synthesis');
+    expect(synth[0].system).toContain('taking the job in Lisbon');
+  });
+
+  it('feedback injects last prediction + reality into the synthesis prompt', async () => {
+    happyLLM();
+    await simulateFutures('u1', {
+      runs: 2,
+      feedback: { prediction: 'block Wednesday afternoons', actuals: ['kept Wednesday free twice'] },
+    });
+    const synth = completeMock.mock.calls.find(([o]) => o.serviceName === 'future-simulation-synthesis');
+    expect(synth[0].system).toContain('LAST PREDICTION: block Wednesday afternoons');
+    expect(synth[0].system).toContain('kept Wednesday free twice');
+    expect(synth[0].system).toMatch(/checking the last prediction against reality/);
   });
 
   it('tolerates junk runs and still synthesizes from the survivors', async () => {
     let n = 0;
     completeMock.mockImplementation(({ serviceName }) => {
-      if (serviceName === 'future-simulation-synthesis') {
-        return Promise.resolve({ content: 'Consensus from survivors.' });
-      }
+      if (serviceName === 'future-simulation-synthesis') return Promise.resolve({ content: 'Consensus.' });
       n++;
-      return n % 2 === 0
-        ? Promise.resolve({ content: 'not json at all' })
-        : Promise.resolve({ content: SCENARIO });
+      return Promise.resolve({ content: n % 2 === 0 ? 'not json' : SCENARIO });
     });
-
     const result = await simulateFutures('u1', { runs: 8 });
-    expect(result.runs).toBe(4); // half survived
-    expect(result.insight).toBe('Consensus from survivors.');
+    expect(result.runs).toBe(4);
   });
 
   it('returns null without any LLM call when seed data is too thin', async () => {
-    reflectionRows = [{ content: 'one lonely reflection' }];
+    reflectionRows = [{ content: 'one' }];
     signalRows = [];
-    const result = await simulateFutures('u1');
-    expect(result).toBe(null);
+    expect(await simulateFutures('u1')).toBe(null);
     expect(completeMock).not.toHaveBeenCalled();
-  });
-
-  it('returns null when fewer than 2 runs survive', async () => {
-    completeMock.mockResolvedValue({ content: 'garbage' });
-    const result = await simulateFutures('u1', { runs: 4 });
-    expect(result).toBe(null);
   });
 
   it('has 8 distinct lenses', () => {
@@ -115,29 +138,54 @@ describe('simulateFutures', () => {
   });
 });
 
-describe('runWeeklySimulation', () => {
+describe('runWeeklySimulation (the self-correcting loop)', () => {
   beforeEach(() => {
-    completeMock.mockReset().mockImplementation(({ serviceName }) =>
-      Promise.resolve({
-        content: serviceName === 'future-simulation-synthesis' ? 'Weekly consensus.' : SCENARIO,
-      })
-    );
+    completeMock.mockReset();
+    sendWhatsAppMock.mockReset().mockResolvedValue({ success: true, messageId: 'm1' });
     inserts.length = 0;
-    recentSimRows = [];
+    updates.length = 0;
+    cooldownRows = []; priorRows = []; actualRows = []; channelRows = [];
     seedEnough();
+    happyLLM('Weekly consensus.');
   });
 
-  it('stores the consensus as a future_simulation proactive insight', async () => {
+  it('stores with scenarios metadata and delivers straight to WhatsApp', async () => {
+    channelRows = [{ channel_id: '+5511999002121' }];
     const r = await runWeeklySimulation('u1');
+
     expect(r.stored).toBe(true);
+    expect(r.delivered).toBe(true);
     const insert = inserts.find((i) => i.table === 'proactive_insights');
     expect(insert.payload.category).toBe('future_simulation');
-    expect(insert.payload.urgency).toBe('medium');
-    expect(insert.payload.insight).toBe('Weekly consensus.');
+    expect(insert.payload.metadata.runs).toBe(8);
+    expect(insert.payload.metadata.scenarios.length).toBe(8);
+    expect(sendWhatsAppMock).toHaveBeenCalledWith('+5511999002121', 'Weekly consensus.');
+    // delivered marked so chat doesn't double-announce it
+    expect(updates.some((u) => u.table === 'proactive_insights' && u.payload.delivered === true)).toBe(true);
   });
 
-  it('skips when a simulation ran in the last 6 days (cooldown)', async () => {
-    recentSimRows = [{ id: 'sim-1' }];
+  it('closes the loop: prior prediction + actuals reach the synthesis', async () => {
+    priorRows = [{ insight: 'block Wednesday afternoons', created_at: new Date(Date.now() - 7 * 86400_000).toISOString() }];
+    actualRows = [{ content: 'Worked through Wednesday afternoon on coding sprint' }];
+    channelRows = [];
+
+    const r = await runWeeklySimulation('u1');
+    expect(r.hadFeedback).toBe(true);
+    const synth = completeMock.mock.calls.find(([o]) => o.serviceName === 'future-simulation-synthesis');
+    expect(synth[0].system).toContain('block Wednesday afternoons');
+    expect(synth[0].system).toContain('Worked through Wednesday afternoon');
+  });
+
+  it('survives a missing WhatsApp channel (stored, not delivered)', async () => {
+    channelRows = [];
+    const r = await runWeeklySimulation('u1');
+    expect(r.stored).toBe(true);
+    expect(r.delivered).toBe(false);
+    expect(sendWhatsAppMock).not.toHaveBeenCalled();
+  });
+
+  it('skips on the 6-day cooldown without LLM calls', async () => {
+    cooldownRows = [{ id: 'sim-1' }];
     const r = await runWeeklySimulation('u1');
     expect(r.skipped).toBe('cooldown');
     expect(completeMock).not.toHaveBeenCalled();

@@ -75,8 +75,15 @@ function parseJson(content) {
 /**
  * Run the personal swarm. Returns { insight, runs, scenarios } or null when
  * there isn't enough memory to simulate honestly.
+ *
+ * @param {string} [opts.scenario]  what-if conditioning: every variation
+ *        simulates the future ASSUMING this decision was made ("taking the
+ *        job in Lisbon"). The strongest MiroFish pattern — counterfactuals.
+ * @param {{prediction: string, actuals: string[]}} [opts.feedback]  last
+ *        run's prediction + what actually happened since — makes the swarm
+ *        self-correcting week over week.
  */
-export async function simulateFutures(userId, { runs = 8, horizonDays = 30 } = {}) {
+export async function simulateFutures(userId, { runs = 8, horizonDays = 30, scenario = null, feedback = null } = {}) {
   const seed = await gatherSeed(userId);
   if (seed.reflections.length + seed.signals.length < MIN_MEMORIES / 2) {
     log.info(`not enough seed data for user ${userId}`);
@@ -86,6 +93,10 @@ export async function simulateFutures(userId, { runs = 8, horizonDays = 30 } = {
   const seedBlock =
     `WHO THIS PERSON IS (deep patterns):\n${seed.reflections.map((r) => `- ${r.slice(0, 200)}`).join('\n')}\n\n` +
     `RECENT BEHAVIOR:\n${seed.signals.map((s) => `- ${s.slice(0, 150)}`).join('\n')}`;
+
+  const whatIf = scenario
+    ? `\n\nCONDITION: every simulation must assume this person has decided to: ${String(scenario).slice(0, 200)}. Simulate the consequences of that decision.`
+    : '';
 
   const lenses = SIMULATION_LENSES.slice(0, Math.max(2, Math.min(runs, SIMULATION_LENSES.length)));
 
@@ -101,7 +112,7 @@ export async function simulateFutures(userId, { runs = 8, horizonDays = 30 } = {
           '{"keyMoment": string, "bestDecision": string, "biggestRisk": string, "happinessDriver": string}',
         messages: [{
           role: 'user',
-          content: `${seedBlock}\n\nSimulate this person's next ${horizonDays} days through this lens: ${lens}.`,
+          content: `${seedBlock}${whatIf}\n\nSimulate this person's next ${horizonDays} days through this lens: ${lens}.`,
         }],
         maxTokens: 300,
         temperature: 0.9, // variation IS the point
@@ -124,17 +135,31 @@ export async function simulateFutures(userId, { runs = 8, horizonDays = 30 } = {
   }
 
   // 3. Consensus synthesis — one call folds the swarm into one message.
+  // When feedback from the previous run exists, open with an honest accuracy
+  // check ("Last week I said X — you actually...") so the swarm visibly
+  // learns: prediction -> reality -> corrected prediction, week over week.
+  const feedbackBlock = feedback?.prediction
+    ? `\n\nLAST PREDICTION: ${String(feedback.prediction).slice(0, 400)}\n` +
+      `WHAT ACTUALLY HAPPENED SINCE:\n${(feedback.actuals || []).map((a) => `- ${String(a).slice(0, 150)}`).join('\n') || '- (no clear signals captured)'}\n` +
+      'Open your message with ONE honest sentence checking the last prediction against reality ' +
+      '(right, wrong, or mixed — say which), then give the new consensus.'
+    : '';
+  const whatIfNote = scenario
+    ? ` Every simulation was conditioned on the decision: ${String(scenario).slice(0, 200)} — frame the consensus as the consequences of that choice.`
+    : '';
   const synthesis = await complete({
     tier: TIER_ANALYSIS,
     system:
       'You are the person\'s digital twin reporting back from simulating their future. ' +
-      `You ran ${scenarios.length} independent simulations of their next ${horizonDays} days. ` +
-      'Find the CONSENSUS: which decision/driver appears across the most runs? ' +
+      `You ran ${scenarios.length} independent simulations of their next ${horizonDays} days.` +
+      whatIfNote +
+      ' Find the CONSENSUS: which decision/driver appears across the most runs? ' +
       'Write 2-4 sentences, first person as their twin ("I ran your next month ' +
       `${scenarios.length} times..."), naming how many runs agreed and the single most ` +
-      'consequential concrete recommendation. Direct, warm, specific. No emojis, no markdown.',
+      'consequential concrete recommendation. Direct, warm, specific. No emojis, no markdown.' +
+      feedbackBlock,
     messages: [{ role: 'user', content: JSON.stringify(scenarios) }],
-    maxTokens: 220,
+    maxTokens: 280,
     temperature: 0.4,
     userId,
     serviceName: 'future-simulation-synthesis',
@@ -149,9 +174,15 @@ export async function simulateFutures(userId, { runs = 8, horizonDays = 30 } = {
 }
 
 /**
- * Weekly entry point: simulate + store as a proactive insight so it rides the
- * existing delivery rails (chat "THINGS I NOTICED" + WhatsApp insight push).
- * Skips users simulated in the last 6 days (cron-overlap guard).
+ * Weekly entry point: the self-correcting loop.
+ *
+ *   last prediction + what actually happened  ->  new swarm run  ->
+ *   consensus (opens with an honest accuracy check)  ->  stored as a
+ *   proactive insight (chat context)  ->  AND sent straight to WhatsApp.
+ *
+ * Skips users simulated in the last 6 days (cron-overlap guard). The
+ * scenarios JSON is kept in insight metadata so future runs (and the twin in
+ * chat) can reference exactly what was predicted.
  */
 export async function runWeeklySimulation(userId) {
   const since = new Date(Date.now() - 6 * 24 * 3600_000).toISOString();
@@ -164,7 +195,31 @@ export async function runWeeklySimulation(userId) {
     .limit(1);
   if (recent?.length) return { skipped: 'cooldown' };
 
-  const result = await simulateFutures(userId);
+  // Feedback: last prediction (any age) + real signals captured since it.
+  let feedback = null;
+  const { data: prior } = await supabaseAdmin
+    .from('proactive_insights')
+    .select('insight, created_at')
+    .eq('user_id', userId)
+    .eq('category', 'future_simulation')
+    .order('created_at', { ascending: false })
+    .limit(1);
+  if (prior?.length) {
+    const { data: actualRows } = await supabaseAdmin
+      .from('user_memories')
+      .select('content')
+      .eq('user_id', userId)
+      .in('memory_type', ['observation', 'platform_data', 'fact'])
+      .gte('created_at', prior[0].created_at)
+      .order('importance_score', { ascending: false })
+      .limit(10);
+    feedback = {
+      prediction: prior[0].insight,
+      actuals: (actualRows || []).map((r) => r.content),
+    };
+  }
+
+  const result = await simulateFutures(userId, { feedback });
   if (!result) return { skipped: 'insufficient_data' };
 
   const { error } = await supabaseAdmin.from('proactive_insights').insert({
@@ -172,10 +227,40 @@ export async function runWeeklySimulation(userId) {
     insight: result.insight.substring(0, 500),
     urgency: 'medium',
     category: 'future_simulation',
+    metadata: { runs: result.runs, scenarios: result.scenarios },
   });
   if (error) {
     log.warn(`insight store failed for ${userId}: ${error.message}`);
     return { skipped: 'store_failed' };
   }
-  return { stored: true, runs: result.runs };
+
+  // Direct WhatsApp delivery — the consensus is a message, not a dashboard
+  // entry. Best-effort: a missing channel or closed 24h window never fails
+  // the run (the insight still reaches chat context either way).
+  let delivered = false;
+  try {
+    const { data: channels } = await supabaseAdmin
+      .from('messaging_channels')
+      .select('channel_id')
+      .eq('user_id', userId)
+      .eq('channel', 'whatsapp')
+      .limit(1);
+    if (channels?.length) {
+      const { sendWhatsAppMessage } = await import('./whatsappService.js');
+      const sent = await sendWhatsAppMessage(channels[0].channel_id, result.insight);
+      delivered = sent?.success === true;
+      if (delivered) {
+        await supabaseAdmin
+          .from('proactive_insights')
+          .update({ delivered: true })
+          .eq('user_id', userId)
+          .eq('category', 'future_simulation')
+          .gte('created_at', new Date(Date.now() - 60_000).toISOString());
+      }
+    }
+  } catch (err) {
+    log.warn(`whatsapp delivery failed (non-fatal) for ${userId}: ${err.message}`);
+  }
+
+  return { stored: true, runs: result.runs, delivered, hadFeedback: !!feedback };
 }
