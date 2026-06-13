@@ -222,44 +222,42 @@ export async function runWeeklySimulation(userId) {
   const result = await simulateFutures(userId, { feedback });
   if (!result) return { skipped: 'insufficient_data' };
 
-  const { error } = await supabaseAdmin.from('proactive_insights').insert({
-    user_id: userId,
-    insight: result.insight.substring(0, 500),
-    urgency: 'medium',
-    category: 'future_simulation',
-    metadata: { runs: result.runs, scenarios: result.scenarios },
-  });
-  if (error) {
-    log.warn(`insight store failed for ${userId}: ${error.message}`);
+  const { data: row, error } = await supabaseAdmin
+    .from('proactive_insights')
+    .insert({
+      user_id: userId,
+      insight: result.insight.substring(0, 500),
+      urgency: 'medium',
+      category: 'future_simulation',
+      metadata: { runs: result.runs, scenarios: result.scenarios },
+    })
+    .select('id, insight, category, urgency')
+    .single();
+  if (error || !row) {
+    log.warn(`insight store failed for ${userId}: ${error?.message || 'no row'}`);
     return { skipped: 'store_failed' };
   }
 
-  // Direct WhatsApp delivery — the consensus is a message, not a dashboard
-  // entry. Best-effort: a missing channel or closed 24h window never fails
-  // the run (the insight still reaches chat context either way).
+  // Channel-agnostic delivery: the consensus is a message, not a dashboard
+  // entry. Route through deliverInsight so it reaches whatever channels the
+  // user actually has live (Telegram, WhatsApp, web/mobile push) instead of
+  // hardcoding one — the WhatsApp channel can be down (Kapso token) while
+  // Telegram works, and the router picks the live one. Best-effort: if every
+  // channel fails the row stays delivered=false and cron-deliver-insights
+  // retries it on its normal cadence.
   let delivered = false;
   try {
-    const { data: channels } = await supabaseAdmin
-      .from('messaging_channels')
-      .select('channel_id')
-      .eq('user_id', userId)
-      .eq('channel', 'whatsapp')
-      .limit(1);
-    if (channels?.length) {
-      const { sendWhatsAppMessage } = await import('./whatsappService.js');
-      const sent = await sendWhatsAppMessage(channels[0].channel_id, result.insight);
-      delivered = sent?.success === true;
-      if (delivered) {
-        await supabaseAdmin
-          .from('proactive_insights')
-          .update({ delivered: true })
-          .eq('user_id', userId)
-          .eq('category', 'future_simulation')
-          .gte('created_at', new Date(Date.now() - 60_000).toISOString());
-      }
+    const { deliverInsight } = await import('./messageRouter.js');
+    const out = await deliverInsight(userId, row);
+    delivered = (out?.delivered || 0) > 0;
+    if (delivered) {
+      await supabaseAdmin
+        .from('proactive_insights')
+        .update({ delivered: true })
+        .eq('id', row.id);
     }
   } catch (err) {
-    log.warn(`whatsapp delivery failed (non-fatal) for ${userId}: ${err.message}`);
+    log.warn(`insight delivery failed (non-fatal) for ${userId}: ${err.message}`);
   }
 
   return { stored: true, runs: result.runs, delivered, hadFeedback: !!feedback };

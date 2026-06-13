@@ -22,7 +22,12 @@ vi.mock('../../../api/services/database.js', () => {
     for (const m of ['select', 'eq', 'in']) b[m] = () => b;
     b.gte = () => { b._gte = true; return b; };
     b.order = () => { b._ordered = true; return b; };
-    b.insert = (payload) => { inserts.push({ table, payload }); return Promise.resolve({ error: null }); };
+    b.insert = (payload) => {
+      inserts.push({ table, payload });
+      b._inserted = Array.isArray(payload) ? payload[0] : payload;
+      return b; // allow .select().single() chaining
+    };
+    b.single = () => Promise.resolve({ data: { id: 'ins-1', ...(b._inserted || {}) }, error: null });
     b.update = (payload) => { updates.push({ table, payload }); return b; };
     b.limit = (n) => {
       if (table === 'proactive_insights') {
@@ -46,9 +51,9 @@ vi.mock('../../../api/services/llmGateway.js', () => ({
   TIER_EXTRACTION: 'extraction',
 }));
 
-const sendWhatsAppMock = vi.fn();
-vi.mock('../../../api/services/whatsappService.js', () => ({
-  sendWhatsAppMessage: (...a) => sendWhatsAppMock(...a),
+const deliverInsightMock = vi.fn();
+vi.mock('../../../api/services/messageRouter.js', () => ({
+  deliverInsight: (...a) => deliverInsightMock(...a),
 }));
 
 const { simulateFutures, runWeeklySimulation, SIMULATION_LENSES } = await import(
@@ -141,7 +146,7 @@ describe('simulateFutures', () => {
 describe('runWeeklySimulation (the self-correcting loop)', () => {
   beforeEach(() => {
     completeMock.mockReset();
-    sendWhatsAppMock.mockReset().mockResolvedValue({ success: true, messageId: 'm1' });
+    deliverInsightMock.mockReset().mockResolvedValue({ delivered: 1, channels: [{ channel: 'telegram', success: true }] });
     inserts.length = 0;
     updates.length = 0;
     cooldownRows = []; priorRows = []; actualRows = []; channelRows = [];
@@ -149,8 +154,7 @@ describe('runWeeklySimulation (the self-correcting loop)', () => {
     happyLLM('Weekly consensus.');
   });
 
-  it('stores with scenarios metadata and delivers straight to WhatsApp', async () => {
-    channelRows = [{ channel_id: '+5511999002121' }];
+  it('stores with scenarios metadata and routes through the multi-channel deliverInsight', async () => {
     const r = await runWeeklySimulation('u1');
 
     expect(r.stored).toBe(true);
@@ -159,7 +163,8 @@ describe('runWeeklySimulation (the self-correcting loop)', () => {
     expect(insert.payload.category).toBe('future_simulation');
     expect(insert.payload.metadata.runs).toBe(8);
     expect(insert.payload.metadata.scenarios.length).toBe(8);
-    expect(sendWhatsAppMock).toHaveBeenCalledWith('+5511999002121', 'Weekly consensus.');
+    // routed through the channel-agnostic router (it delivered to Telegram in prod)
+    expect(deliverInsightMock).toHaveBeenCalledWith('u1', expect.objectContaining({ id: 'ins-1', category: 'future_simulation' }));
     // delivered marked so chat doesn't double-announce it
     expect(updates.some((u) => u.table === 'proactive_insights' && u.payload.delivered === true)).toBe(true);
   });
@@ -167,7 +172,6 @@ describe('runWeeklySimulation (the self-correcting loop)', () => {
   it('closes the loop: prior prediction + actuals reach the synthesis', async () => {
     priorRows = [{ insight: 'block Wednesday afternoons', created_at: new Date(Date.now() - 7 * 86400_000).toISOString() }];
     actualRows = [{ content: 'Worked through Wednesday afternoon on coding sprint' }];
-    channelRows = [];
 
     const r = await runWeeklySimulation('u1');
     expect(r.hadFeedback).toBe(true);
@@ -176,12 +180,13 @@ describe('runWeeklySimulation (the self-correcting loop)', () => {
     expect(synth[0].system).toContain('Worked through Wednesday afternoon');
   });
 
-  it('survives a missing WhatsApp channel (stored, not delivered)', async () => {
-    channelRows = [];
+  it('survives every channel being down (stored, not delivered, no throw)', async () => {
+    deliverInsightMock.mockResolvedValue({ delivered: 0, channels: [{ channel: 'whatsapp', success: false }] });
     const r = await runWeeklySimulation('u1');
     expect(r.stored).toBe(true);
     expect(r.delivered).toBe(false);
-    expect(sendWhatsAppMock).not.toHaveBeenCalled();
+    // not marked delivered, so cron-deliver-insights will retry it
+    expect(updates.some((u) => u.payload.delivered === true)).toBe(false);
   });
 
   it('skips on the 6-day cooldown without LLM calls', async () => {
