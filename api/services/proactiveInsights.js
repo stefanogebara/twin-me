@@ -606,6 +606,22 @@ async function generateProactiveInsights(userId) {
       log.warn('Correlation insights error', { error: corrErr });
     }
 
+    // Stress leaderboard (biometric x social) — behind the stress_leaderboard
+    // flag. Produces its own voiced insight via the Editor; the Editor's
+    // semantic dedup keeps the same finding from re-surfacing. (TODO before
+    // widening past canary: add a ~7-day cadence guard to bound the Whoop +
+    // calendar fetches.)
+    try {
+      const flags = await getFeatureFlags(userId).catch(() => ({}));
+      if (flags.stress_leaderboard === true) {
+        const { generateStressLeaderboardInsight } = await import('./biometricSocialCorrelation.js');
+        const sl = await generateStressLeaderboardInsight(userId, { logOnly: false });
+        if (sl) stored++;
+      }
+    } catch (slErr) {
+      log.warn('Stress leaderboard error', { error: slErr?.message });
+    }
+
     return stored;
   } catch (error) {
     log.error('Error generating insights', { error });
