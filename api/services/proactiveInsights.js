@@ -20,6 +20,9 @@
  */
 
 import { getRecentMemories, retrieveMemories } from './memoryStreamService.js';
+import { editInsights } from './insightEditor.js';
+import { vectorToString } from './embeddingService.js';
+import { getFeatureFlags } from './featureFlagsService.js';
 import { complete, TIER_ANALYSIS } from './llmGateway.js';
 import { sendPushToUser } from './pushNotificationService.js';
 import { supabaseAdmin } from './database.js';
@@ -415,9 +418,15 @@ async function generateProactiveInsights(userId) {
     // numerics still match.
     const groundingCorpus = `${observations}\n${reflectionText}`;
 
-    // 5. Store insights (max 3), with dedup against recent undelivered
+    // 5. Store insights. With the salience+voice Editor (replan-2026-06-13)
+    // enabled, candidates are collected through the same grounding/suppression
+    // gates, then handed to editInsights() which returns AT MOST ONE, rewritten
+    // in voice (or nothing). Without the flag, the legacy "store up to 3" path
+    // runs unchanged.
     let stored = 0;
     let skippedUngrounded = 0;
+    const editorEnabled = (await getFeatureFlags(userId).catch(() => ({}))).insight_editor === true;
+    const candidatesForEditor = [];
     for (const item of insights.slice(0, 3)) {
       if (!item.insight || item.insight.length < 10) continue;
 
@@ -460,6 +469,19 @@ async function generateProactiveInsights(userId) {
       // rendered raw on the dashboard. The category belongs in item.category,
       // never in the text — strip any short leading bracketed tag.
       const insightText = stripEmoji(item.insight).replace(/^\s*\[[a-z_ -]{2,24}\]\s*/i, '');
+
+      // Editor path: collect the grounded candidate and let editInsights() do
+      // semantic dedup + the single voice rewrite after the loop. Skip the
+      // legacy per-item store below.
+      if (editorEnabled) {
+        candidatesForEditor.push({
+          insight: insightText.substring(0, 500),
+          urgency: ['low', 'medium', 'high'].includes(item.urgency) ? item.urgency : 'low',
+          category: validCategories.includes(item.category) ? item.category : null,
+        });
+        continue;
+      }
+
       const insertData = {
         user_id: userId,
         insight: insightText.substring(0, 500),
@@ -500,7 +522,39 @@ async function generateProactiveInsights(userId) {
       }
     }
 
-    log.info('Generated insights', { stored, skippedUngrounded, userId });
+    // Editor path: one salience+voice pass over all candidates -> 0 or 1 insight.
+    if (editorEnabled && candidatesForEditor.length > 0) {
+      const chosen = await editInsights(userId, candidatesForEditor);
+      if (chosen) {
+        const insertData = {
+          user_id: userId,
+          insight: chosen.insight,
+          urgency: chosen.urgency,
+          category: chosen.category,
+          // surfaced_at anchors the semantic-dedup window — this is the one
+          // thing we chose to say, so it counts as "said" from now.
+          surfaced_at: new Date().toISOString(),
+        };
+        if (chosen.embedding) insertData.embedding = vectorToString(chosen.embedding);
+        const sources = _extractSourcesFromText(chosen.insight);
+        if (sources.length > 0) insertData.sources = sources;
+        const { error } = await supabaseAdmin.from('proactive_insights').insert(insertData);
+        if (!error) {
+          stored++;
+          if (chosen.urgency === 'high') {
+            sendPushToUser(userId, {
+              title: 'Your twin noticed something',
+              body: chosen.insight.substring(0, 120),
+              data: { type: 'proactive_insight', category: chosen.category ?? 'trend' },
+            }).catch((err) => log.warn('Push failed', { error: err }));
+          }
+        } else {
+          log.warn('Failed to store edited insight', { error });
+        }
+      }
+    }
+
+    log.info('Generated insights', { stored, skippedUngrounded, userId, editor: editorEnabled });
 
     // Weekly cross-platform correlation insights
     // Only run if no 'trend' category insight exists in the last 7 days
