@@ -164,6 +164,62 @@ export function buildCalmingCandidate(calming) {
   return `Across the last weeks, your ${body} on the ${calming.n} days you have meetings involving ${who}, versus your other days.${confound}`;
 }
 
+// ── Social battery: meeting load -> next-day recovery ────────────────────────
+const BATTERY_EFFECT_FLOOR = 0.4;
+
+/**
+ * PURE. Does a packed calendar cost you the next morning? Pairs each day's
+ * meeting LOAD with the FOLLOWING day's recovery (Whoop recovery is computed
+ * overnight, so today's load shows up in tomorrow's number), then compares
+ * next-day recovery after your busiest vs lightest days.
+ * @returns {object|null} { effect, recoveryDeltaPts, nHigh, nLow } or null.
+ */
+export function computeSocialBattery(days, { effectFloor = BATTERY_EFFECT_FLOOR } = {}) {
+  if (!Array.isArray(days) || days.length < 10) return null;
+  const sorted = [...days].filter((d) => d.date).sort((a, b) => a.date.localeCompare(b.date));
+
+  // Pair load[d] with recovery[d+1] only for genuinely consecutive calendar days.
+  const pairs = [];
+  for (let i = 0; i < sorted.length - 1; i++) {
+    const a = sorted[i], b = sorted[i + 1];
+    if (typeof b.recovery !== 'number') continue;
+    const gapDays = Math.round((new Date(b.date) - new Date(a.date)) / 86400_000);
+    if (gapDays !== 1) continue;
+    pairs.push({ load: a.load ?? 0, nextRecovery: b.recovery });
+  }
+  if (pairs.length < 8) return null;
+
+  const loads = pairs.map((p) => p.load);
+  const hi = tercileHigh(loads), lo = tercileLow(loads);
+  if (hi <= lo) return null; // no spread in calendar load — nothing to compare
+
+  const highDays = pairs.filter((p) => p.load >= hi);
+  const lowDays = pairs.filter((p) => p.load <= lo);
+  if (highDays.length < 4 || lowDays.length < 4) return null;
+
+  const s = stddev(pairs.map((p) => p.nextRecovery));
+  if (!s) return null;
+  const mHigh = mean(highDays.map((p) => p.nextRecovery));
+  const mLow = mean(lowDays.map((p) => p.nextRecovery));
+  const recoveryDeltaPts = Math.round(mLow - mHigh); // +ve = busy days cost next-day recovery
+  const effect = (mLow - mHigh) / s;
+  if (Math.abs(effect) < effectFloor) return null;
+
+  return { effect, recoveryDeltaPts, nHigh: highDays.length, nLow: lowDays.length };
+}
+
+/** PURE. Candidate text for the social-battery finding (Editor voices it). */
+export function buildSocialBatteryCandidate(battery) {
+  if (!battery) return null;
+  if (battery.recoveryDeltaPts > 0) {
+    return `On the mornings after your busiest days, your recovery averages ${battery.recoveryDeltaPts} points lower than after your lighter days, across ${battery.nHigh} busy days. Your body seems to pay for a packed calendar the next day.`;
+  }
+  if (battery.recoveryDeltaPts < 0) {
+    return `On the mornings after your busiest days, your recovery actually runs ${Math.abs(battery.recoveryDeltaPts)} points higher than after your lighter days, across ${battery.nHigh} busy days. A full calendar seems to energize you rather than drain you.`;
+  }
+  return null;
+}
+
 // ── gather (I/O, graceful) ──────────────────────────────────────────────────
 async function fetchRecoveryDays(userId) {
   try {
@@ -270,14 +326,21 @@ export async function generateStressLeaderboardInsight(userId, { logOnly = false
     top: top ? { name: firstName(top.name, top.id), effect: top.stressEffect.toFixed(2), n: top.n, confound: top.confoundLikely } : null,
     calming: calming ? { name: firstName(calming.name, calming.id), effect: calming.stressEffect.toFixed(2) } : null,
   });
-  if (!top && !calming) return null;
+  // Social battery: does a packed calendar cost you the next morning? Same
+  // gathered days, a different correlation (daily LOAD -> next-day recovery).
+  const battery = computeSocialBattery(days);
+  const batteryCandidate = buildSocialBatteryCandidate(battery);
 
-  // Build both directions — the stressor your body braces for AND the person it
-  // settles around (the "energy leaderboard"). The salience Editor picks the
-  // single more worth-saying one, or neither. Same engine, opposite sign.
+  if (!top && !calming && !batteryCandidate) return null;
+
+  // Build every direction we found — the stressor your body braces for, the
+  // person it settles around (energy leaderboard), and the social-battery cost
+  // of a full calendar. The salience Editor picks the single most worth-saying
+  // one, or none. Same gather + engine, different correlations.
   const candidates = [];
   if (top) candidates.push({ insight: buildCandidate(top), urgency: 'medium', category: 'stress_correlation' });
   if (calming) candidates.push({ insight: buildCalmingCandidate(calming), urgency: 'low', category: 'energy_correlation' });
+  if (batteryCandidate) candidates.push({ insight: batteryCandidate, urgency: 'low', category: 'social_battery' });
   log.info('biometric-social candidates', { userId, candidates: candidates.map((c) => c.insight) });
   if (logOnly) return null;
 

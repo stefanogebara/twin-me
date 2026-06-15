@@ -6,6 +6,8 @@
 import { describe, it, expect } from 'vitest';
 import {
   buildCalmingCandidate,
+  computeSocialBattery,
+  buildSocialBatteryCandidate,
   computeStressLeaderboard,
   firstName,
   buildCandidate,
@@ -149,5 +151,68 @@ describe('buildCalmingCandidate', () => {
   });
   it('returns null for no calming person', () => {
     expect(buildCalmingCandidate(null)).toBeNull();
+  });
+});
+
+// ── Social battery: meeting load -> next-day recovery ────────────────────────
+function consecutiveDate(i) {
+  const d = new Date(Date.UTC(2026, 0, 1) + i * 86400000);
+  return d.toISOString().slice(0, 10);
+}
+
+describe('computeSocialBattery', () => {
+  it('detects busy days costing next-day recovery', () => {
+    // Alternate busy(load 5)/light(load 0); recovery reflects the PRIOR day's load.
+    const days = [];
+    for (let i = 0; i < 20; i++) {
+      const load = i % 2 === 0 ? 5 : 0;
+      let recovery = 70;
+      if (i > 0) recovery = (i - 1) % 2 === 0 ? 50 : 75; // prior busy -> 50, prior light -> 75
+      days.push({ date: consecutiveDate(i), recovery, hrv: 60, restingHr: 55, people: [], load });
+    }
+    const b = computeSocialBattery(days);
+    expect(b).not.toBeNull();
+    expect(b.recoveryDeltaPts).toBeGreaterThan(0); // recovery lower after busy days
+    expect(b.effect).toBeGreaterThan(0.4);
+    expect(b.nHigh).toBeGreaterThanOrEqual(4);
+    expect(b.nLow).toBeGreaterThanOrEqual(4);
+  });
+
+  it('returns null when load has no spread', () => {
+    const days = Array.from({ length: 20 }, (_, i) => ({ date: consecutiveDate(i), recovery: 65, hrv: 60, restingHr: 55, people: [], load: 2 }));
+    expect(computeSocialBattery(days)).toBeNull();
+  });
+
+  it('returns null on too-few days', () => {
+    expect(computeSocialBattery([])).toBeNull();
+    expect(computeSocialBattery(Array(5).fill({ date: '2026-01-01', recovery: 60, load: 1 }))).toBeNull();
+  });
+
+  it('only pairs genuinely consecutive calendar days', () => {
+    // Every day is 2 apart -> NO consecutive pairs form, even though there's a
+    // clean load/recovery relationship in the data.
+    const days = [];
+    for (let i = 0; i < 20; i++) {
+      days.push({ date: consecutiveDate(i * 2), recovery: i % 2 ? 50 : 75, hrv: 60, restingHr: 55, people: [], load: i % 2 ? 0 : 5 });
+    }
+    expect(computeSocialBattery(days)).toBeNull();
+  });
+});
+
+describe('buildSocialBatteryCandidate', () => {
+  it('frames a draining battery (busy -> lower next-day recovery)', () => {
+    const c = buildSocialBatteryCandidate({ effect: 1.5, recoveryDeltaPts: 18, nHigh: 7, nLow: 7 });
+    expect(c).toMatch(/recovery averages 18 points lower/);
+    expect(c).toMatch(/pay for a packed calendar/);
+    expect(c).toMatch(/7 busy days/);
+  });
+  it('frames the energizing case (busy -> higher next-day recovery)', () => {
+    const c = buildSocialBatteryCandidate({ effect: -1.2, recoveryDeltaPts: -10, nHigh: 6, nLow: 6 });
+    expect(c).toMatch(/10 points higher/);
+    expect(c).toMatch(/energize you/);
+  });
+  it('returns null for no battery or zero delta', () => {
+    expect(buildSocialBatteryCandidate(null)).toBeNull();
+    expect(buildSocialBatteryCandidate({ recoveryDeltaPts: 0 })).toBeNull();
   });
 });
