@@ -283,6 +283,7 @@ app.use((req, res, next) => {
     : req.path.includes('/onboarding/calibration') ? 90000
     : req.path.includes('/whatsapp-twin/webhook') ? 90000
     : req.path.includes('/whatsapp-zapi/webhook') ? 90000  // inbound pipeline runs twin chat (~25s)
+    : req.path.includes('/whatsapp-evolution/webhook') ? 90000  // same inbound pipeline
     : req.path.includes('/telegram-webhook') ? 90000
     : req.path.includes('/discovery/scan') ? 55000
     : req.path.includes('/departments/heartbeat') ? 55000  // LLM heartbeat needs time
@@ -541,6 +542,7 @@ import whatsappTwinWebhookRoutes from './routes/whatsapp-twinme-webhook.js';
 import purchaseNotificationRoutes from './routes/purchase-notification.js';
 import whatsappKapsoWebhookRoutes from './routes/whatsapp-kapso-webhook.js';
 import whatsappZapiWebhookRoutes from './routes/whatsapp-zapi-webhook.js';
+import whatsappEvolutionWebhookRoutes from './routes/whatsapp-evolution-webhook.js';
 import webPushRoutes from './routes/web-push.js';
 import telegramWebhookRoutes from './routes/telegram-webhook.js';
 import telegramLinkRoutes from './routes/telegram-link.js';
@@ -726,6 +728,7 @@ app.use('/api/github', githubConnectRoutes);   // GitHub PAT connection + status
 app.use('/api/instagram', instagramRoutes);    // Instagram vanilla-Playwright scraper (no OAuth — uses browser cookies)
 app.use('/api/whatsapp', whatsappKapsoWebhookRoutes); // WhatsApp Kapso inbound webhook
 app.use('/api/whatsapp-zapi', whatsappZapiWebhookRoutes); // WhatsApp Z-API inbound webhook (active money-flow provider)
+app.use('/api/whatsapp-evolution', whatsappEvolutionWebhookRoutes); // WhatsApp Evolution API inbound webhook (free self-host option)
 app.use('/api/whatsapp', whatsappImportRoutes); // WhatsApp export file parser
 app.use('/api/journal', journalRoutes); // Soul Journal - personal journaling with AI analysis
 // Admin routes return 404 for unauthenticated to prevent route enumeration

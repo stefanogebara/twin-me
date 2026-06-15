@@ -108,6 +108,98 @@ async function sendViaZapi(recipientPhone, text) {
   }
 }
 
+// Evolution API (open-source, self-hosted, Baileys-based WhatsApp-Web gateway).
+// The free alternative to Z-API: no per-message cost, no 24h window, any number
+// via QR — you run the server. Same { success, messageId, provider } envelope.
+//   EVOLUTION_API_URL  — base URL of your Evolution instance (no trailing slash)
+//   EVOLUTION_API_KEY  — global/instance apikey (sent as the `apikey` header)
+//   EVOLUTION_INSTANCE — instance name
+const USE_EVOLUTION = !!(process.env.EVOLUTION_API_URL && process.env.EVOLUTION_API_KEY && process.env.EVOLUTION_INSTANCE);
+
+// Evolution wants DDI+DDD+number digits only (same as Z-API).
+function normalizeEvolutionPhone(phone) {
+  return String(phone || '').replace(/[^\d]/g, '');
+}
+
+/** Send a text message via Evolution API v2. */
+async function sendViaEvolution(recipientPhone, text) {
+  const base = process.env.EVOLUTION_API_URL.replace(/\/+$/, '');
+  const url = `${base}/message/sendText/${process.env.EVOLUTION_INSTANCE}`;
+  const number = normalizeEvolutionPhone(recipientPhone);
+  const headers = { 'Content-Type': 'application/json', apikey: process.env.EVOLUTION_API_KEY };
+
+  try {
+    const { data, status } = await axios.post(url, { number, text }, { headers, timeout: 15000 });
+    // Evolution 201 response: { key: { id }, message: {...}, status }
+    const messageId = data?.key?.id || null;
+    log.info('WhatsApp Evolution send response', { recipientSuffix: number.slice(-4), httpStatus: status, messageId });
+    logOutbound({
+      recipient: number,
+      recipient_input: recipientPhone,
+      text_preview: text?.slice(0, 120) || null,
+      text_len: text?.length || 0,
+      provider: 'evolution',
+      success: true,
+      message_id: messageId,
+      http_status: status,
+      raw_response: data || null,
+    });
+    return { success: true, messageId, provider: 'evolution' };
+  } catch (err) {
+    const errMsg = err.response?.data?.message || err.response?.data?.error || err.message;
+    log.error('Evolution send failed', { recipientSuffix: number.slice(-4), error: errMsg, httpStatus: err.response?.status });
+    logOutbound({
+      recipient: number,
+      recipient_input: recipientPhone,
+      text_preview: text?.slice(0, 120) || null,
+      text_len: text?.length || 0,
+      provider: 'evolution',
+      success: false,
+      error_message: typeof errMsg === 'string' ? errMsg : JSON.stringify(errMsg),
+      http_status: err.response?.status || null,
+      raw_error: err.response?.data || null,
+    });
+    return { success: false, error: errMsg, provider: 'evolution' };
+  }
+}
+
+/**
+ * Download Evolution media. Unlike Z-API, Evolution does NOT expose a directly
+ * fetchable URL — the WhatsApp CDN url in the webhook is encrypted. Instead you
+ * POST the message key to getBase64FromMediaMessage and decode the base64.
+ * The inbound parse encodes the media id as `evolution:<messageId>`.
+ *
+ * NOTE: authored against the v2 docs; needs one live verification (scan QR,
+ * forward a statement) before the media path is trusted. The text loop is the
+ * verified core.
+ */
+async function downloadEvolutionMedia(messageId) {
+  const base = process.env.EVOLUTION_API_URL.replace(/\/+$/, '');
+  const url = `${base}/chat/getBase64FromMediaMessage/${process.env.EVOLUTION_INSTANCE}`;
+  const headers = { 'Content-Type': 'application/json', apikey: process.env.EVOLUTION_API_KEY };
+  try {
+    const { data } = await axios.post(
+      url,
+      { message: { key: { id: messageId } }, convertToMp4: false },
+      { headers, timeout: 20000 },
+    );
+    const b64 = data?.base64;
+    if (!b64) {
+      log.warn('Evolution getBase64 returned no base64', { messageId });
+      return null;
+    }
+    const buffer = Buffer.from(b64, 'base64');
+    if (buffer.length > MAX_MEDIA_BYTES) {
+      log.warn('Evolution media exceeds size cap', { messageId, bytes: buffer.length });
+      return null;
+    }
+    return buffer;
+  } catch (err) {
+    log.warn('Evolution media download failed', { messageId, error: err.message });
+    return null;
+  }
+}
+
 // Lazy-initialize Kapso client (only when needed)
 let kapsoClient = null;
 
@@ -147,6 +239,12 @@ export async function sendWhatsAppMessage(recipientPhone, text) {
   // would send from the wrong sender.
   if (USE_ZAPI) {
     return sendViaZapi(recipientPhone, text);
+  }
+
+  // Evolution API (self-hosted) — next in priority. Like Z-API, no fallback:
+  // one number routes through one provider.
+  if (USE_EVOLUTION) {
+    return sendViaEvolution(recipientPhone, text);
   }
 
   // Try Kapso first
@@ -380,6 +478,11 @@ export async function downloadWhatsAppMedia(mediaId) {
       log.warn('downloadWhatsAppMedia (direct URL) failed', { error: err.message });
       return null;
     }
+  }
+
+  // Evolution media: `evolution:<messageId>` → getBase64FromMediaMessage.
+  if (typeof mediaId === 'string' && mediaId.startsWith('evolution:')) {
+    return downloadEvolutionMedia(mediaId.slice('evolution:'.length));
   }
 
   if (!USE_KAPSO) {
