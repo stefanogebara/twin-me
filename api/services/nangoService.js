@@ -409,6 +409,40 @@ export async function deleteConnection(userId, platform) {
 }
 
 /**
+ * Delete a Nango connection by its raw provider_config_key + connection_id,
+ * bypassing PLATFORM_CONFIGS.
+ *
+ * Why this exists: when a platform is RETIRED (twitch/reddit/linkedin/…) it is
+ * removed from PLATFORM_CONFIGS, so deleteConnection() returns "Unknown
+ * platform" and can NEVER free that platform's orphaned Nango slots — which is
+ * how the account hits its global connection cap (resource_capped). The
+ * nango_connection_mappings row still carries provider_config_key +
+ * nango_connection_id, so we can delete directly. A 404 means it's already gone
+ * (slot already free) — treated as success.
+ */
+export async function deleteNangoConnectionRaw(providerConfigKey, connectionId) {
+  if (!providerConfigKey || !connectionId) {
+    return { success: false, error: 'missing providerConfigKey or connectionId' };
+  }
+  try {
+    requireNango();
+    await nango.deleteConnection(providerConfigKey, connectionId);
+    log.info('Deleted Nango connection (raw)', { providerConfigKey, connectionId });
+    return { success: true };
+  } catch (error) {
+    const status = error.response?.status;
+    const msg = error.response?.data?.message || error.response?.data?.error || error.message || '';
+    // 404, or a 400 that says the connection doesn't exist, both mean the slot
+    // is already free — treat as success so cleanup drops the stale bookkeeping
+    // instead of retrying a delete that can never succeed.
+    if (status === 404 || (status === 400 && /not\s*found|does\s*not\s*exist|unknown\s*connection/i.test(String(msg)))) {
+      return { success: true, alreadyGone: true };
+    }
+    return { success: false, error: typeof msg === 'string' ? msg : JSON.stringify(msg), status };
+  }
+}
+
+/**
  * Make a proxy request to an API
  * @param {string} userId - The app user ID
  * @param {string} platform - Platform key or custom provider config key

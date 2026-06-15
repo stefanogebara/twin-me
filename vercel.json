@@ -193,6 +193,10 @@
       "schedule": "0 2 * * *"
     },
     {
+      "path": "/api/cron/nango-orphan-cleanup",
+      "schedule": "0 5 * * 0"
+    },
+    {
       "path": "/api/cron/outcome-learning",
       "schedule": "30 3 * * *"
     },

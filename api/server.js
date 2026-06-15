@@ -529,6 +529,7 @@ import cronCalendarOptimizationRoutes from './routes/cron-calendar-optimization.
 import cronNudgeInactiveRoutes from './routes/cron-nudge-inactive.js';
 import cronDepartmentExecuteRoutes from './routes/cron-department-execute.js';
 import cronAgentActionsCleanupRoutes from './routes/cron-agent-actions-cleanup.js';
+import cronNangoOrphanCleanupRoutes from './routes/cron-nango-orphan-cleanup.js';
 import cronOutcomeLearningRoutes from './routes/cron-outcome-learning.js';
 import cronMeetingPrepRoutes from './routes/cron-meeting-prep.js';
 import cronStripeWebhookEventsCleanupRoutes from './routes/cron-stripe-webhook-events-cleanup.js';
@@ -771,6 +772,7 @@ app.use('/api/cron/calendar-optimization', cronCalendarOptimizationRoutes); // W
 app.use('/api/cron/nudge-inactive', cronNudgeInactiveRoutes); // Daily nudge for users with 0 platforms connected
 app.use('/api/cron/department-execute', cronDepartmentExecuteRoutes); // Every 3h: auto-execute autonomous department proposals
 app.use('/api/cron/agent-actions-cleanup', cronAgentActionsCleanupRoutes); // Daily 2am UTC: soft-expire pending proposals older than 7 days
+app.use('/api/cron/nango-orphan-cleanup', cronNangoOrphanCleanupRoutes); // Weekly Sun 5am UTC: free Nango slots held by retired-platform connections
 app.use('/api/cron/outcome-learning', cronOutcomeLearningRoutes); // Daily 03:30 UTC: classify gmail_draft outcomes (sent/trashed/kept) → procedural memory updates
 app.use('/api/cron/meeting-prep', cronMeetingPrepRoutes); // Every 30 min: pre-meeting briefings for upcoming external meetings
 app.use('/api/cron/meeting-debrief', cronMeetingDebriefRoutes); // Every 30 min: post-meeting debriefs for meetings that just ended
