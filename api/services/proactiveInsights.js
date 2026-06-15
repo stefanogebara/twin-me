@@ -707,6 +707,26 @@ async function markInsightsDelivered(insightIds) {
  * @returns {Array} Parsed insights array
  * @throws {Error} If no valid JSON array can be extracted
  */
+/** Return the first balanced top-level `[...]` substring (string-aware), or null. */
+function _firstBalancedArray(text) {
+  const start = text.indexOf('[');
+  if (start === -1) return null;
+  let depth = 0, inStr = false, esc = false;
+  for (let i = start; i < text.length; i++) {
+    const ch = text[i];
+    if (inStr) {
+      if (esc) esc = false;
+      else if (ch === '\\') esc = true;
+      else if (ch === '"') inStr = false;
+      continue;
+    }
+    if (ch === '"') inStr = true;
+    else if (ch === '[') depth++;
+    else if (ch === ']') { depth--; if (depth === 0) return text.substring(start, i + 1); }
+  }
+  return null;
+}
+
 function _parseInsightsJSON(text) {
   // Strategy 1: Direct parse (cleanest case)
   try {
@@ -722,6 +742,24 @@ function _parseInsightsJSON(text) {
     if (Array.isArray(parsed)) return parsed;
     if (parsed && typeof parsed === 'object' && parsed.insight) return [parsed];
   } catch { /* continue */ }
+
+  // Strategy 2b: first BALANCED top-level array. Models sometimes emit the
+  // array then a second fenced copy ("[]\n```json\n[]```") — strategy 3's
+  // last-`]` then spans both arrays and fails to parse, silently dropping
+  // real insights. Scan from the first `[` to its matching close (string-aware)
+  // and parse just that.
+  const firstArr = _firstBalancedArray(text);
+  if (firstArr) {
+    try {
+      const parsed = JSON.parse(firstArr);
+      if (Array.isArray(parsed)) return parsed;
+    } catch {
+      try {
+        const parsed = JSON.parse(firstArr.replace(/,\s*([}\]])/g, '$1'));
+        if (Array.isArray(parsed)) return parsed;
+      } catch { /* continue */ }
+    }
+  }
 
   // Strategy 3: Find first [ ... ] bracket pair in the text
   const bracketStart = text.indexOf('[');
@@ -1010,4 +1048,5 @@ export {
   _findUngroundedNumbers,
   _stripDigitsForDedup,
   _extractInsightTheme,
+  _parseInsightsJSON,
 };
