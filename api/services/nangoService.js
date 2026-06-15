@@ -281,18 +281,27 @@ export async function createConnectSession(userId, userEmail, options = {}) {
     return { success: true, token, connectLink };
   } catch (error) {
     const responseData = error.response?.data;
+    // Nango returns structured errors as { error: { code, message } }. Earlier
+    // this passed responseData.error (an OBJECT) straight through, so the
+    // frontend toast rendered "[object Object]" and hid real causes like
+    // resource_capped ("Reached maximum number of allowed connections").
+    // Always resolve to a STRING message + a separate code.
+    const rawErr = responseData?.error;
     const upstreamMessage =
       (typeof responseData === 'string' && responseData) ||
-      responseData?.error ||
+      (typeof rawErr === 'string' && rawErr) ||
+      rawErr?.message ||
       responseData?.message ||
       responseData?.details ||
-      error.message;
+      error.message ||
+      'Connect session failed';
+    const upstreamCode = responseData?.code || rawErr?.code;
 
     log.error('Error creating connect session:', upstreamMessage, responseData || '');
     return {
       success: false,
-      error: upstreamMessage,
-      code: responseData?.code,
+      error: typeof upstreamMessage === 'string' ? upstreamMessage : JSON.stringify(upstreamMessage),
+      code: upstreamCode,
       statusCode: error.response?.status || 400
     };
   }
