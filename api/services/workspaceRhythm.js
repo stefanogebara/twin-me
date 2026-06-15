@@ -105,8 +105,81 @@ const WORKSPACE_DOC_TYPES = [
   'application/vnd.google-apps.spreadsheet',
   'application/vnd.google-apps.presentation',
 ];
+const WORKSPACE_TYPE_SET = new Set(WORKSPACE_DOC_TYPES);
+const ACTIVITY_PAGE_CAP = 10; // up to ~1000 activities
 
-async function fetchDriveActivityDays(userId) {
+/**
+ * PURE. Bucket Drive Activity API results into a date -> distinct-docs-touched
+ * map, counting only the current user's create/edit actions on Workspace docs.
+ * Richer than files.list modifiedTime, which only gives each file's single
+ * latest edit (a doc worked on daily collapses to one data point).
+ * @param {Array} activities raw activities from activity:query
+ * @returns {Map<string, number>} 'YYYY-MM-DD' -> distinct doc count
+ */
+export function bucketActivityByDay(activities, { workspaceTypesOnly = true } = {}) {
+  const perDay = new Map(); // date -> Set<driveItem.name>
+  for (const act of activities || []) {
+    const detail = act?.primaryActionDetail || {};
+    if (!detail.create && !detail.edit) continue; // making = create or edit
+    const mine = (act.actors || []).some((a) => a?.user?.knownUser?.isCurrentUser === true);
+    if (!mine) continue;
+    const ts = act.timestamp || act.timeRange?.endTime || act.timeRange?.startTime || '';
+    const date = ts.slice(0, 10);
+    if (!date) continue;
+    for (const t of act.targets || []) {
+      const item = t?.driveItem;
+      if (!item?.name) continue;
+      if (workspaceTypesOnly && !WORKSPACE_TYPE_SET.has(item.mimeType)) continue;
+      if (!perDay.has(date)) perDay.set(date, new Set());
+      perDay.get(date).add(item.name);
+    }
+  }
+  const map = new Map();
+  for (const [date, set] of perDay) map.set(date, set.size);
+  return map;
+}
+
+/** I/O. Per-day making via the Drive Activity API. Returns null on failure so
+ *  the caller can fall back (e.g. the drive.activity scope isn't granted yet). */
+async function fetchDriveActivityViaActivityApi(userId) {
+  try {
+    const tokenResult = await getValidAccessToken(userId, 'google_gmail');
+    if (!tokenResult?.success || !tokenResult.accessToken) return null;
+    const since = new Date(Date.now() - WINDOW_DAYS * 86400_000).toISOString();
+    const baseBody = {
+      filter: `time >= "${since}" AND detail.action_detail_case:(CREATE EDIT)`,
+      pageSize: 100,
+    };
+    const all = [];
+    let pageToken;
+    for (let page = 0; page < ACTIVITY_PAGE_CAP; page++) {
+      const res = await fetch('https://driveactivity.googleapis.com/v2/activity:query', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${tokenResult.accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(pageToken ? { ...baseBody, pageToken } : baseBody),
+      });
+      if (!res.ok) {
+        log.warn('drive activity API query failed', { status: res.status });
+        return null; // signal fallback (403 = scope not granted yet)
+      }
+      const data = await res.json();
+      for (const a of data.activities || []) all.push(a);
+      pageToken = data.nextPageToken;
+      if (!pageToken) break;
+    }
+    return bucketActivityByDay(all);
+  } catch (err) {
+    log.warn('drive activity API query failed', { error: err.message });
+    return null;
+  }
+}
+
+/** I/O. Fallback: per-day making from files.list modifiedTime (latest edit
+ *  only — undercounts heavy editors, but needs no extra scope). */
+async function fetchDriveActivityViaModifiedTime(userId) {
   try {
     const tokenResult = await getValidAccessToken(userId, 'google_gmail');
     if (!tokenResult?.success || !tokenResult.accessToken) {
@@ -140,6 +213,17 @@ async function fetchDriveActivityDays(userId) {
     log.warn('drive activity fetch failed', { error: err.message });
     return new Map();
   }
+}
+
+/** Per-day making. Prefers the Drive Activity API (true edit events); falls
+ *  back to files.list modifiedTime when the activity scope isn't granted. */
+async function fetchDriveActivityDays(userId) {
+  const viaActivity = await fetchDriveActivityViaActivityApi(userId);
+  if (viaActivity && viaActivity.size > 0) {
+    log.info('drive activity via Activity API', { userId, days: viaActivity.size });
+    return viaActivity;
+  }
+  return fetchDriveActivityViaModifiedTime(userId);
 }
 
 async function fetchCalendarLoadDays(userId) {

@@ -7,8 +7,71 @@ import { describe, it, expect } from 'vitest';
 import {
   computeMakerTime,
   buildMakerTimeCandidate,
+  bucketActivityByDay,
   MAKER_EFFECT_FLOOR,
 } from '../../../api/services/workspaceRhythm.js';
+
+// ── Drive Activity API parser ────────────────────────────────────────────────
+const DOC = 'application/vnd.google-apps.document';
+const SHEET = 'application/vnd.google-apps.spreadsheet';
+const PNG = 'image/png';
+const mine = { user: { knownUser: { isCurrentUser: true } } };
+const other = { user: { knownUser: { isCurrentUser: false } } };
+const edit = { edit: {} };
+const create = { create: {} };
+const comment = { comment: {} };
+function activity({ detail = edit, actors = [mine], ts = '2026-06-09T12:00:00Z', targets = [{ driveItem: { name: 'items/a', mimeType: DOC } }], timeRange } = {}) {
+  const a = { primaryActionDetail: detail, actors, targets };
+  if (timeRange) a.timeRange = timeRange; else a.timestamp = ts;
+  return a;
+}
+
+describe('bucketActivityByDay', () => {
+  it('counts the current user create/edit on Workspace docs per day', () => {
+    const m = bucketActivityByDay([
+      activity({ detail: edit, ts: '2026-06-09T08:00:00Z', targets: [{ driveItem: { name: 'items/a', mimeType: DOC } }] }),
+      activity({ detail: create, ts: '2026-06-09T20:00:00Z', targets: [{ driveItem: { name: 'items/b', mimeType: SHEET } }] }),
+    ]);
+    expect(m.get('2026-06-09')).toBe(2);
+  });
+
+  it('dedups repeat edits of the same doc within a day', () => {
+    const m = bucketActivityByDay([
+      activity({ ts: '2026-06-09T08:00:00Z', targets: [{ driveItem: { name: 'items/a', mimeType: DOC } }] }),
+      activity({ ts: '2026-06-09T09:00:00Z', targets: [{ driveItem: { name: 'items/a', mimeType: DOC } }] }),
+      activity({ ts: '2026-06-09T10:00:00Z', targets: [{ driveItem: { name: 'items/a', mimeType: DOC } }] }),
+    ]);
+    expect(m.get('2026-06-09')).toBe(1); // same doc, one distinct touch
+  });
+
+  it('excludes other people edits and non-making actions', () => {
+    const m = bucketActivityByDay([
+      activity({ actors: [other] }),                 // someone else
+      activity({ detail: comment }),                 // not making
+      activity({ actors: [] }),                      // unattributable
+    ]);
+    expect(m.size).toBe(0);
+  });
+
+  it('excludes non-Workspace file types by default', () => {
+    const m = bucketActivityByDay([
+      activity({ targets: [{ driveItem: { name: 'items/png', mimeType: PNG } }] }),
+    ]);
+    expect(m.size).toBe(0);
+  });
+
+  it('uses timeRange.endTime when no single timestamp', () => {
+    const m = bucketActivityByDay([
+      activity({ timeRange: { startTime: '2026-06-08T23:00:00Z', endTime: '2026-06-10T01:00:00Z' } }),
+    ]);
+    expect(m.get('2026-06-10')).toBe(1);
+  });
+
+  it('returns an empty map for empty / nullish input', () => {
+    expect(bucketActivityByDay([]).size).toBe(0);
+    expect(bucketActivityByDay(null).size).toBe(0);
+  });
+});
 
 /** Build N days, each {date, driveActivity, load}. */
 function days(specs) {

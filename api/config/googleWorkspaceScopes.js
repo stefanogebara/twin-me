@@ -27,6 +27,8 @@ export const GOOGLE_WORKSPACE_SCOPES = [
   // Drive — read any file + write app-created files (both SENSITIVE, no CASA)
   'https://www.googleapis.com/auth/drive.readonly',
   'https://www.googleapis.com/auth/drive.file',
+  // Drive Activity — per-day create/edit events (SENSITIVE; powers maker-time)
+  'https://www.googleapis.com/auth/drive.activity.readonly',
   // Calendar — full management (SENSITIVE)
   'https://www.googleapis.com/auth/calendar',
   'https://www.googleapis.com/auth/calendar.events',
@@ -47,6 +49,7 @@ export const GOOGLE_WORKSPACE_SCOPES_READONLY = [
   'https://www.googleapis.com/auth/userinfo.profile',
   'https://www.googleapis.com/auth/gmail.readonly',
   'https://www.googleapis.com/auth/drive.readonly',
+  'https://www.googleapis.com/auth/drive.activity.readonly',
   'https://www.googleapis.com/auth/calendar.readonly',
   'https://www.googleapis.com/auth/calendar.events.readonly',
   'https://www.googleapis.com/auth/documents.readonly',
