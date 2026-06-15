@@ -622,6 +622,62 @@ async function generateProactiveInsights(userId) {
       log.warn('Stress leaderboard error', { error: slErr?.message });
     }
 
+    // Workspace rhythm (maker time vs meeting time) — behind the work_rhythm
+    // flag. Whoop-free: runs on Google Drive + Calendar, so it works for any
+    // Google user, not just the few with wearables. Same Editor-voiced path.
+    try {
+      const flags = await getFeatureFlags(userId).catch(() => ({}));
+      if (flags.work_rhythm === true) {
+        const { generateWorkspaceRhythmInsight } = await import('./workspaceRhythm.js');
+        const wr = await generateWorkspaceRhythmInsight(userId, { logOnly: false });
+        if (wr) stored++;
+      }
+    } catch (wrErr) {
+      log.warn('Workspace rhythm error', { error: wrErr?.message });
+    }
+
+    // Email tempo (Gmail x Calendar) — behind the email_tempo flag. The most
+    // universal Whoop-free insight: does a packed calendar push your email into
+    // the evening? Reads only message timestamps. Same Editor-voiced path.
+    try {
+      const flags = await getFeatureFlags(userId).catch(() => ({}));
+      if (flags.email_tempo === true) {
+        const { generateEmailTempoInsight } = await import('./emailTempo.js');
+        const et = await generateEmailTempoInsight(userId, { logOnly: false });
+        if (et) stored++;
+      }
+    } catch (etErr) {
+      log.warn('Email tempo error', { error: etErr?.message });
+    }
+
+    // Chronotype (Gmail x Calendar) — behind the chronotype flag. Are your
+    // meetings scheduled against your natural active hours? Reads only message
+    // timestamps + event start hours. Same Editor-voiced path.
+    try {
+      const flags = await getFeatureFlags(userId).catch(() => ({}));
+      if (flags.chronotype === true) {
+        const { generateChronotypeInsight } = await import('./chronotype.js');
+        const ch = await generateChronotypeInsight(userId, { logOnly: false });
+        if (ch) stored++;
+      }
+    } catch (chErr) {
+      log.warn('Chronotype error', { error: chErr?.message });
+    }
+
+    // Reply latency (Gmail threads x Calendar) — behind the reply_latency flag.
+    // Do packed meeting days slow your email replies? Heaviest insight (reads
+    // thread structure, capped); reads only timestamps + the SENT label.
+    try {
+      const flags = await getFeatureFlags(userId).catch(() => ({}));
+      if (flags.reply_latency === true) {
+        const { generateReplyLatencyInsight } = await import('./replyLatency.js');
+        const rl = await generateReplyLatencyInsight(userId, { logOnly: false });
+        if (rl) stored++;
+      }
+    } catch (rlErr) {
+      log.warn('Reply latency error', { error: rlErr?.message });
+    }
+
     return stored;
   } catch (error) {
     log.error('Error generating insights', { error });
