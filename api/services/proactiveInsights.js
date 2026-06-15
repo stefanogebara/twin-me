@@ -650,6 +650,20 @@ async function generateProactiveInsights(userId) {
       log.warn('Email tempo error', { error: etErr?.message });
     }
 
+    // Chronotype (Gmail x Calendar) — behind the chronotype flag. Are your
+    // meetings scheduled against your natural active hours? Reads only message
+    // timestamps + event start hours. Same Editor-voiced path.
+    try {
+      const flags = await getFeatureFlags(userId).catch(() => ({}));
+      if (flags.chronotype === true) {
+        const { generateChronotypeInsight } = await import('./chronotype.js');
+        const ch = await generateChronotypeInsight(userId, { logOnly: false });
+        if (ch) stored++;
+      }
+    } catch (chErr) {
+      log.warn('Chronotype error', { error: chErr?.message });
+    }
+
     return stored;
   } catch (error) {
     log.error('Error generating insights', { error });
