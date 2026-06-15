@@ -636,6 +636,20 @@ async function generateProactiveInsights(userId) {
       log.warn('Workspace rhythm error', { error: wrErr?.message });
     }
 
+    // Email tempo (Gmail x Calendar) — behind the email_tempo flag. The most
+    // universal Whoop-free insight: does a packed calendar push your email into
+    // the evening? Reads only message timestamps. Same Editor-voiced path.
+    try {
+      const flags = await getFeatureFlags(userId).catch(() => ({}));
+      if (flags.email_tempo === true) {
+        const { generateEmailTempoInsight } = await import('./emailTempo.js');
+        const et = await generateEmailTempoInsight(userId, { logOnly: false });
+        if (et) stored++;
+      }
+    } catch (etErr) {
+      log.warn('Email tempo error', { error: etErr?.message });
+    }
+
     return stored;
   } catch (error) {
     log.error('Error generating insights', { error });
