@@ -664,6 +664,20 @@ async function generateProactiveInsights(userId) {
       log.warn('Chronotype error', { error: chErr?.message });
     }
 
+    // Reply latency (Gmail threads x Calendar) — behind the reply_latency flag.
+    // Do packed meeting days slow your email replies? Heaviest insight (reads
+    // thread structure, capped); reads only timestamps + the SENT label.
+    try {
+      const flags = await getFeatureFlags(userId).catch(() => ({}));
+      if (flags.reply_latency === true) {
+        const { generateReplyLatencyInsight } = await import('./replyLatency.js');
+        const rl = await generateReplyLatencyInsight(userId, { logOnly: false });
+        if (rl) stored++;
+      }
+    } catch (rlErr) {
+      log.warn('Reply latency error', { error: rlErr?.message });
+    }
+
     return stored;
   } catch (error) {
     log.error('Error generating insights', { error });
