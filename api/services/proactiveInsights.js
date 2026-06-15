@@ -622,6 +622,20 @@ async function generateProactiveInsights(userId) {
       log.warn('Stress leaderboard error', { error: slErr?.message });
     }
 
+    // Workspace rhythm (maker time vs meeting time) — behind the work_rhythm
+    // flag. Whoop-free: runs on Google Drive + Calendar, so it works for any
+    // Google user, not just the few with wearables. Same Editor-voiced path.
+    try {
+      const flags = await getFeatureFlags(userId).catch(() => ({}));
+      if (flags.work_rhythm === true) {
+        const { generateWorkspaceRhythmInsight } = await import('./workspaceRhythm.js');
+        const wr = await generateWorkspaceRhythmInsight(userId, { logOnly: false });
+        if (wr) stored++;
+      }
+    } catch (wrErr) {
+      log.warn('Workspace rhythm error', { error: wrErr?.message });
+    }
+
     return stored;
   } catch (error) {
     log.error('Error generating insights', { error });
