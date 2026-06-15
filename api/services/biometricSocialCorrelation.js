@@ -48,6 +48,11 @@ function tercileHigh(values) {
   if (!v.length) return Infinity;
   return v[Math.floor(v.length * (2 / 3))];
 }
+function tercileLow(values) {
+  const v = [...values].filter((n) => typeof n === 'number').sort((a, b) => a - b);
+  if (!v.length) return -Infinity;
+  return v[Math.floor(v.length * (1 / 3))];
+}
 
 const METRICS = [
   { key: 'recovery', stressDir: -1 },   // lower recovery => more stress
@@ -71,6 +76,7 @@ export function computeStressLeaderboard(days, { effectFloor = EFFECT_FLOOR } = 
     metricStats[key] = { m, s: stddev(vals, m) };
   }
   const loadHighThreshold = tercileHigh(days.map((d) => d.load ?? 0));
+  const loadLowThreshold = tercileLow(days.map((d) => d.load ?? 0));
 
   // Unique people (keep a representative display name per id).
   const peopleNames = new Map();
@@ -108,6 +114,9 @@ export function computeStressLeaderboard(days, { effectFloor = EFFECT_FLOOR } = 
       // Confound flag: their days also tend to be your busy days, so the Editor
       // should hedge ("could be the load, not them").
       confoundLikely: avgLoadWith >= loadHighThreshold,
+      // Inverse confound for the calming/energy direction: a "lifter" whose
+      // days are your LIGHT days may just be benefiting from low load.
+      lowLoadConfound: avgLoadWith <= loadLowThreshold,
     });
   }
 
@@ -136,6 +145,23 @@ export function buildCandidate(top) {
   const body = bits.length ? bits.join(' and ') : 'your stress signals run higher';
   const confound = top.confoundLikely ? ' Those also tend to be your busier days, so it may be the load rather than the person.' : '';
   return `Across the last weeks, your ${body} on the ${top.n} days you have meetings involving ${who}, versus your other days.${confound}`;
+}
+
+/**
+ * PURE. The positive counterpart — the person your body settles around (the
+ * "energy leaderboard"). For a calming person recoveryDeltaPts is negative
+ * (recovery HIGHER with them) and restingHrDeltaBpm is negative (HR LOWER), so
+ * we flip the sign and the wording. The Editor voices + hedges it.
+ */
+export function buildCalmingCandidate(calming) {
+  if (!calming) return null;
+  const who = firstName(calming.name, calming.id);
+  const bits = [];
+  if (calming.recoveryDeltaPts && calming.recoveryDeltaPts < 0) bits.push(`recovery averages ${Math.abs(calming.recoveryDeltaPts)} points higher`);
+  if (calming.restingHrDeltaBpm && calming.restingHrDeltaBpm < 0) bits.push(`resting heart rate runs ${Math.abs(calming.restingHrDeltaBpm)} bpm lower`);
+  const body = bits.length ? bits.join(' and ') : 'your body settles';
+  const confound = calming.lowLoadConfound ? ' Those also tend to be your lighter days, so it may be the calm of the day rather than the person.' : '';
+  return `Across the last weeks, your ${body} on the ${calming.n} days you have meetings involving ${who}, versus your other days.${confound}`;
 }
 
 // ── gather (I/O, graceful) ──────────────────────────────────────────────────
@@ -244,13 +270,18 @@ export async function generateStressLeaderboardInsight(userId, { logOnly = false
     top: top ? { name: firstName(top.name, top.id), effect: top.stressEffect.toFixed(2), n: top.n, confound: top.confoundLikely } : null,
     calming: calming ? { name: firstName(calming.name, calming.id), effect: calming.stressEffect.toFixed(2) } : null,
   });
-  if (!top) return null;
+  if (!top && !calming) return null;
 
-  const candidate = buildCandidate(top);
-  log.info('stress leaderboard candidate', { userId, candidate });
+  // Build both directions — the stressor your body braces for AND the person it
+  // settles around (the "energy leaderboard"). The salience Editor picks the
+  // single more worth-saying one, or neither. Same engine, opposite sign.
+  const candidates = [];
+  if (top) candidates.push({ insight: buildCandidate(top), urgency: 'medium', category: 'stress_correlation' });
+  if (calming) candidates.push({ insight: buildCalmingCandidate(calming), urgency: 'low', category: 'energy_correlation' });
+  log.info('biometric-social candidates', { userId, candidates: candidates.map((c) => c.insight) });
   if (logOnly) return null;
 
-  const chosen = await editInsights(userId, [{ insight: candidate, urgency: 'medium', category: 'trend' }]);
+  const chosen = await editInsights(userId, candidates);
   if (!chosen) return null;
 
   const insertData = {

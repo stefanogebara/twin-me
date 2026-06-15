@@ -5,6 +5,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import {
+  buildCalmingCandidate,
   computeStressLeaderboard,
   firstName,
   buildCandidate,
@@ -101,5 +102,52 @@ describe('buildCandidate', () => {
   });
   it('returns null for no top', () => {
     expect(buildCandidate(null)).toBeNull();
+  });
+});
+
+// ── Energy leaderboard (the calming counterpart) ─────────────────────────────
+describe('computeStressLeaderboard — calming/energy direction', () => {
+  it('detects the person your body settles around (negative effect)', () => {
+    const days = [];
+    const push = (n, bio, ppl, load) => { for (let i = 0; i < n; i++) days.push({ date: `d${days.length}`, ...bio, people: ppl, load }); };
+    // Maya days: HIGHER recovery, HIGHER hrv, LOWER resting HR than baseline => calming
+    push(6, { recovery: 85, hrv: 72, restingHr: 49 }, [{ id: 'maya@co', name: 'Maya' }], 1);
+    push(14, { recovery: 64, hrv: 58, restingHr: 56 }, [], 1);
+    const { calming, top } = computeStressLeaderboard(days);
+    expect(calming).not.toBeNull();
+    expect(calming.id).toBe('maya@co');
+    expect(calming.stressEffect).toBeLessThan(-0.5);
+    expect(calming.recoveryDeltaPts).toBeLessThan(0); // recovery higher with Maya
+    expect(calming.restingHrDeltaBpm).toBeLessThan(0); // resting HR lower with Maya
+    expect(top).toBeNull(); // Maya is calming, not a stressor
+  });
+
+  it('flags the low-load confound for a lifter on light days', () => {
+    const days = [];
+    const push = (n, bio, ppl, load) => { for (let i = 0; i < n; i++) days.push({ date: `d${days.length}`, ...bio, people: ppl, load }); };
+    push(6, { recovery: 84, hrv: 70, restingHr: 50 }, [{ id: 'cal@co', name: 'Cal' }], 0); // light days
+    push(14, { recovery: 64, hrv: 58, restingHr: 56 }, [], 8); // busy baseline
+    const { calming } = computeStressLeaderboard(days);
+    expect(calming?.lowLoadConfound).toBe(true);
+  });
+});
+
+describe('buildCalmingCandidate', () => {
+  it('frames it positively, first name, flips the sign', () => {
+    const calming = { id: 'maya@co', name: 'Maya Lopez', n: 6, stressEffect: -1.4, recoveryDeltaPts: -18, restingHrDeltaBpm: -5, lowLoadConfound: false };
+    const c = buildCalmingCandidate(calming);
+    expect(c).toContain('Maya');
+    expect(c).not.toContain('@');
+    expect(c).toMatch(/recovery averages 18 points higher/);
+    expect(c).toMatch(/resting heart rate runs 5 bpm lower/);
+    expect(c).not.toMatch(/points lower/); // never the stressor framing
+    expect(c).not.toMatch(/lighter days/);
+  });
+  it('adds the light-day hedge when flagged', () => {
+    const calming = { id: 'c@co', name: 'Cal', n: 5, stressEffect: -0.9, recoveryDeltaPts: -12, restingHrDeltaBpm: -3, lowLoadConfound: true };
+    expect(buildCalmingCandidate(calming)).toMatch(/lighter days/);
+  });
+  it('returns null for no calming person', () => {
+    expect(buildCalmingCandidate(null)).toBeNull();
   });
 });
