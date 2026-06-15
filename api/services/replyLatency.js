@@ -16,8 +16,7 @@
  * capped at MAX_THREADS. Privacy: timestamps + the SENT label, never content.
  */
 import { getValidAccessToken } from './tokenRefreshService.js';
-import { createCalendarClient } from './calendar/client.js';
-import { localParts } from './emailTempo.js';
+import { localParts, tercileHigh, tercileLow, fetchTimeZone, fetchCalendarLoadDays } from './correlationSignals.js';
 import { editInsights } from './insightEditor.js';
 import { supabaseAdmin } from './database.js';
 import { vectorToString } from './embeddingService.js';
@@ -38,14 +37,6 @@ const FETCH_CHUNK = 10;
 const GMAIL_BASE = 'https://gmail.googleapis.com/gmail/v1/users/me';
 
 // ── tiny pure helpers ────────────────────────────────────────────────────────
-function tercileHigh(values) {
-  const v = [...values].filter((n) => typeof n === 'number').sort((a, b) => a - b);
-  return v.length ? v[Math.floor(v.length * (2 / 3))] : Infinity;
-}
-function tercileLow(values) {
-  const v = [...values].filter((n) => typeof n === 'number').sort((a, b) => a - b);
-  return v.length ? v[Math.floor(v.length * (1 / 3))] : -Infinity;
-}
 const round1 = (x) => Math.round(x * 10) / 10;
 const round2 = (x) => Math.round(x * 100) / 100;
 
@@ -146,18 +137,6 @@ export function buildReplyLatencyCandidate(r) {
 }
 
 // ── gather (I/O, graceful) ───────────────────────────────────────────────────
-async function fetchTimeZone(userId) {
-  try {
-    const tokenResult = await getValidAccessToken(userId, 'google_calendar');
-    if (!tokenResult?.success || !tokenResult.accessToken) return 'UTC';
-    const client = createCalendarClient({ accessToken: tokenResult.accessToken });
-    const cal = await client.get('/calendars/primary').catch(() => null);
-    return cal?.timeZone || 'UTC';
-  } catch {
-    return 'UTC';
-  }
-}
-
 async function fetchReplyLatencyDays(userId, timeZone) {
   try {
     const tokenResult = await getValidAccessToken(userId, 'google_gmail');
@@ -209,41 +188,11 @@ async function fetchReplyLatencyDays(userId, timeZone) {
   }
 }
 
-async function fetchCalendarLoadDays(userId) {
-  try {
-    const tokenResult = await getValidAccessToken(userId, 'google_calendar');
-    if (!tokenResult?.success || !tokenResult.accessToken) {
-      log.warn('calendar token unavailable', { error: tokenResult?.error });
-      return new Map();
-    }
-    const client = createCalendarClient({ accessToken: tokenResult.accessToken });
-    const now = new Date();
-    const start = new Date(now.getTime() - WINDOW_DAYS * 86400_000);
-    const q = `?timeMin=${start.toISOString()}&timeMax=${now.toISOString()}&singleEvents=true&orderBy=startTime&maxResults=250`;
-    const result = await client.get(`/calendars/primary/events${q}`).catch(() => ({ items: [] }));
-    const items = Array.isArray(result?.items) ? result.items : [];
-    const map = new Map();
-    for (const e of items) {
-      if (e.status === 'cancelled' || e.transparency === 'transparent') continue;
-      if (e.start?.date && !e.start?.dateTime) continue; // skip all-day
-      const self = (e.attendees || []).find((a) => a.self);
-      if (self?.responseStatus === 'declined') continue;
-      const date = (e.start?.dateTime ?? '').slice(0, 10);
-      if (!date) continue;
-      map.set(date, (map.get(date) || 0) + 1);
-    }
-    return map;
-  } catch (err) {
-    log.warn('calendar load fetch failed', { error: err.message });
-    return new Map();
-  }
-}
-
 export async function gatherReplyDays(userId) {
   const timeZone = await fetchTimeZone(userId);
   const [latMap, loadMap] = await Promise.all([
     fetchReplyLatencyDays(userId, timeZone),
-    fetchCalendarLoadDays(userId),
+    fetchCalendarLoadDays(userId, timeZone),
   ]);
   if (latMap.size === 0 && loadMap.size === 0) return [];
   const dates = new Set([...latMap.keys(), ...loadMap.keys()]);

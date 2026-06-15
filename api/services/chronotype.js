@@ -16,7 +16,7 @@
  */
 import { getValidAccessToken } from './tokenRefreshService.js';
 import { createCalendarClient } from './calendar/client.js';
-import { localParts } from './emailTempo.js';
+import { localParts, fetchTimeZone } from './correlationSignals.js';
 import { editInsights } from './insightEditor.js';
 import { supabaseAdmin } from './database.js';
 import { vectorToString } from './embeddingService.js';
@@ -103,18 +103,6 @@ export function buildChronotypeCandidate(c) {
 }
 
 // ── gather (I/O, graceful) ───────────────────────────────────────────────────
-async function fetchTimeZone(userId) {
-  try {
-    const tokenResult = await getValidAccessToken(userId, 'google_calendar');
-    if (!tokenResult?.success || !tokenResult.accessToken) return 'UTC';
-    const client = createCalendarClient({ accessToken: tokenResult.accessToken });
-    const cal = await client.get('/calendars/primary').catch(() => null);
-    return cal?.timeZone || 'UTC';
-  } catch {
-    return 'UTC';
-  }
-}
-
 async function fetchActivityHours(userId, timeZone) {
   try {
     const tokenResult = await getValidAccessToken(userId, 'google_gmail');
@@ -165,7 +153,7 @@ async function fetchMeetingHours(userId, timeZone) {
     const client = createCalendarClient({ accessToken: tokenResult.accessToken });
     const now = new Date();
     const start = new Date(now.getTime() - WINDOW_DAYS * 86400_000);
-    const q = `?timeMin=${start.toISOString()}&timeMax=${now.toISOString()}&singleEvents=true&orderBy=startTime&maxResults=250`;
+    const q = `?timeMin=${start.toISOString()}&timeMax=${now.toISOString()}&singleEvents=true&orderBy=startTime&maxResults=2500`;
     const result = await client.get(`/calendars/primary/events${q}`).catch(() => ({ items: [] }));
     const items = Array.isArray(result?.items) ? result.items : [];
     const hours = [];

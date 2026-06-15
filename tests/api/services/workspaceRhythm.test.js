@@ -35,6 +35,17 @@ describe('bucketActivityByDay', () => {
     expect(m.get('2026-06-09')).toBe(2);
   });
 
+  it('buckets into the user timezone so it lines up with calendar load', () => {
+    // 01:00Z is the prior day (22:00) in Sao Paulo (UTC-3) — must match how
+    // fetchCalendarLoadDays keys its days, or load and activity mis-pair.
+    const m = bucketActivityByDay(
+      [activity({ ts: '2026-06-10T01:00:00Z', targets: [{ driveItem: { name: 'items/a', mimeType: DOC } }] })],
+      { timeZone: 'America/Sao_Paulo' },
+    );
+    expect(m.get('2026-06-09')).toBe(1);
+    expect(m.has('2026-06-10')).toBe(false);
+  });
+
   it('dedups repeat edits of the same doc within a day', () => {
     const m = bucketActivityByDay([
       activity({ ts: '2026-06-09T08:00:00Z', targets: [{ driveItem: { name: 'items/a', mimeType: DOC } }] }),

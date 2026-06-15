@@ -12,42 +12,21 @@
  *   days. The classic maker-schedule-vs-manager-schedule tension, measured.
  *
  * Same shape as the biometric correlations (gather -> pure tested core ->
- * candidate -> salience Editor), just on universal data. (Math helpers are
- * duplicated locally for now; extract a shared correlationUtils when the
- * library grows further.)
+ * candidate -> salience Editor), just on universal data. The calendar-load
+ * fetch and tercile/mean/stddev helpers are shared from correlationSignals.js.
  */
 import { getValidAccessToken } from './tokenRefreshService.js';
-import { createCalendarClient } from './calendar/client.js';
 import { editInsights } from './insightEditor.js';
 import { supabaseAdmin } from './database.js';
 import { vectorToString } from './embeddingService.js';
 import { createLogger } from './logger.js';
+import { mean, stddev, tercileHigh, tercileLow, fetchCalendarLoadDays, fetchTimeZone, localParts } from './correlationSignals.js';
 
 const log = createLogger('WorkspaceRhythm');
 
 export const WINDOW_DAYS = 28;
 export const MAKER_EFFECT_FLOOR = 0.4;
 const MIN_GROUP_DAYS = 4;
-
-// ── tiny pure math helpers (local copies) ────────────────────────────────────
-function mean(arr) {
-  const v = arr.filter((n) => typeof n === 'number' && !Number.isNaN(n));
-  return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null;
-}
-function stddev(arr) {
-  const v = arr.filter((n) => typeof n === 'number' && !Number.isNaN(n));
-  if (v.length < 2) return 0;
-  const mu = mean(v);
-  return Math.sqrt(v.reduce((s, x) => s + (x - mu) ** 2, 0) / v.length);
-}
-function tercileHigh(values) {
-  const v = [...values].filter((n) => typeof n === 'number').sort((a, b) => a - b);
-  return v.length ? v[Math.floor(v.length * (2 / 3))] : Infinity;
-}
-function tercileLow(values) {
-  const v = [...values].filter((n) => typeof n === 'number').sort((a, b) => a - b);
-  return v.length ? v[Math.floor(v.length * (1 / 3))] : -Infinity;
-}
 
 // ── PURE core ────────────────────────────────────────────────────────────────
 /**
@@ -116,7 +95,7 @@ const ACTIVITY_PAGE_CAP = 10; // up to ~1000 activities
  * @param {Array} activities raw activities from activity:query
  * @returns {Map<string, number>} 'YYYY-MM-DD' -> distinct doc count
  */
-export function bucketActivityByDay(activities, { workspaceTypesOnly = true } = {}) {
+export function bucketActivityByDay(activities, { workspaceTypesOnly = true, timeZone = 'UTC' } = {}) {
   const perDay = new Map(); // date -> Set<driveItem.name>
   for (const act of activities || []) {
     const detail = act?.primaryActionDetail || {};
@@ -124,8 +103,9 @@ export function bucketActivityByDay(activities, { workspaceTypesOnly = true } = 
     const mine = (act.actors || []).some((a) => a?.user?.knownUser?.isCurrentUser === true);
     if (!mine) continue;
     const ts = act.timestamp || act.timeRange?.endTime || act.timeRange?.startTime || '';
-    const date = ts.slice(0, 10);
-    if (!date) continue;
+    const epoch = ts ? new Date(ts).getTime() : NaN;
+    if (Number.isNaN(epoch)) continue;
+    const date = localParts(epoch, timeZone).date; // user-tz day, to line up with load
     for (const t of act.targets || []) {
       const item = t?.driveItem;
       if (!item?.name) continue;
@@ -141,7 +121,7 @@ export function bucketActivityByDay(activities, { workspaceTypesOnly = true } = 
 
 /** I/O. Per-day making via the Drive Activity API. Returns null on failure so
  *  the caller can fall back (e.g. the drive.activity scope isn't granted yet). */
-async function fetchDriveActivityViaActivityApi(userId) {
+async function fetchDriveActivityViaActivityApi(userId, timeZone) {
   try {
     const tokenResult = await getValidAccessToken(userId, 'google_gmail');
     if (!tokenResult?.success || !tokenResult.accessToken) return null;
@@ -162,15 +142,20 @@ async function fetchDriveActivityViaActivityApi(userId) {
         body: JSON.stringify(pageToken ? { ...baseBody, pageToken } : baseBody),
       });
       if (!res.ok) {
-        log.warn('drive activity API query failed', { status: res.status });
-        return null; // signal fallback (403 = scope not granted yet)
+        // 403 = drive.activity scope not granted yet (expected pre-reconnect);
+        // 400 = malformed query (a real bug to fix, not a missing scope).
+        log.warn('drive activity API query failed', {
+          status: res.status,
+          reason: res.status === 403 ? 'scope_not_granted' : res.status === 400 ? 'bad_query' : 'other',
+        });
+        return null; // signal fallback to modifiedTime
       }
       const data = await res.json();
       for (const a of data.activities || []) all.push(a);
       pageToken = data.nextPageToken;
       if (!pageToken) break;
     }
-    return bucketActivityByDay(all);
+    return bucketActivityByDay(all, { timeZone });
   } catch (err) {
     log.warn('drive activity API query failed', { error: err.message });
     return null;
@@ -179,7 +164,7 @@ async function fetchDriveActivityViaActivityApi(userId) {
 
 /** I/O. Fallback: per-day making from files.list modifiedTime (latest edit
  *  only — undercounts heavy editors, but needs no extra scope). */
-async function fetchDriveActivityViaModifiedTime(userId) {
+async function fetchDriveActivityViaModifiedTime(userId, timeZone) {
   try {
     const tokenResult = await getValidAccessToken(userId, 'google_gmail');
     if (!tokenResult?.success || !tokenResult.accessToken) {
@@ -204,8 +189,9 @@ async function fetchDriveActivityViaModifiedTime(userId) {
     const data = await res.json();
     const map = new Map(); // date -> count of distinct docs touched
     for (const f of data.files || []) {
-      const date = (f.modifiedTime || '').slice(0, 10);
-      if (!date) continue;
+      const epoch = f.modifiedTime ? new Date(f.modifiedTime).getTime() : NaN;
+      if (Number.isNaN(epoch)) continue;
+      const date = localParts(epoch, timeZone).date; // user-tz day, to line up with load
       map.set(date, (map.get(date) || 0) + 1);
     }
     return map;
@@ -217,47 +203,21 @@ async function fetchDriveActivityViaModifiedTime(userId) {
 
 /** Per-day making. Prefers the Drive Activity API (true edit events); falls
  *  back to files.list modifiedTime when the activity scope isn't granted. */
-async function fetchDriveActivityDays(userId) {
-  const viaActivity = await fetchDriveActivityViaActivityApi(userId);
+async function fetchDriveActivityDays(userId, timeZone) {
+  const viaActivity = await fetchDriveActivityViaActivityApi(userId, timeZone);
   if (viaActivity && viaActivity.size > 0) {
     log.info('drive activity via Activity API', { userId, days: viaActivity.size });
     return viaActivity;
   }
-  return fetchDriveActivityViaModifiedTime(userId);
-}
-
-async function fetchCalendarLoadDays(userId) {
-  try {
-    const tokenResult = await getValidAccessToken(userId, 'google_calendar');
-    if (!tokenResult?.success || !tokenResult.accessToken) {
-      log.warn('calendar token unavailable', { error: tokenResult?.error });
-      return new Map();
-    }
-    const client = createCalendarClient({ accessToken: tokenResult.accessToken });
-    const now = new Date();
-    const start = new Date(now.getTime() - WINDOW_DAYS * 86400_000);
-    const q = `?timeMin=${start.toISOString()}&timeMax=${now.toISOString()}&singleEvents=true&orderBy=startTime&maxResults=250`;
-    const result = await client.get(`/calendars/primary/events${q}`).catch(() => ({ items: [] }));
-    const items = Array.isArray(result?.items) ? result.items : [];
-    const map = new Map(); // date -> meeting count
-    for (const e of items) {
-      if (e.status === 'cancelled' || e.transparency === 'transparent') continue;
-      if (e.start?.date && !e.start?.dateTime) continue; // skip all-day
-      const self = (e.attendees || []).find((a) => a.self);
-      if (self?.responseStatus === 'declined') continue;
-      const date = (e.start?.dateTime ?? '').slice(0, 10);
-      if (!date) continue;
-      map.set(date, (map.get(date) || 0) + 1);
-    }
-    return map;
-  } catch (err) {
-    log.warn('calendar load fetch failed', { error: err.message });
-    return new Map();
-  }
+  return fetchDriveActivityViaModifiedTime(userId, timeZone);
 }
 
 export async function gatherWorkDays(userId) {
-  const [driveMap, loadMap] = await Promise.all([fetchDriveActivityDays(userId), fetchCalendarLoadDays(userId)]);
+  const timeZone = await fetchTimeZone(userId);
+  const [driveMap, loadMap] = await Promise.all([
+    fetchDriveActivityDays(userId, timeZone),
+    fetchCalendarLoadDays(userId, timeZone),
+  ]);
   if (driveMap.size === 0 && loadMap.size === 0) return [];
   const dates = new Set([...driveMap.keys(), ...loadMap.keys()]);
   const days = [];
