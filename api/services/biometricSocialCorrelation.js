@@ -167,9 +167,13 @@ async function fetchRecoveryDays(userId) {
 
 async function fetchCalendarDays(userId) {
   try {
-    const token = await getValidAccessToken(userId, 'google_calendar');
-    if (!token) return new Map();
-    const client = createCalendarClient({ accessToken: token });
+    // getValidAccessToken returns { success, accessToken } — NOT a raw string.
+    const tokenResult = await getValidAccessToken(userId, 'google_calendar');
+    if (!tokenResult?.success || !tokenResult.accessToken) {
+      log.warn('calendar token unavailable', { error: tokenResult?.error });
+      return new Map();
+    }
+    const client = createCalendarClient({ accessToken: tokenResult.accessToken });
     const now = new Date();
     const start = new Date(now.getTime() - WINDOW_DAYS * 86400_000);
     const q = `?timeMin=${start.toISOString()}&timeMax=${now.toISOString()}&singleEvents=true&orderBy=startTime&maxResults=250`;
