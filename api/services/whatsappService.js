@@ -208,7 +208,10 @@ async function getKapsoClient() {
   try {
     // Dynamic import for ESM compatibility
     const { WhatsAppClient } = await import('@kapso/whatsapp-cloud-api');
-    kapsoClient = new WhatsAppClient({ kapsoApiKey: process.env.KAPSO_API_KEY });
+    // .trim() defends against a trailing newline/space in the env var — a
+    // classic footgun when the key is pasted into a dashboard (the stray \n is
+    // invisible but makes Kapso reject every send with "Authentication Error").
+    kapsoClient = new WhatsAppClient({ kapsoApiKey: process.env.KAPSO_API_KEY?.trim() });
     log.info('Kapso WhatsApp client initialized');
     return kapsoClient;
   } catch (err) {
@@ -247,45 +250,38 @@ export async function sendWhatsAppMessage(recipientPhone, text) {
     return sendViaEvolution(recipientPhone, text);
   }
 
-  // Try Kapso first
+  // Kapso (official Meta Cloud API, via Kapso's proxy).
+  //
+  // 2026-06-16: call the proxy endpoint DIRECTLY with the X-API-Key header
+  // instead of via the @kapso/whatsapp-cloud-api SDK. The SDK path never set
+  // `baseUrl`, so it sent the Kapso key to Meta's graph.facebook.com — which
+  // 401'd every single outbound ("Authentication Error") for the app's entire
+  // history (~247 failures, zero successes). This is the exact request shape
+  // verified working against api.kapso.ai (GET + POST both 200, real message
+  // delivered). .trim() guards a pasted trailing newline in the env var.
   if (USE_KAPSO) {
-    const client = await getKapsoClient();
+    const apiKey = process.env.KAPSO_API_KEY?.trim();
     const phoneNumberId = process.env.KAPSO_PHONE_NUMBER_ID || process.env.TWINME_WHATSAPP_PHONE_NUMBER_ID;
 
-    if (client && phoneNumberId) {
+    if (apiKey && phoneNumberId) {
       try {
-        // audit-2026-05-27: diagnose silent-no-delivery. Log the full request shape
-        // so we can correlate to Kapso's response. recipientPhone format matters
-        // here — Brazilian numbers may need the leading-9 stripped depending on
-        // the WABA configuration ("nono dígito" rule).
+        const url = `https://api.kapso.ai/meta/whatsapp/v24.0/${phoneNumberId}/messages`;
         log.info('WhatsApp Kapso send entry', {
-          recipientPhone,
-          recipientStartsWithPlus: recipientPhone?.startsWith?.('+'),
           recipientLen: recipientPhone?.length,
           phoneNumberIdSuffix: phoneNumberId?.slice(-6),
           textLen: text?.length,
         });
-        const result = await client.messages.sendText({
-          phoneNumberId,
-          to: recipientPhone,
-          body: text,
-        });
-        // audit-2026-05-27: log the FULL Kapso response, not just messageId.
-        // contacts[0].input vs contacts[0].wa_id reveals number normalization
-        // (e.g. "+5511999002121" → "+551199002121" via Brazilian 9-digit drop).
-        // messages[0].id confirms a Meta message_id was minted. The presence
-        // of a `warning` or `message_status` field is the real "is it actually
-        // going to deliver" signal.
+        const { data, status } = await axios.post(
+          url,
+          { messaging_product: 'whatsapp', to: recipientPhone, type: 'text', text: { body: text } },
+          { headers: { 'X-API-Key': apiKey, 'Content-Type': 'application/json' }, timeout: 15000 },
+        );
+        // Kapso/Meta 200 response: { messaging_product, contacts:[{input,wa_id}], messages:[{id}] }
         log.info('WhatsApp Kapso send response', {
-          recipientPhone,
-          messageId: result?.messages?.[0]?.id,
-          contacts: result?.contacts,
-          messages: result?.messages,
-          warning: result?.warning,
-          messageStatus: result?.messageStatus,
+          httpStatus: status,
+          messages: data?.messages,
+          contacts: data?.contacts,
         });
-        // audit-2026-05-27: persist the full response so we can query it
-        // when Vercel log search lets us down.
         logOutbound({
           recipient: recipientPhone,
           recipient_input: recipientPhone,
@@ -293,16 +289,16 @@ export async function sendWhatsAppMessage(recipientPhone, text) {
           text_len: text?.length || 0,
           provider: 'kapso',
           success: true,
-          message_id: result?.messages?.[0]?.id || null,
-          wa_id: result?.contacts?.[0]?.wa_id || null,
-          warning: result?.warning || null,
-          message_status: result?.messageStatus || null,
-          raw_response: result || null,
+          message_id: data?.messages?.[0]?.id || null,
+          wa_id: data?.contacts?.[0]?.wa_id || null,
+          http_status: status,
+          raw_response: data || null,
         });
-        return { success: true, messageId: result?.messages?.[0]?.id, provider: 'kapso' };
+        return { success: true, messageId: data?.messages?.[0]?.id, provider: 'kapso' };
       } catch (err) {
+        const errMsg = err.response?.data?.error?.message || err.response?.data?.error || err.message;
         log.warn('Kapso send failed, falling back to Meta Cloud API', {
-          error: err.message,
+          error: errMsg,
           status: err.response?.status,
           body: err.response?.data,
         });
@@ -313,7 +309,7 @@ export async function sendWhatsAppMessage(recipientPhone, text) {
           text_len: text?.length || 0,
           provider: 'kapso',
           success: false,
-          error_message: err.message,
+          error_message: typeof errMsg === 'string' ? errMsg : JSON.stringify(errMsg),
           http_status: err.response?.status || null,
           raw_error: err.response?.data || null,
         });
