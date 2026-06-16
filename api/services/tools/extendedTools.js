@@ -480,13 +480,14 @@ export function registerExtendedTools() {
   registerTool({
     name: 'set_reminder',
     platform: null,
-    description: 'Set a reminder for the user. Use their LOCAL time WITHOUT a Z suffix (e.g. "2026-06-17T09:00:00" for 9am tomorrow local) — the timezone is applied automatically. At that time the twin messages the user on their live channel (WhatsApp/Telegram). Use for "remind me to X", "me lembra de Y", "me cutuca amanhã".',
+    description: 'Set a reminder for the user. Use their LOCAL time WITHOUT a Z suffix (e.g. "2026-06-17T09:00:00" for 9am tomorrow local) — the timezone is applied automatically. At that time the twin messages the user on their live channel (WhatsApp/Telegram). Use for "remind me to X", "me lembra de Y", "me cutuca amanhã". For repeating reminders ("toda segunda", "every weekday", "todo mês"), set `recurrence` and use the FIRST occurrence as remind_at.',
     category: 'productivity',
     parameters: {
       type: 'object',
       properties: {
-        remind_at: { type: 'string', description: 'When to remind, LOCAL time ISO 8601 WITHOUT Z (e.g. "2026-06-17T09:00:00"). Do NOT append Z.' },
+        remind_at: { type: 'string', description: 'When to remind (first occurrence if recurring), LOCAL time ISO 8601 WITHOUT Z (e.g. "2026-06-17T09:00:00"). Do NOT append Z.' },
         message: { type: 'string', description: 'What to remind about, short and in the user\'s voice (e.g. "pagar o boleto", "ligar pro dentista").' },
+        recurrence: { type: 'string', enum: ['daily', 'weekdays', 'weekly', 'monthly'], description: 'Optional. Repeat cadence: daily (todo dia), weekdays (dias úteis, Mon–Fri), weekly (toda semana / same weekday), monthly (todo mês). Omit for a one-time reminder.' },
       },
       required: ['remind_at', 'message'],
     },
@@ -506,6 +507,7 @@ export function registerExtendedTools() {
         timeZone: tz,
         message: params.message,
         source: 'twin',
+        recurrence: params.recurrence || null,
       });
     },
   });

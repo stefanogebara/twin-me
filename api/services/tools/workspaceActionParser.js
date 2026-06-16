@@ -307,6 +307,12 @@ Examples:
   User: "Remind me to call the dentist tomorrow at 2pm"
   You: Done — I'll nudge you at 2pm. [ACTION: set_reminder remind_at="${tomorrowDate}T14:00:00" message="ligar pro dentista"]
 
+  User: "Me lembra todo dia útil às 9h de checar o pipeline"
+  You: Combinado — todo dia útil às 9h. [ACTION: set_reminder remind_at="${tomorrowDate}T09:00:00" message="checar o pipeline" recurrence="weekdays"]
+
+  User: "Remind me every Monday to send the weekly report"
+  You: Set — every Monday. [ACTION: set_reminder remind_at="${tomorrowDate}T09:00:00" message="send the weekly report" recurrence="weekly"]
+
   User: "Quais lembretes eu tenho?"
   You: [ACTION: list_reminders]
 

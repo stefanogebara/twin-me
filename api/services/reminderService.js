@@ -15,6 +15,36 @@ const log = createLogger('Reminders');
 
 const MAX_DELIVERY_ATTEMPTS = 5;
 
+// Supported recurrence cadences. NULL/absent = one-shot.
+export const RECURRENCES = new Set(['daily', 'weekdays', 'weekly', 'monthly']);
+
+/**
+ * Next occurrence of a recurring reminder, computed in UTC from the previous
+ * fire time. Brazil (the primary timezone) has no DST, so fixed UTC arithmetic
+ * keeps the local wall-clock time stable; zones with DST may drift by an hour
+ * across a transition (acceptable for a nudge). Returns null for unknown/one-shot.
+ */
+export function computeNextOccurrence(fromUtc, recurrence) {
+  const d = new Date(fromUtc.getTime());
+  if (isNaN(d.getTime())) return null;
+  switch (recurrence) {
+    case 'daily':
+      d.setUTCDate(d.getUTCDate() + 1);
+      return d;
+    case 'weekly':
+      d.setUTCDate(d.getUTCDate() + 7);
+      return d;
+    case 'weekdays':
+      do { d.setUTCDate(d.getUTCDate() + 1); } while (d.getUTCDay() === 0 || d.getUTCDay() === 6);
+      return d;
+    case 'monthly':
+      d.setUTCMonth(d.getUTCMonth() + 1);
+      return d;
+    default:
+      return null;
+  }
+}
+
 /**
  * Convert a wall-clock local time (ISO 8601 WITHOUT offset, e.g.
  * "2026-06-17T09:00:00") interpreted in `timeZone` to the corresponding UTC
@@ -40,7 +70,7 @@ export function zonedLocalToUtc(localISO, timeZone = 'UTC') {
  * Create a reminder. `remindAt` is a local ISO (no Z) interpreted in `timeZone`,
  * or an absolute ISO with offset/Z. Never throws — returns { success, ... }.
  */
-export async function createReminder(userId, { remindAt, timeZone = 'UTC', message, source = 'twin' }) {
+export async function createReminder(userId, { remindAt, timeZone = 'UTC', message, source = 'twin', recurrence = null }) {
   if (!userId || !message || !remindAt) {
     return { success: false, error: 'userId, message and remindAt are required' };
   }
@@ -51,23 +81,31 @@ export async function createReminder(userId, { remindAt, timeZone = 'UTC', messa
     return { success: false, error: 'invalid remindAt' };
   }
 
+  // Only persist a recurrence we recognise; anything else falls back to one-shot.
+  const normRecurrence = recurrence && RECURRENCES.has(recurrence) ? recurrence : null;
+
   try {
+    const row = {
+      user_id: userId,
+      message: String(message).slice(0, 1000),
+      remind_at: remindAtUtc.toISOString(),
+      source,
+    };
+    // Only set the column when recurring — keeps one-shot inserts working even
+    // if the recurrence column hasn't been migrated yet.
+    if (normRecurrence) row.recurrence = normRecurrence;
+
     const { data, error } = await supabaseAdmin
       .from('reminders')
-      .insert({
-        user_id: userId,
-        message: String(message).slice(0, 1000),
-        remind_at: remindAtUtc.toISOString(),
-        source,
-      })
+      .insert(row)
       .select('id, remind_at')
       .single();
     if (error) {
       log.warn(`createReminder insert failed for ${userId}: ${error.message}`);
       return { success: false, error: error.message };
     }
-    log.info(`reminder set for ${userId}`, { id: data.id, remindAt: data.remind_at });
-    return { success: true, id: data.id, remindAt: data.remind_at };
+    log.info(`reminder set for ${userId}`, { id: data.id, remindAt: data.remind_at, recurrence: normRecurrence });
+    return { success: true, id: data.id, remindAt: data.remind_at, recurrence: normRecurrence };
   } catch (err) {
     log.error(`createReminder threw for ${userId}: ${err.message}`);
     return { success: false, error: err.message };
@@ -147,7 +185,7 @@ export async function deliverDueReminders({ limit = 25 } = {}) {
   try {
     const { data, error } = await supabaseAdmin
       .from('reminders')
-      .select('id, user_id, message, attempts')
+      .select('id, user_id, message, attempts, remind_at, recurrence')
       .eq('status', 'pending')
       .lte('remind_at', nowISO)
       .order('remind_at', { ascending: true })
@@ -182,10 +220,23 @@ export async function deliverDueReminders({ limit = 25 } = {}) {
     }
 
     if ((out?.delivered || 0) > 0) {
-      await supabaseAdmin
-        .from('reminders')
-        .update({ status: 'delivered', delivered_at: new Date().toISOString() })
-        .eq('id', r.id);
+      const nextAt = r.recurrence
+        ? computeNextOccurrence(new Date(r.remind_at), r.recurrence)
+        : null;
+      if (nextAt) {
+        // Recurring: advance to the next occurrence and stay pending. Reset
+        // attempts so a future failed delivery gets its own retry budget.
+        await supabaseAdmin
+          .from('reminders')
+          .update({ remind_at: nextAt.toISOString(), attempts: 0, delivered_at: new Date().toISOString() })
+          .eq('id', r.id);
+      } else {
+        // One-shot: terminal.
+        await supabaseAdmin
+          .from('reminders')
+          .update({ status: 'delivered', delivered_at: new Date().toISOString() })
+          .eq('id', r.id);
+      }
       delivered++;
     } else {
       const attempts = (r.attempts || 0) + 1;
