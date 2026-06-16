@@ -7,6 +7,7 @@ import { DashboardGreeting } from './components/dashboard-v2/DashboardGreeting';
 import { BetaOnboardingChecklist } from './components/dashboard-v2/BetaOnboardingChecklist';
 import { HeroInsight } from './components/dashboard-v2/HeroInsight';
 import { InsightsFeed } from './components/dashboard-v2/InsightsFeed';
+import { TwinSeesSection } from './components/dashboard-v2/TwinSeesSection';
 import { SoulSummaryCard } from './components/dashboard-v2/SoulSummaryCard';
 import { WeeklySynthesisCard } from './components/dashboard-v2/WeeklySynthesisCard';
 import { DepartmentWidget } from './components/dashboard-v2/DepartmentWidget';
@@ -145,6 +146,10 @@ export function DashboardV2() {
         onFeedback={submitFeedback}
         feedbackPendingId={feedbackPendingId}
       />
+
+      {/* 2b. What Your Twin Sees — first-party self-revelations (pull surface,
+          ungated by the interrupt-Editor) */}
+      <TwinSeesSection />
 
       {/* 3. Soul Signature — condensed blurb */}
       <SoulSummaryCard />
