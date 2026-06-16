@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "TwinMe Desktop - your AI twin, always one keystroke away"
 authors = ["TwinMe <founders@twinme.me>"]
 edition = "2021"
-rust-version = "1.77"
+rust-version = "1.77.2"
 
 [lib]
 name = "twinme_desktop_lib"
@@ -33,6 +33,11 @@ tauri-plugin-single-instance = { version = "2", features = ["deep-link"] }
 # the check runs from Rust on startup (see src/update.rs), so it needs no JS
 # capability and the remote twinme.me webview can never trigger an update.
 tauri-plugin-updater = "2"
+# Launch-at-login: the desktop capture is only "always-on" if the app actually
+# runs after a reboot. Without this it stopped on every shutdown and never
+# resumed (clips halted at the 2026-06-11 shutdown). Enabled from Rust in
+# setup() via ManagerExt::autolaunch() — no JS capability needed.
+tauri-plugin-autostart = "2"
 url = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

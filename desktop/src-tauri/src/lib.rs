@@ -596,6 +596,9 @@ pub fn run() {
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_deep_link::init())
+        // Launch-at-login so the always-on capture is genuinely always-on.
+        // The enable() call lives in setup() below; this registers the plugin.
+        .plugin(tauri_plugin_autostart::Builder::new().build())
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
                 .with_handler(move |app, shortcut, event| {
@@ -787,6 +790,26 @@ pub fn run() {
                 tauri::async_runtime::spawn(async move {
                     update::check_and_install(handle).await;
                 });
+            }
+
+            // Launch-at-login so a reboot resumes capture instead of silently
+            // stopping it (clips halted at the 2026-06-11 shutdown because the
+            // app never relaunched). Default-on by design: the product's value
+            // is always-on mirroring. NOTE: this re-enables on launch if found
+            // disabled, so it does NOT yet honor a manual opt-out — a follow-up
+            // adds an in-app toggle that persists the choice. Best-effort.
+            #[cfg(desktop)]
+            {
+                use tauri_plugin_autostart::ManagerExt;
+                let autostart = app.autolaunch();
+                match autostart.is_enabled() {
+                    Ok(true) => {}
+                    Ok(false) => match autostart.enable() {
+                        Ok(()) => println!("[autostart] launch-at-login enabled"),
+                        Err(e) => eprintln!("[autostart] enable failed: {e}"),
+                    },
+                    Err(e) => eprintln!("[autostart] is_enabled check failed: {e}"),
+                }
             }
 
             Ok(())
