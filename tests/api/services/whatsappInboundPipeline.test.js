@@ -70,6 +70,11 @@ vi.mock('../../../api/services/transactions/pixReceiptIngest.js', () => ({
   handleReceiptImage: (...a) => handleReceiptImage(...a),
 }));
 
+const handleFileUploadToDrive = vi.fn();
+vi.mock('../../../api/services/transactions/whatsappFileIngest.js', () => ({
+  handleFileUploadToDrive: (...a) => handleFileUploadToDrive(...a),
+}));
+
 // Workspace actions: prompt builder + chain. Default = pass-through (no actions
 // in the reply, chain returns the message unchanged), matching real behavior on
 // a plain chat turn. Overridden in the action test to assert the wiring.
@@ -101,6 +106,7 @@ describe('processInboundWhatsApp', () => {
     isStatementDocument.mockReset();
     handleStatementDocument.mockReset();
     handleReceiptImage.mockReset();
+    handleFileUploadToDrive.mockReset();
     runWorkspaceActionChain.mockReset().mockImplementation(async ({ initialMessage }) => ({ assistantMessage: initialMessage }));
     process.env.PURCHASE_BOT_ENABLED = 'false';
   });
@@ -170,15 +176,17 @@ describe('processInboundWhatsApp', () => {
     expect(calls[0].text).toBe('Imported 12 transactions.');
   });
 
-  it('rejects an unsupported document with a helpful nudge', async () => {
+  it('saves a non-statement document to Drive (not a rejection)', async () => {
     isStatementDocument.mockReturnValue(false);
+    handleFileUploadToDrive.mockResolvedValue({ ok: true, reply: 'Saved "x.pdf" to your Drive.\nhttps://drive/x' });
     const { send, calls } = makeSend();
     const r = await processInboundWhatsApp(
-      { phone: '5511777', document: { id: 'https://m/x.pdf', filename: 'x.pdf' } },
+      { phone: '5511777', document: { id: 'https://m/x.pdf', filename: 'x.pdf', mimeType: 'application/pdf' } },
       { send },
     );
-    expect(r.kind).toBe('document_unsupported');
-    expect(calls[0].text).toMatch(/OFX, CSV, or XLSX/);
+    expect(r.kind).toBe('file_drive');
+    expect(handleFileUploadToDrive).toHaveBeenCalledWith('u1', expect.objectContaining({ filename: 'x.pdf' }));
+    expect(calls[0].text).toMatch(/Saved "x\.pdf" to your Drive/);
     expect(handleStatementDocument).not.toHaveBeenCalled();
   });
 

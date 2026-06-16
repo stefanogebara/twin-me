@@ -51,6 +51,7 @@ import { runWorkspaceActionChain } from './workspaceActionChain.js';
 import { tryCaptureTransaction, checkAndBumpCaptureQuota } from './transactions/whatsappTransactionCapture.js';
 import { isStatementDocument, handleStatementDocument } from './transactions/whatsappStatementIngest.js';
 import { handleReceiptImage } from './transactions/pixReceiptIngest.js';
+import { handleFileUploadToDrive } from './transactions/whatsappFileIngest.js';
 
 const log = createLogger('WhatsAppInbound');
 
@@ -183,18 +184,21 @@ export async function processInboundWhatsApp(parsed, { send }) {
   const userPrefs = channel.preferences || {};
   const purchaseBotEnabledForUser = userPrefs.purchase_bot_enabled !== false;
 
-  // 3. Statement document — forwarded bank-statement file (OFX/CSV/XLSX).
+  // 3. Document — bank statement (OFX/CSV/XLSX) goes to the money ingest;
+  // anything else gets saved to the user's Google Drive ("file it for me").
   if (parsed.document) {
     if (!isStatementDocument(parsed.document)) {
-      log.info('Unsupported document attachment, skipping', {
-        userId, filename: parsed.document.filename, mimeType: parsed.document.mimeType,
-      });
-      await send(
-        phone,
-        'I can read bank statements in OFX, CSV, or XLSX format. ' +
-        'Export one from your bank app and send it here and I\'ll import it.',
-      );
-      return { handled: true, kind: 'document_unsupported', userId };
+      const drive = await handleFileUploadToDrive(userId, parsed.document);
+      await send(phone, drive.reply);
+      await addConversationMemory(
+        userId,
+        `[sent file: ${parsed.document.filename || 'file'}]`,
+        drive.reply,
+        { source: 'whatsapp', messageId, contactName },
+      ).catch(err => log.warn('Failed to store file conversation memory', { userId, error: err.message }));
+
+      log.info('WhatsApp file → Drive', { userId, ok: drive.ok, filename: parsed.document.filename });
+      return { handled: true, kind: 'file_drive', userId };
     }
 
     const result = await handleStatementDocument(userId, parsed.document);
