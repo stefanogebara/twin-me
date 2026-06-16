@@ -46,6 +46,8 @@ import { createLogger } from './logger.js';
 import { buildPurchaseContext } from './purchaseContextBuilder.js';
 import { generatePurchaseReflection } from './purchaseReflection.js';
 import { classifyProtocolReply, resolveProtocolReply, offerNextProposal } from './threadApprovals.js';
+import { buildWorkspaceActionsPrompt } from './tools/workspaceActionParser.js';
+import { runWorkspaceActionChain } from './workspaceActionChain.js';
 import { tryCaptureTransaction, checkAndBumpCaptureQuota } from './transactions/whatsappTransactionCapture.js';
 import { isStatementDocument, handleStatementDocument } from './transactions/whatsappStatementIngest.js';
 import { handleReceiptImage } from './transactions/pixReceiptIngest.js';
@@ -319,11 +321,15 @@ async function processTwinMessage(userId, message) {
     return `You've been chatty (${rateLimit.used}/${rateLimit.limit} messages this hour). Take a breath — I'll be here in ${minutes || 'a few'} minutes.`;
   }
 
-  const [twinContext, coreBlocks, personalityProfile, soulLayers] = await Promise.all([
+  const [twinContext, coreBlocks, personalityProfile, soulLayers, workspaceBlock] = await Promise.all([
     fetchTwinContext(userId, message, { enrichments: true }).catch(() => ({})),
     getBlocks(userId).catch(() => ({})),
     getProfile(userId).catch(() => null),
     getSoulSignatureLayers(userId).catch(() => null),
+    // Same action-capability prompt the web twin gets, so the twin can emit
+    // [ACTION: ...] tags over WhatsApp too. Empty string when the user has no
+    // action-capable platforms connected (non-fatal).
+    buildWorkspaceActionsPrompt(userId).catch(() => ''),
   ]);
 
   const systemParts = [];
@@ -349,6 +355,10 @@ async function processTwinMessage(userId, message) {
   if (twinContext.proactiveInsights?.length > 0) {
     systemParts.push(`THINGS I NOTICED (bring up naturally):\n${twinContext.proactiveInsights.map(i => `- ${i.insight?.slice(0, 150)}`).join('\n')}`);
   }
+
+  // Action capabilities (email, calendar, drive, etc.) — same block the web
+  // twin uses. Lets the twin DO things from WhatsApp, not just talk.
+  if (workspaceBlock) systemParts.push(workspaceBlock);
 
   systemParts.push(
     'You are responding via WhatsApp. Keep responses concise — ' +
@@ -385,7 +395,30 @@ async function processTwinMessage(userId, message) {
   });
 
   const respText = response?.content || response?.text || "I'm having trouble responding right now. Try again in a moment.";
-  return respText.replace(/^(?:Twin said:\s*"?)+/i, '').replace(/"?\s*$/, '');
+
+  // Run the workspace action chain (same machinery as the web twin): if the
+  // reply contains [ACTION: ...] tags, execute read tools inline and feed
+  // results back; write tools (send email, create event, etc.) are queued to
+  // agent_actions for approval — they then surface for yes/skip via
+  // offerNextProposal after this reply, executed by executeApprovedAction.
+  // Non-streaming, bounded by the chain's own per-tool/turn budget. Any error
+  // falls back to the plain first reply.
+  let finalText = respText;
+  try {
+    const chain = await runWorkspaceActionChain({
+      userId,
+      initialMessage: respText,
+      llmMessages: [...history, { role: 'user', content: message }],
+      systemPrompt: [{ type: 'text', text: system }],
+      routedModel: modelOverride,
+      isStreaming: false,
+    });
+    finalText = chain?.assistantMessage || respText;
+  } catch (err) {
+    log.warn('WhatsApp workspace action chain failed (non-fatal)', { userId, error: err.message });
+  }
+
+  return finalText.replace(/^(?:Twin said:\s*"?)+/i, '').replace(/"?\s*$/, '');
 }
 
 // ====================================================================

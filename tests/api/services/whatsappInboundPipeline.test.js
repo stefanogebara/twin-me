@@ -70,6 +70,17 @@ vi.mock('../../../api/services/transactions/pixReceiptIngest.js', () => ({
   handleReceiptImage: (...a) => handleReceiptImage(...a),
 }));
 
+// Workspace actions: prompt builder + chain. Default = pass-through (no actions
+// in the reply, chain returns the message unchanged), matching real behavior on
+// a plain chat turn. Overridden in the action test to assert the wiring.
+vi.mock('../../../api/services/tools/workspaceActionParser.js', () => ({
+  buildWorkspaceActionsPrompt: async () => '[AVAILABLE ACTIONS] gmail_send, calendar_create',
+}));
+const runWorkspaceActionChain = vi.fn(async ({ initialMessage }) => ({ assistantMessage: initialMessage }));
+vi.mock('../../../api/services/workspaceActionChain.js', () => ({
+  runWorkspaceActionChain: (...a) => runWorkspaceActionChain(...a),
+}));
+
 const { processInboundWhatsApp } = await import('../../../api/services/whatsappInboundPipeline.js');
 
 function makeSend() {
@@ -90,6 +101,7 @@ describe('processInboundWhatsApp', () => {
     isStatementDocument.mockReset();
     handleStatementDocument.mockReset();
     handleReceiptImage.mockReset();
+    runWorkspaceActionChain.mockReset().mockImplementation(async ({ initialMessage }) => ({ assistantMessage: initialMessage }));
     process.env.PURCHASE_BOT_ENABLED = 'false';
   });
 
@@ -118,6 +130,21 @@ describe('processInboundWhatsApp', () => {
     expect(completeMock).toHaveBeenCalledTimes(1);
     expect(calls[0].text).toMatch(/tudo bem por aqui/);
     expect(calls[1].text).toMatch(/want me to draft/);
+  });
+
+  it('runs the workspace action chain on the reply and sends its transformed output', async () => {
+    // The chain executed a tool and rewrote the reply (web parity). What the
+    // user receives is the chain output, not the raw first-pass reply.
+    runWorkspaceActionChain.mockResolvedValue({ assistantMessage: 'Feito — rascunhei o email pra Paula.' });
+    const { send, calls } = makeSend();
+    const r = await processInboundWhatsApp({ phone: '5511777', text: 'manda um email pra Paula' }, { send });
+    expect(r.kind).toBe('chat');
+    // Chain was invoked with the first-pass reply as initialMessage.
+    expect(runWorkspaceActionChain).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: 'u1', initialMessage: expect.stringMatching(/tudo bem por aqui/) }),
+    );
+    // The user gets the chain's transformed text.
+    expect(calls[0].text).toBe('Feito — rascunhei o email pra Paula.');
   });
 
   it('resolves a "yes"/"skip" thread approval without hitting the LLM', async () => {
