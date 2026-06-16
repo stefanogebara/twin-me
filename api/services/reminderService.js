@@ -174,6 +174,61 @@ export async function cancelReminder(userId, { id, query } = {}) {
 }
 
 /**
+ * Reschedule (snooze/postpone) a pending reminder to a new time — by id, or by a
+ * short text match on its message. `remindAt` is a local ISO (no Z) in
+ * `timeZone`, or an absolute ISO. Ambiguous (>1 match) returns the candidates so
+ * the twin can ask. Resets attempts and keeps it pending. Never throws.
+ */
+export async function rescheduleReminder(userId, { id, query, remindAt, timeZone = 'UTC' } = {}) {
+  if (!remindAt) return { success: false, error: 'remindAt is required' };
+  let remindAtUtc;
+  try {
+    remindAtUtc = zonedLocalToUtc(remindAt, timeZone);
+  } catch {
+    return { success: false, error: 'invalid remindAt' };
+  }
+  const patch = { remind_at: remindAtUtc.toISOString(), status: 'pending', attempts: 0 };
+
+  try {
+    if (id) {
+      const { data, error } = await supabaseAdmin
+        .from('reminders')
+        .update(patch)
+        .eq('id', id)
+        .eq('user_id', userId)
+        .select('id, message, remind_at')
+        .maybeSingle();
+      if (error) return { success: false, error: error.message };
+      if (!data) return { success: false, error: 'not_found', message: 'No matching reminder.' };
+      return { success: true, reminder: data };
+    }
+
+    if (query) {
+      // Only postpone live (pending) reminders — a cancelled/delivered one
+      // shouldn't silently resurrect from a fuzzy match.
+      const { data, error } = await supabaseAdmin
+        .from('reminders')
+        .select('id, message, remind_at')
+        .eq('user_id', userId)
+        .eq('status', 'pending')
+        .ilike('message', `%${query}%`);
+      if (error) return { success: false, error: error.message };
+      if (!data?.length) return { success: false, error: 'not_found', message: `No pending reminder matching "${query}".` };
+      if (data.length > 1) return { success: false, error: 'ambiguous', matches: data, message: `Found ${data.length} reminders matching "${query}" — which one?` };
+      const r = data[0];
+      const { error: upErr } = await supabaseAdmin
+        .from('reminders').update(patch).eq('id', r.id).eq('user_id', userId);
+      if (upErr) return { success: false, error: upErr.message };
+      return { success: true, reminder: { ...r, remind_at: patch.remind_at } };
+    }
+
+    return { success: false, error: 'id or query required' };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+}
+
+/**
  * Deliver every due, still-pending reminder. Called by the 15-min cron. Routes
  * each through messageRouter.deliverInsight (multi-channel). Marks delivered on
  * success; counts attempts and gives up after MAX_DELIVERY_ATTEMPTS so a user

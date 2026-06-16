@@ -325,6 +325,12 @@ Examples:
   User: "Remove the dentist reminder"
   You: Done — removed it. [ACTION: cancel_reminder query="dentista"]
 
+  User: "Adia o lembrete do boleto pra amanhã 9h"
+  You: Feito — movi pra amanhã às 9h. [ACTION: reschedule_reminder query="boleto" remind_at="${tomorrowDate}T09:00:00"]
+
+  User: "Snooze the dentist reminder to tomorrow afternoon"
+  You: Done — pushed it to 3pm tomorrow. [ACTION: reschedule_reminder query="dentista" remind_at="${tomorrowDate}T15:00:00"]
+
   User: "Any open issues about the login bug?"
   You: [ACTION: github_search_issues query="login bug"]
 

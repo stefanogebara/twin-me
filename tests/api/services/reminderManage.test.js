@@ -30,7 +30,7 @@ vi.mock('../../../api/services/database.js', () => {
   return { supabaseAdmin: { from: () => builder() } };
 });
 
-const { listReminders, cancelReminder } = await import('../../../api/services/reminderService.js');
+const { listReminders, cancelReminder, rescheduleReminder } = await import('../../../api/services/reminderService.js');
 
 beforeEach(() => {
   listRows = null;
@@ -95,5 +95,43 @@ describe('cancelReminder', () => {
   it('requires id or query', async () => {
     const out = await cancelReminder('u1', {});
     expect(out.success).toBe(false);
+  });
+});
+
+describe('rescheduleReminder', () => {
+  it('postpones the single matching reminder to the new time (UTC-converted)', async () => {
+    matchRows = [{ id: 'r1', message: 'pagar o boleto', remind_at: '2026-06-17T12:00:00Z' }];
+    const out = await rescheduleReminder('u1', { query: 'boleto', remindAt: '2026-06-18T09:00:00', timeZone: 'America/Sao_Paulo' });
+    expect(out.success).toBe(true);
+    expect(out.reminder.id).toBe('r1');
+    const patch = updates.find(u => u.patch.remind_at)?.patch;
+    expect(patch.remind_at).toBe('2026-06-18T12:00:00.000Z'); // 09:00 SP = 12:00 UTC
+    expect(patch.status).toBe('pending');
+    expect(patch.attempts).toBe(0);
+  });
+
+  it('returns not_found and does not update when nothing matches', async () => {
+    matchRows = [];
+    const out = await rescheduleReminder('u1', { query: 'nope', remindAt: '2026-06-18T09:00:00', timeZone: 'UTC' });
+    expect(out.success).toBe(false);
+    expect(out.error).toBe('not_found');
+    expect(updates).toHaveLength(0);
+  });
+
+  it('returns ambiguous without updating when >1 matches', async () => {
+    matchRows = [
+      { id: 'r1', message: 'boleto luz', remind_at: '2026-06-17T12:00:00Z' },
+      { id: 'r2', message: 'boleto cartão', remind_at: '2026-06-18T12:00:00Z' },
+    ];
+    const out = await rescheduleReminder('u1', { query: 'boleto', remindAt: '2026-06-18T09:00:00', timeZone: 'UTC' });
+    expect(out.success).toBe(false);
+    expect(out.error).toBe('ambiguous');
+    expect(updates).toHaveLength(0);
+  });
+
+  it('requires a remindAt', async () => {
+    const out = await rescheduleReminder('u1', { query: 'boleto' });
+    expect(out.success).toBe(false);
+    expect(out.error).toContain('remindAt');
   });
 });

@@ -25,6 +25,7 @@ export const EXTENDED_TOOL_NAMES = [
   'set_reminder',
   'list_reminders',
   'cancel_reminder',
+  'reschedule_reminder',
 ];
 
 export function registerExtendedTools() {
@@ -525,6 +526,36 @@ export function registerExtendedTools() {
     executor: async (userId) => {
       const { listReminders } = await import('../reminderService.js');
       return listReminders(userId, {});
+    },
+  });
+
+  // Reschedule/snooze a pending reminder to a new time (the user's own data —
+  // executes inline, no approval needed).
+  registerTool({
+    name: 'reschedule_reminder',
+    platform: null,
+    description: 'Reschedule (snooze/postpone) a pending reminder to a new time, matched by a short text query (e.g. query="boleto"). Use the user LOCAL time WITHOUT a Z suffix for remind_at. Use for "adia o lembrete do boleto pra amanhã 9h", "snooze the dentist reminder to next week", "push my standup reminder to 3pm". If more than one matches, the result lists them so you can ask which.',
+    category: 'productivity',
+    parameters: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'Text to match the reminder to reschedule, e.g. "boleto" or "dentista".' },
+        remind_at: { type: 'string', description: 'New time, LOCAL time ISO 8601 WITHOUT Z (e.g. "2026-06-18T09:00:00"). Do NOT append Z.' },
+      },
+      required: ['query', 'remind_at'],
+    },
+    requiresConnection: false,
+    minAutonomyLevel: 1,
+    skillName: 'reminders',
+    executor: async (userId, params) => {
+      const { supabaseAdmin } = await import('../database.js');
+      const { rescheduleReminder } = await import('../reminderService.js');
+      let tz = 'UTC';
+      try {
+        const { data } = await supabaseAdmin.from('users').select('timezone').eq('id', userId).single();
+        if (data?.timezone) tz = data.timezone;
+      } catch { /* non-fatal — falls back to UTC */ }
+      return rescheduleReminder(userId, { query: params.query, remindAt: params.remind_at, timeZone: tz });
     },
   });
 
