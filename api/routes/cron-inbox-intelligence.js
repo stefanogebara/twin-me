@@ -16,7 +16,7 @@ import express from 'express';
 import { verifyCronSecret } from '../middleware/verifyCronSecret.js';
 import { supabaseAdmin } from '../services/database.js';
 import { logCronExecution, wasRecentlyRun } from '../services/cronLogger.js';
-import { generateInboxBrief } from '../services/inboxIntelligenceService.js';
+import { generateInboxBrief, proposeTopEmailReply } from '../services/inboxIntelligenceService.js';
 import { deliverInsight } from '../services/messageRouter.js';
 import { createLogger } from '../services/logger.js';
 
@@ -114,6 +114,18 @@ router.all('/', async (req, res) => {
             .eq('id', insertedInsight.id);
           processed++;
           log.info('Inbox brief generated and delivered', { userId, emailCount: inboxBrief.count });
+
+          // Bridge the top thread into an approvable threaded-reply proposal.
+          // Opt-in: only fires when the user enabled the communications
+          // department (autonomy gate inside proposeDepartmentAction). Non-fatal.
+          try {
+            const proposal = await proposeTopEmailReply(userId, inboxBrief);
+            if (proposal.proposed) {
+              log.info('Email reply proposal created', { userId, to: proposal.to });
+            }
+          } catch (proposalErr) {
+            log.warn('Email reply proposal failed (non-fatal)', { userId, error: proposalErr.message });
+          }
         }
       } catch (err) {
         log.warn('Inbox intelligence failed for user', { userId, error: err.message });

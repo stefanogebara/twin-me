@@ -127,9 +127,10 @@ export function registerGoogleWorkspaceTools() {
               to: params.to,
               subject: params.subject,
               context: params.body || '',
+              replyToMessageId: params.replyToMessageId, // thread the reply when present
             });
             if (personalizedDraft) {
-              log.info('gmail_draft: used personality-aware draft', { userId, to: params.to });
+              log.info('gmail_draft: used personality-aware draft', { userId, to: params.to, threaded: !!params.replyToMessageId });
               return { draft: personalizedDraft, personalized: true };
             }
           } else {
