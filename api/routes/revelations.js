@@ -25,6 +25,7 @@ import {
 import {
   gatherWebContent, buildThemeCorpus, buildThemePrompt,
 } from '../services/curiositySignature.js';
+import { computeDayNightRevelation } from '../services/dayNightSelf.js';
 import { complete, TIER_ANALYSIS } from '../services/llmGateway.js';
 import { createLogger } from '../services/logger.js';
 
@@ -98,14 +99,15 @@ router.get('/', authenticateUser, async (req, res) => {
       if (cached) return res.json({ success: true, data: cached });
     }
 
-    // Independent — one failing computer must not sink the other.
-    const [attention, curiosity] = await Promise.all([
+    // Independent — one failing computer must not sink the others.
+    const [attention, curiosity, dayNight] = await Promise.all([
       computeAttention(userId).catch((e) => { log.warn('attention failed', { error: e.message }); return null; }),
       computeCuriosity(userId).catch((e) => { log.warn('curiosity failed', { error: e.message }); return null; }),
+      computeDayNightRevelation(userId).catch((e) => { log.warn('dayNight failed', { error: e.message }); return null; }),
     ]);
 
     const payload = {
-      revelations: [attention, curiosity].filter(Boolean),
+      revelations: [attention, curiosity, dayNight].filter(Boolean),
       generatedAt: new Date().toISOString(),
     };
     await writeCache(userId, payload).catch((e) => log.warn('cache write failed', { error: e.message }));
