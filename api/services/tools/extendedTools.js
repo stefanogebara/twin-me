@@ -26,6 +26,7 @@ export const EXTENDED_TOOL_NAMES = [
   'list_reminders',
   'cancel_reminder',
   'reschedule_reminder',
+  'skip_reminder',
 ];
 
 export function registerExtendedTools() {
@@ -556,6 +557,29 @@ export function registerExtendedTools() {
         if (data?.timezone) tz = data.timezone;
       } catch { /* non-fatal — falls back to UTC */ }
       return rescheduleReminder(userId, { query: params.query, remindAt: params.remind_at, timeZone: tz });
+    },
+  });
+
+  // Skip the next occurrence of a recurring reminder (the user's own data —
+  // executes inline, no approval needed).
+  registerTool({
+    name: 'skip_reminder',
+    platform: null,
+    description: 'Skip the NEXT occurrence of a RECURRING reminder, matched by a short text query (e.g. query="relatório"). It advances to the occurrence after next without firing once. Use for "pula o próximo lembrete do relatório", "skip this week\'s standup reminder", "não me lembra amanhã, só depois". For one-time reminders, cancel or reschedule instead.',
+    category: 'productivity',
+    parameters: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'Text to match the recurring reminder, e.g. "relatório" or "standup".' },
+      },
+      required: ['query'],
+    },
+    requiresConnection: false,
+    minAutonomyLevel: 1,
+    skillName: 'reminders',
+    executor: async (userId, params) => {
+      const { skipNextOccurrence } = await import('../reminderService.js');
+      return skipNextOccurrence(userId, { query: params.query });
     },
   });
 

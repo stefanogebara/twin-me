@@ -331,6 +331,12 @@ Examples:
   User: "Snooze the dentist reminder to tomorrow afternoon"
   You: Done — pushed it to 3pm tomorrow. [ACTION: reschedule_reminder query="dentista" remind_at="${tomorrowDate}T15:00:00"]
 
+  User: "Pula o próximo lembrete do relatório"
+  You: Beleza — pulei o próximo. [ACTION: skip_reminder query="relatório"]
+
+  User: "Skip this week's standup reminder"
+  You: Done — skipped this one. [ACTION: skip_reminder query="standup"]
+
   User: "Any open issues about the login bug?"
   You: [ACTION: github_search_issues query="login bug"]
 

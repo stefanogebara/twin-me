@@ -30,7 +30,7 @@ vi.mock('../../../api/services/database.js', () => {
   return { supabaseAdmin: { from: () => builder() } };
 });
 
-const { listReminders, cancelReminder, rescheduleReminder } = await import('../../../api/services/reminderService.js');
+const { listReminders, cancelReminder, rescheduleReminder, skipNextOccurrence } = await import('../../../api/services/reminderService.js');
 
 beforeEach(() => {
   listRows = null;
@@ -133,5 +133,42 @@ describe('rescheduleReminder', () => {
     const out = await rescheduleReminder('u1', { query: 'boleto' });
     expect(out.success).toBe(false);
     expect(out.error).toContain('remindAt');
+  });
+});
+
+describe('skipNextOccurrence', () => {
+  it('advances a recurring reminder by one cycle', async () => {
+    matchRows = [{ id: 'r1', message: 'mandar o relatório', remind_at: '2026-06-16T12:00:00Z', recurrence: 'weekly' }];
+    const out = await skipNextOccurrence('u1', { query: 'relatório' });
+    expect(out.success).toBe(true);
+    expect(out.skipped).toBe(true);
+    const patch = updates.find(u => u.patch.remind_at)?.patch;
+    expect(patch.remind_at).toBe('2026-06-23T12:00:00.000Z'); // +7 days
+  });
+
+  it('refuses a one-time reminder (not_recurring)', async () => {
+    matchRows = [{ id: 'r1', message: 'pagar o boleto', remind_at: '2026-06-16T12:00:00Z', recurrence: null }];
+    const out = await skipNextOccurrence('u1', { query: 'boleto' });
+    expect(out.success).toBe(false);
+    expect(out.error).toBe('not_recurring');
+    expect(updates).toHaveLength(0);
+  });
+
+  it('returns not_found when nothing matches', async () => {
+    matchRows = [];
+    const out = await skipNextOccurrence('u1', { query: 'nope' });
+    expect(out.success).toBe(false);
+    expect(out.error).toBe('not_found');
+  });
+
+  it('returns ambiguous without updating when >1 matches', async () => {
+    matchRows = [
+      { id: 'r1', message: 'relatório semanal', remind_at: '2026-06-16T12:00:00Z', recurrence: 'weekly' },
+      { id: 'r2', message: 'relatório mensal', remind_at: '2026-06-16T12:00:00Z', recurrence: 'monthly' },
+    ];
+    const out = await skipNextOccurrence('u1', { query: 'relatório' });
+    expect(out.success).toBe(false);
+    expect(out.error).toBe('ambiguous');
+    expect(updates).toHaveLength(0);
   });
 });

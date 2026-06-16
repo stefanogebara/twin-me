@@ -229,6 +229,59 @@ export async function rescheduleReminder(userId, { id, query, remindAt, timeZone
 }
 
 /**
+ * Skip the NEXT occurrence of a recurring reminder — advance remind_at by one
+ * cycle without firing. Matched by id or short text query. Errors with
+ * 'not_recurring' for one-shot reminders (cancel/reschedule those instead).
+ * Ambiguous (>1 match) returns candidates. Never throws.
+ */
+export async function skipNextOccurrence(userId, { id, query } = {}) {
+  try {
+    let target;
+    if (id) {
+      const { data, error } = await supabaseAdmin
+        .from('reminders')
+        .select('id, message, remind_at, recurrence')
+        .eq('id', id)
+        .eq('user_id', userId)
+        .eq('status', 'pending')
+        .maybeSingle();
+      if (error) return { success: false, error: error.message };
+      target = data;
+    } else if (query) {
+      const { data, error } = await supabaseAdmin
+        .from('reminders')
+        .select('id, message, remind_at, recurrence')
+        .eq('user_id', userId)
+        .eq('status', 'pending')
+        .ilike('message', `%${query}%`);
+      if (error) return { success: false, error: error.message };
+      if (!data?.length) return { success: false, error: 'not_found', message: `No pending reminder matching "${query}".` };
+      if (data.length > 1) return { success: false, error: 'ambiguous', matches: data, message: `Found ${data.length} reminders matching "${query}" — which one?` };
+      target = data[0];
+    } else {
+      return { success: false, error: 'id or query required' };
+    }
+
+    if (!target) return { success: false, error: 'not_found', message: 'No matching pending reminder.' };
+    if (!target.recurrence) {
+      return { success: false, error: 'not_recurring', message: 'That reminder is one-time — cancel or reschedule it instead.' };
+    }
+    const next = computeNextOccurrence(new Date(target.remind_at), target.recurrence);
+    if (!next) return { success: false, error: 'bad_recurrence' };
+
+    const { error: upErr } = await supabaseAdmin
+      .from('reminders')
+      .update({ remind_at: next.toISOString() })
+      .eq('id', target.id)
+      .eq('user_id', userId);
+    if (upErr) return { success: false, error: upErr.message };
+    return { success: true, skipped: true, reminder: { ...target, remind_at: next.toISOString() } };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+}
+
+/**
  * Deliver every due, still-pending reminder. Called by the 15-min cron. Routes
  * each through messageRouter.deliverInsight (multi-channel). Marks delivered on
  * success; counts attempts and gives up after MAX_DELIVERY_ATTEMPTS so a user
