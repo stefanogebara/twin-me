@@ -75,6 +75,67 @@ export async function createReminder(userId, { remindAt, timeZone = 'UTC', messa
 }
 
 /**
+ * List the user's upcoming (pending) reminders, soonest first. Never throws.
+ */
+export async function listReminders(userId, { limit = 10 } = {}) {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('reminders')
+      .select('id, message, remind_at')
+      .eq('user_id', userId)
+      .eq('status', 'pending')
+      .order('remind_at', { ascending: true })
+      .limit(limit);
+    if (error) return { success: false, error: error.message, reminders: [] };
+    return { success: true, reminders: data || [] };
+  } catch (err) {
+    return { success: false, error: err.message, reminders: [] };
+  }
+}
+
+/**
+ * Cancel a pending reminder — by id, or by a short text match on its message
+ * ("boleto"). Ambiguous (>1 match) returns the candidates so the twin can ask.
+ * The user's own data — no approval needed. Never throws.
+ */
+export async function cancelReminder(userId, { id, query } = {}) {
+  try {
+    if (id) {
+      const { data, error } = await supabaseAdmin
+        .from('reminders')
+        .update({ status: 'cancelled' })
+        .eq('id', id)
+        .eq('user_id', userId)
+        .eq('status', 'pending')
+        .select('id, message')
+        .maybeSingle();
+      if (error) return { success: false, error: error.message };
+      if (!data) return { success: false, error: 'not_found', message: 'No matching pending reminder.' };
+      return { success: true, cancelled: [data] };
+    }
+
+    if (query) {
+      const { data, error } = await supabaseAdmin
+        .from('reminders')
+        .select('id, message, remind_at')
+        .eq('user_id', userId)
+        .eq('status', 'pending')
+        .ilike('message', `%${query}%`);
+      if (error) return { success: false, error: error.message };
+      if (!data?.length) return { success: false, error: 'not_found', message: `No pending reminder matching "${query}".` };
+      if (data.length > 1) return { success: false, error: 'ambiguous', matches: data, message: `Found ${data.length} reminders matching "${query}" — which one?` };
+      const r = data[0];
+      await supabaseAdmin.from('reminders').update({ status: 'cancelled' }).eq('id', r.id).eq('user_id', userId);
+      return { success: true, cancelled: [r] };
+    }
+
+    return { success: false, error: 'id or query required' };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+}
+
+/**
  * Deliver every due, still-pending reminder. Called by the 15-min cron. Routes
  * each through messageRouter.deliverInsight (multi-channel). Marks delivered on
  * success; counts attempts and gives up after MAX_DELIVERY_ATTEMPTS so a user

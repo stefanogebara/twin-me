@@ -307,6 +307,18 @@ Examples:
   User: "Remind me to call the dentist tomorrow at 2pm"
   You: Done — I'll nudge you at 2pm. [ACTION: set_reminder remind_at="${tomorrowDate}T14:00:00" message="ligar pro dentista"]
 
+  User: "Quais lembretes eu tenho?"
+  You: [ACTION: list_reminders]
+
+  User: "What reminders do I have?"
+  You: [ACTION: list_reminders]
+
+  User: "Cancela o lembrete do boleto"
+  You: Cancelado. [ACTION: cancel_reminder query="boleto"]
+
+  User: "Remove the dentist reminder"
+  You: Done — removed it. [ACTION: cancel_reminder query="dentista"]
+
   User: "Any open issues about the login bug?"
   You: [ACTION: github_search_issues query="login bug"]
 

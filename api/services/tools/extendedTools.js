@@ -23,6 +23,8 @@ export const EXTENDED_TOOL_NAMES = [
   'get_recurring_subscriptions',
   'simulate_future',
   'set_reminder',
+  'list_reminders',
+  'cancel_reminder',
 ];
 
 export function registerExtendedTools() {
@@ -505,6 +507,45 @@ export function registerExtendedTools() {
         message: params.message,
         source: 'twin',
       });
+    },
+  });
+
+  // List the user's pending reminders (read, inline — their own data).
+  registerTool({
+    name: 'list_reminders',
+    platform: null,
+    description: 'List the user\'s upcoming (pending) reminders, soonest first. Use for "quais lembretes tenho?", "what reminders do I have?", "meus lembretes".',
+    category: 'productivity',
+    parameters: { type: 'object', properties: {} },
+    requiresConnection: false,
+    minAutonomyLevel: 1,
+    skillName: 'reminders',
+    executor: async (userId) => {
+      const { listReminders } = await import('../reminderService.js');
+      return listReminders(userId, {});
+    },
+  });
+
+  // Cancel a pending reminder by a short text match (the user's own data —
+  // executes inline, no approval needed).
+  registerTool({
+    name: 'cancel_reminder',
+    platform: null,
+    description: 'Cancel a pending reminder by a short text match on its message (e.g. query="boleto" cancels the "pagar o boleto" reminder). Use for "cancela o lembrete do boleto", "remove the dentist reminder". If more than one matches, the result lists them so you can ask which.',
+    category: 'productivity',
+    parameters: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'Text to match the reminder to cancel, e.g. "boleto" or "dentista".' },
+      },
+      required: ['query'],
+    },
+    requiresConnection: false,
+    minAutonomyLevel: 1,
+    skillName: 'reminders',
+    executor: async (userId, params) => {
+      const { cancelReminder } = await import('../reminderService.js');
+      return cancelReminder(userId, { query: params.query });
     },
   });
 
