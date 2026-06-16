@@ -756,6 +756,31 @@ export async function searchFiles(userId, { query, mimeType, maxResults = 20 } =
 }
 
 /**
+ * Move a Drive file to the trash. Reversible — Drive keeps trashed files
+ * recoverable for ~30 days; this is NOT a permanent delete. Reusable by the
+ * inbox /undo flow (which wanted a drive trash) and one-off cleanup.
+ */
+export async function trashFile(userId, fileId) {
+  if (!fileId) return { success: false, error: 'fileId is required' };
+
+  const auth = await getAuthHeaders(userId, 'google_gmail');
+  if (!auth.success) return { success: false, error: auth.error };
+
+  try {
+    const resp = await axios.patch(
+      `${DRIVE_BASE}/files/${fileId}?fields=id,name,trashed`,
+      { trashed: true },
+      { headers: auth.headers, timeout: REQUEST_TIMEOUT }
+    );
+    log.info('Drive file trashed', { userId, fileId, name: resp.data?.name });
+    return { success: true, fileId, name: resp.data?.name, trashed: resp.data?.trashed };
+  } catch (err) {
+    log.error('trashFile failed', { userId, fileId, error: err.response?.data || err.message });
+    return { success: false, error: err.response?.data?.error?.message || err.message };
+  }
+}
+
+/**
  * Get file content (text-based files only: Google Docs, Sheets, plain text, etc.).
  */
 export async function getFileContent(userId, fileId) {
