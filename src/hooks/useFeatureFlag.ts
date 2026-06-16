@@ -3,9 +3,9 @@
  *
  * Source of truth is GET /api/feature-flags (DB-backed, same endpoint
  * Settings.tsx writes through). Flags the backend does not expose resolve
- * to `defaultValue` — for park-flags like `money_plaid` (replan-2026-06-10
- * Track D) that means absent/unknown = OFF, which is exactly the safe
- * behavior: a fetch failure parks the surface instead of un-parking it.
+ * to `defaultValue` — for park-flags that means absent/unknown = OFF, which
+ * is exactly the safe behavior: a fetch failure parks the surface instead
+ * of un-parking it.
  */
 
 import { useQuery } from '@tanstack/react-query';

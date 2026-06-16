@@ -1,22 +1,18 @@
 /**
  * /money/insights — narrative-read surface E2E
  * =============================================
- * Drives MoneyInsightsPage (Phase 4.4) with mocked backend so the test
- * doesn't depend on a seeded DB or real Plaid/Whoop tokens. Catches:
+ * Drives MoneyInsightsPage with mocked backend so the test doesn't depend on
+ * a seeded DB. Post bank-aggregator removal (replan-2026-06-12) the page has
+ * exactly two surfaces:
  *
+ *   (a) recurring-subscriptions audit (with first-charge emotional context)
+ *   (b) stress-spend timeline
+ *
+ * Catches:
  *   - Page mounts without console errors (the JSX bug class we already
  *     blocked at unit level — this is the integration backstop).
- *   - All 5 surfaces render their data shape correctly:
- *       (a) investment-correlation moat insights
- *       (b) recurring-subscriptions audit
- *       (c) brokerage holdings card
- *       (d) brokerage activity card
- *       (e) stress-spend timeline
+ *   - Both surfaces render their data shape correctly.
  *   - The "Back to /money" link works.
- *   - The Discuss button on a moat insight navigates to /talk-to-twin
- *     with the right discussContext (regression for the e0e5a9d4 JSX
- *     ternary bug — even though the file was dead code, the *type* of
- *     bug would manifest here).
  *
  * Self-contained auth via injectAuth (e2e project). No setup dependency.
  */
@@ -26,37 +22,6 @@ import { BASE_URL, injectAuth } from './helpers';
 // ─────────────────────────────────────────────────────────────────────────────
 // Fixture data — shape matches what the production endpoints return.
 // ─────────────────────────────────────────────────────────────────────────────
-const MOAT_INSIGHTS = [
-  {
-    id: 'insight-moat-1',
-    insight: 'You sell more on low-recovery days than on normal-recovery days (8 of 11 sells while recovery was <40%).',
-    urgency: 'high',
-    category: 'anomaly',
-    created_at: '2026-05-19T08:00:00Z',
-    sources: ['whoop', 'plaid'],
-    metadata: {
-      subcategory: 'investment_correlation',
-      pattern: 'sells_low_recovery',
-      n: 11,
-      k: 8,
-    },
-  },
-  {
-    id: 'insight-moat-2',
-    insight: 'You bought more during high-stress windows than at baseline (6 buys with stress > 0.65 vs 2 at calm).',
-    urgency: 'medium',
-    category: 'trend',
-    created_at: '2026-05-19T08:00:00Z',
-    sources: ['whoop', 'plaid', 'google_calendar'],
-    metadata: {
-      subcategory: 'investment_correlation',
-      pattern: 'buys_high_stress',
-      n: 8,
-      k: 6,
-    },
-  },
-];
-
 const RECURRING_SUBS = {
   success: true,
   count: 3,
@@ -75,7 +40,7 @@ const RECURRING_SUBS = {
       lastChargeDate: '2026-04-12',
       totalSpentToDate: 186,
       firstChargeContext: null,
-      source: 'plaid',
+      source: 'csv_upload',
     },
     {
       merchant: 'Equinox',
@@ -87,7 +52,7 @@ const RECURRING_SUBS = {
       lastChargeDate: '2026-04-08',
       totalSpentToDate: 200,
       firstChargeContext: 'signed up on a low-recovery Sunday — never visited',
-      source: 'plaid',
+      source: 'csv_upload',
     },
     {
       merchant: 'GitHub Copilot',
@@ -99,7 +64,7 @@ const RECURRING_SUBS = {
       lastChargeDate: '2026-04-01',
       totalSpentToDate: 48,
       firstChargeContext: null,
-      source: 'plaid',
+      source: 'csv_upload',
     },
   ],
 };
@@ -114,76 +79,10 @@ const TIMELINE_ANALYSIS = {
   ],
 };
 
-const HOLDINGS = {
-  success: true,
-  holdings: [
-    {
-      institutionName: 'Fidelity',
-      accountId: 'acc-1',
-      accountName: 'Roth IRA',
-      accountMask: '1234',
-      accountType: 'investment',
-      ticker: 'VOO',
-      name: 'Vanguard S&P 500 ETF',
-      type: 'etf',
-      quantity: 12,
-      institutionPrice: 420,
-      costBasis: 4500,
-      value: 5040,
-      currency: 'USD',
-      gainLoss: 540,
-      gainLossPct: 12,
-    },
-  ],
-  totalValue: 5040,
-  totalCost: 4500,
-  totalGainLoss: 540,
-  currency: 'USD',
-  itemsScanned: 1,
-  itemsWithError: 0,
-};
-
-const INVESTMENT_ACTIVITY = {
-  success: true,
-  events: [
-    {
-      id: 'tx-1',
-      ticker: 'VOO',
-      name: 'Vanguard S&P 500 ETF',
-      type: 'buy',
-      rawCategory: 'investment_buy_purchased',
-      amount: -1000,
-      currency: 'USD',
-      transactionDate: '2026-05-15',
-      emotionalContext: {
-        recoveryScore: 0.32,
-        musicValence: 0.45,
-        calendarLoad: 0.78,
-        sleepScore: 0.5,
-        computedStressScore: 0.72,
-        emotionLabel: 'high stress (72%)',
-      },
-    },
-  ],
-  range: { since: '2025-05-21', limit: 25 },
-};
-
 // ─────────────────────────────────────────────────────────────────────────────
 // Route mocks
 // ─────────────────────────────────────────────────────────────────────────────
 async function mockMoneyInsightsAPI(page: import('@playwright/test').Page) {
-  // The moat-insights call pins subcategory=investment_correlation in the
-  // query string. Any other proactive-insights call should still resolve
-  // gracefully (the InsightsFeed on the dashboard might hit / behind the
-  // scenes during nav).
-  await page.route('**/api/insights/proactive*', async (route) => {
-    const url = route.request().url();
-    const body = url.includes('investment_correlation')
-      ? { insights: MOAT_INSIGHTS }
-      : { insights: [] };
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
-  });
-
   await page.route('**/api/transactions/recurring-subscriptions*', async (route) => {
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(RECURRING_SUBS) });
   });
@@ -192,17 +91,12 @@ async function mockMoneyInsightsAPI(page: import('@playwright/test').Page) {
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(TIMELINE_ANALYSIS) });
   });
 
-  await page.route('**/api/plaid/holdings*', async (route) => {
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(HOLDINGS) });
-  });
-
-  await page.route('**/api/plaid/investment-activity*', async (route) => {
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(INVESTMENT_ACTIVITY) });
-  });
-
   // A few endpoints might be hit during /money/insights load from the
   // global app shell (sidebar nav, twin-state context). 200 with empty
   // bodies so they don't bubble up as console errors.
+  await page.route('**/api/insights/proactive*', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ insights: [] }) });
+  });
   await page.route('**/api/platforms/connected*', async (route) => {
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ connected: [] }) });
   });
@@ -214,10 +108,10 @@ async function mockMoneyInsightsAPI(page: import('@playwright/test').Page) {
 // ─────────────────────────────────────────────────────────────────────────────
 // Tests
 // ─────────────────────────────────────────────────────────────────────────────
-test.describe('/money/insights — Phase 4.4 narrative read', () => {
+test.describe('/money/insights — narrative read', () => {
   test.setTimeout(60_000);
 
-  test('renders all 5 surfaces with no JS exceptions', async ({ page }) => {
+  test('renders both surfaces with no JS exceptions', async ({ page }) => {
     const consoleErrors: string[] = [];
     page.on('pageerror', (err) => consoleErrors.push('pageerror: ' + err.message));
     page.on('console', (msg) => {
@@ -237,17 +131,11 @@ test.describe('/money/insights — Phase 4.4 narrative read', () => {
 
     await page.goto(`${BASE_URL}/money/insights`, { waitUntil: 'domcontentloaded', timeout: 30_000 });
 
-    // Once the page has resolved its 5 useEffect API calls, the loader
-    // disappears and the heading text appears. The actual heading copy is
+    // Once the page has resolved its API calls, the loader disappears and
+    // the heading text appears. The actual heading copy is
     // "Your money, with context." per MoneyInsightsPage.tsx.
     const heading = page.getByRole('heading', { name: /your money, with context/i }).first();
     await expect(heading, 'page heading is rendered after data loads').toBeVisible({ timeout: 20_000 });
-
-    // Moat insights surface — the synthesised summary text should be present.
-    await expect(
-      page.getByText(/sell more on low-recovery days/i),
-      'moat insight #1 (sells_low_recovery) is rendered',
-    ).toBeVisible({ timeout: 10_000 });
 
     // Recurring subscriptions audit — synthesis line + stress signup flag.
     await expect(
@@ -261,6 +149,11 @@ test.describe('/money/insights — Phase 4.4 narrative read', () => {
       page.getByText(/low-recovery sunday|never visited/i),
       'stressful-signup context renders for Equinox',
     ).toBeVisible();
+
+    // Retired aggregator surfaces must stay gone.
+    await expect(page.getByText(/what your trade history reveals/i), 'investment section removed').toHaveCount(0);
+    await expect(page.getByText(/every buy and sell, in context/i), 'brokerage activity section removed').toHaveCount(0);
+    await expect(page.getByText(/what you own/i), 'holdings section removed').toHaveCount(0);
 
     // No JS exceptions during render.
     expect(consoleErrors, 'no console errors at first paint').toEqual([]);
@@ -288,14 +181,9 @@ test.describe('/money/insights — Phase 4.4 narrative read', () => {
     expect(page.url()).toMatch(/\/money$/);
   });
 
-  test('empty-state for no investment-correlation insights does not crash', async ({ page }) => {
-    // Regression guard: the page used to crash if MOAT_INSIGHTS was [] because
-    // an early implementation indexed [0] without a length check.
+  test('empty-state renders without crashing', async ({ page }) => {
     await injectAuth(page);
 
-    await page.route('**/api/insights/proactive*', async (route) => {
-      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ insights: [] }) });
-    });
     await page.route('**/api/transactions/recurring-subscriptions*', async (route) => {
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
         success: true, count: 0, totalMonthly: 0, currency: 'USD',
@@ -305,14 +193,8 @@ test.describe('/money/insights — Phase 4.4 narrative read', () => {
     await page.route('**/api/transactions/timeline-analysis*', async (route) => {
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ days: [] }) });
     });
-    await page.route('**/api/plaid/holdings*', async (route) => {
-      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
-        success: true, holdings: [], totalValue: 0, totalCost: 0, totalGainLoss: 0,
-        currency: 'USD', itemsScanned: 0, itemsWithError: 0,
-      }) });
-    });
-    await page.route('**/api/plaid/investment-activity*', async (route) => {
-      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, events: [] }) });
+    await page.route('**/api/insights/proactive*', async (route) => {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ insights: [] }) });
     });
 
     const consoleErrors: string[] = [];

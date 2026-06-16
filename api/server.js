@@ -282,6 +282,8 @@ app.use((req, res, next) => {
     : req.path.includes('/soul-signature/layers') ? 90000
     : req.path.includes('/onboarding/calibration') ? 90000
     : req.path.includes('/whatsapp-twin/webhook') ? 90000
+    : req.path.includes('/whatsapp-zapi/webhook') ? 90000  // inbound pipeline runs twin chat (~25s)
+    : req.path.includes('/whatsapp-evolution/webhook') ? 90000  // same inbound pipeline
     : req.path.includes('/telegram-webhook') ? 90000
     : req.path.includes('/discovery/scan') ? 55000
     : req.path.includes('/departments/heartbeat') ? 55000  // LLM heartbeat needs time
@@ -436,15 +438,10 @@ import profileEnrichmentRoutes from './routes/profile-enrichment.js';
 import resumeUploadRoutes from './routes/resume-upload.js';
 import exportsUploadRoutes from './routes/exports-upload.js';
 import transactionsRoutes from './routes/transactions.js';
-import pluggyRoutes from './routes/pluggy.js';
-// pluggyWebhookRoutes extracted to standalone Vercel function at api/webhook-pluggy.js
-// vercel.json routes /api/webhooks/pluggy → that file, bypassing the Express monolith.
-// TrueLayer (EU/UK Open Banking) deleted in replan-2026-06-10 Track D — it was
-// never configured in any deployment (TRUELAYER_CLIENT_ID unset). The
-// truelayer_* columns on user_bank_connections/user_transactions stay in the
-// DB (no migration); git history has the code if EU ever matters.
-import plaidRoutes from './routes/plaid.js';
-// plaid webhook also lives at api/webhook-plaid.js (standalone lambda).
+// Bank aggregators (Pluggy/Plaid/TrueLayer) removed in replan-2026-06-12: no
+// budget for prod aggregator fees and sandbox data is fake. Money feature now
+// feeds from CSV/OFX upload, WhatsApp capture, and notification-listener
+// purchases. DB keeps inert provider columns; git history has the code.
 import claudeSyncRoutes from './routes/claude-sync.js';
 import cronClaudeSyncRoutes from './routes/cron-claude-sync.js';
 import twinsBrainRoutes from './routes/twins-brain.js';
@@ -524,20 +521,15 @@ import cronMorningBriefingEmailRoutes from './routes/cron-morning-briefing-email
 import cronInboxIntelligenceRoutes from './routes/cron-inbox-intelligence.js';
 import cronRelationshipsRoutes from './routes/cron-relationships.js';
 import cronActionReflectionRoutes from './routes/cron-action-reflection.js';
-import cronPluggySyncRoutes from './routes/cron-pluggy-sync.js';
-// cron-plaid-sync.js is PARKED (replan-2026-06-10 Track D): Plaid sits behind
-// the default-off `money_plaid` feature flag, so the daily sync would only
-// burn Vercel invocations on sandbox data. File kept for un-parking — remount
-// here + re-add the vercel.json cron entry when a US launch is real.
 import cronStatementNagRoutes from './routes/cron-statement-nag.js';
-import cronBankConsentRoutes from './routes/cron-bank-consent.js';
-import cronInvestmentCorrelationRoutes from './routes/cron-investment-correlation.js';
+import cronFutureSimulationRoutes from './routes/cron-future-simulation.js';
 import cronNudgeRetroRoutes from './routes/cron-nudge-retrospective.js';
 import cronTwinSummaryRefreshHandler from './routes/cron-twin-summary-refresh.js';
 import cronCalendarOptimizationRoutes from './routes/cron-calendar-optimization.js';
 import cronNudgeInactiveRoutes from './routes/cron-nudge-inactive.js';
 import cronDepartmentExecuteRoutes from './routes/cron-department-execute.js';
 import cronAgentActionsCleanupRoutes from './routes/cron-agent-actions-cleanup.js';
+import cronNangoOrphanCleanupRoutes from './routes/cron-nango-orphan-cleanup.js';
 import cronOutcomeLearningRoutes from './routes/cron-outcome-learning.js';
 import cronMeetingPrepRoutes from './routes/cron-meeting-prep.js';
 import cronStripeWebhookEventsCleanupRoutes from './routes/cron-stripe-webhook-events-cleanup.js';
@@ -545,11 +537,14 @@ import cronWikiCompileRoutes from './routes/cron-wiki-compile.js';
 import cronHealthMonitorRoutes from './routes/cron-health-monitor.js';
 import cronMeetingDebriefRoutes from './routes/cron-meeting-debrief.js';
 import wikiRoutes from './routes/wiki.js';
+import revelationsRoutes from './routes/revelations.js';
 import insightFeedbackRoutes from './routes/insight-feedback.js';
 import userRulesRoutes from './routes/user-rules.js';
 import whatsappTwinWebhookRoutes from './routes/whatsapp-twinme-webhook.js';
 import purchaseNotificationRoutes from './routes/purchase-notification.js';
 import whatsappKapsoWebhookRoutes from './routes/whatsapp-kapso-webhook.js';
+import whatsappZapiWebhookRoutes from './routes/whatsapp-zapi-webhook.js';
+import whatsappEvolutionWebhookRoutes from './routes/whatsapp-evolution-webhook.js';
 import webPushRoutes from './routes/web-push.js';
 import telegramWebhookRoutes from './routes/telegram-webhook.js';
 import telegramLinkRoutes from './routes/telegram-link.js';
@@ -693,6 +688,7 @@ app.use('/api/twin-directives', twinDirectivesRoutes); // pi-reflect — learned
 app.use('/api/observations', observationsClipRoutes); // TwinMe Desktop: batch clip sync (foreground app + window title -> observation memories)
 app.use('/api/observations', observationsMeetingRoutes); // TwinMe Desktop: batch meeting session sync (Zoom/Meet/Teams -> observation memories)
 app.use('/api/wiki', wikiRoutes); // LLM Wiki compiled knowledge pages (Karpathy pattern)
+app.use('/api/revelations', revelationsRoutes); // "What your twin sees" PULL surface — first-party self-revelations, ungated by the interrupt-Editor
 app.use('/api/checkin', checkinRoutes); // Daily mood check-in (50 moods)
 app.use('/api/twin', twinPipelineRoutes); // Twin formation pipeline (form, status, profile, evolution)
 app.use('/api/extraction', extractionStatusRoutes); // Extraction status and job history
@@ -704,11 +700,7 @@ app.use('/api/desktop', desktopExtractedFactsRoutes);  // TwinMe Desktop: onboar
 app.use('/api/enrichment', profileEnrichmentRoutes); // Profile enrichment via Perplexity Sonar (enrichment-first onboarding)
 app.use('/api/resume', resumeUploadRoutes); // Resume/CV upload and parsing for enrichment
 app.use('/api/exports', exportsUploadRoutes); // GDPR data-export upload + parse (Discord/LinkedIn/Instagram)
-app.use('/api/transactions/pluggy', pluggyRoutes); // Phase 3.1 — Pluggy Open Finance authed endpoints (mount BEFORE /api/transactions)
-app.use('/api/plaid', plaidRoutes); // Phase 4.1 — Plaid US Open Banking, parked behind default-off `money_plaid` flag (router 503s when off)
-app.use('/api/transactions', transactionsRoutes); // Financial-Emotional Twin — bank statement ingestion + emotional tagging
-// /api/webhooks/pluggy and /api/webhooks/plaid are routed to standalone
-// lambdas (api/webhook-pluggy.js, api/webhook-plaid.js) by vercel.json
+app.use('/api/transactions', transactionsRoutes); // Financial-Emotional Twin — statement upload + WhatsApp/notification capture + emotional tagging
 app.use('/api/imports', importsRoutes); // GDPR / platform data export ingestion
 app.use('/api/claude-sync', claudeSyncRoutes); // Claude Desktop conversation sync
 app.use('/api/cron/claude-sync', cronClaudeSyncRoutes); // Claude Desktop cron sync and AI analysis processing
@@ -738,6 +730,8 @@ app.use('/api/extension', extensionDataRoutes); // Browser extension data captur
 app.use('/api/github', githubConnectRoutes);   // GitHub PAT connection + status
 app.use('/api/instagram', instagramRoutes);    // Instagram vanilla-Playwright scraper (no OAuth — uses browser cookies)
 app.use('/api/whatsapp', whatsappKapsoWebhookRoutes); // WhatsApp Kapso inbound webhook
+app.use('/api/whatsapp-zapi', whatsappZapiWebhookRoutes); // WhatsApp Z-API inbound webhook (active money-flow provider)
+app.use('/api/whatsapp-evolution', whatsappEvolutionWebhookRoutes); // WhatsApp Evolution API inbound webhook (free self-host option)
 app.use('/api/whatsapp', whatsappImportRoutes); // WhatsApp export file parser
 app.use('/api/journal', journalRoutes); // Soul Journal - personal journaling with AI analysis
 // Admin routes return 404 for unauthenticated to prevent route enumeration
@@ -772,17 +766,15 @@ app.use('/api/cron/morning-briefing-email', cronMorningBriefingEmailRoutes); // 
 app.use('/api/cron/inbox-intelligence', cronInboxIntelligenceRoutes); // Daily inbox triage (10:05 UTC)
 app.use('/api/cron/relationships', cronRelationshipsRoutes); // Daily unanswered-thread scan (10:10 UTC)
 app.use('/api/cron/action-reflection', cronActionReflectionRoutes); // Daily action reflection (5am UTC)
-app.use('/api/cron/pluggy-sync', cronPluggySyncRoutes); // Daily Pluggy bank sync fallback for missed webhooks (6am UTC)
-// /api/cron/plaid-sync unmounted — Plaid parked behind `money_plaid` flag (see cron-plaid-sync.js import note above)
 app.use('/api/cron/statement-nag', cronStatementNagRoutes); // Monthly (1st, 12 UTC) WhatsApp ask for last month's bank statement
-app.use('/api/cron/bank-consent', cronBankConsentRoutes); // Daily consent-expiry reminder for bank connections (Pluggy)
-app.use('/api/cron/investment-correlation', cronInvestmentCorrelationRoutes); // Daily moat-pattern detector across users (Phase 4.4)
+app.use('/api/cron/future-simulation', cronFutureSimulationRoutes); // Weekly (Sun 18 UTC) Doctor Strange mode — personal swarm simulation
 app.use('/api/cron/nudge-retrospective', cronNudgeRetroRoutes); // Phase 3.4b — 24h after-nudge effectiveness check
 app.all('/api/cron/twin-summary-refresh', cronTwinSummaryRefreshHandler); // Daily summary pre-warm (6am UTC)
 app.use('/api/cron/calendar-optimization', cronCalendarOptimizationRoutes); // Weekday calendar optimization (8am UTC / 5am São Paulo)
 app.use('/api/cron/nudge-inactive', cronNudgeInactiveRoutes); // Daily nudge for users with 0 platforms connected
 app.use('/api/cron/department-execute', cronDepartmentExecuteRoutes); // Every 3h: auto-execute autonomous department proposals
 app.use('/api/cron/agent-actions-cleanup', cronAgentActionsCleanupRoutes); // Daily 2am UTC: soft-expire pending proposals older than 7 days
+app.use('/api/cron/nango-orphan-cleanup', cronNangoOrphanCleanupRoutes); // Weekly Sun 5am UTC: free Nango slots held by retired-platform connections
 app.use('/api/cron/outcome-learning', cronOutcomeLearningRoutes); // Daily 03:30 UTC: classify gmail_draft outcomes (sent/trashed/kept) → procedural memory updates
 app.use('/api/cron/meeting-prep', cronMeetingPrepRoutes); // Every 30 min: pre-meeting briefings for upcoming external meetings
 app.use('/api/cron/meeting-debrief', cronMeetingDebriefRoutes); // Every 30 min: post-meeting debriefs for meetings that just ended

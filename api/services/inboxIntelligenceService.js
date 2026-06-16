@@ -14,6 +14,7 @@ import { complete, TIER_EXTRACTION, TIER_ANALYSIS } from './llmGateway.js';
 import { supabaseAdmin } from './database.js';
 import { createLogger } from './logger.js';
 import { isNoise } from './noiseSenders.js';
+import { proposeDepartmentAction, getPendingProposals } from './departmentService.js';
 
 const log = createLogger('InboxIntelligence');
 
@@ -310,4 +311,80 @@ export async function generateInboxBrief(userId) {
     emails: enrichedEmails,
     count,
   };
+}
+
+const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+
+/**
+ * Bridge the triage result into ONE approvable threaded-reply proposal.
+ *
+ * generateInboxBrief delivers a text brief but stops there — the real thread
+ * (messageId) and a drafted reply never become something the user can act on.
+ * This takes the top-scored actionable email (it has a draft and a real human
+ * sender) and queues a gmail_draft proposal threaded onto that conversation
+ * (replyToMessageId). The existing thread-approval rail then offers it over
+ * WhatsApp ("reply yes and I'll draft a reply to Pedro"); on "yes",
+ * executeApprovedAction runs gmail_draft → draftEmail and the threaded draft
+ * lands in Gmail.
+ *
+ * proposeDepartmentAction enforces the communications-department autonomy gate
+ * (level must be > OBSERVE) and budget, so this is strictly opt-in. One
+ * proposal per run, and we de-dupe against any pending proposal already
+ * targeting the same thread. Never throws.
+ *
+ * @returns {Promise<{proposed:boolean, reason?:string, status?:string, actionId?:string, to?:string, messageId?:string}>}
+ */
+export async function proposeTopEmailReply(userId, brief) {
+  try {
+    if (!brief || brief.status !== 'ok' || !Array.isArray(brief.emails) || brief.emails.length === 0) {
+      return { proposed: false, reason: 'no_brief' };
+    }
+
+    // The user's own address — never propose drafting a reply to ourselves.
+    const { data: u } = await supabaseAdmin.from('users').select('email').eq('id', userId).single();
+    const selfEmail = (u?.email || '').toLowerCase();
+
+    // Emails arrive score-sorted; take the first that has a draft, a real
+    // message id, and a parseable non-noise, non-self sender.
+    const candidate = brief.emails.find((e) => {
+      if (!e?.draft || !e?.id) return false;
+      const to = extractEmail(e.from).toLowerCase();
+      return EMAIL_RE.test(to) && !isNoise(to) && to !== selfEmail;
+    });
+    if (!candidate) return { proposed: false, reason: 'no_candidate' };
+
+    const to = extractEmail(candidate.from).toLowerCase();
+
+    // De-dupe: skip if a pending proposal already targets this thread.
+    const pending = await getPendingProposals(userId);
+    const alreadyProposed = (pending || []).some((p) => {
+      try {
+        const pa = typeof p.proposed_action === 'string' ? JSON.parse(p.proposed_action) : p.proposed_action;
+        return pa?.params?.replyToMessageId === candidate.id;
+      } catch { return false; }
+    });
+    if (alreadyProposed) return { proposed: false, reason: 'already_proposed', messageId: candidate.id };
+
+    const senderName = extractName(candidate.from);
+    const subject = /^re:/i.test(candidate.subject || '')
+      ? candidate.subject
+      : `Re: ${candidate.subject || ''}`.trim();
+
+    const result = await proposeDepartmentAction(userId, 'communications', {
+      toolName: 'gmail_draft',
+      params: { to, subject, body: candidate.draft, replyToMessageId: candidate.id },
+      context: `Reply to ${senderName}: ${candidate.summary || candidate.subject || ''}`.slice(0, 200),
+      reasoning: `Triaged ${candidate.category ? candidate.category + ' ' : ''}email (score ${candidate.score}); ${senderName} is awaiting a reply`.slice(0, 300),
+      priority: 'high',
+    });
+
+    if (result?.actionId) {
+      log.info('Email reply proposal queued', { userId, to, messageId: candidate.id, actionId: result.actionId });
+      return { proposed: true, status: result.status, actionId: result.actionId, to, messageId: candidate.id };
+    }
+    return { proposed: false, reason: result?.status || 'not_queued', to, messageId: candidate.id };
+  } catch (err) {
+    log.warn('proposeTopEmailReply failed (non-fatal)', { userId, error: err.message });
+    return { proposed: false, reason: err.message };
+  }
 }

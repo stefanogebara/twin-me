@@ -71,13 +71,10 @@ const MemoryHealth = lazy(() => import("./pages/MemoryHealth"));
 const EvalDashboard = lazy(() => import("./pages/EvalDashboard"));
 const IdentityPage = lazy(() => import("./pages/IdentityPage"));
 const InterviewPage = lazy(() => import("./pages/InterviewPage"));
-const InboxPage = lazy(() => import("./pages/InboxPage"));
-const WikiPage = lazy(() => import("./pages/WikiGraphPage"));
 const GoalsPage = lazy(() => import("./pages/GoalsPage"));
 const MoneyPage = lazy(loadMoneyPage);
 const MoneyInsightsPage = lazy(loadMoneyInsightsPage);
 const BriefingPage = lazy(() => import("./pages/BriefingPage"));
-const MeetingsPage = lazy(() => import("./pages/MeetingsPage"));
 const TwinSoulPage = lazy(() => import("./pages/TwinSoulPage"));
 const PricingPage = lazy(() => import("./pages/PricingPage"));
 const DownloadPage = lazy(() => import("./pages/DownloadPage"));
@@ -299,18 +296,12 @@ const App = () => {
             } />
 
 
-            {/* LLM Wiki Knowledge Base */}
-            <Route path="/wiki" element={
-              <ProtectedRoute>
-                <SidebarLayout>
-                  <ErrorBoundary>
-                    <WikiPage />
-                  </ErrorBoundary>
-                </SidebarLayout>
-              </ProtectedRoute>
-            } />
-            {/* Sidebar nav labels this entry "Knowledge"; mirror the label to a real URL. */}
-            <Route path="/knowledge" element={<Navigate to="/wiki" replace />} />
+            {/* One-interface (2026-06-12): the /wiki knowledge-graph page was
+                removed (1 opted-in user of 21). Wiki COMPILATION + twin-chat
+                injection ("MY KNOWLEDGE BASE") are untouched — ask your twin
+                "what do you know about me?" instead. Old links land on chat. */}
+            <Route path="/wiki" element={<Navigate to="/talk-to-twin" replace />} />
+            <Route path="/knowledge" element={<Navigate to="/talk-to-twin" replace />} />
             <Route path="/goals" element={
               <ProtectedRoute>
                 <SidebarLayout>
@@ -354,16 +345,11 @@ const App = () => {
               </ProtectedRoute>
             } />
 
-            {/* Meeting Prep Agent — surfaces briefings cron-meeting-prep produces */}
-            <Route path="/meetings" element={
-              <ProtectedRoute>
-                <SidebarLayout>
-                  <ErrorBoundary>
-                    <MeetingsPage />
-                  </ErrorBoundary>
-                </SidebarLayout>
-              </ProtectedRoute>
-            } />
+            {/* Meeting prep lives in the twin now (one-interface, 2026-06-12):
+                briefings still generate via cron-meeting-prep and arrive via
+                WhatsApp + NextMeetingCard on Home; the /meetings list page was
+                a founder-only viewer (1 user in 21) and was removed. */}
+            <Route path="/meetings" element={<Navigate to="/talk-to-twin" replace />} />
 
             {/* Platform Connection — accessible at both /connect (nav) and /get-started (legacy) */}
             {["/connect", "/get-started"].map(path => (
@@ -454,19 +440,12 @@ const App = () => {
             {/* Soul Journal */}
             <Route path="/journal" element={<Navigate to="/brain" replace />} />
 
-            {/* Inbox — unified proposal stream (replaces /departments) */}
-            <Route path="/inbox" element={
-              <ProtectedRoute>
-                <SidebarLayout>
-                  <ErrorBoundary>
-                    <InboxPage />
-                  </ErrorBoundary>
-                </SidebarLayout>
-              </ProtectedRoute>
-            } />
-
-            {/* Legacy /departments route — redirects to /inbox for one release */}
-            <Route path="/departments" element={<Navigate to="/inbox" replace />} />
+            {/* One-interface (2026-06-12): the /inbox proposal page was removed —
+                proposals now live in the thread (twin chat sees PENDING_ACTIONS;
+                WhatsApp delivers + resolves yes/skip replies). agent_actions and
+                all approval endpoints are untouched. Old links land on chat. */}
+            <Route path="/inbox" element={<Navigate to="/talk-to-twin" replace />} />
+            <Route path="/departments" element={<Navigate to="/talk-to-twin" replace />} />
 
             {/* Privacy Spectrum Dashboard */}
             <Route path="/settings/privacy" element={<Navigate to="/privacy-spectrum" replace />} />

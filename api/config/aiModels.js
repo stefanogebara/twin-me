@@ -42,6 +42,7 @@ export const TIER_CHAT = 'chat';
 export const TIER_CHAT_FINETUNED = 'chat_finetuned';
 export const TIER_ANALYSIS = 'analysis';
 export const TIER_EXTRACTION = 'extraction';
+export const TIER_VISION = 'vision';
 
 // Finetuned model ID from OpenAI (set via env after fine-tune job completes)
 // Format: ft:gpt-4o-mini-2024-07-18:org::id
@@ -52,6 +53,7 @@ export const OPENROUTER_MODELS = {
   [TIER_CHAT_FINETUNED]: FINETUNED_MODEL,     // OpenAI finetuned model — routed directly, not via OpenRouter
   [TIER_ANALYSIS]: 'deepseek/deepseek-v3.2',          // $0.25/$0.38 per M — 90% cheaper than Haiku
   [TIER_EXTRACTION]: 'deepseek/deepseek-v3.2', // mistral-small-creative was 404'ing on OpenRouter (2026-04-30)
+  [TIER_VISION]: 'google/gemini-2.5-flash', // vision-capable, cheapest sane choice — WhatsApp receipt extraction (~$0.001/image)
   // NOTE: Kimi K2.5 is a reasoning model (wastes tokens on chain-of-thought).
   // Only suitable for complex problem-solving, not general chat/analysis.
 };
@@ -74,4 +76,5 @@ export const CACHE_TTL_BY_TIER = {
   [TIER_CHAT]: 0,        // Never cache chat
   [TIER_ANALYSIS]: 1800,  // 30 minutes
   [TIER_EXTRACTION]: 3600, // 1 hour
+  [TIER_VISION]: 0,      // Receipt images are unique — caching buys nothing
 };

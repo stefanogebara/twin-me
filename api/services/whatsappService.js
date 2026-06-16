@@ -45,6 +45,161 @@ async function logOutbound(row) {
 const GRAPH_API_VERSION = 'v21.0';
 const USE_KAPSO = !!process.env.KAPSO_API_KEY;
 
+// Z-API (unofficial WhatsApp-Web HTTP API) — the active provider for the
+// Brazilian money flow. Unlike Kapso/Meta there is NO 24h customer-service
+// window, so the twin can reply to a forwarded Pix receipt or statement at any
+// time. Configured by instance credentials; takes priority over Kapso/Meta
+// when present so a single number routes through one provider.
+//   ZAPI_INSTANCE_ID    — instance id from the Z-API dashboard
+//   ZAPI_INSTANCE_TOKEN — instance token (the per-instance secret)
+//   ZAPI_CLIENT_TOKEN   — account security token (Client-Token header)
+const USE_ZAPI = !!(process.env.ZAPI_INSTANCE_ID && process.env.ZAPI_INSTANCE_TOKEN);
+
+function zapiBaseUrl() {
+  return `https://api.z-api.io/instances/${process.env.ZAPI_INSTANCE_ID}/token/${process.env.ZAPI_INSTANCE_TOKEN}`;
+}
+
+// Z-API wants DDI+DDD+number digits only — no '+', no 'whatsapp:' prefix.
+function normalizeZapiPhone(phone) {
+  return String(phone || '').replace(/[^\d]/g, '');
+}
+
+/**
+ * Send a text message via Z-API. Returns the same { success, messageId,
+ * provider } shape as the Kapso/Meta paths. Audits to whatsapp_outbound_log.
+ */
+async function sendViaZapi(recipientPhone, text) {
+  const url = `${zapiBaseUrl()}/send-text`;
+  const phone = normalizeZapiPhone(recipientPhone);
+  const headers = { 'Content-Type': 'application/json' };
+  if (process.env.ZAPI_CLIENT_TOKEN) headers['Client-Token'] = process.env.ZAPI_CLIENT_TOKEN;
+
+  try {
+    const { data, status } = await axios.post(url, { phone, message: text }, { headers, timeout: 15000 });
+    // Z-API 200 response: { zaapId, messageId, id }
+    log.info('WhatsApp Z-API send response', { recipientSuffix: phone.slice(-4), httpStatus: status, messageId: data?.messageId });
+    logOutbound({
+      recipient: phone,
+      recipient_input: recipientPhone,
+      text_preview: text?.slice(0, 120) || null,
+      text_len: text?.length || 0,
+      provider: 'zapi',
+      success: true,
+      message_id: data?.messageId || data?.id || null,
+      http_status: status,
+      raw_response: data || null,
+    });
+    return { success: true, messageId: data?.messageId || data?.id, provider: 'zapi' };
+  } catch (err) {
+    const errMsg = err.response?.data?.error || err.response?.data?.message || err.message;
+    log.error('Z-API send failed', { recipientSuffix: phone.slice(-4), error: errMsg, httpStatus: err.response?.status });
+    logOutbound({
+      recipient: phone,
+      recipient_input: recipientPhone,
+      text_preview: text?.slice(0, 120) || null,
+      text_len: text?.length || 0,
+      provider: 'zapi',
+      success: false,
+      error_message: typeof errMsg === 'string' ? errMsg : JSON.stringify(errMsg),
+      http_status: err.response?.status || null,
+      raw_error: err.response?.data || null,
+    });
+    return { success: false, error: errMsg, provider: 'zapi' };
+  }
+}
+
+// Evolution API (open-source, self-hosted, Baileys-based WhatsApp-Web gateway).
+// The free alternative to Z-API: no per-message cost, no 24h window, any number
+// via QR — you run the server. Same { success, messageId, provider } envelope.
+//   EVOLUTION_API_URL  — base URL of your Evolution instance (no trailing slash)
+//   EVOLUTION_API_KEY  — global/instance apikey (sent as the `apikey` header)
+//   EVOLUTION_INSTANCE — instance name
+const USE_EVOLUTION = !!(process.env.EVOLUTION_API_URL && process.env.EVOLUTION_API_KEY && process.env.EVOLUTION_INSTANCE);
+
+// Evolution wants DDI+DDD+number digits only (same as Z-API).
+function normalizeEvolutionPhone(phone) {
+  return String(phone || '').replace(/[^\d]/g, '');
+}
+
+/** Send a text message via Evolution API v2. */
+async function sendViaEvolution(recipientPhone, text) {
+  const base = process.env.EVOLUTION_API_URL.replace(/\/+$/, '');
+  const url = `${base}/message/sendText/${process.env.EVOLUTION_INSTANCE}`;
+  const number = normalizeEvolutionPhone(recipientPhone);
+  const headers = { 'Content-Type': 'application/json', apikey: process.env.EVOLUTION_API_KEY };
+
+  try {
+    const { data, status } = await axios.post(url, { number, text }, { headers, timeout: 15000 });
+    // Evolution 201 response: { key: { id }, message: {...}, status }
+    const messageId = data?.key?.id || null;
+    log.info('WhatsApp Evolution send response', { recipientSuffix: number.slice(-4), httpStatus: status, messageId });
+    logOutbound({
+      recipient: number,
+      recipient_input: recipientPhone,
+      text_preview: text?.slice(0, 120) || null,
+      text_len: text?.length || 0,
+      provider: 'evolution',
+      success: true,
+      message_id: messageId,
+      http_status: status,
+      raw_response: data || null,
+    });
+    return { success: true, messageId, provider: 'evolution' };
+  } catch (err) {
+    const errMsg = err.response?.data?.message || err.response?.data?.error || err.message;
+    log.error('Evolution send failed', { recipientSuffix: number.slice(-4), error: errMsg, httpStatus: err.response?.status });
+    logOutbound({
+      recipient: number,
+      recipient_input: recipientPhone,
+      text_preview: text?.slice(0, 120) || null,
+      text_len: text?.length || 0,
+      provider: 'evolution',
+      success: false,
+      error_message: typeof errMsg === 'string' ? errMsg : JSON.stringify(errMsg),
+      http_status: err.response?.status || null,
+      raw_error: err.response?.data || null,
+    });
+    return { success: false, error: errMsg, provider: 'evolution' };
+  }
+}
+
+/**
+ * Download Evolution media. Unlike Z-API, Evolution does NOT expose a directly
+ * fetchable URL — the WhatsApp CDN url in the webhook is encrypted. Instead you
+ * POST the message key to getBase64FromMediaMessage and decode the base64.
+ * The inbound parse encodes the media id as `evolution:<messageId>`.
+ *
+ * NOTE: authored against the v2 docs; needs one live verification (scan QR,
+ * forward a statement) before the media path is trusted. The text loop is the
+ * verified core.
+ */
+async function downloadEvolutionMedia(messageId) {
+  const base = process.env.EVOLUTION_API_URL.replace(/\/+$/, '');
+  const url = `${base}/chat/getBase64FromMediaMessage/${process.env.EVOLUTION_INSTANCE}`;
+  const headers = { 'Content-Type': 'application/json', apikey: process.env.EVOLUTION_API_KEY };
+  try {
+    const { data } = await axios.post(
+      url,
+      { message: { key: { id: messageId } }, convertToMp4: false },
+      { headers, timeout: 20000 },
+    );
+    const b64 = data?.base64;
+    if (!b64) {
+      log.warn('Evolution getBase64 returned no base64', { messageId });
+      return null;
+    }
+    const buffer = Buffer.from(b64, 'base64');
+    if (buffer.length > MAX_MEDIA_BYTES) {
+      log.warn('Evolution media exceeds size cap', { messageId, bytes: buffer.length });
+      return null;
+    }
+    return buffer;
+  } catch (err) {
+    log.warn('Evolution media download failed', { messageId, error: err.message });
+    return null;
+  }
+}
+
 // Lazy-initialize Kapso client (only when needed)
 let kapsoClient = null;
 
@@ -53,7 +208,10 @@ async function getKapsoClient() {
   try {
     // Dynamic import for ESM compatibility
     const { WhatsAppClient } = await import('@kapso/whatsapp-cloud-api');
-    kapsoClient = new WhatsAppClient({ kapsoApiKey: process.env.KAPSO_API_KEY });
+    // .trim() defends against a trailing newline/space in the env var — a
+    // classic footgun when the key is pasted into a dashboard (the stray \n is
+    // invisible but makes Kapso reject every send with "Authentication Error").
+    kapsoClient = new WhatsAppClient({ kapsoApiKey: process.env.KAPSO_API_KEY?.trim() });
     log.info('Kapso WhatsApp client initialized');
     return kapsoClient;
   } catch (err) {
@@ -78,45 +236,52 @@ export async function sendWhatsAppMessage(recipientPhone, text) {
     return { success: true, suppressed: true };
   }
 
-  // Try Kapso first
+  // Z-API takes priority when configured — it's the active provider for the
+  // money flow (no 24h window). No Kapso/Meta fallback here: a Z-API instance
+  // and a Meta WABA can't share the same WhatsApp number, so falling through
+  // would send from the wrong sender.
+  if (USE_ZAPI) {
+    return sendViaZapi(recipientPhone, text);
+  }
+
+  // Evolution API (self-hosted) — next in priority. Like Z-API, no fallback:
+  // one number routes through one provider.
+  if (USE_EVOLUTION) {
+    return sendViaEvolution(recipientPhone, text);
+  }
+
+  // Kapso (official Meta Cloud API, via Kapso's proxy).
+  //
+  // 2026-06-16: call the proxy endpoint DIRECTLY with the X-API-Key header
+  // instead of via the @kapso/whatsapp-cloud-api SDK. The SDK path never set
+  // `baseUrl`, so it sent the Kapso key to Meta's graph.facebook.com — which
+  // 401'd every single outbound ("Authentication Error") for the app's entire
+  // history (~247 failures, zero successes). This is the exact request shape
+  // verified working against api.kapso.ai (GET + POST both 200, real message
+  // delivered). .trim() guards a pasted trailing newline in the env var.
   if (USE_KAPSO) {
-    const client = await getKapsoClient();
+    const apiKey = process.env.KAPSO_API_KEY?.trim();
     const phoneNumberId = process.env.KAPSO_PHONE_NUMBER_ID || process.env.TWINME_WHATSAPP_PHONE_NUMBER_ID;
 
-    if (client && phoneNumberId) {
+    if (apiKey && phoneNumberId) {
       try {
-        // audit-2026-05-27: diagnose silent-no-delivery. Log the full request shape
-        // so we can correlate to Kapso's response. recipientPhone format matters
-        // here — Brazilian numbers may need the leading-9 stripped depending on
-        // the WABA configuration ("nono dígito" rule).
+        const url = `https://api.kapso.ai/meta/whatsapp/v24.0/${phoneNumberId}/messages`;
         log.info('WhatsApp Kapso send entry', {
-          recipientPhone,
-          recipientStartsWithPlus: recipientPhone?.startsWith?.('+'),
           recipientLen: recipientPhone?.length,
           phoneNumberIdSuffix: phoneNumberId?.slice(-6),
           textLen: text?.length,
         });
-        const result = await client.messages.sendText({
-          phoneNumberId,
-          to: recipientPhone,
-          body: text,
-        });
-        // audit-2026-05-27: log the FULL Kapso response, not just messageId.
-        // contacts[0].input vs contacts[0].wa_id reveals number normalization
-        // (e.g. "+5511999002121" → "+551199002121" via Brazilian 9-digit drop).
-        // messages[0].id confirms a Meta message_id was minted. The presence
-        // of a `warning` or `message_status` field is the real "is it actually
-        // going to deliver" signal.
+        const { data, status } = await axios.post(
+          url,
+          { messaging_product: 'whatsapp', to: recipientPhone, type: 'text', text: { body: text } },
+          { headers: { 'X-API-Key': apiKey, 'Content-Type': 'application/json' }, timeout: 15000 },
+        );
+        // Kapso/Meta 200 response: { messaging_product, contacts:[{input,wa_id}], messages:[{id}] }
         log.info('WhatsApp Kapso send response', {
-          recipientPhone,
-          messageId: result?.messages?.[0]?.id,
-          contacts: result?.contacts,
-          messages: result?.messages,
-          warning: result?.warning,
-          messageStatus: result?.messageStatus,
+          httpStatus: status,
+          messages: data?.messages,
+          contacts: data?.contacts,
         });
-        // audit-2026-05-27: persist the full response so we can query it
-        // when Vercel log search lets us down.
         logOutbound({
           recipient: recipientPhone,
           recipient_input: recipientPhone,
@@ -124,16 +289,16 @@ export async function sendWhatsAppMessage(recipientPhone, text) {
           text_len: text?.length || 0,
           provider: 'kapso',
           success: true,
-          message_id: result?.messages?.[0]?.id || null,
-          wa_id: result?.contacts?.[0]?.wa_id || null,
-          warning: result?.warning || null,
-          message_status: result?.messageStatus || null,
-          raw_response: result || null,
+          message_id: data?.messages?.[0]?.id || null,
+          wa_id: data?.contacts?.[0]?.wa_id || null,
+          http_status: status,
+          raw_response: data || null,
         });
-        return { success: true, messageId: result?.messages?.[0]?.id, provider: 'kapso' };
+        return { success: true, messageId: data?.messages?.[0]?.id, provider: 'kapso' };
       } catch (err) {
+        const errMsg = err.response?.data?.error?.message || err.response?.data?.error || err.message;
         log.warn('Kapso send failed, falling back to Meta Cloud API', {
-          error: err.message,
+          error: errMsg,
           status: err.response?.status,
           body: err.response?.data,
         });
@@ -144,7 +309,7 @@ export async function sendWhatsAppMessage(recipientPhone, text) {
           text_len: text?.length || 0,
           provider: 'kapso',
           success: false,
-          error_message: err.message,
+          error_message: typeof errMsg === 'string' ? errMsg : JSON.stringify(errMsg),
           http_status: err.response?.status || null,
           raw_error: err.response?.data || null,
         });
@@ -389,6 +554,31 @@ const MAX_MEDIA_BYTES = 10 * 1024 * 1024; // 10MB
 
 export async function downloadWhatsAppMedia(mediaId) {
   if (!mediaId) return null;
+
+  // Z-API delivers media as a direct URL in the inbound webhook (image.imageUrl,
+  // document.documentUrl) — no media-id resolution step. The inbound pipeline
+  // passes that URL through as `id`, so a download is just a GET. This also
+  // lets a Z-API-routed message work regardless of whether Kapso env is set.
+  if (typeof mediaId === 'string' && /^https?:\/\//i.test(mediaId)) {
+    try {
+      const { data } = await axios.get(mediaId, { responseType: 'arraybuffer', timeout: 20000, maxContentLength: MAX_MEDIA_BYTES });
+      const buffer = Buffer.from(data);
+      if (buffer.length > MAX_MEDIA_BYTES) {
+        log.warn('downloadWhatsAppMedia: media exceeds size cap', { bytes: buffer.length });
+        return null;
+      }
+      return buffer;
+    } catch (err) {
+      log.warn('downloadWhatsAppMedia (direct URL) failed', { error: err.message });
+      return null;
+    }
+  }
+
+  // Evolution media: `evolution:<messageId>` → getBase64FromMediaMessage.
+  if (typeof mediaId === 'string' && mediaId.startsWith('evolution:')) {
+    return downloadEvolutionMedia(mediaId.slice('evolution:'.length));
+  }
+
   if (!USE_KAPSO) {
     log.warn('downloadWhatsAppMedia: Kapso not configured (no Meta-direct fallback implemented)');
     return null;

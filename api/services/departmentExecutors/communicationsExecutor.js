@@ -5,18 +5,32 @@
 
 import { complete, TIER_ANALYSIS } from '../llmGateway.js';
 import { supabaseAdmin } from '../database.js';
+import { draftEmail } from '../googleWorkspaceActions.js';
 import { createLogger } from '../logger.js';
 
 const log = createLogger('CommunicationsExecutor');
 
 /**
- * Draft an email body that matches the user's writing style.
+ * Draft an email in the user's writing style AND save it to Gmail.
+ *
+ * Generates a personality-matched body, then persists it as a real Gmail draft
+ * via draftEmail. When `replyToMessageId` is set the draft is threaded onto the
+ * original conversation (Gmail In-Reply-To/References + threadId) and the
+ * subject is auto-derived as "Re: …".
+ *
+ * Returns the draftEmail result ({ success, draftId, messageId }) so the inbox
+ * can surface a "View draft" link — or null on failure, letting the gmail_draft
+ * tool fall back to a generic draft.
+ *
+ * (Previously this returned only the body string and never created a Gmail
+ * draft — users with a personality profile got generated text that was silently
+ * dropped. Creating the draft here fixes that.)
  *
  * @param {string} userId
- * @param {{ to: string, subject: string, context: string }} params
- * @returns {Promise<string|null>} The drafted email body, or null on failure.
+ * @param {{ to: string, subject: string, context: string, replyToMessageId?: string }} params
+ * @returns {Promise<{success:boolean, draftId?:string, messageId?:string}|null>}
  */
-export async function draftEmailInUserVoice(userId, { to, subject, context }) {
+export async function draftEmailInUserVoice(userId, { to, subject, context, replyToMessageId }) {
   if (!userId || !to || !subject) {
     throw new Error('userId, to, and subject are required');
   }
@@ -58,9 +72,26 @@ export async function draftEmailInUserVoice(userId, { to, subject, context }) {
     });
 
     const body = response?.content || response?.text || null;
+    if (!body) {
+      log.warn('Email body generation returned empty', { userId, to, subject });
+      return null;
+    }
 
-    log.info('Email drafted', { userId, to, subject, bodyLength: body?.length || 0 });
-    return body;
+    // Persist the personality-matched body as a real Gmail draft (threaded when
+    // replying). draftEmail derives the "Re: …" subject from the original when
+    // replyToMessageId is set, so passing the raw subject through is safe.
+    const result = await draftEmail(userId, { to, subject, body, replyToMessageId });
+    if (!result?.success) {
+      log.warn('personality body generated but Gmail draft creation failed', {
+        userId, to, error: result?.error,
+      });
+      return null; // let the caller fall back to a generic draft
+    }
+
+    log.info('Email drafted in user voice', {
+      userId, to, subject, threaded: !!replyToMessageId, draftId: result.draftId, bodyLength: body.length,
+    });
+    return result;
   } catch (err) {
     log.error('draftEmailInUserVoice failed', { userId, to, subject, error: err.message });
     throw err;

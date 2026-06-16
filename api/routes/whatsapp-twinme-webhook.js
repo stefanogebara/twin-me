@@ -22,6 +22,7 @@ import { executeTool } from '../services/toolRegistry.js';
 import { createLogger } from '../services/logger.js';
 import { buildPurchaseContext } from '../services/purchaseContextBuilder.js';
 import { generatePurchaseReflection } from '../services/purchaseReflection.js';
+import { tryCaptureTransaction } from '../services/transactions/whatsappTransactionCapture.js';
 import { getRedisClient } from '../services/redisClient.js';
 
 // H4 — telemetry. Structured log envelope so a future PostHog (or BigQuery,
@@ -423,11 +424,20 @@ router.post('/webhook', async (req, res) => {
       const purchaseBotEnabledForUser = userPrefs.purchase_bot_enabled !== false;
       log.info('WhatsApp message received', { userId, textLength: text.length });
 
+      // Transaction capture (replan-2026-06-12) — text-only mirror of the
+      // Kapso route hook (header rule: pattern changes go in both files).
+      // This route sees no prod traffic; image capture lives on Kapso only.
+      const capture = await tryCaptureTransaction(userId, { messageType: 'text', text }, {
+        purchaseBotEnabledForUser,
+      });
+
       // Classify intent: chat or tool action?
-      const intent = classifyIntent(text);
+      const intent = capture.handled ? { type: 'captured' } : classifyIntent(text);
       let response;
 
-      if (intent.type === 'purchase') {
+      if (capture.handled) {
+        response = capture.reply;
+      } else if (intent.type === 'purchase') {
         // C6 — global kill switch (env). C7 — per-user opt-out (preferences).
         // Both must allow before we fire a reflection.
         if (process.env.PURCHASE_BOT_ENABLED !== 'true') {

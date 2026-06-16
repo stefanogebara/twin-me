@@ -20,6 +20,9 @@
  */
 
 import { getRecentMemories, retrieveMemories } from './memoryStreamService.js';
+import { editInsights } from './insightEditor.js';
+import { vectorToString } from './embeddingService.js';
+import { getFeatureFlags } from './featureFlagsService.js';
 import { complete, TIER_ANALYSIS } from './llmGateway.js';
 import { sendPushToUser } from './pushNotificationService.js';
 import { supabaseAdmin } from './database.js';
@@ -415,9 +418,15 @@ async function generateProactiveInsights(userId) {
     // numerics still match.
     const groundingCorpus = `${observations}\n${reflectionText}`;
 
-    // 5. Store insights (max 3), with dedup against recent undelivered
+    // 5. Store insights. With the salience+voice Editor (replan-2026-06-13)
+    // enabled, candidates are collected through the same grounding/suppression
+    // gates, then handed to editInsights() which returns AT MOST ONE, rewritten
+    // in voice (or nothing). Without the flag, the legacy "store up to 3" path
+    // runs unchanged.
     let stored = 0;
     let skippedUngrounded = 0;
+    const editorEnabled = (await getFeatureFlags(userId).catch(() => ({}))).insight_editor === true;
+    const candidatesForEditor = [];
     for (const item of insights.slice(0, 3)) {
       if (!item.insight || item.insight.length < 10) continue;
 
@@ -460,6 +469,19 @@ async function generateProactiveInsights(userId) {
       // rendered raw on the dashboard. The category belongs in item.category,
       // never in the text — strip any short leading bracketed tag.
       const insightText = stripEmoji(item.insight).replace(/^\s*\[[a-z_ -]{2,24}\]\s*/i, '');
+
+      // Editor path: collect the grounded candidate and let editInsights() do
+      // semantic dedup + the single voice rewrite after the loop. Skip the
+      // legacy per-item store below.
+      if (editorEnabled) {
+        candidatesForEditor.push({
+          insight: insightText.substring(0, 500),
+          urgency: ['low', 'medium', 'high'].includes(item.urgency) ? item.urgency : 'low',
+          category: validCategories.includes(item.category) ? item.category : null,
+        });
+        continue;
+      }
+
       const insertData = {
         user_id: userId,
         insight: insightText.substring(0, 500),
@@ -500,7 +522,39 @@ async function generateProactiveInsights(userId) {
       }
     }
 
-    log.info('Generated insights', { stored, skippedUngrounded, userId });
+    // Editor path: one salience+voice pass over all candidates -> 0 or 1 insight.
+    if (editorEnabled && candidatesForEditor.length > 0) {
+      const chosen = await editInsights(userId, candidatesForEditor);
+      if (chosen) {
+        const insertData = {
+          user_id: userId,
+          insight: chosen.insight,
+          urgency: chosen.urgency,
+          category: chosen.category,
+          // surfaced_at anchors the semantic-dedup window — this is the one
+          // thing we chose to say, so it counts as "said" from now.
+          surfaced_at: new Date().toISOString(),
+        };
+        if (chosen.embedding) insertData.embedding = vectorToString(chosen.embedding);
+        const sources = _extractSourcesFromText(chosen.insight);
+        if (sources.length > 0) insertData.sources = sources;
+        const { error } = await supabaseAdmin.from('proactive_insights').insert(insertData);
+        if (!error) {
+          stored++;
+          if (chosen.urgency === 'high') {
+            sendPushToUser(userId, {
+              title: 'Your twin noticed something',
+              body: chosen.insight.substring(0, 120),
+              data: { type: 'proactive_insight', category: chosen.category ?? 'trend' },
+            }).catch((err) => log.warn('Push failed', { error: err }));
+          }
+        } else {
+          log.warn('Failed to store edited insight', { error });
+        }
+      }
+    }
+
+    log.info('Generated insights', { stored, skippedUngrounded, userId, editor: editorEnabled });
 
     // Weekly cross-platform correlation insights
     // Only run if no 'trend' category insight exists in the last 7 days
@@ -550,6 +604,106 @@ async function generateProactiveInsights(userId) {
     } catch (corrErr) {
       // Non-fatal — don't let correlation errors fail the whole function
       log.warn('Correlation insights error', { error: corrErr });
+    }
+
+    // Stress leaderboard (biometric x social) — behind the stress_leaderboard
+    // flag. Produces its own voiced insight via the Editor; the Editor's
+    // semantic dedup keeps the same finding from re-surfacing. (TODO before
+    // widening past canary: add a ~7-day cadence guard to bound the Whoop +
+    // calendar fetches.)
+    try {
+      const flags = await getFeatureFlags(userId).catch(() => ({}));
+      if (flags.stress_leaderboard === true) {
+        const { generateStressLeaderboardInsight } = await import('./biometricSocialCorrelation.js');
+        const sl = await generateStressLeaderboardInsight(userId, { logOnly: false });
+        if (sl) stored++;
+      }
+    } catch (slErr) {
+      log.warn('Stress leaderboard error', { error: slErr?.message });
+    }
+
+    // Workspace rhythm (maker time vs meeting time) — behind the work_rhythm
+    // flag. Whoop-free: runs on Google Drive + Calendar, so it works for any
+    // Google user, not just the few with wearables. Same Editor-voiced path.
+    try {
+      const flags = await getFeatureFlags(userId).catch(() => ({}));
+      if (flags.work_rhythm === true) {
+        const { generateWorkspaceRhythmInsight } = await import('./workspaceRhythm.js');
+        const wr = await generateWorkspaceRhythmInsight(userId, { logOnly: false });
+        if (wr) stored++;
+      }
+    } catch (wrErr) {
+      log.warn('Workspace rhythm error', { error: wrErr?.message });
+    }
+
+    // Email tempo (Gmail x Calendar) — behind the email_tempo flag. The most
+    // universal Whoop-free insight: does a packed calendar push your email into
+    // the evening? Reads only message timestamps. Same Editor-voiced path.
+    try {
+      const flags = await getFeatureFlags(userId).catch(() => ({}));
+      if (flags.email_tempo === true) {
+        const { generateEmailTempoInsight } = await import('./emailTempo.js');
+        const et = await generateEmailTempoInsight(userId, { logOnly: false });
+        if (et) stored++;
+      }
+    } catch (etErr) {
+      log.warn('Email tempo error', { error: etErr?.message });
+    }
+
+    // Chronotype (Gmail x Calendar) — behind the chronotype flag. Are your
+    // meetings scheduled against your natural active hours? Reads only message
+    // timestamps + event start hours. Same Editor-voiced path.
+    try {
+      const flags = await getFeatureFlags(userId).catch(() => ({}));
+      if (flags.chronotype === true) {
+        const { generateChronotypeInsight } = await import('./chronotype.js');
+        const ch = await generateChronotypeInsight(userId, { logOnly: false });
+        if (ch) stored++;
+      }
+    } catch (chErr) {
+      log.warn('Chronotype error', { error: chErr?.message });
+    }
+
+    // Reply latency (Gmail threads x Calendar) — behind the reply_latency flag.
+    // Do packed meeting days slow your email replies? Heaviest insight (reads
+    // thread structure, capped); reads only timestamps + the SENT label.
+    try {
+      const flags = await getFeatureFlags(userId).catch(() => ({}));
+      if (flags.reply_latency === true) {
+        const { generateReplyLatencyInsight } = await import('./replyLatency.js');
+        const rl = await generateReplyLatencyInsight(userId, { logOnly: false });
+        if (rl) stored++;
+      }
+    } catch (rlErr) {
+      log.warn('Reply latency error', { error: rlErr?.message });
+    }
+
+    // Attention gravity (browser extension) — behind the attention_gravity flag.
+    // First-party, API-free: where your attention pools (by dwell) vs where you
+    // click most. Reads our own user_platform_data, names domains only.
+    try {
+      const flags = await getFeatureFlags(userId).catch(() => ({}));
+      if (flags.attention_gravity === true) {
+        const { generateAttentionGravityInsight } = await import('./attentionGravity.js');
+        const ag = await generateAttentionGravityInsight(userId, { logOnly: false });
+        if (ag) stored++;
+      }
+    } catch (agErr) {
+      log.warn('Attention gravity error', { error: agErr?.message });
+    }
+
+    // Curiosity signature (browser extension content) — behind the
+    // curiosity_signature flag. What your effort/curiosity keeps circling,
+    // synthesized from your searches + page topics + titles. First-party.
+    try {
+      const flags = await getFeatureFlags(userId).catch(() => ({}));
+      if (flags.curiosity_signature === true) {
+        const { generateCuriositySignatureInsight } = await import('./curiositySignature.js');
+        const cs = await generateCuriositySignatureInsight(userId, { logOnly: false });
+        if (cs) stored++;
+      }
+    } catch (csErr) {
+      log.warn('Curiosity signature error', { error: csErr?.message });
     }
 
     return stored;
@@ -637,6 +791,26 @@ async function markInsightsDelivered(insightIds) {
  * @returns {Array} Parsed insights array
  * @throws {Error} If no valid JSON array can be extracted
  */
+/** Return the first balanced top-level `[...]` substring (string-aware), or null. */
+function _firstBalancedArray(text) {
+  const start = text.indexOf('[');
+  if (start === -1) return null;
+  let depth = 0, inStr = false, esc = false;
+  for (let i = start; i < text.length; i++) {
+    const ch = text[i];
+    if (inStr) {
+      if (esc) esc = false;
+      else if (ch === '\\') esc = true;
+      else if (ch === '"') inStr = false;
+      continue;
+    }
+    if (ch === '"') inStr = true;
+    else if (ch === '[') depth++;
+    else if (ch === ']') { depth--; if (depth === 0) return text.substring(start, i + 1); }
+  }
+  return null;
+}
+
 function _parseInsightsJSON(text) {
   // Strategy 1: Direct parse (cleanest case)
   try {
@@ -652,6 +826,24 @@ function _parseInsightsJSON(text) {
     if (Array.isArray(parsed)) return parsed;
     if (parsed && typeof parsed === 'object' && parsed.insight) return [parsed];
   } catch { /* continue */ }
+
+  // Strategy 2b: first BALANCED top-level array. Models sometimes emit the
+  // array then a second fenced copy ("[]\n```json\n[]```") — strategy 3's
+  // last-`]` then spans both arrays and fails to parse, silently dropping
+  // real insights. Scan from the first `[` to its matching close (string-aware)
+  // and parse just that.
+  const firstArr = _firstBalancedArray(text);
+  if (firstArr) {
+    try {
+      const parsed = JSON.parse(firstArr);
+      if (Array.isArray(parsed)) return parsed;
+    } catch {
+      try {
+        const parsed = JSON.parse(firstArr.replace(/,\s*([}\]])/g, '$1'));
+        if (Array.isArray(parsed)) return parsed;
+      } catch { /* continue */ }
+    }
+  }
 
   // Strategy 3: Find first [ ... ] bracket pair in the text
   const bracketStart = text.indexOf('[');
@@ -940,4 +1132,5 @@ export {
   _findUngroundedNumbers,
   _stripDigitsForDedup,
   _extractInsightTheme,
+  _parseInsightsJSON,
 };

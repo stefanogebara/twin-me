@@ -1,4 +1,5 @@
-import { NativeModule, requireNativeModule, EventSubscription } from 'expo';
+import { NativeModule, requireNativeModule } from 'expo';
+import type { EventSubscription } from 'expo-modules-core';
 import type { NotificationEntry } from '../../../src/types';
 
 export type { NotificationEntry };

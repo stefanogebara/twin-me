@@ -84,7 +84,9 @@ export function NextMeetingCard() {
   return (
     <button
       type="button"
-      onClick={() => navigate('/meetings')}
+      // One-interface (2026-06-12): /meetings page is gone — the full prep
+      // lives in conversation. Deep-link into chat with a prefilled ask.
+      onClick={() => navigate('/talk-to-twin?prefill=' + encodeURIComponent('Prep me for my next meeting'))}
       className="w-full text-left rounded-[20px] px-5 py-4 backdrop-blur-[42px] transition-all duration-150 hover:opacity-95 active:scale-[0.995]"
       style={{
         background: isSoon
@@ -172,7 +174,7 @@ export function NextMeetingCard() {
           color: isSoon ? 'rgba(232,160,80,0.95)' : 'rgba(255,255,255,0.55)',
         }}
       >
-        View full prep <ArrowRight className="w-3 h-3" />
+        Ask your twin for the full prep <ArrowRight className="w-3 h-3" />
       </span>
     </button>
   );

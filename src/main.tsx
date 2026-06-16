@@ -3,8 +3,13 @@ import { createRoot } from "react-dom/client";
 import { installEarlyErrorBuffer, loadSentry } from './services/sentryLazy';
 import { AuthProvider } from './contexts/AuthContext';
 import { initPostHog } from './contexts/AnalyticsContext';
+import { cleanupLegacyServiceWorker } from './services/swCleanup';
 import App from "./App.tsx";
 import "./index.css";
+
+// Evict the legacy cache-first service worker that pinned returning users to an
+// old build (deploys never reached them). Fire-and-forget; self-guarded.
+void cleanupLegacyServiceWorker();
 
 // Initialize PostHog analytics (only if VITE_POSTHOG_KEY is configured)
 initPostHog();
