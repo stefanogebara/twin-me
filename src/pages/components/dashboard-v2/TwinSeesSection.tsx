@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Gauge, Compass, MoonStar } from 'lucide-react';
+import { Gauge, Compass, MoonStar, Search } from 'lucide-react';
 import { authFetch } from '@/services/api/apiBase';
 
 /**
@@ -22,6 +22,7 @@ const KIND_ICON: Record<string, ReactNode> = {
   attention_gravity: <Gauge className="w-4 h-4" />,
   curiosity_signature: <Compass className="w-4 h-4" />,
   day_night_self: <MoonStar className="w-4 h-4" />,
+  sticking_point: <Search className="w-4 h-4" />,
 };
 
 const SOURCE_LABEL: Record<string, string> = {
