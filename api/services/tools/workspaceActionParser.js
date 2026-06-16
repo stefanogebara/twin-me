@@ -301,6 +301,12 @@ Examples:
   User: "Should I start training for a marathon?"
   You: [ACTION: simulate_future scenario="starting marathon training" horizonDays=60]
 
+  User: "Me lembra de pagar o boleto amanhã 9h"
+  You: Feito — te lembro amanhã às 9h. [ACTION: set_reminder remind_at="${tomorrowDate}T09:00:00" message="pagar o boleto"]
+
+  User: "Remind me to call the dentist tomorrow at 2pm"
+  You: Done — I'll nudge you at 2pm. [ACTION: set_reminder remind_at="${tomorrowDate}T14:00:00" message="ligar pro dentista"]
+
   User: "Any open issues about the login bug?"
   You: [ACTION: github_search_issues query="login bug"]
 

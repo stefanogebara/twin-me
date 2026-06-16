@@ -22,6 +22,7 @@ export const EXTENDED_TOOL_NAMES = [
   'get_meeting_prep',
   'get_recurring_subscriptions',
   'simulate_future',
+  'set_reminder',
 ];
 
 export function registerExtendedTools() {
@@ -466,6 +467,44 @@ export function registerExtendedTools() {
         };
       }
       return { success: true, runs: result.runs, consensus: result.insight };
+    },
+  });
+
+  // ========================================================================
+  // REMINDERS — set a time-based nudge (Level 1: it's the user's own reminder,
+  // no external side effect, so it executes inline rather than queuing).
+  // ========================================================================
+
+  registerTool({
+    name: 'set_reminder',
+    platform: null,
+    description: 'Set a reminder for the user. Use their LOCAL time WITHOUT a Z suffix (e.g. "2026-06-17T09:00:00" for 9am tomorrow local) — the timezone is applied automatically. At that time the twin messages the user on their live channel (WhatsApp/Telegram). Use for "remind me to X", "me lembra de Y", "me cutuca amanhã".',
+    category: 'productivity',
+    parameters: {
+      type: 'object',
+      properties: {
+        remind_at: { type: 'string', description: 'When to remind, LOCAL time ISO 8601 WITHOUT Z (e.g. "2026-06-17T09:00:00"). Do NOT append Z.' },
+        message: { type: 'string', description: 'What to remind about, short and in the user\'s voice (e.g. "pagar o boleto", "ligar pro dentista").' },
+      },
+      required: ['remind_at', 'message'],
+    },
+    requiresConnection: false,
+    minAutonomyLevel: 1,
+    skillName: 'reminders',
+    executor: async (userId, params) => {
+      const { supabaseAdmin } = await import('../database.js');
+      const { createReminder } = await import('../reminderService.js');
+      let tz = 'UTC';
+      try {
+        const { data } = await supabaseAdmin.from('users').select('timezone').eq('id', userId).single();
+        if (data?.timezone) tz = data.timezone;
+      } catch { /* non-fatal — falls back to UTC */ }
+      return createReminder(userId, {
+        remindAt: params.remind_at,
+        timeZone: tz,
+        message: params.message,
+        source: 'twin',
+      });
     },
   });
 
