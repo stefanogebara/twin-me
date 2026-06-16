@@ -116,6 +116,16 @@
         <span class="slider"></span>
       </label>
     </div>
+    <div class="row">
+      <div>
+        <div class="label">Launch at login</div>
+        <div class="desc">Start TwinMe automatically when you sign in, so a reboot resumes capture. Turn this off to launch it manually.</div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="launch-toggle" />
+        <span class="slider"></span>
+      </label>
+    </div>
   </section>
 
   <!-- Excluded apps -->
@@ -151,13 +161,14 @@
       if (tauri && typeof tauri.invoke === "function") return tauri.invoke(cmd, args || {});
       // Browser-preview fallback so the page renders without the desktop runtime.
       if (cmd === "settings_get") {
-        return Promise.resolve({ paused: false, excluded: ["Slack", "Discord"], authConnected: true, hotkey: "Ctrl + Shift + T" });
+        return Promise.resolve({ paused: false, excluded: ["Slack", "Discord"], authConnected: true, hotkey: "Ctrl + Shift + T", launchAtLogin: true });
       }
       console.log("[settings:no-tauri]", cmd, args || {});
       return Promise.resolve();
     }
 
     var pauseToggle = document.getElementById("pause-toggle");
+    var launchToggle = document.getElementById("launch-toggle");
     var excludedList = document.getElementById("excluded-list");
     var accountEl = document.getElementById("account");
     var hotkeyEl = document.getElementById("hotkey");
@@ -193,6 +204,8 @@
       return invoke("settings_get").then(function (s) {
         if (!s) return;
         pauseToggle.checked = !!s.paused;
+        // Default-on: only an explicit false unchecks it.
+        launchToggle.checked = s.launchAtLogin !== false;
         accountEl.textContent = s.authConnected ? "Connected" : "Not connected";
         accountEl.className = "pill " + (s.authConnected ? "ok" : "off");
         hotkeyEl.textContent = s.hotkey || "—";
@@ -202,6 +215,10 @@
 
     pauseToggle.addEventListener("change", function () {
       invoke("settings_set_paused", { paused: pauseToggle.checked });
+    });
+
+    launchToggle.addEventListener("change", function () {
+      invoke("settings_set_launch_at_login", { enabled: launchToggle.checked });
     });
 
     load();
