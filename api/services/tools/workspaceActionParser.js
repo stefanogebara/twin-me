@@ -41,6 +41,7 @@ const WRITE_TOOLS = Object.freeze([
   'drive_create_file',
   'spotify_queue',
   'spotify_play_track',
+  'place_call',
 ]);
 
 /**
@@ -336,6 +337,12 @@ Examples:
 
   User: "Skip this week's standup reminder"
   You: Done — skipped this one. [ACTION: skip_reminder query="standup"]
+
+  User: "Liga pro restaurante +5511991234567 e reserva uma mesa pra 4 às 20h hoje"
+  You: Pode deixar — vou ligar e reservar. [ACTION: place_call to="+5511991234567" to_name="Restaurante" goal="reservar uma mesa para 4 pessoas às 20h hoje"]
+
+  User: "Call the dentist at +5511988887777 and book a cleaning next week"
+  You: On it — I'll call and book it. [ACTION: place_call to="+5511988887777" to_name="Dentist" goal="book a teeth cleaning appointment for next week"]
 
   User: "Any open issues about the login bug?"
   You: [ACTION: github_search_issues query="login bug"]

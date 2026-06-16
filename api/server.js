@@ -411,6 +411,7 @@ import dashboardRoutes from './routes/dashboard.js';
 import dashboardContextRoutes from './routes/dashboard-context.js';
 import dataSourcesRoutes from './routes/data-sources.js';
 import webhookRoutes from './routes/webhooks.js';
+import vapiWebhookRoutes from './routes/webhook-vapi.js';
 import sseRoutes from './routes/sse.js';
 import queueDashboardRoutes from './routes/queue-dashboard.js';
 import cronPatternLearningHandler from './routes/cron-pattern-learning.js';
@@ -647,6 +648,7 @@ app.patch('/api/users/preferences', authenticateUser, async (req, res) => {
 });
 app.use('/api/dashboard/context', dashboardContextRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/webhooks/vapi', vapiWebhookRoutes); // Vapi outbound-call event receiver (twin phone calls)
 app.use('/api/webhooks', webhookRoutes); // Real-time webhook receivers (GitHub, Gmail)
 app.use('/api/sse', sseRoutes); // Server-Sent Events for real-time updates
 app.use('/api/queues', queueDashboardRoutes); // Bull Board job queue dashboard

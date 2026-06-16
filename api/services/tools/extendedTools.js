@@ -27,6 +27,7 @@ export const EXTENDED_TOOL_NAMES = [
   'cancel_reminder',
   'reschedule_reminder',
   'skip_reminder',
+  'place_call',
 ];
 
 export function registerExtendedTools() {
@@ -603,6 +604,34 @@ export function registerExtendedTools() {
     executor: async (userId, params) => {
       const { cancelReminder } = await import('../reminderService.js');
       return cancelReminder(userId, { query: params.query });
+    },
+  });
+
+  // ========================================================================
+  // PLACE CALL — twin makes an outbound phone call (Level 3, approval-gated)
+  // ========================================================================
+  // Double-gated in callService (phone_calls flag + VAPI env). Listed in
+  // WRITE_TOOLS so it ALWAYS queues for yes/skip — never fires inline.
+  registerTool({
+    name: 'place_call',
+    platform: null,
+    description: 'Place an outbound phone call on the user\'s behalf toward a specific goal, then report what happened. The `to` field MUST be a phone number in international format (e.g. "+5511988887777") — if you only have a name, call contacts_search FIRST to get the number, then place_call. Use for "liga pro restaurante e reserva uma mesa", "call the dentist and book a cleaning", "ligue para X e avise que vou atrasar". The call discloses it is an AI assistant. This requires the user to approve before it dials.',
+    category: 'communication',
+    parameters: {
+      type: 'object',
+      properties: {
+        to: { type: 'string', description: 'Destination phone number in international/E.164 format (e.g. "+5511988887777"). NOT a name.' },
+        to_name: { type: 'string', description: 'Optional display name of who is being called (e.g. "Dentista", "Trattoria") for the confirmation + summary.' },
+        goal: { type: 'string', description: 'What the call should accomplish, specific and complete (e.g. "reserve a table for 4 at 8pm tonight under the name Stefano").' },
+      },
+      required: ['to', 'goal'],
+    },
+    requiresConnection: false,
+    minAutonomyLevel: 3,
+    skillName: 'communications_actions',
+    executor: async (userId, params) => {
+      const { placeCall } = await import('../callService.js');
+      return placeCall(userId, { toNumber: params.to, toName: params.to_name || null, goal: params.goal });
     },
   });
 
