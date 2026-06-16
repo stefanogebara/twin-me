@@ -496,13 +496,20 @@ export async function createEvent(userId, { summary, description, start, end, at
       event.reminders = reminders;
     }
 
+    // sendUpdates=all makes Google actually EMAIL the invite to attendees.
+    // Without it, guests are added to the event but never notified — so
+    // "schedule a call with Paula" would silently fail to invite her. Only
+    // send when there are attendees (a solo event needs no notification).
+    const hasAttendees = Array.isArray(event.attendees) && event.attendees.length > 0;
     const resp = await axios.post(
-      `${CALENDAR_BASE}/calendars/primary/events`,
+      `${CALENDAR_BASE}/calendars/primary/events${hasAttendees ? '?sendUpdates=all' : ''}`,
       event,
       { headers: auth.headers, timeout: REQUEST_TIMEOUT }
     );
 
-    log.info('Event created', { userId, eventId: resp.data?.id, summary });
+    const invited = resp.data?.attendees?.map(a => a.email)
+      || (hasAttendees ? event.attendees.map(a => a.email) : undefined);
+    log.info('Event created', { userId, eventId: resp.data?.id, summary, invited: invited?.length || 0 });
     return {
       success: true,
       eventId: resp.data?.id,
@@ -510,6 +517,8 @@ export async function createEvent(userId, { summary, description, start, end, at
       summary: resp.data?.summary,
       start: resp.data?.start,
       end: resp.data?.end,
+      attendees: invited,
+      invitesSent: hasAttendees,
     };
   } catch (err) {
     log.error('createEvent failed', { userId, error: err.response?.data || err.message });
