@@ -94,6 +94,33 @@ export function registerGoogleWorkspaceTools() {
     },
   });
 
+  registerTool({
+    name: 'inbox_triage',
+    platform: 'google_gmail',
+    description: 'Triage the inbox on demand: scan recent unread email, filter out noise, score by urgency/opportunity/relationship, and return a short brief of what actually needs the user — each with a one-line summary. Use when the user asks "is there anything important in my email?", "tem algo no meu email?", "check my inbox", "what needs a reply?". Returns a ready-to-read brief; the top thread is also queued as a reply proposal the user can approve.',
+    category: 'communication',
+    parameters: { type: 'object', properties: {} },
+    requiresConnection: true,
+    minAutonomyLevel: 1,
+    skillName: 'communications_actions',
+    executor: async (userId) => {
+      const { generateInboxBrief, proposeTopEmailReply } = await import('../inboxIntelligenceService.js');
+      const brief = await generateInboxBrief(userId);
+      // When there are real emails, queue a threaded reply proposal for the top
+      // one so the user can approve a draft right after reading the brief.
+      // Opt-in + non-fatal: the communications autonomy gate decides if it fires.
+      if (brief?.status === 'ok' && brief.count > 0) {
+        try { await proposeTopEmailReply(userId, brief); } catch { /* non-fatal */ }
+      }
+      return {
+        status: brief?.status,
+        message: brief?.message,
+        count: brief?.count || 0,
+        emails: (brief?.emails || []).map(e => ({ from: e.from, subject: e.subject, summary: e.summary })),
+      };
+    },
+  });
+
   // ========================================================================
   // GMAIL — Write (Level 2)
   // ========================================================================
