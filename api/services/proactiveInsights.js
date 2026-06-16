@@ -678,6 +678,20 @@ async function generateProactiveInsights(userId) {
       log.warn('Reply latency error', { error: rlErr?.message });
     }
 
+    // Attention gravity (browser extension) — behind the attention_gravity flag.
+    // First-party, API-free: where your attention pools (by dwell) vs where you
+    // click most. Reads our own user_platform_data, names domains only.
+    try {
+      const flags = await getFeatureFlags(userId).catch(() => ({}));
+      if (flags.attention_gravity === true) {
+        const { generateAttentionGravityInsight } = await import('./attentionGravity.js');
+        const ag = await generateAttentionGravityInsight(userId, { logOnly: false });
+        if (ag) stored++;
+      }
+    } catch (agErr) {
+      log.warn('Attention gravity error', { error: agErr?.message });
+    }
+
     return stored;
   } catch (error) {
     log.error('Error generating insights', { error });
