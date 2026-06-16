@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import {
   TrendingUp, AlertTriangle, PartyPopper, Heart,
   Lightbulb, Target, Compass,
+  Activity, Sparkles, BatteryCharging, Gauge,
 } from 'lucide-react';
 import type { ProactiveInsight, InsightCategory } from '@/types/dashboard';
 import type { NudgeFeedbackPayload } from '@/hooks/useProactiveInsights';
@@ -26,6 +27,11 @@ const CATEGORY_ICON: Record<InsightCategory, React.ReactNode> = {
   nudge:           <Lightbulb className="w-4 h-4" />,
   goal_progress:   <Target className="w-4 h-4" />,
   goal_suggestion: <Compass className="w-4 h-4" />,
+  // Cross-domain self-revelations — distinct identity, not a generic tip
+  stress_correlation: <Activity className="w-4 h-4" />,
+  energy_correlation: <Sparkles className="w-4 h-4" />,
+  social_battery:     <BatteryCharging className="w-4 h-4" />,
+  work_rhythm:        <Gauge className="w-4 h-4" />,
 };
 
 const URGENCY_COLOR: Record<string, string> = {
