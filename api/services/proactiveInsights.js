@@ -692,6 +692,20 @@ async function generateProactiveInsights(userId) {
       log.warn('Attention gravity error', { error: agErr?.message });
     }
 
+    // Curiosity signature (browser extension content) — behind the
+    // curiosity_signature flag. What your effort/curiosity keeps circling,
+    // synthesized from your searches + page topics + titles. First-party.
+    try {
+      const flags = await getFeatureFlags(userId).catch(() => ({}));
+      if (flags.curiosity_signature === true) {
+        const { generateCuriositySignatureInsight } = await import('./curiositySignature.js');
+        const cs = await generateCuriositySignatureInsight(userId, { logOnly: false });
+        if (cs) stored++;
+      }
+    } catch (csErr) {
+      log.warn('Curiosity signature error', { error: csErr?.message });
+    }
+
     return stored;
   } catch (error) {
     log.error('Error generating insights', { error });
