@@ -10,9 +10,13 @@
  *     per request and effectively a no-op, but we keep the surface so
  *     `npm run dev` doesn't require a local Redis.
  *
- * Fail-closed policy: when REDIS_URL is configured but Redis is unavailable
- * (network error, client not initialized), we DENY the request rather than
- * silently falling through to the per-instance Map and bypassing the limit.
+ * Degradation policy (revised 2026-06-16): when REDIS_URL is configured but
+ * Redis is unavailable (network error, client not initialized), we DEGRADE to
+ * the in-memory Map rather than denying. Failing closed here once took the
+ * entire twin offline during a Redis outage — every chat got "You've been
+ * chatty (0/200 messages this hour)" with ZERO messages actually sent. A
+ * working twin beats strict cross-instance limiting; the per-lambda Map still
+ * bounds a single runaway loop, and the outage is logged loudly.
  */
 
 import { getRedisClient, isRedisAvailable } from './redisClient.js';
@@ -98,16 +102,17 @@ export async function checkChatRateLimit(userId) {
       return { allowed: true, used, limit: CHAT_RATE_LIMIT_MAX, retryAfterMs: null };
     }
   } catch (redisErr) {
-    if (redisConfigured) {
-      log.warn('Redis rate limit check failed - denying request (fail-closed)', { error: redisErr });
-      return { allowed: false, used: 0, limit: CHAT_RATE_LIMIT_MAX, retryAfterMs: null, reason: 'rate_limit_unavailable' };
-    }
-    log.warn('Redis rate limit check failed, using in-memory fallback (dev mode)', { error: redisErr });
+    // Graceful degradation (2026-06-16): Redis configured but erroring. We used
+    // to fail CLOSED here, which took the whole twin offline on any Redis hiccup
+    // (users saw "You've been chatty (0/200…)" having sent nothing). Fall through
+    // to the in-memory limiter instead — loose on Vercel (per-lambda) but the
+    // twin stays up. Logged loudly so the Redis outage is visible.
+    log.warn('Redis rate limit check failed — degrading to in-memory limiter (twin stays up)', { error: redisErr?.message, redisConfigured });
   }
 
   if (redisConfigured) {
-    log.warn('Redis configured but client not ready - denying request (fail-closed)');
-    return { allowed: false, used: 0, limit: CHAT_RATE_LIMIT_MAX, retryAfterMs: null, reason: 'rate_limit_unavailable' };
+    // Same rationale: Redis configured but client not ready → degrade, don't deny.
+    log.warn('Redis configured but client not ready — degrading to in-memory limiter (twin stays up)');
   }
 
   const entry = chatRateLimitMap.get(userId);
