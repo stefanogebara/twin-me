@@ -422,7 +422,21 @@ async function processTwinMessage(userId, message) {
     log.warn('WhatsApp workspace action chain failed (non-fatal)', { userId, error: err.message });
   }
 
-  return finalText.replace(/^(?:Twin said:\s*"?)+/i, '').replace(/"?\s*$/, '');
+  const cleaned = finalText.replace(/^(?:Twin said:\s*"?)+/i, '').replace(/"?\s*$/, '');
+  return toWhatsAppMarkdown(cleaned);
+}
+
+// ====================================================================
+// Utility: normalize web markdown to WhatsApp formatting.
+// WhatsApp bold is *single* asterisks; the shared action-chain follow-up
+// formatter emits web-style **bold** + ### headers, which render as literal
+// characters on WhatsApp. Convert them so action replies look right.
+// ====================================================================
+export function toWhatsAppMarkdown(text) {
+  return String(text || '')
+    .replace(/\*\*\*(.+?)\*\*\*/g, '*$1*')  // ***x*** -> *x*
+    .replace(/\*\*(.+?)\*\*/g, '*$1*')       // **x**   -> *x*
+    .replace(/^\s{0,3}#{1,6}\s+/gm, '');      // strip ATX headers (# .. ######)
 }
 
 // ====================================================================

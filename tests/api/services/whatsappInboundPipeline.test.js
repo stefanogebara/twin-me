@@ -86,7 +86,7 @@ vi.mock('../../../api/services/workspaceActionChain.js', () => ({
   runWorkspaceActionChain: (...a) => runWorkspaceActionChain(...a),
 }));
 
-const { processInboundWhatsApp } = await import('../../../api/services/whatsappInboundPipeline.js');
+const { processInboundWhatsApp, toWhatsAppMarkdown } = await import('../../../api/services/whatsappInboundPipeline.js');
 
 function makeSend() {
   const calls = [];
@@ -218,5 +218,19 @@ describe('processInboundWhatsApp', () => {
     expect(r.kind).toBe('chat');
     expect(calls[0].text).toBe('Anotado: -R$ 80 ifood.');
     expect(completeMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('toWhatsAppMarkdown', () => {
+  it('converts **bold** to WhatsApp *bold*', () => {
+    expect(toWhatsAppMarkdown('**Hoje na agenda**')).toBe('*Hoje na agenda*');
+    expect(toWhatsAppMarkdown('1. **Tênis Segovia** — 16:00')).toBe('1. *Tênis Segovia* — 16:00');
+  });
+  it('collapses ***bolditalic*** to *x* and strips # headers', () => {
+    expect(toWhatsAppMarkdown('***urgent***')).toBe('*urgent*');
+    expect(toWhatsAppMarkdown('## Today\nstuff')).toBe('Today\nstuff');
+  });
+  it('leaves already-correct single-asterisk bold untouched', () => {
+    expect(toWhatsAppMarkdown('*ok* and plain')).toBe('*ok* and plain');
   });
 });
