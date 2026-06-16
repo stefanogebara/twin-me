@@ -290,15 +290,24 @@ export async function sendWhatsAppInsight(recipientPhone, insight) {
  * { success:false } on any failure so callers can fall back to plain text
  * (which still works inside the 24h window).
  *
+ * Variables (optional) fill the template's BODY {{1}}, {{2}}, … placeholders in
+ * order. Static templates like `statement_nag` pass none; a parameterized
+ * template (e.g. a re-engagement template with a name + detail) passes
+ * ['Stefano', 'your statement closed']. Each value MUST correspond to an
+ * approved placeholder — Meta rejects sends whose parameter count doesn't match
+ * the registered template.
+ *
  * @param {string} recipientPhone
  * @param {string} templateName   e.g. 'statement_nag'
  * @param {string} [languageCode] BCP-47-ish template language, default 'en'
+ * @param {string[]} [variables]  BODY parameter values in {{1}}..{{n}} order
  */
-export async function sendWhatsAppTemplate(recipientPhone, templateName, languageCode = 'en') {
+export async function sendWhatsAppTemplate(recipientPhone, templateName, languageCode = 'en', variables = []) {
   if (process.env.TWINME_DISABLE_OUTBOUND_SEND === 'true') {
     log.info('Outbound WhatsApp template send suppressed (TWINME_DISABLE_OUTBOUND_SEND=true)', {
       recipientPhone: recipientPhone?.slice(-4),
       templateName,
+      variableCount: variables?.length || 0,
     });
     return { success: true, suppressed: true };
   }
@@ -312,14 +321,24 @@ export async function sendWhatsAppTemplate(recipientPhone, templateName, languag
     return { success: false, error: 'kapso_client_unavailable' };
   }
 
+  const template = {
+    name: templateName,
+    language: { code: languageCode },
+  };
+  // Only attach a BODY component when there are variables — a components array
+  // with an empty parameter list is rejected by Meta for static templates.
+  if (Array.isArray(variables) && variables.length > 0) {
+    template.components = [{
+      type: 'body',
+      parameters: variables.map((v) => ({ type: 'text', text: String(v) })),
+    }];
+  }
+
   try {
     const result = await client.messages.sendTemplate({
       phoneNumberId,
       to: recipientPhone,
-      template: {
-        name: templateName,
-        language: { code: languageCode },
-      },
+      template,
     });
     logOutbound({
       recipient: recipientPhone,
