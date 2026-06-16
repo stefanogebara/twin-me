@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "TwinMe Desktop - your AI twin, always one keystroke away"
 authors = ["TwinMe <founders@twinme.me>"]
 edition = "2021"
-rust-version = "1.77"
+rust-version = "1.77.2"
 
 [lib]
 name = "twinme_desktop_lib"
