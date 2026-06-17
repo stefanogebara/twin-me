@@ -5,11 +5,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const createConnectSessionMock = vi.fn();
+const getAllConnectionsMock = vi.fn();
+const deleteConnectionMock = vi.fn();
 vi.mock('../../../api/services/nangoService.js', () => ({
   createConnectSession: (...a) => createConnectSessionMock(...a),
+  getAllConnections: (...a) => getAllConnectionsMock(...a),
+  deleteConnection: (...a) => deleteConnectionMock(...a),
   PLATFORM_CONFIGS: {
     spotify: { providerConfigKey: 'spotify', name: 'Spotify' },
     'google-mail': { providerConfigKey: 'google-mail', name: 'Gmail' },
+    'google-calendar': { providerConfigKey: 'google-calendar', name: 'Google Calendar' },
     github: { providerConfigKey: 'github-getting-started', name: 'GitHub' },
   },
 }));
@@ -17,7 +22,8 @@ vi.mock('../../../api/services/database.js', () => ({
   supabaseAdmin: { from: () => ({ select: () => ({ eq: () => ({ single: () => Promise.resolve({ data: { email: 'stefano@x.com' } }) }) }) }) },
 }));
 
-const { buildConnectLink, resolveIntegrationId, SUPPORTED_CONNECT_PLATFORMS, classifyConnectIntent } =
+const { buildConnectLink, resolveIntegrationId, SUPPORTED_CONNECT_PLATFORMS, classifyConnectIntent,
+  classifyDisconnectIntent, classifyConnectionStatusIntent, listConnectedPlatforms, disconnectPlatform } =
   await import('../../../api/services/connectLinkService.js');
 
 beforeEach(() => {
@@ -90,5 +96,63 @@ describe('classifyConnectIntent', () => {
     expect(classifyConnectIntent('qual meu saldo?')).toBeNull();
     expect(classifyConnectIntent('conecta')).toBeNull();
     expect(classifyConnectIntent('')).toBeNull();
+  });
+});
+
+describe('classifyDisconnectIntent', () => {
+  it('detects a disconnect verb + platform', () => {
+    expect(classifyDisconnectIntent('desconecta meu spotify')).toEqual({ platform: 'spotify' });
+    expect(classifyDisconnectIntent('disconnect my github')).toEqual({ platform: 'github' });
+    expect(classifyDisconnectIntent('desvincular gmail')).toEqual({ platform: 'gmail' });
+  });
+  it('does NOT fire without a platform or verb', () => {
+    expect(classifyDisconnectIntent('desconecta')).toBeNull();
+    expect(classifyDisconnectIntent('remove o lembrete do boleto')).toBeNull(); // "remove" excluded
+    expect(classifyDisconnectIntent('connect my spotify')).toBeNull();
+  });
+});
+
+describe('classifyConnectionStatusIntent', () => {
+  it('detects status questions (pt + en)', () => {
+    expect(classifyConnectionStatusIntent('what is connected?')).toBe(true);
+    expect(classifyConnectionStatusIntent('quais plataformas estão conectadas?')).toBe(true);
+    expect(classifyConnectionStatusIntent('minhas conexões')).toBe(true);
+  });
+  it('does NOT fire on connect/disconnect commands', () => {
+    expect(classifyConnectionStatusIntent('conecta meu spotify')).toBe(false);
+    expect(classifyConnectionStatusIntent('bom dia')).toBe(false);
+  });
+});
+
+describe('listConnectedPlatforms', () => {
+  it('returns display names of connected platforms only', async () => {
+    getAllConnectionsMock.mockResolvedValue({
+      spotify: { connected: true },
+      'google-mail': { connected: false },
+      github: { connected: true },
+      'google-calendar': { connected: false },
+    });
+    const out = await listConnectedPlatforms('u1');
+    expect(out.success).toBe(true);
+    expect(out.connected).toEqual(['Spotify', 'GitHub']);
+  });
+});
+
+describe('disconnectPlatform', () => {
+  beforeEach(() => { deleteConnectionMock.mockReset(); deleteConnectionMock.mockResolvedValue({ success: true }); });
+
+  it('maps the alias to the PLATFORM_CONFIGS key (not the Nango id) for deletion', async () => {
+    const out = await disconnectPlatform('u1', 'github');
+    expect(out.success).toBe(true);
+    expect(out.platform).toBe('GitHub');
+    // github → providerConfigKey github-getting-started → configKey 'github'
+    expect(deleteConnectionMock).toHaveBeenCalledWith('u1', 'github');
+  });
+
+  it('rejects an unknown platform without calling delete', async () => {
+    const out = await disconnectPlatform('u1', 'myspace');
+    expect(out.success).toBe(false);
+    expect(out.error).toBe('unknown_platform');
+    expect(deleteConnectionMock).not.toHaveBeenCalled();
   });
 });

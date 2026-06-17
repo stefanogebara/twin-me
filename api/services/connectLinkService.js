@@ -14,7 +14,7 @@
  * own account.
  */
 
-import { createConnectSession, PLATFORM_CONFIGS } from './nangoService.js';
+import { createConnectSession, getAllConnections, deleteConnection, PLATFORM_CONFIGS } from './nangoService.js';
 import { supabaseAdmin } from './database.js';
 import { createLogger } from './logger.js';
 
@@ -70,6 +70,69 @@ export function classifyConnectIntent(text) {
 function displayName(integrationId) {
   const cfg = Object.values(PLATFORM_CONFIGS).find((c) => c.providerConfigKey === integrationId);
   return cfg?.name || integrationId;
+}
+
+// The connect path uses Nango providerConfigKey (e.g. 'github-getting-started');
+// getAllConnections/deleteConnection key on the PLATFORM_CONFIGS key (e.g.
+// 'github'). Bridge between them.
+function configKeyFromIntegrationId(integrationId) {
+  const entry = Object.entries(PLATFORM_CONFIGS).find(([, c]) => c.providerConfigKey === integrationId);
+  return entry ? entry[0] : integrationId;
+}
+
+// Disconnect verbs — stems cover desconecta/desconectar/desconecte/desvincular.
+// "remove/tira" are deliberately excluded (too generic — "remove o lembrete").
+const DISCONNECT_VERB = /\b(disconnect|desconect\w*|desvincul\w*|unlink)\b/i;
+
+/** True for "what's connected? / quais plataformas estão conectadas? / minhas conexões". */
+export function classifyConnectionStatusIntent(text) {
+  const t = String(text || '').trim();
+  if (!t || t.length > 90) return false;
+  const hasConnWord = /\b(conectad[ao]s?|conex[õo]es|conex[ãa]o|connected|connections?)\b/i.test(t);
+  const hasQuery = /\b(quais|que|o que|what|whats|minhas|meus|status|t[áa]|est[ãa]o|are|list|lista|mostra|show)\b/i.test(t);
+  return hasConnWord && hasQuery;
+}
+
+/** "desconecta meu spotify" → { platform }; disconnect verb without a known platform → null. */
+export function classifyDisconnectIntent(text) {
+  const t = String(text || '').trim();
+  if (!t || t.length > 100) return null;
+  if (!DISCONNECT_VERB.test(t)) return null;
+  const tokens = new Set(t.toLowerCase().split(/[^\p{L}0-9-]+/u).filter(Boolean));
+  for (const alias of Object.keys(PLATFORM_ALIASES)) {
+    if (tokens.has(alias)) return { platform: alias };
+  }
+  return null; // never "disconnect everything" off one ambiguous verb
+}
+
+/** List the user's currently-connected platforms (display names). Never throws. */
+export async function listConnectedPlatforms(userId) {
+  try {
+    const all = await getAllConnections(userId);
+    const connected = Object.entries(all || {})
+      .filter(([, r]) => r?.connected)
+      .map(([key]) => PLATFORM_CONFIGS[key]?.name || key);
+    return { success: true, connected };
+  } catch (err) {
+    log.warn('listConnectedPlatforms failed', { userId, error: err.message });
+    return { success: false, error: err.message, connected: [] };
+  }
+}
+
+/** Disconnect one platform (reversible — reconnect re-runs OAuth). Never throws. */
+export async function disconnectPlatform(userId, platform) {
+  const integrationId = resolveIntegrationId(platform);
+  if (!integrationId) {
+    return { success: false, error: 'unknown_platform', message: `I don't know the platform "${platform}".` };
+  }
+  const configKey = configKeyFromIntegrationId(integrationId);
+  const res = await deleteConnection(userId, configKey);
+  if (!res?.success) {
+    log.warn('disconnectPlatform failed', { userId, configKey, error: res?.error });
+    return { success: false, error: res?.error || 'disconnect_failed', message: `Couldn't disconnect ${displayName(integrationId)} right now.` };
+  }
+  log.info('platform disconnected', { userId, configKey });
+  return { success: true, platform: displayName(integrationId) };
 }
 
 /**

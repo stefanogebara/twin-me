@@ -53,7 +53,7 @@ import { isStatementDocument, handleStatementDocument } from './transactions/wha
 import { handleReceiptImage } from './transactions/pixReceiptIngest.js';
 import { handleFileUploadToDrive } from './transactions/whatsappFileIngest.js';
 import { sendWhatsAppCtaButton } from './whatsappService.js';
-import { classifyConnectIntent, buildConnectLink } from './connectLinkService.js';
+import { classifyConnectIntent, buildConnectLink, classifyDisconnectIntent, classifyConnectionStatusIntent, disconnectPlatform, listConnectedPlatforms } from './connectLinkService.js';
 
 const log = createLogger('WhatsAppInbound');
 
@@ -247,6 +247,31 @@ export async function processInboundWhatsApp(parsed, { send }) {
       log.info('Thread approval resolved', { userId, intent: protocolIntent });
       return { handled: true, kind: 'approval', userId };
     }
+  }
+
+  // 5a2. Disconnect intent — "desconecta meu spotify" → revoke (reversible).
+  const disconnectIntent = classifyDisconnectIntent(text);
+  if (disconnectIntent?.platform) {
+    const r = await disconnectPlatform(userId, disconnectIntent.platform);
+    const msg = r.success
+      ? `Disconnected ${r.platform}. Say "conecta ${disconnectIntent.platform}" to reconnect anytime.`
+      : (r.message || 'I couldn\'t disconnect that right now.');
+    await send(phone, msg);
+    await addConversationMemory(userId, text, msg, { source: 'whatsapp', messageId, contactName })
+      .catch(err => log.warn('Failed to store disconnect memory', { userId, error: err.message }));
+    return { handled: true, kind: 'disconnect', userId };
+  }
+
+  // 5a3. Connection status — "what's connected?" / "minhas conexões".
+  if (classifyConnectionStatusIntent(text)) {
+    const r = await listConnectedPlatforms(userId);
+    const msg = r.connected.length
+      ? `Connected: ${r.connected.join(', ')}.`
+      : 'No platforms connected yet. Say "conecta spotify" (or gmail, calendar, youtube, github...) to connect one.';
+    await send(phone, msg);
+    await addConversationMemory(userId, text, msg, { source: 'whatsapp', messageId, contactName })
+      .catch(err => log.warn('Failed to store status memory', { userId, error: err.message }));
+    return { handled: true, kind: 'connection_status', userId };
   }
 
   // 5b. Connect intent — "conecta meu spotify" / "connect my gmail" → hand the
