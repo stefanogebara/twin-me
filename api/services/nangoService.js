@@ -443,6 +443,52 @@ export async function deleteNangoConnectionRaw(providerConfigKey, connectionId) 
 }
 
 /**
+ * Pure selector: from a list of Nango connections, pick the ones to prune for a
+ * (userId, providerConfigKey) — same end-user AND same provider, EXCLUDING the
+ * connection to keep. Exported for testing.
+ */
+export function selectConnectionsToPrune(conns, userId, providerConfigKey, keepConnectionId) {
+  return (conns || [])
+    .map((c) => ({
+      connectionId: c.connection_id || c.id,
+      providerConfigKey: c.provider_config_key || c.providerConfigKey,
+      endUserId: c.end_user?.id || c.end_user?.endUserId || c.metadata?.userId || null,
+    }))
+    .filter((c) =>
+      c.connectionId &&
+      c.providerConfigKey === providerConfigKey &&
+      c.endUserId === userId &&
+      c.connectionId !== keepConnectionId,
+    );
+}
+
+/**
+ * Prune older duplicate Nango connections for a user+platform, keeping only the
+ * freshly-created one. Called from the auth webhook on connection creation so
+ * reconnects don't pile up orphaned slots (which is how the account hit its
+ * connection cap). Never throws — returns { pruned }.
+ */
+export async function pruneDuplicateNangoConnections(userId, providerConfigKey, keepConnectionId) {
+  if (!userId || !providerConfigKey || !keepConnectionId) return { pruned: 0 };
+  try {
+    requireNango();
+    const res = await nango.listConnections();
+    const conns = res?.connections || res || [];
+    const toPrune = selectConnectionsToPrune(conns, userId, providerConfigKey, keepConnectionId);
+    let pruned = 0;
+    for (const c of toPrune) {
+      const r = await deleteNangoConnectionRaw(c.providerConfigKey, c.connectionId);
+      if (r.success) pruned++;
+    }
+    if (pruned > 0) log.info('Pruned duplicate Nango connections', { userId, providerConfigKey, pruned, kept: keepConnectionId });
+    return { pruned };
+  } catch (err) {
+    log.warn('pruneDuplicateNangoConnections failed (non-fatal)', { userId, providerConfigKey, error: err.message });
+    return { pruned: 0, error: err.message };
+  }
+}
+
+/**
  * Make a proxy request to an API
  * @param {string} userId - The app user ID
  * @param {string} platform - Platform key or custom provider config key
