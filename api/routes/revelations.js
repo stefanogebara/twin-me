@@ -28,6 +28,7 @@ import {
 import { computeDayNightRevelation } from '../services/dayNightSelf.js';
 import { computeStickingPointRevelation } from '../services/stickingPoint.js';
 import { computeFocusShapeRevelation } from '../services/focusShape.js';
+import { computeWorkThreadsRevelation } from '../services/workThreads.js';
 import { complete, TIER_ANALYSIS } from '../services/llmGateway.js';
 import { createLogger } from '../services/logger.js';
 
@@ -102,16 +103,17 @@ router.get('/', authenticateUser, async (req, res) => {
     }
 
     // Independent — one failing computer must not sink the others.
-    const [attention, curiosity, dayNight, sticking, focusShape] = await Promise.all([
+    const [attention, curiosity, dayNight, sticking, focusShape, workThreads] = await Promise.all([
       computeAttention(userId).catch((e) => { log.warn('attention failed', { error: e.message }); return null; }),
       computeCuriosity(userId).catch((e) => { log.warn('curiosity failed', { error: e.message }); return null; }),
       computeDayNightRevelation(userId).catch((e) => { log.warn('dayNight failed', { error: e.message }); return null; }),
       computeStickingPointRevelation(userId).catch((e) => { log.warn('sticking failed', { error: e.message }); return null; }),
       computeFocusShapeRevelation(userId).catch((e) => { log.warn('focusShape failed', { error: e.message }); return null; }),
+      computeWorkThreadsRevelation(userId).catch((e) => { log.warn('workThreads failed', { error: e.message }); return null; }),
     ]);
 
     const payload = {
-      revelations: [attention, curiosity, dayNight, sticking, focusShape].filter(Boolean),
+      revelations: [attention, curiosity, dayNight, sticking, focusShape, workThreads].filter(Boolean),
       generatedAt: new Date().toISOString(),
     };
     await writeCache(userId, payload).catch((e) => log.warn('cache write failed', { error: e.message }));
