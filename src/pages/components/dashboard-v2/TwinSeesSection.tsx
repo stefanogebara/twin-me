@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Gauge, Compass, MoonStar, Search } from 'lucide-react';
+import { Gauge, Compass, MoonStar, Search, Activity } from 'lucide-react';
 import { authFetch } from '@/services/api/apiBase';
 
 /**
@@ -12,7 +12,8 @@ import { authFetch } from '@/services/api/apiBase';
  * glass: neutral frosted panels with a faint specular light drifting behind
  * them and a soft sheen riding across the focal card. One rotating hero carries
  * the weight; the rest sit smaller beneath it.
- * Backed by GET /api/revelations (browser-extension data only — first-party).
+ * Backed by GET /api/revelations (first-party only: browser extension +
+ * desktop window-mirroring; no third-party APIs).
  */
 interface Revelation {
   kind: string;
@@ -26,10 +27,12 @@ const KIND_ICON: Record<string, ReactNode> = {
   curiosity_signature: <Compass className="w-4 h-4" />,
   day_night_self: <MoonStar className="w-4 h-4" />,
   sticking_point: <Search className="w-4 h-4" />,
+  focus_shape: <Activity className="w-4 h-4" />,
 };
 
 const SOURCE_LABEL: Record<string, string> = {
   web: 'From your browsing',
+  desktop: 'From your desktop',
 };
 
 // Liquid glass: neutral specular light drifting behind frosted panels, a sheen
