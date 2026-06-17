@@ -45,7 +45,9 @@ export function resolveIntegrationId(platform) {
 // Connect verbs — deliberately EXCLUDES "liga/ligar" (that's place_call:
 // "liga pro restaurante"). Connect intent needs both a connect verb AND a
 // known platform (or an explicit "accounts/contas" menu request).
-const CONNECT_VERB = /\b(connect|conecta|conectar|conecte|vincula|vincular|vincule|integra|integrar|link)\b/i;
+// Optional "re-" prefix so "reconnect / reconecta / relink" also count — a
+// reconnect is just a connect with the old session expired.
+const CONNECT_VERB = /\b(?:re-?)?(connect|conecta|conectar|conecte|vincula|vincular|vincule|integra|integrar|link)\b/i;
 const MENU_WORD = /\b(accounts?|contas?|tudo|everything|plataformas?|platforms?|apps?)\b/i;
 
 /**

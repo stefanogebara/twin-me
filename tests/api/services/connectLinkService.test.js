@@ -83,6 +83,12 @@ describe('classifyConnectIntent', () => {
     expect(classifyConnectIntent('quero conectar meu calendário')).toEqual({ platform: 'calendário' });
   });
 
+  it('handles the "re-" prefix — reconnect / reconecta / relink', () => {
+    expect(classifyConnectIntent('reconnect spotify')).toEqual({ platform: 'spotify' });
+    expect(classifyConnectIntent('reconecta meu github')).toEqual({ platform: 'github' });
+    expect(classifyConnectIntent('re-connect my gmail')).toEqual({ platform: 'gmail' });
+  });
+
   it('returns platform:null for a generic "connect my accounts"', () => {
     expect(classifyConnectIntent('connect my accounts')).toEqual({ platform: null });
     expect(classifyConnectIntent('quero conectar minhas contas')).toEqual({ platform: null });
