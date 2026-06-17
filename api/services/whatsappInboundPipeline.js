@@ -52,6 +52,8 @@ import { tryCaptureTransaction, checkAndBumpCaptureQuota } from './transactions/
 import { isStatementDocument, handleStatementDocument } from './transactions/whatsappStatementIngest.js';
 import { handleReceiptImage } from './transactions/pixReceiptIngest.js';
 import { handleFileUploadToDrive } from './transactions/whatsappFileIngest.js';
+import { sendWhatsAppCtaButton } from './whatsappService.js';
+import { classifyConnectIntent, buildConnectLink } from './connectLinkService.js';
 
 const log = createLogger('WhatsAppInbound');
 
@@ -245,6 +247,32 @@ export async function processInboundWhatsApp(parsed, { send }) {
       log.info('Thread approval resolved', { userId, intent: protocolIntent });
       return { handled: true, kind: 'approval', userId };
     }
+  }
+
+  // 5b. Connect intent — "conecta meu spotify" / "connect my gmail" → hand the
+  // user a Nango OAuth button. The connection completes server-side via the
+  // Nango webhook; no web login needed. (Deliberately ignores "liga pro X" —
+  // that's place_call, not connect.)
+  const connectIntent = classifyConnectIntent(text);
+  if (connectIntent) {
+    if (!connectIntent.platform) {
+      const menu = 'I can connect: Spotify, Gmail, Google Calendar, YouTube, GitHub, Discord, Whoop, Outlook. Which one? (e.g. "conecta meu spotify")';
+      await send(phone, menu);
+      await addConversationMemory(userId, text, menu, { source: 'whatsapp', messageId, contactName })
+        .catch(err => log.warn('Failed to store connect-menu memory', { userId, error: err.message }));
+      return { handled: true, kind: 'connect_menu', userId };
+    }
+    const link = await buildConnectLink(userId, connectIntent.platform);
+    if (link.success) {
+      const body = `Tap to connect ${link.platform} to your twin. It opens a secure ${link.platform} sign-in — your twin never sees your password.`;
+      await sendWhatsAppCtaButton(phone, { body, buttonText: 'Connect', url: link.url });
+      await addConversationMemory(userId, text, `Sent a ${link.platform} connect link.`, { source: 'whatsapp', messageId, contactName })
+        .catch(err => log.warn('Failed to store connect memory', { userId, error: err.message }));
+      log.info('Connect link sent', { userId, platform: link.integrationId });
+      return { handled: true, kind: 'connect', userId };
+    }
+    await send(phone, link.message || 'I couldn\'t create a connect link right now — try again in a moment.');
+    return { handled: true, kind: 'connect_error', userId };
   }
 
   // 6. Text transaction capture — forwarded bank/Pix notification TEXTS and

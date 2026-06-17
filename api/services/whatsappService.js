@@ -396,6 +396,77 @@ export async function sendWhatsAppMessage(recipientPhone, text) {
 }
 
 /**
+ * Send an interactive CTA-URL button (Meta "cta_url" interactive message via
+ * Kapso) — a tappable button that opens `url` in the user's browser. Used for
+ * "Connect Spotify" style OAuth buttons over WhatsApp.
+ *
+ * Only Kapso/Meta render a native button; for any other provider (or if the
+ * interactive send fails) we fall back to a plain text message with the link,
+ * which is tappable in every WhatsApp client. Interactive messages are session
+ * messages — deliverable inside the 24h window, which is open here because the
+ * user just messaged the twin to ask. Never throws.
+ *
+ * @param {string} recipientPhone
+ * @param {{ body: string, buttonText: string, url: string }} opts
+ */
+export async function sendWhatsAppCtaButton(recipientPhone, { body, buttonText, url }) {
+  if (process.env.TWINME_DISABLE_OUTBOUND_SEND === 'true') {
+    return { success: true, suppressed: true };
+  }
+  const linkFallback = () => sendWhatsAppMessage(recipientPhone, `${body}\n\n${buttonText}: ${url}`);
+
+  // Native interactive buttons are Kapso/Meta-only, and the twin's
+  // conversational number (where connect requests arrive) is Kapso — so attempt
+  // the native button whenever Kapso is configured, regardless of whether Z-API
+  // is also set up for the separate money-flow number. Only fall back to a
+  // tappable text link when Kapso isn't available at all.
+  if (!USE_KAPSO) {
+    return linkFallback();
+  }
+  const apiKey = process.env.KAPSO_API_KEY?.trim();
+  const phoneNumberId = process.env.KAPSO_PHONE_NUMBER_ID || process.env.TWINME_WHATSAPP_PHONE_NUMBER_ID;
+  if (!apiKey || !phoneNumberId) return linkFallback();
+
+  try {
+    const apiUrl = `https://api.kapso.ai/meta/whatsapp/v24.0/${phoneNumberId}/messages`;
+    const payload = {
+      messaging_product: 'whatsapp',
+      to: recipientPhone,
+      type: 'interactive',
+      interactive: {
+        type: 'cta_url',
+        body: { text: String(body).slice(0, 1024) },
+        action: {
+          name: 'cta_url',
+          // Meta caps the display text at 20 chars.
+          parameters: { display_text: String(buttonText).slice(0, 20), url },
+        },
+      },
+    };
+    const { data, status } = await axios.post(apiUrl, payload, {
+      headers: { 'X-API-Key': apiKey, 'Content-Type': 'application/json' },
+      timeout: 15000,
+    });
+    logOutbound({
+      recipient: recipientPhone,
+      recipient_input: recipientPhone,
+      text_preview: `[cta_url:${buttonText}]`,
+      text_len: 0,
+      provider: 'kapso',
+      success: true,
+      message_id: data?.messages?.[0]?.id || null,
+      http_status: status,
+      raw_response: data || null,
+    });
+    return { success: true, messageId: data?.messages?.[0]?.id, provider: 'kapso', interactive: true };
+  } catch (err) {
+    const errMsg = err.response?.data?.error?.message || err.message;
+    log.warn('Kapso cta_url send failed, falling back to text link', { error: errMsg, status: err.response?.status });
+    return linkFallback();
+  }
+}
+
+/**
  * Send a proactive insight via WhatsApp (plain text formatting).
  */
 function formatMeetingPrepMessage(insight) {
