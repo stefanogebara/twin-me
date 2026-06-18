@@ -146,7 +146,12 @@ export function TwinSeesSection() {
   // Rotate the focal card daily so every revelation gets the spotlight in turn.
   const heroIndex = Math.floor(Date.now() / 86_400_000) % revelations.length;
   const hero = revelations[heroIndex];
-  const supporting = revelations.filter((_, i) => i !== heroIndex).slice(0, 2);
+  // Show ALL the other revelations beneath the hero (they wrap into a grid), not
+  // just the first two — otherwise newer revelations (e.g. the desktop ones) stay
+  // invisible except on the 1-in-N day they happen to be the hero. Bounded
+  // defensively so the section can't grow without limit if the API ever returns
+  // a long list.
+  const supporting = revelations.filter((_, i) => i !== heroIndex).slice(0, 7);
 
   return (
     <section
