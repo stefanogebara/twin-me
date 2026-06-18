@@ -74,25 +74,17 @@ registerExtendedTools();
 
 // Initialize Sentry for error tracking (only if SENTRY_DSN is configured)
 if (process.env.SENTRY_DSN) {
+  // @sentry/node v10: the Handlers/Integrations namespaces were removed in v8.
+  // init() here; the Express error handler is wired after routes below via
+  // Sentry.setupExpressErrorHandler. (The old v7 API threw at module load the
+  // instant a DSN was set, taking down every /api/* request.)
   Sentry.init({
     dsn: process.env.SENTRY_DSN,
     environment: process.env.NODE_ENV || 'development',
     tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0, // 10% in prod, 100% in dev
-    integrations: [
-      // Enable HTTP instrumentation for automatic tracing
-      new Sentry.Integrations.Http({ tracing: true }),
-      // Enable Express integration for automatic error capture
-      new Sentry.Integrations.Express({ app }),
-    ],
   });
 
   log.info('Sentry error tracking initialized');
-
-  // RequestHandler must be the first middleware
-  app.use(Sentry.Handlers.requestHandler());
-
-  // TracingHandler creates a trace for every incoming request
-  app.use(Sentry.Handlers.tracingHandler());
 } else if (process.env.NODE_ENV === 'production') {
   // Only warn in production - in development, Sentry is typically not needed
   log.warn('Sentry DSN not configured - error tracking disabled');
@@ -271,6 +263,7 @@ app.use('/api/ai/', aiLimiter);
 app.post('/api/chat/message', aiLimiter);
 app.get('/api/chat/intro', aiLimiter);    // Generates a personalised first message (LLM)
 app.use('/api/soul-extraction/', aiLimiter); // LLM-powered extraction endpoints
+app.post('/api/desktop/observe-summary', aiLimiter); // UNAUTHENTICATED LLM endpoint — cap OpenRouter cost-amplification
 
 // Global request timeout to prevent hanging on DB outages
 // Longer timeout in dev when Cloudflare workaround adds latency per query
@@ -821,14 +814,15 @@ if (process.env.NODE_ENV === 'development') {
   app.use('/api/test-evidence-pipeline', testEvidencePipelineRoutes);
 }
 
-// Sentry error handler (must be after routes but before other error handlers)
+// Sentry error handler (after routes, before our own error handlers).
+// v10 replacement for the removed Sentry.Handlers.errorHandler().
 if (process.env.SENTRY_DSN) {
-  app.use(Sentry.Handlers.errorHandler({
+  Sentry.setupExpressErrorHandler(app, {
     shouldHandleError(error) {
-      // Capture all errors with status code >= 500
-      return error.status >= 500 || !error.status;
-    }
-  }));
+      // Capture all errors with status code >= 500 (or no status)
+      return (error?.status || error?.statusCode || 500) >= 500;
+    },
+  });
 }
 
 // 404 handler (must come before error handler)
