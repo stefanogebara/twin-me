@@ -608,7 +608,7 @@ function cosineSim(a, b) {
  * @param {number} lambda - Trade-off (0=pure diversity, 1=pure relevance)
  * @returns {Array} Reranked memories (embedding stripped from output)
  */
-function mmrRerank(candidates, finalLimit, lambda = MMR_LAMBDA) {
+export function mmrRerank(candidates, finalLimit, lambda = MMR_LAMBDA) {
   if (candidates.length <= finalLimit) return candidates.map(stripEmbedding);
 
   const selected = [];
