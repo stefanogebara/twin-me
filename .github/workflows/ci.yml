@@ -1,0 +1,70 @@
+name: CI
+
+# Build + test gate for every PR and every push to main. This is the safety
+# net the audit (2026-06) flagged as Milestone 0: nothing else (lint, types,
+# security) is enforceable until there is a green pipeline to hang it on.
+#
+# What is a HARD gate today (proven green headless — see the two steps below):
+#   - vite build
+#   - full vitest suite, minus *.integration.test.js (those do a REAL Supabase
+#     round-trip against the prod project and must not run on every push).
+#
+# What is INFORMATIONAL today (continue-on-error): eslint + tsc. There is a
+# known lint/type backlog; these run for visibility and get promoted to hard
+# gates once the baseline is triaged. Promoting them before that would make the
+# gate permanently red and train everyone to ignore it.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# A newer push to the same ref supersedes in-flight runs — saves Actions minutes
+# on rapid push sequences.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Build (vite)
+        run: npm run build
+
+      - name: Test (vitest, excl. live-DB integration tests)
+        # Stub Supabase env so api/config/supabase.js does not throw at import
+        # (it requires url + anon + service-role keys at module load). Real
+        # round-trips live only in *.integration.test.js, which are excluded
+        # here; every other test mocks the DB, so these stub values are never
+        # actually dialed.
+        env:
+          SUPABASE_URL: https://ci-stub.supabase.co
+          SUPABASE_ANON_KEY: ci-stub-anon-key
+          SUPABASE_SERVICE_ROLE_KEY: ci-stub-service-role-key
+        run: npx vitest run --exclude '**/*.integration.test.js'
+
+      # ---- Non-blocking quality signals (promote to hard gates after triage) ----
+      - name: Lint (eslint) [non-blocking]
+        run: npm run lint
+        continue-on-error: true
+
+      - name: Typecheck (tsc, app sources) [non-blocking]
+        run: npx tsc -p tsconfig.app.json --noEmit
+        continue-on-error: true
