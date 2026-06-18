@@ -28,6 +28,7 @@ import {
 import { computeDayNightRevelation } from '../services/dayNightSelf.js';
 import { computeStickingPointRevelation } from '../services/stickingPoint.js';
 import { computeFocusShapeRevelation } from '../services/focusShape.js';
+import { computeWorkThreadsRevelation } from '../services/workThreads.js';
 import { complete, TIER_ANALYSIS } from '../services/llmGateway.js';
 import { createLogger } from '../services/logger.js';
 
@@ -42,6 +43,8 @@ const CACHE_TTL_MS = 12 * 3600_000; // recompute at most twice a day
 // gathers filter data_type to extension_page_visit/extension_search_query).
 const CACHE = { platform: 'web', data_type: 'settings', source_url: 'revelations:cache' };
 
+// Returns the cached payload with its age REGARDLESS of TTL (null if absent).
+// Staleness is decided by the handler so it can serve-stale-then-revalidate.
 async function readCache(userId) {
   const { data } = await supabaseAdmin
     .from('user_platform_data')
@@ -52,8 +55,7 @@ async function readCache(userId) {
     .eq('source_url', CACHE.source_url)
     .maybeSingle();
   if (!data?.raw_data) return null;
-  const age = Date.now() - new Date(data.extracted_at).getTime();
-  return age <= CACHE_TTL_MS ? data.raw_data : null;
+  return { payload: data.raw_data, ageMs: Date.now() - new Date(data.extracted_at).getTime() };
 }
 
 async function writeCache(userId, payload) {
@@ -92,29 +94,61 @@ async function computeCuriosity(userId) {
     : null;
 }
 
+// Run all six computers and assemble the payload. Independent — one failing
+// computer must not sink the others. This is the expensive part: 6 DB gathers +
+// 3 LLM calls (curiosity, sticking, work-threads), ~9s warm and well over the
+// 30s request guard on a cold function — which is exactly why it must not run
+// inside a user-facing request when we already have something to serve.
+async function computeAll(userId) {
+  const [attention, curiosity, dayNight, sticking, focusShape, workThreads] = await Promise.all([
+    computeAttention(userId).catch((e) => { log.warn('attention failed', { error: e.message }); return null; }),
+    computeCuriosity(userId).catch((e) => { log.warn('curiosity failed', { error: e.message }); return null; }),
+    computeDayNightRevelation(userId).catch((e) => { log.warn('dayNight failed', { error: e.message }); return null; }),
+    computeStickingPointRevelation(userId).catch((e) => { log.warn('sticking failed', { error: e.message }); return null; }),
+    computeFocusShapeRevelation(userId).catch((e) => { log.warn('focusShape failed', { error: e.message }); return null; }),
+    computeWorkThreadsRevelation(userId).catch((e) => { log.warn('workThreads failed', { error: e.message }); return null; }),
+  ]);
+  return {
+    revelations: [attention, curiosity, dayNight, sticking, focusShape, workThreads].filter(Boolean),
+    generatedAt: new Date().toISOString(),
+  };
+}
+
+// Per-instance guard so a burst of loads triggers ONE background recompute, not
+// N. Fire-and-forget: the user already holds their (stale) cache, so this just
+// refreshes it for next time without blocking the response — the same
+// post-response background pattern observationIngestion uses on this Vercel
+// Fluid setup.
+const revalidating = new Set();
+function revalidate(userId) {
+  if (revalidating.has(userId)) return;
+  revalidating.add(userId);
+  computeAll(userId)
+    .then((payload) => writeCache(userId, payload))
+    .catch((e) => log.warn('revalidate failed', { userId, error: e.message }))
+    .finally(() => revalidating.delete(userId));
+}
+
 // ── GET /api/revelations ─────────────────────────────────────────────────────
 router.get('/', authenticateUser, async (req, res) => {
   const userId = req.user.id;
   try {
-    if (req.query.refresh !== 'true') {
-      const cached = await readCache(userId);
-      if (cached) return res.json({ success: true, data: cached });
+    const cached = await readCache(userId);
+    if (cached) {
+      // Stale-while-revalidate: serve the cached revelations INSTANTLY (even
+      // past TTL). If stale — or a refresh was explicitly asked — kick the
+      // recompute off in the BACKGROUND so the next load is fresh. A returning
+      // user never waits on the multi-LLM recompute (which 504'd the 30s guard
+      // on a cold function).
+      const stale = cached.ageMs > CACHE_TTL_MS || req.query.refresh === 'true';
+      if (stale) revalidate(userId);
+      return res.json({ success: true, data: cached.payload });
     }
 
-    // Independent — one failing computer must not sink the others.
-    const [attention, curiosity, dayNight, sticking, focusShape] = await Promise.all([
-      computeAttention(userId).catch((e) => { log.warn('attention failed', { error: e.message }); return null; }),
-      computeCuriosity(userId).catch((e) => { log.warn('curiosity failed', { error: e.message }); return null; }),
-      computeDayNightRevelation(userId).catch((e) => { log.warn('dayNight failed', { error: e.message }); return null; }),
-      computeStickingPointRevelation(userId).catch((e) => { log.warn('sticking failed', { error: e.message }); return null; }),
-      computeFocusShapeRevelation(userId).catch((e) => { log.warn('focusShape failed', { error: e.message }); return null; }),
-    ]);
-
-    const payload = {
-      revelations: [attention, curiosity, dayNight, sticking, focusShape].filter(Boolean),
-      generatedAt: new Date().toISOString(),
-    };
-    await writeCache(userId, payload).catch((e) => log.warn('cache write failed', { error: e.message }));
+    // No cache yet — first load ever for this user. Compute once synchronously;
+    // new users have little first-party data, so most computers no-op quickly.
+    const payload = await computeAll(userId);
+    writeCache(userId, payload).catch((e) => log.warn('cache write failed', { error: e.message }));
     return res.json({ success: true, data: payload });
   } catch (error) {
     log.error('revelations failed', { userId, error: error.message });
