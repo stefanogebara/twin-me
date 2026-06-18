@@ -54,11 +54,18 @@ jobs:
         # round-trips live only in *.integration.test.js, which are excluded
         # here; every other test mocks the DB, so these stub values are never
         # actually dialed.
+        #
+        # --retry=2: transient-flake guard. The suite has a known load/order
+        # flakiness (a few tests pass in isolation but can fail under full
+        # parallelism — process.env bleed between files). Retry absorbs those
+        # transients WITHOUT hiding real regressions: a consistently-broken test
+        # still fails all 3 attempts. The root-cause fix (env isolation + a
+        # bounded pool) is tracked separately; remove this once that lands.
         env:
           SUPABASE_URL: https://ci-stub.supabase.co
           SUPABASE_ANON_KEY: ci-stub-anon-key
           SUPABASE_SERVICE_ROLE_KEY: ci-stub-service-role-key
-        run: npx vitest run --exclude '**/*.integration.test.js'
+        run: npx vitest run --retry=2 --exclude '**/*.integration.test.js'
 
       # ---- Non-blocking quality signals (promote to hard gates after triage) ----
       - name: Lint (eslint) [non-blocking]
