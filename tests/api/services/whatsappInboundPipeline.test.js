@@ -138,6 +138,17 @@ describe('processInboundWhatsApp', () => {
     expect(calls[1].text).toMatch(/want me to draft/);
   });
 
+  it('strips emojis from the twin reply (the #1 product constraint, enforced on the WhatsApp surface)', async () => {
+    completeMock.mockResolvedValue({ content: 'Boa! 🎉 tudo certo ✅ por aqui 😊' });
+    const { send, calls } = makeSend();
+    const r = await processInboundWhatsApp({ phone: '5511777', text: 'oi' }, { send });
+    expect(r.kind).toBe('chat');
+    // No emoji reaches the user (prompt rule + stripEmoji output wrap).
+    expect(calls[0].text).not.toMatch(/\p{Extended_Pictographic}/u);
+    // ...and the actual words are preserved.
+    expect(calls[0].text).toMatch(/tudo certo/);
+  });
+
   it('runs the workspace action chain on the reply and sends its transformed output', async () => {
     // The chain executed a tool and rewrote the reply (web parity). What the
     // user receives is the chain output, not the raw first-pass reply.

@@ -48,6 +48,8 @@ import { generatePurchaseReflection } from './purchaseReflection.js';
 import { classifyProtocolReply, resolveProtocolReply, offerNextProposal } from './threadApprovals.js';
 import { buildWorkspaceActionsPrompt } from './tools/workspaceActionParser.js';
 import { runWorkspaceActionChain } from './workspaceActionChain.js';
+import { ANTI_EMOJI_RULE } from './twinPromptAssembly.js';
+import { stripEmoji } from '../utils/stripEmoji.js';
 import { tryCaptureTransaction, checkAndBumpCaptureQuota } from './transactions/whatsappTransactionCapture.js';
 import { isStatementDocument, handleStatementDocument } from './transactions/whatsappStatementIngest.js';
 import { handleReceiptImage } from './transactions/pixReceiptIngest.js';
@@ -423,6 +425,11 @@ async function processTwinMessage(userId, message) {
     'Use *bold* for emphasis. Max 3 paragraphs.'
   );
 
+  // The hard product constraint: no emojis, ever. The web twin injects this via
+  // assembleTwinSystemPrompt; this hand-rolled WhatsApp prompt previously did
+  // not, so the WhatsApp twin could emit emojis. Inject the same rule here.
+  systemParts.push(ANTI_EMOJI_RULE.trim());
+
   const system = systemParts.join('\n\n');
 
   const { data: recentMsgs } = await supabaseAdmin
@@ -476,7 +483,9 @@ async function processTwinMessage(userId, message) {
   }
 
   const cleaned = finalText.replace(/^(?:Twin said:\s*"?)+/i, '').replace(/"?\s*$/, '');
-  return toWhatsAppMarkdown(cleaned);
+  // Defense-in-depth on the #1 product constraint: strip any emoji the model
+  // slipped past the prompt rule before it reaches the user.
+  return stripEmoji(toWhatsAppMarkdown(cleaned));
 }
 
 // ====================================================================
