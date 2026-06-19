@@ -1008,6 +1008,7 @@ export {
   getActiveGoalContext,
   getGoalSummary,
   extractMetricFromPlatformData,
+  extractMetricFromMemories,
   evaluateTarget,
   buildSuggestionExclusions,
   generateGoalSuggestions,
