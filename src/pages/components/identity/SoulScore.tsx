@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 import { authFetch } from '@/services/api/apiBase';
 import { usePlatformsSummary } from '@/hooks/usePlatformsSummary';
-import { computeSoulScore, computeDomainScore, deriveAxesCount } from '@/lib/soulScoring';
+import { computeSoulScore, computeDomainScore } from '@/lib/soulScoring';
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -75,12 +75,6 @@ function getRingColor(score: number): string {
   if (score > 70) return '#22c55e';
   if (score >= 40) return '#f59e0b';
   return 'rgba(255,255,255,0.20)';
-}
-
-function getQualitativeLabel(score: number): { text: string; color: string } {
-  if (score > 75) return { text: 'Deep', color: '#22c55e' };
-  if (score >= 40) return { text: 'Growing', color: '#f59e0b' };
-  return { text: 'New', color: 'rgba(255,255,255,0.35)' };
 }
 
 /* ------------------------------------------------------------------ */
@@ -171,7 +165,11 @@ interface ContributorCardProps {
 const ContributorCard: React.FC<ContributorCardProps> = ({ domain, connected, score, index, compact }) => {
   const Icon = domain.icon;
   const locked = !connected;
-  const label = locked ? 'LOCKED' : getQualitativeLabel(score);
+  // Connected domains read as a neutral "Contributing" status. Per-domain
+  // memory depth isn't available on the client, so we no longer claim a
+  // depth tier (Deep/Growing/New) that was identical across every unlocked
+  // card (audit-2026-06-10).
+  const label = { text: 'Contributing', color: 'rgba(255,255,255,0.55)' };
   const platformName = domain.platformKey === '__always__'
     ? ''
     : PLATFORM_DISPLAY_NAMES[domain.platformKey] ?? domain.platformKey.replace(/_/g, ' ');
@@ -303,11 +301,12 @@ const SoulScore: React.FC<SoulScoreProps> = ({ className = '', compact = false }
 
   // Shared formula (src/lib/soulScoring.ts) — active-only numerator + M5
   // 95-cap when any connected platform is stale/expired. Same number as the
-  // onboarding SoulRichnessBar (batch-3 step 6).
+  // onboarding SoulRichnessBar (batch-3 step 6). The fabricated personality-
+  // axes component was dropped in audit-2026-06-10 (it assumed axes exist for
+  // any connected platform), so the score is now three measured components.
   const score = computeSoulScore({
     summary: platformsSummary,
     memoryCount,
-    axesCount: deriveAxesCount(platformsSummary),
   });
   const connectedSet = new Set(connectedPlatforms);
 
@@ -347,9 +346,10 @@ const SoulScore: React.FC<SoulScoreProps> = ({ className = '', compact = false }
       <div className={`grid ${compact ? 'grid-cols-2 gap-2' : 'grid-cols-2 sm:grid-cols-3 gap-3'}`}>
         {DOMAINS.map((domain, i) => {
           const connected = domain.alwaysUnlocked || connectedSet.has(domain.platformKey);
-          const domainScore = domain.alwaysUnlocked
-            ? computeDomainScore(true, memoryCount)
-            : computeDomainScore(connected, memoryCount);
+          // Binary per-domain signal: per-domain memory volume is not available
+          // on the client, so a connected domain reads as "contributing" rather
+          // than fabricating a per-domain depth (audit-2026-06-10).
+          const domainScore = computeDomainScore(connected);
           return (
             <ContributorCard
               key={domain.id}

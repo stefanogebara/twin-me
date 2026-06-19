@@ -29,7 +29,7 @@ export function DashboardV2() {
   useDocumentTitle('Dashboard');
   const navigate = useNavigate();
   const { data, isLoading, isError, refetch } = useDashboardContext();
-  const { insights, markEngaged, submitFeedback, feedbackPendingId } = useProactiveInsights();
+  const { insights, markEngaged, submitFeedbackAsync, feedbackPendingId } = useProactiveInsights();
   const llmWikiEnabled = useFeatureFlag('llm_wiki');
 
   // Register web push on first dashboard load (after auth)
@@ -178,7 +178,7 @@ export function DashboardV2() {
         insights={insights}
         heroInsightId={data.heroInsight?.insightId}
         onEngage={markEngaged}
-        onFeedback={submitFeedback}
+        onFeedback={submitFeedbackAsync}
         feedbackPendingId={feedbackPendingId}
       />
 

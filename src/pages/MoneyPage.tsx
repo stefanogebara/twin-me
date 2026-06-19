@@ -622,7 +622,7 @@ function TransactionRow({ tx }: { tx: Transaction }) {
             </span>
           )}
         </div>
-        {showFeedback && <FeedbackToggle txId={tx.id} initial={null} />}
+        {showFeedback && <FeedbackToggle txId={tx.id} initial={tx.feedback ?? null} />}
       </div>
       <div
         style={{

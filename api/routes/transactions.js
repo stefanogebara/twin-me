@@ -380,10 +380,31 @@ router.get('/', authenticateUser, async (req, res) => {
     const { data, error } = await query;
     if (error) throw error;
 
+    // audit-2026-06-10: surface saved stress-feedback so the FeedbackToggle
+    // can render the user's prior answer instead of resetting to null on every
+    // reload. transaction_feedback.transaction_id is TEXT with no FK to
+    // user_transactions (see the POST /:id/feedback handler), so a PostgREST
+    // embedded join is not available — batch-fetch the feedback rows for this
+    // page's transaction ids in one query and merge them in by id.
+    const txIds = (data || []).map((row) => row.id);
+    const feedbackById = new Map();
+    if (txIds.length) {
+      const { data: feedbackRows, error: feedbackError } = await supabaseAdmin
+        .from('transaction_feedback')
+        .select('transaction_id, is_stress_driven')
+        .eq('user_id', userId)
+        .in('transaction_id', txIds);
+      if (feedbackError) throw feedbackError;
+      for (const fb of feedbackRows || []) {
+        feedbackById.set(fb.transaction_id, fb.is_stress_driven);
+      }
+    }
+
     // Supabase returns emotional_context as an array (1-to-1 relation) — flatten
     const flattened = (data || []).map((row) => ({
       ...row,
       emotional_context: Array.isArray(row.emotional_context) ? row.emotional_context[0] ?? null : row.emotional_context,
+      feedback: feedbackById.has(row.id) ? feedbackById.get(row.id) : null,
     }));
 
     return res.json({ success: true, transactions: flattened, limit, offset });
