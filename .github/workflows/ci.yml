@@ -1,0 +1,62 @@
+name: CI
+
+# Full Vitest gate. Runs the entire unit/route/service suite on every PR and
+# on pushes to main, so regressions are caught before merge.
+#
+# Determinism notes (why this gate is trustworthy and not flaky):
+#   - Parallelism is bounded in vitest.config.ts (poolOptions.forks.maxForks,
+#     ~half the runner's cores) so a loaded runner never thrashes into the
+#     ~6x slowdown that used to cascade 5s test timeouts across files.
+#   - Per-file module isolation is pinned on, so env-mutating suites don't
+#     bleed module-level state (e.g. auth.js's captured JWT_SECRET) into each
+#     other based on file order.
+#
+# Integration tests (**/*.integration.test.js) need live external services
+# and are excluded here — they run manually / in their own job.
+#
+# Env: no real secrets. The suite only needs stub Supabase credentials at the
+# global level; suites that need JWT_SECRET / ENCRYPTION_KEY set those
+# themselves at module scope.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# A newer push to the same branch/PR cancels the in-flight run — saves CI
+# minutes and gives faster feedback on the latest commit.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Vitest (full suite)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    env:
+      NODE_ENV: test
+      # Stub Supabase credentials — the client initializes against these but
+      # never reaches the network in the test suite (DB is mocked per file).
+      SUPABASE_URL: http://localhost:54321
+      SUPABASE_ANON_KEY: stub-anon-key
+      SUPABASE_SERVICE_ROLE_KEY: stub-service-role-key
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies (no peer warnings)
+        run: npm ci --legacy-peer-deps
+
+      - name: Run full Vitest suite
+        run: npx vitest run --exclude '**/*.integration.test.js'
