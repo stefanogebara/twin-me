@@ -6,6 +6,7 @@ import { useAnalytics } from '@/contexts/AnalyticsContext';
 import ModeSelectionScreen from './interview/ModeSelectionScreen';
 import InterviewCompletion from './interview/InterviewCompletion';
 import ChatInputArea from './interview/ChatInputArea';
+import { FETCH_ERROR_MESSAGE, dropTrailingErrorBubble } from './deepInterviewHelpers';
 
 
 const ELEVENLABS_AGENT_ID = import.meta.env.VITE_ELEVENLABS_AGENT_ID || '';
@@ -56,6 +57,7 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
   const [summary, setSummary] = useState('');
   const [enhancedSignature, setEnhancedSignature] = useState<SoulSignature | undefined>(undefined);
   const [voiceError, setVoiceError] = useState<string | null>(null);
+  const [fetchFailed, setFetchFailed] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const initRan = useRef(false);
@@ -250,6 +252,7 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
     dpOverride?: Record<string, { asked: number; covered: boolean }>,
   ) => {
     setLoading(true);
+    setFetchFailed(false);
     const qNum = qNumOverride ?? questionNumber;
     const dp = dpOverride ?? domainProgress;
     try {
@@ -329,8 +332,9 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
 
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: "Something went wrong on my end — hit send again or click 'Done for now' to continue.",
+        content: FETCH_ERROR_MESSAGE,
       }]);
+      setFetchFailed(true);
     } finally {
       setLoading(false);
       setTimeout(() => inputRef.current?.focus(), 100);
@@ -365,6 +369,17 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
     setMessages(newMessages);
     saveProgress(newMessages, questionNumber, domainProgress);
     fetchNextQuestion(newMessages);
+  };
+
+  // Re-trigger the calibration fetch after a failure. Unlike "send", this works
+  // when the input is empty — the dead-end case where the FIRST question never
+  // loaded and there is nothing to re-send.
+  const handleRetry = () => {
+    if (loading) return;
+    const history = dropTrailingErrorBubble(messages);
+    setMessages(history);
+    setFetchFailed(false);
+    fetchNextQuestion(history);
   };
 
   const generateEnhancedSignature = async (calibrationResult: {
@@ -623,6 +638,25 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
                   />
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* Retry affordance when the question fetch fails — incl. the first
+              question, where the input is empty so "send again" is a dead end. */}
+          {fetchFailed && !loading && !isDone && (
+            <div className="flex items-center gap-3 pt-1">
+              <button
+                type="button"
+                onClick={handleRetry}
+                className="rounded-[100px] px-4 py-2 text-sm font-medium transition-opacity hover:opacity-90"
+                style={{
+                  backgroundColor: '#F5F5F4',
+                  color: '#110f0f',
+                  fontFamily: "'Geist', 'Inter', sans-serif",
+                }}
+              >
+                Try again
+              </button>
             </div>
           )}
 
