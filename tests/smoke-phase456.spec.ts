@@ -23,7 +23,9 @@ async function setDemoMode(page: import('@playwright/test').Page) {
 }
 
 test('Phase 4 — onboarding starts at welcome, no explainer', async ({ page }) => {
-  await page.goto(`${BASE}/onboarding`);
+  // SPA keeps a /ws WebSocket + animation assets open, so the 'load' event
+  // never fires — use 'domcontentloaded' so navigation resolves on render.
+  await page.goto(`${BASE}/onboarding`, { waitUntil: 'domcontentloaded' });
   await page.waitForTimeout(2000);
   await page.screenshot({ path: 'test-screenshots/phase4-onboarding.png', fullPage: true });
 
@@ -70,7 +72,7 @@ test.skip('Phase 5 — demo dashboard: DepartmentWidget rendered', async ({ page
 
 test('Phase 6 — sidebar has no Departments nav item', async ({ page }) => {
   await setDemoMode(page);
-  await page.goto(`${BASE}/dashboard`);
+  await page.goto(`${BASE}/dashboard`, { waitUntil: 'domcontentloaded' });
   await page.waitForTimeout(2000);
 
   // Look for any nav link pointing to /departments
