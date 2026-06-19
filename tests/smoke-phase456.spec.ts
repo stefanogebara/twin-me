@@ -23,6 +23,10 @@ async function setDemoMode(page: import('@playwright/test').Page) {
 }
 
 test('Phase 4 — onboarding starts at welcome, no explainer', async ({ page }) => {
+  // A cold Vite dev server compiles the whole module graph on the first
+  // navigation (heavy deps: framer-motion, three, recharts), which can take
+  // well past the 30s default. Give the cold first load room.
+  test.setTimeout(90_000);
   // SPA keeps a /ws WebSocket + animation assets open, so the 'load' event
   // never fires — use 'domcontentloaded' so navigation resolves on render.
   await page.goto(`${BASE}/onboarding`, { waitUntil: 'domcontentloaded' });
@@ -71,6 +75,7 @@ test.skip('Phase 5 — demo dashboard: DepartmentWidget rendered', async ({ page
 });
 
 test('Phase 6 — sidebar has no Departments nav item', async ({ page }) => {
+  test.setTimeout(90_000); // absorb cold Vite dev-server compile on first nav
   await setDemoMode(page);
   await page.goto(`${BASE}/dashboard`, { waitUntil: 'domcontentloaded' });
   await page.waitForTimeout(2000);
