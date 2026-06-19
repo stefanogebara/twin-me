@@ -67,11 +67,11 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ci-stub-service-role-key
         run: npx vitest run --retry=2 --exclude '**/*.integration.test.js'
 
-      # ---- Non-blocking quality signals (promote to hard gates after triage) ----
-      - name: Lint (eslint) [non-blocking]
-        run: npm run lint
-        continue-on-error: true
-
-      - name: Typecheck (tsc, app sources) [non-blocking]
-        run: npx tsc -p tsconfig.app.json --noEmit
-        continue-on-error: true
+      # ---- Baseline-freeze gate (audit 2026-06 M0.5) ----
+      # Replaces the old non-blocking lint+tsc steps. Runs eslint + tsc once and
+      # counts errors plus route files with direct Supabase access (.from). These
+      # counts may only stay flat or shrink — CI fails only on a REGRESSION above
+      # the frozen baseline (scripts/ci/baselines.json), never on the existing
+      # backlog. This is how lint/tsc get teeth without a big-bang cleanup.
+      - name: Baseline freeze (eslint + tsc + direct-DB-in-routes)
+        run: node scripts/ci/check-baselines.mjs
