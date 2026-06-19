@@ -36,10 +36,50 @@ const PLATFORM_ALIASES = Object.freeze({
 
 export const SUPPORTED_CONNECT_PLATFORMS = Object.freeze([...new Set(Object.values(PLATFORM_ALIASES))]);
 
+// One canonical user-word per Nango integration, for the interactive menu's row
+// ids (id = `connect:<alias>`). Each alias MUST be a key in PLATFORM_ALIASES so
+// a tapped row resolves back to its integration. Order = menu order.
+const CANONICAL_ALIAS = Object.freeze({
+  'spotify': 'spotify',
+  'google-mail': 'gmail',
+  'google-calendar': 'calendar',
+  'youtube': 'youtube',
+  'github-getting-started': 'github',
+  'discord': 'discord',
+  'whoop': 'whoop',
+  'outlook': 'outlook',
+});
+
+const CONNECT_REPLY_PREFIX = 'connect:';
+
 /** Resolve a user-facing platform word to a Nango integration id, or null. */
 export function resolveIntegrationId(platform) {
   if (!platform) return null;
   return PLATFORM_ALIASES[String(platform).trim().toLowerCase()] || null;
+}
+
+/**
+ * Rows for the interactive "which platform?" list — one per connectable Nango
+ * integration. Each row id is `connect:<alias>`; tapping it round-trips through
+ * connectAliasFromReplyId back to a connect intent. Titles are Meta-safe (<=24).
+ * @returns {Array<{ id: string, title: string }>}
+ */
+export function buildConnectMenuRows() {
+  return Object.entries(CANONICAL_ALIAS).map(([integrationId, alias]) => ({
+    id: `${CONNECT_REPLY_PREFIX}${alias}`,
+    title: displayName(integrationId).slice(0, 24),
+  }));
+}
+
+/**
+ * Map an interactive reply id (from a tapped menu row) back to a known platform
+ * alias, or null. e.g. 'connect:spotify' -> 'spotify'; 'connect:bogus' -> null.
+ */
+export function connectAliasFromReplyId(replyId) {
+  const id = String(replyId || '').trim().toLowerCase();
+  if (!id.startsWith(CONNECT_REPLY_PREFIX)) return null;
+  const alias = id.slice(CONNECT_REPLY_PREFIX.length);
+  return resolveIntegrationId(alias) ? alias : null;
 }
 
 // Connect verbs — deliberately EXCLUDES "liga/ligar" (that's place_call:

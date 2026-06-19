@@ -54,8 +54,8 @@ import { tryCaptureTransaction, checkAndBumpCaptureQuota } from './transactions/
 import { isStatementDocument, handleStatementDocument } from './transactions/whatsappStatementIngest.js';
 import { handleReceiptImage } from './transactions/pixReceiptIngest.js';
 import { handleFileUploadToDrive } from './transactions/whatsappFileIngest.js';
-import { sendWhatsAppCtaButton } from './whatsappService.js';
-import { classifyConnectIntent, buildConnectLink, classifyDisconnectIntent, classifyConnectionStatusIntent, disconnectPlatform, listConnectedPlatforms } from './connectLinkService.js';
+import { sendWhatsAppCtaButton, sendWhatsAppList } from './whatsappService.js';
+import { classifyConnectIntent, buildConnectLink, classifyDisconnectIntent, classifyConnectionStatusIntent, disconnectPlatform, listConnectedPlatforms, buildConnectMenuRows } from './connectLinkService.js';
 
 const log = createLogger('WhatsAppInbound');
 
@@ -283,9 +283,15 @@ export async function processInboundWhatsApp(parsed, { send }) {
   const connectIntent = classifyConnectIntent(text);
   if (connectIntent) {
     if (!connectIntent.platform) {
-      const menu = 'I can connect: Spotify, Gmail, Google Calendar, YouTube, GitHub, Discord, Whoop, Outlook. Which one? (e.g. "conecta meu spotify")';
-      await send(phone, menu);
-      await addConversationMemory(userId, text, menu, { source: 'whatsapp', messageId, contactName })
+      // Tappable list of connectable platforms; sendWhatsAppList degrades to a
+      // numbered text menu on non-Kapso providers or interactive failure.
+      const body = 'Which one do you want to connect? Tap to pick.';
+      await sendWhatsAppList(phone, {
+        body,
+        buttonText: 'Choose platform',
+        sections: [{ title: 'Platforms', rows: buildConnectMenuRows() }],
+      });
+      await addConversationMemory(userId, text, body, { source: 'whatsapp', messageId, contactName })
         .catch(err => log.warn('Failed to store connect-menu memory', { userId, error: err.message }));
       return { handled: true, kind: 'connect_menu', userId };
     }

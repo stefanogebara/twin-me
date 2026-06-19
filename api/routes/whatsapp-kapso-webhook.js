@@ -20,6 +20,7 @@ import express from 'express';
 import crypto from 'crypto';
 import { sendWhatsAppMessage } from '../services/whatsappService.js';
 import { processInboundWhatsApp } from '../services/whatsappInboundPipeline.js';
+import { connectAliasFromReplyId } from '../services/connectLinkService.js';
 import { createLogger } from '../services/logger.js';
 
 const log = createLogger('WhatsAppKapsoWebhook');
@@ -108,6 +109,23 @@ function parseIncomingMessage(body) {
       messageId: msg.id,
       contactName: msg.username || null,
       format: 'kapso_v2_image',
+    };
+  }
+
+  // Kapso v2 interactive reply (tapped a list row or quick-reply button). Map a
+  // `connect:<alias>` selection back to a connect intent by synthesizing the
+  // equivalent text, so it flows through the existing connect handler; for any
+  // other reply, fall through to the row/button title as free text.
+  if (body?.message?.type === 'interactive' && body?.message?.from) {
+    const msg = body.message;
+    const reply = msg.interactive?.list_reply || msg.interactive?.button_reply || null;
+    const alias = connectAliasFromReplyId(reply?.id);
+    return {
+      phone: msg.from,
+      text: alias ? `conecta ${alias}` : (reply?.title || null),
+      messageId: msg.id,
+      contactName: msg.username || null,
+      format: 'kapso_v2_interactive',
     };
   }
 
