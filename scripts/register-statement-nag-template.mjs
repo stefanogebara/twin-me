@@ -56,7 +56,18 @@ if (!process.env.KAPSO_API_KEY) {
   process.exit(1);
 }
 
-const client = new WhatsAppClient({ kapsoApiKey: process.env.KAPSO_API_KEY });
+// Route template calls through the Kapso proxy, NOT Meta's graph.facebook.com.
+// Without baseUrl the SDK targets graph.facebook.com and sends the Kapso key as
+// a Meta access token, which Meta rejects with "(#200) Provide valid app ID" /
+// "Object ... does not exist ... missing permissions" — the same SDK bug that
+// silently broke every outbound send until whatsappService.js was switched to
+// the proxy on 2026-06-16. The SDK builds `${baseUrl}/${graphVersion}/<path>`
+// and attaches the X-API-Key header automatically.
+const client = new WhatsAppClient({
+  kapsoApiKey: process.env.KAPSO_API_KEY?.trim(),
+  baseUrl: 'https://api.kapso.ai/meta/whatsapp',
+  graphVersion: 'v24.0',
+});
 
 // Idempotent: skip creation if the template already exists.
 try {
