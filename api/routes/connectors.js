@@ -6,6 +6,7 @@ import express from 'express';
 import { supabase } from '../config/supabase.js';
 import { supabaseAdmin } from '../services/database.js';
 import { encryptToken, decryptToken, encryptState, decryptState } from '../services/encryption.js';
+import { revokeProviderGrant } from '../services/oauthRevocation.js';
 import { authenticateUser, requireProfessor } from '../middleware/auth.js';
 import { buildPlatformsSummary } from '../services/platformStateService.js';
 import { createLogger, redact } from '../services/logger.js';
@@ -906,7 +907,7 @@ router.delete('/:provider/:userId', authenticateUser, async (req, res) => {
     // 1. Delete from platform_connections (standard OAuth connections)
     const { data: existingConnection, error: checkError } = await supabaseAdmin
       .from('platform_connections')
-      .select('id, platform')
+      .select('id, platform, access_token, refresh_token')
       .eq('user_id', userUuid)
       .eq('platform', provider)
       .single();
@@ -916,6 +917,28 @@ router.delete('/:provider/:userId', authenticateUser, async (req, res) => {
     }
 
     if (existingConnection) {
+      // Best-effort: revoke the grant at the provider BEFORE deleting our row, so
+      // "Disconnect" actually severs the access we were granted instead of only
+      // forgetting the token. A failed/unsupported revoke must NOT block the
+      // local disconnect (see oauthRevocation.js).
+      try {
+        const cfg = OAUTH_CONFIGS[provider] || {};
+        const accessToken = existingConnection.access_token ? decryptToken(existingConnection.access_token) : null;
+        const refreshToken = existingConnection.refresh_token ? decryptToken(existingConnection.refresh_token) : null;
+        if (accessToken || refreshToken) {
+          const revokeResult = await revokeProviderGrant({
+            provider,
+            accessToken,
+            refreshToken,
+            clientId: cfg.clientId,
+            clientSecret: cfg.clientSecret,
+          });
+          log.info("Provider grant revocation on disconnect", { provider, ...revokeResult });
+        }
+      } catch (revokeErr) {
+        log.warn("Provider revocation threw; continuing with local disconnect", { provider, error: revokeErr?.message });
+      }
+
       const { error } = await supabaseAdmin
         .from('platform_connections')
         .delete()
