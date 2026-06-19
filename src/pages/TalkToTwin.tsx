@@ -239,22 +239,35 @@ const TalkToTwin = () => {
         headers: { 'Authorization': `Bearer ${token}` },
       });
       const data = await response.json();
-      if (data.messages) {
-        setMessages(data.messages.map((m: { id?: string; isUser?: boolean; content: string; createdAt: string }) => ({
-          id: m.id || crypto.randomUUID(),
-          role: m.isUser ? 'user' as const : 'assistant' as const,
-          content: m.content,
-          timestamp: new Date(m.createdAt),
-        })));
-        setConversationId(id);
+      if (!response.ok || !data.messages) {
+        toast({
+          title: 'Could not open conversation',
+          description: 'Please try again.',
+        });
+        return;
       }
+      setMessages(data.messages.map((m: { id?: string; isUser?: boolean; content: string; createdAt: string }) => ({
+        id: m.id || crypto.randomUUID(),
+        role: m.isUser ? 'user' as const : 'assistant' as const,
+        content: m.content,
+        timestamp: new Date(m.createdAt),
+      })));
+      setConversationId(id);
       setShowConversationList(false);
     } catch (err) {
       console.error('Failed to load conversation:', err);
+      toast({
+        title: 'Could not open conversation',
+        description: 'Please try again.',
+      });
     }
   };
 
   const handleNewChat = () => {
+    // Clear persisted history too, otherwise the prior thread's last messages
+    // survive in storage and resurrect on refresh into the new conversation.
+    localStorage.removeItem(CHAT_HISTORY_KEY);
+    sessionStorage.removeItem(CONVERSATION_ID_KEY);
     setMessages([]);
     setConversationId(null);
     setShowConversationList(false);

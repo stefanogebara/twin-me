@@ -1231,8 +1231,11 @@ router.get('/recurring-subscriptions', authenticateUser, async (req, res) => {
     const top = subscriptions.slice(0, limit);
 
     const stressfulSignups = subscriptions.filter(s => s.firstChargeContext && /stress|low recovery|somber/i.test(s.firstChargeContext));
-    const totalMonthly = subscriptions.reduce((s, sub) => s + sub.monthlyAvg, 0);
     const dominantCurrency = subscriptions[0]?.currency || 'USD';
+    // Only sum subscriptions in the dominant currency so the labeled total is
+    // internally consistent (summing mixed currencies and labeling with one is
+    // meaningless for a BR user with both BRL and USD subs).
+    const totalMonthly = subscriptions.reduce((s, sub) => (sub.currency === dominantCurrency ? s + sub.monthlyAvg : s), 0);
     const totalMonthlyStr = new Intl.NumberFormat('en-US', { style: 'currency', currency: dominantCurrency }).format(totalMonthly);
     // Synthesis: surface the data, no value judgment. The "stressful signup"
     // tag is descriptive (these signups landed on days flagged as high-stress

@@ -16,7 +16,7 @@ import { authFetch } from '@/services/api/apiBase';
 import { useLenis } from '@/hooks/useLenis';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { usePlatformsSummary, connectedProviders as getConnectedProviders } from '@/hooks/usePlatformsSummary';
-import { IdentityData, PersonalityProfile } from './components/identity/types';
+import { IdentityData } from './components/identity/types';
 import { determineArchetypeFromSoulLayers, generateTraitBadgesFromSoulLayers, formatArchetypeName } from '@/utils/archetypeEngine';
 import PersonalityAxes from './components/identity/PersonalityAxes';
 import IdentityQuote from './components/identity/IdentityQuote';
@@ -79,7 +79,6 @@ interface SoulSignatureLayers {
   // Accept both for resilience against any older cached payloads.
   growthEdges?: SoulGrowthEdges;
   growth_edges?: SoulGrowthEdges;
-  generated_at: string;
 }
 
 // ── Expert domain labels ─────────────────────────────────────────────────
@@ -334,17 +333,6 @@ const IdentityPage: React.FC = () => {
 
   // ── Data fetching ──────────────────────────────────────────────────────
 
-  const { data: personalityData } = useQuery<{ success: boolean; profile: PersonalityProfile }>({
-    queryKey: ['personality-profile'],
-    queryFn: async () => {
-      const res = await authFetch('/personality-profile');
-      if (!res.ok) return null;
-      return res.json();
-    },
-    staleTime: 12 * 60 * 60 * 1000,
-    enabled: !!user,
-  });
-
   const { data, isLoading: identityLoading, error: identityError, refetch: refetchIdentity } = useQuery<{ success: boolean; data: IdentityData }>({
     queryKey: ['twin-identity'],
     queryFn: async () => {
@@ -363,7 +351,7 @@ const IdentityPage: React.FC = () => {
   // (staleTime alone would cache the null payload for 10 minutes).
   const { data: soulData, isLoading: soulLoading, error: soulError, refetch: refetchSoul } = useQuery<{
     success: boolean;
-    data: (SoulSignatureLayers & { layers?: SoulSignatureLayers }) | null;
+    data: (SoulSignatureLayers & { layers?: SoulSignatureLayers; generatedAt?: string }) | null;
     generating?: boolean;
     message?: string;
     retryAfter?: number;
@@ -403,11 +391,13 @@ const IdentityPage: React.FC = () => {
   const isLoading = identityLoading || soulLoading;
   const summary = data?.data?.summary ?? null;
   const layers = soulData?.data?.layers ?? soulData?.data ?? null;
+  // audit-2026-06-10: the freshness stamp read layers?.generated_at, but the
+  // backend puts generatedAt as a sibling of `layers` (soul-signature.js:761),
+  // not inside it — so the stamp never rendered.
+  const generatedAt = soulData?.data?.generatedAt ?? null;
   const hasLayers = !!(layers?.values?.values?.length || layers?.rhythms || layers?.taste || layers?.connections);
 
   // ── First-time reveal check ────────────────────────────────────────────
-
-  const pp = personalityData?.profile ?? null;
 
   useEffect(() => {
     if (hasLayers && !localStorage.getItem(REVEAL_KEY)) {
@@ -502,7 +492,7 @@ const IdentityPage: React.FC = () => {
           description: storedArchetypeData?.data?.narrative?.trim() || (localArchetypeResult?.archetype.description ?? ''),
           signature: localArchetypeResult?.archetype.signature ?? ([0.5, 0.5, 0.5, 0.5, 0.5] as [number, number, number, number, number]),
         },
-        score: localArchetypeResult?.score ?? 1,
+        similarity: localArchetypeResult?.similarity ?? 1,
       }
     : localArchetypeResult;
 
@@ -691,12 +681,12 @@ const IdentityPage: React.FC = () => {
                     {driftIsStable ? 'Stable signal' : `${driftShiftCount} shift${driftShiftCount !== 1 ? 's' : ''} detected`}
                   </span>
                 </div>
-                {layers?.generated_at && (
+                {generatedAt && (
                   <p
                     className="mt-2 text-[10px] uppercase tracking-[0.12em]"
                     style={{ color: 'rgba(255,255,255,0.25)', fontFamily: "'Inter', sans-serif" }}
                   >
-                    Updated {timeAgo(layers.generated_at)}
+                    Updated {timeAgo(generatedAt)}
                   </p>
                 )}
               </section>
@@ -995,7 +985,10 @@ const IdentityPage: React.FC = () => {
           </FadeInSection>
         )}
 
-        {layers?.taste && (
+        {/* audit-2026-06-10: gate on real content, not object truthiness. The
+            backend returns a truthy placeholder { statement: '', _partial: true }
+            when the taste layer couldn't be generated. */}
+        {layers?.taste?.statement && (
           <FadeInSection delay={0.25}>
             {glassCard(
               <>
@@ -1027,7 +1020,10 @@ const IdentityPage: React.FC = () => {
 
       {/* ── Connections + Growth (side by side) ─────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-        {layers?.connections && (
+        {/* audit-2026-06-10: gate on real content. The backend returns a truthy
+            placeholder (style 'unknown', empty/insufficient summary, _partial)
+            when connection patterns couldn't be generated. */}
+        {layers?.connections?.summary && layers.connections.style !== 'unknown' && (
           <FadeInSection delay={0.3}>
             {glassCard(
               <>
@@ -1056,34 +1052,40 @@ const IdentityPage: React.FC = () => {
           </FadeInSection>
         )}
 
-        <FadeInSection delay={0.35}>
-          {glassCard(
-            <>
-              <SectionLabel>What's Changing</SectionLabel>
-              {driftIsStable ? (
-                <div className="flex items-center gap-2.5">
-                  <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: 'rgba(74,222,128,0.6)' }} />
-                  <p className="text-sm" style={{ color: 'rgba(255,255,255,0.5)', fontFamily: "'Inter', sans-serif" }}>
-                    Consistent — your patterns have been stable recently
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {growthEdges!.shifts.map((shift) => (
-                    <div key={shift.domain} className="flex items-start gap-3">
-                      <span className="px-2 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider flex-shrink-0 mt-0.5" style={growthTypeBadgeStyle(shift.type)}>
-                        {shift.domain}
-                      </span>
-                      <p className="text-sm" style={{ color: 'rgba(255,255,255,0.6)', fontFamily: "'Inter', sans-serif" }}>
-                        {shift.description}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </>
-          )}
-        </FadeInSection>
+        {/* audit-2026-06-10: gate on hasLayers like the sibling cards. Without
+            layers, growthEdges is absent so driftIsStable defaults true (line
+            ~547) and this would assert "patterns have been stable recently"
+            for users who have no soul-signature data at all. */}
+        {hasLayers && (
+          <FadeInSection delay={0.35}>
+            {glassCard(
+              <>
+                <SectionLabel>What's Changing</SectionLabel>
+                {driftIsStable ? (
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: 'rgba(74,222,128,0.6)' }} />
+                    <p className="text-sm" style={{ color: 'rgba(255,255,255,0.5)', fontFamily: "'Inter', sans-serif" }}>
+                      Consistent — your patterns have been stable recently
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {growthEdges!.shifts.map((shift) => (
+                      <div key={shift.domain} className="flex items-start gap-3">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider flex-shrink-0 mt-0.5" style={growthTypeBadgeStyle(shift.type)}>
+                          {shift.domain}
+                        </span>
+                        <p className="text-sm" style={{ color: 'rgba(255,255,255,0.6)', fontFamily: "'Inter', sans-serif" }}>
+                          {shift.description}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </FadeInSection>
+        )}
       </div>
 
       {/* ── ICA Personality Axes ────────────────────────────────────── */}
@@ -1102,9 +1104,9 @@ const IdentityPage: React.FC = () => {
                     onClick={() => navigate(route)}
                     className="px-3 py-2 rounded-[46px] text-xs font-medium transition-all duration-150 hover:opacity-70 active:scale-[0.97] inline-flex items-center gap-1.5"
                     style={{
-                      background: 'rgba(255,132,0,0.08)',
+                      background: 'rgba(255,255,255,0.06)',
                       color: 'var(--accent-vibrant)',
-                      border: '1px solid rgba(255,132,0,0.18)',
+                      border: '1px solid rgba(255,255,255,0.10)',
                       fontFamily: "'Inter', sans-serif",
                     }}
                   >

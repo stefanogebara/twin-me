@@ -17,6 +17,7 @@ import { NextMeetingCard } from './components/dashboard-v2/NextMeetingCard';
 import { EmailTriageCard } from '@/components/EmailTriageCard';
 import { RelationshipsCard } from '@/components/RelationshipsCard';
 import { useWebPush } from '@/hooks/useWebPush';
+import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 
 const QUICK_ACTIONS = [
   { label: 'Chat with twin', icon: MessageCircle, path: '/talk-to-twin' },
@@ -29,6 +30,7 @@ export function DashboardV2() {
   const navigate = useNavigate();
   const { data, isLoading, isError, refetch } = useDashboardContext();
   const { insights, markEngaged, submitFeedback, feedbackPendingId } = useProactiveInsights();
+  const llmWikiEnabled = useFeatureFlag('llm_wiki');
 
   // Register web push on first dashboard load (after auth)
   useWebPush(true);
@@ -98,8 +100,41 @@ export function DashboardV2() {
     memoryCount > 9999
       ? `${(memoryCount / 1000).toFixed(1).replace(/\.0$/, '')}K`
       : memoryCount.toLocaleString('en-US');
+  // Derive the named domains from the actually-connected platforms so the
+  // sentence doesn't claim "music, work, and recovery" for a user with none
+  // of those connected.
+  const PROVIDER_DOMAIN: Record<string, string> = {
+    spotify: 'music',
+    youtube: 'media',
+    google_calendar: 'work',
+    calendar: 'work',
+    gmail: 'work',
+    google_gmail: 'work',
+    github: 'work',
+    linkedin: 'work',
+    whoop: 'recovery',
+    discord: 'social',
+    reddit: 'interests',
+    twitch: 'gaming',
+  };
+  const connectedDomains = Array.from(
+    new Set(
+      (data.platforms ?? [])
+        .filter((p) => p.status !== 'disconnected')
+        .map((p) => PROVIDER_DOMAIN[p.provider])
+        .filter((d): d is string => Boolean(d))
+    )
+  );
+  const domainPhrase =
+    connectedDomains.length === 0
+      ? null
+      : connectedDomains.length === 1
+        ? connectedDomains[0]
+        : `${connectedDomains.slice(0, -1).join(', ')} and ${connectedDomains[connectedDomains.length - 1]}`;
   const capabilityStatement = memoryCount > 0 && connectedCount > 0
-    ? `Based on ${formattedMemoryCount} memories across ${connectedCount} ${connectedCount === 1 ? 'platform' : 'platforms'}, your twin can spot patterns in how your music, work, and recovery interact. Ask it anything.`
+    ? domainPhrase
+      ? `Based on ${formattedMemoryCount} memories across ${connectedCount} ${connectedCount === 1 ? 'platform' : 'platforms'}, your twin can spot patterns in how your ${domainPhrase} interact. Ask it anything.`
+      : `Based on ${formattedMemoryCount} memories across ${connectedCount} ${connectedCount === 1 ? 'platform' : 'platforms'}, your twin can spot patterns across your life. Ask it anything.`
     : null;
 
   return (
@@ -178,8 +213,10 @@ export function DashboardV2() {
       {/* 5. Everything else — moved down */}
       <DepartmentWidget />
 
-      {/* Wiki discovery CTA — shown once user has enough memories */}
-      {data.twinStats.memoryCount >= 10 && (
+      {/* Wiki discovery CTA — shown once user has enough memories AND the
+          llm_wiki flag is enabled (compilation is gated on it, so without the
+          flag /wiki is stuck "still being compiled" forever) */}
+      {data.twinStats.memoryCount >= 10 && llmWikiEnabled && (
         <button
           type="button"
           onClick={() => navigate('/wiki')}

@@ -294,7 +294,7 @@ function SummaryBar({ summary, currency, mixedCurrency }: { summary: Transaction
                   marginTop: 2,
                 }}
               >
-                {c.currency} · {c.count} {c.count === 1 ? 'tx' : 'tx'}
+                {c.currency} · {c.count} tx
               </p>
             </div>
           ))}
@@ -326,14 +326,31 @@ const CATEGORY_LABELS: Record<string, string> = {
 function FeedbackToggle({ txId, initial }: { txId: string; initial: boolean | null }) {
   const [value, setValue] = useState<boolean | null>(initial);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState(false);
 
   const toggle = async (next: boolean) => {
     if (saving) return;
+    const prev = value;
     const newVal = value === next ? null : next;
     setValue(newVal);
     if (newVal !== null) {
+      // audit-2026-06-10: optimistic update had no failure handling — a failed
+      // save left the wrong UI state and a network error was an unhandled
+      // rejection. Revert to the prior value and surface an inline hint.
       setSaving(true);
-      await setTransactionFeedback(txId, newVal).finally(() => setSaving(false));
+      setSaveError(false);
+      try {
+        const ok = await setTransactionFeedback(txId, newVal);
+        if (!ok) {
+          setValue(prev);
+          setSaveError(true);
+        }
+      } catch {
+        setValue(prev);
+        setSaveError(true);
+      } finally {
+        setSaving(false);
+      }
     }
   };
 
@@ -375,6 +392,14 @@ function FeedbackToggle({ txId, initial }: { txId: string; initial: boolean | nu
       >
         no
       </button>
+      {saveError && (
+        <span
+          role="alert"
+          style={{ fontSize: 10, color: 'rgba(252,165,165,0.9)', fontFamily: "'Geist','Inter',sans-serif" }}
+        >
+          couldn't save — try again
+        </span>
+      )}
     </div>
   );
 }
@@ -927,7 +952,7 @@ export default function MoneyPage() {
           }}
         >
           Where do I find my statement? Nubank → Profile → Export → OFX or CSV.<br />
-          Does the PDF bill work too? Not yet — CSV/OFX only for now.
+          Does the PDF bill work too? Not yet — CSV/OFX/XLSX only for now.
         </p>
       )}
 

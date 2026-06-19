@@ -45,7 +45,7 @@ const ModeSelectionScreen: React.FC<ModeSelectionScreenProps> = ({
           fontFamily: "'Instrument Serif', Georgia, serif",
           fontWeight: 400,
           letterSpacing: '-0.02em',
-          color: '#E8D5B7',
+          color: 'var(--foreground)',
           animation: 'fadeInUp 0.6s ease-out 0.3s both',
         }}
       >
@@ -55,7 +55,7 @@ const ModeSelectionScreen: React.FC<ModeSelectionScreenProps> = ({
       <p
         className="text-sm text-center mb-10 max-w-xs mode-animate"
         style={{
-          color: 'rgba(232, 213, 183, 0.5)',
+          color: 'rgba(245, 245, 244, 0.5)',
           fontFamily: "'Inter', sans-serif",
           animation: 'fadeInUp 0.6s ease-out 0.5s both',
         }}
@@ -71,32 +71,32 @@ const ModeSelectionScreen: React.FC<ModeSelectionScreenProps> = ({
             onClick={onSelectVoice}
             className="group flex items-center gap-4 w-full py-4 px-5 rounded-2xl transition-all duration-200 hover:scale-[1.02]"
             style={{
-              background: 'rgba(232, 213, 183, 0.06)',
-              border: '1px solid rgba(232, 213, 183, 0.15)',
+              background: 'rgba(255, 255, 255, 0.06)',
+              border: '1px solid rgba(255, 255, 255, 0.10)',
               cursor: 'pointer',
             }}
           >
             <div
               className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center"
-              style={{ background: 'rgba(232, 213, 183, 0.1)' }}
+              style={{ background: 'rgba(255, 255, 255, 0.1)' }}
             >
-              <Mic className="w-5 h-5" style={{ color: 'rgba(232, 213, 183, 0.7)' }} />
+              <Mic className="w-5 h-5" style={{ color: 'var(--accent-amber)' }} />
             </div>
             <div className="text-left">
               <p
                 className="text-sm font-medium"
-                style={{ color: '#E8D5B7', fontFamily: "'Inter', sans-serif" }}
+                style={{ color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}
               >
                 Voice conversation
               </p>
               <p
                 className="text-xs mt-0.5"
-                style={{ color: 'rgba(232, 213, 183, 0.4)', fontFamily: "'Inter', sans-serif" }}
+                style={{ color: 'rgba(245, 245, 244, 0.4)', fontFamily: "'Inter', sans-serif" }}
               >
                 Talk naturally with your AI interviewer
               </p>
             </div>
-            <ArrowRight className="w-4 h-4 ml-auto opacity-0 group-hover:opacity-60 transition-opacity" style={{ color: '#E8D5B7' }} />
+            <ArrowRight className="w-4 h-4 ml-auto opacity-0 group-hover:opacity-60 transition-opacity" style={{ color: 'var(--foreground)' }} />
           </button>
         )}
 
@@ -105,32 +105,32 @@ const ModeSelectionScreen: React.FC<ModeSelectionScreenProps> = ({
           onClick={onSelectText}
           className="group flex items-center gap-4 w-full py-4 px-5 rounded-2xl transition-all duration-200 hover:scale-[1.02]"
           style={{
-            background: 'rgba(232, 213, 183, 0.06)',
-            border: '1px solid rgba(232, 213, 183, 0.15)',
+            background: 'rgba(255, 255, 255, 0.06)',
+            border: '1px solid rgba(255, 255, 255, 0.10)',
             cursor: 'pointer',
           }}
         >
           <div
             className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center"
-            style={{ background: 'rgba(232, 213, 183, 0.1)' }}
+            style={{ background: 'rgba(255, 255, 255, 0.1)' }}
           >
-            <Keyboard className="w-5 h-5" style={{ color: 'rgba(232, 213, 183, 0.7)' }} />
+            <Keyboard className="w-5 h-5" style={{ color: 'var(--accent-amber)' }} />
           </div>
           <div className="text-left">
             <p
               className="text-sm font-medium"
-              style={{ color: '#E8D5B7', fontFamily: "'Inter', sans-serif" }}
+              style={{ color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}
             >
               Text conversation
             </p>
             <p
               className="text-xs mt-0.5"
-              style={{ color: 'rgba(232, 213, 183, 0.4)', fontFamily: "'Inter', sans-serif" }}
+              style={{ color: 'rgba(245, 245, 244, 0.4)', fontFamily: "'Inter', sans-serif" }}
             >
               Type your answers at your own pace
             </p>
           </div>
-          <ArrowRight className="w-4 h-4 ml-auto opacity-0 group-hover:opacity-60 transition-opacity" style={{ color: '#E8D5B7' }} />
+          <ArrowRight className="w-4 h-4 ml-auto opacity-0 group-hover:opacity-60 transition-opacity" style={{ color: 'var(--foreground)' }} />
         </button>
       </div>
 
@@ -139,7 +139,7 @@ const ModeSelectionScreen: React.FC<ModeSelectionScreenProps> = ({
         onClick={onSkip}
         className="mt-8 text-xs transition-opacity hover:opacity-70 mode-animate"
         style={{
-          color: 'rgba(232, 213, 183, 0.25)',
+          color: 'rgba(245, 245, 244, 0.25)',
           fontFamily: "'Inter', sans-serif",
           background: 'none',
           border: 'none',

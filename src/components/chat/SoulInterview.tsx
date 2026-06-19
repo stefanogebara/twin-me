@@ -36,6 +36,8 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
 
   const [isLoadingQuestion, setIsLoadingQuestion] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  const [submitError, setSubmitError] = useState(false);
   const [extractedFacts, setExtractedFacts] = useState<ExtractedFact[]>([]);
   const [showFacts, setShowFacts] = useState(false);
 
@@ -47,6 +49,7 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
 
   const fetchNextQuestion = useCallback(async (answered: string[]) => {
     setIsLoadingQuestion(true);
+    setLoadError(false);
     setShowFacts(false);
     setExtractedFacts([]);
     setAnswer('');
@@ -59,6 +62,7 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
           connectedPlatforms: connectedProviders || [],
         }),
       });
+      if (!res.ok) throw new Error(`Question fetch failed: ${res.status}`);
       const data = await res.json();
 
       if (data.done) {
@@ -74,6 +78,7 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
       setTotalAvailable(data.totalAvailable);
     } catch (err) {
       console.error('Failed to fetch question:', err);
+      setLoadError(true);
     } finally {
       setIsLoadingQuestion(false);
       setTimeout(() => textareaRef.current?.focus(), 100);
@@ -116,12 +121,14 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
   const handleSubmit = async () => {
     if (!answer.trim() || isSubmitting) return;
     setIsSubmitting(true);
+    setSubmitError(false);
 
     try {
       const res = await authFetch('/interview/answer', {
         method: 'POST',
         body: JSON.stringify({ category, question, answer: answer.trim() }),
       });
+      if (!res.ok) throw new Error(`Answer submit failed: ${res.status}`);
       const data = await res.json();
 
       if (data.facts) {
@@ -143,6 +150,7 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
       fetchNextQuestion(newAnswered);
     } catch (err) {
       console.error('Failed to submit answer:', err);
+      setSubmitError(true);
     } finally {
       setIsSubmitting(false);
     }
@@ -177,9 +185,10 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
         <div className="flex justify-end p-6">
           <button
             onClick={onClose}
+            aria-label="Close interview"
             className="p-2 rounded-full transition-colors hover:bg-[rgba(255,255,255,0.05)]"
           >
-            <X className="w-5 h-5" style={{ color: 'rgba(255,255,255,0.3)' }} />
+            <X className="w-5 h-5" style={{ color: 'rgba(255,255,255,0.3)' }} aria-hidden="true" />
           </button>
         </div>
 
@@ -292,9 +301,10 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
 
         <button
           onClick={onClose}
+          aria-label="Close interview"
           className="p-2 rounded-full transition-colors hover:bg-[rgba(255,255,255,0.05)] flex-shrink-0 ml-4"
         >
-          <X className="w-5 h-5" style={{ color: 'rgba(255,255,255,0.3)' }} />
+          <X className="w-5 h-5" style={{ color: 'rgba(255,255,255,0.3)' }} aria-hidden="true" />
         </button>
       </div>
 
@@ -349,6 +359,26 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
               {isLoadingQuestion ? (
                 <div className="flex items-center justify-center py-24">
                   <div className="w-4 h-4 border-[1.5px] border-[rgba(255,255,255,0.15)] border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : loadError && !question ? (
+                <div className="flex flex-col items-center justify-center py-24 gap-4">
+                  <p
+                    className="text-[14px] text-center"
+                    style={{ color: 'rgba(255,255,255,0.55)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+                  >
+                    Could not load the next question.
+                  </p>
+                  <button
+                    onClick={() => fetchNextQuestion(answeredCategories)}
+                    className="px-4 py-1.5 rounded-full text-[13px] font-medium transition-all duration-150 active:scale-[0.95]"
+                    style={{
+                      background: '#F5F5F4',
+                      color: '#110f0f',
+                      fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
+                    }}
+                  >
+                    Retry
+                  </button>
                 </div>
               ) : (
                 <>
@@ -431,6 +461,15 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
                       </button>
                     </div>
                   </div>
+
+                  {submitError && (
+                    <p
+                      className="text-[13px] mt-3"
+                      style={{ color: '#f87171', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+                    >
+                      Could not save your answer. Please try submitting again.
+                    </p>
+                  )}
 
                   {/* Skip — visible and easy to find */}
                   <div className="flex justify-start mt-4">

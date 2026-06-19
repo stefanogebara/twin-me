@@ -328,8 +328,11 @@ router.post('/checkout', jsonBody, authenticateToken, billingMutateLimiter, asyn
       payment_method_types: ['card'],
       mode: 'subscription',
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${APP_URL}/me?upgraded=1`,
-      cancel_url: `${APP_URL}/me?upgrade_canceled=1`,
+      // Redirect to /identity (not /me) — /me is a <Navigate replace> that
+      // discards the query string, so ?upgraded=1 never reached the page.
+      // /identity is the real surviving route that can read the param.
+      success_url: `${APP_URL}/identity?upgraded=1`,
+      cancel_url: `${APP_URL}/identity?upgrade_canceled=1`,
       // Enable the "Add promotion code" link on the Stripe checkout page.
       // Operationally useful for TEST100 / launch coupons / friends-and-family,
       // and required to drive a free end-to-end test of the webhook -> DB ->

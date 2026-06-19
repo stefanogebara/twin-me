@@ -184,7 +184,10 @@ export const ChatEmptyState = ({
       )}
 
       {/* Suggestion pills — only shown when no briefing card (avoid double CTA) */}
-      {connectedPlatforms.length > 0 && (
+      {/* audit-2026-06-10: gate on canonical platformCount (platformsSummary.active)
+          so chips and the connect CTA agree with the greeting above, rather than
+          the stale local connectedPlatforms.length. */}
+      {platformCount > 0 && (
         <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-2.5">
           {chips.slice(0, 3).map((chip, idx) => (
             <button
@@ -214,7 +217,7 @@ export const ChatEmptyState = ({
       )}
 
       {/* Connect CTA for no-platform users */}
-      {connectedPlatforms.length === 0 && (
+      {platformCount === 0 && (
         <button
           onClick={() => navigate('/get-started')}
           className="mt-4 px-5 py-2 rounded-[100px] text-sm font-medium hover:bg-[rgba(16,183,127,0.08)] transition-all duration-150 ease-out active:scale-[0.97]"

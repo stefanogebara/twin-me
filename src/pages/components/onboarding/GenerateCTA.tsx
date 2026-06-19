@@ -50,7 +50,11 @@ export const GenerateCTA: React.FC<GenerateCTAProps> = ({
   });
   const hasArchetype = existingSignature === true;
 
-  if (connectedServices.length === 0) return null;
+  // audit-2026-06-10: do NOT early-return on zero platforms — that made the
+  // "Skip for now" affordance (gated on connectedServices.length === 0 below)
+  // unreachable and left zero-platform users with no forward CTA. Render the
+  // zero-platform layout: the primary CTA is disabled via its ternaries and
+  // the Skip path (onSkip + onboarding_skipped_no_platforms funnel) is shown.
 
   return (
     <>

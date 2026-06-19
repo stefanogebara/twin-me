@@ -165,10 +165,26 @@ export function getCalendarData(context) {
     };
   });
 
-  // Find busiest day
-  const busiestDay = weeklyHeatmap.reduce((busiest, current) =>
-    current.events > (busiest?.events || 0) ? current : busiest
-  , { day: 'Monday', events: 0 });
+  // Find busiest day (null when there are no events rather than fabricating Monday)
+  const busiestDay = events.length > 0
+    ? weeklyHeatmap.reduce((busiest, current) =>
+        current.events > (busiest?.events || 0) ? current : busiest
+      , { day: 'Mon', events: 0 })
+    : null;
+
+  // Derive preferred meeting time from the start-hour distribution across all
+  // events rather than from a single (today's first) event.
+  const preferredMeetingTime = (() => {
+    if (events.length === 0) return null;
+    let morning = 0;
+    let afternoon = 0;
+    events.forEach(e => {
+      const hour = new Date(e.startTime || e.start).getHours();
+      if (hour < 12) morning += 1;
+      else afternoon += 1;
+    });
+    return morning > afternoon ? 'Morning (9am-12pm)' : 'Afternoon (1-5pm)';
+  })();
 
   // Calculate schedule stats
   const meetingEvents = events.filter(e => ['meeting', 'presentation', 'interview'].includes(e.type));
@@ -177,8 +193,8 @@ export function getCalendarData(context) {
   const scheduleStats = {
     meetingHours: Math.round(meetingEvents.length * avgMeetingDuration),
     focusBlocks: focusEvents.length,
-    busiestDay: busiestDay.day,
-    preferredMeetingTime: todayEvents.length > 0 && parseInt(todayEvents[0].startTime) < 12 ? 'Morning (9-12pm)' : 'Afternoon (1-5pm)'
+    busiestDay: busiestDay?.day || null,
+    preferredMeetingTime
   };
 
   return {

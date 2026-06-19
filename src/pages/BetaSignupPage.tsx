@@ -17,17 +17,26 @@ const PLATFORMS = [
 ] as const;
 
 interface SuccessState {
-  inviteCode: string;
+  // Absent on the pending-review path (application accepted, no code minted yet).
+  inviteCode?: string;
   alreadyApplied?: boolean;
+  pendingReview?: boolean;
+  message?: string;
 }
 
 function CopyableInviteCode({ code }: { code: string }) {
   const [copied, setCopied] = useState(false);
 
-  const handleCopy = useCallback(() => {
-    navigator.clipboard.writeText(code);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2500);
+  const handleCopy = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    } catch {
+      // Clipboard unavailable (non-secure context): fall back to a manual prompt
+      // so the user can still grab the code instead of a silent no-op.
+      window.prompt('Copy your invite code', code);
+    }
   }, [code]);
 
   return (
@@ -98,6 +107,9 @@ function BetaSignupPage() {
       setSuccess({
         inviteCode: data.inviteCode,
         alreadyApplied: data.alreadyApplied,
+        // No code minted means the application is queued for review, not approved.
+        pendingReview: !data.inviteCode,
+        message: data.message,
       });
     } catch {
       setError('Network error. Please try again.');
@@ -146,7 +158,7 @@ function BetaSignupPage() {
                 lineHeight: 1.2,
               }}
             >
-              {success.alreadyApplied ? 'Welcome back' : "You're in"}
+              {success.pendingReview ? 'Application received' : success.alreadyApplied ? 'Welcome back' : "You're in"}
             </h1>
             <p
               className="text-sm mb-8"
@@ -156,35 +168,41 @@ function BetaSignupPage() {
                 lineHeight: 1.6,
               }}
             >
-              {success.alreadyApplied
-                ? 'You already have a beta invite. Use the code below to sign in.'
-                : 'Your beta access is ready. Copy the invite code below and use it to sign in.'}
+              {success.pendingReview
+                ? (success.message || "Your application is being reviewed. We'll be in touch soon.")
+                : success.alreadyApplied
+                  ? 'You already have a beta invite. Use the code below to sign in.'
+                  : 'Your beta access is ready. Copy the invite code below and use it to sign in.'}
             </p>
 
-            <div className="mb-6">
-              <p
-                className="text-[11px] uppercase tracking-[0.12em] mb-3"
-                style={{ color: 'rgba(255,255,255,0.35)' }}
-              >
-                Your invite code
-              </p>
-              <CopyableInviteCode code={success.inviteCode} />
-            </div>
+            {!success.pendingReview && success.inviteCode && (
+              <>
+                <div className="mb-6">
+                  <p
+                    className="text-[11px] uppercase tracking-[0.12em] mb-3"
+                    style={{ color: 'rgba(255,255,255,0.35)' }}
+                  >
+                    Your invite code
+                  </p>
+                  <CopyableInviteCode code={success.inviteCode} />
+                </div>
 
-            <button
-              onClick={() => {
-                sessionStorage.setItem('beta_invite_code', success.inviteCode);
-                navigate('/auth');
-              }}
-              className="text-[14px] font-medium px-6 py-3 rounded-[100px] cursor-pointer transition-all duration-150 ease-out hover:brightness-110 active:scale-[0.97]"
-              style={{
-                background: '#F5F5F4',
-                color: '#110f0f',
-                border: 'none',
-              }}
-            >
-              Sign in to get started
-            </button>
+                <button
+                  onClick={() => {
+                    sessionStorage.setItem('beta_invite_code', success.inviteCode!);
+                    navigate('/auth');
+                  }}
+                  className="text-[14px] font-medium px-6 py-3 rounded-[100px] cursor-pointer transition-all duration-150 ease-out hover:brightness-110 active:scale-[0.97]"
+                  style={{
+                    background: '#F5F5F4',
+                    color: '#110f0f',
+                    border: 'none',
+                  }}
+                >
+                  Sign in to get started
+                </button>
+              </>
+            )}
           </div>
         ) : (
           /* ── Application Form ── */
@@ -211,7 +229,7 @@ function BetaSignupPage() {
                   lineHeight: 1.6,
                 }}
               >
-                Your AI twin that acts for you. 50 spots available.
+                Your AI twin that acts for you.
               </p>
             </div>
 

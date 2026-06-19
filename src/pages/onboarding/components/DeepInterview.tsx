@@ -133,9 +133,12 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
             summary: result.personality_summary,
           });
         }
+      } else {
+        setVoiceError("Couldn't wrap up your conversation. Please try ending it again.");
       }
     } catch (error) {
       console.error('[DeepInterview] Voice completion error:', error);
+      setVoiceError("Couldn't wrap up your conversation. Please try ending it again.");
     } finally {
       setLoading(false);
     }
@@ -539,7 +542,7 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
               className="text-xs"
               style={{ fontFamily: "'Inter', sans-serif", color: 'rgba(255,255,255,0.35)' }}
             >
-              {questionNumber <= 3
+              {(questionNumber - 1) <= 3
                 ? `Question ${Math.max(1, Math.min(questionNumber - 1, 3))} of 3`
                 : 'Wrapping up'}
             </p>

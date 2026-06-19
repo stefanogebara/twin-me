@@ -362,7 +362,7 @@ export default function ChatImportCard({ cardStyle }: ChatImportCardProps) {
                     : isSkipped
                     ? 'Skipped'
                     : isUploading
-                    ? 'Analysing your voice...'
+                    ? 'Analyzing your voice...'
                     : def.description
                   }
                 </p>

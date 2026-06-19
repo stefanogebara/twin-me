@@ -66,9 +66,11 @@ const GoogleWorkspaceConnect: React.FC<GoogleWorkspaceConnectProps> = ({
         body: JSON.stringify({}),
       });
       const data = await response.json();
-      if (data.authUrl) {
-        window.location.href = data.authUrl;
+      if (!response.ok || !data.authUrl) {
+        setConnectError(data?.error || 'Could not start Google connection. Please try again.');
+        return;
       }
+      window.location.href = data.authUrl;
     } catch {
       setConnectError('Connection failed. Please try again.');
     } finally {

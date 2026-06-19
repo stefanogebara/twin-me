@@ -1,6 +1,5 @@
 import { ArrowRight, Loader2 } from 'lucide-react';
 import SoulOrb from '../../onboarding/components/SoulOrb';
-import DataRevealItem from '../../onboarding/components/DataRevealItem';
 import { IdentityConfirmation } from './IdentityConfirmation';
 import { DiscoverCorrectionForm } from './DiscoverCorrectionForm';
 import { T } from './discoverTokens';
@@ -158,7 +157,12 @@ export default function DiscoverHero({
                   </p>
                   <div className="flex flex-wrap gap-x-3 gap-y-1">
                     {webSources.map((src, i) => {
-                      const domain = new URL(src.url).hostname.replace('www.', '');
+                      let domain: string;
+                      try {
+                        domain = new URL(src.url).hostname.replace('www.', '');
+                      } catch {
+                        domain = src.title || src.url;
+                      }
                       return (
                         <a
                           key={i}
@@ -182,15 +186,15 @@ export default function DiscoverHero({
               <div className="px-5 py-4 rounded-[20px]" style={{ background: 'var(--glass-surface-bg)', border: '1px solid var(--glass-surface-border)' }}>
                 <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.65)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}>
                   {dataPoints.length > 0
-                    ? `We found traces of you across ${dataPoints.length} platforms. Sign up to see what your digital footprint reveals about who you really are.`
+                    ? `We found ${dataPoints.length} signal${dataPoints.length === 1 ? '' : 's'} about you. Sign up to see what your digital footprint reveals about who you really are.`
                     : "We couldn't find public info for that email yet — but your twin is ready to learn from you directly."}
                 </p>
               </div>
             </div>
           )}
 
-          {/* Identity confirmation flow */}
-          {confirmationPhase === 'pending' && (
+          {/* Identity confirmation flow — only when there is something to confirm */}
+          {confirmationPhase === 'pending' && (dataPoints.length > 0 || personaSummary) && (
             <IdentityConfirmation
               onConfirm={onConfirmYes ?? (() => {})}
               onReject={onConfirmNo ?? (() => {})}

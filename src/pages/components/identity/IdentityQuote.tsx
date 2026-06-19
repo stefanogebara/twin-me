@@ -8,7 +8,7 @@
  */
 
 import React from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { authFetch } from '@/services/api/apiBase';
 
@@ -19,17 +19,12 @@ function extractQuote(text: string): string | null {
   return firstSentence && firstSentence.length > 20 ? firstSentence : text.slice(0, 140);
 }
 
-async function fetchQuote(): Promise<string | null> {
-  // Try twin identity endpoint first (has twin_summaries data)
-  try {
-    const res = await authFetch('/twin/identity');
-    if (res.ok) {
-      const json = await res.json();
-      const summary = json.data?.summary || '';
-      const quote = extractQuote(summary);
-      if (quote) return quote;
-    }
-  } catch { /* fall through */ }
+// Derive the quote from IdentityPage's already-cached ['twin-identity'] query
+// rather than re-fetching /twin/identity under a separate key. Falls back to
+// /soul-signature/profile only when the cache has no usable summary.
+async function fetchQuote(cachedSummary: string): Promise<string | null> {
+  const cachedQuote = extractQuote(cachedSummary);
+  if (cachedQuote) return cachedQuote;
 
   // Fallback: soul-signature profile
   try {
@@ -46,9 +41,13 @@ async function fetchQuote(): Promise<string | null> {
 }
 
 const IdentityQuote: React.FC<{ className?: string }> = ({ className = '' }) => {
+  const queryClient = useQueryClient();
+  const cachedIdentity = queryClient.getQueryData<{ data?: { summary?: string | null } }>(['twin-identity']);
+  const cachedSummary = cachedIdentity?.data?.summary || '';
+
   const { data: quote } = useQuery({
-    queryKey: ['identity', 'quote'],
-    queryFn: fetchQuote,
+    queryKey: ['identity', 'quote', cachedSummary],
+    queryFn: () => fetchQuote(cachedSummary),
     staleTime: 24 * 60 * 60 * 1000,
     retry: 1,
   });

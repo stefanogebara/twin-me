@@ -57,6 +57,16 @@ const DOMAINS: ContributorDomain[] = [
   { id: 'drive', label: 'Drive', icon: Flame, color: '#EF4444', platformKey: '__always__', alwaysUnlocked: true },
 ];
 
+// Proper display names for each platform key (raw keys like "google_calendar"
+// would otherwise render lowercase in "Connect <platform> to unlock").
+const PLATFORM_DISPLAY_NAMES: Record<string, string> = {
+  spotify: 'Spotify',
+  whoop: 'Whoop',
+  google_calendar: 'Google Calendar',
+  github: 'GitHub',
+  youtube: 'YouTube',
+};
+
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
 /* ------------------------------------------------------------------ */
@@ -164,7 +174,7 @@ const ContributorCard: React.FC<ContributorCardProps> = ({ domain, connected, sc
   const label = locked ? 'LOCKED' : getQualitativeLabel(score);
   const platformName = domain.platformKey === '__always__'
     ? ''
-    : domain.platformKey.replace('_', ' ');
+    : PLATFORM_DISPLAY_NAMES[domain.platformKey] ?? domain.platformKey.replace(/_/g, ' ');
 
   return (
     <motion.div
@@ -198,15 +208,8 @@ const ContributorCard: React.FC<ContributorCardProps> = ({ domain, connected, sc
             {domain.label}
           </span>
         </div>
-        {locked ? (
+        {locked && (
           <Lock size={14} style={{ color: 'rgba(255,255,255,0.15)' }} />
-        ) : (
-          <span
-            className="text-[11px]"
-            style={{ fontFamily: "'Inter', sans-serif", color: 'rgba(255,255,255,0.35)' }}
-          >
-            {'\u2192'}
-          </span>
         )}
       </div>
 
@@ -261,10 +264,16 @@ const SoulScore: React.FC<SoulScoreProps> = ({ className = '', compact = false }
     staleTime: 15 * 60 * 1000,
   });
 
-  // Fetch user ID from localStorage for connectors endpoint
-  const userId = typeof window !== 'undefined'
-    ? JSON.parse(localStorage.getItem('auth_user') || '{}')?.id
-    : null;
+  // Fetch user ID from localStorage for connectors endpoint.
+  // Guarded: a corrupted auth_user value must not throw during render.
+  const userId = useMemo<string | null>(() => {
+    if (typeof window === 'undefined') return null;
+    try {
+      return JSON.parse(localStorage.getItem('auth_user') || '{}')?.id ?? null;
+    } catch {
+      return null;
+    }
+  }, []);
 
   // Connected platforms — canonical platforms summary (audit 2026-05-12 H1).
   // Replaces the previous per-page /connectors/status fetch that disagreed with

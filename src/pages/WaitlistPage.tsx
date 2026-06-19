@@ -32,7 +32,10 @@ const WaitlistPage = () => {
       const data = await res.json();
       if (data.success) {
         setSubmitted(true);
-        trackFunnel('beta_waitlist_joined', { email: email.trim() });
+        // audit-2026-06-10: do not send raw email as a PostHog event property
+        // on a pre-signup public funnel. has_email keeps the conversion signal
+        // without leaking PII.
+        trackFunnel('beta_waitlist_joined', { has_email: true });
       } else {
         setError(data.error || 'Something went wrong');
       }
@@ -132,6 +135,7 @@ const WaitlistPage = () => {
                 value={email}
                 onChange={(e) => { setEmail(e.target.value); setError(''); }}
                 placeholder="your@email.com"
+                aria-label="Email address"
                 className="flex-1 h-11 px-4 rounded-lg text-sm outline-none"
                 style={{
                   backgroundColor: 'rgba(218,217,215,0.08)',

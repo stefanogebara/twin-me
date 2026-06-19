@@ -80,7 +80,7 @@ const WhatsAppConnect: React.FC = () => {
           <div className="flex items-center gap-2">
             <input
               type="tel"
-              placeholder="+55 11 99999-9999"
+              placeholder="+1 415 555 0100"
               value={phoneInput}
               onChange={(e) => { setPhoneInput(e.target.value); wa.clearError(); }}
               disabled={wa.busy}

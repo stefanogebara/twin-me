@@ -46,35 +46,43 @@ export default function DiscoverFAQ({ onNavigate }: DiscoverFAQProps) {
 
           {/* Right — FAQ accordion (no cards, just borders) */}
           <div className="flex-1 flex flex-col">
-            {FAQ_ITEMS.map(({ q }, i) => (
-              <div
-                key={q}
-                className="cursor-pointer"
-                style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
-                onClick={() => setOpenFaq(openFaq === i ? null : i)}
-              >
-                <div className="flex items-center justify-between py-5 gap-4">
-                  <p style={{
-                    fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
-                    fontSize: '15px', fontWeight: 400, color: T.FG,
-                  }}>
-                    {q}
-                  </p>
-                  <ChevronDown
-                    className="w-4 h-4 shrink-0 transition-transform duration-200"
-                    style={{
-                      color: 'rgba(255,255,255,0.3)',
-                      transform: openFaq === i ? 'rotate(180deg)' : 'rotate(0deg)',
-                    }}
-                  />
+            {FAQ_ITEMS.map(({ q }, i) => {
+              const isOpen = openFaq === i;
+              return (
+                <div
+                  key={q}
+                  style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+                >
+                  <button
+                    type="button"
+                    aria-expanded={isOpen}
+                    aria-controls={`faq-answer-${i}`}
+                    onClick={() => setOpenFaq(isOpen ? null : i)}
+                    className="flex items-center justify-between py-5 gap-4 w-full text-left cursor-pointer"
+                  >
+                    <span style={{
+                      fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
+                      fontSize: '15px', fontWeight: 400, color: T.FG,
+                    }}>
+                      {q}
+                    </span>
+                    <ChevronDown
+                      aria-hidden="true"
+                      className="w-4 h-4 shrink-0 transition-transform duration-200"
+                      style={{
+                        color: 'rgba(255,255,255,0.3)',
+                        transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                      }}
+                    />
+                  </button>
+                  {isOpen && FAQ_ANSWERS[q] && (
+                    <p id={`faq-answer-${i}`} role="region" className="pb-5 text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                      {FAQ_ANSWERS[q]}
+                    </p>
+                  )}
                 </div>
-                {openFaq === i && FAQ_ANSWERS[q] && (
-                  <p className="pb-5 text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                    {FAQ_ANSWERS[q]}
-                  </p>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>
