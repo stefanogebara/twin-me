@@ -7,6 +7,13 @@ import { supabase } from '../config/supabase.js';
 import { supabaseAdmin } from '../services/database.js';
 import { encryptToken, decryptToken, encryptState, decryptState } from '../services/encryption.js';
 import { revokeProviderGrant } from '../services/oauthRevocation.js';
+import {
+  SPOTIFY_SOUL_SCOPES,
+  YOUTUBE_SCOPES,
+  GITHUB_SOUL_SCOPES,
+  DISCORD_SOUL_SCOPES,
+  WHOOP_SCOPES,
+} from '../config/oauthScopes.js';
 import { authenticateUser, requireProfessor } from '../middleware/auth.js';
 import { buildPlatformsSummary } from '../services/platformStateService.js';
 import { createLogger, redact } from '../services/logger.js';
@@ -44,10 +51,7 @@ const OAUTH_CONFIGS = {
   youtube: {
     clientId: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    scopes: [
-      'https://www.googleapis.com/auth/youtube.readonly',
-      'https://www.googleapis.com/auth/youtube.force-ssl'
-    ],
+    scopes: YOUTUBE_SCOPES,
     authUrl: 'https://accounts.google.com/o/oauth2/v2/auth',
     tokenUrl: 'https://oauth2.googleapis.com/token'
   },
@@ -56,16 +60,7 @@ const OAUTH_CONFIGS = {
   spotify: {
     clientId: process.env.SPOTIFY_CLIENT_ID,
     clientSecret: process.env.SPOTIFY_CLIENT_SECRET,
-    scopes: [
-      'user-read-private',
-      'user-read-email',
-      'user-top-read',
-      'user-read-recently-played',
-      'playlist-read-private',
-      'playlist-read-collaborative',
-      'user-library-read',
-      'user-follow-read'
-    ],
+    scopes: SPOTIFY_SOUL_SCOPES,
     authUrl: 'https://accounts.spotify.com/authorize',
     tokenUrl: 'https://accounts.spotify.com/api/token'
   },
@@ -74,7 +69,7 @@ const OAUTH_CONFIGS = {
   github: {
     clientId: process.env.GITHUB_CLIENT_ID,
     clientSecret: process.env.GITHUB_CLIENT_SECRET,
-    scopes: ['user', 'public_repo', 'read:org'],
+    scopes: GITHUB_SOUL_SCOPES,
     authUrl: 'https://github.com/login/oauth/authorize',
     tokenUrl: 'https://github.com/login/oauth/access_token'
   },
@@ -83,7 +78,7 @@ const OAUTH_CONFIGS = {
   discord: {
     clientId: process.env.DISCORD_CLIENT_ID,
     clientSecret: process.env.DISCORD_CLIENT_SECRET,
-    scopes: ['identify', 'email', 'guilds', 'connections'],
+    scopes: DISCORD_SOUL_SCOPES,
     authUrl: 'https://discord.com/api/oauth2/authorize',
     tokenUrl: 'https://discord.com/api/oauth2/token'
   },
@@ -92,7 +87,7 @@ const OAUTH_CONFIGS = {
   whoop: {
     clientId: process.env.WHOOP_CLIENT_ID,
     clientSecret: process.env.WHOOP_CLIENT_SECRET,
-    scopes: ['read:recovery', 'read:sleep', 'read:workout', 'read:profile', 'read:body_measurement'],
+    scopes: WHOOP_SCOPES,
     authUrl: 'https://api.prod.whoop.com/oauth/oauth2/auth',
     tokenUrl: 'https://api.prod.whoop.com/oauth/oauth2/token'
   },

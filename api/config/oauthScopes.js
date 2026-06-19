@@ -1,0 +1,74 @@
+/**
+ * OAuth scope definitions — single source of truth (audit 2026-06, M2 #10).
+ *
+ * The same platforms were connectable through several surfaces, each with its
+ * own inline scope literal, so reconnecting via a different surface silently
+ * requested a different scope set. This module centralizes those scattered
+ * literals so the definitions live in ONE place and drift is impossible.
+ *
+ * IMPORTANT: these values preserve each surface's CURRENT behavior exactly —
+ * centralization only; no scope was added or removed here. The divergences
+ * below are intentional today and are kept as distinct named sets rather than
+ * collapsed, so a future consolidation has one obvious place to decide.
+ *
+ * Google scopes already have a single source (config/googleWorkspaceScopes.js);
+ * entertainment Spotify/YouTube already live in config/platformConfigs.js.
+ */
+
+// --- Spotify --------------------------------------------------------------
+// Soul-signature connect (read-only): connectors.js + entertainment PLATFORM_CONFIGS.
+export const SPOTIFY_SOUL_SCOPES = [
+  'user-read-private',
+  'user-read-email',
+  'user-top-read',
+  'user-read-recently-played',
+  'playlist-read-private',
+  'playlist-read-collaborative',
+  'user-library-read',
+  'user-follow-read',
+];
+
+// Presentation-ritual playback feature (spotify-oauth.js). Adds playback control
+// + streaming — required by the ritual player, deliberately NOT requested by the
+// read-only soul-signature connect.
+export const SPOTIFY_RITUAL_SCOPES = [
+  'user-read-playback-state',
+  'user-modify-playback-state',
+  'user-read-currently-playing',
+  'playlist-read-private',
+  'playlist-read-collaborative',
+  'user-top-read',
+  'streaming',
+];
+
+// --- YouTube (Google OAuth) ----------------------------------------------
+export const YOUTUBE_SCOPES = [
+  'https://www.googleapis.com/auth/youtube.readonly',
+  'https://www.googleapis.com/auth/youtube.force-ssl',
+];
+
+// --- GitHub ---------------------------------------------------------------
+// Soul-signature connect (connectors.js): public read only.
+export const GITHUB_SOUL_SCOPES = ['user', 'public_repo', 'read:org'];
+
+// Entertainment connect (additional-entertainment-connectors.js).
+// NOTE: `repo` grants read+WRITE to private repos — over-privileged vs the SOUL
+// set (`public_repo`). Flagged for a least-privilege review (audit M2 #10c);
+// left unchanged here to preserve current behavior.
+export const GITHUB_ENTERTAINMENT_SCOPES = ['read:user', 'repo', 'read:org'];
+
+// --- Discord --------------------------------------------------------------
+// Soul-signature connect (connectors.js): identity + social graph.
+export const DISCORD_SOUL_SCOPES = ['identify', 'email', 'guilds', 'connections'];
+
+// Entertainment connect (additional-entertainment-connectors.js): activity feed.
+export const DISCORD_ENTERTAINMENT_SCOPES = ['identify', 'guilds', 'activities.read'];
+
+// --- Whoop ----------------------------------------------------------------
+export const WHOOP_SCOPES = [
+  'read:recovery',
+  'read:sleep',
+  'read:workout',
+  'read:profile',
+  'read:body_measurement',
+];
