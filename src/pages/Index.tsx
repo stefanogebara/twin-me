@@ -414,7 +414,7 @@ const Index = () => {
                   variant: 'memory' as const,
                   type: 'Observation',
                   text: 'Listened to "Clair de Lune" on repeat during a 3-hour deep work block — matches Thursday focus pattern.',
-                  source: 'Spotify · 2h ago',
+                  source: 'Spotify',
                 },
               },
               {
@@ -445,7 +445,7 @@ const Index = () => {
                   variant: 'memory' as const,
                   type: 'Wiki',
                   text: 'Cultural Identity: Drawn to melancholic jazz and minimalist design. Peak creative output in late evening silence.',
-                  source: 'Compiled · today',
+                  source: 'Wiki',
                 },
               },
               {
