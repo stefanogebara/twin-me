@@ -52,9 +52,13 @@ export const YOUTUBE_SCOPES = [
 export const GITHUB_SOUL_SCOPES = ['user', 'public_repo', 'read:org'];
 
 // Entertainment connect (additional-entertainment-connectors.js).
-// NOTE: `repo` grants read+WRITE to private repos — over-privileged vs the SOUL
-// set (`public_repo`). Flagged for a least-privilege review (audit M2 #10c);
-// left unchanged here to preserve current behavior.
+// NOTE: `repo` grants read+WRITE to private repos. It is BROADER than the SOUL
+// set (`public_repo` = public only), but it is also GitHub classic-OAuth's only
+// way to READ private-repo activity, which this flow's fetcher intends
+// (observationFetchers/github.js reads /user/repos + languages + contributions).
+// So this is a product trade-off (private-repo signal vs least privilege), not a
+// safe mechanical downgrade — a true least-privilege fix means GitHub Apps /
+// fine-grained tokens (read-only private), tracked as a follow-up (audit M2 #10c).
 export const GITHUB_ENTERTAINMENT_SCOPES = ['read:user', 'repo', 'read:org'];
 
 // --- Discord --------------------------------------------------------------
