@@ -29,14 +29,22 @@ const TEMPLATE = {
   name: 'statement_nag',
   language: 'en',
   category: 'UTILITY',
-  allowCategoryChange: true,
+  // Enforce UTILITY: a marketing reclassification costs ~3x and is subject to
+  // marketing opt-out, so we'd rather Meta reject a borderline submission than
+  // silently bill it as MARKETING. (The first approval landed as MARKETING with
+  // allowCategoryChange:true and promotional wording — see body below.)
+  allowCategoryChange: false,
   components: [
     {
       type: 'BODY',
+      // UTILITY-qualifying wording: ties to a specific, expected account update
+      // (the statement period closing) and asks only for the statement file. No
+      // promotional tone, no value-prop framing — that phrasing is what gets a
+      // statement reminder classified MARKETING.
       text:
-        'New month! Your bank statement from last month just closed. ' +
-        'Export it from your bank app (OFX or CSV) and send the file here — ' +
-        'I\'ll read it and keep your money picture sharp.',
+        'Your bank statement for last month is now available to import. ' +
+        'To keep your transaction records up to date, reply here with the ' +
+        'statement file (OFX or CSV) exported from your bank app.',
     },
   ],
 };
