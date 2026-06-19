@@ -21,6 +21,7 @@ import { useSidebarContext } from '@/hooks/useSidebarContext';
 import { departmentsAPI } from '@/services/api/departmentsAPI';
 import { PendingProposalsBadge } from '@/components/chat/PendingProposalsBadge';
 import type { ProposalStatus } from '@/components/chat/DepartmentProposalBubble';
+import { resolveStreamDone } from '@/lib/twinStreamDone';
 
 interface ActionEvent {
   tool: string;
@@ -415,6 +416,27 @@ const TalkToTwin = () => {
               }
             } else if (event.type === 'done') {
               receivedDoneEvent = true;
+              // Audit High #8: empty-completion guard. If the stream produced no
+              // content chunks, the assistant bubble was never created; render the
+              // final message from the done payload (or surface an error) so the
+              // turn is never silently lost.
+              if (firstChunk) {
+                const decision = resolveStreamDone(firstChunk, event.message);
+                firstChunk = false;
+                setIsTyping(false);
+                if (decision.kind === 'render') {
+                  setMessages(prev => [...prev, {
+                    id: assistantMsgId,
+                    role: 'assistant',
+                    content: decision.content,
+                    timestamp: new Date(),
+                  }]);
+                } else if (decision.kind === 'error') {
+                  setMessages(prev => prev.map(m =>
+                    m.id === userMessage.id ? { ...m, failed: true, errorType: 'generic' as const } : m
+                  ));
+                }
+              }
               if (event.conversationId) setConversationId(event.conversationId);
               if (event.contextSources) {
                 setMessages(prev => prev.map(m =>
