@@ -338,7 +338,7 @@ async function addMemory(userId, content, memoryType = 'observation', metadata =
 
     // Generate embedding and importance score in parallel
     let [embedding, importanceScore] = await Promise.all([
-      options.skipEmbedding ? null : generateEmbedding(content),
+      options.skipEmbedding ? null : (options.embedding ?? generateEmbedding(content)),
       options.skipImportance ? (options.importanceScore || 5) : rateImportance(content, userId),
     ]);
 
@@ -514,11 +514,14 @@ function clampNoiseObservation(content) {
   return null;
 }
 
-async function addPlatformObservation(userId, content, platform, metadata = {}) {
+async function addPlatformObservation(userId, content, platform, metadata = {}, extraOptions = {}) {
   const noiseScore = clampNoiseObservation(content);
-  const options = noiseScore !== null
+  // Merge the noise-floor options (if any) with caller-provided extras — e.g. a
+  // precomputed `embedding` from the ingestion batch-embed path (audit M2).
+  const baseOptions = noiseScore !== null
     ? { importanceScore: noiseScore, skipImportance: true }
-    : undefined;
+    : {};
+  const options = { ...baseOptions, ...extraOptions };
   return addMemory(userId, content, 'platform_data', {
     source: platform,
     platform,

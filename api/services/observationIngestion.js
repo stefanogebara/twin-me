@@ -20,6 +20,7 @@
  */
 
 import { addPlatformObservation } from './memoryStreamService.js';
+import { generateEmbeddings } from './embeddingService.js';
 import { shouldTriggerReflection, generateReflections } from './reflectionEngine.js';
 import { runPlatformExpert } from './platformExperts.js';
 import { generateProactiveInsights, evaluateNudgeOutcomes } from './proactiveInsights.js';
@@ -561,6 +562,9 @@ async function runObservationIngestion(options = {}) {
             // Store each observation (with de-duplication)
             // Observations can be strings (legacy) or { content, contentType } objects (richer templates)
             let platformObsCount = 0; // track new obs for THIS platform in this run
+
+            // Pass 1: filter to valid, non-duplicate observations and collect them.
+            const pendingObs = [];
             for (const obs of observations) {
               const content = typeof obs === 'string' ? obs : obs.content;
               const contentType = typeof obs === 'string' ? undefined : obs.contentType;
@@ -583,21 +587,44 @@ async function runObservationIngestion(options = {}) {
                 if (dup) continue;
               }
 
+              // Reserve the hash now so a duplicate within THIS batch isn't embedded
+              // or stored twice (cross-run dedup is the pre-fetched set + addMemory's
+              // own 24h content dedup).
+              existingHashes.add(hash);
               const baseMeta = {
                 ingestion_source: 'background',
                 ingested_at: new Date().toISOString(),
                 ...(contentType ? { content_type: contentType } : {}),
               };
-              const result = await addPlatformObservation(userId, content, platform,
-                tagSensitivity(content, { ...baseMeta, platform })
-              );
+              pendingObs.push({ content, meta: tagSensitivity(content, { ...baseMeta, platform }) });
+            }
 
+            // Batch-embed all pending contents for this platform in ONE cache-aware
+            // call, then store each with its precomputed vector — replaces the
+            // per-observation serial generateEmbedding inside addMemory (audit M2).
+            // A failed batch / null item degrades gracefully: addMemory falls back
+            // to embedding that single observation itself.
+            let batchEmbeddings = [];
+            if (pendingObs.length > 0) {
+              try {
+                batchEmbeddings = await generateEmbeddings(pendingObs.map(p => p.content));
+              } catch (embErr) {
+                log.warn('Batch embedding failed; addMemory will embed per-observation', { platform, error: embErr.message });
+                batchEmbeddings = [];
+              }
+            }
+
+            // Pass 2: store each observation (with its precomputed embedding when available).
+            for (let i = 0; i < pendingObs.length; i++) {
+              const { content, meta } = pendingObs[i];
+              const embedding = batchEmbeddings[i];
+              const result = await addPlatformObservation(userId, content, platform, meta,
+                embedding ? { embedding } : {}
+              );
               if (result) {
                 userObsCount++;
                 platformObsCount++;
                 stats.observationsStored++;
-                // Track newly stored hashes to prevent within-batch duplicates
-                existingHashes.add(hash);
               }
             }
 
