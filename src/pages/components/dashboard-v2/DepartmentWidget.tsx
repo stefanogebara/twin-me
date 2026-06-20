@@ -66,20 +66,6 @@ export function DepartmentWidget() {
         <h2 className={LABEL_STYLE} style={{ color: 'rgba(255,255,255,0.4)', marginBottom: 0 }}>
           YOUR AI TEAM
         </h2>
-        <button
-          onClick={() => navigate('/departments')}
-          className="text-[10px] font-medium transition-all duration-200 ease-out hover:opacity-70 active:scale-[0.97]"
-          style={{
-            color: 'rgba(255,255,255,0.35)',
-            fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            padding: 0,
-          }}
-        >
-          View all
-        </button>
       </div>
 
       <div
@@ -214,20 +200,15 @@ export function DepartmentWidget() {
               </div>
             ))}
             {proposals.length > 3 && (
-              <button
-                onClick={() => navigate('/departments')}
-                className="text-[10px] transition-all duration-150 ease-out hover:brightness-150"
+              <span
+                className="text-[10px]"
                 style={{
                   color: 'rgba(255,255,255,0.35)',
                   fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  padding: 0,
                 }}
               >
                 +{proposals.length - 3} more proposals
-              </button>
+              </span>
             )}
           </div>
         ) : !departmentsLoading && !departmentsError ? (

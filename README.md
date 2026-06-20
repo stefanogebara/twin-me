@@ -159,6 +159,16 @@ YOUTUBE_API_KEY=your-youtube-key
 - **Contextual Sharing**: Different aspects for different audiences
 - **Data Portability**: Export your entire profile anytime
 
+### Security posture
+
+- **Auth**: JWT (HS256) for app sessions; OAuth 2.0 + PKCE for platform connections.
+- **Secrets**: server-side env vars only, validated at startup; gitleaks pre-commit + CI gate; anything that ever leaked is rotated, not just removed from the diff.
+- **Tokens**: OAuth tokens encrypted at rest (AES-256-GCM); disconnecting a platform revokes the grant at the provider where an endpoint exists.
+- **Data isolation**: enforced in the API layer today (every user-scoped query filters by `user_id`); PII tables have RLS enabled with service-role-only policies; a database-level per-user backstop is planned.
+- **Hardening**: Helmet CSP + CORS allowlist, rate limiting on auth/OAuth/LLM endpoints, LLM spend ceilings, and prompt-injection fencing of untrusted context.
+
+**Reporting a vulnerability**: email stefanogebara@gmail.com with details and reproduction steps. Please do not open a public issue for security-sensitive reports.
+
 ## 🛠️ Tech Stack
 
 - **Frontend**: React 18, TypeScript, Tailwind CSS, Vite

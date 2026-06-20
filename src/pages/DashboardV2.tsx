@@ -213,31 +213,9 @@ export function DashboardV2() {
       {/* 5. Everything else — moved down */}
       <DepartmentWidget />
 
-      {/* Wiki discovery CTA — shown once user has enough memories AND the
-          llm_wiki flag is enabled (compilation is gated on it, so without the
-          flag /wiki is stuck "still being compiled" forever) */}
-      {data.twinStats.memoryCount >= 10 && llmWikiEnabled && (
-        <button
-          type="button"
-          onClick={() => navigate('/wiki')}
-          className="w-full flex items-center gap-3 px-5 py-4 rounded-[46px] text-left transition-all duration-150 hover:opacity-80 active:scale-[0.99]"
-          style={{
-            background: 'rgba(255,255,255,0.04)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            backdropFilter: 'blur(42px)',
-          }}
-        >
-          <BookOpen className="w-4 h-4 flex-shrink-0" style={{ color: 'rgba(255,255,255,0.35)' }} />
-          <div className="min-w-0">
-            <p className="text-sm font-medium" style={{ color: 'var(--foreground)', fontFamily: "'Geist', 'Inter', sans-serif" }}>
-              Your Knowledge Base
-            </p>
-            <p className="text-xs mt-0.5 truncate" style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Inter', sans-serif" }}>
-              Compiled insights about who you are
-            </p>
-          </div>
-        </button>
-      )}
+      {/* Wiki discovery CTA removed (audit M3.1): /wiki is a redirect stub to
+          twin chat since the Knowledge page was retired, so this landed users on
+          chat with no explanation. */}
 
       {/* Quick Actions */}
       <div className="flex flex-wrap gap-3">

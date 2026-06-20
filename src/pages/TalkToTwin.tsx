@@ -636,10 +636,6 @@ const TalkToTwin = () => {
     await Promise.all(pending.map(p => handleApproveProposal(p.id)));
   }, [messages, handleApproveProposal]);
 
-  const handleReviewInDepartments = useCallback(() => {
-    navigate('/departments');
-  }, [navigate]);
-
   const handleApproveDepartmentSuggestion = useCallback(async (department: string, action: string, toolName?: string) => {
     try {
       await departmentsAPI.propose(department, { toolName: toolName || undefined, context: action });
@@ -765,7 +761,6 @@ const TalkToTwin = () => {
               onApproveProposal={handleApproveProposal}
               onRejectProposal={handleRejectProposal}
               onApproveAllProposals={handleApproveAllProposals}
-              onReviewInDepartments={handleReviewInDepartments}
               onApproveDepartmentSuggestion={handleApproveDepartmentSuggestion}
             />
           )}
