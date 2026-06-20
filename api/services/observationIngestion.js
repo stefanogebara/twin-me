@@ -279,6 +279,70 @@ const PLATFORM_FETCHERS = {
   instagram: fetchInstagramObservations,
 };
 
+/**
+ * Resolve the platform connections eligible for ingestion across all 4 sources:
+ * platform_connections (live OAuth), nango_connection_mappings (Nango-managed),
+ * user_github_config (PAT), and recent extension-sourced instagram rows.
+ * Extracted so the fan-out cron can enumerate eligible users without duplicating
+ * this query. Optionally scoped to targetUserIds (manual testing).
+ */
+async function fetchEligiblePlatformConnections(supabase, targetUserIds) {
+  const instagramSince = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+  const [pcRes, nangoRes, githubRes, igRes] = await Promise.all([
+    supabase
+      .from('platform_connections')
+      .select('user_id, platform')
+      .not('connected_at', 'is', null)
+      // Only poll live connections. 'disconnected'/needs-reauth rows can never
+      // decrypt (the user must reconnect); 'expired' is kept (refreshable).
+      .in('status', ['connected', 'expired'])
+      .in('platform', SUPPORTED_PLATFORMS),
+    supabase
+      .from('nango_connection_mappings')
+      .select('user_id, platform')
+      .eq('status', 'active')
+      .in('platform', SUPPORTED_PLATFORMS),
+    supabase
+      .from('user_github_config')
+      .select('user_id')
+      .not('access_token', 'is', null),
+    supabase
+      .from('user_platform_data')
+      .select('user_id')
+      .eq('platform', 'instagram')
+      .gte('extracted_at', instagramSince),
+  ]);
+  if (pcRes.error) log.warn('platform_connections fetch error', { error: pcRes.error });
+  if (nangoRes.error) log.warn('nango_connection_mappings fetch error', { error: nangoRes.error });
+  const pcResult = pcRes.data || [];
+  const nangoResult = nangoRes.data || [];
+  const githubResult = (githubRes.data || []).map(r => ({ user_id: r.user_id, platform: 'github' }));
+  // Dedup IG users (one row per recent extension push, so many rows per user)
+  const igUserIds = new Set((igRes.data || []).map(r => r.user_id));
+  const igResult = Array.from(igUserIds).map(user_id => ({ user_id, platform: 'instagram' }));
+
+  let allConnections = [...pcResult, ...nangoResult, ...githubResult, ...igResult];
+
+  // Scope to specific users if targetUserIds provided (for manual testing)
+  if (Array.isArray(targetUserIds) && targetUserIds.length > 0) {
+    const targetSet = new Set(targetUserIds);
+    allConnections = allConnections.filter(c => targetSet.has(c.user_id));
+  }
+  return allConnections;
+}
+
+/**
+ * Distinct user IDs eligible for observation ingestion. Used by the ingestion
+ * cron to fan out one Inngest event per user (replaces the inline 3-user/run cap
+ * so per-user freshness no longer degrades as the user base grows).
+ */
+export async function getEligibleIngestionUserIds() {
+  const supabase = await getSupabase();
+  if (!supabase) return [];
+  const conns = await fetchEligiblePlatformConnections(supabase, null);
+  return [...new Set(conns.map(c => c.user_id))];
+}
+
 async function runObservationIngestion(options = {}) {
   const { targetUserIds = null } = options;
   log.info('Starting ingestion run...', targetUserIds ? { targetUserIds } : {});
@@ -299,55 +363,10 @@ async function runObservationIngestion(options = {}) {
       return stats;
     }
 
-    // Find all users with at least one active platform connection.
-    // Check platform_connections (direct OAuth), nango_connection_mappings (Nango-managed),
-    // AND user_github_config (PAT-based connections that don't go through OAuth).
-    // Instagram is extension-sourced (no OAuth row). Find users by recent
-    // user_platform_data rows the extension wrote.
-    const instagramSince = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
-    const [pcRes, nangoRes, githubRes, igRes] = await Promise.all([
-      supabase
-        .from('platform_connections')
-        .select('user_id, platform')
-        .not('connected_at', 'is', null)
-        // Only poll live connections. 'disconnected'/needs-reauth rows can never
-        // decrypt (the user must reconnect) yet were re-polled every 15min,
-        // burning function time (-> 504s) and polluting telemetry. 'expired' is
-        // kept — its token is refreshable via getValidAccessToken (matches the
-        // pollable set in mcp-server service-adapters).
-        .in('status', ['connected', 'expired'])
-        .in('platform', SUPPORTED_PLATFORMS),
-      supabase
-        .from('nango_connection_mappings')
-        .select('user_id, platform')
-        .eq('status', 'active')
-        .in('platform', SUPPORTED_PLATFORMS),
-      supabase
-        .from('user_github_config')
-        .select('user_id')
-        .not('access_token', 'is', null),
-      supabase
-        .from('user_platform_data')
-        .select('user_id')
-        .eq('platform', 'instagram')
-        .gte('extracted_at', instagramSince),
-    ]);
-    if (pcRes.error) log.warn('platform_connections fetch error', { error: pcRes.error });
-    if (nangoRes.error) log.warn('nango_connection_mappings fetch error', { error: nangoRes.error });
-    const pcResult = pcRes.data || [];
-    const nangoResult = nangoRes.data || [];
-    const githubResult = (githubRes.data || []).map(r => ({ user_id: r.user_id, platform: 'github' }));
-    // Dedup IG users (one row per recent extension push, so many rows per user)
-    const igUserIds = new Set((igRes.data || []).map(r => r.user_id));
-    const igResult = Array.from(igUserIds).map(user_id => ({ user_id, platform: 'instagram' }));
-
-    let allConnections = [...pcResult, ...nangoResult, ...githubResult, ...igResult];
-
-    // Scope to specific users if targetUserIds provided (for manual testing)
-    if (Array.isArray(targetUserIds) && targetUserIds.length > 0) {
-      const targetSet = new Set(targetUserIds);
-      allConnections = allConnections.filter(c => targetSet.has(c.user_id));
-    }
+    // Find all users with at least one active platform connection (4 sources).
+    // Extracted to fetchEligiblePlatformConnections so the fan-out cron can
+    // enumerate the same eligible-user universe without duplicating the query.
+    const allConnections = await fetchEligiblePlatformConnections(supabase, targetUserIds);
 
     if (allConnections.length === 0) {
       log.info('No active platform connections found');
@@ -367,7 +386,7 @@ async function runObservationIngestion(options = {}) {
       userPlatforms.set(uid, [...set]);
     }
 
-    log.info('Found users with connections', { users: userPlatforms.size, connections: allConnections.length, pc: pcResult.length, nango: nangoResult.length });
+    log.info('Found users with connections', { users: userPlatforms.size, connections: allConnections.length });
 
     // Global timeout guard — stop processing before Vercel kills us (60s limit).
     // audit-2026-05-09 B-M1: bumped down from 50_000 → 40_000. Cron data
