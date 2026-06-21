@@ -28,6 +28,24 @@ export const SPOTIFY_SOUL_SCOPES = [
   'user-follow-read',
 ];
 
+// Entertainment canonical connect (config/platformConfigs.js PLATFORM_CONFIGS.spotify,
+// used by /api/entertainment/connect/spotify). A THIRD Spotify scope set: distinct
+// from SOUL (read-only, has user-follow-read) and RITUAL (playback CONTROL +
+// streaming). Includes playback-STATE read but not control. Reconciling these
+// three sets to one canonical set per use-case is the M2 #10 consolidation
+// decision (see .claude/plans/2026-06-20-oauth-consolidation).
+export const SPOTIFY_ENTERTAINMENT_SCOPES = [
+  'user-read-email',
+  'user-read-private',
+  'user-read-recently-played',
+  'user-top-read',
+  'user-library-read',
+  'user-read-playback-state',
+  'user-read-currently-playing',
+  'playlist-read-private',
+  'playlist-read-collaborative',
+];
+
 // Presentation-ritual playback feature (spotify-oauth.js). Adds playback control
 // + streaming — required by the ritual player, deliberately NOT requested by the
 // read-only soul-signature connect.
