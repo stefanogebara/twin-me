@@ -67,7 +67,9 @@ async function setLastSuggestionAt(userId) {
       extracted_at: new Date().toISOString(),
       processed: true,
     });
-  if (error) log.warn('setLastSuggestionAt insert failed', { error: error.message });
+  // Escalate to error: a failed cooldown write silently reopens the per-run LLM
+  // faucet this persistence exists to close (audit), so it must not hide at warn.
+  if (error) log.error('setLastSuggestionAt insert failed — goal-suggestion cooldown NOT persisted', { userId, error: error.message });
 }
 
 // ====================================================================
@@ -638,6 +640,14 @@ function buildSuggestionExclusions(activeGoals, declinedGoals) {
  * Generate goal suggestions for a user based on recent platform data.
  * Called after observation ingestion. Throttled to once per 24 hours.
  */
+// Lower-is-better metrics use the '<=' operator (e.g. fewer meetings); everything
+// else is '>='. Used to pick the operator when the LLM omits it, instead of
+// blanket-defaulting to '>=' which silently inverted meeting_count goals (audit).
+const LOWER_IS_BETTER_METRICS = new Set(['meeting_count']);
+function defaultOperatorForMetric(metricType) {
+  return LOWER_IS_BETTER_METRICS.has(metricType) ? '<=' : '>=';
+}
+
 async function generateGoalSuggestions(userId) {
   try {
     // Check persistent cooldown (user_platform_data — see file header).
@@ -713,6 +723,12 @@ async function generateGoalSuggestions(userId) {
 
     const text = (result.content || '').trim();
 
+    // Persist the cooldown NOW — right after the (billed) LLM call and BEFORE the
+    // parse/empty early-returns below. It records "we paid for an LLM call", not "we
+    // stored a goal"; otherwise a user whose output reliably fails to parse or returns
+    // [] re-fired the TIER_ANALYSIS call every */30 ingestion run forever (audit).
+    await setLastSuggestionAt(userId);
+
     // Parse JSON response
     let suggestions;
     try {
@@ -735,6 +751,18 @@ async function generateGoalSuggestions(userId) {
       // Check for duplicate metric_type among active/suggested/declined goals
       if (excludedMetricTypes.has(s.metric_type)) continue;
 
+      // Validate the numeric target with a null check (NOT `||`, which coerces a
+      // legitimate 0 target to null and makes the goal permanently un-trackable),
+      // and reject non-finite/garbage LLM values rather than persisting them (audit).
+      const targetValue = s.target_value == null ? null : Number(s.target_value);
+      if (targetValue !== null && !Number.isFinite(targetValue)) {
+        log.warn('Skipping suggestion with non-numeric target', { metricType: s.metric_type, raw: s.target_value });
+        continue;
+      }
+      // Derive the operator from the metric when the LLM omits it, rather than
+      // defaulting every goal to '>=' (which inverted "fewer meetings" goals).
+      const targetOperator = s.target_operator || defaultOperatorForMetric(s.metric_type);
+
       const { error } = await supabase
         .from('twin_goals')
         .insert({
@@ -745,8 +773,8 @@ async function generateGoalSuggestions(userId) {
           source_platform: s.source_platform || null,
           source_observation: s.source_observation?.substring(0, 300) || null,
           metric_type: s.metric_type,
-          target_value: s.target_value || null,
-          target_operator: s.target_operator || '>=',
+          target_value: targetValue,
+          target_operator: targetOperator,
           target_unit: s.target_unit || null,
           duration_days: s.duration_days || 14,
           status: 'suggested',
@@ -759,9 +787,6 @@ async function generateGoalSuggestions(userId) {
         log.warn('Failed to store suggestion', { error });
       }
     }
-
-    // Persist cooldown so Vercel cold starts don't reopen the LLM faucet.
-    await setLastSuggestionAt(userId);
 
     log.info('Generated suggestions', { stored, userId });
     return stored;
@@ -850,13 +875,18 @@ async function trackGoalProgress(userId, platformData) {
       let newConsecutiveMisses;
       if (targetMet) {
         newStreak = (goal.current_streak || 0) + 1;
-        newConsecutiveMisses = 0;
+        // Do NOT refill the grace counter on a hit (audit): zeroing it here let an
+        // alternating hit/miss pattern never reach 2 misses, so the streak grew
+        // without bound and "consecutive days met" became "total hits" (and could
+        // trip early completion). Grace is one forgiven miss per streak; it
+        // refreshes only when the streak resets.
+        newConsecutiveMisses = consecutiveMisses;
       } else if (consecutiveMisses < GRACE_DAYS) {
-        // Within grace window — preserve streak, increment miss counter
+        // Within grace — forgive this miss: keep the streak, consume the grace.
         newStreak = goal.current_streak || 0;
         newConsecutiveMisses = consecutiveMisses + 1;
       } else {
-        // Grace exhausted — reset
+        // Grace exhausted — reset the streak and refresh grace for the next run.
         newStreak = 0;
         newConsecutiveMisses = 0;
       }
