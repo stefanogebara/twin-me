@@ -59,6 +59,17 @@ export const SPOTIFY_RITUAL_SCOPES = [
   'streaming',
 ];
 
+/**
+ * Select the Spotify scope set for a connect request. Default = the canonical
+ * soul-signature connect (ENTERTAINMENT set — what /entertainment/connect/spotify
+ * has always granted, so existing users never re-consent). 'ritual' = the
+ * playback-control set for the presentation-ritual feature. (Audit M2 #10:
+ * unifies the three divergent Spotify scope sets behind one connect surface.)
+ */
+export function spotifyScopesFor(scopeSet) {
+  return scopeSet === 'ritual' ? SPOTIFY_RITUAL_SCOPES : SPOTIFY_ENTERTAINMENT_SCOPES;
+}
+
 // --- YouTube (Google OAuth) ----------------------------------------------
 export const YOUTUBE_SCOPES = [
   'https://www.googleapis.com/auth/youtube.readonly',
