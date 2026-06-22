@@ -361,12 +361,9 @@ function parseSpotifyExtended(raw) {
       if (hourBuckets[h] > hourBuckets[peakHour]) peakHour = h;
     }
 
-    const label = shuffleBase > 0
-      ? ` Peak hour: ${fmt(peakHour)}.`
-      : '';
     summaryObs.push(
       `Spotify listening patterns: ${pct(morning)}% morning, ${pct(afternoon)}% afternoon, ` +
-      `${pct(evening)}% evening, ${pct(lateNight)}% late-night.${label} Peak hour: ${fmt(peakHour)}`
+      `${pct(evening)}% evening, ${pct(lateNight)}% late-night. Peak hour: ${fmt(peakHour)}`
     );
   }
 
@@ -449,28 +446,36 @@ function parseSpotifyLegacy(raw) {
   const playsByArtist = {};
   const hourBuckets = new Array(24).fill(0);
   const individualObs = [];
-  const sorted = raw.filter(e => (e.msPlayed || 0) >= MIN_MS).slice(-500);
+  // Aggregate over the FULL qualifying history so "top artist over Spotify
+  // history" + the listening-pattern percentages are accurate; only the per-track
+  // individual observations are capped (to the most recent 500) to bound memory-
+  // stream noise. (audit: aggregates were previously computed over the 500-cap,
+  // making the reported all-time top artist reflect only the last 500 plays.)
+  const qualifying = raw.filter(e => (e.msPlayed || 0) >= MIN_MS);
 
-  for (const entry of sorted) {
+  for (const entry of qualifying) {
+    const artist = String(entry.artistName || 'Unknown Artist').slice(0, 80);
+    if (!playsByArtist[artist]) playsByArtist[artist] = { count: 0, msTotal: 0 };
+    playsByArtist[artist].count++;
+    playsByArtist[artist].msTotal += (entry.msPlayed || 0);
+
+    const when = entry.endTime ? new Date(entry.endTime) : null;
+    if (when && !isNaN(when.getTime())) hourBuckets[when.getHours()]++;
+  }
+
+  for (const entry of qualifying.slice(-500)) {
     const artist = String(entry.artistName || 'Unknown Artist').slice(0, 80);
     const track = String(entry.trackName || 'Unknown Track').slice(0, 80);
     const when = entry.endTime ? new Date(entry.endTime) : null;
-    const monthYear = when ? `${when.toLocaleString('default', { month: 'short' })} ${when.getFullYear()}` : '';
-
+    const monthYear = (when && !isNaN(when.getTime())) ? `${when.toLocaleString('default', { month: 'short' })} ${when.getFullYear()}` : '';
     individualObs.push(
       monthYear
         ? `Listened to "${track}" by ${artist} (${monthYear})`
         : `Listened to "${track}" by ${artist}`
     );
-
-    if (!playsByArtist[artist]) playsByArtist[artist] = { count: 0, msTotal: 0 };
-    playsByArtist[artist].count++;
-    playsByArtist[artist].msTotal += (entry.msPlayed || 0);
-
-    if (when) hourBuckets[when.getHours()]++;
   }
 
-  const totalPlays = raw.filter(e => (e.msPlayed || 0) >= MIN_MS).length;
+  const totalPlays = qualifying.length;
   const topArtists = Object.entries(playsByArtist)
     .sort((a, b) => b[1].count - a[1].count)
     .slice(0, 10);
@@ -540,7 +545,8 @@ function parseYouTube(buffer) {
 
     const channel = entry.subtitles?.[0]?.name || 'Unknown Channel';
     const safeChannel = String(channel).slice(0, 60);
-    const when = entry.time ? new Date(entry.time) : null;
+    const whenRaw = entry.time ? new Date(entry.time) : null;
+    const when = (whenRaw && !isNaN(whenRaw.getTime())) ? whenRaw : null; // guard Invalid Date
     const monthYear = when ? `${when.toLocaleString('default', { month: 'short' })} ${when.getFullYear()}` : '';
 
     individualObs.push(
@@ -755,6 +761,36 @@ function parseReddit(buffer) {
  * "<Media omitted>" lines are counted as media messages (no content stored).
  * System messages (no "Sender: " pattern) are skipped.
  */
+/**
+ * Parse one WhatsApp export line into { ts, sender, body } or null. Exported for
+ * testing. Handles bracketed (FMT_A) and dash (FMT_B) formats, 2- or 4-digit
+ * years, optional seconds, and optional 12-hour AM/PM. The AM/PM + 2-digit-year
+ * US-locale variants used to be unmatched, which threw on the ENTIRE import
+ * (audit). DD/MM vs MM/DD is resolved with the >12 heuristic.
+ */
+export function parseWhatsAppLine(line) {
+  const FMT_A = /^\[(\d{1,2})\/(\d{1,2})\/(\d{2,4}),\s*(\d{1,2}):(\d{2})(?::\d{2})?\s*([AaPp][Mm])?\]\s+([^:]+):\s*(.*)$/;
+  const FMT_B = /^(\d{1,2})\/(\d{1,2})\/(\d{2,4}),\s*(\d{1,2}):(\d{2})(?::\d{2})?\s*([AaPp][Mm])?\s+-\s+([^:]+):\s*(.*)$/;
+  const match = line.match(FMT_A) || line.match(FMT_B);
+  if (!match) return null;
+  const [, p1, p2, yearRaw, hourRaw, min, ampm, rawSender, body] = match;
+  // Resolve DD/MM vs MM/DD: a field > 12 must be the day.
+  const n1 = Number(p1), n2 = Number(p2);
+  let day, month;
+  if (n1 > 12) { day = n1; month = n2; }
+  else if (n2 > 12) { month = n1; day = n2; }
+  else { day = n1; month = n2; } // ambiguous -> WhatsApp's default DD/MM
+  let year = Number(yearRaw);
+  if (year < 100) year += 2000;
+  let hour = Number(hourRaw);
+  const ap = (ampm || '').toLowerCase();
+  if (ap === 'pm' && hour < 12) hour += 12;
+  else if (ap === 'am' && hour === 12) hour = 0;
+  const ts = new Date(year, month - 1, day, hour, Number(min));
+  if (isNaN(ts.getTime())) return null;
+  return { ts, sender: rawSender.trim().slice(0, 60), body };
+}
+
 function parseWhatsApp(buffer) {
   // ── Step 1: extract text ────────────────────────────────────────────────
   let text;
@@ -776,13 +812,11 @@ function parseWhatsApp(buffer) {
     throw new Error('WhatsApp export is empty');
   }
 
-  // ── Step 2: parse lines ─────────────────────────────────────────────────
-  // Format A: [DD/MM/YYYY, HH:MM:SS] Sender: body
-  const FMT_A = /^\[(\d{1,2})\/(\d{1,2})\/(\d{4}),\s*(\d{1,2}):(\d{2})(?::\d{2})?\]\s+([^:]+):\s*(.*)$/;
-  // Format B: DD/MM/YYYY, HH:MM - Sender: body
-  const FMT_B = /^(\d{1,2})\/(\d{1,2})\/(\d{4}),\s*(\d{1,2}):(\d{2})\s+-\s+([^:]+):\s*(.*)$/;
-  // Media sentinel
-  const MEDIA_RE = /^<Media omitted>$/i;
+  // ── Step 2: parse lines (per-line parsing in parseWhatsAppLine) ──────────
+  // Media sentinel — match localized + bare variants (English/PT/ES/DE plus the
+  // bracketless "image/video/audio/sticker/GIF omitted" Android forms) so media
+  // isn't miscounted as text in non-English exports (audit).
+  const MEDIA_RE = /(<\s*)?(media omitted|m[íi]dia omitida|multimedia omitido|medien ausgeschlossen|(image|video|audio|sticker|gif) omitted)(\s*>)?/i;
 
   const lines = text.split('\n');
 
@@ -799,18 +833,10 @@ function parseWhatsApp(buffer) {
     const line = rawLine.trim();
     if (!line) continue;
 
-    let match = line.match(FMT_A) || line.match(FMT_B);
-    if (!match) continue;
+    const parsed = parseWhatsAppLine(line);
+    if (!parsed) continue;
+    const { ts, sender, body } = parsed;
 
-    // Both regexes produce the same capture groups: day, month, year, hour, min, sender, body
-    const [, day, month, year, hour, min, rawSender, body] = match;
-    const ts = new Date(
-      Number(year), Number(month) - 1, Number(day),
-      Number(hour), Number(min)
-    );
-    if (isNaN(ts.getTime())) continue;
-
-    const sender = rawSender.trim().slice(0, 60);
     const isMedia = MEDIA_RE.test(body.trim());
     const wordCount = isMedia ? 0 : body.trim().split(/\s+/).filter(Boolean).length;
 
@@ -1828,11 +1854,10 @@ function parseHealthConnect(buffer) {
       .slice(0, 5);
 
     const typeDesc = topTypes.map(([t, c]) => `${c} ${t.toLowerCase()}${c !== 1 ? 's' : ''}`).join(', ');
-    const avgDurMin = Math.round(
-      workouts
-        .filter(w => typeof w.durationMin === 'number')
-        .reduce((s, w) => s + w.durationMin, 0) / workouts.length
-    );
+    const durWorkouts = workouts.filter(w => typeof w.durationMin === 'number');
+    const avgDurMin = durWorkouts.length
+      ? Math.round(durWorkouts.reduce((s, w) => s + w.durationMin, 0) / durWorkouts.length)
+      : 0;
 
     observations.push(
       `Completed ${workouts.length} workout${workouts.length !== 1 ? 's' : ''} this week: ${typeDesc}` +
@@ -2868,7 +2893,10 @@ function extractNetflixCsv(buffer) {
 function parseDurationSeconds(d) {
   // Netflix durations look like "00:45:12" (HH:MM:SS). Return seconds.
   if (!d) return 0;
-  const parts = d.split(':').map(n => parseInt(n, 10)).filter(n => Number.isFinite(n));
+  // Parse positionally — do NOT filter out NaN segments, or a malformed middle
+  // segment ("00:--:30") would collapse HH:MM:SS to MM:SS and mis-scale the value.
+  const parts = d.split(':').map(n => parseInt(n, 10));
+  if (parts.some(n => !Number.isFinite(n))) return 0;
   if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
   if (parts.length === 2) return parts[0] * 60 + parts[1];
   return 0;
@@ -3152,7 +3180,10 @@ function parseXArchive(buffer) {
       else originals++;
 
       if (perTweet.length < MAX_PER_SECTION && !isRetweet) {
-        const date = t?.created_at?.slice(0, 10) || '';
+        // X archive created_at is legacy format ("Wed Oct 10 20:19:24 +0000 2018"),
+        // not ISO — slice(0,10) would yield "Wed Oct 10". Parse + reformat to ISO date.
+        const parsedAt = t?.created_at ? new Date(t.created_at) : null;
+        const date = (parsedAt && !Number.isNaN(parsedAt.getTime())) ? parsedAt.toISOString().slice(0, 10) : '';
         perTweet.push(`You tweeted${date ? ` on ${date}` : ''}: "${text.slice(0, 280)}"`);
       }
     }
