@@ -65,6 +65,17 @@ export default defineConfig({
     {
       name: 'smoke',
       testMatch: /smoke-.*\.spec\.ts/,
+      // Override the global fullyParallel: run smoke tests serially in one
+      // worker. Otherwise two tests from the same file land on two workers
+      // and BOTH trigger a cold Vite dev-server compile of the heavy module
+      // graph at once — the contention pushes each past the timeout. Serial =
+      // the first nav pays the cold compile, the rest run warm.
+      fullyParallel: false,
+      // Each smoke route (/onboarding, /dashboard) compiles its own heavy
+      // module graph on first navigation against a cold Vite dev server, which
+      // can take well over a minute on a loaded host. Generous per-test budget
+      // so a cold run is green, not a false red; warm runs finish in ~3s.
+      timeout: 180_000,
       use: {
         ...devices['Desktop Chrome'],
       },
