@@ -46,6 +46,37 @@ async function getSupabase() {
 // De-duplication (same logic as observationIngestion.js)
 // ---------------------------------------------------------------------------
 
+/**
+ * Hour-of-day (0-23) for a Date in the given IANA timezone. Falls back to the
+ * server-local hour when no/invalid timezone (audit: time-of-day buckets used
+ * getHours() = the Vercel server's UTC hour, skewing every non-UTC user's
+ * "evening / late-night" insights). Exported for testing.
+ */
+export function getHourInTimeZone(date, timeZone) {
+  if (!date || isNaN(date.getTime())) return 0;
+  if (!timeZone) return date.getHours();
+  try {
+    const parts = new Intl.DateTimeFormat('en-US', { timeZone, hour: '2-digit', hourCycle: 'h23' }).formatToParts(date);
+    const hourPart = parts.find(p => p.type === 'hour');
+    const n = hourPart ? parseInt(hourPart.value, 10) : NaN;
+    return Number.isFinite(n) ? (n % 24) : date.getHours();
+  } catch {
+    return date.getHours();
+  }
+}
+
+/** Fetch a user's IANA timezone (public.users.timezone), or null. */
+async function getUserTimezone(userId) {
+  try {
+    const supabase = await getSupabase();
+    if (!supabase) return null;
+    const { data } = await supabase.from('users').select('timezone').eq('id', userId).maybeSingle();
+    return data?.timezone || null;
+  } catch {
+    return null;
+  }
+}
+
 function contentHash(platform, content) {
   return crypto
     .createHash('sha256')
@@ -111,7 +142,7 @@ async function writeObservations(userId, platform, observations, importId, exist
 // Spotify parser — supports both Extended Streaming History and legacy format
 // ---------------------------------------------------------------------------
 
-function parseSpotify(buffer) {
+function parseSpotify(buffer, timezone) {
   let raw;
   try {
     raw = JSON.parse(buffer.toString('utf8'));
@@ -127,16 +158,16 @@ function parseSpotify(buffer) {
   const isExtended = raw.length > 0 && raw[0]?.ts !== undefined;
 
   if (isExtended) {
-    return parseSpotifyExtended(raw);
+    return parseSpotifyExtended(raw, timezone);
   }
-  return parseSpotifyLegacy(raw);
+  return parseSpotifyLegacy(raw, timezone);
 }
 
 // ---------------------------------------------------------------------------
 // Extended Streaming History parser (2018-present export format)
 // ---------------------------------------------------------------------------
 
-function parseSpotifyExtended(raw) {
+function parseSpotifyExtended(raw, timezone) {
   const MIN_MS = 30_000;        // real listen threshold (30 s)
   const MIN_MS_INDIVIDUAL = 120_000; // individual obs threshold (2 min)
   const MAX_INDIVIDUAL_OBS = 250;
@@ -219,7 +250,7 @@ function parseSpotifyExtended(raw) {
 
     totalRealPlays++;
     totalRealMs += msPlayed;
-    if (when) hourBuckets[when.getHours()]++;
+    if (when) hourBuckets[getHourInTimeZone(when, timezone)]++;
 
     if (!artist) continue;
 
@@ -441,7 +472,7 @@ function parseSpotifyExtended(raw) {
 // Legacy Streaming History parser (StreamingHistory*.json — pre-2023 format)
 // ---------------------------------------------------------------------------
 
-function parseSpotifyLegacy(raw) {
+function parseSpotifyLegacy(raw, timezone) {
   const MIN_MS = 30_000;
   const playsByArtist = {};
   const hourBuckets = new Array(24).fill(0);
@@ -460,7 +491,7 @@ function parseSpotifyLegacy(raw) {
     playsByArtist[artist].msTotal += (entry.msPlayed || 0);
 
     const when = entry.endTime ? new Date(entry.endTime) : null;
-    if (when && !isNaN(when.getTime())) hourBuckets[when.getHours()]++;
+    if (when && !isNaN(when.getTime())) hourBuckets[getHourInTimeZone(when, timezone)]++;
   }
 
   for (const entry of qualifying.slice(-500)) {
@@ -521,7 +552,7 @@ function parseSpotifyLegacy(raw) {
 // YouTube (Google Takeout) parser
 // ---------------------------------------------------------------------------
 
-function parseYouTube(buffer) {
+function parseYouTube(buffer, timezone) {
   let raw;
   try {
     raw = JSON.parse(buffer.toString('utf8'));
@@ -558,7 +589,7 @@ function parseYouTube(buffer) {
     if (!channelCounts[safeChannel]) channelCounts[safeChannel] = 0;
     channelCounts[safeChannel]++;
 
-    if (when) hourBuckets[when.getHours()]++;
+    if (when) hourBuckets[getHourInTimeZone(when, timezone)]++;
   }
 
   const summaryObs = [];
@@ -600,7 +631,7 @@ function parseYouTube(buffer) {
 // PRIVACY: we do NOT store message content — only frequency/timing patterns
 // ---------------------------------------------------------------------------
 
-function parseDiscord(buffer) {
+function parseDiscord(buffer, timezone) {
   let zip;
   try {
     zip = safeAdmZip(buffer);
@@ -639,7 +670,7 @@ function parseDiscord(buffer) {
       const ts = msg.Timestamp || msg.timestamp;
       if (ts) {
         try {
-          const h = new Date(ts).getHours();
+          const h = getHourInTimeZone(new Date(ts), timezone);
           if (h >= 0 && h <= 23) hourBuckets[h]++;
         } catch { /* skip */ }
       }
@@ -2401,7 +2432,7 @@ function parseWhoop(buffer) {
 // Google Search (Takeout My Activity) parser
 // ---------------------------------------------------------------------------
 
-function parseGoogleSearch(buffer) {
+function parseGoogleSearch(buffer, timezone) {
   let raw;
   try {
     raw = JSON.parse(buffer.toString('utf8'));
@@ -2440,7 +2471,7 @@ function parseGoogleSearch(buffer) {
 
     const when = entry.time ? new Date(entry.time) : null;
     if (when && !isNaN(when.getTime())) {
-      hourBuckets[when.getHours()]++;
+      hourBuckets[getHourInTimeZone(when, timezone)]++;
       individualEntries.push({ query, when });
     } else {
       individualEntries.push({ query, when: null });
@@ -2902,7 +2933,7 @@ function parseDurationSeconds(d) {
   return 0;
 }
 
-function parseNetflix(buffer) {
+function parseNetflix(buffer, timezone) {
   const csv = extractNetflixCsv(buffer);
   const rows = csvToObjects(csv);
   if (rows.length === 0) throw new Error('Netflix ViewingActivity.csv has no rows');
@@ -2951,7 +2982,7 @@ function parseNetflix(buffer) {
     if (startStr) {
       const d = new Date(startStr);
       if (!Number.isNaN(d.getTime())) {
-        hourBuckets[d.getHours()] += 1;
+        hourBuckets[getHourInTimeZone(d, timezone)] += 1;
         dayOfWeekBuckets[d.getDay()] += 1;
       }
     }
@@ -3940,15 +3971,20 @@ export async function processGdprImport(userId, platform, fileBuffer, fileName) 
   try {
     log.info(`Processing ${platform} export for user ${userId} (${fileBuffer.length} bytes)`);
 
+    // User's IANA timezone (public.users.timezone) so time-of-day buckets reflect
+    // the user's LOCAL hour, not the Vercel server's UTC hour (audit). Null falls
+    // back to server-local inside getHourInTimeZone.
+    const userTimezone = await getUserTimezone(userId);
+
     switch (platform) {
       case 'spotify':
-        observations = parseSpotify(fileBuffer);
+        observations = parseSpotify(fileBuffer, userTimezone);
         break;
       case 'youtube':
-        observations = parseYouTube(fileBuffer);
+        observations = parseYouTube(fileBuffer, userTimezone);
         break;
       case 'discord':
-        observations = parseDiscord(fileBuffer);
+        observations = parseDiscord(fileBuffer, userTimezone);
         break;
       case 'reddit':
         observations = parseReddit(fileBuffer);
@@ -3957,7 +3993,7 @@ export async function processGdprImport(userId, platform, fileBuffer, fileName) 
         observations = parseAndroidUsage(fileBuffer);
         break;
       case 'google_search':
-        observations = parseGoogleSearch(fileBuffer);
+        observations = parseGoogleSearch(fileBuffer, userTimezone);
         break;
       case 'whatsapp':
         observations = parseWhatsApp(fileBuffer);
@@ -3984,7 +4020,7 @@ export async function processGdprImport(userId, platform, fileBuffer, fileName) 
         observations = parseGoodreads(fileBuffer);
         break;
       case 'netflix':
-        observations = parseNetflix(fileBuffer);
+        observations = parseNetflix(fileBuffer, userTimezone);
         break;
       case 'tiktok':
         observations = parseTikTok(fileBuffer);
