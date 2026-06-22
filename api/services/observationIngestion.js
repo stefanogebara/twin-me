@@ -357,6 +357,12 @@ async function runObservationIngestion(options = {}) {
     processedUserIds: [],
   };
 
+  // Per-user background side-effects (insights, nudges, goals, metrics, cache
+  // warming) are launched concurrently during the loop but collected here so they
+  // are awaited before returning — on Vercel/Inngest the function freezes once
+  // this promise resolves, killing any still-detached work mid-write (audit).
+  const backgroundJobs = [];
+
   try {
     const supabase = await getSupabase();
     if (!supabase) {
@@ -538,7 +544,10 @@ async function runObservationIngestion(options = {}) {
               const errSupabase = await getSupabase();
               if (errSupabase) {
                 const nowIso = new Date().toISOString();
-                errSupabase
+                // Awaited (not fire-and-forget) so it flushes before the handler
+                // returns on Vercel/Inngest, and so a write failure is surfaced
+                // rather than vanishing as an unhandled rejection (audit).
+                const { error: statusWriteErr } = await errSupabase
                   .from('platform_connections')
                   .update({
                     last_sync_at: nowIso,
@@ -548,8 +557,10 @@ async function runObservationIngestion(options = {}) {
                     updated_at: nowIso,
                   })
                   .eq('user_id', userId)
-                  .eq('platform', platform)
-                  .then(() => {});
+                  .eq('platform', platform);
+                if (statusWriteErr) {
+                  log.warn('Failed to persist fetch error status', { platform, userId, error: statusWriteErr.message });
+                }
               }
             } catch (writeErr) {
               log.warn('Failed to persist fetch error status', { platform, userId, error: writeErr.message });
@@ -732,28 +743,31 @@ async function runObservationIngestion(options = {}) {
             log.warn('Reflection check failed', { userId, error: reflErr });
           }
 
-          // After reflection trigger, also generate proactive insights
-          generateProactiveInsights(userId).catch(err =>
+          // After reflection trigger, also generate proactive insights. These
+          // per-user side-effects run concurrently but are collected into
+          // backgroundJobs so they are awaited before the handler returns
+          // (Vercel/Inngest kills detached promises once the function resolves).
+          backgroundJobs.push(generateProactiveInsights(userId).catch(err =>
             log.warn('Proactive insights failed', { userId, error: err })
-          );
+          ));
 
-          // Evaluate nudge outcomes: check if user followed through on past suggestions (non-blocking)
-          evaluateNudgeOutcomes(userId).catch(err =>
+          // Evaluate nudge outcomes: check if user followed through on past suggestions
+          backgroundJobs.push(evaluateNudgeOutcomes(userId).catch(err =>
             log.warn('Nudge evaluation failed', { userId, error: err })
-          );
+          ));
 
-          // Track goal progress from ingested platform data (non-blocking)
-          trackGoalProgress(userId, null).catch(err =>
+          // Track goal progress from ingested platform data
+          backgroundJobs.push(trackGoalProgress(userId, null).catch(err =>
             log.warn('Goal tracking failed', { userId, error: err })
-          );
+          ));
 
           // Generate goal suggestions based on observed patterns (throttled: max once/24h)
-          generateGoalSuggestions(userId).catch(err =>
+          backgroundJobs.push(generateGoalSuggestions(userId).catch(err =>
             log.warn('Goal suggestions failed', { userId, error: err })
-          );
+          ));
 
-          // Update activity metrics for all connected platforms (non-blocking)
-          calculateAllActivityMetrics(userId).then(async () => {
+          // Update activity metrics for all connected platforms
+          backgroundJobs.push(calculateAllActivityMetrics(userId).then(async () => {
             // After metrics updated, check for anomalies per platform
             try {
               const sb = await getSupabase();
@@ -765,13 +779,16 @@ async function runObservationIngestion(options = {}) {
                 const anomaly = await detectActivityAnomaly(userId, conn.platform, conn.content_volume || 0);
                 if (anomaly?.anomaly) {
                   // Store as proactive insight
-                  await sb.from('proactive_insights').insert({
+                  const { error: anomalyInsErr } = await sb.from('proactive_insights').insert({
                     user_id: userId,
                     category: 'activity_anomaly',
                     content: anomaly.message,
                     urgency: 'medium',
                     metadata: { platform: conn.platform, zScore: anomaly.zScore, direction: anomaly.direction },
-                  }).catch(() => {});
+                  });
+                  if (anomalyInsErr) {
+                    log.warn('Anomaly insight insert failed', { userId, platform: conn.platform, error: anomalyInsErr.message });
+                  }
                 }
               }
             } catch (e) {
@@ -779,7 +796,7 @@ async function runObservationIngestion(options = {}) {
             }
           }).catch(err =>
             log.warn('Activity metrics update failed', { userId, error: err })
-          );
+          ));
 
           // Regenerate twin summary after a delay to allow reflections to complete
           const summaryTimer = setTimeout(() => {
@@ -810,13 +827,18 @@ async function runObservationIngestion(options = {}) {
     errors: stats.errors.length,
   });
 
-  // Pre-warm caches for users who had new data stored (fire-and-forget)
+  // Pre-warm caches for users who had new data stored. Collected into
+  // backgroundJobs so it completes before the handler returns (audit).
   if (stats.observationsStored > 0) {
-    import('./cacheWarmer.js').then(({ warmUserCaches }) => {
-      for (const userId of stats.processedUserIds || []) {
-        warmUserCaches(userId, 'observation-ingestion').catch(() => {});
-      }
-    }).catch(() => {});
+    backgroundJobs.push(
+      import('./cacheWarmer.js')
+        .then(({ warmUserCaches }) =>
+          Promise.allSettled((stats.processedUserIds || []).map(uid =>
+            warmUserCaches(uid, 'observation-ingestion')
+          ))
+        )
+        .catch(err => log.warn('Cache warm failed', { error: err?.message }))
+    );
   }
 
   // Log to ingestion_health_log
@@ -840,6 +862,14 @@ async function runObservationIngestion(options = {}) {
     }
   } catch (healthLogErr) {
     log.warn('Health logging error (non-fatal)', { error: healthLogErr });
+  }
+
+  // Await all per-user background side-effects before returning, so Vercel/Inngest
+  // does not freeze the function and kill them mid-flight (audit). On the per-user
+  // Inngest path this is bounded to one user's jobs; reflections remain detached
+  // by design (heavy, with their own retry/cron handling).
+  if (backgroundJobs.length > 0) {
+    await Promise.allSettled(backgroundJobs);
   }
 
   return stats;
