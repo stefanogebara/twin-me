@@ -247,7 +247,9 @@ router.post('/upload', authenticateUser, uploadLimiter, uploadSingleFile('file')
 
     if (insertErr) {
       log.error('insert failed', insertErr);
-      return res.status(500).json({ success: false, error: 'Failed to save transactions', detail: insertErr.message });
+      // Use safeError so raw Postgres/PostgREST internals (table/column/constraint
+      // names) are stripped in production instead of being echoed to the client (audit).
+      return res.status(500).json(safeError('Failed to save transactions', insertErr));
     }
 
     const insertedIds = (inserted || []).map((r) => r.id);

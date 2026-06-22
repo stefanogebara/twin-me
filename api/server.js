@@ -264,6 +264,8 @@ app.post('/api/chat/message', aiLimiter);
 app.get('/api/chat/intro', aiLimiter);    // Generates a personalised first message (LLM)
 app.use('/api/soul-extraction/', aiLimiter); // LLM-powered extraction endpoints
 app.post('/api/desktop/observe-summary', aiLimiter); // UNAUTHENTICATED LLM endpoint — cap OpenRouter cost-amplification
+app.use('/api/extension/batch', aiLimiter);   // batch ingest fans out embedding + importance LLM calls — cap cost (audit)
+app.use('/api/extension/analyze', aiLimiter); // LLM/integration analysis endpoint — cap cost (audit)
 
 // Global request timeout to prevent hanging on DB outages
 // Longer timeout in dev when Cloudflare workaround adds latency per query

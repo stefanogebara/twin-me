@@ -121,6 +121,19 @@ function setupBotHandlers() {
         return;
       }
 
+      // Dedup retries + apply the SAME per-user burst guard the text handler uses
+      // (audit: the callback path bypassed both, so a linked user could burst the
+      // LLM twin pipeline by sending quick_reply_ callbacks instead of text).
+      const cbId = String(ctx.callbackQuery.id);
+      if (processedMessages.has(cbId)) return;
+      processedMessages.add(cbId);
+      setTimeout(() => processedMessages.delete(cbId), DEDUP_TTL_MS);
+
+      if (isRateLimited(quickReplyChannel.user_id)) {
+        await ctx.reply('Slow down a bit. Too many messages.');
+        return;
+      }
+
       // Process through the twin chat pipeline directly (grammY does not re-dispatch)
       try {
         const typingInterval = setInterval(() => {

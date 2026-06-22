@@ -202,6 +202,11 @@ router.post('/capture/:platform', authenticateUser, async (req, res) => {
   }
 });
 
+// Cap on how many events per batch drive the embedding + importance-LLM fan-out.
+// Storage is uncapped (cheap); this bounds the expensive enrichment so a large
+// (up to 5mb) batch can't trigger thousands of paid LLM calls in one request (audit).
+const MAX_LLM_INGEST_EVENTS = 200;
+
 /**
  * POST /api/extension/batch
  * Receive batch sync from extension (multiple events, possibly mixed platforms)
@@ -473,7 +478,14 @@ router.post('/batch', authenticateUser, async (req, res) => {
           },
         };
       });
-      ingestWebObservations(userId, normalised).catch(err =>
+      // Bound the LLM/embedding fan-out per request (each observation costs an
+      // embedding + an importance-rating LLM call); storage above the cap still
+      // happens, only enrichment is capped (audit: cost-amplification on /batch).
+      const cappedWeb = normalised.slice(0, MAX_LLM_INGEST_EVENTS);
+      if (normalised.length > cappedWeb.length) {
+        log.warn('Web ingest truncated for LLM fan-out', { received: normalised.length, processed: cappedWeb.length, userId });
+      }
+      ingestWebObservations(userId, cappedWeb).catch(err =>
         log.warn('Web observation ingestion failed (non-fatal):', err.message)
       );
     }
@@ -525,7 +537,11 @@ router.post('/batch', authenticateUser, async (req, res) => {
           },
         };
       });
-      ingestWebObservations(userId, observations).catch(err =>
+      const cappedStream = observations.slice(0, MAX_LLM_INGEST_EVENTS);
+      if (observations.length > cappedStream.length) {
+        log.warn('Streaming ingest truncated for LLM fan-out', { received: observations.length, processed: cappedStream.length, userId });
+      }
+      ingestWebObservations(userId, cappedStream).catch(err =>
         log.warn(`${streamPlatform} observation ingestion failed (non-fatal):`, err.message)
       );
 
