@@ -65,6 +65,36 @@ export function getHourInTimeZone(date, timeZone) {
   }
 }
 
+/**
+ * Day-of-week (0=Sun..6=Sat) for a Date in the given IANA timezone. Falls back
+ * to the server-local weekday when no/invalid timezone (audit: Netflix
+ * day-of-week rollup bucketed on the server's UTC weekday). Exported for testing.
+ */
+export function getDayInTimeZone(date, timeZone) {
+  if (!date || isNaN(date.getTime())) return 0;
+  if (!timeZone) return date.getDay();
+  try {
+    const wd = new Intl.DateTimeFormat('en-US', { timeZone, weekday: 'short' }).format(date);
+    const idx = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(wd);
+    return idx >= 0 ? idx : date.getDay();
+  } catch {
+    return date.getDay();
+  }
+}
+
+/**
+ * "Mon YYYY" label for a Date in the given IANA timezone (falls back to
+ * server-local). Exported for testing. (audit: individual-entry month/year
+ * labels rendered in the server's UTC month, off-by-one near month boundaries.)
+ */
+export function monthYearInTimeZone(date, timeZone) {
+  try {
+    return date.toLocaleString('en-US', { timeZone: timeZone || undefined, month: 'short', year: 'numeric' });
+  } catch {
+    return date.toLocaleString('en-US', { month: 'short', year: 'numeric' });
+  }
+}
+
 /** Fetch a user's IANA timezone (public.users.timezone), or null. */
 async function getUserTimezone(userId) {
   try {
@@ -1150,6 +1180,22 @@ function parseAppleDate(str) {
   }
 }
 
+/**
+ * Local calendar-day key ("YYYY-MM-DD") for an Apple Health record. The raw
+ * HealthKit startDate string ("YYYY-MM-DD HH:MM:SS ±HHMM") is already in the
+ * user's local time, so slice it directly; fall back to the absolute Date's UTC
+ * day only when the raw string is malformed. (audit: keying on
+ * date.toISOString() put late-evening local records on the next UTC day,
+ * corrupting daily step/energy totals and the step streak for non-UTC users.)
+ * Exported for testing.
+ */
+export function appleDayKey(startStr, date) {
+  if (typeof startStr === 'string' && /^\d{4}-\d{2}-\d{2}/.test(startStr)) {
+    return startStr.substring(0, 10);
+  }
+  return date ? date.toISOString().substring(0, 10) : '';
+}
+
 /** Format a month/year string for observation text, e.g. "Jan 2024". */
 function fmtAppleMonth(d) {
   return `${d.toLocaleString('default', { month: 'short' })} ${d.getFullYear()}`;
@@ -1217,7 +1263,7 @@ function parseAppleHealth(buffer) {
     if (type === 'HKQuantityTypeIdentifierStepCount') {
       const steps = parseFloat(valueStr);
       if (!isNaN(steps) && date) {
-        const dayKey = date.toISOString().substring(0, 10);
+        const dayKey = appleDayKey(startStr, date);
         dailySteps[dayKey] = (dailySteps[dayKey] || 0) + steps;
       }
 
@@ -1242,7 +1288,7 @@ function parseAppleHealth(buffer) {
     } else if (type === 'HKQuantityTypeIdentifierActiveEnergyBurned') {
       const kcal = parseFloat(valueStr);
       if (!isNaN(kcal) && kcal > 0 && date) {
-        const dayKey = date.toISOString().substring(0, 10);
+        const dayKey = appleDayKey(startStr, date);
         dailyActiveEnergy[dayKey] = (dailyActiveEnergy[dayKey] || 0) + kcal;
       }
 
@@ -1283,7 +1329,7 @@ function parseAppleHealth(buffer) {
       if (start && end) {
         const minutes = (end.getTime() - start.getTime()) / 60_000;
         if (minutes > 0.2 && minutes < 180) {
-          mindfulnessSessions.push({ minutes, date: start });
+          mindfulnessSessions.push({ minutes, date: start, dayKey: appleDayKey(startStr, start) });
         }
       }
     }
@@ -1563,7 +1609,7 @@ function parseAppleHealth(buffer) {
   // Mindfulness — mental-health practice signal.
   if (mindfulnessSessions.length > 0) {
     const totalMin = mindfulnessSessions.reduce((a, s) => a + s.minutes, 0);
-    const days = new Set(mindfulnessSessions.map(s => s.date.toISOString().substring(0, 10))).size;
+    const days = new Set(mindfulnessSessions.map(s => s.dayKey)).size;
     const avgSessionMin = totalMin / mindfulnessSessions.length;
     const descriptor = days >= 100 ? 'sustained meditation practice'
       : days >= 30 ? 'regular mindfulness habit'
@@ -2582,9 +2628,7 @@ function parseGoogleSearch(buffer, timezone) {
     })
     .slice(0, MAX_INDIVIDUAL)
     .map(({ query, when }) => {
-      const monthYear = when
-        ? `${when.toLocaleString('default', { month: 'short' })} ${when.getFullYear()}`
-        : '';
+      const monthYear = when ? monthYearInTimeZone(when, timezone) : '';
       return monthYear
         ? `Searched for: ${query.slice(0, 100)} (${monthYear})`
         : `Searched for: ${query.slice(0, 100)}`;
@@ -2983,7 +3027,7 @@ function parseNetflix(buffer, timezone) {
       const d = new Date(startStr);
       if (!Number.isNaN(d.getTime())) {
         hourBuckets[getHourInTimeZone(d, timezone)] += 1;
-        dayOfWeekBuckets[d.getDay()] += 1;
+        dayOfWeekBuckets[getDayInTimeZone(d, timezone)] += 1;
       }
     }
   }
