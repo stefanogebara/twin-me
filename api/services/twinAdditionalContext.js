@@ -13,6 +13,7 @@
 
 import { computeAlpha } from './memoryStreamService.js';
 import { deduplicateByTheme } from './twinSystemPromptBuilder.js';
+import { fenceUntrustedContext } from './promptFencing.js';
 import { createLogger } from './logger.js';
 
 const log = createLogger('TwinAdditionalContext');
@@ -65,7 +66,10 @@ function formatExpertMemories({ expertMemories, expertRoutingResult }) {
     );
     injected.push(...obs);
   }
-  return { text: parts.length ? '\n\n' + parts.join('\n\n') : '', injected };
+  // Fence the expert block — it carries raw platform/observation/conversation
+  // content (untrusted) that could smuggle instructions. This block is appended
+  // AFTER the main system-prompt fence, so it must carry its own (audit: M1.2 bypass).
+  return { text: parts.length ? '\n\n' + fenceUntrustedContext(parts.join('\n\n')) : '', injected };
 }
 
 function formatReflections(reflections) {
@@ -179,14 +183,14 @@ export function buildAdditionalContext({
   text += memoryStreamBlock.text;
   memoriesInContext.push(...memoryStreamBlock.injected);
 
-  if (enrichmentContext) text += `\n\nWhat I know about myself (from profile discovery):\n${enrichmentContext}`;
+  if (enrichmentContext) text += `\n\n${fenceUntrustedContext(`What I know about myself (from profile discovery):\n${enrichmentContext}`)}`;
   if (activeGoals) text += `\n\n${activeGoals}`;
   text += formatPatternsBlock(patterns);
 
   let creativityLog = null;
   if (creativityResult) {
     const { novelMemories, avgLz } = creativityResult;
-    text += `\n\n[Creativity spark — rarely recalled memories]:\n${novelMemories.map(m => `- ${m.content.substring(0, 200)}`).join('\n')}`;
+    text += `\n\n${fenceUntrustedContext(`[Creativity spark — rarely recalled memories]:\n${novelMemories.map(m => `- ${m.content.substring(0, 200)}`).join('\n')}`)}`;
     memoriesInContext.push(...novelMemories);
     creativityLog = `Creativity boost: injected ${novelMemories.length} novel memories (avgLZ=${avgLz.toFixed(2)})`;
   }
