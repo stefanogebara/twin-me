@@ -13,7 +13,7 @@ const getAuthHeaders = () => {
 
 // Autonomy level labels and colors
 const AUTONOMY_LEVELS = [
-  { label: 'Observe', short: 'OBS', color: 'rgba(255,255,255,0.2)' },
+  { label: 'Observe', short: 'OBS', color: 'rgba(255, 255, 255, 0.55)' },
   { label: 'Suggest', short: 'SUG', color: 'rgba(232,224,212,0.4)' },
   { label: 'Draft', short: 'DFT', color: 'rgba(232,224,212,0.5)' },
   { label: 'Act & Notify', short: 'ACT', color: 'rgba(232,224,212,0.7)' },
@@ -104,7 +104,7 @@ const AutonomySettings: React.FC = () => {
           className="w-4 h-4 rounded-full animate-pulse"
           style={{ background: 'var(--glass-surface-border)' }}
         />
-        <span className="text-[12px]" style={{ color: 'rgba(255,255,255,0.3)' }}>
+        <span className="text-[12px]" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
           Loading skills...
         </span>
       </div>
@@ -114,7 +114,7 @@ const AutonomySettings: React.FC = () => {
   if (skills.length === 0) {
     return (
       <div className="py-4">
-        <p className="text-[13px]" style={{ color: 'rgba(255,255,255,0.3)', fontFamily: 'Inter, sans-serif' }}>
+        <p className="text-[13px]" style={{ color: 'rgba(255, 255, 255, 0.55)', fontFamily: 'Inter, sans-serif' }}>
           Agentic skills unlock as your twin builds a picture of your routines. Check back once you have a few days of platform data.
         </p>
       </div>
@@ -144,7 +144,7 @@ const AutonomySettings: React.FC = () => {
         style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-glass)' }}
       >
         <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" style={{ color: 'var(--accent-vibrant)' }} />
-        <p className="text-[12px] leading-relaxed" style={{ color: 'rgba(255,255,255,0.4)' }}>
+        <p className="text-[12px] leading-relaxed" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
           Fine-grained skill controls. To adjust how your twin acts day to day, just <Link to="/talk-to-twin" className="underline" style={{ color: 'var(--accent-vibrant)' }}>talk to your twin</Link>.
         </p>
       </div>
@@ -153,12 +153,12 @@ const AutonomySettings: React.FC = () => {
         <div key={category} className="mb-4 last:mb-0">
           {/* Category header */}
           <div className="flex items-center gap-2 mb-2">
-            <span style={{ color: 'rgba(255,255,255,0.25)' }}>
+            <span style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
               {CATEGORY_ICONS[category] || <Bot className="w-3.5 h-3.5" />}
             </span>
             <span
               className="text-[11px] font-medium uppercase tracking-wider"
-              style={{ color: 'rgba(255,255,255,0.25)' }}
+              style={{ color: 'rgba(255, 255, 255, 0.55)' }}
             >
               {categoryLabels[category] || category}
             </span>
@@ -204,7 +204,7 @@ const SkillRow: React.FC<SkillRowProps> = ({ skill, isUpdating, onLevelChange })
           </span>
           <p
             className="text-[11px] mt-0.5 truncate"
-            style={{ color: 'rgba(255,255,255,0.3)' }}
+            style={{ color: 'rgba(255, 255, 255, 0.55)' }}
           >
             {skill.description}
           </p>

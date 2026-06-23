@@ -38,7 +38,7 @@ const DataConsentSettings: React.FC<DataConsentSettingsProps> = ({
           Data Consent
         </h2>
       </div>
-      <p className="text-sm mb-4" style={{ fontFamily: "'Inter', sans-serif", color: 'rgba(255,255,255,0.4)' }}>
+      <p className="text-sm mb-4" style={{ fontFamily: "'Inter', sans-serif", color: 'rgba(255, 255, 255, 0.55)' }}>
         Manage the permissions you've granted for platform data access.
       </p>
 
@@ -50,7 +50,7 @@ const DataConsentSettings: React.FC<DataConsentSettingsProps> = ({
         <div
           className="text-sm py-4 text-center rounded-xl"
           style={{
-            color: 'rgba(255,255,255,0.4)',
+            color: 'rgba(255, 255, 255, 0.55)',
             backgroundColor: 'rgba(255, 255, 255, 0.03)',
           }}
         >
@@ -73,7 +73,7 @@ const DataConsentSettings: React.FC<DataConsentSettingsProps> = ({
                     ? `${consent.platform.charAt(0).toUpperCase() + consent.platform.slice(1).replace(/_/g, ' ')} - ${consent.consent_type.replace(/_/g, ' ')}`
                     : consent.consent_type.replace(/_/g, ' ')}
                 </h3>
-                <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                <p className="text-xs" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
                   Granted {consent.granted_at ? new Date(consent.granted_at).toLocaleDateString() : 'N/A'}
                   {' '}&middot; v{consent.consent_version}
                 </p>

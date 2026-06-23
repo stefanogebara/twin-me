@@ -79,7 +79,7 @@ const UserRulesSettings: React.FC = () => {
     return (
       <div className="flex items-center gap-2 py-4 justify-center">
         <div className="w-4 h-4 rounded-full animate-pulse" style={{ background: 'var(--glass-surface-border)' }} />
-        <span className="text-[12px]" style={{ color: 'rgba(255,255,255,0.3)' }}>Loading rules...</span>
+        <span className="text-[12px]" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>Loading rules...</span>
       </div>
     );
   }
@@ -91,8 +91,8 @@ const UserRulesSettings: React.FC = () => {
         className="flex items-start gap-3 mb-4 p-3 rounded-xl"
         style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-glass)' }}
       >
-        <Shield className="w-4 h-4 mt-0.5 shrink-0" style={{ color: 'rgba(255,255,255,0.4)' }} />
-        <p className="text-[12px] leading-relaxed" style={{ color: 'rgba(255,255,255,0.4)' }}>
+        <Shield className="w-4 h-4 mt-0.5 shrink-0" style={{ color: 'rgba(255, 255, 255, 0.55)' }} />
+        <p className="text-[12px] leading-relaxed" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
           Rules your twin will <strong style={{ color: 'rgba(255,255,255,0.6)' }}>always</strong> follow.
           Say things like "I'm vegan" or "Never mention my ex". You can also tell your twin in chat.
         </p>
@@ -107,7 +107,7 @@ const UserRulesSettings: React.FC = () => {
               className="flex items-center gap-2 py-2 px-3 rounded-lg group"
               style={{ background: 'rgba(255,255,255,0.03)' }}
             >
-              <Check className="w-3 h-3 shrink-0" style={{ color: 'rgba(255,255,255,0.2)' }} />
+              <Check className="w-3 h-3 shrink-0" style={{ color: 'rgba(255, 255, 255, 0.55)' }} />
               <span className="text-[13px] flex-1" style={{ color: 'rgba(255,255,255,0.6)' }}>
                 {rule}
               </span>
@@ -117,13 +117,13 @@ const UserRulesSettings: React.FC = () => {
                 aria-label={`Remove rule: ${rule}`}
                 title="Remove rule"
               >
-                <X className="w-3 h-3" style={{ color: 'rgba(255,255,255,0.3)' }} aria-hidden="true" />
+                <X className="w-3 h-3" style={{ color: 'rgba(255, 255, 255, 0.55)' }} aria-hidden="true" />
               </button>
             </div>
           ))}
         </div>
       ) : (
-        <p className="text-[12px] text-center py-3 mb-3" style={{ color: 'rgba(255,255,255,0.2)' }}>
+        <p className="text-[12px] text-center py-3 mb-3" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
           No rules yet. Add one below or tell your twin in chat.
         </p>
       )}
@@ -160,7 +160,7 @@ const UserRulesSettings: React.FC = () => {
         <p className="text-[11px] mt-2" style={{ color: 'rgba(239,68,68,0.7)' }}>{error}</p>
       )}
 
-      <p className="text-[10px] mt-2" style={{ color: 'rgba(255,255,255,0.15)' }}>
+      <p className="text-[10px] mt-2" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
         {rules.length}/{maxRules} rules
       </p>
     </div>

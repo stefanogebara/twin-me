@@ -101,7 +101,7 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
         <button
           onClick={() => refetch()}
           className="p-1.5 rounded-lg transition-opacity hover:opacity-60"
-          style={{ color: 'rgba(255,255,255,0.25)' }}
+          style={{ color: 'rgba(255, 255, 255, 0.55)' }}
           aria-label="Refresh platform connection status"
           title="Refresh status"
         >
@@ -118,7 +118,7 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
 
       {isLoading ? (
         <div className="flex items-center justify-center py-6">
-          <Loader2 className="w-4 h-4 animate-spin" style={{ color: 'rgba(255,255,255,0.2)' }} />
+          <Loader2 className="w-4 h-4 animate-spin" style={{ color: 'rgba(255, 255, 255, 0.55)' }} />
         </div>
       ) : (
         <div className="space-y-0">
@@ -142,7 +142,7 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
                     <span className="text-sm" style={{ color: 'var(--foreground)' }}>
                       {connector.name}
                     </span>
-                    <p className="text-[11px] truncate" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                    <p className="text-[11px] truncate" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
                       {connector.description}
                     </p>
                   </div>
@@ -184,7 +184,7 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
                     </>
                   ) : (
                     <>
-                      <XCircle className="w-3.5 h-3.5" style={{ color: 'rgba(255,255,255,0.15)' }} />
+                      <XCircle className="w-3.5 h-3.5" style={{ color: 'rgba(255, 255, 255, 0.55)' }} />
                       <button
                         onClick={() => navigate('/get-started')}
                         className="text-[11px]"
@@ -212,7 +212,7 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
                     {PLATFORM_DISPLAY_NAMES[platform] ||
                       platform.replace(/_/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase())}
                   </span>
-                  <p className="text-[11px] truncate" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                  <p className="text-[11px] truncate" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
                     No longer supported — your past data stays in your twin
                   </p>
                 </div>

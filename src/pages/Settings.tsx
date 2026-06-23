@@ -28,7 +28,7 @@ const getAuthHeaders = () => {
 const SectionLabel: React.FC<{ label: string }> = ({ label }) => (
   <h2
     className="text-[11px] font-medium tracking-[0.1em] uppercase block mb-4"
-    style={{ color: 'rgba(255,255,255,0.3)', fontFamily: 'Inter, sans-serif', fontSize: '11px', lineHeight: 'normal' }}
+    style={{ color: 'rgba(255, 255, 255, 0.55)', fontFamily: 'Inter, sans-serif', fontSize: '11px', lineHeight: 'normal' }}
   >
     {label}
   </h2>
@@ -52,7 +52,7 @@ const SettingsRow: React.FC<{
     <div className="min-w-0 flex-1">
       <span className="text-[14px]" style={{ color: 'var(--foreground)' }}>{label}</span>
       {description && (
-        <p className="text-[12px] mt-0.5 line-clamp-2 sm:truncate" style={{ color: 'rgba(255,255,255,0.3)' }}>{description}</p>
+        <p className="text-[12px] mt-0.5 line-clamp-2 sm:truncate" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>{description}</p>
       )}
     </div>
     <div className="flex-shrink-0">
@@ -152,7 +152,7 @@ const TelegramConnect: React.FC = () => {
     }
   };
 
-  if (loading) return <div className="py-4 text-center text-[12px]" style={{ color: 'rgba(255,255,255,0.3)' }}>Loading...</div>;
+  if (loading) return <div className="py-4 text-center text-[12px]" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>Loading...</div>;
 
   return (
     <div>
@@ -161,7 +161,7 @@ const TelegramConnect: React.FC = () => {
           <Send className="w-4 h-4 flex-shrink-0" style={{ color: 'rgba(245,245,244,0.45)' }} />
           <div className="min-w-0">
             <span className="text-sm" style={{ color: 'var(--foreground)' }}>Telegram</span>
-            <p className="text-[12px] mt-0.5 truncate" style={{ color: 'rgba(255,255,255,0.3)' }}>
+            <p className="text-[12px] mt-0.5 truncate" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
               {status?.linked ? 'Connected — twin sends insights here' : 'Chat with your twin on Telegram'}
             </p>
           </div>
@@ -174,7 +174,7 @@ const TelegramConnect: React.FC = () => {
             <button
               onClick={handleUnlink}
               className="text-[11px] transition-opacity hover:opacity-60"
-              style={{ color: 'rgba(255,255,255,0.3)' }}
+              style={{ color: 'rgba(255, 255, 255, 0.55)' }}
             >
               Unlink
             </button>
@@ -200,8 +200,8 @@ const TelegramConnect: React.FC = () => {
             </span>
           </div>
           <div className="flex items-start gap-2">
-            <ExternalLink className="w-3.5 h-3.5 mt-0.5 shrink-0" style={{ color: 'rgba(255,255,255,0.3)' }} />
-            <p className="text-[12px] leading-relaxed" style={{ color: 'rgba(255,255,255,0.4)' }}>
+            <ExternalLink className="w-3.5 h-3.5 mt-0.5 shrink-0" style={{ color: 'rgba(255, 255, 255, 0.55)' }} />
+            <p className="text-[12px] leading-relaxed" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
               Open Telegram, search for <strong style={{ color: 'rgba(255,255,255,0.6)' }}>@{botUsername}</strong>, and send: <strong style={{ color: 'rgba(255,255,255,0.6)' }}>/start {linkCode}</strong>
             </p>
           </div>
@@ -467,7 +467,7 @@ const Settings = () => {
           border: '1px solid rgba(255,255,255,0.10)',
         }}
       >
-        <label className="block text-[11px] mb-1 tracking-[0.1em] uppercase" style={{ color: 'rgba(255,255,255,0.3)' }}>
+        <label className="block text-[11px] mb-1 tracking-[0.1em] uppercase" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
           Jump to
         </label>
         <select
@@ -565,7 +565,7 @@ const Settings = () => {
                   : 'Managed via OAuth'
           }
         >
-          <span className="text-[14px]" style={{ color: 'rgba(255,255,255,0.3)' }}>
+          <span className="text-[14px]" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
             {user?.oauthProvider === 'magic_link'
               ? 'Email'
               : user?.oauthProvider
@@ -779,11 +779,11 @@ const Settings = () => {
         >
           <div className="min-w-0 flex-1">
             <span className="text-[14px]" style={{ color: 'var(--foreground)' }}>Privacy Spectrum</span>
-            <p className="text-[12px] mt-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>
+            <p className="text-[12px] mt-0.5" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
               Control what your twin knows and shares
             </p>
           </div>
-          <ArrowRight className="w-4 h-4 flex-shrink-0" style={{ color: 'rgba(255,255,255,0.3)' }} />
+          <ArrowRight className="w-4 h-4 flex-shrink-0" style={{ color: 'rgba(255, 255, 255, 0.55)' }} />
         </button>
 
         <SettingsRow label="Export My Data">
@@ -839,7 +839,7 @@ const Settings = () => {
                 <button
                   onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText(''); }}
                   className="text-[12px] transition-opacity hover:opacity-60 flex-shrink-0"
-                  style={{ color: 'rgba(255,255,255,0.3)' }}
+                  style={{ color: 'rgba(255, 255, 255, 0.55)' }}
                 >
                   Cancel
                 </button>
@@ -863,22 +863,22 @@ const Settings = () => {
             onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
           >
             <div className="flex items-center gap-3 min-w-0 flex-1">
-              <Brain className="w-4 h-4 flex-shrink-0" style={{ color: 'rgba(255,255,255,0.3)' }} />
+              <Brain className="w-4 h-4 flex-shrink-0" style={{ color: 'rgba(255, 255, 255, 0.55)' }} />
               <div className="min-w-0">
                 <span className="text-[14px]" style={{ color: 'var(--foreground)' }}>Memory Explorer</span>
-                <p className="text-[12px] mt-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                <p className="text-[12px] mt-0.5" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
                   Browse and search your raw memory stream
                 </p>
               </div>
             </div>
-            <ArrowRight className="w-4 h-4 flex-shrink-0" style={{ color: 'rgba(255,255,255,0.3)' }} />
+            <ArrowRight className="w-4 h-4 flex-shrink-0" style={{ color: 'rgba(255, 255, 255, 0.55)' }} />
           </button>
         </div>
       </section>
 
       {/* Footer */}
       <div className="mt-16 text-center">
-        <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.15)' }}>
+        <span className="text-[11px]" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
           TwinMe v0.9
         </span>
       </div>
