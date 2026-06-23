@@ -208,7 +208,16 @@ const PlatformCard = ({
         style={{
           borderColor: dragging ? 'rgba(255,255,255,0.30)' : 'rgba(255,255,255,0.14)',
         }}
+        role="button"
+        tabIndex={0}
+        aria-label={`Upload ${config.label} export`}
         onClick={() => inputRef.current?.click()}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            inputRef.current?.click();
+          }
+        }}
         onDrop={onDrop}
         onDragOver={onDragOver}
         onDragLeave={onDragLeave}

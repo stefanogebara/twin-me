@@ -105,7 +105,7 @@ export const ArchetypeReveal: React.FC<ArchetypeRevealProps> = ({
             fontFamily: "'Inter', sans-serif",
           }}
         >
-          Enter your Twin
+          View your Soul Signature
           <ArrowRight className="w-4 h-4" />
         </button>
       </div>

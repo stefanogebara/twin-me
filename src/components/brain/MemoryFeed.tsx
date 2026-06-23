@@ -64,12 +64,21 @@ const MemoryFeed: React.FC<MemoryFeedProps> = ({
             return (
               <div
                 key={memory.id}
+                role="button"
+                tabIndex={0}
+                aria-expanded={isExpanded}
                 className="cursor-pointer transition-colors"
                 style={{
                   borderBottom: isLast ? 'none' : '1px solid var(--sidebar)',
                   background: isExpanded ? 'rgba(255,255,255,0.03)' : 'transparent',
                 }}
                 onClick={() => onToggleExpand(memory.id)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onToggleExpand(memory.id);
+                  }
+                }}
                 onMouseEnter={(e) => {
                   if (!isExpanded) {
                     e.currentTarget.style.background = 'rgba(255,255,255,0.03)';

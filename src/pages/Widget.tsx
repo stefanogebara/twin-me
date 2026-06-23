@@ -121,6 +121,30 @@ const Widget = () => {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [isPanel]);
 
+  // In panel mode the webview IS the 460x600 overlay, so a normal SPA
+  // navigation would replace the chat with the full sidebar app crammed into
+  // the tiny panel. Instead open the full app in the OS browser: prefer the
+  // Tauri shell/opener command, fall back to window.open. No-op concern in a
+  // normal browser — there the <Link> handles it and this never runs.
+  const openFullApp = useCallback((e: React.MouseEvent) => {
+    if (!isPanel) return; // let the <Link> navigate normally in a browser
+    e.preventDefault();
+    const fullAppUrl = `${window.location.origin}/talk-to-twin`;
+    const tauri = (window as unknown as {
+      __TAURI__?: { core?: { invoke?: (cmd: string, args?: unknown) => Promise<unknown> } };
+    }).__TAURI__?.core;
+    if (tauri?.invoke) {
+      // Tauri v2 shell/opener plugin command.
+      tauri.invoke('plugin:opener|open_url', { url: fullAppUrl })
+        .catch(() => {
+          tauri.invoke('plugin:shell|open', { path: fullAppUrl })
+            .catch(() => { window.open(fullAppUrl, '_blank', 'noopener,noreferrer'); });
+        });
+    } else {
+      window.open(fullAppUrl, '_blank', 'noopener,noreferrer');
+    }
+  }, [isPanel]);
+
   const handleSendMessage = useCallback(async () => {
     const trimmed = inputMessage.trim();
     if (!trimmed || !user?.id || isTyping) return;
@@ -390,6 +414,7 @@ const Widget = () => {
         </div>
         <Link
           to="/talk-to-twin"
+          onClick={openFullApp}
           className="flex items-center gap-1.5 px-2 py-1 rounded-[6px] text-[12px] font-medium transition-colors"
           style={{ color: 'rgba(245,245,244,0.6)', fontFamily: 'Inter, sans-serif' }}
           onMouseEnter={(e) => { e.currentTarget.style.color = '#F5F5F4'; }}

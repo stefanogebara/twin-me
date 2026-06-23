@@ -417,8 +417,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Refresh token 5 minutes before expiration (access token is 30 minutes)
     const REFRESH_INTERVAL = 25 * 60 * 1000; // 25 minutes
 
-    const refreshInterval = setInterval(() => {
-      refreshAccessToken();
+    const refreshInterval = setInterval(async () => {
+      const ok = await refreshAccessToken();
+      // Stop the timer once refresh permanently fails (expired refresh cookie):
+      // further ticks only no-op against the session latch. The next real 401 drives
+      // the actual sign-out/redirect via the recovery path (audit).
+      if (!ok) clearInterval(refreshInterval);
     }, REFRESH_INTERVAL);
 
     return () => clearInterval(refreshInterval);
@@ -484,6 +488,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const probe = await fetch(finalUrl, { method: 'HEAD', redirect: 'manual' });
     if (probe.status === 429) {
       throw new Error('Too many sign-in attempts. Please wait a few minutes and try again.');
+    }
+    // Any server error must also throw rather than fall through to window.location.href,
+    // which would navigate the tab to a raw backend JSON error page with no in-app
+    // feedback — the exact failure this probe exists to prevent (audit). 0/2xx/3xx
+    // (incl. the opaqueredirect to the provider) still flow through to the redirect.
+    if (probe.status >= 500) {
+      throw new Error('Sign-in is temporarily unavailable. Please try again in a moment.');
     }
 
     // Redirect to OAuth provider

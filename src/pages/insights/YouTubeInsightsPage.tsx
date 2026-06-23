@@ -187,6 +187,7 @@ const YouTubeInsightsPage: React.FC = () => {
           <button
             onClick={() => navigate('/dashboard')}
             className="p-2 rounded-lg"
+            aria-label="Back to dashboard"
             style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
           >
             <ArrowLeft className="w-5 h-5" style={{ color: colors.text }} />
@@ -220,6 +221,7 @@ const YouTubeInsightsPage: React.FC = () => {
           disabled={isRefreshing}
           className="p-2 rounded-lg"
           title="Get a fresh observation"
+          aria-label="Refresh insights"
           style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
         >
           <RefreshCw className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`} style={{ color: colors.text }} />

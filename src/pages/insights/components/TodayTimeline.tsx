@@ -42,10 +42,33 @@ export const TodayTimeline: React.FC<TodayTimelineProps> = ({ events, colors }) 
         Today's Schedule
       </span>
       <div className="relative">
-        <div className="flex justify-between text-xs mb-2" style={{ color: 'rgba(255,255,255,0.4)' }}>
-          {['6AM', '9AM', '12PM', '3PM', '6PM', '9PM'].map(time => (
-            <span key={time}>{time}</span>
-          ))}
+        {/* Labels are absolutely positioned on the SAME 16h scale the events
+            use (6am base, /16 denominator → 10PM at 100%), so axis ticks line
+            up with event bars instead of being evenly spaced. */}
+        <div className="relative h-4 mb-2 text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
+          {[
+            { label: '6AM', hour: 6 },
+            { label: '9AM', hour: 9 },
+            { label: '12PM', hour: 12 },
+            { label: '3PM', hour: 15 },
+            { label: '6PM', hour: 18 },
+            { label: '9PM', hour: 21 },
+            { label: '10PM', hour: 22 },
+          ].map(({ label, hour }) => {
+            const pos = ((hour - 6) / 16) * 100;
+            return (
+              <span
+                key={label}
+                className="absolute whitespace-nowrap"
+                style={{
+                  left: `${pos}%`,
+                  transform: hour === 22 ? 'translateX(-100%)' : hour === 6 ? 'none' : 'translateX(-50%)',
+                }}
+              >
+                {label}
+              </span>
+            );
+          })}
         </div>
         <div
           className="h-12 rounded-lg relative overflow-hidden"
@@ -57,29 +80,31 @@ export const TodayTimeline: React.FC<TodayTimelineProps> = ({ events, colors }) 
             const startMin = parseInt(event.startTime.split(':')[1]) || 0;
             const endMin = parseInt(event.endTime.split(':')[1]) || 0;
 
-            const startPos = ((startHour - 6 + startMin / 60) / 16) * 100;
-            const width = ((endHour - startHour + (endMin - startMin) / 60) / 16) * 100;
+            const rawStartPos = ((startHour - 6 + startMin / 60) / 16) * 100;
+            const rawWidth = ((endHour - startHour + (endMin - startMin) / 60) / 16) * 100;
 
-            if (startPos >= 0 && startPos <= 100) {
-              return (
-                <div
-                  key={event.id}
-                  className="absolute h-full rounded-md flex items-center justify-center px-1 overflow-hidden"
-                  style={{
-                    left: `${Math.max(0, startPos)}%`,
-                    width: `${Math.min(width, 100 - startPos)}%`,
-                    backgroundColor: eventColors[event.type] || '#666',
-                    opacity: 0.9,
-                  }}
-                  title={`${event.title} (${event.startTime} - ${event.endTime})`}
-                >
-                  <span className="text-xs text-white truncate font-medium">
-                    {event.title.length > 12 ? event.title.slice(0, 12) + '...' : event.title}
-                  </span>
-                </div>
-              );
-            }
-            return null;
+            // Clamp events that fall outside the 6am-10pm window into the edge
+            // buckets so they stay visible instead of being silently dropped.
+            const startPos = Math.max(0, Math.min(rawStartPos, 100));
+            const width = Math.max(2, Math.min(rawWidth, 100 - startPos));
+
+            return (
+              <div
+                key={event.id}
+                className="absolute h-full rounded-md flex items-center justify-center px-1 overflow-hidden"
+                style={{
+                  left: `${startPos}%`,
+                  width: `${width}%`,
+                  backgroundColor: eventColors[event.type] || '#666',
+                  opacity: 0.9,
+                }}
+                title={`${event.title} (${event.startTime} - ${event.endTime})`}
+              >
+                <span className="text-xs text-white truncate font-medium">
+                  {event.title.length > 12 ? event.title.slice(0, 12) + '...' : event.title}
+                </span>
+              </div>
+            );
           })}
         </div>
       </div>

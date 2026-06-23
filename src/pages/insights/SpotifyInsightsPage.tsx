@@ -66,16 +66,17 @@ const SpotifyInsightsPage: React.FC = () => {
             {error}
           </p>
           <button
-            onClick={() => navigate('/get-started')}
-            className="px-4 py-2 rounded-lg"
+            onClick={refresh}
+            disabled={isRefreshing}
+            className="px-4 py-2 rounded-[100px]"
             style={{
-              backgroundColor: '#10b77f',
-              color: '#0a0f0a',
+              backgroundColor: '#F5F5F4',
+              color: '#110f0f',
               fontFamily: "'Inter', sans-serif",
               fontWeight: 500
             }}
           >
-            Connect Spotify
+            {isRefreshing ? 'Retrying...' : 'Try again'}
           </button>
         </div>
       </div>
@@ -186,7 +187,7 @@ const SpotifyInsightsPage: React.FC = () => {
         >
           <span
             className="text-[11px] font-medium tracking-widest uppercase block mb-2"
-            style={{ color: '#10b77f' }}
+            style={{ color: 'var(--accent-amber)' }}
           >
             Twin's Observation
           </span>
@@ -207,7 +208,7 @@ const SpotifyInsightsPage: React.FC = () => {
         <div className="mb-8">
           <span
             className="text-[11px] font-medium tracking-widest uppercase block mb-4"
-            style={{ color: '#10b77f' }}
+            style={{ color: 'var(--accent-amber)' }}
           >
             Patterns I've Noticed
           </span>
@@ -228,7 +229,7 @@ const SpotifyInsightsPage: React.FC = () => {
         <div>
           <span
             className="text-[11px] font-medium tracking-widest uppercase block mb-4"
-            style={{ color: '#10b77f' }}
+            style={{ color: 'var(--accent-amber)' }}
           >
             Past Observations
           </span>

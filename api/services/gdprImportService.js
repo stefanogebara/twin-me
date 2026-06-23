@@ -21,48 +21,16 @@
  */
 
 import crypto from 'crypto';
-import AdmZip from 'adm-zip';
 import { addPlatformObservation } from './memoryStreamService.js';
+import { safeAdmZip, isSafeZipEntryName } from './gdpr/zipSafety.js';
 import { shouldTriggerReflection, generateReflections } from './reflectionEngine.js';
 import { createLogger } from './logger.js';
 
 const log = createLogger('GDPRImport');
 
-// ── ZIP safety guards (ZIP-bomb + zip-slip protection) ────────────────────────
-const MAX_UNZIPPED_BYTES = 200 * 1024 * 1024; // 200 MB uncompressed cap
-const MAX_ZIP_ENTRIES = 50_000;
-
-function safeAdmZip(buffer) {
-  if (!Buffer.isBuffer(buffer) && !(buffer instanceof Uint8Array)) {
-    throw new Error('safeAdmZip: expected Buffer');
-  }
-  if (buffer.length > 150 * 1024 * 1024) {
-    throw new Error('ZIP too large (>150MB compressed)');
-  }
-  const zip = safeAdmZip(buffer);
-  const entries = zip.getEntries();
-  if (entries.length > MAX_ZIP_ENTRIES) {
-    throw new Error(`ZIP has too many entries (${entries.length} > ${MAX_ZIP_ENTRIES})`);
-  }
-  let totalUnzipped = 0;
-  for (const e of entries) {
-    totalUnzipped += e.header.size | 0;
-    if (totalUnzipped > MAX_UNZIPPED_BYTES) {
-      throw new Error(`ZIP uncompressed size exceeds ${MAX_UNZIPPED_BYTES} bytes`);
-    }
-  }
-  return zip;
-}
-
-function isSafeZipEntryName(name) {
-  if (!name || typeof name !== 'string') return false;
-  if (/\.\.[\\/]/.test(name)) return false;           // no ../ traversal
-  if (/^[\\/]/.test(name)) return false;              // no absolute paths
-  if (/\0/.test(name)) return false;                  // no null bytes
-  if (/^[a-zA-Z]:[\\/]/.test(name)) return false;     // no windows drive
-  return true;
-}
-// ─────────────────────────────────────────────────────────────────────────────
+// ZIP safety guards (safeAdmZip, isSafeZipEntryName) extracted to
+// ./gdpr/zipSafety.js (audit M3 god-file split) — which also fixed a
+// safeAdmZip() infinite-recursion bug that broke every ZIP-based import.
 
 // Lazy-load supabaseAdmin to avoid circular deps
 let _supabase = null;
@@ -77,6 +45,67 @@ async function getSupabase() {
 // ---------------------------------------------------------------------------
 // De-duplication (same logic as observationIngestion.js)
 // ---------------------------------------------------------------------------
+
+/**
+ * Hour-of-day (0-23) for a Date in the given IANA timezone. Falls back to the
+ * server-local hour when no/invalid timezone (audit: time-of-day buckets used
+ * getHours() = the Vercel server's UTC hour, skewing every non-UTC user's
+ * "evening / late-night" insights). Exported for testing.
+ */
+export function getHourInTimeZone(date, timeZone) {
+  if (!date || isNaN(date.getTime())) return 0;
+  if (!timeZone) return date.getHours();
+  try {
+    const parts = new Intl.DateTimeFormat('en-US', { timeZone, hour: '2-digit', hourCycle: 'h23' }).formatToParts(date);
+    const hourPart = parts.find(p => p.type === 'hour');
+    const n = hourPart ? parseInt(hourPart.value, 10) : NaN;
+    return Number.isFinite(n) ? (n % 24) : date.getHours();
+  } catch {
+    return date.getHours();
+  }
+}
+
+/**
+ * Day-of-week (0=Sun..6=Sat) for a Date in the given IANA timezone. Falls back
+ * to the server-local weekday when no/invalid timezone (audit: Netflix
+ * day-of-week rollup bucketed on the server's UTC weekday). Exported for testing.
+ */
+export function getDayInTimeZone(date, timeZone) {
+  if (!date || isNaN(date.getTime())) return 0;
+  if (!timeZone) return date.getDay();
+  try {
+    const wd = new Intl.DateTimeFormat('en-US', { timeZone, weekday: 'short' }).format(date);
+    const idx = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(wd);
+    return idx >= 0 ? idx : date.getDay();
+  } catch {
+    return date.getDay();
+  }
+}
+
+/**
+ * "Mon YYYY" label for a Date in the given IANA timezone (falls back to
+ * server-local). Exported for testing. (audit: individual-entry month/year
+ * labels rendered in the server's UTC month, off-by-one near month boundaries.)
+ */
+export function monthYearInTimeZone(date, timeZone) {
+  try {
+    return date.toLocaleString('en-US', { timeZone: timeZone || undefined, month: 'short', year: 'numeric' });
+  } catch {
+    return date.toLocaleString('en-US', { month: 'short', year: 'numeric' });
+  }
+}
+
+/** Fetch a user's IANA timezone (public.users.timezone), or null. */
+async function getUserTimezone(userId) {
+  try {
+    const supabase = await getSupabase();
+    if (!supabase) return null;
+    const { data } = await supabase.from('users').select('timezone').eq('id', userId).maybeSingle();
+    return data?.timezone || null;
+  } catch {
+    return null;
+  }
+}
 
 function contentHash(platform, content) {
   return crypto
@@ -143,7 +172,7 @@ async function writeObservations(userId, platform, observations, importId, exist
 // Spotify parser — supports both Extended Streaming History and legacy format
 // ---------------------------------------------------------------------------
 
-function parseSpotify(buffer) {
+function parseSpotify(buffer, timezone) {
   let raw;
   try {
     raw = JSON.parse(buffer.toString('utf8'));
@@ -159,16 +188,16 @@ function parseSpotify(buffer) {
   const isExtended = raw.length > 0 && raw[0]?.ts !== undefined;
 
   if (isExtended) {
-    return parseSpotifyExtended(raw);
+    return parseSpotifyExtended(raw, timezone);
   }
-  return parseSpotifyLegacy(raw);
+  return parseSpotifyLegacy(raw, timezone);
 }
 
 // ---------------------------------------------------------------------------
 // Extended Streaming History parser (2018-present export format)
 // ---------------------------------------------------------------------------
 
-function parseSpotifyExtended(raw) {
+function parseSpotifyExtended(raw, timezone) {
   const MIN_MS = 30_000;        // real listen threshold (30 s)
   const MIN_MS_INDIVIDUAL = 120_000; // individual obs threshold (2 min)
   const MAX_INDIVIDUAL_OBS = 250;
@@ -251,7 +280,7 @@ function parseSpotifyExtended(raw) {
 
     totalRealPlays++;
     totalRealMs += msPlayed;
-    if (when) hourBuckets[when.getHours()]++;
+    if (when) hourBuckets[getHourInTimeZone(when, timezone)]++;
 
     if (!artist) continue;
 
@@ -393,12 +422,9 @@ function parseSpotifyExtended(raw) {
       if (hourBuckets[h] > hourBuckets[peakHour]) peakHour = h;
     }
 
-    const label = shuffleBase > 0
-      ? ` Peak hour: ${fmt(peakHour)}.`
-      : '';
     summaryObs.push(
       `Spotify listening patterns: ${pct(morning)}% morning, ${pct(afternoon)}% afternoon, ` +
-      `${pct(evening)}% evening, ${pct(lateNight)}% late-night.${label} Peak hour: ${fmt(peakHour)}`
+      `${pct(evening)}% evening, ${pct(lateNight)}% late-night. Peak hour: ${fmt(peakHour)}`
     );
   }
 
@@ -476,33 +502,41 @@ function parseSpotifyExtended(raw) {
 // Legacy Streaming History parser (StreamingHistory*.json — pre-2023 format)
 // ---------------------------------------------------------------------------
 
-function parseSpotifyLegacy(raw) {
+function parseSpotifyLegacy(raw, timezone) {
   const MIN_MS = 30_000;
   const playsByArtist = {};
   const hourBuckets = new Array(24).fill(0);
   const individualObs = [];
-  const sorted = raw.filter(e => (e.msPlayed || 0) >= MIN_MS).slice(-500);
+  // Aggregate over the FULL qualifying history so "top artist over Spotify
+  // history" + the listening-pattern percentages are accurate; only the per-track
+  // individual observations are capped (to the most recent 500) to bound memory-
+  // stream noise. (audit: aggregates were previously computed over the 500-cap,
+  // making the reported all-time top artist reflect only the last 500 plays.)
+  const qualifying = raw.filter(e => (e.msPlayed || 0) >= MIN_MS);
 
-  for (const entry of sorted) {
+  for (const entry of qualifying) {
+    const artist = String(entry.artistName || 'Unknown Artist').slice(0, 80);
+    if (!playsByArtist[artist]) playsByArtist[artist] = { count: 0, msTotal: 0 };
+    playsByArtist[artist].count++;
+    playsByArtist[artist].msTotal += (entry.msPlayed || 0);
+
+    const when = entry.endTime ? new Date(entry.endTime) : null;
+    if (when && !isNaN(when.getTime())) hourBuckets[getHourInTimeZone(when, timezone)]++;
+  }
+
+  for (const entry of qualifying.slice(-500)) {
     const artist = String(entry.artistName || 'Unknown Artist').slice(0, 80);
     const track = String(entry.trackName || 'Unknown Track').slice(0, 80);
     const when = entry.endTime ? new Date(entry.endTime) : null;
-    const monthYear = when ? `${when.toLocaleString('default', { month: 'short' })} ${when.getFullYear()}` : '';
-
+    const monthYear = (when && !isNaN(when.getTime())) ? `${when.toLocaleString('default', { month: 'short' })} ${when.getFullYear()}` : '';
     individualObs.push(
       monthYear
         ? `Listened to "${track}" by ${artist} (${monthYear})`
         : `Listened to "${track}" by ${artist}`
     );
-
-    if (!playsByArtist[artist]) playsByArtist[artist] = { count: 0, msTotal: 0 };
-    playsByArtist[artist].count++;
-    playsByArtist[artist].msTotal += (entry.msPlayed || 0);
-
-    if (when) hourBuckets[when.getHours()]++;
   }
 
-  const totalPlays = raw.filter(e => (e.msPlayed || 0) >= MIN_MS).length;
+  const totalPlays = qualifying.length;
   const topArtists = Object.entries(playsByArtist)
     .sort((a, b) => b[1].count - a[1].count)
     .slice(0, 10);
@@ -548,7 +582,7 @@ function parseSpotifyLegacy(raw) {
 // YouTube (Google Takeout) parser
 // ---------------------------------------------------------------------------
 
-function parseYouTube(buffer) {
+function parseYouTube(buffer, timezone) {
   let raw;
   try {
     raw = JSON.parse(buffer.toString('utf8'));
@@ -572,7 +606,8 @@ function parseYouTube(buffer) {
 
     const channel = entry.subtitles?.[0]?.name || 'Unknown Channel';
     const safeChannel = String(channel).slice(0, 60);
-    const when = entry.time ? new Date(entry.time) : null;
+    const whenRaw = entry.time ? new Date(entry.time) : null;
+    const when = (whenRaw && !isNaN(whenRaw.getTime())) ? whenRaw : null; // guard Invalid Date
     const monthYear = when ? `${when.toLocaleString('default', { month: 'short' })} ${when.getFullYear()}` : '';
 
     individualObs.push(
@@ -584,7 +619,7 @@ function parseYouTube(buffer) {
     if (!channelCounts[safeChannel]) channelCounts[safeChannel] = 0;
     channelCounts[safeChannel]++;
 
-    if (when) hourBuckets[when.getHours()]++;
+    if (when) hourBuckets[getHourInTimeZone(when, timezone)]++;
   }
 
   const summaryObs = [];
@@ -626,7 +661,7 @@ function parseYouTube(buffer) {
 // PRIVACY: we do NOT store message content — only frequency/timing patterns
 // ---------------------------------------------------------------------------
 
-function parseDiscord(buffer) {
+function parseDiscord(buffer, timezone) {
   let zip;
   try {
     zip = safeAdmZip(buffer);
@@ -665,7 +700,7 @@ function parseDiscord(buffer) {
       const ts = msg.Timestamp || msg.timestamp;
       if (ts) {
         try {
-          const h = new Date(ts).getHours();
+          const h = getHourInTimeZone(new Date(ts), timezone);
           if (h >= 0 && h <= 23) hourBuckets[h]++;
         } catch { /* skip */ }
       }
@@ -787,6 +822,36 @@ function parseReddit(buffer) {
  * "<Media omitted>" lines are counted as media messages (no content stored).
  * System messages (no "Sender: " pattern) are skipped.
  */
+/**
+ * Parse one WhatsApp export line into { ts, sender, body } or null. Exported for
+ * testing. Handles bracketed (FMT_A) and dash (FMT_B) formats, 2- or 4-digit
+ * years, optional seconds, and optional 12-hour AM/PM. The AM/PM + 2-digit-year
+ * US-locale variants used to be unmatched, which threw on the ENTIRE import
+ * (audit). DD/MM vs MM/DD is resolved with the >12 heuristic.
+ */
+export function parseWhatsAppLine(line) {
+  const FMT_A = /^\[(\d{1,2})\/(\d{1,2})\/(\d{2,4}),\s*(\d{1,2}):(\d{2})(?::\d{2})?\s*([AaPp][Mm])?\]\s+([^:]+):\s*(.*)$/;
+  const FMT_B = /^(\d{1,2})\/(\d{1,2})\/(\d{2,4}),\s*(\d{1,2}):(\d{2})(?::\d{2})?\s*([AaPp][Mm])?\s+-\s+([^:]+):\s*(.*)$/;
+  const match = line.match(FMT_A) || line.match(FMT_B);
+  if (!match) return null;
+  const [, p1, p2, yearRaw, hourRaw, min, ampm, rawSender, body] = match;
+  // Resolve DD/MM vs MM/DD: a field > 12 must be the day.
+  const n1 = Number(p1), n2 = Number(p2);
+  let day, month;
+  if (n1 > 12) { day = n1; month = n2; }
+  else if (n2 > 12) { month = n1; day = n2; }
+  else { day = n1; month = n2; } // ambiguous -> WhatsApp's default DD/MM
+  let year = Number(yearRaw);
+  if (year < 100) year += 2000;
+  let hour = Number(hourRaw);
+  const ap = (ampm || '').toLowerCase();
+  if (ap === 'pm' && hour < 12) hour += 12;
+  else if (ap === 'am' && hour === 12) hour = 0;
+  const ts = new Date(year, month - 1, day, hour, Number(min));
+  if (isNaN(ts.getTime())) return null;
+  return { ts, sender: rawSender.trim().slice(0, 60), body };
+}
+
 function parseWhatsApp(buffer) {
   // ── Step 1: extract text ────────────────────────────────────────────────
   let text;
@@ -808,13 +873,11 @@ function parseWhatsApp(buffer) {
     throw new Error('WhatsApp export is empty');
   }
 
-  // ── Step 2: parse lines ─────────────────────────────────────────────────
-  // Format A: [DD/MM/YYYY, HH:MM:SS] Sender: body
-  const FMT_A = /^\[(\d{1,2})\/(\d{1,2})\/(\d{4}),\s*(\d{1,2}):(\d{2})(?::\d{2})?\]\s+([^:]+):\s*(.*)$/;
-  // Format B: DD/MM/YYYY, HH:MM - Sender: body
-  const FMT_B = /^(\d{1,2})\/(\d{1,2})\/(\d{4}),\s*(\d{1,2}):(\d{2})\s+-\s+([^:]+):\s*(.*)$/;
-  // Media sentinel
-  const MEDIA_RE = /^<Media omitted>$/i;
+  // ── Step 2: parse lines (per-line parsing in parseWhatsAppLine) ──────────
+  // Media sentinel — match localized + bare variants (English/PT/ES/DE plus the
+  // bracketless "image/video/audio/sticker/GIF omitted" Android forms) so media
+  // isn't miscounted as text in non-English exports (audit).
+  const MEDIA_RE = /(<\s*)?(media omitted|m[íi]dia omitida|multimedia omitido|medien ausgeschlossen|(image|video|audio|sticker|gif) omitted)(\s*>)?/i;
 
   const lines = text.split('\n');
 
@@ -831,18 +894,10 @@ function parseWhatsApp(buffer) {
     const line = rawLine.trim();
     if (!line) continue;
 
-    let match = line.match(FMT_A) || line.match(FMT_B);
-    if (!match) continue;
+    const parsed = parseWhatsAppLine(line);
+    if (!parsed) continue;
+    const { ts, sender, body } = parsed;
 
-    // Both regexes produce the same capture groups: day, month, year, hour, min, sender, body
-    const [, day, month, year, hour, min, rawSender, body] = match;
-    const ts = new Date(
-      Number(year), Number(month) - 1, Number(day),
-      Number(hour), Number(min)
-    );
-    if (isNaN(ts.getTime())) continue;
-
-    const sender = rawSender.trim().slice(0, 60);
     const isMedia = MEDIA_RE.test(body.trim());
     const wordCount = isMedia ? 0 : body.trim().split(/\s+/).filter(Boolean).length;
 
@@ -1125,6 +1180,22 @@ function parseAppleDate(str) {
   }
 }
 
+/**
+ * Local calendar-day key ("YYYY-MM-DD") for an Apple Health record. The raw
+ * HealthKit startDate string ("YYYY-MM-DD HH:MM:SS ±HHMM") is already in the
+ * user's local time, so slice it directly; fall back to the absolute Date's UTC
+ * day only when the raw string is malformed. (audit: keying on
+ * date.toISOString() put late-evening local records on the next UTC day,
+ * corrupting daily step/energy totals and the step streak for non-UTC users.)
+ * Exported for testing.
+ */
+export function appleDayKey(startStr, date) {
+  if (typeof startStr === 'string' && /^\d{4}-\d{2}-\d{2}/.test(startStr)) {
+    return startStr.substring(0, 10);
+  }
+  return date ? date.toISOString().substring(0, 10) : '';
+}
+
 /** Format a month/year string for observation text, e.g. "Jan 2024". */
 function fmtAppleMonth(d) {
   return `${d.toLocaleString('default', { month: 'short' })} ${d.getFullYear()}`;
@@ -1192,7 +1263,7 @@ function parseAppleHealth(buffer) {
     if (type === 'HKQuantityTypeIdentifierStepCount') {
       const steps = parseFloat(valueStr);
       if (!isNaN(steps) && date) {
-        const dayKey = date.toISOString().substring(0, 10);
+        const dayKey = appleDayKey(startStr, date);
         dailySteps[dayKey] = (dailySteps[dayKey] || 0) + steps;
       }
 
@@ -1217,7 +1288,7 @@ function parseAppleHealth(buffer) {
     } else if (type === 'HKQuantityTypeIdentifierActiveEnergyBurned') {
       const kcal = parseFloat(valueStr);
       if (!isNaN(kcal) && kcal > 0 && date) {
-        const dayKey = date.toISOString().substring(0, 10);
+        const dayKey = appleDayKey(startStr, date);
         dailyActiveEnergy[dayKey] = (dailyActiveEnergy[dayKey] || 0) + kcal;
       }
 
@@ -1258,7 +1329,7 @@ function parseAppleHealth(buffer) {
       if (start && end) {
         const minutes = (end.getTime() - start.getTime()) / 60_000;
         if (minutes > 0.2 && minutes < 180) {
-          mindfulnessSessions.push({ minutes, date: start });
+          mindfulnessSessions.push({ minutes, date: start, dayKey: appleDayKey(startStr, start) });
         }
       }
     }
@@ -1538,7 +1609,7 @@ function parseAppleHealth(buffer) {
   // Mindfulness — mental-health practice signal.
   if (mindfulnessSessions.length > 0) {
     const totalMin = mindfulnessSessions.reduce((a, s) => a + s.minutes, 0);
-    const days = new Set(mindfulnessSessions.map(s => s.date.toISOString().substring(0, 10))).size;
+    const days = new Set(mindfulnessSessions.map(s => s.dayKey)).size;
     const avgSessionMin = totalMin / mindfulnessSessions.length;
     const descriptor = days >= 100 ? 'sustained meditation practice'
       : days >= 30 ? 'regular mindfulness habit'
@@ -1860,11 +1931,10 @@ function parseHealthConnect(buffer) {
       .slice(0, 5);
 
     const typeDesc = topTypes.map(([t, c]) => `${c} ${t.toLowerCase()}${c !== 1 ? 's' : ''}`).join(', ');
-    const avgDurMin = Math.round(
-      workouts
-        .filter(w => typeof w.durationMin === 'number')
-        .reduce((s, w) => s + w.durationMin, 0) / workouts.length
-    );
+    const durWorkouts = workouts.filter(w => typeof w.durationMin === 'number');
+    const avgDurMin = durWorkouts.length
+      ? Math.round(durWorkouts.reduce((s, w) => s + w.durationMin, 0) / durWorkouts.length)
+      : 0;
 
     observations.push(
       `Completed ${workouts.length} workout${workouts.length !== 1 ? 's' : ''} this week: ${typeDesc}` +
@@ -2408,7 +2478,7 @@ function parseWhoop(buffer) {
 // Google Search (Takeout My Activity) parser
 // ---------------------------------------------------------------------------
 
-function parseGoogleSearch(buffer) {
+function parseGoogleSearch(buffer, timezone) {
   let raw;
   try {
     raw = JSON.parse(buffer.toString('utf8'));
@@ -2447,7 +2517,7 @@ function parseGoogleSearch(buffer) {
 
     const when = entry.time ? new Date(entry.time) : null;
     if (when && !isNaN(when.getTime())) {
-      hourBuckets[when.getHours()]++;
+      hourBuckets[getHourInTimeZone(when, timezone)]++;
       individualEntries.push({ query, when });
     } else {
       individualEntries.push({ query, when: null });
@@ -2558,9 +2628,7 @@ function parseGoogleSearch(buffer) {
     })
     .slice(0, MAX_INDIVIDUAL)
     .map(({ query, when }) => {
-      const monthYear = when
-        ? `${when.toLocaleString('default', { month: 'short' })} ${when.getFullYear()}`
-        : '';
+      const monthYear = when ? monthYearInTimeZone(when, timezone) : '';
       return monthYear
         ? `Searched for: ${query.slice(0, 100)} (${monthYear})`
         : `Searched for: ${query.slice(0, 100)}`;
@@ -2900,13 +2968,16 @@ function extractNetflixCsv(buffer) {
 function parseDurationSeconds(d) {
   // Netflix durations look like "00:45:12" (HH:MM:SS). Return seconds.
   if (!d) return 0;
-  const parts = d.split(':').map(n => parseInt(n, 10)).filter(n => Number.isFinite(n));
+  // Parse positionally — do NOT filter out NaN segments, or a malformed middle
+  // segment ("00:--:30") would collapse HH:MM:SS to MM:SS and mis-scale the value.
+  const parts = d.split(':').map(n => parseInt(n, 10));
+  if (parts.some(n => !Number.isFinite(n))) return 0;
   if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
   if (parts.length === 2) return parts[0] * 60 + parts[1];
   return 0;
 }
 
-function parseNetflix(buffer) {
+function parseNetflix(buffer, timezone) {
   const csv = extractNetflixCsv(buffer);
   const rows = csvToObjects(csv);
   if (rows.length === 0) throw new Error('Netflix ViewingActivity.csv has no rows');
@@ -2955,8 +3026,8 @@ function parseNetflix(buffer) {
     if (startStr) {
       const d = new Date(startStr);
       if (!Number.isNaN(d.getTime())) {
-        hourBuckets[d.getHours()] += 1;
-        dayOfWeekBuckets[d.getDay()] += 1;
+        hourBuckets[getHourInTimeZone(d, timezone)] += 1;
+        dayOfWeekBuckets[getDayInTimeZone(d, timezone)] += 1;
       }
     }
   }
@@ -3184,7 +3255,10 @@ function parseXArchive(buffer) {
       else originals++;
 
       if (perTweet.length < MAX_PER_SECTION && !isRetweet) {
-        const date = t?.created_at?.slice(0, 10) || '';
+        // X archive created_at is legacy format ("Wed Oct 10 20:19:24 +0000 2018"),
+        // not ISO — slice(0,10) would yield "Wed Oct 10". Parse + reformat to ISO date.
+        const parsedAt = t?.created_at ? new Date(t.created_at) : null;
+        const date = (parsedAt && !Number.isNaN(parsedAt.getTime())) ? parsedAt.toISOString().slice(0, 10) : '';
         perTweet.push(`You tweeted${date ? ` on ${date}` : ''}: "${text.slice(0, 280)}"`);
       }
     }
@@ -3941,15 +4015,20 @@ export async function processGdprImport(userId, platform, fileBuffer, fileName) 
   try {
     log.info(`Processing ${platform} export for user ${userId} (${fileBuffer.length} bytes)`);
 
+    // User's IANA timezone (public.users.timezone) so time-of-day buckets reflect
+    // the user's LOCAL hour, not the Vercel server's UTC hour (audit). Null falls
+    // back to server-local inside getHourInTimeZone.
+    const userTimezone = await getUserTimezone(userId);
+
     switch (platform) {
       case 'spotify':
-        observations = parseSpotify(fileBuffer);
+        observations = parseSpotify(fileBuffer, userTimezone);
         break;
       case 'youtube':
-        observations = parseYouTube(fileBuffer);
+        observations = parseYouTube(fileBuffer, userTimezone);
         break;
       case 'discord':
-        observations = parseDiscord(fileBuffer);
+        observations = parseDiscord(fileBuffer, userTimezone);
         break;
       case 'reddit':
         observations = parseReddit(fileBuffer);
@@ -3958,7 +4037,7 @@ export async function processGdprImport(userId, platform, fileBuffer, fileName) 
         observations = parseAndroidUsage(fileBuffer);
         break;
       case 'google_search':
-        observations = parseGoogleSearch(fileBuffer);
+        observations = parseGoogleSearch(fileBuffer, userTimezone);
         break;
       case 'whatsapp':
         observations = parseWhatsApp(fileBuffer);
@@ -3985,7 +4064,7 @@ export async function processGdprImport(userId, platform, fileBuffer, fileName) 
         observations = parseGoodreads(fileBuffer);
         break;
       case 'netflix':
-        observations = parseNetflix(fileBuffer);
+        observations = parseNetflix(fileBuffer, userTimezone);
         break;
       case 'tiktok':
         observations = parseTikTok(fileBuffer);

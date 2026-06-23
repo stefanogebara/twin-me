@@ -28,6 +28,13 @@ export interface Transaction {
   is_recurring?: boolean;
   created_at: string;
   emotional_context: EmotionalContext | null;
+  /**
+   * The user's saved stress-feedback for this transaction:
+   * true = stress-driven, false = not, null = no feedback yet.
+   * Populated by the GET / route from the transaction_feedback table so the
+   * FeedbackToggle can render the prior answer instead of resetting on reload.
+   */
+  feedback?: boolean | null;
 }
 
 export interface CurrencyBreakdown {

@@ -1,0 +1,23 @@
+#!/bin/sh
+# Best-effort local secret scan (defense-in-depth). The CI "Secret Scan"
+# workflow is the HARD gate; this hook catches secrets before they ever leave
+# the machine. Requires the gitleaks binary on PATH:
+#   https://github.com/gitleaks/gitleaks#installing
+# If gitleaks is not installed we warn and allow the commit so contributors
+# without the binary are not blocked (CI still gates).
+#
+# Activated via `core.hooksPath=.githooks`, wired by the package.json "prepare"
+# script on npm install (or run `git config core.hooksPath .githooks` once).
+
+if command -v gitleaks >/dev/null 2>&1; then
+  echo "[pre-commit] scanning staged changes for secrets (gitleaks)..."
+  if ! gitleaks protect --staged --redact --config .gitleaks.toml; then
+    echo "[pre-commit] BLOCKED: gitleaks found a potential secret in staged changes."
+    echo "  Remove it (and ROTATE it if it is real). For a false positive, add an"
+    echo "  allowlist entry to .gitleaks.toml."
+    exit 1
+  fi
+else
+  echo "[pre-commit] gitleaks not installed - skipping local scan; CI Secret Scan still gates."
+  echo "  Install for local protection: https://github.com/gitleaks/gitleaks#installing"
+fi

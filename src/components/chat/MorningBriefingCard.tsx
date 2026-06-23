@@ -136,11 +136,48 @@ const MorningBriefingCard: React.FC<MorningBriefingCardProps> = ({ onAskTwin }) 
     );
   }
 
-  if (isError || !briefing) {
-    return null;
-  }
-
   const fetchBriefing = () => { void refetch(); };
+
+  // Error / empty state — render a degraded card with a retry instead of
+  // silently evaporating the dashboard's dominant hero (audit-2026-06-10).
+  if (isError || !briefing) {
+    return (
+      <div
+        className="rounded-[24px] overflow-hidden relative"
+        style={{
+          backgroundColor: 'rgba(255,255,255,0.06)',
+          backgroundImage:
+            'radial-gradient(ellipse 80% 60% at 0% 0%, rgba(210,145,55,0.10) 0%, transparent 60%), radial-gradient(ellipse 60% 50% at 100% 100%, rgba(93,92,174,0.08) 0%, transparent 60%)',
+          border: '1px solid rgba(255,255,255,0.12)',
+          backdropFilter: 'blur(42px)',
+          WebkitBackdropFilter: 'blur(42px)',
+        }}
+      >
+        <div className="px-7 py-8 flex flex-col items-start gap-3">
+          <span
+            className="text-[11px] tracking-[0.12em] uppercase"
+            style={{ color: 'rgba(255,255,255,0.30)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+          >
+            {location}{location ? ' — ' : ''}{time}{' — '}{label}
+          </span>
+          <p
+            className="text-[16px] leading-relaxed"
+            style={{ color: 'rgba(255,255,255,0.55)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+          >
+            Couldn't load your briefing.
+          </p>
+          <button
+            onClick={fetchBriefing}
+            className="flex items-center gap-1.5 text-[12px] font-medium transition-opacity hover:opacity-70"
+            style={{ color: 'rgba(255,255,255,0.50)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+          >
+            <RefreshCw className="w-3 h-3" />
+            Try again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const hasSchedule = briefing.schedule_summary && !briefing.schedule_summary.includes('wide open') && !briefing.schedule_summary.includes('No schedule');
   const hasRest = !!briefing.rest;

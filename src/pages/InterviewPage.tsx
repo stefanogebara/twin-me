@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { RefreshCw } from 'lucide-react';
 import { authFetch, getAccessToken } from '@/services/api/apiBase';
 import { useAuth } from '@/contexts/AuthContext';
@@ -28,6 +28,11 @@ function getUserIdFromToken(): string | null {
 export default function InterviewPage() {
   useDocumentTitle('Interview');
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  // ?redo=1 marks an in-progress redo so a mid-redo refresh re-mounts
+  // DeepInterview instead of bouncing back to the "Interview Complete" screen
+  // (the calibration row keeps completed_at, so we can't rely on the backend).
+  const isRedoing = searchParams.get('redo') === '1';
   const { user } = useAuth();
   const [alreadyDone, setAlreadyDone] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -48,7 +53,9 @@ export default function InterviewPage() {
           const res = await authFetch(`/onboarding/calibration-data/${userId}`);
           if (res.ok) {
             const { data } = await res.json();
-            if (data?.completed_at) {
+            // While a redo is in progress (?redo=1), ignore completed_at so the
+            // interview re-mounts instead of showing the "complete" screen.
+            if (data?.completed_at && !isRedoing) {
               setAlreadyDone(true);
               setCalibrationData(data);
             }
@@ -156,8 +163,8 @@ export default function InterviewPage() {
             onClick={() => navigate('/identity')}
             className="w-full py-3.5 rounded-[100px] text-sm font-medium transition-opacity hover:opacity-90"
             style={{
-              backgroundColor: '#252222',
-              color: '#fdfcfb',
+              backgroundColor: '#F5F5F4',
+              color: '#110f0f',
               fontFamily: "'Inter', sans-serif",
               cursor: 'pointer',
               minHeight: '48px',
@@ -173,6 +180,10 @@ export default function InterviewPage() {
                 setCalibrationData(null);
                 // Clear saved interview progress so DeepInterview starts fresh
                 localStorage.removeItem('twinme_interview_progress');
+                // Persist a redo marker in the URL so a refresh mid-redo
+                // re-mounts the interview instead of restoring the
+                // "Interview Complete" screen (completed_at stays set server-side).
+                setSearchParams({ redo: '1' });
               }}
               className="flex-1 flex items-center justify-center gap-2 py-3 rounded-[100px] text-sm transition-opacity hover:opacity-70"
               style={{

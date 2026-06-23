@@ -130,7 +130,7 @@ export const InlineEvidence: React.FC<EvidenceProps> = (props) => {
       <div className="flex items-center gap-1.5 mb-2.5">
         <Sparkles className="w-2.5 h-2.5" style={{ color: 'rgba(232, 160, 80, 0.5)' }} />
         <span className="text-[9px] uppercase tracking-widest" style={{ color: 'rgba(245, 240, 235, 0.25)' }}>
-          {props.variant === 'conversation' ? 'Real twin exchange' : props.variant === 'insight' ? 'Live insight' : 'Memory excerpt'}
+          {props.variant === 'conversation' ? 'Example exchange' : props.variant === 'insight' ? 'Example insight' : 'Example memory'}
         </span>
       </div>
 

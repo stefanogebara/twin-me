@@ -234,6 +234,8 @@ function WriteResult({ data, tool }: { data: any; tool: string }) {
   const title = data?.summary || data?.subject || data?.title || data?.name || 'Item';
   const verb = tool === 'calendar_modify_event' ? 'Updated'
     : tool === 'calendar_delete_event' ? 'Deleted'
+    : tool === 'gmail_send' ? 'Sent'
+    : tool === 'gmail_draft' ? 'Drafted'
     : 'Created';
   const label = tool === 'calendar_delete_event' ? 'event' : title;
   return (
@@ -407,10 +409,11 @@ export function WorkspaceActionCard({ action }: WorkspaceActionCardProps) {
                   <button
                     onClick={() => setPage(p => Math.max(0, p - 1))}
                     disabled={page === 0}
+                    aria-label="Previous page"
                     className="p-1 transition-opacity disabled:opacity-20 hover:opacity-70"
                     style={{ color: 'rgba(255,255,255,0.35)' }}
                   >
-                    <ChevronLeft className="w-3.5 h-3.5" />
+                    <ChevronLeft className="w-3.5 h-3.5" aria-hidden="true" />
                   </button>
                   <span
                     className="text-[10px] uppercase tracking-[0.15em]"
@@ -421,10 +424,11 @@ export function WorkspaceActionCard({ action }: WorkspaceActionCardProps) {
                   <button
                     onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
                     disabled={page === totalPages - 1}
+                    aria-label="Next page"
                     className="p-1 transition-opacity disabled:opacity-20 hover:opacity-70"
                     style={{ color: 'rgba(255,255,255,0.35)' }}
                   >
-                    <ChevronRight className="w-3.5 h-3.5" />
+                    <ChevronRight className="w-3.5 h-3.5" aria-hidden="true" />
                   </button>
                 </div>
               )}

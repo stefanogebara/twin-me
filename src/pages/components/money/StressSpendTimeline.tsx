@@ -204,7 +204,7 @@ export function StressSpendTimeline({ days, currency = 'BRL' }: Props) {
           Stress level
         </span>
         <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ width: 16, height: 1, background: 'rgba(217,119,6,0.5)', display: 'inline-block', borderStyle: 'dashed' }} />
+          <span style={{ width: 16, height: 0, borderTop: '1px dashed rgba(217,119,6,0.8)', display: 'inline-block' }} />
           Stress threshold (60%)
         </span>
       </div>

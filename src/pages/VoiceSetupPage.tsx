@@ -45,7 +45,7 @@ export default function VoiceSetupPage() {
       const res = await authFetch('/voice-bridge/link/status');
       if (!res.ok) {
         if (res.status === 503) {
-          setState({ status: 'error', errorMessage: 'The voice bridge is not configured yet. Reach out to ops.' });
+          setState({ status: 'error', errorMessage: "Voice bridge isn't available right now. Please try again later." });
           return;
         }
         setState({ status: 'error', errorMessage: `Status check failed (${res.status})` });
@@ -93,14 +93,33 @@ export default function VoiceSetupPage() {
   }
 
   async function cancelLink() {
-    await authFetch('/voice-bridge/link/cancel', { method: 'POST' });
-    setState({ status: 'none' });
+    try {
+      const res = await authFetch('/voice-bridge/link/cancel', { method: 'POST' });
+      if (!res.ok) {
+        setState((prev) => ({ ...prev, status: 'error', errorMessage: "Couldn't cancel linking. Please try again." }));
+        return;
+      }
+      setState({ status: 'none' });
+    } catch {
+      setState((prev) => ({ ...prev, status: 'error', errorMessage: "Couldn't cancel linking. Please try again." }));
+    }
   }
 
   async function unlink() {
     if (!confirm('Unlink your WhatsApp from TwinMe? You can re-link any time.')) return;
-    await authFetch('/voice-bridge/unlink', { method: 'POST' });
-    setState({ status: 'none' });
+    // Verify the server-side unlink succeeded before showing disconnected —
+    // a failed unlink must not falsely read as disconnected while the bridge
+    // still holds session keys (audit-2026-06-10).
+    try {
+      const res = await authFetch('/voice-bridge/unlink', { method: 'POST' });
+      if (!res.ok) {
+        setState((prev) => ({ ...prev, status: 'error', errorMessage: "Couldn't unlink. Please try again." }));
+        return;
+      }
+      setState({ status: 'none' });
+    } catch {
+      setState((prev) => ({ ...prev, status: 'error', errorMessage: "Couldn't unlink. Please try again." }));
+    }
   }
 
   return (

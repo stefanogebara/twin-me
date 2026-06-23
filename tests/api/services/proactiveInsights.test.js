@@ -206,8 +206,9 @@ describe('proactiveInsights', () => {
         insight: 'test insight',
       }];
       platformDataForEval = [
-        // "focus", "morning", "block", "thirty", "minutes", "tomorrow" → most of the action words
-        { content: 'Calendar: Focus block scheduled tomorrow morning for thirty minutes' },
+        // "focus", "morning", "block", "thirty", "minutes", "tomorrow" → most of the action words.
+        // created_at AFTER delivery so it counts as post-nudge activity.
+        { content: 'Calendar: Focus block scheduled tomorrow morning for thirty minutes', created_at: new Date().toISOString() },
       ];
 
       const evaluated = await evaluateNudgeOutcomes(USER_ID);
@@ -226,7 +227,7 @@ describe('proactiveInsights', () => {
         insight: 'test insight',
       }];
       platformDataForEval = [
-        { content: 'Spotify: played rock music, watched videos about cars' },
+        { content: 'Spotify: played rock music, watched videos about cars', created_at: new Date().toISOString() },
       ];
 
       const evaluated = await evaluateNudgeOutcomes(USER_ID);
@@ -234,6 +235,25 @@ describe('proactiveInsights', () => {
       expect(evaluated).toBe(1);
       const falseUpdate = updateCalls.find(c => c.patch?.nudge_followed === false);
       expect(falseUpdate).toBeTruthy();
+    });
+
+    it('does NOT count platform activity that predates the nudge delivery (audit 2026-06-22)', async () => {
+      pendingNudges = [{
+        id: '33333333-3333-3333-3333-333333333333',
+        nudge_action: 'block thirty minutes focus time tomorrow morning',
+        delivered_at: new Date(Date.now() - 12 * 3600 * 1000).toISOString(), // delivered 12h ago
+        insight: 'test insight',
+      }];
+      // Strong keyword match BUT created 36h ago — before the nudge ever existed.
+      platformDataForEval = [
+        { content: 'Calendar: Focus block scheduled tomorrow morning for thirty minutes', created_at: new Date(Date.now() - 36 * 3600 * 1000).toISOString() },
+      ];
+
+      const evaluated = await evaluateNudgeOutcomes(USER_ID);
+      expect(evaluated).toBe(1);
+      // Pre-delivery activity must NOT be credited as "followed".
+      expect(updateCalls.find(c => c.patch?.nudge_followed === true)).toBeFalsy();
+      expect(updateCalls.find(c => c.patch?.nudge_followed === false)).toBeTruthy();
     });
 
     it('returns 0 when no pending nudges', async () => {
@@ -367,7 +387,18 @@ describe('_findUngroundedNumbers — hallucination guard (audit-2026-05-16)', ()
     const evidence = "Whoop strain today: 18.5";
     const ungrounded = _findUngroundedNumbers(insight, evidence);
     expect(ungrounded).toContain('1500');
-    expect(ungrounded).not.toContain('18'); // 18.5 includes "18" so partial-match grounds it
+    expect(ungrounded).not.toContain('18'); // evidence "18.5" tokenizes to "18"+"5", so "18" is grounded by exact token match
+  });
+
+  it('flags a fabricated number that is only a SUBSTRING of a larger evidence number (audit 2026-06-22)', () => {
+    // Regression: the old guard used ev.includes('46'), which was true for "462
+    // emails" / "1146 commits" / timestamps — so a fabricated "46% recovery" passed
+    // the very guard meant to catch it. Token match requires an EXACT number.
+    const insight = "you're at 46% recovery while clearing 12 of your tasks";
+    const evidence = "You sent 462 emails and made 1146 commits this week";
+    const ungrounded = _findUngroundedNumbers(insight, evidence);
+    expect(ungrounded).toContain('46%'); // 46 is not a standalone number in evidence (462, 1146)
+    expect(ungrounded).toContain('12');  // 12 is not standalone either
   });
 });
 

@@ -14,7 +14,6 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { useAuth } from '@/contexts/AuthContext';
 import { API_URL, getAccessToken, isAbortError } from '@/services/api/apiBase';
 
 const POLL_INTERVAL_MS = 6000;
@@ -50,7 +49,6 @@ export function usePlatformInsights<T = unknown>(
   platform: string,
   signInMessage = 'Please sign in to see your insights',
 ): PlatformInsightsState<T> {
-  const { token } = useAuth();
   const [insights, setInsights] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
@@ -74,7 +72,7 @@ export function usePlatformInsights<T = unknown>(
 
   const fetchInsights = useCallback(
     async (signal?: AbortSignal) => {
-      const authToken = token || getAccessToken();
+      const authToken = getAccessToken();
       if (!authToken) {
         setError(signInMessage);
         setLoading(false);
@@ -161,7 +159,7 @@ export function usePlatformInsights<T = unknown>(
         if (!signal?.aborted) setLoading(false);
       }
     },
-    [platform, token, signInMessage],
+    [platform, signInMessage],
   );
 
   useEffect(() => {
@@ -177,7 +175,7 @@ export function usePlatformInsights<T = unknown>(
 
   const refresh = useCallback(async () => {
     setRefreshing(true);
-    const authToken = token || getAccessToken();
+    const authToken = getAccessToken();
     try {
       const response = await fetch(`${API_URL}/insights/${platform}/refresh`, {
         method: 'POST',
@@ -197,7 +195,7 @@ export function usePlatformInsights<T = unknown>(
     } finally {
       setRefreshing(false);
     }
-  }, [platform, token, fetchInsights]);
+  }, [platform, fetchInsights]);
 
   // Stale-while-revalidate: covers both the refresh POST and the generating
   // poll loop that follows it while previous insights are still on screen.

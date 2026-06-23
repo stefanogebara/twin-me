@@ -264,6 +264,8 @@ app.post('/api/chat/message', aiLimiter);
 app.get('/api/chat/intro', aiLimiter);    // Generates a personalised first message (LLM)
 app.use('/api/soul-extraction/', aiLimiter); // LLM-powered extraction endpoints
 app.post('/api/desktop/observe-summary', aiLimiter); // UNAUTHENTICATED LLM endpoint — cap OpenRouter cost-amplification
+app.use('/api/extension/batch', aiLimiter);   // batch ingest fans out embedding + importance LLM calls — cap cost (audit)
+app.use('/api/extension/analyze', aiLimiter); // LLM/integration analysis endpoint — cap cost (audit)
 
 // Global request timeout to prevent hanging on DB outages
 // Longer timeout in dev when Cloudflare workaround adds latency per query
@@ -527,6 +529,7 @@ import cronNangoOrphanCleanupRoutes from './routes/cron-nango-orphan-cleanup.js'
 import cronOutcomeLearningRoutes from './routes/cron-outcome-learning.js';
 import cronMeetingPrepRoutes from './routes/cron-meeting-prep.js';
 import cronStripeWebhookEventsCleanupRoutes from './routes/cron-stripe-webhook-events-cleanup.js';
+import cronLlmUsageLogCleanupRoutes from './routes/cron-llm-usage-log-cleanup.js';
 import cronWikiCompileRoutes from './routes/cron-wiki-compile.js';
 import cronHealthMonitorRoutes from './routes/cron-health-monitor.js';
 import cronMeetingDebriefRoutes from './routes/cron-meeting-debrief.js';
@@ -774,6 +777,7 @@ app.use('/api/cron/outcome-learning', cronOutcomeLearningRoutes); // Daily 03:30
 app.use('/api/cron/meeting-prep', cronMeetingPrepRoutes); // Every 30 min: pre-meeting briefings for upcoming external meetings
 app.use('/api/cron/meeting-debrief', cronMeetingDebriefRoutes); // Every 30 min: post-meeting debriefs for meetings that just ended
 app.use('/api/cron/stripe-webhook-events-cleanup', cronStripeWebhookEventsCleanupRoutes); // Weekly Sun 4am UTC: prune stripe_webhook_events rows older than 30 days
+app.use('/api/cron/llm-usage-log-cleanup', cronLlmUsageLogCleanupRoutes); // Weekly Sun 5:30am UTC: prune llm_usage_log rows older than 90 days
 app.use('/api/cron/wiki-compile', cronWikiCompileRoutes); // Daily 02:00 UTC: refresh wiki pages — replaces the broken setTimeout chain in observationIngestion.js (Vercel terminates the parent process before the 60s timer fires)
 app.use('/api/cron/health-monitor', cronHealthMonitorRoutes); // Daily 04:30 UTC: scan cron_executions for the "looks healthy, does no work" pattern that hid meeting-debrief + pluggy-sync + soul-signature-regen for weeks during the 2026-05-22 audit
 app.use('/api/insights', insightFeedbackRoutes); // Insight feedback (thumbs up/down)

@@ -117,20 +117,39 @@ const TelegramConnect: React.FC = () => {
   }, []);
 
   const generateCode = async () => {
-    const res = await fetch(`${API_URL}/telegram/generate-code`, {
-      method: 'POST', headers: getAuthHeaders(),
-    });
-    const data = await res.json();
-    if (data.success) {
-      setLinkCode(data.code);
-      if (data.botUsername) setBotUsername(data.botUsername);
+    try {
+      const res = await fetch(`${API_URL}/telegram/generate-code`, {
+        method: 'POST', headers: getAuthHeaders(),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setLinkCode(data.code);
+        if (data.botUsername) setBotUsername(data.botUsername);
+      } else {
+        toast.error('Could not start Telegram connect. Please try again.');
+      }
+    } catch {
+      toast.error('Could not start Telegram connect. Please try again.');
     }
   };
 
   const handleUnlink = async () => {
-    await fetch(`${API_URL}/telegram/unlink`, { method: 'DELETE', headers: getAuthHeaders() });
-    setStatus({ linked: false, enabled: false });
-    setLinkCode(null);
+    try {
+      const res = await fetch(`${API_URL}/telegram/unlink`, { method: 'DELETE', headers: getAuthHeaders() });
+      if (!res.ok) {
+        toast.error('Could not unlink Telegram. Please try again.');
+        return;
+      }
+      setStatus({ linked: false, enabled: false });
+      setLinkCode(null);
+    } catch {
+      toast.error('Could not unlink Telegram. Please try again.');
+      // Refetch so the badge reflects the real server state
+      fetch(`${API_URL}/telegram/status`, { headers: getAuthHeaders() })
+        .then(r => r.json())
+        .then(d => { if (d.success) setStatus({ linked: d.linked, enabled: d.enabled }); })
+        .catch(() => {});
+    }
   };
 
   if (loading) return <div className="py-4 text-center text-[12px]" style={{ color: 'rgba(255,255,255,0.3)' }}>Loading...</div>;
@@ -220,7 +239,7 @@ const Settings = () => {
     personality_oracle: false,
     neurotransmitter_modes: true,
     connectome_neuropils: true,
-    graph_retrieval: false,
+    graph_retrieval: true,
   });
 
   // Batch-3 state unification: settings reads the canonical /platforms/summary
@@ -260,6 +279,11 @@ const Settings = () => {
         if (data?.flags) setFeatureToggles(prev => ({ ...prev, ...data.flags }));
       })
       .catch(() => {});
+    // Saved account timezone — reflect persisted value, not the browser's
+    fetch(`${API_URL}/account/timezone`, { headers })
+      .then(res => res.ok ? res.json() : null)
+      .then(data => { if (data?.timezone) setTimezone(data.timezone); })
+      .catch(() => {});
   }, [user?.id]);
 
   const PLAN_NAMES: Record<string, string> = { free: 'Free', pro: 'Plus', max: 'Pro' };
@@ -295,14 +319,21 @@ const Settings = () => {
     const newValue = !featureToggles[key];
     setFeatureToggles(prev => ({ ...prev, [key]: newValue }));
     try {
-      await fetch(`${API_URL}/feature-flags`, {
+      const res = await fetch(`${API_URL}/feature-flags`, {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify({ flag: key, value: newValue }),
       });
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data?.success) {
+        // Revert on server rejection
+        setFeatureToggles(prev => ({ ...prev, [key]: !newValue }));
+        toast.error('Could not update setting. Please try again.');
+      }
     } catch {
       // Revert on network failure
       setFeatureToggles(prev => ({ ...prev, [key]: !newValue }));
+      toast.error('Could not update setting. Please try again.');
     }
   };
 
@@ -318,8 +349,10 @@ const Settings = () => {
       if (res.ok) {
         setTimezone(detected);
         toast.success('Timezone updated');
+      } else {
+        toast.error('Could not update timezone. Please try again.');
       }
-    } catch { /* non-fatal */ }
+    } catch { toast.error('Could not update timezone. Please try again.'); }
     finally { setSavingTimezone(false); }
   };
 
@@ -338,7 +371,7 @@ const Settings = () => {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-    } catch { /* handled silently */ }
+    } catch { toast.error('Couldn’t export your data. Please try again.'); }
     finally { setExporting(false); }
   };
 
@@ -351,6 +384,7 @@ const Settings = () => {
       await signOut();
       navigate('/auth');
     } catch {
+      toast.error('Account deletion failed — your account is unchanged. Please try again.');
       setDeleting(false);
     }
   };

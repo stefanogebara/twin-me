@@ -263,10 +263,15 @@ export function classifyMessageTier(message, conversationHistory = []) {
     }
   }
 
-  // Simple factual questions
-  for (const pattern of FACTUAL_PATTERNS) {
-    if (pattern.test(trimmed)) {
-      return buildResult(CHAT_TIER_LIGHT, 'factual question');
+  // Simple factual questions — only when SHORT. The patterns are start-anchored
+  // only, so a leading factual clause inside a long, substantive question ("do i
+  // have what it takes to change my career...") would otherwise match and route to
+  // the weakest model. Gate by length so only true lookups go LIGHT (audit).
+  if (wordCount < 8) {
+    for (const pattern of FACTUAL_PATTERNS) {
+      if (pattern.test(trimmed)) {
+        return buildResult(CHAT_TIER_LIGHT, 'factual question');
+      }
     }
   }
 

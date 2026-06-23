@@ -336,7 +336,7 @@ const NewDiscoverFlow: React.FC = () => {
       }).catch(() => {});
     }
 
-    setPhase('platforms');
+    setPhaseTracked('platforms');
     await loadQuickQuestions();
   };
 

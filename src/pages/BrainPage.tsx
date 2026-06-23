@@ -287,7 +287,7 @@ const BrainPage: React.FC = () => {
               })}
             </div>
             <p className="text-[11px]" style={{ color: 'rgba(255,255,255,0.3)' }}>
-              {(['reflection', 'platform_data', 'fact', 'conversation'] as const)
+              {(['reflection', 'platform_data', 'fact', 'conversation', 'observation'] as const)
                 .filter(type => (composition[type] || 0) > 0)
                 .map(type => {
                   const count = composition[type] || 0;
@@ -308,6 +308,7 @@ const BrainPage: React.FC = () => {
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
           placeholder="Search memories…"
+          aria-label="Search memories"
           className="w-full pl-8 pr-3 py-2 text-sm rounded-[8px] outline-none transition-colors"
           style={{
             background: 'rgba(255,255,255,0.06)',

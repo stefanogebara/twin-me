@@ -181,7 +181,9 @@ export const AVAILABLE_CONNECTORS: ConnectorConfig[] = [
     setupTime: '5 seconds',
     privacyLevel: 'medium',
     category: 'professional',
-    comingSoon: true,
+    // comingSoon flag cleared 2026-06-10 (audit re-verify): Gmail OAuth is wired
+    // (GoogleWorkspaceConnect) and PlatformStep actively recommends it — the flag
+    // was hiding the tile from /connect, contradicting other onboarding surfaces.
   },
   {
     provider: 'github' as DataProvider,

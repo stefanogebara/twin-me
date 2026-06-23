@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { Bot, Zap, Brain, Heart, Music, AlertTriangle } from 'lucide-react';
 import { API_URL, getAccessToken } from '@/services/api/apiBase';
 
@@ -79,11 +80,15 @@ const AutonomySettings: React.FC = () => {
     );
 
     try {
-      await fetch(`${API_URL}/autonomy/settings/${skillId}`, {
+      const res = await fetch(`${API_URL}/autonomy/settings/${skillId}`, {
         method: 'PUT',
         headers: getAuthHeaders(),
         body: JSON.stringify({ autonomyLevel: level }),
       });
+      // audit-2026-06-10: a 4xx/5xx previously left the optimistic slider/badge
+      // permanently wrong — only thrown network errors reverted. Revert on any
+      // non-OK response too.
+      if (!res.ok) fetchSettings();
     } catch {
       // Revert on failure
       fetchSettings();
@@ -140,7 +145,7 @@ const AutonomySettings: React.FC = () => {
       >
         <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" style={{ color: 'var(--accent-vibrant)' }} />
         <p className="text-[12px] leading-relaxed" style={{ color: 'rgba(255,255,255,0.4)' }}>
-          Fine-grained skill controls. For department-level autonomy (Communications, Scheduling, etc.), use the <a href="/departments" className="underline" style={{ color: 'var(--accent-vibrant)' }}>Departments</a> page.
+          Fine-grained skill controls. To adjust how your twin acts day to day, just <Link to="/talk-to-twin" className="underline" style={{ color: 'var(--accent-vibrant)' }}>talk to your twin</Link>.
         </p>
       </div>
 
