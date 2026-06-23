@@ -585,17 +585,15 @@ async function generateProactiveInsights(userId) {
 
     log.info('Generated insights', { stored, skippedUngrounded, userId, editor: editorEnabled });
 
-    // Weekly cross-platform correlation insights
-    // Only run if no 'trend' category insight exists in the last 7 days
+    // Weekly cross-platform correlation insights. Gate on the last correlation RUN
+    // (a persisted kv timestamp), NOT on whether a 'trend' insight is stored — the
+    // grounding/dedup/suppression gates routinely drop the trend row, so the old guard
+    // re-fired this second TIER_ANALYSIS call on most runs (audit #119).
     try {
-      const { count: trendCount } = await supabaseAdmin
-        .from('proactive_insights')
-        .select('id', { count: 'exact', head: true })
-        .eq('user_id', userId)
-        .eq('category', 'trend')
-        .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
-
-      if (!trendCount || trendCount === 0) {
+      const lastCorrelation = await getLastCorrelationRunAt(userId);
+      if (!lastCorrelation || (Date.now() - lastCorrelation) >= CORRELATION_COOLDOWN_MS) {
+        // Record the attempt up-front so an empty/failed result still cools down 7 days.
+        await setLastCorrelationRunAt(userId);
         const correlationResult = await generateCorrelationInsights(userId);
         const corrInsights = correlationResult?.insights || [];
         const corrEvidence = correlationResult?.evidence || '';
@@ -915,6 +913,39 @@ function _parseInsightsJSON(text) {
  * @param {string} userId
  * @returns {Promise<Array<{insight: string, urgency: string, category: string}> | null>}
  */
+// Correlation runs at most weekly. Gate on a persisted kv timestamp (mirrors the
+// goal-suggestion cooldown in goalTrackingService), NOT on whether a 'trend' insight
+// happens to be stored — the grounding/dedup/suppression gates routinely drop it,
+// which re-fired this second TIER_ANALYSIS call on most ingestion runs (audit #119).
+const CORRELATION_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000;
+
+async function getLastCorrelationRunAt(userId) {
+  const { data } = await supabaseAdmin
+    .from('user_platform_data')
+    .select('extracted_at')
+    .eq('user_id', userId)
+    .eq('platform', 'twinme')
+    .eq('data_type', 'correlation_run')
+    .order('extracted_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return data?.extracted_at ? new Date(data.extracted_at).getTime() : 0;
+}
+
+async function setLastCorrelationRunAt(userId) {
+  const { error } = await supabaseAdmin
+    .from('user_platform_data')
+    .insert({
+      user_id: userId,
+      platform: 'twinme',
+      data_type: 'correlation_run',
+      raw_data: { source: 'generateCorrelationInsights' },
+      extracted_at: new Date().toISOString(),
+      processed: true,
+    });
+  if (error) log.warn('setLastCorrelationRunAt insert failed', { userId, error: error.message });
+}
+
 async function generateCorrelationInsights(userId) {
   try {
     const since = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
