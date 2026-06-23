@@ -153,7 +153,7 @@
     /* Narrative Text — Sesame-inspired 60% opacity hierarchy */
     --text-narrative: rgba(245, 245, 244, 0.9);
     --text-narrative-secondary: rgba(245, 245, 244, 0.6);
-    --text-narrative-muted: rgba(245, 245, 244, 0.4);
+    --text-narrative-muted: rgba(245, 245, 244, 0.55); /* a11y: 0.4 was ~3.83:1 on #13121a (below WCAG AA); 0.55 ≈ 4.6:1 and stays below the 0.6 secondary tier so the muted<secondary<narrative hierarchy holds */
 
     /* Spacing & Radius */
     --radius: 1rem;
