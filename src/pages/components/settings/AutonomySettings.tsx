@@ -278,7 +278,7 @@ const SkillRow: React.FC<SkillRowProps> = ({ skill, isUpdating, onLevelChange })
             tabIndex={isUpdating ? -1 : 0}
             className="text-[9px] cursor-pointer transition-colors"
             style={{
-              color: i === level ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.15)',
+              color: i === level ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.55)',
               width: i === 0 ? 'auto' : i === 4 ? 'auto' : '20%',
               textAlign: i === 0 ? 'left' : i === 4 ? 'right' : 'center',
             }}

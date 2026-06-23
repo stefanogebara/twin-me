@@ -29,7 +29,7 @@ const WebBrowsingInsightsPage: React.FC = () => {
 
   const colors = {
     text: 'var(--foreground)',
-    textSecondary: 'rgba(255,255,255,0.4)',
+    textSecondary: 'rgba(255, 255, 255, 0.55)',
     webAccent: '#6366f1',
     webBg: 'rgba(99, 102, 241, 0.1)'
   };
@@ -60,7 +60,7 @@ const WebBrowsingInsightsPage: React.FC = () => {
           <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
         </button>
       </div>
-      <p className="text-sm mb-10" style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', sans-serif" }}>
+      <p className="text-sm mb-10" style={{ color: 'rgba(255, 255, 255, 0.55)', fontFamily: "'Inter', sans-serif" }}>
         What your browsing reveals about you
       </p>
       <div style={{ borderTop: '1px solid var(--border-glass)' }} className="mb-8" />
@@ -147,7 +147,7 @@ const WebBrowsingInsightsPage: React.FC = () => {
               >
                 <p
                   className="text-sm leading-relaxed"
-                  style={{ color: 'rgba(255,255,255,0.4)' }}
+                  style={{ color: 'rgba(255, 255, 255, 0.55)' }}
                 >
                   {past.text}
                 </p>

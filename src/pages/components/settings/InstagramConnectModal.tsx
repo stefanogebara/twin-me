@@ -98,7 +98,7 @@ export function InstagramConnectModal({ open, onClose, onSuccess }: InstagramCon
               placeholder="yourhandle"
               autoComplete="off"
               pattern="[a-zA-Z0-9._]{1,40}"
-              className="bg-[rgba(255,255,255,0.08)] border border-[rgba(255,255,255,0.08)] text-[#F5F5F4] placeholder:text-[#57534E] rounded-[6px] px-3 py-2.5 text-sm focus:outline-none focus:border-[rgba(255,255,255,0.20)]"
+              className="bg-[rgba(255,255,255,0.08)] border border-[rgba(255,255,255,0.08)] text-[#F5F5F4] placeholder:text-[rgba(255,255,255,0.55)] rounded-[6px] px-3 py-2.5 text-sm focus:outline-none focus:border-[rgba(255,255,255,0.20)]"
             />
           </div>
 
@@ -137,7 +137,7 @@ export function InstagramConnectModal({ open, onClose, onSuccess }: InstagramCon
                 Within a sync cycle (every 30 min), your twin learns from what you've saved, followed, and posted.
               </li>
             </ol>
-            <p className="text-[10.5px] text-[#57534E] leading-snug mt-1 pt-2 border-t border-[rgba(255,255,255,0.05)]">
+            <p className="text-[10.5px] text-[rgba(255,255,255,0.55)] leading-snug mt-1 pt-2 border-t border-[rgba(255,255,255,0.05)]">
               No credentials are sent to TwinMe. The extension reads what your already-logged-in browser sees and posts only the normalized data to our backend. You can revoke at any time from the extension settings.
             </p>
           </div>
@@ -146,7 +146,7 @@ export function InstagramConnectModal({ open, onClose, onSuccess }: InstagramCon
             <p className="text-[11px] text-[#A8A29E] leading-snug">
               By connecting, you understand that:
             </p>
-            <ul className="text-[11px] text-[#57534E] leading-snug list-disc pl-4 space-y-1">
+            <ul className="text-[11px] text-[rgba(255,255,255,0.55)] leading-snug list-disc pl-4 space-y-1">
               <li>The TwinMe extension reads Instagram pages you visit (in your own browser, on your own machine).</li>
               <li>No passwords, no cookies, no session tokens leave your machine.</li>
               <li>Only normalized observations (saved posts, follows, captions) are sent to TwinMe.</li>

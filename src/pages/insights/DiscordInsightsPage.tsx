@@ -87,7 +87,7 @@ const DiscordInsightsPage: React.FC = () => {
 
   const colors = {
     text: 'var(--foreground)',
-    textSecondary: 'rgba(255,255,255,0.4)',
+    textSecondary: 'rgba(255, 255, 255, 0.55)',
     discordPurple: '#5865F2',
     discordBg: 'rgba(88, 101, 242, 0.1)',
   };

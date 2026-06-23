@@ -160,7 +160,7 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
                             color:
                               confirmingId === connector.id
                                 ? '#ef4444'
-                                : 'rgba(255,255,255,0.3)',
+                                : 'rgba(255, 255, 255, 0.55)',
                           }}
                         >
                           {disconnectingService === connector.id
@@ -223,7 +223,7 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
                 className="text-[11px] min-h-[44px] px-2 transition-opacity hover:opacity-60 flex-shrink-0"
                 style={{
                   color:
-                    confirmingId === platform ? '#ef4444' : 'rgba(255,255,255,0.3)',
+                    confirmingId === platform ? '#ef4444' : 'rgba(255, 255, 255, 0.55)',
                 }}
               >
                 {disconnectingService === platform
