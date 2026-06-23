@@ -7,7 +7,7 @@
  * Tiers:
  *   LIGHT    -> Gemini 2.5 Flash  ($0.15/$0.60 per M)  — greetings, acks, short factual
  *   STANDARD -> DeepSeek V3.2     ($0.25/$0.38 per M)  — medium complexity, casual personality
- *   DEEP     -> Claude Sonnet 4.6 ($3.00/$15.00 per M) — emotional, identity, complex reasoning
+ *   DEEP     -> DeepSeek V3.2     ($0.25/$0.38 per M)  — emotional, identity, complex (was Sonnet; kept on DeepSeek for cost, audit #118; CHAT_TIER_MODELS is source of truth)
  *
  * Classification is pure heuristic (keyword + length), no LLM call.
  * Runs in < 1ms.
