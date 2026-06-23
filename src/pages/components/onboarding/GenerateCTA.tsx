@@ -61,10 +61,10 @@ export const GenerateCTA: React.FC<GenerateCTAProps> = ({
       <div className="my-8" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} />
       <div className="text-center py-4">
         <div className="flex items-center justify-center gap-2 mb-4">
-          <CheckCircle2 className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.25)' }} />
+          <CheckCircle2 className="w-4 h-4" style={{ color: 'rgba(255, 255, 255, 0.55)' }} />
           <span
             className="text-[13px]"
-            style={{ color: 'rgba(255,255,255,0.40)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+            style={{ color: 'rgba(255, 255, 255, 0.55)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
           >
             {activeCount} platform{activeCount !== 1 ? 's' : ''} active
             {reconnectCount > 0 && (
@@ -108,7 +108,7 @@ export const GenerateCTA: React.FC<GenerateCTAProps> = ({
           <button
             onClick={onSkip}
             className="inline-flex items-center gap-1.5 text-[12px] transition-opacity hover:opacity-70 mt-3"
-            style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+            style={{ color: 'rgba(255, 255, 255, 0.55)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
           >
             Skip for now — I'll connect later
             <ArrowRight className="w-3 h-3" />

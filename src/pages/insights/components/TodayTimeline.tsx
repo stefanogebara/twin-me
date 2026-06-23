@@ -45,7 +45,7 @@ export const TodayTimeline: React.FC<TodayTimelineProps> = ({ events, colors }) 
         {/* Labels are absolutely positioned on the SAME 16h scale the events
             use (6am base, /16 denominator → 10PM at 100%), so axis ticks line
             up with event bars instead of being evenly spaced. */}
-        <div className="relative h-4 mb-2 text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
+        <div className="relative h-4 mb-2 text-xs" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
           {[
             { label: '6AM', hour: 6 },
             { label: '9AM', hour: 9 },

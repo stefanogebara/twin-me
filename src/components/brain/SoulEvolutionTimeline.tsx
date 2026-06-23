@@ -50,7 +50,7 @@ export const SoulEvolutionTimeline: React.FC<Props> = ({ snapshots }) => {
   if (data.length < 2) {
     return (
       <div className="flex items-center justify-center py-8 text-sm"
-        style={{ color: 'rgba(255,255,255,0.4)' }}>
+        style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
         Collect more data over time to see your soul signature evolve.
       </div>
     );
@@ -116,11 +116,11 @@ export const SoulEvolutionTimeline: React.FC<Props> = ({ snapshots }) => {
       <div className="flex items-center gap-4 mt-2 justify-center">
         <div className="flex items-center gap-1.5">
           <div className="w-3 h-0.5 rounded" style={{ background: '#8b5cf6' }} />
-          <span className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>Confidence</span>
+          <span className="text-xs" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>Confidence</span>
         </div>
         <div className="flex items-center gap-1.5">
           <div className="w-3 h-0.5 rounded" style={{ background: '#10b981' }} />
-          <span className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>Knowledge nodes</span>
+          <span className="text-xs" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>Knowledge nodes</span>
         </div>
       </div>
     </div>

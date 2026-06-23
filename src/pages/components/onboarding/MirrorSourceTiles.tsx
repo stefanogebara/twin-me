@@ -62,7 +62,7 @@ const MirrorTile: React.FC<MirrorTileProps> = ({
       className="flex-shrink-0 w-11 h-11 rounded-xl flex items-center justify-center"
       style={{
         backgroundColor: 'rgba(255,255,255,0.06)',
-        color: connected ? color : 'rgba(255,255,255,0.45)',
+        color: connected ? color : 'rgba(255, 255, 255, 0.55)',
       }}
     >
       {icon}

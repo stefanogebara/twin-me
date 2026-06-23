@@ -40,7 +40,7 @@ export const OnboardingHeader: React.FC<OnboardingHeaderProps> = ({
     </h1>
     <p
       className="text-[14px] leading-relaxed mb-10"
-      style={{ color: 'rgba(255,255,255,0.45)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+      style={{ color: 'rgba(255, 255, 255, 0.55)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
     >
       Link your digital footprints to build your soul signature
     </p>

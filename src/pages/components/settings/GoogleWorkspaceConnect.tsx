@@ -125,8 +125,8 @@ const GoogleWorkspaceConnect: React.FC<GoogleWorkspaceConnectProps> = ({
                     : 'rgba(255,255,255,0.06)'
                 }`,
                 color: isAnyGoogleConnected
-                  ? 'rgba(16,183,127,0.8)'
-                  : 'rgba(255,255,255,0.35)',
+                  ? 'rgba(16,183,127,0.95)'
+                  : 'rgba(255,255,255,0.55)',
               }}
             >
               <PlatformLogo platform={service.logoKey} size={12} />

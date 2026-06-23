@@ -120,7 +120,7 @@ const FeaturedMemory: React.FC<FeaturedMemoryProps> = ({ memory }) => {
               from {getPlatformLabel(memory.metadata)}
             </span>
           )}
-          <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.25)' }}>
+          <span className="text-[11px]" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
             {relativeTime(memory.created_at)}
           </span>
         </div>
