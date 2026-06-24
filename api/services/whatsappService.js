@@ -467,6 +467,77 @@ export async function sendWhatsAppCtaButton(recipientPhone, { body, buttonText, 
 }
 
 /**
+ * Send an interactive list (Meta "list" interactive via Kapso) — a tappable
+ * menu where each row carries an id the webhook maps back to an action. Used
+ * for the "which platform do you want to connect?" menu.
+ *
+ * Native list is Kapso/Meta-only; for any other provider or on failure we fall
+ * back to a numbered text menu of the row titles (tappable nowhere, but still
+ * actionable since the user can reply with the platform name). Never throws.
+ *
+ * @param {string} recipientPhone
+ * @param {{ body: string, buttonText: string, sections: Array<{title?: string, rows: Array<{id: string, title: string, description?: string}>}>, header?: string }} opts
+ */
+export async function sendWhatsAppList(recipientPhone, { body, buttonText, sections, header } = {}) {
+  if (process.env.TWINME_DISABLE_OUTBOUND_SEND === 'true') {
+    return { success: true, suppressed: true };
+  }
+  const allRows = (sections || []).flatMap((s) => s.rows || []);
+  const textFallback = () => {
+    const lines = allRows.map((r, i) => `${i + 1}. ${r.title}`).join('\n');
+    return sendWhatsAppMessage(recipientPhone, `${body}\n\n${lines}`);
+  };
+
+  if (!USE_KAPSO) return textFallback();
+  const apiKey = process.env.KAPSO_API_KEY?.trim();
+  const phoneNumberId = process.env.KAPSO_PHONE_NUMBER_ID || process.env.TWINME_WHATSAPP_PHONE_NUMBER_ID;
+  if (!apiKey || !phoneNumberId) return textFallback();
+
+  try {
+    const apiUrl = `https://api.kapso.ai/meta/whatsapp/v24.0/${phoneNumberId}/messages`;
+    const interactive = {
+      type: 'list',
+      body: { text: String(body).slice(0, 1024) },
+      action: {
+        // Meta caps the list button label at 20 chars and rows at 10 per list.
+        button: String(buttonText).slice(0, 20),
+        sections: (sections || []).map((s) => ({
+          ...(s.title ? { title: String(s.title).slice(0, 24) } : {}),
+          rows: (s.rows || []).slice(0, 10).map((r) => ({
+            id: String(r.id).slice(0, 200),
+            title: String(r.title).slice(0, 24),
+            ...(r.description ? { description: String(r.description).slice(0, 72) } : {}),
+          })),
+        })),
+      },
+    };
+    if (header) interactive.header = { type: 'text', text: String(header).slice(0, 60) };
+
+    const payload = { messaging_product: 'whatsapp', to: recipientPhone, type: 'interactive', interactive };
+    const { data, status } = await axios.post(apiUrl, payload, {
+      headers: { 'X-API-Key': apiKey, 'Content-Type': 'application/json' },
+      timeout: 15000,
+    });
+    logOutbound({
+      recipient: recipientPhone,
+      recipient_input: recipientPhone,
+      text_preview: `[list:${allRows.length} rows]`,
+      text_len: 0,
+      provider: 'kapso',
+      success: true,
+      message_id: data?.messages?.[0]?.id || null,
+      http_status: status,
+      raw_response: data || null,
+    });
+    return { success: true, messageId: data?.messages?.[0]?.id, provider: 'kapso', interactive: true };
+  } catch (err) {
+    const errMsg = err.response?.data?.error?.message || err.message;
+    log.warn('Kapso list send failed, falling back to text menu', { error: errMsg, status: err.response?.status });
+    return textFallback();
+  }
+}
+
+/**
  * Send a proactive insight via WhatsApp (plain text formatting).
  */
 function formatMeetingPrepMessage(insight) {

@@ -135,6 +135,7 @@
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
     "unicornstudio-react": "^1.4.29-1",
+    "unpdf": "^1.6.2",
     "vaul": "^0.9.9",
     "web-push": "^3.6.7",
     "ws": "^8.18.3",

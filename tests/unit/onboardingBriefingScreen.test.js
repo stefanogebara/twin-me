@@ -17,11 +17,19 @@
  *   - all LLM-derived strings HTML-escaped
  *   - dismiss (button + Escape) restores the stepper screen
  */
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect, afterEach, vi } from 'vitest';
 import { JSDOM } from 'jsdom';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+
+// JSDOM-parsing this ~2.4k-line page six times is legitimately heavy work.
+// Under full-suite parallelism (vitest forks contending for CPU) a single
+// construction can stretch well past vitest's 5s default, so give this
+// JSDOM-bound file generous, deterministic headroom. The real fix for the
+// flake is killing the ambient-drift rAF loop below; this is just so a
+// loaded CI runner never trips the timer on the synchronous render assertions.
+vi.setConfig({ testTimeout: 20000, hookTimeout: 20000 });
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const HTML = readFileSync(
@@ -52,6 +60,30 @@ function loadPage() {
     runScripts: 'dangerously',
     // requestAnimationFrame for the page's ambient gradient drift loop.
     pretendToBeVisual: true,
+    // The page runs an UNBOUNDED requestAnimationFrame loop for the ambient
+    // gradient drift (startAmbientDrift). In isolation that's harmless, but
+    // under full-suite parallelism every loadPage() leaves a frame loop
+    // churning the worker's event loop, which starves these synchronous
+    // render assertions and flakes them past the test timeout in CI.
+    //
+    // startAmbientDrift already no-ops for prefers-reduced-motion users, but
+    // JSDOM ships no matchMedia so that guard never fires in tests. Supply one
+    // that reports reduced-motion: the loop never starts, every other listener
+    // (briefing/keydown/dismiss) still registers, and nothing under test
+    // depends on the animation. This is the actual production reduced-motion
+    // code path, not a stub of behaviour we assert on.
+    beforeParse(window) {
+      window.matchMedia = (query) => ({
+        matches: /prefers-reduced-motion/.test(String(query)),
+        media: String(query),
+        onchange: null,
+        addEventListener() {},
+        removeEventListener() {},
+        addListener() {},
+        removeListener() {},
+        dispatchEvent() { return false; },
+      });
+    },
   });
   return dom.window;
 }
