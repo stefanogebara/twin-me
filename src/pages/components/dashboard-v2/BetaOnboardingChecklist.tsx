@@ -62,6 +62,10 @@ export function BetaOnboardingChecklist({ onDismiss }: BetaOnboardingChecklistPr
   // route). Primary count = summary.active per the spec's display convention.
   const { data: platformsSummary } = usePlatformsSummary();
   const connectedCount = platformsSummary?.active ?? 0;
+  // audit-2026-06-10 re-verify: the sync step must reflect a real sync, not just
+  // a connection. A platform has synced once lastSyncAt is non-null.
+  const hasSynced =
+    platformsSummary?.breakdown.some((entry) => !!entry.lastSyncAt) ?? false;
   const hasMessaged = useHasMessagedTwin();
 
   const [visible, setVisible] = useState(() => {
@@ -90,7 +94,9 @@ export function BetaOnboardingChecklist({ onDismiss }: BetaOnboardingChecklistPr
       description: 'Pull fresh data from your connected platforms.',
       action: () => navigate('/get-started'),
       actionLabel: 'Sync now',
-      isComplete: connectedCount >= 1,
+      // Complete only once a platform has actually synced (lastSyncAt set), not
+      // merely on connecting one — otherwise the step self-completes prematurely.
+      isComplete: hasSynced,
     },
     {
       id: 'chat',

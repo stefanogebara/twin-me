@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { ChevronLeft, Plus, Check } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { goalProgressPercent } from '@/lib/goalProgress';
 import {
   Goal,
   fetchGoals,
@@ -23,10 +24,27 @@ function timeLeft(endDate?: string): string {
   return `${days}d left`;
 }
 
-function ProgressBar({ current = 0, target = 1 }: { current?: number; target?: number }) {
-  const pct = Math.min(100, Math.round((current / Math.max(target, 1)) * 100));
+function ProgressBar({
+  current = 0,
+  target = 1,
+  operator = '>=',
+}: {
+  current?: number;
+  target?: number;
+  operator?: Goal['target_operator'];
+}) {
+  // For "lower is better" goals (<= / <), being under the cap is on-track (100%);
+  // overage reads as falling short. Mirrors evaluateTarget() in goalTrackingService.js.
+  const pct = goalProgressPercent(current, target, operator ?? '>=');
   return (
-    <div className="h-[3px] rounded-full overflow-hidden mt-2" style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}>
+    <div
+      className="h-[3px] rounded-full overflow-hidden mt-2"
+      style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}
+      role="progressbar"
+      aria-valuenow={current}
+      aria-valuemin={0}
+      aria-valuemax={target}
+    >
       <div
         className="h-full rounded-full transition-all duration-500"
         style={{ width: `${pct}%`, background: 'rgba(255,255,255,0.40)' }}
@@ -63,7 +81,17 @@ function ActiveGoalCard({ goal, onComplete }: { goal: Goal; onComplete: (id: str
             </p>
           )}
           {goal.target_value != null && (
-            <ProgressBar current={goal.last_measured_value ?? undefined} target={goal.target_value} />
+            goal.last_measured_at == null ? (
+              <p className="text-xs mt-2" style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}>
+                Tracking starts soon
+              </p>
+            ) : (
+              <ProgressBar
+                current={goal.last_measured_value ?? undefined}
+                target={goal.target_value}
+                operator={goal.target_operator}
+              />
+            )
           )}
           <div className="flex items-center gap-3 mt-2">
             {goal.current_streak != null && goal.current_streak > 0 && (
@@ -243,11 +271,12 @@ export default function GoalsPage() {
     setHasTriedGeneration(true);
     setGeneratingSuggestions(true);
     setSuggestionsError(null);
-    try { sessionStorage.setItem(SUGGESTION_SESSION_KEY, String(Date.now())); } catch {}
     generateGoalSuggestions()
       .then(fresh => {
         if (cancelled) return;
         setSuggestions(fresh);
+        // Arm the 24h gate only on success so a transient failure can retry.
+        try { sessionStorage.setItem(SUGGESTION_SESSION_KEY, String(Date.now())); } catch {}
       })
       .catch(err => {
         if (cancelled) return;
@@ -443,6 +472,7 @@ export default function GoalsPage() {
                   onChange={e => setAddTitle(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleAdd()}
                   placeholder="Goal title..."
+                  aria-label="Goal title"
                   autoFocus
                   className="flex-1 text-sm px-3 py-2 rounded-[6px] outline-none"
                   style={{

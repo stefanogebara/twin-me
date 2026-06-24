@@ -43,7 +43,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
         <button
           onClick={onToggleConversationList}
           className="p-1.5 rounded-lg transition-all duration-150 ease-out hover:opacity-70 active:scale-90"
-          style={{ color: showConversationList ? '#10b77f' : 'rgba(255,255,255,0.25)' }}
+          style={{ color: showConversationList ? 'var(--accent-vibrant)' : 'rgba(255,255,255,0.25)' }}
           aria-label={showConversationList ? "Hide chat history" : "Show chat history"}
           aria-expanded={showConversationList}
           title="Chat history"
@@ -65,7 +65,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
       <button
         onClick={onToggleContext}
         className="p-1.5 rounded-lg transition-all duration-150 ease-out hover:opacity-70 active:scale-90"
-        style={{ color: showContext ? '#10b77f' : 'rgba(255,255,255,0.25)' }}
+        style={{ color: showContext ? 'var(--accent-vibrant)' : 'rgba(255,255,255,0.25)' }}
         aria-label={showContext ? "Hide context panel" : "Show context panel"}
         aria-expanded={showContext}
         title="Toggle context"

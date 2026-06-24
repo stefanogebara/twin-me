@@ -127,7 +127,7 @@ const CalendarInsightsPage: React.FC = () => {
 
   const colors = {
     text: 'var(--foreground)',
-    textSecondary: 'rgba(255,255,255,0.4)',
+    textSecondary: 'rgba(255, 255, 255, 0.55)',
     calendarBlue: '#4285F4',
     calendarBg: 'rgba(66, 133, 244, 0.1)'
   };
@@ -287,7 +287,7 @@ const CalendarInsightsPage: React.FC = () => {
             />
           )}
         </div>
-      ) : (insights?.todayEvents || insights?.upcomingEvents) ? (
+      ) : (insights?.todayEvents?.length || insights?.upcomingEvents?.length) ? (
         <div
           className="mb-8 p-4 rounded-lg"
           style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}

@@ -45,7 +45,7 @@ const LABEL_STYLE: React.CSSProperties = {
   fontWeight: 500,
   letterSpacing: '0.08em',
   textTransform: 'uppercase',
-  color: 'rgba(255,255,255,0.45)',
+  color: 'rgba(255, 255, 255, 0.55)',
   marginBottom: 12,
 };
 
@@ -70,7 +70,7 @@ function formatDate(iso: string): string {
 }
 
 function stressChipColor(score: number | null): { bg: string; fg: string; label: string } {
-  if (score === null) return { bg: 'rgba(255,255,255,0.06)', fg: 'rgba(255,255,255,0.35)', label: 'no signal' };
+  if (score === null) return { bg: 'rgba(255,255,255,0.06)', fg: 'rgba(255, 255, 255, 0.55)', label: 'no signal' };
   if (score >= 0.6) return { bg: 'rgba(217, 119, 6, 0.15)', fg: 'rgba(232, 160, 80, 0.95)', label: `stress ${Math.round(score * 100)}%` };
   if (score >= 0.4) return { bg: 'rgba(255,255,255,0.06)', fg: 'rgba(255,255,255,0.55)', label: `moderate ${Math.round(score * 100)}%` };
   return { bg: 'rgba(34, 197, 94, 0.12)', fg: 'rgba(134, 239, 172, 0.90)', label: `calm ${Math.round(score * 100)}%` };
@@ -227,7 +227,7 @@ function SummaryBar({ summary, currency, mixedCurrency }: { summary: Transaction
           >
             {formatCurrency(headlineOutflow, currency)}
           </p>
-          <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginTop: 4, fontFamily: "'Geist', 'Inter', sans-serif" }}>
+          <p style={{ fontSize: 12, color: 'rgba(255, 255, 255, 0.55)', marginTop: 4, fontFamily: "'Geist', 'Inter', sans-serif" }}>
             {mixedCurrency ? `Total spending (${currency})` : 'Total spending'}
           </p>
         </div>
@@ -243,7 +243,7 @@ function SummaryBar({ summary, currency, mixedCurrency }: { summary: Transaction
           >
             {emotionalPct !== null ? `${emotionalPct}%` : '—'}
           </p>
-          <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginTop: 4, fontFamily: "'Geist', 'Inter', sans-serif" }}>
+          <p style={{ fontSize: 12, color: 'rgba(255, 255, 255, 0.55)', marginTop: 4, fontFamily: "'Geist', 'Inter', sans-serif" }}>
             Under stress
           </p>
         </div>
@@ -259,7 +259,7 @@ function SummaryBar({ summary, currency, mixedCurrency }: { summary: Transaction
           >
             {summary.stress_shop_count}
           </p>
-          <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginTop: 4, fontFamily: "'Geist', 'Inter', sans-serif" }}>
+          <p style={{ fontSize: 12, color: 'rgba(255, 255, 255, 0.55)', marginTop: 4, fontFamily: "'Geist', 'Inter', sans-serif" }}>
             Impulse purchases
           </p>
         </div>
@@ -289,12 +289,12 @@ function SummaryBar({ summary, currency, mixedCurrency }: { summary: Transaction
                   fontSize: 10.5,
                   letterSpacing: '0.04em',
                   textTransform: 'uppercase',
-                  color: 'rgba(255,255,255,0.40)',
+                  color: 'rgba(255, 255, 255, 0.55)',
                   fontFamily: "'Geist', 'Inter', sans-serif",
                   marginTop: 2,
                 }}
               >
-                {c.currency} · {c.count} {c.count === 1 ? 'tx' : 'tx'}
+                {c.currency} · {c.count} tx
               </p>
             </div>
           ))}
@@ -326,14 +326,31 @@ const CATEGORY_LABELS: Record<string, string> = {
 function FeedbackToggle({ txId, initial }: { txId: string; initial: boolean | null }) {
   const [value, setValue] = useState<boolean | null>(initial);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState(false);
 
   const toggle = async (next: boolean) => {
     if (saving) return;
+    const prev = value;
     const newVal = value === next ? null : next;
     setValue(newVal);
     if (newVal !== null) {
+      // audit-2026-06-10: optimistic update had no failure handling — a failed
+      // save left the wrong UI state and a network error was an unhandled
+      // rejection. Revert to the prior value and surface an inline hint.
       setSaving(true);
-      await setTransactionFeedback(txId, newVal).finally(() => setSaving(false));
+      setSaveError(false);
+      try {
+        const ok = await setTransactionFeedback(txId, newVal);
+        if (!ok) {
+          setValue(prev);
+          setSaveError(true);
+        }
+      } catch {
+        setValue(prev);
+        setSaveError(true);
+      } finally {
+        setSaving(false);
+      }
     }
   };
 
@@ -352,13 +369,13 @@ function FeedbackToggle({ txId, initial }: { txId: string; initial: boolean | nu
 
   return (
     <div className="flex items-center gap-1.5 mt-1" title="Was this a stress purchase?">
-      <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.30)', fontFamily: "'Geist','Inter',sans-serif" }}>stress?</span>
+      <span style={{ fontSize: 10, color: 'rgba(255, 255, 255, 0.55)', fontFamily: "'Geist','Inter',sans-serif" }}>stress?</span>
       <button
         onClick={() => { void toggle(true); }}
         style={{
           ...btnBase,
           borderColor: value === true ? 'rgba(232,160,80,0.6)' : 'rgba(255,255,255,0.12)',
-          color: value === true ? 'rgba(232,160,80,0.95)' : 'rgba(255,255,255,0.40)',
+          color: value === true ? 'rgba(232,160,80,0.95)' : 'rgba(255,255,255,0.55)',
           background: value === true ? 'rgba(217,119,6,0.12)' : 'transparent',
         }}
       >
@@ -369,12 +386,20 @@ function FeedbackToggle({ txId, initial }: { txId: string; initial: boolean | nu
         style={{
           ...btnBase,
           borderColor: value === false ? 'rgba(134,239,172,0.5)' : 'rgba(255,255,255,0.12)',
-          color: value === false ? 'rgba(134,239,172,0.90)' : 'rgba(255,255,255,0.40)',
+          color: value === false ? 'rgba(134,239,172,0.90)' : 'rgba(255,255,255,0.55)',
           background: value === false ? 'rgba(34,197,94,0.08)' : 'transparent',
         }}
       >
         no
       </button>
+      {saveError && (
+        <span
+          role="alert"
+          style={{ fontSize: 10, color: 'rgba(252,165,165,0.9)', fontFamily: "'Geist','Inter',sans-serif" }}
+        >
+          couldn't save — try again
+        </span>
+      )}
     </div>
   );
 }
@@ -497,7 +522,7 @@ function TransactionRow({ tx }: { tx: Transaction }) {
             style={{
               fontFamily: "'Geist', 'Inter', sans-serif",
               fontSize: 11,
-              color: 'rgba(255,255,255,0.40)',
+              color: 'rgba(255, 255, 255, 0.55)',
             }}
           >
             {formatDate(tx.transaction_date)} · {tx.source_bank}
@@ -597,7 +622,7 @@ function TransactionRow({ tx }: { tx: Transaction }) {
             </span>
           )}
         </div>
-        {showFeedback && <FeedbackToggle txId={tx.id} initial={null} />}
+        {showFeedback && <FeedbackToggle txId={tx.id} initial={tx.feedback ?? null} />}
       </div>
       <div
         style={{
@@ -818,7 +843,7 @@ export default function MoneyPage() {
               I am connecting each purchase with your mood, stress, and body. Check back in a few seconds.
             </p>
             {lastUpload.parse_errors && lastUpload.parse_errors.length > 0 && (
-              <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.40)', marginTop: 6, fontFamily: 'monospace' }}>
+              <p style={{ fontSize: 11, color: 'rgba(255, 255, 255, 0.55)', marginTop: 6, fontFamily: 'monospace' }}>
                 {lastUpload.parse_errors.length} line{lastUpload.parse_errors.length === 1 ? '' : 's'} skipped
               </p>
             )}
@@ -887,7 +912,7 @@ export default function MoneyPage() {
         </div>
       ) : (
         <div style={{ ...CARD_STYLE, padding: 32, textAlign: 'center' }}>
-          <FileText className="w-8 h-8 mx-auto mb-3" style={{ color: 'rgba(255,255,255,0.20)' }} />
+          <FileText className="w-8 h-8 mx-auto mb-3" style={{ color: 'rgba(255, 255, 255, 0.55)' }} />
           <p
             style={{
               fontFamily: "'Instrument Serif', Georgia, serif",
@@ -903,7 +928,7 @@ export default function MoneyPage() {
             style={{
               fontFamily: "'Geist', 'Inter', sans-serif",
               fontSize: 13,
-              color: 'rgba(255,255,255,0.45)',
+              color: 'rgba(255, 255, 255, 0.55)',
               lineHeight: 1.6,
             }}
           >
@@ -921,13 +946,13 @@ export default function MoneyPage() {
             fontFamily: "'Instrument Serif', Georgia, serif",
             fontSize: 14,
             fontStyle: 'italic',
-            color: 'rgba(255,255,255,0.30)',
+            color: 'rgba(255, 255, 255, 0.55)',
             letterSpacing: '-0.005em',
             lineHeight: 1.5,
           }}
         >
           Where do I find my statement? Nubank → Profile → Export → OFX or CSV.<br />
-          Does the PDF bill work too? Not yet — CSV/OFX only for now.
+          Does the PDF bill work too? Not yet — CSV/OFX/XLSX only for now.
         </p>
       )}
 

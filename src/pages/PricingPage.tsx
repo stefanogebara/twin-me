@@ -258,13 +258,16 @@ const PricingPage: React.FC = () => {
           })}
         </div>
 
-        <p
-          className="text-center mt-8 cursor-pointer hover:opacity-80"
-          style={{ fontSize: '13px', color: 'rgba(245,245,244,0.3)' }}
-          onClick={() => navigate(-1)}
-        >
-          Back to settings
-        </p>
+        <div className="text-center mt-8">
+          <button
+            type="button"
+            className="cursor-pointer hover:opacity-80 bg-transparent border-0 p-0"
+            style={{ fontSize: '13px', color: 'rgba(245,245,244,0.3)' }}
+            onClick={() => navigate('/settings')}
+          >
+            Back to settings
+          </button>
+        </div>
       </div>
     </div>
   );

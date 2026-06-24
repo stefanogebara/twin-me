@@ -96,7 +96,7 @@ export default function DiscoverPricing({ onNavigate }: DiscoverPricingProps) {
 
                 {/* CTA */}
                 <button
-                  onClick={() => onNavigate('/auth')}
+                  onClick={() => onNavigate(`/auth?plan=${plan.name.toLowerCase()}`)}
                   className="flex-shrink-0 px-5 py-2 rounded-full text-sm font-medium transition-opacity hover:opacity-80"
                   style={{
                     background: plan.primary ? '#F5F5F4' : 'rgba(255,255,255,0.08)',

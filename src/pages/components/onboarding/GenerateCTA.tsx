@@ -50,17 +50,21 @@ export const GenerateCTA: React.FC<GenerateCTAProps> = ({
   });
   const hasArchetype = existingSignature === true;
 
-  if (connectedServices.length === 0) return null;
+  // audit-2026-06-10: do NOT early-return on zero platforms — that made the
+  // "Skip for now" affordance (gated on connectedServices.length === 0 below)
+  // unreachable and left zero-platform users with no forward CTA. Render the
+  // zero-platform layout: the primary CTA is disabled via its ternaries and
+  // the Skip path (onSkip + onboarding_skipped_no_platforms funnel) is shown.
 
   return (
     <>
       <div className="my-8" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} />
       <div className="text-center py-4">
         <div className="flex items-center justify-center gap-2 mb-4">
-          <CheckCircle2 className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.25)' }} />
+          <CheckCircle2 className="w-4 h-4" style={{ color: 'rgba(255, 255, 255, 0.55)' }} />
           <span
             className="text-[13px]"
-            style={{ color: 'rgba(255,255,255,0.40)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+            style={{ color: 'rgba(255, 255, 255, 0.55)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
           >
             {activeCount} platform{activeCount !== 1 ? 's' : ''} active
             {reconnectCount > 0 && (
@@ -104,7 +108,7 @@ export const GenerateCTA: React.FC<GenerateCTAProps> = ({
           <button
             onClick={onSkip}
             className="inline-flex items-center gap-1.5 text-[12px] transition-opacity hover:opacity-70 mt-3"
-            style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+            style={{ color: 'rgba(255, 255, 255, 0.55)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
           >
             Skip for now — I'll connect later
             <ArrowRight className="w-3 h-3" />

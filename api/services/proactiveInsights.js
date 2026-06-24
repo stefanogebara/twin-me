@@ -203,11 +203,15 @@ function _findUngroundedNumbers(insight, evidence) {
   // Single-digit ints (1-9) are skipped — too noisy ("top 3 emails",
   // "next 5 days") and rarely fabricated convincingly on their own.
   const tokens = stripped.match(/\b\d+%|\b\d{2,}\b/g) || [];
+  // Ground candidates against the evidence's OWN whole-number tokens (exact match),
+  // not substring containment: ev.includes('46') was true for '462 emails' or a
+  // timestamp, so a fabricated '46% recovery' passed the very guard meant to catch
+  // it (audit). evNums holds each standalone digit-run in the evidence.
+  const evNums = new Set((ev.match(/\d+/g) || []));
   const ungrounded = [];
   for (const t of tokens) {
     const bare = t.replace('%', '').toLowerCase();
-    if (ev.includes(t.toLowerCase())) continue;
-    if (ev.includes(bare)) continue;
+    if (evNums.has(bare)) continue;
     ungrounded.push(t);
   }
   return ungrounded;
@@ -313,6 +317,31 @@ async function generateProactiveInsights(userId) {
       .eq('user_id', userId)
       .in('category', ['briefing_email', 'briefing', 'system', 'email_notification_sent'])
       .then(({ error }) => { if (error) log.warn('Junk category cleanup error', { error }); });
+
+    // 0. Cheap pre-LLM throttle. The per-category cooldowns below only gate the
+    //    INSERT, not the (billed) LLM call — and generateProactiveInsights is pushed
+    //    to backgroundJobs on every */30 ingestion run, so without this the
+    //    TIER_ANALYSIS call + 300-memory build fired up to ~48x/day even when nothing
+    //    new could store (audit: the $375-bill class). One indexed query gates the
+    //    whole pipeline; the per-category logic still applies on the rare run that proceeds.
+    const INSIGHT_GEN_COOLDOWN_MS = 4 * 60 * 60 * 1000; // 4h (the default category cooldown)
+    try {
+      const { data: lastInsight } = await supabaseAdmin
+        .from('proactive_insights')
+        .select('created_at')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (lastInsight?.created_at
+        && (Date.now() - new Date(lastInsight.created_at).getTime()) < INSIGHT_GEN_COOLDOWN_MS) {
+        log.info('Insight generation skipped — within global cooldown', { userId });
+        return 0;
+      }
+    } catch (err) {
+      // Non-fatal: if the probe fails, fall through to generation rather than block it.
+      log.warn('Insight cooldown probe failed — proceeding', { error: err?.message });
+    }
 
     // 1. Fetch 200 memories to find enough platform signals (reflections dominate recent stream ~90%)
     const recentMemories = await getRecentMemories(userId, MEMORIES_TO_SCAN || 300);
@@ -556,17 +585,15 @@ async function generateProactiveInsights(userId) {
 
     log.info('Generated insights', { stored, skippedUngrounded, userId, editor: editorEnabled });
 
-    // Weekly cross-platform correlation insights
-    // Only run if no 'trend' category insight exists in the last 7 days
+    // Weekly cross-platform correlation insights. Gate on the last correlation RUN
+    // (a persisted kv timestamp), NOT on whether a 'trend' insight is stored — the
+    // grounding/dedup/suppression gates routinely drop the trend row, so the old guard
+    // re-fired this second TIER_ANALYSIS call on most runs (audit #119).
     try {
-      const { count: trendCount } = await supabaseAdmin
-        .from('proactive_insights')
-        .select('id', { count: 'exact', head: true })
-        .eq('user_id', userId)
-        .eq('category', 'trend')
-        .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
-
-      if (!trendCount || trendCount === 0) {
+      const lastCorrelation = await getLastCorrelationRunAt(userId);
+      if (!lastCorrelation || (Date.now() - lastCorrelation) >= CORRELATION_COOLDOWN_MS) {
+        // Record the attempt up-front so an empty/failed result still cools down 7 days.
+        await setLastCorrelationRunAt(userId);
         const correlationResult = await generateCorrelationInsights(userId);
         const corrInsights = correlationResult?.insights || [];
         const corrEvidence = correlationResult?.evidence || '';
@@ -886,6 +913,39 @@ function _parseInsightsJSON(text) {
  * @param {string} userId
  * @returns {Promise<Array<{insight: string, urgency: string, category: string}> | null>}
  */
+// Correlation runs at most weekly. Gate on a persisted kv timestamp (mirrors the
+// goal-suggestion cooldown in goalTrackingService), NOT on whether a 'trend' insight
+// happens to be stored — the grounding/dedup/suppression gates routinely drop it,
+// which re-fired this second TIER_ANALYSIS call on most ingestion runs (audit #119).
+const CORRELATION_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000;
+
+async function getLastCorrelationRunAt(userId) {
+  const { data } = await supabaseAdmin
+    .from('user_platform_data')
+    .select('extracted_at')
+    .eq('user_id', userId)
+    .eq('platform', 'twinme')
+    .eq('data_type', 'correlation_run')
+    .order('extracted_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return data?.extracted_at ? new Date(data.extracted_at).getTime() : 0;
+}
+
+async function setLastCorrelationRunAt(userId) {
+  const { error } = await supabaseAdmin
+    .from('user_platform_data')
+    .insert({
+      user_id: userId,
+      platform: 'twinme',
+      data_type: 'correlation_run',
+      raw_data: { source: 'generateCorrelationInsights' },
+      extracted_at: new Date().toISOString(),
+      processed: true,
+    });
+  if (error) log.warn('setLastCorrelationRunAt insert failed', { userId, error: error.message });
+}
+
 async function generateCorrelationInsights(userId) {
   try {
     const since = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
@@ -979,17 +1039,20 @@ async function evaluateNudgeOutcomes(userId) {
 
     if (fetchErr || !pendingNudges?.length) return 0;
 
-    // Fetch recent platform_data memories (last 48h) to scan for evidence
+    // Fetch recent platform_data memories (last 48h) to scan for evidence. Keep
+    // created_at so each nudge is scored ONLY against activity created AFTER it was
+    // delivered — activity predating the nudge cannot mean the user "followed" it
+    // (audit: a 12h-old nudge was matched against ~36h of pre-delivery activity).
     const { data: recentData } = await supabaseAdmin
       .from('user_memories')
-      .select('content')
+      .select('content, created_at')
       .eq('user_id', userId)
       .eq('memory_type', 'platform_data')
       .gte('created_at', fortyEightHoursAgo)
       .order('created_at', { ascending: false })
       .limit(50);
 
-    const recentText = (recentData || []).map(m => m.content.toLowerCase()).join(' ');
+    const recentRows = recentData || [];
 
     let evaluated = 0;
     for (const nudge of pendingNudges) {
@@ -1009,7 +1072,14 @@ async function evaluateNudgeOutcomes(userId) {
         .filter(w => w.length > 3) // skip short words
         .filter(w => !['take', 'try', 'your', 'the', 'and', 'for', 'with', 'that', 'this', 'from', 'have', 'been', 'will', 'could', 'should', 'would', 'might'].includes(w));
 
-      // Count keyword overlap between nudge action and recent platform data
+      // Scope evidence to activity created AFTER this nudge was delivered.
+      const sinceDelivered = nudge.delivered_at ? new Date(nudge.delivered_at).getTime() : 0;
+      const recentText = recentRows
+        .filter(m => !sinceDelivered || new Date(m.created_at).getTime() >= sinceDelivered)
+        .map(m => m.content.toLowerCase())
+        .join(' ');
+
+      // Count keyword overlap between nudge action and post-delivery platform data
       const matchCount = actionWords.filter(w => recentText.includes(w)).length;
       const matchRatio = actionWords.length > 0 ? matchCount / actionWords.length : 0;
 

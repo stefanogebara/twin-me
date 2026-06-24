@@ -514,7 +514,7 @@ const DownloadPage: React.FC = () => {
               className="text-center"
               style={{ fontSize: '13px', color: 'rgba(245,245,244,0.4)', lineHeight: 1.6 }}
             >
-              Requires macOS 10.15+ / Windows 10+ / a recent Linux. Roughly a 10MB download.
+              Requires macOS 10.15+ / Windows 10+ / a recent Linux.
             </p>
           </div>
         )}

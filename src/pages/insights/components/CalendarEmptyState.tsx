@@ -27,11 +27,11 @@ export const CalendarEmptyState: React.FC<CalendarEmptyStateProps> = ({ colors, 
         className="text-center py-10 p-4 rounded-lg"
         style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
       >
-        <Calendar className="w-12 h-12 mx-auto mb-4" style={{ color: 'rgba(255,255,255,0.4)' }} />
+        <Calendar className="w-12 h-12 mx-auto mb-4" style={{ color: 'rgba(255, 255, 255, 0.55)' }} />
         <h3 style={{ color: colors.text, fontFamily: "'Instrument Serif', Georgia, serif" }}>
           Your twin is studying your schedule
         </h3>
-        <p className="mt-2 mb-6 max-w-sm mx-auto" style={{ color: 'rgba(255,255,255,0.4)' }}>
+        <p className="mt-2 mb-6 max-w-sm mx-auto" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
           {notConnected
             ? 'Connect Google Calendar and your twin will notice patterns in how you structure your time.'
             : 'As your calendar fills with events, your twin will notice patterns in how you structure your time.'}

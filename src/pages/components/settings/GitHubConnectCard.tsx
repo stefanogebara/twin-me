@@ -75,7 +75,7 @@ export default function GitHubConnectCard({ cardStyle }: GitHubConnectCardProps)
     return (
       <section className={sectionClass} style={sectionStyle}>
         <div className="flex items-center gap-3 mb-2">
-          <Github className="w-5 h-5" style={{ color: 'rgba(255,255,255,0.3)' }} />
+          <Github className="w-5 h-5" style={{ color: 'rgba(255, 255, 255, 0.55)' }} />
           <h2
             className="text-[11px] font-medium tracking-widest uppercase"
             style={{ color: '#10b77f' }}
@@ -83,7 +83,7 @@ export default function GitHubConnectCard({ cardStyle }: GitHubConnectCardProps)
             GitHub Activity
           </h2>
         </div>
-        <div className="flex items-center gap-2 text-sm" style={{ color: 'rgba(255,255,255,0.3)' }}>
+        <div className="flex items-center gap-2 text-sm" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
           <Loader2 className="w-4 h-4 animate-spin" /> Loading...
         </div>
       </section>
@@ -94,7 +94,7 @@ export default function GitHubConnectCard({ cardStyle }: GitHubConnectCardProps)
     <section className={sectionClass} style={sectionStyle}>
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
-          <Github className="w-5 h-5" style={{ color: 'rgba(255,255,255,0.3)' }} />
+          <Github className="w-5 h-5" style={{ color: 'rgba(255, 255, 255, 0.55)' }} />
           <h2
             className="text-[11px] font-medium tracking-widest uppercase"
             style={{ color: '#10b77f' }}
@@ -115,7 +115,7 @@ export default function GitHubConnectCard({ cardStyle }: GitHubConnectCardProps)
             onClick={() => disconnectMut.mutate()}
             disabled={disconnectMut.isPending}
             className="flex items-center gap-1.5 text-xs transition-colors px-2 py-1 rounded-lg"
-            style={{ color: 'rgba(255,255,255,0.3)' }}
+            style={{ color: 'rgba(255, 255, 255, 0.55)' }}
           >
             {disconnectMut.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Unlink className="w-3 h-3" />}
             Disconnect
@@ -125,10 +125,10 @@ export default function GitHubConnectCard({ cardStyle }: GitHubConnectCardProps)
 
       {status?.connected ? (
         <div className="space-y-2">
-          <p className="text-sm" style={{ color: 'rgba(255,255,255,0.3)' }}>
+          <p className="text-sm" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
             Connected as <span className="font-semibold">@{status.github_username}</span>
           </p>
-          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
+          <p className="text-xs" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
             Commits, PRs, and issues are ingested every 10 minutes into your memory stream.
             {status.last_synced_at && (
               <> Last sync: {new Date(status.last_synced_at).toLocaleString('en-US')}</>
@@ -137,7 +137,7 @@ export default function GitHubConnectCard({ cardStyle }: GitHubConnectCardProps)
         </div>
       ) : (
         <div className="space-y-3">
-          <p className="text-sm" style={{ color: 'rgba(255,255,255,0.3)' }}>
+          <p className="text-sm" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
             Connect your GitHub to capture commit history, PRs, and coding patterns in your twin's memory.
           </p>
 
@@ -159,7 +159,7 @@ export default function GitHubConnectCard({ cardStyle }: GitHubConnectCardProps)
               type="button"
               onClick={() => setShowPat(v => !v)}
               className="absolute right-2 top-2"
-              style={{ color: 'rgba(255,255,255,0.3)' }}
+              style={{ color: 'rgba(255, 255, 255, 0.55)' }}
             >
               {showPat ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
@@ -185,13 +185,13 @@ export default function GitHubConnectCard({ cardStyle }: GitHubConnectCardProps)
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1 text-xs transition-colors"
-              style={{ color: 'rgba(255,255,255,0.3)' }}
+              style={{ color: 'rgba(255, 255, 255, 0.55)' }}
             >
               Create token <ExternalLink className="w-3 h-3" />
             </a>
           </div>
 
-          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
+          <p className="text-xs" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
             Token needs <code className="px-1 rounded" style={{ backgroundColor: 'rgba(255,255,255,0.04)' }}>read:user</code> and <code className="px-1 rounded" style={{ backgroundColor: 'rgba(255,255,255,0.04)' }}>repo</code> scopes (read-only). Stored securely, never shared.
           </p>
         </div>

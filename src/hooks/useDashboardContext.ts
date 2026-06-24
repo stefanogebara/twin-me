@@ -39,6 +39,7 @@ function transformApiResponse(raw: Record<string, unknown>): DashboardContext {
           source: (hero.source as string) ?? '',
           insightId: (hero.insightId as string) ?? (hero.id as string) ?? '',
           createdAt: (hero.createdAt as string) ?? new Date().toISOString(),
+          sources: (hero.sources as string[]) ?? [],
         }
       : null,
     twinStats: {

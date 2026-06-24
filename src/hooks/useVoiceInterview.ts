@@ -75,6 +75,14 @@ export function useVoiceInterview(config: VoiceInterviewConfig): VoiceInterviewR
   const onStatusChangeRef = useRef(onStatusChange);
   const onErrorRef = useRef(onError);
   const onSessionEndRef = useRef(onSessionEnd);
+  const mountedRef = useRef(true);
+
+  // Track mount status so an async startSession that resolves AFTER unmount can bail
+  // instead of leaking a live mic/WebRTC session (audit).
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   useEffect(() => {
     onTranscriptRef.current = onTranscript;
@@ -151,6 +159,10 @@ export function useVoiceInterview(config: VoiceInterviewConfig): VoiceInterviewR
 
     // No session — start a new one
     try {
+      // Reset the availability latch on each fresh attempt: a prior mic/permission
+      // error set it false, and without this the voice orb stays permanently dead even
+      // after the user grants access (audit). onError/catch re-flip it if this retry fails.
+      setIsAvailable(true);
       updateOrbState('thinking');
       setConnectionStatus('connecting');
       messagesRef.current = [];
@@ -230,6 +242,12 @@ After ~10 questions, wrap up warmly: summarize 2-3 things you learned and thank 
 
           // Trigger session end callback with accumulated messages
           const reason = details.reason as 'agent' | 'user' | 'error';
+          // An error-reason disconnect (network/ICE/agent failure) is not guaranteed
+          // to also fire onError, so surface it here — otherwise an early drop (before
+          // 4 messages) leaves the orb silently idle with no feedback (audit).
+          if (reason === 'error') {
+            onErrorRef.current?.('Voice connection dropped. Please try again.');
+          }
           if (messagesRef.current.length >= 4) {
             onSessionEndRef.current?.(messagesRef.current, reason);
           }
@@ -266,6 +284,14 @@ After ~10 questions, wrap up warmly: summarize 2-3 things you learned and thank 
         onDebug: () => {},
       });
 
+      // If the component unmounted while startSession was negotiating (the consumer
+      // auto-fires voice on mode-select, so navigating away lands inside this window),
+      // tear the freshly-connected session down instead of leaking a live mic/WebRTC
+      // session + an orphaned volume-poll interval (audit).
+      if (!mountedRef.current) {
+        session.endSession();
+        return;
+      }
       sessionRef.current = session;
       startVolumePolling();
     } catch (err) {

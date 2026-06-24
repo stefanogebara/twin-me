@@ -652,8 +652,8 @@ const OAuthCallback = () => {
         {/* Progress indicator for loading state */}
         {(status === 'loading' || (status === 'error' && !showError)) && (
           <div className="mt-6">
-            <div className="w-full rounded-full h-1.5" style={{ backgroundColor: 'var(--glass-surface-bg)' }}>
-              <div className="h-1.5 rounded-full w-3/5 transition-all duration-300" style={{ backgroundColor: '#000000' }} />
+            <div className="w-full rounded-full h-1.5 overflow-hidden" style={{ backgroundColor: 'var(--glass-surface-bg)' }}>
+              <div className="h-1.5 rounded-full w-2/3 animate-pulse" style={{ backgroundColor: 'var(--accent-vibrant)' }} />
             </div>
           </div>
         )}
@@ -663,7 +663,7 @@ const OAuthCallback = () => {
           <button
             onClick={() => navigate('/auth')}
             className="mt-6 px-6 py-2 rounded-full"
-            style={{ backgroundColor: '#10b77f', color: '#0a0f0a', fontWeight: 600 }}
+            style={{ backgroundColor: '#F5F5F4', color: '#110f0f', fontWeight: 600 }}
           >
             Try Again
           </button>

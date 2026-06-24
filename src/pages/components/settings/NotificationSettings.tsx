@@ -25,6 +25,7 @@ const NotificationSettings: React.FC<NotificationSettingsProps> = ({ userId }) =
   // Push notification state
   const [pushEnabled, setPushEnabled] = useState(false);
   const [pushLoading, setPushLoading] = useState(true);
+  const [pushError, setPushError] = useState<string | null>(null);
   const [pushPermission, setPushPermission] = useState<NotificationPermission>(
     PUSH_SUPPORTED ? Notification.permission : 'denied'
   );
@@ -99,6 +100,7 @@ const NotificationSettings: React.FC<NotificationSettingsProps> = ({ userId }) =
   // ── Push toggle handler ──────────────────────────────────────────────
   const handlePushToggle = useCallback(async (enabled: boolean) => {
     if (!PUSH_SUPPORTED) return;
+    setPushError(null);
 
     if (enabled) {
       try {
@@ -106,11 +108,15 @@ const NotificationSettings: React.FC<NotificationSettingsProps> = ({ userId }) =
         if (Notification.permission === 'default') {
           const result = await Notification.requestPermission();
           setPushPermission(result);
-          if (result !== 'granted') return;
+          if (result !== 'granted') {
+            setPushError('Notifications are blocked — enable them in your browser settings.');
+            return;
+          }
         }
 
         if (Notification.permission !== 'granted') {
           setPushPermission(Notification.permission);
+          setPushError('Notifications are blocked — enable them in your browser settings.');
           return;
         }
 
@@ -119,25 +125,37 @@ const NotificationSettings: React.FC<NotificationSettingsProps> = ({ userId }) =
 
         // Get VAPID key
         const vapidRes = await fetch(`${API_URL}/web-push/vapid-key`);
-        if (!vapidRes.ok) return;
+        if (!vapidRes.ok) {
+          setPushError('Could not enable push notifications. Please try again.');
+          return;
+        }
         const { publicKey } = await vapidRes.json();
-        if (!publicKey) return;
+        if (!publicKey) {
+          setPushError('Could not enable push notifications. Please try again.');
+          return;
+        }
 
         const subscription = await reg.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: urlBase64ToUint8Array(publicKey),
         });
 
-        // Send to backend
-        await fetch(`${API_URL}/web-push/subscribe`, {
+        // Send to backend — only mark enabled after the server confirms
+        const subscribeRes = await fetch(`${API_URL}/web-push/subscribe`, {
           method: 'POST',
           headers: getAuthHeaders(),
           body: JSON.stringify({ subscription: subscription.toJSON() }),
         });
 
+        if (!subscribeRes.ok) {
+          setPushError('Could not save your push subscription. Please try again.');
+          return;
+        }
+
         setPushEnabled(true);
       } catch {
         // Permission denied or subscription failed
+        setPushError('Could not enable push notifications. Please try again.');
       }
     } else {
       try {
@@ -181,7 +199,7 @@ const NotificationSettings: React.FC<NotificationSettingsProps> = ({ userId }) =
         icon={
           pushEnabled
             ? <Bell className="w-4 h-4" style={{ color: 'rgba(245,245,244,0.45)' }} />
-            : <BellOff className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.3)' }} />
+            : <BellOff className="w-4 h-4" style={{ color: 'rgba(255, 255, 255, 0.55)' }} />
         }
         label="Push Notifications"
         description={
@@ -191,6 +209,7 @@ const NotificationSettings: React.FC<NotificationSettingsProps> = ({ userId }) =
               ? 'Blocked by browser — enable in browser settings'
               : 'Browser notifications for real-time insights'
         }
+        error={pushError}
         isLast
       >
         <ToggleSwitch
@@ -227,7 +246,7 @@ const SettingRow: React.FC<SettingRowProps> = ({ icon, label, description, error
         <span className="text-sm block" style={{ color: 'var(--foreground)' }}>
           {label}
         </span>
-        <p className="text-[12px] mt-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>
+        <p className="text-[12px] mt-0.5" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
           {description}
         </p>
         {error && (

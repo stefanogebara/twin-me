@@ -194,7 +194,7 @@ export const SpotifyCharts: React.FC<SpotifyChartsProps> = ({
                   axisLine={false}
                   tickLine={false}
                   tick={{ fill: colors.textSecondary, fontSize: 10 }}
-                  tickFormatter={(hour) => hour % 3 === 0 ? `${hour > 12 ? hour - 12 : hour}${hour >= 12 ? 'pm' : 'am'}` : ''}
+                  tickFormatter={(hour) => hour % 3 === 0 ? `${hour % 12 === 0 ? 12 : hour % 12}${hour >= 12 ? 'pm' : 'am'}` : ''}
                 />
                 <YAxis hide />
                 <RechartsTooltip
@@ -205,7 +205,7 @@ export const SpotifyCharts: React.FC<SpotifyChartsProps> = ({
                   }}
                   labelStyle={{ color: colors.text }}
                   itemStyle={{ color: colors.text }}
-                  labelFormatter={(hour) => `${hour > 12 ? hour - 12 : hour}:00 ${hour >= 12 ? 'PM' : 'AM'}`}
+                  labelFormatter={(hour) => `${hour % 12 === 0 ? 12 : hour % 12}:00 ${hour >= 12 ? 'PM' : 'AM'}`}
                   formatter={(value: number) => [`${value} plays`, 'Activity']}
                 />
                 <Bar dataKey="plays" radius={[3, 3, 0, 0]}>

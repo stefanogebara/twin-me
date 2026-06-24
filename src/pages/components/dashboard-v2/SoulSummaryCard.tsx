@@ -25,7 +25,7 @@ export function SoulSummaryCard() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const { data, isLoading } = useQuery<SoulSignatureResponse>({
+  const { data, isLoading, isError, refetch } = useQuery<SoulSignatureResponse>({
     queryKey: ['soul-summary-card', user?.id],
     queryFn: async () => {
       const res = await authFetch('/soul-signature/layers');
@@ -40,11 +40,6 @@ export function SoulSummaryCard() {
 
   const layers = data?.data?.layers;
   const tasteStatement = layers?.taste?.statement;
-  const topValues = (layers?.values?.values ?? []).slice(0, 3).map(v => v.name);
-  const rawChronotype = layers?.rhythms?.chronotype;
-  const chronotype = rawChronotype
-    ? rawChronotype.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
-    : undefined;
 
   if (isLoading) {
     return (
@@ -59,6 +54,37 @@ export function SoulSummaryCard() {
         <div className="h-4 w-2/3 rounded bg-white/[0.06] animate-pulse mb-3" />
         <div className="h-3 w-full rounded bg-white/[0.04] animate-pulse mb-2" />
         <div className="h-3 w-5/6 rounded bg-white/[0.04] animate-pulse" />
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div
+        className="rounded-[20px] px-5 py-5 backdrop-blur-[42px]"
+        style={{
+          background: 'var(--glass-surface-bg)',
+          border: '1px solid var(--glass-surface-border)',
+          boxShadow: '0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.06)',
+        }}
+      >
+        <p className="text-xs font-medium mb-3" style={{ color: 'var(--text-muted)' }}>
+          Soul Signature
+        </p>
+        <p className="text-sm mb-4" style={{ color: 'rgba(245,245,244,0.5)' }}>
+          Couldn&rsquo;t load your soul signature.
+        </p>
+        <button
+          onClick={() => refetch()}
+          className="text-xs font-medium px-4 py-2 rounded-[100px] transition-all duration-150 hover:opacity-80 active:scale-[0.97]"
+          style={{
+            background: 'var(--glass-surface-bg)',
+            border: '1px solid var(--glass-surface-border)',
+            color: 'var(--text-secondary)',
+          }}
+        >
+          Try again
+        </button>
       </div>
     );
   }
@@ -121,8 +147,6 @@ export function SoulSummaryCard() {
       >
         See full soul signature &rarr;
       </button>
-      {/* Suppress unused-variable noise from trimmed chips */}
-      <span style={{ display: 'none' }}>{topValues.join('')}{chronotype}</span>
     </div>
   );
 }

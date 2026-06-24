@@ -118,7 +118,16 @@ const PersonalityAxes: React.FC<PersonalityAxesProps> = ({ className = '', delay
               animate={{ opacity: 1 }}
               transition={{ duration: 0.2, delay: idx * 0.03 }}
               className="cursor-pointer"
+              role="button"
+              tabIndex={0}
+              aria-expanded={isExpanded}
               onClick={() => setExpandedAxis(isExpanded ? null : axis.axis_index)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setExpandedAxis(isExpanded ? null : axis.axis_index);
+                }
+              }}
             >
               <div
                 className="px-4 py-3 rounded-[16px] transition-all duration-150"

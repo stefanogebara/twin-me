@@ -20,6 +20,7 @@
  */
 
 import { complete, stream as streamLLM, TIER_CHAT } from './llmGateway.js';
+import { CHAT_TIER_DEEP } from './chatRouter.js';
 import { applyNeurotransmitterModifiers } from './neurotransmitterService.js';
 import { rerankByPersonality } from './personalityReranker.js';
 import { parseActions, stripActionTags } from './tools/workspaceActionParser.js';
@@ -120,7 +121,7 @@ export async function runFirstLlmCall({
   const useReranker = process.env.ENABLE_PERSONALITY_RERANKER === 'true'
     && personalityProfile?.personality_embedding
     && (personalityProfile?.confidence ?? 0) > 0.3
-    && routingTier === 'deep';
+    && routingTier === CHAT_TIER_DEEP; // was 'deep' — never matched the 'chat_deep' value (audit)
 
   let result;
   if (useReranker) {

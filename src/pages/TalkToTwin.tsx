@@ -21,6 +21,7 @@ import { useSidebarContext } from '@/hooks/useSidebarContext';
 import { departmentsAPI } from '@/services/api/departmentsAPI';
 import { PendingProposalsBadge } from '@/components/chat/PendingProposalsBadge';
 import type { ProposalStatus } from '@/components/chat/DepartmentProposalBubble';
+import { resolveStreamDone } from '@/lib/twinStreamDone';
 
 interface ActionEvent {
   tool: string;
@@ -239,22 +240,35 @@ const TalkToTwin = () => {
         headers: { 'Authorization': `Bearer ${token}` },
       });
       const data = await response.json();
-      if (data.messages) {
-        setMessages(data.messages.map((m: { id?: string; isUser?: boolean; content: string; createdAt: string }) => ({
-          id: m.id || crypto.randomUUID(),
-          role: m.isUser ? 'user' as const : 'assistant' as const,
-          content: m.content,
-          timestamp: new Date(m.createdAt),
-        })));
-        setConversationId(id);
+      if (!response.ok || !data.messages) {
+        toast({
+          title: 'Could not open conversation',
+          description: 'Please try again.',
+        });
+        return;
       }
+      setMessages(data.messages.map((m: { id?: string; isUser?: boolean; content: string; createdAt: string }) => ({
+        id: m.id || crypto.randomUUID(),
+        role: m.isUser ? 'user' as const : 'assistant' as const,
+        content: m.content,
+        timestamp: new Date(m.createdAt),
+      })));
+      setConversationId(id);
       setShowConversationList(false);
     } catch (err) {
       console.error('Failed to load conversation:', err);
+      toast({
+        title: 'Could not open conversation',
+        description: 'Please try again.',
+      });
     }
   };
 
   const handleNewChat = () => {
+    // Clear persisted history too, otherwise the prior thread's last messages
+    // survive in storage and resurrect on refresh into the new conversation.
+    localStorage.removeItem(CHAT_HISTORY_KEY);
+    sessionStorage.removeItem(CONVERSATION_ID_KEY);
     setMessages([]);
     setConversationId(null);
     setShowConversationList(false);
@@ -402,6 +416,27 @@ const TalkToTwin = () => {
               }
             } else if (event.type === 'done') {
               receivedDoneEvent = true;
+              // Audit High #8: empty-completion guard. If the stream produced no
+              // content chunks, the assistant bubble was never created; render the
+              // final message from the done payload (or surface an error) so the
+              // turn is never silently lost.
+              if (firstChunk) {
+                const decision = resolveStreamDone(firstChunk, event.message);
+                firstChunk = false;
+                setIsTyping(false);
+                if (decision.kind === 'render') {
+                  setMessages(prev => [...prev, {
+                    id: assistantMsgId,
+                    role: 'assistant',
+                    content: decision.content,
+                    timestamp: new Date(),
+                  }]);
+                } else if (decision.kind === 'error') {
+                  setMessages(prev => prev.map(m =>
+                    m.id === userMessage.id ? { ...m, failed: true, errorType: 'generic' as const } : m
+                  ));
+                }
+              }
               if (event.conversationId) setConversationId(event.conversationId);
               if (event.contextSources) {
                 setMessages(prev => prev.map(m =>
@@ -601,10 +636,6 @@ const TalkToTwin = () => {
     await Promise.all(pending.map(p => handleApproveProposal(p.id)));
   }, [messages, handleApproveProposal]);
 
-  const handleReviewInDepartments = useCallback(() => {
-    navigate('/departments');
-  }, [navigate]);
-
   const handleApproveDepartmentSuggestion = useCallback(async (department: string, action: string, toolName?: string) => {
     try {
       await departmentsAPI.propose(department, { toolName: toolName || undefined, context: action });
@@ -730,7 +761,6 @@ const TalkToTwin = () => {
               onApproveProposal={handleApproveProposal}
               onRejectProposal={handleRejectProposal}
               onApproveAllProposals={handleApproveAllProposals}
-              onReviewInDepartments={handleReviewInDepartments}
               onApproveDepartmentSuggestion={handleApproveDepartmentSuggestion}
             />
           )}

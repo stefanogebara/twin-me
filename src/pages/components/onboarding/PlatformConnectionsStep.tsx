@@ -189,7 +189,7 @@ export const PlatformConnectionsStep: React.FC<PlatformConnectionsStepProps> = (
                 name: provider.replace(/_/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase()),
                 description: 'Connected via OAuth.',
                 icon: <Link2 className="w-6 h-6" />,
-                color: 'rgba(255,255,255,0.45)',
+                color: 'rgba(255, 255, 255, 0.55)',
               };
               return (
                 <PlatformTile
@@ -217,7 +217,7 @@ export const PlatformConnectionsStep: React.FC<PlatformConnectionsStepProps> = (
       <SectionLabel label="Google Workspace" />
       <p
         className="text-[13px] -mt-2 mb-4 leading-relaxed"
-        style={{ color: 'rgba(255,255,255,0.40)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+        style={{ color: 'rgba(255, 255, 255, 0.55)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
       >
         Access your email and calendar — your twin reads and understands your schedule and communication patterns
       </p>
@@ -227,7 +227,7 @@ export const PlatformConnectionsStep: React.FC<PlatformConnectionsStepProps> = (
       />
       <p
         className="text-[11px] mt-3"
-        style={{ color: 'rgba(255,255,255,0.25)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+        style={{ color: 'rgba(255, 255, 255, 0.55)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
       >
         Your data stays yours. We never train AI on your personal data or sell it.
       </p>

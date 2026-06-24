@@ -24,6 +24,7 @@ import { personalityValidationFunction } from '../inngest/functions/personalityV
 import { smartEmailDraftFunction } from '../inngest/functions/smartEmailDraft.js';
 import { calendarOptimizationFunction } from '../inngest/functions/calendarOptimization.js';
 import { meetingPrepFunction } from '../inngest/functions/meetingPrep.js';
+import { userObservationIngestionFunction } from '../inngest/functions/userObservationIngestion.js';
 import { createLogger } from '../services/logger.js';
 
 const log = createLogger('InngestRoute');
@@ -48,6 +49,7 @@ function getHandler() {
           smartEmailDraftFunction,
           calendarOptimizationFunction,
           meetingPrepFunction,
+          userObservationIngestionFunction,
         ],
       });
       log.info('Inngest handler initialized');

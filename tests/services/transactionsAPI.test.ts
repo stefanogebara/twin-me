@@ -96,6 +96,26 @@ describe('listTransactions', () => {
     authFetchImpl = async () => notOk(500, { error: 'boom' });
     await expect(listTransactions()).rejects.toThrow(/Failed to load transactions \(500\)/);
   });
+
+  it('passes the saved feedback field through so the toggle can restore prior answers (audit-2026-06-10)', async () => {
+    // The GET / route now joins transaction_feedback and returns a `feedback`
+    // field (true/false/null). The client must not drop it — MoneyPage feeds
+    // tx.feedback into FeedbackToggle's `initial` so the answer survives reload.
+    authFetchImpl = async () =>
+      ok({
+        transactions: [
+          { id: 'tx_stress', feedback: true },
+          { id: 'tx_not', feedback: false },
+          { id: 'tx_blank', feedback: null },
+          { id: 'tx_legacy' }, // older payload without the field
+        ],
+      });
+    const result = await listTransactions();
+    expect(result[0].feedback).toBe(true);
+    expect(result[1].feedback).toBe(false);
+    expect(result[2].feedback).toBeNull();
+    expect(result[3].feedback).toBeUndefined();
+  });
 });
 
 describe('getTransactionsSummary — null-on-error pattern with success-envelope unwrap', () => {

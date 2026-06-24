@@ -42,7 +42,7 @@ export const WeeklyHeatmap: React.FC<WeeklyHeatmapProps> = ({ heatmap, colors })
               <div
                 key={slot}
                 className="flex-1 text-center text-xs"
-                style={{ color: 'rgba(255,255,255,0.4)' }}
+                style={{ color: 'rgba(255, 255, 255, 0.55)' }}
               >
                 {slot}
               </div>
@@ -52,7 +52,7 @@ export const WeeklyHeatmap: React.FC<WeeklyHeatmapProps> = ({ heatmap, colors })
             <div key={dayIndex} className="flex items-center mb-1">
               <div
                 className="w-10 text-xs"
-                style={{ color: 'rgba(255,255,255,0.4)' }}
+                style={{ color: 'rgba(255, 255, 255, 0.55)' }}
               >
                 {day.day}
               </div>
@@ -67,7 +67,7 @@ export const WeeklyHeatmap: React.FC<WeeklyHeatmapProps> = ({ heatmap, colors })
             </div>
           ))}
           <div className="flex items-center justify-end gap-2 mt-3">
-            <span className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>Free</span>
+            <span className="text-xs" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>Free</span>
             <div className="flex gap-1">
               {[0, 1, 2, 3].map(i => (
                 <div
@@ -77,7 +77,7 @@ export const WeeklyHeatmap: React.FC<WeeklyHeatmapProps> = ({ heatmap, colors })
                 />
               ))}
             </div>
-            <span className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>Busy</span>
+            <span className="text-xs" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>Busy</span>
           </div>
         </div>
       </div>

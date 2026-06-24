@@ -27,7 +27,7 @@ const LABEL_STYLE: React.CSSProperties = {
   fontWeight: 500,
   letterSpacing: '0.08em',
   textTransform: 'uppercase',
-  color: 'rgba(255,255,255,0.45)',
+  color: 'rgba(255, 255, 255, 0.55)',
 };
 
 interface Props {
@@ -48,7 +48,7 @@ export function UnlockProgressCard({ timeline, transactions }: Props) {
         {progress.unlocked ? (
           <Activity className="w-3.5 h-3.5" style={{ color: 'rgba(232, 160, 80, 0.85)' }} />
         ) : (
-          <Lock className="w-3.5 h-3.5" style={{ color: 'rgba(255,255,255,0.45)' }} />
+          <Lock className="w-3.5 h-3.5" style={{ color: 'rgba(255, 255, 255, 0.55)' }} />
         )}
         <p style={{ ...LABEL_STYLE, marginBottom: 0 }}>
           {progress.unlocked ? 'Pattern analysis running' : 'What unlocks next'}
@@ -108,7 +108,7 @@ export function UnlockProgressCard({ timeline, transactions }: Props) {
         style={{
           fontFamily: "'Geist', 'Inter', sans-serif",
           fontSize: 12,
-          color: 'rgba(255,255,255,0.45)',
+          color: 'rgba(255, 255, 255, 0.55)',
         }}
       >
         {progress.transactionDays} day{progress.transactionDays === 1 ? '' : 's'} of transactions

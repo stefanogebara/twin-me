@@ -66,11 +66,19 @@ export function ConversationList({
       }
 
       const data = await response.json();
-      const items: Conversation[] = Array.isArray(data)
+      const raw: Array<Record<string, unknown>> = Array.isArray(data)
         ? data
         : Array.isArray(data.conversations)
           ? data.conversations
           : [];
+      // Backend returns the last-message preview under `lastMessage`; the UI
+      // reads `preview`. Map it here so previews actually render.
+      const items: Conversation[] = raw.map((c) => ({
+        id: c.id as string,
+        title: c.title as string,
+        preview: (c.preview ?? c.lastMessage ?? '') as string,
+        updatedAt: c.updatedAt as string,
+      }));
       setConversations(items);
     } catch (err) {
       console.error('Failed to fetch conversations:', err);

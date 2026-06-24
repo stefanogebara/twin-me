@@ -64,12 +64,21 @@ const MemoryFeed: React.FC<MemoryFeedProps> = ({
             return (
               <div
                 key={memory.id}
+                role="button"
+                tabIndex={0}
+                aria-expanded={isExpanded}
                 className="cursor-pointer transition-colors"
                 style={{
                   borderBottom: isLast ? 'none' : '1px solid var(--sidebar)',
                   background: isExpanded ? 'rgba(255,255,255,0.03)' : 'transparent',
                 }}
                 onClick={() => onToggleExpand(memory.id)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onToggleExpand(memory.id);
+                  }
+                }}
                 onMouseEnter={(e) => {
                   if (!isExpanded) {
                     e.currentTarget.style.background = 'rgba(255,255,255,0.03)';
@@ -106,14 +115,14 @@ const MemoryFeed: React.FC<MemoryFeedProps> = ({
                   </span>
                   <span
                     className="flex-shrink-0 text-[11px]"
-                    style={{ color: 'rgba(255,255,255,0.25)' }}
+                    style={{ color: 'rgba(255, 255, 255, 0.55)' }}
                   >
                     {memory.importance_score}/10
                   </span>
                   <span
                     className="flex-shrink-0 text-[11px]"
                     style={{
-                      color: 'rgba(255,255,255,0.2)',
+                      color: 'rgba(255, 255, 255, 0.55)',
                       minWidth: '48px',
                       textAlign: 'right',
                     }}
@@ -158,7 +167,7 @@ const MemoryFeed: React.FC<MemoryFeedProps> = ({
                         </span>
                       )}
                       {memory.retrieval_count > 0 && (
-                        <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                        <span className="text-[11px]" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
                           accessed {memory.retrieval_count}x
                         </span>
                       )}

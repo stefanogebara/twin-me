@@ -1,0 +1,17 @@
+# gitleaks configuration — extends the built-in default ruleset.
+# Docs: https://github.com/gitleaks/gitleaks
+#
+# Used by both the CI "Secret Scan" workflow and the local .githooks/pre-commit
+# best-effort scan.
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Paths that legitimately reference secret VARIABLE NAMES (not values)"
+paths = [
+  '''\.env\.example$''',
+  '''(^|/)tasks/audit-.*''',      # audit reports quote leaked var names, never values
+  '''(^|/)package-lock\.json$''',
+  '''(^|/)desktop/package-lock\.json$''',
+]

@@ -47,8 +47,8 @@ export const EvidenceSection: React.FC<EvidenceSectionProps> = ({
 
   const colors = {
     text: 'var(--foreground)',
-    textMuted: 'rgba(255,255,255,0.3)',
-    textSecondary: 'rgba(255,255,255,0.4)',
+    textMuted: 'rgba(255, 255, 255, 0.55)',
+    textSecondary: 'rgba(255, 255, 255, 0.55)',
     border: 'var(--border-glass)',
     bgSubtle: 'rgba(255,255,255,0.04)',
     confidenceHigh: '#22c55e',

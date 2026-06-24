@@ -44,7 +44,7 @@ const PortfolioHero: React.FC<PortfolioHeroProps> = ({
         className="absolute top-6 left-6 text-lg tracking-tight transition-opacity hover:opacity-70"
         style={{ fontFamily: "'Instrument Serif', Georgia, serif", color: '#E8D5B7', textDecoration: 'none' }}
       >
-        Twin Me
+        TwinMe
       </a>
 
       {/* Avatar */}
