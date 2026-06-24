@@ -158,15 +158,23 @@ export default function DiscoverHero({
                   <div className="flex flex-wrap gap-x-3 gap-y-1">
                     {webSources.map((src, i) => {
                       let domain: string;
+                      let safeHref: string | undefined;
                       try {
-                        domain = new URL(src.url).hostname.replace('www.', '');
+                        const parsed = new URL(src.url);
+                        domain = parsed.hostname.replace('www.', '');
+                        // Only bind http(s) targets to href — block javascript:/data:/etc.
+                        // schemes from an untrusted src.url (audit: CodeRabbit).
+                        safeHref = (parsed.protocol === 'http:' || parsed.protocol === 'https:')
+                          ? parsed.href
+                          : undefined;
                       } catch {
                         domain = src.title || src.url;
+                        safeHref = undefined;
                       }
                       return (
                         <a
                           key={i}
-                          href={src.url}
+                          href={safeHref}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-[11px] hover:underline truncate max-w-[200px]"

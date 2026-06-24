@@ -28,7 +28,7 @@ const WhatsAppConnect: React.FC = () => {
 
   if (wa.loading) {
     return (
-      <div className="py-4 text-center text-[12px]" style={{ color: 'rgba(255,255,255,0.3)' }}>
+      <div className="py-4 text-center text-[12px]" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
         Loading...
       </div>
     );
@@ -47,7 +47,7 @@ const WhatsAppConnect: React.FC = () => {
           <MessageCircle className="w-4 h-4" style={{ color: '#25D366' }} />
           <div>
             <span className="text-sm" style={{ color: 'var(--foreground)' }}>WhatsApp</span>
-            <p className="text-[12px] mt-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>
+            <p className="text-[12px] mt-0.5" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
               {linked
                 ? 'Connected — twin sends insights here'
                 : 'Your twin will send you daily briefings and insights via WhatsApp'}
@@ -66,7 +66,7 @@ const WhatsAppConnect: React.FC = () => {
             <button
               onClick={wa.unlink}
               className="text-[11px] transition-opacity hover:opacity-60"
-              style={{ color: 'rgba(255,255,255,0.3)' }}
+              style={{ color: 'rgba(255, 255, 255, 0.55)' }}
             >
               Unlink
             </button>
@@ -102,7 +102,7 @@ const WhatsAppConnect: React.FC = () => {
             </button>
           </div>
           {wa.error && <p className="text-[11px]" style={{ color: 'rgba(239,68,68,0.8)' }}>{wa.error}</p>}
-          <p className="text-[11px]" style={{ color: 'rgba(255,255,255,0.25)' }}>
+          <p className="text-[11px]" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
             Enter your number in international format. We will send a code to confirm it is yours.
           </p>
         </div>
@@ -139,7 +139,7 @@ const WhatsAppConnect: React.FC = () => {
             </button>
           </div>
           {wa.info && !wa.error && (
-            <p className="text-[11px]" style={{ color: 'rgba(255,255,255,0.4)' }}>
+            <p className="text-[11px]" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
               {wa.info} Sent to <span style={{ color: 'var(--foreground)' }}>{wa.pendingPhone}</span>.
             </p>
           )}
@@ -147,7 +147,7 @@ const WhatsAppConnect: React.FC = () => {
           <button
             onClick={() => { setCodeInput(''); wa.cancel(); }}
             className="text-[11px] transition-opacity hover:opacity-60"
-            style={{ color: 'rgba(255,255,255,0.3)' }}
+            style={{ color: 'rgba(255, 255, 255, 0.55)' }}
           >
             Use a different number
           </button>
@@ -157,7 +157,7 @@ const WhatsAppConnect: React.FC = () => {
       {/* Linked */}
       {linked && (
         <div className="py-4 space-y-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-          <p className="text-[12px]" style={{ color: 'rgba(255,255,255,0.4)' }}>
+          <p className="text-[12px]" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
             Message your twin at{' '}
             <span style={{ color: 'var(--foreground)' }}>{TWIN_WHATSAPP_DISPLAY}</span>
           </p>

@@ -67,7 +67,7 @@ const TwinIntelligence: React.FC = () => {
       {/* Section label — matches other SectionLabel components in Settings */}
       <h2
         className="text-[11px] font-medium tracking-[0.1em] uppercase block mb-4"
-        style={{ color: 'rgba(255,255,255,0.3)', fontFamily: 'Inter, sans-serif', lineHeight: 'normal' }}
+        style={{ color: 'rgba(255, 255, 255, 0.55)', fontFamily: 'Inter, sans-serif', lineHeight: 'normal' }}
       >
         Twin Intelligence
       </h2>
@@ -81,7 +81,7 @@ const TwinIntelligence: React.FC = () => {
               <p className="text-sm font-medium" style={{ color: 'var(--foreground)', fontFamily: 'Inter, sans-serif' }}>
                 Twin Accuracy
               </p>
-              <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>
+              <p className="text-xs mt-0.5" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
                 {fidelity
                   ? `Based on ${fidelity.probe_count} behavioral probes`
                   : 'How well your twin predicts your responses'}
@@ -90,7 +90,7 @@ const TwinIntelligence: React.FC = () => {
           </div>
           <div className="flex items-center gap-2">
             {loadingFidelity ? (
-              <Loader2 className="w-3 h-3 animate-spin" style={{ color: 'rgba(255,255,255,0.3)' }} />
+              <Loader2 className="w-3 h-3 animate-spin" style={{ color: 'rgba(255, 255, 255, 0.55)' }} />
             ) : fidelityPercent != null ? (
               <span
                 className="text-lg font-semibold tabular-nums"

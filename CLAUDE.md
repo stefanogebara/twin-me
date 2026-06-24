@@ -325,7 +325,7 @@ All LLM calls route through `llmGateway.js` using the tiers in `api/config/aiMod
 | EXTRACTION | Importance rating, fact extraction | `deepseek/deepseek-v3.2` | mistral-small-creative was 404'ing on OpenRouter (2026-04-30) |
 | VISION | WhatsApp receipt/image extraction | `google/gemini-2.5-flash` | vision-capable, ~$0.001/image |
 
-Smart routing (`chatRouter.js`): Chat Light = `google/gemini-2.5-flash` (greetings/acks), Chat Standard = `deepseek/deepseek-v3.2` (medium), Chat Deep = `anthropic/claude-sonnet-4.6` (emotional / identity / complex).
+Smart routing (`chatRouter.js`): Chat Light = `google/gemini-2.5-flash` (greetings/acks), Chat Standard = `deepseek/deepseek-v3.2` (medium), Chat Deep = `deepseek/deepseek-v3.2` (emotional / identity / complex — kept on DeepSeek for cost; `CHAT_TIER_MODELS` in chatRouter.js is the source of truth, drift-guarded by a test).
 
 ## Development
 ```bash

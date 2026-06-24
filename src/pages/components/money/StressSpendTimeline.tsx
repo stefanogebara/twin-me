@@ -96,7 +96,7 @@ export function StressSpendTimeline({ days, currency = 'BRL' }: Props) {
       <div style={{
         padding: '40px 24px',
         textAlign: 'center',
-        color: 'rgba(255,255,255,0.35)',
+        color: 'rgba(255, 255, 255, 0.55)',
         fontFamily: "'Geist','Inter',sans-serif",
         fontSize: 14,
       }}>
@@ -194,7 +194,7 @@ export function StressSpendTimeline({ days, currency = 'BRL' }: Props) {
         </ComposedChart>
       </ResponsiveContainer>
 
-      <div style={{ display: 'flex', gap: 20, marginTop: 12, fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>
+      <div style={{ display: 'flex', gap: 20, marginTop: 12, fontSize: 11, color: 'rgba(255, 255, 255, 0.55)' }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <span style={{ width: 12, height: 12, borderRadius: 2, background: 'rgba(255,255,255,0.18)', display: 'inline-block' }} />
           Daily spending

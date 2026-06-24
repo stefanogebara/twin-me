@@ -184,7 +184,7 @@ const ConnectionRevealCard: React.FC<Props> = ({ provider, onDismiss }) => {
           onClick={onDismiss}
           aria-label="Dismiss"
           className="absolute top-3 right-3 p-1 rounded-full transition-opacity hover:opacity-80"
-          style={{ color: 'rgba(255,255,255,0.4)' }}
+          style={{ color: 'rgba(255, 255, 255, 0.55)' }}
         >
           <X className="w-4 h-4" />
         </button>
@@ -271,7 +271,7 @@ const ConnectionRevealCard: React.FC<Props> = ({ provider, onDismiss }) => {
             <button
               onClick={onDismiss}
               className="inline-flex items-center gap-1 px-3 py-2 rounded-[100px] text-[12px] font-medium transition-all duration-150 hover:opacity-80"
-              style={{ color: 'rgba(255,255,255,0.45)', fontFamily: "'Inter', sans-serif" }}
+              style={{ color: 'rgba(255, 255, 255, 0.55)', fontFamily: "'Inter', sans-serif" }}
             >
               Connect another
             </button>

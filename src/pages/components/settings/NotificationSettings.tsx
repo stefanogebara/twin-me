@@ -199,7 +199,7 @@ const NotificationSettings: React.FC<NotificationSettingsProps> = ({ userId }) =
         icon={
           pushEnabled
             ? <Bell className="w-4 h-4" style={{ color: 'rgba(245,245,244,0.45)' }} />
-            : <BellOff className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.3)' }} />
+            : <BellOff className="w-4 h-4" style={{ color: 'rgba(255, 255, 255, 0.55)' }} />
         }
         label="Push Notifications"
         description={
@@ -246,7 +246,7 @@ const SettingRow: React.FC<SettingRowProps> = ({ icon, label, description, error
         <span className="text-sm block" style={{ color: 'var(--foreground)' }}>
           {label}
         </span>
-        <p className="text-[12px] mt-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>
+        <p className="text-[12px] mt-0.5" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
           {description}
         </p>
         {error && (

@@ -31,7 +31,12 @@ function hashCode(code) {
   // HMAC with a server secret: a 6-digit code is only 1M-wide, so a plain
   // SHA-256 would be trivially brute-forced from a DB leak. The HMAC key keeps
   // offline guessing infeasible without the server secret.
-  const secret = process.env.OTP_HMAC_SECRET || process.env.JWT_SECRET || 'twinme-otp-fallback';
+  const secret = process.env.OTP_HMAC_SECRET || process.env.JWT_SECRET;
+  if (!secret) {
+    // No hardcoded fallback: a known key would let a DB-leak attacker brute-force the
+    // 1M-wide 6-digit codes offline. Fail loud instead (JWT_SECRET is a required env).
+    throw new Error('OTP_HMAC_SECRET or JWT_SECRET must be set to hash OTP codes');
+  }
   return crypto.createHmac('sha256', secret).update(String(code)).digest('hex');
 }
 

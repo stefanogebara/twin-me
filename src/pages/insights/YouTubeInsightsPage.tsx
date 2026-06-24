@@ -103,7 +103,7 @@ const YouTubeInsightsPage: React.FC = () => {
 
   const colors = {
     text: 'var(--foreground)',
-    textSecondary: 'rgba(255,255,255,0.4)',
+    textSecondary: 'rgba(255, 255, 255, 0.55)',
     youtubeRed: '#FF0000',
     youtubeBg: 'rgba(255, 0, 0, 0.1)'
   };
@@ -165,8 +165,8 @@ const YouTubeInsightsPage: React.FC = () => {
     return (
       <div className="max-w-[680px] mx-auto px-6 py-16">
         <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
-          <AlertCircle className="w-12 h-12" style={{ color: 'rgba(255,255,255,0.3)' }} />
-          <p style={{ color: 'rgba(255,255,255,0.4)' }}>{error}</p>
+          <AlertCircle className="w-12 h-12" style={{ color: 'rgba(255, 255, 255, 0.55)' }} />
+          <p style={{ color: 'rgba(255, 255, 255, 0.55)' }}>{error}</p>
           <button
             onClick={() => navigate('/get-started')}
             className="px-4 py-2 rounded-lg text-sm font-medium"
@@ -568,11 +568,11 @@ const YouTubeInsightsPage: React.FC = () => {
               >
                 <p
                   className="text-sm leading-relaxed"
-                  style={{ color: 'rgba(255,255,255,0.4)' }}
+                  style={{ color: 'rgba(255, 255, 255, 0.55)' }}
                 >
                   {past.text}
                 </p>
-                <p className="text-xs mt-2" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                <p className="text-xs mt-2" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
                   {new Date(past.generatedAt).toLocaleDateString()}
                 </p>
               </div>
@@ -588,7 +588,7 @@ const YouTubeInsightsPage: React.FC = () => {
             className="text-center py-10 p-4 rounded-lg"
             style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
           >
-            <Video className="w-12 h-12 mx-auto mb-4" style={{ color: 'rgba(255,255,255,0.3)' }} />
+            <Video className="w-12 h-12 mx-auto mb-4" style={{ color: 'rgba(255, 255, 255, 0.55)' }} />
             <h3 style={{
               color: colors.text,
               fontFamily: "'Instrument Serif', Georgia, serif",

@@ -20,6 +20,20 @@ import { createLogger } from './logger.js';
 
 const log = createLogger('OAuthRevocation');
 
+const REVOCATION_TIMEOUT_MS = 8000;
+// Bound each provider revocation call so a stalled provider can't hold the disconnect
+// request path open (audit: CodeRabbit). On timeout the AbortController aborts; the
+// caller's try/catch then proceeds with the local disconnect.
+async function fetchWithTimeout(fetchImpl, url, init, timeoutMs = REVOCATION_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetchImpl(url, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 // Provider keys that are backed by Google OAuth (one grant; revoking any token
 // revokes the grant). Covers the differing keys used across surfaces:
 // connectors.js uses 'youtube'; oauth-callback.js uses 'google_gmail' /
@@ -85,11 +99,12 @@ export async function revokeProviderGrant({
 
   // Refresh token revokes the entire grant where supported; fall back to access.
   const grantToken = refreshToken || accessToken;
+  const doFetch = (url, init) => fetchWithTimeout(fetchImpl, url, init);
 
   try {
     if (GOOGLE_PROVIDERS.has(key)) {
       if (!grantToken) return { revoked: false, skipped: true, reason: 'no token' };
-      const res = await fetchImpl('https://oauth2.googleapis.com/revoke', {
+      const res = await doFetch('https://oauth2.googleapis.com/revoke', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({ token: grantToken }),
@@ -104,7 +119,7 @@ export async function revokeProviderGrant({
       // app+user. Requires Basic auth with the app's client_id:client_secret.
       if (!accessToken) return { revoked: false, skipped: true, reason: 'no access token' };
       if (!clientId || !clientSecret) return { revoked: false, skipped: true, reason: 'missing client credentials' };
-      const res = await fetchImpl(`https://api.github.com/applications/${clientId}/grant`, {
+      const res = await doFetch(`https://api.github.com/applications/${clientId}/grant`, {
         method: 'DELETE',
         headers: {
           Accept: 'application/vnd.github+json',
@@ -122,7 +137,7 @@ export async function revokeProviderGrant({
     if (key === 'discord') {
       if (!grantToken) return { revoked: false, skipped: true, reason: 'no token' };
       if (!clientId || !clientSecret) return { revoked: false, skipped: true, reason: 'missing client credentials' };
-      const res = await fetchImpl('https://discord.com/api/oauth2/token/revoke', {
+      const res = await doFetch('https://discord.com/api/oauth2/token/revoke', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({
@@ -139,7 +154,7 @@ export async function revokeProviderGrant({
 
     if (key === 'whoop') {
       if (!grantToken) return { revoked: false, skipped: true, reason: 'no token' };
-      const res = await fetchImpl('https://api.prod.whoop.com/oauth/oauth2/revoke', {
+      const res = await doFetch('https://api.prod.whoop.com/oauth/oauth2/revoke', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({

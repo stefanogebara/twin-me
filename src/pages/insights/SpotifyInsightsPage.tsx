@@ -30,7 +30,7 @@ const SpotifyInsightsPage: React.FC = () => {
 
   const colors = {
     text: 'var(--foreground)',
-    textSecondary: 'rgba(255,255,255,0.4)',
+    textSecondary: 'rgba(255, 255, 255, 0.55)',
     spotifyGreen: '#1DB954',
     spotifyBg: 'rgba(29, 185, 84, 0.1)'
   };
@@ -55,7 +55,7 @@ const SpotifyInsightsPage: React.FC = () => {
         <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
           <AlertCircle
             className="w-12 h-12"
-            style={{ color: 'rgba(255,255,255,0.3)' }}
+            style={{ color: 'rgba(255, 255, 255, 0.55)' }}
           />
           <p
             style={{
@@ -246,7 +246,7 @@ const SpotifyInsightsPage: React.FC = () => {
                 <p
                   className="text-sm leading-relaxed"
                   style={{
-                    color: 'rgba(255,255,255,0.4)',
+                    color: 'rgba(255, 255, 255, 0.55)',
                     fontFamily: "'Inter', sans-serif"
                   }}
                 >
@@ -255,7 +255,7 @@ const SpotifyInsightsPage: React.FC = () => {
                 <p
                   className="text-xs mt-2"
                   style={{
-                    color: 'rgba(255,255,255,0.3)',
+                    color: 'rgba(255, 255, 255, 0.55)',
                     fontFamily: "'Inter', sans-serif"
                   }}
                 >

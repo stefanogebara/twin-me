@@ -105,7 +105,7 @@ const GoogleWorkspaceConnect: React.FC<GoogleWorkspaceConnectProps> = ({
         </div>
 
         {/* Description */}
-        <p className="text-[12px] leading-relaxed mb-4" style={{ color: 'rgba(255,255,255,0.4)' }}>
+        <p className="text-[12px] leading-relaxed mb-4" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
           Connect once to unlock Gmail and Calendar.
         </p>
 
@@ -125,8 +125,8 @@ const GoogleWorkspaceConnect: React.FC<GoogleWorkspaceConnectProps> = ({
                     : 'rgba(255,255,255,0.06)'
                 }`,
                 color: isAnyGoogleConnected
-                  ? 'rgba(16,183,127,0.8)'
-                  : 'rgba(255,255,255,0.35)',
+                  ? 'rgba(16,183,127,0.95)'
+                  : 'rgba(255,255,255,0.55)',
               }}
             >
               <PlatformLogo platform={service.logoKey} size={12} />
@@ -144,7 +144,7 @@ const GoogleWorkspaceConnect: React.FC<GoogleWorkspaceConnectProps> = ({
         </div>
 
         {/* Capability description */}
-        <p className="text-[11px] leading-relaxed mb-5" style={{ color: 'rgba(255,255,255,0.3)' }}>
+        <p className="text-[11px] leading-relaxed mb-5" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
           Your twin can read your emails and check your schedule — all in your voice.
         </p>
 
@@ -174,7 +174,7 @@ const GoogleWorkspaceConnect: React.FC<GoogleWorkspaceConnectProps> = ({
             className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-[12px] transition-opacity hover:opacity-60"
             style={{
               border: '1px solid rgba(255,255,255,0.08)',
-              color: 'rgba(255,255,255,0.4)',
+              color: 'rgba(255, 255, 255, 0.55)',
             }}
           >
             Manage connections
@@ -190,8 +190,8 @@ const GoogleWorkspaceConnect: React.FC<GoogleWorkspaceConnectProps> = ({
 
         {/* Trust badge */}
         <div className="flex items-center justify-center gap-1.5 mt-4">
-          <Lock className="w-3 h-3" style={{ color: 'rgba(255,255,255,0.2)' }} />
-          <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.2)' }}>
+          <Lock className="w-3 h-3" style={{ color: 'rgba(255, 255, 255, 0.55)' }} />
+          <span className="text-[10px]" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
             Enterprise-grade encryption. We never train on your data.
           </span>
         </div>
@@ -216,7 +216,7 @@ const GoogleWorkspaceConnect: React.FC<GoogleWorkspaceConnectProps> = ({
             <button
               onClick={() => setShowCheckboxModal(false)}
               className="absolute top-4 right-4 p-1 rounded-lg transition-opacity hover:opacity-60"
-              style={{ color: 'rgba(255,255,255,0.3)' }}
+              style={{ color: 'rgba(255, 255, 255, 0.55)' }}
               aria-label="Close"
             >
               <X className="w-4 h-4" />
@@ -241,7 +241,7 @@ const GoogleWorkspaceConnect: React.FC<GoogleWorkspaceConnectProps> = ({
               className="rounded-[8px] p-4 mb-5"
               style={{ border: '1px solid rgba(255,255,255,0.06)' }}
             >
-              <p className="text-[11px] font-medium mb-3" style={{ color: 'rgba(255,255,255,0.4)' }}>
+              <p className="text-[11px] font-medium mb-3" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
                 On the Google consent screen:
               </p>
               {/* This list mirrors Google's consent screen. The shared OAuth

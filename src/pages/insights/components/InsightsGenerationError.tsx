@@ -20,10 +20,10 @@ export const InsightsGenerationError: React.FC<InsightsGenerationErrorProps> = (
   return (
     <div className="max-w-[680px] mx-auto px-6 py-16">
       <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
-        <AlertCircle className="w-12 h-12" style={{ color: 'rgba(255,255,255,0.3)' }} />
+        <AlertCircle className="w-12 h-12" style={{ color: 'rgba(255, 255, 255, 0.55)' }} />
         <p
           className="text-sm text-center"
-          style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', sans-serif" }}
+          style={{ color: 'rgba(255, 255, 255, 0.55)', fontFamily: "'Inter', sans-serif" }}
         >
           {message}
         </p>
