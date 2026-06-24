@@ -9,7 +9,7 @@ import path from 'path';
 // worker re-imports the full Express + Supabase + route module graph (the
 // suite reports ~195s of *cumulative* import time), so an unbounded pool
 // piles ~16 heavy resident processes onto finite RAM. The moment the machine
-// is doing anything else, that tips into CPU/​memory thrash — the suite slows
+// is doing anything else, that tips into CPU/memory thrash — the suite slows
 // ~6x and 5s-default test timeouts start cascading across unrelated files
 // (JSDOM page loads, supertest round-trips). That is the intermittent CI red.
 //
