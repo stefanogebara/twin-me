@@ -21,11 +21,53 @@
 // sync.rs. No audio — Phase 5B adds true call presence + transcription.
 
 use crate::{active_window, clips, meetings};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 use std::time::Duration;
+use tauri::AppHandle;
 
 const POLL_INTERVAL: Duration = Duration::from_secs(5);
 
-pub async fn run() {
+/// In-flight meeting session tracked by the indexer loop. `recorder_stop` is
+/// Some when a transcription recorder is running for this session — setting it
+/// hands the close off to the recorder (which stamps the end time + transcript),
+/// so the indexer must NOT also close the row or the two would race.
+struct MeetingTrack {
+    id: i64,
+    platform: String,
+    recorder_stop: Option<Arc<AtomicBool>>,
+}
+
+/// Start a meeting recorder when transcription is opted in; returns the shared
+/// stop flag to store on the track. None when transcription is off → the indexer
+/// closes the session itself, exactly as in the original no-audio path.
+fn maybe_start_recorder(
+    app: &AppHandle,
+    conn: &rusqlite::Connection,
+    meeting_id: i64,
+    platform: &str,
+) -> Option<Arc<AtomicBool>> {
+    if clips::is_transcription_enabled(conn).unwrap_or(false) {
+        let stop = Arc::new(AtomicBool::new(false));
+        crate::meeting_recorder::start(app.clone(), meeting_id, platform.to_string(), Arc::clone(&stop));
+        Some(stop)
+    } else {
+        None
+    }
+}
+
+/// End a tracked session. If a recorder owns it, signal stop (it finalizes the
+/// row asynchronously — end time + transcript); otherwise close the row now.
+fn end_track(conn: &rusqlite::Connection, track: &MeetingTrack, ended_at: i64) {
+    match &track.recorder_stop {
+        Some(stop) => stop.store(true, Ordering::Relaxed),
+        None => {
+            let _ = meetings::close_meeting(conn, track.id, ended_at);
+        }
+    }
+}
+
+pub async fn run(app: AppHandle) {
     let conn = match clips::open() {
         Ok(c) => c,
         Err(err) => {
@@ -36,8 +78,8 @@ pub async fn run() {
 
     let mut current_clip_id: Option<i64> = None;
     let mut current_window: Option<active_window::ActiveWindow> = None;
-    // Parallel meeting-session state: (row id, platform, title at open).
-    let mut current_meeting: Option<(i64, String, Option<String>)> = None;
+    // Parallel meeting-session state (Phase 5A detection + 5B recorder).
+    let mut current_meeting: Option<MeetingTrack> = None;
 
     loop {
         tokio::time::sleep(POLL_INTERVAL).await;
@@ -83,25 +125,36 @@ pub async fn run() {
         match (&current_meeting, meeting_now) {
             // No meeting tracked, and this isn't a meeting → nothing to do.
             (None, None) => {}
-            // New meeting started.
+            // New meeting started → open the row and (if opted in) start recording.
             (None, Some(platform)) => {
                 let now = chrono::Utc::now().timestamp_millis();
                 match meetings::insert_meeting(&conn, platform, window.title.as_deref(), now) {
-                    Ok(id) => current_meeting = Some((id, platform.to_string(), window.title.clone())),
+                    Ok(id) => {
+                        let recorder_stop = maybe_start_recorder(&app, &conn, id, platform);
+                        current_meeting = Some(MeetingTrack {
+                            id,
+                            platform: platform.to_string(),
+                            recorder_stop,
+                        });
+                    }
                     Err(err) => eprintln!("[indexer] insert_meeting failed: {err}"),
                 }
             }
             // A meeting is already tracked, and we're still in a meeting.
-            (Some((id, platform, _)), Some(new_platform)) => {
+            (Some(track), Some(new_platform)) => {
                 // &String vs &str: compare via as_str() so the types line up.
-                if platform.as_str() != new_platform {
-                    // Switched to a DIFFERENT meeting platform → close old, open new.
+                if track.platform.as_str() != new_platform {
+                    // Switched to a DIFFERENT meeting platform → end old, open new.
                     let now = chrono::Utc::now().timestamp_millis();
-                    let _ = meetings::close_meeting(&conn, *id, now);
+                    end_track(&conn, track, now);
                     match meetings::insert_meeting(&conn, new_platform, window.title.as_deref(), now) {
                         Ok(new_id) => {
-                            current_meeting =
-                                Some((new_id, new_platform.to_string(), window.title.clone()))
+                            let recorder_stop = maybe_start_recorder(&app, &conn, new_id, new_platform);
+                            current_meeting = Some(MeetingTrack {
+                                id: new_id,
+                                platform: new_platform.to_string(),
+                                recorder_stop,
+                            });
                         }
                         Err(err) => {
                             eprintln!("[indexer] insert_meeting failed: {err}");
@@ -112,10 +165,10 @@ pub async fn run() {
                 // Same platform → keep the session open (ignore title changes
                 // within the same meeting).
             }
-            // Meeting tracked but the current window is NOT a meeting → close it.
-            (Some((id, _, _)), None) => {
+            // Meeting tracked but the current window is NOT a meeting → end it.
+            (Some(track), None) => {
                 let now = chrono::Utc::now().timestamp_millis();
-                let _ = meetings::close_meeting(&conn, *id, now);
+                end_track(&conn, track, now);
                 current_meeting = None;
             }
         }

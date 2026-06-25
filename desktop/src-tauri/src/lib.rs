@@ -18,13 +18,17 @@
 // with recent local activity on every summon (see seed_hummingbird_context).
 
 mod active_window;
+mod audio_capture;
 mod audio_permission;
 mod auth_refresh;
 mod clip_indexer;
 mod clips;
 mod config;
+mod meeting_recorder;
 mod meetings;
+mod model;
 mod sync;
+mod transcribe;
 mod update;
 
 use tauri::{
@@ -33,6 +37,7 @@ use tauri::{
     AppHandle, Manager, Runtime, RunEvent, WindowEvent,
 };
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
+use tauri_plugin_notification::NotificationExt;
 
 /// Show + focus the main TwinMe window. Used by the tray click handler,
 /// the tray menu, and the global hotkey.
@@ -48,6 +53,28 @@ fn focus_main_window(app: &AppHandle) {
 fn hide_main_window(app: &AppHandle) {
     if let Some(window) = app.get_webview_window("main") {
         let _ = window.hide();
+    }
+}
+
+/// Show a native notification (via the notification plugin). The body is
+/// truncated to ~200 chars so a long transcript doesn't overflow the OS toast.
+/// Falls back to eprintln! if the notification can't be shown (e.g. permission
+/// denied) so the result is never silently lost.
+fn notify(app: &AppHandle, title: &str, body: &str) {
+    let body = if body.chars().count() > 200 {
+        let truncated: String = body.chars().take(200).collect();
+        format!("{truncated}…")
+    } else {
+        body.to_string()
+    };
+    if let Err(err) = app
+        .notification()
+        .builder()
+        .title(title)
+        .body(&body)
+        .show()
+    {
+        eprintln!("[twinme-desktop] notification failed ({title}): {err} — body: {body}");
     }
 }
 
@@ -482,6 +509,15 @@ fn pause_label(paused: bool) -> &'static str {
     }
 }
 
+/// Label for the meeting-transcription opt-in toggle given the current state.
+fn transcription_label(on: bool) -> &'static str {
+    if on {
+        "Meeting transcription: On"
+    } else {
+        "Meeting transcription: Off"
+    }
+}
+
 /// (Re)populate the "Excluded apps" submenu from the persisted exclude list.
 /// Clears any existing children, then adds one re-include item per excluded
 /// app (id `unexclude:<app>`), or a single disabled "(none)" placeholder when
@@ -720,6 +756,29 @@ pub fn run() {
             let exclude_item =
                 MenuItem::with_id(app, "exclude_current", "Exclude current app", true, None::<&str>)?;
 
+            // Phase 5B live test: record 10s from the mic, run it through the
+            // whisper model (downloading it on first use), and show the
+            // transcript in a notification. Proves capture + model + whisper
+            // work end-to-end on real hardware (no mic exists in CI).
+            let test_mic_item =
+                MenuItem::with_id(app, "test_mic", "Test mic capture (10s)", true, None::<&str>)?;
+
+            // Phase 5B opt-in: meeting transcription (default OFF). When on, the
+            // indexer records the mic during detected meetings, transcribes
+            // on-device, and attaches the transcript to the synced session. Off
+            // until the user explicitly enables it — it captures others' voices.
+            let transcription_on = clips::open()
+                .ok()
+                .and_then(|c| clips::is_transcription_enabled(&c).ok())
+                .unwrap_or(false);
+            let transcription_item = MenuItem::with_id(
+                app,
+                "toggle_transcription",
+                transcription_label(transcription_on),
+                true,
+                None::<&str>,
+            )?;
+
             // Excluded apps submenu — one re-include item per excluded app,
             // populated from the DB now and rebuilt in place on every change.
             let excluded_submenu = Submenu::with_id(app, "excluded_menu", "Excluded apps", true)?;
@@ -736,6 +795,8 @@ pub fn run() {
                     &settings_item,
                     &pause_item,
                     &exclude_item,
+                    &test_mic_item,
+                    &transcription_item,
                     &excluded_submenu,
                     &separator,
                     &quit_item,
@@ -746,6 +807,7 @@ pub fn run() {
             // live menu after the setup closure returns. Both are Arc-backed,
             // so the clones point at the same underlying menu items.
             let pause_handle = pause_item.clone();
+            let transcription_handle = transcription_item.clone();
             let excluded_handle = excluded_submenu.clone();
 
             // Build the tray icon. menuOnLeftClick is false in tauri.conf.json,
@@ -774,6 +836,27 @@ pub fn run() {
                                 }
                             }
                         }
+                        "toggle_transcription" => {
+                            // Flip the meeting-transcription opt-in + relabel. The
+                            // indexer reads the flag when a meeting opens.
+                            if let Ok(conn) = clips::open() {
+                                let now = clips::is_transcription_enabled(&conn).unwrap_or(false);
+                                let next = !now;
+                                if let Err(err) = clips::set_transcription_enabled(&conn, next) {
+                                    eprintln!("[tray] set_transcription_enabled: {err}");
+                                } else {
+                                    let _ = transcription_handle.set_text(transcription_label(next));
+                                    if next {
+                                        // One-time consent confirmation at opt-in.
+                                        notify(
+                                            app,
+                                            "Meeting transcription on",
+                                            "TwinMe will record + transcribe detected meetings on-device. Audio never leaves your device — only the text transcript syncs. Turn it off here anytime.",
+                                        );
+                                    }
+                                }
+                            }
+                        }
                         "exclude_current" => {
                             // Snapshot the focused app and exclude it, then
                             // refresh the submenu so it shows up immediately.
@@ -785,6 +868,52 @@ pub fn run() {
                                 }
                             }
                             let _ = populate_excluded_submenu(app, &excluded_handle);
+                        }
+                        "test_mic" => {
+                            // Live mic->transcript test. Recording (10s) + model
+                            // download (~141MB first run) + whisper are blocking,
+                            // and cpal's Stream is !Send, so the heavy work runs
+                            // on a blocking thread. ensure_model is async, so the
+                            // outer task is spawned on the async runtime; the
+                            // blocking record+transcribe goes through
+                            // spawn_blocking (Stream never crosses an .await).
+                            let app_handle = app.clone();
+                            tauri::async_runtime::spawn(async move {
+                                let model = match crate::model::ensure_model().await {
+                                    Ok(p) => p,
+                                    Err(e) => {
+                                        notify(&app_handle, "TwinMe", &format!("Model error: {e}"));
+                                        return;
+                                    }
+                                };
+                                let wav = std::env::temp_dir().join("twinme-mic-test.wav");
+                                let wav_s = wav.to_string_lossy().to_string();
+                                let model_s = model.to_string_lossy().to_string();
+                                let result = tauri::async_runtime::spawn_blocking(move || {
+                                    crate::audio_capture::record_to_wav(&wav_s, 10)?;
+                                    crate::transcribe::transcribe_wav(&model_s, &wav_s)
+                                })
+                                .await;
+                                match result {
+                                    Ok(Ok(text)) => notify(
+                                        &app_handle,
+                                        "Mic test transcript",
+                                        if text.trim().is_empty() {
+                                            "(no speech detected)"
+                                        } else {
+                                            text.trim()
+                                        },
+                                    ),
+                                    Ok(Err(e)) => {
+                                        notify(&app_handle, "TwinMe mic test failed", &e)
+                                    }
+                                    Err(e) => notify(
+                                        &app_handle,
+                                        "TwinMe mic test failed",
+                                        &format!("task: {e}"),
+                                    ),
+                                }
+                            });
                         }
                         "quit" => {
                             app.exit(0);
@@ -819,9 +948,10 @@ pub fn run() {
             // tasks no-op safely on errors (DB open failure → early return)
             // and during Phase 2 the indexer effectively idles because
             // active_window::current() returns None.
-            tauri::async_runtime::spawn(clip_indexer::run());
-            // The sync loop needs the AppHandle for the morning-briefing leg
-            // (native toast + BriefingState + nudging the bundled page).
+            // Both loops need the AppHandle now: the indexer surfaces the
+            // meeting-recorder consent notification; the sync loop drives the
+            // morning-briefing leg (native toast + BriefingState + page nudge).
+            tauri::async_runtime::spawn(clip_indexer::run(app.handle().clone()));
             tauri::async_runtime::spawn(sync::run(app.handle().clone()));
 
             // Auto-update: one silent check shortly after startup. Best-effort —

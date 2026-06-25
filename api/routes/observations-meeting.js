@@ -19,6 +19,8 @@ import express from 'express';
 import { z } from 'zod';
 import { authenticateUser } from '../middleware/auth.js';
 import { addMemory } from '../services/memoryStreamService.js';
+import { complete, TIER_ANALYSIS } from '../services/llmGateway.js';
+import { stripEmoji } from '../utils/stripEmoji.js';
 import { createLogger } from '../services/logger.js';
 
 const log = createLogger('ObservationsMeeting');
@@ -29,6 +31,16 @@ const MAX_MEETINGS_PER_BATCH = 100;
 // Meetings are a bit more salient than passive activity clips (importance 4),
 // so they land at 5 — moderately interesting, surfaces in retrieval more often.
 const MEETING_IMPORTANCE = 5;
+// A meeting that arrives WITH an on-device transcript is more valuable than a
+// bare detection — bump importance so it surfaces in retrieval more often.
+const MEETING_WITH_TRANSCRIPT_IMPORTANCE = 6;
+// Transcript guards: skip the LLM for trivially short transcripts (whisper on a
+// silent meeting returns near-empty text), cap how much we feed the summarizer
+// (bounds token cost on long meetings), and hard-ceiling the stored transcript.
+const MIN_TRANSCRIPT_CHARS = 40;
+const TRANSCRIPT_LLM_CHAR_CAP = 12_000;
+const SUMMARY_MAX_TOKENS = 220;
+const MAX_TRANSCRIPT_CHARS = 100_000;
 
 const MeetingSchema = z.object({
   local_id: z.number().int(),
@@ -36,6 +48,9 @@ const MeetingSchema = z.object({
   title: z.string().max(512).nullish(),
   started_at: z.number().int().positive(),
   ended_at: z.number().int().positive().nullish(),
+  // On-device Whisper transcript (Phase 5B). nullish (NOT optional): the desktop
+  // serializes an absent transcript as JSON null, which .optional() rejects.
+  transcript: z.string().max(MAX_TRANSCRIPT_CHARS).nullish(),
 });
 
 const BatchSchema = z.object({
@@ -60,6 +75,31 @@ function buildSummary({ platform, title, started_at, ended_at }) {
   return `${platform} meeting started${titleSuffix}`;
 }
 
+/**
+ * Summarize a meeting transcript via the analysis-tier LLM. Returns a concise,
+ * emoji-free plain-text summary (key topics, decisions, the user's commitments)
+ * or '' on any failure so the caller falls back to the synthetic label. The
+ * transcript is clipped to bound token cost on long meetings.
+ */
+async function summarizeTranscript({ platform, title, transcript }) {
+  const clipped = transcript.slice(0, TRANSCRIPT_LLM_CHAR_CAP);
+  const titlePart = title ? ` titled "${title}"` : '';
+  const result = await complete({
+    tier: TIER_ANALYSIS,
+    system:
+      'You summarize meeting transcripts for a personal AI twin. In 2-4 sentences, '
+      + 'capture the key topics, any decisions reached, and any action items or '
+      + 'commitments the user personally made. Be specific and factual. '
+      + 'Plain text only — no markdown, no bullet points, no emojis.',
+    messages: [
+      { role: 'user', content: `Summarize this ${platform} meeting${titlePart}:\n\n${clipped}` },
+    ],
+    maxTokens: SUMMARY_MAX_TOKENS,
+    temperature: 0.4,
+  });
+  return stripEmoji((result?.content || '').trim());
+}
+
 // ====================================================================
 // POST /meeting — batch-ingest desktop meeting sessions
 // ====================================================================
@@ -79,18 +119,65 @@ router.post('/meeting', authenticateUser, async (req, res) => {
   const synced = [];
   const dropped = [];
 
-  for (const meeting of meetings) {
+  // A transcript counts only when it's substantive — whisper can return empty or
+  // near-empty text for a silent / no-speech meeting.
+  const hasTranscript = (m) =>
+    typeof m.transcript === 'string' && m.transcript.trim().length >= MIN_TRANSCRIPT_CHARS;
+
+  // Summarize transcript-bearing meetings in PARALLEL up front, so a batch of N
+  // transcripts costs one LLM round-trip of wall-time, not N. The LLM never
+  // fires for transcript-less or trivially-short meetings (free early-out); a
+  // failed summary yields '' and we fall back to the synthetic label below.
+  const summaries = await Promise.all(
+    meetings.map(async (m) => {
+      if (!hasTranscript(m)) return '';
+      try {
+        return await summarizeTranscript({
+          platform: m.platform,
+          title: m.title,
+          transcript: m.transcript.trim(),
+        });
+      } catch (error) {
+        log.warn('Meeting summary failed; storing transcript without summary', {
+          local_id: m.local_id,
+          error: error?.message,
+        });
+        return '';
+      }
+    }),
+  );
+
+  for (let i = 0; i < meetings.length; i++) {
+    const meeting = meetings[i];
     const { local_id, platform, title, started_at, ended_at } = meeting;
-    const summary = buildSummary({ platform, title, started_at, ended_at });
+    const label = buildSummary({ platform, title, started_at, ended_at });
+    const withTranscript = hasTranscript(meeting);
+    const aiSummary = summaries[i];
+
+    // Content is what gets embedded + surfaces in retrieval: the AI summary when
+    // we have one, otherwise the synthetic "45-min Zoom meeting — Standup" label.
+    // The full transcript + summary live in metadata (user chose full+summary).
+    const content = aiSummary || label;
+    const metadata = {
+      source: 'desktop_meeting',
+      platform,
+      title: title ?? null,
+      started_at,
+      ended_at: ended_at ?? null,
+      ...(withTranscript
+        ? { transcript: meeting.transcript.trim(), has_transcript: true, label }
+        : {}),
+      ...(aiSummary ? { summary: aiSummary } : {}),
+    };
+    const importanceScore = withTranscript
+      ? MEETING_WITH_TRANSCRIPT_IMPORTANCE
+      : MEETING_IMPORTANCE;
 
     try {
-      const memory = await addMemory(userId, summary, 'observation', {
-        source: 'desktop_meeting',
-        platform,
-        title: title ?? null,
-        started_at,
-        ended_at: ended_at ?? null,
-      }, { importanceScore: MEETING_IMPORTANCE, skipImportance: true });
+      const memory = await addMemory(userId, content, 'observation', metadata, {
+        importanceScore,
+        skipImportance: true,
+      });
 
       if (memory && memory.id) {
         synced.push({ local_id, memory_id: memory.id });
