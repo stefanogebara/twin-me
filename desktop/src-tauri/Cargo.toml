@@ -43,6 +43,13 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 rusqlite = { version = "0.32", features = ["bundled"] }
 chrono = { version = "0.4", features = ["serde"] }
+# `time` is only a transitive dep (tauri/cookie chain), but the resolver was
+# selecting a pre-0.3.35 version that fails to compile on current rustc with
+# `error[E0119]: conflicting implementations ... time::format_description...`
+# (the build-red that parked this PR). Pin a floor with the upstream fix so a
+# rustc-compatible version is chosen. No committed Cargo.lock — CI re-resolves
+# against this constraint.
+time = "0.3.36"
 dirs = "5"
 reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-features = false }
 # tokio is a transitive dep of tauri, but we use the `tokio::` crate name directly
