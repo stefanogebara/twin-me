@@ -127,6 +127,11 @@ router.delete('/connect', authenticateUser, async (req, res) => {
   const userId = req.user.id;
 
   try {
+    // NOTE: this surface stores a user-supplied GitHub PAT, which has no
+    // server-side revocation API (the OAuth-app grant revoke in
+    // oauthRevocation.js applies only to OAuth-app tokens, not PATs). The user
+    // must delete the PAT at github.com/settings/tokens; we delete our encrypted
+    // copy here.
     const { error } = await supabaseAdmin
       .from('user_github_config')
       .delete()

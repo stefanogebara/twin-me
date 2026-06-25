@@ -95,11 +95,16 @@ export async function getYouTubeData(userId) {
         percentage: Math.round((count / totalCategorized) * 100)
       }));
 
-    // Calculate learning vs entertainment ratio
+    // Calculate learning vs entertainment ratio.
+    // Null (not 0) when nothing could be categorized, so downstream renders skip
+    // the bar rather than showing a fabricated "Learning 0% / Entertainment 100%".
     const learningCategories = (categories['Education'] || 0) + (categories['Technology'] || 0) + (categories['Science'] || 0);
     const entertainmentCategories = (categories['Gaming'] || 0) + (categories['Music'] || 0) + (categories['Lifestyle'] || 0);
-    const total = learningCategories + entertainmentCategories || 1;
-    const learningRatio = Math.round((learningCategories / total) * 100);
+    const categorizedTotal = learningCategories + entertainmentCategories;
+    const learningRatio = categorizedTotal > 0
+      ? Math.round((learningCategories / categorizedTotal) * 100)
+      : null;
+    const entertainmentRatio = learningRatio != null ? 100 - learningRatio : null;
 
     log.info(`Found ${subscriptions.length} subs, ${likedVideos.length} liked, ${extensionWatches.length} extension watches for user ${userId}`);
 
@@ -113,7 +118,7 @@ export async function getYouTubeData(userId) {
         likedVideoCount: likedVideos.length,
         contentCategories,
         learningRatio,
-        entertainmentRatio: 100 - learningRatio,
+        entertainmentRatio,
         // Extension data
         recentWatchHistory: extensionWatches,
         searchQueries: extensionSearches,

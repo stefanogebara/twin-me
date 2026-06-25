@@ -272,7 +272,12 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
   // timeout the leg's caller .catch() returns a default (empty array,
   // null, etc.) and the chat continues without that leg's data.
   const timings = {};
-  const PER_LEG_TIMEOUT_MS = 6000;
+  // 9s (just under the 10s global breaker) so a leg may use nearly the full budget
+  // and the slow-but-recoverable cold-start tail (twinSummary / wikiPages / memories
+  // on cold pgbouncer) lands instead of being cut at 6s. The global breaker is the
+  // hard cap, and a single hung leg degrades to its default without aborting the
+  // others (see guardedPromises). (audit: 6s collapsed the effective budget below 10s.)
+  const PER_LEG_TIMEOUT_MS = 9000;
   const timed = (label, promise) => {
     const start = Date.now();
     let timer;
@@ -462,6 +467,18 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
     p.then(v => { resolvedValues[i] = v; }).catch(() => { resolvedValues[i] = defaults[i]; });
   });
 
+  // A per-leg timeout must degrade ONLY that leg, not abort the whole fan-out.
+  // Without this, the first leg to hit its timer rejected Promise.all and every
+  // still-in-flight sibling was discarded — so Promise.all below only rejects on
+  // the genuine global breaker, and any single leg timeout falls back to its
+  // default while the others run to completion (audit).
+  const guardedPromises = fetchPromises.map((p, i) =>
+    p.catch(err => {
+      if (/_leg_timeout$/.test(err?.message)) return defaults[i];
+      throw err;
+    })
+  );
+
   let contextResults;
   // audit-2026-05-13 bottleneck follow-up: track whether the circuit breaker
   // tripped so the hop_timings ladder can show it. Hop log can't be called
@@ -472,7 +489,7 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
   let degradationReason = null;
   try {
     contextResults = await Promise.race([
-      Promise.all(fetchPromises),
+      Promise.all(guardedPromises),
       new Promise((_, reject) =>
         setTimeout(() => reject(new Error('fetchTwinContext timeout')), CONTEXT_TIMEOUT_MS)
       ),
@@ -734,10 +751,14 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
 
   const platformAnalytics = {};
   if (userMessage) {
-    for (const cfg of PLATFORM_ANALYTICS) {
+    // Run every platform escalation CONCURRENTLY. Each self-catches and is bounded
+    // by its own Promise.race timeout, so the whole phase costs the slowest single
+    // platform (~8s) rather than the SUM of all that fire (audit: was a serial
+    // for-loop, ~22s of token+fetch+learn for a multi-platform message).
+    const runPlatform = async (cfg) => {
       try {
         const intent = cfg.detect(userMessage);
-        if (!intent.kind || intent.kind === 'snapshot') continue;
+        if (!intent.kind || intent.kind === 'snapshot') return;
         const tStart = Date.now();
         // No-token (upload-based) platforms pass the userId as run context
         // so the adapter can pull cached aggregates without an OAuth token.
@@ -748,7 +769,7 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
           const tok = await getValidAccessToken(userId, cfg.tokenPlatform);
           if (!tok.success || !tok.accessToken) {
             timings[`${cfg.key}AnalyticsHit`] = 'no_token';
-            continue;
+            return;
           }
           analyticsPromise = cfg.run(tok.accessToken);
         }
@@ -776,7 +797,8 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
       } catch (err) {
         log.warn(`${cfg.key} analytics escalation failed: ${err?.message ?? err}`);
       }
-    }
+    };
+    await Promise.all(PLATFORM_ANALYTICS.map(runPlatform));
   }
   const spotifyAnalytics = platformAnalytics.spotify ?? null;
   const calendarAnalytics = platformAnalytics.calendar ?? null;
@@ -1118,7 +1140,14 @@ async function _fetchSoulSignature(userId) {
     .limit(1)
     .single();
 
-  if (error || !data) {
+  if (error && error.code !== 'PGRST116') {
+    // Real DB error (cold pgbouncer, statement timeout, transient 5xx) — surface it
+    // and do NOT cache, so the next turn retries instead of serving a soul-less twin
+    // for 10 minutes. Only PGRST116 (no row) is a clean, cacheable null (audit).
+    log.warn('Soul signature query failed:', error.message);
+    return null;
+  }
+  if (!data) {
     setCache(cacheKey, null);
     return null;
   }
@@ -1163,7 +1192,11 @@ async function _fetchWritingProfile(userId) {
     .eq('user_id', userId)
     .single();
 
-  if (error || !data) { setCache(cacheKey, null); return null; }
+  if (error && error.code !== 'PGRST116') {
+    log.warn('Writing profile query failed:', error.message);
+    return null; // real error — do not cache, retry next turn (audit)
+  }
+  if (!data) { setCache(cacheKey, null); return null; }
 
   const result = {
     communicationStyle: data.formality_score >= 60 ? 'formal' : data.formality_score >= 40 ? 'balanced' : 'casual',
@@ -1519,7 +1552,12 @@ async function _fetchCalibrationContext(userId) {
     .eq('user_id', userId)
     .single();
 
-  if (error || !data) return null;
+  if (error && error.code !== 'PGRST116') {
+    // Throw so the caller's .catch logs it and does NOT cache the null for 10 min
+    // (audit). PGRST116 = no interview row = clean, cacheable null.
+    throw new Error(`calibration query failed: ${error.message}`);
+  }
+  if (!data) return null;
 
   const lines = [];
   if (data.archetype_hint) lines.push(`Archetype: ${data.archetype_hint}`);

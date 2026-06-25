@@ -1,0 +1,6 @@
+{
+  "_note": "Audit 2026-06 Milestone 0.5 regression freeze. These counts may only stay flat or SHRINK. When a metric drops (you fixed something), lower the number here in the same PR to lock the gain. The guard (scripts/ci/check-baselines.mjs) fails CI only when a metric EXCEEDS its baseline.",
+  "routesWithDirectFrom": 114,
+  "eslintErrors": 104,
+  "tscErrors": 134
+}

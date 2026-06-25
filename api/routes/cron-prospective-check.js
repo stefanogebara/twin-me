@@ -12,6 +12,7 @@
 import express from 'express';
 import { verifyCronSecret } from '../middleware/verifyCronSecret.js';
 import { checkTimeTriggered } from '../services/prospectiveMemoryService.js';
+import { deliverDueReminders } from '../services/reminderService.js';
 import { logCronExecution } from '../services/cronLogger.js';
 import { createLogger } from '../services/logger.js';
 
@@ -28,17 +29,26 @@ router.all('/', async (req, res) => {
     }
     const triggered = await checkTimeTriggered();
 
+    // Piggyback reminder delivery on this every-15-min cron (no new cron
+    // invocations — Vercel cost rule). Reminders fire within 15 min of set time.
+    const reminders = await deliverDueReminders().catch(err => {
+      log.warn('reminder delivery failed (non-fatal)', { error: err.message });
+      return { delivered: 0, scanned: 0 };
+    });
+
     const elapsed = Date.now() - startTime;
     log.info('Prospective memory check complete', {
       triggered: triggered.length,
+      remindersDelivered: reminders.delivered,
       elapsedMs: elapsed
     });
 
-    await logCronExecution('prospective-check', 'success', elapsed, { triggered: triggered.length });
+    await logCronExecution('prospective-check', 'success', elapsed, { triggered: triggered.length, reminders });
 
     return res.json({
       success: true,
       triggered: triggered.length,
+      reminders,
       memories: triggered.map(m => ({
         id: m.id,
         action: m.action?.slice(0, 80),

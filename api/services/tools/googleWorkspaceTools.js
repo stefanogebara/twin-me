@@ -94,6 +94,33 @@ export function registerGoogleWorkspaceTools() {
     },
   });
 
+  registerTool({
+    name: 'inbox_triage',
+    platform: 'google_gmail',
+    description: 'Triage the inbox on demand: scan recent unread email, filter out noise, score by urgency/opportunity/relationship, and return a short brief of what actually needs the user — each with a one-line summary. Use when the user asks "is there anything important in my email?", "tem algo no meu email?", "check my inbox", "what needs a reply?". Returns a ready-to-read brief; the top thread is also queued as a reply proposal the user can approve.',
+    category: 'communication',
+    parameters: { type: 'object', properties: {} },
+    requiresConnection: true,
+    minAutonomyLevel: 1,
+    skillName: 'communications_actions',
+    executor: async (userId) => {
+      const { generateInboxBrief, proposeTopEmailReply } = await import('../inboxIntelligenceService.js');
+      const brief = await generateInboxBrief(userId);
+      // When there are real emails, queue a threaded reply proposal for the top
+      // one so the user can approve a draft right after reading the brief.
+      // Opt-in + non-fatal: the communications autonomy gate decides if it fires.
+      if (brief?.status === 'ok' && brief.count > 0) {
+        try { await proposeTopEmailReply(userId, brief); } catch { /* non-fatal */ }
+      }
+      return {
+        status: brief?.status,
+        message: brief?.message,
+        count: brief?.count || 0,
+        emails: (brief?.emails || []).map(e => ({ from: e.from, subject: e.subject, summary: e.summary })),
+      };
+    },
+  });
+
   // ========================================================================
   // GMAIL — Write (Level 2)
   // ========================================================================
@@ -127,9 +154,10 @@ export function registerGoogleWorkspaceTools() {
               to: params.to,
               subject: params.subject,
               context: params.body || '',
+              replyToMessageId: params.replyToMessageId, // thread the reply when present
             });
             if (personalizedDraft) {
-              log.info('gmail_draft: used personality-aware draft', { userId, to: params.to });
+              log.info('gmail_draft: used personality-aware draft', { userId, to: params.to, threaded: !!params.replyToMessageId });
               return { draft: personalizedDraft, personalized: true };
             }
           } else {
@@ -311,7 +339,7 @@ export function registerGoogleWorkspaceTools() {
   registerTool({
     name: 'calendar_create',
     platform: 'google_calendar',
-    description: 'Create a new calendar event. Always use the user\'s local time in datetime strings — NOT UTC. The timezone will be applied automatically.',
+    description: 'Create a calendar event. Use the user\'s LOCAL time (timezone applied automatically). To schedule a meeting WITH someone, pass their email in `attendees` — they get emailed a Google Calendar invite. To find a mutual time first, call calendar_find_free_slots; to resolve a name to an email, call contacts_search.',
     category: 'schedule',
     parameters: {
       type: 'object',
@@ -320,7 +348,7 @@ export function registerGoogleWorkspaceTools() {
         start: { type: 'string', description: 'Start time in LOCAL time (ISO 8601 without Z, e.g., "2026-04-18T15:00:00" for 3pm local). Do NOT append Z — timezone is set automatically.' },
         end: { type: 'string', description: 'End time in LOCAL time (ISO 8601 without Z, defaults to 1 hour after start)' },
         description: { type: 'string', description: 'Event description (optional)' },
-        attendees: { type: 'string', description: 'Comma-separated attendee emails (optional)' },
+        attendees: { type: 'string', description: 'Comma-separated attendee emails to invite (optional). Each is emailed a Google Calendar invite.' },
         location: { type: 'string', description: 'Event location (optional)' },
       },
       required: ['summary', 'start'],

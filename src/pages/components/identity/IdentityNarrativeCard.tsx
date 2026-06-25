@@ -65,6 +65,9 @@ const IdentityNarrativeCard: React.FC = () => {
   const narrative = data?.data;
   const [mode, setMode] = useState<'view' | 'edit' | 'saving'>('view');
   const [draft, setDraft] = useState<string>('');
+  // Two-tap confirm before the destructive "Revert to auto" wipes the user's
+  // hand-written narrative (audit-2026-06-10: was a zero-confirmation delete).
+  const [confirmingClear, setConfirmingClear] = useState(false);
 
   // Seed the draft when entering edit mode or when the underlying data refreshes
   useEffect(() => {
@@ -103,6 +106,7 @@ const IdentityNarrativeCard: React.FC = () => {
 
   // ── Clear handler — explicit "revert to system" verb ───────────
   const handleClear = async () => {
+    setConfirmingClear(false);
     setMode('saving');
     try {
       const res = await authFetch('/soul-signature/narrative', {
@@ -194,16 +198,23 @@ const IdentityNarrativeCard: React.FC = () => {
           <div className="flex items-center justify-end gap-2 mt-3">
             {isUserAuthored && (
               <button
-                onClick={handleClear}
+                onClick={() => {
+                  if (confirmingClear) {
+                    handleClear();
+                  } else {
+                    setConfirmingClear(true);
+                  }
+                }}
+                onBlur={() => setConfirmingClear(false)}
                 className="text-[12px] flex items-center gap-1 px-2 py-1 rounded-[6px] hover:bg-[rgba(255,255,255,0.04)] transition"
-                style={{ color: 'var(--text-muted)' }}
+                style={{ color: confirmingClear ? 'var(--destructive)' : 'var(--text-muted)' }}
               >
                 <Trash2 className="w-3 h-3" />
-                Revert to auto
+                {confirmingClear ? 'Click again to confirm' : 'Revert to auto'}
               </button>
             )}
             <button
-              onClick={() => setMode('edit')}
+              onClick={() => { setConfirmingClear(false); setMode('edit'); }}
               className="text-[12px] flex items-center gap-1 px-2 py-1 rounded-[6px] hover:bg-[rgba(255,255,255,0.04)] transition"
               style={{ color: 'var(--foreground)' }}
             >

@@ -31,7 +31,7 @@ export const ArchetypeReveal: React.FC<ArchetypeRevealProps> = ({
           >
             Discovering your archetype...
           </h2>
-          <p className="text-sm" style={{ color: 'rgba(255,255,255,0.35)' }}>
+          <p className="text-sm" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
             Weaving your digital footprint into a soul signature
           </p>
         </div>
@@ -59,7 +59,7 @@ export const ArchetypeReveal: React.FC<ArchetypeRevealProps> = ({
         </h2>
 
         {revealedArchetype.signature_quote && (
-          <p className="text-sm italic mb-6" style={{ color: 'rgba(255,255,255,0.4)' }}>
+          <p className="text-sm italic mb-6" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
             {revealedArchetype.signature_quote}
           </p>
         )}
@@ -105,7 +105,7 @@ export const ArchetypeReveal: React.FC<ArchetypeRevealProps> = ({
             fontFamily: "'Inter', sans-serif",
           }}
         >
-          Enter your Twin
+          View your Soul Signature
           <ArrowRight className="w-4 h-4" />
         </button>
       </div>

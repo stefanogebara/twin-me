@@ -311,6 +311,7 @@ struct SettingsState {
     excluded: Vec<String>,
     auth_connected: bool,
     hotkey: String,
+    launch_at_login: bool,
 }
 
 /// Command: read current local settings (capture pause, excluded apps, whether
@@ -323,6 +324,11 @@ fn settings_get() -> SettingsState {
         .as_ref()
         .and_then(|c| clips::list_excluded(c).ok())
         .unwrap_or_default();
+    // Default ON when unreadable/absent — matches the always-on-by-design intent.
+    let launch_at_login = conn
+        .as_ref()
+        .and_then(|c| clips::launch_at_login_enabled(c).ok())
+        .unwrap_or(true);
     SettingsState {
         paused,
         excluded,
@@ -332,6 +338,7 @@ fn settings_get() -> SettingsState {
         } else {
             "Ctrl + Shift + T".to_string()
         },
+        launch_at_login,
     }
 }
 
@@ -344,6 +351,41 @@ fn settings_set_paused(paused: bool) {
             eprintln!("[settings] set_pause: {err}");
         }
     }
+}
+
+/// Reconcile the OS launch-at-login registration to `desired`, only acting when
+/// it actually differs (so we never churn the OS login-item list). Best-effort:
+/// enabling/disabling can fail on locked-down systems and we only log. Shared by
+/// the Settings toggle and the startup reconcile in setup().
+#[cfg(desktop)]
+fn apply_launch_at_login(app: &AppHandle, desired: bool) {
+    use tauri_plugin_autostart::ManagerExt;
+    let autostart = app.autolaunch();
+    match autostart.is_enabled() {
+        Ok(current) if current == desired => {}
+        Ok(_) => {
+            let res = if desired { autostart.enable() } else { autostart.disable() };
+            match res {
+                Ok(()) => println!("[autostart] launch-at-login set to {desired}"),
+                Err(e) => eprintln!("[autostart] set to {desired} failed: {e}"),
+            }
+        }
+        Err(e) => eprintln!("[autostart] is_enabled check failed: {e}"),
+    }
+}
+
+/// Command: persist the launch-at-login preference and apply it to the OS now.
+/// Default-on by design, but this lets a user opt out and have it stick across
+/// launches (setup() reconciles to the stored value on every start).
+#[tauri::command]
+fn settings_set_launch_at_login(app: AppHandle, enabled: bool) {
+    if let Ok(conn) = clips::open() {
+        if let Err(err) = clips::set_launch_at_login(&conn, enabled) {
+            eprintln!("[settings] set_launch_at_login: {err}");
+        }
+    }
+    #[cfg(desktop)]
+    apply_launch_at_login(&app, enabled);
 }
 
 /// Command: remove an app from the exclude list.
@@ -632,6 +674,9 @@ pub fn run() {
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_deep_link::init())
+        // Launch-at-login so the always-on capture is genuinely always-on.
+        // The enable() call lives in setup() below; this registers the plugin.
+        .plugin(tauri_plugin_autostart::Builder::new().build())
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
                 .with_handler(move |app, shortcut, event| {
@@ -650,6 +695,7 @@ pub fn run() {
             get_fresh_access_token,
             settings_get,
             settings_set_paused,
+            settings_set_launch_at_login,
             settings_unexclude,
             request_mic_permission,
             demo_get_clips,
@@ -917,6 +963,22 @@ pub fn run() {
                 tauri::async_runtime::spawn(async move {
                     update::check_and_install(handle).await;
                 });
+            }
+
+            // Launch-at-login so a reboot resumes capture instead of silently
+            // stopping it (clips halted at the 2026-06-11 shutdown because the
+            // app never relaunched). Default-on by design — the product's value
+            // is always-on mirroring — but we reconcile the OS registration to
+            // the user's PERSISTED preference (clips::launch_at_login_enabled,
+            // default true) rather than blindly re-enabling, so a manual opt-out
+            // via Settings sticks across launches. Best-effort.
+            #[cfg(desktop)]
+            {
+                let desired = clips::open()
+                    .ok()
+                    .and_then(|c| clips::launch_at_login_enabled(&c).ok())
+                    .unwrap_or(true);
+                apply_launch_at_login(app.handle(), desired);
             }
 
             Ok(())

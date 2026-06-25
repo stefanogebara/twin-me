@@ -3,7 +3,9 @@ import { ArrowRight, Lock, Eye, Trash2 } from 'lucide-react';
 
 interface OnboardingExplainerProps {
   onComplete: () => void;
-  onSignIn: () => void;
+  // onSignIn kept optional for caller compatibility; the soul-reveal flow is
+  // auth-gated so every viewer is already signed in and the link was a no-op.
+  onSignIn?: () => void;
 }
 
 const TOTAL_SCREENS = 3;
@@ -14,7 +16,7 @@ const SCREEN_1_PLATFORMS = [
   { label: 'Calendar', color: '#4285F4', path: 'M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20a2 2 0 0 0 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zM9 14H7v-2h2v2zm4 0h-2v-2h2v2zm4 0h-2v-2h2v2zm-8 4H7v-2h2v2zm4 0h-2v-2h2v2zm4 0h-2v-2h2v2z' },
 ];
 
-const OnboardingExplainer: React.FC<OnboardingExplainerProps> = ({ onComplete, onSignIn }) => {
+const OnboardingExplainer: React.FC<OnboardingExplainerProps> = ({ onComplete }) => {
   const [currentScreen, setCurrentScreen] = useState(0);
   const [direction, setDirection] = useState<'left' | 'right'>('right');
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -71,7 +73,7 @@ const OnboardingExplainer: React.FC<OnboardingExplainerProps> = ({ onComplete, o
         >
           {currentScreen === 0 && <Screen1 />}
           {currentScreen === 1 && <Screen2 />}
-          {currentScreen === 2 && <Screen3 onSignIn={onSignIn} />}
+          {currentScreen === 2 && <Screen3 />}
         </div>
       </div>
 
@@ -324,7 +326,7 @@ const TRUST_BADGES = [
   },
 ];
 
-const Screen3: React.FC<{ onSignIn: () => void }> = ({ onSignIn }) => (
+const Screen3: React.FC = () => (
   <div className="flex flex-col items-center gap-8">
     <div className="flex flex-col items-center gap-3">
       <h1
@@ -380,24 +382,6 @@ const Screen3: React.FC<{ onSignIn: () => void }> = ({ onSignIn }) => (
         </div>
       ))}
     </div>
-
-    {/* Sign in link */}
-    <button
-      onClick={onSignIn}
-      className="text-sm transition-opacity hover:opacity-80"
-      style={{
-        fontFamily: 'var(--font-body)',
-        color: 'rgba(245,245,244,0.5)',
-        background: 'none',
-        border: 'none',
-        cursor: 'pointer',
-      }}
-    >
-      Already have an account?{' '}
-      <span style={{ color: '#F5F5F4', textDecoration: 'underline' }}>
-        Sign in
-      </span>
-    </button>
   </div>
 );
 

@@ -13,6 +13,7 @@ import {
   setupGmailPushNotifications,
 } from '../services/webhookReceiverService.js';
 import { encryptToken, decryptToken, decryptState } from '../services/encryption.js';
+import { revokeProviderGrant, getProviderClientCreds } from '../services/oauthRevocation.js';
 import { createLogger } from '../services/logger.js';
 import { getAppUrl } from '../utils/oauthUtils.js';
 import { enrichGoogleProfileInBackground } from '../services/enrichment/googleGaiaProvider.js';
@@ -533,6 +534,26 @@ router.delete('/disconnect/:provider', authenticateUser, async (req, res) => {
       return res.status(400).json({ success: false, error: 'Invalid provider' });
     }
     const userId = req.user.id;
+
+    // Best-effort: revoke the grant at the provider before we stop syncing, so a
+    // disconnect actually severs the access we hold (not just hide it locally).
+    // Never let a failed/unsupported revoke block the disconnect.
+    try {
+      const tokenRes = await serverDb.query(
+        `SELECT access_token, refresh_token FROM platform_connections WHERE user_id = $1 AND platform = $2`,
+        [userId, provider]
+      );
+      const row = tokenRes?.rows?.[0];
+      if (row && (row.access_token || row.refresh_token)) {
+        const accessToken = row.access_token ? decryptToken(row.access_token) : null;
+        const refreshToken = row.refresh_token ? decryptToken(row.refresh_token) : null;
+        const { clientId, clientSecret } = getProviderClientCreds(provider);
+        const revokeResult = await revokeProviderGrant({ provider, accessToken, refreshToken, clientId, clientSecret });
+        log.info('Provider grant revocation on disconnect', { provider, ...revokeResult });
+      }
+    } catch (revokeErr) {
+      log.warn('Provider revocation failed; continuing with disconnect', { provider, error: revokeErr?.message });
+    }
 
     // Soft delete - mark as disconnected instead of deleting.
     // (status='disconnected' is the canonical column; last_sync_status only

@@ -20,8 +20,14 @@ export const EXTENDED_TOOL_NAMES = [
   'spotify_play_track',
   'meeting_prep',
   'get_meeting_prep',
-  'get_brokerage_activity',
   'get_recurring_subscriptions',
+  'simulate_future',
+  'set_reminder',
+  'list_reminders',
+  'cancel_reminder',
+  'reschedule_reminder',
+  'skip_reminder',
+  'place_call',
 ];
 
 export function registerExtendedTools() {
@@ -321,109 +327,12 @@ export function registerExtendedTools() {
   });
 
   // ========================================================================
-  // GET BROKERAGE ACTIVITY — Investment events joined with emotional context
-  // ========================================================================
-  registerTool({
-    name: 'get_brokerage_activity',
-    platform: null,
-    description: 'List recent investment events (buys, sells, dividends, fees) from the user\'s linked Plaid brokerages, joined with the emotional fingerprint captured at the time of each trade — Whoop recovery, music valence, calendar load, computed stress. Use this when the user asks about their portfolio activity ("what did I sell last month?"), or wants the cross-domain insight ("did I trade when stressed?", "show me my buys on low-recovery days"). The emotional context is THE differentiator — ChatGPT cannot draw it.',
-    category: 'finance',
-    parameters: {
-      type: 'object',
-      properties: {
-        sinceDays: { type: 'number', description: 'How many days back to scan. Default 30. Max 730.' },
-        limit: { type: 'number', description: 'Max events to return. Default 15. Max 50.' },
-        typeFilter: { type: 'string', description: 'Optional: "buy", "sell", "dividend", or "fee" to narrow results. Default: all event types.' },
-      },
-    },
-    requiresConnection: false, // Doesn't directly hit Plaid — reads from our DB
-    minAutonomyLevel: 1,
-    skillName: 'finance',
-    executor: async (userId, params) => {
-      const { supabaseAdmin } = await import('../database.js');
-      const sinceDays = Math.min(Math.max(parseInt(String(params?.sinceDays ?? '30'), 10) || 30, 1), 730);
-      const limit = Math.min(Math.max(parseInt(String(params?.limit ?? '15'), 10) || 15, 1), 50);
-      const typeFilter = typeof params?.typeFilter === 'string' ? params.typeFilter.toLowerCase().trim() : null;
-      const sinceDate = new Date(Date.now() - sinceDays * 86400_000).toISOString().slice(0, 10);
-
-      let q = supabaseAdmin
-        .from('user_transactions')
-        .select(`
-          id, amount, currency, merchant_normalized, merchant_raw, category, transaction_date,
-          emotional_context:transaction_emotional_context (
-            recovery_score, music_valence, calendar_load, computed_stress_score, sleep_score
-          )
-        `)
-        .eq('user_id', userId)
-        .eq('account_type', 'investment')
-        .eq('source_bank', 'plaid')
-        .gte('transaction_date', sinceDate)
-        .order('transaction_date', { ascending: false })
-        .limit(limit);
-
-      if (typeFilter && ['buy', 'sell', 'dividend', 'fee', 'cash', 'transfer'].includes(typeFilter)) {
-        q = q.like('category', `investment_${typeFilter}%`);
-      }
-
-      const { data, error } = await q;
-      if (error) return { success: false, error: error.message };
-
-      const events = (data || []).map((r) => {
-        const ec = r.emotional_context;
-        const type = (r.category || '').replace(/^investment_/, '').split('_')[0] || 'unknown';
-        const contextParts = [];
-        if (ec?.computed_stress_score != null) contextParts.push(`stress ${Math.round(ec.computed_stress_score * 100)}%`);
-        if (ec?.recovery_score != null) contextParts.push(`recovery ${Math.round(ec.recovery_score)}%`);
-        if (ec?.calendar_load != null && ec.calendar_load > 0) contextParts.push(`${ec.calendar_load} meetings that day`);
-        if (ec?.music_valence != null) {
-          if (ec.music_valence < 0.3) contextParts.push('somber music');
-          else if (ec.music_valence > 0.7) contextParts.push('upbeat music');
-        }
-        return {
-          date: r.transaction_date,
-          type,
-          ticker: r.merchant_normalized,
-          name: r.merchant_raw,
-          amountUSD: Number(r.amount) || 0,
-          currency: r.currency || 'USD',
-          emotionalContext: contextParts.length ? contextParts.join(' · ') : null,
-          raw: {
-            recovery: ec?.recovery_score ?? null,
-            musicValence: ec?.music_valence ?? null,
-            calendarLoad: ec?.calendar_load ?? null,
-            stress: ec?.computed_stress_score ?? null,
-            sleep: ec?.sleep_score ?? null,
-          },
-        };
-      });
-
-      // Surface a one-line synthesis so the twin can quote it directly
-      // without re-deriving from the raw events. Sells on low-recovery
-      // days are the canonical "the moat" insight.
-      const sells = events.filter(e => e.type === 'sell');
-      const lowRecoverySells = sells.filter(e => e.raw.recovery != null && e.raw.recovery < 50);
-      const synthesis = lowRecoverySells.length >= 2
-        ? `${lowRecoverySells.length} of your ${sells.length} sells in the last ${sinceDays}d landed on days when your Whoop recovery was below 50%.`
-        : null;
-
-      return {
-        success: true,
-        count: events.length,
-        sinceDays,
-        sinceDate,
-        synthesis,
-        events,
-      };
-    },
-  });
-
-  // ========================================================================
   // GET RECURRING SUBSCRIPTIONS — Subscription audit + emotional anchor
   // ========================================================================
   registerTool({
     name: 'get_recurring_subscriptions',
     platform: null,
-    description: 'List the user\'s recurring subscriptions detected from their bank/card transactions across all providers (Pluggy / Plaid / CSV). Use this when the user asks "what am I paying for?", "what subscriptions do I have?", "where is my money leaking?". Each subscription shows merchant, monthly average, last-charge date, total charges. ChatGPT Personal Finance shows a flat subscription list; this one also surfaces the emotional context AT THE FIRST CHARGE — useful for the "I signed up for this gym on a low-recovery weekend, never used it" insight.',
+    description: 'List the user\'s recurring subscriptions detected from their transactions (statement uploads, WhatsApp capture, purchase notifications). Use this when the user asks "what am I paying for?", "what subscriptions do I have?", "where is my money leaking?". Each subscription shows merchant, monthly average, last-charge date, total charges. ChatGPT Personal Finance shows a flat subscription list; this one also surfaces the emotional context AT THE FIRST CHARGE — useful for the "I signed up for this gym on a low-recovery weekend, never used it" insight.',
     category: 'finance',
     parameters: {
       type: 'object',
@@ -521,6 +430,208 @@ export function registerExtendedTools() {
         synthesis,
         subscriptions: top,
       };
+    },
+  });
+
+  // ========================================================================
+  // FUTURE SIMULATION — Doctor Strange mode (MiroFish-lite, Level 1)
+  // ========================================================================
+  // "What should my next month look like?" / "simulate my future" — runs N
+  // parallel twin variations over the memory stream and reports the consensus.
+  registerTool({
+    name: 'simulate_future',
+    platform: null,
+    description:
+      'Simulate the user\'s near future: run several independent variations of their next month ' +
+      'grounded in their real behavioral patterns, then report the consensus recommendation. ' +
+      'Use when the user asks what they should do next, what their month could look like, ' +
+      'to "simulate/predict my future", or asks a WHAT-IF about a decision ' +
+      '("what if I take the job?", "should I move to Lisbon?") — pass the decision as `scenario`.',
+    category: 'insight',
+    parameters: {
+      type: 'object',
+      properties: {
+        horizonDays: { type: 'number', description: 'Days to simulate ahead (default 30, max 90)' },
+        scenario: { type: 'string', description: 'Optional what-if: a decision to condition every simulation on, e.g. "taking the job in Lisbon"' },
+      },
+      required: [],
+    },
+    requiresConnection: false,
+    minAutonomyLevel: 1,
+    skillName: 'future_simulation',
+    executor: async (userId, params) => {
+      const { simulateFutures } = await import('../futureSimulationService.js');
+      const result = await simulateFutures(userId, {
+        horizonDays: Math.min(Math.max(params?.horizonDays || 30, 7), 90),
+        scenario: params?.scenario ? String(params.scenario).slice(0, 200) : null,
+      });
+      if (!result) {
+        return {
+          success: false,
+          error: 'Not enough memory data yet to simulate honestly — connect more platforms or keep chatting.',
+        };
+      }
+      return { success: true, runs: result.runs, consensus: result.insight };
+    },
+  });
+
+  // ========================================================================
+  // REMINDERS — set a time-based nudge (Level 1: it's the user's own reminder,
+  // no external side effect, so it executes inline rather than queuing).
+  // ========================================================================
+
+  registerTool({
+    name: 'set_reminder',
+    platform: null,
+    description: 'Set a reminder for the user. Use their LOCAL time WITHOUT a Z suffix (e.g. "2026-06-17T09:00:00" for 9am tomorrow local) — the timezone is applied automatically. At that time the twin messages the user on their live channel (WhatsApp/Telegram). Use for "remind me to X", "me lembra de Y", "me cutuca amanhã". For repeating reminders ("toda segunda", "every weekday", "todo mês"), set `recurrence` and use the FIRST occurrence as remind_at.',
+    category: 'productivity',
+    parameters: {
+      type: 'object',
+      properties: {
+        remind_at: { type: 'string', description: 'When to remind (first occurrence if recurring), LOCAL time ISO 8601 WITHOUT Z (e.g. "2026-06-17T09:00:00"). Do NOT append Z.' },
+        message: { type: 'string', description: 'What to remind about, short and in the user\'s voice (e.g. "pagar o boleto", "ligar pro dentista").' },
+        recurrence: { type: 'string', enum: ['daily', 'weekdays', 'weekly', 'monthly'], description: 'Optional. Repeat cadence: daily (todo dia), weekdays (dias úteis, Mon–Fri), weekly (toda semana / same weekday), monthly (todo mês). Omit for a one-time reminder.' },
+      },
+      required: ['remind_at', 'message'],
+    },
+    requiresConnection: false,
+    minAutonomyLevel: 1,
+    skillName: 'reminders',
+    executor: async (userId, params) => {
+      const { supabaseAdmin } = await import('../database.js');
+      const { createReminder } = await import('../reminderService.js');
+      let tz = 'UTC';
+      try {
+        const { data } = await supabaseAdmin.from('users').select('timezone').eq('id', userId).single();
+        if (data?.timezone) tz = data.timezone;
+      } catch { /* non-fatal — falls back to UTC */ }
+      return createReminder(userId, {
+        remindAt: params.remind_at,
+        timeZone: tz,
+        message: params.message,
+        source: 'twin',
+        recurrence: params.recurrence || null,
+      });
+    },
+  });
+
+  // List the user's pending reminders (read, inline — their own data).
+  registerTool({
+    name: 'list_reminders',
+    platform: null,
+    description: 'List the user\'s upcoming (pending) reminders, soonest first. Use for "quais lembretes tenho?", "what reminders do I have?", "meus lembretes".',
+    category: 'productivity',
+    parameters: { type: 'object', properties: {} },
+    requiresConnection: false,
+    minAutonomyLevel: 1,
+    skillName: 'reminders',
+    executor: async (userId) => {
+      const { listReminders } = await import('../reminderService.js');
+      return listReminders(userId, {});
+    },
+  });
+
+  // Reschedule/snooze a pending reminder to a new time (the user's own data —
+  // executes inline, no approval needed).
+  registerTool({
+    name: 'reschedule_reminder',
+    platform: null,
+    description: 'Reschedule (snooze/postpone) a pending reminder to a new time, matched by a short text query (e.g. query="boleto"). Use the user LOCAL time WITHOUT a Z suffix for remind_at. Use for "adia o lembrete do boleto pra amanhã 9h", "snooze the dentist reminder to next week", "push my standup reminder to 3pm". If more than one matches, the result lists them so you can ask which.',
+    category: 'productivity',
+    parameters: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'Text to match the reminder to reschedule, e.g. "boleto" or "dentista".' },
+        remind_at: { type: 'string', description: 'New time, LOCAL time ISO 8601 WITHOUT Z (e.g. "2026-06-18T09:00:00"). Do NOT append Z.' },
+      },
+      required: ['query', 'remind_at'],
+    },
+    requiresConnection: false,
+    minAutonomyLevel: 1,
+    skillName: 'reminders',
+    executor: async (userId, params) => {
+      const { supabaseAdmin } = await import('../database.js');
+      const { rescheduleReminder } = await import('../reminderService.js');
+      let tz = 'UTC';
+      try {
+        const { data } = await supabaseAdmin.from('users').select('timezone').eq('id', userId).single();
+        if (data?.timezone) tz = data.timezone;
+      } catch { /* non-fatal — falls back to UTC */ }
+      return rescheduleReminder(userId, { query: params.query, remindAt: params.remind_at, timeZone: tz });
+    },
+  });
+
+  // Skip the next occurrence of a recurring reminder (the user's own data —
+  // executes inline, no approval needed).
+  registerTool({
+    name: 'skip_reminder',
+    platform: null,
+    description: 'Skip the NEXT occurrence of a RECURRING reminder, matched by a short text query (e.g. query="relatório"). It advances to the occurrence after next without firing once. Use for "pula o próximo lembrete do relatório", "skip this week\'s standup reminder", "não me lembra amanhã, só depois". For one-time reminders, cancel or reschedule instead.',
+    category: 'productivity',
+    parameters: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'Text to match the recurring reminder, e.g. "relatório" or "standup".' },
+      },
+      required: ['query'],
+    },
+    requiresConnection: false,
+    minAutonomyLevel: 1,
+    skillName: 'reminders',
+    executor: async (userId, params) => {
+      const { skipNextOccurrence } = await import('../reminderService.js');
+      return skipNextOccurrence(userId, { query: params.query });
+    },
+  });
+
+  // Cancel a pending reminder by a short text match (the user's own data —
+  // executes inline, no approval needed).
+  registerTool({
+    name: 'cancel_reminder',
+    platform: null,
+    description: 'Cancel a pending reminder by a short text match on its message (e.g. query="boleto" cancels the "pagar o boleto" reminder). Use for "cancela o lembrete do boleto", "remove the dentist reminder". If more than one matches, the result lists them so you can ask which.',
+    category: 'productivity',
+    parameters: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'Text to match the reminder to cancel, e.g. "boleto" or "dentista".' },
+      },
+      required: ['query'],
+    },
+    requiresConnection: false,
+    minAutonomyLevel: 1,
+    skillName: 'reminders',
+    executor: async (userId, params) => {
+      const { cancelReminder } = await import('../reminderService.js');
+      return cancelReminder(userId, { query: params.query });
+    },
+  });
+
+  // ========================================================================
+  // PLACE CALL — twin makes an outbound phone call (Level 3, approval-gated)
+  // ========================================================================
+  // Double-gated in callService (phone_calls flag + VAPI env). Listed in
+  // WRITE_TOOLS so it ALWAYS queues for yes/skip — never fires inline.
+  registerTool({
+    name: 'place_call',
+    platform: null,
+    description: 'Place an outbound phone call on the user\'s behalf toward a specific goal, then report what happened. The `to` field MUST be a phone number in international format (e.g. "+5511988887777") — if you only have a name, call contacts_search FIRST to get the number, then place_call. Use for "liga pro restaurante e reserva uma mesa", "call the dentist and book a cleaning", "ligue para X e avise que vou atrasar". The call discloses it is an AI assistant. This requires the user to approve before it dials.',
+    category: 'communication',
+    parameters: {
+      type: 'object',
+      properties: {
+        to: { type: 'string', description: 'Destination phone number in international/E.164 format (e.g. "+5511988887777"). NOT a name.' },
+        to_name: { type: 'string', description: 'Optional display name of who is being called (e.g. "Dentista", "Trattoria") for the confirmation + summary.' },
+        goal: { type: 'string', description: 'What the call should accomplish, specific and complete (e.g. "reserve a table for 4 at 8pm tonight under the name Stefano").' },
+      },
+      required: ['to', 'goal'],
+    },
+    requiresConnection: false,
+    minAutonomyLevel: 3,
+    skillName: 'communications_actions',
+    executor: async (userId, params) => {
+      const { placeCall } = await import('../callService.js');
+      return placeCall(userId, { toNumber: params.to, toName: params.to_name || null, goal: params.goal });
     },
   });
 

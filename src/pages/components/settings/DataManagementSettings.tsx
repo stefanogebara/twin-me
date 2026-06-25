@@ -46,7 +46,7 @@ const DataManagementSettings: React.FC<DataManagementSettingsProps> = ({
           Your Data
         </h2>
       </div>
-      <p className="text-sm mb-4" style={{ fontFamily: "'Inter', sans-serif", color: 'rgba(255,255,255,0.4)' }}>
+      <p className="text-sm mb-4" style={{ fontFamily: "'Inter', sans-serif", color: 'rgba(255, 255, 255, 0.55)' }}>
         You own your data. Export it anytime, or delete your account to permanently remove everything.
       </p>
 
@@ -132,7 +132,7 @@ const DataManagementSettings: React.FC<DataManagementSettingsProps> = ({
               <li>- All twin conversations and memories</li>
               <li>- Behavioral patterns and insights</li>
             </ul>
-            <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
+            <p className="text-xs" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
               Type <strong style={{ color: '#ef4444' }}>DELETE</strong> to confirm:
             </p>
             <input
@@ -178,7 +178,7 @@ const DataManagementSettings: React.FC<DataManagementSettingsProps> = ({
           </div>
         )}
 
-        <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
+        <p className="text-xs" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
           Account deletion is immediate and irreversible. We recommend exporting your data first.
         </p>
       </div>

@@ -46,7 +46,7 @@ export const TwinReflection: React.FC<TwinReflectionProps> = ({
 }) => {
   const colors = {
     text: 'var(--foreground)',
-    textMuted: 'rgba(255,255,255,0.3)',
+    textMuted: 'rgba(255, 255, 255, 0.55)',
     iconBg: 'rgba(139, 92, 246, 0.1)',
     iconColor: '#8B5CF6',
     highlight: 'rgba(139, 92, 246, 0.1)'
@@ -143,7 +143,7 @@ export const PatternObservation: React.FC<PatternObservationProps> = ({
 }) => {
   const colors = {
     text: 'var(--foreground)',
-    textMuted: 'rgba(255,255,255,0.3)',
+    textMuted: 'rgba(255, 255, 255, 0.55)',
     iconColor: occurrences === 'often' ? '#8B5CF6' :
       occurrences === 'sometimes' ? '#06b6d4' : '#a78bfa'
   };
@@ -218,7 +218,7 @@ export const DataHighlight: React.FC<DataHighlightProps> = ({
 }) => {
   const colors = {
     text: 'var(--foreground)',
-    textMuted: 'rgba(255,255,255,0.3)',
+    textMuted: 'rgba(255, 255, 255, 0.55)',
     itemBg: 'var(--glass-surface-bg)'
   };
 
@@ -288,7 +288,7 @@ export const StatCard: React.FC<StatCardProps> = ({
 }) => {
   const colors = {
     text: 'var(--foreground)',
-    textMuted: 'rgba(255,255,255,0.3)',
+    textMuted: 'rgba(255, 255, 255, 0.55)',
     bg: 'rgba(255,255,255,0.04)',
     border: 'rgba(255,255,255,0.04)'
   };
@@ -348,7 +348,7 @@ export const TrackCard: React.FC<TrackCardProps> = ({
 }) => {
   const colors = {
     text: 'var(--foreground)',
-    textMuted: 'rgba(255,255,255,0.3)',
+    textMuted: 'rgba(255, 255, 255, 0.55)',
     spotifyGreen: '#1DB954',
     bg: 'rgba(29, 185, 84, 0.05)',
     border: 'rgba(29, 185, 84, 0.1)'
@@ -431,7 +431,7 @@ export const EventCard: React.FC<EventCardProps> = ({
 
   const colors = {
     text: 'var(--foreground)',
-    textMuted: 'rgba(255,255,255,0.3)',
+    textMuted: 'rgba(255, 255, 255, 0.55)',
     bg: `${config.color}10`,
     border: `${config.color}20`
   };

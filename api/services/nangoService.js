@@ -281,18 +281,27 @@ export async function createConnectSession(userId, userEmail, options = {}) {
     return { success: true, token, connectLink };
   } catch (error) {
     const responseData = error.response?.data;
+    // Nango returns structured errors as { error: { code, message } }. Earlier
+    // this passed responseData.error (an OBJECT) straight through, so the
+    // frontend toast rendered "[object Object]" and hid real causes like
+    // resource_capped ("Reached maximum number of allowed connections").
+    // Always resolve to a STRING message + a separate code.
+    const rawErr = responseData?.error;
     const upstreamMessage =
       (typeof responseData === 'string' && responseData) ||
-      responseData?.error ||
+      (typeof rawErr === 'string' && rawErr) ||
+      rawErr?.message ||
       responseData?.message ||
       responseData?.details ||
-      error.message;
+      error.message ||
+      'Connect session failed';
+    const upstreamCode = responseData?.code || rawErr?.code;
 
     log.error('Error creating connect session:', upstreamMessage, responseData || '');
     return {
       success: false,
-      error: upstreamMessage,
-      code: responseData?.code,
+      error: typeof upstreamMessage === 'string' ? upstreamMessage : JSON.stringify(upstreamMessage),
+      code: upstreamCode,
       statusCode: error.response?.status || 400
     };
   }
@@ -396,6 +405,86 @@ export async function deleteConnection(userId, platform) {
   } catch (error) {
     log.error(`Error deleting connection for ${platform}:`, error.message);
     return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Delete a Nango connection by its raw provider_config_key + connection_id,
+ * bypassing PLATFORM_CONFIGS.
+ *
+ * Why this exists: when a platform is RETIRED (twitch/reddit/linkedin/…) it is
+ * removed from PLATFORM_CONFIGS, so deleteConnection() returns "Unknown
+ * platform" and can NEVER free that platform's orphaned Nango slots — which is
+ * how the account hits its global connection cap (resource_capped). The
+ * nango_connection_mappings row still carries provider_config_key +
+ * nango_connection_id, so we can delete directly. A 404 means it's already gone
+ * (slot already free) — treated as success.
+ */
+export async function deleteNangoConnectionRaw(providerConfigKey, connectionId) {
+  if (!providerConfigKey || !connectionId) {
+    return { success: false, error: 'missing providerConfigKey or connectionId' };
+  }
+  try {
+    requireNango();
+    await nango.deleteConnection(providerConfigKey, connectionId);
+    log.info('Deleted Nango connection (raw)', { providerConfigKey, connectionId });
+    return { success: true };
+  } catch (error) {
+    const status = error.response?.status;
+    const msg = error.response?.data?.message || error.response?.data?.error || error.message || '';
+    // 404, or a 400 that says the connection doesn't exist, both mean the slot
+    // is already free — treat as success so cleanup drops the stale bookkeeping
+    // instead of retrying a delete that can never succeed.
+    if (status === 404 || (status === 400 && /not\s*found|does\s*not\s*exist|unknown\s*connection/i.test(String(msg)))) {
+      return { success: true, alreadyGone: true };
+    }
+    return { success: false, error: typeof msg === 'string' ? msg : JSON.stringify(msg), status };
+  }
+}
+
+/**
+ * Pure selector: from a list of Nango connections, pick the ones to prune for a
+ * (userId, providerConfigKey) — same end-user AND same provider, EXCLUDING the
+ * connection to keep. Exported for testing.
+ */
+export function selectConnectionsToPrune(conns, userId, providerConfigKey, keepConnectionId) {
+  return (conns || [])
+    .map((c) => ({
+      connectionId: c.connection_id || c.id,
+      providerConfigKey: c.provider_config_key || c.providerConfigKey,
+      endUserId: c.end_user?.id || c.end_user?.endUserId || c.metadata?.userId || null,
+    }))
+    .filter((c) =>
+      c.connectionId &&
+      c.providerConfigKey === providerConfigKey &&
+      c.endUserId === userId &&
+      c.connectionId !== keepConnectionId,
+    );
+}
+
+/**
+ * Prune older duplicate Nango connections for a user+platform, keeping only the
+ * freshly-created one. Called from the auth webhook on connection creation so
+ * reconnects don't pile up orphaned slots (which is how the account hit its
+ * connection cap). Never throws — returns { pruned }.
+ */
+export async function pruneDuplicateNangoConnections(userId, providerConfigKey, keepConnectionId) {
+  if (!userId || !providerConfigKey || !keepConnectionId) return { pruned: 0 };
+  try {
+    requireNango();
+    const res = await nango.listConnections();
+    const conns = res?.connections || res || [];
+    const toPrune = selectConnectionsToPrune(conns, userId, providerConfigKey, keepConnectionId);
+    let pruned = 0;
+    for (const c of toPrune) {
+      const r = await deleteNangoConnectionRaw(c.providerConfigKey, c.connectionId);
+      if (r.success) pruned++;
+    }
+    if (pruned > 0) log.info('Pruned duplicate Nango connections', { userId, providerConfigKey, pruned, kept: keepConnectionId });
+    return { pruned };
+  } catch (err) {
+    log.warn('pruneDuplicateNangoConnections failed (non-fatal)', { userId, providerConfigKey, error: err.message });
+    return { pruned: 0, error: err.message };
   }
 }
 

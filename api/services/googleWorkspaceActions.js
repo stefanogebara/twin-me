@@ -496,13 +496,20 @@ export async function createEvent(userId, { summary, description, start, end, at
       event.reminders = reminders;
     }
 
+    // sendUpdates=all makes Google actually EMAIL the invite to attendees.
+    // Without it, guests are added to the event but never notified — so
+    // "schedule a call with Paula" would silently fail to invite her. Only
+    // send when there are attendees (a solo event needs no notification).
+    const hasAttendees = Array.isArray(event.attendees) && event.attendees.length > 0;
     const resp = await axios.post(
-      `${CALENDAR_BASE}/calendars/primary/events`,
+      `${CALENDAR_BASE}/calendars/primary/events${hasAttendees ? '?sendUpdates=all' : ''}`,
       event,
       { headers: auth.headers, timeout: REQUEST_TIMEOUT }
     );
 
-    log.info('Event created', { userId, eventId: resp.data?.id, summary });
+    const invited = resp.data?.attendees?.map(a => a.email)
+      || (hasAttendees ? event.attendees.map(a => a.email) : undefined);
+    log.info('Event created', { userId, eventId: resp.data?.id, summary, invited: invited?.length || 0 });
     return {
       success: true,
       eventId: resp.data?.id,
@@ -510,6 +517,8 @@ export async function createEvent(userId, { summary, description, start, end, at
       summary: resp.data?.summary,
       start: resp.data?.start,
       end: resp.data?.end,
+      attendees: invited,
+      invitesSent: hasAttendees,
     };
   } catch (err) {
     log.error('createEvent failed', { userId, error: err.response?.data || err.message });
@@ -747,6 +756,31 @@ export async function searchFiles(userId, { query, mimeType, maxResults = 20 } =
 }
 
 /**
+ * Move a Drive file to the trash. Reversible — Drive keeps trashed files
+ * recoverable for ~30 days; this is NOT a permanent delete. Reusable by the
+ * inbox /undo flow (which wanted a drive trash) and one-off cleanup.
+ */
+export async function trashFile(userId, fileId) {
+  if (!fileId) return { success: false, error: 'fileId is required' };
+
+  const auth = await getAuthHeaders(userId, 'google_gmail');
+  if (!auth.success) return { success: false, error: auth.error };
+
+  try {
+    const resp = await axios.patch(
+      `${DRIVE_BASE}/files/${fileId}?fields=id,name,trashed`,
+      { trashed: true },
+      { headers: auth.headers, timeout: REQUEST_TIMEOUT }
+    );
+    log.info('Drive file trashed', { userId, fileId, name: resp.data?.name });
+    return { success: true, fileId, name: resp.data?.name, trashed: resp.data?.trashed };
+  } catch (err) {
+    log.error('trashFile failed', { userId, fileId, error: err.response?.data || err.message });
+    return { success: false, error: err.response?.data?.error?.message || err.message };
+  }
+}
+
+/**
  * Get file content (text-based files only: Google Docs, Sheets, plain text, etc.).
  */
 export async function getFileContent(userId, fileId) {
@@ -808,7 +842,7 @@ export async function getFileContent(userId, fileId) {
 /**
  * Create a new file in Drive.
  */
-export async function createFile(userId, { name, mimeType = 'text/plain', content = '', folderId }) {
+export async function createFile(userId, { name, mimeType = 'text/plain', content = '', buffer = null, folderId }) {
   if (!name) return { success: false, error: 'File name is required' };
 
   const auth = await getAuthHeaders(userId, 'google_gmail');
@@ -818,19 +852,36 @@ export async function createFile(userId, { name, mimeType = 'text/plain', conten
     const metadata = { name, mimeType };
     if (folderId) metadata.parents = [folderId];
 
-    // Multipart upload: metadata + content
+    // Multipart upload: metadata + content.
     const boundary = 'twinme_boundary_' + Date.now();
-    const multipartBody = [
-      `--${boundary}`,
-      'Content-Type: application/json; charset=UTF-8',
-      '',
-      JSON.stringify(metadata),
-      `--${boundary}`,
-      `Content-Type: ${mimeType}`,
-      '',
-      content,
-      `--${boundary}--`,
-    ].join('\r\n');
+    let multipartBody;
+    if (buffer) {
+      // Binary upload (WhatsApp-forwarded PDFs, images, etc.). The body MUST be
+      // a Buffer — joining raw bytes into a string corrupts them. Concat the
+      // utf8 envelope around the raw buffer.
+      const pre = Buffer.from(
+        `--${boundary}\r\n` +
+        'Content-Type: application/json; charset=UTF-8\r\n\r\n' +
+        `${JSON.stringify(metadata)}\r\n` +
+        `--${boundary}\r\n` +
+        `Content-Type: ${mimeType}\r\n\r\n`,
+        'utf8',
+      );
+      const post = Buffer.from(`\r\n--${boundary}--`, 'utf8');
+      multipartBody = Buffer.concat([pre, buffer, post]);
+    } else {
+      multipartBody = [
+        `--${boundary}`,
+        'Content-Type: application/json; charset=UTF-8',
+        '',
+        JSON.stringify(metadata),
+        `--${boundary}`,
+        `Content-Type: ${mimeType}`,
+        '',
+        content,
+        `--${boundary}--`,
+      ].join('\r\n');
+    }
 
     const resp = await axios.post(
       'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,mimeType,webViewLink',
@@ -841,6 +892,8 @@ export async function createFile(userId, { name, mimeType = 'text/plain', conten
           'Content-Type': `multipart/related; boundary=${boundary}`,
         },
         timeout: REQUEST_TIMEOUT,
+        maxBodyLength: Infinity,
+        maxContentLength: Infinity,
       }
     );
 

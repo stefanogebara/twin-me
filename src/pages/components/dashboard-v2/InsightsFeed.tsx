@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import {
   TrendingUp, AlertTriangle, PartyPopper, Heart,
   Lightbulb, Target, Compass,
+  Activity, Sparkles, BatteryCharging, Gauge,
 } from 'lucide-react';
 import type { ProactiveInsight, InsightCategory } from '@/types/dashboard';
 import type { NudgeFeedbackPayload } from '@/hooks/useProactiveInsights';
@@ -14,7 +15,9 @@ interface InsightsFeedProps {
   insights: ProactiveInsight[];
   heroInsightId?: string;
   onEngage: (id: string) => void;
-  onFeedback?: (payload: NudgeFeedbackPayload) => void;
+  // Returns a promise so we only toast success after the request resolves and
+  // can roll back the optimistic archive on failure.
+  onFeedback?: (payload: NudgeFeedbackPayload) => Promise<unknown>;
   feedbackPendingId?: string | null;
 }
 
@@ -26,6 +29,11 @@ const CATEGORY_ICON: Record<InsightCategory, React.ReactNode> = {
   nudge:           <Lightbulb className="w-4 h-4" />,
   goal_progress:   <Target className="w-4 h-4" />,
   goal_suggestion: <Compass className="w-4 h-4" />,
+  // Cross-domain self-revelations — distinct identity, not a generic tip
+  stress_correlation: <Activity className="w-4 h-4" />,
+  energy_correlation: <Sparkles className="w-4 h-4" />,
+  social_battery:     <BatteryCharging className="w-4 h-4" />,
+  work_rhythm:        <Gauge className="w-4 h-4" />,
 };
 
 const URGENCY_COLOR: Record<string, string> = {
@@ -89,7 +97,7 @@ export function InsightsFeed({
     navigate('/talk-to-twin', { state: { discussContext: insight.insight } });
   };
 
-  const handleFeedback = (insight: ProactiveInsight, followed: boolean) => {
+  const handleFeedback = async (insight: ProactiveInsight, followed: boolean) => {
     if (!onFeedback) return;
     // Optimistically archive immediately for fade-out
     setArchivedIds(prev => {
@@ -97,8 +105,20 @@ export function InsightsFeed({
       next.add(insight.id);
       return next;
     });
-    onFeedback({ id: insight.id, followed });
-    toast('Thanks — your twin is learning');
+    try {
+      await onFeedback({ id: insight.id, followed });
+      // Only confirm once the server actually recorded the feedback.
+      toast('Thanks — your twin is learning');
+    } catch {
+      // Roll back the optimistic archive so the insight reappears, and tell
+      // the user the action did not go through.
+      setArchivedIds(prev => {
+        const next = new Set(prev);
+        next.delete(insight.id);
+        return next;
+      });
+      toast('Could not save your feedback. Please try again.');
+    }
   };
 
   return (
@@ -107,7 +127,7 @@ export function InsightsFeed({
         className="text-[11px] uppercase tracking-[0.15em] font-medium mb-4"
         style={{ color: 'var(--text-narrative-muted)' }}
       >
-        What your twin noticed
+        Recent observations
       </h2>
 
       <div className="flex flex-col gap-3">

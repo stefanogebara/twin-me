@@ -14,6 +14,7 @@ import { extractSpotifyData } from './spotifyExtraction.js';
 import patternLearningBridge from './patternLearningBridge.js';
 
 import { addPlatformObservation } from './memoryStreamService.js';
+import { generateEmbeddings } from './embeddingService.js';
 import { createLogger } from './logger.js';
 import { logExtractionRun, INGESTION_SOURCE } from './extractionTelemetry.js';
 import { getDescriptor, normalizeRawExtractorResult } from './extractionDispatch.js';
@@ -28,16 +29,33 @@ const log = createLogger('ExtractionOrchestrator');
  * @returns {number} count stored
  */
 async function storeObservationsToMemory(userId, platform, observations) {
+  const items = (observations || [])
+    .map((obs) => ({
+      content: typeof obs === 'string' ? obs : obs.content,
+      contentType: typeof obs === 'string' ? undefined : obs.contentType,
+    }))
+    .filter((it) => it.content);
+  if (items.length === 0) return 0;
+
+  // Batch-embed all contents in ONE call and thread the precomputed vector into
+  // addPlatformObservation, mirroring the canonical observationIngestion path
+  // (audit M2 / #115). Without this each observation paid its own serial embedding
+  // API call — the cost-amplification class behind the $375 incident.
+  let embeddings = [];
+  try {
+    embeddings = await generateEmbeddings(items.map((it) => it.content));
+  } catch (e) {
+    log.warn('Batch embed failed; addMemory will embed per-observation', { platform, error: e.message });
+  }
+
   let stored = 0;
-  for (const obs of observations) {
-    const content = typeof obs === 'string' ? obs : obs.content;
-    const contentType = typeof obs === 'string' ? undefined : obs.contentType;
+  for (let i = 0; i < items.length; i++) {
     try {
-      const ok = await addPlatformObservation(userId, content, platform, {
+      const ok = await addPlatformObservation(userId, items[i].content, platform, {
         ingestion_source: 'on_demand',
         ingested_at: new Date().toISOString(),
-        ...(contentType ? { content_type: contentType } : {}),
-      });
+        ...(items[i].contentType ? { content_type: items[i].contentType } : {}),
+      }, embeddings[i] ? { embedding: embeddings[i] } : {});
       if (ok) stored++;
     } catch (e) {
       log.warn('Failed to store observation', { platform, error: e.message });
@@ -73,6 +91,13 @@ async function extractObservationPlatform(userId, platform, descriptor) {
     }
   }
 
+  // A total write loss (had observations but stored none) is a FAILURE, not success
+  // — otherwise the job is marked completed, last_sync shows success, and
+  // retryFailedExtractions never retries it. storeObservationsToMemory swallows
+  // per-item errors, so 0-stored-from-N is the only signal of a broken write path (audit).
+  if (observations.length > 0 && itemsExtracted === 0) {
+    return { success: false, error: `All ${observations.length} ${storeAs} observation writes failed`, itemsExtracted: 0 };
+  }
   return { success: true, itemsExtracted };
 }
 

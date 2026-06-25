@@ -1,19 +1,20 @@
 /**
- * MoneyPage — Financial-Emotional Twin (honest MVP, replan-2026-06-10 Track D)
+ * MoneyPage — Financial-Emotional Twin (replan-2026-06-12)
  * ============================================================================
- * Connect a BR bank (Pluggy) or upload a statement (CSV/OFX/XLSX), see
- * transactions with emotional context (HRV, music valence, calendar load,
- * composite stress score at moment of purchase), and one honest unlock
- * card stating what appears once enough spend/biology overlap exists.
- * Plaid brokerage surfaces are parked behind the `money_plaid` flag;
- * TrueLayer was removed entirely.
+ * Upload a statement (CSV/OFX/XLSX) or link WhatsApp so the twin captures
+ * spending from forwarded bank notifications and receipts. Transactions get
+ * emotional context (HRV, music valence, calendar load, composite stress
+ * score at moment of purchase) plus one honest unlock card stating what
+ * appears once enough spend/biology overlap exists.
+ * Bank aggregators (Pluggy/Plaid/TrueLayer) were removed — no prod budget,
+ * sandbox-only data.
  */
 
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Upload, FileText, AlertCircle, Loader2, Sparkles, RefreshCw, Music } from 'lucide-react';
+import { Upload, FileText, AlertCircle, Loader2, Sparkles, RefreshCw, Music, MessageCircle, Check } from 'lucide-react';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
-import { useFeatureFlag } from '@/hooks/useFeatureFlag';
+import { API_URL, getAccessToken } from '@/services/api/apiBase';
 import {
   uploadStatement,
   listTransactions,
@@ -26,12 +27,8 @@ import {
   type UploadResult,
   type TimelineDay,
 } from '@/services/api/transactionsAPI';
-import { ConnectBankButton } from './components/money/ConnectBankButton';
 import { GmailCourierToggle } from './components/money/GmailCourierToggle';
-import { BankConnectionsList } from './components/money/BankConnectionsList';
 import { StressSpendTimeline } from './components/money/StressSpendTimeline';
-import { BrokerageHoldingsCard } from './components/money/BrokerageHoldingsCard';
-import { BrokerageActivityCard } from './components/money/BrokerageActivityCard';
 import { UnlockProgressCard } from './components/money/UnlockProgressCard';
 
 const CARD_STYLE: React.CSSProperties = {
@@ -48,12 +45,12 @@ const LABEL_STYLE: React.CSSProperties = {
   fontWeight: 500,
   letterSpacing: '0.08em',
   textTransform: 'uppercase',
-  color: 'rgba(255,255,255,0.45)',
+  color: 'rgba(255, 255, 255, 0.55)',
   marginBottom: 12,
 };
 
 /**
- * Multi-currency aware formatter. Pluggy ships BRL; statement uploads can
+ * Multi-currency aware formatter. BR sources ship BRL; statement uploads can
  * carry EUR/GBP/USD. The summary card path has no single currency — pass
  * `null` to render without a symbol and show a chip alongside.
  */
@@ -73,7 +70,7 @@ function formatDate(iso: string): string {
 }
 
 function stressChipColor(score: number | null): { bg: string; fg: string; label: string } {
-  if (score === null) return { bg: 'rgba(255,255,255,0.06)', fg: 'rgba(255,255,255,0.35)', label: 'no signal' };
+  if (score === null) return { bg: 'rgba(255,255,255,0.06)', fg: 'rgba(255, 255, 255, 0.55)', label: 'no signal' };
   if (score >= 0.6) return { bg: 'rgba(217, 119, 6, 0.15)', fg: 'rgba(232, 160, 80, 0.95)', label: `stress ${Math.round(score * 100)}%` };
   if (score >= 0.4) return { bg: 'rgba(255,255,255,0.06)', fg: 'rgba(255,255,255,0.55)', label: `moderate ${Math.round(score * 100)}%` };
   return { bg: 'rgba(34, 197, 94, 0.12)', fg: 'rgba(134, 239, 172, 0.90)', label: `calm ${Math.round(score * 100)}%` };
@@ -230,7 +227,7 @@ function SummaryBar({ summary, currency, mixedCurrency }: { summary: Transaction
           >
             {formatCurrency(headlineOutflow, currency)}
           </p>
-          <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginTop: 4, fontFamily: "'Geist', 'Inter', sans-serif" }}>
+          <p style={{ fontSize: 12, color: 'rgba(255, 255, 255, 0.55)', marginTop: 4, fontFamily: "'Geist', 'Inter', sans-serif" }}>
             {mixedCurrency ? `Total spending (${currency})` : 'Total spending'}
           </p>
         </div>
@@ -246,7 +243,7 @@ function SummaryBar({ summary, currency, mixedCurrency }: { summary: Transaction
           >
             {emotionalPct !== null ? `${emotionalPct}%` : '—'}
           </p>
-          <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginTop: 4, fontFamily: "'Geist', 'Inter', sans-serif" }}>
+          <p style={{ fontSize: 12, color: 'rgba(255, 255, 255, 0.55)', marginTop: 4, fontFamily: "'Geist', 'Inter', sans-serif" }}>
             Under stress
           </p>
         </div>
@@ -262,7 +259,7 @@ function SummaryBar({ summary, currency, mixedCurrency }: { summary: Transaction
           >
             {summary.stress_shop_count}
           </p>
-          <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginTop: 4, fontFamily: "'Geist', 'Inter', sans-serif" }}>
+          <p style={{ fontSize: 12, color: 'rgba(255, 255, 255, 0.55)', marginTop: 4, fontFamily: "'Geist', 'Inter', sans-serif" }}>
             Impulse purchases
           </p>
         </div>
@@ -292,12 +289,12 @@ function SummaryBar({ summary, currency, mixedCurrency }: { summary: Transaction
                   fontSize: 10.5,
                   letterSpacing: '0.04em',
                   textTransform: 'uppercase',
-                  color: 'rgba(255,255,255,0.40)',
+                  color: 'rgba(255, 255, 255, 0.55)',
                   fontFamily: "'Geist', 'Inter', sans-serif",
                   marginTop: 2,
                 }}
               >
-                {c.currency} · {c.count} {c.count === 1 ? 'tx' : 'tx'}
+                {c.currency} · {c.count} tx
               </p>
             </div>
           ))}
@@ -329,14 +326,31 @@ const CATEGORY_LABELS: Record<string, string> = {
 function FeedbackToggle({ txId, initial }: { txId: string; initial: boolean | null }) {
   const [value, setValue] = useState<boolean | null>(initial);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState(false);
 
   const toggle = async (next: boolean) => {
     if (saving) return;
+    const prev = value;
     const newVal = value === next ? null : next;
     setValue(newVal);
     if (newVal !== null) {
+      // audit-2026-06-10: optimistic update had no failure handling — a failed
+      // save left the wrong UI state and a network error was an unhandled
+      // rejection. Revert to the prior value and surface an inline hint.
       setSaving(true);
-      await setTransactionFeedback(txId, newVal).finally(() => setSaving(false));
+      setSaveError(false);
+      try {
+        const ok = await setTransactionFeedback(txId, newVal);
+        if (!ok) {
+          setValue(prev);
+          setSaveError(true);
+        }
+      } catch {
+        setValue(prev);
+        setSaveError(true);
+      } finally {
+        setSaving(false);
+      }
     }
   };
 
@@ -355,13 +369,13 @@ function FeedbackToggle({ txId, initial }: { txId: string; initial: boolean | nu
 
   return (
     <div className="flex items-center gap-1.5 mt-1" title="Was this a stress purchase?">
-      <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.30)', fontFamily: "'Geist','Inter',sans-serif" }}>stress?</span>
+      <span style={{ fontSize: 10, color: 'rgba(255, 255, 255, 0.55)', fontFamily: "'Geist','Inter',sans-serif" }}>stress?</span>
       <button
         onClick={() => { void toggle(true); }}
         style={{
           ...btnBase,
           borderColor: value === true ? 'rgba(232,160,80,0.6)' : 'rgba(255,255,255,0.12)',
-          color: value === true ? 'rgba(232,160,80,0.95)' : 'rgba(255,255,255,0.40)',
+          color: value === true ? 'rgba(232,160,80,0.95)' : 'rgba(255,255,255,0.55)',
           background: value === true ? 'rgba(217,119,6,0.12)' : 'transparent',
         }}
       >
@@ -372,12 +386,105 @@ function FeedbackToggle({ txId, initial }: { txId: string; initial: boolean | nu
         style={{
           ...btnBase,
           borderColor: value === false ? 'rgba(134,239,172,0.5)' : 'rgba(255,255,255,0.12)',
-          color: value === false ? 'rgba(134,239,172,0.90)' : 'rgba(255,255,255,0.40)',
+          color: value === false ? 'rgba(134,239,172,0.90)' : 'rgba(255,255,255,0.55)',
           background: value === false ? 'rgba(34,197,94,0.08)' : 'transparent',
         }}
       >
         no
       </button>
+      {saveError && (
+        <span
+          role="alert"
+          style={{ fontSize: 10, color: 'rgba(252,165,165,0.9)', fontFamily: "'Geist','Inter',sans-serif" }}
+        >
+          couldn't save — try again
+        </span>
+      )}
+    </div>
+  );
+}
+
+/**
+ * WhatsApp capture CTA (replan-2026-06-12). The capture itself is server-side
+ * (Kapso webhook -> LLM extraction -> user_transactions), so this card only
+ * reflects link status and routes to Settings for the linking flow.
+ */
+function WhatsAppCaptureCard() {
+  const [linked, setLinked] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const token = getAccessToken();
+        const res = await fetch(`${API_URL}/whatsapp-link/status`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        const data = await res.json();
+        if (!cancelled) setLinked(data.success ? !!data.linked : false);
+      } catch {
+        if (!cancelled) setLinked(false); // CTA still renders; linking lives in Settings
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  return (
+    <div
+      className="mb-4 px-5 py-4 flex items-center gap-4 flex-wrap"
+      style={CARD_STYLE}
+      data-testid="whatsapp-capture-card"
+    >
+      <MessageCircle size={20} style={{ color: 'rgba(255,255,255,0.70)', flexShrink: 0 }} />
+      <div className="flex-1 min-w-[220px]">
+        <p
+          style={{
+            fontFamily: "'Geist', 'Inter', sans-serif",
+            fontSize: 14,
+            fontWeight: 500,
+            color: 'var(--text-primary)',
+            marginBottom: 2,
+          }}
+        >
+          Capture spending on WhatsApp
+        </p>
+        <p
+          style={{
+            fontFamily: "'Geist', 'Inter', sans-serif",
+            fontSize: 12,
+            color: 'rgba(255,255,255,0.50)',
+          }}
+        >
+          Forward bank notifications, Pix receipts, or just say "gastei 80 no iFood" — it lands here with emotional context. Or upload a CSV/OFX statement below.
+        </p>
+      </div>
+      {linked ? (
+        <span
+          className="flex items-center gap-1.5 text-xs"
+          style={{
+            color: 'rgba(134,239,172,0.90)',
+            fontFamily: "'Geist', 'Inter', sans-serif",
+          }}
+        >
+          <Check size={14} /> WhatsApp linked
+        </span>
+      ) : (
+        <Link
+          to="/settings"
+          className="px-3 py-2"
+          style={{
+            background: '#F5F5F4',
+            color: '#110f0f',
+            borderRadius: 100,
+            fontFamily: "'Geist', 'Inter', sans-serif",
+            fontSize: 13,
+            fontWeight: 500,
+            whiteSpace: 'nowrap',
+          }}
+        >
+          Link WhatsApp
+        </Link>
+      )}
     </div>
   );
 }
@@ -415,7 +522,7 @@ function TransactionRow({ tx }: { tx: Transaction }) {
             style={{
               fontFamily: "'Geist', 'Inter', sans-serif",
               fontSize: 11,
-              color: 'rgba(255,255,255,0.40)',
+              color: 'rgba(255, 255, 255, 0.55)',
             }}
           >
             {formatDate(tx.transaction_date)} · {tx.source_bank}
@@ -515,7 +622,7 @@ function TransactionRow({ tx }: { tx: Transaction }) {
             </span>
           )}
         </div>
-        {showFeedback && <FeedbackToggle txId={tx.id} initial={null} />}
+        {showFeedback && <FeedbackToggle txId={tx.id} initial={tx.feedback ?? null} />}
       </div>
       <div
         style={{
@@ -545,10 +652,6 @@ export default function MoneyPage() {
   const [error, setError] = useState<string | null>(null);
   const [lastUpload, setLastUpload] = useState<UploadResult | null>(null);
   const [retagging, setRetagging] = useState(false);
-
-  // replan-2026-06-10 Track D: Plaid (US) brokerage surfaces are parked
-  // behind this flag — sandbox-only rail, no real US user can connect yet.
-  const plaidEnabled = useFeatureFlag('money_plaid');
 
   // audit-2026-06-10 (money-page): derive dominance from the backend's
   // per-currency summary breakdown (full window, sorted by outflow desc) so
@@ -681,60 +784,26 @@ export default function MoneyPage() {
         Your money has feelings. We translate them.
       </p>
 
-      {/* Connect a BR bank in real time via Pluggy Open Finance. Falls back to
-          CSV/OFX upload below for banks Pluggy doesn't cover or users who
-          prefer the manual flow. */}
+      {/* Magie-style WhatsApp capture: forward bank notifications / receipts
+          to the twin's WhatsApp and they land here as transactions. CSV/OFX
+          upload below stays as the bulk/manual path. */}
+      <WhatsAppCaptureCard />
+
+      {/* Phase 2 (bank-integration strategy): auto-import OFX statements the
+          bank emails you (e.g. Nubank Exportar Extrato) from Gmail. */}
       <div className="mb-4 flex items-center gap-3 flex-wrap">
-        <ConnectBankButton
-          onConnected={() => {
-            // Webhook has already ingested 90d of tx; refresh the view after
-            // a small delay so the background pipeline has time to tag them.
-            window.setTimeout(() => { load(); }, 2500);
-          }}
-        />
-        <span
-          className="text-xs"
-          style={{
-            color: 'rgba(255,255,255,0.45)',
-            fontFamily: "'Geist', 'Inter', sans-serif",
-          }}
-        >
-          or upload a CSV/OFX statement below
-        </span>
-        {/* Phase 2 (bank-integration strategy): auto-import OFX statements the
-            bank emails you (e.g. Nubank Exportar Extrato) from Gmail. */}
         <GmailCourierToggle />
       </div>
 
-      <BankConnectionsList onChanged={load} />
-
-      {/* Spending timeline (30d). When the parked Plaid brokerage surface is
-          flag-enabled it returns as the second cell of the old "moat" pair;
-          by default the timeline is a single full-width card. */}
+      {/* Spending timeline (30d), full-width single card. */}
       {timeline.length > 0 && (
-        <div
-          className={plaidEnabled ? 'mb-6 grid grid-cols-1 lg:grid-cols-2 gap-4' : 'mb-6'}
-          data-testid="moat-headline-grid"
-        >
+        <div className="mb-6" data-testid="moat-headline-grid">
           <div style={{ ...CARD_STYLE, padding: '20px 20px 16px' }}>
             <p style={{ ...LABEL_STYLE, marginBottom: 16 }}>Why you spend · 30 days</p>
             <StressSpendTimeline days={timeline} currency={dominantCurrency} />
           </div>
-          {plaidEnabled && (
-            <div>
-              {/* BrokerageActivityCard is self-headered; wrap so it sits in
-                  the same grid cell. The card returns null when empty so the
-                  grid collapses to single-column gracefully. */}
-              <BrokerageActivityCard />
-            </div>
-          )}
         </div>
       )}
-
-      {/* Brokerage holdings — parked behind money_plaid (replan-2026-06-10
-          Track D). The card also self-gates on the flag, so MoneyInsightsPage
-          parks without changes. */}
-      {plaidEnabled && <BrokerageHoldingsCard />}
 
       {/* Upload zone */}
       <div className="mb-6">
@@ -774,7 +843,7 @@ export default function MoneyPage() {
               I am connecting each purchase with your mood, stress, and body. Check back in a few seconds.
             </p>
             {lastUpload.parse_errors && lastUpload.parse_errors.length > 0 && (
-              <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.40)', marginTop: 6, fontFamily: 'monospace' }}>
+              <p style={{ fontSize: 11, color: 'rgba(255, 255, 255, 0.55)', marginTop: 6, fontFamily: 'monospace' }}>
                 {lastUpload.parse_errors.length} line{lastUpload.parse_errors.length === 1 ? '' : 's'} skipped
               </p>
             )}
@@ -843,7 +912,7 @@ export default function MoneyPage() {
         </div>
       ) : (
         <div style={{ ...CARD_STYLE, padding: 32, textAlign: 'center' }}>
-          <FileText className="w-8 h-8 mx-auto mb-3" style={{ color: 'rgba(255,255,255,0.20)' }} />
+          <FileText className="w-8 h-8 mx-auto mb-3" style={{ color: 'rgba(255, 255, 255, 0.55)' }} />
           <p
             style={{
               fontFamily: "'Instrument Serif', Georgia, serif",
@@ -859,7 +928,7 @@ export default function MoneyPage() {
             style={{
               fontFamily: "'Geist', 'Inter', sans-serif",
               fontSize: 13,
-              color: 'rgba(255,255,255,0.45)',
+              color: 'rgba(255, 255, 255, 0.55)',
               lineHeight: 1.6,
             }}
           >
@@ -877,13 +946,13 @@ export default function MoneyPage() {
             fontFamily: "'Instrument Serif', Georgia, serif",
             fontSize: 14,
             fontStyle: 'italic',
-            color: 'rgba(255,255,255,0.30)',
+            color: 'rgba(255, 255, 255, 0.55)',
             letterSpacing: '-0.005em',
             lineHeight: 1.5,
           }}
         >
           Where do I find my statement? Nubank → Profile → Export → OFX or CSV.<br />
-          Does the PDF bill work too? Not yet — CSV/OFX only for now.
+          Does the PDF bill work too? Not yet — CSV/OFX/XLSX only for now.
         </p>
       )}
 

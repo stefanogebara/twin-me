@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { CheckCircle2, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
+import { CheckCircle2, ChevronDown, ChevronUp, Loader2, ArrowRight } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { safeRedirect } from '@/lib/safeRedirect';
-import { usePlatformsSummary, connectedProviders } from '@/hooks/usePlatformsSummary';
+import { usePlatformsSummary, connectedProviders, invalidatePlatformState } from '@/hooks/usePlatformsSummary';
 
 
 import { API_URL } from '@/services/api/apiBase';
@@ -116,6 +117,7 @@ interface PlatformStepProps {
 const PlatformStep: React.FC<PlatformStepProps> = ({ onContinue }) => {
   const { user, authToken } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [connected, setConnected] = useState<Set<string>>(new Set());
   const [connecting, setConnecting] = useState<string | null>(null);
   const [showMore, setShowMore] = useState(false);
@@ -178,11 +180,31 @@ const PlatformStep: React.FC<PlatformStepProps> = ({ onContinue }) => {
         const width = 600, height = 700;
         const left = window.screenX + (window.outerWidth - width) / 2;
         const top = window.screenY + (window.outerHeight - height) / 2;
-        window.open(connectUrl, 'nango-connect', `width=${width},height=${height},left=${left},top=${top}`);
-        setTimeout(() => {
-          setConnected(prev => new Set([...prev, platform.id]));
-          setConnecting(null);
-        }, 3000);
+        const popup = window.open(connectUrl, 'nango-connect', `width=${width},height=${height},left=${left},top=${top}`);
+        // Don't fake a "connected" state on a blind timer (old bug: the tile
+        // flipped to a green check after 3s even if the user closed the popup or
+        // auth failed). Poll the canonical platforms summary so the tile flips
+        // only once the server actually records the connection; stop early when
+        // the popup closes.
+        setConnecting(null);
+        let polls = 0;
+        const poll = setInterval(() => {
+          polls += 1;
+          invalidatePlatformState(queryClient);
+          if (polls >= 12 || (popup && popup.closed)) clearInterval(poll);
+        }, 2500);
+        return;
+      }
+
+      if (result?.success) {
+        // Backend already had a valid connection (e.g. an existing link whose
+        // token just refreshed) and returned success with no redirect URL.
+        // Treat it as a successful (re)connection instead of throwing into the
+        // destructive "Could not connect" toast.
+        setConnected(prev => new Set([...prev, platform.id]));
+        setConnecting(null);
+        invalidatePlatformState(queryClient);
+        toast({ title: `${platform.name} connected` });
         return;
       }
 
@@ -275,7 +297,7 @@ const PlatformStep: React.FC<PlatformStepProps> = ({ onContinue }) => {
 
         <button
           onClick={onContinue}
-          className="w-full py-4 transition-all"
+          className="w-full py-4 transition-all flex items-center justify-center gap-2"
           style={{
             fontFamily: "'Geist', sans-serif",
             fontSize: '12px',
@@ -289,7 +311,8 @@ const PlatformStep: React.FC<PlatformStepProps> = ({ onContinue }) => {
             border: anyConnected ? 'none' : '1.5px solid #D5D0C8',
           }}
         >
-          {anyConnected ? 'Continue →' : 'Skip for now →'}
+          {anyConnected ? 'Continue' : 'Skip for now'}
+          <ArrowRight className="w-4 h-4" />
         </button>
       </div>
     </div>

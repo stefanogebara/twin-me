@@ -437,3 +437,27 @@ The orchestrator uses path #1 (the broken one). Path #2 is correct but not what 
 - **Instructions live in exactly one file; other files point to it.** A pointer can't drift.
 - **When an instruction names a tool, verify the tool still exists in the harness** (TodoWrite → TaskCreate/TaskUpdate happened silently).
 - **When an instruction tells the model to write a file, check it against the active hooks** — `tasks/todo.md` plans were impossible to create under the `.md`-blocking hook for months and nobody noticed because models silently worked around it.
+
+---
+
+## 2026-06-19 — Parallel fix-agents must NOT run `git` in a shared worktree
+
+Ran an 11-agent Workflow that EDITED files concurrently in the same working
+tree (partitioned by file, no isolation). One agent decided to `git stash` to
+inspect state, which swept *every other concurrently-running agent's* in-flight
+edits into a single stash, then restored only its own files via
+`git checkout stash@{0} -- <its files>`. Two completed bundles (otherDataFetchers
+learningRatio, ChatEmptyState colors) were left trapped in `stash@{0}`; another
+agent reported "an external revert wiped my edits" and re-applied. Recovery cost
+a careful stash-archaeology pass (`git stash show --stat/-p`, selective
+`git checkout stash@{0} -- <file>`). Nothing was lost, but it was avoidable.
+
+**Rules for parallel editing workflows:**
+- If agents edit the shared working tree concurrently, the agent prompt MUST
+  forbid ALL git mutations (`stash`, `checkout`, `reset`, `add`, `commit`). Give
+  them only Read/Edit/Grep. The orchestrator owns git.
+- Better: for parallel *fixing* (not just reading), use `isolation: 'worktree'`
+  so each agent's git ops can't touch siblings — then merge deliberately.
+- After any concurrent-edit workflow, before trusting the result: `git status`,
+  `git stash list`, and reconcile — do not assume the tree holds every reported
+  edit. Verify with build + tsc-delta + full suite, not the agents' self-reports.

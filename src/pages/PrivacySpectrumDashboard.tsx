@@ -5,7 +5,7 @@
  * global privacy level, and per-cluster revelation settings.
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { toast } from 'sonner';
 import { Slider } from '@/components/ui/slider';
@@ -56,6 +56,12 @@ interface ClusterRowProps {
 
 const ClusterRow: React.FC<ClusterRowProps> = ({ cluster, onPrivacyChange, onToggle }) => {
   const [localLevel, setLocalLevel] = useState(cluster.privacyLevel);
+  // Re-sync the slider/badge when the refetched cluster prop changes (e.g. after
+  // a server-driven mutation invalidates ['user-clusters']) so the cached initial
+  // value doesn't go stale (audit-2026-06-10).
+  useEffect(() => {
+    setLocalLevel(cluster.privacyLevel);
+  }, [cluster.privacyLevel]);
   const color = CATEGORY_COLORS[cluster.category as keyof typeof CATEGORY_COLORS] ?? 'rgba(255,255,255,0.4)';
 
   const handleSliderChange = useCallback(
@@ -235,7 +241,14 @@ const PrivacySpectrumDashboard: React.FC = () => {
   useDocumentTitle('Privacy Spectrum');
   const { settings, isLoading: settingsLoading, updateSettings, isUpdating } = usePrivacySettings();
   const { twins, activeTwin, isLoading: twinsLoading, activateTwin, deactivateAllTwins } = useContextualTwins();
-  const { clusters, isLoading: clustersLoading, updateClusterPrivacy, toggleCluster } = useUserClusters();
+  const {
+    clusters,
+    isLoading: clustersLoading,
+    error: clustersError,
+    refetch: refetchClusters,
+    updateClusterPrivacy,
+    toggleCluster,
+  } = useUserClusters();
   const { statistics, isLoading: statsLoading } = usePrivacyStatistics();
   const { presets } = useAudiencePresets();
 
@@ -412,9 +425,33 @@ const PrivacySpectrumDashboard: React.FC = () => {
         </p>
 
         {clusters.length === 0 ? (
-          <p style={{ fontSize: 13, color: TEXT_SECONDARY, fontStyle: 'italic' }}>
-            Loading clusters...
-          </p>
+          // Load has settled by here (the page-level isLoading gate already
+          // covers clustersLoading), so zero clusters means a fetch error or a
+          // genuinely empty result — never "still loading" (audit-2026-06-10).
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-start' }}>
+            <p style={{ fontSize: 13, color: TEXT_SECONDARY, margin: 0 }}>
+              {clustersError
+                ? "Couldn't load your life clusters."
+                : 'No life clusters yet — they appear as your twin learns about you.'}
+            </p>
+            {clustersError && (
+              <button
+                onClick={() => refetchClusters()}
+                style={{
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color: TEXT_PRIMARY,
+                  background: CARD_BG,
+                  border: '1px solid rgba(255,255,255,0.10)',
+                  borderRadius: 100,
+                  padding: '6px 14px',
+                  cursor: 'pointer',
+                }}
+              >
+                Try again
+              </button>
+            )}
+          </div>
         ) : (
           ['personal', 'professional', 'creative'].map(category => {
             const categoryClusters = clustersByCategory[category] ?? [];

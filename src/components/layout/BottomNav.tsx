@@ -19,7 +19,6 @@ const PRIMARY_NAV: NavItem[] = [
 
 const MORE_NAV: NavItem[] = [
   { id: 'brain',    label: 'Memories',   icon: Brain,    path: '/brain' },
-  { id: 'wiki',     label: 'Knowledge',  icon: BookOpen, path: '/wiki' },
   { id: 'settings', label: 'Settings',   icon: Settings, path: '/settings' },
 ];
 

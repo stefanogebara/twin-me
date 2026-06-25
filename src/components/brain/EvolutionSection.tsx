@@ -157,7 +157,7 @@ export function EvolutionSection({ compact = false }: EvolutionSectionProps) {
     return (
       <div
         className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs"
-        style={{ background: 'rgba(0,0,0,0.05)', color: 'rgba(255,255,255,0.4)' }}
+        style={{ background: 'rgba(0,0,0,0.05)', color: 'rgba(255, 255, 255, 0.55)' }}
       >
         <Calendar size={11} />
         Known for {data.daysKnown} day{data.daysKnown !== 1 ? 's' : ''}

@@ -10,3 +10,4 @@
  *  - User must grant "Notification access" in Settings → Notifications
  */
 export { NotificationListenerModule } from '../../modules/notification-listener/src';
+export type { PurchaseEvent } from '../../modules/notification-listener/src';

@@ -43,7 +43,7 @@ export const WebBrowsingErrorState: React.FC<WebBrowsingErrorStateProps> = ({
             >
               Your Digital Life
             </h1>
-            <p className="text-sm mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>
+            <p className="text-sm mt-0.5" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
               What your browsing reveals about you
             </p>
           </div>
@@ -66,11 +66,11 @@ export const WebBrowsingErrorState: React.FC<WebBrowsingErrorStateProps> = ({
             <p className="text-sm font-medium" style={{ color: colors.text }}>
               Install the browser extension to unlock your digital life
             </p>
-            <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>
+            <p className="text-xs mt-0.5" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
               Capture browsing patterns, reading habits, search queries, and content preferences to discover what your digital footprint reveals about you.
             </p>
           </div>
-          <ArrowLeft className="w-4 h-4 rotate-180 flex-shrink-0" style={{ color: 'rgba(255,255,255,0.4)' }} />
+          <ArrowLeft className="w-4 h-4 rotate-180 flex-shrink-0" style={{ color: 'rgba(255, 255, 255, 0.55)' }} />
         </div>
       </div>
 
@@ -81,10 +81,10 @@ export const WebBrowsingErrorState: React.FC<WebBrowsingErrorStateProps> = ({
           style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
         >
           <div className="flex items-center gap-2 mb-3">
-            <BarChart3 className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.4)' }} />
-            <span className="text-sm uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.4)' }}>Interest Categories</span>
+            <BarChart3 className="w-4 h-4" style={{ color: 'rgba(255, 255, 255, 0.55)' }} />
+            <span className="text-sm uppercase tracking-wider" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>Interest Categories</span>
           </div>
-          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
+          <p className="text-xs" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
             See what topics dominate your browsing - from technology to entertainment, health to news.
           </p>
         </div>
@@ -93,10 +93,10 @@ export const WebBrowsingErrorState: React.FC<WebBrowsingErrorStateProps> = ({
           style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
         >
           <div className="flex items-center gap-2 mb-3">
-            <Search className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.4)' }} />
-            <span className="text-sm uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.4)' }}>Search Patterns</span>
+            <Search className="w-4 h-4" style={{ color: 'rgba(255, 255, 255, 0.55)' }} />
+            <span className="text-sm uppercase tracking-wider" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>Search Patterns</span>
           </div>
-          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
+          <p className="text-xs" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
             Discover what questions drive your curiosity and how your interests evolve over time.
           </p>
         </div>
@@ -105,10 +105,10 @@ export const WebBrowsingErrorState: React.FC<WebBrowsingErrorStateProps> = ({
           style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
         >
           <div className="flex items-center gap-2 mb-3">
-            <BookOpen className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.4)' }} />
-            <span className="text-sm uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.4)' }}>Reading Profile</span>
+            <BookOpen className="w-4 h-4" style={{ color: 'rgba(255, 255, 255, 0.55)' }} />
+            <span className="text-sm uppercase tracking-wider" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>Reading Profile</span>
           </div>
-          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
+          <p className="text-xs" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
             Your reading depth, engagement patterns, and the type of content that captures your attention.
           </p>
         </div>
@@ -117,10 +117,10 @@ export const WebBrowsingErrorState: React.FC<WebBrowsingErrorStateProps> = ({
           style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
         >
           <div className="flex items-center gap-2 mb-3">
-            <Clock className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.4)' }} />
-            <span className="text-sm uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.4)' }}>Digital Rhythms</span>
+            <Clock className="w-4 h-4" style={{ color: 'rgba(255, 255, 255, 0.55)' }} />
+            <span className="text-sm uppercase tracking-wider" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>Digital Rhythms</span>
           </div>
-          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
+          <p className="text-xs" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
             When you browse, what pulls you in at different times of day, and your online activity patterns.
           </p>
         </div>
@@ -131,8 +131,8 @@ export const WebBrowsingErrorState: React.FC<WebBrowsingErrorStateProps> = ({
         className="p-5 rounded-lg text-center"
         style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
       >
-        <Sparkles className="w-8 h-8 mx-auto mb-3" style={{ color: 'rgba(255,255,255,0.3)', opacity: 0.4 }} />
-        <p className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>
+        <Sparkles className="w-8 h-8 mx-auto mb-3" style={{ color: 'rgba(255, 255, 255, 0.55)', opacity: 0.4 }} />
+        <p className="text-sm" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
           Once your browsing data flows in, your twin will discover patterns and share observations about your digital life.
         </p>
       </div>

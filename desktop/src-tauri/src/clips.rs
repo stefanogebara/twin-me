@@ -158,6 +158,32 @@ pub fn is_transcription_enabled(conn: &Connection) -> Result<bool> {
     Ok(row.as_deref() == Some("1"))
 }
 
+/// Persist the launch-at-login preference. Stored in `app_settings` so it
+/// survives restarts. The Settings toggle writes here, and setup() reconciles
+/// the OS autostart registration to it on every launch — so a manual opt-out
+/// sticks instead of being force-re-enabled.
+pub fn set_launch_at_login(conn: &Connection, enabled: bool) -> Result<()> {
+    conn.execute(
+        "INSERT INTO app_settings (key, value) VALUES ('launch_at_login', ?1)
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+        params![if enabled { "1" } else { "0" }],
+    )?;
+    Ok(())
+}
+
+/// The launch-at-login preference. Absent row → true (default-on by design:
+/// the product's value is always-on mirroring). Only an explicit "0" disables.
+pub fn launch_at_login_enabled(conn: &Connection) -> Result<bool> {
+    let row: Option<String> = conn
+        .query_row(
+            "SELECT value FROM app_settings WHERE key = 'launch_at_login'",
+            [],
+            |r| r.get(0),
+        )
+        .optional()?;
+    Ok(row.as_deref() != Some("0"))
+}
+
 /// Start a new clip for a freshly-focused (app, title). Returns the new
 /// row id, which the indexer keeps until the focus changes again.
 pub fn insert_clip(conn: &Connection, app: &str, title: Option<&str>) -> Result<i64> {
@@ -307,6 +333,20 @@ mod tests {
         assert!(is_paused(&conn).unwrap());
         set_pause(&conn, false).unwrap();
         assert!(!is_paused(&conn).unwrap());
+    }
+
+    #[test]
+    fn launch_at_login_defaults_on_and_round_trips() {
+        let conn = Connection::open_in_memory().unwrap();
+        init_schema(&conn).unwrap();
+        // Absent row → ON by design (always-on capture must survive reboots).
+        assert!(launch_at_login_enabled(&conn).unwrap());
+        // A manual opt-out persists...
+        set_launch_at_login(&conn, false).unwrap();
+        assert!(!launch_at_login_enabled(&conn).unwrap());
+        // ...and can be turned back on.
+        set_launch_at_login(&conn, true).unwrap();
+        assert!(launch_at_login_enabled(&conn).unwrap());
     }
 
     #[test]

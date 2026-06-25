@@ -15,22 +15,14 @@ export const VALID_DEMO_PLATFORMS = [
   'spotify', 'youtube', 'discord', 'whoop', 'calendar', 'github', 'gmail',
 ];
 
+import { SPOTIFY_ENTERTAINMENT_SCOPES } from './oauthScopes.js';
+
 export const PLATFORM_CONFIGS = {
   spotify: {
     name: 'Spotify',
     authUrl: 'https://accounts.spotify.com/authorize',
     tokenUrl: 'https://accounts.spotify.com/api/token',
-    scopes: [
-      'user-read-email',
-      'user-read-private',
-      'user-read-recently-played',
-      'user-top-read',
-      'user-library-read',
-      'user-read-playback-state',
-      'user-read-currently-playing',
-      'playlist-read-private',
-      'playlist-read-collaborative'
-    ],
+    scopes: SPOTIFY_ENTERTAINMENT_SCOPES,
     apiBaseUrl: 'https://api.spotify.com/v1',
 
     endpoints: {

@@ -6,9 +6,10 @@
  * fire a push notification within seconds so the user can catch themselves
  * before the next impulse.
  *
- * Trigger flow:
- *   Pluggy webhook → tx ingested → emotion tagger computed
- *   computed_stress_score per tx → maybeNudgeForTransactions(userId, txIds)
+ * Trigger flow (post bank-aggregator removal 2026-06-12):
+ *   tx ingested (statement upload / WhatsApp capture / purchase notification)
+ *   → emotion tagger computed → computed_stress_score per tx
+ *   → maybeNudgeForTransactions(userId, txIds)
  *   → filter → send push → mark nudged to avoid re-firing.
  *
  * Rate limits:

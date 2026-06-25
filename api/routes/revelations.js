@@ -1,0 +1,159 @@
+/**
+ * Revelations — the "what your twin sees about you" PULL surface (2026-06-16)
+ * ==========================================================================
+ * The proactive-insight Editor answers one question: "should the twin INTERRUPT
+ * you with this in chat?" For a sustained pattern ("Claude is where your mind
+ * settles", "you're building Squad") the honest answer is no — don't nag. So the
+ * Editor (correctly) holds those back from the chat feed.
+ *
+ * But this is the opposite context: a surface the user OPENS to look at their
+ * own patterns. Here you WANT to show them — they came to see. So this endpoint
+ * computes the first-party self-revelations DIRECTLY (the same gather/compute
+ * primitives as the generators) WITHOUT the interrupt-gate, and caches the
+ * result so a page load isn't an LLM call every time.
+ *
+ * First-party only: everything here runs on data we own (browser extension),
+ * no third-party API to connect. Privacy: the user's own activity, reflected
+ * only to them.
+ */
+import express from 'express';
+import { authenticateUser } from '../middleware/auth.js';
+import { supabaseAdmin } from '../services/database.js';
+import {
+  gatherBrowsingDwell, computeAttentionGravity, buildAttentionGravityCandidate,
+} from '../services/attentionGravity.js';
+import {
+  gatherWebContent, buildThemeCorpus, buildThemePrompt,
+} from '../services/curiositySignature.js';
+import { computeDayNightRevelation } from '../services/dayNightSelf.js';
+import { computeStickingPointRevelation } from '../services/stickingPoint.js';
+import { computeFocusShapeRevelation } from '../services/focusShape.js';
+import { computeWorkThreadsRevelation } from '../services/workThreads.js';
+import { complete, TIER_ANALYSIS } from '../services/llmGateway.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('Revelations');
+const router = express.Router();
+
+const CACHE_TTL_MS = 12 * 3600_000; // recompute at most twice a day
+// Both platform and data_type on user_platform_data have fixed CHECK allowlists,
+// so we can't invent '_internal'/'revelations_cache'. Park the cache under
+// ALLOWED values (platform 'web', type 'settings') with a distinct source_url:
+// it passes both constraints and never collides with real browsing rows (the
+// gathers filter data_type to extension_page_visit/extension_search_query).
+const CACHE = { platform: 'web', data_type: 'settings', source_url: 'revelations:cache' };
+
+// Returns the cached payload with its age REGARDLESS of TTL (null if absent).
+// Staleness is decided by the handler so it can serve-stale-then-revalidate.
+async function readCache(userId) {
+  const { data } = await supabaseAdmin
+    .from('user_platform_data')
+    .select('raw_data, extracted_at')
+    .eq('user_id', userId)
+    .eq('platform', CACHE.platform)
+    .eq('data_type', CACHE.data_type)
+    .eq('source_url', CACHE.source_url)
+    .maybeSingle();
+  if (!data?.raw_data) return null;
+  return { payload: data.raw_data, ageMs: Date.now() - new Date(data.extracted_at).getTime() };
+}
+
+async function writeCache(userId, payload) {
+  await supabaseAdmin.from('user_platform_data').upsert({
+    user_id: userId,
+    platform: CACHE.platform,
+    data_type: CACHE.data_type,
+    source_url: CACHE.source_url,
+    raw_data: payload,
+    extracted_at: new Date().toISOString(),
+  }, { onConflict: 'user_id,platform,data_type,source_url' });
+}
+
+// ── revelation computers (no Editor gate) ────────────────────────────────────
+async function computeAttention(userId) {
+  const events = await gatherBrowsingDwell(userId);
+  const body = buildAttentionGravityCandidate(computeAttentionGravity(events));
+  return body ? { kind: 'attention_gravity', title: 'Where your attention pools', body, source: 'web' } : null;
+}
+
+async function computeCuriosity(userId) {
+  const { rawSearches, rawPages } = await gatherWebContent(userId);
+  const corpus = buildThemeCorpus(rawSearches, rawPages);
+  if (!corpus) return null;
+  const r = await complete({
+    tier: TIER_ANALYSIS,
+    messages: [{ role: 'user', content: buildThemePrompt(corpus) }],
+    maxTokens: 140,
+    temperature: 0.5,
+    userId,
+    serviceName: 'revelations-curiosity',
+  });
+  const body = (r.content || '').trim().replace(/^["']|["']$/g, '');
+  return (body && !/^none\.?$/i.test(body))
+    ? { kind: 'curiosity_signature', title: "What you're chasing", body, source: 'web' }
+    : null;
+}
+
+// Run all six computers and assemble the payload. Independent — one failing
+// computer must not sink the others. This is the expensive part: 6 DB gathers +
+// 3 LLM calls (curiosity, sticking, work-threads), ~9s warm and well over the
+// 30s request guard on a cold function — which is exactly why it must not run
+// inside a user-facing request when we already have something to serve.
+async function computeAll(userId) {
+  const [attention, curiosity, dayNight, sticking, focusShape, workThreads] = await Promise.all([
+    computeAttention(userId).catch((e) => { log.warn('attention failed', { error: e.message }); return null; }),
+    computeCuriosity(userId).catch((e) => { log.warn('curiosity failed', { error: e.message }); return null; }),
+    computeDayNightRevelation(userId).catch((e) => { log.warn('dayNight failed', { error: e.message }); return null; }),
+    computeStickingPointRevelation(userId).catch((e) => { log.warn('sticking failed', { error: e.message }); return null; }),
+    computeFocusShapeRevelation(userId).catch((e) => { log.warn('focusShape failed', { error: e.message }); return null; }),
+    computeWorkThreadsRevelation(userId).catch((e) => { log.warn('workThreads failed', { error: e.message }); return null; }),
+  ]);
+  return {
+    revelations: [attention, curiosity, dayNight, sticking, focusShape, workThreads].filter(Boolean),
+    generatedAt: new Date().toISOString(),
+  };
+}
+
+// Per-instance guard so a burst of loads triggers ONE background recompute, not
+// N. Fire-and-forget: the user already holds their (stale) cache, so this just
+// refreshes it for next time without blocking the response — the same
+// post-response background pattern observationIngestion uses on this Vercel
+// Fluid setup.
+const revalidating = new Set();
+function revalidate(userId) {
+  if (revalidating.has(userId)) return;
+  revalidating.add(userId);
+  computeAll(userId)
+    .then((payload) => writeCache(userId, payload))
+    .catch((e) => log.warn('revalidate failed', { userId, error: e.message }))
+    .finally(() => revalidating.delete(userId));
+}
+
+// ── GET /api/revelations ─────────────────────────────────────────────────────
+router.get('/', authenticateUser, async (req, res) => {
+  const userId = req.user.id;
+  try {
+    const cached = await readCache(userId);
+    if (cached) {
+      // Stale-while-revalidate: serve the cached revelations INSTANTLY (even
+      // past TTL). If stale — or a refresh was explicitly asked — kick the
+      // recompute off in the BACKGROUND so the next load is fresh. A returning
+      // user never waits on the multi-LLM recompute (which 504'd the 30s guard
+      // on a cold function).
+      const stale = cached.ageMs > CACHE_TTL_MS || req.query.refresh === 'true';
+      if (stale) revalidate(userId);
+      return res.json({ success: true, data: cached.payload });
+    }
+
+    // No cache yet — first load ever for this user. Compute once synchronously;
+    // new users have little first-party data, so most computers no-op quickly.
+    const payload = await computeAll(userId);
+    writeCache(userId, payload).catch((e) => log.warn('cache write failed', { error: e.message }));
+    return res.json({ success: true, data: payload });
+  } catch (error) {
+    log.error('revelations failed', { userId, error: error.message });
+    return res.status(500).json({ success: false, error: 'Failed to load revelations' });
+  }
+});
+
+export default router;

@@ -52,7 +52,6 @@ export const FEATURED_KEEPERS = Object.freeze([
   'google_calendar',
   'whoop',
   'github',
-  'pluggy',
 ]);
 
 /**

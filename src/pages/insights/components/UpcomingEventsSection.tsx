@@ -97,7 +97,7 @@ export const UpcomingEventsSection: React.FC<UpcomingEventsSectionProps> = ({ ev
                       <div className="font-medium truncate" style={{ color: colors.text }}>
                         {event.title}
                       </div>
-                      <div className="flex items-center gap-2 text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                      <div className="flex items-center gap-2 text-sm" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
                         <span>{event.time}</span>
                         {event.attendees !== undefined && event.attendees > 0 && (
                           <>

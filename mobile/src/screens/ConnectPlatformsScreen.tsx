@@ -29,11 +29,10 @@ const PLATFORMS: PlatformDef[] = [
   { id: 'youtube',         name: 'YouTube',           description: 'Content preferences',                 icon: '▷' },
   { id: 'google_gmail',    name: 'Gmail',             description: 'Communication patterns',              icon: '◻' },
   { id: 'discord',         name: 'Discord',           description: 'Community & interests',               icon: '◇' },
-  { id: 'linkedin',        name: 'LinkedIn',          description: 'Career trajectory',                   icon: '◆' },
   { id: 'github',          name: 'GitHub',            description: 'Coding patterns',                     icon: '◈' },
-  { id: 'reddit',          name: 'Reddit',            description: 'Community interests',                 icon: '◎' },
-  { id: 'twitch',          name: 'Twitch',            description: 'Gaming identity',                     icon: '▶' },
   { id: 'whoop',           name: 'Whoop',             description: 'Recovery & health',                   icon: '◉' },
+  // linkedin, reddit and twitch removed (replan-2026-06-10 Track C portfolio
+  // cut): their OAuth connect stacks were retired on the web app this links to.
 ];
 
 const CONNECT_BASE_URL = 'https://www.twinme.me/connect';

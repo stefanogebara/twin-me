@@ -86,7 +86,7 @@ export const PlatformTile: React.FC<PlatformTileProps> = ({
         className="flex-shrink-0 w-11 h-11 rounded-xl flex items-center justify-center"
         style={{
           backgroundColor: color ? `${color}15` : 'rgba(255,255,255,0.06)',
-          color: connected ? (color || '#F5F5F4') : (color ? `${color}cc` : 'rgba(255,255,255,0.45)'),
+          color: connected ? (color || '#F5F5F4') : (color ? `${color}cc` : 'rgba(255,255,255,0.55)'),
         }}
       >
         {icon}
@@ -161,7 +161,7 @@ export const PlatformTile: React.FC<PlatformTileProps> = ({
           className="text-[12px] px-4 py-1.5 rounded-full flex-shrink-0"
           style={{
             backgroundColor: 'rgba(255,255,255,0.04)',
-            color: 'rgba(255,255,255,0.25)',
+            color: 'rgba(255, 255, 255, 0.55)',
             fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
           }}
         >

@@ -223,10 +223,9 @@ router.get('/proactive', authenticateUser, async (req, res) => {
   try {
     const limit = Math.min(parseInt(req.query.limit) || 10, 50);
     const includeDelivered = req.query.include_delivered === 'true';
-    // Optional narrow filters used by domain-specific pages (e.g. /money/insights
-    // wants only investment_correlation subcategory rows). Stored on
-    // proactive_insights.metadata.subcategory by the dedicated generators
-    // (see investmentCorrelationInsights.js).
+    // Optional narrow filters used by domain-specific pages. Stored on
+    // proactive_insights.metadata.subcategory by dedicated generators.
+    // (investment_correlation subcategory retired with bank aggregators 2026-06-12.)
     const subcategory = typeof req.query.subcategory === 'string' ? req.query.subcategory.trim() : '';
     const department = typeof req.query.department === 'string' ? req.query.department.trim() : '';
 

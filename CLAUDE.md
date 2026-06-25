@@ -316,11 +316,16 @@ Inspired by Karpathy's LLM Wiki pattern. Instead of re-deriving knowledge from r
 10. **Whoop** - Recovery, strain, sleep, HRV patterns
 
 ## LLM Model Strategy
+All LLM calls route through `llmGateway.js` using the tiers in `api/config/aiModels.js` (single source of truth). Twin chat additionally smart-routes per message via `chatRouter.js`.
+
 | Tier | Use Case | OpenRouter Model ID | Why |
 |------|----------|---------------------|-----|
-| CHAT | Twin conversation | `anthropic/claude-sonnet-4.5` | Quality matters - twin must feel like YOU |
+| CHAT | Twin conversation (default) | `deepseek/deepseek-v3.2` | 12x cheaper, ~3x faster TTFT; smart-routes up for hard turns |
 | ANALYSIS | Reflections, twin summary, proactive insights | `deepseek/deepseek-v3.2` | Good enough, 95% cheaper |
-| EXTRACTION | Importance rating, fact extraction | `mistralai/mistral-small-creative` | Cheapest, structured output |
+| EXTRACTION | Importance rating, fact extraction | `deepseek/deepseek-v3.2` | mistral-small-creative was 404'ing on OpenRouter (2026-04-30) |
+| VISION | WhatsApp receipt/image extraction | `google/gemini-2.5-flash` | vision-capable, ~$0.001/image |
+
+Smart routing (`chatRouter.js`): Chat Light = `google/gemini-2.5-flash` (greetings/acks), Chat Standard = `deepseek/deepseek-v3.2` (medium), Chat Deep = `deepseek/deepseek-v3.2` (emotional / identity / complex — kept on DeepSeek for cost; `CHAT_TIER_MODELS` in chatRouter.js is the source of truth, drift-guarded by a test).
 
 ## Development
 ```bash

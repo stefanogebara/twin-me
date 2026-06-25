@@ -7,6 +7,7 @@ import { DashboardGreeting } from './components/dashboard-v2/DashboardGreeting';
 import { BetaOnboardingChecklist } from './components/dashboard-v2/BetaOnboardingChecklist';
 import { HeroInsight } from './components/dashboard-v2/HeroInsight';
 import { InsightsFeed } from './components/dashboard-v2/InsightsFeed';
+import { TwinSeesSection } from './components/dashboard-v2/TwinSeesSection';
 import { SoulSummaryCard } from './components/dashboard-v2/SoulSummaryCard';
 import { WeeklySynthesisCard } from './components/dashboard-v2/WeeklySynthesisCard';
 import { DepartmentWidget } from './components/dashboard-v2/DepartmentWidget';
@@ -16,6 +17,7 @@ import { NextMeetingCard } from './components/dashboard-v2/NextMeetingCard';
 import { EmailTriageCard } from '@/components/EmailTriageCard';
 import { RelationshipsCard } from '@/components/RelationshipsCard';
 import { useWebPush } from '@/hooks/useWebPush';
+import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 
 const QUICK_ACTIONS = [
   { label: 'Chat with twin', icon: MessageCircle, path: '/talk-to-twin' },
@@ -27,7 +29,8 @@ export function DashboardV2() {
   useDocumentTitle('Dashboard');
   const navigate = useNavigate();
   const { data, isLoading, isError, refetch } = useDashboardContext();
-  const { insights, markEngaged, submitFeedback, feedbackPendingId } = useProactiveInsights();
+  const { insights, markEngaged, submitFeedbackAsync, feedbackPendingId } = useProactiveInsights();
+  const llmWikiEnabled = useFeatureFlag('llm_wiki');
 
   // Register web push on first dashboard load (after auth)
   useWebPush(true);
@@ -97,8 +100,41 @@ export function DashboardV2() {
     memoryCount > 9999
       ? `${(memoryCount / 1000).toFixed(1).replace(/\.0$/, '')}K`
       : memoryCount.toLocaleString('en-US');
+  // Derive the named domains from the actually-connected platforms so the
+  // sentence doesn't claim "music, work, and recovery" for a user with none
+  // of those connected.
+  const PROVIDER_DOMAIN: Record<string, string> = {
+    spotify: 'music',
+    youtube: 'media',
+    google_calendar: 'work',
+    calendar: 'work',
+    gmail: 'work',
+    google_gmail: 'work',
+    github: 'work',
+    linkedin: 'work',
+    whoop: 'recovery',
+    discord: 'social',
+    reddit: 'interests',
+    twitch: 'gaming',
+  };
+  const connectedDomains = Array.from(
+    new Set(
+      (data.platforms ?? [])
+        .filter((p) => p.status !== 'disconnected')
+        .map((p) => PROVIDER_DOMAIN[p.provider])
+        .filter((d): d is string => Boolean(d))
+    )
+  );
+  const domainPhrase =
+    connectedDomains.length === 0
+      ? null
+      : connectedDomains.length === 1
+        ? connectedDomains[0]
+        : `${connectedDomains.slice(0, -1).join(', ')} and ${connectedDomains[connectedDomains.length - 1]}`;
   const capabilityStatement = memoryCount > 0 && connectedCount > 0
-    ? `Based on ${formattedMemoryCount} memories across ${connectedCount} ${connectedCount === 1 ? 'platform' : 'platforms'}, your twin can spot patterns in how your music, work, and recovery interact. Ask it anything.`
+    ? domainPhrase
+      ? `Based on ${formattedMemoryCount} memories across ${connectedCount} ${connectedCount === 1 ? 'platform' : 'platforms'}, your twin can spot patterns in how your ${domainPhrase} interact. Ask it anything.`
+      : `Based on ${formattedMemoryCount} memories across ${connectedCount} ${connectedCount === 1 ? 'platform' : 'platforms'}, your twin can spot patterns across your life. Ask it anything.`
     : null;
 
   return (
@@ -142,9 +178,13 @@ export function DashboardV2() {
         insights={insights}
         heroInsightId={data.heroInsight?.insightId}
         onEngage={markEngaged}
-        onFeedback={submitFeedback}
+        onFeedback={submitFeedbackAsync}
         feedbackPendingId={feedbackPendingId}
       />
+
+      {/* 2b. What Your Twin Sees — first-party self-revelations (pull surface,
+          ungated by the interrupt-Editor) */}
+      <TwinSeesSection />
 
       {/* 3. Soul Signature — condensed blurb */}
       <SoulSummaryCard />
@@ -173,29 +213,9 @@ export function DashboardV2() {
       {/* 5. Everything else — moved down */}
       <DepartmentWidget />
 
-      {/* Wiki discovery CTA — shown once user has enough memories */}
-      {data.twinStats.memoryCount >= 10 && (
-        <button
-          type="button"
-          onClick={() => navigate('/wiki')}
-          className="w-full flex items-center gap-3 px-5 py-4 rounded-[46px] text-left transition-all duration-150 hover:opacity-80 active:scale-[0.99]"
-          style={{
-            background: 'rgba(255,255,255,0.04)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            backdropFilter: 'blur(42px)',
-          }}
-        >
-          <BookOpen className="w-4 h-4 flex-shrink-0" style={{ color: 'rgba(255,255,255,0.35)' }} />
-          <div className="min-w-0">
-            <p className="text-sm font-medium" style={{ color: 'var(--foreground)', fontFamily: "'Geist', 'Inter', sans-serif" }}>
-              Your Knowledge Base
-            </p>
-            <p className="text-xs mt-0.5 truncate" style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Inter', sans-serif" }}>
-              Compiled insights about who you are
-            </p>
-          </div>
-        </button>
-      )}
+      {/* Wiki discovery CTA removed (audit M3.1): /wiki is a redirect stub to
+          twin chat since the Knowledge page was retired, so this landed users on
+          chat with no explanation. */}
 
       {/* Quick Actions */}
       <div className="flex flex-wrap gap-3">

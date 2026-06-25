@@ -17,7 +17,6 @@ import { syncAllSignals } from '../services/transactions/platformSignalExtractor
 import { normalizeMerchant } from '../services/transactions/merchantNormalizer.js';
 import { writeTransactionMemories } from '../services/transactions/rawIngestion.js';
 import { detectAndMarkRecurring, isNonSubscriptionRow } from '../services/transactions/recurrenceDetector.js';
-import { getPlaidSandboxState, excludePlaidRows } from '../services/transactions/sandboxGuard.js';
 import { STRESS_HIGH, NUDGE_TRIGGER, DEFAULT_CURRENCY } from '../config/financialThresholds.js';
 import { createLogger } from '../services/logger.js';
 
@@ -248,7 +247,9 @@ router.post('/upload', authenticateUser, uploadLimiter, uploadSingleFile('file')
 
     if (insertErr) {
       log.error('insert failed', insertErr);
-      return res.status(500).json({ success: false, error: 'Failed to save transactions', detail: insertErr.message });
+      // Use safeError so raw Postgres/PostgREST internals (table/column/constraint
+      // names) are stripped in production instead of being echoed to the client (audit).
+      return res.status(500).json(safeError('Failed to save transactions', insertErr));
     }
 
     const insertedIds = (inserted || []).map((r) => r.id);
@@ -355,10 +356,10 @@ router.get('/', authenticateUser, async (req, res) => {
     const accountType = typeof req.query.account_type === 'string' ? req.query.account_type : null;
     const since = typeof req.query.since === 'string' ? req.query.since : null;
 
-    // Note: user_transactions (and user_bank_connections) still carry
-    // truelayer_* columns even though the TrueLayer integration was deleted
-    // (replan-2026-06-10 Track D). Kept deliberately — no migration; they are
-    // simply never written or selected anymore.
+    // Note: user_transactions (and user_bank_connections) still carry inert
+    // pluggy_*/plaid_*/truelayer_* provider columns from the removed bank
+    // aggregators (replan-2026-06-12). Kept deliberately — no migration; they
+    // are simply never written or selected anymore.
     let query = supabaseAdmin
       .from('user_transactions')
       .select(`
@@ -376,18 +377,36 @@ router.get('/', authenticateUser, async (req, res) => {
     if (accountType) query = query.eq('account_type', accountType);
     if (since) query = query.gte('transaction_date', since);
 
-    // replan-2026-06-10 Track D P0: never render Plaid sandbox rows as real
     // money in production runtimes.
-    const sandbox = await getPlaidSandboxState(userId);
-    if (sandbox.excludePlaidTransactions) query = excludePlaidRows(query);
 
     const { data, error } = await query;
     if (error) throw error;
+
+    // audit-2026-06-10: surface saved stress-feedback so the FeedbackToggle
+    // can render the user's prior answer instead of resetting to null on every
+    // reload. transaction_feedback.transaction_id is TEXT with no FK to
+    // user_transactions (see the POST /:id/feedback handler), so a PostgREST
+    // embedded join is not available — batch-fetch the feedback rows for this
+    // page's transaction ids in one query and merge them in by id.
+    const txIds = (data || []).map((row) => row.id);
+    const feedbackById = new Map();
+    if (txIds.length) {
+      const { data: feedbackRows, error: feedbackError } = await supabaseAdmin
+        .from('transaction_feedback')
+        .select('transaction_id, is_stress_driven')
+        .eq('user_id', userId)
+        .in('transaction_id', txIds);
+      if (feedbackError) throw feedbackError;
+      for (const fb of feedbackRows || []) {
+        feedbackById.set(fb.transaction_id, fb.is_stress_driven);
+      }
+    }
 
     // Supabase returns emotional_context as an array (1-to-1 relation) — flatten
     const flattened = (data || []).map((row) => ({
       ...row,
       emotional_context: Array.isArray(row.emotional_context) ? row.emotional_context[0] ?? null : row.emotional_context,
+      feedback: feedbackById.has(row.id) ? feedbackById.get(row.id) : null,
     }));
 
     return res.json({ success: true, transactions: flattened, limit, offset });
@@ -422,10 +441,6 @@ router.get('/summary', authenticateUser, async (req, res) => {
       `)
       .eq('user_id', userId)
       .gte('transaction_date', since);
-
-    // replan-2026-06-10 Track D P0: sandbox rows must not inflate the totals.
-    const sandbox = await getPlaidSandboxState(userId);
-    if (sandbox.excludePlaidTransactions) summaryQuery = excludePlaidRows(summaryQuery);
 
     const { data, error } = await summaryQuery;
 
@@ -607,10 +622,6 @@ router.get('/by-category', authenticateUser, async (req, res) => {
       .eq('user_id', userId)
       .lt('amount', 0) // outflows only
       .gte('transaction_date', since);
-
-    // replan-2026-06-10 Track D P0: keep sandbox rows out of the breakdown.
-    const sandbox = await getPlaidSandboxState(userId);
-    if (sandbox.excludePlaidTransactions) categoryQuery = excludePlaidRows(categoryQuery);
 
     const { data, error } = await categoryQuery;
 
@@ -1080,10 +1091,6 @@ router.get('/timeline-analysis', authenticateUser, async (req, res) => {
       .lt('amount', 0)
       .gte('transaction_date', since);
 
-    // replan-2026-06-10 Track D P0: sandbox rows must not draw the chart.
-    const sandbox = await getPlaidSandboxState(userId);
-    if (sandbox.excludePlaidTransactions) timelineQuery = excludePlaidRows(timelineQuery);
-
     const { data: rows, error } = await timelineQuery;
 
     if (error) throw error;
@@ -1157,11 +1164,6 @@ router.get('/recurring-subscriptions', authenticateUser, async (req, res) => {
       .neq('account_type', 'investment')   // brokerage trades own a different surface
       .order('transaction_date', { ascending: false })
       .limit(2000);
-
-    // replan-2026-06-10 Track D P0: sandbox "subscriptions" (Tectra Inc et al)
-    // must not show up as real recurring charges.
-    const sandbox = await getPlaidSandboxState(userId);
-    if (sandbox.excludePlaidTransactions) subsQuery = excludePlaidRows(subsQuery);
 
     const { data: rows, error } = await subsQuery;
 
@@ -1252,8 +1254,11 @@ router.get('/recurring-subscriptions', authenticateUser, async (req, res) => {
     const top = subscriptions.slice(0, limit);
 
     const stressfulSignups = subscriptions.filter(s => s.firstChargeContext && /stress|low recovery|somber/i.test(s.firstChargeContext));
-    const totalMonthly = subscriptions.reduce((s, sub) => s + sub.monthlyAvg, 0);
     const dominantCurrency = subscriptions[0]?.currency || 'USD';
+    // Only sum subscriptions in the dominant currency so the labeled total is
+    // internally consistent (summing mixed currencies and labeling with one is
+    // meaningless for a BR user with both BRL and USD subs).
+    const totalMonthly = subscriptions.reduce((s, sub) => (sub.currency === dominantCurrency ? s + sub.monthlyAvg : s), 0);
     const totalMonthlyStr = new Intl.NumberFormat('en-US', { style: 'currency', currency: dominantCurrency }).format(totalMonthly);
     // Synthesis: surface the data, no value judgment. The "stressful signup"
     // tag is descriptive (these signups landed on days flagged as high-stress

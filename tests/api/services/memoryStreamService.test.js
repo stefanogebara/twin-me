@@ -217,3 +217,36 @@ describe('clampNoiseObservation — platform-data noise clamps (audit-2026-05-16
     expect(clampNoiseObservation(undefined)).toBeNull();
   });
 });
+
+/**
+ * The platform_data importance floor (6) used to run AFTER the noise clamp and
+ * unconditionally raise clamped 3-4 rows back to 6 — silently undoing the entire
+ * noise-suppression feature above (audit 2026-06-22). applyImportanceFloor now
+ * exempts options.noiseClamped. These pin that the clamp survives the floor.
+ */
+describe('applyImportanceFloor — noise clamp must survive the platform_data floor', () => {
+  it('does NOT raise a git-noise-clamped platform_data row above its 3-4', async () => {
+    const { applyImportanceFloor } = await import('../../../api/services/memoryStreamService.js');
+    expect(applyImportanceFloor('platform_data', 3, { noiseClamped: true })).toBe(3);
+    expect(applyImportanceFloor('platform_data', 4, { noiseClamped: true })).toBe(4);
+  });
+
+  it('still floors un-clamped platform_data at 6', async () => {
+    const { applyImportanceFloor } = await import('../../../api/services/memoryStreamService.js');
+    expect(applyImportanceFloor('platform_data', 3, {})).toBe(6);
+    expect(applyImportanceFloor('platform_data', 5)).toBe(6);
+    expect(applyImportanceFloor('platform_data', 8, {})).toBe(8); // already above floor, untouched
+  });
+
+  it('floors conversations at 7 (noiseClamped does not apply to them)', async () => {
+    const { applyImportanceFloor } = await import('../../../api/services/memoryStreamService.js');
+    expect(applyImportanceFloor('conversation', 5)).toBe(7);
+    expect(applyImportanceFloor('conversation', 9)).toBe(9);
+  });
+
+  it('leaves other memory types untouched', async () => {
+    const { applyImportanceFloor } = await import('../../../api/services/memoryStreamService.js');
+    expect(applyImportanceFloor('reflection', 2)).toBe(2);
+    expect(applyImportanceFloor('fact', 1)).toBe(1);
+  });
+});

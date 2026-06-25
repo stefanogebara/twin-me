@@ -194,7 +194,7 @@ const BrainPage: React.FC = () => {
         <div className="flex items-center justify-center h-64">
           <div
             className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin"
-            style={{ color: 'rgba(255,255,255,0.2)' }}
+            style={{ color: 'rgba(255, 255, 255, 0.55)' }}
           />
         </div>
       </div>
@@ -286,8 +286,8 @@ const BrainPage: React.FC = () => {
                 );
               })}
             </div>
-            <p className="text-[11px]" style={{ color: 'rgba(255,255,255,0.3)' }}>
-              {(['reflection', 'platform_data', 'fact', 'conversation'] as const)
+            <p className="text-[11px]" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
+              {(['reflection', 'platform_data', 'fact', 'conversation', 'observation'] as const)
                 .filter(type => (composition[type] || 0) > 0)
                 .map(type => {
                   const count = composition[type] || 0;
@@ -302,12 +302,13 @@ const BrainPage: React.FC = () => {
 
       {/* ===== Search ===== */}
       <div className="relative mb-4">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none" style={{ color: 'rgba(255,255,255,0.3)' }} />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none" style={{ color: 'rgba(255, 255, 255, 0.55)' }} />
         <input
           type="search"
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
           placeholder="Search memories…"
+          aria-label="Search memories"
           className="w-full pl-8 pr-3 py-2 text-sm rounded-[8px] outline-none transition-colors"
           style={{
             background: 'rgba(255,255,255,0.06)',
@@ -352,7 +353,7 @@ const BrainPage: React.FC = () => {
           <p className="text-sm mb-1" style={{ color: 'rgba(255,255,255,0.5)' }}>
             Couldn't load your memories
           </p>
-          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
+          <p className="text-xs" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
             Something went wrong. Your memories are safe — try again in a moment.
           </p>
           <button
@@ -368,7 +369,7 @@ const BrainPage: React.FC = () => {
           <p className="text-sm mb-1" style={{ color: 'rgba(255,255,255,0.5)' }}>
             No memories found
           </p>
-          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
+          <p className="text-xs" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
             {activeExpert || activeType
               ? 'Try adjusting your filters.'
               : 'Connect platforms to start building memories.'}
@@ -436,7 +437,7 @@ const BrainPage: React.FC = () => {
             )}
 
             {snapshotsError && snapshots.length === 0 && (
-              <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
+              <p className="text-xs" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
                 Couldn't load your soul signature timeline.{' '}
                 <button
                   onClick={fetchSnapshots}
@@ -462,11 +463,11 @@ const BrainPage: React.FC = () => {
                   >
                     Soul Signature Evolution
                   </span>
-                  <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                  <span className="text-[11px]" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
                     {snapshots.length} snapshots
                   </span>
                 </div>
-                <p className="text-xs mb-4" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                <p className="text-xs mb-4" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
                   How your twin's understanding of you has grown over time.
                 </p>
                 <SoulEvolutionTimeline snapshots={snapshots} />

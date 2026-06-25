@@ -20,7 +20,7 @@
 import express from 'express';
 import crypto from 'crypto';
 import { supabaseAdmin } from '../services/database.js';
-import { extractPlatformData } from '../services/nangoService.js';
+import { extractPlatformData, pruneDuplicateNangoConnections } from '../services/nangoService.js';
 import { createLogger } from '../services/logger.js';
 
 const log = createLogger('NangoWebhooks');
@@ -141,6 +141,13 @@ async function handleAuthWebhook(data) {
     if (upsertErr) {
       log.error(`Failed to record connection for ${provider}:`, upsertErr.message);
     }
+
+    // Prune older duplicate connections for this user+platform so reconnects
+    // don't accumulate orphaned Nango slots (root cause of the account hitting
+    // its connection cap). Fire-and-forget — never block the webhook response.
+    pruneDuplicateNangoConnections(userId, providerConfigKey, connectionId)
+      .then(({ pruned }) => { if (pruned) log.info(`Pruned ${pruned} duplicate ${provider} connection(s) for user ${userId}`); })
+      .catch(err => log.warn('connection prune failed (non-fatal)', { error: err.message }));
 
     // Trigger initial data extraction in background.
     //

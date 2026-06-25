@@ -67,23 +67,9 @@
   "functions": {
     "api/index.js": {
       "maxDuration": 60
-    },
-    "api/webhook-pluggy.js": {
-      "maxDuration": 60
-    },
-    "api/webhook-plaid.js": {
-      "maxDuration": 60
     }
   },
   "routes": [
-    {
-      "src": "/api/webhooks/pluggy",
-      "dest": "/api/webhook-pluggy.js"
-    },
-    {
-      "src": "/api/webhooks/plaid",
-      "dest": "/api/webhook-plaid.js"
-    },
     {
       "src": "/api/(.*)",
       "dest": "/api/index.js"
@@ -179,20 +165,12 @@
       "schedule": "0 5 * * *"
     },
     {
-      "path": "/api/cron/pluggy-sync",
-      "schedule": "0 6 * * *"
-    },
-    {
       "path": "/api/cron/statement-nag",
       "schedule": "0 12 1 * *"
     },
     {
-      "path": "/api/cron/bank-consent",
-      "schedule": "0 10 * * *"
-    },
-    {
-      "path": "/api/cron/investment-correlation",
-      "schedule": "0 8 * * *"
+      "path": "/api/cron/future-simulation",
+      "schedule": "0 18 * * 0"
     },
     {
       "path": "/api/cron/twin-summary-refresh",
@@ -215,12 +193,20 @@
       "schedule": "0 2 * * *"
     },
     {
+      "path": "/api/cron/nango-orphan-cleanup",
+      "schedule": "0 5 * * 0"
+    },
+    {
       "path": "/api/cron/outcome-learning",
       "schedule": "30 3 * * *"
     },
     {
       "path": "/api/cron/twin-self-improvement",
       "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/cron/llm-usage-log-cleanup",
+      "schedule": "30 5 * * 0"
     }
   ]
 }

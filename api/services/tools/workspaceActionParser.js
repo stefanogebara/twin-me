@@ -41,6 +41,7 @@ const WRITE_TOOLS = Object.freeze([
   'drive_create_file',
   'spotify_queue',
   'spotify_play_track',
+  'place_call',
 ]);
 
 /**
@@ -274,18 +275,6 @@ Examples:
   User: "What PRs do I have open?"
   You: [ACTION: github_list_prs]
 
-  User: "What did I sell last month?"
-  You: [ACTION: get_brokerage_activity sinceDays=30 typeFilter="sell"]
-
-  User: "Show me my buys when I was stressed"
-  You: [ACTION: get_brokerage_activity sinceDays=60 typeFilter="buy"]
-
-  User: "Did I trade on low-recovery days?"
-  You: [ACTION: get_brokerage_activity sinceDays=90]
-
-  User: "What's my brokerage activity?"
-  You: [ACTION: get_brokerage_activity sinceDays=30]
-
   User: "What am I paying for monthly?"
   You: [ACTION: get_recurring_subscriptions]
 
@@ -297,6 +286,63 @@ Examples:
 
   User: "Where is my money leaking?"
   You: [ACTION: get_recurring_subscriptions]
+
+  User: "Simulate my future"
+  You: [ACTION: simulate_future]
+
+  User: "What should my next month look like?"
+  You: [ACTION: simulate_future horizonDays=30]
+
+  User: "Where am I headed in the next three months?"
+  You: [ACTION: simulate_future horizonDays=90]
+
+  User: "What if I take the job in Lisbon?"
+  You: [ACTION: simulate_future scenario="taking the job in Lisbon"]
+
+  User: "Should I start training for a marathon?"
+  You: [ACTION: simulate_future scenario="starting marathon training" horizonDays=60]
+
+  User: "Me lembra de pagar o boleto amanhã 9h"
+  You: Feito — te lembro amanhã às 9h. [ACTION: set_reminder remind_at="${tomorrowDate}T09:00:00" message="pagar o boleto"]
+
+  User: "Remind me to call the dentist tomorrow at 2pm"
+  You: Done — I'll nudge you at 2pm. [ACTION: set_reminder remind_at="${tomorrowDate}T14:00:00" message="ligar pro dentista"]
+
+  User: "Me lembra todo dia útil às 9h de checar o pipeline"
+  You: Combinado — todo dia útil às 9h. [ACTION: set_reminder remind_at="${tomorrowDate}T09:00:00" message="checar o pipeline" recurrence="weekdays"]
+
+  User: "Remind me every Monday to send the weekly report"
+  You: Set — every Monday. [ACTION: set_reminder remind_at="${tomorrowDate}T09:00:00" message="send the weekly report" recurrence="weekly"]
+
+  User: "Quais lembretes eu tenho?"
+  You: [ACTION: list_reminders]
+
+  User: "What reminders do I have?"
+  You: [ACTION: list_reminders]
+
+  User: "Cancela o lembrete do boleto"
+  You: Cancelado. [ACTION: cancel_reminder query="boleto"]
+
+  User: "Remove the dentist reminder"
+  You: Done — removed it. [ACTION: cancel_reminder query="dentista"]
+
+  User: "Adia o lembrete do boleto pra amanhã 9h"
+  You: Feito — movi pra amanhã às 9h. [ACTION: reschedule_reminder query="boleto" remind_at="${tomorrowDate}T09:00:00"]
+
+  User: "Snooze the dentist reminder to tomorrow afternoon"
+  You: Done — pushed it to 3pm tomorrow. [ACTION: reschedule_reminder query="dentista" remind_at="${tomorrowDate}T15:00:00"]
+
+  User: "Pula o próximo lembrete do relatório"
+  You: Beleza — pulei o próximo. [ACTION: skip_reminder query="relatório"]
+
+  User: "Skip this week's standup reminder"
+  You: Done — skipped this one. [ACTION: skip_reminder query="standup"]
+
+  User: "Liga pro restaurante +5511991234567 e reserva uma mesa pra 4 às 20h hoje"
+  You: Pode deixar — vou ligar e reservar. [ACTION: place_call to="+5511991234567" to_name="Restaurante" goal="reservar uma mesa para 4 pessoas às 20h hoje"]
+
+  User: "Call the dentist at +5511988887777 and book a cleaning next week"
+  You: On it — I'll call and book it. [ACTION: place_call to="+5511988887777" to_name="Dentist" goal="book a teeth cleaning appointment for next week"]
 
   User: "Any open issues about the login bug?"
   You: [ACTION: github_search_issues query="login bug"]
@@ -596,36 +642,6 @@ FORMATTING OVERRIDE for this tool — IGNORE the numbered-list / bold-everything
 - Lead with the HEADLINE sentence verbatim.
 - Then 2-3 sentences of prose that call out 1-2 specific subscriptions (most expensive, longest-running, OR ones with notable first-charge emotional context).
 - If first-charge context shows stress/low-recovery/somber-music on multiple signups, name that pattern explicitly.
-- Casual register, no bullet points, no bold, no emojis.`);
-    let block = parts.join('\n');
-    if (block.length > MAX_RESULT_CHARS) block = block.substring(0, MAX_RESULT_CHARS) + '\n... (truncated)';
-    return block;
-  }
-
-  // get_brokerage_activity: narrative-first formatting. The default JSON dump
-  // makes the twin reply with a numbered list (per FOLLOW_UP_FORMATTING_
-  // INSTRUCTIONS), but for the moat surface we want flowing prose like
-  // "you sold AAPL on a 38% recovery day, then bought NFLX two days later
-  // when stress hit 72%". Seed the LLM with a narrative draft so it has
-  // something prose-like to polish instead of structured rows to list.
-  if (result.toolName === 'get_brokerage_activity' && result.data?.events) {
-    const d = result.data;
-    const parts = [`[ACTION RESULT: get_brokerage_activity — SUCCESS (${result.elapsedMs}ms)]`];
-    if (d.synthesis) parts.push(`\nHEADLINE PATTERN (use as the opening line of your reply):\n${d.synthesis}\n`);
-    parts.push(`\nWindow: last ${d.sinceDays} days from ${d.sinceDate}. ${d.count} events found.\n`);
-    parts.push('EVENTS (one line each, in raw form — turn into a SHORT NARRATIVE not a numbered list):');
-    for (const e of d.events) {
-      const ctx = e.emotionalContext ? ` — ${e.emotionalContext}` : '';
-      const amt = new Intl.NumberFormat('en-US', { style: 'currency', currency: e.currency || 'USD', maximumFractionDigits: 0 }).format(Math.abs(e.amountUSD || 0));
-      const verb = e.type === 'sell' ? 'sold' : e.type === 'buy' ? 'bought' : e.type === 'dividend' ? 'collected dividend on' : e.type === 'fee' ? 'paid fee on' : e.type;
-      parts.push(`- ${e.date}: ${verb} ${amt} of ${e.ticker || e.name}${ctx}`);
-    }
-    parts.push(`
-FORMATTING OVERRIDE for this tool — IGNORE the numbered-list / bold-everything rules from the standard follow-up instructions. Instead:
-- Write 2-3 sentences of flowing prose, like a perceptive friend texting.
-- LEAD with the HEADLINE PATTERN sentence verbatim if present.
-- Cite 1-2 specific trades by ticker + date + emotional context, not all of them.
-- If no signals were captured, say so briefly ("no emotional context tagged for these — likely Whoop disconnected").
 - Casual register, no bullet points, no bold, no emojis.`);
     let block = parts.join('\n');
     if (block.length > MAX_RESULT_CHARS) block = block.substring(0, MAX_RESULT_CHARS) + '\n... (truncated)';

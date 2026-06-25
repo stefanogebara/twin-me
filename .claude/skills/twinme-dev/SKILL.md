@@ -118,8 +118,8 @@ const result = await complete({
 
 ## Database Migrations
 
-- Location: `database/supabase/migrations/YYYYMMDD_description.sql`
-- Apply via Supabase MCP: `mcp__supabase__apply_migration`
+- Location: `database/migrations/YYYYMMDD_description.sql` (canonical tree — its filenames match the live applied history. Do NOT use `database/supabase/migrations/`, which is frozen/legacy and diverged from prod.)
+- Apply via Supabase MCP: `mcp__supabase__apply_migration` (pass `name` = the filename stem; the recorded `version` auto-generates as a 14-digit timestamp and will NOT match the file's date prefix — that is expected, not a bug)
 - FK constraints MUST reference `public.users(id)` not `auth.users(id)`
 - Always enable RLS and create policies for user isolation
 - Always add service_role full access policy

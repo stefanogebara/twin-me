@@ -1,17 +1,13 @@
 /**
- * MoneyInsightsPage — Financial-Emotional Twin Demo Surface (Phase 4.4)
+ * MoneyInsightsPage — Financial-Emotional Twin Demo Surface
  * =======================================================================
- * The one page that pulls together every cross-domain signal the moat
- * relies on into a single narrative read:
+ * Cross-domain signals in a single narrative read (post bank-aggregator
+ * removal, replan-2026-06-12 — brokerage/investment sections retired):
  *
- *   1. Investment-correlation patterns (sells_low_recovery, buys_high_stress,
- *      recovery_direction_gap) — deterministic insights produced by
- *      investmentCorrelationInsights.js
- *   2. Subscriptions audit with first-charge emotional context — the
+ *   1. Subscriptions audit with first-charge emotional context — the
  *      "I signed up for this gym on a low-recovery Sunday, never used it"
  *      insight ChatGPT Personal Finance cannot say
- *   3. Brokerage activity with Whoop + stress + music tags per trade
- *   4. Stress-spend timeline — daily outflow overlaid with the stress
+ *   2. Stress-spend timeline — daily outflow overlaid with the stress
  *      signal that drove it
  *
  * Designed as a polished read-only surface. Action / detail flows still
@@ -20,19 +16,15 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { ArrowLeft, Brain, AlertCircle, Loader2, Repeat, TrendingUp } from 'lucide-react';
+import { ArrowLeft, AlertCircle, Loader2, Repeat, TrendingUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import {
-  getInvestmentCorrelationInsights,
   getRecurringSubscriptions,
   getTimelineAnalysis,
-  type InvestmentCorrelationInsight,
   type RecurringSubscription,
   type TimelineDay,
 } from '@/services/api/transactionsAPI';
-import { BrokerageHoldingsCard } from './components/money/BrokerageHoldingsCard';
-import { BrokerageActivityCard } from './components/money/BrokerageActivityCard';
 import { StressSpendTimeline } from './components/money/StressSpendTimeline';
 
 function fmtCurrency(amount: number, currency: string): string {
@@ -62,18 +54,11 @@ function fmtDate(iso: string | null | undefined): string {
   }
 }
 
-const PATTERN_LABEL: Record<string, string> = {
-  sells_low_recovery: 'Selling under low recovery',
-  buys_high_stress: 'Buying under high stress',
-  recovery_direction_gap: 'Recovery gap between buys and sells',
-};
-
 const MoneyInsightsPage: React.FC = () => {
   useDocumentTitle('Money Insights');
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(true);
-  const [correlations, setCorrelations] = useState<InvestmentCorrelationInsight[]>([]);
   const [subs, setSubs] = useState<RecurringSubscription[]>([]);
   const [subsSynthesis, setSubsSynthesis] = useState<string>('');
   const [subsCurrency, setSubsCurrency] = useState<string>('USD');
@@ -87,13 +72,11 @@ const MoneyInsightsPage: React.FC = () => {
       setLoading(true);
       setError(null);
       try {
-        const [corrs, subsRes, days] = await Promise.all([
-          getInvestmentCorrelationInsights({ limit: 10, includeDelivered: true }),
+        const [subsRes, days] = await Promise.all([
           getRecurringSubscriptions({ limit: 12 }),
           getTimelineAnalysis(),
         ]);
         if (cancelled) return;
-        setCorrelations(corrs);
         setSubs(subsRes.subscriptions || []);
         setSubsSynthesis(subsRes.synthesis || '');
         setSubsCurrency(subsRes.currency || 'USD');
@@ -126,74 +109,23 @@ const MoneyInsightsPage: React.FC = () => {
           Your money, with context.
         </h1>
         <p className="mt-4 max-w-2xl text-[var(--text-narrative-secondary)] text-[15.5px] leading-[1.55]">
-          ChatGPT shows you what you spent. Your twin shows you why — joining every trade
-          and every charge with the recovery, stress, and mood you carried into that decision.
+          ChatGPT shows you what you spent. Your twin shows you why — joining every
+          charge with the recovery, stress, and mood you carried into that decision.
         </p>
       </header>
 
-      {/* Section 1: Investment-correlation patterns (the moat). */}
-      <Section
-        icon={<Brain className="h-4 w-4" />}
-        eyebrow="Pattern detection"
-        title="What your trade history reveals"
-        subtitle="Deterministic patterns surfaced by joining your brokerage activity with Whoop recovery + computed stress."
-      >
-        {loading && correlations.length === 0 ? (
-          <SkeletonRow />
-        ) : correlations.length === 0 ? (
-          <EmptyHint>
-            No patterns surfaced yet. The detector needs at least 3 buys and 3 sells with
-            Whoop recovery or stress tagged — keep trading + keep Whoop synced and the
-            twin will start picking up correlations.
-          </EmptyHint>
-        ) : (
-          <ul className="space-y-3">
-            {correlations.map(c => (
-              <li
-                key={c.id}
-                className="rounded-[20px] border border-[var(--glass-surface-border)] bg-[var(--glass-surface-bg)] backdrop-blur-[42px] px-5 py-4"
-              >
-                <div className="flex items-start justify-between gap-3 mb-2">
-                  <span className="text-[11px] uppercase tracking-[0.08em] text-[var(--text-narrative-muted)]">
-                    {PATTERN_LABEL[c.metadata?.pattern || ''] || 'Investment correlation'}
-                  </span>
-                  <span className="text-[11px] text-[var(--text-narrative-muted)]">
-                    {fmtDate(c.created_at.slice(0, 10))}
-                  </span>
-                </div>
-                <p className="text-[var(--text-narrative)] text-[14.5px] leading-[1.55]">
-                  {c.insight}
-                </p>
-                {c.sources?.length ? (
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {c.sources.map(src => (
-                      <span
-                        key={src}
-                        className="text-[11px] px-2 py-0.5 rounded-full bg-[rgba(255,255,255,0.06)] border border-[rgba(255,255,255,0.08)] text-[var(--text-narrative-secondary)]"
-                      >
-                        {src}
-                      </span>
-                    ))}
-                  </div>
-                ) : null}
-              </li>
-            ))}
-          </ul>
-        )}
-      </Section>
-
-      {/* Section 2: Subscriptions audit with first-charge emotional context. */}
+      {/* Subscriptions audit with first-charge emotional context. */}
       <Section
         icon={<Repeat className="h-4 w-4" />}
         eyebrow="Recurring charges"
         title="What you're paying for, every month"
-        subtitle={subsSynthesis || 'Detected from your bank + card history. Each subscription is tagged with the emotional state on the day you first signed up.'}
+        subtitle={subsSynthesis || 'Detected from your transaction history. Each subscription is tagged with the emotional state on the day you first signed up.'}
       >
         {loading && subs.length === 0 ? (
           <SkeletonRow />
         ) : subs.length === 0 ? (
           <EmptyHint>
-            No recurring charges detected yet. Connect a bank or upload a statement on
+            No recurring charges detected yet. Upload a statement or link WhatsApp on
             <button onClick={() => navigate('/money')} className="text-[var(--accent-vibrant)] hover:underline ml-1">Money</button> to start tracking.
           </EmptyHint>
         ) : (
@@ -247,19 +179,7 @@ const MoneyInsightsPage: React.FC = () => {
         )}
       </Section>
 
-      {/* Section 3: Brokerage activity (per-trade emotional tags). */}
-      <Section
-        icon={<TrendingUp className="h-4 w-4" />}
-        eyebrow="Recent trades"
-        title="Every buy and sell, in context"
-        subtitle="Each row shows what you did with your portfolio AND your recovery / stress / mood on the day you did it."
-      >
-        <div className="rounded-[20px] overflow-hidden">
-          <BrokerageActivityCard />
-        </div>
-      </Section>
-
-      {/* Section 4: Stress-spend timeline. */}
+      {/* Stress-spend timeline. */}
       <Section
         icon={<TrendingUp className="h-4 w-4" />}
         eyebrow="Daily pattern"
@@ -269,23 +189,13 @@ const MoneyInsightsPage: React.FC = () => {
         <div className="rounded-[20px] border border-[var(--glass-surface-border)] bg-[var(--glass-surface-bg)] backdrop-blur-[42px] p-4">
           {timeline.length === 0 && !loading ? (
             <EmptyHint>
-              No spending history yet. Connect a bank or upload a statement on
+              No spending history yet. Upload a statement or link WhatsApp on
               <button onClick={() => navigate('/money')} className="text-[var(--accent-vibrant)] hover:underline ml-1">Money</button> to see the daily pattern.
             </EmptyHint>
           ) : (
             <StressSpendTimeline days={timeline} currency={subsCurrency} />
           )}
         </div>
-      </Section>
-
-      {/* Section 5: Holdings snapshot — kept last because it's the slow-changing portfolio view. */}
-      <Section
-        icon={<TrendingUp className="h-4 w-4" />}
-        eyebrow="Portfolio snapshot"
-        title="What you own"
-        subtitle="Aggregated across every linked brokerage. The same data your twin references when you ask about your positions."
-      >
-        <BrokerageHoldingsCard />
       </Section>
 
       {error ? (

@@ -1,7 +1,9 @@
 export type InsightUrgency = 'high' | 'medium' | 'low';
 export type InsightCategory =
   | 'trend' | 'anomaly' | 'celebration' | 'concern'
-  | 'nudge' | 'goal_progress' | 'goal_suggestion';
+  | 'nudge' | 'goal_progress' | 'goal_suggestion'
+  // Cross-domain self-revelations (calendar x biometric / workspace / gmail)
+  | 'stress_correlation' | 'energy_correlation' | 'social_battery' | 'work_rhythm';
 
 export interface ProactiveInsight {
   id: string;

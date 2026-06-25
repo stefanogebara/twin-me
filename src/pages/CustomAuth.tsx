@@ -486,6 +486,7 @@ For privacy concerns: privacy@twinme.me`
             <input
               type="email"
               autoComplete="email"
+              aria-label="Email address"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
@@ -678,6 +679,7 @@ For privacy concerns: privacy@twinme.me`
               </h2>
               <button
                 onClick={() => setActiveModal(null)}
+                aria-label="Close"
                 className="p-1 transition-opacity hover:opacity-60"
                 style={{ color: 'rgba(255,255,255,0.3)' }}
               >

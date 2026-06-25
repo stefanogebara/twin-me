@@ -8,18 +8,9 @@
 import { complete, TIER_EXTRACTION } from './llmGateway.js';
 import fs from 'fs';
 import { createLogger } from './logger.js';
+import { extractDocumentText } from './documentExtractionService.js';
 
 const log = createLogger('ResumeParser');
-
-// Lazy-load pdf-parse only when needed (optional dependency)
-let pdf;
-async function getPdfParser() {
-  if (!pdf) {
-    try { pdf = (await import('pdf-parse/lib/pdf-parse.js')).default; }
-    catch { throw new Error('pdf-parse not installed. Run: npm install pdf-parse'); }
-  }
-  return pdf;
-}
 
 class ResumeParserService {
 
@@ -35,17 +26,21 @@ class ResumeParserService {
 
     let textContent;
 
-    // Extract text from PDF if needed
+    // Extract text from PDF via the tiered document extractor (unpdf text
+    // layer, with Mistral OCR fallback for scanned PDFs when configured).
     if (fileType === 'pdf') {
-      try {
-        const pdfParser = await getPdfParser();
-        const pdfData = await pdfParser(fileContent);
-        textContent = pdfData.text;
-        log.info(`Extracted ${textContent.length} chars from PDF`);
-      } catch (error) {
-        log.error('PDF parsing failed:', error);
-        throw new Error('Failed to parse PDF file');
+      const buf = Buffer.isBuffer(fileContent) ? fileContent : Buffer.from(fileContent);
+      const extracted = await extractDocumentText(buf, { mimeType: 'application/pdf' });
+      if (!extracted.ok || !extracted.text) {
+        log.error(`PDF parsing failed (${extracted.method}): ${extracted.error || 'no text'}`);
+        throw new Error(
+          extracted.needsOcr
+            ? 'This looks like a scanned PDF. Upload a text-based PDF, or enable OCR (set MISTRAL_API_KEY).'
+            : 'Failed to parse PDF file',
+        );
       }
+      textContent = extracted.text;
+      log.info(`Extracted ${textContent.length} chars from PDF via ${extracted.method}`);
     } else {
       textContent = typeof fileContent === 'string' ? fileContent : fileContent.toString('utf-8');
     }

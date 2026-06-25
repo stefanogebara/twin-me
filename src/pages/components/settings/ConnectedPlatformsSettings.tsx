@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   CheckCircle,
   XCircle,
@@ -60,6 +60,22 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
 }) => {
   const platformMap = byPlatform(summary);
 
+  // Inline two-step confirm for destructive disconnects (replaces native
+  // window.confirm, which is unstyleable and inconsistent with the rest of
+  // Settings — audit-2026-06-10). First click arms the row; a second click
+  // (or the 'Confirm?' label) actually disconnects. Clicking elsewhere or
+  // arming a different row resets the previous one.
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
+
+  const requestDisconnect = (id: string) => {
+    if (confirmingId === id) {
+      setConfirmingId(null);
+      handleDisconnectService(id);
+    } else {
+      setConfirmingId(id);
+    }
+  };
+
   // Demoted rows appear only for users who already connected them.
   const visibleConnectors = [
     ...connectorConfig,
@@ -85,7 +101,7 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
         <button
           onClick={() => refetch()}
           className="p-1.5 rounded-lg transition-opacity hover:opacity-60"
-          style={{ color: 'rgba(255,255,255,0.25)' }}
+          style={{ color: 'rgba(255, 255, 255, 0.55)' }}
           aria-label="Refresh platform connection status"
           title="Refresh status"
         >
@@ -102,7 +118,7 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
 
       {isLoading ? (
         <div className="flex items-center justify-center py-6">
-          <Loader2 className="w-4 h-4 animate-spin" style={{ color: 'rgba(255,255,255,0.2)' }} />
+          <Loader2 className="w-4 h-4 animate-spin" style={{ color: 'rgba(255, 255, 255, 0.55)' }} />
         </div>
       ) : (
         <div className="space-y-0">
@@ -126,7 +142,7 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
                     <span className="text-sm" style={{ color: 'var(--foreground)' }}>
                       {connector.name}
                     </span>
-                    <p className="text-[11px] truncate" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                    <p className="text-[11px] truncate" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
                       {connector.description}
                     </p>
                   </div>
@@ -137,16 +153,21 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
                       <CheckCircle className="w-3.5 h-3.5" style={{ color: '#10B981' }} />
                       {connector.isOAuth && (
                         <button
-                          onClick={() => {
-                            if (window.confirm(`Disconnect ${connector.name}?`)) {
-                              handleDisconnectService(connector.id);
-                            }
-                          }}
+                          onClick={() => requestDisconnect(connector.id)}
                           disabled={disconnectingService === connector.id}
                           className="text-[11px] min-h-[44px] px-2 transition-opacity hover:opacity-60"
-                          style={{ color: 'rgba(255,255,255,0.3)' }}
+                          style={{
+                            color:
+                              confirmingId === connector.id
+                                ? '#ef4444'
+                                : 'rgba(255, 255, 255, 0.55)',
+                          }}
                         >
-                          {disconnectingService === connector.id ? '...' : 'Disconnect'}
+                          {disconnectingService === connector.id
+                            ? '...'
+                            : confirmingId === connector.id
+                            ? 'Confirm?'
+                            : 'Disconnect'}
                         </button>
                       )}
                     </>
@@ -163,7 +184,7 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
                     </>
                   ) : (
                     <>
-                      <XCircle className="w-3.5 h-3.5" style={{ color: 'rgba(255,255,255,0.15)' }} />
+                      <XCircle className="w-3.5 h-3.5" style={{ color: 'rgba(255, 255, 255, 0.55)' }} />
                       <button
                         onClick={() => navigate('/get-started')}
                         className="text-[11px]"
@@ -191,22 +212,25 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
                     {PLATFORM_DISPLAY_NAMES[platform] ||
                       platform.replace(/_/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase())}
                   </span>
-                  <p className="text-[11px] truncate" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                  <p className="text-[11px] truncate" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
                     No longer supported — your past data stays in your twin
                   </p>
                 </div>
               </div>
               <button
-                onClick={() => {
-                  if (window.confirm(`Disconnect ${PLATFORM_DISPLAY_NAMES[platform] || platform}?`)) {
-                    handleDisconnectService(platform);
-                  }
-                }}
+                onClick={() => requestDisconnect(platform)}
                 disabled={disconnectingService === platform}
                 className="text-[11px] min-h-[44px] px-2 transition-opacity hover:opacity-60 flex-shrink-0"
-                style={{ color: 'rgba(255,255,255,0.3)' }}
+                style={{
+                  color:
+                    confirmingId === platform ? '#ef4444' : 'rgba(255, 255, 255, 0.55)',
+                }}
               >
-                {disconnectingService === platform ? '...' : 'Disconnect'}
+                {disconnectingService === platform
+                  ? '...'
+                  : confirmingId === platform
+                  ? 'Confirm?'
+                  : 'Disconnect'}
               </button>
             </div>
           ))}

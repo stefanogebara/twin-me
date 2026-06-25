@@ -338,18 +338,15 @@ async function addMemory(userId, content, memoryType = 'observation', metadata =
 
     // Generate embedding and importance score in parallel
     let [embedding, importanceScore] = await Promise.all([
-      options.skipEmbedding ? null : generateEmbedding(content),
+      options.skipEmbedding ? null : (options.embedding ?? generateEmbedding(content)),
       options.skipImportance ? (options.importanceScore || 5) : rateImportance(content, userId),
     ]);
 
-    // Importance floors: conversations floor at 7 (same minimum as reflections) so
-    // they're not crushed during min-max normalisation in SQL. Platform data floors
-    // at 6 (directly observed, high confidence but lower synthesis value).
-    if (memoryType === 'platform_data' && importanceScore < 6) {
-      importanceScore = 6;
-    } else if (memoryType === 'conversation' && importanceScore < 7) {
-      importanceScore = 7;
-    }
+    // Importance floors (see applyImportanceFloor): conversations floor at 7 and
+    // platform_data at 6 so they survive min-max normalisation in retrieval — but a
+    // git-noise-clamped row (options.noiseClamped) keeps its 3-4 so the
+    // noise-suppression feature is not undone (audit).
+    importanceScore = applyImportanceFloor(memoryType, importanceScore, options);
 
     // S5.1: Proposition revision — for reflection/fact types, prefer UPDATE over INSERT
     // when a very similar memory (cosine > 0.90) already exists
@@ -514,11 +511,30 @@ function clampNoiseObservation(content) {
   return null;
 }
 
-async function addPlatformObservation(userId, content, platform, metadata = {}) {
+/**
+ * Apply the per-type importance floor. Conversations floor at 7 and platform_data
+ * at 6 so they survive min-max normalisation in retrieval — EXCEPT a platform_data
+ * row the git-noise clamp explicitly demoted (options.noiseClamped), which must
+ * keep its 3-4 or the noise-suppression feature is undone (audit). Exported for testing.
+ */
+export function applyImportanceFloor(memoryType, importanceScore, options = {}) {
+  if (memoryType === 'platform_data' && importanceScore < 6 && !options.noiseClamped) {
+    return 6;
+  }
+  if (memoryType === 'conversation' && importanceScore < 7) {
+    return 7;
+  }
+  return importanceScore;
+}
+
+async function addPlatformObservation(userId, content, platform, metadata = {}, extraOptions = {}) {
   const noiseScore = clampNoiseObservation(content);
-  const options = noiseScore !== null
-    ? { importanceScore: noiseScore, skipImportance: true }
-    : undefined;
+  // Merge the noise-floor options (if any) with caller-provided extras — e.g. a
+  // precomputed `embedding` from the ingestion batch-embed path (audit M2).
+  const baseOptions = noiseScore !== null
+    ? { importanceScore: noiseScore, skipImportance: true, noiseClamped: true }
+    : {};
+  const options = { ...baseOptions, ...extraOptions };
   return addMemory(userId, content, 'platform_data', {
     source: platform,
     platform,
@@ -608,7 +624,7 @@ function cosineSim(a, b) {
  * @param {number} lambda - Trade-off (0=pure diversity, 1=pure relevance)
  * @returns {Array} Reranked memories (embedding stripped from output)
  */
-function mmrRerank(candidates, finalLimit, lambda = MMR_LAMBDA) {
+export function mmrRerank(candidates, finalLimit, lambda = MMR_LAMBDA) {
   if (candidates.length <= finalLimit) return candidates.map(stripEmbedding);
 
   const selected = [];

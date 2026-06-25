@@ -1,8 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
-import { inboxAPI } from '@/services/api/inboxAPI';
 import {
   Home,
   MessageCircle,
@@ -15,10 +13,7 @@ import {
   Mic,
   ChevronsLeft,
   ChevronsRight,
-  BookOpen,
-  Inbox,
   Wallet,
-  CalendarCheck,
   Download,
   Upload,
 } from 'lucide-react';
@@ -41,9 +36,9 @@ const navItems: NavItem[] = [
   { id: 'chat',         label: 'Talk to Twin',    icon: MessageCircle, path: '/talk-to-twin' },
   { id: 'dashboard',    label: 'Home',            icon: Home,          path: '/dashboard' },
   { id: 'me',           label: 'You',             icon: Sparkles,      path: '/identity' },
-  { id: 'wiki',         label: 'Knowledge',       icon: BookOpen,      path: '/wiki' },
-  { id: 'inbox',        label: 'Inbox',           icon: Inbox,         path: '/inbox' },
-  { id: 'meetings',     label: 'Meetings',        icon: CalendarCheck, path: '/meetings' },
+  // One-interface (2026-06-12): Knowledge, Inbox, and Meetings entries removed.
+  // Each was a viewer over backend intelligence that already flows through the
+  // twin (chat + WhatsApp + Home cards). Usage at removal: 1-3 users of 21.
   { id: 'money',        label: 'Money',           icon: Wallet,        path: '/money' },
   { id: 'connect',      label: 'Connect',         icon: Link2,         path: '/connect' },
   { id: 'data-exports', label: 'History import',   icon: Upload,        path: '/data-exports' },
@@ -58,18 +53,6 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
   const navigate = useNavigate();
   const location = useLocation();
   const { user, signOut } = useAuth();
-
-  // Inbox pending count — polled every 60s, drives the nav badge. Failures
-  // resolve to 0 in the API client so the badge silently disappears rather
-  // than breaking layout. Only fetches once the user is loaded (auth ready).
-  const { data: pendingCount = 0 } = useQuery({
-    queryKey: ['inbox', 'pending-count'],
-    queryFn: () => inboxAPI.getPendingCount(),
-    enabled: !!user,
-    refetchInterval: 60_000,
-    refetchOnWindowFocus: true,
-    staleTime: 30_000,
-  });
 
   const [isCollapsedPref, setIsCollapsedPref] = useState(() => {
     if (typeof window === 'undefined') return false;
@@ -217,7 +200,9 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const active = isActive(item.path);
-                const badgeCount = item.id === 'inbox' && pendingCount > 0 ? pendingCount : 0;
+                // One-interface (2026-06-12): inbox page + its pending badge
+                // removed; badge plumbing kept for future per-item counts.
+                const badgeCount: number = 0;
 
                 return (
                   <button

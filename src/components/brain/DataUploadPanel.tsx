@@ -436,7 +436,7 @@ export function DataUploadPanel({ userId, onImportComplete }: DataUploadPanelPro
         <div className="space-y-4">
           {/* Instructions */}
           <div
-            className="rounded-xl p-4 border border-black/8 space-y-2"
+            className="rounded-xl p-4 border border-white/10 space-y-2"
             style={{ background: selectedPlatform.bgColor }}
           >
             <div className="flex items-center gap-2 font-semibold text-sm" style={{ color: selectedPlatform.color }}>
@@ -466,7 +466,7 @@ export function DataUploadPanel({ userId, onImportComplete }: DataUploadPanelPro
             onClick={() => fileInputRef.current?.click()}
             className="border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors"
             style={{
-              borderColor: dragging ? selectedPlatform.color : 'rgba(0,0,0,0.15)',
+              borderColor: dragging ? selectedPlatform.color : 'rgba(255,255,255,0.15)',
               background: dragging ? selectedPlatform.bgColor : 'transparent',
             }}
           >
@@ -508,7 +508,7 @@ export function DataUploadPanel({ userId, onImportComplete }: DataUploadPanelPro
           </p>
           <p className="text-xs text-foreground/40">This may take a moment for large exports.</p>
           {multiFileProgress && (
-            <div className="w-48 h-1.5 rounded-full bg-black/10 overflow-hidden mt-1">
+            <div className="w-48 h-1.5 rounded-full bg-white/10 overflow-hidden mt-1">
               <div
                 className="h-full rounded-full transition-all duration-300"
                 style={{
@@ -563,7 +563,7 @@ export function DataUploadPanel({ userId, onImportComplete }: DataUploadPanelPro
         >
           <div className="flex items-center gap-2">
             <AlertCircle size={20} className="text-red-500" />
-            <span className="font-semibold text-sm text-red-700">Import failed</span>
+            <span className="font-semibold text-sm text-red-400">Import failed</span>
           </div>
           <p className="text-xs text-red-400 leading-relaxed">{result.error}</p>
           <button

@@ -86,6 +86,9 @@ export function useProactiveInsights() {
     refetch: query.refetch,
     markEngaged: engageMutation.mutate,
     submitFeedback: feedbackMutation.mutate,
+    // Awaitable variant so callers can surface success/failure to the user
+    // (only toast after the request resolves; roll back optimistic UI on error).
+    submitFeedbackAsync: feedbackMutation.mutateAsync,
     isSubmittingFeedback: feedbackMutation.isPending,
     feedbackPendingId:
       feedbackMutation.isPending ? (feedbackMutation.variables?.id ?? null) : null,

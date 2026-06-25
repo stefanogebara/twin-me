@@ -47,7 +47,6 @@ interface EvidenceItem {
 interface DiscordServer {
   name: string;
   category: string;
-  memberCount?: number;
 }
 
 interface CategoryBreakdown {
@@ -88,7 +87,7 @@ const DiscordInsightsPage: React.FC = () => {
 
   const colors = {
     text: 'var(--foreground)',
-    textSecondary: 'rgba(255,255,255,0.4)',
+    textSecondary: 'rgba(255, 255, 255, 0.55)',
     discordPurple: '#5865F2',
     discordBg: 'rgba(88, 101, 242, 0.1)',
   };
@@ -166,9 +165,9 @@ const DiscordInsightsPage: React.FC = () => {
                 key={i}
                 className="px-3 py-1 rounded-full text-sm"
                 style={{
-                  backgroundColor: `${CATEGORY_COLORS[server.category] || colors.discordPurple}18`,
-                  color: CATEGORY_COLORS[server.category] || colors.discordPurple,
-                  border: `1px solid ${CATEGORY_COLORS[server.category] || colors.discordPurple}40`,
+                  backgroundColor: `${colors.discordPurple}18`,
+                  color: colors.discordPurple,
+                  border: `1px solid ${colors.discordPurple}40`,
                 }}
               >
                 {server.name}
