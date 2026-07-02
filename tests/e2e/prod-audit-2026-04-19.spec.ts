@@ -230,7 +230,9 @@ test.describe("PAGE 2: Chat", () => {
           const last = msgs[msgs.length-1].trim().replace(/\s+/g, " ").slice(0, 60);
           if (last && !snaps.includes(last)) snaps.push(last);
         }
-      } catch {}
+      } catch {
+        /* best-effort: transient locator failures are tolerated while polling */
+      }
     }
     console.log("Streaming:", snaps.length > 3, "| Snaps:", snaps.length);
     console.log("Sample:", snaps.slice(0, 5));
@@ -317,7 +319,9 @@ test.describe("PAGE 3: Connect", () => {
       const vis = await el.isVisible().catch(() => false);
       if (!vis) { console.log(p + ": NOT VISIBLE"); continue; }
       let st = "";
-      try { st = await el.locator("xpath=ancestor::div[4]").first().textContent({ timeout: 2000 }) || ""; } catch {}
+      try { st = await el.locator("xpath=ancestor::div[4]").first().textContent({ timeout: 2000 }) || ""; } catch {
+        /* best-effort: text extraction may time out or fail if the DOM shifts */
+      }
       const lo = st.toLowerCase();
       const state = lo.includes("disconnect") || lo.includes("re-sync") ? "CONNECTED" :
                     lo.includes("error") || lo.includes("expired") ? "ERROR" :

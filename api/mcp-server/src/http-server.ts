@@ -197,17 +197,19 @@ app.get('/resources/:resourceName', authenticate, async (req, res) => {
       case 'soul-signature':
         result = await getSoulSignature(userId);
         break;
-      case 'personality':
+      case 'personality': {
         const context = await getMoltbotContext(userId);
         result = context?.clusterPersonality?.personality || null;
         break;
+      }
       case 'platforms':
         result = await getConnectedPlatforms(userId);
         break;
-      case 'recent-activity':
+      case 'recent-activity': {
         const ctx = await getMoltbotContext(userId);
         result = ctx?.recentMemories || [];
         break;
+      }
       default:
         return res.status(404).json({ error: `Unknown resource: ${resourceName}` });
     }

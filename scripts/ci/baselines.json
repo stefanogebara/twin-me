@@ -1,6 +1,6 @@
 {
-  "_note": "Audit 2026-06 Milestone 0.5 regression freeze. These counts may only stay flat or SHRINK. When a metric drops (you fixed something), lower the number here in the same PR to lock the gain. The guard (scripts/ci/check-baselines.mjs) fails CI only when a metric EXCEEDS its baseline.",
+  "_note": "Audit 2026-06 M0.5 baseline, ratcheted 2026-07 (A2-M2c). These counts may only stay flat or SHRINK. The guard (scripts/ci/check-baselines.mjs) fails CI on ANY drift: a metric ABOVE its baseline is a regression; a metric BELOW it is an unlocked gain. When you fix something, run `node scripts/ci/check-baselines.mjs --update` and commit this file in the same PR to lock the lower number in — so a count can never creep back up.",
   "routesWithDirectFrom": 114,
-  "eslintErrors": 104,
+  "eslintErrors": 84,
   "tscErrors": 134
 }
