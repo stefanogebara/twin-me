@@ -60,7 +60,9 @@ test('Auth handshake works for every unconnected platform on /connect', async ({
     const u = resp.url();
     if (/\/api\/(connectors\/connect|nango\/connect-session|entertainment\/connect|.*\/connect)/.test(u)) {
       let body = '';
-      try { body = (await resp.text()).slice(0, 800); } catch {}
+      try { body = (await resp.text()).slice(0, 800); } catch {
+        /* best-effort: response body may be unreadable for some responses */
+      }
       responsesByUrl.push({ url: u, status: resp.status(), body });
     }
   });

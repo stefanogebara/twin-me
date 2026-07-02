@@ -277,7 +277,7 @@ What does this reveal about their personality or habits?`;
       }
 
 
-      return { success: true, data };
+      return { success: true, data: twinData };
 
     } catch (error) {
       log.error('Error saving twin:', error);

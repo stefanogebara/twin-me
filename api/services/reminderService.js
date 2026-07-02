@@ -53,7 +53,7 @@ export function computeNextOccurrence(fromUtc, recurrence) {
  */
 export function zonedLocalToUtc(localISO, timeZone = 'UTC') {
   const s = String(localISO).trim().replace(' ', 'T');
-  if (/[zZ]$|[+\-]\d{2}:?\d{2}$/.test(s)) {
+  if (/[zZ]$|[+-]\d{2}:?\d{2}$/.test(s)) {
     const d = new Date(s);
     if (isNaN(d.getTime())) throw new Error('invalid datetime');
     return d;
