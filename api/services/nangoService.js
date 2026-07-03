@@ -320,6 +320,15 @@ export async function getConnection(userId, platform) {
 
     // Use the connection ID mapping
     const connectionId = await getConnectionId(platform, userId);
+
+    // No mapping = not connected. Skip the Nango API round trip entirely —
+    // nango.getConnection(key, null) can only ever fail, and the failure was
+    // classified as "not connected" anyway. This turns getAllConnections from
+    // 8 external calls into only as many as the user has actual mappings.
+    if (!connectionId) {
+      return { success: true, connected: false, platform };
+    }
+
     const connection = await nango.getConnection(config.providerConfigKey, connectionId);
 
     return {
@@ -376,12 +385,21 @@ export async function getAccessToken(userId, platform) {
  * Get all connections for a user
  */
 export async function getAllConnections(userId) {
-  const connections = {};
+  // Audit 2026-07-03: this loop was SERIAL — 8 platforms x (1 Supabase mapping
+  // lookup + 1 Nango API call ~0.8s) = the 6.8s measured on
+  // GET /api/nango/connections. The per-platform lookups are independent, so
+  // run them in parallel: latency becomes the slowest single lookup, not the
+  // sum. getConnection never rejects (it catches internally and returns
+  // { success, connected, ... }), so Promise.all is safe here.
+  const platforms = Object.keys(PLATFORM_CONFIGS);
+  const results = await Promise.all(
+    platforms.map((platform) => getConnection(userId, platform))
+  );
 
-  for (const platform of Object.keys(PLATFORM_CONFIGS)) {
-    const result = await getConnection(userId, platform);
-    connections[platform] = result;
-  }
+  const connections = {};
+  platforms.forEach((platform, index) => {
+    connections[platform] = results[index];
+  });
 
   return connections;
 }
