@@ -90,7 +90,6 @@ function mapEventType(eventType, platform = '') {
     'watch': 'extension_video_watch',
     'watchlist_add': 'extension_video_watch',
     'continue_watching': 'extension_video_watch',
-    'capture': 'extension_video_watch',
     // Instagram events
     'post_like': 'extension_page_visit',
     'story_view': 'extension_page_visit',
@@ -189,7 +188,6 @@ router.post('/capture/:platform', authenticateUser, async (req, res) => {
       success: true,
       id: data.id,
       platform,
-      dataType,
       dataType: capturedData.data_type || capturedData.eventType || 'capture'
     });
 
