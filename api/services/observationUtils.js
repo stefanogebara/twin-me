@@ -60,6 +60,42 @@ export function contentHash(platform, content) {
     .substring(0, 16);
 }
 
+// ====================================================================
+// Ingestion time budget (audit-2026-07-02 M3)
+// ====================================================================
+
+/**
+ * Reserve assumed for a user before any user has completed in this run.
+ * Worst realistic single-user cost: 15s per-platform fetch cap (H9) plus
+ * embedding/storage processing — ~20s. Once a user HAS completed, the
+ * observed worst-case replaces this estimate when it is larger.
+ */
+export const ESTIMATED_USER_COST_MS = 20_000;
+
+/**
+ * Decide whether the ingestion loop can afford to START another user.
+ *
+ * The old guard (`elapsed > budget`) only fired AFTER the budget was gone,
+ * so a user could start at 39s of a 40s budget and run ~15-20s past it —
+ * exactly the overrun pattern that hits Vercel's 60s kill. This guard is
+ * predictive instead: it reserves room for the next user (the worst per-user
+ * cost observed so far this run, or ESTIMATED_USER_COST_MS before any user
+ * completed) and refuses to start a user that would not fit in the budget.
+ *
+ * Pure function — exported for unit tests.
+ *
+ * @param {object} p
+ * @param {number} p.elapsedMs - Wall time since the run started
+ * @param {number} p.budgetMs - Global run budget (GLOBAL_TIMEOUT_MS, 40s)
+ * @param {number} [p.worstUserMs=0] - Slowest single-user duration observed this run
+ * @param {number} [p.estimatedUserCostMs=ESTIMATED_USER_COST_MS] - Fallback reserve
+ * @returns {boolean} true if the next user fits inside the budget
+ */
+export function canStartNextUser({ elapsedMs, budgetMs, worstUserMs = 0, estimatedUserCostMs = ESTIMATED_USER_COST_MS }) {
+  const reserveMs = Math.max(worstUserMs, estimatedUserCostMs);
+  return elapsedMs + reserveMs <= budgetMs;
+}
+
 /**
  * Content-type-aware time windows for de-duplication.
  * Different observation types have different natural refresh rates.

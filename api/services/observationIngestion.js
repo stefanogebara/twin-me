@@ -39,6 +39,7 @@ import {
   DEDUP_WINDOWS_MS,
   isDuplicate,
   getSupabase,
+  canStartNextUser,
 } from './observationUtils.js';
 
 import { fetchSpotifyObservations } from './observationFetchers/spotify.js';
@@ -397,12 +398,13 @@ async function runObservationIngestion(options = {}) {
 
     // Global timeout guard — stop processing before Vercel kills us (60s limit).
     // audit-2026-05-09 B-M1: bumped down from 50_000 → 40_000. Cron data
-    // showed max_ms = 56,514 ms despite the 50s budget — the check fires only
-    // BETWEEN users, so one user with a slow Gmail/Outlook fetch (30s
-    // platform timeout + observation processing) could blow through the
-    // budget by 6.5s and hit Vercel's 60s 504. 40s gives ~20s headroom for
-    // tail-latency users to complete their started work and stops a 2nd user
-    // from starting if the 1st was slow.
+    // showed max_ms = 56,514 ms despite the 50s budget — the reactive check
+    // fires only BETWEEN users, so one user with a slow Gmail/Outlook fetch
+    // (30s platform timeout + observation processing) could blow through the
+    // budget by 6.5s and hit Vercel's 60s 504. 40s gives ~20s headroom.
+    // audit-2026-07-02 M3: the user-loop guard is now the predictive
+    // canStartNextUser (see below); isTimedOut remains as the mid-user hard
+    // stop between platforms in Phase 2.
     const GLOBAL_TIMEOUT_MS = 40_000;
     const isTimedOut = () => Date.now() - startTime > GLOBAL_TIMEOUT_MS;
 
@@ -423,12 +425,26 @@ async function runObservationIngestion(options = {}) {
       .slice(0, MAX_USERS_PER_RUN);
     log.info('User selection', { total: userEntries.length, processing: rotatedUsers.length, rotationOffset });
 
-    // Process each user (with timeout guard)
+    // Process each user (adaptive time-budget guard — audit-2026-07-02 M3).
+    // The old check (`isTimedOut()`, i.e. elapsed > 40s) only fired AFTER the
+    // budget was gone, so a user could START at 39s and run ~15-20s past the
+    // budget toward Vercel's 60s kill. canStartNextUser is predictive: before
+    // each user it reserves the worst per-user cost observed this run (20s
+    // estimate until the first user completes) and stops the loop while the
+    // started work can still finish inside the budget. MAX_USERS_PER_RUN (the
+    // rotatedUsers slice above) remains the hard ceiling on users per run.
+    let worstUserMs = 0;
     for (const [userId, platforms] of rotatedUsers) {
-      if (isTimedOut()) {
-        log.info('Global timeout reached, stopping ingestion', { elapsed: Date.now() - startTime, usersProcessed: stats.usersProcessed });
+      const elapsedBeforeUser = Date.now() - startTime;
+      if (!canStartNextUser({ elapsedMs: elapsedBeforeUser, budgetMs: GLOBAL_TIMEOUT_MS, worstUserMs })) {
+        log.info('Time budget guard: stopping before next user', {
+          elapsed: elapsedBeforeUser,
+          worstUserMs,
+          usersProcessed: stats.usersProcessed,
+        });
         break;
       }
+      const userStartTime = Date.now();
       try {
         let userObsCount = 0;
 
@@ -811,6 +827,9 @@ async function runObservationIngestion(options = {}) {
         log.warn('User error', { message: errMsg });
         stats.errors.push(errMsg);
       }
+      // Feed the observed per-user cost back into the loop guard so the
+      // reserve adapts to how slow THIS run's users actually are.
+      worstUserMs = Math.max(worstUserMs, Date.now() - userStartTime);
     }
   } catch (error) {
     log.error('Fatal error', { error });
