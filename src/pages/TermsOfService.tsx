@@ -7,14 +7,18 @@ const TermsOfService = () => {
   useLenis();
 
   return (
-    <div className="min-h-screen" style={{ color: 'var(--foreground)' }}>
+    // Standalone page (no SidebarLayout), so it must provide the
+    // #main-content landmark the App.tsx skip-link targets (audit-2026-07-03)
+    <main id="main-content" className="min-h-screen" style={{ color: 'var(--foreground)' }}>
       <div className="max-w-3xl mx-auto px-6 py-12">
         <button
+          type="button"
+          aria-label="Go back to previous page"
           onClick={() => navigate(-1)}
           className="mb-8 text-sm flex items-center gap-2 transition-opacity hover:opacity-70"
           style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
         >
-          <ArrowLeft className="w-4 h-4" />
+          <ArrowLeft className="w-4 h-4" aria-hidden="true" />
           Back
         </button>
 
@@ -151,12 +155,15 @@ const TermsOfService = () => {
             <h2 className="text-lg mb-3" style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontWeight: 400 }}>13. Contact</h2>
             <p style={{ color: 'var(--foreground)' }}>
               If you have questions about these Terms of Service, please contact us through the
-              Settings page in the application, or email us at support@twinme.me.
+              Settings page in the application, or email us at{" "}
+              <a href="mailto:support@twinme.me" className="underline hover:opacity-70 transition-opacity">
+                support@twinme.me
+              </a>.
             </p>
           </section>
         </div>
       </div>
-    </div>
+    </main>
   );
 };
 

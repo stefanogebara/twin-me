@@ -10,11 +10,13 @@ const PrivacyPolicy = () => {
     <div className="min-h-screen" style={{ color: 'var(--foreground)' }}>
       <div className="max-w-3xl mx-auto px-6 py-12">
         <button
+          type="button"
+          aria-label="Go back to previous page"
           onClick={() => navigate(-1)}
           className="mb-8 text-sm flex items-center gap-2 transition-opacity hover:opacity-70"
           style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
         >
-          <ArrowLeft className="w-4 h-4" />
+          <ArrowLeft className="w-4 h-4" aria-hidden="true" />
           Back
         </button>
 

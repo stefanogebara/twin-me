@@ -96,7 +96,10 @@ const PricingPage: React.FC = () => {
             : 'Could not open the billing page. Please try again.',
         );
       }
-    } catch {
+    } catch (err) {
+      // Only network-level failures land here (HTTP errors are handled above);
+      // log the raw error so billing issues are debuggable (audit-2026-07-03).
+      console.error('Billing endpoint unreachable:', err);
       toast.error('Could not open the billing page. Please check your connection and try again.');
     } finally {
       setLoading(null);

@@ -97,6 +97,11 @@ const MemoryFeed: React.FC<MemoryFeedProps> = ({
                 >
                   <span
                     className="flex-shrink-0 rounded-full"
+                    // Collapsed row: color is the only type signal, so name it
+                    // for assistive tech + hover (audit-2026-07-03)
+                    role="img"
+                    aria-label={`Memory type: ${TYPE_LABELS[memory.memory_type] || memory.memory_type}`}
+                    title={TYPE_LABELS[memory.memory_type] || memory.memory_type}
                     style={{
                       width: '5px',
                       height: '5px',
@@ -153,7 +158,9 @@ const MemoryFeed: React.FC<MemoryFeedProps> = ({
                         className="inline-flex items-center gap-1"
                         style={{ color: '#86807b' }}
                       >
+                        {/* Decorative: the type label text follows immediately */}
                         <span
+                          aria-hidden="true"
                           className="rounded-full inline-block"
                           style={{ width: '5px', height: '5px', backgroundColor: typeColor }}
                         />

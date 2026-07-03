@@ -7,6 +7,13 @@ import { API_URL, setAccessToken, pushRefreshTokenToDesktop } from '@/services/a
 
 const CHROME_EXTENSION_ID = (import.meta.env.VITE_CHROME_EXTENSION_ID as string | undefined) || 'acnofcjjfjaikcfnalggkkbghjaijepc';
 
+// Platform slugs are lowercase alphanumeric with underscores/hyphens (spotify,
+// google_calendar, ...). Sanitize before embedding a provider value from the
+// backend response or sessionStorage into a redirect URL so a malformed value
+// cannot mangle the query string (audit-2026-07-03).
+const sanitizeProvider = (value: string | null | undefined): string =>
+  value && /^[a-z0-9_-]{1,32}$/i.test(value) ? value : '';
+
 const OAuthCallback = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -52,7 +59,7 @@ const OAuthCallback = () => {
             setMessage('Connection successful! Redirecting...');
 
             // Get the stored provider for proper redirect
-            const storedProvider = sessionStorage.getItem(`oauth_provider_${code.substring(0, 32)}`);
+            const storedProvider = sanitizeProvider(sessionStorage.getItem(`oauth_provider_${code.substring(0, 32)}`));
 
             setTimeout(() => {
               if (window.opener) {
@@ -329,7 +336,7 @@ const OAuthCallback = () => {
 
             // If we're in a popup, close it; otherwise redirect
             // Use provider from backend response first, then sessionStorage fallback
-            const connectedProvider = data.provider || stateData?.provider || '';
+            const connectedProvider = sanitizeProvider(data.provider || stateData?.provider);
 
             setTimeout(() => {
               if (window.opener) {
@@ -382,15 +389,23 @@ const OAuthCallback = () => {
               // Also store token in extension storage if extension is available
               if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
                 try {
-                  chrome.runtime.sendMessage(
+                  const runtime = chrome.runtime;
+                  runtime.sendMessage(
                     CHROME_EXTENSION_ID,
                     { type: 'SET_AUTH_TOKEN', token: data.token },
                     () => {
-                      // Chrome extension sync callback
+                      // Reading lastError marks it handled (prevents "Unchecked
+                      // runtime.lastError" console noise). Sync is best-effort:
+                      // most users have no extension installed, so warn quietly
+                      // instead of surfacing a toast (audit-2026-07-03).
+                      if (runtime.lastError) {
+                        console.warn('Extension token sync skipped:', runtime.lastError.message);
+                      }
                     }
                   );
-                } catch {
-                  // Could not sync to extension
+                } catch (extensionError) {
+                  // Non-fatal: auth succeeded, only the extension sync failed
+                  console.warn('Extension token sync failed:', extensionError);
                 }
               }
 
@@ -456,7 +471,7 @@ const OAuthCallback = () => {
                   const fromOnboarding = sessionStorage.getItem('onboarding_platform_step');
                   if (fromOnboarding) {
                     sessionStorage.removeItem('onboarding_platform_step');
-                    window.location.href = '/onboarding?step=platform&connected=' + (stateData?.provider || '');
+                    window.location.href = '/onboarding?step=platform&connected=' + sanitizeProvider(stateData?.provider);
                   } else {
                     window.location.href = '/connect?connected=true';
                   }
@@ -477,15 +492,23 @@ const OAuthCallback = () => {
               // Also store token in extension storage if extension is available
               if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
                 try {
-                  chrome.runtime.sendMessage(
+                  const runtime = chrome.runtime;
+                  runtime.sendMessage(
                     CHROME_EXTENSION_ID,
                     { type: 'SET_AUTH_TOKEN', token: data.token },
                     () => {
-                      // Chrome extension sync callback
+                      // Reading lastError marks it handled (prevents "Unchecked
+                      // runtime.lastError" console noise). Sync is best-effort:
+                      // most users have no extension installed, so warn quietly
+                      // instead of surfacing a toast (audit-2026-07-03).
+                      if (runtime.lastError) {
+                        console.warn('Extension token sync skipped:', runtime.lastError.message);
+                      }
                     }
                   );
-                } catch {
-                  // Could not sync to extension
+                } catch (extensionError) {
+                  // Non-fatal: auth succeeded, only the extension sync failed
+                  console.warn('Extension token sync failed:', extensionError);
                 }
               }
 
