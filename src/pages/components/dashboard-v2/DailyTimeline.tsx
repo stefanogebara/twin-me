@@ -64,7 +64,7 @@ export function DailyTimeline() {
       <section className="mb-8">
         <h2
           className="text-[11px] uppercase tracking-[0.15em] mb-3"
-          style={{ color: 'rgba(255,255,255,0.25)' }}
+          style={{ color: 'var(--text-secondary)' }}
         >
           Today
         </h2>
@@ -78,7 +78,7 @@ export function DailyTimeline() {
           }}
         >
           <Bot className="w-5 h-5 mx-auto mb-2" style={{ color: 'rgba(255,255,255,0.15)' }} />
-          <p className="text-[12px]" style={{ color: 'rgba(255,255,255,0.25)' }}>
+          <p className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>
             Activity will appear here as your twin learns.
           </p>
         </div>
@@ -90,7 +90,7 @@ export function DailyTimeline() {
     <section className="mb-8">
       <h2
         className="text-[11px] uppercase tracking-[0.15em] mb-3"
-        style={{ color: 'rgba(255,255,255,0.25)' }}
+        style={{ color: 'var(--text-secondary)' }}
       >
         Today
       </h2>
@@ -110,7 +110,7 @@ export function DailyTimeline() {
             style={{ borderBottom: i < Math.min(items.length, 10) - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}
           >
             {/* Time */}
-            <span className="text-[10px] w-12 shrink-0 pt-0.5 text-right" style={{ color: 'rgba(255,255,255,0.2)' }}>
+            <span className="text-[10px] w-12 shrink-0 pt-0.5 text-right" style={{ color: 'var(--text-secondary)' }}>
               {formatTime(item.timestamp)}
             </span>
 
@@ -130,7 +130,7 @@ export function DailyTimeline() {
             <button
               onClick={() => navigate('/talk-to-twin', { state: { prefill: item.body.slice(0, 80) } })}
               className="text-[10px] shrink-0 bg-transparent border-none cursor-pointer pt-0.5 transition-opacity hover:opacity-70"
-              style={{ color: 'rgba(255,255,255,0.3)' }}
+              style={{ color: 'var(--text-secondary)' }}
             >
               Discuss
             </button>

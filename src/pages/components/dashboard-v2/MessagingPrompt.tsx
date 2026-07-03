@@ -55,7 +55,7 @@ export function MessagingPrompt() {
           <p className="text-sm" style={{ color: 'var(--foreground)' }}>
             Get twin insights on Telegram
           </p>
-          <p className="text-[11px] mt-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>
+          <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
             Morning briefings, music suggestions, and reminders — right in your chat.
           </p>
         </div>

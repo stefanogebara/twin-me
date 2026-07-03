@@ -51,12 +51,24 @@ export const BottomNav: React.FC = () => {
         />
       )}
 
-      {/* More drawer */}
+      {/* More drawer.
+          audit-2026-07-03 M1: when closed, the drawer must NOT be focusable.
+          It was previously only translated off-screen (bottom:-200px) while its
+          buttons stayed in the tab order on every viewport (the inline
+          display:'flex' also defeated lg:hidden). visibility:hidden removes the
+          whole subtree from the tab order and the accessibility tree; it is
+          delayed on close so the slide-down animation still plays, and applied
+          immediately on open. aria-hidden mirrors the state for AT. */}
       <div
-        className="fixed left-3 right-3 z-50 lg:hidden"
+        className="fixed left-3 right-3 z-50 flex flex-row gap-1 lg:hidden"
+        aria-hidden={!drawerOpen}
         style={{
           bottom: drawerOpen ? '76px' : '-200px',
-          transition: 'bottom 0.25s cubic-bezier(0.32,0.72,0,1)',
+          visibility: drawerOpen ? 'visible' : 'hidden',
+          pointerEvents: drawerOpen ? 'auto' : 'none',
+          transition: drawerOpen
+            ? 'bottom 0.25s cubic-bezier(0.32,0.72,0,1), visibility 0s'
+            : 'bottom 0.25s cubic-bezier(0.32,0.72,0,1), visibility 0s linear 0.25s',
           background: 'rgba(19,18,26,0.97)',
           backdropFilter: 'blur(42px)',
           WebkitBackdropFilter: 'blur(42px)',
@@ -64,9 +76,6 @@ export const BottomNav: React.FC = () => {
           borderRadius: '20px',
           padding: '12px 8px',
           boxShadow: '0 -4px 24px rgba(0,0,0,0.3)',
-          display: 'flex',
-          flexDirection: 'row',
-          gap: '4px',
         }}
       >
         {MORE_NAV.map((item) => {
@@ -98,7 +107,7 @@ export const BottomNav: React.FC = () => {
           type="button"
           onClick={() => setDrawerOpen(false)}
           className="flex flex-col items-center justify-center gap-1 py-3 px-3 rounded-2xl transition-all duration-150 active:scale-95"
-          style={{ color: 'rgba(245,245,244,0.3)' }}
+          style={{ color: 'rgba(245,245,244,0.5)' }}
           aria-label="Close more menu"
         >
           <X className="w-4 h-4" />

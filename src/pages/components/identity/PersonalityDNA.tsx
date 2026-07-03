@@ -80,7 +80,7 @@ const TraitSlider: React.FC<TraitSliderProps> = ({ trait, score, index, delay })
       {/* Trait name */}
       <p
         className="text-xs font-medium mb-2 uppercase tracking-[0.08em]"
-        style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Inter', sans-serif" }}
+        style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
       >
         {formatTraitName(trait.key)}
       </p>
@@ -89,13 +89,13 @@ const TraitSlider: React.FC<TraitSliderProps> = ({ trait, score, index, delay })
       <div className="flex items-center justify-between mb-1.5">
         <span
           className="text-[11px]"
-          style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', sans-serif" }}
+          style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
         >
           {trait.leftLabel}
         </span>
         <span
           className="text-[11px]"
-          style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', sans-serif" }}
+          style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
         >
           {trait.rightLabel}
         </span>
@@ -143,7 +143,7 @@ const EmptyState: React.FC = () => (
   >
     <p
       className="text-sm"
-      style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Inter', sans-serif" }}
+      style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
     >
       Chat more to discover your personality DNA
     </p>
@@ -171,7 +171,7 @@ const PersonalityDNA: React.FC<PersonalityDNAProps> = ({
         <Brain className="w-3 h-3" style={{ color: 'rgba(255,255,255,0.25)' }} />
         <span
           className="text-[11px] uppercase tracking-[0.12em] font-medium"
-          style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}
+          style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
         >
           Personality DNA
         </span>
