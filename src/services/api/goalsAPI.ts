@@ -38,8 +38,23 @@ export interface GoalSummary {
 }
 
 async function json<T>(res: Response): Promise<T> {
-  const data = await res.json();
-  if (!data.success) throw new Error(data.error || 'Request failed');
+  // Guard res.ok BEFORE parsing: a 401/500 often returns an HTML error page or
+  // empty body, so calling res.json() first throws an opaque SyntaxError
+  // ("Unexpected token < in JSON") instead of a message the UI can show.
+  // audit-2026-07-03 error-ux: surface the status and any JSON error field.
+  let data: { success?: boolean; error?: string } | null = null;
+  try {
+    data = await res.json();
+  } catch {
+    // Non-JSON body (HTML error page, empty 204, gateway timeout text).
+    data = null;
+  }
+  if (!res.ok) {
+    throw new Error(data?.error || `Request failed (${res.status})`);
+  }
+  if (!data || !data.success) {
+    throw new Error(data?.error || 'Request failed');
+  }
   return data as T;
 }
 

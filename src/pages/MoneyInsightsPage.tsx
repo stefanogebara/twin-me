@@ -77,6 +77,14 @@ const MoneyInsightsPage: React.FC = () => {
           getTimelineAnalysis(),
         ]);
         if (cancelled) return;
+        // getRecurringSubscriptions returns a { success:false } envelope on a
+        // backend error rather than throwing — so without this check the page
+        // silently rendered an empty "no charges detected" state on a real 500.
+        // Surface it instead (audit-2026-07-03 error-ux).
+        if (!subsRes.success) {
+          setError(subsRes.error || 'Failed to load insights');
+          return;
+        }
         setSubs(subsRes.subscriptions || []);
         setSubsSynthesis(subsRes.synthesis || '');
         setSubsCurrency(subsRes.currency || 'USD');

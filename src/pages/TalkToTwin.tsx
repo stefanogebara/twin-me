@@ -239,13 +239,14 @@ const TalkToTwin = () => {
       const response = await fetch(`${API_BASE}/chat/history?conversationId=${id}`, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
+      // Guard response.ok before .json(): a 401/500 may return a non-JSON body,
+      // which would make .json() throw an opaque parse error (audit-2026-07-03).
+      if (!response.ok) {
+        throw new Error(`Failed to load conversation (${response.status})`);
+      }
       const data = await response.json();
-      if (!response.ok || !data.messages) {
-        toast({
-          title: 'Could not open conversation',
-          description: 'Please try again.',
-        });
-        return;
+      if (!data.messages) {
+        throw new Error('Conversation response missing messages');
       }
       setMessages(data.messages.map((m: { id?: string; isUser?: boolean; content: string; createdAt: string }) => ({
         id: m.id || crypto.randomUUID(),
@@ -261,6 +262,9 @@ const TalkToTwin = () => {
         title: 'Could not open conversation',
         description: 'Please try again.',
       });
+      // Always close the panel so it doesn't stay stuck open behind the toast
+      // with the failed selection still visually "pending" (audit-2026-07-03).
+      setShowConversationList(false);
     }
   };
 
