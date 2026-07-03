@@ -12,7 +12,7 @@ import { DepartmentSuggestionCard, parseDepartmentSuggestions } from './Departme
 import { ThinkingIndicator } from './ThinkingIndicator';
 import { stripEmoji } from '../../utils/stripEmoji';
 
-type ChatErrorType = 'timeout' | 'rate_limit' | 'network' | 'generic';
+type ChatErrorType = 'timeout' | 'rate_limit' | 'network' | 'session_expired' | 'generic';
 
 function getErrorMessage(errorType?: ChatErrorType): string {
   switch (errorType) {
@@ -27,6 +27,8 @@ function getErrorMessage(errorType?: ChatErrorType): string {
       return "You've sent too many messages. Take a breath and try again in a minute.";
     case 'network':
       return "You're offline. Connect to the internet to chat with your twin.";
+    case 'session_expired':
+      return "Your session expired. Please sign in again to keep chatting.";
     default:
       return "Couldn't reach your twin. This usually means the server is warming up.";
   }
@@ -229,7 +231,7 @@ export const MessageList = memo(forwardRef<HTMLDivElement, MessageListProps>(
                             {getErrorMessage(message.errorType)}
                           </p>
                         </div>
-                        {onRetry && message.errorType !== 'rate_limit' && (
+                        {onRetry && message.errorType !== 'rate_limit' && message.errorType !== 'session_expired' && (
                           <div className="mt-2.5 flex justify-end">
                             <button
                               onClick={() => onRetry(message.content, message.id)}
@@ -325,7 +327,7 @@ export const MessageList = memo(forwardRef<HTMLDivElement, MessageListProps>(
                             {getErrorMessage(message.errorType)}
                           </p>
                         </div>
-                        {onRetry && message.errorType !== 'rate_limit' && (
+                        {onRetry && message.errorType !== 'rate_limit' && message.errorType !== 'session_expired' && (
                           <div className="mt-2.5 flex justify-start">
                             <button
                               onClick={() => {
