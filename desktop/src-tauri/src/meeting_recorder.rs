@@ -87,14 +87,7 @@ pub fn start(app: AppHandle, meeting_id: i64, platform: String, stop: Arc<Atomic
 
         match result {
             Ok(Ok((ended_at, transcript))) => {
-                let transcript = transcript.trim();
-                // Transcript FIRST (while ended_at is still NULL → row is
-                // sync-invisible), THEN stamp ended_at to release it to sync.
-                if !transcript.is_empty() {
-                    let _ = crate::meetings::set_transcript(&conn, meeting_id, transcript);
-                }
-                let _ = crate::meetings::close_meeting(&conn, meeting_id, ended_at);
-                if !transcript.is_empty() {
+                if finalize_meeting(&conn, meeting_id, ended_at, &transcript) {
                     crate::notify(
                         &app,
                         "Meeting transcript saved",
@@ -115,4 +108,97 @@ pub fn start(app: AppHandle, meeting_id: i64, platform: String, stop: Arc<Atomic
             }
         }
     });
+}
+
+/// Write the capture outcome onto the meeting row. Transcript FIRST (while
+/// `ended_at` is still NULL the row is invisible to sync — see the module
+/// comment), THEN stamp `ended_at` to release it. Whitespace-only transcripts
+/// count as absent: the row still closes (so it syncs, transcript-less, rather
+/// than leaking an open session) but nothing is stored. Returns true when a
+/// non-empty transcript was stored — that drives the "transcript saved" toast.
+///
+/// Extracted verbatim from `start`'s success arm so this ordering/trim contract
+/// is unit-testable against an in-memory DB — no recorder, model, audio
+/// hardware, or Tauri runtime involved. Both writes stay best-effort (`let _`),
+/// matching the recorder's everything-degrades-gracefully policy.
+fn finalize_meeting(
+    conn: &rusqlite::Connection,
+    meeting_id: i64,
+    ended_at: i64,
+    transcript: &str,
+) -> bool {
+    let transcript = transcript.trim();
+    if !transcript.is_empty() {
+        let _ = crate::meetings::set_transcript(conn, meeting_id, transcript);
+    }
+    let _ = crate::meetings::close_meeting(conn, meeting_id, ended_at);
+    !transcript.is_empty()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{clips, meetings};
+    use rusqlite::Connection;
+
+    /// In-memory clips.db with one OPEN meeting (ended_at NULL) — the state a
+    /// recorder finds when capture stops.
+    fn mem_db_with_open_meeting() -> (Connection, i64) {
+        let conn = Connection::open_in_memory().unwrap();
+        clips::init_schema(&conn).unwrap();
+        let id = meetings::insert_meeting(&conn, "Zoom", Some("Standup"), 1_000).unwrap();
+        (conn, id)
+    }
+
+    #[test]
+    fn finalize_attaches_transcript_then_releases_to_sync() {
+        let (conn, id) = mem_db_with_open_meeting();
+        // While recording (ended_at NULL) the row must be sync-invisible.
+        assert!(meetings::list_unsynced(&conn, 10).unwrap().is_empty());
+
+        let stored = finalize_meeting(&conn, id, 61_000, "We agreed to ship on Friday.");
+        assert!(stored, "a real transcript reports stored=true (drives the toast)");
+
+        // The row becomes syncable only WITH its transcript already attached —
+        // the ordering that stops a transcript-less half-meeting uploading early.
+        let pending = meetings::list_unsynced(&conn, 10).unwrap();
+        assert_eq!(pending.len(), 1);
+        assert_eq!(pending[0].ended_at, Some(61_000));
+        assert_eq!(
+            pending[0].transcript.as_deref(),
+            Some("We agreed to ship on Friday.")
+        );
+    }
+
+    #[test]
+    fn finalize_trims_transcript_edges() {
+        let (conn, id) = mem_db_with_open_meeting();
+        assert!(finalize_meeting(&conn, id, 2_000, "  hello world \n"));
+        let pending = meetings::list_unsynced(&conn, 10).unwrap();
+        assert_eq!(pending[0].transcript.as_deref(), Some("hello world"));
+    }
+
+    #[test]
+    fn finalize_whitespace_only_transcript_still_closes_meeting() {
+        let (conn, id) = mem_db_with_open_meeting();
+        // Whisper on silence can yield blank output. The meeting must STILL
+        // close (best-effort: it syncs without a transcript) and must not
+        // store whitespace or claim a transcript was saved.
+        let stored = finalize_meeting(&conn, id, 3_000, "   \n\t");
+        assert!(!stored, "blank transcript must not trigger the saved toast");
+
+        let pending = meetings::list_unsynced(&conn, 10).unwrap();
+        assert_eq!(pending.len(), 1, "row released to sync even with no transcript");
+        assert_eq!(pending[0].ended_at, Some(3_000));
+        assert_eq!(pending[0].transcript, None);
+    }
+
+    #[test]
+    fn finalize_empty_transcript_reports_not_stored() {
+        let (conn, id) = mem_db_with_open_meeting();
+        assert!(!finalize_meeting(&conn, id, 4_000, ""));
+        let pending = meetings::list_unsynced(&conn, 10).unwrap();
+        assert_eq!(pending[0].transcript, None);
+        assert_eq!(pending[0].ended_at, Some(4_000));
+    }
 }
