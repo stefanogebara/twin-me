@@ -196,6 +196,15 @@ router.post('/upload', authenticateUser, uploadLimiter, uploadSingleFile('file')
     const validationErrors = [];
     const validTxns = [];
     for (const t of parsed.transactions) {
+      // audit-2026-07-03 (money HIGH): a row without external_id upserts as
+      // NULL, and the (user_id, external_id) UNIQUE constraint never fires on
+      // NULLs — every re-upload of the same file then duplicates the row
+      // (this is how Santander XLSX imports double-counted the summary).
+      // Same contract as ingestRawTransactions: skip loudly, never insert NULL.
+      if (!t.external_id) {
+        validationErrors.push(`Skipped row without a dedup id (external_id) for ${t.merchant_raw || '(unknown)'}`);
+        continue;
+      }
       const n = Number(t.amount);
       if (!Number.isFinite(n)) {
         validationErrors.push(`Skipped non-numeric amount for ${t.external_id || t.merchant_raw}: ${t.amount}`);
