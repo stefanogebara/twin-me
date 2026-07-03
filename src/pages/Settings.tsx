@@ -14,6 +14,7 @@ import NotificationSettings from './components/settings/NotificationSettings';
 import ChatImportCard from './components/settings/ChatImportCard';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import TwinIntelligence from './components/settings/TwinIntelligence';
+import { markTimezoneSynced } from '@/utils/timezoneSync';
 
 
 const getAuthHeaders = () => {
@@ -348,6 +349,10 @@ const Settings = () => {
       });
       if (res.ok) {
         setTimezone(detected);
+        // Keep AuthContext's per-load sync guard coherent: record that this
+        // device already delivered this zone so the next page load skips its
+        // redundant PATCH (audit-2026-07-03 cost fix).
+        markTimezoneSynced(user?.id, detected);
         toast.success('Timezone updated');
       } else {
         toast.error('Could not update timezone. Please try again.');

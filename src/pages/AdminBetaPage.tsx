@@ -8,7 +8,7 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { RefreshCw, ArrowUpDown } from 'lucide-react';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
-import { authFetch } from '@/services/api/apiBase';
+import { authFetch, isAbortError } from '@/services/api/apiBase';
 
 // ────────────────────────────────────────────────────────────
 // Types
@@ -163,14 +163,19 @@ function AdminBetaPage() {
   const [sortKey, setSortKey] = useState<UserSortKey>('lastActivity');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
-  const fetchAll = useCallback(async () => {
+  // audit-2026-07-03: the mount effect used to fire fetchAll() with no abort
+  // or dedupe, so React 18 StrictMode double-invoked it — 6 admin GETs and
+  // duplicate console errors per visit. The effect now passes an AbortSignal
+  // and aborts on cleanup; the first StrictMode mount's requests cancel
+  // silently (isAbortError) and only the surviving mount loads data.
+  const fetchAll = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
     setError(null);
     try {
       const [overviewRes, usersRes, deptsRes] = await Promise.all([
-        authFetch('/admin/beta/overview'),
-        authFetch('/admin/beta/users'),
-        authFetch('/admin/beta/departments'),
+        authFetch('/admin/beta/overview', { signal }),
+        authFetch('/admin/beta/users', { signal }),
+        authFetch('/admin/beta/departments', { signal }),
       ]);
 
       if (!overviewRes.ok) {
@@ -189,13 +194,18 @@ function AdminBetaPage() {
       setUsers(usersJson.users || []);
       setDepartments(deptsJson.departments || []);
     } catch (err) {
+      if (isAbortError(err)) return; // StrictMode remount / unmount cleanup — benign
       setError(err instanceof Error ? err.message : 'Failed to load data');
     } finally {
-      setLoading(false);
+      if (!signal?.aborted) setLoading(false);
     }
   }, []);
 
-  useEffect(() => { fetchAll(); }, [fetchAll]);
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchAll(controller.signal);
+    return () => controller.abort();
+  }, [fetchAll]);
 
   const sortedUsers = useMemo(() => {
     const copy = [...users];
@@ -255,7 +265,7 @@ function AdminBetaPage() {
           </p>
         </div>
         <button
-          onClick={fetchAll}
+          onClick={() => fetchAll()}
           disabled={loading}
           className="inline-flex items-center gap-2 px-3 py-2 rounded-[100px] text-[13px] font-medium transition-opacity disabled:opacity-50"
           style={{

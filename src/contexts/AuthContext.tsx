@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useRef, ReactNod
 import { setAccessToken, getAccessToken, clearAccessToken, authFetch, getDesktopFreshAccessToken } from '../services/api/apiBase';
 import { queryClient } from '@/lib/queryClient';
 import { singleFlight } from '@/utils/singleFlight';
+import { shouldSyncTimezone, getLastSyncedTimezone, markTimezoneSynced } from '@/utils/timezoneSync';
 
 import { API_URL } from '@/services/api/apiBase';
 /**
@@ -48,6 +49,14 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 // observed burst of 5+ 401s during normal navigation when no valid refresh
 // cookie exists (e.g. user cleared cookies but auth_user lingered in localStorage).
 let refreshDisabledForSession = false;
+
+// audit-2026-07-03: new-user-check used to fire on EVERY hard page load and
+// swallow failures with catch(()=>{}). Once the server says "not new" we cache
+// that in sessionStorage (cleared by signOut's sessionStorage.clear()) and skip
+// the request for the rest of the tab session. isNew=true is deliberately NOT
+// cached: a stale true would re-gate users into onboarding after they complete
+// it, so new users re-check each load until the server flips to false.
+const NEW_USER_CHECK_DONE_KEY = 'twinme_new_user_check_done_v1';
 
 // In-flight de-duplication for /auth/refresh — see singleFlight() and Bug C1
 // notes in AuthProvider.refreshAccessToken below.
@@ -263,21 +272,47 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         if (createdAt) {
           localStorage.setItem('twinme_account_created', createdAt);
         }
-        // Non-blocking: check if new user needs onboarding
-        fetch(`${API_URL}/onboarding/new-user-check`, {
-          headers: { 'Authorization': `Bearer ${tokenToVerify}` }
-        })
-          .then(r => r.ok ? r.json() : null)
-          .then(data => { if (data?.isNew) setNeedsOnboarding(true); })
-          .catch(() => {});
-        // Non-blocking: sync browser timezone to backend
+        // Non-blocking: check if new user needs onboarding — once per tab
+        // session (see NEW_USER_CHECK_DONE_KEY above for cache semantics).
+        let newUserCheckDone = false;
+        try { newUserCheckDone = sessionStorage.getItem(NEW_USER_CHECK_DONE_KEY) === '1'; } catch { /* storage unavailable — just re-check */ }
+        if (!newUserCheckDone) {
+          fetch(`${API_URL}/onboarding/new-user-check`, {
+            headers: { 'Authorization': `Bearer ${tokenToVerify}` }
+          })
+            .then(r => r.ok ? r.json() : Promise.reject(new Error(`new-user-check ${r.status}`)))
+            .then(data => {
+              if (data?.isNew) {
+                setNeedsOnboarding(true);
+              } else {
+                try { sessionStorage.setItem(NEW_USER_CHECK_DONE_KEY, '1'); } catch { /* non-fatal */ }
+              }
+            })
+            .catch((err) => {
+              // Safe default: needsOnboarding stays false so a transient
+              // failure never locks the app behind the onboarding gate.
+              // Not cached — re-checked on the next load.
+              console.warn('[auth] new-user-check failed; treating as existing user for this load', err);
+            });
+        }
+        // Non-blocking: sync browser timezone to backend — ONLY when it
+        // changed. audit-2026-07-03: this used to PATCH unconditionally on
+        // every hard page load (1 DB write/load/user). shouldSyncTimezone
+        // compares against the profile timezone when the verify payload
+        // carries one (it doesn't today) and otherwise against the last
+        // value this device successfully sent (localStorage, per user).
         const detectedTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-        if (detectedTz) {
+        const verifiedUserId: string | undefined = userData.user?.id;
+        const storedTz: string | null | undefined = (userData.user as { timezone?: string | null } | undefined)?.timezone;
+        if (shouldSyncTimezone(detectedTz, storedTz, getLastSyncedTimezone(verifiedUserId))) {
           authFetch('/account/timezone', {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ timezone: detectedTz }),
-          }).catch(() => {}); // Fire-and-forget
+          })
+            // Only mark synced on success so a failed PATCH retries next load.
+            .then(res => { if (res.ok) markTimezoneSynced(verifiedUserId, detectedTz); })
+            .catch(() => {}); // Fire-and-forget; retried on next load
         }
       } else {
         // Token is invalid - clear auth state
