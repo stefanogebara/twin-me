@@ -86,7 +86,7 @@ Triggered when accumulated importance reaches IMPORTANCE_THRESHOLD (80 in reflec
 4. **Social Dynamics Analyst** - Communication style, relationship patterns, social energy
 5. **Motivation Analyst** - Work patterns, ambitions, decision-making style
 
-Process: Gather 100 recent memories -> Run all 5 experts in parallel (each retrieves domain-specific evidence via vector search with `reflection` weights) -> Each expert generates 2-3 observations -> Store as `reflection` memories (importance 7-9) with expert metadata -> Recursive up to depth 3
+Process: Gather 100 recent memories -> Run all 5 experts in parallel (each retrieves domain-specific evidence via vector search with `reflection` weights) -> Each expert generates 2-3 observations -> Store as `reflection` memories (importance 7-9) with expert metadata. Recursion is gated by MAX_REFLECTION_DEPTH (currently 1: meta-reflections disabled to avoid reflection oversaturation of the memory stream)
 
 ### Background Observation Ingestion
 Periodic cron job pulls platform data and stores as observations:
@@ -268,7 +268,7 @@ Inspired by Karpathy's LLM Wiki pattern. Instead of re-deriving knowledge from r
 
 ### Key Architecture Files
 - `api/services/memoryStreamService.js` - Write/read path for memory stream (per-utterance storage)
-- `api/services/reflectionEngine.js` - Reflection generation pipeline (recursive, depth 3)
+- `api/services/reflectionEngine.js` - Reflection generation pipeline (recursion gated by MAX_REFLECTION_DEPTH, currently 1)
 - `api/services/twinSummaryService.js` - Dynamic twin summary generation + caching
 - `api/services/proactiveInsights.js` - Proactive insight generation + delivery tracking
 - `api/services/observationIngestion.js` - Background platform data -> observation pipeline + goal tracking hooks
