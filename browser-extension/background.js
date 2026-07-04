@@ -71,6 +71,13 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
 // ─────────────────────────────────────────────
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  // Defense-in-depth: reject messages that didn't originate from this
+  // extension's own scripts. There's no `externally_connectable` entry in
+  // manifest.json today, so only our own content scripts/popup can reach
+  // this listener regardless — but this guard keeps that true even if
+  // externally_connectable is ever added later.
+  if (sender.id !== chrome.runtime.id) return;
+
   switch (message.type) {
     case 'SET_USER_ID':
       userId = message.userId;
