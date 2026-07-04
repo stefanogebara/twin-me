@@ -228,27 +228,25 @@ describe('safeRedirect — allowed trusted https hosts', () => {
 });
 
 describe('safeRedirect — backslash and whitespace tricks', () => {
-  it('CHARACTERIZATION: leading backslashes \\\\evil.com are NOT a relative path and fail URL parse → rejected', () => {
-    // "\\evil.com" does not start with "/", so it skips the relative branch;
-    // new URL('\\\\evil.com') throws (no scheme, no base) → caught → false.
+  it('rejects leading backslashes \\\\evil.com (not a relative path, and backslashes are rejected outright)', () => {
     expect(safeRedirect('\\\\evil.com')).toBe(false);
     expect(hrefWrites).toEqual([]);
   });
 
-  it('CHARACTERIZATION: /\\evil.com starts with "/" but not "//", so it is treated as a RELATIVE path', () => {
-    // This is the subtle one: the guard's "//" check is literal forward-slashes.
-    // "/\\evil.com" begins with "/" and its second char is a backslash (not "/"),
-    // so it passes the relative-path branch and navigates same-origin. Browsers
-    // historically treated "\\" like "/" in some URL contexts, but here the value
-    // is assigned verbatim to location.href and resolved against the current
-    // origin, NOT interpreted as protocol-relative by this guard.
-    //
-    // We PIN the guard's decision (returns true, navigates with the literal
-    // string). This is a documented characterization of current behavior; if a
-    // reviewer considers browser \\-normalization a risk, that is a follow-up —
-    // this test flags exactly where the boundary sits.
-    expect(safeRedirect('/\\evil.com')).toBe(true);
-    expect(hrefWrites).toEqual(['/\\evil.com']);
+  it('rejects /\\evil.com — the backslash open-redirect bypass', () => {
+    // SECURITY: "/\\evil.com" begins with "/" and NOT "//", so a literal-slash
+    // guard would treat it as relative and assign it to location.href. But
+    // browsers normalize "\\" to "/" when resolving http(s) URLs, so the browser
+    // navigates it as protocol-relative "//evil.com" → OFF-ORIGIN. Verified:
+    // new URL('/\\evil.com', 'https://twinme.me').href === 'https://evil.com/'.
+    // The guard now rejects any backslash, closing the bypass.
+    expect(safeRedirect('/\\evil.com')).toBe(false);
+    expect(hrefWrites).toEqual([]);
+  });
+
+  it('rejects /\\/evil.com (backslash+slash variant that also normalizes off-origin)', () => {
+    expect(safeRedirect('/\\/evil.com')).toBe(false);
+    expect(hrefWrites).toEqual([]);
   });
 
   it('rejects an https URL with a leading space (scheme no longer parses)', () => {
