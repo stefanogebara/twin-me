@@ -32,7 +32,15 @@ const formatFeatureType = (type: string): string => {
 
 const formatFeatureValue = (value: number | string): string => {
   if (typeof value === 'number') {
-    if (value >= 0 && value <= 1) return `${Math.round(value * 100)}%`;
+    if (value > 0 && value <= 1) {
+      const pct = value * 100;
+      // audit-2026-07-03: a true 0 and a tiny nonzero fraction (e.g. 0.003 ->
+      // 0.3%) both rounded to "0%" — indistinguishable in the UI. Floor at
+      // "<1%" instead of rounding tiny nonzero values down to zero.
+      if (pct < 1) return '<1%';
+      return `${Math.round(pct)}%`;
+    }
+    if (value === 0) return '0%';
     return String(Math.round(value));
   }
   return String(value);

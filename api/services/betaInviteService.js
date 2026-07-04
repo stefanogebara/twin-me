@@ -18,12 +18,24 @@ export function isBetaGateEnabled() {
 }
 
 /**
+ * Machine-readable codes for the distinct ways an invite code can fail
+ * validation (audit-2026-07-03) — additive alongside the existing free-text
+ * `error` message so callers can branch on `code` without string-matching.
+ */
+export const INVITE_VALIDATION_ERROR_CODES = Object.freeze({
+  INVALID_FORMAT: 'INVALID_FORMAT',
+  INVALID: 'INVALID',
+  REDEEMED: 'REDEEMED',
+  EXPIRED: 'EXPIRED',
+});
+
+/**
  * Validate an invite code without redeeming it.
- * @returns {{ valid: boolean, invite?: object, error?: string }}
+ * @returns {{ valid: boolean, invite?: object, error?: string, code?: string }}
  */
 export async function validateInviteCode(code) {
   if (!code || typeof code !== 'string') {
-    return { valid: false, error: 'Invite code is required' };
+    return { valid: false, error: 'Invite code is required', code: INVITE_VALIDATION_ERROR_CODES.INVALID_FORMAT };
   }
 
   const { data: invite, error } = await supabaseAdmin
@@ -33,15 +45,15 @@ export async function validateInviteCode(code) {
     .single();
 
   if (error || !invite) {
-    return { valid: false, error: 'Invalid invite code' };
+    return { valid: false, error: 'Invalid invite code', code: INVITE_VALIDATION_ERROR_CODES.INVALID };
   }
 
   if (invite.use_count >= invite.max_uses) {
-    return { valid: false, error: 'This invite code has already been used' };
+    return { valid: false, error: 'This invite code has already been used', code: INVITE_VALIDATION_ERROR_CODES.REDEEMED };
   }
 
   if (invite.expires_at && new Date(invite.expires_at) < new Date()) {
-    return { valid: false, error: 'This invite code has expired' };
+    return { valid: false, error: 'This invite code has expired', code: INVITE_VALIDATION_ERROR_CODES.EXPIRED };
   }
 
   return { valid: true, invite };

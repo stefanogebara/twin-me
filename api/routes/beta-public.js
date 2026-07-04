@@ -21,7 +21,12 @@ const waitlistLimiter = rateLimit({
 const validateLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
   max: 10, // 10 requests per minute per IP
-  message: { success: false, valid: false, error: 'Too many validation attempts. Please try again later.' },
+  message: {
+    success: false,
+    valid: false,
+    error: 'Too many validation attempts. Please try again later.',
+    code: 'RATE_LIMITED',
+  },
 });
 
 // POST /api/beta/validate — check code validity (no auth)
@@ -29,10 +34,14 @@ router.post('/validate', validateLimiter, async (req, res) => {
   try {
     const { code } = req.body;
     if (!code) {
-      return res.status(400).json({ success: false, valid: false, error: 'Code is required' });
+      return res.status(400).json({ success: false, valid: false, error: 'Code is required', code: 'INVALID_FORMAT' });
     }
     const result = await validateInviteCode(code);
-    res.json({ success: true, valid: result.valid, error: result.error || null });
+    // audit-2026-07-03: `code` is additive alongside the existing `error`
+    // string — lets callers distinguish invalid/expired/redeemed without
+    // string-matching. Existing consumers reading only `error`/`valid` are
+    // unaffected.
+    res.json({ success: true, valid: result.valid, error: result.error || null, code: result.code || null });
   } catch (error) {
     log.error('Validate error', { error: error.message });
     res.status(500).json({ success: false, error: 'Validation failed' });

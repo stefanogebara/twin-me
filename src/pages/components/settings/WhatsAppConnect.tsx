@@ -9,21 +9,28 @@
 import React, { useState } from 'react';
 import { MessageCircle, Check, Loader2, ExternalLink } from 'lucide-react';
 import { TWIN_WHATSAPP_DISPLAY, TWIN_WHATSAPP_LINK } from '@/lib/whatsappConstants';
-import { useWhatsAppLink } from '@/hooks/useWhatsAppLink';
+import { useWhatsAppLink, isValidE164, normalizePhone } from '@/hooks/useWhatsAppLink';
 
 const WhatsAppConnect: React.FC = () => {
   const wa = useWhatsAppLink();
   const [phoneInput, setPhoneInput] = useState('');
   const [codeInput, setCodeInput] = useState('');
+  // Real-time format feedback (audit-2026-07-03) — only shown once the user has
+  // typed something, so the field doesn't start in an error state.
+  const [phoneFormatError, setPhoneFormatError] = useState<string | null>(null);
 
   const submitPhone = async () => {
+    if (phoneInput.trim() && !isValidE164(normalizePhone(phoneInput))) {
+      setPhoneFormatError('Invalid format. Use E.164 (e.g., +5511999999999).');
+      return;
+    }
     const ok = await wa.requestCode(phoneInput);
     if (ok) setCodeInput('');
   };
 
   const submitCode = async () => {
     const ok = await wa.verifyCode(codeInput);
-    if (ok) { setPhoneInput(''); setCodeInput(''); }
+    if (ok) { setPhoneInput(''); setCodeInput(''); setPhoneFormatError(null); }
   };
 
   if (wa.loading) {
@@ -82,12 +89,21 @@ const WhatsAppConnect: React.FC = () => {
               type="tel"
               placeholder="+1 415 555 0100"
               value={phoneInput}
-              onChange={(e) => { setPhoneInput(e.target.value); wa.clearError(); }}
+              onChange={(e) => {
+                const next = e.target.value;
+                setPhoneInput(next);
+                wa.clearError();
+                if (!next.trim() || isValidE164(normalizePhone(next))) {
+                  setPhoneFormatError(null);
+                } else {
+                  setPhoneFormatError('Invalid format. Use E.164 (e.g., +5511999999999).');
+                }
+              }}
               disabled={wa.busy}
               className="flex-1 text-sm px-3 py-2 rounded-[6px] bg-transparent focus:outline-none"
               style={{
                 backgroundColor: 'rgba(255,255,255,0.08)',
-                border: wa.error ? '1px solid rgba(239,68,68,0.5)' : '1px solid rgba(255,255,255,0.08)',
+                border: (wa.error || phoneFormatError) ? '1px solid rgba(239,68,68,0.5)' : '1px solid rgba(255,255,255,0.08)',
                 color: 'var(--foreground)',
               }}
               onKeyDown={(e) => { if (e.key === 'Enter' && !wa.busy) submitPhone(); }}
@@ -101,7 +117,9 @@ const WhatsAppConnect: React.FC = () => {
               {wa.busy ? (<><Loader2 className="w-3 h-3 animate-spin" />Sending...</>) : 'Send code'}
             </button>
           </div>
-          {wa.error && <p className="text-[11px]" style={{ color: 'rgba(239,68,68,0.8)' }}>{wa.error}</p>}
+          {(wa.error || phoneFormatError) && (
+            <p className="text-[11px]" style={{ color: 'rgba(239,68,68,0.8)' }}>{wa.error || phoneFormatError}</p>
+          )}
           <p className="text-[11px]" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
             Enter your number in international format. We will send a code to confirm it is yours.
           </p>
