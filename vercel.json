@@ -122,7 +122,7 @@
     },
     {
       "path": "/api/cron/meeting-debrief",
-      "schedule": "*/30 * * * *"
+      "schedule": "0 * * * *"
     },
     {
       "path": "/api/cron/stripe-webhook-events-cleanup",
