@@ -84,7 +84,9 @@ export default function VoiceSetupPage() {
       const res = await authFetch('/voice-bridge/link/start', { method: 'POST' });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        setState({ status: 'error', errorMessage: body.error || `Start failed (${res.status})` });
+        // audit-2026-07-03: prefer the human-friendly error_description over
+        // the machine-only error slug (e.g. "waha_unreachable").
+        setState({ status: 'error', errorMessage: body.error_description || body.error || `Start failed (${res.status})` });
         return;
       }
       // Bridge returned the first QR; pull it into state and start polling

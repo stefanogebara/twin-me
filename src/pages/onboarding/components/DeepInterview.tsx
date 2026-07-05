@@ -457,7 +457,7 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
             }).catch(() => {});
           }
         })
-        .catch(err => console.warn('[DeepInterview] Background completion:', err));
+        .catch(err => { if (import.meta.env.DEV) console.warn('[DeepInterview] Background completion:', err); });
     } else {
       // Save partial interview answers in background
       const userAnswers = messages.filter(m => m.role === 'user');
@@ -474,7 +474,7 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
             domainProgress,
             forceComplete: true,
           }),
-        }).catch(err => console.warn('[DeepInterview] Partial save failed:', err));
+        }).catch(err => { if (import.meta.env.DEV) console.warn('[DeepInterview] Partial save failed:', err); });
       }
     }
 
