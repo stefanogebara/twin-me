@@ -205,15 +205,21 @@ async function silentAutoDetect() {
     });
     if (!appTab) return;
 
+    // NOTE: the extension's own auth_token bridge (content/twinme-auth-sync.js +
+    // content/twinme-auth-main.js) is what actually delivers the bearer token to
+    // background.js — it reads the app's in-memory token via a MAIN-world getter,
+    // since the OAuth migration moved the token off localStorage entirely
+    // (see background.js's refreshAuthToken() comment). So this injected function
+    // only needs auth_user for the userId; there is no localStorage auth_token to
+    // read anymore.
     const results = await chrome.scripting.executeScript({
       target: { tabId: appTab.id },
       func: () => {
         const raw = localStorage.getItem('auth_user');
-        const token = localStorage.getItem('auth_token');
         if (!raw) return null;
         try {
           const u = JSON.parse(raw);
-          return { userId: u.id, name: u.name || u.given_name || u.email, token };
+          return { userId: u.id, name: u.name || u.given_name || u.email };
         } catch { return null; }
       },
     });
@@ -224,10 +230,6 @@ async function silentAutoDetect() {
       chrome.runtime.sendMessage({ type: 'SET_USER_ID', userId }, (r) => {
         if (r?.success) showConnectedState();
       });
-      // Also send auth token for API sync
-      if (userData.token) {
-        chrome.runtime.sendMessage({ type: 'SET_AUTH_TOKEN', token: userData.token });
-      }
     }
   } catch {
     // Silent fail
@@ -276,25 +278,20 @@ async function autoDetectUser() {
       return;
     }
 
-    // Read auth from the open tab
+    // Read auth from the open tab. Only auth_user is read here — the bearer
+    // token lives in-memory on the app side (never localStorage, post-OAuth
+    // migration) and reaches background.js via the dedicated MAIN-world
+    // bridge (content/twinme-auth-main.js + twinme-auth-sync.js), not this
+    // popup-triggered scripting call.
     const results = await chrome.scripting.executeScript({
       target: { tabId: appTab.id },
       func: () => {
         const raw = localStorage.getItem('auth_user');
-        const token = localStorage.getItem('auth_token');
-        if (raw) {
-          try {
-            const u = JSON.parse(raw);
-            return { userId: u.id, name: u.name || u.given_name || u.email, email: u.email, token };
-          } catch { return null; }
-        }
-        if (token && token.split('.').length === 3) {
-          try {
-            const p = JSON.parse(atob(token.split('.')[1]));
-            return { userId: p.id || p.userId || p.sub, name: p.name || p.email, email: p.email, token };
-          } catch { return null; }
-        }
-        return null;
+        if (!raw) return null;
+        try {
+          const u = JSON.parse(raw);
+          return { userId: u.id, name: u.name || u.given_name || u.email, email: u.email };
+        } catch { return null; }
       },
     });
 
@@ -307,9 +304,6 @@ async function autoDetectUser() {
       chrome.runtime.sendMessage({ type: 'SET_USER_ID', userId }, (r) => {
         if (r?.success) setTimeout(() => showConnectedState(), 500);
       });
-      if (userData.token) {
-        chrome.runtime.sendMessage({ type: 'SET_AUTH_TOKEN', token: userData.token });
-      }
     } else {
       // Tab exists but not signed in
       detectStatus.textContent = 'Please sign in to TwinMe in the open tab.';
