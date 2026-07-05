@@ -215,6 +215,35 @@ router.get('/export', authenticateUser, async (req, res) => {
 });
 
 /**
+ * GET /api/account/timezone
+ *
+ * Returns the persisted IANA timezone for the authenticated user (or null
+ * when never set). audit-2026-07-03: Settings.tsx was already calling this
+ * to display the saved value, but only PATCH existed — every Settings visit
+ * 404'd. Reading from the profile isn't an option: /auth/verify doesn't
+ * return the timezone column.
+ */
+router.get('/timezone', authenticateUser, async (req, res) => {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('users')
+      .select('timezone')
+      .eq('id', req.user.id)
+      .single();
+
+    if (error) {
+      log.warn('Failed to fetch timezone', { userId: req.user.id, error: error.message });
+      return res.status(500).json({ success: false, error: 'Failed to fetch timezone' });
+    }
+
+    return res.json({ success: true, timezone: data?.timezone ?? null });
+  } catch (err) {
+    log.error('Timezone fetch error', { userId: req.user.id, error: err.message });
+    return res.status(500).json({ success: false, error: 'Failed to fetch timezone' });
+  }
+});
+
+/**
  * PATCH /api/account/timezone
  *
  * Stores the user's IANA timezone string (detected from browser).
