@@ -27,7 +27,9 @@ function playChime() {
       osc.stop(now + i * 0.3 + 2);
     });
     setTimeout(() => ctx.close(), 3000);
-  } catch {}
+  } catch {
+    /* best-effort: Web Audio setup failure is non-critical to onboarding */
+  }
 }
 
 /** Floating particles */

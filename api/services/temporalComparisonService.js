@@ -117,7 +117,7 @@ async function generateComparison(userId) {
     `NOW WINDOW (${nowMonth}, last 14 days):`,
     formatMemoriesForPrompt(nowMemories),
     '',
-    `Write the JSON comparison. Lead each sentence with the month: "In ${thenMonth} you ..." and "In ${nowMonth} you\'re ...".`,
+    `Write the JSON comparison. Lead each sentence with the month: "In ${thenMonth} you ..." and "In ${nowMonth} you're ...".`,
   ].join('\n');
 
   let thenText = '';
