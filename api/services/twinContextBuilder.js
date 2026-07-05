@@ -21,6 +21,7 @@ import { inferIdentityContext } from './identityContextService.js';
 import { getPendingProposals } from './departmentService.js';
 import { getRelevantWikiPages } from './wikiCompilationService.js';
 import { getActiveDirectives } from './twinSelfImprovement.js';
+import { raceContextFanout } from './contextFanout.js';
 import axios from 'axios';
 // Whoop analytics — run on-demand when the user's message asks an
 // analytical question (trend, comparison, weekly recap). Snapshot still
@@ -459,66 +460,19 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
     })),
   ];
 
-  // Track resolved values via microtasks so circuit breaker can use them without waiting.
-  // Microtasks (Promise.then) are always processed before macrotasks (setTimeout),
-  // so resolvedValues[] is fully populated for settled promises when the timeout fires.
-  const resolvedValues = new Array(fetchPromises.length).fill(undefined);
-  fetchPromises.forEach((p, i) => {
-    p.then(v => { resolvedValues[i] = v; }).catch(() => { resolvedValues[i] = defaults[i]; });
-  });
-
-  // A per-leg timeout must degrade ONLY that leg, not abort the whole fan-out.
-  // Without this, the first leg to hit its timer rejected Promise.all and every
-  // still-in-flight sibling was discarded — so Promise.all below only rejects on
-  // the genuine global breaker, and any single leg timeout falls back to its
-  // default while the others run to completion (audit).
-  const guardedPromises = fetchPromises.map((p, i) =>
-    p.catch(err => {
-      if (/_leg_timeout$/.test(err?.message)) return defaults[i];
-      throw err;
-    })
+  // Race the fan-out against the global breaker, degrading to partial context
+  // instead of failing the request. The subtle resilience logic (microtask
+  // resolved-tracking + per-leg-timeout guarding + partial fallback) lives in
+  // raceContextFanout so it can be unit-tested in isolation — two prod 500s
+  // traced back to earlier versions of it. circuitBreakerTripped is surfaced via
+  // the timings record so the route layer can fold it into the
+  // context_fetch_done hop_timings entry (no logger pattern reaches here).
+  const { contextResults, circuitBreakerTripped, degradationReason } = await raceContextFanout(
+    fetchPromises,
+    defaults,
+    CONTEXT_TIMEOUT_MS,
+    { onDegrade: (reason) => log.warn(`Circuit breaker tripped (${reason}) — returning partial context`) },
   );
-
-  let contextResults;
-  // audit-2026-05-13 bottleneck follow-up: track whether the circuit breaker
-  // tripped so the hop_timings ladder can show it. Hop log can't be called
-  // from inside this module (no logger pattern here), so we surface it via
-  // the returned timings record — the route layer can fold it into the
-  // context_fetch_done hop_timings entry.
-  let circuitBreakerTripped = false;
-  let degradationReason = null;
-  try {
-    contextResults = await Promise.race([
-      Promise.all(guardedPromises),
-      new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('fetchTwinContext timeout')), CONTEXT_TIMEOUT_MS)
-      ),
-    ]);
-  } catch (timeoutErr) {
-    // Two graceful-degradation paths land here:
-    //   1. The 10s global breaker timer fired — message ===
-    //      'fetchTwinContext timeout'.
-    //   2. One of the per-leg timed() wrappers fired its own 6s timer —
-    //      message ends in '_leg_timeout' (e.g. 'platformData_leg_timeout').
-    //
-    // Both are EXPECTED outcomes when a backend is slow (cold-start
-    // Nango token refresh, cold pgbouncer queueing on Supabase, etc.) —
-    // they should never propagate to a 500 in the chat handler. Before
-    // this fix only the global breaker degraded; leg timeouts re-threw,
-    // which is what caused the cold-start 500 we hit during the Whoop
-    // step-5 eval (the platformData leg timed out at 6s waiting on Nango).
-    const isLegTimeout = /_leg_timeout$/.test(timeoutErr.message);
-    const isGlobalTimeout = timeoutErr.message === 'fetchTwinContext timeout';
-    if (isGlobalTimeout || isLegTimeout) {
-      circuitBreakerTripped = true;
-      degradationReason = timeoutErr.message;
-      log.warn(`Circuit breaker tripped (${timeoutErr.message}) — returning partial context`);
-      // Use already-resolved values; fall back to defaults for still-pending promises.
-      contextResults = resolvedValues.map((v, i) => v !== undefined ? v : defaults[i]);
-    } else {
-      throw timeoutErr;
-    }
-  }
   timings._circuitBreakerTripped = circuitBreakerTripped;
   if (degradationReason) timings._circuitBreakerReason = degradationReason;
   timings._circuitBreakerMs = CONTEXT_TIMEOUT_MS;
