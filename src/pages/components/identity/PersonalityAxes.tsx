@@ -53,7 +53,7 @@ const PersonalityAxes: React.FC<PersonalityAxesProps> = ({ className = '', delay
       <div className={`mb-20 ${className}`}>
         <div className="flex items-center gap-2 mb-4">
           <Loader2 className="w-3 h-3 animate-spin" style={{ color: 'rgba(255,255,255,0.3)' }} />
-          <span className="text-xs" style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}>
+          <span className="text-xs" style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
             Analyzing personality dimensions...
           </span>
         </div>
@@ -89,7 +89,7 @@ const PersonalityAxes: React.FC<PersonalityAxesProps> = ({ className = '', delay
         <Brain className="w-3 h-3" style={{ color: 'rgba(255,255,255,0.25)' }} />
         <span
           className="text-[11px] uppercase tracking-[0.12em] font-medium"
-          style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}
+          style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
         >
           Personality Dimensions
         </span>
@@ -98,7 +98,7 @@ const PersonalityAxes: React.FC<PersonalityAxesProps> = ({ className = '', delay
       {/* Subtitle */}
       <p
         className="text-sm mb-5"
-        style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', sans-serif" }}
+        style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
       >
         {axes.length} behavioral patterns discovered from your data
       </p>
@@ -150,7 +150,7 @@ const PersonalityAxes: React.FC<PersonalityAxesProps> = ({ className = '', delay
                   <span
                     className="text-[13px] flex-1 leading-snug"
                     style={{
-                      color: isTop ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.50)',
+                      color: isTop ? 'rgba(255,255,255,0.85)' : 'var(--text-secondary)',
                       fontFamily: "'Inter', sans-serif",
                       fontWeight: isTop ? 500 : 400,
                     }}
@@ -175,17 +175,17 @@ const PersonalityAxes: React.FC<PersonalityAxesProps> = ({ className = '', delay
                       transition={{ duration: 0.2 }}
                       className="mt-2 ml-4"
                     >
-                      <p className="text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.45)', fontFamily: "'Inter', sans-serif" }}>
+                      <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
                         {axis.description}
                       </p>
                       {axis.top_memory_contents && axis.top_memory_contents.length > 0 && (
                         <div className="mt-2 space-y-1">
-                          <span className="text-[10px] uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.2)' }}>Evidence</span>
+                          <span className="text-[10px] uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>Evidence</span>
                           {axis.top_memory_contents.slice(0, 2).map((mem, midx) => (
                             <p
                               key={midx}
                               className="text-[11px] pl-2 leading-relaxed"
-                              style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif", borderLeft: `2px solid ${color}` }}
+                              style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif", borderLeft: `2px solid ${color}` }}
                             >
                               {mem.length > 120 ? mem.slice(0, 120) + '...' : mem}
                             </p>
@@ -206,7 +206,7 @@ const PersonalityAxes: React.FC<PersonalityAxesProps> = ({ className = '', delay
         <button
           onClick={() => setShowAll(s => !s)}
           className="mt-3 w-full text-xs py-2 rounded-[12px] transition-all duration-150 hover:bg-[rgba(255,255,255,0.04)]"
-          style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}
+          style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
         >
           {showAll ? 'Show fewer' : `+${axes.length - VISIBLE_DEFAULT} more patterns`}
         </button>

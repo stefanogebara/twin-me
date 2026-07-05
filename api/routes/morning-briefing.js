@@ -90,6 +90,7 @@ router.get('/generate', authenticateUser, async (req, res) => {
           ? 'Connect a platform like Spotify or Google Calendar to power your briefings.'
           : 'Chat with your twin to help it learn more about you.',
         generatedAt: new Date().toISOString(),
+        generated_via: 'no_data',
       };
 
       await cacheBriefing(userId, fallbackBriefing);
@@ -403,11 +404,14 @@ Be concise — max 30 words per field. Match the voice samples above. Do NOT sou
       music: parsed.music_summary || null,
       suggestion: parsed.suggestion || 'Take a moment to check in with yourself today.',
       generatedAt: new Date().toISOString(),
+      generated_via: 'llm',
     };
   } catch (err) {
     log.warn('LLM briefing composition failed, using structured fallback', { error: err.message });
 
-    // Fallback: structured briefing without LLM
+    // Fallback: structured briefing without LLM. generated_via lets the
+    // frontend render a degraded-mode hint instead of passing the canned
+    // composition off as the twin's voice (audit-2026-07-03).
     return {
       greeting: `${greeting}, ${firstName}`,
       schedule: calendarEvents.slice(0, 5),
@@ -420,6 +424,7 @@ Be concise — max 30 words per field. Match the voice samples above. Do NOT sou
       music: recentMusic.length > 0 ? 'You were listening to music recently.' : null,
       suggestion: 'Chat with your twin to explore what it has noticed.',
       generatedAt: new Date().toISOString(),
+      generated_via: 'fallback',
     };
   }
 }

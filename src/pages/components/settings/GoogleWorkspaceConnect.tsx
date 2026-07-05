@@ -66,12 +66,16 @@ const GoogleWorkspaceConnect: React.FC<GoogleWorkspaceConnectProps> = ({
         body: JSON.stringify({}),
       });
       const data = await response.json();
-      if (!response.ok || !data.authUrl) {
+      // Require an absolute https URL before navigating — a malformed authUrl
+      // would otherwise be treated as a relative path and strand the user on a
+      // 404 with no error state (audit-2026-07-03).
+      if (!response.ok || typeof data?.authUrl !== 'string' || !/^https:\/\//i.test(data.authUrl)) {
         setConnectError(data?.error || 'Could not start Google connection. Please try again.');
         return;
       }
       window.location.href = data.authUrl;
-    } catch {
+    } catch (err) {
+      console.error('Google Workspace connect failed:', err);
       setConnectError('Connection failed. Please try again.');
     } finally {
       setConnecting(false);

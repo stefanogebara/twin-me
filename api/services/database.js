@@ -396,7 +396,7 @@ export const serverDb = {
         .eq('user_id', userId)
         .maybeSingle();
       if (convoErr) {
-        console.error('[Database] Ownership check failed', convoErr.message);
+        log.error('Ownership check failed', { error: convoErr.message });
         return { data: null, error: convoErr };
       }
       if (!convo) {

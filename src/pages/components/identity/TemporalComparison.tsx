@@ -76,7 +76,7 @@ const TemporalComparison: React.FC = () => {
           <div className="flex flex-col gap-2">
             <span
               className="text-[10px] font-medium uppercase tracking-[0.16em]"
-              style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Inter', sans-serif" }}
+              style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
             >
               Then
             </span>

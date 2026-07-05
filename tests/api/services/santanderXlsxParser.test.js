@@ -89,4 +89,63 @@ describe('parseSantanderXlsx', () => {
     expect(r.transactions).toHaveLength(1);
     expect(r.transactions[0].merchant_raw).toBe('Padaria');
   });
+
+  // audit-2026-07-03 (money HIGH): the parser emitted NO external_id, so the
+  // upload route inserted NULL — and the (user_id, external_id) UNIQUE
+  // constraint never fires on NULLs, so re-uploading the same Magie XLSX
+  // duplicated every row (each copy then tagged independently: the "once
+  // bare, once tagged, distinct keys" double-render, and the double-counted
+  // 90-day summary). These pin the dedup-key contract.
+  describe('external_id (dedup key)', () => {
+    const ROWS = [
+      HEADER,
+      ['', '27/04/2026 10:30:00', '-25,00', 'Pix enviado', 'Eduardo Campbell Rodrigues Barbosa'],
+      ['', '09/04/2026 14:00:00', '-1.595,34', 'Pix enviado', 'Murillo Henrique Nojosa Arruda'],
+      ['', '09/04/2026 09:15:00', '-182,16', 'Compra', 'True Paleo'],
+    ];
+
+    it('assigns every transaction a non-empty external_id', () => {
+      const r = parseSantanderXlsx(buildWorkbook(ROWS));
+      expect(r.transactions).toHaveLength(3);
+      for (const t of r.transactions) {
+        expect(typeof t.external_id).toBe('string');
+        expect(t.external_id.length).toBeGreaterThan(0);
+      }
+    });
+
+    it('gives distinct rows distinct external_ids', () => {
+      const r = parseSantanderXlsx(buildWorkbook(ROWS));
+      const ids = r.transactions.map((t) => t.external_id);
+      expect(new Set(ids).size).toBe(ids.length);
+    });
+
+    it('is deterministic across separate exports of the same rows (re-upload upserts, not duplicates)', () => {
+      // Two workbook builds of the same logical content produce different
+      // binary buffers (zip metadata) — the ids must depend on row CONTENT
+      // only, so a re-uploaded statement hits the (user_id, external_id)
+      // conflict instead of inserting a second copy.
+      const first = parseSantanderXlsx(buildWorkbook(ROWS));
+      const second = parseSantanderXlsx(buildWorkbook(ROWS));
+      expect(second.transactions.map((t) => t.external_id)).toEqual(
+        first.transactions.map((t) => t.external_id)
+      );
+    });
+
+    it('keeps identical rows within one file distinct AND stable (two same-second identical Pix)', () => {
+      const dupRows = [
+        HEADER,
+        ['', '05/04/2026 11:00:00', '-170,00', 'Pix enviado', 'Sophia Alegretti Soares'],
+        ['', '05/04/2026 11:00:00', '-170,00', 'Pix enviado', 'Sophia Alegretti Soares'],
+      ];
+      const first = parseSantanderXlsx(buildWorkbook(dupRows));
+      expect(first.transactions).toHaveLength(2);
+      // Distinct: a content hash alone would collapse them in the upsert batch.
+      expect(first.transactions[0].external_id).not.toBe(first.transactions[1].external_id);
+      // Stable: the same file re-uploaded maps each copy to the same id.
+      const second = parseSantanderXlsx(buildWorkbook(dupRows));
+      expect(second.transactions.map((t) => t.external_id)).toEqual(
+        first.transactions.map((t) => t.external_id)
+      );
+    });
+  });
 });

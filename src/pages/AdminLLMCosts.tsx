@@ -381,12 +381,19 @@ const AdminLLMCosts: React.FC = () => {
         throw new Error(`Failed to fetch cost data (${summaryRes.status}): ${body}`);
       }
 
+      // The department-budgets panel is load-bearing on this admin page, so a
+      // failed budgets fetch must not silently degrade to an empty section —
+      // surface it via the catch/error banner (audit-2026-07-03 error-ux).
+      if (!deptBudgetRes.ok) {
+        throw new Error(`Failed to fetch department budgets (${deptBudgetRes.status})`);
+      }
+
       const [summaryData, dailyData, realtimeData, userData, deptBudgetData] = await Promise.all([
         summaryRes.json(),
         dailyRes.ok ? dailyRes.json() : null,
         realtimeRes.ok ? realtimeRes.json() : null,
         userRes.ok ? userRes.json() : null,
-        deptBudgetRes.ok ? deptBudgetRes.json() : null,
+        deptBudgetRes.json(),
       ]);
 
       setSummary(summaryData);

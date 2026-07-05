@@ -48,7 +48,10 @@ export const TwinReflection: React.FC<TwinReflectionProps> = ({
     text: 'var(--foreground)',
     textMuted: 'rgba(255, 255, 255, 0.55)',
     iconBg: 'rgba(139, 92, 246, 0.1)',
-    iconColor: '#8B5CF6',
+    // audit-2026-07-03 H5: this violet is the "Your Twin's Observation" LABEL
+    // text, not just the icon. #8B5CF6 = 3.80:1 on the glass card (fails AA).
+    // violet-400 #A78BFA = 5.92:1 on the 0.06 panel, same hue family.
+    iconColor: '#A78BFA',
     highlight: 'rgba(139, 92, 246, 0.1)'
   };
 

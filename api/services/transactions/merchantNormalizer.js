@@ -53,7 +53,7 @@ const RULES = [
   // Groceries
   { match: /\bpão\s?de\s?açúcar|\bcarrefour\b|\bextra\b|\batacadão\b/i, brand: 'Supermercado', category: 'groceries' },
   { match: /\bpadaria\b|\bpadoca\b|boulanger/i,  brand: 'Padaria',         category: 'groceries' },
-  { match: /\bsam\'s\s?club|\bassai\b|\bmakro\b/i, brand: 'Atacado',       category: 'groceries' },
+  { match: /\bsam's\s?club|\bassai\b|\bmakro\b/i, brand: 'Atacado',       category: 'groceries' },
 
   // Streaming / subscriptions
   { match: /\bnetflix\b/i,                       brand: 'Netflix',         category: 'streaming' },

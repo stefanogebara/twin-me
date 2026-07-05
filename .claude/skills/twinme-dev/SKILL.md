@@ -118,7 +118,7 @@ const result = await complete({
 
 ## Database Migrations
 
-- Location: `database/migrations/YYYYMMDD_description.sql` (canonical tree — its filenames match the live applied history. Do NOT use `database/supabase/migrations/`, which is frozen/legacy and diverged from prod.)
+- Location: `database/migrations/YYYYMMDD_description.sql` — the canonical tree for ALL NEW migrations. Do not add files to `database/supabase/migrations/`: it is a read-only archive of migrations that WERE applied to prod (base schema + audit-track mirrors — e.g. its 20260514 file is annotated "Applied to prod... Mirrored here"), NOT unapplied/diverged wholesale; it just is no longer where new work goes. Beware: at least one table (`user_transactions`, two 20260420 files) has conflicting duplicate definitions across the two trees, so neither file alone is authoritative for that table — check the live DB. `supabase/migrations/` (14 ancient files) and `api/migrations/` are DEAD legacy dirs; never apply them (see the README.md in each migration dir, audit 2026-07-04).
 - Apply via Supabase MCP: `mcp__supabase__apply_migration` (pass `name` = the filename stem; the recorded `version` auto-generates as a 14-digit timestamp and will NOT match the file's date prefix — that is expected, not a bug)
 - FK constraints MUST reference `public.users(id)` not `auth.users(id)`
 - Always enable RLS and create policies for user isolation

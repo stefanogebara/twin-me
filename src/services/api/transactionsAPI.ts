@@ -128,8 +128,17 @@ export async function listTransactions(opts: { limit?: number; offset?: number; 
   return json.transactions || [];
 }
 
-export async function getTransactionsSummary(): Promise<TransactionsSummary | null> {
-  const res = await authFetch('/transactions/summary');
+/**
+ * audit-2026-07-03 (money HIGH): accepts the same windowDays as
+ * getTimelineAnalysis so MoneyPage can pin BOTH to one window. Without it
+ * the page mixed a 90-day summary ("Last 90 days" — the backend /summary
+ * default) with a 30-day timeline chart on the same screen. Omitting
+ * windowDays keeps the backend default (the SummaryBar label follows the
+ * echoed window_days either way).
+ */
+export async function getTransactionsSummary(windowDays?: number): Promise<TransactionsSummary | null> {
+  const q = Number.isFinite(windowDays) && (windowDays as number) > 0 ? `?window_days=${windowDays}` : '';
+  const res = await authFetch(`/transactions/summary${q}`);
   if (!res.ok) return null;
   const json = await res.json();
   if (!json.success) return null;

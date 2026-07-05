@@ -39,7 +39,9 @@ const WaitlistPage = () => {
       } else {
         setError(data.error || 'Something went wrong');
       }
-    } catch {
+    } catch (err) {
+      // Keep the raw error in the console for debugging (audit-2026-07-03)
+      console.error('Waitlist submit failed:', err);
       setError('Network error. Please try again.');
     } finally {
       setLoading(false);
@@ -136,7 +138,8 @@ const WaitlistPage = () => {
                 onChange={(e) => { setEmail(e.target.value); setError(''); }}
                 placeholder="your@email.com"
                 aria-label="Email address"
-                className="flex-1 h-11 px-4 rounded-lg text-sm outline-none"
+                disabled={loading}
+                className="flex-1 h-11 px-4 rounded-lg text-sm outline-none disabled:opacity-50"
                 style={{
                   backgroundColor: 'rgba(218,217,215,0.08)',
                   border: '1px solid var(--border)',

@@ -41,7 +41,7 @@ interface DownloadOption {
 type FetchState =
   | { status: 'loading' }
   | { status: 'no-release' }
-  | { status: 'error' }
+  | { status: 'error'; rateLimited?: boolean }
   | { status: 'ready'; release: GitHubRelease };
 
 // --- OS detection -----------------------------------------------------------
@@ -283,14 +283,26 @@ const DownloadPage: React.FC = () => {
     let cancelled = false;
 
     const load = async () => {
+      // GitHub API calls can hang on flaky networks; abort after 10s so the
+      // user gets the releases-page fallback instead of an endless spinner
+      // (audit-2026-07-03).
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10_000);
       try {
         const res = await fetch(RELEASES_API, {
           headers: { Accept: 'application/vnd.github+json' },
+          signal: controller.signal,
         });
         if (cancelled) return;
 
         if (res.status === 404) {
           setState({ status: 'no-release' });
+          return;
+        }
+        // GitHub returns 403/429 when the unauthenticated per-IP quota is
+        // exhausted — say so instead of showing a generic failure.
+        if (res.status === 403 || res.status === 429) {
+          setState({ status: 'error', rateLimited: true });
           return;
         }
         if (!res.ok) {
@@ -306,8 +318,13 @@ const DownloadPage: React.FC = () => {
           return;
         }
         setState({ status: 'ready', release });
-      } catch {
-        if (!cancelled) setState({ status: 'error' });
+      } catch (err) {
+        if (!cancelled) {
+          console.error('Desktop release fetch failed:', err);
+          setState({ status: 'error' });
+        }
+      } finally {
+        clearTimeout(timeout);
       }
     };
 
@@ -422,8 +439,9 @@ const DownloadPage: React.FC = () => {
               Could not load downloads
             </h2>
             <p className="mb-6" style={{ fontSize: '14px', color: 'rgba(245,245,244,0.5)', lineHeight: 1.6 }}>
-              Something went wrong reaching GitHub. You can grab the installers directly from the
-              releases page instead.
+              {state.rateLimited
+                ? 'GitHub is rate-limiting requests from your network right now. It resets within the hour — or grab the installers directly from the releases page.'
+                : 'Something went wrong reaching GitHub. You can grab the installers directly from the releases page instead.'}
             </p>
             <a
               href={RELEASES_PAGE}

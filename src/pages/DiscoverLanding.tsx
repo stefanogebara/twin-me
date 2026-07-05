@@ -110,7 +110,10 @@ export default function DiscoverLanding() {
       }
 
       setPhase('revealed');
-    } catch {
+    } catch (err) {
+      // Log for observability — the bare catch previously hid scan failures
+      // from the console/Sentry entirely (audit-2026-07-03 error-ux).
+      console.error('Discovery scan failed:', err);
       setError('Something went wrong. Please try again.');
       setPhase('idle');
     }
@@ -187,7 +190,8 @@ export default function DiscoverLanding() {
       sessionStorage.setItem('twinme_discovery_email', trimmed);
 
       setConfirmationPhase('pending');
-    } catch {
+    } catch (err) {
+      console.error('Discovery re-scan failed:', err);
       setError('Something went wrong during re-scan. Please try again.');
     } finally {
       setIsRescanning(false);

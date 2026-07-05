@@ -284,8 +284,12 @@ app.use((req, res, next) => {
     : req.path.includes('/departments/heartbeat') ? 55000  // LLM heartbeat needs time
     : req.path.includes('/templates/') && req.method === 'POST' ? 45000  // Template apply does multiple DB writes
     : DEFAULT_TIMEOUT;
-  req.setTimeout(timeout);
-  res.setTimeout(timeout, () => {
+  // Vercel maxDuration is 60s (vercel.json). Any value above that is dead config:
+  // the platform kills the container before our 504 handler fires. Clamp just under
+  // the hard cap so the graceful 504 can actually return (audit 2026-07-02 M-5).
+  const capped = Math.min(timeout, 58000);
+  req.setTimeout(capped);
+  res.setTimeout(capped, () => {
     if (!res.headersSent) {
       res.status(504).json({ error: 'Request timeout - database may be unavailable' });
     }

@@ -76,13 +76,13 @@ function ActiveGoalCard({ goal, onComplete }: { goal: Goal; onComplete: (id: str
             {goal.title}
           </p>
           {goal.description && (
-            <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', sans-serif" }}>
+            <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
               {goal.description}
             </p>
           )}
           {goal.target_value != null && (
             goal.last_measured_at == null ? (
-              <p className="text-xs mt-2" style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}>
+              <p className="text-xs mt-2" style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
                 Tracking starts soon
               </p>
             ) : (
@@ -95,12 +95,12 @@ function ActiveGoalCard({ goal, onComplete }: { goal: Goal; onComplete: (id: str
           )}
           <div className="flex items-center gap-3 mt-2">
             {goal.current_streak != null && goal.current_streak > 0 && (
-              <span className="text-xs" style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Inter', sans-serif" }}>
+              <span className="text-xs" style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
                 {goal.current_streak}d streak
               </span>
             )}
             {goal.end_date && (
-              <span className="text-xs" style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Inter', sans-serif" }}>
+              <span className="text-xs" style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
                 {timeLeft(goal.end_date)}
               </span>
             )}
@@ -151,14 +151,14 @@ function SuggestionCard({
         backdropFilter: 'blur(42px)',
       }}
     >
-      <p className="text-[10px] uppercase tracking-widest mb-2 font-medium" style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}>
+      <p className="text-[10px] uppercase tracking-widest mb-2 font-medium" style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
         Suggested by your twin
       </p>
       <p className="text-sm font-medium leading-snug" style={{ color: 'var(--foreground)', fontFamily: "'Geist', 'Inter', sans-serif" }}>
         {goal.title}
       </p>
       {goal.description && (
-        <p className="text-xs mt-1 leading-relaxed" style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', sans-serif" }}>
+        <p className="text-xs mt-1 leading-relaxed" style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
           {goal.description}
         </p>
       )}
@@ -177,7 +177,7 @@ function SuggestionCard({
           onClick={handleDismiss}
           disabled={loading}
           className="px-3 py-1.5 rounded-[100px] text-xs font-medium transition-all duration-150 hover:opacity-70 active:scale-[0.97] disabled:opacity-40"
-          style={{ border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.45)', fontFamily: "'Inter', sans-serif" }}
+          style={{ border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
         >
           Not now
         </button>
@@ -498,7 +498,7 @@ export default function GoalsPage() {
               // Suppress the terse text empty-state when either the shimmer
               // or the twin-voice empty card is already rendered above.
               suggestions.length === 0 && (generatingSuggestions || hasTriedGeneration) ? null : (
-                <p className="text-sm py-4" style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}>
+                <p className="text-sm py-4" style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
                   No active goals yet. Accept a suggestion above or add one yourself.
                 </p>
               )
@@ -519,7 +519,7 @@ export default function GoalsPage() {
                 {completed.map(g => (
                   <div key={g.id} className="px-4 py-3 rounded-[12px] flex items-center gap-3" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
                     <Check className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'rgba(255,255,255,0.25)' }} />
-                    <p className="text-sm" style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Geist', 'Inter', sans-serif", textDecoration: 'line-through' }}>
+                    <p className="text-sm" style={{ color: 'var(--text-secondary)', fontFamily: "'Geist', 'Inter', sans-serif", textDecoration: 'line-through' }}>
                       {g.title}
                     </p>
                   </div>

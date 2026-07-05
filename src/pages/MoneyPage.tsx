@@ -39,6 +39,14 @@ const CARD_STYLE: React.CSSProperties = {
   borderRadius: 20,
 };
 
+/**
+ * audit-2026-07-03 (money HIGH): the ONE window every number on this page
+ * uses. The page previously pinned the timeline to 30 days but fetched the
+ * summary with no window (backend default 90), so "Last 90 days" sat directly
+ * above a "30 days" chart. Both fetchers and both card labels read this value.
+ */
+const MONEY_WINDOW_DAYS = 30;
+
 const LABEL_STYLE: React.CSSProperties = {
   fontFamily: "'Geist', 'Inter', sans-serif",
   fontSize: 11,
@@ -195,8 +203,9 @@ function SummaryBar({ summary, currency, mixedCurrency }: { summary: Transaction
   return (
     <div style={{ ...CARD_STYLE, padding: 24 }}>
       <div className="flex items-center gap-2 mb-2">
-        {/* replan-2026-06-10 Track D: label must reflect the actual queried
-            window — /summary defaults to 90 days, not 30. */}
+        {/* Label follows the window_days the backend ECHOES for the window we
+            requested (MONEY_WINDOW_DAYS) — never a hardcoded number, so the
+            label can't contradict the data (audit-2026-07-03). */}
         <p style={{ ...LABEL_STYLE, marginBottom: 0 }}>Last {summary.window_days} days</p>
         {mixedCurrency && (
           <span
@@ -682,8 +691,10 @@ export default function MoneyPage() {
     try {
       const [txns, sum, tl] = await Promise.all([
         listTransactions({ limit: 50 }),
-        getTransactionsSummary(),
-        getTimelineAnalysis(),
+        // One shared window for summary + timeline — the page must never
+        // show two different "last N days" claims at once (audit-2026-07-03).
+        getTransactionsSummary(MONEY_WINDOW_DAYS),
+        getTimelineAnalysis(MONEY_WINDOW_DAYS),
       ]);
       setTransactions(txns);
       setSummary(sum);
@@ -795,12 +806,13 @@ export default function MoneyPage() {
         <GmailCourierToggle />
       </div>
 
-      {/* Spending timeline (30d), full-width single card. */}
+      {/* Spending timeline, full-width single card. Window label derives from
+          MONEY_WINDOW_DAYS — same value the fetchers used. */}
       {timeline.length > 0 && (
         <div className="mb-6" data-testid="moat-headline-grid">
           <div style={{ ...CARD_STYLE, padding: '20px 20px 16px' }}>
-            <p style={{ ...LABEL_STYLE, marginBottom: 16 }}>Why you spend · 30 days</p>
-            <StressSpendTimeline days={timeline} currency={dominantCurrency} />
+            <p style={{ ...LABEL_STYLE, marginBottom: 16 }}>Why you spend · {MONEY_WINDOW_DAYS} days</p>
+            <StressSpendTimeline days={timeline} currency={dominantCurrency} windowDays={MONEY_WINDOW_DAYS} />
           </div>
         </div>
       )}

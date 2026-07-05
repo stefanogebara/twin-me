@@ -10,6 +10,7 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { Mail, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { API_URL, getAuthHeaders } from '@/services/api/apiBase';
 
 export function GmailCourierToggle() {
@@ -41,8 +42,12 @@ export function GmailCourierToggle() {
         body: JSON.stringify({ flag: 'gmail_statement_courier', value: next }),
       });
       if (!res.ok) throw new Error(`save failed (${res.status})`);
-    } catch {
-      setEnabled(!next); // revert on failure
+    } catch (err) {
+      // Revert the optimistic flip AND say so — a toggle that silently snaps
+      // back reads as a UI glitch, not a save failure (audit-2026-07-03).
+      console.error('Gmail courier toggle failed:', err);
+      setEnabled(!next);
+      toast.error('Could not update Gmail auto-import. Please try again.');
     } finally {
       setSaving(false);
     }

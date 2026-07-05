@@ -1207,10 +1207,16 @@ router.get('/oauth/callback', async (req, res) => {
         isConnectorFlow = !!userId; // If userId exists, this is a connector OAuth flow
         log.info('Auth GET callback - flow detection', { provider, userId, isConnectorFlow });
       } else {
-        log.info('Could not decode state (null result), defaulting to google');
+        // Security-relevant anomaly: every state we issue is encrypted, so a
+        // state that will not decode is either corrupted or attacker-supplied.
+        // The fallback (proceed as a plain google auth flow) is long-standing
+        // behavior — changing it to a hard 400 alters session-issuance
+        // semantics, so for now we make the anomaly loud instead of silent
+        // (audit-2026-07-03).
+        log.warn('OAuth GET callback: could not decode state (null result), proceeding as google auth flow');
       }
     } catch (e) {
-      log.info('Could not decode state, defaulting to google');
+      log.warn('OAuth GET callback: state decrypt threw, proceeding as google auth flow', { error: e?.message });
     }
 
     let userData = null;

@@ -141,4 +141,60 @@ describe('transactions routes after aggregator removal', () => {
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
   });
+
+  // audit-2026-07-03 (money HIGH): Santander Magie XLSX rows reached the
+  // upsert with NULL external_id — the (user_id, external_id) UNIQUE
+  // constraint never fires on NULLs, so re-uploading the same statement
+  // duplicated every transaction (double-rendered list, double-counted
+  // summary). Pin the invariant at the route boundary: every row handed to
+  // the upsert carries a dedup key, and the conflict target is the
+  // constraint that makes re-uploads idempotent.
+  describe('POST /upload dedup-key invariant (santander XLSX)', () => {
+    it('upserts every parsed row with a non-null external_id on (user_id, external_id)', async () => {
+      const xlsx = (await import('xlsx')).default;
+      const wb = xlsx.utils.book_new();
+      xlsx.utils.book_append_sheet(
+        wb,
+        xlsx.utils.aoa_to_sheet([
+          ['', 'Data da Transação', 'Valor (R$)', 'Tipo', 'Descrição'],
+          ['', '09/04/2026 14:00:00', '-1.595,34', 'Pix enviado', 'Murillo Henrique Nojosa Arruda'],
+          ['', '27/04/2026 10:30:00', '-25,00', 'Pix enviado', 'Eduardo Campbell Rodrigues Barbosa'],
+        ]),
+        'Extrato Magie'
+      );
+      const fileBuf = xlsx.write(wb, { type: 'buffer', bookType: 'xlsx' });
+
+      // First awaited DB op in the handler is the transactions upsert.
+      resultQueue.push({ data: [{ id: 'row-1' }, { id: 'row-2' }], error: null });
+
+      const { supabaseAdmin } = await import('../../../api/services/database.js');
+      const res = await request(createApp())
+        .post('/api/transactions/upload')
+        .set('Authorization', `Bearer ${signToken()}`)
+        .attach('file', fileBuf, 'extrato-magie.xlsx');
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.source_bank).toBe('santander');
+      expect(res.body.inserted).toBe(2);
+
+      // Find the builder that received the upsert and inspect its payload.
+      const fromMock = supabaseAdmin.from;
+      const upsertCalls = fromMock.mock.results
+        .map((r, i) => ({ table: fromMock.mock.calls[i][0], builder: r.value }))
+        .filter((e) => e.table === 'user_transactions' && e.builder.upsert.mock.calls.length > 0)
+        .flatMap((e) => e.builder.upsert.mock.calls);
+      expect(upsertCalls.length).toBeGreaterThanOrEqual(1);
+
+      const [rows, options] = upsertCalls[0];
+      expect(options.onConflict).toBe('user_id,external_id');
+      expect(rows).toHaveLength(2);
+      for (const row of rows) {
+        expect(row.external_id).toBeTruthy();
+        expect(typeof row.external_id).toBe('string');
+      }
+      // Distinct rows, distinct keys — a constant id would collapse the batch.
+      expect(new Set(rows.map((r) => r.external_id)).size).toBe(rows.length);
+    });
+  });
 });

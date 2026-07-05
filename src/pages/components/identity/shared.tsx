@@ -20,7 +20,7 @@ export const Divider: React.FC = () => (
 
 export const OceanBar: React.FC<{ trait: string; value: number }> = ({ trait, value }) => (
   <div className="flex items-center gap-3">
-    <span className="text-[13px] w-36 flex-shrink-0" style={{ color: 'rgba(255,255,255,0.5)' }}>
+    <span className="text-[13px] w-36 flex-shrink-0" style={{ color: 'var(--text-secondary)' }}>
       {trait}
     </span>
     <div className="flex-1 h-1.5 rounded-full" style={{ backgroundColor: 'var(--glass-surface-bg)' }}>

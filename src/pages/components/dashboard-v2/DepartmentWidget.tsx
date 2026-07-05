@@ -63,7 +63,7 @@ export function DepartmentWidget() {
   return (
     <section className="mb-10 pb-10" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
       <div className="flex items-center justify-between mb-4">
-        <h2 className={LABEL_STYLE} style={{ color: 'rgba(255,255,255,0.4)', marginBottom: 0 }}>
+        <h2 className={LABEL_STYLE} style={{ color: 'var(--text-secondary)', marginBottom: 0 }}>
           YOUR AI TEAM
         </h2>
       </div>
@@ -92,7 +92,7 @@ export function DepartmentWidget() {
             <p
               className="text-xs"
               style={{
-                color: 'rgba(255,255,255,0.45)',
+                color: 'var(--text-secondary)',
                 fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
               }}
             >
@@ -136,7 +136,7 @@ export function DepartmentWidget() {
               <span
                 className="text-[10px] font-medium leading-none"
                 style={{
-                  color: dept.isEnabled ? 'rgba(255,255,255,0.65)' : 'rgba(255,255,255,0.2)',
+                  color: dept.isEnabled ? 'rgba(255,255,255,0.65)' : 'var(--text-muted)',
                   fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
                 }}
               >
@@ -203,7 +203,7 @@ export function DepartmentWidget() {
               <span
                 className="text-[10px]"
                 style={{
-                  color: 'rgba(255,255,255,0.35)',
+                  color: 'var(--text-secondary)',
                   fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
                 }}
               >
@@ -215,7 +215,7 @@ export function DepartmentWidget() {
           <p
             className="text-xs"
             style={{
-              color: 'rgba(255,255,255,0.3)',
+              color: 'var(--text-secondary)',
               fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
             }}
           >

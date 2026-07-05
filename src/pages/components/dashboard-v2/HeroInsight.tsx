@@ -18,7 +18,8 @@ export function HeroInsight({ body, source, insightId, sources }: HeroInsightPro
   // mount — "engaged" must mean "user acted on it", not "card was rendered".
   const handleTalkAboutThis = () => {
     // Fire-and-forget signal write; never block navigation on it.
-    authFetch(`/insights/proactive/${insightId}/engage`, { method: 'POST' }).catch(() => {});
+    authFetch(`/insights/proactive/${insightId}/engage`, { method: 'POST' })
+      .catch(err => console.warn('Engagement signal failed (non-fatal):', err));
     navigate('/talk-to-twin', { state: { prefill: body } });
   };
 

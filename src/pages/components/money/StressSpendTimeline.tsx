@@ -21,6 +21,12 @@ import type { TimelineDay } from '@/services/api/transactionsAPI';
 interface Props {
   days: TimelineDay[];
   currency?: string;
+  /**
+   * The window the `days` data was queried with — keeps the banner copy in
+   * sync with the caller's actual request (audit-2026-07-03: every window
+   * label on /money must come from ONE value).
+   */
+  windowDays?: number;
 }
 
 const STRESS_THRESHOLD = 0.6;
@@ -78,7 +84,7 @@ function CustomTooltip({ active, payload, label, currency }: CustomTooltipProps)
   );
 }
 
-export function StressSpendTimeline({ days, currency = 'BRL' }: Props) {
+export function StressSpendTimeline({ days, currency = 'BRL', windowDays = 30 }: Props) {
   const chartData = useMemo(() =>
     days.map((d) => ({
       date: d.day,
@@ -122,7 +128,7 @@ export function StressSpendTimeline({ days, currency = 'BRL' }: Props) {
           fontSize: 13,
           color: 'rgba(232,160,80,0.95)',
         }}>
-          {correlatedDays} {correlatedDays === 1 ? 'day' : 'days'} where high stress and high spending coincided in the last 30 days.
+          {correlatedDays} {correlatedDays === 1 ? 'day' : 'days'} where high stress and high spending coincided in the last {windowDays} days.
         </div>
       )}
 

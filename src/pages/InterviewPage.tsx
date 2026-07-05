@@ -64,8 +64,11 @@ export default function InterviewPage() {
             }
           }
         }
-      } catch {
-        // Non-fatal
+      } catch (err) {
+        // Non-fatal by design: if the completion check fails we fall through
+        // to rendering the interview itself (worst case a returning user sees
+        // it again). Log so the failure is traceable (audit-2026-07-03).
+        console.warn('Calibration-data check failed (non-fatal):', err);
       } finally {
         setLoading(false);
       }

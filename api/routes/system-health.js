@@ -14,6 +14,26 @@ let _healthCache = null;
 let _healthCacheAt = 0;
 const HEALTH_CACHE_TTL_MS = 30_000; // 30 seconds
 
+// Per-probe timeout: a slow probe (e.g. exact count over a large table)
+// degrades to partial status instead of holding the whole response.
+const HEALTH_PROBE_TIMEOUT_MS = parseInt(process.env.HEALTH_PROBE_TIMEOUT_MS, 10) || 2000;
+const PROBE_TIMED_OUT = Object.freeze({ timedOut: true });
+
+/**
+ * Race a probe against a timeout. Resolves with PROBE_TIMED_OUT on timeout
+ * and with { error } on rejection — never throws, so Promise.all below
+ * always settles.
+ */
+function probeWithTimeout(promise) {
+  return Promise.race([
+    Promise.resolve(promise).catch((e) => ({ error: { message: e.message } })),
+    new Promise((resolve) => {
+      const timer = setTimeout(() => resolve(PROBE_TIMED_OUT), HEALTH_PROBE_TIMEOUT_MS);
+      if (typeof timer.unref === 'function') timer.unref();
+    }),
+  ]);
+}
+
 // System health check endpoint (4A - Production Hardening)
 // Returns basic health for uptime monitors; full details only for authenticated users
 router.get('/', async (req, res) => {
@@ -62,22 +82,23 @@ router.get('/', async (req, res) => {
     circuitBreaker: getCircuitBreakerStatus(),
   };
 
-  try {
-    // 1. Database connectivity — use user_memories (lighter; avoids users table churn)
-    if (!supabaseAdmin) {
-      checks.database.connected = false;
-      checks.database.error = 'supabaseAdmin not initialized';
-    } else {
-      const { error: dbError } = await supabaseAdmin
-        .from('user_memories')
-        .select('id')
-        .limit(1);
-      checks.database.connected = !dbError;
-      if (dbError) checks.database.error = dbError.message;
-    }
-  } catch (e) {
+  // 1. Database connectivity gate — use user_memories (lighter; avoids users
+  //    table churn). Timeout-guarded so a hanging DB yields 503, not a hung
+  //    request.
+  if (!supabaseAdmin) {
     checks.database.connected = false;
-    checks.database.error = e.message;
+    checks.database.error = 'supabaseAdmin not initialized';
+  } else {
+    const ping = await probeWithTimeout(
+      supabaseAdmin.from('user_memories').select('id').limit(1)
+    );
+    if (ping === PROBE_TIMED_OUT) {
+      checks.database.connected = false;
+      checks.database.error = `connectivity probe timed out after ${HEALTH_PROBE_TIMEOUT_MS}ms`;
+    } else {
+      checks.database.connected = !ping?.error;
+      if (ping?.error) checks.database.error = ping.error.message;
+    }
   }
 
   // If database is not connected, cache the unhealthy result and return 503
@@ -88,32 +109,49 @@ router.get('/', async (req, res) => {
     return res.status(503).json(checks);
   }
 
-  try {
-    // 2. Memory stream count
-    const { count, error: memError } = await supabaseAdmin
-      .from('user_memories')
-      .select('*', { count: 'exact', head: true });
-    if (!memError) checks.memoryStreamCount = count || 0;
+  // 2-4. Detail probes in parallel (previously serial — the exact count over
+  //      user_memories alone could take seconds). Each has its own timeout;
+  //      timed-out probes keep their defaults and are listed in probeTimeouts.
+  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  const [memResult, ingResult, llmResult] = await Promise.all([
+    probeWithTimeout(
+      supabaseAdmin
+        .from('user_memories')
+        .select('*', { count: 'exact', head: true })
+    ),
+    probeWithTimeout(
+      supabaseAdmin
+        .from('ingestion_health_log')
+        .select('run_at, duration_ms, users_processed, observations_stored, errors')
+        .order('run_at', { ascending: false })
+        .limit(1)
+        .single()
+    ),
+    probeWithTimeout(
+      supabaseAdmin
+        .from('llm_usage_log')
+        .select('*', { count: 'exact', head: true })
+        .gte('created_at', oneHourAgo)
+    ),
+  ]);
 
-    // 3. Ingestion last-run
-    const { data: lastRun, error: ingError } = await supabaseAdmin
-      .from('ingestion_health_log')
-      .select('run_at, duration_ms, users_processed, observations_stored, errors')
-      .order('run_at', { ascending: false })
-      .limit(1)
-      .single();
-    if (!ingError && lastRun) checks.ingestionLastRun = lastRun;
+  if (memResult !== PROBE_TIMED_OUT && !memResult?.error) {
+    checks.memoryStreamCount = memResult?.count || 0;
+  }
+  if (ingResult !== PROBE_TIMED_OUT && !ingResult?.error && ingResult?.data) {
+    checks.ingestionLastRun = ingResult.data;
+  }
+  if (llmResult !== PROBE_TIMED_OUT && !llmResult?.error) {
+    checks.llmCallsLastHour = llmResult?.count || 0;
+  }
 
-    // 4. LLM calls last hour
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-    const { count: llmCount, error: llmError } = await supabaseAdmin
-      .from('llm_usage_log')
-      .select('*', { count: 'exact', head: true })
-      .gte('created_at', oneHourAgo);
-    if (!llmError) checks.llmCallsLastHour = llmCount || 0;
-  } catch (e) {
-    // Non-fatal: database is connected but some queries failed
-    checks.queryError = e.message;
+  const probeTimeouts = [
+    memResult === PROBE_TIMED_OUT && 'memoryStreamCount',
+    ingResult === PROBE_TIMED_OUT && 'ingestionLastRun',
+    llmResult === PROBE_TIMED_OUT && 'llmCallsLastHour',
+  ].filter(Boolean);
+  if (probeTimeouts.length > 0) {
+    checks.probeTimeouts = probeTimeouts; // partial status — probes exceeded HEALTH_PROBE_TIMEOUT_MS
   }
 
   _healthCache = checks;

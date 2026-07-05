@@ -16,12 +16,6 @@
     "https://www.youtube.com/*",
     "https://www.twitch.tv/*",
     "https://www.netflix.com/*",
-    "https://www.hulu.com/*",
-    "https://www.hbomax.com/*",
-    "https://max.com/*",
-    "https://www.primevideo.com/*",
-    "https://www.amazon.com/gp/video/*",
-    "https://www.disneyplus.com/*",
     "https://www.instagram.com/*",
     "https://discord.com/*",
     "https://www.linkedin.com/*",
@@ -32,8 +26,7 @@
     "https://ifood.com.br/*",
     "https://www.amazon.com.br/*",
     "https://www.mercadolivre.com.br/*",
-    "https://www.shein.com.br/*",
-    "*://*/*"
+    "https://www.shein.com.br/*"
   ],
   "background": {
     "service_worker": "background.js",
@@ -111,19 +104,6 @@
       ],
       "js": ["content/stress-shop-nudge.js"],
       "run_at": "document_idle"
-    },
-    {
-      "matches": ["*://*/*"],
-      "js": ["content/soul-observer.js"],
-      "run_at": "document_idle",
-      "exclude_matches": [
-        "https://www.youtube.com/*",
-        "https://www.twitch.tv/*",
-        "https://www.netflix.com/*",
-        "https://www.instagram.com/*",
-        "https://discord.com/*",
-        "https://www.linkedin.com/*"
-      ]
     }
   ],
   "action": {
@@ -148,8 +128,7 @@
         "https://www.youtube.com/*",
         "https://www.twitch.tv/*",
         "https://www.netflix.com/*",
-        "https://twin-ai-learn.vercel.app/*",
-        "*://*/*"
+        "https://twin-ai-learn.vercel.app/*"
       ]
     }
   ]
