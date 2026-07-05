@@ -279,9 +279,13 @@ const DECAY_RATE = Math.log(2) / 7; // 7-day half-life ≈ 0.099
  */
 export async function buildPersonalityEmbedding(userId) {
   try {
+    // NOTE: 'content' deliberately excluded — this function never reads it,
+    // and 100 rows of memory text is pure transfer weight on top of the
+    // ~1.9MB the 100 embedding vectors already cost (audit 2026-07-03,
+    // GET /api/personality-profile rebuild path).
     const { data: memories, error } = await supabaseAdmin
       .from('user_memories')
-      .select('id, content, embedding, importance_score, created_at')
+      .select('id, embedding, importance_score, created_at')
       .eq('user_id', userId)
       .not('embedding', 'is', null)
       .order('created_at', { ascending: false })
@@ -364,11 +368,18 @@ export async function buildPersonalityEmbedding(userId) {
  */
 export async function buildProfile(userId) {
   try {
-    // Fetch soul layers + stylometrics + embedding in parallel
-    const [soulLayers, stylometrics, personalityEmbedding] = await Promise.all([
+    // Fetch soul layers + stylometrics + embedding + memory count in parallel.
+    // Audit 2026-07-03: the count query used to run as a second serial phase
+    // after this Promise.all resolved — it is independent of the other three,
+    // so fold it in and save a full DB round trip on every rebuild.
+    const [soulLayers, stylometrics, personalityEmbedding, { count: memoryCount }] = await Promise.all([
       getSoulSignatureLayers(userId),
       computeStylometrics(userId),
       buildPersonalityEmbedding(userId),
+      supabaseAdmin
+        .from('user_memories')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', userId),
     ]);
 
     // Check we have enough conversation data for stylometrics
@@ -378,12 +389,6 @@ export async function buildProfile(userId) {
     }
 
     const samplingParams = deriveSamplingParamsFrom5Layers(soulLayers);
-
-    // Count total memories for confidence
-    const { count: memoryCount } = await supabaseAdmin
-      .from('user_memories')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', userId);
 
     const totalMemories = memoryCount ?? 0;
     const confidence = Math.min(1.0, totalMemories / 100);

@@ -145,9 +145,13 @@ class UserContextAggregator {
         }
       }
 
-      // Fetch both cycle and recovery data in parallel using Nango proxy
-      // Nango handles token refresh automatically
-      const [cycleResult, recoveryResult] = await Promise.all([
+      // Fetch cycle, recovery AND sleep data in parallel using Nango proxy.
+      // Nango handles token refresh automatically.
+      // Audit 2026-07-03: sleep used to be awaited serially inside the return
+      // object literal (`sleep: await this.getSleepContext(...)`), adding a
+      // full extra Nango round trip (~0.5-1s) after cycles+recovery resolved.
+      // It is independent of both, so it belongs in the same parallel batch.
+      const [cycleResult, recoveryResult, sleepData] = await Promise.all([
         nangoWhoop.getCycles(userId, 1).catch(err => {
           log.info(`Cycle API error: ${err.message}`);
           return { success: false, data: { records: [] } };
@@ -155,7 +159,9 @@ class UserContextAggregator {
         nangoWhoop.getRecovery(userId, 7).catch(err => {
           log.info(`Recovery API error: ${err.message}`);
           return { success: false, data: { records: [] } };
-        })
+        }),
+        // getSleepContext catches internally and returns null on any failure
+        this.getSleepContext(userId)
       ]);
 
       // Handle auth errors from Nango
@@ -263,7 +269,7 @@ class UserContextAggregator {
           spo2: spo2 ? Math.round(spo2) : null,
           skinTemp: skinTemp ? Math.round(skinTemp * 10) / 10 : null
         },
-        sleep: await this.getSleepContext(userId),
+        sleep: sleepData,
         history7Day: history7Day,
         lastUpdated: latestCycle?.end || latestCycle?.created_at || latestRecovery?.created_at,
         recommendations: this.generateWhoopRecommendations(recovery, strain)
@@ -559,6 +565,7 @@ class UserContextAggregator {
       // Fetch recently played tracks
       const recentRes = await axios.get(`${SPOTIFY_API_BASE}/me/player/recently-played`, {
         headers,
+        timeout: 10000,
         params: { limit: 10 }
       });
 
@@ -577,6 +584,7 @@ class UserContextAggregator {
         try {
           const featuresRes = await axios.get(`${SPOTIFY_API_BASE}/audio-features`, {
             headers,
+            timeout: 10000,
             params: { ids: trackIds.join(',') }
           });
           audioFeatures = featuresRes.data?.audio_features || [];
@@ -652,35 +660,43 @@ class UserContextAggregator {
       // First get all calendars the user has access to
       const calendarListRes = await axios.get(
         'https://www.googleapis.com/calendar/v3/users/me/calendarList',
-        { headers: { 'Authorization': `Bearer ${accessToken}` } }
+        { headers: { 'Authorization': `Bearer ${accessToken}` }, timeout: 10000 }
       );
 
       const calendars = calendarListRes.data?.items || [];
       log.info(`Found ${calendars.length} calendars`);
 
-      // Fetch events from all calendars
-      let allEvents = [];
-      for (const calendar of calendars) {
-        try {
-          const calendarResponse = await axios.get(
-            `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendar.id)}/events`,
-            {
-              headers: { 'Authorization': `Bearer ${accessToken}` },
-              params: {
-                timeMin,
-                timeMax,
-                maxResults: 20,
-                singleEvents: true,
-                orderBy: 'startTime'
+      // Fetch events from all calendars IN PARALLEL.
+      // Audit 2026-07-03: this was a serial for-loop — one Google API round
+      // trip per calendar (N+1). A user with 5 calendars paid ~6 sequential
+      // round trips (~1.5-2s) on every /api/twin/status cache miss. Each
+      // fetch keeps its own catch so one broken calendar still degrades to
+      // "skip" instead of failing the batch, exactly like before.
+      const eventBatches = await Promise.all(
+        calendars.map(async (calendar) => {
+          try {
+            const calendarResponse = await axios.get(
+              `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendar.id)}/events`,
+              {
+                headers: { 'Authorization': `Bearer ${accessToken}` },
+                timeout: 10000,
+                params: {
+                  timeMin,
+                  timeMax,
+                  maxResults: 20,
+                  singleEvents: true,
+                  orderBy: 'startTime'
+                }
               }
-            }
-          );
-          const calItems = calendarResponse.data?.items || [];
-          allEvents = allEvents.concat(calItems);
-        } catch (err) {
-          log.info(`Skipping calendar ${calendar.summary}: ${err.message}`);
-        }
-      }
+            );
+            return calendarResponse.data?.items || [];
+          } catch (err) {
+            log.info(`Skipping calendar ${calendar.summary}: ${err.message}`);
+            return [];
+          }
+        })
+      );
+      let allEvents = eventBatches.flat();
 
       // Sort by start time
       allEvents.sort((a, b) => {
@@ -971,12 +987,20 @@ class UserContextAggregator {
     log.info(`Fetching YouTube context...`);
 
     try {
+      // Limit added (audit 2026-07-03): this select was UNBOUNDED and raw_data
+      // is a large JSONB column — extension-heavy users accumulate thousands of
+      // extension_video_watch rows, turning this into a multi-MB fetch on every
+      // /api/twin/status cache miss. 500 newest rows comfortably cover the
+      // find() of API rows (subscriptions/likedVideos/channels are re-upserted
+      // on every sync) plus the sliced extension aggregations below; watch-
+      // pattern stats become "recent 500 events" instead of all-time.
       const { data: youtubeData, error } = await supabaseAdmin
         .from('user_platform_data')
         .select('raw_data, data_type, extracted_at')
         .eq('user_id', userId)
         .eq('platform', 'youtube')
-        .order('extracted_at', { ascending: false });
+        .order('extracted_at', { ascending: false })
+        .limit(500);
 
       if (error || !youtubeData || youtubeData.length === 0) {
         return null;
@@ -1088,12 +1112,14 @@ class UserContextAggregator {
     log.info(`Fetching Twitch context...`);
 
     try {
+      // Bounded for the same reason as the YouTube query above (audit 2026-07-03).
       const { data: twitchData, error } = await supabaseAdmin
         .from('user_platform_data')
         .select('raw_data, data_type, extracted_at')
         .eq('user_id', userId)
         .eq('platform', 'twitch')
-        .order('extracted_at', { ascending: false });
+        .order('extracted_at', { ascending: false })
+        .limit(500);
 
       if (error || !twitchData || twitchData.length === 0) {
         return null;

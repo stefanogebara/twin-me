@@ -290,17 +290,25 @@ What does this reveal about their personality or habits?`;
    */
   async getTwin(userId) {
     try {
-      const signature = await getSoulSignature(userId);
+      // Signature and reflections are independent reads — fetch in parallel
+      // (audit 2026-07-03: serial awaits on the /api/twin/status/:userId path).
+      // The reflections select was also UNBOUNDED — it grows forever (one row
+      // per platform per generation cycle) and gets embedded verbatim in the
+      // status/profile response. 50 newest covers the active set (~1 per
+      // platform) plus recent history; no in-repo consumer reads further.
+      const [signature, { data: reflections }] = await Promise.all([
+        getSoulSignature(userId),
+        supabaseAdmin
+          .from('reflection_history')
+          .select('*')
+          .eq('user_id', userId)
+          .order('generated_at', { ascending: false })
+          .limit(50)
+      ]);
+
       if (!signature) {
         return { success: false, error: 'Twin not found' };
       }
-
-      // Get reflections
-      const { data: reflections } = await supabaseAdmin
-        .from('reflection_history')
-        .select('*')
-        .eq('user_id', userId)
-        .order('generated_at', { ascending: false });
 
       return {
         success: true,
