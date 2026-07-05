@@ -122,7 +122,10 @@ router.get('/callback', async (req, res) => {
 
   } catch (error) {
     log.error('OAuth callback error:', error);
-    res.redirect(`${appUrl}/soul-signature?error=connection_failed`);
+    // audit A2-M2c: appUrl is scoped to the try block above, so referencing it
+    // here threw ReferenceError and the failure redirect never fired. Recompute.
+    const errorAppUrl = getAppUrl(req);
+    res.redirect(`${errorAppUrl}/soul-signature?error=connection_failed`);
   }
 });
 

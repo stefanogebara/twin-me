@@ -269,12 +269,12 @@ async function applyGumBayesianRevision(userId, newContent, newEmbedding, memory
         p_new_confidence: u.confidence,
       })
         .then(() => log.info('GUM confidence updated', { verdict: u.verdict, confidence: u.confidence.toFixed(2), id: u.id }))
-        .catch(() => {});
+        .catch((e) => log.warn('GUM confidence update failed (non-fatal)', { id: u.id, error: e?.message || String(e) }));
 
       // GUM Step 4: Contradiction cascade — when a memory is contradicted,
       // reduce confidence of downstream reflections that cite it via grounding_ids
       if (u.verdict === 'CONTRADICTS') {
-        cascadeContradiction(u.id).catch(() => {});
+        cascadeContradiction(u.id).catch((e) => log.warn('GUM cascade dispatch failed (non-fatal)', { id: u.id, error: e?.message || String(e) }));
       }
     }
   } catch (err) {
@@ -304,7 +304,7 @@ async function cascadeContradiction(contradictedId) {
         .update({ confidence: newConf })
         .eq('id', row.id)
         .then(() => log.info('Cascade: reflection confidence updated', { id: row.id, confidence: newConf.toFixed(2) }))
-        .catch(() => {});
+        .catch((e) => log.warn('Cascade confidence update failed (non-fatal)', { id: row.id, error: e?.message || String(e) }));
     }
     log.info('Contradiction cascade complete', { affectedReflections: downstream.length });
   } catch (err) {

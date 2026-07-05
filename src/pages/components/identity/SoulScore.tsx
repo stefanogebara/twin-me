@@ -200,7 +200,7 @@ const ContributorCard: React.FC<ContributorCardProps> = ({ domain, connected, sc
             className="text-[13px] font-medium"
             style={{
               fontFamily: "'Inter', sans-serif",
-              color: locked ? 'rgba(255,255,255,0.25)' : '#F5F5F4',
+              color: locked ? 'var(--text-secondary)' : '#F5F5F4',
             }}
           >
             {domain.label}
@@ -215,7 +215,7 @@ const ContributorCard: React.FC<ContributorCardProps> = ({ domain, connected, sc
       {locked ? (
         <span
           className="text-[11px]"
-          style={{ fontFamily: "'Inter', sans-serif", color: 'rgba(255,255,255,0.25)' }}
+          style={{ fontFamily: "'Inter', sans-serif", color: 'var(--text-secondary)' }}
         >
           Connect {platformName} to unlock
         </span>
@@ -333,7 +333,7 @@ const SoulScore: React.FC<SoulScoreProps> = ({ className = '', compact = false }
         <ScoreRing score={score} compact={compact} />
         <p
           className="text-[13px]"
-          style={{ fontFamily: "'Inter', sans-serif", color: 'rgba(255,255,255,0.35)' }}
+          style={{ fontFamily: "'Inter', sans-serif", color: 'var(--text-secondary)' }}
         >
           {/* Sources = ACTIVELY syncing platforms (summary.active), matching the
               score numerator — total counted expired/stale rows ("10 sources" bug,

@@ -421,8 +421,12 @@ router.get('/heatmap', authenticateUser, async (req, res) => {
     cacheSet(hmCacheKey, heatmap, 1800).catch(() => {}); // 30min TTL
     return res.json({ success: true, heatmap });
   } catch (err) {
+    // Consistent with the RPC-error branch above (audit-2026-05-25 M4): a
+    // thrown failure must not masquerade as an empty-but-successful heatmap.
+    // useDashboardContext.fetchHeatmap already treats non-200 as "show empty
+    // heatmap" (audit-2026-07-03).
     log.error('Heatmap error:', err.message);
-    return res.json({ success: true, heatmap: [] });
+    return res.status(500).json({ success: false, error: 'heatmap_unavailable' });
   }
 });
 

@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { ChevronLeft, Pause, Play, Trash2, Pencil, Check, X } from 'lucide-react';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import {
@@ -105,6 +106,9 @@ function DirectiveCard({ directive, onUpdate, onDelete }: DirectiveCardProps) {
       setEditing(false);
     } catch (err) {
       console.error('Save failed', err);
+      // Keep the editor open with the user's draft so the edit isn't lost, and
+      // surface the failure (optimistic state only applied on success, above).
+      toast.error("Couldn't save that edit. Please try again.");
     } finally {
       setBusy(false);
     }
@@ -116,6 +120,7 @@ function DirectiveCard({ directive, onUpdate, onDelete }: DirectiveCardProps) {
       await onUpdate(directive.id, { status: isPaused ? 'active' : 'paused' });
     } catch (err) {
       console.error('Toggle failed', err);
+      toast.error(`Couldn't ${isPaused ? 'resume' : 'pause'} this rule. Please try again.`);
     } finally {
       setBusy(false);
     }
@@ -127,6 +132,7 @@ function DirectiveCard({ directive, onUpdate, onDelete }: DirectiveCardProps) {
       await onDelete(directive.id);
     } catch (err) {
       console.error('Delete failed', err);
+      toast.error("Couldn't delete this rule. Please try again.");
     } finally {
       setBusy(false);
     }
@@ -273,9 +279,14 @@ export default function TwinSoulPage() {
   const [directives, setDirectives] = useState<TwinDirective[]>([]);
   const [metrics, setMetrics] = useState<CorrectionRateData | null>(null);
   const [loading, setLoading] = useState(true);
+  // Distinguish "load failed" from "genuinely empty" so we don't show the
+  // misleading "your twin hasn't learned anything yet" empty state on a fetch
+  // error (audit-2026-07-03 error-ux).
+  const [loadError, setLoadError] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
+    setLoadError(false);
     try {
       const [list, rate] = await Promise.all([
         fetchDirectives(),
@@ -285,6 +296,7 @@ export default function TwinSoulPage() {
       setMetrics(rate);
     } catch (err) {
       console.error('Failed to load directives:', err);
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -419,8 +431,50 @@ export default function TwinSoulPage() {
             </section>
           )}
 
+          {/* Load-error state — distinct from the empty state so a failed fetch
+              doesn't masquerade as "nothing learned yet" (audit-2026-07-03). */}
+          {loadError && (
+            <section>
+              <div
+                className="px-5 py-6 rounded-[20px]"
+                style={{
+                  background: 'rgba(255,255,255,0.04)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  backdropFilter: 'blur(42px)',
+                  WebkitBackdropFilter: 'blur(42px)',
+                }}
+              >
+                <p
+                  className="leading-relaxed"
+                  style={{
+                    color: 'rgba(245,245,244,0.9)',
+                    fontFamily: "'Instrument Serif', Georgia, serif",
+                    fontSize: 18,
+                    letterSpacing: '-0.01em',
+                  }}
+                >
+                  We couldn't load what your twin learned. Check your connection and try again.
+                </p>
+                <div className="flex gap-2 mt-4">
+                  <button
+                    type="button"
+                    onClick={() => void load()}
+                    className="px-3 py-2 rounded-[100px] text-xs font-medium transition-all duration-150 hover:opacity-80 active:scale-[0.97]"
+                    style={{
+                      background: '#F5F5F4',
+                      color: '#110f0f',
+                      fontFamily: "'Geist', 'Inter', sans-serif",
+                    }}
+                  >
+                    Try again
+                  </button>
+                </div>
+              </div>
+            </section>
+          )}
+
           {/* Empty state */}
-          {directives.length === 0 && (
+          {!loadError && directives.length === 0 && (
             <section>
               <div
                 className="px-5 py-6 rounded-[20px]"

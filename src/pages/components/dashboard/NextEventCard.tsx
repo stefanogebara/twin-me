@@ -69,7 +69,7 @@ export const NextEventCard: React.FC<NextEventCardProps> = ({
               <div className="flex items-center gap-4">
                 <span
                   className="flex items-center gap-1.5 text-sm"
-                  style={{ color: 'rgba(255,255,255,0.4)' }}
+                  style={{ color: 'var(--text-secondary)' }}
                 >
                   <Clock className="w-4 h-4" />
                   {(() => {
@@ -84,7 +84,7 @@ export const NextEventCard: React.FC<NextEventCardProps> = ({
                   className="px-2 py-0.5 rounded-full text-xs"
                   style={{
                     backgroundColor: 'var(--glass-surface-bg)',
-                    color: 'rgba(255,255,255,0.4)'
+                    color: 'var(--text-secondary)'
                   }}
                 >
                   {nextEvent.type}
@@ -134,7 +134,7 @@ export const NextEventCard: React.FC<NextEventCardProps> = ({
       />
       <span
         className="text-sm flex-1"
-        style={{ color: 'rgba(255,255,255,0.4)' }}
+        style={{ color: 'var(--text-secondary)' }}
       >
         {isCalendarConnected ? 'Looks like you have a free day' : 'Connect your calendar and I can help you plan your time'}
       </span>

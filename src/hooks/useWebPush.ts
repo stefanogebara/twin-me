@@ -88,11 +88,17 @@ export function useWebPush(isAuthenticated: boolean) {
 }
 
 async function sendSubscriptionToBackend(subscription: PushSubscription) {
-  await fetch(`${API_URL}/web-push/subscribe`, {
+  const res = await fetch(`${API_URL}/web-push/subscribe`, {
     method: 'POST',
     headers: getAuthHeaders(),
     body: JSON.stringify({ subscription: subscription.toJSON() }),
   });
+  if (!res.ok) {
+    // Propagates to the caller's catch (console.warn, non-fatal) and keeps
+    // `subscribed` false when the backend rejected the registration
+    // (audit-2026-07-03).
+    throw new Error(`Web push subscription failed: ${res.status}`);
+  }
 }
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {

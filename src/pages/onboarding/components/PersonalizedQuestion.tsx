@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Brain, Heart, Palette, Users, Flame } from 'lucide-react';
 import type { PersonalizedQuestion as QuestionType } from '@/services/enrichmentService';
 
@@ -20,6 +20,13 @@ const TypewriterText: React.FC<{ text: string; onComplete?: () => void }> = ({ t
   const [displayed, setDisplayed] = useState('');
   const [done, setDone] = useState(false);
 
+  // Latest-callback ref: callers pass inline arrows, so putting onComplete in
+  // the dep array would restart the animation on every parent re-render.
+  // The ref keeps the effect keyed on `text` only while still invoking the
+  // freshest callback at completion (audit-2026-07-03).
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
+
   useEffect(() => {
     setDisplayed('');
     setDone(false);
@@ -30,7 +37,7 @@ const TypewriterText: React.FC<{ text: string; onComplete?: () => void }> = ({ t
       if (i >= text.length) {
         clearInterval(interval);
         setDone(true);
-        onComplete?.();
+        onCompleteRef.current?.();
       }
     }, 30);
     return () => clearInterval(interval);

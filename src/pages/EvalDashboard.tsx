@@ -144,6 +144,15 @@ export default function EvalDashboard() {
         }
       }
 
+      // Per-question failures are stored inline as "[error ...]" responses so
+      // they stay visible in the scoring UI — but also call them out up front
+      // so a partially-failed run is not mistaken for a clean one
+      // (audit-2026-07-03).
+      const failedCount = results.filter(r => r.twinResponse.startsWith('[error')).length;
+      if (failedCount > 0) {
+        toast.warning(`${failedCount} of ${EVAL_QUESTIONS.length} questions failed — their responses are stored as [error]`);
+      }
+
       // Store pre-collected results (backend only does DB write now)
       const storeRes = await authFetch('/eval/run', {
         method: 'POST',
@@ -239,7 +248,12 @@ export default function EvalDashboard() {
           </div>
           {trend !== null && trend !== undefined && (
             <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium ${
-              trend >= 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-red-900/20 text-red-700'
+              // Dark-glass chips: translucent tint + saturated text — the old
+              // emerald-50/red-700 combos were light-mode colors that glared
+              // (and failed contrast) on the dark theme (audit-2026-07-03).
+              trend >= 0
+                ? 'bg-[rgba(16,185,129,0.08)] text-[#10B981]'
+                : 'bg-[rgba(239,68,68,0.08)] text-[#EF4444]'
             }`}>
               {trend >= 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
               {trend >= 0 ? '+' : ''}{trend}% vs last run
@@ -256,7 +270,7 @@ export default function EvalDashboard() {
           {historyChartData.length > 0 ? (
             <ResponsiveContainer width="100%" height={160}>
               <LineChart data={historyChartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
                 <XAxis dataKey="date" tick={{ fontSize: 11 }} />
                 <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} unit="%" />
                 <Tooltip formatter={(val: number) => [`${val}%`, 'score']} />

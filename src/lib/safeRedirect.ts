@@ -14,6 +14,13 @@ const TRUSTED_HOSTS = new Set([
 
 export function safeRedirect(url: string): boolean {
   if (!url || typeof url !== 'string') return false;
+  // Security (open-redirect bypass): browsers normalize backslashes to forward
+  // slashes when resolving http(s) URLs, so "/\evil.com" is navigated as the
+  // protocol-relative "//evil.com" and goes OFF-ORIGIN. The "//" guard below is
+  // literal-forward-slash only, so a lone backslash would slip past it. Reject
+  // any backslash outright — no legitimate redirect target contains one.
+  // Verified via WHATWG URL: new URL('/\\evil.com', origin).href === 'https://evil.com/'.
+  if (url.includes('\\')) return false;
   // Relative paths (but not protocol-relative)
   if (url.startsWith('/') && !url.startsWith('//')) {
     window.location.href = url;

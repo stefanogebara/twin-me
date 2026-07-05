@@ -163,7 +163,7 @@ const ContextSidebar: React.FC<ContextSidebarProps> = ({ className = '' }) => {
             >
               <p
                 className="text-xs text-center py-3"
-                style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}
+                style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
               >
                 {activeCount >= 3
                   ? `Your twin is learning from ${activeCount} active source${activeCount !== 1 ? 's' : ''}`
@@ -182,7 +182,7 @@ const ContextSidebar: React.FC<ContextSidebarProps> = ({ className = '' }) => {
               {insightsLoading ? (
                 <div className="flex items-center justify-center gap-2 py-6">
                   <Loader2 className="w-3.5 h-3.5 animate-spin" style={{ color: 'rgba(255,255,255,0.3)' }} />
-                  <span className="text-xs" style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}>
+                  <span className="text-xs" style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
                     Loading your insights...
                   </span>
                 </div>
@@ -190,7 +190,7 @@ const ContextSidebar: React.FC<ContextSidebarProps> = ({ className = '' }) => {
                 <div className="flex flex-col items-center gap-2.5 py-5">
                   <div className="flex items-center gap-2">
                     <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'rgba(239,68,68,0.7)' }} />
-                    <span className="text-xs" style={{ color: 'rgba(255,255,255,0.45)', fontFamily: "'Inter', sans-serif" }}>
+                    <span className="text-xs" style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
                       Could not load your insight stats
                     </span>
                   </div>
@@ -226,7 +226,7 @@ const ContextSidebar: React.FC<ContextSidebarProps> = ({ className = '' }) => {
             >
               <h3
                 className="text-[11px] font-medium tracking-[0.12em] uppercase"
-                style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}
+                style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
               >
                 Recent Activity
               </h3>
@@ -244,17 +244,17 @@ const ContextSidebar: React.FC<ContextSidebarProps> = ({ className = '' }) => {
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs leading-relaxed line-clamp-2" style={{ color: 'rgba(255,255,255,0.5)', fontFamily: "'Inter', sans-serif" }}>
+                      <p className="text-xs leading-relaxed line-clamp-2" style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
                         {mem.content}
                       </p>
-                      <p className="text-[10px] mt-0.5" style={{ color: 'rgba(255,255,255,0.2)', fontFamily: "'Inter', sans-serif" }}>
+                      <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
                         {new Date(mem.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                       </p>
                     </div>
                   </div>
                 ))
               ) : (
-                <p className="text-xs text-center py-4" style={{ color: 'rgba(255,255,255,0.25)', fontFamily: "'Inter', sans-serif" }}>
+                <p className="text-xs text-center py-4" style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
                   Activity will appear as your twin learns more about you
                 </p>
               )}

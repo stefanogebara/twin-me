@@ -8,14 +8,11 @@ interface WebBrowsingErrorStateProps {
     webAccent: string;
     webBg: string;
   };
-  /** Unused legacy prop — callers don't pass it (dark-only design system). */
-  theme?: string;
   navigate: (path: string) => void;
 }
 
 export const WebBrowsingErrorState: React.FC<WebBrowsingErrorStateProps> = ({
   colors,
-  theme,
   navigate,
 }) => {
   return (

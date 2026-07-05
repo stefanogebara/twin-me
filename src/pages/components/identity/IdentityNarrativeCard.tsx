@@ -52,7 +52,7 @@ function relativeTime(iso: string | null): string {
 const IdentityNarrativeCard: React.FC = () => {
   const queryClient = useQueryClient();
 
-  const { data, isLoading, isError } = useQuery<{ data: NarrativeData }>({
+  const { data, isLoading, isError, refetch } = useQuery<{ data: NarrativeData }>({
     queryKey: QUERY_KEY,
     queryFn: async () => {
       const res = await authFetch('/soul-signature/narrative');
@@ -136,7 +136,26 @@ const IdentityNarrativeCard: React.FC = () => {
     );
   }
 
-  if (isError || !narrative) return null;
+  // Fetch failure: show a quiet retry card instead of vanishing — a silent
+  // null made "my narrative disappeared" undebuggable (audit-2026-07-03).
+  if (isError) {
+    return (
+      <div className="rounded-[20px] border border-[rgba(255,255,255,0.10)] bg-[rgba(255,255,255,0.06)] backdrop-blur-[42px] px-5 py-4">
+        <p className="text-sm" style={{ color: '#A8A29E' }}>
+          Could not load your narrative.
+        </p>
+        <button
+          onClick={() => refetch()}
+          className="mt-2 text-sm underline transition-opacity hover:opacity-70"
+          style={{ color: '#9C9590' }}
+        >
+          Try again
+        </button>
+      </div>
+    );
+  }
+
+  if (!narrative) return null;
 
   if (narrative.active_source === 'none' || !narrative.active_narrative) {
     // No soul signature yet — nothing to override. Don't show the card.

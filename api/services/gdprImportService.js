@@ -68,14 +68,22 @@ async function getUserTimezone(userId) {
   }
 }
 
-async function loadExistingHashes(userId, platform) {
+// Exported for unit tests (audit-2026-07-02 M3: the dedup scan must be
+// bounded AND deterministic — newest rows first).
+export async function loadExistingHashes(userId, platform) {
   const supabase = await getSupabase();
+  // audit-2026-07-02 M3: .limit() without .order() returns an ARBITRARY 5000
+  // rows once an account outgrows the limit, so the dedup set could silently
+  // miss the newest rows — the ones a re-import is most likely to duplicate.
+  // Order newest-first so the bound deterministically keeps the most recent
+  // 5000 hashes.
   const { data } = await supabase
     .from('user_memories')
     .select('content, metadata')
     .eq('user_id', userId)
     .eq('memory_type', 'platform_data')
     .filter('metadata->>source', 'eq', platform)
+    .order('created_at', { ascending: false })
     .limit(5000);
 
   const hashes = new Set();

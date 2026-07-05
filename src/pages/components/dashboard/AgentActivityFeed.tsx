@@ -75,7 +75,7 @@ const AgentActivityFeed: React.FC = () => {
     return (
       <div className="py-4 text-center">
         <Bot className="w-5 h-5 mx-auto mb-2" style={{ color: 'rgba(255,255,255,0.15)' }} />
-        <p className="text-[12px]" style={{ color: 'rgba(255,255,255,0.2)' }}>
+        <p className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>
           Your twin hasn't taken any actions yet
         </p>
       </div>
@@ -100,12 +100,12 @@ const AgentActivityFeed: React.FC = () => {
             </div>
             <p
               className="text-[11px] mt-0.5 truncate"
-              style={{ color: 'rgba(255,255,255,0.3)' }}
+              style={{ color: 'var(--text-secondary)' }}
             >
               {action.action_content?.slice(0, 100)}
             </p>
           </div>
-          <span className="text-[10px] shrink-0" style={{ color: 'rgba(255,255,255,0.15)' }}>
+          <span className="text-[10px] shrink-0" style={{ color: 'var(--text-secondary)' }}>
             {timeAgo(action.created_at)}
           </span>
         </div>
