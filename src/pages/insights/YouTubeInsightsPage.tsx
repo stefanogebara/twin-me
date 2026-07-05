@@ -103,7 +103,11 @@ const YouTubeInsightsPage: React.FC = () => {
 
   const colors = {
     text: 'var(--foreground)',
-    textSecondary: 'rgba(255, 255, 255, 0.55)',
+    // audit-2026-07-03 H1: use the design-system muted token (#A8A29E, 7.37:1
+    // on #13121a) rather than a raw white-alpha. rgba(255,255,255,0.55) already
+    // cleared AA on the base bg, but the token adds headroom for the lighter
+    // cloud-art regions these cards sit over and matches app-wide muted text.
+    textSecondary: 'var(--text-secondary)',
     youtubeRed: '#FF0000',
     youtubeBg: 'rgba(255, 0, 0, 0.1)'
   };

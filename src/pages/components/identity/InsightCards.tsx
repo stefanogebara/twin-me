@@ -106,7 +106,7 @@ function buildCards(props: InsightCardsProps): CardDef[] {
         </p>
         <p
           className="text-xs leading-relaxed"
-          style={{ color: 'rgba(255,255,255,0.45)', fontFamily: "'Inter', sans-serif" }}
+          style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
         >
           {musicAxis.description.length > 100
             ? musicAxis.description.slice(0, 100) + '...'
@@ -116,7 +116,7 @@ function buildCards(props: InsightCardsProps): CardDef[] {
     ) : (
       <p
         className="text-xs"
-        style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Inter', sans-serif" }}
+        style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
       >
         Connect Spotify to discover
       </p>
@@ -160,7 +160,7 @@ function buildCards(props: InsightCardsProps): CardDef[] {
           </p>
           <p
             className="text-xs leading-relaxed"
-            style={{ color: 'rgba(255,255,255,0.45)', fontFamily: "'Inter', sans-serif" }}
+            style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
           >
             {topAxis.description.length > 90
               ? topAxis.description.slice(0, 90) + '...'
@@ -189,7 +189,7 @@ function buildCards(props: InsightCardsProps): CardDef[] {
           </p>
           <p
             className="text-[10px] uppercase tracking-wider"
-            style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}
+            style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
           >
             memories
           </p>
@@ -203,7 +203,7 @@ function buildCards(props: InsightCardsProps): CardDef[] {
           </p>
           <p
             className="text-[10px] uppercase tracking-wider"
-            style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}
+            style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
           >
             platforms
           </p>
@@ -218,7 +218,7 @@ function buildCards(props: InsightCardsProps): CardDef[] {
             </p>
             <p
               className="text-[10px] uppercase tracking-wider"
-              style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}
+              style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
             >
               days
             </p>
@@ -245,7 +245,7 @@ function buildCards(props: InsightCardsProps): CardDef[] {
           </p>
           <p
             className="text-[10px] uppercase tracking-wider"
-            style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}
+            style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
           >
             fidelity score
           </p>
@@ -253,7 +253,7 @@ function buildCards(props: InsightCardsProps): CardDef[] {
       ) : (
         <p
           className="text-xs"
-          style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Inter', sans-serif" }}
+          style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
         >
           Chat more to measure accuracy
         </p>

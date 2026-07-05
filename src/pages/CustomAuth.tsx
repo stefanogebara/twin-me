@@ -383,7 +383,7 @@ For privacy concerns: privacy@twinme.me`
                 {validating ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Verify'}
               </button>
             </div>
-            <p className="text-[12px] mt-2" style={{ color: 'rgba(255,255,255,0.40)', fontFamily: "'Inter', sans-serif" }}>
+            <p className="text-[12px] mt-2" style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
               No code?{' '}
               <button
                 onClick={() => navigate('/waitlist')}
@@ -551,7 +551,7 @@ For privacy concerns: privacy@twinme.me`
         {/* Explore link */}
         <p
           className="text-center text-[13px] mt-6"
-          style={{ color: 'rgba(255,255,255,0.2)', fontFamily: "'Inter', sans-serif" }}
+          style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
         >
           New here?{' '}
           <button
@@ -565,7 +565,7 @@ For privacy concerns: privacy@twinme.me`
 
         {/* Footer */}
         <div className="mt-10 text-center">
-          <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.35)' }}>
+          <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
             &copy; 2026 TwinMe Inc.
           </span>
         </div>

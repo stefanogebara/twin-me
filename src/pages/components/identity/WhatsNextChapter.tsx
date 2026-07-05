@@ -8,7 +8,7 @@ const WhatsNextChapter: React.FC = () => {
   return (
     <>
       <SectionLabel label="What's Next" />
-      <p className="text-sm mb-4" style={{ color: 'rgba(255,255,255,0.35)' }}>
+      <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
         Your twin is learning. Connect more platforms to deepen your portrait.
       </p>
       <div className="flex gap-3">
@@ -22,7 +22,7 @@ const WhatsNextChapter: React.FC = () => {
         <button
           onClick={() => navigate('/interview')}
           className="px-4 py-2 rounded-[100px] text-[13px] font-medium transition-opacity hover:opacity-80"
-          style={{ border: '1px solid var(--border)', color: 'rgba(255,255,255,0.4)' }}
+          style={{ border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
         >
           Redo Interview
         </button>

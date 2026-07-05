@@ -236,7 +236,7 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
                     <div className="relative flex-shrink-0">
                       <Icon
                         className="w-5 h-5"
-                        style={{ color: active ? 'var(--accent-vibrant)' : 'rgba(255, 255, 255, 0.45)' }}
+                        style={{ color: active ? 'var(--accent-vibrant)' : 'var(--text-secondary)' }}
                         aria-hidden="true"
                       />
                       {/* Collapsed sidebar: tiny dot indicator on the icon when there's a count.
@@ -256,7 +256,7 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
                           style={{
                             fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
                             fontWeight: active ? 500 : 400,
-                            color: active ? '#F5F5F4' : 'rgba(255, 255, 255, 0.45)',
+                            color: active ? '#F5F5F4' : 'var(--text-secondary)',
                           }}
                         >
                           {item.label}
@@ -295,14 +295,14 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
                 aria-label="Sign out"
                 title="Sign Out"
               >
-                <LogOut className="w-5 h-5 flex-shrink-0" style={{ color: 'rgba(255, 255, 255, 0.45)' }} aria-hidden="true" />
+                <LogOut className="w-5 h-5 flex-shrink-0" style={{ color: 'var(--text-secondary)' }} aria-hidden="true" />
                 {!isCollapsed && (
                   <span
                     className="text-sm"
                     style={{
                       fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
                       fontWeight: 400,
-                      color: 'rgba(255, 255, 255, 0.45)',
+                      color: 'var(--text-secondary)',
                     }}
                   >
                     Sign Out
@@ -342,7 +342,7 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
                     </div>
                     <div
                       className="text-xs truncate"
-                      style={{ color: 'rgba(255, 255, 255, 0.4)' }}
+                      style={{ color: 'var(--text-secondary)' }}
                       title={user?.email}
                     >
                       {user?.email}
