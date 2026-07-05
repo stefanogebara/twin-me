@@ -19,8 +19,10 @@
  */
 import express from 'express';
 import { complete, TIER_ANALYSIS } from '../services/llmGateway.js';
+import { createLogger } from '../services/logger.js';
 
 const router = express.Router();
+const log = createLogger('desktop-observe-summary');
 
 const MAX_CLIPS = 40;
 const MAX_APP_LEN = 120;
@@ -164,7 +166,7 @@ router.post('/observe-summary', async (req, res) => {
 
     const parsed = parseSummaryJson(result?.content);
     if (!parsed) {
-      console.error('[desktop-observe-summary] could not parse model output');
+      log.error('could not parse model output');
       return res.status(502).json({ success: false, error: 'Could not generate a summary' });
     }
 
@@ -175,7 +177,7 @@ router.post('/observe-summary', async (req, res) => {
       actions: parsed.actions,
     });
   } catch (err) {
-    console.error('[desktop-observe-summary] LLM error:', err.message);
+    log.error('LLM error', { error: err.message });
     return res.status(502).json({ success: false, error: 'Summary service unavailable' });
   }
 });
