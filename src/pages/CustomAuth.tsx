@@ -162,11 +162,25 @@ const CustomAuth = () => {
           redirect: redirectAfterAuth,
         }),
       });
-      const data = await res.json();
-      if (data.success) {
+      // Rate limited: surface a wait time from Retry-After (seconds) so the user
+      // isn't told a misleading "network error" (audit-2026-07-03 error-ux).
+      if (res.status === 429) {
+        const retryAfter = Number(res.headers.get('Retry-After'));
+        setError(
+          Number.isFinite(retryAfter) && retryAfter > 0
+            ? `Too many requests. Please wait ${retryAfter}s and try again.`
+            : 'Too many requests. Please wait a moment and try again.',
+        );
+        return;
+      }
+      // Guard res.ok before .json(): a 5xx may return a non-JSON body, which
+      // would throw an opaque parse error caught as a generic "network error".
+      let data: { success?: boolean; error?: string } | null = null;
+      try { data = await res.json(); } catch { data = null; }
+      if (res.ok && data?.success) {
         setMagicLinkSent(true);
       } else {
-        setError(data.error || 'Could not send signin link. Try again in a moment.');
+        setError(data?.error || 'Could not send signin link. Try again in a moment.');
       }
     } catch {
       setError('Network error. Check your connection and try again.');

@@ -57,17 +57,25 @@ const MorningBriefingCard: React.FC<MorningBriefingCardProps> = ({ onAskTwin }) 
   // this card. 30-min staleTime — server already caches briefings in
   // proactive_insights, this just keeps the client from refetching on every
   // dashboard navigation. Refetch is still available via the refresh button.
-  const { data: briefing, isLoading, isError, refetch } = useQuery<BriefingData | null>({
+  const { data: briefing, isLoading, isError, error, refetch } = useQuery<BriefingData | null>({
     queryKey: ['morning-briefing'],
     queryFn: async () => {
       const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 15000);
+      let timedOut = false;
+      const timer = setTimeout(() => { timedOut = true; controller.abort(); }, 15000);
       try {
         const res = await authFetch('/morning-briefing/generate', { signal: controller.signal });
-        if (!res.ok) throw new Error('Failed');
+        if (!res.ok) throw new Error(`Briefing request failed (${res.status})`);
         const json = await res.json();
         if (json.success && json.briefing) return json.briefing as BriefingData;
         throw new Error('No briefing in response');
+      } catch (err) {
+        // Distinguish our own 15s timeout from a genuine backend/network error
+        // so the error card can show an accurate, actionable message.
+        if (timedOut || (err instanceof Error && err.name === 'AbortError')) {
+          throw new Error('TIMEOUT');
+        }
+        throw err;
       } finally {
         clearTimeout(timer);
       }
@@ -138,6 +146,13 @@ const MorningBriefingCard: React.FC<MorningBriefingCardProps> = ({ onAskTwin }) 
 
   const fetchBriefing = () => { void refetch(); };
 
+  // Tailor the copy: a timeout is a "try again in a moment" situation, a hard
+  // error is a "something went wrong" one (audit-2026-07-03 error-ux).
+  const isTimeout = error instanceof Error && error.message === 'TIMEOUT';
+  const errorMessage = isTimeout
+    ? 'Your briefing is taking longer than usual.'
+    : "Couldn't load your briefing.";
+
   // Error / empty state — render a degraded card with a retry instead of
   // silently evaporating the dashboard's dominant hero (audit-2026-06-10).
   if (isError || !briefing) {
@@ -164,7 +179,7 @@ const MorningBriefingCard: React.FC<MorningBriefingCardProps> = ({ onAskTwin }) 
             className="text-[16px] leading-relaxed"
             style={{ color: 'rgba(255,255,255,0.55)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
           >
-            Couldn't load your briefing.
+            {errorMessage}
           </p>
           <button
             onClick={fetchBriefing}
