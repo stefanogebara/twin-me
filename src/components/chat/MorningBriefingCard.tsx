@@ -5,10 +5,11 @@
  * health/music sections, actionable suggestion. Dark glass aesthetic.
  */
 
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Calendar, Moon, Music, Sparkles, ArrowRight, RefreshCw } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { authFetch } from '@/services/api/apiBase';
+import { useAnalytics } from '@/contexts/AnalyticsContext';
 
 interface BriefingData {
   greeting: string;
@@ -87,6 +88,17 @@ const MorningBriefingCard: React.FC<MorningBriefingCardProps> = ({ onAskTwin }) 
   });
 
   const { location, time, label } = getLocationTime();
+
+  // Instrumentation (M1): the brief was actually SEEN (data loaded, not just
+  // mounted). Fire once per mount — the AM heartbeat signal for the daily loop.
+  const { trackFunnel } = useAnalytics();
+  const briefingFiredRef = useRef(false);
+  useEffect(() => {
+    if (briefing && !briefingFiredRef.current) {
+      briefingFiredRef.current = true;
+      trackFunnel('briefing_opened', { part_of_day: label });
+    }
+  }, [briefing, label, trackFunnel]);
 
   // Loading state — render full structural skeleton (header, greeting,
   // schedule, recovery, music, suggestion) so the user sees the briefing's
