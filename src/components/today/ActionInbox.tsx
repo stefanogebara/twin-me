@@ -6,11 +6,12 @@
  * Send as-is, Edit and send, or Reject with a reason. Edit/reject teach the
  * twin (see voiceReplyLearning). The twin never sends on its own.
  */
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Send, Pencil, X, Loader2, Inbox, Mail, MessageSquare } from 'lucide-react';
 import { actionsAPI, type TwinAction } from '@/services/api/actionsAPI';
 import { isAbortError } from '@/services/api/apiBase';
+import { useAnalytics } from '@/contexts/AnalyticsContext';
 
 const QUERY_KEY = ['twin-actions', 'pending'] as const;
 
@@ -30,6 +31,17 @@ const ActionInbox: React.FC = () => {
     },
     staleTime: 60_000,
   });
+
+  // Instrumentation (M1): supply-side signal — the inbox was opened and how many
+  // drafts were waiting (a proxy for draft_generated, no server posthog needed).
+  const { trackEvent } = useAnalytics();
+  const viewedRef = useRef(false);
+  useEffect(() => {
+    if (data && !viewedRef.current) {
+      viewedRef.current = true;
+      trackEvent('inbox_viewed', { pending_count: data.length });
+    }
+  }, [data, trackEvent]);
 
   if (isLoading) {
     return (
@@ -89,15 +101,28 @@ type Mode = 'view' | 'editing' | 'rejecting';
 
 const ActionCard: React.FC<{ action: TwinAction }> = ({ action }) => {
   const queryClient = useQueryClient();
+  const { trackEvent } = useAnalytics();
   const [mode, setMode] = useState<Mode>('view');
   const [editText, setEditText] = useState(action.draft_text);
   const [reason, setReason] = useState('');
 
   const onSettled = () => queryClient.invalidateQueries({ queryKey: QUERY_KEY });
+  const whyCount = action.why_signals?.length ?? 0;
 
-  const sendM = useMutation({ mutationFn: () => actionsAPI.send(action.id), onSuccess: onSettled });
-  const editM = useMutation({ mutationFn: (text: string) => actionsAPI.edit(action.id, text), onSuccess: onSettled });
-  const rejectM = useMutation({ mutationFn: (r: string) => actionsAPI.reject(action.id, r), onSuccess: onSettled });
+  // The M1 decision events — action_rejected carries the reason ("why they say
+  // no"), the single most valuable signal for the roadmap.
+  const sendM = useMutation({
+    mutationFn: () => actionsAPI.send(action.id),
+    onSuccess: () => { trackEvent('action_approved', { channel: action.channel, why_count: whyCount }); onSettled(); },
+  });
+  const editM = useMutation({
+    mutationFn: (text: string) => actionsAPI.edit(action.id, text),
+    onSuccess: (_data, text) => { trackEvent('action_edited', { channel: action.channel, why_count: whyCount, chars: text.length }); onSettled(); },
+  });
+  const rejectM = useMutation({
+    mutationFn: (r: string) => actionsAPI.reject(action.id, r),
+    onSuccess: (_data, r) => { trackEvent('action_rejected', { channel: action.channel, why_count: whyCount, reason: r.slice(0, 120) }); onSettled(); },
+  });
 
   const busy = sendM.isPending || editM.isPending || rejectM.isPending;
   const failed = sendM.isError || editM.isError || rejectM.isError;
