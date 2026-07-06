@@ -103,7 +103,9 @@ export function makeDefaultDeps() {
           .eq('id', actionId)
           .eq('user_id', userId)     // ownership
           .eq('status', 'pending')   // idempotency — can't re-resolve
-          .select('id, status, final_text, reject_reason, resolved_at')
+          // draft_text + recipient are returned so the caller can feed the
+          // edit/reject learning wire (voiceReplyLearning) without a re-fetch.
+          .select('id, status, draft_text, recipient, final_text, reject_reason, resolved_at')
           .maybeSingle();
         if (error) throw new Error(error.message);
         return data || null;

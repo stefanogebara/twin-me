@@ -17,6 +17,7 @@
 import express from 'express';
 import { authenticateUser } from '../middleware/auth.js';
 import { listPendingActions, resolveAction } from '../services/twinActionsService.js';
+import { learnFromResolution } from '../services/voiceReplyLearning.js';
 
 const router = express.Router();
 router.use(authenticateUser);
@@ -47,6 +48,14 @@ async function resolve(decision, req, res) {
   if (!r.ok) {
     return res.status(STATUS_FOR_ERROR[r.error] || 500).json({ success: false, error: r.error });
   }
+
+  // Edit/reject teaches the twin. Fire-and-forget so learning never blocks the
+  // user's approval, and a learning failure can't fail the request.
+  if (decision === 'edit' || decision === 'reject') {
+    learnFromResolution({ userId: req.user?.id, action: r.action })
+      .catch(() => { /* best-effort; learnFromResolution logs its own failures */ });
+  }
+
   // TODO(M1 · instrumentation): emit PostHog action_approved/edited/rejected here.
   return res.json({ success: true, data: r.action });
 }
