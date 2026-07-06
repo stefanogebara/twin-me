@@ -433,6 +433,8 @@ import deviceTokensRoutes from './routes/device-tokens.js';
 import desktopDownloadRoutes from './routes/desktop-download.js';
 import desktopObserveSummaryRoutes from './routes/desktop-observe-summary.js';
 import desktopExtractedFactsRoutes from './routes/desktop-extracted-facts.js';
+import actionsRoutes from './routes/actions.js'; // M1 action inbox (voice-reply approvals)
+import onboardingWowRoutes from './routes/onboarding-wow.js'; // M1 activation: Gmail -> instant drafts
 import extractionStatusRoutes from './routes/extraction-status.js';
 import profileEnrichmentRoutes from './routes/profile-enrichment.js';
 import resumeUploadRoutes from './routes/resume-upload.js';
@@ -687,6 +689,8 @@ app.use('/api/costs', (await import('./routes/cost-dashboard.js')).default); // 
 app.use('/api/insights', platformInsightsRoutes); // Platform-specific conversational insights
 app.use('/api/goals', goalsRoutes); // Twin-driven goal tracking (suggestions, progress, accountability)
 app.use('/api/twin-directives', twinDirectivesRoutes); // pi-reflect — learned directives from user corrections
+app.use('/api/actions', actionsRoutes); // M1 action inbox — list + send/edit/reject voice-reply drafts
+app.use('/api/onboarding', onboardingWowRoutes); // M1 activation — POST /api/onboarding/wow (Gmail -> instant drafts + voice read)
 app.use('/api/observations', observationsClipRoutes); // TwinMe Desktop: batch clip sync (foreground app + window title -> observation memories)
 app.use('/api/observations', observationsMeetingRoutes); // TwinMe Desktop: batch meeting session sync (Zoom/Meet/Teams -> observation memories)
 app.use('/api/wiki', wikiRoutes); // LLM Wiki compiled knowledge pages (Karpathy pattern)
