@@ -57,6 +57,7 @@ const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 const PortfolioPage = lazy(() => import("./pages/PortfolioPage"));
 const NewDiscoverFlow = lazy(() => import("./pages/onboarding/NewDiscoverFlow"));
 const OnboardingFlow = lazy(() => import("./pages/onboarding/OnboardingFlow"));
+const OnboardingWowPage = lazy(() => import("./pages/onboarding/OnboardingWowPage"));
 const DiscoverLanding = lazy(() => import("./pages/DiscoverLanding"));
 const WaitlistPage = lazy(() => import("./pages/WaitlistPage"));
 const BetaSignupPage = lazy(() => import("./pages/BetaSignupPage"));
@@ -420,6 +421,16 @@ const App = () => {
               <ProtectedRoute>
                 <ErrorBoundary>
                   <OnboardingFlow />
+                </ErrorBoundary>
+              </ProtectedRoute>
+            } />
+
+            {/* Onboarding "wow" — post-Gmail-connect: voice read + first drafted
+                replies, then into Today. Full-screen moment (no sidebar). */}
+            <Route path="/onboarding/wow" element={
+              <ProtectedRoute>
+                <ErrorBoundary>
+                  <OnboardingWowPage />
                 </ErrorBoundary>
               </ProtectedRoute>
             } />
