@@ -75,6 +75,7 @@ const GoalsPage = lazy(() => import("./pages/GoalsPage"));
 const MoneyPage = lazy(loadMoneyPage);
 const MoneyInsightsPage = lazy(loadMoneyInsightsPage);
 const BriefingPage = lazy(() => import("./pages/BriefingPage"));
+const TodayPage = lazy(() => import("./pages/TodayPage"));
 const TwinSoulPage = lazy(() => import("./pages/TwinSoulPage"));
 const PricingPage = lazy(() => import("./pages/PricingPage"));
 const DownloadPage = lazy(() => import("./pages/DownloadPage"));
@@ -195,6 +196,16 @@ const App = () => {
                 <SidebarLayout>
                   <ErrorBoundary>
                     <BriefingPage />
+                  </ErrorBoundary>
+                </SidebarLayout>
+              </ProtectedRoute>
+            } />
+            {/* Today — the M1 "one home": brief + action inbox + twin composer. */}
+            <Route path="/today" element={
+              <ProtectedRoute>
+                <SidebarLayout>
+                  <ErrorBoundary>
+                    <TodayPage />
                   </ErrorBoundary>
                 </SidebarLayout>
               </ProtectedRoute>
@@ -444,7 +455,7 @@ const App = () => {
                 proposals now live in the thread (twin chat sees PENDING_ACTIONS;
                 WhatsApp delivers + resolves yes/skip replies). agent_actions and
                 all approval endpoints are untouched. Old links land on chat. */}
-            <Route path="/inbox" element={<Navigate to="/talk-to-twin" replace />} />
+            <Route path="/inbox" element={<Navigate to="/today" replace />} />
             <Route path="/departments" element={<Navigate to="/talk-to-twin" replace />} />
 
             {/* Privacy Spectrum Dashboard */}
