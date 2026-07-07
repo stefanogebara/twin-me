@@ -53,7 +53,7 @@ vi.mock('../../../api/services/logger.js', () => ({
 //   createImportRecord : from('user_data_imports').insert().select('id').single()
 //   finalizeImportRecord: from('user_data_imports').update({...}).eq('id', id)
 //   getUserTimezone    : from('users').select('timezone').eq().maybeSingle()
-//   loadExistingHashes : from('user_memories').select().eq().eq().filter().limit()
+//   loadExistingHashes : from('user_memories').select().eq().eq().filter().order().limit()
 const finalizeCalls = [];
 vi.mock('../../../api/services/database.js', () => ({
   supabaseAdmin: {
@@ -85,7 +85,9 @@ vi.mock('../../../api/services/database.js', () => ({
           select: () => ({
             eq: () => ({
               eq: () => ({
-                filter: () => ({ limit: async () => ({ data: [] }) }),
+                // audit-2026-07-02 M3 added .order('created_at', desc) before
+                // .limit() for deterministic dedup — the chain must include it.
+                filter: () => ({ order: () => ({ limit: async () => ({ data: [] }) }) }),
               }),
             }),
           }),
