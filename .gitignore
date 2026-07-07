@@ -74,6 +74,7 @@ test-results/
 playwright-report/
 playwright-report-e2e/
 playwright-report-prod/
+playwright-report-settings-audit/
 .env.prod.test
 .vercel
 AZURE_CREDENTIALS.txt
@@ -214,3 +215,10 @@ production
 # audit-2026-05-08 hygiene — never commit backup files or zero-byte stubs
 *.backup
 *.backup_*
+
+# audit-2026-07-02 M3 hygiene — generated artifacts, regenerated locally
+# vitest coverage output (npm run test:coverage)
+coverage/
+# screenshots written by the audit/debug e2e specs (tests/e2e/*-debug.spec.ts,
+# prod-audit, settings-brain-onboarding-audit) and tasks/audit-*.cjs
+audit-screenshots/

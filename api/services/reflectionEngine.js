@@ -26,7 +26,8 @@
  *   3. Reflections become retrievable in future queries (recursive improvement)
  *
  * Trigger conditions:
- *   - After twin chat when accumulated importance > 15
+ *   - After twin chat when accumulated importance reaches IMPORTANCE_THRESHOLD
+ *     (see shouldTriggerReflection; the constant is the single source of truth)
  *   - After platform data sync completes
  *   - Can be called manually for seeding initial reflections
  *

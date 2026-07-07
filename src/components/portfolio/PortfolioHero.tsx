@@ -31,6 +31,11 @@ const PortfolioHero: React.FC<PortfolioHeroProps> = ({
   platforms,
   colorScheme,
 }) => {
+  // Only render http(s) avatar URLs — the value comes from the public
+  // portfolio API, so guard against non-web schemes before putting it in
+  // an img src (audit-2026-07-03). Falls back to the Sparkles placeholder.
+  const safeAvatarUrl = avatarUrl && /^https?:\/\//i.test(avatarUrl) ? avatarUrl : null;
+
   return (
     <section
       className="relative min-h-[80vh] flex flex-col items-center justify-center px-6 py-16 overflow-hidden"
@@ -49,10 +54,10 @@ const PortfolioHero: React.FC<PortfolioHeroProps> = ({
 
       {/* Avatar */}
       <div className="mb-6">
-        {avatarUrl ? (
+        {safeAvatarUrl ? (
           <img
-            src={avatarUrl}
-            alt=""
+            src={safeAvatarUrl}
+            alt={firstName ? `${firstName}'s avatar` : 'Portfolio avatar'}
             className="w-24 h-24 rounded-full object-cover"
             style={{ border: `2px solid ${colorScheme.accent}` }}
           />

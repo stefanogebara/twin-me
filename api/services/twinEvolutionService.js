@@ -362,20 +362,26 @@ Consider behavioral factors like lifestyle changes, new habits, or life circumst
    */
   async getEvolutionSummary(userId) {
     try {
-      // Get recent evolution events
-      const historyResult = await this.getEvolutionHistory(userId, { limit: 5, timeRange: 30 });
-
-      // Get score timeline
-      const timelineResult = await this.getScoreTimeline(userId, { limit: 10 });
-
-      // Get latest snapshot
-      const { data: latestSnapshot, error: latestSnapshotErr } = await supabaseAdmin
-        .from('personality_scores')
-        .select('*')
-        .eq('user_id', userId)
-        .order('calculated_at', { ascending: false })
-        .limit(1)
-        .single();
+      // Recent events, score timeline and latest snapshot are independent —
+      // fetch them in parallel. Audit 2026-07-03: these three awaits were
+      // serial (3 sequential DB round trips) on the /api/twin/status/:userId
+      // path. getEvolutionHistory/getScoreTimeline never reject (they catch
+      // internally), and the supabase thenable resolves to { data, error }.
+      const [
+        historyResult,
+        timelineResult,
+        { data: latestSnapshot, error: latestSnapshotErr }
+      ] = await Promise.all([
+        this.getEvolutionHistory(userId, { limit: 5, timeRange: 30 }),
+        this.getScoreTimeline(userId, { limit: 10 }),
+        supabaseAdmin
+          .from('personality_scores')
+          .select('*')
+          .eq('user_id', userId)
+          .order('calculated_at', { ascending: false })
+          .limit(1)
+          .single()
+      ]);
       if (latestSnapshotErr && latestSnapshotErr.code !== 'PGRST116') log.warn('Failed to fetch latest snapshot:', latestSnapshotErr.message);
 
       const summary = {

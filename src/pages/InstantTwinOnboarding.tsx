@@ -251,7 +251,16 @@ const InstantTwinOnboarding = () => {
             connectedPlatforms: connectedServices,
           }),
         })
-          .then(res => (res.ok ? res.json() : null))
+          .then(res => {
+            // Signature enrichment is best-effort — the twin already exists, so a
+            // non-ok here degrades to the soul-signature page rather than blocking.
+            // Log the status so the failure isn't invisible (audit-2026-07-03).
+            if (!res.ok) {
+              console.error(`Instant signature request failed (${res.status})`);
+              return null;
+            }
+            return res.json();
+          })
           .then(sigData => {
             clearTimeout(sigTimeout);
             const sig = sigData?.signature ?? sigData?.archetype;
@@ -262,8 +271,11 @@ const InstantTwinOnboarding = () => {
               navigate('/soul-signature');
             }
           })
-          .catch(() => {
+          .catch((sigErr) => {
             clearTimeout(sigTimeout);
+            // AbortError (15s timeout) or network failure — still route the user
+            // forward to their soul signature; log for observability.
+            console.error('Instant signature request errored:', sigErr);
             navigate('/soul-signature');
           });
       } else {

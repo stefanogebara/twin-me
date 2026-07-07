@@ -109,7 +109,7 @@ export function NextMeetingCard() {
               fontWeight: 500,
               letterSpacing: '0.08em',
               textTransform: 'uppercase',
-              color: isSoon ? 'rgba(232,160,80,0.85)' : 'rgba(255,255,255,0.45)',
+              color: isSoon ? 'rgba(232,160,80,0.85)' : 'var(--text-secondary)',
             }}
           >
             Next meeting · {timeUntilLabel(meeting.startTime)}
@@ -120,7 +120,7 @@ export function NextMeetingCard() {
           style={{
             fontFamily: "'Geist', 'Inter', sans-serif",
             fontSize: 11.5,
-            color: 'rgba(255,255,255,0.45)',
+            color: 'var(--text-secondary)',
           }}
         >
           <Clock className="w-3 h-3" />

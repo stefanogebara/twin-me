@@ -58,7 +58,7 @@ export function WhatsAppCard() {
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm" style={{ color: 'var(--foreground)' }}>Your twin is on WhatsApp</p>
-            <p className="text-[11px] mt-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>
+            <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
               Message it at {TWIN_WHATSAPP_DISPLAY}
             </p>
           </div>
@@ -100,7 +100,7 @@ export function WhatsAppCard() {
             <p className="text-sm" style={{ color: 'var(--foreground)' }}>
               Chat with your twin on WhatsApp
             </p>
-            <p className="text-[11px] mt-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>
+            <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
               {wa.step === 'code'
                 ? 'Enter the code we just sent to your WhatsApp.'
                 : 'Morning briefings, insights, and reminders — right in your chat.'}
@@ -172,7 +172,7 @@ export function WhatsAppCard() {
           <button
             onClick={() => { setCodeInput(''); wa.cancel(); }}
             className="text-[11px] mt-2 transition-opacity hover:opacity-60"
-            style={{ color: 'rgba(255,255,255,0.3)' }}
+            style={{ color: 'var(--text-secondary)' }}
           >
             Use a different number
           </button>

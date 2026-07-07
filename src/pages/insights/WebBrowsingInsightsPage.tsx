@@ -56,7 +56,7 @@ const WebBrowsingInsightsPage: React.FC = () => {
         <h1 style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontStyle: 'italic', fontSize: '28px', fontWeight: 400, color: 'var(--foreground)', letterSpacing: '-0.02em' }}>
           Your Digital Life
         </h1>
-        <button onClick={refresh} disabled={isRefreshing} className="p-2 rounded-lg transition-opacity hover:opacity-60" style={{ color: 'rgba(255,255,255,0.3)' }} title="Refresh">
+        <button onClick={refresh} disabled={isRefreshing} className="p-2 rounded-lg transition-opacity hover:opacity-60" style={{ color: 'rgba(255,255,255,0.3)' }} title="Refresh" aria-label={isRefreshing ? 'Refreshing insights' : 'Refresh insights'}>
           <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
         </button>
       </div>
@@ -70,9 +70,18 @@ const WebBrowsingInsightsPage: React.FC = () => {
       {/* Extension Install Banner */}
       {!insights?.hasExtensionData && (
         <div
+          role="button"
+          tabIndex={0}
           className="p-4 mb-6 rounded-xl cursor-pointer transition-opacity hover:opacity-80"
           style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)', borderLeft: `3px solid ${colors.webAccent}` }}
           onClick={() => navigate('/get-started')}
+          onKeyDown={(e) => {
+            // Keyboard parity for the clickable banner (audit-2026-07-03)
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              navigate('/get-started');
+            }
+          }}
         >
           <div className="flex items-center gap-3">
             <Layout className="w-5 h-5 flex-shrink-0" style={{ color: colors.webAccent }} />

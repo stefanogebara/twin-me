@@ -70,7 +70,7 @@ export async function getRedditActivity(client) {
     return null;
   }
 
-  const totalKarma = meResp?.total_karma ?? meResp?.link_karma + meResp?.comment_karma ?? null;
+  const totalKarma = meResp?.total_karma ?? ((meResp?.link_karma ?? 0) + (meResp?.comment_karma ?? 0));
 
   const karmaPerSub = Array.isArray(karmaResp?.data) ? karmaResp.data : [];
   const topKarmaSubs = [...karmaPerSub]

@@ -117,7 +117,7 @@ export function PendingProposalsBadge({
               <h4
                 className="text-[12px] font-medium mb-2 uppercase tracking-[0.06em]"
                 style={{
-                  color: 'rgba(255,255,255,0.4)',
+                  color: 'var(--text-secondary)',
                   fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
                 }}
               >
@@ -219,7 +219,7 @@ export function PendingProposalsBadge({
         />
         <span
           className="text-[11px] font-medium"
-          style={{ color: 'rgba(255,255,255,0.45)' }}
+          style={{ color: 'var(--text-secondary)' }}
         >
           {proposals.length} proposal{proposals.length !== 1 ? 's' : ''}
         </span>

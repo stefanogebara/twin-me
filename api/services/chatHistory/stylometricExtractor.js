@@ -71,7 +71,8 @@ function topN(freq, n) {
 
 // ── Feature computation ──────────────────────────────────────────────────────
 
-function computeFeatures(myMessages) {
+// Exported for characterization tests — pure, no side effects.
+export function computeFeatures(myMessages) {
   const msgs = myMessages.map(m => m.msg);
   const n = msgs.length;
   if (n === 0) return null;
@@ -150,7 +151,8 @@ function computeFeatures(myMessages) {
 
 // ── Fact generation ──────────────────────────────────────────────────────────
 
-function generateFacts(f, platform) {
+// Exported for characterization tests — pure, no side effects.
+export function generateFacts(f, platform) {
   const facts = [];
   const src = platform === 'telegram_chat' ? 'Telegram' : 'WhatsApp';
 

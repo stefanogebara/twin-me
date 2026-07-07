@@ -14,6 +14,7 @@ import NotificationSettings from './components/settings/NotificationSettings';
 import ChatImportCard from './components/settings/ChatImportCard';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import TwinIntelligence from './components/settings/TwinIntelligence';
+import { markTimezoneSynced } from '@/utils/timezoneSync';
 
 
 const getAuthHeaders = () => {
@@ -348,6 +349,10 @@ const Settings = () => {
       });
       if (res.ok) {
         setTimezone(detected);
+        // Keep AuthContext's per-load sync guard coherent: record that this
+        // device already delivered this zone so the next page load skips its
+        // redundant PATCH (audit-2026-07-03 cost fix).
+        markTimezoneSynced(user?.id, detected);
         toast.success('Timezone updated');
       } else {
         toast.error('Could not update timezone. Please try again.');
@@ -813,7 +818,7 @@ const Settings = () => {
               <button
                 onClick={() => setShowDeleteConfirm(true)}
                 className="text-[12px] transition-opacity hover:opacity-60"
-                style={{ color: '#c1452c' }}
+                style={{ color: '#e05a3e' }}
               >
                 Delete everything
               </button>
@@ -826,13 +831,13 @@ const Settings = () => {
                   onChange={(e) => setDeleteConfirmText(e.target.value)}
                   aria-label="Type DELETE to confirm account deletion"
                   className="text-sm px-2 py-1 rounded w-24 sm:w-28 bg-transparent focus:outline-none"
-                  style={{ border: '1px solid rgba(193,69,44,0.3)', color: '#c1452c' }}
+                  style={{ border: '1px solid rgba(193,69,44,0.3)', color: '#e05a3e' }}
                 />
                 <button
                   onClick={handleDeleteAccount}
                   disabled={deleteConfirmText !== 'DELETE' || deleting}
                   className="text-[12px] px-3 py-1 rounded transition-opacity disabled:opacity-30 flex-shrink-0"
-                  style={{ backgroundColor: 'rgba(193,69,44,0.15)', color: '#c1452c' }}
+                  style={{ backgroundColor: 'rgba(193,69,44,0.15)', color: '#e05a3e' }}
                 >
                   {deleting ? '...' : 'Confirm'}
                 </button>

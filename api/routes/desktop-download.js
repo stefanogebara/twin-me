@@ -22,8 +22,10 @@
  */
 import express from 'express';
 import { Readable } from 'node:stream';
+import { createLogger } from '../services/logger.js';
 
 const router = express.Router();
+const log = createLogger('desktop-download');
 
 const REPO = 'stefanogebara/twin-me';
 // Installer names look like: TwinMe_0.1.4_x64-setup.exe, TwinMe_0.1.4_aarch64.dmg,
@@ -55,7 +57,7 @@ router.get('/', async (req, res) => {
 
     const relResp = await fetch(releaseUrl, { headers: ghHeaders });
     if (!relResp.ok) {
-      console.error(`[desktop-download] release lookup ${relResp.status} for ${releaseUrl}`);
+      log.error('release lookup failed', { status: relResp.status, url: releaseUrl });
       return res.status(502).json({ success: false, error: 'Could not resolve the release' });
     }
     const release = await relResp.json();
@@ -70,7 +72,7 @@ router.get('/', async (req, res) => {
       redirect: 'follow',
     });
     if (!upstream.ok || !upstream.body) {
-      console.error(`[desktop-download] asset fetch ${upstream.status} for ${file}`);
+      log.error('asset fetch failed', { status: upstream.status, file });
       return res.status(502).json({ success: false, error: 'Could not fetch the installer' });
     }
 
@@ -82,13 +84,13 @@ router.get('/', async (req, res) => {
 
     const nodeStream = Readable.fromWeb(upstream.body);
     nodeStream.on('error', (err) => {
-      console.error('[desktop-download] stream error:', err.message);
+      log.error('stream error', { error: err.message });
       if (!res.headersSent) res.status(502).end();
       else res.destroy(err);
     });
     nodeStream.pipe(res);
   } catch (err) {
-    console.error('[desktop-download] proxy error:', err.message);
+    log.error('proxy error', { error: err.message });
     if (!res.headersSent) {
       res.status(502).json({ success: false, error: 'Download proxy failed' });
     } else {

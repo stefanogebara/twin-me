@@ -6,11 +6,15 @@
  * Requires: python3 -m holehe (installed via pip)
  * Gracefully returns [] if Python or holehe is unavailable.
  */
-import { exec } from 'child_process';
-import { promisify } from 'util';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import { createLogger } from '../logger.js';
 
-const execAsync = promisify(exec);
+// execFile (not exec) so no shell is spawned: the email is passed as a
+// discrete argv entry and never parsed by a shell. This makes the safeEmail
+// sanitizer below defense-in-depth rather than the sole barrier against
+// shell metacharacter injection.
+const execFileAsync = promisify(execFile);
 const log = createLogger('HoleheProvider');
 const TIMEOUT_MS = 30000;
 
@@ -27,12 +31,13 @@ export async function discoverPlatforms(email) {
     // Run holehe: --only-used shows only platforms where email exists
     // --no-color strips ANSI codes for clean parsing
     // Try holehe CLI first (pip install puts it on PATH), fallback to python -m
+    // Args are passed as a discrete argv array to execFile — no shell involved.
     const safeEmail = email.replace(/[^a-zA-Z0-9@._+-]/g, '');
     let stdout;
     try {
-      ({ stdout } = await execAsync(`holehe ${safeEmail} --only-used --no-color`, { timeout: TIMEOUT_MS }));
+      ({ stdout } = await execFileAsync('holehe', [safeEmail, '--only-used', '--no-color'], { timeout: TIMEOUT_MS }));
     } catch {
-      ({ stdout } = await execAsync(`python -m holehe ${safeEmail} --only-used --no-color`, { timeout: TIMEOUT_MS }));
+      ({ stdout } = await execFileAsync('python', ['-m', 'holehe', safeEmail, '--only-used', '--no-color'], { timeout: TIMEOUT_MS }));
     }
 
     // Parse text output — holehe marks found platforms with "[+]"

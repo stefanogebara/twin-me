@@ -195,7 +195,7 @@ function growthTypeBadgeStyle(type: string): React.CSSProperties {
 const SectionLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <h2
     className="text-[11px] font-medium tracking-[0.12em] uppercase mb-4"
-    style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}
+    style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
   >
     {children}
   </h2>
@@ -290,7 +290,7 @@ const RevealOverlay: React.FC<{ archetypeName: string; tagline: string; onDismis
 
       <motion.p
         className="relative z-10 text-center mt-4 text-sm"
-        style={{ color: 'rgba(255,255,255,0.45)', fontFamily: "'Inter', sans-serif", maxWidth: 400 }}
+        style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif", maxWidth: 400 }}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1.5, duration: 0.6 }}
@@ -625,7 +625,7 @@ const IdentityPage: React.FC = () => {
       {/* ── Top row: back button (mobile) + greeting + date — single row to save vertical space ── */}
       <div
         className="flex items-center justify-between px-1 text-[12px]"
-        style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Inter', sans-serif" }}
+        style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
       >
         <div className="flex items-center gap-3">
           <button
@@ -684,7 +684,7 @@ const IdentityPage: React.FC = () => {
                 {generatedAt && (
                   <p
                     className="mt-2 text-[10px] uppercase tracking-[0.12em]"
-                    style={{ color: 'rgba(255,255,255,0.25)', fontFamily: "'Inter', sans-serif" }}
+                    style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
                   >
                     Updated {timeAgo(generatedAt)}
                   </p>
@@ -825,7 +825,7 @@ const IdentityPage: React.FC = () => {
                     <div key={key} className="flex items-start gap-3">
                       <span
                         className="text-[10px] font-medium uppercase tracking-wider flex-shrink-0 pt-0.5 w-[68px] text-right"
-                        style={{ color: 'rgba(255,255,255,0.28)', fontFamily: "'Inter', sans-serif" }}
+                        style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
                       >
                         {label}
                       </span>
@@ -873,7 +873,7 @@ const IdentityPage: React.FC = () => {
                               onClick={() => setExpandedLens(isExpanded ? null : key)}
                               className="text-[11px] transition-opacity duration-150 hover:opacity-70"
                               style={{
-                                color: 'rgba(255,255,255,0.4)',
+                                color: 'var(--text-secondary)',
                                 fontFamily: "'Inter', sans-serif",
                                 background: 'transparent',
                                 padding: 0,
@@ -954,7 +954,7 @@ const IdentityPage: React.FC = () => {
                   {formatChronotype(layers.rhythms.chronotype)}
                 </span>
                 {layers.rhythms.peakHours && (
-                  <p className="text-xs mb-3" style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Inter', sans-serif" }}>
+                  <p className="text-xs mb-3" style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
                     Peak hours: {layers.rhythms.peakHours}
                   </p>
                 )}
@@ -963,7 +963,7 @@ const IdentityPage: React.FC = () => {
                 </p>
                 {layers.rhythms.distribution && (
                   <div>
-                    <p className="text-[10px] uppercase tracking-[0.12em] mb-1.5" style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Inter', sans-serif" }}>
+                    <p className="text-[10px] uppercase tracking-[0.12em] mb-1.5" style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
                       Time of day activity
                     </p>
                     <div className="flex rounded-[6px] overflow-hidden h-4 mb-2 gap-px" style={{ background: 'rgba(255,255,255,0.08)' }}>
@@ -972,7 +972,7 @@ const IdentityPage: React.FC = () => {
                       <div style={{ width: `${layers.rhythms.distribution.evening * 100}%`, backgroundColor: 'rgba(255,140,60,0.90)', minWidth: layers.rhythms.distribution.evening > 0.01 ? 2 : 0 }} />
                       <div style={{ width: `${layers.rhythms.distribution.night * 100}%`, backgroundColor: 'rgba(130,120,220,0.90)', minWidth: layers.rhythms.distribution.night > 0.01 ? 2 : 0 }} />
                     </div>
-                    <div className="flex justify-between text-[10px]" style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}>
+                    <div className="flex justify-between text-[10px]" style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
                       <span>{Math.round(layers.rhythms.distribution.morning * 100)}% Morning</span>
                       <span>{Math.round(layers.rhythms.distribution.afternoon * 100)}% Afternoon</span>
                       <span>{Math.round(layers.rhythms.distribution.evening * 100)}% Evening</span>
@@ -1040,7 +1040,7 @@ const IdentityPage: React.FC = () => {
                 {layers.connections.patterns && layers.connections.patterns.length > 0 && (
                   <ul className="space-y-1.5">
                     {layers.connections.patterns.map((pattern) => (
-                      <li key={pattern} className="flex items-start gap-2 text-sm" style={{ color: 'rgba(255,255,255,0.5)', fontFamily: "'Inter', sans-serif" }}>
+                      <li key={pattern} className="flex items-start gap-2 text-sm" style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
                         <span className="mt-[7px] w-1 h-1 rounded-full flex-shrink-0" style={{ background: 'rgba(232,224,212,0.4)' }} />
                         {pattern}
                       </li>
@@ -1064,7 +1064,7 @@ const IdentityPage: React.FC = () => {
                 {driftIsStable ? (
                   <div className="flex items-center gap-2.5">
                     <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: 'rgba(74,222,128,0.6)' }} />
-                    <p className="text-sm" style={{ color: 'rgba(255,255,255,0.5)', fontFamily: "'Inter', sans-serif" }}>
+                    <p className="text-sm" style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
                       Consistent — your patterns have been stable recently
                     </p>
                   </div>
@@ -1137,7 +1137,7 @@ const IdentityPage: React.FC = () => {
                 onClick={handleShare}
                 aria-label="Share your soul signature"
                 className="flex items-center gap-1.5 text-[12px] transition-all duration-150 ease-out hover:opacity-60 active:scale-[0.97] min-h-[44px]"
-                style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}
+                style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
               >
                 <Share2 className="w-3.5 h-3.5" />
                 Share
@@ -1274,7 +1274,7 @@ const GeneratingState: React.FC<{ message?: string }> = ({ message }) => (
     >
       Reading your signals
     </h2>
-    <p className="text-sm" style={{ color: 'rgba(255,255,255,0.35)' }}>
+    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
       {message || 'Your soul signature is being generated. This usually takes under a minute.'}
     </p>
   </div>
@@ -1299,7 +1299,7 @@ const EmptyState: React.FC<{ message?: string }> = ({ message }) => {
       >
         I'm still figuring you out
       </h2>
-      <p className="text-sm mb-6" style={{ color: 'rgba(255,255,255,0.35)' }}>
+      <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>
         {/* audit-2026-06-10: prefer the backend's precise reason (e.g. "N
             memories found, minimum 10 required") over the generic claim. */}
         {message || "Connect Spotify, Calendar, or YouTube and I'll build a real picture of you. Usually takes a couple of days."}
@@ -1315,7 +1315,7 @@ const EmptyState: React.FC<{ message?: string }> = ({ message }) => {
         <button
           onClick={() => navigate('/interview')}
           className="px-5 py-2 rounded-[100px] text-sm font-medium transition-all duration-150 hover:opacity-80 active:scale-[0.97]"
-          style={{ border: '1px solid var(--border)', color: 'rgba(255,255,255,0.5)' }}
+          style={{ border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
         >
           Complete your interview
         </button>

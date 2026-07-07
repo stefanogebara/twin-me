@@ -44,23 +44,156 @@ export async function braveWebSearch(query, apiKey) {
   return data.web?.results || [];
 }
 
+// Max redirect hops fetchPageText will follow manually. Each hop's Location
+// is re-validated with isPublicHttpUrl before we chase it.
+const MAX_REDIRECTS = 3;
+
+/**
+ * Is `url` an http(s) URL pointing at a PUBLIC destination?
+ *
+ * SSRF egress guard for fetchPageText. The URLs it scrapes come from Brave
+ * search results (indirect user influence), so a crafted result could point
+ * the server-side fetch at an internal address. This rejects:
+ *   - non-http(s) schemes (file:, gopher:, data:, ftp:, ...)
+ *   - localhost and *.localhost
+ *   - IPv4 loopback/private/link-local/unspecified:
+ *       127.0.0.0/8, 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16,
+ *       169.254.0.0/16 (incl. the 169.254.169.254 cloud-metadata IP), 0.0.0.0/8
+ *   - IPv6 loopback (::1), ULA (fc00::/7), link-local (fe80::/10),
+ *     unspecified (::), and IPv4-mapped forms (::ffff:a.b.c.d) whose embedded
+ *     IPv4 falls in a blocked range.
+ *
+ * LIMITS (be honest): this is a HOSTNAME/literal-IP check only. It does NOT
+ * defend against DNS rebinding — a hostname that resolves to a public IP now
+ * and a private IP at connect time will pass here. Fully closing that needs
+ * resolve-then-pin-the-socket (custom agent / lookup), which is out of scope
+ * for this low-severity, indirect-input path. The manual-redirect re-check in
+ * fetchPageText covers the common "public → 302 → 127.0.0.1" bypass.
+ *
+ * @param {string} url
+ * @returns {boolean} true only if safe to fetch server-side.
+ */
+export function isPublicHttpUrl(url) {
+  let parsed;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return false; // malformed / non-absolute
+  }
+
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return false;
+
+  // URL keeps IPv6 literals bracket-free in .hostname on Node, but strip any
+  // brackets defensively; lowercase for case-insensitive comparisons.
+  const host = parsed.hostname.replace(/^\[|\]$/g, '').toLowerCase();
+  if (!host) return false;
+
+  if (host === 'localhost' || host.endsWith('.localhost')) return false;
+
+  // IPv4 literal (four dotted decimal octets).
+  const ipv4 = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (ipv4) {
+    const octets = ipv4.slice(1).map(Number);
+    if (octets.some((o) => o > 255)) return false; // not a valid IPv4 → reject
+    return isPublicIpv4(octets);
+  }
+
+  // IPv6 literal (contains a colon).
+  if (host.includes(':')) return isPublicIpv6(host);
+
+  // Otherwise a hostname — allowed (subject to the DNS-rebinding caveat above).
+  return true;
+}
+
+/** True if the dotted-quad octets are a PUBLIC (routable) IPv4 address. */
+function isPublicIpv4([a, b]) {
+  if (a === 0) return false;                       // 0.0.0.0/8 unspecified
+  if (a === 127) return false;                     // 127.0.0.0/8 loopback
+  if (a === 10) return false;                      // 10.0.0.0/8 private
+  if (a === 172 && b >= 16 && b <= 31) return false; // 172.16.0.0/12 private
+  if (a === 192 && b === 168) return false;        // 192.168.0.0/16 private
+  if (a === 169 && b === 254) return false;        // 169.254.0.0/16 link-local (metadata)
+  return true;
+}
+
+/** True if the IPv6 literal is a PUBLIC (routable) address. */
+function isPublicIpv6(host) {
+  const h = host.replace(/%.*$/, '').toLowerCase(); // drop any zone id
+
+  // IPv4-mapped, dotted-quad form (e.g. ::ffff:127.0.0.1). Note: WHATWG URL
+  // normalizes this to hex (::ffff:7f00:1), handled below — this branch covers
+  // callers that pass the un-normalized literal directly.
+  const dottedV4 = h.match(/(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (dottedV4) {
+    const octets = dottedV4.slice(1).map(Number);
+    if (octets.some((o) => o > 255)) return false;
+    return isPublicIpv4(octets);
+  }
+
+  // IPv4-mapped, normalized hex form: ::ffff:HHHH:HHHH — the last two 16-bit
+  // groups encode the embedded IPv4. Decode and re-check it as IPv4.
+  const mappedHex = h.match(/^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/);
+  if (mappedHex) {
+    const hi = parseInt(mappedHex[1], 16);
+    const lo = parseInt(mappedHex[2], 16);
+    return isPublicIpv4([hi >> 8, hi & 0xff, lo >> 8, lo & 0xff]);
+  }
+
+  if (h === '::1') return false; // loopback
+  if (h === '::') return false;  // unspecified
+
+  // Classify by the leading 16-bit group: fc00::/7 (ULA), fe80::/10 (link-local).
+  const firstGroup = h.split('::')[0].split(':')[0] || '0';
+  const lead = parseInt(firstGroup, 16);
+  if (!Number.isNaN(lead)) {
+    if ((lead & 0xfe00) === 0xfc00) return false; // fc00::/7 unique-local
+    if ((lead & 0xffc0) === 0xfe80) return false; // fe80::/10 link-local
+  }
+  return true;
+}
+
 /**
  * Fetch and extract text content from a URL (for deep scraping top results).
  * Returns cleaned text, truncated to maxChars.
  */
 export async function fetchPageText(url, maxChars = 5000) {
   try {
+    // SSRF egress guard: never fetch a non-public / non-http(s) target.
+    if (!isPublicHttpUrl(url)) return null;
+
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 8000);
-    const response = await fetch(url, {
-      signal: controller.signal,
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; TwinMe/1.0; +https://twinme.app)',
-        'Accept': 'text/html',
-      },
-      redirect: 'follow',
-    });
-    clearTimeout(timeout);
+
+    // redirect: 'manual' so a public host can't 3xx-bounce us to an internal
+    // IP behind our back — each Location is re-validated before we follow it.
+    let currentUrl = url;
+    let response;
+    let hops = 0;
+    try {
+      while (true) {
+        response = await fetch(currentUrl, {
+          signal: controller.signal,
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (compatible; TwinMe/1.0; +https://twinme.app)',
+            'Accept': 'text/html',
+          },
+          redirect: 'manual',
+        });
+
+        if (response.status < 300 || response.status >= 400) break; // not a redirect
+
+        const location = response.headers.get('location');
+        if (!location) break; // malformed redirect — treat as final response
+        if (++hops > MAX_REDIRECTS) return null; // too many hops — bail
+
+        // Resolve relative Location against the current URL, then re-guard it.
+        const nextUrl = new URL(location, currentUrl).toString();
+        if (!isPublicHttpUrl(nextUrl)) return null; // redirect to internal target — refuse
+        currentUrl = nextUrl;
+      }
+    } finally {
+      clearTimeout(timeout);
+    }
 
     if (!response.ok) return null;
     const contentType = response.headers.get('content-type') || '';

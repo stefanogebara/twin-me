@@ -368,17 +368,21 @@ class TwinPipelineOrchestrator {
    */
   async getFullTwinStatus(userId) {
     try {
-      // Get pipeline status
+      // Get pipeline status (in-memory, synchronous)
       const pipelineStatus = this.getPipelineStatus(userId);
 
-      // Get extraction status
-      const extractionStatus = await extractionOrchestrator.getExtractionStatus(userId);
-
-      // Get latest twin
-      const twinResult = await twinFormationService.getTwin(userId);
-
-      // Get evolution summary
-      const evolutionResult = await twinEvolutionService.getEvolutionSummary(userId);
+      // Extraction status, latest twin, and evolution summary are independent
+      // reads — fetch them in parallel. Audit 2026-07-03: these three awaits
+      // were serial and each hides 1-3 sequential DB round trips of its own,
+      // adding up to ~8 serial queries (the 3-5s measured on
+      // GET /api/twin/status/:userId). Parallel = cost of the slowest branch.
+      // A rejection from getExtractionStatus lands in this try/catch exactly
+      // as it did when awaited serially.
+      const [extractionStatus, twinResult, evolutionResult] = await Promise.all([
+        extractionOrchestrator.getExtractionStatus(userId),
+        twinFormationService.getTwin(userId),
+        twinEvolutionService.getEvolutionSummary(userId)
+      ]);
 
       return {
         success: true,

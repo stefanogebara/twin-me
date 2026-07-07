@@ -198,6 +198,11 @@ router.get('/', authenticateUser, async (req, res) => {
     const platformYield = {
       windowDays: YIELD_WINDOW_DAYS,
       featureThreshold: FEATURE_YIELD_THRESHOLD,
+      // False when the yield query errored — lets clients distinguish "no
+      // platform activity" from "data unavailable" instead of silently
+      // rendering an empty list (audit-2026-07-03). Failing the whole health
+      // endpoint for this informational sub-metric would be worse.
+      dataComplete: !platformYieldResult.error,
       platforms: Object.entries(yieldCounts)
         .sort((a, b) => b[1] - a[1])
         .map(([platform, count]) => ({

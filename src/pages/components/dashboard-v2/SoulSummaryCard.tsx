@@ -71,7 +71,7 @@ export function SoulSummaryCard() {
         <p className="text-xs font-medium mb-3" style={{ color: 'var(--text-muted)' }}>
           Soul Signature
         </p>
-        <p className="text-sm mb-4" style={{ color: 'rgba(245,245,244,0.5)' }}>
+        <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
           Couldn&rsquo;t load your soul signature.
         </p>
         <button
@@ -102,7 +102,7 @@ export function SoulSummaryCard() {
         <p className="text-xs font-medium mb-3" style={{ color: 'var(--text-muted)' }}>
           Soul Signature
         </p>
-        <p className="text-sm mb-4" style={{ color: 'rgba(245,245,244,0.5)' }}>
+        <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
           Connect a few platforms and your soul signature will take shape here.
         </p>
         <button
@@ -143,7 +143,7 @@ export function SoulSummaryCard() {
       <button
         onClick={() => navigate('/identity')}
         className="mt-3 text-xs font-medium transition-opacity hover:opacity-70"
-        style={{ color: 'rgba(255,255,255,0.45)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+        style={{ color: 'var(--text-secondary)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
       >
         See full soul signature &rarr;
       </button>

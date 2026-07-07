@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Send, Loader2, ExternalLink } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { API_URL, getAccessToken } from '@/services/api/apiBase';
+import { API_URL, getAccessToken, clearAccessToken } from '@/services/api/apiBase';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { MessageList } from '@/components/chat/MessageList';
 import {
@@ -39,7 +39,7 @@ import {
  * to a normal chat.
  */
 
-type ChatErrorType = 'timeout' | 'rate_limit' | 'network' | 'generic';
+type ChatErrorType = 'timeout' | 'rate_limit' | 'network' | 'session_expired' | 'generic';
 
 interface Message {
   id: string;
@@ -178,8 +178,20 @@ const Widget = () => {
     // desktop on every panel summon).
     const hummingbirdClips = readHummingbirdClips();
 
+    // No in-memory access token means the session lapsed (token expired before
+    // AuthContext refreshed it). Send nothing — a `Bearer null` header would
+    // just 401. Surface a re-sign-in prompt instead.
+    const token = getAccessToken();
+    if (!token) {
+      clearAccessToken();
+      setMessages(prev => prev.map(m =>
+        m.id === userMessage.id ? { ...m, failed: true, errorType: 'session_expired' as const } : m
+      ));
+      setIsTyping(false);
+      return;
+    }
+
     try {
-      const token = getAccessToken();
       const response = await fetch(`${API_BASE}/chat/message?stream=1`, {
         method: 'POST',
         headers: {
@@ -204,6 +216,19 @@ const Widget = () => {
         // has no banner real-estate, so surface a transient inline hint.
         setMessages(prev => prev.map(m =>
           m.id === userMessage.id ? { ...m, failed: true, errorType: 'rate_limit' as const } : m
+        ));
+        setIsTyping(false);
+        return;
+      }
+
+      if (response.status === 401 || response.status === 403) {
+        // Access token was rejected (expired/revoked). Drop the stale in-memory
+        // token so the next AuthContext cycle re-refreshes from the cookie, and
+        // surface a re-sign-in prompt inline (the widget has no auth redirect
+        // surface of its own — it lives in a chrome-less desktop panel).
+        clearAccessToken();
+        setMessages(prev => prev.map(m =>
+          m.id === userMessage.id ? { ...m, failed: true, errorType: 'session_expired' as const } : m
         ));
         setIsTyping(false);
         return;

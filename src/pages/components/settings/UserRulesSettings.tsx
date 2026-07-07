@@ -69,9 +69,12 @@ const UserRulesSettings: React.FC = () => {
       const data = await res.json();
       if (data.success) {
         setRules(data.rules);
+      } else {
+        setError(data.error || 'Failed to delete rule');
       }
     } catch {
-      // Silent
+      // Mirror the add path — deletion failures must be visible (audit-2026-07-03)
+      setError('Failed to delete rule');
     }
   };
 

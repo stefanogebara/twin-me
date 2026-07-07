@@ -6,6 +6,7 @@
  */
 
 import express from 'express';
+import rateLimit from 'express-rate-limit';
 import { supabaseAdmin } from '../services/database.js';
 import { renderSoulCard, renderFallbackCard } from '../services/soulCardRenderer.js';
 import { get as cacheGet, set as cacheSet, del as cacheDel } from '../services/redisClient.js';
@@ -19,6 +20,36 @@ const router = express.Router();
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const OG_CARD_TTL = 3600;    // 1 hour
 const OG_DATA_TTL = 900;     // 15 minutes
+// CDN may serve a stale card for up to a day while revalidating in the
+// background — repeat scraper traffic lands on Vercel's edge, not our CPU.
+const OG_SWR_SECONDS = 86400;
+
+// Dedicated per-IP limiter: the route is deliberately public (OG scrapers
+// can't authenticate) and satori+resvg rendering is CPU-heavy, so the generic
+// apiLimiter (500/15min) is too loose. Legit scrapers fetch a card once per
+// share; the CDN absorbs repeats.
+const OG_CARD_RATE_LIMIT_MAX = parseInt(process.env.OG_CARD_RATE_LIMIT_MAX, 10) || 30;
+const ogCardLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: OG_CARD_RATE_LIMIT_MAX,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Too many soul-card requests. Please try again shortly.' },
+});
+
+// The fallback card is identical for every request — render it once per
+// process instead of burning a full satori+resvg pass on every garbage or
+// unknown userId (this endpoint is unauthenticated).
+let fallbackCardPromise = null;
+function getFallbackCard() {
+  if (!fallbackCardPromise) {
+    fallbackCardPromise = renderFallbackCard().catch((err) => {
+      fallbackCardPromise = null; // allow retry on transient failure (e.g. fonts not ready)
+      throw err;
+    });
+  }
+  return fallbackCardPromise;
+}
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -73,12 +104,13 @@ function extractUserIdFromJWT(req) {
 
 // ─── GET /og/soul-card?userId=X ─────────────────────────────────────────────
 
-router.get('/og/soul-card', async (req, res) => {
+router.get('/og/soul-card', ogCardLimiter, async (req, res) => {
   try {
     const { userId } = req.query;
 
+    // Validate before any work — garbage params cost one memoized buffer, zero renders.
     if (!userId || !UUID_RE.test(userId)) {
-      const fallback = await renderFallbackCard();
+      const fallback = await getFallbackCard();
       return sendPng(res, fallback, 300);
     }
 
@@ -94,7 +126,7 @@ router.get('/og/soul-card', async (req, res) => {
     const data = await fetchSignatureData(userId);
 
     if (!data) {
-      const fallback = await renderFallbackCard();
+      const fallback = await getFallbackCard();
       return sendPng(res, fallback, 300);
     }
 
@@ -102,7 +134,7 @@ router.get('/og/soul-card', async (req, res) => {
     if (!data.isPublic) {
       const requesterId = extractUserIdFromJWT(req);
       if (requesterId !== userId) {
-        const fallback = await renderFallbackCard();
+        const fallback = await getFallbackCard();
         return sendPng(res, fallback, 300);
       }
     }
@@ -123,7 +155,7 @@ router.get('/og/soul-card', async (req, res) => {
   } catch (err) {
     log.error('Error:', err);
     try {
-      const fallback = await renderFallbackCard();
+      const fallback = await getFallbackCard();
       return sendPng(res, fallback, 60);
     } catch {
       return res.status(500).send('Internal server error');
@@ -134,7 +166,7 @@ router.get('/og/soul-card', async (req, res) => {
 function sendPng(res, buffer, maxAge) {
   res.set({
     'Content-Type': 'image/png',
-    'Cache-Control': `public, max-age=${maxAge}, s-maxage=${maxAge}`,
+    'Cache-Control': `public, max-age=${maxAge}, s-maxage=${maxAge}, stale-while-revalidate=${OG_SWR_SECONDS}`,
     'Content-Length': buffer.length,
   });
   return res.send(buffer);

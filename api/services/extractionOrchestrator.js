@@ -336,22 +336,28 @@ class ExtractionOrchestrator {
         // Add more as needed
       };
 
-      // Get all platform connections
-      const { data: connections, error: connErr } = await supabaseAdmin
-        .from('platform_connections')
-        .select('platform, last_sync_at, last_sync_status, status')
-        .eq('user_id', userId);
+      // Connections and recent jobs are independent — fetch them in parallel
+      // (audit 2026-07-03: they were serial; every round trip counts on the
+      // /api/twin/status/:userId path). Jobs select narrowed from '*' to the
+      // columns actually read below.
+      const [
+        { data: connections, error: connErr },
+        { data: jobs }
+      ] = await Promise.all([
+        supabaseAdmin
+          .from('platform_connections')
+          .select('platform, last_sync_at, last_sync_status, status')
+          .eq('user_id', userId),
+        supabaseAdmin
+          .from('data_extraction_jobs')
+          .select('platform, status, started_at, completed_at, processed_items, total_items, error_message')
+          .eq('user_id', userId)
+          .order('started_at', { ascending: false })
+          .limit(20)
+      ]);
       if (connErr) {
         throw new Error(`Failed to fetch platform connections: ${connErr.message}`);
       }
-
-      // Get recent extraction jobs
-      const { data: jobs } = await supabaseAdmin
-        .from('data_extraction_jobs')
-        .select('*')
-        .eq('user_id', userId)
-        .order('started_at', { ascending: false })
-        .limit(20);
 
       // Build status for each platform
       const platformStatus = connections?.map(conn => {

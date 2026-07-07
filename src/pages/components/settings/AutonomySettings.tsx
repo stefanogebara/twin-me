@@ -12,10 +12,15 @@ const getAuthHeaders = () => {
 };
 
 // Autonomy level labels and colors
+// audit-2026-07-03 H5: the current-level badge renders dark text on this
+// translucent fill. The two lowest fills (Suggest 0.4, Draft 0.5) left the
+// badge below AA (Suggest 3.24:1). Raised to 0.6 so dark #1b1818 text reaches
+// 5.42:1; the badge text color below is now dark for ALL levels so no level
+// falls back to low-contrast white-on-pale.
 const AUTONOMY_LEVELS = [
   { label: 'Observe', short: 'OBS', color: 'rgba(255, 255, 255, 0.55)' },
-  { label: 'Suggest', short: 'SUG', color: 'rgba(232,224,212,0.4)' },
-  { label: 'Draft', short: 'DFT', color: 'rgba(232,224,212,0.5)' },
+  { label: 'Suggest', short: 'SUG', color: 'rgba(232,224,212,0.6)' },
+  { label: 'Draft', short: 'DFT', color: 'rgba(232,224,212,0.6)' },
   { label: 'Act & Notify', short: 'ACT', color: 'rgba(232,224,212,0.7)' },
   { label: 'Autonomous', short: 'AUTO', color: 'rgba(232,224,212,0.9)' },
 ] as const;
@@ -215,7 +220,9 @@ const SkillRow: React.FC<SkillRowProps> = ({ skill, isUpdating, onLevelChange })
           className="text-[10px] font-medium uppercase tracking-wider px-2 py-0.5 rounded-full shrink-0 ml-3 transition-colors"
           style={{
             background: levelInfo.color,
-            color: level >= 2 ? '#1b1818' : 'rgba(255,255,255,0.6)',
+            // audit-2026-07-03 H5: dark text on every level. The pale streak
+            // fill needs dark text for AA (>=4.73:1); white-on-pale was 3.24:1.
+            color: '#1b1818',
             opacity: isUpdating ? 0.5 : 1,
           }}
         >

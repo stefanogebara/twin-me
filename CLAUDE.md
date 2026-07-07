@@ -78,7 +78,7 @@ Weight presets (inspired by Paper 2):
 
 ### Expert Reflection Engine (`reflectionEngine.js`)
 Inspired by Paper 2 (Park et al., 2024 "Generative Agent Simulations of 1,000 People").
-Triggered when accumulated importance > 40 (IMPORTANCE_THRESHOLD in reflectionEngine.js). Uses 5 domain-specific expert personas:
+Triggered when accumulated importance reaches IMPORTANCE_THRESHOLD (80 in reflectionEngine.js). Uses 5 domain-specific expert personas:
 
 1. **Personality Psychologist** - Emotional patterns, coping, attachment style, Big Five from behavior
 2. **Lifestyle Analyst** - Daily rhythms, energy, health-behavior connections, routine vs spontaneity
@@ -86,7 +86,7 @@ Triggered when accumulated importance > 40 (IMPORTANCE_THRESHOLD in reflectionEn
 4. **Social Dynamics Analyst** - Communication style, relationship patterns, social energy
 5. **Motivation Analyst** - Work patterns, ambitions, decision-making style
 
-Process: Gather 100 recent memories -> Run all 5 experts in parallel (each retrieves domain-specific evidence via vector search with `reflection` weights) -> Each expert generates 2-3 observations -> Store as `reflection` memories (importance 7-9) with expert metadata -> Recursive up to depth 3
+Process: Gather 100 recent memories -> Run all 5 experts in parallel (each retrieves domain-specific evidence via vector search with `reflection` weights) -> Each expert generates 2-3 observations -> Store as `reflection` memories (importance 7-9) with expert metadata. Recursion is gated by MAX_REFLECTION_DEPTH (currently 1: meta-reflections disabled to avoid reflection oversaturation of the memory stream)
 
 ### Background Observation Ingestion
 Periodic cron job pulls platform data and stores as observations:
@@ -268,7 +268,7 @@ Inspired by Karpathy's LLM Wiki pattern. Instead of re-deriving knowledge from r
 
 ### Key Architecture Files
 - `api/services/memoryStreamService.js` - Write/read path for memory stream (per-utterance storage)
-- `api/services/reflectionEngine.js` - Reflection generation pipeline (recursive, depth 3)
+- `api/services/reflectionEngine.js` - Reflection generation pipeline (recursion gated by MAX_REFLECTION_DEPTH, currently 1)
 - `api/services/twinSummaryService.js` - Dynamic twin summary generation + caching
 - `api/services/proactiveInsights.js` - Proactive insight generation + delivery tracking
 - `api/services/observationIngestion.js` - Background platform data -> observation pipeline + goal tracking hooks

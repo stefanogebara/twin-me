@@ -8,7 +8,7 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Loader2, CheckCircle2, XCircle } from 'lucide-react';
-import { API_URL } from '@/services/api/apiBase';
+import { API_URL, getAccessToken } from '@/services/api/apiBase';
 
 const GmailCallback: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -55,9 +55,20 @@ const GmailCallback: React.FC = () => {
         throw new Error('Missing required OAuth parameters');
       }
 
+      // CSRF: verify the returned `state` matches the nonce this browser stored
+      // before opening the popup. sessionStorage is same-origin only, so an
+      // attacker who forges a callback URL cannot have set it. Mirrors the
+      // nonce round-trip in OAuthCallback.tsx. One-time use.
+      const storedState = sessionStorage.getItem('gmail_oauth_state');
+      sessionStorage.removeItem('gmail_oauth_state');
+      if (!storedState || storedState !== state) {
+        throw new Error('Security check failed. Please try connecting Gmail again.');
+      }
+
       // Send callback data to backend
       const apiUrl = API_URL;
-      const token = localStorage.getItem('authToken');
+      // Access token lives in-memory (XSS-hardened), never localStorage.
+      const token = getAccessToken();
 
       if (!token) {
         throw new Error('Authentication required. Please sign in.');

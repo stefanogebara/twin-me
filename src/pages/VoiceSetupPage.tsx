@@ -39,6 +39,8 @@ export default function VoiceSetupPage() {
   useDocumentTitle('Voice Bridge — TwinMe');
   const [state, setState] = useState<LinkState>({ status: 'loading' });
   const [starting, setStarting] = useState(false);
+  // Two-tap unlink confirmation (replaces browser confirm(), audit-2026-07-03)
+  const [confirmingUnlink, setConfirmingUnlink] = useState(false);
 
   const fetchStatus = useCallback(async () => {
     try {
@@ -82,7 +84,9 @@ export default function VoiceSetupPage() {
       const res = await authFetch('/voice-bridge/link/start', { method: 'POST' });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        setState({ status: 'error', errorMessage: body.error || `Start failed (${res.status})` });
+        // audit-2026-07-03: prefer the human-friendly error_description over
+        // the machine-only error slug (e.g. "waha_unreachable").
+        setState({ status: 'error', errorMessage: body.error_description || body.error || `Start failed (${res.status})` });
         return;
       }
       // Bridge returned the first QR; pull it into state and start polling
@@ -106,7 +110,15 @@ export default function VoiceSetupPage() {
   }
 
   async function unlink() {
-    if (!confirm('Unlink your WhatsApp from TwinMe? You can re-link any time.')) return;
+    // Two-tap confirm (same idiom as IdentityNarrativeCard's revert) instead
+    // of the browser confirm() dialog, which is unstyled, thread-blocking,
+    // and inconsistent with the dark design system (audit-2026-07-03).
+    if (!confirmingUnlink) {
+      setConfirmingUnlink(true);
+      window.setTimeout(() => setConfirmingUnlink(false), 4000);
+      return;
+    }
+    setConfirmingUnlink(false);
     // Verify the server-side unlink succeeded before showing disconnected —
     // a failed unlink must not falsely read as disconnected while the bridge
     // still holds session keys (audit-2026-06-10).
@@ -238,9 +250,9 @@ export default function VoiceSetupPage() {
             <button
               onClick={unlink}
               className="text-[13px] underline mt-2"
-              style={{ color: 'rgba(255,255,255,0.4)' }}
+              style={{ color: confirmingUnlink ? 'var(--destructive)' : 'rgba(255,255,255,0.4)' }}
             >
-              Unlink
+              {confirmingUnlink ? 'Tap again to unlink — you can re-link any time' : 'Unlink'}
             </button>
           </div>
         )}

@@ -191,7 +191,11 @@ const WelcomeStep: React.FC<WelcomeStepProps> = ({ onBegin }) => {
             onClick={handleSkipToChat}
             className="mt-8 text-[12px] transition-opacity hover:opacity-70"
             style={{
-              color: 'rgba(255,255,255,0.2)',
+              // audit-2026-07-03 H2: was rgba(255,255,255,0.2) = 1.85:1, far
+              // below AA and the only escape hatch for returning users. 0.7
+              // white = 9.39:1 on #13121a, with headroom to survive the lighter
+              // sunset-art regions this button sits over.
+              color: 'rgba(255,255,255,0.7)',
               fontFamily: "'Inter', sans-serif",
               background: 'none',
               border: 'none',

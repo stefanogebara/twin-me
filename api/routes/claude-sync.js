@@ -149,7 +149,7 @@ async function extractConversationsFromHistory(historyPath) {
             .trim();
 
           // Skip if it's mostly code output or error messages
-          if (cleanMessage.length > 30 && !cleanMessage.match(/^[\[\]{}0-9,.\s]+$/)) {
+          if (cleanMessage.length > 30 && !cleanMessage.match(/^[[\]{}0-9,.\s]+$/)) {
             conversations.push({
               content: cleanMessage.substring(0, 2000),
               role: 'user',
@@ -247,7 +247,7 @@ function cleanConversations(rawConversations) {
     seen.add(fingerprint);
 
     if (conv.content.length < 30) continue;
-    if (conv.content.match(/^[{}\[\]0-9,.\s]+$/)) continue;
+    if (conv.content.match(/^[{}[\]0-9,.\s]+$/)) continue;
 
     cleaned.push({
       content: conv.content,

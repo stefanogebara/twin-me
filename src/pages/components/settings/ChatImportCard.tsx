@@ -25,6 +25,11 @@ import { importsAPI, type ChatImportResult, type ChatContext } from '@/services/
 type Platform = 'whatsapp_chat' | 'telegram_chat';
 type ContextStatus = 'pending' | 'uploading' | 'done' | 'skipped' | 'error';
 
+// Reject obviously-oversized exports client-side; the presigned-URL flow has
+// no Vercel body limit to save us, and the processor downloads the whole file
+// into serverless memory (audit-2026-07-03).
+const MAX_UPLOAD_BYTES = 50 * 1024 * 1024; // 50 MB
+
 interface ContextState {
   status: ContextStatus;
   result?: ChatImportResult;
@@ -139,6 +144,18 @@ export default function ChatImportCard({ cardStyle }: ChatImportCardProps) {
   }, []);
 
   const handleFile = async (file: File, contextId: ChatContext) => {
+    // Text-only chat exports are a few MB; anything huge is a media-laden
+    // export that would stall the upload and blow the serverless processor
+    // (audit-2026-07-03).
+    if (file.size > MAX_UPLOAD_BYTES) {
+      updateContext(contextId, {
+        status: 'error',
+        error: `File is too large (max ${MAX_UPLOAD_BYTES / (1024 * 1024)} MB). Re-export without photos, videos, and files.`,
+      });
+      activeContextRef.current = null;
+      return;
+    }
+
     updateContext(contextId, { status: 'uploading', error: undefined });
 
     try {
