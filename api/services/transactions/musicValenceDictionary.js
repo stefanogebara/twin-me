@@ -14,6 +14,28 @@
  * then to null (tagger treats null as "no signal").
  */
 
+// ASCII `\b` is not Unicode-aware: it treats accented Latin letters (é, ó, ã…)
+// as NON-word characters. So a `\b` sitting next to an accent — /\baxé\b/,
+// /\bforró\b/, /\bbeyoncé\b/ — never matches the accented spelling Spotify
+// actually returns (the trailing \b falls between the accent and a space, two
+// non-word chars, so no boundary exists) and the rule silently scored null.
+// WB is a symmetric, Unicode-aware word-boundary assertion; we recompile every
+// rule with it so accented names score. Future entries inherit the fix.
+const WB =
+  '(?:(?<=[\\p{L}\\p{N}_])(?![\\p{L}\\p{N}_])|(?<![\\p{L}\\p{N}_])(?=[\\p{L}\\p{N}_]))';
+
+function unicodeRule(rule) {
+  let match = rule.match;
+  try {
+    const flags = match.flags.includes('u') ? match.flags : match.flags + 'u';
+    match = new RegExp(match.source.replaceAll('\\b', WB), flags);
+  } catch {
+    // A pattern that won't recompile under /u keeps its ASCII-\b original:
+    // never worse than today's behavior, and never crashes module load.
+  }
+  return { ...rule, match };
+}
+
 // Curated list. Keep under 150 entries — maintenance cost scales linearly.
 // Grouped by mood band for readability.
 const ARTIST_VALENCE = [
@@ -83,7 +105,7 @@ const ARTIST_VALENCE = [
   { match: /\bslipknot\b/i, valence: 0.25 },
   { match: /\brammstein\b/i, valence: 0.35 },
   { match: /\bmetallica\b/i, valence: 0.42 },
-];
+].map(unicodeRule);
 
 const GENRE_FALLBACKS = [
   { match: /\bfunk carioca\b|\bfunk paulista\b|\bbrazilian funk\b/i, valence: 0.72 },
@@ -102,7 +124,7 @@ const GENRE_FALLBACKS = [
   { match: /\brock\b/i, valence: 0.55 },
   { match: /\bmetal\b/i, valence: 0.32 },
   { match: /\bemo\b/i, valence: 0.28 },
-];
+].map(unicodeRule);
 
 /**
  * Estimate valence [0-1] for a Spotify track row.
