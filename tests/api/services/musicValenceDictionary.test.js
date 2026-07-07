@@ -51,12 +51,11 @@ describe('estimateValence — artist dictionary', () => {
     expect(estimateValence({ artist_name: 'Beyonce Renaissance' })).toBe(0.82);
   });
 
-  it('BUG (pinned): the ACCENTED "Beyoncé" does NOT match — trailing é breaks \\b', () => {
-    // KNOWN BUG: patterns use \b without the /u flag. A trailing accented vowel
-    // (é) is not a \w char, so the closing \b never matches. Only the ASCII
-    // form "Beyonce" hits. Real Spotify metadata usually spells it "Beyoncé",
-    // which therefore falls through to null. Pinning current behavior.
-    expect(estimateValence({ artist_name: 'Beyoncé' })).toBeNull();
+  it('matches the ACCENTED "Beyoncé" (Unicode-aware boundary, #140)', () => {
+    // Fixed in #140: rules recompile with a Unicode-aware word boundary, so a
+    // trailing accented vowel (é) no longer breaks the closing boundary. Real
+    // Spotify metadata spells it "Beyoncé", which now tags instead of null.
+    expect(estimateValence({ artist_name: 'Beyoncé' })).toBe(0.82);
   });
 
   it('matches on album_name / track_name fields too', () => {
@@ -79,14 +78,29 @@ describe('estimateValence — genre fallbacks (after artist misses)', () => {
     expect(estimateValence({ genre: 'axe' })).toBe(0.88);
   });
 
-  it('BUG (pinned): accented BR genres ending in a vowel ("axé", "forró") miss', () => {
-    // Same \b-without-/u bug as Beyoncé: axé/forró end in an accented vowel, so
-    // the trailing word boundary fails and the accented spelling returns null.
-    // A mid-word accent is fine ("clássica" matches via [aá]), only trailing
-    // accents break. This means the accented (correct) genre labels don't tag.
-    expect(estimateValence({ genre: 'axé' })).toBeNull();
-    expect(estimateValence({ genre: 'forró' })).toBeNull();
+  it('matches accented BR genres ending in a vowel ("axé", "forró") (#140)', () => {
+    // Fixed in #140: the Unicode-aware boundary matches a trailing accent, so
+    // the correct accented spelling now tags. Mid-word accents ("clássica")
+    // always worked via [aá] and still do.
+    expect(estimateValence({ genre: 'axé' })).toBe(0.88);
+    expect(estimateValence({ genre: 'forró' })).toBe(0.78);
     expect(estimateValence({ genre: 'clássica' })).toBe(0.52); // mid-word accent OK
+  });
+});
+
+describe('estimateValence — Unicode boundaries still bound (no over-match)', () => {
+  // The #140 fix must not loosen word-anchored rules into substring matches.
+  it('does not match "axé" inside an unrelated word ("relaxed")', () => {
+    expect(estimateValence({ genre: 'relaxed' })).toBeNull();
+  });
+
+  it('does not match "beyoncé" without a leading boundary', () => {
+    expect(estimateValence({ artist_name: 'abeyonce theband' })).toBeNull();
+  });
+
+  it('does not match "beyonce" glued to a trailing word char', () => {
+    // "beyoncesque" — a trailing letter means no boundary after the accent slot
+    expect(estimateValence({ artist_name: 'beyoncesque tribute' })).toBeNull();
   });
 });
 
