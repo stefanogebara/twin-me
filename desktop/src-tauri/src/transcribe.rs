@@ -81,17 +81,26 @@ pub fn transcribe_samples(model_path: &str, samples: &[f32]) -> Result<String, S
         let text = segment
             .to_str_lossy()
             .map_err(|e| format!("failed to read segment {i}: {e}"))?;
-        let text = text.trim();
-        if text.is_empty() {
-            continue;
-        }
-        if !transcript.is_empty() {
-            transcript.push(' ');
-        }
-        transcript.push_str(text);
+        push_segment(&mut transcript, &text);
     }
 
     Ok(transcript)
+}
+
+/// Append one whisper segment to the transcript: trim it, skip it when empty,
+/// and join non-empty segments with a single space. Extracted from the
+/// `transcribe_samples` loop (byte-for-byte the same behavior) so the joining
+/// contract is unit-testable without a whisper model — whisper emits segments
+/// with leading spaces (" Hello") and occasional blank/whitespace-only ones.
+fn push_segment(transcript: &mut String, text: &str) {
+    let text = text.trim();
+    if text.is_empty() {
+        return;
+    }
+    if !transcript.is_empty() {
+        transcript.push(' ');
+    }
+    transcript.push_str(text);
 }
 
 /// Read a WAV file into a mono `Vec<f32>` in the [-1.0, 1.0] range.
@@ -133,4 +142,128 @@ fn load_wav_mono_f32(wav_path: &str) -> Result<Vec<f32>, String> {
         .collect();
 
     Ok(mono)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::{Path, PathBuf};
+
+    // ── push_segment: the transcript-joining contract ────────────────────
+    // Pure string logic, extracted from the whisper segment loop precisely so
+    // it can be pinned here without a model file.
+
+    #[test]
+    fn segments_join_with_single_spaces() {
+        // Whisper emits segments with leading spaces; they must not double up.
+        let mut t = String::new();
+        push_segment(&mut t, " Hello,");
+        push_segment(&mut t, " world.");
+        assert_eq!(t, "Hello, world.");
+    }
+
+    #[test]
+    fn first_segment_gets_no_leading_space() {
+        let mut t = String::new();
+        push_segment(&mut t, " only");
+        assert_eq!(t, "only");
+    }
+
+    #[test]
+    fn empty_and_whitespace_segments_are_skipped() {
+        let mut t = String::new();
+        push_segment(&mut t, "");
+        push_segment(&mut t, "   ");
+        assert_eq!(t, "", "blank segments must not seed the transcript");
+        push_segment(&mut t, "start");
+        push_segment(&mut t, "\t \n");
+        push_segment(&mut t, "end");
+        // The whitespace-only segment in the middle must not leave a double space.
+        assert_eq!(t, "start end");
+    }
+
+    #[test]
+    fn interior_whitespace_is_preserved() {
+        // Only the segment EDGES are trimmed; internal spacing is whisper's.
+        let mut t = String::new();
+        push_segment(&mut t, "  double  spaced  ");
+        assert_eq!(t, "double  spaced");
+    }
+
+    // ── load_wav_mono_f32: WAV → whisper input buffer ────────────────────
+    // Exercised against real (tiny) WAV files written with hound into the OS
+    // temp dir — file IO but no audio hardware, models, or network.
+
+    /// Unique-per-test temp path so parallel tests never collide.
+    fn temp_wav_path(tag: &str) -> PathBuf {
+        std::env::temp_dir().join(format!(
+            "twinme_transcribe_test_{}_{tag}.wav",
+            std::process::id()
+        ))
+    }
+
+    /// Write an i16 PCM WAV (the format audio_capture produces) for a test.
+    fn write_test_wav(path: &Path, channels: u16, sample_rate: u32, samples: &[i16]) {
+        let spec = hound::WavSpec {
+            channels,
+            sample_rate,
+            bits_per_sample: 16,
+            sample_format: hound::SampleFormat::Int,
+        };
+        let mut writer = hound::WavWriter::create(path, spec).unwrap();
+        for &s in samples {
+            writer.write_sample(s).unwrap();
+        }
+        writer.finalize().unwrap();
+    }
+
+    #[test]
+    fn wav_mono_16k_normalizes_i16_to_unit_range() {
+        let path = temp_wav_path("mono_norm");
+        write_test_wav(&path, 1, 16_000, &[0, 16_384, -16_384, i16::MAX, i16::MIN]);
+        let samples = load_wav_mono_f32(path.to_str().unwrap()).unwrap();
+        let _ = std::fs::remove_file(&path);
+
+        // v / 32768.0 — the exact inverse of write_wav_16k_mono's scaling.
+        // Note the asymmetry: i16::MAX maps just under 1.0, i16::MIN to -1.0.
+        let expected = [0.0f32, 0.5, -0.5, 32_767.0 / 32_768.0, -1.0];
+        assert_eq!(samples.len(), expected.len());
+        for (i, (got, want)) in samples.iter().zip(expected.iter()).enumerate() {
+            assert!((got - want).abs() < 1e-6, "sample {i}: got {got}, want {want}");
+        }
+    }
+
+    #[test]
+    fn wav_stereo_averages_to_mono() {
+        let path = temp_wav_path("stereo_downmix");
+        // Two interleaved L/R frames: (1000, 3000) and (-2000, 2000).
+        write_test_wav(&path, 2, 16_000, &[1_000, 3_000, -2_000, 2_000]);
+        let samples = load_wav_mono_f32(path.to_str().unwrap()).unwrap();
+        let _ = std::fs::remove_file(&path);
+
+        assert_eq!(samples.len(), 2, "one mono sample per stereo frame");
+        assert!((samples[0] - 2_000.0 / 32_768.0).abs() < 1e-6); // avg(1000, 3000)
+        assert!(samples[1].abs() < 1e-6); // avg(-2000, 2000) = 0
+    }
+
+    #[test]
+    fn wav_wrong_sample_rate_is_rejected() {
+        // Whisper does not resample; a non-16kHz WAV must fail loudly, naming
+        // both the expected and the actual rate.
+        let path = temp_wav_path("wrong_rate");
+        write_test_wav(&path, 1, 44_100, &[0, 0, 0]);
+        let err = load_wav_mono_f32(path.to_str().unwrap()).unwrap_err();
+        let _ = std::fs::remove_file(&path);
+
+        assert!(err.contains("16000"), "should name the required rate: {err}");
+        assert!(err.contains("44100"), "should name the offending rate: {err}");
+    }
+
+    #[test]
+    fn wav_missing_file_errors_with_path_context() {
+        let path = temp_wav_path("does_not_exist");
+        let _ = std::fs::remove_file(&path); // ensure absent
+        let err = load_wav_mono_f32(path.to_str().unwrap()).unwrap_err();
+        assert!(err.contains("failed to open"), "unexpected error: {err}");
+    }
 }
