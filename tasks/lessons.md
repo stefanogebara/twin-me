@@ -461,3 +461,28 @@ a careful stash-archaeology pass (`git stash show --stat/-p`, selective
 - After any concurrent-edit workflow, before trusting the result: `git status`,
   `git stash list`, and reconcile — do not assume the tree holds every reported
   edit. Verify with build + tsc-delta + full suite, not the agents' self-reports.
+
+## 2026-07-07 — Squash-merging a stacked PR with `--delete-branch` auto-closes its children
+
+**Incident**: Landing the M1 PR stack (#162 → #170 → #166 → #167 → #171). Squash-merged #166 with `gh pr merge --squash --delete-branch`. Its head branch `feat-today-home` was the BASE of the stacked child #167, so deleting it made GitHub **auto-CLOSE #167** (state=CLOSED, mergeable=CONFLICTING) instead of retargeting it to `main`. The closed PR could not be revived either: `gh pr edit --base main` → *"Cannot change the base branch of a closed pull request"* and `gh pr reopen` → *"Could not open the pull request"* because its base branch no longer existed — a chicken-and-egg dead end.
+
+**Root cause**: A squash-merge puts a NEW commit on `main`; the child branch still carries the parent's ORIGINAL pre-squash commit, so the child's diff vs `main` duplicates the parent's changes → CONFLICTING. Combined with the base-branch deletion, GitHub closes the child rather than retargeting it.
+
+**Recovery**: The child's head branch still existed (commits safe). `git rebase --onto origin/main <parent-old-tip-sha> <child-branch>` drops the now-redundant parent commit and replays only the child's delta onto `main`; then force-push. A closed PR whose base branch is gone is unrecoverable, so its content was bundled into the next surviving PR in the stack (retargeted to `main` *while still OPEN*, then rebased the same way).
+
+**Rules**:
+- When squash-merging a **stack**, retarget each child PR's base to `main` *before* deleting its parent's branch — or merge parents **without** `--delete-branch` and delete branches manually afterward. A closed PR whose base branch is gone cannot be reopened or retargeted.
+- After squash-merging a parent, a child needs `git rebase --onto origin/main <old-parent-tip> <child>` to shed the duplicated commit. A plain `git merge main` into the child conflicts on the parent's files instead.
+- A recycled worktree can still hold a branch checked out; `git worktree prune` won't clear the registration while the directory exists, so an in-place `git rebase <branch>` fails silently ("already checked out at ..."). Rebase a throwaway local branch and push it to the target ref instead.
+
+## 2026-07-07 — A whole PR stack red for one reason = suspect a shared base cause, not N per-PR bugs
+
+**Incident**: Every PR in the M1 stack showed an identical failing `Build & Test` (`2 ok / 1 fail / 2 pending`). It looked like each PR had its own bug. In reality **all 3,677 tests passed** on every PR — the only failing step was the CI baseline ratchet (`scripts/ci/check-baselines.mjs`) reporting `eslintErrors 80 < baseline 84 → improved, run --update`. Task #134 had fixed 4 ESLint errors (84→80) without updating `scripts/ci/baselines.json`, so every PR branching off that `main` failed the ratchet identically. One stale number, whole-stack red.
+
+**Root cause**: A ratchet that fails on *improvement* (to force locking the gain in) converts one un-committed baseline update into a stack-wide red that masquerades as N independent per-PR failures.
+
+**Rules**:
+- When an entire stack is red for the *same* reason, look for a shared cause on the common base (stale baseline, broken shared test mock, bad `main` commit) BEFORE hunting per-PR bugs. Read the actual failing step, not the red X.
+- Green test summary + red job = keep reading. The failure was the LAST step (a script `exit 1`), a hundred lines below an all-green vitest summary.
+- A "metric improved — lock it in" ratchet MUST have its baseline updated in the SAME PR that improves the metric, or it taxes every later PR. When you fix lint/type errors, run `node scripts/ci/check-baselines.mjs --update` and commit `baselines.json` in that PR (this was exactly #162's bundled fix that greened the stack).
+- Only `Vercel` is a required status check on `main`; `Build & Test` is not. A stack can be genuinely mergeable on the required check while `Build & Test` is red — but merging red tests/ratchet into `main` is still wrong. Fix the root cause; don't lean on the fact that GitHub would let it through.
