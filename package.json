@@ -20,6 +20,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "test:smoke:ci": "playwright test --config=playwright.smoke-ci.config.ts",
     "audit:all": "node scripts/audit-all.mjs",
     "audit:design": "node scripts/audit-all.mjs --only=design",
     "audit:console": "node scripts/audit-all.mjs --only=console",
