@@ -75,3 +75,43 @@ jobs:
       # backlog. This is how lint/tsc get teeth without a big-bang cleanup.
       - name: Baseline freeze (eslint + tsc + direct-DB-in-routes)
         run: node scripts/ci/check-baselines.mjs
+
+  smoke-e2e:
+    name: Smoke E2E (non-blocking)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # NON-BLOCKING for now: this reports a signal but must not fail the CI run
+    # or block a PR while it proves out. `continue-on-error` keeps the overall
+    # workflow green even if the smoke fails. Once it has a track record of
+    # green, drop this line and add the job to branch protection to promote it
+    # to a hard gate (same staged approach as the eslint/tsc baseline steps).
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Install Playwright browser (chromium)
+        run: npx playwright install --with-deps chromium
+
+      - name: Build (vite)
+        run: npm run build
+
+      # Boots the built app via `vite preview` (config's webServer) and runs the
+      # backend-free smoke — no API server, Supabase, or auth needed.
+      - name: Smoke — frontend boot + render
+        run: npm run test:smoke:ci
+
+      - name: Upload Playwright report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-ci-report
+          path: playwright-report/
+          retention-days: 7
