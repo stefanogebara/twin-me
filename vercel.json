@@ -118,7 +118,7 @@
     },
     {
       "path": "/api/cron/meeting-prep",
-      "schedule": "*/30 * * * *"
+      "schedule": "0 * * * *"
     },
     {
       "path": "/api/cron/meeting-debrief",
