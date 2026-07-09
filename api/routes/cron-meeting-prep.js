@@ -1,9 +1,14 @@
 /**
  * Cron: Meeting Prep
  * ===================
- * Runs every 30 minutes. Finds calendar events starting in the next 26
- * hours that have external attendees and haven't been briefed yet, then
- * generates a Dimension-style pre-meeting briefing for each user.
+ * Runs hourly. Finds calendar events starting in the next 26 hours that
+ * have external attendees and haven't been briefed yet, then generates a
+ * Dimension-style pre-meeting briefing for each user.
+ *
+ * Cadence note: the look-ahead window is 26h and each event is briefed
+ * exactly once, so cron frequency is a COST lever, not a coverage one —
+ * hourly still briefs every meeting well ahead of its start. The only edge
+ * it gives up vs the old *\/30 is meetings created <1h before they begin.
  *
  * The calendar-scan logic (fetchUpcomingExternalEvents) lives in
  * meetingPrepService.js so the on-demand /api/meeting-briefings/scan
