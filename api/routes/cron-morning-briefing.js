@@ -15,6 +15,8 @@ import { inngest, EVENTS } from '../services/inngestClient.js';
 import { supabaseAdmin } from '../services/database.js';
 import { logCronExecution, wasRecentlyRun } from '../services/cronLogger.js';
 import { deliverInsight } from '../services/messageRouter.js';
+import { offerNextProposal } from '../services/threadApprovals.js';
+import { combineBriefingWithOffer, isDailyActionOfferEnabled } from '../services/dailyHabitLoop.js';
 import { complete, TIER_ANALYSIS } from '../services/llmGateway.js';
 import { getBlocks } from '../services/coreMemoryService.js';
 import { createLogger } from '../services/logger.js';
@@ -172,11 +174,23 @@ router.all('/', async (req, res) => {
           } else {
             const briefingText = await generateBriefingText(userId);
             if (briefingText) {
+              // Daily habit loop (flag-gated, default OFF): fold the single top
+              // pending action into the brief as ONE message. offerNextProposal
+              // arms the proposal; a "yes"/"skip" reply resolves it via the
+              // existing threadApprovals rail. No offer -> brief stands alone.
+              let messageText = briefingText;
+              if (isDailyActionOfferEnabled()) {
+                const offer = await offerNextProposal(userId).catch(err => {
+                  log.warn('Daily action offer failed', { userId, error: err.message });
+                  return null;
+                });
+                messageText = combineBriefingWithOffer(briefingText, offer);
+              }
               const { data: insight } = await supabaseAdmin
                 .from('proactive_insights')
                 .insert({
                   user_id: userId,
-                  insight: briefingText,
+                  insight: messageText,
                   urgency: 'medium',
                   category: 'briefing',
                   delivered: false,
