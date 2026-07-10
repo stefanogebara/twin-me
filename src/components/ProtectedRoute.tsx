@@ -5,6 +5,14 @@ import { Navigate, useLocation } from 'react-router-dom';
 interface ProtectedRouteProps {
   children: ReactNode;
   fallbackPath?: string;
+  /**
+   * Admin-only gate. When true, an authenticated non-admin is redirected to
+   * /dashboard instead of seeing the page shell. Defense-in-depth: the backend
+   * still enforces the specific admin gate per endpoint (requireProfessor /
+   * requireAdminEmail); this just stops the admin shell from ever rendering for
+   * a non-admin. `isAdmin` is server-computed (adminAccess.computeIsAdmin).
+   */
+  requireAdmin?: boolean;
 }
 
 /**
@@ -24,9 +32,10 @@ interface ProtectedRouteProps {
  */
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   children,
-  fallbackPath = '/auth'
+  fallbackPath = '/auth',
+  requireAdmin = false
 }) => {
-  const { isSignedIn, isLoaded, needsOnboarding } = useAuth();
+  const { isSignedIn, isLoaded, isAdmin, needsOnboarding } = useAuth();
   const location = useLocation();
 
   // Wait for auth verification to complete before making any decisions
@@ -56,6 +65,12 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   // Auth is loaded - now we can make a decision
   if (isSignedIn) {
+    // Admin-only routes: bounce authenticated non-admins to the dashboard
+    // before any admin shell renders. Checked ahead of the onboarding gate so
+    // a non-admin never lingers on an admin path.
+    if (requireAdmin && !isAdmin) {
+      return <Navigate to="/dashboard" replace />;
+    }
     // Gate new users to cinematic onboarding (skip if already on /onboarding).
     // Also allow /soul-reveal so the desktop "look you up" research reveal can
     // run once right after Google sign-in before the onboarding gate sends the

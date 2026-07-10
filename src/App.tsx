@@ -511,7 +511,7 @@ const App = () => {
 
             {/* Admin: LLM Cost Monitor */}
             <Route path="/admin/llm-costs" element={
-              <ProtectedRoute>
+              <ProtectedRoute requireAdmin>
                 <SidebarLayout>
                   <ErrorBoundary>
                     <AdminLLMCosts />
@@ -522,7 +522,7 @@ const App = () => {
 
             {/* Admin: Beta Monitoring Dashboard (overview metrics, usage, cost) */}
             <Route path="/admin/beta" element={
-              <ProtectedRoute>
+              <ProtectedRoute requireAdmin>
                 <SidebarLayout>
                   <ErrorBoundary>
                     <AdminBetaPage />
@@ -533,7 +533,7 @@ const App = () => {
 
             {/* Admin: Beta Invite Management (codes, waitlist, feedback) */}
             <Route path="/admin/beta/invites" element={
-              <ProtectedRoute>
+              <ProtectedRoute requireAdmin>
                 <SidebarLayout>
                   <ErrorBoundary>
                     <AdminBetaDashboard />
@@ -545,7 +545,7 @@ const App = () => {
             {/* Memory Health — admin/debug tool, moved to /admin/memory-health */}
             <Route path="/memory-health" element={<Navigate to="/admin/memory-health" replace />} />
             <Route path="/admin/memory-health" element={
-              <ProtectedRoute>
+              <ProtectedRoute requireAdmin>
                 <SidebarLayout>
                   <ErrorBoundary>
                     <MemoryHealth />
@@ -556,7 +556,7 @@ const App = () => {
 
             {/* Twin Eval Tool (internal) */}
             <Route path="/eval" element={
-              <ProtectedRoute>
+              <ProtectedRoute requireAdmin>
                 <SidebarLayout>
                   <ErrorBoundary>
                     <EvalDashboard />

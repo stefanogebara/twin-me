@@ -26,6 +26,9 @@ interface User {
   createdAt?: string;
   created_at?: string;
   oauthProvider?: string | null;
+  // Server-computed admin flag (adminAccess.computeIsAdmin). Absent on stale
+  // cached users from before this shipped — treated as non-admin (fail closed).
+  isAdmin?: boolean;
 }
 
 interface AuthContextType {
@@ -33,6 +36,7 @@ interface AuthContextType {
   authToken: string | null;
   isLoaded: boolean;
   isSignedIn: boolean;
+  isAdmin: boolean;
   isLoading: boolean;
   needsOnboarding: boolean;
   setNeedsOnboarding: (v: boolean) => void;
@@ -541,6 +545,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     authToken,
     isLoaded,
     isSignedIn: !!user,
+    isAdmin: !!user?.isAdmin,
     isLoading,
     needsOnboarding,
     setNeedsOnboarding,
