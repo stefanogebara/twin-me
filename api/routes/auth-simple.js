@@ -11,6 +11,7 @@ import { sendWelcomeEmail, sendMagicLink } from '../services/emailService.js';
 import { getRedisClient, isRedisAvailable } from '../services/redisClient.js';
 import { createLogger } from '../services/logger.js';
 import { authenticateUser } from '../middleware/auth.js';
+import { computeIsAdmin } from '../services/adminAccess.js';
 
 const log = createLogger('Auth');
 
@@ -336,6 +337,11 @@ function buildAuthUser(user) {
     emailVerified: user.email_verified ?? undefined,
     email_verified: user.email_verified ?? undefined,
     oauthProvider: user.oauth_provider || null,
+    // Defense-in-depth signal the SPA mirrors to gate admin route shells.
+    // Single source of truth in adminAccess.js — union of DB role (if ever
+    // supplied) and the ADMIN_EMAILS allowlist. `user.role` is not selected on
+    // the hot auth paths (schema-drift risk), so this resolves via email today.
+    isAdmin: computeIsAdmin({ role: user.role, email: user.email }),
   };
 }
 
