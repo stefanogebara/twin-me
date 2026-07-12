@@ -170,7 +170,7 @@ const YouTubeInsightsPage: React.FC = () => {
           <button
             onClick={() => navigate('/get-started')}
             className="px-4 py-2 rounded-lg text-sm font-medium"
-            style={{ backgroundColor: '#10b77f', color: '#fff' }}
+            style={{ backgroundColor: '#10b77f', color: '#0a0f0a' }}
           >
             Connect YouTube
           </button>
@@ -606,7 +606,7 @@ const YouTubeInsightsPage: React.FC = () => {
               <button
                 onClick={() => navigate('/get-started')}
                 className="px-4 py-2 rounded-lg text-sm font-medium"
-                style={{ backgroundColor: '#10b77f', color: '#fff' }}
+                style={{ backgroundColor: '#10b77f', color: '#0a0f0a' }}
               >
                 Connect YouTube
               </button>

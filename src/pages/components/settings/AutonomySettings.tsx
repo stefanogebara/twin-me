@@ -14,7 +14,7 @@ const getAuthHeaders = () => {
 const AUTONOMY_LEVELS = [
   { label: 'Observe', short: 'OBS', color: 'rgba(255,255,255,0.2)' },
   { label: 'Suggest', short: 'SUG', color: 'rgba(232,224,212,0.4)' },
-  { label: 'Draft', short: 'DFT', color: 'rgba(232,224,212,0.5)' },
+  { label: 'Draft', short: 'DFT', color: 'rgba(232,224,212,0.6)' },
   { label: 'Act & Notify', short: 'ACT', color: 'rgba(232,224,212,0.7)' },
   { label: 'Autonomous', short: 'AUTO', color: 'rgba(232,224,212,0.9)' },
 ] as const;
@@ -210,7 +210,7 @@ const SkillRow: React.FC<SkillRowProps> = ({ skill, isUpdating, onLevelChange })
           className="text-[10px] font-medium uppercase tracking-wider px-2 py-0.5 rounded-full shrink-0 ml-3 transition-colors"
           style={{
             background: levelInfo.color,
-            color: level >= 2 ? '#1b1818' : 'rgba(255,255,255,0.6)',
+            color: level >= 2 ? '#1b1818' : 'rgba(255,255,255,0.92)',
             opacity: isUpdating ? 0.5 : 1,
           }}
         >

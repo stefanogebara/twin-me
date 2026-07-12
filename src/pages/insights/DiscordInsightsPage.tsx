@@ -121,7 +121,7 @@ const DiscordInsightsPage: React.FC = () => {
           <button
             onClick={() => navigate('/get-started')}
             className="px-4 py-2 rounded-lg text-sm font-medium transition-all hover:opacity-90"
-            style={{ backgroundColor: '#10b77f', color: '#fff' }}
+            style={{ backgroundColor: '#10b77f', color: '#0a0f0a' }}
           >
             Connect Discord
           </button>
@@ -330,8 +330,8 @@ const DiscordInsightsPage: React.FC = () => {
             {insights?.notConnected ? (
               <button
                 onClick={() => navigate('/get-started')}
-                className="px-5 py-2.5 rounded-xl text-sm font-medium text-white transition-all hover:scale-[1.02]"
-                style={{ background: '#10b77f' }}
+                className="px-5 py-2.5 rounded-xl text-sm font-medium transition-all hover:scale-[1.02]"
+                style={{ background: '#10b77f', color: '#0a0f0a' }}
               >
                 Connect Discord
               </button>

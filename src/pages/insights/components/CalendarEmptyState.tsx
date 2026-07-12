@@ -40,7 +40,7 @@ export const CalendarEmptyState: React.FC<CalendarEmptyStateProps> = ({ colors, 
           <button
             onClick={onConnect}
             className="px-5 py-2.5 rounded-xl text-sm font-medium transition-all hover:scale-[1.02]"
-            style={{ backgroundColor: '#10b77f', color: '#fff' }}
+            style={{ backgroundColor: '#10b77f', color: '#0a0f0a' }}
           >
             Connect Calendar
           </button>
