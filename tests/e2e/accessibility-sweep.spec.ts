@@ -23,7 +23,7 @@ import { test, expect, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import path from 'path';
 import fs from 'fs/promises';
-import { BASE_URL, SCREENSHOT_DIR, injectAuth } from './helpers';
+import { BASE_URL, SCREENSHOT_DIR, TEST_USER_ID, TEST_USER_EMAIL, injectAuth, mintTestToken } from './helpers';
 
 test.skip(
   process.env.TWINME_RUN_A11Y_AUDIT !== 'true',
@@ -60,6 +60,84 @@ interface RouteFinding {
 }
 
 const PER_ROUTE_MAX = 6;  // total violations allowed per route — keeps us honest without flapping
+
+const AA_CONTRAST = 4.5;
+
+// Forced state for the saturated-chip / colored-CTA contrast regression test
+// below. These elements never appear in the route sweep above: the autonomy
+// status pills only render for accounts with skills at those levels, and the
+// green "Connect <platform>" CTAs only render when the platform is not
+// connected. We mock the two endpoints to drive both into view deterministically.
+const AUTONOMY_SETTINGS_MOCK = {
+  success: true,
+  // One skill per autonomy level (0..4) → all five status pills render at once.
+  settings: [0, 1, 2, 3, 4].map((level) => ({
+    id: `contrast-skill-${level}`,
+    name: `contrast_skill_${level}`,
+    display_name: `Contrast Skill ${level}`,
+    description: 'Rendered to exercise the autonomy status badge contrast.',
+    category: 'daily_rituals',
+    default_autonomy_level: level,
+    effective_autonomy_level: level,
+    user_enabled: true,
+    has_override: false,
+    autonomy_label: ['Observe', 'Suggest', 'Draft', 'Act & Notify', 'Autonomous'][level],
+    required_platforms: [],
+  })),
+};
+
+const NOT_CONNECTED_INSIGHTS_MOCK = {
+  success: true,
+  notConnected: true,
+  reflection: { id: null, text: '', generatedAt: '', expiresAt: null, confidence: 'low', themes: [] },
+  patterns: [], history: [], evidence: [], todayEvents: [], upcomingEvents: [],
+};
+
+/**
+ * WCAG 2.1 contrast ratio for a single element, computed the way the prod
+ * axe-core canary reported it. We compute it ourselves instead of trusting
+ * axe's verdict because the app's <body> paints a four-radial-gradient
+ * `background-image`: axe cannot resolve a background COLOR through a gradient
+ * image, so it silently drops every element that has its OWN semi-transparent
+ * background (the tan pills, the green buttons) from color-contrast results —
+ * neither passing nor flagging them. We composite the element's + ancestors'
+ * rgba background layers over the opaque page base (#13121a), composite the
+ * text color on top, and apply the relative-luminance formula. Runs in-page.
+ */
+function elementContrast(el: Element): { ratio: number; text: string } {
+  const PAGE_BASE = [19, 18, 26]; // #13121a — body background-color (gradient image ignored, as axe does)
+  const parse = (c: string): number[] => {
+    const m = (c || '').match(/rgba?\(([^)]+)\)/);
+    if (!m) return [0, 0, 0, 0];
+    const p = m[1].split(',').map((s) => parseFloat(s.trim()));
+    return [p[0], p[1], p[2], p[3] === undefined ? 1 : p[3]];
+  };
+  const over = (src: number[], dst: number[]): number[] => {
+    const a = src[3];
+    return [0, 1, 2].map((i) => src[i] * a + dst[i] * (1 - a));
+  };
+  const layers: number[][] = [];
+  let node: Element | null = el;
+  while (node) {
+    const bg = parse(getComputedStyle(node).backgroundColor);
+    if (bg[3] > 0) layers.push(bg);
+    node = node.parentElement;
+  }
+  let bg = PAGE_BASE.slice();
+  for (let i = layers.length - 1; i >= 0; i--) bg = over(layers[i], bg);
+  const fg = over(parse(getComputedStyle(el).color), bg);
+  const lum = (rgb: number[]): number => {
+    const f = rgb.map((v) => {
+      const s = v / 255;
+      return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+    });
+    return 0.2126 * f[0] + 0.7152 * f[1] + 0.0722 * f[2];
+  };
+  const l1 = lum(fg);
+  const l2 = lum(bg);
+  const ratio = (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+  return { ratio: Math.round(ratio * 100) / 100, text: (el.textContent || '').trim().slice(0, 24) };
+}
 
 async function runAxe(page: Page): Promise<AxeViolation[]> {
   const results = await new AxeBuilder({ page })
@@ -149,6 +227,69 @@ test.describe('Accessibility sweep', () => {
     if (overThreshold.length > 0) {
       console.log(`\nRoutes over ${PER_ROUTE_MAX}-violation threshold:`);
       overThreshold.forEach((f) => console.log(`  ${f.route}: ${f.total}`));
+    }
+  });
+
+});
+
+// Saturated-color contrast: the tan autonomy status pills and the green
+// "Connect <platform>" CTAs. These are the pre-existing offenders the route
+// sweep above can't reach — they only render in specific account states, and
+// axe-core drops them anyway (own translucent bg over the body gradient), so we
+// force the state and compute the WCAG ratio directly. Guards the fix from the
+// PR #131 follow-up (Draft 4.1→5.4, Suggest 3.25→5.2, green CTAs 2.59→7.5).
+test.describe('Contrast: saturated chips & CTAs (forced state)', () => {
+  // Start from a clean storage state. The chromium project ships a real
+  // logged-in storageState (playwright/.auth/user.json); its stale cookies +
+  // localStorage fight the mocked auth below and hang AuthContext on its
+  // loading splash. This suite authenticates entirely through the mocks.
+  test.use({ storageState: { cookies: [], origins: [] } });
+  // A cold Vite dev server compiles this heavy app's module graph on first
+  // navigation, which can take minutes (the smoke suite budgets 180s).
+  test.setTimeout(600_000);
+
+  test('color-contrast: saturated status pills and green CTAs meet AA', async ({ page }) => {
+    const fulfillJson = (body: unknown) => ({
+      status: 200, contentType: 'application/json', body: JSON.stringify(body),
+    });
+    // Fully mock the backend so this test is deterministic and needs no live
+    // API. Playwright checks routes in REVERSE registration order (last wins):
+    // the catch-all is registered FIRST (before injectAuth's /auth/refresh) and
+    // the specific data mocks LAST. The catch-all carries accessToken + user so
+    // /auth/refresh and /auth/verify are both satisfied if they reach it (else
+    // AuthContext never leaves its loading splash); scoping it to :3004 avoids
+    // intercepting Vite's own module scripts on :8086.
+    const testUser = { id: TEST_USER_ID, email: TEST_USER_EMAIL, name: 'Test User', email_verified: true };
+    await page.route(/:3004\/api\//, (route) =>
+      route.fulfill(fulfillJson({ success: true, accessToken: mintTestToken(), user: testUser })),
+    );
+    await injectAuth(page);
+    await page.route(/:3004\/api\/autonomy\/settings/, (route) => route.fulfill(fulfillJson(AUTONOMY_SETTINGS_MOCK)));
+    await page.route(/:3004\/api\/insights\//, (route) => route.fulfill(fulfillJson(NOT_CONNECTED_INSIGHTS_MOCK)));
+
+    // Autonomy status pills — all five levels render at once. 'commit' returns
+    // as soon as the server responds; waitForSelector then absorbs the cold
+    // Vite compile of this route.
+    await page.goto(`${BASE_URL}/settings`, { waitUntil: 'commit', timeout: 120000 });
+    await page.waitForSelector('#section-autonomy span.rounded-full', { timeout: 120000 });
+    const pills = await page.$$('#section-autonomy span.rounded-full');
+    expect(pills.length, 'autonomy status pills rendered').toBeGreaterThanOrEqual(5);
+    for (const pill of pills) {
+      const r = await pill.evaluate(elementContrast);
+      expect(r.ratio, `status pill "${r.text}" contrast`).toBeGreaterThanOrEqual(AA_CONTRAST);
+    }
+
+    // Green "Connect <platform>" CTAs.
+    for (const [platform, label] of [
+      ['discord', 'Connect Discord'],
+      ['youtube', 'Connect YouTube'],
+      ['calendar', 'Connect Calendar'],
+    ] as const) {
+      await page.goto(`${BASE_URL}/insights/${platform}`, { waitUntil: 'commit', timeout: 120000 });
+      const btn = page.getByRole('button', { name: label });
+      await btn.waitFor({ timeout: 120000 });
+      const r = await btn.evaluate(elementContrast);
+      expect(r.ratio, `"${label}" CTA contrast`).toBeGreaterThanOrEqual(AA_CONTRAST);
     }
   });
 });
