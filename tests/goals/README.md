@@ -13,6 +13,7 @@ Plan and rationale: `.claude/plans/2026-07-12-agentic-os/README.md`.
 | Goal file | Shipped feature | Invariant pinned |
 |---|---|---|
 | `habit-loop-protocol.goal.test.js` | Daily WhatsApp habit loop (PR #178 + thread approvals) | Offer lands LAST in the composed brief; "yes"/"skip"/"sim"/"nao" still resolve; flag stays default-OFF |
+| `wa-thread-affinity.goal.test.js` | Wrong-thread fix (2026-07-13 smoke incident) | Outbound never switches to a different sender number on fallback; every selectable provider webhook feeds whatsappInboundPipeline |
 | `vercel-cost-rules.goal.test.js` | Vercel cost rules ($375 incident, March 2026) | No cron more frequent than */15; maxDuration <= 60; crons stay under /api/cron/ |
 | `no-emoji-twin-output.goal.test.js` | NO EMOJIS rule (QW2 + audit H7) | stripEmoji backstop keeps removing pictographic/ZWJ emoji, leaves accents alone |
 

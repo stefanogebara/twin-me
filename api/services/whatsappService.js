@@ -263,6 +263,20 @@ export async function sendWhatsAppMessage(recipientPhone, text) {
     const apiKey = process.env.KAPSO_API_KEY?.trim();
     const phoneNumberId = process.env.KAPSO_PHONE_NUMBER_ID || process.env.TWINME_WHATSAPP_PHONE_NUMBER_ID;
 
+    // Thread-affinity guard (wrong-thread incident, 2026-07-13): the Meta-direct
+    // fallback below sends from TWINME_WHATSAPP_PHONE_NUMBER_ID. In prod that is
+    // a DIFFERENT WhatsApp number than the Kapso one, and its webhook is the
+    // legacy twinme route — replies there never reach whatsappInboundPipeline /
+    // thread approvals, so a "yes" to a fallback-delivered offer dies silently.
+    // Falling through is only safe when both transports address the SAME
+    // phone_number_id (Kapso proxies Meta, so same id == same number == same
+    // thread). Otherwise fail the send: messageRouter retries and, after the
+    // attempt cap, falls back to email — both better than delivering from a
+    // number the user cannot reply to.
+    const metaFallbackIsSameNumber =
+      !!process.env.TWINME_WHATSAPP_PHONE_NUMBER_ID &&
+      process.env.TWINME_WHATSAPP_PHONE_NUMBER_ID === phoneNumberId;
+
     if (apiKey && phoneNumberId) {
       try {
         const url = `https://api.kapso.ai/meta/whatsapp/v24.0/${phoneNumberId}/messages`;
@@ -297,10 +311,11 @@ export async function sendWhatsAppMessage(recipientPhone, text) {
         return { success: true, messageId: data?.messages?.[0]?.id, provider: 'kapso' };
       } catch (err) {
         const errMsg = err.response?.data?.error?.message || err.response?.data?.error || err.message;
-        log.warn('Kapso send failed, falling back to Meta Cloud API', {
+        log.warn('Kapso send failed', {
           error: errMsg,
           status: err.response?.status,
           body: err.response?.data,
+          metaFallbackIsSameNumber,
         });
         logOutbound({
           recipient: recipientPhone,
@@ -313,8 +328,22 @@ export async function sendWhatsAppMessage(recipientPhone, text) {
           http_status: err.response?.status || null,
           raw_error: err.response?.data || null,
         });
-        // Fall through to Meta Cloud API
+        if (!metaFallbackIsSameNumber) {
+          log.warn('Suppressing Meta-direct fallback: different sender number would land in a thread whose replies never reach the inbound pipeline');
+          return { success: false, error: typeof errMsg === 'string' ? errMsg : JSON.stringify(errMsg), provider: 'kapso' };
+        }
+        // Fall through to Meta Cloud API (same phone_number_id — same thread,
+        // different transport).
       }
+    } else if (!metaFallbackIsSameNumber) {
+      // Kapso is configured but unusable (blank key after trim, or no phone id
+      // anywhere). Without the same-number guarantee, Meta-direct would send
+      // from the wrong number — refuse instead of silently switching sender.
+      log.warn('Kapso configured but unusable; refusing cross-number Meta fallback', {
+        hasApiKey: !!apiKey,
+        hasPhoneNumberId: !!phoneNumberId,
+      });
+      return { success: false, error: 'whatsapp_kapso_misconfigured', provider: 'kapso' };
     }
   }
 

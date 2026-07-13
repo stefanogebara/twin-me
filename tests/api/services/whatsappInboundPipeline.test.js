@@ -6,6 +6,13 @@
  * what goes back out the channel.
  */
 
+// whatsappService (imported by the pipeline) pulls api/config/supabase.js,
+// which throws at import time without these. CI and the main checkout provide
+// them ambiently; stub so the suite also passes in a bare worktree.
+process.env.SUPABASE_URL ||= 'https://test-stub.supabase.co';
+process.env.SUPABASE_ANON_KEY ||= 'test-stub-anon-key';
+process.env.SUPABASE_SERVICE_ROLE_KEY ||= 'test-stub-service-role-key';
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // ---- supabase: channel lookup + conversation history ----
