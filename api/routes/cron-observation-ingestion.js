@@ -13,7 +13,7 @@
  * Security: Protected by CRON_SECRET environment variable.
  */
 
-import { runObservationIngestion, getEligibleIngestionUserIds } from '../services/observationIngestion.js';
+import { runObservationIngestion, getEligibleIngestionUserIds, getStarvedIngestionUserIds } from '../services/observationIngestion.js';
 import { inngest, EVENTS } from '../services/inngestClient.js';
 import { verifyCronSecret } from '../middleware/verifyCronSecret.js';
 import { logCronExecution } from '../services/cronLogger.js';
@@ -123,6 +123,32 @@ export default async function handler(req, res) {
       // One durable per-user job each (observation-ingestion-user Inngest fn).
       // Batch send = a single network round-trip for the whole fan-out.
       await inngest.send(eligibleUserIds.map(userId => ({ name: EVENTS.INGEST_USER_OBSERVATIONS, data: { userId } })));
+
+      // Outcome verification: a successful send says NOTHING about consumption.
+      // Live incident 2026-06-23 -> 2026-07-13: the app sync was rejected (plan
+      // cap), every fan-out "succeeded", zero functions ran, ingestion was dead
+      // for three weeks. If eligible users' raw extraction layer hasn't
+      // advanced in 90 minutes, run the bounded inline path for the most
+      // starved (the old pre-fanout budget: 3 users/run) - self-healing against
+      // ANY consumer failure. The check itself failing must not break the cron.
+      let starved = [];
+      try {
+        starved = await getStarvedIngestionUserIds(eligibleUserIds, 90);
+      } catch (checkErr) {
+        log.warn('Starvation check errored - skipping inline fallback this run', { error: checkErr.message });
+      }
+      if (starved.length > 0) {
+        log.warn('Fan-out succeeded but users are extraction-starved - running bounded inline fallback', {
+          starved: starved.length, inline: Math.min(starved.length, 3),
+        });
+        const result = await runInlineIngestion({ targetUserIds: starved.slice(0, 3) });
+        const durationMs = Date.now() - startTime;
+        await logCronExecution('observation-ingestion', 'success', durationMs, {
+          enqueued: eligibleUserIds.length, starved: starved.length, ...result, mode: 'inngest-fanout+starvation-fallback',
+        });
+        return res.json({ success: true, enqueued: eligibleUserIds.length, starved: starved.length, ...result, mode: 'inngest-fanout+starvation-fallback', durationMs, timestamp: new Date().toISOString(), cronType: 'observation-ingestion' });
+      }
+
       const durationMs = Date.now() - startTime;
       log.info('Observation ingestion fanned out via Inngest', { enqueued: eligibleUserIds.length, durationMs });
       await logCronExecution('observation-ingestion', 'success', durationMs, { enqueued: eligibleUserIds.length, mode: 'inngest-fanout' });
