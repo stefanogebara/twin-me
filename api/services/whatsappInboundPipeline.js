@@ -54,7 +54,7 @@ import { tryCaptureTransaction, checkAndBumpCaptureQuota } from './transactions/
 import { isStatementDocument, handleStatementDocument } from './transactions/whatsappStatementIngest.js';
 import { handleReceiptImage } from './transactions/pixReceiptIngest.js';
 import { handleFileUploadToDrive } from './transactions/whatsappFileIngest.js';
-import { sendWhatsAppCtaButton, sendWhatsAppList } from './whatsappService.js';
+import { sendWhatsAppCtaButton, sendWhatsAppList, deriveWaProvider } from './whatsappService.js';
 import { classifyConnectIntent, buildConnectLink, classifyDisconnectIntent, classifyConnectionStatusIntent, disconnectPlatform, listConnectedPlatforms, buildConnectMenuRows } from './connectLinkService.js';
 
 const log = createLogger('WhatsAppInbound');
@@ -142,7 +142,7 @@ rateLimitCleanupInterval.unref();
 // Returns a small summary object for the route to log; never throws (the route
 // still 200s so the provider doesn't retry-storm).
 // ====================================================================
-export async function processInboundWhatsApp(parsed, { send }) {
+export async function processInboundWhatsApp(parsed, { send, provider }) {
   if (!parsed || !parsed.phone || (!parsed.text && !parsed.document && !parsed.image)) {
     log.info('Non-text or unparseable message, skipping', { format: parsed?.format });
     return { handled: false, reason: 'unparseable' };
@@ -187,6 +187,26 @@ export async function processInboundWhatsApp(parsed, { send }) {
   const userId = channel.user_id;
   const userPrefs = channel.preferences || {};
   const purchaseBotEnabledForUser = userPrefs.purchase_bot_enabled !== false;
+
+  // Provider affinity: remember which provider this user's thread lives on so
+  // cron deliveries (morning brief, insights) leave from the SAME number the
+  // user writes to. A message from a different number lands in a thread they
+  // don't watch, and their yes/skip reply goes into the void (live incident
+  // 2026-07-13). Fire-and-forget; read-modify-write on the JSONB is
+  // last-writer-wins — acceptable for a routing hint the next inbound
+  // re-records anyway.
+  const inboundProvider = provider || deriveWaProvider(format);
+  if (inboundProvider && userPrefs.wa_provider !== inboundProvider) {
+    supabaseAdmin
+      .from('messaging_channels')
+      .update({ preferences: { ...userPrefs, wa_provider: inboundProvider } })
+      .eq('user_id', userId)
+      .eq('channel', 'whatsapp')
+      .in('channel_id', [phoneWithPlus, phoneWithout])
+      .then(({ error }) => {
+        if (error) log.warn('wa_provider affinity update failed', { userId, error: error.message });
+      });
+  }
 
   // 3. Document — bank statement (OFX/CSV/XLSX) goes to the money ingest;
   // anything else gets saved to the user's Google Drive ("file it for me").

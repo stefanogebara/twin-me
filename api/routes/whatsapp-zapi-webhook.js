@@ -89,7 +89,12 @@ router.post('/webhook', async (req, res) => {
   try {
     const parsed = parseZapiMessage(req.body);
     if (parsed) {
-      await processInboundWhatsApp(parsed, { send: sendWhatsAppMessage });
+      // Reply affinity: this route serves the Z-API number — replies and the
+      // recorded wa_provider stay on it.
+      await processInboundWhatsApp(parsed, {
+        send: (phone, text) => sendWhatsAppMessage(phone, text, { provider: 'zapi' }),
+        provider: 'zapi',
+      });
     } else {
       log.info('Z-API callback ignored (own/group/status/unsupported)', { type: req.body?.type, fromMe: req.body?.fromMe });
     }

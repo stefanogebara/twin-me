@@ -9,7 +9,7 @@
  */
 
 import { sendInsight as sendTelegramInsight } from './telegramService.js';
-import { sendWhatsAppInsight } from './whatsappService.js';
+import { sendWhatsAppInsight, isServiceWindowError } from './whatsappService.js';
 import { sendPushToUser } from './pushNotificationService.js';
 import { sendWebPush } from './webPushService.js';
 import { sendInsightNotification } from './emailService.js';
@@ -90,8 +90,30 @@ export async function deliverInsight(userId, insight) {
         const result = await sendTelegramInsight(ch.channel_id, insight);
         results.push({ channel: 'telegram', ...result });
       } else if (ch.channel === 'whatsapp') {
-        const result = await sendWhatsAppInsight(ch.channel_id, insight);
-        results.push({ channel: 'whatsapp', ...result });
+        // Provider affinity: deliver from the number the user's thread lives
+        // on (recorded by whatsappInboundPipeline at inbound time).
+        const result = await sendWhatsAppInsight(ch.channel_id, insight, {
+          provider: ch.preferences?.wa_provider || null,
+        });
+        if (!result?.success && !result?.suppressed) {
+          // Un-mask: "delivered" gets set when ANY channel succeeds, which hid
+          // three weeks of WhatsApp 422s (24h service window) behind Telegram
+          // successes. Classify + log loudly so the failure is attributable.
+          const windowClosed = isServiceWindowError(result?.error);
+          log.warn('WhatsApp insight delivery failed', {
+            userId,
+            insightId: insight.id,
+            reason: windowClosed ? 'wa_service_window_closed' : 'send_failed',
+            error: result?.error,
+          });
+          results.push({
+            channel: 'whatsapp',
+            ...result,
+            ...(windowClosed ? { reason: 'wa_service_window_closed' } : {}),
+          });
+        } else {
+          results.push({ channel: 'whatsapp', ...result });
+        }
       }
     } catch (err) {
       log.warn('Channel delivery failed', { channel: ch.channel, userId, error: err.message });
