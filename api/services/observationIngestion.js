@@ -345,6 +345,38 @@ export async function getEligibleIngestionUserIds() {
   return [...new Set(conns.map(c => c.user_id))];
 }
 
+/**
+ * Eligible users whose RAW extraction layer (user_platform_data, non-web) has
+ * not advanced within `staleMinutes`. The ingestion cron uses this to verify
+ * OUTCOMES after an Inngest fan-out: "send succeeded" says nothing about
+ * consumption (live incident 2026-06-23 -> 2026-07-13: three weeks of
+ * successful fan-outs, zero function executions). Web/extension rows are
+ * excluded - they flow through their own push pipeline and would mask OAuth
+ * starvation.
+ *
+ * Fail-closed: on query error every eligible user is reported starved, so the
+ * bounded inline fallback keeps ingestion alive rather than trusting a check
+ * it could not run.
+ */
+export async function getStarvedIngestionUserIds(eligibleUserIds, staleMinutes = 90) {
+  if (!Array.isArray(eligibleUserIds) || eligibleUserIds.length === 0) return [];
+  const supabase = await getSupabase();
+  if (!supabase) return [...eligibleUserIds];
+  const cutoff = new Date(Date.now() - staleMinutes * 60_000).toISOString();
+  const { data, error } = await supabase
+    .from('user_platform_data')
+    .select('user_id')
+    .in('user_id', eligibleUserIds)
+    .neq('platform', 'web')
+    .gte('extracted_at', cutoff);
+  if (error) {
+    log.warn('Starvation check failed - treating all eligible users as starved', { error: error.message });
+    return [...eligibleUserIds];
+  }
+  const fresh = new Set((data || []).map(r => r.user_id));
+  return eligibleUserIds.filter(id => !fresh.has(id));
+}
+
 async function runObservationIngestion(options = {}) {
   const { targetUserIds = null } = options;
   log.info('Starting ingestion run...', targetUserIds ? { targetUserIds } : {});
