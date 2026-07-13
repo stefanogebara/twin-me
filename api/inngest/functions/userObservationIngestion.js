@@ -20,9 +20,13 @@ export const userObservationIngestionFunction = inngest.createFunction(
     name: 'Per-User Observation Ingestion',
     retries: 1,
     // 1-per-user: never run two ingestions for the same user concurrently.
-    // Global limit 6: a large fan-out can't stampede the LLM provider or blow
-    // the daily budget (llmBudgetGuard is the hard backstop).
-    concurrency: [{ limit: 6 }, { limit: 1, key: 'event.data.userId' }],
+    // Global limit 5 = the Inngest PLAN CAP. It was 6, and Inngest cloud
+    // rejects the ENTIRE app sync when any function exceeds the plan limit -
+    // all 12 functions unregistered, every fan-out event silently dropped,
+    // observation ingestion dead 2026-06-20 -> 2026-07-13 while the cron
+    // logged success. Guarded by tests/goals/inngest-plan-limits.goal.test.js;
+    // raise only together with a plan upgrade.
+    concurrency: [{ limit: 5 }, { limit: 1, key: 'event.data.userId' }],
   },
   { event: EVENTS.INGEST_USER_OBSERVATIONS },
   async ({ event, step }) => {
