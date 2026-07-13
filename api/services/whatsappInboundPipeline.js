@@ -195,17 +195,24 @@ export async function processInboundWhatsApp(parsed, { send, provider }) {
   // 2026-07-13). Fire-and-forget; read-modify-write on the JSONB is
   // last-writer-wins — acceptable for a routing hint the next inbound
   // re-records anyway.
-  const inboundProvider = provider || deriveWaProvider(format);
-  if (inboundProvider && userPrefs.wa_provider !== inboundProvider) {
-    supabaseAdmin
-      .from('messaging_channels')
-      .update({ preferences: { ...userPrefs, wa_provider: inboundProvider } })
-      .eq('user_id', userId)
-      .eq('channel', 'whatsapp')
-      .in('channel_id', [phoneWithPlus, phoneWithout])
-      .then(({ error }) => {
-        if (error) log.warn('wa_provider affinity update failed', { userId, error: error.message });
-      });
+  try {
+    const inboundProvider = provider || deriveWaProvider(format);
+    if (inboundProvider && userPrefs.wa_provider !== inboundProvider) {
+      supabaseAdmin
+        .from('messaging_channels')
+        .update({ preferences: { ...userPrefs, wa_provider: inboundProvider } })
+        .eq('user_id', userId)
+        .eq('channel', 'whatsapp')
+        .in('channel_id', [phoneWithPlus, phoneWithout])
+        .then(({ error }) => {
+          if (error) log.warn('wa_provider affinity update failed', { userId, error: error.message });
+        });
+    }
+  } catch (err) {
+    // Best-effort hint: a failure recording affinity must NEVER break inbound
+    // message handling — log and continue (delivery falls back to the default
+    // provider chain until the next inbound records it successfully).
+    log.warn('wa_provider affinity recording failed', { userId, error: err.message });
   }
 
   // 3. Document — bank statement (OFX/CSV/XLSX) goes to the money ingest;

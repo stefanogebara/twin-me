@@ -29,6 +29,8 @@ const sendMock = vi.fn().mockResolvedValue({ success: true });
 vi.mock('../../../api/services/whatsappService.js', () => ({
   sendWhatsAppMessage: (...a) => sendMock(...a),
   downloadWhatsAppMedia: vi.fn(),
+  // Provider-affinity exports (2026-07-13): the pipeline imports these.
+  deriveWaProvider: vi.fn(() => 'kapso'),
 }));
 
 const captureMock = vi.fn();
@@ -93,7 +95,7 @@ vi.mock('../../../api/services/memoryStreamService.js', () => ({
 // channel lookup needs the user row; the rest tolerate the same shape.
 vi.mock('../../../api/services/database.js', () => {
   const builder = {};
-  const chain = ['select', 'eq', 'neq', 'in', 'gte', 'lte', 'lt', 'order', 'limit', 'maybeSingle', 'single', 'insert', 'upsert'];
+  const chain = ['select', 'eq', 'neq', 'in', 'gte', 'lte', 'lt', 'order', 'limit', 'maybeSingle', 'single', 'insert', 'upsert', 'update'];
   for (const m of chain) builder[m] = vi.fn(() => builder);
   builder.then = (resolve, reject) =>
     Promise.resolve({ data: [{ user_id: 'user-1', preferences: {} }], error: null }).then(resolve, reject);
@@ -169,7 +171,8 @@ describe('whatsapp kapso webhook — transaction capture wiring', () => {
     expect(userId).toBe('user-1');
     expect(parsed.messageType).toBe('text');
     expect(parsed.text).toBe('gastei 80 no ifood');
-    expect(sendMock).toHaveBeenCalledWith('5511999990000', 'Anotei: R$ 80,00 — iFood, hoje.');
+    // Third arg pins provider affinity: kapso-route replies stay on kapso.
+    expect(sendMock).toHaveBeenCalledWith('5511999990000', 'Anotei: R$ 80,00 — iFood, hoje.', { provider: 'kapso' });
     expect(completeMock).not.toHaveBeenCalled(); // twin chat pipeline untouched
   });
 
@@ -178,7 +181,7 @@ describe('whatsapp kapso webhook — transaction capture wiring', () => {
     const res = await postSigned(createApp(), kapsoTextPayload('vou comprar um tênis de R$ 300'));
     expect(res.status).toBe(200);
     expect(reflectionMock).toHaveBeenCalledTimes(1);
-    expect(sendMock).toHaveBeenCalledWith('5511999990000', 'reflexao-teste');
+    expect(sendMock).toHaveBeenCalledWith('5511999990000', 'reflexao-teste', { provider: 'kapso' });
   });
 
   it('plain chat falls through to the twin chat pipeline', async () => {
@@ -187,7 +190,7 @@ describe('whatsapp kapso webhook — transaction capture wiring', () => {
     expect(res.status).toBe(200);
     expect(reflectionMock).not.toHaveBeenCalled();
     expect(completeMock).toHaveBeenCalled(); // twin chat ran
-    expect(sendMock).toHaveBeenCalledWith('5511999990000', 'twin-chat-reply');
+    expect(sendMock).toHaveBeenCalledWith('5511999990000', 'twin-chat-reply', { provider: 'kapso' });
   });
 
   it('Kapso v2 image payload routes to pixReceiptIngest after the image quota', async () => {
@@ -200,7 +203,7 @@ describe('whatsapp kapso webhook — transaction capture wiring', () => {
     expect(image.id).toBe('media-123');
     expect(image.mimeType).toBe('image/jpeg');
     expect(image.caption).toBe('comprovante');
-    expect(sendMock).toHaveBeenCalledWith('5511999990000', 'Anotei: R$ 150,00 — Maria Silva.');
+    expect(sendMock).toHaveBeenCalledWith('5511999990000', 'Anotei: R$ 150,00 — Maria Silva.', { provider: 'kapso' });
     expect(captureMock).not.toHaveBeenCalled(); // text capture never sees images
   });
 
@@ -209,6 +212,6 @@ describe('whatsapp kapso webhook — transaction capture wiring', () => {
     const res = await postSigned(createApp(), kapsoImagePayload());
     expect(res.status).toBe(200);
     expect(receiptMock).not.toHaveBeenCalled();
-    expect(sendMock).toHaveBeenCalledWith('5511999990000', expect.stringMatching(/Limite diario/));
+    expect(sendMock).toHaveBeenCalledWith('5511999990000', expect.stringMatching(/Limite diario/), { provider: 'kapso' });
   });
 });
