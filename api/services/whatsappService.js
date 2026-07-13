@@ -211,7 +211,19 @@ async function getKapsoClient() {
     // .trim() defends against a trailing newline/space in the env var — a
     // classic footgun when the key is pasted into a dashboard (the stray \n is
     // invisible but makes Kapso reject every send with "Authentication Error").
-    kapsoClient = new WhatsAppClient({ kapsoApiKey: process.env.KAPSO_API_KEY?.trim() });
+    //
+    // baseUrl routes SDK calls (templates, markRead, media) through the Kapso
+    // proxy. Without it the SDK targets graph.facebook.com and sends the Kapso
+    // key as a Meta access token, which Meta rejects — the same bug the
+    // 2026-06-16 fix removed from sendWhatsAppMessage, still live here: every
+    // prod template send since 2026-07-01 failed with "Authentication Error"
+    // (whatsapp_outbound_log). Same config as scripts/register-statement-nag-
+    // template.mjs, which is verified working against api.kapso.ai.
+    kapsoClient = new WhatsAppClient({
+      kapsoApiKey: process.env.KAPSO_API_KEY?.trim(),
+      baseUrl: 'https://api.kapso.ai/meta/whatsapp',
+      graphVersion: 'v24.0',
+    });
     log.info('Kapso WhatsApp client initialized');
     return kapsoClient;
   } catch (err) {
