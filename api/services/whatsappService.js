@@ -221,13 +221,51 @@ async function getKapsoClient() {
 }
 
 /**
+ * Map inbound `format` provenance (what the webhook routes stamp on parsed
+ * messages) to a send provider. 'meta_native' arrives on the Kapso route and
+ * is the same WABA number, so it maps to kapso — sends go via Kapso's proxy.
+ * Exported for tests and for the inbound pipeline's affinity recording.
+ */
+export function deriveWaProvider(format) {
+  if (!format || typeof format !== 'string') return null;
+  if (format.startsWith('zapi')) return 'zapi';
+  if (format.startsWith('evolution')) return 'evolution';
+  if (format.startsWith('kapso') || format.startsWith('meta')) return 'kapso';
+  return null;
+}
+
+/**
+ * Kapso/Meta rejection for plain sends outside the 24h customer-service
+ * window (HTTP 422). Live incident 2026-07-13: every non-template WhatsApp
+ * send had failed with this since June 19, masked because deliverInsight
+ * marks an insight delivered when ANY channel succeeds (Telegram always did).
+ * Callers use this to surface the failure instead of burying it.
+ */
+export function isServiceWindowError(message) {
+  return /24.?hour window/i.test(String(message || ''));
+}
+
+function providerConfigured(name) {
+  if (name === 'zapi') return USE_ZAPI;
+  if (name === 'evolution') return USE_EVOLUTION;
+  if (name === 'kapso') return USE_KAPSO;
+  return false;
+}
+
+/**
  * Send a text message via WhatsApp (Kapso or Meta Cloud API fallback).
  *
  * SAFETY: When TWINME_DISABLE_OUTBOUND_SEND=true, returns a no-op success.
  * Set this in any test environment that fires real webhook payloads —
  * otherwise every E2E run sends actual WhatsApp messages to real users.
+ *
+ * opts.provider — affinity hint ('zapi' | 'evolution' | 'kapso'): send from
+ * the number the user actually converses on (recorded at inbound time by
+ * whatsappInboundPipeline). A hinted-but-unconfigured provider degrades to
+ * the default priority chain: delivering from a new number beats not
+ * delivering at all, and the user's next inbound re-records the affinity.
  */
-export async function sendWhatsAppMessage(recipientPhone, text) {
+export async function sendWhatsAppMessage(recipientPhone, text, opts = {}) {
   if (process.env.TWINME_DISABLE_OUTBOUND_SEND === 'true') {
     log.info('Outbound WhatsApp send suppressed (TWINME_DISABLE_OUTBOUND_SEND=true)', {
       recipientPhone: recipientPhone?.slice(-4),
@@ -236,17 +274,24 @@ export async function sendWhatsAppMessage(recipientPhone, text) {
     return { success: true, suppressed: true };
   }
 
+  const preferred = providerConfigured(opts.provider) ? opts.provider : null;
+  if (opts.provider && !preferred) {
+    log.warn('WA provider hint not configured — falling back to default chain', {
+      hint: opts.provider,
+    });
+  }
+
   // Z-API takes priority when configured — it's the active provider for the
   // money flow (no 24h window). No Kapso/Meta fallback here: a Z-API instance
   // and a Meta WABA can't share the same WhatsApp number, so falling through
   // would send from the wrong sender.
-  if (USE_ZAPI) {
+  if (USE_ZAPI && (!preferred || preferred === 'zapi')) {
     return sendViaZapi(recipientPhone, text);
   }
 
   // Evolution API (self-hosted) — next in priority. Like Z-API, no fallback:
   // one number routes through one provider.
-  if (USE_EVOLUTION) {
+  if (USE_EVOLUTION && (!preferred || preferred === 'evolution')) {
     return sendViaEvolution(recipientPhone, text);
   }
 
@@ -572,7 +617,7 @@ function formatMeetingPrepMessage(insight) {
   return lines.join('\n').trim();
 }
 
-export async function sendWhatsAppInsight(recipientPhone, insight) {
+export async function sendWhatsAppInsight(recipientPhone, insight, opts = {}) {
   const text = insight.category === 'meeting_prep'
     ? formatMeetingPrepMessage(insight)
     : (() => {
@@ -580,7 +625,9 @@ export async function sendWhatsAppInsight(recipientPhone, insight) {
         return `*${label}*\n\n${insight.insight || ''}`;
       })();
 
-  return sendWhatsAppMessage(recipientPhone, text);
+  // opts.provider = affinity hint recorded from the user's inbound thread —
+  // deliveries must leave from the number the user actually converses on.
+  return sendWhatsAppMessage(recipientPhone, text, opts);
 }
 
 /**
