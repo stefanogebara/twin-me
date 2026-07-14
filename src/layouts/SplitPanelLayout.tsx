@@ -30,13 +30,6 @@ function getBreakpoint(): Breakpoint {
   return 'mobile';
 }
 
-const BG_STYLE = {
-  '--body-gradient-1': 'rgba(210,145,55,0.50)',
-  '--body-gradient-2': 'rgba(180,110,65,0.42)',
-  '--body-gradient-3': 'rgba(160,95,55,0.46)',
-  '--body-gradient-4': 'rgba(55,45,140,0.38)',
-} as React.CSSProperties;
-
 const SplitPanelLayout: React.FC<SplitPanelLayoutProps> = ({ main, sidebar }) => {
   const [breakpoint, setBreakpoint] = useState<Breakpoint>(getBreakpoint);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -51,7 +44,7 @@ const SplitPanelLayout: React.FC<SplitPanelLayoutProps> = ({ main, sidebar }) =>
     // Wider sidebar + larger container so Soul Score quadrant, score number, and
     // "Chat with your Twin" CTA have breathing room at 1440x900 and above.
     return (
-      <div className="min-h-screen w-full" style={BG_STYLE}>
+      <div className="min-h-screen w-full">
         <div className="grid grid-cols-[minmax(0,1fr)_420px] gap-8 max-w-[1320px] mx-auto px-6 py-10">
           <div className="min-w-0">{main}</div>
           <div className="relative">
@@ -69,7 +62,7 @@ const SplitPanelLayout: React.FC<SplitPanelLayoutProps> = ({ main, sidebar }) =>
 
   if (breakpoint === 'tablet') {
     return (
-      <div className="min-h-screen w-full" style={BG_STYLE}>
+      <div className="min-h-screen w-full">
         <div className="max-w-[720px] mx-auto px-6 py-10">
           <div>{main}</div>
         </div>
@@ -128,7 +121,7 @@ const SplitPanelLayout: React.FC<SplitPanelLayoutProps> = ({ main, sidebar }) =>
 
   // Mobile
   return (
-    <div className="min-h-screen w-full" style={BG_STYLE}>
+    <div className="min-h-screen w-full">
       <div className="max-w-[680px] mx-auto px-4 sm:px-5 py-8 space-y-6">
         <div>{main}</div>
         <div>{sidebar}</div>

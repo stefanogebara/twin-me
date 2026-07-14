@@ -1,7 +1,5 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { useSunPosition, type SunState } from '../hooks/useSunPosition';
-import { computeSkyGradients } from '../utils/skyGradients';
-import { useTheme } from './ThemeContext';
 import { useAuth } from './AuthContext';
 import { authFetch, getAccessToken } from '../services/api/apiBase';
 
@@ -29,7 +27,6 @@ const RESOLVED_TZ_CACHE_KEY = 'twinme_resolved_tz_v1';
 
 export function SunProvider({ children }: { children: React.ReactNode }) {
   const sunState = useSunPosition();
-  const { resolvedTheme } = useTheme();
   // audit-2026-05-15 H11: gate location POST on signed-in state. Previously
   // SunProvider would POST /api/location/current on any page where it was
   // mounted (everywhere — it wraps the app), including /auth + /. With a
@@ -58,20 +55,6 @@ export function SunProvider({ children }: { children: React.ReactNode }) {
     });
     return () => { cancelled = true; };
   }, [sunState.location.latitude, sunState.location.longitude, sunState.location.source]);
-
-  // Apply sun-driven CSS vars to :root whenever sun state or theme changes
-  useEffect(() => {
-    const { orbs } = computeSkyGradients(sunState, resolvedTheme);
-    const root = document.documentElement;
-
-    orbs.forEach((orb, i) => {
-      const n = i + 1;
-      root.style.setProperty(`--body-gradient-${n}`, orb.color);
-      root.style.setProperty(`--bg-pos-${n}`, orb.position);
-      root.style.setProperty(`--bg-size-${n}`, orb.size);
-      root.style.setProperty(`--bg-spread-${n}`, orb.spread);
-    });
-  }, [sunState, resolvedTheme]);
 
   // Persist location to backend when it changes (debounced — only on source/phase change)
   useEffect(() => {

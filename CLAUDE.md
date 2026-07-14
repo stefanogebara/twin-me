@@ -3,7 +3,7 @@
 ## User Preferences (MUST FOLLOW)
 
 - **NO EMOJIS** — The user dislikes emojis. Never use them in UI text, twin responses, insight text, or any user-facing content. Use plain text only.
-- **Design**: Keep existing dark design system. Sidebar must be FLAT (straight edges, no rounded pill). Background must be black (#13121a) or use the sun-driven gradient system — NEVER navy blue.
+- **Design**: Keep existing dark design system. Sidebar must be FLAT (straight edges, no rounded pill). Background must be black (#13121a) or the ambient orb gradients painted by AppBackground (ClassicBackground / DayNightBackground) — NEVER navy blue.
 
 ## Vercel Cost Rules (CRITICAL — $375 bill incident March 2026)
 
@@ -460,27 +460,15 @@ Recent memories are dominated by reflections (~90 of last 100). Platform data ob
 - `--text-narrative-secondary: rgba(245,245,244,0.6)` — body narrative
 - `--text-narrative-muted: rgba(245,245,244,0.4)` — captions, timestamps
 
-### Background Gradient System (Sun-Driven Ambient Orbs)
+### Background Gradient System (Ambient Orbs)
 
-The page bg uses FOUR overlapping radial gradients with positions/sizes driven by `SunContext` (time-of-day animation). Default values in `:root`:
+The page background is a fixed, full-viewport element rendered behind the app, NOT a `body` CSS rule (`body` is `background-color: transparent`). `AppBackground` in `src/App.tsx` selects the variant: `<DayNightBackground />` (natural mode — the default when `localStorage.bg_mode` is unset — time-of-day photos) or `<ClassicBackground />` (dark mode). `SunContext` still provides `sunPhase` via `useSun()` (consumed by DayNightBackground) and persists location to the backend — it no longer drives any CSS gradient variables.
 
-```css
-body {
-  background-color: var(--background);  /* #13121a */
-  background-image:
-    radial-gradient(ellipse var(--bg-size-1) at var(--bg-pos-1), var(--body-gradient-1) 0%, transparent var(--bg-spread-1)),
-    radial-gradient(ellipse var(--bg-size-2) at var(--bg-pos-2), var(--body-gradient-2) 0%, transparent var(--bg-spread-2)),
-    radial-gradient(ellipse var(--bg-size-3) at var(--bg-pos-3), var(--body-gradient-3) 0%, transparent var(--bg-spread-3)),
-    radial-gradient(ellipse var(--bg-size-4) at var(--bg-pos-4), var(--body-gradient-4) 0%, transparent var(--bg-spread-4));
-  background-attachment: fixed;
-}
-```
-
-**Default gradient colors (amber/copper on charcoal):**
+`ClassicBackground` (`src/components/ClassicBackground.tsx`) paints FOUR overlapping radial-gradient orbs as hardcoded rgba literals on `#13121a`:
 - Orb 1: `rgba(210,145,55,0.38)` — warm amber, top-left
 - Orb 2: `rgba(180,110,65,0.30)` — copper, top-right
 - Orb 3: `rgba(160,95,55,0.34)` — deep amber, bottom-center
-- Orb 4: `rgba(55,45,140,0.28)` — purple accent, center-right
+- Orb 4: `rgba(55,45,140,0.28)` — purple accent, center-right (sanctioned)
 
 ### Glass Surface (REQUIRED for all cards/panels)
 ```css
@@ -558,7 +546,7 @@ box-shadow: 0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.06);
 
 1. Every card/panel → glass surface (`backdrop-blur(42px)`, `rgba(255,255,255,0.06)` bg, `rgba(255,255,255,0.10)` border)
 2. Never flat white or solid colors on app surfaces — always dark glass with white-alpha values
-3. Page wrapper → `--background` (#13121a) + 4-orb sun-driven ambient gradient (see SunContext)
+3. Page wrapper → transparent; the background is a fixed sibling (`AppBackground` → ClassicBackground / DayNightBackground) painting `--background` (#13121a) + 4-orb ambient gradient
 4. Primary CTA → `rounded-[100px]` pill, light-on-dark (`#F5F5F4` bg, `#110f0f` text)
 5. Suggestion chips → `rounded-[46px]`, NOT `rounded-full`
 6. Floating navbar → `rounded-[32px]` pill with `blur(19.65px)`, NOT full-width bar
