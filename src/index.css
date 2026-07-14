@@ -77,39 +77,9 @@
     --sidebar-accent-foreground: #F5F5F4;
     --sidebar-border: rgba(255, 255, 255, 0.08);
     --sidebar-ring: rgba(232, 224, 212, 0.50);
-
-
-    /* Body gradients — amber/copper on charcoal (sun-driven overrides via SunContext) */
-    --body-gradient-1: rgba(210, 145, 55, 0.38);
-    --body-gradient-2: rgba(180, 110, 65, 0.30);
-    --body-gradient-3: rgba(160, 95, 55, 0.34);
-    --body-gradient-4: rgba(55, 45, 140, 0.28);
-
-    /* Departments page: dim the ambient gradient for cleaner settings-panel feel */
-  }
-
-  body.page-departments {
-    --body-gradient-1: rgba(210, 145, 55, 0.12);
-    --body-gradient-2: rgba(180, 110, 65, 0.09);
-    --body-gradient-3: rgba(160, 95, 55, 0.10);
-    --body-gradient-4: rgba(55, 45, 140, 0.08);
   }
 
   :root {
-    /* Gradient orb positions/sizes (sun-driven overrides via SunContext) */
-    --bg-pos-1: 5% 0%;
-    --bg-size-1: 120% 80%;
-    --bg-spread-1: 55%;
-    --bg-pos-2: 95% 15%;
-    --bg-size-2: 80% 70%;
-    --bg-spread-2: 50%;
-    --bg-pos-3: 50% 100%;
-    --bg-size-3: 100% 90%;
-    --bg-spread-3: 55%;
-    --bg-pos-4: 70% 50%;
-    --bg-size-4: 60% 60%;
-    --bg-spread-4: 45%;
-
     /* Typography */
     --font-heading: 'Instrument Serif', Georgia, serif;
     --font-accent: 'Instrument Serif', Georgia, serif;

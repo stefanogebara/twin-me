@@ -460,27 +460,15 @@ Recent memories are dominated by reflections (~90 of last 100). Platform data ob
 - `--text-narrative-secondary: rgba(245,245,244,0.6)` — body narrative
 - `--text-narrative-muted: rgba(245,245,244,0.4)` — captions, timestamps
 
-### Background Gradient System (Sun-Driven Ambient Orbs)
+### Background Gradient System (Ambient Orbs)
 
-The page bg uses FOUR overlapping radial gradients with positions/sizes driven by `SunContext` (time-of-day animation). Default values in `:root`:
+The page background is a fixed, full-viewport element rendered behind the app, NOT a `body` CSS rule (`body` is `background-color: transparent`). `AppBackground` in `src/App.tsx` selects the variant: `<ClassicBackground />` (dark mode, default) or `<DayNightBackground />` (natural mode, time-of-day photos). `SunContext` still provides `sunPhase` via `useSun()` (consumed by DayNightBackground) and persists location to the backend — it no longer drives any CSS gradient variables.
 
-```css
-body {
-  background-color: var(--background);  /* #13121a */
-  background-image:
-    radial-gradient(ellipse var(--bg-size-1) at var(--bg-pos-1), var(--body-gradient-1) 0%, transparent var(--bg-spread-1)),
-    radial-gradient(ellipse var(--bg-size-2) at var(--bg-pos-2), var(--body-gradient-2) 0%, transparent var(--bg-spread-2)),
-    radial-gradient(ellipse var(--bg-size-3) at var(--bg-pos-3), var(--body-gradient-3) 0%, transparent var(--bg-spread-3)),
-    radial-gradient(ellipse var(--bg-size-4) at var(--bg-pos-4), var(--body-gradient-4) 0%, transparent var(--bg-spread-4));
-  background-attachment: fixed;
-}
-```
-
-**Default gradient colors (amber/copper on charcoal):**
+`ClassicBackground` (`src/components/ClassicBackground.tsx`) paints FOUR overlapping radial-gradient orbs as hardcoded rgba literals on `#13121a`:
 - Orb 1: `rgba(210,145,55,0.38)` — warm amber, top-left
 - Orb 2: `rgba(180,110,65,0.30)` — copper, top-right
 - Orb 3: `rgba(160,95,55,0.34)` — deep amber, bottom-center
-- Orb 4: `rgba(55,45,140,0.28)` — purple accent, center-right
+- Orb 4: `rgba(55,45,140,0.28)` — purple accent, center-right (sanctioned)
 
 ### Glass Surface (REQUIRED for all cards/panels)
 ```css
