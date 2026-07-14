@@ -54,7 +54,7 @@ const TwinComposer: React.FC<{ onSubmit: (message: string) => void }> = ({ onSub
         onChange={(e) => setValue(e.target.value)}
         placeholder="Ask your twin anything"
         aria-label="Ask your twin"
-        className="flex-1 bg-transparent text-[#F5F5F4] text-[14.5px] placeholder:text-[#57534E] focus:outline-none"
+        className="flex-1 bg-transparent text-[#F5F5F4] text-[14.5px] placeholder:text-[rgba(255,255,255,0.55)] focus:outline-none"
       />
       <button
         type="submit"
