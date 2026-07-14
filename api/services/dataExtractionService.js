@@ -13,7 +13,7 @@ class GmailExtractor {
   async extract() { return {}; }
   async extractAll(userId) {
     try {
-      const { fetchGmailObservations } = await import('./observationIngestion.js');
+      const { fetchGmailObservations } = await import('./observationFetchers/gmail.js');
       const obs = await fetchGmailObservations(userId);
       return { success: true, itemsExtracted: obs.length };
     } catch (err) {
