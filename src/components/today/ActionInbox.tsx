@@ -168,7 +168,7 @@ const ActionCard: React.FC<{ action: TwinAction }> = ({ action }) => {
           autoFocus
           placeholder="What was off? (e.g. too formal)"
           aria-label="Reason for rejecting"
-          className="w-full rounded-[6px] bg-[rgba(255,255,255,0.08)] border border-[rgba(255,255,255,0.08)] px-3 py-2.5 text-[#F5F5F4] text-sm placeholder:text-[#57534E] focus:outline-none focus:ring-2 focus:ring-[rgba(255,255,255,0.25)]"
+          className="w-full rounded-[6px] bg-[rgba(255,255,255,0.08)] border border-[rgba(255,255,255,0.08)] px-3 py-2.5 text-[#F5F5F4] text-sm placeholder:text-[rgba(255,255,255,0.55)] focus:outline-none focus:ring-2 focus:ring-[rgba(255,255,255,0.25)]"
         />
       )}
 

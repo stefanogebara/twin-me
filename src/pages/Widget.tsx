@@ -513,7 +513,7 @@ const Widget = () => {
             onKeyDown={handleKeyDown}
             rows={1}
             aria-label="Message your twin"
-            className="flex-1 resize-none focus:outline-none text-[14px] bg-transparent placeholder:text-[rgba(255,255,255,0.3)]"
+            className="flex-1 resize-none focus:outline-none text-[14px] bg-transparent placeholder:text-[rgba(255,255,255,0.55)]"
             style={{
               color: 'var(--foreground, #F5F5F4)',
               minHeight: '24px',

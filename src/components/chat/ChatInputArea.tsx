@@ -80,7 +80,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
               disabled={isDisabled || limitReached}
               rows={1}
               aria-label="Message your twin"
-              className="w-full resize-none focus:outline-none disabled:opacity-50 text-[14px] bg-transparent placeholder:text-[rgba(255,255,255,0.3)]"
+              className="w-full resize-none focus:outline-none disabled:opacity-50 text-[14px] bg-transparent placeholder:text-[rgba(255,255,255,0.55)]"
               style={{
                 color: 'var(--foreground)',
                 minHeight: '24px',
