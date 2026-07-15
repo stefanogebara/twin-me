@@ -15,6 +15,7 @@
 
 import { runObservationIngestion, getEligibleIngestionUserIds, getStarvedIngestionUserIds } from '../services/observationIngestion.js';
 import { inngest, EVENTS } from '../services/inngestClient.js';
+import { selfHealInngestRegistration } from '../services/inngestSelfHeal.js';
 import { verifyCronSecret } from '../middleware/verifyCronSecret.js';
 import { logCronExecution } from '../services/cronLogger.js';
 import { createLogger } from '../services/logger.js';
@@ -22,6 +23,15 @@ import { createLogger } from '../services/logger.js';
 const log = createLogger('CronObservation');
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// A user is "starved" if their raw extraction layer hasn't advanced in this
+// many minutes. Lowered 90 -> 40 (2026-07-15): the Inngest fan-out proved
+// unreliable (registration goes stale on deploy; a resync returned modified
+// but consumption still didn't recover), so the inline fallback is the path we
+// actually depend on. 40min catches a freshly-connected user within ~1 cron
+// tick REGARDLESS of Inngest, while staying above the 30min tick so a healthy
+// Inngest run still marks users fresh before they qualify.
+const STARVATION_STALE_MINUTES = 40;
 
 /**
  * Run ingestion inline and fire the per-user post-processing side effects.
@@ -133,15 +143,23 @@ export default async function handler(req, res) {
       // ANY consumer failure. The check itself failing must not break the cron.
       let starved = [];
       try {
-        starved = await getStarvedIngestionUserIds(eligibleUserIds, 90);
+        starved = await getStarvedIngestionUserIds(eligibleUserIds, STARVATION_STALE_MINUTES);
       } catch (checkErr) {
         log.warn('Starvation check errored - skipping inline fallback this run', { error: checkErr.message });
       }
       if (starved.length > 0) {
-        log.warn('Fan-out succeeded but users are extraction-starved - running bounded inline fallback', {
+        log.warn('Fan-out succeeded but users are extraction-starved - running bounded inline fallback + Inngest self-heal', {
           starved: starved.length, inline: Math.min(starved.length, 3),
         });
-        const result = await runInlineIngestion({ targetUserIds: starved.slice(0, 3) });
+        // Starvation is the signature of a non-consuming Inngest registration
+        // (send "succeeds", no function runs). Fire a rate-limited best-effort
+        // re-register CONCURRENTLY with the inline fallback so it adds ~0
+        // wall-clock (never throws; capped to once/30min). The inline fallback
+        // is what guarantees these users' data flows this run regardless.
+        const [result] = await Promise.all([
+          runInlineIngestion({ targetUserIds: starved.slice(0, 3) }),
+          selfHealInngestRegistration(),
+        ]);
         const durationMs = Date.now() - startTime;
         await logCronExecution('observation-ingestion', 'success', durationMs, {
           enqueued: eligibleUserIds.length, starved: starved.length, ...result, mode: 'inngest-fanout+starvation-fallback',

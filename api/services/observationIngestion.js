@@ -51,6 +51,7 @@ import { fetchGitHubObservations } from './observationFetchers/github.js';
 import { fetchWhoopObservations } from './observationFetchers/whoop.js';
 import { fetchOutlookObservations } from './observationFetchers/outlook.js';
 import { fetchInstagramObservations } from './observationFetchers/instagram.js';
+import { withDeadline } from './withDeadline.js';
 
 const log = createLogger('ObservationIngestion');
 
@@ -879,13 +880,21 @@ async function runObservationIngestion(options = {}) {
   });
 
   // Pre-warm caches for users who had new data stored. Collected into
-  // backgroundJobs so it completes before the handler returns (audit).
+  // backgroundJobs so it completes before the handler returns (audit) — but
+  // BOUNDED: warmUserCaches triggers the soul-signature 5-layer regen (10-28s
+  // when stale), and awaiting an unbounded warm blew Vercel's 60s ceiling → 504
+  // (live 2026-07-15, ingestion cron + manual scoped runs). Give the warm
+  // whatever budget remains before a 55s hard stop (5s headroom under Vercel's
+  // 60s kill); an abandoned warm is safe — the soul-sig cache has a daily regen
+  // cron plus serve-stale-then-revalidate, so the next read re-warms it.
   if (stats.observationsStored > 0) {
+    const CACHE_WARM_HARD_STOP_MS = 55_000;
+    const cacheWarmBudgetMs = Math.max(2_000, CACHE_WARM_HARD_STOP_MS - (Date.now() - startTime));
     backgroundJobs.push(
       import('./cacheWarmer.js')
         .then(({ warmUserCaches }) =>
           Promise.allSettled((stats.processedUserIds || []).map(uid =>
-            warmUserCaches(uid, 'observation-ingestion')
+            withDeadline(warmUserCaches(uid, 'observation-ingestion'), cacheWarmBudgetMs)
           ))
         )
         .catch(err => log.warn('Cache warm failed', { error: err?.message }))
