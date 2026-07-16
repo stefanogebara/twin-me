@@ -379,8 +379,14 @@ export async function getStarvedIngestionUserIds(eligibleUserIds, staleMinutes =
 }
 
 async function runObservationIngestion(options = {}) {
-  const { targetUserIds = null } = options;
-  log.info('Starting ingestion run...', targetUserIds ? { targetUserIds } : {});
+  // deferPostProcess: do ONLY fetch + store + sync-status + health-log inline,
+  // and hand the CPU/LLM-heavy synthesis (experts, reflections, insights, goals,
+  // metrics, soul-sig cache warm) to the caller to run off the request path
+  // (#170 — inline synthesis starves the event loop under Fluid concurrency so
+  // the withDeadline guard can't fire → 60s kill). When deferred, the platforms
+  // that had new data land in stats.platformsByUser for the post-process step.
+  const { targetUserIds = null, deferPostProcess = false } = options;
+  log.info('Starting ingestion run...', { ...(targetUserIds ? { targetUserIds } : {}), deferPostProcess });
   const startTime = Date.now();
 
   const stats = {
@@ -389,6 +395,7 @@ async function runObservationIngestion(options = {}) {
     reflectionsTriggered: 0,
     errors: [],
     processedUserIds: [],
+    platformsByUser: {},
   };
 
   // Per-user background side-effects (insights, nudges, goals, metrics, cache
@@ -688,11 +695,18 @@ async function runObservationIngestion(options = {}) {
               }
             }
 
-            // After storing observations for this platform, run platform-specific expert reflection.
+            // After storing observations for this platform, run its expert
+            // reflection — inline, or (deferred) just record the platform so the
+            // post-process step runs the expert off the request path (#170).
             if (platformObsCount > 0) {
-              runPlatformExpert(userId, platform).catch(err =>
-                log.warn('Platform expert failed', { platform, userId, error: err })
-              );
+              if (deferPostProcess) {
+                if (!stats.platformsByUser[userId]) stats.platformsByUser[userId] = [];
+                stats.platformsByUser[userId].push(platform);
+              } else {
+                runPlatformExpert(userId, platform).catch(err =>
+                  log.warn('Platform expert failed', { platform, userId, error: err })
+                );
+              }
 
               // Check prospective memory condition triggers against new platform data.
               const platformMetrics = extractPlatformMetrics(platform, observations);
@@ -772,6 +786,10 @@ async function runObservationIngestion(options = {}) {
         // After all platform data is ingested for this user, check reflection trigger
         if (userObsCount > 0) {
           stats.processedUserIds.push(userId);
+
+          // Everything below is heavy synthesis — deferred to runUserPostProcess
+          // (run off the request path by the caller) when asked; inline otherwise (#170).
+          if (!deferPostProcess) {
           try {
             const shouldReflect = await shouldTriggerReflection(userId);
             if (shouldReflect) {
@@ -854,6 +872,7 @@ async function runObservationIngestion(options = {}) {
             );
           }, 45000); // 45s delay: reflections have priority, then summary
           summaryTimer.unref();
+          } // end if (!deferPostProcess)
         }
       } catch (userErr) {
         const errMsg = `User ${userId}: ${userErr.message}`;
@@ -887,7 +906,9 @@ async function runObservationIngestion(options = {}) {
   // whatever budget remains before a 55s hard stop (5s headroom under Vercel's
   // 60s kill); an abandoned warm is safe — the soul-sig cache has a daily regen
   // cron plus serve-stale-then-revalidate, so the next read re-warms it.
-  if (stats.observationsStored > 0) {
+  // Skipped entirely when synthesis is deferred (#170) — the post-process step
+  // owns the warm then.
+  if (!deferPostProcess && stats.observationsStored > 0) {
     // Budget = time left before a 45s hard stop — deliberately UNDER the 50s
     // side-effect stop below, so warms wind down before the whole gather is
     // cut and the response still has ~10s of true headroom (the 55s stop
