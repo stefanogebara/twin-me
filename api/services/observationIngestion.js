@@ -51,6 +51,7 @@ import { fetchGitHubObservations } from './observationFetchers/github.js';
 import { fetchWhoopObservations } from './observationFetchers/whoop.js';
 import { fetchOutlookObservations } from './observationFetchers/outlook.js';
 import { fetchInstagramObservations } from './observationFetchers/instagram.js';
+import { withDeadline, computeBoundedBudget } from './withDeadline.js';
 
 const log = createLogger('ObservationIngestion');
 
@@ -879,17 +880,37 @@ async function runObservationIngestion(options = {}) {
   });
 
   // Pre-warm caches for users who had new data stored. Collected into
-  // backgroundJobs so it completes before the handler returns (audit).
+  // backgroundJobs so it completes before the handler returns (audit) — but
+  // BOUNDED: warmUserCaches triggers the soul-signature 5-layer regen (10-28s
+  // when stale), and awaiting an unbounded warm blew Vercel's 60s ceiling → 504
+  // (live 2026-07-15, ingestion cron + manual scoped runs). Give the warm
+  // whatever budget remains before a 55s hard stop (5s headroom under Vercel's
+  // 60s kill); an abandoned warm is safe — the soul-sig cache has a daily regen
+  // cron plus serve-stale-then-revalidate, so the next read re-warms it.
   if (stats.observationsStored > 0) {
-    backgroundJobs.push(
-      import('./cacheWarmer.js')
-        .then(({ warmUserCaches }) =>
-          Promise.allSettled((stats.processedUserIds || []).map(uid =>
-            warmUserCaches(uid, 'observation-ingestion')
-          ))
-        )
-        .catch(err => log.warn('Cache warm failed', { error: err?.message }))
+    // Budget = time left before a 55s hard stop (5s under Vercel's 60s kill).
+    // If under 1s remains we SKIP the warm entirely rather than floor the
+    // budget — a floor would force a positive wait even past the hard stop and
+    // re-open the 504 (CodeRabbit, PR #189), and starting a soul-sig regen we'd
+    // only freeze mid-write just wastes an LLM call.
+    const CACHE_WARM_HARD_STOP_MS = 55_000;
+    const CACHE_WARM_MIN_BUDGET_MS = 1_000;
+    const { skip: skipCacheWarm, budgetMs: cacheWarmBudgetMs } = computeBoundedBudget(
+      Date.now() - startTime, CACHE_WARM_HARD_STOP_MS, CACHE_WARM_MIN_BUDGET_MS
     );
+    if (skipCacheWarm) {
+      log.warn('Skipping cache warm — past the ingestion time budget', { elapsedMs: Date.now() - startTime });
+    } else {
+      backgroundJobs.push(
+        import('./cacheWarmer.js')
+          .then(({ warmUserCaches }) =>
+            Promise.allSettled((stats.processedUserIds || []).map(uid =>
+              withDeadline(warmUserCaches(uid, 'observation-ingestion'), cacheWarmBudgetMs)
+            ))
+          )
+          .catch(err => log.warn('Cache warm failed', { error: err?.message }))
+      );
+    }
   }
 
   // Log to ingestion_health_log
