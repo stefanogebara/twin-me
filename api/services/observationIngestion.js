@@ -888,12 +888,16 @@ async function runObservationIngestion(options = {}) {
   // 60s kill); an abandoned warm is safe — the soul-sig cache has a daily regen
   // cron plus serve-stale-then-revalidate, so the next read re-warms it.
   if (stats.observationsStored > 0) {
-    // Budget = time left before a 55s hard stop (5s under Vercel's 60s kill).
-    // If under 1s remains we SKIP the warm entirely rather than floor the
-    // budget — a floor would force a positive wait even past the hard stop and
-    // re-open the 504 (CodeRabbit, PR #189), and starting a soul-sig regen we'd
-    // only freeze mid-write just wastes an LLM call.
-    const CACHE_WARM_HARD_STOP_MS = 55_000;
+    // Budget = time left before a 45s hard stop — deliberately UNDER the 50s
+    // side-effect stop below, so warms wind down before the whole gather is
+    // cut and the response still has ~10s of true headroom (the 55s stop
+    // proved too generous: first post-deploy tick 2026-07-16 14:30 ran the
+    // warm to its deadline and still hit Vercel's 60s kill). If under 1s
+    // remains we SKIP the warm entirely rather than floor the budget — a
+    // floor would force a positive wait even past the hard stop and re-open
+    // the 504 (CodeRabbit, PR #189), and starting a soul-sig regen we'd only
+    // freeze mid-write just wastes an LLM call.
+    const CACHE_WARM_HARD_STOP_MS = 45_000;
     const CACHE_WARM_MIN_BUDGET_MS = 1_000;
     const { skip: skipCacheWarm, budgetMs: cacheWarmBudgetMs } = computeBoundedBudget(
       Date.now() - startTime, CACHE_WARM_HARD_STOP_MS, CACHE_WARM_MIN_BUDGET_MS
@@ -940,8 +944,25 @@ async function runObservationIngestion(options = {}) {
   // does not freeze the function and kill them mid-flight (audit). On the per-user
   // Inngest path this is bounded to one user's jobs; reflections remain detached
   // by design (heavy, with their own retry/cron handling).
+  //
+  // BOUNDED (2026-07-16): an unbounded gather is how the first post-deploy tick
+  // (14:30) still 504'd — the cache warm was capped, but two soul-sig regens plus
+  // proactive-insight jobs ran this await straight into Vercel's 60s kill, taking
+  // the response, the cron log row, and the third user's slot with it. Past a 50s
+  // hard stop, protecting the response wins: jobs that miss it get frozen exactly
+  // as the 60s kill would have frozen them anyway — but the handler still logs
+  // and responds. Both callers (the cron HTTP handler and the per-user Inngest
+  // function served via /api/inngest) run inside the same 60s Vercel window, so
+  // one global stop is correct for both.
   if (backgroundJobs.length > 0) {
-    await Promise.allSettled(backgroundJobs);
+    const SIDE_EFFECT_HARD_STOP_MS = 50_000;
+    const sideEffectBudgetMs = Math.max(0, SIDE_EFFECT_HARD_STOP_MS - (Date.now() - startTime));
+    const settled = await withDeadline(Promise.allSettled(backgroundJobs), sideEffectBudgetMs, null);
+    if (settled === null) {
+      log.warn('Side-effect gather hit the hard stop — returning with jobs abandoned', {
+        elapsedMs: Date.now() - startTime, jobs: backgroundJobs.length,
+      });
+    }
   }
 
   return stats;
