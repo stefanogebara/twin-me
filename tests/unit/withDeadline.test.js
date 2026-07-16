@@ -10,7 +10,7 @@
  * serve-stale-then-revalidate re-warms it).
  */
 import { describe, it, expect } from 'vitest';
-import { withDeadline } from '../../api/services/withDeadline.js';
+import { withDeadline, computeBoundedBudget } from '../../api/services/withDeadline.js';
 
 describe('withDeadline', () => {
   it('resolves with the inner value when it settles before the deadline', async () => {
@@ -50,5 +50,29 @@ describe('withDeadline', () => {
     // never fires by racing a large deadline against an immediate resolve.
     const result = await withDeadline(Promise.resolve(42), 10_000, 'fallback');
     expect(result).toBe(42);
+  });
+});
+
+describe('computeBoundedBudget', () => {
+  const HARD_STOP = 55_000;
+  const MIN = 1_000;
+
+  it('returns the full remaining budget when there is plenty of time', () => {
+    expect(computeBoundedBudget(10_000, HARD_STOP, MIN)).toEqual({ skip: false, budgetMs: 45_000 });
+  });
+
+  it('still runs at exactly the minimum budget boundary', () => {
+    // remaining === minBudget (1000) is NOT < min, so it runs with a 1s budget.
+    expect(computeBoundedBudget(54_000, HARD_STOP, MIN)).toEqual({ skip: false, budgetMs: 1_000 });
+  });
+
+  it('skips when less than the minimum budget remains', () => {
+    expect(computeBoundedBudget(54_500, HARD_STOP, MIN)).toEqual({ skip: true, budgetMs: 0 });
+  });
+
+  it('skips (never forces a positive budget) once elapsed is PAST the hard stop', () => {
+    // The CodeRabbit case: at elapsed=58s the old Math.max(2000, -3000) floor
+    // returned 2000ms and pushed runtime to 60s → 504. Now it must skip.
+    expect(computeBoundedBudget(58_000, HARD_STOP, MIN)).toEqual({ skip: true, budgetMs: 0 });
   });
 });

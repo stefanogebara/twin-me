@@ -22,6 +22,31 @@
  * @param {T|undefined} [fallback] value to resolve with if the deadline hits first
  * @returns {Promise<T|undefined>}
  */
+/**
+ * How much of a wall-clock budget remains before a hard stop — and whether the
+ * remaining slice is too small to be worth starting the bounded work at all.
+ *
+ * Returns `{ skip: true, budgetMs: 0 }` when fewer than `minBudgetMs` remain, so
+ * the caller can decline to start the work entirely (e.g. not kick off a
+ * soul-signature regen it would only freeze mid-write). Otherwise
+ * `{ skip: false, budgetMs: remaining }`.
+ *
+ * This deliberately replaces a `Math.max(minBudgetMs, hardStop - elapsed)`
+ * floor: that floor forces a POSITIVE budget even once elapsed has passed the
+ * hard stop, defeating it (CodeRabbit, PR #189 — at elapsed=58s with a 55s stop
+ * a 2s floor pushed runtime to 60s and reintroduced the 504 this guards).
+ *
+ * @param {number} elapsedMs    time already spent this run
+ * @param {number} hardStopMs   wall-clock ceiling the work must finish under
+ * @param {number} minBudgetMs  below this remaining, skip the work
+ * @returns {{ skip: boolean, budgetMs: number }}
+ */
+export function computeBoundedBudget(elapsedMs, hardStopMs, minBudgetMs) {
+  const remaining = hardStopMs - elapsedMs;
+  if (remaining < minBudgetMs) return { skip: true, budgetMs: 0 };
+  return { skip: false, budgetMs: remaining };
+}
+
 export function withDeadline(promise, ms, fallback = undefined) {
   let timer;
   const deadline = new Promise((resolve) => {
