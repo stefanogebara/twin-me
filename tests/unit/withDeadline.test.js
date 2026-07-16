@@ -10,7 +10,16 @@
  * serve-stale-then-revalidate re-warms it).
  */
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, resolve } from 'node:path';
 import { withDeadline, computeBoundedBudget } from '../../api/services/withDeadline.js';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const INGESTION_SRC = readFileSync(
+  resolve(__dirname, '../../api/services/observationIngestion.js'),
+  'utf8'
+);
 
 describe('withDeadline', () => {
   it('resolves with the inner value when it settles before the deadline', async () => {
@@ -74,5 +83,34 @@ describe('computeBoundedBudget', () => {
     // The CodeRabbit case: at elapsed=58s the old Math.max(2000, -3000) floor
     // returned 2000ms and pushed runtime to 60s → 504. Now it must skip.
     expect(computeBoundedBudget(58_000, HARD_STOP, MIN)).toEqual({ skip: true, budgetMs: 0 });
+  });
+});
+
+/**
+ * Static wiring canary — regression guard for the SECOND live 504
+ * (2026-07-16 14:30, first post-#189 tick): bounding only the cache warm was
+ * not enough, because the final backgroundJobs gather (soul-sig regens +
+ * proactive-insight jobs) was still unbounded and ran into Vercel's 60s kill.
+ * The gather itself must be deadline-bounded, and the warm must stop BEFORE
+ * the gather's stop so the response keeps real headroom.
+ */
+describe('goal: ingestion bounds its side-effect gather', () => {
+  it('wraps the backgroundJobs await in withDeadline', () => {
+    expect(INGESTION_SRC).toMatch(/withDeadline\(\s*Promise\.allSettled\(backgroundJobs\)/);
+  });
+
+  it('hard stops: gather <= 50s, cache warm strictly before the gather stop', () => {
+    const gather = INGESTION_SRC.match(/const SIDE_EFFECT_HARD_STOP_MS\s*=\s*([\d_]+)/);
+    const warm = INGESTION_SRC.match(/const CACHE_WARM_HARD_STOP_MS\s*=\s*([\d_]+)/);
+    expect(gather, 'SIDE_EFFECT_HARD_STOP_MS must exist').toBeTruthy();
+    expect(warm, 'CACHE_WARM_HARD_STOP_MS must exist').toBeTruthy();
+    const gatherMs = Number(gather[1].replace(/_/g, ''));
+    const warmMs = Number(warm[1].replace(/_/g, ''));
+    expect(gatherMs).toBeLessThanOrEqual(50_000);
+    expect(warmMs).toBeLessThan(gatherMs);
+  });
+
+  it('never floors the gather budget (Math.max floor-of-zero only)', () => {
+    expect(INGESTION_SRC).toMatch(/Math\.max\(0,\s*SIDE_EFFECT_HARD_STOP_MS/);
   });
 });
