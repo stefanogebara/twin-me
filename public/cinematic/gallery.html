@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Twin.me · Claura — all screens</title>
+<script>try{var t=new URLSearchParams(location.search).get("theme")||localStorage.getItem("claura-theme");if(t==="light")document.documentElement.setAttribute("data-theme","light")}catch(e){}</script>
+<link rel="stylesheet" href="claura.css">
+<style>
+  .wrap { max-width:1180px; margin:0 auto; padding:64px 32px 90px; }
+  .head { margin-bottom:40px; }
+  .head .kick { font-family:var(--accent); font-weight:600; letter-spacing:.18em; text-transform:uppercase; font-size:12px; color:var(--text-3); }
+  .head h1 { font-family:var(--serif); font-size:clamp(44px,7vw,80px); line-height:1; margin:10px 0 8px; } .head h1 em { font-style:italic; }
+  .head p { font-family:var(--tag); letter-spacing:-.02em; font-size:19px; color:rgba(245,245,244,.88); max-width:52ch; }
+
+  .grp-label { font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--text-3); margin:36px 0 14px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(268px,1fr)); gap:16px; }
+  .tile { position:relative; display:block; border-radius:16px; overflow:hidden; min-height:180px; border:1px solid var(--border); background:var(--surface); }
+  .tile .bg { position:absolute; inset:0; z-index:0; }
+  .tile .bg img { width:100%; height:100%; object-fit:cover; transition:transform .5s var(--ease); }
+  .tile .bg::after { content:""; position:absolute; inset:0; background:linear-gradient(180deg, rgba(11,11,15,.2) 0%, rgba(11,11,15,.55) 55%, rgba(11,11,15,.9) 100%); }
+  .tile:hover .bg img { transform:scale(1.05); }
+  .tile .c { color:#F5F5F4; position:relative; z-index:2; height:100%; min-height:180px; display:flex; flex-direction:column; justify-content:flex-end; padding:20px; }
+  .tile .t { font-family:var(--serif); font-size:23px; line-height:1.05; } .tile .t em{font-style:italic;}
+  .tile .d { font-size:12.5px; color:rgba(245,245,244,.72); margin-top:5px; }
+  .tile .tag { position:absolute; top:14px; left:14px; z-index:2; font-family:var(--ui); font-size:10.5px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:#fff; background:rgba(0,0,0,.4); border:1px solid var(--border); border-radius:100px; padding:5px 11px; backdrop-filter:blur(10px); }
+
+  footer { text-align:center; padding:64px 24px 20px; }
+  footer .mark { font-family:var(--serif); font-size:22px; } footer .mark em{font-style:italic;}
+  footer p { color:var(--text-3); font-size:12px; margin-top:8px; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="head">
+      <div class="kick">Twin.me · Claura</div>
+      <h1>Every screen,<br>one <em>system.</em></h1>
+      <p>The cinematic design system and the product surface built on it. Tap any screen to open it.</p>
+    </div>
+
+    <div class="grp-label">Foundation</div>
+    <div class="grid">
+      <a class="tile" href="/preview/system" target="_top"><div class="bg"><img src="assets/cosmic-swirl.png" alt=""></div><span class="tag">Reference</span><div class="c"><div class="t">Claura<em>.</em></div><div class="d">The design system — color, type, glass, components</div></div></a>
+      <a class="tile" href="/preview/onboarding" target="_top"><div class="bg"><img src="assets/dusk-train.png" alt=""></div><span class="tag">Pre-auth</span><div class="c"><div class="t">Meet your twin</div><div class="d">Instant-Twin email lookup</div></div></a>
+      <a class="tile" href="/preview/landing" target="_top"><div class="bg"><img src="assets/forest.png" alt=""></div><span class="tag">Marketing</span><div class="c"><div class="t">The landing</div><div class="d">Nine cinematic scrolling bands</div></div></a>
+    </div>
+
+    <div class="grp-label">The product</div>
+    <div class="grid">
+      <a class="tile" href="/preview/dashboard" target="_top"><div class="bg"><img src="assets/blue-orbit.png" alt=""></div><span class="tag">Home</span><div class="c"><div class="t">Dashboard</div><div class="d">Briefing, observations, patterns</div></div></a>
+      <a class="tile" href="/preview/talk" target="_top"><div class="bg"><img src="assets/saturn-window.png" alt=""></div><span class="tag">Chat</span><div class="c"><div class="t">Talk to Twin</div><div class="d">The twin speaks in narrative prose</div></div></a>
+      <a class="tile" href="/preview/you" target="_top"><div class="bg"><img src="assets/bubble-reader.png" alt=""></div><span class="tag">Identity</span><div class="c"><div class="t">Soul Signature</div><div class="d">OCEAN, five layers, fingerprint</div></div></a>
+      <a class="tile" href="/preview/briefing" target="_top"><div class="bg"><img src="assets/tv-hill.png" alt=""></div><span class="tag">Daily</span><div class="c"><div class="t">Evening briefing</div><div class="d">A letter from your twin</div></div></a>
+      <a class="tile" href="/preview/interview" target="_top"><div class="bg"><img src="assets/motion-portrait.png" alt=""></div><span class="tag">Learn</span><div class="c"><div class="t">Getting to know you</div><div class="d">The twin interviews you</div></div></a>
+      <a class="tile" href="/preview/money" target="_top"><div class="bg"><img src="assets/night-screens.png" alt=""></div><span class="tag">Finance</span><div class="c"><div class="t">Money</div><div class="d">Your spending, read by your twin</div></div></a>
+      <a class="tile" href="/preview/connect" target="_top"><div class="bg"><img src="assets/cosmic-swirl.png" alt=""></div><span class="tag">Platforms</span><div class="c"><div class="t">Connect</div><div class="d">Bring your world together</div></div></a>
+      <a class="tile" href="/preview/settings" target="_top"><div class="bg"><img src="assets/forest.png" alt=""></div><span class="tag">Account</span><div class="c"><div class="t">Settings</div><div class="d">Privacy spectrum &amp; twin preferences</div></div></a>
+      <a class="tile" href="/preview/history" target="_top"><div class="bg"><img src="assets/train-field.png" alt=""></div><span class="tag">Archive</span><div class="c"><div class="t">History import</div><div class="d">Your exports, read once, remembered</div></div></a>
+      <a class="tile" href="/preview/goals" target="_top"><div class="bg"><img src="assets/dusk-train.png" alt=""></div><span class="tag">Momentum</span><div class="c"><div class="t">Goals</div><div class="d">Suggested by your twin, auto-tracked</div></div></a>
+      <a class="tile" href="/preview/voice" target="_top"><div class="bg"><img src="assets/saturn-window.png" alt=""></div><span class="tag">Sound</span><div class="c"><div class="t">Voice setup</div><div class="d">How should your twin sound?</div></div></a>
+      <a class="tile" href="/preview/pricing" target="_top"><div class="bg"><img src="assets/tv-hill.png" alt=""></div><span class="tag">Plans</span><div class="c"><div class="t">Pricing</div><div class="d">Your soul, one plan at a time</div></div></a>
+    </div>
+  </div>
+  <footer><span class="mark">Twin.<em>me</em></span><p>Claura design system · Let your soul breath · © 2026</p></footer>
+  <script src="theme.js" defer></script>
+</body>
+</html>

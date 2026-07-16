@@ -1,0 +1,97 @@
+/**
+ * Claura design system — foundation token layer (port Phase 0).
+ * Source of truth: public/cinematic/claura.css + /preview/system.
+ *
+ * ADDITIVE: everything is namespaced --claura-* / .claura-*; no existing
+ * token or class is touched. Pages/components opt in by using these names.
+ * Plan: .claude/plans/2026-07-16-claura-port/README.md
+ */
+
+:root {
+  /* canvas + text */
+  --claura-bg: #0b0b0f;
+  --claura-text: #F5F5F4;
+  --claura-text-2: #A8A29E;
+  --claura-text-3: #9C9590;
+  --claura-narr: rgba(245,245,244,.92);          /* narrative (Roboto Serif) ink */
+  /* material */
+  --claura-card: linear-gradient(160deg, rgba(42,34,48,.60), rgba(22,19,28,.72));
+  --claura-card-border: rgba(255,255,255,.14);
+  --claura-hi: rgba(255,255,255,.14);
+  --claura-blur: 42px;
+  --claura-backdrop: blur(42px) saturate(1.4) brightness(.94);
+  /* interactive */
+  --claura-bone: linear-gradient(180deg,#F1EBE1,#D8CEBF);
+  --claura-bone-ink: #1a1714;
+  /* shape */
+  --claura-r-card: 16px;
+  --claura-r-btn: 12px;
+  --claura-r-chip: 46px;
+  /* photo veil (zoned bands) */
+  --claura-scrim-rgb: 11,11,15;
+}
+
+[data-theme="light"] {
+  --claura-bg: #f6f3ee;
+  --claura-text: #1c1917;
+  --claura-text-2: #57534e;
+  --claura-text-3: #79716b;
+  --claura-narr: rgba(28,25,23,.92);
+  --claura-card: linear-gradient(160deg, rgba(255,253,250,.52), rgba(248,244,238,.6));
+  --claura-card-border: rgba(28,25,23,.12);
+  --claura-hi: rgba(255,255,255,.75);
+  --claura-backdrop: blur(42px) saturate(1.25) brightness(1.06);
+  --claura-bone: linear-gradient(180deg,#2b2725,#191512);
+  --claura-bone-ink: #f5efe6;
+  --claura-scrim-rgb: 246,243,238;
+}
+
+/* Liquid-glass material — Apple anatomy (lensing on --refract only; HIG: sparingly).
+   Requires the #liquid SVG filter mounted once in the app shell for refraction. */
+.claura-glass {
+  position: relative;
+  background: var(--claura-card);
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: var(--claura-r-card);
+  backdrop-filter: var(--claura-backdrop);
+  -webkit-backdrop-filter: var(--claura-backdrop);
+  box-shadow: 0 1px 2px rgba(0,0,0,.18), 0 12px 32px rgba(0,0,0,.26), inset 0 0 34px rgba(255,255,255,.02);
+}
+[data-theme="light"] .claura-glass {
+  border-color: rgba(28,25,23,.10);
+  box-shadow: 0 1px 2px rgba(28,25,23,.08), 0 12px 32px rgba(28,25,23,.10), inset 0 0 34px rgba(255,255,255,.4);
+}
+.claura-glass::after { /* specular rim, lit from above */
+  content: "";
+  position: absolute; inset: 0; padding: 1px; border-radius: inherit; pointer-events: none;
+  background: linear-gradient(180deg, rgba(255,255,255,.36), rgba(255,255,255,.07) 26%, rgba(255,255,255,.02) 62%, rgba(255,255,255,.20));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+}
+[data-theme="light"] .claura-glass::after {
+  background: linear-gradient(180deg, rgba(255,255,255,.9), rgba(255,255,255,.25) 26%, rgba(255,255,255,.1) 62%, rgba(255,255,255,.55));
+}
+@supports (backdrop-filter: url(#x)) {
+  .claura-glass--refract { backdrop-filter: var(--claura-backdrop) url(#liquid); -webkit-backdrop-filter: var(--claura-backdrop) url(#liquid); }
+}
+
+/* Buttons — bone primary (flips to ink in light), quiet glass secondary */
+.claura-btn-primary {
+  font-weight: 600; font-size: 14px; padding: 13px 22px; cursor: pointer;
+  border: 1px solid transparent; border-radius: var(--claura-r-btn);
+  background: var(--claura-bone); color: var(--claura-bone-ink);
+  box-shadow: 0 2px 8px rgba(0,0,0,.25);
+  display: inline-flex; align-items: center; gap: 8px;
+  transition: transform .18s cubic-bezier(.4,0,.2,1), filter .18s cubic-bezier(.4,0,.2,1);
+}
+.claura-btn-primary:hover { transform: translateY(-2px); filter: brightness(1.05); }
+.claura-btn-glass {
+  font-weight: 600; font-size: 14px; padding: 13px 22px; cursor: pointer;
+  border: 1px solid rgba(255,255,255,.15); border-radius: var(--claura-r-btn);
+  background: rgba(255,255,255,.09); color: var(--claura-text);
+  backdrop-filter: blur(var(--claura-blur)); -webkit-backdrop-filter: blur(var(--claura-blur));
+  display: inline-flex; align-items: center; gap: 8px;
+}
+[data-theme="light"] .claura-btn-glass { background: rgba(28,25,23,.06); border-color: rgba(28,25,23,.16); }

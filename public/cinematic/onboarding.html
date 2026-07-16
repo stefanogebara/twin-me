@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Meet your twin · Twin.me</title>
+<script>document.documentElement.classList.add('js')</script>
+<link rel="stylesheet" href="claura.css">
+<style>
+  .stage { position:relative; min-height:100vh; overflow:hidden; display:flex; align-items:center; justify-content:center; }
+  .stage .bg { position:absolute; inset:0; z-index:0; }
+  .stage .bg img { width:100%; height:100%; object-fit:cover; object-position:center 60%; }
+  .stage .bg::after { content:""; position:absolute; inset:0;
+    background:linear-gradient(180deg, rgba(11,11,15,.6) 0%, rgba(11,11,15,.5) 40%, rgba(11,11,15,.72) 78%, rgba(11,11,15,.9) 100%); }
+
+  .lockup { position:relative; z-index:2; width:min(680px,100%); padding:0 26px; text-align:center; }
+  .wm { font-family:var(--serif); font-size:24px; margin-bottom:34px; } .wm em { font-style:italic; }
+  .head { font-family:var(--serif); font-size:clamp(40px,6vw,72px); line-height:1.02; color:#fff; text-shadow:0 2px 40px rgba(0,0,0,.5); }
+  .head em { font-style:italic; }
+  .sub { font-family:var(--tag); letter-spacing:-.02em; font-size:clamp(17px,2.2vw,21px); color:rgba(245,245,244,.9); margin:18px auto 0; max-width:34ch; text-shadow:0 1px 14px rgba(0,0,0,.5); }
+
+  .lookup { display:flex; gap:10px; width:min(480px,100%); margin:34px auto 0; }
+  .lookup input { flex:1; background:rgba(255,255,255,.10); border:1px solid var(--border); border-radius:12px; padding:15px 22px; color:var(--text); font-family:var(--ui); font-size:15px; backdrop-filter:blur(var(--blur)); }
+  .lookup input::placeholder { color:rgba(245,245,244,.6); }
+  .lookup input:focus { outline:none; border-color:rgba(255,255,255,.34); box-shadow:0 0 0 3px rgba(255,255,255,.12); }
+  .lookup .go { flex-shrink:0; }
+
+  .hint { font-family:var(--ui); font-size:13px; color:rgba(245,245,244,.62); margin-top:18px; text-shadow:0 1px 10px rgba(0,0,0,.5); }
+  .trust { display:flex; gap:9px; justify-content:center; flex-wrap:wrap; margin-top:26px; }
+  .trust .p { display:inline-flex; align-items:center; gap:7px; font-size:12px; color:rgba(245,245,244,.78); background:rgba(255,255,255,.07); border:1px solid var(--border); border-radius:100px; padding:7px 14px; backdrop-filter:blur(var(--blur)); }
+  .trust .p .d { width:7px; height:7px; border-radius:50%; }
+
+  @media (max-width:600px){
+    .lookup { flex-direction:column; border-radius:20px; }
+    .lookup .go { width:100%; justify-content:center; }
+  }
+</style>
+</head>
+<body>
+  <section class="stage">
+    <div class="bg"><img src="assets/dusk-train.png" alt=""></div>
+    <div class="lockup">
+      <div class="wm up">Twin.<em>me</em></div>
+      <h1 class="head up" style="animation-delay:.06s">In sixty seconds, meet<br>the twin that <em>already knows you.</em></h1>
+      <p class="sub up" style="animation-delay:.14s">Start with your email. We read what's already yours, then go deeper — until it sounds like you.</p>
+      <div class="lookup up" style="animation-delay:.22s">
+        <input type="email" placeholder="you@example.com" value="stefanogebara@gmail.com">
+        <button class="btn btn-primary go">See what my twin knows →</button>
+      </div>
+      <div class="hint up" style="animation-delay:.3s">No password. Nothing shared. Just you, reflected back.</div>
+      <div class="trust up" style="animation-delay:.36s">
+        <span class="p"><span class="d" style="background:#1DB954"></span>Spotify</span>
+        <span class="p"><span class="d" style="background:#FF0000"></span>YouTube</span>
+        <span class="p"><span class="d" style="background:#F5F5F4"></span>GitHub</span>
+        <span class="p"><span class="d" style="background:#4285F4"></span>Calendar</span>
+        <span class="p"><span class="d" style="background:#5865F2"></span>Discord</span>
+      </div>
+    </div>
+  </section>
+  <script src="reveal.js" defer></script>
+</body>
+</html>
