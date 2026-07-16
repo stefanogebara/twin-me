@@ -159,6 +159,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           // sets the token itself via POST /api/auth/oauth/callback).
           const PUBLIC_EXACT = [
             '/auth', '/login', '/discover', '/', '/oauth/callback',
+            // '/preview' (no trailing slash) is the design-prototype gallery index;
+            // the '/preview/' PREFIX below covers the individual screens.
+            '/preview',
             // Desktop (Tauri) Google sign-in handoff: must load without a JWT so
             // it can start the web sign-in itself (signed out) or mint a one-time
             // code + deep-link back to the app (signed in). Without this it would
@@ -168,7 +171,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             // signup flows, beta-invite emails, and external links.
             '/terms', '/terms-of-service', '/privacy', '/privacy-policy',
           ];
-          const PUBLIC_PREFIX = ['/auth/', '/login/', '/discover/', '/p/'];
+          // '/preview/' hosts the public cinematic design prototypes (static
+          // bundle in /public/cinematic); they carry no user data and must load
+          // signed-out so the redesign is shareable without a session.
+          const PUBLIC_PREFIX = ['/auth/', '/login/', '/discover/', '/p/', '/preview/'];
           const isPublicRoute =
             PUBLIC_EXACT.includes(pathname) ||
             PUBLIC_PREFIX.some((p) => pathname.startsWith(p));

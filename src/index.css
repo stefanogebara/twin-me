@@ -10,6 +10,9 @@
 /* ===== LENIS SMOOTH SCROLL ===== */
 @import 'lenis/dist/lenis.css';
 
+/* ===== CLAURA DESIGN SYSTEM (port Phase 0 — additive token layer) ===== */
+@import './styles/claura.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -86,6 +89,62 @@
     --body-gradient-4: rgba(55, 45, 140, 0.28);
 
     /* Departments page: dim the ambient gradient for cleaner settings-panel feel */
+  }
+
+  /* CLAURA PORT PHASE 2 — light appearance (plan: .claude/plans/2026-07-16-claura-port).
+     Token-level flip only: activates when ThemeContext sets data-theme="light"
+     (default stays dark; no UI exposes it yet). Components with hardcoded
+     white-alpha arbitrary values adopt in Phases 3-4. */
+  [data-theme="light"] {
+    color-scheme: light;
+    --background: #f6f3ee;
+    --surface: rgba(28, 25, 23, 0.05);
+    --surface-solid: rgba(28, 25, 23, 0.10);
+    --claude-bg: #f6f3ee;
+    --claude-surface: rgba(28, 25, 23, 0.05);
+    --claude-surface-raised: rgba(28, 25, 23, 0.10);
+    --claude-text: #1c1917;
+    --claude-text-muted: #57534e;
+    --claude-accent: #1c1917;
+    --claude-accent-hover: #2b2725;
+    --claude-border: rgba(28, 25, 23, 0.12);
+    --foreground: #1c1917;
+    --text-primary: #1c1917;
+    --text-secondary: #57534e;
+    --text-muted: #79716b;
+    --text-placeholder: #a8a29e;
+    --accent-streak: #8a6a3c;
+    --glass-surface-bg: rgba(255, 253, 250, 0.55);
+    --glass-surface-border: rgba(28, 25, 23, 0.12);
+    --border: rgba(28, 25, 23, 0.12);
+    --border-glass: rgba(28, 25, 23, 0.08);
+    --primary: #1c1917;
+    --primary-foreground: #f5efe6;
+    --ring: rgba(28, 25, 23, 0.35);
+    --card: rgba(255, 253, 250, 0.55);
+    --card-foreground: #1c1917;
+    --popover: rgba(255, 253, 250, 0.97);
+    --popover-foreground: #1c1917;
+    --secondary: rgba(28, 25, 23, 0.06);
+    --secondary-foreground: #1c1917;
+    --muted: rgba(246, 243, 238, 0.8);
+    --muted-foreground: #57534e;
+    --accent: rgba(28, 25, 23, 0.05);
+    --accent-foreground: #1c1917;
+    --input: rgba(28, 25, 23, 0.06);
+    --sidebar: rgba(246, 243, 238, 0.68);
+    --sidebar-foreground: #44403c;
+    --sidebar-primary: #1c1917;
+    --sidebar-primary-foreground: #f5efe6;
+    --sidebar-accent: rgba(28, 25, 23, 0.08);
+    --sidebar-accent-foreground: #1c1917;
+    --sidebar-border: rgba(28, 25, 23, 0.10);
+    --sidebar-ring: rgba(28, 25, 23, 0.35);
+    /* daylight orbs — soft pastels on paper (SunContext values still win when it runs) */
+    --body-gradient-1: rgba(240, 190, 120, 0.30);
+    --body-gradient-2: rgba(180, 200, 240, 0.28);
+    --body-gradient-3: rgba(230, 170, 140, 0.22);
+    --body-gradient-4: rgba(170, 160, 230, 0.20);
   }
 
   body.page-departments {

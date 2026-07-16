@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Talk to Twin · Twin.me</title>
+<script>document.documentElement.classList.add('js')</script>
+<script>try{var t=new URLSearchParams(location.search).get("theme")||localStorage.getItem("claura-theme");if(t==="light")document.documentElement.setAttribute("data-theme","light")}catch(e){}</script>
+<link rel="stylesheet" href="claura.css">
+<style>
+  .app { display:grid; grid-template-columns:248px 1fr; min-height:100vh; }
+  .side { background:rgba(255,255,255,.05); border-right:1px solid var(--border-soft); padding:20px 14px; display:flex; flex-direction:column; }
+  .side .brand { display:flex; align-items:center; gap:9px; padding:4px 10px 20px; }
+  .side .brand .m { font-family:var(--serif); font-size:20px; } .side .brand .m em{font-style:italic;}
+  .side .brand .beta { font-size:9px; letter-spacing:.08em; background:rgba(255,255,255,.10); color:var(--text-2); border-radius:100px; padding:3px 7px; }
+  .nav-i { display:flex; align-items:center; gap:11px; padding:10px 14px; border-radius:100px; font-size:13.5px; color:#D6D3D1; margin-bottom:2px; cursor:pointer; }
+  .nav-i:hover { background:rgba(255,255,255,.06); } .nav-i.active { background:rgba(255,255,255,.10); color:#fff; }
+  .nav-i .g { width:18px; text-align:center; opacity:.85; }
+  .side .foot { margin-top:auto; border-top:1px solid var(--border-soft); padding-top:14px; display:flex; align-items:center; gap:10px; }
+  .side .foot .av { width:30px; height:30px; border-radius:50%; background:rgba(255,255,255,.10); display:flex; align-items:center; justify-content:center; font-size:12px; }
+
+  /* chat area over the saturn-window photo, zoned: vivid up top, fading down */
+  .chat { position:relative; display:flex; flex-direction:column; }
+  .chat::before { content:""; position:absolute; inset:0; z-index:0; background:url('assets/cosmic-swirl.png') center 30%/cover no-repeat; }
+  .chat::after { content:""; position:absolute; inset:0; z-index:0;
+    background:linear-gradient(180deg, rgba(var(--scrim-rgb),.5) 0%, rgba(var(--scrim-rgb),.66) 40%, rgba(var(--scrim-rgb),.9) 74%, var(--bg) 92%); }
+
+  .thread { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:60px 24px 20px; gap:14px; text-align:center; position:relative; z-index:2; }
+  .thread .date { font-size:12px; color:var(--text-2); }
+  .thread .greet { font-family:var(--serif); font-style:italic; font-size:40px; }
+  .thread .ask { color:var(--text-2); font-size:14px; }
+  .thread .attn { color:#e0a458; font-size:12.5px; margin-top:4px; }
+  .chips { display:flex; gap:12px; flex-wrap:wrap; justify-content:center; margin-top:8px; }
+
+  .convo { width:min(760px,100%); margin:20px auto 0; display:flex; flex-direction:column; gap:16px; position:relative; z-index:2; }
+  .u { align-self:flex-end; max-width:70%; background:rgba(255,255,255,.09); border:1px solid var(--border); border-radius:14px 14px 4px 14px; padding:12px 17px; font-size:13.5px; }
+  .t { align-self:flex-start; max-width:82%; font-size:14px; color:var(--narr); line-height:1.65; }
+  .t .who { font-family:var(--serif); font-style:italic; color:var(--text-3); font-size:13px; display:block; margin-bottom:4px; }
+
+  .composer { position:sticky; bottom:0; padding:20px 24px 26px; z-index:3;
+    background:linear-gradient(180deg, transparent, var(--bg) 40%); }
+  .bar { width:min(760px,100%); margin:0 auto; display:flex; align-items:center; gap:12px;
+    background:rgba(255,255,255,.07); border:1px solid var(--border); border-radius:100px; padding:14px 16px 14px 22px; backdrop-filter:blur(var(--blur)); }
+  .bar input { flex:1; background:transparent; border:0; outline:0; color:var(--text); font-family:var(--ui); font-size:14px; }
+  .bar input::placeholder { color:var(--text-ph); }
+  .bar .send { width:34px; height:34px; border-radius:50%; background:var(--primary); color:var(--primary-ink); display:flex; align-items:center; justify-content:center; font-size:14px; cursor:pointer; }
+  .proposals { width:min(760px,100%); margin:0 auto 10px; }
+  .proposals .p { display:inline-flex; align-items:center; gap:8px; background:rgba(255,255,255,.06); border:1px solid var(--border); border-radius:100px; padding:8px 14px; font-size:12px; color:var(--text-2); }
+
+  /* light mode: an empty chair on a flowering hill — a seat for the conversation */
+  [data-theme="light"] .chat::before { background-image:url('assets/chair-hill.png'); background-position:center 30%; }
+
+  @media (max-width:820px){
+    .app { grid-template-columns:1fr; }
+    .side { flex-direction:row; align-items:center; gap:6px; border-right:0; border-bottom:1px solid var(--border-soft); padding:11px 12px; overflow-x:auto; }
+    .side .brand { padding:0 6px 0 2px; }
+    .side .foot { margin-top:0; margin-left:auto; border-top:0; padding-top:0; flex-shrink:0; }
+    .nav-i { white-space:nowrap; margin-bottom:0; padding:8px 12px; }
+    .thread { padding:40px 18px 16px; }
+    .thread .greet { font-size:30px; }
+    .chips { gap:8px; }
+    .u, .t { max-width:90%; }
+    .composer { padding:16px 16px 20px; }
+  }
+</style>
+</head>
+<body>
+  <div class="sky"></div>
+  <div class="app">
+    <aside class="side">
+      <div class="brand"><span class="m">Twin.<em>me</em></span><span class="beta">BETA</span></div>
+      <div class="nav-i active"><span class="g">◇</span>Talk to Twin</div>
+      <div class="nav-i"><span class="g">⌂</span>Home</div>
+      <div class="nav-i"><span class="g">✦</span>You</div>
+      <div class="nav-i"><span class="g">▤</span>Money</div>
+      <div class="nav-i"><span class="g">⚯</span>Connect</div>
+      <div class="nav-i"><span class="g">⚙</span>Settings</div>
+      <div class="foot"><span class="av">S</span><div style="font-size:12px;">Stefano<div style="font-size:10.5px;color:var(--text-3)">stefanogebara@gmail…</div></div></div>
+    </aside>
+
+    <section class="chat">
+      <div class="thread">
+        <div class="date up">Tuesday, July 14</div>
+        <div class="greet up" style="animation-delay:.06s">Good Evening, Stefano</div>
+        <div class="ask up" style="animation-delay:.12s">Ask me anything — I know more than you think.</div>
+        <div class="attn up" style="animation-delay:.16s">3 platforms need reconnection →</div>
+        <div class="chips up" style="animation-delay:.22s">
+          <span class="chip">How's my sleep been?</span>
+          <span class="chip">What does my music say about me?</span>
+          <span class="chip">What patterns do you see?</span>
+        </div>
+
+        <div class="convo up" style="animation-delay:.3s">
+          <div class="u">What patterns do you see in my week?</div>
+          <div class="t"><span class="who">your twin</span>Your week ran on two speeds — deep GitHub sprints in the afternoons, then late-night music immersion to decompress. The pattern that matters: your best recovery days follow the nights you stopped coding before midnight. Whoop recovery jumped 59% → 72% on exactly those days.</div>
+        </div>
+      </div>
+
+      <div class="composer">
+        <div class="proposals"><span class="p">● 2 proposals</span></div>
+        <div class="bar"><input placeholder="Late night thoughts? I'm here..."><span class="send">➤</span></div>
+      </div>
+    </section>
+  </div>
+  <script src="reveal.js" defer></script>
+  <script src="theme.js" defer></script>
+</body>
+</html>

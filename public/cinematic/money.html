@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Money · Twin.me</title>
+<script>document.documentElement.classList.add('js')</script>
+<script>try{var t=new URLSearchParams(location.search).get("theme")||localStorage.getItem("claura-theme");if(t==="light")document.documentElement.setAttribute("data-theme","light")}catch(e){}</script>
+<link rel="stylesheet" href="claura.css">
+<style>
+  .zonebg { position:fixed; inset:0; z-index:-2; background:var(--bg); }
+  .zonebg::before { content:""; position:absolute; inset:0; background:url('assets/night-screens.png') center 42%/cover no-repeat; }
+  .zonebg::after { content:""; position:absolute; inset:0;
+    background:linear-gradient(180deg, rgba(var(--scrim-rgb),.4) 0%, rgba(var(--scrim-rgb),.54) 34%, rgba(var(--scrim-rgb),.88) 64%, var(--bg) 78%); }
+
+  .app { display:grid; grid-template-columns:248px 1fr; min-height:100vh; }
+  .side { background:rgba(255,255,255,.05); border-right:1px solid var(--border-soft); padding:20px 14px; display:flex; flex-direction:column; }
+  .side .brand { display:flex; align-items:center; gap:9px; padding:4px 10px 20px; }
+  .side .brand .m { font-family:var(--serif); font-size:20px; } .side .brand .m em{font-style:italic;}
+  .side .brand .beta { font-size:9px; letter-spacing:.08em; background:rgba(255,255,255,.10); color:var(--text-2); border-radius:100px; padding:3px 7px; }
+  .nav-i { display:flex; align-items:center; gap:11px; padding:10px 14px; border-radius:100px; font-size:13.5px; color:#D6D3D1; margin-bottom:2px; cursor:pointer; }
+  .nav-i:hover { background:rgba(255,255,255,.06); } .nav-i.active { background:rgba(255,255,255,.10); color:#fff; }
+  .nav-i .g { width:18px; text-align:center; opacity:.85; }
+  .side .foot { margin-top:auto; border-top:1px solid var(--border-soft); padding-top:14px; display:flex; align-items:center; gap:10px; }
+  .side .foot .av { width:30px; height:30px; border-radius:50%; background:rgba(255,255,255,.10); display:flex; align-items:center; justify-content:center; font-size:12px; }
+
+  .main { padding:36px 44px 90px; max-width:940px; }
+  .kicker { font-family:var(--accent); font-weight:600; font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--text-3); }
+  .hi { font-family:var(--serif); font-size:40px; margin-top:8px; }
+  .hi-sub { font-family:var(--tag); letter-spacing:-.02em; font-size:19px; color:var(--narr); margin-top:8px; max-width:48ch; }
+
+  .read { border-radius:16px; padding:28px 30px; margin:26px 0 22px; position:relative; overflow:hidden;
+    background:linear-gradient(160deg, rgba(30,48,74,.5), rgba(22,24,38,.6)); border:1px solid var(--border); backdrop-filter:blur(var(--blur)); }
+  .read .lede { font-family:var(--tag); letter-spacing:-.02em; font-size:20px; line-height:1.42; color:var(--narr); }
+  .read .lede .accent { color:#8fb4f0; font-style:italic; }
+  .read .stat { display:flex; gap:34px; margin-top:20px; flex-wrap:wrap; }
+  .read .stat .s .n { font-family:var(--serif); font-size:26px; }
+  .read .stat .s .k { font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--text-3); margin-top:2px; }
+  .read .stat .s .n small { font-size:13px; color:var(--text-2); }
+  .up-g { color:#f0736b; } .dn-g { color:#5fcf94; }
+
+  .sec-label { font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--text-3); margin:32px 0 14px; }
+
+  .cats { border-radius:16px; padding:24px 28px; background:var(--card); border:1px solid var(--card-border); backdrop-filter:blur(var(--blur)) saturate(1.4) brightness(.94); }
+  .cat { display:flex; align-items:center; gap:16px; padding:13px 0; border-bottom:1px solid var(--border-soft); }
+  .cat:last-child { border-bottom:0; }
+  .cat .d { width:11px; height:11px; border-radius:3px; flex-shrink:0; }
+  .cat .nm { width:130px; font-size:14px; flex-shrink:0; }
+  .cat .track { flex:1; height:8px; border-radius:100px; background:rgba(255,255,255,.08); position:relative; overflow:hidden; }
+  .cat .track .fill { position:absolute; inset:0 auto 0 0; border-radius:100px; }
+  .cat .amt { width:88px; text-align:right; font-size:13px; color:var(--text-2); font-family:ui-monospace,Menlo,monospace; }
+
+  .obs { display:grid; gap:10px; }
+  .obs .card p { font-size:13px; color:rgba(245,245,244,.9); line-height:1.55; }
+  .obs .meta { display:flex; align-items:center; gap:10px; margin-top:12px; }
+  .obs .meta .t { font-size:11px; color:var(--text-3); margin-right:auto; }
+  .obs .meta .link { font-size:11px; color:#D6D3D1; }
+  .mini { font-family:var(--ui); font-size:11.5px; font-weight:600; border-radius:10px; padding:7px 14px; cursor:pointer; border:1px solid var(--border); background:rgba(255,255,255,.08); color:#fff; }
+  .mini.light { background:var(--bone); color:var(--bone-ink); border-color:transparent; }
+
+  /* light mode: the golden field under a cobalt sky */
+  [data-theme="light"] .zonebg::before { background-image:url('assets/dusk-train.png'); background-position:center 58%; }
+
+  @media (max-width:820px){
+    .app { grid-template-columns:1fr; }
+    .side { flex-direction:row; align-items:center; gap:6px; border-right:0; border-bottom:1px solid var(--border-soft); padding:11px 12px; overflow-x:auto; }
+    .side .brand { padding:0 6px 0 2px; }
+    .side .foot { margin-top:0; margin-left:auto; border-top:0; padding-top:0; flex-shrink:0; }
+    .nav-i { white-space:nowrap; margin-bottom:0; padding:8px 12px; }
+    .main { padding:24px 18px 64px; }
+    .hi { font-size:29px; }
+    .read .stat { gap:22px; }
+    .cat { flex-wrap:wrap; } .cat .nm { width:auto; }
+  }
+</style>
+</head>
+<body>
+  <div class="zonebg"></div>
+  <div class="app">
+    <aside class="side">
+      <div class="brand"><span class="m">Twin.<em>me</em></span><span class="beta">BETA</span></div>
+      <div class="nav-i"><span class="g">◇</span>Talk to Twin</div>
+      <div class="nav-i"><span class="g">⌂</span>Home</div>
+      <div class="nav-i"><span class="g">✦</span>You</div>
+      <div class="nav-i active"><span class="g">▤</span>Money</div>
+      <div class="nav-i"><span class="g">⚯</span>Connect</div>
+      <div class="nav-i"><span class="g">⚙</span>Settings</div>
+      <div class="foot"><span class="av">S</span><div style="font-size:12px;">Stefano<div style="font-size:10.5px;color:var(--text-3)">stefanogebara@gmail…</div></div></div>
+    </aside>
+
+    <main class="main">
+      <div class="kicker up">São Paulo · July</div>
+      <div class="hi up" style="animation-delay:.05s">Money</div>
+      <div class="hi-sub up" style="animation-delay:.1s">What your spending says about you — read from your connected accounts.</div>
+
+      <div class="read up" style="animation-delay:.14s">
+        <p class="lede">This month you spent like someone <span class="accent">building something</span>. Software and coffee led; the restaurant project is showing up in your transactions well before it shows up in revenue.</p>
+        <div class="stat">
+          <div class="s"><div class="n">R$ 6,240</div><div class="k">Spent this month</div></div>
+          <div class="s"><div class="n">Software</div><div class="k">Top category</div></div>
+          <div class="s"><div class="n"><span class="up-g">+18%</span> <small>vs June</small></div><div class="k">Month over month</div></div>
+        </div>
+      </div>
+
+      <div class="sec-label up">Where it went</div>
+      <div class="cats up">
+        <div class="cat"><span class="d" style="background:#3B82F6"></span><span class="nm">Software &amp; SaaS</span><span class="track"><span class="fill" style="width:100%;background:#3B82F6"></span></span><span class="amt">R$ 2,180</span></div>
+        <div class="cat"><span class="d" style="background:#c17e2c"></span><span class="nm">Dining &amp; coffee</span><span class="track"><span class="fill" style="width:71%;background:#c17e2c"></span></span><span class="amt">R$ 1,540</span></div>
+        <div class="cat"><span class="d" style="background:#10B981"></span><span class="nm">Subscriptions</span><span class="track"><span class="fill" style="width:44%;background:#10B981"></span></span><span class="amt">R$ 960</span></div>
+        <div class="cat"><span class="d" style="background:#8B5CF6"></span><span class="nm">Transport</span><span class="track"><span class="fill" style="width:33%;background:#8B5CF6"></span></span><span class="amt">R$ 720</span></div>
+        <div class="cat"><span class="d" style="background:#EF4444"></span><span class="nm">Shopping</span><span class="track"><span class="fill" style="width:38%;background:#EF4444"></span></span><span class="amt">R$ 840</span></div>
+      </div>
+
+      <div class="sec-label up">What your twin noticed</div>
+      <div class="obs up">
+        <div class="card">
+          <p>Your software spend rose with your GitHub activity — Vercel, an AI API, and a new Seatable seat all landed the week you started the restaurant build. It reads as investment, not leakage.</p>
+          <div class="meta"><span class="t">this week</span><span class="link">Discuss with twin →</span><button class="mini light">Makes sense</button><button class="mini">Not for me</button></div>
+        </div>
+        <div class="card">
+          <p>Three subscriptions renewed that you haven't opened in 30+ days — R$ 214/mo sitting idle. Want me to flag them before the next cycle?</p>
+          <div class="meta"><span class="t">2d ago</span><span class="link">Review them →</span><button class="mini light">Flag these</button><button class="mini">Keep</button></div>
+        </div>
+      </div>
+    </main>
+  </div>
+  <script src="reveal.js" defer></script>
+  <script src="theme.js" defer></script>
+</body>
+</html>

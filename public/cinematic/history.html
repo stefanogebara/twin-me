@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>History import · Twin.me</title>
+<script>document.documentElement.classList.add('js')</script>
+<script>try{var t=new URLSearchParams(location.search).get("theme")||localStorage.getItem("claura-theme");if(t==="light")document.documentElement.setAttribute("data-theme","light")}catch(e){}</script>
+<link rel="stylesheet" href="claura.css">
+<style>
+  .zonebg { position:fixed; inset:0; z-index:-2; background:var(--bg); }
+  .zonebg::before { content:""; position:absolute; inset:0; background:url('assets/train-field.png') center 62%/cover no-repeat; }
+  .zonebg::after { content:""; position:absolute; inset:0;
+    background:linear-gradient(180deg, rgba(var(--scrim-rgb),.55) 0%, rgba(var(--scrim-rgb),.68) 30%, rgba(var(--scrim-rgb),.93) 58%, var(--bg) 74%); }
+  [data-theme="light"] .zonebg::before { background-position:center 74%; }
+
+  .app { display:grid; grid-template-columns:248px 1fr; min-height:100vh; }
+  .side { background:rgba(255,255,255,.05); border-right:1px solid var(--border-soft); padding:20px 14px; display:flex; flex-direction:column; }
+  .side .brand { display:flex; align-items:center; gap:9px; padding:4px 10px 20px; }
+  .side .brand .m { font-family:var(--serif); font-size:20px; } .side .brand .m em{font-style:italic;}
+  .side .brand .beta { font-size:9px; letter-spacing:.08em; background:rgba(255,255,255,.10); color:var(--text-2); border-radius:100px; padding:3px 7px; }
+  .nav-i { display:flex; align-items:center; gap:11px; padding:10px 14px; border-radius:100px; font-size:13.5px; color:#D6D3D1; margin-bottom:2px; cursor:pointer; }
+  .nav-i:hover { background:rgba(255,255,255,.06); } .nav-i.active { background:rgba(255,255,255,.10); color:#fff; }
+  .nav-i .g { width:18px; text-align:center; opacity:.85; }
+  .side .foot { margin-top:auto; border-top:1px solid var(--border-soft); padding-top:14px; display:flex; align-items:center; gap:10px; }
+  .side .foot .av { width:30px; height:30px; border-radius:50%; background:rgba(255,255,255,.10); display:flex; align-items:center; justify-content:center; font-size:12px; }
+
+  .main { padding:36px 44px 90px; max-width:860px; }
+  .crumb { font-size:12px; color:var(--text-3); } .crumb a { color:var(--text-2); }
+  .hi { font-family:var(--serif); font-size:40px; margin-top:10px; }
+  .hi-sub { font-family:var(--tag); letter-spacing:-.02em; font-size:18px; color:var(--narr); margin-top:8px; max-width:52ch; }
+
+  .drop { margin:26px 0 10px; border:1.5px dashed var(--card-border); border-radius:16px; padding:44px 26px; text-align:center;
+    background:var(--card); backdrop-filter:blur(var(--blur)); cursor:pointer; }
+  .drop .big { font-family:var(--serif); font-size:23px; }
+  .drop .d { font-size:13px; color:var(--text-2); margin-top:6px; }
+  .drop .or { font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--text-3); margin:16px 0 12px; }
+
+  .sec-label { font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--text-3); margin:30px 0 14px; }
+  .src { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+  .scard2 { border-radius:14px; padding:16px 18px; background:rgba(255,255,255,.05); border:1px solid var(--border-soft); backdrop-filter:blur(var(--blur)); }
+  [data-theme="light"] .scard2 { background:rgba(255,255,255,.55); border-color:rgba(28,25,23,.10); }
+  .scard2 .t { font-size:13.5px; font-weight:600; }
+  .scard2 .d { font-size:11.5px; color:var(--text-3); margin-top:3px; line-height:1.5; }
+
+  .imports { border-radius:16px; background:var(--card); border:1px solid var(--card-border); backdrop-filter:blur(var(--blur)); overflow:hidden; }
+  .imp { display:flex; align-items:center; gap:14px; padding:15px 20px; border-bottom:1px solid var(--border-soft); }
+  .imp:last-child { border-bottom:0; }
+  .imp .nm { font-size:13.5px; font-weight:600; }
+  .imp .meta { font-size:11.5px; color:var(--text-3); margin-top:2px; }
+  .imp .spacer { flex:1; }
+  .badge { display:inline-flex; align-items:center; gap:7px; font-size:11.5px; font-weight:600; border-radius:100px; padding:6px 13px; }
+  .badge .d { width:7px; height:7px; border-radius:50%; background:currentColor; }
+  .badge.ok { background:rgba(16,185,129,.14); color:#5fcf94; border:1px solid rgba(16,185,129,.3); }
+  [data-theme="light"] .badge.ok { color:#1c7a4e; }
+  .badge.run { background:rgba(139,92,246,.14); color:#b8a1f5; border:1px solid rgba(139,92,246,.3); }
+  [data-theme="light"] .badge.run { color:#5d3fb0; }
+  .badge.err { background:rgba(220,38,38,.14); color:#f0736b; border:1px solid rgba(220,38,38,.3); }
+  [data-theme="light"] .badge.err { color:#a82a22; }
+  .note { display:flex; gap:11px; margin-top:26px; font-size:12.5px; color:var(--text-3); max-width:60ch; line-height:1.6; }
+  .note .g { color:var(--streak); flex-shrink:0; }
+
+  @media (max-width:820px){
+    .app { grid-template-columns:1fr; }
+    .side { flex-direction:row; align-items:center; gap:6px; border-right:0; border-bottom:1px solid var(--border-soft); padding:11px 12px; overflow-x:auto; }
+    .side .brand { padding:0 6px 0 2px; }
+    .side .foot { margin-top:0; margin-left:auto; border-top:0; padding-top:0; flex-shrink:0; }
+    .nav-i { white-space:nowrap; margin-bottom:0; padding:8px 12px; }
+    .main { padding:24px 18px 64px; }
+    .hi { font-size:29px; }
+    .src { grid-template-columns:1fr; }
+    .imp { flex-wrap:wrap; }
+  }
+</style>
+</head>
+<body>
+  <div class="zonebg"></div>
+  <div class="app">
+    <aside class="side">
+      <div class="brand"><span class="m">Twin.<em>me</em></span><span class="beta">BETA</span></div>
+      <div class="nav-i"><span class="g">◇</span>Talk to Twin</div>
+      <div class="nav-i"><span class="g">⌂</span>Home</div>
+      <div class="nav-i"><span class="g">✦</span>You</div>
+      <div class="nav-i"><span class="g">▤</span>Money</div>
+      <div class="nav-i active"><span class="g">⚯</span>Connect</div>
+      <div class="nav-i"><span class="g">⚙</span>Settings</div>
+      <div class="foot"><span class="av">S</span><div style="font-size:12px;">Stefano<div style="font-size:10.5px;color:var(--text-3)">stefanogebara@gmail…</div></div></div>
+    </aside>
+
+    <main class="main">
+      <div class="crumb up"><a href="connect.html">Connect</a> · History import</div>
+      <div class="hi up" style="animation-delay:.05s">Bring your history</div>
+      <div class="hi-sub up" style="animation-delay:.1s">Live connections see from today forward. Your exports carry the years before — the twin reads them once and remembers.</div>
+
+      <div class="drop up" style="animation-delay:.14s">
+        <div class="big">Drop an export here</div>
+        <div class="d">.zip archives from any platform's data takeout — processed locally, never shared.</div>
+        <div class="or">or choose a source</div>
+        <button class="btn btn-primary" style="padding:10px 20px;font-size:13px;">Browse files</button>
+      </div>
+
+      <div class="sec-label up">Where to get your exports</div>
+      <div class="src up">
+        <div class="scard2"><div class="t">Spotify</div><div class="d">Privacy settings → Download your data. Extended streaming history recommended.</div></div>
+        <div class="scard2"><div class="t">Google Takeout</div><div class="d">YouTube history, Calendar archive, Gmail metadata — pick what you're comfortable with.</div></div>
+        <div class="scard2"><div class="t">WhatsApp</div><div class="d">Chat → Export chat (without media). Cadence only, never message content.</div></div>
+      </div>
+
+      <div class="sec-label up">Your imports</div>
+      <div class="imports up">
+        <div class="imp"><div><div class="nm">StreamingHistory_2019-2024.zip</div><div class="meta">Spotify · 48,112 plays · imported 3 weeks ago</div></div><div class="spacer"></div><span class="badge ok"><span class="d"></span>In your memory</span></div>
+        <div class="imp"><div><div class="nm">takeout-20260701.zip</div><div class="meta">Google Takeout · YouTube + Calendar · 2.1 GB</div></div><div class="spacer"></div><span class="badge run"><span class="d"></span>Reading · 64%</span></div>
+        <div class="imp"><div><div class="nm">whatsapp-chat-familia.txt</div><div class="meta">WhatsApp · couldn't parse the date format</div></div><div class="spacer"></div><span class="badge err"><span class="d"></span>Needs another export</span></div>
+      </div>
+
+      <div class="note up"><span class="g">◇</span>Everything lands in the same memory stream as your live connections — one past, one twin. Delete an import anytime and its memories go with it.</div>
+    </main>
+  </div>
+  <script src="reveal.js" defer></script>
+  <script src="theme.js" defer></script>
+</body>
+</html>

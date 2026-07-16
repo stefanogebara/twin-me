@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Your twin's voice · Twin.me</title>
+<script>document.documentElement.classList.add('js')</script>
+<script>try{var t=new URLSearchParams(location.search).get("theme")||localStorage.getItem("claura-theme");if(t==="light")document.documentElement.setAttribute("data-theme","light")}catch(e){}</script>
+<link rel="stylesheet" href="claura.css">
+<style>
+  .stage { position:relative; min-height:100vh; display:flex; align-items:center; justify-content:center; overflow:hidden; padding:90px 0 70px; }
+  .stage::before { content:""; position:absolute; inset:0; z-index:0; background:url('assets/saturn-window.png') center 24%/cover no-repeat; }
+  .stage::after { content:""; position:absolute; inset:0; z-index:0;
+    background:linear-gradient(180deg, rgba(var(--scrim-rgb),.6) 0%, rgba(var(--scrim-rgb),.55) 45%, rgba(var(--scrim-rgb),.8) 100%); }
+  [data-theme="light"] .stage::before { background-image:url('assets/soul-waves.png'); background-position:center 40%; }
+  [data-theme="light"] .stage::after { background:linear-gradient(180deg, rgba(246,243,238,.35) 0%, rgba(246,243,238,.3) 45%, rgba(246,243,238,.6) 100%); }
+
+  .topbar { position:fixed; top:0; left:0; right:0; z-index:20; display:flex; align-items:center; gap:16px; padding:18px 28px; }
+  .topbar .m { font-family:var(--serif); font-size:20px; } .topbar .m em{font-style:italic;}
+  .topbar .skip { margin-left:auto; font-size:12.5px; color:var(--narr-2); cursor:pointer; }
+
+  .card { position:relative; z-index:2; width:min(660px,100%); margin:0 26px; text-align:center; }
+  .kick { font-family:var(--accent); font-weight:600; letter-spacing:.16em; text-transform:uppercase; font-size:11px; color:var(--narr-2); }
+  .q { font-family:var(--serif); font-size:clamp(32px,4.6vw,50px); line-height:1.08; margin-top:14px; color:var(--text); }
+  .q em { font-style:italic; }
+  .qsub { font-family:var(--tag); letter-spacing:-.02em; font-size:17px; color:var(--narr); margin-top:14px; }
+
+  .voices { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:32px; text-align:left; }
+  .v { padding:18px; border-radius:14px; cursor:pointer; background:var(--card); border:1px solid var(--card-border); backdrop-filter:blur(var(--blur)); transition:border-color .18s var(--ease); position:relative; }
+  .v.sel { border-color:rgba(232,224,212,.75); box-shadow:0 0 0 3px rgba(232,224,212,.14); }
+  [data-theme="light"] .v.sel { border-color:rgba(28,25,23,.5); box-shadow:0 0 0 3px rgba(28,25,23,.08); }
+  .v .nm { font-size:14.5px; font-weight:600; }
+  .v .d { font-size:12px; color:var(--text-2); margin-top:4px; line-height:1.5; }
+  .v .play { position:absolute; top:14px; right:14px; width:28px; height:28px; border-radius:50%; background:var(--primary); color:var(--primary-ink); display:flex; align-items:center; justify-content:center; font-size:11px; }
+  .v .sample { font-family:var(--tag); font-size:12.5px; color:var(--narr); margin-top:12px; font-style:italic; line-height:1.5; }
+
+  .clone { margin-top:22px; border-radius:16px; padding:22px 24px; background:var(--card); border:1px solid var(--card-border); backdrop-filter:blur(var(--blur)); text-align:left; display:flex; gap:16px; align-items:center; }
+  .clone .mic { width:44px; height:44px; border-radius:50%; flex-shrink:0; background:var(--bone); color:var(--bone-ink); display:flex; align-items:center; justify-content:center; font-size:17px; }
+  .clone .t { font-size:14px; font-weight:600; }
+  .clone .d { font-size:12.5px; color:var(--text-2); margin-top:3px; line-height:1.55; }
+  .foot2 { display:flex; justify-content:center; gap:12px; margin-top:28px; }
+
+  @media (max-width:760px){ .voices { grid-template-columns:1fr; } .clone { flex-direction:column; align-items:flex-start; } }
+</style>
+</head>
+<body>
+  <div class="topbar"><span class="m">Twin.<em>me</em></span><span class="skip">Keep text only</span></div>
+
+  <section class="stage">
+    <div class="card">
+      <div class="kick up">Voice setup</div>
+      <h1 class="q up" style="animation-delay:.06s">How should your<br>twin <em>sound?</em></h1>
+      <p class="qsub up" style="animation-delay:.12s">It already writes like you. Give it a voice for briefings and late-night talks.</p>
+
+      <div class="voices up" style="animation-delay:.18s">
+        <div class="v sel"><span class="play">▶</span><div class="nm">Warm</div><div class="d">Soft edges, unhurried. The evening voice.</div><div class="sample">"You did good today. Close the laptop."</div></div>
+        <div class="v"><span class="play">▶</span><div class="nm">Direct</div><div class="d">Clear, economical, zero padding.</div><div class="sample">"Recovery's up 13 points. Midnight worked."</div></div>
+        <div class="v"><span class="play">▶</span><div class="nm">Playful</div><div class="d">A little wry. Keeps you honest.</div><div class="sample">"Three GitHub tabs at 1am. Bold strategy."</div></div>
+      </div>
+
+      <div class="clone up" style="animation-delay:.24s">
+        <span class="mic">●</span>
+        <div><div class="t">Or make it yours</div><div class="d">Read one paragraph aloud and the twin speaks in your own voice — processed on-device, deletable anytime.</div></div>
+        <button class="btn btn-glass" style="margin-left:auto;flex-shrink:0;padding:10px 18px;font-size:13px;">Record</button>
+      </div>
+
+      <div class="foot2 up" style="animation-delay:.3s">
+        <button class="btn btn-primary">Continue with Warm →</button>
+      </div>
+    </div>
+  </section>
+  <script src="reveal.js" defer></script>
+  <script src="theme.js" defer></script>
+</body>
+</html>
