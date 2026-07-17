@@ -77,16 +77,24 @@ describe('observation-ingestion cron - starvation fallback', () => {
     const arg = runIngestionMock.mock.calls[0][0];
     expect(arg.targetUserIds.length).toBeLessThanOrEqual(3); // pre-fanout inline budget
     expect(arg.targetUserIds).toEqual(['u1', 'u2', 'u3']);
+    // #170: the inline fallback stores raw observations but defers heavy
+    // synthesis off the 60s request path (experts/soul-sig/insights ride the
+    // Inngest post-process step, or the daily crons during an outage).
+    expect(arg.deferPostProcess).toBe(true);
     expect(res.body.mode).toBe('inngest-fanout+starvation-fallback');
     expect(res.body.starved).toBe(4);
   });
 
-  it('inngest.send throws: the original inline-fallback path is preserved', async () => {
+  it('inngest.send throws: the original inline-fallback path is preserved (defers synthesis)', async () => {
     sendMock.mockRejectedValue(new Error('no event key'));
     const res = fakeRes();
     await handler({ query: {} }, res);
     expect(runIngestionMock).toHaveBeenCalledTimes(1);
-    expect(runIngestionMock.mock.calls[0][0]).toEqual({});
+    // #170: the Inngest-unavailable fallback runs all-users inline (no scoping)
+    // but still defers synthesis — Inngest is down, so experts/soul-sig/insights
+    // lean on the daily soul-sig + insights crons + serve-stale until it returns.
+    // The raw fetch+store (the essential half) still runs here.
+    expect(runIngestionMock.mock.calls[0][0]).toEqual({ deferPostProcess: true });
     expect(res.body.mode).toBe('inline-fallback');
   });
 
