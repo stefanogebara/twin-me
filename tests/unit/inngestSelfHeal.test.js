@@ -17,6 +17,7 @@ import {
   shouldAttemptResync,
   selfHealInngestRegistration,
   getSelfBaseUrl,
+  RESYNC_TIMEOUT_MS,
   __resetResyncStateForTests,
 } from '../../api/services/inngestSelfHeal.js';
 
@@ -24,6 +25,10 @@ const MIN = 30 * 60 * 1000;
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const CRON_SRC = readFileSync(
   resolve(__dirname, '../../api/routes/cron-observation-ingestion.js'),
+  'utf8'
+);
+const INNGEST_ROUTE_SRC = readFileSync(
+  resolve(__dirname, '../../api/routes/inngest.js'),
   'utf8'
 );
 
@@ -105,5 +110,46 @@ describe('goal: ingestion cron wires the #167 fixes', () => {
     expect(Number(m[1])).toBeLessThanOrEqual(40);
     // The starvation check must be parameterised by the constant, never a literal.
     expect(CRON_SRC).toMatch(/getStarvedIngestionUserIds\(eligibleUserIds,\s*STARVATION_STALE_MINUTES\)/);
+  });
+});
+
+/**
+ * The re-registration PUT must be allowed to COMPLETE. The serve endpoint took
+ * ~6.6s for a bare GET in prod (cold Vercel start); the PUT round-trips to
+ * Inngest Cloud on top. The original 8s abort routinely killed the handshake
+ * mid-flight, leaving a half-applied registration — the app showed "synced /
+ * 12 functions" while events arrived and ZERO functions ran (the 2026-07
+ * outage). Guard both the headroom and the 60s-maxDuration ceiling it fits under.
+ */
+describe('RESYNC_TIMEOUT_MS — headroom for a cold re-registration, bounded by the cron budget', () => {
+  it('is exported so the budget is an explicit, testable contract', () => {
+    expect(typeof RESYNC_TIMEOUT_MS).toBe('number');
+  });
+
+  it('gives a cold serve endpoint real time to finish the register handshake (>= 30s)', () => {
+    expect(RESYNC_TIMEOUT_MS).toBeGreaterThanOrEqual(30_000);
+  });
+
+  it('stays under the cron 60s maxDuration (it runs in Promise.all with the inline fallback)', () => {
+    expect(RESYNC_TIMEOUT_MS).toBeLessThanOrEqual(45_000);
+  });
+});
+
+/**
+ * Static wiring canary — the serve endpoint must register a STABLE, reachable
+ * callback host. A week of "could not reach your URL" unattached syncs (2026-07)
+ * came from deploy-time syncs registering the deployment-protected *.vercel.app
+ * host. `serveHost` pins the reachable production origin regardless of which host
+ * the sync arrived on, reusing the SAME canonical resolver the self-heal PUTs to
+ * (so the registered host and the resync target can never drift apart).
+ */
+describe('goal: serve endpoint pins a stable registration host (serveHost)', () => {
+  it('sets serveHost + the /api/inngest servePath', () => {
+    expect(INNGEST_ROUTE_SRC).toMatch(/serveHost:/);
+    expect(INNGEST_ROUTE_SRC).toMatch(/servePath:\s*['"]\/api\/inngest['"]/);
+  });
+
+  it('derives the host from getSelfBaseUrl (shared with the self-heal — no drift)', () => {
+    expect(INNGEST_ROUTE_SRC).toContain('getSelfBaseUrl');
   });
 });

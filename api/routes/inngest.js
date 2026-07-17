@@ -26,6 +26,7 @@ import { calendarOptimizationFunction } from '../inngest/functions/calendarOptim
 import { meetingPrepFunction } from '../inngest/functions/meetingPrep.js';
 import { userObservationIngestionFunction } from '../inngest/functions/userObservationIngestion.js';
 import { createLogger } from '../services/logger.js';
+import { getSelfBaseUrl } from '../services/inngestSelfHeal.js';
 
 const log = createLogger('InngestRoute');
 const router = express.Router();
@@ -35,8 +36,19 @@ let handler = null;
 function getHandler() {
   if (!handler) {
     try {
+      // Pin the registration/execution callback host in production so Vercel's
+      // deploy-time sync can't register the deployment-protected *.vercel.app
+      // host Inngest can't reach ("could not reach your URL" — a week of failed
+      // unattached syncs, 2026-07). getSelfBaseUrl() is the SAME resolver the
+      // self-heal PUTs to, so the registered host and the resync target never
+      // drift. Omitted outside production so the local Inngest Dev Server can
+      // still introspect localhost.
+      const hostPin = process.env.VERCEL_ENV === 'production'
+        ? { serveHost: getSelfBaseUrl(), servePath: '/api/inngest' }
+        : {};
       handler = serve({
         client: inngest,
+        ...hostPin,
         functions: [
           sessionReflectionFunction,
           morningBriefingFunction,
