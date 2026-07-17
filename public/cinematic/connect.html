@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Connect · Twin.me</title>
+<script>document.documentElement.classList.add('js')</script>
+<script>try{var t=new URLSearchParams(location.search).get("theme")||localStorage.getItem("claura-theme");if(t==="light")document.documentElement.setAttribute("data-theme","light")}catch(e){}</script>
+<link rel="stylesheet" href="claura.css">
+<style>
+  .zonebg { position:fixed; inset:0; z-index:-2; background:var(--bg); }
+  .zonebg::before { content:""; position:absolute; inset:0; background:url('assets/cosmic-swirl.png') center top/cover no-repeat; }
+  .zonebg::after { content:""; position:absolute; inset:0;
+    background:linear-gradient(180deg, rgba(var(--scrim-rgb),.5) 0%, rgba(var(--scrim-rgb),.6) 30%, rgba(var(--scrim-rgb),.92) 60%, var(--bg) 78%); }
+
+  .app { display:grid; grid-template-columns:248px 1fr; min-height:100vh; }
+  .side { background:rgba(255,255,255,.05); border-right:1px solid var(--border-soft); padding:20px 14px; display:flex; flex-direction:column; }
+  .side .brand { display:flex; align-items:center; gap:9px; padding:4px 10px 20px; }
+  .side .brand .m { font-family:var(--serif); font-size:20px; } .side .brand .m em{font-style:italic;}
+  .side .brand .beta { font-size:9px; letter-spacing:.08em; background:rgba(255,255,255,.10); color:var(--text-2); border-radius:100px; padding:3px 7px; }
+  .nav-i { display:flex; align-items:center; gap:11px; padding:10px 14px; border-radius:100px; font-size:13.5px; color:#D6D3D1; margin-bottom:2px; cursor:pointer; }
+  .nav-i:hover { background:rgba(255,255,255,.06); } .nav-i.active { background:rgba(255,255,255,.10); color:#fff; }
+  .nav-i .g { width:18px; text-align:center; opacity:.85; }
+  .side .foot { margin-top:auto; border-top:1px solid var(--border-soft); padding-top:14px; display:flex; align-items:center; gap:10px; }
+  .side .foot .av { width:30px; height:30px; border-radius:50%; background:rgba(255,255,255,.10); display:flex; align-items:center; justify-content:center; font-size:12px; }
+
+  .main { padding:36px 44px 90px; max-width:980px; }
+  .kicker { font-family:var(--accent); font-weight:600; font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--text-3); }
+  .hi { font-family:var(--serif); font-size:40px; margin-top:8px; }
+  .hi-sub { font-family:var(--tag); letter-spacing:-.02em; font-size:19px; color:var(--narr); margin-top:8px; max-width:48ch; }
+
+  .progress { display:flex; align-items:center; gap:16px; margin:24px 0 30px; }
+  .progress .bar { flex:1; height:6px; border-radius:100px; background:rgba(255,255,255,.08); position:relative; overflow:hidden; max-width:340px; }
+  .progress .bar .fill { position:absolute; inset:0 auto 0 0; width:68%; border-radius:100px; background:linear-gradient(90deg,#c9a06a,#E8E0D4); }
+  .progress .t { font-size:13px; color:var(--text-2); } .progress .t b { color:var(--text); font-weight:600; }
+
+  .sec-label { font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--text-3); margin:26px 0 14px; }
+  .pgrid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
+  .pcard { border-radius:14px; padding:20px; background:rgba(255,255,255,.05); border:1px solid var(--border-soft); backdrop-filter:blur(var(--blur)); display:flex; flex-direction:column; }
+  .pcard .logo { width:38px; height:38px; border-radius:11px; display:flex; align-items:center; justify-content:center; font-family:var(--serif); font-size:19px; margin-bottom:14px; }
+  .pcard .pname { font-size:15px; font-weight:600; }
+  .pcard .rev { font-size:12.5px; color:var(--text-2); line-height:1.5; margin-top:5px; flex:1; }
+  .pcard .state { margin-top:16px; }
+  .badge { display:inline-flex; align-items:center; gap:7px; font-size:11.5px; font-weight:600; border-radius:100px; padding:6px 13px; }
+  .badge.ok { background:rgba(16,185,129,.14); color:#5fcf94; border:1px solid rgba(16,185,129,.3); }
+  .badge.warn { background:rgba(193,126,44,.16); color:#e0a458; border:1px solid rgba(193,126,44,.4); }
+  .badge .d { width:7px; height:7px; border-radius:50%; background:currentColor; }
+  .connect-btn { font-family:var(--ui); font-size:12px; font-weight:600; border-radius:10px; padding:8px 16px; cursor:pointer; border:1px solid transparent; background:var(--bone); color:var(--bone-ink); }
+
+  .privacy { display:flex; align-items:center; gap:12px; margin-top:28px; font-size:12.5px; color:var(--text-3); }
+  .privacy .g { color:var(--streak); }
+
+  /* light mode: the soul-streams across the sky — your world flowing together */
+  [data-theme="light"] .zonebg::before { background-image:url('assets/soul-waves.png'); background-position:center 4%; }
+  .gh { background:rgba(245,245,244,.12); color:#F5F5F4; }
+  [data-theme="light"] .gh { background:rgba(28,25,23,.08); color:#1c1917; }
+
+  @media (max-width:820px){
+    .app { grid-template-columns:1fr; }
+    .side { flex-direction:row; align-items:center; gap:6px; border-right:0; border-bottom:1px solid var(--border-soft); padding:11px 12px; overflow-x:auto; }
+    .side .brand { padding:0 6px 0 2px; }
+    .side .foot { margin-top:0; margin-left:auto; border-top:0; padding-top:0; flex-shrink:0; }
+    .nav-i { white-space:nowrap; margin-bottom:0; padding:8px 12px; }
+    .main { padding:24px 18px 64px; }
+    .hi { font-size:29px; }
+    .pgrid { grid-template-columns:1fr; }
+  }
+</style>
+</head>
+<body>
+  <div class="zonebg"></div>
+  <div class="app">
+    <aside class="side">
+      <div class="brand"><span class="m">Twin.<em>me</em></span><span class="beta">BETA</span></div>
+      <div class="nav-i"><span class="g">◇</span>Talk to Twin</div>
+      <div class="nav-i"><span class="g">⌂</span>Home</div>
+      <div class="nav-i"><span class="g">✦</span>You</div>
+      <div class="nav-i"><span class="g">▤</span>Money</div>
+      <div class="nav-i active"><span class="g">⚯</span>Connect</div>
+      <div class="nav-i"><span class="g">⚙</span>Settings</div>
+      <div class="foot"><span class="av">S</span><div style="font-size:12px;">Stefano<div style="font-size:10.5px;color:var(--text-3)">stefanogebara@gmail…</div></div></div>
+    </aside>
+
+    <main class="main">
+      <div class="kicker up">Your footprints</div>
+      <div class="hi up" style="animation-delay:.05s">Connect your world</div>
+      <div class="hi-sub up" style="animation-delay:.1s">The more you bring, the deeper your twin sees. Each platform adds a layer to your signature.</div>
+
+      <div class="progress up" style="animation-delay:.14s">
+        <div class="bar"><div class="fill"></div></div>
+        <div class="t"><b>4 connected</b> · 3 need attention · your signature is 68% formed</div>
+      </div>
+
+      <div class="sec-label up">Connected</div>
+      <div class="pgrid up">
+        <div class="pcard"><div class="logo" style="background:rgba(29,185,84,.16);color:#1DB954;">S</div><div class="pname">Spotify</div><div class="rev">Music taste, mood, and daily rhythms.</div><div class="state"><span class="badge ok"><span class="d"></span>Connected</span></div></div>
+        <div class="pcard"><div class="logo gh">G</div><div class="pname">GitHub</div><div class="rev">Build activity, focus windows, what you're making.</div><div class="state"><span class="badge ok"><span class="d"></span>Connected</span></div></div>
+        <div class="pcard"><div class="logo" style="background:rgba(88,101,242,.18);color:#8b93f5;">D</div><div class="pname">Discord</div><div class="rev">Communities and how you communicate.</div><div class="state"><span class="badge ok"><span class="d"></span>Connected</span></div></div>
+        <div class="pcard"><div class="logo" style="background:rgba(0,166,166,.18);color:#3fc9c9;">W</div><div class="pname">Whoop</div><div class="rev">Recovery, sleep, and strain patterns.</div><div class="state"><span class="badge ok"><span class="d"></span>Connected</span></div></div>
+      </div>
+
+      <div class="sec-label up">Need reconnecting</div>
+      <div class="pgrid up">
+        <div class="pcard"><div class="logo" style="background:rgba(255,0,0,.14);color:#ff5a5a;">Y</div><div class="pname">YouTube</div><div class="rev">What you watch, learn, and return to.</div><div class="state"><span class="badge warn"><span class="d"></span>Reconnect</span></div></div>
+        <div class="pcard"><div class="logo" style="background:rgba(66,133,244,.18);color:#6ea0f7;">C</div><div class="pname">Google Calendar</div><div class="rev">Schedule shape and how you spend time.</div><div class="state"><span class="badge warn"><span class="d"></span>Reconnect</span></div></div>
+        <div class="pcard"><div class="logo" style="background:rgba(234,67,53,.16);color:#f07167;">M</div><div class="pname">Gmail</div><div class="rev">Communication cadence, not content.</div><div class="state"><span class="badge warn"><span class="d"></span>Reconnect</span></div></div>
+      </div>
+
+      <div class="sec-label up">Available</div>
+      <div class="pgrid up">
+        <div class="pcard"><div class="logo" style="background:rgba(10,102,194,.2);color:#5b9be0;">in</div><div class="pname">LinkedIn</div><div class="rev">Career trajectory and professional voice.</div><div class="state"><button class="connect-btn">Connect →</button></div></div>
+        <div class="pcard"><div class="logo" style="background:rgba(255,69,0,.16);color:#ff7a45;">R</div><div class="pname">Reddit</div><div class="rev">Curiosities and the communities you lurk.</div><div class="state"><button class="connect-btn">Connect →</button></div></div>
+        <div class="pcard"><div class="logo" style="background:rgba(145,70,255,.2);color:#b18cff;">T</div><div class="pname">Twitch</div><div class="rev">Gaming identity and what you tune into.</div><div class="state"><button class="connect-btn">Connect →</button></div></div>
+      </div>
+
+      <div class="privacy up"><span class="g">◇</span>You control every layer. Disconnect anytime and the memories from that platform are removed with it.</div>
+    </main>
+  </div>
+  <script src="reveal.js" defer></script>
+  <script src="theme.js" defer></script>
+</body>
+</html>

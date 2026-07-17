@@ -27,6 +27,7 @@ import CustomAuth from "./pages/CustomAuth";
 import DesktopHandoff from "./pages/DesktopHandoff";
 import OAuthCallback from "./pages/OAuthCallback";
 import NotFound from "./pages/NotFound";
+import CinematicFrame from "./pages/preview/CinematicFrame";
 // audit-2026-05-13 H1: route-local Suspense fallback for /talk-to-twin so
 // mobile users see the chat shell (header + composer placeholder) within
 // the first paint instead of waiting on a centered loading spinner.
@@ -179,6 +180,24 @@ const App = () => {
             {/* Landing */}
             <Route path="/" element={<Index />} />
             <Route path="/discover" element={<DiscoverLanding />} />
+
+            {/* Cinematic redesign prototypes (isolated static bundle in /public/cinematic) */}
+            <Route path="/preview/landing" element={<CinematicFrame src="/cinematic/landing.html" title="Twin.me — cinematic landing" />} />
+            <Route path="/preview/dashboard" element={<CinematicFrame src="/cinematic/dashboard.html" title="Twin.me — cinematic dashboard" />} />
+            <Route path="/preview/talk" element={<CinematicFrame src="/cinematic/talk.html" title="Twin.me — cinematic talk" />} />
+            <Route path="/preview/system" element={<CinematicFrame src="/cinematic/system.html" title="Twin.me — Claura design system" />} />
+            <Route path="/preview/you" element={<CinematicFrame src="/cinematic/you.html" title="Twin.me — Soul Signature" />} />
+            <Route path="/preview/money" element={<CinematicFrame src="/cinematic/money.html" title="Twin.me — Money" />} />
+            <Route path="/preview/connect" element={<CinematicFrame src="/cinematic/connect.html" title="Twin.me — Connect" />} />
+            <Route path="/preview/onboarding" element={<CinematicFrame src="/cinematic/onboarding.html" title="Twin.me — Meet your twin" />} />
+            <Route path="/preview/settings" element={<CinematicFrame src="/cinematic/settings.html" title="Twin.me — Settings" />} />
+            <Route path="/preview/briefing" element={<CinematicFrame src="/cinematic/briefing.html" title="Twin.me — Evening briefing" />} />
+            <Route path="/preview/interview" element={<CinematicFrame src="/cinematic/interview.html" title="Twin.me — Getting to know you" />} />
+            <Route path="/preview/history" element={<CinematicFrame src="/cinematic/history.html" title="Twin.me — History import" />} />
+            <Route path="/preview/goals" element={<CinematicFrame src="/cinematic/goals.html" title="Twin.me — Goals" />} />
+            <Route path="/preview/voice" element={<CinematicFrame src="/cinematic/voice.html" title="Twin.me — Voice setup" />} />
+            <Route path="/preview/pricing" element={<CinematicFrame src="/cinematic/pricing.html" title="Twin.me — Pricing" />} />
+            <Route path="/preview" element={<CinematicFrame src="/cinematic/gallery.html" title="Twin.me — Claura, all screens" />} />
 
             {/* Main Dashboard */}
             <Route path="/dashboard" element={

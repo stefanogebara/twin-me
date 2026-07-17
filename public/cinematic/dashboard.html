@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard · Twin.me</title>
+<script>document.documentElement.classList.add('js')</script>
+<script>try{var t=new URLSearchParams(location.search).get("theme")||localStorage.getItem("claura-theme");if(t==="light")document.documentElement.setAttribute("data-theme","light")}catch(e){}</script>
+<link rel="stylesheet" href="claura.css">
+<style>
+  /* zoned photographic background: blue-orbit vivid up top, fading to near-black */
+  .zonebg { position:fixed; inset:0; z-index:-2; background:var(--bg); }
+  .zonebg::before { content:""; position:absolute; inset:0; background:url('assets/blue-orbit.png') center top/cover no-repeat; }
+  .zonebg::after { content:""; position:absolute; inset:0;
+    background:linear-gradient(180deg, rgba(var(--scrim-rgb),.5) 0%, rgba(var(--scrim-rgb),.62) 34%, rgba(var(--scrim-rgb),.92) 62%, var(--bg) 78%); }
+  .app { display:grid; grid-template-columns:248px 1fr; min-height:100vh; }
+  /* FLAT sidebar (Claura rule) */
+  .side { background:rgba(255,255,255,.05); border-right:1px solid var(--border-soft); padding:20px 14px; display:flex; flex-direction:column; }
+  .side .brand { display:flex; align-items:center; gap:9px; padding:4px 10px 20px; }
+  .side .brand .m { font-family:var(--serif); font-size:20px; } .side .brand .m em{font-style:italic;}
+  .side .brand .beta { font-size:9px; letter-spacing:.08em; background:rgba(255,255,255,.10); color:var(--text-2); border-radius:100px; padding:3px 7px; }
+  .nav-i { display:flex; align-items:center; gap:11px; padding:10px 14px; border-radius:100px; font-size:13.5px; color:#D6D3D1; margin-bottom:2px; cursor:pointer; }
+  .nav-i:hover { background:rgba(255,255,255,.06); }
+  .nav-i.active { background:rgba(255,255,255,.10); color:#fff; }
+  .nav-i .g { width:18px; text-align:center; opacity:.85; }
+  .side .foot { margin-top:auto; border-top:1px solid var(--border-soft); padding-top:14px; display:flex; align-items:center; gap:10px; }
+  .side .foot .av { width:30px; height:30px; border-radius:50%; background:rgba(255,255,255,.10); display:flex; align-items:center; justify-content:center; font-size:12px; }
+
+  .main { padding:36px 44px 80px; max-width:920px; }
+  .hi { font-family:var(--serif); font-size:34px; }
+  .hi .sub { font-family:var(--ui); font-size:13px; color:var(--text-2); font-weight:500; margin-top:4px; }
+
+  .warn { display:flex; align-items:center; gap:12px; background:rgba(193,126,44,.10); border:1px solid rgba(193,126,44,.3);
+    border-radius:12px; padding:14px 18px; margin:22px 0; font-size:13px; color:#e0b072; }
+  .warn .pill { margin-left:auto; background:rgba(193,126,44,.18); color:#e0a458; border:1px solid rgba(193,126,44,.4); border-radius:10px; padding:6px 14px; font-size:12px; font-weight:600; font-family:var(--ui); }
+
+  .brief { border-radius:16px; padding:28px 30px; margin-bottom:22px; position:relative; overflow:hidden;
+    background:linear-gradient(160deg, rgba(40,52,86,.55), rgba(24,26,42,.6)); border:1px solid var(--border); backdrop-filter:blur(var(--blur)); }
+  .brief h2 { font-family:var(--serif); font-style:italic; font-size:28px; margin:10px 0 6px; }
+  .brief .lede { color:var(--narr); font-size:14px; }
+  .brief .rows { margin-top:18px; display:grid; gap:12px; }
+  .brief .row { display:flex; gap:14px; }
+  .brief .row .k { min-width:92px; font-size:10.5px; letter-spacing:.12em; color:var(--text-3); padding-top:3px; }
+  .brief .row .v { font-size:13px; color:var(--text-2); line-height:1.5; }
+  .brief .close { font-family:var(--serif); font-style:italic; color:var(--narr-2); font-size:15px; margin-top:18px; }
+
+  .sec-label { font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--text-3); margin:30px 0 12px; }
+  .obs { display:grid; gap:10px; }
+  .obs .card p { font-size:13px; color:var(--narr); line-height:1.55; }
+  .obs .meta { display:flex; align-items:center; gap:10px; margin-top:12px; }
+  .obs .meta .t { font-size:11px; color:var(--text-3); }
+  .obs .meta .link { font-size:11px; color:#D6D3D1; }
+  .obs .meta .acts { margin-left:auto; display:flex; gap:8px; }
+  .mini { font-family:var(--ui); font-size:11.5px; font-weight:600; border-radius:10px; padding:7px 14px; cursor:pointer; border:1px solid var(--border); background:rgba(255,255,255,.08); color:#fff; }
+  .mini.light { background:var(--bone); color:var(--bone-ink); border-color:transparent; }
+
+  .patterns { border-radius:16px; padding:26px; background:var(--card); border:1px solid var(--card-border); backdrop-filter:blur(var(--blur)) saturate(1.4) brightness(.94); margin-top:12px; }
+  .patterns h3 { font-family:var(--serif); font-size:22px; margin-bottom:16px; }
+  .pgrid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .pcard { background:rgba(255,255,255,.04); border:1px solid var(--border-soft); border-radius:16px; padding:18px; }
+  .pcard .k { font-size:10.5px; letter-spacing:.1em; color:var(--text-3); margin-bottom:8px; }
+  .pcard .b { font-family:var(--serif); font-size:19px; line-height:1.2; }
+  .pcard.wide { grid-column:1 / -1; }
+
+  .team { display:flex; gap:8px; flex-wrap:wrap; margin-top:14px; }
+
+  /* light mode reads by day: rainbow soul-waves over the hill */
+  [data-theme="light"] .zonebg::before { background-image:url('assets/soul-waves.png'); background-position:center 22%; }
+
+  @media (max-width:820px){
+    .app { grid-template-columns:1fr; }
+    .side { flex-direction:row; align-items:center; gap:6px; border-right:0; border-bottom:1px solid var(--border-soft); padding:11px 12px; overflow-x:auto; }
+    .side .brand { padding:0 6px 0 2px; }
+    .side .foot { margin-top:0; margin-left:auto; border-top:0; padding-top:0; flex-shrink:0; }
+    .nav-i { white-space:nowrap; margin-bottom:0; padding:8px 12px; }
+    .main { padding:24px 18px 64px; }
+    .hi { font-size:27px; }
+    .brief { padding:22px 20px; } .brief h2 { font-size:24px; }
+    .pgrid { grid-template-columns:1fr; }
+    .obs .meta { flex-wrap:wrap; }
+    .obs .meta .acts { margin-left:0; }
+  }
+</style>
+</head>
+<body>
+  <div class="zonebg"></div>
+  <div class="app">
+    <aside class="side">
+      <div class="brand"><span class="m">Twin.<em>me</em></span><span class="beta">BETA</span></div>
+      <div class="nav-i"><span class="g">◇</span>Talk to Twin</div>
+      <div class="nav-i active"><span class="g">⌂</span>Home</div>
+      <div class="nav-i"><span class="g">✦</span>You</div>
+      <div class="nav-i"><span class="g">▤</span>Money</div>
+      <div class="nav-i"><span class="g">⚯</span>Connect</div>
+      <div class="nav-i"><span class="g">⚙</span>Settings</div>
+      <div class="foot"><span class="av">S</span><div style="font-size:12px;">Stefano<div style="font-size:10.5px;color:var(--text-3)">stefanogebara@gmail…</div></div></div>
+    </aside>
+
+    <main class="main">
+      <div class="hi up">Good evening, Stefano<div class="sub">Your twin is learning about you · 2-day streak</div></div>
+
+      <div class="warn up" style="animation-delay:.05s">⚠ Google Calendar, YouTube, and Gmail need reconnecting to keep your twin up to date.<span class="pill">Reconnect</span></div>
+
+      <div class="brief up" style="animation-delay:.1s">
+        <span class="kicker">São Paulo — 21:14 · Evening briefing</span>
+        <h2>Good Evening, Stefano.</h2>
+        <p class="lede">Your day is wide open. No meetings or events on the calendar.</p>
+        <div class="rows">
+          <div class="row"><span class="k">RECOVERY</span><span class="v">Latest Whoop shows a moderate strain workout and a recovery day, but sleep timing's been inconsistent.</span></div>
+          <div class="row"><span class="k">LISTENING</span><span class="v">Post Malone and Juice WRLD last night, with some dance tracks mixed in.</span></div>
+          <div class="row"><span class="k">PATTERNS</span><span class="v">Irregular sleep timing — bedtime's been all over the place lately.</span></div>
+        </div>
+        <p class="close">Block some deep work time for the Dimension pitch prep since the schedule's clear.</p>
+      </div>
+
+      <div class="sec-label up">Recent observations</div>
+      <div class="obs up" style="animation-delay:.05s">
+        <div class="card">
+          <p>When Whoop recovery trends upward (59% → 72%), your Spotify sessions shift to longer, more diverse tracks — discovery of new artists like Michael Jackson, rather than focused work playlists.</p>
+          <div class="meta"><span class="t">yesterday</span><span class="link">Discuss with twin →</span><span class="acts"><button class="mini light">I did this</button><button class="mini">Not for me</button></span></div>
+        </div>
+        <div class="card">
+          <p>You open GitHub more than anywhere else, but your attention actually pools on Vercel — that's where your reading time quietly goes, even though you visit it less.</p>
+          <div class="meta"><span class="t">2d ago</span><span class="link">Discuss with twin →</span><span class="acts"><button class="mini light">I did this</button><button class="mini">Not for me</button></span></div>
+        </div>
+      </div>
+
+      <div class="patterns up">
+        <span class="kicker">What your twin sees</span>
+        <h3 style="margin-top:8px;">Your patterns, read back to you</h3>
+        <div class="pgrid">
+          <div class="pcard wide"><div class="k">WHAT YOU'RE CHASING</div><div class="b">You are building a WhatsApp-integrated restaurant management system using Seatable and AI tools.</div></div>
+          <div class="pcard"><div class="k">WHERE YOUR ATTENTION POOLS</div><div class="b" style="font-size:15px;">You open GitHub most, but your reading time quietly lives on Vercel.</div></div>
+          <div class="pcard"><div class="k">YOUR AFTER-DARK SELF</div><div class="b" style="font-size:15px;">By day, Hubspot and Seatable. After dark, a different pull takes over.</div></div>
+        </div>
+        <div class="team">
+          <span class="chip"><span class="dot" style="background:#10B981"></span>Communications</span>
+          <span class="chip"><span class="dot" style="background:#8B5CF6"></span>Scheduling</span>
+          <span class="chip"><span class="dot" style="background:#EF4444"></span>Health</span>
+          <span class="chip"><span class="dot" style="background:#c17e2c"></span>Content</span>
+          <span class="chip"><span class="dot" style="background:#3B82F6"></span>Finance</span>
+        </div>
+      </div>
+    </main>
+  </div>
+  <script src="reveal.js" defer></script>
+  <script src="theme.js" defer></script>
+</body>
+</html>
