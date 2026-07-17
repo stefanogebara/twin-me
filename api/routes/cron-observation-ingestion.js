@@ -38,7 +38,14 @@ const STARVATION_STALE_MINUTES = 40;
  * Used for manual targetUserIds runs and as the Inngest-unavailable fallback.
  */
 async function runInlineIngestion(opts) {
-  const result = await runObservationIngestion(opts);
+  // Cron inline paths (manual scope, starvation fallback, Inngest-unavailable
+  // fallback) all run inside the 60s Vercel window, so they defer the heavy
+  // synthesis (#170): raw observations still store here, but experts / soul-sig
+  // regen / insights / goals / metrics ride the Inngest fan-out's post-process
+  // step when Inngest is healthy, with the daily soul-sig + insights crons and
+  // serve-stale as the during-outage baseline. Keeps the cron response well
+  // under the kill even when a heavy user lands new data.
+  const result = await runObservationIngestion({ ...opts, deferPostProcess: true });
 
   if (result.observationsStored > 0 && Array.isArray(result.processedUserIds)) {
     // Auto-snapshot users who had new observations stored

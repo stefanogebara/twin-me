@@ -13,6 +13,7 @@
 
 import { inngest, EVENTS } from '../../services/inngestClient.js';
 import { runObservationIngestion } from '../../services/observationIngestion.js';
+import { runUserPostProcess } from '../../services/userPostProcess.js';
 
 export const userObservationIngestionFunction = inngest.createFunction(
   {
@@ -33,19 +34,27 @@ export const userObservationIngestionFunction = inngest.createFunction(
     const { userId } = event.data;
     if (!userId) return { skipped: true, reason: 'no_user_id' };
 
+    // Step 1: fetch + store ONLY (deferPostProcess). Inngest re-drives each step
+    // as its OWN invocation, so the heavy synthesis in step 2 runs in a separate
+    // 60s window and never starves this step's event loop (#170 — the residual
+    // 504 after #190 was inline synthesis pegging the single-threaded loop so the
+    // withDeadline timer couldn't fire).
     const result = await step.run('ingest', async () => {
-      return runObservationIngestion({ targetUserIds: [userId] });
+      return runObservationIngestion({ targetUserIds: [userId], deferPostProcess: true });
     });
 
     const stored = result?.observationsStored || 0;
+    const platforms = result?.platformsByUser?.[userId] || [];
 
-    // Per-user side effects the cron used to run after inline ingestion — only
-    // when something new landed, best-effort (must not fail the ingestion step).
-    // Dynamic imports mirror the cron's defensive pattern (avoid circular-dep /
-    // Vercel NFT issues from pulling route-adjacent services into this bundle).
+    // Step 2: the deferred synthesis (platform experts, reflections, insights,
+    // nudge eval, goals, activity metrics, soul-sig cache warm) plus the per-user
+    // snapshot + department heartbeats — only when something new landed,
+    // best-effort (must not fail the ingest step). Dynamic imports mirror the
+    // cron's defensive pattern (avoid circular-dep / Vercel NFT drop).
     if (stored > 0) {
       await step.run('post-process', async () => {
         const outcomes = await Promise.allSettled([
+          runUserPostProcess(userId, { platforms }),
           import('../../services/twinsBrainService.js').then(m => m.twinsBrainService.createSnapshot(userId, 'automatic')),
           import('../../services/departmentService.js').then(m => m.checkDepartmentHeartbeats(userId)),
         ]);
