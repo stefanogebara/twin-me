@@ -30,6 +30,7 @@ import {
 import { GmailCourierToggle } from './components/money/GmailCourierToggle';
 import { StressSpendTimeline } from './components/money/StressSpendTimeline';
 import { UnlockProgressCard } from './components/money/UnlockProgressCard';
+import { ClauraZonedBackground } from '@/components/ClauraZonedBackground';
 
 const CARD_STYLE: React.CSSProperties = {
   background: 'var(--glass-surface-bg)',           // rgba(255,255,255,0.06) per design system
@@ -731,6 +732,8 @@ export default function MoneyPage() {
 
   return (
     <div className="max-w-[720px] mx-auto px-4 sm:px-6 pb-24">
+      {/* Claura zoned photography — night-screens by night, dusk-train by day (/preview/money). */}
+      <ClauraZonedBackground dark="night-screens.png" light="dusk-train.png" darkPosition="center 42%" lightPosition="center 30%" />
       {/* Header */}
       <div className="flex items-baseline justify-between gap-3 pt-6 mb-2">
         <h1

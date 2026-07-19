@@ -8,6 +8,7 @@ import { useChatSession } from '../hooks/useChatSession';
 import { useToast } from '@/components/ui/use-toast';
 import { SpotifyLogo, GoogleCalendarLogo, YoutubeLogo, DiscordLogo, GithubLogo, WhoopLogo, GmailLogo } from '@/components/PlatformLogos';
 import { ChatEmptyState } from '@/components/chat/ChatEmptyState';
+import { ClauraZonedBackground } from '@/components/ClauraZonedBackground';
 import { MessageList } from '@/components/chat/MessageList';
 import { ChatInputArea } from '@/components/chat/ChatInputArea';
 import { ChatHeader } from '@/components/chat/ChatHeader';
@@ -698,6 +699,9 @@ const TalkToTwin = () => {
 
   return (
     <div className="flex relative twin-chat-container overflow-x-hidden" style={{ height: 'calc(100dvh - 64px - 80px)', maxHeight: 'calc(100dvh - 64px - 80px)' }}>
+      {/* Claura zoned photography — the twin speaks over cosmic-swirl by
+          night, chair-hill by day (see /preview/talk). */}
+      <ClauraZonedBackground dark="cosmic-swirl.png" light="chair-hill.png" darkPosition="center top" lightPosition="center 40%" veil="deep" />
       {/* Mobile: subtract pt-16 (64px) + pb-20 (80px) from SidebarLayout wrapper.
           Desktop: use full viewport height (sidebar layout has no top/bottom padding on lg+). */}
       <style>{`

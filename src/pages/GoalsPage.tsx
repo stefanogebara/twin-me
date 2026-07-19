@@ -5,6 +5,7 @@ import { ChevronLeft, Plus, Check } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { goalProgressPercent } from '@/lib/goalProgress';
+import { ClauraZonedBackground } from '@/components/ClauraZonedBackground';
 import {
   Goal,
   fetchGoals,
@@ -341,6 +342,8 @@ export default function GoalsPage() {
 
   return (
     <div className="max-w-[720px] mx-auto px-4 sm:px-6 pb-24">
+      {/* Claura zoned photography — dusk-train, both appearances (/preview/goals). */}
+      <ClauraZonedBackground dark="dusk-train.png" light="dusk-train.png" darkPosition="center 38%" lightPosition="center 30%" />
       {/* Header */}
       <div className="flex items-center gap-2 pt-6 mb-8">
         <button
