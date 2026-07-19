@@ -22,7 +22,16 @@ import { createLogger } from './logger.js';
 const log = createLogger('InngestSelfHeal');
 
 export const RESYNC_MIN_INTERVAL_MS = 30 * 60 * 1000; // at most once per 30 min
-const RESYNC_TIMEOUT_MS = 8_000;
+
+// Generous timeout: the serve endpoint took ~6.6s for a bare GET in prod (cold
+// Vercel start), and the PUT re-registration round-trips to Inngest Cloud on
+// top. The old 8s abort routinely killed the handshake mid-flight, leaving a
+// half-applied registration — the app showed "synced / 12 functions" while
+// events arrived and ZERO functions ran (the 2026-07 outage). 30s gives cold
+// starts real headroom while staying under the cron's 60s maxDuration (this
+// runs in Promise.all with the bounded inline fallback). Exported so the budget
+// is an explicit, testable contract.
+export const RESYNC_TIMEOUT_MS = 30_000;
 
 // Module-level so the rate-limit persists across invocations that reuse a warm
 // serverless instance (Vercel Fluid). Resets on cold start — acceptable: the
