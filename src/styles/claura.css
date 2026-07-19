@@ -23,6 +23,7 @@
   /* interactive */
   --claura-bone: linear-gradient(180deg,#F1EBE1,#D8CEBF);
   --claura-bone-ink: #1a1714;
+  --claura-danger-ink: #f0a3a3;   /* destructive text on tinted glass (flips per theme) */
   /* shape */
   --claura-r-card: 16px;
   --claura-r-btn: 12px;
@@ -43,6 +44,7 @@
   --claura-backdrop: blur(42px) saturate(1.25) brightness(1.06);
   --claura-bone: linear-gradient(180deg,#2b2725,#191512);
   --claura-bone-ink: #f5efe6;
+  --claura-danger-ink: #b91c1c;
   --claura-scrim-rgb: 246,243,238;
 }
 

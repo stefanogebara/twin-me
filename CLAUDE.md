@@ -3,7 +3,7 @@
 ## User Preferences (MUST FOLLOW)
 
 - **NO EMOJIS** — The user dislikes emojis. Never use them in UI text, twin responses, insight text, or any user-facing content. Use plain text only.
-- **Design**: Keep existing dark design system. Sidebar must be FLAT (straight edges, no rounded pill). Background must be black (#13121a) or the ambient orb gradients painted by AppBackground (ClassicBackground / DayNightBackground) — NEVER navy blue.
+- **Design**: Claura, two appearances — dark (default) + light, switched by `data-theme` on `<html>` (ThemeContext, persisted as `claura-theme`). Sidebar must be FLAT (straight edges, no rounded pill). Dark canvas is #13121a (or AppBackground's ambient orbs / DayNight photos); light canvas is warm paper #f6f3ee — NEVER navy blue. Light always uses the ambient canvas (see `pickBackgroundVariant`).
 
 ## Vercel Cost Rules (CRITICAL — $375 bill incident March 2026)
 
@@ -405,8 +405,11 @@ Recent memories are dominated by reflections (~90 of last 100). Platform data ob
 
 ---
 
-## Design System (Dark Mode — Claura)
-> Dark-only design system. ThemeContext is hard-locked to dark mode (no light mode exists).
+## Design System (Claura — two appearances)
+> Dark is the DEFAULT appearance; light (warm paper #f6f3ee) is user-selectable in
+> Settings → Appearance (Dark / Light / System). `[data-theme="light"]` on `<html>`
+> flips the semantic tokens (`src/index.css`) and the Claura foundation layer
+> (`src/styles/claura.css`, `--claura-*`). Values below are the DARK defaults.
 > CSS tokens in `src/index.css`, opacity scale in `src/styles/tokens.ts`.
 
 ### Color Tokens (`:root` — single dark theme)
@@ -471,20 +474,25 @@ The page background is a fixed, full-viewport element rendered behind the app, N
 - Orb 4: `rgba(55,45,140,0.28)` — purple accent, center-right (sanctioned)
 
 ### Glass Surface (REQUIRED for all cards/panels)
+Use the `.claura-glass` class (`src/styles/claura.css`) — warm liquid glass with
+the Apple anatomy, correct in both themes:
 ```css
-background: var(--glass-surface-bg);           /* rgba(255,255,255,0.06) */
-backdrop-filter: blur(42px);
--webkit-backdrop-filter: blur(42px);
-border: 1px solid var(--glass-surface-border); /* rgba(255,255,255,0.10) */
-border-radius: 20px;
-box-shadow: 0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.06);
+background: var(--claura-card);        /* warm gradient, translucent — never flat white-alpha */
+backdrop-filter: blur(42px) saturate(1.4) brightness(.94);   /* light: 1.06 */
+border: 1px solid rgba(255,255,255,.07);
+border-radius: 16px;                   /* --claura-r-card */
+box-shadow: 0 1px 2px rgba(0,0,0,.18), 0 12px 32px rgba(0,0,0,.26), inset 0 0 34px rgba(255,255,255,.02);
+/* + ::after specular rim; .claura-glass--refract adds the #liquid edge-lens filter (hero panels only) */
 ```
+The shadcn `Card` applies this automatically. The `#liquid` SVG filter is mounted
+once in `App.tsx` via `LiquidGlassFilter`.
 
 ### Blur + Radius Reference
 | Element                 | backdrop-filter  | border-radius  | padding              |
 |-------------------------|------------------|----------------|----------------------|
 | Floating navbar         | blur(19.65px)    | 32px           | pl-5 pr-3 py-2.5     |
-| Cards / Chatbox         | blur(42px)       | 20px           | px-5 py-4            |
+| Cards / Chatbox         | blur(42px)       | 16px           | px-5 py-4            |
+| Buttons (all variants)  | —                | 12px           | h-10/12/14           |
 | Suggestion pills        | blur(42px)       | 46px           | px-3 py-2.5          |
 | Auth modal card         | blur(51px)       | 24px           | px-6 py-4            |
 | Settings sidebar        | blur(42px)       | 8px            | pt-3 px-5            |
@@ -513,9 +521,11 @@ box-shadow: 0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.06);
 - `bg-[#F5F5F4] text-[#110f0f] rounded-[100px] p-[4px]` — total `28x28px` with `20x20` arrow icon
 - `opacity-50` when disabled
 
-**Primary CTA Button** (filled pill):
-- `bg-[#F5F5F4] text-[#110f0f] rounded-[100px] px-3 py-2 min-w-[80px]`
-- Geist/Inter Medium 14px
+**Primary CTA Button** (bone gradient — the Claura default):
+- `bg-[image:var(--claura-bone)] text-[var(--claura-bone-ink)] rounded-[12px]`
+- Warm gradient `#F1EBE1 → #D8CEBF` (flips to ink in light) — never a stark white pill
+- Hover: 2px lift + `brightness(1.05)`; Geist/Inter SemiBold 14px
+- Pills (100px) are reserved for chips, nav items and avatars — NOT buttons
 
 **Secondary/Ghost Button** (transparent on dark):
 - No background, `rounded-[6px] px-2 py-0.5`
@@ -544,10 +554,10 @@ box-shadow: 0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.06);
 
 ### 12 Rules for AI Code Generation
 
-1. Every card/panel → glass surface (`backdrop-blur(42px)`, `rgba(255,255,255,0.06)` bg, `rgba(255,255,255,0.10)` border)
-2. Never flat white or solid colors on app surfaces — always dark glass with white-alpha values
+1. Every card/panel → `.claura-glass` (warm-gradient fill, blur 42 + saturate + brightness, specular rim, 16px)
+2. Never flat white or solid colors on app surfaces — always translucent glass; use semantic/`--claura-*` tokens, not hardcoded white-alpha, so both themes resolve
 3. Page wrapper → transparent; the background is a fixed sibling (`AppBackground` → ClassicBackground / DayNightBackground) painting `--background` (#13121a) + 4-orb ambient gradient
-4. Primary CTA → `rounded-[100px]` pill, light-on-dark (`#F5F5F4` bg, `#110f0f` text)
+4. Primary CTA → bone gradient rounded-rect 12px (`--claura-bone` / `--claura-bone-ink`); pills are for chips/nav/avatars only
 5. Suggestion chips → `rounded-[46px]`, NOT `rounded-full`
 6. Floating navbar → `rounded-[32px]` pill with `blur(19.65px)`, NOT full-width bar
 7. Font → Geist/Inter for ALL UI; Instrument Serif for hero/display/auth titles and narrative voice only
@@ -555,4 +565,4 @@ box-shadow: 0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.06);
 9. Active sidebar nav → full pill fill (`accent-vibrant-glow`), icon in `accent-vibrant`, NEVER underline or left border
 10. Gradients → amber/copper orbs on #13121a charcoal, purple accent orb — never neon, never flat
 11. Input fields → `rgba(255,255,255,0.08)` bg (NOT glass-surface-bg) — subtler fill
-12. ThemeContext is hard-locked to dark. No `.dark` class toggling — all tokens are dark-only in `:root`
+12. Theme via ThemeContext only ('dark' | 'light' | 'system', dark default). Never hardcode a theme check — read `resolvedTheme` or use `[data-theme="light"]` CSS overrides; new colors must exist in both token blocks
