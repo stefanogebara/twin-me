@@ -18,6 +18,7 @@ import { EmailTriageCard } from '@/components/EmailTriageCard';
 import { RelationshipsCard } from '@/components/RelationshipsCard';
 import { useWebPush } from '@/hooks/useWebPush';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
+import { ClauraZonedBackground } from '@/components/ClauraZonedBackground';
 
 const QUICK_ACTIONS = [
   { label: 'Chat with twin', icon: MessageCircle, path: '/talk-to-twin' },
@@ -139,6 +140,10 @@ export function DashboardV2() {
 
   return (
     <div className="max-w-[760px] mx-auto px-4 sm:px-6 pb-24 space-y-10">
+      {/* Claura zoned photography — blue-orbit by night, soul-waves by day.
+          Fixed behind the page; the scrim fades to solid canvas where the
+          working content lives (see /preview/dashboard). */}
+      <ClauraZonedBackground dark="blue-orbit.png" light="soul-waves.png" darkPosition="center top" lightPosition="center 22%" />
       <DashboardGreeting
         firstName={data.greeting.firstName}
         timeLabel={data.greeting.timeLabel}

@@ -14,13 +14,27 @@ interface ClauraZonedBackgroundProps {
   light: string;
   darkPosition?: string;
   lightPosition?: string;
+  /**
+   * standard — hero zone vivid, fades to solid canvas (dashboards, settings).
+   * deep — reading surfaces where text scrolls over the whole photo (chat):
+   * the veil starts heavier so type stays legible from the first pixel.
+   */
+  veil?: 'standard' | 'deep';
 }
+
+const VEILS = {
+  standard:
+    'linear-gradient(180deg, rgba(var(--claura-scrim-rgb),0.5) 0%, rgba(var(--claura-scrim-rgb),0.62) 36%, rgba(var(--claura-scrim-rgb),0.9) 72%, var(--claura-bg) 100%)',
+  deep:
+    'linear-gradient(180deg, rgba(var(--claura-scrim-rgb),0.62) 0%, rgba(var(--claura-scrim-rgb),0.78) 34%, rgba(var(--claura-scrim-rgb),0.94) 62%, var(--claura-bg) 92%)',
+} as const;
 
 export const ClauraZonedBackground: React.FC<ClauraZonedBackgroundProps> = ({
   dark,
   light,
   darkPosition = 'center 30%',
   lightPosition = 'center 30%',
+  veil = 'standard',
 }) => {
   const { resolvedTheme } = useTheme();
   const img = resolvedTheme === 'light' ? light : dark;
@@ -40,8 +54,7 @@ export const ClauraZonedBackground: React.FC<ClauraZonedBackgroundProps> = ({
         style={{
           position: 'absolute',
           inset: 0,
-          background:
-            'linear-gradient(180deg, rgba(var(--claura-scrim-rgb),0.5) 0%, rgba(var(--claura-scrim-rgb),0.62) 36%, rgba(var(--claura-scrim-rgb),0.9) 72%, var(--claura-bg) 100%)',
+          background: VEILS[veil],
         }}
       />
     </div>
