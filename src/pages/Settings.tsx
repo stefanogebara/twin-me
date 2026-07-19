@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { API_URL, getAccessToken } from '@/services/api/apiBase';
 import { usePlatformsSummary, useDisconnectPlatform } from '../hooks/usePlatformsSummary';
 import { useBackgroundMode } from '../contexts/BackgroundModeContext';
+import { useTheme, type Theme } from '../contexts/ThemeContext';
 import { Download, Info, ArrowRight, Send, ExternalLink, Check, Brain } from 'lucide-react';
 import ConnectedPlatformsSettings from './components/settings/ConnectedPlatformsSettings';
 import AutonomySettings from './components/settings/AutonomySettings';
@@ -29,14 +30,14 @@ const getAuthHeaders = () => {
 const SectionLabel: React.FC<{ label: string }> = ({ label }) => (
   <h2
     className="text-[11px] font-medium tracking-[0.1em] uppercase block mb-4"
-    style={{ color: 'rgba(255, 255, 255, 0.55)', fontFamily: 'Inter, sans-serif', fontSize: '11px', lineHeight: 'normal' }}
+    style={{ color: 'var(--muted-foreground)', fontFamily: 'Inter, sans-serif', fontSize: '11px', lineHeight: 'normal' }}
   >
     {label}
   </h2>
 );
 
 const Divider: React.FC = () => (
-  <div className="my-8" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} />
+  <div className="my-8" style={{ borderTop: '1px solid var(--border-glass)' }} />
 );
 
 const SettingsRow: React.FC<{
@@ -46,14 +47,14 @@ const SettingsRow: React.FC<{
 }> = ({ label, description, children }) => (
   <div
     className="flex items-center justify-between gap-3 py-4 px-1 -mx-1 rounded-[4px] transition-colors"
-    style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}
-    onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.025)')}
+    style={{ borderBottom: '1px solid var(--border-glass)' }}
+    onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--accent)')}
     onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
   >
     <div className="min-w-0 flex-1">
       <span className="text-[14px]" style={{ color: 'var(--foreground)' }}>{label}</span>
       {description && (
-        <p className="text-[12px] mt-0.5 line-clamp-2 sm:truncate" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>{description}</p>
+        <p className="text-[12px] mt-0.5 line-clamp-2 sm:truncate" style={{ color: 'var(--muted-foreground)' }}>{description}</p>
       )}
     </div>
     <div className="flex-shrink-0">
@@ -75,17 +76,57 @@ const ToggleSwitch: React.FC<{
     onClick={() => !disabled && onChange(!enabled)}
     className="relative w-10 h-5 rounded-full transition-colors duration-200 ease-out active:scale-95"
     style={{
-      backgroundColor: enabled ? 'rgba(245,245,244,0.9)' : 'rgba(255,255,255,0.18)',
+      backgroundColor: enabled ? 'var(--primary)' : 'var(--surface-solid)',
       cursor: disabled ? 'not-allowed' : 'pointer',
       opacity: disabled ? 0.5 : 1,
     }}
   >
     <div
       className="absolute top-0.5 w-4 h-4 rounded-full transition-all duration-200 ease-out"
-      style={{ left: enabled ? '22px' : '2px', backgroundColor: enabled ? '#110f0f' : '#A8A29E' }}
+      style={{ left: enabled ? '22px' : '2px', backgroundColor: enabled ? 'var(--primary-foreground)' : 'var(--text-secondary)' }}
     />
   </button>
 );
+
+const APPEARANCE_OPTIONS: { value: Theme; label: string }[] = [
+  { value: 'dark', label: 'Dark' },
+  { value: 'light', label: 'Light' },
+  { value: 'system', label: 'System' },
+];
+
+const AppearanceRow: React.FC = () => {
+  const { theme, setTheme } = useTheme();
+  return (
+    <SettingsRow
+      label="Appearance"
+      description="Light appearance is in preview — some screens are still being tuned"
+    >
+      <div
+        role="radiogroup"
+        aria-label="Appearance"
+        className="flex items-center gap-1 p-1 rounded-[10px]"
+        style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}
+      >
+        {APPEARANCE_OPTIONS.map(o => (
+          <button
+            key={o.value}
+            role="radio"
+            aria-checked={theme === o.value}
+            onClick={() => setTheme(o.value)}
+            className="px-3 py-1.5 text-[12px] font-medium rounded-[7px] transition-colors"
+            style={
+              theme === o.value
+                ? { background: 'var(--claura-bone)', color: 'var(--claura-bone-ink)' }
+                : { background: 'transparent', color: 'var(--text-secondary)' }
+            }
+          >
+            {o.label}
+          </button>
+        ))}
+      </div>
+    </SettingsRow>
+  );
+};
 
 const BackgroundToggleRow: React.FC = () => {
   const { mode, setMode } = useBackgroundMode();
@@ -608,6 +649,7 @@ const Settings = () => {
             {user?.id ? `${user.id.slice(0, 8)}...${user.id.slice(-4)}` : 'Not available'}
           </button>
         </SettingsRow>
+        <AppearanceRow />
         <BackgroundToggleRow />
       </div>
 

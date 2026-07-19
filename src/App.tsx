@@ -15,7 +15,9 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import { NavigationProvider } from "./contexts/NavigationContext";
 import { SidebarProvider } from "./contexts/SidebarContext";
 import { useExtensionSync } from "./hooks/useExtensionSync";
-import { ThemeProvider } from "./contexts/ThemeContext";
+import { ThemeProvider, useTheme } from "./contexts/ThemeContext";
+import { LiquidGlassFilter } from "./components/LiquidGlassFilter";
+import { pickBackgroundVariant } from "./lib/backgroundVariant";
 import { SunProvider } from "./contexts/SunContext";
 import { DayNightBackground } from "./components/DayNightBackground";
 import { ClassicBackground } from "./components/ClassicBackground";
@@ -130,6 +132,7 @@ const App = () => {
     <ThemeProvider defaultTheme="dark">
     <BackgroundModeProvider>
     <SunProvider>
+    <LiquidGlassFilter />
     <AppBackground />
     <div style={{ position: "relative", zIndex: 1 }}>
       <ErrorBoundary showHomeButton>
@@ -622,7 +625,8 @@ const App = () => {
 
 const AppBackground: React.FC = () => {
   const { mode } = useBackgroundMode();
-  return mode === 'natural' ? <DayNightBackground /> : <ClassicBackground />;
+  const { resolvedTheme } = useTheme();
+  return pickBackgroundVariant(mode, resolvedTheme) === 'daynight' ? <DayNightBackground /> : <ClassicBackground />;
 };
 
 export default App;
