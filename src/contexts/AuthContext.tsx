@@ -3,6 +3,7 @@ import { setAccessToken, getAccessToken, clearAccessToken, authFetch, getDesktop
 import { queryClient } from '@/lib/queryClient';
 import { singleFlight } from '@/utils/singleFlight';
 import { shouldSyncTimezone, getLastSyncedTimezone, markTimezoneSynced } from '@/utils/timezoneSync';
+import { shouldBounceToExpiredAuth } from '@/lib/sessionBounce';
 
 import { API_URL } from '@/services/api/apiBase';
 /**
@@ -161,37 +162,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           refreshed = await refreshAccessToken();
         }
         if (!refreshed) {
-          // Session expired. Wipe any stale cached user so ProtectedRoute kicks in
-          // before API calls hit the page and show 401 error banners.
+          // Refresh failed. Capture prior-session evidence BEFORE the reset
+          // wipes it: only a user who once had a session gets the hard
+          // "session expired" bounce (2026-04-22 fix — stale cached user on a
+          // protected page would render and spray 401 banners). A first-time
+          // anonymous visitor has nothing to expire: stay put, let
+          // ProtectedRoute gate protected pages (fix 2026-07-19 — the bounce
+          // was firing on /waitlist, /beta, /download, /s/:id and 404s,
+          // breaking every public funnel page for signed-out visitors;
+          // see tests/session-bounce.test.ts).
+          const hadPriorSession = getCachedUser() !== null;
+          // Wipe any stale cached user so ProtectedRoute kicks in before API
+          // calls hit the page and show 401 error banners.
           resetAuthState();
           const pathname = typeof window !== 'undefined' ? window.location.pathname : '';
-          // Public routes: either an exact match or a documented prefix.
-          // NOTE: do NOT add '/oauth' as a prefix — that would silently exempt
-          // any future '/oauth/*' subroute from auth. Only '/oauth/callback'
-          // legitimately needs to load without a JWT (the callback component
-          // sets the token itself via POST /api/auth/oauth/callback).
-          const PUBLIC_EXACT = [
-            '/auth', '/login', '/discover', '/', '/oauth/callback',
-            // '/preview' (no trailing slash) is the design-prototype gallery index;
-            // the '/preview/' PREFIX below covers the individual screens.
-            '/preview',
-            // Desktop (Tauri) Google sign-in handoff: must load without a JWT so
-            // it can start the web sign-in itself (signed out) or mint a one-time
-            // code + deep-link back to the app (signed in). Without this it would
-            // bounce to /auth?error=session_expired and never start the flow.
-            '/desktop-handoff',
-            // Legal pages must be reachable without auth — they show up in
-            // signup flows, beta-invite emails, and external links.
-            '/terms', '/terms-of-service', '/privacy', '/privacy-policy',
-          ];
-          // '/preview/' hosts the public cinematic design prototypes (static
-          // bundle in /public/cinematic); they carry no user data and must load
-          // signed-out so the redesign is shareable without a session.
-          const PUBLIC_PREFIX = ['/auth/', '/login/', '/discover/', '/p/', '/preview/'];
-          const isPublicRoute =
-            PUBLIC_EXACT.includes(pathname) ||
-            PUBLIC_PREFIX.some((p) => pathname.startsWith(p));
-          if (!isPublicRoute) {
+          if (shouldBounceToExpiredAuth(hadPriorSession, pathname)) {
             const target = '/auth?error=session_expired';
             try { window.location.replace(target); } catch { /* SSR safety */ }
             return; // stop — don't run checkAuth() during the navigation
