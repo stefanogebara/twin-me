@@ -15,7 +15,7 @@ import { useAnalytics } from '@/contexts/AnalyticsContext';
 
 const QUERY_KEY = ['twin-actions', 'pending'] as const;
 
-const glass = 'bg-[rgba(255,255,255,0.06)] border border-[rgba(255,255,255,0.10)] rounded-[20px] backdrop-blur-[42px]';
+const glass = 'bg-[var(--surface)] border border-[var(--glass-surface-border)] rounded-[20px] backdrop-blur-[42px]';
 
 const ActionInbox: React.FC = () => {
   const { data, isLoading, isError, error, refetch } = useQuery<TwinAction[]>({
@@ -60,7 +60,7 @@ const ActionInbox: React.FC = () => {
         <p className="text-[#A8A29E] text-sm">Couldn't load your inbox.</p>
         <button
           onClick={() => refetch()}
-          className="mt-3 text-[#F5F5F4] text-sm underline underline-offset-4 hover:opacity-80"
+          className="mt-3 text-[var(--foreground)] text-sm underline underline-offset-4 hover:opacity-80"
         >
           Try again
         </button>
@@ -87,7 +87,7 @@ const ActionInbox: React.FC = () => {
 
 const InboxHeading: React.FC<{ count: number | null }> = ({ count }) => (
   <div className="flex items-baseline justify-between px-1">
-    <h2 className="text-[#F5F5F4] text-[15px] font-medium tracking-tight">Waiting on you</h2>
+    <h2 className="text-[var(--foreground)] text-[15px] font-medium tracking-tight">Waiting on you</h2>
     {count !== null && count > 0 && (
       <span className="text-[#9C9590] text-xs tabular-nums">{count} draft{count === 1 ? '' : 's'}</span>
     )}
@@ -141,10 +141,10 @@ const ActionCard: React.FC<{ action: TwinAction }> = ({ action }) => {
           rows={5}
           autoFocus
           aria-label="Edit the reply"
-          className="w-full resize-y rounded-[12px] bg-[rgba(255,255,255,0.08)] border border-[rgba(255,255,255,0.08)] px-3 py-2.5 text-[#F5F5F4] text-[14.5px] leading-relaxed focus:outline-none focus:ring-2 focus:ring-[rgba(255,255,255,0.25)]"
+          className="w-full resize-y rounded-[12px] bg-[var(--surface)] border border-[var(--border-glass)] px-3 py-2.5 text-[var(--foreground)] text-[14.5px] leading-relaxed focus:outline-none focus:ring-2 focus:ring-[rgba(255,255,255,0.25)]"
         />
       ) : (
-        <p className="text-[#F5F5F4] text-[14.5px] leading-relaxed whitespace-pre-wrap">{action.draft_text}</p>
+        <p className="text-[var(--foreground)] text-[14.5px] leading-relaxed whitespace-pre-wrap">{action.draft_text}</p>
       )}
 
       {mode === 'view' && action.why_signals?.length > 0 && (
@@ -152,7 +152,7 @@ const ActionCard: React.FC<{ action: TwinAction }> = ({ action }) => {
           {action.why_signals.map((w, i) => (
             <span
               key={i}
-              className="inline-flex items-center rounded-[46px] bg-[rgba(255,255,255,0.06)] border border-[rgba(255,255,255,0.10)] px-2.5 py-1 text-[11px] text-[#A8A29E]"
+              className="inline-flex items-center rounded-[46px] bg-[var(--surface)] border border-[var(--glass-surface-border)] px-2.5 py-1 text-[11px] text-[#A8A29E]"
             >
               <span className="text-[#c17e2c] mr-1.5 uppercase tracking-wide text-[9px]">{w.kind}</span>
               {w.note}
@@ -168,7 +168,7 @@ const ActionCard: React.FC<{ action: TwinAction }> = ({ action }) => {
           autoFocus
           placeholder="What was off? (e.g. too formal)"
           aria-label="Reason for rejecting"
-          className="w-full rounded-[6px] bg-[rgba(255,255,255,0.08)] border border-[rgba(255,255,255,0.08)] px-3 py-2.5 text-[#F5F5F4] text-sm placeholder:text-[rgba(255,255,255,0.55)] focus:outline-none focus:ring-2 focus:ring-[rgba(255,255,255,0.25)]"
+          className="w-full rounded-[6px] bg-[var(--surface)] border border-[var(--border-glass)] px-3 py-2.5 text-[var(--foreground)] text-sm placeholder:text-[var(--text-secondary)] focus:outline-none focus:ring-2 focus:ring-[rgba(255,255,255,0.25)]"
         />
       )}
 
@@ -223,7 +223,7 @@ const PrimaryButton: React.FC<React.PropsWithChildren<{ onClick: () => void; dis
   <button
     onClick={onClick}
     disabled={disabled}
-    className="inline-flex items-center gap-1.5 bg-[#F5F5F4] text-[#110f0f] rounded-[100px] px-3.5 py-2 text-[13px] font-medium disabled:opacity-50 hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-[rgba(255,255,255,0.4)] transition-opacity"
+    className="inline-flex items-center gap-1.5 bg-[image:var(--claura-bone)] text-[var(--claura-bone-ink)] rounded-[100px] px-3.5 py-2 text-[13px] font-medium disabled:opacity-50 hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-[rgba(255,255,255,0.4)] transition-opacity"
   >
     {busy ? <Loader2 size={14} className="animate-spin" aria-hidden /> : children}
   </button>
@@ -235,7 +235,7 @@ const GhostButton: React.FC<React.PropsWithChildren<{ onClick: () => void; disab
   <button
     onClick={onClick}
     disabled={disabled}
-    className="inline-flex items-center gap-1.5 rounded-[6px] px-2.5 py-1.5 text-[13px] font-medium text-[#A8A29E] hover:text-[#F5F5F4] disabled:opacity-40 focus:outline-none focus:ring-2 focus:ring-[rgba(255,255,255,0.25)] transition-colors"
+    className="inline-flex items-center gap-1.5 rounded-[6px] px-2.5 py-1.5 text-[13px] font-medium text-[#A8A29E] hover:text-[var(--foreground)] disabled:opacity-40 focus:outline-none focus:ring-2 focus:ring-[rgba(255,255,255,0.25)] transition-colors"
   >
     {children}
   </button>

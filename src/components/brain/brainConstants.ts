@@ -43,7 +43,7 @@ export const EXPERT_FILTERS = [
 ] as const;
 
 export const TYPE_FILTERS = [
-  { key: null, label: 'All Types', color: 'rgba(255,255,255,0.5)' },
+  { key: null, label: 'All Types', color: 'var(--text-secondary)' },
   { key: 'reflection', label: 'Reflections', color: '#C9B99A' },
   { key: 'platform_data', label: 'Platform Data', color: '#2dd4bf' },
   { key: 'fact', label: 'Facts', color: '#5d5cae' },

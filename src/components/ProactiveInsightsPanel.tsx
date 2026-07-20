@@ -60,7 +60,7 @@ function formatRelativeTime(dateStr: string): string {
 }
 
 const panelStyle: React.CSSProperties = {
-  background: 'rgba(255, 255, 255, 0.02)',
+  background: 'var(--surface)',
   border: '1px solid var(--border-glass)',
   borderRadius: '12px',
   padding: '16px',
@@ -109,12 +109,12 @@ export const ProactiveInsightsPanel: React.FC = () => {
   if (isLoading) {
     return (
       <div className="rounded-2xl p-6" style={{
-        background: 'rgba(255, 255, 255, 0.02)',
+        background: 'var(--surface)',
         border: '1px solid var(--border-glass)',
       }}>
         <div className="flex items-center justify-center py-4">
-          <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'rgba(255,255,255,0.4)' }} />
-          <span className="ml-2 text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>
+          <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--text-muted)' }} />
+          <span className="ml-2 text-sm" style={{ color: 'var(--text-muted)' }}>
             Checking for insights...
           </span>
         </div>
@@ -132,15 +132,15 @@ export const ProactiveInsightsPanel: React.FC = () => {
       <div style={panelStyle} className="text-center py-6">
         <Plug
           className="w-8 h-8 mx-auto mb-3 opacity-30"
-          style={{ color: 'rgba(255,255,255,0.3)' }}
+          style={{ color: 'var(--text-muted)' }}
         />
-        <p className="text-sm mb-3" style={{ color: 'rgba(255,255,255,0.4)' }}>
+        <p className="text-sm mb-3" style={{ color: 'var(--text-muted)' }}>
           I'm still getting to know you — connect Spotify or Calendar so I can start noticing things
         </p>
         <button
           onClick={() => navigate('/settings?tab=platforms')}
           className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium transition-colors"
-          style={{ backgroundColor: 'rgba(255,255,255,0.02)', color: 'var(--foreground)', border: '1px solid var(--border-glass)' }}
+          style={{ backgroundColor: 'var(--surface)', color: 'var(--foreground)', border: '1px solid var(--border-glass)' }}
         >
           Connect a platform →
         </button>
@@ -158,10 +158,10 @@ export const ProactiveInsightsPanel: React.FC = () => {
             background: 'linear-gradient(to bottom, var(--accent-vibrant), rgba(255, 255, 255, 0.10))',
           }}
         />
-        <Eye className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.4)' }} />
+        <Eye className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
         <h3
           className="text-sm uppercase tracking-wider"
-          style={{ color: 'rgba(255,255,255,0.3)' }}
+          style={{ color: 'var(--text-muted)' }}
         >
           Twin Noticed
         </h3>
@@ -169,7 +169,7 @@ export const ProactiveInsightsPanel: React.FC = () => {
           className="text-xs px-2 py-0.5 rounded-full"
           style={{
             backgroundColor: 'var(--glass-surface-bg)',
-            color: 'rgba(255,255,255,0.4)',
+            color: 'var(--text-muted)',
           }}
         >
           {insights.length}
@@ -209,14 +209,14 @@ export const ProactiveInsightsPanel: React.FC = () => {
                   {/* Content */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.3)' }}>{formatRelativeTime(insight.created_at)}</span>
+                      <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{formatRelativeTime(insight.created_at)}</span>
                       {moat && insight.sources?.length ? (
                         <span
                           className="text-[10px] px-1.5 py-0.5 rounded-full"
                           style={{
-                            backgroundColor: 'rgba(255,255,255,0.04)',
-                            border: '1px solid rgba(255,255,255,0.06)',
-                            color: 'rgba(255,255,255,0.5)',
+                            backgroundColor: 'var(--surface)',
+                            border: '1px solid var(--border-glass)',
+                            color: 'var(--text-secondary)',
                           }}
                         >
                           {insight.sources.join(' · ')}
@@ -228,7 +228,7 @@ export const ProactiveInsightsPanel: React.FC = () => {
                     </p>
                   </div>
                   <button onClick={() => setExpandedId(prev => prev === insight.id ? null : insight.id)} className="flex-shrink-0 self-start mt-1">
-                    <ChevronDown className="w-4 h-4 transition-transform duration-200" style={{ color: 'rgba(255,255,255,0.3)', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }} />
+                    <ChevronDown className="w-4 h-4 transition-transform duration-200" style={{ color: 'var(--text-muted)', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }} />
                   </button>
                 </div>
 

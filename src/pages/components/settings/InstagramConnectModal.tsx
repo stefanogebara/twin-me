@@ -77,9 +77,9 @@ export function InstagramConnectModal({ open, onClose, onSuccess }: InstagramCon
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && !recording && onClose()}>
-      <DialogContent className="max-w-md bg-[rgba(19,18,26,0.98)] border border-[rgba(255,255,255,0.10)] rounded-[20px] backdrop-blur-[42px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-md bg-[rgba(19,18,26,0.98)] border border-[var(--glass-surface-border)] rounded-[20px] backdrop-blur-[42px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-[#F5F5F4] font-medium text-base">
+          <DialogTitle className="text-[var(--foreground)] font-medium text-base">
             Connect Instagram
           </DialogTitle>
         </DialogHeader>
@@ -98,17 +98,17 @@ export function InstagramConnectModal({ open, onClose, onSuccess }: InstagramCon
               placeholder="yourhandle"
               autoComplete="off"
               pattern="[a-zA-Z0-9._]{1,40}"
-              className="bg-[rgba(255,255,255,0.08)] border border-[rgba(255,255,255,0.08)] text-[#F5F5F4] placeholder:text-[rgba(255,255,255,0.55)] rounded-[6px] px-3 py-2.5 text-sm focus:outline-none focus:border-[rgba(255,255,255,0.20)]"
+              className="bg-[var(--surface)] border border-[var(--border-glass)] text-[var(--foreground)] placeholder:text-[var(--text-secondary)] rounded-[6px] px-3 py-2.5 text-sm focus:outline-none focus:border-[var(--border)]"
             />
           </div>
 
-          <div className="border border-[rgba(255,255,255,0.06)] rounded-[10px] p-3 bg-[rgba(255,255,255,0.02)] flex flex-col gap-2">
+          <div className="border border-[var(--border-glass)] rounded-[10px] p-3 bg-[var(--surface)] flex flex-col gap-2">
             <p className="text-[11px] text-[#A8A29E] font-medium">How this works:</p>
             <ol className="text-[11px] text-[#A8A29E] leading-relaxed space-y-1.5 list-decimal pl-4">
               <li>
                 Install the TwinMe browser extension (it runs in your own browser, with your own Instagram session — no passwords, no server-side scraping).
                 {!extensionInstalled && (
-                  <span className="block mt-1.5 text-[10.5px] text-[#F5F5F4]">
+                  <span className="block mt-1.5 text-[10.5px] text-[var(--foreground)]">
                     Extension not detected. Install instructions in your TwinMe Settings page.
                   </span>
                 )}
@@ -124,7 +124,7 @@ export function InstagramConnectModal({ open, onClose, onSuccess }: InstagramCon
                   href="https://www.instagram.com/"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-[#F5F5F4] underline hover:no-underline"
+                  className="text-[var(--foreground)] underline hover:no-underline"
                 >
                   instagram.com
                 </a>
@@ -137,16 +137,16 @@ export function InstagramConnectModal({ open, onClose, onSuccess }: InstagramCon
                 Within a sync cycle (every 30 min), your twin learns from what you've saved, followed, and posted.
               </li>
             </ol>
-            <p className="text-[10.5px] text-[rgba(255,255,255,0.55)] leading-snug mt-1 pt-2 border-t border-[rgba(255,255,255,0.05)]">
+            <p className="text-[10.5px] text-[var(--text-secondary)] leading-snug mt-1 pt-2 border-t border-[var(--border-glass)]">
               No credentials are sent to TwinMe. The extension reads what your already-logged-in browser sees and posts only the normalized data to our backend. You can revoke at any time from the extension settings.
             </p>
           </div>
 
-          <div className="border border-[rgba(255,255,255,0.08)] rounded-[10px] p-3 bg-[rgba(255,255,255,0.03)] flex flex-col gap-2">
+          <div className="border border-[var(--border-glass)] rounded-[10px] p-3 bg-[var(--surface)] flex flex-col gap-2">
             <p className="text-[11px] text-[#A8A29E] leading-snug">
               By connecting, you understand that:
             </p>
-            <ul className="text-[11px] text-[rgba(255,255,255,0.55)] leading-snug list-disc pl-4 space-y-1">
+            <ul className="text-[11px] text-[var(--text-secondary)] leading-snug list-disc pl-4 space-y-1">
               <li>The TwinMe extension reads Instagram pages you visit (in your own browser, on your own machine).</li>
               <li>No passwords, no cookies, no session tokens leave your machine.</li>
               <li>Only normalized observations (saved posts, follows, captions) are sent to TwinMe.</li>
@@ -160,7 +160,7 @@ export function InstagramConnectModal({ open, onClose, onSuccess }: InstagramCon
               variant="ghost"
               onClick={() => { setUsername(''); onClose(); }}
               disabled={recording}
-              className="text-[#A8A29E] hover:text-[#F5F5F4] text-sm"
+              className="text-[#A8A29E] hover:text-[var(--foreground)] text-sm"
             >
               Cancel
             </Button>
@@ -168,7 +168,7 @@ export function InstagramConnectModal({ open, onClose, onSuccess }: InstagramCon
               type="button"
               onClick={handleAccept}
               disabled={!username.trim() || recording}
-              className="bg-[#F5F5F4] text-[#110f0f] rounded-[100px] px-4 py-2 text-sm font-medium disabled:opacity-50"
+              className="bg-[image:var(--claura-bone)] text-[var(--claura-bone-ink)] rounded-[100px] px-4 py-2 text-sm font-medium disabled:opacity-50"
             >
               {recording ? 'Connecting...' : 'I understand, connect'}
             </Button>

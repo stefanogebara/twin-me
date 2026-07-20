@@ -117,12 +117,12 @@ const PricingPage: React.FC = () => {
               fontSize: '40px',
               fontWeight: 400,
               letterSpacing: '-0.8px',
-              color: '#F5F5F4',
+              color: 'var(--foreground)',
             }}
           >
             Choose your depth
           </h1>
-          <p style={{ fontSize: '15px', color: 'rgba(245,245,244,0.5)' }}>
+          <p style={{ fontSize: '15px', color: 'var(--text-secondary)' }}>
             Your twin grows with you. Start free, upgrade when you're ready.
           </p>
         </div>
@@ -166,7 +166,7 @@ const PricingPage: React.FC = () => {
                     left: '50%',
                     transform: 'translateX(-50%)',
                     background: 'rgba(196,162,101,0.9)',
-                    color: '#110f0f',
+                    color: 'var(--claura-bone-ink)',
                     fontSize: '11px',
                     fontWeight: 600,
                     padding: '3px 12px',
@@ -181,20 +181,20 @@ const PricingPage: React.FC = () => {
               )}
 
               <div>
-                <p style={{ fontSize: '12px', color: 'rgba(245,245,244,0.4)', fontWeight: 500, marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 500, marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                   {plan.name}
                 </p>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-                  <span style={{ fontSize: '36px', fontWeight: 600, color: '#F5F5F4', letterSpacing: '-1px' }}>
+                  <span style={{ fontSize: '36px', fontWeight: 600, color: 'var(--foreground)', letterSpacing: '-1px' }}>
                     {plan.price}
                   </span>
                   {plan.period && (
-                    <span style={{ fontSize: '14px', color: 'rgba(245,245,244,0.4)' }}>
+                    <span style={{ fontSize: '14px', color: 'var(--text-muted)' }}>
                       {plan.period}
                     </span>
                   )}
                 </div>
-                <p style={{ fontSize: '13px', color: 'rgba(245,245,244,0.5)', marginTop: '6px' }}>
+                <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '6px' }}>
                   {plan.description}
                 </p>
               </div>
@@ -210,7 +210,7 @@ const PricingPage: React.FC = () => {
                         flexShrink: 0,
                       }}
                     />
-                    <span style={{ fontSize: '13px', color: 'rgba(245,245,244,0.7)' }}>
+                    <span style={{ fontSize: '13px', color: 'var(--foreground)' }}>
                       {feature}
                     </span>
                   </li>
@@ -235,14 +235,14 @@ const PricingPage: React.FC = () => {
                   ...(ctaDisabled
                     ? {
                         background: 'transparent',
-                        border: '1px solid rgba(255,255,255,0.08)',
-                        color: 'rgba(245,245,244,0.3)',
+                        border: '1px solid var(--border-glass)',
+                        color: 'var(--text-muted)',
                       }
                     : plan.highlight
                     ? {
-                        background: '#F5F5F4',
+                        background: 'var(--claura-bone)',
                         border: 'none',
-                        color: '#110f0f',
+                        color: 'var(--claura-bone-ink)',
                       }
                     : {
                         background: 'rgba(196,162,101,0.15)',
@@ -265,7 +265,7 @@ const PricingPage: React.FC = () => {
           <button
             type="button"
             className="cursor-pointer hover:opacity-80 bg-transparent border-0 p-0"
-            style={{ fontSize: '13px', color: 'rgba(245,245,244,0.3)' }}
+            style={{ fontSize: '13px', color: 'var(--text-muted)' }}
             onClick={() => navigate('/settings')}
           >
             Back to settings

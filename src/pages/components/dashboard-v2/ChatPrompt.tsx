@@ -100,7 +100,7 @@ export function ChatPrompt() {
                 color: 'var(--text-secondary)',
               }}
             >
-              <span style={{ color: 'rgba(255,255,255,0.35)' }}>{action.icon}</span>
+              <span style={{ color: 'var(--text-muted)' }}>{action.icon}</span>
               {action.label}
             </button>
           ))}

@@ -95,7 +95,7 @@ export function ConversationControls({
             >
               <button
                 onClick={() => handleExport('pdf')}
-                className="w-full px-4 py-2 text-left flex items-center gap-2 text-sm transition-colors hover:bg-white/10"
+                className="w-full px-4 py-2 text-left flex items-center gap-2 text-sm transition-colors hover:bg-[var(--surface-solid)]"
                 style={{ color: 'var(--foreground)' }}
               >
                 <FileText className="w-4 h-4 text-red-500" />
@@ -103,7 +103,7 @@ export function ConversationControls({
               </button>
               <button
                 onClick={() => handleExport('text')}
-                className="w-full px-4 py-2 text-left flex items-center gap-2 text-sm transition-colors hover:bg-white/10"
+                className="w-full px-4 py-2 text-left flex items-center gap-2 text-sm transition-colors hover:bg-[var(--surface-solid)]"
                 style={{ color: 'var(--foreground)' }}
               >
                 <FileText className="w-4 h-4 text-[var(--accent-amber)]" />
@@ -111,7 +111,7 @@ export function ConversationControls({
               </button>
               <button
                 onClick={() => handleExport('json')}
-                className="w-full px-4 py-2 text-left flex items-center gap-2 text-sm transition-colors hover:bg-white/10"
+                className="w-full px-4 py-2 text-left flex items-center gap-2 text-sm transition-colors hover:bg-[var(--surface-solid)]"
                 style={{ color: 'var(--foreground)' }}
               >
                 <FileText className="w-4 h-4 text-green-500" />

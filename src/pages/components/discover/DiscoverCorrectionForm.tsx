@@ -30,14 +30,14 @@ export const DiscoverCorrectionForm: React.FC<DiscoverCorrectionFormProps> = ({
   };
 
   const inputStyle = {
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    border: '1px solid rgba(255,255,255,0.10)',
-    color: '#F5F5F4',
+    backgroundColor: 'var(--surface)',
+    border: '1px solid var(--glass-surface-border)',
+    color: 'var(--foreground)',
     fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
   };
 
   const labelStyle = {
-    color: 'rgba(255,255,255,0.40)',
+    color: 'var(--text-muted)',
     fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
     fontSize: '12px',
   };
@@ -50,7 +50,7 @@ export const DiscoverCorrectionForm: React.FC<DiscoverCorrectionFormProps> = ({
     >
       <p
         className="text-[14px] mb-5 text-center"
-        style={{ color: 'rgba(255,255,255,0.50)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+        style={{ color: 'var(--text-secondary)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
       >
         Help us find the right you:
       </p>
@@ -63,7 +63,7 @@ export const DiscoverCorrectionForm: React.FC<DiscoverCorrectionFormProps> = ({
             onChange={e => setName(e.target.value)}
             placeholder="John Doe"
             required
-            className="w-full px-4 py-2.5 rounded-xl text-[14px] outline-none focus:border-[rgba(255,255,255,0.20)]"
+            className="w-full px-4 py-2.5 rounded-xl text-[14px] outline-none focus:border-[var(--border)]"
             style={inputStyle}
           />
         </div>
@@ -74,7 +74,7 @@ export const DiscoverCorrectionForm: React.FC<DiscoverCorrectionFormProps> = ({
             value={linkedin}
             onChange={e => setLinkedin(e.target.value)}
             placeholder="https://linkedin.com/in/yourprofile"
-            className="w-full px-4 py-2.5 rounded-xl text-[14px] outline-none focus:border-[rgba(255,255,255,0.20)]"
+            className="w-full px-4 py-2.5 rounded-xl text-[14px] outline-none focus:border-[var(--border)]"
             style={inputStyle}
           />
         </div>
@@ -85,7 +85,7 @@ export const DiscoverCorrectionForm: React.FC<DiscoverCorrectionFormProps> = ({
             value={website}
             onChange={e => setWebsite(e.target.value)}
             placeholder="https://yourwebsite.com"
-            className="w-full px-4 py-2.5 rounded-xl text-[14px] outline-none focus:border-[rgba(255,255,255,0.20)]"
+            className="w-full px-4 py-2.5 rounded-xl text-[14px] outline-none focus:border-[var(--border)]"
             style={inputStyle}
           />
         </div>
@@ -95,8 +95,8 @@ export const DiscoverCorrectionForm: React.FC<DiscoverCorrectionFormProps> = ({
             disabled={!name.trim() || isLoading}
             className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-full text-[13px] font-medium transition-all duration-150 hover:opacity-90 disabled:opacity-50"
             style={{
-              backgroundColor: '#F5F5F4',
-              color: '#110f0f',
+              background: 'var(--claura-bone)',
+              color: 'var(--claura-bone-ink)',
               fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
             }}
           >
@@ -107,7 +107,7 @@ export const DiscoverCorrectionForm: React.FC<DiscoverCorrectionFormProps> = ({
             type="button"
             onClick={onSkip}
             className="text-[12px] transition-opacity hover:opacity-70"
-            style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+            style={{ color: 'var(--text-muted)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
           >
             Skip
           </button>

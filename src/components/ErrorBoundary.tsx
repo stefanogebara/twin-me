@@ -97,7 +97,7 @@ class ErrorBoundary extends Component<Props, State> {
 
             <p
               className="text-sm mb-6"
-              style={{ color: 'rgba(255,255,255,0.4)' }}
+              style={{ color: 'var(--text-muted)' }}
             >
               We encountered an unexpected error. Don't worry — this has been logged and we'll work on fixing it.
             </p>
@@ -106,7 +106,7 @@ class ErrorBoundary extends Component<Props, State> {
               <details className="mb-6 text-left">
                 <summary
                   className="cursor-pointer text-sm mb-2"
-                  style={{ color: 'rgba(255,255,255,0.4)' }}
+                  style={{ color: 'var(--text-muted)' }}
                 >
                   Error Details (Development)
                 </summary>
@@ -119,7 +119,7 @@ class ErrorBoundary extends Component<Props, State> {
                   </div>
                   <div
                     className="font-mono whitespace-pre-wrap"
-                    style={{ color: 'rgba(255,255,255,0.4)' }}
+                    style={{ color: 'var(--text-muted)' }}
                   >
                     {this.state.error.stack}
                   </div>

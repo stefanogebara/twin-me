@@ -412,7 +412,7 @@ const PrivacySpectrumDashboard: React.FC = () => {
         style={{
           background: CARD_BG,
           borderRadius: 20,
-          border: '1px solid rgba(255,255,255,0.10)',
+          border: '1px solid var(--glass-surface-border)',
           padding: '20px 24px',
           marginBottom: 20,
         }}
@@ -442,7 +442,7 @@ const PrivacySpectrumDashboard: React.FC = () => {
                   fontWeight: 600,
                   color: TEXT_PRIMARY,
                   background: CARD_BG,
-                  border: '1px solid rgba(255,255,255,0.10)',
+                  border: '1px solid var(--glass-surface-border)',
                   borderRadius: 100,
                   padding: '6px 14px',
                   cursor: 'pointer',

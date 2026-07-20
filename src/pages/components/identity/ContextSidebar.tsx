@@ -20,10 +20,10 @@ import InsightCards from './InsightCards';
 import SidebarTabs, { type SidebarTab } from './SidebarTabs';
 
 const glassStyle: React.CSSProperties = {
-  background: 'rgba(255,255,255,0.06)',
+  background: 'var(--surface)',
   backdropFilter: 'blur(42px)',
   WebkitBackdropFilter: 'blur(42px)',
-  border: '1px solid rgba(255,255,255,0.10)',
+  border: '1px solid var(--glass-surface-border)',
   boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), 0 4px 16px rgba(0,0,0,0.15)',
 };
 
@@ -181,7 +181,7 @@ const ContextSidebar: React.FC<ContextSidebarProps> = ({ className = '' }) => {
             >
               {insightsLoading ? (
                 <div className="flex items-center justify-center gap-2 py-6">
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" style={{ color: 'rgba(255,255,255,0.3)' }} />
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" style={{ color: 'var(--text-muted)' }} />
                   <span className="text-xs" style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
                     Loading your insights...
                   </span>
@@ -197,7 +197,7 @@ const ContextSidebar: React.FC<ContextSidebarProps> = ({ className = '' }) => {
                   <button
                     onClick={retryInsights}
                     className="text-xs px-3 py-1.5 rounded-[100px] transition-all duration-150 hover:opacity-80 active:scale-[0.97]"
-                    style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.7)', fontFamily: "'Inter', sans-serif" }}
+                    style={{ background: 'var(--surface)', color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}
                   >
                     Try again
                   </button>
@@ -234,13 +234,13 @@ const ContextSidebar: React.FC<ContextSidebarProps> = ({ className = '' }) => {
                 activityData.memories.slice(0, 6).map((mem, i) => (
                   <div
                     key={i}
-                    className="flex items-start gap-2.5 px-3 py-2 rounded-[12px] transition-all duration-150 hover:bg-[rgba(255,255,255,0.04)]"
+                    className="flex items-start gap-2.5 px-3 py-2 rounded-[12px] transition-all duration-150 hover:bg-[var(--surface)]"
                   >
                     <div className="mt-0.5">
                       {mem.memory_type === 'reflection' ? (
-                        <Zap className="w-3.5 h-3.5" style={{ color: 'rgba(245,245,244,0.45)' }} />
+                        <Zap className="w-3.5 h-3.5" style={{ color: 'var(--text-secondary)' }} />
                       ) : (
-                        <Clock className="w-3.5 h-3.5" style={{ color: 'rgba(255,255,255,0.25)' }} />
+                        <Clock className="w-3.5 h-3.5" style={{ color: 'var(--text-muted)' }} />
                       )}
                     </div>
                     <div className="flex-1 min-w-0">

@@ -84,7 +84,7 @@ export default function InterviewPage() {
     return (
       <div className="max-w-3xl mx-auto px-6 py-16">
         <div className="flex items-center justify-center h-64">
-          <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" style={{ color: 'rgba(255,255,255,0.2)' }} />
+          <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" style={{ color: 'var(--text-muted)' }} />
         </div>
       </div>
     );
@@ -117,7 +117,7 @@ export default function InterviewPage() {
         >
           Interview Complete
         </h1>
-        <p className="text-sm mb-10" style={{ color: 'rgba(255,255,255,0.35)' }}>
+        <p className="text-sm mb-10" style={{ color: 'var(--text-muted)' }}>
           {completedDate ? `Completed ${completedDate}` : 'Your twin has your story'}
         </p>
 
@@ -150,7 +150,7 @@ export default function InterviewPage() {
             {summary && (
               <p
                 className="text-sm leading-relaxed"
-                style={{ color: 'rgba(255,255,255,0.5)', fontFamily: "'Inter', sans-serif" }}
+                style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
               >
                 {summary}
               </p>
@@ -166,8 +166,8 @@ export default function InterviewPage() {
             onClick={() => navigate('/identity')}
             className="w-full py-3.5 rounded-[100px] text-sm font-medium transition-opacity hover:opacity-90"
             style={{
-              backgroundColor: '#F5F5F4',
-              color: '#110f0f',
+              background: 'var(--claura-bone)',
+              color: 'var(--claura-bone-ink)',
               fontFamily: "'Inter', sans-serif",
               cursor: 'pointer',
               minHeight: '48px',
@@ -191,7 +191,7 @@ export default function InterviewPage() {
               className="flex-1 flex items-center justify-center gap-2 py-3 rounded-[100px] text-sm transition-opacity hover:opacity-70"
               style={{
                 border: '1px solid var(--glass-surface-border, rgba(255,255,255,0.1))',
-                color: 'rgba(255,255,255,0.5)',
+                color: 'var(--text-secondary)',
                 fontFamily: "'Inter', sans-serif",
                 cursor: 'pointer',
                 minHeight: '44px',
@@ -205,7 +205,7 @@ export default function InterviewPage() {
               className="flex-1 py-3 rounded-[100px] text-sm transition-opacity hover:opacity-70"
               style={{
                 border: '1px solid var(--glass-surface-border, rgba(255,255,255,0.1))',
-                color: 'rgba(255,255,255,0.5)',
+                color: 'var(--text-secondary)',
                 fontFamily: "'Inter', sans-serif",
                 cursor: 'pointer',
                 minHeight: '44px',

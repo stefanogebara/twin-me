@@ -46,7 +46,7 @@ export default function DiscoverPricing({ onNavigate }: DiscoverPricingProps) {
 
         <p
           className="text-[11px] font-medium tracking-[2px] uppercase mb-6"
-          style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Inter', sans-serif" }}
+          style={{ color: 'var(--text-muted)', fontFamily: "'Inter', sans-serif" }}
         >
           Pricing
         </p>
@@ -62,7 +62,7 @@ export default function DiscoverPricing({ onNavigate }: DiscoverPricingProps) {
           Simple, transparent pricing.
         </h2>
 
-        <p className="text-sm mb-10" style={{ color: 'rgba(255,255,255,0.4)', lineHeight: 1.5 }}>
+        <p className="text-sm mb-10" style={{ color: 'var(--text-muted)', lineHeight: 1.5 }}>
           Start free. Upgrade when you want more depth.
         </p>
 
@@ -73,23 +73,23 @@ export default function DiscoverPricing({ onNavigate }: DiscoverPricingProps) {
               <div
                 key={plan.name}
                 className="flex flex-col md:flex-row md:items-center gap-6 py-8"
-                style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+                style={{ borderBottom: '1px solid var(--border-glass)' }}
               >
                 {/* Name + Price */}
                 <div className="md:w-[200px] flex-shrink-0">
-                  <p className="text-lg font-medium" style={{ color: '#F5F5F4', fontFamily: "'Geist', 'Inter', sans-serif" }}>
+                  <p className="text-lg font-medium" style={{ color: 'var(--foreground)', fontFamily: "'Geist', 'Inter', sans-serif" }}>
                     {plan.name}
                   </p>
-                  <p className="text-sm mt-1" style={{ color: 'rgba(255,255,255,0.5)' }}>{plan.price}</p>
-                  <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>{plan.sub}</p>
+                  <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>{plan.price}</p>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{plan.sub}</p>
                 </div>
 
                 {/* Features */}
                 <div className="flex-1 flex flex-wrap gap-x-6 gap-y-2">
                   {plan.features.map(f => (
                     <div key={f} className="flex items-center gap-1.5">
-                      <Check className="w-3.5 h-3.5" style={{ color: 'rgba(255,255,255,0.3)' }} />
-                      <span className="text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>{f}</span>
+                      <Check className="w-3.5 h-3.5" style={{ color: 'var(--text-muted)' }} />
+                      <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>{f}</span>
                     </div>
                   ))}
                 </div>

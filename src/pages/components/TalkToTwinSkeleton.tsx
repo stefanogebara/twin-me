@@ -43,7 +43,7 @@ export function TalkToTwinSkeleton() {
           <div
             className="flex items-center gap-3 rounded-[20px] px-5 py-3 border"
             style={{
-              backgroundColor: 'rgba(255,255,255,0.06)',
+              backgroundColor: 'var(--surface)',
               borderColor: 'rgba(255,255,255,0.10)',
               backdropFilter: 'blur(42px)',
               WebkitBackdropFilter: 'blur(42px)',

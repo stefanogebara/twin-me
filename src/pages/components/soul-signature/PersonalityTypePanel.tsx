@@ -104,7 +104,7 @@ export const PersonalityTypePanel: React.FC<PersonalityTypePanelProps> = ({
   return (
     <div
       className="!p-5 md:!p-6 mb-6 rounded-lg"
-      style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+      style={{ border: '1px solid var(--border-glass)', backgroundColor: 'var(--surface)' }}
     >
       <div className="flex items-center gap-3 mb-6">
         <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'rgba(45, 39, 34, 0.08)' }}>

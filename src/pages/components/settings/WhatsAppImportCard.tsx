@@ -31,7 +31,7 @@ export default function WhatsAppImportCard({ cardStyle }: WhatsAppImportCardProp
   const [myName, setMyName] = useState('');
 
   const sectionClass = cardStyle ? `p-5 ${cardStyle}` : 'p-5 rounded-lg';
-  const sectionStyle = cardStyle ? {} : { border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' };
+  const sectionStyle = cardStyle ? {} : { border: '1px solid var(--border-glass)', backgroundColor: 'var(--surface)' };
 
   const handleFile = async (file: File) => {
     if (!file.name.endsWith('.txt')) {
@@ -102,7 +102,7 @@ export default function WhatsAppImportCard({ cardStyle }: WhatsAppImportCardProp
         )}
       </div>
 
-      <p className="text-sm mb-4" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
+      <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
         Import a WhatsApp chat export to capture your communication style and social patterns.
         No messages are stored — only aggregate patterns (active hours, emoji usage, contact frequency).
       </p>
@@ -110,7 +110,7 @@ export default function WhatsAppImportCard({ cardStyle }: WhatsAppImportCardProp
       {status !== 'success' && (
         <>
           <div className="mb-3">
-            <label className="text-xs mb-1 block" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>Your display name in the chat (optional)</label>
+            <label className="text-xs mb-1 block" style={{ color: 'var(--text-secondary)' }}>Your display name in the chat (optional)</label>
             <input
               type="text"
               value={myName}
@@ -118,7 +118,7 @@ export default function WhatsAppImportCard({ cardStyle }: WhatsAppImportCardProp
               placeholder="e.g. Stefan"
               className="w-full px-3 py-2 text-sm rounded-lg"
               style={{
-                backgroundColor: 'rgba(255,255,255,0.04)',
+                backgroundColor: 'var(--surface)',
                 border: '1px solid var(--border)',
                 color: 'var(--foreground)',
                 outline: 'none',
@@ -137,13 +137,13 @@ export default function WhatsAppImportCard({ cardStyle }: WhatsAppImportCardProp
 
             {status === 'loading' ? (
               <div className="flex flex-col items-center gap-2">
-                <Loader2 className="w-8 h-8 animate-spin" style={{ color: 'rgba(255, 255, 255, 0.55)' }} />
-                <p className="text-sm" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>Analysing your chat...</p>
+                <Loader2 className="w-8 h-8 animate-spin" style={{ color: 'var(--text-secondary)' }} />
+                <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Analysing your chat...</p>
               </div>
             ) : (
               <div className="flex flex-col items-center gap-2">
-                <Upload className="w-8 h-8" style={{ color: 'rgba(255, 255, 255, 0.55)' }} />
-                <p className="text-sm" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>Drop your <code>.txt</code> export here or click to browse</p>
+                <Upload className="w-8 h-8" style={{ color: 'var(--text-secondary)' }} />
+                <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Drop your <code>.txt</code> export here or click to browse</p>
               </div>
             )}
           </div>
@@ -155,7 +155,7 @@ export default function WhatsAppImportCard({ cardStyle }: WhatsAppImportCardProp
             </div>
           )}
 
-          <p className="text-xs mt-3" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
+          <p className="text-xs mt-3" style={{ color: 'var(--text-secondary)' }}>
             {'Export: WhatsApp -> open a chat -> ... -> More -> Export Chat -> Without Media -> share the .txt file here.'}
           </p>
         </>
@@ -164,26 +164,26 @@ export default function WhatsAppImportCard({ cardStyle }: WhatsAppImportCardProp
       {status === 'success' && result && (
         <div className="space-y-2">
           <div className="grid grid-cols-3 gap-3">
-            <div className="text-center p-3 rounded-xl" style={{ backgroundColor: 'rgba(255,255,255,0.02)' }}>
+            <div className="text-center p-3 rounded-xl" style={{ backgroundColor: 'var(--surface)' }}>
               <div className="text-xl font-bold" style={{ color: 'var(--foreground)' }}>{result.stored}</div>
-              <div className="text-xs mt-0.5" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>patterns stored</div>
+              <div className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>patterns stored</div>
             </div>
-            <div className="text-center p-3 rounded-xl" style={{ backgroundColor: 'rgba(255,255,255,0.02)' }}>
+            <div className="text-center p-3 rounded-xl" style={{ backgroundColor: 'var(--surface)' }}>
               <div className="text-xl font-bold" style={{ color: 'var(--foreground)' }}>{result.contacts}</div>
-              <div className="text-xs mt-0.5" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>contacts found</div>
+              <div className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>contacts found</div>
             </div>
-            <div className="text-center p-3 rounded-xl" style={{ backgroundColor: 'rgba(255,255,255,0.02)' }}>
+            <div className="text-center p-3 rounded-xl" style={{ backgroundColor: 'var(--surface)' }}>
               <div className="text-xl font-bold" style={{ color: 'var(--foreground)' }}>{result.spanDays}</div>
-              <div className="text-xs mt-0.5" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>days of history</div>
+              <div className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>days of history</div>
             </div>
           </div>
-          <p className="text-xs" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
+          <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
             Communication patterns added to your twin's memory stream. Import another chat or a more recent export anytime.
           </p>
           <button
             onClick={() => { setStatus('idle'); setResult(null); }}
             className="text-xs underline"
-            style={{ color: 'rgba(255, 255, 255, 0.55)' }}
+            style={{ color: 'var(--text-secondary)' }}
           >
             Import another chat
           </button>

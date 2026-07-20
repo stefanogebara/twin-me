@@ -34,7 +34,7 @@ const LABEL_STYLE: React.CSSProperties = {
   fontSize: 11,
   letterSpacing: '0.06em',
   textTransform: 'uppercase',
-  color: 'rgba(255,255,255,0.4)',
+  color: 'var(--text-muted)',
   marginBottom: 12,
 };
 
@@ -44,7 +44,7 @@ const LABEL_STYLE: React.CSSProperties = {
 function CorrectionSparkline({ data }: { data: Array<{ date: string; count: number }> }) {
   if (!data || data.length === 0) {
     return (
-      <div className="text-xs" style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Inter', sans-serif" }}>
+      <div className="text-xs" style={{ color: 'var(--text-muted)', fontFamily: "'Inter', sans-serif" }}>
         Not enough data yet — chat with your twin and correct it when it's wrong.
       </div>
     );
@@ -144,7 +144,7 @@ function DirectiveCard({ directive, onUpdate, onDelete }: DirectiveCardProps) {
       className="px-5 py-4 rounded-[20px]"
       style={{
         background: isPaused ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.06)',
-        border: '1px solid rgba(255,255,255,0.10)',
+        border: '1px solid var(--glass-surface-border)',
         backdropFilter: 'blur(42px)',
         WebkitBackdropFilter: 'blur(42px)',
         opacity: isPaused ? 0.55 : 1,
@@ -162,8 +162,8 @@ function DirectiveCard({ directive, onUpdate, onDelete }: DirectiveCardProps) {
               autoFocus
               className="w-full resize-none rounded-[6px] px-3 py-2 text-sm leading-snug"
               style={{
-                background: 'rgba(255,255,255,0.08)',
-                border: '1px solid rgba(255,255,255,0.08)',
+                background: 'var(--surface)',
+                border: '1px solid var(--border-glass)',
                 color: 'var(--foreground)',
                 fontFamily: "'Geist', 'Inter', sans-serif",
               }}
@@ -181,7 +181,7 @@ function DirectiveCard({ directive, onUpdate, onDelete }: DirectiveCardProps) {
             {directive.reinforcement_count > 1 && (
               <span
                 className="text-xs"
-                style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', sans-serif" }}
+                style={{ color: 'var(--text-muted)', fontFamily: "'Inter', sans-serif" }}
               >
                 reinforced {directive.reinforcement_count}x
               </span>
@@ -189,7 +189,7 @@ function DirectiveCard({ directive, onUpdate, onDelete }: DirectiveCardProps) {
             {directive.user_edited && (
               <span
                 className="text-xs"
-                style={{ color: 'rgba(245,245,244,0.5)', fontFamily: "'Inter', sans-serif" }}
+                style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
               >
                 edited by you
               </span>
@@ -197,7 +197,7 @@ function DirectiveCard({ directive, onUpdate, onDelete }: DirectiveCardProps) {
             {isPaused && (
               <span
                 className="text-xs"
-                style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', sans-serif" }}
+                style={{ color: 'var(--text-muted)', fontFamily: "'Inter', sans-serif" }}
               >
                 paused
               </span>
@@ -214,7 +214,7 @@ function DirectiveCard({ directive, onUpdate, onDelete }: DirectiveCardProps) {
                 disabled={busy}
                 aria-label="Save edit"
                 className="w-7 h-7 rounded-full flex items-center justify-center transition-all duration-150 hover:opacity-70 active:scale-90 disabled:opacity-40"
-                style={{ border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.7)' }}
+                style={{ border: '1px solid var(--border)', color: 'var(--foreground)' }}
               >
                 <Check className="w-3.5 h-3.5" />
               </button>
@@ -224,7 +224,7 @@ function DirectiveCard({ directive, onUpdate, onDelete }: DirectiveCardProps) {
                 disabled={busy}
                 aria-label="Cancel edit"
                 className="w-7 h-7 rounded-full flex items-center justify-center transition-all duration-150 hover:opacity-70 active:scale-90 disabled:opacity-40"
-                style={{ border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.5)' }}
+                style={{ border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -237,7 +237,7 @@ function DirectiveCard({ directive, onUpdate, onDelete }: DirectiveCardProps) {
                 disabled={busy}
                 aria-label="Edit directive"
                 className="w-7 h-7 rounded-full flex items-center justify-center transition-all duration-150 hover:opacity-70 active:scale-90 disabled:opacity-40"
-                style={{ border: '1px solid rgba(255,255,255,0.10)', color: 'rgba(255,255,255,0.5)' }}
+                style={{ border: '1px solid var(--glass-surface-border)', color: 'var(--text-secondary)' }}
               >
                 <Pencil className="w-3.5 h-3.5" />
               </button>
@@ -247,7 +247,7 @@ function DirectiveCard({ directive, onUpdate, onDelete }: DirectiveCardProps) {
                 disabled={busy}
                 aria-label={isPaused ? 'Resume directive' : 'Pause directive'}
                 className="w-7 h-7 rounded-full flex items-center justify-center transition-all duration-150 hover:opacity-70 active:scale-90 disabled:opacity-40"
-                style={{ border: '1px solid rgba(255,255,255,0.10)', color: 'rgba(255,255,255,0.5)' }}
+                style={{ border: '1px solid var(--glass-surface-border)', color: 'var(--text-secondary)' }}
               >
                 {isPaused ? <Play className="w-3.5 h-3.5" /> : <Pause className="w-3.5 h-3.5" />}
               </button>
@@ -257,7 +257,7 @@ function DirectiveCard({ directive, onUpdate, onDelete }: DirectiveCardProps) {
                 disabled={busy}
                 aria-label="Delete directive"
                 className="w-7 h-7 rounded-full flex items-center justify-center transition-all duration-150 hover:opacity-70 active:scale-90 disabled:opacity-40"
-                style={{ border: '1px solid rgba(255,255,255,0.10)', color: 'rgba(255,255,255,0.4)' }}
+                style={{ border: '1px solid var(--glass-surface-border)', color: 'var(--text-muted)' }}
               >
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
@@ -337,7 +337,7 @@ export default function TwinSoulPage() {
           type="button"
           onClick={() => navigate(-1)}
           className="p-1.5 rounded-lg transition-all duration-150 hover:opacity-70 active:scale-90 lg:hidden"
-          style={{ color: 'rgba(255,255,255,0.35)' }}
+          style={{ color: 'var(--text-muted)' }}
           aria-label="Go back"
         >
           <ChevronLeft className="w-5 h-5" />
@@ -356,7 +356,7 @@ export default function TwinSoulPage() {
       </div>
       <p
         className="text-sm mb-8"
-        style={{ color: 'rgba(255,255,255,0.5)', fontFamily: "'Inter', sans-serif" }}
+        style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
       >
         Rules the twin picked up when you corrected it during chat. Edit anything that's off — your edits stick.
       </p>
@@ -367,7 +367,7 @@ export default function TwinSoulPage() {
             <div
               key={i}
               className="h-20 rounded-[20px] animate-pulse"
-              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}
+              style={{ background: 'var(--surface)', border: '1px solid var(--border-glass)' }}
             />
           ))}
         </div>
@@ -380,8 +380,8 @@ export default function TwinSoulPage() {
               <div
                 className="px-5 py-4 rounded-[20px]"
                 style={{
-                  background: 'rgba(255,255,255,0.06)',
-                  border: '1px solid rgba(255,255,255,0.10)',
+                  background: 'var(--surface)',
+                  border: '1px solid var(--glass-surface-border)',
                   backdropFilter: 'blur(42px)',
                   WebkitBackdropFilter: 'blur(42px)',
                 }}
@@ -401,7 +401,7 @@ export default function TwinSoulPage() {
                       </div>
                       <div
                         className="text-xs mt-1"
-                        style={{ color: 'rgba(255,255,255,0.5)', fontFamily: "'Inter', sans-serif" }}
+                        style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
                       >
                         corrections
                       </div>
@@ -419,7 +419,7 @@ export default function TwinSoulPage() {
                       </div>
                       <div
                         className="text-xs mt-1"
-                        style={{ color: 'rgba(255,255,255,0.5)', fontFamily: "'Inter', sans-serif" }}
+                        style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
                       >
                         new rules learned
                       </div>
@@ -438,8 +438,8 @@ export default function TwinSoulPage() {
               <div
                 className="px-5 py-6 rounded-[20px]"
                 style={{
-                  background: 'rgba(255,255,255,0.04)',
-                  border: '1px solid rgba(255,255,255,0.08)',
+                  background: 'var(--surface)',
+                  border: '1px solid var(--border-glass)',
                   backdropFilter: 'blur(42px)',
                   WebkitBackdropFilter: 'blur(42px)',
                 }}
@@ -447,7 +447,7 @@ export default function TwinSoulPage() {
                 <p
                   className="leading-relaxed"
                   style={{
-                    color: 'rgba(245,245,244,0.9)',
+                    color: 'var(--foreground)',
                     fontFamily: "'Instrument Serif', Georgia, serif",
                     fontSize: 18,
                     letterSpacing: '-0.01em',
@@ -461,8 +461,8 @@ export default function TwinSoulPage() {
                     onClick={() => void load()}
                     className="px-3 py-2 rounded-[100px] text-xs font-medium transition-all duration-150 hover:opacity-80 active:scale-[0.97]"
                     style={{
-                      background: '#F5F5F4',
-                      color: '#110f0f',
+                      background: 'var(--claura-bone)',
+                      color: 'var(--claura-bone-ink)',
                       fontFamily: "'Geist', 'Inter', sans-serif",
                     }}
                   >
@@ -479,8 +479,8 @@ export default function TwinSoulPage() {
               <div
                 className="px-5 py-6 rounded-[20px]"
                 style={{
-                  background: 'rgba(255,255,255,0.04)',
-                  border: '1px solid rgba(255,255,255,0.08)',
+                  background: 'var(--surface)',
+                  border: '1px solid var(--border-glass)',
                   backdropFilter: 'blur(42px)',
                   WebkitBackdropFilter: 'blur(42px)',
                 }}
@@ -488,7 +488,7 @@ export default function TwinSoulPage() {
                 <p
                   className="leading-relaxed"
                   style={{
-                    color: 'rgba(245,245,244,0.9)',
+                    color: 'var(--foreground)',
                     fontFamily: "'Instrument Serif', Georgia, serif",
                     fontSize: 18,
                     letterSpacing: '-0.01em',
@@ -502,8 +502,8 @@ export default function TwinSoulPage() {
                     onClick={() => navigate('/talk-to-twin')}
                     className="px-3 py-2 rounded-[100px] text-xs font-medium transition-all duration-150 hover:opacity-80 active:scale-[0.97]"
                     style={{
-                      background: '#F5F5F4',
-                      color: '#110f0f',
+                      background: 'var(--claura-bone)',
+                      color: 'var(--claura-bone-ink)',
                       fontFamily: "'Geist', 'Inter', sans-serif",
                     }}
                   >

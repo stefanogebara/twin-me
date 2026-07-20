@@ -181,7 +181,7 @@ const NotificationSettings: React.FC<NotificationSettingsProps> = ({ userId }) =
     <div>
       {/* ── Email Notifications ── */}
       <SettingRow
-        icon={<Mail className="w-4 h-4" style={{ color: 'rgba(245,245,244,0.45)' }} />}
+        icon={<Mail className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />}
         label="Email Notifications"
         description="Get notified when your twin notices something important"
         error={emailError}
@@ -198,8 +198,8 @@ const NotificationSettings: React.FC<NotificationSettingsProps> = ({ userId }) =
       <SettingRow
         icon={
           pushEnabled
-            ? <Bell className="w-4 h-4" style={{ color: 'rgba(245,245,244,0.45)' }} />
-            : <BellOff className="w-4 h-4" style={{ color: 'rgba(255, 255, 255, 0.55)' }} />
+            ? <Bell className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
+            : <BellOff className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
         }
         label="Push Notifications"
         description={
@@ -246,7 +246,7 @@ const SettingRow: React.FC<SettingRowProps> = ({ icon, label, description, error
         <span className="text-sm block" style={{ color: 'var(--foreground)' }}>
           {label}
         </span>
-        <p className="text-[12px] mt-0.5" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
+        <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
           {description}
         </p>
         {error && (

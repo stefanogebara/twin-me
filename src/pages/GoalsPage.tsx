@@ -40,7 +40,7 @@ function ProgressBar({
   return (
     <div
       className="h-[3px] rounded-full overflow-hidden mt-2"
-      style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}
+      style={{ backgroundColor: 'var(--surface)' }}
       role="progressbar"
       aria-valuenow={current}
       aria-valuemin={0}
@@ -48,7 +48,7 @@ function ProgressBar({
     >
       <div
         className="h-full rounded-full transition-all duration-500"
-        style={{ width: `${pct}%`, background: 'rgba(255,255,255,0.40)' }}
+        style={{ width: `${pct}%`, background: 'var(--foreground)' }}
       />
     </div>
   );
@@ -66,8 +66,8 @@ function ActiveGoalCard({ goal, onComplete }: { goal: Goal; onComplete: (id: str
     <div
       className="px-5 py-4 rounded-[20px]"
       style={{
-        background: 'rgba(255,255,255,0.04)',
-        border: '1px solid rgba(255,255,255,0.08)',
+        background: 'var(--surface)',
+        border: '1px solid var(--border-glass)',
         backdropFilter: 'blur(42px)',
       }}
     >
@@ -112,7 +112,7 @@ function ActiveGoalCard({ goal, onComplete }: { goal: Goal; onComplete: (id: str
           onClick={handleComplete}
           disabled={loading}
           className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-150 hover:opacity-70 active:scale-90 disabled:opacity-40"
-          style={{ border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.5)' }}
+          style={{ border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
           aria-label="Mark complete"
         >
           <Check className="w-3.5 h-3.5" />
@@ -147,8 +147,8 @@ function SuggestionCard({
     <div
       className="px-5 py-4 rounded-[20px]"
       style={{
-        background: 'rgba(255,255,255,0.03)',
-        border: '1px solid rgba(255,255,255,0.06)',
+        background: 'var(--surface)',
+        border: '1px solid var(--border-glass)',
         backdropFilter: 'blur(42px)',
       }}
     >
@@ -169,7 +169,7 @@ function SuggestionCard({
           onClick={handleAccept}
           disabled={loading}
           className="px-3 py-1.5 rounded-[100px] text-xs font-medium transition-all duration-150 hover:opacity-80 active:scale-[0.97] disabled:opacity-40"
-          style={{ background: 'var(--foreground)', color: '#110f0f', fontFamily: "'Inter', sans-serif" }}
+          style={{ background: 'var(--foreground)', color: 'var(--claura-bone-ink)', fontFamily: "'Inter', sans-serif" }}
         >
           Accept
         </button>
@@ -178,7 +178,7 @@ function SuggestionCard({
           onClick={handleDismiss}
           disabled={loading}
           className="px-3 py-1.5 rounded-[100px] text-xs font-medium transition-all duration-150 hover:opacity-70 active:scale-[0.97] disabled:opacity-40"
-          style={{ border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
+          style={{ border: '1px solid var(--glass-surface-border)', color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
         >
           Not now
         </button>
@@ -350,7 +350,7 @@ export default function GoalsPage() {
           type="button"
           onClick={() => navigate(-1)}
           className="p-1.5 rounded-lg transition-all duration-150 hover:opacity-70 active:scale-90 lg:hidden"
-          style={{ color: 'rgba(255,255,255,0.35)' }}
+          style={{ color: 'var(--text-muted)' }}
           aria-label="Go back"
         >
           <ChevronLeft className="w-5 h-5" />
@@ -363,7 +363,7 @@ export default function GoalsPage() {
       {loading ? (
         <div className="space-y-3">
           {[1, 2, 3].map(i => (
-            <div key={i} className="h-16 rounded-[20px] animate-pulse" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }} />
+            <div key={i} className="h-16 rounded-[20px] animate-pulse" style={{ background: 'var(--surface)', border: '1px solid var(--border-glass)' }} />
           ))}
         </div>
       ) : (
@@ -390,14 +390,14 @@ export default function GoalsPage() {
                     key={i}
                     className="px-5 py-4 rounded-[20px] animate-pulse"
                     style={{
-                      background: 'rgba(255,255,255,0.03)',
-                      border: '1px solid rgba(255,255,255,0.06)',
+                      background: 'var(--surface)',
+                      border: '1px solid var(--border-glass)',
                       backdropFilter: 'blur(42px)',
                     }}
                   >
-                    <div className="h-2 w-24 rounded-full mb-3" style={{ background: 'rgba(255,255,255,0.08)' }} />
-                    <div className="h-3 w-3/4 rounded-full mb-2" style={{ background: 'rgba(255,255,255,0.10)' }} />
-                    <div className="h-3 w-1/2 rounded-full" style={{ background: 'rgba(255,255,255,0.06)' }} />
+                    <div className="h-2 w-24 rounded-full mb-3" style={{ background: 'var(--surface)' }} />
+                    <div className="h-3 w-3/4 rounded-full mb-2" style={{ background: 'var(--surface-solid)' }} />
+                    <div className="h-3 w-1/2 rounded-full" style={{ background: 'var(--surface)' }} />
                   </div>
                 ))}
               </div>
@@ -413,15 +413,15 @@ export default function GoalsPage() {
               <div
                 className="px-5 py-6 rounded-[20px]"
                 style={{
-                  background: 'rgba(255,255,255,0.04)',
-                  border: '1px solid rgba(255,255,255,0.08)',
+                  background: 'var(--surface)',
+                  border: '1px solid var(--border-glass)',
                   backdropFilter: 'blur(42px)',
                 }}
               >
                 <p
                   className="text-sm leading-relaxed"
                   style={{
-                    color: 'rgba(245,245,244,0.9)',
+                    color: 'var(--foreground)',
                     fontFamily: "'Instrument Serif', Georgia, serif",
                     fontSize: 18,
                     letterSpacing: '-0.01em',
@@ -435,7 +435,7 @@ export default function GoalsPage() {
                     type="button"
                     onClick={() => navigate('/connect')}
                     className="px-3 py-2 rounded-[100px] text-xs font-medium transition-all duration-150 hover:opacity-80 active:scale-[0.97]"
-                    style={{ background: '#F5F5F4', color: '#110f0f', fontFamily: "'Inter', sans-serif" }}
+                    style={{ background: 'var(--claura-bone)', color: 'var(--claura-bone-ink)', fontFamily: "'Inter', sans-serif" }}
                   >
                     Connect more platforms
                   </button>
@@ -443,7 +443,7 @@ export default function GoalsPage() {
                     type="button"
                     onClick={() => setShowAddForm(true)}
                     className="px-3 py-2 rounded-[100px] text-xs font-medium transition-all duration-150 hover:opacity-70 active:scale-[0.97]"
-                    style={{ color: 'rgba(255,255,255,0.5)', fontFamily: "'Inter', sans-serif" }}
+                    style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
                   >
                     Add your own
                   </button>
@@ -460,7 +460,7 @@ export default function GoalsPage() {
                 type="button"
                 onClick={() => setShowAddForm(v => !v)}
                 className="flex items-center gap-1 text-xs font-medium transition-all duration-150 hover:opacity-70"
-                style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', sans-serif" }}
+                style={{ color: 'var(--text-muted)', fontFamily: "'Inter', sans-serif" }}
               >
                 <Plus className="w-3.5 h-3.5" />
                 Add
@@ -479,8 +479,8 @@ export default function GoalsPage() {
                   autoFocus
                   className="flex-1 text-sm px-3 py-2 rounded-[6px] outline-none"
                   style={{
-                    background: 'rgba(255,255,255,0.08)',
-                    border: '1px solid rgba(255,255,255,0.10)',
+                    background: 'var(--surface)',
+                    border: '1px solid var(--glass-surface-border)',
                     color: 'var(--foreground)',
                     fontFamily: "'Inter', sans-serif",
                   }}
@@ -490,7 +490,7 @@ export default function GoalsPage() {
                   onClick={handleAdd}
                   disabled={adding || !addTitle.trim()}
                   className="px-3 py-2 rounded-[100px] text-xs font-medium transition-all duration-150 hover:opacity-80 disabled:opacity-40"
-                  style={{ background: 'var(--foreground)', color: '#110f0f', fontFamily: "'Inter', sans-serif" }}
+                  style={{ background: 'var(--foreground)', color: 'var(--claura-bone-ink)', fontFamily: "'Inter', sans-serif" }}
                 >
                   {adding ? '...' : 'Add'}
                 </button>
@@ -520,8 +520,8 @@ export default function GoalsPage() {
               <p style={LABEL_STYLE}>Completed</p>
               <div className="space-y-2">
                 {completed.map(g => (
-                  <div key={g.id} className="px-4 py-3 rounded-[12px] flex items-center gap-3" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
-                    <Check className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'rgba(255,255,255,0.25)' }} />
+                  <div key={g.id} className="px-4 py-3 rounded-[12px] flex items-center gap-3" style={{ background: 'var(--surface)', border: '1px solid var(--border-glass)' }}>
+                    <Check className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
                     <p className="text-sm" style={{ color: 'var(--text-secondary)', fontFamily: "'Geist', 'Inter', sans-serif", textDecoration: 'line-through' }}>
                       {g.title}
                     </p>

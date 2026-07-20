@@ -19,7 +19,7 @@ export const SpotifyEmptyState: React.FC<SpotifyEmptyStateProps> = ({
 }) => {
   return (
     <div className="space-y-4">
-      <div className="text-center py-10 rounded-lg" style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
+      <div className="text-center py-10 rounded-lg" style={{ border: '1px solid var(--border-glass)', backgroundColor: 'var(--surface)' }}>
         <Music className="w-12 h-12 mx-auto mb-4" style={{ color: colors.textSecondary }} />
         <h3 style={{ color: colors.text, fontFamily: "'Instrument Serif', Georgia, serif", fontStyle: 'italic', fontWeight: 400, letterSpacing: '-0.02em' }}>
           Your twin is listening
@@ -33,7 +33,7 @@ export const SpotifyEmptyState: React.FC<SpotifyEmptyStateProps> = ({
           <button
             onClick={() => navigate('/get-started')}
             className="px-5 py-2.5 rounded-xl text-sm font-medium transition-all hover:scale-[1.02]"
-            style={{ backgroundColor: colors.spotifyGreen, color: '#fff' }}
+            style={{ backgroundColor: colors.spotifyGreen, color: 'var(--foreground)' }}
           >
             Connect Spotify
           </button>
@@ -66,7 +66,7 @@ export const SpotifyEmptyState: React.FC<SpotifyEmptyStateProps> = ({
           <div className="space-y-2">
             {[80, 60, 40].map((width, i) => (
               <div key={i} className="flex items-center gap-3">
-                <div className="w-20 h-3 rounded animate-pulse" style={{ backgroundColor: 'rgba(255,255,255,0.04)' }} />
+                <div className="w-20 h-3 rounded animate-pulse" style={{ backgroundColor: 'var(--surface)' }} />
                 <div className="flex-1 h-4 rounded-lg overflow-hidden animate-pulse" style={{ backgroundColor: 'var(--glass-surface-bg)' }}>
                   <div className="h-full rounded-lg" style={{ width: `${width}%`, backgroundColor: `${colors.spotifyGreen}40` }} />
                 </div>

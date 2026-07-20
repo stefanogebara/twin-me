@@ -309,7 +309,7 @@ export default function ChatImportCard({ cardStyle }: ChatImportCardProps) {
         <div className="mb-4">
           <label className="text-[11px] block mb-1.5" style={{ color: 'var(--text-muted)' }}>
             Your display name in the Telegram export{' '}
-            <span style={{ color: 'rgba(255, 255, 255, 0.55)' }}>(required once)</span>
+            <span style={{ color: 'var(--text-secondary)' }}>(required once)</span>
           </label>
           <input
             type="text"
@@ -318,7 +318,7 @@ export default function ChatImportCard({ cardStyle }: ChatImportCardProps) {
             placeholder="Exactly as it appears in the chat, e.g. Stefano"
             className="w-full px-3 py-2 text-[12px] rounded-lg"
             style={{
-              backgroundColor: 'rgba(255,255,255,0.06)',
+              backgroundColor: 'var(--surface)',
               border: '1px solid var(--glass-surface-border)',
               color: 'var(--foreground)',
               outline: 'none',
@@ -403,7 +403,7 @@ export default function ChatImportCard({ cardStyle }: ChatImportCardProps) {
                     <button
                       onClick={() => skipContext(def.id)}
                       className="text-[11px] transition-opacity hover:opacity-60"
-                      style={{ color: 'rgba(255, 255, 255, 0.55)' }}
+                      style={{ color: 'var(--text-secondary)' }}
                     >
                       Skip
                     </button>
@@ -413,7 +413,7 @@ export default function ChatImportCard({ cardStyle }: ChatImportCardProps) {
                   <button
                     onClick={() => openFilePicker(def.id)}
                     className="flex items-center gap-1 text-[10px] transition-opacity hover:opacity-60"
-                    style={{ color: 'rgba(255, 255, 255, 0.55)' }}
+                    style={{ color: 'var(--text-secondary)' }}
                     title="Import another chat for this context"
                   >
                     <RotateCcw className="w-3 h-3" />
@@ -434,9 +434,9 @@ export default function ChatImportCard({ cardStyle }: ChatImportCardProps) {
                     onClick={() => retryContext(def.id)}
                     className="text-[11px] px-2.5 py-1 rounded-full transition-opacity hover:opacity-80"
                     style={{
-                      background: 'rgba(255,255,255,0.06)',
-                      border: '1px solid rgba(255,255,255,0.12)',
-                      color: 'rgba(255, 255, 255, 0.55)',
+                      background: 'var(--surface)',
+                      border: '1px solid var(--glass-surface-border)',
+                      color: 'var(--text-secondary)',
                     }}
                   >
                     Import
@@ -467,7 +467,7 @@ export default function ChatImportCard({ cardStyle }: ChatImportCardProps) {
               autoFocus
               className="flex-1 px-3 py-1.5 text-[12px] rounded-lg"
               style={{
-                backgroundColor: 'rgba(255,255,255,0.06)',
+                backgroundColor: 'var(--surface)',
                 border: '1px solid rgba(42,171,238,0.3)',
                 color: 'var(--foreground)',
                 outline: 'none',
@@ -484,7 +484,7 @@ export default function ChatImportCard({ cardStyle }: ChatImportCardProps) {
             <button
               onClick={() => setPendingTelegramContext(null)}
               className="text-[11px] px-2 transition-opacity hover:opacity-60"
-              style={{ color: 'rgba(255, 255, 255, 0.55)' }}
+              style={{ color: 'var(--text-secondary)' }}
             >
               Cancel
             </button>
@@ -511,7 +511,7 @@ export default function ChatImportCard({ cardStyle }: ChatImportCardProps) {
               placeholder="e.g. Stefano — leave blank to auto-detect"
               className="mt-2 w-full px-3 py-2 text-[12px] rounded-lg"
               style={{
-                backgroundColor: 'rgba(255,255,255,0.06)',
+                backgroundColor: 'var(--surface)',
                 border: '1px solid var(--glass-surface-border)',
                 color: 'var(--foreground)',
                 outline: 'none',
@@ -526,7 +526,7 @@ export default function ChatImportCard({ cardStyle }: ChatImportCardProps) {
         <button
           onClick={() => setShowGuide(v => !v)}
           className="flex items-center gap-1.5 text-[11px] transition-opacity hover:opacity-80"
-          style={{ color: 'rgba(255, 255, 255, 0.55)' }}
+          style={{ color: 'var(--text-secondary)' }}
         >
           <HelpCircle className="w-3 h-3" />
           {showGuide ? 'Hide guide' : `How to export from ${cfg.label}`}
@@ -536,9 +536,9 @@ export default function ChatImportCard({ cardStyle }: ChatImportCardProps) {
         {showGuide && (
           <div
             className="mt-3 p-4 rounded-[12px] space-y-3"
-            style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}
+            style={{ background: 'var(--surface)', border: '1px solid var(--border-glass)' }}
           >
-            <p className="text-[11px] font-medium uppercase tracking-wider" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
+            <p className="text-[11px] font-medium uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>
               {cfg.guideTitle}
             </p>
             <ol className="space-y-2">
@@ -550,13 +550,13 @@ export default function ChatImportCard({ cardStyle }: ChatImportCardProps) {
                   >
                     {i + 1}
                   </span>
-                  <span className="text-[12px] leading-relaxed" style={{ color: 'rgba(255,255,255,0.55)' }}>
+                  <span className="text-[12px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
                     {step}
                   </span>
                 </li>
               ))}
             </ol>
-            <p className="text-[11px] leading-relaxed pt-1" style={{ color: 'rgba(255, 255, 255, 0.55)', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+            <p className="text-[11px] leading-relaxed pt-1" style={{ color: 'var(--text-secondary)', borderTop: '1px solid var(--border-glass)' }}>
               {cfg.guideNote}
             </p>
           </div>

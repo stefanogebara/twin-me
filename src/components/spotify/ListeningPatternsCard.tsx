@@ -45,7 +45,7 @@ export const ListeningPatternsCard: React.FC<ListeningPatternsCardProps> = ({
           <h3 className="text-lg font-medium" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>
             Listening Patterns
           </h3>
-          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
+          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
             Your music habits
           </p>
         </div>
@@ -64,7 +64,7 @@ export const ListeningPatternsCard: React.FC<ListeningPatternsCardProps> = ({
             <p className="text-lg font-medium" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>
               {formatHour(patterns.peakHours.start)} - {formatHour(patterns.peakHours.end)}
             </p>
-            <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.3)' }}>
+            <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
               {patterns.peakHours.label}
             </p>
           </div>
@@ -80,7 +80,7 @@ export const ListeningPatternsCard: React.FC<ListeningPatternsCardProps> = ({
           </div>
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <div className="flex-1 h-8 bg-white/8 rounded-lg overflow-hidden relative">
+              <div className="flex-1 h-8 bg-[var(--surface)] rounded-lg overflow-hidden relative">
                 <div
                   className="h-full bg-gradient-to-r from-[#1DB954] to-[#1ed760] flex items-center justify-center transition-all duration-800"
                   style={{ width: `${weekdayPercentage}%` }}
@@ -92,12 +92,12 @@ export const ListeningPatternsCard: React.FC<ListeningPatternsCardProps> = ({
                   )}
                 </div>
               </div>
-              <span className="text-xs w-16 text-right" style={{ fontFamily: "'Inter', sans-serif", color: 'rgba(255,255,255,0.3)' }}>
+              <span className="text-xs w-16 text-right" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--text-muted)' }}>
                 Weekday
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="flex-1 h-8 bg-white/8 rounded-lg overflow-hidden relative">
+              <div className="flex-1 h-8 bg-[var(--surface)] rounded-lg overflow-hidden relative">
                 <div
                   className="h-full bg-gradient-to-r from-[#A89A7E] to-[#C9B99A] flex items-center justify-center transition-all duration-800"
                   style={{ width: `${weekendPercentage}%` }}
@@ -109,7 +109,7 @@ export const ListeningPatternsCard: React.FC<ListeningPatternsCardProps> = ({
                   )}
                 </div>
               </div>
-              <span className="text-xs w-16 text-right" style={{ fontFamily: "'Inter', sans-serif", color: 'rgba(255,255,255,0.3)' }}>
+              <span className="text-xs w-16 text-right" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--text-muted)' }}>
                 Weekend
               </span>
             </div>
@@ -120,11 +120,11 @@ export const ListeningPatternsCard: React.FC<ListeningPatternsCardProps> = ({
         <div className="grid grid-cols-2 gap-3 pt-2">
           <div
             className="rounded-lg p-3"
-            style={{ backgroundColor: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-glass)' }}
+            style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-glass)' }}
           >
             <div className="flex items-center gap-2 mb-1">
               <Headphones className="w-3.5 h-3.5 text-[#1DB954]" />
-              <span className="text-xs" style={{ fontFamily: "'Inter', sans-serif", color: 'rgba(255,255,255,0.3)' }}>
+              <span className="text-xs" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--text-muted)' }}>
                 Total Listened
               </span>
             </div>
@@ -135,11 +135,11 @@ export const ListeningPatternsCard: React.FC<ListeningPatternsCardProps> = ({
 
           <div
             className="rounded-lg p-3"
-            style={{ backgroundColor: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-glass)' }}
+            style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-glass)' }}
           >
             <div className="flex items-center gap-2 mb-1">
               <Clock className="w-3.5 h-3.5 text-[#1DB954]" />
-              <span className="text-xs" style={{ fontFamily: "'Inter', sans-serif", color: 'rgba(255,255,255,0.3)' }}>
+              <span className="text-xs" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--text-muted)' }}>
                 Avg Session
               </span>
             </div>
@@ -152,13 +152,13 @@ export const ListeningPatternsCard: React.FC<ListeningPatternsCardProps> = ({
         {/* Skip Rate */}
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <SkipForward className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.3)' }} />
+            <SkipForward className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
             <span className="text-[11px] font-medium tracking-widest uppercase" style={{ color: '#10b77f' }}>
               Skip Rate
             </span>
           </div>
           <div className="flex items-center gap-3">
-            <div className="flex-1 h-2 bg-white/8 rounded-full overflow-hidden">
+            <div className="flex-1 h-2 bg-[var(--surface)] rounded-full overflow-hidden">
               <div
                 className="h-full bg-gradient-to-r from-stone-400 to-stone-600 rounded-full transition-all duration-800"
                 style={{ width: `${patterns.skipRate}%` }}

@@ -412,8 +412,8 @@ const Widget = () => {
       <header
         className="flex items-center justify-between flex-shrink-0 px-4 py-2.5"
         style={{
-          borderBottom: '1px solid rgba(255,255,255,0.08)',
-          background: 'rgba(255,255,255,0.04)',
+          borderBottom: '1px solid var(--border-glass)',
+          background: 'var(--surface)',
           backdropFilter: 'blur(16px)',
           WebkitBackdropFilter: 'blur(16px)',
         }}
@@ -430,7 +430,7 @@ const Widget = () => {
             className="text-[18px] leading-none"
             style={{
               fontFamily: "'Instrument Serif', serif",
-              color: '#F5F5F4',
+              color: 'var(--foreground)',
               letterSpacing: '-0.02em',
             }}
           >
@@ -441,7 +441,7 @@ const Widget = () => {
           to="/talk-to-twin"
           onClick={openFullApp}
           className="flex items-center gap-1.5 px-2 py-1 rounded-[6px] text-[12px] font-medium transition-colors"
-          style={{ color: 'rgba(245,245,244,0.6)', fontFamily: 'Inter, sans-serif' }}
+          style={{ color: 'var(--text-secondary)', fontFamily: 'Inter, sans-serif' }}
           onMouseEnter={(e) => { e.currentTarget.style.color = '#F5F5F4'; }}
           onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(245,245,244,0.6)'; }}
           title="Open the full app"
@@ -466,7 +466,7 @@ const Widget = () => {
               className="text-[20px] leading-tight"
               style={{
                 fontFamily: "'Instrument Serif', serif",
-                color: '#F5F5F4',
+                color: 'var(--foreground)',
                 letterSpacing: '-0.02em',
               }}
             >
@@ -474,7 +474,7 @@ const Widget = () => {
             </p>
             <p
               className="text-[13px] mt-2 max-w-[280px]"
-              style={{ color: 'rgba(245,245,244,0.4)', fontFamily: 'Inter, sans-serif' }}
+              style={{ color: 'var(--text-muted)', fontFamily: 'Inter, sans-serif' }}
             >
               Ask anything. Your twin knows your patterns, routines, and what makes you tick.
             </p>
@@ -495,8 +495,8 @@ const Widget = () => {
         <div
           className="flex items-end gap-2 rounded-[20px] px-4 py-2.5"
           style={{
-            background: 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(255,255,255,0.10)',
+            background: 'var(--surface)',
+            border: '1px solid var(--glass-surface-border)',
             backdropFilter: 'blur(42px)',
             WebkitBackdropFilter: 'blur(42px)',
           }}
@@ -513,7 +513,7 @@ const Widget = () => {
             onKeyDown={handleKeyDown}
             rows={1}
             aria-label="Message your twin"
-            className="flex-1 resize-none focus:outline-none text-[14px] bg-transparent placeholder:text-[rgba(255,255,255,0.55)]"
+            className="flex-1 resize-none focus:outline-none text-[14px] bg-transparent placeholder:text-[var(--text-secondary)]"
             style={{
               color: 'var(--foreground, #F5F5F4)',
               minHeight: '24px',

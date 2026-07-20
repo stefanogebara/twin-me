@@ -146,12 +146,12 @@ export default function VoiceSetupPage() {
             fontFamily: "'Instrument Serif', Georgia, serif",
             fontStyle: 'italic',
             letterSpacing: '-0.02em',
-            color: '#F5F5F4',
+            color: 'var(--foreground)',
           }}
         >
           Voice bridge
         </h1>
-        <p className="text-[15px]" style={{ color: 'rgba(255,255,255,0.45)' }}>
+        <p className="text-[15px]" style={{ color: 'var(--text-secondary)' }}>
           Talk to your twin from WhatsApp. Voice messages get transcribed and routed
           to the same brain as the web chat — the twin replies in text.
         </p>
@@ -160,14 +160,14 @@ export default function VoiceSetupPage() {
       <section
         className="rounded-[20px] px-6 py-5 mb-5"
         style={{
-          background: 'rgba(255,255,255,0.06)',
-          border: '1px solid rgba(255,255,255,0.10)',
+          background: 'var(--surface)',
+          border: '1px solid var(--glass-surface-border)',
           backdropFilter: 'blur(42px)',
           WebkitBackdropFilter: 'blur(42px)',
         }}
       >
         {state.status === 'loading' && (
-          <div className="text-[13px]" style={{ color: 'rgba(255,255,255,0.4)' }}>
+          <div className="text-[13px]" style={{ color: 'var(--text-muted)' }}>
             Checking your bridge status…
           </div>
         )}
@@ -175,10 +175,10 @@ export default function VoiceSetupPage() {
         {state.status === 'none' && (
           <div className="flex flex-col items-start gap-4">
             <div>
-              <p className="text-[15px] mb-1" style={{ color: '#F5F5F4' }}>
+              <p className="text-[15px] mb-1" style={{ color: 'var(--foreground)' }}>
                 Not connected yet
               </p>
-              <p className="text-[13px]" style={{ color: 'rgba(255,255,255,0.4)' }}>
+              <p className="text-[13px]" style={{ color: 'var(--text-muted)' }}>
                 One scan with your phone's WhatsApp and you're done.
               </p>
             </div>
@@ -186,7 +186,7 @@ export default function VoiceSetupPage() {
               onClick={startLink}
               disabled={starting}
               className="px-5 py-2 rounded-[100px] text-[14px] font-medium transition-all duration-150 active:scale-[0.97] disabled:opacity-50"
-              style={{ background: '#F5F5F4', color: '#110f0f' }}
+              style={{ background: 'var(--claura-bone)', color: 'var(--claura-bone-ink)' }}
             >
               {starting ? 'Generating QR…' : 'Link WhatsApp'}
             </button>
@@ -210,11 +210,11 @@ export default function VoiceSetupPage() {
                 )}
               </div>
             ) : (
-              <div className="w-56 h-56 mb-4 rounded-[12px] animate-pulse" style={{ background: 'rgba(255,255,255,0.06)' }} />
+              <div className="w-56 h-56 mb-4 rounded-[12px] animate-pulse" style={{ background: 'var(--surface)' }} />
             )}
             <ol
               className="text-[13px] text-left list-decimal pl-5 mb-4 space-y-1 max-w-md"
-              style={{ color: 'rgba(255,255,255,0.55)' }}
+              style={{ color: 'var(--text-secondary)' }}
             >
               <li>Open WhatsApp on your phone</li>
               <li>Tap Settings → Linked Devices → Link a Device</li>
@@ -223,7 +223,7 @@ export default function VoiceSetupPage() {
             <button
               onClick={cancelLink}
               className="text-[12px] underline"
-              style={{ color: 'rgba(255,255,255,0.4)' }}
+              style={{ color: 'var(--text-muted)' }}
             >
               Cancel
             </button>
@@ -238,16 +238,16 @@ export default function VoiceSetupPage() {
                 style={{ background: '#10b77f' }}
                 aria-hidden="true"
               />
-              <p className="text-[15px]" style={{ color: '#F5F5F4' }}>
+              <p className="text-[15px]" style={{ color: 'var(--foreground)' }}>
                 Connected to <strong>{state.displayName || state.phoneNumber || 'WhatsApp'}</strong>
               </p>
             </div>
             {state.linkedAt && (
-              <p className="text-[12px]" style={{ color: 'rgba(255,255,255,0.35)' }}>
+              <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>
                 Linked {new Date(state.linkedAt).toLocaleString()}
               </p>
             )}
-            <p className="text-[13px] mt-2 max-w-md" style={{ color: 'rgba(255,255,255,0.55)' }}>
+            <p className="text-[13px] mt-2 max-w-md" style={{ color: 'var(--text-secondary)' }}>
               Send yourself a voice note on WhatsApp and your twin will reply.
             </p>
             <button
@@ -268,7 +268,7 @@ export default function VoiceSetupPage() {
             <button
               onClick={fetchStatus}
               className="text-[13px] underline"
-              style={{ color: 'rgba(255,255,255,0.5)' }}
+              style={{ color: 'var(--text-secondary)' }}
             >
               Retry
             </button>
@@ -276,7 +276,7 @@ export default function VoiceSetupPage() {
         )}
       </section>
 
-      <section className="text-[12px] space-y-2" style={{ color: 'rgba(255,255,255,0.4)' }}>
+      <section className="text-[12px] space-y-2" style={{ color: 'var(--text-muted)' }}>
         <p>
           <strong>Privacy:</strong> the bridge holds your WhatsApp Web session keys (the same
           ones your browser's WhatsApp Web uses). Voice audio is transcribed via Whisper and

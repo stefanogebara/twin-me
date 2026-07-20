@@ -22,7 +22,7 @@ export const TopArtistsCard: React.FC<TopArtistsCardProps> = ({ artists, classNa
           <h3 className="text-lg font-medium" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>
             Top Artists
           </h3>
-          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
+          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
             Your most listened artists
           </p>
         </div>
@@ -36,20 +36,20 @@ export const TopArtistsCard: React.FC<TopArtistsCardProps> = ({ artists, classNa
           >
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2 flex-1 min-w-0">
-                <span className="text-sm font-medium flex-shrink-0" style={{ fontFamily: "'Inter', sans-serif", color: 'rgba(255,255,255,0.3)' }}>
+                <span className="text-sm font-medium flex-shrink-0" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--text-muted)' }}>
                   {index + 1}
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium truncate" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>
                     {artist.name}
                   </p>
-                  <p className="text-xs truncate" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                  <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>
                     {artist.genre}
                   </p>
                 </div>
               </div>
               <div className="flex items-center gap-2 flex-shrink-0 ml-3">
-                <span className="text-xs font-mono" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                <span className="text-xs font-mono" style={{ color: 'var(--text-muted)' }}>
                   {artist.plays.toLocaleString('en-US')}
                 </span>
                 {artist.popularity >= 80 && (
@@ -59,7 +59,7 @@ export const TopArtistsCard: React.FC<TopArtistsCardProps> = ({ artists, classNa
             </div>
 
             {/* Visual bar */}
-            <div className="w-full h-1.5 bg-white/8 rounded-full overflow-hidden">
+            <div className="w-full h-1.5 bg-[var(--surface)] rounded-full overflow-hidden">
               <div
                 className="h-full bg-gradient-to-r from-[#1DB954] to-[#1ed760] rounded-full transition-all duration-600"
                 style={{ width: `${(artist.plays / maxPlays) * 100}%` }}
@@ -71,8 +71,8 @@ export const TopArtistsCard: React.FC<TopArtistsCardProps> = ({ artists, classNa
 
       {artists.length === 0 && (
         <div className="text-center py-8">
-          <Music2 className="w-12 h-12 mx-auto mb-3" style={{ color: 'rgba(255,255,255,0.3)' }} />
-          <p className="text-sm" style={{ color: 'rgba(255,255,255,0.3)' }}>
+          <Music2 className="w-12 h-12 mx-auto mb-3" style={{ color: 'var(--text-muted)' }} />
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
             No artist data available yet
           </p>
         </div>

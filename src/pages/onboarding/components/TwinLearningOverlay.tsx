@@ -200,8 +200,8 @@ const TwinLearningOverlay: React.FC<TwinLearningOverlayProps> = ({
     <div
       className="mt-3 rounded-[20px] p-5 relative overflow-hidden"
       style={{
-        backgroundColor: 'rgba(255,255,255,0.06)',
-        border: '1px solid rgba(255,255,255,0.10)',
+        backgroundColor: 'var(--surface)',
+        border: '1px solid var(--glass-surface-border)',
         backdropFilter: 'blur(42px)',
         WebkitBackdropFilter: 'blur(42px)',
         opacity: fadeOut ? 0 : 1,
@@ -255,7 +255,7 @@ const TwinLearningOverlay: React.FC<TwinLearningOverlayProps> = ({
 
           <p
             className="text-base leading-relaxed"
-            style={{ color: '#F5F5F4', fontFamily: "'Inter', sans-serif" }}
+            style={{ color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}
           >
             Your twin is discovering{' '}
             <span
@@ -303,7 +303,7 @@ const TwinLearningOverlay: React.FC<TwinLearningOverlayProps> = ({
             <p
               className="text-sm mb-4 leading-relaxed"
               style={{
-                color: 'rgba(245,245,244,0.85)',
+                color: 'var(--foreground)',
                 fontFamily: 'var(--font-heading)',
                 opacity: showInsight ? 1 : 0,
                 transform: showInsight ? 'translateY(0)' : 'translateY(8px)',
@@ -334,7 +334,7 @@ const TwinLearningOverlay: React.FC<TwinLearningOverlayProps> = ({
                     <span
                       className="text-xs"
                       style={{
-                        color: 'rgba(245,245,244,0.5)',
+                        color: 'var(--text-secondary)',
                         fontFamily: "'Inter', sans-serif",
                       }}
                     >
@@ -343,7 +343,7 @@ const TwinLearningOverlay: React.FC<TwinLearningOverlayProps> = ({
                     <span
                       className="text-xs font-medium"
                       style={{
-                        color: 'rgba(245,245,244,0.85)',
+                        color: 'var(--foreground)',
                         fontFamily: "'Inter', sans-serif",
                       }}
                     >
@@ -366,12 +366,12 @@ const TwinLearningOverlay: React.FC<TwinLearningOverlayProps> = ({
             >
               <div
                 className="mt-2 pt-3"
-                style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}
+                style={{ borderTop: '1px solid var(--border-glass)' }}
               >
                 <p
                   className="text-sm leading-relaxed"
                   style={{
-                    color: 'rgba(245,245,244,0.6)',
+                    color: 'var(--text-secondary)',
                     fontFamily: 'var(--font-heading)',
                     fontStyle: 'italic',
                   }}
@@ -397,7 +397,7 @@ const TwinLearningOverlay: React.FC<TwinLearningOverlayProps> = ({
                 style={{
                   backgroundColor: `${color}20`,
                   border: `1px solid ${color}30`,
-                  color: 'rgba(245,245,244,0.8)',
+                  color: 'var(--foreground)',
                   fontFamily: "'Inter', sans-serif",
                 }}
               >

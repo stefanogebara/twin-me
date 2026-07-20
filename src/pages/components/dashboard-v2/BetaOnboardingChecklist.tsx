@@ -190,7 +190,7 @@ export function BetaOnboardingChecklist({ onDismiss }: BetaOnboardingChecklistPr
           {/* Progress bar */}
           <div
             className="w-full h-1 rounded-full mb-5"
-            style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}
+            style={{ backgroundColor: 'var(--surface)' }}
           >
             <motion.div
               className="h-full rounded-full"

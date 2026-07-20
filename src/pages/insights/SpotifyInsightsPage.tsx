@@ -55,7 +55,7 @@ const SpotifyInsightsPage: React.FC = () => {
         <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
           <AlertCircle
             className="w-12 h-12"
-            style={{ color: 'rgba(255, 255, 255, 0.55)' }}
+            style={{ color: 'var(--text-secondary)' }}
           />
           <p
             style={{
@@ -70,8 +70,8 @@ const SpotifyInsightsPage: React.FC = () => {
             disabled={isRefreshing}
             className="px-4 py-2 rounded-[100px]"
             style={{
-              backgroundColor: '#F5F5F4',
-              color: '#110f0f',
+              background: 'var(--claura-bone)',
+              color: 'var(--claura-bone-ink)',
               fontFamily: "'Inter', sans-serif",
               fontWeight: 500
             }}
@@ -94,7 +94,7 @@ const SpotifyInsightsPage: React.FC = () => {
             className="p-2 rounded-lg"
             style={{
               border: '1px solid var(--border)',
-              color: 'rgba(255,255,255,0.5)'
+              color: 'var(--text-secondary)'
             }}
             aria-label="Back to dashboard"
           >
@@ -143,7 +143,7 @@ const SpotifyInsightsPage: React.FC = () => {
           title="Get a fresh observation"
           style={{
             border: '1px solid var(--border)',
-            color: 'rgba(255,255,255,0.5)'
+            color: 'var(--text-secondary)'
           }}
         >
           <RefreshCw
@@ -182,7 +182,7 @@ const SpotifyInsightsPage: React.FC = () => {
           className="mb-8 p-4 rounded-lg"
           style={{
             border: '1px solid var(--border-glass)',
-            backgroundColor: 'rgba(255,255,255,0.02)'
+            backgroundColor: 'var(--surface)'
           }}
         >
           <span
@@ -240,13 +240,13 @@ const SpotifyInsightsPage: React.FC = () => {
                 className="p-4 rounded-lg"
                 style={{
                   border: '1px solid var(--border-glass)',
-                  backgroundColor: 'rgba(255,255,255,0.02)'
+                  backgroundColor: 'var(--surface)'
                 }}
               >
                 <p
                   className="text-sm leading-relaxed"
                   style={{
-                    color: 'rgba(255, 255, 255, 0.55)',
+                    color: 'var(--text-secondary)',
                     fontFamily: "'Inter', sans-serif"
                   }}
                 >
@@ -255,7 +255,7 @@ const SpotifyInsightsPage: React.FC = () => {
                 <p
                   className="text-xs mt-2"
                   style={{
-                    color: 'rgba(255, 255, 255, 0.55)',
+                    color: 'var(--text-secondary)',
                     fontFamily: "'Inter', sans-serif"
                   }}
                 >

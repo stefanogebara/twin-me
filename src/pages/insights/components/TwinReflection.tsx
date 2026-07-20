@@ -60,7 +60,7 @@ export const TwinReflection: React.FC<TwinReflectionProps> = ({
       className={`p-5 rounded-[20px] ${className}`}
       style={{
         border: '1px solid var(--border-glass)',
-        backgroundColor: 'rgba(255,255,255,0.06)',
+        backgroundColor: 'var(--surface)',
         backdropFilter: 'blur(42px)',
         WebkitBackdropFilter: 'blur(42px)'
       }}
@@ -165,7 +165,7 @@ export const PatternObservation: React.FC<PatternObservationProps> = ({
     <div
       className={`p-4 rounded-xl flex items-start gap-3 ${className}`}
       style={{
-        backgroundColor: 'rgba(255,255,255,0.03)',
+        backgroundColor: 'var(--surface)',
         border: '1px solid var(--border-glass)'
       }}
     >

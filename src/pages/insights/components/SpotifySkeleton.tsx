@@ -45,7 +45,7 @@ export const SpotifySkeleton: React.FC = () => {
       </div>
 
       {/* Skeleton: Top Artists */}
-      <div className="p-4 rounded-lg mb-6" style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
+      <div className="p-4 rounded-lg mb-6" style={{ border: '1px solid var(--border-glass)', backgroundColor: 'var(--surface)' }}>
         <SkeletonPulse className="h-4 w-40 mb-3" />
         <div className="flex flex-wrap gap-2">
           {[1, 2, 3, 4].map(i => (
@@ -55,7 +55,7 @@ export const SpotifySkeleton: React.FC = () => {
       </div>
 
       {/* Skeleton: Reflection */}
-      <div className="p-4 rounded-lg mb-8" style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
+      <div className="p-4 rounded-lg mb-8" style={{ border: '1px solid var(--border-glass)', backgroundColor: 'var(--surface)' }}>
         <SkeletonPulse className="h-4 w-24 mb-4" />
         <SkeletonPulse className="h-5 w-full mb-2" />
         <SkeletonPulse className="h-5 w-4/5 mb-2" />
@@ -67,7 +67,7 @@ export const SpotifySkeleton: React.FC = () => {
         <SkeletonPulse className="h-4 w-36 mb-4" />
         <div className="space-y-3">
           {[1, 2].map(i => (
-            <div key={i} className="p-4 rounded-lg" style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
+            <div key={i} className="p-4 rounded-lg" style={{ border: '1px solid var(--border-glass)', backgroundColor: 'var(--surface)' }}>
               <SkeletonPulse className="h-4 w-full mb-1" />
               <SkeletonPulse className="h-3 w-16" />
             </div>

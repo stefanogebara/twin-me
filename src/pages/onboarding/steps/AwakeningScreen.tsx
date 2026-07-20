@@ -57,7 +57,7 @@ function Stars() {
 }
 
 const GLASS = {
-  background: 'rgba(255,255,255,0.03)',
+  background: 'var(--surface)',
   border: '1px solid var(--border-glass)',
   borderRadius: '16px',
   backdropFilter: 'blur(20px)',
@@ -180,7 +180,7 @@ const AwakeningScreen: React.FC<AwakeningScreenProps> = ({ onEnter }) => {
           fontStyle: 'italic',
           fontSize: 'clamp(18px, 2.5vw, 22px)',
           lineHeight: 1.6,
-          color: 'rgba(255,255,255,0.55)',
+          color: 'var(--text-secondary)',
           opacity: visible ? 1 : 0,
           transform: visible ? 'translateY(0)' : 'translateY(16px)',
           transition: 'all 1.2s ease-out 0.8s',
@@ -204,12 +204,12 @@ const AwakeningScreen: React.FC<AwakeningScreenProps> = ({ onEnter }) => {
             className="flex items-center gap-3 px-5 py-4"
             style={{ ...GLASS, minWidth: 180 }}
           >
-            <Icon className="w-4 h-4 flex-shrink-0" style={{ color: 'rgba(255,255,255,0.3)' }} />
+            <Icon className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
             <div>
-              <p className="text-[13px] font-medium" style={{ color: 'rgba(255,255,255,0.7)', fontFamily: "'Inter', sans-serif" }}>
+              <p className="text-[13px] font-medium" style={{ color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}>
                 {label}
               </p>
-              <p className="text-[11px]" style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Inter', sans-serif" }}>
+              <p className="text-[11px]" style={{ color: 'var(--text-muted)', fontFamily: "'Inter', sans-serif" }}>
                 {value}
               </p>
             </div>
@@ -228,8 +228,8 @@ const AwakeningScreen: React.FC<AwakeningScreenProps> = ({ onEnter }) => {
           className="flex items-center gap-2.5"
           style={{
             fontFamily: "'Inter', sans-serif",
-            backgroundColor: 'rgba(255,255,255,0.92)',
-            color: '#0d0b0b',
+            background: 'var(--claura-bone)',
+            color: 'var(--claura-bone-ink)',
             borderRadius: '100px',
             padding: '14px 36px',
             fontSize: '14px',
@@ -239,8 +239,8 @@ const AwakeningScreen: React.FC<AwakeningScreenProps> = ({ onEnter }) => {
             transition: 'all 0.2s ease',
             boxShadow: '0 4px 30px rgba(255,255,255,0.06)',
           }}
-          onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.8)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
-          onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.92)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'var(--claura-bone)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'var(--claura-bone)'; e.currentTarget.style.transform = 'translateY(0)'; }}
         >
           Enter your world
           <ArrowRight className="w-4 h-4" />

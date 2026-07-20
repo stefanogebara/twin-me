@@ -43,13 +43,13 @@ export const GenreDistributionChart: React.FC<GenreDistributionChartProps> = ({
             backgroundColor: 'rgba(10,15,10,0.9)',
             border: '1px solid var(--glass-surface-border)',
             borderRadius: '8px',
-            color: 'rgba(255,255,255,0.8)'
+            color: 'var(--foreground)'
           }}
         >
           <p className="text-sm font-medium" style={{ fontFamily: "'Inter', sans-serif" }}>
             {payload[0].name}
           </p>
-          <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.3)' }}>
+          <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
             {payload[0].value.toFixed(1)}% ({payload[0].payload.count} tracks)
           </p>
         </div>
@@ -68,7 +68,7 @@ export const GenreDistributionChart: React.FC<GenreDistributionChartProps> = ({
           <h3 className="text-lg font-medium" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>
             Genre Distribution
           </h3>
-          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
+          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
             Your musical palette
           </p>
         </div>
@@ -109,11 +109,11 @@ export const GenreDistributionChart: React.FC<GenreDistributionChartProps> = ({
                     className="w-3 h-3 rounded-full flex-shrink-0"
                     style={{ backgroundColor: genre.color }}
                   />
-                  <span className="text-sm truncate" style={{ fontFamily: "'Inter', sans-serif", color: 'rgba(255,255,255,0.3)' }}>
+                  <span className="text-sm truncate" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--text-muted)' }}>
                     {genre.name}
                   </span>
                 </div>
-                <span className="text-sm font-mono flex-shrink-0 ml-2" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                <span className="text-sm font-mono flex-shrink-0 ml-2" style={{ color: 'var(--text-muted)' }}>
                   {genre.value.toFixed(1)}%
                 </span>
               </div>
@@ -122,8 +122,8 @@ export const GenreDistributionChart: React.FC<GenreDistributionChartProps> = ({
         </div>
       ) : (
         <div className="text-center py-12">
-          <Disc3 className="w-12 h-12 mx-auto mb-3" style={{ color: 'rgba(255,255,255,0.3)' }} />
-          <p className="text-sm" style={{ color: 'rgba(255,255,255,0.3)' }}>
+          <Disc3 className="w-12 h-12 mx-auto mb-3" style={{ color: 'var(--text-muted)' }} />
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
             No genre data available yet
           </p>
         </div>

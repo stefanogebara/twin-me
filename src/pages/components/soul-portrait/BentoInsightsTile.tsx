@@ -37,7 +37,7 @@ export const BentoInsightsTile: React.FC<Props> = ({ insights }) => {
     <div
       className="rounded-lg p-5 h-full flex flex-col"
       style={{
-        backgroundColor: 'rgba(255,255,255,0.02)',
+        backgroundColor: 'var(--surface)',
         border: '1px solid var(--border-glass)',
       }}
     >

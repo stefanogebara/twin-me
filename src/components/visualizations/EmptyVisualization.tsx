@@ -25,13 +25,13 @@ export function EmptyVisualization({
       className={`rounded-lg p-12 ${className}`}
       style={{
         border: '1px solid var(--border-glass)',
-        backgroundColor: 'rgba(255,255,255,0.02)',
+        backgroundColor: 'var(--surface)',
       }}
     >
       <div className="max-w-md mx-auto text-center">
         {/* Icon */}
         {icon && (
-          <div className="w-20 h-20 bg-white/8 rounded-full flex items-center justify-center mx-auto mb-6">
+          <div className="w-20 h-20 bg-[var(--surface)] rounded-full flex items-center justify-center mx-auto mb-6">
             <div className="text-muted-foreground">
               {icon}
             </div>

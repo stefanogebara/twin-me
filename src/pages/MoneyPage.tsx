@@ -54,7 +54,7 @@ const LABEL_STYLE: React.CSSProperties = {
   fontWeight: 500,
   letterSpacing: '0.08em',
   textTransform: 'uppercase',
-  color: 'rgba(255, 255, 255, 0.55)',
+  color: 'var(--text-secondary)',
   marginBottom: 12,
 };
 
@@ -149,12 +149,12 @@ function UploadZone({ onUpload, onError }: UploadZoneProps) {
       />
       <div
         className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4"
-        style={{ background: 'rgba(255,255,255,0.06)' }}
+        style={{ background: 'var(--surface)' }}
       >
         {uploading ? (
           <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--accent-vibrant)' }} />
         ) : (
-          <Upload className="w-5 h-5" style={{ color: 'rgba(255,255,255,0.65)' }} />
+          <Upload className="w-5 h-5" style={{ color: 'var(--text-secondary)' }} />
         )}
       </div>
       <p
@@ -172,7 +172,7 @@ function UploadZone({ onUpload, onError }: UploadZoneProps) {
         style={{
           fontFamily: "'Geist', 'Inter', sans-serif",
           fontSize: 13,
-          color: 'rgba(255,255,255,0.50)',
+          color: 'var(--text-secondary)',
           lineHeight: 1.5,
         }}
       >
@@ -237,7 +237,7 @@ function SummaryBar({ summary, currency, mixedCurrency }: { summary: Transaction
           >
             {formatCurrency(headlineOutflow, currency)}
           </p>
-          <p style={{ fontSize: 12, color: 'rgba(255, 255, 255, 0.55)', marginTop: 4, fontFamily: "'Geist', 'Inter', sans-serif" }}>
+          <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4, fontFamily: "'Geist', 'Inter', sans-serif" }}>
             {mixedCurrency ? `Total spending (${currency})` : 'Total spending'}
           </p>
         </div>
@@ -253,7 +253,7 @@ function SummaryBar({ summary, currency, mixedCurrency }: { summary: Transaction
           >
             {emotionalPct !== null ? `${emotionalPct}%` : '—'}
           </p>
-          <p style={{ fontSize: 12, color: 'rgba(255, 255, 255, 0.55)', marginTop: 4, fontFamily: "'Geist', 'Inter', sans-serif" }}>
+          <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4, fontFamily: "'Geist', 'Inter', sans-serif" }}>
             Under stress
           </p>
         </div>
@@ -269,7 +269,7 @@ function SummaryBar({ summary, currency, mixedCurrency }: { summary: Transaction
           >
             {summary.stress_shop_count}
           </p>
-          <p style={{ fontSize: 12, color: 'rgba(255, 255, 255, 0.55)', marginTop: 4, fontFamily: "'Geist', 'Inter', sans-serif" }}>
+          <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4, fontFamily: "'Geist', 'Inter', sans-serif" }}>
             Impulse purchases
           </p>
         </div>
@@ -279,7 +279,7 @@ function SummaryBar({ summary, currency, mixedCurrency }: { summary: Transaction
       {mixedCurrency && summary.currencies && summary.currencies.length > 1 && (
         <div
           className="mt-5 pt-4 flex flex-wrap gap-x-5 gap-y-2"
-          style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}
+          style={{ borderTop: '1px solid var(--border-glass)' }}
         >
           {summary.currencies.map((c) => (
             <div key={c.currency}>
@@ -287,7 +287,7 @@ function SummaryBar({ summary, currency, mixedCurrency }: { summary: Transaction
                 style={{
                   fontFamily: "'Instrument Serif', Georgia, serif",
                   fontSize: 17,
-                  color: 'rgba(255,255,255,0.85)',
+                  color: 'var(--foreground)',
                   lineHeight: 1.1,
                   letterSpacing: '-0.01em',
                 }}
@@ -299,7 +299,7 @@ function SummaryBar({ summary, currency, mixedCurrency }: { summary: Transaction
                   fontSize: 10.5,
                   letterSpacing: '0.04em',
                   textTransform: 'uppercase',
-                  color: 'rgba(255, 255, 255, 0.55)',
+                  color: 'var(--text-secondary)',
                   fontFamily: "'Geist', 'Inter', sans-serif",
                   marginTop: 2,
                 }}
@@ -379,7 +379,7 @@ function FeedbackToggle({ txId, initial }: { txId: string; initial: boolean | nu
 
   return (
     <div className="flex items-center gap-1.5 mt-1" title="Was this a stress purchase?">
-      <span style={{ fontSize: 10, color: 'rgba(255, 255, 255, 0.55)', fontFamily: "'Geist','Inter',sans-serif" }}>stress?</span>
+      <span style={{ fontSize: 10, color: 'var(--text-secondary)', fontFamily: "'Geist','Inter',sans-serif" }}>stress?</span>
       <button
         onClick={() => { void toggle(true); }}
         style={{
@@ -445,7 +445,7 @@ function WhatsAppCaptureCard() {
       style={CARD_STYLE}
       data-testid="whatsapp-capture-card"
     >
-      <MessageCircle size={20} style={{ color: 'rgba(255,255,255,0.70)', flexShrink: 0 }} />
+      <MessageCircle size={20} style={{ color: 'var(--foreground)', flexShrink: 0 }} />
       <div className="flex-1 min-w-[220px]">
         <p
           style={{
@@ -462,7 +462,7 @@ function WhatsAppCaptureCard() {
           style={{
             fontFamily: "'Geist', 'Inter', sans-serif",
             fontSize: 12,
-            color: 'rgba(255,255,255,0.50)',
+            color: 'var(--text-secondary)',
           }}
         >
           Forward bank notifications, Pix receipts, or just say "gastei 80 no iFood" — it lands here with emotional context. Or upload a CSV/OFX statement below.
@@ -483,8 +483,8 @@ function WhatsAppCaptureCard() {
           to="/settings"
           className="px-3 py-2"
           style={{
-            background: '#F5F5F4',
-            color: '#110f0f',
+            background: 'var(--claura-bone)',
+            color: 'var(--claura-bone-ink)',
             borderRadius: 100,
             fontFamily: "'Geist', 'Inter', sans-serif",
             fontSize: 13,
@@ -512,7 +512,7 @@ function TransactionRow({ tx }: { tx: Transaction }) {
       data-testid="transaction-row"
       data-merchant={displayMerchant || ''}
       className="flex items-center gap-4 px-4 py-3.5"
-      style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}
+      style={{ borderBottom: '1px solid var(--border-glass)' }}
     >
       <div className="flex-1 min-w-0">
         <p
@@ -532,7 +532,7 @@ function TransactionRow({ tx }: { tx: Transaction }) {
             style={{
               fontFamily: "'Geist', 'Inter', sans-serif",
               fontSize: 11,
-              color: 'rgba(255, 255, 255, 0.55)',
+              color: 'var(--text-secondary)',
             }}
           >
             {formatDate(tx.transaction_date)} · {tx.source_bank}
@@ -543,8 +543,8 @@ function TransactionRow({ tx }: { tx: Transaction }) {
                 fontSize: 10,
                 padding: '2px 8px',
                 borderRadius: 46,
-                background: 'rgba(255,255,255,0.04)',
-                color: 'rgba(255,255,255,0.55)',
+                background: 'var(--surface)',
+                color: 'var(--text-secondary)',
                 fontFamily: "'Geist', 'Inter', sans-serif",
                 fontWeight: 500,
                 letterSpacing: '0.02em',
@@ -590,8 +590,8 @@ function TransactionRow({ tx }: { tx: Transaction }) {
                 fontSize: 10,
                 padding: '2px 8px',
                 borderRadius: 20,
-                background: 'rgba(255,255,255,0.04)',
-                color: 'rgba(255,255,255,0.50)',
+                background: 'var(--surface)',
+                color: 'var(--text-secondary)',
                 fontFamily: "'Geist', 'Inter', sans-serif",
                 fontWeight: 500,
                 letterSpacing: '0.02em',
@@ -607,8 +607,8 @@ function TransactionRow({ tx }: { tx: Transaction }) {
                 fontSize: 10,
                 padding: '2px 8px',
                 borderRadius: 20,
-                background: 'rgba(255,255,255,0.04)',
-                color: 'rgba(255,255,255,0.50)',
+                background: 'var(--surface)',
+                color: 'var(--text-secondary)',
                 fontFamily: "'Geist', 'Inter', sans-serif",
               }}
               title={`Music valence ${ec.music_valence.toFixed(2)}`}
@@ -622,8 +622,8 @@ function TransactionRow({ tx }: { tx: Transaction }) {
                 fontSize: 10,
                 padding: '2px 8px',
                 borderRadius: 20,
-                background: 'rgba(255,255,255,0.04)',
-                color: 'rgba(255,255,255,0.50)',
+                background: 'var(--surface)',
+                color: 'var(--text-secondary)',
                 fontFamily: "'Geist', 'Inter', sans-serif",
               }}
               title={`Recovery ${Math.round(ec.recovery_score)}%`}
@@ -753,10 +753,10 @@ export default function MoneyPage() {
               to="/money/insights"
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-[100px] transition-all duration-150 hover:opacity-70 active:scale-[0.97]"
               style={{
-                background: 'rgba(255,255,255,0.04)',
-                border: '1px solid rgba(255,255,255,0.08)',
+                background: 'var(--surface)',
+                border: '1px solid var(--border-glass)',
                 fontSize: 12,
-                color: 'rgba(255,255,255,0.85)',
+                color: 'var(--foreground)',
                 fontFamily: "'Geist', 'Inter', sans-serif",
               }}
               title="A narrative read of your patterns, subscriptions, trades, and stress timeline"
@@ -771,10 +771,10 @@ export default function MoneyPage() {
               disabled={retagging}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-[100px] transition-all duration-150 hover:opacity-70 active:scale-[0.97] disabled:opacity-40"
               style={{
-                background: 'rgba(255,255,255,0.04)',
-                border: '1px solid rgba(255,255,255,0.08)',
+                background: 'var(--surface)',
+                border: '1px solid var(--border-glass)',
                 fontSize: 12,
-                color: 'rgba(255,255,255,0.65)',
+                color: 'var(--text-secondary)',
                 fontFamily: "'Geist', 'Inter', sans-serif",
               }}
               title="Recompute emotional context with latest HRV/music/calendar data"
@@ -791,7 +791,7 @@ export default function MoneyPage() {
           fontFamily: "'Instrument Serif', Georgia, serif",
           fontSize: 19,
           lineHeight: 1.4,
-          color: 'rgba(255,255,255,0.70)',
+          color: 'var(--foreground)',
           letterSpacing: '-0.01em',
         }}
       >
@@ -850,7 +850,7 @@ export default function MoneyPage() {
             <p
               style={{
                 fontSize: 12,
-                color: 'rgba(255,255,255,0.50)',
+                color: 'var(--text-secondary)',
                 marginTop: 4,
                 fontFamily: "'Geist', 'Inter', sans-serif",
               }}
@@ -858,7 +858,7 @@ export default function MoneyPage() {
               I am connecting each purchase with your mood, stress, and body. Check back in a few seconds.
             </p>
             {lastUpload.parse_errors && lastUpload.parse_errors.length > 0 && (
-              <p style={{ fontSize: 11, color: 'rgba(255, 255, 255, 0.55)', marginTop: 6, fontFamily: 'monospace' }}>
+              <p style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 6, fontFamily: 'monospace' }}>
                 {lastUpload.parse_errors.length} line{lastUpload.parse_errors.length === 1 ? '' : 's'} skipped
               </p>
             )}
@@ -904,10 +904,10 @@ export default function MoneyPage() {
             <div
               key={i}
               className="px-4 py-3.5 animate-pulse"
-              style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
+              style={{ borderBottom: '1px solid var(--border-glass)' }}
             >
-              <div className="h-4 w-3/4 rounded mb-2" style={{ background: 'rgba(255,255,255,0.06)' }} />
-              <div className="h-3 w-1/3 rounded" style={{ background: 'rgba(255,255,255,0.04)' }} />
+              <div className="h-4 w-3/4 rounded mb-2" style={{ background: 'var(--surface)' }} />
+              <div className="h-3 w-1/3 rounded" style={{ background: 'var(--surface)' }} />
             </div>
           ))}
         </div>
@@ -927,12 +927,12 @@ export default function MoneyPage() {
         </div>
       ) : (
         <div style={{ ...CARD_STYLE, padding: 32, textAlign: 'center' }}>
-          <FileText className="w-8 h-8 mx-auto mb-3" style={{ color: 'rgba(255, 255, 255, 0.55)' }} />
+          <FileText className="w-8 h-8 mx-auto mb-3" style={{ color: 'var(--text-secondary)' }} />
           <p
             style={{
               fontFamily: "'Instrument Serif', Georgia, serif",
               fontSize: 18,
-              color: 'rgba(255,255,255,0.70)',
+              color: 'var(--foreground)',
               marginBottom: 6,
               letterSpacing: '-0.01em',
             }}
@@ -943,7 +943,7 @@ export default function MoneyPage() {
             style={{
               fontFamily: "'Geist', 'Inter', sans-serif",
               fontSize: 13,
-              color: 'rgba(255, 255, 255, 0.55)',
+              color: 'var(--text-secondary)',
               lineHeight: 1.6,
             }}
           >
@@ -961,7 +961,7 @@ export default function MoneyPage() {
             fontFamily: "'Instrument Serif', Georgia, serif",
             fontSize: 14,
             fontStyle: 'italic',
-            color: 'rgba(255, 255, 255, 0.55)',
+            color: 'var(--text-secondary)',
             letterSpacing: '-0.005em',
             lineHeight: 1.5,
           }}

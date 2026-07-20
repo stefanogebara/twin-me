@@ -317,7 +317,7 @@ const InstantTwinOnboarding = () => {
             <button
               onClick={() => navigate('/interview')}
               className="text-[12px] transition-opacity hover:opacity-70"
-              style={{ color: 'rgba(255, 255, 255, 0.55)', fontFamily: "'Inter', sans-serif" }}
+              style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
             >
               Tell Your Story instead
             </button>

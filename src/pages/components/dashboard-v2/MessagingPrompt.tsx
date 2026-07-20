@@ -71,7 +71,7 @@ export function MessagingPrompt() {
           className="absolute top-2 right-2 p-1 rounded-full transition-opacity hover:opacity-60"
           aria-label="Dismiss Telegram prompt"
         >
-          <X className="w-3 h-3" style={{ color: 'rgba(255,255,255,0.2)' }} />
+          <X className="w-3 h-3" style={{ color: 'var(--text-muted)' }} />
         </button>
       </div>
     </section>

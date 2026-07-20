@@ -64,15 +64,15 @@ function CustomTooltip({ active, payload, label, currency }: CustomTooltipProps)
 
   return (
     <div style={{
-      background: 'rgba(19,18,26,0.95)',
-      border: '1px solid rgba(255,255,255,0.12)',
+      background: 'var(--card)',
+      border: '1px solid var(--glass-surface-border)',
       borderRadius: 12,
       padding: '10px 14px',
       fontFamily: "'Geist','Inter',sans-serif",
       fontSize: 13,
     }}>
-      <div style={{ color: 'rgba(255,255,255,0.55)', marginBottom: 6, fontSize: 11 }}>{formatDay(label)}</div>
-      <div style={{ color: '#F5F5F4', marginBottom: 4 }}>
+      <div style={{ color: 'var(--text-secondary)', marginBottom: 6, fontSize: 11 }}>{formatDay(label)}</div>
+      <div style={{ color: 'var(--foreground)', marginBottom: 4 }}>
         {formatSpend(spend, currency)} spent
       </div>
       {stress !== null && (
@@ -102,7 +102,7 @@ export function StressSpendTimeline({ days, currency = 'BRL', windowDays = 30 }:
       <div style={{
         padding: '40px 24px',
         textAlign: 'center',
-        color: 'rgba(255, 255, 255, 0.55)',
+        color: 'var(--text-secondary)',
         fontFamily: "'Geist','Inter',sans-serif",
         fontSize: 14,
       }}>
@@ -200,9 +200,9 @@ export function StressSpendTimeline({ days, currency = 'BRL', windowDays = 30 }:
         </ComposedChart>
       </ResponsiveContainer>
 
-      <div style={{ display: 'flex', gap: 20, marginTop: 12, fontSize: 11, color: 'rgba(255, 255, 255, 0.55)' }}>
+      <div style={{ display: 'flex', gap: 20, marginTop: 12, fontSize: 11, color: 'var(--text-secondary)' }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ width: 12, height: 12, borderRadius: 2, background: 'rgba(255,255,255,0.18)', display: 'inline-block' }} />
+          <span style={{ width: 12, height: 12, borderRadius: 2, background: 'var(--text-muted)', display: 'inline-block' }} />
           Daily spending
         </span>
         <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>

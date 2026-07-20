@@ -340,7 +340,7 @@ For privacy concerns: privacy@twinme.me`
           <div
             className="flex items-center gap-2.5 mb-6 py-3 px-4 rounded-lg"
             style={{
-              backgroundColor: 'rgba(255,255,255,0.04)',
+              backgroundColor: 'var(--surface)',
               border: '1px solid var(--glass-surface-border)',
             }}
           >
@@ -676,7 +676,7 @@ For privacy concerns: privacy@twinme.me`
                 onClick={() => setActiveModal(null)}
                 aria-label="Close"
                 className="p-1 transition-opacity hover:opacity-60"
-                style={{ color: 'rgba(255,255,255,0.3)' }}
+                style={{ color: 'var(--text-muted)' }}
               >
                 <X className="w-4 h-4" />
               </button>
@@ -686,7 +686,7 @@ For privacy concerns: privacy@twinme.me`
                 className="whitespace-pre-wrap text-[13px] leading-relaxed"
                 style={{
                   fontFamily: "'Inter', sans-serif",
-                  color: 'rgba(255,255,255,0.5)',
+                  color: 'var(--text-secondary)',
                   margin: 0,
                 }}
               >

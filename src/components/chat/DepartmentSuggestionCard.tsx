@@ -101,7 +101,7 @@ export function DepartmentSuggestionCard({ suggestion, onApprove }: DepartmentSu
             onClick={handleApprove}
             className="px-2.5 py-1 rounded-[100px] text-[11px] font-medium transition-all duration-150 ease-out hover:opacity-90 active:scale-[0.97]"
             style={{
-              backgroundColor: 'var(--claura-bone)',
+              background: 'var(--claura-bone)',
               color: 'var(--claura-bone-ink)',
               fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
             }}

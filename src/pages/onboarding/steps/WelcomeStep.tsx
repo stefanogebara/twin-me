@@ -136,7 +136,7 @@ const WelcomeStep: React.FC<WelcomeStepProps> = ({ onBegin }) => {
             fontFamily: "'Inter', sans-serif",
             fontSize: '15px',
             fontWeight: 400,
-            color: 'rgba(255,255,255,0.45)',
+            color: 'var(--text-secondary)',
             lineHeight: 1.7,
             marginBottom: '44px',
             opacity: visible ? 1 : 0,
@@ -192,10 +192,10 @@ const WelcomeStep: React.FC<WelcomeStepProps> = ({ onBegin }) => {
             className="mt-8 text-[12px] transition-opacity hover:opacity-70"
             style={{
               // audit-2026-07-03 H2: was rgba(255,255,255,0.2) = 1.85:1, far
-              // below AA and the only escape hatch for returning users. 0.7
-              // white = 9.39:1 on #13121a, with headroom to survive the lighter
-              // sunset-art regions this button sits over.
-              color: 'rgba(255,255,255,0.7)',
+              // below AA and the only escape hatch for returning users. Now
+              // var(--foreground) so it keeps AA-strong contrast in both
+              // appearances (near-white on dark, ink on paper).
+              color: 'var(--foreground)',
               fontFamily: "'Inter', sans-serif",
               background: 'none',
               border: 'none',

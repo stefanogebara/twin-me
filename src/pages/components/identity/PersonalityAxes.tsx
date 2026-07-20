@@ -52,7 +52,7 @@ const PersonalityAxes: React.FC<PersonalityAxesProps> = ({ className = '', delay
     return (
       <div className={`mb-20 ${className}`}>
         <div className="flex items-center gap-2 mb-4">
-          <Loader2 className="w-3 h-3 animate-spin" style={{ color: 'rgba(255,255,255,0.3)' }} />
+          <Loader2 className="w-3 h-3 animate-spin" style={{ color: 'var(--text-muted)' }} />
           <span className="text-xs" style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
             Analyzing personality dimensions...
           </span>
@@ -86,7 +86,7 @@ const PersonalityAxes: React.FC<PersonalityAxesProps> = ({ className = '', delay
     >
       {/* Section label */}
       <div className="flex items-center gap-2 mb-4">
-        <Brain className="w-3 h-3" style={{ color: 'rgba(255,255,255,0.25)' }} />
+        <Brain className="w-3 h-3" style={{ color: 'var(--text-muted)' }} />
         <span
           className="text-[11px] uppercase tracking-[0.12em] font-medium"
           style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
@@ -160,7 +160,7 @@ const PersonalityAxes: React.FC<PersonalityAxesProps> = ({ className = '', delay
                   <ChevronRight
                     className="w-3 h-3 transition-transform duration-200 flex-shrink-0"
                     style={{
-                      color: 'rgba(255,255,255,0.18)',
+                      color: 'var(--text-muted)',
                       transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
                     }}
                   />
@@ -205,7 +205,7 @@ const PersonalityAxes: React.FC<PersonalityAxesProps> = ({ className = '', delay
       {axes.length > VISIBLE_DEFAULT && (
         <button
           onClick={() => setShowAll(s => !s)}
-          className="mt-3 w-full text-xs py-2 rounded-[12px] transition-all duration-150 hover:bg-[rgba(255,255,255,0.04)]"
+          className="mt-3 w-full text-xs py-2 rounded-[12px] transition-all duration-150 hover:bg-[var(--surface)]"
           style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
         >
           {showAll ? 'Show fewer' : `+${axes.length - VISIBLE_DEFAULT} more patterns`}

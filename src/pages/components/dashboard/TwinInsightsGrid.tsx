@@ -70,7 +70,7 @@ export const TwinInsightsGrid: React.FC<TwinInsightsGridProps> = ({
               className={`cursor-pointer rounded-lg ${insight.hasData ? 'gradient-accent-bar' : ''}`}
               style={{
                 border: '1px solid var(--border-glass)',
-                backgroundColor: 'rgba(255,255,255,0.02)',
+                backgroundColor: 'var(--surface)',
                 padding: '1.25rem',
               }}
               onClick={() => onNavigate(insight.actionPath!)}

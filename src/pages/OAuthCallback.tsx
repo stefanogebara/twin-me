@@ -628,7 +628,7 @@ const OAuthCallback = () => {
     <div className="min-h-screen flex items-center justify-center" >
       <div
         className="max-w-md w-full mx-4 p-8 text-center"
-        style={{ backgroundColor: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-glass)' }}
+        style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-glass)' }}
       >
         {/* Logo */}
         <div className="flex items-center justify-center gap-3 mb-8">
@@ -686,7 +686,7 @@ const OAuthCallback = () => {
           <button
             onClick={() => navigate('/auth')}
             className="mt-6 px-6 py-2 rounded-full"
-            style={{ backgroundColor: '#F5F5F4', color: '#110f0f', fontWeight: 600 }}
+            style={{ background: 'var(--claura-bone)', color: 'var(--claura-bone-ink)', fontWeight: 600 }}
           >
             Try Again
           </button>

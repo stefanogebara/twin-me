@@ -11,12 +11,12 @@ interface SectionLabelProps {
 export const SectionLabel: React.FC<SectionLabelProps> = ({ label }) => (
   <span
     className="text-[12px] font-medium tracking-[0.08em] uppercase block mb-4"
-    style={{ color: 'rgba(255, 255, 255, 0.55)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+    style={{ color: 'var(--text-secondary)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
   >
     {label}
   </span>
 );
 
 export const Divider: React.FC = () => (
-  <div className="my-8" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} />
+  <div className="my-8" style={{ borderTop: '1px solid var(--border-glass)' }} />
 );

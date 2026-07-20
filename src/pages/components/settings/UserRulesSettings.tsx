@@ -82,7 +82,7 @@ const UserRulesSettings: React.FC = () => {
     return (
       <div className="flex items-center gap-2 py-4 justify-center">
         <div className="w-4 h-4 rounded-full animate-pulse" style={{ background: 'var(--glass-surface-border)' }} />
-        <span className="text-[12px]" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>Loading rules...</span>
+        <span className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>Loading rules...</span>
       </div>
     );
   }
@@ -92,11 +92,11 @@ const UserRulesSettings: React.FC = () => {
       {/* Explainer */}
       <div
         className="flex items-start gap-3 mb-4 p-3 rounded-xl"
-        style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-glass)' }}
+        style={{ background: 'var(--surface)', border: '1px solid var(--border-glass)' }}
       >
-        <Shield className="w-4 h-4 mt-0.5 shrink-0" style={{ color: 'rgba(255, 255, 255, 0.55)' }} />
-        <p className="text-[12px] leading-relaxed" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
-          Rules your twin will <strong style={{ color: 'rgba(255,255,255,0.6)' }}>always</strong> follow.
+        <Shield className="w-4 h-4 mt-0.5 shrink-0" style={{ color: 'var(--text-secondary)' }} />
+        <p className="text-[12px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+          Rules your twin will <strong style={{ color: 'var(--text-secondary)' }}>always</strong> follow.
           Say things like "I'm vegan" or "Never mention my ex". You can also tell your twin in chat.
         </p>
       </div>
@@ -108,10 +108,10 @@ const UserRulesSettings: React.FC = () => {
             <div
               key={i}
               className="flex items-center gap-2 py-2 px-3 rounded-lg group"
-              style={{ background: 'rgba(255,255,255,0.03)' }}
+              style={{ background: 'var(--surface)' }}
             >
-              <Check className="w-3 h-3 shrink-0" style={{ color: 'rgba(255, 255, 255, 0.55)' }} />
-              <span className="text-[13px] flex-1" style={{ color: 'rgba(255,255,255,0.6)' }}>
+              <Check className="w-3 h-3 shrink-0" style={{ color: 'var(--text-secondary)' }} />
+              <span className="text-[13px] flex-1" style={{ color: 'var(--text-secondary)' }}>
                 {rule}
               </span>
               <button
@@ -120,13 +120,13 @@ const UserRulesSettings: React.FC = () => {
                 aria-label={`Remove rule: ${rule}`}
                 title="Remove rule"
               >
-                <X className="w-3 h-3" style={{ color: 'rgba(255, 255, 255, 0.55)' }} aria-hidden="true" />
+                <X className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} aria-hidden="true" />
               </button>
             </div>
           ))}
         </div>
       ) : (
-        <p className="text-[12px] text-center py-3 mb-3" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
+        <p className="text-[12px] text-center py-3 mb-3" style={{ color: 'var(--text-secondary)' }}>
           No rules yet. Add one below or tell your twin in chat.
         </p>
       )}
@@ -163,7 +163,7 @@ const UserRulesSettings: React.FC = () => {
         <p className="text-[11px] mt-2" style={{ color: 'rgba(239,68,68,0.7)' }}>{error}</p>
       )}
 
-      <p className="text-[10px] mt-2" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
+      <p className="text-[10px] mt-2" style={{ color: 'var(--text-secondary)' }}>
         {rules.length}/{maxRules} rules
       </p>
     </div>

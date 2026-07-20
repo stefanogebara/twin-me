@@ -555,7 +555,7 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
             </h2>
             <p
               className="text-xs"
-              style={{ fontFamily: "'Inter', sans-serif", color: 'rgba(255,255,255,0.35)' }}
+              style={{ fontFamily: "'Inter', sans-serif", color: 'var(--text-muted)' }}
             >
               {(questionNumber - 1) <= 3
                 ? `Question ${Math.max(1, Math.min(questionNumber - 1, 3))} of 3`
@@ -602,7 +602,7 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
             return (
               <div key={i} className={`flex flex-col ${isUser ? 'items-end' : 'items-start'}`}>
                 {showDivider && (
-                  <div className="w-full my-2" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }} />
+                  <div className="w-full my-2" style={{ borderTop: '1px solid var(--border-glass)' }} />
                 )}
                 <div className={`max-w-[85%] ${isUser ? 'text-right' : 'text-left'}`}>
                   <p
@@ -631,7 +631,7 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
                     key={i}
                     className="typing-dot w-1.5 h-1.5 rounded-full"
                     style={{
-                      backgroundColor: 'rgba(255,255,255,0.35)',
+                      backgroundColor: 'var(--text-muted)',
                       animation: 'typingBounce 1.2s ease-in-out infinite',
                       animationDelay: `${i * 0.2}s`,
                     }}
@@ -650,8 +650,8 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
                 onClick={handleRetry}
                 className="rounded-[100px] px-4 py-2 text-sm font-medium transition-opacity hover:opacity-90"
                 style={{
-                  backgroundColor: '#F5F5F4',
-                  color: '#110f0f',
+                  background: 'var(--claura-bone)',
+                  color: 'var(--claura-bone-ink)',
                   fontFamily: "'Geist', 'Inter', sans-serif",
                 }}
               >

@@ -85,8 +85,8 @@ const RelRow: React.FC<RelRowProps> = ({ rel, onDismiss }) => {
       data-testid="relationship-row"
       data-email={rel.email}
       style={{
-        background: 'rgba(255,255,255,0.03)',
-        border: '1px solid rgba(255,255,255,0.07)',
+        background: 'var(--surface)',
+        border: '1px solid var(--border-glass)',
         borderRadius: '10px',
         padding: '12px 14px',
         opacity: dismissing ? 0.4 : 1,
@@ -100,7 +100,7 @@ const RelRow: React.FC<RelRowProps> = ({ rel, onDismiss }) => {
             {rel.thread_count > 1 && (
               <span
                 className="text-[10px] px-1.5 py-0.5 rounded"
-                style={{ background: 'rgba(193,126,44,0.25)', color: 'rgba(255,255,255,0.7)' }}
+                style={{ background: 'rgba(193,126,44,0.25)', color: 'var(--foreground)' }}
               >
                 {rel.thread_count} msgs
               </span>
@@ -123,9 +123,9 @@ const RelRow: React.FC<RelRowProps> = ({ rel, onDismiss }) => {
             data-testid="relationship-open-gmail"
             className="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium transition-colors"
             style={{
-              background: 'rgba(255,255,255,0.08)',
+              background: 'var(--surface)',
               color: 'var(--foreground)',
-              border: '1px solid rgba(255,255,255,0.1)',
+              border: '1px solid var(--glass-surface-border)',
             }}
             title="Open in Gmail"
           >
@@ -167,8 +167,8 @@ const EmptyState: React.FC<EmptyStateProps> = ({ status, onRefresh, refreshing }
       data-testid="relationship-empty-state"
       data-status={status}
       style={{
-        background: 'rgba(255,255,255,0.03)',
-        border: '1px solid rgba(255,255,255,0.07)',
+        background: 'var(--surface)',
+        border: '1px solid var(--border-glass)',
         borderRadius: '10px',
         padding: '14px 16px',
       }}
@@ -182,7 +182,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({ status, onRefresh, refreshing }
             style={{
               background: 'var(--foreground)',
               color: 'var(--background)',
-              border: '1px solid rgba(255,255,255,0.1)',
+              border: '1px solid var(--glass-surface-border)',
             }}
           >
             Connect Gmail
@@ -195,9 +195,9 @@ const EmptyState: React.FC<EmptyStateProps> = ({ status, onRefresh, refreshing }
             data-testid="relationship-refresh-btn"
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors disabled:opacity-50 flex-shrink-0"
             style={{
-              background: 'rgba(255,255,255,0.06)',
+              background: 'var(--surface)',
               color: 'var(--foreground)',
-              border: '1px solid rgba(255,255,255,0.10)',
+              border: '1px solid var(--glass-surface-border)',
             }}
           >
             <RefreshCw className={`w-3 h-3 ${refreshing ? 'animate-spin' : ''}`} />
@@ -293,7 +293,7 @@ export const RelationshipsCard: React.FC = () => {
           </span>
         )}
         {briefTimestamp && (
-          <span className="ml-auto text-[10px]" style={{ color: 'rgba(255,255,255,0.25)' }}>
+          <span className="ml-auto text-[10px]" style={{ color: 'var(--text-muted)' }}>
             {formatRelativeTime(briefTimestamp)}
           </span>
         )}

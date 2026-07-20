@@ -50,7 +50,7 @@ export function PersonalityCards({ data, className = '' }: PersonalityCardsProps
       className={`rounded-lg p-6 ${className}`}
       style={{
         border: '1px solid var(--border-glass)',
-        backgroundColor: 'rgba(255,255,255,0.02)',
+        backgroundColor: 'var(--surface)',
       }}
     >
       <div className="mb-6">
@@ -110,7 +110,7 @@ export function PersonalityCards({ data, className = '' }: PersonalityCardsProps
                     {percentage}%
                   </span>
                 </div>
-                <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+                <div className="h-2 bg-[var(--surface-solid)] rounded-full overflow-hidden">
                   <div
                     className="h-full rounded-full transition-all duration-1000"
                     style={{ backgroundColor: config.color, width: `${percentage}%` }}

@@ -124,7 +124,7 @@ export const BentoPlatformTile: React.FC<Props> = ({
     <div
       className="rounded-lg p-4 h-full"
       style={{
-        backgroundColor: 'rgba(255,255,255,0.02)',
+        backgroundColor: 'var(--surface)',
         border: '1px solid var(--border-glass)',
         borderLeft: `3px solid ${meta.color}`,
       }}
@@ -148,7 +148,7 @@ export const BentoPlatformTile: React.FC<Props> = ({
         {syncLabel && (
           <span
             className="text-xs"
-            style={{ color: 'rgba(255,255,255,0.3)' }}
+            style={{ color: 'var(--text-muted)' }}
           >
             {syncLabel}
           </span>
@@ -158,7 +158,7 @@ export const BentoPlatformTile: React.FC<Props> = ({
       {/* Metric line */}
       <p
         className="text-xs leading-relaxed"
-        style={{ color: 'rgba(255,255,255,0.4)' }}
+        style={{ color: 'var(--text-muted)' }}
       >
         {metric ?? 'Data collecting…'}
       </p>
@@ -171,7 +171,7 @@ export const BentoPlatformTile: React.FC<Props> = ({
         />
         <span
           className="text-xs"
-          style={{ color: 'rgba(255,255,255,0.3)' }}
+          style={{ color: 'var(--text-muted)' }}
         >
           Connected
         </span>

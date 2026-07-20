@@ -40,7 +40,7 @@ export const OnboardingHeader: React.FC<OnboardingHeaderProps> = ({
     </h1>
     <p
       className="text-[14px] leading-relaxed mb-10"
-      style={{ color: 'rgba(255, 255, 255, 0.55)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+      style={{ color: 'var(--text-secondary)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
     >
       Link your digital footprints to build your soul signature
     </p>
@@ -50,8 +50,8 @@ export const OnboardingHeader: React.FC<OnboardingHeaderProps> = ({
       <div
         className="flex items-center gap-3 mb-8 px-4 py-3 rounded-xl"
         style={{
-          backgroundColor: 'rgba(255,255,255,0.03)',
-          border: '1px solid rgba(255,255,255,0.06)',
+          backgroundColor: 'var(--surface)',
+          border: '1px solid var(--border-glass)',
         }}
       >
         <CheckCircle2
@@ -61,7 +61,7 @@ export const OnboardingHeader: React.FC<OnboardingHeaderProps> = ({
         <div>
           <span
             className="text-[13px]"
-            style={{ color: 'rgba(255,255,255,0.60)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+            style={{ color: 'var(--text-secondary)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
           >
             {activeCount} platform{activeCount !== 1 ? 's' : ''} active
           </span>

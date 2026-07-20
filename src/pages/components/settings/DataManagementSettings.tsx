@@ -46,7 +46,7 @@ const DataManagementSettings: React.FC<DataManagementSettingsProps> = ({
           Your Data
         </h2>
       </div>
-      <p className="text-sm mb-4" style={{ fontFamily: "'Inter', sans-serif", color: 'rgba(255, 255, 255, 0.55)' }}>
+      <p className="text-sm mb-4" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--text-secondary)' }}>
         You own your data. Export it anytime, or delete your account to permanently remove everything.
       </p>
 
@@ -70,7 +70,7 @@ const DataManagementSettings: React.FC<DataManagementSettingsProps> = ({
           onClick={() => navigate('/privacy-policy')}
           className="w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all hover:scale-[1.01]"
           style={{
-            backgroundColor: 'rgba(255, 255, 255, 0.03)',
+            backgroundColor: 'var(--surface)',
             border: '1px solid var(--sidebar)',
             color: 'var(--foreground)',
             fontFamily: "'Inter', sans-serif",
@@ -132,7 +132,7 @@ const DataManagementSettings: React.FC<DataManagementSettingsProps> = ({
               <li>- All twin conversations and memories</li>
               <li>- Behavioral patterns and insights</li>
             </ul>
-            <p className="text-xs" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
+            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
               Type <strong style={{ color: '#ef4444' }}>DELETE</strong> to confirm:
             </p>
             <input
@@ -142,7 +142,7 @@ const DataManagementSettings: React.FC<DataManagementSettingsProps> = ({
               placeholder="Type DELETE"
               className="w-full px-3 py-2 rounded-lg text-sm outline-none"
               style={{
-                backgroundColor: 'rgba(255, 255, 255, 0.02)',
+                backgroundColor: 'var(--surface)',
                 border: '1px solid rgba(239, 68, 68, 0.3)',
                 color: 'var(--foreground)',
                 fontFamily: "'Inter', sans-serif",
@@ -166,7 +166,7 @@ const DataManagementSettings: React.FC<DataManagementSettingsProps> = ({
                 className="flex-1 px-4 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-2"
                 style={{
                   backgroundColor: deleteConfirmText === 'DELETE' ? '#ef4444' : 'rgba(239, 68, 68, 0.3)',
-                  color: '#fff',
+                  color: 'var(--foreground)',
                   fontFamily: "'Inter', sans-serif",
                   opacity: deleteConfirmText !== 'DELETE' ? 0.5 : 1,
                 }}
@@ -178,7 +178,7 @@ const DataManagementSettings: React.FC<DataManagementSettingsProps> = ({
           </div>
         )}
 
-        <p className="text-xs" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
+        <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
           Account deletion is immediate and irreversible. We recommend exporting your data first.
         </p>
       </div>

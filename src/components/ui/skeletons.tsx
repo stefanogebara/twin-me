@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 
 const darkCardStyle: React.CSSProperties = {
   border: '1px solid var(--border-glass)',
-  backgroundColor: 'rgba(255,255,255,0.02)',
+  backgroundColor: 'var(--surface)',
 };
 
 export interface SkeletonProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -18,7 +18,7 @@ export interface SkeletonProps extends React.HTMLAttributes<HTMLDivElement> {
 export const Skeleton = ({ className, ...props }: SkeletonProps) => {
   return (
     <div
-      className={cn("animate-pulse rounded-md bg-white/10", className)}
+      className={cn("animate-pulse rounded-md bg-[var(--surface-solid)]", className)}
       {...props}
     />
   );
@@ -208,7 +208,7 @@ export const SectionSkeleton = ({ lines = 3 }: { lines?: number }) => {
           <Skeleton
             key={i}
             className="h-4"
-            style={{ width: `${100 - i * 12}%`, background: 'rgba(255,255,255,0.04)' }}
+            style={{ width: `${100 - i * 12}%`, background: 'var(--surface)' }}
           />
         ))}
       </div>
