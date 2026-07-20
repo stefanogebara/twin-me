@@ -272,8 +272,8 @@ export function BetaOnboardingChecklist({ onDismiss }: BetaOnboardingChecklistPr
                       onClick={step.action}
                       className="flex items-center gap-1 px-3 py-1.5 rounded-[100px] text-[12px] font-medium flex-shrink-0 transition-all duration-150 ease-out hover:brightness-110 active:scale-[0.97] cursor-pointer"
                       style={{
-                        background: '#F5F5F4',
-                        color: '#110f0f',
+                        background: 'var(--claura-bone)',
+                        color: 'var(--claura-bone-ink)',
                         border: 'none',
                         fontFamily: "'Geist', 'Inter', sans-serif",
                       }}

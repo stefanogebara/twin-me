@@ -88,7 +88,7 @@ export const WeeklySynthesisCard: React.FC = () => {
           fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
           fontSize: '15.5px',
           lineHeight: 1.7,
-          color: 'rgba(255,255,255,0.78)',
+          color: 'var(--text-narrative)',
           whiteSpace: 'pre-wrap',
         }}
       >

@@ -121,7 +121,7 @@ export function DailyTimeline() {
 
             {/* Content */}
             <div className="flex-1 min-w-0">
-              <p className="text-[12px] leading-relaxed" style={{ color: 'rgba(255,255,255,0.55)' }}>
+              <p className="text-[12px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
                 {item.body}
               </p>
             </div>

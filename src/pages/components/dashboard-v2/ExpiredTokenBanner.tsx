@@ -50,7 +50,7 @@ export function ExpiredTokenBanner(_props: { userId?: string } = {}) {
       }}
     >
       <AlertTriangle className="w-4 h-4 flex-shrink-0" style={{ color: '#FBBF24' }} />
-      <p className="flex-1 text-sm" style={{ color: 'rgba(255,255,255,0.7)', fontFamily: "'Inter', sans-serif" }}>
+      <p className="flex-1 text-sm" style={{ color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}>
         {names} {expired.length === 1 ? 'needs' : 'need'} reconnecting to keep your twin up to date.
       </p>
       {!onConnectPage && (

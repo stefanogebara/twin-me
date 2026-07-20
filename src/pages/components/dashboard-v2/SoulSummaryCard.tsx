@@ -135,7 +135,7 @@ export function SoulSummaryCard() {
 
       <p
         className="narrative-voice text-[16px] leading-[1.55]"
-        style={{ fontStyle: 'italic', color: 'rgba(245,245,244,0.85)' }}
+        style={{ fontStyle: 'italic', color: 'var(--text-narrative)' }}
       >
         &ldquo;{tasteStatement}&rdquo;
       </p>
