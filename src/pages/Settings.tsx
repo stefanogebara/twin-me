@@ -195,16 +195,16 @@ const TelegramConnect: React.FC = () => {
     }
   };
 
-  if (loading) return <div className="py-4 text-center text-[12px]" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>Loading...</div>;
+  if (loading) return <div className="py-4 text-center text-[12px]" style={{ color: 'var(--text-secondary)' }}>Loading...</div>;
 
   return (
     <div>
-      <div className="flex items-center justify-between gap-3 py-4 px-1 -mx-1 rounded-[4px] transition-colors" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }} onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.025)')} onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}>
+      <div className="flex items-center justify-between gap-3 py-4 px-1 -mx-1 rounded-[4px] transition-colors" style={{ borderBottom: '1px solid var(--border-glass)' }} onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--accent)')} onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}>
         <div className="flex items-center gap-3 min-w-0 flex-1">
-          <Send className="w-4 h-4 flex-shrink-0" style={{ color: 'rgba(245,245,244,0.45)' }} />
+          <Send className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
           <div className="min-w-0">
             <span className="text-sm" style={{ color: 'var(--foreground)' }}>Telegram</span>
-            <p className="text-[12px] mt-0.5 truncate" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
+            <p className="text-[12px] mt-0.5 truncate" style={{ color: 'var(--text-secondary)' }}>
               {status?.linked ? 'Connected — twin sends insights here' : 'Chat with your twin on Telegram'}
             </p>
           </div>
@@ -217,7 +217,7 @@ const TelegramConnect: React.FC = () => {
             <button
               onClick={handleUnlink}
               className="text-[11px] transition-opacity hover:opacity-60"
-              style={{ color: 'rgba(255, 255, 255, 0.55)' }}
+              style={{ color: 'var(--text-secondary)' }}
             >
               Unlink
             </button>
@@ -235,17 +235,17 @@ const TelegramConnect: React.FC = () => {
       </div>
 
       {linkCode && !status?.linked && (
-        <div className="py-4 space-y-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+        <div className="py-4 space-y-3" style={{ borderBottom: '1px solid var(--border-glass)' }}>
           <div className="flex items-center justify-center gap-3 p-4 rounded-xl"
-            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.10)' }}>
+            style={{ background: 'var(--glass-surface-bg)', border: '1px solid var(--glass-surface-border)' }}>
             <span className="text-xl sm:text-2xl font-mono tracking-[0.2em] sm:tracking-[0.3em] font-semibold" style={{ color: 'var(--foreground)' }}>
               {linkCode}
             </span>
           </div>
           <div className="flex items-start gap-2">
-            <ExternalLink className="w-3.5 h-3.5 mt-0.5 shrink-0" style={{ color: 'rgba(255, 255, 255, 0.55)' }} />
-            <p className="text-[12px] leading-relaxed" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
-              Open Telegram, search for <strong style={{ color: 'rgba(255,255,255,0.6)' }}>@{botUsername}</strong>, and send: <strong style={{ color: 'rgba(255,255,255,0.6)' }}>/start {linkCode}</strong>
+            <ExternalLink className="w-3.5 h-3.5 mt-0.5 shrink-0" style={{ color: 'var(--text-secondary)' }} />
+            <p className="text-[12px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+              Open Telegram, search for <strong style={{ color: 'var(--foreground)' }}>@{botUsername}</strong>, and send: <strong style={{ color: 'var(--foreground)' }}>/start {linkCode}</strong>
             </p>
           </div>
         </div>
@@ -510,13 +510,13 @@ const Settings = () => {
       <div
         className="lg:hidden sticky top-2 z-20 mb-6 rounded-[12px] px-3 py-2"
         style={{
-          background: 'rgba(255,255,255,0.06)',
+          background: 'var(--glass-surface-bg)',
           backdropFilter: 'blur(42px)',
           WebkitBackdropFilter: 'blur(42px)',
-          border: '1px solid rgba(255,255,255,0.10)',
+          border: '1px solid var(--glass-surface-border)',
         }}
       >
-        <label className="block text-[11px] mb-1 tracking-[0.1em] uppercase" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
+        <label className="block text-[11px] mb-1 tracking-[0.1em] uppercase" style={{ color: 'var(--text-secondary)' }}>
           Jump to
         </label>
         <select
@@ -526,7 +526,7 @@ const Settings = () => {
           style={{ color: 'var(--foreground)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
         >
           {sections.map(s => (
-            <option key={s.id} value={s.id} style={{ background: '#1c1a23', color: '#F5F5F4' }}>
+            <option key={s.id} value={s.id} style={{ background: 'var(--popover)', color: 'var(--foreground)' }}>
               {s.label}
             </option>
           ))}
@@ -549,13 +549,13 @@ const Settings = () => {
                       onClick={() => scrollToSection(s.id)}
                       className="w-full text-left px-3 py-2 rounded-[6px] transition-colors text-[13px]"
                       style={{
-                        color: isActive ? 'var(--accent-vibrant, #c17e2c)' : 'rgba(255,255,255,0.55)',
+                        color: isActive ? 'var(--accent-vibrant, #c17e2c)' : 'var(--text-secondary)',
                         background: isActive ? 'var(--accent-vibrant-glow, rgba(255,132,0,0.10))' : 'transparent',
                         fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
                         fontWeight: isActive ? 500 : 400,
                       }}
                       onMouseEnter={(e) => {
-                        if (!isActive) e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.04)';
+                        if (!isActive) e.currentTarget.style.backgroundColor = 'var(--accent)';
                       }}
                       onMouseLeave={(e) => {
                         if (!isActive) e.currentTarget.style.backgroundColor = 'transparent';
@@ -593,12 +593,12 @@ const Settings = () => {
       <SectionLabel label="Account" />
       <div className="mb-8">
         <SettingsRow label="Email">
-          <span className="text-[14px] truncate max-w-[140px] sm:max-w-none inline-block" style={{ color: 'rgba(255,255,255,0.5)' }}>
+          <span className="text-[14px] truncate max-w-[140px] sm:max-w-none inline-block" style={{ color: 'var(--text-secondary)' }}>
             {user?.email ?? 'Not set'}
           </span>
         </SettingsRow>
         <SettingsRow label="Display Name">
-          <span className="text-[14px] truncate max-w-[140px] sm:max-w-none inline-block" style={{ color: 'rgba(255,255,255,0.5)' }}>
+          <span className="text-[14px] truncate max-w-[140px] sm:max-w-none inline-block" style={{ color: 'var(--text-secondary)' }}>
             {user?.fullName || `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'Not set'}
           </span>
         </SettingsRow>
@@ -614,7 +614,7 @@ const Settings = () => {
                   : 'Managed via OAuth'
           }
         >
-          <span className="text-[14px]" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
+          <span className="text-[14px]" style={{ color: 'var(--text-secondary)' }}>
             {user?.oauthProvider === 'magic_link'
               ? 'Email'
               : user?.oauthProvider
@@ -624,14 +624,14 @@ const Settings = () => {
         </SettingsRow>
         <SettingsRow label="Timezone" description="Used for morning briefings and greetings">
           <div className="flex items-center gap-2">
-            <span className="text-[13px] truncate max-w-[130px] sm:max-w-none" style={{ color: 'rgba(255,255,255,0.5)' }}>
+            <span className="text-[13px] truncate max-w-[130px] sm:max-w-none" style={{ color: 'var(--text-secondary)' }}>
               {timezone || Intl.DateTimeFormat().resolvedOptions().timeZone}
             </span>
             <button
               onClick={handleAutoDetectTimezone}
               disabled={savingTimezone}
               className="text-[12px] px-2 py-1 rounded-[6px] transition-opacity hover:opacity-80 disabled:opacity-40"
-              style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.7)' }}
+              style={{ background: 'var(--surface-solid)', color: 'var(--text-secondary)' }}
             >
               {savingTimezone ? 'Saving…' : 'Auto-detect'}
             </button>
@@ -646,7 +646,7 @@ const Settings = () => {
               }
             }}
             className="text-xs font-mono truncate max-w-[140px] sm:max-w-[240px] inline-block hover:opacity-80 transition-opacity cursor-pointer"
-            style={{ color: 'rgba(255,255,255,0.5)' }}
+            style={{ color: 'var(--text-secondary)' }}
             title="Click to copy"
           >
             {user?.id ? `${user.id.slice(0, 8)}...${user.id.slice(-4)}` : 'Not available'}
@@ -665,12 +665,12 @@ const Settings = () => {
 
       {/* ── SECTION 2: PLAN ── */}
       <section id="section-plan" className="scroll-mt-10">
-      <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
+      <div style={{ borderTop: '1px solid var(--border-glass)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
         <SectionLabel label="Plan" />
         <div
           className="flex items-center justify-between gap-3 py-4 px-1 -mx-1 rounded-[4px] transition-colors"
-          style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}
-          onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.025)')}
+          style={{ borderBottom: '1px solid var(--border-glass)' }}
+          onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--accent)')}
           onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
         >
           <div className="min-w-0 flex-1">
@@ -689,7 +689,7 @@ const Settings = () => {
                 onClick={handleManageBilling}
                 disabled={managingBilling}
                 className="text-[12px] px-3 py-1.5 rounded-[100px] transition-opacity hover:opacity-60 disabled:opacity-30"
-                style={{ border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.5)' }}
+                style={{ border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
               >
                 {managingBilling ? '...' : 'Manage'}
               </button>
@@ -710,7 +710,7 @@ const Settings = () => {
 
       {/* ── SECTION 3: CONNECTED PLATFORMS ── */}
       <section id="section-platforms" className="scroll-mt-10">
-      <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
+      <div style={{ borderTop: '1px solid var(--border-glass)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
         <SectionLabel label="Connected Platforms" />
         <ConnectedPlatformsSettings
           summary={platformsSummary}
@@ -727,7 +727,7 @@ const Settings = () => {
 
       {/* ── SECTION 3B: CHAT VOICE IMPORT ── */}
       <section id="section-chat-voice" className="scroll-mt-10">
-          <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
+          <div style={{ borderTop: '1px solid var(--border-glass)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
             <SectionLabel label="Chat Voice" />
             <ChatImportCard />
           </div>
@@ -735,7 +735,7 @@ const Settings = () => {
 
       {/* ── SECTION 4: PERSONALITY ENGINE ── */}
       <section id="section-personality" className="scroll-mt-10">
-      <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
+      <div style={{ borderTop: '1px solid var(--border-glass)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
         <SectionLabel label="Personality Engine" />
         <SettingsRow
           label="Enhanced Personality"
@@ -783,7 +783,7 @@ const Settings = () => {
 
       {/* ── SECTION 5: TWIN AUTONOMY ── */}
       <section id="section-autonomy" className="scroll-mt-10">
-      <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
+      <div style={{ borderTop: '1px solid var(--border-glass)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
         <SectionLabel label="Twin Autonomy" />
         <AutonomySettings />
       </div>
@@ -791,7 +791,7 @@ const Settings = () => {
 
       {/* ── SECTION 5B: USER RULES ── */}
       <section id="section-rules" className="scroll-mt-10">
-      <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
+      <div style={{ borderTop: '1px solid var(--border-glass)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
         <SectionLabel label="Twin Rules" />
         <UserRulesSettings />
       </div>
@@ -799,7 +799,7 @@ const Settings = () => {
 
       {/* ── SECTION 6: MESSAGING CHANNELS ── */}
       <section id="section-messaging" className="scroll-mt-10">
-      <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
+      <div style={{ borderTop: '1px solid var(--border-glass)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
         <SectionLabel label="Messaging" />
         <TelegramConnect />
         <WhatsAppConnect />
@@ -808,7 +808,7 @@ const Settings = () => {
 
       {/* ── SECTION 6B: NOTIFICATIONS ── */}
       <section id="section-notifications" className="scroll-mt-10">
-      <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
+      <div style={{ borderTop: '1px solid var(--border-glass)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
         <SectionLabel label="Notifications" />
         <NotificationSettings userId={user?.id || ''} />
       </div>
@@ -816,24 +816,24 @@ const Settings = () => {
 
       {/* ── SECTION 7: DATA & PRIVACY ── */}
       <section id="section-privacy" className="scroll-mt-10">
-      <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
+      <div style={{ borderTop: '1px solid var(--border-glass)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
         <SectionLabel label="Data & Privacy" />
 
         {/* Privacy Spectrum — row with nav arrow */}
         <button
           onClick={() => navigate('/privacy-spectrum')}
           className="w-full flex items-center justify-between gap-3 py-4 px-1 -mx-1 rounded-[4px] transition-colors text-left"
-          style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', backgroundColor: 'transparent' }}
-          onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.025)')}
+          style={{ borderBottom: '1px solid var(--border-glass)', backgroundColor: 'transparent' }}
+          onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--accent)')}
           onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
         >
           <div className="min-w-0 flex-1">
             <span className="text-[14px]" style={{ color: 'var(--foreground)' }}>Privacy Spectrum</span>
-            <p className="text-[12px] mt-0.5" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
+            <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
               Control what your twin knows and shares
             </p>
           </div>
-          <ArrowRight className="w-4 h-4 flex-shrink-0" style={{ color: 'rgba(255, 255, 255, 0.55)' }} />
+          <ArrowRight className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-secondary)' }} />
         </button>
 
         <SettingsRow label="Export My Data">
@@ -841,14 +841,14 @@ const Settings = () => {
             onClick={handleExportData}
             disabled={exporting}
             className="flex items-center gap-1.5 text-[12px] transition-opacity hover:opacity-60 disabled:opacity-30"
-            style={{ color: 'rgba(255,255,255,0.5)' }}
+            style={{ color: 'var(--text-secondary)' }}
           >
             <Download className="w-3.5 h-3.5" />
             {exporting ? 'Exporting...' : 'Download'}
           </button>
         </SettingsRow>
         <SettingsRow label="Memory Count">
-          <span className="text-[14px]" style={{ color: 'rgba(255,255,255,0.5)' }}>
+          <span className="text-[14px]" style={{ color: 'var(--text-secondary)' }}>
             {memoryCount != null ? `${memoryCount.toLocaleString('en-US')} memories` : '--'}
           </span>
         </SettingsRow>
@@ -889,7 +889,7 @@ const Settings = () => {
                 <button
                   onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText(''); }}
                   className="text-[12px] transition-opacity hover:opacity-60 flex-shrink-0"
-                  style={{ color: 'rgba(255, 255, 255, 0.55)' }}
+                  style={{ color: 'var(--text-secondary)' }}
                 >
                   Cancel
                 </button>
@@ -903,32 +903,32 @@ const Settings = () => {
 
       {/* ── Advanced ── */}
       <section id="section-advanced" className="scroll-mt-10">
-        <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
+        <div style={{ borderTop: '1px solid var(--border-glass)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
           <SectionLabel label="Advanced" />
           <button
             onClick={() => navigate('/brain')}
             className="w-full flex items-center justify-between gap-3 py-4 px-1 -mx-1 rounded-[4px] transition-colors text-left"
-            style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', backgroundColor: 'transparent' }}
-            onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.025)')}
+            style={{ borderBottom: '1px solid var(--border-glass)', backgroundColor: 'transparent' }}
+            onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--accent)')}
             onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
           >
             <div className="flex items-center gap-3 min-w-0 flex-1">
-              <Brain className="w-4 h-4 flex-shrink-0" style={{ color: 'rgba(255, 255, 255, 0.55)' }} />
+              <Brain className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-secondary)' }} />
               <div className="min-w-0">
                 <span className="text-[14px]" style={{ color: 'var(--foreground)' }}>Memory Explorer</span>
-                <p className="text-[12px] mt-0.5" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
+                <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
                   Browse and search your raw memory stream
                 </p>
               </div>
             </div>
-            <ArrowRight className="w-4 h-4 flex-shrink-0" style={{ color: 'rgba(255, 255, 255, 0.55)' }} />
+            <ArrowRight className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-secondary)' }} />
           </button>
         </div>
       </section>
 
       {/* Footer */}
       <div className="mt-16 text-center">
-        <span className="text-[11px]" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
+        <span className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
           TwinMe v0.9
         </span>
       </div>
