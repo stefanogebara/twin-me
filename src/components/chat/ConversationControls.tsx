@@ -40,7 +40,7 @@ export function ConversationControls({
   };
 
   const iconBtnStyle = {
-    color: 'rgba(255,255,255,0.4)'
+    color: 'var(--text-muted)'
   };
 
   return (
@@ -60,7 +60,7 @@ export function ConversationControls({
         <button
           onClick={handleSave}
           className="p-2 rounded-lg transition-colors hover:brightness-150"
-          style={{ backgroundColor: 'rgba(255,255,255,0.02)' }}
+          style={{ backgroundColor: 'var(--surface)' }}
           title={isSaved ? 'Conversation saved' : 'Save conversation'}
         >
           {savedRecently || isSaved ? (
@@ -77,7 +77,7 @@ export function ConversationControls({
           <button
             onClick={() => setShowExportMenu(!showExportMenu)}
             className="p-2 rounded-lg transition-colors hover:brightness-150"
-            style={{ backgroundColor: 'rgba(255,255,255,0.02)' }}
+            style={{ backgroundColor: 'var(--surface)' }}
             title="Export conversation"
           >
             <Download className="w-5 h-5" style={iconBtnStyle} />
@@ -88,7 +88,7 @@ export function ConversationControls({
             <div
               className="absolute right-0 mt-2 w-48 rounded-2xl overflow-hidden z-10"
               style={{
-                backgroundColor: 'rgba(255,255,255,0.02)',
+                backgroundColor: 'var(--surface)',
                 border: '1px solid var(--border-glass)',
                 boxShadow: '0 8px 32px rgba(0, 0, 0, 0.18)'
               }}

@@ -253,7 +253,7 @@ export const MessageList = memo(forwardRef<HTMLDivElement, MessageListProps>(
                   </div>
                   <div
                     className="text-[11px] mt-1.5 text-right pr-1"
-                    style={{ color: 'rgba(255,255,255,0.3)' }}
+                    style={{ color: 'var(--text-muted)' }}
                   >
                     {formatRelativeTime(message.timestamp)}
                   </div>
@@ -361,13 +361,13 @@ export const MessageList = memo(forwardRef<HTMLDivElement, MessageListProps>(
                     {(message.contextUsed || !message.failed) && (
                       <div
                         className="flex flex-wrap items-center gap-2 mt-3 pt-2"
-                        style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}
+                        style={{ borderTop: '1px solid var(--border-glass)' }}
                       >
                         {/* Context badges — small and muted */}
                         {message.contextUsed?.memoryStream && message.contextUsed.memoryStream.total > 0 && (
                           <span
                             className="text-[10px] px-1.5 py-0.5 rounded-full"
-                            style={{ color: 'rgba(255,255,255,0.25)', opacity: 0.6 }}
+                            style={{ color: 'var(--text-muted)', opacity: 0.6 }}
                           >
                             {message.contextUsed.memoryStream.total} memories
                           </span>
@@ -375,7 +375,7 @@ export const MessageList = memo(forwardRef<HTMLDivElement, MessageListProps>(
                         {message.contextUsed?.proactiveInsights && message.contextUsed.proactiveInsights.length > 0 && (
                           <span
                             className="text-[10px] px-1.5 py-0.5 rounded-full"
-                            style={{ color: 'rgba(255,255,255,0.25)', opacity: 0.6 }}
+                            style={{ color: 'var(--text-muted)', opacity: 0.6 }}
                           >
                             {message.contextUsed.proactiveInsights.length} insight{message.contextUsed.proactiveInsights.length > 1 ? 's' : ''}
                           </span>
@@ -390,7 +390,7 @@ export const MessageList = memo(forwardRef<HTMLDivElement, MessageListProps>(
                                 markCopied(message.id);
                               }}
                               className="p-1 rounded-md transition-all hover:scale-110"
-                              style={{ color: copied[message.id] ? 'rgba(134,239,172,0.7)' : 'rgba(255,255,255,0.35)' }}
+                              style={{ color: copied[message.id] ? 'rgba(134,239,172,0.7)' : 'var(--text-muted)' }}
                               aria-label="Copy message"
                               title={copied[message.id] ? 'Copied!' : 'Copy'}
                             >
@@ -401,7 +401,7 @@ export const MessageList = memo(forwardRef<HTMLDivElement, MessageListProps>(
                             {onRate && (rated[message.id] != null ? (
                               <span
                                 className="text-[11px] px-2 py-0.5 rounded-full"
-                                style={{ color: 'rgba(255,255,255,0.3)', border: '1px solid rgba(255,255,255,0.06)' }}
+                                style={{ color: 'var(--text-muted)', border: '1px solid var(--border-glass)' }}
                               >
                                 {rated[message.id] === 1 ? 'Thanks!' : 'Noted'}
                               </span>
@@ -417,7 +417,7 @@ export const MessageList = memo(forwardRef<HTMLDivElement, MessageListProps>(
                                     onRate(message.id, 1, message.content, prevUserMsg?.content ?? null);
                                   }}
                                   className="p-1 rounded-md transition-all hover:scale-110"
-                                  style={{ color: 'rgba(255,255,255,0.35)' }}
+                                  style={{ color: 'var(--text-muted)' }}
                                   aria-label="Rate as helpful"
                                   title="Helpful"
                                 >
@@ -433,7 +433,7 @@ export const MessageList = memo(forwardRef<HTMLDivElement, MessageListProps>(
                                     onRate(message.id, -1, message.content, prevUserMsg?.content ?? null);
                                   }}
                                   className="p-1 rounded-md transition-all hover:scale-110"
-                                  style={{ color: 'rgba(255,255,255,0.35)' }}
+                                  style={{ color: 'var(--text-muted)' }}
                                   aria-label="Rate as not helpful"
                                   title="Not helpful"
                                 >
@@ -448,7 +448,7 @@ export const MessageList = memo(forwardRef<HTMLDivElement, MessageListProps>(
 
                     <div
                       className="text-[11px] mt-1.5 text-left"
-                      style={{ color: 'rgba(255,255,255,0.3)' }}
+                      style={{ color: 'var(--text-muted)' }}
                     >
                       {formatRelativeTime(message.timestamp)}
                     </div>

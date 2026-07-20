@@ -186,9 +186,9 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
           <button
             onClick={onClose}
             aria-label="Close interview"
-            className="p-2 rounded-full transition-colors hover:bg-[rgba(255,255,255,0.05)]"
+            className="p-2 rounded-full transition-colors hover:bg-[var(--surface)]"
           >
-            <X className="w-5 h-5" style={{ color: 'rgba(255,255,255,0.3)' }} aria-hidden="true" />
+            <X className="w-5 h-5" style={{ color: 'var(--text-muted)' }} aria-hidden="true" />
           </button>
         </div>
 
@@ -209,7 +209,7 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
               style={{
                 fontFamily: "'Instrument Serif', Georgia, serif",
                 fontStyle: 'italic',
-                color: 'rgba(245,245,244,0.9)',
+                color: 'var(--foreground)',
                 letterSpacing: '-0.03em',
                 lineHeight: 1.1,
               }}
@@ -223,8 +223,8 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
           <div className="max-w-[520px] mx-auto">
             {isLoadingSummary ? (
               <div className="flex items-center justify-center py-16">
-                <div className="w-4 h-4 border-[1.5px] border-[rgba(255,255,255,0.2)] border-t-transparent rounded-full animate-spin" />
-                <span className="ml-3 text-[13px]" style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}>
+                <div className="w-4 h-4 border-[1.5px] border-[var(--border)] border-t-transparent rounded-full animate-spin" />
+                <span className="ml-3 text-[13px]" style={{ color: 'var(--text-muted)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}>
                   Synthesizing your portrait...
                 </span>
               </div>
@@ -237,7 +237,7 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
                 <p
                   className="text-[16px] leading-[1.75] whitespace-pre-line"
                   style={{
-                    color: 'rgba(245,245,244,0.7)',
+                    color: 'var(--foreground)',
                     fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
                     fontWeight: 400,
                   }}
@@ -254,8 +254,8 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
             onClick={() => { onComplete(); onClose(); }}
             className="px-6 py-2.5 rounded-full text-[14px] font-medium transition-all duration-150 active:scale-[0.97]"
             style={{
-              background: 'rgba(255,255,255,0.9)',
-              color: '#0C0B10',
+              background: 'var(--claura-bone)',
+              color: 'var(--claura-bone-ink)',
               fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
             }}
           >
@@ -282,16 +282,16 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
           {/* Step indicator */}
           <span
             className="text-[13px] font-medium flex-shrink-0"
-            style={{ color: 'rgba(255,255,255,0.50)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+            style={{ color: 'var(--text-secondary)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
           >
             {questionNumber + 1} of {totalQuestions}
           </span>
 
           {/* Progress bar */}
-          <div className="flex-1 max-w-[200px] h-[3px] bg-[rgba(255,255,255,0.08)] rounded-full overflow-hidden">
+          <div className="flex-1 max-w-[200px] h-[3px] bg-[var(--surface-solid)] rounded-full overflow-hidden">
             <motion.div
               className="h-full rounded-full"
-              style={{ background: 'rgba(255,255,255,0.45)' }}
+              style={{ background: 'var(--foreground)' }}
               initial={{ width: 0 }}
               animate={{ width: `${((questionNumber + 1) / totalQuestions) * 100}%` }}
               transition={{ duration: 0.5, ease: 'easeOut' }}
@@ -302,9 +302,9 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
         <button
           onClick={onClose}
           aria-label="Close interview"
-          className="p-2 rounded-full transition-colors hover:bg-[rgba(255,255,255,0.05)] flex-shrink-0 ml-4"
+          className="p-2 rounded-full transition-colors hover:bg-[var(--surface)] flex-shrink-0 ml-4"
         >
-          <X className="w-5 h-5" style={{ color: 'rgba(255,255,255,0.3)' }} aria-hidden="true" />
+          <X className="w-5 h-5" style={{ color: 'var(--text-muted)' }} aria-hidden="true" />
         </button>
       </div>
 
@@ -322,7 +322,7 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
             >
               <p
                 className="text-[11px] uppercase tracking-[0.1em] mb-6"
-                style={{ color: 'rgba(255,255,255,0.30)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif", fontWeight: 500 }}
+                style={{ color: 'var(--text-muted)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif", fontWeight: 500 }}
               >
                 Learned about you
               </p>
@@ -333,12 +333,12 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
                     initial={{ opacity: 0, x: -8 }}
                     animate={{ opacity: fact.visible ? 1 : 0, x: fact.visible ? 0 : -8 }}
                     className="flex items-start gap-3 py-3"
-                    style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
+                    style={{ borderBottom: '1px solid var(--border-glass)' }}
                   >
                     <Check className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: '#10b981' }} />
                     <span
                       className="text-[14px] leading-relaxed"
-                      style={{ color: 'rgba(245,245,244,0.65)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+                      style={{ color: 'var(--text-secondary)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
                     >
                       {fact.text}
                     </span>
@@ -358,13 +358,13 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
             >
               {isLoadingQuestion ? (
                 <div className="flex items-center justify-center py-24">
-                  <div className="w-4 h-4 border-[1.5px] border-[rgba(255,255,255,0.15)] border-t-transparent rounded-full animate-spin" />
+                  <div className="w-4 h-4 border-[1.5px] border-[var(--border)] border-t-transparent rounded-full animate-spin" />
                 </div>
               ) : loadError && !question ? (
                 <div className="flex flex-col items-center justify-center py-24 gap-4">
                   <p
                     className="text-[14px] text-center"
-                    style={{ color: 'rgba(255,255,255,0.55)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+                    style={{ color: 'var(--text-secondary)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
                   >
                     Could not load the next question.
                   </p>
@@ -372,8 +372,8 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
                     onClick={() => fetchNextQuestion(answeredCategories)}
                     className="px-4 py-1.5 rounded-full text-[13px] font-medium transition-all duration-150 active:scale-[0.95]"
                     style={{
-                      background: '#F5F5F4',
-                      color: '#110f0f',
+                      background: 'var(--claura-bone)',
+                      color: 'var(--claura-bone-ink)',
                       fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
                     }}
                   >
@@ -385,7 +385,7 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
                   {/* Category label */}
                   <span
                     className="text-[11px] uppercase tracking-[0.1em] mb-4"
-                    style={{ color: 'rgba(255,255,255,0.25)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif", fontWeight: 500 }}
+                    style={{ color: 'var(--text-muted)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif", fontWeight: 500 }}
                   >
                     {categoryLabel}
                   </span>
@@ -396,7 +396,7 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
                     style={{
                       fontFamily: "'Instrument Serif', Georgia, serif",
                       fontStyle: 'italic',
-                      color: 'rgba(245,245,244,0.90)',
+                      color: 'var(--foreground)',
                       letterSpacing: '-0.02em',
                     }}
                   >
@@ -408,8 +408,8 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
                     <span
                       className="text-[11px] px-3 py-1.5 rounded-full"
                       style={{
-                        backgroundColor: 'rgba(255,255,255,0.08)',
-                        color: 'rgba(255,255,255,0.40)',
+                        backgroundColor: 'var(--surface)',
+                        color: 'var(--text-muted)',
                         fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
                       }}
                     >
@@ -421,8 +421,8 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
                   <div
                     className="rounded-2xl overflow-hidden"
                     style={{
-                      border: '1px solid rgba(255,255,255,0.08)',
-                      background: 'rgba(255,255,255,0.03)',
+                      border: '1px solid var(--border-glass)',
+                      background: 'var(--surface)',
                     }}
                   >
                     <textarea
@@ -433,7 +433,7 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
                       placeholder={CATEGORY_STARTERS[category] || "Type your answer here..."}
                       className="w-full bg-transparent px-5 py-4 text-[15px] leading-relaxed resize-none outline-none min-h-[100px] max-h-[200px]"
                       style={{
-                        color: 'rgba(245,245,244,0.85)',
+                        color: 'var(--foreground)',
                         fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
                         fontWeight: 400,
                       }}
@@ -445,8 +445,8 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
                         disabled={!answer.trim() || isSubmitting}
                         className="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[13px] font-medium transition-all duration-150 active:scale-[0.95]"
                         style={{
-                          background: answer.trim() ? '#F5F5F4' : 'rgba(255,255,255,0.06)',
-                          color: answer.trim() ? '#0C0B10' : 'rgba(255,255,255,0.25)',
+                          background: answer.trim() ? 'var(--claura-bone)' : 'var(--surface)',
+                          color: answer.trim() ? 'var(--claura-bone-ink)' : 'var(--text-muted)',
                           fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
                         }}
                       >
@@ -476,8 +476,8 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
                     <button
                       onClick={handleSkip}
                       disabled={isSubmitting}
-                      className="flex items-center gap-1.5 text-[13px] py-1.5 transition-colors hover:text-[rgba(255,255,255,0.50)] disabled:opacity-30"
-                      style={{ color: 'rgba(255,255,255,0.30)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+                      className="flex items-center gap-1.5 text-[13px] py-1.5 transition-colors hover:text-[var(--text-secondary)] disabled:opacity-30"
+                      style={{ color: 'var(--text-muted)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
                     >
                       <SkipForward className="w-3.5 h-3.5" />
                       Skip this question

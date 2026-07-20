@@ -193,12 +193,12 @@ export function ContextualQuickActions({
             onClick={action.action}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all whitespace-nowrap text-sm font-medium group hover:brightness-125"
             style={{
-              backgroundColor: 'rgba(255,255,255,0.02)',
+              backgroundColor: 'var(--surface)',
               border: '1px solid var(--border-glass)',
               color: 'var(--foreground)'
             }}
           >
-            <Icon className={`w-4 h-4 ${action.color || ''}`} style={!action.color ? { color: 'rgba(255,255,255,0.4)' } : undefined} />
+            <Icon className={`w-4 h-4 ${action.color || ''}`} style={!action.color ? { color: 'var(--text-muted)' } : undefined} />
             <span>{action.label}</span>
           </button>
         );

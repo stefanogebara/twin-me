@@ -110,7 +110,7 @@ export function PendingProposalsBadge({
                 backgroundColor: 'rgba(30,28,36,0.95)',
                 backdropFilter: 'blur(42px)',
                 WebkitBackdropFilter: 'blur(42px)',
-                border: '1px solid rgba(255,255,255,0.10)',
+                border: '1px solid var(--glass-surface-border)',
                 boxShadow: '0 -4px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.04)',
               }}
             >
@@ -134,7 +134,7 @@ export function PendingProposalsBadge({
                       style={{
                         borderBottom:
                           index < proposals.length - 1
-                            ? '1px solid rgba(255,255,255,0.04)'
+                            ? '1px solid var(--border-glass)'
                             : undefined,
                         opacity: isLoading ? 0.5 : 1,
                         pointerEvents: isLoading ? 'none' : 'auto',
@@ -158,7 +158,7 @@ export function PendingProposalsBadge({
                         <p
                           className="text-[12px] leading-snug"
                           style={{
-                            color: 'rgba(255,255,255,0.55)',
+                            color: 'var(--text-secondary)',
                             fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
                           }}
                         >
@@ -171,7 +171,7 @@ export function PendingProposalsBadge({
                         <button
                           onClick={() => handleApprove(proposal.id)}
                           className="p-1 rounded-md transition-all duration-150 hover:scale-110"
-                          style={{ color: 'rgba(255,255,255,0.4)' }}
+                          style={{ color: 'var(--text-muted)' }}
                           aria-label={`Approve ${proposal.department} proposal`}
                           title="Approve"
                         >
@@ -180,7 +180,7 @@ export function PendingProposalsBadge({
                         <button
                           onClick={() => handleReject(proposal.id)}
                           className="p-1 rounded-md transition-all duration-150 hover:scale-110"
-                          style={{ color: 'rgba(255,255,255,0.25)' }}
+                          style={{ color: 'var(--text-muted)' }}
                           aria-label={`Dismiss ${proposal.department} proposal`}
                           title="Dismiss"
                         >
@@ -201,10 +201,10 @@ export function PendingProposalsBadge({
         onClick={() => setIsOpen(prev => !prev)}
         className="flex items-center gap-1.5 px-3 py-1.5 rounded-[20px] transition-all duration-150 hover:opacity-80"
         style={{
-          backgroundColor: 'rgba(255,255,255,0.06)',
+          backgroundColor: 'var(--surface)',
           backdropFilter: 'blur(42px)',
           WebkitBackdropFilter: 'blur(42px)',
-          border: '1px solid rgba(255,255,255,0.10)',
+          border: '1px solid var(--glass-surface-border)',
           fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
         }}
         aria-label={`${proposals.length} pending proposal${proposals.length !== 1 ? 's' : ''}`}
@@ -213,7 +213,7 @@ export function PendingProposalsBadge({
         <div
           className="w-[6px] h-[6px] rounded-full flex-shrink-0"
           style={{
-            backgroundColor: '#F5F5F4',
+            backgroundColor: 'var(--claura-bone)',
             animation: 'proposal-badge-pulse 2s ease-in-out infinite',
           }}
         />
@@ -226,7 +226,7 @@ export function PendingProposalsBadge({
         <ChevronUp
           className="w-3 h-3 transition-transform duration-200"
           style={{
-            color: 'rgba(255,255,255,0.25)',
+            color: 'var(--text-muted)',
             transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
           }}
         />
