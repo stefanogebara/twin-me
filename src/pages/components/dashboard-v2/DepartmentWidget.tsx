@@ -136,7 +136,7 @@ export function DepartmentWidget() {
               <span
                 className="text-[10px] font-medium leading-none"
                 style={{
-                  color: dept.isEnabled ? 'rgba(255,255,255,0.65)' : 'var(--text-muted)',
+                  color: dept.isEnabled ? 'var(--text-secondary)' : 'var(--text-muted)',
                   fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
                 }}
               >
@@ -149,7 +149,7 @@ export function DepartmentWidget() {
               className="text-[10px] font-medium px-2 py-1 rounded-full"
               style={{
                 backgroundColor: 'rgba(255,255,255,0.10)',
-                color: 'rgba(245,245,244,0.70)',
+                color: 'var(--text-secondary)',
                 fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
               }}
             >
@@ -175,7 +175,7 @@ export function DepartmentWidget() {
                   <p
                     className="text-xs truncate"
                     style={{
-                      color: 'rgba(255,255,255,0.55)',
+                      color: 'var(--text-secondary)',
                       fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
                     }}
                   >

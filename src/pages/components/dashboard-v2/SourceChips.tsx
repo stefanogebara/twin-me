@@ -9,7 +9,7 @@ const CHIP_CLASS =
 const CHIP_STYLE: React.CSSProperties = {
   background: 'rgba(255,255,255,0.06)',
   border: '1px solid rgba(255,255,255,0.08)',
-  color: 'rgba(255,255,255,0.55)',
+  color: 'var(--text-secondary)',
   fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
 };
 

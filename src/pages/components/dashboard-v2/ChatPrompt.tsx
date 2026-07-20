@@ -78,7 +78,7 @@ export function ChatPrompt() {
         {triggering && (
           <div
             className="text-[12px] text-center py-1.5 mb-3 rounded-lg"
-            style={{ background: 'var(--sidebar)', color: 'rgba(255,255,255,0.5)' }}
+            style={{ background: 'var(--sidebar)', color: 'var(--text-secondary)' }}
           >
             {ACTIONS.find(a => a.skillName === triggering)?.toast || 'Working on it...'}
           </div>

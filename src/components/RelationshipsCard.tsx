@@ -78,7 +78,7 @@ const RelRow: React.FC<RelRowProps> = ({ rel, onDismiss }) => {
   const ageColor =
     rel.days_unanswered >= 14 ? 'rgba(220,80,80,0.9)' :
     rel.days_unanswered >= 7 ? 'rgba(220,160,80,0.9)' :
-    'rgba(255,255,255,0.55)';
+    'var(--text-secondary)';
 
   return (
     <div
@@ -110,7 +110,7 @@ const RelRow: React.FC<RelRowProps> = ({ rel, onDismiss }) => {
             </span>
           </div>
           {rel.last_subject && (
-            <p className="text-xs mt-1 truncate" style={{ color: 'rgba(255,255,255,0.5)' }}>
+            <p className="text-xs mt-1 truncate" style={{ color: 'var(--text-secondary)' }}>
               {rel.last_subject}
             </p>
           )}
@@ -141,7 +141,7 @@ const RelRow: React.FC<RelRowProps> = ({ rel, onDismiss }) => {
             title="Dismiss"
             aria-label={`Dismiss ${rel.name}`}
           >
-            <X className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.5)' }} />
+            <X className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
           </button>
         </div>
       </div>
@@ -174,7 +174,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({ status, onRefresh, refreshing }
       }}
     >
       <div className="flex items-center justify-between gap-3">
-        <p className="text-sm" style={{ color: 'rgba(255,255,255,0.65)' }}>{message}</p>
+        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{message}</p>
         {status === 'gmail_not_connected' ? (
           <a
             href="/connect"
@@ -279,14 +279,14 @@ export const RelationshipsCard: React.FC = () => {
           className="w-1 h-5 rounded-full"
           style={{ background: 'linear-gradient(to bottom, var(--accent-vibrant), rgba(255,255,255,0.10))' }}
         />
-        <Users className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.4)' }} />
-        <h3 className="text-sm uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.3)' }}>
+        <Users className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
+        <h3 className="text-sm uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
           People waiting
         </h3>
         {relationships.length > 0 && (
           <span
             className="text-xs px-2 py-0.5 rounded-full"
-            style={{ backgroundColor: 'var(--glass-surface-bg)', color: 'rgba(255,255,255,0.4)' }}
+            style={{ backgroundColor: 'var(--glass-surface-bg)', color: 'var(--text-muted)' }}
             data-testid="relationship-count-badge"
           >
             {relationships.length}
@@ -307,7 +307,7 @@ export const RelationshipsCard: React.FC = () => {
             title="Refresh"
             aria-label="Refresh relationships"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} style={{ color: 'rgba(255,255,255,0.5)' }} />
+            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} style={{ color: 'var(--text-secondary)' }} />
           </button>
         )}
       </div>

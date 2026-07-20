@@ -203,8 +203,8 @@ export function InsightsFeed({
                       onClick={() => handleFeedback(insight, true)}
                       className="text-[11px] font-medium rounded-[100px] px-3 py-1.5 transition-all duration-150 ease-out hover:opacity-80 active:scale-[0.97] disabled:opacity-40 disabled:cursor-not-allowed"
                       style={{
-                        background: '#F5F5F4',
-                        color: '#110f0f',
+                        background: 'var(--claura-bone)',
+                        color: 'var(--claura-bone-ink)',
                         border: 'none',
                       }}
                     >

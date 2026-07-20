@@ -155,11 +155,11 @@ const EmailRow: React.FC<EmailRowProps> = ({ email, onDismiss, onSend }) => {
             </span>
           </div>
           {email.subject && (
-            <p className="text-xs mt-0.5 truncate" style={{ color: 'rgba(255,255,255,0.4)' }}>
+            <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--text-muted)' }}>
               {email.subject}
             </p>
           )}
-          <p className="text-sm mt-1.5 leading-relaxed" style={{ color: 'rgba(255,255,255,0.75)' }}>
+          <p className="text-sm mt-1.5 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
             {email.summary}
           </p>
         </div>
@@ -173,7 +173,7 @@ const EmailRow: React.FC<EmailRowProps> = ({ email, onDismiss, onSend }) => {
             title="Dismiss"
             aria-label={`Dismiss email from ${name}`}
           >
-            <X className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.5)' }} />
+            <X className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
           </button>
           {draftBody && (
             <button
@@ -187,7 +187,7 @@ const EmailRow: React.FC<EmailRowProps> = ({ email, onDismiss, onSend }) => {
             >
               <ChevronDown
                 className="w-4 h-4 transition-transform duration-200"
-                style={{ color: 'rgba(255,255,255,0.5)', transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }}
+                style={{ color: 'var(--text-secondary)', transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }}
               />
             </button>
           )}
@@ -205,14 +205,14 @@ const EmailRow: React.FC<EmailRowProps> = ({ email, onDismiss, onSend }) => {
             padding: '10px 12px',
           }}
         >
-          <p className="text-xs mb-2" style={{ color: 'rgba(255,255,255,0.35)' }}>Draft reply</p>
+          <p className="text-xs mb-2" style={{ color: 'var(--text-muted)' }}>Draft reply</p>
           <textarea
             value={draftBody}
             onChange={(e) => setDraftBody(e.target.value)}
             data-testid="email-draft-textarea"
             rows={Math.min(8, Math.max(3, draftBody.split('\n').length + 1))}
             className="w-full text-sm leading-relaxed bg-transparent resize-y focus:outline-none focus:ring-1 focus:ring-white/20 rounded p-1"
-            style={{ color: 'rgba(255,255,255,0.85)' }}
+            style={{ color: 'var(--foreground)' }}
           />
           {sendError && (
             <p className="text-xs mt-2" style={{ color: 'rgba(220,80,80,0.85)' }}>{sendError}</p>
@@ -283,13 +283,13 @@ const EmailRow: React.FC<EmailRowProps> = ({ email, onDismiss, onSend }) => {
             }}
           >
             <h3 className="text-base mb-3" style={{ color: 'var(--foreground)' }}>Send reply to {name}?</h3>
-            <div className="text-xs space-y-1 mb-3" style={{ color: 'rgba(255,255,255,0.5)' }}>
-              <p>To: <span style={{ color: 'rgba(255,255,255,0.8)' }}>{addr}</span></p>
-              <p>Subject: <span style={{ color: 'rgba(255,255,255,0.8)' }}>Re: {email.subject || '(no subject)'}</span></p>
+            <div className="text-xs space-y-1 mb-3" style={{ color: 'var(--text-secondary)' }}>
+              <p>To: <span style={{ color: 'var(--foreground)' }}>{addr}</span></p>
+              <p>Subject: <span style={{ color: 'var(--foreground)' }}>Re: {email.subject || '(no subject)'}</span></p>
             </div>
             <div
               className="text-sm whitespace-pre-wrap mb-4 max-h-64 overflow-y-auto p-3 rounded"
-              style={{ color: 'rgba(255,255,255,0.85)', background: 'rgba(255,255,255,0.03)' }}
+              style={{ color: 'var(--foreground)', background: 'var(--surface)' }}
             >
               {draftBody}
             </div>
@@ -350,7 +350,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({ status, message, onRefresh, ref
       }}
     >
       <div className="flex items-center justify-between gap-3">
-        <p className="text-sm" style={{ color: 'rgba(255,255,255,0.65)' }}>{message}</p>
+        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{message}</p>
         {isDisconnected ? (
           <a
             href="/connect"
@@ -471,14 +471,14 @@ export const EmailTriageCard: React.FC = () => {
           className="w-1 h-5 rounded-full"
           style={{ background: 'linear-gradient(to bottom, var(--accent-vibrant), rgba(255,255,255,0.10))' }}
         />
-        <Mail className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.4)' }} />
-        <h3 className="text-sm uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.3)' }}>
+        <Mail className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
+        <h3 className="text-sm uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
           Inbox
         </h3>
         {emails.length > 0 && (
           <span
             className="text-xs px-2 py-0.5 rounded-full"
-            style={{ backgroundColor: 'var(--glass-surface-bg)', color: 'rgba(255,255,255,0.4)' }}
+            style={{ backgroundColor: 'var(--glass-surface-bg)', color: 'var(--text-muted)' }}
             data-testid="email-count-badge"
           >
             {emails.length}
@@ -499,7 +499,7 @@ export const EmailTriageCard: React.FC = () => {
             title="Refresh"
             aria-label="Refresh inbox"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} style={{ color: 'rgba(255,255,255,0.5)' }} />
+            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} style={{ color: 'var(--text-secondary)' }} />
           </button>
         )}
       </div>

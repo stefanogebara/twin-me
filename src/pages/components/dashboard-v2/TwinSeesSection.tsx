@@ -161,8 +161,8 @@ export function TwinSeesSection() {
         overflow: 'hidden',
         borderRadius: 24,
         padding: '32px 30px 36px',
-        background: 'rgba(19,18,26,0.42)',
-        border: '1px solid rgba(255,255,255,0.10)',
+        background: 'var(--card)',
+        border: '1px solid var(--glass-surface-border)',
       }}
     >
       <style>{MOTION_CSS}</style>
