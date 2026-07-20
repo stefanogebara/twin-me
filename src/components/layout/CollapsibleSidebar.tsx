@@ -128,8 +128,8 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
         <div
           className="flex flex-col h-full overflow-hidden"
           style={{
-            background: 'rgba(255, 255, 255, 0.025)',
-            borderRight: '1px solid rgba(255, 255, 255, 0.06)',
+            background: 'var(--sidebar)',
+            borderRight: '1px solid var(--sidebar-border)',
           }}
         >
           <style>
@@ -145,14 +145,14 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
               type="button"
               onClick={onClose}
               aria-label="Close navigation menu"
-              className="absolute top-4 right-4 p-2 hover:bg-[rgba(255,255,255,0.08)] rounded-lg transition-colors lg:hidden"
+              className="absolute top-4 right-4 p-2 hover:bg-[var(--sidebar-accent)] rounded-lg transition-colors lg:hidden"
             >
               <X className="w-5 h-5" style={{ color: 'var(--foreground)' }} aria-hidden="true" />
             </button>
 
             {/* Logo */}
             <div className={cn(
-              "flex items-center border-b border-[rgba(255,255,255,0.08)]",
+              "flex items-center border-b border-[var(--sidebar-border)]",
               isCollapsed ? "justify-center p-3 pb-3" : "justify-center p-5 pb-4"
             )}>
               <button
@@ -183,8 +183,8 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
                     <span
                       className="text-[10px] font-medium tracking-wide px-1.5 py-0.5 rounded-full self-start mt-1"
                       style={{
-                        backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                        color: 'rgba(255,255,255,0.6)',
+                        backgroundColor: 'var(--sidebar-accent)',
+                        color: 'var(--text-secondary)',
                         fontFamily: "'Inter', sans-serif",
                       }}
                     >
@@ -224,7 +224,7 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
                       isCollapsed ? "justify-center px-0 py-2.5" : "gap-3 px-4 py-2.5",
                       active
                         ? "rounded-md font-medium"
-                        : "rounded-md hover:bg-[rgba(255,255,255,0.08)]"
+                        : "rounded-md hover:bg-[var(--sidebar-accent)]"
                     )}
                     style={active ? {
                       background: 'var(--accent-vibrant-glow)',
@@ -256,7 +256,7 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
                           style={{
                             fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
                             fontWeight: active ? 500 : 400,
-                            color: active ? '#F5F5F4' : 'var(--text-secondary)',
+                            color: active ? 'var(--foreground)' : 'var(--text-secondary)',
                           }}
                         >
                           {item.label}
@@ -282,14 +282,14 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
             </nav>
 
             {/* Sign Out + User at Bottom */}
-            <div className={cn("border-t border-[rgba(255,255,255,0.08)] space-y-1", isCollapsed ? "p-2" : "p-3")}>
+            <div className={cn("border-t border-[var(--sidebar-border)] space-y-1", isCollapsed ? "p-2" : "p-3")}>
               {/* Sign Out button */}
               <button
                 type="button"
                 onClick={handleSignOut}
                 className={cn(
                   // audit-2026-05-15 C4: rounded-md keeps sidebar FLAT.
-                  "w-full flex items-center rounded-md opacity-70 hover:opacity-100 hover:bg-[rgba(255,255,255,0.08)] transition-all duration-150 ease-out active:scale-[0.97]",
+                  "w-full flex items-center rounded-md opacity-70 hover:opacity-100 hover:bg-[var(--sidebar-accent)] transition-all duration-150 ease-out active:scale-[0.97]",
                   isCollapsed ? "justify-center px-0 py-2.5" : "gap-3 px-4 py-2.5"
                 )}
                 aria-label="Sign out"
@@ -318,7 +318,7 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
                   // audit-2026-05-15 C4: rounded-md keeps sidebar FLAT. The
                   // user avatar inside (w-8 h-8 rounded-full) is still a
                   // circle because that's an avatar treatment, not a nav pill.
-                  "w-full flex items-center rounded-md hover:bg-[rgba(255,255,255,0.08)] transition-colors",
+                  "w-full flex items-center rounded-md hover:bg-[var(--sidebar-accent)] transition-colors",
                   isCollapsed ? "justify-center px-0 py-2.5" : "gap-3 px-4 py-2.5"
                 )}
                 aria-label={`Open settings for ${user?.firstName || user?.email || 'user'}`}
@@ -326,8 +326,8 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
               >
                 <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
                   style={{
-                    backgroundColor: 'rgba(255, 255, 255, 0.10)',
-                    color: '#F5F5F4',
+                    backgroundColor: 'var(--surface-solid)',
+                    color: 'var(--foreground)',
                   }}
                 >
                   {user?.firstName?.charAt(0) || user?.email?.charAt(0) || 'U'}
@@ -362,15 +362,15 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
               <button
                 type="button"
                 onClick={toggleCollapse}
-                className="hidden lg:flex w-full items-center justify-center py-2 rounded-md hover:bg-[rgba(255,255,255,0.08)] transition-all duration-150 ease-out"
+                className="hidden lg:flex w-full items-center justify-center py-2 rounded-md hover:bg-[var(--sidebar-accent)] transition-all duration-150 ease-out"
                 aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
                 aria-expanded={!isCollapsed}
                 data-testid="sidebar-collapse-toggle"
                 title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
               >
                 {isCollapsed
-                  ? <ChevronsRight className="w-4 h-4" style={{ color: 'rgba(255, 255, 255, 0.35)' }} aria-hidden="true" />
-                  : <ChevronsLeft className="w-4 h-4" style={{ color: 'rgba(255, 255, 255, 0.35)' }} aria-hidden="true" />
+                  ? <ChevronsRight className="w-4 h-4" style={{ color: 'var(--text-muted)' }} aria-hidden="true" />
+                  : <ChevronsLeft className="w-4 h-4" style={{ color: 'var(--text-muted)' }} aria-hidden="true" />
                 }
               </button>
             </div>
