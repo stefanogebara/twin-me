@@ -47,8 +47,8 @@ export const ConnectorCard: React.FC<ConnectorCardProps> = ({
         <span
           className="absolute top-2 right-2 text-[10px] font-medium px-2 py-0.5 rounded-full"
           style={{
-            background: 'rgba(255,255,255,0.10)',
-            color: 'rgba(245,245,244,0.85)',
+            background: 'var(--surface-solid)',
+            color: 'var(--foreground)',
             fontFamily: "'Inter', sans-serif",
           }}
         >
@@ -77,7 +77,7 @@ export const ConnectorCard: React.FC<ConnectorCardProps> = ({
           <p
             className="text-xs"
             style={{
-              color: 'rgba(255,255,255,0.4)',
+              color: 'var(--text-muted)',
               fontFamily: "'Inter', sans-serif"
             }}
           >
@@ -89,7 +89,7 @@ export const ConnectorCard: React.FC<ConnectorCardProps> = ({
       <p
         className="text-sm mb-3 leading-relaxed"
         style={{
-          color: 'rgba(255,255,255,0.4)',
+          color: 'var(--text-muted)',
           fontFamily: "'Inter', sans-serif"
         }}
       >
@@ -104,7 +104,7 @@ export const ConnectorCard: React.FC<ConnectorCardProps> = ({
               className="text-xs px-2 py-1 rounded-full"
               style={{
                 backgroundColor: 'var(--glass-surface-bg)',
-                color: 'rgba(255,255,255,0.4)',
+                color: 'var(--text-muted)',
                 fontFamily: "'Inter', sans-serif"
               }}
             >
@@ -116,7 +116,7 @@ export const ConnectorCard: React.FC<ConnectorCardProps> = ({
               className="text-xs px-2 py-1 rounded-full"
               style={{
                 backgroundColor: 'var(--glass-surface-bg)',
-                color: 'rgba(255,255,255,0.4)',
+                color: 'var(--text-muted)',
                 fontFamily: "'Inter', sans-serif"
               }}
             >
@@ -132,8 +132,8 @@ export const ConnectorCard: React.FC<ConnectorCardProps> = ({
             <div
               className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm opacity-60 cursor-default"
               style={{
-                backgroundColor: 'rgba(255, 255, 255, 0.04)',
-                color: 'rgba(255,255,255,0.4)',
+                backgroundColor: 'var(--surface)',
+                color: 'var(--text-muted)',
                 fontFamily: "'Inter', sans-serif",
                 fontWeight: 500
               }}
@@ -149,7 +149,7 @@ export const ConnectorCard: React.FC<ConnectorCardProps> = ({
               className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm transition-all"
               style={{
                 backgroundColor: connector.color || 'var(--glass-surface-bg)',
-                color: '#fff',
+                color: 'var(--foreground)',
                 fontFamily: "'Inter', sans-serif",
                 fontWeight: 500,
                 textDecoration: 'none',
@@ -195,7 +195,7 @@ export const ConnectorCard: React.FC<ConnectorCardProps> = ({
         <div className="mt-3">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
-              <svg className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.4)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-4 h-4" style={{ color: 'var(--text-muted)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
               </svg>
               <span
@@ -243,11 +243,11 @@ export const ConnectorCard: React.FC<ConnectorCardProps> = ({
         <div className="mt-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.4)' }} />
+              <CheckCircle2 className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
               <span
                 className="text-sm"
                 style={{
-                  color: 'rgba(255,255,255,0.4)',
+                  color: 'var(--text-muted)',
                   fontFamily: "'Inter', sans-serif"
                 }}
               >
@@ -264,7 +264,7 @@ export const ConnectorCard: React.FC<ConnectorCardProps> = ({
               className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               style={{
                 backgroundColor: 'transparent',
-                color: 'rgba(255,255,255,0.4)',
+                color: 'var(--text-muted)',
                 fontFamily: "'Inter', sans-serif"
               }}
             >

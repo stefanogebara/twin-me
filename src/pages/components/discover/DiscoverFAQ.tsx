@@ -19,7 +19,7 @@ export default function DiscoverFAQ({ onNavigate }: DiscoverFAQProps) {
           <div className="flex-1 flex flex-col gap-4">
             <p
               className="text-[11px] font-medium tracking-[2px] uppercase mb-2"
-              style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Inter', sans-serif" }}
+              style={{ color: 'var(--text-muted)', fontFamily: "'Inter', sans-serif" }}
             >
               FAQ
             </p>
@@ -32,13 +32,13 @@ export default function DiscoverFAQ({ onNavigate }: DiscoverFAQProps) {
             >
               Common questions
             </h2>
-            <p className="text-sm mb-4" style={{ color: 'rgba(255,255,255,0.4)', lineHeight: 1.5 }}>
+            <p className="text-sm mb-4" style={{ color: 'var(--text-muted)', lineHeight: 1.5 }}>
               Everything you need to know about TwinMe
             </p>
             <button
               onClick={() => onNavigate('/auth')}
               className="flex items-center justify-center h-10 px-5 rounded-[100px] text-sm font-medium w-fit transition-opacity hover:opacity-90"
-              style={{ background: '#F5F5F4', color: '#110f0f', fontFamily: "'Inter', sans-serif" }}
+              style={{ background: 'var(--claura-bone)', color: 'var(--claura-bone-ink)', fontFamily: "'Inter', sans-serif" }}
             >
               Get started
             </button>
@@ -51,7 +51,7 @@ export default function DiscoverFAQ({ onNavigate }: DiscoverFAQProps) {
               return (
                 <div
                   key={q}
-                  style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+                  style={{ borderBottom: '1px solid var(--border-glass)' }}
                 >
                   <button
                     type="button"
@@ -70,13 +70,13 @@ export default function DiscoverFAQ({ onNavigate }: DiscoverFAQProps) {
                       aria-hidden="true"
                       className="w-4 h-4 shrink-0 transition-transform duration-200"
                       style={{
-                        color: 'rgba(255,255,255,0.3)',
+                        color: 'var(--text-muted)',
                         transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
                       }}
                     />
                   </button>
                   {isOpen && FAQ_ANSWERS[q] && (
-                    <p id={`faq-answer-${i}`} role="region" className="pb-5 text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                    <p id={`faq-answer-${i}`} role="region" className="pb-5 text-sm leading-relaxed" style={{ color: 'var(--text-muted)' }}>
                       {FAQ_ANSWERS[q]}
                     </p>
                   )}

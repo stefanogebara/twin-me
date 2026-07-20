@@ -40,7 +40,7 @@ export const BentoStatsTile: React.FC<Props> = ({ stats, firstMemoryAt, connecte
     <div
       className="rounded-lg p-5 h-full flex flex-col justify-between"
       style={{
-        backgroundColor: 'rgba(255,255,255,0.02)',
+        backgroundColor: 'var(--surface)',
         border: '1px solid var(--border-glass)',
       }}
     >
@@ -69,7 +69,7 @@ export const BentoStatsTile: React.FC<Props> = ({ stats, firstMemoryAt, connecte
               </p>
               <p
                 className="text-xs"
-                style={{ color: 'rgba(255,255,255,0.4)' }}
+                style={{ color: 'var(--text-muted)' }}
               >
                 {label}
               </p>

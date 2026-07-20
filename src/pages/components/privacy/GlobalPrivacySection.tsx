@@ -60,7 +60,7 @@ const GlobalPrivacySection: React.FC<GlobalPrivacySectionProps> = ({
     style={{
       background: CARD_BG,
       borderRadius: 20,
-      border: '1px solid rgba(255,255,255,0.10)',
+      border: '1px solid var(--glass-surface-border)',
       padding: '20px 24px',
       marginBottom: 20,
     }}

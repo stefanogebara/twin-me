@@ -45,7 +45,7 @@ export const BentoExpertSpotlight: React.FC<Props> = ({ reflections }) => {
     <div
       className="rounded-lg p-5 md:p-6"
       style={{
-        backgroundColor: 'rgba(255,255,255,0.02)',
+        backgroundColor: 'var(--surface)',
         border: '1px solid var(--border-glass)',
       }}
     >
@@ -57,7 +57,7 @@ export const BentoExpertSpotlight: React.FC<Props> = ({ reflections }) => {
         <p className="text-[11px] font-medium tracking-widest uppercase" style={{ color: '#10b77f' }}>
           Expert Analysis
         </p>
-        <span className="ml-auto text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
+        <span className="ml-auto text-xs" style={{ color: 'var(--text-muted)' }}>
           {reflections.length} observation{reflections.length !== 1 ? 's' : ''}
         </span>
       </div>

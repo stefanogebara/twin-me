@@ -101,7 +101,7 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
         <button
           onClick={() => refetch()}
           className="p-1.5 rounded-lg transition-opacity hover:opacity-60"
-          style={{ color: 'rgba(255, 255, 255, 0.55)' }}
+          style={{ color: 'var(--text-secondary)' }}
           aria-label="Refresh platform connection status"
           title="Refresh status"
         >
@@ -118,7 +118,7 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
 
       {isLoading ? (
         <div className="flex items-center justify-center py-6">
-          <Loader2 className="w-4 h-4 animate-spin" style={{ color: 'rgba(255, 255, 255, 0.55)' }} />
+          <Loader2 className="w-4 h-4 animate-spin" style={{ color: 'var(--text-secondary)' }} />
         </div>
       ) : (
         <div className="space-y-0">
@@ -134,7 +134,7 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
               <div
                 key={connector.id}
                 className="flex items-center justify-between gap-3 py-3"
-                style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
+                style={{ borderBottom: '1px solid var(--border-glass)' }}
               >
                 <div className="flex items-center gap-3 min-w-0 flex-1">
                   <PlatformLogo platform={connector.id} size={18} />
@@ -142,7 +142,7 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
                     <span className="text-sm" style={{ color: 'var(--foreground)' }}>
                       {connector.name}
                     </span>
-                    <p className="text-[11px] truncate" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
+                    <p className="text-[11px] truncate" style={{ color: 'var(--text-secondary)' }}>
                       {connector.description}
                     </p>
                   </div>
@@ -184,7 +184,7 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
                     </>
                   ) : (
                     <>
-                      <XCircle className="w-3.5 h-3.5" style={{ color: 'rgba(255, 255, 255, 0.55)' }} />
+                      <XCircle className="w-3.5 h-3.5" style={{ color: 'var(--text-secondary)' }} />
                       <button
                         onClick={() => navigate('/get-started')}
                         className="text-[11px]"
@@ -203,7 +203,7 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
             <div
               key={platform}
               className="flex items-center justify-between gap-3 py-3"
-              style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
+              style={{ borderBottom: '1px solid var(--border-glass)' }}
             >
               <div className="flex items-center gap-3 min-w-0 flex-1" style={{ opacity: 0.55 }}>
                 <PlatformLogo platform={platform} size={18} />
@@ -212,7 +212,7 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
                     {PLATFORM_DISPLAY_NAMES[platform] ||
                       platform.replace(/_/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase())}
                   </span>
-                  <p className="text-[11px] truncate" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
+                  <p className="text-[11px] truncate" style={{ color: 'var(--text-secondary)' }}>
                     No longer supported — your past data stays in your twin
                   </p>
                 </div>

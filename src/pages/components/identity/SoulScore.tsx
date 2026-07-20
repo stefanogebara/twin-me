@@ -141,7 +141,7 @@ const ScoreRing: React.FC<{ score: number; compact?: boolean }> = ({ score, comp
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <span
           className={`font-normal tracking-[-1px] ${compact ? 'text-[32px]' : 'text-[44px]'}`}
-          style={{ fontFamily: "'Instrument Serif', serif", color: '#F5F5F4' }}
+          style={{ fontFamily: "'Instrument Serif', serif", color: 'var(--foreground)' }}
         >
           <AnimatedCounter target={score} />
         </span>
@@ -169,7 +169,7 @@ const ContributorCard: React.FC<ContributorCardProps> = ({ domain, connected, sc
   // memory depth isn't available on the client, so we no longer claim a
   // depth tier (Deep/Growing/New) that was identical across every unlocked
   // card (audit-2026-06-10).
-  const label = { text: 'Contributing', color: 'rgba(255,255,255,0.55)' };
+  const label = { text: 'Contributing', color: 'var(--text-secondary)' };
   const platformName = domain.platformKey === '__always__'
     ? ''
     : PLATFORM_DISPLAY_NAMES[domain.platformKey] ?? domain.platformKey.replace(/_/g, ' ');
@@ -181,7 +181,7 @@ const ContributorCard: React.FC<ContributorCardProps> = ({ domain, connected, sc
       transition={{ delay: 0.3 + index * 0.1, duration: 0.5, ease: 'easeOut' }}
       style={{
         background: locked ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.06)',
-        border: '1px solid rgba(255,255,255,0.10)',
+        border: '1px solid var(--glass-surface-border)',
         backdropFilter: 'blur(42px)',
         WebkitBackdropFilter: 'blur(42px)',
         borderRadius: 20,
@@ -207,7 +207,7 @@ const ContributorCard: React.FC<ContributorCardProps> = ({ domain, connected, sc
           </span>
         </div>
         {locked && (
-          <Lock size={14} style={{ color: 'rgba(255,255,255,0.15)' }} />
+          <Lock size={14} style={{ color: 'var(--text-muted)' }} />
         )}
       </div>
 
@@ -229,7 +229,7 @@ const ContributorCard: React.FC<ContributorCardProps> = ({ domain, connected, sc
           </span>
           <div
             className="flex-1 h-1 rounded-full"
-            style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}
+            style={{ backgroundColor: 'var(--surface)' }}
           >
             <motion.div
               className="h-full rounded-full"
@@ -322,7 +322,7 @@ const SoulScore: React.FC<SoulScoreProps> = ({ className = '', compact = false }
         <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: getRingColor(score) }} />
         <h2
           className="text-[11px] font-medium tracking-widest uppercase"
-          style={{ color: '#F5F5F4', fontFamily: "'Inter', sans-serif" }}
+          style={{ color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}
         >
           Soul Score
         </h2>

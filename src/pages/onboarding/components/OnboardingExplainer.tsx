@@ -53,7 +53,7 @@ const OnboardingExplainer: React.FC<OnboardingExplainerProps> = ({ onComplete })
           className="text-sm tracking-wide uppercase transition-opacity hover:opacity-80"
           style={{
             fontFamily: 'var(--font-body)',
-            color: 'rgba(245,245,244,0.4)',
+            color: 'var(--text-muted)',
             letterSpacing: '0.1em',
           }}
         >
@@ -103,7 +103,7 @@ const OnboardingExplainer: React.FC<OnboardingExplainerProps> = ({ onComplete })
           onClick={handleNext}
           className="flex items-center justify-center gap-2 rounded-full px-8 py-3 transition-all duration-200 hover:opacity-90 active:scale-[0.98]"
           style={{
-            backgroundColor: '#F5F5F4',
+            backgroundColor: 'var(--claura-bone)',
             color: '#0C0C0C',
             fontFamily: 'var(--font-body)',
             fontWeight: 500,
@@ -176,8 +176,8 @@ const Screen1: React.FC = () => (
                 height: 44,
                 left: cx - 22,
                 top: cy - 22,
-                background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(255,255,255,0.10)',
+                background: 'var(--surface)',
+                border: '1px solid var(--glass-surface-border)',
               }}
             >
               <svg width={22} height={22} viewBox="0 0 24 24" fill={platform.color}>
@@ -204,7 +204,7 @@ const Screen1: React.FC = () => (
         style={{
           fontFamily: 'var(--font-heading)',
           fontStyle: 'italic',
-          color: '#F5F5F4',
+          color: 'var(--foreground)',
           letterSpacing: '-0.02em',
         }}
       >
@@ -214,7 +214,7 @@ const Screen1: React.FC = () => (
         className="text-[15px] md:text-base leading-relaxed max-w-[340px]"
         style={{
           fontFamily: 'var(--font-body)',
-          color: 'rgba(245,245,244,0.6)',
+          color: 'var(--text-secondary)',
         }}
       >
         TwinMe discovers patterns about you from Spotify, YouTube, Calendar and
@@ -253,7 +253,7 @@ const Screen2: React.FC = () => (
       style={{
         fontFamily: 'var(--font-heading)',
         fontStyle: 'italic',
-        color: '#F5F5F4',
+        color: 'var(--foreground)',
         letterSpacing: '-0.02em',
       }}
     >
@@ -266,8 +266,8 @@ const Screen2: React.FC = () => (
           key={step.number}
           className="flex items-start gap-4 rounded-[20px] px-5 py-4"
           style={{
-            background: 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(255,255,255,0.10)',
+            background: 'var(--surface)',
+            border: '1px solid var(--glass-surface-border)',
             backdropFilter: 'blur(42px)',
             WebkitBackdropFilter: 'blur(42px)',
           }}
@@ -286,7 +286,7 @@ const Screen2: React.FC = () => (
               className="text-[15px] font-medium"
               style={{
                 fontFamily: 'var(--font-body)',
-                color: '#F5F5F4',
+                color: 'var(--foreground)',
               }}
             >
               {step.title}
@@ -295,7 +295,7 @@ const Screen2: React.FC = () => (
               className="text-[13px] leading-relaxed"
               style={{
                 fontFamily: 'var(--font-body)',
-                color: 'rgba(245,245,244,0.6)',
+                color: 'var(--text-secondary)',
               }}
             >
               {step.description}
@@ -334,7 +334,7 @@ const Screen3: React.FC = () => (
         style={{
           fontFamily: 'var(--font-heading)',
           fontStyle: 'italic',
-          color: '#F5F5F4',
+          color: 'var(--foreground)',
           letterSpacing: '-0.02em',
         }}
       >
@@ -344,7 +344,7 @@ const Screen3: React.FC = () => (
         className="text-[15px] md:text-base leading-relaxed max-w-[340px]"
         style={{
           fontFamily: 'var(--font-body)',
-          color: 'rgba(245,245,244,0.6)',
+          color: 'var(--text-secondary)',
         }}
       >
         We never sell your data. You choose what your twin can see. Delete
@@ -359,8 +359,8 @@ const Screen3: React.FC = () => (
           key={badge.label}
           className="flex flex-col items-center gap-2.5 rounded-[20px] px-5 py-4 flex-1"
           style={{
-            background: 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(255,255,255,0.10)',
+            background: 'var(--surface)',
+            border: '1px solid var(--glass-surface-border)',
             backdropFilter: 'blur(42px)',
             WebkitBackdropFilter: 'blur(42px)',
           }}
@@ -374,7 +374,7 @@ const Screen3: React.FC = () => (
             className="text-[12px] font-medium"
             style={{
               fontFamily: 'var(--font-body)',
-              color: 'rgba(245,245,244,0.6)',
+              color: 'var(--text-secondary)',
             }}
           >
             {badge.label}

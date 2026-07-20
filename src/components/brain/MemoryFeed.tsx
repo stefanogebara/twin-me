@@ -112,7 +112,7 @@ const MemoryFeed: React.FC<MemoryFeedProps> = ({
                   <span
                     className="flex-1 min-w-0 text-sm truncate"
                     style={{
-                      color: '#fdfcfb',
+                      color: 'var(--foreground)',
                       lineHeight: '20px',
                     }}
                   >
@@ -120,14 +120,14 @@ const MemoryFeed: React.FC<MemoryFeedProps> = ({
                   </span>
                   <span
                     className="flex-shrink-0 text-[11px]"
-                    style={{ color: 'rgba(255, 255, 255, 0.55)' }}
+                    style={{ color: 'var(--text-secondary)' }}
                   >
                     {memory.importance_score}/10
                   </span>
                   <span
                     className="flex-shrink-0 text-[11px]"
                     style={{
-                      color: 'rgba(255, 255, 255, 0.55)',
+                      color: 'var(--text-secondary)',
                       minWidth: '48px',
                       textAlign: 'right',
                     }}
@@ -141,7 +141,7 @@ const MemoryFeed: React.FC<MemoryFeedProps> = ({
                   <div style={{ padding: '0 4px 14px 18px' }}>
                     <p
                       className="text-sm leading-relaxed mb-3"
-                      style={{ color: 'rgba(255,255,255,0.8)' }}
+                      style={{ color: 'var(--foreground)' }}
                     >
                       {displayContent}
                     </p>
@@ -174,7 +174,7 @@ const MemoryFeed: React.FC<MemoryFeedProps> = ({
                         </span>
                       )}
                       {memory.retrieval_count > 0 && (
-                        <span className="text-[11px]" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
+                        <span className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
                           accessed {memory.retrieval_count}x
                         </span>
                       )}

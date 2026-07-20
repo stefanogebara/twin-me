@@ -25,13 +25,13 @@ export const CalendarEmptyState: React.FC<CalendarEmptyStateProps> = ({ colors, 
     <div className="space-y-4">
       <div
         className="text-center py-10 p-4 rounded-lg"
-        style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+        style={{ border: '1px solid var(--border-glass)', backgroundColor: 'var(--surface)' }}
       >
-        <Calendar className="w-12 h-12 mx-auto mb-4" style={{ color: 'rgba(255, 255, 255, 0.55)' }} />
+        <Calendar className="w-12 h-12 mx-auto mb-4" style={{ color: 'var(--text-secondary)' }} />
         <h3 style={{ color: colors.text, fontFamily: "'Instrument Serif', Georgia, serif" }}>
           Your twin is studying your schedule
         </h3>
-        <p className="mt-2 mb-6 max-w-sm mx-auto" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
+        <p className="mt-2 mb-6 max-w-sm mx-auto" style={{ color: 'var(--text-secondary)' }}>
           {notConnected
             ? 'Connect Google Calendar and your twin will notice patterns in how you structure your time.'
             : 'As your calendar fills with events, your twin will notice patterns in how you structure your time.'}
@@ -68,13 +68,13 @@ export const CalendarEmptyState: React.FC<CalendarEmptyStateProps> = ({ colors, 
         </span>
         <div
           className="p-4 rounded-lg"
-          style={{ border: '1px dashed var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+          style={{ border: '1px dashed var(--border-glass)', backgroundColor: 'var(--surface)' }}
         >
           <div className="flex items-center gap-2 mb-3">
-            <Clock className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.4)' }} />
-            <span className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>Today's Schedule</span>
+            <Clock className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
+            <span className="text-sm" style={{ color: 'var(--text-muted)' }}>Today's Schedule</span>
           </div>
-          <div className="flex justify-between text-[10px] mb-1" style={{ color: 'rgba(255,255,255,0.4)' }}>
+          <div className="flex justify-between text-[10px] mb-1" style={{ color: 'var(--text-muted)' }}>
             {['9AM', '12PM', '3PM', '6PM'].map(t => <span key={t}>{t}</span>)}
           </div>
           <div className="h-8 rounded-lg flex gap-1 overflow-hidden animate-pulse" style={{ backgroundColor: 'var(--glass-surface-bg)' }}>
@@ -86,17 +86,17 @@ export const CalendarEmptyState: React.FC<CalendarEmptyStateProps> = ({ colors, 
         <div className="grid grid-cols-2 gap-3">
           <div
             className="p-4 rounded-lg"
-            style={{ border: '1px dashed var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+            style={{ border: '1px dashed var(--border-glass)', backgroundColor: 'var(--surface)' }}
           >
             <div className="flex items-center gap-2 mb-3">
-              <CalendarDays className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.4)' }} />
-              <span className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>Time Split</span>
+              <CalendarDays className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
+              <span className="text-sm" style={{ color: 'var(--text-muted)' }}>Time Split</span>
             </div>
             <div className="space-y-2">
               {['Meetings', 'Focus', 'Personal'].map((type, i) => (
                 <div key={type} className="flex items-center gap-2">
-                  <span className="text-[10px] w-14" style={{ color: 'rgba(255,255,255,0.4)' }}>{type}</span>
-                  <div className="flex-1 h-3 rounded" style={{ backgroundColor: 'rgba(255,255,255,0.04)' }}>
+                  <span className="text-[10px] w-14" style={{ color: 'var(--text-muted)' }}>{type}</span>
+                  <div className="flex-1 h-3 rounded" style={{ backgroundColor: 'var(--surface)' }}>
                     <div className="h-full rounded" style={{
                       width: `${[55, 30, 15][i]}%`,
                       backgroundColor: [`${colors.calendarBlue}30`, 'rgba(52,168,83,0.3)', 'rgba(147,52,233,0.3)'][i],
@@ -108,11 +108,11 @@ export const CalendarEmptyState: React.FC<CalendarEmptyStateProps> = ({ colors, 
           </div>
           <div
             className="p-4 rounded-lg"
-            style={{ border: '1px dashed var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+            style={{ border: '1px dashed var(--border-glass)', backgroundColor: 'var(--surface)' }}
           >
             <div className="flex items-center gap-2 mb-3">
-              <Clock className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.4)' }} />
-              <span className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>Busy Hours</span>
+              <Clock className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
+              <span className="text-sm" style={{ color: 'var(--text-muted)' }}>Busy Hours</span>
             </div>
             <div className="grid grid-cols-5 gap-0.5">
               {Array.from({ length: 25 }).map((_, i) => (

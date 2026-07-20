@@ -29,7 +29,7 @@ export function PatternDiscoveryCard({ pattern, className = '' }: PatternDiscove
     // CLAUDE.md: never navy blue — use the warm-amber accent for medium-confidence.
     if (confidence >= 70) return 'text-[var(--accent-amber)] bg-[rgba(193,126,44,0.12)] border-[rgba(193,126,44,0.30)]';
     if (confidence >= 50) return 'text-[#E8E0D4] bg-[#E8E0D4]/10 border-[#E8E0D4]/15';
-    return 'text-muted-foreground bg-white/8 border-white/10';
+    return 'text-muted-foreground bg-[var(--surface)] border-white/10';
   };
 
   const handleShare = () => {
@@ -65,7 +65,7 @@ export function PatternDiscoveryCard({ pattern, className = '' }: PatternDiscove
           {pattern.platforms.map((platform) => (
             <span
               key={platform}
-              className="text-xs px-2.5 py-1 bg-white/8 rounded-md border border-white/10 text-muted-foreground"
+              className="text-xs px-2.5 py-1 bg-[var(--surface)] rounded-md border border-white/10 text-muted-foreground"
             >
               {platform}
             </span>
@@ -82,7 +82,7 @@ export function PatternDiscoveryCard({ pattern, className = '' }: PatternDiscove
         {/* Expanded content */}
         {isExpanded && (
           <div className="mb-4">
-            <div className="p-4 bg-white/8 rounded-lg border border-white/10">
+            <div className="p-4 bg-[var(--surface)] rounded-lg border border-white/10">
               <div className="flex items-start space-x-3">
                 <div className="w-8 h-8 rounded-full bg-[#E8E0D4]/10 flex items-center justify-center flex-shrink-0">
                   <Sparkles className="w-4 h-4 text-[#E8E0D4]" />
@@ -124,7 +124,7 @@ export function PatternDiscoveryCard({ pattern, className = '' }: PatternDiscove
       </div>
 
       {/* Confidence progress bar — amber for mid-confidence (CLAUDE.md: NEVER navy blue) */}
-      <div className="h-1 bg-white/10">
+      <div className="h-1 bg-[var(--surface-solid)]">
         <div
           className={`h-full transition-all duration-1000 ${
             pattern.confidence >= 90

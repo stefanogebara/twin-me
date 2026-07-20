@@ -15,13 +15,13 @@ export interface StandardBadgeProps extends React.HTMLAttributes<HTMLSpanElement
 }
 
 const variants = {
-  default: 'bg-[rgba(255,255,255,0.06)] text-[rgba(245,245,244,0.85)] border-[rgba(255,255,255,0.10)]',
+  default: 'bg-[var(--surface)] text-[rgba(245,245,244,0.85)] border-[var(--glass-surface-border)]',
   success: 'bg-[rgba(16,185,129,0.10)] text-[rgba(16,185,129,0.85)] border-[rgba(16,185,129,0.15)]',
   error: 'bg-[rgba(220,38,38,0.10)] text-[rgba(220,38,38,0.85)] border-[rgba(220,38,38,0.15)]',
   warning: 'bg-[rgba(245,158,11,0.10)] text-[rgba(245,158,11,0.85)] border-[rgba(245,158,11,0.15)]',
-  info: 'bg-[rgba(255,255,255,0.06)] text-[rgba(255,255,255,0.65)] border-[rgba(255,255,255,0.10)]',
+  info: 'bg-[var(--surface)] text-[var(--text-secondary)] border-[var(--glass-surface-border)]',
   premium: 'bg-[rgba(139,92,246,0.10)] text-[rgba(139,92,246,0.85)] border-[rgba(139,92,246,0.15)]',
-  neutral: 'bg-[rgba(255,255,255,0.04)] text-[rgba(255,255,255,0.50)] border-[rgba(255,255,255,0.08)]',
+  neutral: 'bg-[var(--surface)] text-[var(--text-secondary)] border-[var(--border-glass)]',
 };
 
 const sizes = {

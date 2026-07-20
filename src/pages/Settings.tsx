@@ -98,10 +98,7 @@ const APPEARANCE_OPTIONS: { value: Theme; label: string }[] = [
 const AppearanceRow: React.FC = () => {
   const { theme, setTheme } = useTheme();
   return (
-    <SettingsRow
-      label="Appearance"
-      description="Light appearance is in preview — some screens are still being tuned"
-    >
+    <SettingsRow label="Appearance">
       <div
         role="radiogroup"
         aria-label="Appearance"

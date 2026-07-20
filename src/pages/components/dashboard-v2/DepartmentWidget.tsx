@@ -61,7 +61,7 @@ export function DepartmentWidget() {
   const pendingCount = proposals.length;
 
   return (
-    <section className="mb-10 pb-10" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+    <section className="mb-10 pb-10" style={{ borderBottom: '1px solid var(--border-glass)' }}>
       <div className="flex items-center justify-between mb-4">
         <h2 className={LABEL_STYLE} style={{ color: 'var(--text-secondary)', marginBottom: 0 }}>
           YOUR AI TEAM
@@ -71,10 +71,10 @@ export function DepartmentWidget() {
       <div
         className="rounded-[20px] px-5 py-4"
         style={{
-          background: 'rgba(255,255,255,0.06)',
+          background: 'var(--surface)',
           backdropFilter: 'blur(42px)',
           WebkitBackdropFilter: 'blur(42px)',
-          border: '1px solid rgba(255,255,255,0.08)',
+          border: '1px solid var(--border-glass)',
         }}
       >
         {/* Department status chips */}
@@ -102,7 +102,7 @@ export function DepartmentWidget() {
               onClick={() => refetchDepartments()}
               className="px-2 py-1 rounded-full text-[10px] font-medium transition-all duration-150 ease-out hover:opacity-80 active:scale-[0.97] flex-shrink-0"
               style={{
-                backgroundColor: 'rgba(255,255,255,0.08)',
+                backgroundColor: 'var(--surface)',
                 color: 'var(--foreground)',
                 border: 'none',
                 cursor: 'pointer',
@@ -148,7 +148,7 @@ export function DepartmentWidget() {
             <span
               className="text-[10px] font-medium px-2 py-1 rounded-full"
               style={{
-                backgroundColor: 'rgba(255,255,255,0.10)',
+                backgroundColor: 'var(--surface-solid)',
                 color: 'var(--text-secondary)',
                 fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
               }}
@@ -187,7 +187,7 @@ export function DepartmentWidget() {
                   disabled={approvingId === proposal.id}
                   className="flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-medium transition-all duration-150 ease-out hover:opacity-80 active:scale-[0.97] flex-shrink-0 disabled:opacity-40"
                   style={{
-                    backgroundColor: 'rgba(255,255,255,0.08)',
+                    backgroundColor: 'var(--surface)',
                     color: 'var(--foreground)',
                     border: 'none',
                     cursor: approvingId === proposal.id ? 'wait' : 'pointer',

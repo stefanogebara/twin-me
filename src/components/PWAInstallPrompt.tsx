@@ -81,22 +81,22 @@ const PWAInstallPrompt: React.FC = () => {
       className="fixed bottom-28 lg:bottom-4 left-4 right-4 z-50 flex items-center justify-between gap-3 px-4 py-3 max-w-md mx-auto"
       style={{
         borderRadius: '16px',
-        background: 'rgba(255,255,255,0.06)',
+        background: 'var(--surface)',
         backdropFilter: 'blur(42px)',
         WebkitBackdropFilter: 'blur(42px)',
-        border: '1px solid rgba(255,255,255,0.10)',
+        border: '1px solid var(--glass-surface-border)',
         boxShadow: '0 4px 24px rgba(0,0,0,0.4)',
       }}
     >
       <div className="flex items-center gap-3 min-w-0 flex-1">
         <Download
           className="w-4 h-4 flex-shrink-0"
-          style={{ color: 'rgba(255,255,255,0.5)' }}
+          style={{ color: 'var(--text-secondary)' }}
         />
         <span
           className="text-[12px] font-medium"
           style={{
-            color: 'rgba(255,255,255,0.6)',
+            color: 'var(--text-secondary)',
             fontFamily: "'Inter', sans-serif",
           }}
         >
@@ -109,8 +109,8 @@ const PWAInstallPrompt: React.FC = () => {
           onClick={handleInstall}
           className="px-3 py-1.5 rounded-full text-[11px] font-medium transition-opacity hover:opacity-90 cursor-pointer"
           style={{
-            backgroundColor: '#F5F5F4',
-            color: '#110f0f',
+            backgroundColor: 'var(--claura-bone)',
+            color: 'var(--claura-bone-ink)',
             fontFamily: "'Inter', sans-serif",
           }}
         >
@@ -119,7 +119,7 @@ const PWAInstallPrompt: React.FC = () => {
         <button
           onClick={handleDismiss}
           className="p-1 rounded-full transition-colors cursor-pointer"
-          style={{ color: 'rgba(255,255,255,0.3)' }}
+          style={{ color: 'var(--text-muted)' }}
           onMouseEnter={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.6)'; }}
           onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.3)'; }}
           aria-label="Dismiss install prompt"

@@ -165,7 +165,7 @@ export function DailyCheckin({ onComplete }: DailyCheckinProps) {
     return (
       <div className="text-center py-4">
         <div className="text-2xl mb-1">{selectedMood.emoji}</div>
-        <p className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>
+        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
           Your twin knows how you're feeling
         </p>
       </div>
@@ -178,7 +178,7 @@ export function DailyCheckin({ onComplete }: DailyCheckinProps) {
         <h3 className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>
           How are you feeling right now?
         </h3>
-        <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
+        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
           Your twin will remember this
         </p>
       </div>
@@ -196,7 +196,7 @@ export function DailyCheckin({ onComplete }: DailyCheckinProps) {
                 onClick={() => setExpandedCategory(isExpanded ? null : category.name)}
                 disabled={submitting}
                 className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs transition-colors hover:bg-black/4"
-                style={{ color: 'rgba(255,255,255,0.4)' }}
+                style={{ color: 'var(--text-muted)' }}
               >
                 <span className="flex items-center gap-1.5 font-medium">
                   <span>{category.emoji}</span>

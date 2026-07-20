@@ -134,8 +134,8 @@ const EmailRow: React.FC<EmailRowProps> = ({ email, onDismiss, onSend }) => {
       data-testid="email-row"
       data-email-id={email.id}
       style={{
-        background: 'rgba(255,255,255,0.03)',
-        border: '1px solid rgba(255,255,255,0.07)',
+        background: 'var(--surface)',
+        border: '1px solid var(--border-glass)',
         borderRadius: '10px',
         padding: '12px 14px',
         opacity: dismissing ? 0.4 : 1,
@@ -149,7 +149,7 @@ const EmailRow: React.FC<EmailRowProps> = ({ email, onDismiss, onSend }) => {
             <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>{name}</span>
             <span
               className="text-[10px] px-1.5 py-0.5 rounded"
-              style={{ background: categoryColor(email.category), color: 'rgba(255,255,255,0.7)' }}
+              style={{ background: categoryColor(email.category), color: 'var(--foreground)' }}
             >
               {categoryLabel(email.category)}
             </span>
@@ -199,8 +199,8 @@ const EmailRow: React.FC<EmailRowProps> = ({ email, onDismiss, onSend }) => {
         <div
           className="mt-3"
           style={{
-            background: 'rgba(255,255,255,0.04)',
-            border: '1px solid rgba(255,255,255,0.06)',
+            background: 'var(--surface)',
+            border: '1px solid var(--border-glass)',
             borderRadius: '8px',
             padding: '10px 12px',
           }}
@@ -223,9 +223,9 @@ const EmailRow: React.FC<EmailRowProps> = ({ email, onDismiss, onSend }) => {
               onClick={copyDraft}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors"
               style={{
-                background: 'rgba(255,255,255,0.08)',
+                background: 'var(--surface)',
                 color: 'var(--foreground)',
-                border: '1px solid rgba(255,255,255,0.1)',
+                border: '1px solid var(--glass-surface-border)',
               }}
             >
               <Copy className="w-3 h-3" />
@@ -237,9 +237,9 @@ const EmailRow: React.FC<EmailRowProps> = ({ email, onDismiss, onSend }) => {
               rel="noopener noreferrer"
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors"
               style={{
-                background: 'rgba(255,255,255,0.08)',
+                background: 'var(--surface)',
                 color: 'var(--foreground)',
-                border: '1px solid rgba(255,255,255,0.1)',
+                border: '1px solid var(--glass-surface-border)',
               }}
             >
               <ExternalLink className="w-3 h-3" />
@@ -254,7 +254,7 @@ const EmailRow: React.FC<EmailRowProps> = ({ email, onDismiss, onSend }) => {
               style={{
                 background: 'var(--foreground)',
                 color: 'var(--background)',
-                border: '1px solid rgba(255,255,255,0.1)',
+                border: '1px solid var(--glass-surface-border)',
               }}
             >
               <Send className="w-3 h-3" />
@@ -276,7 +276,7 @@ const EmailRow: React.FC<EmailRowProps> = ({ email, onDismiss, onSend }) => {
             className="max-w-md w-full"
             style={{
               background: 'rgba(20,20,20,0.95)',
-              border: '1px solid rgba(255,255,255,0.10)',
+              border: '1px solid var(--glass-surface-border)',
               borderRadius: '12px',
               padding: '20px',
               backdropFilter: 'blur(42px)',
@@ -299,9 +299,9 @@ const EmailRow: React.FC<EmailRowProps> = ({ email, onDismiss, onSend }) => {
                 onClick={() => setConfirmSend(false)}
                 className="px-4 py-1.5 rounded-full text-xs font-medium transition-colors"
                 style={{
-                  background: 'rgba(255,255,255,0.06)',
+                  background: 'var(--surface)',
                   color: 'var(--foreground)',
-                  border: '1px solid rgba(255,255,255,0.10)',
+                  border: '1px solid var(--glass-surface-border)',
                 }}
               >
                 Cancel
@@ -315,7 +315,7 @@ const EmailRow: React.FC<EmailRowProps> = ({ email, onDismiss, onSend }) => {
                 style={{
                   background: 'var(--foreground)',
                   color: 'var(--background)',
-                  border: '1px solid rgba(255,255,255,0.10)',
+                  border: '1px solid var(--glass-surface-border)',
                 }}
               >
                 {sending ? 'Sending…' : 'Send'}
@@ -343,8 +343,8 @@ const EmptyState: React.FC<EmptyStateProps> = ({ status, message, onRefresh, ref
       data-testid="email-empty-state"
       data-status={status}
       style={{
-        background: 'rgba(255,255,255,0.03)',
-        border: '1px solid rgba(255,255,255,0.07)',
+        background: 'var(--surface)',
+        border: '1px solid var(--border-glass)',
         borderRadius: '10px',
         padding: '14px 16px',
       }}
@@ -358,7 +358,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({ status, message, onRefresh, ref
             style={{
               background: 'var(--foreground)',
               color: 'var(--background)',
-              border: '1px solid rgba(255,255,255,0.1)',
+              border: '1px solid var(--glass-surface-border)',
             }}
           >
             Connect Gmail
@@ -371,9 +371,9 @@ const EmptyState: React.FC<EmptyStateProps> = ({ status, message, onRefresh, ref
             data-testid="email-refresh-btn"
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors disabled:opacity-50 flex-shrink-0"
             style={{
-              background: 'rgba(255,255,255,0.06)',
+              background: 'var(--surface)',
               color: 'var(--foreground)',
-              border: '1px solid rgba(255,255,255,0.10)',
+              border: '1px solid var(--glass-surface-border)',
             }}
           >
             <RefreshCw className={`w-3 h-3 ${refreshing ? 'animate-spin' : ''}`} />
@@ -485,7 +485,7 @@ export const EmailTriageCard: React.FC = () => {
           </span>
         )}
         {briefTimestamp && (
-          <span className="ml-auto text-[10px]" style={{ color: 'rgba(255,255,255,0.25)' }}>
+          <span className="ml-auto text-[10px]" style={{ color: 'var(--text-muted)' }}>
             {formatRelativeTime(briefTimestamp)}
           </span>
         )}

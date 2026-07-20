@@ -71,10 +71,10 @@ const SplitPanelLayout: React.FC<SplitPanelLayoutProps> = ({ main, sidebar }) =>
           onClick={() => setDrawerOpen(!drawerOpen)}
           className="fixed right-4 bottom-36 z-40 w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95"
           style={{
-            background: 'rgba(255,255,255,0.1)',
+            background: 'var(--surface-solid)',
             backdropFilter: 'blur(24px)',
             WebkitBackdropFilter: 'blur(24px)',
-            border: '1px solid rgba(255,255,255,0.12)',
+            border: '1px solid var(--glass-surface-border)',
             boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
           }}
           aria-label={drawerOpen ? 'Close sidebar' : 'Open sidebar'}
@@ -102,7 +102,7 @@ const SplitPanelLayout: React.FC<SplitPanelLayoutProps> = ({ main, sidebar }) =>
                   background: 'rgba(20,18,28,0.95)',
                   backdropFilter: 'blur(42px)',
                   WebkitBackdropFilter: 'blur(42px)',
-                  borderLeft: '1px solid rgba(255,255,255,0.06)',
+                  borderLeft: '1px solid var(--border-glass)',
                   boxShadow: '-8px 0 32px rgba(0,0,0,0.3)',
                 }}
                 initial={{ x: '100%' }}

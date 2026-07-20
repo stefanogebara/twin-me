@@ -21,7 +21,7 @@ interface PlatformCardProps {
 const PlatformCard: React.FC<PlatformCardProps> = ({
   name, description, color, icon, connected, connecting, onConnect
 }) => (
-  <div className="flex items-center gap-4 p-4 rounded-lg" style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
+  <div className="flex items-center gap-4 p-4 rounded-lg" style={{ border: '1px solid var(--border-glass)', backgroundColor: 'var(--surface)' }}>
     <div
       className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 text-white"
       style={{ backgroundColor: color }}
@@ -30,7 +30,7 @@ const PlatformCard: React.FC<PlatformCardProps> = ({
     </div>
     <div className="flex-1 min-w-0">
       <p className="text-sm font-medium" style={{ color: 'var(--foreground)', fontFamily: "'Geist', sans-serif" }}>{name}</p>
-      <p className="text-xs truncate" style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Geist', sans-serif" }}>{description}</p>
+      <p className="text-xs truncate" style={{ color: 'var(--text-muted)', fontFamily: "'Geist', sans-serif" }}>{description}</p>
     </div>
     {connected ? (
       <CheckCircle2 className="w-5 h-5 flex-shrink-0" style={{ color: 'var(--foreground)' }} />
@@ -241,7 +241,7 @@ const PlatformStep: React.FC<PlatformStepProps> = ({ onContinue }) => {
         </h2>
         <p
           className="text-center mb-8"
-          style={{ fontFamily: "'Geist', sans-serif", fontSize: '14px', fontWeight: 500, color: 'rgba(255,255,255,0.4)' }}
+          style={{ fontFamily: "'Geist', sans-serif", fontSize: '14px', fontWeight: 500, color: 'var(--text-muted)' }}
         >
           Connect a platform and your twin comes to life with real context about you.
         </p>
@@ -265,7 +265,7 @@ const PlatformStep: React.FC<PlatformStepProps> = ({ onContinue }) => {
         <button
           onClick={() => setShowMore(v => !v)}
           className="w-full flex items-center justify-center gap-1 py-2 mb-2"
-          style={{ fontFamily: "'Geist', sans-serif", fontSize: '12px', fontWeight: 400, color: 'rgba(255,255,255,0.4)', background: 'none', border: 'none', cursor: 'pointer' }}
+          style={{ fontFamily: "'Geist', sans-serif", fontSize: '12px', fontWeight: 400, color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer' }}
         >
           {showMore ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           {showMore ? 'Show less' : 'More platforms'}
@@ -279,7 +279,7 @@ const PlatformStep: React.FC<PlatformStepProps> = ({ onContinue }) => {
               {MORE_PLATFORMS.map(p => (
                 <div
                   key={p.name}
-                  className="flex items-center gap-2.5 p-3 opacity-45 rounded-lg" style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+                  className="flex items-center gap-2.5 p-3 opacity-45 rounded-lg" style={{ border: '1px solid var(--border-glass)', backgroundColor: 'var(--surface)' }}
                 >
                   <div
                     className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 text-white"
@@ -287,11 +287,11 @@ const PlatformStep: React.FC<PlatformStepProps> = ({ onContinue }) => {
                   >
                     {p.icon}
                   </div>
-                  <p className="text-xs font-medium truncate" style={{ color: 'rgba(255,255,255,0.5)' }}>{p.name}</p>
+                  <p className="text-xs font-medium truncate" style={{ color: 'var(--text-secondary)' }}>{p.name}</p>
                 </div>
               ))}
             </div>
-            <p className="text-xs text-center" style={{ color: 'rgba(255,255,255,0.25)' }}>Available in Settings after onboarding</p>
+            <p className="text-xs text-center" style={{ color: 'var(--text-muted)' }}>Available in Settings after onboarding</p>
           </div>
         )}
 

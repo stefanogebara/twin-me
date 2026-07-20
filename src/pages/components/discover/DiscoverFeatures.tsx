@@ -14,7 +14,7 @@ export default function DiscoverFeatures() {
       <section className="px-6 md:px-[100px] py-8">
         <p
           className="text-center text-[11px] font-medium tracking-[2px] uppercase mb-8"
-          style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Inter', sans-serif" }}
+          style={{ color: 'var(--text-muted)', fontFamily: "'Inter', sans-serif" }}
         >
           Your data, your insights — powered by
         </p>
@@ -32,7 +32,7 @@ export default function DiscoverFeatures() {
       </section>
 
       {/* ── Divider ── */}
-      <div className="max-w-[800px] mx-auto h-px" style={{ background: 'rgba(255,255,255,0.06)' }} />
+      <div className="max-w-[800px] mx-auto h-px" style={{ background: 'var(--surface)' }} />
 
       {/* ── Features ── */}
       <section id="features" className="px-6 md:px-[100px] py-20">
@@ -40,7 +40,7 @@ export default function DiscoverFeatures() {
 
           <p
             className="text-[11px] font-medium tracking-[2px] uppercase mb-6"
-            style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Inter', sans-serif" }}
+            style={{ color: 'var(--text-muted)', fontFamily: "'Inter', sans-serif" }}
           >
             Features
           </p>
@@ -74,7 +74,7 @@ export default function DiscoverFeatures() {
                 </h3>
                 <p
                   className="text-sm leading-relaxed"
-                  style={{ color: 'rgba(255,255,255,0.55)' }}
+                  style={{ color: 'var(--text-secondary)' }}
                 >
                   {body}
                 </p>

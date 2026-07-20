@@ -194,7 +194,7 @@ const BrainPage: React.FC = () => {
         <div className="flex items-center justify-center h-64">
           <div
             className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin"
-            style={{ color: 'rgba(255, 255, 255, 0.55)' }}
+            style={{ color: 'var(--text-secondary)' }}
           />
         </div>
       </div>
@@ -223,7 +223,7 @@ const BrainPage: React.FC = () => {
         <button
           onClick={() => navigate('/auth')}
           className="px-5 py-2.5 rounded-full text-sm font-medium transition-opacity hover:opacity-90"
-          style={{ backgroundColor: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.10)', color: '#fdfcfb', fontFamily: "'Inter', sans-serif" }}
+          style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--glass-surface-border)', color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}
         >
           Sign In to Explore
         </button>
@@ -248,7 +248,7 @@ const BrainPage: React.FC = () => {
               fontStyle: 'italic',
               fontSize: '32px',
               fontWeight: 400,
-              color: '#fdfcfb',
+              color: 'var(--foreground)',
               letterSpacing: '-0.02em',
               margin: 0,
               lineHeight: 1.2,
@@ -268,7 +268,7 @@ const BrainPage: React.FC = () => {
           <>
             <div
               className="flex w-full overflow-hidden mb-2"
-              style={{ height: '4px', borderRadius: '2px', background: 'rgba(255,255,255,0.04)' }}
+              style={{ height: '4px', borderRadius: '2px', background: 'var(--surface)' }}
             >
               {(['reflection', 'platform_data', 'fact', 'conversation', 'observation'] as const).map(type => {
                 const count = composition[type] || 0;
@@ -286,7 +286,7 @@ const BrainPage: React.FC = () => {
                 );
               })}
             </div>
-            <p className="text-[11px]" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
+            <p className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
               {(['reflection', 'platform_data', 'fact', 'conversation', 'observation'] as const)
                 .filter(type => (composition[type] || 0) > 0)
                 .map(type => {
@@ -302,7 +302,7 @@ const BrainPage: React.FC = () => {
 
       {/* ===== Search ===== */}
       <div className="relative mb-4">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none" style={{ color: 'rgba(255, 255, 255, 0.55)' }} />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none" style={{ color: 'var(--text-secondary)' }} />
         <input
           type="search"
           value={searchQuery}
@@ -311,9 +311,9 @@ const BrainPage: React.FC = () => {
           aria-label="Search memories"
           className="w-full pl-8 pr-3 py-2 text-sm rounded-[8px] outline-none transition-colors"
           style={{
-            background: 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            color: '#fdfcfb',
+            background: 'var(--surface)',
+            border: '1px solid var(--border-glass)',
+            color: 'var(--foreground)',
             fontFamily: "'Inter', sans-serif",
           }}
         />
@@ -336,13 +336,13 @@ const BrainPage: React.FC = () => {
             <div
               key={i}
               className="px-4 py-3 rounded-[12px] animate-pulse"
-              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}
+              style={{ background: 'var(--surface)', border: '1px solid var(--border-glass)' }}
             >
               <div className="flex items-start gap-3">
-                <div className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0" style={{ background: 'rgba(255,255,255,0.10)' }} />
+                <div className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0" style={{ background: 'var(--surface-solid)' }} />
                 <div className="flex-1 space-y-2">
-                  <div className="h-3 rounded" style={{ background: 'rgba(255,255,255,0.08)', width: `${60 + (i * 7) % 30}%` }} />
-                  <div className="h-3 rounded w-2/5" style={{ background: 'rgba(255,255,255,0.05)' }} />
+                  <div className="h-3 rounded" style={{ background: 'var(--surface)', width: `${60 + (i * 7) % 30}%` }} />
+                  <div className="h-3 rounded w-2/5" style={{ background: 'var(--surface)' }} />
                 </div>
               </div>
             </div>
@@ -350,26 +350,26 @@ const BrainPage: React.FC = () => {
         </div>
       ) : loadError ? (
         <div className="py-16 text-center">
-          <p className="text-sm mb-1" style={{ color: 'rgba(255,255,255,0.5)' }}>
+          <p className="text-sm mb-1" style={{ color: 'var(--text-secondary)' }}>
             Couldn't load your memories
           </p>
-          <p className="text-xs" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
+          <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
             Something went wrong. Your memories are safe — try again in a moment.
           </p>
           <button
             onClick={() => fetchMemories({ expert: activeExpert, type: activeType, sort, offset: 0, search: searchQuery })}
             className="mt-4 px-5 py-2 rounded-full text-sm font-medium transition-opacity hover:opacity-90"
-            style={{ backgroundColor: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.10)', color: '#fdfcfb' }}
+            style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--glass-surface-border)', color: 'var(--foreground)' }}
           >
             Try Again
           </button>
         </div>
       ) : memories.length === 0 ? (
         <div className="py-16 text-center">
-          <p className="text-sm mb-1" style={{ color: 'rgba(255,255,255,0.5)' }}>
+          <p className="text-sm mb-1" style={{ color: 'var(--text-secondary)' }}>
             No memories found
           </p>
-          <p className="text-xs" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
+          <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
             {activeExpert || activeType
               ? 'Try adjusting your filters.'
               : 'Connect platforms to start building memories.'}
@@ -378,7 +378,7 @@ const BrainPage: React.FC = () => {
             <button
               onClick={() => navigate('/get-started')}
               className="mt-4 px-5 py-2 rounded-full text-sm font-medium transition-opacity hover:opacity-90"
-              style={{ backgroundColor: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.10)', color: '#fdfcfb' }}
+              style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--glass-surface-border)', color: 'var(--foreground)' }}
             >
               Connect Platforms
             </button>
@@ -437,12 +437,12 @@ const BrainPage: React.FC = () => {
             )}
 
             {snapshotsError && snapshots.length === 0 && (
-              <p className="text-xs" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
+              <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
                 Couldn't load your soul signature timeline.{' '}
                 <button
                   onClick={fetchSnapshots}
                   className="underline transition-opacity hover:opacity-70"
-                  style={{ color: '#fdfcfb', background: 'transparent', border: 'none', padding: 0, font: 'inherit', cursor: 'pointer' }}
+                  style={{ color: 'var(--foreground)', background: 'transparent', border: 'none', padding: 0, font: 'inherit', cursor: 'pointer' }}
                 >
                   Retry
                 </button>
@@ -463,11 +463,11 @@ const BrainPage: React.FC = () => {
                   >
                     Soul Signature Evolution
                   </span>
-                  <span className="text-[11px]" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
+                  <span className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
                     {snapshots.length} snapshots
                   </span>
                 </div>
-                <p className="text-xs mb-4" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
+                <p className="text-xs mb-4" style={{ color: 'var(--text-secondary)' }}>
                   How your twin's understanding of you has grown over time.
                 </p>
                 <SoulEvolutionTimeline snapshots={snapshots} />

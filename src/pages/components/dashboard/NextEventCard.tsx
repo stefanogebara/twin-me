@@ -28,7 +28,7 @@ export const NextEventCard: React.FC<NextEventCardProps> = ({
     return (
       <div
         className="mb-14 relative overflow-hidden rounded-lg"
-        style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)', padding: '1.25rem' }}
+        style={{ border: '1px solid var(--border-glass)', backgroundColor: 'var(--surface)', padding: '1.25rem' }}
       >
         <div>
           <div className="flex items-start justify-between mb-6">
@@ -50,7 +50,7 @@ export const NextEventCard: React.FC<NextEventCardProps> = ({
                   >
                     <RefreshCw
                       className={`w-3 h-3 ${syncing ? 'animate-spin' : ''}`}
-                      style={{ color: 'rgba(255,255,255,0.4)' }}
+                      style={{ color: 'var(--text-muted)' }}
                       aria-hidden="true"
                     />
                   </button>
@@ -98,7 +98,7 @@ export const NextEventCard: React.FC<NextEventCardProps> = ({
                 backgroundColor: 'var(--glass-surface-bg)'
               }}
             >
-              <Target className="w-6 h-6" style={{ color: 'rgba(255,255,255,0.4)' }} />
+              <Target className="w-6 h-6" style={{ color: 'var(--text-muted)' }} />
             </div>
           </div>
 
@@ -124,7 +124,7 @@ export const NextEventCard: React.FC<NextEventCardProps> = ({
     <div
       className="mb-14 px-5 py-4 rounded-xl flex items-center gap-3"
       style={{
-        backgroundColor: 'rgba(255,255,255,0.02)',
+        backgroundColor: 'var(--surface)',
         border: '1px solid var(--border-glass)'
       }}
     >

@@ -18,23 +18,23 @@ const REMARK_PLUGINS = [remarkGfm];
 // using browser defaults, and ensure bold/italics render instead of leaking `**`.
 const MARKDOWN_COMPONENTS = {
   p: ({ children }: { children?: React.ReactNode }) => (
-    <p className="text-sm leading-relaxed mb-2 last:mb-0" style={{ color: '#fdfcfb' }}>{children}</p>
+    <p className="text-sm leading-relaxed mb-2 last:mb-0" style={{ color: 'var(--foreground)' }}>{children}</p>
   ),
   strong: ({ children }: { children?: React.ReactNode }) => (
-    <strong style={{ color: '#fdfcfb', fontWeight: 600 }}>{children}</strong>
+    <strong style={{ color: 'var(--foreground)', fontWeight: 600 }}>{children}</strong>
   ),
   em: ({ children }: { children?: React.ReactNode }) => (
     <em style={{ color: 'rgba(253,252,251,0.85)' }}>{children}</em>
   ),
   ul: ({ children }: { children?: React.ReactNode }) => (
-    <ul className="text-sm leading-relaxed mb-2 ml-4 list-disc" style={{ color: '#fdfcfb' }}>{children}</ul>
+    <ul className="text-sm leading-relaxed mb-2 ml-4 list-disc" style={{ color: 'var(--foreground)' }}>{children}</ul>
   ),
   ol: ({ children }: { children?: React.ReactNode }) => (
-    <ol className="text-sm leading-relaxed mb-2 ml-4 list-decimal" style={{ color: '#fdfcfb' }}>{children}</ol>
+    <ol className="text-sm leading-relaxed mb-2 ml-4 list-decimal" style={{ color: 'var(--foreground)' }}>{children}</ol>
   ),
   li: ({ children }: { children?: React.ReactNode }) => <li className="mb-1">{children}</li>,
   code: ({ children }: { children?: React.ReactNode }) => (
-    <code className="text-xs px-1 py-0.5 rounded" style={{ background: 'rgba(255,255,255,0.08)', color: '#fdfcfb' }}>{children}</code>
+    <code className="text-xs px-1 py-0.5 rounded" style={{ background: 'var(--surface)', color: 'var(--foreground)' }}>{children}</code>
   ),
 };
 
@@ -120,7 +120,7 @@ const FeaturedMemory: React.FC<FeaturedMemoryProps> = ({ memory }) => {
               from {getPlatformLabel(memory.metadata)}
             </span>
           )}
-          <span className="text-[11px]" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
+          <span className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
             {relativeTime(memory.created_at)}
           </span>
         </div>

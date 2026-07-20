@@ -55,10 +55,10 @@ const MOTION_CSS = `
 const GLASS: React.CSSProperties = {
   position: 'relative',
   overflow: 'hidden',
-  background: 'rgba(255,255,255,0.08)',
+  background: 'var(--surface)',
   backdropFilter: 'blur(40px) saturate(1.4)',
   WebkitBackdropFilter: 'blur(40px) saturate(1.4)',
-  border: '1px solid rgba(255,255,255,0.16)',
+  border: '1px solid var(--border)',
   borderRadius: 22,
   boxShadow:
     '0 14px 44px rgba(0,0,0,0.46), inset 0 1px 0 rgba(255,255,255,0.24), inset 0 -1px 0 rgba(255,255,255,0.05)',
@@ -169,7 +169,7 @@ export function TwinSeesSection() {
 
       {/* Neutral specular light drifting behind the glass — no colour. */}
       <div aria-hidden style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none' }}>
-        <div className="ts-light" style={{ width: '60%', height: '60%', left: '-8%', top: '-20%', background: 'rgba(255,255,255,0.07)', animation: 'tsLight1 30s ease-in-out infinite alternate' }} />
+        <div className="ts-light" style={{ width: '60%', height: '60%', left: '-8%', top: '-20%', background: 'var(--surface)', animation: 'tsLight1 30s ease-in-out infinite alternate' }} />
         <div className="ts-light" style={{ width: '54%', height: '54%', right: '-10%', bottom: '-24%', background: 'rgba(214,222,235,0.06)', animation: 'tsLight2 36s ease-in-out infinite alternate' }} />
       </div>
 

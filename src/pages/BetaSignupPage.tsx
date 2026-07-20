@@ -42,10 +42,10 @@ function CopyableInviteCode({ code }: { code: string }) {
   return (
     <button
       onClick={handleCopy}
-      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg font-mono text-lg tracking-[2px] transition-colors hover:bg-white/10"
+      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg font-mono text-lg tracking-[2px] transition-colors hover:bg-[var(--surface-solid)]"
       style={{
-        backgroundColor: 'rgba(255,255,255,0.06)',
-        border: '1px solid rgba(255,255,255,0.10)',
+        backgroundColor: 'var(--surface)',
+        border: '1px solid var(--glass-surface-border)',
         color: 'var(--foreground)',
       }}
       title="Click to copy"
@@ -163,7 +163,7 @@ function BetaSignupPage() {
             <p
               className="text-sm mb-8"
               style={{
-                color: 'rgba(255,255,255,0.4)',
+                color: 'var(--text-muted)',
                 fontFamily: "'Geist', 'Inter', sans-serif",
                 lineHeight: 1.6,
               }}
@@ -180,7 +180,7 @@ function BetaSignupPage() {
                 <div className="mb-6">
                   <p
                     className="text-[11px] uppercase tracking-[0.12em] mb-3"
-                    style={{ color: 'rgba(255,255,255,0.35)' }}
+                    style={{ color: 'var(--text-muted)' }}
                   >
                     Your invite code
                   </p>
@@ -194,8 +194,8 @@ function BetaSignupPage() {
                   }}
                   className="text-[14px] font-medium px-6 py-3 rounded-[100px] cursor-pointer transition-all duration-150 ease-out hover:brightness-110 active:scale-[0.97]"
                   style={{
-                    background: '#F5F5F4',
-                    color: '#110f0f',
+                    background: 'var(--claura-bone)',
+                    color: 'var(--claura-bone-ink)',
                     border: 'none',
                   }}
                 >
@@ -224,7 +224,7 @@ function BetaSignupPage() {
               <p
                 className="text-sm"
                 style={{
-                  color: 'rgba(255,255,255,0.4)',
+                  color: 'var(--text-muted)',
                   fontFamily: "'Geist', 'Inter', sans-serif",
                   lineHeight: 1.6,
                 }}
@@ -262,8 +262,8 @@ function BetaSignupPage() {
                   placeholder="First Last"
                   className="w-full h-11 px-3 rounded-[6px] text-[14px] outline-none transition-all focus:ring-1"
                   style={{
-                    backgroundColor: 'rgba(255,255,255,0.08)',
-                    border: '1px solid rgba(255,255,255,0.08)',
+                    backgroundColor: 'var(--surface)',
+                    border: '1px solid var(--border-glass)',
                     color: 'var(--foreground)',
                     fontFamily: "'Geist', 'Inter', sans-serif",
                     '--tw-ring-color': 'rgba(255,255,255,0.25)',
@@ -286,8 +286,8 @@ function BetaSignupPage() {
                   placeholder="you@example.com"
                   className="w-full h-11 px-3 rounded-[6px] text-[14px] outline-none transition-all focus:ring-1"
                   style={{
-                    backgroundColor: 'rgba(255,255,255,0.08)',
-                    border: '1px solid rgba(255,255,255,0.08)',
+                    backgroundColor: 'var(--surface)',
+                    border: '1px solid var(--border-glass)',
                     color: 'var(--foreground)',
                     fontFamily: "'Geist', 'Inter', sans-serif",
                     '--tw-ring-color': 'rgba(255,255,255,0.25)',
@@ -347,8 +347,8 @@ function BetaSignupPage() {
                   rows={3}
                   className="w-full px-3 py-2.5 rounded-[6px] text-[14px] outline-none transition-all focus:ring-1 resize-none"
                   style={{
-                    backgroundColor: 'rgba(255,255,255,0.08)',
-                    border: '1px solid rgba(255,255,255,0.08)',
+                    backgroundColor: 'var(--surface)',
+                    border: '1px solid var(--border-glass)',
                     color: 'var(--foreground)',
                     fontFamily: "'Geist', 'Inter', sans-serif",
                     '--tw-ring-color': 'rgba(255,255,255,0.25)',
@@ -362,8 +362,8 @@ function BetaSignupPage() {
                 disabled={loading}
                 className="w-full h-11 rounded-[100px] text-[14px] font-medium transition-all duration-150 ease-out hover:brightness-110 active:scale-[0.97] disabled:opacity-50"
                 style={{
-                  background: '#F5F5F4',
-                  color: '#110f0f',
+                  background: 'var(--claura-bone)',
+                  color: 'var(--claura-bone-ink)',
                   border: 'none',
                   fontFamily: "'Geist', 'Inter', sans-serif",
                   cursor: loading ? 'wait' : 'pointer',
@@ -385,7 +385,7 @@ function BetaSignupPage() {
             onClick={() => navigate('/auth')}
             className="inline-flex items-center gap-1.5 text-[13px] transition-opacity hover:opacity-70"
             style={{
-              color: 'rgba(255,255,255,0.25)',
+              color: 'var(--text-muted)',
               fontFamily: "'Geist', 'Inter', sans-serif",
               background: 'none',
               border: 'none',
@@ -398,7 +398,7 @@ function BetaSignupPage() {
         </div>
 
         <div className="mt-12 text-center">
-          <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.12)' }}>
+          <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
             &copy; 2026 TwinMe Inc.
           </span>
         </div>

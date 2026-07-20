@@ -20,7 +20,7 @@ import { useAnalytics } from '@/contexts/AnalyticsContext';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 const glass =
-  'bg-[rgba(255,255,255,0.06)] border border-[rgba(255,255,255,0.10)] rounded-[20px] backdrop-blur-[42px]';
+  'bg-[var(--surface)] border border-[var(--glass-surface-border)] rounded-[20px] backdrop-blur-[42px]';
 
 const OnboardingWowPage: React.FC = () => {
   const navigate = useNavigate();
@@ -80,7 +80,7 @@ const LoadingState: React.FC = () => (
   <div className={`${glass} px-6 py-12 flex flex-col items-center text-center gap-4`}>
     <Loader2 className="w-7 h-7 text-[#A8A29E] animate-spin" aria-hidden />
     <div className="flex flex-col gap-1.5">
-      <h1 className="text-[#F5F5F4] text-[19px] font-medium tracking-tight">Meeting your twin</h1>
+      <h1 className="text-[var(--foreground)] text-[19px] font-medium tracking-tight">Meeting your twin</h1>
       <p className="text-[#A8A29E] text-sm max-w-[380px] leading-relaxed">
         Reading how you write, and drafting your first replies in your voice. This takes a few seconds.
       </p>
@@ -103,7 +103,7 @@ const WowContent: React.FC<{ voiceRead: string; drafts: WowDraft[]; onContinue: 
 
     <section className="flex flex-col gap-3">
       <div className="flex items-baseline justify-between px-1">
-        <h2 className="text-[#F5F5F4] text-[15px] font-medium tracking-tight">
+        <h2 className="text-[var(--foreground)] text-[15px] font-medium tracking-tight">
           {drafts.length > 0 ? 'Already drafted in your voice' : 'Ready when you are'}
         </h2>
         {drafts.length > 0 && (
@@ -143,14 +143,14 @@ const DraftPreview: React.FC<{ draft: WowDraft }> = ({ draft }) => (
       <span className="ml-auto text-[10px] uppercase tracking-wide text-[#57534E]">Pending your review</span>
     </header>
 
-    <p className="text-[#F5F5F4] text-[14.5px] leading-relaxed whitespace-pre-wrap">{draft.draft_text}</p>
+    <p className="text-[var(--foreground)] text-[14.5px] leading-relaxed whitespace-pre-wrap">{draft.draft_text}</p>
 
     {draft.why_signals?.length > 0 && (
       <div className="flex flex-wrap gap-1.5">
         {draft.why_signals.map((w, i) => (
           <span
             key={i}
-            className="inline-flex items-center rounded-[46px] bg-[rgba(255,255,255,0.06)] border border-[rgba(255,255,255,0.10)] px-2.5 py-1 text-[11px] text-[#A8A29E]"
+            className="inline-flex items-center rounded-[46px] bg-[var(--surface)] border border-[var(--glass-surface-border)] px-2.5 py-1 text-[11px] text-[#A8A29E]"
           >
             <span className="text-[#c17e2c] mr-1.5 uppercase tracking-wide text-[9px]">{w.kind}</span>
             {w.note}
@@ -183,7 +183,7 @@ const ReadyFallback: React.FC<{ onContinue: () => void; degraded: boolean }> = (
 const ContinueButton: React.FC<{ onClick: () => void }> = ({ onClick }) => (
   <button
     onClick={onClick}
-    className="inline-flex items-center justify-center gap-2 bg-[#F5F5F4] text-[#110f0f] rounded-[100px] px-5 py-3 text-[14px] font-medium hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-[rgba(255,255,255,0.4)] transition-opacity"
+    className="inline-flex items-center justify-center gap-2 bg-[var(--claura-bone)] text-[var(--claura-bone-ink)] rounded-[100px] px-5 py-3 text-[14px] font-medium hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-[rgba(255,255,255,0.4)] transition-opacity"
   >
     Go to Today <ArrowRight size={16} aria-hidden />
   </button>

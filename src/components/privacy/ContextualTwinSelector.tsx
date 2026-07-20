@@ -55,7 +55,7 @@ const defaultTwins: ContextualTwin[] = [
       professional: 35,
       creative: 80,
     },
-    color: 'rgba(255,255,255,0.3)',
+    color: 'var(--text-muted)',
     isActive: false,
     isDefault: true,
   },
@@ -69,7 +69,7 @@ const defaultTwins: ContextualTwin[] = [
       professional: 25,
       creative: 90,
     },
-    color: 'rgba(255,255,255,0.3)',
+    color: 'var(--text-muted)',
     isActive: false,
     isDefault: true,
   },
@@ -83,7 +83,7 @@ const defaultTwins: ContextualTwin[] = [
       professional: 50,
       creative: 30,
     },
-    color: 'rgba(255,255,255,0.4)',
+    color: 'var(--text-muted)',
     isActive: false,
     isDefault: true,
   },
@@ -131,7 +131,7 @@ export const ContextualTwinSelector: React.FC<ContextualTwinSelectorProps> = ({
         className="rounded-lg p-6"
         style={{
           border: '1px solid var(--border-glass)',
-          backgroundColor: 'rgba(255,255,255,0.02)',
+          backgroundColor: 'var(--surface)',
         }}
       >
         <div className="flex items-center gap-3 mb-4">
@@ -199,7 +199,7 @@ export const ContextualTwinSelector: React.FC<ContextualTwinSelectorProps> = ({
               className={`rounded-lg relative p-5 cursor-pointer transition-all duration-200 ${isActive ? '!border-2 !border-amber-600' : ''}`}
               style={{
                 border: isActive ? undefined : '1px solid var(--border-glass)',
-                backgroundColor: 'rgba(255,255,255,0.02)',
+                backgroundColor: 'var(--surface)',
               }}
             >
               <div className="relative">
@@ -236,7 +236,7 @@ export const ContextualTwinSelector: React.FC<ContextualTwinSelectorProps> = ({
                             e.stopPropagation();
                             onEditTwin(twin.id);
                           }}
-                          className="p-1.5 rounded-lg hover:bg-white/12 transition-colors"
+                          className="p-1.5 rounded-lg hover:bg-[var(--surface-solid)] transition-colors"
                           title="Edit twin"
                         >
                           <Edit2 className="w-3.5 h-3.5 text-muted-foreground" />
@@ -295,7 +295,7 @@ export const ContextualTwinSelector: React.FC<ContextualTwinSelectorProps> = ({
       </div>
 
       {/* Info Banner */}
-      <div className="p-4 rounded-xl bg-[rgba(255,255,255,0.06)] border border-[rgba(255,255,255,0.10)] backdrop-blur-[42px]">
+      <div className="p-4 rounded-xl bg-[var(--surface)] border border-[var(--glass-surface-border)] backdrop-blur-[42px]">
         <p className="text-sm text-[var(--text-narrative-secondary)] leading-relaxed" style={{ fontFamily: "'Inter', sans-serif" }}>
           <strong className="font-medium">Pro tip:</strong> Switch between twins
           based on your context. Your digital twin will automatically adjust what

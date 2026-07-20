@@ -18,7 +18,7 @@ const getAuthHeaders = () => {
 // 5.42:1; the badge text color below is now dark for ALL levels so no level
 // falls back to low-contrast white-on-pale.
 const AUTONOMY_LEVELS = [
-  { label: 'Observe', short: 'OBS', color: 'rgba(255, 255, 255, 0.55)' },
+  { label: 'Observe', short: 'OBS', color: 'var(--text-secondary)' },
   { label: 'Suggest', short: 'SUG', color: 'rgba(232,224,212,0.6)' },
   { label: 'Draft', short: 'DFT', color: 'rgba(232,224,212,0.6)' },
   { label: 'Act & Notify', short: 'ACT', color: 'rgba(232,224,212,0.7)' },
@@ -109,7 +109,7 @@ const AutonomySettings: React.FC = () => {
           className="w-4 h-4 rounded-full animate-pulse"
           style={{ background: 'var(--glass-surface-border)' }}
         />
-        <span className="text-[12px]" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
+        <span className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>
           Loading skills...
         </span>
       </div>
@@ -119,7 +119,7 @@ const AutonomySettings: React.FC = () => {
   if (skills.length === 0) {
     return (
       <div className="py-4">
-        <p className="text-[13px]" style={{ color: 'rgba(255, 255, 255, 0.55)', fontFamily: 'Inter, sans-serif' }}>
+        <p className="text-[13px]" style={{ color: 'var(--text-secondary)', fontFamily: 'Inter, sans-serif' }}>
           Agentic skills unlock as your twin builds a picture of your routines. Check back once you have a few days of platform data.
         </p>
       </div>
@@ -146,10 +146,10 @@ const AutonomySettings: React.FC = () => {
       {/* Explainer */}
       <div
         className="flex items-start gap-3 mb-5 p-3 rounded-xl"
-        style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-glass)' }}
+        style={{ background: 'var(--surface)', border: '1px solid var(--border-glass)' }}
       >
         <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" style={{ color: 'var(--accent-vibrant)' }} />
-        <p className="text-[12px] leading-relaxed" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
+        <p className="text-[12px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
           Fine-grained skill controls. To adjust how your twin acts day to day, just <Link to="/talk-to-twin" className="underline" style={{ color: 'var(--accent-vibrant)' }}>talk to your twin</Link>.
         </p>
       </div>
@@ -158,12 +158,12 @@ const AutonomySettings: React.FC = () => {
         <div key={category} className="mb-4 last:mb-0">
           {/* Category header */}
           <div className="flex items-center gap-2 mb-2">
-            <span style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
+            <span style={{ color: 'var(--text-secondary)' }}>
               {CATEGORY_ICONS[category] || <Bot className="w-3.5 h-3.5" />}
             </span>
             <span
               className="text-[11px] font-medium uppercase tracking-wider"
-              style={{ color: 'rgba(255, 255, 255, 0.55)' }}
+              style={{ color: 'var(--text-secondary)' }}
             >
               {categoryLabels[category] || category}
             </span>
@@ -199,7 +199,7 @@ const SkillRow: React.FC<SkillRowProps> = ({ skill, isUpdating, onLevelChange })
   return (
     <div
       className="py-3"
-      style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
+      style={{ borderBottom: '1px solid var(--border-glass)' }}
     >
       {/* Skill info row */}
       <div className="flex items-center justify-between mb-2">
@@ -209,7 +209,7 @@ const SkillRow: React.FC<SkillRowProps> = ({ skill, isUpdating, onLevelChange })
           </span>
           <p
             className="text-[11px] mt-0.5 truncate"
-            style={{ color: 'rgba(255, 255, 255, 0.55)' }}
+            style={{ color: 'var(--text-secondary)' }}
           >
             {skill.description}
           </p>

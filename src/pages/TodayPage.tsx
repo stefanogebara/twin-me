@@ -47,20 +47,20 @@ const TwinComposer: React.FC<{ onSubmit: (message: string) => void }> = ({ onSub
   return (
     <form
       onSubmit={(e) => { e.preventDefault(); submit(); }}
-      className="flex items-center gap-2 bg-[rgba(255,255,255,0.06)] border border-[rgba(255,255,255,0.10)] rounded-[20px] px-4 py-3 backdrop-blur-[42px]"
+      className="flex items-center gap-2 bg-[var(--surface)] border border-[var(--glass-surface-border)] rounded-[20px] px-4 py-3 backdrop-blur-[42px]"
     >
       <input
         value={value}
         onChange={(e) => setValue(e.target.value)}
         placeholder="Ask your twin anything"
         aria-label="Ask your twin"
-        className="flex-1 bg-transparent text-[#F5F5F4] text-[14.5px] placeholder:text-[rgba(255,255,255,0.55)] focus:outline-none"
+        className="flex-1 bg-transparent text-[var(--foreground)] text-[14.5px] placeholder:text-[var(--text-secondary)] focus:outline-none"
       />
       <button
         type="submit"
         disabled={!value.trim()}
         aria-label="Send to your twin"
-        className="grid place-items-center bg-[#F5F5F4] text-[#110f0f] rounded-[100px] w-7 h-7 disabled:opacity-50 hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-[rgba(255,255,255,0.4)] transition-opacity"
+        className="grid place-items-center bg-[var(--claura-bone)] text-[var(--claura-bone-ink)] rounded-[100px] w-7 h-7 disabled:opacity-50 hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-[rgba(255,255,255,0.4)] transition-opacity"
       >
         <ArrowUp size={16} aria-hidden />
       </button>

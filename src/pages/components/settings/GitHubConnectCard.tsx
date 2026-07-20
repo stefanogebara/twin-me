@@ -28,7 +28,7 @@ export default function GitHubConnectCard({ cardStyle }: GitHubConnectCardProps)
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const sectionClass = cardStyle ? `p-5 ${cardStyle}` : 'p-5 rounded-lg';
-  const sectionStyle = cardStyle ? {} : { border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' };
+  const sectionStyle = cardStyle ? {} : { border: '1px solid var(--border-glass)', backgroundColor: 'var(--surface)' };
 
   const { data: status, isLoading } = useQuery<GitHubStatus>({
     queryKey: ['github-status'],
@@ -75,7 +75,7 @@ export default function GitHubConnectCard({ cardStyle }: GitHubConnectCardProps)
     return (
       <section className={sectionClass} style={sectionStyle}>
         <div className="flex items-center gap-3 mb-2">
-          <Github className="w-5 h-5" style={{ color: 'rgba(255, 255, 255, 0.55)' }} />
+          <Github className="w-5 h-5" style={{ color: 'var(--text-secondary)' }} />
           <h2
             className="text-[11px] font-medium tracking-widest uppercase"
             style={{ color: '#10b77f' }}
@@ -83,7 +83,7 @@ export default function GitHubConnectCard({ cardStyle }: GitHubConnectCardProps)
             GitHub Activity
           </h2>
         </div>
-        <div className="flex items-center gap-2 text-sm" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
+        <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
           <Loader2 className="w-4 h-4 animate-spin" /> Loading...
         </div>
       </section>
@@ -94,7 +94,7 @@ export default function GitHubConnectCard({ cardStyle }: GitHubConnectCardProps)
     <section className={sectionClass} style={sectionStyle}>
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
-          <Github className="w-5 h-5" style={{ color: 'rgba(255, 255, 255, 0.55)' }} />
+          <Github className="w-5 h-5" style={{ color: 'var(--text-secondary)' }} />
           <h2
             className="text-[11px] font-medium tracking-widest uppercase"
             style={{ color: '#10b77f' }}
@@ -115,7 +115,7 @@ export default function GitHubConnectCard({ cardStyle }: GitHubConnectCardProps)
             onClick={() => disconnectMut.mutate()}
             disabled={disconnectMut.isPending}
             className="flex items-center gap-1.5 text-xs transition-colors px-2 py-1 rounded-lg"
-            style={{ color: 'rgba(255, 255, 255, 0.55)' }}
+            style={{ color: 'var(--text-secondary)' }}
           >
             {disconnectMut.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Unlink className="w-3 h-3" />}
             Disconnect
@@ -125,10 +125,10 @@ export default function GitHubConnectCard({ cardStyle }: GitHubConnectCardProps)
 
       {status?.connected ? (
         <div className="space-y-2">
-          <p className="text-sm" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
+          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
             Connected as <span className="font-semibold">@{status.github_username}</span>
           </p>
-          <p className="text-xs" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
+          <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
             Commits, PRs, and issues are ingested every 10 minutes into your memory stream.
             {status.last_synced_at && (
               <> Last sync: {new Date(status.last_synced_at).toLocaleString('en-US')}</>
@@ -137,7 +137,7 @@ export default function GitHubConnectCard({ cardStyle }: GitHubConnectCardProps)
         </div>
       ) : (
         <div className="space-y-3">
-          <p className="text-sm" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
+          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
             Connect your GitHub to capture commit history, PRs, and coding patterns in your twin's memory.
           </p>
 
@@ -149,7 +149,7 @@ export default function GitHubConnectCard({ cardStyle }: GitHubConnectCardProps)
               placeholder="ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
               className="w-full px-3 py-2 pr-10 text-sm rounded-lg font-mono"
               style={{
-                backgroundColor: 'rgba(255,255,255,0.04)',
+                backgroundColor: 'var(--surface)',
                 border: '1px solid var(--border)',
                 color: 'var(--foreground)',
                 outline: 'none',
@@ -159,7 +159,7 @@ export default function GitHubConnectCard({ cardStyle }: GitHubConnectCardProps)
               type="button"
               onClick={() => setShowPat(v => !v)}
               className="absolute right-2 top-2"
-              style={{ color: 'rgba(255, 255, 255, 0.55)' }}
+              style={{ color: 'var(--text-secondary)' }}
             >
               {showPat ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
@@ -185,14 +185,14 @@ export default function GitHubConnectCard({ cardStyle }: GitHubConnectCardProps)
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1 text-xs transition-colors"
-              style={{ color: 'rgba(255, 255, 255, 0.55)' }}
+              style={{ color: 'var(--text-secondary)' }}
             >
               Create token <ExternalLink className="w-3 h-3" />
             </a>
           </div>
 
-          <p className="text-xs" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>
-            Token needs <code className="px-1 rounded" style={{ backgroundColor: 'rgba(255,255,255,0.04)' }}>read:user</code> and <code className="px-1 rounded" style={{ backgroundColor: 'rgba(255,255,255,0.04)' }}>repo</code> scopes (read-only). Stored securely, never shared.
+          <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+            Token needs <code className="px-1 rounded" style={{ backgroundColor: 'var(--surface)' }}>read:user</code> and <code className="px-1 rounded" style={{ backgroundColor: 'var(--surface)' }}>repo</code> scopes (read-only). Stored securely, never shared.
           </p>
         </div>
       )}

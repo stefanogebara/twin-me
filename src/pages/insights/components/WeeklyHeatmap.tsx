@@ -25,7 +25,7 @@ export const WeeklyHeatmap: React.FC<WeeklyHeatmapProps> = ({ heatmap, colors })
   return (
     <div
       className="p-4 rounded-[20px] mb-6"
-      style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(42px)', WebkitBackdropFilter: 'blur(42px)' }}
+      style={{ border: '1px solid var(--border-glass)', backgroundColor: 'var(--surface)', backdropFilter: 'blur(42px)', WebkitBackdropFilter: 'blur(42px)' }}
     >
       <span
         className="text-[11px] font-medium tracking-widest uppercase block mb-4"
@@ -42,7 +42,7 @@ export const WeeklyHeatmap: React.FC<WeeklyHeatmapProps> = ({ heatmap, colors })
               <div
                 key={slot}
                 className="flex-1 text-center text-xs"
-                style={{ color: 'rgba(255, 255, 255, 0.55)' }}
+                style={{ color: 'var(--text-secondary)' }}
               >
                 {slot}
               </div>
@@ -52,7 +52,7 @@ export const WeeklyHeatmap: React.FC<WeeklyHeatmapProps> = ({ heatmap, colors })
             <div key={dayIndex} className="flex items-center mb-1">
               <div
                 className="w-10 text-xs"
-                style={{ color: 'rgba(255, 255, 255, 0.55)' }}
+                style={{ color: 'var(--text-secondary)' }}
               >
                 {day.day}
               </div>
@@ -67,7 +67,7 @@ export const WeeklyHeatmap: React.FC<WeeklyHeatmapProps> = ({ heatmap, colors })
             </div>
           ))}
           <div className="flex items-center justify-end gap-2 mt-3">
-            <span className="text-xs" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>Free</span>
+            <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>Free</span>
             <div className="flex gap-1">
               {[0, 1, 2, 3].map(i => (
                 <div
@@ -77,7 +77,7 @@ export const WeeklyHeatmap: React.FC<WeeklyHeatmapProps> = ({ heatmap, colors })
                 />
               ))}
             </div>
-            <span className="text-xs" style={{ color: 'rgba(255, 255, 255, 0.55)' }}>Busy</span>
+            <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>Busy</span>
           </div>
         </div>
       </div>

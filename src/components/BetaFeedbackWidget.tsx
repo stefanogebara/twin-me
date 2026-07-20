@@ -98,7 +98,7 @@ const BetaFeedbackWidget: React.FC = () => {
             <button
               onClick={() => setOpen(false)}
               className="p-1 transition-opacity hover:opacity-60"
-              style={{ color: 'rgba(255,255,255,0.3)' }}
+              style={{ color: 'var(--text-muted)' }}
               aria-label="Close feedback panel"
             >
               <X className="w-4 h-4" aria-hidden="true" />
@@ -153,7 +153,7 @@ const BetaFeedbackWidget: React.FC = () => {
                   className="w-full mt-2 h-9 rounded-lg text-sm font-medium transition-opacity hover:opacity-90 disabled:opacity-40"
                   style={{
                     backgroundColor: 'var(--accent-vibrant)',
-                    color: '#fff',
+                    color: 'var(--foreground)',
                     fontFamily: "'Inter', sans-serif",
                   }}
                 >

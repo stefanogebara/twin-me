@@ -77,7 +77,7 @@ export function DailyTimeline() {
             border: '1px solid var(--glass-surface-border)',
           }}
         >
-          <Bot className="w-5 h-5 mx-auto mb-2" style={{ color: 'rgba(255,255,255,0.15)' }} />
+          <Bot className="w-5 h-5 mx-auto mb-2" style={{ color: 'var(--text-muted)' }} />
           <p className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>
             Activity will appear here as your twin learns.
           </p>
@@ -115,7 +115,7 @@ export function DailyTimeline() {
             </span>
 
             {/* Icon */}
-            <div className="shrink-0 pt-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>
+            <div className="shrink-0 pt-0.5" style={{ color: 'var(--text-muted)' }}>
               {CATEGORY_ICONS[item.category] || <Zap className="w-3.5 h-3.5" />}
             </div>
 

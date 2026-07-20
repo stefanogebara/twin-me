@@ -139,7 +139,7 @@ const TalkToTwin = () => {
     { name: 'YouTube',   icon: <YoutubeLogo className="w-4 h-4" />,          key: 'youtube',          color: '#FF0000', connected: isConnected(platformsSummary, 'youtube') },
     { name: 'Gmail',     icon: <GmailLogo className="w-4 h-4" />,            key: 'google_gmail',     color: '#EA4335', connected: isConnected(platformsSummary, 'google_gmail') },
     { name: 'Discord',   icon: <DiscordLogo className="w-4 h-4" />,          key: 'discord',          color: '#5865F2', connected: isConnected(platformsSummary, 'discord') },
-    { name: 'GitHub',    icon: <GithubLogo className="w-4 h-4" />,           key: 'github',           color: '#FFFFFF', connected: isConnected(platformsSummary, 'github') },
+    { name: 'GitHub',    icon: <GithubLogo className="w-4 h-4" />,           key: 'github',           color: 'var(--foreground)', connected: isConnected(platformsSummary, 'github') },
     { name: 'Whoop',     icon: <WhoopLogo className="w-4 h-4" />,            key: 'whoop',            color: '#00F19F', connected: isConnected(platformsSummary, 'whoop') },
     // LinkedIn/Reddit/Twitch removed (replan-2026-06-10 Track C): their OAuth
     // stacks are retired — leftover connection rows no longer render here.
@@ -718,7 +718,7 @@ const TalkToTwin = () => {
           />
           <div
             className="absolute left-0 top-0 bottom-0 z-30 w-64 sm:w-72 max-w-[85vw] border-r flex flex-col"
-            style={{ background: 'rgba(20,19,26,0.95)', borderColor: 'rgba(255,255,255,0.10)', backdropFilter: 'blur(42px)', WebkitBackdropFilter: 'blur(42px)' }}
+            style={{ background: 'var(--card)', borderColor: 'rgba(255,255,255,0.10)', backdropFilter: 'blur(42px)', WebkitBackdropFilter: 'blur(42px)' }}
           >
             <ConversationList
               activeConversationId={conversationId}

@@ -162,7 +162,7 @@ const PlatformCard = ({
         {isParsed && (
           <button
             onClick={onDelete}
-            className="flex-shrink-0 inline-flex items-center gap-1.5 text-[12px] px-2 py-1 rounded-[6px] hover:bg-white/5"
+            className="flex-shrink-0 inline-flex items-center gap-1.5 text-[12px] px-2 py-1 rounded-[6px] hover:bg-[var(--surface)]"
             style={{ color: 'var(--text-muted)' }}
             title="Remove this export"
           >
@@ -179,9 +179,9 @@ const PlatformCard = ({
               <span
                 className="inline-flex items-center justify-center w-[18px] h-[18px] rounded-full text-[11px] flex-shrink-0 mt-0.5"
                 style={{
-                  background: 'rgba(255,255,255,0.06)',
+                  background: 'var(--surface)',
                   color: 'var(--text-primary)',
-                  border: '1px solid rgba(255,255,255,0.08)',
+                  border: '1px solid var(--border-glass)',
                 }}
               >
                 {i + 1}
@@ -405,8 +405,8 @@ export default function DataExportsPage() {
       <div
         className="mb-6 rounded-[14px] px-4 py-3 text-[12.5px] leading-relaxed flex items-start gap-3"
         style={{
-          background: 'rgba(255,255,255,0.04)',
-          border: '1px solid rgba(255,255,255,0.08)',
+          background: 'var(--surface)',
+          border: '1px solid var(--border-glass)',
           color: 'var(--text-secondary)',
         }}
       >

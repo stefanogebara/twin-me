@@ -56,7 +56,7 @@ export const ClusterCard: React.FC<ClusterCardProps> = ({
       className="rounded-lg relative overflow-hidden transition-all duration-200"
       style={{
         border: '1px solid var(--border-glass)',
-        backgroundColor: 'rgba(255,255,255,0.02)',
+        backgroundColor: 'var(--surface)',
       }}
     >
       <div className="p-6">
@@ -69,7 +69,7 @@ export const ClusterCard: React.FC<ClusterCardProps> = ({
                 backgroundColor: 'var(--input)',
               }}
             >
-              <Icon className="w-5 h-5" style={{ color: 'rgba(255,255,255,0.4)' }} />
+              <Icon className="w-5 h-5" style={{ color: 'var(--text-muted)' }} />
             </div>
 
             <div className="flex-1">
@@ -83,7 +83,7 @@ export const ClusterCard: React.FC<ClusterCardProps> = ({
                 </span>
                 {cluster.quality && (
                   <span className="flex items-center gap-1">
-                    <span className="w-1 h-1 rounded-full bg-white/15" />
+                    <span className="w-1 h-1 rounded-full bg-[var(--surface-solid)]" />
                     {cluster.quality}% quality
                   </span>
                 )}
@@ -94,7 +94,7 @@ export const ClusterCard: React.FC<ClusterCardProps> = ({
           {onToggleExpand && (
             <button
               onClick={onToggleExpand}
-              className="p-2 rounded-lg hover:bg-white/12 transition-colors"
+              className="p-2 rounded-lg hover:bg-[var(--surface-solid)] transition-colors"
             >
               <div
                 style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.3s' }}
@@ -149,7 +149,7 @@ export const ClusterCard: React.FC<ClusterCardProps> = ({
               />
             </Slider.Track>
             <Slider.Thumb
-              className="block w-6 h-6 bg-white rounded-full shadow-md border-2 transition-all duration-200 cursor-grab active:cursor-grabbing focus:outline-none"
+              className="block w-6 h-6 bg-[var(--claura-bone)] rounded-full shadow-md border-2 transition-all duration-200 cursor-grab active:cursor-grabbing focus:outline-none"
               style={{
                 borderColor: isDragging ? '#C9B99A' : '#d6d3d1',
               }}

@@ -504,9 +504,9 @@
     margin: 20px 0;
   }
 
-  /* Bold text: pure white */
+  /* Bold text: primary foreground (flips in light) */
   .prose strong {
-    color: #FFFFFF;
+    color: var(--foreground);
     font-weight: 600;
   }
 
@@ -514,7 +514,7 @@
   .prose h3 {
     font-size: 18px;
     font-weight: 600;
-    color: #FFFFFF;
+    color: var(--foreground);
     margin-bottom: 8px;
     line-height: 24px;
   }

@@ -100,7 +100,7 @@ function buildCards(props: InsightCardsProps): CardDef[] {
       <div>
         <p
           className="text-sm font-semibold mb-1"
-          style={{ color: 'rgba(255,255,255,0.85)', fontFamily: "'Inter', sans-serif" }}
+          style={{ color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}
         >
           {musicAxis.label}
         </p>
@@ -134,7 +134,7 @@ function buildCards(props: InsightCardsProps): CardDef[] {
         {chronotypeIcon(chronotype)}
         <p
           className="text-sm font-semibold"
-          style={{ color: 'rgba(255,255,255,0.85)', fontFamily: "'Inter', sans-serif" }}
+          style={{ color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}
         >
           {formatChronotype(chronotype)}
         </p>
@@ -154,7 +154,7 @@ function buildCards(props: InsightCardsProps): CardDef[] {
         <div>
           <p
             className="text-sm font-semibold mb-1"
-            style={{ color: 'rgba(255,255,255,0.85)', fontFamily: "'Inter', sans-serif" }}
+            style={{ color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}
           >
             {topAxis.label}
           </p>
@@ -183,7 +183,7 @@ function buildCards(props: InsightCardsProps): CardDef[] {
         <div>
           <p
             className="text-lg font-semibold"
-            style={{ color: 'rgba(255,255,255,0.85)', fontFamily: "'Inter', sans-serif" }}
+            style={{ color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}
           >
             {memoryCount.toLocaleString('en-US')}
           </p>
@@ -197,7 +197,7 @@ function buildCards(props: InsightCardsProps): CardDef[] {
         <div>
           <p
             className="text-lg font-semibold"
-            style={{ color: 'rgba(255,255,255,0.85)', fontFamily: "'Inter', sans-serif" }}
+            style={{ color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}
           >
             {platformCount}
           </p>
@@ -212,7 +212,7 @@ function buildCards(props: InsightCardsProps): CardDef[] {
           <div>
             <p
               className="text-lg font-semibold"
-              style={{ color: 'rgba(255,255,255,0.85)', fontFamily: "'Inter', sans-serif" }}
+              style={{ color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}
             >
               {days}
             </p>
@@ -239,7 +239,7 @@ function buildCards(props: InsightCardsProps): CardDef[] {
         <div>
           <p
             className="text-2xl font-semibold"
-            style={{ color: 'rgba(255,255,255,0.85)', fontFamily: "'Inter', sans-serif" }}
+            style={{ color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}
           >
             {Math.round(fidelityScore * 100)}%
           </p>
@@ -287,8 +287,8 @@ const InsightCards: React.FC<InsightCardsProps> = (props) => {
             key={card.id}
             className="snap-start flex-shrink-0 w-[280px] transition-transform duration-300 hover:translate-y-[-3px]"
             style={{
-              background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(255,255,255,0.10)',
+              background: 'var(--surface)',
+              border: '1px solid var(--glass-surface-border)',
               borderRadius: '18px',
               padding: '22px',
               borderLeft: `4px solid ${card.accentColor}`,
@@ -304,7 +304,7 @@ const InsightCards: React.FC<InsightCardsProps> = (props) => {
             <div className="flex items-center justify-between mb-3">
               <span
                 className="text-[13px] font-semibold"
-                style={{ color: 'rgba(255,255,255,0.7)', fontFamily: "'Inter', sans-serif" }}
+                style={{ color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}
               >
                 {card.title}
               </span>

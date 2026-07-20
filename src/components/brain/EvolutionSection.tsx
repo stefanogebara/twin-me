@@ -61,7 +61,7 @@ const CustomBarTooltip = ({
   return (
     <div
       className="rounded-lg px-3 py-2 text-xs shadow-md"
-      style={{ backgroundColor: 'rgba(10,15,10,0.9)', border: '1px solid var(--glass-surface-border)', borderRadius: '8px', color: 'rgba(255,255,255,0.8)' }}
+      style={{ backgroundColor: 'rgba(10,15,10,0.9)', border: '1px solid var(--glass-surface-border)', borderRadius: '8px', color: 'var(--foreground)' }}
     >
       <p className="font-medium text-foreground/60 mb-0.5">{label}</p>
       <p className="font-semibold text-foreground">{payload[0].value.toLocaleString('en-US')} memories</p>
@@ -157,7 +157,7 @@ export function EvolutionSection({ compact = false }: EvolutionSectionProps) {
     return (
       <div
         className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs"
-        style={{ background: 'rgba(0,0,0,0.05)', color: 'rgba(255, 255, 255, 0.55)' }}
+        style={{ background: 'rgba(0,0,0,0.05)', color: 'var(--text-secondary)' }}
       >
         <Calendar size={11} />
         Known for {data.daysKnown} day{data.daysKnown !== 1 ? 's' : ''}

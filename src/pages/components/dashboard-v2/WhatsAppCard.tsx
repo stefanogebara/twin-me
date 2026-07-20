@@ -86,7 +86,7 @@ export function WhatsAppCard() {
           className="absolute top-2 right-2 p-1 rounded-full transition-opacity hover:opacity-60"
           aria-label="Dismiss WhatsApp card"
         >
-          <X className="w-3 h-3" style={{ color: 'rgba(255,255,255,0.2)' }} />
+          <X className="w-3 h-3" style={{ color: 'var(--text-muted)' }} />
         </button>
 
         <div className="flex items-center gap-3 mb-3">
@@ -118,7 +118,7 @@ export function WhatsAppCard() {
               disabled={wa.busy}
               className="flex-1 text-sm px-3 py-2 rounded-[6px] bg-transparent focus:outline-none"
               style={{
-                backgroundColor: 'rgba(255,255,255,0.08)',
+                backgroundColor: 'var(--surface)',
                 border: wa.error ? '1px solid rgba(239,68,68,0.5)' : '1px solid rgba(255,255,255,0.08)',
                 color: 'var(--foreground)',
               }}
@@ -148,7 +148,7 @@ export function WhatsAppCard() {
               disabled={wa.busy}
               className="flex-1 text-sm px-3 py-2 rounded-[6px] bg-transparent focus:outline-none tracking-[0.3em]"
               style={{
-                backgroundColor: 'rgba(255,255,255,0.08)',
+                backgroundColor: 'var(--surface)',
                 border: wa.error ? '1px solid rgba(239,68,68,0.5)' : '1px solid rgba(255,255,255,0.08)',
                 color: 'var(--foreground)',
               }}

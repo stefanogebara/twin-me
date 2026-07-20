@@ -20,7 +20,7 @@ export const IdentityConfirmation: React.FC<IdentityConfirmationProps> = ({ onCo
     >
       <p
         className="text-[14px]"
-        style={{ color: 'rgba(255,255,255,0.50)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+        style={{ color: 'var(--text-secondary)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
       >
         Is this you?
       </p>
@@ -29,8 +29,8 @@ export const IdentityConfirmation: React.FC<IdentityConfirmationProps> = ({ onCo
           onClick={onConfirm}
           className="px-5 py-2 rounded-full text-[13px] font-medium transition-all duration-150 hover:opacity-90"
           style={{
-            backgroundColor: '#F5F5F4',
-            color: '#110f0f',
+            backgroundColor: 'var(--claura-bone)',
+            color: 'var(--claura-bone-ink)',
             fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
           }}
         >
@@ -38,11 +38,11 @@ export const IdentityConfirmation: React.FC<IdentityConfirmationProps> = ({ onCo
         </button>
         <button
           onClick={onReject}
-          className="px-5 py-2 rounded-full text-[13px] font-medium transition-all duration-150 hover:bg-[rgba(255,255,255,0.08)]"
+          className="px-5 py-2 rounded-full text-[13px] font-medium transition-all duration-150 hover:bg-[var(--surface)]"
           style={{
             backgroundColor: 'transparent',
-            color: 'rgba(255,255,255,0.60)',
-            border: '1px solid rgba(255,255,255,0.12)',
+            color: 'var(--text-secondary)',
+            border: '1px solid var(--glass-surface-border)',
             fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
           }}
         >

@@ -38,7 +38,7 @@ export const TopChannelsCard: React.FC<TopChannelsCardProps> = ({
           <h3 className="text-lg font-medium" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>
             Top Channels
           </h3>
-          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
+          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
             Your favorite creators
           </p>
         </div>
@@ -52,14 +52,14 @@ export const TopChannelsCard: React.FC<TopChannelsCardProps> = ({
           >
             <div className="flex items-start justify-between mb-2 gap-3">
               <div className="flex items-start gap-2 flex-1 min-w-0">
-                <span className="text-sm font-medium flex-shrink-0 mt-0.5" style={{ fontFamily: "'Inter', sans-serif", color: 'rgba(255,255,255,0.3)' }}>
+                <span className="text-sm font-medium flex-shrink-0 mt-0.5" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--text-muted)' }}>
                   {index + 1}
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium truncate mb-1" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>
                     {channel.channel}
                   </p>
-                  <div className="flex items-center gap-2 text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                  <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
                     <span className="truncate">
                       {formatSubscribers(channel.subscribers)} subscribers
                     </span>
@@ -67,11 +67,11 @@ export const TopChannelsCard: React.FC<TopChannelsCardProps> = ({
                 </div>
               </div>
               <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                <div className="flex items-center gap-1 text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                <div className="flex items-center gap-1 text-xs" style={{ color: 'var(--text-muted)' }}>
                   <Video className="w-3 h-3 text-[#FF0000]" />
                   <span className="font-mono">{channel.videosWatched}</span>
                 </div>
-                <div className="flex items-center gap-1 text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                <div className="flex items-center gap-1 text-xs" style={{ color: 'var(--text-muted)' }}>
                   <Clock className="w-3 h-3" />
                   <span>{formatWatchTime(channel.avgWatchTime)}</span>
                 </div>
@@ -79,7 +79,7 @@ export const TopChannelsCard: React.FC<TopChannelsCardProps> = ({
             </div>
 
             {/* Visual bar */}
-            <div className="w-full h-1.5 bg-white/8 rounded-full overflow-hidden">
+            <div className="w-full h-1.5 bg-[var(--surface)] rounded-full overflow-hidden">
               <div
                 className="h-full bg-gradient-to-r from-[#FF0000] to-[#FF4444] rounded-full transition-all duration-600"
                 style={{ width: `${(channel.videosWatched / maxVideos) * 100}%` }}
@@ -91,8 +91,8 @@ export const TopChannelsCard: React.FC<TopChannelsCardProps> = ({
 
       {channels.length === 0 && (
         <div className="text-center py-8">
-          <Users className="w-12 h-12 mx-auto mb-3" style={{ color: 'rgba(255,255,255,0.3)' }} />
-          <p className="text-sm" style={{ color: 'rgba(255,255,255,0.3)' }}>
+          <Users className="w-12 h-12 mx-auto mb-3" style={{ color: 'var(--text-muted)' }} />
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
             No channel data available yet
           </p>
         </div>

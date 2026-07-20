@@ -61,7 +61,7 @@ const MirrorTile: React.FC<MirrorTileProps> = ({
     <div
       className="flex-shrink-0 w-11 h-11 rounded-xl flex items-center justify-center"
       style={{
-        backgroundColor: 'rgba(255,255,255,0.06)',
+        backgroundColor: 'var(--surface)',
         color: connected ? color : 'rgba(255, 255, 255, 0.55)',
       }}
     >
@@ -72,7 +72,7 @@ const MirrorTile: React.FC<MirrorTileProps> = ({
       <div className="flex items-center gap-2">
         <span
           className="text-[14px] font-medium truncate"
-          style={{ color: '#F5F5F4', fontFamily: FONT }}
+          style={{ color: 'var(--foreground)', fontFamily: FONT }}
         >
           {name}
         </span>
@@ -108,7 +108,7 @@ const MirrorTile: React.FC<MirrorTileProps> = ({
       <button
         onClick={onCta}
         className="text-[12px] font-medium px-4 py-1.5 rounded-full flex-shrink-0 transition-all duration-150 hover:opacity-90"
-        style={{ backgroundColor: '#F5F5F4', color: '#110f0f', fontFamily: FONT }}
+        style={{ backgroundColor: 'var(--claura-bone)', color: 'var(--claura-bone-ink)', fontFamily: FONT }}
       >
         {ctaLabel}
       </button>

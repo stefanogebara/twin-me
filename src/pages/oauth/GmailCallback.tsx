@@ -143,7 +143,7 @@ const GmailCallback: React.FC = () => {
         <div
           className="rounded-3xl overflow-hidden p-8 text-center space-y-6"
           style={{
-            background: 'rgba(255,255,255,0.02)',
+            background: 'var(--surface)',
             backdropFilter: 'blur(16px)',
             WebkitBackdropFilter: 'blur(16px)',
             border: '1px solid var(--border-glass)',

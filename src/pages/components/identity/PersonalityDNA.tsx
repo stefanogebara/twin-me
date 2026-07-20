@@ -102,11 +102,11 @@ const TraitSlider: React.FC<TraitSliderProps> = ({ trait, score, index, delay })
       </div>
 
       {/* Slider track */}
-      <div className="relative h-1.5 rounded-full" style={{ background: 'rgba(255,255,255,0.06)' }}>
+      <div className="relative h-1.5 rounded-full" style={{ background: 'var(--surface)' }}>
         {/* Center marker */}
         <div
           className="absolute top-0 bottom-0 w-px"
-          style={{ left: '50%', background: 'rgba(255,255,255,0.08)' }}
+          style={{ left: '50%', background: 'var(--surface)' }}
         />
 
         {/* Animated dot */}
@@ -137,8 +137,8 @@ const EmptyState: React.FC = () => (
   <div
     className="rounded-[16px] px-5 py-6 text-center"
     style={{
-      background: 'rgba(255,255,255,0.03)',
-      border: '1px solid rgba(255,255,255,0.06)',
+      background: 'var(--surface)',
+      border: '1px solid var(--border-glass)',
     }}
   >
     <p
@@ -168,7 +168,7 @@ const PersonalityDNA: React.FC<PersonalityDNAProps> = ({
     >
       {/* Section label */}
       <div className="flex items-center gap-2 mb-4">
-        <Brain className="w-3 h-3" style={{ color: 'rgba(255,255,255,0.25)' }} />
+        <Brain className="w-3 h-3" style={{ color: 'var(--text-muted)' }} />
         <span
           className="text-[11px] uppercase tracking-[0.12em] font-medium"
           style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
@@ -183,8 +183,8 @@ const PersonalityDNA: React.FC<PersonalityDNAProps> = ({
         <div
           className="rounded-[20px] px-5 py-4"
           style={{
-            background: 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(255,255,255,0.06)',
+            background: 'var(--surface)',
+            border: '1px solid var(--border-glass)',
             backdropFilter: 'blur(42px)',
             WebkitBackdropFilter: 'blur(42px)',
             boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), 0 4px 12px rgba(0,0,0,0.12)',

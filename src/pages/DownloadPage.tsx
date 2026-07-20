@@ -166,25 +166,25 @@ const INSTALL_NOTES: Record<Exclude<OS, 'unknown'>, { title: string; body: strin
 
 // --- Shared style fragments (design system: dark glass) ---------------------
 const GLASS_CARD: React.CSSProperties = {
-  background: 'rgba(255,255,255,0.06)',
-  border: '1px solid rgba(255,255,255,0.10)',
+  background: 'var(--surface)',
+  border: '1px solid var(--glass-surface-border)',
   borderRadius: '20px',
   backdropFilter: 'blur(42px)',
   WebkitBackdropFilter: 'blur(42px)',
 };
 
 const PRIMARY_PILL: React.CSSProperties = {
-  background: '#F5F5F4',
-  color: '#110f0f',
+  background: 'var(--claura-bone)',
+  color: 'var(--claura-bone-ink)',
   borderRadius: '100px',
   border: 'none',
 };
 
 const SECONDARY_PILL: React.CSSProperties = {
-  background: 'rgba(255,255,255,0.08)',
-  color: '#F5F5F4',
+  background: 'var(--surface)',
+  color: 'var(--foreground)',
   borderRadius: '100px',
-  border: '1px solid rgba(255,255,255,0.10)',
+  border: '1px solid var(--glass-surface-border)',
 };
 
 // Route downloads through the same-origin proxy so the browser saves a
@@ -251,11 +251,11 @@ const InstallNote: React.FC<{ os: Exclude<OS, 'unknown'> }> = ({ os }) => {
           fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
         }}
       >
-        <span style={{ fontSize: '14px', fontWeight: 500, color: '#F5F5F4' }}>{note.title}</span>
+        <span style={{ fontSize: '14px', fontWeight: 500, color: 'var(--foreground)' }}>{note.title}</span>
         <ChevronDown
           size={16}
           style={{
-            color: 'rgba(245,245,244,0.5)',
+            color: 'var(--text-secondary)',
             transform: open ? 'rotate(180deg)' : 'none',
             transition: 'transform 0.15s',
           }}
@@ -265,7 +265,7 @@ const InstallNote: React.FC<{ os: Exclude<OS, 'unknown'> }> = ({ os }) => {
       {open && (
         <p
           className="px-5 pb-4"
-          style={{ fontSize: '13px', lineHeight: 1.6, color: 'rgba(245,245,244,0.6)' }}
+          style={{ fontSize: '13px', lineHeight: 1.6, color: 'var(--text-secondary)' }}
         >
           {note.body}
         </p>
@@ -369,12 +369,12 @@ const DownloadPage: React.FC = () => {
               fontSize: '44px',
               fontWeight: 400,
               letterSpacing: '-0.88px',
-              color: '#F5F5F4',
+              color: 'var(--foreground)',
             }}
           >
             TwinMe Desktop
           </h1>
-          <p style={{ fontSize: '15px', color: 'rgba(245,245,244,0.5)', lineHeight: 1.6 }}>
+          <p style={{ fontSize: '15px', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
             Your twin, on your desk. Download the app for {OS_LABELS[detectedOS]} and let it learn
             from what you do — privately, on your machine.
           </p>
@@ -386,8 +386,8 @@ const DownloadPage: React.FC = () => {
             className="flex flex-col items-center justify-center gap-3 py-16"
             style={{ ...GLASS_CARD, padding: '48px 24px' }}
           >
-            <Loader2 size={24} className="animate-spin" style={{ color: 'rgba(245,245,244,0.5)' }} />
-            <p style={{ fontSize: '14px', color: 'rgba(245,245,244,0.5)' }}>
+            <Loader2 size={24} className="animate-spin" style={{ color: 'var(--text-secondary)' }} />
+            <p style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
               Finding the latest release...
             </p>
           </div>
@@ -402,12 +402,12 @@ const DownloadPage: React.FC = () => {
                 fontFamily: "'Instrument Serif', Georgia, serif",
                 fontSize: '24px',
                 fontWeight: 400,
-                color: '#F5F5F4',
+                color: 'var(--foreground)',
               }}
             >
               No release published yet
             </h2>
-            <p className="mb-6" style={{ fontSize: '14px', color: 'rgba(245,245,244,0.5)', lineHeight: 1.6 }}>
+            <p className="mb-6" style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
               The desktop app is on its way. We are putting the finishing touches on the first
               build — check back soon, or watch the releases page for the announcement.
             </p>
@@ -433,12 +433,12 @@ const DownloadPage: React.FC = () => {
                 fontFamily: "'Instrument Serif', Georgia, serif",
                 fontSize: '24px',
                 fontWeight: 400,
-                color: '#F5F5F4',
+                color: 'var(--foreground)',
               }}
             >
               Could not load downloads
             </h2>
-            <p className="mb-6" style={{ fontSize: '14px', color: 'rgba(245,245,244,0.5)', lineHeight: 1.6 }}>
+            <p className="mb-6" style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
               {state.rateLimited
                 ? 'GitHub is rate-limiting requests from your network right now. It resets within the hour — or grab the installers directly from the releases page.'
                 : 'Something went wrong reaching GitHub. You can grab the installers directly from the releases page instead.'}
@@ -463,8 +463,8 @@ const DownloadPage: React.FC = () => {
             {heroOption && detectedOS !== 'unknown' && (
               <div style={{ ...GLASS_CARD, padding: '28px 24px' }}>
                 <div className="flex items-center gap-2 mb-4">
-                  <DetectedIcon size={18} style={{ color: '#F5F5F4' }} aria-hidden="true" />
-                  <span style={{ fontSize: '14px', fontWeight: 500, color: '#F5F5F4' }}>
+                  <DetectedIcon size={18} style={{ color: 'var(--foreground)' }} aria-hidden="true" />
+                  <span style={{ fontSize: '14px', fontWeight: 500, color: 'var(--foreground)' }}>
                     Recommended for {OS_LABELS[detectedOS]}
                   </span>
                 </div>
@@ -493,7 +493,7 @@ const DownloadPage: React.FC = () => {
                   fontFamily: "'Instrument Serif', Georgia, serif",
                   fontSize: '24px',
                   fontWeight: 400,
-                  color: '#F5F5F4',
+                  color: 'var(--foreground)',
                 }}
               >
                 All platforms
@@ -506,8 +506,8 @@ const DownloadPage: React.FC = () => {
                   return (
                     <div key={os} style={{ ...GLASS_CARD, padding: '20px 22px' }}>
                       <div className="flex items-center gap-2 mb-4">
-                        <OsIcon size={18} style={{ color: '#F5F5F4' }} aria-hidden="true" />
-                        <span style={{ fontSize: '15px', fontWeight: 500, color: '#F5F5F4' }}>
+                        <OsIcon size={18} style={{ color: 'var(--foreground)' }} aria-hidden="true" />
+                        <span style={{ fontSize: '15px', fontWeight: 500, color: 'var(--foreground)' }}>
                           {OS_LABELS[os]}
                         </span>
                       </div>
@@ -530,7 +530,7 @@ const DownloadPage: React.FC = () => {
             {/* System requirements */}
             <p
               className="text-center"
-              style={{ fontSize: '13px', color: 'rgba(245,245,244,0.4)', lineHeight: 1.6 }}
+              style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.6 }}
             >
               Requires macOS 10.15+ / Windows 10+ / a recent Linux.
             </p>

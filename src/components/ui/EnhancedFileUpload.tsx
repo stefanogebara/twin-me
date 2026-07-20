@@ -340,7 +340,7 @@ const EnhancedFileUpload: React.FC<EnhancedFileUploadProps> = ({
             <div
               key={uploadingFile.id}
               className="rounded-lg p-4"
-              style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+              style={{ border: '1px solid var(--border-glass)', backgroundColor: 'var(--surface)' }}
             >
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-3">

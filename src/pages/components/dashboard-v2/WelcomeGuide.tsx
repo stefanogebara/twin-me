@@ -137,8 +137,8 @@ export function WelcomeGuide({ firstName }: WelcomeGuideProps) {
                     style={{
                       width: 28,
                       height: 28,
-                      background: 'rgba(255,255,255,0.06)',
-                      border: '1px solid rgba(255,255,255,0.08)',
+                      background: 'var(--surface)',
+                      border: '1px solid var(--border-glass)',
                     }}
                   >
                     <Icon

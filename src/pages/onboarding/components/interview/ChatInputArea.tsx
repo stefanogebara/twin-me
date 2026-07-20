@@ -155,7 +155,7 @@ const ChatInputArea: React.FC<ChatInputAreaProps> = ({
           disabled={loading}
           className="mt-1 py-2.5 text-[13px] transition-opacity hover:opacity-70 w-full"
           style={{
-            color: 'rgba(255,255,255,0.6)',
+            color: 'var(--text-secondary)',
             fontFamily: "'Inter', sans-serif",
             background: 'none',
             border: 'none',

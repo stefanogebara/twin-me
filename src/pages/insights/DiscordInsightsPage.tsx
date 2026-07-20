@@ -150,7 +150,7 @@ const DiscordInsightsPage: React.FC = () => {
       {insights?.discordServers && insights.discordServers.length > 0 && (
         <div
           className="rounded-2xl p-4 mb-6"
-          style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+          style={{ border: '1px solid var(--border-glass)', backgroundColor: 'var(--surface)' }}
         >
           <h3
             className="text-[11px] font-medium uppercase tracking-[0.08em] mb-3 flex items-center gap-2"
@@ -181,7 +181,7 @@ const DiscordInsightsPage: React.FC = () => {
       {insights?.discordCategoryBreakdown && insights.discordCategoryBreakdown.length > 0 && (
         <div
           className="rounded-2xl p-4 mb-6"
-          style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+          style={{ border: '1px solid var(--border-glass)', backgroundColor: 'var(--surface)' }}
         >
           <h3
             className="text-[11px] font-medium uppercase tracking-[0.08em] mb-4 flex items-center gap-2"
@@ -236,7 +236,7 @@ const DiscordInsightsPage: React.FC = () => {
       ) : insights?.discordServers?.length ? (
         <div
           className="mb-8 rounded-2xl p-4"
-          style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+          style={{ border: '1px solid var(--border-glass)', backgroundColor: 'var(--surface)' }}
         >
           <div className="flex items-center gap-2 mb-2">
             <MessageSquare className="w-4 h-4" style={{ color: colors.discordPurple }} />
@@ -288,7 +288,7 @@ const DiscordInsightsPage: React.FC = () => {
               <div
                 key={past.id}
                 className="rounded-2xl p-4"
-                style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+                style={{ border: '1px solid var(--border-glass)', backgroundColor: 'var(--surface)' }}
               >
                 <p className="text-sm leading-relaxed" style={{ color: colors.textSecondary }}>
                   {past.text}
@@ -307,7 +307,7 @@ const DiscordInsightsPage: React.FC = () => {
         <div className="space-y-4">
           <div
             className="text-center py-12 rounded-2xl"
-            style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+            style={{ border: '1px solid var(--border-glass)', backgroundColor: 'var(--surface)' }}
           >
             <div
               className="w-16 h-16 rounded-2xl mx-auto mb-5 flex items-center justify-center"
@@ -354,7 +354,7 @@ const DiscordInsightsPage: React.FC = () => {
             </p>
             <div
               className="rounded-2xl p-4"
-              style={{ border: '1px dashed var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+              style={{ border: '1px dashed var(--border-glass)', backgroundColor: 'var(--surface)' }}
             >
               <div className="flex items-center gap-2 mb-3">
                 <MessageSquare className="w-4 h-4" style={{ color: colors.textSecondary }} />
