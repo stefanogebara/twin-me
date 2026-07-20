@@ -61,7 +61,7 @@ export const ContextSidebar = ({
           <button
             onClick={onClose}
             className="p-1 rounded hover:opacity-70 transition-opacity"
-            style={{ color: 'rgba(255,255,255,0.25)' }}
+            style={{ color: 'var(--text-muted)' }}
             aria-label="Close context panel"
           >
             <X className="w-3.5 h-3.5" aria-hidden="true" />
@@ -72,7 +72,7 @@ export const ContextSidebar = ({
         <div className="mb-6">
           <h3
             className="text-[11px] font-medium tracking-widest uppercase mb-3"
-            style={{ color: 'rgba(255,255,255,0.3)' }}
+            style={{ color: 'var(--text-muted)' }}
           >
             Sources
           </h3>
@@ -83,12 +83,12 @@ export const ContextSidebar = ({
                 className="flex items-center justify-between py-1.5"
               >
                 <div className="flex items-center gap-2">
-                  <span style={{ color: platform.connected ? platform.color : 'rgba(255,255,255,0.15)' }}>
+                  <span style={{ color: platform.connected ? platform.color : 'var(--text-muted)' }}>
                     {platform.icon}
                   </span>
                   <span
                     className="text-[13px]"
-                    style={{ color: platform.connected ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.2)' }}
+                    style={{ color: platform.connected ? 'var(--foreground)' : 'var(--text-muted)' }}
                   >
                     {platform.name}
                   </span>
@@ -112,13 +112,13 @@ export const ContextSidebar = ({
           </div>
         </div>
 
-        <div className="mb-6" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }} />
+        <div className="mb-6" style={{ borderTop: '1px solid var(--border-glass)' }} />
 
         {/* Active Context */}
         <div className="mb-6">
           <h3
             className="text-[11px] font-medium tracking-widest uppercase mb-3"
-            style={{ color: 'rgba(255,255,255,0.3)' }}
+            style={{ color: 'var(--text-muted)' }}
           >
             Active Context
           </h3>
@@ -132,13 +132,13 @@ export const ContextSidebar = ({
                 <div key={idx}>
                   <span
                     className="text-[11px] font-medium tracking-wider uppercase"
-                    style={{ color: 'rgba(255,255,255,0.25)' }}
+                    style={{ color: 'var(--text-muted)' }}
                   >
                     {item.label}
                   </span>
                   <p
                     className="text-[13px] leading-relaxed mt-0.5"
-                    style={{ color: 'rgba(255,255,255,0.5)' }}
+                    style={{ color: 'var(--text-secondary)' }}
                   >
                     {item.value}
                   </p>
@@ -146,7 +146,7 @@ export const ContextSidebar = ({
               ))}
             </div>
           ) : (
-            <p className="text-[13px]" style={{ color: 'rgba(255,255,255,0.2)' }}>
+            <p className="text-[13px]" style={{ color: 'var(--text-muted)' }}>
               Context loads when you chat
             </p>
           )}

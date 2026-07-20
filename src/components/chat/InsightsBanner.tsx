@@ -51,17 +51,17 @@ export function InsightsBanner({ insights, onQuickAction, onEngage }: InsightsBa
           className="w-2 h-2 rounded-full shrink-0"
           style={{ backgroundColor: '#C9B99A' }}
         />
-        <Lightbulb className="w-3.5 h-3.5 shrink-0" style={{ color: 'rgba(255,255,255,0.4)' }} />
+        <Lightbulb className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--text-muted)' }} />
         <span
           className="text-xs flex-1"
-          style={{ color: 'rgba(255,255,255,0.5)', fontFamily: "'Inter', sans-serif" }}
+          style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
         >
           Your twin has {insights.length} thing{insights.length !== 1 ? 's' : ''} to share
         </span>
         <ChevronDown
           className="w-3.5 h-3.5 shrink-0 transition-transform duration-200"
           style={{
-            color: 'rgba(255,255,255,0.3)',
+            color: 'var(--text-muted)',
             transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
           }}
         />
@@ -86,13 +86,13 @@ export function InsightsBanner({ insights, onQuickAction, onEngage }: InsightsBa
             >
               <p
                 className="text-xs leading-relaxed flex-1"
-                style={{ color: 'rgba(255,255,255,0.6)' }}
+                style={{ color: 'var(--text-secondary)' }}
               >
                 {insight.insight}
               </p>
               <div className="flex items-center gap-1.5 shrink-0">
                 {ratedInsights[insight.id] ? (
-                  <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                  <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
                     {ratedInsights[insight.id] === 1 ? 'Liked' : 'Noted'}
                   </span>
                 ) : (
@@ -103,7 +103,7 @@ export function InsightsBanner({ insights, onQuickAction, onEngage }: InsightsBa
                       aria-label="Rate insight as helpful"
                       title="Helpful"
                     >
-                      <ThumbsUp className="w-3 h-3" style={{ color: 'rgba(255,255,255,0.35)' }} aria-hidden="true" />
+                      <ThumbsUp className="w-3 h-3" style={{ color: 'var(--text-muted)' }} aria-hidden="true" />
                     </button>
                     <button
                       onClick={() => handleRate(insight.id, -1)}
@@ -111,7 +111,7 @@ export function InsightsBanner({ insights, onQuickAction, onEngage }: InsightsBa
                       aria-label="Rate insight as not helpful"
                       title="Not helpful"
                     >
-                      <ThumbsDown className="w-3 h-3" style={{ color: 'rgba(255,255,255,0.35)' }} aria-hidden="true" />
+                      <ThumbsDown className="w-3 h-3" style={{ color: 'var(--text-muted)' }} aria-hidden="true" />
                     </button>
                   </>
                 )}

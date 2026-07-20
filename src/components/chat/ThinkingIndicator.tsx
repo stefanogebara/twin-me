@@ -49,7 +49,7 @@ export function ThinkingIndicator() {
         />
         <span
           className="text-[13px] font-medium transition-opacity duration-300"
-          style={{ color: 'rgba(255,255,255,0.4)', fontFamily: 'Inter, sans-serif' }}
+          style={{ color: 'var(--text-muted)', fontFamily: 'Inter, sans-serif' }}
         >
           {STAGES[stageIndex].label}
         </span>

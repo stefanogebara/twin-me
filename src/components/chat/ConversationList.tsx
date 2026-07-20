@@ -37,8 +37,8 @@ function formatRelativeTime(dateStr: string): string {
 function SkeletonRow() {
   return (
     <div className="px-3 py-2.5 rounded-xl animate-pulse">
-      <div className="h-[13px] w-3/4 rounded bg-[rgba(255,255,255,0.06)] mb-1.5" />
-      <div className="h-[11px] w-full rounded bg-[rgba(255,255,255,0.04)]" />
+      <div className="h-[13px] w-3/4 rounded bg-[var(--surface)] mb-1.5" />
+      <div className="h-[11px] w-full rounded bg-[var(--surface)]" />
     </div>
   );
 }
@@ -98,7 +98,7 @@ export function ConversationList({
       <div className="px-3 pt-3 pb-2">
         <button
           onClick={onNewChat}
-          className="bg-[rgba(255,255,255,0.06)] hover:bg-[rgba(255,255,255,0.1)] rounded-xl px-3 py-2 text-[13px] text-[#F5F5F4] w-full text-left flex items-center gap-2 transition-colors"
+          className="bg-[var(--surface)] hover:bg-[var(--surface-solid)] rounded-xl px-3 py-2 text-[13px] text-[var(--foreground)] w-full text-left flex items-center gap-2 transition-colors"
         >
           <Plus className="w-3.5 h-3.5 opacity-60" />
           New Chat
@@ -114,11 +114,11 @@ export function ConversationList({
             <SkeletonRow />
           </div>
         ) : error ? (
-          <p className="px-3 py-4 text-[12px] text-[rgba(255,255,255,0.3)] text-center">
+          <p className="px-3 py-4 text-[12px] text-[var(--text-muted)] text-center">
             {error}
           </p>
         ) : conversations.length === 0 ? (
-          <p className="px-3 py-4 text-[12px] text-[rgba(255,255,255,0.3)] text-center">
+          <p className="px-3 py-4 text-[12px] text-[var(--text-muted)] text-center">
             No conversations yet
           </p>
         ) : (
@@ -129,22 +129,22 @@ export function ConversationList({
                 <button
                   key={conv.id}
                   onClick={() => onSelectConversation(conv.id)}
-                  className={`px-3 py-2.5 rounded-xl cursor-pointer hover:bg-[rgba(255,255,255,0.06)] transition-colors text-left w-full ${
-                    isActive ? 'bg-[rgba(255,255,255,0.08)]' : ''
+                  className={`px-3 py-2.5 rounded-xl cursor-pointer hover:bg-[var(--surface)] transition-colors text-left w-full ${
+                    isActive ? 'bg-[var(--surface)]' : ''
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-[13px] font-medium text-[#F5F5F4] truncate">
+                    <span className="text-[13px] font-medium text-[var(--foreground)] truncate">
                       {conv.title || 'Untitled'}
                     </span>
                     {conv.updatedAt && (
-                      <span className="text-[10px] text-[rgba(255,255,255,0.3)] whitespace-nowrap flex-shrink-0">
+                      <span className="text-[10px] text-[var(--text-muted)] whitespace-nowrap flex-shrink-0">
                         {formatRelativeTime(conv.updatedAt)}
                       </span>
                     )}
                   </div>
                   {conv.preview && (
-                    <p className="text-[11px] text-[rgba(255,255,255,0.4)] truncate mt-0.5">
+                    <p className="text-[11px] text-[var(--text-muted)] truncate mt-0.5">
                       {conv.preview}
                     </p>
                   )}

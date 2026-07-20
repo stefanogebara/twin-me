@@ -104,7 +104,7 @@ export const ChatEmptyState = ({
         style={{
           fontStyle: 'italic',
           fontWeight: 300,
-          color: '#F5F5F4',
+          color: 'var(--foreground)',
           letterSpacing: '-0.02em',
         }}
       >
@@ -169,16 +169,16 @@ export const ChatEmptyState = ({
             className="px-4 py-2.5 rounded-[46px] text-[13px] font-medium transition-all duration-150 active:scale-[0.97]"
             data-testid="suggestion-chip"
             style={{
-              color: 'rgba(245,245,244,0.7)',
-              background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(255,255,255,0.10)',
+              color: 'var(--foreground)',
+              background: 'var(--surface)',
+              border: '1px solid var(--glass-surface-border)',
               fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'rgba(255,255,255,0.10)';
+              e.currentTarget.style.background = 'var(--surface-solid)';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
+              e.currentTarget.style.background = 'var(--surface)';
             }}
           >
             Start your Soul Interview
@@ -204,11 +204,11 @@ export const ChatEmptyState = ({
                 // audit-2026-07-03 H1: chip label was 3.83:1; token = 7.37:1.
                 color: 'var(--text-secondary)',
                 background: 'transparent',
-                border: '1px solid rgba(255,255,255,0.08)',
+                border: '1px solid var(--border-glass)',
                 fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
+                e.currentTarget.style.background = 'var(--surface)';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = 'transparent';

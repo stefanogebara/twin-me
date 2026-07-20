@@ -41,10 +41,10 @@ export function ProposalSummaryCard({
       transition={{ duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] }}
       className="rounded-[20px] px-5 py-4 my-2 w-full max-w-[520px]"
       style={{
-        backgroundColor: 'rgba(255,255,255,0.06)',
+        backgroundColor: 'var(--surface)',
         backdropFilter: 'blur(42px)',
         WebkitBackdropFilter: 'blur(42px)',
-        border: '1px solid rgba(255,255,255,0.10)',
+        border: '1px solid var(--glass-surface-border)',
         boxShadow:
           '0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.04)',
       }}
@@ -53,7 +53,7 @@ export function ProposalSummaryCard({
       <h3
         className="text-[14px] font-medium mb-3"
         style={{
-          color: '#F5F5F4',
+          color: 'var(--foreground)',
           fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
           letterSpacing: '-0.01em',
         }}
@@ -70,7 +70,7 @@ export function ProposalSummaryCard({
             style={{
               borderBottom:
                 index < proposals.length - 1
-                  ? '1px solid rgba(255,255,255,0.04)'
+                  ? '1px solid var(--border-glass)'
                   : undefined,
             }}
           >
@@ -92,7 +92,7 @@ export function ProposalSummaryCard({
               <p
                 className="text-[13px] leading-snug"
                 style={{
-                  color: 'rgba(255,255,255,0.6)',
+                  color: 'var(--text-secondary)',
                   fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
                 }}
               >
@@ -105,7 +105,7 @@ export function ProposalSummaryCard({
               <button
                 onClick={() => onApprove(proposal.id)}
                 className="p-1 rounded-md transition-all duration-150 hover:scale-110"
-                style={{ color: 'rgba(255,255,255,0.35)' }}
+                style={{ color: 'var(--text-muted)' }}
                 aria-label={`Approve ${proposal.department} proposal`}
               >
                 <Check className="w-3.5 h-3.5" />
@@ -113,7 +113,7 @@ export function ProposalSummaryCard({
               <button
                 onClick={() => onReject(proposal.id)}
                 className="p-1 rounded-md transition-all duration-150 hover:scale-110"
-                style={{ color: 'rgba(255,255,255,0.25)' }}
+                style={{ color: 'var(--text-muted)' }}
                 aria-label={`Reject ${proposal.department} proposal`}
               >
                 <X className="w-3.5 h-3.5" />
@@ -126,14 +126,14 @@ export function ProposalSummaryCard({
       {/* Bottom actions */}
       <div
         className="flex items-center gap-3 mt-3 pt-3"
-        style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}
+        style={{ borderTop: '1px solid var(--border-glass)' }}
       >
         <button
           onClick={onApproveAll}
           className="flex items-center gap-1 px-3 py-1.5 rounded-[100px] text-[11px] font-medium transition-all duration-150 ease-out hover:opacity-90 active:scale-[0.97]"
           style={{
-            backgroundColor: '#F5F5F4',
-            color: '#110f0f',
+            backgroundColor: 'var(--claura-bone)',
+            color: 'var(--claura-bone-ink)',
             fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
           }}
         >
@@ -144,7 +144,7 @@ export function ProposalSummaryCard({
             onClick={onReviewInDepartments}
             className="text-[11px] font-medium transition-opacity duration-150 hover:opacity-60"
             style={{
-              color: 'rgba(255,255,255,0.35)',
+              color: 'var(--text-muted)',
               fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
             }}
           >

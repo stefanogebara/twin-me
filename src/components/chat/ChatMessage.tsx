@@ -38,7 +38,7 @@ export function ChatMessage({
       onMouseLeave={() => setIsHovered(false)}
       className="group flex gap-4 px-6 py-4 rounded-[20px]"
       style={{
-        backgroundColor: isAssistant ? 'rgba(255,255,255,0.02)' : 'transparent',
+        backgroundColor: isAssistant ? 'var(--surface)' : 'transparent',
         border: isAssistant ? '1px solid var(--border-glass)' : undefined,
       }}
     >
@@ -66,7 +66,7 @@ export function ChatMessage({
               {isAssistant ? 'Your Soul Twin' : 'You'}
             </span>
             {timestamp && (
-              <span className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
+              <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
                 {timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </span>
             )}
