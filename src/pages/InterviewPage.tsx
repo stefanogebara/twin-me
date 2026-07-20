@@ -166,7 +166,7 @@ export default function InterviewPage() {
             onClick={() => navigate('/identity')}
             className="w-full py-3.5 rounded-[100px] text-sm font-medium transition-opacity hover:opacity-90"
             style={{
-              backgroundColor: 'var(--claura-bone)',
+              background: 'var(--claura-bone)',
               color: 'var(--claura-bone-ink)',
               fontFamily: "'Inter', sans-serif",
               cursor: 'pointer',

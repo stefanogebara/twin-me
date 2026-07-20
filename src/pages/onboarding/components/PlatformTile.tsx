@@ -241,7 +241,7 @@ export const PlatformTile: React.FC<PlatformTileProps> = ({
           onClick={onConnect}
           className="text-[12px] font-medium px-4 py-1.5 rounded-full flex-shrink-0 transition-all duration-150 hover:opacity-90"
           style={{
-            backgroundColor: 'var(--claura-bone)',
+            background: 'var(--claura-bone)',
             color: 'var(--claura-bone-ink)',
             fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
           }}

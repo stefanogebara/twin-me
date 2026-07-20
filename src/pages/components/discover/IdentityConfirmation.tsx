@@ -29,7 +29,7 @@ export const IdentityConfirmation: React.FC<IdentityConfirmationProps> = ({ onCo
           onClick={onConfirm}
           className="px-5 py-2 rounded-full text-[13px] font-medium transition-all duration-150 hover:opacity-90"
           style={{
-            backgroundColor: 'var(--claura-bone)',
+            background: 'var(--claura-bone)',
             color: 'var(--claura-bone-ink)',
             fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
           }}

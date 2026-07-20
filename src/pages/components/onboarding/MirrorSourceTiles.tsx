@@ -108,7 +108,7 @@ const MirrorTile: React.FC<MirrorTileProps> = ({
       <button
         onClick={onCta}
         className="text-[12px] font-medium px-4 py-1.5 rounded-full flex-shrink-0 transition-all duration-150 hover:opacity-90"
-        style={{ backgroundColor: 'var(--claura-bone)', color: 'var(--claura-bone-ink)', fontFamily: FONT }}
+        style={{ background: 'var(--claura-bone)', color: 'var(--claura-bone-ink)', fontFamily: FONT }}
       >
         {ctaLabel}
       </button>

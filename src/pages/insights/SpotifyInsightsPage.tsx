@@ -70,7 +70,7 @@ const SpotifyInsightsPage: React.FC = () => {
             disabled={isRefreshing}
             className="px-4 py-2 rounded-[100px]"
             style={{
-              backgroundColor: 'var(--claura-bone)',
+              background: 'var(--claura-bone)',
               color: 'var(--claura-bone-ink)',
               fontFamily: "'Inter', sans-serif",
               fontWeight: 500

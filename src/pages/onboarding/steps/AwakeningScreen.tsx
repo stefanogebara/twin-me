@@ -228,7 +228,7 @@ const AwakeningScreen: React.FC<AwakeningScreenProps> = ({ onEnter }) => {
           className="flex items-center gap-2.5"
           style={{
             fontFamily: "'Inter', sans-serif",
-            backgroundColor: 'var(--claura-bone)',
+            background: 'var(--claura-bone)',
             color: 'var(--claura-bone-ink)',
             borderRadius: '100px',
             padding: '14px 36px',
@@ -239,8 +239,8 @@ const AwakeningScreen: React.FC<AwakeningScreenProps> = ({ onEnter }) => {
             transition: 'all 0.2s ease',
             boxShadow: '0 4px 30px rgba(255,255,255,0.06)',
           }}
-          onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'var(--claura-bone)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
-          onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'var(--claura-bone)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'var(--claura-bone)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'var(--claura-bone)'; e.currentTarget.style.transform = 'translateY(0)'; }}
         >
           Enter your world
           <ArrowRight className="w-4 h-4" />

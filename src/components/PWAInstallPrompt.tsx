@@ -109,7 +109,7 @@ const PWAInstallPrompt: React.FC = () => {
           onClick={handleInstall}
           className="px-3 py-1.5 rounded-full text-[11px] font-medium transition-opacity hover:opacity-90 cursor-pointer"
           style={{
-            backgroundColor: 'var(--claura-bone)',
+            background: 'var(--claura-bone)',
             color: 'var(--claura-bone-ink)',
             fontFamily: "'Inter', sans-serif",
           }}

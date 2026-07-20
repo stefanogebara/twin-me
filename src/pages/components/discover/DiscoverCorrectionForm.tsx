@@ -95,7 +95,7 @@ export const DiscoverCorrectionForm: React.FC<DiscoverCorrectionFormProps> = ({
             disabled={!name.trim() || isLoading}
             className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-full text-[13px] font-medium transition-all duration-150 hover:opacity-90 disabled:opacity-50"
             style={{
-              backgroundColor: 'var(--claura-bone)',
+              background: 'var(--claura-bone)',
               color: 'var(--claura-bone-ink)',
               fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
             }}

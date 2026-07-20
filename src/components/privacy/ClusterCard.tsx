@@ -149,7 +149,7 @@ export const ClusterCard: React.FC<ClusterCardProps> = ({
               />
             </Slider.Track>
             <Slider.Thumb
-              className="block w-6 h-6 bg-[var(--claura-bone)] rounded-full shadow-md border-2 transition-all duration-200 cursor-grab active:cursor-grabbing focus:outline-none"
+              className="block w-6 h-6 bg-[image:var(--claura-bone)] rounded-full shadow-md border-2 transition-all duration-200 cursor-grab active:cursor-grabbing focus:outline-none"
               style={{
                 borderColor: isDragging ? '#C9B99A' : '#d6d3d1',
               }}

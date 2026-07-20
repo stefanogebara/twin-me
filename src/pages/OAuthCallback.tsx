@@ -686,7 +686,7 @@ const OAuthCallback = () => {
           <button
             onClick={() => navigate('/auth')}
             className="mt-6 px-6 py-2 rounded-full"
-            style={{ backgroundColor: 'var(--claura-bone)', color: 'var(--claura-bone-ink)', fontWeight: 600 }}
+            style={{ background: 'var(--claura-bone)', color: 'var(--claura-bone-ink)', fontWeight: 600 }}
           >
             Try Again
           </button>

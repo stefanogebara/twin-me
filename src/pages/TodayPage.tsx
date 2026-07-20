@@ -60,7 +60,7 @@ const TwinComposer: React.FC<{ onSubmit: (message: string) => void }> = ({ onSub
         type="submit"
         disabled={!value.trim()}
         aria-label="Send to your twin"
-        className="grid place-items-center bg-[var(--claura-bone)] text-[var(--claura-bone-ink)] rounded-[100px] w-7 h-7 disabled:opacity-50 hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-[rgba(255,255,255,0.4)] transition-opacity"
+        className="grid place-items-center bg-[image:var(--claura-bone)] text-[var(--claura-bone-ink)] rounded-[100px] w-7 h-7 disabled:opacity-50 hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-[rgba(255,255,255,0.4)] transition-opacity"
       >
         <ArrowUp size={16} aria-hidden />
       </button>

@@ -31,7 +31,7 @@ export const InsightsGenerationError: React.FC<InsightsGenerationErrorProps> = (
           onClick={onRetry}
           disabled={retrying}
           className="flex items-center gap-2 px-4 py-2 rounded-[100px] text-sm font-medium disabled:opacity-50"
-          style={{ backgroundColor: 'var(--claura-bone)', color: 'var(--claura-bone-ink)' }}
+          style={{ background: 'var(--claura-bone)', color: 'var(--claura-bone-ink)' }}
         >
           <RefreshCw className={`w-4 h-4 ${retrying ? 'animate-spin' : ''}`} />
           Try again

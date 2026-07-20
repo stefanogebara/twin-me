@@ -183,7 +183,7 @@ const ReadyFallback: React.FC<{ onContinue: () => void; degraded: boolean }> = (
 const ContinueButton: React.FC<{ onClick: () => void }> = ({ onClick }) => (
   <button
     onClick={onClick}
-    className="inline-flex items-center justify-center gap-2 bg-[var(--claura-bone)] text-[var(--claura-bone-ink)] rounded-[100px] px-5 py-3 text-[14px] font-medium hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-[rgba(255,255,255,0.4)] transition-opacity"
+    className="inline-flex items-center justify-center gap-2 bg-[image:var(--claura-bone)] text-[var(--claura-bone-ink)] rounded-[100px] px-5 py-3 text-[14px] font-medium hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-[rgba(255,255,255,0.4)] transition-opacity"
   >
     Go to Today <ArrowRight size={16} aria-hidden />
   </button>
