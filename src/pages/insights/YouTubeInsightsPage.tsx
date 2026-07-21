@@ -126,7 +126,7 @@ const YouTubeInsightsPage: React.FC = () => {
   // the skeleton is only for the no-data cold start.
   if ((loading || generating) && !insights) {
     return (
-      <div className="max-w-[680px] mx-auto px-6 py-16">
+      <div className="max-w-[680px] mx-auto px-4 sm:px-6 py-10 sm:py-16">
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-4">
             <SkeletonPulse className="w-10 h-10 rounded-lg" />
@@ -167,7 +167,7 @@ const YouTubeInsightsPage: React.FC = () => {
 
   if (error) {
     return (
-      <div className="max-w-[680px] mx-auto px-6 py-16">
+      <div className="max-w-[680px] mx-auto px-4 sm:px-6 py-10 sm:py-16">
         <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
           <AlertCircle className="w-12 h-12" style={{ color: 'var(--text-secondary)' }} />
           <p style={{ color: 'var(--text-secondary)' }}>{error}</p>
@@ -184,7 +184,7 @@ const YouTubeInsightsPage: React.FC = () => {
   }
 
   return (
-    <div className="max-w-[680px] mx-auto px-6 py-16">
+    <div className="max-w-[680px] mx-auto px-4 sm:px-6 py-10 sm:py-16">
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-4">

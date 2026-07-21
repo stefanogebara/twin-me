@@ -18,7 +18,7 @@ export const InsightsGenerationError: React.FC<InsightsGenerationErrorProps> = (
   retrying = false,
 }) => {
   return (
-    <div className="max-w-[680px] mx-auto px-6 py-16">
+    <div className="max-w-[680px] mx-auto px-4 sm:px-6 py-10 sm:py-16">
       <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
         <AlertCircle className="w-12 h-12" style={{ color: 'var(--text-secondary)' }} />
         <p
