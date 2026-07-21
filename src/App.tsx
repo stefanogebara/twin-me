@@ -30,6 +30,8 @@ import DesktopHandoff from "./pages/DesktopHandoff";
 import OAuthCallback from "./pages/OAuthCallback";
 import NotFound from "./pages/NotFound";
 import CinematicFrame from "./pages/preview/CinematicFrame";
+import StardustHero from "./components/landing/StardustHero";
+import StardustLanding from "./pages/StardustLanding";
 // audit-2026-05-13 H1: route-local Suspense fallback for /talk-to-twin so
 // mobile users see the chat shell (header + composer placeholder) within
 // the first paint instead of waiting on a centered loading spinner.
@@ -185,6 +187,8 @@ const App = () => {
             <Route path="/discover" element={<DiscoverLanding />} />
 
             {/* Cinematic redesign prototypes (isolated static bundle in /public/cinematic) */}
+            <Route path="/preview/stardust-hero" element={<div className="w-full min-h-screen" style={{ background: 'var(--background)' }}><StardustHero /></div>} />
+            <Route path="/preview/stardust" element={<StardustLanding />} />
             <Route path="/preview/landing" element={<CinematicFrame src="/cinematic/landing.html" title="Twin.me — cinematic landing" />} />
             <Route path="/preview/dashboard" element={<CinematicFrame src="/cinematic/dashboard.html" title="Twin.me — cinematic dashboard" />} />
             <Route path="/preview/talk" element={<CinematicFrame src="/cinematic/talk.html" title="Twin.me — cinematic talk" />} />
