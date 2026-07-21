@@ -498,6 +498,26 @@
     content: none;
   }
 
+  /* Recharts: theme-aware axis labels + grid. CSS fill/stroke resolve var()
+     (SVG presentation attributes do not), so axis text/grid stay legible in
+     both appearances instead of the old hardcoded white-alpha. Data series
+     keep their own colors — only ticks/grid are defaulted here. */
+  .recharts-cartesian-axis-tick-value,
+  .recharts-polar-angle-axis-tick-value,
+  .recharts-polar-radius-axis-tick-value {
+    fill: var(--text-muted);
+  }
+  .recharts-cartesian-grid line,
+  .recharts-polar-grid line,
+  .recharts-polar-grid path {
+    stroke: var(--border-glass);
+  }
+  /* StressSpend daily-spend bars: token fill so they stay visible in light. */
+  .stress-spend-bar .recharts-bar-rectangle path,
+  .stress-spend-bar path.recharts-rectangle {
+    fill: var(--text-muted);
+  }
+
   /* Separator: gray-700 border */
   .prose hr {
     border-color: rgb(55, 65, 81);

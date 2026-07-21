@@ -485,7 +485,7 @@ function WhatsAppCaptureCard() {
           style={{
             background: 'var(--claura-bone)',
             color: 'var(--claura-bone-ink)',
-            borderRadius: 100,
+            borderRadius: 12,
             fontFamily: "'Geist', 'Inter', sans-serif",
             fontSize: 13,
             fontWeight: 500,

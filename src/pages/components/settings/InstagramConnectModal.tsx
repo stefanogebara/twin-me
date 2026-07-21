@@ -168,7 +168,7 @@ export function InstagramConnectModal({ open, onClose, onSuccess }: InstagramCon
               type="button"
               onClick={handleAccept}
               disabled={!username.trim() || recording}
-              className="bg-[image:var(--claura-bone)] text-[var(--claura-bone-ink)] rounded-[100px] px-4 py-2 text-sm font-medium disabled:opacity-50"
+              className="bg-[image:var(--claura-bone)] text-[var(--claura-bone-ink)] rounded-[12px] px-4 py-2 text-sm font-medium disabled:opacity-50"
             >
               {recording ? 'Connecting...' : 'I understand, connect'}
             </Button>

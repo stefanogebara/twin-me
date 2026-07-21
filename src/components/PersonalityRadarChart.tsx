@@ -155,7 +155,7 @@ export function PersonalityRadarChart({
             cy={point.y}
             r={5}
             fill={point.score.color || DEFAULT_COLORS[i % DEFAULT_COLORS.length]}
-            stroke="#fff"
+            style={{ stroke: 'var(--foreground)' }}
             strokeWidth={2}
           />
         ))}

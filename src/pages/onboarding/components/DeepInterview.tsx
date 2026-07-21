@@ -648,7 +648,7 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
               <button
                 type="button"
                 onClick={handleRetry}
-                className="rounded-[100px] px-4 py-2 text-sm font-medium transition-opacity hover:opacity-90"
+                className="rounded-[12px] px-4 py-2 text-sm font-medium transition-opacity hover:opacity-90"
                 style={{
                   background: 'var(--claura-bone)',
                   color: 'var(--claura-bone-ink)',

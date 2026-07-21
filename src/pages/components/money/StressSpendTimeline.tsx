@@ -182,7 +182,7 @@ export function StressSpendTimeline({ days, currency = 'BRL', windowDays = 30 }:
           <Bar
             yAxisId="spend"
             dataKey="spend"
-            fill="rgba(255,255,255,0.12)"
+            className="stress-spend-bar"
             radius={[3, 3, 0, 0]}
             maxBarSize={28}
           />
