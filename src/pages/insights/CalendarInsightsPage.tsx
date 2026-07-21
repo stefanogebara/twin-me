@@ -136,7 +136,7 @@ const CalendarInsightsPage: React.FC = () => {
   // the skeleton is only for the no-data cold start.
   if ((loading || generating) && !insights) {
     return (
-      <div className="max-w-[680px] mx-auto px-6 py-16">
+      <div className="max-w-[680px] mx-auto px-4 sm:px-6 py-10 sm:py-16">
         <CalendarSkeleton />
       </div>
     );
@@ -149,7 +149,7 @@ const CalendarInsightsPage: React.FC = () => {
 
   if (error) {
     return (
-      <div className="max-w-[680px] mx-auto px-6 py-16">
+      <div className="max-w-[680px] mx-auto px-4 sm:px-6 py-10 sm:py-16">
         <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
           <AlertCircle
             className="w-12 h-12"
@@ -169,7 +169,7 @@ const CalendarInsightsPage: React.FC = () => {
   }
 
   return (
-    <div className="max-w-[680px] mx-auto px-6 py-16">
+    <div className="max-w-[680px] mx-auto px-4 sm:px-6 py-10 sm:py-16">
       <InsightsPageHeader
         title="Time Patterns"
         subtitle="How you structure your days"

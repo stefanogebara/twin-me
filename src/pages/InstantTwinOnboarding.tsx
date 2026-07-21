@@ -298,7 +298,7 @@ const InstantTwinOnboarding = () => {
     <>
       {/* Claura zoned photography — cosmic-swirl by night, soul-waves by day (/preview/connect). */}
       <ClauraZonedBackground dark="cosmic-swirl.png" light="soul-waves.png" darkPosition="center top" lightPosition="center 22%" />
-      <div className="max-w-[680px] mx-auto px-6 py-16">
+      <div className="max-w-[680px] mx-auto px-4 sm:px-6 py-10 sm:py-16">
         {/* Banner ONLY for genuine auth failures (state === 'expired');
             stale never demands a reconnect (batch-3 display convention). */}
         {(platformsSummary?.expired ?? 0) > 0 && (

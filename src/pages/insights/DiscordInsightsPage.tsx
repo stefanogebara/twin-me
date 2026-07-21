@@ -96,7 +96,7 @@ const DiscordInsightsPage: React.FC = () => {
   // the skeleton is only for the no-data cold start.
   if ((loading || generating) && !insights) {
     return (
-      <div className="max-w-[680px] mx-auto px-6 py-16">
+      <div className="max-w-[680px] mx-auto px-4 sm:px-6 py-10 sm:py-16">
         <div className="animate-pulse space-y-4">
           <div className="h-16 rounded-xl" style={{ backgroundColor: 'var(--glass-surface-bg)' }} />
           <div className="h-32 rounded-xl" style={{ backgroundColor: 'var(--glass-surface-bg)' }} />
@@ -113,7 +113,7 @@ const DiscordInsightsPage: React.FC = () => {
 
   if (error) {
     return (
-      <div className="max-w-[680px] mx-auto px-6 py-16">
+      <div className="max-w-[680px] mx-auto px-4 sm:px-6 py-10 sm:py-16">
         <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
           <AlertCircle className="w-12 h-12" style={{ color: colors.textSecondary }} />
           <p style={{ color: colors.textSecondary }}>{error}</p>
@@ -130,7 +130,7 @@ const DiscordInsightsPage: React.FC = () => {
   }
 
   return (
-    <div className="max-w-[680px] mx-auto px-6 py-16">
+    <div className="max-w-[680px] mx-auto px-4 sm:px-6 py-10 sm:py-16">
       <InsightsPageHeader
         title="Your Community World"
         subtitle="What your servers reveal about you"

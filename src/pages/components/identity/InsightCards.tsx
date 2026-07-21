@@ -279,7 +279,7 @@ const InsightCards: React.FC<InsightCardsProps> = (props) => {
       transition={{ duration: 0.5 }}
     >
       <div
-        className="flex gap-4 overflow-x-auto snap-x snap-mandatory pb-4 -mx-6 px-6"
+        className="flex gap-4 overflow-x-auto snap-x snap-mandatory pb-4"
         style={{ scrollbarWidth: 'none' }}
       >
         {cards.map((card, index) => (

@@ -365,7 +365,7 @@ const PrivacySpectrumDashboard: React.FC = () => {
 
   return (
     <div
-      className="max-w-[900px] mx-auto px-6 py-16"
+      className="max-w-[900px] mx-auto px-4 sm:px-6 py-10 sm:py-16"
       style={{ fontFamily: 'inherit' }}
     >
       {/* Header */}
