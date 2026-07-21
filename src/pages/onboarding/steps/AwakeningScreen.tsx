@@ -230,7 +230,7 @@ const AwakeningScreen: React.FC<AwakeningScreenProps> = ({ onEnter }) => {
             fontFamily: "'Inter', sans-serif",
             background: 'var(--claura-bone)',
             color: 'var(--claura-bone-ink)',
-            borderRadius: '100px',
+            borderRadius: '12px',
             padding: '14px 36px',
             fontSize: '14px',
             fontWeight: 500,

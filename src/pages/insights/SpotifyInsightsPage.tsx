@@ -68,7 +68,7 @@ const SpotifyInsightsPage: React.FC = () => {
           <button
             onClick={refresh}
             disabled={isRefreshing}
-            className="px-4 py-2 rounded-[100px]"
+            className="px-4 py-2 rounded-[12px]"
             style={{
               background: 'var(--claura-bone)',
               color: 'var(--claura-bone-ink)',

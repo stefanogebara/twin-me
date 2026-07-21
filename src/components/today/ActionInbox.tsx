@@ -223,7 +223,7 @@ const PrimaryButton: React.FC<React.PropsWithChildren<{ onClick: () => void; dis
   <button
     onClick={onClick}
     disabled={disabled}
-    className="inline-flex items-center gap-1.5 bg-[image:var(--claura-bone)] text-[var(--claura-bone-ink)] rounded-[100px] px-3.5 py-2 text-[13px] font-medium disabled:opacity-50 hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-[rgba(255,255,255,0.4)] transition-opacity"
+    className="inline-flex items-center gap-1.5 bg-[image:var(--claura-bone)] text-[var(--claura-bone-ink)] rounded-[12px] px-3.5 py-2 text-[13px] font-medium disabled:opacity-50 hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-[rgba(255,255,255,0.4)] transition-opacity"
   >
     {busy ? <Loader2 size={14} className="animate-spin" aria-hidden /> : children}
   </button>
