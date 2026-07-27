@@ -23,6 +23,7 @@ import { getRecentMemories, retrieveMemories } from './memoryStreamService.js';
 import { editInsights } from './insightEditor.js';
 import { vectorToString } from './embeddingService.js';
 import { getFeatureFlags } from './featureFlagsService.js';
+import { stripDigitsForDedup } from './snapshotMetrics.js';
 import { complete, TIER_ANALYSIS } from './llmGateway.js';
 import { sendPushToUser } from './pushNotificationService.js';
 import { supabaseAdmin } from './database.js';
@@ -48,10 +49,7 @@ const INSIGHT_GENERATION_PROMPT = INSIGHT_PROMPT_TEMPLATE;
  * in 3 days. Digits carry no theme identity; the words do.
  */
 function _stripDigitsForDedup(text) {
-  return String(text || '')
-    .replace(/\d[\d,.]*/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
+  return stripDigitsForDedup(text);
 }
 
 /**

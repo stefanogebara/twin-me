@@ -1038,21 +1038,27 @@ RULES:
 7. The "description" field is the user-facing tile title. It MUST:
    - Start with a concrete verb: Draft, Block, Schedule, Create, Compile, Send, Reply, Add, Open, Review (only if there is a concrete artifact to review)
    - Be 8-20 words
-   - Mention at least one specific number, name, or entity from the observations (e.g. "39k unread", "Whoop recovery 42%", "GitHub @vercel/next")
+   - Anchor on something concrete from the observations: a named entity, sender, repo,
+     meeting, or the duration you are proposing (e.g. "Substack newsletters", "@vercel/next PRs", "90 minutes")
+   - Do NOT anchor on a volatile counter (unread totals, follower counts, step counts).
+     Those readings are wrong within hours, and a proposal built on one is stale the moment it is shown.
    - NEVER use hedging words: "consider", "think about", "maybe", "could", "might want to", "perhaps"
-   GOOD:  "Draft a 15-minute Inbox Zero plan to triage 39,723 unread emails"
+   GOOD:  "Draft a 15-minute Inbox Zero plan for the Substack newsletter backlog"
    GOOD:  "Block 90 minutes tomorrow morning for GitHub PR review"
-   BAD:   "Consider tackling your email backlog" (hedging, no number)
+   BAD:   "Consider tackling your email backlog" (hedging, no anchor)
    BAD:   "Communications department action" (placeholder, not specific)
-   BAD:   "Review your relationships with newsletter senders" (vague verb, no number)
+   BAD:   "Review your relationships with newsletter senders" (vague verb, no anchor)
+   BAD:   "Draft a plan to triage 39,723 unread emails" (volatile count — wrong by tomorrow)
 
 8. The "reasoning" field is the user-facing evidence line ("Because: …"). It MUST:
-   - Cite at least one specific metric, count, or named entity from the observations
+   - Cite specific evidence: a named entity, a source, or a direction of change
+   - Prefer a trend over a raw reading ("trending down for two weeks" beats a single number).
+     If you cite a reading, take it from the most recent observation and say when it was taken.
    - Be 10-25 words
    - Identify the source: "Gmail shows…", "Whoop reports…", "Calendar has…", "Spotify played…"
-   GOOD:  "Gmail shows 39,723 unread (92% unread rate); GitHub and Substack dominate top senders this week"
-   GOOD:  "Whoop recovery dropped to 42% with SpO2 89.5% — both indicate impaired recovery overnight"
-   BAD:   "User has a lot of emails" (no number, no source)
+   GOOD:  "Gmail shows GitHub and Substack dominating your unread senders this week"
+   GOOD:  "Whoop recovery dropped to 42% overnight with SpO2 89.5% — both indicate impaired recovery"
+   BAD:   "User has a lot of emails" (no evidence, no source)
    BAD:   "Backlog is severe" (no evidence)
 
 9. Return an EMPTY array [] ONLY if there is genuinely no signal in the data. Do NOT emit a proposal you cannot back with a specific observation citation. A skipped run is better than a vague suggestion.

@@ -5,6 +5,7 @@
 
 import crypto from 'crypto';
 import { createLogger } from './logger.js';
+import { buildMetricLikePattern, isSameMetricReading } from './snapshotMetrics.js';
 
 const log = createLogger('ObservationIngestion');
 
@@ -125,6 +126,48 @@ export async function isDuplicate(userId, platform, content, contentType) {
         .then(() => {})
         .catch(err => log.warn('Failed to touch existing memory on dedup hit', { error: err?.message, id }));
       return true;
+    }
+
+    // Layer 1.5: the SAME snapshot metric carrying a NEW reading — "40,381
+    // unread" today, "40,448" tomorrow. The digit-sensitive hash below treats
+    // those as unrelated, so every cycle inserted another row and nothing ever
+    // retired the older ones; the twin then quoted a months-old count as
+    // current. Skipping the write would be worse still (it would preserve the
+    // STALER value), so the prior reading is updated in place: one row per
+    // metric, always holding the newest value, dated when it was read.
+    //
+    // The embedding is intentionally left alone — successive readings of one
+    // metric differ only in digits, so the stored vector still describes the
+    // text. Proper supersession with validity windows is Phase 1
+    // (.claude/plans/2026-07-27-optmem-brain/README.md).
+    const metricPattern = buildMetricLikePattern(content);
+    if (metricPattern) {
+      const { data: priorRows } = await supabase
+        .from('user_memories')
+        .select('id, content')
+        .eq('user_id', userId)
+        .eq('memory_type', 'platform_data')
+        .like('content', metricPattern)
+        .gte('created_at', longCutoff)
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      const prior = (priorRows || []).find(r => isSameMetricReading(content, r.content));
+      if (prior) {
+        const nowIso = new Date().toISOString();
+        const { error: updateErr } = await supabase
+          .from('user_memories')
+          .update({ content, created_at: nowIso, last_accessed_at: nowIso, updated_at: nowIso })
+          .eq('id', prior.id);
+        if (updateErr) {
+          log.warn('Failed to refresh snapshot metric in place, inserting instead', {
+            error: updateErr.message, id: prior.id,
+          });
+          return false;
+        }
+        log.debug('Snapshot metric refreshed in place', { id: prior.id, platform });
+        return true;
+      }
     }
 
     // Layer 1: near-duplicate match within the type-specific short window.

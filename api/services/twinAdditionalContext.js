@@ -68,24 +68,60 @@ function formatExpertMemories({ expertMemories, expertRoutingResult }) {
   return { text: parts.length ? '\n\n' + parts.join('\n\n') : '', injected };
 }
 
-function formatReflections(reflections) {
+/**
+ * Human-readable age of a memory, or null when there is no usable timestamp.
+ *
+ * Memories used to be rendered with no date at all, under a header calling them
+ * "factual observations about this person" — so a point-in-time reading taken
+ * months ago read to the model as present tense, and it repeated the number as
+ * current. Every line now carries when it was actually observed. Returning null
+ * (rather than a guess) matters: an invented age would be worse than none.
+ *
+ * @param {string|Date} timestamp
+ * @returns {string|null}
+ */
+export function formatAge(timestamp) {
+  if (!timestamp) return null;
+  const ms = new Date(timestamp).getTime();
+  if (Number.isNaN(ms)) return null;
+
+  const diff = Date.now() - ms;
+  if (diff < 3600_000) return 'just now';
+
+  const plural = (n, unit) => `${n} ${unit}${n === 1 ? '' : 's'} ago`;
+
+  const hours = Math.floor(diff / 3600_000);
+  if (hours < 24) return plural(hours, 'hour');
+
+  const days = Math.floor(diff / 86_400_000);
+  if (days < 7) return plural(days, 'day');
+  if (days < 30) return plural(Math.floor(days / 7), 'week');
+
+  return plural(Math.floor(days / 30), 'month');
+}
+
+export function formatReflections(reflections) {
   if (!reflections.length) return '';
   return reflections.map(r => {
     const alpha = computeAlpha(r);
-    const expertLabel = r.metadata?.expertName ? `[${r.metadata.expertName}] ` : '';
+    const age = formatAge(r.created_at);
+    const labelParts = [r.metadata?.expertName, age].filter(Boolean);
+    const label = labelParts.length ? `[${labelParts.join(' · ')}] ` : '';
     const certaintyNote = alpha < ALPHA_FULL_LENGTH_THRESHOLD ? ' (less certain)' : '';
     const maxLen = alpha >= ALPHA_FULL_LENGTH_THRESHOLD ? 250 : 120;
-    return `- ${expertLabel}${r.content.substring(0, maxLen)}${certaintyNote}`;
+    return `- ${label}${r.content.substring(0, maxLen)}${certaintyNote}`;
   }).join('\n');
 }
 
-function formatObservations(observations) {
+export function formatObservations(observations) {
   if (!observations.length) return '';
   return observations.map(m => {
     const alpha = computeAlpha(m);
+    const age = formatAge(m.created_at);
+    const agePrefix = age ? `[${age}] ` : '';
     const certaintyNote = alpha < ALPHA_FULL_LENGTH_THRESHOLD ? ' (less certain)' : '';
     const maxLen = alpha >= ALPHA_FULL_LENGTH_THRESHOLD ? 200 : 100;
-    return `- ${m.content.substring(0, maxLen)}${certaintyNote}`;
+    return `- ${agePrefix}${m.content.substring(0, maxLen)}${certaintyNote}`;
   }).join('\n');
 }
 

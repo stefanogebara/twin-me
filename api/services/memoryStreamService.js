@@ -25,6 +25,7 @@ import { supabaseAdmin } from './database.js';
 import { traverseLinksForRetrieval, getCoCitationBoosts } from './memoryLinksService.js';
 import { getFeatureFlags } from './featureFlagsService.js';
 import { bm25ScoreBatch, extractKeywords } from './bm25Service.js';
+import { snapshotMetricScore } from './snapshotMetrics.js';
 
 import { createLogger } from './logger.js';
 
@@ -345,10 +346,19 @@ async function addMemory(userId, content, memoryType = 'observation', metadata =
     // Importance floors: conversations floor at 7 (same minimum as reflections) so
     // they're not crushed during min-max normalisation in SQL. Platform data floors
     // at 6 (directly observed, high confidence but lower synthesis value).
-    if (memoryType === 'platform_data' && importanceScore < 6) {
-      importanceScore = 6;
-    } else if (memoryType === 'conversation' && importanceScore < 7) {
-      importanceScore = 7;
+    //
+    // The floors apply only to scores that came from the LLM rater. A caller that
+    // passes an explicit score with skipImportance has already decided — that is
+    // how the noise clamp demotes git chatter and how snapshot readings are kept
+    // under the Tier 2 archival ceiling of 4. Flooring those back up to 6 silently
+    // disabled both mechanisms and made every such row permanent.
+    const hasExplicitImportance = options.skipImportance && Number.isFinite(options.importanceScore);
+    if (!hasExplicitImportance) {
+      if (memoryType === 'platform_data' && importanceScore < 6) {
+        importanceScore = 6;
+      } else if (memoryType === 'conversation' && importanceScore < 7) {
+        importanceScore = 7;
+      }
     }
 
     // S5.1: Proposition revision — for reflection/fact types, prefer UPDATE over INSERT
@@ -511,7 +521,12 @@ function clampNoiseObservation(content) {
   for (const { rx, score } of NOISE_OBSERVATION_PATTERNS) {
     if (rx.test(content)) return score;
   }
-  return null;
+  // Point-in-time readings of mutable state (unread counts, battery %, stress
+  // score). Without this they take the platform_data floor of 6, which sits
+  // above the <= 4 ceiling Tier 2 archival filters on — so a snapshot that was
+  // wrong within the hour stayed in the stream permanently, rendered at full
+  // length and unhedged. See snapshotMetrics.js.
+  return snapshotMetricScore(content);
 }
 
 async function addPlatformObservation(userId, content, platform, metadata = {}) {
