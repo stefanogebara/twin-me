@@ -5,14 +5,22 @@
  * memory quality over time — lower-signal memories fade, higher-signal ones
  * persist. Different tiers use different time windows and actions.
  *
- * Tier 1 — Moderate (conversation):   >90 days + importance ≤2 → archive
- * Tier 2 — Moderate (platform_data):  >30 days + importance ≤4 + retrieval_count=0 → archive
- * Tier 3 — Gentle (fact):             >90 days + importance ≤5 → decay importance by 20%
- * Tier 6 — Stale reflections:         >90 days + importance <8 + retrieval_count=0 → archive
+ * Tier 1  — Moderate (conversation):  >90 days + importance ≤2 → archive
+ * Tier 2  — Moderate (platform_data): >30 days + importance ≤4 → archive
+ * Tier 2b — Superseded (any type):    replaced by a newer reading → archive
+ * Tier 3  — Gentle (fact):            >90 days + importance ≤5 → decay importance by 20%
+ * Tier 6  — Stale reflections:        >90 days + importance <8 → archive
  *
  * Protected (NEVER touched):
  *   - importance ≥ 8 (explicitly high-value)
- *   - retrieval_count ≥ 3 (frequently accessed)
+ *
+ * Phase 1 (audit root cause 8) removed `retrieval_count = 0` from Tiers 2 and 6
+ * and `retrieval_count >= 3` from the protected list. Being retrieved is not
+ * evidence of being CORRECT — and because computeAlpha boosts a memory's
+ * prominence with each citation, the old rule was a self-reinforcing ratchet
+ * that made frequently-surfaced wrong facts permanently unremovable.
+ * Tier 3 still uses retrieval_count, deliberately: it only weakens a fact's
+ * importance rather than removing it, so the frequency signal is harmless there.
  *
  * This complements the existing daily cron-memory-archive.js (which archives
  * any type >6 months + importance ≤5 for users with >5K memories).
@@ -86,7 +94,14 @@ router.all('/', async (req, res) => {
       stats.errors.push(`tier1: ${t1Err.message}`);
     }
 
-    // ── Tier 2: Platform data > 30 days + importance ≤ 4 + retrieval_count=0 → archive ──
+    // ── Tier 2: Platform data > 30 days + importance ≤ 4 → archive ──
+    // Phase 1 (audit root cause 8): the `retrieval_count = 0` precondition used
+    // to sit here, which made a single retrieval confer PERMANENT immunity.
+    // Combined with the citation boost in computeAlpha — which renders a memory
+    // more prominently each time it is recalled — that was a self-reinforcing
+    // ratchet: the more often a wrong fact surfaced, the more unremovable and
+    // more prominent it became. Being retrieved must not make a fact immortal;
+    // low importance plus age is the signal that matters.
     try {
       const tier2Cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
@@ -96,7 +111,6 @@ router.all('/', async (req, res) => {
         .eq('memory_type', 'platform_data')
         .lt('created_at', tier2Cutoff)
         .lte('importance_score', 4)
-        .eq('retrieval_count', 0)   // never retrieved — truly unused
         .limit(BATCH_SIZE);
 
       if (tier2Rows && tier2Rows.length > 0) {
@@ -117,6 +131,58 @@ router.all('/', async (req, res) => {
     } catch (t2Err) {
       log.warn('Tier 2 error', { error: t2Err.message });
       stats.errors.push(`tier2: ${t2Err.message}`);
+    }
+
+    // ── Tier 2b: Superseded memories → archive ──
+    // Phase 1: supersession is the PRIMARY reclamation path, and it sidesteps
+    // the catch-22 entirely. A superseded row is not merely low-value, it has
+    // been REPLACED by a newer reading — so neither the platform_data
+    // importance floor of 6 nor its retrieval history should protect it.
+    // Retrieval already hides these (search_memory_stream filters
+    // superseded_by), but they remain visible to every direct .from(
+    // 'user_memories') select — the reflection engine, saliency replay and
+    // wiki evidence gathering among them. Archiving is what actually removes
+    // them from the laundering paths.
+    //
+    // The grace period is a safety valve, not a quality signal: it leaves a
+    // window to inspect or recover a wrongly-superseded row before the
+    // archive+delete is applied.
+    const SUPERSEDED_GRACE_DAYS = 7;
+    stats.tier2bSupersededArchived = 0;
+    try {
+      const supersededCutoff = new Date(
+        Date.now() - SUPERSEDED_GRACE_DAYS * 24 * 60 * 60 * 1000
+      ).toISOString();
+
+      const { data: supersededRows } = await supabaseAdmin
+        .from('user_memories')
+        .select('id, user_id, content, memory_type, metadata, importance_score, created_at, last_accessed_at')
+        .not('superseded_by', 'is', null)
+        .lt('superseded_at', supersededCutoff)
+        .limit(BATCH_SIZE);
+
+      if (supersededRows && supersededRows.length > 0) {
+        const { error: insertErr } = await supabaseAdmin
+          .from('user_memories_archive')
+          .insert(supersededRows.map(r => ({
+            ...r,
+            archived_at: new Date().toISOString(),
+            archive_reason: 'tier2b_superseded',
+          })));
+
+        if (!insertErr) {
+          const ids = supersededRows.map(r => r.id);
+          await supabaseAdmin.from('user_memories').delete().in('id', ids);
+          stats.tier2bSupersededArchived = supersededRows.length;
+          log.info('Tier 2b archived superseded memories', { count: supersededRows.length });
+        } else {
+          log.warn('Tier 2b archive insert failed', { error: insertErr.message });
+          stats.errors.push(`tier2b: ${insertErr.message}`);
+        }
+      }
+    } catch (t2bErr) {
+      log.warn('Tier 2b error', { error: t2bErr.message });
+      stats.errors.push(`tier2b: ${t2bErr.message}`);
     }
 
     // ── Tier 3: Fact memories > 90 days + importance ≤ 5 → decay importance by 20% ──
@@ -274,8 +340,10 @@ router.all('/', async (req, res) => {
     }
 
     // ── Tier 6: Stale reflection archival ──
-    // Reflections >90 days old, never retrieved, importance <8 → archive
-    // This prevents immortal low-value reflections from dominating the memory stream
+    // Reflections >90 days old, importance <8 → archive.
+    // This prevents immortal low-value reflections from dominating the memory
+    // stream. `retrieval_count = 0` was dropped here for the same reason as
+    // Tier 2 (audit root cause 8) — retrieval must not confer immortality.
     stats.tier6ReflectionsArchived = 0;
     try {
       const tier6Cutoff = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
@@ -285,7 +353,6 @@ router.all('/', async (req, res) => {
         .eq('memory_type', 'reflection')
         .lt('created_at', tier6Cutoff)
         .lt('importance_score', 8)
-        .eq('retrieval_count', 0)
         .limit(BATCH_SIZE);
 
       if (tier6Rows?.length > 0) {

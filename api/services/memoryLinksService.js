@@ -311,7 +311,14 @@ export async function traverseLinksForRetrieval(userId, seedIds, existingIdSet, 
     const { data: memories, error: memErr } = await supabaseAdmin
       .from('user_memories')
       .select('id, content, memory_type, importance_score, metadata, created_at, last_accessed_at')
-      .in('id', targetIds);
+      .in('id', targetIds)
+      // Phase 1: graph traversal fetches rows by id and therefore BYPASSES the
+      // supersession filter in search_memory_stream. Without this, a retired
+      // reading could still be injected into context via an associative link —
+      // and, being in the result set, would then get its last_accessed_at
+      // refreshed by touch_memories. Retired means retired on every path.
+      // superseded_at, not superseded_by — see migration 20260728151001.
+      .is('superseded_at', null);
 
     if (memErr || !memories?.length) return [];
 
