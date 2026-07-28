@@ -1,0 +1,47 @@
+-- ============================================================================
+-- Measurement note: the embedding::TEXT cast is NOT the retrieval bottleneck
+-- Date: 2026-07-28
+--
+-- NO SCHEMA CHANGE. This file records a measurement so the next person does not
+-- redo the work. search_memory_stream is left exactly as 20260728e defines it.
+--
+-- A review finding proposed deferring `embedding::TEXT` from the 150-row
+-- candidates CTE to the 30-row result, citing "150 rows with embedding ->
+-- 3,184ms". The change was implemented and measured, and the premise does not
+-- hold. EXPLAIN ANALYZE on the live table, same data, only cast placement
+-- varying:
+--
+--   cast inside the candidates CTE (150 rows)   Execution Time: 13.39 ms
+--   cast in the outer SELECT                    Execution Time: 13.01 ms
+--   cast above an extra query level             Execution Time: 15.63 ms
+--
+-- Postgres materialises the projected column before the Sort in every shape, so
+-- all 150 candidates are cast regardless of where the cast is written. Client
+-- timings agreed: 867-1479 ms before and after, indistinguishable through the
+-- noise, identical 0.59 MB payload.
+--
+-- WHERE THE TIME ACTUALLY GOES
+--
+--   Index Scan using idx_user_memories_embedding on user_memories m
+--     Order By: (embedding <=> $1)
+--     Filter:   (user_id = '...')
+--     (actual time=930.719..1048.624 rows=40)
+--
+-- 1,048 ms to yield 40 rows — ~99% of the query. idx_user_memories_embedding is
+-- a single global HNSW index over every user's vectors, and user_id is applied
+-- as a post-filter rather than an index condition, so a per-user search walks a
+-- large portion of the graph discarding other users' rows. Note it returned 40
+-- rows for a LIMIT 150: the scan exhausted its search effort before filling the
+-- request.
+--
+-- The real optimisation is therefore per-user vector search — a partitioned
+-- index, a composite approach, or raising hnsw.ef_search with a narrower
+-- candidate strategy — not cast placement. That is a design change with its own
+-- risk (see 20260728b for what happens when this query's plan is disturbed) and
+-- is deliberately NOT attempted here.
+--
+-- Do not re-open the cast question without re-running the numbers above.
+-- ============================================================================
+
+-- Intentionally empty: documentation only.
+SELECT 1;
