@@ -50,6 +50,19 @@ const SNAPSHOT_METRIC_PATTERNS = [
 
   // Momentary media state.
   /^Music mood right now:/i,
+
+  // Rolling-window aggregates. Recomputed every cycle over "this week" / "the
+  // last 30 days" / "2026", so an old copy describes a window that has moved on.
+  // Distinct from an event that merely quotes numbers: "Slept 7.1 hours" is a
+  // specific night that stays true and must NOT be demoted.
+  /^Your GitHub \d{4} activity:/i,
+  /^Committed code on \d+ days in the last \d+ days/i,
+  /^Receives email from [\d,]+ distinct senders/i,
+  /^Most frequent email senders this week:/i,
+  /^Your email mix this week:/i,
+  /^YouTube subscription topics:/i,
+  /^YouTube subscription tenure:/i,
+  /^Outlook inbox contains approximately/i,
 ];
 
 /**

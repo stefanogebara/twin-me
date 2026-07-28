@@ -40,11 +40,32 @@ describe('isSnapshotMetric — point-in-time readings of mutable state', () => {
     expect(isSnapshotMetric(content)).toBe(true);
   });
 
+  // Rolling-window aggregates observed in production. Each is recomputed every
+  // cycle and describes current state, so an old copy is misleading.
+  it.each([
+    'Your GitHub 2026 activity: 6132 contributions — 5903 commits, 207 PRs, 0 reviews',
+    'Receives email from 24 distinct senders/organizations in the past month',
+    'Most frequent email senders this week: github.com (3), linkedin.com (2)',
+    'Your email mix this week: dev 50%, work 25%, newsletter 15% — reveals attention',
+    'YouTube subscription topics: Sport (13), Association football (12)',
+    'YouTube subscription tenure: average 66 months, oldest 113 months',
+    'Outlook inbox contains approximately 2,987 messages (large inbox)',
+    'Committed code on 10 days in the last 30 days on GitHub',
+  ])('classifies rolling aggregate as snapshot: %s', (content) => {
+    expect(isSnapshotMetric(content)).toBe(true);
+  });
+
   it.each([
     // Transitions/events — these are what we WANT the memory stream to keep.
     'Inbox grew by 12 unread emails since yesterday',
     'Cleared 300 unread emails from the inbox over the past 3 days',
     'Practices inbox zero — 0 unread emails in inbox',
+    // A specific night's sleep happened and stays true; it is an event, not a
+    // reading of current state, even though it quotes numbers and carries no
+    // date of its own (the prompt renderer supplies the age).
+    'Slept 7.1 hours (moderate sleep) — sleep performance 72%',
+    'Sleep details: respiratory rate 17 breaths/min, 5 disturbances, consistency 40%',
+    'Extended listening session (4 tracks recently)',
     // Durable traits and genuine events must never be demoted.
     'Prefers morning meetings and blocks focus time before 10am',
     'Shipped the payments refactor after three weeks of work',

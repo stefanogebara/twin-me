@@ -5,7 +5,7 @@
 
 import crypto from 'crypto';
 import { createLogger } from './logger.js';
-import { buildMetricLikePattern, isSameMetricReading } from './snapshotMetrics.js';
+import { buildMetricLikePattern, isSameMetricReading, isSnapshotMetric } from './snapshotMetrics.js';
 
 const log = createLogger('ObservationIngestion');
 
@@ -116,15 +116,22 @@ export async function isDuplicate(userId, platform, content, contentType) {
       .limit(1);
 
     if (exactRows && exactRows.length > 0) {
-      // Touch last_accessed_at so retrieval recency reflects "we still see
-      // this fact today" without bloating the table with another row.
+      // Touch last_accessed_at so retrieval recency reflects "we still see this
+      // fact today" without bloating the table with another row.
+      //
+      // Not for snapshot readings, though. For those, identical text only means
+      // the counter happened to land on the same value again; treating that as
+      // a freshness signal is what kept a stale reading permanently warm. The
+      // metric's current value is maintained by the in-place refresh below.
       const id = exactRows[0].id;
-      supabase
-        .from('user_memories')
-        .update({ last_accessed_at: new Date().toISOString() })
-        .eq('id', id)
-        .then(() => {})
-        .catch(err => log.warn('Failed to touch existing memory on dedup hit', { error: err?.message, id }));
+      if (!isSnapshotMetric(content)) {
+        supabase
+          .from('user_memories')
+          .update({ last_accessed_at: new Date().toISOString() })
+          .eq('id', id)
+          .then(() => {})
+          .catch(err => log.warn('Failed to touch existing memory on dedup hit', { error: err?.message, id }));
+      }
       return true;
     }
 

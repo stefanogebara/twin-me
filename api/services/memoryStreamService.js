@@ -194,6 +194,72 @@ const GUM_LOWER_BAND = 0.75;
 const GUM_UPPER_BAND = 0.90; // exclusive (>= 0.90 is handled by maybeReviseExistingMemory)
 const GUM_CONFIRM_DELTA = 0.10;
 const GUM_CONTRADICT_DELTA = -0.15;
+
+/**
+ * Confidence at or below which a repeatedly-contradicted memory is retired
+ * rather than left to linger at low confidence forever.
+ *
+ * Deliberately not a single-contradiction trigger: memories enter at 0.70-0.90
+ * and each contradiction costs 0.15, so this takes three or four independent
+ * contradictions to reach. One disagreement should weaken a belief; a sustained
+ * pattern of them should end it.
+ */
+const SUPERSEDE_CONFIDENCE_FLOOR = 0.25;
+
+/**
+ * True when a contradiction should retire the existing memory outright.
+ * Pure, so the threshold behaviour is testable without a database.
+ *
+ * @param {number} currentConfidence
+ * @param {number} delta - signed confidence change being applied
+ * @returns {boolean}
+ */
+function shouldSupersedeOnContradiction(currentConfidence, delta) {
+  if (delta >= 0) return false;
+  const next = Math.min(0.95, Math.max(0.10, (currentConfidence ?? 0.7) + delta));
+  return next <= SUPERSEDE_CONFIDENCE_FLOOR;
+}
+
+/**
+ * Retire `oldId`, recording that `newId` replaced it.
+ *
+ * Append-only invalidation: the row is kept and stays queryable for "how have I
+ * changed" questions, but drops out of ordinary retrieval and stops having its
+ * recency refreshed. Nothing is deleted.
+ *
+ * @param {string} oldId
+ * @param {string} newId - the memory that replaces it
+ * @param {string} [reason] - recorded for audit
+ * @returns {Promise<boolean>} whether a row was retired
+ */
+async function supersedeMemory(oldId, newId, reason = 'contradicted') {
+  // A memory superseding itself would vanish from retrieval permanently with no
+  // replacement, so treat it as a bug rather than a no-op.
+  if (!oldId || !newId || oldId === newId) {
+    log.warn('Refusing invalid supersession', { oldId, newId });
+    return false;
+  }
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('user_memories')
+      .update({ superseded_by: newId, superseded_at: new Date().toISOString() })
+      .eq('id', oldId)
+      .is('superseded_by', null)   // idempotent: never re-point an existing chain
+      .select('id');
+    if (error) {
+      log.warn('Supersede failed', { error: error.message, oldId });
+      return false;
+    }
+    if (data?.length) {
+      log.info('Memory superseded', { oldId, newId, reason });
+      return true;
+    }
+    return false;
+  } catch (err) {
+    log.warn('Supersede threw (non-fatal)', { error: err?.message, oldId });
+    return false;
+  }
+}
 const GUM_MAX_LLM_CALLS = 3; // cap LLM calls per write to control cost
 
 const GUM_CLASSIFY_PROMPT = `You are a fact-checker comparing two statements about the same person.
@@ -204,7 +270,7 @@ Statement B (new observation): "{new}"
 Does Statement B CONFIRM, CONTRADICT, or is it UNRELATED to Statement A?
 Reply with exactly one word: CONFIRMS, CONTRADICTS, or UNRELATED.`;
 
-async function applyGumBayesianRevision(userId, newContent, newEmbedding, memoryType) {
+async function applyGumBayesianRevision(userId, newContent, newEmbedding, memoryType, newMemoryId = null) {
   if (!newEmbedding) return;
   // Only run on types where contradictions are meaningful
   if (!REVISION_TYPES.has(memoryType)) return;
@@ -256,7 +322,14 @@ async function applyGumBayesianRevision(userId, newContent, newEmbedding, memory
 
         const currentConf = row.confidence ?? 0.7;
         const newConf = Math.min(0.95, Math.max(0.10, currentConf + delta));
-        updates.push({ id: row.id, confidence: newConf, verdict });
+        updates.push({
+          id: row.id,
+          confidence: newConf,
+          verdict,
+          // A belief contradicted until its confidence collapses should be
+          // retired, not left hovering at 0.10 where it still surfaces.
+          supersede: Boolean(newMemoryId) && shouldSupersedeOnContradiction(currentConf, delta),
+        });
       } catch {
         // Non-fatal — skip this candidate
       }
@@ -276,6 +349,11 @@ async function applyGumBayesianRevision(userId, newContent, newEmbedding, memory
       // reduce confidence of downstream reflections that cite it via grounding_ids
       if (u.verdict === 'CONTRADICTS') {
         cascadeContradiction(u.id).catch(() => {});
+        // Confidence has collapsed after repeated contradictions — retire it in
+        // favour of the memory that contradicted it.
+        if (u.supersede) {
+          supersedeMemory(u.id, newMemoryId, 'gum_contradiction').catch(() => {});
+        }
       }
     }
   } catch (err) {
@@ -368,12 +446,6 @@ async function addMemory(userId, content, memoryType = 'observation', metadata =
       if (revised) return revised; // Return existing memory ID — no new insert
     }
 
-    // GUM Task 1: Bayesian contradiction detection — fire-and-forget, does not block INSERT
-    // Updates confidence of related memories in the 0.75–0.90 cosine band
-    if (embedding && !options.skipRevision) {
-      applyGumBayesianRevision(userId, content, embedding, memoryType).catch(() => {});
-    }
-
     const record = {
       user_id: userId,
       memory_type: memoryType,
@@ -410,6 +482,13 @@ async function addMemory(userId, content, memoryType = 'observation', metadata =
     if (error) {
       log.error('Failed to store memory', { error });
       return null;
+    }
+
+    // GUM Task 1: Bayesian contradiction detection — fire-and-forget, never
+    // blocks the caller. Runs AFTER the insert because supersession has to point
+    // the retired memory at the row that replaced it, which needs its id.
+    if (embedding && !options.skipRevision) {
+      applyGumBayesianRevision(userId, content, embedding, memoryType, data.id).catch(() => {});
     }
 
     log.info('Stored memory', { memoryType, importance: importanceScore, hasEmbedding: !!embedding, userId });
@@ -1904,4 +1983,7 @@ export {
   decaySourceMemories,
   RETRIEVAL_WEIGHTS,
   clampNoiseObservation,
+  supersedeMemory,
+  shouldSupersedeOnContradiction,
+  SUPERSEDE_CONFIDENCE_FLOOR,
 };

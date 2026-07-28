@@ -21,6 +21,7 @@
 
 import { supabaseAdmin } from './database.js';
 import { shouldTriggerReflection, generateReflections } from './reflectionEngine.js';
+import { isSnapshotMetric } from './snapshotMetrics.js';
 import { createLogger } from './logger.js';
 
 const log = createLogger('SaliencyReplay');
@@ -111,18 +112,26 @@ export async function runSaliencyReplay(options = {}) {
  */
 async function replayForUser(userId, memoriesPerUser, staleCutoff, stats) {
   // Step B: Fetch top stale memories ordered by importance DESC, staleness ASC
-  const { data: staleMemories, error: fetchErr } = await supabaseAdmin
+  const { data: rawStale, error: fetchErr } = await supabaseAdmin
     .from('user_memories')
     .select('id, content, memory_type, importance_score, last_accessed_at')
     .eq('user_id', userId)
     .in('memory_type', ELIGIBLE_TYPES)
     .gte('importance_score', MIN_IMPORTANCE)
     .lt('last_accessed_at', staleCutoff)
+    .is('superseded_by', null)      // never revive a memory that has been retired
     .order('importance_score', { ascending: false })
     .order('last_accessed_at', { ascending: true })
     .limit(memoriesPerUser);
 
-  if (fetchErr || !staleMemories?.length) return;
+  if (fetchErr || !rawStale?.length) return;
+
+  // Replay is meant to reconsolidate durable memories — a point-in-time reading
+  // is exactly what should be allowed to go cold. Left in, this job refreshed
+  // stale snapshots every 14 days by design, which is one of the reasons an old
+  // inbox count never died.
+  const staleMemories = rawStale.filter(m => !isSnapshotMetric(m.content));
+  if (!staleMemories.length) return;
 
   const memoryIds = staleMemories.map(m => m.id);
 

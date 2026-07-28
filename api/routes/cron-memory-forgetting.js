@@ -6,9 +6,9 @@
  * persist. Different tiers use different time windows and actions.
  *
  * Tier 1 — Moderate (conversation):   >90 days + importance ≤2 → archive
- * Tier 2 — Moderate (platform_data):  >30 days + importance ≤4 + retrieval_count=0 → archive
+ * Tier 2 — Moderate (platform_data):  >30 days + importance ≤4 + retrieval_count<3 → archive
  * Tier 3 — Gentle (fact):             >90 days + importance ≤5 → decay importance by 20%
- * Tier 6 — Stale reflections:         >90 days + importance <8 + retrieval_count=0 → archive
+ * Tier 6 — Stale reflections:         >90 days + importance <8 + retrieval_count<3 → archive
  *
  * Protected (NEVER touched):
  *   - importance ≥ 8 (explicitly high-value)
@@ -96,7 +96,12 @@ router.all('/', async (req, res) => {
         .eq('memory_type', 'platform_data')
         .lt('created_at', tier2Cutoff)
         .lte('importance_score', 4)
-        .eq('retrieval_count', 0)   // never retrieved — truly unused
+        // Was retrieval_count = 0, i.e. "never retrieved even once" — stricter
+        // than this file's own stated protection bar of >= 3, and a ratchet:
+        // a single retrieval granted permanent immunity, so a stale-but-salient
+        // memory was protected precisely BECAUSE it kept surfacing. Aligned with
+        // the documented policy.
+        .lt('retrieval_count', 3)
         .limit(BATCH_SIZE);
 
       if (tier2Rows && tier2Rows.length > 0) {
@@ -285,7 +290,7 @@ router.all('/', async (req, res) => {
         .eq('memory_type', 'reflection')
         .lt('created_at', tier6Cutoff)
         .lt('importance_score', 8)
-        .eq('retrieval_count', 0)
+        .lt('retrieval_count', 3)   // was = 0; see Tier 2 note on the ratchet
         .limit(BATCH_SIZE);
 
       if (tier6Rows?.length > 0) {
