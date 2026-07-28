@@ -97,6 +97,75 @@ describe('buildUnreadDeltaObservation', () => {
   });
 });
 
+/**
+ * Time-window labelling (optmem-brain audit, Phase 0 item 1).
+ *
+ * `snapshot_at` is rewritten by gmail.js on EVERY ingestion run and the cron is
+ * every 30 minutes (vercel.json), so the real elapsed window between two
+ * readings is normally 30 minutes — never a day. The original `Math.max(1, Math.round(
+ * elapsed / DAY_MS))` floored that to 1 day and labelled it "since yesterday",
+ * overstating the window by ~48x. These observations land in the memory stream
+ * and get quoted by the twin as fact, so the marker must never claim time that
+ * did not elapse.
+ */
+describe('buildUnreadDeltaObservation — elapsed-window labelling', () => {
+  const atOffset = (ms) => ({
+    inbox_unread: 100,
+    snapshot_at: new Date(NOW.getTime() - ms).toISOString(),
+  });
+  const MIN = 60 * 1000;
+  const HOUR = 60 * MIN;
+  const DAY = 24 * HOUR;
+
+  it('a 30-minute cron window is NOT labelled "since yesterday"', () => {
+    const result = buildUnreadDeltaObservation(103, atOffset(30 * MIN), NOW);
+    expect(result.kind).toBe('delta');
+    expect(result.observation.content).not.toContain('yesterday');
+    expect(result.observation.content).not.toContain('day');
+    expect(result.observation.content).toBe('Inbox grew by 3 unread emails in the last 30 minutes');
+  });
+
+  it('sub-hour windows report minutes, never days', () => {
+    expect(buildUnreadDeltaObservation(101, atOffset(MIN), NOW).observation.content)
+      .toBe('Inbox grew by 1 unread email in the last 1 minute');
+    expect(buildUnreadDeltaObservation(95, atOffset(45 * MIN), NOW).observation.content)
+      .toBe('Cleared 5 unread emails from the inbox in the last 45 minutes');
+  });
+
+  it('sub-day windows report hours, never days', () => {
+    expect(buildUnreadDeltaObservation(112, atOffset(HOUR), NOW).observation.content)
+      .toBe('Inbox grew by 12 unread emails in the last 1 hour');
+    expect(buildUnreadDeltaObservation(112, atOffset(6 * HOUR), NOW).observation.content)
+      .toBe('Inbox grew by 12 unread emails in the last 6 hours');
+    // 23h59m is still not a day.
+    expect(buildUnreadDeltaObservation(112, atOffset(DAY - MIN), NOW).observation.content)
+      .toBe('Inbox grew by 12 unread emails in the last 23 hours');
+  });
+
+  it('"since yesterday" is reserved for windows that actually spanned 24-48h', () => {
+    expect(buildUnreadDeltaObservation(112, atOffset(DAY), NOW).observation.content)
+      .toBe('Inbox grew by 12 unread emails since yesterday');
+    expect(buildUnreadDeltaObservation(112, atOffset(2 * DAY - HOUR), NOW).observation.content)
+      .toBe('Inbox grew by 12 unread emails since yesterday');
+  });
+
+  it('multi-day windows never round a partial day up into a day that did not elapse', () => {
+    expect(buildUnreadDeltaObservation(112, atOffset(2 * DAY), NOW).observation.content)
+      .toBe('Inbox grew by 12 unread emails over the past 2 days');
+    // 4 days + 20h is four elapsed days, not five.
+    expect(buildUnreadDeltaObservation(112, atOffset(4 * DAY + 20 * HOUR), NOW).observation.content)
+      .toBe('Inbox grew by 12 unread emails over the past 4 days');
+  });
+
+  it('a future/skewed snapshot emits no time marker rather than a fabricated one', () => {
+    const skewed = { inbox_unread: 100, snapshot_at: new Date(NOW.getTime() + HOUR).toISOString() };
+    expect(buildUnreadDeltaObservation(112, skewed, NOW).observation.content)
+      .toBe('Inbox grew by 12 unread emails');
+    expect(buildUnreadDeltaObservation(88, skewed, NOW).observation.content)
+      .toBe('Cleared 12 unread emails from the inbox');
+  });
+});
+
 describe('nextGmailCounters', () => {
   const prev = {
     inbox_unread: 40443,

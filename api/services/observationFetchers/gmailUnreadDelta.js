@@ -11,8 +11,40 @@
  * unit-testable. Persistence of the counters lives in gmail.js.
  */
 
-const DAY_MS = 24 * 60 * 60 * 1000;
+const MINUTE_MS = 60 * 1000;
+const HOUR_MS = 60 * MINUTE_MS;
+const DAY_MS = 24 * HOUR_MS;
 const WEEK_MS = 7 * DAY_MS;
+
+/**
+ * Describe the window between two counter readings, in the coarsest unit that
+ * actually elapsed.
+ *
+ * These observations land in the memory stream and get quoted back by the twin
+ * as fact, so the marker must never claim more time than passed. The previous
+ * implementation floored the window to `Math.max(1, Math.round(elapsed /
+ * DAY_MS))` days — but gmail.js rewrites `snapshot_at` on EVERY ingestion run
+ * and the cron fires every 30 minutes, so the real window is normally half an
+ * hour and was being labelled "since yesterday", overstating it ~48x.
+ *
+ * Every unit truncates (never rounds up) for the same reason. Returns '' when
+ * the window is unusable (clock skew / future snapshot), in which case the
+ * caller emits the delta with no time marker at all — silence beats a
+ * fabricated one.
+ */
+function formatElapsedWindow(elapsedMs) {
+  if (!Number.isFinite(elapsedMs) || elapsedMs < 0) return '';
+  if (elapsedMs < HOUR_MS) {
+    const minutes = Math.max(1, Math.floor(elapsedMs / MINUTE_MS));
+    return `in the last ${minutes} minute${minutes === 1 ? '' : 's'}`;
+  }
+  if (elapsedMs < DAY_MS) {
+    const hours = Math.floor(elapsedMs / HOUR_MS);
+    return `in the last ${hours} hour${hours === 1 ? '' : 's'}`;
+  }
+  const days = Math.floor(elapsedMs / DAY_MS);
+  return days === 1 ? 'since yesterday' : `over the past ${days} days`;
+}
 
 /**
  * Lifetime totals (mailbox size, read-percentage) may be mentioned at most
@@ -63,11 +95,13 @@ function buildUnreadDeltaObservation(inboxUnread, previous, now = new Date()) {
   // Unchanged count is not an observation — it fails the "so what" bar.
   if (delta === 0) return null;
 
-  const days = Math.max(1, Math.round((now.getTime() - prevAt) / DAY_MS));
-  const since = days <= 1 ? 'since yesterday' : `over the past ${days} days`;
+  // `prevAt` is the previous READING's timestamp (nextGmailCounters stamps it
+  // only when a reading actually succeeded), so this is the true window.
+  const since = formatElapsedWindow(now.getTime() - prevAt);
+  const suffix = since ? ` ${since}` : '';
   const content = delta > 0
-    ? `Inbox grew by ${delta} unread email${delta === 1 ? '' : 's'} ${since}`
-    : `Cleared ${-delta} unread email${delta === -1 ? '' : 's'} from the inbox ${since}`;
+    ? `Inbox grew by ${delta} unread email${delta === 1 ? '' : 's'}${suffix}`
+    : `Cleared ${-delta} unread email${delta === -1 ? '' : 's'} from the inbox${suffix}`;
   return {
     observation: { content, contentType: 'daily_summary' },
     kind: 'delta',
