@@ -139,7 +139,7 @@ router.all('/', async (req, res) => {
     // been REPLACED by a newer reading — so neither the platform_data
     // importance floor of 6 nor its retrieval history should protect it.
     // Retrieval already hides these (search_memory_stream filters
-    // superseded_by), but they remain visible to every direct .from(
+    // superseded_at), but they remain visible to every direct .from(
     // 'user_memories') select — the reflection engine, saliency replay and
     // wiki evidence gathering among them. Archiving is what actually removes
     // them from the laundering paths.
@@ -157,7 +157,12 @@ router.all('/', async (req, res) => {
       const { data: supersededRows } = await supabaseAdmin
         .from('user_memories')
         .select('id, user_id, content, memory_type, metadata, importance_score, created_at, last_accessed_at')
-        .not('superseded_by', 'is', null)
+        // Keyed on superseded_at, NOT superseded_by: that column is
+        // ON DELETE SET NULL, so archiving a replacement row NULLs the pointer
+        // on everything it retired. Selecting by superseded_by would make this
+        // cron orphan rows it can then never see again — and Tier 2b's own
+        // delete is what removes replacements, so it would feed itself.
+        .not('superseded_at', 'is', null)
         .lt('superseded_at', supersededCutoff)
         .limit(BATCH_SIZE);
 
