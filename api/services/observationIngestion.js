@@ -24,12 +24,15 @@ import { shouldTriggerReflection, generateReflections } from './reflectionEngine
 import { runPlatformExpert } from './platformExperts.js';
 import { generateProactiveInsights, evaluateNudgeOutcomes } from './proactiveInsights.js';
 import { trackGoalProgress, generateGoalSuggestions } from './goalTrackingService.js';
-import { generateTwinSummary } from './twinSummaryService.js';
 import { seedMemoriesFromEnrichment } from './enrichmentMemoryBridge.js';
 import { checkConditionTriggered } from './prospectiveMemoryService.js';
 import { tagSensitivity } from './sensitivityClassifier.js';
 import { calculateAllActivityMetrics, detectActivityAnomaly } from './activityMetricsService.js';
 
+import { buildPendingNodes } from './memoryTimelineService.js';
+import { getFeatureFlags } from './featureFlagsService.js';
+import { complete, TIER_ANALYSIS } from './llmGateway.js';
+import { supabaseAdmin } from './database.js';
 import { createLogger } from './logger.js';
 import { logExtractionRun, INGESTION_SOURCE } from './extractionTelemetry.js';
 import {
@@ -684,6 +687,21 @@ async function runObservationIngestion(options = {}) {
             }
           } catch (reflErr) {
             log.warn('Reflection check failed', { userId, error: reflErr });
+          }
+
+          // Keep the temporal spine warm. AWAITED, not chained on a timer: this
+          // file already learned that setTimeout does not survive Vercel (the
+          // parent returns before it fires, which left every wiki page 11-34
+          // days stale). Bounded to 2 nodes, and today's leaf is throttled to
+          // one rebuild per 6h, so a */15 cron does not pay per cycle.
+          try {
+            const flags = await getFeatureFlags(userId).catch(() => ({}));
+            if (flags?.temporal_spine) {
+              const r = await buildPendingNodes(userId, { supabase: supabaseAdmin, complete, tier: TIER_ANALYSIS }, { maxNodes: 2 });
+              if (r.built > 0) log.info('Timeline spine updated', { userId, built: r.built });
+            }
+          } catch (spineErr) {
+            log.warn('Timeline spine build failed (non-fatal)', { userId, error: spineErr?.message });
           }
 
           // After reflection trigger, also generate proactive insights

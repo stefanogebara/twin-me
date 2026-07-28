@@ -20,6 +20,8 @@ import { getTopPatterns } from './twinPatternService.js';
 import { inferIdentityContext } from './identityContextService.js';
 import { getPendingProposals } from './departmentService.js';
 import { getRelevantWikiPages } from './wikiCompilationService.js';
+import { renderSpine } from './memoryTimelineService.js';
+import { getFeatureFlags } from './featureFlagsService.js';
 import { getActiveDirectives } from './twinSelfImprovement.js';
 import axios from 'axios';
 // Whoop analytics — run on-demand when the user's message asks an
@@ -445,6 +447,21 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
       return [];
     })),
 
+    // Temporal spine: a constant-sized, time-selected timeline. Deliberately NOT
+    // a vector search — that is the point. Retrieval picks candidates by embedding
+    // distance, so recent-but-not-semantically-near memories are unreachable
+    // (Phase 2 measured "what have I been doing this week?" returning nothing
+    // younger than 49 days). The spine is selected purely by time, so the recent
+    // window is present whatever the question. Feature-flagged; a read of one
+    // small indexed table.
+    timed('timelineSpine', (async () => {
+      const flags = await getFeatureFlags(userId).catch(() => ({}));
+      if (!flags?.temporal_spine) return null;
+      return renderSpine(userId, { supabase: supabaseAdmin })
+        .then(r => r.text || null)
+        .catch(err => { log.warn('Timeline spine fetch failed:', err.message); return null; });
+    })()),
+
     // Self-improving twin: directives learned from past user corrections
     // (pi-reflect pattern, askjo.ai-inspired). Injected into the system
     // prompt as sticky-note rules. Hot path — single indexed read.
@@ -529,6 +546,7 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
     nudgeHistory,
     departmentProposals,
     wikiPages,
+    timelineSpine,
     directives,
   ] = contextResults;
 
@@ -865,6 +883,7 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
 
   return {
     soulSignature,
+    timelineSpine,
     platformData: returnedPlatformData,
     whoopAnalytics,
     writingProfile,

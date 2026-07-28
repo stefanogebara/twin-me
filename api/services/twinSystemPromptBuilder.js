@@ -278,7 +278,7 @@ When the user asks for a "morning briefing", "what's my day look like", or simil
  * Build a personalized system prompt based on user's soul signature, platform data, and memory.
  * Returns an array format for Anthropic prompt caching - static base is cached, dynamic context is not.
  */
-export function buildTwinSystemPrompt(soulSignature, platformData, twinSummary = null, proactiveInsights = null, userLocation = null, coreMemoryBlockText = null, departmentProposals = null, wikiPages = null, directives = null) {
+export function buildTwinSystemPrompt(soulSignature, platformData, twinSummary = null, proactiveInsights = null, userLocation = null, coreMemoryBlockText = null, departmentProposals = null, wikiPages = null, directives = null, timelineSpine = null) {
   let dynamicContext = '';
 
   // === CORE IDENTITY (pinned blocks — highest attention weight) ===
@@ -361,6 +361,17 @@ export function buildTwinSystemPrompt(soulSignature, platformData, twinSummary =
   }
 
   dynamicContext += `\n${temporalLine}`;
+
+  // === TEMPORAL SPINE (time-selected timeline) ===
+  // Placed before the knowledge base so the model reads WHEN things happened
+  // before it reads WHAT is known. Every line is dated, which is the structural
+  // defence against the original failure: a summary of March cannot be read as
+  // present tense when its own line says "5 months ago".
+  if (timelineSpine) {
+    dynamicContext += `
+
+${timelineSpine}`;
+  }
 
   // === COMPILED KNOWLEDGE BASE (LLM Wiki — pre-compiled, cross-referenced domain pages) ===
   // When wiki pages are available, they subsume the twin summary with richer structured context.
