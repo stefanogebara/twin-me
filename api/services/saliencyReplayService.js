@@ -64,6 +64,12 @@ export async function runSaliencyReplay(options = {}) {
       .in('memory_type', ELIGIBLE_TYPES)
       .gte('importance_score', MIN_IMPORTANCE)
       .lt('last_accessed_at', staleCutoff)
+      // Phase 1: never replay a retired reading. This job's eligibility filter
+      // (importance >= 7, stale, platform_data) is EXACTLY the profile of the
+      // stale-snapshot rows — it refreshes last_accessed_at and re-runs the
+      // reflection engine over them, re-laundering the same wrong number into
+      // fresh high-importance reflections every 14 days.
+      .is('superseded_by', null)
       .limit(200);
 
     if (findErr) {
@@ -118,6 +124,7 @@ async function replayForUser(userId, memoriesPerUser, staleCutoff, stats) {
     .in('memory_type', ELIGIBLE_TYPES)
     .gte('importance_score', MIN_IMPORTANCE)
     .lt('last_accessed_at', staleCutoff)
+    .is('superseded_by', null)   // Phase 1: retired readings are not replayed
     .order('importance_score', { ascending: false })
     .order('last_accessed_at', { ascending: true })
     .limit(memoriesPerUser);

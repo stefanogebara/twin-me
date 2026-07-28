@@ -148,6 +148,11 @@ export async function isDuplicate(userId, platform, content, contentType) {
       .eq('memory_type', 'platform_data')
       .eq('content', content)
       .gte('created_at', longCutoff)
+      // Phase 1: a superseded row must not count as a duplicate. Two reasons.
+      // It would suppress the incoming write, keeping a retired reading as the
+      // only copy of this fact; and the branch below refreshes
+      // last_accessed_at, which would resurrect the very row we retired.
+      .is('superseded_by', null)
       .limit(1);
 
     if (exactRows && exactRows.length > 0) {
