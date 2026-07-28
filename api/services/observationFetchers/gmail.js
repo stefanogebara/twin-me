@@ -433,8 +433,8 @@ async function fetchGmailObservations(userId) {
           content: `Most frequent email senders this week: ${topSenders.join(', ')}`,
           contentType: 'weekly_summary',
         });
-        // replan-2026-06-10: fold the top sender into the daily delta line
-        // ("Inbox grew by N since yesterday; most frequent sender X").
+        // replan-2026-06-10: fold the top sender into the delta line
+        // ("Inbox grew by N in the last 30 minutes; most frequent sender X").
         if (unreadKind === 'delta' && unreadObservation) {
           unreadObservation.content += `; most frequent sender: ${topSenders[0]}`;
         }
