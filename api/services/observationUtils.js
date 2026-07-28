@@ -49,13 +49,46 @@ export function sanitizeExternal(str, maxLen = 100) {
 // ====================================================================
 
 /**
+ * Volatile counts: 4+ digit runs and thousand-separated numbers.
+ *
+ * These are accumulated totals that drift every cycle — an unread backlog, a
+ * mailbox size. Their exact value is noise for dedup: "40,381 unread" and
+ * "40,448 unread" are the same fact, but hashing them raw produced a fresh row
+ * per ingestion cycle that nothing ever retired (audit root cause 7).
+ *
+ * Deliberately NARROWER than _stripDigitsForDedup in proactiveInsights.js,
+ * which strips every digit. That is right for insight THEME matching and wrong
+ * here: contentHash feeds the batch prefilter in observationIngestion.js, which
+ * dedups over a SEVEN-DAY window, so stripping small numbers would collapse
+ * legitimate daily observations into one per week —
+ *   "Whoop stress score today: 62/100"  vs  "71/100"
+ *   "Sleep details: 7h 32m, efficiency 91%"
+ *   "Has a meeting 'Standup' from 9:00 AM to 9:15 AM"
+ * all become identical, silently dropping real health and calendar signal.
+ *
+ * The `\b` on the digit run also leaves suffixed labels ("1990s") intact.
+ */
+const VOLATILE_COUNT_RX = /\b\d{1,3}(?:,\d{3})+\b|\b\d{4,}\b/g;
+
+export function stripVolatileCounts(text) {
+  return String(text ?? '')
+    .replace(VOLATILE_COUNT_RX, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
  * Generate a short hash for de-duplication.
  * We hash platform + first 100 chars of content to catch near-duplicates.
+ * Volatile counts are normalised out first (so a drifting total collides with
+ * its previous reading) and BEFORE truncation, so a change in digit count
+ * cannot shift which words fall inside the 100-char window.
  */
 export function contentHash(platform, content) {
+  const normalized = stripVolatileCounts(content).substring(0, 100);
   return crypto
     .createHash('sha256')
-    .update(`${platform}:${content.substring(0, 100)}`)
+    .update(`${platform}:${normalized}`)
     .digest('hex')
     .substring(0, 16);
 }
