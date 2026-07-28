@@ -22,6 +22,7 @@
 import { addPlatformObservation } from './memoryStreamService.js';
 import { generateEmbeddings } from './embeddingService.js';
 import { shouldTriggerReflection, generateReflections } from './reflectionEngine.js';
+import { generateTwinSummary } from './twinSummaryService.js';
 import { runPlatformExpert } from './platformExperts.js';
 import { generateProactiveInsights, evaluateNudgeOutcomes } from './proactiveInsights.js';
 import { trackGoalProgress, generateGoalSuggestions } from './goalTrackingService.js';
