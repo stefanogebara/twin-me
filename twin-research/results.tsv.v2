@@ -1,0 +1,6 @@
+commit	twin_quality_score	precision_at_5	recall_at_10	diversity	status	description
+# METRIC_VERSION 2 (2026-07-28). NOT comparable with v1 rows: freshness added, weights rebalanced,
+# 3 gold queries added, and the corpus lost ~4.6k duplicate stale platform rows to archival.
+# v1 history preserved in results.tsv.
+(v2 base)	0.843418	0.835000	0.916923	0.729275	keep	recency=0.0 all modes, freshness 0.860308, 28/28 queries
+(v2 exp1)	0.840245	0.833564	0.916923	0.712427	discard	recent recency=0.5 — freshness BIT-IDENTICAL (0.860308); weights cannot reach staleness

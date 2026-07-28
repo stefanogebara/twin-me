@@ -120,9 +120,25 @@ export const RETRIEVAL_WEIGHTS = {
   // Used by: twin summary generation, personality queries
   identity:   { recency: 0.0, importance: -0.05, relevance: 1.2 },
 
-  // Recent context — counterintuitively, recency=0 works best.
-  // Reflection decay_rate=90 makes recency bias bury platform_data/conversations.
-  // Pure semantic matching surfaces diverse types. (Session 2 finding: +2pts)
+  // Recent context. The old note here claimed "counterintuitively, recency=0 works
+  // best" — that was an artefact of a metric blind to age (see twin-eval.js,
+  // METRIC_VERSION 2). Re-tested against the freshness-aware metric:
+  //
+  //   recency 0.0 -> score 0.843418, freshness 0.860308
+  //   recency 0.5 -> score 0.840245, freshness 0.860308  (bit-identical)
+  //
+  // Freshness does not move AT ALL, because this knob cannot reach the problem.
+  // search_memory_stream picks its candidate pool by vector distance alone and the
+  // weights only reorder what is already in that pool. For "What has this person
+  // been doing this week?" the returned rows are 30 conversations, none younger
+  // than 49 days, while 889 platform_data rows from the last 7 days sit unretrieved
+  // — they are simply not near the query embedding.
+  //
+  // So staleness is NOT a weight-tuning problem. It is a candidate-selection
+  // problem, and the fix is the Phase 3 temporal spine (time-indexed context that
+  // does not depend on embedding similarity). Left at 0.0: it scores marginally
+  // better and, per the simplicity rule, a knob that demonstrably cannot help
+  // should not be given a non-zero value that implies it does.
   recent: { recency: 0.0, importance: -0.05, relevance: 1.2 },
 
   // Deep pattern analysis — no recency bias (Paper 2 style).
