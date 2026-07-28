@@ -1,113 +1,142 @@
 /**
- * The context block used to render observations with no date at all, under a
- * header reading "[USER DATA - factual observations about this person]", while
- * the system prompt separately instructs the twin to prefer specific numbers.
- * A snapshot taken in March was therefore presented in July as a present-tense
- * fact — which is how "40,000 unread emails" kept being asserted as current.
+ * Tests for date-anchoring in the twin's additional-context render path
+ * (api/services/twinAdditionalContext.js).
  *
- * These tests pin the age prefix. See Phase 0 item 5 in
- * .claude/plans/2026-07-27-optmem-brain/README.md.
+ * optmem-brain audit, Phase 0 item 5 (root cause 9): observation text is
+ * written in timeless present tense ("Has a backlog of 40,443 unread emails")
+ * and the renderer attached NO date, under a header that calls the block
+ * "factual observations about this person". The only hedge — "(less certain)"
+ * — comes from computeAlpha (confidence x importance x citation boost), which
+ * is completely age-blind: a stale, repeatedly-retrieved platform reading
+ * scores HIGH on all three, so the hedging fires in exactly the wrong
+ * direction. The model then reads a months-old snapshot as a current fact.
+ *
+ * The audit's verdict on this item: "Item 5 alone would likely have prevented
+ * the user-visible symptom."
  */
 import { describe, it, expect } from 'vitest';
-import {
-  formatAge,
-  formatObservations,
-  formatReflections,
-} from '../../../api/services/twinAdditionalContext.js';
 
-const HOUR = 3600 * 1000;
+process.env.NODE_ENV = 'test';
+
+const { buildAdditionalContext, formatMemoryAge } = await import(
+  '../../../api/services/twinAdditionalContext.js'
+);
+
+const NOW = new Date('2026-07-27T12:00:00Z');
+const ago = (ms) => new Date(NOW.getTime() - ms).toISOString();
+const MIN = 60 * 1000;
+const HOUR = 60 * MIN;
 const DAY = 24 * HOUR;
 
-function ago(ms) {
-  return new Date(Date.now() - ms).toISOString();
-}
+/** A platform observation as search_memory_stream returns it. */
+const obs = (content, createdAt, overrides = {}) => ({
+  id: Math.random().toString(36).slice(2),
+  content,
+  memory_type: 'platform_data',
+  created_at: createdAt,
+  confidence: 0.9,
+  importance_score: 8,
+  retrieval_count: 5,
+  ...overrides,
+});
 
-describe('formatAge', () => {
-  it('reports sub-hour ages as just now', () => {
-    expect(formatAge(ago(10 * 60 * 1000))).toBe('just now');
+const build = (memories) =>
+  buildAdditionalContext({ memories, maxChars: 20000, now: NOW }).additionalContext;
+
+describe('formatMemoryAge', () => {
+  it('returns an empty marker for missing or unparseable timestamps', () => {
+    expect(formatMemoryAge(null, NOW)).toBe('');
+    expect(formatMemoryAge(undefined, NOW)).toBe('');
+    expect(formatMemoryAge('not-a-date', NOW)).toBe('');
   });
 
-  it('reports hours', () => {
-    expect(formatAge(ago(5 * HOUR))).toBe('5 hours ago');
-    expect(formatAge(ago(1 * HOUR))).toBe('1 hour ago');
+  it('anchors recent readings without inventing elapsed time', () => {
+    expect(formatMemoryAge(ago(5 * MIN), NOW)).toBe('today');
+    expect(formatMemoryAge(ago(6 * HOUR), NOW)).toBe('today');
+    expect(formatMemoryAge(ago(DAY + HOUR), NOW)).toBe('yesterday');
   });
 
-  it('reports days', () => {
-    expect(formatAge(ago(3 * DAY))).toBe('3 days ago');
-    expect(formatAge(ago(1 * DAY))).toBe('1 day ago');
+  it('scales the unit with age, truncating rather than rounding up', () => {
+    expect(formatMemoryAge(ago(3 * DAY), NOW)).toBe('3 days ago');
+    expect(formatMemoryAge(ago(6 * DAY + 23 * HOUR), NOW)).toBe('6 days ago');
+    expect(formatMemoryAge(ago(14 * DAY), NOW)).toBe('2 weeks ago');
+    expect(formatMemoryAge(ago(90 * DAY), NOW)).toBe('2 months ago');
+    expect(formatMemoryAge(ago(400 * DAY), NOW)).toBe('1 year ago');
   });
 
-  it('reports weeks', () => {
-    expect(formatAge(ago(21 * DAY))).toBe('3 weeks ago');
-  });
-
-  it('reports months for anything older', () => {
-    expect(formatAge(ago(120 * DAY))).toBe('4 months ago');
-  });
-
-  it('returns null when there is no usable timestamp rather than inventing one', () => {
-    expect(formatAge(null)).toBeNull();
-    expect(formatAge(undefined)).toBeNull();
-    expect(formatAge('not-a-date')).toBeNull();
+  it('never reports a future timestamp as an age', () => {
+    expect(formatMemoryAge(new Date(NOW.getTime() + HOUR).toISOString(), NOW)).toBe('');
   });
 });
 
-describe('formatObservations — age prefix', () => {
-  // High alpha so the certainty hedge does not interfere with these assertions.
-  const strong = { confidence: 0.9, importance_score: 8, retrieval_count: 2 };
+describe('observation rendering — date anchoring', () => {
+  it('THE REGRESSION: a months-old unread count is not presented as a timeless fact', () => {
+    const text = build([obs('Has a backlog of 40443 unread emails in inbox', ago(90 * DAY))]);
+    expect(text).toContain('40443');
+    // The number may still surface — but never without saying when it was read.
+    expect(text).toContain('2 months ago');
+    expect(text).toMatch(/\[2 months ago\][^\n]*40443/);
+  });
 
-  it('prefixes each observation with how old it is', () => {
-    const out = formatObservations([
-      { ...strong, content: 'Has a backlog of 40000 unread emails in inbox', created_at: ago(120 * DAY) },
+  it('tags every observation line, not just the stale ones', () => {
+    const text = build([
+      obs('Inbox grew by 12 unread emails in the last 30 minutes', ago(20 * MIN)),
+      obs('Has a backlog of 40443 unread emails in inbox', ago(90 * DAY)),
     ]);
-    expect(out).toBe('- [4 months ago] Has a backlog of 40000 unread emails in inbox');
+    const obsLines = text.split('\n').filter(l => l.startsWith('- '));
+    expect(obsLines.length).toBe(2);
+    for (const line of obsLines) {
+      expect(line).toMatch(/^- \[(today|yesterday|\d+ (day|week|month|year)s? ago)\] /);
+    }
   });
 
-  it('marks a fresh observation as such', () => {
-    const out = formatObservations([
-      { ...strong, content: 'Cleared 12 unread emails from the inbox', created_at: ago(2 * HOUR) },
+  it('tells the model what the tag means, so the date is actionable', () => {
+    const text = build([obs('Has a backlog of 40443 unread emails in inbox', ago(90 * DAY))]);
+    expect(text).toMatch(/when it was observed/i);
+    expect(text).toMatch(/historical/i);
+  });
+
+  it('omits the tag rather than fabricating one when created_at is missing', () => {
+    const text = build([obs('Has a backlog of 40443 unread emails in inbox', null)]);
+    const line = text.split('\n').find(l => l.startsWith('- '));
+    expect(line).toBe('- Has a backlog of 40443 unread emails in inbox');
+    expect(line).not.toContain('[]');
+    expect(line).not.toContain('undefined');
+    expect(line).not.toContain('NaN');
+  });
+
+  it('keeps the age tag alongside the existing certainty hedge', () => {
+    // Low importance -> alpha < 0.4 -> "(less certain)" and a shorter clamp.
+    const text = build([
+      obs('Has a backlog of 40443 unread emails in inbox', ago(90 * DAY), {
+        importance_score: 5,
+        confidence: 0.7,
+        retrieval_count: 0,
+      }),
     ]);
-    expect(out).toBe('- [2 hours ago] Cleared 12 unread emails from the inbox');
+    const line = text.split('\n').find(l => l.startsWith('- '));
+    expect(line).toContain('[2 months ago]');
+    expect(line).toContain('(less certain)');
   });
 
-  it('omits the prefix entirely when the timestamp is missing', () => {
-    const out = formatObservations([{ ...strong, content: 'Prefers morning meetings' }]);
-    expect(out).toBe('- Prefers morning meetings');
-  });
-
-  it('keeps the certainty hedge alongside the age', () => {
-    const weak = { confidence: 0.4, importance_score: 3, retrieval_count: 0 };
-    const out = formatObservations([
-      { ...weak, content: 'Whoop stress score today: 71/100', created_at: ago(40 * DAY) },
-    ]);
-    expect(out).toContain('[1 month ago]');
-    expect(out).toContain('(less certain)');
-  });
-
-  it('returns an empty string for no observations', () => {
-    expect(formatObservations([])).toBe('');
-  });
-});
-
-describe('formatReflections — age prefix', () => {
-  const strong = { confidence: 0.9, importance_score: 9, retrieval_count: 2 };
-
-  it('dates a reflection alongside its expert label', () => {
-    const out = formatReflections([
-      {
-        ...strong,
-        content: 'Overwhelmed by an enormous email backlog',
-        created_at: ago(90 * DAY),
-        metadata: { expertName: 'Lifestyle Analyst' },
+  it('date-anchors the creativity spark, which surfaces old memories by design', () => {
+    const { additionalContext } = buildAdditionalContext({
+      memories: [],
+      maxChars: 20000,
+      now: NOW,
+      creativityResult: {
+        novelMemories: [obs('Listened to Radiohead on repeat', ago(200 * DAY))],
+        avgLz: 0.42,
       },
-    ]);
-    expect(out).toBe('- [Lifestyle Analyst · 3 months ago] Overwhelmed by an enormous email backlog');
+    });
+    expect(additionalContext).toContain('[6 months ago]');
   });
 
-  it('dates a reflection with no expert label', () => {
-    const out = formatReflections([
-      { ...strong, content: 'Values deep work in the morning', created_at: ago(7 * DAY) },
+  it('leaves synthesized reflections untagged — they are patterns, not readings', () => {
+    const text = build([
+      { ...obs('Tends to process email in long focused bursts', ago(90 * DAY)), memory_type: 'reflection' },
     ]);
-    expect(out).toBe('- [1 week ago] Values deep work in the morning');
+    const line = text.split('\n').find(l => l.startsWith('- '));
+    expect(line).toBe('- Tends to process email in long focused bursts');
   });
 });

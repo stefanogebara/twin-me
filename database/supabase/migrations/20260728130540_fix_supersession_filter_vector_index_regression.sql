@@ -1,55 +1,36 @@
 -- ============================================================================
--- Memory supersession
--- Date: 2026-07-28
---
--- The twin kept asserting stale readings as current because nothing could ever
--- retire a fact. There was no supersede/invalidate concept anywhere: a newer
--- observation could contradict an older one and both stayed equally live and
--- equally retrievable.
---
--- This adds append-only invalidation, following the bi-temporal model used by
--- temporal knowledge graphs (Zep/Graphiti, arXiv 2501.13956): a superseded row
--- is never deleted, its validity is simply closed. Current state is
--- "superseded_by IS NULL"; history remains queryable for "how have I changed".
---
--- Three parts:
---   1. superseded_by / superseded_at columns + a partial index sized for the
---      common case (retrieval only ever wants live rows).
---   2. search_memory_stream skips superseded rows, with an opt-in flag so the
---      history is still reachable deliberately.
---   3. touch_memories stops refreshing superseded rows. Retrieval-refresh was
---      one of three paths that kept a retired fact permanently warm.
---
--- Plan: .claude/plans/2026-07-27-optmem-brain/README.md (Phase 1)
+-- search_memory_stream: filter superseded rows without losing the vector index
 -- ============================================================================
-
--- ── 1. Columns ──────────────────────────────────────────────────────────────
-
-ALTER TABLE user_memories
-  ADD COLUMN IF NOT EXISTS superseded_by UUID REFERENCES user_memories(id) ON DELETE SET NULL,
-  ADD COLUMN IF NOT EXISTS superseded_at TIMESTAMPTZ;
-
-COMMENT ON COLUMN user_memories.superseded_by IS
-  'The memory that replaced this one. NULL = currently valid. Superseded rows are retained for history and excluded from retrieval by default.';
-COMMENT ON COLUMN user_memories.superseded_at IS
-  'When this memory was superseded. NULL while valid.';
-
--- Partial index: retrieval filters to live rows on every query, and the live
--- set is the overwhelming majority, so index only those.
-CREATE INDEX IF NOT EXISTS idx_user_memories_live
-  ON user_memories (user_id, memory_type, created_at DESC)
-  WHERE superseded_by IS NULL;
-
--- Reverse lookup: "what did this memory replace?"
-CREATE INDEX IF NOT EXISTS idx_user_memories_superseded_by
-  ON user_memories (superseded_by)
-  WHERE superseded_by IS NOT NULL;
-
--- ── 2. search_memory_stream: exclude superseded by default ──────────────────
--- Drops the 8-arg signature from 20260408 before creating the 9-arg version,
--- so the two do not sit side by side as ambiguous overloads.
-
-DROP FUNCTION IF EXISTS search_memory_stream(UUID, TEXT, INTEGER, DOUBLE PRECISION, DOUBLE PRECISION, DOUBLE PRECISION, DOUBLE PRECISION, TEXT[]);
+-- CAPTURED FROM LIVE DDL to close repo/production drift (see
+-- 20260728110058_add_memory_supersession.sql). CREATE OR REPLACE, so applying
+-- this is a no-op against the live project.
+--
+-- ⚠️ SUPERSEDED by 20260728151001_supersession_survives_replacement_deletion.sql.
+-- This version filters on `superseded_by IS NULL`, which is unsafe: that column
+-- is `ON DELETE SET NULL`, so deleting a replacement row resurrects everything
+-- it retired. The later migration switches the predicate to `superseded_at`.
+-- Kept here because it is the state that was actually applied at 13:05 and
+-- because its HNSW finding is the reason the filter sits after the LIMIT.
+--
+-- The subtlety worth preserving: `AND m.superseded_by IS NULL` cannot go in the
+-- candidates WHERE clause. Doing so makes the planner abandon the HNSW index
+-- for the `embedding <=> query` ordering and fall back to a full scan. The
+-- filter is therefore applied in a `live` CTE, AFTER the candidate LIMIT.
+--
+-- KNOWN LIMITATION (carried forward deliberately, see PR discussion):
+-- because the filter runs after `LIMIT p_limit * 5`, superseded rows still
+-- consume candidate slots. While nothing wrote supersession this was purely
+-- theoretical. It is no longer: once retired readings accumulate between weekly
+-- archival runs, an email-shaped query on a heavy Gmail user can have most of
+-- its 100 candidate slots taken by retired unread-count rows and return far
+-- fewer than p_limit live results.
+--
+-- The proper fix is a PARTIAL vector index (`... USING hnsw (embedding ...)
+-- WHERE superseded_by IS NULL`), which lets the filter move back into WHERE
+-- while keeping index-assisted ordering. That is a heavier change on a 27k-row
+-- table and touches an area under active concurrent development, so it is
+-- deliberately left as the top follow-up rather than bundled here.
+-- ============================================================================
 
 CREATE OR REPLACE FUNCTION search_memory_stream(
   p_user_id UUID,
@@ -91,6 +72,7 @@ BEGIN
       m.last_accessed_at,
       m.confidence,
       m.decay_rate,
+      m.superseded_by,
       COALESCE(m.retrieval_count, 0) AS retrieval_count,
       m.embedding::TEXT AS embedding,
       POWER(
@@ -114,9 +96,14 @@ BEGIN
     WHERE m.user_id = p_user_id
       AND m.embedding IS NOT NULL
       AND (p_memory_types IS NULL OR m.memory_type = ANY(p_memory_types))
-      AND (p_include_superseded OR m.superseded_by IS NULL)
+      -- NOTE: the supersession filter deliberately does NOT belong here.
+      -- See the migration header: it disables the HNSW index for this scan.
     ORDER BY m.embedding <=> p_query_embedding::vector
     LIMIT p_limit * 5
+  ),
+  live AS (
+    SELECT c.* FROM candidates c
+    WHERE p_include_superseded OR c.superseded_by IS NULL
   ),
   normalized AS (
     SELECT
@@ -130,7 +117,7 @@ BEGIN
       CASE WHEN MAX(c.raw_relevance) OVER () = MIN(c.raw_relevance) OVER () THEN 0.5
            ELSE (c.raw_relevance - MIN(c.raw_relevance) OVER ()) / NULLIF(MAX(c.raw_relevance) OVER () - MIN(c.raw_relevance) OVER (), 0)
       END AS norm_relevance
-    FROM candidates c
+    FROM live c
   )
   SELECT
     c.id,
@@ -157,25 +144,4 @@ BEGIN
   ) * COALESCE(c.confidence, 0.7) DESC
   LIMIT p_limit;
 END;
-$$;
-
--- ── 3. touch_memories: never refresh a superseded row ───────────────────────
--- Retrieval-refresh is what made a wrong-but-salient memory self-sustaining:
--- being retrieved reset its recency AND incremented retrieval_count, which the
--- forgetting cron treats as a protection signal. A retired fact must be allowed
--- to go cold.
-
-CREATE OR REPLACE FUNCTION touch_memories(
-  p_memory_ids UUID[]
-)
-RETURNS VOID
-LANGUAGE sql
-SECURITY DEFINER
-AS $$
-  UPDATE user_memories
-  SET
-    last_accessed_at = NOW(),
-    retrieval_count = COALESCE(retrieval_count, 0) + 1
-  WHERE id = ANY(p_memory_ids)
-    AND superseded_by IS NULL;
 $$;

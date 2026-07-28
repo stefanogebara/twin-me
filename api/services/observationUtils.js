@@ -149,6 +149,15 @@ export async function isDuplicate(userId, platform, content, contentType) {
       .eq('memory_type', 'platform_data')
       .eq('content', content)
       .gte('created_at', longCutoff)
+      // Phase 1: a superseded row must not count as a duplicate. Two reasons.
+      // It would suppress the incoming write, keeping a retired reading as the
+      // only copy of this fact; and the branch below refreshes
+      // last_accessed_at, which would resurrect the very row we retired.
+      //
+      // Filter on superseded_at, NOT superseded_by: the latter is
+      // `ON DELETE SET NULL`, so deleting a replacement row would silently make
+      // everything it retired look live again (migration 20260728151001).
+      .is('superseded_at', null)
       .limit(1);
 
     if (exactRows && exactRows.length > 0) {

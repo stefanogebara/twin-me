@@ -11,25 +11,35 @@
  * runs. This test pins the patterns + cap values so a future edit to the
  * regex list can't silently lower the cap or drop a pattern.
  *
- * Inline copy follows the existing tests/unit/* convention (avoid loading
- * memoryStreamService.js which pulls in Supabase + embedding service).
+ * This file used to hold an INLINE COPY of the pattern array, to avoid loading
+ * memoryStreamService.js (Supabase + embedding service). A copy cannot guard
+ * the real list, though — edits to the source would sail past a green suite,
+ * which is precisely what this file claims to prevent. It now imports the real
+ * export behind the same mocks memoryQuality.test.js uses, so the module graph
+ * is still inert.
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 
-const NOISE_OBSERVATION_PATTERNS = [
-  { rx: /^Created branch ".+" in/i, score: 3 },
-  { rx: /^Your GitHub language distribution:/i, score: 3 },
-  { rx: /^Your GitHub \d{4} activity: \d+ contributions/i, score: 4 },
-  { rx: /^Committed code on \d+ days in the last \d+ days/i, score: 4 },
-  { rx: /^Current GitHub contribution streak: \d+ consecutive days/i, score: 4 },
-];
+vi.mock('../../api/services/database.js', () => ({
+  supabaseAdmin: { from: vi.fn(), rpc: vi.fn() },
+}));
+vi.mock('../../api/services/embeddingService.js', () => ({
+  generateEmbedding: vi.fn().mockResolvedValue(new Array(1536).fill(0)),
+  vectorToString: vi.fn().mockReturnValue('[0,0,0]'),
+}));
+vi.mock('../../api/services/llmGateway.js', () => ({
+  complete: vi.fn().mockResolvedValue({ content: '5' }),
+  stream: vi.fn(),
+  TIER_CHAT: 'chat',
+  TIER_ANALYSIS: 'analysis',
+  TIER_EXTRACTION: 'extraction',
+}));
+process.env.JWT_SECRET = 'test-secret';
+process.env.SUPABASE_URL = 'http://localhost';
+process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-key';
 
-function clampNoiseObservation(content) {
-  for (const { rx, score } of NOISE_OBSERVATION_PATTERNS) {
-    if (rx.test(content)) return score;
-  }
-  return null;
-}
+const { clampNoiseObservation, applyImportanceFloor } =
+  await import('../../api/services/memoryStreamService.js');
 
 describe('clampNoiseObservation', () => {
   describe('branch creation (cap 3)', () => {
@@ -70,6 +80,81 @@ describe('clampNoiseObservation', () => {
     });
   });
 
+  /**
+   * optmem-brain audit, Phase 0 item 3. Snapshot metrics — accumulated
+   * mutable-state LEVELS like an unread count or mailbox size — were rated 7-8
+   * by the LLM and then floored at 6 by applyImportanceFloor, while the archival
+   * job only collects platform_data at importance <= 4. That is the catch-22
+   * that made "40,443 unread emails" mathematically immortal. Clamping them to
+   * 4 puts them back under the EXISTING archive threshold, no schema change.
+   *
+   * The line to hold: clamp LEVELS, never TRANSITIONS. "Inbox grew by 12" is an
+   * immutable event that stays true forever; "has 40,443 unread" is wrong within
+   * hours. The audit's own guidance is to prefer transitions over levels, so
+   * demoting the deltas would be backwards.
+   */
+  describe('snapshot metrics — accumulated levels (cap 4)', () => {
+    it('clamps the canonical 40k unread-count baseline', () => {
+      expect(clampNoiseObservation('Has a backlog of 40443 unread emails in inbox')).toBe(4);
+    });
+
+    it('clamps the unread baseline at every urgency phrasing', () => {
+      expect(clampNoiseObservation('Has a moderate pile of 30 unread emails in inbox')).toBe(4);
+      expect(clampNoiseObservation('Has 12 unread emails in inbox')).toBe(4);
+    });
+
+    it('clamps lifetime mailbox size', () => {
+      expect(clampNoiseObservation('Manages a very large mailbox (50 000+ messages)')).toBe(4);
+      expect(clampNoiseObservation('Manages a large mailbox (~52k messages)')).toBe(4);
+      expect(clampNoiseObservation('Manages a moderate-sized mailbox (~5k messages)')).toBe(4);
+      expect(clampNoiseObservation('Manages a lean mailbox (800 messages)')).toBe(4);
+    });
+
+    it('clamps the read-percentage, which is derived from lifetime totals', () => {
+      expect(
+        clampNoiseObservation('Reads 92% of incoming email (37000 of 40000 inbox messages read)')
+      ).toBe(4);
+    });
+
+    it('clamps the Outlook inbox size snapshot', () => {
+      expect(
+        clampNoiseObservation('Outlook inbox contains approximately 52,431 messages (very large inbox)')
+      ).toBe(4);
+    });
+  });
+
+  describe('transitions and events are NOT clamped — they never go stale', () => {
+    it('leaves the unread DELTA alone (an immutable event, the good kind)', () => {
+      expect(
+        clampNoiseObservation('Inbox grew by 12 unread emails in the last 30 minutes')
+      ).toBeNull();
+      expect(
+        clampNoiseObservation('Cleared 43 unread emails from the inbox since yesterday')
+      ).toBeNull();
+    });
+
+    it('leaves inbox zero alone — an achievement, not a running total', () => {
+      expect(
+        clampNoiseObservation('Practices inbox zero — 0 unread emails in inbox')
+      ).toBeNull();
+    });
+
+    it('leaves windowed activity stats alone (self-anchoring to a period)', () => {
+      expect(
+        clampNoiseObservation('Email activity this week is moderate (~120 per week) — ~90 received, ~30 sent')
+      ).toBeNull();
+    });
+
+    it('leaves behavioural traits alone', () => {
+      expect(
+        clampNoiseObservation('Tends to send emails in the morning (from recent sent patterns)')
+      ).toBeNull();
+      expect(
+        clampNoiseObservation('Uses 14 custom email labels including: Work, Family, Receipts')
+      ).toBeNull();
+    });
+  });
+
   describe('non-matching observations pass through (null → LLM rater handles them)', () => {
     it('does not clamp meaningful PR titles', () => {
       expect(clampNoiseObservation('Merged PR in twin-me: "Add Renan concept retrieval"')).toBeNull();
@@ -89,6 +174,45 @@ describe('clampNoiseObservation', () => {
       expect(
         clampNoiseObservation('Renan said: design TwinMe for the mainstream user, kill the auteur features')
       ).toBeNull();
+    });
+  });
+
+  /**
+   * The payoff. Clamping only helps if the score SURVIVES applyImportanceFloor
+   * (platform_data is otherwise floored at 6) and lands at or under the Tier-2
+   * archive predicate in cron-memory-forgetting.js:
+   *   .lte('importance_score', 4).eq('retrieval_count', 0)
+   * Without the noiseClamped exemption the floor would silently undo all of it.
+   */
+  describe('clamped snapshots survive the floor and clear the archive bar', () => {
+    const ARCHIVE_MAX_IMPORTANCE = 4;
+
+    const SNAPSHOTS = [
+      'Has a backlog of 40443 unread emails in inbox',
+      'Has 12 unread emails in inbox',
+      'Manages a very large mailbox (50 000+ messages)',
+      'Reads 92% of incoming email (37000 of 40000 inbox messages read)',
+      'Outlook inbox contains approximately 52,431 messages (very large inbox)',
+    ];
+
+    it('every snapshot pattern ends up archivable, not floored back to 6', () => {
+      for (const content of SNAPSHOTS) {
+        const score = clampNoiseObservation(content);
+        expect(score).not.toBeNull();
+        const final = applyImportanceFloor('platform_data', score, { noiseClamped: true });
+        expect(final).toBeLessThanOrEqual(ARCHIVE_MAX_IMPORTANCE);
+      }
+    });
+
+    it('an ordinary platform observation is still floored at 6 (unchanged behaviour)', () => {
+      expect(clampNoiseObservation('Discovered new artist: Radiohead')).toBeNull();
+      expect(applyImportanceFloor('platform_data', 3)).toBe(6);
+    });
+
+    it('a delta stays unclamped and keeps the normal floor', () => {
+      const content = 'Inbox grew by 12 unread emails in the last 30 minutes';
+      expect(clampNoiseObservation(content)).toBeNull();
+      expect(applyImportanceFloor('platform_data', 5)).toBe(6);
     });
   });
 

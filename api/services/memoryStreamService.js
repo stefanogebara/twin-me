@@ -105,6 +105,114 @@ const CONFIDENCE_BY_TYPE = { platform_data: 0.90, observation: 0.90, conversatio
 const REVISION_TYPES = new Set(['reflection', 'fact']);
 const REVISION_SIMILARITY_THRESHOLD = 0.90;
 
+// Phase 1 supersession (optmem-brain audit, root cause 3).
+//
+// platform_data is deliberately NOT in REVISION_TYPES. The revision path keeps
+// the OLD row's content, bumps its confidence +0.05 and refreshes
+// last_accessed_at, then returns early so the NEW value is discarded. For a
+// reflection reaffirming the same proposition that is correct. For a snapshot
+// whose VALUE changed it is exactly backwards: the stale number survives, more
+// trusted and more recent than before, and the true one is thrown away.
+//
+// Supersession is the inverse: the new row wins and the prior reading is
+// retired (superseded_by = new id) and otherwise left untouched — no
+// confidence boost, no recency refresh. Retrieval already filters these out
+// (search_memory_stream, p_include_superseded).
+//
+// Threshold is stricter than revision's 0.90: retiring a memory is the
+// destructive direction, so it should fire less readily than an in-place edit.
+export const SUPERSEDE_SIMILARITY_THRESHOLD = 0.93;
+const SUPERSEDE_TYPES = new Set(['platform_data']);
+// How many recent live rows of the same type to consider retiring per write.
+const SUPERSEDE_SCAN_LIMIT = 50;
+
+/**
+ * Decide which prior observations a new one retires. Pure — exported for tests.
+ *
+ * A candidate is retired when it is the same platform, still live, and its
+ * embedding is at least `threshold` cosine-similar to the incoming one. Rows
+ * with unusable embeddings are skipped rather than guessed at, and a missing
+ * incoming embedding retires nothing at all.
+ *
+ * @param {object} p
+ * @param {number[]} p.embedding - Incoming memory's embedding vector
+ * @param {string} [p.platform] - Incoming memory's source platform
+ * @param {Array} p.candidates - Recent rows {id, embedding, superseded_by, metadata}
+ * @param {number} [p.threshold]
+ * @returns {string[]} ids to mark superseded
+ */
+export function selectSupersededIds({
+  embedding,
+  platform,
+  candidates,
+  threshold = SUPERSEDE_SIMILARITY_THRESHOLD,
+}) {
+  if (!embedding || !Array.isArray(candidates)) return [];
+
+  const ids = [];
+  for (const row of candidates) {
+    // superseded_at is the source of truth for "already retired", NOT
+    // superseded_by: that column is `ON DELETE SET NULL`, so deleting a
+    // replacement row nulls it on every row it retired, which would make them
+    // look live again (migration 20260728151001).
+    if (!row || row.superseded_at) continue;
+    // Never let one platform retire another's reading. A legacy row with no
+    // recorded platform is still eligible — those predate the metadata.
+    const rowPlatform = row.metadata?.source || row.metadata?.platform || null;
+    if (platform && rowPlatform && rowPlatform !== platform) continue;
+
+    const vec = parseVec(row.embedding);
+    if (!vec) continue;
+    if (cosineSim(embedding, vec) < threshold) continue;
+    ids.push(row.id);
+  }
+  return ids;
+}
+
+/**
+ * Retire prior readings that the just-written observation replaces.
+ *
+ * Fire-and-forget by design: supersession is a cleanup nicety, and a failure
+ * here must never fail the write that already succeeded. Errors are logged,
+ * not thrown.
+ */
+async function supersedePriorObservations(userId, newId, memoryType, embedding, platform) {
+  if (!SUPERSEDE_TYPES.has(memoryType) || !embedding || !newId) return 0;
+
+  try {
+    const { data: candidates } = await supabaseAdmin
+      .from('user_memories')
+      .select('id, embedding, superseded_at, metadata')
+      .eq('user_id', userId)
+      .eq('memory_type', memoryType)
+      .is('superseded_at', null)
+      .neq('id', newId)
+      .order('created_at', { ascending: false })
+      .limit(SUPERSEDE_SCAN_LIMIT);
+
+    const ids = selectSupersededIds({ embedding, platform, candidates });
+    if (ids.length === 0) return 0;
+
+    // Only superseded_by/superseded_at are written. last_accessed_at and
+    // confidence are deliberately left alone — touching them would resurrect
+    // the very rows we are retiring.
+    const { error } = await supabaseAdmin
+      .from('user_memories')
+      .update({ superseded_by: newId, superseded_at: new Date().toISOString() })
+      .in('id', ids);
+
+    if (error) {
+      log.warn('Supersession update failed (non-fatal)', { error: error.message, count: ids.length });
+      return 0;
+    }
+    log.info('Superseded prior observations', { memoryType, platform, count: ids.length, newId });
+    return ids.length;
+  } catch (err) {
+    log.warn('Supersession check failed (non-fatal)', { error: err?.message });
+    return 0;
+  }
+}
+
 // ====================================================================
 // Dynamic Alpha Blending (CL1-inspired)
 // ====================================================================
@@ -495,6 +603,19 @@ async function addMemory(userId, content, memoryType = 'observation', metadata =
       applyGumBayesianRevision(userId, content, embedding, memoryType, data.id).catch(() => {});
     }
 
+    // Phase 1: the new reading retires the ones it replaces. Runs AFTER the
+    // insert because supersession points at the new row's id. Awaited so the
+    // write flushes before the handler returns on Vercel (a fire-and-forget
+    // promise here would be killed mid-flight), but it can never fail the
+    // insert — supersedePriorObservations swallows its own errors.
+    await supersedePriorObservations(
+      userId,
+      data?.id,
+      memoryType,
+      embedding,
+      metadata?.source || metadata?.platform || null
+    );
+
     log.info('Stored memory', { memoryType, importance: importanceScore, hasEmbedding: !!embedding, userId });
     return data;
   } catch (error) {
@@ -598,6 +719,22 @@ const NOISE_OBSERVATION_PATTERNS = [
   { rx: /^Your GitHub \d{4} activity: \d+ contributions/i, score: 4 }, // periodic snapshot
   { rx: /^Committed code on \d+ days in the last \d+ days/i, score: 4 }, // rolling stat
   { rx: /^Current GitHub contribution streak: \d+ consecutive days/i, score: 4 }, // rolling stat
+
+  // Snapshot metrics — accumulated mutable-state LEVELS (optmem-brain audit,
+  // Phase 0 item 3). These are re-read every ingestion cycle and are wrong
+  // within hours, yet the LLM rated them 7-8 and applyImportanceFloor pinned
+  // them at 6, while archival only collects platform_data at importance <= 4.
+  // That catch-22 is what made "40,443 unread emails" mathematically immortal;
+  // clamping to 4 puts them back under the EXISTING archive threshold.
+  //
+  // LEVELS ONLY. Transitions ("Inbox grew by 12 unread emails in the last 30
+  // minutes") must NOT match — a delta is an immutable event that stays true
+  // forever, and the audit's guidance is to prefer transitions over levels, so
+  // demoting them would be backwards.
+  { rx: /^Has (?:a backlog of |a moderate pile of )?\d+ unread emails? in inbox/i, score: 4 },
+  { rx: /^Manages a [^()]*mailbox \(/i, score: 4 },              // lifetime mailbox size
+  { rx: /^Reads \d+% of incoming email \(/i, score: 4 },          // derived from lifetime totals
+  { rx: /^Outlook inbox contains approximately [\d,.\s]+ messages/i, score: 4 },
 ];
 
 function clampNoiseObservation(content) {

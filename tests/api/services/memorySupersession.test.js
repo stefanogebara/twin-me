@@ -1,140 +1,142 @@
 /**
- * Supersession: retiring a memory that a newer one has replaced.
+ * Tests for supersession selection (api/services/memoryStreamService.js).
  *
- * Nothing in the system could previously retire a fact. A newer observation
- * could flatly contradict an older one and both stayed equally live, equally
- * retrievable, and equally likely to be quoted as current — which is how a
- * months-old inbox count kept being asserted.
+ * optmem-brain audit, Phase 1 (root cause 3): nothing in the system could ever
+ * retire a stale snapshot. The live DB now has user_memories.superseded_by /
+ * superseded_at and search_memory_stream filters on them, but ZERO rows were
+ * ever marked and no application code referenced the columns — the schema was
+ * inert. This is the write path that gives it meaning.
  *
- * Retirement is append-only (Zep/Graphiti bi-temporal model): the row survives
- * for "how have I changed" questions, it just stops being current.
- *
- * See .claude/plans/2026-07-27-optmem-brain/README.md (Phase 1).
+ * Why NOT the audit's suggested one-liner (add platform_data to REVISION_TYPES):
+ * maybeReviseExistingMemory keeps the OLD row's content, bumps its confidence
+ * +0.05 and refreshes last_accessed_at, then returns early so the NEW value is
+ * discarded. For a reflection reaffirming the same proposition that is right.
+ * For a snapshot whose VALUE changed it is exactly backwards — it would leave
+ * the stale number in place, more trusted and more recent than before, and
+ * throw away the correct one. Supersession is the opposite: the new row wins
+ * and the old one is retired, untouched otherwise.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 
-const updates = [];
+process.env.NODE_ENV = 'test';
 
-vi.mock('../../../twin-research/twin-config.js', () => ({
-  RETRIEVAL_WEIGHTS: { default: { recency: 1, importance: 1, relevance: 1 } },
-  MMR_LAMBDA: 0.7,
-  TYPE_DIVERSITY_WEIGHT: 0.3,
-  SEMANTIC_DIVERSITY_WEIGHT: 0.4,
-  TEMPORAL_DIVERSITY_WEIGHT: 0.3,
-  MEMORY_CONTEXT_BUDGETS: {},
-  HYDE_ENABLED: false,
-  BM25_BLEND_WEIGHT: 0.3,
-  BM25_K1: 1.2,
-  BM25_B: 0.75,
-  TCM_WEIGHT: 0.0,
-  TCM_DRIFT_RATE: 0.1,
-  STDP_CORETRIEVAL_BOOST: 0.05,
-  MIN_COSINE_SIMILARITY: 0.3,
-  LLM_RERANKER_ENABLED: false,
+vi.mock('../../../api/services/database.js', () => ({
+  supabaseAdmin: { from: vi.fn(), rpc: vi.fn() },
 }));
-
-vi.mock('../../../api/services/database.js', () => {
-  const chain = {};
-  let pending = null;
-  Object.assign(chain, {
-    from: () => chain,
-    select: () => (pending ? Promise.resolve(pending) : chain),
-    update: (payload) => {
-      pending = { data: [{ id: 'old-1' }], error: null, payload };
-      updates.push(payload);
-      return chain;
-    },
-    insert: () => chain,
-    eq: () => chain,
-    is: (col, val) => {
-      // Mirror the real guard: only rows not already superseded are updated.
-      chain._guard = `${col}=${val}`;
-      return chain;
-    },
-    limit: () => Promise.resolve({ data: null, error: null }),
-    single: () => Promise.resolve({ data: null, error: null }),
-    then: (resolve) => Promise.resolve({ data: null, error: null }).then(resolve),
-  });
-  return { supabaseAdmin: chain, serverDb: {} };
-});
-
 vi.mock('../../../api/services/embeddingService.js', () => ({
-  generateEmbedding: vi.fn().mockResolvedValue(new Array(1536).fill(0.01)),
-  vectorToString: (v) => `[${v.join(',')}]`,
+  generateEmbedding: vi.fn().mockResolvedValue(new Array(1536).fill(0)),
+  vectorToString: vi.fn().mockReturnValue('[0,0,0]'),
 }));
 vi.mock('../../../api/services/llmGateway.js', () => ({
-  complete: vi.fn().mockResolvedValue({ content: '7' }),
-  TIER_EXTRACTION: 'extraction', TIER_ANALYSIS: 'analysis', TIER_CHAT: 'chat',
+  complete: vi.fn().mockResolvedValue({ content: '5' }),
+  stream: vi.fn(),
+  TIER_CHAT: 'chat',
+  TIER_ANALYSIS: 'analysis',
+  TIER_EXTRACTION: 'extraction',
 }));
-vi.mock('../../../api/services/memoryLinksService.js', () => ({
-  traverseLinksForRetrieval: vi.fn().mockResolvedValue([]),
-  getCoCitationBoosts: vi.fn().mockResolvedValue({}),
-}));
-vi.mock('../../../api/services/featureFlagsService.js', () => ({
-  getFeatureFlags: vi.fn().mockResolvedValue({}),
-}));
-vi.mock('../../../api/services/bm25Service.js', () => ({
-  bm25ScoreBatch: vi.fn().mockReturnValue([]),
-  extractKeywords: vi.fn().mockReturnValue([]),
-}));
+process.env.JWT_SECRET = 'test-secret';
+process.env.SUPABASE_URL = 'http://localhost';
+process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-key';
 
-import {
-  supersedeMemory,
-  shouldSupersedeOnContradiction,
-  SUPERSEDE_CONFIDENCE_FLOOR,
-} from '../../../api/services/memoryStreamService.js';
+const { selectSupersededIds, SUPERSEDE_SIMILARITY_THRESHOLD } =
+  await import('../../../api/services/memoryStreamService.js');
 
-beforeEach(() => { updates.length = 0; });
-
-describe('shouldSupersedeOnContradiction', () => {
-  it('does not retire a belief on a single contradiction', () => {
-    // Reflections enter at 0.70, platform data at 0.90. One -0.15 hit should
-    // weaken, not kill.
-    expect(shouldSupersedeOnContradiction(0.90, -0.15)).toBe(false);
-    expect(shouldSupersedeOnContradiction(0.70, -0.15)).toBe(false);
-  });
-
-  it('retires a belief once repeated contradictions collapse confidence', () => {
-    expect(shouldSupersedeOnContradiction(0.35, -0.15)).toBe(true);
-    expect(shouldSupersedeOnContradiction(0.25, -0.15)).toBe(true);
-  });
-
-  it('never retires on confirmation', () => {
-    expect(shouldSupersedeOnContradiction(0.20, +0.10)).toBe(false);
-    expect(shouldSupersedeOnContradiction(0.10, 0)).toBe(false);
-  });
-
-  it('uses the documented floor', () => {
-    expect(SUPERSEDE_CONFIDENCE_FLOOR).toBe(0.25);
-    // Exactly at the floor counts as collapsed.
-    expect(shouldSupersedeOnContradiction(0.40, -0.15)).toBe(true);
-  });
-
-  it('treats missing confidence as the default prior', () => {
-    expect(shouldSupersedeOnContradiction(undefined, -0.15)).toBe(false);
-  });
+/** A stored row as the DB returns it — embedding is a pgvector string. */
+const row = (id, embedding, overrides = {}) => ({
+  id,
+  content: `observation ${id}`,
+  embedding,
+  superseded_at: null,
+  metadata: { source: 'gmail', platform: 'gmail' },
+  ...overrides,
 });
 
-describe('supersedeMemory', () => {
-  it('records both the replacement and when it happened', async () => {
-    const ok = await supersedeMemory('old-1', 'new-1', 'test');
-    expect(ok).toBe(true);
-    expect(updates).toHaveLength(1);
-    expect(updates[0].superseded_by).toBe('new-1');
-    expect(updates[0].superseded_at).toEqual(expect.any(String));
+const NEW = {
+  content: 'Has a backlog of 40448 unread emails in inbox',
+  embedding: [1, 0, 0],
+  platform: 'gmail',
+};
+
+describe('selectSupersededIds', () => {
+  it('retires a near-identical prior observation', () => {
+    const ids = selectSupersededIds({ ...NEW, candidates: [row('old', '[1,0,0]')] });
+    expect(ids).toEqual(['old']);
   });
 
-  it('refuses to let a memory supersede itself', async () => {
-    // Self-supersession would drop the row from retrieval permanently with
-    // nothing replacing it — a silent data loss, so it must be rejected.
-    const ok = await supersedeMemory('same-id', 'same-id');
-    expect(ok).toBe(false);
-    expect(updates).toHaveLength(0);
+  it('leaves a semantically unrelated observation alone', () => {
+    const ids = selectSupersededIds({ ...NEW, candidates: [row('unrelated', '[0,1,0]')] });
+    expect(ids).toEqual([]);
   });
 
-  it('refuses incomplete supersession', async () => {
-    expect(await supersedeMemory(null, 'new-1')).toBe(false);
-    expect(await supersedeMemory('old-1', null)).toBe(false);
-    expect(updates).toHaveLength(0);
+  it('retires every matching prior, not just the newest', () => {
+    const ids = selectSupersededIds({
+      ...NEW,
+      candidates: [row('a', '[1,0,0]'), row('b', '[0,1,0]'), row('c', '[1,0,0]')],
+    });
+    expect(ids).toEqual(['a', 'c']);
+  });
+
+  it('never re-retires an already superseded row', () => {
+    const ids = selectSupersededIds({
+      ...NEW,
+      candidates: [row('already', '[1,0,0]', { superseded_at: '2026-07-01T00:00:00Z' })],
+    });
+    expect(ids).toEqual([]);
+  });
+
+  it('treats a row whose replacement was DELETED as still retired', () => {
+    // superseded_by is `ON DELETE SET NULL`, so deleting the replacement nulls
+    // it on every row it retired. superseded_at has no FK and survives, which
+    // is why it — not superseded_by — is the source of truth (migration
+    // 20260728151001). Keying off superseded_by here would resurrect the row.
+    const orphaned = row('orphaned', '[1,0,0]', {
+      superseded_by: null,                       // replacement row is gone
+      superseded_at: '2026-07-01T00:00:00Z',     // but it is still retired
+    });
+    expect(selectSupersededIds({ ...NEW, candidates: [orphaned] })).toEqual([]);
+  });
+
+  it('never retires across platforms — Gmail must not retire Outlook', () => {
+    const outlook = row('outlook', '[1,0,0]', {
+      metadata: { source: 'outlook', platform: 'outlook' },
+    });
+    expect(selectSupersededIds({ ...NEW, candidates: [outlook] })).toEqual([]);
+  });
+
+  it('retires when the prior row has no platform recorded (legacy rows)', () => {
+    const legacy = row('legacy', '[1,0,0]', { metadata: {} });
+    expect(selectSupersededIds({ ...NEW, candidates: [legacy] })).toEqual(['legacy']);
+  });
+
+  it('returns nothing without an embedding — never guess', () => {
+    expect(selectSupersededIds({ ...NEW, embedding: null, candidates: [row('x', '[1,0,0]')] }))
+      .toEqual([]);
+  });
+
+  it('skips rows with missing or unparseable embeddings instead of throwing', () => {
+    const ids = selectSupersededIds({
+      ...NEW,
+      candidates: [row('novec', null), row('bad', 'not-a-vector'), row('good', '[1,0,0]')],
+    });
+    expect(ids).toEqual(['good']);
+  });
+
+  it('tolerates a null/empty candidate list', () => {
+    expect(selectSupersededIds({ ...NEW, candidates: null })).toEqual([]);
+    expect(selectSupersededIds({ ...NEW, candidates: [] })).toEqual([]);
+  });
+
+  it('honours a custom threshold', () => {
+    // [1,0,0] vs [0.8,0.6,0] -> cosine 0.8: below the default, above a lax bar.
+    const candidates = [row('partial', '[0.8,0.6,0]')];
+    expect(selectSupersededIds({ ...NEW, candidates })).toEqual([]);
+    expect(selectSupersededIds({ ...NEW, candidates, threshold: 0.75 })).toEqual(['partial']);
+  });
+
+  it('uses a threshold at least as strict as the revision path', () => {
+    // Retiring a memory is destructive; it must not fire more loosely than the
+    // conservative in-place revision path (0.90).
+    expect(SUPERSEDE_SIMILARITY_THRESHOLD).toBeGreaterThanOrEqual(0.9);
+    expect(SUPERSEDE_SIMILARITY_THRESHOLD).toBeLessThanOrEqual(1);
   });
 });
