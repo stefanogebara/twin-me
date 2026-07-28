@@ -1,117 +1,214 @@
 {
   "_doc": "Test queries for twin-eval.js. Ground truth for retrieval quality measurement.",
   "_scoring": "For each query, the gold 'expected_types' lists memory types that SHOULD appear in top-5. Score = fraction found.",
-  "_updated": "2026-04-13 — Session 14: removed platform_data from q01/q08/q17/q18 (reflections subsume it, importance=9 vs 8); removed fact from q10/q24 (conversations+reflections score higher at importance=9)",
+  "_updated": "2026-07-28 — Session 15 (METRIC_VERSION 2): added max_age_days to time-sensitive queries and three staleness cases (q26-q28). Purpose: the v1 metric could not see memory AGE, so recency weight was unconstrained and the tuning loop drove it to 0.0 in every mode while the live twin asserted months-old readings as current. Scores are NOT comparable with v1 results.",
   "queries": [
     {
       "id": "q01",
       "query": "What music does this person listen to and what does it reveal about their mood?",
       "retrieval_mode": "default",
-      "expected_types": ["reflection"],
-      "expected_keywords": ["spotify", "music", "listen"],
+      "expected_types": [
+        "reflection"
+      ],
+      "expected_keywords": [
+        "spotify",
+        "music",
+        "listen"
+      ],
       "weight": 1.0
     },
     {
       "id": "q02",
       "query": "What are the core personality traits that define who this person is?",
       "retrieval_mode": "identity",
-      "expected_types": ["reflection"],
-      "expected_keywords": ["personality", "trait", "character"],
+      "expected_types": [
+        "reflection"
+      ],
+      "expected_keywords": [
+        "personality",
+        "trait",
+        "character"
+      ],
       "weight": 1.5
     },
     {
       "id": "q03",
       "query": "What does this person's daily schedule and energy patterns look like?",
       "retrieval_mode": "recent",
-      "expected_types": ["platform_data", "reflection"],
-      "expected_keywords": ["morning", "schedule", "calendar", "energy", "routine"],
-      "weight": 1.0
+      "expected_types": [
+        "platform_data",
+        "reflection"
+      ],
+      "expected_keywords": [
+        "morning",
+        "schedule",
+        "calendar",
+        "energy",
+        "routine"
+      ],
+      "weight": 1.0,
+      "max_age_days": 90
     },
     {
       "id": "q04",
       "query": "How does this person communicate with others and what is their social style?",
       "retrieval_mode": "identity",
-      "expected_types": ["reflection", "conversation"],
-      "expected_keywords": ["social", "communication", "discord", "messages"],
+      "expected_types": [
+        "reflection",
+        "conversation"
+      ],
+      "expected_keywords": [
+        "social",
+        "communication",
+        "discord",
+        "messages"
+      ],
       "weight": 1.2
     },
     {
       "id": "q05",
       "query": "What professional goals and career ambitions does this person have?",
       "retrieval_mode": "identity",
-      "expected_types": ["reflection", "fact"],
-      "expected_keywords": ["work", "career", "linkedin", "professional", "goal"],
+      "expected_types": [
+        "reflection",
+        "fact"
+      ],
+      "expected_keywords": [
+        "work",
+        "career",
+        "linkedin",
+        "professional",
+        "goal"
+      ],
       "weight": 1.2
     },
     {
       "id": "q06",
       "query": "What videos has this person been watching recently on YouTube?",
       "retrieval_mode": "recent",
-      "expected_types": ["platform_data", "reflection"],
-      "expected_keywords": ["youtube", "video", "watch"],
-      "weight": 0.8
+      "expected_types": [
+        "platform_data",
+        "reflection"
+      ],
+      "expected_keywords": [
+        "youtube",
+        "video",
+        "watch"
+      ],
+      "weight": 0.8,
+      "max_age_days": 30
     },
     {
       "id": "q07",
       "query": "What cultural background shapes this person's perspective and taste?",
       "retrieval_mode": "identity",
-      "expected_types": ["reflection"],
-      "expected_keywords": ["culture", "brazilian", "language", "identity"],
+      "expected_types": [
+        "reflection"
+      ],
+      "expected_keywords": [
+        "culture",
+        "brazilian",
+        "language",
+        "identity"
+      ],
       "weight": 1.3
     },
     {
       "id": "q08",
       "query": "How does this person's sleep and physical wellness affect their behavior?",
       "retrieval_mode": "default",
-      "expected_types": ["reflection"],
-      "expected_keywords": ["sleep", "health", "recovery", "energy"],
+      "expected_types": [
+        "reflection"
+      ],
+      "expected_keywords": [
+        "sleep",
+        "health",
+        "recovery",
+        "energy"
+      ],
       "weight": 1.0
     },
     {
       "id": "q09",
       "query": "What emotional patterns emerge when this person is under stress?",
       "retrieval_mode": "reflection",
-      "expected_types": ["reflection"],
-      "expected_keywords": ["stress", "emotional", "cope", "pattern"],
+      "expected_types": [
+        "reflection"
+      ],
+      "expected_keywords": [
+        "stress",
+        "emotional",
+        "cope",
+        "pattern"
+      ],
       "weight": 1.5
     },
     {
       "id": "q10",
       "query": "What creative or intellectual interests does this person pursue?",
       "retrieval_mode": "identity",
-      "expected_types": ["reflection"],
-      "expected_keywords": ["interest", "creative", "learn", "curious"],
+      "expected_types": [
+        "reflection"
+      ],
+      "expected_keywords": [
+        "interest",
+        "creative",
+        "learn",
+        "curious"
+      ],
       "weight": 1.2
     },
     {
       "id": "q11",
       "query": "How does this person make decisions when facing important choices?",
       "retrieval_mode": "reflection",
-      "expected_types": ["reflection"],
-      "expected_keywords": ["decision", "choice", "thinking", "motivation"],
+      "expected_types": [
+        "reflection"
+      ],
+      "expected_keywords": [
+        "decision",
+        "choice",
+        "thinking",
+        "motivation"
+      ],
       "weight": 1.3
     },
     {
       "id": "q12",
       "query": "What are this person's relationships like with friends and family?",
       "retrieval_mode": "identity",
-      "expected_types": ["reflection", "conversation"],
-      "expected_keywords": ["friend", "family", "relationship", "social"],
+      "expected_types": [
+        "reflection",
+        "conversation"
+      ],
+      "expected_keywords": [
+        "friend",
+        "family",
+        "relationship",
+        "social"
+      ],
       "weight": 1.0
     },
     {
       "id": "q13",
       "query": "What has been on this person's mind lately — what are they thinking about most?",
       "retrieval_mode": "recent",
-      "expected_types": ["conversation", "platform_data", "reflection"],
+      "expected_types": [
+        "conversation",
+        "platform_data",
+        "reflection"
+      ],
       "expected_keywords": [],
-      "weight": 0.7
+      "weight": 0.7,
+      "max_age_days": 30
     },
     {
       "id": "q14",
       "query": "What specific facts are known about this person's life history and background?",
       "retrieval_mode": "identity",
-      "expected_types": ["fact"],
+      "expected_types": [
+        "fact"
+      ],
       "expected_keywords": [],
       "weight": 1.0
     },
@@ -119,63 +216,115 @@
       "id": "q15",
       "query": "How does this person's Spotify listening habits reflect their emotional state?",
       "retrieval_mode": "reflection",
-      "expected_types": ["reflection", "platform_data"],
-      "expected_keywords": ["spotify", "music", "emotion", "mood"],
+      "expected_types": [
+        "reflection",
+        "platform_data"
+      ],
+      "expected_keywords": [
+        "spotify",
+        "music",
+        "emotion",
+        "mood"
+      ],
       "weight": 1.2
     },
     {
       "id": "q16",
       "query": "What motivates this person to work hard and what makes them lose motivation?",
       "retrieval_mode": "reflection",
-      "expected_types": ["reflection"],
-      "expected_keywords": ["motivation", "work", "driven", "goal"],
+      "expected_types": [
+        "reflection"
+      ],
+      "expected_keywords": [
+        "motivation",
+        "work",
+        "driven",
+        "goal"
+      ],
       "weight": 1.5
     },
     {
       "id": "q17",
       "query": "What does this person's online presence reveal about their true interests?",
       "retrieval_mode": "identity",
-      "expected_types": ["reflection"],
-      "expected_keywords": ["online", "youtube", "discord", "spotify"],
+      "expected_types": [
+        "reflection"
+      ],
+      "expected_keywords": [
+        "online",
+        "youtube",
+        "discord",
+        "spotify"
+      ],
       "weight": 1.0
     },
     {
       "id": "q18",
       "query": "What patterns emerge from this person's calendar and time management?",
       "retrieval_mode": "recent",
-      "expected_types": ["reflection"],
-      "expected_keywords": ["calendar", "schedule", "time", "meeting"],
+      "expected_types": [
+        "reflection"
+      ],
+      "expected_keywords": [
+        "calendar",
+        "schedule",
+        "time",
+        "meeting"
+      ],
       "weight": 0.9
     },
     {
       "id": "q19",
       "query": "What deep observations have been made about this person's lifestyle rhythms?",
       "retrieval_mode": "reflection",
-      "expected_types": ["reflection"],
-      "expected_keywords": ["lifestyle", "rhythm", "pattern", "routine"],
+      "expected_types": [
+        "reflection"
+      ],
+      "expected_keywords": [
+        "lifestyle",
+        "rhythm",
+        "pattern",
+        "routine"
+      ],
       "weight": 1.3
     },
     {
       "id": "q20",
       "query": "What makes this person genuinely unique compared to most people?",
       "retrieval_mode": "identity",
-      "expected_types": ["reflection", "fact"],
-      "expected_keywords": ["unique", "distinctive", "characteristic"],
+      "expected_types": [
+        "reflection",
+        "fact"
+      ],
+      "expected_keywords": [
+        "unique",
+        "distinctive",
+        "characteristic"
+      ],
       "weight": 1.5
     },
     {
       "id": "q21",
       "query": "What Discord communities is this person part of and what do they reveal?",
       "retrieval_mode": "default",
-      "expected_types": ["platform_data", "reflection"],
-      "expected_keywords": ["discord", "community", "server"],
+      "expected_types": [
+        "platform_data",
+        "reflection"
+      ],
+      "expected_keywords": [
+        "discord",
+        "community",
+        "server"
+      ],
       "weight": 1.0
     },
     {
       "id": "q22",
       "query": "What has this person told their twin directly in conversations?",
       "retrieval_mode": "recent",
-      "expected_types": ["conversation"],
+      "expected_types": [
+        "conversation"
+      ],
       "expected_keywords": [],
       "weight": 1.0
     },
@@ -183,25 +332,96 @@
       "id": "q23",
       "query": "What are the known biographical facts about this person — name, location, education, work?",
       "retrieval_mode": "identity",
-      "expected_types": ["fact"],
-      "expected_keywords": ["name", "born", "live", "work", "study"],
+      "expected_types": [
+        "fact"
+      ],
+      "expected_keywords": [
+        "name",
+        "born",
+        "live",
+        "work",
+        "study"
+      ],
       "weight": 1.2
     },
     {
       "id": "q24",
       "query": "How does this person balance night owl tendencies with morning responsibilities?",
       "retrieval_mode": "identity",
-      "expected_types": ["reflection", "conversation"],
-      "expected_keywords": ["night", "morning", "sleep", "schedule", "owl"],
+      "expected_types": [
+        "reflection",
+        "conversation"
+      ],
+      "expected_keywords": [
+        "night",
+        "morning",
+        "sleep",
+        "schedule",
+        "owl"
+      ],
       "weight": 1.3
     },
     {
       "id": "q25",
       "query": "What fitness and recovery data shows about this person's physical patterns?",
       "retrieval_mode": "default",
-      "expected_types": ["platform_data", "reflection"],
-      "expected_keywords": ["recovery", "whoop", "hrv", "workout", "strain"],
+      "expected_types": [
+        "platform_data",
+        "reflection"
+      ],
+      "expected_keywords": [
+        "recovery",
+        "whoop",
+        "hrv",
+        "workout",
+        "strain"
+      ],
       "weight": 1.0
+    },
+    {
+      "id": "q26",
+      "query": "How many unread emails does this person have right now?",
+      "retrieval_mode": "recent",
+      "expected_types": [
+        "platform_data"
+      ],
+      "expected_keywords": [
+        "email",
+        "inbox"
+      ],
+      "max_age_days": 30,
+      "weight": 1.5,
+      "_note": "The original bug: the twin quoted a months-old unread count as current. Weighted high because this is the failure the whole effort exists to prevent."
+    },
+    {
+      "id": "q27",
+      "query": "What is this person's current sleep and recovery status?",
+      "retrieval_mode": "recent",
+      "expected_types": [
+        "platform_data"
+      ],
+      "expected_keywords": [
+        "sleep",
+        "recovery"
+      ],
+      "max_age_days": 30,
+      "weight": 1.2,
+      "_note": "Whoop readings are events (that night happened) but 'current' makes an old one the wrong answer, so age matters here even though the row is not a snapshot."
+    },
+    {
+      "id": "q28",
+      "query": "What has this person been doing this week?",
+      "retrieval_mode": "recent",
+      "expected_types": [
+        "platform_data"
+      ],
+      "expected_keywords": [
+        "week"
+      ],
+      "max_age_days": 14,
+      "weight": 1.2,
+      "_note": "Tightest horizon in the set. Directly penalises recency=0."
     }
-  ]
+  ],
+  "_freshness": "max_age_days (optional): retrieved memories older than this count as freshness violations for this query. Set it only where the QUESTION is time-sensitive ('lately', 'right now', 'this week'), not where the answer is a durable trait. Snapshot metrics older than 30d are violations regardless of query."
 }

@@ -203,11 +203,23 @@ describe('clampNoiseObservation — platform-data noise clamps (audit-2026-05-16
     expect(clampNoiseObservation('Created repository "new-cool-project"')).toBeNull();
   });
 
-  it('does NOT clamp non-github platform_data', async () => {
+  it('does NOT clamp events, whatever platform they came from', async () => {
     const { clampNoiseObservation } = await import('../../../api/services/memoryStreamService.js');
     expect(clampNoiseObservation('Listened to Radiohead - Creep for 4:12 minutes')).toBeNull();
+    // A day's measurement happened and stays true — it is an event, not a
+    // reading of current state. The prompt renderer supplies its age.
     expect(clampNoiseObservation('Recovery score today: 42%')).toBeNull();
-    expect(clampNoiseObservation('Most frequent email senders this week: github.com (13)')).toBeNull();
+  });
+
+  it('clamps rolling aggregates from any platform, not just GitHub', async () => {
+    // Behaviour deliberately widened in Phase 1: the clamp is about snapshots of
+    // mutable state, not about which platform produced them. "this week" is
+    // recomputed every cycle, so an old copy describes a window that has moved
+    // on — 155+ copies of this one template were found in production.
+    const { clampNoiseObservation } = await import('../../../api/services/memoryStreamService.js');
+    expect(clampNoiseObservation('Most frequent email senders this week: github.com (13)')).toBe(4);
+    expect(clampNoiseObservation('Your email mix this week: dev 50%, work 25%')).toBe(4);
+    expect(clampNoiseObservation('YouTube subscription topics: Sport (13)')).toBe(4);
   });
 
   it('handles empty/null input gracefully', async () => {

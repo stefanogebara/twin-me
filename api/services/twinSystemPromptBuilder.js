@@ -10,6 +10,15 @@
 
 import { createLogger } from '../utils/logger.js';
 import { fenceUntrustedContext } from './promptFencing.js';
+
+/**
+ * Prompt budget for the temporal spine. dynamicContext is hard-capped and
+ * truncated from the TAIL, and the tail is the PLATFORM CONTEXT block the prompt
+ * tells the model to quote exactly — so an unclamped spine silently deletes the
+ * live analytics. Module-scoped: the spine block reads it before the wiki
+ * constants are declared.
+ */
+const MAX_SPINE_CHARS = 2500;
 const log = createLogger('TwinSystemPrompt');
 
 // Token budget: ~4 chars per token. Claude Sonnet handles larger contexts well.
@@ -284,7 +293,7 @@ When the user asks for a "morning briefing", "what's my day look like", or simil
  * Build a personalized system prompt based on user's soul signature, platform data, and memory.
  * Returns an array format for Anthropic prompt caching - static base is cached, dynamic context is not.
  */
-export function buildTwinSystemPrompt(soulSignature, platformData, twinSummary = null, proactiveInsights = null, userLocation = null, coreMemoryBlockText = null, departmentProposals = null, wikiPages = null, directives = null) {
+export function buildTwinSystemPrompt(soulSignature, platformData, twinSummary = null, proactiveInsights = null, userLocation = null, coreMemoryBlockText = null, departmentProposals = null, wikiPages = null, directives = null, timelineSpine = null) {
   let dynamicContext = '';
 
   // === CORE IDENTITY (pinned blocks — highest attention weight) ===
@@ -367,6 +376,27 @@ export function buildTwinSystemPrompt(soulSignature, platformData, twinSummary =
   }
 
   dynamicContext += `\n${temporalLine}`;
+
+  // === TEMPORAL SPINE (time-selected timeline) ===
+  // Placed before the knowledge base so the model reads WHEN things happened
+  // before it reads WHAT is known. Every line is dated, which is the structural
+  // defence against the original failure: a summary of March cannot be read as
+  // present tense when its own line says "5 months ago".
+  // Budgeted. dynamicContext is hard-capped and truncated from the TAIL, and the
+  // tail is the PLATFORM CONTEXT block — the live Whoop/Gmail/GitHub analytics
+  // the prompt tells the model to quote exactly. Measured: base 17.4k chars with
+  // 3 wiki pages, so an unclamped worst-case spine (16 lines x 280 chars = 5.1k)
+  // pushed the total to ~22.5k against a 20k cap and silently deleted those
+  // analytics — re-creating the exact "I haven't picked up on your strain data
+  // yet" bug documented further down this file.
+  if (timelineSpine) {
+    const spineText = timelineSpine.length > MAX_SPINE_CHARS
+      ? timelineSpine.slice(0, MAX_SPINE_CHARS) + '\n[...older timeline truncated]'
+      : timelineSpine;
+    dynamicContext += `
+
+${spineText}`;
+  }
 
   // === COMPILED KNOWLEDGE BASE (LLM Wiki — pre-compiled, cross-referenced domain pages) ===
   // When wiki pages are available, they subsume the twin summary with richer structured context.

@@ -20,6 +20,8 @@ import { getTopPatterns } from './twinPatternService.js';
 import { inferIdentityContext } from './identityContextService.js';
 import { getPendingProposals } from './departmentService.js';
 import { getRelevantWikiPages } from './wikiCompilationService.js';
+import { renderSpine } from './memoryTimelineService.js';
+import { getFeatureFlags } from './featureFlagsService.js';
 import { getActiveDirectives } from './twinSelfImprovement.js';
 import { raceContextFanout } from './contextFanout.js';
 import axios from 'axios';
@@ -325,7 +327,10 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
   // under the 60s Vercel function cap.
   const CONTEXT_TIMEOUT_MS = 10000;
 
-  const defaults = [null, {}, null, [], null, [], { success: false, data: null }, [], null, [], null, null, [], [], [], []];
+  // One entry per fetchPromises leg, in order. timelineSpine (index 15) must
+// default to null, not [] — it is rendered as a string and an empty array is
+// truthy, which would append a bare newline to the system prompt.
+  const defaults = [null, {}, null, [], null, [], { success: false, data: null }, [], null, [], null, null, [], [], [], null, []];
 
   const fetchPromises = [
     fetchSoul
@@ -451,6 +456,25 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
       return [];
     })),
 
+    // Temporal spine: a constant-sized, time-selected timeline. Deliberately NOT
+    // a vector search — that is the point. Retrieval picks candidates by embedding
+    // distance, so recent-but-not-semantically-near memories are unreachable
+    // (Phase 2 measured "what have I been doing this week?" returning nothing
+    // younger than 49 days). The spine is selected purely by time, so the recent
+    // window is present whatever the question. Feature-flagged; a read of one
+    // small indexed table.
+    timed('timelineSpine', (async () => {
+      const flags = await getFeatureFlags(userId).catch(() => ({}));
+      if (!flags?.temporal_spine) return null;
+      // Day boundaries follow the user's calendar, not UTC — otherwise a
+      // UTC-3 evening is labelled "yesterday" for three hours a night.
+      const { data: prof } = await supabaseAdmin
+        .from('users').select('timezone').eq('id', userId).maybeSingle();
+      return renderSpine(userId, { supabase: supabaseAdmin, timeZone: prof?.timezone || undefined })
+        .then(r => r.text || null)
+        .catch(err => { log.warn('Timeline spine fetch failed:', err.message); return null; });
+    })()),
+
     // Self-improving twin: directives learned from past user corrections
     // (pi-reflect pattern, askjo.ai-inspired). Injected into the system
     // prompt as sticky-note rules. Hot path — single indexed read.
@@ -500,6 +524,7 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
     nudgeHistory,
     departmentProposals,
     wikiPages,
+    timelineSpine,
     directives,
   ] = contextResults;
 
@@ -841,6 +866,7 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
 
   return {
     soulSignature,
+    timelineSpine,
     platformData: returnedPlatformData,
     whoopAnalytics,
     writingProfile,

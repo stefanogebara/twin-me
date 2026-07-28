@@ -25,6 +25,7 @@ import { supabaseAdmin } from './database.js';
 import { traverseLinksForRetrieval, getCoCitationBoosts } from './memoryLinksService.js';
 import { getFeatureFlags } from './featureFlagsService.js';
 import { bm25ScoreBatch, extractKeywords } from './bm25Service.js';
+import { snapshotMetricScore } from './snapshotMetrics.js';
 
 import { createLogger } from './logger.js';
 
@@ -301,6 +302,88 @@ const GUM_LOWER_BAND = 0.75;
 const GUM_UPPER_BAND = 0.90; // exclusive (>= 0.90 is handled by maybeReviseExistingMemory)
 const GUM_CONFIRM_DELTA = 0.10;
 const GUM_CONTRADICT_DELTA = -0.15;
+
+/**
+ * Confidence at or below which a repeatedly-contradicted memory is retired
+ * rather than left to linger at low confidence forever.
+ *
+ * Deliberately not a single-contradiction trigger: memories enter at 0.70-0.90
+ * and each contradiction costs 0.15, so this takes three or four independent
+ * contradictions to reach. One disagreement should weaken a belief; a sustained
+ * pattern of them should end it.
+ */
+const SUPERSEDE_CONFIDENCE_FLOOR = 0.25;
+
+/**
+ * The authoritative liveness test for a memory.
+ *
+ * NOT superseded_by: that column is REFERENCES user_memories(id) ON DELETE SET
+ * NULL, and the forgetting cron hard-deletes rows after archiving. Deleting a
+ * replacement would null the pointer and silently resurrect what it replaced.
+ * superseded_at is a plain timestamp no foreign key can clear.
+ *
+ * Use this on EVERY query whose results reach the prompt. Supersession was
+ * originally enforced only inside search_memory_stream, so the diverse-retrieval
+ * legs, getRecentMemories and the wiki compiler all still saw retired rows —
+ * which meant a retired fact could be fed to the reflection engine and laundered
+ * back in as a NEW reflection at importance 7-9.
+ */
+const liveOnly = (q) => q.is('superseded_at', null);
+
+/**
+ * True when a contradiction should retire the existing memory outright.
+ * Pure, so the threshold behaviour is testable without a database.
+ *
+ * @param {number} currentConfidence
+ * @param {number} delta - signed confidence change being applied
+ * @returns {boolean}
+ */
+function shouldSupersedeOnContradiction(currentConfidence, delta) {
+  if (delta >= 0) return false;
+  const next = Math.min(0.95, Math.max(0.10, (currentConfidence ?? 0.7) + delta));
+  return next <= SUPERSEDE_CONFIDENCE_FLOOR;
+}
+
+/**
+ * Retire `oldId`, recording that `newId` replaced it.
+ *
+ * Append-only invalidation: the row is kept and stays queryable for "how have I
+ * changed" questions, but drops out of ordinary retrieval and stops having its
+ * recency refreshed. Nothing is deleted.
+ *
+ * @param {string} oldId
+ * @param {string} newId - the memory that replaces it
+ * @param {string} [reason] - recorded for audit
+ * @returns {Promise<boolean>} whether a row was retired
+ */
+async function supersedeMemory(oldId, newId, reason = 'contradicted') {
+  // A memory superseding itself would vanish from retrieval permanently with no
+  // replacement, so treat it as a bug rather than a no-op.
+  if (!oldId || !newId || oldId === newId) {
+    log.warn('Refusing invalid supersession', { oldId, newId });
+    return false;
+  }
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('user_memories')
+      .update({ superseded_by: newId, superseded_at: new Date().toISOString() })
+      .eq('id', oldId)
+      .is('superseded_at', null)   // idempotent: never re-retire an already-retired row
+      .select('id');
+    if (error) {
+      log.warn('Supersede failed', { error: error.message, oldId });
+      return false;
+    }
+    if (data?.length) {
+      log.info('Memory superseded', { oldId, newId, reason });
+      return true;
+    }
+    return false;
+  } catch (err) {
+    log.warn('Supersede threw (non-fatal)', { error: err?.message, oldId });
+    return false;
+  }
+}
 const GUM_MAX_LLM_CALLS = 3; // cap LLM calls per write to control cost
 
 const GUM_CLASSIFY_PROMPT = `You are a fact-checker comparing two statements about the same person.
@@ -311,7 +394,7 @@ Statement B (new observation): "{new}"
 Does Statement B CONFIRM, CONTRADICT, or is it UNRELATED to Statement A?
 Reply with exactly one word: CONFIRMS, CONTRADICTS, or UNRELATED.`;
 
-async function applyGumBayesianRevision(userId, newContent, newEmbedding, memoryType) {
+async function applyGumBayesianRevision(userId, newContent, newEmbedding, memoryType, newMemoryId = null) {
   if (!newEmbedding) return;
   // Only run on types where contradictions are meaningful
   if (!REVISION_TYPES.has(memoryType)) return;
@@ -363,7 +446,14 @@ async function applyGumBayesianRevision(userId, newContent, newEmbedding, memory
 
         const currentConf = row.confidence ?? 0.7;
         const newConf = Math.min(0.95, Math.max(0.10, currentConf + delta));
-        updates.push({ id: row.id, confidence: newConf, verdict });
+        updates.push({
+          id: row.id,
+          confidence: newConf,
+          verdict,
+          // A belief contradicted until its confidence collapses should be
+          // retired, not left hovering at 0.10 where it still surfaces.
+          supersede: Boolean(newMemoryId) && shouldSupersedeOnContradiction(currentConf, delta),
+        });
       } catch {
         // Non-fatal — skip this candidate
       }
@@ -383,6 +473,11 @@ async function applyGumBayesianRevision(userId, newContent, newEmbedding, memory
       // reduce confidence of downstream reflections that cite it via grounding_ids
       if (u.verdict === 'CONTRADICTS') {
         cascadeContradiction(u.id).catch((e) => log.warn('GUM cascade dispatch failed (non-fatal)', { id: u.id, error: e?.message || String(e) }));
+        // Confidence has collapsed after repeated contradictions — retire it in
+        // favour of the memory that contradicted it.
+        if (u.supersede) {
+          supersedeMemory(u.id, newMemoryId, 'gum_contradiction').catch(() => {});
+        }
       }
     }
   } catch (err) {
@@ -451,9 +546,9 @@ async function addMemory(userId, content, memoryType = 'observation', metadata =
     ]);
 
     // Importance floors (see applyImportanceFloor): conversations floor at 7 and
-    // platform_data at 6 so they survive min-max normalisation in retrieval — but a
-    // git-noise-clamped row (options.noiseClamped) keeps its 3-4 so the
-    // noise-suppression feature is not undone (audit).
+    // platform_data at 6 so they survive normalisation in retrieval — but a row the
+    // clamp explicitly demoted (options.noiseClamped) keeps its 3-4, so neither the
+    // git-noise suppression nor the snapshot-metric demotion is silently undone.
     importanceScore = applyImportanceFloor(memoryType, importanceScore, options);
 
     // S5.1: Proposition revision — for reflection/fact types, prefer UPDATE over INSERT
@@ -461,12 +556,6 @@ async function addMemory(userId, content, memoryType = 'observation', metadata =
     if (!options.skipRevision && embedding) {
       const revised = await maybeReviseExistingMemory(userId, content, memoryType, embedding, options);
       if (revised) return revised; // Return existing memory ID — no new insert
-    }
-
-    // GUM Task 1: Bayesian contradiction detection — fire-and-forget, does not block INSERT
-    // Updates confidence of related memories in the 0.75–0.90 cosine band
-    if (embedding && !options.skipRevision) {
-      applyGumBayesianRevision(userId, content, embedding, memoryType).catch(() => {});
     }
 
     const record = {
@@ -505,6 +594,13 @@ async function addMemory(userId, content, memoryType = 'observation', metadata =
     if (error) {
       log.error('Failed to store memory', { error });
       return null;
+    }
+
+    // GUM Task 1: Bayesian contradiction detection — fire-and-forget, never
+    // blocks the caller. Runs AFTER the insert because supersession has to point
+    // the retired memory at the row that replaced it, which needs its id.
+    if (embedding && !options.skipRevision) {
+      applyGumBayesianRevision(userId, content, embedding, memoryType, data.id).catch(() => {});
     }
 
     // Phase 1: the new reading retires the ones it replaces. Runs AFTER the
@@ -645,7 +741,12 @@ function clampNoiseObservation(content) {
   for (const { rx, score } of NOISE_OBSERVATION_PATTERNS) {
     if (rx.test(content)) return score;
   }
-  return null;
+  // Point-in-time readings of mutable state (unread counts, battery %, stress
+  // score). Without this they take the platform_data floor of 6, which sits
+  // above the <= 4 ceiling Tier 2 archival filters on — so a snapshot that was
+  // wrong within the hour stayed in the stream permanently, rendered at full
+  // length and unhedged. See snapshotMetrics.js.
+  return snapshotMetricScore(content);
 }
 
 /**
@@ -1438,6 +1539,7 @@ async function retrieveDiverseMemories(userId, query, budgets = {}, reflectionWe
         .select(SELECT_COLS)
         .eq('user_id', userId)
         .eq('memory_type', 'fact')
+        .is('superseded_at', null)
         .order('importance_score', { ascending: false })
         .limit(maxFacts)
         .then(({ data, error }) => {
@@ -1453,6 +1555,7 @@ async function retrieveDiverseMemories(userId, query, budgets = {}, reflectionWe
         .select(SELECT_COLS)
         .eq('user_id', userId)
         .eq('memory_type', 'platform_data')
+        .is('superseded_at', null)
         .order('created_at', { ascending: false })
         .limit(maxPlatformData)
         .then(({ data, error }) => {
@@ -2042,4 +2145,7 @@ export {
   decaySourceMemories,
   RETRIEVAL_WEIGHTS,
   clampNoiseObservation,
+  supersedeMemory,
+  shouldSupersedeOnContradiction,
+  SUPERSEDE_CONFIDENCE_FLOOR,
 };

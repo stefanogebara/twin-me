@@ -11,6 +11,8 @@ vi.mock('../../../api/services/database.js', () => {
   const mockChain = {
     select: vi.fn(),
     eq: vi.fn(),
+    // .is('superseded_at', null) — retired memories must never reach the prompt.
+    is: vi.fn(),
     order: vi.fn(),
     limit: vi.fn(),
     then: vi.fn(),
@@ -18,6 +20,7 @@ vi.mock('../../../api/services/database.js', () => {
   // Make all chain methods return the chain itself so we can do .select().eq().order().limit().then()
   mockChain.select.mockReturnValue(mockChain);
   mockChain.eq.mockReturnValue(mockChain);
+  mockChain.is.mockReturnValue(mockChain);
   mockChain.order.mockReturnValue(mockChain);
   mockChain.limit.mockReturnValue(mockChain);
 

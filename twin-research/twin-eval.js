@@ -1,21 +1,47 @@
 /**
  * TwinMe Twin Eval — Fixed Evaluation Harness
  * ============================================
- * DO NOT MODIFY THIS FILE.
+ * DO NOT MODIFY THIS FILE *during a tuning run*.
  * This is the fixed evaluation harness, analogous to prepare.py's evaluate_bpb()
  * in karpathy/autoresearch. The agent modifies twin-config.js only.
  *
+ * Changing the harness moves the goalposts and invalidates comparison against
+ * earlier runs, so it is done deliberately, between runs, with METRIC_VERSION
+ * bumped — never mid-loop.
+ *
  * Metric: twin_quality_score (0.0 – 1.0, HIGHER = better)
  *
+ * METRIC_VERSION 2 (2026-07-28) — added freshness. Scores are NOT comparable
+ * with v1 results in results.tsv (v1 peaked at ~0.882 on a corpus that also
+ * contained ~4.6k duplicate stale platform rows since archived).
+ *
  * Composite formula:
- *   twin_quality_score = 0.50 * precision_at_5
- *                      + 0.30 * recall_at_10
- *                      + 0.20 * diversity_score
+ *   twin_quality_score = 0.45 * precision_at_5
+ *                      + 0.25 * recall_at_10
+ *                      + 0.15 * diversity_score
+ *                      + 0.15 * freshness_score
  *
  * Components:
  *   precision_at_5  — Fraction of queries where expected memory type appears in top-5
  *   recall_at_10    — Fraction of queries where expected memory type appears in top-10
  *   diversity_score — Average entropy of memory type distribution in top-5 (normalized)
+ *   freshness_score — Age-appropriateness of what was retrieved (see below)
+ *
+ * WHY FRESHNESS EXISTS
+ * v1 scored only type and keyword matching, so nothing in the objective could
+ * see a memory's AGE. Recency weight was therefore unconstrained, and the tuning
+ * loop drove it to 0.0 in every mode — including 'recent' — and logged the
+ * result as "counterintuitively, recency=0 works best". It was not
+ * counterintuitive; the metric was blind. Meanwhile the live twin was asserting
+ * months-old readings as current. A retrieval objective that cannot distinguish
+ * a memory from today from one from March cannot be tuned toward truth.
+ *
+ * A retrieved memory counts as a freshness violation when either:
+ *   - the query sets max_age_days and the memory is older than that, or
+ *   - it is a snapshot metric (a reading of mutable state) older than
+ *     SNAPSHOT_FRESHNESS_DAYS — stale in any context, whatever was asked.
+ * freshness = 1 - violations / |top5|; queries with no age constraint and no
+ * stale snapshots score 1.0.
  *
  * All evaluation is objective (no LLM calls) — based purely on retrieval results.
  * This makes evaluation deterministic given fixed DB state.
@@ -32,6 +58,18 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { readFileSync } from 'fs';
 import dotenv from 'dotenv';
+// Shared with production so the eval's idea of "a reading of mutable state"
+// cannot drift from the pipeline's.
+import { isSnapshotMetric } from '../api/services/snapshotMetrics.js';
+
+const METRIC_VERSION = 2;
+
+/**
+ * A snapshot metric older than this is treated as a violation no matter what
+ * was asked. Chosen to match the Tier 2 archival window (30 days) rather than
+ * invent a third notion of "old".
+ */
+const SNAPSHOT_FRESHNESS_DAYS = 30;
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: join(__dirname, '..', '.env') });
@@ -51,7 +89,11 @@ const TEST_USER_ID = process.env.TEST_TWIN_USER_ID || '167c27b5-a40b-49fb-8d00-d
 const PRECISION_K = 5;
 const RECALL_K = 10;
 const MAX_ENTROPY_TYPES = 5; // 5 memory types → max entropy = log2(5)
-const EVAL_TIMEOUT_MS = 120_000; // 2 minutes max
+// Raised from 120s (METRIC_VERSION 2). At 120s the harness silently scored only
+// the first 24 of 28 queries and reported the partial average as the result —
+// and before the vector-index regression was fixed, only 2 of 25. A truncated
+// run is worse than a slow one: it reports a number that looks valid.
+const EVAL_TIMEOUT_MS = 420_000; // 7 minutes — full 28-query sweep with headroom
 
 // Load fixed test queries
 const goldPath = join(__dirname, 'test-data', 'retrieval-gold.json');
@@ -164,7 +206,7 @@ function mmrRerank(candidates, k) {
 
 // ─── Single query evaluation ──────────────────────────────────────────────────
 async function evaluateQuery(testQuery) {
-  const { query, retrieval_mode, expected_types, expected_keywords } = testQuery;
+  const { query, retrieval_mode, expected_types, expected_keywords, max_age_days } = testQuery;
 
   // Resolve weights from config (mirrors memoryStreamService.js logic)
   const w = RETRIEVAL_WEIGHTS[retrieval_mode] || RETRIEVAL_WEIGHTS.default;
@@ -185,7 +227,11 @@ async function evaluateQuery(testQuery) {
   });
 
   if (error || !rawResults || rawResults.length === 0) {
-    return { precision_at_5: 0, recall_at_10: 0, diversity: 0, count: 0 };
+    // freshness must be present here too — omitting it makes the weighted sum
+    // NaN and silently poisons the whole run. Zero, consistent with the other
+    // components: a query that retrieved nothing has no fresh evidence either,
+    // and scoring it 1.0 would pay for returning nothing.
+    return { precision_at_5: 0, recall_at_10: 0, diversity: 0, freshness: 0, count: 0 };
   }
 
   // Type-stratified augmentation: when query expects multiple types,
@@ -211,6 +257,10 @@ async function evaluateQuery(testQuery) {
         .eq('user_id', TEST_USER_ID)
         .eq('memory_type', etype)
         .eq('is_archived', false)
+        // search_memory_stream excludes retired rows; without the same filter
+        // here the augmentation path would smuggle them back in and the eval
+        // would measure a retrieval set production never sees.
+        .is('superseded_at', null)
         .not('embedding', 'is', null)
         .order('importance_score', { ascending: false })
         .limit(20); // wider net to find query-relevant entries
@@ -302,10 +352,29 @@ async function evaluateQuery(testQuery) {
     diversity = 0.6 * typeCoverage + 0.4 * normalizedEntropy;
   }
 
+  // ── Freshness: is what we surfaced age-appropriate for what was asked? ────
+  // Two independent ways to be wrong. A time-sensitive query ("lately",
+  // "right now") answered with months-old memories is wrong even if the TYPE is
+  // right — which is precisely what v1 could not see. And a reading of mutable
+  // state that has gone stale is wrong regardless of the question.
+  const nowMs = Date.now();
+  const ageDays = (m) => (nowMs - new Date(m.created_at).getTime()) / 86_400_000;
+
+  let freshnessViolations = 0;
+  for (const m of top5) {
+    if (!m.created_at) continue;             // unknown age: do not guess, do not punish
+    const age = ageDays(m);
+    const tooOldForQuery = max_age_days != null && age > max_age_days;
+    const staleSnapshot = isSnapshotMetric(m.content) && age > SNAPSHOT_FRESHNESS_DAYS;
+    if (tooOldForQuery || staleSnapshot) freshnessViolations++;
+  }
+  const freshness = top5.length > 0 ? 1 - freshnessViolations / top5.length : 1.0;
+
   return {
     precision_at_5: Math.min(1, precisionHit),
     recall_at_10: recallHit,
     diversity,
+    freshness,
     count: rawResults.length,
     top5_types: typeCounts,
   };
@@ -324,6 +393,7 @@ async function evaluate() {
   let totalPrecision = 0;
   let totalRecall = 0;
   let totalDiversity = 0;
+  let totalFreshness = 0;
   let totalWeight = 0;
   let successCount = 0;
 
@@ -341,15 +411,17 @@ async function evaluate() {
       totalPrecision += result.precision_at_5 * weight;
       totalRecall += result.recall_at_10 * weight;
       totalDiversity += result.diversity * weight;
+      totalFreshness += result.freshness * weight;
       totalWeight += weight;
       successCount++;
 
       // Track per-mode stats
       const mode = q.retrieval_mode;
-      if (!modeStats[mode]) modeStats[mode] = { precision: 0, recall: 0, diversity: 0, weight: 0, count: 0 };
+      if (!modeStats[mode]) modeStats[mode] = { precision: 0, recall: 0, diversity: 0, freshness: 0, weight: 0, count: 0 };
       modeStats[mode].precision += result.precision_at_5 * weight;
       modeStats[mode].recall += result.recall_at_10 * weight;
       modeStats[mode].diversity += result.diversity * weight;
+      modeStats[mode].freshness += result.freshness * weight;
       modeStats[mode].weight += weight;
       modeStats[mode].count++;
 
@@ -361,7 +433,7 @@ async function evaluate() {
       }
 
       const icon = result.precision_at_5 >= 0.7 ? '✓' : result.precision_at_5 >= 0.4 ? '~' : '✗';
-      console.log(`${icon} q${String(i+1).padStart(2,'0')} [${mode.padEnd(10)}] P@5=${result.precision_at_5.toFixed(3)} R@10=${result.recall_at_10} D=${result.diversity.toFixed(3)} n=${result.count}`);
+      console.log(`${icon} q${String(i+1).padStart(2,'0')} [${mode.padEnd(10)}] P@5=${result.precision_at_5.toFixed(3)} R@10=${result.recall_at_10} D=${result.diversity.toFixed(3)} F=${result.freshness.toFixed(3)} n=${result.count}`);
     } catch (err) {
       console.log(`✗ q${String(i+1).padStart(2,'0')} FAILED: ${err.message}`);
       totalWeight += weight;
@@ -378,9 +450,10 @@ async function evaluate() {
   const precision = totalWeight > 0 ? totalPrecision / totalWeight : 0;
   const recall = totalWeight > 0 ? totalRecall / totalWeight : 0;
   const diversity = totalWeight > 0 ? totalDiversity / totalWeight : 0;
+  const freshness = totalWeight > 0 ? totalFreshness / totalWeight : 0;
 
-  // Composite score (fixed formula — DO NOT CHANGE)
-  const twin_quality_score = 0.50 * precision + 0.30 * recall + 0.20 * diversity;
+  // Composite score — fixed for the duration of a tuning run. See METRIC_VERSION.
+  const twin_quality_score = 0.45 * precision + 0.25 * recall + 0.15 * diversity + 0.15 * freshness;
 
   const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
 
@@ -388,9 +461,19 @@ async function evaluate() {
   console.log(`precision_at_5:     ${precision.toFixed(6)}`);
   console.log(`recall_at_10:       ${recall.toFixed(6)}`);
   console.log(`diversity_score:    ${diversity.toFixed(6)}`);
+  console.log(`freshness_score:    ${freshness.toFixed(6)}`);
   console.log(`───`);
   console.log(`twin_quality_score: ${twin_quality_score.toFixed(6)}`);
+  console.log(`metric_version:     ${METRIC_VERSION}  (not comparable across versions)`);
   console.log(`queries_completed:  ${successCount}/${TEST_QUERIES.length}`);
+  if (successCount < TEST_QUERIES.length) {
+    // A partial sweep still produces a plausible-looking average, which is how a
+    // 2-of-25 run was mistaken for a real baseline. Say so unmissably and fail.
+    console.log(`
+*** PARTIAL RUN — ${TEST_QUERIES.length - successCount} queries did not execute.`);
+    console.log(`*** twin_quality_score above is an average over a SUBSET and is NOT a valid result.`);
+    console.log(`*** Do not log it to results.tsv or compare it with anything.`);
+  }
   console.log(`eval_seconds:       ${elapsed}`);
 
   // Per-mode breakdown
@@ -399,8 +482,9 @@ async function evaluate() {
     const p = s.weight > 0 ? s.precision / s.weight : 0;
     const r = s.weight > 0 ? s.recall / s.weight : 0;
     const d = s.weight > 0 ? s.diversity / s.weight : 0;
-    const score = 0.50 * p + 0.30 * r + 0.20 * d;
-    console.log(`  ${mode.padEnd(12)} (${s.count}q) P=${p.toFixed(3)} R=${r.toFixed(3)} D=${d.toFixed(3)} → ${score.toFixed(3)}`);
+    const f = s.weight > 0 ? s.freshness / s.weight : 0;
+    const score = 0.45 * p + 0.25 * r + 0.15 * d + 0.15 * f;
+    console.log(`  ${mode.padEnd(12)} (${s.count}q) P=${p.toFixed(3)} R=${r.toFixed(3)} D=${d.toFixed(3)} F=${f.toFixed(3)} → ${score.toFixed(3)}`);
   }
 
   // Type distribution in top-5 results
@@ -412,11 +496,14 @@ async function evaluate() {
   }
 
   return {
+    metric_version: METRIC_VERSION,
+    freshness,
     twin_quality_score,
     precision_at_5: precision,
     recall_at_10: recall,
     diversity_score: diversity,
     queries_completed: successCount,
+    queries_total: TEST_QUERIES.length,
     eval_seconds: parseFloat(elapsed),
   };
 }
@@ -424,7 +511,9 @@ async function evaluate() {
 // Run evaluation
 evaluate()
   .then(result => {
-    process.exit(result.twin_quality_score > 0 ? 0 : 1);
+    // Fail on a truncated sweep so a tuning loop cannot silently record it.
+    const complete = result.queries_completed === result.queries_total;
+    process.exit(result.twin_quality_score > 0 && complete ? 0 : 1);
   })
   .catch(err => {
     console.error('Fatal eval error:', err);

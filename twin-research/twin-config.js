@@ -18,6 +18,35 @@
  *   complexity is not worth it. Removing parameters and matching or
  *   beating the score is a simplification win.
  *
+ * SESSION 17 (2026-07-28): D=0.300/0.333 bottleneck traced to candidate composition,
+ *   with direct evidence rather than inference. Retrieval type histograms:
+ *     q02 "core personality traits" (expects reflection) -> fact x15, reflection x8,
+ *         conversation x3. EIGHT OF THE TOP TEN ARE FACTS. Only 1 reflection reaches
+ *         top-5, so the single-type branch scores expectedCount/3 = 0.333.
+ *     q24 "night owl vs morning responsibilities" (expects reflection+conversation)
+ *         -> reflection x30, ZERO conversations. typeCoverage=0.5, entropy=0 -> 0.300.
+ *   Facts sit semantically closer to "personality traits" than reflection prose does;
+ *   the q24 conversations simply do not exist in the corpus.
+ *
+ *   NOT tunable by reranking, verified exhaustively rather than assumed:
+ *     TYPE_DIVERSITY_WEIGHT 0.0 vs 0.70  -> q02 0.333, q24 0.300 (identical; TDW=0
+ *                                           also DROPS q15 0.536 -> 0.300)
+ *     MMR_LAMBDA 0.12 / 0.40 / 0.70      -> q02 0.333, q24 0.300 (identical)
+ *   MMR only reorders the pool; it cannot add a type that is not in it. Note this was
+ *   re-verified AFTER 20260728h made scoring pool-independent, which changed the
+ *   relevance scale MMR_LAMBDA operates on — the earlier sessions' MMR conclusions
+ *   were drawn under min-max and needed rechecking. They still hold.
+ *
+ *   Also note the eval's type augmentation is gated on expected_types.length > 1, so a
+ *   single-type query like q02 gets no help even when its type is underrepresented.
+ *   Widening that would flatter the harness rather than improve the twin: production
+ *   has no notion of "expected types", so the eval would stop measuring production.
+ *
+ *   THIRD independent problem this session to resolve to candidate selection, after
+ *   staleness (Phase 2) and recency-inertness. The pool is chosen by vector distance
+ *   alone; everything downstream can only rearrange it. That is the architecture's
+ *   real limit, and it is what the temporal spine addresses by selecting on TIME.
+ *
  * BASELINE: twin_quality_score = 0.740165
  * SESSION 1 BEST: 0.827608 (identity {recency:0.0, importance:2.0, relevance:1.2} + MMR=0.5) — DB state 2026-03-11
  * SESSION 2 BEST: 0.801600 (+ recent recency=0.0) — DB state 2026-03-12 (q13 recall fixed, q18 structural gap)
@@ -120,9 +149,57 @@ export const RETRIEVAL_WEIGHTS = {
   // Used by: twin summary generation, personality queries
   identity:   { recency: 0.0, importance: -0.05, relevance: 1.2 },
 
-  // Recent context — counterintuitively, recency=0 works best.
-  // Reflection decay_rate=90 makes recency bias bury platform_data/conversations.
-  // Pure semantic matching surfaces diverse types. (Session 2 finding: +2pts)
+  // Recent context. recency=0.0, and this is now a settled result rather than an
+  // accident.
+  //
+  // The original note claimed "counterintuitively, recency=0 works best", which
+  // was an artefact of a metric blind to age. METRIC_VERSION 2 added freshness so
+  // the objective could finally see age, and 20260728h made scoring
+  // pool-independent so a weight means the same thing at any candidate-pool size.
+  // With both in place the knob was swept properly:
+  //
+  //   recency   quality     recent-mode freshness   recent-mode diversity
+  //     0.0     0.857948           0.453                   0.534
+  //     0.3     0.861034           0.453                   0.534
+  //     0.6     0.857419           0.453                   0.493
+  //     3.0     0.856227           0.453                   0.462
+  //
+  // Freshness is INVARIANT — identical to three decimals even at recency 3.0,
+  // which dominates relevance 1.2 outright. Diversity meanwhile degrades
+  // monotonically as recency rises. The +0.003 at 0.3 sits inside this eval's
+  // historical +-0.014 variance, so by the simplicity criterion it is discarded.
+  //
+  // WHY IT CANNOT WORK, AND WHY THAT IS FINE
+  // search_memory_stream picks its candidate pool by vector distance alone. The
+  // recent memories that would fix freshness are not IN the pool, so no ranking
+  // weight can promote them — Phase 2 measured "what have I been doing this
+  // week?" returning 30 conversations, none younger than 49 days, while 889
+  // platform rows from the last 7 days sat unretrieved. Pool-independent scoring
+  // was necessary to make this test trustworthy, but it does not change which
+  // rows are candidates.
+  //
+  // So recency weight is the wrong knob for staleness, permanently. The right
+  // mechanism is the Phase 3 temporal spine, which selects by TIME and bypasses
+  // similarity entirely. Do not re-open this without changing candidate
+  // selection first.
+  //
+  // Historical detail from the pre-freshness metric:
+  //
+  //   recency 0.0 -> score 0.843418, freshness 0.860308
+  //   recency 0.5 -> score 0.840245, freshness 0.860308  (bit-identical)
+  //
+  // Freshness does not move AT ALL, because this knob cannot reach the problem.
+  // search_memory_stream picks its candidate pool by vector distance alone and the
+  // weights only reorder what is already in that pool. For "What has this person
+  // been doing this week?" the returned rows are 30 conversations, none younger
+  // than 49 days, while 889 platform_data rows from the last 7 days sit unretrieved
+  // — they are simply not near the query embedding.
+  //
+  // So staleness is NOT a weight-tuning problem. It is a candidate-selection
+  // problem, and the fix is the Phase 3 temporal spine (time-indexed context that
+  // does not depend on embedding similarity). Left at 0.0: it scores marginally
+  // better and, per the simplicity rule, a knob that demonstrably cannot help
+  // should not be given a non-zero value that implies it does.
   recent: { recency: 0.0, importance: -0.05, relevance: 1.2 },
 
   // Deep pattern analysis — no recency bias (Paper 2 style).

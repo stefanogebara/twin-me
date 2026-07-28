@@ -98,15 +98,18 @@ export async function assembleTwinSystemPrompt({
   const {
     soulSignature, platformData, twinSummary, proactiveInsights,
     departmentProposals, writingProfile, voiceExamples, nudgeHistory,
-    directives,
+    directives, timelineSpine,
   } = twinContext;
 
   const wikiPagesForPrompt = featureFlags.llm_wiki === true ? twinContext.wikiPages : null;
+  // The builder already gates on the flag and returns null when it is off, so
+  // this is just the flag check made visible at the assembly site.
+  const spineForPrompt = featureFlags.temporal_spine === true ? timelineSpine : null;
 
   const systemPrompt = buildTwinSystemPrompt(
     soulSignature, platformData, twinSummary, proactiveInsights,
     userLocation, coreBlockText, departmentProposals, wikiPagesForPrompt,
-    directives,
+    directives, spineForPrompt,
   );
 
   systemPrompt.push({ type: 'text', text: ANTI_EMOJI_RULE });

@@ -22,15 +22,20 @@
 import { addPlatformObservation } from './memoryStreamService.js';
 import { generateEmbeddings } from './embeddingService.js';
 import { shouldTriggerReflection, generateReflections } from './reflectionEngine.js';
+import { generateTwinSummary } from './twinSummaryService.js';
 import { runPlatformExpert } from './platformExperts.js';
 import { generateProactiveInsights, evaluateNudgeOutcomes } from './proactiveInsights.js';
 import { trackGoalProgress, generateGoalSuggestions } from './goalTrackingService.js';
-import { generateTwinSummary } from './twinSummaryService.js';
 import { seedMemoriesFromEnrichment } from './enrichmentMemoryBridge.js';
 import { checkConditionTriggered } from './prospectiveMemoryService.js';
 import { tagSensitivity } from './sensitivityClassifier.js';
 import { calculateAllActivityMetrics, detectActivityAnomaly } from './activityMetricsService.js';
 
+import { buildPendingNodes } from './memoryTimelineService.js';
+import { buildMetricLikePattern } from './snapshotMetrics.js';
+import { getFeatureFlags } from './featureFlagsService.js';
+import { complete, TIER_ANALYSIS } from './llmGateway.js';
+import { supabaseAdmin } from './database.js';
 import { createLogger } from './logger.js';
 import { logExtractionRun, INGESTION_SOURCE } from './extractionTelemetry.js';
 import {
@@ -649,7 +654,14 @@ async function runObservationIngestion(options = {}) {
 
               // For weekly_summary observations the 24h batch window above is too short —
               // fall back to a targeted DB check using the full 7-day window.
-              if (contentType === 'weekly_summary') {
+              //
+              // Snapshot metrics take the same path regardless of contentType.
+              // The hash check above is digit-sensitive, so a changed reading
+              // sails past it, and only isDuplicate() runs the in-place refresh
+              // that keeps one row per metric. Gating on weekly_summary alone
+              // meant the refresh never fired for the daily_summary and
+              // current_state metrics — Whoop stress and Spotify mood among them.
+              if (contentType === 'weekly_summary' || buildMetricLikePattern(content)) {
                 const dup = await isDuplicate(userId, platform, content, contentType);
                 if (dup) continue;
               }
@@ -808,6 +820,34 @@ async function runObservationIngestion(options = {}) {
             }
           } catch (reflErr) {
             log.warn('Reflection check failed', { userId, error: reflErr });
+          }
+
+          // Keep the temporal spine warm. AWAITED, not chained on a timer: this
+          // file already learned that setTimeout does not survive Vercel (the
+          // parent returns before it fires, which left every wiki page 11-34
+          // days stale) — the same reason main added backgroundJobs below.
+          // Bounded to 2 nodes, and today's leaf is throttled to one rebuild per
+          // 6h, so a */15 cron does not pay per cycle.
+          try {
+            const flags = await getFeatureFlags(userId).catch(() => ({}));
+            // Respect the run budget. This block sits AFTER the platform loop, so
+            // without its own check a user entered at 39.9s runs unguarded. The
+            // cron's p90 is ~46s against a 60s maxDuration, and TIER_ANALYSIS has
+            // a 45s gateway timeout with no retry.
+            if (flags?.temporal_spine && !isTimedOut()) {
+              const { data: prof } = await supabaseAdmin
+                .from('users').select('timezone').eq('id', userId).maybeSingle();
+              const userTimeZone = prof?.timezone || undefined;
+              const SPINE_BUDGET_MS = 8000;
+              const r = await Promise.race([
+                buildPendingNodes(userId, { supabase: supabaseAdmin, complete, tier: TIER_ANALYSIS, timeZone: userTimeZone }, { maxNodes: 2 }),
+                new Promise(resolve => setTimeout(() => resolve({ built: 0, timedOut: true }), SPINE_BUDGET_MS)),
+              ]);
+              if (r.timedOut) log.warn('Timeline spine build exceeded budget, deferred', { userId });
+              else if (r.built > 0) log.info('Timeline spine updated', { userId, built: r.built });
+            }
+          } catch (spineErr) {
+            log.warn('Timeline spine build failed (non-fatal)', { userId, error: spineErr?.message });
           }
 
           // After reflection trigger, also generate proactive insights. These

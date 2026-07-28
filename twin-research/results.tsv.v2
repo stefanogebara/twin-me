@@ -1,0 +1,19 @@
+commit	twin_quality_score	precision_at_5	recall_at_10	diversity	status	description
+# METRIC_VERSION 2 (2026-07-28). NOT comparable with v1 rows: freshness added, weights rebalanced,
+# 3 gold queries added, and the corpus lost ~4.6k duplicate stale platform rows to archival.
+# v1 history preserved in results.tsv.
+(v2 base)	0.843418	0.835000	0.916923	0.729275	keep	recency=0.0 all modes, freshness 0.860308, 28/28 queries
+(v2 exp1)	0.840245	0.833564	0.916923	0.712427	discard	recent recency=0.5 — freshness BIT-IDENTICAL (0.860308); weights cannot reach staleness
+(v2 exp2)	0.861034	—	—	—	discard	recent recency=0.3 — +0.003 inside +-0.014 variance; recent-mode freshness UNCHANGED at 0.453
+(v2 exp3)	0.857419	—	—	—	discard	recent recency=0.6 — freshness still 0.453, diversity 0.534->0.493
+(v2 exp4)	0.856227	—	—	—	discard	recent recency=3.0 — freshness STILL 0.453 at 3x relevance; diversity 0.462. Knob is inert for freshness
+# CONCLUSION: recency weight cannot move freshness at any value. Candidate pool is chosen by
+# vector distance alone, so recent memories are absent from it and no weight can promote them.
+# Pool-independent scoring (20260728h) made the test trustworthy; it did not change the answer.
+# The temporal spine is the mechanism for staleness. recency stays 0.0.
+# SESSION 17 D-bottleneck probes (config restored to baseline after each):
+(v2 exp5)	0.858712	—	—	0.735083	discard	TYPE_DIVERSITY_WEIGHT=0.0 — q02/q24 D unchanged, q15 D 0.536->0.300
+(v2 exp6)	0.857865	—	—	0.739862	discard	MMR_LAMBDA=0.40 — q02/q24 D identical to 0.12
+(v2 exp7)	0.858772	—	—	0.739862	discard	MMR_LAMBDA=0.70 — q02/q24 D identical to 0.12; reranking cannot reach it
+# ROOT CAUSE: candidate composition. q02 pool is 15 facts / 8 reflections (top-10 is 8 facts);
+# q24 pool is 30 reflections / 0 conversations. MMR reorders, it cannot add a missing type.

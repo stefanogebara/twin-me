@@ -1,0 +1,73 @@
+-- ============================================================================
+-- Investigation: the candidate pool is capped at 40, and fixing it makes the
+-- eval WORSE. Read this before "fixing" hnsw.ef_search.
+-- Date: 2026-07-28
+--
+-- NO SCHEMA CHANGE. search_memory_stream is left exactly as 20260728e defines
+-- it. This records a measured result so it is not rediscovered and mis-fixed.
+--
+-- THE FINDING
+-- The candidates CTE requests p_limit * 5 (150 at the default) so MMR and the
+-- min-max normalisation have a pool to rank. It never got one. pgvector's
+-- hnsw.ef_search defaults to 40 and an HNSW scan cannot return more rows than
+-- ef_search, whatever the LIMIT says. Rows returned for LIMIT 150 track it
+-- exactly (measured, warm cache):
+--
+--     ef_search  rows   ms
+--        40 (default)  40   1.5      <- the "rows=40 for LIMIT 150" in the plan
+--       100          100   3.0
+--       200          150   4.4
+--       400          150   5.9
+--       800          150   8.6
+--
+-- So a 5x over-fetch is really a 1.3x over-fetch, and every score's
+-- normalisation baseline is computed over 40 candidates instead of 150.
+--
+-- IT IS CURRENTLY HARMLESS...
+-- Under the shipped weights (recency 0.0, importance -0.05, relevance 1.2) the
+-- score is essentially distance and HNSW returns nearest-first, so the top 30
+-- fall inside the first 40 either way. Measured: 0 of 30 rows differ.
+--
+-- ...BUT IT IS A TRAP FOR THE NEXT CHANGE
+-- At the Generative Agents balanced weights (1.0/1.0/1.0) that this
+-- architecture is based on, 12 of 30 rows differ between ef=40 and ef=200.
+-- Phase 2 added a freshness term precisely so recency could be raised. Doing
+-- that against a pool silently capped at 40 means tuning against a retrieval
+-- set that does not match the configuration.
+--
+-- AND FIXING IT NAIVELY MAKES THINGS WORSE
+-- Setting ef_search to p_limit * 5 inside the function was implemented and
+-- evaluated. It works exactly as intended - ef_search=150, pool reaches 150,
+-- warm cost 23.1ms -> 25.1ms, nothing else changed - and the eval got WORSE,
+-- reproducibly (identical to six decimals across two runs):
+--
+--                     before      after ef fix
+--   twin_quality      0.842680    0.811338
+--   precision_at_5    0.835000    0.806718
+--   recall_at_10      0.916923    0.880000
+--   diversity         0.729275    0.696257
+--   freshness         0.855385    0.825846
+--
+-- WHY. The min-max normalisation is pool-size dependent. With 150 candidates
+-- the distant ones set the relevance minimum, so the genuinely good candidates
+-- all compress toward 1.0 and lose discrimination against each other. The 40
+-- cap was accidentally acting as a pre-filter that kept the normalisation
+-- window tight. Diversity dropping is the tell: a wider pool should enable more
+-- variety, and instead the top-5 became more homogeneous.
+--
+-- WHAT THIS MEANS
+-- The real defect is not the cap - it is that scores depend on how many
+-- candidates happen to be fetched. Normalising over a variable-size pool makes
+-- every weight non-transferable across pool sizes. The correct sequence is:
+--   1. make scoring pool-size independent (fixed-scale scoring, or normalise
+--      over a defined window rather than whatever came back), THEN
+--   2. size ef_search to the intended over-fetch, THEN
+--   3. re-tune weights, with recency finally free to move.
+-- Raising ef_search on its own is a measured regression. Do not do it alone.
+--
+-- Reverted; production matches 20260728e. Eval after revert: 0.840257, back in
+-- the 0.840-0.843 band.
+-- ============================================================================
+
+-- Intentionally empty: documentation only.
+SELECT 1;
