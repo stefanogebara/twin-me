@@ -37,6 +37,38 @@ const HEARTBEAT_TOOL_WHITELIST = {
 };
 
 /**
+ * Rules 7-8 of the heartbeat prompt: how a proposal's user-facing
+ * "description" and "reasoning" strings must be written.
+ *
+ * Extracted from the prompt template so the contract is unit-testable. It is
+ * static by construction — no interpolation — precisely so a test can assert
+ * on it. Splice point is the RULES block in checkDepartmentHeartbeats.
+ */
+export const PROPOSAL_TEXT_RULES = `7. The "description" field is the user-facing tile title. It MUST:
+   - Start with a concrete verb: Draft, Block, Schedule, Create, Compile, Send, Reply, Add, Open, Review (only if there is a concrete artifact to review)
+   - Be 8-20 words
+   - Anchor on something specific from the observations: a name, an entity, or a RECENT CHANGE (e.g. "12 new unread this morning", "recovery 42% today", "GitHub @vercel/next")
+   - NEVER cite a running total or lifetime backlog ("39,723 unread", "52k messages", "4,102 followers"). A proposal outlives the reading it came from — it sits on the user's tile and in the twin's context for days, long after that number stopped being true. Cite the CHANGE, not the level.
+   - NEVER use hedging words: "consider", "think about", "maybe", "could", "might want to", "perhaps"
+   GOOD:  "Draft a 15-minute triage plan for the 12 emails that arrived this morning"
+   GOOD:  "Block 90 minutes tomorrow morning for GitHub PR review"
+   BAD:   "Draft a 15-minute Inbox Zero plan to triage 39,723 unread emails" (running total — stale within hours)
+   BAD:   "Consider tackling your email backlog" (hedging, nothing specific)
+   BAD:   "Communications department action" (placeholder, not specific)
+   BAD:   "Review your relationships with newsletter senders" (vague verb, nothing specific)
+
+8. The "reasoning" field is the user-facing evidence line ("Because: …"). It MUST:
+   - Cite specific evidence from the observations: a named entity, or a change with the window it happened in
+   - Be 10-25 words
+   - Identify the source: "Gmail shows…", "Whoop reports…", "Calendar has…", "Spotify played…"
+   - Carry a time reference on any metric reading ("recovery 42% this morning", "12 new unread in the last hour"). A bare running total is never evidence.
+   GOOD:  "Gmail shows 12 new unread in the last hour; GitHub and Substack dominate top senders this week"
+   GOOD:  "Whoop reports recovery 42% this morning with SpO2 89.5% — both indicate impaired recovery overnight"
+   BAD:   "Gmail shows 39,723 unread (92% unread rate)" (running total, not a change)
+   BAD:   "User has a lot of emails" (no evidence, no source)
+   BAD:   "Backlog is severe" (no evidence)`;
+
+/**
  * Validate an LLM-emitted suggestion against the heartbeat whitelist.
  * Returns { ok: true } if the proposal is safe to queue, otherwise
  * { ok: false, reason, details } explaining why it was dropped.
@@ -1011,7 +1043,7 @@ ${crossDeptContext}${signalContext}${goalPromptSection}
 
 EXISTING PENDING PROPOSALS: ${pending.length}/5
 
-YOUR TASK: Based on the data above, output a JSON array of 2-3 specific proposals. Be PROACTIVE, not conservative. If the user has a huge email backlog, propose a triage plan. If they've been listening to the same artist, propose a content idea. If their schedule looks packed, propose blocking focus time.
+YOUR TASK: Based on the data above, output a JSON array of 2-3 specific proposals. Be PROACTIVE, not conservative. If their inbox is filling up faster than they clear it, propose a triage plan. If they've been listening to the same artist, propose a content idea. If their schedule looks packed, propose blocking focus time.
 
 OUTPUT FORMAT (must be valid JSON):
 [
@@ -1035,25 +1067,7 @@ RULES:
 6. For Content → toolName: "docs_create" (only if you have a concrete title), else "suggest"
    - docs_create params MUST include: title (string). Without it, use "suggest".
 
-7. The "description" field is the user-facing tile title. It MUST:
-   - Start with a concrete verb: Draft, Block, Schedule, Create, Compile, Send, Reply, Add, Open, Review (only if there is a concrete artifact to review)
-   - Be 8-20 words
-   - Mention at least one specific number, name, or entity from the observations (e.g. "39k unread", "Whoop recovery 42%", "GitHub @vercel/next")
-   - NEVER use hedging words: "consider", "think about", "maybe", "could", "might want to", "perhaps"
-   GOOD:  "Draft a 15-minute Inbox Zero plan to triage 39,723 unread emails"
-   GOOD:  "Block 90 minutes tomorrow morning for GitHub PR review"
-   BAD:   "Consider tackling your email backlog" (hedging, no number)
-   BAD:   "Communications department action" (placeholder, not specific)
-   BAD:   "Review your relationships with newsletter senders" (vague verb, no number)
-
-8. The "reasoning" field is the user-facing evidence line ("Because: …"). It MUST:
-   - Cite at least one specific metric, count, or named entity from the observations
-   - Be 10-25 words
-   - Identify the source: "Gmail shows…", "Whoop reports…", "Calendar has…", "Spotify played…"
-   GOOD:  "Gmail shows 39,723 unread (92% unread rate); GitHub and Substack dominate top senders this week"
-   GOOD:  "Whoop recovery dropped to 42% with SpO2 89.5% — both indicate impaired recovery overnight"
-   BAD:   "User has a lot of emails" (no number, no source)
-   BAD:   "Backlog is severe" (no evidence)
+${PROPOSAL_TEXT_RULES}
 
 9. Return an EMPTY array [] ONLY if there is genuinely no signal in the data. Do NOT emit a proposal you cannot back with a specific observation citation. A skipped run is better than a vague suggestion.
 
