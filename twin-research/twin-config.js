@@ -120,9 +120,41 @@ export const RETRIEVAL_WEIGHTS = {
   // Used by: twin summary generation, personality queries
   identity:   { recency: 0.0, importance: -0.05, relevance: 1.2 },
 
-  // Recent context. The old note here claimed "counterintuitively, recency=0 works
-  // best" — that was an artefact of a metric blind to age (see twin-eval.js,
-  // METRIC_VERSION 2). Re-tested against the freshness-aware metric:
+  // Recent context. recency=0.0, and this is now a settled result rather than an
+  // accident.
+  //
+  // The original note claimed "counterintuitively, recency=0 works best", which
+  // was an artefact of a metric blind to age. METRIC_VERSION 2 added freshness so
+  // the objective could finally see age, and 20260728h made scoring
+  // pool-independent so a weight means the same thing at any candidate-pool size.
+  // With both in place the knob was swept properly:
+  //
+  //   recency   quality     recent-mode freshness   recent-mode diversity
+  //     0.0     0.857948           0.453                   0.534
+  //     0.3     0.861034           0.453                   0.534
+  //     0.6     0.857419           0.453                   0.493
+  //     3.0     0.856227           0.453                   0.462
+  //
+  // Freshness is INVARIANT — identical to three decimals even at recency 3.0,
+  // which dominates relevance 1.2 outright. Diversity meanwhile degrades
+  // monotonically as recency rises. The +0.003 at 0.3 sits inside this eval's
+  // historical +-0.014 variance, so by the simplicity criterion it is discarded.
+  //
+  // WHY IT CANNOT WORK, AND WHY THAT IS FINE
+  // search_memory_stream picks its candidate pool by vector distance alone. The
+  // recent memories that would fix freshness are not IN the pool, so no ranking
+  // weight can promote them — Phase 2 measured "what have I been doing this
+  // week?" returning 30 conversations, none younger than 49 days, while 889
+  // platform rows from the last 7 days sat unretrieved. Pool-independent scoring
+  // was necessary to make this test trustworthy, but it does not change which
+  // rows are candidates.
+  //
+  // So recency weight is the wrong knob for staleness, permanently. The right
+  // mechanism is the Phase 3 temporal spine, which selects by TIME and bypasses
+  // similarity entirely. Do not re-open this without changing candidate
+  // selection first.
+  //
+  // Historical detail from the pre-freshness metric:
   //
   //   recency 0.0 -> score 0.843418, freshness 0.860308
   //   recency 0.5 -> score 0.840245, freshness 0.860308  (bit-identical)
