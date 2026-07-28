@@ -502,6 +502,22 @@ const NOISE_OBSERVATION_PATTERNS = [
   { rx: /^Your GitHub \d{4} activity: \d+ contributions/i, score: 4 }, // periodic snapshot
   { rx: /^Committed code on \d+ days in the last \d+ days/i, score: 4 }, // rolling stat
   { rx: /^Current GitHub contribution streak: \d+ consecutive days/i, score: 4 }, // rolling stat
+
+  // Snapshot metrics — accumulated mutable-state LEVELS (optmem-brain audit,
+  // Phase 0 item 3). These are re-read every ingestion cycle and are wrong
+  // within hours, yet the LLM rated them 7-8 and applyImportanceFloor pinned
+  // them at 6, while archival only collects platform_data at importance <= 4.
+  // That catch-22 is what made "40,443 unread emails" mathematically immortal;
+  // clamping to 4 puts them back under the EXISTING archive threshold.
+  //
+  // LEVELS ONLY. Transitions ("Inbox grew by 12 unread emails in the last 30
+  // minutes") must NOT match — a delta is an immutable event that stays true
+  // forever, and the audit's guidance is to prefer transitions over levels, so
+  // demoting them would be backwards.
+  { rx: /^Has (?:a backlog of |a moderate pile of )?\d+ unread emails? in inbox/i, score: 4 },
+  { rx: /^Manages a [^()]*mailbox \(/i, score: 4 },              // lifetime mailbox size
+  { rx: /^Reads \d+% of incoming email \(/i, score: 4 },          // derived from lifetime totals
+  { rx: /^Outlook inbox contains approximately [\d,.\s]+ messages/i, score: 4 },
 ];
 
 function clampNoiseObservation(content) {
