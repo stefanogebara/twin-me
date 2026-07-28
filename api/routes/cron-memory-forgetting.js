@@ -286,7 +286,12 @@ router.all('/', async (req, res) => {
       const tier6Cutoff = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
       const { data: tier6Rows } = await supabaseAdmin
         .from('user_memories')
-        .select('id, content, memory_type, importance_score, metadata, created_at')
+        // user_id and last_accessed_at are REQUIRED here, not optional detail:
+        // user_memories_archive.user_id is NOT NULL, so omitting it made every
+        // archive insert fail. The error was not checked and the delete ran
+        // anyway, so this tier destroyed reflections instead of archiving them —
+        // the archive table holds tier1 and tier2 rows but zero tier6 rows.
+        .select('id, user_id, content, memory_type, importance_score, metadata, created_at, last_accessed_at')
         .eq('memory_type', 'reflection')
         .lt('created_at', tier6Cutoff)
         .lt('importance_score', 8)
@@ -295,16 +300,23 @@ router.all('/', async (req, res) => {
 
       if (tier6Rows?.length > 0) {
         const ids = tier6Rows.map(r => r.id);
-        // Follow Tier 1/2 pattern: move to archive table, then delete from user_memories
-        await supabaseAdmin
+        // Follow Tier 1/2 pattern: move to archive table, then delete — and, as
+        // in Tier 1/2, only delete if the archive insert actually succeeded.
+        const { error: t6InsertErr } = await supabaseAdmin
           .from('user_memories_archive')
           .insert(tier6Rows.map(r => ({ ...r, archived_at: new Date().toISOString(), archive_reason: 'tier6_reflection_stale' })));
-        await supabaseAdmin
-          .from('user_memories')
-          .delete()
-          .in('id', ids);
-        stats.tier6ReflectionsArchived = ids.length;
-        log.info('Tier 6 archived stale reflections', { count: ids.length });
+
+        if (t6InsertErr) {
+          log.warn('Tier 6 archive insert failed — nothing deleted', { error: t6InsertErr.message });
+          stats.errors.push(`tier6: ${t6InsertErr.message}`);
+        } else {
+          await supabaseAdmin
+            .from('user_memories')
+            .delete()
+            .in('id', ids);
+          stats.tier6ReflectionsArchived = ids.length;
+          log.info('Tier 6 archived stale reflections', { count: ids.length });
+        }
       }
     } catch (t6Err) {
       log.warn('Tier 6 error', { error: t6Err.message });

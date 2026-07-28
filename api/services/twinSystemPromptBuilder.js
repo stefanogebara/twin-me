@@ -367,14 +367,25 @@ export function buildTwinSystemPrompt(soulSignature, platformData, twinSummary =
   // before it reads WHAT is known. Every line is dated, which is the structural
   // defence against the original failure: a summary of March cannot be read as
   // present tense when its own line says "5 months ago".
+  // Budgeted. dynamicContext is hard-capped and truncated from the TAIL, and the
+  // tail is the PLATFORM CONTEXT block — the live Whoop/Gmail/GitHub analytics
+  // the prompt tells the model to quote exactly. Measured: base 17.4k chars with
+  // 3 wiki pages, so an unclamped worst-case spine (16 lines x 280 chars = 5.1k)
+  // pushed the total to ~22.5k against a 20k cap and silently deleted those
+  // analytics — re-creating the exact "I haven't picked up on your strain data
+  // yet" bug documented further down this file.
   if (timelineSpine) {
+    const spineText = timelineSpine.length > MAX_SPINE_CHARS
+      ? timelineSpine.slice(0, MAX_SPINE_CHARS) + '\n[...older timeline truncated]'
+      : timelineSpine;
     dynamicContext += `
 
-${timelineSpine}`;
+${spineText}`;
   }
 
   // === COMPILED KNOWLEDGE BASE (LLM Wiki — pre-compiled, cross-referenced domain pages) ===
   // When wiki pages are available, they subsume the twin summary with richer structured context.
+  const MAX_SPINE_CHARS = 2500;
   const MAX_WIKI_CHARS_PER_PAGE = 3000;
   const MAX_WIKI_PAGES = 3;
   const wikiSlice = (wikiPages || []).slice(0, MAX_WIKI_PAGES);

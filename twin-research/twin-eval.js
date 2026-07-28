@@ -260,7 +260,7 @@ async function evaluateQuery(testQuery) {
         // search_memory_stream excludes retired rows; without the same filter
         // here the augmentation path would smuggle them back in and the eval
         // would measure a retrieval set production never sees.
-        .is('superseded_by', null)
+        .is('superseded_at', null)
         .not('embedding', 'is', null)
         .order('importance_score', { ascending: false })
         .limit(20); // wider net to find query-relevant entries

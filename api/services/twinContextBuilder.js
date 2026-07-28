@@ -321,7 +321,10 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
   // under the 60s Vercel function cap.
   const CONTEXT_TIMEOUT_MS = 10000;
 
-  const defaults = [null, {}, null, [], null, [], { success: false, data: null }, [], null, [], null, null, [], [], [], []];
+  // One entry per fetchPromises leg, in order. timelineSpine (index 15) must
+// default to null, not [] — it is rendered as a string and an empty array is
+// truthy, which would append a bare newline to the system prompt.
+  const defaults = [null, {}, null, [], null, [], { success: false, data: null }, [], null, [], null, null, [], [], [], null, []];
 
   const fetchPromises = [
     fetchSoul

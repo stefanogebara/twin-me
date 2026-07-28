@@ -144,6 +144,10 @@ function isSameMetricReading(a, b) {
 function buildMetricLikePattern(content) {
   if (!isSnapshotMetric(content)) return null;
   if (!/\d/.test(content)) return null;
+  // PostgREST maps '*' to '%' in like patterns and offers no way to escape it,
+  // so a literal asterisk would silently widen the match. Bail out and let the
+  // observation insert normally rather than risk a broad prefilter.
+  if (content.includes('*')) return null;
   return String(content)
     .replace(/([\\%_])/g, '\\$1')
     .replace(/\d[\d,.]*/g, '%');

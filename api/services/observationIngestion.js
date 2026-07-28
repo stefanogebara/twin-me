@@ -696,9 +696,21 @@ async function runObservationIngestion(options = {}) {
           // one rebuild per 6h, so a */15 cron does not pay per cycle.
           try {
             const flags = await getFeatureFlags(userId).catch(() => ({}));
-            if (flags?.temporal_spine) {
-              const r = await buildPendingNodes(userId, { supabase: supabaseAdmin, complete, tier: TIER_ANALYSIS }, { maxNodes: 2 });
-              if (r.built > 0) log.info('Timeline spine updated', { userId, built: r.built });
+            // Respect the run budget. This block sits AFTER the platform loop, so
+            // without its own check a user entered at 39.9s runs unguarded. The
+            // cron's p90 is ~46s against a 60s maxDuration, and TIER_ANALYSIS has
+            // a 45s gateway timeout with no retry — two unbounded calls could
+            // alone exceed the ceiling, killing the run before logCronExecution
+            // and making the failure invisible in the very telemetry used to
+            // police cost.
+            if (flags?.temporal_spine && !isTimedOut()) {
+              const SPINE_BUDGET_MS = 8000;
+              const r = await Promise.race([
+                buildPendingNodes(userId, { supabase: supabaseAdmin, complete, tier: TIER_ANALYSIS }, { maxNodes: 2 }),
+                new Promise(resolve => setTimeout(() => resolve({ built: 0, timedOut: true }), SPINE_BUDGET_MS)),
+              ]);
+              if (r.timedOut) log.warn('Timeline spine build exceeded budget, deferred', { userId });
+              else if (r.built > 0) log.info('Timeline spine updated', { userId, built: r.built });
             }
           } catch (spineErr) {
             log.warn('Timeline spine build failed (non-fatal)', { userId, error: spineErr?.message });

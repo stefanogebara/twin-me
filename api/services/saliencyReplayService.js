@@ -119,7 +119,7 @@ async function replayForUser(userId, memoriesPerUser, staleCutoff, stats) {
     .in('memory_type', ELIGIBLE_TYPES)
     .gte('importance_score', MIN_IMPORTANCE)
     .lt('last_accessed_at', staleCutoff)
-    .is('superseded_by', null)      // never revive a memory that has been retired
+    .is('superseded_at', null)      // never revive a memory that has been retired
     .order('importance_score', { ascending: false })
     .order('last_accessed_at', { ascending: true })
     .limit(memoriesPerUser);

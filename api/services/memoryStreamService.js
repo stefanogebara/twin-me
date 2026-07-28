@@ -207,6 +207,22 @@ const GUM_CONTRADICT_DELTA = -0.15;
 const SUPERSEDE_CONFIDENCE_FLOOR = 0.25;
 
 /**
+ * The authoritative liveness test for a memory.
+ *
+ * NOT superseded_by: that column is REFERENCES user_memories(id) ON DELETE SET
+ * NULL, and the forgetting cron hard-deletes rows after archiving. Deleting a
+ * replacement would null the pointer and silently resurrect what it replaced.
+ * superseded_at is a plain timestamp no foreign key can clear.
+ *
+ * Use this on EVERY query whose results reach the prompt. Supersession was
+ * originally enforced only inside search_memory_stream, so the diverse-retrieval
+ * legs, getRecentMemories and the wiki compiler all still saw retired rows —
+ * which meant a retired fact could be fed to the reflection engine and laundered
+ * back in as a NEW reflection at importance 7-9.
+ */
+const liveOnly = (q) => q.is('superseded_at', null);
+
+/**
  * True when a contradiction should retire the existing memory outright.
  * Pure, so the threshold behaviour is testable without a database.
  *
@@ -244,7 +260,7 @@ async function supersedeMemory(oldId, newId, reason = 'contradicted') {
       .from('user_memories')
       .update({ superseded_by: newId, superseded_at: new Date().toISOString() })
       .eq('id', oldId)
-      .is('superseded_by', null)   // idempotent: never re-point an existing chain
+      .is('superseded_at', null)   // idempotent: never re-retire an already-retired row
       .select('id');
     if (error) {
       log.warn('Supersede failed', { error: error.message, oldId });
@@ -1379,6 +1395,7 @@ async function retrieveDiverseMemories(userId, query, budgets = {}, reflectionWe
         .select(SELECT_COLS)
         .eq('user_id', userId)
         .eq('memory_type', 'fact')
+        .is('superseded_at', null)
         .order('importance_score', { ascending: false })
         .limit(maxFacts)
         .then(({ data, error }) => {
@@ -1394,6 +1411,7 @@ async function retrieveDiverseMemories(userId, query, budgets = {}, reflectionWe
         .select(SELECT_COLS)
         .eq('user_id', userId)
         .eq('memory_type', 'platform_data')
+        .is('superseded_at', null)
         .order('created_at', { ascending: false })
         .limit(maxPlatformData)
         .then(({ data, error }) => {
