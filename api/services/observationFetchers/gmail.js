@@ -145,7 +145,25 @@ async function fetchGmailObservations(userId) {
         extracted_at: new Date().toISOString(),
       }, { onConflict: 'user_id,platform,data_type,source_url' });
       if (counterErr) {
-        log.warn('Gmail counters upsert error', { error: counterErr.message });
+        // log.ERROR, not warn. This write failing is not a degraded nicety —
+        // it silently disables the entire delta feature. Without the stored
+        // snapshot, prevCounters is null on the next run, so the fetcher falls
+        // back to emitting an absolute backlog ("Has a backlog of 42,987
+        // unread emails") instead of a delta, and re-mints one every 30-minute
+        // cron cycle. Each differs by a few, so dedup cannot collide them and
+        // the importance floor keeps them unarchivable.
+        //
+        // That is exactly what happened: a data_type CHECK violation rejected
+        // every one of these writes from June 2026 onward, logged at WARN, and
+        // nobody saw it for two months (fixed in migration 20260728150000).
+        // Deliberately not thrown — a counters failure must not abort an
+        // otherwise good ingestion run — but it must be visible.
+        log.error('Gmail counters upsert failed — delta tracking is now DEGRADED to absolute baselines', {
+          error: counterErr.message,
+          code: counterErr.code,
+          userId,
+          impact: 'next run will emit an absolute unread count instead of a delta',
+        });
       }
     }
   } catch (e) {
