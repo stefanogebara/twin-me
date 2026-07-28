@@ -18,6 +18,35 @@
  *   complexity is not worth it. Removing parameters and matching or
  *   beating the score is a simplification win.
  *
+ * SESSION 17 (2026-07-28): D=0.300/0.333 bottleneck traced to candidate composition,
+ *   with direct evidence rather than inference. Retrieval type histograms:
+ *     q02 "core personality traits" (expects reflection) -> fact x15, reflection x8,
+ *         conversation x3. EIGHT OF THE TOP TEN ARE FACTS. Only 1 reflection reaches
+ *         top-5, so the single-type branch scores expectedCount/3 = 0.333.
+ *     q24 "night owl vs morning responsibilities" (expects reflection+conversation)
+ *         -> reflection x30, ZERO conversations. typeCoverage=0.5, entropy=0 -> 0.300.
+ *   Facts sit semantically closer to "personality traits" than reflection prose does;
+ *   the q24 conversations simply do not exist in the corpus.
+ *
+ *   NOT tunable by reranking, verified exhaustively rather than assumed:
+ *     TYPE_DIVERSITY_WEIGHT 0.0 vs 0.70  -> q02 0.333, q24 0.300 (identical; TDW=0
+ *                                           also DROPS q15 0.536 -> 0.300)
+ *     MMR_LAMBDA 0.12 / 0.40 / 0.70      -> q02 0.333, q24 0.300 (identical)
+ *   MMR only reorders the pool; it cannot add a type that is not in it. Note this was
+ *   re-verified AFTER 20260728h made scoring pool-independent, which changed the
+ *   relevance scale MMR_LAMBDA operates on — the earlier sessions' MMR conclusions
+ *   were drawn under min-max and needed rechecking. They still hold.
+ *
+ *   Also note the eval's type augmentation is gated on expected_types.length > 1, so a
+ *   single-type query like q02 gets no help even when its type is underrepresented.
+ *   Widening that would flatter the harness rather than improve the twin: production
+ *   has no notion of "expected types", so the eval would stop measuring production.
+ *
+ *   THIRD independent problem this session to resolve to candidate selection, after
+ *   staleness (Phase 2) and recency-inertness. The pool is chosen by vector distance
+ *   alone; everything downstream can only rearrange it. That is the architecture's
+ *   real limit, and it is what the temporal spine addresses by selecting on TIME.
+ *
  * BASELINE: twin_quality_score = 0.740165
  * SESSION 1 BEST: 0.827608 (identity {recency:0.0, importance:2.0, relevance:1.2} + MMR=0.5) — DB state 2026-03-11
  * SESSION 2 BEST: 0.801600 (+ recent recency=0.0) — DB state 2026-03-12 (q13 recall fixed, q18 structural gap)
