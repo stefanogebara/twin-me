@@ -36,14 +36,17 @@ const MAX_NODES = Number(arg('--max', '40'));
 const REBUILD = argv.includes('--rebuild');
 
 const supabase = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
-const deps = { supabase, complete, tier: TIER_ANALYSIS };
+let deps = { supabase, complete, tier: TIER_ANALYSIS };
 
 async function main() {
   if (!process.env.VITE_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     console.error('VITE_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set.');
     process.exit(1);
   }
+  const { data: prof } = await supabase.from('users').select('timezone').eq('id', USER).maybeSingle();
+  deps = { ...deps, timeZone: prof?.timezone || undefined };
   console.log(`user:    ${USER}`);
+  console.log(`tz:      ${deps.timeZone || 'UTC (none stored)'}`);
   console.log(`max:     ${MAX_NODES} nodes this run`);
 
   if (REBUILD) {

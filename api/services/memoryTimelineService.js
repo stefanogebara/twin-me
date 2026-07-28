@@ -63,17 +63,58 @@ const FINE_WINDOW_DAYS = 3;
  */
 const COARSE_RECHECK_MS = 24 * 3600_000;
 
-/** Absolute day number since the Unix epoch (UTC). */
-function dayIndex(ts) {
+/**
+ * Offset of a zone from UTC at a given instant, in ms (positive = east of UTC).
+ * Computed per-instant rather than as a fixed number so DST is handled.
+ */
+function zoneOffsetMs(ms, timeZone) {
+  try {
+    const d = new Date(ms);
+    const asUTC = new Date(d.toLocaleString('en-US', { timeZone: 'UTC' }));
+    const asZone = new Date(d.toLocaleString('en-US', { timeZone }));
+    return asZone.getTime() - asUTC.getTime();
+  } catch {
+    return 0;   // unknown zone: behave as UTC rather than throwing
+  }
+}
+
+/**
+ * Absolute day number for a timestamp, in the USER'S local calendar.
+ *
+ * Day boundaries have to follow the user, not UTC. The spine labels blocks
+ * "today" and "yesterday", and at UTC-3 every evening from 21:00 local onward is
+ * already the next UTC day — so a Sao Paulo user's whole evening was labelled
+ * "yesterday" for three hours out of every twenty-four, and one evening's
+ * memories were split across two leaves. For a feature that exists so an old
+ * line cannot read as current, getting "today" wrong is the worst place to be
+ * wrong.
+ *
+ * @param {string|number|Date} ts
+ * @param {string} [timeZone] - IANA zone (users.timezone). UTC when absent.
+ */
+function dayIndex(ts, timeZone) {
   const ms = ts instanceof Date ? ts.getTime()
     : typeof ts === 'number' ? ts
     : new Date(ts).getTime();
-  return Math.floor(ms / DAY_MS);
+  if (!Number.isFinite(ms)) return NaN;
+  if (!timeZone) return Math.floor(ms / DAY_MS);
+  return Math.floor((ms + zoneOffsetMs(ms, timeZone)) / DAY_MS);
 }
 
-/** Start-of-day timestamp for a day index. */
-function dayIndexToMs(day) {
-  return day * DAY_MS;
+/**
+ * The instant at which a day index begins in the user's local calendar.
+ *
+ * Inverse of dayIndex. The offset is re-read at the candidate instant so a day
+ * that starts either side of a DST change still resolves to local midnight.
+ */
+function dayIndexToMs(day, timeZone) {
+  const naive = day * DAY_MS;
+  if (!timeZone) return naive;
+  // First guess using the offset at the naive instant, then correct once —
+  // enough to land on the right side of a DST transition.
+  let ms = naive - zoneOffsetMs(naive, timeZone);
+  ms = naive - zoneOffsetMs(ms, timeZone);
+  return ms;
 }
 
 function nextPow2(n) {
@@ -317,9 +358,10 @@ function sourceDigest(parts) {
  * @returns {Promise<Object|null>} the node row, or null when the day is empty
  */
 async function buildLeafNode(userId, day, deps) {
-  const { supabase, complete, tier } = deps;
-  const from = new Date(dayIndexToMs(day)).toISOString();
-  const to = new Date(dayIndexToMs(day + 1)).toISOString();
+  const { supabase, complete, tier, timeZone } = deps;
+  // Local-midnight to local-midnight, so a leaf holds the user's day.
+  const from = new Date(dayIndexToMs(day, timeZone)).toISOString();
+  const to = new Date(dayIndexToMs(day + 1, timeZone)).toISOString();
 
   const { data: rows, error } = await supabase
     .from('user_memories')
@@ -437,9 +479,9 @@ async function buildMergeNode(userId, size, start, deps) {
  * cheaper and compounds the compression; this is the cold-start escape hatch.
  */
 async function buildDirectNode(userId, size, start, deps) {
-  const { supabase, complete, tier } = deps;
-  const from = new Date(dayIndexToMs(start)).toISOString();
-  const to = new Date(dayIndexToMs(start + size)).toISOString();
+  const { supabase, complete, tier, timeZone } = deps;
+  const from = new Date(dayIndexToMs(start, timeZone)).toISOString();
+  const to = new Date(dayIndexToMs(start + size, timeZone)).toISOString();
 
   const { data: rows } = await supabase
     .from('user_memories')
@@ -532,8 +574,8 @@ async function buildPendingNodes(userId, deps, {
   now = Date.now(),
   minRebuildAgeMs = 6 * 3600_000,
 } = {}) {
-  const { supabase } = deps;
-  const nowDay = dayIndex(now);
+  const { supabase, timeZone } = deps;
+  const nowDay = dayIndex(now, timeZone);
 
   const { data: oldestRow } = await supabase
     .from('user_memories')
@@ -547,7 +589,7 @@ async function buildPendingNodes(userId, deps, {
 
   if (!oldestRow) return { built: 0, skipped: 0 };
 
-  const blocks = coverBlocks(nowDay, dayIndex(oldestRow.created_at), budget);
+  const blocks = coverBlocks(nowDay, dayIndex(oldestRow.created_at, timeZone), budget);
   let built = 0, skipped = 0;
 
   // Leaves first, newest first: the recent window is what the twin gets wrong,
@@ -612,8 +654,8 @@ async function buildPendingNodes(userId, deps, {
  * @returns {Promise<{text:string, blocks:number, covered:number}>}
  */
 async function renderSpine(userId, deps, { budget = DEFAULT_SPINE_BUDGET, now = Date.now() } = {}) {
-  const { supabase } = deps;
-  const nowDay = dayIndex(now);
+  const { supabase, timeZone } = deps;
+  const nowDay = dayIndex(now, timeZone);
 
   const { data: oldestRow } = await supabase
     .from('user_memories')
@@ -627,7 +669,7 @@ async function renderSpine(userId, deps, { budget = DEFAULT_SPINE_BUDGET, now = 
 
   if (!oldestRow) return { text: '', blocks: 0, covered: 0 };
 
-  const blocks = coverBlocks(nowDay, dayIndex(oldestRow.created_at), budget);
+  const blocks = coverBlocks(nowDay, dayIndex(oldestRow.created_at, timeZone), budget);
   if (!blocks.length) return { text: '', blocks: 0, covered: 0 };
 
   const { data: nodes } = await supabase

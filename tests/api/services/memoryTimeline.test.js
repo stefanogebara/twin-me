@@ -21,6 +21,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   dayIndex,
+  dayIndexToMs,
   coverBlocks,
   blockLabel,
   DEFAULT_SPINE_BUDGET,
@@ -140,5 +141,55 @@ describe('blockLabel — how a block is described to the model', () => {
 
   it('scales the unit for long spans', () => {
     expect(blockLabel({ start: now - 512, end: now - 256, size: 256 }, now)).toMatch(/months|years/);
+  });
+});
+
+describe('timezone — day boundaries follow the user, not UTC', () => {
+  // The spine labels blocks "today" / "yesterday". With UTC day boundaries a
+  // user at UTC-3 has their whole evening labelled "yesterday" from 21:00 local
+  // onward, because 21:00 in Sao Paulo is already 00:00 UTC the next day. For a
+  // feature whose entire purpose is that an old line cannot read as current,
+  // getting "today" wrong for three hours out of every twenty-four undercuts it,
+  // and it splits one evening's memories across two leaves.
+  const SP = 'America/Sao_Paulo';
+
+  it('keeps a late Sao Paulo evening on the same local day', () => {
+    // 2026-07-28 22:00 in Sao Paulo == 2026-07-29 01:00 UTC.
+    const evening = Date.UTC(2026, 6, 29, 1, 0);
+    const noon = Date.UTC(2026, 6, 28, 15, 0);   // same local day, 12:00 local
+    expect(dayIndex(evening, SP)).toBe(dayIndex(noon, SP));
+    // Without the timezone they land on different days — the bug.
+    expect(dayIndex(evening)).not.toBe(dayIndex(noon));
+  });
+
+  it('still separates genuinely different local days', () => {
+    const lateMon = Date.UTC(2026, 6, 29, 1, 0);    // Tue 28th 22:00 local
+    const earlyTue = Date.UTC(2026, 6, 29, 12, 0);  // Wed 29th 09:00 local
+    expect(dayIndex(earlyTue, SP) - dayIndex(lateMon, SP)).toBe(1);
+  });
+
+  it('round-trips a day index back to the local midnight that starts it', () => {
+    const d = dayIndex(Date.UTC(2026, 6, 29, 1, 0), SP);
+    const startMs = dayIndexToMs(d, SP);
+    // That instant must still be the same local day, and be local midnight.
+    expect(dayIndex(startMs, SP)).toBe(d);
+    const hour = new Intl.DateTimeFormat('en-US', { timeZone: SP, hour: 'numeric', hour12: false })
+      .format(new Date(startMs));
+    expect(parseInt(hour, 10)).toBe(0);
+  });
+
+  it('handles a zone ahead of UTC', () => {
+    const tokyo = 'Asia/Tokyo';                      // UTC+9
+    // 2026-07-28 08:00 Tokyo == 2026-07-27 23:00 UTC — UTC says the 27th.
+    const morning = Date.UTC(2026, 6, 27, 23, 0);
+    const evening = Date.UTC(2026, 6, 28, 11, 0);    // 20:00 same local day
+    expect(dayIndex(morning, tokyo)).toBe(dayIndex(evening, tokyo));
+  });
+
+  it('falls back to UTC for a missing or invalid zone rather than throwing', () => {
+    const ms = Date.UTC(2026, 6, 29, 1, 0);
+    expect(dayIndex(ms, undefined)).toBe(Math.floor(ms / 86_400_000));
+    expect(dayIndex(ms, 'Not/AZone')).toBe(Math.floor(ms / 86_400_000));
+    expect(() => dayIndexToMs(20_000, 'Not/AZone')).not.toThrow();
   });
 });

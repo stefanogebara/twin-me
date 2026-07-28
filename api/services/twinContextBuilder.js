@@ -460,7 +460,11 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
     timed('timelineSpine', (async () => {
       const flags = await getFeatureFlags(userId).catch(() => ({}));
       if (!flags?.temporal_spine) return null;
-      return renderSpine(userId, { supabase: supabaseAdmin })
+      // Day boundaries follow the user's calendar, not UTC — otherwise a
+      // UTC-3 evening is labelled "yesterday" for three hours a night.
+      const { data: prof } = await supabaseAdmin
+        .from('users').select('timezone').eq('id', userId).maybeSingle();
+      return renderSpine(userId, { supabase: supabaseAdmin, timeZone: prof?.timezone || undefined })
         .then(r => r.text || null)
         .catch(err => { log.warn('Timeline spine fetch failed:', err.message); return null; });
     })()),

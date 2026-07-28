@@ -712,9 +712,12 @@ async function runObservationIngestion(options = {}) {
             // and making the failure invisible in the very telemetry used to
             // police cost.
             if (flags?.temporal_spine && !isTimedOut()) {
+              const { data: prof } = await supabaseAdmin
+                .from('users').select('timezone').eq('id', userId).maybeSingle();
+              const userTimeZone = prof?.timezone || undefined;
               const SPINE_BUDGET_MS = 8000;
               const r = await Promise.race([
-                buildPendingNodes(userId, { supabase: supabaseAdmin, complete, tier: TIER_ANALYSIS }, { maxNodes: 2 }),
+                buildPendingNodes(userId, { supabase: supabaseAdmin, complete, tier: TIER_ANALYSIS, timeZone: userTimeZone }, { maxNodes: 2 }),
                 new Promise(resolve => setTimeout(() => resolve({ built: 0, timedOut: true }), SPINE_BUDGET_MS)),
               ]);
               if (r.timedOut) log.warn('Timeline spine build exceeded budget, deferred', { userId });
