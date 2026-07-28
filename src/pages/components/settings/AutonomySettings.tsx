@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { Bot, Zap, Brain, Heart, Music, AlertTriangle } from 'lucide-react';
 import { API_URL, getAccessToken } from '@/services/api/apiBase';
 
@@ -11,9 +12,14 @@ const getAuthHeaders = () => {
 };
 
 // Autonomy level labels and colors
+// audit-2026-07-03 H5: the current-level badge renders dark text on this
+// translucent fill. The two lowest fills (Suggest 0.4, Draft 0.5) left the
+// badge below AA (Suggest 3.24:1). Raised to 0.6 so dark #1b1818 text reaches
+// 5.42:1; the badge text color below is now dark for ALL levels so no level
+// falls back to low-contrast white-on-pale.
 const AUTONOMY_LEVELS = [
-  { label: 'Observe', short: 'OBS', color: 'rgba(255,255,255,0.2)' },
-  { label: 'Suggest', short: 'SUG', color: 'rgba(232,224,212,0.4)' },
+  { label: 'Observe', short: 'OBS', color: 'var(--text-secondary)' },
+  { label: 'Suggest', short: 'SUG', color: 'rgba(232,224,212,0.6)' },
   { label: 'Draft', short: 'DFT', color: 'rgba(232,224,212,0.6)' },
   { label: 'Act & Notify', short: 'ACT', color: 'rgba(232,224,212,0.7)' },
   { label: 'Autonomous', short: 'AUTO', color: 'rgba(232,224,212,0.9)' },
@@ -79,11 +85,15 @@ const AutonomySettings: React.FC = () => {
     );
 
     try {
-      await fetch(`${API_URL}/autonomy/settings/${skillId}`, {
+      const res = await fetch(`${API_URL}/autonomy/settings/${skillId}`, {
         method: 'PUT',
         headers: getAuthHeaders(),
         body: JSON.stringify({ autonomyLevel: level }),
       });
+      // audit-2026-06-10: a 4xx/5xx previously left the optimistic slider/badge
+      // permanently wrong — only thrown network errors reverted. Revert on any
+      // non-OK response too.
+      if (!res.ok) fetchSettings();
     } catch {
       // Revert on failure
       fetchSettings();
@@ -99,7 +109,7 @@ const AutonomySettings: React.FC = () => {
           className="w-4 h-4 rounded-full animate-pulse"
           style={{ background: 'var(--glass-surface-border)' }}
         />
-        <span className="text-[12px]" style={{ color: 'rgba(255,255,255,0.3)' }}>
+        <span className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>
           Loading skills...
         </span>
       </div>
@@ -109,7 +119,7 @@ const AutonomySettings: React.FC = () => {
   if (skills.length === 0) {
     return (
       <div className="py-4">
-        <p className="text-[13px]" style={{ color: 'rgba(255,255,255,0.3)', fontFamily: 'Inter, sans-serif' }}>
+        <p className="text-[13px]" style={{ color: 'var(--text-secondary)', fontFamily: 'Inter, sans-serif' }}>
           Agentic skills unlock as your twin builds a picture of your routines. Check back once you have a few days of platform data.
         </p>
       </div>
@@ -136,11 +146,11 @@ const AutonomySettings: React.FC = () => {
       {/* Explainer */}
       <div
         className="flex items-start gap-3 mb-5 p-3 rounded-xl"
-        style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-glass)' }}
+        style={{ background: 'var(--surface)', border: '1px solid var(--border-glass)' }}
       >
         <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" style={{ color: 'var(--accent-vibrant)' }} />
-        <p className="text-[12px] leading-relaxed" style={{ color: 'rgba(255,255,255,0.4)' }}>
-          Fine-grained skill controls. For department-level autonomy (Communications, Scheduling, etc.), use the <a href="/departments" className="underline" style={{ color: 'var(--accent-vibrant)' }}>Departments</a> page.
+        <p className="text-[12px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+          Fine-grained skill controls. To adjust how your twin acts day to day, just <Link to="/talk-to-twin" className="underline" style={{ color: 'var(--accent-vibrant)' }}>talk to your twin</Link>.
         </p>
       </div>
 
@@ -148,12 +158,12 @@ const AutonomySettings: React.FC = () => {
         <div key={category} className="mb-4 last:mb-0">
           {/* Category header */}
           <div className="flex items-center gap-2 mb-2">
-            <span style={{ color: 'rgba(255,255,255,0.25)' }}>
+            <span style={{ color: 'var(--text-secondary)' }}>
               {CATEGORY_ICONS[category] || <Bot className="w-3.5 h-3.5" />}
             </span>
             <span
               className="text-[11px] font-medium uppercase tracking-wider"
-              style={{ color: 'rgba(255,255,255,0.25)' }}
+              style={{ color: 'var(--text-secondary)' }}
             >
               {categoryLabels[category] || category}
             </span>
@@ -189,7 +199,7 @@ const SkillRow: React.FC<SkillRowProps> = ({ skill, isUpdating, onLevelChange })
   return (
     <div
       className="py-3"
-      style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
+      style={{ borderBottom: '1px solid var(--border-glass)' }}
     >
       {/* Skill info row */}
       <div className="flex items-center justify-between mb-2">
@@ -199,7 +209,7 @@ const SkillRow: React.FC<SkillRowProps> = ({ skill, isUpdating, onLevelChange })
           </span>
           <p
             className="text-[11px] mt-0.5 truncate"
-            style={{ color: 'rgba(255,255,255,0.3)' }}
+            style={{ color: 'var(--text-secondary)' }}
           >
             {skill.description}
           </p>
@@ -210,7 +220,9 @@ const SkillRow: React.FC<SkillRowProps> = ({ skill, isUpdating, onLevelChange })
           className="text-[10px] font-medium uppercase tracking-wider px-2 py-0.5 rounded-full shrink-0 ml-3 transition-colors"
           style={{
             background: levelInfo.color,
-            color: level >= 2 ? '#1b1818' : 'rgba(255,255,255,0.92)',
+            // audit-2026-07-03 H5: dark text on every level. The pale streak
+            // fill needs dark text for AA (>=4.73:1); white-on-pale was 3.24:1.
+            color: '#1b1818',
             opacity: isUpdating ? 0.5 : 1,
           }}
         >
@@ -273,7 +285,7 @@ const SkillRow: React.FC<SkillRowProps> = ({ skill, isUpdating, onLevelChange })
             tabIndex={isUpdating ? -1 : 0}
             className="text-[9px] cursor-pointer transition-colors"
             style={{
-              color: i === level ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.15)',
+              color: i === level ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.55)',
               width: i === 0 ? 'auto' : i === 4 ? 'auto' : '20%',
               textAlign: i === 0 ? 'left' : i === 4 ? 'right' : 'center',
             }}

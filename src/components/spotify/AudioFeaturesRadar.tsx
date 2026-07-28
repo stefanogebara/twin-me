@@ -65,13 +65,13 @@ export const AudioFeaturesRadar: React.FC<AudioFeaturesRadarProps> = ({
             backgroundColor: 'rgba(10,15,10,0.9)',
             border: '1px solid var(--glass-surface-border)',
             borderRadius: '8px',
-            color: 'rgba(255,255,255,0.8)'
+            color: 'var(--foreground)'
           }}
         >
           <p className="text-sm font-medium" style={{ fontFamily: "'Inter', sans-serif" }}>
             {payload[0].payload.feature}
           </p>
-          <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.3)' }}>
+          <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
             {payload[0].payload.description}
           </p>
           <p className="text-xs font-mono text-[#1DB954] mt-2">
@@ -112,7 +112,7 @@ export const AudioFeaturesRadar: React.FC<AudioFeaturesRadarProps> = ({
           <h3 className="text-lg font-medium" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>
             Audio Personality
           </h3>
-          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
+          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
             Your musical characteristics
           </p>
         </div>
@@ -166,11 +166,11 @@ export const AudioFeaturesRadar: React.FC<AudioFeaturesRadarProps> = ({
             <div
               key={item.feature}
               className="flex items-center justify-between rounded-lg px-3 py-2"
-              style={{ backgroundColor: 'rgba(255,255,255,0.02)' }}
+              style={{ backgroundColor: 'var(--surface)' }}
             >
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-[#1DB954]" />
-                <span className="text-xs" style={{ fontFamily: "'Inter', sans-serif", color: 'rgba(255,255,255,0.3)' }}>
+                <span className="text-xs" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--text-muted)' }}>
                   {item.feature}
                 </span>
               </div>

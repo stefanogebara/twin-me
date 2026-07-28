@@ -6,6 +6,7 @@ import { useAnalytics } from '@/contexts/AnalyticsContext';
 import ModeSelectionScreen from './interview/ModeSelectionScreen';
 import InterviewCompletion from './interview/InterviewCompletion';
 import ChatInputArea from './interview/ChatInputArea';
+import { FETCH_ERROR_MESSAGE, dropTrailingErrorBubble } from './deepInterviewHelpers';
 
 
 const ELEVENLABS_AGENT_ID = import.meta.env.VITE_ELEVENLABS_AGENT_ID || '';
@@ -56,6 +57,7 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
   const [summary, setSummary] = useState('');
   const [enhancedSignature, setEnhancedSignature] = useState<SoulSignature | undefined>(undefined);
   const [voiceError, setVoiceError] = useState<string | null>(null);
+  const [fetchFailed, setFetchFailed] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const initRan = useRef(false);
@@ -133,9 +135,12 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
             summary: result.personality_summary,
           });
         }
+      } else {
+        setVoiceError("Couldn't wrap up your conversation. Please try ending it again.");
       }
     } catch (error) {
       console.error('[DeepInterview] Voice completion error:', error);
+      setVoiceError("Couldn't wrap up your conversation. Please try ending it again.");
     } finally {
       setLoading(false);
     }
@@ -247,6 +252,7 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
     dpOverride?: Record<string, { asked: number; covered: boolean }>,
   ) => {
     setLoading(true);
+    setFetchFailed(false);
     const qNum = qNumOverride ?? questionNumber;
     const dp = dpOverride ?? domainProgress;
     try {
@@ -326,8 +332,9 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
 
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: "Something went wrong on my end — hit send again or click 'Done for now' to continue.",
+        content: FETCH_ERROR_MESSAGE,
       }]);
+      setFetchFailed(true);
     } finally {
       setLoading(false);
       setTimeout(() => inputRef.current?.focus(), 100);
@@ -362,6 +369,17 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
     setMessages(newMessages);
     saveProgress(newMessages, questionNumber, domainProgress);
     fetchNextQuestion(newMessages);
+  };
+
+  // Re-trigger the calibration fetch after a failure. Unlike "send", this works
+  // when the input is empty — the dead-end case where the FIRST question never
+  // loaded and there is nothing to re-send.
+  const handleRetry = () => {
+    if (loading) return;
+    const history = dropTrailingErrorBubble(messages);
+    setMessages(history);
+    setFetchFailed(false);
+    fetchNextQuestion(history);
   };
 
   const generateEnhancedSignature = async (calibrationResult: {
@@ -439,7 +457,7 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
             }).catch(() => {});
           }
         })
-        .catch(err => console.warn('[DeepInterview] Background completion:', err));
+        .catch(err => { if (import.meta.env.DEV) console.warn('[DeepInterview] Background completion:', err); });
     } else {
       // Save partial interview answers in background
       const userAnswers = messages.filter(m => m.role === 'user');
@@ -456,7 +474,7 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
             domainProgress,
             forceComplete: true,
           }),
-        }).catch(err => console.warn('[DeepInterview] Partial save failed:', err));
+        }).catch(err => { if (import.meta.env.DEV) console.warn('[DeepInterview] Partial save failed:', err); });
       }
     }
 
@@ -537,9 +555,9 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
             </h2>
             <p
               className="text-xs"
-              style={{ fontFamily: "'Inter', sans-serif", color: 'rgba(255,255,255,0.35)' }}
+              style={{ fontFamily: "'Inter', sans-serif", color: 'var(--text-muted)' }}
             >
-              {questionNumber <= 3
+              {(questionNumber - 1) <= 3
                 ? `Question ${Math.max(1, Math.min(questionNumber - 1, 3))} of 3`
                 : 'Wrapping up'}
             </p>
@@ -584,7 +602,7 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
             return (
               <div key={i} className={`flex flex-col ${isUser ? 'items-end' : 'items-start'}`}>
                 {showDivider && (
-                  <div className="w-full my-2" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }} />
+                  <div className="w-full my-2" style={{ borderTop: '1px solid var(--border-glass)' }} />
                 )}
                 <div className={`max-w-[85%] ${isUser ? 'text-right' : 'text-left'}`}>
                   <p
@@ -613,13 +631,32 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
                     key={i}
                     className="typing-dot w-1.5 h-1.5 rounded-full"
                     style={{
-                      backgroundColor: 'rgba(255,255,255,0.35)',
+                      backgroundColor: 'var(--text-muted)',
                       animation: 'typingBounce 1.2s ease-in-out infinite',
                       animationDelay: `${i * 0.2}s`,
                     }}
                   />
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* Retry affordance when the question fetch fails — incl. the first
+              question, where the input is empty so "send again" is a dead end. */}
+          {fetchFailed && !loading && !isDone && (
+            <div className="flex items-center gap-3 pt-1">
+              <button
+                type="button"
+                onClick={handleRetry}
+                className="rounded-[12px] px-4 py-2 text-sm font-medium transition-opacity hover:opacity-90"
+                style={{
+                  background: 'var(--claura-bone)',
+                  color: 'var(--claura-bone-ink)',
+                  fontFamily: "'Geist', 'Inter', sans-serif",
+                }}
+              >
+                Try again
+              </button>
             </div>
           )}
 

@@ -1,1 +1,0 @@
-const fs = require("fs"); const content = fs.readFileSync("settings-template.txt", "utf8"); fs.writeFileSync("src/pages/Settings.tsx", content); console.log("Done");

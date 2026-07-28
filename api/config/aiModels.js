@@ -4,15 +4,17 @@
  * Single source of truth for all AI model identifiers.
  * Update here to change models across the entire platform.
  *
- * OPENROUTER COST TIERS (via llmGateway.js):
- * - Chat (Claude Sonnet 4.6):    $3.00/M input, $15.00/M output  (~$0.01-0.03/msg, quality matters)
- * - Analysis (DeepSeek V3.2):    $0.25/M input, $0.38/M output
- * - Extraction (Mistral Small):  $0.10/M input, $0.30/M output
+ * OPENROUTER COST TIERS (via llmGateway.js) — all three are currently DeepSeek V3.2
+ * ($0.25/M in, $0.38/M out); the MODELS map below is the source of truth:
+ * - Chat        (DeepSeek V3.2) — twin conversation default
+ * - Analysis    (DeepSeek V3.2) — reflections, summaries, insights
+ * - Extraction  (DeepSeek V3.2) — importance rating, fact extraction (mistral-small 404'd 2026-04-30)
  *
- * SMART ROUTING (via chatRouter.js):
- * - Chat Light (Gemini 2.5 Flash):  $0.15/M input, $0.60/M output  — greetings, acks, short factual
- * - Chat Standard (DeepSeek V3.2):  $0.25/M input, $0.38/M output  — medium complexity
- * - Chat Deep (Claude Sonnet 4.6):  $3.00/M input, $15.00/M output — emotional, identity, complex
+ * SMART ROUTING (chatRouter.js CHAT_TIER_MODELS is the source of truth; drift-guarded by test):
+ * - Chat Light    (Gemini 2.5 Flash, $0.15/$0.60) — greetings, acks, short factual
+ * - Chat Standard (DeepSeek V3.2)                  — medium complexity
+ * - Chat Deep     (DeepSeek V3.2)                  — emotional, identity, complex
+ *                 (was Claude Sonnet 4.6; deliberately kept on DeepSeek for cost — audit #118)
  *
  * LEGACY DIRECT (kept for backward compat, not used by gateway):
  * - Sonnet 4.5: $3/M input, $15/M output

@@ -7,7 +7,7 @@
  * Tiers:
  *   LIGHT    -> Gemini 2.5 Flash  ($0.15/$0.60 per M)  — greetings, acks, short factual
  *   STANDARD -> DeepSeek V3.2     ($0.25/$0.38 per M)  — medium complexity, casual personality
- *   DEEP     -> Claude Sonnet 4.6 ($3.00/$15.00 per M) — emotional, identity, complex reasoning
+ *   DEEP     -> DeepSeek V3.2     ($0.25/$0.38 per M)  — emotional, identity, complex (was Sonnet; kept on DeepSeek for cost, audit #118; CHAT_TIER_MODELS is source of truth)
  *
  * Classification is pure heuristic (keyword + length), no LLM call.
  * Runs in < 1ms.
@@ -263,10 +263,15 @@ export function classifyMessageTier(message, conversationHistory = []) {
     }
   }
 
-  // Simple factual questions
-  for (const pattern of FACTUAL_PATTERNS) {
-    if (pattern.test(trimmed)) {
-      return buildResult(CHAT_TIER_LIGHT, 'factual question');
+  // Simple factual questions — only when SHORT. The patterns are start-anchored
+  // only, so a leading factual clause inside a long, substantive question ("do i
+  // have what it takes to change my career...") would otherwise match and route to
+  // the weakest model. Gate by length so only true lookups go LIGHT (audit).
+  if (wordCount < 8) {
+    for (const pattern of FACTUAL_PATTERNS) {
+      if (pattern.test(trimmed)) {
+        return buildResult(CHAT_TIER_LIGHT, 'factual question');
+      }
     }
   }
 

@@ -3,7 +3,7 @@
 ## User Preferences (MUST FOLLOW)
 
 - **NO EMOJIS** — The user dislikes emojis. Never use them in UI text, twin responses, insight text, or any user-facing content. Use plain text only.
-- **Design**: Keep existing dark design system. Sidebar must be FLAT (straight edges, no rounded pill). Background must be black (#13121a) or use the sun-driven gradient system — NEVER navy blue.
+- **Design**: Claura, two appearances — dark (default) + light, switched by `data-theme` on `<html>` (ThemeContext, persisted as `claura-theme`). Sidebar must be FLAT (straight edges, no rounded pill). Dark canvas is #13121a (or AppBackground's ambient orbs / DayNight photos); light canvas is warm paper #f6f3ee — NEVER navy blue. Light always uses the ambient canvas (see `pickBackgroundVariant`).
 
 ## Vercel Cost Rules (CRITICAL — $375 bill incident March 2026)
 
@@ -78,7 +78,7 @@ Weight presets (inspired by Paper 2):
 
 ### Expert Reflection Engine (`reflectionEngine.js`)
 Inspired by Paper 2 (Park et al., 2024 "Generative Agent Simulations of 1,000 People").
-Triggered when accumulated importance > 40 (IMPORTANCE_THRESHOLD in reflectionEngine.js). Uses 5 domain-specific expert personas:
+Triggered when accumulated importance reaches IMPORTANCE_THRESHOLD (80 in reflectionEngine.js). Uses 5 domain-specific expert personas:
 
 1. **Personality Psychologist** - Emotional patterns, coping, attachment style, Big Five from behavior
 2. **Lifestyle Analyst** - Daily rhythms, energy, health-behavior connections, routine vs spontaneity
@@ -86,7 +86,7 @@ Triggered when accumulated importance > 40 (IMPORTANCE_THRESHOLD in reflectionEn
 4. **Social Dynamics Analyst** - Communication style, relationship patterns, social energy
 5. **Motivation Analyst** - Work patterns, ambitions, decision-making style
 
-Process: Gather 100 recent memories -> Run all 5 experts in parallel (each retrieves domain-specific evidence via vector search with `reflection` weights) -> Each expert generates 2-3 observations -> Store as `reflection` memories (importance 7-9) with expert metadata -> Recursive up to depth 3
+Process: Gather 100 recent memories -> Run all 5 experts in parallel (each retrieves domain-specific evidence via vector search with `reflection` weights) -> Each expert generates 2-3 observations -> Store as `reflection` memories (importance 7-9) with expert metadata. Recursion is gated by MAX_REFLECTION_DEPTH (currently 1: meta-reflections disabled to avoid reflection oversaturation of the memory stream)
 
 ### Background Observation Ingestion
 Periodic cron job pulls platform data and stores as observations:
@@ -268,7 +268,7 @@ Inspired by Karpathy's LLM Wiki pattern. Instead of re-deriving knowledge from r
 
 ### Key Architecture Files
 - `api/services/memoryStreamService.js` - Write/read path for memory stream (per-utterance storage)
-- `api/services/reflectionEngine.js` - Reflection generation pipeline (recursive, depth 3)
+- `api/services/reflectionEngine.js` - Reflection generation pipeline (recursion gated by MAX_REFLECTION_DEPTH, currently 1)
 - `api/services/twinSummaryService.js` - Dynamic twin summary generation + caching
 - `api/services/proactiveInsights.js` - Proactive insight generation + delivery tracking
 - `api/services/observationIngestion.js` - Background platform data -> observation pipeline + goal tracking hooks
@@ -316,11 +316,16 @@ Inspired by Karpathy's LLM Wiki pattern. Instead of re-deriving knowledge from r
 10. **Whoop** - Recovery, strain, sleep, HRV patterns
 
 ## LLM Model Strategy
+All LLM calls route through `llmGateway.js` using the tiers in `api/config/aiModels.js` (single source of truth). Twin chat additionally smart-routes per message via `chatRouter.js`.
+
 | Tier | Use Case | OpenRouter Model ID | Why |
 |------|----------|---------------------|-----|
-| CHAT | Twin conversation | `anthropic/claude-sonnet-4.5` | Quality matters - twin must feel like YOU |
+| CHAT | Twin conversation (default) | `deepseek/deepseek-v3.2` | 12x cheaper, ~3x faster TTFT; smart-routes up for hard turns |
 | ANALYSIS | Reflections, twin summary, proactive insights | `deepseek/deepseek-v3.2` | Good enough, 95% cheaper |
-| EXTRACTION | Importance rating, fact extraction | `mistralai/mistral-small-creative` | Cheapest, structured output |
+| EXTRACTION | Importance rating, fact extraction | `deepseek/deepseek-v3.2` | mistral-small-creative was 404'ing on OpenRouter (2026-04-30) |
+| VISION | WhatsApp receipt/image extraction | `google/gemini-2.5-flash` | vision-capable, ~$0.001/image |
+
+Smart routing (`chatRouter.js`): Chat Light = `google/gemini-2.5-flash` (greetings/acks), Chat Standard = `deepseek/deepseek-v3.2` (medium), Chat Deep = `deepseek/deepseek-v3.2` (emotional / identity / complex — kept on DeepSeek for cost; `CHAT_TIER_MODELS` in chatRouter.js is the source of truth, drift-guarded by a test).
 
 ## Development
 ```bash
@@ -400,8 +405,11 @@ Recent memories are dominated by reflections (~90 of last 100). Platform data ob
 
 ---
 
-## Design System (Dark Mode — Claura)
-> Dark-only design system. ThemeContext is hard-locked to dark mode (no light mode exists).
+## Design System (Claura — two appearances)
+> Dark is the DEFAULT appearance; light (warm paper #f6f3ee) is user-selectable in
+> Settings → Appearance (Dark / Light / System). `[data-theme="light"]` on `<html>`
+> flips the semantic tokens (`src/index.css`) and the Claura foundation layer
+> (`src/styles/claura.css`, `--claura-*`). Values below are the DARK defaults.
 > CSS tokens in `src/index.css`, opacity scale in `src/styles/tokens.ts`.
 
 ### Color Tokens (`:root` — single dark theme)
@@ -455,43 +463,36 @@ Recent memories are dominated by reflections (~90 of last 100). Platform data ob
 - `--text-narrative-secondary: rgba(245,245,244,0.6)` — body narrative
 - `--text-narrative-muted: rgba(245,245,244,0.4)` — captions, timestamps
 
-### Background Gradient System (Sun-Driven Ambient Orbs)
+### Background Gradient System (Ambient Orbs)
 
-The page bg uses FOUR overlapping radial gradients with positions/sizes driven by `SunContext` (time-of-day animation). Default values in `:root`:
+The page background is a fixed, full-viewport element rendered behind the app, NOT a `body` CSS rule (`body` is `background-color: transparent`). `AppBackground` in `src/App.tsx` selects the variant: `<DayNightBackground />` (natural mode — the default when `localStorage.bg_mode` is unset — time-of-day photos) or `<ClassicBackground />` (dark mode). `SunContext` still provides `sunPhase` via `useSun()` (consumed by DayNightBackground) and persists location to the backend — it no longer drives any CSS gradient variables.
 
-```css
-body {
-  background-color: var(--background);  /* #13121a */
-  background-image:
-    radial-gradient(ellipse var(--bg-size-1) at var(--bg-pos-1), var(--body-gradient-1) 0%, transparent var(--bg-spread-1)),
-    radial-gradient(ellipse var(--bg-size-2) at var(--bg-pos-2), var(--body-gradient-2) 0%, transparent var(--bg-spread-2)),
-    radial-gradient(ellipse var(--bg-size-3) at var(--bg-pos-3), var(--body-gradient-3) 0%, transparent var(--bg-spread-3)),
-    radial-gradient(ellipse var(--bg-size-4) at var(--bg-pos-4), var(--body-gradient-4) 0%, transparent var(--bg-spread-4));
-  background-attachment: fixed;
-}
-```
-
-**Default gradient colors (amber/copper on charcoal):**
+`ClassicBackground` (`src/components/ClassicBackground.tsx`) paints FOUR overlapping radial-gradient orbs as hardcoded rgba literals on `#13121a`:
 - Orb 1: `rgba(210,145,55,0.38)` — warm amber, top-left
 - Orb 2: `rgba(180,110,65,0.30)` — copper, top-right
 - Orb 3: `rgba(160,95,55,0.34)` — deep amber, bottom-center
-- Orb 4: `rgba(55,45,140,0.28)` — purple accent, center-right
+- Orb 4: `rgba(55,45,140,0.28)` — purple accent, center-right (sanctioned)
 
 ### Glass Surface (REQUIRED for all cards/panels)
+Use the `.claura-glass` class (`src/styles/claura.css`) — warm liquid glass with
+the Apple anatomy, correct in both themes:
 ```css
-background: var(--glass-surface-bg);           /* rgba(255,255,255,0.06) */
-backdrop-filter: blur(42px);
--webkit-backdrop-filter: blur(42px);
-border: 1px solid var(--glass-surface-border); /* rgba(255,255,255,0.10) */
-border-radius: 20px;
-box-shadow: 0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.06);
+background: var(--claura-card);        /* warm gradient, translucent — never flat white-alpha */
+backdrop-filter: blur(42px) saturate(1.4) brightness(.94);   /* light: 1.06 */
+border: 1px solid rgba(255,255,255,.07);
+border-radius: 16px;                   /* --claura-r-card */
+box-shadow: 0 1px 2px rgba(0,0,0,.18), 0 12px 32px rgba(0,0,0,.26), inset 0 0 34px rgba(255,255,255,.02);
+/* + ::after specular rim; .claura-glass--refract adds the #liquid edge-lens filter (hero panels only) */
 ```
+The shadcn `Card` applies this automatically. The `#liquid` SVG filter is mounted
+once in `App.tsx` via `LiquidGlassFilter`.
 
 ### Blur + Radius Reference
 | Element                 | backdrop-filter  | border-radius  | padding              |
 |-------------------------|------------------|----------------|----------------------|
 | Floating navbar         | blur(19.65px)    | 32px           | pl-5 pr-3 py-2.5     |
-| Cards / Chatbox         | blur(42px)       | 20px           | px-5 py-4            |
+| Cards / Chatbox         | blur(42px)       | 16px           | px-5 py-4            |
+| Buttons (all variants)  | —                | 12px           | h-10/12/14           |
 | Suggestion pills        | blur(42px)       | 46px           | px-3 py-2.5          |
 | Auth modal card         | blur(51px)       | 24px           | px-6 py-4            |
 | Settings sidebar        | blur(42px)       | 8px            | pt-3 px-5            |
@@ -520,9 +521,11 @@ box-shadow: 0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.06);
 - `bg-[#F5F5F4] text-[#110f0f] rounded-[100px] p-[4px]` — total `28x28px` with `20x20` arrow icon
 - `opacity-50` when disabled
 
-**Primary CTA Button** (filled pill):
-- `bg-[#F5F5F4] text-[#110f0f] rounded-[100px] px-3 py-2 min-w-[80px]`
-- Geist/Inter Medium 14px
+**Primary CTA Button** (bone gradient — the Claura default):
+- `bg-[image:var(--claura-bone)] text-[var(--claura-bone-ink)] rounded-[12px]`
+- Warm gradient `#F1EBE1 → #D8CEBF` (flips to ink in light) — never a stark white pill
+- Hover: 2px lift + `brightness(1.05)`; Geist/Inter SemiBold 14px
+- Pills (100px) are reserved for chips, nav items and avatars — NOT buttons
 
 **Secondary/Ghost Button** (transparent on dark):
 - No background, `rounded-[6px] px-2 py-0.5`
@@ -551,10 +554,10 @@ box-shadow: 0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.06);
 
 ### 12 Rules for AI Code Generation
 
-1. Every card/panel → glass surface (`backdrop-blur(42px)`, `rgba(255,255,255,0.06)` bg, `rgba(255,255,255,0.10)` border)
-2. Never flat white or solid colors on app surfaces — always dark glass with white-alpha values
-3. Page wrapper → `--background` (#13121a) + 4-orb sun-driven ambient gradient (see SunContext)
-4. Primary CTA → `rounded-[100px]` pill, light-on-dark (`#F5F5F4` bg, `#110f0f` text)
+1. Every card/panel → `.claura-glass` (warm-gradient fill, blur 42 + saturate + brightness, specular rim, 16px)
+2. Never flat white or solid colors on app surfaces — always translucent glass; use semantic/`--claura-*` tokens, not hardcoded white-alpha, so both themes resolve
+3. Page wrapper → transparent; the background is a fixed sibling (`AppBackground` → ClassicBackground / DayNightBackground) painting `--background` (#13121a) + 4-orb ambient gradient
+4. Primary CTA → bone gradient rounded-rect 12px (`--claura-bone` / `--claura-bone-ink`); pills are for chips/nav/avatars only
 5. Suggestion chips → `rounded-[46px]`, NOT `rounded-full`
 6. Floating navbar → `rounded-[32px]` pill with `blur(19.65px)`, NOT full-width bar
 7. Font → Geist/Inter for ALL UI; Instrument Serif for hero/display/auth titles and narrative voice only
@@ -562,4 +565,4 @@ box-shadow: 0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.06);
 9. Active sidebar nav → full pill fill (`accent-vibrant-glow`), icon in `accent-vibrant`, NEVER underline or left border
 10. Gradients → amber/copper orbs on #13121a charcoal, purple accent orb — never neon, never flat
 11. Input fields → `rgba(255,255,255,0.08)` bg (NOT glass-surface-bg) — subtler fill
-12. ThemeContext is hard-locked to dark. No `.dark` class toggling — all tokens are dark-only in `:root`
+12. Theme via ThemeContext only ('dark' | 'light' | 'system', dark default). Never hardcode a theme check — read `resolvedTheme` or use `[data-theme="light"]` CSS overrides; new colors must exist in both token blocks

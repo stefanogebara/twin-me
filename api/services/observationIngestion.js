@@ -20,6 +20,7 @@
  */
 
 import { addPlatformObservation } from './memoryStreamService.js';
+import { generateEmbeddings } from './embeddingService.js';
 import { shouldTriggerReflection, generateReflections } from './reflectionEngine.js';
 import { runPlatformExpert } from './platformExperts.js';
 import { generateProactiveInsights, evaluateNudgeOutcomes } from './proactiveInsights.js';
@@ -42,6 +43,7 @@ import {
   DEDUP_WINDOWS_MS,
   isDuplicate,
   getSupabase,
+  canStartNextUser,
 } from './observationUtils.js';
 
 import { fetchSpotifyObservations } from './observationFetchers/spotify.js';
@@ -53,6 +55,7 @@ import { fetchGitHubObservations } from './observationFetchers/github.js';
 import { fetchWhoopObservations } from './observationFetchers/whoop.js';
 import { fetchOutlookObservations } from './observationFetchers/outlook.js';
 import { fetchInstagramObservations } from './observationFetchers/instagram.js';
+import { withDeadline, computeBoundedBudget } from './withDeadline.js';
 
 const log = createLogger('ObservationIngestion');
 
@@ -283,9 +286,111 @@ const PLATFORM_FETCHERS = {
   instagram: fetchInstagramObservations,
 };
 
+/**
+ * Resolve the platform connections eligible for ingestion across all 4 sources:
+ * platform_connections (live OAuth), nango_connection_mappings (Nango-managed),
+ * user_github_config (PAT), and recent extension-sourced instagram rows.
+ * Extracted so the fan-out cron can enumerate eligible users without duplicating
+ * this query. Optionally scoped to targetUserIds (manual testing).
+ */
+async function fetchEligiblePlatformConnections(supabase, targetUserIds) {
+  const instagramSince = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+  const [pcRes, nangoRes, githubRes, igRes] = await Promise.all([
+    supabase
+      .from('platform_connections')
+      .select('user_id, platform')
+      .not('connected_at', 'is', null)
+      // Only poll live connections. 'disconnected'/needs-reauth rows can never
+      // decrypt (the user must reconnect); 'expired' is kept (refreshable).
+      .in('status', ['connected', 'expired'])
+      .in('platform', SUPPORTED_PLATFORMS),
+    supabase
+      .from('nango_connection_mappings')
+      .select('user_id, platform')
+      .eq('status', 'active')
+      .in('platform', SUPPORTED_PLATFORMS),
+    supabase
+      .from('user_github_config')
+      .select('user_id')
+      .not('access_token', 'is', null),
+    supabase
+      .from('user_platform_data')
+      .select('user_id')
+      .eq('platform', 'instagram')
+      .gte('extracted_at', instagramSince),
+  ]);
+  if (pcRes.error) log.warn('platform_connections fetch error', { error: pcRes.error });
+  if (nangoRes.error) log.warn('nango_connection_mappings fetch error', { error: nangoRes.error });
+  const pcResult = pcRes.data || [];
+  const nangoResult = nangoRes.data || [];
+  const githubResult = (githubRes.data || []).map(r => ({ user_id: r.user_id, platform: 'github' }));
+  // Dedup IG users (one row per recent extension push, so many rows per user)
+  const igUserIds = new Set((igRes.data || []).map(r => r.user_id));
+  const igResult = Array.from(igUserIds).map(user_id => ({ user_id, platform: 'instagram' }));
+
+  let allConnections = [...pcResult, ...nangoResult, ...githubResult, ...igResult];
+
+  // Scope to specific users if targetUserIds provided (for manual testing)
+  if (Array.isArray(targetUserIds) && targetUserIds.length > 0) {
+    const targetSet = new Set(targetUserIds);
+    allConnections = allConnections.filter(c => targetSet.has(c.user_id));
+  }
+  return allConnections;
+}
+
+/**
+ * Distinct user IDs eligible for observation ingestion. Used by the ingestion
+ * cron to fan out one Inngest event per user (replaces the inline 3-user/run cap
+ * so per-user freshness no longer degrades as the user base grows).
+ */
+export async function getEligibleIngestionUserIds() {
+  const supabase = await getSupabase();
+  if (!supabase) return [];
+  const conns = await fetchEligiblePlatformConnections(supabase, null);
+  return [...new Set(conns.map(c => c.user_id))];
+}
+
+/**
+ * Eligible users whose RAW extraction layer (user_platform_data, non-web) has
+ * not advanced within `staleMinutes`. The ingestion cron uses this to verify
+ * OUTCOMES after an Inngest fan-out: "send succeeded" says nothing about
+ * consumption (live incident 2026-06-23 -> 2026-07-13: three weeks of
+ * successful fan-outs, zero function executions). Web/extension rows are
+ * excluded - they flow through their own push pipeline and would mask OAuth
+ * starvation.
+ *
+ * Fail-closed: on query error every eligible user is reported starved, so the
+ * bounded inline fallback keeps ingestion alive rather than trusting a check
+ * it could not run.
+ */
+export async function getStarvedIngestionUserIds(eligibleUserIds, staleMinutes = 90) {
+  if (!Array.isArray(eligibleUserIds) || eligibleUserIds.length === 0) return [];
+  const supabase = await getSupabase();
+  if (!supabase) return [...eligibleUserIds];
+  const cutoff = new Date(Date.now() - staleMinutes * 60_000).toISOString();
+  const { data, error } = await supabase
+    .from('user_platform_data')
+    .select('user_id')
+    .in('user_id', eligibleUserIds)
+    .neq('platform', 'web')
+    .gte('extracted_at', cutoff);
+  if (error) {
+    log.warn('Starvation check failed - treating all eligible users as starved', { error: error.message });
+    return [...eligibleUserIds];
+  }
+  const fresh = new Set((data || []).map(r => r.user_id));
+  return eligibleUserIds.filter(id => !fresh.has(id));
+}
+
 async function runObservationIngestion(options = {}) {
-  const { targetUserIds = null } = options;
-  log.info('Starting ingestion run...', targetUserIds ? { targetUserIds } : {});
+  // deferPostProcess: do ONLY fetch + store + sync-status + health-log inline,
+  // and hand the CPU/LLM-heavy synthesis (experts, reflections, insights, goals,
+  // metrics, soul-sig cache warm) to the caller to run off the request path
+  // (#170 — inline synthesis starves the event loop under Fluid concurrency so
+  // the withDeadline guard can't fire → 60s kill). When deferred, the platforms
+  // that had new data land in stats.platformsByUser for the post-process step.
+  const { targetUserIds = null, deferPostProcess = false } = options;
+  log.info('Starting ingestion run...', { ...(targetUserIds ? { targetUserIds } : {}), deferPostProcess });
   const startTime = Date.now();
 
   const stats = {
@@ -294,7 +399,14 @@ async function runObservationIngestion(options = {}) {
     reflectionsTriggered: 0,
     errors: [],
     processedUserIds: [],
+    platformsByUser: {},
   };
+
+  // Per-user background side-effects (insights, nudges, goals, metrics, cache
+  // warming) are launched concurrently during the loop but collected here so they
+  // are awaited before returning — on Vercel/Inngest the function freezes once
+  // this promise resolves, killing any still-detached work mid-write (audit).
+  const backgroundJobs = [];
 
   try {
     const supabase = await getSupabase();
@@ -303,55 +415,10 @@ async function runObservationIngestion(options = {}) {
       return stats;
     }
 
-    // Find all users with at least one active platform connection.
-    // Check platform_connections (direct OAuth), nango_connection_mappings (Nango-managed),
-    // AND user_github_config (PAT-based connections that don't go through OAuth).
-    // Instagram is extension-sourced (no OAuth row). Find users by recent
-    // user_platform_data rows the extension wrote.
-    const instagramSince = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
-    const [pcRes, nangoRes, githubRes, igRes] = await Promise.all([
-      supabase
-        .from('platform_connections')
-        .select('user_id, platform')
-        .not('connected_at', 'is', null)
-        // Only poll live connections. 'disconnected'/needs-reauth rows can never
-        // decrypt (the user must reconnect) yet were re-polled every 15min,
-        // burning function time (-> 504s) and polluting telemetry. 'expired' is
-        // kept — its token is refreshable via getValidAccessToken (matches the
-        // pollable set in mcp-server service-adapters).
-        .in('status', ['connected', 'expired'])
-        .in('platform', SUPPORTED_PLATFORMS),
-      supabase
-        .from('nango_connection_mappings')
-        .select('user_id, platform')
-        .eq('status', 'active')
-        .in('platform', SUPPORTED_PLATFORMS),
-      supabase
-        .from('user_github_config')
-        .select('user_id')
-        .not('access_token', 'is', null),
-      supabase
-        .from('user_platform_data')
-        .select('user_id')
-        .eq('platform', 'instagram')
-        .gte('extracted_at', instagramSince),
-    ]);
-    if (pcRes.error) log.warn('platform_connections fetch error', { error: pcRes.error });
-    if (nangoRes.error) log.warn('nango_connection_mappings fetch error', { error: nangoRes.error });
-    const pcResult = pcRes.data || [];
-    const nangoResult = nangoRes.data || [];
-    const githubResult = (githubRes.data || []).map(r => ({ user_id: r.user_id, platform: 'github' }));
-    // Dedup IG users (one row per recent extension push, so many rows per user)
-    const igUserIds = new Set((igRes.data || []).map(r => r.user_id));
-    const igResult = Array.from(igUserIds).map(user_id => ({ user_id, platform: 'instagram' }));
-
-    let allConnections = [...pcResult, ...nangoResult, ...githubResult, ...igResult];
-
-    // Scope to specific users if targetUserIds provided (for manual testing)
-    if (Array.isArray(targetUserIds) && targetUserIds.length > 0) {
-      const targetSet = new Set(targetUserIds);
-      allConnections = allConnections.filter(c => targetSet.has(c.user_id));
-    }
+    // Find all users with at least one active platform connection (4 sources).
+    // Extracted to fetchEligiblePlatformConnections so the fan-out cron can
+    // enumerate the same eligible-user universe without duplicating the query.
+    const allConnections = await fetchEligiblePlatformConnections(supabase, targetUserIds);
 
     if (allConnections.length === 0) {
       log.info('No active platform connections found');
@@ -371,16 +438,17 @@ async function runObservationIngestion(options = {}) {
       userPlatforms.set(uid, [...set]);
     }
 
-    log.info('Found users with connections', { users: userPlatforms.size, connections: allConnections.length, pc: pcResult.length, nango: nangoResult.length });
+    log.info('Found users with connections', { users: userPlatforms.size, connections: allConnections.length });
 
     // Global timeout guard — stop processing before Vercel kills us (60s limit).
     // audit-2026-05-09 B-M1: bumped down from 50_000 → 40_000. Cron data
-    // showed max_ms = 56,514 ms despite the 50s budget — the check fires only
-    // BETWEEN users, so one user with a slow Gmail/Outlook fetch (30s
-    // platform timeout + observation processing) could blow through the
-    // budget by 6.5s and hit Vercel's 60s 504. 40s gives ~20s headroom for
-    // tail-latency users to complete their started work and stops a 2nd user
-    // from starting if the 1st was slow.
+    // showed max_ms = 56,514 ms despite the 50s budget — the reactive check
+    // fires only BETWEEN users, so one user with a slow Gmail/Outlook fetch
+    // (30s platform timeout + observation processing) could blow through the
+    // budget by 6.5s and hit Vercel's 60s 504. 40s gives ~20s headroom.
+    // audit-2026-07-02 M3: the user-loop guard is now the predictive
+    // canStartNextUser (see below); isTimedOut remains as the mid-user hard
+    // stop between platforms in Phase 2.
     const GLOBAL_TIMEOUT_MS = 40_000;
     const isTimedOut = () => Date.now() - startTime > GLOBAL_TIMEOUT_MS;
 
@@ -401,12 +469,26 @@ async function runObservationIngestion(options = {}) {
       .slice(0, MAX_USERS_PER_RUN);
     log.info('User selection', { total: userEntries.length, processing: rotatedUsers.length, rotationOffset });
 
-    // Process each user (with timeout guard)
+    // Process each user (adaptive time-budget guard — audit-2026-07-02 M3).
+    // The old check (`isTimedOut()`, i.e. elapsed > 40s) only fired AFTER the
+    // budget was gone, so a user could START at 39s and run ~15-20s past the
+    // budget toward Vercel's 60s kill. canStartNextUser is predictive: before
+    // each user it reserves the worst per-user cost observed this run (20s
+    // estimate until the first user completes) and stops the loop while the
+    // started work can still finish inside the budget. MAX_USERS_PER_RUN (the
+    // rotatedUsers slice above) remains the hard ceiling on users per run.
+    let worstUserMs = 0;
     for (const [userId, platforms] of rotatedUsers) {
-      if (isTimedOut()) {
-        log.info('Global timeout reached, stopping ingestion', { elapsed: Date.now() - startTime, usersProcessed: stats.usersProcessed });
+      const elapsedBeforeUser = Date.now() - startTime;
+      if (!canStartNextUser({ elapsedMs: elapsedBeforeUser, budgetMs: GLOBAL_TIMEOUT_MS, worstUserMs })) {
+        log.info('Time budget guard: stopping before next user', {
+          elapsed: elapsedBeforeUser,
+          worstUserMs,
+          usersProcessed: stats.usersProcessed,
+        });
         break;
       }
+      const userStartTime = Date.now();
       try {
         let userObsCount = 0;
 
@@ -522,7 +604,10 @@ async function runObservationIngestion(options = {}) {
               const errSupabase = await getSupabase();
               if (errSupabase) {
                 const nowIso = new Date().toISOString();
-                errSupabase
+                // Awaited (not fire-and-forget) so it flushes before the handler
+                // returns on Vercel/Inngest, and so a write failure is surfaced
+                // rather than vanishing as an unhandled rejection (audit).
+                const { error: statusWriteErr } = await errSupabase
                   .from('platform_connections')
                   .update({
                     last_sync_at: nowIso,
@@ -532,8 +617,10 @@ async function runObservationIngestion(options = {}) {
                     updated_at: nowIso,
                   })
                   .eq('user_id', userId)
-                  .eq('platform', platform)
-                  .then(() => {});
+                  .eq('platform', platform);
+                if (statusWriteErr) {
+                  log.warn('Failed to persist fetch error status', { platform, userId, error: statusWriteErr.message });
+                }
               }
             } catch (writeErr) {
               log.warn('Failed to persist fetch error status', { platform, userId, error: writeErr.message });
@@ -546,6 +633,9 @@ async function runObservationIngestion(options = {}) {
             // Store each observation (with de-duplication)
             // Observations can be strings (legacy) or { content, contentType } objects (richer templates)
             let platformObsCount = 0; // track new obs for THIS platform in this run
+
+            // Pass 1: filter to valid, non-duplicate observations and collect them.
+            const pendingObs = [];
             for (const obs of observations) {
               const content = typeof obs === 'string' ? obs : obs.content;
               const contentType = typeof obs === 'string' ? undefined : obs.contentType;
@@ -575,29 +665,59 @@ async function runObservationIngestion(options = {}) {
                 if (dup) continue;
               }
 
+              // Reserve the hash now so a duplicate within THIS batch isn't embedded
+              // or stored twice (cross-run dedup is the pre-fetched set + addMemory's
+              // own 24h content dedup).
+              existingHashes.add(hash);
               const baseMeta = {
                 ingestion_source: 'background',
                 ingested_at: new Date().toISOString(),
                 ...(contentType ? { content_type: contentType } : {}),
               };
-              const result = await addPlatformObservation(userId, content, platform,
-                tagSensitivity(content, { ...baseMeta, platform })
-              );
+              pendingObs.push({ content, meta: tagSensitivity(content, { ...baseMeta, platform }) });
+            }
 
+            // Batch-embed all pending contents for this platform in ONE cache-aware
+            // call, then store each with its precomputed vector — replaces the
+            // per-observation serial generateEmbedding inside addMemory (audit M2).
+            // A failed batch / null item degrades gracefully: addMemory falls back
+            // to embedding that single observation itself.
+            let batchEmbeddings = [];
+            if (pendingObs.length > 0) {
+              try {
+                batchEmbeddings = await generateEmbeddings(pendingObs.map(p => p.content));
+              } catch (embErr) {
+                log.warn('Batch embedding failed; addMemory will embed per-observation', { platform, error: embErr.message });
+                batchEmbeddings = [];
+              }
+            }
+
+            // Pass 2: store each observation (with its precomputed embedding when available).
+            for (let i = 0; i < pendingObs.length; i++) {
+              const { content, meta } = pendingObs[i];
+              const embedding = batchEmbeddings[i];
+              const result = await addPlatformObservation(userId, content, platform, meta,
+                embedding ? { embedding } : {}
+              );
               if (result) {
                 userObsCount++;
                 platformObsCount++;
                 stats.observationsStored++;
-                // Track newly stored hashes to prevent within-batch duplicates
-                existingHashes.add(hash);
               }
             }
 
-            // After storing observations for this platform, run platform-specific expert reflection.
+            // After storing observations for this platform, run its expert
+            // reflection — inline, or (deferred) just record the platform so the
+            // post-process step runs the expert off the request path (#170).
             if (platformObsCount > 0) {
-              runPlatformExpert(userId, platform).catch(err =>
-                log.warn('Platform expert failed', { platform, userId, error: err })
-              );
+              if (deferPostProcess) {
+                if (!stats.platformsByUser[userId]) stats.platformsByUser[userId] = [];
+                stats.platformsByUser[userId].push(platform);
+              } else {
+                runPlatformExpert(userId, platform).catch(err =>
+                  log.warn('Platform expert failed', { platform, userId, error: err })
+                );
+              }
 
               // Check prospective memory condition triggers against new platform data.
               const platformMetrics = extractPlatformMetrics(platform, observations);
@@ -677,6 +797,10 @@ async function runObservationIngestion(options = {}) {
         // After all platform data is ingested for this user, check reflection trigger
         if (userObsCount > 0) {
           stats.processedUserIds.push(userId);
+
+          // Everything below is heavy synthesis — deferred to runUserPostProcess
+          // (run off the request path by the caller) when asked; inline otherwise (#170).
+          if (!deferPostProcess) {
           try {
             const shouldReflect = await shouldTriggerReflection(userId);
             if (shouldReflect) {
@@ -700,17 +824,15 @@ async function runObservationIngestion(options = {}) {
           // Keep the temporal spine warm. AWAITED, not chained on a timer: this
           // file already learned that setTimeout does not survive Vercel (the
           // parent returns before it fires, which left every wiki page 11-34
-          // days stale). Bounded to 2 nodes, and today's leaf is throttled to
-          // one rebuild per 6h, so a */15 cron does not pay per cycle.
+          // days stale) — the same reason main added backgroundJobs below.
+          // Bounded to 2 nodes, and today's leaf is throttled to one rebuild per
+          // 6h, so a */15 cron does not pay per cycle.
           try {
             const flags = await getFeatureFlags(userId).catch(() => ({}));
             // Respect the run budget. This block sits AFTER the platform loop, so
             // without its own check a user entered at 39.9s runs unguarded. The
             // cron's p90 is ~46s against a 60s maxDuration, and TIER_ANALYSIS has
-            // a 45s gateway timeout with no retry — two unbounded calls could
-            // alone exceed the ceiling, killing the run before logCronExecution
-            // and making the failure invisible in the very telemetry used to
-            // police cost.
+            // a 45s gateway timeout with no retry.
             if (flags?.temporal_spine && !isTimedOut()) {
               const { data: prof } = await supabaseAdmin
                 .from('users').select('timezone').eq('id', userId).maybeSingle();
@@ -727,28 +849,31 @@ async function runObservationIngestion(options = {}) {
             log.warn('Timeline spine build failed (non-fatal)', { userId, error: spineErr?.message });
           }
 
-          // After reflection trigger, also generate proactive insights
-          generateProactiveInsights(userId).catch(err =>
+          // After reflection trigger, also generate proactive insights. These
+          // per-user side-effects run concurrently but are collected into
+          // backgroundJobs so they are awaited before the handler returns
+          // (Vercel/Inngest kills detached promises once the function resolves).
+          backgroundJobs.push(generateProactiveInsights(userId).catch(err =>
             log.warn('Proactive insights failed', { userId, error: err })
-          );
+          ));
 
-          // Evaluate nudge outcomes: check if user followed through on past suggestions (non-blocking)
-          evaluateNudgeOutcomes(userId).catch(err =>
+          // Evaluate nudge outcomes: check if user followed through on past suggestions
+          backgroundJobs.push(evaluateNudgeOutcomes(userId).catch(err =>
             log.warn('Nudge evaluation failed', { userId, error: err })
-          );
+          ));
 
-          // Track goal progress from ingested platform data (non-blocking)
-          trackGoalProgress(userId, null).catch(err =>
+          // Track goal progress from ingested platform data
+          backgroundJobs.push(trackGoalProgress(userId, null).catch(err =>
             log.warn('Goal tracking failed', { userId, error: err })
-          );
+          ));
 
           // Generate goal suggestions based on observed patterns (throttled: max once/24h)
-          generateGoalSuggestions(userId).catch(err =>
+          backgroundJobs.push(generateGoalSuggestions(userId).catch(err =>
             log.warn('Goal suggestions failed', { userId, error: err })
-          );
+          ));
 
-          // Update activity metrics for all connected platforms (non-blocking)
-          calculateAllActivityMetrics(userId).then(async () => {
+          // Update activity metrics for all connected platforms
+          backgroundJobs.push(calculateAllActivityMetrics(userId).then(async () => {
             // After metrics updated, check for anomalies per platform
             try {
               const sb = await getSupabase();
@@ -760,13 +885,16 @@ async function runObservationIngestion(options = {}) {
                 const anomaly = await detectActivityAnomaly(userId, conn.platform, conn.content_volume || 0);
                 if (anomaly?.anomaly) {
                   // Store as proactive insight
-                  await sb.from('proactive_insights').insert({
+                  const { error: anomalyInsErr } = await sb.from('proactive_insights').insert({
                     user_id: userId,
                     category: 'activity_anomaly',
                     content: anomaly.message,
                     urgency: 'medium',
                     metadata: { platform: conn.platform, zScore: anomaly.zScore, direction: anomaly.direction },
-                  }).catch(() => {});
+                  });
+                  if (anomalyInsErr) {
+                    log.warn('Anomaly insight insert failed', { userId, platform: conn.platform, error: anomalyInsErr.message });
+                  }
                 }
               }
             } catch (e) {
@@ -774,7 +902,7 @@ async function runObservationIngestion(options = {}) {
             }
           }).catch(err =>
             log.warn('Activity metrics update failed', { userId, error: err })
-          );
+          ));
 
           // Regenerate twin summary after a delay to allow reflections to complete
           const summaryTimer = setTimeout(() => {
@@ -783,12 +911,16 @@ async function runObservationIngestion(options = {}) {
             );
           }, 45000); // 45s delay: reflections have priority, then summary
           summaryTimer.unref();
+          } // end if (!deferPostProcess)
         }
       } catch (userErr) {
         const errMsg = `User ${userId}: ${userErr.message}`;
         log.warn('User error', { message: errMsg });
         stats.errors.push(errMsg);
       }
+      // Feed the observed per-user cost back into the loop guard so the
+      // reserve adapts to how slow THIS run's users actually are.
+      worstUserMs = Math.max(worstUserMs, Date.now() - userStartTime);
     }
   } catch (error) {
     log.error('Fatal error', { error });
@@ -805,13 +937,44 @@ async function runObservationIngestion(options = {}) {
     errors: stats.errors.length,
   });
 
-  // Pre-warm caches for users who had new data stored (fire-and-forget)
-  if (stats.observationsStored > 0) {
-    import('./cacheWarmer.js').then(({ warmUserCaches }) => {
-      for (const userId of stats.processedUserIds || []) {
-        warmUserCaches(userId, 'observation-ingestion').catch(() => {});
-      }
-    }).catch(() => {});
+  // Pre-warm caches for users who had new data stored. Collected into
+  // backgroundJobs so it completes before the handler returns (audit) — but
+  // BOUNDED: warmUserCaches triggers the soul-signature 5-layer regen (10-28s
+  // when stale), and awaiting an unbounded warm blew Vercel's 60s ceiling → 504
+  // (live 2026-07-15, ingestion cron + manual scoped runs). Give the warm
+  // whatever budget remains before a 55s hard stop (5s headroom under Vercel's
+  // 60s kill); an abandoned warm is safe — the soul-sig cache has a daily regen
+  // cron plus serve-stale-then-revalidate, so the next read re-warms it.
+  // Skipped entirely when synthesis is deferred (#170) — the post-process step
+  // owns the warm then.
+  if (!deferPostProcess && stats.observationsStored > 0) {
+    // Budget = time left before a 45s hard stop — deliberately UNDER the 50s
+    // side-effect stop below, so warms wind down before the whole gather is
+    // cut and the response still has ~10s of true headroom (the 55s stop
+    // proved too generous: first post-deploy tick 2026-07-16 14:30 ran the
+    // warm to its deadline and still hit Vercel's 60s kill). If under 1s
+    // remains we SKIP the warm entirely rather than floor the budget — a
+    // floor would force a positive wait even past the hard stop and re-open
+    // the 504 (CodeRabbit, PR #189), and starting a soul-sig regen we'd only
+    // freeze mid-write just wastes an LLM call.
+    const CACHE_WARM_HARD_STOP_MS = 45_000;
+    const CACHE_WARM_MIN_BUDGET_MS = 1_000;
+    const { skip: skipCacheWarm, budgetMs: cacheWarmBudgetMs } = computeBoundedBudget(
+      Date.now() - startTime, CACHE_WARM_HARD_STOP_MS, CACHE_WARM_MIN_BUDGET_MS
+    );
+    if (skipCacheWarm) {
+      log.warn('Skipping cache warm — past the ingestion time budget', { elapsedMs: Date.now() - startTime });
+    } else {
+      backgroundJobs.push(
+        import('./cacheWarmer.js')
+          .then(({ warmUserCaches }) =>
+            Promise.allSettled((stats.processedUserIds || []).map(uid =>
+              withDeadline(warmUserCaches(uid, 'observation-ingestion'), cacheWarmBudgetMs)
+            ))
+          )
+          .catch(err => log.warn('Cache warm failed', { error: err?.message }))
+      );
+    }
   }
 
   // Log to ingestion_health_log
@@ -835,6 +998,31 @@ async function runObservationIngestion(options = {}) {
     }
   } catch (healthLogErr) {
     log.warn('Health logging error (non-fatal)', { error: healthLogErr });
+  }
+
+  // Await all per-user background side-effects before returning, so Vercel/Inngest
+  // does not freeze the function and kill them mid-flight (audit). On the per-user
+  // Inngest path this is bounded to one user's jobs; reflections remain detached
+  // by design (heavy, with their own retry/cron handling).
+  //
+  // BOUNDED (2026-07-16): an unbounded gather is how the first post-deploy tick
+  // (14:30) still 504'd — the cache warm was capped, but two soul-sig regens plus
+  // proactive-insight jobs ran this await straight into Vercel's 60s kill, taking
+  // the response, the cron log row, and the third user's slot with it. Past a 50s
+  // hard stop, protecting the response wins: jobs that miss it get frozen exactly
+  // as the 60s kill would have frozen them anyway — but the handler still logs
+  // and responds. Both callers (the cron HTTP handler and the per-user Inngest
+  // function served via /api/inngest) run inside the same 60s Vercel window, so
+  // one global stop is correct for both.
+  if (backgroundJobs.length > 0) {
+    const SIDE_EFFECT_HARD_STOP_MS = 50_000;
+    const sideEffectBudgetMs = Math.max(0, SIDE_EFFECT_HARD_STOP_MS - (Date.now() - startTime));
+    const settled = await withDeadline(Promise.allSettled(backgroundJobs), sideEffectBudgetMs, null);
+    if (settled === null) {
+      log.warn('Side-effect gather hit the hard stop — returning with jobs abandoned', {
+        elapsedMs: Date.now() - startTime, jobs: backgroundJobs.length,
+      });
+    }
   }
 
   return stats;

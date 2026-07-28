@@ -60,8 +60,8 @@ export function DepartmentSuggestionCard({ suggestion, onApprove }: DepartmentSu
       transition={{ duration: 0.25, ease: [0.25, 0.46, 0.45, 0.94] }}
       className="rounded-[16px] px-3.5 py-2.5 my-2 max-w-[400px] flex items-center gap-3"
       style={{
-        backgroundColor: 'rgba(255,255,255,0.05)',
-        border: '1px solid rgba(255,255,255,0.08)',
+        backgroundColor: 'var(--surface)',
+        border: '1px solid var(--border-glass)',
         borderLeft: `2px solid ${color}`,
       }}
     >
@@ -101,8 +101,8 @@ export function DepartmentSuggestionCard({ suggestion, onApprove }: DepartmentSu
             onClick={handleApprove}
             className="px-2.5 py-1 rounded-[100px] text-[11px] font-medium transition-all duration-150 ease-out hover:opacity-90 active:scale-[0.97]"
             style={{
-              backgroundColor: '#F5F5F4',
-              color: '#110f0f',
+              background: 'var(--claura-bone)',
+              color: 'var(--claura-bone-ink)',
               fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
             }}
           >
@@ -113,7 +113,7 @@ export function DepartmentSuggestionCard({ suggestion, onApprove }: DepartmentSu
         {state === 'submitting' && (
           <Loader2
             className="w-3.5 h-3.5 animate-spin"
-            style={{ color: 'rgba(255,255,255,0.4)' }}
+            style={{ color: 'var(--text-muted)' }}
           />
         )}
 
@@ -122,7 +122,7 @@ export function DepartmentSuggestionCard({ suggestion, onApprove }: DepartmentSu
             <Check className="w-3.5 h-3.5" style={{ color: '#10b77f' }} />
             <span
               className="text-[10px] font-medium"
-              style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+              style={{ color: 'var(--text-muted)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
             >
               Sent
             </span>

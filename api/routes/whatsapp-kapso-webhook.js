@@ -213,7 +213,12 @@ router.post('/webhook', async (req, res) => {
   // 3. Process BEFORE responding — Vercel kills async work after res.end().
   try {
     const parsed = parseIncomingMessage(req.body);
-    await processInboundWhatsApp(parsed, { send: sendWhatsAppMessage });
+    // Reply affinity: this route serves the Kapso number, so replies AND the
+    // recorded wa_provider must stay on it (never cross to Z-API/Evolution).
+    await processInboundWhatsApp(parsed, {
+      send: (phone, text) => sendWhatsAppMessage(phone, text, { provider: 'kapso' }),
+      provider: 'kapso',
+    });
   } catch (err) {
     log.error('WhatsApp webhook processing error', { error: err.message, stack: err.stack });
   }

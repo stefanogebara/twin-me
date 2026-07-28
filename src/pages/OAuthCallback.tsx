@@ -7,6 +7,13 @@ import { API_URL, setAccessToken, pushRefreshTokenToDesktop } from '@/services/a
 
 const CHROME_EXTENSION_ID = (import.meta.env.VITE_CHROME_EXTENSION_ID as string | undefined) || 'acnofcjjfjaikcfnalggkkbghjaijepc';
 
+// Platform slugs are lowercase alphanumeric with underscores/hyphens (spotify,
+// google_calendar, ...). Sanitize before embedding a provider value from the
+// backend response or sessionStorage into a redirect URL so a malformed value
+// cannot mangle the query string (audit-2026-07-03).
+const sanitizeProvider = (value: string | null | undefined): string =>
+  value && /^[a-z0-9_-]{1,32}$/i.test(value) ? value : '';
+
 const OAuthCallback = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -52,7 +59,7 @@ const OAuthCallback = () => {
             setMessage('Connection successful! Redirecting...');
 
             // Get the stored provider for proper redirect
-            const storedProvider = sessionStorage.getItem(`oauth_provider_${code.substring(0, 32)}`);
+            const storedProvider = sanitizeProvider(sessionStorage.getItem(`oauth_provider_${code.substring(0, 32)}`));
 
             setTimeout(() => {
               if (window.opener) {
@@ -329,7 +336,7 @@ const OAuthCallback = () => {
 
             // If we're in a popup, close it; otherwise redirect
             // Use provider from backend response first, then sessionStorage fallback
-            const connectedProvider = data.provider || stateData?.provider || '';
+            const connectedProvider = sanitizeProvider(data.provider || stateData?.provider);
 
             setTimeout(() => {
               if (window.opener) {
@@ -382,15 +389,23 @@ const OAuthCallback = () => {
               // Also store token in extension storage if extension is available
               if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
                 try {
-                  chrome.runtime.sendMessage(
+                  const runtime = chrome.runtime;
+                  runtime.sendMessage(
                     CHROME_EXTENSION_ID,
                     { type: 'SET_AUTH_TOKEN', token: data.token },
                     () => {
-                      // Chrome extension sync callback
+                      // Reading lastError marks it handled (prevents "Unchecked
+                      // runtime.lastError" console noise). Sync is best-effort:
+                      // most users have no extension installed, so warn quietly
+                      // instead of surfacing a toast (audit-2026-07-03).
+                      if (runtime.lastError) {
+                        console.warn('Extension token sync skipped:', runtime.lastError.message);
+                      }
                     }
                   );
-                } catch {
-                  // Could not sync to extension
+                } catch (extensionError) {
+                  // Non-fatal: auth succeeded, only the extension sync failed
+                  console.warn('Extension token sync failed:', extensionError);
                 }
               }
 
@@ -456,7 +471,7 @@ const OAuthCallback = () => {
                   const fromOnboarding = sessionStorage.getItem('onboarding_platform_step');
                   if (fromOnboarding) {
                     sessionStorage.removeItem('onboarding_platform_step');
-                    window.location.href = '/onboarding?step=platform&connected=' + (stateData?.provider || '');
+                    window.location.href = '/onboarding?step=platform&connected=' + sanitizeProvider(stateData?.provider);
                   } else {
                     window.location.href = '/connect?connected=true';
                   }
@@ -477,15 +492,23 @@ const OAuthCallback = () => {
               // Also store token in extension storage if extension is available
               if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
                 try {
-                  chrome.runtime.sendMessage(
+                  const runtime = chrome.runtime;
+                  runtime.sendMessage(
                     CHROME_EXTENSION_ID,
                     { type: 'SET_AUTH_TOKEN', token: data.token },
                     () => {
-                      // Chrome extension sync callback
+                      // Reading lastError marks it handled (prevents "Unchecked
+                      // runtime.lastError" console noise). Sync is best-effort:
+                      // most users have no extension installed, so warn quietly
+                      // instead of surfacing a toast (audit-2026-07-03).
+                      if (runtime.lastError) {
+                        console.warn('Extension token sync skipped:', runtime.lastError.message);
+                      }
                     }
                   );
-                } catch {
-                  // Could not sync to extension
+                } catch (extensionError) {
+                  // Non-fatal: auth succeeded, only the extension sync failed
+                  console.warn('Extension token sync failed:', extensionError);
                 }
               }
 
@@ -605,7 +628,7 @@ const OAuthCallback = () => {
     <div className="min-h-screen flex items-center justify-center" >
       <div
         className="max-w-md w-full mx-4 p-8 text-center"
-        style={{ backgroundColor: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-glass)' }}
+        style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-glass)' }}
       >
         {/* Logo */}
         <div className="flex items-center justify-center gap-3 mb-8">
@@ -652,8 +675,8 @@ const OAuthCallback = () => {
         {/* Progress indicator for loading state */}
         {(status === 'loading' || (status === 'error' && !showError)) && (
           <div className="mt-6">
-            <div className="w-full rounded-full h-1.5" style={{ backgroundColor: 'var(--glass-surface-bg)' }}>
-              <div className="h-1.5 rounded-full w-3/5 transition-all duration-300" style={{ backgroundColor: '#000000' }} />
+            <div className="w-full rounded-full h-1.5 overflow-hidden" style={{ backgroundColor: 'var(--glass-surface-bg)' }}>
+              <div className="h-1.5 rounded-full w-2/3 animate-pulse" style={{ backgroundColor: 'var(--accent-vibrant)' }} />
             </div>
           </div>
         )}
@@ -663,7 +686,7 @@ const OAuthCallback = () => {
           <button
             onClick={() => navigate('/auth')}
             className="mt-6 px-6 py-2 rounded-full"
-            style={{ backgroundColor: '#10b77f', color: '#0a0f0a', fontWeight: 600 }}
+            style={{ background: 'var(--claura-bone)', color: 'var(--claura-bone-ink)', fontWeight: 600 }}
           >
             Try Again
           </button>

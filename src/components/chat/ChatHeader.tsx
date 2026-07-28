@@ -22,7 +22,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   <header
     className="flex items-center justify-between px-3 py-2"
     style={{
-      borderBottom: '1px solid rgba(255,255,255,0.04)',
+      borderBottom: '1px solid var(--border-glass)',
     }}
   >
     {/* Back button — mobile only */}
@@ -31,7 +31,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
         <button
           onClick={onBack}
           className="p-1.5 rounded-lg transition-all duration-150 ease-out hover:opacity-70 active:scale-90"
-          style={{ color: 'rgba(255,255,255,0.35)' }}
+          style={{ color: 'var(--text-muted)' }}
           aria-label="Go back"
         >
           <ChevronLeft className="w-5 h-5" aria-hidden="true" />
@@ -43,7 +43,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
         <button
           onClick={onToggleConversationList}
           className="p-1.5 rounded-lg transition-all duration-150 ease-out hover:opacity-70 active:scale-90"
-          style={{ color: showConversationList ? '#10b77f' : 'rgba(255,255,255,0.25)' }}
+          style={{ color: showConversationList ? 'var(--accent-vibrant)' : 'var(--text-muted)' }}
           aria-label={showConversationList ? "Hide chat history" : "Show chat history"}
           aria-expanded={showConversationList}
           title="Chat history"
@@ -55,7 +55,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
         <button
           onClick={onClearChat}
           className="p-1.5 rounded-lg transition-all duration-150 ease-out hover:opacity-70 active:scale-90"
-          style={{ color: 'rgba(255,255,255,0.25)' }}
+          style={{ color: 'var(--text-muted)' }}
           aria-label="Clear conversation"
           title="Clear conversation"
         >
@@ -65,7 +65,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
       <button
         onClick={onToggleContext}
         className="p-1.5 rounded-lg transition-all duration-150 ease-out hover:opacity-70 active:scale-90"
-        style={{ color: showContext ? '#10b77f' : 'rgba(255,255,255,0.25)' }}
+        style={{ color: showContext ? 'var(--accent-vibrant)' : 'var(--text-muted)' }}
         aria-label={showContext ? "Hide context panel" : "Show context panel"}
         aria-expanded={showContext}
         title="Toggle context"

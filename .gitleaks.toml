@@ -1,0 +1,35 @@
+# gitleaks configuration — extends the built-in default ruleset.
+# Docs: https://github.com/gitleaks/gitleaks
+#
+# Used by both the CI "Secret Scan" workflow and the local .githooks/pre-commit
+# best-effort scan.
+
+[extend]
+useDefault = true
+
+# --- Custom rule: catch the exact pattern that slipped past this gate ---
+# add-vercel-env.sh committed live OAuth credentials as
+#   vercel env add NAME production <<< "value"
+# The default generic-api-key rule keys off an assignment operator (=, :, >)
+# sitting between the secret keyword and the value; the `<<<` here-string
+# operator is not one, so the credential was never flagged. (It also predated
+# this workflow, which scans new commits — not full history.) This rule flags
+# any credential-looking value assigned via a `<<<` here-string so a
+# reintroduction is blocked at commit / CI time. Removing add-vercel-env.sh
+# does not purge it from history; the leaked Reddit secret is remediated
+# out-of-band by rotation — see .claude/plans/2026-07-03-reddit-secret-leak/.
+[[rules]]
+id = "shell-heredoc-credential"
+description = "Credential value assigned via a <<< here-string in a shell script (e.g. `env add NAME <<< \"value\"`)"
+regex = '''(?i)(?:client[_-]?secret|client[_-]?id|secret|token|api[_-]?key|password)\b.{0,40}?<<<\s*["']([A-Za-z0-9_\-./+=~]{12,})["']'''
+secretGroup = 1
+keywords = ["<<<"]
+
+[allowlist]
+description = "Paths that legitimately reference secret VARIABLE NAMES (not values)"
+paths = [
+  '''\.env\.example$''',
+  '''(^|/)tasks/audit-.*''',      # audit reports quote leaked var names, never values
+  '''(^|/)package-lock\.json$''',
+  '''(^|/)desktop/package-lock\.json$''',
+]

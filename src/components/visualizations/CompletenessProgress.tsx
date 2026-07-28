@@ -17,7 +17,7 @@ interface CompletenessProgressProps {
 
 const darkCardStyle: React.CSSProperties = {
   border: '1px solid var(--border-glass)',
-  backgroundColor: 'rgba(255,255,255,0.02)',
+  backgroundColor: 'var(--surface)',
 };
 
 export function CompletenessProgress({ completeness, breakdown, className = '' }: CompletenessProgressProps) {
@@ -174,7 +174,7 @@ export function CompletenessProgress({ completeness, breakdown, className = '' }
                 ? 'bg-green-900/20 border-green-800/30'
                 : ''
             } border`}
-            style={breakdown.personal < 30 ? { backgroundColor: 'rgba(255,255,255,0.02)', borderColor: 'var(--border-glass)' } : undefined}
+            style={breakdown.personal < 30 ? { backgroundColor: 'var(--surface)', borderColor: 'var(--border-glass)' } : undefined}
           >
             <div className="flex items-start space-x-3">
               {breakdown.personal >= 30 ? (
@@ -184,7 +184,7 @@ export function CompletenessProgress({ completeness, breakdown, className = '' }
                   </svg>
                 </div>
               ) : (
-                <div className="w-5 h-5 rounded-full bg-white/15 flex items-center justify-center mt-0.5 flex-shrink-0">
+                <div className="w-5 h-5 rounded-full bg-[var(--surface-solid)] flex items-center justify-center mt-0.5 flex-shrink-0">
                   <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                   </svg>
@@ -210,7 +210,7 @@ export function CompletenessProgress({ completeness, breakdown, className = '' }
                 ? 'bg-green-900/20 border-green-800/30'
                 : ''
             } border`}
-            style={completeness < 50 ? { backgroundColor: 'rgba(255,255,255,0.02)', borderColor: 'var(--border-glass)' } : undefined}
+            style={completeness < 50 ? { backgroundColor: 'var(--surface)', borderColor: 'var(--border-glass)' } : undefined}
           >
             <div className="flex items-start space-x-3">
               {completeness >= 50 ? (
@@ -220,7 +220,7 @@ export function CompletenessProgress({ completeness, breakdown, className = '' }
                   </svg>
                 </div>
               ) : (
-                <div className="w-5 h-5 rounded-full bg-white/15 flex items-center justify-center mt-0.5 flex-shrink-0">
+                <div className="w-5 h-5 rounded-full bg-[var(--surface-solid)] flex items-center justify-center mt-0.5 flex-shrink-0">
                   <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                   </svg>
@@ -246,7 +246,7 @@ export function CompletenessProgress({ completeness, breakdown, className = '' }
                 ? 'bg-green-900/20 border-green-800/30'
                 : ''
             } border`}
-            style={completeness < 75 ? { backgroundColor: 'rgba(255,255,255,0.02)', borderColor: 'var(--border-glass)' } : undefined}
+            style={completeness < 75 ? { backgroundColor: 'var(--surface)', borderColor: 'var(--border-glass)' } : undefined}
           >
             <div className="flex items-start space-x-3">
               {completeness >= 75 ? (
@@ -256,7 +256,7 @@ export function CompletenessProgress({ completeness, breakdown, className = '' }
                   </svg>
                 </div>
               ) : (
-                <div className="w-5 h-5 rounded-full bg-white/15 flex items-center justify-center mt-0.5 flex-shrink-0">
+                <div className="w-5 h-5 rounded-full bg-[var(--surface-solid)] flex items-center justify-center mt-0.5 flex-shrink-0">
                   <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                   </svg>

@@ -31,7 +31,7 @@ export const TopTracksCard: React.FC<TopTracksCardProps> = ({ tracks, className 
         </div>
         <div>
           <h3 className="text-lg font-medium" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>Top Tracks</h3>
-          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>Your most played songs</p>
+          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Your most played songs</p>
         </div>
       </div>
 
@@ -44,8 +44,8 @@ export const TopTracksCard: React.FC<TopTracksCardProps> = ({ tracks, className 
           >
             <div className="flex items-center gap-3 mb-2">
               <div
-                className="w-6 h-6 rounded flex items-center justify-center bg-white/8 text-xs font-medium group-hover:bg-[#1DB954]/10 group-hover:text-[#1DB954] transition-colors"
-                style={{ color: 'rgba(255,255,255,0.3)' }}
+                className="w-6 h-6 rounded flex items-center justify-center bg-[var(--surface)] text-xs font-medium group-hover:bg-[#1DB954]/10 group-hover:text-[#1DB954] transition-colors"
+                style={{ color: 'var(--text-muted)' }}
               >
                 {index + 1}
               </div>
@@ -53,15 +53,15 @@ export const TopTracksCard: React.FC<TopTracksCardProps> = ({ tracks, className 
                 <p className="text-sm font-medium truncate" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>
                   {track.name}
                 </p>
-                <p className="text-xs truncate" style={{ color: 'rgba(255,255,255,0.3)' }}>{track.artist}</p>
+                <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>{track.artist}</p>
               </div>
               <div className="text-right">
                 <div className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>{track.plays}</div>
-                <div className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>{formatDuration(track.duration_ms)}</div>
+                <div className="text-xs" style={{ color: 'var(--text-muted)' }}>{formatDuration(track.duration_ms)}</div>
               </div>
             </div>
             {/* Progress Bar */}
-            <div className="h-1.5 bg-white/8 rounded-full overflow-hidden">
+            <div className="h-1.5 bg-[var(--surface)] rounded-full overflow-hidden">
               <div
                 className="h-full bg-[#1DB954] rounded-full transition-all duration-600"
                 style={{ width: `${(track.plays / maxPlays) * 100}%` }}
@@ -74,7 +74,7 @@ export const TopTracksCard: React.FC<TopTracksCardProps> = ({ tracks, className 
       {/* Footer */}
       {tracks.length > 5 && (
         <div className="mt-4 pt-4 border-t border-white/10">
-          <p className="text-xs text-center" style={{ color: 'rgba(255,255,255,0.3)' }}>
+          <p className="text-xs text-center" style={{ color: 'var(--text-muted)' }}>
             +{tracks.length - 5} more tracks in your library
           </p>
         </div>

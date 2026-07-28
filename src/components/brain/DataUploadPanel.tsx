@@ -282,13 +282,13 @@ function PlatformCard({ config, onSelect }: { config: PlatformConfig; onSelect: 
       className="rounded-lg w-full text-left p-4 transition-colors hover:bg-white/[0.03]"
       style={{
         border: '1px solid var(--border-glass)',
-        backgroundColor: 'rgba(255,255,255,0.02)',
+        backgroundColor: 'var(--surface)',
       }}
     >
       <div className="flex items-start gap-3">
         <div
           className="mt-0.5 flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center"
-          style={{ background: config.color, color: '#fff' }}
+          style={{ background: config.color, color: 'var(--foreground)' }}
         >
           {config.icon}
         </div>
@@ -405,7 +405,7 @@ export function DataUploadPanel({ userId, onImportComplete }: DataUploadPanelPro
           <button
             onClick={() => setStep('selecting')}
             className="flex-shrink-0 ml-4 flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white"
-            style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.10)' }}
+            style={{ background: 'var(--surface)', border: '1px solid var(--glass-surface-border)' }}
           >
             <Upload size={14} />
             Import Data
@@ -436,7 +436,7 @@ export function DataUploadPanel({ userId, onImportComplete }: DataUploadPanelPro
         <div className="space-y-4">
           {/* Instructions */}
           <div
-            className="rounded-xl p-4 border border-black/8 space-y-2"
+            className="rounded-xl p-4 border border-white/10 space-y-2"
             style={{ background: selectedPlatform.bgColor }}
           >
             <div className="flex items-center gap-2 font-semibold text-sm" style={{ color: selectedPlatform.color }}>
@@ -466,7 +466,7 @@ export function DataUploadPanel({ userId, onImportComplete }: DataUploadPanelPro
             onClick={() => fileInputRef.current?.click()}
             className="border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors"
             style={{
-              borderColor: dragging ? selectedPlatform.color : 'rgba(0,0,0,0.15)',
+              borderColor: dragging ? selectedPlatform.color : 'rgba(255,255,255,0.15)',
               background: dragging ? selectedPlatform.bgColor : 'transparent',
             }}
           >
@@ -508,7 +508,7 @@ export function DataUploadPanel({ userId, onImportComplete }: DataUploadPanelPro
           </p>
           <p className="text-xs text-foreground/40">This may take a moment for large exports.</p>
           {multiFileProgress && (
-            <div className="w-48 h-1.5 rounded-full bg-black/10 overflow-hidden mt-1">
+            <div className="w-48 h-1.5 rounded-full bg-[var(--surface-solid)] overflow-hidden mt-1">
               <div
                 className="h-full rounded-full transition-all duration-300"
                 style={{
@@ -527,7 +527,7 @@ export function DataUploadPanel({ userId, onImportComplete }: DataUploadPanelPro
           className="rounded-lg p-5 space-y-3"
           style={{
             border: '1px solid var(--border-glass)',
-            backgroundColor: 'rgba(255,255,255,0.02)',
+            backgroundColor: 'var(--surface)',
           }}
         >
           <div className="flex items-center gap-2">
@@ -558,12 +558,12 @@ export function DataUploadPanel({ userId, onImportComplete }: DataUploadPanelPro
           className="rounded-lg p-5 space-y-3"
           style={{
             border: '1px solid rgba(239,68,68,0.3)',
-            backgroundColor: 'rgba(255,255,255,0.02)',
+            backgroundColor: 'var(--surface)',
           }}
         >
           <div className="flex items-center gap-2">
             <AlertCircle size={20} className="text-red-500" />
-            <span className="font-semibold text-sm text-red-700">Import failed</span>
+            <span className="font-semibold text-sm text-red-400">Import failed</span>
           </div>
           <p className="text-xs text-red-400 leading-relaxed">{result.error}</p>
           <button

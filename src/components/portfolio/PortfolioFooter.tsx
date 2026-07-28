@@ -8,6 +8,7 @@ interface PortfolioFooterProps {
 
 const PortfolioFooter: React.FC<PortfolioFooterProps> = ({ updatedAt, colorScheme }) => {
   const [copied, setCopied] = useState(false);
+  const [shareFailed, setShareFailed] = useState<string | null>(null);
 
   const updatedDate = updatedAt
     ? new Date(updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
@@ -29,9 +30,13 @@ const PortfolioFooter: React.FC<PortfolioFooterProps> = ({ updatedAt, colorSchem
     try {
       await navigator.clipboard.writeText(url);
       setCopied(true);
+      setShareFailed(null);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      // Clipboard API not available
+      // audit-2026-06-10: clipboard write can reject in non-secure contexts /
+      // when both share and clipboard are unavailable. Surface the URL so the
+      // visitor can copy it manually instead of a silent no-op.
+      setShareFailed(url);
     }
   }, []);
 
@@ -75,6 +80,16 @@ const PortfolioFooter: React.FC<PortfolioFooterProps> = ({ updatedAt, colorSchem
             {copied ? <Check className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}
           </button>
         </div>
+
+        {/* Manual copy fallback when navigator.share + clipboard both fail */}
+        {shareFailed && (
+          <p
+            className="text-xs text-center break-all max-w-xs opacity-50"
+            style={{ fontFamily: "'Inter', sans-serif", color: '#E8D5B7' }}
+          >
+            Copy this link: {shareFailed}
+          </p>
+        )}
 
         {/* Updated date */}
         {updatedDate && (

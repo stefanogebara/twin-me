@@ -215,7 +215,7 @@ export function BigFiveResults({
           className="flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all hover:scale-[1.02]"
           style={{
             backgroundColor: 'transparent',
-            color: 'rgba(255,255,255,0.5)',
+            color: 'var(--text-secondary)',
             border: '1px solid var(--border)'
           }}
         >

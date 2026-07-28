@@ -66,10 +66,16 @@ const GoogleWorkspaceConnect: React.FC<GoogleWorkspaceConnectProps> = ({
         body: JSON.stringify({}),
       });
       const data = await response.json();
-      if (data.authUrl) {
-        window.location.href = data.authUrl;
+      // Require an absolute https URL before navigating — a malformed authUrl
+      // would otherwise be treated as a relative path and strand the user on a
+      // 404 with no error state (audit-2026-07-03).
+      if (!response.ok || typeof data?.authUrl !== 'string' || !/^https:\/\//i.test(data.authUrl)) {
+        setConnectError(data?.error || 'Could not start Google connection. Please try again.');
+        return;
       }
-    } catch {
+      window.location.href = data.authUrl;
+    } catch (err) {
+      console.error('Google Workspace connect failed:', err);
       setConnectError('Connection failed. Please try again.');
     } finally {
       setConnecting(false);
@@ -81,8 +87,8 @@ const GoogleWorkspaceConnect: React.FC<GoogleWorkspaceConnectProps> = ({
       <div
         className="rounded-[8px] p-4 mb-4"
         style={{
-          background: 'rgba(255,255,255,0.02)',
-          border: '1px solid rgba(255,255,255,0.06)',
+          background: 'var(--surface)',
+          border: '1px solid var(--border-glass)',
         }}
       >
         {/* Header */}
@@ -103,7 +109,7 @@ const GoogleWorkspaceConnect: React.FC<GoogleWorkspaceConnectProps> = ({
         </div>
 
         {/* Description */}
-        <p className="text-[12px] leading-relaxed mb-4" style={{ color: 'rgba(255,255,255,0.4)' }}>
+        <p className="text-[12px] leading-relaxed mb-4" style={{ color: 'var(--text-secondary)' }}>
           Connect once to unlock Gmail and Calendar.
         </p>
 
@@ -123,8 +129,8 @@ const GoogleWorkspaceConnect: React.FC<GoogleWorkspaceConnectProps> = ({
                     : 'rgba(255,255,255,0.06)'
                 }`,
                 color: isAnyGoogleConnected
-                  ? 'rgba(16,183,127,0.8)'
-                  : 'rgba(255,255,255,0.35)',
+                  ? 'rgba(16,183,127,0.95)'
+                  : 'rgba(255,255,255,0.55)',
               }}
             >
               <PlatformLogo platform={service.logoKey} size={12} />
@@ -134,7 +140,7 @@ const GoogleWorkspaceConnect: React.FC<GoogleWorkspaceConnectProps> = ({
               ) : (
                 <div
                   className="w-2.5 h-2.5 rounded-full"
-                  style={{ border: '1px solid rgba(255,255,255,0.15)' }}
+                  style={{ border: '1px solid var(--border)' }}
                 />
               )}
             </div>
@@ -142,7 +148,7 @@ const GoogleWorkspaceConnect: React.FC<GoogleWorkspaceConnectProps> = ({
         </div>
 
         {/* Capability description */}
-        <p className="text-[11px] leading-relaxed mb-5" style={{ color: 'rgba(255,255,255,0.3)' }}>
+        <p className="text-[11px] leading-relaxed mb-5" style={{ color: 'var(--text-secondary)' }}>
           Your twin can read your emails and check your schedule — all in your voice.
         </p>
 
@@ -171,8 +177,8 @@ const GoogleWorkspaceConnect: React.FC<GoogleWorkspaceConnectProps> = ({
             onClick={() => navigate('/get-started')}
             className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-[12px] transition-opacity hover:opacity-60"
             style={{
-              border: '1px solid rgba(255,255,255,0.08)',
-              color: 'rgba(255,255,255,0.4)',
+              border: '1px solid var(--border-glass)',
+              color: 'var(--text-secondary)',
             }}
           >
             Manage connections
@@ -188,8 +194,8 @@ const GoogleWorkspaceConnect: React.FC<GoogleWorkspaceConnectProps> = ({
 
         {/* Trust badge */}
         <div className="flex items-center justify-center gap-1.5 mt-4">
-          <Lock className="w-3 h-3" style={{ color: 'rgba(255,255,255,0.2)' }} />
-          <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.2)' }}>
+          <Lock className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} />
+          <span className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>
             Enterprise-grade encryption. We never train on your data.
           </span>
         </div>
@@ -214,7 +220,7 @@ const GoogleWorkspaceConnect: React.FC<GoogleWorkspaceConnectProps> = ({
             <button
               onClick={() => setShowCheckboxModal(false)}
               className="absolute top-4 right-4 p-1 rounded-lg transition-opacity hover:opacity-60"
-              style={{ color: 'rgba(255,255,255,0.3)' }}
+              style={{ color: 'var(--text-secondary)' }}
               aria-label="Close"
             >
               <X className="w-4 h-4" />
@@ -228,7 +234,7 @@ const GoogleWorkspaceConnect: React.FC<GoogleWorkspaceConnectProps> = ({
               </h3>
             </div>
 
-            <p className="text-[13px] leading-relaxed mb-5" style={{ color: 'rgba(255,255,255,0.5)' }}>
+            <p className="text-[13px] leading-relaxed mb-5" style={{ color: 'var(--text-secondary)' }}>
               Google will ask you to approve permissions. Make sure to{' '}
               <strong style={{ color: 'var(--foreground)' }}>check all the boxes</strong>{' '}
               so your twin can access Gmail and Calendar.
@@ -237,9 +243,9 @@ const GoogleWorkspaceConnect: React.FC<GoogleWorkspaceConnectProps> = ({
             {/* Visual hint */}
             <div
               className="rounded-[8px] p-4 mb-5"
-              style={{ border: '1px solid rgba(255,255,255,0.06)' }}
+              style={{ border: '1px solid var(--border-glass)' }}
             >
-              <p className="text-[11px] font-medium mb-3" style={{ color: 'rgba(255,255,255,0.4)' }}>
+              <p className="text-[11px] font-medium mb-3" style={{ color: 'var(--text-secondary)' }}>
                 On the Google consent screen:
               </p>
               {/* This list mirrors Google's consent screen. The shared OAuth
@@ -255,7 +261,7 @@ const GoogleWorkspaceConnect: React.FC<GoogleWorkspaceConnectProps> = ({
                     >
                       <Check className="w-2.5 h-2.5" style={{ color: '#4285F4' }} />
                     </div>
-                    <span className="text-[12px]" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                    <span className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>
                       {item}
                     </span>
                   </div>

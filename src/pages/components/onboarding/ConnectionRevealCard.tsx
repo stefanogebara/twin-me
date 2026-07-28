@@ -164,10 +164,10 @@ const ConnectionRevealCard: React.FC<Props> = ({ provider, onDismiss }) => {
         transition={{ duration: 0.4, ease: 'easeOut' }}
         className="relative mb-6 rounded-[20px] overflow-hidden"
         style={{
-          background: 'rgba(255,255,255,0.06)',
+          background: 'var(--surface)',
           backdropFilter: 'blur(42px)',
           WebkitBackdropFilter: 'blur(42px)',
-          border: '1px solid rgba(255,255,255,0.10)',
+          border: '1px solid var(--glass-surface-border)',
           boxShadow: '0 4px 24px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.06)',
         }}
       >
@@ -184,7 +184,7 @@ const ConnectionRevealCard: React.FC<Props> = ({ provider, onDismiss }) => {
           onClick={onDismiss}
           aria-label="Dismiss"
           className="absolute top-3 right-3 p-1 rounded-full transition-opacity hover:opacity-80"
-          style={{ color: 'rgba(255,255,255,0.4)' }}
+          style={{ color: 'var(--text-secondary)' }}
         >
           <X className="w-4 h-4" />
         </button>
@@ -194,7 +194,7 @@ const ConnectionRevealCard: React.FC<Props> = ({ provider, onDismiss }) => {
             <Sparkles className="w-4 h-4" style={{ color: 'var(--accent-vibrant)' }} />
             <span
               className="text-[11px] font-medium uppercase tracking-[0.14em]"
-              style={{ color: 'rgba(255,255,255,0.55)', fontFamily: "'Inter', sans-serif" }}
+              style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
             >
               {platformLabel} connected
             </span>
@@ -225,7 +225,7 @@ const ConnectionRevealCard: React.FC<Props> = ({ provider, onDismiss }) => {
                   <div
                     key={i}
                     className="h-[52px] rounded-[12px] animate-pulse"
-                    style={{ background: 'rgba(255,255,255,0.04)' }}
+                    style={{ background: 'var(--surface)' }}
                   />
                 ))}
               </>
@@ -234,7 +234,7 @@ const ConnectionRevealCard: React.FC<Props> = ({ provider, onDismiss }) => {
             {observations.length === 0 && givenUp && (
               <p
                 className="text-[13px] leading-relaxed"
-                style={{ color: 'rgba(255,255,255,0.60)', fontFamily: "'Inter', sans-serif" }}
+                style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
               >
                 Extraction is still running — come back in a minute and your twin will have something to say about your {platformLabel} data. For now, you can connect more platforms or ask your twin anything.
               </p>
@@ -245,13 +245,13 @@ const ConnectionRevealCard: React.FC<Props> = ({ provider, onDismiss }) => {
                 key={obs.id}
                 className="px-3.5 py-2.5 rounded-[12px]"
                 style={{
-                  background: 'rgba(255,255,255,0.04)',
-                  border: '1px solid rgba(255,255,255,0.06)',
+                  background: 'var(--surface)',
+                  border: '1px solid var(--border-glass)',
                 }}
               >
                 <p
                   className="text-[13px] leading-[1.55]"
-                  style={{ color: 'rgba(255,255,255,0.82)', fontFamily: "'Inter', sans-serif" }}
+                  style={{ color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}
                 >
                   {obs.content}
                 </p>
@@ -263,7 +263,7 @@ const ConnectionRevealCard: React.FC<Props> = ({ provider, onDismiss }) => {
             <button
               onClick={handleAskTwin}
               className="inline-flex items-center gap-2 px-4 py-2 rounded-[100px] text-[13px] font-medium transition-all duration-150 hover:opacity-90 active:scale-[0.97]"
-              style={{ background: '#F5F5F4', color: '#110f0f', fontFamily: "'Inter', sans-serif" }}
+              style={{ background: 'var(--claura-bone)', color: 'var(--claura-bone-ink)', fontFamily: "'Inter', sans-serif" }}
             >
               Ask your twin about this
               <ArrowRight className="w-3.5 h-3.5" />
@@ -271,7 +271,7 @@ const ConnectionRevealCard: React.FC<Props> = ({ provider, onDismiss }) => {
             <button
               onClick={onDismiss}
               className="inline-flex items-center gap-1 px-3 py-2 rounded-[100px] text-[12px] font-medium transition-all duration-150 hover:opacity-80"
-              style={{ color: 'rgba(255,255,255,0.45)', fontFamily: "'Inter', sans-serif" }}
+              style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
             >
               Connect another
             </button>

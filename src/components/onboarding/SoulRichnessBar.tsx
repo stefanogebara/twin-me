@@ -53,7 +53,7 @@ const SoulRichnessBar: React.FC = () => {
       </div>
       <div
         className="h-[3px] rounded-full overflow-hidden"
-        style={{ backgroundColor: 'rgba(255,255,255,0.08)' }}
+        style={{ backgroundColor: 'var(--surface)' }}
       >
         <div
           className="h-full rounded-full transition-all duration-700 ease-out"

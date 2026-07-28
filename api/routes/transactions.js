@@ -196,6 +196,15 @@ router.post('/upload', authenticateUser, uploadLimiter, uploadSingleFile('file')
     const validationErrors = [];
     const validTxns = [];
     for (const t of parsed.transactions) {
+      // audit-2026-07-03 (money HIGH): a row without external_id upserts as
+      // NULL, and the (user_id, external_id) UNIQUE constraint never fires on
+      // NULLs — every re-upload of the same file then duplicates the row
+      // (this is how Santander XLSX imports double-counted the summary).
+      // Same contract as ingestRawTransactions: skip loudly, never insert NULL.
+      if (!t.external_id) {
+        validationErrors.push(`Skipped row without a dedup id (external_id) for ${t.merchant_raw || '(unknown)'}`);
+        continue;
+      }
       const n = Number(t.amount);
       if (!Number.isFinite(n)) {
         validationErrors.push(`Skipped non-numeric amount for ${t.external_id || t.merchant_raw}: ${t.amount}`);
@@ -247,7 +256,9 @@ router.post('/upload', authenticateUser, uploadLimiter, uploadSingleFile('file')
 
     if (insertErr) {
       log.error('insert failed', insertErr);
-      return res.status(500).json({ success: false, error: 'Failed to save transactions', detail: insertErr.message });
+      // Use safeError so raw Postgres/PostgREST internals (table/column/constraint
+      // names) are stripped in production instead of being echoed to the client (audit).
+      return res.status(500).json(safeError('Failed to save transactions', insertErr));
     }
 
     const insertedIds = (inserted || []).map((r) => r.id);
@@ -380,10 +391,31 @@ router.get('/', authenticateUser, async (req, res) => {
     const { data, error } = await query;
     if (error) throw error;
 
+    // audit-2026-06-10: surface saved stress-feedback so the FeedbackToggle
+    // can render the user's prior answer instead of resetting to null on every
+    // reload. transaction_feedback.transaction_id is TEXT with no FK to
+    // user_transactions (see the POST /:id/feedback handler), so a PostgREST
+    // embedded join is not available — batch-fetch the feedback rows for this
+    // page's transaction ids in one query and merge them in by id.
+    const txIds = (data || []).map((row) => row.id);
+    const feedbackById = new Map();
+    if (txIds.length) {
+      const { data: feedbackRows, error: feedbackError } = await supabaseAdmin
+        .from('transaction_feedback')
+        .select('transaction_id, is_stress_driven')
+        .eq('user_id', userId)
+        .in('transaction_id', txIds);
+      if (feedbackError) throw feedbackError;
+      for (const fb of feedbackRows || []) {
+        feedbackById.set(fb.transaction_id, fb.is_stress_driven);
+      }
+    }
+
     // Supabase returns emotional_context as an array (1-to-1 relation) — flatten
     const flattened = (data || []).map((row) => ({
       ...row,
       emotional_context: Array.isArray(row.emotional_context) ? row.emotional_context[0] ?? null : row.emotional_context,
+      feedback: feedbackById.has(row.id) ? feedbackById.get(row.id) : null,
     }));
 
     return res.json({ success: true, transactions: flattened, limit, offset });
@@ -1231,8 +1263,11 @@ router.get('/recurring-subscriptions', authenticateUser, async (req, res) => {
     const top = subscriptions.slice(0, limit);
 
     const stressfulSignups = subscriptions.filter(s => s.firstChargeContext && /stress|low recovery|somber/i.test(s.firstChargeContext));
-    const totalMonthly = subscriptions.reduce((s, sub) => s + sub.monthlyAvg, 0);
     const dominantCurrency = subscriptions[0]?.currency || 'USD';
+    // Only sum subscriptions in the dominant currency so the labeled total is
+    // internally consistent (summing mixed currencies and labeling with one is
+    // meaningless for a BR user with both BRL and USD subs).
+    const totalMonthly = subscriptions.reduce((s, sub) => (sub.currency === dominantCurrency ? s + sub.monthlyAvg : s), 0);
     const totalMonthlyStr = new Intl.NumberFormat('en-US', { style: 'currency', currency: dominantCurrency }).format(totalMonthly);
     // Synthesis: surface the data, no value judgment. The "stressful signup"
     // tag is descriptive (these signups landed on days flagged as high-stress

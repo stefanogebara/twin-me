@@ -25,7 +25,7 @@ const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?:
   if (!active || !payload?.length) return null;
   return (
     <div className="rounded-xl px-3 py-2 text-xs shadow-lg"
-      style={{ backgroundColor: 'rgba(10,15,10,0.9)', border: '1px solid var(--glass-surface-border)', borderRadius: '8px', color: 'rgba(255,255,255,0.8)' }}>
+      style={{ backgroundColor: 'rgba(10,15,10,0.9)', border: '1px solid var(--glass-surface-border)', borderRadius: '8px', color: 'var(--foreground)' }}>
       <p className="font-medium mb-1">{label}</p>
       <p style={{ color: '#8b5cf6' }}>
         Confidence: {((payload[0]?.value ?? 0) * 100).toFixed(0)}%
@@ -50,7 +50,7 @@ export const SoulEvolutionTimeline: React.FC<Props> = ({ snapshots }) => {
   if (data.length < 2) {
     return (
       <div className="flex items-center justify-center py-8 text-sm"
-        style={{ color: 'rgba(255,255,255,0.4)' }}>
+        style={{ color: 'var(--text-secondary)' }}>
         Collect more data over time to see your soul signature evolve.
       </div>
     );
@@ -116,11 +116,11 @@ export const SoulEvolutionTimeline: React.FC<Props> = ({ snapshots }) => {
       <div className="flex items-center gap-4 mt-2 justify-center">
         <div className="flex items-center gap-1.5">
           <div className="w-3 h-0.5 rounded" style={{ background: '#8b5cf6' }} />
-          <span className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>Confidence</span>
+          <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>Confidence</span>
         </div>
         <div className="flex items-center gap-1.5">
           <div className="w-3 h-0.5 rounded" style={{ background: '#10b981' }} />
-          <span className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>Knowledge nodes</span>
+          <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>Knowledge nodes</span>
         </div>
       </div>
     </div>

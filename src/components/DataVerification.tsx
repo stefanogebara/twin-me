@@ -64,7 +64,7 @@ export const DataVerification: React.FC<DataVerificationProps> = ({ connectedSer
       <div className="flex items-center justify-between mb-3">
         <span
           className="text-[11px] tracking-[0.08em] uppercase"
-          style={{ color: 'rgba(255,255,255,0.25)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+          style={{ color: 'var(--text-muted)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
         >
           Platform Status
         </span>
@@ -72,7 +72,7 @@ export const DataVerification: React.FC<DataVerificationProps> = ({ connectedSer
           onClick={handleRefresh}
           disabled={refreshing}
           className="p-1 rounded-md transition-opacity hover:opacity-60"
-          style={{ color: 'rgba(255,255,255,0.20)' }}
+          style={{ color: 'var(--text-muted)' }}
           aria-label="Refresh"
         >
           <RefreshCw className={`w-3 h-3 ${refreshing ? 'animate-spin' : ''}`} />
@@ -82,8 +82,8 @@ export const DataVerification: React.FC<DataVerificationProps> = ({ connectedSer
       {/* Platform pills — flex wrap */}
       {isLoading ? (
         <div className="flex items-center gap-2 py-2">
-          <Loader2 className="w-3.5 h-3.5 animate-spin" style={{ color: 'rgba(255,255,255,0.2)' }} />
-          <span className="text-[12px]" style={{ color: 'rgba(255,255,255,0.25)' }}>Checking...</span>
+          <Loader2 className="w-3.5 h-3.5 animate-spin" style={{ color: 'var(--text-muted)' }} />
+          <span className="text-[12px]" style={{ color: 'var(--text-muted)' }}>Checking...</span>
         </div>
       ) : (
         <div className="flex flex-wrap gap-1.5">

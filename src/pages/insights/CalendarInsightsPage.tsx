@@ -127,7 +127,7 @@ const CalendarInsightsPage: React.FC = () => {
 
   const colors = {
     text: 'var(--foreground)',
-    textSecondary: 'rgba(255,255,255,0.4)',
+    textSecondary: 'rgba(255, 255, 255, 0.55)',
     calendarBlue: '#4285F4',
     calendarBg: 'rgba(66, 133, 244, 0.1)'
   };
@@ -136,7 +136,7 @@ const CalendarInsightsPage: React.FC = () => {
   // the skeleton is only for the no-data cold start.
   if ((loading || generating) && !insights) {
     return (
-      <div className="max-w-[680px] mx-auto px-6 py-16">
+      <div className="max-w-[680px] mx-auto px-4 sm:px-6 py-10 sm:py-16">
         <CalendarSkeleton />
       </div>
     );
@@ -149,7 +149,7 @@ const CalendarInsightsPage: React.FC = () => {
 
   if (error) {
     return (
-      <div className="max-w-[680px] mx-auto px-6 py-16">
+      <div className="max-w-[680px] mx-auto px-4 sm:px-6 py-10 sm:py-16">
         <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
           <AlertCircle
             className="w-12 h-12"
@@ -169,7 +169,7 @@ const CalendarInsightsPage: React.FC = () => {
   }
 
   return (
-    <div className="max-w-[680px] mx-auto px-6 py-16">
+    <div className="max-w-[680px] mx-auto px-4 sm:px-6 py-10 sm:py-16">
       <InsightsPageHeader
         title="Time Patterns"
         subtitle="How you structure your days"
@@ -203,7 +203,7 @@ const CalendarInsightsPage: React.FC = () => {
       {insights?.eventTypeDistribution && insights.eventTypeDistribution.length > 0 && (
         <div
           className="p-4 rounded-lg mb-6"
-          style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+          style={{ border: '1px solid var(--border-glass)', backgroundColor: 'var(--surface)' }}
         >
           <h3
             className="text-[11px] font-medium tracking-widest uppercase mb-4"
@@ -287,10 +287,10 @@ const CalendarInsightsPage: React.FC = () => {
             />
           )}
         </div>
-      ) : (insights?.todayEvents || insights?.upcomingEvents) ? (
+      ) : (insights?.todayEvents?.length || insights?.upcomingEvents?.length) ? (
         <div
           className="mb-8 p-4 rounded-lg"
-          style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+          style={{ border: '1px solid var(--border-glass)', backgroundColor: 'var(--surface)' }}
         >
           <p
             className="text-[11px] font-medium tracking-widest uppercase mb-2"
@@ -339,7 +339,7 @@ const CalendarInsightsPage: React.FC = () => {
               <div
                 key={past.id}
                 className="p-4 rounded-lg"
-                style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+                style={{ border: '1px solid var(--border-glass)', backgroundColor: 'var(--surface)' }}
               >
                 <p
                   className="text-sm leading-relaxed"

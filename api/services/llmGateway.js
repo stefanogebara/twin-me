@@ -26,6 +26,10 @@ import {
   TIER_CHAT, TIER_CHAT_FINETUNED, TIER_ANALYSIS, TIER_EXTRACTION, TIER_VISION,
   OPENROUTER_MODELS, MODEL_PRICING, CACHE_TTL_BY_TIER,
 } from '../config/aiModels.js';
+import {
+  instanceCeilingExceeded, perInstanceMaxCalls, recordLlmCall,
+  dailyHardLimitExceeded, dailyHardLimitUsd,
+} from './llmBudgetGuard.js';
 
 // Re-export tier constants for convenience
 export { TIER_CHAT, TIER_CHAT_FINETUNED, TIER_ANALYSIS, TIER_EXTRACTION, TIER_VISION };
@@ -419,10 +423,21 @@ export async function complete({
     throw new Error(`[LLM Gateway] Circuit breaker is OPEN - LLM calls temporarily disabled. Resets in ${Math.ceil(getResetTimeout() / 1000)}s`);
   }
 
+  // Per-instance runaway backstop — independent of Redis and the 60s daily-cost
+  // cache, so a tight loop on one lambda can't outrun the budget check.
+  if (instanceCeilingExceeded()) {
+    throw new Error(`[LLM Gateway] Per-instance call ceiling (${perInstanceMaxCalls()}) reached — refusing further LLM calls to prevent runaway spend. Resets on instance restart.`);
+  }
+
   // Budget guard (4D) - downgrade to cheapest tier when budget exceeded (don't reject)
   let budgetDowngraded = false;
   {
     const dailyCost = await getDailyCost();
+    // Hard kill-switch: the soft cap below only DOWNGRADES, so a runaway would
+    // accrue cheap-tier cost forever. Refuse outright at the absolute ceiling.
+    if (dailyHardLimitExceeded(dailyCost)) {
+      throw new Error(`[LLM Gateway] Daily LLM HARD limit reached: $${dailyCost.toFixed(2)} >= $${dailyHardLimitUsd().toFixed(2)}. Calls disabled until midnight UTC.`);
+    }
     const budget = parseFloat(process.env.LLM_DAILY_BUDGET_USD) || 10;
     if (dailyCost >= budget) {
       // Soft cap: downgrade to cheapest tier instead of rejecting the request
@@ -476,6 +491,7 @@ export async function complete({
 
   try {
     const client = getClientForModel(model);
+    recordLlmCall(); // count this billable call toward the per-instance ceiling
     const response = await client.chat.completions.create({
       model,
       max_tokens: maxTokens,
@@ -596,6 +612,11 @@ export async function stream({
     throw new Error(`[LLM Gateway] Circuit breaker is OPEN - LLM calls temporarily disabled. Resets in ${Math.ceil(getResetTimeout() / 1000)}s`);
   }
 
+  // Per-instance runaway backstop (independent of Redis / daily-cost cache).
+  if (instanceCeilingExceeded()) {
+    throw new Error(`[LLM Gateway] Per-instance call ceiling (${perInstanceMaxCalls()}) reached — refusing further LLM calls to prevent runaway spend. Resets on instance restart.`);
+  }
+
   // Budget guard (4D) - consistent with complete()
   {
     const dailyCost = await getDailyCost();
@@ -621,6 +642,7 @@ export async function stream({
 
   try {
     const client = getClientForModel(model);
+    recordLlmCall(); // count this billable call toward the per-instance ceiling
     // AbortController for stream timeout (90s default — generous for long completions)
     const streamTimeoutMs = parseInt(process.env.LLM_STREAM_TIMEOUT_MS, 10) || 90_000;
     const abortController = new AbortController();

@@ -64,12 +64,21 @@ const MemoryFeed: React.FC<MemoryFeedProps> = ({
             return (
               <div
                 key={memory.id}
+                role="button"
+                tabIndex={0}
+                aria-expanded={isExpanded}
                 className="cursor-pointer transition-colors"
                 style={{
                   borderBottom: isLast ? 'none' : '1px solid var(--sidebar)',
                   background: isExpanded ? 'rgba(255,255,255,0.03)' : 'transparent',
                 }}
                 onClick={() => onToggleExpand(memory.id)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onToggleExpand(memory.id);
+                  }
+                }}
                 onMouseEnter={(e) => {
                   if (!isExpanded) {
                     e.currentTarget.style.background = 'rgba(255,255,255,0.03)';
@@ -88,6 +97,11 @@ const MemoryFeed: React.FC<MemoryFeedProps> = ({
                 >
                   <span
                     className="flex-shrink-0 rounded-full"
+                    // Collapsed row: color is the only type signal, so name it
+                    // for assistive tech + hover (audit-2026-07-03)
+                    role="img"
+                    aria-label={`Memory type: ${TYPE_LABELS[memory.memory_type] || memory.memory_type}`}
+                    title={TYPE_LABELS[memory.memory_type] || memory.memory_type}
                     style={{
                       width: '5px',
                       height: '5px',
@@ -98,7 +112,7 @@ const MemoryFeed: React.FC<MemoryFeedProps> = ({
                   <span
                     className="flex-1 min-w-0 text-sm truncate"
                     style={{
-                      color: '#fdfcfb',
+                      color: 'var(--foreground)',
                       lineHeight: '20px',
                     }}
                   >
@@ -106,14 +120,14 @@ const MemoryFeed: React.FC<MemoryFeedProps> = ({
                   </span>
                   <span
                     className="flex-shrink-0 text-[11px]"
-                    style={{ color: 'rgba(255,255,255,0.25)' }}
+                    style={{ color: 'var(--text-secondary)' }}
                   >
                     {memory.importance_score}/10
                   </span>
                   <span
                     className="flex-shrink-0 text-[11px]"
                     style={{
-                      color: 'rgba(255,255,255,0.2)',
+                      color: 'var(--text-secondary)',
                       minWidth: '48px',
                       textAlign: 'right',
                     }}
@@ -127,7 +141,7 @@ const MemoryFeed: React.FC<MemoryFeedProps> = ({
                   <div style={{ padding: '0 4px 14px 18px' }}>
                     <p
                       className="text-sm leading-relaxed mb-3"
-                      style={{ color: 'rgba(255,255,255,0.8)' }}
+                      style={{ color: 'var(--foreground)' }}
                     >
                       {displayContent}
                     </p>
@@ -144,7 +158,9 @@ const MemoryFeed: React.FC<MemoryFeedProps> = ({
                         className="inline-flex items-center gap-1"
                         style={{ color: '#86807b' }}
                       >
+                        {/* Decorative: the type label text follows immediately */}
                         <span
+                          aria-hidden="true"
                           className="rounded-full inline-block"
                           style={{ width: '5px', height: '5px', backgroundColor: typeColor }}
                         />
@@ -158,7 +174,7 @@ const MemoryFeed: React.FC<MemoryFeedProps> = ({
                         </span>
                       )}
                       {memory.retrieval_count > 0 && (
-                        <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                        <span className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
                           accessed {memory.retrieval_count}x
                         </span>
                       )}

@@ -91,7 +91,7 @@ export const ChatEmptyState = ({
         className="text-center mb-2"
         style={{
           fontSize: '13px',
-          color: 'rgba(255,255,255,0.4)',
+          color: 'var(--text-secondary)',
           fontFamily: "'Inter', sans-serif",
         }}
       >
@@ -104,7 +104,7 @@ export const ChatEmptyState = ({
         style={{
           fontStyle: 'italic',
           fontWeight: 300,
-          color: '#F5F5F4',
+          color: 'var(--foreground)',
           letterSpacing: '-0.02em',
         }}
       >
@@ -122,7 +122,7 @@ export const ChatEmptyState = ({
           className="text-center mb-8 max-w-sm"
           style={{
             fontSize: '15px',
-            color: 'rgba(255,255,255,0.4)',
+            color: 'var(--text-secondary)',
             fontWeight: 300,
             fontFamily: "'Inter', sans-serif",
           }}
@@ -138,7 +138,10 @@ export const ChatEmptyState = ({
         <button
           onClick={() => navigate('/connect')}
           className="text-center mb-6 text-[12px] transition-opacity hover:opacity-80"
-          style={{ color: 'rgba(217,119,6,0.7)' }}
+          // audit-2026-07-03 H5: was rgba(217,119,6,0.7) = 3.43:1, the primary
+          // recovery action for a degraded twin. Solid #d97706 = 5.84:1 on the
+          // #13121a base, clearing AA for this actionable amber link.
+          style={{ color: '#d97706' }}
         >
           {needsReconnect} platform{needsReconnect > 1 ? 's need' : ' needs'} reconnection →
         </button>
@@ -148,7 +151,7 @@ export const ChatEmptyState = ({
       {platformCount === 0 && (
         <p
           className="text-center text-sm mb-8 max-w-sm"
-          style={{ color: 'rgba(255,255,255,0.35)' }}
+          style={{ color: 'var(--text-secondary)' }}
         >
           Connect a platform and I'll start picking up on the things that make you you.
         </p>
@@ -166,16 +169,16 @@ export const ChatEmptyState = ({
             className="px-4 py-2.5 rounded-[46px] text-[13px] font-medium transition-all duration-150 active:scale-[0.97]"
             data-testid="suggestion-chip"
             style={{
-              color: 'rgba(245,245,244,0.7)',
-              background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(255,255,255,0.10)',
+              color: 'var(--foreground)',
+              background: 'var(--surface)',
+              border: '1px solid var(--glass-surface-border)',
               fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'rgba(255,255,255,0.10)';
+              e.currentTarget.style.background = 'var(--surface-solid)';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
+              e.currentTarget.style.background = 'var(--surface)';
             }}
           >
             Start your Soul Interview
@@ -184,7 +187,10 @@ export const ChatEmptyState = ({
       )}
 
       {/* Suggestion pills — only shown when no briefing card (avoid double CTA) */}
-      {connectedPlatforms.length > 0 && (
+      {/* audit-2026-06-10: gate on canonical platformCount (platformsSummary.active)
+          so chips and the connect CTA agree with the greeting above, rather than
+          the stale local connectedPlatforms.length. */}
+      {platformCount > 0 && (
         <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-2.5">
           {chips.slice(0, 3).map((chip, idx) => (
             <button
@@ -195,13 +201,14 @@ export const ChatEmptyState = ({
               className="px-3 sm:px-4 py-2 rounded-[46px] text-[12px] sm:text-[13px] transition-colors duration-150 active:scale-[0.97]"
               data-testid="suggestion-chip"
               style={{
-                color: 'rgba(255,255,255,0.40)',
+                // audit-2026-07-03 H1: chip label was 3.83:1; token = 7.37:1.
+                color: 'var(--text-secondary)',
                 background: 'transparent',
-                border: '1px solid rgba(255,255,255,0.08)',
+                border: '1px solid var(--border-glass)',
                 fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
+                e.currentTarget.style.background = 'var(--surface)';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = 'transparent';
@@ -214,13 +221,13 @@ export const ChatEmptyState = ({
       )}
 
       {/* Connect CTA for no-platform users */}
-      {connectedPlatforms.length === 0 && (
+      {platformCount === 0 && (
         <button
           onClick={() => navigate('/get-started')}
-          className="mt-4 px-5 py-2 rounded-[100px] text-sm font-medium hover:bg-[rgba(16,183,127,0.08)] transition-all duration-150 ease-out active:scale-[0.97]"
+          className="mt-4 px-5 py-2 rounded-[100px] text-sm font-medium hover:bg-[rgba(193,126,44,0.08)] transition-all duration-150 ease-out active:scale-[0.97]"
           style={{
-            border: '1px solid #10b77f',
-            color: '#10b77f',
+            border: '1px solid var(--accent-amber)',
+            color: 'var(--accent-amber)',
             background: 'transparent',
           }}
         >

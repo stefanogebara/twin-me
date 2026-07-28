@@ -32,7 +32,7 @@ const SKILL_LABELS: Record<string, string> = {
 const STATUS_ICON: Record<string, React.ReactNode> = {
   accepted: <CheckCircle2 className="w-3 h-3" style={{ color: 'rgba(34,197,94,0.6)' }} />,
   rejected: <XCircle className="w-3 h-3" style={{ color: 'rgba(239,68,68,0.5)' }} />,
-  pending: <Clock className="w-3 h-3" style={{ color: 'rgba(255,255,255,0.3)' }} />,
+  pending: <Clock className="w-3 h-3" style={{ color: 'var(--text-muted)' }} />,
 };
 
 function timeAgo(dateStr: string): string {
@@ -74,8 +74,8 @@ const AgentActivityFeed: React.FC = () => {
   if (actions.length === 0) {
     return (
       <div className="py-4 text-center">
-        <Bot className="w-5 h-5 mx-auto mb-2" style={{ color: 'rgba(255,255,255,0.15)' }} />
-        <p className="text-[12px]" style={{ color: 'rgba(255,255,255,0.2)' }}>
+        <Bot className="w-5 h-5 mx-auto mb-2" style={{ color: 'var(--text-muted)' }} />
+        <p className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>
           Your twin hasn't taken any actions yet
         </p>
       </div>
@@ -88,24 +88,24 @@ const AgentActivityFeed: React.FC = () => {
         <div
           key={action.id}
           className="flex items-start gap-2.5 py-2 px-3 rounded-lg"
-          style={{ background: 'rgba(255,255,255,0.02)' }}
+          style={{ background: 'var(--surface)' }}
         >
-          <Zap className="w-3 h-3 mt-0.5 shrink-0" style={{ color: 'rgba(255,255,255,0.2)' }} />
+          <Zap className="w-3 h-3 mt-0.5 shrink-0" style={{ color: 'var(--text-muted)' }} />
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <span className="text-[12px] font-medium" style={{ color: 'rgba(255,255,255,0.6)' }}>
+              <span className="text-[12px] font-medium" style={{ color: 'var(--text-secondary)' }}>
                 {SKILL_LABELS[action.skill_name] || action.skill_name?.replace(/_/g, ' ') || 'Action'}
               </span>
               {STATUS_ICON[action.user_response || 'pending']}
             </div>
             <p
               className="text-[11px] mt-0.5 truncate"
-              style={{ color: 'rgba(255,255,255,0.3)' }}
+              style={{ color: 'var(--text-secondary)' }}
             >
               {action.action_content?.slice(0, 100)}
             </p>
           </div>
-          <span className="text-[10px] shrink-0" style={{ color: 'rgba(255,255,255,0.15)' }}>
+          <span className="text-[10px] shrink-0" style={{ color: 'var(--text-secondary)' }}>
             {timeAgo(action.created_at)}
           </span>
         </div>

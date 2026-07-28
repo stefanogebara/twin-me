@@ -9,13 +9,13 @@ export const PortraitEmptyState: React.FC = () => {
     <div
       className="text-center py-16 rounded-lg"
       style={{
-        backgroundColor: 'rgba(255,255,255,0.02)',
+        backgroundColor: 'var(--surface)',
         border: '1px solid var(--border-glass)',
       }}
     >
       <Sparkles
         className="w-12 h-12 mx-auto mb-4"
-        style={{ color: 'rgba(255,255,255,0.4)' }}
+        style={{ color: 'var(--text-muted)' }}
       />
       <h3
         style={{
@@ -32,7 +32,7 @@ export const PortraitEmptyState: React.FC = () => {
       </h3>
       <p
         className="mb-8 max-w-md mx-auto"
-        style={{ color: 'rgba(255,255,255,0.4)' }}
+        style={{ color: 'var(--text-muted)' }}
       >
         Connect your platforms and chat with your twin to build your soul signature. The more data, the richer your portrait.
       </p>
@@ -50,7 +50,7 @@ export const PortraitEmptyState: React.FC = () => {
           onClick={() => navigate('/dashboard')}
           className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium text-sm"
           style={{
-            backgroundColor: 'rgba(255,255,255,0.02)',
+            backgroundColor: 'var(--surface)',
             border: '1px solid var(--border-glass)',
             color: 'var(--foreground)',
           }}
@@ -62,7 +62,7 @@ export const PortraitEmptyState: React.FC = () => {
           onClick={() => navigate('/talk-to-twin')}
           className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium text-sm"
           style={{
-            backgroundColor: 'rgba(255,255,255,0.02)',
+            backgroundColor: 'var(--surface)',
             border: '1px solid var(--border-glass)',
             color: 'var(--foreground)',
           }}

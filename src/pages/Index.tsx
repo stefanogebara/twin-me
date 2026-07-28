@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { ArrowRight, Brain, Database, Bell, Shield, Menu, X, MessageCircle, Target, BookOpen, Sparkles } from 'lucide-react';
 import { useAuth, SignInButton } from '../contexts/AuthContext';
@@ -111,13 +111,46 @@ const Index = () => {
   const { isSignedIn, isLoaded } = useAuth();
   const [activeService, setActiveService] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  /* Auto-cycle services every 4s */
+  // Once the user drives the service tabs by keyboard/click, stop the
+  // auto-cycle so it doesn't fight their focus (WCAG 2.2.2 pause on interaction).
+  const [serviceCyclePaused, setServiceCyclePaused] = useState(false);
+  const serviceTabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
+  /* Auto-cycle services every 4s until the user interacts */
   useEffect(() => {
+    if (serviceCyclePaused) return;
     const timer = setInterval(() => {
       setActiveService((prev) => (prev + 1) % SERVICES.length);
     }, 4000);
     return () => clearInterval(timer);
-  }, []);
+  }, [serviceCyclePaused]);
+
+  // Roving-tabindex keyboard nav for the Services tablist (vertical).
+  const handleServiceTabKeyDown = (e: KeyboardEvent<HTMLButtonElement>, idx: number) => {
+    let next: number | null = null;
+    switch (e.key) {
+      case 'ArrowDown':
+      case 'ArrowRight':
+        next = (idx + 1) % SERVICES.length;
+        break;
+      case 'ArrowUp':
+      case 'ArrowLeft':
+        next = (idx - 1 + SERVICES.length) % SERVICES.length;
+        break;
+      case 'Home':
+        next = 0;
+        break;
+      case 'End':
+        next = SERVICES.length - 1;
+        break;
+      default:
+        return;
+    }
+    e.preventDefault();
+    setServiceCyclePaused(true);
+    setActiveService(next);
+    serviceTabRefs.current[next]?.focus();
+  };
 
   // Redirect authenticated users immediately
   if (isLoaded && isSignedIn) {
@@ -178,24 +211,16 @@ const Index = () => {
 
           {/* Right: Auth (desktop) + hamburger (mobile) */}
           <div className="flex items-center gap-2">
-            {isLoaded && isSignedIn ? (
-              <button onClick={() => navigate('/dashboard')} className="font-sans bg-[#F5F0EB] text-[var(--primary-foreground)] rounded-full py-[14px] px-7 text-xs font-normal transition-all duration-150 inline-flex items-center gap-2 tracking-[0.02em] hover:opacity-85 hover:-translate-y-0.5">
-                Dashboard
+            <SignInButton mode="modal" fallbackRedirectUrl="/dashboard" forceRedirectUrl="/dashboard">
+              <button className="hidden md:inline-flex font-sans text-[13px] font-medium text-[var(--text-secondary)] bg-none border-none cursor-pointer transition-colors duration-150 py-2 px-4 hover:text-[#F5F0EB]">
+                Sign in
               </button>
-            ) : (
-              <>
-                <SignInButton mode="modal" fallbackRedirectUrl="/discover" forceRedirectUrl="/discover">
-                  <button className="hidden md:inline-flex font-sans text-[13px] font-medium text-[var(--text-secondary)] bg-none border-none cursor-pointer transition-colors duration-150 py-2 px-4 hover:text-[#F5F0EB]">
-                    Sign in
-                  </button>
-                </SignInButton>
-                <SignInButton mode="modal" fallbackRedirectUrl="/discover" forceRedirectUrl="/discover">
-                  <button className="font-sans bg-[#F5F0EB] text-[var(--primary-foreground)] rounded-full py-[14px] px-7 text-xs font-normal transition-all duration-150 inline-flex items-center gap-2 tracking-[0.02em] hover:opacity-85 hover:-translate-y-0.5">
-                    Start Free
-                  </button>
-                </SignInButton>
-              </>
-            )}
+            </SignInButton>
+            <SignInButton mode="modal" fallbackRedirectUrl="/dashboard" forceRedirectUrl="/dashboard">
+              <button className="font-sans bg-[#F5F0EB] text-[var(--primary-foreground)] rounded-full py-[14px] px-7 text-xs font-normal transition-all duration-150 inline-flex items-center gap-2 tracking-[0.02em] hover:opacity-85 hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]">
+                Start Free
+              </button>
+            </SignInButton>
             {/* Hamburger menu (mobile only) */}
             <button
               className="md:hidden p-2 text-[var(--text-secondary)] hover:text-[#F5F0EB] transition-colors"
@@ -312,13 +337,31 @@ const Index = () => {
 
           {/* Tabs + Card */}
           <div className="flex flex-col lg:flex-row gap-8 lg:gap-12">
-            {/* Left: Tab labels */}
-            <div className="lg:w-[45%] flex flex-col">
+            {/* Left: Tab labels.
+                audit-2026-07-03: was a list of plain <div onClick> — not
+                keyboard-operable. Now a proper ARIA tablist with roving
+                tabIndex (only the selected tab is in the tab order), Arrow/
+                Home/End key navigation, and aria-selected. The right column is
+                the linked tabpanel. */}
+            <div
+              className="lg:w-[45%] flex flex-col"
+              role="tablist"
+              aria-label="Services"
+              aria-orientation="vertical"
+            >
               {SERVICES.map((svc, idx) => (
-                <div
+                <button
+                  type="button"
                   key={svc.id}
-                  className={`cursor-pointer py-5 px-7 rounded-2xl transition-all duration-150 hover:bg-white/[0.03] flex items-baseline gap-3 ${idx === activeService ? 'bg-white/[0.05]' : ''}`}
-                  onClick={() => setActiveService(idx)}
+                  id={`service-tab-${svc.id}`}
+                  role="tab"
+                  aria-selected={idx === activeService}
+                  aria-controls="service-tabpanel"
+                  tabIndex={idx === activeService ? 0 : -1}
+                  ref={(el) => { serviceTabRefs.current[idx] = el; }}
+                  className={`text-left cursor-pointer py-5 px-7 rounded-2xl transition-all duration-150 hover:bg-white/[0.03] flex items-baseline gap-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)] ${idx === activeService ? 'bg-white/[0.05]' : ''}`}
+                  onClick={() => { setServiceCyclePaused(true); setActiveService(idx); }}
+                  onKeyDown={(e) => handleServiceTabKeyDown(e, idx)}
                 >
                   <h3 className={`text-[24px] md:text-[32px] font-heading font-normal transition-colors duration-200 ${
                     idx === activeService ? 'text-[#F5F0EB]' : 'text-[var(--text-secondary)] opacity-40'
@@ -330,12 +373,17 @@ const Index = () => {
                   }`}>
                     {svc.num}
                   </span>
-                </div>
+                </button>
               ))}
             </div>
 
-            {/* Right: Flower card + description */}
-            <div className="lg:w-[55%]">
+            {/* Right: Flower card + description (tabpanel) */}
+            <div
+              className="lg:w-[55%]"
+              id="service-tabpanel"
+              role="tabpanel"
+              aria-labelledby={`service-tab-${SERVICES[activeService].id}`}
+            >
               <div key={activeService}>
                   {/* Flower image card */}
                   <div
@@ -414,7 +462,7 @@ const Index = () => {
                   variant: 'memory' as const,
                   type: 'Observation',
                   text: 'Listened to "Clair de Lune" on repeat during a 3-hour deep work block — matches Thursday focus pattern.',
-                  source: 'Spotify · 2h ago',
+                  source: 'Spotify',
                 },
               },
               {
@@ -445,7 +493,7 @@ const Index = () => {
                   variant: 'memory' as const,
                   type: 'Wiki',
                   text: 'Cultural Identity: Drawn to melancholic jazz and minimalist design. Peak creative output in late evening silence.',
-                  source: 'Compiled · today',
+                  source: 'Wiki',
                 },
               },
               {
@@ -505,17 +553,11 @@ const Index = () => {
               Connect your platforms, let your twin learn who you really are, then have conversations that reveal patterns you never noticed.
             </p>
             <div className="flex items-center gap-4 flex-wrap">
-              {isLoaded && isSignedIn ? (
-                <button onClick={() => navigate('/dashboard')} className="font-sans bg-[#F5F0EB] text-[var(--primary-foreground)] rounded-full py-[14px] px-7 text-xs font-normal transition-all duration-150 inline-flex items-center gap-2 tracking-[0.02em] hover:opacity-85 hover:-translate-y-0.5">
-                  Go to Dashboard <ArrowRight className="w-4 h-4" />
+              <SignInButton mode="modal" fallbackRedirectUrl="/dashboard" forceRedirectUrl="/dashboard">
+                <button className="font-sans bg-[#F5F0EB] text-[var(--primary-foreground)] rounded-full py-[14px] px-7 text-xs font-normal transition-all duration-150 inline-flex items-center gap-2 tracking-[0.02em] hover:opacity-85 hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]">
+                  Start Free <ArrowRight className="w-4 h-4" />
                 </button>
-              ) : (
-                <SignInButton mode="modal" fallbackRedirectUrl="/discover" forceRedirectUrl="/discover">
-                  <button className="font-sans bg-[#F5F0EB] text-[var(--primary-foreground)] rounded-full py-[14px] px-7 text-xs font-normal transition-all duration-150 inline-flex items-center gap-2 tracking-[0.02em] hover:opacity-85 hover:-translate-y-0.5">
-                    Start Free <ArrowRight className="w-4 h-4" />
-                  </button>
-                </SignInButton>
-              )}
+              </SignInButton>
             </div>
           </div>
 
@@ -580,17 +622,11 @@ const Index = () => {
           </p>
 
           <div className="flex items-center gap-4 flex-wrap justify-center">
-            {isLoaded && isSignedIn ? (
-              <button onClick={() => navigate('/dashboard')} className="font-sans bg-[#F5F0EB] text-[var(--primary-foreground)] rounded-full py-[14px] px-7 text-xs font-normal transition-all duration-150 inline-flex items-center gap-2 tracking-[0.02em] hover:opacity-85 hover:-translate-y-0.5">
-                Go to Dashboard <ArrowRight className="w-4 h-4" />
+            <SignInButton mode="modal" fallbackRedirectUrl="/dashboard" forceRedirectUrl="/dashboard">
+              <button className="font-sans bg-[#F5F0EB] text-[var(--primary-foreground)] rounded-full py-[14px] px-7 text-xs font-normal transition-all duration-150 inline-flex items-center gap-2 tracking-[0.02em] hover:opacity-85 hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]">
+                Start Free <ArrowRight className="w-4 h-4" />
               </button>
-            ) : (
-              <SignInButton mode="modal" fallbackRedirectUrl="/discover" forceRedirectUrl="/discover">
-                <button className="font-sans bg-[#F5F0EB] text-[var(--primary-foreground)] rounded-full py-[14px] px-7 text-xs font-normal transition-all duration-150 inline-flex items-center gap-2 tracking-[0.02em] hover:opacity-85 hover:-translate-y-0.5">
-                  Start Free <ArrowRight className="w-4 h-4" />
-                </button>
-              </SignInButton>
-            )}
+            </SignInButton>
           </div>
         </div>
       </section>

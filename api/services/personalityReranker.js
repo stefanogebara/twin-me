@@ -5,6 +5,12 @@ import { createLogger } from './logger.js';
 const log = createLogger('PersonalityReranker');
 
 function cosineSimilarity(a, b) {
+  // Fail loud on a shape mismatch instead of silently returning NaN (which made the
+  // reranker degenerate to "always pick candidate 0"); the caller's try/catch turns
+  // a throw into "skip rerank, fall back to a normal completion" (audit).
+  if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length || a.length === 0) {
+    throw new Error(`cosineSimilarity shape mismatch: ${Array.isArray(a) ? a.length : typeof a} vs ${Array.isArray(b) ? b.length : typeof b}`);
+  }
   let dot = 0;
   let magA = 0;
   let magB = 0;
@@ -24,6 +30,20 @@ export async function rerankByPersonality(
   n = 3
 ) {
   try {
+    // The stored personality_embedding comes back as a pgvector STRING ("[0.1,...]")
+    // on both the build and cache-hit paths — parse it to a numeric array BEFORE any
+    // cosine math, or every similarity is NaN and the reranker silently returns
+    // candidate 0 at full 3x cost (audit). Bail (fall back to one completion) if unusable.
+    const centroid = Array.isArray(personalityEmbedding)
+      ? personalityEmbedding
+      : (typeof personalityEmbedding === 'string'
+          ? personalityEmbedding.replace(/^\[|\]$/g, '').split(',').map(Number)
+          : null);
+    if (!centroid || centroid.length === 0 || centroid.some((x) => !Number.isFinite(x))) {
+      log.warn('Personality reranker: unusable centroid embedding — skipping rerank');
+      return null;
+    }
+
     const baseTemp = profile.temperature ?? 0.7;
     const half = Math.floor(n / 2);
 
@@ -77,12 +97,13 @@ export async function rerankByPersonality(
 
     for (let i = 0; i < candidates.length; i++) {
       const embResult = embeddingResults[i];
-      if (embResult.status !== 'fulfilled' || !embResult.value) {
+      if (embResult.status !== 'fulfilled' || !embResult.value
+          || embResult.value.length !== centroid.length) {
         similarities.push(null);
         continue;
       }
 
-      const sim = cosineSimilarity(embResult.value, personalityEmbedding);
+      const sim = cosineSimilarity(embResult.value, centroid);
       similarities.push(sim);
       if (sim > bestSim) {
         bestSim = sim;

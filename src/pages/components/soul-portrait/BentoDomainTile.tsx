@@ -45,7 +45,7 @@ export const BentoDomainTile: React.FC<Props> = ({ domainKey, domains }) => {
     <div
       className="rounded-lg overflow-hidden cursor-pointer"
       style={{
-        backgroundColor: 'rgba(255,255,255,0.02)',
+        backgroundColor: 'var(--surface)',
         border: '1px solid var(--border-glass)',
         borderTop: `2px solid ${config.color}`,
       }}
@@ -70,8 +70,8 @@ export const BentoDomainTile: React.FC<Props> = ({ domainKey, domains }) => {
           </div>
           {hasMore && (
             expanded
-              ? <ChevronUp className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'rgba(255,255,255,0.3)' }} />
-              : <ChevronDown className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'rgba(255,255,255,0.3)' }} />
+              ? <ChevronUp className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
+              : <ChevronDown className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
           )}
         </div>
 
@@ -79,14 +79,14 @@ export const BentoDomainTile: React.FC<Props> = ({ domainKey, domains }) => {
         {expanded ? (
           <p
             className="text-xs leading-relaxed"
-            style={{ color: 'rgba(255,255,255,0.4)' }}
+            style={{ color: 'var(--text-muted)' }}
           >
             {content}
           </p>
         ) : (
           <p
             className="text-xs leading-relaxed"
-            style={{ color: 'rgba(255,255,255,0.4)' }}
+            style={{ color: 'var(--text-muted)' }}
           >
             {preview}
           </p>

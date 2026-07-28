@@ -23,4 +23,22 @@ export default tseslint.config(
       "@typescript-eslint/no-unused-vars": "off",
     },
   },
+  // Backend (Express, ESM) — previously unlinted (audit 2026-06 High #7). Starts
+  // as a non-blocking signal in CI (continue-on-error); promote to a hard gate
+  // once the baseline is triaged. no-unused-vars is a warning so it doesn't
+  // inflate the error count the CI baseline-freeze guards.
+  {
+    files: ["api/**/*.js"],
+    extends: [js.configs.recommended],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: "module",
+      globals: { ...globals.node },
+    },
+    rules: {
+      "no-unused-vars": "warn",
+      "no-empty": ["warn", { allowEmptyCatch: true }],
+      "no-constant-condition": ["error", { checkLoops: false }],
+    },
+  },
 );

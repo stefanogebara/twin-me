@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { CheckCircle2, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
+import { CheckCircle2, ChevronDown, ChevronUp, Loader2, ArrowRight } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { safeRedirect } from '@/lib/safeRedirect';
-import { usePlatformsSummary, connectedProviders } from '@/hooks/usePlatformsSummary';
+import { usePlatformsSummary, connectedProviders, invalidatePlatformState } from '@/hooks/usePlatformsSummary';
 
 
 import { API_URL } from '@/services/api/apiBase';
@@ -20,7 +21,7 @@ interface PlatformCardProps {
 const PlatformCard: React.FC<PlatformCardProps> = ({
   name, description, color, icon, connected, connecting, onConnect
 }) => (
-  <div className="flex items-center gap-4 p-4 rounded-lg" style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
+  <div className="flex items-center gap-4 p-4 rounded-lg" style={{ border: '1px solid var(--border-glass)', backgroundColor: 'var(--surface)' }}>
     <div
       className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 text-white"
       style={{ backgroundColor: color }}
@@ -29,7 +30,7 @@ const PlatformCard: React.FC<PlatformCardProps> = ({
     </div>
     <div className="flex-1 min-w-0">
       <p className="text-sm font-medium" style={{ color: 'var(--foreground)', fontFamily: "'Geist', sans-serif" }}>{name}</p>
-      <p className="text-xs truncate" style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Geist', sans-serif" }}>{description}</p>
+      <p className="text-xs truncate" style={{ color: 'var(--text-muted)', fontFamily: "'Geist', sans-serif" }}>{description}</p>
     </div>
     {connected ? (
       <CheckCircle2 className="w-5 h-5 flex-shrink-0" style={{ color: 'var(--foreground)' }} />
@@ -116,6 +117,7 @@ interface PlatformStepProps {
 const PlatformStep: React.FC<PlatformStepProps> = ({ onContinue }) => {
   const { user, authToken } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [connected, setConnected] = useState<Set<string>>(new Set());
   const [connecting, setConnecting] = useState<string | null>(null);
   const [showMore, setShowMore] = useState(false);
@@ -178,11 +180,31 @@ const PlatformStep: React.FC<PlatformStepProps> = ({ onContinue }) => {
         const width = 600, height = 700;
         const left = window.screenX + (window.outerWidth - width) / 2;
         const top = window.screenY + (window.outerHeight - height) / 2;
-        window.open(connectUrl, 'nango-connect', `width=${width},height=${height},left=${left},top=${top}`);
-        setTimeout(() => {
-          setConnected(prev => new Set([...prev, platform.id]));
-          setConnecting(null);
-        }, 3000);
+        const popup = window.open(connectUrl, 'nango-connect', `width=${width},height=${height},left=${left},top=${top}`);
+        // Don't fake a "connected" state on a blind timer (old bug: the tile
+        // flipped to a green check after 3s even if the user closed the popup or
+        // auth failed). Poll the canonical platforms summary so the tile flips
+        // only once the server actually records the connection; stop early when
+        // the popup closes.
+        setConnecting(null);
+        let polls = 0;
+        const poll = setInterval(() => {
+          polls += 1;
+          invalidatePlatformState(queryClient);
+          if (polls >= 12 || (popup && popup.closed)) clearInterval(poll);
+        }, 2500);
+        return;
+      }
+
+      if (result?.success) {
+        // Backend already had a valid connection (e.g. an existing link whose
+        // token just refreshed) and returned success with no redirect URL.
+        // Treat it as a successful (re)connection instead of throwing into the
+        // destructive "Could not connect" toast.
+        setConnected(prev => new Set([...prev, platform.id]));
+        setConnecting(null);
+        invalidatePlatformState(queryClient);
+        toast({ title: `${platform.name} connected` });
         return;
       }
 
@@ -219,7 +241,7 @@ const PlatformStep: React.FC<PlatformStepProps> = ({ onContinue }) => {
         </h2>
         <p
           className="text-center mb-8"
-          style={{ fontFamily: "'Geist', sans-serif", fontSize: '14px', fontWeight: 500, color: 'rgba(255,255,255,0.4)' }}
+          style={{ fontFamily: "'Geist', sans-serif", fontSize: '14px', fontWeight: 500, color: 'var(--text-muted)' }}
         >
           Connect a platform and your twin comes to life with real context about you.
         </p>
@@ -243,7 +265,7 @@ const PlatformStep: React.FC<PlatformStepProps> = ({ onContinue }) => {
         <button
           onClick={() => setShowMore(v => !v)}
           className="w-full flex items-center justify-center gap-1 py-2 mb-2"
-          style={{ fontFamily: "'Geist', sans-serif", fontSize: '12px', fontWeight: 400, color: 'rgba(255,255,255,0.4)', background: 'none', border: 'none', cursor: 'pointer' }}
+          style={{ fontFamily: "'Geist', sans-serif", fontSize: '12px', fontWeight: 400, color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer' }}
         >
           {showMore ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           {showMore ? 'Show less' : 'More platforms'}
@@ -257,7 +279,7 @@ const PlatformStep: React.FC<PlatformStepProps> = ({ onContinue }) => {
               {MORE_PLATFORMS.map(p => (
                 <div
                   key={p.name}
-                  className="flex items-center gap-2.5 p-3 opacity-45 rounded-lg" style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+                  className="flex items-center gap-2.5 p-3 opacity-45 rounded-lg" style={{ border: '1px solid var(--border-glass)', backgroundColor: 'var(--surface)' }}
                 >
                   <div
                     className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 text-white"
@@ -265,17 +287,17 @@ const PlatformStep: React.FC<PlatformStepProps> = ({ onContinue }) => {
                   >
                     {p.icon}
                   </div>
-                  <p className="text-xs font-medium truncate" style={{ color: 'rgba(255,255,255,0.5)' }}>{p.name}</p>
+                  <p className="text-xs font-medium truncate" style={{ color: 'var(--text-secondary)' }}>{p.name}</p>
                 </div>
               ))}
             </div>
-            <p className="text-xs text-center" style={{ color: 'rgba(255,255,255,0.25)' }}>Available in Settings after onboarding</p>
+            <p className="text-xs text-center" style={{ color: 'var(--text-muted)' }}>Available in Settings after onboarding</p>
           </div>
         )}
 
         <button
           onClick={onContinue}
-          className="w-full py-4 transition-all"
+          className="w-full py-4 transition-all flex items-center justify-center gap-2"
           style={{
             fontFamily: "'Geist', sans-serif",
             fontSize: '12px',
@@ -289,7 +311,8 @@ const PlatformStep: React.FC<PlatformStepProps> = ({ onContinue }) => {
             border: anyConnected ? 'none' : '1.5px solid #D5D0C8',
           }}
         >
-          {anyConnected ? 'Continue →' : 'Skip for now →'}
+          {anyConnected ? 'Continue' : 'Skip for now'}
+          <ArrowRight className="w-4 h-4" />
         </button>
       </div>
     </div>

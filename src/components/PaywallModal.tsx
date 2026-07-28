@@ -67,9 +67,9 @@ const PaywallModal: React.FC<Props> = ({ isOpen }) => {
 
         {/* Header */}
         <div className="text-center space-y-2">
-          <p className="text-xs uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.4)' }}>Your twin is ready</p>
+          <p className="text-xs uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>Your twin is ready</p>
           <h2 className="text-4xl font-normal tracking-tight" style={{ fontFamily: "'Instrument Serif', Georgia, serif" }}>Keep the conversation going.</h2>
-          <p className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>Unlock full access to everything your twin can do.</p>
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Unlock full access to everything your twin can do.</p>
         </div>
 
         {/* Plan cards */}
@@ -78,7 +78,7 @@ const PaywallModal: React.FC<Props> = ({ isOpen }) => {
             <div key={plan.key} className="rounded-2xl p-6 space-y-4"
               style={plan.highlight
                 ? { background: 'rgba(196,162,101,0.06)', border: '1px solid rgba(196,162,101,0.3)' }
-                : { background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-glass)' }}>
+                : { background: 'var(--surface)', border: '1px solid var(--border-glass)' }}>
 
               {/* Plan name */}
               <div className="flex items-center gap-2">
@@ -97,11 +97,11 @@ const PaywallModal: React.FC<Props> = ({ isOpen }) => {
               {/* Price */}
               <div className="flex items-baseline gap-1">
                 <span className="text-4xl font-normal" style={{ fontFamily: "'Instrument Serif', Georgia, serif" }}>{plan.price}</span>
-                <span className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>{plan.period}</span>
+                <span className="text-sm" style={{ color: 'var(--text-muted)' }}>{plan.period}</span>
               </div>
 
               {/* Description */}
-              <p className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>{plan.description}</p>
+              <p className="text-sm" style={{ color: 'var(--text-muted)' }}>{plan.description}</p>
 
               {/* Features */}
               <ul className="space-y-1.5">
@@ -132,7 +132,7 @@ const PaywallModal: React.FC<Props> = ({ isOpen }) => {
         </div>
 
         {/* Footer */}
-        <p className="text-xs text-center" style={{ color: 'rgba(255,255,255,0.4)' }}>
+        <p className="text-xs text-center" style={{ color: 'var(--text-muted)' }}>
           {/* audit-2026-06-10: monthly billing only — no annual checkout exists */}
           Cancel anytime.
         </p>

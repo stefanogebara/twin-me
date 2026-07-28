@@ -51,8 +51,8 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
         <div
           className="flex items-center gap-3 rounded-[20px] px-5 py-3 transition-colors duration-200"
           style={{
-            background: 'rgba(255,255,255,0.03)',
-            border: `1px solid ${isFocused ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.05)'}`,
+            background: 'var(--surface)',
+            border: `1px solid ${isFocused ? 'var(--glass-surface-border)' : 'var(--border-glass)'}`,
             opacity: limitReached ? 0.4 : 1,
             pointerEvents: limitReached ? 'none' : 'auto',
           }}
@@ -80,7 +80,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
               disabled={isDisabled || limitReached}
               rows={1}
               aria-label="Message your twin"
-              className="w-full resize-none focus:outline-none disabled:opacity-50 text-[14px] bg-transparent placeholder:text-[rgba(255,255,255,0.3)]"
+              className="w-full resize-none focus:outline-none disabled:opacity-50 text-[14px] bg-transparent placeholder:text-[var(--text-secondary)]"
               style={{
                 color: 'var(--foreground)',
                 minHeight: '24px',
@@ -97,8 +97,8 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
                 <span
                   className="ml-2 px-1.5 py-0.5 rounded text-[10px] font-medium flex-shrink-0 hidden sm:inline"
                   style={{
-                    color: 'rgba(255,255,255,0.2)',
-                    border: '1px solid rgba(255,255,255,0.08)',
+                    color: 'var(--text-muted)',
+                    border: '1px solid var(--border-glass)',
                   }}
                 >
                   Tab
@@ -114,7 +114,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
                 style={{
                   color: chatUsage.remaining <= 5
                     ? '#ef4444'
-                    : 'rgba(255,255,255,0.3)',
+                    : 'var(--text-muted)',
                 }}
                 title={`${chatUsage.remaining} of ${chatUsage.limit} messages remaining this month`}
               >
@@ -134,11 +134,11 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
                 borderRadius: '100px',
                 padding: '8px',
                 background: hasText && !isDisabled && !limitReached
-                  ? '#F5F5F4'
-                  : 'var(--border-glass)',
+                  ? 'var(--claura-bone)'
+                  : 'var(--surface-solid)',
                 color: hasText && !isDisabled && !limitReached
-                  ? '#110f0f'
-                  : 'rgba(255,255,255,0.2)',
+                  ? 'var(--claura-bone-ink)'
+                  : 'var(--text-muted)',
                 cursor: (!hasText || isDisabled || limitReached) ? 'not-allowed' : 'pointer',
                 flexShrink: 0,
               }}

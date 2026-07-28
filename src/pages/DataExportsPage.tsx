@@ -19,9 +19,11 @@
  */
 
 import { useEffect, useMemo, useRef, useState, type DragEvent, type ChangeEvent } from 'react';
-import { Briefcase, Hash, Instagram, Upload, Trash2, ExternalLink, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Briefcase, Hash, Instagram, Upload, Trash2, ExternalLink, Loader2, CheckCircle2, AlertCircle, X } from 'lucide-react';
 import { exportsAPI, type ExportPlatform, type ExportRow } from '@/services/api/exportsAPI';
+import { isAbortError } from '@/services/api/apiBase';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { ClauraZonedBackground } from '@/components/ClauraZonedBackground';
 
 interface PlatformCardConfig {
   id: ExportPlatform;
@@ -160,7 +162,7 @@ const PlatformCard = ({
         {isParsed && (
           <button
             onClick={onDelete}
-            className="flex-shrink-0 inline-flex items-center gap-1.5 text-[12px] px-2 py-1 rounded-[6px] hover:bg-white/5"
+            className="flex-shrink-0 inline-flex items-center gap-1.5 text-[12px] px-2 py-1 rounded-[6px] hover:bg-[var(--surface)]"
             style={{ color: 'var(--text-muted)' }}
             title="Remove this export"
           >
@@ -177,9 +179,9 @@ const PlatformCard = ({
               <span
                 className="inline-flex items-center justify-center w-[18px] h-[18px] rounded-full text-[11px] flex-shrink-0 mt-0.5"
                 style={{
-                  background: 'rgba(255,255,255,0.06)',
+                  background: 'var(--surface)',
                   color: 'var(--text-primary)',
-                  border: '1px solid rgba(255,255,255,0.08)',
+                  border: '1px solid var(--border-glass)',
                 }}
               >
                 {i + 1}
@@ -208,7 +210,16 @@ const PlatformCard = ({
         style={{
           borderColor: dragging ? 'rgba(255,255,255,0.30)' : 'rgba(255,255,255,0.14)',
         }}
+        role="button"
+        tabIndex={0}
+        aria-label={`Upload ${config.label} export`}
         onClick={() => inputRef.current?.click()}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            inputRef.current?.click();
+          }
+        }}
         onDrop={onDrop}
         onDragOver={onDragOver}
         onDragLeave={onDragLeave}
@@ -273,6 +284,10 @@ export default function DataExportsPage() {
     instagram_export: { state: 'idle' },
   });
   const [dragging, setDragging] = useState<ExportPlatform | null>(null);
+  // Surface list-load failures instead of swallowing them: the page still works
+  // for uploads, but the user should know their existing exports failed to load
+  // (audit-2026-07-03 error-ux). Dismissible so it doesn't block the workflow.
+  const [listError, setListError] = useState<string | null>(null);
 
   const rowByPlatform = useMemo(() => {
     const out: Partial<Record<ExportPlatform, ExportRow>> = {};
@@ -284,8 +299,10 @@ export default function DataExportsPage() {
     try {
       const list = await exportsAPI.list();
       setRows(list);
-    } catch {
-      // List failure is non-fatal — the page still works for uploads.
+      setListError(null);
+    } catch (err) {
+      if (isAbortError(err)) return; // benign StrictMode/unmount cancellation
+      setListError(err instanceof Error ? err.message : 'Could not load your existing exports.');
     } finally {
       setLoading(false);
     }
@@ -316,6 +333,7 @@ export default function DataExportsPage() {
       }));
       await refresh();
     } catch (err) {
+      if (isAbortError(err)) return; // benign cancellation — don't flip to error
       setStatuses((s) => ({
         ...s,
         [platform]: {
@@ -333,6 +351,7 @@ export default function DataExportsPage() {
       setStatuses((s) => ({ ...s, [platform]: { state: 'idle' } }));
       await refresh();
     } catch (err) {
+      if (isAbortError(err)) return; // benign cancellation — don't flip to error
       setStatuses((s) => ({
         ...s,
         [platform]: { state: 'error', message: err instanceof Error ? err.message : 'Delete failed' },
@@ -342,6 +361,8 @@ export default function DataExportsPage() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
+      {/* Claura zoned photography — train-field, both appearances (/preview/history). */}
+      <ClauraZonedBackground dark="train-field.png" light="train-field.png" darkPosition="center 62%" lightPosition="center 62%" />
       <header className="mb-6">
         <h1
           className="text-[32px] leading-[1.1] tracking-[-0.64px]"
@@ -357,11 +378,35 @@ export default function DataExportsPage() {
         </p>
       </header>
 
+      {listError && (
+        <div
+          className="mb-6 rounded-[14px] px-4 py-3 text-[12.5px] leading-relaxed flex items-start gap-3"
+          style={{
+            background: 'rgba(220,38,38,0.08)',
+            border: '1px solid rgba(220,38,38,0.25)',
+            color: 'var(--text-secondary)',
+          }}
+          role="alert"
+        >
+          <AlertCircle size={14} className="mt-0.5 flex-shrink-0" style={{ color: 'var(--destructive)' }} />
+          <span className="flex-1">{listError}</span>
+          <button
+            type="button"
+            onClick={() => setListError(null)}
+            aria-label="Dismiss"
+            className="flex-shrink-0 hover:opacity-70 transition-opacity"
+            style={{ color: 'var(--text-muted)' }}
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
+
       <div
         className="mb-6 rounded-[14px] px-4 py-3 text-[12.5px] leading-relaxed flex items-start gap-3"
         style={{
-          background: 'rgba(255,255,255,0.04)',
-          border: '1px solid rgba(255,255,255,0.08)',
+          background: 'var(--surface)',
+          border: '1px solid var(--border-glass)',
           color: 'var(--text-secondary)',
         }}
       >

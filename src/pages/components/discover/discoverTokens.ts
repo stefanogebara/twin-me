@@ -1,17 +1,17 @@
-// ── Design tokens (dark-only) ──────────────────────────────────────────
+// ── Design tokens (theme-aware: resolve in both dark + light) ───────────
 export const T = {
   BG:       'var(--background)',
-  FG:       '#fdfcfb',
-  TEXT_SEC: '#a09898',
-  TEXT_PH:  '#86807b',
-  CARD_BG:  'rgba(255, 255, 255, 0.06)',
+  FG:       'var(--foreground)',
+  TEXT_SEC: 'var(--text-secondary)',
+  TEXT_PH:  'var(--text-placeholder)',
+  CARD_BG:  'var(--surface)',
   CARD_BDR: 'var(--glass-surface-border)',
-  BENTO_BG: 'rgba(255, 255, 255, 0.06)',
-  CTA_BG:   '#fdfcfb',
-  CTA_FG:   'var(--primary-foreground)',
-  SIGN_UP_BG: '#fdfcfb',
-  SIGN_UP_FG: '#222528',
-  GHOST_BG: 'rgba(255, 255, 255, 0.06)',
+  BENTO_BG: 'var(--surface)',
+  CTA_BG:   'var(--claura-bone)',
+  CTA_FG:   'var(--claura-bone-ink)',
+  SIGN_UP_BG: 'var(--claura-bone)',
+  SIGN_UP_FG: 'var(--claura-bone-ink)',
+  GHOST_BG: 'var(--surface)',
 };
 
 // ── Hero glow: RADIAL gradient (Figma exact — two stacked 455.74px ellipses) ──

@@ -30,7 +30,7 @@ const MAX_PAIRS         = 8000;            // hard cap per import to avoid memor
 const PII_PATTERNS = [
   { re: /\b\d{3}[-.\s]?\d{3}[-.\s]?\d{4}\b/g,             tag: '[phone]' },     // US/BR phone
   { re: /\b\+\d{1,3}\s?\(?\d{1,4}\)?[\s.-]?\d{2,4}[\s.-]?\d{4}\b/g, tag: '[phone]' }, // intl phone
-  { re: /\b[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}\b/gi,  tag: '[email]' },
+  { re: /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi,  tag: '[email]' },
   { re: /\b\d{4}[- ]?\d{4}[- ]?\d{4}[- ]?\d{4}\b/g,       tag: '[card]' },      // credit card
   { re: /\b[A-Z]{2}\d{2}[A-Z0-9]{8,30}\b/g,               tag: '[iban]' },      // IBAN
   { re: /\b\d{3}[-.\s]?\d{2}[-.\s]?\d{4}\b/g,             tag: '[ssn]' },       // SSN

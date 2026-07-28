@@ -23,6 +23,7 @@ import { getRelevantWikiPages } from './wikiCompilationService.js';
 import { renderSpine } from './memoryTimelineService.js';
 import { getFeatureFlags } from './featureFlagsService.js';
 import { getActiveDirectives } from './twinSelfImprovement.js';
+import { raceContextFanout } from './contextFanout.js';
 import axios from 'axios';
 // Whoop analytics — run on-demand when the user's message asks an
 // analytical question (trend, comparison, weekly recap). Snapshot still
@@ -274,7 +275,12 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
   // timeout the leg's caller .catch() returns a default (empty array,
   // null, etc.) and the chat continues without that leg's data.
   const timings = {};
-  const PER_LEG_TIMEOUT_MS = 6000;
+  // 9s (just under the 10s global breaker) so a leg may use nearly the full budget
+  // and the slow-but-recoverable cold-start tail (twinSummary / wikiPages / memories
+  // on cold pgbouncer) lands instead of being cut at 6s. The global breaker is the
+  // hard cap, and a single hung leg degrades to its default without aborting the
+  // others (see guardedPromises). (audit: 6s collapsed the effective budget below 10s.)
+  const PER_LEG_TIMEOUT_MS = 9000;
   const timed = (label, promise) => {
     const start = Date.now();
     let timer;
@@ -478,54 +484,19 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
     })),
   ];
 
-  // Track resolved values via microtasks so circuit breaker can use them without waiting.
-  // Microtasks (Promise.then) are always processed before macrotasks (setTimeout),
-  // so resolvedValues[] is fully populated for settled promises when the timeout fires.
-  const resolvedValues = new Array(fetchPromises.length).fill(undefined);
-  fetchPromises.forEach((p, i) => {
-    p.then(v => { resolvedValues[i] = v; }).catch(() => { resolvedValues[i] = defaults[i]; });
-  });
-
-  let contextResults;
-  // audit-2026-05-13 bottleneck follow-up: track whether the circuit breaker
-  // tripped so the hop_timings ladder can show it. Hop log can't be called
-  // from inside this module (no logger pattern here), so we surface it via
-  // the returned timings record — the route layer can fold it into the
-  // context_fetch_done hop_timings entry.
-  let circuitBreakerTripped = false;
-  let degradationReason = null;
-  try {
-    contextResults = await Promise.race([
-      Promise.all(fetchPromises),
-      new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('fetchTwinContext timeout')), CONTEXT_TIMEOUT_MS)
-      ),
-    ]);
-  } catch (timeoutErr) {
-    // Two graceful-degradation paths land here:
-    //   1. The 10s global breaker timer fired — message ===
-    //      'fetchTwinContext timeout'.
-    //   2. One of the per-leg timed() wrappers fired its own 6s timer —
-    //      message ends in '_leg_timeout' (e.g. 'platformData_leg_timeout').
-    //
-    // Both are EXPECTED outcomes when a backend is slow (cold-start
-    // Nango token refresh, cold pgbouncer queueing on Supabase, etc.) —
-    // they should never propagate to a 500 in the chat handler. Before
-    // this fix only the global breaker degraded; leg timeouts re-threw,
-    // which is what caused the cold-start 500 we hit during the Whoop
-    // step-5 eval (the platformData leg timed out at 6s waiting on Nango).
-    const isLegTimeout = /_leg_timeout$/.test(timeoutErr.message);
-    const isGlobalTimeout = timeoutErr.message === 'fetchTwinContext timeout';
-    if (isGlobalTimeout || isLegTimeout) {
-      circuitBreakerTripped = true;
-      degradationReason = timeoutErr.message;
-      log.warn(`Circuit breaker tripped (${timeoutErr.message}) — returning partial context`);
-      // Use already-resolved values; fall back to defaults for still-pending promises.
-      contextResults = resolvedValues.map((v, i) => v !== undefined ? v : defaults[i]);
-    } else {
-      throw timeoutErr;
-    }
-  }
+  // Race the fan-out against the global breaker, degrading to partial context
+  // instead of failing the request. The subtle resilience logic (microtask
+  // resolved-tracking + per-leg-timeout guarding + partial fallback) lives in
+  // raceContextFanout so it can be unit-tested in isolation — two prod 500s
+  // traced back to earlier versions of it. circuitBreakerTripped is surfaced via
+  // the timings record so the route layer can fold it into the
+  // context_fetch_done hop_timings entry (no logger pattern reaches here).
+  const { contextResults, circuitBreakerTripped, degradationReason } = await raceContextFanout(
+    fetchPromises,
+    defaults,
+    CONTEXT_TIMEOUT_MS,
+    { onDegrade: (reason) => log.warn(`Circuit breaker tripped (${reason}) — returning partial context`) },
+  );
   timings._circuitBreakerTripped = circuitBreakerTripped;
   if (degradationReason) timings._circuitBreakerReason = degradationReason;
   timings._circuitBreakerMs = CONTEXT_TIMEOUT_MS;
@@ -759,10 +730,14 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
 
   const platformAnalytics = {};
   if (userMessage) {
-    for (const cfg of PLATFORM_ANALYTICS) {
+    // Run every platform escalation CONCURRENTLY. Each self-catches and is bounded
+    // by its own Promise.race timeout, so the whole phase costs the slowest single
+    // platform (~8s) rather than the SUM of all that fire (audit: was a serial
+    // for-loop, ~22s of token+fetch+learn for a multi-platform message).
+    const runPlatform = async (cfg) => {
       try {
         const intent = cfg.detect(userMessage);
-        if (!intent.kind || intent.kind === 'snapshot') continue;
+        if (!intent.kind || intent.kind === 'snapshot') return;
         const tStart = Date.now();
         // No-token (upload-based) platforms pass the userId as run context
         // so the adapter can pull cached aggregates without an OAuth token.
@@ -773,7 +748,7 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
           const tok = await getValidAccessToken(userId, cfg.tokenPlatform);
           if (!tok.success || !tok.accessToken) {
             timings[`${cfg.key}AnalyticsHit`] = 'no_token';
-            continue;
+            return;
           }
           analyticsPromise = cfg.run(tok.accessToken);
         }
@@ -801,7 +776,8 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
       } catch (err) {
         log.warn(`${cfg.key} analytics escalation failed: ${err?.message ?? err}`);
       }
-    }
+    };
+    await Promise.all(PLATFORM_ANALYTICS.map(runPlatform));
   }
   const spotifyAnalytics = platformAnalytics.spotify ?? null;
   const calendarAnalytics = platformAnalytics.calendar ?? null;
@@ -1144,7 +1120,14 @@ async function _fetchSoulSignature(userId) {
     .limit(1)
     .single();
 
-  if (error || !data) {
+  if (error && error.code !== 'PGRST116') {
+    // Real DB error (cold pgbouncer, statement timeout, transient 5xx) — surface it
+    // and do NOT cache, so the next turn retries instead of serving a soul-less twin
+    // for 10 minutes. Only PGRST116 (no row) is a clean, cacheable null (audit).
+    log.warn('Soul signature query failed:', error.message);
+    return null;
+  }
+  if (!data) {
     setCache(cacheKey, null);
     return null;
   }
@@ -1189,7 +1172,11 @@ async function _fetchWritingProfile(userId) {
     .eq('user_id', userId)
     .single();
 
-  if (error || !data) { setCache(cacheKey, null); return null; }
+  if (error && error.code !== 'PGRST116') {
+    log.warn('Writing profile query failed:', error.message);
+    return null; // real error — do not cache, retry next turn (audit)
+  }
+  if (!data) { setCache(cacheKey, null); return null; }
 
   const result = {
     communicationStyle: data.formality_score >= 60 ? 'formal' : data.formality_score >= 40 ? 'balanced' : 'casual',
@@ -1299,234 +1286,261 @@ async function _refreshPlatformData(userId, platforms, cacheKey) {
   }
 }
 
+// Per-platform fetchers. Each returns the shaped fragment object for its
+// platform (e.g. { currentlyPlaying, recentTracks, ... }) or null, and owns
+// its inner try/catch: it log.warns on failure and returns null rather than
+// throwing. Adding a platform is a PLATFORM_FETCHERS entry, not another
+// `if` branch in the dispatcher below.
+
+async function _fetchSpotifyData(userId) {
+  try {
+    const tokenResult = await getValidAccessToken(userId, 'spotify');
+    if (tokenResult.success && tokenResult.accessToken) {
+      const headers = { Authorization: `Bearer ${tokenResult.accessToken}` };
+
+      const PLATFORM_TIMEOUT = 3000;
+
+      // Run ALL 5 Spotify calls in parallel (P2: was serial currently-playing first)
+      const [currentRes, recentRes, topShortRes, topMedRes, topLongRes] = await Promise.all([
+        axios.get('https://api.spotify.com/v1/me/player/currently-playing', { headers, timeout: PLATFORM_TIMEOUT }).catch(() => ({ data: null })),
+        axios.get('https://api.spotify.com/v1/me/player/recently-played?limit=10', { headers, timeout: PLATFORM_TIMEOUT }),
+        axios.get('https://api.spotify.com/v1/me/top/artists?limit=5&time_range=short_term', { headers, timeout: PLATFORM_TIMEOUT }),
+        axios.get('https://api.spotify.com/v1/me/top/artists?limit=5&time_range=medium_term', { headers, timeout: PLATFORM_TIMEOUT }),
+        axios.get('https://api.spotify.com/v1/me/top/artists?limit=5&time_range=long_term', { headers, timeout: PLATFORM_TIMEOUT }),
+      ]);
+
+      let currentlyPlaying = null;
+      if (currentRes.data?.item) {
+        currentlyPlaying = {
+          name: currentRes.data.item.name,
+          artist: currentRes.data.item.artists?.[0]?.name,
+          isPlaying: currentRes.data.is_playing
+        };
+      }
+
+      // All recent tracks regardless of age (up to 10)
+      const recentTracks = recentRes.data?.items?.map(item => ({
+        name: item.track?.name,
+        artist: item.track?.artists?.[0]?.name,
+        playedAt: item.played_at
+      })) || [];
+
+      const topShort = topShortRes.data?.items?.map(a => a.name) || [];
+      const topMed   = topMedRes.data?.items?.map(a => a.name) || [];
+      const topLong  = topLongRes.data?.items?.map(a => a.name) || [];
+      const genres   = topShortRes.data?.items?.flatMap(a => a.genres?.slice(0, 2) || []).slice(0, 5) || [];
+
+      return {
+        currentlyPlaying,
+        recentTracks: recentTracks.slice(0, 8),
+        topArtistsShortTerm: topShort,   // ~4 weeks
+        topArtistsMediumTerm: topMed,    // ~6 months
+        topArtistsLongTerm: topLong,     // all time
+        genres,
+        fetchedAt: new Date().toISOString()
+      };
+    }
+  } catch (spotifyErr) {
+    log.warn('Spotify fetch failed:', spotifyErr.message);
+  }
+  return null;
+}
+
+async function _fetchCalendarData(userId) {
+  try {
+    const tokenResult = await getValidAccessToken(userId, 'google_calendar');
+    if (tokenResult.success && tokenResult.accessToken) {
+      const now = new Date();
+      const todayEnd = new Date(now);
+      todayEnd.setHours(23, 59, 59, 999);
+      const weekFromNow = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+      const calRes = await axios.get('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
+        headers: { Authorization: `Bearer ${tokenResult.accessToken}` },
+        timeout: 3000,
+        params: {
+          timeMin: now.toISOString(),
+          timeMax: weekFromNow.toISOString(),
+          maxResults: 15,
+          singleEvents: true,
+          orderBy: 'startTime'
+        }
+      });
+
+      const events = calRes.data?.items?.map(e => ({
+        id: e.id,
+        summary: e.summary,
+        start: e.start?.dateTime || e.start?.date,
+        isToday: new Date(e.start?.dateTime || e.start?.date) <= todayEnd
+      })) || [];
+
+      return {
+        todayEvents: events.filter(e => e.isToday).slice(0, 5),
+        upcomingEvents: events.filter(e => !e.isToday).slice(0, 5),
+        fetchedAt: new Date().toISOString()
+      };
+    }
+  } catch (calErr) {
+    log.warn('Calendar fetch failed:', calErr.message);
+  }
+  return null;
+}
+
+async function _fetchWhoopData(userId) {
+  try {
+    const { data: whoopConn, error: whoopConnErr } = await supabaseAdmin
+      .from('platform_connections')
+      .select('access_token')
+      .eq('user_id', userId)
+      .eq('platform', 'whoop')
+      .single();
+    if (whoopConnErr && whoopConnErr.code !== 'PGRST116') log.warn('Whoop connection fetch failed:', whoopConnErr.message);
+
+    if (whoopConn?.access_token === 'NANGO_MANAGED') {
+      const nangoService = await import('./nangoService.js');
+      const [recoveryResult, sleepResult] = await Promise.all([
+        nangoService.whoop.getRecovery(userId, 1),
+        nangoService.whoop.getSleep(userId, 5)
+      ]);
+
+      const latestRecovery = recoveryResult.success ? recoveryResult.data?.records?.[0] : null;
+      const allSleeps = sleepResult.success ? (sleepResult.data?.records || []) : [];
+
+      if (latestRecovery || allSleeps.length > 0) {
+        const now = new Date();
+        const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        const todaysSleeps = allSleeps.filter(s => new Date(s.end) >= yesterday);
+
+        let totalSleepMs = 0;
+        todaysSleeps.forEach(sleep => {
+          const stageSummary = sleep.score?.stage_summary || {};
+          totalSleepMs += sleep.score?.total_sleep_time_milli ||
+                         (stageSummary.total_in_bed_time_milli - (stageSummary.total_awake_time_milli || 0)) ||
+                         stageSummary.total_in_bed_time_milli || 0;
+        });
+
+        const sleepHours = totalSleepMs / (1000 * 60 * 60);
+        return {
+          recovery: latestRecovery?.score?.recovery_score || null,
+          strain: latestRecovery?.score?.user_calibrating ? 'calibrating' : null,
+          sleepHours: sleepHours > 0 ? sleepHours.toFixed(1) : null,
+          sleepDescription: sleepHours > 0 ? `${sleepHours.toFixed(1)} hours${todaysSleeps.length > 1 ? ` (incl. ${todaysSleeps.length - 1} nap${todaysSleeps.length > 2 ? 's' : ''})` : ''}` : null,
+          hrv: latestRecovery?.score?.hrv_rmssd_milli ? Math.round(latestRecovery.score.hrv_rmssd_milli) : null,
+          restingHR: latestRecovery?.score?.resting_heart_rate ? Math.round(latestRecovery.score.resting_heart_rate) : null,
+          fetchedAt: new Date().toISOString()
+        };
+      }
+    } else {
+      const tokenResult = await getValidAccessToken(userId, 'whoop');
+      if (tokenResult.success && tokenResult.accessToken) {
+        const headers = { Authorization: `Bearer ${tokenResult.accessToken}` };
+        const [recoveryRes, sleepRes] = await Promise.all([
+          axios.get('https://api.prod.whoop.com/developer/v2/recovery?limit=1', { headers }),
+          axios.get('https://api.prod.whoop.com/developer/v2/activity/sleep?limit=5', { headers })
+        ]);
+
+        const latestRecovery = recoveryRes.data?.records?.[0];
+        const allSleeps = sleepRes.data?.records || [];
+        const now = new Date();
+        const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        const todaysSleeps = allSleeps.filter(s => new Date(s.end) >= yesterday);
+
+        let totalSleepMs = 0;
+        todaysSleeps.forEach(sleep => {
+          const stageSummary = sleep.score?.stage_summary || {};
+          totalSleepMs += sleep.score?.total_sleep_time_milli ||
+                         (stageSummary.total_in_bed_time_milli - (stageSummary.total_awake_time_milli || 0)) ||
+                         stageSummary.total_in_bed_time_milli || 0;
+        });
+
+        const sleepHours = totalSleepMs / (1000 * 60 * 60);
+        return {
+          recovery: latestRecovery?.score?.recovery_score || null,
+          strain: latestRecovery?.score?.user_calibrating ? 'calibrating' : null,
+          sleepHours: sleepHours > 0 ? sleepHours.toFixed(1) : null,
+          sleepDescription: sleepHours > 0 ? `${sleepHours.toFixed(1)} hours${todaysSleeps.length > 1 ? ` (incl. ${todaysSleeps.length - 1} nap${todaysSleeps.length > 2 ? 's' : ''})` : ''}` : null,
+          hrv: latestRecovery?.score?.hrv_rmssd_milli ? Math.round(latestRecovery.score.hrv_rmssd_milli) : null,
+          restingHR: latestRecovery?.score?.resting_heart_rate ? Math.round(latestRecovery.score.resting_heart_rate) : null,
+          fetchedAt: new Date().toISOString()
+        };
+      }
+    }
+  } catch (whoopErr) {
+    log.warn('Whoop fetch failed:', whoopErr.message);
+  }
+  return null;
+}
+
+async function _fetchWebData(userId) {
+  try {
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const { data: webEvents } = await supabaseAdmin
+      .from('user_platform_data')
+      .select('data_type, raw_data, created_at')
+      .eq('user_id', userId)
+      .eq('platform', 'web')
+      .gte('created_at', sevenDaysAgo)
+      .order('created_at', { ascending: false })
+      .limit(25);
+
+    if (webEvents?.length > 0) {
+      const categories = {};
+      const topics = {};
+      const searches = [];
+      const domains = {};
+
+      for (const event of webEvents) {
+        const raw = event.raw_data || {};
+        const category = raw.category || raw.metadata?.category;
+        if (category) categories[category] = (categories[category] || 0) + 1;
+
+        const domain = raw.domain || raw.metadata?.domain;
+        if (domain) domains[domain] = (domains[domain] || 0) + 1;
+
+        const eventTopics = raw.topics || raw.metadata?.topics || [];
+        for (const t of eventTopics) topics[t] = (topics[t] || 0) + 1;
+
+        if (event.data_type === 'extension_search_query' && raw.query) {
+          searches.push(raw.query);
+        }
+      }
+
+      return {
+        hasExtensionData: true,
+        totalEvents: webEvents.length,
+        topCategories: Object.entries(categories).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([c]) => c),
+        topTopics: Object.entries(topics).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([t]) => t),
+        topDomains: Object.entries(domains).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([d]) => d),
+        recentSearches: searches.slice(0, 5),
+        fetchedAt: new Date().toISOString()
+      };
+    }
+  } catch (webErr) {
+    log.warn('Web browsing fetch failed:', webErr.message);
+  }
+  return null;
+}
+
+// Registry: platform name -> { key: field on the returned data object, fetch }.
+// `calendar` and `google_calendar` are aliases for the same fetcher and both
+// write to data.calendar.
+const PLATFORM_FETCHERS = {
+  spotify: { key: 'spotify', fetch: _fetchSpotifyData },
+  calendar: { key: 'calendar', fetch: _fetchCalendarData },
+  google_calendar: { key: 'calendar', fetch: _fetchCalendarData }, // alias
+  whoop: { key: 'whoop', fetch: _fetchWhoopData },
+  web: { key: 'web', fetch: _fetchWebData },
+};
+
 async function _fetchSinglePlatform(userId, platform) {
   const data = {};
 
   try {
-    if (platform === 'spotify') {
-        try {
-          const tokenResult = await getValidAccessToken(userId, 'spotify');
-          if (tokenResult.success && tokenResult.accessToken) {
-            const headers = { Authorization: `Bearer ${tokenResult.accessToken}` };
-
-            const PLATFORM_TIMEOUT = 3000;
-
-            // Run ALL 5 Spotify calls in parallel (P2: was serial currently-playing first)
-            const [currentRes, recentRes, topShortRes, topMedRes, topLongRes] = await Promise.all([
-              axios.get('https://api.spotify.com/v1/me/player/currently-playing', { headers, timeout: PLATFORM_TIMEOUT }).catch(() => ({ data: null })),
-              axios.get('https://api.spotify.com/v1/me/player/recently-played?limit=10', { headers, timeout: PLATFORM_TIMEOUT }),
-              axios.get('https://api.spotify.com/v1/me/top/artists?limit=5&time_range=short_term', { headers, timeout: PLATFORM_TIMEOUT }),
-              axios.get('https://api.spotify.com/v1/me/top/artists?limit=5&time_range=medium_term', { headers, timeout: PLATFORM_TIMEOUT }),
-              axios.get('https://api.spotify.com/v1/me/top/artists?limit=5&time_range=long_term', { headers, timeout: PLATFORM_TIMEOUT }),
-            ]);
-
-            let currentlyPlaying = null;
-            if (currentRes.data?.item) {
-              currentlyPlaying = {
-                name: currentRes.data.item.name,
-                artist: currentRes.data.item.artists?.[0]?.name,
-                isPlaying: currentRes.data.is_playing
-              };
-            }
-
-            // All recent tracks regardless of age (up to 10)
-            const recentTracks = recentRes.data?.items?.map(item => ({
-              name: item.track?.name,
-              artist: item.track?.artists?.[0]?.name,
-              playedAt: item.played_at
-            })) || [];
-
-            const topShort = topShortRes.data?.items?.map(a => a.name) || [];
-            const topMed   = topMedRes.data?.items?.map(a => a.name) || [];
-            const topLong  = topLongRes.data?.items?.map(a => a.name) || [];
-            const genres   = topShortRes.data?.items?.flatMap(a => a.genres?.slice(0, 2) || []).slice(0, 5) || [];
-
-            data.spotify = {
-              currentlyPlaying,
-              recentTracks: recentTracks.slice(0, 8),
-              topArtistsShortTerm: topShort,   // ~4 weeks
-              topArtistsMediumTerm: topMed,    // ~6 months
-              topArtistsLongTerm: topLong,     // all time
-              genres,
-              fetchedAt: new Date().toISOString()
-            };
-          }
-        } catch (spotifyErr) {
-          log.warn('Spotify fetch failed:', spotifyErr.message);
-        }
-      }
-
-      if (platform === 'calendar' || platform === 'google_calendar') {
-        try {
-          const tokenResult = await getValidAccessToken(userId, 'google_calendar');
-          if (tokenResult.success && tokenResult.accessToken) {
-            const now = new Date();
-            const todayEnd = new Date(now);
-            todayEnd.setHours(23, 59, 59, 999);
-            const weekFromNow = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-
-            const calRes = await axios.get('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
-              headers: { Authorization: `Bearer ${tokenResult.accessToken}` },
-              timeout: 3000,
-              params: {
-                timeMin: now.toISOString(),
-                timeMax: weekFromNow.toISOString(),
-                maxResults: 15,
-                singleEvents: true,
-                orderBy: 'startTime'
-              }
-            });
-
-            const events = calRes.data?.items?.map(e => ({
-              id: e.id,
-              summary: e.summary,
-              start: e.start?.dateTime || e.start?.date,
-              isToday: new Date(e.start?.dateTime || e.start?.date) <= todayEnd
-            })) || [];
-
-            data.calendar = {
-              todayEvents: events.filter(e => e.isToday).slice(0, 5),
-              upcomingEvents: events.filter(e => !e.isToday).slice(0, 5),
-              fetchedAt: new Date().toISOString()
-            };
-          }
-        } catch (calErr) {
-          log.warn('Calendar fetch failed:', calErr.message);
-        }
-      }
-
-      if (platform === 'whoop') {
-        try {
-          const { data: whoopConn, error: whoopConnErr } = await supabaseAdmin
-            .from('platform_connections')
-            .select('access_token')
-            .eq('user_id', userId)
-            .eq('platform', 'whoop')
-            .single();
-          if (whoopConnErr && whoopConnErr.code !== 'PGRST116') log.warn('Whoop connection fetch failed:', whoopConnErr.message);
-
-          if (whoopConn?.access_token === 'NANGO_MANAGED') {
-            const nangoService = await import('./nangoService.js');
-            const [recoveryResult, sleepResult] = await Promise.all([
-              nangoService.whoop.getRecovery(userId, 1),
-              nangoService.whoop.getSleep(userId, 5)
-            ]);
-
-            const latestRecovery = recoveryResult.success ? recoveryResult.data?.records?.[0] : null;
-            const allSleeps = sleepResult.success ? (sleepResult.data?.records || []) : [];
-
-            if (latestRecovery || allSleeps.length > 0) {
-              const now = new Date();
-              const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-              const todaysSleeps = allSleeps.filter(s => new Date(s.end) >= yesterday);
-
-              let totalSleepMs = 0;
-              todaysSleeps.forEach(sleep => {
-                const stageSummary = sleep.score?.stage_summary || {};
-                totalSleepMs += sleep.score?.total_sleep_time_milli ||
-                               (stageSummary.total_in_bed_time_milli - (stageSummary.total_awake_time_milli || 0)) ||
-                               stageSummary.total_in_bed_time_milli || 0;
-              });
-
-              const sleepHours = totalSleepMs / (1000 * 60 * 60);
-              data.whoop = {
-                recovery: latestRecovery?.score?.recovery_score || null,
-                strain: latestRecovery?.score?.user_calibrating ? 'calibrating' : null,
-                sleepHours: sleepHours > 0 ? sleepHours.toFixed(1) : null,
-                sleepDescription: sleepHours > 0 ? `${sleepHours.toFixed(1)} hours${todaysSleeps.length > 1 ? ` (incl. ${todaysSleeps.length - 1} nap${todaysSleeps.length > 2 ? 's' : ''})` : ''}` : null,
-                hrv: latestRecovery?.score?.hrv_rmssd_milli ? Math.round(latestRecovery.score.hrv_rmssd_milli) : null,
-                restingHR: latestRecovery?.score?.resting_heart_rate ? Math.round(latestRecovery.score.resting_heart_rate) : null,
-                fetchedAt: new Date().toISOString()
-              };
-            }
-          } else {
-            const tokenResult = await getValidAccessToken(userId, 'whoop');
-            if (tokenResult.success && tokenResult.accessToken) {
-              const headers = { Authorization: `Bearer ${tokenResult.accessToken}` };
-              const [recoveryRes, sleepRes] = await Promise.all([
-                axios.get('https://api.prod.whoop.com/developer/v2/recovery?limit=1', { headers }),
-                axios.get('https://api.prod.whoop.com/developer/v2/activity/sleep?limit=5', { headers })
-              ]);
-
-              const latestRecovery = recoveryRes.data?.records?.[0];
-              const allSleeps = sleepRes.data?.records || [];
-              const now = new Date();
-              const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-              const todaysSleeps = allSleeps.filter(s => new Date(s.end) >= yesterday);
-
-              let totalSleepMs = 0;
-              todaysSleeps.forEach(sleep => {
-                const stageSummary = sleep.score?.stage_summary || {};
-                totalSleepMs += sleep.score?.total_sleep_time_milli ||
-                               (stageSummary.total_in_bed_time_milli - (stageSummary.total_awake_time_milli || 0)) ||
-                               stageSummary.total_in_bed_time_milli || 0;
-              });
-
-              const sleepHours = totalSleepMs / (1000 * 60 * 60);
-              data.whoop = {
-                recovery: latestRecovery?.score?.recovery_score || null,
-                strain: latestRecovery?.score?.user_calibrating ? 'calibrating' : null,
-                sleepHours: sleepHours > 0 ? sleepHours.toFixed(1) : null,
-                sleepDescription: sleepHours > 0 ? `${sleepHours.toFixed(1)} hours${todaysSleeps.length > 1 ? ` (incl. ${todaysSleeps.length - 1} nap${todaysSleeps.length > 2 ? 's' : ''})` : ''}` : null,
-                hrv: latestRecovery?.score?.hrv_rmssd_milli ? Math.round(latestRecovery.score.hrv_rmssd_milli) : null,
-                restingHR: latestRecovery?.score?.resting_heart_rate ? Math.round(latestRecovery.score.resting_heart_rate) : null,
-                fetchedAt: new Date().toISOString()
-              };
-            }
-          }
-        } catch (whoopErr) {
-          log.warn('Whoop fetch failed:', whoopErr.message);
-        }
-      }
-
-      if (platform === 'web') {
-        try {
-          const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-          const { data: webEvents } = await supabaseAdmin
-            .from('user_platform_data')
-            .select('data_type, raw_data, created_at')
-            .eq('user_id', userId)
-            .eq('platform', 'web')
-            .gte('created_at', sevenDaysAgo)
-            .order('created_at', { ascending: false })
-            .limit(25);
-
-          if (webEvents?.length > 0) {
-            const categories = {};
-            const topics = {};
-            const searches = [];
-            const domains = {};
-
-            for (const event of webEvents) {
-              const raw = event.raw_data || {};
-              const category = raw.category || raw.metadata?.category;
-              if (category) categories[category] = (categories[category] || 0) + 1;
-
-              const domain = raw.domain || raw.metadata?.domain;
-              if (domain) domains[domain] = (domains[domain] || 0) + 1;
-
-              const eventTopics = raw.topics || raw.metadata?.topics || [];
-              for (const t of eventTopics) topics[t] = (topics[t] || 0) + 1;
-
-              if (event.data_type === 'extension_search_query' && raw.query) {
-                searches.push(raw.query);
-              }
-            }
-
-            data.web = {
-              hasExtensionData: true,
-              totalEvents: webEvents.length,
-              topCategories: Object.entries(categories).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([c]) => c),
-              topTopics: Object.entries(topics).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([t]) => t),
-              topDomains: Object.entries(domains).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([d]) => d),
-              recentSearches: searches.slice(0, 5),
-              fetchedAt: new Date().toISOString()
-            };
-          }
-        } catch (webErr) {
-          log.warn('Web browsing fetch failed:', webErr.message);
-        }
-      }
+    const entry = PLATFORM_FETCHERS[platform];
+    if (entry) {
+      const fragment = await entry.fetch(userId);
+      if (fragment) data[entry.key] = fragment;
+    }
   } catch (err) {
     log.warn(`Error fetching ${platform} data:`, err.message);
   }
@@ -1545,7 +1559,12 @@ async function _fetchCalibrationContext(userId) {
     .eq('user_id', userId)
     .single();
 
-  if (error || !data) return null;
+  if (error && error.code !== 'PGRST116') {
+    // Throw so the caller's .catch logs it and does NOT cache the null for 10 min
+    // (audit). PGRST116 = no interview row = clean, cacheable null.
+    throw new Error(`calibration query failed: ${error.message}`);
+  }
+  if (!data) return null;
 
   const lines = [];
   if (data.archetype_hint) lines.push(`Archetype: ${data.archetype_hint}`);
@@ -1627,4 +1646,4 @@ async function routeMemoryContext(userId, userMessage, memoryDomains = null) {
   });
 }
 
-export { fetchTwinContext, buildContextSourcesMeta, routeMemoryContext };
+export { fetchTwinContext, buildContextSourcesMeta, routeMemoryContext, _fetchSinglePlatform, PLATFORM_FETCHERS };

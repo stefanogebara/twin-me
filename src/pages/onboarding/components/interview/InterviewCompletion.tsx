@@ -22,9 +22,9 @@ const InterviewCompletion: React.FC<InterviewCompletionProps> = ({
   return (
     <div className="flex flex-col items-center gap-4 py-4">
       <div className="flex items-center justify-center w-12 h-12 rounded-full"
-        style={{ backgroundColor: 'rgba(255,255,255,0.04)', border: '1px solid var(--border-glass)' }}
+        style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-glass)' }}
       >
-        <Sparkles className="w-5 h-5" style={{ color: 'rgba(255,255,255,0.4)' }} />
+        <Sparkles className="w-5 h-5" style={{ color: 'var(--text-muted)' }} />
       </div>
 
       <div className="text-center">
@@ -42,7 +42,7 @@ const InterviewCompletion: React.FC<InterviewCompletionProps> = ({
         {enhancedSignature?.archetype_name && (
           <p
             className="text-sm font-medium mb-2"
-            style={{ color: 'rgba(255,255,255,0.4)' }}
+            style={{ color: 'var(--text-muted)' }}
           >
             Your archetype: {enhancedSignature.archetype_name}
           </p>
@@ -51,7 +51,7 @@ const InterviewCompletion: React.FC<InterviewCompletionProps> = ({
         {enhancedSignature?.first_impression && (
           <p
             className="text-xs leading-relaxed max-w-sm mx-auto mb-1"
-            style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Geist', sans-serif" }}
+            style={{ color: 'var(--text-muted)', fontFamily: "'Geist', sans-serif" }}
           >
             {enhancedSignature.first_impression}
           </p>
@@ -61,7 +61,7 @@ const InterviewCompletion: React.FC<InterviewCompletionProps> = ({
           <p
             className="text-xs leading-relaxed max-w-sm mx-auto mt-2"
             style={{
-              color: 'rgba(255,255,255,0.4)',
+              color: 'var(--text-muted)',
               fontFamily: 'Instrument Serif, Georgia, serif',
               fontStyle: 'italic',
               opacity: 0.8,
@@ -75,7 +75,7 @@ const InterviewCompletion: React.FC<InterviewCompletionProps> = ({
           <p
             className="text-sm leading-relaxed max-w-sm mx-auto"
             style={{
-              color: 'rgba(255,255,255,0.4)',
+              color: 'var(--text-muted)',
               fontFamily: 'Instrument Serif, Georgia, serif',
               fontStyle: 'italic',
             }}
@@ -92,9 +92,9 @@ const InterviewCompletion: React.FC<InterviewCompletionProps> = ({
               key={i}
               className="px-2.5 py-1 rounded-full text-[11px]"
               style={{
-                backgroundColor: 'rgba(255,255,255,0.02)',
+                backgroundColor: 'var(--surface)',
                 border: '1px solid var(--border-glass)',
-                color: 'rgba(255,255,255,0.4)',
+                color: 'var(--text-muted)',
                 fontFamily: "'Geist', sans-serif",
               }}
             >

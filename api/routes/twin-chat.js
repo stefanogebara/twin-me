@@ -196,6 +196,16 @@ router.post('/message', authenticateUser, async (req, res) => {
     // pre-flight context fan-out is the dominant cost of a chat turn and
     // is what the recent per-leg-timeout + HyDE-skip work was tuning. The
     // value is persisted into mcp_conversation_logs.cold_start_ms below.
+    // Kick off the platform-activity-priorities query NOW so it overlaps the
+    // pre-flight context fan-out instead of running as a serial round-trip after it
+    // (audit). .then() starts execution immediately; the error arm prevents reject.
+    const activityPrioritiesPromise = supabaseAdmin
+      .from('platform_connections')
+      .select('platform, activity_score, activity_level, content_volume')
+      .eq('user_id', userId)
+      .order('activity_score', { ascending: false })
+      .then(r => r, e => ({ data: null, error: e }));
+
     const coldStartBegin = Date.now();
     let twinContext, userLocation, personalityProfile, soulLayers, oracleDraft, workspaceBlock;
     let preflightLegTimings = null;
@@ -227,13 +237,10 @@ router.post('/message', authenticateUser, async (req, res) => {
     // see it via w.analytics.summary. No additional merge needed.
     const { soulSignature, platformData, writingProfile, memories, twinSummary, proactiveInsights, enrichmentContext, voiceExamples, activeGoals, patterns, identityContext, calibrationContext, nudgeHistory, departmentProposals, directives } = twinContext;
 
-    // Inject platform activity priorities into platformData for system prompt
+    // Inject platform activity priorities into platformData for system prompt.
+    // Query was kicked off above, concurrent with the pre-flight fan-out.
     try {
-      const { data: actData } = await supabaseAdmin
-        .from('platform_connections')
-        .select('platform, activity_score, activity_level, content_volume')
-        .eq('user_id', userId)
-        .order('activity_score', { ascending: false });
+      const { data: actData } = await activityPrioritiesPromise;
       if (actData?.length > 0 && platformData) {
         platformData.activityPriorities = actData.map(a => ({
           platform: a.platform,

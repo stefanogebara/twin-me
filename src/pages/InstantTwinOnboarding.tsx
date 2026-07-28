@@ -34,6 +34,7 @@ import { InstagramConnectModal } from './components/settings/InstagramConnectMod
 import { CONNECTION_INSIGHT_MESSAGES } from './components/onboarding/connectionInsights';
 import { removePlatformFromSummary } from './components/onboarding/onboardingHelpers';
 import ConnectionRevealCard from './components/onboarding/ConnectionRevealCard';
+import { ClauraZonedBackground } from '@/components/ClauraZonedBackground';
 
 const InstantTwinOnboarding = () => {
   useDocumentTitle('Connect Platforms');
@@ -251,7 +252,16 @@ const InstantTwinOnboarding = () => {
             connectedPlatforms: connectedServices,
           }),
         })
-          .then(res => (res.ok ? res.json() : null))
+          .then(res => {
+            // Signature enrichment is best-effort — the twin already exists, so a
+            // non-ok here degrades to the soul-signature page rather than blocking.
+            // Log the status so the failure isn't invisible (audit-2026-07-03).
+            if (!res.ok) {
+              console.error(`Instant signature request failed (${res.status})`);
+              return null;
+            }
+            return res.json();
+          })
           .then(sigData => {
             clearTimeout(sigTimeout);
             const sig = sigData?.signature ?? sigData?.archetype;
@@ -262,8 +272,11 @@ const InstantTwinOnboarding = () => {
               navigate('/soul-signature');
             }
           })
-          .catch(() => {
+          .catch((sigErr) => {
             clearTimeout(sigTimeout);
+            // AbortError (15s timeout) or network failure — still route the user
+            // forward to their soul signature; log for observability.
+            console.error('Instant signature request errored:', sigErr);
             navigate('/soul-signature');
           });
       } else {
@@ -283,7 +296,9 @@ const InstantTwinOnboarding = () => {
   // --- Render ---
   return (
     <>
-      <div className="max-w-[680px] mx-auto px-6 py-16">
+      {/* Claura zoned photography — cosmic-swirl by night, soul-waves by day (/preview/connect). */}
+      <ClauraZonedBackground dark="cosmic-swirl.png" light="soul-waves.png" darkPosition="center top" lightPosition="center 22%" />
+      <div className="max-w-[680px] mx-auto px-4 sm:px-6 py-10 sm:py-16">
         {/* Banner ONLY for genuine auth failures (state === 'expired');
             stale never demands a reconnect (batch-3 display convention). */}
         {(platformsSummary?.expired ?? 0) > 0 && (
@@ -302,7 +317,7 @@ const InstantTwinOnboarding = () => {
             <button
               onClick={() => navigate('/interview')}
               className="text-[12px] transition-opacity hover:opacity-70"
-              style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', sans-serif" }}
+              style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
             >
               Tell Your Story instead
             </button>

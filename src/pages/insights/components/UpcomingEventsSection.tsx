@@ -82,7 +82,7 @@ export const UpcomingEventsSection: React.FC<UpcomingEventsSectionProps> = ({ ev
                 <div
                   key={index}
                   className="p-3 rounded-[20px]"
-                  style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(42px)', WebkitBackdropFilter: 'blur(42px)' }}
+                  style={{ border: '1px solid var(--border-glass)', backgroundColor: 'var(--surface)', backdropFilter: 'blur(42px)', WebkitBackdropFilter: 'blur(42px)' }}
                 >
                   <div className="flex items-center gap-3">
                     <div
@@ -97,7 +97,7 @@ export const UpcomingEventsSection: React.FC<UpcomingEventsSectionProps> = ({ ev
                       <div className="font-medium truncate" style={{ color: colors.text }}>
                         {event.title}
                       </div>
-                      <div className="flex items-center gap-2 text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                      <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
                         <span>{event.time}</span>
                         {event.attendees !== undefined && event.attendees > 0 && (
                           <>

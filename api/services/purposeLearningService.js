@@ -311,7 +311,7 @@ class PurposeLearningService {
   applyWeights(scores, weights, multiplier = 1) {
     if (!weights) return;
     Object.entries(weights).forEach(([purpose, weight]) => {
-      if (scores.hasOwnProperty(purpose)) {
+      if (Object.prototype.hasOwnProperty.call(scores, purpose)) {
         scores[purpose] += weight * multiplier;
       }
     });

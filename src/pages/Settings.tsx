@@ -5,6 +5,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { API_URL, getAccessToken } from '@/services/api/apiBase';
 import { usePlatformsSummary, useDisconnectPlatform } from '../hooks/usePlatformsSummary';
 import { useBackgroundMode } from '../contexts/BackgroundModeContext';
+import { useTheme, type Theme } from '../contexts/ThemeContext';
+import { ClauraZonedBackground } from '@/components/ClauraZonedBackground';
 import { Download, Info, ArrowRight, Send, ExternalLink, Check, Brain } from 'lucide-react';
 import ConnectedPlatformsSettings from './components/settings/ConnectedPlatformsSettings';
 import AutonomySettings from './components/settings/AutonomySettings';
@@ -14,6 +16,7 @@ import NotificationSettings from './components/settings/NotificationSettings';
 import ChatImportCard from './components/settings/ChatImportCard';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import TwinIntelligence from './components/settings/TwinIntelligence';
+import { markTimezoneSynced } from '@/utils/timezoneSync';
 
 
 const getAuthHeaders = () => {
@@ -28,14 +31,14 @@ const getAuthHeaders = () => {
 const SectionLabel: React.FC<{ label: string }> = ({ label }) => (
   <h2
     className="text-[11px] font-medium tracking-[0.1em] uppercase block mb-4"
-    style={{ color: 'rgba(255,255,255,0.3)', fontFamily: 'Inter, sans-serif', fontSize: '11px', lineHeight: 'normal' }}
+    style={{ color: 'var(--muted-foreground)', fontFamily: 'Inter, sans-serif', fontSize: '11px', lineHeight: 'normal' }}
   >
     {label}
   </h2>
 );
 
 const Divider: React.FC = () => (
-  <div className="my-8" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} />
+  <div className="my-8" style={{ borderTop: '1px solid var(--border-glass)' }} />
 );
 
 const SettingsRow: React.FC<{
@@ -45,14 +48,14 @@ const SettingsRow: React.FC<{
 }> = ({ label, description, children }) => (
   <div
     className="flex items-center justify-between gap-3 py-4 px-1 -mx-1 rounded-[4px] transition-colors"
-    style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}
-    onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.025)')}
+    style={{ borderBottom: '1px solid var(--border-glass)' }}
+    onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--accent)')}
     onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
   >
     <div className="min-w-0 flex-1">
       <span className="text-[14px]" style={{ color: 'var(--foreground)' }}>{label}</span>
       {description && (
-        <p className="text-[12px] mt-0.5 line-clamp-2 sm:truncate" style={{ color: 'rgba(255,255,255,0.3)' }}>{description}</p>
+        <p className="text-[12px] mt-0.5 line-clamp-2 sm:truncate" style={{ color: 'var(--muted-foreground)' }}>{description}</p>
       )}
     </div>
     <div className="flex-shrink-0">
@@ -74,17 +77,54 @@ const ToggleSwitch: React.FC<{
     onClick={() => !disabled && onChange(!enabled)}
     className="relative w-10 h-5 rounded-full transition-colors duration-200 ease-out active:scale-95"
     style={{
-      backgroundColor: enabled ? 'rgba(245,245,244,0.9)' : 'rgba(255,255,255,0.18)',
+      backgroundColor: enabled ? 'var(--primary)' : 'var(--surface-solid)',
       cursor: disabled ? 'not-allowed' : 'pointer',
       opacity: disabled ? 0.5 : 1,
     }}
   >
     <div
       className="absolute top-0.5 w-4 h-4 rounded-full transition-all duration-200 ease-out"
-      style={{ left: enabled ? '22px' : '2px', backgroundColor: enabled ? '#110f0f' : '#A8A29E' }}
+      style={{ left: enabled ? '22px' : '2px', backgroundColor: enabled ? 'var(--primary-foreground)' : 'var(--text-secondary)' }}
     />
   </button>
 );
+
+const APPEARANCE_OPTIONS: { value: Theme; label: string }[] = [
+  { value: 'dark', label: 'Dark' },
+  { value: 'light', label: 'Light' },
+  { value: 'system', label: 'System' },
+];
+
+const AppearanceRow: React.FC = () => {
+  const { theme, setTheme } = useTheme();
+  return (
+    <SettingsRow label="Appearance">
+      <div
+        role="radiogroup"
+        aria-label="Appearance"
+        className="flex items-center gap-1 p-1 rounded-[10px]"
+        style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}
+      >
+        {APPEARANCE_OPTIONS.map(o => (
+          <button
+            key={o.value}
+            role="radio"
+            aria-checked={theme === o.value}
+            onClick={() => setTheme(o.value)}
+            className="px-3 py-1.5 text-[12px] font-medium rounded-[7px] transition-colors"
+            style={
+              theme === o.value
+                ? { background: 'var(--claura-bone)', color: 'var(--claura-bone-ink)' }
+                : { background: 'transparent', color: 'var(--text-secondary)' }
+            }
+          >
+            {o.label}
+          </button>
+        ))}
+      </div>
+    </SettingsRow>
+  );
+};
 
 const BackgroundToggleRow: React.FC = () => {
   const { mode, setMode } = useBackgroundMode();
@@ -117,32 +157,51 @@ const TelegramConnect: React.FC = () => {
   }, []);
 
   const generateCode = async () => {
-    const res = await fetch(`${API_URL}/telegram/generate-code`, {
-      method: 'POST', headers: getAuthHeaders(),
-    });
-    const data = await res.json();
-    if (data.success) {
-      setLinkCode(data.code);
-      if (data.botUsername) setBotUsername(data.botUsername);
+    try {
+      const res = await fetch(`${API_URL}/telegram/generate-code`, {
+        method: 'POST', headers: getAuthHeaders(),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setLinkCode(data.code);
+        if (data.botUsername) setBotUsername(data.botUsername);
+      } else {
+        toast.error('Could not start Telegram connect. Please try again.');
+      }
+    } catch {
+      toast.error('Could not start Telegram connect. Please try again.');
     }
   };
 
   const handleUnlink = async () => {
-    await fetch(`${API_URL}/telegram/unlink`, { method: 'DELETE', headers: getAuthHeaders() });
-    setStatus({ linked: false, enabled: false });
-    setLinkCode(null);
+    try {
+      const res = await fetch(`${API_URL}/telegram/unlink`, { method: 'DELETE', headers: getAuthHeaders() });
+      if (!res.ok) {
+        toast.error('Could not unlink Telegram. Please try again.');
+        return;
+      }
+      setStatus({ linked: false, enabled: false });
+      setLinkCode(null);
+    } catch {
+      toast.error('Could not unlink Telegram. Please try again.');
+      // Refetch so the badge reflects the real server state
+      fetch(`${API_URL}/telegram/status`, { headers: getAuthHeaders() })
+        .then(r => r.json())
+        .then(d => { if (d.success) setStatus({ linked: d.linked, enabled: d.enabled }); })
+        .catch(() => {});
+    }
   };
 
-  if (loading) return <div className="py-4 text-center text-[12px]" style={{ color: 'rgba(255,255,255,0.3)' }}>Loading...</div>;
+  if (loading) return <div className="py-4 text-center text-[12px]" style={{ color: 'var(--text-secondary)' }}>Loading...</div>;
 
   return (
     <div>
-      <div className="flex items-center justify-between gap-3 py-4 px-1 -mx-1 rounded-[4px] transition-colors" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }} onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.025)')} onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}>
+      <div className="flex items-center justify-between gap-3 py-4 px-1 -mx-1 rounded-[4px] transition-colors" style={{ borderBottom: '1px solid var(--border-glass)' }} onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--accent)')} onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}>
         <div className="flex items-center gap-3 min-w-0 flex-1">
-          <Send className="w-4 h-4 flex-shrink-0" style={{ color: 'rgba(245,245,244,0.45)' }} />
+          <Send className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
           <div className="min-w-0">
             <span className="text-sm" style={{ color: 'var(--foreground)' }}>Telegram</span>
-            <p className="text-[12px] mt-0.5 truncate" style={{ color: 'rgba(255,255,255,0.3)' }}>
+            <p className="text-[12px] mt-0.5 truncate" style={{ color: 'var(--text-secondary)' }}>
               {status?.linked ? 'Connected — twin sends insights here' : 'Chat with your twin on Telegram'}
             </p>
           </div>
@@ -155,7 +214,7 @@ const TelegramConnect: React.FC = () => {
             <button
               onClick={handleUnlink}
               className="text-[11px] transition-opacity hover:opacity-60"
-              style={{ color: 'rgba(255,255,255,0.3)' }}
+              style={{ color: 'var(--text-secondary)' }}
             >
               Unlink
             </button>
@@ -173,17 +232,17 @@ const TelegramConnect: React.FC = () => {
       </div>
 
       {linkCode && !status?.linked && (
-        <div className="py-4 space-y-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+        <div className="py-4 space-y-3" style={{ borderBottom: '1px solid var(--border-glass)' }}>
           <div className="flex items-center justify-center gap-3 p-4 rounded-xl"
-            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.10)' }}>
+            style={{ background: 'var(--glass-surface-bg)', border: '1px solid var(--glass-surface-border)' }}>
             <span className="text-xl sm:text-2xl font-mono tracking-[0.2em] sm:tracking-[0.3em] font-semibold" style={{ color: 'var(--foreground)' }}>
               {linkCode}
             </span>
           </div>
           <div className="flex items-start gap-2">
-            <ExternalLink className="w-3.5 h-3.5 mt-0.5 shrink-0" style={{ color: 'rgba(255,255,255,0.3)' }} />
-            <p className="text-[12px] leading-relaxed" style={{ color: 'rgba(255,255,255,0.4)' }}>
-              Open Telegram, search for <strong style={{ color: 'rgba(255,255,255,0.6)' }}>@{botUsername}</strong>, and send: <strong style={{ color: 'rgba(255,255,255,0.6)' }}>/start {linkCode}</strong>
+            <ExternalLink className="w-3.5 h-3.5 mt-0.5 shrink-0" style={{ color: 'var(--text-secondary)' }} />
+            <p className="text-[12px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+              Open Telegram, search for <strong style={{ color: 'var(--foreground)' }}>@{botUsername}</strong>, and send: <strong style={{ color: 'var(--foreground)' }}>/start {linkCode}</strong>
             </p>
           </div>
         </div>
@@ -220,7 +279,7 @@ const Settings = () => {
     personality_oracle: false,
     neurotransmitter_modes: true,
     connectome_neuropils: true,
-    graph_retrieval: false,
+    graph_retrieval: true,
   });
 
   // Batch-3 state unification: settings reads the canonical /platforms/summary
@@ -260,6 +319,11 @@ const Settings = () => {
         if (data?.flags) setFeatureToggles(prev => ({ ...prev, ...data.flags }));
       })
       .catch(() => {});
+    // Saved account timezone — reflect persisted value, not the browser's
+    fetch(`${API_URL}/account/timezone`, { headers })
+      .then(res => res.ok ? res.json() : null)
+      .then(data => { if (data?.timezone) setTimezone(data.timezone); })
+      .catch(() => {});
   }, [user?.id]);
 
   const PLAN_NAMES: Record<string, string> = { free: 'Free', pro: 'Plus', max: 'Pro' };
@@ -295,14 +359,21 @@ const Settings = () => {
     const newValue = !featureToggles[key];
     setFeatureToggles(prev => ({ ...prev, [key]: newValue }));
     try {
-      await fetch(`${API_URL}/feature-flags`, {
+      const res = await fetch(`${API_URL}/feature-flags`, {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify({ flag: key, value: newValue }),
       });
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data?.success) {
+        // Revert on server rejection
+        setFeatureToggles(prev => ({ ...prev, [key]: !newValue }));
+        toast.error('Could not update setting. Please try again.');
+      }
     } catch {
       // Revert on network failure
       setFeatureToggles(prev => ({ ...prev, [key]: !newValue }));
+      toast.error('Could not update setting. Please try again.');
     }
   };
 
@@ -317,9 +388,15 @@ const Settings = () => {
       });
       if (res.ok) {
         setTimezone(detected);
+        // Keep AuthContext's per-load sync guard coherent: record that this
+        // device already delivered this zone so the next page load skips its
+        // redundant PATCH (audit-2026-07-03 cost fix).
+        markTimezoneSynced(user?.id, detected);
         toast.success('Timezone updated');
+      } else {
+        toast.error('Could not update timezone. Please try again.');
       }
-    } catch { /* non-fatal */ }
+    } catch { toast.error('Could not update timezone. Please try again.'); }
     finally { setSavingTimezone(false); }
   };
 
@@ -338,7 +415,7 @@ const Settings = () => {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-    } catch { /* handled silently */ }
+    } catch { toast.error('Couldn’t export your data. Please try again.'); }
     finally { setExporting(false); }
   };
 
@@ -351,6 +428,7 @@ const Settings = () => {
       await signOut();
       navigate('/auth');
     } catch {
+      toast.error('Account deletion failed — your account is unchanged. Please try again.');
       setDeleting(false);
     }
   };
@@ -422,18 +500,20 @@ const Settings = () => {
 
   return (
     <div className="max-w-[1100px] mx-auto px-4 sm:px-6 py-10 sm:py-16">
+      {/* Claura zoned photography — the forest, both appearances (see /preview/settings). */}
+      <ClauraZonedBackground dark="forest.png" light="forest.png" darkPosition="center 40%" lightPosition="center 40%" />
 
       {/* Mobile jump-to-section dropdown (sticky top) — hidden on lg+ */}
       <div
         className="lg:hidden sticky top-2 z-20 mb-6 rounded-[12px] px-3 py-2"
         style={{
-          background: 'rgba(255,255,255,0.06)',
+          background: 'var(--glass-surface-bg)',
           backdropFilter: 'blur(42px)',
           WebkitBackdropFilter: 'blur(42px)',
-          border: '1px solid rgba(255,255,255,0.10)',
+          border: '1px solid var(--glass-surface-border)',
         }}
       >
-        <label className="block text-[11px] mb-1 tracking-[0.1em] uppercase" style={{ color: 'rgba(255,255,255,0.3)' }}>
+        <label className="block text-[11px] mb-1 tracking-[0.1em] uppercase" style={{ color: 'var(--text-secondary)' }}>
           Jump to
         </label>
         <select
@@ -443,7 +523,7 @@ const Settings = () => {
           style={{ color: 'var(--foreground)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
         >
           {sections.map(s => (
-            <option key={s.id} value={s.id} style={{ background: '#1c1a23', color: '#F5F5F4' }}>
+            <option key={s.id} value={s.id} style={{ background: 'var(--popover)', color: 'var(--foreground)' }}>
               {s.label}
             </option>
           ))}
@@ -466,13 +546,13 @@ const Settings = () => {
                       onClick={() => scrollToSection(s.id)}
                       className="w-full text-left px-3 py-2 rounded-[6px] transition-colors text-[13px]"
                       style={{
-                        color: isActive ? 'var(--accent-vibrant, #c17e2c)' : 'rgba(255,255,255,0.55)',
+                        color: isActive ? 'var(--accent-vibrant, #c17e2c)' : 'var(--text-secondary)',
                         background: isActive ? 'var(--accent-vibrant-glow, rgba(255,132,0,0.10))' : 'transparent',
                         fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
                         fontWeight: isActive ? 500 : 400,
                       }}
                       onMouseEnter={(e) => {
-                        if (!isActive) e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.04)';
+                        if (!isActive) e.currentTarget.style.backgroundColor = 'var(--accent)';
                       }}
                       onMouseLeave={(e) => {
                         if (!isActive) e.currentTarget.style.backgroundColor = 'transparent';
@@ -510,12 +590,12 @@ const Settings = () => {
       <SectionLabel label="Account" />
       <div className="mb-8">
         <SettingsRow label="Email">
-          <span className="text-[14px] truncate max-w-[140px] sm:max-w-none inline-block" style={{ color: 'rgba(255,255,255,0.5)' }}>
+          <span className="text-[14px] truncate max-w-[140px] sm:max-w-none inline-block" style={{ color: 'var(--text-secondary)' }}>
             {user?.email ?? 'Not set'}
           </span>
         </SettingsRow>
         <SettingsRow label="Display Name">
-          <span className="text-[14px] truncate max-w-[140px] sm:max-w-none inline-block" style={{ color: 'rgba(255,255,255,0.5)' }}>
+          <span className="text-[14px] truncate max-w-[140px] sm:max-w-none inline-block" style={{ color: 'var(--text-secondary)' }}>
             {user?.fullName || `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'Not set'}
           </span>
         </SettingsRow>
@@ -531,7 +611,7 @@ const Settings = () => {
                   : 'Managed via OAuth'
           }
         >
-          <span className="text-[14px]" style={{ color: 'rgba(255,255,255,0.3)' }}>
+          <span className="text-[14px]" style={{ color: 'var(--text-secondary)' }}>
             {user?.oauthProvider === 'magic_link'
               ? 'Email'
               : user?.oauthProvider
@@ -541,14 +621,14 @@ const Settings = () => {
         </SettingsRow>
         <SettingsRow label="Timezone" description="Used for morning briefings and greetings">
           <div className="flex items-center gap-2">
-            <span className="text-[13px] truncate max-w-[130px] sm:max-w-none" style={{ color: 'rgba(255,255,255,0.5)' }}>
+            <span className="text-[13px] truncate max-w-[130px] sm:max-w-none" style={{ color: 'var(--text-secondary)' }}>
               {timezone || Intl.DateTimeFormat().resolvedOptions().timeZone}
             </span>
             <button
               onClick={handleAutoDetectTimezone}
               disabled={savingTimezone}
               className="text-[12px] px-2 py-1 rounded-[6px] transition-opacity hover:opacity-80 disabled:opacity-40"
-              style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.7)' }}
+              style={{ background: 'var(--surface-solid)', color: 'var(--text-secondary)' }}
             >
               {savingTimezone ? 'Saving…' : 'Auto-detect'}
             </button>
@@ -563,12 +643,13 @@ const Settings = () => {
               }
             }}
             className="text-xs font-mono truncate max-w-[140px] sm:max-w-[240px] inline-block hover:opacity-80 transition-opacity cursor-pointer"
-            style={{ color: 'rgba(255,255,255,0.5)' }}
+            style={{ color: 'var(--text-secondary)' }}
             title="Click to copy"
           >
             {user?.id ? `${user.id.slice(0, 8)}...${user.id.slice(-4)}` : 'Not available'}
           </button>
         </SettingsRow>
+        <AppearanceRow />
         <BackgroundToggleRow />
       </div>
 
@@ -581,12 +662,12 @@ const Settings = () => {
 
       {/* ── SECTION 2: PLAN ── */}
       <section id="section-plan" className="scroll-mt-10">
-      <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
+      <div style={{ borderTop: '1px solid var(--border-glass)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
         <SectionLabel label="Plan" />
         <div
           className="flex items-center justify-between gap-3 py-4 px-1 -mx-1 rounded-[4px] transition-colors"
-          style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}
-          onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.025)')}
+          style={{ borderBottom: '1px solid var(--border-glass)' }}
+          onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--accent)')}
           onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
         >
           <div className="min-w-0 flex-1">
@@ -605,7 +686,7 @@ const Settings = () => {
                 onClick={handleManageBilling}
                 disabled={managingBilling}
                 className="text-[12px] px-3 py-1.5 rounded-[100px] transition-opacity hover:opacity-60 disabled:opacity-30"
-                style={{ border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.5)' }}
+                style={{ border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
               >
                 {managingBilling ? '...' : 'Manage'}
               </button>
@@ -626,7 +707,7 @@ const Settings = () => {
 
       {/* ── SECTION 3: CONNECTED PLATFORMS ── */}
       <section id="section-platforms" className="scroll-mt-10">
-      <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
+      <div style={{ borderTop: '1px solid var(--border-glass)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
         <SectionLabel label="Connected Platforms" />
         <ConnectedPlatformsSettings
           summary={platformsSummary}
@@ -643,7 +724,7 @@ const Settings = () => {
 
       {/* ── SECTION 3B: CHAT VOICE IMPORT ── */}
       <section id="section-chat-voice" className="scroll-mt-10">
-          <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
+          <div style={{ borderTop: '1px solid var(--border-glass)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
             <SectionLabel label="Chat Voice" />
             <ChatImportCard />
           </div>
@@ -651,7 +732,7 @@ const Settings = () => {
 
       {/* ── SECTION 4: PERSONALITY ENGINE ── */}
       <section id="section-personality" className="scroll-mt-10">
-      <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
+      <div style={{ borderTop: '1px solid var(--border-glass)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
         <SectionLabel label="Personality Engine" />
         <SettingsRow
           label="Enhanced Personality"
@@ -699,7 +780,7 @@ const Settings = () => {
 
       {/* ── SECTION 5: TWIN AUTONOMY ── */}
       <section id="section-autonomy" className="scroll-mt-10">
-      <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
+      <div style={{ borderTop: '1px solid var(--border-glass)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
         <SectionLabel label="Twin Autonomy" />
         <AutonomySettings />
       </div>
@@ -707,7 +788,7 @@ const Settings = () => {
 
       {/* ── SECTION 5B: USER RULES ── */}
       <section id="section-rules" className="scroll-mt-10">
-      <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
+      <div style={{ borderTop: '1px solid var(--border-glass)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
         <SectionLabel label="Twin Rules" />
         <UserRulesSettings />
       </div>
@@ -715,7 +796,7 @@ const Settings = () => {
 
       {/* ── SECTION 6: MESSAGING CHANNELS ── */}
       <section id="section-messaging" className="scroll-mt-10">
-      <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
+      <div style={{ borderTop: '1px solid var(--border-glass)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
         <SectionLabel label="Messaging" />
         <TelegramConnect />
         <WhatsAppConnect />
@@ -724,7 +805,7 @@ const Settings = () => {
 
       {/* ── SECTION 6B: NOTIFICATIONS ── */}
       <section id="section-notifications" className="scroll-mt-10">
-      <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
+      <div style={{ borderTop: '1px solid var(--border-glass)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
         <SectionLabel label="Notifications" />
         <NotificationSettings userId={user?.id || ''} />
       </div>
@@ -732,24 +813,24 @@ const Settings = () => {
 
       {/* ── SECTION 7: DATA & PRIVACY ── */}
       <section id="section-privacy" className="scroll-mt-10">
-      <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
+      <div style={{ borderTop: '1px solid var(--border-glass)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
         <SectionLabel label="Data & Privacy" />
 
         {/* Privacy Spectrum — row with nav arrow */}
         <button
           onClick={() => navigate('/privacy-spectrum')}
           className="w-full flex items-center justify-between gap-3 py-4 px-1 -mx-1 rounded-[4px] transition-colors text-left"
-          style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', backgroundColor: 'transparent' }}
-          onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.025)')}
+          style={{ borderBottom: '1px solid var(--border-glass)', backgroundColor: 'transparent' }}
+          onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--accent)')}
           onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
         >
           <div className="min-w-0 flex-1">
             <span className="text-[14px]" style={{ color: 'var(--foreground)' }}>Privacy Spectrum</span>
-            <p className="text-[12px] mt-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>
+            <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
               Control what your twin knows and shares
             </p>
           </div>
-          <ArrowRight className="w-4 h-4 flex-shrink-0" style={{ color: 'rgba(255,255,255,0.3)' }} />
+          <ArrowRight className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-secondary)' }} />
         </button>
 
         <SettingsRow label="Export My Data">
@@ -757,14 +838,14 @@ const Settings = () => {
             onClick={handleExportData}
             disabled={exporting}
             className="flex items-center gap-1.5 text-[12px] transition-opacity hover:opacity-60 disabled:opacity-30"
-            style={{ color: 'rgba(255,255,255,0.5)' }}
+            style={{ color: 'var(--text-secondary)' }}
           >
             <Download className="w-3.5 h-3.5" />
             {exporting ? 'Exporting...' : 'Download'}
           </button>
         </SettingsRow>
         <SettingsRow label="Memory Count">
-          <span className="text-[14px]" style={{ color: 'rgba(255,255,255,0.5)' }}>
+          <span className="text-[14px]" style={{ color: 'var(--text-secondary)' }}>
             {memoryCount != null ? `${memoryCount.toLocaleString('en-US')} memories` : '--'}
           </span>
         </SettingsRow>
@@ -779,7 +860,7 @@ const Settings = () => {
               <button
                 onClick={() => setShowDeleteConfirm(true)}
                 className="text-[12px] transition-opacity hover:opacity-60"
-                style={{ color: '#c1452c' }}
+                style={{ color: '#e05a3e' }}
               >
                 Delete everything
               </button>
@@ -792,20 +873,20 @@ const Settings = () => {
                   onChange={(e) => setDeleteConfirmText(e.target.value)}
                   aria-label="Type DELETE to confirm account deletion"
                   className="text-sm px-2 py-1 rounded w-24 sm:w-28 bg-transparent focus:outline-none"
-                  style={{ border: '1px solid rgba(193,69,44,0.3)', color: '#c1452c' }}
+                  style={{ border: '1px solid rgba(193,69,44,0.3)', color: '#e05a3e' }}
                 />
                 <button
                   onClick={handleDeleteAccount}
                   disabled={deleteConfirmText !== 'DELETE' || deleting}
                   className="text-[12px] px-3 py-1 rounded transition-opacity disabled:opacity-30 flex-shrink-0"
-                  style={{ backgroundColor: 'rgba(193,69,44,0.15)', color: '#c1452c' }}
+                  style={{ backgroundColor: 'rgba(193,69,44,0.15)', color: '#e05a3e' }}
                 >
                   {deleting ? '...' : 'Confirm'}
                 </button>
                 <button
                   onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText(''); }}
                   className="text-[12px] transition-opacity hover:opacity-60 flex-shrink-0"
-                  style={{ color: 'rgba(255,255,255,0.3)' }}
+                  style={{ color: 'var(--text-secondary)' }}
                 >
                   Cancel
                 </button>
@@ -819,32 +900,32 @@ const Settings = () => {
 
       {/* ── Advanced ── */}
       <section id="section-advanced" className="scroll-mt-10">
-        <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
+        <div style={{ borderTop: '1px solid var(--border-glass)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
           <SectionLabel label="Advanced" />
           <button
             onClick={() => navigate('/brain')}
             className="w-full flex items-center justify-between gap-3 py-4 px-1 -mx-1 rounded-[4px] transition-colors text-left"
-            style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', backgroundColor: 'transparent' }}
-            onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.025)')}
+            style={{ borderBottom: '1px solid var(--border-glass)', backgroundColor: 'transparent' }}
+            onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--accent)')}
             onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
           >
             <div className="flex items-center gap-3 min-w-0 flex-1">
-              <Brain className="w-4 h-4 flex-shrink-0" style={{ color: 'rgba(255,255,255,0.3)' }} />
+              <Brain className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-secondary)' }} />
               <div className="min-w-0">
                 <span className="text-[14px]" style={{ color: 'var(--foreground)' }}>Memory Explorer</span>
-                <p className="text-[12px] mt-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
                   Browse and search your raw memory stream
                 </p>
               </div>
             </div>
-            <ArrowRight className="w-4 h-4 flex-shrink-0" style={{ color: 'rgba(255,255,255,0.3)' }} />
+            <ArrowRight className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-secondary)' }} />
           </button>
         </div>
       </section>
 
       {/* Footer */}
       <div className="mt-16 text-center">
-        <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.15)' }}>
+        <span className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
           TwinMe v0.9
         </span>
       </div>

@@ -38,7 +38,7 @@ const DataConsentSettings: React.FC<DataConsentSettingsProps> = ({
           Data Consent
         </h2>
       </div>
-      <p className="text-sm mb-4" style={{ fontFamily: "'Inter', sans-serif", color: 'rgba(255,255,255,0.4)' }}>
+      <p className="text-sm mb-4" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--text-secondary)' }}>
         Manage the permissions you've granted for platform data access.
       </p>
 
@@ -50,8 +50,8 @@ const DataConsentSettings: React.FC<DataConsentSettingsProps> = ({
         <div
           className="text-sm py-4 text-center rounded-xl"
           style={{
-            color: 'rgba(255,255,255,0.4)',
-            backgroundColor: 'rgba(255, 255, 255, 0.03)',
+            color: 'var(--text-secondary)',
+            backgroundColor: 'var(--surface)',
           }}
         >
           Platform access is managed through your connected platforms above. You can disconnect any platform at any time to revoke access.
@@ -63,7 +63,7 @@ const DataConsentSettings: React.FC<DataConsentSettingsProps> = ({
               key={consent.id}
               className="flex items-center justify-between p-3 rounded-xl"
               style={{
-                backgroundColor: 'rgba(255, 255, 255, 0.02)',
+                backgroundColor: 'var(--surface)',
                 border: '1px solid var(--border-glass)',
               }}
             >
@@ -73,7 +73,7 @@ const DataConsentSettings: React.FC<DataConsentSettingsProps> = ({
                     ? `${consent.platform.charAt(0).toUpperCase() + consent.platform.slice(1).replace(/_/g, ' ')} - ${consent.consent_type.replace(/_/g, ' ')}`
                     : consent.consent_type.replace(/_/g, ' ')}
                 </h3>
-                <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
                   Granted {consent.granted_at ? new Date(consent.granted_at).toLocaleDateString() : 'N/A'}
                   {' '}&middot; v{consent.consent_version}
                 </p>

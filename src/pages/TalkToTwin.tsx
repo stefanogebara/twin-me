@@ -8,6 +8,7 @@ import { useChatSession } from '../hooks/useChatSession';
 import { useToast } from '@/components/ui/use-toast';
 import { SpotifyLogo, GoogleCalendarLogo, YoutubeLogo, DiscordLogo, GithubLogo, WhoopLogo, GmailLogo } from '@/components/PlatformLogos';
 import { ChatEmptyState } from '@/components/chat/ChatEmptyState';
+import { ClauraZonedBackground } from '@/components/ClauraZonedBackground';
 import { MessageList } from '@/components/chat/MessageList';
 import { ChatInputArea } from '@/components/chat/ChatInputArea';
 import { ChatHeader } from '@/components/chat/ChatHeader';
@@ -21,6 +22,7 @@ import { useSidebarContext } from '@/hooks/useSidebarContext';
 import { departmentsAPI } from '@/services/api/departmentsAPI';
 import { PendingProposalsBadge } from '@/components/chat/PendingProposalsBadge';
 import type { ProposalStatus } from '@/components/chat/DepartmentProposalBubble';
+import { resolveStreamDone } from '@/lib/twinStreamDone';
 
 interface ActionEvent {
   tool: string;
@@ -137,7 +139,7 @@ const TalkToTwin = () => {
     { name: 'YouTube',   icon: <YoutubeLogo className="w-4 h-4" />,          key: 'youtube',          color: '#FF0000', connected: isConnected(platformsSummary, 'youtube') },
     { name: 'Gmail',     icon: <GmailLogo className="w-4 h-4" />,            key: 'google_gmail',     color: '#EA4335', connected: isConnected(platformsSummary, 'google_gmail') },
     { name: 'Discord',   icon: <DiscordLogo className="w-4 h-4" />,          key: 'discord',          color: '#5865F2', connected: isConnected(platformsSummary, 'discord') },
-    { name: 'GitHub',    icon: <GithubLogo className="w-4 h-4" />,           key: 'github',           color: '#FFFFFF', connected: isConnected(platformsSummary, 'github') },
+    { name: 'GitHub',    icon: <GithubLogo className="w-4 h-4" />,           key: 'github',           color: 'var(--foreground)', connected: isConnected(platformsSummary, 'github') },
     { name: 'Whoop',     icon: <WhoopLogo className="w-4 h-4" />,            key: 'whoop',            color: '#00F19F', connected: isConnected(platformsSummary, 'whoop') },
     // LinkedIn/Reddit/Twitch removed (replan-2026-06-10 Track C): their OAuth
     // stacks are retired — leftover connection rows no longer render here.
@@ -238,23 +240,40 @@ const TalkToTwin = () => {
       const response = await fetch(`${API_BASE}/chat/history?conversationId=${id}`, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
-      const data = await response.json();
-      if (data.messages) {
-        setMessages(data.messages.map((m: { id?: string; isUser?: boolean; content: string; createdAt: string }) => ({
-          id: m.id || crypto.randomUUID(),
-          role: m.isUser ? 'user' as const : 'assistant' as const,
-          content: m.content,
-          timestamp: new Date(m.createdAt),
-        })));
-        setConversationId(id);
+      // Guard response.ok before .json(): a 401/500 may return a non-JSON body,
+      // which would make .json() throw an opaque parse error (audit-2026-07-03).
+      if (!response.ok) {
+        throw new Error(`Failed to load conversation (${response.status})`);
       }
+      const data = await response.json();
+      if (!data.messages) {
+        throw new Error('Conversation response missing messages');
+      }
+      setMessages(data.messages.map((m: { id?: string; isUser?: boolean; content: string; createdAt: string }) => ({
+        id: m.id || crypto.randomUUID(),
+        role: m.isUser ? 'user' as const : 'assistant' as const,
+        content: m.content,
+        timestamp: new Date(m.createdAt),
+      })));
+      setConversationId(id);
       setShowConversationList(false);
     } catch (err) {
       console.error('Failed to load conversation:', err);
+      toast({
+        title: 'Could not open conversation',
+        description: 'Please try again.',
+      });
+      // Always close the panel so it doesn't stay stuck open behind the toast
+      // with the failed selection still visually "pending" (audit-2026-07-03).
+      setShowConversationList(false);
     }
   };
 
   const handleNewChat = () => {
+    // Clear persisted history too, otherwise the prior thread's last messages
+    // survive in storage and resurrect on refresh into the new conversation.
+    localStorage.removeItem(CHAT_HISTORY_KEY);
+    sessionStorage.removeItem(CONVERSATION_ID_KEY);
     setMessages([]);
     setConversationId(null);
     setShowConversationList(false);
@@ -402,6 +421,27 @@ const TalkToTwin = () => {
               }
             } else if (event.type === 'done') {
               receivedDoneEvent = true;
+              // Audit High #8: empty-completion guard. If the stream produced no
+              // content chunks, the assistant bubble was never created; render the
+              // final message from the done payload (or surface an error) so the
+              // turn is never silently lost.
+              if (firstChunk) {
+                const decision = resolveStreamDone(firstChunk, event.message);
+                firstChunk = false;
+                setIsTyping(false);
+                if (decision.kind === 'render') {
+                  setMessages(prev => [...prev, {
+                    id: assistantMsgId,
+                    role: 'assistant',
+                    content: decision.content,
+                    timestamp: new Date(),
+                  }]);
+                } else if (decision.kind === 'error') {
+                  setMessages(prev => prev.map(m =>
+                    m.id === userMessage.id ? { ...m, failed: true, errorType: 'generic' as const } : m
+                  ));
+                }
+              }
               if (event.conversationId) setConversationId(event.conversationId);
               if (event.contextSources) {
                 setMessages(prev => prev.map(m =>
@@ -601,10 +641,6 @@ const TalkToTwin = () => {
     await Promise.all(pending.map(p => handleApproveProposal(p.id)));
   }, [messages, handleApproveProposal]);
 
-  const handleReviewInDepartments = useCallback(() => {
-    navigate('/departments');
-  }, [navigate]);
-
   const handleApproveDepartmentSuggestion = useCallback(async (department: string, action: string, toolName?: string) => {
     try {
       await departmentsAPI.propose(department, { toolName: toolName || undefined, context: action });
@@ -663,6 +699,9 @@ const TalkToTwin = () => {
 
   return (
     <div className="flex relative twin-chat-container overflow-x-hidden" style={{ height: 'calc(100dvh - 64px - 80px)', maxHeight: 'calc(100dvh - 64px - 80px)' }}>
+      {/* Claura zoned photography — the twin speaks over cosmic-swirl by
+          night, chair-hill by day (see /preview/talk). */}
+      <ClauraZonedBackground dark="cosmic-swirl.png" light="chair-hill.png" darkPosition="center top" lightPosition="center 40%" veil="deep" />
       {/* Mobile: subtract pt-16 (64px) + pb-20 (80px) from SidebarLayout wrapper.
           Desktop: use full viewport height (sidebar layout has no top/bottom padding on lg+). */}
       <style>{`
@@ -679,7 +718,7 @@ const TalkToTwin = () => {
           />
           <div
             className="absolute left-0 top-0 bottom-0 z-30 w-64 sm:w-72 max-w-[85vw] border-r flex flex-col"
-            style={{ background: 'rgba(20,19,26,0.95)', borderColor: 'rgba(255,255,255,0.10)', backdropFilter: 'blur(42px)', WebkitBackdropFilter: 'blur(42px)' }}
+            style={{ background: 'var(--card)', borderColor: 'rgba(255,255,255,0.10)', backdropFilter: 'blur(42px)', WebkitBackdropFilter: 'blur(42px)' }}
           >
             <ConversationList
               activeConversationId={conversationId}
@@ -730,7 +769,6 @@ const TalkToTwin = () => {
               onApproveProposal={handleApproveProposal}
               onRejectProposal={handleRejectProposal}
               onApproveAllProposals={handleApproveAllProposals}
-              onReviewInDepartments={handleReviewInDepartments}
               onApproveDepartmentSuggestion={handleApproveDepartmentSuggestion}
             />
           )}

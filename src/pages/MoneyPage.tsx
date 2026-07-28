@@ -30,6 +30,7 @@ import {
 import { GmailCourierToggle } from './components/money/GmailCourierToggle';
 import { StressSpendTimeline } from './components/money/StressSpendTimeline';
 import { UnlockProgressCard } from './components/money/UnlockProgressCard';
+import { ClauraZonedBackground } from '@/components/ClauraZonedBackground';
 
 const CARD_STYLE: React.CSSProperties = {
   background: 'var(--glass-surface-bg)',           // rgba(255,255,255,0.06) per design system
@@ -39,13 +40,21 @@ const CARD_STYLE: React.CSSProperties = {
   borderRadius: 20,
 };
 
+/**
+ * audit-2026-07-03 (money HIGH): the ONE window every number on this page
+ * uses. The page previously pinned the timeline to 30 days but fetched the
+ * summary with no window (backend default 90), so "Last 90 days" sat directly
+ * above a "30 days" chart. Both fetchers and both card labels read this value.
+ */
+const MONEY_WINDOW_DAYS = 30;
+
 const LABEL_STYLE: React.CSSProperties = {
   fontFamily: "'Geist', 'Inter', sans-serif",
   fontSize: 11,
   fontWeight: 500,
   letterSpacing: '0.08em',
   textTransform: 'uppercase',
-  color: 'rgba(255,255,255,0.45)',
+  color: 'var(--text-secondary)',
   marginBottom: 12,
 };
 
@@ -70,7 +79,7 @@ function formatDate(iso: string): string {
 }
 
 function stressChipColor(score: number | null): { bg: string; fg: string; label: string } {
-  if (score === null) return { bg: 'rgba(255,255,255,0.06)', fg: 'rgba(255,255,255,0.35)', label: 'no signal' };
+  if (score === null) return { bg: 'rgba(255,255,255,0.06)', fg: 'rgba(255, 255, 255, 0.55)', label: 'no signal' };
   if (score >= 0.6) return { bg: 'rgba(217, 119, 6, 0.15)', fg: 'rgba(232, 160, 80, 0.95)', label: `stress ${Math.round(score * 100)}%` };
   if (score >= 0.4) return { bg: 'rgba(255,255,255,0.06)', fg: 'rgba(255,255,255,0.55)', label: `moderate ${Math.round(score * 100)}%` };
   return { bg: 'rgba(34, 197, 94, 0.12)', fg: 'rgba(134, 239, 172, 0.90)', label: `calm ${Math.round(score * 100)}%` };
@@ -140,12 +149,12 @@ function UploadZone({ onUpload, onError }: UploadZoneProps) {
       />
       <div
         className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4"
-        style={{ background: 'rgba(255,255,255,0.06)' }}
+        style={{ background: 'var(--surface)' }}
       >
         {uploading ? (
           <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--accent-vibrant)' }} />
         ) : (
-          <Upload className="w-5 h-5" style={{ color: 'rgba(255,255,255,0.65)' }} />
+          <Upload className="w-5 h-5" style={{ color: 'var(--text-secondary)' }} />
         )}
       </div>
       <p
@@ -163,7 +172,7 @@ function UploadZone({ onUpload, onError }: UploadZoneProps) {
         style={{
           fontFamily: "'Geist', 'Inter', sans-serif",
           fontSize: 13,
-          color: 'rgba(255,255,255,0.50)',
+          color: 'var(--text-secondary)',
           lineHeight: 1.5,
         }}
       >
@@ -195,8 +204,9 @@ function SummaryBar({ summary, currency, mixedCurrency }: { summary: Transaction
   return (
     <div style={{ ...CARD_STYLE, padding: 24 }}>
       <div className="flex items-center gap-2 mb-2">
-        {/* replan-2026-06-10 Track D: label must reflect the actual queried
-            window — /summary defaults to 90 days, not 30. */}
+        {/* Label follows the window_days the backend ECHOES for the window we
+            requested (MONEY_WINDOW_DAYS) — never a hardcoded number, so the
+            label can't contradict the data (audit-2026-07-03). */}
         <p style={{ ...LABEL_STYLE, marginBottom: 0 }}>Last {summary.window_days} days</p>
         {mixedCurrency && (
           <span
@@ -214,7 +224,7 @@ function SummaryBar({ summary, currency, mixedCurrency }: { summary: Transaction
           </span>
         )}
       </div>
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div>
           <p
             style={{
@@ -227,7 +237,7 @@ function SummaryBar({ summary, currency, mixedCurrency }: { summary: Transaction
           >
             {formatCurrency(headlineOutflow, currency)}
           </p>
-          <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginTop: 4, fontFamily: "'Geist', 'Inter', sans-serif" }}>
+          <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4, fontFamily: "'Geist', 'Inter', sans-serif" }}>
             {mixedCurrency ? `Total spending (${currency})` : 'Total spending'}
           </p>
         </div>
@@ -243,7 +253,7 @@ function SummaryBar({ summary, currency, mixedCurrency }: { summary: Transaction
           >
             {emotionalPct !== null ? `${emotionalPct}%` : '—'}
           </p>
-          <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginTop: 4, fontFamily: "'Geist', 'Inter', sans-serif" }}>
+          <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4, fontFamily: "'Geist', 'Inter', sans-serif" }}>
             Under stress
           </p>
         </div>
@@ -259,7 +269,7 @@ function SummaryBar({ summary, currency, mixedCurrency }: { summary: Transaction
           >
             {summary.stress_shop_count}
           </p>
-          <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginTop: 4, fontFamily: "'Geist', 'Inter', sans-serif" }}>
+          <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4, fontFamily: "'Geist', 'Inter', sans-serif" }}>
             Impulse purchases
           </p>
         </div>
@@ -269,7 +279,7 @@ function SummaryBar({ summary, currency, mixedCurrency }: { summary: Transaction
       {mixedCurrency && summary.currencies && summary.currencies.length > 1 && (
         <div
           className="mt-5 pt-4 flex flex-wrap gap-x-5 gap-y-2"
-          style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}
+          style={{ borderTop: '1px solid var(--border-glass)' }}
         >
           {summary.currencies.map((c) => (
             <div key={c.currency}>
@@ -277,7 +287,7 @@ function SummaryBar({ summary, currency, mixedCurrency }: { summary: Transaction
                 style={{
                   fontFamily: "'Instrument Serif', Georgia, serif",
                   fontSize: 17,
-                  color: 'rgba(255,255,255,0.85)',
+                  color: 'var(--foreground)',
                   lineHeight: 1.1,
                   letterSpacing: '-0.01em',
                 }}
@@ -289,12 +299,12 @@ function SummaryBar({ summary, currency, mixedCurrency }: { summary: Transaction
                   fontSize: 10.5,
                   letterSpacing: '0.04em',
                   textTransform: 'uppercase',
-                  color: 'rgba(255,255,255,0.40)',
+                  color: 'var(--text-secondary)',
                   fontFamily: "'Geist', 'Inter', sans-serif",
                   marginTop: 2,
                 }}
               >
-                {c.currency} · {c.count} {c.count === 1 ? 'tx' : 'tx'}
+                {c.currency} · {c.count} tx
               </p>
             </div>
           ))}
@@ -326,14 +336,31 @@ const CATEGORY_LABELS: Record<string, string> = {
 function FeedbackToggle({ txId, initial }: { txId: string; initial: boolean | null }) {
   const [value, setValue] = useState<boolean | null>(initial);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState(false);
 
   const toggle = async (next: boolean) => {
     if (saving) return;
+    const prev = value;
     const newVal = value === next ? null : next;
     setValue(newVal);
     if (newVal !== null) {
+      // audit-2026-06-10: optimistic update had no failure handling — a failed
+      // save left the wrong UI state and a network error was an unhandled
+      // rejection. Revert to the prior value and surface an inline hint.
       setSaving(true);
-      await setTransactionFeedback(txId, newVal).finally(() => setSaving(false));
+      setSaveError(false);
+      try {
+        const ok = await setTransactionFeedback(txId, newVal);
+        if (!ok) {
+          setValue(prev);
+          setSaveError(true);
+        }
+      } catch {
+        setValue(prev);
+        setSaveError(true);
+      } finally {
+        setSaving(false);
+      }
     }
   };
 
@@ -352,13 +379,13 @@ function FeedbackToggle({ txId, initial }: { txId: string; initial: boolean | nu
 
   return (
     <div className="flex items-center gap-1.5 mt-1" title="Was this a stress purchase?">
-      <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.30)', fontFamily: "'Geist','Inter',sans-serif" }}>stress?</span>
+      <span style={{ fontSize: 10, color: 'var(--text-secondary)', fontFamily: "'Geist','Inter',sans-serif" }}>stress?</span>
       <button
         onClick={() => { void toggle(true); }}
         style={{
           ...btnBase,
           borderColor: value === true ? 'rgba(232,160,80,0.6)' : 'rgba(255,255,255,0.12)',
-          color: value === true ? 'rgba(232,160,80,0.95)' : 'rgba(255,255,255,0.40)',
+          color: value === true ? 'rgba(232,160,80,0.95)' : 'rgba(255,255,255,0.55)',
           background: value === true ? 'rgba(217,119,6,0.12)' : 'transparent',
         }}
       >
@@ -369,12 +396,20 @@ function FeedbackToggle({ txId, initial }: { txId: string; initial: boolean | nu
         style={{
           ...btnBase,
           borderColor: value === false ? 'rgba(134,239,172,0.5)' : 'rgba(255,255,255,0.12)',
-          color: value === false ? 'rgba(134,239,172,0.90)' : 'rgba(255,255,255,0.40)',
+          color: value === false ? 'rgba(134,239,172,0.90)' : 'rgba(255,255,255,0.55)',
           background: value === false ? 'rgba(34,197,94,0.08)' : 'transparent',
         }}
       >
         no
       </button>
+      {saveError && (
+        <span
+          role="alert"
+          style={{ fontSize: 10, color: 'rgba(252,165,165,0.9)', fontFamily: "'Geist','Inter',sans-serif" }}
+        >
+          couldn't save — try again
+        </span>
+      )}
     </div>
   );
 }
@@ -410,7 +445,7 @@ function WhatsAppCaptureCard() {
       style={CARD_STYLE}
       data-testid="whatsapp-capture-card"
     >
-      <MessageCircle size={20} style={{ color: 'rgba(255,255,255,0.70)', flexShrink: 0 }} />
+      <MessageCircle size={20} style={{ color: 'var(--foreground)', flexShrink: 0 }} />
       <div className="flex-1 min-w-[220px]">
         <p
           style={{
@@ -427,7 +462,7 @@ function WhatsAppCaptureCard() {
           style={{
             fontFamily: "'Geist', 'Inter', sans-serif",
             fontSize: 12,
-            color: 'rgba(255,255,255,0.50)',
+            color: 'var(--text-secondary)',
           }}
         >
           Forward bank notifications, Pix receipts, or just say "gastei 80 no iFood" — it lands here with emotional context. Or upload a CSV/OFX statement below.
@@ -448,9 +483,9 @@ function WhatsAppCaptureCard() {
           to="/settings"
           className="px-3 py-2"
           style={{
-            background: '#F5F5F4',
-            color: '#110f0f',
-            borderRadius: 100,
+            background: 'var(--claura-bone)',
+            color: 'var(--claura-bone-ink)',
+            borderRadius: 12,
             fontFamily: "'Geist', 'Inter', sans-serif",
             fontSize: 13,
             fontWeight: 500,
@@ -477,7 +512,7 @@ function TransactionRow({ tx }: { tx: Transaction }) {
       data-testid="transaction-row"
       data-merchant={displayMerchant || ''}
       className="flex items-center gap-4 px-4 py-3.5"
-      style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}
+      style={{ borderBottom: '1px solid var(--border-glass)' }}
     >
       <div className="flex-1 min-w-0">
         <p
@@ -497,7 +532,7 @@ function TransactionRow({ tx }: { tx: Transaction }) {
             style={{
               fontFamily: "'Geist', 'Inter', sans-serif",
               fontSize: 11,
-              color: 'rgba(255,255,255,0.40)',
+              color: 'var(--text-secondary)',
             }}
           >
             {formatDate(tx.transaction_date)} · {tx.source_bank}
@@ -508,8 +543,8 @@ function TransactionRow({ tx }: { tx: Transaction }) {
                 fontSize: 10,
                 padding: '2px 8px',
                 borderRadius: 46,
-                background: 'rgba(255,255,255,0.04)',
-                color: 'rgba(255,255,255,0.55)',
+                background: 'var(--surface)',
+                color: 'var(--text-secondary)',
                 fontFamily: "'Geist', 'Inter', sans-serif",
                 fontWeight: 500,
                 letterSpacing: '0.02em',
@@ -555,8 +590,8 @@ function TransactionRow({ tx }: { tx: Transaction }) {
                 fontSize: 10,
                 padding: '2px 8px',
                 borderRadius: 20,
-                background: 'rgba(255,255,255,0.04)',
-                color: 'rgba(255,255,255,0.50)',
+                background: 'var(--surface)',
+                color: 'var(--text-secondary)',
                 fontFamily: "'Geist', 'Inter', sans-serif",
                 fontWeight: 500,
                 letterSpacing: '0.02em',
@@ -572,8 +607,8 @@ function TransactionRow({ tx }: { tx: Transaction }) {
                 fontSize: 10,
                 padding: '2px 8px',
                 borderRadius: 20,
-                background: 'rgba(255,255,255,0.04)',
-                color: 'rgba(255,255,255,0.50)',
+                background: 'var(--surface)',
+                color: 'var(--text-secondary)',
                 fontFamily: "'Geist', 'Inter', sans-serif",
               }}
               title={`Music valence ${ec.music_valence.toFixed(2)}`}
@@ -587,8 +622,8 @@ function TransactionRow({ tx }: { tx: Transaction }) {
                 fontSize: 10,
                 padding: '2px 8px',
                 borderRadius: 20,
-                background: 'rgba(255,255,255,0.04)',
-                color: 'rgba(255,255,255,0.50)',
+                background: 'var(--surface)',
+                color: 'var(--text-secondary)',
                 fontFamily: "'Geist', 'Inter', sans-serif",
               }}
               title={`Recovery ${Math.round(ec.recovery_score)}%`}
@@ -597,7 +632,7 @@ function TransactionRow({ tx }: { tx: Transaction }) {
             </span>
           )}
         </div>
-        {showFeedback && <FeedbackToggle txId={tx.id} initial={null} />}
+        {showFeedback && <FeedbackToggle txId={tx.id} initial={tx.feedback ?? null} />}
       </div>
       <div
         style={{
@@ -657,8 +692,10 @@ export default function MoneyPage() {
     try {
       const [txns, sum, tl] = await Promise.all([
         listTransactions({ limit: 50 }),
-        getTransactionsSummary(),
-        getTimelineAnalysis(),
+        // One shared window for summary + timeline — the page must never
+        // show two different "last N days" claims at once (audit-2026-07-03).
+        getTransactionsSummary(MONEY_WINDOW_DAYS),
+        getTimelineAnalysis(MONEY_WINDOW_DAYS),
       ]);
       setTransactions(txns);
       setSummary(sum);
@@ -695,6 +732,8 @@ export default function MoneyPage() {
 
   return (
     <div className="max-w-[720px] mx-auto px-4 sm:px-6 pb-24">
+      {/* Claura zoned photography — night-screens by night, dusk-train by day (/preview/money). */}
+      <ClauraZonedBackground dark="night-screens.png" light="dusk-train.png" darkPosition="center 42%" lightPosition="center 30%" />
       {/* Header */}
       <div className="flex items-baseline justify-between gap-3 pt-6 mb-2">
         <h1
@@ -714,10 +753,10 @@ export default function MoneyPage() {
               to="/money/insights"
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-[100px] transition-all duration-150 hover:opacity-70 active:scale-[0.97]"
               style={{
-                background: 'rgba(255,255,255,0.04)',
-                border: '1px solid rgba(255,255,255,0.08)',
+                background: 'var(--surface)',
+                border: '1px solid var(--border-glass)',
                 fontSize: 12,
-                color: 'rgba(255,255,255,0.85)',
+                color: 'var(--foreground)',
                 fontFamily: "'Geist', 'Inter', sans-serif",
               }}
               title="A narrative read of your patterns, subscriptions, trades, and stress timeline"
@@ -732,10 +771,10 @@ export default function MoneyPage() {
               disabled={retagging}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-[100px] transition-all duration-150 hover:opacity-70 active:scale-[0.97] disabled:opacity-40"
               style={{
-                background: 'rgba(255,255,255,0.04)',
-                border: '1px solid rgba(255,255,255,0.08)',
+                background: 'var(--surface)',
+                border: '1px solid var(--border-glass)',
                 fontSize: 12,
-                color: 'rgba(255,255,255,0.65)',
+                color: 'var(--text-secondary)',
                 fontFamily: "'Geist', 'Inter', sans-serif",
               }}
               title="Recompute emotional context with latest HRV/music/calendar data"
@@ -752,7 +791,7 @@ export default function MoneyPage() {
           fontFamily: "'Instrument Serif', Georgia, serif",
           fontSize: 19,
           lineHeight: 1.4,
-          color: 'rgba(255,255,255,0.70)',
+          color: 'var(--foreground)',
           letterSpacing: '-0.01em',
         }}
       >
@@ -770,12 +809,13 @@ export default function MoneyPage() {
         <GmailCourierToggle />
       </div>
 
-      {/* Spending timeline (30d), full-width single card. */}
+      {/* Spending timeline, full-width single card. Window label derives from
+          MONEY_WINDOW_DAYS — same value the fetchers used. */}
       {timeline.length > 0 && (
         <div className="mb-6" data-testid="moat-headline-grid">
           <div style={{ ...CARD_STYLE, padding: '20px 20px 16px' }}>
-            <p style={{ ...LABEL_STYLE, marginBottom: 16 }}>Why you spend · 30 days</p>
-            <StressSpendTimeline days={timeline} currency={dominantCurrency} />
+            <p style={{ ...LABEL_STYLE, marginBottom: 16 }}>Why you spend · {MONEY_WINDOW_DAYS} days</p>
+            <StressSpendTimeline days={timeline} currency={dominantCurrency} windowDays={MONEY_WINDOW_DAYS} />
           </div>
         </div>
       )}
@@ -810,7 +850,7 @@ export default function MoneyPage() {
             <p
               style={{
                 fontSize: 12,
-                color: 'rgba(255,255,255,0.50)',
+                color: 'var(--text-secondary)',
                 marginTop: 4,
                 fontFamily: "'Geist', 'Inter', sans-serif",
               }}
@@ -818,7 +858,7 @@ export default function MoneyPage() {
               I am connecting each purchase with your mood, stress, and body. Check back in a few seconds.
             </p>
             {lastUpload.parse_errors && lastUpload.parse_errors.length > 0 && (
-              <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.40)', marginTop: 6, fontFamily: 'monospace' }}>
+              <p style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 6, fontFamily: 'monospace' }}>
                 {lastUpload.parse_errors.length} line{lastUpload.parse_errors.length === 1 ? '' : 's'} skipped
               </p>
             )}
@@ -864,10 +904,10 @@ export default function MoneyPage() {
             <div
               key={i}
               className="px-4 py-3.5 animate-pulse"
-              style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
+              style={{ borderBottom: '1px solid var(--border-glass)' }}
             >
-              <div className="h-4 w-3/4 rounded mb-2" style={{ background: 'rgba(255,255,255,0.06)' }} />
-              <div className="h-3 w-1/3 rounded" style={{ background: 'rgba(255,255,255,0.04)' }} />
+              <div className="h-4 w-3/4 rounded mb-2" style={{ background: 'var(--surface)' }} />
+              <div className="h-3 w-1/3 rounded" style={{ background: 'var(--surface)' }} />
             </div>
           ))}
         </div>
@@ -887,12 +927,12 @@ export default function MoneyPage() {
         </div>
       ) : (
         <div style={{ ...CARD_STYLE, padding: 32, textAlign: 'center' }}>
-          <FileText className="w-8 h-8 mx-auto mb-3" style={{ color: 'rgba(255,255,255,0.20)' }} />
+          <FileText className="w-8 h-8 mx-auto mb-3" style={{ color: 'var(--text-secondary)' }} />
           <p
             style={{
               fontFamily: "'Instrument Serif', Georgia, serif",
               fontSize: 18,
-              color: 'rgba(255,255,255,0.70)',
+              color: 'var(--foreground)',
               marginBottom: 6,
               letterSpacing: '-0.01em',
             }}
@@ -903,7 +943,7 @@ export default function MoneyPage() {
             style={{
               fontFamily: "'Geist', 'Inter', sans-serif",
               fontSize: 13,
-              color: 'rgba(255,255,255,0.45)',
+              color: 'var(--text-secondary)',
               lineHeight: 1.6,
             }}
           >
@@ -921,13 +961,13 @@ export default function MoneyPage() {
             fontFamily: "'Instrument Serif', Georgia, serif",
             fontSize: 14,
             fontStyle: 'italic',
-            color: 'rgba(255,255,255,0.30)',
+            color: 'var(--text-secondary)',
             letterSpacing: '-0.005em',
             lineHeight: 1.5,
           }}
         >
           Where do I find my statement? Nubank → Profile → Export → OFX or CSV.<br />
-          Does the PDF bill work too? Not yet — CSV/OFX only for now.
+          Does the PDF bill work too? Not yet — CSV/OFX/XLSX only for now.
         </p>
       )}
 

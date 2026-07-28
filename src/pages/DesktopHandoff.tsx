@@ -40,8 +40,13 @@ export default function DesktopHandoff() {
         const res = await authFetch('/auth/desktop-handoff', { method: 'POST' });
         if (!res.ok) throw new Error(`handoff failed: ${res.status}`);
         const data = await res.json();
-        if (!data?.auth_code) throw new Error('no auth_code returned');
-        window.location.href = `twinme://auth?auth_code=${encodeURIComponent(data.auth_code)}`;
+        // Validate the code is a non-empty string before building the deep link.
+        // A truthy non-string (number/object) or a whitespace-only value would
+        // otherwise produce a malformed twinme://auth URL that silently fails to
+        // establish the session (audit-2026-07-03 error-ux).
+        const authCode = typeof data?.auth_code === 'string' ? data.auth_code.trim() : '';
+        if (!authCode) throw new Error('no valid auth_code returned');
+        window.location.href = `twinme://auth?auth_code=${encodeURIComponent(authCode)}`;
       } catch (e) {
         console.error('[desktop-handoff] mint failed', e);
         setError('Could not connect to the desktop app. Return to TwinMe and try again.');

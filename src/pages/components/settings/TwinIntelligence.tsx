@@ -67,21 +67,21 @@ const TwinIntelligence: React.FC = () => {
       {/* Section label — matches other SectionLabel components in Settings */}
       <h2
         className="text-[11px] font-medium tracking-[0.1em] uppercase block mb-4"
-        style={{ color: 'rgba(255,255,255,0.3)', fontFamily: 'Inter, sans-serif', lineHeight: 'normal' }}
+        style={{ color: 'var(--text-secondary)', fontFamily: 'Inter, sans-serif', lineHeight: 'normal' }}
       >
         Twin Intelligence
       </h2>
 
       <div>
         {/* Fidelity Score */}
-        <div className="flex items-center justify-between py-3 -mx-1 px-1 rounded-[4px] transition-colors" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }} onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.025)')} onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}>
+        <div className="flex items-center justify-between py-3 -mx-1 px-1 rounded-[4px] transition-colors" style={{ borderBottom: '1px solid var(--border-glass)' }} onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.025)')} onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}>
           <div className="flex items-center gap-3">
             <Brain className="w-4 h-4 flex-shrink-0" style={{ color: 'rgba(199,146,234,0.7)' }} />
             <div>
               <p className="text-sm font-medium" style={{ color: 'var(--foreground)', fontFamily: 'Inter, sans-serif' }}>
                 Twin Accuracy
               </p>
-              <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
                 {fidelity
                   ? `Based on ${fidelity.probe_count} behavioral probes`
                   : 'How well your twin predicts your responses'}
@@ -90,7 +90,7 @@ const TwinIntelligence: React.FC = () => {
           </div>
           <div className="flex items-center gap-2">
             {loadingFidelity ? (
-              <Loader2 className="w-3 h-3 animate-spin" style={{ color: 'rgba(255,255,255,0.3)' }} />
+              <Loader2 className="w-3 h-3 animate-spin" style={{ color: 'var(--text-secondary)' }} />
             ) : fidelityPercent != null ? (
               <span
                 className="text-lg font-semibold tabular-nums"
@@ -109,9 +109,9 @@ const TwinIntelligence: React.FC = () => {
                 disabled={measureMutation.isPending}
                 className="px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-150 hover:opacity-80 active:scale-[0.97] flex items-center gap-1.5"
                 style={{
-                  background: 'rgba(255,255,255,0.06)',
-                  border: '1px solid rgba(255,255,255,0.10)',
-                  color: 'rgba(255,255,255,0.6)',
+                  background: 'var(--surface)',
+                  border: '1px solid var(--glass-surface-border)',
+                  color: 'var(--text-secondary)',
                 }}
               >
                 {measureMutation.isPending ? (

@@ -20,6 +20,7 @@ import {
 import temporalPatternDetector from '../services/temporalPatternDetector.js';
 import { createLogger } from '../services/logger.js';
 import { getAppUrl } from '../utils/oauthUtils.js';
+import { SPOTIFY_RITUAL_SCOPES } from '../config/oauthScopes.js';
 
 const log = createLogger('SpotifyOAuth');
 
@@ -35,16 +36,8 @@ const SPOTIFY_CONFIG = {
   authUrl: 'https://accounts.spotify.com/authorize',
   tokenUrl: 'https://accounts.spotify.com/api/token',
   apiBaseUrl: 'https://api.spotify.com/v1',
-  // Scopes needed for presentation ritual music
-  scopes: [
-    'user-read-playback-state',
-    'user-modify-playback-state',
-    'user-read-currently-playing',
-    'playlist-read-private',
-    'playlist-read-collaborative',
-    'user-top-read',  // For accessing audio features and user preferences
-    'streaming'
-  ]
+  // Scopes needed for presentation ritual music (see config/oauthScopes.js)
+  scopes: SPOTIFY_RITUAL_SCOPES
 };
 
 /**

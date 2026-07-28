@@ -126,10 +126,15 @@ export async function computeStylometrics(userId) {
     const avgSentenceLength =
       sentences.reduce((sum, s) => sum + s.split(/\s+/).filter(Boolean).length, 0) / totalSentences;
 
-    // vocabulary_richness (type-token ratio)
+    // vocabulary_richness (type-token ratio). The denominator must be the SAME
+    // cleaned population as the numerator: number/emoji/symbol-only tokens collapse
+    // to '' and are dropped from the unique set, so counting them in totalWords
+    // deflated the ratio for emoji/number-heavy writers (audit).
     const lowerWords = words.map((w) => w.toLowerCase().replace(/[^a-z']/g, ''));
-    const uniqueWords = new Set(lowerWords.filter(Boolean));
-    const vocabularyRichness = uniqueWords.size / totalWords;
+    const cleanedWords = lowerWords.filter(Boolean);
+    const vocabularyRichness = cleanedWords.length > 0
+      ? new Set(cleanedWords).size / cleanedWords.length
+      : 0;
 
     // formality_score
     let formalCount = 0;
@@ -274,9 +279,13 @@ const DECAY_RATE = Math.log(2) / 7; // 7-day half-life ≈ 0.099
  */
 export async function buildPersonalityEmbedding(userId) {
   try {
+    // NOTE: 'content' deliberately excluded — this function never reads it,
+    // and 100 rows of memory text is pure transfer weight on top of the
+    // ~1.9MB the 100 embedding vectors already cost (audit 2026-07-03,
+    // GET /api/personality-profile rebuild path).
     const { data: memories, error } = await supabaseAdmin
       .from('user_memories')
-      .select('id, content, embedding, importance_score, created_at')
+      .select('id, embedding, importance_score, created_at')
       .eq('user_id', userId)
       .not('embedding', 'is', null)
       .order('created_at', { ascending: false })
@@ -359,11 +368,18 @@ export async function buildPersonalityEmbedding(userId) {
  */
 export async function buildProfile(userId) {
   try {
-    // Fetch soul layers + stylometrics + embedding in parallel
-    const [soulLayers, stylometrics, personalityEmbedding] = await Promise.all([
+    // Fetch soul layers + stylometrics + embedding + memory count in parallel.
+    // Audit 2026-07-03: the count query used to run as a second serial phase
+    // after this Promise.all resolved — it is independent of the other three,
+    // so fold it in and save a full DB round trip on every rebuild.
+    const [soulLayers, stylometrics, personalityEmbedding, { count: memoryCount }] = await Promise.all([
       getSoulSignatureLayers(userId),
       computeStylometrics(userId),
       buildPersonalityEmbedding(userId),
+      supabaseAdmin
+        .from('user_memories')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', userId),
     ]);
 
     // Check we have enough conversation data for stylometrics
@@ -373,12 +389,6 @@ export async function buildProfile(userId) {
     }
 
     const samplingParams = deriveSamplingParamsFrom5Layers(soulLayers);
-
-    // Count total memories for confidence
-    const { count: memoryCount } = await supabaseAdmin
-      .from('user_memories')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', userId);
 
     const totalMemories = memoryCount ?? 0;
     const confidence = Math.min(1.0, totalMemories / 100);
@@ -455,7 +465,11 @@ export async function getProfile(userId) {
       }
     }
 
-    return buildProfile(userId);
+    // Prefer stale-over-nothing: if the rebuild returns null (a transient input/DB
+    // issue, or sub-threshold memories), keep serving the last-known-good (stale but
+    // personalized) profile instead of silently dropping to neutral defaults (audit).
+    const rebuilt = await buildProfile(userId);
+    return rebuilt ?? existing ?? null;
   } catch (err) {
     log.warn('getProfile error', { error: err });
     return null;

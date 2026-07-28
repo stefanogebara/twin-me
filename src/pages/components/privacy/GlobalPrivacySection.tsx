@@ -10,7 +10,10 @@ import { Slider } from '@/components/ui/slider';
 
 // --- Design tokens (shared with parent) ---
 const TEXT_PRIMARY = 'var(--foreground)';
-const TEXT_SECONDARY = 'rgba(255,255,255,0.4)';
+// audit-2026-07-03 H1: was rgba(255,255,255,0.4) (3.83:1 on base, worse on the
+// glass card) — used for the description, inactive preset labels and the saving
+// hint. Token = 7.37:1 on #13121a / 6.38:1 on the 0.06 glass panel.
+const TEXT_SECONDARY = 'var(--text-secondary)';
 const BORDER_COLOR = 'var(--border-glass)';
 const CARD_BG = 'rgba(255,255,255,0.06)';
 
@@ -18,7 +21,9 @@ const CARD_BG = 'rgba(255,255,255,0.06)';
 const BUILT_IN_PRESETS = [
   { key: 'hidden', label: 'Hidden', level: 0, color: '#9ca3af' },
   { key: 'minimal', label: 'Minimal', level: 20, color: '#a78bfa' },
-  { key: 'balanced', label: 'Balanced', level: 50, color: '#c17e2c' },
+  // audit-2026-07-03 H5: #c17e2c dipped to ~4.3:1 as the active chip label on
+  // the glass card; #e0871a = 5.86:1 on the 0.06 panel, same copper family.
+  { key: 'balanced', label: 'Balanced', level: 50, color: '#e0871a' },
   { key: 'open', label: 'Open', level: 80, color: '#34d399' },
   { key: 'full', label: 'Full', level: 100, color: '#fbbf24' },
 ];
@@ -55,7 +60,7 @@ const GlobalPrivacySection: React.FC<GlobalPrivacySectionProps> = ({
     style={{
       background: CARD_BG,
       borderRadius: 20,
-      border: '1px solid rgba(255,255,255,0.10)',
+      border: '1px solid var(--glass-surface-border)',
       padding: '20px 24px',
       marginBottom: 20,
     }}

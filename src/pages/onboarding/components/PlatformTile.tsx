@@ -86,7 +86,7 @@ export const PlatformTile: React.FC<PlatformTileProps> = ({
         className="flex-shrink-0 w-11 h-11 rounded-xl flex items-center justify-center"
         style={{
           backgroundColor: color ? `${color}15` : 'rgba(255,255,255,0.06)',
-          color: connected ? (color || '#F5F5F4') : (color ? `${color}cc` : 'rgba(255,255,255,0.45)'),
+          color: connected ? (color || '#F5F5F4') : (color ? `${color}cc` : 'rgba(255,255,255,0.55)'),
         }}
       >
         {icon}
@@ -97,7 +97,7 @@ export const PlatformTile: React.FC<PlatformTileProps> = ({
         <div className="flex items-center gap-2">
           <span
             className="text-[14px] font-medium truncate"
-            style={{ color: '#F5F5F4', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+            style={{ color: 'var(--foreground)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
           >
             {name}
           </span>
@@ -140,7 +140,7 @@ export const PlatformTile: React.FC<PlatformTileProps> = ({
         )}
         <span
           className="text-[12px] leading-relaxed line-clamp-2 block mt-0.5"
-          style={{ color: 'rgba(255,255,255,0.50)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+          style={{ color: 'var(--text-secondary)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
         >
           {description}
         </span>
@@ -160,8 +160,8 @@ export const PlatformTile: React.FC<PlatformTileProps> = ({
         <span
           className="text-[12px] px-4 py-1.5 rounded-full flex-shrink-0"
           style={{
-            backgroundColor: 'rgba(255,255,255,0.04)',
-            color: 'rgba(255,255,255,0.25)',
+            backgroundColor: 'var(--surface)',
+            color: 'var(--text-secondary)',
             fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
           }}
         >
@@ -171,8 +171,8 @@ export const PlatformTile: React.FC<PlatformTileProps> = ({
         <div
           className="flex items-center gap-1.5 px-4 py-1.5 rounded-full flex-shrink-0"
           style={{
-            backgroundColor: 'rgba(255,255,255,0.06)',
-            color: 'rgba(255,255,255,0.50)',
+            backgroundColor: 'var(--surface)',
+            color: 'var(--text-secondary)',
           }}
         >
           <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -195,12 +195,12 @@ export const PlatformTile: React.FC<PlatformTileProps> = ({
         <div ref={menuRef} className="relative flex-shrink-0">
           <button
             onClick={() => setShowMenu(v => !v)}
-            className="text-[12px] px-4 py-1.5 rounded-full transition-all duration-150 hover:bg-[rgba(255,255,255,0.10)]"
+            className="text-[12px] px-4 py-1.5 rounded-full transition-all duration-150 hover:bg-[var(--surface-solid)]"
             style={{
-              backgroundColor: 'rgba(255,255,255,0.06)',
-              color: 'rgba(255,255,255,0.60)',
+              backgroundColor: 'var(--surface)',
+              color: 'var(--text-secondary)',
               fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
-              border: '1px solid rgba(255,255,255,0.08)',
+              border: '1px solid var(--border-glass)',
             }}
           >
             Manage
@@ -211,7 +211,7 @@ export const PlatformTile: React.FC<PlatformTileProps> = ({
               style={{
                 background: 'rgba(28,26,35,0.95)',
                 backdropFilter: 'blur(24px)',
-                border: '1px solid rgba(255,255,255,0.10)',
+                border: '1px solid var(--glass-surface-border)',
                 boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
               }}
             >
@@ -241,8 +241,8 @@ export const PlatformTile: React.FC<PlatformTileProps> = ({
           onClick={onConnect}
           className="text-[12px] font-medium px-4 py-1.5 rounded-full flex-shrink-0 transition-all duration-150 hover:opacity-90"
           style={{
-            backgroundColor: '#F5F5F4',
-            color: '#110f0f',
+            background: 'var(--claura-bone)',
+            color: 'var(--claura-bone-ink)',
             fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
           }}
         >

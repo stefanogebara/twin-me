@@ -20,6 +20,7 @@ import {
 
 import { createLogger } from '../services/logger.js';
 import { getGoogleWorkspaceScopes } from '../config/googleWorkspaceScopes.js';
+import { spotifyScopesFor } from '../config/oauthScopes.js';
 import { getAppUrl } from '../utils/oauthUtils.js';
 
 const log = createLogger('EntertainmentConnectors');
@@ -90,7 +91,10 @@ router.post('/connect/spotify', authenticateUser, oauthAuthorizationLimiter, asy
 
     const config = PLATFORM_CONFIGS.spotify;
     const redirectUri = `${getAppUrl(req)}/oauth/callback`;
-    const scope = config.scopes.join(' ');
+    // Canonical soul-sig connect uses the ENTERTAINMENT scope set (default);
+    // scopeSet:'ritual' opts into playback-control scopes for the presentation
+    // ritual feature (audit M2 #10 — unifies the Spotify connect surfaces).
+    const scope = spotifyScopesFor(req.body?.scopeSet).join(' ');
 
     // Generate PKCE parameters (RFC 7636 - OAuth 2.1 mandatory)
     const pkce = generatePKCEParams();

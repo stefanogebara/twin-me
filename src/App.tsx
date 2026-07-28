@@ -15,7 +15,9 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import { NavigationProvider } from "./contexts/NavigationContext";
 import { SidebarProvider } from "./contexts/SidebarContext";
 import { useExtensionSync } from "./hooks/useExtensionSync";
-import { ThemeProvider } from "./contexts/ThemeContext";
+import { ThemeProvider, useTheme } from "./contexts/ThemeContext";
+import { LiquidGlassFilter } from "./components/LiquidGlassFilter";
+import { pickBackgroundVariant } from "./lib/backgroundVariant";
 import { SunProvider } from "./contexts/SunContext";
 import { DayNightBackground } from "./components/DayNightBackground";
 import { ClassicBackground } from "./components/ClassicBackground";
@@ -28,6 +30,8 @@ import DesktopHandoff from "./pages/DesktopHandoff";
 import OAuthCallback from "./pages/OAuthCallback";
 import NotFound from "./pages/NotFound";
 import CinematicFrame from "./pages/preview/CinematicFrame";
+import StardustHero from "./components/landing/StardustHero";
+import StardustLanding from "./pages/StardustLanding";
 // audit-2026-05-13 H1: route-local Suspense fallback for /talk-to-twin so
 // mobile users see the chat shell (header + composer placeholder) within
 // the first paint instead of waiting on a centered loading spinner.
@@ -58,6 +62,7 @@ const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 const PortfolioPage = lazy(() => import("./pages/PortfolioPage"));
 const NewDiscoverFlow = lazy(() => import("./pages/onboarding/NewDiscoverFlow"));
 const OnboardingFlow = lazy(() => import("./pages/onboarding/OnboardingFlow"));
+const OnboardingWowPage = lazy(() => import("./pages/onboarding/OnboardingWowPage"));
 const DiscoverLanding = lazy(() => import("./pages/DiscoverLanding"));
 const WaitlistPage = lazy(() => import("./pages/WaitlistPage"));
 const BetaSignupPage = lazy(() => import("./pages/BetaSignupPage"));
@@ -76,6 +81,7 @@ const GoalsPage = lazy(() => import("./pages/GoalsPage"));
 const MoneyPage = lazy(loadMoneyPage);
 const MoneyInsightsPage = lazy(loadMoneyInsightsPage);
 const BriefingPage = lazy(() => import("./pages/BriefingPage"));
+const TodayPage = lazy(() => import("./pages/TodayPage"));
 const TwinSoulPage = lazy(() => import("./pages/TwinSoulPage"));
 const PricingPage = lazy(() => import("./pages/PricingPage"));
 const DownloadPage = lazy(() => import("./pages/DownloadPage"));
@@ -128,6 +134,7 @@ const App = () => {
     <ThemeProvider defaultTheme="dark">
     <BackgroundModeProvider>
     <SunProvider>
+    <LiquidGlassFilter />
     <AppBackground />
     <div style={{ position: "relative", zIndex: 1 }}>
       <ErrorBoundary showHomeButton>
@@ -180,6 +187,8 @@ const App = () => {
             <Route path="/discover" element={<DiscoverLanding />} />
 
             {/* Cinematic redesign prototypes (isolated static bundle in /public/cinematic) */}
+            <Route path="/preview/stardust-hero" element={<div className="w-full min-h-screen" style={{ background: 'var(--background)' }}><StardustHero /></div>} />
+            <Route path="/preview/stardust" element={<StardustLanding />} />
             <Route path="/preview/landing" element={<CinematicFrame src="/cinematic/landing.html" title="Twin.me — cinematic landing" />} />
             <Route path="/preview/dashboard" element={<CinematicFrame src="/cinematic/dashboard.html" title="Twin.me — cinematic dashboard" />} />
             <Route path="/preview/talk" element={<CinematicFrame src="/cinematic/talk.html" title="Twin.me — cinematic talk" />} />
@@ -214,6 +223,16 @@ const App = () => {
                 <SidebarLayout>
                   <ErrorBoundary>
                     <BriefingPage />
+                  </ErrorBoundary>
+                </SidebarLayout>
+              </ProtectedRoute>
+            } />
+            {/* Today — the M1 "one home": brief + action inbox + twin composer. */}
+            <Route path="/today" element={
+              <ProtectedRoute>
+                <SidebarLayout>
+                  <ErrorBoundary>
+                    <TodayPage />
                   </ErrorBoundary>
                 </SidebarLayout>
               </ProtectedRoute>
@@ -432,6 +451,16 @@ const App = () => {
               </ProtectedRoute>
             } />
 
+            {/* Onboarding "wow" — post-Gmail-connect: voice read + first drafted
+                replies, then into Today. Full-screen moment (no sidebar). */}
+            <Route path="/onboarding/wow" element={
+              <ProtectedRoute>
+                <ErrorBoundary>
+                  <OnboardingWowPage />
+                </ErrorBoundary>
+              </ProtectedRoute>
+            } />
+
             {/* Cinematic Soul Reveal - post-onboarding discovery flow */}
             <Route path="/soul-reveal" element={
               <ProtectedRoute>
@@ -463,7 +492,7 @@ const App = () => {
                 proposals now live in the thread (twin chat sees PENDING_ACTIONS;
                 WhatsApp delivers + resolves yes/skip replies). agent_actions and
                 all approval endpoints are untouched. Old links land on chat. */}
-            <Route path="/inbox" element={<Navigate to="/talk-to-twin" replace />} />
+            <Route path="/inbox" element={<Navigate to="/today" replace />} />
             <Route path="/departments" element={<Navigate to="/talk-to-twin" replace />} />
 
             {/* Privacy Spectrum Dashboard */}
@@ -508,7 +537,7 @@ const App = () => {
 
             {/* Admin: LLM Cost Monitor */}
             <Route path="/admin/llm-costs" element={
-              <ProtectedRoute>
+              <ProtectedRoute requireAdmin>
                 <SidebarLayout>
                   <ErrorBoundary>
                     <AdminLLMCosts />
@@ -519,7 +548,7 @@ const App = () => {
 
             {/* Admin: Beta Monitoring Dashboard (overview metrics, usage, cost) */}
             <Route path="/admin/beta" element={
-              <ProtectedRoute>
+              <ProtectedRoute requireAdmin>
                 <SidebarLayout>
                   <ErrorBoundary>
                     <AdminBetaPage />
@@ -530,7 +559,7 @@ const App = () => {
 
             {/* Admin: Beta Invite Management (codes, waitlist, feedback) */}
             <Route path="/admin/beta/invites" element={
-              <ProtectedRoute>
+              <ProtectedRoute requireAdmin>
                 <SidebarLayout>
                   <ErrorBoundary>
                     <AdminBetaDashboard />
@@ -542,7 +571,7 @@ const App = () => {
             {/* Memory Health — admin/debug tool, moved to /admin/memory-health */}
             <Route path="/memory-health" element={<Navigate to="/admin/memory-health" replace />} />
             <Route path="/admin/memory-health" element={
-              <ProtectedRoute>
+              <ProtectedRoute requireAdmin>
                 <SidebarLayout>
                   <ErrorBoundary>
                     <MemoryHealth />
@@ -553,7 +582,7 @@ const App = () => {
 
             {/* Twin Eval Tool (internal) */}
             <Route path="/eval" element={
-              <ProtectedRoute>
+              <ProtectedRoute requireAdmin>
                 <SidebarLayout>
                   <ErrorBoundary>
                     <EvalDashboard />
@@ -600,7 +629,8 @@ const App = () => {
 
 const AppBackground: React.FC = () => {
   const { mode } = useBackgroundMode();
-  return mode === 'natural' ? <DayNightBackground /> : <ClassicBackground />;
+  const { resolvedTheme } = useTheme();
+  return pickBackgroundVariant(mode, resolvedTheme) === 'daynight' ? <DayNightBackground /> : <ClassicBackground />;
 };
 
 export default App;

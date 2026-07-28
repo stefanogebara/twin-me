@@ -84,7 +84,12 @@ router.post('/webhook', async (req, res) => {
   try {
     const parsed = parseEvolutionMessage(req.body);
     if (parsed) {
-      await processInboundWhatsApp(parsed, { send: sendWhatsAppMessage });
+      // Reply affinity: this route serves the Evolution number — replies and
+      // the recorded wa_provider stay on it.
+      await processInboundWhatsApp(parsed, {
+        send: (phone, text) => sendWhatsAppMessage(phone, text, { provider: 'evolution' }),
+        provider: 'evolution',
+      });
     } else {
       log.info('Evolution callback ignored (own/group/non-message/unsupported)', { event: req.body?.event });
     }

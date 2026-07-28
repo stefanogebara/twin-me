@@ -9,7 +9,7 @@
  */
 
 import { sendInsight as sendTelegramInsight } from './telegramService.js';
-import { sendWhatsAppInsight } from './whatsappService.js';
+import { sendWhatsAppInsight, isServiceWindowError } from './whatsappService.js';
 import { sendPushToUser } from './pushNotificationService.js';
 import { sendWebPush } from './webPushService.js';
 import { sendInsightNotification } from './emailService.js';
@@ -90,8 +90,30 @@ export async function deliverInsight(userId, insight) {
         const result = await sendTelegramInsight(ch.channel_id, insight);
         results.push({ channel: 'telegram', ...result });
       } else if (ch.channel === 'whatsapp') {
-        const result = await sendWhatsAppInsight(ch.channel_id, insight);
-        results.push({ channel: 'whatsapp', ...result });
+        // Provider affinity: deliver from the number the user's thread lives
+        // on (recorded by whatsappInboundPipeline at inbound time).
+        const result = await sendWhatsAppInsight(ch.channel_id, insight, {
+          provider: ch.preferences?.wa_provider || null,
+        });
+        if (!result?.success && !result?.suppressed) {
+          // Un-mask: "delivered" gets set when ANY channel succeeds, which hid
+          // three weeks of WhatsApp 422s (24h service window) behind Telegram
+          // successes. Classify + log loudly so the failure is attributable.
+          const windowClosed = isServiceWindowError(result?.error);
+          log.warn('WhatsApp insight delivery failed', {
+            userId,
+            insightId: insight.id,
+            reason: windowClosed ? 'wa_service_window_closed' : 'send_failed',
+            error: result?.error,
+          });
+          results.push({
+            channel: 'whatsapp',
+            ...result,
+            ...(windowClosed ? { reason: 'wa_service_window_closed' } : {}),
+          });
+        } else {
+          results.push({ channel: 'whatsapp', ...result });
+        }
       }
     } catch (err) {
       log.warn('Channel delivery failed', { channel: ch.channel, userId, error: err.message });
@@ -158,6 +180,27 @@ const EMAIL_COOLDOWN_HOURS = 24;
 // hourly, so 3 attempts = ~3-hour retry window. Prevents indefinite spam
 // when a channel is structurally broken (e.g. token expired, number invalid).
 const MAX_DELIVERY_ATTEMPTS = 3;
+
+/**
+ * Group batched pending insights by user, capping each user to `perUserCap`
+ * rows per run (preserves the prior anti-spam limit). Input is assumed ordered
+ * oldest-first; insertion order is preserved so the returned Map iterates users
+ * by their oldest pending insight.
+ * @param {Array<{user_id: string}>} rows
+ * @param {number} perUserCap
+ * @returns {Map<string, Array>}
+ */
+export function groupPendingByUser(rows, perUserCap = 5) {
+  const byUser = new Map();
+  for (const row of rows || []) {
+    const list = byUser.get(row.user_id) || [];
+    if (list.length < perUserCap) {
+      list.push(row);
+      byUser.set(row.user_id, list);
+    }
+  }
+  return byUser;
+}
 
 /**
  * Attempt email delivery of batched insights for a single user.
@@ -239,29 +282,35 @@ export async function deliverPendingInsights() {
 
   const uniqueUserIds = [...new Set(allUsers.map(c => c.user_id))];
 
+  // Single batched fetch of pending insights for all eligible users, replacing
+  // the previous per-user query (an N+1: one SELECT per user). Oldest-first,
+  // then grouped + capped to 5/user in memory to preserve the prior anti-spam
+  // limit. Pending = not yet delivered AND not in terminal-failure state.
+  // (At very large user counts the .in() list and the two leading scans would
+  // want a server-side joined RPC; deferred — the per-run delivery cap already
+  // bounds the work, and this removes the round-trip-per-user hot path.)
+  const PENDING_FETCH_LIMIT = MAX_DELIVERIES_PER_RUN * 5;
+  const { data: pendingRows } = await supabaseAdmin
+    .from('proactive_insights')
+    .select('*')
+    .in('user_id', uniqueUserIds)
+    .eq('delivered', false)
+    .is('delivery_failed_at', null)
+    .order('created_at', { ascending: true })
+    .limit(PENDING_FETCH_LIMIT);
+
+  const pendingByUser = groupPendingByUser(pendingRows, 5);
+
   let totalProcessed = 0;
   let totalDelivered = 0;
   const emailPromises = [];
 
-  for (const userId of uniqueUserIds) {
+  for (const [userId, insights] of pendingByUser) {
     // Stop if we've hit the global delivery cap
     if (totalDelivered >= MAX_DELIVERIES_PER_RUN) {
       log.info('Global delivery cap reached', { cap: MAX_DELIVERIES_PER_RUN, totalDelivered, totalProcessed });
       break;
     }
-
-    // Get pending insights (max 5 per user per run to avoid spam).
-    // Pending = not yet delivered AND not yet in terminal-failure state.
-    const { data: insights } = await supabaseAdmin
-      .from('proactive_insights')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('delivered', false)
-      .is('delivery_failed_at', null)
-      .order('created_at', { ascending: true })
-      .limit(5);
-
-    if (!insights?.length) continue;
 
     // Track insights processed this run for email batching
     const deliveredThisRun = [];

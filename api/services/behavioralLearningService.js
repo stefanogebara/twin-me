@@ -663,10 +663,9 @@ export async function updateFromBehavior(userId, platform, features) {
     log.info(`Updated personality for user ${userId} from ${platform}`);
     log.info(`Features processed: ${Object.keys(features).join(', ')}`);
 
-    return {
-      ...updatedEstimate,
-      archetype
-    };
+    // archetype intentionally NOT returned — removed with OCEAN (aef72993);
+    // the leftover shorthand here threw ReferenceError on every success path.
+    return updatedEstimate;
 
   } catch (error) {
     log.error('Error updating from behavior:', error);

@@ -2,6 +2,8 @@ import React, { createContext, useContext, useState, useEffect, useRef, ReactNod
 import { setAccessToken, getAccessToken, clearAccessToken, authFetch, getDesktopFreshAccessToken } from '../services/api/apiBase';
 import { queryClient } from '@/lib/queryClient';
 import { singleFlight } from '@/utils/singleFlight';
+import { shouldSyncTimezone, getLastSyncedTimezone, markTimezoneSynced } from '@/utils/timezoneSync';
+import { shouldBounceToExpiredAuth } from '@/lib/sessionBounce';
 
 import { API_URL } from '@/services/api/apiBase';
 /**
@@ -25,6 +27,9 @@ interface User {
   createdAt?: string;
   created_at?: string;
   oauthProvider?: string | null;
+  // Server-computed admin flag (adminAccess.computeIsAdmin). Absent on stale
+  // cached users from before this shipped — treated as non-admin (fail closed).
+  isAdmin?: boolean;
 }
 
 interface AuthContextType {
@@ -32,6 +37,7 @@ interface AuthContextType {
   authToken: string | null;
   isLoaded: boolean;
   isSignedIn: boolean;
+  isAdmin: boolean;
   isLoading: boolean;
   needsOnboarding: boolean;
   setNeedsOnboarding: (v: boolean) => void;
@@ -48,6 +54,14 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 // observed burst of 5+ 401s during normal navigation when no valid refresh
 // cookie exists (e.g. user cleared cookies but auth_user lingered in localStorage).
 let refreshDisabledForSession = false;
+
+// audit-2026-07-03: new-user-check used to fire on EVERY hard page load and
+// swallow failures with catch(()=>{}). Once the server says "not new" we cache
+// that in sessionStorage (cleared by signOut's sessionStorage.clear()) and skip
+// the request for the rest of the tab session. isNew=true is deliberately NOT
+// cached: a stale true would re-gate users into onboarding after they complete
+// it, so new users re-check each load until the server flips to false.
+const NEW_USER_CHECK_DONE_KEY = 'twinme_new_user_check_done_v1';
 
 // In-flight de-duplication for /auth/refresh — see singleFlight() and Bug C1
 // notes in AuthProvider.refreshAccessToken below.
@@ -148,37 +162,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           refreshed = await refreshAccessToken();
         }
         if (!refreshed) {
-          // Session expired. Wipe any stale cached user so ProtectedRoute kicks in
-          // before API calls hit the page and show 401 error banners.
+          // Refresh failed. Capture prior-session evidence BEFORE the reset
+          // wipes it: only a user who once had a session gets the hard
+          // "session expired" bounce (2026-04-22 fix — stale cached user on a
+          // protected page would render and spray 401 banners). A first-time
+          // anonymous visitor has nothing to expire: stay put, let
+          // ProtectedRoute gate protected pages (fix 2026-07-19 — the bounce
+          // was firing on /waitlist, /beta, /download, /s/:id and 404s,
+          // breaking every public funnel page for signed-out visitors;
+          // see tests/session-bounce.test.ts).
+          const hadPriorSession = getCachedUser() !== null;
+          // Wipe any stale cached user so ProtectedRoute kicks in before API
+          // calls hit the page and show 401 error banners.
           resetAuthState();
           const pathname = typeof window !== 'undefined' ? window.location.pathname : '';
-          // Public routes: either an exact match or a documented prefix.
-          // NOTE: do NOT add '/oauth' as a prefix — that would silently exempt
-          // any future '/oauth/*' subroute from auth. Only '/oauth/callback'
-          // legitimately needs to load without a JWT (the callback component
-          // sets the token itself via POST /api/auth/oauth/callback).
-          const PUBLIC_EXACT = [
-            '/auth', '/login', '/discover', '/', '/oauth/callback',
-            // '/preview' (no trailing slash) is the design-prototype gallery index;
-            // the '/preview/' PREFIX below covers the individual screens.
-            '/preview',
-            // Desktop (Tauri) Google sign-in handoff: must load without a JWT so
-            // it can start the web sign-in itself (signed out) or mint a one-time
-            // code + deep-link back to the app (signed in). Without this it would
-            // bounce to /auth?error=session_expired and never start the flow.
-            '/desktop-handoff',
-            // Legal pages must be reachable without auth — they show up in
-            // signup flows, beta-invite emails, and external links.
-            '/terms', '/terms-of-service', '/privacy', '/privacy-policy',
-          ];
-          // '/preview/' hosts the public cinematic design prototypes (static
-          // bundle in /public/cinematic); they carry no user data and must load
-          // signed-out so the redesign is shareable without a session.
-          const PUBLIC_PREFIX = ['/auth/', '/login/', '/discover/', '/p/', '/preview/'];
-          const isPublicRoute =
-            PUBLIC_EXACT.includes(pathname) ||
-            PUBLIC_PREFIX.some((p) => pathname.startsWith(p));
-          if (!isPublicRoute) {
+          if (shouldBounceToExpiredAuth(hadPriorSession, pathname)) {
             const target = '/auth?error=session_expired';
             try { window.location.replace(target); } catch { /* SSR safety */ }
             return; // stop — don't run checkAuth() during the navigation
@@ -269,21 +267,47 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         if (createdAt) {
           localStorage.setItem('twinme_account_created', createdAt);
         }
-        // Non-blocking: check if new user needs onboarding
-        fetch(`${API_URL}/onboarding/new-user-check`, {
-          headers: { 'Authorization': `Bearer ${tokenToVerify}` }
-        })
-          .then(r => r.ok ? r.json() : null)
-          .then(data => { if (data?.isNew) setNeedsOnboarding(true); })
-          .catch(() => {});
-        // Non-blocking: sync browser timezone to backend
+        // Non-blocking: check if new user needs onboarding — once per tab
+        // session (see NEW_USER_CHECK_DONE_KEY above for cache semantics).
+        let newUserCheckDone = false;
+        try { newUserCheckDone = sessionStorage.getItem(NEW_USER_CHECK_DONE_KEY) === '1'; } catch { /* storage unavailable — just re-check */ }
+        if (!newUserCheckDone) {
+          fetch(`${API_URL}/onboarding/new-user-check`, {
+            headers: { 'Authorization': `Bearer ${tokenToVerify}` }
+          })
+            .then(r => r.ok ? r.json() : Promise.reject(new Error(`new-user-check ${r.status}`)))
+            .then(data => {
+              if (data?.isNew) {
+                setNeedsOnboarding(true);
+              } else {
+                try { sessionStorage.setItem(NEW_USER_CHECK_DONE_KEY, '1'); } catch { /* non-fatal */ }
+              }
+            })
+            .catch((err) => {
+              // Safe default: needsOnboarding stays false so a transient
+              // failure never locks the app behind the onboarding gate.
+              // Not cached — re-checked on the next load.
+              console.warn('[auth] new-user-check failed; treating as existing user for this load', err);
+            });
+        }
+        // Non-blocking: sync browser timezone to backend — ONLY when it
+        // changed. audit-2026-07-03: this used to PATCH unconditionally on
+        // every hard page load (1 DB write/load/user). shouldSyncTimezone
+        // compares against the profile timezone when the verify payload
+        // carries one (it doesn't today) and otherwise against the last
+        // value this device successfully sent (localStorage, per user).
         const detectedTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-        if (detectedTz) {
+        const verifiedUserId: string | undefined = userData.user?.id;
+        const storedTz: string | null | undefined = (userData.user as { timezone?: string | null } | undefined)?.timezone;
+        if (shouldSyncTimezone(detectedTz, storedTz, getLastSyncedTimezone(verifiedUserId))) {
           authFetch('/account/timezone', {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ timezone: detectedTz }),
-          }).catch(() => {}); // Fire-and-forget
+          })
+            // Only mark synced on success so a failed PATCH retries next load.
+            .then(res => { if (res.ok) markTimezoneSynced(verifiedUserId, detectedTz); })
+            .catch(() => {}); // Fire-and-forget; retried on next load
         }
       } else {
         // Token is invalid - clear auth state
@@ -423,8 +447,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Refresh token 5 minutes before expiration (access token is 30 minutes)
     const REFRESH_INTERVAL = 25 * 60 * 1000; // 25 minutes
 
-    const refreshInterval = setInterval(() => {
-      refreshAccessToken();
+    const refreshInterval = setInterval(async () => {
+      const ok = await refreshAccessToken();
+      // Stop the timer once refresh permanently fails (expired refresh cookie):
+      // further ticks only no-op against the session latch. The next real 401 drives
+      // the actual sign-out/redirect via the recovery path (audit).
+      if (!ok) clearInterval(refreshInterval);
     }, REFRESH_INTERVAL);
 
     return () => clearInterval(refreshInterval);
@@ -491,6 +519,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     if (probe.status === 429) {
       throw new Error('Too many sign-in attempts. Please wait a few minutes and try again.');
     }
+    // Any server error must also throw rather than fall through to window.location.href,
+    // which would navigate the tab to a raw backend JSON error page with no in-app
+    // feedback — the exact failure this probe exists to prevent (audit). 0/2xx/3xx
+    // (incl. the opaqueredirect to the provider) still flow through to the redirect.
+    if (probe.status >= 500) {
+      throw new Error('Sign-in is temporarily unavailable. Please try again in a moment.');
+    }
 
     // Redirect to OAuth provider
     window.location.href = finalUrl;
@@ -501,6 +536,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     authToken,
     isLoaded,
     isSignedIn: !!user,
+    isAdmin: !!user?.isAdmin,
     isLoading,
     needsOnboarding,
     setNeedsOnboarding,

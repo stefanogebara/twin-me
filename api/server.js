@@ -264,6 +264,8 @@ app.post('/api/chat/message', aiLimiter);
 app.get('/api/chat/intro', aiLimiter);    // Generates a personalised first message (LLM)
 app.use('/api/soul-extraction/', aiLimiter); // LLM-powered extraction endpoints
 app.post('/api/desktop/observe-summary', aiLimiter); // UNAUTHENTICATED LLM endpoint — cap OpenRouter cost-amplification
+app.use('/api/extension/batch', aiLimiter);   // batch ingest fans out embedding + importance LLM calls — cap cost (audit)
+app.use('/api/extension/analyze', aiLimiter); // LLM/integration analysis endpoint — cap cost (audit)
 
 // Global request timeout to prevent hanging on DB outages
 // Longer timeout in dev when Cloudflare workaround adds latency per query
@@ -282,8 +284,12 @@ app.use((req, res, next) => {
     : req.path.includes('/departments/heartbeat') ? 55000  // LLM heartbeat needs time
     : req.path.includes('/templates/') && req.method === 'POST' ? 45000  // Template apply does multiple DB writes
     : DEFAULT_TIMEOUT;
-  req.setTimeout(timeout);
-  res.setTimeout(timeout, () => {
+  // Vercel maxDuration is 60s (vercel.json). Any value above that is dead config:
+  // the platform kills the container before our 504 handler fires. Clamp just under
+  // the hard cap so the graceful 504 can actually return (audit 2026-07-02 M-5).
+  const capped = Math.min(timeout, 58000);
+  req.setTimeout(capped);
+  res.setTimeout(capped, () => {
     if (!res.headersSent) {
       res.status(504).json({ error: 'Request timeout - database may be unavailable' });
     }
@@ -427,6 +433,8 @@ import deviceTokensRoutes from './routes/device-tokens.js';
 import desktopDownloadRoutes from './routes/desktop-download.js';
 import desktopObserveSummaryRoutes from './routes/desktop-observe-summary.js';
 import desktopExtractedFactsRoutes from './routes/desktop-extracted-facts.js';
+import actionsRoutes from './routes/actions.js'; // M1 action inbox (voice-reply approvals)
+import onboardingWowRoutes from './routes/onboarding-wow.js'; // M1 activation: Gmail -> instant drafts
 import extractionStatusRoutes from './routes/extraction-status.js';
 import profileEnrichmentRoutes from './routes/profile-enrichment.js';
 import resumeUploadRoutes from './routes/resume-upload.js';
@@ -527,6 +535,7 @@ import cronNangoOrphanCleanupRoutes from './routes/cron-nango-orphan-cleanup.js'
 import cronOutcomeLearningRoutes from './routes/cron-outcome-learning.js';
 import cronMeetingPrepRoutes from './routes/cron-meeting-prep.js';
 import cronStripeWebhookEventsCleanupRoutes from './routes/cron-stripe-webhook-events-cleanup.js';
+import cronLlmUsageLogCleanupRoutes from './routes/cron-llm-usage-log-cleanup.js';
 import cronWikiCompileRoutes from './routes/cron-wiki-compile.js';
 import cronHealthMonitorRoutes from './routes/cron-health-monitor.js';
 import cronMeetingDebriefRoutes from './routes/cron-meeting-debrief.js';
@@ -680,6 +689,8 @@ app.use('/api/costs', (await import('./routes/cost-dashboard.js')).default); // 
 app.use('/api/insights', platformInsightsRoutes); // Platform-specific conversational insights
 app.use('/api/goals', goalsRoutes); // Twin-driven goal tracking (suggestions, progress, accountability)
 app.use('/api/twin-directives', twinDirectivesRoutes); // pi-reflect — learned directives from user corrections
+app.use('/api/actions', actionsRoutes); // M1 action inbox — list + send/edit/reject voice-reply drafts
+app.use('/api/onboarding', onboardingWowRoutes); // M1 activation — POST /api/onboarding/wow (Gmail -> instant drafts + voice read)
 app.use('/api/observations', observationsClipRoutes); // TwinMe Desktop: batch clip sync (foreground app + window title -> observation memories)
 app.use('/api/observations', observationsMeetingRoutes); // TwinMe Desktop: batch meeting session sync (Zoom/Meet/Teams -> observation memories)
 app.use('/api/wiki', wikiRoutes); // LLM Wiki compiled knowledge pages (Karpathy pattern)
@@ -774,6 +785,7 @@ app.use('/api/cron/outcome-learning', cronOutcomeLearningRoutes); // Daily 03:30
 app.use('/api/cron/meeting-prep', cronMeetingPrepRoutes); // Every 30 min: pre-meeting briefings for upcoming external meetings
 app.use('/api/cron/meeting-debrief', cronMeetingDebriefRoutes); // Every 30 min: post-meeting debriefs for meetings that just ended
 app.use('/api/cron/stripe-webhook-events-cleanup', cronStripeWebhookEventsCleanupRoutes); // Weekly Sun 4am UTC: prune stripe_webhook_events rows older than 30 days
+app.use('/api/cron/llm-usage-log-cleanup', cronLlmUsageLogCleanupRoutes); // Weekly Sun 5:30am UTC: prune llm_usage_log rows older than 90 days
 app.use('/api/cron/wiki-compile', cronWikiCompileRoutes); // Daily 02:00 UTC: refresh wiki pages — replaces the broken setTimeout chain in observationIngestion.js (Vercel terminates the parent process before the 60s timer fires)
 app.use('/api/cron/health-monitor', cronHealthMonitorRoutes); // Daily 04:30 UTC: scan cron_executions for the "looks healthy, does no work" pattern that hid meeting-debrief + pluggy-sync + soul-signature-regen for weeks during the 2026-05-22 audit
 app.use('/api/insights', insightFeedbackRoutes); // Insight feedback (thumbs up/down)

@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Send, Loader2, ExternalLink } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { API_URL, getAccessToken } from '@/services/api/apiBase';
+import { API_URL, getAccessToken, clearAccessToken } from '@/services/api/apiBase';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { MessageList } from '@/components/chat/MessageList';
 import {
@@ -39,7 +39,7 @@ import {
  * to a normal chat.
  */
 
-type ChatErrorType = 'timeout' | 'rate_limit' | 'network' | 'generic';
+type ChatErrorType = 'timeout' | 'rate_limit' | 'network' | 'session_expired' | 'generic';
 
 interface Message {
   id: string;
@@ -121,6 +121,30 @@ const Widget = () => {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [isPanel]);
 
+  // In panel mode the webview IS the 460x600 overlay, so a normal SPA
+  // navigation would replace the chat with the full sidebar app crammed into
+  // the tiny panel. Instead open the full app in the OS browser: prefer the
+  // Tauri shell/opener command, fall back to window.open. No-op concern in a
+  // normal browser — there the <Link> handles it and this never runs.
+  const openFullApp = useCallback((e: React.MouseEvent) => {
+    if (!isPanel) return; // let the <Link> navigate normally in a browser
+    e.preventDefault();
+    const fullAppUrl = `${window.location.origin}/talk-to-twin`;
+    const tauri = (window as unknown as {
+      __TAURI__?: { core?: { invoke?: (cmd: string, args?: unknown) => Promise<unknown> } };
+    }).__TAURI__?.core;
+    if (tauri?.invoke) {
+      // Tauri v2 shell/opener plugin command.
+      tauri.invoke('plugin:opener|open_url', { url: fullAppUrl })
+        .catch(() => {
+          tauri.invoke('plugin:shell|open', { path: fullAppUrl })
+            .catch(() => { window.open(fullAppUrl, '_blank', 'noopener,noreferrer'); });
+        });
+    } else {
+      window.open(fullAppUrl, '_blank', 'noopener,noreferrer');
+    }
+  }, [isPanel]);
+
   const handleSendMessage = useCallback(async () => {
     const trimmed = inputMessage.trim();
     if (!trimmed || !user?.id || isTyping) return;
@@ -154,8 +178,20 @@ const Widget = () => {
     // desktop on every panel summon).
     const hummingbirdClips = readHummingbirdClips();
 
+    // No in-memory access token means the session lapsed (token expired before
+    // AuthContext refreshed it). Send nothing — a `Bearer null` header would
+    // just 401. Surface a re-sign-in prompt instead.
+    const token = getAccessToken();
+    if (!token) {
+      clearAccessToken();
+      setMessages(prev => prev.map(m =>
+        m.id === userMessage.id ? { ...m, failed: true, errorType: 'session_expired' as const } : m
+      ));
+      setIsTyping(false);
+      return;
+    }
+
     try {
-      const token = getAccessToken();
       const response = await fetch(`${API_BASE}/chat/message?stream=1`, {
         method: 'POST',
         headers: {
@@ -180,6 +216,19 @@ const Widget = () => {
         // has no banner real-estate, so surface a transient inline hint.
         setMessages(prev => prev.map(m =>
           m.id === userMessage.id ? { ...m, failed: true, errorType: 'rate_limit' as const } : m
+        ));
+        setIsTyping(false);
+        return;
+      }
+
+      if (response.status === 401 || response.status === 403) {
+        // Access token was rejected (expired/revoked). Drop the stale in-memory
+        // token so the next AuthContext cycle re-refreshes from the cookie, and
+        // surface a re-sign-in prompt inline (the widget has no auth redirect
+        // surface of its own — it lives in a chrome-less desktop panel).
+        clearAccessToken();
+        setMessages(prev => prev.map(m =>
+          m.id === userMessage.id ? { ...m, failed: true, errorType: 'session_expired' as const } : m
         ));
         setIsTyping(false);
         return;
@@ -363,8 +412,8 @@ const Widget = () => {
       <header
         className="flex items-center justify-between flex-shrink-0 px-4 py-2.5"
         style={{
-          borderBottom: '1px solid rgba(255,255,255,0.08)',
-          background: 'rgba(255,255,255,0.04)',
+          borderBottom: '1px solid var(--border-glass)',
+          background: 'var(--surface)',
           backdropFilter: 'blur(16px)',
           WebkitBackdropFilter: 'blur(16px)',
         }}
@@ -381,7 +430,7 @@ const Widget = () => {
             className="text-[18px] leading-none"
             style={{
               fontFamily: "'Instrument Serif', serif",
-              color: '#F5F5F4',
+              color: 'var(--foreground)',
               letterSpacing: '-0.02em',
             }}
           >
@@ -390,8 +439,9 @@ const Widget = () => {
         </div>
         <Link
           to="/talk-to-twin"
+          onClick={openFullApp}
           className="flex items-center gap-1.5 px-2 py-1 rounded-[6px] text-[12px] font-medium transition-colors"
-          style={{ color: 'rgba(245,245,244,0.6)', fontFamily: 'Inter, sans-serif' }}
+          style={{ color: 'var(--text-secondary)', fontFamily: 'Inter, sans-serif' }}
           onMouseEnter={(e) => { e.currentTarget.style.color = '#F5F5F4'; }}
           onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(245,245,244,0.6)'; }}
           title="Open the full app"
@@ -416,7 +466,7 @@ const Widget = () => {
               className="text-[20px] leading-tight"
               style={{
                 fontFamily: "'Instrument Serif', serif",
-                color: '#F5F5F4',
+                color: 'var(--foreground)',
                 letterSpacing: '-0.02em',
               }}
             >
@@ -424,7 +474,7 @@ const Widget = () => {
             </p>
             <p
               className="text-[13px] mt-2 max-w-[280px]"
-              style={{ color: 'rgba(245,245,244,0.4)', fontFamily: 'Inter, sans-serif' }}
+              style={{ color: 'var(--text-muted)', fontFamily: 'Inter, sans-serif' }}
             >
               Ask anything. Your twin knows your patterns, routines, and what makes you tick.
             </p>
@@ -445,8 +495,8 @@ const Widget = () => {
         <div
           className="flex items-end gap-2 rounded-[20px] px-4 py-2.5"
           style={{
-            background: 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(255,255,255,0.10)',
+            background: 'var(--surface)',
+            border: '1px solid var(--glass-surface-border)',
             backdropFilter: 'blur(42px)',
             WebkitBackdropFilter: 'blur(42px)',
           }}
@@ -463,7 +513,7 @@ const Widget = () => {
             onKeyDown={handleKeyDown}
             rows={1}
             aria-label="Message your twin"
-            className="flex-1 resize-none focus:outline-none text-[14px] bg-transparent placeholder:text-[rgba(255,255,255,0.3)]"
+            className="flex-1 resize-none focus:outline-none text-[14px] bg-transparent placeholder:text-[var(--text-secondary)]"
             style={{
               color: 'var(--foreground, #F5F5F4)',
               minHeight: '24px',

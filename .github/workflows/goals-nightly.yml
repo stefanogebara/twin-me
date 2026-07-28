@@ -1,0 +1,80 @@
+name: Goals nightly
+
+# Agentic OS, Phase 1 (plan: .claude/plans/2026-07-12-agentic-os/README.md).
+# Reruns the feature canaries in tests/goals/ against main every night. The
+# point is DRIFT detection: something shipped three weeks ago quietly breaking
+# gets flagged with attribution ("what changed since last green"), instead of
+# being discovered by a user.
+#
+# Report card: this workflow's run history is the Phase 1 report card — one
+# pass/fail + sha per night. Phase 2 reads it via the Actions API to compute
+# trailing-20 grades per task type.
+
+on:
+  schedule:
+    - cron: '0 6 * * *' # 06:00 UTC = 03:00 Sao Paulo
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+  actions: read
+
+jobs:
+  goals:
+    name: Feature canaries
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0 # full history for last-green attribution
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      # Same Supabase stubs as ci.yml: service modules require these at import
+      # time; goals tests never dial them.
+      - name: Run goals suite
+        env:
+          SUPABASE_URL: https://ci-stub.supabase.co
+          SUPABASE_ANON_KEY: ci-stub-anon-key
+          SUPABASE_SERVICE_ROLE_KEY: ci-stub-service-role-key
+        run: >
+          npx vitest run
+          tests/goals
+          tests/api/routes/whatsappZapiWebhookAuth.test.js
+
+      # ---- Red path: attribute and notify -------------------------------
+      # Finds the sha of the last successful nightly, diffs main since then,
+      # and opens (or comments on) a single tracking issue. No repo mutation.
+      - name: Attribute regression and open issue
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          LAST_GREEN=$(gh api "repos/${REPO}/actions/workflows/goals-nightly.yml/runs?status=success&branch=main&per_page=1" \
+            --jq '.workflow_runs[0].head_sha' 2>/dev/null || echo "")
+          if [ -n "$LAST_GREEN" ] && git cat-file -e "$LAST_GREEN" 2>/dev/null; then
+            CHANGES=$(git log --oneline "${LAST_GREEN}..HEAD" | head -40)
+            SINCE="since last green (${LAST_GREEN})"
+          else
+            CHANGES=$(git log --oneline --since="48 hours ago" | head -40)
+            SINCE="in the last 48h (no prior green nightly found)"
+          fi
+          BODY=$(printf 'Nightly goals canaries went RED.\n\nRun: %s\n\nCommits %s:\n\n```\n%s\n```\n\nEach goal pins a user-facing invariant of a shipped feature — read the failing goal file header for what broke and why it matters.' \
+            "$RUN_URL" "$SINCE" "${CHANGES:-none}")
+          EXISTING=$(gh issue list --repo "$REPO" --state open --search "Goals nightly RED in:title" --json number --jq '.[0].number' 2>/dev/null || echo "")
+          if [ -n "$EXISTING" ]; then
+            gh issue comment "$EXISTING" --repo "$REPO" --body "$BODY"
+          else
+            gh issue create --repo "$REPO" --title "Goals nightly RED: shipped-feature canary regressed" --body "$BODY"
+          fi

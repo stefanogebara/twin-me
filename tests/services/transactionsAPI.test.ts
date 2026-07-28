@@ -96,6 +96,26 @@ describe('listTransactions', () => {
     authFetchImpl = async () => notOk(500, { error: 'boom' });
     await expect(listTransactions()).rejects.toThrow(/Failed to load transactions \(500\)/);
   });
+
+  it('passes the saved feedback field through so the toggle can restore prior answers (audit-2026-06-10)', async () => {
+    // The GET / route now joins transaction_feedback and returns a `feedback`
+    // field (true/false/null). The client must not drop it — MoneyPage feeds
+    // tx.feedback into FeedbackToggle's `initial` so the answer survives reload.
+    authFetchImpl = async () =>
+      ok({
+        transactions: [
+          { id: 'tx_stress', feedback: true },
+          { id: 'tx_not', feedback: false },
+          { id: 'tx_blank', feedback: null },
+          { id: 'tx_legacy' }, // older payload without the field
+        ],
+      });
+    const result = await listTransactions();
+    expect(result[0].feedback).toBe(true);
+    expect(result[1].feedback).toBe(false);
+    expect(result[2].feedback).toBeNull();
+    expect(result[3].feedback).toBeUndefined();
+  });
 });
 
 describe('getTransactionsSummary — null-on-error pattern with success-envelope unwrap', () => {
@@ -118,6 +138,34 @@ describe('getTransactionsSummary — null-on-error pattern with success-envelope
     authFetchImpl = async () => ok({ success: false, error: 'no_data' });
     const r = await getTransactionsSummary();
     expect(r).toBeNull();
+  });
+
+  // audit-2026-07-03 (money HIGH): MoneyPage pinned the timeline to 30 days
+  // but fetched the summary with NO window — the backend /summary default is
+  // 90, so the page showed "Last 90 days" directly above a "30 days" chart.
+  // Both fetchers must accept the same windowDays so the page can pass one
+  // consistent value.
+  it('passes window_days when a window is supplied', async () => {
+    authFetchImpl = async () => ok({ success: true, window_days: 30, transaction_count: 1 });
+    await getTransactionsSummary(30);
+    expect(authFetchCalls[0].url).toBe('/transactions/summary?window_days=30');
+  });
+
+  it('omits window_days when called with no window (backend default applies, label follows the echo)', async () => {
+    authFetchImpl = async () => ok({ success: true, window_days: 90, transaction_count: 1 });
+    await getTransactionsSummary();
+    expect(authFetchCalls[0].url).toBe('/transactions/summary');
+  });
+
+  it('requests the SAME window as getTimelineAnalysis when given the same value', async () => {
+    authFetchImpl = async () => ok({ success: true, days: [], window_days: 30, transaction_count: 0 });
+    const WINDOW = 30;
+    await getTransactionsSummary(WINDOW);
+    await getTimelineAnalysis(WINDOW);
+    const windows = authFetchCalls.map(
+      (c) => new URLSearchParams(c.url.split('?')[1] || '').get('window_days')
+    );
+    expect(windows).toEqual(['30', '30']);
   });
 });
 
@@ -177,6 +225,12 @@ describe('getTimelineAnalysis — Number coercion of timeline days', () => {
     authFetchImpl = async () => ok({ days: [] });
     await getTimelineAnalysis();
     expect(authFetchCalls[0].url).toBe('/transactions/timeline-analysis?window_days=30');
+  });
+
+  it('honors an explicit windowDays argument (audit-2026-07-03: callers pin one shared window)', async () => {
+    authFetchImpl = async () => ok({ days: [] });
+    await getTimelineAnalysis(60);
+    expect(authFetchCalls[0].url).toBe('/transactions/timeline-analysis?window_days=60');
   });
 
   it('coerces strings to numbers for the chart components', async () => {

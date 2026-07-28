@@ -43,6 +43,13 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 rusqlite = { version = "0.32", features = ["bundled"] }
 chrono = { version = "0.4", features = ["serde"] }
+# `time` is only a transitive dep (tauri/cookie chain), but the resolver was
+# selecting a pre-0.3.35 version that fails to compile on current rustc with
+# `error[E0119]: conflicting implementations ... time::format_description...`
+# (the build-red that parked this PR). Pin a floor with the upstream fix so a
+# rustc-compatible version is chosen. No committed Cargo.lock — CI re-resolves
+# against this constraint.
+time = "0.3.36"
 dirs = "5"
 reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-features = false }
 # tokio is a transitive dep of tauri, but we use the `tokio::` crate name directly
@@ -59,11 +66,20 @@ toml = "0.8"
 # (CI only compiles + runs the TOML-fallback unit tests), so the choice of
 # Linux backend only affects compilation, not test behaviour.
 keyring = { version = "3", features = ["apple-native", "windows-native", "linux-native"] }
-# Onboarding: open the default input device briefly to trigger the OS microphone
-# permission prompt (macOS TCC). We never record or transcribe — the stream is
-# opened, played, and dropped after a short sleep. cpal is the same crate the
-# README earmarks for Phase 5B meeting capture, so this also lays that groundwork.
+# cpal: cross-platform audio I/O. Two uses now:
+#  1. Onboarding — open the default input device briefly to trigger the OS mic
+#     permission prompt (macOS TCC); audio_permission.rs records nothing.
+#  2. Phase 5B meeting capture — audio_capture.rs records the mic to a 16kHz
+#     mono WAV for on-device whisper transcription.
 cpal = "0.15"
+# Phase 5B: on-device meeting transcription via whisper.cpp. whisper-rs 0.16
+# ships ZERO default features, so this is a CPU-only build on every platform
+# (no CUDA/Metal/CoreML/OpenBLAS) — maximally portable across the CI matrix.
+# whisper-rs-sys builds whisper.cpp with cmake and runs bindgen (needs libclang).
+whisper-rs = { version = "0.16", default-features = false }
+# WAV reader: Phase 5B mic capture writes 16kHz mono WAVs; transcribe_wav reads
+# them and converts i16 PCM -> f32 for whisper.
+hound = "3"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 accessibility-sys = "0.1"
@@ -80,6 +96,12 @@ windows = { version = "0.58", features = [
     "Win32_UI_WindowsAndMessaging",
     "Win32_System_Threading",
 ] }
+# Phase 5B.3: system-audio loopback (capture what the speakers play, i.e. the
+# OTHER side of a call). Safe wrapper over WASAPI; loopback mode = open the
+# default RENDER device and initialize with Direction::Capture (shared mode).
+# wasapi 0.23 depends on windows 0.62 — a different semver major than our 0.58
+# above, so Cargo compiles both side by side; no types cross between them.
+wasapi = "0.23"
 
 [target.'cfg(target_os = "linux")'.dependencies]
 # Phase 4: active-window detection on X11. We query the root window's

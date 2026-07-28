@@ -2,7 +2,7 @@
 
 > "Perhaps we are searching in the branches for what we only find in the roots." - Rami
 
-Twin Me creates digital twins that capture your true originality - not just your public persona, but your complete soul signature. By connecting your digital life (Netflix, Spotify, Discord, and 30+ platforms), we discover what makes you authentically YOU.
+Twin Me creates digital twins that capture your true originality - not just your public persona, but your complete soul signature. By connecting your digital life (Spotify, Google, YouTube, Discord, GitHub, and more), we discover what makes you authentically YOU.
 
 ## 🚀 Quick Start
 
@@ -12,7 +12,7 @@ npm install --legacy-peer-deps
 
 # Start development servers
 npm run dev         # Frontend: http://localhost:8086
-npm run server:dev  # Backend: http://localhost:3001
+npm run server:dev  # Backend: http://localhost:3004
 
 # Or run both together
 npm run dev:full
@@ -29,7 +29,7 @@ While public information is easily cloned and commoditized, it lacks soul. Twin 
 ## ✨ Key Features
 
 ### Soul Signature Discovery
-- Connect 30+ platforms (Spotify, Netflix, YouTube, Discord, GitHub, etc.)
+- Connect 10 platforms (Spotify, Google Calendar, YouTube, Gmail, Discord, LinkedIn, GitHub, Reddit, Twitch, Whoop)
 - Automatic pattern extraction from your digital footprints
 - Visual soul signature dashboard with life clusters
 
@@ -54,8 +54,10 @@ twin-me/
 │   └── contexts/        # State management
 ├── api/                  # Express backend
 │   ├── routes/          # API endpoints
-│   ├── services/        # Business logic
-│   └── connectors/      # Platform integrations
+│   ├── services/        # Business logic + memory architecture
+│   ├── middleware/      # Auth, rate limiting, validation
+│   └── config/          # AI model tiers, constants
+├── database/             # Supabase migrations
 └── public/              # Static assets
 ```
 
@@ -65,22 +67,31 @@ Create a `.env` file:
 
 ```env
 # Core
-PORT=3001
+PORT=3004
 VITE_APP_URL=http://localhost:8086
-VITE_API_URL=http://localhost:3001/api
+VITE_API_URL=http://localhost:3004/api
 
-# Authentication
-GOOGLE_CLIENT_ID=your-google-client-id
+# Auth & crypto
 JWT_SECRET=your-jwt-secret
+ENCRYPTION_KEY=your-32-byte-encryption-key
 
-# AI Services
-ANTHROPIC_API_KEY=your-anthropic-key
-OPENAI_API_KEY=your-openai-key
+# Database (Supabase — the only active datastore)
+VITE_SUPABASE_URL=your-supabase-url
+VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
 
-# Database
-SUPABASE_URL=your-supabase-url
-SUPABASE_ANON_KEY=your-supabase-key
+# AI (all LLM calls route through OpenRouter)
+OPENROUTER_API_KEY=your-openrouter-key
+
+# Platform OAuth (see .env.example for the full list)
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+SPOTIFY_CLIENT_ID=your-spotify-client-id
+SPOTIFY_CLIENT_SECRET=your-spotify-client-secret
+YOUTUBE_API_KEY=your-youtube-key
 ```
+
+`.env.example` is the canonical, complete list — copy it to `.env` and fill in values.
 
 ## 📊 The Personal-Professional Spectrum
 
@@ -138,7 +149,7 @@ SUPABASE_ANON_KEY=your-supabase-key
 
 5. **Access the platform**
    - Frontend: http://localhost:8086
-   - Backend API: http://localhost:3001
+   - Backend API: http://localhost:3004
 
 ## 🔐 Security & Privacy
 
@@ -148,11 +159,21 @@ SUPABASE_ANON_KEY=your-supabase-key
 - **Contextual Sharing**: Different aspects for different audiences
 - **Data Portability**: Export your entire profile anytime
 
+### Security posture
+
+- **Auth**: JWT (HS256) for app sessions; OAuth 2.0 + PKCE for platform connections.
+- **Secrets**: server-side env vars only, validated at startup; gitleaks pre-commit + CI gate; anything that ever leaked is rotated, not just removed from the diff.
+- **Tokens**: OAuth tokens encrypted at rest (AES-256-GCM); disconnecting a platform revokes the grant at the provider where an endpoint exists.
+- **Data isolation**: enforced in the API layer today (every user-scoped query filters by `user_id`); PII tables have RLS enabled with service-role-only policies; a database-level per-user backstop is planned.
+- **Hardening**: Helmet CSP + CORS allowlist, rate limiting on auth/OAuth/LLM endpoints, LLM spend ceilings, and prompt-injection fencing of untrusted context.
+
+**Reporting a vulnerability**: email stefanogebara@gmail.com with details and reproduction steps. Please do not open a public issue for security-sensitive reports.
+
 ## 🛠️ Tech Stack
 
 - **Frontend**: React 18, TypeScript, Tailwind CSS, Vite
 - **Backend**: Node.js, Express, JWT Authentication
-- **AI**: Anthropic Claude, OpenAI GPT
+- **AI**: OpenRouter gateway (DeepSeek V3.2 default, Claude Sonnet 4.6 for deep twin chat, Gemini 2.5 Flash for vision)
 - **Database**: Supabase (PostgreSQL)
 - **Auth**: OAuth 2.0 for platform connections
 
@@ -168,11 +189,11 @@ SUPABASE_ANON_KEY=your-supabase-key
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+This is a proprietary, closed-source project; external contributions are not accepted.
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+Proprietary and confidential. Copyright (c) 2026 TwinMe. All rights reserved. This project is not open-source; no license is granted to use, copy, modify, or distribute this software.
 
 ## 🙏 Acknowledgments
 

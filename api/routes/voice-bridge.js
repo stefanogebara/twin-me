@@ -38,6 +38,7 @@
  */
 
 import express from 'express';
+import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import OpenAI from 'openai';
 import { supabaseAdmin } from '../services/database.js';
@@ -52,6 +53,23 @@ const WAHA_API_KEY = process.env.WAHA_API_KEY || '';
 const BRIDGE_SHARED_SECRET = process.env.BRIDGE_SHARED_SECRET || '';
 const JWT_SECRET = process.env.JWT_SECRET || '';
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
+
+// audit-2026-07-03: validate WAHA config at load time. WAHA is a non-critical
+// integration (voice bridge degrades to "unavailable" via wahaConfigured()
+// checks throughout this file) so a bad value warns rather than crashing
+// the server — this only logs, it never throws.
+if (WAHA_BASE_URL) {
+  try {
+    new URL(WAHA_BASE_URL);
+  } catch {
+    log.warn('WAHA_BASE_URL is not a valid URL — voice bridge will treat WAHA as unreachable', {
+      value: WAHA_BASE_URL,
+    });
+  }
+}
+if (WAHA_BASE_URL && !WAHA_API_KEY) {
+  log.warn('WAHA_BASE_URL is set but WAHA_API_KEY is empty — WAHA calls will be rejected (401)');
+}
 
 // WAHA Core (free) only allows ONE session named exactly 'default'. The
 // WAHA Plus license adds multi-session support (~$30/mo). Until we move
@@ -101,13 +119,29 @@ async function wahaFetch(path, init = {}) {
 // Auth: WAHA forwards a configured header. We compare against the same
 // BRIDGE_SHARED_SECRET we used for the Go bridge.
 
-function requireBridgeAuth(req, res, next) {
+/**
+ * Constant-time secret comparison (audit-2026-07-03) — a plain `===` leaks
+ * timing information proportional to the number of matching leading bytes,
+ * letting an attacker recover BRIDGE_SHARED_SECRET one byte at a time.
+ * crypto.timingSafeEqual throws on length mismatch, so that case is guarded
+ * first and returns false directly — same shape as verifyCronSecret.js and
+ * the other WhatsApp webhook routes' local timing-safe helpers.
+ */
+function timingSafeEqual(provided, expected) {
+  if (typeof provided !== 'string' || typeof expected !== 'string') return false;
+  const a = Buffer.from(provided, 'utf8');
+  const b = Buffer.from(expected, 'utf8');
+  if (a.length !== b.length) return false;
+  return crypto.timingSafeEqual(a, b);
+}
+
+export function requireBridgeAuth(req, res, next) {
   const got = req.header('X-Twinme-Bridge-Secret') || req.header('X-Bridge-Secret');
   if (!BRIDGE_SHARED_SECRET) {
     log.error('BRIDGE_SHARED_SECRET not configured — rejecting all bridge calls');
     return res.status(503).json({ error: 'bridge_not_configured' });
   }
-  if (!got || got !== BRIDGE_SHARED_SECRET) {
+  if (!got || !timingSafeEqual(got, BRIDGE_SHARED_SECRET)) {
     log.warn('Webhook auth failed', { provided: got ? 'present' : 'missing' });
     return res.status(401).json({ error: 'unauthorized' });
   }
@@ -477,7 +511,12 @@ async function handleInboundVoice(userId, payload) {
 // POST /link/start — create/restart WAHA session, return QR data URL
 router.post('/link/start', authenticateUser, async (req, res) => {
   const userId = req.user.id;
-  if (!wahaConfigured()) return res.status(503).json({ error: 'bridge_not_configured' });
+  if (!wahaConfigured()) {
+    return res.status(503).json({
+      error: 'bridge_not_configured',
+      error_description: "Voice bridge isn't set up yet. Please try again later.",
+    });
+  }
 
   // Reserve this user as the active pairing target. WAHA Core can only run
   // one 'default' session, so we use the whatsapp_links table to track who
@@ -494,7 +533,10 @@ router.post('/link/start', authenticateUser, async (req, res) => {
     log.warn('link/start blocked — another user holds the bridge', {
       requester: userId, holder: existingOther.user_id, status: existingOther.status,
     });
-    return res.status(409).json({ error: 'bridge_busy' });
+    return res.status(409).json({
+      error: 'bridge_busy',
+      error_description: 'Another account is currently linking WhatsApp. Please wait or unlink the existing one first.',
+    });
   }
 
   // Mark this user as pending (idempotent — UPDATE if exists, INSERT if not)
@@ -530,7 +572,10 @@ router.post('/link/start', authenticateUser, async (req, res) => {
     if (!startRes.ok && startRes.status !== 422) {
       const detail = await startRes.text().catch(() => '');
       log.error('waha session start failed', { userId, status: startRes.status, detail: detail.slice(0, 200) });
-      return res.status(502).json({ error: 'waha_unreachable' });
+      return res.status(502).json({
+        error: 'waha_unreachable',
+        error_description: "Couldn't reach the WhatsApp bridge. Please try again in a moment.",
+      });
     }
     // Poll the session status briefly to wait for SCAN_QR_CODE, then fetch QR
     const deadline = Date.now() + 8_000;
@@ -562,7 +607,10 @@ router.post('/link/start', authenticateUser, async (req, res) => {
     });
   } catch (err) {
     log.error('link/start failed', { error: err?.message });
-    return res.status(502).json({ error: 'bridge_unreachable' });
+    return res.status(502).json({
+      error: 'bridge_unreachable',
+      error_description: "Couldn't reach the WhatsApp bridge. Please try again in a moment.",
+    });
   }
 });
 
@@ -658,7 +706,10 @@ router.post('/unlink', authenticateUser, async (req, res) => {
     .eq('status', 'linked');
   if (error) {
     log.error('unlink DB update failed', { error: error.message });
-    return res.status(500).json({ error: 'unlink_failed' });
+    return res.status(500).json({
+      error: 'unlink_failed',
+      error_description: "Couldn't unlink WhatsApp. Please try again.",
+    });
   }
   if (wahaConfigured()) {
     await wahaFetch(`/api/sessions/${WAHA_SESSION}/logout`, { method: 'POST' })

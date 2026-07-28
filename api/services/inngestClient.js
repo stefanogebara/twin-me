@@ -35,6 +35,7 @@ export const EVENTS = {
   // Background maintenance
   CORE_MEMORY_REFRESH: 'twin/core_memory.refresh',
   GENERATE_BRIEFING: 'twin/briefing.generate',
+  INGEST_USER_OBSERVATIONS: 'twin/observation.ingest_user',
 
   // Skills
   MUSIC_MOOD_MATCH: 'twin/skill.music_mood_match',

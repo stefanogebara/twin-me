@@ -4,6 +4,8 @@ import { toast } from 'sonner';
 import { ChevronLeft, Plus, Check } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { goalProgressPercent } from '@/lib/goalProgress';
+import { ClauraZonedBackground } from '@/components/ClauraZonedBackground';
 import {
   Goal,
   fetchGoals,
@@ -23,13 +25,30 @@ function timeLeft(endDate?: string): string {
   return `${days}d left`;
 }
 
-function ProgressBar({ current = 0, target = 1 }: { current?: number; target?: number }) {
-  const pct = Math.min(100, Math.round((current / Math.max(target, 1)) * 100));
+function ProgressBar({
+  current = 0,
+  target = 1,
+  operator = '>=',
+}: {
+  current?: number;
+  target?: number;
+  operator?: Goal['target_operator'];
+}) {
+  // For "lower is better" goals (<= / <), being under the cap is on-track (100%);
+  // overage reads as falling short. Mirrors evaluateTarget() in goalTrackingService.js.
+  const pct = goalProgressPercent(current, target, operator ?? '>=');
   return (
-    <div className="h-[3px] rounded-full overflow-hidden mt-2" style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}>
+    <div
+      className="h-[3px] rounded-full overflow-hidden mt-2"
+      style={{ backgroundColor: 'var(--surface)' }}
+      role="progressbar"
+      aria-valuenow={current}
+      aria-valuemin={0}
+      aria-valuemax={target}
+    >
       <div
         className="h-full rounded-full transition-all duration-500"
-        style={{ width: `${pct}%`, background: 'rgba(255,255,255,0.40)' }}
+        style={{ width: `${pct}%`, background: 'var(--foreground)' }}
       />
     </div>
   );
@@ -47,8 +66,8 @@ function ActiveGoalCard({ goal, onComplete }: { goal: Goal; onComplete: (id: str
     <div
       className="px-5 py-4 rounded-[20px]"
       style={{
-        background: 'rgba(255,255,255,0.04)',
-        border: '1px solid rgba(255,255,255,0.08)',
+        background: 'var(--surface)',
+        border: '1px solid var(--border-glass)',
         backdropFilter: 'blur(42px)',
       }}
     >
@@ -58,21 +77,31 @@ function ActiveGoalCard({ goal, onComplete }: { goal: Goal; onComplete: (id: str
             {goal.title}
           </p>
           {goal.description && (
-            <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', sans-serif" }}>
+            <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
               {goal.description}
             </p>
           )}
           {goal.target_value != null && (
-            <ProgressBar current={goal.last_measured_value ?? undefined} target={goal.target_value} />
+            goal.last_measured_at == null ? (
+              <p className="text-xs mt-2" style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
+                Tracking starts soon
+              </p>
+            ) : (
+              <ProgressBar
+                current={goal.last_measured_value ?? undefined}
+                target={goal.target_value}
+                operator={goal.target_operator}
+              />
+            )
           )}
           <div className="flex items-center gap-3 mt-2">
             {goal.current_streak != null && goal.current_streak > 0 && (
-              <span className="text-xs" style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Inter', sans-serif" }}>
+              <span className="text-xs" style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
                 {goal.current_streak}d streak
               </span>
             )}
             {goal.end_date && (
-              <span className="text-xs" style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Inter', sans-serif" }}>
+              <span className="text-xs" style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
                 {timeLeft(goal.end_date)}
               </span>
             )}
@@ -83,7 +112,7 @@ function ActiveGoalCard({ goal, onComplete }: { goal: Goal; onComplete: (id: str
           onClick={handleComplete}
           disabled={loading}
           className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-150 hover:opacity-70 active:scale-90 disabled:opacity-40"
-          style={{ border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.5)' }}
+          style={{ border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
           aria-label="Mark complete"
         >
           <Check className="w-3.5 h-3.5" />
@@ -118,19 +147,19 @@ function SuggestionCard({
     <div
       className="px-5 py-4 rounded-[20px]"
       style={{
-        background: 'rgba(255,255,255,0.03)',
-        border: '1px solid rgba(255,255,255,0.06)',
+        background: 'var(--surface)',
+        border: '1px solid var(--border-glass)',
         backdropFilter: 'blur(42px)',
       }}
     >
-      <p className="text-[10px] uppercase tracking-widest mb-2 font-medium" style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}>
+      <p className="text-[10px] uppercase tracking-widest mb-2 font-medium" style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
         Suggested by your twin
       </p>
       <p className="text-sm font-medium leading-snug" style={{ color: 'var(--foreground)', fontFamily: "'Geist', 'Inter', sans-serif" }}>
         {goal.title}
       </p>
       {goal.description && (
-        <p className="text-xs mt-1 leading-relaxed" style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', sans-serif" }}>
+        <p className="text-xs mt-1 leading-relaxed" style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
           {goal.description}
         </p>
       )}
@@ -140,7 +169,7 @@ function SuggestionCard({
           onClick={handleAccept}
           disabled={loading}
           className="px-3 py-1.5 rounded-[100px] text-xs font-medium transition-all duration-150 hover:opacity-80 active:scale-[0.97] disabled:opacity-40"
-          style={{ background: 'var(--foreground)', color: '#110f0f', fontFamily: "'Inter', sans-serif" }}
+          style={{ background: 'var(--foreground)', color: 'var(--claura-bone-ink)', fontFamily: "'Inter', sans-serif" }}
         >
           Accept
         </button>
@@ -149,7 +178,7 @@ function SuggestionCard({
           onClick={handleDismiss}
           disabled={loading}
           className="px-3 py-1.5 rounded-[100px] text-xs font-medium transition-all duration-150 hover:opacity-70 active:scale-[0.97] disabled:opacity-40"
-          style={{ border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.45)', fontFamily: "'Inter', sans-serif" }}
+          style={{ border: '1px solid var(--glass-surface-border)', color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
         >
           Not now
         </button>
@@ -243,11 +272,12 @@ export default function GoalsPage() {
     setHasTriedGeneration(true);
     setGeneratingSuggestions(true);
     setSuggestionsError(null);
-    try { sessionStorage.setItem(SUGGESTION_SESSION_KEY, String(Date.now())); } catch {}
     generateGoalSuggestions()
       .then(fresh => {
         if (cancelled) return;
         setSuggestions(fresh);
+        // Arm the 24h gate only on success so a transient failure can retry.
+        try { sessionStorage.setItem(SUGGESTION_SESSION_KEY, String(Date.now())); } catch {}
       })
       .catch(err => {
         if (cancelled) return;
@@ -312,13 +342,15 @@ export default function GoalsPage() {
 
   return (
     <div className="max-w-[720px] mx-auto px-4 sm:px-6 pb-24">
+      {/* Claura zoned photography — dusk-train, both appearances (/preview/goals). */}
+      <ClauraZonedBackground dark="dusk-train.png" light="dusk-train.png" darkPosition="center 38%" lightPosition="center 30%" />
       {/* Header */}
       <div className="flex items-center gap-2 pt-6 mb-8">
         <button
           type="button"
           onClick={() => navigate(-1)}
           className="p-1.5 rounded-lg transition-all duration-150 hover:opacity-70 active:scale-90 lg:hidden"
-          style={{ color: 'rgba(255,255,255,0.35)' }}
+          style={{ color: 'var(--text-muted)' }}
           aria-label="Go back"
         >
           <ChevronLeft className="w-5 h-5" />
@@ -331,7 +363,7 @@ export default function GoalsPage() {
       {loading ? (
         <div className="space-y-3">
           {[1, 2, 3].map(i => (
-            <div key={i} className="h-16 rounded-[20px] animate-pulse" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }} />
+            <div key={i} className="h-16 rounded-[20px] animate-pulse" style={{ background: 'var(--surface)', border: '1px solid var(--border-glass)' }} />
           ))}
         </div>
       ) : (
@@ -358,14 +390,14 @@ export default function GoalsPage() {
                     key={i}
                     className="px-5 py-4 rounded-[20px] animate-pulse"
                     style={{
-                      background: 'rgba(255,255,255,0.03)',
-                      border: '1px solid rgba(255,255,255,0.06)',
+                      background: 'var(--surface)',
+                      border: '1px solid var(--border-glass)',
                       backdropFilter: 'blur(42px)',
                     }}
                   >
-                    <div className="h-2 w-24 rounded-full mb-3" style={{ background: 'rgba(255,255,255,0.08)' }} />
-                    <div className="h-3 w-3/4 rounded-full mb-2" style={{ background: 'rgba(255,255,255,0.10)' }} />
-                    <div className="h-3 w-1/2 rounded-full" style={{ background: 'rgba(255,255,255,0.06)' }} />
+                    <div className="h-2 w-24 rounded-full mb-3" style={{ background: 'var(--surface)' }} />
+                    <div className="h-3 w-3/4 rounded-full mb-2" style={{ background: 'var(--surface-solid)' }} />
+                    <div className="h-3 w-1/2 rounded-full" style={{ background: 'var(--surface)' }} />
                   </div>
                 ))}
               </div>
@@ -381,15 +413,15 @@ export default function GoalsPage() {
               <div
                 className="px-5 py-6 rounded-[20px]"
                 style={{
-                  background: 'rgba(255,255,255,0.04)',
-                  border: '1px solid rgba(255,255,255,0.08)',
+                  background: 'var(--surface)',
+                  border: '1px solid var(--border-glass)',
                   backdropFilter: 'blur(42px)',
                 }}
               >
                 <p
                   className="text-sm leading-relaxed"
                   style={{
-                    color: 'rgba(245,245,244,0.9)',
+                    color: 'var(--foreground)',
                     fontFamily: "'Instrument Serif', Georgia, serif",
                     fontSize: 18,
                     letterSpacing: '-0.01em',
@@ -403,7 +435,7 @@ export default function GoalsPage() {
                     type="button"
                     onClick={() => navigate('/connect')}
                     className="px-3 py-2 rounded-[100px] text-xs font-medium transition-all duration-150 hover:opacity-80 active:scale-[0.97]"
-                    style={{ background: '#F5F5F4', color: '#110f0f', fontFamily: "'Inter', sans-serif" }}
+                    style={{ background: 'var(--claura-bone)', color: 'var(--claura-bone-ink)', fontFamily: "'Inter', sans-serif" }}
                   >
                     Connect more platforms
                   </button>
@@ -411,7 +443,7 @@ export default function GoalsPage() {
                     type="button"
                     onClick={() => setShowAddForm(true)}
                     className="px-3 py-2 rounded-[100px] text-xs font-medium transition-all duration-150 hover:opacity-70 active:scale-[0.97]"
-                    style={{ color: 'rgba(255,255,255,0.5)', fontFamily: "'Inter', sans-serif" }}
+                    style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
                   >
                     Add your own
                   </button>
@@ -428,7 +460,7 @@ export default function GoalsPage() {
                 type="button"
                 onClick={() => setShowAddForm(v => !v)}
                 className="flex items-center gap-1 text-xs font-medium transition-all duration-150 hover:opacity-70"
-                style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', sans-serif" }}
+                style={{ color: 'var(--text-muted)', fontFamily: "'Inter', sans-serif" }}
               >
                 <Plus className="w-3.5 h-3.5" />
                 Add
@@ -443,11 +475,12 @@ export default function GoalsPage() {
                   onChange={e => setAddTitle(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleAdd()}
                   placeholder="Goal title..."
+                  aria-label="Goal title"
                   autoFocus
                   className="flex-1 text-sm px-3 py-2 rounded-[6px] outline-none"
                   style={{
-                    background: 'rgba(255,255,255,0.08)',
-                    border: '1px solid rgba(255,255,255,0.10)',
+                    background: 'var(--surface)',
+                    border: '1px solid var(--glass-surface-border)',
                     color: 'var(--foreground)',
                     fontFamily: "'Inter', sans-serif",
                   }}
@@ -457,7 +490,7 @@ export default function GoalsPage() {
                   onClick={handleAdd}
                   disabled={adding || !addTitle.trim()}
                   className="px-3 py-2 rounded-[100px] text-xs font-medium transition-all duration-150 hover:opacity-80 disabled:opacity-40"
-                  style={{ background: 'var(--foreground)', color: '#110f0f', fontFamily: "'Inter', sans-serif" }}
+                  style={{ background: 'var(--foreground)', color: 'var(--claura-bone-ink)', fontFamily: "'Inter', sans-serif" }}
                 >
                   {adding ? '...' : 'Add'}
                 </button>
@@ -468,7 +501,7 @@ export default function GoalsPage() {
               // Suppress the terse text empty-state when either the shimmer
               // or the twin-voice empty card is already rendered above.
               suggestions.length === 0 && (generatingSuggestions || hasTriedGeneration) ? null : (
-                <p className="text-sm py-4" style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}>
+                <p className="text-sm py-4" style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
                   No active goals yet. Accept a suggestion above or add one yourself.
                 </p>
               )
@@ -487,9 +520,9 @@ export default function GoalsPage() {
               <p style={LABEL_STYLE}>Completed</p>
               <div className="space-y-2">
                 {completed.map(g => (
-                  <div key={g.id} className="px-4 py-3 rounded-[12px] flex items-center gap-3" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
-                    <Check className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'rgba(255,255,255,0.25)' }} />
-                    <p className="text-sm" style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Geist', 'Inter', sans-serif", textDecoration: 'line-through' }}>
+                  <div key={g.id} className="px-4 py-3 rounded-[12px] flex items-center gap-3" style={{ background: 'var(--surface)', border: '1px solid var(--border-glass)' }}>
+                    <Check className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
+                    <p className="text-sm" style={{ color: 'var(--text-secondary)', fontFamily: "'Geist', 'Inter', sans-serif", textDecoration: 'line-through' }}>
                       {g.title}
                     </p>
                   </div>

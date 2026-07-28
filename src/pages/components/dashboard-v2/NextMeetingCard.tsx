@@ -100,7 +100,7 @@ export function NextMeetingCard() {
         <div className="flex items-center gap-2">
           <CalendarCheck
             className="w-4 h-4"
-            style={{ color: isSoon ? 'rgba(232,160,80,0.95)' : 'rgba(255,255,255,0.55)' }}
+            style={{ color: isSoon ? 'rgba(232,160,80,0.95)' : 'var(--text-secondary)' }}
           />
           <span
             style={{
@@ -109,7 +109,7 @@ export function NextMeetingCard() {
               fontWeight: 500,
               letterSpacing: '0.08em',
               textTransform: 'uppercase',
-              color: isSoon ? 'rgba(232,160,80,0.85)' : 'rgba(255,255,255,0.45)',
+              color: isSoon ? 'rgba(232,160,80,0.85)' : 'var(--text-secondary)',
             }}
           >
             Next meeting · {timeUntilLabel(meeting.startTime)}
@@ -120,7 +120,7 @@ export function NextMeetingCard() {
           style={{
             fontFamily: "'Geist', 'Inter', sans-serif",
             fontSize: 11.5,
-            color: 'rgba(255,255,255,0.45)',
+            color: 'var(--text-secondary)',
           }}
         >
           <Clock className="w-3 h-3" />
@@ -152,7 +152,7 @@ export function NextMeetingCard() {
               style={{
                 fontFamily: "'Geist', 'Inter', sans-serif",
                 fontSize: 12.5,
-                color: 'rgba(255,255,255,0.72)',
+                color: 'var(--text-secondary)',
                 lineHeight: 1.45,
                 borderLeft: '2px solid rgba(193,126,44,0.35)',
               }}
@@ -171,7 +171,7 @@ export function NextMeetingCard() {
           fontFamily: "'Geist', 'Inter', sans-serif",
           fontSize: 12,
           fontWeight: 500,
-          color: isSoon ? 'rgba(232,160,80,0.95)' : 'rgba(255,255,255,0.55)',
+          color: isSoon ? 'rgba(232,160,80,0.95)' : 'var(--text-secondary)',
         }}
       >
         Ask your twin for the full prep <ArrowRight className="w-3 h-3" />

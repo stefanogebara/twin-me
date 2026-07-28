@@ -60,8 +60,8 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
           <div className={cn(
             'w-16 h-16 rounded-full flex items-center justify-center',
             iconClassName
-          )} style={{ backgroundColor: 'rgba(255,255,255,0.04)' }}>
-            <Icon className="w-8 h-8" style={{ color: 'rgba(255,255,255,0.3)' }} />
+          )} style={{ backgroundColor: 'var(--surface)' }}>
+            <Icon className="w-8 h-8" style={{ color: 'var(--text-muted)' }} />
           </div>
         </div>
       ) : null}
@@ -71,7 +71,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
         <h3 className="text-2xl text-foreground mb-2 font-medium">
           {title}
         </h3>
-        <p style={{ color: 'rgba(255,255,255,0.4)' }} className="text-base leading-relaxed">
+        <p style={{ color: 'var(--text-muted)' }} className="text-base leading-relaxed">
           {description}
         </p>
       </div>
@@ -109,7 +109,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
             <Button
               onClick={tertiaryAction.onClick}
               variant={tertiaryAction.variant || 'ghost'}
-              style={{ color: 'rgba(255,255,255,0.4)' }}
+              style={{ color: 'var(--text-muted)' }}
             >
               {tertiaryAction.icon && <tertiaryAction.icon className="w-4 h-4 mr-2" />}
               {tertiaryAction.label}

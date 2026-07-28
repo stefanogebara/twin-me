@@ -62,6 +62,10 @@ export function BetaOnboardingChecklist({ onDismiss }: BetaOnboardingChecklistPr
   // route). Primary count = summary.active per the spec's display convention.
   const { data: platformsSummary } = usePlatformsSummary();
   const connectedCount = platformsSummary?.active ?? 0;
+  // audit-2026-06-10 re-verify: the sync step must reflect a real sync, not just
+  // a connection. A platform has synced once lastSyncAt is non-null.
+  const hasSynced =
+    platformsSummary?.breakdown.some((entry) => !!entry.lastSyncAt) ?? false;
   const hasMessaged = useHasMessagedTwin();
 
   const [visible, setVisible] = useState(() => {
@@ -90,7 +94,9 @@ export function BetaOnboardingChecklist({ onDismiss }: BetaOnboardingChecklistPr
       description: 'Pull fresh data from your connected platforms.',
       action: () => navigate('/get-started'),
       actionLabel: 'Sync now',
-      isComplete: connectedCount >= 1,
+      // Complete only once a platform has actually synced (lastSyncAt set), not
+      // merely on connecting one — otherwise the step self-completes prematurely.
+      isComplete: hasSynced,
     },
     {
       id: 'chat',
@@ -184,7 +190,7 @@ export function BetaOnboardingChecklist({ onDismiss }: BetaOnboardingChecklistPr
           {/* Progress bar */}
           <div
             className="w-full h-1 rounded-full mb-5"
-            style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}
+            style={{ backgroundColor: 'var(--surface)' }}
           >
             <motion.div
               className="h-full rounded-full"
@@ -266,8 +272,8 @@ export function BetaOnboardingChecklist({ onDismiss }: BetaOnboardingChecklistPr
                       onClick={step.action}
                       className="flex items-center gap-1 px-3 py-1.5 rounded-[100px] text-[12px] font-medium flex-shrink-0 transition-all duration-150 ease-out hover:brightness-110 active:scale-[0.97] cursor-pointer"
                       style={{
-                        background: '#F5F5F4',
-                        color: '#110f0f',
+                        background: 'var(--claura-bone)',
+                        color: 'var(--claura-bone-ink)',
                         border: 'none',
                         fontFamily: "'Geist', 'Inter', sans-serif",
                       }}

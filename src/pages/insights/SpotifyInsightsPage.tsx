@@ -30,7 +30,7 @@ const SpotifyInsightsPage: React.FC = () => {
 
   const colors = {
     text: 'var(--foreground)',
-    textSecondary: 'rgba(255,255,255,0.4)',
+    textSecondary: 'rgba(255, 255, 255, 0.55)',
     spotifyGreen: '#1DB954',
     spotifyBg: 'rgba(29, 185, 84, 0.1)'
   };
@@ -51,11 +51,11 @@ const SpotifyInsightsPage: React.FC = () => {
   // Error state
   if (error) {
     return (
-      <div className="max-w-[680px] mx-auto px-6 py-16">
+      <div className="max-w-[680px] mx-auto px-4 sm:px-6 py-10 sm:py-16">
         <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
           <AlertCircle
             className="w-12 h-12"
-            style={{ color: 'rgba(255,255,255,0.3)' }}
+            style={{ color: 'var(--text-secondary)' }}
           />
           <p
             style={{
@@ -66,16 +66,17 @@ const SpotifyInsightsPage: React.FC = () => {
             {error}
           </p>
           <button
-            onClick={() => navigate('/get-started')}
-            className="px-4 py-2 rounded-lg"
+            onClick={refresh}
+            disabled={isRefreshing}
+            className="px-4 py-2 rounded-[12px]"
             style={{
-              backgroundColor: '#10b77f',
-              color: '#0a0f0a',
+              background: 'var(--claura-bone)',
+              color: 'var(--claura-bone-ink)',
               fontFamily: "'Inter', sans-serif",
               fontWeight: 500
             }}
           >
-            Connect Spotify
+            {isRefreshing ? 'Retrying...' : 'Try again'}
           </button>
         </div>
       </div>
@@ -83,7 +84,7 @@ const SpotifyInsightsPage: React.FC = () => {
   }
 
   return (
-    <div className="max-w-[680px] mx-auto px-6 py-16">
+    <div className="max-w-[680px] mx-auto px-4 sm:px-6 py-10 sm:py-16">
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-4">
@@ -93,7 +94,7 @@ const SpotifyInsightsPage: React.FC = () => {
             className="p-2 rounded-lg"
             style={{
               border: '1px solid var(--border)',
-              color: 'rgba(255,255,255,0.5)'
+              color: 'var(--text-secondary)'
             }}
             aria-label="Back to dashboard"
           >
@@ -142,7 +143,7 @@ const SpotifyInsightsPage: React.FC = () => {
           title="Get a fresh observation"
           style={{
             border: '1px solid var(--border)',
-            color: 'rgba(255,255,255,0.5)'
+            color: 'var(--text-secondary)'
           }}
         >
           <RefreshCw
@@ -181,12 +182,12 @@ const SpotifyInsightsPage: React.FC = () => {
           className="mb-8 p-4 rounded-lg"
           style={{
             border: '1px solid var(--border-glass)',
-            backgroundColor: 'rgba(255,255,255,0.02)'
+            backgroundColor: 'var(--surface)'
           }}
         >
           <span
             className="text-[11px] font-medium tracking-widest uppercase block mb-2"
-            style={{ color: '#10b77f' }}
+            style={{ color: 'var(--accent-amber)' }}
           >
             Twin's Observation
           </span>
@@ -207,7 +208,7 @@ const SpotifyInsightsPage: React.FC = () => {
         <div className="mb-8">
           <span
             className="text-[11px] font-medium tracking-widest uppercase block mb-4"
-            style={{ color: '#10b77f' }}
+            style={{ color: 'var(--accent-amber)' }}
           >
             Patterns I've Noticed
           </span>
@@ -228,7 +229,7 @@ const SpotifyInsightsPage: React.FC = () => {
         <div>
           <span
             className="text-[11px] font-medium tracking-widest uppercase block mb-4"
-            style={{ color: '#10b77f' }}
+            style={{ color: 'var(--accent-amber)' }}
           >
             Past Observations
           </span>
@@ -239,13 +240,13 @@ const SpotifyInsightsPage: React.FC = () => {
                 className="p-4 rounded-lg"
                 style={{
                   border: '1px solid var(--border-glass)',
-                  backgroundColor: 'rgba(255,255,255,0.02)'
+                  backgroundColor: 'var(--surface)'
                 }}
               >
                 <p
                   className="text-sm leading-relaxed"
                   style={{
-                    color: 'rgba(255,255,255,0.4)',
+                    color: 'var(--text-secondary)',
                     fontFamily: "'Inter', sans-serif"
                   }}
                 >
@@ -254,7 +255,7 @@ const SpotifyInsightsPage: React.FC = () => {
                 <p
                   className="text-xs mt-2"
                   style={{
-                    color: 'rgba(255,255,255,0.3)',
+                    color: 'var(--text-secondary)',
                     fontFamily: "'Inter', sans-serif"
                   }}
                 >

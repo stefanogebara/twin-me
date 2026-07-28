@@ -72,12 +72,17 @@ async function countRows(table, filter = {}) {
   }
 }
 
-// Paginated fetch helper to work around Supabase 1000-row default
+// Paginated fetch helper to work around Supabase 1000-row default.
+// Hard-capped at MAX_PAGES so a runaway table can't hold the request open
+// (or blow serverless memory) — 50 pages = 50k rows, far beyond any beta
+// cohort (audit-2026-07-03).
+const MAX_PAGES = 50;
+
 async function fetchAll(table, select, builder = q => q) {
   const pageSize = 1000;
   let offset = 0;
   const rows = [];
-  while (true) {
+  for (let page = 0; page < MAX_PAGES; page++) {
     const base = supabaseAdmin.from(table).select(select).range(offset, offset + pageSize - 1);
     const { data, error } = await builder(base);
     if (error) {
@@ -88,8 +93,30 @@ async function fetchAll(table, select, builder = q => q) {
     rows.push(...data);
     if (data.length < pageSize) break;
     offset += pageSize;
+    if (page === MAX_PAGES - 1) {
+      log.warn(`fetchAll(${table}) hit the ${MAX_PAGES}-page cap — results truncated`, { rows: rows.length });
+    }
   }
   return rows;
+}
+
+// Resolve a Supabase thenable to a scalar with a fallback, logging (never
+// swallowing) failures so silently-zeroed dashboard metrics stay traceable
+// in the logs (audit-2026-07-03).
+function metricOrFallback(query, label, fallback, pick) {
+  return query.then(
+    r => {
+      if (r.error) {
+        log.warn(`overview: ${label} failed`, { error: r.error.message });
+        return fallback;
+      }
+      return pick(r);
+    },
+    err => {
+      log.warn(`overview: ${label} rejected`, { error: err?.message });
+      return fallback;
+    },
+  );
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -111,29 +138,37 @@ router.get('/overview', async (req, res) => {
     ] = await Promise.all([
       countRows('beta_applications'),
       // Proposals = agent_actions with department set
-      supabaseAdmin
-        .from('agent_actions')
-        .select('*', { count: 'exact', head: true })
-        .not('department', 'is', null)
-        .then(r => r.count || 0, () => 0),
-      supabaseAdmin
-        .from('agent_actions')
-        .select('*', { count: 'exact', head: true })
-        .not('department', 'is', null)
-        .eq('user_response', 'accepted')
-        .then(r => r.count || 0, () => 0),
+      metricOrFallback(
+        supabaseAdmin
+          .from('agent_actions')
+          .select('*', { count: 'exact', head: true })
+          .not('department', 'is', null),
+        'proposalsGenerated count', 0, r => r.count || 0,
+      ),
+      metricOrFallback(
+        supabaseAdmin
+          .from('agent_actions')
+          .select('*', { count: 'exact', head: true })
+          .not('department', 'is', null)
+          .eq('user_response', 'accepted'),
+        'proposalsApproved count', 0, r => r.count || 0,
+      ),
       // Active users: distinct user_id from agent_actions in last 7d
-      supabaseAdmin
-        .from('agent_actions')
-        .select('user_id')
-        .gte('created_at', sevenDaysAgo)
-        .then(r => r.data || [], () => []),
+      metricOrFallback(
+        supabaseAdmin
+          .from('agent_actions')
+          .select('user_id')
+          .gte('created_at', sevenDaysAgo),
+        'activeUsers query', [], r => r.data || [],
+      ),
       // Cost sum from llm_usage_log last 30d
-      supabaseAdmin
-        .from('llm_usage_log')
-        .select('cost_usd, user_id')
-        .gte('created_at', thirtyDaysAgo)
-        .then(r => r.data || [], () => []),
+      metricOrFallback(
+        supabaseAdmin
+          .from('llm_usage_log')
+          .select('cost_usd, user_id')
+          .gte('created_at', thirtyDaysAgo),
+        'costSum query', [], r => r.data || [],
+      ),
     ]);
 
     const activeUserIds = new Set(activeUsersData.map(r => r.user_id).filter(Boolean));

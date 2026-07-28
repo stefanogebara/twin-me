@@ -31,7 +31,7 @@ export const YouTubeInsights: React.FC<YouTubeInsightsProps> = ({
           <h3 className="text-lg font-medium mb-2" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>
             Analyzing Your Learning Journey
           </h3>
-          <p className="text-sm" style={{ color: 'rgba(255,255,255,0.3)' }}>
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
             Extracting insights from your YouTube data...
           </p>
         </div>
@@ -50,7 +50,7 @@ export const YouTubeInsights: React.FC<YouTubeInsightsProps> = ({
           <h3 className="text-lg font-medium mb-2" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>
             Unable to Load YouTube Insights
           </h3>
-          <p className="text-sm mb-6 max-w-md" style={{ color: 'rgba(255,255,255,0.3)' }}>
+          <p className="text-sm mb-6 max-w-md" style={{ color: 'var(--text-muted)' }}>
             {error?.message || 'We couldn\'t retrieve your YouTube data. Please try again.'}
           </p>
           <Button
@@ -76,7 +76,7 @@ export const YouTubeInsights: React.FC<YouTubeInsightsProps> = ({
           <h3 className="text-lg font-medium mb-2" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>
             No YouTube Data Yet
           </h3>
-          <p className="text-sm mb-6 max-w-md" style={{ color: 'rgba(255,255,255,0.3)' }}>
+          <p className="text-sm mb-6 max-w-md" style={{ color: 'var(--text-muted)' }}>
             Connect your YouTube account to discover your learning and discovery patterns
           </p>
           <Button
@@ -115,10 +115,10 @@ export const YouTubeInsights: React.FC<YouTubeInsightsProps> = ({
               <h2 className="text-2xl font-medium mb-2" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>
                 Learning & Discovery Journey
               </h2>
-              <p className="text-base mb-3" style={{ fontFamily: "'Inter', sans-serif", color: 'rgba(255,255,255,0.3)' }}>
+              <p className="text-base mb-3" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--text-muted)' }}>
                 Your authentic curiosity patterns from YouTube
               </p>
-              <div className="flex items-center gap-4 text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
+              <div className="flex items-center gap-4 text-xs" style={{ color: 'var(--text-muted)' }}>
                 <div className="flex items-center gap-1">
                   <div className="w-1.5 h-1.5 rounded-full bg-[#FF0000]" />
                   <span>{totalVideos} Videos</span>
@@ -195,7 +195,7 @@ export const YouTubeInsights: React.FC<YouTubeInsightsProps> = ({
 
       {/* Footer Note */}
       <div className="mt-6 text-center">
-        <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
+        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
           Data extracted from your YouTube watch history and preferences
         </p>
       </div>

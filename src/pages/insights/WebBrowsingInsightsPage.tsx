@@ -29,7 +29,7 @@ const WebBrowsingInsightsPage: React.FC = () => {
 
   const colors = {
     text: 'var(--foreground)',
-    textSecondary: 'rgba(255,255,255,0.4)',
+    textSecondary: 'rgba(255, 255, 255, 0.55)',
     webAccent: '#6366f1',
     webBg: 'rgba(99, 102, 241, 0.1)'
   };
@@ -50,17 +50,17 @@ const WebBrowsingInsightsPage: React.FC = () => {
   }
 
   return (
-    <div className="max-w-[680px] mx-auto px-6 py-16">
+    <div className="max-w-[680px] mx-auto px-4 sm:px-6 py-10 sm:py-16">
       {/* Header */}
       <div className="flex items-center justify-between mb-2">
         <h1 style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontStyle: 'italic', fontSize: '28px', fontWeight: 400, color: 'var(--foreground)', letterSpacing: '-0.02em' }}>
           Your Digital Life
         </h1>
-        <button onClick={refresh} disabled={isRefreshing} className="p-2 rounded-lg transition-opacity hover:opacity-60" style={{ color: 'rgba(255,255,255,0.3)' }} title="Refresh">
+        <button onClick={refresh} disabled={isRefreshing} className="p-2 rounded-lg transition-opacity hover:opacity-60" style={{ color: 'var(--text-muted)' }} title="Refresh" aria-label={isRefreshing ? 'Refreshing insights' : 'Refresh insights'}>
           <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
         </button>
       </div>
-      <p className="text-sm mb-10" style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', sans-serif" }}>
+      <p className="text-sm mb-10" style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
         What your browsing reveals about you
       </p>
       <div style={{ borderTop: '1px solid var(--border-glass)' }} className="mb-8" />
@@ -70,9 +70,18 @@ const WebBrowsingInsightsPage: React.FC = () => {
       {/* Extension Install Banner */}
       {!insights?.hasExtensionData && (
         <div
+          role="button"
+          tabIndex={0}
           className="p-4 mb-6 rounded-xl cursor-pointer transition-opacity hover:opacity-80"
-          style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)', borderLeft: `3px solid ${colors.webAccent}` }}
+          style={{ border: '1px solid var(--border-glass)', backgroundColor: 'var(--surface)', borderLeft: `3px solid ${colors.webAccent}` }}
           onClick={() => navigate('/get-started')}
+          onKeyDown={(e) => {
+            // Keyboard parity for the clickable banner (audit-2026-07-03)
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              navigate('/get-started');
+            }
+          }}
         >
           <div className="flex items-center gap-3">
             <Layout className="w-5 h-5 flex-shrink-0" style={{ color: colors.webAccent }} />
@@ -143,11 +152,11 @@ const WebBrowsingInsightsPage: React.FC = () => {
               <div
                 key={past.id}
                 className="p-4 rounded-xl"
-                style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+                style={{ border: '1px solid var(--border-glass)', backgroundColor: 'var(--surface)' }}
               >
                 <p
                   className="text-sm leading-relaxed"
-                  style={{ color: 'rgba(255,255,255,0.4)' }}
+                  style={{ color: 'var(--text-secondary)' }}
                 >
                   {past.text}
                 </p>
@@ -164,7 +173,7 @@ const WebBrowsingInsightsPage: React.FC = () => {
       {!insights?.reflection && (
         <div
           className="text-center py-12 rounded-xl"
-          style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+          style={{ border: '1px solid var(--border-glass)', backgroundColor: 'var(--surface)' }}
         >
           <Globe className="w-12 h-12 mx-auto mb-4" style={{ color: colors.textSecondary }} />
           <h3 style={{ color: colors.text, fontFamily: "'Instrument Serif', Georgia, serif" }}>

@@ -21,6 +21,12 @@ import type { TimelineDay } from '@/services/api/transactionsAPI';
 interface Props {
   days: TimelineDay[];
   currency?: string;
+  /**
+   * The window the `days` data was queried with — keeps the banner copy in
+   * sync with the caller's actual request (audit-2026-07-03: every window
+   * label on /money must come from ONE value).
+   */
+  windowDays?: number;
 }
 
 const STRESS_THRESHOLD = 0.6;
@@ -58,15 +64,15 @@ function CustomTooltip({ active, payload, label, currency }: CustomTooltipProps)
 
   return (
     <div style={{
-      background: 'rgba(19,18,26,0.95)',
-      border: '1px solid rgba(255,255,255,0.12)',
+      background: 'var(--card)',
+      border: '1px solid var(--glass-surface-border)',
       borderRadius: 12,
       padding: '10px 14px',
       fontFamily: "'Geist','Inter',sans-serif",
       fontSize: 13,
     }}>
-      <div style={{ color: 'rgba(255,255,255,0.55)', marginBottom: 6, fontSize: 11 }}>{formatDay(label)}</div>
-      <div style={{ color: '#F5F5F4', marginBottom: 4 }}>
+      <div style={{ color: 'var(--text-secondary)', marginBottom: 6, fontSize: 11 }}>{formatDay(label)}</div>
+      <div style={{ color: 'var(--foreground)', marginBottom: 4 }}>
         {formatSpend(spend, currency)} spent
       </div>
       {stress !== null && (
@@ -78,7 +84,7 @@ function CustomTooltip({ active, payload, label, currency }: CustomTooltipProps)
   );
 }
 
-export function StressSpendTimeline({ days, currency = 'BRL' }: Props) {
+export function StressSpendTimeline({ days, currency = 'BRL', windowDays = 30 }: Props) {
   const chartData = useMemo(() =>
     days.map((d) => ({
       date: d.day,
@@ -96,7 +102,7 @@ export function StressSpendTimeline({ days, currency = 'BRL' }: Props) {
       <div style={{
         padding: '40px 24px',
         textAlign: 'center',
-        color: 'rgba(255,255,255,0.35)',
+        color: 'var(--text-secondary)',
         fontFamily: "'Geist','Inter',sans-serif",
         fontSize: 14,
       }}>
@@ -122,7 +128,7 @@ export function StressSpendTimeline({ days, currency = 'BRL' }: Props) {
           fontSize: 13,
           color: 'rgba(232,160,80,0.95)',
         }}>
-          {correlatedDays} {correlatedDays === 1 ? 'day' : 'days'} where high stress and high spending coincided in the last 30 days.
+          {correlatedDays} {correlatedDays === 1 ? 'day' : 'days'} where high stress and high spending coincided in the last {windowDays} days.
         </div>
       )}
 
@@ -176,7 +182,7 @@ export function StressSpendTimeline({ days, currency = 'BRL' }: Props) {
           <Bar
             yAxisId="spend"
             dataKey="spend"
-            fill="rgba(255,255,255,0.12)"
+            className="stress-spend-bar"
             radius={[3, 3, 0, 0]}
             maxBarSize={28}
           />
@@ -194,9 +200,9 @@ export function StressSpendTimeline({ days, currency = 'BRL' }: Props) {
         </ComposedChart>
       </ResponsiveContainer>
 
-      <div style={{ display: 'flex', gap: 20, marginTop: 12, fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>
+      <div style={{ display: 'flex', gap: 20, marginTop: 12, fontSize: 11, color: 'var(--text-secondary)' }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ width: 12, height: 12, borderRadius: 2, background: 'rgba(255,255,255,0.18)', display: 'inline-block' }} />
+          <span style={{ width: 12, height: 12, borderRadius: 2, background: 'var(--text-muted)', display: 'inline-block' }} />
           Daily spending
         </span>
         <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -204,7 +210,7 @@ export function StressSpendTimeline({ days, currency = 'BRL' }: Props) {
           Stress level
         </span>
         <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ width: 16, height: 1, background: 'rgba(217,119,6,0.5)', display: 'inline-block', borderStyle: 'dashed' }} />
+          <span style={{ width: 16, height: 0, borderTop: '1px dashed rgba(217,119,6,0.8)', display: 'inline-block' }} />
           Stress threshold (60%)
         </span>
       </div>

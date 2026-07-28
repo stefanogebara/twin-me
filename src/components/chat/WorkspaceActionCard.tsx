@@ -88,21 +88,21 @@ function EmailItem({ item, isLast }: { item: any; isLast: boolean }) {
   return (
     <div
       className="py-2"
-      style={{ borderBottom: isLast ? undefined : '1px solid rgba(255,255,255,0.04)' }}
+      style={{ borderBottom: isLast ? undefined : '1px solid var(--border-glass)' }}
     >
       <div className="flex justify-between items-start gap-2">
-        <span className="text-[13px] font-medium" style={{ color: '#F5F5F4' }}>
+        <span className="text-[13px] font-medium" style={{ color: 'var(--foreground)' }}>
           {item.from || item.sender || 'Unknown'}
         </span>
-        <span className="text-[11px] ml-2 flex-shrink-0" style={{ color: 'rgba(255,255,255,0.3)' }}>
+        <span className="text-[11px] ml-2 flex-shrink-0" style={{ color: 'var(--text-muted)' }}>
           {formatRelativeTime(item.date || item.receivedAt || item.timestamp || '')}
         </span>
       </div>
-      <div className="text-[13px]" style={{ color: 'rgba(255,255,255,0.6)' }}>
+      <div className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>
         {item.subject || '(no subject)'}
       </div>
       {(item.snippet || item.preview) && (
-        <div className="text-[12px] line-clamp-1" style={{ color: 'rgba(255,255,255,0.3)' }}>
+        <div className="text-[12px] line-clamp-1" style={{ color: 'var(--text-muted)' }}>
           {item.snippet || item.preview}
         </div>
       )}
@@ -114,17 +114,17 @@ function CalendarItem({ item, isLast }: { item: any; isLast: boolean }) {
   return (
     <div
       className="py-2"
-      style={{ borderBottom: isLast ? undefined : '1px solid rgba(255,255,255,0.04)' }}
+      style={{ borderBottom: isLast ? undefined : '1px solid var(--border-glass)' }}
     >
-      <span className="text-[13px] font-medium" style={{ color: '#F5F5F4' }}>
+      <span className="text-[13px] font-medium" style={{ color: 'var(--foreground)' }}>
         {item.summary || item.title || 'Untitled event'}
       </span>
-      <div className="text-[13px]" style={{ color: 'rgba(255,255,255,0.5)' }}>
+      <div className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>
         {(typeof item.start === 'object' ? item.start?.dateTime || item.start?.date : item.start) || item.time || ''}
         {item.end ? ` - ${typeof item.end === 'object' ? item.end?.dateTime || item.end?.date : item.end}` : ''}
       </div>
       {item.location && (
-        <div className="text-[12px]" style={{ color: 'rgba(255,255,255,0.35)' }}>
+        <div className="text-[12px]" style={{ color: 'var(--text-muted)' }}>
           {item.location}
         </div>
       )}
@@ -136,19 +136,19 @@ function DriveItem({ item, isLast }: { item: any; isLast: boolean }) {
   return (
     <div
       className="py-2 flex justify-between items-center"
-      style={{ borderBottom: isLast ? undefined : '1px solid rgba(255,255,255,0.04)' }}
+      style={{ borderBottom: isLast ? undefined : '1px solid var(--border-glass)' }}
     >
       <div>
-        <span className="text-[13px] font-medium" style={{ color: '#F5F5F4' }}>
+        <span className="text-[13px] font-medium" style={{ color: 'var(--foreground)' }}>
           {item.name || item.title || 'Untitled'}
         </span>
         {item.mimeType && (
-          <span className="text-[11px] ml-2" style={{ color: 'rgba(255,255,255,0.3)' }}>
+          <span className="text-[11px] ml-2" style={{ color: 'var(--text-muted)' }}>
             {item.mimeType.split('.').pop() || ''}
           </span>
         )}
       </div>
-      <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.3)' }}>
+      <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
         {formatRelativeTime(item.modifiedTime || item.modified || '')}
       </span>
     </div>
@@ -159,18 +159,18 @@ function ContactItem({ item, isLast }: { item: any; isLast: boolean }) {
   return (
     <div
       className="py-2"
-      style={{ borderBottom: isLast ? undefined : '1px solid rgba(255,255,255,0.04)' }}
+      style={{ borderBottom: isLast ? undefined : '1px solid var(--border-glass)' }}
     >
-      <span className="text-[13px] font-medium" style={{ color: '#F5F5F4' }}>
+      <span className="text-[13px] font-medium" style={{ color: 'var(--foreground)' }}>
         {item.name || item.displayName || 'Unknown'}
       </span>
       {item.email && (
-        <div className="text-[12px]" style={{ color: 'rgba(255,255,255,0.5)' }}>
+        <div className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>
           {item.email}
         </div>
       )}
       {item.phone && (
-        <div className="text-[12px]" style={{ color: 'rgba(255,255,255,0.35)' }}>
+        <div className="text-[12px]" style={{ color: 'var(--text-muted)' }}>
           {item.phone}
         </div>
       )}
@@ -190,25 +190,25 @@ function MeetingItem({ item, isLast }: { item: any; isLast: boolean }) {
   return (
     <div
       className="py-2"
-      style={{ borderBottom: isLast ? undefined : '1px solid rgba(255,255,255,0.04)' }}
+      style={{ borderBottom: isLast ? undefined : '1px solid var(--border-glass)' }}
     >
       <div className="flex justify-between items-start gap-2">
-        <span className="text-[13px] font-medium" style={{ color: '#F5F5F4' }}>
+        <span className="text-[13px] font-medium" style={{ color: 'var(--foreground)' }}>
           {item.title || 'Meeting'}
         </span>
         {when && (
-          <span className="text-[11px] ml-2 flex-shrink-0" style={{ color: 'rgba(255,255,255,0.3)' }}>
+          <span className="text-[11px] ml-2 flex-shrink-0" style={{ color: 'var(--text-muted)' }}>
             {when}
           </span>
         )}
       </div>
       {item.headline && (
-        <div className="text-[12px]" style={{ color: 'rgba(255,255,255,0.55)' }}>
+        <div className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>
           {item.headline}
         </div>
       )}
       {firstPoint && (
-        <div className="text-[12px] line-clamp-1 mt-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>
+        <div className="text-[12px] line-clamp-1 mt-0.5" style={{ color: 'var(--text-muted)' }}>
           {firstPoint}
         </div>
       )}
@@ -234,12 +234,14 @@ function WriteResult({ data, tool }: { data: any; tool: string }) {
   const title = data?.summary || data?.subject || data?.title || data?.name || 'Item';
   const verb = tool === 'calendar_modify_event' ? 'Updated'
     : tool === 'calendar_delete_event' ? 'Deleted'
+    : tool === 'gmail_send' ? 'Sent'
+    : tool === 'gmail_draft' ? 'Drafted'
     : 'Created';
   const label = tool === 'calendar_delete_event' ? 'event' : title;
   return (
     <div className="flex items-center gap-2 py-1">
       <Check className="w-4 h-4 flex-shrink-0" style={{ color: '#10b77f' }} />
-      <span className="text-[13px]" style={{ color: '#F5F5F4' }}>
+      <span className="text-[13px]" style={{ color: 'var(--foreground)' }}>
         {verb}: {label}
       </span>
     </div>
@@ -263,14 +265,14 @@ export function WorkspaceActionCard({ action }: WorkspaceActionCardProps) {
       <motion.div
         initial={{ opacity: 0, y: 4 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-[rgba(255,255,255,0.06)] rounded-[20px] border border-[rgba(255,255,255,0.06)] px-5 py-4 mb-3"
+        className="bg-[var(--surface)] rounded-[20px] border border-[var(--border-glass)] px-5 py-4 mb-3"
         style={{ boxShadow: 'inset 0 0 7px 1px rgba(255,255,255,0.1)' }}
       >
         <div className="flex items-center gap-2 animate-pulse">
-          <Icon className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.4)' }} />
+          <Icon className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
           <span
             className="text-[11px] uppercase tracking-[0.15em] font-medium"
-            style={{ color: 'rgba(255,255,255,0.4)' }}
+            style={{ color: 'var(--text-muted)' }}
           >
             {config.executingLabel}
           </span>
@@ -289,7 +291,7 @@ export function WorkspaceActionCard({ action }: WorkspaceActionCardProps) {
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="bg-[rgba(255,255,255,0.06)] rounded-[20px] border border-[rgba(255,255,255,0.06)] px-5 py-4 mb-3"
+          className="bg-[var(--surface)] rounded-[20px] border border-[var(--border-glass)] px-5 py-4 mb-3"
           style={{ boxShadow: 'inset 0 0 7px 1px rgba(255,255,255,0.1)' }}
         >
           <div className="flex items-center gap-2">
@@ -303,7 +305,7 @@ export function WorkspaceActionCard({ action }: WorkspaceActionCardProps) {
           </div>
           <div
             className="text-[12px] mt-1 ml-6"
-            style={{ color: 'rgba(255,255,255,0.4)' }}
+            style={{ color: 'var(--text-muted)' }}
           >
             Your twin continued without this data. Retry to fetch it.
           </div>
@@ -314,7 +316,7 @@ export function WorkspaceActionCard({ action }: WorkspaceActionCardProps) {
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="bg-[rgba(255,255,255,0.06)] rounded-[20px] border border-[rgba(255,255,255,0.06)] px-5 py-4 mb-3"
+        className="bg-[var(--surface)] rounded-[20px] border border-[var(--border-glass)] px-5 py-4 mb-3"
         style={{ boxShadow: 'inset 0 0 7px 1px rgba(255,255,255,0.1)' }}
       >
         <div className="flex items-center gap-2">
@@ -335,14 +337,14 @@ export function WorkspaceActionCard({ action }: WorkspaceActionCardProps) {
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="bg-[rgba(255,255,255,0.06)] rounded-[20px] border border-[rgba(255,255,255,0.06)] px-5 py-4 mb-3"
+        className="bg-[var(--surface)] rounded-[20px] border border-[var(--border-glass)] px-5 py-4 mb-3"
         style={{ boxShadow: 'inset 0 0 7px 1px rgba(255,255,255,0.1)' }}
       >
         <div className="flex items-center gap-2 mb-1">
-          <Icon className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.4)' }} />
+          <Icon className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
           <span
             className="text-[11px] uppercase tracking-[0.15em] font-medium"
-            style={{ color: 'rgba(255,255,255,0.4)' }}
+            style={{ color: 'var(--text-muted)' }}
           >
             {config.label} {action.elapsedMs != null ? `\u00b7 ${action.elapsedMs}ms` : ''}
           </span>
@@ -359,15 +361,15 @@ export function WorkspaceActionCard({ action }: WorkspaceActionCardProps) {
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="bg-[rgba(255,255,255,0.06)] rounded-[20px] border border-[rgba(255,255,255,0.06)] px-5 py-4 mb-3"
+        className="bg-[var(--surface)] rounded-[20px] border border-[var(--border-glass)] px-5 py-4 mb-3"
         style={{ boxShadow: 'inset 0 0 7px 1px rgba(255,255,255,0.1)' }}
       >
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
-            <Icon className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.4)' }} />
+            <Icon className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
             <span
               className="text-[11px] uppercase tracking-[0.15em] font-medium"
-              style={{ color: 'rgba(255,255,255,0.4)' }}
+              style={{ color: 'var(--text-muted)' }}
             >
               {config.label} {'\u00b7'} {items.length} result{items.length !== 1 ? 's' : ''}
               {action.elapsedMs != null ? ` \u00b7 ${action.elapsedMs}ms` : ''}
@@ -377,7 +379,7 @@ export function WorkspaceActionCard({ action }: WorkspaceActionCardProps) {
             <button
               onClick={() => setExpanded(prev => !prev)}
               className="text-[11px] transition-opacity hover:opacity-70"
-              style={{ color: 'rgba(255,255,255,0.3)' }}
+              style={{ color: 'var(--text-muted)' }}
             >
               {isExpanded ? 'Collapse' : 'Expand'}
             </button>
@@ -407,24 +409,26 @@ export function WorkspaceActionCard({ action }: WorkspaceActionCardProps) {
                   <button
                     onClick={() => setPage(p => Math.max(0, p - 1))}
                     disabled={page === 0}
+                    aria-label="Previous page"
                     className="p-1 transition-opacity disabled:opacity-20 hover:opacity-70"
-                    style={{ color: 'rgba(255,255,255,0.35)' }}
+                    style={{ color: 'var(--text-muted)' }}
                   >
-                    <ChevronLeft className="w-3.5 h-3.5" />
+                    <ChevronLeft className="w-3.5 h-3.5" aria-hidden="true" />
                   </button>
                   <span
                     className="text-[10px] uppercase tracking-[0.15em]"
-                    style={{ color: 'rgba(255,255,255,0.35)' }}
+                    style={{ color: 'var(--text-muted)' }}
                   >
                     {page + 1} of {totalPages}
                   </span>
                   <button
                     onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
                     disabled={page === totalPages - 1}
+                    aria-label="Next page"
                     className="p-1 transition-opacity disabled:opacity-20 hover:opacity-70"
-                    style={{ color: 'rgba(255,255,255,0.35)' }}
+                    style={{ color: 'var(--text-muted)' }}
                   >
-                    <ChevronRight className="w-3.5 h-3.5" />
+                    <ChevronRight className="w-3.5 h-3.5" aria-hidden="true" />
                   </button>
                 </div>
               )}
@@ -443,20 +447,20 @@ export function WorkspaceActionCard({ action }: WorkspaceActionCardProps) {
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="bg-[rgba(255,255,255,0.06)] rounded-[20px] border border-[rgba(255,255,255,0.06)] px-5 py-4 mb-3"
+        className="bg-[var(--surface)] rounded-[20px] border border-[var(--border-glass)] px-5 py-4 mb-3"
         style={{ boxShadow: 'inset 0 0 7px 1px rgba(255,255,255,0.1)' }}
       >
         <div className="flex items-center gap-2 mb-1">
-          <Icon className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.4)' }} />
+          <Icon className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
           <span
             className="text-[11px] uppercase tracking-[0.15em] font-medium"
-            style={{ color: 'rgba(255,255,255,0.4)' }}
+            style={{ color: 'var(--text-muted)' }}
           >
             {config.label}
             {action.elapsedMs != null ? ` \u00b7 ${action.elapsedMs}ms` : ''}
           </span>
         </div>
-        <div className="text-[13px]" style={{ color: '#F5F5F4' }}>
+        <div className="text-[13px]" style={{ color: 'var(--foreground)' }}>
           {action.data.briefing.headline}
         </div>
       </motion.div>
@@ -467,14 +471,14 @@ export function WorkspaceActionCard({ action }: WorkspaceActionCardProps) {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="bg-[rgba(255,255,255,0.06)] rounded-[20px] border border-[rgba(255,255,255,0.06)] px-5 py-4 mb-3"
+      className="bg-[var(--surface)] rounded-[20px] border border-[var(--border-glass)] px-5 py-4 mb-3"
         style={{ boxShadow: 'inset 0 0 7px 1px rgba(255,255,255,0.1)' }}
     >
       <div className="flex items-center gap-2">
-        <Icon className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.4)' }} />
+        <Icon className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
         <span
           className="text-[11px] uppercase tracking-[0.15em] font-medium"
-          style={{ color: 'rgba(255,255,255,0.4)' }}
+          style={{ color: 'var(--text-muted)' }}
         >
           {config.label}
           {action.elapsedMs != null ? ` \u00b7 ${action.elapsedMs}ms` : ''}

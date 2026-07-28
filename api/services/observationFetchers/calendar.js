@@ -226,7 +226,7 @@ async function fetchCalendarObservations(userId) {
 
         const styleParts = [];
         if (orgPct > 60) styleParts.push(`organized ${orgPct}% of own meetings (proactive scheduler)`);
-        else if (orgPct < 30) styleParts.push(`mostly attends others\' meetings (${orgPct}% self-organized)`);
+        else if (orgPct < 30) styleParts.push(`mostly attends others' meetings (${orgPct}% self-organized)`);
         if (virtualPct > 70) styleParts.push('primarily virtual meetings');
         else if (virtualPct < 30 && events.length >= 3) styleParts.push('mostly in-person meetings');
         if (recurringPct > 50) styleParts.push(`${recurringPct}% recurring (structured routine)`);

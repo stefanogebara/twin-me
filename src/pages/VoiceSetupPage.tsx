@@ -20,6 +20,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { authFetch } from '@/services/api/apiBase';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { ClauraZonedBackground } from '@/components/ClauraZonedBackground';
 
 type Status = 'loading' | 'none' | 'pending' | 'linked' | 'error';
 
@@ -39,13 +40,15 @@ export default function VoiceSetupPage() {
   useDocumentTitle('Voice Bridge — TwinMe');
   const [state, setState] = useState<LinkState>({ status: 'loading' });
   const [starting, setStarting] = useState(false);
+  // Two-tap unlink confirmation (replaces browser confirm(), audit-2026-07-03)
+  const [confirmingUnlink, setConfirmingUnlink] = useState(false);
 
   const fetchStatus = useCallback(async () => {
     try {
       const res = await authFetch('/voice-bridge/link/status');
       if (!res.ok) {
         if (res.status === 503) {
-          setState({ status: 'error', errorMessage: 'The voice bridge is not configured yet. Reach out to ops.' });
+          setState({ status: 'error', errorMessage: "Voice bridge isn't available right now. Please try again later." });
           return;
         }
         setState({ status: 'error', errorMessage: `Status check failed (${res.status})` });
@@ -82,7 +85,9 @@ export default function VoiceSetupPage() {
       const res = await authFetch('/voice-bridge/link/start', { method: 'POST' });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        setState({ status: 'error', errorMessage: body.error || `Start failed (${res.status})` });
+        // audit-2026-07-03: prefer the human-friendly error_description over
+        // the machine-only error slug (e.g. "waha_unreachable").
+        setState({ status: 'error', errorMessage: body.error_description || body.error || `Start failed (${res.status})` });
         return;
       }
       // Bridge returned the first QR; pull it into state and start polling
@@ -93,18 +98,47 @@ export default function VoiceSetupPage() {
   }
 
   async function cancelLink() {
-    await authFetch('/voice-bridge/link/cancel', { method: 'POST' });
-    setState({ status: 'none' });
+    try {
+      const res = await authFetch('/voice-bridge/link/cancel', { method: 'POST' });
+      if (!res.ok) {
+        setState((prev) => ({ ...prev, status: 'error', errorMessage: "Couldn't cancel linking. Please try again." }));
+        return;
+      }
+      setState({ status: 'none' });
+    } catch {
+      setState((prev) => ({ ...prev, status: 'error', errorMessage: "Couldn't cancel linking. Please try again." }));
+    }
   }
 
   async function unlink() {
-    if (!confirm('Unlink your WhatsApp from TwinMe? You can re-link any time.')) return;
-    await authFetch('/voice-bridge/unlink', { method: 'POST' });
-    setState({ status: 'none' });
+    // Two-tap confirm (same idiom as IdentityNarrativeCard's revert) instead
+    // of the browser confirm() dialog, which is unstyled, thread-blocking,
+    // and inconsistent with the dark design system (audit-2026-07-03).
+    if (!confirmingUnlink) {
+      setConfirmingUnlink(true);
+      window.setTimeout(() => setConfirmingUnlink(false), 4000);
+      return;
+    }
+    setConfirmingUnlink(false);
+    // Verify the server-side unlink succeeded before showing disconnected —
+    // a failed unlink must not falsely read as disconnected while the bridge
+    // still holds session keys (audit-2026-06-10).
+    try {
+      const res = await authFetch('/voice-bridge/unlink', { method: 'POST' });
+      if (!res.ok) {
+        setState((prev) => ({ ...prev, status: 'error', errorMessage: "Couldn't unlink. Please try again." }));
+        return;
+      }
+      setState({ status: 'none' });
+    } catch {
+      setState((prev) => ({ ...prev, status: 'error', errorMessage: "Couldn't unlink. Please try again." }));
+    }
   }
 
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 py-10">
+      {/* Claura zoned photography — saturn-window by night, soul-waves by day (/preview/voice). */}
+      <ClauraZonedBackground dark="saturn-window.png" light="soul-waves.png" darkPosition="center 24%" lightPosition="center 22%" />
       <header className="mb-8">
         <h1
           className="text-[36px] mb-2"
@@ -112,12 +146,12 @@ export default function VoiceSetupPage() {
             fontFamily: "'Instrument Serif', Georgia, serif",
             fontStyle: 'italic',
             letterSpacing: '-0.02em',
-            color: '#F5F5F4',
+            color: 'var(--foreground)',
           }}
         >
           Voice bridge
         </h1>
-        <p className="text-[15px]" style={{ color: 'rgba(255,255,255,0.45)' }}>
+        <p className="text-[15px]" style={{ color: 'var(--text-secondary)' }}>
           Talk to your twin from WhatsApp. Voice messages get transcribed and routed
           to the same brain as the web chat — the twin replies in text.
         </p>
@@ -126,14 +160,14 @@ export default function VoiceSetupPage() {
       <section
         className="rounded-[20px] px-6 py-5 mb-5"
         style={{
-          background: 'rgba(255,255,255,0.06)',
-          border: '1px solid rgba(255,255,255,0.10)',
+          background: 'var(--surface)',
+          border: '1px solid var(--glass-surface-border)',
           backdropFilter: 'blur(42px)',
           WebkitBackdropFilter: 'blur(42px)',
         }}
       >
         {state.status === 'loading' && (
-          <div className="text-[13px]" style={{ color: 'rgba(255,255,255,0.4)' }}>
+          <div className="text-[13px]" style={{ color: 'var(--text-muted)' }}>
             Checking your bridge status…
           </div>
         )}
@@ -141,10 +175,10 @@ export default function VoiceSetupPage() {
         {state.status === 'none' && (
           <div className="flex flex-col items-start gap-4">
             <div>
-              <p className="text-[15px] mb-1" style={{ color: '#F5F5F4' }}>
+              <p className="text-[15px] mb-1" style={{ color: 'var(--foreground)' }}>
                 Not connected yet
               </p>
-              <p className="text-[13px]" style={{ color: 'rgba(255,255,255,0.4)' }}>
+              <p className="text-[13px]" style={{ color: 'var(--text-muted)' }}>
                 One scan with your phone's WhatsApp and you're done.
               </p>
             </div>
@@ -152,7 +186,7 @@ export default function VoiceSetupPage() {
               onClick={startLink}
               disabled={starting}
               className="px-5 py-2 rounded-[100px] text-[14px] font-medium transition-all duration-150 active:scale-[0.97] disabled:opacity-50"
-              style={{ background: '#F5F5F4', color: '#110f0f' }}
+              style={{ background: 'var(--claura-bone)', color: 'var(--claura-bone-ink)' }}
             >
               {starting ? 'Generating QR…' : 'Link WhatsApp'}
             </button>
@@ -176,11 +210,11 @@ export default function VoiceSetupPage() {
                 )}
               </div>
             ) : (
-              <div className="w-56 h-56 mb-4 rounded-[12px] animate-pulse" style={{ background: 'rgba(255,255,255,0.06)' }} />
+              <div className="w-56 h-56 mb-4 rounded-[12px] animate-pulse" style={{ background: 'var(--surface)' }} />
             )}
             <ol
               className="text-[13px] text-left list-decimal pl-5 mb-4 space-y-1 max-w-md"
-              style={{ color: 'rgba(255,255,255,0.55)' }}
+              style={{ color: 'var(--text-secondary)' }}
             >
               <li>Open WhatsApp on your phone</li>
               <li>Tap Settings → Linked Devices → Link a Device</li>
@@ -189,7 +223,7 @@ export default function VoiceSetupPage() {
             <button
               onClick={cancelLink}
               className="text-[12px] underline"
-              style={{ color: 'rgba(255,255,255,0.4)' }}
+              style={{ color: 'var(--text-muted)' }}
             >
               Cancel
             </button>
@@ -204,24 +238,24 @@ export default function VoiceSetupPage() {
                 style={{ background: '#10b77f' }}
                 aria-hidden="true"
               />
-              <p className="text-[15px]" style={{ color: '#F5F5F4' }}>
+              <p className="text-[15px]" style={{ color: 'var(--foreground)' }}>
                 Connected to <strong>{state.displayName || state.phoneNumber || 'WhatsApp'}</strong>
               </p>
             </div>
             {state.linkedAt && (
-              <p className="text-[12px]" style={{ color: 'rgba(255,255,255,0.35)' }}>
+              <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>
                 Linked {new Date(state.linkedAt).toLocaleString()}
               </p>
             )}
-            <p className="text-[13px] mt-2 max-w-md" style={{ color: 'rgba(255,255,255,0.55)' }}>
+            <p className="text-[13px] mt-2 max-w-md" style={{ color: 'var(--text-secondary)' }}>
               Send yourself a voice note on WhatsApp and your twin will reply.
             </p>
             <button
               onClick={unlink}
               className="text-[13px] underline mt-2"
-              style={{ color: 'rgba(255,255,255,0.4)' }}
+              style={{ color: confirmingUnlink ? 'var(--destructive)' : 'rgba(255,255,255,0.4)' }}
             >
-              Unlink
+              {confirmingUnlink ? 'Tap again to unlink — you can re-link any time' : 'Unlink'}
             </button>
           </div>
         )}
@@ -234,7 +268,7 @@ export default function VoiceSetupPage() {
             <button
               onClick={fetchStatus}
               className="text-[13px] underline"
-              style={{ color: 'rgba(255,255,255,0.5)' }}
+              style={{ color: 'var(--text-secondary)' }}
             >
               Retry
             </button>
@@ -242,7 +276,7 @@ export default function VoiceSetupPage() {
         )}
       </section>
 
-      <section className="text-[12px] space-y-2" style={{ color: 'rgba(255,255,255,0.4)' }}>
+      <section className="text-[12px] space-y-2" style={{ color: 'var(--text-muted)' }}>
         <p>
           <strong>Privacy:</strong> the bridge holds your WhatsApp Web session keys (the same
           ones your browser's WhatsApp Web uses). Voice audio is transcribed via Whisper and

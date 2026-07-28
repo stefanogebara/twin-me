@@ -80,7 +80,7 @@ const TraitSlider: React.FC<TraitSliderProps> = ({ trait, score, index, delay })
       {/* Trait name */}
       <p
         className="text-xs font-medium mb-2 uppercase tracking-[0.08em]"
-        style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Inter', sans-serif" }}
+        style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
       >
         {formatTraitName(trait.key)}
       </p>
@@ -89,24 +89,24 @@ const TraitSlider: React.FC<TraitSliderProps> = ({ trait, score, index, delay })
       <div className="flex items-center justify-between mb-1.5">
         <span
           className="text-[11px]"
-          style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', sans-serif" }}
+          style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
         >
           {trait.leftLabel}
         </span>
         <span
           className="text-[11px]"
-          style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', sans-serif" }}
+          style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
         >
           {trait.rightLabel}
         </span>
       </div>
 
       {/* Slider track */}
-      <div className="relative h-1.5 rounded-full" style={{ background: 'rgba(255,255,255,0.06)' }}>
+      <div className="relative h-1.5 rounded-full" style={{ background: 'var(--surface)' }}>
         {/* Center marker */}
         <div
           className="absolute top-0 bottom-0 w-px"
-          style={{ left: '50%', background: 'rgba(255,255,255,0.08)' }}
+          style={{ left: '50%', background: 'var(--surface)' }}
         />
 
         {/* Animated dot */}
@@ -137,13 +137,13 @@ const EmptyState: React.FC = () => (
   <div
     className="rounded-[16px] px-5 py-6 text-center"
     style={{
-      background: 'rgba(255,255,255,0.03)',
-      border: '1px solid rgba(255,255,255,0.06)',
+      background: 'var(--surface)',
+      border: '1px solid var(--border-glass)',
     }}
   >
     <p
       className="text-sm"
-      style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Inter', sans-serif" }}
+      style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
     >
       Chat more to discover your personality DNA
     </p>
@@ -168,10 +168,10 @@ const PersonalityDNA: React.FC<PersonalityDNAProps> = ({
     >
       {/* Section label */}
       <div className="flex items-center gap-2 mb-4">
-        <Brain className="w-3 h-3" style={{ color: 'rgba(255,255,255,0.25)' }} />
+        <Brain className="w-3 h-3" style={{ color: 'var(--text-muted)' }} />
         <span
           className="text-[11px] uppercase tracking-[0.12em] font-medium"
-          style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}
+          style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
         >
           Personality DNA
         </span>
@@ -183,8 +183,8 @@ const PersonalityDNA: React.FC<PersonalityDNAProps> = ({
         <div
           className="rounded-[20px] px-5 py-4"
           style={{
-            background: 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(255,255,255,0.06)',
+            background: 'var(--surface)',
+            border: '1px solid var(--border-glass)',
             backdropFilter: 'blur(42px)',
             WebkitBackdropFilter: 'blur(42px)',
             boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), 0 4px 12px rgba(0,0,0,0.12)',

@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 import { authFetch } from '@/services/api/apiBase';
 import { usePlatformsSummary } from '@/hooks/usePlatformsSummary';
-import { computeSoulScore, computeDomainScore, deriveAxesCount } from '@/lib/soulScoring';
+import { computeSoulScore, computeDomainScore } from '@/lib/soulScoring';
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -57,6 +57,16 @@ const DOMAINS: ContributorDomain[] = [
   { id: 'drive', label: 'Drive', icon: Flame, color: '#EF4444', platformKey: '__always__', alwaysUnlocked: true },
 ];
 
+// Proper display names for each platform key (raw keys like "google_calendar"
+// would otherwise render lowercase in "Connect <platform> to unlock").
+const PLATFORM_DISPLAY_NAMES: Record<string, string> = {
+  spotify: 'Spotify',
+  whoop: 'Whoop',
+  google_calendar: 'Google Calendar',
+  github: 'GitHub',
+  youtube: 'YouTube',
+};
+
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
 /* ------------------------------------------------------------------ */
@@ -65,12 +75,6 @@ function getRingColor(score: number): string {
   if (score > 70) return '#22c55e';
   if (score >= 40) return '#f59e0b';
   return 'rgba(255,255,255,0.20)';
-}
-
-function getQualitativeLabel(score: number): { text: string; color: string } {
-  if (score > 75) return { text: 'Deep', color: '#22c55e' };
-  if (score >= 40) return { text: 'Growing', color: '#f59e0b' };
-  return { text: 'New', color: 'rgba(255,255,255,0.35)' };
 }
 
 /* ------------------------------------------------------------------ */
@@ -119,7 +123,7 @@ const ScoreRing: React.FC<{ score: number; compact?: boolean }> = ({ score, comp
         <circle
           cx={size / 2} cy={size / 2} r={r}
           fill="none"
-          stroke="rgba(255,255,255,0.05)"
+          style={{ stroke: 'var(--border-glass)' }}
           strokeWidth={compact ? 5 : 6}
         />
         <circle
@@ -137,7 +141,7 @@ const ScoreRing: React.FC<{ score: number; compact?: boolean }> = ({ score, comp
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <span
           className={`font-normal tracking-[-1px] ${compact ? 'text-[32px]' : 'text-[44px]'}`}
-          style={{ fontFamily: "'Instrument Serif', serif", color: '#F5F5F4' }}
+          style={{ fontFamily: "'Instrument Serif', serif", color: 'var(--foreground)' }}
         >
           <AnimatedCounter target={score} />
         </span>
@@ -161,10 +165,14 @@ interface ContributorCardProps {
 const ContributorCard: React.FC<ContributorCardProps> = ({ domain, connected, score, index, compact }) => {
   const Icon = domain.icon;
   const locked = !connected;
-  const label = locked ? 'LOCKED' : getQualitativeLabel(score);
+  // Connected domains read as a neutral "Contributing" status. Per-domain
+  // memory depth isn't available on the client, so we no longer claim a
+  // depth tier (Deep/Growing/New) that was identical across every unlocked
+  // card (audit-2026-06-10).
+  const label = { text: 'Contributing', color: 'var(--text-secondary)' };
   const platformName = domain.platformKey === '__always__'
     ? ''
-    : domain.platformKey.replace('_', ' ');
+    : PLATFORM_DISPLAY_NAMES[domain.platformKey] ?? domain.platformKey.replace(/_/g, ' ');
 
   return (
     <motion.div
@@ -173,7 +181,7 @@ const ContributorCard: React.FC<ContributorCardProps> = ({ domain, connected, sc
       transition={{ delay: 0.3 + index * 0.1, duration: 0.5, ease: 'easeOut' }}
       style={{
         background: locked ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.06)',
-        border: '1px solid rgba(255,255,255,0.10)',
+        border: '1px solid var(--glass-surface-border)',
         backdropFilter: 'blur(42px)',
         WebkitBackdropFilter: 'blur(42px)',
         borderRadius: 20,
@@ -192,21 +200,14 @@ const ContributorCard: React.FC<ContributorCardProps> = ({ domain, connected, sc
             className="text-[13px] font-medium"
             style={{
               fontFamily: "'Inter', sans-serif",
-              color: locked ? 'rgba(255,255,255,0.25)' : '#F5F5F4',
+              color: locked ? 'var(--text-secondary)' : '#F5F5F4',
             }}
           >
             {domain.label}
           </span>
         </div>
-        {locked ? (
-          <Lock size={14} style={{ color: 'rgba(255,255,255,0.15)' }} />
-        ) : (
-          <span
-            className="text-[11px]"
-            style={{ fontFamily: "'Inter', sans-serif", color: 'rgba(255,255,255,0.35)' }}
-          >
-            {'\u2192'}
-          </span>
+        {locked && (
+          <Lock size={14} style={{ color: 'var(--text-muted)' }} />
         )}
       </div>
 
@@ -214,7 +215,7 @@ const ContributorCard: React.FC<ContributorCardProps> = ({ domain, connected, sc
       {locked ? (
         <span
           className="text-[11px]"
-          style={{ fontFamily: "'Inter', sans-serif", color: 'rgba(255,255,255,0.25)' }}
+          style={{ fontFamily: "'Inter', sans-serif", color: 'var(--text-secondary)' }}
         >
           Connect {platformName} to unlock
         </span>
@@ -228,7 +229,7 @@ const ContributorCard: React.FC<ContributorCardProps> = ({ domain, connected, sc
           </span>
           <div
             className="flex-1 h-1 rounded-full"
-            style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}
+            style={{ backgroundColor: 'var(--surface)' }}
           >
             <motion.div
               className="h-full rounded-full"
@@ -261,10 +262,16 @@ const SoulScore: React.FC<SoulScoreProps> = ({ className = '', compact = false }
     staleTime: 15 * 60 * 1000,
   });
 
-  // Fetch user ID from localStorage for connectors endpoint
-  const userId = typeof window !== 'undefined'
-    ? JSON.parse(localStorage.getItem('auth_user') || '{}')?.id
-    : null;
+  // Fetch user ID from localStorage for connectors endpoint.
+  // Guarded: a corrupted auth_user value must not throw during render.
+  const userId = useMemo<string | null>(() => {
+    if (typeof window === 'undefined') return null;
+    try {
+      return JSON.parse(localStorage.getItem('auth_user') || '{}')?.id ?? null;
+    } catch {
+      return null;
+    }
+  }, []);
 
   // Connected platforms — canonical platforms summary (audit 2026-05-12 H1).
   // Replaces the previous per-page /connectors/status fetch that disagreed with
@@ -294,11 +301,12 @@ const SoulScore: React.FC<SoulScoreProps> = ({ className = '', compact = false }
 
   // Shared formula (src/lib/soulScoring.ts) — active-only numerator + M5
   // 95-cap when any connected platform is stale/expired. Same number as the
-  // onboarding SoulRichnessBar (batch-3 step 6).
+  // onboarding SoulRichnessBar (batch-3 step 6). The fabricated personality-
+  // axes component was dropped in audit-2026-06-10 (it assumed axes exist for
+  // any connected platform), so the score is now three measured components.
   const score = computeSoulScore({
     summary: platformsSummary,
     memoryCount,
-    axesCount: deriveAxesCount(platformsSummary),
   });
   const connectedSet = new Set(connectedPlatforms);
 
@@ -314,7 +322,7 @@ const SoulScore: React.FC<SoulScoreProps> = ({ className = '', compact = false }
         <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: getRingColor(score) }} />
         <h2
           className="text-[11px] font-medium tracking-widest uppercase"
-          style={{ color: '#F5F5F4', fontFamily: "'Inter', sans-serif" }}
+          style={{ color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}
         >
           Soul Score
         </h2>
@@ -325,7 +333,7 @@ const SoulScore: React.FC<SoulScoreProps> = ({ className = '', compact = false }
         <ScoreRing score={score} compact={compact} />
         <p
           className="text-[13px]"
-          style={{ fontFamily: "'Inter', sans-serif", color: 'rgba(255,255,255,0.35)' }}
+          style={{ fontFamily: "'Inter', sans-serif", color: 'var(--text-secondary)' }}
         >
           {/* Sources = ACTIVELY syncing platforms (summary.active), matching the
               score numerator — total counted expired/stale rows ("10 sources" bug,
@@ -338,9 +346,10 @@ const SoulScore: React.FC<SoulScoreProps> = ({ className = '', compact = false }
       <div className={`grid ${compact ? 'grid-cols-2 gap-2' : 'grid-cols-2 sm:grid-cols-3 gap-3'}`}>
         {DOMAINS.map((domain, i) => {
           const connected = domain.alwaysUnlocked || connectedSet.has(domain.platformKey);
-          const domainScore = domain.alwaysUnlocked
-            ? computeDomainScore(true, memoryCount)
-            : computeDomainScore(connected, memoryCount);
+          // Binary per-domain signal: per-domain memory volume is not available
+          // on the client, so a connected domain reads as "contributing" rather
+          // than fabricating a per-domain depth (audit-2026-06-10).
+          const domainScore = computeDomainScore(connected);
           return (
             <ContributorCard
               key={domain.id}

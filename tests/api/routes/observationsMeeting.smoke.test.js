@@ -23,6 +23,14 @@ vi.mock('../../../api/services/memoryStreamService.js', () => ({
   addMemory: (...a) => addMemoryMock(...a),
 }));
 
+// Transcript-bearing meetings get an LLM-generated summary (Phase 5B). Mock the
+// gateway so tests never hit a real model; assert on whether/how it's called.
+const completeMock = vi.fn();
+vi.mock('../../../api/services/llmGateway.js', () => ({
+  complete: (...a) => completeMock(...a),
+  TIER_ANALYSIS: 'analysis',
+}));
+
 // Auth middleware does an email-verification lookup against supabaseAdmin.
 vi.mock('../../../api/services/database.js', () => ({
   supabaseAdmin: {
@@ -109,5 +117,92 @@ describe('observations meeting route smoke', () => {
     expect(addMemoryMock).toHaveBeenCalledTimes(1);
     const [, summary] = addMemoryMock.mock.calls[0];
     expect(summary).toContain('Google Meet meeting started');
+  });
+
+  it('summarizes a transcript and stores BOTH the transcript and the summary', async () => {
+    addMemoryMock.mockResolvedValue({ id: 'mem-t1', importance_score: 6 });
+    completeMock.mockResolvedValue({
+      content: 'Discussed the Q3 roadmap. You committed to ship the API by Friday.',
+    });
+    const startedAt = 1716800000000;
+    const res = await request(createApp())
+      .post('/api/observations/meeting')
+      .set('Authorization', `Bearer ${signToken()}`)
+      .send({
+        meetings: [
+          {
+            local_id: 10,
+            platform: 'Zoom',
+            title: 'Roadmap',
+            started_at: startedAt,
+            ended_at: startedAt + 30 * 60 * 1000,
+            transcript: 'Alright team, lets talk about the Q3 roadmap and what we ship this quarter. '.repeat(6),
+          },
+        ],
+      });
+    expect(res.status).toBe(200);
+    expect(res.body.synced).toEqual([{ local_id: 10, memory_id: 'mem-t1' }]);
+    expect(completeMock).toHaveBeenCalledTimes(1);
+    // The LLM summary becomes the memory CONTENT (what surfaces in retrieval);
+    // the full transcript + summary live in metadata (full transcript + summary).
+    const [, content, type, metadata, options] = addMemoryMock.mock.calls[0];
+    expect(type).toBe('observation');
+    expect(content).toContain('Q3 roadmap');
+    expect(metadata.summary).toContain('Q3 roadmap');
+    expect(metadata.transcript).toContain('Q3 roadmap');
+    expect(metadata.has_transcript).toBe(true);
+    expect(metadata.source).toBe('desktop_meeting');
+    expect(options.importanceScore).toBe(6);
+  });
+
+  it('skips the LLM for a too-short transcript and stores the label only', async () => {
+    addMemoryMock.mockResolvedValue({ id: 'mem-t2', importance_score: 5 });
+    const res = await request(createApp())
+      .post('/api/observations/meeting')
+      .set('Authorization', `Bearer ${signToken()}`)
+      .send({
+        meetings: [
+          {
+            local_id: 11,
+            platform: 'Zoom',
+            title: 'Quick',
+            started_at: 1716800000000,
+            ended_at: 1716800000000 + 60 * 1000,
+            transcript: 'ok bye',
+          },
+        ],
+      });
+    expect(res.status).toBe(200);
+    expect(completeMock).not.toHaveBeenCalled();
+    const [, content, , metadata] = addMemoryMock.mock.calls[0];
+    expect(content).toContain('Zoom meeting'); // synthetic label, not a summary
+    expect(metadata.transcript).toBeUndefined();
+    expect(metadata.has_transcript).toBeUndefined();
+  });
+
+  it('still stores the transcript when summarization fails (no drop)', async () => {
+    addMemoryMock.mockResolvedValue({ id: 'mem-t3', importance_score: 6 });
+    completeMock.mockRejectedValue(new Error('llm down'));
+    const res = await request(createApp())
+      .post('/api/observations/meeting')
+      .set('Authorization', `Bearer ${signToken()}`)
+      .send({
+        meetings: [
+          {
+            local_id: 12,
+            platform: 'Teams',
+            started_at: 1716800000000,
+            ended_at: 1716800000000 + 30 * 60 * 1000,
+            transcript: 'We reviewed the design and agreed on the new onboarding flow in detail. '.repeat(6),
+          },
+        ],
+      });
+    expect(res.status).toBe(200);
+    expect(res.body.dropped).toEqual([]);
+    expect(res.body.synced).toEqual([{ local_id: 12, memory_id: 'mem-t3' }]);
+    const [, content, , metadata] = addMemoryMock.mock.calls[0];
+    expect(content).toContain('Teams meeting'); // fell back to the label
+    expect(metadata.transcript).toContain('onboarding flow'); // transcript still kept
+    expect(metadata.summary).toBeUndefined();
   });
 });

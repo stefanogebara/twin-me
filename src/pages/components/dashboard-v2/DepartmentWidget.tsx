@@ -61,34 +61,20 @@ export function DepartmentWidget() {
   const pendingCount = proposals.length;
 
   return (
-    <section className="mb-10 pb-10" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+    <section className="mb-10 pb-10" style={{ borderBottom: '1px solid var(--border-glass)' }}>
       <div className="flex items-center justify-between mb-4">
-        <h2 className={LABEL_STYLE} style={{ color: 'rgba(255,255,255,0.4)', marginBottom: 0 }}>
+        <h2 className={LABEL_STYLE} style={{ color: 'var(--text-secondary)', marginBottom: 0 }}>
           YOUR AI TEAM
         </h2>
-        <button
-          onClick={() => navigate('/departments')}
-          className="text-[10px] font-medium transition-all duration-200 ease-out hover:opacity-70 active:scale-[0.97]"
-          style={{
-            color: 'rgba(255,255,255,0.35)',
-            fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            padding: 0,
-          }}
-        >
-          View all
-        </button>
       </div>
 
       <div
         className="rounded-[20px] px-5 py-4"
         style={{
-          background: 'rgba(255,255,255,0.06)',
+          background: 'var(--surface)',
           backdropFilter: 'blur(42px)',
           WebkitBackdropFilter: 'blur(42px)',
-          border: '1px solid rgba(255,255,255,0.08)',
+          border: '1px solid var(--border-glass)',
         }}
       >
         {/* Department status chips */}
@@ -106,7 +92,7 @@ export function DepartmentWidget() {
             <p
               className="text-xs"
               style={{
-                color: 'rgba(255,255,255,0.45)',
+                color: 'var(--text-secondary)',
                 fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
               }}
             >
@@ -116,7 +102,7 @@ export function DepartmentWidget() {
               onClick={() => refetchDepartments()}
               className="px-2 py-1 rounded-full text-[10px] font-medium transition-all duration-150 ease-out hover:opacity-80 active:scale-[0.97] flex-shrink-0"
               style={{
-                backgroundColor: 'rgba(255,255,255,0.08)',
+                backgroundColor: 'var(--surface)',
                 color: 'var(--foreground)',
                 border: 'none',
                 cursor: 'pointer',
@@ -150,7 +136,7 @@ export function DepartmentWidget() {
               <span
                 className="text-[10px] font-medium leading-none"
                 style={{
-                  color: dept.isEnabled ? 'rgba(255,255,255,0.65)' : 'rgba(255,255,255,0.2)',
+                  color: dept.isEnabled ? 'var(--text-secondary)' : 'var(--text-muted)',
                   fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
                 }}
               >
@@ -162,8 +148,8 @@ export function DepartmentWidget() {
             <span
               className="text-[10px] font-medium px-2 py-1 rounded-full"
               style={{
-                backgroundColor: 'rgba(255,255,255,0.10)',
-                color: 'rgba(245,245,244,0.70)',
+                backgroundColor: 'var(--surface-solid)',
+                color: 'var(--text-secondary)',
                 fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
               }}
             >
@@ -189,7 +175,7 @@ export function DepartmentWidget() {
                   <p
                     className="text-xs truncate"
                     style={{
-                      color: 'rgba(255,255,255,0.55)',
+                      color: 'var(--text-secondary)',
                       fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
                     }}
                   >
@@ -201,7 +187,7 @@ export function DepartmentWidget() {
                   disabled={approvingId === proposal.id}
                   className="flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-medium transition-all duration-150 ease-out hover:opacity-80 active:scale-[0.97] flex-shrink-0 disabled:opacity-40"
                   style={{
-                    backgroundColor: 'rgba(255,255,255,0.08)',
+                    backgroundColor: 'var(--surface)',
                     color: 'var(--foreground)',
                     border: 'none',
                     cursor: approvingId === proposal.id ? 'wait' : 'pointer',
@@ -214,27 +200,22 @@ export function DepartmentWidget() {
               </div>
             ))}
             {proposals.length > 3 && (
-              <button
-                onClick={() => navigate('/departments')}
-                className="text-[10px] transition-all duration-150 ease-out hover:brightness-150"
+              <span
+                className="text-[10px]"
                 style={{
-                  color: 'rgba(255,255,255,0.35)',
+                  color: 'var(--text-secondary)',
                   fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  padding: 0,
                 }}
               >
                 +{proposals.length - 3} more proposals
-              </button>
+              </span>
             )}
           </div>
         ) : !departmentsLoading && !departmentsError ? (
           <p
             className="text-xs"
             style={{
-              color: 'rgba(255,255,255,0.3)',
+              color: 'var(--text-secondary)',
               fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
             }}
           >

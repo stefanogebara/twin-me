@@ -67,7 +67,7 @@ router.post('/upload-url', authenticateUser, async (req, res) => {
     }
 
     // Sanitise filename — strip path traversal characters
-    const safeName = fileName.replace(/[^a-zA-Z0-9._\-]/g, '_').slice(0, 200);
+    const safeName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 200);
     const storagePath = `${userId}/${Date.now()}-${safeName}`;
 
     const { data, error } = await supabaseAdmin.storage

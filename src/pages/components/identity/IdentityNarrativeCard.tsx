@@ -52,7 +52,7 @@ function relativeTime(iso: string | null): string {
 const IdentityNarrativeCard: React.FC = () => {
   const queryClient = useQueryClient();
 
-  const { data, isLoading, isError } = useQuery<{ data: NarrativeData }>({
+  const { data, isLoading, isError, refetch } = useQuery<{ data: NarrativeData }>({
     queryKey: QUERY_KEY,
     queryFn: async () => {
       const res = await authFetch('/soul-signature/narrative');
@@ -65,6 +65,9 @@ const IdentityNarrativeCard: React.FC = () => {
   const narrative = data?.data;
   const [mode, setMode] = useState<'view' | 'edit' | 'saving'>('view');
   const [draft, setDraft] = useState<string>('');
+  // Two-tap confirm before the destructive "Revert to auto" wipes the user's
+  // hand-written narrative (audit-2026-06-10: was a zero-confirmation delete).
+  const [confirmingClear, setConfirmingClear] = useState(false);
 
   // Seed the draft when entering edit mode or when the underlying data refreshes
   useEffect(() => {
@@ -103,6 +106,7 @@ const IdentityNarrativeCard: React.FC = () => {
 
   // ── Clear handler — explicit "revert to system" verb ───────────
   const handleClear = async () => {
+    setConfirmingClear(false);
     setMode('saving');
     try {
       const res = await authFetch('/soul-signature/narrative', {
@@ -124,15 +128,34 @@ const IdentityNarrativeCard: React.FC = () => {
   // ── Loading / empty / error states ─────────────────────────────
   if (isLoading) {
     return (
-      <div className="rounded-[20px] border border-[rgba(255,255,255,0.10)] bg-[rgba(255,255,255,0.06)] backdrop-blur-[42px] px-5 py-4 animate-pulse">
-        <div className="h-4 w-32 bg-[rgba(255,255,255,0.08)] rounded mb-3" />
-        <div className="h-3 w-full bg-[rgba(255,255,255,0.05)] rounded mb-2" />
-        <div className="h-3 w-3/4 bg-[rgba(255,255,255,0.05)] rounded" />
+      <div className="rounded-[20px] border border-[var(--glass-surface-border)] bg-[var(--surface)] backdrop-blur-[42px] px-5 py-4 animate-pulse">
+        <div className="h-4 w-32 bg-[var(--surface)] rounded mb-3" />
+        <div className="h-3 w-full bg-[var(--surface)] rounded mb-2" />
+        <div className="h-3 w-3/4 bg-[var(--surface)] rounded" />
       </div>
     );
   }
 
-  if (isError || !narrative) return null;
+  // Fetch failure: show a quiet retry card instead of vanishing — a silent
+  // null made "my narrative disappeared" undebuggable (audit-2026-07-03).
+  if (isError) {
+    return (
+      <div className="rounded-[20px] border border-[var(--glass-surface-border)] bg-[var(--surface)] backdrop-blur-[42px] px-5 py-4">
+        <p className="text-sm" style={{ color: '#A8A29E' }}>
+          Could not load your narrative.
+        </p>
+        <button
+          onClick={() => refetch()}
+          className="mt-2 text-sm underline transition-opacity hover:opacity-70"
+          style={{ color: '#9C9590' }}
+        >
+          Try again
+        </button>
+      </div>
+    );
+  }
+
+  if (!narrative) return null;
 
   if (narrative.active_source === 'none' || !narrative.active_narrative) {
     // No soul signature yet — nothing to override. Don't show the card.
@@ -144,7 +167,7 @@ const IdentityNarrativeCard: React.FC = () => {
 
   // ── Render ──────────────────────────────────────────────────────
   return (
-    <div className="rounded-[20px] border border-[rgba(255,255,255,0.10)] bg-[rgba(255,255,255,0.06)] backdrop-blur-[42px] px-5 py-4 shadow-[0_4px_4px_rgba(0,0,0,0.12),inset_0_1px_0_rgba(255,255,255,0.06)]">
+    <div className="rounded-[20px] border border-[var(--glass-surface-border)] bg-[var(--surface)] backdrop-blur-[42px] px-5 py-4 shadow-[0_4px_4px_rgba(0,0,0,0.12),inset_0_1px_0_rgba(255,255,255,0.06)]">
       {/* Header: badge + edit button */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
@@ -172,7 +195,7 @@ const IdentityNarrativeCard: React.FC = () => {
             <span
               className="text-[11px] px-2 py-0.5 rounded-full"
               style={{
-                backgroundColor: 'rgba(255,255,255,0.06)',
+                backgroundColor: 'var(--surface)',
                 color: 'var(--text-muted)',
               }}
             >
@@ -194,17 +217,24 @@ const IdentityNarrativeCard: React.FC = () => {
           <div className="flex items-center justify-end gap-2 mt-3">
             {isUserAuthored && (
               <button
-                onClick={handleClear}
-                className="text-[12px] flex items-center gap-1 px-2 py-1 rounded-[6px] hover:bg-[rgba(255,255,255,0.04)] transition"
-                style={{ color: 'var(--text-muted)' }}
+                onClick={() => {
+                  if (confirmingClear) {
+                    handleClear();
+                  } else {
+                    setConfirmingClear(true);
+                  }
+                }}
+                onBlur={() => setConfirmingClear(false)}
+                className="text-[12px] flex items-center gap-1 px-2 py-1 rounded-[6px] hover:bg-[var(--surface)] transition"
+                style={{ color: confirmingClear ? 'var(--destructive)' : 'var(--text-muted)' }}
               >
                 <Trash2 className="w-3 h-3" />
-                Revert to auto
+                {confirmingClear ? 'Click again to confirm' : 'Revert to auto'}
               </button>
             )}
             <button
-              onClick={() => setMode('edit')}
-              className="text-[12px] flex items-center gap-1 px-2 py-1 rounded-[6px] hover:bg-[rgba(255,255,255,0.04)] transition"
+              onClick={() => { setConfirmingClear(false); setMode('edit'); }}
+              className="text-[12px] flex items-center gap-1 px-2 py-1 rounded-[6px] hover:bg-[var(--surface)] transition"
               style={{ color: 'var(--foreground)' }}
             >
               <Pencil className="w-3 h-3" />
@@ -224,8 +254,8 @@ const IdentityNarrativeCard: React.FC = () => {
             maxLength={MAX_CHARS}
             className="w-full rounded-[6px] px-3 py-2.5 text-[14.5px] leading-relaxed resize-y focus:outline-none focus:ring-1 focus:ring-[rgba(255,255,255,0.25)]"
             style={{
-              backgroundColor: 'rgba(255,255,255,0.08)',
-              border: '1px solid rgba(255,255,255,0.08)',
+              backgroundColor: 'var(--surface)',
+              border: '1px solid var(--border-glass)',
               color: 'var(--text-narrative)',
               fontFamily: 'Geist, Inter, system-ui, sans-serif',
             }}
@@ -244,7 +274,7 @@ const IdentityNarrativeCard: React.FC = () => {
               <button
                 onClick={() => { setMode('view'); setDraft(narrative.active_narrative || ''); }}
                 disabled={mode === 'saving'}
-                className="text-[12px] flex items-center gap-1 px-2 py-1 rounded-[6px] hover:bg-[rgba(255,255,255,0.04)] disabled:opacity-50 transition"
+                className="text-[12px] flex items-center gap-1 px-2 py-1 rounded-[6px] hover:bg-[var(--surface)] disabled:opacity-50 transition"
                 style={{ color: 'var(--text-muted)' }}
               >
                 <X className="w-3 h-3" />

@@ -162,7 +162,7 @@ export const AVAILABLE_CONNECTORS: ConnectorConfig[] = [
     provider: 'instagram' as DataProvider,
     name: 'Instagram',
     description: 'Your saved posts and aesthetic — what you bookmark reveals your taste, interests, and the worlds you return to',
-    icon: <span className="w-6 h-6 inline-flex items-center justify-center text-[#F5F5F4]">IG</span>,
+    icon: <span className="w-6 h-6 inline-flex items-center justify-center text-[var(--foreground)]">IG</span>,
     color: '#E4405F',
     dataTypes: ['Saved Posts', 'Your Posts'],
     estimatedInsights: 8,
@@ -181,7 +181,9 @@ export const AVAILABLE_CONNECTORS: ConnectorConfig[] = [
     setupTime: '5 seconds',
     privacyLevel: 'medium',
     category: 'professional',
-    comingSoon: true,
+    // comingSoon flag cleared 2026-06-10 (audit re-verify): Gmail OAuth is wired
+    // (GoogleWorkspaceConnect) and PlatformStep actively recommends it — the flag
+    // was hiding the tile from /connect, contradicting other onboarding surfaces.
   },
   {
     provider: 'github' as DataProvider,

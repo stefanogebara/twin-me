@@ -89,7 +89,18 @@ export default function MemoryHealth() {
     queryKey: ['memory-health', refreshKey],
     queryFn: async () => {
       const res = await authFetch('/memory-health');
-      if (!res.ok) throw new Error('Failed to load memory health');
+      if (!res.ok) {
+        // Parse the backend error body so the real reason (not a generic
+        // string) reaches the UI's error state (audit-2026-07-03 error-ux).
+        let message = `Failed to load memory health (${res.status})`;
+        try {
+          const body = await res.json();
+          if (body?.error) message = body.error;
+        } catch {
+          // Non-JSON error body — keep the status-tagged fallback.
+        }
+        throw new Error(message);
+      }
       return res.json();
     },
     staleTime: 2 * 60 * 1000,
@@ -131,9 +142,10 @@ export default function MemoryHealth() {
           onClick={() => setRefreshKey(k => k + 1)}
           className="p-2 rounded-lg transition-opacity hover:opacity-60"
           style={{ color: 'rgba(255,255,255,0.3)' }}
+          aria-label="Refresh"
           title="Refresh"
         >
-          <RefreshCw className="w-4 h-4" />
+          <RefreshCw className="w-4 h-4" aria-hidden="true" />
         </button>
       </div>
       <p className="text-sm mb-10" style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', sans-serif" }}>
@@ -145,7 +157,11 @@ export default function MemoryHealth() {
       {error && (
         <div className="flex items-center gap-2 p-4 rounded-lg text-sm mb-6" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.15)', color: '#fca5a5' }}>
           <AlertCircle className="w-4 h-4 flex-shrink-0" />
-          Failed to load memory health data. Make sure the backend is running.
+          <span>
+            {error instanceof Error && error.message
+              ? error.message
+              : "We couldn't load your memory health data right now. Tap refresh to try again."}
+          </span>
         </div>
       )}
 

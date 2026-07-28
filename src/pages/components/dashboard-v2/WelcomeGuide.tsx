@@ -137,8 +137,8 @@ export function WelcomeGuide({ firstName }: WelcomeGuideProps) {
                     style={{
                       width: 28,
                       height: 28,
-                      background: 'rgba(255,255,255,0.06)',
-                      border: '1px solid rgba(255,255,255,0.08)',
+                      background: 'var(--surface)',
+                      border: '1px solid var(--border-glass)',
                     }}
                   >
                     <Icon
@@ -180,8 +180,8 @@ export function WelcomeGuide({ firstName }: WelcomeGuideProps) {
               onClick={goToChat}
               className="text-[13px] font-medium px-4 py-2 rounded-[100px] cursor-pointer transition-all duration-150 ease-out hover:brightness-110 active:scale-[0.97]"
               style={{
-                background: '#F5F5F4',
-                color: '#110f0f',
+                background: 'var(--claura-bone)',
+                color: 'var(--claura-bone-ink)',
                 border: 'none',
               }}
             >

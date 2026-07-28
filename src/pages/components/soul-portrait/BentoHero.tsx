@@ -31,7 +31,7 @@ export const BentoHero: React.FC<Props> = ({ data }) => {
     <div
       className="relative overflow-hidden rounded-lg p-6 md:p-8 h-full"
       style={{
-        backgroundColor: 'rgba(255,255,255,0.02)',
+        backgroundColor: 'var(--surface)',
         border: '1px solid var(--border-glass)',
       }}
     >
@@ -68,7 +68,7 @@ export const BentoHero: React.FC<Props> = ({ data }) => {
 
         <p
           className="text-xs"
-          style={{ color: 'rgba(255,255,255,0.3)' }}
+          style={{ color: 'var(--text-muted)' }}
         >
           Last updated {timeAgoLabel(data.generatedAt)}
         </p>

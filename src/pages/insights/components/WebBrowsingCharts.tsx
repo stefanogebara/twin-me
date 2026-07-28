@@ -22,7 +22,7 @@ export const WebBrowsingCharts: React.FC<WebBrowsingChartsProps> = ({
     <>
       {/* Interest Categories */}
       {insights?.webTopCategories && insights.webTopCategories.length > 0 && (
-        <div className="p-4 rounded-lg mb-6" style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
+        <div className="p-4 rounded-lg mb-6" style={{ border: '1px solid var(--border-glass)', backgroundColor: 'var(--surface)' }}>
           <span
             className="text-[11px] font-medium tracking-widest uppercase block mb-4"
             style={{ color: '#10b77f' }}
@@ -60,7 +60,7 @@ export const WebBrowsingCharts: React.FC<WebBrowsingChartsProps> = ({
 
       {/* What You Search For */}
       {insights?.webRecentSearches && insights.webRecentSearches.length > 0 && (
-        <div className="p-4 rounded-lg mb-6" style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
+        <div className="p-4 rounded-lg mb-6" style={{ border: '1px solid var(--border-glass)', backgroundColor: 'var(--surface)' }}>
           <span
             className="text-[11px] font-medium tracking-widest uppercase block mb-4"
             style={{ color: '#10b77f' }}
@@ -86,7 +86,7 @@ export const WebBrowsingCharts: React.FC<WebBrowsingChartsProps> = ({
 
       {/* Reading Profile */}
       {insights?.webReadingProfile && (
-        <div className="p-4 rounded-lg mb-6" style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
+        <div className="p-4 rounded-lg mb-6" style={{ border: '1px solid var(--border-glass)', backgroundColor: 'var(--surface)' }}>
           <span
             className="text-[11px] font-medium tracking-widest uppercase block mb-4"
             style={{ color: '#10b77f' }}
@@ -135,7 +135,7 @@ export const WebBrowsingCharts: React.FC<WebBrowsingChartsProps> = ({
 
       {/* Digital Landscape - Top Domains */}
       {insights?.webTopDomains && insights.webTopDomains.length > 0 && (
-        <div className="p-4 rounded-lg mb-6" style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
+        <div className="p-4 rounded-lg mb-6" style={{ border: '1px solid var(--border-glass)', backgroundColor: 'var(--surface)' }}>
           <span
             className="text-[11px] font-medium tracking-widest uppercase block mb-4"
             style={{ color: '#10b77f' }}
@@ -150,7 +150,7 @@ export const WebBrowsingCharts: React.FC<WebBrowsingChartsProps> = ({
                   key={index}
                   className="px-3 py-1.5 rounded-lg text-sm"
                   style={{
-                    backgroundColor: 'rgba(255,255,255,0.04)',
+                    backgroundColor: 'var(--surface)',
                     color: colors.text,
                     fontSize: `${size}rem`,
                     borderLeft: `3px solid ${colors.webAccent}`,
@@ -170,7 +170,7 @@ export const WebBrowsingCharts: React.FC<WebBrowsingChartsProps> = ({
 
       {/* Top Topics */}
       {insights?.webTopTopics && insights.webTopTopics.length > 0 && (
-        <div className="p-4 rounded-lg mb-6" style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
+        <div className="p-4 rounded-lg mb-6" style={{ border: '1px solid var(--border-glass)', backgroundColor: 'var(--surface)' }}>
           <span
             className="text-[11px] font-medium tracking-widest uppercase block mb-4"
             style={{ color: '#10b77f' }}
@@ -197,7 +197,7 @@ export const WebBrowsingCharts: React.FC<WebBrowsingChartsProps> = ({
 
       {/* Recent Activity */}
       {insights?.webRecentActivity && insights.webRecentActivity.length > 0 && (
-        <div className="p-4 rounded-lg mb-6" style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
+        <div className="p-4 rounded-lg mb-6" style={{ border: '1px solid var(--border-glass)', backgroundColor: 'var(--surface)' }}>
           <span
             className="text-[11px] font-medium tracking-widest uppercase block mb-4"
             style={{ color: '#10b77f' }}

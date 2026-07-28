@@ -64,10 +64,10 @@ const TemporalComparison: React.FC = () => {
       <div
         className="rounded-[20px] px-5 py-5"
         style={{
-          background: 'rgba(255,255,255,0.06)',
+          background: 'var(--surface)',
           backdropFilter: 'blur(42px)',
           WebkitBackdropFilter: 'blur(42px)',
-          border: '1px solid rgba(255,255,255,0.10)',
+          border: '1px solid var(--glass-surface-border)',
           boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06), 0 4px 16px rgba(0,0,0,0.15)',
         }}
       >
@@ -76,13 +76,13 @@ const TemporalComparison: React.FC = () => {
           <div className="flex flex-col gap-2">
             <span
               className="text-[10px] font-medium uppercase tracking-[0.16em]"
-              style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Inter', sans-serif" }}
+              style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
             >
               Then
             </span>
             <p
               className="text-[14.5px] leading-relaxed"
-              style={{ color: 'rgba(255,255,255,0.75)', fontFamily: "'Inter', sans-serif" }}
+              style={{ color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}
             >
               {data.then}
             </p>
@@ -92,7 +92,7 @@ const TemporalComparison: React.FC = () => {
           <div
             className="hidden sm:flex items-center justify-center px-2"
             aria-hidden="true"
-            style={{ color: 'rgba(255,255,255,0.35)' }}
+            style={{ color: 'var(--text-muted)' }}
           >
             <span className="text-xl select-none">→</span>
           </div>
@@ -104,13 +104,13 @@ const TemporalComparison: React.FC = () => {
           >
             <span
               className="text-[10px] font-medium uppercase tracking-[0.16em]"
-              style={{ color: 'rgba(255,255,255,0.55)', fontFamily: "'Inter', sans-serif" }}
+              style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
             >
               Now
             </span>
             <p
               className="text-[14.5px] leading-relaxed"
-              style={{ color: 'rgba(255,255,255,0.85)', fontFamily: "'Inter', sans-serif" }}
+              style={{ color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}
             >
               {data.now}
             </p>

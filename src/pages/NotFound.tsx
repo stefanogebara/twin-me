@@ -1,7 +1,9 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { Home, ArrowLeft } from "lucide-react";
+import { ClauraZonedBackground } from "@/components/ClauraZonedBackground";
 
+// Claura 404 — lost among the rings. Saturn-window by night, soul-waves by day.
 const NotFound = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -12,12 +14,14 @@ const NotFound = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center px-6">
+      <ClauraZonedBackground dark="saturn-window.png" light="soul-waves.png" lightPosition="center 22%" />
       <div className="text-center max-w-md mx-auto">
-        {/* 404 number */}
+        {/* 404 number — giant, faded into the scene */}
         <p
-          className="text-8xl font-bold mb-4"
           style={{
-            color: 'rgba(255, 255, 255, 0.04)',
+            fontSize: 'clamp(110px, 20vw, 160px)',
+            opacity: 0.16,
+            color: 'var(--claura-text)',
             fontFamily: "'Instrument Serif', Georgia, serif",
             lineHeight: 1,
             letterSpacing: '-0.04em',
@@ -32,10 +36,11 @@ const NotFound = () => {
           style={{
             fontFamily: "'Instrument Serif', Georgia, serif",
             fontStyle: 'italic',
-            fontSize: '28px',
+            fontSize: '32px',
             fontWeight: 400,
             color: 'var(--foreground)',
             letterSpacing: '-0.02em',
+            marginTop: '-24px',
           }}
         >
           Page Not Found
@@ -44,43 +49,44 @@ const NotFound = () => {
         {/* Subtitle */}
         <p
           className="text-sm mb-10 leading-relaxed"
-          style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', sans-serif" }}
+          style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
         >
           The page you're looking for doesn't exist or may have been moved.
         </p>
 
-        {/* Buttons */}
+        {/* Buttons — bone primary, glass secondary */}
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <button
-            onClick={() => navigate(-1)}
-            className="flex items-center gap-2 justify-center py-2.5 px-5 rounded-lg text-sm transition-opacity hover:opacity-70"
-            style={{
-              border: '1px solid var(--border)',
-              color: 'rgba(255,255,255,0.5)',
-              fontFamily: "'Inter', sans-serif",
-            }}
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Go Back
-          </button>
-          <button
             onClick={() => navigate('/')}
-            className="flex items-center gap-2 justify-center py-2.5 px-5 rounded-lg text-sm font-medium transition-opacity hover:opacity-90"
+            className="flex items-center gap-2 justify-center py-2.5 px-6 rounded-[12px] text-sm font-semibold transition-all duration-200 hover:-translate-y-0.5 hover:brightness-105 hover:shadow-lg"
             style={{
-              backgroundColor: '#252222',
-              color: '#fdfcfb',
+              background: 'var(--claura-bone)',
+              color: 'var(--claura-bone-ink)',
               fontFamily: "'Inter', sans-serif",
             }}
           >
             <Home className="w-4 h-4" />
             Home
           </button>
+          <button
+            onClick={() => navigate(-1)}
+            className="flex items-center gap-2 justify-center py-2.5 px-6 rounded-[12px] text-sm transition-opacity hover:opacity-70 backdrop-blur-[42px]"
+            style={{
+              background: 'var(--secondary)',
+              border: '1px solid var(--border)',
+              color: 'var(--foreground)',
+              fontFamily: "'Inter', sans-serif",
+            }}
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Go Back
+          </button>
         </div>
 
         {/* Footer hint */}
         <p
           className="text-xs mt-12"
-          style={{ color: 'rgba(255,255,255,0.15)' }}
+          style={{ color: 'var(--text-muted)', fontFamily: "'Inter', sans-serif" }}
         >
           Lost? Head back home to find your soul signature.
         </p>

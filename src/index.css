@@ -80,21 +80,11 @@
     --sidebar-accent-foreground: #F5F5F4;
     --sidebar-border: rgba(255, 255, 255, 0.08);
     --sidebar-ring: rgba(232, 224, 212, 0.50);
-
-
-    /* Body gradients — amber/copper on charcoal (sun-driven overrides via SunContext) */
-    --body-gradient-1: rgba(210, 145, 55, 0.38);
-    --body-gradient-2: rgba(180, 110, 65, 0.30);
-    --body-gradient-3: rgba(160, 95, 55, 0.34);
-    --body-gradient-4: rgba(55, 45, 140, 0.28);
-
-    /* Departments page: dim the ambient gradient for cleaner settings-panel feel */
   }
 
-  /* CLAURA PORT PHASE 2 — light appearance (plan: .claude/plans/2026-07-16-claura-port).
-     Token-level flip only: activates when ThemeContext sets data-theme="light"
-     (default stays dark; no UI exposes it yet). Components with hardcoded
-     white-alpha arbitrary values adopt in Phases 3-4. */
+  /* CLAURA PORT PHASE 2 - light appearance (plan: .claude/plans/2026-07-16-claura-port).
+     Token-level flip only: activates when ThemeContext sets data-theme=light
+     (default stays dark; no UI exposes it yet). Hardcoded components adopt in Phases 3-4. */
   [data-theme="light"] {
     color-scheme: light;
     --background: #f6f3ee;
@@ -140,35 +130,9 @@
     --sidebar-accent-foreground: #1c1917;
     --sidebar-border: rgba(28, 25, 23, 0.10);
     --sidebar-ring: rgba(28, 25, 23, 0.35);
-    /* daylight orbs — soft pastels on paper (SunContext values still win when it runs) */
-    --body-gradient-1: rgba(240, 190, 120, 0.30);
-    --body-gradient-2: rgba(180, 200, 240, 0.28);
-    --body-gradient-3: rgba(230, 170, 140, 0.22);
-    --body-gradient-4: rgba(170, 160, 230, 0.20);
-  }
-
-  body.page-departments {
-    --body-gradient-1: rgba(210, 145, 55, 0.12);
-    --body-gradient-2: rgba(180, 110, 65, 0.09);
-    --body-gradient-3: rgba(160, 95, 55, 0.10);
-    --body-gradient-4: rgba(55, 45, 140, 0.08);
   }
 
   :root {
-    /* Gradient orb positions/sizes (sun-driven overrides via SunContext) */
-    --bg-pos-1: 5% 0%;
-    --bg-size-1: 120% 80%;
-    --bg-spread-1: 55%;
-    --bg-pos-2: 95% 15%;
-    --bg-size-2: 80% 70%;
-    --bg-spread-2: 50%;
-    --bg-pos-3: 50% 100%;
-    --bg-size-3: 100% 90%;
-    --bg-spread-3: 55%;
-    --bg-pos-4: 70% 50%;
-    --bg-size-4: 60% 60%;
-    --bg-spread-4: 45%;
-
     /* Typography */
     --font-heading: 'Instrument Serif', Georgia, serif;
     --font-accent: 'Instrument Serif', Georgia, serif;
@@ -212,7 +176,7 @@
     /* Narrative Text — Sesame-inspired 60% opacity hierarchy */
     --text-narrative: rgba(245, 245, 244, 0.9);
     --text-narrative-secondary: rgba(245, 245, 244, 0.6);
-    --text-narrative-muted: rgba(245, 245, 244, 0.4);
+    --text-narrative-muted: rgba(245, 245, 244, 0.55); /* a11y: 0.4 was ~3.83:1 on #13121a (below WCAG AA); 0.55 ≈ 4.6:1 and stays below the 0.6 secondary tier so the muted<secondary<narrative hierarchy holds */
 
     /* Spacing & Radius */
     --radius: 1rem;
@@ -534,15 +498,35 @@
     content: none;
   }
 
+  /* Recharts: theme-aware axis labels + grid. CSS fill/stroke resolve var()
+     (SVG presentation attributes do not), so axis text/grid stay legible in
+     both appearances instead of the old hardcoded white-alpha. Data series
+     keep their own colors — only ticks/grid are defaulted here. */
+  .recharts-cartesian-axis-tick-value,
+  .recharts-polar-angle-axis-tick-value,
+  .recharts-polar-radius-axis-tick-value {
+    fill: var(--text-muted);
+  }
+  .recharts-cartesian-grid line,
+  .recharts-polar-grid line,
+  .recharts-polar-grid path {
+    stroke: var(--border-glass);
+  }
+  /* StressSpend daily-spend bars: token fill so they stay visible in light. */
+  .stress-spend-bar .recharts-bar-rectangle path,
+  .stress-spend-bar path.recharts-rectangle {
+    fill: var(--text-muted);
+  }
+
   /* Separator: gray-700 border */
   .prose hr {
     border-color: rgb(55, 65, 81);
     margin: 20px 0;
   }
 
-  /* Bold text: pure white */
+  /* Bold text: primary foreground (flips in light) */
   .prose strong {
-    color: #FFFFFF;
+    color: var(--foreground);
     font-weight: 600;
   }
 
@@ -550,7 +534,7 @@
   .prose h3 {
     font-size: 18px;
     font-weight: 600;
-    color: #FFFFFF;
+    color: var(--foreground);
     margin-bottom: 8px;
     line-height: 24px;
   }

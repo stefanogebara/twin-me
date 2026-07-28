@@ -47,7 +47,6 @@ interface EvidenceItem {
 interface DiscordServer {
   name: string;
   category: string;
-  memberCount?: number;
 }
 
 interface CategoryBreakdown {
@@ -88,7 +87,7 @@ const DiscordInsightsPage: React.FC = () => {
 
   const colors = {
     text: 'var(--foreground)',
-    textSecondary: 'rgba(255,255,255,0.4)',
+    textSecondary: 'rgba(255, 255, 255, 0.55)',
     discordPurple: '#5865F2',
     discordBg: 'rgba(88, 101, 242, 0.1)',
   };
@@ -97,7 +96,7 @@ const DiscordInsightsPage: React.FC = () => {
   // the skeleton is only for the no-data cold start.
   if ((loading || generating) && !insights) {
     return (
-      <div className="max-w-[680px] mx-auto px-6 py-16">
+      <div className="max-w-[680px] mx-auto px-4 sm:px-6 py-10 sm:py-16">
         <div className="animate-pulse space-y-4">
           <div className="h-16 rounded-xl" style={{ backgroundColor: 'var(--glass-surface-bg)' }} />
           <div className="h-32 rounded-xl" style={{ backgroundColor: 'var(--glass-surface-bg)' }} />
@@ -114,7 +113,7 @@ const DiscordInsightsPage: React.FC = () => {
 
   if (error) {
     return (
-      <div className="max-w-[680px] mx-auto px-6 py-16">
+      <div className="max-w-[680px] mx-auto px-4 sm:px-6 py-10 sm:py-16">
         <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
           <AlertCircle className="w-12 h-12" style={{ color: colors.textSecondary }} />
           <p style={{ color: colors.textSecondary }}>{error}</p>
@@ -131,7 +130,7 @@ const DiscordInsightsPage: React.FC = () => {
   }
 
   return (
-    <div className="max-w-[680px] mx-auto px-6 py-16">
+    <div className="max-w-[680px] mx-auto px-4 sm:px-6 py-10 sm:py-16">
       <InsightsPageHeader
         title="Your Community World"
         subtitle="What your servers reveal about you"
@@ -151,7 +150,7 @@ const DiscordInsightsPage: React.FC = () => {
       {insights?.discordServers && insights.discordServers.length > 0 && (
         <div
           className="rounded-2xl p-4 mb-6"
-          style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+          style={{ border: '1px solid var(--border-glass)', backgroundColor: 'var(--surface)' }}
         >
           <h3
             className="text-[11px] font-medium uppercase tracking-[0.08em] mb-3 flex items-center gap-2"
@@ -166,9 +165,9 @@ const DiscordInsightsPage: React.FC = () => {
                 key={i}
                 className="px-3 py-1 rounded-full text-sm"
                 style={{
-                  backgroundColor: `${CATEGORY_COLORS[server.category] || colors.discordPurple}18`,
-                  color: CATEGORY_COLORS[server.category] || colors.discordPurple,
-                  border: `1px solid ${CATEGORY_COLORS[server.category] || colors.discordPurple}40`,
+                  backgroundColor: `${colors.discordPurple}18`,
+                  color: colors.discordPurple,
+                  border: `1px solid ${colors.discordPurple}40`,
                 }}
               >
                 {server.name}
@@ -182,7 +181,7 @@ const DiscordInsightsPage: React.FC = () => {
       {insights?.discordCategoryBreakdown && insights.discordCategoryBreakdown.length > 0 && (
         <div
           className="rounded-2xl p-4 mb-6"
-          style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+          style={{ border: '1px solid var(--border-glass)', backgroundColor: 'var(--surface)' }}
         >
           <h3
             className="text-[11px] font-medium uppercase tracking-[0.08em] mb-4 flex items-center gap-2"
@@ -237,7 +236,7 @@ const DiscordInsightsPage: React.FC = () => {
       ) : insights?.discordServers?.length ? (
         <div
           className="mb-8 rounded-2xl p-4"
-          style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+          style={{ border: '1px solid var(--border-glass)', backgroundColor: 'var(--surface)' }}
         >
           <div className="flex items-center gap-2 mb-2">
             <MessageSquare className="w-4 h-4" style={{ color: colors.discordPurple }} />
@@ -289,7 +288,7 @@ const DiscordInsightsPage: React.FC = () => {
               <div
                 key={past.id}
                 className="rounded-2xl p-4"
-                style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+                style={{ border: '1px solid var(--border-glass)', backgroundColor: 'var(--surface)' }}
               >
                 <p className="text-sm leading-relaxed" style={{ color: colors.textSecondary }}>
                   {past.text}
@@ -308,7 +307,7 @@ const DiscordInsightsPage: React.FC = () => {
         <div className="space-y-4">
           <div
             className="text-center py-12 rounded-2xl"
-            style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+            style={{ border: '1px solid var(--border-glass)', backgroundColor: 'var(--surface)' }}
           >
             <div
               className="w-16 h-16 rounded-2xl mx-auto mb-5 flex items-center justify-center"
@@ -355,7 +354,7 @@ const DiscordInsightsPage: React.FC = () => {
             </p>
             <div
               className="rounded-2xl p-4"
-              style={{ border: '1px dashed var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+              style={{ border: '1px dashed var(--border-glass)', backgroundColor: 'var(--surface)' }}
             >
               <div className="flex items-center gap-2 mb-3">
                 <MessageSquare className="w-4 h-4" style={{ color: colors.textSecondary }} />

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { RefreshCw } from 'lucide-react';
 import { authFetch, getAccessToken } from '@/services/api/apiBase';
 import { useAuth } from '@/contexts/AuthContext';
@@ -28,6 +28,11 @@ function getUserIdFromToken(): string | null {
 export default function InterviewPage() {
   useDocumentTitle('Interview');
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  // ?redo=1 marks an in-progress redo so a mid-redo refresh re-mounts
+  // DeepInterview instead of bouncing back to the "Interview Complete" screen
+  // (the calibration row keeps completed_at, so we can't rely on the backend).
+  const isRedoing = searchParams.get('redo') === '1';
   const { user } = useAuth();
   const [alreadyDone, setAlreadyDone] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -48,7 +53,9 @@ export default function InterviewPage() {
           const res = await authFetch(`/onboarding/calibration-data/${userId}`);
           if (res.ok) {
             const { data } = await res.json();
-            if (data?.completed_at) {
+            // While a redo is in progress (?redo=1), ignore completed_at so the
+            // interview re-mounts instead of showing the "complete" screen.
+            if (data?.completed_at && !isRedoing) {
               setAlreadyDone(true);
               setCalibrationData(data);
             }
@@ -57,8 +64,11 @@ export default function InterviewPage() {
             }
           }
         }
-      } catch {
-        // Non-fatal
+      } catch (err) {
+        // Non-fatal by design: if the completion check fails we fall through
+        // to rendering the interview itself (worst case a returning user sees
+        // it again). Log so the failure is traceable (audit-2026-07-03).
+        console.warn('Calibration-data check failed (non-fatal):', err);
       } finally {
         setLoading(false);
       }
@@ -74,7 +84,7 @@ export default function InterviewPage() {
     return (
       <div className="max-w-3xl mx-auto px-6 py-16">
         <div className="flex items-center justify-center h-64">
-          <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" style={{ color: 'rgba(255,255,255,0.2)' }} />
+          <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" style={{ color: 'var(--text-muted)' }} />
         </div>
       </div>
     );
@@ -107,7 +117,7 @@ export default function InterviewPage() {
         >
           Interview Complete
         </h1>
-        <p className="text-sm mb-10" style={{ color: 'rgba(255,255,255,0.35)' }}>
+        <p className="text-sm mb-10" style={{ color: 'var(--text-muted)' }}>
           {completedDate ? `Completed ${completedDate}` : 'Your twin has your story'}
         </p>
 
@@ -140,7 +150,7 @@ export default function InterviewPage() {
             {summary && (
               <p
                 className="text-sm leading-relaxed"
-                style={{ color: 'rgba(255,255,255,0.5)', fontFamily: "'Inter', sans-serif" }}
+                style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
               >
                 {summary}
               </p>
@@ -156,8 +166,8 @@ export default function InterviewPage() {
             onClick={() => navigate('/identity')}
             className="w-full py-3.5 rounded-[100px] text-sm font-medium transition-opacity hover:opacity-90"
             style={{
-              backgroundColor: '#252222',
-              color: '#fdfcfb',
+              background: 'var(--claura-bone)',
+              color: 'var(--claura-bone-ink)',
               fontFamily: "'Inter', sans-serif",
               cursor: 'pointer',
               minHeight: '48px',
@@ -173,11 +183,15 @@ export default function InterviewPage() {
                 setCalibrationData(null);
                 // Clear saved interview progress so DeepInterview starts fresh
                 localStorage.removeItem('twinme_interview_progress');
+                // Persist a redo marker in the URL so a refresh mid-redo
+                // re-mounts the interview instead of restoring the
+                // "Interview Complete" screen (completed_at stays set server-side).
+                setSearchParams({ redo: '1' });
               }}
               className="flex-1 flex items-center justify-center gap-2 py-3 rounded-[100px] text-sm transition-opacity hover:opacity-70"
               style={{
                 border: '1px solid var(--glass-surface-border, rgba(255,255,255,0.1))',
-                color: 'rgba(255,255,255,0.5)',
+                color: 'var(--text-secondary)',
                 fontFamily: "'Inter', sans-serif",
                 cursor: 'pointer',
                 minHeight: '44px',
@@ -191,7 +205,7 @@ export default function InterviewPage() {
               className="flex-1 py-3 rounded-[100px] text-sm transition-opacity hover:opacity-70"
               style={{
                 border: '1px solid var(--glass-surface-border, rgba(255,255,255,0.1))',
-                color: 'rgba(255,255,255,0.5)',
+                color: 'var(--text-secondary)',
                 fontFamily: "'Inter', sans-serif",
                 cursor: 'pointer',
                 minHeight: '44px',

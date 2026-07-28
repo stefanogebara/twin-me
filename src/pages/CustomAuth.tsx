@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useAnalytics } from '../contexts/AnalyticsContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { Loader2, X, Check, Ticket } from 'lucide-react';
 import { API_URL } from '@/services/api/apiBase';
 
@@ -10,6 +11,7 @@ const CustomAuth = () => {
   const [searchParams] = useSearchParams();
   const { signInWithOAuth, isSignedIn, isLoaded } = useAuth();
   const { trackFunnel } = useAnalytics();
+  const { resolvedTheme } = useTheme();
 
   // Redirect already-signed-in users away from auth page, unless `?view=public`
   // is set (lets marketers QA the auth UI while signed-in and supports a
@@ -162,11 +164,25 @@ const CustomAuth = () => {
           redirect: redirectAfterAuth,
         }),
       });
-      const data = await res.json();
-      if (data.success) {
+      // Rate limited: surface a wait time from Retry-After (seconds) so the user
+      // isn't told a misleading "network error" (audit-2026-07-03 error-ux).
+      if (res.status === 429) {
+        const retryAfter = Number(res.headers.get('Retry-After'));
+        setError(
+          Number.isFinite(retryAfter) && retryAfter > 0
+            ? `Too many requests. Please wait ${retryAfter}s and try again.`
+            : 'Too many requests. Please wait a moment and try again.',
+        );
+        return;
+      }
+      // Guard res.ok before .json(): a 5xx may return a non-JSON body, which
+      // would throw an opaque parse error caught as a generic "network error".
+      let data: { success?: boolean; error?: string } | null = null;
+      try { data = await res.json(); } catch { data = null; }
+      if (res.ok && data?.success) {
         setMagicLinkSent(true);
       } else {
-        setError(data.error || 'Could not send signin link. Try again in a moment.');
+        setError(data?.error || 'Could not send signin link. Try again in a moment.');
       }
     } catch {
       setError('Network error. Check your connection and try again.');
@@ -266,15 +282,7 @@ For privacy concerns: privacy@twinme.me`
     >
       {/* Left panel — form (glass card on mobile, clean on desktop) */}
       <div className="flex-1 flex items-center justify-center px-4 sm:px-6">
-      <div
-        className="w-full max-w-[420px] rounded-[24px] px-6 py-8"
-        style={{
-          backgroundColor: 'rgba(13,12,18,0.55)',
-          backdropFilter: 'blur(24px)',
-          WebkitBackdropFilter: 'blur(24px)',
-          border: '1px solid rgba(255,255,255,0.07)',
-        }}
-      >
+      <div className="claura-glass w-full max-w-[420px] rounded-[24px] px-6 py-8">
 
         {/* Logo */}
         <div className="flex items-center gap-2 mb-10">
@@ -313,7 +321,7 @@ For privacy concerns: privacy@twinme.me`
         </h1>
         <p
           className="text-sm mb-10"
-          style={{ color: 'rgba(255,255,255,0.60)', fontFamily: "'Inter', sans-serif" }}
+          style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
         >
           Sign in to discover your soul signature
         </p>
@@ -332,14 +340,14 @@ For privacy concerns: privacy@twinme.me`
           <div
             className="flex items-center gap-2.5 mb-6 py-3 px-4 rounded-lg"
             style={{
-              backgroundColor: 'rgba(255,255,255,0.04)',
+              backgroundColor: 'var(--surface)',
               border: '1px solid var(--glass-surface-border)',
             }}
           >
-            <Check className="w-4 h-4 flex-shrink-0" style={{ color: 'rgba(255,255,255,0.85)' }} />
-            <span className="text-sm" style={{ color: 'rgba(255,255,255,0.7)', fontFamily: "'Inter', sans-serif" }}>
+            <Check className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--foreground)' }} />
+            <span className="text-sm" style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
               {inviteCode ? (
-                <>Invite code: <strong style={{ color: 'rgba(255,255,255,0.85)', letterSpacing: '1px' }}>{inviteCode}</strong></>
+                <>Invite code: <strong style={{ color: 'var(--foreground)', letterSpacing: '1px' }}>{inviteCode}</strong></>
               ) : (
                 'Access granted'
               )}
@@ -350,7 +358,7 @@ For privacy concerns: privacy@twinme.me`
           <div className="mb-6">
             <div className="flex gap-2">
               <div className="relative flex-1">
-                <Ticket className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'rgba(255,255,255,0.25)' }} />
+                <Ticket className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--text-placeholder)' }} />
                 <input
                   type="text"
                   value={inviteCode}
@@ -360,9 +368,9 @@ For privacy concerns: privacy@twinme.me`
                     setInviteValid(false);
                   }}
                   placeholder="Enter invite code"
-                  className="w-full h-10 pl-9 pr-3 rounded-lg text-sm outline-none"
+                  className="w-full h-10 pl-9 pr-3 rounded-[12px] text-sm outline-none"
                   style={{
-                    backgroundColor: 'rgba(218,217,215,0.08)',
+                    backgroundColor: 'var(--input)',
                     border: '1px solid var(--border)',
                     color: 'var(--foreground)',
                     fontFamily: "'Inter', sans-serif",
@@ -373,9 +381,10 @@ For privacy concerns: privacy@twinme.me`
               <button
                 onClick={() => validateCode(inviteCode)}
                 disabled={validating || inviteCode.length < 4}
-                className="h-10 px-4 rounded-lg text-sm font-medium transition-opacity hover:opacity-90 disabled:opacity-40"
+                className="h-10 px-4 rounded-[12px] text-sm font-medium transition-opacity hover:opacity-90 disabled:opacity-40"
                 style={{
-                  backgroundColor: '#252222',
+                  background: 'var(--secondary)',
+                  border: '1px solid var(--border)',
                   color: 'var(--foreground)',
                   fontFamily: "'Inter', sans-serif",
                 }}
@@ -383,12 +392,12 @@ For privacy concerns: privacy@twinme.me`
                 {validating ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Verify'}
               </button>
             </div>
-            <p className="text-[12px] mt-2" style={{ color: 'rgba(255,255,255,0.40)', fontFamily: "'Inter', sans-serif" }}>
+            <p className="text-[12px] mt-2" style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
               No code?{' '}
               <button
                 onClick={() => navigate('/waitlist')}
                 className="underline transition-opacity hover:opacity-70 min-h-[44px] inline-flex items-center"
-                style={{ color: 'rgba(255,255,255,0.5)' }}
+                style={{ color: 'var(--text-secondary)' }}
               >
                 Join the waitlist
               </button>
@@ -399,11 +408,11 @@ For privacy concerns: privacy@twinme.me`
         {/* Email hint */}
         {searchParams.get('email') && (
           <div
-            className="text-sm mb-6 py-3 px-4 rounded-lg"
+            className="text-sm mb-6 py-3 px-4 rounded-[12px]"
             style={{
-              backgroundColor: 'rgba(255,255,255,0.04)',
+              backgroundColor: 'var(--glass-surface-bg)',
               border: '1px solid var(--border-glass)',
-              color: 'rgba(255,255,255,0.6)',
+              color: 'var(--text-secondary)',
             }}
           >
             Signing up as <strong style={{ color: 'var(--foreground)' }}>{searchParams.get('email')}</strong>
@@ -413,11 +422,11 @@ For privacy concerns: privacy@twinme.me`
         {/* Error */}
         {error && (
           <div
-            className="text-sm mb-6 py-3 px-4 rounded-lg"
+            className="text-sm mb-6 py-3 px-4 rounded-[10px]"
             style={{
-              backgroundColor: 'rgba(239, 68, 68, 0.08)',
-              border: '1px solid rgba(239, 68, 68, 0.15)',
-              color: '#fca5a5',
+              backgroundColor: 'rgba(220, 38, 38, 0.10)',
+              border: '1px solid rgba(220, 38, 38, 0.35)',
+              color: 'var(--claura-danger-ink)',
             }}
           >
             {error}
@@ -428,10 +437,10 @@ For privacy concerns: privacy@twinme.me`
         <button
           onClick={handleGoogleSignIn}
           disabled={loading}
-          className="w-full flex items-center justify-center gap-2.5 h-12 rounded-full text-sm font-medium transition-opacity hover:opacity-90 disabled:opacity-50"
+          className="w-full flex items-center justify-center gap-2.5 h-12 rounded-[12px] text-sm font-semibold transition-all duration-200 hover:-translate-y-0.5 hover:brightness-105 hover:shadow-lg disabled:opacity-50"
           style={{
-            backgroundColor: 'var(--foreground)',
-            color: 'var(--primary-foreground)',
+            background: 'var(--claura-bone)',
+            color: 'var(--claura-bone-ink)',
             fontFamily: "'Inter', sans-serif",
             cursor: loading ? 'not-allowed' : 'pointer',
           }}
@@ -462,7 +471,7 @@ For privacy concerns: privacy@twinme.me`
         {/* audit-2026-05-09 F-M2: magic-link email signin (fallback path) */}
         <div className="mt-5 flex items-center gap-3" aria-hidden="true">
           <div className="flex-1" style={{ borderTop: '1px solid var(--border-glass)' }} />
-          <span className="text-[11px] uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Inter', sans-serif" }}>or</span>
+          <span className="text-[11px] uppercase tracking-wider" style={{ color: 'var(--text-muted)', fontFamily: "'Inter', sans-serif" }}>or</span>
           <div className="flex-1" style={{ borderTop: '1px solid var(--border-glass)' }} />
         </div>
 
@@ -486,10 +495,11 @@ For privacy concerns: privacy@twinme.me`
             <input
               type="email"
               autoComplete="email"
+              aria-label="Email address"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
-              className="w-full h-12 px-4 rounded-full text-sm outline-none transition-colors"
+              className="w-full h-12 px-4 rounded-[12px] text-sm outline-none transition-colors"
               style={{
                 backgroundColor: 'var(--glass-surface-bg)',
                 border: '1px solid var(--glass-surface-border)',
@@ -500,7 +510,7 @@ For privacy concerns: privacy@twinme.me`
             <button
               type="submit"
               disabled={magicLinkLoading || !email.trim()}
-              className="w-full flex items-center justify-center gap-2 h-12 rounded-full text-sm font-medium transition-opacity hover:opacity-90 disabled:opacity-50"
+              className="w-full flex items-center justify-center gap-2 h-12 rounded-[12px] text-sm font-medium transition-opacity hover:opacity-90 disabled:opacity-50"
               style={{
                 backgroundColor: 'var(--glass-surface-bg)',
                 border: '1px solid var(--glass-surface-border)',
@@ -527,13 +537,13 @@ For privacy concerns: privacy@twinme.me`
         {/* Terms */}
         <p
           className="text-center text-[12px] leading-relaxed"
-          style={{ color: 'rgba(255,255,255,0.5)', fontFamily: "'Inter', sans-serif" }}
+          style={{ color: 'var(--text-muted)', fontFamily: "'Inter', sans-serif" }}
         >
           By continuing, you agree to our{' '}
           <button
             onClick={() => setActiveModal('terms')}
             className="underline transition-opacity hover:opacity-70 min-h-[44px] inline-flex items-center"
-            style={{ color: 'rgba(255,255,255,0.65)' }}
+            style={{ color: 'var(--text-secondary)' }}
           >
             Terms of Service
           </button>
@@ -541,7 +551,7 @@ For privacy concerns: privacy@twinme.me`
           <button
             onClick={() => setActiveModal('privacy')}
             className="underline transition-opacity hover:opacity-70 min-h-[44px] inline-flex items-center"
-            style={{ color: 'rgba(255,255,255,0.65)' }}
+            style={{ color: 'var(--text-secondary)' }}
           >
             Privacy Policy
           </button>
@@ -550,13 +560,13 @@ For privacy concerns: privacy@twinme.me`
         {/* Explore link */}
         <p
           className="text-center text-[13px] mt-6"
-          style={{ color: 'rgba(255,255,255,0.2)', fontFamily: "'Inter', sans-serif" }}
+          style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
         >
           New here?{' '}
           <button
             onClick={() => navigate('/discover')}
             className="transition-opacity hover:opacity-70"
-            style={{ color: 'rgba(255,255,255,0.85)' }}
+            style={{ color: 'var(--foreground)' }}
           >
             Learn more
           </button>
@@ -564,57 +574,40 @@ For privacy concerns: privacy@twinme.me`
 
         {/* Footer */}
         <div className="mt-10 text-center">
-          <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.35)' }}>
+          <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
             &copy; 2026 TwinMe Inc.
           </span>
         </div>
       </div>
       </div>
 
-      {/* Right panel — Ghibli cosmic "arrival" still (matches hero chapter III).
-          2026-05-10: image-set serves the @2x lanczos upscale to Retina so the
-          1376×768 source doesn't visibly pixelate on full-bleed display. */}
+      {/* Right panel — Claura zoned photography: cosmic-swirl by night,
+          soul-waves by day, calmed by a theme-aware veil. */}
       <div
         className="hidden lg:flex relative flex-1 m-4 ml-0 flex-col items-center justify-center px-12 overflow-hidden"
         style={{
           backgroundImage:
-            "image-set(url('/images/cosmic-v2/stage3-arrival.webp') 1x, url('/images/cosmic-v2/stage3-arrival@2x.webp') 2x)",
+            resolvedTheme === 'light'
+              ? "url('/cinematic/assets/soul-waves.png')"
+              : "url('/cinematic/assets/cosmic-swirl.png')",
           backgroundSize: 'cover',
-          backgroundPosition: 'center',
+          backgroundPosition: 'center 30%',
           borderRadius: '24px',
         }}
       >
-        {/* Soft grade matching hero palette */}
+        {/* Claura scrim — night ink or paper veil, deepening toward the base.
+            Daylight scenes stay vivid: the light veil is much gentler. */}
         <div
           aria-hidden
           className="absolute inset-0 pointer-events-none"
           style={{
             background:
-              'radial-gradient(ellipse 80% 60% at 50% 95%, rgba(245,180,150,0.12) 0%, transparent 55%),' +
-              'linear-gradient(180deg, rgba(19,18,26,0.30) 0%, rgba(19,18,26,0.12) 50%, rgba(40,20,30,0.22) 100%)',
-          }}
-        />
-        {/* 2026-05-12 Option B: SVG noise grain — film-grain texture over painted bg */}
-        <div
-          aria-hidden
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            backgroundImage:
-              "url(\"data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.6' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.35 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")",
-            mixBlendMode: 'overlay',
+              resolvedTheme === 'light'
+                ? 'linear-gradient(200deg, rgba(var(--claura-scrim-rgb),0.08) 0%, rgba(var(--claura-scrim-rgb),0.22) 55%, rgba(var(--claura-scrim-rgb),0.45) 100%)'
+                : 'linear-gradient(200deg, rgba(var(--claura-scrim-rgb),0.16) 0%, rgba(var(--claura-scrim-rgb),0.42) 55%, rgba(var(--claura-scrim-rgb),0.72) 100%)',
             borderRadius: '24px',
           }}
         />
-        {/* Decorative ring */}
-        <div
-          className="relative w-20 h-20 rounded-full mb-10 flex-shrink-0"
-          style={{
-            border: '1.5px solid rgba(255,255,255,0.25)',
-            background: 'radial-gradient(circle, rgba(255,255,255,0.10) 0%, transparent 70%)',
-            boxShadow: '0 0 60px rgba(232,160,80,0.18)',
-          }}
-        />
-
         <h2
           className="relative text-center mb-4"
           style={{
@@ -624,8 +617,12 @@ For privacy concerns: privacy@twinme.me`
             fontWeight: 400,
             letterSpacing: '-0.72px',
             lineHeight: 1.15,
-            color: 'rgba(255,255,255,0.95)',
-            textShadow: '0 2px 24px rgba(0,0,0,0.4)',
+            color: 'var(--claura-text)',
+            // Claura halation on the night photo; clean ink by day
+            textShadow:
+              resolvedTheme === 'light'
+                ? 'none'
+                : '0 0 4px rgba(255,255,255,0.9), 0 0 42px rgba(220,235,210,0.35)',
           }}
         >
           Your soul signature
@@ -639,8 +636,7 @@ For privacy concerns: privacy@twinme.me`
             fontFamily: "'Inter', sans-serif",
             fontSize: '14px',
             lineHeight: 1.6,
-            color: 'rgba(255,255,255,0.75)',
-            textShadow: '0 1px 16px rgba(0,0,0,0.35)',
+            color: 'var(--claura-narr)',
           }}
         >
           Connect your platforms, discover your patterns, meet your digital twin.
@@ -678,8 +674,9 @@ For privacy concerns: privacy@twinme.me`
               </h2>
               <button
                 onClick={() => setActiveModal(null)}
+                aria-label="Close"
                 className="p-1 transition-opacity hover:opacity-60"
-                style={{ color: 'rgba(255,255,255,0.3)' }}
+                style={{ color: 'var(--text-muted)' }}
               >
                 <X className="w-4 h-4" />
               </button>
@@ -689,7 +686,7 @@ For privacy concerns: privacy@twinme.me`
                 className="whitespace-pre-wrap text-[13px] leading-relaxed"
                 style={{
                   fontFamily: "'Inter', sans-serif",
-                  color: 'rgba(255,255,255,0.5)',
+                  color: 'var(--text-secondary)',
                   margin: 0,
                 }}
               >

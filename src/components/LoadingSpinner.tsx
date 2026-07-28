@@ -49,7 +49,7 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
             size === 'lg' || size === 'xl' ? 'text-lg' :
             'text-base'
           }`}
-          style={{ color: 'rgba(255,255,255,0.4)' }}
+          style={{ color: 'var(--text-muted)' }}
         >
           {text}
         </p>
@@ -66,7 +66,7 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
         <div
           className="rounded-2xl p-8"
           style={{
-            background: 'rgba(255,255,255,0.02)',
+            background: 'var(--surface)',
 
             border: '1px solid var(--border-glass)',
             boxShadow: '0 8px 32px rgba(0, 0, 0, 0.18)',
@@ -97,7 +97,7 @@ export const LoadingCard: React.FC<{ text?: string; className?: string }> = ({
   <div
     className={`rounded-2xl p-8 ${className}`}
     style={{
-      background: 'rgba(255,255,255,0.02)',
+      background: 'var(--surface)',
       backdropFilter: 'blur(10px) saturate(140%)',
       WebkitBackdropFilter: 'blur(10px) saturate(140%)',
       border: '1px solid var(--border-glass)',
@@ -113,7 +113,7 @@ export const LoadingButton: React.FC<{ text?: string; size?: 'sm' | 'md' | 'lg' 
 }) => (
   <div className="flex items-center gap-2">
     <LoadingSpinner size={size} />
-    <span style={{ color: 'rgba(255,255,255,0.4)' }}>{text}</span>
+    <span style={{ color: 'var(--text-muted)' }}>{text}</span>
   </div>
 );
 
@@ -136,7 +136,7 @@ export const SkeletonCard: React.FC<{ className?: string }> = ({ className = "" 
   <div
     className={`rounded-2xl p-4 ${className}`}
     style={{
-      background: 'rgba(255,255,255,0.02)',
+      background: 'var(--surface)',
       border: '1px solid var(--border-glass)',
     }}
   >
@@ -172,7 +172,7 @@ export const SkeletonTwin: React.FC<{ className?: string }> = ({ className = "" 
   <div
     className={`rounded-2xl p-6 ${className}`}
     style={{
-      background: 'rgba(255,255,255,0.02)',
+      background: 'var(--surface)',
       border: '1px solid var(--border-glass)',
     }}
   >

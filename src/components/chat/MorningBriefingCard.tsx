@@ -5,10 +5,11 @@
  * health/music sections, actionable suggestion. Dark glass aesthetic.
  */
 
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Calendar, Moon, Music, Sparkles, ArrowRight, RefreshCw } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { authFetch } from '@/services/api/apiBase';
+import { useAnalytics } from '@/contexts/AnalyticsContext';
 
 interface BriefingData {
   greeting: string;
@@ -47,7 +48,7 @@ const SkeletonLine: React.FC<{ width: string; height?: number }> = ({ width, hei
     style={{
       width,
       height,
-      backgroundColor: 'rgba(255,255,255,0.06)',
+      backgroundColor: 'var(--surface)',
     }}
   />
 );
@@ -57,17 +58,25 @@ const MorningBriefingCard: React.FC<MorningBriefingCardProps> = ({ onAskTwin }) 
   // this card. 30-min staleTime — server already caches briefings in
   // proactive_insights, this just keeps the client from refetching on every
   // dashboard navigation. Refetch is still available via the refresh button.
-  const { data: briefing, isLoading, isError, refetch } = useQuery<BriefingData | null>({
+  const { data: briefing, isLoading, isError, error, refetch } = useQuery<BriefingData | null>({
     queryKey: ['morning-briefing'],
     queryFn: async () => {
       const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 15000);
+      let timedOut = false;
+      const timer = setTimeout(() => { timedOut = true; controller.abort(); }, 15000);
       try {
         const res = await authFetch('/morning-briefing/generate', { signal: controller.signal });
-        if (!res.ok) throw new Error('Failed');
+        if (!res.ok) throw new Error(`Briefing request failed (${res.status})`);
         const json = await res.json();
         if (json.success && json.briefing) return json.briefing as BriefingData;
         throw new Error('No briefing in response');
+      } catch (err) {
+        // Distinguish our own 15s timeout from a genuine backend/network error
+        // so the error card can show an accurate, actionable message.
+        if (timedOut || (err instanceof Error && err.name === 'AbortError')) {
+          throw new Error('TIMEOUT');
+        }
+        throw err;
       } finally {
         clearTimeout(timer);
       }
@@ -80,6 +89,17 @@ const MorningBriefingCard: React.FC<MorningBriefingCardProps> = ({ onAskTwin }) 
 
   const { location, time, label } = getLocationTime();
 
+  // Instrumentation (M1): the brief was actually SEEN (data loaded, not just
+  // mounted). Fire once per mount — the AM heartbeat signal for the daily loop.
+  const { trackFunnel } = useAnalytics();
+  const briefingFiredRef = useRef(false);
+  useEffect(() => {
+    if (briefing && !briefingFiredRef.current) {
+      briefingFiredRef.current = true;
+      trackFunnel('briefing_opened', { part_of_day: label });
+    }
+  }, [briefing, label, trackFunnel]);
+
   // Loading state — render full structural skeleton (header, greeting,
   // schedule, recovery, music, suggestion) so the user sees the briefing's
   // shape immediately, not just a spinner.
@@ -88,10 +108,10 @@ const MorningBriefingCard: React.FC<MorningBriefingCardProps> = ({ onAskTwin }) 
       <div
         className="rounded-[24px] overflow-hidden relative"
         style={{
-          backgroundColor: 'rgba(255,255,255,0.06)',
+          backgroundColor: 'var(--surface)',
           backgroundImage:
             'radial-gradient(ellipse 80% 60% at 0% 0%, rgba(210,145,55,0.10) 0%, transparent 60%), radial-gradient(ellipse 60% 50% at 100% 100%, rgba(93,92,174,0.08) 0%, transparent 60%)',
-          border: '1px solid rgba(255,255,255,0.12)',
+          border: '1px solid var(--glass-surface-border)',
           backdropFilter: 'blur(42px)',
           WebkitBackdropFilter: 'blur(42px)',
         }}
@@ -99,20 +119,20 @@ const MorningBriefingCard: React.FC<MorningBriefingCardProps> = ({ onAskTwin }) 
         <div className="px-7 pt-6 pb-3 flex items-center justify-between">
           <span
             className="text-[11px] tracking-[0.12em] uppercase"
-            style={{ color: 'rgba(255,255,255,0.30)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+            style={{ color: 'var(--text-secondary)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
           >
             {location}{location ? ' — ' : ''}{time}{' — '}{label}
           </span>
         </div>
         <div className="px-7">
           <div className="flex items-center gap-2">
-            <div className="flex-1" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} />
+            <div className="flex-1" style={{ borderTop: '1px solid var(--border-glass)' }} />
             <div className="flex gap-1">
-              <div className="w-1 h-1 rounded-full" style={{ backgroundColor: 'rgba(255,255,255,0.15)' }} />
-              <div className="w-1 h-1 rounded-full" style={{ backgroundColor: 'rgba(255,255,255,0.15)' }} />
-              <div className="w-1 h-1 rounded-full" style={{ backgroundColor: 'rgba(255,255,255,0.15)' }} />
+              <div className="w-1 h-1 rounded-full" style={{ backgroundColor: 'var(--surface-solid)' }} />
+              <div className="w-1 h-1 rounded-full" style={{ backgroundColor: 'var(--surface-solid)' }} />
+              <div className="w-1 h-1 rounded-full" style={{ backgroundColor: 'var(--surface-solid)' }} />
             </div>
-            <div className="flex-1" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} />
+            <div className="flex-1" style={{ borderTop: '1px solid var(--border-glass)' }} />
           </div>
         </div>
         <div className="px-7 pt-5 pb-2">
@@ -124,7 +144,7 @@ const MorningBriefingCard: React.FC<MorningBriefingCardProps> = ({ onAskTwin }) 
         <div className="px-7 pb-7 pt-4 space-y-5" aria-busy="true" aria-label="Loading your briefing">
           {[Calendar, Moon, Music, Sparkles].map((Icon, i) => (
             <div key={i} className="flex items-start gap-3">
-              <Icon className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: 'rgba(255,255,255,0.20)' }} />
+              <Icon className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
               <div className="flex-1 space-y-2">
                 <SkeletonLine width="22%" height={10} />
                 <SkeletonLine width={i === 3 ? '75%' : '60%'} />
@@ -136,11 +156,55 @@ const MorningBriefingCard: React.FC<MorningBriefingCardProps> = ({ onAskTwin }) 
     );
   }
 
-  if (isError || !briefing) {
-    return null;
-  }
-
   const fetchBriefing = () => { void refetch(); };
+
+  // Tailor the copy: a timeout is a "try again in a moment" situation, a hard
+  // error is a "something went wrong" one (audit-2026-07-03 error-ux).
+  const isTimeout = error instanceof Error && error.message === 'TIMEOUT';
+  const errorMessage = isTimeout
+    ? 'Your briefing is taking longer than usual.'
+    : "Couldn't load your briefing.";
+
+  // Error / empty state — render a degraded card with a retry instead of
+  // silently evaporating the dashboard's dominant hero (audit-2026-06-10).
+  if (isError || !briefing) {
+    return (
+      <div
+        className="rounded-[24px] overflow-hidden relative"
+        style={{
+          backgroundColor: 'var(--surface)',
+          backgroundImage:
+            'radial-gradient(ellipse 80% 60% at 0% 0%, rgba(210,145,55,0.10) 0%, transparent 60%), radial-gradient(ellipse 60% 50% at 100% 100%, rgba(93,92,174,0.08) 0%, transparent 60%)',
+          border: '1px solid var(--glass-surface-border)',
+          backdropFilter: 'blur(42px)',
+          WebkitBackdropFilter: 'blur(42px)',
+        }}
+      >
+        <div className="px-7 py-8 flex flex-col items-start gap-3">
+          <span
+            className="text-[11px] tracking-[0.12em] uppercase"
+            style={{ color: 'var(--text-secondary)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+          >
+            {location}{location ? ' — ' : ''}{time}{' — '}{label}
+          </span>
+          <p
+            className="text-[16px] leading-relaxed"
+            style={{ color: 'var(--text-secondary)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+          >
+            {errorMessage}
+          </p>
+          <button
+            onClick={fetchBriefing}
+            className="flex items-center gap-1.5 text-[12px] font-medium transition-opacity hover:opacity-70"
+            style={{ color: 'var(--text-secondary)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+          >
+            <RefreshCw className="w-3 h-3" />
+            Try again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const hasSchedule = briefing.schedule_summary && !briefing.schedule_summary.includes('wide open') && !briefing.schedule_summary.includes('No schedule');
   const hasRest = !!briefing.rest;
@@ -151,10 +215,10 @@ const MorningBriefingCard: React.FC<MorningBriefingCardProps> = ({ onAskTwin }) 
     <div
       className="rounded-[24px] overflow-hidden relative"
       style={{
-        backgroundColor: 'rgba(255,255,255,0.06)',
+        backgroundColor: 'var(--surface)',
         backgroundImage:
           'radial-gradient(ellipse 80% 60% at 0% 0%, rgba(210,145,55,0.10) 0%, transparent 60%), radial-gradient(ellipse 60% 50% at 100% 100%, rgba(93,92,174,0.08) 0%, transparent 60%)',
-        border: '1px solid rgba(255,255,255,0.12)',
+        border: '1px solid var(--glass-surface-border)',
         backdropFilter: 'blur(42px)',
         WebkitBackdropFilter: 'blur(42px)',
         boxShadow: '0 8px 24px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.08)',
@@ -164,14 +228,14 @@ const MorningBriefingCard: React.FC<MorningBriefingCardProps> = ({ onAskTwin }) 
       <div className="px-7 pt-6 pb-3 flex items-center justify-between">
         <span
           className="text-[11px] tracking-[0.12em] uppercase"
-          style={{ color: 'rgba(255,255,255,0.30)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+          style={{ color: 'var(--text-secondary)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
         >
           {location}{location ? ' \u2014 ' : ''}{time}{' \u2014 '}{label}
         </span>
         <button
           onClick={fetchBriefing}
           className="p-1 rounded-md transition-opacity hover:opacity-60"
-          style={{ color: 'rgba(255,255,255,0.20)' }}
+          style={{ color: 'var(--text-muted)' }}
           aria-label="Refresh briefing"
         >
           <RefreshCw className="w-3 h-3" />
@@ -181,13 +245,13 @@ const MorningBriefingCard: React.FC<MorningBriefingCardProps> = ({ onAskTwin }) 
       {/* Divider with dots */}
       <div className="px-7">
         <div className="flex items-center gap-2">
-          <div className="flex-1" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} />
+          <div className="flex-1" style={{ borderTop: '1px solid var(--border-glass)' }} />
           <div className="flex gap-1">
-            <div className="w-1 h-1 rounded-full" style={{ backgroundColor: 'rgba(255,255,255,0.15)' }} />
-            <div className="w-1 h-1 rounded-full" style={{ backgroundColor: 'rgba(255,255,255,0.15)' }} />
-            <div className="w-1 h-1 rounded-full" style={{ backgroundColor: 'rgba(255,255,255,0.15)' }} />
+            <div className="w-1 h-1 rounded-full" style={{ backgroundColor: 'var(--surface-solid)' }} />
+            <div className="w-1 h-1 rounded-full" style={{ backgroundColor: 'var(--surface-solid)' }} />
+            <div className="w-1 h-1 rounded-full" style={{ backgroundColor: 'var(--surface-solid)' }} />
           </div>
-          <div className="flex-1" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} />
+          <div className="flex-1" style={{ borderTop: '1px solid var(--border-glass)' }} />
         </div>
       </div>
 
@@ -199,7 +263,7 @@ const MorningBriefingCard: React.FC<MorningBriefingCardProps> = ({ onAskTwin }) 
             fontFamily: "'Instrument Serif', Georgia, serif",
             fontStyle: 'italic',
             fontWeight: 400,
-            color: '#F5F5F4',
+            color: 'var(--foreground)',
             letterSpacing: '-0.03em',
           }}
         >
@@ -207,7 +271,7 @@ const MorningBriefingCard: React.FC<MorningBriefingCardProps> = ({ onAskTwin }) 
         </h2>
         <p
           className="text-[16px] sm:text-[17px] leading-relaxed"
-          style={{ color: 'rgba(255,255,255,0.70)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+          style={{ color: 'var(--foreground)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
         >
           {briefing.schedule_summary}
         </p>
@@ -218,14 +282,14 @@ const MorningBriefingCard: React.FC<MorningBriefingCardProps> = ({ onAskTwin }) 
         {/* Schedule */}
         {hasSchedule && briefing.schedule.length > 0 && (
           <div className="flex items-start gap-3">
-            <Calendar className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: 'rgba(255,255,255,0.30)' }} />
+            <Calendar className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
             <div className="flex-1 min-w-0">
-              <span className="text-[11px] tracking-[0.06em] uppercase block mb-1" style={{ color: 'rgba(255,255,255,0.25)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}>
+              <span className="text-[11px] tracking-[0.06em] uppercase block mb-1" style={{ color: 'var(--text-secondary)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}>
                 Schedule
               </span>
               <div className="space-y-1">
                 {(briefing.schedule ?? []).slice(0, 3).map((event, i) => (
-                  <p key={i} className="text-[15px] truncate" style={{ color: 'rgba(255,255,255,0.55)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}>
+                  <p key={i} className="text-[15px] truncate" style={{ color: 'var(--text-secondary)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}>
                     {event}
                   </p>
                 ))}
@@ -237,12 +301,12 @@ const MorningBriefingCard: React.FC<MorningBriefingCardProps> = ({ onAskTwin }) 
         {/* Rest / Recovery */}
         {hasRest && (
           <div className="flex items-start gap-3">
-            <Moon className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: 'rgba(255,255,255,0.30)' }} />
+            <Moon className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
             <div className="flex-1 min-w-0">
-              <span className="text-[11px] tracking-[0.06em] uppercase block mb-1" style={{ color: 'rgba(255,255,255,0.25)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}>
+              <span className="text-[11px] tracking-[0.06em] uppercase block mb-1" style={{ color: 'var(--text-secondary)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}>
                 Recovery
               </span>
-              <p className="text-[15px]" style={{ color: 'rgba(255,255,255,0.55)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}>
+              <p className="text-[15px]" style={{ color: 'var(--text-secondary)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}>
                 {briefing.rest}
               </p>
             </div>
@@ -252,12 +316,12 @@ const MorningBriefingCard: React.FC<MorningBriefingCardProps> = ({ onAskTwin }) 
         {/* Music */}
         {hasMusic && (
           <div className="flex items-start gap-3">
-            <Music className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: 'rgba(255,255,255,0.30)' }} />
+            <Music className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
             <div className="flex-1 min-w-0">
-              <span className="text-[11px] tracking-[0.06em] uppercase block mb-1" style={{ color: 'rgba(255,255,255,0.25)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}>
+              <span className="text-[11px] tracking-[0.06em] uppercase block mb-1" style={{ color: 'var(--text-secondary)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}>
                 Listening
               </span>
-              <p className="text-[15px]" style={{ color: 'rgba(255,255,255,0.55)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}>
+              <p className="text-[15px]" style={{ color: 'var(--text-secondary)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}>
                 {briefing.music}
               </p>
             </div>
@@ -267,14 +331,14 @@ const MorningBriefingCard: React.FC<MorningBriefingCardProps> = ({ onAskTwin }) 
         {/* Insights / Patterns */}
         {hasInsights && (
           <div className="flex items-start gap-3">
-            <Sparkles className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: 'rgba(255,255,255,0.30)' }} />
+            <Sparkles className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
             <div className="flex-1 min-w-0">
-              <span className="text-[11px] tracking-[0.06em] uppercase block mb-1" style={{ color: 'rgba(255,255,255,0.25)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}>
+              <span className="text-[11px] tracking-[0.06em] uppercase block mb-1" style={{ color: 'var(--text-secondary)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}>
                 Patterns
               </span>
               <div className="space-y-1">
                 {((briefing.patterns?.length ?? 0) > 0 ? briefing.patterns : briefing.insights ?? []).slice(0, 2).map((item, i) => (
-                  <p key={i} className="text-[15px]" style={{ color: 'rgba(255,255,255,0.55)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}>
+                  <p key={i} className="text-[15px]" style={{ color: 'var(--text-secondary)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}>
                     {item}
                   </p>
                 ))}
@@ -287,11 +351,11 @@ const MorningBriefingCard: React.FC<MorningBriefingCardProps> = ({ onAskTwin }) 
         {briefing.suggestion && (
           <div
             className="mt-3 pt-3"
-            style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}
+            style={{ borderTop: '1px solid var(--border-glass)' }}
           >
             <p
               className="text-[15px] leading-relaxed"
-              style={{ color: 'rgba(255,255,255,0.50)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif", fontStyle: 'italic' }}
+              style={{ color: 'var(--text-secondary)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif", fontStyle: 'italic' }}
             >
               {briefing.suggestion}
             </p>
@@ -303,7 +367,7 @@ const MorningBriefingCard: React.FC<MorningBriefingCardProps> = ({ onAskTwin }) 
           <button
             onClick={() => onAskTwin('Tell me more about my day')}
             className="flex items-center gap-1.5 text-[12px] font-medium mt-2 transition-opacity hover:opacity-70"
-            style={{ color: 'rgba(255,255,255,0.40)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+            style={{ color: 'var(--text-secondary)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
           >
             Dive deeper with your twin
             <ArrowRight className="w-3 h-3" />

@@ -116,15 +116,17 @@ router.post('/extract/platform/:platform',
           extraction = await extractor.extractYouTubeSignature(accessToken, userId);
           break;
 
-        case 'github':
+        case 'github': {
           const githubExtractor = new GitHubExtractor(accessToken);
           extraction = await githubExtractor.extractAll(userId, null);
           break;
+        }
 
-        case 'discord':
+        case 'discord': {
           const discordExtractor = new DiscordExtractor(accessToken);
           extraction = await discordExtractor.extractAll(userId, null);
           break;
+        }
 
         default:
           // This shouldn't happen since validatePlatform middleware should catch it

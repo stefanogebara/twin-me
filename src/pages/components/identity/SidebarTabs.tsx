@@ -25,8 +25,8 @@ const SidebarTabs: React.FC<SidebarTabsProps> = ({ activeTab, onTabChange }) => 
   <div
     className="flex items-center gap-1 p-1 rounded-full mx-auto w-fit"
     style={{
-      background: 'rgba(255,255,255,0.06)',
-      border: '1px solid rgba(255,255,255,0.10)',
+      background: 'var(--surface)',
+      border: '1px solid var(--glass-surface-border)',
     }}
   >
     {TABS.map(({ id, icon: Icon, label }) => {
@@ -38,7 +38,7 @@ const SidebarTabs: React.FC<SidebarTabsProps> = ({ activeTab, onTabChange }) => 
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200"
           style={{
             background: isActive ? 'rgba(255,255,255,0.10)' : 'transparent',
-            color: isActive ? 'var(--foreground)' : 'rgba(255,255,255,0.35)',
+            color: isActive ? 'var(--foreground)' : 'var(--text-secondary)',
           }}
           aria-label={label}
           aria-pressed={isActive}

@@ -19,7 +19,7 @@ export default function DiscoverFAQ({ onNavigate }: DiscoverFAQProps) {
           <div className="flex-1 flex flex-col gap-4">
             <p
               className="text-[11px] font-medium tracking-[2px] uppercase mb-2"
-              style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Inter', sans-serif" }}
+              style={{ color: 'var(--text-muted)', fontFamily: "'Inter', sans-serif" }}
             >
               FAQ
             </p>
@@ -32,13 +32,13 @@ export default function DiscoverFAQ({ onNavigate }: DiscoverFAQProps) {
             >
               Common questions
             </h2>
-            <p className="text-sm mb-4" style={{ color: 'rgba(255,255,255,0.4)', lineHeight: 1.5 }}>
+            <p className="text-sm mb-4" style={{ color: 'var(--text-muted)', lineHeight: 1.5 }}>
               Everything you need to know about TwinMe
             </p>
             <button
               onClick={() => onNavigate('/auth')}
               className="flex items-center justify-center h-10 px-5 rounded-[100px] text-sm font-medium w-fit transition-opacity hover:opacity-90"
-              style={{ background: '#F5F5F4', color: '#110f0f', fontFamily: "'Inter', sans-serif" }}
+              style={{ background: 'var(--claura-bone)', color: 'var(--claura-bone-ink)', fontFamily: "'Inter', sans-serif" }}
             >
               Get started
             </button>
@@ -46,35 +46,43 @@ export default function DiscoverFAQ({ onNavigate }: DiscoverFAQProps) {
 
           {/* Right — FAQ accordion (no cards, just borders) */}
           <div className="flex-1 flex flex-col">
-            {FAQ_ITEMS.map(({ q }, i) => (
-              <div
-                key={q}
-                className="cursor-pointer"
-                style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
-                onClick={() => setOpenFaq(openFaq === i ? null : i)}
-              >
-                <div className="flex items-center justify-between py-5 gap-4">
-                  <p style={{
-                    fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
-                    fontSize: '15px', fontWeight: 400, color: T.FG,
-                  }}>
-                    {q}
-                  </p>
-                  <ChevronDown
-                    className="w-4 h-4 shrink-0 transition-transform duration-200"
-                    style={{
-                      color: 'rgba(255,255,255,0.3)',
-                      transform: openFaq === i ? 'rotate(180deg)' : 'rotate(0deg)',
-                    }}
-                  />
+            {FAQ_ITEMS.map(({ q }, i) => {
+              const isOpen = openFaq === i;
+              return (
+                <div
+                  key={q}
+                  style={{ borderBottom: '1px solid var(--border-glass)' }}
+                >
+                  <button
+                    type="button"
+                    aria-expanded={isOpen}
+                    aria-controls={`faq-answer-${i}`}
+                    onClick={() => setOpenFaq(isOpen ? null : i)}
+                    className="flex items-center justify-between py-5 gap-4 w-full text-left cursor-pointer"
+                  >
+                    <span style={{
+                      fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
+                      fontSize: '15px', fontWeight: 400, color: T.FG,
+                    }}>
+                      {q}
+                    </span>
+                    <ChevronDown
+                      aria-hidden="true"
+                      className="w-4 h-4 shrink-0 transition-transform duration-200"
+                      style={{
+                        color: 'var(--text-muted)',
+                        transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                      }}
+                    />
+                  </button>
+                  {isOpen && FAQ_ANSWERS[q] && (
+                    <p id={`faq-answer-${i}`} role="region" className="pb-5 text-sm leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+                      {FAQ_ANSWERS[q]}
+                    </p>
+                  )}
                 </div>
-                {openFaq === i && FAQ_ANSWERS[q] && (
-                  <p className="pb-5 text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                    {FAQ_ANSWERS[q]}
-                  </p>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>

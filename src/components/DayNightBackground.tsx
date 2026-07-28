@@ -1,23 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useSun } from '@/contexts/SunContext';
 import { type SunPhase } from '@/hooks/useSunPosition';
-
-interface BgConfig {
-  src: string;
-  overlayOpacity: number;
-  position?: string;
-}
-
-const BG_MAP: Record<SunPhase, BgConfig> = {
-  night:     { src: '/backgrounds/bg-night.jpg',        overlayOpacity: 0.15, position: 'top center' },
-  dawn:      { src: '/backgrounds/bg-dawn.jpg',         overlayOpacity: 0.22, position: 'center' },
-  sunrise:   { src: '/backgrounds/bg-sunrise.jpg',      overlayOpacity: 0.38, position: 'top left' },
-  morning:   { src: '/backgrounds/bg-morning.jpg',      overlayOpacity: 0.58, position: 'top center' },
-  noon:      { src: '/backgrounds/bg-noon.jpg',         overlayOpacity: 0.62, position: 'bottom center' },
-  afternoon: { src: '/backgrounds/bg-noon.jpg',         overlayOpacity: 0.58, position: 'bottom center' },
-  sunset:    { src: '/backgrounds/bg-sunset.jpg',       overlayOpacity: 0.30, position: 'center' },
-  dusk:      { src: '/backgrounds/bg-dusk.jpg',         overlayOpacity: 0.22, position: 'bottom center' },
-};
+import { BG_MAP, overlayRgba, type BgConfig } from './dayNightBackground.config';
 
 export const DayNightBackground: React.FC = () => {
   const { sunPhase } = useSun();
@@ -101,12 +85,14 @@ export const DayNightBackground: React.FC = () => {
         }}
       />
 
-      {/* Readability overlay — adjusts per image brightness */}
+      {/* Readability veil — per-phase colour + opacity. Warm copper over the
+          blue midday photos (morning/noon/afternoon) so they read amber/charcoal
+          instead of navy and keep muted text legible; neutral black elsewhere. */}
       <div
         style={{
           position: 'absolute',
           inset: 0,
-          backgroundColor: `rgba(0,0,0,${currentBg.overlayOpacity})`,
+          backgroundColor: overlayRgba(currentBg),
           transition: 'background-color 2.2s ease-in-out',
           pointerEvents: 'none',
         }}

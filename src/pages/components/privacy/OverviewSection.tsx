@@ -25,7 +25,7 @@ const StatCard: React.FC<{ label: string; value: string; color: string }> = ({ l
     <div style={{ fontSize: 20, fontWeight: 800, color, fontFamily: "'Instrument Serif', Georgia, serif" }}>
       {value}
     </div>
-    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 2, fontWeight: 500 }}>
+    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2, fontWeight: 500 }}>
       {label}
     </div>
   </div>

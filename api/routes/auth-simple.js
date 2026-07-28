@@ -11,6 +11,7 @@ import { sendWelcomeEmail, sendMagicLink } from '../services/emailService.js';
 import { getRedisClient, isRedisAvailable } from '../services/redisClient.js';
 import { createLogger } from '../services/logger.js';
 import { authenticateUser } from '../middleware/auth.js';
+import { computeIsAdmin } from '../services/adminAccess.js';
 
 const log = createLogger('Auth');
 
@@ -336,6 +337,11 @@ function buildAuthUser(user) {
     emailVerified: user.email_verified ?? undefined,
     email_verified: user.email_verified ?? undefined,
     oauthProvider: user.oauth_provider || null,
+    // Defense-in-depth signal the SPA mirrors to gate admin route shells.
+    // Single source of truth in adminAccess.js — union of DB role (if ever
+    // supplied) and the ADMIN_EMAILS allowlist. `user.role` is not selected on
+    // the hot auth paths (schema-drift risk), so this resolves via email today.
+    isAdmin: computeIsAdmin({ role: user.role, email: user.email }),
   };
 }
 
@@ -1207,10 +1213,16 @@ router.get('/oauth/callback', async (req, res) => {
         isConnectorFlow = !!userId; // If userId exists, this is a connector OAuth flow
         log.info('Auth GET callback - flow detection', { provider, userId, isConnectorFlow });
       } else {
-        log.info('Could not decode state (null result), defaulting to google');
+        // Security-relevant anomaly: every state we issue is encrypted, so a
+        // state that will not decode is either corrupted or attacker-supplied.
+        // The fallback (proceed as a plain google auth flow) is long-standing
+        // behavior — changing it to a hard 400 alters session-issuance
+        // semantics, so for now we make the anomaly loud instead of silent
+        // (audit-2026-07-03).
+        log.warn('OAuth GET callback: could not decode state (null result), proceeding as google auth flow');
       }
     } catch (e) {
-      log.info('Could not decode state, defaulting to google');
+      log.warn('OAuth GET callback: state decrypt threw, proceeding as google auth flow', { error: e?.message });
     }
 
     let userData = null;

@@ -19,6 +19,7 @@ import { generatePKCEParams } from '../services/pkce.js';
 import { createLogger } from '../services/logger.js';
 import { getAppUrl } from '../utils/oauthUtils.js';
 import { getGoogleWorkspaceScopes } from '../config/googleWorkspaceScopes.js';
+import { GITHUB_ENTERTAINMENT_SCOPES, DISCORD_ENTERTAINMENT_SCOPES } from '../config/oauthScopes.js';
 
 const log = createLogger('AdditionalConnectors');
 
@@ -34,7 +35,7 @@ router.post('/connect/discord', authenticateUser, async (req, res) => {
       return res.status(503).json({ error: 'Discord integration not configured' });
     }
     const redirectUri = encodeURIComponent(`${getAppUrl(req)}/oauth/callback`);
-    const scope = encodeURIComponent('identify guilds activities.read');
+    const scope = encodeURIComponent(DISCORD_ENTERTAINMENT_SCOPES.join(' '));
     const state = encryptState({
       platform: 'discord',
       userId,
@@ -67,7 +68,7 @@ router.post('/connect/github', authenticateUser, async (req, res) => {
       return res.status(503).json({ error: 'GitHub integration not configured' });
     }
     const redirectUri = encodeURIComponent(`${getAppUrl(req)}/oauth/callback`);
-    const scope = encodeURIComponent('read:user repo read:org');
+    const scope = encodeURIComponent(GITHUB_ENTERTAINMENT_SCOPES.join(' '));
     const state = encryptState({
       platform: 'github',
       userId,

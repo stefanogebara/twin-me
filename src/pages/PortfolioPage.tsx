@@ -46,6 +46,8 @@ const PortfolioPage: React.FC = () => {
   const [portfolio, setPortfolio] = useState<PortfolioData | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  // Network/server failure — distinct from a genuine 404 (audit-2026-07-03)
+  const [loadFailed, setLoadFailed] = useState(false);
 
   useEffect(() => {
     const fetchPortfolio = async () => {
@@ -57,8 +59,16 @@ const PortfolioPage: React.FC = () => {
 
       try {
         const response = await fetch(`${API_URL}/portfolio/public/${userId}`);
-        if (!response.ok) {
+        // Only a real 404 means "not found" — a 5xx or network failure must
+        // not tell the visitor the portfolio does not exist (audit-2026-07-03).
+        if (response.status === 404) {
           setNotFound(true);
+          setLoading(false);
+          return;
+        }
+        if (!response.ok) {
+          console.error('Portfolio fetch failed:', response.status);
+          setLoadFailed(true);
           setLoading(false);
           return;
         }
@@ -68,13 +78,14 @@ const PortfolioPage: React.FC = () => {
           setPortfolio(result.portfolio);
           // Set page title
           const name = result.portfolio.first_name || 'Someone';
-          // audit-2026-05-12 M3: canonical brand spelling is "Twin Me".
-          document.title = `${name}'s Soul Signature | Twin Me`;
+          // Canonical brand spelling is "TwinMe" (matches CLAUDE.md and every other surface).
+          document.title = `${name}'s Soul Signature | TwinMe`;
         } else {
           setNotFound(true);
         }
-      } catch {
-        setNotFound(true);
+      } catch (err) {
+        console.error('Portfolio fetch failed:', err);
+        setLoadFailed(true);
       } finally {
         setLoading(false);
       }
@@ -91,7 +102,7 @@ const PortfolioPage: React.FC = () => {
     );
   }
 
-  if (notFound || !portfolio) {
+  if (notFound || loadFailed || !portfolio) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center px-6">
         <div className="text-center max-w-sm">
@@ -100,27 +111,44 @@ const PortfolioPage: React.FC = () => {
             className="text-xl mb-2"
             style={{ fontFamily: "'Instrument Serif', Georgia, serif", color: '#E8D5B7' }}
           >
-            Portfolio Not Found
+            {loadFailed ? 'Could Not Load Portfolio' : 'Portfolio Not Found'}
           </h1>
           <p
             className="text-sm opacity-50 mb-6"
             style={{ fontFamily: "'Inter', sans-serif", color: '#E8D5B7' }}
           >
-            This soul signature is private or doesn't exist yet.
+            {loadFailed
+              ? 'Something went wrong reaching the server. Check your connection and try again.'
+              : "This soul signature is private or doesn't exist yet."}
           </p>
-          <a
-            href="/"
-            className="text-sm px-6 py-3 rounded-xl inline-block transition-all hover:scale-[1.01]"
-            style={{
-              background: 'linear-gradient(135deg, #E8D5B7 0%, #D4C4A8 100%)',
-              color: '#0C0C0C',
-              fontFamily: "'Inter', sans-serif",
-              fontWeight: 500,
-              textDecoration: 'none',
-            }}
-          >
-            Discover Your Soul Signature
-          </a>
+          {loadFailed ? (
+            <button
+              onClick={() => window.location.reload()}
+              className="text-sm px-6 py-3 rounded-xl inline-block transition-all hover:scale-[1.01] cursor-pointer border-0"
+              style={{
+                background: 'linear-gradient(135deg, #E8D5B7 0%, #D4C4A8 100%)',
+                color: '#0C0C0C',
+                fontFamily: "'Inter', sans-serif",
+                fontWeight: 500,
+              }}
+            >
+              Try Again
+            </button>
+          ) : (
+            <a
+              href="/"
+              className="text-sm px-6 py-3 rounded-xl inline-block transition-all hover:scale-[1.01]"
+              style={{
+                background: 'linear-gradient(135deg, #E8D5B7 0%, #D4C4A8 100%)',
+                color: '#0C0C0C',
+                fontFamily: "'Inter', sans-serif",
+                fontWeight: 500,
+                textDecoration: 'none',
+              }}
+            >
+              Discover Your Soul Signature
+            </a>
+          )}
         </div>
       </div>
     );

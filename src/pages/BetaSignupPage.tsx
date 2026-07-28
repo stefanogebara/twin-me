@@ -17,26 +17,35 @@ const PLATFORMS = [
 ] as const;
 
 interface SuccessState {
-  inviteCode: string;
+  // Absent on the pending-review path (application accepted, no code minted yet).
+  inviteCode?: string;
   alreadyApplied?: boolean;
+  pendingReview?: boolean;
+  message?: string;
 }
 
 function CopyableInviteCode({ code }: { code: string }) {
   const [copied, setCopied] = useState(false);
 
-  const handleCopy = useCallback(() => {
-    navigator.clipboard.writeText(code);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2500);
+  const handleCopy = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    } catch {
+      // Clipboard unavailable (non-secure context): fall back to a manual prompt
+      // so the user can still grab the code instead of a silent no-op.
+      window.prompt('Copy your invite code', code);
+    }
   }, [code]);
 
   return (
     <button
       onClick={handleCopy}
-      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg font-mono text-lg tracking-[2px] transition-colors hover:bg-white/10"
+      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg font-mono text-lg tracking-[2px] transition-colors hover:bg-[var(--surface-solid)]"
       style={{
-        backgroundColor: 'rgba(255,255,255,0.06)',
-        border: '1px solid rgba(255,255,255,0.10)',
+        backgroundColor: 'var(--surface)',
+        border: '1px solid var(--glass-surface-border)',
         color: 'var(--foreground)',
       }}
       title="Click to copy"
@@ -98,6 +107,9 @@ function BetaSignupPage() {
       setSuccess({
         inviteCode: data.inviteCode,
         alreadyApplied: data.alreadyApplied,
+        // No code minted means the application is queued for review, not approved.
+        pendingReview: !data.inviteCode,
+        message: data.message,
       });
     } catch {
       setError('Network error. Please try again.');
@@ -146,45 +158,51 @@ function BetaSignupPage() {
                 lineHeight: 1.2,
               }}
             >
-              {success.alreadyApplied ? 'Welcome back' : "You're in"}
+              {success.pendingReview ? 'Application received' : success.alreadyApplied ? 'Welcome back' : "You're in"}
             </h1>
             <p
               className="text-sm mb-8"
               style={{
-                color: 'rgba(255,255,255,0.4)',
+                color: 'var(--text-muted)',
                 fontFamily: "'Geist', 'Inter', sans-serif",
                 lineHeight: 1.6,
               }}
             >
-              {success.alreadyApplied
-                ? 'You already have a beta invite. Use the code below to sign in.'
-                : 'Your beta access is ready. Copy the invite code below and use it to sign in.'}
+              {success.pendingReview
+                ? (success.message || "Your application is being reviewed. We'll be in touch soon.")
+                : success.alreadyApplied
+                  ? 'You already have a beta invite. Use the code below to sign in.'
+                  : 'Your beta access is ready. Copy the invite code below and use it to sign in.'}
             </p>
 
-            <div className="mb-6">
-              <p
-                className="text-[11px] uppercase tracking-[0.12em] mb-3"
-                style={{ color: 'rgba(255,255,255,0.35)' }}
-              >
-                Your invite code
-              </p>
-              <CopyableInviteCode code={success.inviteCode} />
-            </div>
+            {!success.pendingReview && success.inviteCode && (
+              <>
+                <div className="mb-6">
+                  <p
+                    className="text-[11px] uppercase tracking-[0.12em] mb-3"
+                    style={{ color: 'var(--text-muted)' }}
+                  >
+                    Your invite code
+                  </p>
+                  <CopyableInviteCode code={success.inviteCode} />
+                </div>
 
-            <button
-              onClick={() => {
-                sessionStorage.setItem('beta_invite_code', success.inviteCode);
-                navigate('/auth');
-              }}
-              className="text-[14px] font-medium px-6 py-3 rounded-[100px] cursor-pointer transition-all duration-150 ease-out hover:brightness-110 active:scale-[0.97]"
-              style={{
-                background: '#F5F5F4',
-                color: '#110f0f',
-                border: 'none',
-              }}
-            >
-              Sign in to get started
-            </button>
+                <button
+                  onClick={() => {
+                    sessionStorage.setItem('beta_invite_code', success.inviteCode!);
+                    navigate('/auth');
+                  }}
+                  className="text-[14px] font-medium px-6 py-3 rounded-[100px] cursor-pointer transition-all duration-150 ease-out hover:brightness-110 active:scale-[0.97]"
+                  style={{
+                    background: 'var(--claura-bone)',
+                    color: 'var(--claura-bone-ink)',
+                    border: 'none',
+                  }}
+                >
+                  Sign in to get started
+                </button>
+              </>
+            )}
           </div>
         ) : (
           /* ── Application Form ── */
@@ -206,12 +224,12 @@ function BetaSignupPage() {
               <p
                 className="text-sm"
                 style={{
-                  color: 'rgba(255,255,255,0.4)',
+                  color: 'var(--text-muted)',
                   fontFamily: "'Geist', 'Inter', sans-serif",
                   lineHeight: 1.6,
                 }}
               >
-                Your AI twin that acts for you. 50 spots available.
+                Your AI twin that acts for you.
               </p>
             </div>
 
@@ -244,8 +262,8 @@ function BetaSignupPage() {
                   placeholder="First Last"
                   className="w-full h-11 px-3 rounded-[6px] text-[14px] outline-none transition-all focus:ring-1"
                   style={{
-                    backgroundColor: 'rgba(255,255,255,0.08)',
-                    border: '1px solid rgba(255,255,255,0.08)',
+                    backgroundColor: 'var(--surface)',
+                    border: '1px solid var(--border-glass)',
                     color: 'var(--foreground)',
                     fontFamily: "'Geist', 'Inter', sans-serif",
                     '--tw-ring-color': 'rgba(255,255,255,0.25)',
@@ -268,8 +286,8 @@ function BetaSignupPage() {
                   placeholder="you@example.com"
                   className="w-full h-11 px-3 rounded-[6px] text-[14px] outline-none transition-all focus:ring-1"
                   style={{
-                    backgroundColor: 'rgba(255,255,255,0.08)',
-                    border: '1px solid rgba(255,255,255,0.08)',
+                    backgroundColor: 'var(--surface)',
+                    border: '1px solid var(--border-glass)',
                     color: 'var(--foreground)',
                     fontFamily: "'Geist', 'Inter', sans-serif",
                     '--tw-ring-color': 'rgba(255,255,255,0.25)',
@@ -329,8 +347,8 @@ function BetaSignupPage() {
                   rows={3}
                   className="w-full px-3 py-2.5 rounded-[6px] text-[14px] outline-none transition-all focus:ring-1 resize-none"
                   style={{
-                    backgroundColor: 'rgba(255,255,255,0.08)',
-                    border: '1px solid rgba(255,255,255,0.08)',
+                    backgroundColor: 'var(--surface)',
+                    border: '1px solid var(--border-glass)',
                     color: 'var(--foreground)',
                     fontFamily: "'Geist', 'Inter', sans-serif",
                     '--tw-ring-color': 'rgba(255,255,255,0.25)',
@@ -344,8 +362,8 @@ function BetaSignupPage() {
                 disabled={loading}
                 className="w-full h-11 rounded-[100px] text-[14px] font-medium transition-all duration-150 ease-out hover:brightness-110 active:scale-[0.97] disabled:opacity-50"
                 style={{
-                  background: '#F5F5F4',
-                  color: '#110f0f',
+                  background: 'var(--claura-bone)',
+                  color: 'var(--claura-bone-ink)',
                   border: 'none',
                   fontFamily: "'Geist', 'Inter', sans-serif",
                   cursor: loading ? 'wait' : 'pointer',
@@ -367,7 +385,7 @@ function BetaSignupPage() {
             onClick={() => navigate('/auth')}
             className="inline-flex items-center gap-1.5 text-[13px] transition-opacity hover:opacity-70"
             style={{
-              color: 'rgba(255,255,255,0.25)',
+              color: 'var(--text-muted)',
               fontFamily: "'Geist', 'Inter', sans-serif",
               background: 'none',
               border: 'none',
@@ -380,7 +398,7 @@ function BetaSignupPage() {
         </div>
 
         <div className="mt-12 text-center">
-          <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.12)' }}>
+          <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
             &copy; 2026 TwinMe Inc.
           </span>
         </div>

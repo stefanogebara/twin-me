@@ -100,13 +100,13 @@ function buildCards(props: InsightCardsProps): CardDef[] {
       <div>
         <p
           className="text-sm font-semibold mb-1"
-          style={{ color: 'rgba(255,255,255,0.85)', fontFamily: "'Inter', sans-serif" }}
+          style={{ color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}
         >
           {musicAxis.label}
         </p>
         <p
           className="text-xs leading-relaxed"
-          style={{ color: 'rgba(255,255,255,0.45)', fontFamily: "'Inter', sans-serif" }}
+          style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
         >
           {musicAxis.description.length > 100
             ? musicAxis.description.slice(0, 100) + '...'
@@ -116,7 +116,7 @@ function buildCards(props: InsightCardsProps): CardDef[] {
     ) : (
       <p
         className="text-xs"
-        style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Inter', sans-serif" }}
+        style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
       >
         Connect Spotify to discover
       </p>
@@ -134,7 +134,7 @@ function buildCards(props: InsightCardsProps): CardDef[] {
         {chronotypeIcon(chronotype)}
         <p
           className="text-sm font-semibold"
-          style={{ color: 'rgba(255,255,255,0.85)', fontFamily: "'Inter', sans-serif" }}
+          style={{ color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}
         >
           {formatChronotype(chronotype)}
         </p>
@@ -154,13 +154,13 @@ function buildCards(props: InsightCardsProps): CardDef[] {
         <div>
           <p
             className="text-sm font-semibold mb-1"
-            style={{ color: 'rgba(255,255,255,0.85)', fontFamily: "'Inter', sans-serif" }}
+            style={{ color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}
           >
             {topAxis.label}
           </p>
           <p
             className="text-xs leading-relaxed"
-            style={{ color: 'rgba(255,255,255,0.45)', fontFamily: "'Inter', sans-serif" }}
+            style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
           >
             {topAxis.description.length > 90
               ? topAxis.description.slice(0, 90) + '...'
@@ -183,13 +183,13 @@ function buildCards(props: InsightCardsProps): CardDef[] {
         <div>
           <p
             className="text-lg font-semibold"
-            style={{ color: 'rgba(255,255,255,0.85)', fontFamily: "'Inter', sans-serif" }}
+            style={{ color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}
           >
             {memoryCount.toLocaleString('en-US')}
           </p>
           <p
             className="text-[10px] uppercase tracking-wider"
-            style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}
+            style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
           >
             memories
           </p>
@@ -197,13 +197,13 @@ function buildCards(props: InsightCardsProps): CardDef[] {
         <div>
           <p
             className="text-lg font-semibold"
-            style={{ color: 'rgba(255,255,255,0.85)', fontFamily: "'Inter', sans-serif" }}
+            style={{ color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}
           >
             {platformCount}
           </p>
           <p
             className="text-[10px] uppercase tracking-wider"
-            style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}
+            style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
           >
             platforms
           </p>
@@ -212,13 +212,13 @@ function buildCards(props: InsightCardsProps): CardDef[] {
           <div>
             <p
               className="text-lg font-semibold"
-              style={{ color: 'rgba(255,255,255,0.85)', fontFamily: "'Inter', sans-serif" }}
+              style={{ color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}
             >
               {days}
             </p>
             <p
               className="text-[10px] uppercase tracking-wider"
-              style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}
+              style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
             >
               days
             </p>
@@ -239,13 +239,13 @@ function buildCards(props: InsightCardsProps): CardDef[] {
         <div>
           <p
             className="text-2xl font-semibold"
-            style={{ color: 'rgba(255,255,255,0.85)', fontFamily: "'Inter', sans-serif" }}
+            style={{ color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}
           >
             {Math.round(fidelityScore * 100)}%
           </p>
           <p
             className="text-[10px] uppercase tracking-wider"
-            style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}
+            style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
           >
             fidelity score
           </p>
@@ -253,7 +253,7 @@ function buildCards(props: InsightCardsProps): CardDef[] {
       ) : (
         <p
           className="text-xs"
-          style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Inter', sans-serif" }}
+          style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
         >
           Chat more to measure accuracy
         </p>
@@ -273,13 +273,13 @@ const InsightCards: React.FC<InsightCardsProps> = (props) => {
 
   return (
     <motion.div
-      className={`mb-20 ${className}`}
+      className={className}
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
     >
       <div
-        className="flex gap-4 overflow-x-auto snap-x snap-mandatory pb-4 -mx-6 px-6"
+        className="flex gap-4 overflow-x-auto snap-x snap-mandatory pb-4"
         style={{ scrollbarWidth: 'none' }}
       >
         {cards.map((card, index) => (
@@ -287,8 +287,8 @@ const InsightCards: React.FC<InsightCardsProps> = (props) => {
             key={card.id}
             className="snap-start flex-shrink-0 w-[280px] transition-transform duration-300 hover:translate-y-[-3px]"
             style={{
-              background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(255,255,255,0.10)',
+              background: 'var(--surface)',
+              border: '1px solid var(--glass-surface-border)',
               borderRadius: '18px',
               padding: '22px',
               borderLeft: `4px solid ${card.accentColor}`,
@@ -304,7 +304,7 @@ const InsightCards: React.FC<InsightCardsProps> = (props) => {
             <div className="flex items-center justify-between mb-3">
               <span
                 className="text-[13px] font-semibold"
-                style={{ color: 'rgba(255,255,255,0.7)', fontFamily: "'Inter', sans-serif" }}
+                style={{ color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}
               >
                 {card.title}
               </span>

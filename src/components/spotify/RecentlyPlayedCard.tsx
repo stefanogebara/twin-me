@@ -31,7 +31,7 @@ export const RecentlyPlayedCard: React.FC<RecentlyPlayedCardProps> = ({
         </div>
         <div>
           <h3 className="text-lg font-medium" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>Recently Played</h3>
-          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>Your latest listening activity</p>
+          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Your latest listening activity</p>
         </div>
       </div>
 
@@ -44,7 +44,7 @@ export const RecentlyPlayedCard: React.FC<RecentlyPlayedCardProps> = ({
           >
             {/* Timeline Line */}
             {index < recentlyPlayed.length - 1 && (
-              <div className="absolute left-[11px] top-8 bottom-0 w-[2px] bg-white/10" />
+              <div className="absolute left-[11px] top-8 bottom-0 w-[2px] bg-[var(--surface-solid)]" />
             )}
 
             {/* Timeline Dot */}
@@ -57,8 +57,8 @@ export const RecentlyPlayedCard: React.FC<RecentlyPlayedCardProps> = ({
               <p className="text-sm font-medium mb-0.5" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>
                 {item.track}
               </p>
-              <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>{item.artist}</p>
-              <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
+              <p className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>{item.artist}</p>
+              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
                 {formatTimeAgo(item.played_at)}
               </p>
             </div>
@@ -69,11 +69,11 @@ export const RecentlyPlayedCard: React.FC<RecentlyPlayedCardProps> = ({
       {/* Empty State */}
       {recentlyPlayed.length === 0 && (
         <div className="text-center py-8">
-          <div className="w-12 h-12 rounded-full bg-white/8 flex items-center justify-center mx-auto mb-3">
-            <Music2 className="w-6 h-6" style={{ color: 'rgba(255,255,255,0.3)' }} />
+          <div className="w-12 h-12 rounded-full bg-[var(--surface)] flex items-center justify-center mx-auto mb-3">
+            <Music2 className="w-6 h-6" style={{ color: 'var(--text-muted)' }} />
           </div>
-          <p className="text-sm mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>No recent activity</p>
-          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>Start listening to see your history</p>
+          <p className="text-sm mb-1" style={{ color: 'var(--text-muted)' }}>No recent activity</p>
+          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Start listening to see your history</p>
         </div>
       )}
     </Card>

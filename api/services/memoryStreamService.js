@@ -359,12 +359,12 @@ async function applyGumBayesianRevision(userId, newContent, newEmbedding, memory
         p_new_confidence: u.confidence,
       })
         .then(() => log.info('GUM confidence updated', { verdict: u.verdict, confidence: u.confidence.toFixed(2), id: u.id }))
-        .catch(() => {});
+        .catch((e) => log.warn('GUM confidence update failed (non-fatal)', { id: u.id, error: e?.message || String(e) }));
 
       // GUM Step 4: Contradiction cascade — when a memory is contradicted,
       // reduce confidence of downstream reflections that cite it via grounding_ids
       if (u.verdict === 'CONTRADICTS') {
-        cascadeContradiction(u.id).catch(() => {});
+        cascadeContradiction(u.id).catch((e) => log.warn('GUM cascade dispatch failed (non-fatal)', { id: u.id, error: e?.message || String(e) }));
         // Confidence has collapsed after repeated contradictions — retire it in
         // favour of the memory that contradicted it.
         if (u.supersede) {
@@ -399,7 +399,7 @@ async function cascadeContradiction(contradictedId) {
         .update({ confidence: newConf })
         .eq('id', row.id)
         .then(() => log.info('Cascade: reflection confidence updated', { id: row.id, confidence: newConf.toFixed(2) }))
-        .catch(() => {});
+        .catch((e) => log.warn('Cascade confidence update failed (non-fatal)', { id: row.id, error: e?.message || String(e) }));
     }
     log.info('Contradiction cascade complete', { affectedReflections: downstream.length });
   } catch (err) {
@@ -433,27 +433,15 @@ async function addMemory(userId, content, memoryType = 'observation', metadata =
 
     // Generate embedding and importance score in parallel
     let [embedding, importanceScore] = await Promise.all([
-      options.skipEmbedding ? null : generateEmbedding(content),
+      options.skipEmbedding ? null : (options.embedding ?? generateEmbedding(content)),
       options.skipImportance ? (options.importanceScore || 5) : rateImportance(content, userId),
     ]);
 
-    // Importance floors: conversations floor at 7 (same minimum as reflections) so
-    // they're not crushed during min-max normalisation in SQL. Platform data floors
-    // at 6 (directly observed, high confidence but lower synthesis value).
-    //
-    // The floors apply only to scores that came from the LLM rater. A caller that
-    // passes an explicit score with skipImportance has already decided — that is
-    // how the noise clamp demotes git chatter and how snapshot readings are kept
-    // under the Tier 2 archival ceiling of 4. Flooring those back up to 6 silently
-    // disabled both mechanisms and made every such row permanent.
-    const hasExplicitImportance = options.skipImportance && Number.isFinite(options.importanceScore);
-    if (!hasExplicitImportance) {
-      if (memoryType === 'platform_data' && importanceScore < 6) {
-        importanceScore = 6;
-      } else if (memoryType === 'conversation' && importanceScore < 7) {
-        importanceScore = 7;
-      }
-    }
+    // Importance floors (see applyImportanceFloor): conversations floor at 7 and
+    // platform_data at 6 so they survive normalisation in retrieval — but a row the
+    // clamp explicitly demoted (options.noiseClamped) keeps its 3-4, so neither the
+    // git-noise suppression nor the snapshot-metric demotion is silently undone.
+    importanceScore = applyImportanceFloor(memoryType, importanceScore, options);
 
     // S5.1: Proposition revision — for reflection/fact types, prefer UPDATE over INSERT
     // when a very similar memory (cosine > 0.90) already exists
@@ -624,11 +612,30 @@ function clampNoiseObservation(content) {
   return snapshotMetricScore(content);
 }
 
-async function addPlatformObservation(userId, content, platform, metadata = {}) {
+/**
+ * Apply the per-type importance floor. Conversations floor at 7 and platform_data
+ * at 6 so they survive min-max normalisation in retrieval — EXCEPT a platform_data
+ * row the git-noise clamp explicitly demoted (options.noiseClamped), which must
+ * keep its 3-4 or the noise-suppression feature is undone (audit). Exported for testing.
+ */
+export function applyImportanceFloor(memoryType, importanceScore, options = {}) {
+  if (memoryType === 'platform_data' && importanceScore < 6 && !options.noiseClamped) {
+    return 6;
+  }
+  if (memoryType === 'conversation' && importanceScore < 7) {
+    return 7;
+  }
+  return importanceScore;
+}
+
+async function addPlatformObservation(userId, content, platform, metadata = {}, extraOptions = {}) {
   const noiseScore = clampNoiseObservation(content);
-  const options = noiseScore !== null
-    ? { importanceScore: noiseScore, skipImportance: true }
-    : undefined;
+  // Merge the noise-floor options (if any) with caller-provided extras — e.g. a
+  // precomputed `embedding` from the ingestion batch-embed path (audit M2).
+  const baseOptions = noiseScore !== null
+    ? { importanceScore: noiseScore, skipImportance: true, noiseClamped: true }
+    : {};
+  const options = { ...baseOptions, ...extraOptions };
   return addMemory(userId, content, 'platform_data', {
     source: platform,
     platform,

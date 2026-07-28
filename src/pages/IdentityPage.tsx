@@ -16,7 +16,7 @@ import { authFetch } from '@/services/api/apiBase';
 import { useLenis } from '@/hooks/useLenis';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { usePlatformsSummary, connectedProviders as getConnectedProviders } from '@/hooks/usePlatformsSummary';
-import { IdentityData, PersonalityProfile } from './components/identity/types';
+import { IdentityData } from './components/identity/types';
 import { determineArchetypeFromSoulLayers, generateTraitBadgesFromSoulLayers, formatArchetypeName } from '@/utils/archetypeEngine';
 import PersonalityAxes from './components/identity/PersonalityAxes';
 import IdentityQuote from './components/identity/IdentityQuote';
@@ -24,6 +24,7 @@ import TemporalComparison from './components/identity/TemporalComparison';
 import IdentityNarrativeCard from './components/identity/IdentityNarrativeCard';
 import SplitPanelLayout from '@/layouts/SplitPanelLayout';
 import ContextSidebar from './components/identity/ContextSidebar';
+import { ClauraZonedBackground } from '@/components/ClauraZonedBackground';
 
 // ── Types for 5-Layer Soul Signature ────────────────────────────────────
 
@@ -79,7 +80,6 @@ interface SoulSignatureLayers {
   // Accept both for resilience against any older cached payloads.
   growthEdges?: SoulGrowthEdges;
   growth_edges?: SoulGrowthEdges;
-  generated_at: string;
 }
 
 // ── Expert domain labels ─────────────────────────────────────────────────
@@ -187,7 +187,7 @@ function growthTypeBadgeStyle(type: string): React.CSSProperties {
     case 'stress_response':
       return { background: 'rgba(251,191,36,0.12)', color: 'rgba(251,191,36,0.85)' };
     default:
-      return { background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.6)' };
+      return { background: 'var(--surface)', color: 'var(--text-secondary)' };
   }
 }
 
@@ -196,7 +196,7 @@ function growthTypeBadgeStyle(type: string): React.CSSProperties {
 const SectionLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <h2
     className="text-[11px] font-medium tracking-[0.12em] uppercase mb-4"
-    style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}
+    style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
   >
     {children}
   </h2>
@@ -265,7 +265,7 @@ const RevealOverlay: React.FC<{ archetypeName: string; tagline: string; onDismis
           fontStyle: 'italic',
           fontSize: 'clamp(40px, 8vw, 64px)',
           fontWeight: 400,
-          color: '#fdfcfb',
+          color: 'var(--foreground)',
           letterSpacing: '-0.02em',
           lineHeight: 1.15,
         }}
@@ -291,7 +291,7 @@ const RevealOverlay: React.FC<{ archetypeName: string; tagline: string; onDismis
 
       <motion.p
         className="relative z-10 text-center mt-4 text-sm"
-        style={{ color: 'rgba(255,255,255,0.45)', fontFamily: "'Inter', sans-serif", maxWidth: 400 }}
+        style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif", maxWidth: 400 }}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1.5, duration: 0.6 }}
@@ -302,8 +302,8 @@ const RevealOverlay: React.FC<{ archetypeName: string; tagline: string; onDismis
       <motion.button
         className="relative z-10 mt-10 px-6 py-2.5 rounded-[100px] text-sm font-medium flex items-center gap-2 transition-all duration-150 hover:opacity-80 active:scale-[0.97]"
         style={{
-          backgroundColor: '#F5F5F4',
-          color: '#110f0f',
+          background: 'var(--claura-bone)',
+          color: 'var(--claura-bone-ink)',
           fontFamily: "'Inter', sans-serif",
         }}
         initial={{ opacity: 0, y: 10 }}
@@ -334,17 +334,6 @@ const IdentityPage: React.FC = () => {
 
   // ── Data fetching ──────────────────────────────────────────────────────
 
-  const { data: personalityData } = useQuery<{ success: boolean; profile: PersonalityProfile }>({
-    queryKey: ['personality-profile'],
-    queryFn: async () => {
-      const res = await authFetch('/personality-profile');
-      if (!res.ok) return null;
-      return res.json();
-    },
-    staleTime: 12 * 60 * 60 * 1000,
-    enabled: !!user,
-  });
-
   const { data, isLoading: identityLoading, error: identityError, refetch: refetchIdentity } = useQuery<{ success: boolean; data: IdentityData }>({
     queryKey: ['twin-identity'],
     queryFn: async () => {
@@ -363,7 +352,7 @@ const IdentityPage: React.FC = () => {
   // (staleTime alone would cache the null payload for 10 minutes).
   const { data: soulData, isLoading: soulLoading, error: soulError, refetch: refetchSoul } = useQuery<{
     success: boolean;
-    data: (SoulSignatureLayers & { layers?: SoulSignatureLayers }) | null;
+    data: (SoulSignatureLayers & { layers?: SoulSignatureLayers; generatedAt?: string }) | null;
     generating?: boolean;
     message?: string;
     retryAfter?: number;
@@ -403,11 +392,13 @@ const IdentityPage: React.FC = () => {
   const isLoading = identityLoading || soulLoading;
   const summary = data?.data?.summary ?? null;
   const layers = soulData?.data?.layers ?? soulData?.data ?? null;
+  // audit-2026-06-10: the freshness stamp read layers?.generated_at, but the
+  // backend puts generatedAt as a sibling of `layers` (soul-signature.js:761),
+  // not inside it — so the stamp never rendered.
+  const generatedAt = soulData?.data?.generatedAt ?? null;
   const hasLayers = !!(layers?.values?.values?.length || layers?.rhythms || layers?.taste || layers?.connections);
 
   // ── First-time reveal check ────────────────────────────────────────────
-
-  const pp = personalityData?.profile ?? null;
 
   useEffect(() => {
     if (hasLayers && !localStorage.getItem(REVEAL_KEY)) {
@@ -502,7 +493,7 @@ const IdentityPage: React.FC = () => {
           description: storedArchetypeData?.data?.narrative?.trim() || (localArchetypeResult?.archetype.description ?? ''),
           signature: localArchetypeResult?.archetype.signature ?? ([0.5, 0.5, 0.5, 0.5, 0.5] as [number, number, number, number, number]),
         },
-        score: localArchetypeResult?.score ?? 1,
+        similarity: localArchetypeResult?.similarity ?? 1,
       }
     : localArchetypeResult;
 
@@ -617,10 +608,10 @@ const IdentityPage: React.FC = () => {
     <div
       className="rounded-[20px] px-5 py-5"
       style={{
-        background: 'rgba(255,255,255,0.07)',
+        background: 'var(--surface)',
         backdropFilter: 'blur(42px)',
         WebkitBackdropFilter: 'blur(42px)',
-        border: '1px solid rgba(255,255,255,0.12)',
+        border: '1px solid var(--glass-surface-border)',
         boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.10), 0 8px 32px rgba(0,0,0,0.25)',
       }}
     >
@@ -635,7 +626,7 @@ const IdentityPage: React.FC = () => {
       {/* ── Top row: back button (mobile) + greeting + date — single row to save vertical space ── */}
       <div
         className="flex items-center justify-between px-1 text-[12px]"
-        style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Inter', sans-serif" }}
+        style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
       >
         <div className="flex items-center gap-3">
           <button
@@ -672,7 +663,7 @@ const IdentityPage: React.FC = () => {
                 </h1>
                 <p
                   className="mt-3 text-[15px] leading-relaxed"
-                  style={{ color: 'rgba(255,255,255,0.65)', fontFamily: "'Inter', sans-serif", maxWidth: '42ch' }}
+                  style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif", maxWidth: '42ch' }}
                 >
                   {archetypeResult.archetype.tagline}
                 </p>
@@ -681,22 +672,22 @@ const IdentityPage: React.FC = () => {
                     className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium"
                     style={driftIsStable
                       ? { background: 'rgba(74,222,128,0.10)', color: 'rgba(74,222,128,0.75)' }
-                      : { background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.55)' }
+                      : { background: 'var(--surface)', color: 'var(--text-secondary)' }
                     }
                   >
                     <span
                       className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                      style={{ background: driftIsStable ? 'rgba(74,222,128,0.8)' : 'rgba(255,255,255,0.40)' }}
+                      style={{ background: driftIsStable ? 'rgba(74,222,128,0.8)' : 'var(--text-secondary)' }}
                     />
                     {driftIsStable ? 'Stable signal' : `${driftShiftCount} shift${driftShiftCount !== 1 ? 's' : ''} detected`}
                   </span>
                 </div>
-                {layers?.generated_at && (
+                {generatedAt && (
                   <p
                     className="mt-2 text-[10px] uppercase tracking-[0.12em]"
-                    style={{ color: 'rgba(255,255,255,0.25)', fontFamily: "'Inter', sans-serif" }}
+                    style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
                   >
-                    Updated {timeAgo(layers.generated_at)}
+                    Updated {timeAgo(generatedAt)}
                   </p>
                 )}
               </section>
@@ -713,8 +704,8 @@ const IdentityPage: React.FC = () => {
                   }
                   className="inline-flex items-center gap-2 px-4 py-2.5 rounded-[100px] text-sm font-medium transition-all duration-150 hover:opacity-85 active:scale-[0.97]"
                   style={{
-                    background: 'rgba(255,255,255,0.06)',
-                    border: '1px solid rgba(255,255,255,0.12)',
+                    background: 'var(--surface)',
+                    border: '1px solid var(--glass-surface-border)',
                     color: 'var(--foreground)',
                     fontFamily: "'Inter', sans-serif",
                   }}
@@ -728,8 +719,8 @@ const IdentityPage: React.FC = () => {
                     aria-label="Share your soul signature"
                     className="inline-flex items-center gap-2 px-4 py-2.5 rounded-[100px] text-sm font-medium transition-all duration-150 hover:opacity-90 active:scale-[0.97]"
                     style={{
-                      background: '#F5F5F4',
-                      color: '#110f0f',
+                      background: 'var(--claura-bone)',
+                      color: 'var(--claura-bone-ink)',
                       fontFamily: "'Inter', sans-serif",
                     }}
                   >
@@ -758,7 +749,7 @@ const IdentityPage: React.FC = () => {
               </h1>
               <p
                 className="mt-3 text-[15px] leading-relaxed"
-                style={{ color: 'rgba(255,255,255,0.55)', fontFamily: "'Inter', sans-serif", maxWidth: '42ch' }}
+                style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif", maxWidth: '42ch' }}
               >
                 A few more observations from your connected platforms and your archetype will take shape.
               </p>
@@ -772,9 +763,9 @@ const IdentityPage: React.FC = () => {
                   key={badge}
                   className="px-3 py-1.5 rounded-full text-xs font-medium"
                   style={{
-                    background: 'rgba(255,255,255,0.08)',
-                    border: '1px solid rgba(255,255,255,0.08)',
-                    color: 'rgba(255,255,255,0.65)',
+                    background: 'var(--surface)',
+                    border: '1px solid var(--border-glass)',
+                    color: 'var(--text-secondary)',
                     fontFamily: "'Inter', sans-serif",
                   }}
                 >
@@ -802,14 +793,14 @@ const IdentityPage: React.FC = () => {
             <div className="text-center">
               <p
                 className="text-sm mb-3"
-                style={{ color: 'rgba(255,255,255,0.6)', fontFamily: "'Inter', sans-serif" }}
+                style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
               >
                 Your twin is still learning your patterns. Connect more platforms to unlock your full soul signature.
               </p>
               <button
                 onClick={() => navigate('/get-started')}
                 className="px-4 py-2 rounded-[100px] text-sm font-medium transition-all duration-150 hover:opacity-80 active:scale-[0.97]"
-                style={{ border: '1px solid rgba(255,255,255,0.20)', color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}
+                style={{ border: '1px solid var(--border)', color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}
               >
                 Connect platforms
               </button>
@@ -835,7 +826,7 @@ const IdentityPage: React.FC = () => {
                     <div key={key} className="flex items-start gap-3">
                       <span
                         className="text-[10px] font-medium uppercase tracking-wider flex-shrink-0 pt-0.5 w-[68px] text-right"
-                        style={{ color: 'rgba(255,255,255,0.28)', fontFamily: "'Inter', sans-serif" }}
+                        style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
                       >
                         {label}
                       </span>
@@ -845,7 +836,7 @@ const IdentityPage: React.FC = () => {
                             fontFamily: "'Instrument Serif', Georgia, serif",
                             fontStyle: 'italic',
                             fontSize: '14px',
-                            color: 'rgba(255,255,255,0.72)',
+                            color: 'var(--foreground)',
                             lineHeight: 1.55,
                           }}
                         >
@@ -866,7 +857,7 @@ const IdentityPage: React.FC = () => {
                                   fontFamily: "'Instrument Serif', Georgia, serif",
                                   fontStyle: 'italic',
                                   fontSize: '14px',
-                                  color: 'rgba(255,255,255,0.6)',
+                                  color: 'var(--text-secondary)',
                                   lineHeight: 1.55,
                                 }}
                               >
@@ -883,7 +874,7 @@ const IdentityPage: React.FC = () => {
                               onClick={() => setExpandedLens(isExpanded ? null : key)}
                               className="text-[11px] transition-opacity duration-150 hover:opacity-70"
                               style={{
-                                color: 'rgba(255,255,255,0.4)',
+                                color: 'var(--text-secondary)',
                                 fontFamily: "'Inter', sans-serif",
                                 background: 'transparent',
                                 padding: 0,
@@ -938,7 +929,7 @@ const IdentityPage: React.FC = () => {
                   <h3 className="text-sm font-medium mb-1" style={{ color: '#E8E0D4', fontFamily: "'Inter', sans-serif" }}>
                     {value.name}
                   </h3>
-                  <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.6)', fontFamily: "'Inter', sans-serif" }}>
+                  <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
                     {value.evidence}
                   </p>
                 </div>
@@ -959,30 +950,30 @@ const IdentityPage: React.FC = () => {
                 <SectionLabel>Your Rhythms</SectionLabel>
                 <span
                   className="inline-block px-3 py-1.5 rounded-full text-xs font-medium mb-3"
-                  style={{ background: 'rgba(255,255,255,0.06)', color: '#E8E0D4', fontFamily: "'Inter', sans-serif" }}
+                  style={{ background: 'var(--surface)', color: '#E8E0D4', fontFamily: "'Inter', sans-serif" }}
                 >
                   {formatChronotype(layers.rhythms.chronotype)}
                 </span>
                 {layers.rhythms.peakHours && (
-                  <p className="text-xs mb-3" style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Inter', sans-serif" }}>
+                  <p className="text-xs mb-3" style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
                     Peak hours: {layers.rhythms.peakHours}
                   </p>
                 )}
-                <p className="text-sm leading-relaxed mb-4" style={{ color: 'rgba(255,255,255,0.6)', fontFamily: "'Inter', sans-serif" }}>
+                <p className="text-sm leading-relaxed mb-4" style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
                   {layers.rhythms.summary}
                 </p>
                 {layers.rhythms.distribution && (
                   <div>
-                    <p className="text-[10px] uppercase tracking-[0.12em] mb-1.5" style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Inter', sans-serif" }}>
+                    <p className="text-[10px] uppercase tracking-[0.12em] mb-1.5" style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
                       Time of day activity
                     </p>
-                    <div className="flex rounded-[6px] overflow-hidden h-4 mb-2 gap-px" style={{ background: 'rgba(255,255,255,0.08)' }}>
+                    <div className="flex rounded-[6px] overflow-hidden h-4 mb-2 gap-px" style={{ background: 'var(--surface)' }}>
                       <div style={{ width: `${layers.rhythms.distribution.morning * 100}%`, backgroundColor: 'rgba(251,191,36,0.90)', minWidth: layers.rhythms.distribution.morning > 0.01 ? 2 : 0 }} />
                       <div style={{ width: `${layers.rhythms.distribution.afternoon * 100}%`, backgroundColor: 'rgba(130,170,255,0.90)', minWidth: layers.rhythms.distribution.afternoon > 0.01 ? 2 : 0 }} />
                       <div style={{ width: `${layers.rhythms.distribution.evening * 100}%`, backgroundColor: 'rgba(255,140,60,0.90)', minWidth: layers.rhythms.distribution.evening > 0.01 ? 2 : 0 }} />
                       <div style={{ width: `${layers.rhythms.distribution.night * 100}%`, backgroundColor: 'rgba(130,120,220,0.90)', minWidth: layers.rhythms.distribution.night > 0.01 ? 2 : 0 }} />
                     </div>
-                    <div className="flex justify-between text-[10px]" style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}>
+                    <div className="flex justify-between text-[10px]" style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
                       <span>{Math.round(layers.rhythms.distribution.morning * 100)}% Morning</span>
                       <span>{Math.round(layers.rhythms.distribution.afternoon * 100)}% Afternoon</span>
                       <span>{Math.round(layers.rhythms.distribution.evening * 100)}% Evening</span>
@@ -995,14 +986,17 @@ const IdentityPage: React.FC = () => {
           </FadeInSection>
         )}
 
-        {layers?.taste && (
+        {/* audit-2026-06-10: gate on real content, not object truthiness. The
+            backend returns a truthy placeholder { statement: '', _partial: true }
+            when the taste layer couldn't be generated. */}
+        {layers?.taste?.statement && (
           <FadeInSection delay={0.25}>
             {glassCard(
               <>
                 <SectionLabel>Your Taste</SectionLabel>
                 <p
                   className="text-[14px] leading-relaxed mb-4"
-                  style={{ color: 'rgba(255,255,255,0.75)', fontFamily: "'Inter', sans-serif" }}
+                  style={{ color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}
                 >
                   {layers.taste.statement}
                 </p>
@@ -1012,7 +1006,7 @@ const IdentityPage: React.FC = () => {
                       <span
                         key={signal}
                         className="px-2.5 py-1 rounded-full text-[11px] font-medium"
-                        style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.55)', fontFamily: "'Inter', sans-serif" }}
+                        style={{ background: 'var(--surface)', color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
                       >
                         {signal}
                       </span>
@@ -1027,24 +1021,27 @@ const IdentityPage: React.FC = () => {
 
       {/* ── Connections + Growth (side by side) ─────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-        {layers?.connections && (
+        {/* audit-2026-06-10: gate on real content. The backend returns a truthy
+            placeholder (style 'unknown', empty/insufficient summary, _partial)
+            when connection patterns couldn't be generated. */}
+        {layers?.connections?.summary && layers.connections.style !== 'unknown' && (
           <FadeInSection delay={0.3}>
             {glassCard(
               <>
                 <SectionLabel>How You Connect</SectionLabel>
                 <span
                   className="inline-block px-3 py-1.5 rounded-full text-xs font-medium mb-3"
-                  style={{ background: 'rgba(255,255,255,0.06)', color: '#E8E0D4', fontFamily: "'Inter', sans-serif" }}
+                  style={{ background: 'var(--surface)', color: '#E8E0D4', fontFamily: "'Inter', sans-serif" }}
                 >
                   {formatConnectionStyle(layers.connections.style)}
                 </span>
-                <p className="text-sm leading-relaxed mb-3" style={{ color: 'rgba(255,255,255,0.6)', fontFamily: "'Inter', sans-serif" }}>
+                <p className="text-sm leading-relaxed mb-3" style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
                   {layers.connections.summary}
                 </p>
                 {layers.connections.patterns && layers.connections.patterns.length > 0 && (
                   <ul className="space-y-1.5">
                     {layers.connections.patterns.map((pattern) => (
-                      <li key={pattern} className="flex items-start gap-2 text-sm" style={{ color: 'rgba(255,255,255,0.5)', fontFamily: "'Inter', sans-serif" }}>
+                      <li key={pattern} className="flex items-start gap-2 text-sm" style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
                         <span className="mt-[7px] w-1 h-1 rounded-full flex-shrink-0" style={{ background: 'rgba(232,224,212,0.4)' }} />
                         {pattern}
                       </li>
@@ -1056,34 +1053,40 @@ const IdentityPage: React.FC = () => {
           </FadeInSection>
         )}
 
-        <FadeInSection delay={0.35}>
-          {glassCard(
-            <>
-              <SectionLabel>What's Changing</SectionLabel>
-              {driftIsStable ? (
-                <div className="flex items-center gap-2.5">
-                  <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: 'rgba(74,222,128,0.6)' }} />
-                  <p className="text-sm" style={{ color: 'rgba(255,255,255,0.5)', fontFamily: "'Inter', sans-serif" }}>
-                    Consistent — your patterns have been stable recently
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {growthEdges!.shifts.map((shift) => (
-                    <div key={shift.domain} className="flex items-start gap-3">
-                      <span className="px-2 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider flex-shrink-0 mt-0.5" style={growthTypeBadgeStyle(shift.type)}>
-                        {shift.domain}
-                      </span>
-                      <p className="text-sm" style={{ color: 'rgba(255,255,255,0.6)', fontFamily: "'Inter', sans-serif" }}>
-                        {shift.description}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </>
-          )}
-        </FadeInSection>
+        {/* audit-2026-06-10: gate on hasLayers like the sibling cards. Without
+            layers, growthEdges is absent so driftIsStable defaults true (line
+            ~547) and this would assert "patterns have been stable recently"
+            for users who have no soul-signature data at all. */}
+        {hasLayers && (
+          <FadeInSection delay={0.35}>
+            {glassCard(
+              <>
+                <SectionLabel>What's Changing</SectionLabel>
+                {driftIsStable ? (
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: 'rgba(74,222,128,0.6)' }} />
+                    <p className="text-sm" style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
+                      Consistent — your patterns have been stable recently
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {growthEdges!.shifts.map((shift) => (
+                      <div key={shift.domain} className="flex items-start gap-3">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider flex-shrink-0 mt-0.5" style={growthTypeBadgeStyle(shift.type)}>
+                          {shift.domain}
+                        </span>
+                        <p className="text-sm" style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
+                          {shift.description}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </FadeInSection>
+        )}
       </div>
 
       {/* ── ICA Personality Axes ────────────────────────────────────── */}
@@ -1102,9 +1105,9 @@ const IdentityPage: React.FC = () => {
                     onClick={() => navigate(route)}
                     className="px-3 py-2 rounded-[46px] text-xs font-medium transition-all duration-150 hover:opacity-70 active:scale-[0.97] inline-flex items-center gap-1.5"
                     style={{
-                      background: 'rgba(255,132,0,0.08)',
+                      background: 'var(--surface)',
                       color: 'var(--accent-vibrant)',
-                      border: '1px solid rgba(255,132,0,0.18)',
+                      border: '1px solid var(--glass-surface-border)',
                       fontFamily: "'Inter', sans-serif",
                     }}
                   >
@@ -1122,20 +1125,20 @@ const IdentityPage: React.FC = () => {
                 key={pill}
                 onClick={() => handleSuggestion(pill)}
                 className="px-3 py-2 rounded-[46px] text-xs font-medium transition-all duration-150 hover:opacity-70 active:scale-[0.97] flex items-center gap-1.5"
-                style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.55)', fontFamily: "'Inter', sans-serif" }}
+                style={{ background: 'var(--surface)', color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
               >
                 {pill}
-                <ArrowRight className="w-3 h-3" style={{ color: 'rgba(255,255,255,0.35)' }} />
+                <ArrowRight className="w-3 h-3" style={{ color: 'var(--text-muted)' }} />
               </button>
             ))}
           </div>
-          <div className="flex items-center justify-between pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+          <div className="flex items-center justify-between pt-4" style={{ borderTop: '1px solid var(--border-glass)' }}>
             {user && (
               <button
                 onClick={handleShare}
                 aria-label="Share your soul signature"
                 className="flex items-center gap-1.5 text-[12px] transition-all duration-150 ease-out hover:opacity-60 active:scale-[0.97] min-h-[44px]"
-                style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}
+                style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
               >
                 <Share2 className="w-3.5 h-3.5" />
                 Share
@@ -1157,6 +1160,8 @@ const IdentityPage: React.FC = () => {
 
   return (
     <>
+      {/* Claura zoned photography — bubble-reader by night, train-field by day (/preview/you). */}
+      <ClauraZonedBackground dark="bubble-reader.png" light="train-field.png" darkPosition="center 36%" lightPosition="center 35%" />
       {/* First-time reveal overlay */}
       <AnimatePresence>
         {showReveal && archetypeResult && (
@@ -1196,25 +1201,25 @@ const LoadingSkeleton: React.FC = () => (
       <div
         className="rounded-[24px] px-8 py-10 animate-pulse"
         style={{
-          background: 'rgba(255,255,255,0.04)',
+          background: 'var(--surface)',
           backdropFilter: 'blur(42px)',
-          border: '1px solid rgba(255,255,255,0.06)',
+          border: '1px solid var(--border-glass)',
         }}
       >
-        <div className="h-10 w-72 rounded mb-2" style={{ background: 'rgba(255,255,255,0.06)' }} />
-        <div className="h-4 w-40 rounded mb-12" style={{ background: 'rgba(255,255,255,0.03)' }} />
-        <div className="h-12 w-64 rounded mb-3" style={{ background: 'rgba(255,255,255,0.06)' }} />
-        <div className="h-4 w-80 rounded mb-4" style={{ background: 'rgba(255,255,255,0.03)' }} />
+        <div className="h-10 w-72 rounded mb-2" style={{ background: 'var(--surface)' }} />
+        <div className="h-4 w-40 rounded mb-12" style={{ background: 'var(--surface)' }} />
+        <div className="h-12 w-64 rounded mb-3" style={{ background: 'var(--surface)' }} />
+        <div className="h-4 w-80 rounded mb-4" style={{ background: 'var(--surface)' }} />
         <div className="flex flex-wrap gap-2 mb-12">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-7 w-24 rounded-full" style={{ background: 'rgba(255,255,255,0.04)' }} />
+            <div key={i} className="h-7 w-24 rounded-full" style={{ background: 'var(--surface)' }} />
           ))}
         </div>
         {[1, 2, 3].map((i) => (
           <div key={i} className="mb-10">
-            <div className="h-3 w-24 rounded mb-4" style={{ background: 'rgba(255,255,255,0.06)' }} />
-            <div className="h-4 w-full rounded mb-2" style={{ background: 'rgba(255,255,255,0.03)' }} />
-            <div className="h-4 w-3/4 rounded" style={{ background: 'rgba(255,255,255,0.03)' }} />
+            <div className="h-3 w-24 rounded mb-4" style={{ background: 'var(--surface)' }} />
+            <div className="h-4 w-full rounded mb-2" style={{ background: 'var(--surface)' }} />
+            <div className="h-4 w-3/4 rounded" style={{ background: 'var(--surface)' }} />
           </div>
         ))}
       </div>
@@ -1222,34 +1227,34 @@ const LoadingSkeleton: React.FC = () => (
       <div
         className="rounded-[24px] px-5 py-6 animate-pulse"
         style={{
-          background: 'rgba(255,255,255,0.04)',
+          background: 'var(--surface)',
           backdropFilter: 'blur(42px)',
-          border: '1px solid rgba(255,255,255,0.06)',
+          border: '1px solid var(--border-glass)',
         }}
       >
-        <div className="w-28 h-28 rounded-full mx-auto mb-6" style={{ background: 'rgba(255,255,255,0.04)' }} />
+        <div className="w-28 h-28 rounded-full mx-auto mb-6" style={{ background: 'var(--surface)' }} />
         <div className="grid grid-cols-2 gap-3 mb-6">
           {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="h-16 rounded-[12px]" style={{ background: 'rgba(255,255,255,0.04)' }} />
+            <div key={i} className="h-16 rounded-[12px]" style={{ background: 'var(--surface)' }} />
           ))}
         </div>
-        <div className="h-10 w-full rounded-full" style={{ background: 'rgba(255,255,255,0.06)' }} />
+        <div className="h-10 w-full rounded-full" style={{ background: 'var(--surface)' }} />
       </div>
     </div>
     {/* Mobile fallback */}
     <div className="lg:hidden max-w-[680px] mx-auto px-5 py-8 animate-pulse space-y-5">
-      <div className="h-48 w-full rounded-[20px]" style={{ background: 'rgba(255,255,255,0.06)' }} />
-      <div className="h-28 w-full rounded-[20px]" style={{ background: 'rgba(255,255,255,0.04)' }} />
+      <div className="h-48 w-full rounded-[20px]" style={{ background: 'var(--surface)' }} />
+      <div className="h-28 w-full rounded-[20px]" style={{ background: 'var(--surface)' }} />
       <div className="grid grid-cols-2 gap-5">
-        <div className="h-32 rounded-[20px]" style={{ background: 'rgba(255,255,255,0.04)' }} />
-        <div className="h-32 rounded-[20px]" style={{ background: 'rgba(255,255,255,0.04)' }} />
+        <div className="h-32 rounded-[20px]" style={{ background: 'var(--surface)' }} />
+        <div className="h-32 rounded-[20px]" style={{ background: 'var(--surface)' }} />
       </div>
       <div className="grid grid-cols-2 gap-5">
-        <div className="h-32 rounded-[20px]" style={{ background: 'rgba(255,255,255,0.04)' }} />
-        <div className="h-32 rounded-[20px]" style={{ background: 'rgba(255,255,255,0.04)' }} />
+        <div className="h-32 rounded-[20px]" style={{ background: 'var(--surface)' }} />
+        <div className="h-32 rounded-[20px]" style={{ background: 'var(--surface)' }} />
       </div>
-      <div className="h-44 w-full rounded-[20px]" style={{ background: 'rgba(255,255,255,0.04)' }} />
-      <div className="h-20 w-full rounded-[20px]" style={{ background: 'rgba(255,255,255,0.04)' }} />
+      <div className="h-44 w-full rounded-[20px]" style={{ background: 'var(--surface)' }} />
+      <div className="h-20 w-full rounded-[20px]" style={{ background: 'var(--surface)' }} />
     </div>
   </div>
 );
@@ -1260,7 +1265,7 @@ const LoadingSkeleton: React.FC = () => (
 
 const GeneratingState: React.FC<{ message?: string }> = ({ message }) => (
   <div className="max-w-xl mx-auto px-6 py-20 text-center">
-    <Loader2 className="w-8 h-8 mx-auto mb-4 animate-spin" style={{ color: 'rgba(255,255,255,0.35)' }} />
+    <Loader2 className="w-8 h-8 mx-auto mb-4 animate-spin" style={{ color: 'var(--text-muted)' }} />
     <h2
       className="text-xl mb-3"
       style={{
@@ -1272,7 +1277,7 @@ const GeneratingState: React.FC<{ message?: string }> = ({ message }) => (
     >
       Reading your signals
     </h2>
-    <p className="text-sm" style={{ color: 'rgba(255,255,255,0.35)' }}>
+    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
       {message || 'Your soul signature is being generated. This usually takes under a minute.'}
     </p>
   </div>
@@ -1285,7 +1290,7 @@ const EmptyState: React.FC<{ message?: string }> = ({ message }) => {
 
   return (
     <div className="max-w-xl mx-auto px-6 py-20 text-center">
-      <Fingerprint className="w-8 h-8 mx-auto mb-4" style={{ color: 'rgba(255,255,255,0.15)' }} />
+      <Fingerprint className="w-8 h-8 mx-auto mb-4" style={{ color: 'var(--text-muted)' }} />
       <h2
         className="text-xl mb-3"
         style={{
@@ -1297,7 +1302,7 @@ const EmptyState: React.FC<{ message?: string }> = ({ message }) => {
       >
         I'm still figuring you out
       </h2>
-      <p className="text-sm mb-6" style={{ color: 'rgba(255,255,255,0.35)' }}>
+      <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>
         {/* audit-2026-06-10: prefer the backend's precise reason (e.g. "N
             memories found, minimum 10 required") over the generic claim. */}
         {message || "Connect Spotify, Calendar, or YouTube and I'll build a real picture of you. Usually takes a couple of days."}
@@ -1306,14 +1311,14 @@ const EmptyState: React.FC<{ message?: string }> = ({ message }) => {
         <button
           onClick={() => navigate('/get-started')}
           className="px-5 py-2 rounded-[100px] text-sm font-medium transition-all duration-150 hover:opacity-80 active:scale-[0.97]"
-          style={{ border: '1px solid rgba(255,255,255,0.20)', color: 'var(--foreground)' }}
+          style={{ border: '1px solid var(--border)', color: 'var(--foreground)' }}
         >
           Connect platforms
         </button>
         <button
           onClick={() => navigate('/interview')}
           className="px-5 py-2 rounded-[100px] text-sm font-medium transition-all duration-150 hover:opacity-80 active:scale-[0.97]"
-          style={{ border: '1px solid var(--border)', color: 'rgba(255,255,255,0.5)' }}
+          style={{ border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
         >
           Complete your interview
         </button>

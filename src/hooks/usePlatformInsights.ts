@@ -14,7 +14,6 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { useAuth } from '@/contexts/AuthContext';
 import { API_URL, getAccessToken, isAbortError } from '@/services/api/apiBase';
 
 const POLL_INTERVAL_MS = 6000;
@@ -50,7 +49,6 @@ export function usePlatformInsights<T = unknown>(
   platform: string,
   signInMessage = 'Please sign in to see your insights',
 ): PlatformInsightsState<T> {
-  const { token } = useAuth();
   const [insights, setInsights] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
@@ -74,7 +72,7 @@ export function usePlatformInsights<T = unknown>(
 
   const fetchInsights = useCallback(
     async (signal?: AbortSignal) => {
-      const authToken = token || getAccessToken();
+      const authToken = getAccessToken();
       if (!authToken) {
         setError(signInMessage);
         setLoading(false);
@@ -87,6 +85,16 @@ export function usePlatformInsights<T = unknown>(
           signal,
         });
 
+        // Distinguish an expired/invalid session (401/403) from a transient
+        // server error: re-authing fixes the former, retrying fixes the latter.
+        // (audit-2026-07-03 error-ux)
+        if (response.status === 401 || response.status === 403) {
+          clearPoll();
+          setGenerating(false);
+          setError('Your session expired. Please sign in again to see your insights.');
+          setLoading(false);
+          return;
+        }
         if (!response.ok) throw new Error(`Server error: ${response.status}`);
         const data = await response.json();
 
@@ -161,7 +169,7 @@ export function usePlatformInsights<T = unknown>(
         if (!signal?.aborted) setLoading(false);
       }
     },
-    [platform, token, signInMessage],
+    [platform, signInMessage],
   );
 
   useEffect(() => {
@@ -177,12 +185,17 @@ export function usePlatformInsights<T = unknown>(
 
   const refresh = useCallback(async () => {
     setRefreshing(true);
-    const authToken = token || getAccessToken();
+    const authToken = getAccessToken();
     try {
       const response = await fetch(`${API_URL}/insights/${platform}/refresh`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${authToken}` },
       });
+      if (response.status === 401 || response.status === 403) {
+        // Session expired mid-session — retrying won't help; prompt re-auth.
+        toast.error('Your session expired. Please sign in again to refresh.');
+        return;
+      }
       if (!response.ok) throw new Error(`Server error: ${response.status}`);
       // Backend regenerates in the background while holding the generation
       // lock, so the refetch returns generating:true and the poll loop picks
@@ -197,7 +210,7 @@ export function usePlatformInsights<T = unknown>(
     } finally {
       setRefreshing(false);
     }
-  }, [platform, token, fetchInsights]);
+  }, [platform, fetchInsights]);
 
   // Stale-while-revalidate: covers both the refresh POST and the generating
   // poll loop that follows it while previous insights are still on screen.

@@ -53,10 +53,10 @@ export function DepartmentProposalBubble({
       transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
       className="rounded-[20px] px-4 py-3 my-2 max-w-[420px]"
       style={{
-        backgroundColor: 'rgba(255,255,255,0.06)',
+        backgroundColor: 'var(--surface)',
         backdropFilter: 'blur(42px)',
         WebkitBackdropFilter: 'blur(42px)',
-        border: '1px solid rgba(255,255,255,0.10)',
+        border: '1px solid var(--glass-surface-border)',
         borderLeft: `2px solid ${proposal.departmentColor}`,
         boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)',
       }}
@@ -94,7 +94,7 @@ export function DepartmentProposalBubble({
         <p
           className="text-[10px] mb-3"
           style={{
-            color: 'rgba(255,255,255,0.25)',
+            color: 'var(--text-muted)',
             fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
           }}
         >
@@ -110,8 +110,8 @@ export function DepartmentProposalBubble({
               onClick={() => onApprove(proposal.id)}
               className="flex items-center gap-1 px-3 py-1.5 rounded-[100px] text-[11px] font-medium transition-all duration-150 ease-out hover:opacity-90 active:scale-[0.97]"
               style={{
-                backgroundColor: '#F5F5F4',
-                color: '#110f0f',
+                background: 'var(--claura-bone)',
+                color: 'var(--claura-bone-ink)',
                 fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
               }}
             >
@@ -121,7 +121,7 @@ export function DepartmentProposalBubble({
               onClick={() => onReject(proposal.id)}
               className="text-[11px] font-medium transition-opacity duration-150 hover:opacity-60"
               style={{
-                color: 'rgba(255,255,255,0.35)',
+                color: 'var(--text-muted)',
                 fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
               }}
             >
@@ -134,12 +134,12 @@ export function DepartmentProposalBubble({
           <div className="flex items-center gap-1.5">
             <Loader2
               className="w-3 h-3 animate-spin"
-              style={{ color: 'rgba(255,255,255,0.4)' }}
+              style={{ color: 'var(--text-muted)' }}
             />
             <span
               className="text-[11px] font-medium"
               style={{
-                color: 'rgba(255,255,255,0.4)',
+                color: 'var(--text-muted)',
                 fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
                 animation: 'proposal-pulse 2s ease-in-out infinite',
               }}
@@ -164,7 +164,7 @@ export function DepartmentProposalBubble({
             <span
               className="text-[11px] font-medium"
               style={{
-                color: 'rgba(255,255,255,0.5)',
+                color: 'var(--text-secondary)',
                 fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
               }}
             >
@@ -177,7 +177,7 @@ export function DepartmentProposalBubble({
           <span
             className="text-[11px] font-medium"
             style={{
-              color: 'rgba(255,255,255,0.25)',
+              color: 'var(--text-muted)',
               fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
             }}
           >

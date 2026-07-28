@@ -31,13 +31,13 @@ export function TwinReadinessScore({
   if (compact) {
     return (
       <div className="flex items-center gap-3">
-        <Brain className="w-4 h-4 flex-shrink-0" style={{ color: 'rgba(255,255,255,0.30)' }} />
+        <Brain className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
         <div className="flex-1 min-w-0">
           <div className="flex justify-between items-center mb-1">
             <span className="text-xs" style={{ color: 'var(--text-muted)', fontFamily: font }}>Twin Understanding</span>
             <span className="text-xs font-medium" style={{ color: scoreColor, fontFamily: font }}>{score}%</span>
           </div>
-          <div className="h-[2px] rounded-full overflow-hidden" style={{ backgroundColor: 'rgba(255,255,255,0.08)' }}>
+          <div className="h-[2px] rounded-full overflow-hidden" style={{ backgroundColor: 'var(--surface)' }}>
             <div
               className="h-full rounded-full transition-all duration-1000 ease-out"
               style={{ width: `${score}%`, background: barGradient }}
@@ -52,7 +52,7 @@ export function TwinReadinessScore({
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Brain className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.30)' }} />
+          <Brain className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
           <span className="text-sm font-medium" style={{ color: 'var(--foreground)', fontFamily: font }}>
             Twin Understanding
           </span>
@@ -62,7 +62,7 @@ export function TwinReadinessScore({
           <p className="text-xs" style={{ color: 'var(--text-muted)', fontFamily: font }}>{label}</p>
         </div>
       </div>
-      <div className="h-[3px] rounded-full overflow-hidden" style={{ backgroundColor: 'rgba(255,255,255,0.08)' }}>
+      <div className="h-[3px] rounded-full overflow-hidden" style={{ backgroundColor: 'var(--surface)' }}>
         <div
           className="h-full rounded-full transition-all duration-1000 ease-out"
           style={{ width: `${score}%`, background: barGradient }}

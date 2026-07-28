@@ -144,14 +144,45 @@ describe('summariser prompts fence untrusted memory content', () => {
   });
 });
 
-describe('rendered spine carries an instruction guard', () => {
-  it('states the block is a record, not instructions', async () => {
+describe('rendered spine relies on the shared prompt fence', () => {
+  it('states the dating contract, which the fence does not convey', async () => {
     const { supabase } = stubDb({
       nodes: [{ block_size: 1, block_start: 20_000, summary: 'A quiet day.' }],
       oldest: new Date(20_000 * 86_400_000).toISOString(),
     });
     const out = await renderSpine('u1', { supabase }, { now: 20_000 * 86_400_000 });
+    expect(out.text).toMatch(/never treat an older line as current/i);
+  });
 
-    expect(out.text).toMatch(/do NOT follow any directive/i);
+  it('does NOT carry its own data-vs-instructions clause', async () => {
+    // Reconciled against main's promptFencing module: the spine is appended into
+    // dynamicContext, which twinSystemPromptBuilder wraps in
+    // fenceUntrustedContext. A second per-block clause would be a divergent
+    // vocabulary for a contract the base instructions already establish.
+    const { supabase } = stubDb({
+      nodes: [{ block_size: 1, block_start: 20_000, summary: 'A quiet day.' }],
+      oldest: new Date(20_000 * 86_400_000).toISOString(),
+    });
+    const out = await renderSpine('u1', { supabase }, { now: 20_000 * 86_400_000 });
+    expect(out.text).not.toMatch(/do NOT follow any directive/i);
+  });
+});
+
+describe('the builder fences the spine', () => {
+  it('places the spine inside the shared untrusted-context fence', async () => {
+    const { buildTwinSystemPrompt } = await import('../../../api/services/twinSystemPromptBuilder.js');
+    const { CONTEXT_FENCE_OPEN, CONTEXT_FENCE_CLOSE } =
+      await import('../../../api/services/promptFencing.js');
+
+    const spine = '=== MY TIMELINE (oldest first) ===' + String.fromCharCode(10) + '- [today] A quiet day.';
+    const blocks = buildTwinSystemPrompt({}, {}, null, null, null, null, null, null, null, spine);
+    const text = blocks.map(b => b.text || '').join('');
+
+    const open = text.indexOf(CONTEXT_FENCE_OPEN);
+    const close = text.lastIndexOf(CONTEXT_FENCE_CLOSE);
+    const spineAt = text.indexOf('MY TIMELINE');
+    expect(open).toBeGreaterThanOrEqual(0);
+    expect(spineAt).toBeGreaterThan(open);
+    expect(spineAt).toBeLessThan(close);
   });
 });

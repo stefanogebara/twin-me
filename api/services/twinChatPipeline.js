@@ -58,17 +58,22 @@ export async function fetchConversationHistory(userId, conversationId) {
       return [];
     }
 
+    // Fetch the most RECENT 20, then restore chronological order. (audit: this was
+    // ascending+limit, which returns the OLDEST 20 — so past 10 exchanges the twin
+    // saw only the conversation's opening and went blind to every recent turn.)
     const { data: messages } = await supabaseAdmin
       .from('twin_messages')
       .select('role, content, created_at')
       .eq('conversation_id', conversationId)
-      .order('created_at', { ascending: true })
+      .order('created_at', { ascending: false })
       .limit(20);
 
-    return (messages || []).map(m => ({
-      role: m.role === 'assistant' ? 'assistant' : 'user',
-      content: m.content.length > 800 ? m.content.substring(0, 800) + '...' : m.content,
-    }));
+    return (messages || [])
+      .reverse() // newest-first -> chronological (oldest -> newest) for the LLM
+      .map(m => ({
+        role: m.role === 'assistant' ? 'assistant' : 'user',
+        content: m.content.length > 800 ? m.content.substring(0, 800) + '...' : m.content,
+      }));
   } catch (err) {
     log.warn('Could not fetch conversation history', { error: err?.message });
     return [];
