@@ -23,19 +23,26 @@
  *               listed, and demoted below the Tier 6 archival ceiling only with
  *               --demote-reflections, because the classification is a heuristic
  *               over free text rather than a template match.
- *   4. INVALIDATE derived state (wiki pages, twin summaries) so the copies baked
- *               into them recompile from the cleaned evidence. Both are caches
- *               with rebuild paths; the wiki additionally suppresses the twin
- *               summary while present, so a stale page would otherwise survive
- *               everything above.
+ *   4. INVALIDATE derived state so copies baked into it recompile from the
+ *               cleaned evidence. Twin summaries (4h TTL) are cleared for the
+ *               users this run actually touched. Wiki pages are only REPORTED
+ *               unless --delete-wiki: the detector fires on any figure >= 1000
+ *               near inbox words, so "handles roughly 2,000 emails a month"
+ *               matches and takes the whole page with it — and wiki prose is not
+ *               recoverable (user_wiki_logs stores counts, never content_md,
+ *               and there is no wiki archive table). With the flag, pages are
+ *               written to .cache/ before deletion.
  *
- * Safe to re-run: every step is idempotent and skips rows already handled.
+ * Safe to re-run: the archive write is an upsert on id, so an interrupted run
+ * can be resumed rather than aborting on a duplicate key.
  *
  * Usage:
  *   node scripts/backfill-stale-snapshot-memories.js                 # dry run
  *   node scripts/backfill-stale-snapshot-memories.js --write         # apply
  *   node scripts/backfill-stale-snapshot-memories.js --write --demote-reflections
  *   node scripts/backfill-stale-snapshot-memories.js --user <uuid>   # scope to one user
+ *   node scripts/backfill-stale-snapshot-memories.js --write --delete-wiki
+ *   node scripts/backfill-stale-snapshot-memories.js --verbose        # show content excerpts
  *
  * Background: .claude/plans/2026-07-27-optmem-brain/README.md (Phase 0.6)
  */
@@ -57,6 +64,8 @@ dotenv.config({ path: envPath });
 
 const DRY_RUN = !process.argv.includes('--write');
 const DEMOTE_REFLECTIONS = process.argv.includes('--demote-reflections');
+const DELETE_WIKI = process.argv.includes('--delete-wiki');
+const VERBOSE = process.argv.includes('--verbose');
 const userFlagIndex = process.argv.indexOf('--user');
 const ONLY_USER = userFlagIndex !== -1 ? process.argv[userFlagIndex + 1] : null;
 
@@ -132,12 +141,18 @@ async function main() {
     let q = sb.from('user_memories')
       .select('id, user_id, content, importance_score, retrieval_count, created_at')
       .eq('memory_type', 'platform_data')
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      // Unique tiebreaker: .range() pagination over a non-unique ordering can
+      // skip or duplicate rows across page boundaries.
+      .order('id', { ascending: true });
     if (ONLY_USER) q = q.eq('user_id', ONLY_USER);
     return q;
   });
 
   const snapshots = platformRows.filter(r => isSnapshotMetric(r.content));
+  // Users whose memories this run actually modifies — used to scope the
+  // derived-state invalidation in step 4.
+  const touchedUsers = new Set(snapshots.map(r => r.user_id));
   console.log(`Scanned ${platformRows.length} platform_data rows, ${snapshots.length} are snapshot metrics.\n`);
 
   if (snapshots.length === 0) {
@@ -155,7 +170,8 @@ async function main() {
     for (const [, group] of [...byShape.entries()].slice(0, 8)) {
       const newest = group[0];
       console.log(`  ${String(group.length).padStart(4)}x  imp=${newest.importance_score}  ` +
-        `newest ${ageDays(newest.created_at)}d old  |  ${newest.content.slice(0, 72)}`);
+        `newest ${ageDays(newest.created_at)}d old  |  ` +
+        (VERBOSE ? newest.content.slice(0, 72) : '[content hidden — pass --verbose]'));
     }
     console.log('');
 
@@ -182,12 +198,18 @@ async function main() {
           if (selErr) fail(`archive fetch failed: ${selErr.message}`);
           if (!full?.length) continue;
 
-          const { error: insErr } = await sb.from('user_memories_archive').insert(
+          // upsert, not insert: user_memories_archive has PRIMARY KEY (id) and
+          // the archive preserves the original id. After an interrupted run the
+          // still-live rows are re-selected, the insert hits a duplicate key and
+          // fail() aborts the script permanently — so "safe to re-run" was false
+          // in exactly the case where re-running matters. The weekly Tier 2 cron
+          // archiving an overlapping row causes the same collision.
+          const { error: insErr } = await sb.from('user_memories_archive').upsert(
             full.map(r => ({
               ...r,
               archived_at: new Date().toISOString(),
               archive_reason: 'phase0_stale_snapshot_superseded',
-            })));
+            })), { onConflict: 'id', ignoreDuplicates: true });
           if (insErr) fail(`archive insert failed: ${insErr.message}`);
 
           const { error: delErr } = await sb.from('user_memories')
@@ -218,7 +240,8 @@ async function main() {
     let q = sb.from('user_memories')
       .select('id, user_id, content, importance_score, created_at')
       .eq('memory_type', 'reflection')
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: true });
     if (ONLY_USER) q = q.eq('user_id', ONLY_USER);
     return q;
   });
@@ -228,7 +251,8 @@ async function main() {
 
   console.log(`\nStep 3 REFLECTIONS: ${laundered.length} of ${reflections.length} quote a large inbox figure.`);
   for (const r of laundered.slice(0, 10)) {
-    console.log(`  imp=${r.importance_score} ${ageDays(r.created_at)}d  |  ${r.content.slice(0, 96).replace(/\s+/g, ' ')}`);
+    console.log(`  imp=${r.importance_score} ${ageDays(r.created_at)}d  |  ` +
+      (VERBOSE ? r.content.slice(0, 96).replace(/\s+/g, ' ') : '[reflection text hidden — pass --verbose]'));
   }
   if (laundered.length > 10) console.log(`  ... and ${laundered.length - 10} more`);
 
@@ -268,12 +292,29 @@ async function main() {
   console.log('   summary while present, so a stale page survives every step above)');
 
   if (!DRY_RUN) {
-    if (staleWiki.length) {
+    if (staleWiki.length && !DELETE_WIKI) {
+      console.log(`  ${staleWiki.length} wiki pages left ALONE — pass --delete-wiki to remove them.`);
+      console.log('  (the heuristic fires on any figure >= 1000 near inbox words, so a legitimate');
+      console.log('   "handles roughly 2,000 emails a month" paragraph matches and the whole page goes)');
+    }
+    if (staleWiki.length && DELETE_WIKI) {
+      // Preserve the prose first. user_wiki_logs stores only change_summary and
+      // counts — never content_md — and there is no wiki archive table, so a
+      // bare delete is unrecoverable: a recompile produces different text from a
+      // corpus step 2 just changed.
+      const backup = path.resolve(__dirname, `../.cache/wiki-backup-${Date.now()}.json`);
+      fs.mkdirSync(path.dirname(backup), { recursive: true });
+      fs.writeFileSync(backup, JSON.stringify(staleWiki, null, 2));
+      console.log(`  wrote ${staleWiki.length} pages to ${backup} before deleting`);
+
       const { error } = await sb.from('user_wiki_pages').delete().in('id', staleWiki.map(p => p.id));
       if (error) fail(`wiki delete failed: ${error.message}`);
       console.log(`  deleted ${staleWiki.length} wiki pages (recompile on next ingestion cycle)`);
     }
-    const summaryUsers = [...new Set(summaryRows.map(r => r.user_id))];
+    // Only users this run actually changed. Clearing the whole table forces a
+    // regeneration LLM call for every user in the system — the exact kind of
+    // cost spike the Vercel rules target.
+    const summaryUsers = [...new Set(summaryRows.map(r => r.user_id))].filter(u => touchedUsers.has(u));
     if (summaryUsers.length) {
       const { error } = await sb.from('twin_summaries').delete().in('user_id', summaryUsers);
       if (error) fail(`twin_summaries delete failed: ${error.message}`);

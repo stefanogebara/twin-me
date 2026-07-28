@@ -168,29 +168,48 @@ describe('isSameMetricReading — same metric, new value', () => {
 });
 
 describe('buildMetricLikePattern — SQL LIKE key for finding a prior reading', () => {
-  it('replaces the value with a wildcard', () => {
+  // Contract changed deliberately: the pattern used to be DERIVED from the
+  // content by wildcarding digit runs. That left every varying WORD embedded
+  // literally, so a mood change or Gmail's urgency adjective flipping at 50 meant
+  // the prior row was never found and the in-place refresh silently never fired.
+  // It also fed attacker-influenced text into a query filter. Each metric now
+  // carries a fixed LIKE literal; the JS recheck still decides.
+
+  it('returns a fixed literal that matches sibling readings, not the exact text', () => {
     expect(buildMetricLikePattern('Has a backlog of 40,381 unread emails in inbox'))
-      .toBe('Has a backlog of % unread emails in inbox');
+      .toBe('Has %unread emails in inbox%');
+    // Crucially the SAME pattern for a reading whose adjective differs.
+    expect(buildMetricLikePattern('Has a moderate pile of 34 unread emails in inbox'))
+      .toBe('Has %unread emails in inbox%');
   });
 
-  it('escapes literal percent signs so they are not treated as wildcards', () => {
-    // "Reads 8% of incoming email (3200 of 40000 inbox messages read)"
-    // The trailing % after the count is LITERAL and must be escaped, otherwise
-    // the pattern matches nearly every observation.
+  it('escapes a literal percent so it is not treated as a wildcard', () => {
+    // In a JS string '\%' collapses to '%', which would make the literal percent
+    // in "Reads 8% of incoming email" act as a wildcard.
     const pattern = buildMetricLikePattern('Reads 8% of incoming email (3200 of 40000 inbox messages read)');
-    expect(pattern).toBe('Reads %\\% of incoming email (% of % inbox messages read)');
+    // Built from char codes so the assertion cannot suffer the same collapse it
+    // is testing for: the pattern must contain a real backslash before the %.
+    const BACKSLASH = String.fromCharCode(92);
+    expect(pattern).toBe(`Reads %${BACKSLASH}% of incoming email%`);
+    expect(pattern).toContain(BACKSLASH + '%');
   });
 
-  it('escapes underscores', () => {
-    expect(buildMetricLikePattern('Whoop stress score today: 71/100 for user_x'))
-      .toBe('Whoop stress score today: %/% for user\\_x');
+  it('matches sibling readings whose varying part is a word, not a number', () => {
+    const a = buildMetricLikePattern('Music mood right now: melancholy, low energy (valence 21%, energy 30%)');
+    const b = buildMetricLikePattern('Music mood right now: upbeat, high energy (valence 81%, energy 90%)');
+    expect(a).toBe('Music mood right now:%');
+    expect(a).toBe(b);
   });
 
-  it('returns null for content with no digits to generalize over', () => {
-    expect(buildMetricLikePattern('Music mood right now: restless and loud')).toBeNull();
+  it('does not require digits — a metric can vary purely in wording', () => {
+    // The old derived version bailed out with no digits to generalise over,
+    // which excluded exactly the metrics that change most.
+    expect(buildMetricLikePattern('Music mood right now: restless and loud'))
+      .toBe('Music mood right now:%');
   });
 
   it('returns null for non-snapshot content', () => {
     expect(buildMetricLikePattern('Inbox grew by 12 unread emails since yesterday')).toBeNull();
+    expect(buildMetricLikePattern('Had his first guitar lesson')).toBeNull();
   });
 });

@@ -30,6 +30,7 @@ import { tagSensitivity } from './sensitivityClassifier.js';
 import { calculateAllActivityMetrics, detectActivityAnomaly } from './activityMetricsService.js';
 
 import { buildPendingNodes } from './memoryTimelineService.js';
+import { buildMetricLikePattern } from './snapshotMetrics.js';
 import { getFeatureFlags } from './featureFlagsService.js';
 import { complete, TIER_ANALYSIS } from './llmGateway.js';
 import { supabaseAdmin } from './database.js';
@@ -562,7 +563,14 @@ async function runObservationIngestion(options = {}) {
 
               // For weekly_summary observations the 24h batch window above is too short —
               // fall back to a targeted DB check using the full 7-day window.
-              if (contentType === 'weekly_summary') {
+              //
+              // Snapshot metrics take the same path regardless of contentType.
+              // The hash check above is digit-sensitive, so a changed reading
+              // sails past it, and only isDuplicate() runs the in-place refresh
+              // that keeps one row per metric. Gating on weekly_summary alone
+              // meant the refresh never fired for the daily_summary and
+              // current_state metrics — Whoop stress and Spotify mood among them.
+              if (contentType === 'weekly_summary' || buildMetricLikePattern(content)) {
                 const dup = await isDuplicate(userId, platform, content, contentType);
                 if (dup) continue;
               }

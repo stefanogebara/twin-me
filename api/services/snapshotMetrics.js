@@ -34,36 +34,68 @@ const SNAPSHOT_METRIC_SCORE = 4;
  * observation templates the fetchers emit, not an incidental mention inside a
  * longer narrative memory.
  */
-const SNAPSHOT_METRIC_PATTERNS = [
+/**
+ * Point-in-time readings of mutable state, each paired with the SQL LIKE pattern
+ * that finds a PRIOR reading of the same metric.
+ *
+ * The `like` is a fixed literal rather than something derived from the content,
+ * and that matters twice over:
+ *
+ *  - Correctness. Deriving it by wildcarding digit runs left every varying WORD
+ *    embedded literally, so "Music mood right now: melancholy" could never match
+ *    the previous "…: upbeat" and the in-place refresh silently never fired for
+ *    the most volatile metrics in the list.
+ *  - Safety. A derived pattern is attacker-influenced text going into a query
+ *    filter. PostgREST also maps '*' to '%' in LIKE with no escape available.
+ *    A constant sidesteps both concerns entirely.
+ *
+ * `rx` classifies; `like` locates siblings. Two observations are the same metric
+ * when the same entry classifies both.
+ */
+const SNAPSHOT_METRICS = [
   // Gmail absolute inbox state — the "40,000 unread emails" class.
   // Deliberately excludes "Inbox grew by N" / "Cleared N" (transitions) and
   // "Practices inbox zero" (a habit, and zero cannot go stale misleadingly).
-  /^Has (?:a backlog of |a moderate pile of )?[\d,]+ unread emails? in inbox/i,
-  /^Reads \d+% of incoming email/i,
-  /^Manages an? .*mailbox/i,
+  { rx: /^Has (?:a backlog of |a moderate pile of )?[\d,]+ unread emails? in inbox/i,
+    like: 'Has %unread emails in inbox%' },
+  { rx: /^Reads \d+% of incoming email/i,
+    // Doubled backslash on purpose: in a JS string '\%' collapses to '%', which
+    // would leave the literal percent acting as a LIKE wildcard.
+    like: 'Reads %\\% of incoming email%' },
+  { rx: /^Manages an? .*mailbox/i,
+    like: 'Manages a%mailbox%' },
 
   // Device and biometric readings — true for hours at most.
-  /^Android screen-on time in last 24h:/i,
-  /^Unlocked phone [\d,]+ times today/i,
-  /^Phone battery (?:very )?low \(/i,
-  /^Whoop stress score today:/i,
+  { rx: /^Android screen-on time in last 24h:/i,  like: 'Android screen-on time in last 24h:%' },
+  { rx: /^Unlocked phone [\d,]+ times today/i,    like: 'Unlocked phone %times today%' },
+  { rx: /^Phone battery (?:very )?low \(/i,       like: 'Phone battery %low (%' },
+  { rx: /^Whoop stress score today:/i,            like: 'Whoop stress score today:%' },
 
   // Momentary media state.
-  /^Music mood right now:/i,
+  { rx: /^Music mood right now:/i,                like: 'Music mood right now:%' },
 
   // Rolling-window aggregates. Recomputed every cycle over "this week" / "the
   // last 30 days" / "2026", so an old copy describes a window that has moved on.
   // Distinct from an event that merely quotes numbers: "Slept 7.1 hours" is a
   // specific night that stays true and must NOT be demoted.
-  /^Your GitHub \d{4} activity:/i,
-  /^Committed code on \d+ days in the last \d+ days/i,
-  /^Receives email from [\d,]+ distinct senders/i,
-  /^Most frequent email senders this week:/i,
-  /^Your email mix this week:/i,
-  /^YouTube subscription topics:/i,
-  /^YouTube subscription tenure:/i,
-  /^Outlook inbox contains approximately/i,
+  { rx: /^Your GitHub \d{4} activity:/i,                    like: 'Your GitHub % activity:%' },
+  { rx: /^Committed code on \d+ days in the last \d+ days/i, like: 'Committed code on %days in the last %days%' },
+  { rx: /^Receives email from [\d,]+ distinct senders/i,     like: 'Receives email from %distinct senders%' },
+  { rx: /^Most frequent email senders this week:/i,          like: 'Most frequent email senders this week:%' },
+  { rx: /^Your email mix this week:/i,                       like: 'Your email mix this week:%' },
+  { rx: /^YouTube subscription topics:/i,                    like: 'YouTube subscription topics:%' },
+  { rx: /^YouTube subscription tenure:/i,                    like: 'YouTube subscription tenure:%' },
+  { rx: /^Outlook inbox contains approximately/i,            like: 'Outlook inbox contains approximately%' },
 ];
+
+/** Regexes alone, for callers that only need classification. */
+const SNAPSHOT_METRIC_PATTERNS = SNAPSHOT_METRICS.map(m => m.rx);
+
+/** The entry that classifies this content, or null. */
+function matchSnapshotMetric(content) {
+  if (!content || typeof content !== 'string') return null;
+  return SNAPSHOT_METRICS.find(m => m.rx.test(content)) ?? null;
+}
 
 /**
  * True when the observation reports mutable state at a moment rather than an
@@ -73,8 +105,7 @@ const SNAPSHOT_METRIC_PATTERNS = [
  * @returns {boolean}
  */
 function isSnapshotMetric(content) {
-  if (!content || typeof content !== 'string') return false;
-  return SNAPSHOT_METRIC_PATTERNS.some(rx => rx.test(content));
+  return matchSnapshotMetric(content) !== null;
 }
 
 /**
@@ -118,14 +149,13 @@ function stripDigitsForDedup(text) {
  * @returns {boolean}
  */
 function isSameMetricReading(a, b) {
-  if (!isSnapshotMetric(a) || !isSnapshotMetric(b)) return false;
-  const strippedA = stripDigitsForDedup(a);
-  const strippedB = stripDigitsForDedup(b);
-  if (strippedA && strippedA === strippedB) return true;
-  // The Gmail urgency adjective changes with the value ("a moderate pile of"
-  // at 21-50, "a backlog of" above 50), so a crossing reading differs in words
-  // too. Fall back to matching the pattern that classified them.
-  return SNAPSHOT_METRIC_PATTERNS.some(rx => rx.test(a) && rx.test(b));
+  const ma = matchSnapshotMetric(a);
+  const mb = matchSnapshotMetric(b);
+  // Same template = same metric. This is deliberately not digit-stripped
+  // equality: the varying part is often a WORD, not a number — Gmail's urgency
+  // adjective flips at 50, the mood label is the whole point of the mood metric,
+  // the mailbox size word changes with the count.
+  return ma !== null && ma === mb;
 }
 
 /**
@@ -142,19 +172,13 @@ function isSameMetricReading(a, b) {
  *   metric or has no numeric part to generalize over
  */
 function buildMetricLikePattern(content) {
-  if (!isSnapshotMetric(content)) return null;
-  if (!/\d/.test(content)) return null;
-  // PostgREST maps '*' to '%' in like patterns and offers no way to escape it,
-  // so a literal asterisk would silently widen the match. Bail out and let the
-  // observation insert normally rather than risk a broad prefilter.
-  if (content.includes('*')) return null;
-  return String(content)
-    .replace(/([\\%_])/g, '\\$1')
-    .replace(/\d[\d,.]*/g, '%');
+  return matchSnapshotMetric(content)?.like ?? null;
 }
 
 export {
   SNAPSHOT_METRIC_SCORE,
+  SNAPSHOT_METRICS,
+  matchSnapshotMetric,
   SNAPSHOT_METRIC_PATTERNS,
   isSnapshotMetric,
   snapshotMetricScore,

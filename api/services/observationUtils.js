@@ -149,15 +149,27 @@ export async function isDuplicate(userId, platform, content, contentType) {
     // (.claude/plans/2026-07-27-optmem-brain/README.md).
     const metricPattern = buildMetricLikePattern(content);
     if (metricPattern) {
-      const { data: priorRows } = await supabase
+      const { data: priorRows, error: priorErr } = await supabase
         .from('user_memories')
         .select('id, content')
         .eq('user_id', userId)
         .eq('memory_type', 'platform_data')
+        // Same platform only: two providers can share phrasing (a second mail
+        // integration reusing the Gmail template would otherwise overwrite its
+        // row and leave metadata.platform pointing at the wrong source).
+        .eq('metadata->>platform', platform)
+        // Never refresh a retired row — the new reading would land somewhere
+        // retrieval cannot see it, and no live row would be created.
+        .is('superseded_at', null)
         .like('content', metricPattern)
         .gte('created_at', longCutoff)
         .order('created_at', { ascending: false })
         .limit(5);
+
+      if (priorErr) {
+        // Silently degrading here means inserting a duplicate with no signal.
+        log.warn('Snapshot metric lookup failed, inserting normally', { error: priorErr.message, platform });
+      }
 
       const prior = (priorRows || []).find(r => isSameMetricReading(content, r.content));
       if (prior) {
