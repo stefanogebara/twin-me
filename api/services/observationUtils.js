@@ -152,7 +152,11 @@ export async function isDuplicate(userId, platform, content, contentType) {
       // It would suppress the incoming write, keeping a retired reading as the
       // only copy of this fact; and the branch below refreshes
       // last_accessed_at, which would resurrect the very row we retired.
-      .is('superseded_by', null)
+      //
+      // Filter on superseded_at, NOT superseded_by: the latter is
+      // `ON DELETE SET NULL`, so deleting a replacement row would silently make
+      // everything it retired look live again (migration 20260728151001).
+      .is('superseded_at', null)
       .limit(1);
 
     if (exactRows && exactRows.length > 0) {

@@ -150,7 +150,11 @@ export function selectSupersededIds({
 
   const ids = [];
   for (const row of candidates) {
-    if (!row || row.superseded_by) continue;
+    // superseded_at is the source of truth for "already retired", NOT
+    // superseded_by: that column is `ON DELETE SET NULL`, so deleting a
+    // replacement row nulls it on every row it retired, which would make them
+    // look live again (migration 20260728151001).
+    if (!row || row.superseded_at) continue;
     // Never let one platform retire another's reading. A legacy row with no
     // recorded platform is still eligible — those predate the metadata.
     const rowPlatform = row.metadata?.source || row.metadata?.platform || null;
@@ -177,10 +181,10 @@ async function supersedePriorObservations(userId, newId, memoryType, embedding, 
   try {
     const { data: candidates } = await supabaseAdmin
       .from('user_memories')
-      .select('id, embedding, superseded_by, metadata')
+      .select('id, embedding, superseded_at, metadata')
       .eq('user_id', userId)
       .eq('memory_type', memoryType)
-      .is('superseded_by', null)
+      .is('superseded_at', null)
       .neq('id', newId)
       .order('created_at', { ascending: false })
       .limit(SUPERSEDE_SCAN_LIMIT);

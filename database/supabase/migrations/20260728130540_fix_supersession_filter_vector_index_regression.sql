@@ -5,6 +5,13 @@
 -- 20260728110058_add_memory_supersession.sql). CREATE OR REPLACE, so applying
 -- this is a no-op against the live project.
 --
+-- ⚠️ SUPERSEDED by 20260728151001_supersession_survives_replacement_deletion.sql.
+-- This version filters on `superseded_by IS NULL`, which is unsafe: that column
+-- is `ON DELETE SET NULL`, so deleting a replacement row resurrects everything
+-- it retired. The later migration switches the predicate to `superseded_at`.
+-- Kept here because it is the state that was actually applied at 13:05 and
+-- because its HNSW finding is the reason the filter sits after the LIMIT.
+--
 -- The subtlety worth preserving: `AND m.superseded_by IS NULL` cannot go in the
 -- candidates WHERE clause. Doing so makes the planner abandon the HNSW index
 -- for the `embedding <=> query` ordering and fall back to a full scan. The

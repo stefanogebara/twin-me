@@ -46,7 +46,7 @@ const row = (id, embedding, overrides = {}) => ({
   id,
   content: `observation ${id}`,
   embedding,
-  superseded_by: null,
+  superseded_at: null,
   metadata: { source: 'gmail', platform: 'gmail' },
   ...overrides,
 });
@@ -79,9 +79,21 @@ describe('selectSupersededIds', () => {
   it('never re-retires an already superseded row', () => {
     const ids = selectSupersededIds({
       ...NEW,
-      candidates: [row('already', '[1,0,0]', { superseded_by: 'someone-else' })],
+      candidates: [row('already', '[1,0,0]', { superseded_at: '2026-07-01T00:00:00Z' })],
     });
     expect(ids).toEqual([]);
+  });
+
+  it('treats a row whose replacement was DELETED as still retired', () => {
+    // superseded_by is `ON DELETE SET NULL`, so deleting the replacement nulls
+    // it on every row it retired. superseded_at has no FK and survives, which
+    // is why it — not superseded_by — is the source of truth (migration
+    // 20260728151001). Keying off superseded_by here would resurrect the row.
+    const orphaned = row('orphaned', '[1,0,0]', {
+      superseded_by: null,                       // replacement row is gone
+      superseded_at: '2026-07-01T00:00:00Z',     // but it is still retired
+    });
+    expect(selectSupersededIds({ ...NEW, candidates: [orphaned] })).toEqual([]);
   });
 
   it('never retires across platforms — Gmail must not retire Outlook', () => {

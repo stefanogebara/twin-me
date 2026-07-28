@@ -69,7 +69,8 @@ export async function runSaliencyReplay(options = {}) {
       // stale-snapshot rows — it refreshes last_accessed_at and re-runs the
       // reflection engine over them, re-laundering the same wrong number into
       // fresh high-importance reflections every 14 days.
-      .is('superseded_by', null)
+      // superseded_at, not superseded_by — see migration 20260728151001.
+      .is('superseded_at', null)
       .limit(200);
 
     if (findErr) {
@@ -124,7 +125,7 @@ async function replayForUser(userId, memoriesPerUser, staleCutoff, stats) {
     .in('memory_type', ELIGIBLE_TYPES)
     .gte('importance_score', MIN_IMPORTANCE)
     .lt('last_accessed_at', staleCutoff)
-    .is('superseded_by', null)   // Phase 1: retired readings are not replayed
+    .is('superseded_at', null)   // Phase 1: retired readings are not replayed
     .order('importance_score', { ascending: false })
     .order('last_accessed_at', { ascending: true })
     .limit(memoriesPerUser);

@@ -317,7 +317,8 @@ export async function traverseLinksForRetrieval(userId, seedIds, existingIdSet, 
       // reading could still be injected into context via an associative link —
       // and, being in the result set, would then get its last_accessed_at
       // refreshed by touch_memories. Retired means retired on every path.
-      .is('superseded_by', null);
+      // superseded_at, not superseded_by — see migration 20260728151001.
+      .is('superseded_at', null);
 
     if (memErr || !memories?.length) return [];
 
