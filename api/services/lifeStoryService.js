@@ -16,12 +16,17 @@
  * All LLM-output handling fails OPEN to advancing: a parse failure or
  * gateway error must never trap the user on a question.
  *
- * Persistence (sessions, memory writes) is Phase 1 — this module is
- * deliberately DB-free.
+ * Phase 1 adds the session lifecycle: life_story_sessions holds the live
+ * transcript; chapter completion writes Q&A pairs + extracted facts + a
+ * summary reflection into the memory stream and updates life_story_state
+ * (running notes, completed chapters).
  */
 
 import { complete, TIER_ANALYSIS } from './llmGateway.js';
 import { LIFE_STORY_CHAPTERS, DEFAULT_TURN_BUDGET } from '../config/lifeStoryScript.js';
+import { supabaseAdmin } from './database.js';
+import { addMemory } from './memoryStreamService.js';
+import { shouldTriggerReflection, generateReflections } from './reflectionEngine.js';
 import { createLogger } from './logger.js';
 
 const log = createLogger('LifeStory');
@@ -270,4 +275,375 @@ export async function assessTurn({
     noteUpdates,
     bridge: assessment.bridge,
   };
+}
+
+// ====================================================================
+// Session lifecycle (Phase 1)
+// ====================================================================
+
+/**
+ * Safety cap on transcript entries per session. A chapter has <= 6 questions
+ * with <= 3 follow-ups each, so a legitimate session never approaches this;
+ * hitting it means something is looping — force-complete rather than keep
+ * burning LLM calls.
+ */
+export const MAX_TRANSCRIPT_ENTRIES = 60;
+
+async function getState(userId) {
+  const { data, error } = await supabaseAdmin
+    .from('life_story_state')
+    .select('reflection_notes, chapters_completed, nudges')
+    .eq('user_id', userId)
+    .maybeSingle();
+  if (error) {
+    log.warn('Failed to load life story state', { userId, error: error.message });
+  }
+  return {
+    reflection_notes: data?.reflection_notes || {},
+    chapters_completed: data?.chapters_completed || [],
+    nudges: data?.nudges || {},
+  };
+}
+
+async function saveState(userId, state) {
+  const { error } = await supabaseAdmin.from('life_story_state').upsert(
+    {
+      user_id: userId,
+      reflection_notes: state.reflection_notes,
+      chapters_completed: state.chapters_completed,
+      nudges: state.nudges,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: 'user_id' }
+  );
+  if (error) {
+    log.warn('Failed to save life story state', { userId, error: error.message });
+  }
+}
+
+/**
+ * Chapter list + progress for the UI, with a suggested next chapter
+ * (first incomplete, in script order — chapter 1 first).
+ */
+export async function getLifeStoryStatus(userId) {
+  const state = await getState(userId);
+  const chapters = listChapters(state.chapters_completed);
+  const suggested = chapters.find(c => !c.completed);
+  return {
+    chapters,
+    completedCount: chapters.filter(c => c.completed).length,
+    totalChapters: chapters.length,
+    suggestedNext: suggested ? suggested.id : null,
+  };
+}
+
+/**
+ * Begin a chapter, or resume the user's active session for it.
+ * Fresh sessions open with the chapter intro + the first scripted question
+ * (verbatim), persisted into the transcript at insert time so a refresh
+ * before the first answer resumes cleanly.
+ */
+export async function startSession(userId, chapterId) {
+  const chapter = getChapter(chapterId);
+  if (!chapter) throw new Error(`Unknown chapter: ${chapterId}`);
+
+  const { data: existing, error: findError } = await supabaseAdmin
+    .from('life_story_sessions')
+    .select('id, chapter_id, status, transcript, question_index, followups_used')
+    .eq('user_id', userId)
+    .eq('chapter_id', chapterId)
+    .eq('status', 'active')
+    .order('started_at', { ascending: false })
+    .limit(1);
+  if (findError) {
+    log.warn('Active-session lookup failed', { userId, chapterId, error: findError.message });
+  }
+
+  const active = Array.isArray(existing) ? existing[0] : null;
+  if (active) {
+    const lastAssistant = [...(active.transcript || [])]
+      .reverse()
+      .find(m => m.role === 'assistant');
+    return {
+      sessionId: active.id,
+      chapterId,
+      resumed: true,
+      utterance: lastAssistant?.content || chapter.questions[active.question_index]?.text || chapter.questions[0].text,
+      questionIndex: active.question_index,
+    };
+  }
+
+  const opening = `${chapter.intro} ${chapter.questions[0].text}`;
+  const { data: created, error: insertError } = await supabaseAdmin
+    .from('life_story_sessions')
+    .insert({
+      user_id: userId,
+      chapter_id: chapterId,
+      transcript: [{ role: 'assistant', content: opening, questionId: chapter.questions[0].id }],
+      question_index: 0,
+      followups_used: 0,
+    })
+    .select('id')
+    .single();
+  if (insertError || !created) {
+    throw new Error(`Failed to create session: ${insertError?.message || 'no row returned'}`);
+  }
+
+  return {
+    sessionId: created.id,
+    chapterId,
+    resumed: false,
+    utterance: opening,
+    questionIndex: 0,
+  };
+}
+
+/**
+ * Process one user answer for a session. Returns the interviewer's move
+ * ({ kind, utterance, questionIndex, done }) or null when the session does
+ * not exist / belong to this user / is not active.
+ */
+export async function processTurn(userId, sessionId, answer) {
+  const { data: session, error } = await supabaseAdmin
+    .from('life_story_sessions')
+    .select('id, user_id, chapter_id, status, transcript, question_index, followups_used')
+    .eq('id', sessionId)
+    .eq('user_id', userId)
+    .eq('status', 'active')
+    .maybeSingle();
+  if (error) {
+    log.warn('Session load failed', { userId, sessionId, error: error.message });
+  }
+  if (!session) return null;
+
+  const chapter = getChapter(session.chapter_id);
+  if (!chapter) return null;
+
+  const state = await getState(userId);
+  const transcript = [
+    ...(session.transcript || []),
+    {
+      role: 'user',
+      content: String(answer).trim(),
+      questionId: chapter.questions[session.question_index]?.id || null,
+    },
+  ];
+
+  // Runaway safety: force-complete instead of assessing another turn.
+  if (transcript.length >= MAX_TRANSCRIPT_ENTRIES) {
+    log.warn('Transcript safety cap hit, force-completing chapter', { userId, sessionId });
+    const mirror = await completeChapter({ userId, session, chapter, transcript, state, noteUpdates: {} });
+    return { kind: 'chapter_done', utterance: mirror, questionIndex: session.question_index, done: true };
+  }
+
+  const move = await assessTurn({
+    userId,
+    chapter,
+    questionIndex: session.question_index,
+    followupsUsed: session.followups_used,
+    transcript,
+    reflectionNotes: state.reflection_notes,
+  });
+
+  if (move.kind === 'chapter_done') {
+    const mirror = await completeChapter({
+      userId,
+      session,
+      chapter,
+      transcript,
+      state,
+      noteUpdates: move.noteUpdates,
+    });
+    // The synthesis mirror line is the chapter-end payoff; fall back to the
+    // turn assessment's bridge if synthesis produced nothing.
+    return {
+      kind: 'chapter_done',
+      utterance: mirror || move.utterance || '',
+      questionIndex: move.questionIndex,
+      done: true,
+    };
+  }
+
+  const updatedTranscript = [
+    ...transcript,
+    {
+      role: 'assistant',
+      content: move.utterance,
+      questionId: chapter.questions[move.questionIndex]?.id || null,
+    },
+  ];
+
+  const { error: updateError } = await supabaseAdmin
+    .from('life_story_sessions')
+    .update({
+      transcript: updatedTranscript,
+      question_index: move.questionIndex,
+      followups_used: move.followupsUsed,
+    })
+    .eq('id', session.id);
+  if (updateError) {
+    log.warn('Session update failed', { userId, sessionId, error: updateError.message });
+  }
+
+  const mergedNotes = mergeReflectionNotes(state.reflection_notes, move.noteUpdates);
+  await saveState(userId, { ...state, reflection_notes: mergedNotes });
+
+  return {
+    kind: move.kind,
+    utterance: move.utterance,
+    questionIndex: move.questionIndex,
+    done: false,
+  };
+}
+
+/**
+ * Build the chapter synthesis prompt: facts + summary + the mirror line
+ * (the chapter-end payoff the user sees — specific, second person).
+ */
+function buildSynthesisPrompt(chapter, reflectionNotes) {
+  return `You are analyzing one completed chapter ("${chapter.title}") of a life-story interview for Twin Me. The full chapter transcript follows as the user message.
+
+WHAT IS ALREADY KNOWN (running notes from other chapters):
+${formatNotes(reflectionNotes)}
+
+Extract:
+1. "facts": 3-6 standalone facts about the person from THIS chapter (third person, "they", specific — not generic).
+2. "summary": a 2-3 sentence synthesis of what this chapter revealed about who they are.
+3. "mirror": ONE sentence spoken directly to them (second person) reflecting something specific and non-obvious this chapter revealed. It should land like being seen, not like a compliment. No generic affirmations.
+4. "notes": new durable note entries (snake_case keys, short string values) not already in the running notes.
+
+Return ONLY this JSON:
+{ "facts": ["..."], "summary": "...", "mirror": "...", "notes": { } }`;
+}
+
+function parseSynthesis(rawContent) {
+  const fallback = { facts: [], summary: '', mirror: '', notes: {} };
+  if (!rawContent || typeof rawContent !== 'string') return fallback;
+  const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) return fallback;
+  try {
+    const parsed = JSON.parse(jsonMatch[0]);
+    return {
+      facts: Array.isArray(parsed.facts) ? parsed.facts.filter(f => typeof f === 'string' && f.length > 5) : [],
+      summary: typeof parsed.summary === 'string' ? parsed.summary.trim() : '',
+      mirror: typeof parsed.mirror === 'string' ? parsed.mirror.trim() : '',
+      notes: parsed.notes && typeof parsed.notes === 'object' ? parsed.notes : {},
+    };
+  } catch (err) {
+    log.warn('Synthesis parse failed', { preview: rawContent.substring(0, 120), error: err.message });
+    return fallback;
+  }
+}
+
+/**
+ * Finalize a chapter: synthesize, write memories, close the session, update
+ * state, fire the reflection hook. Returns the mirror line for the user.
+ *
+ * Memory layout (mirrors the validated soul-interview pattern):
+ *  - each Q&A pair  → conversation memory, importance 8 (skipImportance)
+ *  - each fact      → fact memory, importance 8
+ *  - chapter summary → reflection memory, importance 9
+ * All tagged { source: 'life_story', chapter, question_id? }.
+ */
+async function completeChapter({ userId, session, chapter, transcript, state, noteUpdates }) {
+  let synthesis = { facts: [], summary: '', mirror: '', notes: {} };
+  try {
+    const result = await complete({
+      tier: TIER_ANALYSIS,
+      system: buildSynthesisPrompt(chapter, state.reflection_notes),
+      messages: [{ role: 'user', content: formatTranscript(transcript, 12000) }],
+      maxTokens: 700,
+      temperature: 0.5,
+      userId,
+      serviceName: 'life-story-synthesis',
+    });
+    synthesis = parseSynthesis(result.content);
+  } catch (err) {
+    log.warn('Chapter synthesis failed (chapter still completes)', { userId, error: err.message });
+  }
+
+  // Q&A pairs: pair each assistant utterance with the following user answer.
+  const memoryWrites = [];
+  for (let i = 0; i < transcript.length - 1; i++) {
+    const q = transcript[i];
+    const a = transcript[i + 1];
+    if (q.role === 'assistant' && a.role === 'user') {
+      memoryWrites.push(
+        addMemory(
+          userId,
+          `Life story (${chapter.title}) — Q: "${q.content.substring(0, 300)}" A: "${a.content.substring(0, 800)}"`,
+          'conversation',
+          { source: 'life_story', chapter: chapter.id, question_id: q.questionId || null },
+          { importanceScore: 8, skipImportance: true }
+        )
+      );
+    }
+  }
+  for (const fact of synthesis.facts) {
+    memoryWrites.push(
+      addMemory(
+        userId,
+        fact,
+        'fact',
+        { source: 'life_story', chapter: chapter.id },
+        { importanceScore: 8, skipImportance: true }
+      )
+    );
+  }
+  if (synthesis.summary) {
+    memoryWrites.push(
+      addMemory(
+        userId,
+        `Life story chapter (${chapter.title}): ${synthesis.summary}`,
+        'reflection',
+        { source: 'life_story', chapter: chapter.id },
+        { importanceScore: 9, skipImportance: true }
+      )
+    );
+  }
+  const results = await Promise.allSettled(memoryWrites);
+  const failed = results.filter(r => r.status === 'rejected').length;
+  if (failed > 0) {
+    log.warn('Some chapter memory writes failed', { userId, chapter: chapter.id, failed });
+  }
+
+  const { error: closeError } = await supabaseAdmin
+    .from('life_story_sessions')
+    .update({
+      transcript,
+      status: 'completed',
+      completed_at: new Date().toISOString(),
+    })
+    .eq('id', session.id);
+  if (closeError) {
+    log.warn('Failed to close session', { userId, sessionId: session.id, error: closeError.message });
+  }
+
+  const mergedNotes = mergeReflectionNotes(
+    mergeReflectionNotes(state.reflection_notes, noteUpdates),
+    synthesis.notes
+  );
+  const chaptersCompleted = state.chapters_completed.includes(chapter.id)
+    ? state.chapters_completed
+    : [...state.chapters_completed, chapter.id];
+  await saveState(userId, {
+    ...state,
+    reflection_notes: mergedNotes,
+    chapters_completed: chaptersCompleted,
+  });
+
+  // Post-chapter reflection hook — same pattern as onboarding-calibration.
+  try {
+    const shouldReflect = await shouldTriggerReflection(userId);
+    if (shouldReflect) {
+      generateReflections(userId).catch(err =>
+        log.warn('Post-chapter reflection error', { userId, error: err.message })
+      );
+    }
+  } catch (err) {
+    log.warn('Reflection trigger check failed', { userId, error: err.message });
+  }
+
+  log.info('Chapter completed', { userId, chapter: chapter.id, facts: synthesis.facts.length });
+  return synthesis.mirror;
 }
