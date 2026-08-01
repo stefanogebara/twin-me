@@ -647,3 +647,110 @@ async function completeChapter({ userId, session, chapter, transcript, state, no
   log.info('Chapter completed', { userId, chapter: chapter.id, facts: synthesis.facts.length });
   return synthesis.mirror;
 }
+
+// ====================================================================
+// Twin-initiated chapter nudges (Phase 3)
+// ====================================================================
+
+export const NUDGE_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000;
+const MAX_IGNORES_PER_CHAPTER = 2;
+
+/**
+ * Deterministic per-chapter nudge lines — zero LLM cost by design (this
+ * runs on the observation-ingestion path, where the cost rule is: guards
+ * and static content first, LLM never). The twin voices delivery itself
+ * when the insight is injected into chat context.
+ */
+const CHAPTER_NUDGE_LINES = {
+  your_story: 'I know your patterns, but I have never heard your life story from you directly — where you come from, in your own words. The Your Story chapter on the Story page takes about 5 minutes.',
+  work_purpose: 'I see what you work on every day, but not why. The Work & Purpose chapter on the Story page would tell me what actually drives you — about 4 minutes.',
+  people: 'I know your schedule better than I know the people in it. The People chapter on the Story page is about 4 minutes.',
+  values_beliefs: 'I can predict what you will do, but not yet what you would never do. The Values & Beliefs chapter on the Story page is about 4 minutes.',
+  day_in_life: 'I see fragments of your days from your platforms. The real version, told by you, would sharpen everything — A Day in the Life, about 3 minutes on the Story page.',
+  taste_joy: 'I know what you listen to, but not what it means to you. The Taste & Joy chapter on the Story page is about 3 minutes.',
+  hard_times: 'The hardest parts of a story are usually the most defining, and I only know yours secondhand. The Hard Times chapter on the Story page is about 4 minutes — share only what you want.',
+  the_future: 'I know your past patterns well. Where you are trying to go matters more — The Future chapter on the Story page, about 3 minutes.',
+};
+
+/**
+ * Evaluate stale nudges (revealed-preference ignore tracking), then maybe
+ * generate ONE chapter nudge through the proactive_insights channel.
+ *
+ * Rules: max 1 nudge per NUDGE_COOLDOWN_MS across all chapters; a nudge
+ * unanswered for a full cooldown counts as an ignore; a chapter ignored
+ * MAX_IGNORES_PER_CHAPTER times is never nudged again. Insight rows use
+ * category 'nudge' WITHOUT nudge_action so evaluateNudgeOutcomes marks
+ * them checked-but-unknown rather than "not followed".
+ *
+ * Returns { chapterId } when a nudge was created, else null.
+ */
+export async function maybeGenerateChapterNudge(userId) {
+  const state = await getState(userId);
+  const completed = new Set(state.chapters_completed);
+  const nudges = { ...(state.nudges || {}) };
+
+  // 1) Ignore evaluation: any unevaluated nudge older than one cooldown
+  //    whose chapter is still incomplete counts as ignored.
+  let nudgesChanged = false;
+  for (const chapter of LIFE_STORY_CHAPTERS) {
+    const entry = nudges[chapter.id];
+    if (!entry || entry.evaluated || !entry.last_sent_at) continue;
+    if (Date.now() - new Date(entry.last_sent_at).getTime() < NUDGE_COOLDOWN_MS) continue;
+    nudges[chapter.id] = {
+      ...entry,
+      ignored: (entry.ignored || 0) + (completed.has(chapter.id) ? 0 : 1),
+      evaluated: true,
+    };
+    nudgesChanged = true;
+  }
+
+  const remaining = LIFE_STORY_CHAPTERS.filter(c => !completed.has(c.id));
+  if (remaining.length === 0) {
+    if (nudgesChanged) await saveState(userId, { ...state, nudges });
+    return null;
+  }
+
+  // 2) Global cooldown.
+  const lastNudgeAt = nudges.last_nudge_at ? new Date(nudges.last_nudge_at).getTime() : 0;
+  if (Date.now() - lastNudgeAt < NUDGE_COOLDOWN_MS) {
+    if (nudgesChanged) await saveState(userId, { ...state, nudges });
+    return null;
+  }
+
+  // 3) Target: first incomplete chapter not yet nudge-retired.
+  const target = remaining.find(c => (nudges[c.id]?.ignored || 0) < MAX_IGNORES_PER_CHAPTER);
+  if (!target) {
+    if (nudgesChanged) await saveState(userId, { ...state, nudges });
+    return null;
+  }
+
+  const insight =
+    CHAPTER_NUDGE_LINES[target.id] ||
+    `The ${target.title} chapter on the Story page takes about ${target.estimatedMinutes} minutes and would teach me a lot about you.`;
+
+  const { error: insertError } = await supabaseAdmin.from('proactive_insights').insert({
+    user_id: userId,
+    insight,
+    urgency: 'low',
+    category: 'nudge',
+  });
+  if (insertError) {
+    log.warn('Chapter nudge insert failed', { userId, chapter: target.id, error: insertError.message });
+    if (nudgesChanged) await saveState(userId, { ...state, nudges });
+    return null;
+  }
+
+  const now = new Date().toISOString();
+  const prev = nudges[target.id] || { sent: 0, ignored: 0 };
+  await saveState(userId, {
+    ...state,
+    nudges: {
+      ...nudges,
+      [target.id]: { ...prev, sent: (prev.sent || 0) + 1, last_sent_at: now, evaluated: false },
+      last_nudge_at: now,
+    },
+  });
+
+  log.info('Chapter nudge generated', { userId, chapter: target.id });
+  return { chapterId: target.id };
+}
