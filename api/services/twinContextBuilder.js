@@ -255,6 +255,8 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
     memoryBudgets = {},
     memoryWeights = 'identity',
     contextVector = null,
+    // R8: routed expert id for exhaustive-within-domain reflections
+    exhaustiveReflectionDomain = null,
   } = options;
 
   const ctxStart = Date.now();
@@ -357,7 +359,7 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
     // ladder shows reflections / facts / platform_data / semantic_conv /
     // recent_conv breakdowns. The function attaches _legDurations as a
     // non-enumerable property on the returned array.
-    timed('memories', retrieveDiverseMemories(userId, userMessage, memoryBudgets, memoryWeights, { contextVector })
+    timed('memories', retrieveDiverseMemories(userId, userMessage, memoryBudgets, memoryWeights, { contextVector, exhaustiveReflectionDomain })
       .then(combined => {
         const legs = combined?._legDurations;
         if (legs && typeof legs === 'object') {

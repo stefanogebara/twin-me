@@ -15,6 +15,7 @@
 
 import { supabaseAdmin } from './database.js';
 import { fetchTwinContext } from './twinContextBuilder.js';
+import { NEUROPIL_TO_EXPERT } from './neuropilRouter.js';
 import { getProfile, getSoulSignatureLayers } from './personalityProfileService.js';
 import { getOracleDraft } from './finetuning/personalityOracle.js';
 import { buildWorkspaceActionsPrompt } from './tools/workspaceActionParser.js';
@@ -31,7 +32,7 @@ function mapNeuropilWeightsToPreset(weights) {
   return 'identity';
 }
 
-function buildContextOptions({ platforms, neuropilResult }) {
+export function buildContextOptions({ platforms, neuropilResult }) {
   const opts = { platforms: platforms || DEFAULT_PLATFORMS };
   if (neuropilResult?.neuropilId && neuropilResult.budgets) {
     opts.memoryBudgets = neuropilResult.budgets;
@@ -39,6 +40,12 @@ function buildContextOptions({ platforms, neuropilResult }) {
   if (neuropilResult?.neuropilId && neuropilResult.weights) {
     const preset = mapNeuropilWeightsToPreset(neuropilResult.weights);
     if (preset) opts.memoryWeights = preset;
+  }
+  // R8: exhaustive-within-domain reflections. Thread the routed expert
+  // unconditionally; the feature-flag gate lives in retrieveDiverseMemories
+  // (same cached getFeatureFlags pattern as graph retrieval).
+  if (neuropilResult?.neuropilId && NEUROPIL_TO_EXPERT[neuropilResult.neuropilId]) {
+    opts.exhaustiveReflectionDomain = NEUROPIL_TO_EXPERT[neuropilResult.neuropilId];
   }
   return opts;
 }
