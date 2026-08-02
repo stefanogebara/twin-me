@@ -21,7 +21,9 @@
  *   1. Gather N recent memories (all types)
  *   2. For each expert (in parallel):
  *      a. Retrieve domain-relevant memories via vector search
- *      b. Expert analyzes combined evidence and generates 2-3 observations
+ *      b. Expert analyzes combined evidence and generates 1-5 observations
+ *         (evidence-scaled, R7c) with retrieval sharpened by a per-cycle
+ *         salient question derived from recent observations (R7a)
  *      c. Store each observation as memory_type='reflection' with expert metadata
  *   3. Reflections become retrievable in future queries (recursive improvement)
  *
@@ -354,7 +356,7 @@ Write 2-3 specific observations about their emotional patterns. Address them dir
 
 If there's not enough data for a genuine insight, return "INSUFFICIENT_EVIDENCE".
 
-Return observations numbered 1., 2., 3. on separate lines. Nothing else.`
+Generate between 1 and 5 observations — exactly as many as the evidence genuinely supports. Thin evidence deserves one sharp observation, never padding; rich evidence deserves the full set. Return them numbered on separate lines. Nothing else.`
   },
   {
     id: 'lifestyle_analyst',
@@ -380,7 +382,7 @@ Write 2-3 specific observations about their lifestyle patterns. Address them dir
 
 If there's not enough data for a genuine insight, return "INSUFFICIENT_EVIDENCE".
 
-Return observations numbered 1., 2., 3. on separate lines. Nothing else.`
+Generate between 1 and 5 observations — exactly as many as the evidence genuinely supports. Thin evidence deserves one sharp observation, never padding; rich evidence deserves the full set. Return them numbered on separate lines. Nothing else.`
   },
   {
     id: 'cultural_identity',
@@ -406,7 +408,7 @@ Write 2-3 specific observations about their tastes and cultural identity. Addres
 
 If there's not enough data for a genuine insight, return "INSUFFICIENT_EVIDENCE".
 
-Return observations numbered 1., 2., 3. on separate lines. Nothing else.`
+Generate between 1 and 5 observations — exactly as many as the evidence genuinely supports. Thin evidence deserves one sharp observation, never padding; rich evidence deserves the full set. Return them numbered on separate lines. Nothing else.`
   },
   {
     id: 'social_dynamics',
@@ -431,7 +433,7 @@ Write 2-3 specific observations about their social patterns. Address them direct
 
 If there's not enough data for a genuine insight, return "INSUFFICIENT_EVIDENCE".
 
-Return observations numbered 1., 2., 3. on separate lines. Nothing else.`
+Generate between 1 and 5 observations — exactly as many as the evidence genuinely supports. Thin evidence deserves one sharp observation, never padding; rich evidence deserves the full set. Return them numbered on separate lines. Nothing else.`
   },
   {
     id: 'motivation_analyst',
@@ -457,7 +459,7 @@ Write 2-3 specific observations about their motivation and drive patterns. Addre
 
 If there's not enough data for a genuine insight, return "INSUFFICIENT_EVIDENCE".
 
-Return observations numbered 1., 2., 3. on separate lines. Nothing else.`
+Generate between 1 and 5 observations — exactly as many as the evidence genuinely supports. Thin evidence deserves one sharp observation, never padding; rich evidence deserves the full set. Return them numbered on separate lines. Nothing else.`
   },
 ];
 
@@ -503,17 +505,85 @@ async function getPersonalityTrend(userId) {
 }
 
 // ====================================================================
+// Question-First Anchors (R7a — Generative Agents' reflection pattern)
+// ====================================================================
+
+/**
+ * Derive ONE salient question per selected expert from the actual recent
+ * observations (single ANALYSIS call per cycle). The questions become
+ * retrieval-anchor sharpeners so each expert digs into what actually
+ * happened this window instead of re-retrieving the same static semantic
+ * neighborhood every run. Fails open to null => static anchors.
+ */
+async function generateSalientQuestions(userId, formattedObservations, experts) {
+  try {
+    const expertList = experts
+      .map(e => `- "${e.id}": ${e.name} — ${e.description || e.retrievalQuery}`)
+      .join('\n');
+
+    const result = await complete({
+      tier: TIER_ANALYSIS,
+      messages: [{
+        role: 'user',
+        content: `Given only this person's recent activity, what is the single most salient question each expert below should investigate about them right now? Questions must be grounded in the observations — specific to what actually happened, not generic domain questions.
+
+RECENT OBSERVATIONS:
+${formattedObservations.substring(0, 4000)}
+
+EXPERTS:
+${expertList}
+
+Return ONLY JSON mapping expert id to one question: {"<expert_id>": "question", ...}`,
+      }],
+      maxTokens: 300,
+      temperature: 0.4,
+      userId,
+      serviceName: 'reflection-salient-questions',
+    });
+
+    const jsonMatch = (result.content || '').match(/\{[\s\S]*\}/);
+    if (!jsonMatch) return null;
+    const parsed = JSON.parse(jsonMatch[0]);
+    const validIds = new Set(experts.map(e => e.id));
+    const questions = {};
+    for (const [id, question] of Object.entries(parsed)) {
+      if (validIds.has(id) && typeof question === 'string' && question.trim().length > 10) {
+        questions[id] = question.trim();
+      }
+    }
+    return Object.keys(questions).length > 0 ? questions : null;
+  } catch (err) {
+    log.warn('Salient question generation failed (fail-open to static anchors)', { error: err?.message });
+    return null;
+  }
+}
+
+/**
+ * Blend an expert's static domain query with its salient question.
+ * Pure; no question => the static query verbatim (legacy behavior).
+ */
+function buildExpertAnchor(expert, salientQuestions) {
+  const question = salientQuestions?.[expert.id];
+  if (typeof question !== 'string' || question.trim().length === 0) {
+    return expert.retrievalQuery;
+  }
+  return `${expert.retrievalQuery}. Focus: ${question.trim()}`;
+}
+
+// ====================================================================
 // Core Expert Reflection Pipeline
 // ====================================================================
 
 /**
  * Run a single expert persona against a user's memories.
- * Returns an array of generated reflections (0-3).
+ * Returns an array of generated reflections (1-5, evidence-scaled).
  */
-async function runExpertAnalysis(userId, expert, formattedObservations, depth, identityContext = null) {
+async function runExpertAnalysis(userId, expert, formattedObservations, depth, identityContext = null, salientQuestions = null) {
   try {
-    // Retrieve domain-relevant memories via vector search (reflection weights: relevance dominant, no recency bias)
-    const domainMemories = await retrieveMemories(userId, expert.retrievalQuery, 10, 'reflection');
+    // Retrieve domain-relevant memories via vector search (reflection weights:
+    // relevance dominant, no recency bias). R7a: the anchor is the static
+    // domain query sharpened by this cycle's salient question when available.
+    const domainMemories = await retrieveMemories(userId, buildExpertAnchor(expert, salientQuestions), 10, 'reflection');
     const evidenceIds = domainMemories.map(m => m.id);
 
     // replan-2026-06-10 Track B: re-running an expert on an essentially unchanged
@@ -555,7 +625,8 @@ async function runExpertAnalysis(userId, expert, formattedObservations, depth, i
           .replace('{observations}', formattedObservations)
           .replace('{evidence}', evidence),
       }],
-      maxTokens: 400,
+      // R7c: room for up to 5 evidence-scaled observations (was 400 for 2-3)
+      maxTokens: 600,
       temperature: 0.4,
       serviceName: `reflection-${expert.id}`,
       sensitiveContent: hasSensitive,
@@ -701,9 +772,16 @@ async function generateReflections(userId, depth = 0) {
     const selectedExperts = await selectExpertsForRun(userId);
     log.info('Running expert analyses in parallel', { expertCount: selectedExperts.length, experts: selectedExperts.map(e => e.id) });
 
+    // R7a: one cheap call derives a data-driven salient question per expert;
+    // null on any failure => experts fall back to their static anchors.
+    const salientQuestions = await generateSalientQuestions(userId, observationsWithTrend, selectedExperts);
+    if (salientQuestions) {
+      log.info('Salient questions generated', { experts: Object.keys(salientQuestions) });
+    }
+
     const expertSettled = await Promise.allSettled(
       selectedExperts.map(expert =>
-        runExpertAnalysis(userId, expert, observationsWithTrend, depth, identityContext)
+        runExpertAnalysis(userId, expert, observationsWithTrend, depth, identityContext, salientQuestions)
       )
     );
 
@@ -909,4 +987,7 @@ export {
   isDuplicateReflection,
   evidenceOverlapRatio,
   shouldSkipExpertRun,
+  // R7a question-first anchors (exported for unit tests)
+  generateSalientQuestions,
+  buildExpertAnchor,
 };
