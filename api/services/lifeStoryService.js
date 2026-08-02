@@ -574,7 +574,9 @@ async function completeChapter({ userId, session, chapter, transcript, state, no
           `Life story (${chapter.title}) — Q: "${q.content.substring(0, 300)}" A: "${a.content.substring(0, 800)}"`,
           'conversation',
           { source: 'life_story', chapter: chapter.id, question_id: q.questionId || null },
-          { importanceScore: 8, skipImportance: true }
+          // R5a durability: life-story answers are biographical, not chatter —
+          // they should outlive ordinary conversation recency (14d -> ~22d).
+          { importanceScore: 8, skipImportance: true, durability: 8 }
         )
       );
     }
@@ -586,7 +588,9 @@ async function completeChapter({ userId, session, chapter, transcript, state, no
         fact,
         'fact',
         { source: 'life_story', chapter: chapter.id },
-        { importanceScore: 8, skipImportance: true }
+        // R5a durability: chapter facts are stable biography (hometown,
+        // values, formative events) — near the top of the scale (30d -> 54d).
+        { importanceScore: 8, skipImportance: true, durability: 9 }
       )
     );
   }
@@ -597,7 +601,9 @@ async function completeChapter({ userId, session, chapter, transcript, state, no
         `Life story chapter (${chapter.title}): ${synthesis.summary}`,
         'reflection',
         { source: 'life_story', chapter: chapter.id },
-        { importanceScore: 9, skipImportance: true }
+        // R5a durability: chapter syntheses describe who the person IS —
+        // maximum stability (90d -> 180d).
+        { importanceScore: 9, skipImportance: true, durability: 10 }
       )
     );
   }

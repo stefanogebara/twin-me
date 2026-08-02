@@ -241,6 +241,13 @@ describe('processTurn', () => {
     expect(convCall[4].importanceScore).toBe(8);
     expect(convCall[4].skipImportance).toBe(true);
 
+    // R5a durability: biographical content outlives its type defaults —
+    // answers 8, extracted facts 9, chapter synthesis 10.
+    expect(convCall[4].durability).toBe(8);
+    const factCall = addMemory.mock.calls.find(c => c[2] === 'fact');
+    expect(factCall[4].durability).toBe(9);
+    expect(reflectionCall[4].durability).toBe(10);
+
     // Session closed + chapter recorded
     const update = dbState.calls.find(c => c.table === 'life_story_sessions' && c.op === 'update');
     expect(update.args[0].status).toBe('completed');
