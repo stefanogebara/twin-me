@@ -65,6 +65,21 @@ const NEUROPILS = {
  * @param {string} message - User message
  * @returns {{ neuropilId: string|null, weights: object|null, budgets: object|null, confidence: number }}
  */
+/**
+ * R8: neuropil -> reflection-expert-persona id (metadata.expert on
+ * reflection rows). Used for exhaustive-within-domain retrieval: when a
+ * message routes to a neuropil, ALL of that expert's reflections can be
+ * injected instead of top-k vector sampling (the 1,000-people paper's
+ * query-time routing).
+ */
+export const NEUROPIL_TO_EXPERT = {
+  personality: 'personality_psychologist',
+  lifestyle: 'lifestyle_analyst',
+  cultural: 'cultural_identity',
+  social: 'social_dynamics',
+  motivation: 'motivation_analyst',
+};
+
 export function classifyNeuropil(message) {
   if (!message || typeof message !== 'string') {
     return { neuropilId: null, weights: null, budgets: null, confidence: 0 };
