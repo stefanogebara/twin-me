@@ -15,7 +15,6 @@ import { ChatHeader } from '@/components/chat/ChatHeader';
 import { LimitReachedBanner } from '@/components/chat/LimitReachedBanner';
 import { ContextSidebar } from '@/components/chat/ContextSidebar';
 import { ConversationList } from '@/components/chat/ConversationList';
-import { SoulInterview } from '@/components/chat/SoulInterview';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useProactiveInsights } from '@/hooks/useProactiveInsights';
 import { useSidebarContext } from '@/hooks/useSidebarContext';
@@ -125,7 +124,6 @@ const TalkToTwin = () => {
   );
   const [showContext, setShowContext] = useState(false);
   const [showConversationList, setShowConversationList] = useState(false);
-  const [showInterview, setShowInterview] = useState(false);
   const [showInterviewChip, setShowInterviewChip] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -192,7 +190,8 @@ const TalkToTwin = () => {
     }
   }, [inputMessage, user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Check if Soul Interview should be shown (< 50 memories)
+  // Check if the Story Chapters chip should be shown (< 50 memories —
+  // the legacy soul-interview gate; destination is now /story).
   useEffect(() => {
     if (!user?.id) return;
     authFetch('/interview/should-show')
@@ -201,13 +200,13 @@ const TalkToTwin = () => {
       .catch(() => {});
   }, [user?.id]);
 
-  // Open interview from sidebar link (?interview=1)
+  // Legacy sidebar link (?interview=1) — the in-chat Soul Interview overlay
+  // is retired; life-story interviews live at /story (Story Chapters).
   useEffect(() => {
     if (searchParams.get('interview') === '1') {
-      setShowInterview(true);
-      setSearchParams({}, { replace: true });
+      navigate('/story', { replace: true });
     }
-  }, [searchParams, setSearchParams]);
+  }, [searchParams, navigate]);
 
   // Prefill composer from deep-link query param (?prefill=...).
   // Query-param form is the reliable path; navigating with location.state
@@ -750,7 +749,7 @@ const TalkToTwin = () => {
               onQuickAction={handleQuickAction}
               onSendMessage={handleSendMessage}
               showInterviewChip={showInterviewChip}
-              onStartInterview={() => setShowInterview(true)}
+              onStartInterview={() => navigate('/story')}
               // audit-2026-05-13 L1: pass today's signals so the empty-state
               // chips can highlight what the twin already noticed rather
               // than rotating through static, generic copy.
@@ -809,13 +808,6 @@ const TalkToTwin = () => {
         isLoadingContext={isLoadingContext}
       />
 
-      {/* Soul Interview overlay */}
-      {showInterview && (
-        <SoulInterview
-          onClose={() => setShowInterview(false)}
-          onComplete={() => setShowInterviewChip(false)}
-        />
-      )}
     </div>
   );
 };
