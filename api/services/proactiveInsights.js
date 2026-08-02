@@ -30,6 +30,7 @@ import { supabaseAdmin } from './database.js';
 import { createLogger } from './logger.js';
 import { stripEmoji } from '../utils/stripEmoji.js';
 import { computeCategorySuppression, buildSuppressionPromptSection } from './insightSuppression.js';
+import { sanitizeUtility, rankForDelivery, applyDailyCap } from './insightUtilityGate.js';
 
 const log = createLogger('ProactiveInsights');
 
@@ -500,11 +501,16 @@ async function generateProactiveInsights(userId) {
       // Editor path: collect the grounded candidate and let editInsights() do
       // semantic dedup + the single voice rewrite after the loop. Skip the
       // legacy per-item store below.
+      // R3: per-insight utility estimates (Gumbo gate inputs). Malformed or
+      // missing blocks sanitize to null — those rows fail open at delivery.
+      const utility = sanitizeUtility(item.utility);
+
       if (editorEnabled) {
         candidatesForEditor.push({
           insight: insightText.substring(0, 500),
           urgency: ['low', 'medium', 'high'].includes(item.urgency) ? item.urgency : 'low',
           category: validCategories.includes(item.category) ? item.category : null,
+          utility,
         });
         continue;
       }
@@ -515,6 +521,7 @@ async function generateProactiveInsights(userId) {
         urgency: ['low', 'medium', 'high'].includes(item.urgency) ? item.urgency : 'low',
         category: validCategories.includes(item.category) ? item.category : null,
         department: validDepartments.includes(item.department) ? item.department : null,
+        ...(utility ? { metadata: { utility } } : {}),
       };
       // Populate nudge_action when category is 'nudge'
       if (item.category === 'nudge' && item.nudge_action) {
@@ -553,6 +560,11 @@ async function generateProactiveInsights(userId) {
     if (editorEnabled && candidatesForEditor.length > 0) {
       const chosen = await editInsights(userId, candidatesForEditor);
       if (chosen) {
+        // R3: the editor rewrites text but keeps candidate identity — recover
+        // the utility block from the chosen candidate (or its own field).
+        const chosenUtility = sanitizeUtility(chosen.utility)
+          || candidatesForEditor.find(c => c.insight === chosen.insight)?.utility
+          || null;
         const insertData = {
           user_id: userId,
           insight: chosen.insight,
@@ -561,6 +573,7 @@ async function generateProactiveInsights(userId) {
           // surfaced_at anchors the semantic-dedup window — this is the one
           // thing we chose to say, so it counts as "said" from now.
           surfaced_at: new Date().toISOString(),
+          ...(chosenUtility ? { metadata: { utility: chosenUtility } } : {}),
         };
         if (chosen.embedding) insertData.embedding = vectorToString(chosen.embedding);
         const sources = _extractSourcesFromText(chosen.insight);
@@ -755,26 +768,32 @@ async function generateProactiveInsights(userId) {
  */
 async function getUndeliveredInsights(userId, limit = 3) {
   try {
+    // R3 token bucket: cap deliveries per rolling 24h regardless of EV.
+    const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { count: deliveredToday } = await supabaseAdmin
+      .from('proactive_insights')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('delivered', true)
+      .gte('delivered_at', dayAgo);
+
+    const effectiveLimit = applyDailyCap(limit, deliveredToday ?? 0);
+    if (effectiveLimit === 0) return [];
+
     const { data, error } = await supabaseAdmin
       .from('proactive_insights')
-      .select('id, insight, urgency, category, department, created_at')
+      .select('id, insight, urgency, category, department, created_at, metadata')
       .eq('user_id', userId)
       .eq('delivered', false)
       .not('category', 'in', '("briefing_email","briefing","system","meeting_prep")')
       .order('created_at', { ascending: false })
-      .limit(limit * 2); // Fetch extra so we can re-sort by urgency
+      .limit(limit * 3); // Fetch extra so the EV gate/rank has candidates
 
     if (error || !data) return [];
 
-    // Sort by urgency (high > medium > low), then by recency
-    const urgencyOrder = { high: 0, medium: 1, low: 2 };
-    const sorted = data.sort((a, b) => {
-      const urgDiff = (urgencyOrder[a.urgency] || 2) - (urgencyOrder[b.urgency] || 2);
-      if (urgDiff !== 0) return urgDiff;
-      return new Date(b.created_at) - new Date(a.created_at);
-    });
-
-    return sorted.slice(0, limit);
+    // R3 Gumbo gate: drop negative-EV insights, rank the rest by EV
+    // (utility-less legacy rows fail open and rank by urgency prior).
+    return rankForDelivery(data).slice(0, effectiveLimit);
   } catch (err) {
     log.warn('getUndeliveredInsights error', { error: err });
     return [];
