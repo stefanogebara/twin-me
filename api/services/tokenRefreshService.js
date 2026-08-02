@@ -72,11 +72,6 @@ function getPlatformRefreshConfig(platform) {
       clientId: process.env.DISCORD_CLIENT_ID,
       clientSecret: process.env.DISCORD_CLIENT_SECRET,
     },
-    linkedin: {
-      tokenUrl: 'https://www.linkedin.com/oauth/v2/accessToken',
-      clientId: process.env.LINKEDIN_CLIENT_ID,
-      clientSecret: process.env.LINKEDIN_CLIENT_SECRET,
-    },
     // Whoop: support legacy connections (not yet migrated to Nango)
     whoop: {
       tokenUrl: 'https://api.prod.whoop.com/oauth/oauth2/token',
@@ -85,20 +80,22 @@ function getPlatformRefreshConfig(platform) {
     },
 
     // Retired refresh configs removed (replan-2026-06-10 Track C portfolio cut):
-    // reddit, slack, twitch, oura, strava. None has a PLATFORM_CONFIGS entry or
-    // appears in VALID_PROVIDERS, none is Nango-managed, and platform_connections
-    // holds zero rows for slack/twitch/oura/strava — so no live connection depends
-    // on these paths. Their *_CLIENT_ID/*_CLIENT_SECRET env vars are read by no
-    // live code and can be removed from Vercel.
+    // reddit, slack, twitch, oura, strava, linkedin. None has a PLATFORM_CONFIGS
+    // entry or appears in VALID_PROVIDERS, and none is Nango-managed, so none can
+    // be connected. Their *_CLIENT_ID/*_CLIENT_SECRET env vars are read by no live
+    // code. platform_connections holds zero rows for slack/twitch/oura/strava.
     //
-    // Reddit is the one exception worth naming: one legacy connected row remains,
-    // but Reddit is unextractable (absent from VALID_PROVIDERS) and its leaked
-    // credentials are slated for rotation, so a refresh could not succeed anyway.
-    // Those credentials remain in git history — rotation is out-of-band, see
-    // docs/security/README.md.
+    // linkedin was kept in an earlier pass on the theory that its rows would lose
+    // token refresh. That was wrong: LinkedIn issues no refresh token to standard
+    // apps, and both surviving rows have refresh_token NULL with access tokens
+    // that expired in June 2026. The config could never have refreshed them —
+    // recovery requires full re-auth, which is impossible while LinkedIn is out
+    // of VALID_PROVIDERS. Those rows still read status='connected'; that status
+    // is stale, not evidence of a live integration.
     //
-    // linkedin is retired too but is deliberately KEPT above: platform_connections
-    // still has connected rows that would silently lose token refresh without it.
+    // reddit likewise has one legacy connected row, but it is unextractable and
+    // its credentials were revoked with the app on 2026-08-02, so no refresh
+    // could succeed. See docs/security/README.md.
   };
   return configs[platform];
 }

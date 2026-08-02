@@ -53,9 +53,8 @@ describe('requiresTokenRefresh', () => {
     expect(requiresTokenRefresh('youtube')).toBe(true);
     expect(requiresTokenRefresh('google_gmail')).toBe(true);
     expect(requiresTokenRefresh('google_calendar')).toBe(true);
-    // linkedin is retired but keeps its refresh config: platform_connections
-    // still holds connected rows that would silently stop refreshing without it.
-    expect(requiresTokenRefresh('linkedin')).toBe(true);
+    expect(requiresTokenRefresh('discord')).toBe(true);
+    expect(requiresTokenRefresh('whoop')).toBe(true);
   });
 
   it('returns false for platforms retired in the Track C portfolio cut', () => {
@@ -69,6 +68,10 @@ describe('requiresTokenRefresh', () => {
     expect(requiresTokenRefresh('twitch')).toBe(false);
     expect(requiresTokenRefresh('oura')).toBe(false);
     expect(requiresTokenRefresh('reddit')).toBe(false);
+    // linkedin: its surviving rows have refresh_token NULL (LinkedIn issues none
+    // to standard apps) and access tokens that expired June 2026, so the config
+    // could never have refreshed them. Removed 2026-08-02.
+    expect(requiresTokenRefresh('linkedin')).toBe(false);
   });
 
   it('returns true for github (non-expiring but checked)', () => {
