@@ -41,6 +41,24 @@ Memory: "{content}"
 
 Rating:`;
 
+// R5a: combined importance + durability rating in ONE call (same cost class
+// as the old importance-only call). Durability is how long the memory stays
+// TRUE/RELEVANT, independent of how important it is: "prepping Tuesday's
+// demo" is transient (1-2); "prefers dark roast" is a stable preference
+// (8-10). 5 = typical for its kind. Scales the per-type Ebbinghaus
+// stability in retrieval (see computeDecayRate).
+const IMPORTANCE_DURABILITY_PROMPT = `Rate this memory on two independent 1-10 scales.
+
+importance — how much it matters for understanding who this person is:
+1=mundane ("said hello"), 5=moderately interesting ("enjoys cooking"), 10=deeply significant ("career change", "breakup").
+
+durability — how long it stays true or relevant, regardless of importance:
+1-2=ephemeral (today/this week: current tasks, moods, statuses), 5=typical for its kind (interests, ongoing situations), 8-10=stable trait or permanent fact (hometown, values, lifelong preferences).
+
+Memory: "{content}"
+
+Return ONLY this JSON: {"importance": n, "durability": n}`;
+
 /**
  * Rate a memory's importance 1-10 using the cheapest LLM tier.
  * Cost: ~$0.0001 per call.
@@ -73,6 +91,77 @@ async function rateImportance(content, userId = null) {
     log.warn('Importance rating failed, defaulting to 5', { error });
     return 5;
   }
+}
+
+/**
+ * R5a: parse the combined importance+durability reply. Robust to fencing,
+ * extra prose, legacy single-digit replies (importance only), and garbage
+ * (fails safe to importance 5, durability null → flat type default).
+ */
+export function parseImportanceAndDurability(rawContent) {
+  const failSafe = { importance: 5, durability: null };
+  if (!rawContent || typeof rawContent !== 'string') return failSafe;
+
+  const clamp = (n) => Math.max(1, Math.min(10, n));
+
+  const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
+  if (jsonMatch) {
+    try {
+      const parsed = JSON.parse(jsonMatch[0]);
+      const importance = Number(parsed.importance);
+      const durability = Number(parsed.durability);
+      return {
+        importance: Number.isFinite(importance) ? clamp(Math.round(importance)) : 5,
+        durability: Number.isFinite(durability) ? clamp(Math.round(durability)) : null,
+      };
+    } catch {
+      // fall through to the digit fallback
+    }
+  }
+
+  const digitMatch = rawContent.trim().match(/^(\d+)/);
+  if (digitMatch) {
+    const n = parseInt(digitMatch[1], 10);
+    if (n >= 1 && n <= 10) return { importance: n, durability: null };
+  }
+  return failSafe;
+}
+
+/**
+ * R5a: rate importance AND durability in one EXTRACTION call.
+ * Same cost class as rateImportance (a few more output tokens).
+ */
+async function rateImportanceAndDurability(content, userId = null) {
+  try {
+    const result = await complete({
+      tier: TIER_EXTRACTION,
+      messages: [{
+        role: 'user',
+        content: IMPORTANCE_DURABILITY_PROMPT.replace('{content}', content.substring(0, 300))
+      }],
+      maxTokens: 40,
+      temperature: 0,
+      userId,
+      serviceName: 'memoryStream-importance'
+    });
+    return parseImportanceAndDurability((result.content || '').trim());
+  } catch (error) {
+    log.warn('Importance+durability rating failed, defaulting', { error });
+    return { importance: 5, durability: null };
+  }
+}
+
+/**
+ * R5a: map a 1-10 durability rating onto the per-type Ebbinghaus stability
+ * (days). 5 = the flat type default (legacy behavior), 10 = 2x, 1 = 0.2x.
+ * Null/undefined durability keeps the type default so unrated writes and
+ * legacy rows behave exactly as before.
+ */
+export function computeDecayRate(memoryType, durability) {
+  const base = DECAY_RATE_BY_TYPE[memoryType] ?? 7;
+  if (durability === null || durability === undefined) return base;
+  const clamped = Math.max(1, Math.min(10, Number(durability) || 1));
+  return base * (clamped / 5);
 }
 
 // ====================================================================
@@ -539,11 +628,18 @@ async function addMemory(userId, content, memoryType = 'observation', metadata =
       }
     }
 
-    // Generate embedding and importance score in parallel
-    let [embedding, importanceScore] = await Promise.all([
+    // Generate embedding and importance+durability rating in parallel.
+    // R5a: one combined EXTRACTION call rates both scores; the skip path
+    // takes the caller's importance and optional explicit durability.
+    let [embedding, rating] = await Promise.all([
       options.skipEmbedding ? null : (options.embedding ?? generateEmbedding(content)),
-      options.skipImportance ? (options.importanceScore || 5) : rateImportance(content, userId),
+      options.skipImportance
+        ? { importance: options.importanceScore || 5, durability: options.durability ?? null }
+        : rateImportanceAndDurability(content, userId),
     ]);
+    let importanceScore = rating.importance;
+    // Explicit caller durability always wins over the LLM's rating.
+    const durability = options.durability ?? rating.durability ?? null;
 
     // Importance floors (see applyImportanceFloor): conversations floor at 7 and
     // platform_data at 6 so they survive normalisation in retrieval — but a row the
@@ -568,7 +664,9 @@ async function addMemory(userId, content, memoryType = 'observation', metadata =
       },
       importance_score: importanceScore,
       last_accessed_at: new Date().toISOString(),
-      decay_rate: DECAY_RATE_BY_TYPE[memoryType] ?? 7,
+      // R5a: per-memory Ebbinghaus stability — durability scales the type
+      // default; unrated writes keep the flat default (legacy behavior).
+      decay_rate: computeDecayRate(memoryType, durability),
     };
 
     // GUM: Set confidence from explicit option or per-type prior
@@ -2137,6 +2235,7 @@ export {
   getRecentImportanceSum,
   getRecentMemories,
   rateImportance,
+  rateImportanceAndDurability,
   extractConversationFacts,
   extractCommunicationStyle,
   getMemoryStats,
