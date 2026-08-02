@@ -84,42 +84,21 @@ function getPlatformRefreshConfig(platform) {
       clientSecret: process.env.WHOOP_CLIENT_SECRET,
     },
 
-    // Slack
-    slack: {
-      tokenUrl: 'https://slack.com/api/oauth.v2.access',
-      clientId: process.env.SLACK_CLIENT_ID,
-      clientSecret: process.env.SLACK_CLIENT_SECRET,
-    },
-
-    // Twitch
-    twitch: {
-      tokenUrl: 'https://id.twitch.tv/oauth2/token',
-      clientId: process.env.TWITCH_CLIENT_ID,
-      clientSecret: process.env.TWITCH_CLIENT_SECRET,
-    },
-
-    // Reddit refresh config removed (replan-2026-06-10 Track C portfolio cut).
-    // Reddit has no PLATFORM_CONFIGS entry, so it can no longer be connected, and
-    // REDDIT_CLIENT_ID/REDDIT_CLIENT_SECRET are read by no live code. The leaked
-    // credentials remain in git history — rotation is out-of-band, see
+    // Retired refresh configs removed (replan-2026-06-10 Track C portfolio cut):
+    // reddit, slack, twitch, oura, strava. None has a PLATFORM_CONFIGS entry or
+    // appears in VALID_PROVIDERS, none is Nango-managed, and platform_connections
+    // holds zero rows for slack/twitch/oura/strava — so no live connection depends
+    // on these paths. Their *_CLIENT_ID/*_CLIENT_SECRET env vars are read by no
+    // live code and can be removed from Vercel.
+    //
+    // Reddit is the one exception worth naming: one legacy connected row remains,
+    // but Reddit is unextractable (absent from VALID_PROVIDERS) and its leaked
+    // credentials are slated for rotation, so a refresh could not succeed anyway.
+    // Those credentials remain in git history — rotation is out-of-band, see
     // docs/security/README.md.
-
-    // Oura
-    oura: {
-      tokenUrl: 'https://api.ouraring.com/oauth/token',
-      clientId: process.env.OURA_CLIENT_ID,
-      clientSecret: process.env.OURA_CLIENT_SECRET,
-    },
-
-    // Strava — OAuth2 refresh. Access tokens expire every ~6h, so a directly
-    // connected Strava token dies and is never refreshed without this entry
-    // (Nango-managed connections are refreshed by Nango). Standard
-    // client_secret_post: credentials go in the body, no Basic auth.
-    strava: {
-      tokenUrl: 'https://www.strava.com/oauth/token',
-      clientId: process.env.STRAVA_CLIENT_ID,
-      clientSecret: process.env.STRAVA_CLIENT_SECRET,
-    },
+    //
+    // linkedin is retired too but is deliberately KEPT above: platform_connections
+    // still has connected rows that would silently lose token refresh without it.
   };
   return configs[platform];
 }
