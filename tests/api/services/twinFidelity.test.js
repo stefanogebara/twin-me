@@ -165,14 +165,17 @@ describe('normalizedFidelity', () => {
 });
 
 describe('parseTwinAnswers', () => {
+  // R4 calibration: the contract deliberately changed from a flat answer
+  // map to { answers, confidence } — confidence null on legacy replies.
   it('parses a clean JSON answers object', () => {
     const parsed = parseTwinAnswers('{"answers": {"bfi_reserved": 4, "sat_morning": "Sleep in"}}');
-    expect(parsed.bfi_reserved).toBe(4);
-    expect(parsed.sat_morning).toBe('Sleep in');
+    expect(parsed.answers.bfi_reserved).toBe(4);
+    expect(parsed.answers.sat_morning).toBe('Sleep in');
+    expect(parsed.confidence).toBeNull();
   });
 
   it('handles markdown fencing and returns null on garbage', () => {
-    expect(parseTwinAnswers('```json\n{"answers": {"x": 1}}\n```')).toEqual({ x: 1 });
+    expect(parseTwinAnswers('```json\n{"answers": {"x": 1}}\n```').answers).toEqual({ x: 1 });
     expect(parseTwinAnswers('no json here')).toBeNull();
   });
 });
@@ -187,8 +190,11 @@ describe('answerBatteryAsTwin', () => {
       }),
     });
 
-    const answers = await answerBatteryAsTwin(USER);
-    expect(Object.keys(answers)).toHaveLength(20);
+    // R4 calibration: contract is now { answers, confidence } — confidence
+    // null here because the mocked reply has no confidence block.
+    const result = await answerBatteryAsTwin(USER);
+    expect(Object.keys(result.answers)).toHaveLength(20);
+    expect(result.confidence).toBeNull();
     expect(complete).toHaveBeenCalledTimes(1);
     const call = complete.mock.calls[0][0];
     expect(call.tier).toBe('analysis');
