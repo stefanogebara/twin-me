@@ -349,6 +349,9 @@ router.post('/message', authenticateUser, async (req, res) => {
       maxChars: MAX_ADDITIONAL_CONTEXT_CHARS,
     });
     const memoriesInContext = additional.memoriesInContext;
+    // R2: evidence-density confidence for this turn — surfaced in the
+    // response meta and persisted with the assistant message for calibration.
+    const evidenceConfidence = additional.evidenceConfidence;
     if (additional.creativityLog) chatLog(additional.creativityLog);
     appendAdditionalContextToPrompt(systemPrompt, additional.additionalContext);
 
@@ -608,6 +611,7 @@ router.post('/message', authenticateUser, async (req, res) => {
       memories, writingProfile, chatSource,
       coldStartMs,
       memoryCount: memoriesInContext?.length ?? memories?.length ?? 0,
+      evidenceConfidence,
       // audit-2026-05-13 trace-id follow-up: persist hop timings so we can
       // diagnose the slow-tail bottleneck via Supabase queries instead of
       // truncated Vercel runtime logs.
@@ -663,6 +667,9 @@ router.post('/message', authenticateUser, async (req, res) => {
         ...buildContextSourcesMeta(twinContext),
         neurotransmitterMode: neurotransmitterMode.mode !== 'default' ? neurotransmitterMode.mode : null,
         neuropil: neuropilResult.neuropilId || null,
+        evidenceConfidence: evidenceConfidence
+          ? { level: evidenceConfidence.level, score: evidenceConfidence.score }
+          : null,
       }
     };
 
