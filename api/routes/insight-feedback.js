@@ -10,6 +10,7 @@
 import express from 'express';
 import { authenticateUser } from '../middleware/auth.js';
 import { logAgentAction } from '../services/autonomyService.js';
+import { addMemory } from '../services/memoryStreamService.js';
 import { supabaseAdmin } from '../services/database.js';
 import { createLogger } from '../services/logger.js';
 
@@ -93,6 +94,19 @@ router.post('/:id/feedback', authenticateUser, async (req, res) => {
     // replan-2026-06-10 cycle 4: DPO preference-pair generation from contrasting
     // insights removed along with the fine-tuning training stack. The thumbs
     // signal above (metadata.feedback + agent_actions) is the surviving record.
+
+    // R3 (GUM feedback-as-memory): write the rating into the memory stream as
+    // an ordinary observation so reflections synthesize the user's proactivity
+    // preferences ("dislikes morning health nudges") and future utility
+    // estimates condition on them. Thumbs-down slightly more important — the
+    // negative signal is the rarer, more corrective one. Non-blocking.
+    addMemory(
+      userId,
+      `They gave a thumbs ${rating === 1 ? 'up' : 'down'} to this twin insight${insight.category ? ` (${insight.category})` : ''}: "${(insight.insight || '').substring(0, 200)}"`,
+      'observation',
+      { source: 'insight_feedback', insight_id: id, insight_category: insight.category || null },
+      { importanceScore: rating === 1 ? 5 : 6, skipImportance: true, durability: 7 }
+    ).catch(err => log.warn('Feedback memory write failed (non-fatal)', { id, error: err.message }));
 
     log.info('Insight feedback recorded', { userId, insightId: id, rating });
     return res.json({ success: true, rating });

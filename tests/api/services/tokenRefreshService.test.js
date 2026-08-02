@@ -53,8 +53,25 @@ describe('requiresTokenRefresh', () => {
     expect(requiresTokenRefresh('youtube')).toBe(true);
     expect(requiresTokenRefresh('google_gmail')).toBe(true);
     expect(requiresTokenRefresh('google_calendar')).toBe(true);
-    // Strava added 2026-06-08 — direct-OAuth tokens expire ~6h and need refresh.
-    expect(requiresTokenRefresh('strava')).toBe(true);
+    expect(requiresTokenRefresh('discord')).toBe(true);
+    expect(requiresTokenRefresh('whoop')).toBe(true);
+  });
+
+  it('returns false for platforms retired in the Track C portfolio cut', () => {
+    // replan-2026-06-10 removed these refresh configs. Strava was added
+    // 2026-06-08, two days before the cut retired it, and this test pinned it
+    // until 2026-08-02. platform_connections holds zero rows for slack, twitch,
+    // oura and strava; reddit has one legacy row but is unextractable and its
+    // credentials are slated for rotation, so refresh could not succeed anyway.
+    expect(requiresTokenRefresh('strava')).toBe(false);
+    expect(requiresTokenRefresh('slack')).toBe(false);
+    expect(requiresTokenRefresh('twitch')).toBe(false);
+    expect(requiresTokenRefresh('oura')).toBe(false);
+    expect(requiresTokenRefresh('reddit')).toBe(false);
+    // linkedin: its surviving rows have refresh_token NULL (LinkedIn issues none
+    // to standard apps) and access tokens that expired June 2026, so the config
+    // could never have refreshed them. Removed 2026-08-02.
+    expect(requiresTokenRefresh('linkedin')).toBe(false);
   });
 
   it('returns true for github (non-expiring but checked)', () => {

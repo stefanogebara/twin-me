@@ -23,6 +23,9 @@ import { FIDELITY_BATTERY, BATTERY_VERSION } from '../config/fidelityBattery.js'
 import { supabaseAdmin } from './database.js';
 import { retrieveDiverseMemories } from './memoryStreamService.js';
 import { getTwinSummary } from './twinSummaryService.js';
+// Call-time-only circular import (fidelityCalibration imports scoreItem
+// back from this module) — safe in ESM, both uses are inside functions.
+import { calibrationFromPairs, batteryCalibrationPairs } from './fidelityCalibration.js';
 import { createLogger } from './logger.js';
 
 const log = createLogger('FidelityBattery');
@@ -83,6 +86,12 @@ export function normalizedFidelity(twinAccuracy, selfConsistency) {
 // Twin answering (LLM)
 // ====================================================================
 
+/**
+ * Parse the twin's battery reply into { answers, confidence } — R4
+ * calibration extension. `confidence` is a per-item 0-1 map (clamped) or
+ * null when absent (legacy replies). Returns null overall when there are
+ * no usable answers.
+ */
 export function parseTwinAnswers(rawContent) {
   if (!rawContent || typeof rawContent !== 'string') return null;
   const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
@@ -91,7 +100,18 @@ export function parseTwinAnswers(rawContent) {
     const parsed = JSON.parse(jsonMatch[0]);
     const answers = parsed.answers && typeof parsed.answers === 'object' ? parsed.answers : null;
     if (!answers || Object.keys(answers).length === 0) return null;
-    return answers;
+
+    let confidence = null;
+    if (parsed.confidence && typeof parsed.confidence === 'object') {
+      confidence = {};
+      for (const [itemId, value] of Object.entries(parsed.confidence)) {
+        const n = Number(value);
+        if (Number.isFinite(n)) confidence[itemId] = Math.max(0, Math.min(1, n));
+      }
+      if (Object.keys(confidence).length === 0) confidence = null;
+    }
+
+    return { answers, confidence };
   } catch (err) {
     log.warn('Twin answers parse failed', { preview: rawContent.substring(0, 120), error: err.message });
     return null;
@@ -154,20 +174,23 @@ METHOD — for each item, silently follow four steps:
 
 Answer every item. Likert items: an integer 1-5. Categorical items: copy ONE option string exactly.
 
+5. Confidence: for each item, also estimate 0.0-1.0 how confident you are that this is what THEY would actually answer. 0.9+ only when direct evidence supports it; 0.5 means an informed guess; be honest — calibration is measured against their real answers.
+
 Return ONLY this JSON:
-{ "answers": { "<item_id>": <value>, ... } }`;
+{ "answers": { "<item_id>": <value>, ... }, "confidence": { "<item_id>": <0.0-1.0>, ... } }`;
 
   try {
     const result = await complete({
       tier: TIER_ANALYSIS,
       system,
       messages: [{ role: 'user', content: `THE BATTERY:\n${formatBatteryForPrompt(FIDELITY_BATTERY)}` }],
-      maxTokens: 900,
+      // R4 calibration: room for the per-item confidence map (was 900)
+      maxTokens: 1200,
       temperature: 0.3,
       userId,
       serviceName: 'twin-fidelity-battery',
     });
-    return parseTwinAnswers(result.content);
+    return parseTwinAnswers(result.content); // { answers, confidence } | null
   } catch (err) {
     log.warn('Twin battery answering failed', { userId, error: err.message });
     return null;
@@ -221,10 +244,17 @@ export async function submitFidelityWave(userId, userAnswers) {
     ? scoreAnswers(FIDELITY_BATTERY, userAnswers, prior.user_answers).overall
     : null;
 
-  const twinAnswers = await answerBatteryAsTwin(userId);
+  const twinResult = await answerBatteryAsTwin(userId);
+  const twinAnswers = twinResult?.answers ?? null;
+  const twinConfidence = twinResult?.confidence ?? null;
   const twinScore = twinAnswers ? scoreAnswers(FIDELITY_BATTERY, twinAnswers, userAnswers) : null;
   const twinAccuracy = twinScore ? twinScore.overall : null;
   const normalized = normalizedFidelity(twinAccuracy, selfConsistency);
+
+  // R4 calibration: Brier + accuracy-by-confidence-bucket for this wave.
+  const calibration = twinAnswers && twinConfidence
+    ? calibrationFromPairs(batteryCalibrationPairs(FIDELITY_BATTERY, twinAnswers, twinConfidence, userAnswers))
+    : null;
 
   const { data: created, error: insertError } = await supabaseAdmin
     .from('twin_fidelity_checks')
@@ -234,6 +264,8 @@ export async function submitFidelityWave(userId, userAnswers) {
       wave,
       user_answers: userAnswers,
       twin_answers: twinAnswers,
+      twin_confidence: twinConfidence,
+      calibration,
       twin_accuracy: twinAccuracy,
       self_consistency: selfConsistency,
       normalized_fidelity: normalized,
@@ -244,7 +276,7 @@ export async function submitFidelityWave(userId, userAnswers) {
     throw new Error(`Failed to store fidelity wave: ${insertError?.message || 'no row returned'}`);
   }
 
-  log.info('Fidelity wave stored', { userId, wave, twinAccuracy, selfConsistency });
+  log.info('Fidelity wave stored', { userId, wave, twinAccuracy, selfConsistency, brier: calibration?.brier ?? null });
   return {
     wave,
     twinAccuracy,
@@ -252,6 +284,7 @@ export async function submitFidelityWave(userId, userAnswers) {
     normalizedFidelity: normalized,
     likert: twinScore?.likert ?? null,
     categorical: twinScore?.categorical ?? null,
+    calibration,
   };
 }
 
@@ -261,7 +294,7 @@ export async function submitFidelityWave(userId, userAnswers) {
 export async function getFidelityResults(userId) {
   const { data, error } = await supabaseAdmin
     .from('twin_fidelity_checks')
-    .select('wave, battery_version, twin_accuracy, self_consistency, normalized_fidelity, created_at')
+    .select('wave, battery_version, twin_accuracy, self_consistency, normalized_fidelity, calibration, created_at')
     .eq('user_id', userId)
     .order('wave', { ascending: false });
   if (error) {

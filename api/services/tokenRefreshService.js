@@ -72,11 +72,6 @@ function getPlatformRefreshConfig(platform) {
       clientId: process.env.DISCORD_CLIENT_ID,
       clientSecret: process.env.DISCORD_CLIENT_SECRET,
     },
-    linkedin: {
-      tokenUrl: 'https://www.linkedin.com/oauth/v2/accessToken',
-      clientId: process.env.LINKEDIN_CLIENT_ID,
-      clientSecret: process.env.LINKEDIN_CLIENT_SECRET,
-    },
     // Whoop: support legacy connections (not yet migrated to Nango)
     whoop: {
       tokenUrl: 'https://api.prod.whoop.com/oauth/oauth2/token',
@@ -84,45 +79,23 @@ function getPlatformRefreshConfig(platform) {
       clientSecret: process.env.WHOOP_CLIENT_SECRET,
     },
 
-    // Slack
-    slack: {
-      tokenUrl: 'https://slack.com/api/oauth.v2.access',
-      clientId: process.env.SLACK_CLIENT_ID,
-      clientSecret: process.env.SLACK_CLIENT_SECRET,
-    },
-
-    // Twitch
-    twitch: {
-      tokenUrl: 'https://id.twitch.tv/oauth2/token',
-      clientId: process.env.TWITCH_CLIENT_ID,
-      clientSecret: process.env.TWITCH_CLIENT_SECRET,
-    },
-
-    // Reddit - uses HTTP Basic Auth (same pattern as Spotify)
-    reddit: {
-      tokenUrl: 'https://www.reddit.com/api/v1/access_token',
-      clientId: process.env.REDDIT_CLIENT_ID,
-      clientSecret: process.env.REDDIT_CLIENT_SECRET,
-      useBasicAuth: true,
-      omitCredentialsFromBody: true,
-    },
-
-    // Oura
-    oura: {
-      tokenUrl: 'https://api.ouraring.com/oauth/token',
-      clientId: process.env.OURA_CLIENT_ID,
-      clientSecret: process.env.OURA_CLIENT_SECRET,
-    },
-
-    // Strava — OAuth2 refresh. Access tokens expire every ~6h, so a directly
-    // connected Strava token dies and is never refreshed without this entry
-    // (Nango-managed connections are refreshed by Nango). Standard
-    // client_secret_post: credentials go in the body, no Basic auth.
-    strava: {
-      tokenUrl: 'https://www.strava.com/oauth/token',
-      clientId: process.env.STRAVA_CLIENT_ID,
-      clientSecret: process.env.STRAVA_CLIENT_SECRET,
-    },
+    // Retired refresh configs removed (replan-2026-06-10 Track C portfolio cut):
+    // reddit, slack, twitch, oura, strava, linkedin. None has a PLATFORM_CONFIGS
+    // entry or appears in VALID_PROVIDERS, and none is Nango-managed, so none can
+    // be connected. Their *_CLIENT_ID/*_CLIENT_SECRET env vars are read by no live
+    // code. platform_connections holds zero rows for slack/twitch/oura/strava.
+    //
+    // linkedin was kept in an earlier pass on the theory that its rows would lose
+    // token refresh. That was wrong: LinkedIn issues no refresh token to standard
+    // apps, and both surviving rows have refresh_token NULL with access tokens
+    // that expired in June 2026. The config could never have refreshed them —
+    // recovery requires full re-auth, which is impossible while LinkedIn is out
+    // of VALID_PROVIDERS. Those rows still read status='connected'; that status
+    // is stale, not evidence of a live integration.
+    //
+    // reddit likewise has one legacy connected row, but it is unextractable and
+    // its credentials were revoked with the app on 2026-08-02, so no refresh
+    // could succeed. See docs/security/README.md.
   };
   return configs[platform];
 }

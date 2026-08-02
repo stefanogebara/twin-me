@@ -83,23 +83,35 @@ admin client and expect 200 (not a 401/500 from a rejected key).
 
 ### Reddit OAuth app secret -- `REDDIT_CLIENT_SECRET` (+ `REDDIT_CLIENT_ID`)
 
-Consumed via `api/services/tokenRefreshService.js` and the connector configs.
-Reddit has no "roll secret" button, so:
+**RESOLVED 2026-08-02.** No replacement app was created: Reddit was retired in
+the replan-2026-06-10 Track C portfolio cut, so the fix was deletion, not
+rotation-and-replace.
 
-1. https://www.reddit.com/prefs/apps (as the app owner) -> delete the leaked
-   app and **create a new "web app"**. This yields a new `client_id` **and**
-   `secret`. Set the redirect URI to the existing OAuth callback.
-2. Update **both** `REDDIT_CLIENT_ID` and `REDDIT_CLIENT_SECRET` in Vercel and
-   local `.env`.
-3. Redeploy. Users who had connected Reddit reconnect once (low-usage
-   integration -- acceptable).
+What was done:
 
-The leaked value was only ever in the now-deleted `add-vercel-env.sh` (removed
-from `main` by #168) plus git history. Because it is in public history, treat
-it as compromised regardless of the file deletion -- rotation is what
-neutralizes it.
+1. Deleted the "Twin Me - Soul Signature" app at
+   https://www.reddit.com/prefs/apps. Deleting the developed app also revoked
+   the outstanding authorization grant -- both entries disappeared.
+2. Removed `REDDIT_CLIENT_ID` and `REDDIT_CLIENT_SECRET` from Vercel
+   (`REDDIT_CLIENT_SECRET` was Production; `REDDIT_CLIENT_ID` spanned
+   Production/Preview/Development as a single variable).
+3. Removed the Reddit entry from `tokenRefreshService.js` (6d23df85), so no
+   code in `api/` or `src/` reads either variable.
+
+Worth recording: immediately before deletion the secret shown in Reddit's app
+console was **byte-identical to the leaked one**, confirming it had never been
+rotated and had been live from the leak until 2026-08-02. If a similar leak
+recurs, assume the credential is live until proven otherwise.
+
+The leaked values remain readable in git history at `bbc526db` (and in the
+`add-vercel-env.sh` blob removed from `main` by #168). They are now inert --
+the app they authenticate against no longer exists -- but history was never
+rewritten, so do not treat their presence there as a new incident.
 
 ## Post-rotation checklist
+
+Generic template -- copy it per incident. The boxes below are intentionally
+unchecked; they do **not** track the Reddit item above, which is resolved.
 
 - [ ] New secret generated in the provider console.
 - [ ] Vercel env updated (Production + Preview) and redeployed.

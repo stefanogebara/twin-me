@@ -38,6 +38,7 @@ const log = createLogger('TwinChatPersistence');
  */
 async function insertTwinMessageRows({
   conversationId, message, assistantMessage, routedModel, routingTier, lzScore,
+  evidenceConfidence,
 }) {
   if (!conversationId) return { ok: false, reason: 'no_conversation_id' };
 
@@ -56,6 +57,12 @@ async function insertTwinMessageRows({
         model: routedModel || 'unknown',
         tier: routingTier || 'unknown',
         lz_complexity: lzScore,
+        // R2: evidence-density confidence for this turn, kept with the
+        // message so feedback ratings can calibrate the heuristic
+        // (accuracy-by-level, Brier) without a migration.
+        ...(evidenceConfidence
+          ? { evidence_confidence: { level: evidenceConfidence.level, score: evidenceConfidence.score, signals: evidenceConfidence.signals } }
+          : {}),
       },
     },
   ];
@@ -107,6 +114,9 @@ export async function persistChatTurn({
   // the slow tail by trace ID without needing Vercel log drains.
   traceId = null,
   hopTimings = null,
+  // R2: per-turn evidence confidence ({score, level, signals}) — stored in
+  // the assistant twin_messages row's metadata for later calibration.
+  evidenceConfidence = null,
 }) {
   const lzScore = lzComplexity(assistantMessage);
 
@@ -125,6 +135,7 @@ export async function persistChatTurn({
   const [messagesResult] = await Promise.all([
     insertTwinMessageRows({
       conversationId, message, assistantMessage, routedModel, routingTier, lzScore,
+      evidenceConfidence,
     }).catch(err => {
       // Should be unreachable — insertTwinMessageRows catches its own errors
       // and returns { ok: false }. Defensive guard against a future regression.

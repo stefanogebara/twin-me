@@ -171,8 +171,16 @@ For each insight, if a department could act on it, add a "department" field. Exa
 
 If no department is relevant, omit the field or set it to null.
 
+UTILITY ESTIMATE (decides whether this insight is worth an interruption):
+For each insight, estimate honestly — most insights are NOT worth interrupting for:
+- "p_useful": 0.0-1.0 — probability the user actually acts on or values this
+- "benefit": 0-10 — how much it helps if it lands (10 = prevents a real problem or unlocks something meaningful)
+- "cost_fp": 0-10 — how annoying it is if useless (higher when it repeats a known theme, arrives at a bad time, or nags)
+- "cost_fn": 0-10 — the cost of staying silent if the insight is real (high for time-sensitive or health-relevant signals, low for observations that keep)
+A repetitive low-stakes observation should score p_useful <= 0.3 with cost_fp >= 5. Do not inflate scores to get insights delivered.
+
 Return ONLY a JSON array:
-[{"insight": "...", "urgency": "low|medium|high", "category": "trend|anomaly|nudge|celebration|concern", "department": "communications|scheduling|health|content|finance|research|social|null"}]`;
+[{"insight": "...", "urgency": "low|medium|high", "category": "trend|anomaly|nudge|celebration|concern", "department": "communications|scheduling|health|content|finance|research|social|null", "utility": {"p_useful": 0.0, "benefit": 0, "cost_fp": 0, "cost_fn": 0}}]`;
 
 // ─── Sampling Parameters ────────────────────────────────────────────────────
 

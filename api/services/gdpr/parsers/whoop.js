@@ -36,9 +36,21 @@ function parseWhoop(buffer) {
   if (cyclesEntry) {
     const rows = parseCsvRows(cyclesEntry.getData().toString('utf8'));
     if (rows.length > 0) {
-      const scores = rows.map(r => parseFloat(r['Recovery score %'])).filter(v => !isNaN(v));
-      const hrvValues = rows.map(r => parseFloat(r['HRV (ms)'])).filter(v => !isNaN(v));
-      const rhrValues = rows.map(r => parseFloat(r['Resting heart rate'])).filter(v => !isNaN(v));
+      // Whoop has shipped more than one spelling of these columns. Current
+      // exports use 'Heart rate variability (ms)' and 'Resting heart rate (bpm)';
+      // older ones used 'HRV (ms)' and 'Resting heart rate'. Reading only the
+      // legacy names made every lookup undefined on a current export, so the HRV
+      // and resting-heart-rate observations were silently dropped — the export
+      // still imported, just without those two signals. Try each alias in order.
+      const numericColumn = (aliases) => {
+        const header = aliases.find(a => rows.some(r => r[a] !== undefined && r[a] !== ''));
+        if (!header) return [];
+        return rows.map(r => parseFloat(r[header])).filter(v => !isNaN(v));
+      };
+
+      const scores = numericColumn(['Recovery score %']);
+      const hrvValues = numericColumn(['Heart rate variability (ms)', 'HRV (ms)']);
+      const rhrValues = numericColumn(['Resting heart rate (bpm)', 'Resting heart rate']);
 
       if (scores.length > 0) {
         const avg = (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(0);
@@ -64,7 +76,7 @@ function parseWhoop(buffer) {
       }
 
       // Strain trend (Day Strain column)
-      const strainValues = rows.map(r => parseFloat(r['Day Strain'])).filter(v => !isNaN(v));
+      const strainValues = numericColumn(['Day Strain']);
       if (strainValues.length > 0) {
         const avgStrain = (strainValues.reduce((a, b) => a + b, 0) / strainValues.length).toFixed(1);
         observations.push(`Average daily strain on Whoop: ${avgStrain}/21 across ${strainValues.length} days`);

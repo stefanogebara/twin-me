@@ -12,6 +12,7 @@
  */
 
 import { computeAlpha } from './memoryStreamService.js';
+import { computeEvidenceConfidence, buildEvidenceHedgeBlock } from './evidenceConfidenceService.js';
 import { deduplicateByTheme } from './twinSystemPromptBuilder.js';
 import { fenceUntrustedContext } from './promptFencing.js';
 import { createLogger } from './logger.js';
@@ -263,10 +264,20 @@ export function buildAdditionalContext({
     creativityLog = `Creativity boost: injected ${novelMemories.length} novel memories (avgLZ=${avgLz.toFixed(2)})`;
   }
 
+  // R2: score the evidence actually injected this turn. Low confidence
+  // PREFIXES a hedge instruction — applyHardCap truncates from the tail,
+  // so a prefix can never be dropped by the cap.
+  const evidenceConfidence = computeEvidenceConfidence(memoriesInContext, { now });
+  const hedgeBlock = buildEvidenceHedgeBlock(evidenceConfidence);
+  if (hedgeBlock) {
+    text = `\n\n${hedgeBlock}${text}`;
+  }
+
   return {
     additionalContext: applyHardCap(text, maxChars),
     memoriesInContext,
     creativityLog,
+    evidenceConfidence,
   };
 }
 

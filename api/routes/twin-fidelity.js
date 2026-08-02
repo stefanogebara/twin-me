@@ -13,6 +13,7 @@ import { Router } from 'express';
 import { authenticateUser } from '../middleware/auth.js';
 import { FIDELITY_BATTERY, BATTERY_VERSION } from '../config/fidelityBattery.js';
 import { submitFidelityWave, getFidelityResults } from '../services/fidelityBatteryService.js';
+import { computeChatCalibration } from '../services/fidelityCalibration.js';
 
 const router = Router();
 
@@ -38,6 +39,23 @@ router.post('/answers', async (req, res) => {
     if (/incomplete battery/i.test(error.message || '')) {
       return res.status(400).json({ success: false, error: error.message });
     }
+    res.status(500).json({
+      success: false,
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error',
+    });
+  }
+});
+
+// R4 calibration: how well the R2 evidence-confidence scores predict
+// thumbs outcomes in real chat (Brier + accuracy-by-bucket).
+router.get('/calibration', async (req, res) => {
+  try {
+    const userId = req.user?.id || req.user?.userId;
+    if (!userId) return res.status(401).json({ success: false, error: 'Not authenticated' });
+
+    const chat = await computeChatCalibration(userId);
+    res.json({ success: true, data: { chat } });
+  } catch (error) {
     res.status(500).json({
       success: false,
       error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error',

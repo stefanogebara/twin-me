@@ -222,3 +222,7 @@ coverage/
 # screenshots written by the audit/debug e2e specs (tests/e2e/*-debug.spec.ts,
 # prod-audit, settings-brain-onboarding-audit) and tasks/audit-*.cjs
 audit-screenshots/
+
+# scratch dir for local runs — flake logs, vitest dumps, PR body drafts, stray
+# assets. ~3.7k files, all regenerated locally; nothing here belongs in the repo.
+.cache/
