@@ -525,9 +525,8 @@ router.post('/calibrate', authenticateUser, async (req, res) => {
         }
         if (pairs.length > 0) {
           for (const pair of pairs) {
-            await addConversationMemory(userId, pair.answer, {
+            await addConversationMemory(userId, pair.answer, pair.question, {
               source: 'onboarding_interview',
-              question: pair.question,
             });
           }
           log.info('Partial interview saved', { userId, pairs: pairs.length });
