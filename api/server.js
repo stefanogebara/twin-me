@@ -264,6 +264,7 @@ app.post('/api/chat/message', aiLimiter);
 app.get('/api/chat/intro', aiLimiter);    // Generates a personalised first message (LLM)
 app.use('/api/soul-extraction/', aiLimiter); // LLM-powered extraction endpoints
 app.use('/api/life-story/session/turn', aiLimiter); // Story Chapters turn endpoint — one LLM call per hit
+app.use('/api/twin-fidelity/answers', aiLimiter); // Fidelity wave submission — triggers twin battery answering (LLM)
 app.post('/api/desktop/observe-summary', aiLimiter); // UNAUTHENTICATED LLM endpoint — cap OpenRouter cost-amplification
 app.use('/api/extension/batch', aiLimiter);   // batch ingest fans out embedding + importance LLM calls — cap cost (audit)
 app.use('/api/extension/analyze', aiLimiter); // LLM/integration analysis endpoint — cap cost (audit)
@@ -562,6 +563,8 @@ import meetingBriefingsRoutes from './routes/meeting-briefings.js';
 import sidebarContextRoutes from './routes/sidebar-context.js';
 import soulInterviewRoutes from './routes/soul-interview.js';
 import lifeStoryRoutes from './routes/life-story.js';
+import twinFidelityRoutes from './routes/twin-fidelity.js';
+import lifeStoryVoiceRoutes from './routes/life-story-voice.js';
 import inboxSummaryRoutes from './routes/inbox-summary.js';
 // personality-axes + in-silico routes merged into twin-scaling.js
 
@@ -680,6 +683,8 @@ app.use('/api/onboarding', onboardingSoulSignatureRoutes); // Instant soul signa
 app.use('/api/onboarding', onboardingPlatformPreviewRoutes); // Platform preview insights during onboarding
 app.use('/api/interview', soulInterviewRoutes); // Soul Interview — cold start personality builder (superseded by Story Chapters)
 app.use('/api/life-story', lifeStoryRoutes); // Story Chapters — chaptered life-story interview
+app.use('/api/twin-fidelity', twinFidelityRoutes); // Fidelity battery — test-retest normalized eval (R4)
+app.use('/api/life-story/voice', lifeStoryVoiceRoutes); // Story Chapters voice — ElevenLabs custom LLM webhook (secret-authed, deliberately public route)
 app.use('/api/account', accountRoutes); // Account deletion + data export
 app.use('/api/api-keys', apiKeysRoutes); // Claude Desktop MCP API key management
 app.use('/api/consent', consentRoutes); // User consent management (GDPR/privacy)
