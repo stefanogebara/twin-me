@@ -657,7 +657,9 @@ async function runExpertAnalysis(userId, expert, formattedObservations, depth, i
       ? Math.max(0.50, domainMemories.reduce((sum, m) => sum + (m.confidence ?? 0.7), 0) / domainMemories.length)
       : 0.70;
 
-    for (const observation of observations.slice(0, 3)) {
+    // R7c follow-up: prompts scale 1-5 observations with evidence depth;
+    // the storage cap must match (was 3, silently truncating rich cycles).
+    for (const observation of observations.slice(0, 5)) {
       // Dedup check — skip if a very similar reflection already exists for this expert
       const isDupe = await isDuplicateReflection(userId, expert.id, observation);
       if (isDupe) continue;
