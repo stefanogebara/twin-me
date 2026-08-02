@@ -78,6 +78,7 @@ const EvalDashboard = lazy(() => import("./pages/EvalDashboard"));
 const IdentityPage = lazy(() => import("./pages/IdentityPage"));
 const InterviewPage = lazy(() => import("./pages/InterviewPage"));
 const LifeStoryPage = lazy(() => import("./pages/LifeStoryPage"));
+const FidelityPage = lazy(() => import("./pages/FidelityPage"));
 const GoalsPage = lazy(() => import("./pages/GoalsPage"));
 const MoneyPage = lazy(loadMoneyPage);
 const MoneyInsightsPage = lazy(loadMoneyInsightsPage);
@@ -306,6 +307,17 @@ const App = () => {
                 <SidebarLayout>
                   <ErrorBoundary>
                     <LifeStoryPage />
+                  </ErrorBoundary>
+                </SidebarLayout>
+              </ProtectedRoute>
+            } />
+
+            {/* Twin Fidelity — test-retest battery (R4) */}
+            <Route path="/fidelity" element={
+              <ProtectedRoute>
+                <SidebarLayout>
+                  <ErrorBoundary>
+                    <FidelityPage />
                   </ErrorBoundary>
                 </SidebarLayout>
               </ProtectedRoute>

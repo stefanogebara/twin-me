@@ -464,19 +464,36 @@ export default function LifeStoryPage() {
         </div>
       )}
 
-      <button
-        onClick={() => navigate(-1)}
-        className="mt-10 py-2.5 text-[13px] transition-opacity hover:opacity-70"
-        style={{
-          color: 'var(--text-secondary)',
-          fontFamily: "'Inter', sans-serif",
-          background: 'none',
-          border: 'none',
-          cursor: 'pointer',
-        }}
-      >
-        Back
-      </button>
+      <div className="mt-10 flex items-center gap-6">
+        <button
+          onClick={() => navigate(-1)}
+          className="py-2.5 text-[13px] transition-opacity hover:opacity-70"
+          style={{
+            color: 'var(--text-secondary)',
+            fontFamily: "'Inter', sans-serif",
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+          }}
+        >
+          Back
+        </button>
+        {completedCount > 0 && (
+          <button
+            onClick={() => navigate('/fidelity')}
+            className="py-2.5 text-[13px] underline transition-opacity hover:opacity-70"
+            style={{
+              color: 'var(--text-secondary)',
+              fontFamily: "'Inter', sans-serif",
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+            }}
+          >
+            Check how well your twin knows you now
+          </button>
+        )}
+      </div>
     </div>
   );
 }
