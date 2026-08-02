@@ -303,17 +303,27 @@ Inspired by Karpathy's LLM Wiki pattern. Instead of re-deriving knowledge from r
 - **Auth**: JWT + OAuth 2.0 for platform connections
 - **Analytics**: PostHog
 
-## Active Platform Integrations (10)
+## Active Platform Integrations (9 OAuth-connectable)
+
+Source of truth: `VALID_PROVIDERS` in `api/routes/oauth-callback.js`. Do not add a
+platform here without a matching entry there.
+
 1. **Spotify** - Music taste, listening patterns, mood
-2. **Google Calendar** - Schedule, events, time patterns
+2. **Google Calendar** (`google_calendar`) - Schedule, events, time patterns
 3. **YouTube** - Content preferences, subscriptions
-4. **Gmail** - Communication patterns from email metadata
+4. **Gmail** (`google_gmail`) - Communication patterns from email metadata
 5. **Discord** - Server activity, community interests, communication style
-6. **LinkedIn** - Career trajectory, professional skills, network
-7. **GitHub** - Coding activity and open source contributions
-8. **Reddit** - Community interests and discussion patterns
-9. **Twitch** - Gaming identity and streaming preferences
-10. **Whoop** - Recovery, strain, sleep, HRV patterns
+6. **GitHub** - Coding activity and open source contributions
+7. **Whoop** - Recovery, strain, sleep, HRV patterns
+8. **Instagram** - Visual identity, posting patterns
+9. **Outlook** - Communication patterns from email metadata
+
+### Retired (replan-2026-06-10 Track C portfolio cut)
+Reddit, Twitch, LinkedIn, Slack, TikTok, Strava, Notion, Pinterest, SoundCloud,
+Fitbit, Steam, Apple Music. Their OAuth/live-fetch stacks are gone — existing
+`platform_connections` rows keep their data but are no longer connectable or
+extractable. LinkedIn and Reddit remain available via the GDPR export upload path
+(`api/services/gdpr/parsers/`).
 
 ## LLM Model Strategy
 All LLM calls route through `llmGateway.js` using the tiers in `api/config/aiModels.js` (single source of truth). Twin chat additionally smart-routes per message via `chatRouter.js`.

@@ -98,14 +98,11 @@ function getPlatformRefreshConfig(platform) {
       clientSecret: process.env.TWITCH_CLIENT_SECRET,
     },
 
-    // Reddit - uses HTTP Basic Auth (same pattern as Spotify)
-    reddit: {
-      tokenUrl: 'https://www.reddit.com/api/v1/access_token',
-      clientId: process.env.REDDIT_CLIENT_ID,
-      clientSecret: process.env.REDDIT_CLIENT_SECRET,
-      useBasicAuth: true,
-      omitCredentialsFromBody: true,
-    },
+    // Reddit refresh config removed (replan-2026-06-10 Track C portfolio cut).
+    // Reddit has no PLATFORM_CONFIGS entry, so it can no longer be connected, and
+    // REDDIT_CLIENT_ID/REDDIT_CLIENT_SECRET are read by no live code. The leaked
+    // credentials remain in git history — rotation is out-of-band, see
+    // docs/security/README.md.
 
     // Oura
     oura: {
