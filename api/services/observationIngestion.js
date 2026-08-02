@@ -25,6 +25,7 @@ import { shouldTriggerReflection, generateReflections } from './reflectionEngine
 import { generateTwinSummary } from './twinSummaryService.js';
 import { runPlatformExpert } from './platformExperts.js';
 import { generateProactiveInsights, evaluateNudgeOutcomes } from './proactiveInsights.js';
+import { maybeGenerateChapterNudge } from './lifeStoryService.js';
 import { trackGoalProgress, generateGoalSuggestions } from './goalTrackingService.js';
 import { seedMemoriesFromEnrichment } from './enrichmentMemoryBridge.js';
 import { checkConditionTriggered } from './prospectiveMemoryService.js';
@@ -861,6 +862,12 @@ async function runObservationIngestion(options = {}) {
           // Evaluate nudge outcomes: check if user followed through on past suggestions
           backgroundJobs.push(evaluateNudgeOutcomes(userId).catch(err =>
             log.warn('Nudge evaluation failed', { userId, error: err })
+          ));
+
+          // Story Chapters: maybe nudge the next life-story chapter (state
+          // reads + one static insert; weekly cooldown inside — zero LLM cost)
+          backgroundJobs.push(maybeGenerateChapterNudge(userId).catch(err =>
+            log.warn('Chapter nudge failed', { userId, error: err })
           ));
 
           // Track goal progress from ingested platform data

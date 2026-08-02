@@ -157,7 +157,7 @@ export const ChatEmptyState = ({
         </p>
       )}
 
-      {/* Soul Interview chip — shown when user has few memories */}
+      {/* Story Chapters chip — shown when user has few memories */}
       {showInterviewChip && onStartInterview && (
         <div className="flex justify-center mb-4">
           <button
@@ -181,7 +181,7 @@ export const ChatEmptyState = ({
               e.currentTarget.style.background = 'var(--surface)';
             }}
           >
-            Start your Soul Interview
+            Tell me your story — a few minutes at a time
           </button>
         </div>
       )}
