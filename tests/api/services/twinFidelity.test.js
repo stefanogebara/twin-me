@@ -64,6 +64,7 @@ const {
   parseTwinAnswers,
   answerBatteryAsTwin,
   submitFidelityWave,
+  completeFidelityWave,
 } = await import('../../../api/services/fidelityBatteryService.js');
 
 const USER = '167c27b5-a40b-49fb-8d00-deb1b1c57f4d';
@@ -341,58 +342,112 @@ describe('answerBatteryAsTwin', () => {
   });
 });
 
-describe('submitFidelityWave', () => {
+// Two-phase submission. Phase 1 must NEVER call the LLM: the user's 20
+// answers are the scarce, irreplaceable input and were previously lost
+// whole when twin answering blew the function ceiling. Phase 2 does the
+// slow work and is retryable against the stored row.
+describe('submitFidelityWave — phase 1 (store the user, no LLM)', () => {
   it('rejects incomplete submissions', async () => {
     await expect(submitFidelityWave(USER, { only_one: 3 })).rejects.toThrow(/incomplete/i);
   });
 
-  it('wave 1: stores answers + twin accuracy, no self-consistency yet', async () => {
+  it('wave 1: persists answers immediately without any LLM call', async () => {
     dbState.queues['twin_fidelity_checks'] = [
-      { data: [], error: null }, // prior waves lookup
+      { data: [], error: null },                // prior waves lookup
       { data: { id: 'check-1' }, error: null }, // insert returning
     ];
-    complete.mockResolvedValue({
-      content: JSON.stringify({ answers: fullAnswers(3, 0) }),
-    });
 
     const result = await submitFidelityWave(USER, fullAnswers(3, 0));
+
+    expect(complete).not.toHaveBeenCalled(); // the whole point
     expect(result.wave).toBe(1);
-    expect(result.twinAccuracy).toBe(1); // twin matched perfectly in this mock
+    expect(result.id).toBe('check-1');
+    expect(result.twinStatus).toBe('pending');
     expect(result.selfConsistency).toBeNull();
-    expect(result.normalizedFidelity).toBeNull();
 
     const insert = dbState.calls.find(c => c.table === 'twin_fidelity_checks' && c.op === 'insert');
     expect(insert.args[0].wave).toBe(1);
     expect(insert.args[0].battery_version).toBe(BATTERY_VERSION);
+    expect(insert.args[0].user_answers).toBeTruthy();
+    expect(insert.args[0].twin_answers ?? null).toBeNull();
   });
 
-  it('wave 2: computes self-consistency vs wave 1 and the normalized metric', async () => {
+  it('wave 2: computes the self-consistency ceiling at store time', async () => {
     dbState.queues['twin_fidelity_checks'] = [
-      { data: [{ wave: 1, user_answers: fullAnswers(5, 0) }], error: null }, // prior waves
+      { data: [{ wave: 1, user_answers: fullAnswers(5, 0) }], error: null },
       { data: { id: 'check-2' }, error: null },
     ];
-    // Twin answers likert 4 vs user 3 => likert 0.75; categorical all match => overall 0.875
-    complete.mockResolvedValue({
-      content: JSON.stringify({ answers: fullAnswers(4, 0) }),
-    });
 
     const result = await submitFidelityWave(USER, fullAnswers(3, 0));
     expect(result.wave).toBe(2);
-    // Self-consistency: user wave2 likert 3 vs wave1 likert 5 => 0.5; cat match => 0.75
+    // user wave2 likert 3 vs wave1 likert 5 => 0.5; categorical match => 0.75
     expect(result.selfConsistency).toBeCloseTo(0.75, 5);
+    expect(complete).not.toHaveBeenCalled();
+
+    const insert = dbState.calls.find(c => c.table === 'twin_fidelity_checks' && c.op === 'insert');
+    expect(insert.args[0].self_consistency).toBeCloseTo(0.75, 5);
+  });
+});
+
+describe('completeFidelityWave — phase 2 (twin answers, retryable)', () => {
+  const storedWave = (over = {}) => ({
+    id: 'check-1', user_id: USER, wave: 1, battery_version: BATTERY_VERSION,
+    user_answers: fullAnswers(3, 0), twin_answers: null, self_consistency: null, ...over,
+  });
+
+  it('returns null for a missing or foreign wave (route maps to 404)', async () => {
+    dbState.queues['twin_fidelity_checks'] = [{ data: null, error: null }];
+    expect(await completeFidelityWave(USER, 'nope')).toBeNull();
+  });
+
+  it('answers, scores and updates the stored row', async () => {
+    dbState.queues['twin_fidelity_checks'] = [
+      { data: storedWave(), error: null }, // load
+      { data: null, error: null },         // update
+    ];
+    complete.mockResolvedValue({ content: JSON.stringify({ answers: fullAnswers(3, 0) }) });
+
+    const result = await completeFidelityWave(USER, 'check-1');
+    expect(result.twinAccuracy).toBe(1);
+    expect(result.twinStatus).toBe('complete');
+
+    const update = dbState.calls.find(c => c.table === 'twin_fidelity_checks' && c.op === 'update');
+    expect(update.args[0].twin_answers).toBeTruthy();
+    expect(update.args[0].twin_accuracy).toBe(1);
+  });
+
+  it('computes the normalized metric from the stored ceiling', async () => {
+    dbState.queues['twin_fidelity_checks'] = [
+      { data: storedWave({ wave: 2, self_consistency: 0.75 }), error: null },
+      { data: null, error: null },
+    ];
+    // twin likert 4 vs stored user likert 3 => 0.75 likert, categorical match => 0.875
+    complete.mockResolvedValue({ content: JSON.stringify({ answers: fullAnswers(4, 0) }) });
+
+    const result = await completeFidelityWave(USER, 'check-1');
     expect(result.twinAccuracy).toBeCloseTo(0.875, 5);
     expect(result.normalizedFidelity).toBeCloseTo(0.875 / 0.75, 5);
   });
 
-  it('still stores the wave when twin answering fails (twin fields null)', async () => {
+  it('is idempotent — an already-answered wave is not re-answered', async () => {
     dbState.queues['twin_fidelity_checks'] = [
-      { data: [], error: null },
-      { data: { id: 'check-1' }, error: null },
+      { data: storedWave({ twin_answers: fullAnswers(3, 0), twin_accuracy: 1 }), error: null },
     ];
+
+    const result = await completeFidelityWave(USER, 'check-1');
+    expect(complete).not.toHaveBeenCalled();
+    expect(result.twinStatus).toBe('complete');
+    expect(result.twinAccuracy).toBe(1);
+  });
+
+  it('leaves the wave retryable when twin answering fails', async () => {
+    dbState.queues['twin_fidelity_checks'] = [{ data: storedWave(), error: null }];
     complete.mockResolvedValue({ content: 'garbage' });
 
-    const result = await submitFidelityWave(USER, fullAnswers(3, 0));
-    expect(result.wave).toBe(1);
+    const result = await completeFidelityWave(USER, 'check-1');
+    expect(result.twinStatus).toBe('pending');
     expect(result.twinAccuracy).toBeNull();
+    // Nothing written — the user's answers stay intact and phase 2 can retry
+    expect(dbState.calls.find(c => c.table === 'twin_fidelity_checks' && c.op === 'update')).toBeUndefined();
   });
 });

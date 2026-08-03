@@ -299,9 +299,17 @@ function validateSubmission(answers) {
 }
 
 /**
- * Store one user wave: validate, have the twin answer, score both sides,
- * persist, and return the metrics. The wave is stored even when twin
- * answering fails (twin fields null) — the user's data is the scarce part.
+ * PHASE 1 — store the user's wave. Fast and LLM-free by design: two DB
+ * reads plus one insert.
+ *
+ * The user's 20 answers are the scarce, irreplaceable input; the twin's
+ * are reproducible at any time. Answering the battery inline used to put
+ * a variable-latency LLM call between the user pressing submit and their
+ * answers being durable, so a timeout lost the whole submission and they
+ * had to re-answer. Storing first makes that impossible. Twin answering
+ * is phase 2 (completeFidelityWave), retryable against this row.
+ *
+ * Returns { id, wave, selfConsistency, twinStatus: 'pending' }.
  */
 export async function submitFidelityWave(userId, userAnswers) {
   const missing = validateSubmission(userAnswers);
@@ -323,20 +331,10 @@ export async function submitFidelityWave(userId, userAnswers) {
   const wave = (prior?.wave || 0) + 1;
 
   // Self-consistency ceiling: this wave's answers vs the previous wave's.
+  // Computed here because it depends only on user data, and storing it
+  // lets phase 2 derive the normalized metric without re-reading history.
   const selfConsistency = prior
     ? scoreAnswers(FIDELITY_BATTERY, userAnswers, prior.user_answers).overall
-    : null;
-
-  const twinResult = await answerBatteryAsTwin(userId);
-  const twinAnswers = twinResult?.answers ?? null;
-  const twinConfidence = twinResult?.confidence ?? null;
-  const twinScore = twinAnswers ? scoreAnswers(FIDELITY_BATTERY, twinAnswers, userAnswers) : null;
-  const twinAccuracy = twinScore ? twinScore.overall : null;
-  const normalized = normalizedFidelity(twinAccuracy, selfConsistency);
-
-  // R4 calibration: Brier + accuracy-by-confidence-bucket for this wave.
-  const calibration = twinAnswers && twinConfidence
-    ? calibrationFromPairs(batteryCalibrationPairs(FIDELITY_BATTERY, twinAnswers, twinConfidence, userAnswers))
     : null;
 
   const { data: created, error: insertError } = await supabaseAdmin
@@ -346,12 +344,7 @@ export async function submitFidelityWave(userId, userAnswers) {
       battery_version: BATTERY_VERSION,
       wave,
       user_answers: userAnswers,
-      twin_answers: twinAnswers,
-      twin_confidence: twinConfidence,
-      calibration,
-      twin_accuracy: twinAccuracy,
       self_consistency: selfConsistency,
-      normalized_fidelity: normalized,
     })
     .select('id')
     .single();
@@ -359,14 +352,97 @@ export async function submitFidelityWave(userId, userAnswers) {
     throw new Error(`Failed to store fidelity wave: ${insertError?.message || 'no row returned'}`);
   }
 
-  log.info('Fidelity wave stored', { userId, wave, twinAccuracy, selfConsistency, brier: calibration?.brier ?? null });
+  log.info('Fidelity wave stored (phase 1)', { userId, wave, selfConsistency });
+  return { id: created.id, wave, selfConsistency, twinStatus: 'pending' };
+}
+
+/**
+ * PHASE 2 — have the twin answer a stored wave, score it, and update the
+ * row. Slow (variable-latency LLM) but safe: the user's answers are
+ * already durable, so this is freely retryable and idempotent.
+ *
+ * Returns null when the wave doesn't exist or isn't this user's (404).
+ * On answering failure it returns twinStatus 'pending' and writes
+ * nothing, leaving the wave retryable.
+ */
+export async function completeFidelityWave(userId, waveId) {
+  const { data: row, error: loadError } = await supabaseAdmin
+    .from('twin_fidelity_checks')
+    .select('id, user_id, wave, user_answers, twin_answers, twin_accuracy, self_consistency, normalized_fidelity, calibration')
+    .eq('id', waveId)
+    .eq('user_id', userId)
+    .maybeSingle();
+  if (loadError) {
+    log.warn('Fidelity wave load failed', { userId, waveId, error: loadError.message });
+  }
+  if (!row) return null;
+
+  // Idempotent: an already-answered wave is returned as-is, never re-billed.
+  if (row.twin_answers) {
+    return {
+      id: row.id,
+      wave: row.wave,
+      twinStatus: 'complete',
+      twinAccuracy: row.twin_accuracy,
+      selfConsistency: row.self_consistency,
+      normalizedFidelity: row.normalized_fidelity,
+      calibration: row.calibration ?? null,
+    };
+  }
+
+  const twinResult = await answerBatteryAsTwin(userId);
+  const twinAnswers = twinResult?.answers ?? null;
+  const twinConfidence = twinResult?.confidence ?? null;
+  if (!twinAnswers) {
+    log.warn('Twin answering failed — wave left pending and retryable', { userId, waveId });
+    return {
+      id: row.id,
+      wave: row.wave,
+      twinStatus: 'pending',
+      twinAccuracy: null,
+      selfConsistency: row.self_consistency,
+      normalizedFidelity: null,
+      calibration: null,
+    };
+  }
+
+  const twinScore = scoreAnswers(FIDELITY_BATTERY, twinAnswers, row.user_answers);
+  const twinAccuracy = twinScore.overall;
+  const normalized = normalizedFidelity(twinAccuracy, row.self_consistency);
+
+  // R4 calibration: Brier + accuracy-by-confidence-bucket for this wave.
+  const calibration = twinConfidence
+    ? calibrationFromPairs(
+        batteryCalibrationPairs(FIDELITY_BATTERY, twinAnswers, twinConfidence, row.user_answers)
+      )
+    : null;
+
+  const { error: updateError } = await supabaseAdmin
+    .from('twin_fidelity_checks')
+    .update({
+      twin_answers: twinAnswers,
+      twin_confidence: twinConfidence,
+      calibration,
+      twin_accuracy: twinAccuracy,
+      normalized_fidelity: normalized,
+    })
+    .eq('id', row.id);
+  if (updateError) {
+    log.warn('Fidelity wave update failed (metrics returned anyway)', { userId, waveId, error: updateError.message });
+  }
+
+  log.info('Fidelity wave completed (phase 2)', {
+    userId, wave: row.wave, twinAccuracy, brier: calibration?.brier ?? null,
+  });
   return {
-    wave,
+    id: row.id,
+    wave: row.wave,
+    twinStatus: 'complete',
     twinAccuracy,
-    selfConsistency,
+    selfConsistency: row.self_consistency,
     normalizedFidelity: normalized,
-    likert: twinScore?.likert ?? null,
-    categorical: twinScore?.categorical ?? null,
+    likert: twinScore.likert,
+    categorical: twinScore.categorical,
     calibration,
   };
 }

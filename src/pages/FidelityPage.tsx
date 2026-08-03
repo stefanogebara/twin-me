@@ -32,7 +32,9 @@ interface CategoricalItem {
 type BatteryItem = LikertItem | CategoricalItem;
 
 interface WaveResult {
+  id?: string;
   wave: number;
+  twinStatus?: 'pending' | 'complete';
   twinAccuracy: number | null;
   selfConsistency: number | null;
   normalizedFidelity: number | null;
@@ -109,6 +111,35 @@ export default function FidelityPage() {
     trackEvent('fidelity_wave_started', { wave: waves.length + 1 });
   };
 
+  /**
+   * Two-phase submission. Phase 1 stores the user's answers (fast, no
+   * LLM) so they can never be lost to a slow twin. Phase 2 has the twin
+   * answer and is retryable — a failure there keeps the wave and offers
+   * a retry rather than sending the user back through 20 questions.
+   */
+  const runTwinAnswering = async (waveId: string, base: WaveResult) => {
+    setView('submitting');
+    try {
+      const res = await authFetch(`/twin-fidelity/wave/${waveId}/twin-answer`, { method: 'POST' });
+      if (!res.ok) throw new Error(`twin-answer ${res.status}`);
+      const { data } = await res.json();
+      setResult(data);
+      trackEvent('fidelity_wave_completed', {
+        wave: data.wave,
+        twin_accuracy: data.twinAccuracy,
+        normalized_fidelity: data.normalizedFidelity,
+        duration_seconds: Math.round((Date.now() - startedAtRef.current) / 1000),
+      });
+    } catch {
+      // The wave is stored — surface it as pending, never lose the answers.
+      setResult({ ...base, twinStatus: 'pending', twinAccuracy: null, normalizedFidelity: null });
+      trackEvent('fidelity_twin_answer_failed', { wave: base.wave });
+    } finally {
+      setView('result');
+      load();
+    }
+  };
+
   const submitAnswers = async (finalAnswers: Record<string, number | string>) => {
     setView('submitting');
     try {
@@ -118,16 +149,10 @@ export default function FidelityPage() {
       });
       if (!res.ok) throw new Error(`submit ${res.status}`);
       const { data } = await res.json();
-      setResult(data);
-      setView('result');
-      trackEvent('fidelity_wave_completed', {
-        wave: data.wave,
-        twin_accuracy: data.twinAccuracy,
-        normalized_fidelity: data.normalizedFidelity,
-        duration_seconds: Math.round((Date.now() - startedAtRef.current) / 1000),
-      });
-      load();
+      trackEvent('fidelity_wave_stored', { wave: data.wave });
+      await runTwinAnswering(data.id, data);
     } catch {
+      // Phase 1 failed — nothing stored, so keep the answers on screen.
       setSubmitError(true);
       setView('battery'); // answers intact — allow retry from the last item
     }
@@ -259,7 +284,7 @@ export default function FidelityPage() {
         <div className="flex flex-col items-center justify-center h-64 gap-4">
           <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" style={{ color: 'var(--text-muted)' }} />
           <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-            Your twin is answering the same questions from memory...
+            Your answers are saved. Your twin is answering the same questions from memory...
           </p>
         </div>
       </div>
@@ -297,8 +322,23 @@ export default function FidelityPage() {
           <p className="text-[13px] leading-relaxed mt-2" style={{ color: 'var(--text-secondary)' }}>
             {twinPct !== null
               ? 'How closely your twin matched your actual answers.'
-              : 'The twin could not complete its answers this time — your answers are saved and still count.'}
+              : 'Your answers are saved. The twin has not finished answering yet — this can be retried without redoing the battery.'}
           </p>
+          {twinPct === null && result.id && (
+            <button
+              onClick={() => runTwinAnswering(result.id as string, result)}
+              className="mt-4 px-4 py-2.5 rounded-[12px] text-sm font-medium transition-all hover:brightness-105"
+              style={{
+                background: 'var(--claura-bone)',
+                color: 'var(--claura-bone-ink)',
+                fontFamily: "'Inter', sans-serif",
+                border: 'none',
+                cursor: 'pointer',
+              }}
+            >
+              Have the twin answer now
+            </button>
+          )}
         </div>
 
         {normPct !== null ? (
