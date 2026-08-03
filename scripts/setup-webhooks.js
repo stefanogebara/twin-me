@@ -29,7 +29,6 @@ async function checkEnvironmentVariables() {
 
   const required = [
     'GITHUB_WEBHOOK_SECRET',
-    'SLACK_SIGNING_SECRET',
     'GOOGLE_PROJECT_ID',
     'API_URL',
   ];
@@ -53,15 +52,6 @@ async function checkEnvironmentVariables() {
   if (missing.length > 0) {
     console.log('⚠️  Missing configuration:');
     console.log('');
-
-    if (missing.includes('SLACK_SIGNING_SECRET')) {
-      console.log('🔹 Slack Signing Secret:');
-      console.log('   1. Visit https://api.slack.com/apps');
-      console.log('   2. Select your app');
-      console.log('   3. Go to Settings → Basic Information');
-      console.log('   4. Copy "Signing Secret"');
-      console.log('   5. Update SLACK_SIGNING_SECRET in .env\n');
-    }
 
     if (missing.includes('GOOGLE_PROJECT_ID')) {
       console.log('🔹 Google Cloud Project ID:');
@@ -136,11 +126,6 @@ async function displayWebhookURLs() {
   console.log(`   Content type: application/json`);
   console.log(`   Events: push, pull_request, issues, etc.\n`);
 
-  console.log('🔹 Slack Event Subscriptions:');
-  console.log(`   URL: ${apiUrl}/api/webhooks/slack/:userId`);
-  console.log(`   Signing Secret: ${process.env.SLACK_SIGNING_SECRET}`);
-  console.log(`   Events: message.channels, message.im, reaction_added\n`);
-
   console.log('🔹 Gmail Pub/Sub:');
   console.log(`   Topic: projects/${process.env.GOOGLE_PROJECT_ID}/topics/gmail-notifications`);
   console.log(`   Push Endpoint: ${apiUrl}/api/webhooks/gmail\n`);
@@ -153,7 +138,6 @@ async function displayNextSteps() {
   console.log('3. ✅ Webhook endpoints ready\n');
   console.log('4. 🔧 Configure platform webhooks:');
   console.log('   - GitHub: Add webhook in repo settings');
-  console.log('   - Slack: Enable Event Subscriptions');
   console.log('   - Gmail: Set up Pub/Sub (see docs)\n');
   console.log('5. 🧪 Test the system:');
   console.log('   - Connect a platform via OAuth');

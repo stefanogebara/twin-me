@@ -1,16 +1,19 @@
 /**
  * Webhook Routes
  * Handles incoming webhook notifications from platforms that support real-time push
- * Endpoints for GitHub, Gmail Pub/Sub, and Slack event subscriptions
+ * Endpoints for GitHub and Gmail Pub/Sub.
+ *
+ * The Slack event-subscription receiver was removed (replan-2026-06-10 Track C
+ * portfolio cut): Slack is absent from VALID_PROVIDERS, so no Slack connection
+ * can be created and the receiver could never have a user to attribute events
+ * to. See the removal commit for the full reasoning.
  */
 
 import express from 'express';
 import {
   verifyGitHubSignature,
-  verifySlackSignature,
   handleGitHubWebhook,
   handleGmailPushNotification,
-  handleSlackEvent,
   getUserIdByEmail,
   getWebhookInfo,
 } from '../services/webhookReceiverService.js';
@@ -138,67 +141,6 @@ router.post('/gmail', express.json(), async (req, res) => {
 });
 
 /**
- * Slack Event Subscription Receiver
- * Receives event notifications from Slack workspaces
- * https://api.slack.com/apis/connections/events-api
- */
-router.post('/slack/:userId', express.json(), async (req, res) => {
-  try {
-    const { userId } = req.params;
-
-    // Validate userId is a proper UUID (defense-in-depth)
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (!userId || !uuidRegex.test(userId)) {
-      return res.status(400).json({ error: 'Invalid user ID format' });
-    }
-
-    const slackSignature = req.headers['x-slack-signature'];
-    const slackTimestamp = req.headers['x-slack-request-timestamp'];
-
-    // Verify request is recent (within 5 minutes)
-    const fiveMinutesAgo = Math.floor(Date.now() / 1000) - (60 * 5);
-    if (parseInt(slackTimestamp) < fiveMinutesAgo) {
-      log.warn('Slack webhook timestamp too old');
-      return res.status(401).json({ error: 'Request timestamp too old' });
-    }
-
-    // Verify Slack signature
-    const body = JSON.stringify(req.body);
-    const secret = process.env.SLACK_SIGNING_SECRET;
-
-    if (!verifySlackSignature(body, slackTimestamp, slackSignature, secret)) {
-      log.warn('Slack webhook signature verification failed');
-      return res.status(401).json({ error: 'Invalid signature' });
-    }
-
-    log.info(`Slack webhook received for user ${userId}`);
-
-    // Handle URL verification challenge
-    if (req.body.type === 'url_verification') {
-      log.info('Slack URL verification challenge received');
-      return res.status(200).json({ challenge: req.body.challenge });
-    }
-
-    // Handle the event
-    const result = await handleSlackEvent(req.body.event, req.body, userId);
-
-    if (result.challenge) {
-      return res.status(200).json({ challenge: result.challenge });
-    }
-
-    if (!result.success) {
-      log.error('Failed to process Slack event:', result.error);
-      return res.status(500).json({ error: 'Failed to process event' });
-    }
-
-    res.status(200).json({ success: true, message: 'Event processed' });
-  } catch (error) {
-    log.error('Error processing Slack webhook:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-/**
  * Discord Webhook Receiver (if Discord adds webhook support in future)
  * Currently Discord only supports OAuth + Gateway, not outgoing webhooks
  */
@@ -260,7 +202,6 @@ router.get('/health', (req, res) => {
     endpoints: {
       github: '/api/webhooks/github/:userId',
       gmail: '/api/webhooks/gmail',
-      slack: '/api/webhooks/slack/:userId',
       discord: '/api/webhooks/discord/:userId (not supported)',
     },
   });
