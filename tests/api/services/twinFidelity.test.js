@@ -181,32 +181,101 @@ describe('parseTwinAnswers', () => {
 });
 
 describe('answerBatteryAsTwin', () => {
-  it('answers via one ANALYSIS call grounded in twin summary + memories', async () => {
-    complete.mockResolvedValue({
+  /** Answer only the items actually present in a call's battery text. */
+  const halfAwareMock = () => (args) => {
+    const text = JSON.stringify(args.messages);
+    const mine = FIDELITY_BATTERY.filter(i => text.includes(i.id));
+    return Promise.resolve({
       content: JSON.stringify({
-        answers: Object.fromEntries(
-          FIDELITY_BATTERY.map(i => [i.id, i.type === 'likert' ? 3 : i.options[0]])
-        ),
+        answers: Object.fromEntries(mine.map(i => [i.id, i.type === 'likert' ? 3 : i.options[0]])),
+        confidence: Object.fromEntries(mine.map(i => [i.id, 0.8])),
       }),
     });
+  };
 
-    // R4 calibration: contract is now { answers, confidence } — confidence
-    // null here because the mocked reply has no confidence block.
+  it('splits the battery across TWO parallel ANALYSIS calls and merges the halves', async () => {
+    complete.mockImplementation(halfAwareMock());
+
+    const result = await answerBatteryAsTwin(USER);
+
+    // Latency fix: 2 calls, each carrying part of the battery (was 1x20).
+    expect(complete).toHaveBeenCalledTimes(2);
+    const [a, b] = complete.mock.calls.map(c => c[0]);
+    const idsIn = (call) => FIDELITY_BATTERY.filter(i => JSON.stringify(call.messages).includes(i.id)).map(i => i.id);
+    const idsA = idsIn(a);
+    const idsB = idsIn(b);
+
+    // Disjoint halves whose union is the whole battery
+    expect(idsA.length).toBeGreaterThan(0);
+    expect(idsB.length).toBeGreaterThan(0);
+    expect(idsA.filter(id => idsB.includes(id))).toEqual([]);
+    expect([...idsA, ...idsB].sort()).toEqual(FIDELITY_BATTERY.map(i => i.id).sort());
+
+    // Both halves keep the full grounding + CoT scaffold
+    for (const call of [a, b]) {
+      expect(call.tier).toBe('analysis');
+      const prompt = `${call.system || ''}\n${JSON.stringify(call.messages)}`;
+      expect(prompt).toContain('A focused builder who recharges alone.'); // twin summary
+      expect(prompt).toContain('deep focus over social breadth');          // retrieved memory
+      expect(prompt).toContain('Option Interpretation');                   // 4-step CoT scaffold
+    }
+
+    // Merged result covers the whole battery
+    expect(Object.keys(result.answers)).toHaveLength(20);
+    expect(Object.keys(result.confidence)).toHaveLength(20);
+  });
+
+  it('issues both calls before either resolves (parallel, not sequential)', async () => {
+    let started = 0;
+    let resolveFirst;
+    const gate = new Promise(r => { resolveFirst = r; });
+    complete.mockImplementation(async (args) => {
+      started += 1;
+      await gate; // nothing resolves until both have started
+      return halfAwareMock()(args);
+    });
+
+    const pending = answerBatteryAsTwin(USER);
+    await new Promise(r => setImmediate(r));
+    expect(started).toBe(2); // sequential code would sit at 1 here
+
+    resolveFirst();
+    const result = await pending;
+    expect(Object.keys(result.answers)).toHaveLength(20);
+  });
+
+  it('keeps the surviving half when the other fails (partial > nothing)', async () => {
+    let call = 0;
+    complete.mockImplementation((args) => {
+      call += 1;
+      if (call === 1) return Promise.reject(new Error('provider 500'));
+      return halfAwareMock()(args);
+    });
+
+    const result = await answerBatteryAsTwin(USER);
+    const count = Object.keys(result.answers).length;
+    expect(count).toBeGreaterThan(0);
+    expect(count).toBeLessThan(20); // only the surviving half
+  });
+
+  it('returns null when BOTH halves are unusable', async () => {
+    complete.mockResolvedValue({ content: 'I cannot answer this.' });
+    expect(await answerBatteryAsTwin(USER)).toBeNull();
+  });
+
+  it('returns null confidence when neither half supplied one (back-compat)', async () => {
+    complete.mockImplementation((args) => {
+      const text = JSON.stringify(args.messages);
+      const mine = FIDELITY_BATTERY.filter(i => text.includes(i.id));
+      return Promise.resolve({
+        content: JSON.stringify({
+          answers: Object.fromEntries(mine.map(i => [i.id, i.type === 'likert' ? 3 : i.options[0]])),
+        }),
+      });
+    });
     const result = await answerBatteryAsTwin(USER);
     expect(Object.keys(result.answers)).toHaveLength(20);
     expect(result.confidence).toBeNull();
-    expect(complete).toHaveBeenCalledTimes(1);
-    const call = complete.mock.calls[0][0];
-    expect(call.tier).toBe('analysis');
-    const prompt = `${call.system || ''}\n${JSON.stringify(call.messages)}`;
-    expect(prompt).toContain('A focused builder who recharges alone.'); // twin summary
-    expect(prompt).toContain('deep focus over social breadth');          // retrieved memory
-    expect(prompt).toContain('Option Interpretation');                   // 4-step CoT scaffold
-  });
-
-  it('returns null when the LLM output is unusable', async () => {
-    complete.mockResolvedValue({ content: 'I cannot answer this.' });
-    expect(await answerBatteryAsTwin(USER)).toBeNull();
   });
 });
 
