@@ -179,22 +179,57 @@ Answer every item. Likert items: an integer 1-5. Categorical items: copy ONE opt
 Return ONLY this JSON:
 { "answers": { "<item_id>": <value>, ... }, "confidence": { "<item_id>": <0.0-1.0>, ... } }`;
 
-  try {
-    const result = await complete({
-      tier: TIER_ANALYSIS,
-      system,
-      messages: [{ role: 'user', content: `THE BATTERY:\n${formatBatteryForPrompt(FIDELITY_BATTERY)}` }],
-      // R4 calibration: room for the per-item confidence map (was 900)
-      maxTokens: 1200,
-      temperature: 0.3,
-      userId,
-      serviceName: 'twin-fidelity-battery',
-    });
-    return parseTwinAnswers(result.content); // { answers, confidence } | null
-  } catch (err) {
-    log.warn('Twin battery answering failed', { userId, error: err.message });
+  // Latency: one 20-item call emitting answers + per-item confidence ran
+  // ~1200 output tokens and measured 35s warm / 79s cold — over Vercel's
+  // 60s maxDuration, so cold submissions 504'd. Two parallel half-batteries
+  // roughly halve wall-clock at identical total token cost. Both halves
+  // carry the same grounding, so neither is answering blind.
+  const half = Math.ceil(FIDELITY_BATTERY.length / 2);
+  const chunks = [FIDELITY_BATTERY.slice(0, half), FIDELITY_BATTERY.slice(half)];
+
+  const settled = await Promise.allSettled(
+    chunks.map((chunk, i) =>
+      complete({
+        tier: TIER_ANALYSIS,
+        system,
+        messages: [{ role: 'user', content: `THE BATTERY:\n${formatBatteryForPrompt(chunk)}` }],
+        maxTokens: 700,
+        temperature: 0.3,
+        userId,
+        serviceName: `twin-fidelity-battery-${i + 1}`,
+      })
+    )
+  );
+
+  // Merge halves. A failed or unparseable half is dropped, not fatal —
+  // scoreAnswers excludes missing items rather than zeroing them, so a
+  // partial battery still yields an honest (smaller-n) wave.
+  const answers = {};
+  const confidence = {};
+  for (const [i, outcome] of settled.entries()) {
+    if (outcome.status === 'rejected') {
+      log.warn('Twin battery half failed', { userId, half: i + 1, error: outcome.reason?.message });
+      continue;
+    }
+    const parsed = parseTwinAnswers(outcome.value?.content);
+    if (!parsed) {
+      log.warn('Twin battery half unparseable', { userId, half: i + 1 });
+      continue;
+    }
+    Object.assign(answers, parsed.answers);
+    if (parsed.confidence) Object.assign(confidence, parsed.confidence);
+  }
+
+  if (Object.keys(answers).length === 0) {
+    log.warn('Twin battery answering failed — no usable halves', { userId });
     return null;
   }
+  if (Object.keys(answers).length < FIDELITY_BATTERY.length) {
+    log.warn('Twin battery partially answered', {
+      userId, answered: Object.keys(answers).length, total: FIDELITY_BATTERY.length,
+    });
+  }
+  return { answers, confidence: Object.keys(confidence).length > 0 ? confidence : null };
 }
 
 // ====================================================================
