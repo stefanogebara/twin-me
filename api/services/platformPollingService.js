@@ -209,7 +209,7 @@ async function pollAllPlatformsForUser(userId) {
             const { error: nangoSyncErr } = await supabaseAdmin
               .from('platform_connections')
               .update({
-                last_sync: new Date().toISOString(),
+                last_sync_at: new Date().toISOString(),
                 updated_at: new Date().toISOString(),
               })
               .eq('id', connection.id);
@@ -239,7 +239,7 @@ async function pollAllPlatformsForUser(userId) {
         const { error: legacySyncErr } = await supabaseAdmin
           .from('platform_connections')
           .update({
-            last_sync: new Date().toISOString(),
+            last_sync_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           })
           .eq('id', connection.id);
@@ -403,7 +403,7 @@ async function pollPlatformForAllUsers(platform) {
             const { error: pollUpdateErr } = await supabaseAdmin
               .from('platform_connections')
               .update({
-                last_sync: new Date().toISOString(),
+                last_sync_at: new Date().toISOString(),
                 updated_at: new Date().toISOString(),
               })
               .eq('id', conn.id);
@@ -426,7 +426,7 @@ async function pollPlatformForAllUsers(platform) {
         const { error: syncUpdateErr } = await supabaseAdmin
           .from('platform_connections')
           .update({
-            last_sync: new Date().toISOString(),
+            last_sync_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           })
           .eq('user_id', userId)
