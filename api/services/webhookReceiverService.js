@@ -23,16 +23,6 @@ function verifyGitHubSignature(payload, signature, secret) {
 }
 
 /**
- * Verify Slack webhook signature
- * https://api.slack.com/authentication/verifying-requests-from-slack
- */
-function verifySlackSignature(body, timestamp, signature, secret) {
-  const sigBasestring = 'v0:' + timestamp + ':' + body;
-  const mySignature = 'v0=' + crypto.createHmac('sha256', secret).update(sigBasestring).digest('hex');
-  return crypto.timingSafeEqual(Buffer.from(mySignature), Buffer.from(signature));
-}
-
-/**
  * Handle GitHub webhook events
  * Supported events: push, issues, pull_request, release, etc.
  */
@@ -127,54 +117,6 @@ async function handleGmailPushNotification(message, userId) {
     return { success: true };
   } catch (error) {
     log.error('Error handling Gmail push notification:', error);
-    return { success: false, error: error.message };
-  }
-}
-
-/**
- * Handle Slack event subscriptions
- * https://api.slack.com/apis/connections/events-api
- */
-async function handleSlackEvent(event, payload, userId) {
-  log.info(`Slack event received: ${event.type} for user ${userId}`);
-
-  try {
-    // Handle URL verification challenge
-    if (event.type === 'url_verification') {
-      return { challenge: event.challenge };
-    }
-
-    // Store the event
-    const { error: slackInsertErr } = await supabaseAdmin
-      .from('user_platform_data')
-      .insert({
-        user_id: userId,
-        platform: 'slack',
-        data_type: `event_${event.type}`,
-        raw_data: payload,
-        extracted_at: new Date().toISOString(),
-      });
-
-    if (slackInsertErr) log.error('Error storing Slack event data:', slackInsertErr.message);
-
-    // Update last sync
-    const { error: slackSyncErr } = await supabaseAdmin
-      .from('platform_connections')
-      .update({ last_sync_at: new Date().toISOString() })
-      .eq('user_id', userId)
-      .eq('platform', 'slack');
-
-    if (slackSyncErr) log.error('Error updating Slack last_sync:', slackSyncErr.message);
-
-    // Notify user via WebSocket and SSE
-    notifyNewData(userId, 'slack', event.type, 1);
-    sseService.notifyWebhookReceived(userId, 'slack', event.type, event);
-
-    log.info(`Slack ${event.type} event processed for user ${userId}`);
-
-    return { success: true };
-  } catch (error) {
-    log.error('Error handling Slack event:', error);
     return { success: false, error: error.message };
   }
 }
@@ -369,10 +311,8 @@ async function getWebhookInfo(userId, platform) {
 
 export {
   verifyGitHubSignature,
-  verifySlackSignature,
   handleGitHubWebhook,
   handleGmailPushNotification,
-  handleSlackEvent,
   registerGitHubWebhook,
   setupGmailPushNotifications,
   refreshGmailWatch,
