@@ -45,7 +45,7 @@ vi.mock('../../../api/services/database.js', () => {
     dbState.calls.push(call);
     const next = () => (dbState.queue.length > 0 ? dbState.queue.shift() : { data: [], error: null });
     const chain = {};
-    for (const op of ['select', 'eq', 'is', 'not', 'neq', 'gte', 'lte', 'gt', 'order', 'limit']) {
+    for (const op of ['select', 'eq', 'in', 'is', 'not', 'neq', 'gte', 'lte', 'gt', 'order', 'limit']) {
       chain[op] = (...args) => { call.filters.push([op, ...args]); return chain; };
     }
     chain.single = () => Promise.resolve(next());
@@ -100,35 +100,67 @@ beforeEach(() => {
 });
 
 describe('NEUROPIL_TO_EXPERT — routing map', () => {
-  it('maps every neuropil to a real expert persona id', () => {
-    const expertIds = new Set(EXPERT_PERSONAS.map(e => e.id));
+  const PLATFORM_EXPERT_IDS = new Set([
+    'music_psychologist', 'health_behaviorist', 'productivity_analyst',
+    'media_sociologist', 'social_analyst', 'digital_behaviorist', 'code_architect',
+  ]);
+
+  it('maps every neuropil to a non-empty array led by its generic expert persona', () => {
+    const genericIds = new Set(EXPERT_PERSONAS.map(e => e.id));
     const neuropils = ['personality', 'lifestyle', 'cultural', 'social', 'motivation'];
     for (const n of neuropils) {
-      expect(NEUROPIL_TO_EXPERT[n], `missing mapping for ${n}`).toBeTruthy();
-      expect(expertIds.has(NEUROPIL_TO_EXPERT[n]), `${NEUROPIL_TO_EXPERT[n]} not a real expert`).toBe(true);
+      const experts = NEUROPIL_TO_EXPERT[n];
+      expect(Array.isArray(experts), `${n} must map to an array`).toBe(true);
+      expect(experts.length).toBeGreaterThan(0);
+      expect(genericIds.has(experts[0]), `${n} must lead with its generic expert`).toBe(true);
+      for (const id of experts.slice(1)) {
+        expect(PLATFORM_EXPERT_IDS.has(id), `${id} is not a known platform expert`).toBe(true);
+      }
+      expect(new Set(experts).size).toBe(experts.length); // no dupes
     }
     expect(Object.keys(NEUROPIL_TO_EXPERT)).toHaveLength(5);
+  });
+
+  it('routes the platform experts by domain affinity', () => {
+    expect(NEUROPIL_TO_EXPERT.cultural).toEqual(
+      expect.arrayContaining(['music_psychologist', 'media_sociologist']));
+    expect(NEUROPIL_TO_EXPERT.lifestyle).toEqual(
+      expect.arrayContaining(['health_behaviorist', 'digital_behaviorist']));
+    expect(NEUROPIL_TO_EXPERT.social).toEqual(expect.arrayContaining(['social_analyst']));
+    expect(NEUROPIL_TO_EXPERT.motivation).toEqual(
+      expect.arrayContaining(['code_architect', 'productivity_analyst']));
   });
 });
 
 describe('fetchDomainReflections — direct exhaustive fetch', () => {
-  it('filters by expert metadata, excludes superseded, caps and orders by importance', async () => {
-    dbState.queue.push({ data: [refl('r1', 'personality_psychologist'), refl('r2', 'personality_psychologist')], error: null });
-    const rows = await fetchDomainReflections(USER, 'personality_psychologist', 15);
+  it('filters by a SET of expert ids (in-filter), excludes superseded, caps and orders by importance', async () => {
+    dbState.queue.push({ data: [refl('r1', 'cultural_identity'), refl('r2', 'music_psychologist')], error: null });
+    const rows = await fetchDomainReflections(USER, ['cultural_identity', 'music_psychologist'], 15);
     expect(rows).toHaveLength(2);
 
     const call = dbState.calls[dbState.calls.length - 1];
     const flat = JSON.stringify(call.filters);
     expect(flat).toContain('metadata->>expert');
-    expect(flat).toContain('personality_psychologist');
+    expect(call.filters.some(f => f[0] === 'in')).toBe(true);
+    expect(flat).toContain('music_psychologist');
     expect(flat).toContain('superseded_at');
     expect(flat).toContain('importance_score');
     expect(JSON.stringify(call.filters.find(f => f[0] === 'limit'))).toContain('15');
   });
 
-  it('returns [] on query error (fail-open)', async () => {
+  it('accepts a single expert id string (back-compat)', async () => {
+    dbState.queue.push({ data: [refl('r1', 'personality_psychologist')], error: null });
+    const rows = await fetchDomainReflections(USER, 'personality_psychologist', 15);
+    expect(rows).toHaveLength(1);
+    const call = dbState.calls[dbState.calls.length - 1];
+    expect(JSON.stringify(call.filters)).toContain('personality_psychologist');
+  });
+
+  it('returns [] on query error and on empty expert sets (fail-open)', async () => {
     dbState.queue.push({ data: null, error: { message: 'boom' } });
-    expect(await fetchDomainReflections(USER, 'personality_psychologist')).toEqual([]);
+    expect(await fetchDomainReflections(USER, ['personality_psychologist'])).toEqual([]);
+    expect(await fetchDomainReflections(USER, [])).toEqual([]);
+    expect(await fetchDomainReflections(USER, null)).toEqual([]);
   });
 });
 
@@ -148,11 +180,12 @@ describe('mergeExhaustiveReflections — fallback + dedup (pure)', () => {
 });
 
 describe('buildContextOptions — neuropil threads the expert domain', () => {
-  it('sets exhaustiveReflectionDomain from the routed neuropil', () => {
+  it('sets exhaustiveReflectionDomain to the routed neuropil expert set', () => {
     const neuropilResult = classifyNeuropil('who am i really, what are my values and identity');
     expect(neuropilResult.neuropilId).toBe('personality');
     const opts = buildContextOptions({ platforms: ['spotify'], neuropilResult });
-    expect(opts.exhaustiveReflectionDomain).toBe('personality_psychologist');
+    expect(opts.exhaustiveReflectionDomain).toEqual(NEUROPIL_TO_EXPERT.personality);
+    expect(opts.exhaustiveReflectionDomain[0]).toBe('personality_psychologist');
   });
 
   it('leaves it unset when no neuropil routed', () => {

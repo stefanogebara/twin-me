@@ -66,18 +66,23 @@ const NEUROPILS = {
  * @returns {{ neuropilId: string|null, weights: object|null, budgets: object|null, confidence: number }}
  */
 /**
- * R8: neuropil -> reflection-expert-persona id (metadata.expert on
- * reflection rows). Used for exhaustive-within-domain retrieval: when a
- * message routes to a neuropil, ALL of that expert's reflections can be
+ * R8: neuropil -> reflection expert ids (metadata.expert on reflection
+ * rows). Used for exhaustive-within-domain retrieval: when a message
+ * routes to a neuropil, ALL reflections from that domain's experts can be
  * injected instead of top-k vector sampling (the 1,000-people paper's
  * query-time routing).
+ *
+ * Each array leads with the generic reflection-engine persona, followed
+ * by the platform experts (platformExperts.js) whose domain fits — those
+ * reflections were previously reachable only through vector sampling.
+ * The combined set is fetched importance-ordered under one shared cap.
  */
 export const NEUROPIL_TO_EXPERT = {
-  personality: 'personality_psychologist',
-  lifestyle: 'lifestyle_analyst',
-  cultural: 'cultural_identity',
-  social: 'social_dynamics',
-  motivation: 'motivation_analyst',
+  personality: ['personality_psychologist'],
+  lifestyle: ['lifestyle_analyst', 'health_behaviorist', 'digital_behaviorist'],
+  cultural: ['cultural_identity', 'music_psychologist', 'media_sociologist'],
+  social: ['social_dynamics', 'social_analyst'],
+  motivation: ['motivation_analyst', 'code_architect', 'productivity_analyst'],
 };
 
 export function classifyNeuropil(message) {
