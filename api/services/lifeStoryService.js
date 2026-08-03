@@ -325,6 +325,41 @@ async function saveState(userId, state) {
  * Chapter list + progress for the UI, with a suggested next chapter
  * (first incomplete, in script order — chapter 1 first).
  */
+/**
+ * Read-only session fetch, used by the client to resync after a lost
+ * response. A turn does real work (LLM + persistence) before replying, so
+ * a client-side timeout does NOT mean the turn failed — the answer and the
+ * interviewer's reply are usually already stored. This lets the UI ask what
+ * is actually true instead of guessing.
+ *
+ * Deliberately NOT served by startSession: once the final turn completes a
+ * chapter the session is no longer active, and start would spawn a fresh
+ * one — silently restarting a chapter the user had just finished.
+ *
+ * Returns null when the session is missing or belongs to someone else.
+ */
+export async function getSession(userId, sessionId) {
+  const { data, error } = await supabaseAdmin
+    .from('life_story_sessions')
+    .select('id, chapter_id, status, transcript, question_index, followups_used')
+    .eq('id', sessionId)
+    .eq('user_id', userId)
+    .maybeSingle();
+  if (error) {
+    log.warn('Session fetch failed', { userId, sessionId, error: error.message });
+    return null;
+  }
+  if (!data) return null;
+  return {
+    sessionId: data.id,
+    chapterId: data.chapter_id,
+    status: data.status,
+    transcript: Array.isArray(data.transcript) ? data.transcript : [],
+    questionIndex: data.question_index,
+    followupsUsed: data.followups_used,
+  };
+}
+
 export async function getLifeStoryStatus(userId) {
   const state = await getState(userId);
   const chapters = listChapters(state.chapters_completed);
