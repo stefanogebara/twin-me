@@ -4,6 +4,12 @@
  *
  * This script helps automate the setup of webhooks for real-time monitoring.
  * Run with: node scripts/setup-webhooks.js
+ *
+ * Secrets are MASKED by default. The output is meant to be copied into a
+ * provider console, but it also lands in terminal scrollback and — if this is
+ * ever run from CI — in job logs, where a webhook secret should not sit. Pass
+ * --reveal when you actually need the full value:
+ *   node scripts/setup-webhooks.js --reveal
  */
 
 import { createClient } from '@supabase/supabase-js';
@@ -21,6 +27,21 @@ const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
+
+// Opt-in to printing secrets in full — see the header note.
+const REVEAL_SECRETS = process.argv.includes('--reveal');
+
+/**
+ * Render a secret for terminal output: first/last 4 characters with the middle
+ * masked, so the value is recognisable enough to confirm which secret is
+ * configured without the whole thing entering scrollback or a CI log.
+ */
+function maskSecret(value) {
+  if (!value) return '(not configured)';
+  if (REVEAL_SECRETS) return value;
+  if (value.length <= 8) return `${'*'.repeat(value.length)}  (run with --reveal to show)`;
+  return `${value.slice(0, 4)}${'*'.repeat(value.length - 8)}${value.slice(-4)}  (run with --reveal to show)`;
+}
 
 console.log('🚀 Webhook Setup Automation Script\n');
 
@@ -122,7 +143,7 @@ async function displayWebhookURLs() {
 
   console.log('🔹 GitHub Webhook:');
   console.log(`   URL: ${apiUrl}/api/webhooks/github/:userId`);
-  console.log(`   Secret: ${process.env.GITHUB_WEBHOOK_SECRET}`);
+  console.log(`   Secret: ${maskSecret(process.env.GITHUB_WEBHOOK_SECRET)}`);
   console.log(`   Content type: application/json`);
   console.log(`   Events: push, pull_request, issues, etc.\n`);
 
