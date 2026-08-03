@@ -241,7 +241,7 @@ router.post('/extract/spotify-deep/:userId', authenticateUser, asyncHandler(asyn
   const { error: spotifyMetaErr } = await supabase
     .from('platform_connections')
     .update({
-      last_sync: new Date().toISOString(),
+      last_sync_at: new Date().toISOString(),
       last_sync_status: 'success',
       last_sync_error: null,
       metadata: {
@@ -329,7 +329,7 @@ router.post('/extract/youtube-deep/:userId', authenticateUser, asyncHandler(asyn
   const { error: youtubeMetaErr } = await supabase
     .from('platform_connections')
     .update({
-      last_sync: new Date().toISOString(),
+      last_sync_at: new Date().toISOString(),
       last_sync_status: 'success',
       last_sync_error: null,
       metadata: {
