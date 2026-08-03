@@ -821,6 +821,15 @@ router.post('/magic-link/request', authLimiter, async (req, res) => {
       log.warn('Magic-link email send failed', { error: err?.message })
     );
 
+    // Local-dev fallback. The raw token is deliberately never persisted (only
+    // token_hash is), so when Resend is unconfigured there is no way to
+    // recover the link and local sign-in is simply impossible. Print it to the
+    // server console the developer already owns — the standard dev pattern.
+    // Hard-gated: never in production, and never when email actually works.
+    if (process.env.NODE_ENV !== 'production' && !process.env.RESEND_API_KEY) {
+      log.warn(`[dev] Email is not configured — open this signin link manually:\n${link}`);
+    }
+
     log.info('Magic-link issued', { email: redactEmail(emailRaw), elapsedMs: Date.now() - startedAt });
     return res.json({ success: true, message: 'Check your email for a signin link. It works once and expires in 15 minutes.' });
   } catch (err) {
