@@ -87,6 +87,47 @@ export function normalizedFidelity(twinAccuracy, selfConsistency) {
 // ====================================================================
 
 /**
+ * Per-fetch budget for battery context. Generous against the healthy path
+ * (summary + retrieval measure 5-8s together) while cutting off the
+ * pathological cold path well inside Vercel's 60s function ceiling.
+ */
+const CONTEXT_BUDGET_MS = 12000;
+
+/**
+ * Race a context fetch against a budget, degrading to `fallback` on
+ * timeout OR rejection. The losing promise is left pending — it cannot be
+ * cancelled, but it no longer blocks the response.
+ */
+function withBudget(start, ms, fallback, label, userId) {
+  let timer;
+  const timeout = new Promise(resolve => {
+    timer = setTimeout(() => {
+      log.warn('Battery context fetch exceeded budget — degrading', { userId, label, ms });
+      resolve(fallback);
+    }, ms);
+  });
+  let promise;
+  try {
+    promise = Promise.resolve(start());
+  } catch (err) {
+    clearTimeout(timer);
+    log.warn('Battery context fetch threw synchronously', { userId, label, error: err?.message });
+    return Promise.resolve(fallback);
+  }
+  return Promise.race([
+    promise.then(
+      value => { clearTimeout(timer); return value ?? fallback; },
+      err => {
+        clearTimeout(timer);
+        log.warn('Battery context fetch failed — degrading', { userId, label, error: err?.message });
+        return fallback;
+      }
+    ),
+    timeout,
+  ]);
+}
+
+/**
  * Parse the twin's battery reply into { answers, confidence } — R4
  * calibration extension. `confidence` is a per-item 0-1 map (clamped) or
  * null when absent (legacy replies). Returns null overall when there are
@@ -137,22 +178,29 @@ function formatBatteryForPrompt(battery) {
  *
  * Returns { itemId: answer } or null on failure.
  */
-export async function answerBatteryAsTwin(userId) {
-  let summary = '';
-  let memories = [];
-  try {
-    [summary, memories] = await Promise.all([
-      getTwinSummary(userId),
-      retrieveDiverseMemories(
+export async function answerBatteryAsTwin(userId, { contextBudgetMs = CONTEXT_BUDGET_MS } = {}) {
+  // Cold-path guard. getTwinSummary does a SYNCHRONOUS full regeneration
+  // (5 retrieval queries + an LLM call) once the cached summary ages past
+  // its stale-serve window — that, plus cold retrieval, is what took the
+  // wave-1 submission to 79s and a 504 against Vercel's 60s ceiling.
+  // Neither fetch may hold the battery hostage: each races its own budget
+  // and degrades to the prompt's existing "Limited ..." fallback. Budgeted
+  // independently so a slow summary doesn't cost us real evidence.
+  const [summary, memories] = await Promise.all([
+    withBudget(
+      () => getTwinSummary(userId),
+      contextBudgetMs, '', 'twin summary', userId
+    ),
+    withBudget(
+      () => retrieveDiverseMemories(
         userId,
         'personality values daily routines preferences social style stress coping decisions',
         { reflections: 12, facts: 10, platformData: 6, conversations: 6 },
         'identity'
       ),
-    ]);
-  } catch (err) {
-    log.warn('Twin context fetch failed for fidelity battery', { userId, error: err.message });
-  }
+      contextBudgetMs, [], 'memory retrieval', userId
+    ),
+  ]);
 
   const memoryLines = (memories || [])
     .map(m => `- ${(m.content || '').substring(0, 200)}`)

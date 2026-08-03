@@ -52,6 +52,8 @@ vi.mock('../../../api/services/twinSummaryService.js', () => ({
 }));
 
 const { complete } = await import('../../../api/services/llmGateway.js');
+const { retrieveDiverseMemories } = await import('../../../api/services/memoryStreamService.js');
+const { getTwinSummary } = await import('../../../api/services/twinSummaryService.js');
 const { FIDELITY_BATTERY, BATTERY_VERSION } = await import(
   '../../../api/config/fidelityBattery.js'
 );
@@ -79,6 +81,12 @@ beforeEach(() => {
   dbState.queues = {};
   dbState.calls = [];
   complete.mockReset();
+  // Restore fast context defaults — individual tests override to simulate
+  // the pathological cold path (synchronous twin-summary regeneration).
+  getTwinSummary.mockResolvedValue('A focused builder who recharges alone.');
+  retrieveDiverseMemories.mockResolvedValue([
+    { content: 'They value deep focus over social breadth.' },
+  ]);
 });
 
 describe('fidelityBattery — schema contract', () => {
@@ -261,6 +269,60 @@ describe('answerBatteryAsTwin', () => {
   it('returns null when BOTH halves are unusable', async () => {
     complete.mockResolvedValue({ content: 'I cannot answer this.' });
     expect(await answerBatteryAsTwin(USER)).toBeNull();
+  });
+
+  // Cold-path guard: getTwinSummary does a SYNCHRONOUS full regeneration
+  // (5 retrieval queries + an LLM call) once the cached summary ages past
+  // the stale-serve window — that was the 79s / 504 on wave 1. Neither
+  // context fetch may hold the battery hostage; the prompt already
+  // degrades to its "Limited ..." fallbacks.
+  describe('cold-path context budget', () => {
+    const hangs = () => new Promise(() => {});
+
+    it('proceeds with the summary fallback when getTwinSummary blows the budget', async () => {
+      getTwinSummary.mockImplementation(hangs);
+      complete.mockImplementation(halfAwareMock());
+
+      const started = Date.now();
+      const result = await answerBatteryAsTwin(USER, { contextBudgetMs: 25 });
+
+      expect(Date.now() - started).toBeLessThan(3000); // did not hang
+      expect(Object.keys(result.answers)).toHaveLength(20);
+      const prompt = complete.mock.calls[0][0].system;
+      expect(prompt).toContain('Limited summary available.');
+      // Retrieval still resolved, so its evidence must survive
+      expect(prompt).toContain('deep focus over social breadth');
+    });
+
+    it('proceeds with the evidence fallback when retrieval blows the budget', async () => {
+      retrieveDiverseMemories.mockImplementation(hangs);
+      complete.mockImplementation(halfAwareMock());
+
+      const result = await answerBatteryAsTwin(USER, { contextBudgetMs: 25 });
+
+      expect(Object.keys(result.answers)).toHaveLength(20);
+      const prompt = complete.mock.calls[0][0].system;
+      expect(prompt).toContain('Limited evidence available.');
+      expect(prompt).toContain('A focused builder who recharges alone.'); // summary survived
+    });
+
+    it('still answers when BOTH context fetches blow the budget', async () => {
+      getTwinSummary.mockImplementation(hangs);
+      retrieveDiverseMemories.mockImplementation(hangs);
+      complete.mockImplementation(halfAwareMock());
+
+      const result = await answerBatteryAsTwin(USER, { contextBudgetMs: 25 });
+      expect(Object.keys(result.answers)).toHaveLength(20);
+    });
+
+    it('uses the full context when it arrives within budget (no false trips)', async () => {
+      complete.mockImplementation(halfAwareMock());
+      await answerBatteryAsTwin(USER);
+      const prompt = complete.mock.calls[0][0].system;
+      expect(prompt).toContain('A focused builder who recharges alone.');
+      expect(prompt).toContain('deep focus over social breadth');
+      expect(prompt).not.toContain('Limited summary available.');
+    });
   });
 
   it('returns null confidence when neither half supplied one (back-compat)', async () => {
