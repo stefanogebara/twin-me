@@ -134,6 +134,57 @@ describe('editInsights', () => {
     expect(out.embedding).toEqual([0, 1, 0]);
   });
 
+  // R3 carry-through. The Editor REWRITES the insight text, so the caller
+  // cannot recover which candidate won by matching text — that silently
+  // dropped every utility block in production and left the EV gate
+  // decorative. The Editor now names its source and carries the utility.
+  it('carries the chosen candidate utility through the rewrite', async () => {
+    historyQueue.push({ data: [], error: null });
+    embeddingsMock.mockResolvedValue([[0, 1, 0], [0, 0, 1]]);
+    editorSays({
+      surface: true, source: 2,
+      insight: 'Your evenings have quietly turned into project time.',
+      urgency: 'low', category: 'trend',
+    });
+
+    const out = await editInsights(USER, [
+      { insight: 'candidate one', utility: { p_useful: 0.2, benefit: 1, cost_fp: 9, cost_fn: 0 } },
+      { insight: 'candidate two', utility: { p_useful: 0.8, benefit: 6, cost_fp: 2, cost_fn: 4 } },
+    ]);
+
+    expect(out.utility).toEqual({ p_useful: 0.8, benefit: 6, cost_fp: 2, cost_fn: 4 });
+    // The prompt must ask for the source so the mapping is possible at all
+    expect(completeMock.mock.calls[0][0].messages[0].content).toContain('source');
+  });
+
+  it('returns null utility when the Editor names no usable source (fails open)', async () => {
+    historyQueue.push({ data: [], error: null });
+    embeddingsMock.mockResolvedValue([[0, 1, 0]]);
+    editorSays({
+      surface: true, // no source field at all
+      insight: 'Your evenings have quietly turned into project time.',
+      urgency: 'low', category: 'trend',
+    });
+    const out = await editInsights(USER, [
+      { insight: 'candidate one', utility: { p_useful: 0.8, benefit: 6, cost_fp: 2, cost_fn: 4 } },
+    ]);
+    expect(out.utility ?? null).toBeNull();
+  });
+
+  it('ignores an out-of-range source index', async () => {
+    historyQueue.push({ data: [], error: null });
+    embeddingsMock.mockResolvedValue([[0, 1, 0]]);
+    editorSays({
+      surface: true, source: 47,
+      insight: 'Your evenings have quietly turned into project time.',
+      urgency: 'low', category: 'trend',
+    });
+    const out = await editInsights(USER, [
+      { insight: 'candidate one', utility: { p_useful: 0.8, benefit: 6, cost_fp: 2, cost_fn: 4 } },
+    ]);
+    expect(out.utility ?? null).toBeNull();
+  });
+
   it('honors the Editor choosing to surface nothing', async () => {
     historyQueue.push({ data: [], error: null });
     embeddingsMock.mockResolvedValue([[0, 1, 0]]);

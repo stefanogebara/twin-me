@@ -560,11 +560,11 @@ async function generateProactiveInsights(userId) {
     if (editorEnabled && candidatesForEditor.length > 0) {
       const chosen = await editInsights(userId, candidatesForEditor);
       if (chosen) {
-        // R3: the editor rewrites text but keeps candidate identity — recover
-        // the utility block from the chosen candidate (or its own field).
-        const chosenUtility = sanitizeUtility(chosen.utility)
-          || candidatesForEditor.find(c => c.insight === chosen.insight)?.utility
-          || null;
+        // R3: the editor REWRITES the text, so candidate identity cannot be
+        // recovered by matching strings (that bug dropped every utility block
+        // and left the EV gate decorative). editInsights now maps its declared
+        // source back to the chosen candidate and carries the utility across.
+        const chosenUtility = sanitizeUtility(chosen.utility);
         const insertData = {
           user_id: userId,
           insight: chosen.insight,

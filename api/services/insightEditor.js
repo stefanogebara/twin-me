@@ -142,8 +142,9 @@ CANDIDATES:
 ${candidateBlock}
 
 Return ONLY this JSON, nothing else:
-{"surface": boolean, "insight": string or null, "urgency": "low"|"medium"|"high", "category": string or null, "reason": string}
-If nothing clears the bar, return {"surface": false, "insight": null, "urgency": "low", "category": null, "reason": "<why>"}.`;
+{"surface": boolean, "source": number, "insight": string or null, "urgency": "low"|"medium"|"high", "category": string or null, "reason": string}
+"source" is the number of the CANDIDATE you chose (from the list above) — required whenever surface is true, so the original candidate's metadata can travel with your rewrite.
+If nothing clears the bar, return {"surface": false, "source": null, "insight": null, "urgency": "low", "category": null, "reason": "<why>"}.`;
 }
 
 function parseEditorJSON(text) {
@@ -215,11 +216,27 @@ export async function editInsights(userId, candidates) {
     return null;
   }
 
+  // R3 carry-through: the rewrite destroys text identity, so the caller
+  // cannot recover which candidate won by matching strings — that silently
+  // dropped every utility block and left the EV gate decorative. Map the
+  // Editor's declared source back to the survivor it chose. Unusable or
+  // absent index => null utility, i.e. the gate fails open as before.
+  const sourceIndex = Number(parsed.source);
+  const chosenCandidate = Number.isInteger(sourceIndex) && sourceIndex >= 1 && sourceIndex <= survivors.length
+    ? survivors[sourceIndex - 1]
+    : null;
+  if (!chosenCandidate) {
+    log.warn('Editor named no usable source — candidate metadata dropped', {
+      userId, source: parsed.source, survivors: survivors.length,
+    });
+  }
+
   const embedding = await generateEmbedding(final).catch(() => null);
   return {
     insight: final.substring(0, 500),
     urgency: ['low', 'medium', 'high'].includes(parsed.urgency) ? parsed.urgency : 'low',
     category: parsed.category || null,
+    utility: chosenCandidate?.utility ?? null,
     embedding,
   };
 }
