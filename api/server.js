@@ -264,7 +264,10 @@ app.post('/api/chat/message', aiLimiter);
 app.get('/api/chat/intro', aiLimiter);    // Generates a personalised first message (LLM)
 app.use('/api/soul-extraction/', aiLimiter); // LLM-powered extraction endpoints
 app.use('/api/life-story/session/turn', aiLimiter); // Story Chapters turn endpoint — one LLM call per hit
-app.use('/api/twin-fidelity/answers', aiLimiter); // Fidelity wave submission — triggers twin battery answering (LLM)
+// Two-phase fidelity submission: /answers is now LLM-free (store the
+// user's wave immediately), so the AI limiter belongs on the phase-2
+// twin-answering path instead.
+app.use('/api/twin-fidelity/wave', aiLimiter); // Fidelity phase 2 — twin battery answering (LLM)
 app.post('/api/desktop/observe-summary', aiLimiter); // UNAUTHENTICATED LLM endpoint — cap OpenRouter cost-amplification
 app.use('/api/extension/batch', aiLimiter);   // batch ingest fans out embedding + importance LLM calls — cap cost (audit)
 app.use('/api/extension/analyze', aiLimiter); // LLM/integration analysis endpoint — cap cost (audit)

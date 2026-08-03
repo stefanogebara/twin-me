@@ -12,7 +12,7 @@
 import { Router } from 'express';
 import { authenticateUser } from '../middleware/auth.js';
 import { FIDELITY_BATTERY, BATTERY_VERSION } from '../config/fidelityBattery.js';
-import { submitFidelityWave, getFidelityResults } from '../services/fidelityBatteryService.js';
+import { submitFidelityWave, completeFidelityWave, getFidelityResults } from '../services/fidelityBatteryService.js';
 import { computeChatCalibration } from '../services/fidelityCalibration.js';
 
 const router = Router();
@@ -39,6 +39,27 @@ router.post('/answers', async (req, res) => {
     if (/incomplete battery/i.test(error.message || '')) {
       return res.status(400).json({ success: false, error: error.message });
     }
+    res.status(500).json({
+      success: false,
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error',
+    });
+  }
+});
+
+/**
+ * Phase 2: have the twin answer a stored wave. Slow (variable-latency
+ * LLM) but safe — the user's answers are already durable, so a failure
+ * here is retryable by calling this again with the same id.
+ */
+router.post('/wave/:id/twin-answer', async (req, res) => {
+  try {
+    const userId = req.user?.id || req.user?.userId;
+    if (!userId) return res.status(401).json({ success: false, error: 'Not authenticated' });
+
+    const data = await completeFidelityWave(userId, req.params.id);
+    if (!data) return res.status(404).json({ success: false, error: 'Wave not found' });
+    res.json({ success: true, data });
+  } catch (error) {
     res.status(500).json({
       success: false,
       error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error',
