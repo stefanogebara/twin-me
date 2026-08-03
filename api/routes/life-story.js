@@ -14,7 +14,7 @@
 
 import { Router } from 'express';
 import { authenticateUser } from '../middleware/auth.js';
-import { getLifeStoryStatus, startSession, processTurn } from '../services/lifeStoryService.js';
+import { getLifeStoryStatus, startSession, processTurn, getSession } from '../services/lifeStoryService.js';
 
 const router = Router();
 
@@ -51,6 +51,27 @@ router.post('/session/start', async (req, res) => {
     if (/unknown chapter/i.test(error.message || '')) {
       return res.status(404).json({ success: false, error: 'Unknown chapter' });
     }
+    res.status(500).json({
+      success: false,
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error',
+    });
+  }
+});
+
+/**
+ * Read-only resync after a lost turn response. Cheap (one indexed read,
+ * no LLM), so the client can safely call it whenever a turn appears to
+ * fail and find out whether the work actually landed.
+ */
+router.get('/session/:id', async (req, res) => {
+  try {
+    const userId = req.user?.id || req.user?.userId;
+    if (!userId) return res.status(401).json({ success: false, error: 'Not authenticated' });
+
+    const data = await getSession(userId, req.params.id);
+    if (!data) return res.status(404).json({ success: false, error: 'Session not found' });
+    res.json({ success: true, data });
+  } catch (error) {
     res.status(500).json({
       success: false,
       error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error',

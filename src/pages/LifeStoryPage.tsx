@@ -29,6 +29,21 @@ interface Message {
 
 type View = 'grid' | 'session';
 
+interface SessionState {
+  sessionId: string;
+  chapterId: string;
+  status: 'active' | 'completed' | 'abandoned';
+  transcript: { role: 'assistant' | 'user'; content: string }[];
+  questionIndex: number;
+}
+
+/**
+ * A turn does an LLM call before responding. The browser default gives up
+ * well before a cold-cache turn finishes, which surfaced as a false
+ * "something went wrong" on work that had actually succeeded.
+ */
+const TURN_TIMEOUT_MS = 120000;
+
 export default function LifeStoryPage() {
   useDocumentTitle('Your Story');
   const navigate = useNavigate();
@@ -102,6 +117,36 @@ export default function LifeStoryPage() {
     }
   };
 
+  /**
+   * Rebuild the conversation from the server's transcript after a lost turn
+   * response. Returns true when the turn had in fact landed, so the caller
+   * can skip the error path entirely.
+   */
+  const resyncSession = async (id: string): Promise<boolean> => {
+    try {
+      const res = await authFetch(`/life-story/session/${id}`);
+      if (!res.ok) return false;
+      const { data } = (await res.json()) as { data: SessionState };
+      if (!data?.transcript?.length) return false;
+
+      // The server transcript is authoritative — adopt it wholesale rather
+      // than trying to reconcile against optimistic local state.
+      setMessages(data.transcript.map(m => ({ role: m.role, content: m.content })));
+
+      if (data.status === 'completed') {
+        setChapterDone(true);
+        loadStatus();
+      }
+      trackEvent('life_story_turn_recovered', {
+        chapter_id: data.chapterId,
+        entries: data.transcript.length,
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
   const sendAnswer = async () => {
     const answer = input.trim();
     if (!answer || sending || !sessionId || !activeChapter) return;
@@ -112,10 +157,21 @@ export default function LifeStoryPage() {
     setSending(true);
 
     try {
-      const res = await authFetch('/life-story/session/turn', {
-        method: 'POST',
-        body: JSON.stringify({ sessionId, answer }),
-      });
+      // A turn runs an LLM call before replying, which on a cold cache can
+      // outlast the browser's default fetch timeout. Give it explicit room —
+      // bailing early made the UI claim failure for work that had succeeded.
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), TURN_TIMEOUT_MS);
+      let res: Response;
+      try {
+        res = await authFetch('/life-story/session/turn', {
+          method: 'POST',
+          body: JSON.stringify({ sessionId, answer }),
+          signal: controller.signal,
+        });
+      } finally {
+        clearTimeout(timer);
+      }
       if (!res.ok) throw new Error(`turn ${res.status}`);
       const { data } = await res.json();
 
@@ -142,10 +198,17 @@ export default function LifeStoryPage() {
         setMessages(prev => [...prev, { role: 'assistant', content: data.utterance }]);
       }
     } catch {
-      // Surface the failure inline and restore the answer so nothing is lost.
+      // The turn persists the answer and the reply BEFORE responding, so a
+      // failure here usually means the response was lost in transit, not that
+      // the work failed. Ask the server what is actually true instead of
+      // guessing — claiming "something went wrong" for a turn that landed is
+      // what made the user retype an answer that was already saved.
+      const recovered = await resyncSession(sessionId);
+      if (recovered) return;
+
       setMessages(prev => [
         ...prev,
-        { role: 'assistant', content: 'Something went wrong sending that. Your progress is saved — try again in a moment.' },
+        { role: 'assistant', content: 'That did not send. Your progress is saved — try again in a moment.' },
       ]);
       setInput(answer);
     } finally {

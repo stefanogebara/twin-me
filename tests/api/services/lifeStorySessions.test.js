@@ -69,6 +69,7 @@ const { shouldTriggerReflection, generateReflections } = await import(
 const {
   startSession,
   processTurn,
+  getSession,
   getLifeStoryStatus,
   MAX_TRANSCRIPT_ENTRIES,
 } = await import('../../../api/services/lifeStoryService.js');
@@ -107,6 +108,46 @@ describe('getLifeStoryStatus', () => {
     const status = await getLifeStoryStatus(USER);
     expect(status.completedCount).toBe(0);
     expect(status.suggestedNext).toBe('your_story');
+  });
+});
+
+// Read-only resync. When a turn's RESPONSE is lost (slow LLM, client
+// timeout) the work has still landed server-side, so the UI must be able
+// to ask "what is actually true?" rather than assume the answer was lost.
+// startSession cannot serve this: once the final turn completes a chapter
+// the session is no longer active, so start would spawn a FRESH session
+// and silently restart the chapter.
+describe('getSession — resync source of truth', () => {
+  it('returns transcript + position for the owner, regardless of status', async () => {
+    queue('life_story_sessions', {
+      data: {
+        id: 'sess-1', user_id: USER, chapter_id: firstChapter.id, status: 'completed',
+        question_index: 2, followups_used: 1,
+        transcript: [
+          { role: 'assistant', content: 'Q1' },
+          { role: 'user', content: 'A1' },
+          { role: 'assistant', content: 'Follow-up that the client never saw' },
+        ],
+      },
+      error: null,
+    });
+
+    const s = await getSession(USER, 'sess-1');
+    expect(s.chapterId).toBe(firstChapter.id);
+    expect(s.status).toBe('completed');
+    expect(s.questionIndex).toBe(2);
+    expect(s.transcript).toHaveLength(3);
+    expect(s.transcript[2].content).toContain('never saw');
+  });
+
+  it('returns null for a missing or foreign session (route maps to 404)', async () => {
+    queue('life_story_sessions', { data: null, error: null });
+    expect(await getSession(USER, 'nope')).toBeNull();
+  });
+
+  it('returns null on a query error rather than throwing', async () => {
+    queue('life_story_sessions', { data: null, error: { message: 'boom' } });
+    expect(await getSession(USER, 'sess-1')).toBeNull();
   });
 });
 
