@@ -24,13 +24,16 @@ const log = createLogger('CronObservation');
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-// A user is "starved" if their raw extraction layer hasn't advanced in this
-// many minutes. Lowered 90 -> 40 (2026-07-15): the Inngest fan-out proved
-// unreliable (registration goes stale on deploy; a resync returned modified
-// but consumption still didn't recover), so the inline fallback is the path we
-// actually depend on. 40min catches a freshly-connected user within ~1 cron
-// tick REGARDLESS of Inngest, while staying above the 30min tick so a healthy
-// Inngest run still marks users fresh before they qualify.
+// A user is "starved" if ingestion hasn't ATTEMPTED them in this many minutes
+// — the per-poll sync clocks (platform_connections.last_sync_at etc.), NOT
+// content recency (see getStarvedIngestionUserIds; keying off extracted_at
+// mis-flagged dormant users every tick, fixed 2026-07-17). Lowered 90 -> 40
+// (2026-07-15): the Inngest fan-out proved unreliable (registration goes stale
+// on deploy; a resync returned modified but consumption still didn't recover),
+// so the inline fallback is the path we actually depend on. 40min catches a
+// freshly-connected user within ~1 cron tick REGARDLESS of Inngest, while
+// staying above the 30min tick so a healthy Inngest run still marks users fresh
+// before they qualify.
 const STARVATION_STALE_MINUTES = 40;
 
 /**
@@ -144,8 +147,8 @@ export default async function handler(req, res) {
       // Outcome verification: a successful send says NOTHING about consumption.
       // Live incident 2026-06-23 -> 2026-07-13: the app sync was rejected (plan
       // cap), every fan-out "succeeded", zero functions ran, ingestion was dead
-      // for three weeks. If eligible users' raw extraction layer hasn't
-      // advanced in 90 minutes, run the bounded inline path for the most
+      // for three weeks. If eligible users haven't been POLLED within
+      // STARVATION_STALE_MINUTES, run the bounded inline path for the most
       // starved (the old pre-fanout budget: 3 users/run) - self-healing against
       // ANY consumer failure. The check itself failing must not break the cron.
       let starved = [];

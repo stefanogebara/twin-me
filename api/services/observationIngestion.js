@@ -353,34 +353,67 @@ export async function getEligibleIngestionUserIds() {
 }
 
 /**
- * Eligible users whose RAW extraction layer (user_platform_data, non-web) has
- * not advanced within `staleMinutes`. The ingestion cron uses this to verify
- * OUTCOMES after an Inngest fan-out: "send succeeded" says nothing about
- * consumption (live incident 2026-06-23 -> 2026-07-13: three weeks of
- * successful fan-outs, zero function executions). Web/extension rows are
- * excluded - they flow through their own push pipeline and would mask OAuth
- * starvation.
+ * Eligible users whom ingestion has NOT recently ATTEMPTED. The cron uses this
+ * to verify OUTCOMES after an Inngest fan-out ("send succeeded" says nothing
+ * about consumption; live incident 2026-06-23 -> 2026-07-13: three weeks of
+ * successful fan-outs, zero function executions).
  *
- * Fail-closed: on query error every eligible user is reported starved, so the
- * bounded inline fallback keeps ingestion alive rather than trusting a check
- * it could not run.
+ * "Recently attempted" is read from the per-poll sync clocks that every poll
+ * bumps regardless of whether new data landed (success | no_new_data |
+ * auth_failed): platform_connections.last_sync_at and
+ * nango_connection_mappings.last_synced_at. user_platform_data.extracted_at
+ * (CONTENT recency) is kept only as a THIRD fallback source so eligibility with
+ * no connection-table row (github PAT / recent-instagram / extension) is still
+ * covered; web/extension rows are excluded from the OAuth clocks (own pipeline).
+ *
+ * Why not extracted_at alone (the pre-2026-07-17 behaviour): it advances only
+ * when NEW content is stored, so a connected-but-dormant user (no recent
+ * activity) never looked fresh and was flagged starved on EVERY 30-min tick
+ * forever — firing the bounded inline fallback (real gmail/calendar/github
+ * fetches) against users we had in fact just polled. The union of the three
+ * freshness sources is a strict superset of the old set, so the switch can only
+ * REDUCE false starvation, never mark a user MORE starved than before.
+ *
+ * Fail-closed: only if EVERY freshness lookup errors do we report all eligible
+ * users starved, so the bounded inline fallback keeps ingestion alive rather
+ * than trusting a check it could not run.
  */
 export async function getStarvedIngestionUserIds(eligibleUserIds, staleMinutes = 90) {
   if (!Array.isArray(eligibleUserIds) || eligibleUserIds.length === 0) return [];
   const supabase = await getSupabase();
   if (!supabase) return [...eligibleUserIds];
   const cutoff = new Date(Date.now() - staleMinutes * 60_000).toISOString();
-  const { data, error } = await supabase
-    .from('user_platform_data')
-    .select('user_id')
-    .in('user_id', eligibleUserIds)
-    .neq('platform', 'web')
-    .gte('extracted_at', cutoff);
-  if (error) {
-    log.warn('Starvation check failed - treating all eligible users as starved', { error: error.message });
+
+  const [pcRes, nangoRes, contentRes] = await Promise.all([
+    supabase
+      .from('platform_connections')
+      .select('user_id')
+      .in('user_id', eligibleUserIds)
+      .neq('platform', 'web')
+      .gte('last_sync_at', cutoff),
+    supabase
+      .from('nango_connection_mappings')
+      .select('user_id')
+      .in('user_id', eligibleUserIds)
+      .gte('last_synced_at', cutoff),
+    supabase
+      .from('user_platform_data')
+      .select('user_id')
+      .in('user_id', eligibleUserIds)
+      .neq('platform', 'web')
+      .gte('extracted_at', cutoff),
+  ]);
+
+  // Only fail closed when we learned nothing at all — if any lookup succeeded,
+  // trust the freshness it found (a single stale table must not resurrect the
+  // dormant-user false positive this check exists to kill).
+  if (pcRes.error && nangoRes.error && contentRes.error) {
+    log.warn('Starvation check failed - treating all eligible users as starved', { error: pcRes.error.message });
     return [...eligibleUserIds];
   }
-  const fresh = new Set((data || []).map(r => r.user_id));
+  const fresh = new Set(
+    [...(pcRes.data || []), ...(nangoRes.data || []), ...(contentRes.data || [])].map(r => r.user_id),
+  );
   return eligibleUserIds.filter(id => !fresh.has(id));
 }
 
