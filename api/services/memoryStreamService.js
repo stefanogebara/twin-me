@@ -1799,30 +1799,37 @@ async function retrieveDiverseMemories(userId, query, budgets = {}, reflectionWe
 const EXHAUSTIVE_REFLECTION_CAP = 15;
 
 /**
- * Fetch ALL of one expert's reflections for a user, importance-ordered,
- * capped. The paper's query-time routing: classify the question to ONE
- * expert, inject that expert's full reflection set — not top-k sampling.
- * Fail-open: any error returns [] so the vector leg carries the turn.
+ * Fetch ALL reflections from a domain's expert set for a user,
+ * importance-ordered under one shared cap. The paper's query-time
+ * routing: classify the question to a domain, inject that domain's full
+ * reflection set — not top-k sampling. Accepts one expert id or an array
+ * (a generic persona plus its platform-expert affiliates).
+ * Fail-open: any error or empty set returns [] so the vector leg carries
+ * the turn.
  */
-async function fetchDomainReflections(userId, expertId, cap = EXHAUSTIVE_REFLECTION_CAP) {
+async function fetchDomainReflections(userId, expertIds, cap = EXHAUSTIVE_REFLECTION_CAP) {
+  const ids = (Array.isArray(expertIds) ? expertIds : [expertIds]).filter(
+    id => typeof id === 'string' && id.length > 0
+  );
+  if (ids.length === 0) return [];
   try {
     const { data, error } = await supabaseAdmin
       .from('user_memories')
       .select('id, content, memory_type, importance_score, metadata, created_at, last_accessed_at')
       .eq('user_id', userId)
       .eq('memory_type', 'reflection')
-      .eq('metadata->>expert', expertId)
+      .in('metadata->>expert', ids)
       .is('superseded_at', null)
       .order('importance_score', { ascending: false })
       .order('created_at', { ascending: false })
       .limit(cap);
     if (error) {
-      log.warn('Domain reflections fetch failed (fail-open)', { userId, expertId, error: error.message });
+      log.warn('Domain reflections fetch failed (fail-open)', { userId, expertIds: ids, error: error.message });
       return [];
     }
     return data || [];
   } catch (err) {
-    log.warn('Domain reflections fetch threw (fail-open)', { userId, expertId, error: err?.message });
+    log.warn('Domain reflections fetch threw (fail-open)', { userId, expertIds: ids, error: err?.message });
     return [];
   }
 }
