@@ -59,7 +59,7 @@ async function handleGitHubWebhook(event, payload, userId) {
     // Update last sync timestamp
     const { error: githubSyncErr } = await supabaseAdmin
       .from('platform_connections')
-      .update({ last_sync: new Date().toISOString() })
+      .update({ last_sync_at: new Date().toISOString() })
       .eq('user_id', userId)
       .eq('platform', 'github');
 
@@ -112,7 +112,7 @@ async function handleGmailPushNotification(message, userId) {
     // Update last sync
     const { error: gmailSyncErr } = await supabaseAdmin
       .from('platform_connections')
-      .update({ last_sync: new Date().toISOString() })
+      .update({ last_sync_at: new Date().toISOString() })
       .eq('user_id', userId)
       .eq('platform', 'google_gmail');
 
@@ -160,7 +160,7 @@ async function handleSlackEvent(event, payload, userId) {
     // Update last sync
     const { error: slackSyncErr } = await supabaseAdmin
       .from('platform_connections')
-      .update({ last_sync: new Date().toISOString() })
+      .update({ last_sync_at: new Date().toISOString() })
       .eq('user_id', userId)
       .eq('platform', 'slack');
 

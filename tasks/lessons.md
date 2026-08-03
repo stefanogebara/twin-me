@@ -486,3 +486,27 @@ a careful stash-archaeology pass (`git stash show --stat/-p`, selective
 - Green test summary + red job = keep reading. The failure was the LAST step (a script `exit 1`), a hundred lines below an all-green vitest summary.
 - A "metric improved — lock it in" ratchet MUST have its baseline updated in the SAME PR that improves the metric, or it taxes every later PR. When you fix lint/type errors, run `node scripts/ci/check-baselines.mjs --update` and commit `baselines.json` in that PR (this was exactly #162's bundled fix that greened the stack).
 - Only `Vercel` is a required status check on `main`; `Build & Test` is not. A stack can be genuinely mergeable on the required check while `Build & Test` is red — but merging red tests/ratchet into `main` is still wrong. Fix the root cause; don't lean on the fact that GitHub would let it through.
+
+## 2026-08-02 — A status column is a claim, not evidence; query the row before trusting it
+
+**Incident**: Cleaning dead OAuth refresh configs out of `tokenRefreshService.js`. Removed reddit/slack/twitch/oura/strava, but **kept `linkedin`** on the reasoning that `platform_connections` held 2 rows with `status='connected'` that "would silently lose token refresh." Committed that reasoning into the code comment and the commit message. One query later, the premise collapsed: both rows had `refresh_token IS NULL` with access tokens expired seven weeks earlier (2026-06-12 / 06-14). LinkedIn issues no refresh token to standard apps, so the config could never have refreshed anything — and `checkAndRefreshExpiringTokens` already filters `.not('refresh_token','is',null)`, so those rows were never even selected. The config was dead the whole time; only the `status` text implied otherwise.
+
+**Root cause**: Treated a denormalized status column as the state of the world. `status='connected'` records what was true when it was last written (June), not what is true now. Nothing recomputes it when the tokens underneath expire, and for a retired platform nothing ever will.
+
+**Rules**:
+- Before preserving code "because live data depends on it", **query the dependency**, don't read a label. `select (refresh_token is not null), token_expires_at < now(), last_sync_at` answers it in one round trip.
+- Denormalized status columns go stale silently. Check the fields the status is *supposed* to summarize — expiry, tokens, last sync — before treating it as truth.
+- A retired platform's rows never self-correct: no cron, no reconnect path, no user action can update them. Retiring an integration should include fixing the status of its surviving rows, or they lie forever.
+- When a decision is committed with its reasoning ("kept X because Y"), and Y turns out false, the follow-up commit must say so explicitly. A silent removal leaves the wrong rationale in the history.
+
+## 2026-08-02 — `git -C <dir>` walks UP to the parent repo when `<dir>` has no `.git`
+
+**Incident**: Auditing ~41 directories under `.claude/worktrees/` before deleting stale ones. Four of them were not registered worktrees. Ran `git -C <dir> status --porcelain` on each and got **identical** results for all four — same branch (`claura/memory-staleness-phase0`), same 8 dirty files, same 22 commits ahead. Reported them to the user as "orphan copies, each with 8 uncommitted files." That was wrong. None of the four contained a `.git` at all, so git discovered the *parent* repository (`.claude/worktrees/` lives inside `twin-ai-learn/`) and reported the MAIN repo's working state four times over. Actual contents: two were completely empty, one held only screenshots and logs, and one held a stale source tree.
+
+**Root cause**: `git -C <dir>` does not scope git to `<dir>`; it changes directory and then runs normal repo discovery, which ascends until it finds a `.git`. For a plain directory nested inside a repo, that is always the enclosing repo. The identical numbers across four unrelated directories were the tell, and I read them as a coincidence rather than a signal.
+
+**Rules**:
+- Before running `git -C <dir> ...` on a directory you did not confirm is a repo, test `Test-Path (Join-Path $dir '.git')` — or pass `GIT_CEILING_DIRECTORIES`, or use `git -C <dir> rev-parse --show-toplevel` and assert it equals `<dir>`.
+- **Identical git output across supposedly independent directories means you are querying one repo N times.** Treat suspicious uniformity as a bug in the measurement, not a fact about the data.
+- `git worktree list` is the authority on what is a worktree. Enumerating directories with `Get-ChildItem`/`ls` and assuming each is a checkout conflates real worktrees with leftover folders.
+- This nearly caused a wrong destructive call: the phantom "8 uncommitted files" was the argument for preserving directories that were in fact empty. Verify the target before *and* the reasoning about the target.
