@@ -23,6 +23,68 @@ import { createLogger } from './logger.js';
 const log = createLogger('TwinChatPersistence');
 
 /**
+ * Marker returned when persistence outlives the response budget.
+ * Distinguishable from any real persistChatTurn result.
+ */
+export const PERSISTENCE_PENDING = Symbol('persistence-pending');
+
+/**
+ * How long POST /api/chat/message is willing to hold the HTTP response while
+ * the tail-end writes finish.
+ *
+ * Deliberately generous. The awaited writes above are load-bearing — returning
+ * before them once cost ~5% of conversation memories — and with no
+ * `waitUntil` available (@vercel/functions is not a dependency) any work
+ * deferred past the response is at the mercy of the platform freezing the
+ * container. So the budget is set high enough that persistence completes
+ * inline on any normal turn, and deferral stays an escape hatch rather than
+ * the usual path.
+ *
+ * The ceiling is server.js's 58s request cap. A turn's reply is typically
+ * ready by ~19s, so 25s leaves comfortable margin to actually send it.
+ */
+export const PERSIST_RESPONSE_BUDGET_MS = Number(process.env.CHAT_PERSIST_BUDGET_MS) || 25_000;
+
+/**
+ * Await persistence, but never past the point where the response itself is at
+ * risk.
+ *
+ * Observed live 2026-08-03: the twin produced a 909-char reply in 18.8s, then
+ * the route sat on `await persistChatTurn(...)` for a further ~39s (memory
+ * dedup + HyDE merges over 75 candidates + an LLM importance call — all of it
+ * scaling with memory-stream size). server.js's 58s cap fired first and
+ * returned 504, throwing away a reply that had been ready for 39 seconds.
+ * Finishing the 8-chapter life-story interview (+79 memories) is what pushed
+ * it over.
+ *
+ * Resolving inside the budget keeps the previous semantics exactly: the caller
+ * gets `messagesInserted` and can clean up an orphan conversation inline.
+ * Past the budget the caller gets PERSISTENCE_PENDING and should answer the
+ * user, attaching its own handler to the original promise for the late result.
+ * The promise is never cancelled — the writes still run.
+ *
+ * @param {Promise} persistPromise result of persistChatTurn(...)
+ * @param {number} budgetMs
+ * @returns {Promise<object|typeof PERSISTENCE_PENDING>}
+ */
+export async function settlePersistenceWithinBudget(
+  persistPromise,
+  budgetMs = PERSIST_RESPONSE_BUDGET_MS
+) {
+  let timer;
+  const budget = new Promise((resolve) => {
+    timer = setTimeout(() => resolve(PERSISTENCE_PENDING), budgetMs);
+  });
+  try {
+    return await Promise.race([persistPromise, budget]);
+  } finally {
+    // Without this the timer keeps the event loop (and vitest) alive after a
+    // fast persistence win.
+    clearTimeout(timer);
+  }
+}
+
+/**
  * Insert both turn rows (user + assistant) in a single transactional write.
  *
  * audit-2026-05-15 C1: previously the user and assistant rows were fired
