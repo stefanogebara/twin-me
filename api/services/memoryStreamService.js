@@ -1691,21 +1691,76 @@ async function retrieveDiverseMemories(userId, query, budgets = {}, reflectionWe
       retrieveMemories(userId, query, maxReflections * 2, reflectionWeights, { ...options, skipHyDE: true, skipFactPool: true })
     ),
 
-    // Facts: top by importance (most salient facts about the user)
-    withLegTimeout('facts',
-      supabaseAdmin
+    // Facts: half by importance (the salient-facts guarantee this leg has
+    // always provided), half by relevance to THIS query.
+    //
+    // Importance-only made the leg query-independent: it returned the same
+    // top-N facts for every question ever asked. With one source holding the
+    // only importance-10 facts (renan_call, 12 of them) and everything else at
+    // <=8, those 5 rows won the slot unconditionally — the same five appeared
+    // across completely unrelated probes, while 37 life-story facts at
+    // importance 8 could never place (#233).
+    //
+    // It is the ONLY route facts take into retrieveDiverseMemories: every
+    // other leg passes skipFactPool: true, so the relevance-ranked fact pool
+    // inside retrieveMemories never runs here. Nothing query-relevant reached
+    // the fact slot at all.
+    //
+    // Splitting keeps the guarantee — the most salient facts are still always
+    // present — while letting the query pull in what it actually needs.
+    //
+    // The relevance half is STRICTLY additive and separately time-boxed. It
+    // costs an embedding round-trip plus a vector search, which measured
+    // 3.4-5.0s and blew the 5s leg budget on the slowest query — returning
+    // EMPTY and losing the importance facts the leg had always guaranteed.
+    // That is worse than the bug being fixed. So it races its own budget: the
+    // importance half is awaited normally, the relevance half contributes only
+    // if it lands in time, and the leg can never come back empty because of it.
+    withLegTimeout('facts', (async () => {
+      const byImportance = Math.ceil(maxFacts / 2);
+      const byRelevance = maxFacts - byImportance;
+      const RELEVANCE_BUDGET_MS = 2500;
+
+      const salientPromise = supabaseAdmin
         .from('user_memories')
         .select(SELECT_COLS)
         .eq('user_id', userId)
         .eq('memory_type', 'fact')
         .is('superseded_at', null)
         .order('importance_score', { ascending: false })
-        .limit(maxFacts)
+        .limit(byImportance)
         .then(({ data, error }) => {
-          if (error) log.warn('Diverse facts fetch failed', { error });
+          if (error) log.warn('Diverse facts (importance) fetch failed', { error });
           return data || [];
-        })
-    ),
+        });
+
+      const relevantPromise = byRelevance > 0
+        ? retrieveMemories(userId, query, byRelevance, 'default', {
+            ...options,
+            memoryTypes: ['fact'],
+            skipHyDE: true,
+            skipFactPool: true,
+          }).catch(err => {
+            log.warn('Diverse facts (relevance) fetch failed', { error: err.message });
+            return [];
+          })
+        : Promise.resolve([]);
+
+      let budgetTimer;
+      const boundedRelevant = Promise.race([
+        relevantPromise,
+        new Promise(resolve => {
+          budgetTimer = setTimeout(() => {
+            log.info('Diverse facts: relevance half exceeded budget, using importance only');
+            resolve([]);
+          }, RELEVANCE_BUDGET_MS);
+        }),
+      ]).finally(() => clearTimeout(budgetTimer));
+
+      const [salient, relevant] = await Promise.all([salientPromise, boundedRelevant]);
+      const seen = new Set(salient.map(f => f.id));
+      return [...salient, ...(relevant || []).filter(f => !seen.has(f.id))];
+    })()),
 
     // Platform data: most recent activity observations (reduced from 7→4, live data already injected by fetchTwinContext)
     withLegTimeout('platform_data',
