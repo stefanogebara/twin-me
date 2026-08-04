@@ -1212,15 +1212,32 @@ async function retrieveMemories(userId, query, limit = 10, weights = 'default', 
     const useFactPool = !options.skipFactPool;
     const queryEmbStr = vectorToString(queryEmbedding);
 
+    // Two-phase MMR (#233). The RPC projects `embedding::TEXT` — 19,225 bytes
+    // per row against 140 bytes of content — purely so mmrRerank() can compute
+    // pairwise similarity in JS. Measured: 770,610 bytes/662ms for a 39-row
+    // page, versus 19,879 bytes/254ms without the column. That payload is what
+    // pushed the reflections and semantic_conv legs past their 5s budget, so
+    // they returned empty and life-story memories never reached the twin.
+    //
+    // Skip the embeddings and let the database do the reranking — UNLESS
+    // something between retrieval and MMR needs vectors client-side:
+    //   - MIN_COSINE_SIMILARITY > 0  → post-retrieval similarity filter
+    //   - options.contextVector      → TCM contextual rescoring
+    // Both are currently inactive (0.0 and null respectively), but guarding on
+    // them means enabling either restores the old path instead of silently
+    // skipping a scoring stage.
+    const useLightPath = MIN_COSINE_SIMILARITY === 0 && !options.contextVector;
+    const searchFn = useLightPath ? 'search_memory_stream_light' : 'search_memory_stream';
+
     const searchPromises = [
-      supabaseAdmin.rpc('search_memory_stream', {
+      supabaseAdmin.rpc(searchFn, {
         ...rpcParams,
         p_query_embedding: queryEmbStr,
       }),
     ];
     if (hydeEmbedding) {
       searchPromises.push(
-        supabaseAdmin.rpc('search_memory_stream', {
+        supabaseAdmin.rpc(searchFn, {
           ...rpcParams,
           p_query_embedding: vectorToString(hydeEmbedding),
         }),
@@ -1228,7 +1245,7 @@ async function retrieveMemories(userId, query, limit = 10, weights = 'default', 
     }
     if (useFactPool) {
       searchPromises.push(
-        supabaseAdmin.rpc('search_memory_stream', {
+        supabaseAdmin.rpc(searchFn, {
           ...rpcParams,
           p_query_embedding: queryEmbStr,
           p_limit: Math.max(limit, 5),
@@ -1356,8 +1373,35 @@ async function retrieveMemories(userId, query, limit = 10, weights = 'default', 
       }
     }
 
-    // Apply MMR reranking for diversity (strips embedding from output)
-    const reranked = mmrRerank(data, limit);
+    // Apply MMR reranking for diversity (strips embedding from output).
+    //
+    // Two-phase (#233): when the rows carry no embeddings — because phase 1
+    // used search_memory_stream_light — MMR runs in the database via
+    // mmr_select, driven by the scores JS just finished adjusting (BM25 / TCM
+    // / STDP). Selection is identical to mmrRerank; only the location changes.
+    // Falls back to in-process MMR if the RPC fails, so a database hiccup
+    // degrades to the old behaviour rather than dropping memories.
+    let reranked;
+    if (useLightPath && data.length > limit) {
+      const { data: selected, error: mmrErr } = await supabaseAdmin.rpc('mmr_select', {
+        p_ids: data.map(m => m.id),
+        p_scores: data.map(m => m.score ?? 0),
+        p_final_limit: limit,
+        p_lambda: MMR_LAMBDA,
+        p_tdw: TYPE_DIVERSITY_WEIGHT,
+        p_sdw: SEMANTIC_DIVERSITY_WEIGHT,
+        p_temporal: TEMPORAL_DIVERSITY_WEIGHT,
+      });
+      if (mmrErr || !selected) {
+        log.warn('Server-side MMR failed, falling back to in-process', { error: mmrErr?.message });
+        reranked = mmrRerank(data, limit);
+      } else {
+        const byId = new Map(data.map(m => [m.id, m]));
+        reranked = selected.map(s => byId.get(s.id)).filter(Boolean);
+      }
+    } else {
+      reranked = mmrRerank(data, limit);
+    }
 
     // --- LLM reranker pass (optional, feature-flagged) ---
     if (LLM_RERANKER_ENABLED && reranked.length > limit) {
