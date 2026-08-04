@@ -42,7 +42,12 @@ import { assembleTwinSystemPrompt } from '../services/twinPromptAssembly.js';
 import { buildAdditionalContext, appendAdditionalContextToPrompt } from '../services/twinAdditionalContext.js';
 import { injectConversationalProbes } from '../services/twinConversationalProbes.js';
 import { runFirstLlmCall, classifyGatewayError } from '../services/twinFirstLlmCall.js';
-import { persistChatTurn } from '../services/twinChatPersistence.js';
+import {
+  persistChatTurn,
+  settlePersistenceWithinBudget,
+  PERSISTENCE_PENDING,
+  PERSIST_RESPONSE_BUDGET_MS,
+} from '../services/twinChatPersistence.js';
 import {
   runPostResponseSideEffects,
   fetchConversationHistory,
@@ -605,7 +610,7 @@ router.post('/message', authenticateUser, async (req, res) => {
     // Persistence (LZ score, twin_messages rows, unified conversation log,
     // memory stream write) extracted to ../services/twinChatPersistence.js.
     const evalMode = req.headers['x-eval-mode'] === 'true';
-    const { lzScore: responseLzScore, messagesInserted } = await persistChatTurn({
+    const persistPromise = persistChatTurn({
       userId, message, assistantMessage, conversationId, evalMode,
       routedModel, routingTier, systemPrompt, soulSignature, platformData,
       memories, writingProfile, chatSource,
@@ -618,16 +623,10 @@ router.post('/message', authenticateUser, async (req, res) => {
       traceId,
       hopTimings,
     });
-    // audit-2026-05-26 H2: messages were either persisted or silently failed.
-    // On silent failure, persistChatTurn swallowed the error so the route
-    // does NOT throw -- the user got a valid LLM response and the chat UX
-    // should still complete. But the twin_conversations row created earlier
-    // in this turn now has zero messages attached: same orphan pattern the
-    // 2026-05-22 audit caught (80.5% empty rows). Clean it up inline, then
-    // null the id so the response doesn't reference a deleted conversation.
-    if (messagesInserted) {
-      conversationCreatedHere = false;
-    } else if (conversationCreatedHere && conversationId) {
+
+    // Deletes the empty twin_conversations row this turn created when the
+    // message rows never landed. Shared by the inline and the late path.
+    const deleteOrphanConversation = () => {
       log.warn('twin_messages insert failed; deleting empty conversation', {
         traceId, conversationId,
       });
@@ -639,6 +638,42 @@ router.post('/message', authenticateUser, async (req, res) => {
         .then(({ error: delErr }) => {
           if (delErr) log.warn('Inline orphan cleanup failed', { conversationId, error: delErr.message });
         });
+    };
+
+    // Persistence must not cost the user their reply. Observed 2026-08-03: a
+    // 909-char answer was ready at 18.8s, persistence then ran ~39s (memory
+    // dedup + HyDE merges + an LLM importance call, all scaling with
+    // memory-stream size), and the 58s cap in server.js returned 504 —
+    // discarding a reply that had been sitting complete for 39 seconds.
+    // Wait the budget, then answer regardless; the writes continue either way.
+    const settled = await settlePersistenceWithinBudget(persistPromise);
+    const messagesInserted = settled !== PERSISTENCE_PENDING && settled.messagesInserted;
+
+    // audit-2026-05-26 H2: messages were either persisted or silently failed.
+    // On silent failure, persistChatTurn swallowed the error so the route
+    // does NOT throw -- the user got a valid LLM response and the chat UX
+    // should still complete. But the twin_conversations row created earlier
+    // in this turn now has zero messages attached: same orphan pattern the
+    // 2026-05-22 audit caught (80.5% empty rows). Clean it up inline, then
+    // null the id so the response doesn't reference a deleted conversation.
+    if (settled === PERSISTENCE_PENDING) {
+      // Answer now and let the writes land late. The response commits to this
+      // conversationId, so the id is NOT nulled here — a late failure cleans
+      // up the row instead, and the client's next turn simply opens a new one.
+      log.warn('Persistence exceeded response budget; answering and finishing in background', {
+        traceId, conversationId, budgetMs: PERSIST_RESPONSE_BUDGET_MS,
+      });
+      conversationCreatedHere = false;
+      persistPromise
+        .then((late) => {
+          if (!late?.messagesInserted && conversationId) deleteOrphanConversation();
+          else log.info('Late persistence completed', { traceId });
+        })
+        .catch((err) => log.error('Late persistence failed', { traceId, error: err?.message }));
+    } else if (messagesInserted) {
+      conversationCreatedHere = false;
+    } else if (conversationCreatedHere && conversationId) {
+      deleteOrphanConversation();
       conversationId = null;
       conversationCreatedHere = false;
     }
