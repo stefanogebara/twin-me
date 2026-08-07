@@ -85,7 +85,12 @@
   /* CLAURA PORT PHASE 2 - light appearance (plan: .claude/plans/2026-07-16-claura-port).
      Token-level flip only: activates when ThemeContext sets data-theme=light
      (default stays dark; no UI exposes it yet). Hardcoded components adopt in Phases 3-4. */
-  [data-theme="light"] {
+  /* :root[data-theme=...] (0,2,0), not the bare attribute selector (0,1,0).
+     A second :root block further down this file redefines --text-narrative-*
+     and --accent-vibrant*; a bare [data-theme="light"] ties it on specificity
+     and loses on source order, so those tokens kept their dark near-white
+     values in light mode no matter what this block said. */
+  :root[data-theme="light"] {
     color-scheme: light;
     --background: #f6f3ee;
     --surface: rgba(28, 25, 23, 0.05);
@@ -101,7 +106,10 @@
     --foreground: #1c1917;
     --text-primary: #1c1917;
     --text-secondary: #57534e;
-    --text-muted: #79716b;
+    /* a11y: stone-500 #79716b measured 4.32:1 on #f6f3ee — just under AA.
+       #726c66 is 4.68:1 and stays clearly lighter than secondary (#57534e,
+       6.89:1), so the muted < secondary hierarchy holds. */
+    --text-muted: #726c66;
     --text-placeholder: #a8a29e;
     --accent-streak: #8a6a3c;
     --glass-surface-bg: rgba(255, 253, 250, 0.55);
@@ -130,6 +138,28 @@
     --sidebar-accent-foreground: #1c1917;
     --sidebar-border: rgba(28, 25, 23, 0.10);
     --sidebar-ring: rgba(28, 25, 23, 0.35);
+
+    /* Narrative voice. Without these the light theme inherited the dark
+       near-white values (rgba(245,245,244,...)) and rendered them on #f6f3ee
+       paper at a measured contrast of 1.01:1 — invisible, not merely faint.
+       Used in 10 components including SoulSummaryCard and TwinSeesSection,
+       so the twin's own narrative text disappeared in light mode.
+
+       Alphas are chosen for WCAG AA on #f6f3ee, the same reasoning the dark
+       block records for its 0.4 -> 0.55 bump. Ink #1c1917 needs alpha >= 0.61
+       to clear 4.5:1, so the cinematic prototype's own --narr-2 of 0.6
+       (4.43:1) is deliberately NOT copied. Measured: 0.92 = 12.8:1,
+       0.70 = 6.15:1, 0.62 = 4.6:1 — and muted < secondary < narrative keeps
+       the hierarchy intact. */
+    --text-narrative: rgba(28, 25, 23, 0.92);
+    --text-narrative-secondary: rgba(28, 25, 23, 0.70);
+    --text-narrative-muted: rgba(28, 25, 23, 0.62);
+
+    /* Vibrant accent: dark block is #F5F5F4 (light-on-dark). Inverted here so
+       active nav icons and CTA highlights stay visible on paper. */
+    --accent-vibrant: #1c1917;
+    --accent-vibrant-hover: #44403c;
+    --accent-vibrant-glow: rgba(28, 25, 23, 0.08);
   }
 
   :root {
