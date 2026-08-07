@@ -288,7 +288,7 @@ For privacy concerns: privacy@twinme.me`
         <div className="flex items-center gap-2 mb-10">
           <div className="w-7 h-7 rounded-full overflow-hidden flex-shrink-0">
             <img
-              src="/images/backgrounds/flower.webp"
+              src="/images/backgrounds/flower.png"
               alt="TwinMe"
               className="w-full h-full object-cover"
             />
