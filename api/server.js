@@ -264,6 +264,7 @@ app.post('/api/chat/message', aiLimiter);
 app.get('/api/chat/intro', aiLimiter);    // Generates a personalised first message (LLM)
 app.use('/api/soul-extraction/', aiLimiter); // LLM-powered extraction endpoints
 app.use('/api/life-story/session/turn', aiLimiter); // Story Chapters turn endpoint — one LLM call per hit
+app.use('/api/task-brief', aiLimiter); // Task-brief compiler — retrieval + one LLM extraction per hit
 // Two-phase fidelity submission: /answers is now LLM-free (store the
 // user's wave immediately), so the AI limiter belongs on the phase-2
 // twin-answering path instead.
@@ -566,6 +567,7 @@ import meetingBriefingsRoutes from './routes/meeting-briefings.js';
 import sidebarContextRoutes from './routes/sidebar-context.js';
 import soulInterviewRoutes from './routes/soul-interview.js';
 import lifeStoryRoutes from './routes/life-story.js';
+import taskBriefRoutes from './routes/task-brief.js';
 import twinFidelityRoutes from './routes/twin-fidelity.js';
 import lifeStoryVoiceRoutes from './routes/life-story-voice.js';
 import inboxSummaryRoutes from './routes/inbox-summary.js';
@@ -686,6 +688,7 @@ app.use('/api/onboarding', onboardingSoulSignatureRoutes); // Instant soul signa
 app.use('/api/onboarding', onboardingPlatformPreviewRoutes); // Platform preview insights during onboarding
 app.use('/api/interview', soulInterviewRoutes); // Soul Interview — cold start personality builder (superseded by Story Chapters)
 app.use('/api/life-story', lifeStoryRoutes); // Story Chapters — chaptered life-story interview
+app.use('/api/task-brief', taskBriefRoutes); // Compile execution-agent handoff briefs from the memory stream
 app.use('/api/twin-fidelity', twinFidelityRoutes); // Fidelity battery — test-retest normalized eval (R4)
 app.use('/api/life-story/voice', lifeStoryVoiceRoutes); // Story Chapters voice — ElevenLabs custom LLM webhook (secret-authed, deliberately public route)
 app.use('/api/account', accountRoutes); // Account deletion + data export
