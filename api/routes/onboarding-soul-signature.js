@@ -210,14 +210,41 @@ Respond in this exact JSON format:
         enrichFacts.push(`Bio: ${enrichmentContext.bio.substring(0, 300)}`);
       }
 
+      // Enrichment comes from a third-party email lookup. It is a GUESS about
+      // who this person is, and the lookup can match the wrong human entirely.
+      //
+      // It did (issue #237). A wrong-person match wrote "Based in Lugano,
+      // Switzerland" here as a fact at importance 8. The user corrected it a
+      // month later ("I'm not from Switzerland... born in Spain, moved to
+      // Brazil at 5") — and that correction landed at importance 7, so the
+      // fabrication outranked the truth by construction. The twin repeated
+      // Lugano for four and a half months and its own restatements were stored
+      // and re-cited as evidence, 38 memories deep.
+      //
+      // So this write is now marked for what it is, and scored beneath
+      // anything the user actually said:
+      //   importance 4  — under onboarding_calibration (7, the user's own
+      //                   answers), life_story (8), and the conversation
+      //                   floor (7). Unverified third-party data must never
+      //                   outrank first-person testimony.
+      //   confidence .35 — under the 0.70 fact prior. Feeds computeAlpha and
+      //                   computeEvidenceConfidence, so retrieval and the
+      //                   evidence-confidence hedge both discount it.
+      //   provenance     — lets trustTier() (taskBriefService) and any future
+      //                   provenance-aware retrieval classify it without
+      //                   re-deriving the source list.
       for (const fact of enrichFacts) {
         memoryPromises.push(
           addMemory(userId, fact, 'fact', {
             source: 'onboarding_enrichment',
             domain: 'motivation',
+            provenance: 'third_party_enrichment',
+            verified: false,
           }, {
             skipImportance: true,
-            importanceScore: 8,
+            importanceScore: 4,
+            confidence: 0.35,
+            reasoning: 'Third-party email-lookup enrichment. Not confirmed by the user; may describe a different person.',
           })
         );
       }

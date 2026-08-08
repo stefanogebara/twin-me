@@ -42,18 +42,33 @@ const USER_STATED_SOURCES = new Set([
   'life_story',
   'onboarding_interview',
   'onboarding_calibration',
-  'onboarding_signature',
   'gdpr_import',
   'whatsapp_chat',
   'telegram',
 ]);
 
-/** Sources synthesized by our own pipeline — evidence, but one step removed. */
+/**
+ * Sources synthesized by our own pipeline, or supplied by a third party —
+ * evidence, but never first-person testimony, so never eligible for act_on.
+ *
+ * onboarding_signature was previously in USER_STATED_SOURCES. That was wrong
+ * and #237 shows why: the Soul Signature is LLM-generated prose, not the
+ * user's words, and this user's first one ("Geneva's international policy
+ * halls, Zurich's academic rigor, Lugano...") describes a different person
+ * entirely — it inherited a wrong-person enrichment match. Treating a
+ * generated archetype as testimony would let that contamination reach the
+ * act_on autonomy tier, which is precisely what the tiering exists to prevent.
+ *
+ * onboarding_enrichment is third-party email-lookup data: a guess that may
+ * describe someone else. It is the origin of the Lugano contamination.
+ */
 const DERIVED_SOURCES = new Set([
   'reflection_engine',
   'query_filing',
   'identity_inference',
   'soul_signature_archetype',
+  'onboarding_signature',
+  'onboarding_enrichment',
 ]);
 
 /**
