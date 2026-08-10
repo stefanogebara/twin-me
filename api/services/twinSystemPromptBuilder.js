@@ -435,8 +435,12 @@ ${spineText}`;
   }
 
   // === DEPARTMENT CAPABILITIES (SoulOS) ===
-  if (departmentProposals !== null) {
-    // Always show active departments so twin can suggest actions
+  // Gate on actual proposals, not merely non-null: the context-builder fan-out
+  // defaults to [] (cache miss / fetch error), and getPendingProposals returns
+  // [] for users who never touched SoulOS — `!== null` injected this ~1,300-char
+  // block into every prompt for every user (product-truth-review 2026-08-09).
+  if (departmentProposals && departmentProposals.length > 0) {
+    // Show active departments so twin can suggest actions
     dynamicContext += '\n\nYOUR AI DEPARTMENTS (SoulOS):';
     dynamicContext += '\nYou manage a team of AI departments that can act on the user\'s behalf.';
     dynamicContext += '\n- Communications: draft/send emails in their voice';
