@@ -8,6 +8,7 @@ import { useChatSession } from '../hooks/useChatSession';
 import { useToast } from '@/components/ui/use-toast';
 import { SpotifyLogo, GoogleCalendarLogo, YoutubeLogo, DiscordLogo, GithubLogo, WhoopLogo, GmailLogo } from '@/components/PlatformLogos';
 import { ChatEmptyState } from '@/components/chat/ChatEmptyState';
+import { generateSuggestionChips } from '@/components/chat/generateSuggestionChips';
 import { ClauraZonedBackground } from '@/components/ClauraZonedBackground';
 import { MessageList } from '@/components/chat/MessageList';
 import { ChatInputArea } from '@/components/chat/ChatInputArea';
@@ -278,29 +279,38 @@ const TalkToTwin = () => {
     setShowConversationList(false);
   };
 
-  // Derive ghost suggestion from conversation context
+  // Ghost suggestion — the Tab-to-fill prompt in the composer. Phase 2
+  // (product-truth-review): previously a keyword match on the last assistant
+  // message returning canned strings — for a twin holding thousands of
+  // memories, the very first touchpoint was static copy. Now derived from
+  // what the twin actually noticed: the same insight-first ranking the
+  // empty-state chips use (undelivered proactive insights, then calendar/
+  // email load, then time-of-day fallbacks).
   const ghostSuggestion = useMemo(() => {
     if (isTyping || messages.length === 0) return undefined;
     const lastMsg = messages[messages.length - 1];
     if (lastMsg.role !== 'assistant') return undefined;
-
     // Defensive: backend regression or upstream change could put non-string
     // content into the message stream (action proposals, structured data).
     // Don't crash the whole chat render on that — just skip the suggestion.
     if (typeof lastMsg.content !== 'string') return undefined;
-    const content = lastMsg.content.toLowerCase();
-    if (content.includes('spotify') || content.includes('music') || content.includes('listening'))
-      return 'What does my music taste say about me?';
-    if (content.includes('calendar') || content.includes('schedule') || content.includes('meeting'))
-      return 'How should I optimize my schedule?';
-    if (content.includes('goal') || content.includes('progress') || content.includes('habit'))
-      return 'What patterns do you see in my habits?';
-    if (content.includes('sleep') || content.includes('recovery') || content.includes('health'))
-      return 'How has my sleep been trending?';
-    if (content.includes('work') || content.includes('career') || content.includes('project'))
-      return 'What motivates me most at work?';
-    return 'Tell me something surprising about myself';
-  }, [messages, isTyping]);
+
+    const chips = generateSuggestionChips({
+      hour: new Date().getHours(),
+      pendingInsights: pendingInsights ?? [],
+      calendarEvents: sidebarCalendarEvents ?? [],
+      recentEmails: sidebarRecentEmails ?? [],
+      max: 3,
+    });
+    // Avoid ghosting a question the user just asked (echo feels broken).
+    const recentUserContents = new Set(
+      messages
+        .filter((m) => m.role === 'user' && typeof m.content === 'string')
+        .slice(-6)
+        .map((m) => m.content.trim().toLowerCase()),
+    );
+    return chips.find((c) => !recentUserContents.has(c.trim().toLowerCase()));
+  }, [messages, isTyping, pendingInsights, sidebarCalendarEvents, sidebarRecentEmails]);
 
   const handleSendMessage = async () => {
     if (!inputMessage.trim() || !user?.id) return;
