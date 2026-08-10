@@ -33,69 +33,16 @@
 import { retrieveDiverseMemories } from './memoryStreamService.js';
 import { complete, TIER_ANALYSIS } from './llmGateway.js';
 import { computeEvidenceConfidence } from './evidenceConfidenceService.js';
+import { trustTier, TIER_RANK } from './memoryProvenance.js';
 import { createLogger } from './logger.js';
 
 const log = createLogger('TaskBrief');
 
-/** Sources whose content is the user's own testimony about themselves. */
-const USER_STATED_SOURCES = new Set([
-  'life_story',
-  'onboarding_interview',
-  'onboarding_calibration',
-  'gdpr_import',
-  'whatsapp_chat',
-  'telegram',
-]);
-
-/**
- * Sources synthesized by our own pipeline, or supplied by a third party —
- * evidence, but never first-person testimony, so never eligible for act_on.
- *
- * onboarding_signature was previously in USER_STATED_SOURCES. That was wrong
- * and #237 shows why: the Soul Signature is LLM-generated prose, not the
- * user's words, and this user's first one ("Geneva's international policy
- * halls, Zurich's academic rigor, Lugano...") describes a different person
- * entirely — it inherited a wrong-person enrichment match. Treating a
- * generated archetype as testimony would let that contamination reach the
- * act_on autonomy tier, which is precisely what the tiering exists to prevent.
- *
- * onboarding_enrichment is third-party email-lookup data: a guess that may
- * describe someone else. It is the origin of the Lugano contamination.
- */
-const DERIVED_SOURCES = new Set([
-  'reflection_engine',
-  'query_filing',
-  'identity_inference',
-  'soul_signature_archetype',
-  'onboarding_signature',
-  'onboarding_enrichment',
-]);
-
-/**
- * Classify a memory's provenance tier. Pure; exported for tests.
- *
- * Assistant-role conversation memories are twin_asserted regardless of
- * source: `addConversationMemory` writes both sides of every chat turn, and
- * the assistant side is inference, not testimony (#237).
- */
-export function trustTier(memory) {
-  const meta = memory?.metadata || {};
-  const source = String(meta.source || '');
-  const role = String(meta.role || '');
-
-  if (memory?.memory_type === 'conversation' && role === 'assistant') return 'twin_asserted';
-  if (source === 'twin_chat' && role !== 'user') return 'twin_asserted';
-
-  if (USER_STATED_SOURCES.has(source)) return 'user_stated';
-  if (memory?.memory_type === 'platform_data' || memory?.memory_type === 'observation') return 'observed';
-  if (DERIVED_SOURCES.has(source) || memory?.memory_type === 'reflection') return 'derived';
-
-  // Conversation with role=user is the user talking — testimony.
-  if (memory?.memory_type === 'conversation' && role === 'user') return 'user_stated';
-
-  // Unknown fact sources: treat as derived rather than trusted by default.
-  return 'derived';
-}
+// Provenance classification lives in memoryProvenance.js so the WRITE paths
+// share it — the same distinction that keeps twin output out of a brief has to
+// keep it out of the fact table (#237). Re-exported: it was exported from here
+// first and the task-brief tests import it from this module.
+export { trustTier };
 
 /**
  * Derive executor autonomy tiers from scored claims. Pure; exported for tests.
@@ -252,7 +199,6 @@ export async function compileTaskBrief(userId, task) {
 
   // 4. Score each claim on the evidence it cites; provenance is the best
   //    tier among cited lines (user_stated beats observed beats derived).
-  const TIER_RANK = { user_stated: 3, observed: 2, derived: 1 };
   const scoreClaim = (claim) => {
     const ids = (Array.isArray(claim.evidence) ? claim.evidence : [])
       .map(n => usable[n - 1])
