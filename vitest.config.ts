@@ -19,6 +19,12 @@ import path from 'path';
 // buying speed here anyway — the work is import-bound, not CPU-bound, so more
 // workers mostly duplicated import cost and contended. Override per-environment
 // with VITEST_MAX_FORKS when a runner wants a different bound.
+//
+// Vitest 4 note: `poolOptions.forks.maxForks` was REMOVED in Vitest 4 (silently
+// ignored apart from a deprecation line), which un-capped the pool back to the
+// v4 default of cpus-1 forks and brought the thrash flake back. The cap now
+// lives in the top-level `maxWorkers` option — do not move it back under
+// poolOptions.
 // ---------------------------------------------------------------------------
 const cpuCount = os.cpus()?.length ?? 4;
 const MAX_FORKS = Number(process.env.VITEST_MAX_FORKS) || Math.max(2, Math.min(6, Math.ceil(cpuCount / 2)));
@@ -29,12 +35,7 @@ export default defineConfig({
     globals: true,
     include: ['tests/**/*.test.{ts,tsx,js}'],
     pool: 'forks',
-    poolOptions: {
-      forks: {
-        minForks: 1,
-        maxForks: MAX_FORKS,
-      },
-    },
+    maxWorkers: MAX_FORKS,
     // Per-file module isolation is load-bearing for correctness, not just a
     // default we inherit. Several suites set process.env at module top-level
     // (e.g. JWT_SECRET) and api/middleware/auth.js captures it once into a

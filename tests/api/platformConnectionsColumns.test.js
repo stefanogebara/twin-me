@@ -81,7 +81,12 @@ describe('platform_connections column names', () => {
     expect(files.length).toBeGreaterThan(50);
   });
 
-  it('never writes a top-level last_sync column on platform_connections', () => {
+  // Explicit timeout: this test cold-reads ~650 source files. On Windows the
+  // first open of each file goes through Defender real-time scanning; measured
+  // >100s cold under full-suite FS contention vs ~0.5s warm. The 5s default
+  // made this test fail nondeterministically depending on cache state and
+  // parallel-worker load — the scan itself is deterministic.
+  it('never writes a top-level last_sync column on platform_connections', { timeout: 120_000 }, () => {
     const offenders = [];
     for (const file of files) {
       const found = findLastSyncColumnWrites(readFileSync(file, 'utf8'));

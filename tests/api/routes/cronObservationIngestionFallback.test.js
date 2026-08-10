@@ -34,6 +34,16 @@ vi.mock('../../../api/services/inngestClient.js', () => ({
   EVENTS: { INGEST_USER_OBSERVATIONS: 'twin/observation.ingest_user' },
 }));
 
+// The starved path fires selfHealInngestRegistration() alongside the inline
+// fallback. Unmocked, that is a REAL 30s-timeout HTTPS PUT to the production
+// serve endpoint (getSelfBaseUrl() falls back to https://www.twinme.me) — live
+// network I/O in a unit test, and the source of a nondeterministic timeout
+// flake when the full suite loads the machine. Mock it out.
+const selfHealMock = vi.fn().mockResolvedValue({ attempted: true, status: 200 });
+vi.mock('../../../api/services/inngestSelfHeal.js', () => ({
+  selfHealInngestRegistration: (...a) => selfHealMock(...a),
+}));
+
 vi.mock('../../../api/middleware/verifyCronSecret.js', () => ({
   verifyCronSecret: () => ({ authorized: true }),
 }));
@@ -56,6 +66,7 @@ beforeEach(() => {
   eligibleMock.mockResolvedValue(['u1', 'u2', 'u3', 'u4']);
   starvedMock.mockResolvedValue([]);
   sendMock.mockResolvedValue({ ids: [] });
+  selfHealMock.mockResolvedValue({ attempted: true, status: 200 });
 });
 
 describe('observation-ingestion cron - starvation fallback', () => {
@@ -83,6 +94,9 @@ describe('observation-ingestion cron - starvation fallback', () => {
     expect(arg.deferPostProcess).toBe(true);
     expect(res.body.mode).toBe('inngest-fanout+starvation-fallback');
     expect(res.body.starved).toBe(4);
+    // Starvation is the signature of a stale Inngest registration — the
+    // best-effort resync must fire alongside the inline fallback.
+    expect(selfHealMock).toHaveBeenCalledTimes(1);
   });
 
   it('inngest.send throws: the original inline-fallback path is preserved (defers synthesis)', async () => {
