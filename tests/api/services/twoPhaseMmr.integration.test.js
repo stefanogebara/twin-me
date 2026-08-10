@@ -27,6 +27,11 @@ const d = HAS_DB ? describe : describe.skip;
 let supabaseAdmin, mmrRerank, cfg, userId, probeEmbedding;
 
 d('two-phase MMR equivalence', () => {
+  // Explicit hook timeout: this beforeAll dynamically imports the full
+  // memoryStreamService module graph (cold transform under parallel-worker
+  // load) AND does a live Supabase round-trip. Both are slow-but-deterministic
+  // under full-suite contention; the 10s default hookTimeout tripped
+  // nondeterministically on loaded machines.
   beforeAll(async () => {
     ({ supabaseAdmin } = await import('../../../api/services/database.js'));
     ({ mmrRerank } = await import('../../../api/services/memoryStreamService.js'));
@@ -40,7 +45,7 @@ d('two-phase MMR equivalence', () => {
       .single();
     userId = data?.user_id;
     probeEmbedding = data?.embedding;
-  });
+  }, 120_000);
 
   const shapes = [
     { limit: 40, final: 24, types: null, label: 'all types, prunes' },

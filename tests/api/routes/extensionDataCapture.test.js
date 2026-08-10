@@ -82,7 +82,11 @@ describe('POST /api/extension/capture/:platform — duplicate-key behavior pins'
     ingestWebObservationsMock.mockResolvedValue(undefined);
   });
 
-  it("maps eventType 'capture' to data_type 'activity' (later duplicate key won)", async () => {
+  // Explicit timeout: first test in the file pays the express/supertest
+  // cold-start; measured 5.7s under full-suite worker contention vs <100ms
+  // warm (same nondeterministic-timeout family as
+  // platformConnectionsColumns / publicAssetReferences, deflake 2026-08-10).
+  it("maps eventType 'capture' to data_type 'activity' (later duplicate key won)", { timeout: 30_000 }, async () => {
     const res = await request(createApp())
       .post('/api/extension/capture/netflix')
       .set('Authorization', `Bearer ${signToken()}`)
