@@ -3,7 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from "react-router-dom";
 import { useEffect, useRef, lazy, Suspense } from "react";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { SidebarLayout } from "./components/layout/SidebarLayout";
@@ -29,9 +29,12 @@ import CustomAuth from "./pages/CustomAuth";
 import DesktopHandoff from "./pages/DesktopHandoff";
 import OAuthCallback from "./pages/OAuthCallback";
 import NotFound from "./pages/NotFound";
-import CinematicFrame from "./pages/preview/CinematicFrame";
-import StardustHero from "./components/landing/StardustHero";
-import StardustLanding from "./pages/StardustLanding";
+// Design prototypes: dev-only routes (see the /preview block below). The
+// DEV ternary lets Vite dead-code-eliminate the dynamic imports in prod, so
+// no prototype chunks are emitted at all.
+const CinematicFrame = import.meta.env.DEV ? lazy(() => import("./pages/preview/CinematicFrame")) : () => null;
+const StardustHero = import.meta.env.DEV ? lazy(() => import("./components/landing/StardustHero")) : () => null;
+const StardustLanding = import.meta.env.DEV ? lazy(() => import("./pages/StardustLanding")) : () => null;
 // audit-2026-05-13 H1: route-local Suspense fallback for /talk-to-twin so
 // mobile users see the chat shell (header + composer placeholder) within
 // the first paint instead of waiting on a centered loading spinner.
@@ -188,7 +191,12 @@ const App = () => {
             <Route path="/" element={<Index />} />
             <Route path="/discover" element={<DiscoverLanding />} />
 
-            {/* Cinematic redesign prototypes (isolated static bundle in /public/cinematic) */}
+            {/* Cinematic redesign prototypes (isolated static bundle in /public/cinematic).
+                Dev-only: 16 prototype routes were shipping in production routing
+                (product-truth-review 2026-08-09, Phase 0 item 4). In prod these
+                paths fall through to the NotFound catch-all. */}
+            {import.meta.env.DEV && (
+            <Route element={<Suspense fallback={null}><Outlet /></Suspense>}>
             <Route path="/preview/stardust-hero" element={<div className="w-full min-h-screen" style={{ background: 'var(--background)' }}><StardustHero /></div>} />
             <Route path="/preview/stardust" element={<StardustLanding />} />
             <Route path="/preview/landing" element={<CinematicFrame src="/cinematic/landing.html" title="Twin.me — cinematic landing" />} />
@@ -207,6 +215,8 @@ const App = () => {
             <Route path="/preview/voice" element={<CinematicFrame src="/cinematic/voice.html" title="Twin.me — Voice setup" />} />
             <Route path="/preview/pricing" element={<CinematicFrame src="/cinematic/pricing.html" title="Twin.me — Pricing" />} />
             <Route path="/preview" element={<CinematicFrame src="/cinematic/gallery.html" title="Twin.me — Claura, all screens" />} />
+            </Route>
+            )}
 
             {/* Main Dashboard */}
             <Route path="/dashboard" element={
