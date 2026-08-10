@@ -63,7 +63,7 @@ interface Message {
     memoryStream?: { total: number; reflections: number; facts: number };
     proactiveInsights?: Array<{ insight: string; category: string; urgency: string }>;
     platformData?: string[];
-    personalityProfile?: boolean;
+    evidenceConfidence?: { level: string; score: number } | null;
   };
 }
 
@@ -452,7 +452,10 @@ const TalkToTwin = () => {
                       memoryStream: event.contextSources.memoryStream,
                       proactiveInsights: event.contextSources.proactiveInsights,
                       platformData: event.contextSources.platformData,
-                      personalityProfile: event.contextSources.personalityProfile,
+                      // Phase 2 receipts: the backend has always emitted this;
+                      // the frontend used to drop it (and captured a
+                      // personalityProfile field the backend never sends).
+                      evidenceConfidence: event.contextSources.evidenceConfidence ?? null,
                     }
                   } : m
                 ));
