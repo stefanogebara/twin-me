@@ -726,8 +726,15 @@ async function generateReflections(userId, depth = 0) {
   try {
     log.info('Starting expert reflection generation', { depth, userId });
 
-    // Step 1: Gather recent memories
-    const recentMemories = await getRecentMemories(userId, 100);
+    // Step 1: Gather recent memories — EVIDENCE ONLY. Prior reflections are
+    // excluded from the input window: with the stream ~90% reflections, an
+    // unfiltered fetch had the experts re-synthesizing their own prior output
+    // (MAX_REFLECTION_DEPTH only blocks explicit recursion, not this loop
+    // through the stream). Evidence importance decay (decaySourceMemories)
+    // made the ratchet worse each cycle. product-truth-review 2026-08-09.
+    const recentMemories = await getRecentMemories(userId, 100, {
+      excludeTypes: ['reflection'],
+    });
     if (recentMemories.length < 3) {
       log.info('Not enough memories to reflect', { count: recentMemories.length });
       return 0;

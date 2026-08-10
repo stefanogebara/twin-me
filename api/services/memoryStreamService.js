@@ -1997,12 +1997,21 @@ async function _expandWithMemoryLinks(userId, memories, maxLinked = 5) {
  * Get recent memories for reflection generation.
  * Returns the N most recent memories ordered by creation time.
  */
-async function getRecentMemories(userId, limit = 50) {
+async function getRecentMemories(userId, limit = 50, { excludeTypes = [] } = {}) {
   try {
-    const { data, error } = await supabaseAdmin
+    let query = supabaseAdmin
       .from('user_memories')
       .select('id, content, memory_type, importance_score, metadata, created_at, confidence')
-      .eq('user_id', userId)
+      .eq('user_id', userId);
+
+    // DB-side filter so callers get `limit` rows of the types they want —
+    // filtering after fetch would return a window dominated by whatever type
+    // floods the stream (reflections, ~90% of recent rows).
+    if (excludeTypes.length > 0) {
+      query = query.not('memory_type', 'in', `(${excludeTypes.join(',')})`);
+    }
+
+    const { data, error } = await query
       .order('created_at', { ascending: false })
       .limit(limit);
 
