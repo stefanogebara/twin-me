@@ -68,7 +68,7 @@ function CorrectionSparkline({ data }: { data: Array<{ date: string; count: numb
       <polyline
         points={points}
         fill="none"
-        stroke="rgba(245,245,244,0.6)"
+        stroke="var(--text-narrative-secondary)"
         strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"

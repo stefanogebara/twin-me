@@ -31,9 +31,9 @@ import OverviewSection from './components/privacy/OverviewSection';
 
 // --- Design tokens ---
 const TEXT_PRIMARY = 'var(--foreground)';
-const TEXT_SECONDARY = 'rgba(255,255,255,0.4)';
+const TEXT_SECONDARY = 'var(--text-narrative-muted)';
 const BORDER_COLOR = 'var(--border-glass)';
-const CARD_BG = 'rgba(255,255,255,0.06)';
+const CARD_BG = 'var(--glass-surface-bg)';
 
 const CATEGORY_COLORS = {
   personal: '#f472b6',
@@ -62,7 +62,7 @@ const ClusterRow: React.FC<ClusterRowProps> = ({ cluster, onPrivacyChange, onTog
   useEffect(() => {
     setLocalLevel(cluster.privacyLevel);
   }, [cluster.privacyLevel]);
-  const color = CATEGORY_COLORS[cluster.category as keyof typeof CATEGORY_COLORS] ?? 'rgba(255,255,255,0.4)';
+  const color = CATEGORY_COLORS[cluster.category as keyof typeof CATEGORY_COLORS] ?? 'var(--text-narrative-muted)';
 
   const handleSliderChange = useCallback(
     (values: number[]) => {
@@ -174,7 +174,7 @@ interface CategorySectionProps {
 
 const CategorySection: React.FC<CategorySectionProps> = ({ category, clusters, onPrivacyChange, onToggle }) => {
   const [collapsed, setCollapsed] = useState(false);
-  const color = CATEGORY_COLORS[category as keyof typeof CATEGORY_COLORS] ?? 'rgba(255,255,255,0.4)';
+  const color = CATEGORY_COLORS[category as keyof typeof CATEGORY_COLORS] ?? 'var(--text-narrative-muted)';
   const label = category.charAt(0).toUpperCase() + category.slice(1);
 
   return (

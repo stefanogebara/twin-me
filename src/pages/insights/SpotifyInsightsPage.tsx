@@ -30,7 +30,7 @@ const SpotifyInsightsPage: React.FC = () => {
 
   const colors = {
     text: 'var(--foreground)',
-    textSecondary: 'rgba(255, 255, 255, 0.55)',
+    textSecondary: 'var(--text-secondary)',
     spotifyGreen: '#1DB954',
     spotifyBg: 'rgba(29, 185, 84, 0.1)'
   };
