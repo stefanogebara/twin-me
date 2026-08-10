@@ -39,7 +39,7 @@ export const PortraitEmptyState: React.FC = () => {
 
       <div className="flex flex-col sm:flex-row gap-3 justify-center">
         <button
-          onClick={() => navigate('/interview')}
+          onClick={() => navigate('/story')}
           className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium text-sm"
           style={{ backgroundColor: '#10b77f', color: '#0a0f0a' }}
         >
@@ -47,7 +47,7 @@ export const PortraitEmptyState: React.FC = () => {
           Tell Your Story
         </button>
         <button
-          onClick={() => navigate('/dashboard')}
+          onClick={() => navigate('/today')}
           className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium text-sm"
           style={{
             backgroundColor: 'var(--surface)',

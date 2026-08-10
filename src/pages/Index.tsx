@@ -154,7 +154,7 @@ const Index = () => {
 
   // Redirect authenticated users immediately
   if (isLoaded && isSignedIn) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/today" replace />;
   }
 
   return (
@@ -211,12 +211,12 @@ const Index = () => {
 
           {/* Right: Auth (desktop) + hamburger (mobile) */}
           <div className="flex items-center gap-2">
-            <SignInButton mode="modal" fallbackRedirectUrl="/dashboard" forceRedirectUrl="/dashboard">
+            <SignInButton mode="modal" fallbackRedirectUrl="/today" forceRedirectUrl="/today">
               <button className="hidden md:inline-flex font-sans text-[13px] font-medium text-[var(--text-secondary)] bg-none border-none cursor-pointer transition-colors duration-150 py-2 px-4 hover:text-[#F5F0EB]">
                 Sign in
               </button>
             </SignInButton>
-            <SignInButton mode="modal" fallbackRedirectUrl="/dashboard" forceRedirectUrl="/dashboard">
+            <SignInButton mode="modal" fallbackRedirectUrl="/today" forceRedirectUrl="/today">
               <button className="font-sans bg-[#F5F0EB] text-[var(--primary-foreground)] rounded-full py-[14px] px-7 text-xs font-normal transition-all duration-150 inline-flex items-center gap-2 tracking-[0.02em] hover:opacity-85 hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]">
                 Start Free
               </button>
@@ -257,7 +257,7 @@ const Index = () => {
       <CosmicHero
         isSignedIn={isSignedIn}
         isLoaded={isLoaded}
-        onDashboard={() => navigate('/dashboard')}
+        onDashboard={() => navigate('/today')}
         onDiscover={() => navigate('/discover')}
       />
 
@@ -553,7 +553,7 @@ const Index = () => {
               Connect your platforms, let your twin learn who you really are, then have conversations that reveal patterns you never noticed.
             </p>
             <div className="flex items-center gap-4 flex-wrap">
-              <SignInButton mode="modal" fallbackRedirectUrl="/dashboard" forceRedirectUrl="/dashboard">
+              <SignInButton mode="modal" fallbackRedirectUrl="/today" forceRedirectUrl="/today">
                 <button className="font-sans bg-[#F5F0EB] text-[var(--primary-foreground)] rounded-full py-[14px] px-7 text-xs font-normal transition-all duration-150 inline-flex items-center gap-2 tracking-[0.02em] hover:opacity-85 hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]">
                   Start Free <ArrowRight className="w-4 h-4" />
                 </button>
@@ -622,7 +622,7 @@ const Index = () => {
           </p>
 
           <div className="flex items-center gap-4 flex-wrap justify-center">
-            <SignInButton mode="modal" fallbackRedirectUrl="/dashboard" forceRedirectUrl="/dashboard">
+            <SignInButton mode="modal" fallbackRedirectUrl="/today" forceRedirectUrl="/today">
               <button className="font-sans bg-[#F5F0EB] text-[var(--primary-foreground)] rounded-full py-[14px] px-7 text-xs font-normal transition-all duration-150 inline-flex items-center gap-2 tracking-[0.02em] hover:opacity-85 hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]">
                 Start Free <ArrowRight className="w-4 h-4" />
               </button>

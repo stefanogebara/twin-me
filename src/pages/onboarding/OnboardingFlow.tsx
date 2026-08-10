@@ -58,7 +58,7 @@ const OnboardingFlow: React.FC = () => {
       .catch(err => console.error('Failed to persist onboarding completion:', err));
     // Mark onboarding done — ProtectedRoute gate releases
     setNeedsOnboarding(false);
-    navigate('/dashboard', { replace: true });
+    navigate('/today', { replace: true });
   };
 
   const STEPS: Step[] = ['welcome', 'interview', 'platforms', 'awakening'];

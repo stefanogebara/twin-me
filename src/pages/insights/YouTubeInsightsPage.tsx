@@ -189,7 +189,7 @@ const YouTubeInsightsPage: React.FC = () => {
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-4">
           <button
-            onClick={() => navigate('/dashboard')}
+            onClick={() => navigate('/identity')}
             className="p-2 rounded-lg"
             aria-label="Back to dashboard"
             style={{ border: '1px solid var(--border-glass)', backgroundColor: 'var(--surface)' }}

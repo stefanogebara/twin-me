@@ -69,7 +69,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     // before any admin shell renders. Checked ahead of the onboarding gate so
     // a non-admin never lingers on an admin path.
     if (requireAdmin && !isAdmin) {
-      return <Navigate to="/dashboard" replace />;
+      return <Navigate to="/today" replace />;
     }
     // Gate new users to cinematic onboarding (skip if already on /onboarding).
     // Also allow /soul-reveal so the desktop "look you up" research reveal can

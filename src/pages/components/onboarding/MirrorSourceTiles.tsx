@@ -119,19 +119,16 @@ const MirrorTile: React.FC<MirrorTileProps> = ({
 interface MirrorSourceTilesProps {
   /** Synthetic 'web' breakdown entry from /platforms/summary, if present. */
   webEntry: PlatformBreakdownEntry | undefined;
-  /** Synthetic 'desktop' breakdown entry from /platforms/summary, if present. */
-  desktopEntry: PlatformBreakdownEntry | undefined;
   /** Opens the Chrome Web Store listing (connectService('browser_extension')). */
   onInstallExtension: () => void;
-  /** Navigates to the existing /download route. */
-  onDownloadDesktop: () => void;
 }
 
+// Phase 1 (2026-08-10): the Desktop App tile is gone — desktop is no longer
+// the bet. Existing 'desktop' platform rows keep their data; the extension is
+// the one always-on mirror we invite users to install.
 export const MirrorSourceTiles: React.FC<MirrorSourceTilesProps> = ({
   webEntry,
-  desktopEntry,
   onInstallExtension,
-  onDownloadDesktop,
 }) => {
   const extensionConfig = AVAILABLE_CONNECTORS.find(c => c.provider === 'browser_extension');
 
@@ -140,10 +137,6 @@ export const MirrorSourceTiles: React.FC<MirrorSourceTilesProps> = ({
     ? `${pages} ${pages === 1 ? 'page' : 'pages'} observed this week · last activity ${relativeTime(webEntry.lastSyncAt)}`
     : extensionConfig?.description ??
       'Track everything you browse — pages visited, reading time, content topics, search queries, and engagement patterns';
-
-  const desktopDescription = desktopEntry
-    ? `Mirroring your desktop activity · last activity ${relativeTime(desktopEntry.lastSyncAt)}`
-    : 'Mirror your real work — the apps you use, windows you focus, and meetings you join feed your twin automatically';
 
   return (
     <div className="space-y-2">
@@ -155,15 +148,6 @@ export const MirrorSourceTiles: React.FC<MirrorSourceTilesProps> = ({
         description={webDescription}
         ctaLabel="Connect"
         onCta={onInstallExtension}
-      />
-      <MirrorTile
-        name="Desktop App"
-        icon={<Monitor className="w-6 h-6" />}
-        color="var(--accent-vibrant)"
-        connected={!!desktopEntry}
-        description={desktopDescription}
-        ctaLabel="Download"
-        onCta={onDownloadDesktop}
       />
     </div>
   );

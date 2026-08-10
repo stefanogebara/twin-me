@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, MessageCircle, Link2, User, MoreHorizontal, Brain, BookOpen, Settings, X } from 'lucide-react';
+import { Home, MessageCircle, Link2, User, MoreHorizontal, Settings, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface NavItem {
@@ -10,15 +10,18 @@ interface NavItem {
   path: string;
 }
 
+// Mirrors the desktop five-surface IA (product-truth-review 2026-08-09):
+// Today, Twin, You, Connect + Settings in the More drawer. Memories (/brain)
+// left nav in Phase 1 — it becomes an evidence view reached from You/Settings,
+// not a destination.
 const PRIMARY_NAV: NavItem[] = [
-  { id: 'dashboard', label: 'Home',    icon: Home,          path: '/dashboard' },
+  { id: 'today',     label: 'Today',   icon: Home,          path: '/today' },
   { id: 'chat',      label: 'Twin',    icon: MessageCircle, path: '/talk-to-twin' },
-  { id: 'connect',   label: 'Connect', icon: Link2,         path: '/connect' },
   { id: 'identity',  label: 'You',     icon: User,          path: '/identity' },
+  { id: 'connect',   label: 'Connect', icon: Link2,         path: '/connect' },
 ];
 
 const MORE_NAV: NavItem[] = [
-  { id: 'brain',    label: 'Memories',   icon: Brain,    path: '/brain' },
   { id: 'settings', label: 'Settings',   icon: Settings, path: '/settings' },
 ];
 
