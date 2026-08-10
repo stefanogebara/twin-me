@@ -234,6 +234,48 @@ const TalkToTwin = () => {
     }
   }, [conversationId]);
 
+  // Boot chat history from server truth (Phase 2, product-truth-review):
+  // every turn is persisted server-side, but the page used to boot from a
+  // 20-message localStorage buffer that evaporated per browser. On mount,
+  // load the latest conversation's recent turns (or the sessionStorage
+  // conversation if one is pinned). localStorage stays as the synchronous
+  // first paint + offline fallback; server truth replaces it when it lands —
+  // unless the user already started typing/sending in the meantime.
+  const historyBootFired = useRef(false);
+  const userSentSinceMount = useRef(false);
+  useEffect(() => {
+    if (!user?.id || historyBootFired.current) return;
+    historyBootFired.current = true;
+
+    const pinnedId = sessionStorage.getItem(CONVERSATION_ID_KEY);
+    const url = pinnedId
+      ? `${API_BASE}/chat/history?conversationId=${pinnedId}`
+      : `${API_BASE}/chat/recent?limit=30`;
+
+    (async () => {
+      try {
+        const token = getAccessToken();
+        const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+        if (!response.ok) return; // keep localStorage fallback silently
+        const data = await response.json();
+        const serverMessages: Message[] = (data.messages || []).map(
+          (m: { id?: string; isUser?: boolean; content: string; createdAt: string }) => ({
+            id: m.id || crypto.randomUUID(),
+            role: m.isUser ? ('user' as const) : ('assistant' as const),
+            content: m.content,
+            timestamp: new Date(m.createdAt),
+          }),
+        );
+        if (serverMessages.length === 0) return; // persistence lag or new user — keep local
+        if (userSentSinceMount.current) return; // a send raced the fetch — don't clobber
+        setMessages(serverMessages);
+        if (!pinnedId && data.conversationId) setConversationId(data.conversationId);
+      } catch {
+        // Network failure — localStorage fallback already rendered.
+      }
+    })();
+  }, [user?.id]);
+
   const handleSelectConversation = async (id: string) => {
     try {
       const token = getAccessToken();
@@ -314,6 +356,7 @@ const TalkToTwin = () => {
 
   const handleSendMessage = async () => {
     if (!inputMessage.trim() || !user?.id) return;
+    userSentSinceMount.current = true;
 
     if (!navigator.onLine) {
       toast({

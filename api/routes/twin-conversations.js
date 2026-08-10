@@ -143,6 +143,66 @@ router.get('/history', authenticateUser, async (req, res) => {
 });
 
 // ====================================================================
+// GET /recent — latest conversation + its newest messages, one round trip
+// ====================================================================
+// Phase 2 (product-truth-review 2026-08-09): the chat page used to boot from
+// a 20-message localStorage buffer — server truth existed but was never
+// loaded. This endpoint returns the newest conversation's LATEST turns in
+// chronological order. (The sibling /history endpoint truncates from the
+// START of a conversation via getMessagesByConversation's ascending+limit —
+// deliberately not reused here.)
+router.get('/recent', authenticateUser, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const limit = Math.min(parseInt(req.query.limit) || 30, 100);
+
+    const { data: convo, error: convoErr } = await supabaseAdmin
+      .from('twin_conversations')
+      .select('id')
+      .eq('user_id', userId)
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (convoErr) {
+      log.error('Recent conversation lookup failed', { error: convoErr.message });
+      return res.status(500).json({ success: false, error: 'Failed to fetch recent conversation' });
+    }
+    if (!convo) {
+      return res.json({ success: true, conversationId: null, messages: [] });
+    }
+
+    // Newest N rows, then reverse to chronological for rendering.
+    const { data: rows, error: msgErr } = await supabaseAdmin
+      .from('twin_messages')
+      .select('id, role, content, created_at')
+      .eq('conversation_id', convo.id)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (msgErr) {
+      log.error('Recent messages fetch failed', { error: msgErr.message });
+      return res.status(500).json({ success: false, error: 'Failed to fetch recent messages' });
+    }
+
+    const messages = (rows || [])
+      .slice()
+      .reverse()
+      .map(m => ({
+        id: m.id,
+        content: m.content,
+        isUser: m.role === 'user',
+        createdAt: m.created_at,
+      }));
+
+    return res.json({ success: true, conversationId: convo.id, messages });
+  } catch (error) {
+    log.error('Recent history error', { error });
+    return res.status(500).json({ success: false, error: 'Failed to fetch recent history' });
+  }
+});
+
+// ====================================================================
 // GET /context — sidebar rollup (twin summary + memory stats + pending insights)
 // ====================================================================
 router.get('/context', authenticateUser, async (req, res) => {
