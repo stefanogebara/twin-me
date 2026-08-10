@@ -22,6 +22,7 @@ import { complete, TIER_ANALYSIS, TIER_EXTRACTION } from './llmGateway.js';
 import { generateEmbedding } from './embeddingService.js';
 import { getFeatureFlags } from './featureFlagsService.js';
 import { classifyNeuropil } from './neuropilRouter.js';
+import { isTwinAsserted } from './memoryProvenance.js';
 import { createLogger } from './logger.js';
 
 const log = createLogger('WikiCompilation');
@@ -762,9 +763,40 @@ export async function fileQueryInsightIfValuable(userId, citedIds, twinResponse,
   const citedMemories = memoriesInContext.filter(m => citedIds.includes(m.id));
   if (citedMemories.length < 2) return { filed: false };
 
-  const avgImportance = citedMemories.reduce((sum, m) => sum + (m.importance_score || 0), 0) / citedMemories.length;
+  // Step 1a: PROVENANCE GATE (#237).
+  //
+  // The insight below is extracted from `twinResponse` — the twin's own words.
+  // Filing it as a `fact` turns inference into testimony, and the only quality
+  // check was avgImportance >= 7 of the cited memories. That check cannot see
+  // the loop: assistant turns are themselves stored at importance 7-8, so a
+  // twin citing its own prior output clears the bar every time. It rubber
+  // stamped exactly the failure it was meant to catch.
+  //
+  // Observed end to end on 2026-08-09. A wrong-person enrichment match had
+  // seeded "Based in Lugano, Switzerland"; the twin repeated it; query filing
+  // minted "You are originally from Brazil but now live in Lugano,
+  // Switzerland." as a fresh fact at importance 8 — ten minutes after 37
+  // contaminated rows had been superseded. Cleanup cannot outrun a generator.
+  //
+  // So an insight must rest on real evidence about the user: at least two
+  // cited memories that are not the twin's own output. Grounded insights still
+  // file; circular ones do not.
+  const groundedMemories = citedMemories.filter(m => !isTwinAsserted(m));
+  if (groundedMemories.length < 2) {
+    log.info('Query filing skipped (insufficient non-twin evidence)', {
+      userId,
+      cited: citedMemories.length,
+      grounded: groundedMemories.length,
+      insight: twinResponse.slice(0, 60),
+    });
+    return { filed: false };
+  }
+
+  // Importance is measured over the GROUNDED subset only, so the twin's own
+  // high-importance restatements can no longer inflate the gate.
+  const avgImportance = groundedMemories.reduce((sum, m) => sum + (m.importance_score || 0), 0) / groundedMemories.length;
   if (avgImportance < 7) {
-    log.info('Query filing skipped (low importance)', { userId, avgImportance, cited: citedMemories.length });
+    log.info('Query filing skipped (low importance)', { userId, avgImportance, cited: groundedMemories.length });
     return { filed: false };
   }
 
@@ -823,14 +855,21 @@ export async function fileQueryInsightIfValuable(userId, citedIds, twinResponse,
           user_id: userId,
           memory_type: 'fact',
           content: insight,
-          importance_score: 8,
-          confidence: 0.75,
+          // Was importance 8 / confidence 0.75 — the same rank as the user's
+          // own life-story facts, for a claim the twin derived from its own
+          // answer. Now scored beneath first-person testimony so a filed
+          // insight can never outrank what the user actually said (#237).
+          importance_score: 6,
+          confidence: 0.55,
           embedding: `[${insightEmbedding.join(',')}]`,
           metadata: {
             source: 'query_filing',
             domain: domain || 'general',
             cited_memory_ids: citedIds,
+            grounded_memory_ids: groundedMemories.map(m => m.id),
             avg_cited_importance: avgImportance,
+            provenance: 'twin_derived',
+            verified: false,
           },
         });
 

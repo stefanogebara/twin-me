@@ -47,7 +47,14 @@ describe('trustTier', () => {
   it('classifies platform data as observed and reflections as derived', () => {
     expect(trustTier(mem({ memory_type: 'platform_data', metadata: { source: 'spotify' } }))).toBe('observed');
     expect(trustTier(mem({ memory_type: 'reflection', metadata: { source: 'reflection_engine' } }))).toBe('derived');
-    expect(trustTier(mem({ metadata: { source: 'query_filing' } }))).toBe('derived');
+  });
+
+  it('classifies query_filing as twin_asserted, not derived', () => {
+    // Deliberate change (#237). query_filing facts are the twin's OWN answer,
+    // re-extracted and stored as a fact. Calling them "derived" let them count
+    // as grounding evidence for the next filing — the laundering loop that
+    // minted "you now live in Lugano, Switzerland" as a fresh fact.
+    expect(trustTier(mem({ metadata: { source: 'query_filing' } }))).toBe('twin_asserted');
   });
 
   it('classifies the twin\'s own replies as twin_asserted — the Lugano case', () => {
