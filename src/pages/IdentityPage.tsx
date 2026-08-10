@@ -591,10 +591,10 @@ const IdentityPage: React.FC = () => {
     <div
       className={`rounded-[20px] px-5 py-4 transition-all duration-300 hover:-translate-y-0.5 ${className}`}
       style={{
-        background: variant === 'anchor' ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.04)',
+        background: variant === 'anchor' ? 'var(--glass-surface-bg)' : 'var(--surface)',
         backdropFilter: 'blur(42px)',
         WebkitBackdropFilter: 'blur(42px)',
-        border: variant === 'anchor' ? '1px solid rgba(255,255,255,0.09)' : '1px solid rgba(255,255,255,0.06)',
+        border: variant === 'anchor' ? '1px solid var(--glass-surface-border)' : '1px solid var(--border-glass)',
         boxShadow: variant === 'anchor'
           ? 'inset 0 1px 0 rgba(255,255,255,0.08), 0 6px 24px rgba(0,0,0,0.20)'
           : 'inset 0 1px 0 rgba(255,255,255,0.06), 0 4px 16px rgba(0,0,0,0.15)',

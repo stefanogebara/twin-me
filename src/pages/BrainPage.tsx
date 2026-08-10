@@ -217,7 +217,7 @@ const BrainPage: React.FC = () => {
         >
           Your Memories
         </h1>
-        <p className="text-sm mb-8" style={{ color: '#86807b', fontFamily: "'Inter', sans-serif" }}>
+        <p className="text-sm mb-8" style={{ color: 'var(--text-muted)', fontFamily: "'Inter', sans-serif" }}>
           Sign in to explore the memories shaping your twin.
         </p>
         <button
@@ -256,7 +256,7 @@ const BrainPage: React.FC = () => {
           >
             Your Memories
           </h1>
-          <span className="text-xs" style={{ color: '#86807b' }}>
+          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
             {compositionTotal > 0
               ? `${compositionTotal.toLocaleString('en-US')} memories`
               : '\u00A0'}
@@ -407,7 +407,7 @@ const BrainPage: React.FC = () => {
         <button
           onClick={() => setShowMore(prev => !prev)}
           className="w-full flex items-center justify-between py-4 transition-opacity hover:opacity-70"
-          style={{ color: '#86807b', background: 'transparent', border: 'none' }}
+          style={{ color: 'var(--text-muted)', background: 'transparent', border: 'none' }}
         >
           <span className="text-xs font-medium">Show data sources & timeline</span>
           <ChevronDown
@@ -427,7 +427,7 @@ const BrainPage: React.FC = () => {
                     fontWeight: 500,
                     textTransform: 'uppercase',
                     letterSpacing: '0.15em',
-                    color: '#86807b',
+                    color: 'var(--text-muted)',
                   }}
                 >
                   Upload Your Data
@@ -458,7 +458,7 @@ const BrainPage: React.FC = () => {
                       fontWeight: 500,
                       textTransform: 'uppercase',
                       letterSpacing: '0.15em',
-                      color: '#86807b',
+                      color: 'var(--text-muted)',
                     }}
                   >
                     Soul Signature Evolution
