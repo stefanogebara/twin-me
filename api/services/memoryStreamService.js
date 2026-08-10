@@ -1658,24 +1658,7 @@ async function retrieveDiverseMemories(userId, query, budgets = {}, reflectionWe
 
   const SELECT_COLS = 'id, content, memory_type, importance_score, metadata, created_at, last_accessed_at';
 
-  // R8: exhaustive-within-domain reflections. When the neuropil router
-  // classified the message into an expert domain AND the flag is on, fetch
-  // ALL of that expert's reflections directly (importance-ordered, capped)
-  // in parallel with the vector leg; the merge below prefers domain rows
-  // and backfills from vector results. Flag read is the same cached
-  // getFeatureFlags pattern graph retrieval uses.
-  let exhaustiveDomainPromise = Promise.resolve([]);
-  if (options.exhaustiveReflectionDomain) {
-    exhaustiveDomainPromise = getFeatureFlags(userId)
-      .then(flags =>
-        flags.exhaustive_domain_reflections === true
-          ? fetchDomainReflections(userId, options.exhaustiveReflectionDomain, EXHAUSTIVE_REFLECTION_CAP)
-          : []
-      )
-      .catch(() => []);
-  }
-
-  const [reflectionResults, factResults, platformResults, semanticConvResults, recentConvResults, domainReflections] = await Promise.all([
+  const [reflectionResults, factResults, platformResults, semanticConvResults, recentConvResults] = await Promise.all([
     // Reflections: semantic search over-fetches, then we cap at maxReflections.
     // audit-2026-05-10 C1 follow-up: skip HyDE on the reflections track —
     // it adds a 2-3s LLM round-trip before any DB query and was the most
@@ -1812,21 +1795,14 @@ async function retrieveDiverseMemories(userId, query, budgets = {}, reflectionWe
             })
         )
       : Promise.resolve([]),
-
-    // R8: exhaustive domain leg (empty unless routed + flag on)
-    withLegTimeout('domain_reflections', exhaustiveDomainPromise),
   ]);
 
   // Cap reflections: take only the top N from the over-fetched semantic results.
-  // R8: when the exhaustive domain leg produced rows, they take priority and
-  // vector results only backfill (dedup by id); empty domain leg => exact
-  // legacy behavior.
-  const vectorReflections = reflectionResults
+  // (Phase 1 2026-08-09: the R8 exhaustive-domain leg was deleted with the
+  // neuropil router — the flag never shipped and the leg was empty in prod.)
+  const topReflections = reflectionResults
     .filter(m => m.memory_type === 'reflection')
     .slice(0, maxReflections);
-  const topReflections = domainReflections.length > 0
-    ? mergeExhaustiveReflections(domainReflections, vectorReflections, EXHAUSTIVE_REFLECTION_CAP)
-    : vectorReflections;
 
   // Merge semantic + recency conversation tracks, dedup by id, cap at budget
   const convSeen = new Set();
@@ -1890,69 +1866,6 @@ async function retrieveDiverseMemories(userId, query, budgets = {}, reflectionWe
 // ====================================================================
 // R8: Exhaustive-within-domain reflections
 // ====================================================================
-
-/**
- * Cap on exhaustive domain reflections, from the 1,000-people paper's
- * 5-20 self-scaled reflections per expert.
- */
-const EXHAUSTIVE_REFLECTION_CAP = 15;
-
-/**
- * Fetch ALL reflections from a domain's expert set for a user,
- * importance-ordered under one shared cap. The paper's query-time
- * routing: classify the question to a domain, inject that domain's full
- * reflection set — not top-k sampling. Accepts one expert id or an array
- * (a generic persona plus its platform-expert affiliates).
- * Fail-open: any error or empty set returns [] so the vector leg carries
- * the turn.
- */
-async function fetchDomainReflections(userId, expertIds, cap = EXHAUSTIVE_REFLECTION_CAP) {
-  const ids = (Array.isArray(expertIds) ? expertIds : [expertIds]).filter(
-    id => typeof id === 'string' && id.length > 0
-  );
-  if (ids.length === 0) return [];
-  try {
-    const { data, error } = await supabaseAdmin
-      .from('user_memories')
-      .select('id, content, memory_type, importance_score, metadata, created_at, last_accessed_at')
-      .eq('user_id', userId)
-      .eq('memory_type', 'reflection')
-      .in('metadata->>expert', ids)
-      .is('superseded_at', null)
-      .order('importance_score', { ascending: false })
-      .order('created_at', { ascending: false })
-      .limit(cap);
-    if (error) {
-      log.warn('Domain reflections fetch failed (fail-open)', { userId, expertIds: ids, error: error.message });
-      return [];
-    }
-    return data || [];
-  } catch (err) {
-    log.warn('Domain reflections fetch threw (fail-open)', { userId, expertIds: ids, error: err?.message });
-    return [];
-  }
-}
-
-/**
- * Merge exhaustive domain reflections with vector-sampled ones: domain
- * rows first (they ARE the routed expert's knowledge), vector rows only
- * backfill, dedup by id, capped. Empty/absent domain set => vector rows
- * unchanged (legacy behavior).
- */
-export function mergeExhaustiveReflections(domainReflections, vectorReflections, cap = EXHAUSTIVE_REFLECTION_CAP) {
-  const domain = Array.isArray(domainReflections) ? domainReflections : [];
-  const vector = Array.isArray(vectorReflections) ? vectorReflections : [];
-  if (domain.length === 0) return vector;
-  const seen = new Set();
-  const merged = [];
-  for (const m of [...domain, ...vector]) {
-    if (!seen.has(m.id)) {
-      seen.add(m.id);
-      merged.push(m);
-    }
-  }
-  return merged.slice(0, cap);
-}
 
 /**
  * Graph expansion helper: fetch 1-hop linked memories via memory_links.
@@ -2437,7 +2350,6 @@ export {
   getRecentMemories,
   rateImportance,
   rateImportanceAndDurability,
-  fetchDomainReflections,
   extractConversationFacts,
   extractCommunicationStyle,
   getMemoryStats,

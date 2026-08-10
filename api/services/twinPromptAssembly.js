@@ -5,9 +5,9 @@
  * The base prompt comes from buildTwinSystemPrompt() — this layer stacks
  * the dynamic, context-dependent blocks on top (anti-emoji, persona,
  * personality calibration, voice examples, oracle, financial coach,
- * neurotransmitter mode, emotional state, nudge history).
+ * emotional state, nudge history).
  *
- * Also runs neurotransmitterMode + emotionalState (needed downstream).
+ * Also runs emotionalState (needed downstream).
  *
  * Extracted from POST /api/chat/message during the 2026-05-09 monolith trim
  * (audit ARCH-1).
@@ -17,7 +17,6 @@ import { buildTwinSystemPrompt } from './twinSystemPromptBuilder.js';
 import { buildPersonaBlock } from './personaBlockBuilder.js';
 import { buildPersonalityPrompt } from './personalityPromptBuilder.js';
 import { formatOracleBlock } from './finetuning/personalityOracle.js';
-import { detectConversationMode, buildNeurotransmitterPromptBlock } from './neurotransmitterService.js';
 import { computeEmotionalState, buildEmotionalStateMemory } from './emotionalStateService.js';
 import { CHAT_TIER_LIGHT } from './chatRouter.js';
 import { createLogger } from './logger.js';
@@ -91,7 +90,6 @@ export async function assembleTwinSystemPrompt({
   routingTier,
   message,
   userId,
-  useNeurotransmitterModes,
   useEmotionalState,
   useEmbodiedFeedback,
 }) {
@@ -145,17 +143,6 @@ export async function assembleTwinSystemPrompt({
 
   await maybeAppendFinancialBlock(systemPrompt, userId, message);
 
-  let neurotransmitterMode = { mode: 'default', confidence: 0, matchedKeywords: [] };
-  if (useNeurotransmitterModes) {
-    neurotransmitterMode = detectConversationMode(message);
-    if (neurotransmitterMode.mode !== 'default') {
-      const ntBlock = buildNeurotransmitterPromptBlock(neurotransmitterMode.mode);
-      if (ntBlock) {
-        systemPrompt.push({ type: 'text', text: `\n${ntBlock}` });
-      }
-    }
-  }
-
   const emotionalState = useEmotionalState
     ? computeEmotionalState(platformData, message)
     : { promptBlock: null };
@@ -170,5 +157,5 @@ export async function assembleTwinSystemPrompt({
     }
   }
 
-  return { systemPrompt, neurotransmitterMode, emotionalState };
+  return { systemPrompt, emotionalState };
 }

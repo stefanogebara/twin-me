@@ -15,7 +15,6 @@
 
 import { supabaseAdmin } from './database.js';
 import { fetchTwinContext } from './twinContextBuilder.js';
-import { NEUROPIL_TO_EXPERT } from './neuropilRouter.js';
 import { getProfile, getSoulSignatureLayers } from './personalityProfileService.js';
 import { getOracleDraft } from './finetuning/personalityOracle.js';
 import { buildWorkspaceActionsPrompt } from './tools/workspaceActionParser.js';
@@ -25,29 +24,13 @@ const log = createLogger('TwinChatPreFlight');
 
 const DEFAULT_PLATFORMS = ['spotify', 'calendar', 'whoop', 'web'];
 
-function mapNeuropilWeightsToPreset(weights) {
-  if (!weights) return null;
-  if (weights.recency >= 0.8) return 'recent';
-  if (weights.importance >= 0.8) return 'identity';
-  return 'identity';
-}
-
-export function buildContextOptions({ platforms, neuropilResult }) {
-  const opts = { platforms: platforms || DEFAULT_PLATFORMS };
-  if (neuropilResult?.neuropilId && neuropilResult.budgets) {
-    opts.memoryBudgets = neuropilResult.budgets;
-  }
-  if (neuropilResult?.neuropilId && neuropilResult.weights) {
-    const preset = mapNeuropilWeightsToPreset(neuropilResult.weights);
-    if (preset) opts.memoryWeights = preset;
-  }
-  // R8: exhaustive-within-domain reflections. Thread the routed expert
-  // unconditionally; the feature-flag gate lives in retrieveDiverseMemories
-  // (same cached getFeatureFlags pattern as graph retrieval).
-  if (neuropilResult?.neuropilId && NEUROPIL_TO_EXPERT[neuropilResult.neuropilId]) {
-    opts.exhaustiveReflectionDomain = NEUROPIL_TO_EXPERT[neuropilResult.neuropilId];
-  }
-  return opts;
+// Phase 1 (product-truth-review 2026-08-09): the connectome-neuropil router
+// was deleted — its five domains collapsed to two retrieval presets in
+// practice, and the per-message keyword classification never measurably
+// changed what surfaced. Retrieval uses the default weights unless a caller
+// passes explicit options.
+export function buildContextOptions({ platforms }) {
+  return { platforms: platforms || DEFAULT_PLATFORMS };
 }
 
 async function fetchUserLocation(userId) {
@@ -115,12 +98,10 @@ export async function fetchChatPreFlight({
   userId,
   message,
   context,
-  neuropilResult,
   usePersonalityOracle = false,
 }) {
   const contextOptions = buildContextOptions({
     platforms: context?.platforms,
-    neuropilResult,
   });
 
   let userLocation = null;

@@ -922,13 +922,11 @@ if (process.env.NODE_ENV !== 'production') {
   // Start HTTP server
   server.listen(PORT, async () => {
     const hasRedis = !!(process.env.REDIS_URL || process.env.UPSTASH_REDIS_URL);
-    const rerankerEnabled = process.env.ENABLE_PERSONALITY_RERANKER === 'true';
     log.info('Server started', {
       port: PORT,
       env: process.env.NODE_ENV || 'development',
       cors: process.env.VITE_APP_URL || 'http://localhost:8080',
       bullQueue: hasRedis ? 'Enabled' : 'Fallback',
-      personalityReranker: rerankerEnabled ? 'ENABLED (3x LLM cost per DEEP message)' : 'disabled',
     });
     // Prewarm Supabase connection pool to avoid 10-17s cold-start on first user request
     try {

@@ -3,13 +3,17 @@
  * ===================
  * Owns the first round-trip to the chat tier of the LLM gateway, plus the
  * sampling parameter assembly (personality-derived params + tier temperature
- * delta + neurotransmitter-mode modifiers).
+ * delta).
  *
  * Two branches:
  *   - Streaming  → uses streamLLM(); buffers chunks when workspace actions
  *                  are enabled (so [ACTION: ...] tags don't leak mid-stream).
- *   - Buffered   → uses complete(); optionally goes through the personality
- *                  reranker (DEEP tier + flag-on + sufficient confidence).
+ *   - Buffered   → uses complete().
+ *
+ * Phase 1 (product-truth-review 2026-08-09): the neurotransmitter-mode
+ * sampling deltas (±0.05-0.10 temperature — user-imperceptible) and the
+ * best-of-N personality reranker (only ever wired on the buffered path while
+ * every chat surface streams — dead code in production) were deleted.
  *
  * On gateway failure the helper THROWS — the route catches and maps the
  * error to the right HTTP/SSE response since only the route knows the
@@ -20,29 +24,17 @@
  */
 
 import { complete, stream as streamLLM, TIER_CHAT } from './llmGateway.js';
-import { CHAT_TIER_DEEP } from './chatRouter.js';
-import { applyNeurotransmitterModifiers } from './neurotransmitterService.js';
-import { rerankByPersonality } from './personalityReranker.js';
 import { parseActions, stripActionTags } from './tools/workspaceActionParser.js';
 
 const FALLBACK_MESSAGE = 'I apologize, I could not generate a response.';
 
-function buildSamplingParams({
-  personalityProfile,
-  tempDeltaByTier,
-  useNeurotransmitterModes,
-  neurotransmitterMode,
-}) {
-  const base = {
+function buildSamplingParams({ personalityProfile, tempDeltaByTier }) {
+  return {
     temperature: (personalityProfile?.temperature ?? 0.7) + tempDeltaByTier,
     top_p: personalityProfile?.top_p ?? 0.9,
     frequency_penalty: personalityProfile?.frequency_penalty ?? 0.0,
     presence_penalty: personalityProfile?.presence_penalty ?? 0.0,
   };
-  if (useNeurotransmitterModes && neurotransmitterMode?.mode) {
-    return applyNeurotransmitterModifiers(base, neurotransmitterMode.mode);
-  }
-  return base;
 }
 
 export async function runFirstLlmCall({
@@ -54,18 +46,11 @@ export async function runFirstLlmCall({
   routedModel,
   personalityProfile,
   tempDeltaByTier,
-  useNeurotransmitterModes,
-  neurotransmitterMode,
   workspaceActionsEnabled,
   res,
   chatLog,
 }) {
-  const sampling = buildSamplingParams({
-    personalityProfile,
-    tempDeltaByTier,
-    useNeurotransmitterModes,
-    neurotransmitterMode,
-  });
+  const sampling = buildSamplingParams({ personalityProfile, tempDeltaByTier });
   const serviceName = routingTier ? `twin-chat:${routingTier}` : 'twin-chat';
 
   if (isStreaming) {
@@ -118,38 +103,19 @@ export async function runFirstLlmCall({
   chatLog?.('Starting LLM call');
   const llmCallStart = Date.now();
 
-  const useReranker = process.env.ENABLE_PERSONALITY_RERANKER === 'true'
-    && personalityProfile?.personality_embedding
-    && (personalityProfile?.confidence ?? 0) > 0.3
-    && routingTier === CHAT_TIER_DEEP; // was 'deep' — never matched the 'chat_deep' value (audit)
-
-  let result;
-  if (useReranker) {
-    chatLog?.('Using personality reranker (best-of-N) — DEEP tier');
-    result = await rerankByPersonality(
-      { system: systemPrompt, messages: llmMessages, maxTokens: 2048, userId },
-      personalityProfile.personality_embedding,
-      personalityProfile,
-    );
-    // replan-2026-06-10 cycle 4: DPO preference-pair collection from reranker
-    // candidates removed with the fine-tuning training stack.
-  }
-
-  if (!result) {
-    result = await complete({
-      tier: TIER_CHAT,
-      system: systemPrompt,
-      messages: llmMessages,
-      maxTokens: 2048,
-      temperature: sampling.temperature,
-      top_p: sampling.top_p,
-      frequency_penalty: sampling.frequency_penalty,
-      presence_penalty: sampling.presence_penalty,
-      userId,
-      serviceName,
-      modelOverride: routedModel,
-    });
-  }
+  const result = await complete({
+    tier: TIER_CHAT,
+    system: systemPrompt,
+    messages: llmMessages,
+    maxTokens: 2048,
+    temperature: sampling.temperature,
+    top_p: sampling.top_p,
+    frequency_penalty: sampling.frequency_penalty,
+    presence_penalty: sampling.presence_penalty,
+    userId,
+    serviceName,
+    modelOverride: routedModel,
+  });
   const llmTotalMs = Date.now() - llmCallStart;
   chatLog?.('LLM call complete');
 
