@@ -155,6 +155,37 @@ describe('GET /api/chat/recent', () => {
     ]);
   });
 
+  it('boots a PINNED conversation with newest-N semantics (review 2026-08-10)', async () => {
+    // The pinned path previously went through /history, whose ascending+limit
+    // returned a long conversation's BEGINNING. Pinned /recent must keep the
+    // latest turns, same as the unpinned path.
+    const res = await request(app)
+      .get(`/api/chat/recent?limit=2&conversationId=${CONVO_ID}`)
+      .set('Authorization', `Bearer ${token()}`);
+    expect(res.status).toBe(200);
+    expect(res.body.conversationId).toBe(CONVO_ID);
+    expect(res.body.messages.map((m) => m.content)).toEqual([
+      'newest question',
+      'newest reply',
+    ]);
+  });
+
+  it('rejects a malformed pinned conversation id', async () => {
+    const res = await request(app)
+      .get('/api/chat/recent?conversationId=not-a-uuid')
+      .set('Authorization', `Bearer ${token()}`);
+    expect(res.status).toBe(400);
+  });
+
+  it("returns empty for a pinned id that isn't the user's (ownership filter)", async () => {
+    state.conversations = []; // the user_id+id filter matches nothing
+    const res = await request(app)
+      .get(`/api/chat/recent?conversationId=${CONVO_ID}`)
+      .set('Authorization', `Bearer ${token()}`);
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ success: true, conversationId: null, messages: [] });
+  });
+
   it('returns an empty payload for a user with no conversations', async () => {
     state.conversations = [];
     const res = await request(app)

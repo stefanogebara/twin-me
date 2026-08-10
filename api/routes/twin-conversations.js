@@ -156,13 +156,22 @@ router.get('/recent', authenticateUser, async (req, res) => {
     const userId = req.user.id;
     const limit = Math.min(parseInt(req.query.limit) || 30, 100);
 
-    const { data: convo, error: convoErr } = await supabaseAdmin
+    // Optional pin: boot a SPECIFIC conversation with newest-N semantics
+    // (review 2026-08-10: the pinned path went through /history, whose
+    // ascending+limit returns a >50-turn conversation's BEGINNING).
+    const pinnedId = req.query.conversationId;
+    if (pinnedId && !CONVERSATION_UUID_RE.test(pinnedId)) {
+      return res.status(400).json({ success: false, error: 'Invalid conversation ID' });
+    }
+
+    let convoQuery = supabaseAdmin
       .from('twin_conversations')
       .select('id')
-      .eq('user_id', userId)
-      .order('updated_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .eq('user_id', userId);
+    convoQuery = pinnedId
+      ? convoQuery.eq('id', pinnedId)
+      : convoQuery.order('updated_at', { ascending: false });
+    const { data: convo, error: convoErr } = await convoQuery.limit(1).maybeSingle();
 
     if (convoErr) {
       log.error('Recent conversation lookup failed', { error: convoErr.message });

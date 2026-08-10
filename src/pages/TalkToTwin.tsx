@@ -242,14 +242,16 @@ const TalkToTwin = () => {
   // first paint + offline fallback; server truth replaces it when it lands —
   // unless the user already started typing/sending in the meantime.
   const historyBootFired = useRef(false);
-  const userSentSinceMount = useRef(false);
+  const bootSuperseded = useRef(false);
   useEffect(() => {
     if (!user?.id || historyBootFired.current) return;
     historyBootFired.current = true;
 
+    // Both branches use /recent for newest-N semantics — /history truncates
+    // long conversations from the START (review 2026-08-10).
     const pinnedId = sessionStorage.getItem(CONVERSATION_ID_KEY);
     const url = pinnedId
-      ? `${API_BASE}/chat/history?conversationId=${pinnedId}`
+      ? `${API_BASE}/chat/recent?limit=30&conversationId=${pinnedId}`
       : `${API_BASE}/chat/recent?limit=30`;
 
     (async () => {
@@ -267,7 +269,9 @@ const TalkToTwin = () => {
           }),
         );
         if (serverMessages.length === 0) return; // persistence lag or new user — keep local
-        if (userSentSinceMount.current) return; // a send raced the fetch — don't clobber
+        // A send, New-chat, or conversation selection raced the fetch — the
+        // user has moved on; server boot must not yank them back.
+        if (bootSuperseded.current) return;
         setMessages(serverMessages);
         if (!pinnedId && data.conversationId) setConversationId(data.conversationId);
       } catch {
@@ -277,9 +281,12 @@ const TalkToTwin = () => {
   }, [user?.id]);
 
   const handleSelectConversation = async (id: string) => {
+    bootSuperseded.current = true; // user chose a thread — mount boot must not override
     try {
       const token = getAccessToken();
-      const response = await fetch(`${API_BASE}/chat/history?conversationId=${id}`, {
+      // /recent with an explicit conversationId keeps the NEWEST turns of a
+      // long thread; /history truncates from the start (review 2026-08-10).
+      const response = await fetch(`${API_BASE}/chat/recent?limit=50&conversationId=${id}`, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
       // Guard response.ok before .json(): a 401/500 may return a non-JSON body,
@@ -312,6 +319,7 @@ const TalkToTwin = () => {
   };
 
   const handleNewChat = () => {
+    bootSuperseded.current = true; // fresh thread — mount boot must not resurrect the old one
     // Clear persisted history too, otherwise the prior thread's last messages
     // survive in storage and resurrect on refresh into the new conversation.
     localStorage.removeItem(CHAT_HISTORY_KEY);
@@ -356,7 +364,7 @@ const TalkToTwin = () => {
 
   const handleSendMessage = async () => {
     if (!inputMessage.trim() || !user?.id) return;
-    userSentSinceMount.current = true;
+    bootSuperseded.current = true;
 
     if (!navigator.onLine) {
       toast({
