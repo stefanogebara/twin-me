@@ -1,5 +1,8 @@
 {
   "watch": ["api/"],
   "ignore": ["dist/", "node_modules/", "src/", "*.test.js"],
-  "ext": "js,json"
+  "ext": "js,json",
+  "env": {
+    "NODE_ENV": "development"
+  }
 }
