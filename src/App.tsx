@@ -61,7 +61,6 @@ const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 const PortfolioPage = lazy(() => import("./pages/PortfolioPage"));
 const NewDiscoverFlow = lazy(() => import("./pages/onboarding/NewDiscoverFlow"));
-const OnboardingFlow = lazy(() => import("./pages/onboarding/OnboardingFlow"));
 const OnboardingWowPage = lazy(() => import("./pages/onboarding/OnboardingWowPage"));
 const DiscoverLanding = lazy(() => import("./pages/DiscoverLanding"));
 const WaitlistPage = lazy(() => import("./pages/WaitlistPage"));
@@ -435,17 +434,17 @@ const App = () => {
             {/* Legacy onboarding routes */}
             <Route path="/welcome" element={<Navigate to="/get-started" replace />} />
 
-            {/* Cinematic onboarding — new user flow */}
-            <Route path="/onboarding" element={
-              <ProtectedRoute>
-                <ErrorBoundary>
-                  <OnboardingFlow />
-                </ErrorBoundary>
-              </ProtectedRoute>
-            } />
+            {/* Phase 2 (product-truth-review 2026-08-09): ONE onboarding.
+                Three flows selling two different products collapsed into the
+                sequence soul-reveal (the marketed promise: "we already found
+                you") -> /onboarding/wow (the retention hook: drafts in your
+                voice) -> /today. OnboardingFlow (welcome/interview/platforms/
+                awakening) deleted; its job is covered by NewDiscoverFlow. */}
+            <Route path="/onboarding" element={<Navigate to="/soul-reveal" replace />} />
 
-            {/* Onboarding "wow" — post-Gmail-connect: voice read + first drafted
-                replies, then into Today. Full-screen moment (no sidebar). */}
+            {/* Onboarding "wow" — second wow after the soul reveal: voice read
+                + first drafted replies, then into Today. Full-screen moment
+                (no sidebar). Degrades gracefully without Gmail. */}
             <Route path="/onboarding/wow" element={
               <ProtectedRoute>
                 <ErrorBoundary>

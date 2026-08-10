@@ -75,8 +75,12 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     // Also allow /soul-reveal so the desktop "look you up" research reveal can
     // run once right after Google sign-in before the onboarding gate sends the
     // user onward.
-    if (needsOnboarding && location.pathname !== '/onboarding' && location.pathname !== '/soul-reveal') {
-      return <Navigate to="/onboarding" replace />;
+    // Phase 2: /soul-reveal (NewDiscoverFlow) is the ONE onboarding flow;
+    // /onboarding/wow is its second act (reached after the flow clears the
+    // gate, but allow-listed so a mid-wow refresh with a lagging server
+    // completion write doesn't yank the user back to the start).
+    if (needsOnboarding && location.pathname !== '/soul-reveal' && location.pathname !== '/onboarding/wow') {
+      return <Navigate to="/soul-reveal" replace />;
     }
     return <>{children}</>;
   }

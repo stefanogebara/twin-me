@@ -570,10 +570,13 @@ const NewDiscoverFlow: React.FC = () => {
       })
       .catch(err => console.error('Failed to persist onboarding completion:', err));
     // Clear the client-side gate too, or ProtectedRoute bounces the user
-    // straight back to /onboarding before the POST lands.
+    // straight back into onboarding before the POST lands.
     setNeedsOnboarding(false);
     setPhaseTracked('complete');
-    navigate('/today');
+    // Phase 2 (one onboarding, two wows): the soul reveal was wow #1; the
+    // drafted-replies moment is wow #2 and the retention hook. The wow page
+    // degrades gracefully when Gmail is not connected ("Your twin is ready").
+    navigate('/onboarding/wow');
   };
 
   // audit-2026-06-10 follow-up: the header Skip is an escape hatch, NOT a finish —

@@ -362,8 +362,12 @@ const OAuthCallback = () => {
                 // (audit-2026-06-10)
                 const fromSoulReveal = sessionStorage.getItem('onboarding_platform_connect');
                 if (fromOnboarding) {
+                  // Legacy OnboardingFlow key (flow deleted, Phase 2): translate
+                  // to the soul-reveal resume so the user lands back on the
+                  // platforms phase with the connection registered.
                   sessionStorage.removeItem('onboarding_platform_step');
-                  window.location.href = '/onboarding?step=platform&connected=' + connectedProvider;
+                  sessionStorage.setItem('onboarding_platform_connect', connectedProvider);
+                  window.location.href = '/soul-reveal';
                 } else if (fromSoulReveal) {
                   window.location.href = '/soul-reveal';
                 } else {
@@ -431,8 +435,8 @@ const OAuthCallback = () => {
               } else if (stateData?.redirectAfterAuth && isRelativePath(stateData.redirectAfterAuth)) {
                 redirectPath = stateData.redirectAfterAuth;
               } else if (data.isNewUser) {
-                // New users go to cinematic onboarding (interview is step 2 inside)
-                redirectPath = '/onboarding';
+                // New users go to the soul-reveal onboarding (the one flow, Phase 2)
+                redirectPath = '/soul-reveal';
               }
 
               const welcomeMessage = data.isNewUser
@@ -470,8 +474,11 @@ const OAuthCallback = () => {
                 } else {
                   const fromOnboarding = sessionStorage.getItem('onboarding_platform_step');
                   if (fromOnboarding) {
+                    // Legacy OnboardingFlow key (flow deleted, Phase 2) — resume
+                    // the soul-reveal platforms phase instead.
                     sessionStorage.removeItem('onboarding_platform_step');
-                    window.location.href = '/onboarding?step=platform&connected=' + sanitizeProvider(stateData?.provider);
+                    sessionStorage.setItem('onboarding_platform_connect', sanitizeProvider(stateData?.provider));
+                    window.location.href = '/soul-reveal';
                   } else {
                     window.location.href = '/connect?connected=true';
                   }
@@ -515,7 +522,7 @@ const OAuthCallback = () => {
               setStatus('success');
 
               // Determine redirect based on whether user is new or existing
-              const redirectPath = data.isNewUser ? '/onboarding' : '/today';
+              const redirectPath = data.isNewUser ? '/soul-reveal' : '/today';
               const welcomeMessage = data.isNewUser
                 ? 'Welcome! Let\'s set up your Soul Signature'
                 : 'Welcome back!';
