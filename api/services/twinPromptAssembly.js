@@ -99,7 +99,12 @@ export async function assembleTwinSystemPrompt({
     directives, timelineSpine,
   } = twinContext;
 
-  const wikiPagesForPrompt = featureFlags.llm_wiki === true ? twinContext.wikiPages : null;
+  // Phase 1 (2026-08-10): wiki injection hard-frozen. The llm_wiki toggle left
+  // the Settings/flags API, the compile cron was cut, and observation
+  // ingestion no longer recompiles pages — so a legacy llm_wiki=true row would
+  // inject permanently-stale pages into chat forever. Frozen means frozen:
+  // nothing injects until the wiki gets a deliberate second life.
+  const wikiPagesForPrompt = null;
   // The builder already gates on the flag and returns null when it is off, so
   // this is just the flag check made visible at the assembly site.
   const spineForPrompt = featureFlags.temporal_spine === true ? timelineSpine : null;

@@ -89,7 +89,7 @@ export default function StardustHero() {
 
             {/* Right: auth CTAs */}
             <div className="flex items-center gap-2 ml-auto">
-              <SignInButton mode="modal" fallbackRedirectUrl="/dashboard" forceRedirectUrl="/dashboard">
+              <SignInButton mode="modal" fallbackRedirectUrl="/today" forceRedirectUrl="/today">
                 <button
                   type="button"
                   className="px-5 py-2.5 rounded-[100px] text-[14px] font-medium transition-transform duration-150 hover:-translate-y-0.5"
@@ -102,7 +102,7 @@ export default function StardustHero() {
                   Start now
                 </button>
               </SignInButton>
-              <SignInButton mode="modal" fallbackRedirectUrl="/dashboard" forceRedirectUrl="/dashboard">
+              <SignInButton mode="modal" fallbackRedirectUrl="/today" forceRedirectUrl="/today">
                 <button
                   type="button"
                   className="px-5 py-2.5 rounded-[100px] text-[14px] font-medium text-[#F5F5F4] transition-colors duration-150"
@@ -201,7 +201,7 @@ export default function StardustHero() {
         </p>
 
         <div className="mt-8 sm:mt-10 flex items-center gap-3">
-          <SignInButton mode="modal" fallbackRedirectUrl="/dashboard" forceRedirectUrl="/dashboard">
+          <SignInButton mode="modal" fallbackRedirectUrl="/today" forceRedirectUrl="/today">
             <button
               type="button"
               className="px-6 py-3 rounded-[100px] text-[14px] font-medium transition-transform duration-150 hover:-translate-y-0.5"
@@ -214,7 +214,7 @@ export default function StardustHero() {
               Start for free
             </button>
           </SignInButton>
-          <SignInButton mode="modal" fallbackRedirectUrl="/dashboard" forceRedirectUrl="/dashboard">
+          <SignInButton mode="modal" fallbackRedirectUrl="/today" forceRedirectUrl="/today">
             <button
               type="button"
               className="px-6 py-3 rounded-[100px] text-[14px] font-medium text-[#F5F5F4] transition-colors duration-150"

@@ -21,10 +21,57 @@ import { supabaseAdmin } from './database.js';
 import { complete, TIER_ANALYSIS, TIER_EXTRACTION } from './llmGateway.js';
 import { generateEmbedding } from './embeddingService.js';
 import { getFeatureFlags } from './featureFlagsService.js';
-import { classifyNeuropil } from './neuropilRouter.js';
 import { createLogger } from './logger.js';
 
 const log = createLogger('WikiCompilation');
+
+// Phase 1 (product-truth-review 2026-08-09): the neuropil router was deleted
+// with the chat-side domain routing; query filing was its last consumer, so
+// its keyword classifier lives here now as a private helper. Classifies a
+// twin response into one of the five wiki domains (>= 2 keyword matches to
+// activate; null otherwise, which files under the fallback domain).
+const DOMAIN_KEYWORDS = {
+  personality: [
+    'who am i', 'personality', 'identity', 'values', 'believe',
+    'character', 'trait', 'self', 'authentic', 'soul',
+    'introvert', 'extrovert', 'attachment', 'big five', 'ocean',
+  ],
+  lifestyle: [
+    'sleep', 'exercise', 'routine', 'morning', 'energy',
+    'health', 'diet', 'workout', 'recovery', 'daily',
+    'schedule', 'habit', 'rhythm', 'hrv', 'strain',
+  ],
+  cultural: [
+    'music', 'movie', 'book', 'show', 'art',
+    'taste', 'aesthetic', 'genre', 'style', 'culture',
+    'spotify', 'youtube', 'watch', 'listen', 'read',
+  ],
+  social: [
+    'friend', 'relationship', 'people', 'social', 'talk',
+    'community', 'discord', 'group', 'conversation', 'connect',
+    'network', 'linkedin', 'team', 'collaborate', 'communicate',
+  ],
+  motivation: [
+    'goal', 'ambition', 'career', 'work', 'achieve',
+    'motivation', 'purpose', 'drive', 'plan', 'future',
+    'success', 'progress', 'productivity', 'decision', 'challenge',
+  ],
+};
+
+function classifyWikiDomain(text) {
+  if (!text || typeof text !== 'string') return null;
+  const lower = text.toLowerCase();
+  let bestId = null;
+  let bestCount = 0;
+  for (const [id, keywords] of Object.entries(DOMAIN_KEYWORDS)) {
+    const count = keywords.filter((kw) => lower.includes(kw)).length;
+    if (count > bestCount) {
+      bestId = id;
+      bestCount = count;
+    }
+  }
+  return bestCount >= 2 ? bestId : null;
+}
 
 // ====================================================================
 // Domain Configuration
@@ -769,7 +816,7 @@ export async function fileQueryInsightIfValuable(userId, citedIds, twinResponse,
   }
 
   // Step 2: Classify to domain
-  const { neuropilId: domain } = classifyNeuropil(twinResponse);
+  const domain = classifyWikiDomain(twinResponse);
 
   // Step 3: Extract insight via LLM
   let insight;

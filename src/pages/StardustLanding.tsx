@@ -20,7 +20,7 @@ const SANS = "'Geist', 'Inter', system-ui, sans-serif";
 /* ── shared bits ── */
 function BoneButton({ children }: { children: React.ReactNode }) {
   return (
-    <SignInButton mode="modal" fallbackRedirectUrl="/dashboard" forceRedirectUrl="/dashboard">
+    <SignInButton mode="modal" fallbackRedirectUrl="/today" forceRedirectUrl="/today">
       <button
         type="button"
         className="px-6 py-3 rounded-[100px] text-[14px] font-medium transition-transform duration-150 hover:-translate-y-0.5"
@@ -33,7 +33,7 @@ function BoneButton({ children }: { children: React.ReactNode }) {
 }
 function GlassButton({ children }: { children: React.ReactNode }) {
   return (
-    <SignInButton mode="modal" fallbackRedirectUrl="/dashboard" forceRedirectUrl="/dashboard">
+    <SignInButton mode="modal" fallbackRedirectUrl="/today" forceRedirectUrl="/today">
       <button
         type="button"
         className="px-6 py-3 rounded-[100px] text-[14px] font-medium text-[#F5F5F4] transition-colors duration-150"

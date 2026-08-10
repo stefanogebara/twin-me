@@ -9,8 +9,9 @@
  * per-case, which is all we need to assert redirect vs. children.
  *
  * Acceptance covered: an authenticated non-admin visiting an admin route is
- * redirected to /dashboard and never sees the admin shell; an admin is
- * unaffected; and the non-admin gate does NOT regress ordinary routes.
+ * redirected to /today (the one home after the Phase 1 IA collapse) and never
+ * sees the admin shell; an admin is unaffected; and the non-admin gate does
+ * NOT regress ordinary routes.
  */
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
@@ -51,10 +52,10 @@ beforeEach(() => {
 });
 
 describe('ProtectedRoute requireAdmin', () => {
-  it('redirects an authenticated non-admin to /dashboard and hides the shell', () => {
+  it('redirects an authenticated non-admin to /today and hides the shell', () => {
     mockAuth = { isSignedIn: true, isLoaded: true, isAdmin: false, needsOnboarding: false };
     const html = renderGate(true);
-    expect(html).toContain('data-redirect="/dashboard"');
+    expect(html).toContain('data-redirect="/today"');
     expect(html).not.toContain(SHELL);
   });
 
