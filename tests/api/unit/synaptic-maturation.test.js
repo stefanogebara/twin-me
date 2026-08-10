@@ -189,36 +189,9 @@ describe('Graph Score Boosting', () => {
   });
 });
 
-// ── Saliency Replay Selection Logic ─────────────────────────────────
-
-describe('Saliency Replay Selection', () => {
-  it('deduplicates user IDs from candidate rows', () => {
-    const candidates = [
-      { user_id: 'user-1' },
-      { user_id: 'user-1' }, // dup
-      { user_id: 'user-2' },
-      { user_id: 'user-3' },
-      { user_id: 'user-2' }, // dup
-    ];
-    const userIds = [...new Set(candidates.map(r => r.user_id))];
-    expect(userIds).toEqual(['user-1', 'user-2', 'user-3']);
-  });
-
-  it('caps users at maxUsers', () => {
-    const candidates = Array.from({ length: 10 }, (_, i) => ({
-      user_id: `user-${i}`,
-    }));
-    const maxUsers = 3;
-    const userIds = [...new Set(candidates.map(r => r.user_id))].slice(0, maxUsers);
-    expect(userIds).toHaveLength(3);
-  });
-
-  it('returns empty when no candidates', () => {
-    const candidates = [];
-    const userIds = [...new Set(candidates.map(r => r.user_id))].slice(0, 3);
-    expect(userIds).toHaveLength(0);
-  });
-});
+// Phase 1 (product-truth-review 2026-08-09): the Saliency Replay section was
+// removed with saliencyReplayService + its daily cron. STDP decay and graph
+// traversal remain live (weekly forgetting cron + in-request retrieval).
 
 // ── STDP Link Strength Update Logic ─────────────────────────────────
 

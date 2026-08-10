@@ -1846,64 +1846,13 @@ async function retrieveDiverseMemories(userId, query, budgets = {}, reflectionWe
     configurable: true,
   });
 
-  // audit-2026-05-09 C1 fix: Graph expansion was awaited synchronously here,
-  // adding 1-2 DB roundtrips to the critical path. Under cold-start pgbouncer
-  // queueing this pushed retrieveDiverseMemories past the 7s global breaker in
-  // twinContextBuilder, so memories defaulted to []. Now: return base results
-  // immediately, run expansion as fire-and-forget for next-request cache warm.
-  _expandWithMemoryLinks(userId, combined, 5)
-    .then(expanded => {
-      if (expanded.length > combined.length) {
-        _diverseMemoryCache.set(queryKey, { data: expanded, ts: Date.now() });
-        log.debug('Graph expansion cached', { userId, added: expanded.length - combined.length });
-      }
-    })
-    .catch(err => log.warn('Graph expansion failed (background)', { error: err?.message }));
-
+  // Phase 1 (product-truth-review 2026-08-09): the fire-and-forget graph
+  // "cache warm" that ran here was deleted. It enriched the cache entry AFTER
+  // the response was already built, so only an identical query within the
+  // 2-minute cache TTL ever saw the expansion — in practice, nobody. The
+  // in-request graph traversal in retrieveMemories (awaited, validated by
+  // twin-research 2026-03-10) is the one live graph consumer and stays.
   return combined;
-}
-
-// ====================================================================
-// R8: Exhaustive-within-domain reflections
-// ====================================================================
-
-/**
- * Graph expansion helper: fetch 1-hop linked memories via memory_links.
- * Seeds from the top 3 retrieved memories; adds up to maxLinked new unique memories.
- * Non-blocking — caller wraps in .catch() to swallow failures.
- */
-async function _expandWithMemoryLinks(userId, memories, maxLinked = 5) {
-  if (!memories.length) return memories;
-
-  // Use top 3 retrieved memories as seeds for link traversal
-  const sourceIds = memories.slice(0, 3).map(m => m.id);
-  const existingIds = new Set(memories.map(m => m.id));
-
-  const { data: links, error } = await supabaseAdmin
-    .from('memory_links')
-    .select('target_memory_id, strength')
-    .eq('user_id', userId)
-    .in('source_memory_id', sourceIds)
-    .order('strength', { ascending: false })
-    .limit(30);
-
-  if (error || !links?.length) return memories;
-
-  // Deduplicate target IDs and exclude already-retrieved memories
-  const newIds = [...new Set(links.map(l => l.target_memory_id))]
-    .filter(id => !existingIds.has(id))
-    .slice(0, maxLinked);
-
-  if (!newIds.length) return memories;
-
-  const { data: linkedMems, error: fetchErr } = await supabaseAdmin
-    .from('user_memories')
-    .select('id, content, memory_type, importance_score, metadata, created_at, last_accessed_at')
-    .in('id', newIds);
-
-  if (fetchErr || !linkedMems?.length) return memories;
-
-  return [...memories, ...linkedMems];
 }
 
 /**
