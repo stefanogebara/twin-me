@@ -220,6 +220,37 @@ describe('parseTwinAnswers', () => {
     expect(parseTwinAnswers('```json\n{"answers": {"x": 1}}\n```').answers).toEqual({ x: 1 });
     expect(parseTwinAnswers('no json here')).toBeNull();
   });
+
+  // fidelity-eval 2026-08-11 trial 1: DeepSeek wrapped confidence values in
+  // parentheses — `"planning_style": (0.9)` — which fails JSON.parse and
+  // silently discarded an entire 13-item half-battery. Near-JSON like this
+  // must be sanitized, not dropped.
+  it('recovers parenthesized numbers instead of dropping the half-battery', () => {
+    const raw = '{"answers": {"bfi_reserved": 4, "planning_style": "Plan ahead"}, "confidence": {"bfi_reserved": (0.8), "planning_style": (0.9)}}';
+    const parsed = parseTwinAnswers(raw);
+    expect(parsed).not.toBeNull();
+    expect(parsed.answers.bfi_reserved).toBe(4);
+    expect(parsed.answers.planning_style).toBe('Plan ahead');
+    expect(parsed.confidence.bfi_reserved).toBe(0.8);
+    expect(parsed.confidence.planning_style).toBe(0.9);
+  });
+
+  it('recovers parenthesized answer values too', () => {
+    const parsed = parseTwinAnswers('{"answers": {"bfi_reserved": (4)}}');
+    expect(parsed).not.toBeNull();
+    expect(parsed.answers.bfi_reserved).toBe(4);
+  });
+
+  it('tolerates trailing commas', () => {
+    const parsed = parseTwinAnswers('{"answers": {"x": 1, "y": 2,}, "confidence": {"x": 0.7,},}');
+    expect(parsed).not.toBeNull();
+    expect(parsed.answers).toEqual({ x: 1, y: 2 });
+    expect(parsed.confidence).toEqual({ x: 0.7 });
+  });
+
+  it('still returns null when sanitizing cannot save it', () => {
+    expect(parseTwinAnswers('{"answers": {"x": totally broken')).toBeNull();
+  });
 });
 
 describe('answerBatteryAsTwin', () => {
