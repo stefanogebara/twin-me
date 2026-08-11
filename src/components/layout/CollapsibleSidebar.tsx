@@ -9,13 +9,8 @@ import {
   X,
   Settings,
   LogOut,
-  Target,
-  Mic,
   ChevronsLeft,
   ChevronsRight,
-  Wallet,
-  Download,
-  Upload,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -31,18 +26,19 @@ interface CollapsibleSidebarProps {
   onClose: () => void;
 }
 
-// Nav: 3 core tabs + settings (per CLAUDE.md: "Home / Chat / Me")
+// The five-surface IA (product-truth-review 2026-08-09): Today, Twin, You,
+// Connect, Settings. A surface earns a nav slot only if a user would type its
+// URL from memory; everything else is a card in Today, a section in You, or a
+// message from the twin.
+// Removed 2026-08-10 (Phase 1): Money (frozen — route alive, no nav),
+// Download app (desktop is no longer the bet), History import (absorbed into
+// Connect). Prior removals 2026-06-12: Knowledge, Inbox, Meetings — viewers
+// over backend intelligence, usage 1-3 of 21 users.
 const navItems: NavItem[] = [
+  { id: 'today',        label: 'Today',           icon: Home,          path: '/today' },
   { id: 'chat',         label: 'Talk to Twin',    icon: MessageCircle, path: '/talk-to-twin' },
-  { id: 'dashboard',    label: 'Home',            icon: Home,          path: '/dashboard' },
   { id: 'me',           label: 'You',             icon: Sparkles,      path: '/identity' },
-  // One-interface (2026-06-12): Knowledge, Inbox, and Meetings entries removed.
-  // Each was a viewer over backend intelligence that already flows through the
-  // twin (chat + WhatsApp + Home cards). Usage at removal: 1-3 users of 21.
-  { id: 'money',        label: 'Money',           icon: Wallet,        path: '/money' },
   { id: 'connect',      label: 'Connect',         icon: Link2,         path: '/connect' },
-  { id: 'data-exports', label: 'History import',   icon: Upload,        path: '/data-exports' },
-  { id: 'download',     label: 'Download app',    icon: Download,      path: '/download' },
   { id: 'settings',     label: 'Settings',        icon: Settings,      path: '/settings' },
 ];
 
@@ -157,7 +153,7 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
             )}>
               <button
                 type="button"
-                onClick={() => handleNavigate('/dashboard')}
+                onClick={() => handleNavigate('/today')}
                 className="hover:opacity-80 transition-all duration-200 flex items-center gap-2.5"
                 aria-label="Go to dashboard"
                 title="Twin Me"

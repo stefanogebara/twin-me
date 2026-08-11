@@ -20,7 +20,7 @@ const WhatsNextChapter: React.FC = () => {
           Connect Platforms
         </button>
         <button
-          onClick={() => navigate('/interview')}
+          onClick={() => navigate('/story')}
           className="px-4 py-2 rounded-[100px] text-[13px] font-medium transition-opacity hover:opacity-80"
           style={{ border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
         >

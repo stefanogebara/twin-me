@@ -149,28 +149,12 @@
       "schedule": "0 9 * * 1"
     },
     {
-      "path": "/api/cron/memory-saliency-replay",
-      "schedule": "0 4 * * *"
-    },
-    {
       "path": "/api/cron/prospective-check",
       "schedule": "*/15 * * * *"
     },
     {
-      "path": "/api/cron/meeting-prep",
-      "schedule": "0 * * * *"
-    },
-    {
-      "path": "/api/cron/meeting-debrief",
-      "schedule": "0 * * * *"
-    },
-    {
       "path": "/api/cron/stripe-webhook-events-cleanup",
       "schedule": "0 4 * * 0"
-    },
-    {
-      "path": "/api/cron/wiki-compile",
-      "schedule": "0 2 * * *"
     },
     {
       "path": "/api/cron/health-monitor",
@@ -185,48 +169,12 @@
       "schedule": "0 10 * * *"
     },
     {
-      "path": "/api/cron/inbox-intelligence",
-      "schedule": "5 10 * * *"
-    },
-    {
-      "path": "/api/cron/relationships",
-      "schedule": "10 10 * * *"
-    },
-    {
-      "path": "/api/cron/morning-briefing-email",
-      "schedule": "0 11 * * *"
-    },
-    {
-      "path": "/api/cron/intelligent-triggers",
-      "schedule": "30 10 * * *"
-    },
-    {
-      "path": "/api/cron/action-reflection",
-      "schedule": "0 5 * * *"
-    },
-    {
-      "path": "/api/cron/statement-nag",
-      "schedule": "0 12 1 * *"
-    },
-    {
-      "path": "/api/cron/future-simulation",
-      "schedule": "0 18 * * 0"
-    },
-    {
       "path": "/api/cron/twin-summary-refresh",
       "schedule": "0 6 * * *"
     },
     {
-      "path": "/api/cron/calendar-optimization",
-      "schedule": "0 8 * * 1-5"
-    },
-    {
       "path": "/api/cron/nudge-inactive",
       "schedule": "0 14 * * *"
-    },
-    {
-      "path": "/api/cron/department-execute",
-      "schedule": "0 */3 * * *"
     },
     {
       "path": "/api/cron/agent-actions-cleanup",
@@ -235,14 +183,6 @@
     {
       "path": "/api/cron/nango-orphan-cleanup",
       "schedule": "0 5 * * 0"
-    },
-    {
-      "path": "/api/cron/outcome-learning",
-      "schedule": "30 3 * * *"
-    },
-    {
-      "path": "/api/cron/twin-self-improvement",
-      "schedule": "0 4 * * *"
     },
     {
       "path": "/api/cron/llm-usage-log-cleanup",

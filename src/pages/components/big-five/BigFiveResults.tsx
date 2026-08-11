@@ -201,7 +201,7 @@ export function BigFiveResults({
           View Soul Signature
         </button>
         <button
-          onClick={() => navigate('/dashboard')}
+          onClick={() => navigate('/today')}
           className="px-6 py-3 rounded-xl font-medium transition-all"
           style={{
             backgroundColor: colors.accentBg,

@@ -91,7 +91,6 @@ export const PlatformConnectionsStep: React.FC<PlatformConnectionsStepProps> = (
   // Mirror entries drive the first-class extension/desktop cards; everything
   // else flows through the generic connected/unconnected tile lists.
   const webEntry = platformEntries['web'];
-  const desktopEntry = platformEntries['desktop'];
   // Retired platforms (Track C portfolio cut) render NOTHING here — their
   // connection rows still exist in the DB but are no longer polled; Settings
   // is the only surface that still surfaces them (as "No longer supported").
@@ -158,15 +157,13 @@ export const PlatformConnectionsStep: React.FC<PlatformConnectionsStepProps> = (
           summary itself and renders the shared Soul Score number. */}
       <SoulRichnessBar />
 
-      {/* Always-On Sources — extension + desktop mirrors as first-class cards
-          (replan-2026-06-10 Track C: these see everything; treat them like
-          the moat, not a buried "Connect" tile). */}
+      {/* Always-On Sources — the browser extension mirror as a first-class card
+          (replan-2026-06-10 Track C: it sees everything; treat it like the
+          moat, not a buried "Connect" tile). */}
       <SectionLabel label="Always-On Sources" />
       <MirrorSourceTiles
         webEntry={webEntry}
-        desktopEntry={desktopEntry}
         onInstallExtension={() => connectService('browser_extension')}
-        onDownloadDesktop={() => navigate('/download')}
       />
       <Divider />
 

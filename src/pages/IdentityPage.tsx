@@ -389,6 +389,25 @@ const IdentityPage: React.FC = () => {
     enabled: !!user,
   });
 
+  // Latest fidelity battery wave (Phase 2: the headline metric). waves[0] is
+  // the newest; only waves with a measured twin_accuracy count.
+  const { data: fidelityData } = useQuery<{
+    success: boolean;
+    data: { waves: Array<{ twin_accuracy: number | null; wave: number }> } | null;
+  }>({
+    queryKey: ['twin-fidelity-results'],
+    queryFn: async () => {
+      const res = await authFetch('/twin-fidelity/results');
+      if (!res.ok) return { success: false, data: null };
+      return res.json();
+    },
+    staleTime: 10 * 60 * 1000,
+    enabled: !!user,
+  });
+  const latestFidelity = fidelityData?.data?.waves?.find(
+    (w) => typeof w.twin_accuracy === 'number',
+  ) ?? null;
+
   const isLoading = identityLoading || soulLoading;
   const summary = data?.data?.summary ?? null;
   const layers = soulData?.data?.layers ?? soulData?.data ?? null;
@@ -681,6 +700,29 @@ const IdentityPage: React.FC = () => {
                     />
                     {driftIsStable ? 'Stable signal' : `${driftShiftCount} shift${driftShiftCount !== 1 ? 's' : ''} detected`}
                   </span>
+                  {/* Fidelity badge — measured twin accuracy from the test-retest
+                      battery (Phase 2 headline metric). With a score: show it.
+                      Without: invite the test — /fidelity was an orphan page
+                      reachable only from the end of a Story chapter. */}
+                  {latestFidelity ? (
+                    <button
+                      onClick={() => navigate('/fidelity')}
+                      className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium transition-opacity hover:opacity-80"
+                      style={{ background: 'var(--surface)', color: 'var(--foreground)' }}
+                      aria-label="View twin fidelity results"
+                    >
+                      Twin knows you {Math.round(latestFidelity.twin_accuracy! * 100)}%
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => navigate('/fidelity')}
+                      className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium transition-opacity hover:opacity-80"
+                      style={{ background: 'var(--surface)', color: 'var(--text-secondary)' }}
+                      aria-label="Test how well your twin knows you"
+                    >
+                      Test your twin
+                    </button>
+                  )}
                 </div>
                 {generatedAt && (
                   <p
@@ -1316,7 +1358,7 @@ const EmptyState: React.FC<{ message?: string }> = ({ message }) => {
           Connect platforms
         </button>
         <button
-          onClick={() => navigate('/interview')}
+          onClick={() => navigate('/story')}
           className="px-5 py-2 rounded-[100px] text-sm font-medium transition-all duration-150 hover:opacity-80 active:scale-[0.97]"
           style={{ border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
         >

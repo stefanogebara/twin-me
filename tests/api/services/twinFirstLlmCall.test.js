@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // All mock objects are declared via vi.hoisted() so they exist before the
 // hoisted vi.mock factories run.
@@ -12,22 +12,9 @@ const gatewayMocks = vi.hoisted(() => ({
 }));
 vi.mock('../../../api/services/llmGateway.js', () => gatewayMocks);
 
-vi.mock('../../../api/services/chatRouter.js', () => ({
-  CHAT_TIER_DEEP: 'chat_deep',
-}));
-
-// Neurotransmitter modifier: identity-with-a-marker so we can prove the params
-// were routed through it when a mode is active.
-const neuroMocks = vi.hoisted(() => ({
-  applyNeurotransmitterModifiers: vi.fn((base) => ({ ...base, _neuro: true })),
-}));
-vi.mock('../../../api/services/neurotransmitterService.js', () => neuroMocks);
-
-const rerankMocks = vi.hoisted(() => ({
-  rerankByPersonality: vi.fn().mockResolvedValue({ content: 'reranked reply' }),
-}));
-vi.mock('../../../api/services/personalityReranker.js', () => rerankMocks);
-
+// Phase 1 (product-truth-review 2026-08-09): neurotransmitter modifier and
+// personality reranker were deleted from runFirstLlmCall — their mocks and
+// describe blocks went with them.
 const actionMocks = vi.hoisted(() => ({
   parseActions: vi.fn(() => []),
   stripActionTags: vi.fn((t) => t),
@@ -48,8 +35,6 @@ const baseArgs = {
   routedModel: 'deepseek/deepseek-v3.2',
   personalityProfile: null,
   tempDeltaByTier: 0,
-  useNeurotransmitterModes: false,
-  neurotransmitterMode: null,
   workspaceActionsEnabled: false,
   res: null,
   chatLog: null,
@@ -58,7 +43,6 @@ const baseArgs = {
 beforeEach(() => {
   vi.clearAllMocks();
   gatewayMocks.complete.mockResolvedValue({ content: 'buffered reply' });
-  rerankMocks.rerankByPersonality.mockResolvedValue({ content: 'reranked reply' });
 });
 
 describe('classifyGatewayError', () => {
@@ -108,27 +92,6 @@ describe('runFirstLlmCall — buffered branch sampling params', () => {
     expect(args.presence_penalty).toBe(0.2);
   });
 
-  it('routes params through the neurotransmitter modifier when a mode is active', async () => {
-    await runFirstLlmCall({
-      ...baseArgs,
-      useNeurotransmitterModes: true,
-      neurotransmitterMode: { mode: 'serotonergic' },
-    });
-    expect(neuroMocks.applyNeurotransmitterModifiers).toHaveBeenCalledWith(
-      expect.objectContaining({ temperature: 0.7 }),
-      'serotonergic',
-    );
-  });
-
-  it('skips the modifier when the mode object has no mode', async () => {
-    await runFirstLlmCall({
-      ...baseArgs,
-      useNeurotransmitterModes: true,
-      neurotransmitterMode: {},
-    });
-    expect(neuroMocks.applyNeurotransmitterModifiers).not.toHaveBeenCalled();
-  });
-
   it('returns the fallback message when the gateway yields empty content', async () => {
     gatewayMocks.complete.mockResolvedValue({ content: '' });
     const out = await runFirstLlmCall({ ...baseArgs });
@@ -139,51 +102,6 @@ describe('runFirstLlmCall — buffered branch sampling params', () => {
     const out = await runFirstLlmCall({ ...baseArgs });
     expect(out.assistantMessage).toBe('buffered reply');
     expect(out.ttftMs).toBe(out.totalLlmMs);
-  });
-});
-
-describe('runFirstLlmCall — personality reranker gate', () => {
-  const rerankReady = {
-    ...baseArgs,
-    routingTier: 'chat_deep',
-    personalityProfile: {
-      temperature: 0.7,
-      personality_embedding: new Array(8).fill(0.1),
-      confidence: 0.5,
-    },
-  };
-
-  afterEach(() => { delete process.env.ENABLE_PERSONALITY_RERANKER; });
-
-  it('uses the reranker when flag on, DEEP tier, embedding present, confident enough', async () => {
-    process.env.ENABLE_PERSONALITY_RERANKER = 'true';
-    const out = await runFirstLlmCall({ ...rerankReady });
-    expect(rerankMocks.rerankByPersonality).toHaveBeenCalledTimes(1);
-    expect(gatewayMocks.complete).not.toHaveBeenCalled();
-    expect(out.assistantMessage).toBe('reranked reply');
-  });
-
-  it('does not use the reranker when the feature flag is off', async () => {
-    const out = await runFirstLlmCall({ ...rerankReady });
-    expect(rerankMocks.rerankByPersonality).not.toHaveBeenCalled();
-    expect(gatewayMocks.complete).toHaveBeenCalledTimes(1);
-    expect(out.assistantMessage).toBe('buffered reply');
-  });
-
-  it('does not use the reranker outside the DEEP tier even with the flag on', async () => {
-    process.env.ENABLE_PERSONALITY_RERANKER = 'true';
-    await runFirstLlmCall({ ...rerankReady, routingTier: 'chat_standard' });
-    expect(rerankMocks.rerankByPersonality).not.toHaveBeenCalled();
-    expect(gatewayMocks.complete).toHaveBeenCalledTimes(1);
-  });
-
-  it('falls back to complete() when the reranker returns nothing', async () => {
-    process.env.ENABLE_PERSONALITY_RERANKER = 'true';
-    rerankMocks.rerankByPersonality.mockResolvedValue(null);
-    const out = await runFirstLlmCall({ ...rerankReady });
-    expect(rerankMocks.rerankByPersonality).toHaveBeenCalledTimes(1);
-    expect(gatewayMocks.complete).toHaveBeenCalledTimes(1);
-    expect(out.assistantMessage).toBe('buffered reply');
   });
 });
 

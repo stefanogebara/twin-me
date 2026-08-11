@@ -8,6 +8,7 @@ import { useChatSession } from '../hooks/useChatSession';
 import { useToast } from '@/components/ui/use-toast';
 import { SpotifyLogo, GoogleCalendarLogo, YoutubeLogo, DiscordLogo, GithubLogo, WhoopLogo, GmailLogo } from '@/components/PlatformLogos';
 import { ChatEmptyState } from '@/components/chat/ChatEmptyState';
+import { generateSuggestionChips } from '@/components/chat/generateSuggestionChips';
 import { ClauraZonedBackground } from '@/components/ClauraZonedBackground';
 import { MessageList } from '@/components/chat/MessageList';
 import { ChatInputArea } from '@/components/chat/ChatInputArea';
@@ -63,7 +64,7 @@ interface Message {
     memoryStream?: { total: number; reflections: number; facts: number };
     proactiveInsights?: Array<{ insight: string; category: string; urgency: string }>;
     platformData?: string[];
-    personalityProfile?: boolean;
+    evidenceConfidence?: { level: string; score: number } | null;
   };
 }
 
@@ -233,10 +234,59 @@ const TalkToTwin = () => {
     }
   }, [conversationId]);
 
+  // Boot chat history from server truth (Phase 2, product-truth-review):
+  // every turn is persisted server-side, but the page used to boot from a
+  // 20-message localStorage buffer that evaporated per browser. On mount,
+  // load the latest conversation's recent turns (or the sessionStorage
+  // conversation if one is pinned). localStorage stays as the synchronous
+  // first paint + offline fallback; server truth replaces it when it lands —
+  // unless the user already started typing/sending in the meantime.
+  const historyBootFired = useRef(false);
+  const bootSuperseded = useRef(false);
+  useEffect(() => {
+    if (!user?.id || historyBootFired.current) return;
+    historyBootFired.current = true;
+
+    // Both branches use /recent for newest-N semantics — /history truncates
+    // long conversations from the START (review 2026-08-10).
+    const pinnedId = sessionStorage.getItem(CONVERSATION_ID_KEY);
+    const url = pinnedId
+      ? `${API_BASE}/chat/recent?limit=30&conversationId=${pinnedId}`
+      : `${API_BASE}/chat/recent?limit=30`;
+
+    (async () => {
+      try {
+        const token = getAccessToken();
+        const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+        if (!response.ok) return; // keep localStorage fallback silently
+        const data = await response.json();
+        const serverMessages: Message[] = (data.messages || []).map(
+          (m: { id?: string; isUser?: boolean; content: string; createdAt: string }) => ({
+            id: m.id || crypto.randomUUID(),
+            role: m.isUser ? ('user' as const) : ('assistant' as const),
+            content: m.content,
+            timestamp: new Date(m.createdAt),
+          }),
+        );
+        if (serverMessages.length === 0) return; // persistence lag or new user — keep local
+        // A send, New-chat, or conversation selection raced the fetch — the
+        // user has moved on; server boot must not yank them back.
+        if (bootSuperseded.current) return;
+        setMessages(serverMessages);
+        if (!pinnedId && data.conversationId) setConversationId(data.conversationId);
+      } catch {
+        // Network failure — localStorage fallback already rendered.
+      }
+    })();
+  }, [user?.id]);
+
   const handleSelectConversation = async (id: string) => {
+    bootSuperseded.current = true; // user chose a thread — mount boot must not override
     try {
       const token = getAccessToken();
-      const response = await fetch(`${API_BASE}/chat/history?conversationId=${id}`, {
+      // /recent with an explicit conversationId keeps the NEWEST turns of a
+      // long thread; /history truncates from the start (review 2026-08-10).
+      const response = await fetch(`${API_BASE}/chat/recent?limit=50&conversationId=${id}`, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
       // Guard response.ok before .json(): a 401/500 may return a non-JSON body,
@@ -269,6 +319,7 @@ const TalkToTwin = () => {
   };
 
   const handleNewChat = () => {
+    bootSuperseded.current = true; // fresh thread — mount boot must not resurrect the old one
     // Clear persisted history too, otherwise the prior thread's last messages
     // survive in storage and resurrect on refresh into the new conversation.
     localStorage.removeItem(CHAT_HISTORY_KEY);
@@ -278,32 +329,42 @@ const TalkToTwin = () => {
     setShowConversationList(false);
   };
 
-  // Derive ghost suggestion from conversation context
+  // Ghost suggestion — the Tab-to-fill prompt in the composer. Phase 2
+  // (product-truth-review): previously a keyword match on the last assistant
+  // message returning canned strings — for a twin holding thousands of
+  // memories, the very first touchpoint was static copy. Now derived from
+  // what the twin actually noticed: the same insight-first ranking the
+  // empty-state chips use (undelivered proactive insights, then calendar/
+  // email load, then time-of-day fallbacks).
   const ghostSuggestion = useMemo(() => {
     if (isTyping || messages.length === 0) return undefined;
     const lastMsg = messages[messages.length - 1];
     if (lastMsg.role !== 'assistant') return undefined;
-
     // Defensive: backend regression or upstream change could put non-string
     // content into the message stream (action proposals, structured data).
     // Don't crash the whole chat render on that — just skip the suggestion.
     if (typeof lastMsg.content !== 'string') return undefined;
-    const content = lastMsg.content.toLowerCase();
-    if (content.includes('spotify') || content.includes('music') || content.includes('listening'))
-      return 'What does my music taste say about me?';
-    if (content.includes('calendar') || content.includes('schedule') || content.includes('meeting'))
-      return 'How should I optimize my schedule?';
-    if (content.includes('goal') || content.includes('progress') || content.includes('habit'))
-      return 'What patterns do you see in my habits?';
-    if (content.includes('sleep') || content.includes('recovery') || content.includes('health'))
-      return 'How has my sleep been trending?';
-    if (content.includes('work') || content.includes('career') || content.includes('project'))
-      return 'What motivates me most at work?';
-    return 'Tell me something surprising about myself';
-  }, [messages, isTyping]);
+
+    const chips = generateSuggestionChips({
+      hour: new Date().getHours(),
+      pendingInsights: pendingInsights ?? [],
+      calendarEvents: sidebarCalendarEvents ?? [],
+      recentEmails: sidebarRecentEmails ?? [],
+      max: 3,
+    });
+    // Avoid ghosting a question the user just asked (echo feels broken).
+    const recentUserContents = new Set(
+      messages
+        .filter((m) => m.role === 'user' && typeof m.content === 'string')
+        .slice(-6)
+        .map((m) => m.content.trim().toLowerCase()),
+    );
+    return chips.find((c) => !recentUserContents.has(c.trim().toLowerCase()));
+  }, [messages, isTyping, pendingInsights, sidebarCalendarEvents, sidebarRecentEmails]);
 
   const handleSendMessage = async () => {
     if (!inputMessage.trim() || !user?.id) return;
+    bootSuperseded.current = true;
 
     if (!navigator.onLine) {
       toast({
@@ -452,7 +513,10 @@ const TalkToTwin = () => {
                       memoryStream: event.contextSources.memoryStream,
                       proactiveInsights: event.contextSources.proactiveInsights,
                       platformData: event.contextSources.platformData,
-                      personalityProfile: event.contextSources.personalityProfile,
+                      // Phase 2 receipts: the backend has always emitted this;
+                      // the frontend used to drop it (and captured a
+                      // personalityProfile field the backend never sends).
+                      evidenceConfidence: event.contextSources.evidenceConfidence ?? null,
                     }
                   } : m
                 ));

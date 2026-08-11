@@ -26,7 +26,6 @@ import { BackgroundModeProvider, useBackgroundMode } from "./contexts/Background
 // Eager-loaded (critical path: landing, auth, 404)
 import Index from "./pages/Index";
 import CustomAuth from "./pages/CustomAuth";
-import DesktopHandoff from "./pages/DesktopHandoff";
 import OAuthCallback from "./pages/OAuthCallback";
 import NotFound from "./pages/NotFound";
 // Design prototypes: dev-only routes (see the /preview block below). The
@@ -44,19 +43,17 @@ import { TalkToTwinSkeleton } from "./pages/components/TalkToTwinSkeleton";
 // audit-2026-05-15 H12: MoneyPage chunk is one of the heaviest (147 KB raw)
 // and was showing the global flower-pulse Suspense fallback for ~3s on cold
 // cache. Adding it to the warmup list so navigation doesn't block.
-const loadDashboardV2 = () => import("./pages/DashboardV2");
 const loadTalkToTwin = () => import("./pages/TalkToTwin");
+const loadTodayPage = () => import("./pages/TodayPage");
 const loadMoneyPage = () => import("./pages/MoneyPage");
 const loadMoneyInsightsPage = () => import("./pages/MoneyInsightsPage");
 
-const DashboardV2 = lazy(loadDashboardV2);
 const Settings = lazy(() => import("./pages/Settings"));
 const VoiceSetupPage = lazy(() => import("./pages/VoiceSetupPage"));
 const InstantTwinOnboarding = lazy(() => import("./pages/InstantTwinOnboarding"));
 const BrainPage = lazy(() => import("./pages/BrainPage"));
 const DataExportsPage = lazy(() => import("./pages/DataExportsPage"));
 const TalkToTwin = lazy(loadTalkToTwin);
-const Widget = lazy(() => import("./pages/Widget"));
 const AdminLLMCosts = lazy(() => import("./pages/AdminLLMCosts"));
 const AdminBetaDashboard = lazy(() => import("./pages/AdminBetaDashboard"));
 const AdminBetaPage = lazy(() => import("./pages/AdminBetaPage"));
@@ -64,7 +61,6 @@ const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 const PortfolioPage = lazy(() => import("./pages/PortfolioPage"));
 const NewDiscoverFlow = lazy(() => import("./pages/onboarding/NewDiscoverFlow"));
-const OnboardingFlow = lazy(() => import("./pages/onboarding/OnboardingFlow"));
 const OnboardingWowPage = lazy(() => import("./pages/onboarding/OnboardingWowPage"));
 const DiscoverLanding = lazy(() => import("./pages/DiscoverLanding"));
 const WaitlistPage = lazy(() => import("./pages/WaitlistPage"));
@@ -79,17 +75,12 @@ const PrivacySpectrumDashboard = lazy(() => import("./pages/PrivacySpectrumDashb
 const MemoryHealth = lazy(() => import("./pages/MemoryHealth"));
 const EvalDashboard = lazy(() => import("./pages/EvalDashboard"));
 const IdentityPage = lazy(() => import("./pages/IdentityPage"));
-const InterviewPage = lazy(() => import("./pages/InterviewPage"));
 const LifeStoryPage = lazy(() => import("./pages/LifeStoryPage"));
 const FidelityPage = lazy(() => import("./pages/FidelityPage"));
-const GoalsPage = lazy(() => import("./pages/GoalsPage"));
 const MoneyPage = lazy(loadMoneyPage);
 const MoneyInsightsPage = lazy(loadMoneyInsightsPage);
-const BriefingPage = lazy(() => import("./pages/BriefingPage"));
-const TodayPage = lazy(() => import("./pages/TodayPage"));
-const TwinSoulPage = lazy(() => import("./pages/TwinSoulPage"));
+const TodayPage = lazy(loadTodayPage);
 const PricingPage = lazy(() => import("./pages/PricingPage"));
-const DownloadPage = lazy(() => import("./pages/DownloadPage"));
 
 
 
@@ -126,7 +117,7 @@ const App = () => {
     // global flower-pulse Suspense fallback for ~3s on cold cache before
     // its chunk arrived.
     const prefetchHeavyRoutes = () => {
-      void loadDashboardV2();
+      void loadTodayPage();
       void loadTalkToTwin();
       void loadMoneyPage();
     };
@@ -173,14 +164,14 @@ const App = () => {
             {/* Desktop (Tauri) Google sign-in handoff: runs the registered web
                 sign-in, then deep-links the session back via twinme://. Public
                 route — it branches on signed-in/out itself. */}
-            <Route path="/desktop-handoff" element={<DesktopHandoff />} />
+            <Route path="/desktop-handoff" element={<Navigate to="/auth" replace />} />
             <Route path="/waitlist" element={<Suspense fallback={null}><WaitlistPage /></Suspense>} />
             <Route path="/beta" element={<Suspense fallback={null}><BetaSignupPage /></Suspense>} />
             <Route path="/login" element={<Navigate to="/auth" replace />} />
             <Route path="/signin" element={<Navigate to="/auth" replace />} />
 
             {/* Legacy path redirects */}
-            <Route path="/home" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/home" element={<Navigate to="/today" replace />} />
             <Route path="/chat" element={<Navigate to="/talk-to-twin" replace />} />
             <Route path="/custom-auth" element={<CustomAuth />} />
             <Route path="/oauth/callback" element={<OAuthCallback />} />
@@ -218,28 +209,12 @@ const App = () => {
             </Route>
             )}
 
-            {/* Main Dashboard */}
-            <Route path="/dashboard" element={
-              <ProtectedRoute>
-                <SidebarLayout>
-                  <ErrorBoundary>
-                    <DashboardV2 />
-                  </ErrorBoundary>
-                </SidebarLayout>
-              </ProtectedRoute>
-            } />
-            {/* Daily Brief — deep-link target for the desktop morning toast
-                (replan-2026-06-10 desktop-product P2). */}
-            <Route path="/briefing" element={
-              <ProtectedRoute>
-                <SidebarLayout>
-                  <ErrorBoundary>
-                    <BriefingPage />
-                  </ErrorBoundary>
-                </SidebarLayout>
-              </ProtectedRoute>
-            } />
-            {/* Today — the M1 "one home": brief + action inbox + twin composer. */}
+            {/* Phase 1 (product-truth-review 2026-08-09): ONE home. DashboardV2
+                (the 12-card feed) and BriefingPage both rendered the same
+                MorningBriefingCard as /today — three homes collapsed to one. */}
+            <Route path="/dashboard" element={<Navigate to="/today" replace />} />
+            <Route path="/briefing" element={<Navigate to="/today" replace />} />
+            {/* Today — the one home: brief + action inbox + twin composer. */}
             <Route path="/today" element={
               <ProtectedRoute>
                 <SidebarLayout>
@@ -300,16 +275,10 @@ const App = () => {
             <Route path="/me" element={<Navigate to="/identity" replace />} />
             <Route path="/you" element={<Navigate to="/identity" replace />} />
 
-            {/* Deep Interview — structured onboarding */}
-            <Route path="/interview" element={
-              <ProtectedRoute>
-                <SidebarLayout>
-                  <ErrorBoundary>
-                    <InterviewPage />
-                  </ErrorBoundary>
-                </SidebarLayout>
-              </ProtectedRoute>
-            } />
+            {/* Phase 1: /interview (the older deep-interview page) removed —
+                two parallel interview systems collapsed to one; /story is the
+                single "tell the twin about yourself" surface. */}
+            <Route path="/interview" element={<Navigate to="/story" replace />} />
 
             {/* Story Chapters — chaptered life-story interview */}
             <Route path="/story" element={
@@ -374,26 +343,15 @@ const App = () => {
                 "what do you know about me?" instead. Old links land on chat. */}
             <Route path="/wiki" element={<Navigate to="/talk-to-twin" replace />} />
             <Route path="/knowledge" element={<Navigate to="/talk-to-twin" replace />} />
-            <Route path="/goals" element={
-              <ProtectedRoute>
-                <SidebarLayout>
-                  <ErrorBoundary>
-                    <GoalsPage />
-                  </ErrorBoundary>
-                </SidebarLayout>
-              </ProtectedRoute>
-            } />
-
-            {/* Twin Soul — directives learned from user corrections (pi-reflect pattern) */}
-            <Route path="/twin-soul" element={
-              <ProtectedRoute>
-                <SidebarLayout>
-                  <ErrorBoundary>
-                    <TwinSoulPage />
-                  </ErrorBoundary>
-                </SidebarLayout>
-              </ProtectedRoute>
-            } />
+            {/* Phase 1 (product-truth-review 2026-08-09): GoalsPage removed —
+                fully orphaned (zero in-app links), 29 of 42 goal suggestions
+                never accepted. The twin still tracks goals and raises them in
+                chat (goalTrackingService is untouched); a habit-tracker UI
+                added nothing. TwinSoulPage (directive CRUD) likewise orphaned —
+                directives are managed via chat corrections; a Settings section
+                can host the list if demand appears. */}
+            <Route path="/goals" element={<Navigate to="/today" replace />} />
+            <Route path="/twin-soul" element={<Navigate to="/settings" replace />} />
 
             {/* Financial-Emotional Twin — bank statement upload + emotional tagging (Phase 2) */}
             <Route path="/money" element={
@@ -476,17 +434,17 @@ const App = () => {
             {/* Legacy onboarding routes */}
             <Route path="/welcome" element={<Navigate to="/get-started" replace />} />
 
-            {/* Cinematic onboarding — new user flow */}
-            <Route path="/onboarding" element={
-              <ProtectedRoute>
-                <ErrorBoundary>
-                  <OnboardingFlow />
-                </ErrorBoundary>
-              </ProtectedRoute>
-            } />
+            {/* Phase 2 (product-truth-review 2026-08-09): ONE onboarding.
+                Three flows selling two different products collapsed into the
+                sequence soul-reveal (the marketed promise: "we already found
+                you") -> /onboarding/wow (the retention hook: drafts in your
+                voice) -> /today. OnboardingFlow (welcome/interview/platforms/
+                awakening) deleted; its job is covered by NewDiscoverFlow. */}
+            <Route path="/onboarding" element={<Navigate to="/soul-reveal" replace />} />
 
-            {/* Onboarding "wow" — post-Gmail-connect: voice read + first drafted
-                replies, then into Today. Full-screen moment (no sidebar). */}
+            {/* Onboarding "wow" — second wow after the soul reveal: voice read
+                + first drafted replies, then into Today. Full-screen moment
+                (no sidebar). Degrades gracefully without Gmail. */}
             <Route path="/onboarding/wow" element={
               <ProtectedRoute>
                 <ErrorBoundary>
@@ -557,17 +515,10 @@ const App = () => {
               </ProtectedRoute>
             } />
 
-            {/* Compact chrome-less twin chat for the desktop "Hummingbird"
-                panel (Tauri webview -> https://twinme.me/widget). ProtectedRoute
-                redirects unauthenticated users to /auth; NO SidebarLayout so the
-                460x600 panel is pure chat. */}
-            <Route path="/widget" element={
-              <ProtectedRoute>
-                <ErrorBoundary>
-                  <Widget />
-                </ErrorBoundary>
-              </ProtectedRoute>
-            } />
+            {/* Phase 1 (2026-08-10): desktop is no longer the bet — the
+                Hummingbird /widget panel, /download, and /desktop-handoff are
+                gone. Any straggler desktop installs land on the web chat. */}
+            <Route path="/widget" element={<Navigate to="/talk-to-twin" replace />} />
 
             {/* Admin: LLM Cost Monitor */}
             <Route path="/admin/llm-costs" element={
@@ -625,8 +576,7 @@ const App = () => {
               </ProtectedRoute>
             } />
 
-            {/* Desktop app downloads - Public, no auth required (beta users grab it before logging in) */}
-            <Route path="/download" element={<DownloadPage />} />
+            <Route path="/download" element={<Navigate to="/" replace />} />
 
             {/* Privacy Policy - Public, no auth required */}
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />

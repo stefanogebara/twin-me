@@ -5,7 +5,7 @@
  *
  *  - twinFidelityService.js  — behavioral probes from past conversations
  *    (embedding similarity; method 'behavioral_probe'). No human ceiling.
- *  - THIS module              — fixed 20-item battery answered by the user
+ *  - THIS module              — fixed versioned battery answered by the user
  *    in waves AND by the twin from memory; twin accuracy is normalized by
  *    the user's own wave-to-wave consistency. The Park et al. 2024
  *    measurement design: fidelity has an honest human ceiling.
@@ -178,7 +178,7 @@ function formatBatteryForPrompt(battery) {
  *
  * Returns { itemId: answer } or null on failure.
  */
-export async function answerBatteryAsTwin(userId, { contextBudgetMs = CONTEXT_BUDGET_MS } = {}) {
+export async function answerBatteryAsTwin(userId, { contextBudgetMs = CONTEXT_BUDGET_MS, extraContext = null, skipLlmCache = false } = {}) {
   // Cold-path guard. getTwinSummary does a SYNCHRONOUS full regeneration
   // (5 retrieval queries + an LLM call) once the cached summary ages past
   // its stale-serve window — that, plus cold retrieval, is what took the
@@ -206,6 +206,13 @@ export async function answerBatteryAsTwin(userId, { contextBudgetMs = CONTEXT_BU
     .map(m => `- ${(m.content || '').substring(0, 200)}`)
     .join('\n');
 
+  // Phase 3 (product-truth-review): optional extra grounding block. This is
+  // how candidate context features (temporal spine first) are A/B-evaluated
+  // against measured fidelity — the eval harness injects the candidate here
+  // so it measures exactly what production would ship, and shipping means
+  // passing the same block from the wave path.
+  const extraBlock = extraContext ? `\n${extraContext}\n` : '';
+
   const system = `You are this person's digital twin, answering a personality and behavior battery EXACTLY as they would answer it about themselves.
 
 WHO THEY ARE (twin summary):
@@ -213,6 +220,7 @@ ${summary || 'Limited summary available.'}
 
 EVIDENCE FROM THEIR MEMORY STREAM:
 ${memoryLines || 'Limited evidence available.'}
+${extraBlock}
 
 METHOD — for each item, silently follow four steps:
 1. Option Interpretation: what kind of person each answer describes.
@@ -221,6 +229,8 @@ METHOD — for each item, silently follow four steps:
 4. Response: commit. Ultimately, DON'T overthink it — use system 1 (fast, intuitive) thinking about who they are.
 
 Answer every item. Likert items: an integer 1-5. Categorical items: copy ONE option string exactly.
+
+Items that ask about "the last two weeks" are about recent events, not general traits — answer those from the most recent evidence of what they have ACTUALLY been doing lately, not from who they are in general.
 
 5. Confidence: for each item, also estimate 0.0-1.0 how confident you are that this is what THEY would actually answer. 0.9+ only when direct evidence supports it; 0.5 means an informed guess; be honest — calibration is measured against their real answers.
 
@@ -231,7 +241,9 @@ Return ONLY this JSON:
   // ~1200 output tokens and measured 35s warm / 79s cold — over Vercel's
   // 60s maxDuration, so cold submissions 504'd. Two parallel half-batteries
   // roughly halve wall-clock at identical total token cost. Both halves
-  // carry the same grounding, so neither is answering blind.
+  // carry the same grounding, so neither is answering blind. maxTokens is
+  // sized for a 13-item half (v2) — a truncated JSON reply drops the whole
+  // half as unparseable.
   const half = Math.ceil(FIDELITY_BATTERY.length / 2);
   const chunks = [FIDELITY_BATTERY.slice(0, half), FIDELITY_BATTERY.slice(half)];
 
@@ -241,10 +253,13 @@ Return ONLY this JSON:
         tier: TIER_ANALYSIS,
         system,
         messages: [{ role: 'user', content: `THE BATTERY:\n${formatBatteryForPrompt(chunk)}` }],
-        maxTokens: 700,
+        maxTokens: 900,
         temperature: 0.3,
         userId,
         serviceName: `twin-fidelity-battery-${i + 1}`,
+        // Eval harness (Phase 3): repeated same-prompt trials must be
+        // independent samples, not gateway-cache replays.
+        skipCache: skipLlmCache,
       })
     )
   );

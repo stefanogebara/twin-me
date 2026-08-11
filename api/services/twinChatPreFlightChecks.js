@@ -29,8 +29,6 @@ function deriveFeatureFlagBooleans(featureFlags) {
     useExpertRouting: featureFlags.expert_routing !== false,
     useIdentityContext: featureFlags.identity_context !== false,
     useEmotionalState: featureFlags.emotional_state !== false,
-    useNeurotransmitterModes: featureFlags.neurotransmitter_modes !== false,
-    useConnectomeNeuropils: featureFlags.connectome_neuropils !== false,
     useEmbodiedFeedback: featureFlags.embodied_feedback_loop !== false,
     usePersonalityOracle: featureFlags.personality_oracle === true,
     useSmartRouting: featureFlags.smart_routing !== false,

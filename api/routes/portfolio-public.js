@@ -46,7 +46,7 @@ router.get('/public/:userId', async (req, res) => {
     }
 
     // 2. Fetch remaining data in parallel (all non-critical - failures are graceful)
-    const [userResult, personalityResult, featuresResult, enrichedResult, platformsResult] = await Promise.all([
+    const [userResult, personalityResult, featuresResult, enrichedResult, platformsResult, fidelityResult] = await Promise.all([
       // User info
       supabaseAdmin
         .from('users')
@@ -84,6 +84,17 @@ router.get('/public/:userId', async (req, res) => {
         .select('platform')
         .eq('user_id', userId)
         .eq('status', 'active'),
+
+      // Latest measured fidelity wave (Phase 2: the headline proof metric —
+      // "this twin answers as its human NN% of the time"). Only waves where
+      // the twin actually answered count (twin_accuracy non-null).
+      supabaseAdmin
+        .from('twin_fidelity_checks')
+        .select('twin_accuracy, wave, created_at')
+        .eq('user_id', userId)
+        .not('twin_accuracy', 'is', null)
+        .order('wave', { ascending: false })
+        .limit(1),
     ]);
 
     if (userResult.error) log.error('User fetch error:', userResult.error.message);
@@ -91,8 +102,10 @@ router.get('/public/:userId', async (req, res) => {
     if (featuresResult.error) log.error('Features fetch error:', featuresResult.error.message);
     if (enrichedResult.error && enrichedResult.error.code !== 'PGRST116') log.error('Enriched profile fetch error:', enrichedResult.error.message);
     if (platformsResult.error) log.error('Platforms fetch error:', platformsResult.error.message);
+    if (fidelityResult.error) log.error('Fidelity fetch error:', fidelityResult.error.message);
 
     const user = userResult.data;
+    const fidelityWave = fidelityResult.data?.[0] || null;
     const personality = personalityResult.data;
     const features = featuresResult.data || [];
     const enriched = enrichedResult.data;
@@ -160,6 +173,13 @@ router.get('/public/:userId', async (req, res) => {
           }
         : null,
       platforms,
+      fidelity: fidelityWave
+        ? {
+            accuracy: fidelityWave.twin_accuracy,
+            wave: fidelityWave.wave,
+            measured_at: fidelityWave.created_at,
+          }
+        : null,
     };
 
     return res.json({ success: true, portfolio });

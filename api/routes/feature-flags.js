@@ -17,22 +17,21 @@ import { createLogger } from '../services/logger.js';
 const log = createLogger('FeatureFlagsUser');
 const router = express.Router();
 
-/** Flags shown in the Settings → Personality Engine section (+ /money toggles) */
-const USER_FLAGS = ['personality_oracle', 'neurotransmitter_modes', 'connectome_neuropils', 'graph_retrieval', 'llm_wiki', 'gmail_statement_courier'];
+/** Flags shown in the Settings → Personality Engine section (+ /money toggles)
+ * Phase 1 (product-truth-review 2026-08-09): neurotransmitter_modes,
+ * connectome_neuropils, graph_retrieval, and llm_wiki removed with their
+ * subsystems. Stale feature_flags rows for those names are simply ignored. */
+const USER_FLAGS = ['personality_oracle', 'gmail_statement_courier'];
 
 /** Defaults match twin-chat.js behaviour (absent row = enabled, except opt-in flags) */
 const FLAG_DEFAULTS = {
   personality_oracle: false,    // opt-in — requires trained model
-  neurotransmitter_modes: true, // on by default
-  connectome_neuropils: true,   // on by default
-  graph_retrieval: true,        // on by default — validated by twin-research (2026-03-10); consumer defaults ON (memoryStreamService graph traversal). Display now matches runtime.
-  llm_wiki: false,              // opt-in — compiled wiki injected into twin context
   gmail_statement_courier: false, // opt-in — auto-import OFX statement attachments from Gmail (reads attachment bytes; departs from the metadata-only Gmail posture)
 };
 
 /**
  * GET /api/feature-flags
- * Returns { personality_oracle, neurotransmitter_modes, connectome_neuropils, graph_retrieval }
+ * Returns { personality_oracle, gmail_statement_courier }
  */
 router.get('/', authenticateUser, async (req, res) => {
   try {

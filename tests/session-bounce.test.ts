@@ -16,7 +16,6 @@ describe('shouldBounceToExpiredAuth', () => {
   it('never bounces a visitor with no prior session — no session existed to expire', () => {
     expect(shouldBounceToExpiredAuth(false, '/waitlist')).toBe(false);
     expect(shouldBounceToExpiredAuth(false, '/beta')).toBe(false);
-    expect(shouldBounceToExpiredAuth(false, '/download')).toBe(false);
     expect(shouldBounceToExpiredAuth(false, '/s/some-user')).toBe(false);
     expect(shouldBounceToExpiredAuth(false, '/dashboard')).toBe(false); // ProtectedRoute handles it
     expect(shouldBounceToExpiredAuth(false, '/no-such-route')).toBe(false); // 404 renders
@@ -40,9 +39,12 @@ describe('shouldBounceToExpiredAuth', () => {
 
 describe('isPublicRoute', () => {
   it('covers every signed-out-reachable route in App.tsx', () => {
+    // Phase 1 (2026-08-10): /download and /desktop-handoff left the allowlist
+    // with the desktop bet — their routes are now plain redirects, so a bounce
+    // to /auth on a stale session is acceptable for those dead links.
     for (const p of [
       '/', '/auth', '/custom-auth', '/login', '/signin', '/discover',
-      '/waitlist', '/beta', '/download', '/desktop-handoff',
+      '/waitlist', '/beta',
       '/oauth/callback', '/auth/callback', '/oauth/gmail/callback',
       '/terms', '/terms-of-service', '/privacy', '/privacy-policy',
       '/preview', '/preview/talk', '/p/user-1', '/s/user-1',

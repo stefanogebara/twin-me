@@ -62,8 +62,7 @@ describe('feature-flags routes smoke', () => {
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
     expect(res.body.flags.personality_oracle).toBe(true); // from DB
-    expect(res.body.flags.neurotransmitter_modes).toBe(true); // default on
-    expect(res.body.flags.llm_wiki).toBe(false); // default opt-in off
+    expect(res.body.flags.gmail_statement_courier).toBe(false); // default opt-in off
   });
 
   it('returns 400 for an unknown flag on POST', async () => {
@@ -81,12 +80,12 @@ describe('feature-flags routes smoke', () => {
     const res = await request(createApp())
       .post('/api/feature-flags')
       .set('Authorization', `Bearer ${signToken()}`)
-      .send({ flag: 'llm_wiki', value: true });
+      .send({ flag: 'gmail_statement_courier', value: true });
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
-    expect(res.body.flag).toBe('llm_wiki');
+    expect(res.body.flag).toBe('gmail_statement_courier');
     expect(res.body.value).toBe(true);
-    expect(setFeatureFlagMock).toHaveBeenCalledWith(TEST_USER, 'llm_wiki', true);
+    expect(setFeatureFlagMock).toHaveBeenCalledWith(TEST_USER, 'gmail_statement_courier', true);
   });
 
   it('returns 500 when getFeatureFlags throws', async () => {

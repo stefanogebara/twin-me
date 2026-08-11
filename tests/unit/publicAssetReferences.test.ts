@@ -38,7 +38,11 @@ describe('public asset references', () => {
     expect(files.length).toBeGreaterThan(100);
   });
 
-  it('every /images/ reference in src resolves to a file in public/', () => {
+  // Explicit timeout: cold-reads every source file under src/. Same failure
+  // class as platformConnectionsColumns.test.js — Windows Defender scans each
+  // file on first open and full-suite FS contention pushes the scan past the
+  // 5s default nondeterministically; the scan itself is deterministic.
+  it('every /images/ reference in src resolves to a file in public/', { timeout: 120_000 }, () => {
     const missing: string[] = [];
 
     for (const file of files) {

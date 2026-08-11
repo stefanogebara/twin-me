@@ -90,7 +90,7 @@ interface Message {
     memoryStream?: { total: number; reflections: number; facts: number };
     proactiveInsights?: Array<{ insight: string; category: string; urgency: string }>;
     platformData?: string[];
-    personalityProfile?: boolean;
+    evidenceConfidence?: { level: string; score: number } | null;
   };
 }
 
@@ -363,11 +363,26 @@ export const MessageList = memo(forwardRef<HTMLDivElement, MessageListProps>(
                         className="flex flex-wrap items-center gap-2 mt-3 pt-2"
                         style={{ borderTop: '1px solid var(--border-glass)' }}
                       >
-                        {/* Context badges — small and muted */}
+                        {/* Context badges — receipts for the answer (Phase 2:
+                            provenance is the trust device; every badge names a
+                            real source that fed this response). */}
+                        {message.contextUsed?.platformData && message.contextUsed.platformData.length > 0 && (
+                          <span
+                            className="text-[10px] px-1.5 py-0.5 rounded-full"
+                            style={{ color: 'var(--text-muted)', opacity: 0.6 }}
+                            title="Live platform data used for this answer"
+                          >
+                            from your {message.contextUsed.platformData
+                              .slice(0, 3)
+                              .map(p => p.charAt(0).toUpperCase() + p.slice(1).replace(/_/g, ' '))
+                              .join(' · ')}
+                          </span>
+                        )}
                         {message.contextUsed?.memoryStream && message.contextUsed.memoryStream.total > 0 && (
                           <span
                             className="text-[10px] px-1.5 py-0.5 rounded-full"
                             style={{ color: 'var(--text-muted)', opacity: 0.6 }}
+                            title={`${message.contextUsed.memoryStream.reflections} reflections, ${message.contextUsed.memoryStream.facts} facts`}
                           >
                             {message.contextUsed.memoryStream.total} memories
                           </span>
@@ -376,8 +391,18 @@ export const MessageList = memo(forwardRef<HTMLDivElement, MessageListProps>(
                           <span
                             className="text-[10px] px-1.5 py-0.5 rounded-full"
                             style={{ color: 'var(--text-muted)', opacity: 0.6 }}
+                            title={message.contextUsed.proactiveInsights.map(i => i.insight).join('\n')}
                           >
                             {message.contextUsed.proactiveInsights.length} insight{message.contextUsed.proactiveInsights.length > 1 ? 's' : ''}
+                          </span>
+                        )}
+                        {message.contextUsed?.evidenceConfidence?.level === 'low' && (
+                          <span
+                            className="text-[10px] px-1.5 py-0.5 rounded-full"
+                            style={{ color: 'var(--text-muted)', opacity: 0.6, border: '1px solid var(--border-glass)' }}
+                            title="The twin had thin evidence for this answer — treat it as a guess"
+                          >
+                            thin evidence
                           </span>
                         )}
 

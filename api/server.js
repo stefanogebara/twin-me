@@ -480,7 +480,6 @@ import checkinRoutes from './routes/checkin.js';
 import importsRoutes from './routes/imports.js';
 import cronMemoryArchiveRoutes from './routes/cron-memory-archive.js';
 import cronMemoryForgettingRoutes from './routes/cron-memory-forgetting.js';
-import cronMemorySaliencyReplayRoutes from './routes/cron-memory-saliency-replay.js';
 import cronSoulSignatureRegenRoutes from './routes/cron-soul-signature-regen.js';
 import cronTwinSelfImprovementRoutes from './routes/cron-twin-self-improvement.js';
 import memoryHealthRoutes from './routes/memory-health.js';
@@ -726,7 +725,6 @@ app.use('/api/claude-sync', claudeSyncRoutes); // Claude Desktop conversation sy
 app.use('/api/cron/claude-sync', cronClaudeSyncRoutes); // Claude Desktop cron sync and AI analysis processing
 app.use('/api/cron/memory-archive', cronMemoryArchiveRoutes);    // Daily memory archival for large users
 app.use('/api/cron/memory-forgetting', cronMemoryForgettingRoutes); // Weekly multi-tier quality maintenance
-app.use('/api/cron/memory-saliency-replay', cronMemorySaliencyReplayRoutes); // Daily saliency replay (CL1-inspired)
 app.use('/api/cron/soul-signature-regen', cronSoulSignatureRegenRoutes); // Daily auto-regen of stale soul signatures (audit D-H2)
 app.use('/api/cron/twin-self-improvement', cronTwinSelfImprovementRoutes); // Daily pi-reflect — extract directives from user corrections
 app.use('/api/memories', memoriesRoutes); // Memory stream browser with filters
@@ -922,13 +920,11 @@ if (process.env.NODE_ENV !== 'production') {
   // Start HTTP server
   server.listen(PORT, async () => {
     const hasRedis = !!(process.env.REDIS_URL || process.env.UPSTASH_REDIS_URL);
-    const rerankerEnabled = process.env.ENABLE_PERSONALITY_RERANKER === 'true';
     log.info('Server started', {
       port: PORT,
       env: process.env.NODE_ENV || 'development',
       cors: process.env.VITE_APP_URL || 'http://localhost:8080',
       bullQueue: hasRedis ? 'Enabled' : 'Fallback',
-      personalityReranker: rerankerEnabled ? 'ENABLED (3x LLM cost per DEEP message)' : 'disabled',
     });
     // Prewarm Supabase connection pool to avoid 10-17s cold-start on first user request
     try {

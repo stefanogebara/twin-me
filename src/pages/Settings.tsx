@@ -275,11 +275,10 @@ const Settings = () => {
   const [savingTimezone, setSavingTimezone] = useState(false);
 
   // Feature toggles — persisted in DB via /api/feature-flags (not localStorage)
+  // Phase 1 (2026-08-09): neurotransmitter_modes, connectome_neuropils, and
+  // graph_retrieval toggles removed with their backend subsystems.
   const [featureToggles, setFeatureToggles] = useState({
     personality_oracle: false,
-    neurotransmitter_modes: true,
-    connectome_neuropils: true,
-    graph_retrieval: true,
   });
 
   // Batch-3 state unification: settings reads the canonical /platforms/summary
@@ -742,36 +741,6 @@ const Settings = () => {
             enabled={featureToggles.personality_oracle}
             onChange={() => handleToggleFeature('personality_oracle')}
             label="Enable Enhanced Personality"
-          />
-        </SettingsRow>
-        <SettingsRow
-          label="Mood-Aware Responses"
-          description="Twin adjusts its tone based on the emotional context of your message"
-        >
-          <ToggleSwitch
-            enabled={featureToggles.neurotransmitter_modes}
-            onChange={() => handleToggleFeature('neurotransmitter_modes')}
-            label="Enable Mood-Aware Responses"
-          />
-        </SettingsRow>
-        <SettingsRow
-          label="Domain Memory Routing"
-          description="Twin searches different memory categories depending on what you're asking about"
-        >
-          <ToggleSwitch
-            enabled={featureToggles.connectome_neuropils}
-            onChange={() => handleToggleFeature('connectome_neuropils')}
-            label="Enable Domain Memory Routing"
-          />
-        </SettingsRow>
-        <SettingsRow
-          label="Associative Memory"
-          description="Twin follows memory connections — surfacing related memories you haven't explicitly mentioned (experimental)"
-        >
-          <ToggleSwitch
-            enabled={featureToggles.graph_retrieval}
-            onChange={() => handleToggleFeature('graph_retrieval')}
-            label="Enable Associative Memory"
           />
         </SettingsRow>
       </div>

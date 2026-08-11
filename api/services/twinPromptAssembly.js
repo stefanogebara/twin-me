@@ -5,9 +5,9 @@
  * The base prompt comes from buildTwinSystemPrompt() — this layer stacks
  * the dynamic, context-dependent blocks on top (anti-emoji, persona,
  * personality calibration, voice examples, oracle, financial coach,
- * neurotransmitter mode, emotional state, nudge history).
+ * emotional state, nudge history).
  *
- * Also runs neurotransmitterMode + emotionalState (needed downstream).
+ * Also runs emotionalState (needed downstream).
  *
  * Extracted from POST /api/chat/message during the 2026-05-09 monolith trim
  * (audit ARCH-1).
@@ -17,7 +17,6 @@ import { buildTwinSystemPrompt } from './twinSystemPromptBuilder.js';
 import { buildPersonaBlock } from './personaBlockBuilder.js';
 import { buildPersonalityPrompt } from './personalityPromptBuilder.js';
 import { formatOracleBlock } from './finetuning/personalityOracle.js';
-import { detectConversationMode, buildNeurotransmitterPromptBlock } from './neurotransmitterService.js';
 import { computeEmotionalState, buildEmotionalStateMemory } from './emotionalStateService.js';
 import { CHAT_TIER_LIGHT } from './chatRouter.js';
 import { createLogger } from './logger.js';
@@ -91,25 +90,28 @@ export async function assembleTwinSystemPrompt({
   routingTier,
   message,
   userId,
-  useNeurotransmitterModes,
   useEmotionalState,
   useEmbodiedFeedback,
 }) {
   const {
     soulSignature, platformData, twinSummary, proactiveInsights,
     departmentProposals, writingProfile, voiceExamples, nudgeHistory,
-    directives, timelineSpine,
+    directives,
   } = twinContext;
 
-  const wikiPagesForPrompt = featureFlags.llm_wiki === true ? twinContext.wikiPages : null;
-  // The builder already gates on the flag and returns null when it is off, so
-  // this is just the flag check made visible at the assembly site.
-  const spineForPrompt = featureFlags.temporal_spine === true ? timelineSpine : null;
+  // Phase 1 (2026-08-10): wiki injection hard-frozen. The llm_wiki toggle left
+  // the Settings/flags API, the compile cron was cut, and observation
+  // ingestion no longer recompiles pages — so a legacy llm_wiki=true row would
+  // inject permanently-stale pages into chat forever. Frozen means frozen:
+  // nothing injects until the wiki gets a deliberate second life.
+  // Phase 3 (2026-08-11): the temporal spine was deleted — the fidelity eval
+  // measured no gain (twin-research/fidelity-eval.js verdict log).
+  const wikiPagesForPrompt = null;
 
   const systemPrompt = buildTwinSystemPrompt(
     soulSignature, platformData, twinSummary, proactiveInsights,
     userLocation, coreBlockText, departmentProposals, wikiPagesForPrompt,
-    directives, spineForPrompt,
+    directives,
   );
 
   systemPrompt.push({ type: 'text', text: ANTI_EMOJI_RULE });
@@ -145,17 +147,6 @@ export async function assembleTwinSystemPrompt({
 
   await maybeAppendFinancialBlock(systemPrompt, userId, message);
 
-  let neurotransmitterMode = { mode: 'default', confidence: 0, matchedKeywords: [] };
-  if (useNeurotransmitterModes) {
-    neurotransmitterMode = detectConversationMode(message);
-    if (neurotransmitterMode.mode !== 'default') {
-      const ntBlock = buildNeurotransmitterPromptBlock(neurotransmitterMode.mode);
-      if (ntBlock) {
-        systemPrompt.push({ type: 'text', text: `\n${ntBlock}` });
-      }
-    }
-  }
-
   const emotionalState = useEmotionalState
     ? computeEmotionalState(platformData, message)
     : { promptBlock: null };
@@ -170,5 +161,5 @@ export async function assembleTwinSystemPrompt({
     }
   }
 
-  return { systemPrompt, neurotransmitterMode, emotionalState };
+  return { systemPrompt, emotionalState };
 }

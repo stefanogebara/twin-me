@@ -14,7 +14,6 @@ import crypto from 'crypto';
 import { authenticateUser } from '../middleware/auth.js';
 import { supabaseAdmin } from '../services/database.js';
 import { buildContextSourcesMeta, buildRecentActivitySection } from '../services/twinContextBuilder.js';
-import { classifyNeuropil } from '../services/neuropilRouter.js';
 import { classifyQueryDomain, retrieveExpertMemories } from '../services/platformExperts.js';
 import { markInsightsDelivered } from '../services/proactiveInsights.js';
 import { trackChatMessage } from '../services/twinSessionTracker.js';
@@ -174,8 +173,8 @@ router.post('/message', authenticateUser, async (req, res) => {
     }
     const { featureFlags } = preFlight;
     const {
-      useExpertRouting, useEmotionalState, useNeurotransmitterModes,
-      useConnectomeNeuropils, useEmbodiedFeedback, usePersonalityOracle, useSmartRouting,
+      useExpertRouting, useEmotionalState,
+      useEmbodiedFeedback, usePersonalityOracle, useSmartRouting,
     } = preFlight.flags;
 
     // SSE bootstrap + heartbeat + 50s response timeout extracted to
@@ -183,13 +182,6 @@ router.post('/message', authenticateUser, async (req, res) => {
     const isStreaming = req.query.stream === '1';
     stream = createStreamController({ res, isStreaming, userId, chatStartTime });
     hopLog('sse_bootstrapped', { isStreaming });
-
-    // Classify neuropil domain BEFORE context fetch so we can route retrieval
-    const neuropilResult = useConnectomeNeuropils ? classifyNeuropil(message) : { neuropilId: null, weights: null, budgets: null, confidence: 0 };
-    if (neuropilResult.neuropilId) {
-      chatLog(`Neuropil: ${neuropilResult.neuropilId} (confidence=${neuropilResult.confidence})`);
-    }
-    hopLog('neuropil_classified', { neuropilId: neuropilResult.neuropilId, confidence: neuropilResult.confidence });
 
     // Routing vars (populated by smart-routing after context fetch)
     let routedModel = null;
@@ -216,7 +208,7 @@ router.post('/message', authenticateUser, async (req, res) => {
     let preflightLegTimings = null;
     try {
       ({ twinContext, userLocation, personalityProfile, soulLayers, oracleDraft, workspaceBlock, _legTimings: preflightLegTimings } =
-        await fetchChatPreFlight({ userId, message, context, neuropilResult, usePersonalityOracle }));
+        await fetchChatPreFlight({ userId, message, context, usePersonalityOracle }));
     } finally {
       stream.clearHeartbeat();
     }
@@ -259,9 +251,9 @@ router.post('/message', authenticateUser, async (req, res) => {
     // Core memory blocks anchor identity to prevent personality drift.
     const coreBlockText = await loadCoreBlocksForPrompt(userId);
 
-    // System prompt assembly + neurotransmitter mode + emotional state
-    // extracted to ../services/twinPromptAssembly.js. Directives (pi-reflect)
-    // are pulled out of twinContext inside the assembler and forwarded into
+    // System prompt assembly + emotional state extracted to
+    // ../services/twinPromptAssembly.js. Directives (pi-reflect) are pulled
+    // out of twinContext inside the assembler and forwarded into
     // buildTwinSystemPrompt — no extra arg needed here.
     const promptAssembly = await assembleTwinSystemPrompt({
       twinContext,
@@ -274,12 +266,10 @@ router.post('/message', authenticateUser, async (req, res) => {
       routingTier,
       message,
       userId,
-      useNeurotransmitterModes,
       useEmotionalState,
       useEmbodiedFeedback,
     });
     let systemPrompt = promptAssembly.systemPrompt;
-    const neurotransmitterMode = promptAssembly.neurotransmitterMode;
     const emotionalState = promptAssembly.emotionalState;
 
     // P1: Start async operations EARLY so they run in parallel with sync work below.
@@ -524,8 +514,7 @@ router.post('/message', authenticateUser, async (req, res) => {
     try {
       const firstCall = await runFirstLlmCall({
         isStreaming, systemPrompt, llmMessages, userId, routingTier, routedModel,
-        personalityProfile, tempDeltaByTier, useNeurotransmitterModes,
-        neurotransmitterMode, workspaceActionsEnabled, res, chatLog,
+        personalityProfile, tempDeltaByTier, workspaceActionsEnabled, res, chatLog,
       });
       assistantMessage = firstCall.assistantMessage;
       // audit-2026-05-13 bottleneck follow-up: surface TTFT (time-to-first-
@@ -700,8 +689,6 @@ router.post('/message', authenticateUser, async (req, res) => {
       chatSource,
       contextSources: {
         ...buildContextSourcesMeta(twinContext),
-        neurotransmitterMode: neurotransmitterMode.mode !== 'default' ? neurotransmitterMode.mode : null,
-        neuropil: neuropilResult.neuropilId || null,
         evidenceConfidence: evidenceConfidence
           ? { level: evidenceConfidence.level, score: evidenceConfidence.score }
           : null,

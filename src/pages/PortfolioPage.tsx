@@ -39,6 +39,7 @@ interface PortfolioData {
     mbti_code: string | null;
   } | null;
   platforms: Array<{ name: string; features: Array<{ type: string; value: number | string }> }>;
+  fidelity: { accuracy: number; wave: number; measured_at: string } | null;
 }
 
 const PortfolioPage: React.FC = () => {
@@ -178,6 +179,32 @@ const PortfolioPage: React.FC = () => {
         platforms={portfolio.platforms}
         colorScheme={colorScheme}
       />
+
+      {/* Fidelity — the headline proof metric (Phase 2 product-truth-review):
+          measured twin accuracy from the test-retest battery, not a vibe. */}
+      {portfolio.fidelity && (
+        <div
+          className="mt-8 rounded-[20px] px-6 py-5 text-center"
+          style={{
+            background: 'var(--glass-surface-bg)',
+            border: '1px solid var(--glass-surface-border)',
+            backdropFilter: 'blur(42px)',
+            WebkitBackdropFilter: 'blur(42px)',
+          }}
+        >
+          <div
+            className="text-[40px] leading-none"
+            style={{ fontFamily: "'Instrument Serif', serif", color: colorScheme.accent }}
+          >
+            {Math.round(portfolio.fidelity.accuracy * 100)}%
+          </div>
+          <div className="mt-2 text-sm" style={{ color: 'var(--text-narrative-secondary)' }}>
+            twin fidelity — how accurately this twin answers as{' '}
+            {portfolio.first_name || 'its human'}, measured by a blind
+            test-retest battery
+          </div>
+        </div>
+      )}
 
       {/* Section 2: Personality Radar (only if personality data exists) */}
       {portfolio.personality && (
