@@ -70,7 +70,9 @@ d('two-phase MMR equivalence', () => {
       light.forEach((r, i) => expect(r.score).toBeCloseTo(heavy[i].score, 9));
       // The entire point: no embeddings on the wire.
       expect(light.every(r => r.embedding === undefined)).toBe(true);
-    }, 30_000);
+      // 60s: live Supabase RPCs over the founder's ~24k-memory corpus — 30s
+      // tripped under cold-cache/parallel-suite load while passing warm.
+    }, 60_000);
 
     it(`phase 2 selects identically to mmrRerank — ${s.label}`, async () => {
       if (!userId) return;
@@ -96,7 +98,7 @@ d('two-phase MMR equivalence', () => {
       expect(error).toBeNull();
       // Order matters — MMR output order is the selection order.
       expect(selected.map(r => r.id)).toEqual(jsIds);
-    }, 30_000);
+    }, 60_000);
   }
 
   it('light RPC accepts the partial call shapes PostgREST sends', async () => {
@@ -118,5 +120,5 @@ d('two-phase MMR equivalence', () => {
       p_memory_types: ['fact'],
     });
     expect(withTypes).toBeNull();
-  }, 30_000);
+  }, 60_000);
 });

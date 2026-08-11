@@ -36,6 +36,16 @@ export default defineConfig({
     include: ['tests/**/*.test.{ts,tsx,js}'],
     pool: 'forks',
     maxWorkers: MAX_FORKS,
+    // The 5s vitest default assumes warm-cache unit tests. On this suite the
+    // first run after boot/checkout is dominated by cold I/O — Windows
+    // Defender scans every first file open and the fork pool's parallel
+    // imports contend for the same disk — so supertest round-trips and
+    // file-scanning guard tests intermittently blew 5s while passing warm
+    // (measured: a 650-file read = ~104s cold vs ~0.5s warm). 30s keeps real
+    // hangs failing while absorbing cold-run jitter; tests with measured
+    // larger budgets still set explicit per-test timeouts.
+    testTimeout: 30_000,
+    hookTimeout: 30_000,
     // Per-file module isolation is load-bearing for correctness, not just a
     // default we inherit. Several suites set process.env at module top-level
     // (e.g. JWT_SECRET) and api/middleware/auth.js captures it once into a
