@@ -178,7 +178,7 @@ function formatBatteryForPrompt(battery) {
  *
  * Returns { itemId: answer } or null on failure.
  */
-export async function answerBatteryAsTwin(userId, { contextBudgetMs = CONTEXT_BUDGET_MS } = {}) {
+export async function answerBatteryAsTwin(userId, { contextBudgetMs = CONTEXT_BUDGET_MS, extraContext = null, skipLlmCache = false } = {}) {
   // Cold-path guard. getTwinSummary does a SYNCHRONOUS full regeneration
   // (5 retrieval queries + an LLM call) once the cached summary ages past
   // its stale-serve window — that, plus cold retrieval, is what took the
@@ -206,6 +206,13 @@ export async function answerBatteryAsTwin(userId, { contextBudgetMs = CONTEXT_BU
     .map(m => `- ${(m.content || '').substring(0, 200)}`)
     .join('\n');
 
+  // Phase 3 (product-truth-review): optional extra grounding block. This is
+  // how candidate context features (temporal spine first) are A/B-evaluated
+  // against measured fidelity — the eval harness injects the candidate here
+  // so it measures exactly what production would ship, and shipping means
+  // passing the same block from the wave path.
+  const extraBlock = extraContext ? `\n${extraContext}\n` : '';
+
   const system = `You are this person's digital twin, answering a personality and behavior battery EXACTLY as they would answer it about themselves.
 
 WHO THEY ARE (twin summary):
@@ -213,6 +220,7 @@ ${summary || 'Limited summary available.'}
 
 EVIDENCE FROM THEIR MEMORY STREAM:
 ${memoryLines || 'Limited evidence available.'}
+${extraBlock}
 
 METHOD — for each item, silently follow four steps:
 1. Option Interpretation: what kind of person each answer describes.
@@ -245,6 +253,9 @@ Return ONLY this JSON:
         temperature: 0.3,
         userId,
         serviceName: `twin-fidelity-battery-${i + 1}`,
+        // Eval harness (Phase 3): repeated same-prompt trials must be
+        // independent samples, not gateway-cache replays.
+        skipCache: skipLlmCache,
       })
     )
   );
