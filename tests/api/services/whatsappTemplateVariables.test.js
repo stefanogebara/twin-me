@@ -19,10 +19,14 @@ vi.mock('@kapso/whatsapp-cloud-api', () => ({
   },
 }));
 
-// logOutbound writes to Supabase — make it a no-op.
-vi.mock('../../../api/services/database.js', () => ({
-  supabaseAdmin: { from: () => ({ insert: () => Promise.resolve({ error: null }) }) },
-}));
+// logOutbound writes to Supabase via api/config/supabase.js's supabaseAdmin —
+// make it a no-op. That module also throws at import time without Supabase env
+// (CI stubs it in ci.yml; a bare checkout has no .env), so the mock doubles as
+// the hermetic-load guard.
+vi.mock('../../../api/config/supabase.js', () => {
+  const stub = { from: () => ({ insert: () => Promise.resolve({ error: null }) }) };
+  return { supabase: stub, supabaseAdmin: stub, default: stub };
+});
 
 const { sendWhatsAppTemplate } = await import('../../../api/services/whatsappService.js');
 

@@ -24,6 +24,14 @@ vi.mock('../../../api/services/database.js', () => {
   return { supabaseAdmin: { from: (t) => builder(t) } };
 });
 
+// whatsappService imports supabaseAdmin from api/config/supabase.js (outbound
+// audit log), which throws at import time without Supabase env (CI stubs it in
+// ci.yml; a bare checkout has no .env). Stub it so the pipeline loads hermetically.
+vi.mock('../../../api/config/supabase.js', () => {
+  const stub = { from: () => ({ insert: () => Promise.resolve({ error: null }) }) };
+  return { supabase: stub, supabaseAdmin: stub, default: stub };
+});
+
 const completeMock = vi.fn();
 vi.mock('../../../api/services/llmGateway.js', () => ({
   complete: (...a) => completeMock(...a),

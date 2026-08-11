@@ -8,8 +8,18 @@
  * flags everything else with { error: true, message }. This classifier is the
  * pivot of that decision — pin it.
  */
-import { describe, it, expect } from 'vitest';
-import { isTransientInsightsError } from '../../../api/routes/platform-insights.js';
+import { describe, it, expect, vi } from 'vitest';
+
+// The route's import graph reaches api/config/supabase.js (via
+// platformReflectionService), which throws at import time without Supabase env
+// (CI stubs it in ci.yml; a bare checkout has no .env). Stub the module so this
+// pure-function test stays hermetic.
+vi.mock('../../../api/config/supabase.js', () => {
+  const stub = { from: () => ({ insert: () => Promise.resolve({ error: null }) }) };
+  return { supabase: stub, supabaseAdmin: stub, default: stub };
+});
+
+const { isTransientInsightsError } = await import('../../../api/routes/platform-insights.js');
 
 describe('isTransientInsightsError', () => {
   it('classifies withTimeout deadline errors as transient', () => {
