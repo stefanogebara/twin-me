@@ -32,7 +32,6 @@ import { checkConditionTriggered } from './prospectiveMemoryService.js';
 import { tagSensitivity } from './sensitivityClassifier.js';
 import { calculateAllActivityMetrics, detectActivityAnomaly } from './activityMetricsService.js';
 
-import { buildPendingNodes } from './memoryTimelineService.js';
 import { buildMetricLikePattern } from './snapshotMetrics.js';
 import { getFeatureFlags } from './featureFlagsService.js';
 import { complete, TIER_ANALYSIS } from './llmGateway.js';
@@ -856,33 +855,9 @@ async function runObservationIngestion(options = {}) {
             log.warn('Reflection check failed', { userId, error: reflErr });
           }
 
-          // Keep the temporal spine warm. AWAITED, not chained on a timer: this
-          // file already learned that setTimeout does not survive Vercel (the
-          // parent returns before it fires, which left every wiki page 11-34
-          // days stale) — the same reason main added backgroundJobs below.
-          // Bounded to 2 nodes, and today's leaf is throttled to one rebuild per
-          // 6h, so a */15 cron does not pay per cycle.
-          try {
-            const flags = await getFeatureFlags(userId).catch(() => ({}));
-            // Respect the run budget. This block sits AFTER the platform loop, so
-            // without its own check a user entered at 39.9s runs unguarded. The
-            // cron's p90 is ~46s against a 60s maxDuration, and TIER_ANALYSIS has
-            // a 45s gateway timeout with no retry.
-            if (flags?.temporal_spine && !isTimedOut()) {
-              const { data: prof } = await supabaseAdmin
-                .from('users').select('timezone').eq('id', userId).maybeSingle();
-              const userTimeZone = prof?.timezone || undefined;
-              const SPINE_BUDGET_MS = 8000;
-              const r = await Promise.race([
-                buildPendingNodes(userId, { supabase: supabaseAdmin, complete, tier: TIER_ANALYSIS, timeZone: userTimeZone }, { maxNodes: 2 }),
-                new Promise(resolve => setTimeout(() => resolve({ built: 0, timedOut: true }), SPINE_BUDGET_MS)),
-              ]);
-              if (r.timedOut) log.warn('Timeline spine build exceeded budget, deferred', { userId });
-              else if (r.built > 0) log.info('Timeline spine updated', { userId, built: r.built });
-            }
-          } catch (spineErr) {
-            log.warn('Timeline spine build failed (non-fatal)', { userId, error: spineErr?.message });
-          }
+          // (Phase 3 2026-08-11: the temporal-spine node build that ran here
+          // was deleted with the spine — the fidelity eval measured no gain;
+          // see twin-research/fidelity-eval.js verdict log.)
 
           // After reflection trigger, also generate proactive insights. These
           // per-user side-effects run concurrently but are collected into
