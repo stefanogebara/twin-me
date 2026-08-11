@@ -34,6 +34,14 @@ vi.mock('../../../api/services/observationUtils.js', async () => {
   return { ...actual, isDuplicate: dedupMock.isDuplicate };
 });
 
+// observationIngestion's import graph reaches api/config/supabase.js (via
+// transactionNudgeService → whatsappService), which throws at import time
+// without Supabase env (CI stubs it in ci.yml; a bare checkout has no .env).
+vi.mock('../../../api/config/supabase.js', () => {
+  const stub = { from: () => ({ insert: () => Promise.resolve({ error: null }) }) };
+  return { supabase: stub, supabaseAdmin: stub, default: stub };
+});
+
 // Import AFTER the mocks so the function picks up the spies.
 const { ingestWebObservations } = await import('../../../api/services/observationIngestion.js');
 

@@ -7,8 +7,18 @@
  * legitimate sentences that merely start with a time-of-day word
  * ("Morning meetings dominate your week.").
  */
-import { describe, it, expect } from 'vitest';
-import { stripLeadingGreeting } from '../../../api/routes/cron-morning-briefing.js';
+import { describe, it, expect, vi } from 'vitest';
+
+// The route's import graph reaches api/config/supabase.js (via messageRouter →
+// whatsappService), which throws at import time without Supabase env (CI stubs
+// it in ci.yml; a bare checkout has no .env). Stub the module so this
+// pure-function test stays hermetic.
+vi.mock('../../../api/config/supabase.js', () => {
+  const stub = { from: () => ({ insert: () => Promise.resolve({ error: null }) }) };
+  return { supabase: stub, supabaseAdmin: stub, default: stub };
+});
+
+const { stripLeadingGreeting } = await import('../../../api/routes/cron-morning-briefing.js');
 
 describe('stripLeadingGreeting', () => {
   describe('strips real greetings', () => {

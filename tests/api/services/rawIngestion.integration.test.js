@@ -20,6 +20,14 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.resolve(__dirname, '../../../.env.production') });
 
+// Integration test — needs real DB credentials (.env.production). Skips when
+// they are absent (bare checkouts, worktrees, CI — which also excludes
+// *.integration.test.js) so unit runs stay hermetic. Same pattern as
+// twoPhaseMmr.integration.test.js.
+// VITE_SUPABASE_URL specifically: the select-back clients below dial it.
+const HAS_DB = Boolean(process.env.VITE_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
+const d = HAS_DB ? describe : describe.skip;
+
 // ── mock LLM / side-effecting downstream services ────────────────────────────
 vi.mock('../../../api/services/transactions/transactionEmotionTagger.js', () => ({
   tagTransactionsBatch: vi.fn().mockResolvedValue({}),
@@ -39,12 +47,13 @@ const RUN = Date.now();
 const extId = (k) => `rawingest-test-${RUN}-${k}`;
 
 afterAll(async () => {
+  if (!HAS_DB) return; // nothing was written when the suite skipped
   const { createClient } = await import('@supabase/supabase-js');
   const sb = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
   await sb.from('user_transactions').delete().like('external_id', `rawingest-test-${RUN}-%`);
 });
 
-describe('ingestRawTransactions (generic seam)', { timeout: 30_000 }, () => {
+d('ingestRawTransactions (generic seam)', { timeout: 30_000 }, () => {
   it('inserts rows, normalizes merchants, and returns inserted ids', async () => {
     const { ingestRawTransactions } = await import(
       '../../../api/services/transactions/rawIngestion.js'

@@ -46,6 +46,14 @@ vi.mock('../../../api/services/database.js', () => ({
   serverDb: {},
 }));
 
+// The route graph also reaches api/config/supabase.js (via
+// transactionNudgeService → whatsappService), which throws at import time
+// without Supabase env (CI stubs it in ci.yml; a bare checkout has no .env).
+vi.mock('../../../api/config/supabase.js', () => {
+  const stub = { from: () => ({ insert: () => Promise.resolve({ error: null }) }) };
+  return { supabase: stub, supabaseAdmin: stub, default: stub };
+});
+
 // auth middleware hits the users table via its own import of database.js —
 // the same mock serves it; authenticateUser only needs the JWT to decode.
 vi.mock('../../../api/middleware/auth.js', () => ({
