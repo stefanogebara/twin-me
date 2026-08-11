@@ -9,7 +9,7 @@ import { useDocumentTitle } from '@/hooks/useDocumentTitle';
  * Twin Fidelity check (/fidelity) — R4 test-retest evaluation UI.
  * Plan: .claude/plans/2026-08-01-twin-interview/README.md (Phase 4).
  *
- * The user answers the fixed 20-item battery (one item at a time, ~2-3
+ * The user answers the fixed versioned battery (one item at a time, ~3
  * minutes); the twin answers the same battery from memory server-side;
  * results show twin accuracy and, from wave 2 on, the normalized metric
  * (twin accuracy relative to the user's own wave-to-wave consistency).
@@ -306,7 +306,7 @@ export default function FidelityPage() {
           Wave {result.wave} complete
         </h1>
         <p className="text-sm mb-10" style={{ color: 'var(--text-secondary)' }}>
-          Your twin answered the same 20 questions from its memory of you.
+          Your twin answered the same questions from its memory of you.
         </p>
 
         <div
@@ -385,9 +385,9 @@ export default function FidelityPage() {
         How well does your twin know you?
       </h1>
       <p className="text-sm mb-10" style={{ color: 'var(--text-secondary)' }}>
-        Twenty quick questions about yourself, two to three minutes. Your twin answers the same
-        questions from its memory of you, and you see how close it gets. Repeat every couple of
-        weeks to track fidelity honestly against your own consistency.
+        Twenty-five quick questions about yourself and your last two weeks, about three minutes.
+        Your twin answers the same questions from its memory of you, and you see how close it
+        gets. Repeat every couple of weeks to track fidelity honestly against your own consistency.
       </p>
 
       {loading ? (
@@ -415,7 +415,9 @@ export default function FidelityPage() {
             className="w-full py-3.5 rounded-[12px] text-sm font-medium transition-all hover:brightness-105 mb-10"
             style={{ background: 'var(--claura-bone)', color: 'var(--claura-bone-ink)', fontFamily: "'Inter', sans-serif", border: 'none', cursor: 'pointer', minHeight: '48px' }}
           >
-            {waves.length === 0 ? 'Take the first check' : `Take check ${waves.length + 1}`}
+            {/* Version-agnostic label: wave numbering restarts per battery
+                version, so "check N" would drift from the stored wave. */}
+            {waves.length === 0 ? 'Take the first check' : 'Take the check again'}
           </button>
 
           {waves.length > 0 && (

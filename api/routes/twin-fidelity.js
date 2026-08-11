@@ -1,7 +1,7 @@
 /**
  * Twin Fidelity Battery Routes (R4)
  * ==================================
- * GET  /api/twin-fidelity/battery — the versioned 20-item battery
+ * GET  /api/twin-fidelity/battery — the versioned battery items
  * POST /api/twin-fidelity/answers — submit a user wave (triggers twin
  *                                   answering + scoring; aiLimiter'd)
  * GET  /api/twin-fidelity/results — all waves with metrics

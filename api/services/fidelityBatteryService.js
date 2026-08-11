@@ -5,7 +5,7 @@
  *
  *  - twinFidelityService.js  — behavioral probes from past conversations
  *    (embedding similarity; method 'behavioral_probe'). No human ceiling.
- *  - THIS module              — fixed 20-item battery answered by the user
+ *  - THIS module              — fixed versioned battery answered by the user
  *    in waves AND by the twin from memory; twin accuracy is normalized by
  *    the user's own wave-to-wave consistency. The Park et al. 2024
  *    measurement design: fidelity has an honest human ceiling.
@@ -230,6 +230,8 @@ METHOD — for each item, silently follow four steps:
 
 Answer every item. Likert items: an integer 1-5. Categorical items: copy ONE option string exactly.
 
+Items that ask about "the last two weeks" are about recent events, not general traits — answer those from the most recent evidence of what they have ACTUALLY been doing lately, not from who they are in general.
+
 5. Confidence: for each item, also estimate 0.0-1.0 how confident you are that this is what THEY would actually answer. 0.9+ only when direct evidence supports it; 0.5 means an informed guess; be honest — calibration is measured against their real answers.
 
 Return ONLY this JSON:
@@ -239,7 +241,9 @@ Return ONLY this JSON:
   // ~1200 output tokens and measured 35s warm / 79s cold — over Vercel's
   // 60s maxDuration, so cold submissions 504'd. Two parallel half-batteries
   // roughly halve wall-clock at identical total token cost. Both halves
-  // carry the same grounding, so neither is answering blind.
+  // carry the same grounding, so neither is answering blind. maxTokens is
+  // sized for a 13-item half (v2) — a truncated JSON reply drops the whole
+  // half as unparseable.
   const half = Math.ceil(FIDELITY_BATTERY.length / 2);
   const chunks = [FIDELITY_BATTERY.slice(0, half), FIDELITY_BATTERY.slice(half)];
 
@@ -249,7 +253,7 @@ Return ONLY this JSON:
         tier: TIER_ANALYSIS,
         system,
         messages: [{ role: 'user', content: `THE BATTERY:\n${formatBatteryForPrompt(chunk)}` }],
-        maxTokens: 700,
+        maxTokens: 900,
         temperature: 0.3,
         userId,
         serviceName: `twin-fidelity-battery-${i + 1}`,

@@ -6,10 +6,10 @@
  * waves. Scoring follows the paper — Likert items get range-normalized
  * partial credit (1 - |diff|/range), categorical items exact match.
  *
- * Battery schema is pinned here too: 20 versioned items (10 Likert 1-5,
- * 10 categorical with 4 options), stable ids — the ids are the join key
- * across waves, so changing them silently would corrupt longitudinal
- * comparisons.
+ * Battery schema is pinned here too: 25 versioned items (10 Likert 1-5,
+ * 15 categorical with 4 options, 5 of them temporal-recall), stable ids —
+ * the ids are the join key across waves, so changing them silently would
+ * corrupt longitudinal comparisons.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
@@ -91,16 +91,37 @@ beforeEach(() => {
 });
 
 describe('fidelityBattery — schema contract', () => {
-  it('is version 1 with exactly 20 items: 10 likert + 10 categorical', () => {
-    expect(BATTERY_VERSION).toBe(1);
-    expect(FIDELITY_BATTERY).toHaveLength(20);
+  it('is version 2 with exactly 25 items: 10 likert + 15 categorical (5 temporal)', () => {
+    expect(BATTERY_VERSION).toBe(2);
+    expect(FIDELITY_BATTERY).toHaveLength(25);
     expect(FIDELITY_BATTERY.filter(i => i.type === 'likert')).toHaveLength(10);
-    expect(FIDELITY_BATTERY.filter(i => i.type === 'categorical')).toHaveLength(10);
+    expect(FIDELITY_BATTERY.filter(i => i.type === 'categorical')).toHaveLength(15);
+    // Temporal-recall items are the reason v2 exists (spine adjudication);
+    // all categorical, all asking about the last two weeks.
+    const temporal = FIDELITY_BATTERY.filter(i => i.temporal);
+    expect(temporal).toHaveLength(5);
+    for (const item of temporal) {
+      expect(item.type).toBe('categorical');
+      expect(item.text.toLowerCase()).toContain('last two weeks');
+    }
+  });
+
+  it('keeps every v1 item id unchanged (longitudinal join key)', () => {
+    // Ids are the join key across waves — v2 may only ADD items. Renaming
+    // or dropping any of these breaks scoring against stored v1 waves.
+    const V1_IDS = [
+      'bfi_reserved', 'bfi_trusting', 'bfi_lazy', 'bfi_relaxed', 'bfi_few_artistic',
+      'bfi_outgoing', 'bfi_fault_finding', 'bfi_thorough', 'bfi_nervous', 'bfi_imagination',
+      'sat_morning', 'stress_response', 'decision_style', 'social_battery', 'planning_style',
+      'music_function', 'risk_appetite', 'work_motivator', 'conflict_style', 'evening_default',
+    ];
+    const ids = new Set(FIDELITY_BATTERY.map(i => i.id));
+    for (const id of V1_IDS) expect(ids.has(id)).toBe(true);
   });
 
   it('has unique stable ids and emoji-free text', () => {
     const ids = FIDELITY_BATTERY.map(i => i.id);
-    expect(new Set(ids).size).toBe(20);
+    expect(new Set(ids).size).toBe(25);
     for (const item of FIDELITY_BATTERY) {
       expect(item.id).toMatch(/^[a-z0-9_]+$/);
       expect(item.text.length).toBeGreaterThan(10);
@@ -148,8 +169,9 @@ describe('scoreAnswers', () => {
     const result = scoreAnswers(FIDELITY_BATTERY, a, b);
     expect(result.likert).toBeCloseTo(0.5, 5);
     expect(result.categorical).toBe(1);
-    expect(result.overall).toBeCloseTo(0.75, 5);
-    expect(result.itemsScored).toBe(20);
+    // (10 likert * 0.5 + 15 categorical * 1) / 25
+    expect(result.overall).toBeCloseTo(0.8, 5);
+    expect(result.itemsScored).toBe(25);
   });
 
   it('excludes missing items from the average instead of zeroing them', () => {
@@ -157,7 +179,18 @@ describe('scoreAnswers', () => {
     const b = fullAnswers();
     delete b[FIDELITY_BATTERY[0].id];
     const result = scoreAnswers(FIDELITY_BATTERY, a, b);
-    expect(result.itemsScored).toBe(19);
+    expect(result.itemsScored).toBe(24);
+    expect(result.overall).toBe(1);
+  });
+
+  it('scores a v1 wave (20 answers) against the v2 battery without zeroing new items', () => {
+    // Back-compat pin: old stored waves lack the 5 temporal items; they
+    // must be excluded from the average, not counted as misses.
+    const v2 = fullAnswers();
+    const v1 = { ...v2 };
+    for (const item of FIDELITY_BATTERY.filter(i => i.temporal)) delete v1[item.id];
+    const result = scoreAnswers(FIDELITY_BATTERY, v2, v1);
+    expect(result.itemsScored).toBe(20);
     expect(result.overall).toBe(1);
   });
 });
@@ -230,8 +263,8 @@ describe('answerBatteryAsTwin', () => {
     }
 
     // Merged result covers the whole battery
-    expect(Object.keys(result.answers)).toHaveLength(20);
-    expect(Object.keys(result.confidence)).toHaveLength(20);
+    expect(Object.keys(result.answers)).toHaveLength(25);
+    expect(Object.keys(result.confidence)).toHaveLength(25);
   });
 
   it('issues both calls before either resolves (parallel, not sequential)', async () => {
@@ -250,7 +283,7 @@ describe('answerBatteryAsTwin', () => {
 
     resolveFirst();
     const result = await pending;
-    expect(Object.keys(result.answers)).toHaveLength(20);
+    expect(Object.keys(result.answers)).toHaveLength(25);
   });
 
   it('keeps the surviving half when the other fails (partial > nothing)', async () => {
@@ -264,7 +297,7 @@ describe('answerBatteryAsTwin', () => {
     const result = await answerBatteryAsTwin(USER);
     const count = Object.keys(result.answers).length;
     expect(count).toBeGreaterThan(0);
-    expect(count).toBeLessThan(20); // only the surviving half
+    expect(count).toBeLessThan(25); // only the surviving half
   });
 
   it('returns null when BOTH halves are unusable', async () => {
@@ -288,7 +321,7 @@ describe('answerBatteryAsTwin', () => {
       const result = await answerBatteryAsTwin(USER, { contextBudgetMs: 25 });
 
       expect(Date.now() - started).toBeLessThan(3000); // did not hang
-      expect(Object.keys(result.answers)).toHaveLength(20);
+      expect(Object.keys(result.answers)).toHaveLength(25);
       const prompt = complete.mock.calls[0][0].system;
       expect(prompt).toContain('Limited summary available.');
       // Retrieval still resolved, so its evidence must survive
@@ -301,7 +334,7 @@ describe('answerBatteryAsTwin', () => {
 
       const result = await answerBatteryAsTwin(USER, { contextBudgetMs: 25 });
 
-      expect(Object.keys(result.answers)).toHaveLength(20);
+      expect(Object.keys(result.answers)).toHaveLength(25);
       const prompt = complete.mock.calls[0][0].system;
       expect(prompt).toContain('Limited evidence available.');
       expect(prompt).toContain('A focused builder who recharges alone.'); // summary survived
@@ -313,7 +346,7 @@ describe('answerBatteryAsTwin', () => {
       complete.mockImplementation(halfAwareMock());
 
       const result = await answerBatteryAsTwin(USER, { contextBudgetMs: 25 });
-      expect(Object.keys(result.answers)).toHaveLength(20);
+      expect(Object.keys(result.answers)).toHaveLength(25);
     });
 
     it('uses the full context when it arrives within budget (no false trips)', async () => {
@@ -337,7 +370,7 @@ describe('answerBatteryAsTwin', () => {
       });
     });
     const result = await answerBatteryAsTwin(USER);
-    expect(Object.keys(result.answers)).toHaveLength(20);
+    expect(Object.keys(result.answers)).toHaveLength(25);
     expect(result.confidence).toBeNull();
   });
 });
@@ -380,12 +413,13 @@ describe('submitFidelityWave — phase 1 (store the user, no LLM)', () => {
 
     const result = await submitFidelityWave(USER, fullAnswers(3, 0));
     expect(result.wave).toBe(2);
-    // user wave2 likert 3 vs wave1 likert 5 => 0.5; categorical match => 0.75
-    expect(result.selfConsistency).toBeCloseTo(0.75, 5);
+    // user wave2 likert 3 vs wave1 likert 5 => 0.5; categorical match
+    // => (10 * 0.5 + 15 * 1) / 25 = 0.8
+    expect(result.selfConsistency).toBeCloseTo(0.8, 5);
     expect(complete).not.toHaveBeenCalled();
 
     const insert = dbState.calls.find(c => c.table === 'twin_fidelity_checks' && c.op === 'insert');
-    expect(insert.args[0].self_consistency).toBeCloseTo(0.75, 5);
+    expect(insert.args[0].self_consistency).toBeCloseTo(0.8, 5);
   });
 });
 
@@ -421,12 +455,13 @@ describe('completeFidelityWave — phase 2 (twin answers, retryable)', () => {
       { data: storedWave({ wave: 2, self_consistency: 0.75 }), error: null },
       { data: null, error: null },
     ];
-    // twin likert 4 vs stored user likert 3 => 0.75 likert, categorical match => 0.875
+    // twin likert 4 vs stored user likert 3 => 0.75 likert, categorical
+    // match => (10 * 0.75 + 15 * 1) / 25 = 0.9
     complete.mockResolvedValue({ content: JSON.stringify({ answers: fullAnswers(4, 0) }) });
 
     const result = await completeFidelityWave(USER, 'check-1');
-    expect(result.twinAccuracy).toBeCloseTo(0.875, 5);
-    expect(result.normalizedFidelity).toBeCloseTo(0.875 / 0.75, 5);
+    expect(result.twinAccuracy).toBeCloseTo(0.9, 5);
+    expect(result.normalizedFidelity).toBeCloseTo(0.9 / 0.75, 5);
   });
 
   it('is idempotent — an already-answered wave is not re-answered', async () => {

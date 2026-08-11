@@ -1,23 +1,34 @@
 /**
- * Twin Fidelity Battery — v1
+ * Twin Fidelity Battery — v2
  * ===========================
- * Fixed 20-item battery for the test-retest fidelity eval (R4; Story
+ * Fixed 25-item battery for the test-retest fidelity eval (R4; Story
  * Chapters Phase 4a; Park et al. 2024 measurement design).
  *
  * The user answers this battery periodically (waves); the twin answers the
  * same battery from its memory; twin accuracy is normalized by the user's
  * own wave-to-wave consistency. Item ids are the longitudinal join key —
  * NEVER rename an id or change an item's meaning within a battery version;
- * make a v2 instead.
+ * make a new version instead.
  *
  * 10 Likert items (1-5, disagree-agree): BFI-10 (Rammstedt & John, 2007) —
  * the short Big Five inventory, chosen because the 1,000-people paper
  * evaluated on Big Five and because 10 items keep a wave under 3 minutes.
- * 10 categorical items: behavior/preference questions predictable from
- * platform data + life-story chapters (4 options each).
+ * 15 categorical items (4 options each):
+ *  - 10 stable behavior/preference questions predictable from platform
+ *    data + life-story chapters (unchanged from v1, same ids).
+ *  - 5 temporal-recall questions (v2, `temporal: true`) about the LAST TWO
+ *    WEEKS, answerable by the user from memory and by the twin only from
+ *    recent platform data. Added because the v1 battery asked nothing
+ *    time-anchored, making temporal context features (the spine) invisible
+ *    to the eval — see the verdict log in twin-research/fidelity-eval.js.
+ *
+ * Version mechanics: waves are keyed (user, battery_version, wave), so v2
+ * waves restart at wave 1 with no self-consistency ceiling until v2 wave 2.
+ * Old v1 waves keep rendering — scoring excludes items missing from either
+ * answer set rather than zeroing them.
  */
 
-export const BATTERY_VERSION = 1;
+export const BATTERY_VERSION = 2;
 
 export const LIKERT_SCALE = { min: 1, max: 5 };
 
@@ -94,5 +105,46 @@ export const FIDELITY_BATTERY = [
     type: 'categorical',
     text: 'A default weekday evening, honestly, looks like:',
     options: ['Screens and content', 'A personal project or hobby', 'Out or with other people', 'Early wind-down, early sleep'],
+  },
+
+  // ---- Temporal recall (v2 — categorical, 4 options, `temporal: true`) ----
+  // Ask about the LAST TWO WEEKS specifically. The user answers from
+  // memory; the twin can only answer from recent platform data (Spotify,
+  // Calendar, GitHub, YouTube, Whoop). Options are behavior MODES, stable
+  // across users and waves — never per-user generated content.
+  {
+    id: 'recent_listening',
+    type: 'categorical',
+    temporal: true,
+    text: 'Over the last two weeks, your music listening has mostly been:',
+    options: ['Familiar favorites on repeat', 'Hunting new music', 'Background for focus or work', 'Barely listened at all'],
+  },
+  {
+    id: 'recent_schedule',
+    type: 'categorical',
+    temporal: true,
+    text: 'How full has your calendar actually been over the last two weeks?',
+    options: ['Packed — commitments most days', 'A few anchor events, otherwise open', 'Nearly empty', 'Bursts — heavy days mixed with empty ones'],
+  },
+  {
+    id: 'recent_focus',
+    type: 'categorical',
+    temporal: true,
+    text: 'Over the last two weeks, your working energy has mostly gone to:',
+    options: ['One main project taking nearly everything', 'Two or three things in rotation', 'Many small scattered things', 'A lighter stretch than usual'],
+  },
+  {
+    id: 'recent_content',
+    type: 'categorical',
+    temporal: true,
+    text: 'The videos and content you consumed over the last two weeks were mostly:',
+    options: ['Learning — tutorials, talks, deep dives', 'Entertainment and unwinding', 'News and staying current', 'Hardly watched anything'],
+  },
+  {
+    id: 'recent_rhythm',
+    type: 'categorical',
+    temporal: true,
+    text: 'Your sleep and energy over the last two weeks have been:',
+    options: ['Steady and solid', 'Running on too little', 'Up and down', 'Better than the stretch before'],
   },
 ];
