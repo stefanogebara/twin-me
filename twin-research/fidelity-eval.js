@@ -70,6 +70,24 @@
  *      Resurrection/redesign is a founder call; the eval is ready either
  *      way.
  *
+ * 2026-08-11 THREE-ARM TRIAL — baseline vs spine vs digest (recent-
+ * platform-data block, api/services/recentPlatformDigest.js; same v2
+ * wave, 5 trials/arm, zero parse failures):
+ *   overall  : baseline 0.4780 (0.46-0.49)  spine 0.4840 (0.47-0.50)
+ *              digest 0.5260 (0.52-0.54) — digest's range clears both.
+ *   temporal : baseline 0.0000  spine 0.0000  digest 0.2000 —
+ *              digest nails recent_listening in EVERY trial (the 426
+ *              Spotify events read as "familiar favorites on repeat").
+ *   -> Spine's earlier +0.03 did NOT replicate (temporal back to zero);
+ *      the non-overlap in the previous run was noise. Deletion stands.
+ *   -> DIGEST WINS: +0.048 overall vs baseline with non-overlapping
+ *      ranges, first-ever temporal-subset lift, one DB query, ~2.8k
+ *      chars. Remaining temporal misses are interpretation gaps (41
+ *      calendar events rendered as "bursts" not "packed"; GitHub reading
+ *      as one project where the user feels scatter) — digest v2 material.
+ *      Per the ship-only-if-it-moves-the-score rule, the digest is the
+ *      first candidate that has EARNED production injection.
+ *
  * 2026-08-11 (earlier same day) baseline,spine re-trial: INVALID, ignore its TSV rows
  * (baseline 0.8593 n=5 / spine 0.6462 n=3). The user's v2 wave never stored
  * (zero new twin_fidelity_checks rows — ground truth was still the v1 wave,
@@ -128,6 +146,18 @@ const CONFIGS = {
     }
     console.log(`  spine: ${spine.covered}/${spine.blocks} blocks covered, ${spine.text.length} chars`);
     return spine.text;
+  },
+  // Candidate for the measured temporal blindness (v2 verdict: baseline
+  // 0.0000 on temporal items): render recent platform_data directly
+  // instead of hoping identity-weighted retrieval surfaces it.
+  digest: async () => {
+    const { renderRecentPlatformDigest } = await import('../api/services/recentPlatformDigest.js');
+    const digest = await renderRecentPlatformDigest(userId, { supabase: supabaseAdmin });
+    if (!digest.text) {
+      throw new Error('Digest rendered empty — no platform_data in the window; arm would equal baseline.');
+    }
+    console.log(`  digest: ${digest.platforms} platforms, ${digest.events} events, ${digest.text.length} chars`);
+    return digest.text;
   },
 };
 
