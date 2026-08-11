@@ -133,12 +133,32 @@ function withBudget(start, ms, fallback, label, userId) {
  * null when absent (legacy replies). Returns null overall when there are
  * no usable answers.
  */
+/**
+ * Repair near-JSON the models actually emit before it costs us a whole
+ * half-battery (fidelity-eval 2026-08-11: DeepSeek wrote `"planning_style":
+ * (0.9)` and 13 of 25 items were discarded). Only patterns that cannot
+ * change the meaning of valid JSON: parenthesized numbers and trailing
+ * commas.
+ */
+function sanitizeNearJson(text) {
+  return text
+    .replace(/:\s*\(\s*(-?\d+(?:\.\d+)?)\s*\)/g, ': $1')
+    .replace(/,\s*([}\]])/g, '$1');
+}
+
 export function parseTwinAnswers(rawContent) {
   if (!rawContent || typeof rawContent !== 'string') return null;
   const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
   if (!jsonMatch) return null;
   try {
-    const parsed = JSON.parse(jsonMatch[0]);
+    let parsed;
+    try {
+      parsed = JSON.parse(jsonMatch[0]);
+    } catch {
+      // Strict parse failed — retry once on the sanitized text; if that
+      // also throws, the outer catch logs and returns null as before.
+      parsed = JSON.parse(sanitizeNearJson(jsonMatch[0]));
+    }
     const answers = parsed.answers && typeof parsed.answers === 'object' ? parsed.answers : null;
     if (!answers || Object.keys(answers).length === 0) return null;
 
