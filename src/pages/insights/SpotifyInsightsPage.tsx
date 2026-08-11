@@ -90,7 +90,7 @@ const SpotifyInsightsPage: React.FC = () => {
         <div className="flex items-center gap-4">
           {/* Back Button */}
           <button
-            onClick={() => navigate('/dashboard')}
+            onClick={() => navigate('/today')}
             className="p-2 rounded-lg"
             style={{
               border: '1px solid var(--border)',

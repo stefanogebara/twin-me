@@ -1316,7 +1316,7 @@ const EmptyState: React.FC<{ message?: string }> = ({ message }) => {
           Connect platforms
         </button>
         <button
-          onClick={() => navigate('/interview')}
+          onClick={() => navigate('/story')}
           className="px-5 py-2 rounded-[100px] text-sm font-medium transition-all duration-150 hover:opacity-80 active:scale-[0.97]"
           style={{ border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
         >

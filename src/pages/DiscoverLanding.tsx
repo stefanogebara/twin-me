@@ -44,7 +44,7 @@ export default function DiscoverLanding() {
   // Redirect if already signed in
   useEffect(() => {
     const token = getAccessToken();
-    if (token) navigate('/dashboard', { replace: true });
+    if (token) navigate('/today', { replace: true });
   }, [navigate]);
 
   const handleDiscover = async () => {

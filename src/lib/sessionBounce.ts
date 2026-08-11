@@ -22,15 +22,16 @@ export const PUBLIC_EXACT = [
   '/oauth/callback', '/auth/callback', '/oauth/gmail/callback',
   // Pre-auth funnel pages — reachable from invite emails and the auth page.
   '/waitlist', '/beta',
-  // Desktop app download page — linked from marketing surfaces.
+  // Tombstone since the Phase 1 IA collapse (desktop is no longer the bet).
+  // Stays public so an old marketing link redirects cleanly instead of
+  // bouncing to /auth?error=session_expired.
   '/download',
   // '/preview' (no trailing slash) is the design-prototype gallery index;
   // the '/preview/' PREFIX below covers the individual screens.
   '/preview',
-  // Desktop (Tauri) Google sign-in handoff: must load without a JWT so
-  // it can start the web sign-in itself (signed out) or mint a one-time
-  // code + deep-link back to the app (signed in). Without this it would
-  // bounce to /auth?error=session_expired and never start the flow.
+  // Tombstone since the Phase 1 IA collapse (desktop is no longer the bet).
+  // Was the Tauri Google sign-in handoff; stays public for the same reason as
+  // '/download' above — a clean redirect beats a session_expired bounce.
   '/desktop-handoff',
   // Legal pages must be reachable without auth — they show up in
   // signup flows, beta-invite emails, and external links.

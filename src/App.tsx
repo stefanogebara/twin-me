@@ -26,7 +26,6 @@ import { BackgroundModeProvider, useBackgroundMode } from "./contexts/Background
 // Eager-loaded (critical path: landing, auth, 404)
 import Index from "./pages/Index";
 import CustomAuth from "./pages/CustomAuth";
-import DesktopHandoff from "./pages/DesktopHandoff";
 import OAuthCallback from "./pages/OAuthCallback";
 import NotFound from "./pages/NotFound";
 // Design prototypes: dev-only routes (see the /preview block below). The
@@ -44,19 +43,17 @@ import { TalkToTwinSkeleton } from "./pages/components/TalkToTwinSkeleton";
 // audit-2026-05-15 H12: MoneyPage chunk is one of the heaviest (147 KB raw)
 // and was showing the global flower-pulse Suspense fallback for ~3s on cold
 // cache. Adding it to the warmup list so navigation doesn't block.
-const loadDashboardV2 = () => import("./pages/DashboardV2");
+const loadTodayPage = () => import("./pages/TodayPage");
 const loadTalkToTwin = () => import("./pages/TalkToTwin");
 const loadMoneyPage = () => import("./pages/MoneyPage");
 const loadMoneyInsightsPage = () => import("./pages/MoneyInsightsPage");
 
-const DashboardV2 = lazy(loadDashboardV2);
 const Settings = lazy(() => import("./pages/Settings"));
 const VoiceSetupPage = lazy(() => import("./pages/VoiceSetupPage"));
 const InstantTwinOnboarding = lazy(() => import("./pages/InstantTwinOnboarding"));
 const BrainPage = lazy(() => import("./pages/BrainPage"));
 const DataExportsPage = lazy(() => import("./pages/DataExportsPage"));
 const TalkToTwin = lazy(loadTalkToTwin);
-const Widget = lazy(() => import("./pages/Widget"));
 const AdminLLMCosts = lazy(() => import("./pages/AdminLLMCosts"));
 const AdminBetaDashboard = lazy(() => import("./pages/AdminBetaDashboard"));
 const AdminBetaPage = lazy(() => import("./pages/AdminBetaPage"));
@@ -79,17 +76,13 @@ const PrivacySpectrumDashboard = lazy(() => import("./pages/PrivacySpectrumDashb
 const MemoryHealth = lazy(() => import("./pages/MemoryHealth"));
 const EvalDashboard = lazy(() => import("./pages/EvalDashboard"));
 const IdentityPage = lazy(() => import("./pages/IdentityPage"));
-const InterviewPage = lazy(() => import("./pages/InterviewPage"));
 const LifeStoryPage = lazy(() => import("./pages/LifeStoryPage"));
 const FidelityPage = lazy(() => import("./pages/FidelityPage"));
-const GoalsPage = lazy(() => import("./pages/GoalsPage"));
 const MoneyPage = lazy(loadMoneyPage);
 const MoneyInsightsPage = lazy(loadMoneyInsightsPage);
 const BriefingPage = lazy(() => import("./pages/BriefingPage"));
-const TodayPage = lazy(() => import("./pages/TodayPage"));
-const TwinSoulPage = lazy(() => import("./pages/TwinSoulPage"));
+const TodayPage = lazy(loadTodayPage);
 const PricingPage = lazy(() => import("./pages/PricingPage"));
-const DownloadPage = lazy(() => import("./pages/DownloadPage"));
 
 
 
@@ -126,7 +119,7 @@ const App = () => {
     // global flower-pulse Suspense fallback for ~3s on cold cache before
     // its chunk arrived.
     const prefetchHeavyRoutes = () => {
-      void loadDashboardV2();
+      void loadTodayPage();
       void loadTalkToTwin();
       void loadMoneyPage();
     };
@@ -170,17 +163,16 @@ const App = () => {
           <Routes>
             {/* Authentication */}
             <Route path="/auth" element={<CustomAuth />} />
-            {/* Desktop (Tauri) Google sign-in handoff: runs the registered web
-                sign-in, then deep-links the session back via twinme://. Public
-                route — it branches on signed-in/out itself. */}
-            <Route path="/desktop-handoff" element={<DesktopHandoff />} />
+            {/* Tombstone: desktop is no longer the bet (product-truth-review
+                2026-08-09 §6.2). The Tauri sign-in handoff goes with it. */}
+            <Route path="/desktop-handoff" element={<Navigate to="/today" replace />} />
             <Route path="/waitlist" element={<Suspense fallback={null}><WaitlistPage /></Suspense>} />
             <Route path="/beta" element={<Suspense fallback={null}><BetaSignupPage /></Suspense>} />
             <Route path="/login" element={<Navigate to="/auth" replace />} />
             <Route path="/signin" element={<Navigate to="/auth" replace />} />
 
             {/* Legacy path redirects */}
-            <Route path="/home" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/home" element={<Navigate to="/today" replace />} />
             <Route path="/chat" element={<Navigate to="/talk-to-twin" replace />} />
             <Route path="/custom-auth" element={<CustomAuth />} />
             <Route path="/oauth/callback" element={<OAuthCallback />} />
@@ -218,16 +210,10 @@ const App = () => {
             </Route>
             )}
 
-            {/* Main Dashboard */}
-            <Route path="/dashboard" element={
-              <ProtectedRoute>
-                <SidebarLayout>
-                  <ErrorBoundary>
-                    <DashboardV2 />
-                  </ErrorBoundary>
-                </SidebarLayout>
-              </ProtectedRoute>
-            } />
+            {/* Tombstone: DashboardV2 deleted in the Phase 1 IA collapse
+                (product-truth-review 2026-08-09). /today is the one home; its
+                best cards (HeroInsight, TwinSees) get absorbed in Phase 2. */}
+            <Route path="/dashboard" element={<Navigate to="/today" replace />} />
             {/* Daily Brief — deep-link target for the desktop morning toast
                 (replan-2026-06-10 desktop-product P2). */}
             <Route path="/briefing" element={
@@ -300,16 +286,9 @@ const App = () => {
             <Route path="/me" element={<Navigate to="/identity" replace />} />
             <Route path="/you" element={<Navigate to="/identity" replace />} />
 
-            {/* Deep Interview — structured onboarding */}
-            <Route path="/interview" element={
-              <ProtectedRoute>
-                <SidebarLayout>
-                  <ErrorBoundary>
-                    <InterviewPage />
-                  </ErrorBoundary>
-                </SidebarLayout>
-              </ProtectedRoute>
-            } />
+            {/* Tombstone: a second parallel interview system alongside Story.
+                Redo folds into Story Chapters (product-truth-review 2026-08-09). */}
+            <Route path="/interview" element={<Navigate to="/story" replace />} />
 
             {/* Story Chapters — chaptered life-story interview */}
             <Route path="/story" element={
@@ -374,26 +353,15 @@ const App = () => {
                 "what do you know about me?" instead. Old links land on chat. */}
             <Route path="/wiki" element={<Navigate to="/talk-to-twin" replace />} />
             <Route path="/knowledge" element={<Navigate to="/talk-to-twin" replace />} />
-            <Route path="/goals" element={
-              <ProtectedRoute>
-                <SidebarLayout>
-                  <ErrorBoundary>
-                    <GoalsPage />
-                  </ErrorBoundary>
-                </SidebarLayout>
-              </ProtectedRoute>
-            } />
+            {/* Tombstone: orphaned (zero in-app links), 29/42 suggestions never
+                accepted. Goal tracking still runs backend-side and the twin
+                raises progress in chat — it just has no page.
+                (product-truth-review 2026-08-09) */}
+            <Route path="/goals" element={<Navigate to="/today" replace />} />
 
-            {/* Twin Soul — directives learned from user corrections (pi-reflect pattern) */}
-            <Route path="/twin-soul" element={
-              <ProtectedRoute>
-                <SidebarLayout>
-                  <ErrorBoundary>
-                    <TwinSoulPage />
-                  </ErrorBoundary>
-                </SidebarLayout>
-              </ProtectedRoute>
-            } />
+            {/* Tombstone: orphaned (zero in-app links). Directive CRUD is
+                settings material (product-truth-review 2026-08-09). */}
+            <Route path="/twin-soul" element={<Navigate to="/settings" replace />} />
 
             {/* Financial-Emotional Twin — bank statement upload + emotional tagging (Phase 2) */}
             <Route path="/money" element={
@@ -557,17 +525,10 @@ const App = () => {
               </ProtectedRoute>
             } />
 
-            {/* Compact chrome-less twin chat for the desktop "Hummingbird"
-                panel (Tauri webview -> https://twinme.me/widget). ProtectedRoute
-                redirects unauthenticated users to /auth; NO SidebarLayout so the
-                460x600 panel is pure chat. */}
-            <Route path="/widget" element={
-              <ProtectedRoute>
-                <ErrorBoundary>
-                  <Widget />
-                </ErrorBoundary>
-              </ProtectedRoute>
-            } />
+            {/* Tombstone: the desktop "Hummingbird" panel's chrome-less chat.
+                Desktop is no longer the bet (product-truth-review 2026-08-09
+                §6.2); full chat lives at /talk-to-twin. */}
+            <Route path="/widget" element={<Navigate to="/talk-to-twin" replace />} />
 
             {/* Admin: LLM Cost Monitor */}
             <Route path="/admin/llm-costs" element={
@@ -626,7 +587,9 @@ const App = () => {
             } />
 
             {/* Desktop app downloads - Public, no auth required (beta users grab it before logging in) */}
-            <Route path="/download" element={<DownloadPage />} />
+            {/* Tombstone: desktop is no longer the bet (product-truth-review
+                2026-08-09 §6.2). */}
+            <Route path="/download" element={<Navigate to="/settings" replace />} />
 
             {/* Privacy Policy - Public, no auth required */}
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />

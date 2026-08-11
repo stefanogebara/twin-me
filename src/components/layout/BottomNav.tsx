@@ -10,8 +10,11 @@ interface NavItem {
   path: string;
 }
 
+// Mirrors CollapsibleSidebar's five surfaces (Phase 1 IA collapse,
+// product-truth-review 2026-08-09). Mobile and desktop exposing different nav
+// was one of the review's IA findings — keep these two lists in step.
 const PRIMARY_NAV: NavItem[] = [
-  { id: 'dashboard', label: 'Home',    icon: Home,          path: '/dashboard' },
+  { id: 'today',     label: 'Today',   icon: Home,          path: '/today' },
   { id: 'chat',      label: 'Twin',    icon: MessageCircle, path: '/talk-to-twin' },
   { id: 'connect',   label: 'Connect', icon: Link2,         path: '/connect' },
   { id: 'identity',  label: 'You',     icon: User,          path: '/identity' },

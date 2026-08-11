@@ -84,7 +84,7 @@ export function useChatSession({ userId, connectedPlatforms, messages, setMessag
           if (data && !data.completed_at) {
             clearTimeout(failsafe);
             setInterviewChecked(true); // Mark checked BEFORE navigating so chat doesn't hang
-            navigate('/interview');
+            navigate('/story');
             return;
           }
         }

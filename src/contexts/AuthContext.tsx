@@ -383,7 +383,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // /auth/refresh. Two parallel calls means call #2 sees the already-rotated
   // (now-invalid) RT, returns 401, trips refreshDisabledForSession, and the
   // user lands on /auth?error=session_expired despite call #1 having succeeded.
-  // After magic-link signin, OAuthCallback does window.location.href = '/dashboard'
+  // After magic-link signin, OAuthCallback does window.location.href = '/today'
   // which loses the in-memory access token across the hard nav — AuthProvider
   // remounts, initAuth() fires refreshAccessToken(), StrictMode double-mounts,
   // and we have the race.

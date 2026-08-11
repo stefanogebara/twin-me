@@ -315,7 +315,7 @@ const InstantTwinOnboarding = () => {
         {currentStep === 1 && (
           <div className="flex justify-end mb-4">
             <button
-              onClick={() => navigate('/interview')}
+              onClick={() => navigate('/story')}
               className="text-[12px] transition-opacity hover:opacity-70"
               style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
             >
@@ -358,7 +358,7 @@ const InstantTwinOnboarding = () => {
               onGenerate={startTwinGeneration}
               onSkip={() => {
                 trackFunnel('onboarding_skipped_no_platforms', { page: 'get-started' });
-                navigate('/dashboard');
+                navigate('/today');
               }}
             />
           </>

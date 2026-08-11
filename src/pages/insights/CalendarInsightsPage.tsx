@@ -178,7 +178,7 @@ const CalendarInsightsPage: React.FC = () => {
         iconBgColor={colors.calendarBg}
         textColor={colors.text}
         textSecondaryColor={colors.textSecondary}
-        onBack={() => navigate('/dashboard')}
+        onBack={() => navigate('/today')}
         onRefresh={refresh}
         isRefreshing={isRefreshing}
       />

@@ -139,7 +139,7 @@ const NewDiscoverFlow: React.FC = () => {
           // /dashboard straight back to /onboarding in an infinite redirect loop
           // (audit-2026-06-10 follow-up, reviewer BLOCKER).
           setNeedsOnboarding(false);
-          navigate('/dashboard');
+          navigate('/today');
           return;
         }
         setLoading(false);
@@ -573,7 +573,7 @@ const NewDiscoverFlow: React.FC = () => {
     // straight back to /onboarding before the POST lands.
     setNeedsOnboarding(false);
     setPhaseTracked('complete');
-    navigate('/dashboard');
+    navigate('/today');
   };
 
   // audit-2026-06-10 follow-up: the header Skip is an escape hatch, NOT a finish —
@@ -583,7 +583,7 @@ const NewDiscoverFlow: React.FC = () => {
   const handleSkipExit = () => {
     trackFunnel('discover_skip_exited', { phase });
     setNeedsOnboarding(false);
-    navigate('/dashboard');
+    navigate('/today');
   };
 
   // Loading state

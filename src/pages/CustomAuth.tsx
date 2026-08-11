@@ -26,7 +26,7 @@ const CustomAuth = () => {
       const safeRedirect =
         redirectTo && redirectTo.startsWith('/') && !redirectTo.startsWith('//')
           ? redirectTo
-          : '/dashboard';
+          : '/today';
       navigate(safeRedirect, { replace: true });
     }
   }, [isLoaded, isSignedIn, navigate, searchParams]);

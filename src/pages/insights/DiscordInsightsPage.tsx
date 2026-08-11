@@ -139,7 +139,7 @@ const DiscordInsightsPage: React.FC = () => {
         iconBgColor={colors.discordBg}
         textColor={colors.text}
         textSecondaryColor={colors.textSecondary}
-        onBack={() => navigate('/dashboard')}
+        onBack={() => navigate('/today')}
         onRefresh={refresh}
         isRefreshing={isRefreshing}
       />

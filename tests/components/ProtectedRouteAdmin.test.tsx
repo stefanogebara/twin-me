@@ -9,8 +9,12 @@
  * per-case, which is all we need to assert redirect vs. children.
  *
  * Acceptance covered: an authenticated non-admin visiting an admin route is
- * redirected to /dashboard and never sees the admin shell; an admin is
+ * redirected to /today and never sees the admin shell; an admin is
  * unaffected; and the non-admin gate does NOT regress ordinary routes.
+ *
+ * Target moved /dashboard -> /today in the Phase 1 IA collapse
+ * (product-truth-review 2026-08-09): DashboardV2 was deleted and /today is the
+ * one home. The gate itself is unchanged — only where it sends people.
  */
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
@@ -51,10 +55,10 @@ beforeEach(() => {
 });
 
 describe('ProtectedRoute requireAdmin', () => {
-  it('redirects an authenticated non-admin to /dashboard and hides the shell', () => {
+  it('redirects an authenticated non-admin to /today and hides the shell', () => {
     mockAuth = { isSignedIn: true, isLoaded: true, isAdmin: false, needsOnboarding: false };
     const html = renderGate(true);
-    expect(html).toContain('data-redirect="/dashboard"');
+    expect(html).toContain('data-redirect="/today"');
     expect(html).not.toContain(SHELL);
   });
 
@@ -65,7 +69,7 @@ describe('ProtectedRoute requireAdmin', () => {
     expect(html).not.toContain('data-redirect');
   });
 
-  it('redirects a signed-out user to /auth (not /dashboard)', () => {
+  it('redirects a signed-out user to /auth (not /today)', () => {
     mockAuth = { isSignedIn: false, isLoaded: true, isAdmin: false, needsOnboarding: false };
     const html = renderGate(true);
     expect(html).toContain('data-redirect="/auth');
