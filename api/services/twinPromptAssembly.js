@@ -96,7 +96,7 @@ export async function assembleTwinSystemPrompt({
   const {
     soulSignature, platformData, twinSummary, proactiveInsights,
     departmentProposals, writingProfile, voiceExamples, nudgeHistory,
-    directives,
+    directives, recentDigest,
   } = twinContext;
 
   // Phase 1 (2026-08-10): wiki injection hard-frozen. The llm_wiki toggle left
@@ -105,13 +105,15 @@ export async function assembleTwinSystemPrompt({
   // inject permanently-stale pages into chat forever. Frozen means frozen:
   // nothing injects until the wiki gets a deliberate second life.
   // Phase 3 (2026-08-11): the temporal spine was deleted — the fidelity eval
-  // measured no gain (twin-research/fidelity-eval.js verdict log).
+  // measured no gain (twin-research/fidelity-eval.js verdict log). Its
+  // successor, the recent-platform digest, EARNED injection through the same
+  // eval (+0.048 overall, temporal recall 0 -> 0.2) and ships unflagged.
   const wikiPagesForPrompt = null;
 
   const systemPrompt = buildTwinSystemPrompt(
     soulSignature, platformData, twinSummary, proactiveInsights,
     userLocation, coreBlockText, departmentProposals, wikiPagesForPrompt,
-    directives,
+    directives, recentDigest,
   );
 
   systemPrompt.push({ type: 'text', text: ANTI_EMOJI_RULE });

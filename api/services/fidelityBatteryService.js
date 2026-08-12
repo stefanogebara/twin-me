@@ -23,6 +23,7 @@ import { FIDELITY_BATTERY, BATTERY_VERSION } from '../config/fidelityBattery.js'
 import { supabaseAdmin } from './database.js';
 import { retrieveDiverseMemories } from './memoryStreamService.js';
 import { getTwinSummary } from './twinSummaryService.js';
+import { renderRecentPlatformDigest } from './recentPlatformDigest.js';
 // Call-time-only circular import (fidelityCalibration imports scoreItem
 // back from this module) — safe in ESM, both uses are inside functions.
 import { calibrationFromPairs, batteryCalibrationPairs } from './fidelityCalibration.js';
@@ -206,7 +207,7 @@ export async function answerBatteryAsTwin(userId, { contextBudgetMs = CONTEXT_BU
   // Neither fetch may hold the battery hostage: each races its own budget
   // and degrades to the prompt's existing "Limited ..." fallback. Budgeted
   // independently so a slow summary doesn't cost us real evidence.
-  const [summary, memories] = await Promise.all([
+  const [summary, memories, digest] = await Promise.all([
     withBudget(
       () => getTwinSummary(userId),
       contextBudgetMs, '', 'twin summary', userId
@@ -219,6 +220,14 @@ export async function answerBatteryAsTwin(userId, { contextBudgetMs = CONTEXT_BU
         'identity'
       ),
       contextBudgetMs, [], 'memory retrieval', userId
+    ),
+    // Recent platform digest — earned production injection via the fidelity
+    // eval (2026-08-11 three-arm trial: +0.048 overall, temporal 0 -> 0.2).
+    // Part of PRODUCTION grounding now, so eval baselines include it and
+    // future candidates must beat it, not the digest-less twin.
+    withBudget(
+      () => renderRecentPlatformDigest(userId, { supabase: supabaseAdmin }).then(r => r.text || ''),
+      contextBudgetMs, '', 'recent platform digest', userId
     ),
   ]);
 
@@ -240,7 +249,7 @@ ${summary || 'Limited summary available.'}
 
 EVIDENCE FROM THEIR MEMORY STREAM:
 ${memoryLines || 'Limited evidence available.'}
-${extraBlock}
+${digest ? `\n${digest}\n` : ''}${extraBlock}
 
 METHOD — for each item, silently follow four steps:
 1. Option Interpretation: what kind of person each answer describes.

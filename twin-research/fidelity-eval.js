@@ -87,6 +87,11 @@
  *      as one project where the user feels scatter) — digest v2 material.
  *      Per the ship-only-if-it-moves-the-score rule, the digest is the
  *      first candidate that has EARNED production injection.
+ *      -> SHIPPED 2026-08-12: injected into chat grounding
+ *         (twinContextBuilder 'recentDigest' leg -> prompt builder block,
+ *         clamped at 3k chars) and into answerBatteryAsTwin's own
+ *         grounding — so eval baselines now INCLUDE the digest and the
+ *         'digest' config was removed (it would double-inject).
  *
  * 2026-08-11 (earlier same day) baseline,spine re-trial: INVALID, ignore its TSV rows
  * (baseline 0.8593 n=5 / spine 0.6462 n=3). The user's v2 wave never stored
@@ -147,18 +152,11 @@ const CONFIGS = {
     console.log(`  spine: ${spine.covered}/${spine.blocks} blocks covered, ${spine.text.length} chars`);
     return spine.text;
   },
-  // Candidate for the measured temporal blindness (v2 verdict: baseline
-  // 0.0000 on temporal items): render recent platform_data directly
-  // instead of hoping identity-weighted retrieval surfaces it.
-  digest: async () => {
-    const { renderRecentPlatformDigest } = await import('../api/services/recentPlatformDigest.js');
-    const digest = await renderRecentPlatformDigest(userId, { supabase: supabaseAdmin });
-    if (!digest.text) {
-      throw new Error('Digest rendered empty — no platform_data in the window; arm would equal baseline.');
-    }
-    console.log(`  digest: ${digest.platforms} platforms, ${digest.events} events, ${digest.text.length} chars`);
-    return digest.text;
-  },
+  // NOTE: the recent-platform digest is no longer an arm — it won the
+  // 2026-08-11 three-arm trial and SHIPPED into production grounding
+  // (answerBatteryAsTwin fetches it itself now), so 'baseline' includes
+  // it. A digest arm here would double-inject. Future candidates compete
+  // against the digest-included baseline.
 };
 
 // ─── Ground truth ────────────────────────────────────────────────────────────
