@@ -510,3 +510,11 @@ a careful stash-archaeology pass (`git stash show --stat/-p`, selective
 - **Identical git output across supposedly independent directories means you are querying one repo N times.** Treat suspicious uniformity as a bug in the measurement, not a fact about the data.
 - `git worktree list` is the authority on what is a worktree. Enumerating directories with `Get-ChildItem`/`ls` and assuming each is a checkout conflates real worktrees with leftover folders.
 - This nearly caused a wrong destructive call: the phantom "8 uncommitted files" was the argument for preserving directories that were in fact empty. Verify the target before *and* the reasoning about the target.
+
+## 2026-08-12 — a single-day eval delta is not a result
+
+I shipped the recent-platform digest into production on a measured "+0.048 overall, temporal recall 0 -> 0.2" from one 5-trial-per-arm run, and killed the temporal spine on a similar single-day delta. Re-measuring the shipped, unchanged digest against the same wave 24h later returned temporal 0.0000 — the win was a property of that day's platform data, not the code. Both judgements were built on the same false floor.
+
+The error: trials at temperature 0.3 sample LLM noise, which was near zero (five trials often returned an identical score). That near-zero spread reads as tight confidence, but the variance that actually decides these questions is day-to-day drift in the underlying user data, which repeated trials in one session cannot see.
+
+Rules going forward: a candidate is measured against a same-session control arm, never against a number recorded on another day; a claimed win must survive at least two separate days before it justifies shipping or deleting anything; and when reporting, separate demonstrated capability (the twin cited real recent events, traced line by line) from measured improvement (a replicated score) — they are different claims and only the second needs statistics.
