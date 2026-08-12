@@ -116,6 +116,7 @@ import {
   instagramExportRun,
   instagramExportLearn,
 } from './exports/chat/instagram.js';
+import { renderRecentPlatformDigest } from './recentPlatformDigest.js';
 
 // Desktop activity context (P1 wire-the-loop): the pure section builder
 // lives in desktopActivityContext.js (this file is too heavy to import in
@@ -330,7 +331,7 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
   // a leg means updating this array AND the destructure below in lockstep.
   // (Phase 3 2026-08-11: timelineSpine leg deleted with the temporal spine —
   // fidelity eval measured no gain; see twin-research/fidelity-eval.js.)
-  const defaults = [null, {}, null, [], null, [], { success: false, data: null }, [], null, [], null, null, [], [], [], []];
+  const defaults = [null, {}, null, [], null, [], { success: false, data: null }, [], null, [], null, null, [], [], [], [], null];
 
   const fetchPromises = [
     fetchSoul
@@ -463,6 +464,17 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
       log.warn('Directives fetch failed:', err.message);
       return [];
     })),
+
+    // Recent platform digest: last-two-weeks platform_data rendered
+    // directly, selected by TIME not embedding distance — the memory
+    // stream held 782 recent events while retrieval surfaced 6, measured
+    // as 0.0000 temporal recall on the v2 fidelity battery. Earned its
+    // injection through the eval (2026-08-11 three-arm trial: +0.048
+    // overall, temporal 0 -> 0.2; twin-research/fidelity-eval.js verdict
+    // log). One indexed read; no flag — it ships because it moved the score.
+    timed('recentDigest', renderRecentPlatformDigest(userId, { supabase: supabaseAdmin })
+      .then(r => r.text || null)
+      .catch(err => { log.warn('Recent platform digest fetch failed:', err.message); return null; })),
   ];
 
   // Race the fan-out against the global breaker, degrading to partial context
@@ -506,6 +518,7 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
     departmentProposals,
     wikiPages,
     directives,
+    recentDigest,
   ] = contextResults;
 
   ctxLog('All parallel fetches complete');
@@ -862,6 +875,7 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
     departmentProposals,
     wikiPages,
     directives,
+    recentDigest,
     timings,
   };
 }

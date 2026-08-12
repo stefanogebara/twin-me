@@ -45,6 +45,61 @@
  *          ground truth — never synthesize user_answers),
  *      (2) revert a8b3314e to restore renderSpine + a 'spine' config here,
  *      (3) rerun baseline,spine and let the temporal subset decide.
+ *
+ * 2026-08-11 THE V2 RE-TRIAL (real v2 wave 1, 5 trials/arm, parser fix
+ * 8e5128c5 in, spine restored from a8b3314e^ for the eval only):
+ *   overall  : baseline 0.4740 (0.4600-0.4800)  spine 0.5038 (0.4900-0.5192)
+ *              delta +0.0298 — small but the ranges DO NOT OVERLAP (5v5).
+ *   temporal : baseline 0.0000 (0/5 items, every trial)  spine 0.1000.
+ *   -> Two findings, bigger than the spine question:
+ *      1. CONFIRMED, and worse than suspected: the twin is completely
+ *         blind to the last two weeks. Baseline scored ZERO on all 5
+ *         temporal items in all 5 trials. The v1 battery could never see
+ *         this; v2 sees it instantly.
+ *      2. The spine as-built is directionally right but too weak: first
+ *         measurable positive effect of any context flag (+0.03 overall,
+ *         non-overlapping), yet 5/16 block coverage lifts temporal recall
+ *         only 0 -> 0.1. It knows time passed; it does not know WHAT
+ *         happened.
+ *   Note: shared-20-item accuracy vs THIS wave is ~0.59 (was 0.825 vs the
+ *   Aug 3 wave) — the user's own answers moved between waves; v2 wave 2
+ *   will put a self-consistency ceiling under this.
+ *   -> VERDICT: the temporal-recall failure is real and measured; the
+ *      spine (or a stronger recent-platform-data injection) now has a
+ *      quantified target: beat baseline's 0.0000 temporal subset.
+ *      Resurrection/redesign is a founder call; the eval is ready either
+ *      way.
+ *
+ * 2026-08-11 THREE-ARM TRIAL — baseline vs spine vs digest (recent-
+ * platform-data block, api/services/recentPlatformDigest.js; same v2
+ * wave, 5 trials/arm, zero parse failures):
+ *   overall  : baseline 0.4780 (0.46-0.49)  spine 0.4840 (0.47-0.50)
+ *              digest 0.5260 (0.52-0.54) — digest's range clears both.
+ *   temporal : baseline 0.0000  spine 0.0000  digest 0.2000 —
+ *              digest nails recent_listening in EVERY trial (the 426
+ *              Spotify events read as "familiar favorites on repeat").
+ *   -> Spine's earlier +0.03 did NOT replicate (temporal back to zero);
+ *      the non-overlap in the previous run was noise. Deletion stands.
+ *   -> DIGEST WINS: +0.048 overall vs baseline with non-overlapping
+ *      ranges, first-ever temporal-subset lift, one DB query, ~2.8k
+ *      chars. Remaining temporal misses are interpretation gaps (41
+ *      calendar events rendered as "bursts" not "packed"; GitHub reading
+ *      as one project where the user feels scatter) — digest v2 material.
+ *      Per the ship-only-if-it-moves-the-score rule, the digest is the
+ *      first candidate that has EARNED production injection.
+ *      -> SHIPPED 2026-08-12: injected into chat grounding
+ *         (twinContextBuilder 'recentDigest' leg -> prompt builder block,
+ *         clamped at 3k chars) and into answerBatteryAsTwin's own
+ *         grounding — so eval baselines now INCLUDE the digest and the
+ *         'digest' config was removed (it would double-inject).
+ *
+ * 2026-08-11 (earlier same day) baseline,spine re-trial: INVALID, ignore its TSV rows
+ * (baseline 0.8593 n=5 / spine 0.6462 n=3). The user's v2 wave never stored
+ * (zero new twin_fidelity_checks rows — ground truth was still the v1 wave,
+ * so temporal items had no truth), and DeepSeek returned malformed JSON in
+ * 4 of 10 trials (likert "III", "—0.9", "&quot;"), leaving the spine arm
+ * n=3 with a 13-item 0.2885 outlier. Rerun after (a) a v2 wave actually
+ * lands and (b) the parseTwinAnswers hardening merges.
  */
 
 import { fileURLToPath } from 'url';
@@ -74,9 +129,43 @@ const configNames = argValue('--configs', 'baseline').split(',').map(s => s.trim
 // ─── Configs: name -> async () => extraContext|null ─────────────────────────
 // Add a config per candidate feature: return the context block the feature
 // would inject into the twin's grounding, or throw if its inputs are absent.
-// (The 'spine' config was removed with the temporal spine — see verdict log.)
+// 'spine' needs api/services/memoryTimelineService.js — deleted in a8b3314e,
+// restorable for a re-trial via:
+//   git show a8b3314e^:api/services/memoryTimelineService.js > api/services/memoryTimelineService.js
+// (lazy import below keeps baseline-only runs working without it).
 const CONFIGS = {
   baseline: async () => null,
+  spine: async () => {
+    // memoryTimelineService was deleted with the spine (a8b3314e), so this
+    // arm cannot run from a clean checkout by design — restore the module
+    // first. Kept as the worked example of a candidate arm.
+    const { renderSpine } = await import('../api/services/memoryTimelineService.js').catch(() => {
+      throw new Error(
+        'The spine arm needs the deleted memoryTimelineService. Restore it with:\n' +
+        '  git show a8b3314e^:api/services/memoryTimelineService.js > api/services/memoryTimelineService.js\n' +
+        '(delete it again afterwards — the spine failed the eval twice and stays out of production.)'
+      );
+    });
+    const { data: prof } = await supabaseAdmin
+      .from('users').select('timezone').eq('id', userId).maybeSingle();
+    const spine = await renderSpine(userId, {
+      supabase: supabaseAdmin,
+      timeZone: prof?.timezone || undefined,
+    });
+    if (!spine.text) {
+      throw new Error(
+        `Spine rendered empty (blocks=${spine.blocks}, covered=${spine.covered}). ` +
+        'Build timeline nodes first (buildPendingNodes) or the A arm equals the B arm.'
+      );
+    }
+    console.log(`  spine: ${spine.covered}/${spine.blocks} blocks covered, ${spine.text.length} chars`);
+    return spine.text;
+  },
+  // NOTE: the recent-platform digest is no longer an arm — it won the
+  // 2026-08-11 three-arm trial and SHIPPED into production grounding
+  // (answerBatteryAsTwin fetches it itself now), so 'baseline' includes
+  // it. A digest arm here would double-inject. Future candidates compete
+  // against the digest-included baseline.
 };
 
 // ─── Ground truth ────────────────────────────────────────────────────────────

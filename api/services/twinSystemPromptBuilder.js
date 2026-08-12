@@ -285,7 +285,7 @@ When the user asks for a "morning briefing", "what's my day look like", or simil
  * Build a personalized system prompt based on user's soul signature, platform data, and memory.
  * Returns an array format for Anthropic prompt caching - static base is cached, dynamic context is not.
  */
-export function buildTwinSystemPrompt(soulSignature, platformData, twinSummary = null, proactiveInsights = null, userLocation = null, coreMemoryBlockText = null, departmentProposals = null, wikiPages = null, directives = null) {
+export function buildTwinSystemPrompt(soulSignature, platformData, twinSummary = null, proactiveInsights = null, userLocation = null, coreMemoryBlockText = null, departmentProposals = null, wikiPages = null, directives = null, recentDigest = null) {
   let dynamicContext = '';
 
   // === CORE IDENTITY (pinned blocks — highest attention weight) ===
@@ -368,6 +368,24 @@ export function buildTwinSystemPrompt(soulSignature, platformData, twinSummary =
   }
 
   dynamicContext += `\n${temporalLine}`;
+
+  // === RECENT PLATFORM DIGEST (last two weeks, time-selected) ===
+  // Successor to the temporal spine, in the spine's old slot: before the
+  // knowledge base so the model reads what ACTUALLY happened lately before
+  // what is generally known. Earned through the fidelity eval (2026-08-11
+  // three-arm trial: +0.048 overall, temporal recall 0 -> 0.2 vs a baseline
+  // that scored 0.0000 on every last-two-weeks item).
+  // Clamped for the same reason the spine was: dynamicContext is hard-capped
+  // and truncated from the TAIL, and the tail is the PLATFORM CONTEXT block
+  // the prompt tells the model to quote exactly — an unclamped block silently
+  // deletes the live analytics. Measured digest is ~2.8k chars; 3k headroom.
+  if (recentDigest) {
+    const MAX_DIGEST_CHARS = 3000;
+    const digestText = recentDigest.length > MAX_DIGEST_CHARS
+      ? recentDigest.slice(0, MAX_DIGEST_CHARS) + '\n[...older platform events truncated]'
+      : recentDigest;
+    dynamicContext += `\n\n${digestText}`;
+  }
 
   // === COMPILED KNOWLEDGE BASE (LLM Wiki — pre-compiled, cross-referenced domain pages) ===
   // When wiki pages are available, they subsume the twin summary with richer structured context.
