@@ -380,6 +380,9 @@ export function buildTwinSystemPrompt(soulSignature, platformData, twinSummary =
   // the prompt tells the model to quote exactly — an unclamped block silently
   // deletes the live analytics. Measured digest is ~2.8k chars; 3k headroom.
   if (recentDigest) {
+    // Lockstep with MAX_TEXT_CHARS in recentPlatformDigest.js (3000): the
+    // digest trims itself to that by whole sections, so this clamp is the
+    // belt-and-braces guard, not the working limit.
     const MAX_DIGEST_CHARS = 3000;
     const digestText = recentDigest.length > MAX_DIGEST_CHARS
       ? recentDigest.slice(0, MAX_DIGEST_CHARS) + '\n[...older platform events truncated]'
