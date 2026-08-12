@@ -140,6 +140,21 @@
  *   recall — Google Calendar ingestion is thin, so the evidence genuinely
  *   understates the user's week. No prompt change can fix that; the fix is
  *   in ingestion. Worth checking before any further retrieval work.
+ *   -> 2026-08-12 CORRECTION after checking Google Calendar's API
+ *      directly: the claim above is WRONG in direction. The user's
+ *      owner/writer calendars hold events on only 9 of the last 14 local
+ *      days (14 events); ingestion captured 8 of those 9. So the evidence
+ *      barely understates the calendar — the user's "12 days or more" is
+ *      what the connected calendars do not support (likely counting a
+ *      work account / subscribed calendars / memory). The felt-vs-logged
+ *      gap reached a counting item; log-truth for this item is "8 to 11".
+ *      Real ingestion defects found and fixed anyway (observationFetchers/
+ *      calendar.js): the daily window started at `timeMin: now`, so the
+ *      21:30-local run missed all finished and same-day-created events
+ *      (the one genuinely missed day, Aug 5); day boundaries and event
+ *      times used SERVER time; and empty days deduped away because the
+ *      "no events today" string was byte-identical — summaries are now
+ *      date-anchored so absence-of-memory and absence-of-events differ.
  *
  *   Caveat carried forward: 2 of 10 trials lost a half-battery to
  *   unparseable JSON (the model emitted Roman numerals, "III", where an

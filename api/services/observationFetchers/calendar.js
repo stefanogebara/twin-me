@@ -11,6 +11,65 @@ import { sanitizeExternal, getSupabase } from '../observationUtils.js';
 const log = createLogger('ObservationIngestion');
 
 /**
+ * Milliseconds by which `timeZone` is offset from UTC at `date`.
+ * Two-pass (offset can differ across a DST boundary at local midnight, so
+ * the first guess is re-evaluated at the guessed instant).
+ */
+function tzOffsetMs(date, timeZone) {
+  const dtf = new Intl.DateTimeFormat('en-US', {
+    timeZone, hour12: false,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+  });
+  const p = Object.fromEntries(dtf.formatToParts(date).map(x => [x.type, x.value]));
+  const asUTC = Date.UTC(+p.year, +p.month - 1, +p.day, p.hour === '24' ? 0 : +p.hour, +p.minute, +p.second);
+  return asUTC - date.getTime();
+}
+
+/**
+ * The user's FULL local calendar day containing `now`.
+ *
+ * Fix for the fidelity-eval data-coverage investigation (2026-08-12): the
+ * observation window used to start at `timeMin: now`, and the single daily
+ * ingestion run fires at ~21:30 in the eval user's timezone — so meetings
+ * that had already ended that day were invisible, and events created the
+ * same day they occur were never captured at all (calendar API held them,
+ * zero memories existed). Day boundaries also followed the SERVER's zone.
+ *
+ * Returns { start, end, dayLabel }; dayLabel ("Aug 11, 2026") is embedded
+ * in the daily summaries so each day's summary — including "no events"
+ * days — is a distinct string that survives identical-content dedup.
+ * Invalid/missing timezones fall back to UTC.
+ */
+export function localDayWindow(now, timeZone) {
+  let tz = timeZone || 'UTC';
+  try { new Intl.DateTimeFormat('en-US', { timeZone: tz }); } catch { tz = 'UTC'; }
+
+  const dtf = new Intl.DateTimeFormat('en-US', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' });
+  const p = Object.fromEntries(dtf.formatToParts(now).map(x => [x.type, x.value]));
+  const midnightGuess = new Date(Date.UTC(+p.year, +p.month - 1, +p.day) - tzOffsetMs(now, tz));
+  // Re-anchor with the offset AT local midnight (DST-boundary correctness).
+  const start = new Date(Date.UTC(+p.year, +p.month - 1, +p.day) - tzOffsetMs(midnightGuess, tz));
+  const end = new Date(start.getTime() + 24 * 3600 * 1000 - 1);
+  const dayLabel = new Intl.DateTimeFormat('en-US', { timeZone: tz, month: 'short', day: 'numeric', year: 'numeric' }).format(now);
+  return { start, end, dayLabel };
+}
+
+/**
+ * Event time in the USER's timezone. The old inline toLocaleTimeString had
+ * no timeZone argument, so times rendered in the server's zone (UTC on
+ * Vercel) — "5:30 PM" meetings were stored as "8:30 PM". Returns null for
+ * unparseable input; falls back to UTC for an invalid timezone.
+ */
+export function formatEventTime(raw, timeZone) {
+  const date = new Date(raw);
+  if (isNaN(date.getTime())) return null;
+  let tz = timeZone || 'UTC';
+  try { new Intl.DateTimeFormat('en-US', { timeZone: tz }); } catch { tz = 'UTC'; }
+  return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: tz });
+}
+
+/**
  * Fetch Google Calendar data and return natural-language observations.
  * Reuses the same API call patterns from twin-chat.js.
  */
@@ -27,10 +86,27 @@ async function fetchCalendarObservations(userId) {
     throw err;
   }
 
+  // The user's calendar day, not the server's. Fallback UTC when the
+  // profile has no timezone.
+  let userTz = 'UTC';
+  try {
+    const supabase = await getSupabase();
+    if (supabase) {
+      const { data: prof } = await supabase.from('users').select('timezone').eq('id', userId).maybeSingle();
+      if (prof?.timezone) userTz = prof.timezone;
+    }
+  } catch (tzErr) {
+    log.debug('Calendar: timezone lookup failed, using UTC', { error: tzErr?.message });
+  }
+
   try {
     const now = new Date();
-    const todayEnd = new Date(now);
-    todayEnd.setHours(23, 59, 59, 999);
+    // FULL local day, not [now -> end of server day]. The single daily run
+    // fires in the user's evening, so a from-now window missed every
+    // meeting that had already ended and every same-day-created event —
+    // measured as whole days absent from the memory stream while the
+    // calendar API held the events (fidelity-eval verdict log, 2026-08-12).
+    const { start: dayStart, end: todayEnd, dayLabel } = localDayWindow(now, userTz);
     // Forward window for raw-event persistence to user_platform_data.
     // 7 days is enough for the purchase-bot's "next 4h" window to always
     // find something if it exists, and for goalTrackingService to pick up
@@ -74,7 +150,7 @@ async function fetchCalendarObservations(userId) {
       }).catch(() => null);
 
     const [todayResults, forwardResults] = await Promise.all([
-      Promise.all(calendarIds.map(id => fetchEventsForCalendar(id, now, todayEnd, 10))),
+      Promise.all(calendarIds.map(id => fetchEventsForCalendar(id, dayStart, todayEnd, 25))),
       Promise.all(calendarIds.map(id => fetchEventsForCalendar(id, now, forwardEnd, 50))),
     ]);
 
@@ -142,11 +218,9 @@ async function fetchCalendarObservations(userId) {
       const endRaw = e.end?.dateTime || e.end?.date;
 
       if (startRaw && endRaw) {
-        const startDate = new Date(startRaw);
-        const endDate = new Date(endRaw);
-        if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) continue;
-        const startTime = startDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-        const endTime = endDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+        const startTime = formatEventTime(startRaw, userTz);
+        const endTime = formatEventTime(endRaw, userTz);
+        if (!startTime || !endTime) continue;
         observations.push({ content: `Has a meeting '${title}' from ${startTime} to ${endTime}`, contentType: 'daily_summary' });
       } else if (startRaw) {
         observations.push({ content: `Has an all-day event '${title}'`, contentType: 'daily_summary' });
@@ -157,16 +231,18 @@ async function fetchCalendarObservations(userId) {
       observations.push({ content: `Events pulled from ${calendarIds.length} calendars (work, personal, shared)`, contentType: 'weekly_summary' });
     }
 
-    // Detect free afternoon — use daily_summary to avoid per-hour duplicates
+    // Detect free afternoon — use daily_summary to avoid per-hour duplicates.
+    // Hours are evaluated in the USER's timezone (getHours() was server-local).
+    const localHour = (d) => Number(new Intl.DateTimeFormat('en-US', { timeZone: userTz, hour: 'numeric', hour12: false }).format(d));
     if (events.length === 0) {
-      if (now.getHours() >= 12) {
+      if (localHour(now) >= 12) {
         observations.push({ content: 'Free afternoon - no meetings scheduled', contentType: 'daily_summary' });
       }
     } else {
       const lastEventEnd = events[events.length - 1]?.end?.dateTime;
       if (lastEventEnd) {
         const lastEnd = new Date(lastEventEnd);
-        if (lastEnd.getHours() < 17) {
+        if (!isNaN(lastEnd.getTime()) && localHour(lastEnd) < 17) {
           observations.push({ content: 'Free afternoon - meetings end before 5 PM', contentType: 'daily_summary' });
         }
       }
@@ -188,7 +264,11 @@ async function fetchCalendarObservations(userId) {
         timeCluster = avgHour < 12 ? 'morning-heavy' : avgHour < 17 ? 'afternoon-focused' : 'evening-loaded';
       }
 
-      const parts = [`Calendar schedule today: ${events.length} event${events.length > 1 ? 's' : ''}`];
+      // Date-anchored so each day's summary is a distinct string: the old
+      // constant "today" phrasing made every empty/similar day byte-identical,
+      // and identical-content dedup collapsed them — absence of a memory was
+      // indistinguishable from absence of events.
+      const parts = [`Calendar schedule for ${dayLabel}: ${events.length} event${events.length > 1 ? 's' : ''}`];
       if (titles.length <= 4) {
         parts.push(`(${titles.join(', ')})`);
       } else {
@@ -203,7 +283,9 @@ async function fetchCalendarObservations(userId) {
       });
     } else {
       observations.push({
-        content: 'Calendar schedule today: no meetings or events — completely open day for time management',
+        // Date-anchored (see above): an explicit, dedup-surviving record
+        // that this day was genuinely empty — not merely never ingested.
+        content: `Calendar schedule for ${dayLabel}: no meetings or events — completely open day`,
         contentType: 'daily_summary',
       });
     }
