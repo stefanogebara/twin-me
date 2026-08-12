@@ -95,6 +95,42 @@
  *         grounding — so eval baselines now INCLUDE the digest and the
  *         'digest' config was removed (it would double-inject).
  *
+ * 2026-08-12 BATTERY v3 + SPREAD ARM (first v3 wave, same-session control,
+ * 5 trials/arm). Two findings:
+ *
+ *   1. THE v3 ITEMS ARE WINNABLE. Baseline temporal subset = 0.8000, on a
+ *      battery whose v2 predecessor sat at 0.0000 for weeks. The twin now
+ *      gets music-days, code-days and email-source right every trial. This
+ *      is NOT evidence the twin improved — it is evidence the old items
+ *      were unanswerable. Rewriting the measure fixed the measure.
+ *
+ *   2. SPREAD LINES DO NOT SHIP. Per-platform active-day counts, injected
+ *      additively on top of the shipped digest:
+ *        overall   baseline 0.6180 (0.60-0.64)  spread 0.5684 (0.54-0.60)
+ *        temporal  baseline 0.8000             spread 0.6000
+ *      Worse on both. The mechanism is worth understanding rather than
+ *      dismissing: on recent2_most_frequent the spread lines were ACCURATE
+ *      (music active 15 days vs code 14) and that accuracy is exactly what
+ *      broke the item — the user answers "writing or pushing code", so
+ *      feeding the model a truer count moved it further from the human.
+ *      The near-tie was flagged as a risk when the item was written; it is
+ *      the item that failed. A negative result on one day is enough to NOT
+ *      ship (the burden of proof is on the candidate), but it is not
+ *      enough to call spread harmful — that would need the same two-day
+ *      replication any positive claim needs.
+ *
+ *   DATA-COVERAGE FINDING (bigger than either): recent2_calendar_days is
+ *   the one item BOTH arms miss. Logs show 33 calendar events across 8 of
+ *   14 days; the user answers "12 days or more". The gap is not the twin's
+ *   recall — Google Calendar ingestion is thin, so the evidence genuinely
+ *   understates the user's week. No prompt change can fix that; the fix is
+ *   in ingestion. Worth checking before any further retrieval work.
+ *
+ *   Caveat carried forward: 2 of 10 trials lost a half-battery to
+ *   unparseable JSON (the model emitted Roman numerals, "III", where an
+ *   integer belonged). The #248 sanitizer handles parenthesized numbers
+ *   and trailing commas, not this. It shrinks n rather than biasing an arm.
+ *
  * 2026-08-12 NON-REPLICATION — the digest's temporal win was a property of
  * one day's data, not of the code. Re-measured against the SAME v2 wave,
  * 5 trials/arm:
@@ -204,11 +240,50 @@ const CONFIGS = {
     console.log(`  spine: ${spine.covered}/${spine.blocks} blocks covered, ${spine.text.length} chars`);
     return spine.text;
   },
-  // NOTE: the recent-platform digest is no longer an arm — it won the
-  // 2026-08-11 three-arm trial and SHIPPED into production grounding
-  // (answerBatteryAsTwin fetches it itself now), so 'baseline' includes
-  // it. A digest arm here would double-inject. Future candidates compete
-  // against the digest-included baseline.
+  // NOTE: the recent-platform digest is no longer an arm — it SHIPPED into
+  // production grounding (answerBatteryAsTwin fetches it itself now), so
+  // 'baseline' includes it. A digest arm here would double-inject. Future
+  // candidates compete against the digest-included baseline.
+
+  // Per-platform ACTIVE-DAY COUNTS, additive on top of the shipped digest.
+  // Cut from the digest in f1d008da for lack of measured benefit against
+  // the v2 battery; v3's counting items (recent2_calendar_days,
+  // recent2_most_frequent) are the first that can actually detect it —
+  // both need day counts the sampled item lines cannot supply.
+  spread: async () => {
+    const { activitySpread } = await import('../api/services/recentPlatformDigest.js');
+    const sinceMs = Date.now() - 14 * 24 * 60 * 60 * 1000;
+    const { data: rows } = await supabaseAdmin
+      .from('user_memories')
+      .select('created_at, metadata')
+      .eq('user_id', userId)
+      .eq('memory_type', 'platform_data')
+      .gte('created_at', new Date(sinceMs).toISOString())
+      .order('created_at', { ascending: false })
+      .limit(1000);
+    if (!rows?.length) throw new Error('No platform_data in window — spread arm would equal baseline.');
+
+    const fmt = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+    const byPlatform = new Map();
+    for (const row of rows) {
+      const parsed = Date.parse(row.metadata?.timestamp ?? '');
+      const t = Number.isFinite(parsed) && parsed <= Date.now() ? parsed : Date.parse(row.created_at);
+      if (t < sinceMs) continue;
+      const p = row.metadata?.platform || 'other';
+      if (!byPlatform.has(p)) byPlatform.set(p, []);
+      byPlatform.get(p).push(t);
+    }
+    const lines = [...byPlatform.entries()]
+      .sort((a, b) => b[1].length - a[1].length)
+      .map(([p, times]) => {
+        const s = activitySpread(times, fmt);
+        return `- ${p.toUpperCase().replace(/_/g, ' ')}: active on ${s.activeDays} of the last 14 days`
+          + ` (${times.length} events, busiest ${s.busiestDay} with ${s.busiestCount})`;
+      });
+    const text = `=== HOW MANY DAYS I DID EACH THING (last 14 days) ===\n${lines.join('\n')}`;
+    console.log(`  spread: ${lines.length} platforms, ${text.length} chars`);
+    return text;
+  },
 };
 
 // ─── Ground truth ────────────────────────────────────────────────────────────
