@@ -95,6 +95,57 @@
  *         grounding — so eval baselines now INCLUDE the digest and the
  *         'digest' config was removed (it would double-inject).
  *
+ * 2026-08-12 BATTERY v3 + SPREAD ARM (first v3 wave, same-session control,
+ * 5 trials/arm). Two findings:
+ *
+ *   1. THE v3 ITEMS ARE WINNABLE. Baseline temporal subset = 0.8000, on a
+ *      battery whose v2 predecessor sat at 0.0000 for weeks. The twin now
+ *      gets music-days, code-days and email-source right every trial. This
+ *      is NOT evidence the twin improved — it is evidence the old items
+ *      were unanswerable. Rewriting the measure fixed the measure.
+ *
+ *   2. SPREAD LINES DO NOT SHIP. Per-platform active-day counts, injected
+ *      additively on top of the shipped digest. Measured TWICE, because
+ *      PR review caught that the first arm printed "active on 15 of the
+ *      last 14 days" — the rolling-336h-vs-calendar-date off-by-one the
+ *      digest already hit in f1d008da, reintroduced here in a hand-written
+ *      label. A candidate that contradicts itself is not a fair test, so
+ *      the arm was fixed (window span computed with the same formatter
+ *      that buckets events) and re-run:
+ *        run 1 (defective arm)
+ *          overall   baseline 0.6180  spread 0.5684
+ *          temporal  baseline 0.8000  spread 0.6000
+ *        run 2 (corrected arm)
+ *          overall   baseline 0.5960 (0.56-0.62)  spread 0.5760 (0.57-0.59)
+ *          temporal  baseline 0.7600              spread 0.6000
+ *      Same conclusion either way. Useful by-product: two same-day
+ *      baselines differ by 0.022 overall and 0.04 temporal, which is the
+ *      first real estimate of same-day run-to-run noise. The temporal gap
+ *      (-0.16, identical in both runs) sits far outside it; the overall
+ *      gap (-0.02) sits inside it and should not be claimed.
+ *      The mechanism is worth understanding rather than
+ *      dismissing: on recent2_most_frequent the spread lines were ACCURATE
+ *      (music active 15 days vs code 14) and that accuracy is exactly what
+ *      broke the item — the user answers "writing or pushing code", so
+ *      feeding the model a truer count moved it further from the human.
+ *      The near-tie was flagged as a risk when the item was written; it is
+ *      the item that failed. A negative result on one day is enough to NOT
+ *      ship (the burden of proof is on the candidate), but it is not
+ *      enough to call spread harmful — that would need the same two-day
+ *      replication any positive claim needs.
+ *
+ *   DATA-COVERAGE FINDING (bigger than either): recent2_calendar_days is
+ *   the one item BOTH arms miss. Logs show 33 calendar events across 8 of
+ *   14 days; the user answers "12 days or more". The gap is not the twin's
+ *   recall — Google Calendar ingestion is thin, so the evidence genuinely
+ *   understates the user's week. No prompt change can fix that; the fix is
+ *   in ingestion. Worth checking before any further retrieval work.
+ *
+ *   Caveat carried forward: 2 of 10 trials lost a half-battery to
+ *   unparseable JSON (the model emitted Roman numerals, "III", where an
+ *   integer belonged). The #248 sanitizer handles parenthesized numbers
+ *   and trailing commas, not this. It shrinks n rather than biasing an arm.
+ *
  * 2026-08-12 NON-REPLICATION — the digest's temporal win was a property of
  * one day's data, not of the code. Re-measured against the SAME v2 wave,
  * 5 trials/arm:
@@ -204,11 +255,79 @@ const CONFIGS = {
     console.log(`  spine: ${spine.covered}/${spine.blocks} blocks covered, ${spine.text.length} chars`);
     return spine.text;
   },
-  // NOTE: the recent-platform digest is no longer an arm — it won the
-  // 2026-08-11 three-arm trial and SHIPPED into production grounding
-  // (answerBatteryAsTwin fetches it itself now), so 'baseline' includes
-  // it. A digest arm here would double-inject. Future candidates compete
-  // against the digest-included baseline.
+  // NOTE: the recent-platform digest is no longer an arm — it SHIPPED into
+  // production grounding (answerBatteryAsTwin fetches it itself now), so
+  // 'baseline' includes it. A digest arm here would double-inject. Future
+  // candidates compete against the digest-included baseline.
+
+  // Per-platform ACTIVE-DAY COUNTS, additive on top of the shipped digest.
+  // Cut from the digest in f1d008da for lack of measured benefit against
+  // the v2 battery; v3's counting items (recent2_calendar_days,
+  // recent2_most_frequent) are the first that can actually detect it —
+  // both need day counts the sampled item lines cannot supply.
+  spread: async () => {
+    const { activitySpread } = await import('../api/services/recentPlatformDigest.js');
+    const nowMs = Date.now();
+    const sinceMs = nowMs - 14 * 24 * 60 * 60 * 1000;
+    const MAX_ROWS = 1000;
+    const { data: rows, error, count } = await supabaseAdmin
+      .from('user_memories')
+      .select('created_at, metadata', { count: 'exact' })
+      .eq('user_id', userId)
+      .eq('memory_type', 'platform_data')
+      .gte('created_at', new Date(sinceMs).toISOString())
+      .order('created_at', { ascending: false })
+      .limit(MAX_ROWS);
+    // Surface the real failure — a query error previously masqueraded as
+    // "no platform data", which would have silently turned this arm into a
+    // second baseline and produced a fake null result.
+    if (error) throw new Error(`Spread arm query failed: ${error.message}`);
+    if (!rows?.length) throw new Error('No platform_data in window — spread arm would equal baseline.');
+
+    const fmt = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+    // The denominator must be the number of calendar dates the window
+    // actually touches, computed with the SAME formatter that buckets the
+    // events. A rolling 336h window straddles 15 dates, so hardcoding 14
+    // printed "active on 15 of the last 14 days" — a self-contradiction fed
+    // straight into the arm under test. Same bug the digest hit in
+    // f1d008da; it came back here because the label was hand-written.
+    const windowLabels = new Set();
+    for (let t = sinceMs; t <= nowMs; t += 6 * 60 * 60 * 1000) windowLabels.add(fmt.format(new Date(t)));
+    windowLabels.add(fmt.format(new Date(nowMs)));
+    const windowDays = windowLabels.size;
+
+    const byPlatform = new Map();
+    for (const row of rows) {
+      const parsed = Date.parse(row.metadata?.timestamp ?? '');
+      const t = Number.isFinite(parsed) && parsed <= nowMs ? parsed : Date.parse(row.created_at);
+      if (!Number.isFinite(t) || t < sinceMs) continue;
+      const p = row.metadata?.platform || 'other';
+      if (!byPlatform.has(p)) byPlatform.set(p, []);
+      byPlatform.get(p).push(t);
+    }
+    // Every row can be filtered out (all pre-window by event time), which
+    // would otherwise render a bare header and crash activitySpread on an
+    // empty array.
+    if (byPlatform.size === 0) {
+      throw new Error('Every row fell outside the window by event time — spread arm would equal baseline.');
+    }
+
+    const lines = [...byPlatform.entries()]
+      .sort((a, b) => b[1].length - a[1].length)
+      .map(([p, times]) => {
+        const s = activitySpread(times, fmt);
+        return `- ${p.toUpperCase().replace(/_/g, ' ')}: active on ${s.activeDays} of the last ${windowDays} days`
+          + ` (${times.length} events, busiest ${s.busiestDay} with ${s.busiestCount})`;
+      });
+    // Never present a capped subset as the full picture.
+    const capped = typeof count === 'number' && count > rows.length;
+    const header = capped
+      ? `=== HOW MANY DAYS I DID EACH THING (newest ${rows.length} of ${count} events in the last ${windowDays} days) ===`
+      : `=== HOW MANY DAYS I DID EACH THING (last ${windowDays} days) ===`;
+    const text = `${header}\n${lines.join('\n')}`;
+    console.log(`  spread: ${lines.length} platforms, ${windowDays}-day window, capped=${capped}, ${text.length} chars`);
+    return text;
+  },
 };
 
 // ─── Ground truth ────────────────────────────────────────────────────────────
