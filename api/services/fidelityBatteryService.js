@@ -259,7 +259,7 @@ METHOD — for each item, silently follow four steps:
 
 Answer every item. Likert items: an integer 1-5. Categorical items: copy ONE option string exactly.
 
-Items that ask about "the last two weeks" are about recent events, not general traits — answer those from the most recent evidence of what they have ACTUALLY been doing lately, not from who they are in general.
+Items that ask about "the last two weeks" are COUNTING questions, not character questions. Do not infer them from personality, habits, or what this person is generally like — that reasoning produces confident wrong answers here. Instead, work only from the dated evidence above: find the events of that type, count the distinct days or occurrences they cover, and pick the bucket that contains your count. If the evidence for one of these is thin, choose the bucket the evidence you DO have points to and lower your confidence for that item; do not fall back on character.
 
 5. Confidence: for each item, also estimate 0.0-1.0 how confident you are that this is what THEY would actually answer. 0.9+ only when direct evidence supports it; 0.5 means an informed guess; be honest — calibration is measured against their real answers.
 

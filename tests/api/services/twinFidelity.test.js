@@ -91,8 +91,8 @@ beforeEach(() => {
 });
 
 describe('fidelityBattery — schema contract', () => {
-  it('is version 2 with exactly 25 items: 10 likert + 15 categorical (5 temporal)', () => {
-    expect(BATTERY_VERSION).toBe(2);
+  it('is version 3 with exactly 25 items: 10 likert + 15 categorical (5 temporal)', () => {
+    expect(BATTERY_VERSION).toBe(3);
     expect(FIDELITY_BATTERY).toHaveLength(25);
     expect(FIDELITY_BATTERY.filter(i => i.type === 'likert')).toHaveLength(10);
     expect(FIDELITY_BATTERY.filter(i => i.type === 'categorical')).toHaveLength(15);
@@ -103,6 +103,41 @@ describe('fidelityBattery — schema contract', () => {
     for (const item of temporal) {
       expect(item.type).toBe('categorical');
       expect(item.text.toLowerCase()).toContain('last two weeks');
+    }
+  });
+
+  it('asks temporal items as counts, never as how the fortnight felt', () => {
+    // v3's reason for existing. v2 asked "packed vs bursts" / "familiar
+    // favorites vs hunting new music"; the user's answer and the logs
+    // genuinely disagreed, so a twin answering faithfully from evidence
+    // scored zero and the item measured the felt-vs-logged gap instead of
+    // recall. Every temporal item must now be settleable from platform data.
+    const temporal = FIDELITY_BATTERY.filter(i => i.temporal);
+
+    for (const item of temporal) {
+      // Countable question, not an interpretive one.
+      expect(item.text.toLowerCase()).toMatch(/how many|which of these/);
+      // Coarse buckets: every option names a quantity or a concrete source,
+      // so being off by one cannot flip the answer.
+      expect(item.options).toHaveLength(4);
+    }
+
+    // The retired perception items must not come back under their old ids —
+    // stored v2 waves still hold that data and the ids must not change
+    // meaning across versions.
+    const ids = new Set(FIDELITY_BATTERY.map(i => i.id));
+    for (const retired of ['recent_listening', 'recent_schedule', 'recent_focus', 'recent_content', 'recent_rhythm']) {
+      expect(ids.has(retired)).toBe(false);
+    }
+
+    // No temporal option may be a mood word — that is what v3 removed.
+    const moodWords = ['packed', 'scattered', 'steady', 'busy', 'relaxed', 'overwhelmed'];
+    for (const item of temporal) {
+      for (const option of item.options) {
+        for (const word of moodWords) {
+          expect(option.toLowerCase()).not.toContain(word);
+        }
+      }
     }
   });
 
