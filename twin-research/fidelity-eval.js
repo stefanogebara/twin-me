@@ -87,11 +87,54 @@
  *      as one project where the user feels scatter) — digest v2 material.
  *      Per the ship-only-if-it-moves-the-score rule, the digest is the
  *      first candidate that has EARNED production injection.
+ *      -> 2026-08-12 THIS RESULT DID NOT REPLICATE. See the entry below
+ *         before citing the +0.048 / 0.2000 numbers anywhere.
  *      -> SHIPPED 2026-08-12: injected into chat grounding
  *         (twinContextBuilder 'recentDigest' leg -> prompt builder block,
  *         clamped at 3k chars) and into answerBatteryAsTwin's own
  *         grounding — so eval baselines now INCLUDE the digest and the
  *         'digest' config was removed (it would double-inject).
+ *
+ * 2026-08-12 NON-REPLICATION — the digest's temporal win was a property of
+ * one day's data, not of the code. Re-measured against the SAME v2 wave,
+ * 5 trials/arm:
+ *   shipped digest v1 (unchanged code)  overall 0.4613  temporal 0.0000
+ *   digest v2 (spread lines, fewer items) overall 0.4700 temporal 0.0000
+ *   digest v2b (spread lines, v1 items)   overall 0.4720 temporal 0.0000
+ * Yesterday the same v1 code scored 0.5260 / 0.2000. Nothing about the
+ * digest changed overnight — the user's platform data did. The single
+ * temporal item the digest ever won (recent_listening) flipped because the
+ * freshest Spotify rows now read "Discovered new artist: Brent Faiyaz",
+ * so the twin answers "Hunting new music" against a truth of "Familiar
+ * favorites on repeat".
+ *
+ * METHOD LESSON (the expensive one): 5 trials at temperature 0.3 measure
+ * LLM sampling noise, which is nearly zero here — all five trials often
+ * return an identical score. They do NOT measure the variance that
+ * actually matters, which is DAY-TO-DAY DRIFT IN THE UNDERLYING DATA. Two
+ * arms run back-to-back are comparable; an arm compared to yesterday's
+ * number is not. The spine was killed and the digest was shipped on
+ * single-day n=5 deltas, and BOTH have now failed to replicate. Any future
+ * candidate must be measured against a same-session control arm, and a
+ * claimed win should survive at least two separate days.
+ *
+ * WHY THE TEMPORAL ITEMS MAY BE PARTLY UNWINNABLE: for several of them the
+ * platform data genuinely disagrees with the user's self-report — they call
+ * a calendar "packed — commitments most days" that logs 33 events across 8
+ * of 15 days; they report "many small scattered things" while GitHub shows
+ * concentrated work in one repo; they report "entertainment and unwinding"
+ * against 8 YouTube events tagged sports/society. Better grounding cannot
+ * close a gap between felt experience and logged behavior. Before investing
+ * further in retrieval, it is worth deciding whether these items measure
+ * twin fidelity or measure that gap — a twin that answered from the logs
+ * would be "wrong" on this battery while being more factually accurate.
+ *
+ * WHAT REMAINS TRUE ABOUT THE DIGEST: it verifiably puts real recent events
+ * into the prompt — a live chat turn cited Brent Faiyaz, the branch created
+ * yesterday, Kayaking + a Duathlon, and today's 5:30 PM meeting, all traced
+ * back to digest lines. That capability is real and was absent before. It
+ * is simply NOT supported by a replicated fidelity gain, so it should be
+ * described as "the twin can now cite recent activity", never as "+0.048".
  *
  * 2026-08-11 (earlier same day) baseline,spine re-trial: INVALID, ignore its TSV rows
  * (baseline 0.8593 n=5 / spine 0.6462 n=3). The user's v2 wave never stored
