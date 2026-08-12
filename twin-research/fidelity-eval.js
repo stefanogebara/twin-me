@@ -105,10 +105,25 @@
  *      were unanswerable. Rewriting the measure fixed the measure.
  *
  *   2. SPREAD LINES DO NOT SHIP. Per-platform active-day counts, injected
- *      additively on top of the shipped digest:
- *        overall   baseline 0.6180 (0.60-0.64)  spread 0.5684 (0.54-0.60)
- *        temporal  baseline 0.8000             spread 0.6000
- *      Worse on both. The mechanism is worth understanding rather than
+ *      additively on top of the shipped digest. Measured TWICE, because
+ *      PR review caught that the first arm printed "active on 15 of the
+ *      last 14 days" — the rolling-336h-vs-calendar-date off-by-one the
+ *      digest already hit in f1d008da, reintroduced here in a hand-written
+ *      label. A candidate that contradicts itself is not a fair test, so
+ *      the arm was fixed (window span computed with the same formatter
+ *      that buckets events) and re-run:
+ *        run 1 (defective arm)
+ *          overall   baseline 0.6180  spread 0.5684
+ *          temporal  baseline 0.8000  spread 0.6000
+ *        run 2 (corrected arm)
+ *          overall   baseline 0.5960 (0.56-0.62)  spread 0.5760 (0.57-0.59)
+ *          temporal  baseline 0.7600              spread 0.6000
+ *      Same conclusion either way. Useful by-product: two same-day
+ *      baselines differ by 0.022 overall and 0.04 temporal, which is the
+ *      first real estimate of same-day run-to-run noise. The temporal gap
+ *      (-0.16, identical in both runs) sits far outside it; the overall
+ *      gap (-0.02) sits inside it and should not be claimed.
+ *      The mechanism is worth understanding rather than
  *      dismissing: on recent2_most_frequent the spread lines were ACCURATE
  *      (music active 15 days vs code 14) and that accuracy is exactly what
  *      broke the item — the user answers "writing or pushing code", so
@@ -252,36 +267,65 @@ const CONFIGS = {
   // both need day counts the sampled item lines cannot supply.
   spread: async () => {
     const { activitySpread } = await import('../api/services/recentPlatformDigest.js');
-    const sinceMs = Date.now() - 14 * 24 * 60 * 60 * 1000;
-    const { data: rows } = await supabaseAdmin
+    const nowMs = Date.now();
+    const sinceMs = nowMs - 14 * 24 * 60 * 60 * 1000;
+    const MAX_ROWS = 1000;
+    const { data: rows, error, count } = await supabaseAdmin
       .from('user_memories')
-      .select('created_at, metadata')
+      .select('created_at, metadata', { count: 'exact' })
       .eq('user_id', userId)
       .eq('memory_type', 'platform_data')
       .gte('created_at', new Date(sinceMs).toISOString())
       .order('created_at', { ascending: false })
-      .limit(1000);
+      .limit(MAX_ROWS);
+    // Surface the real failure — a query error previously masqueraded as
+    // "no platform data", which would have silently turned this arm into a
+    // second baseline and produced a fake null result.
+    if (error) throw new Error(`Spread arm query failed: ${error.message}`);
     if (!rows?.length) throw new Error('No platform_data in window — spread arm would equal baseline.');
 
     const fmt = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+    // The denominator must be the number of calendar dates the window
+    // actually touches, computed with the SAME formatter that buckets the
+    // events. A rolling 336h window straddles 15 dates, so hardcoding 14
+    // printed "active on 15 of the last 14 days" — a self-contradiction fed
+    // straight into the arm under test. Same bug the digest hit in
+    // f1d008da; it came back here because the label was hand-written.
+    const windowLabels = new Set();
+    for (let t = sinceMs; t <= nowMs; t += 6 * 60 * 60 * 1000) windowLabels.add(fmt.format(new Date(t)));
+    windowLabels.add(fmt.format(new Date(nowMs)));
+    const windowDays = windowLabels.size;
+
     const byPlatform = new Map();
     for (const row of rows) {
       const parsed = Date.parse(row.metadata?.timestamp ?? '');
-      const t = Number.isFinite(parsed) && parsed <= Date.now() ? parsed : Date.parse(row.created_at);
-      if (t < sinceMs) continue;
+      const t = Number.isFinite(parsed) && parsed <= nowMs ? parsed : Date.parse(row.created_at);
+      if (!Number.isFinite(t) || t < sinceMs) continue;
       const p = row.metadata?.platform || 'other';
       if (!byPlatform.has(p)) byPlatform.set(p, []);
       byPlatform.get(p).push(t);
     }
+    // Every row can be filtered out (all pre-window by event time), which
+    // would otherwise render a bare header and crash activitySpread on an
+    // empty array.
+    if (byPlatform.size === 0) {
+      throw new Error('Every row fell outside the window by event time — spread arm would equal baseline.');
+    }
+
     const lines = [...byPlatform.entries()]
       .sort((a, b) => b[1].length - a[1].length)
       .map(([p, times]) => {
         const s = activitySpread(times, fmt);
-        return `- ${p.toUpperCase().replace(/_/g, ' ')}: active on ${s.activeDays} of the last 14 days`
+        return `- ${p.toUpperCase().replace(/_/g, ' ')}: active on ${s.activeDays} of the last ${windowDays} days`
           + ` (${times.length} events, busiest ${s.busiestDay} with ${s.busiestCount})`;
       });
-    const text = `=== HOW MANY DAYS I DID EACH THING (last 14 days) ===\n${lines.join('\n')}`;
-    console.log(`  spread: ${lines.length} platforms, ${text.length} chars`);
+    // Never present a capped subset as the full picture.
+    const capped = typeof count === 'number' && count > rows.length;
+    const header = capped
+      ? `=== HOW MANY DAYS I DID EACH THING (newest ${rows.length} of ${count} events in the last ${windowDays} days) ===`
+      : `=== HOW MANY DAYS I DID EACH THING (last ${windowDays} days) ===`;
+    const text = `${header}\n${lines.join('\n')}`;
+    console.log(`  spread: ${lines.length} platforms, ${windowDays}-day window, capped=${capped}, ${text.length} chars`);
     return text;
   },
 };
