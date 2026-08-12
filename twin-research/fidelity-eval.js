@@ -136,7 +136,16 @@ const configNames = argValue('--configs', 'baseline').split(',').map(s => s.trim
 const CONFIGS = {
   baseline: async () => null,
   spine: async () => {
-    const { renderSpine } = await import('../api/services/memoryTimelineService.js');
+    // memoryTimelineService was deleted with the spine (a8b3314e), so this
+    // arm cannot run from a clean checkout by design — restore the module
+    // first. Kept as the worked example of a candidate arm.
+    const { renderSpine } = await import('../api/services/memoryTimelineService.js').catch(() => {
+      throw new Error(
+        'The spine arm needs the deleted memoryTimelineService. Restore it with:\n' +
+        '  git show a8b3314e^:api/services/memoryTimelineService.js > api/services/memoryTimelineService.js\n' +
+        '(delete it again afterwards — the spine failed the eval twice and stays out of production.)'
+      );
+    });
     const { data: prof } = await supabaseAdmin
       .from('users').select('timezone').eq('id', userId).maybeSingle();
     const spine = await renderSpine(userId, {

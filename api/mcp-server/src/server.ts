@@ -154,7 +154,7 @@ Just chat naturally. Ask things like:
       platforms: ['spotify', 'calendar', 'whoop', 'web'],
     });
 
-    const { soulSignature, platformData, personalityScores, writingProfile, memories, twinSummary, proactiveInsights } = twinContext;
+    const { soulSignature, platformData, personalityScores, writingProfile, memories, twinSummary, proactiveInsights, recentDigest } = twinContext;
 
     // Log what data we have
     console.error('[TwinMe MCP] Data fetched:', {
@@ -172,6 +172,16 @@ Just chat naturally. Ask things like:
 
     // Add writing profile context so twin can match user's communication style
     let additionalContext = '';
+
+    // Recent-platform digest FIRST: what actually happened lately, before the
+    // trait-level material below. fetchTwinContext already pays for it, and it
+    // is the measured fix for temporal recall (twin-research/fidelity-eval.js
+    // three-arm trial — temporal subset 0.0000 -> 0.2000). MCP composes a
+    // string prompt via its own adapter, so the block is appended here rather
+    // than passed to the web chat block builder.
+    if (recentDigest) {
+      additionalContext += `\n${recentDigest}\n`;
+    }
     if (writingProfile) {
       additionalContext += `\n## User's Communication Style (learned from ${(writingProfile as Record<string, unknown>).totalConversations || 0} conversations)\n`;
       additionalContext += `- Style: ${(writingProfile as Record<string, unknown>).communicationStyle}\n`;

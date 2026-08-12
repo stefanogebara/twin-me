@@ -47,9 +47,11 @@ export async function renderRecentPlatformDigest(userId, { supabase, days = 14, 
   if (!supabase) throw new Error('renderRecentPlatformDigest requires a supabase client');
 
   const sinceIso = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
-  const { data: rows, error } = await supabase
+  // count:'exact' rides along with the same query — the row cap must never be
+  // reported as if it were the user's true event volume.
+  const { data: rows, error, count } = await supabase
     .from('user_memories')
-    .select('content, created_at, metadata')
+    .select('content, created_at, metadata', { count: 'exact' })
     .eq('user_id', userId)
     .eq('memory_type', 'platform_data')
     .gte('created_at', sinceIso)
@@ -58,11 +60,17 @@ export async function renderRecentPlatformDigest(userId, { supabase, days = 14, 
 
   if (error) {
     log.warn('Digest query failed', { userId, error: error.message });
-    return { text: '', events: 0, platforms: 0 };
+    return { text: '', events: 0, totalEvents: 0, capped: false, platforms: 0 };
   }
   if (!rows || rows.length === 0) {
-    return { text: '', events: 0, platforms: 0 };
+    return { text: '', events: 0, totalEvents: 0, capped: false, platforms: 0 };
   }
+
+  // Rows come newest-first, so hitting the cap means the digest covers a
+  // SHORTER window than `days` — the rendered date range narrows with it and
+  // the per-platform counts stay exact for the window actually shown.
+  const totalEvents = typeof count === 'number' ? count : rows.length;
+  const capped = rows.length < totalEvents;
 
   // Group by platform, keeping DB ordering (newest first) within each.
   const byPlatform = new Map();
@@ -87,7 +95,10 @@ export async function renderRecentPlatformDigest(userId, { supabase, days = 14, 
 
   const from = shortDate(rows[rows.length - 1].created_at);
   const to = shortDate(rows[0].created_at);
-  const text = `=== MY LAST TWO WEEKS (platform data, ${from} - ${to}) ===\n${sections.join('\n')}`;
+  const header = capped
+    ? `=== MY RECENT ACTIVITY (platform data, ${from} - ${to}; newest ${rows.length} of ${totalEvents} events in the last ${days} days) ===`
+    : `=== MY LAST TWO WEEKS (platform data, ${from} - ${to}) ===`;
+  const text = `${header}\n${sections.join('\n')}`;
 
-  return { text, events: rows.length, platforms: platforms.length };
+  return { text, events: rows.length, totalEvents, capped, platforms: platforms.length };
 }
