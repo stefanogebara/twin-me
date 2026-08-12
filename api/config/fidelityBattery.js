@@ -1,5 +1,5 @@
 /**
- * Twin Fidelity Battery — v2
+ * Twin Fidelity Battery — v3
  * ===========================
  * Fixed 25-item battery for the test-retest fidelity eval (R4; Story
  * Chapters Phase 4a; Park et al. 2024 measurement design).
@@ -15,20 +15,43 @@
  * evaluated on Big Five and because 10 items keep a wave under 3 minutes.
  * 15 categorical items (4 options each):
  *  - 10 stable behavior/preference questions predictable from platform
- *    data + life-story chapters (unchanged from v1, same ids).
- *  - 5 temporal-recall questions (v2, `temporal: true`) about the LAST TWO
- *    WEEKS, answerable by the user from memory and by the twin only from
- *    recent platform data. Added because the v1 battery asked nothing
- *    time-anchored, making temporal context features (the spine) invisible
- *    to the eval — see the verdict log in twin-research/fidelity-eval.js.
+ *    data + life-story chapters (unchanged since v1, same ids).
+ *  - 5 temporal-recall questions (`temporal: true`) about the LAST TWO
+ *    WEEKS — rewritten in v3, see below.
  *
- * Version mechanics: waves are keyed (user, battery_version, wave), so v2
- * waves restart at wave 1 with no self-consistency ceiling until v2 wave 2.
- * Old v1 waves keep rendering — scoring excludes items missing from either
+ * WHY v3 REPLACED THE v2 TEMPORAL ITEMS
+ * -------------------------------------
+ * v2 asked how the fortnight FELT: "familiar favorites on repeat" vs
+ * "hunting new music", a "packed" calendar vs "bursts". Those turned out to
+ * be unscoreable as twin fidelity, because the user's answer and the logs
+ * genuinely disagree: they called a calendar "packed - commitments most
+ * days" that records 33 events across 8 of 15 days, and reported "many
+ * small scattered things" while their commits concentrated in one repo. A
+ * twin answering FAITHFULLY FROM THE EVIDENCE scored zero on those items.
+ * The battery was measuring the gap between felt experience and logged
+ * behaviour, and no amount of retrieval work can close that gap.
+ *
+ * v3 asks only what the platform data can settle and the person still knows
+ * about themselves — counts and bucketed frequencies, no adjectives of
+ * mood. Design rules for any future temporal item:
+ *   1. CHECKABLE  — the answer exists as a fact in platform data.
+ *   2. KNOWABLE   — the user can answer from memory, without looking.
+ *   3. BUCKETED   — coarse ranges, so being off by one does not flip it.
+ *   4. GENERIC    — options are user-agnostic and stable across waves.
+ * A disagreement on such an item is a recall failure, which is what the
+ * eval exists to measure.
+ *
+ * The retired v2 items (recent_listening, recent_schedule, recent_focus,
+ * recent_content, recent_rhythm) are NOT reused. Stored v2 waves keep them,
+ * so the felt-vs-logged gap stays available for study.
+ *
+ * Version mechanics: waves are keyed (user, battery_version, wave), so v3
+ * waves restart at wave 1 with no self-consistency ceiling until v3 wave 2.
+ * Older waves keep rendering — scoring excludes items missing from either
  * answer set rather than zeroing them.
  */
 
-export const BATTERY_VERSION = 2;
+export const BATTERY_VERSION = 3;
 
 export const LIKERT_SCALE = { min: 1, max: 5 };
 
@@ -107,44 +130,56 @@ export const FIDELITY_BATTERY = [
     options: ['Screens and content', 'A personal project or hobby', 'Out or with other people', 'Early wind-down, early sleep'],
   },
 
-  // ---- Temporal recall (v2 — categorical, 4 options, `temporal: true`) ----
-  // Ask about the LAST TWO WEEKS specifically. The user answers from
-  // memory; the twin can only answer from recent platform data (Spotify,
-  // Calendar, GitHub, YouTube, Whoop). Options are behavior MODES, stable
-  // across users and waves — never per-user generated content.
+  // ---- Temporal recall (v3 — categorical, 4 options, `temporal: true`) ----
+  // COUNTS, NOT FEELINGS. Each asks something the platform data can settle
+  // and the person still knows about themselves, in coarse buckets so being
+  // off by one does not flip the answer. Anchored on the four densest
+  // sources (Spotify, Gmail, GitHub, Calendar) — Whoop and YouTube are too
+  // sparse to adjudicate, so nothing here depends on them. Every text
+  // contains "last two weeks": the answering prompt keys on that phrase to
+  // switch the twin from trait recall to evidence counting.
   {
-    id: 'recent_listening',
+    id: 'recent2_music_days',
     type: 'categorical',
     temporal: true,
-    text: 'Over the last two weeks, your music listening has mostly been:',
-    options: ['Familiar favorites on repeat', 'Hunting new music', 'Background for focus or work', 'Barely listened at all'],
+    text: 'Over the last two weeks, on how many days did you listen to any music at all?',
+    options: ['3 days or fewer', '4 to 7 days', '8 to 11 days', '12 days or more'],
   },
   {
-    id: 'recent_schedule',
+    // Deliberately comparative rather than "how many artists were new to
+    // you": Spotify logs 49 first-time artists in a fortnight for the eval
+    // user, a number no human would ever report, so that item would have
+    // smuggled the felt-vs-logged gap straight back in. Rule 2 (KNOWABLE)
+    // is a real constraint, not a formality.
+    // This item also needs per-platform ACTIVE-DAY COUNTS to answer, which
+    // the digest currently does not render — so it is the natural test for
+    // re-trialing activitySpread(): if the spread lines win this item, they
+    // earn their way into the prompt on measurement.
+    id: 'recent2_most_frequent',
     type: 'categorical',
     temporal: true,
-    text: 'How full has your calendar actually been over the last two weeks?',
-    options: ['Packed — commitments most days', 'A few anchor events, otherwise open', 'Nearly empty', 'Bursts — heavy days mixed with empty ones'],
+    text: 'Over the last two weeks, which of these did you do on the most days?',
+    options: ['Listening to music', 'Writing or pushing code', 'Meetings or scheduled events', 'Watching videos'],
   },
   {
-    id: 'recent_focus',
+    id: 'recent2_calendar_days',
     type: 'categorical',
     temporal: true,
-    text: 'Over the last two weeks, your working energy has mostly gone to:',
-    options: ['One main project taking nearly everything', 'Two or three things in rotation', 'Many small scattered things', 'A lighter stretch than usual'],
+    text: 'Over the last two weeks, on how many days did you have at least one scheduled calendar event?',
+    options: ['3 days or fewer', '4 to 7 days', '8 to 11 days', '12 days or more'],
   },
   {
-    id: 'recent_content',
+    id: 'recent2_code_days',
     type: 'categorical',
     temporal: true,
-    text: 'The videos and content you consumed over the last two weeks were mostly:',
-    options: ['Learning — tutorials, talks, deep dives', 'Entertainment and unwinding', 'News and staying current', 'Hardly watched anything'],
+    text: 'Over the last two weeks, on how many days did you push code, open a pull request, or commit anything?',
+    options: ['None', '1 to 4 days', '5 to 9 days', '10 days or more'],
   },
   {
-    id: 'recent_rhythm',
+    id: 'recent2_email_source',
     type: 'categorical',
     temporal: true,
-    text: 'Your sleep and energy over the last two weeks have been:',
-    options: ['Steady and solid', 'Running on too little', 'Up and down', 'Better than the stretch before'],
+    text: 'Over the last two weeks, which of these sent you the most email?',
+    options: ['Automated notifications from tools and services', 'People I work with', 'Newsletters and media', 'Shopping, travel or banking'],
   },
 ];
