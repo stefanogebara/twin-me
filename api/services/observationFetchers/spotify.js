@@ -7,6 +7,7 @@ import axios from 'axios';
 import { getValidAccessToken } from '../tokenRefreshService.js';
 import { createLogger } from '../logger.js';
 import { sanitizeExternal, getSupabase } from '../observationUtils.js';
+import { buildMoodObservation } from './spotifyMood.js';
 
 const log = createLogger('ObservationIngestion');
 
@@ -302,23 +303,11 @@ async function fetchSpotifyObservations(userId) {
           { headers, timeout: 10000 }
         );
         const features = (featuresRes.data?.audio_features || []).filter(Boolean);
-        if (features.length >= 3) {
-          const avg = (key) => features.reduce((sum, f) => sum + (f[key] || 0), 0) / features.length;
-          const avgValence = avg('valence');
-          const avgEnergy = avg('energy');
-          const avgDance = avg('danceability');
-
-          const moodLabel = avgValence > 0.7 ? 'upbeat and positive'
-            : avgValence > 0.4 ? 'balanced'
-            : 'mellow or introspective';
-          const energyLabel = avgEnergy > 0.7 ? 'high-energy'
-            : avgEnergy > 0.4 ? 'moderate-energy'
-            : 'low-energy, chill';
-
-          observations.push({
-            content: `Music mood right now: ${moodLabel}, ${energyLabel} (valence ${(avgValence * 100).toFixed(0)}%, energy ${(avgEnergy * 100).toFixed(0)}%, danceability ${(avgDance * 100).toFixed(0)}%)`,
-            contentType: 'current_state',
-          });
+        // buildMoodObservation returns null rather than averaging absent
+        // readings as zeros — see spotifyMood.js.
+        const mood = buildMoodObservation(features);
+        if (mood) {
+          observations.push({ content: mood, contentType: 'current_state' });
         }
       }
     } catch (e) {

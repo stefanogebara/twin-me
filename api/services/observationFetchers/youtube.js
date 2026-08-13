@@ -7,6 +7,7 @@ import axios from 'axios';
 import { getValidAccessToken } from '../tokenRefreshService.js';
 import { createLogger } from '../logger.js';
 import { sanitizeExternal, getSupabase, _hasNangoMapping } from '../observationUtils.js';
+import { buildLikedVideosObservation } from './youtubeText.js';
 
 const log = createLogger('ObservationIngestion');
 
@@ -208,12 +209,12 @@ async function fetchYouTubeObservations(userId) {
 
   // Liked videos (recent activity signal)
   if (likedItems.length > 0) {
-    const titles = likedItems.map(v => sanitizeExternal(v.snippet?.title, 80)).filter(Boolean).slice(0, 5);
-    const channelsSeen = [...new Set(likedItems.map(v => sanitizeExternal(v.snippet?.channelTitle)).filter(Boolean))].slice(0, 5);
-    observations.push({
-      content: `Recently liked YouTube videos: "${titles.join('", "')}" — from channels: ${channelsSeen.join(', ')}`,
-      contentType: 'daily_summary',
-    });
+    // Guarding likedItems is not enough — the TITLES are what get rendered,
+    // and they can all vanish to sanitizing. See youtubeText.js.
+    const liked = buildLikedVideosObservation(likedItems);
+    if (liked) {
+      observations.push({ content: liked, contentType: 'daily_summary' });
+    }
 
     // Topic clustering from liked videos — prefer topicDetails (Wikipedia categories) over categoryId
     const topicCounts = {};

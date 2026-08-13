@@ -323,6 +323,53 @@
  * errors these notes started from — a claim about an external system checked
  * against our assumptions instead of against the system.
  *
+ * 2026-08-13 PAYLOAD AUDIT of the remaining fetchers, probing each live API
+ * for the fields the code reads. Two more instances of the same shape, both
+ * FIXED; two operational failures found, both still OPEN.
+ *
+ *   FIXED — youtube.js liked videos. The empty-title bug one layer deeper:
+ *   the guard tested `likedItems.length` while the template interpolated
+ *   `titles`, a DERIVED array that .filter(Boolean) can empty. Items without
+ *   titles would have written `Recently liked YouTube videos: "" — from
+ *   channels:`. Guarding the input does not guarantee the output. Now
+ *   youtubeText.js, which checks what is actually rendered.
+ *
+ *   FIXED — spotify.js mood. The mean was `(f[key] || 0)`, so an ABSENT
+ *   reading counted as zero. Missing fields therefore produced "Music mood
+ *   right now: mellow or introspective, low-energy, chill (valence 0%, energy
+ *   0%)" — a specific false claim manufactured from no data, and one that a
+ *   registered snapshot metric would then keep permanently fresh. Now
+ *   spotifyMood.js: absent values are excluded from the mean, and too few real
+ *   readings means no observation at all. Same failure as the calendar's
+ *   "completely open day", third occurrence of it in this codebase.
+ *
+ *   OPEN — Spotify /v1/audio-features returns HTTP 403 for this app. The last
+ *   "Music mood right now" row is 2026-07-24; the metric has been silently
+ *   gone for three weeks. Caught by `catch (e) { // non-critical }`, so it
+ *   costs one wasted request per ingestion run and reports nothing. The
+ *   endpoint was restricted by Spotify; the mood feature needs a new source or
+ *   removal. (Note the fix above is what stops a REVIVED endpoint returning
+ *   null fields from fabricating a mood.)
+ *
+ *   OPEN — Whoop ingestion is failing entirely: "No mapping found for whoop"
+ *   then Nango 404, while platform_connections still reads status=connected.
+ *   Last successful sync 2026-08-02. Eleven days of missing recovery, sleep
+ *   and strain while the UI claims health. Likely needs a reconnect, but the
+ *   health path plainly does not notice a token it cannot obtain.
+ *
+ *   SOUND — Gmail profile/messages, YouTube subscriptions, Spotify
+ *   recently-played / top-artists / shows / albums all match what the code
+ *   reads; currently-playing correctly handles its HTTP 204. Whoop's
+ *   score.recovery_score / score.hrv_rmssd_milli are correct v2 names but
+ *   could not be exercised because of the token failure. outlook.js makes no
+ *   API calls (it reads stored rows); discord.js and instagram.js are not
+ *   connected for this user, so neither was checked against a live payload.
+ *
+ * WHAT TIES ALL OF THESE TOGETHER: every failure was invisible by
+ * construction — bare catches annotated "non-critical", and a connection row
+ * that says connected while its token 404s. The bugs were not hard to find
+ * once someone asked the API; nothing in the system was asking.
+ *
  * DO NOT re-cite the calendar temporal items from waves before 2026-08-13 —
  * their ground truth was contaminated by (a). Re-measure once dated
  * observations have accumulated for a full 14 days.
