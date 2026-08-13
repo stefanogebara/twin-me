@@ -297,7 +297,31 @@
  * list was written became product vocabulary later, and nothing re-checked it.
  * Keyword classifiers rot as language drifts, and this one had no test.
  *
- * Still open: "Opened PR in twin-me: """ stores an empty PR title.
+ * PR OBSERVATIONS — "Opened PR in twin-me: """ was the visible symptom of a
+ * third wrong-shape assumption, FIXED 2026-08-13. /users/{login}/events does
+ * not return the PR object the code expected: across 38 live PullRequestEvents
+ * payload.pull_request had exactly five keys — url, id, number, head, base.
+ *
+ *   - No `title`, so every PR memory quoted an empty string.
+ *   - No `merged`, and the feed sends merging as its own ACTION rather than
+ *     closed+merged: {merged: 16, opened: 21, closed: 1}. The code filtered on
+ *     ['opened','closed'], so 16 of 38 events — nearly half the account's PR
+ *     activity — never produced an observation at all.
+ *   - Dedup was keyed on pr.number alone, so PR #1 in racha collided with
+ *     PR #1 elsewhere, and merging a PR was discarded as a duplicate of
+ *     opening it.
+ *
+ * Replayed over the same live feed, the old path yields 5 observations, all of
+ * them "... : """. The new one (observationFetchers/githubEventText.js) yields
+ * 38, e.g. `Merged PR #253 in stefanogebara/twin-me from branch
+ * "feat/phase-2-make-moat-visible"` — head.ref is always present and says more
+ * than the title would have. A real title is still preferred when a feed
+ * provides one; IssuesEvent on this same feed does carry titles.
+ *
+ * THE PATTERN ACROSS ALL THREE GITHUB BUGS: the fetcher trusted a payload
+ * shape nobody had verified against the live API. Same root as the eval-log
+ * errors these notes started from — a claim about an external system checked
+ * against our assumptions instead of against the system.
  *
  * DO NOT re-cite the calendar temporal items from waves before 2026-08-13 —
  * their ground truth was contaminated by (a). Re-measure once dated

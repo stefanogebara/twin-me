@@ -10,6 +10,7 @@ import { createLogger } from '../logger.js';
 import { sanitizeExternal, getSupabase } from '../observationUtils.js';
 import { aggregateLanguages } from './githubLanguageAggregator.js';
 import { detectGitHubProjectType } from './githubProjectType.js';
+import { describePullRequestEvent } from './githubEventText.js';
 
 /**
  * Decrypt a stored PAT, with a one-time fallback for legacy plaintext rows
@@ -398,23 +399,24 @@ async function fetchGitHubObservations(userId) {
         break;
       }
       case 'PullRequestEvent': {
-        const pr = event.payload?.pull_request;
-        if (!pr || prsSeen.has(pr.number)) break;
-        prsSeen.add(pr.number);
-        const action = event.payload?.action;
-        if (!['opened', 'closed'].includes(action)) break;
-        const isMerged = action === 'closed' && pr.merged;
-        const verb = isMerged ? 'Merged' : action === 'opened' ? 'Opened' : 'Closed';
-        const title = sanitizeExternal(pr.title || '', 80);
-        observations.push(`${verb} PR in ${repo}: "${title}"`);
+        // This feed omits pull_request.title and pull_request.merged, and
+        // sends merging as its own action — see githubEventText.js.
+        const described = describePullRequestEvent(repo, event.payload);
+        if (!described || prsSeen.has(described.key)) break;
+        prsSeen.add(described.key);
+        observations.push(described.content);
         break;
       }
       case 'IssuesEvent': {
         const issue = event.payload?.issue;
         const action = event.payload?.action;
         if (!issue || action !== 'opened') break;
+        // Issue titles DO arrive on this feed, but never quote an empty one.
         const title = sanitizeExternal(issue.title || '', 80);
-        observations.push(`Opened GitHub issue in ${repo}: "${title}"`);
+        const num = Number.isFinite(issue.number) ? ` #${issue.number}` : '';
+        observations.push(title
+          ? `Opened GitHub issue${num} in ${repo}: "${title}"`
+          : `Opened GitHub issue${num} in ${repo}`);
         break;
       }
       case 'CreateEvent': {
