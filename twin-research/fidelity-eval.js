@@ -349,7 +349,52 @@
  *   costs one wasted request per ingestion run and reports nothing. The
  *   endpoint was restricted by Spotify; the mood feature needs a new source or
  *   removal. (Note the fix above is what stops a REVIVED endpoint returning
- *   null fields from fabricating a mood.)
+ *   null fields from fabricating a mood.) SUPERSEDED IN SCOPE — see the
+ *   audio-features sweep below; it is six call sites, not one.
+ *
+ * ---------------------------------------------------------------------------
+ * 2026-08-13 AUDIO-FEATURES SWEEP. Following the 403 above to its other
+ * callers. The finding that reframes it: THE CODEBASE ALREADY KNEW. There is a
+ * Nov 2024 note in transactions/transactionEmotionTagger.js ("Spotify
+ * restricted audio-features — heuristic is the only path"), a whole
+ * musicValenceDictionary.js written as the replacement, and a comment in
+ * routes/spotify-oauth.js reading "Genre-based energy level mapping (replaces
+ * deprecated audio-features API)". Six call sites never got the memo — two of
+ * them edited AFTER the replacement existed, one of them inside the very file
+ * carrying the "replaces" comment. The migration was started and abandoned.
+ *
+ *   FIXED — userContextAggregator.js. Not dead code: actively fabricating.
+ *   calculateAverageAudioFeatures([]) returned a hardcoded
+ *   { energy: 0.5, valence: 0.5, tempo: 100 }, which deriveMoodFromFeatures
+ *   read as "Balanced / Moderate energy and mood" and returned in currentMood
+ *   with nothing marking it synthetic. Because the endpoint is restricted,
+ *   that branch was the ONLY branch that ran: every user's music mood has been
+ *   the same invented constant since Nov 2024, indistinguishable downstream
+ *   from a measurement. Fourth occurrence of the calendar's "completely open
+ *   day". Now spotify/moodFromAudioFeatures.js — absent readings yield null,
+ *   and the caller omits currentMood/audioProfile rather than defaulting them.
+ *   All four consumers already tolerated absence (two optional-chain, two
+ *   guard) and spotifyTypes.ts already declared the field optional; the type
+ *   had been telling the truth that the runtime never produced.
+ *
+ *   FIXED — correlationEngine.js. The audio-features call sat in the outer try
+ *   with no local catch, so the 403 threw past the merge loop into
+ *   `catch { return null }`. Fifty already-fetched tracks were discarded
+ *   because optional enrichment failed — the exact inversion of which of the
+ *   two data sources matters. Now scoped to its own catch.
+ *
+ *   OPEN — four remaining call sites, all honest-but-wasteful rather than
+ *   wrong: realTimeExtractor.js retries a permanent 403 three times via
+ *   fetchWithRetry; spotify-oauth.js batches it, gets nothing, and scores every
+ *   candidate track null so playlist matching silently returns empty;
+ *   spotifyEnhancedExtractor.js throws from spotifyRequest on !ok; the
+ *   observations fetcher spends one request per run for a result its new guard
+ *   correctly discards. Deleting the calls versus sourcing mood elsewhere is a
+ *   product decision, not a cleanup — flagged, not taken.
+ *
+ *   UNVERIFIED — spotifyEnhancedExtractor.js:674 sets `currentMood = 'neutral'`
+ *   as a bare default in the same shape as the bug above. Whether it is
+ *   reachable depends on whether the throw upstream preempts it. Not traced.
  *
  *   OPEN — Whoop ingestion is failing entirely: "No mapping found for whoop"
  *   then Nango 404, while platform_connections still reads status=connected.
