@@ -21,6 +21,7 @@ import temporalPatternDetector from '../services/temporalPatternDetector.js';
 import { createLogger } from '../services/logger.js';
 import { getAppUrl } from '../utils/oauthUtils.js';
 import { SPOTIFY_RITUAL_SCOPES } from '../config/oauthScopes.js';
+import { audioFeaturesAvailable, AUDIO_FEATURES_RESTRICTED_REASON } from '../services/spotify/audioFeatures.js';
 
 const log = createLogger('SpotifyOAuth');
 
@@ -666,21 +667,29 @@ router.get('/playlists/filtered', authenticateUser, async (req, res) => {
             const batchSize = 100;
             let audioFeatures = [];
 
-            for (let i = 0; i < trackIds.length; i += batchSize) {
-              try {
-                const batch = trackIds.slice(i, i + batchSize);
-                const featuresResponse = await fetch(
-                  `${SPOTIFY_CONFIG.apiBaseUrl}/audio-features?ids=${batch.join(',')}`,
-                  { headers: { 'Authorization': `Bearer ${accessToken}` } }
-                );
+            // Gated: this file's own genre-based energy mapping (see
+            // calculateGenreEnergyScore above) already "replaces deprecated
+            // audio-features API", but this loop kept requesting it — one
+            // request per 100 tracks, all 403, every time.
+            if (audioFeaturesAvailable()) {
+              for (let i = 0; i < trackIds.length; i += batchSize) {
+                try {
+                  const batch = trackIds.slice(i, i + batchSize);
+                  const featuresResponse = await fetch(
+                    `${SPOTIFY_CONFIG.apiBaseUrl}/audio-features?ids=${batch.join(',')}`,
+                    { headers: { 'Authorization': `Bearer ${accessToken}` } }
+                  );
 
-                if (featuresResponse.ok) {
-                  const data = await featuresResponse.json();
-                  audioFeatures.push(...(data.audio_features || []).filter(f => f !== null));
+                  if (featuresResponse.ok) {
+                    const data = await featuresResponse.json();
+                    audioFeatures.push(...(data.audio_features || []).filter(f => f !== null));
+                  }
+                } catch (err) {
+                  log.warn(`⚠️ Could not fetch audio features batch:`, err.message);
                 }
-              } catch (err) {
-                log.warn(`⚠️ Could not fetch audio features batch:`, err.message);
               }
+            } else {
+              log.debug(`Skipping audio features for recommendations. ${AUDIO_FEATURES_RESTRICTED_REASON}`);
             }
 
             log.info(`✓ Got audio features for ${audioFeatures.length} tracks`);

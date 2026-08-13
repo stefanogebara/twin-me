@@ -7,6 +7,7 @@
 
 import { supabaseAdmin } from '../config/supabase.js';
 import { createLogger } from './logger.js';
+import { audioFeaturesAvailable, AUDIO_FEATURES_RESTRICTED_REASON } from './spotify/audioFeatures.js';
 
 const log = createLogger('RealTimeExtractor');
 
@@ -88,14 +89,25 @@ export class RealTimeExtractor {
         endpoints.map(url => this.fetchWithRetry(url, { headers }))
       );
 
-      // Fetch audio features for top tracks
+      // Fetch audio features for top tracks. Optional enrichment on top of the
+      // four datasets already fetched above — so it is gated (the endpoint is
+      // restricted, and fetchWithRetry would otherwise burn three requests and
+      // ~3s of backoff on a permanent 403) and caught (a re-enabled endpoint
+      // can still fail, and its failure must not throw to the outer handler,
+      // which would return success:false and discard everything).
       let audioFeatures = null;
-      if (topTracks && topTracks.items && topTracks.items.length > 0) {
+      if (audioFeaturesAvailable() && topTracks?.items?.length > 0) {
         const trackIds = topTracks.items.map(track => track.id).join(',');
-        audioFeatures = await this.fetchWithRetry(
-          `https://api.spotify.com/v1/audio-features?ids=${trackIds}`,
-          { headers }
-        );
+        try {
+          audioFeatures = await this.fetchWithRetry(
+            `https://api.spotify.com/v1/audio-features?ids=${trackIds}`,
+            { headers }
+          );
+        } catch (featuresError) {
+          log.warn(`Spotify audio features unavailable: ${featuresError.message}`);
+        }
+      } else if (topTracks?.items?.length > 0) {
+        log.debug(`Skipping Spotify audio features. ${AUDIO_FEATURES_RESTRICTED_REASON}`);
       }
 
       return {

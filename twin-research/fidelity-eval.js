@@ -383,18 +383,44 @@
  *   because optional enrichment failed — the exact inversion of which of the
  *   two data sources matters. Now scoped to its own catch.
  *
- *   OPEN — four remaining call sites, all honest-but-wasteful rather than
- *   wrong: realTimeExtractor.js retries a permanent 403 three times via
- *   fetchWithRetry; spotify-oauth.js batches it, gets nothing, and scores every
- *   candidate track null so playlist matching silently returns empty;
- *   spotifyEnhancedExtractor.js throws from spotifyRequest on !ok; the
- *   observations fetcher spends one request per run for a result its new guard
- *   correctly discards. Deleting the calls versus sourcing mood elsewhere is a
- *   product decision, not a cleanup — flagged, not taken.
+ *   CORRECTION — the four remaining sites were logged here as "honest but
+ *   wasteful". That was wrong, and wrong in the direction that matters: TWO of
+ *   them destroyed data exactly like correlationEngine. realTimeExtractor sent
+ *   the 403 through fetchWithRetry, which retries twice and throws, so a
+ *   PERMANENT failure cost three requests and ~3s of backoff before throwing
+ *   past topTracks/topArtists/recentTracks/playlists — all four already
+ *   fetched — and returning success:false. spotifyEnhancedExtractor did the
+ *   same past TEN fetched datasets via spotifyRequest's throw-on-!ok. The test
+ *   measures both: three audio-features requests, 3.2s wall clock.
  *
- *   UNVERIFIED — spotifyEnhancedExtractor.js:674 sets `currentMood = 'neutral'`
- *   as a bare default in the same shape as the bug above. Whether it is
- *   reachable depends on whether the throw upstream preempts it. Not traced.
+ *   FIXED — all six sites now route through spotify/audioFeatures.js, a gate
+ *   reading SPOTIFY_AUDIO_FEATURES_ENABLED (default off). A gate rather than
+ *   six deletions because the endpoint is restricted, not deleted: restored
+ *   access should be a config change, not archaeology. Each site ALSO gained a
+ *   local catch, since the flag prevents the request but not the failure.
+ *
+ *   FIXED — a NaN the throw had been hiding. Returning [] instead of throwing
+ *   made analyzeMusicalSophistication reachable, and it divides by
+ *   validFeatures.length: 0/0 = NaN into complexityScore and
+ *   sophisticationScore, JSON-serialized to null, with `level` collapsing to
+ *   'mainstream-accessible' for every user. Sophistication now rests on niche
+ *   score and genre diversity when no features exist. Worth naming: fixing the
+ *   loud failure would have silently introduced a wrong number.
+ *
+ *   CORRECTION — spotifyEnhancedExtractor.js:674 was logged UNVERIFIED. It is
+ *   SOUND: analyzeEmotionalProfile returns early on validFeatures.length === 0,
+ *   so `currentMood = 'neutral'` is only reached with real readings that match
+ *   no branch.
+ *
+ *   OPEN — two more instances of the fabrication family, both reading STORED
+ *   patterns rather than calling the endpoint, so neither is one of the six
+ *   call sites. getDefaultAudioPersonality() returns a fixed
+ *   { energy: .6, valence: .5, tempo: 120, dominantMood: 'balanced-versatile',
+ *   sophisticationLevel: 'moderate-sophistication' } — every user's audio
+ *   personality since Nov 2024. It does carry sampleSize: 0, the one honest
+ *   marker in this family, but spotifyInsightGenerator.determineMood ignores it
+ *   and layers its own `|| 'neutral'`, `|| 0.5`, `|| 120` on top, rendering
+ *   "Balanced / steady and focused, valence 50%, energy 50%" as a reading.
  *
  *   OPEN — Whoop ingestion is failing entirely: "No mapping found for whoop"
  *   then Nango 404, while platform_connections still reads status=connected.

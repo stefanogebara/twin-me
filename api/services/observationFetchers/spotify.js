@@ -8,6 +8,7 @@ import { getValidAccessToken } from '../tokenRefreshService.js';
 import { createLogger } from '../logger.js';
 import { sanitizeExternal, getSupabase } from '../observationUtils.js';
 import { buildMoodObservation } from './spotifyMood.js';
+import { audioFeaturesAvailable } from '../spotify/audioFeatures.js';
 
 const log = createLogger('ObservationIngestion');
 
@@ -290,8 +291,9 @@ async function fetchSpotifyObservations(userId) {
     log.debug('Spotify saved albums error', { error: e?.message });
   }
 
-  // Audio features analysis: mood detection from energy, valence, danceability
-  if (recentItems.length > 0) {
+  // Audio features analysis: mood detection from energy, valence, danceability.
+  // Gated — this ran every ingestion cycle (*/30) purely to collect a 403.
+  if (audioFeaturesAvailable() && recentItems.length > 0) {
     try {
       const trackIds = recentItems
         .map(item => item.track?.id)
