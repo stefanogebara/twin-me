@@ -121,13 +121,64 @@
  * WHY THE TEMPORAL ITEMS MAY BE PARTLY UNWINNABLE: for several of them the
  * platform data genuinely disagrees with the user's self-report — they call
  * a calendar "packed — commitments most days" that logs 33 events across 8
- * of 15 days; they report "many small scattered things" while GitHub shows
+ * of 15 days [-> 2026-08-13: THE CALENDAR NUMBERS IN THIS SENTENCE ARE WRONG
+ * AND THE INFERENCE FROM THEM DOES NOT HOLD. See the correction below];
+ * they report "many small scattered things" while GitHub shows
  * concentrated work in one repo; they report "entertainment and unwinding"
  * against 8 YouTube events tagged sports/society. Better grounding cannot
  * close a gap between felt experience and logged behavior. Before investing
  * further in retrieval, it is worth deciding whether these items measure
  * twin fidelity or measure that gap — a twin that answered from the logs
  * would be "wrong" on this battery while being more factually accurate.
+ *
+ * 2026-08-13 CALENDAR CORRECTION — the calendar clause above was measured
+ * wrong, and the conclusion drawn from it ("the ingested evidence genuinely
+ * understates the calendar") is false. "33 events across 8 of 15 days"
+ * counted MEMORY ROWS, not events. Measured against the Google Calendar API
+ * directly for user 167c27b5, the 14 days ending 2026-08-12:
+ *
+ *   Google, all 6 calendars       16 events on  9 distinct days
+ *   Google, owned calendars only  14 events on  9 distinct days
+ *   user_memories platform_data   33 rows; 2026-08-05 is the ONLY event-day
+ *                                 with no calendar memory at all
+ *
+ * Ingestion captured 8 of the 9 event-days. Coverage was never the problem
+ * and the arms were not answering from thin evidence. The one missing day is
+ * cron starvation, not filtering: MAX_USERS_PER_RUN=3 round-robin in
+ * observationIngestion.js left this user unserviced for ~27h, and because the
+ * fetcher only ever looked at "today", a skipped day was lost permanently.
+ *
+ * The self-report gap is real but smaller than claimed. The user answered
+ * "12 days or more"; their own calendar says 9. So "4 to 7" was a near miss
+ * and "3 or fewer" was genuinely low — the item was gradeable, not unwinnable.
+ *
+ * What was actually broken is the CONTENT of the rows, not their count. Three
+ * bugs in observationFetchers/calendar.js, all fixed 2026-08-13:
+ *
+ *   (a) today's events were fetched with `timeMin: now`, so a run late in the
+ *       day saw only the remainder of it. On 2026-08-04 (3 events) and
+ *       2026-08-11 (1 event) the stream recorded "Calendar schedule today: no
+ *       meetings or events — completely open day for time management". The
+ *       log did not merely under-cover the calendar, it contradicted it, and
+ *       those rows are indistinguishable from genuinely empty days.
+ *   (b) 0 of 33 rows carried a date or weekday — every one said "today". A
+ *       "how many days" question is unanswerable from undated strings no
+ *       matter how good retrieval gets. This is the direct cause of the miss.
+ *   (c) times and the day boundary were rendered in the SERVER's zone (UTC on
+ *       Vercel), so a 07:45 America/Sao_Paulo appointment is stored as
+ *       "10:45 AM" and the user's day ends at 21:00 local.
+ *
+ * METHOD LESSON: "the platform data disagrees with the user" is a claim about
+ * the PLATFORM, so it must be checked against the platform's API, never
+ * against our own ingested rows. Counting memory rows and calling them events
+ * conflated a bug in our writer with a gap in the user's self-knowledge, and
+ * pointed the next round of work at retrieval when the defect was upstream of
+ * it. Applies equally to the GitHub and YouTube clauses above, which have NOT
+ * been re-checked against their APIs and should not be cited until they are.
+ *
+ * DO NOT re-cite the calendar temporal items from waves before 2026-08-13 —
+ * their ground truth was contaminated by (a). Re-measure once dated
+ * observations have accumulated for a full 14 days.
  *
  * WHAT REMAINS TRUE ABOUT THE DIGEST: it verifiably puts real recent events
  * into the prompt — a live chat turn cited Brent Faiyaz, the branch created

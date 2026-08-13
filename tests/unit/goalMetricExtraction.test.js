@@ -97,6 +97,9 @@ describe('extractMetricFromMemories (regex fallback over the memory stream)', ()
       ['recovery_score', 'Recovery score: 82%', 82],
       ['hrv', 'HRV: 154ms this morning', 154],
       ['meeting_count', 'Calendar schedule today: 2 events', 2],
+      // Dated form, shipped after fidelity-eval 2026-08-12. The undated row
+      // above still exists in the stream, so both must extract.
+      ['meeting_count', 'Calendar schedule for Tue 2026-08-04: 3 events (Murilo Personal, Tênis Segovia, Code review) — afternoon-focused scheduling', 3],
       ['meeting_count', '3 meetings today', 3],
       ['listening_hours', '2.5h of listening', 2.5],
       ['focus_time', '4h deep work', 4],
