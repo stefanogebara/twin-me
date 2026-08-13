@@ -504,9 +504,11 @@ async function extractMetricFromMemories(userId, metricType, prefetchedMemories 
     sleep_hours: /[Ss]lept?\s+([\d.]+)\s*h/,
     recovery_score: /[Rr]ecovery\s+(?:score:?\s*)?([\d.]+)\s*%/,
     hrv: /HRV:?\s*([\d.]+)\s*ms/i,
-    // Match "Calendar schedule today: 2 events" (primary ingestion format)
-    // or "N meetings today/scheduled" (legacy format)
-    meeting_count: /(?:Calendar schedule today:\s*(\d+)\s+events?|(\d+)\s+(?:events?|meetings?)\s+(?:today|scheduled))/i,
+    // Match "Calendar schedule for Tue 2026-08-04: 2 events" (current ingestion
+    // format — dated since fidelity-eval 2026-08-12), "Calendar schedule today:
+    // 2 events" (pre-dating rows still in the stream), or "N meetings
+    // today/scheduled" (legacy format).
+    meeting_count: /(?:Calendar schedule (?:today|for [^:]+):\s*(\d+)\s+events?|(\d+)\s+(?:events?|meetings?)\s+(?:today|scheduled))/i,
     listening_hours: /([\d.]+)\s*h(?:ours?)?\s+(?:of\s+)?listening/i,
     focus_time: /([\d.]+)\s*h(?:ours?)?\s+(?:focused|focus|deep\s+work|unbooked)/i,
   };

@@ -1,4 +1,5 @@
 import { createLogger } from './logger.js';
+import { audioFeaturesAvailable, AUDIO_FEATURES_RESTRICTED_REASON } from './spotify/audioFeatures.js';
 
 const log = createLogger('SpotifyEnhancedExtractor');
 
@@ -636,12 +637,23 @@ class SpotifyEnhancedExtractor {
 
     const genreDiversity = Math.min(genres.size / 20, 1);
 
-    // Audio complexity from features
-    const validFeatures = audioFeatures.filter(f => f);
-    const avgInstrumentalness = validFeatures.reduce((sum, f) => sum + (f.instrumentalness || 0), 0) / validFeatures.length;
-    const avgAcousticness = validFeatures.reduce((sum, f) => sum + (f.acousticness || 0), 0) / validFeatures.length;
+    // Audio complexity from features. With audio-features restricted this list
+    // is normally empty, and dividing by validFeatures.length gave 0/0 = NaN —
+    // which propagated into both scores, serialized to null through JSON, and
+    // made `level` collapse to 'mainstream-accessible' for every user. When
+    // there are no features, sophistication rests on the signals we do have
+    // (niche score and genre diversity) rather than on a fabricated average.
+    const validFeatures = (audioFeatures || []).filter(f => f);
+    const avgInstrumentalness = validFeatures.length > 0
+      ? validFeatures.reduce((sum, f) => sum + (f.instrumentalness || 0), 0) / validFeatures.length
+      : null;
+    const avgAcousticness = validFeatures.length > 0
+      ? validFeatures.reduce((sum, f) => sum + (f.acousticness || 0), 0) / validFeatures.length
+      : null;
 
-    const complexityScore = (avgInstrumentalness * 0.5) + (avgAcousticness * 0.3) + (nicheScore * 0.2);
+    const complexityScore = validFeatures.length > 0
+      ? (avgInstrumentalness * 0.5) + (avgAcousticness * 0.3) + (nicheScore * 0.2)
+      : nicheScore;
 
     const sophisticationScore = (nicheScore * 0.4) + (genreDiversity * 0.3) + (complexityScore * 0.3);
 
@@ -818,8 +830,22 @@ class SpotifyEnhancedExtractor {
     return await this.spotifyRequest(url, accessToken);
   }
 
+  /**
+   * Audio features are OPTIONAL enrichment. extractComprehensiveProfile calls
+   * this after ten successful fetches, so it must never throw: spotifyRequest
+   * throws on !ok, and a 403 here used to fail the entire profile extraction.
+   * Returns [] when unavailable. analyzeAudioPersonality and
+   * analyzeEmotionalProfile already guarded an empty list;
+   * analyzeMusicalSophistication did NOT — it divided by zero and produced NaN,
+   * a path the throw had been hiding. Fixed there rather than papered over here.
+   */
   async getAudioFeaturesForTracks(accessToken, trackIds) {
     if (!trackIds || trackIds.length === 0) return [];
+
+    if (!audioFeaturesAvailable()) {
+      log.debug(`Skipping audio features. ${AUDIO_FEATURES_RESTRICTED_REASON}`);
+      return [];
+    }
 
     // Spotify allows max 100 IDs per request
     const chunks = [];
@@ -830,9 +856,13 @@ class SpotifyEnhancedExtractor {
     const allFeatures = [];
     for (const chunk of chunks) {
       const url = `${this.baseUrl}/audio-features?ids=${chunk.join(',')}`;
-      const response = await this.spotifyRequest(url, accessToken);
-      if (response.audio_features) {
-        allFeatures.push(...response.audio_features);
+      try {
+        const response = await this.spotifyRequest(url, accessToken);
+        if (response.audio_features) {
+          allFeatures.push(...response.audio_features);
+        }
+      } catch (featuresError) {
+        log.warn(`Audio features batch failed, continuing without it: ${featuresError.message}`);
       }
     }
 
@@ -883,22 +913,32 @@ class SpotifyEnhancedExtractor {
     };
   }
 
+  /**
+   * The shape returned when NOTHING was measured. It used to describe a whole
+   * person — energy .6, valence .5, tempo 120, 'balanced-versatile',
+   * 'moderate-sophistication' — and with /v1/audio-features restricted this was
+   * every user's audio personality, indistinguishable from a real reading.
+   *
+   * Measurements are null and judgements are 'unknown'. The keys stay so
+   * consumers reading `averageFeatures?.energy` do not crash; sampleSize: 0
+   * remains the marker that says why everything is empty.
+   */
   getDefaultAudioPersonality() {
     return {
       averageFeatures: {
-        energy: 0.6,
-        valence: 0.5,
-        danceability: 0.6,
-        acousticness: 0.3,
-        instrumentalness: 0.1,
-        speechiness: 0.1,
-        liveness: 0.1,
-        tempo: 120
+        energy: null,
+        valence: null,
+        danceability: null,
+        acousticness: null,
+        instrumentalness: null,
+        speechiness: null,
+        liveness: null,
+        tempo: null
       },
-      variance: { overall: 0, emotionalRange: 'unknown' },
-      emotionalProfile: { dominantMood: 'balanced-versatile', energyLevel: 'balanced-energy', valenceTendency: 'emotionally-balanced', emotionalRange: 'unknown', emotionalStability: 'unknown' },
-      complexityProfile: { complexityScore: 0.5, organicVsElectronic: 'balanced', vocalVsInstrumental: 'mixed', lyricImportance: 'unknown', sophisticationLevel: 'moderate-sophistication' },
-      energyProfile: { energyConsistency: 0.6, danceability: 0.6, tempo: 120, movementScore: 0.6, preferredPace: 'moderate-paced', physicalEngagement: 'moderate-movement' },
+      variance: { overall: null, emotionalRange: 'unknown' },
+      emotionalProfile: { dominantMood: 'unknown', energyLevel: 'unknown', valenceTendency: 'unknown', emotionalRange: 'unknown', emotionalStability: 'unknown' },
+      complexityProfile: { complexityScore: null, organicVsElectronic: 'unknown', vocalVsInstrumental: 'unknown', lyricImportance: 'unknown', sophisticationLevel: 'unknown' },
+      energyProfile: { energyConsistency: null, danceability: null, tempo: null, movementScore: null, preferredPace: 'unknown', physicalEngagement: 'unknown' },
       sampleSize: 0
     };
   }

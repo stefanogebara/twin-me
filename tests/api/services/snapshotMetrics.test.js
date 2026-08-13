@@ -22,6 +22,26 @@ import {
   SNAPSHOT_METRIC_SCORE,
 } from '../../../api/services/snapshotMetrics.js';
 
+/**
+ * Approximate Postgres LIKE so a test can check the pattern actually FINDS the
+ * row it is meant to locate. Classification and location are separate steps and
+ * the "Committed code on 1 day" bug lived in the second one: the content was
+ * classified, then the LIKE went looking for `%days in the last%` and could
+ * never match the singular row it was supposed to refresh.
+ */
+function likeMatches(pattern, text) {
+  let rx = '';
+  const esc = (c) => c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  for (let i = 0; i < pattern.length; i++) {
+    const c = pattern[i];
+    if (c === '\\') { rx += esc(pattern[++i] ?? ''); continue; }
+    if (c === '%') { rx += '[\\s\\S]*'; continue; }
+    if (c === '_') { rx += '[\\s\\S]'; continue; }
+    rx += esc(c);
+  }
+  return new RegExp(`^${rx}$`).test(text);
+}
+
 describe('isSnapshotMetric — point-in-time readings of mutable state', () => {
   it.each([
     'Has a backlog of 40000 unread emails in inbox',
@@ -211,5 +231,127 @@ describe('buildMetricLikePattern — SQL LIKE key for finding a prior reading', 
   it('returns null for non-snapshot content', () => {
     expect(buildMetricLikePattern('Inbox grew by 12 unread emails since yesterday')).toBeNull();
     expect(buildMetricLikePattern('Had his first guitar lesson')).toBeNull();
+  });
+});
+
+/**
+ * 2026-08-13 — the GitHub/YouTube dedup-defeat family, found while checking the
+ * fidelity-eval verdict log against the platform APIs.
+ *
+ * These rolling aggregates were never registered as snapshot metrics, so the
+ * digit-sensitive content hash treated every recomputation as a brand-new fact
+ * and the in-place refresh never fired. Observed in the live memory stream:
+ *
+ *   "GitHub rhythm: weekday coder — peak day is Monday (1196 contributions)"
+ *   ...the same row again at 1202, 1208 and 1215 contributions.
+ *   "Subscribed to 131 YouTube channels, including: ..." four times, differing
+ *   only in the ORDER of the channel list.
+ *
+ * Worse than noise, it produced contradictions. On 2026-08-02 the stream held
+ * "Current GitHub contribution streak: 22 consecutive days" alongside BOTH
+ * "Committed code on 2 days in the last 30 days" and "Committed code on 1 day
+ * in the last 30 days" — the singular form slipping past a `\d+ days` pattern
+ * that was already in the registry for exactly this metric.
+ */
+describe('rolling aggregates that defeated dedup (GitHub + YouTube)', () => {
+  it.each([
+    // --- GitHub ---
+    'Current GitHub contribution streak: 22 consecutive days',
+    'Current GitHub contribution streak: 1 consecutive day',
+    'Longest GitHub contribution streak in the past year: 57 consecutive days (ending 2026-04-05)',
+    'GitHub rhythm: weekday coder — peak day is Monday (1196 contributions), 27% of activity on weekends',
+    'Most active GitHub month in the past year: February 2026 with 1543 contributions',
+    'Your GitHub language distribution: JavaScript (53%), TypeScript (43%), PLpgSQL (3%), Rust (1%)',
+    'Made 12 commits across 3 repos on GitHub this week',
+    'Made 1 commit across 1 repo on GitHub this week',
+    'Most active on GitHub on Tuesdays based on recent activity patterns',
+    'Primary GitHub tech stack: JavaScript, TypeScript based on recent repositories',
+    'Working on 17 public, 13 private GitHub repos, primarily focused on data science / ML',
+    'Active on GitHub with 30 repositories',
+    // --- YouTube ---
+    'Subscribed to 131 YouTube channels, including: CazéTV, Claude, GM Krikor',
+    'Subscribed to 1 YouTube channel, including: Claude',
+    'Recently liked YouTube videos: "How I use LLMs" — from channels: Andrej Karpathy',
+    'YouTube content interests: Knowledge (4), Sport (3), Technology (2)',
+    'Has 1 YouTube playlist: Stefano hot songs (avg 1 videos each)',
+  ])('classifies as a snapshot metric: %s', (content) => {
+    expect(isSnapshotMetric(content)).toBe(true);
+    expect(snapshotMetricScore(content)).toBe(SNAPSHOT_METRIC_SCORE);
+  });
+
+  // Durable events from the same two fetchers. These describe something that
+  // HAPPENED and must keep their normal importance and their own row.
+  it.each([
+    'Opened PR in brandbook-builder: "Add magic-link auth"',
+    'Created branch "claude/magic-link" in brandbook-builder',
+    'Starred a new repository: vercel/ai',
+  ])('leaves durable events alone: %s', (content) => {
+    expect(isSnapshotMetric(content)).toBe(false);
+    expect(buildMetricLikePattern(content)).toBeNull();
+  });
+
+  describe('successive readings collapse onto one row', () => {
+    it.each([
+      [
+        'Current GitHub contribution streak: 22 consecutive days',
+        'Current GitHub contribution streak: 23 consecutive days',
+      ],
+      [
+        // The singular/plural boundary — the bug that let a contradiction land.
+        'Committed code on 1 day in the last 30 days on GitHub',
+        'Committed code on 2 days in the last 30 days on GitHub',
+      ],
+      [
+        'GitHub rhythm: weekday coder — peak day is Monday (1196 contributions), 27% of activity on weekends',
+        'GitHub rhythm: weekday coder — peak day is Monday (1215 contributions), 28% of activity on weekends',
+      ],
+      [
+        // Peak day itself flips between runs; both are one metric, not two facts.
+        'Most active on GitHub on Tuesdays based on recent activity patterns',
+        'Most active on GitHub on Sundays based on recent activity patterns',
+      ],
+      [
+        'Your GitHub language distribution: JavaScript (53%), TypeScript (43%), PLpgSQL (3%), Rust (1%)',
+        'Your GitHub language distribution: JavaScript (56%), TypeScript (40%), PLpgSQL (3%), Rust (1%)',
+      ],
+      [
+        // Same subscription count, channel list merely reordered.
+        'Subscribed to 131 YouTube channels, including: CazéTV, Claude, GM Krikor',
+        'Subscribed to 131 YouTube channels, including: Claude, GM Krikor, CazéTV',
+      ],
+      [
+        'YouTube content interests: Knowledge (4), Sport (3), Technology (2)',
+        'YouTube content interests: Sport (6), Knowledge (2)',
+      ],
+    ])('treats as the same metric: %s', (older, newer) => {
+      expect(isSameMetricReading(older, newer)).toBe(true);
+      // ...and the LIKE must actually locate the older row, in both directions.
+      expect(likeMatches(buildMetricLikePattern(newer), older)).toBe(true);
+      expect(likeMatches(buildMetricLikePattern(older), newer)).toBe(true);
+    });
+  });
+
+  it('keeps distinct GitHub metrics apart', () => {
+    // A streak and a 30-day active-day count are both about "days" but are
+    // different facts — collapsing them would delete real information.
+    expect(isSameMetricReading(
+      'Current GitHub contribution streak: 22 consecutive days',
+      'Committed code on 2 days in the last 30 days on GitHub',
+    )).toBe(false);
+    expect(isSameMetricReading(
+      'Longest GitHub contribution streak in the past year: 57 consecutive days',
+      'Current GitHub contribution streak: 22 consecutive days',
+    )).toBe(false);
+  });
+
+  it('does not let a GitHub pattern match a YouTube row or vice versa', () => {
+    expect(likeMatches(
+      buildMetricLikePattern('YouTube content interests: Knowledge (4)'),
+      'Your GitHub language distribution: JavaScript (53%)',
+    )).toBe(false);
+    expect(likeMatches(
+      buildMetricLikePattern('Working on 17 public, 13 private GitHub repos, primarily focused on ML'),
+      'Subscribed to 131 YouTube channels, including: Claude',
+    )).toBe(false);
   });
 });

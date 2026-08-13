@@ -169,6 +169,12 @@
  * candidate must be measured against a same-session control arm, and a
  * claimed win should survive at least two separate days.
  *
+ * [-> 2026-08-13: ALL THREE EXAMPLES IN THE PARAGRAPH BELOW WERE CHECKED
+ *  AGAINST THE PLATFORM APIs AND ALL THREE ARE WRONG. IN EVERY CASE THE LOG
+ *  WAS WRONG, NOT THE USER, SO THE CONCLUSION DOES NOT HOLD. The paragraph is
+ *  kept verbatim as the record of what was believed; see the correction that
+ *  follows it. Do not cite this paragraph.]
+ *
  * WHY THE TEMPORAL ITEMS MAY BE PARTLY UNWINNABLE: for several of them the
  * platform data genuinely disagrees with the user's self-report — they call
  * a calendar "packed — commitments most days" that logs 33 events across 8
@@ -179,6 +185,362 @@
  * further in retrieval, it is worth deciding whether these items measure
  * twin fidelity or measure that gap — a twin that answered from the logs
  * would be "wrong" on this battery while being more factually accurate.
+ *
+ * 2026-08-13 CORRECTION — all three clauses checked against their platform
+ * APIs for user 167c27b5. All three are wrong, each in a different way.
+ *
+ * ── (1) CALENDAR ──
+ * The calendar clause was measured wrong, and the conclusion drawn from it
+ * ("the ingested evidence genuinely understates the calendar") is false.
+ * "33 events across 8 of 15 days" counted MEMORY ROWS, not events. Measured
+ * against the Google Calendar API directly, the 14 days ending 2026-08-12:
+ *
+ *   Google, all 6 calendars       16 events on  9 distinct days
+ *   Google, owned calendars only  14 events on  9 distinct days
+ *   user_memories platform_data   33 rows; 2026-08-05 is the ONLY event-day
+ *                                 with no calendar memory at all
+ *
+ * Ingestion captured 8 of the 9 event-days. Coverage was never the problem
+ * and the arms were not answering from thin evidence. The one missing day is
+ * cron starvation, not filtering: MAX_USERS_PER_RUN=3 round-robin in
+ * observationIngestion.js left this user unserviced for ~27h, and because the
+ * fetcher only ever looked at "today", a skipped day was lost permanently.
+ *
+ * The self-report gap is real but smaller than claimed. The user answered
+ * "12 days or more"; their own calendar says 9. So "4 to 7" was a near miss
+ * and "3 or fewer" was genuinely low — the item was gradeable, not unwinnable.
+ *
+ * What was actually broken is the CONTENT of the rows, not their count. Three
+ * bugs in observationFetchers/calendar.js, all fixed 2026-08-13:
+ *
+ *   (a) today's events were fetched with `timeMin: now`, so a run late in the
+ *       day saw only the remainder of it. On 2026-08-04 (3 events) and
+ *       2026-08-11 (1 event) the stream recorded "Calendar schedule today: no
+ *       meetings or events — completely open day for time management". The
+ *       log did not merely under-cover the calendar, it contradicted it, and
+ *       those rows are indistinguishable from genuinely empty days.
+ *   (b) 0 of 33 rows carried a date or weekday — every one said "today". A
+ *       "how many days" question is unanswerable from undated strings no
+ *       matter how good retrieval gets. This is the direct cause of the miss.
+ *   (c) times and the day boundary were rendered in the SERVER's zone (UTC on
+ *       Vercel), so a 07:45 America/Sao_Paulo appointment is stored as
+ *       "10:45 AM" and the user's day ends at 21:00 local.
+ *
+ * ── (2) GITHUB ──
+ * "GitHub shows concentrated work in one repo" is false. The events API for
+ * login stefanogebara returned 291 events across ELEVEN repos:
+ *
+ *    93  twin-me            36  cockpit-vendas      3  midia-paga
+ *    63  restaurant-ai-mcp  31  squad-checkout      2  racha
+ *    55  roca                4  affaan-m/ECC        2  brandbook-builder
+ *                                                   1  pauta-ai
+ *                                                   1  squad-partner-hub
+ *
+ * The top repo is 32% of activity and five repos have 30+ events each.
+ * Independently, /user/repos shows 8 distinct repos with pushed_at inside the
+ * 15-day window. That IS "many small scattered things" — the user's
+ * self-report was accurate and the log's characterisation was the error. Our
+ * own ingested rows never supported the claim either: they name branches
+ * created in brandbook-builder, squad-checkout AND twin-me.
+ *
+ * Caveats on those numbers: the events API caps at 300 and only reached back
+ * to 2026-08-04, so this covers ~9 of the 15 days (which understates spread,
+ * not overstates it), and the per-repo COMMIT tally could not be read from
+ * the event payloads — event counts only.
+ *
+ * ── (3) YOUTUBE ──
+ * "8 YouTube events tagged sports/society" rests on three broken links.
+ *
+ *   (i)   There is NO watch data at all. activities?mine=true returns 0 items
+ *         and 0 of type "watch" — Google removed watch history from the Data
+ *         API in 2016, so the "watch activity" branch in
+ *         observationFetchers/youtube.js is a dead path. A self-report about
+ *         WATCHING was being scored against something that is not watching.
+ *   (ii)  The tags come from the LIKED-VIDEOS list, which is a lifetime
+ *         archive, not recent behaviour: video publish dates run 2014-2025 and
+ *         cluster in 2016-2021. The API returns no like timestamps, so the
+ *         "Recently liked ..." observation label is an assumption the data
+ *         does not support.
+ *   (iii) topicCategories are Wikipedia SUBJECT tags, not mode-of-consumption.
+ *         "Cortes do Casimito" — a Brazilian comedy reaction channel — tags as
+ *         "Association football, Sport". A football-reaction comedy clip IS
+ *         entertainment and unwinding. The two descriptions were never in
+ *         conflict.
+ *
+ * The full 46-video tally also leans the user's way, not the log's: Lifestyle
+ * 11, Music 7, Pop music 6, Sport 6, Association football 5, Electronic music
+ * 5, Action game 5, Video game culture 5, Knowledge 4, Technology 4, Society
+ * 2. The ingested "Knowledge (4), Sport (3), Technology (2)" row is computed
+ * from only the top 15 (the fetcher's maxResults). Subscriptions corroborate
+ * the user: CazéTV, Cortes do Casimito, Neymar Jr, Ibai, IShowSpeed, Sidemen.
+ *
+ * ── METHOD LESSON ──
+ * "The platform data disagrees with the user" is a claim about the PLATFORM,
+ * so it must be checked against the platform's API, never against our own
+ * ingested rows. Every one of the three clauses failed at that step: calendar
+ * counted memory rows as events, GitHub read a claim our own rows already
+ * contradicted, YouTube scored a watching self-report against a lifetime like
+ * list via a dead endpoint. Each conflated a bug in our writer with a gap in
+ * the user's self-knowledge, and pointed the next round of work at retrieval
+ * when the defect was upstream of it.
+ *
+ * Corollary for the battery: before calling a temporal item "unwinnable",
+ * verify the ground truth against the source API. On this evidence the items
+ * were gradeable and the twin was answering from a corrupted log.
+ *
+ * DEDUP-DEFEAT BUG FAMILY — found while checking the above, FIXED 2026-08-13.
+ * A single changing digit made the same fact land repeatedly, and some of it
+ * was false. On 2026-08-02 the stream held three mutually contradictory rows:
+ * "Current GitHub contribution streak: 22 consecutive days", "Committed code
+ * on 2 days in the last 30 days" and "Committed code on 1 day in the last 30
+ * days".
+ *
+ * Cause: snapshotMetrics.js already had the machinery — a registry of
+ * {rx, like} templates that classifies a rolling aggregate and refreshes the
+ * prior row IN PLACE instead of inserting another. These GitHub and YouTube
+ * aggregates were simply never registered, so the digit-sensitive content hash
+ * read every recomputation as a brand-new fact. One entry that WAS registered,
+ * "Committed code on N days", used `\d+ days` and so could not classify the
+ * singular "1 day" the fetcher emits when the count is one — which is exactly
+ * how that contradiction got in.
+ *
+ * Measured over this user's 151 GitHub+YouTube platform_data rows from the
+ * same 15 days, the added entries retire 75 of them — half the stream was one
+ * fact repeated:
+ *
+ *   27x  Your GitHub language distribution: JavaScript (53%/54%/55%/56%)...
+ *   21x  GitHub rhythm: ... peak day is Monday (1196 / 1202 / 1208 / 1215)
+ *   15x  Current GitHub contribution streak: 18 / 19 / 21 / 22 / 23 days
+ *    7x  Most active on GitHub on Tuesdays / Thursdays / Sundays / Fridays
+ *    4x  Subscribed to 131 YouTube channels, including: ... (list reordered)
+ *
+ * Note the 4th group: those rows do not merely repeat, they contradict each
+ * other and the "peak day is Monday" row above them. And these were not
+ * low-value rows sitting harmlessly in the tail — several carried
+ * LLM-assigned importance 6-7, i.e. a stale self-contradictory aggregate was
+ * outranking real events in retrieval. Registering them clamps the whole class
+ * to SNAPSHOT_METRIC_SCORE (4), below the Tier 2 archival ceiling.
+ *
+ * PROJECT-TYPE CLASSIFIER — also wrong, FIXED 2026-08-13. "Working on 17
+ * public, 13 private GitHub repos, primarily focused on data science / ML"
+ * described an account whose repos are TypeScript 16 / JavaScript 10 /
+ * Python 1. Replaying the old classifier over the live /user/repos response
+ * shows all seven of its "data science / ML" hits came from one token, `ai`:
+ *
+ *   restaurant-ai-mcp, pauta-ai, ai-olympics, ai-flight-agent,
+ *   condoos ("AI-powered"), instagram-dashboard ("Inner AI"),
+ *   gauntlet-fixture-hello ("AI Olympics")
+ *
+ * Nothing matched pytorch, pandas, sklearn, kaggle or notebook. In 2026 an
+ * "ai" in a repo name says the product CALLS a model, not that its author
+ * trains one — so the label came out backwards on the strongest evidence
+ * available, and the twin then held a flatly false belief about the user's
+ * working life.
+ *
+ * Rewritten as observationFetchers/githubProjectType.js: `ai` and `data` are
+ * gone from the ML signals, each repo's primary LANGUAGE votes alongside its
+ * name and description (text 2, language 1), and the classifier returns null
+ * — caller falls back to "Active on GitHub with N repositories" — when the
+ * leader is under a floor or fails to clear the runner-up by 1.5x. On the same
+ * live response it now returns "web development".
+ *
+ * The shape of this bug is worth keeping: a token that was diagnostic when the
+ * list was written became product vocabulary later, and nothing re-checked it.
+ * Keyword classifiers rot as language drifts, and this one had no test.
+ *
+ * PR OBSERVATIONS — "Opened PR in twin-me: """ was the visible symptom of a
+ * third wrong-shape assumption, FIXED 2026-08-13. /users/{login}/events does
+ * not return the PR object the code expected: across 38 live PullRequestEvents
+ * payload.pull_request had exactly five keys — url, id, number, head, base.
+ *
+ *   - No `title`, so every PR memory quoted an empty string.
+ *   - No `merged`, and the feed sends merging as its own ACTION rather than
+ *     closed+merged: {merged: 16, opened: 21, closed: 1}. The code filtered on
+ *     ['opened','closed'], so 16 of 38 events — nearly half the account's PR
+ *     activity — never produced an observation at all.
+ *   - Dedup was keyed on pr.number alone, so PR #1 in racha collided with
+ *     PR #1 elsewhere, and merging a PR was discarded as a duplicate of
+ *     opening it.
+ *
+ * Replayed over the same live feed, the old path yields 5 observations, all of
+ * them "... : """. The new one (observationFetchers/githubEventText.js) yields
+ * 38, e.g. `Merged PR #253 in stefanogebara/twin-me from branch
+ * "feat/phase-2-make-moat-visible"` — head.ref is always present and says more
+ * than the title would have. A real title is still preferred when a feed
+ * provides one; IssuesEvent on this same feed does carry titles.
+ *
+ * THE PATTERN ACROSS ALL THREE GITHUB BUGS: the fetcher trusted a payload
+ * shape nobody had verified against the live API. Same root as the eval-log
+ * errors these notes started from — a claim about an external system checked
+ * against our assumptions instead of against the system.
+ *
+ * 2026-08-13 PAYLOAD AUDIT of the remaining fetchers, probing each live API
+ * for the fields the code reads. Two more instances of the same shape, both
+ * FIXED; two operational failures found, both still OPEN.
+ *
+ *   FIXED — youtube.js liked videos. The empty-title bug one layer deeper:
+ *   the guard tested `likedItems.length` while the template interpolated
+ *   `titles`, a DERIVED array that .filter(Boolean) can empty. Items without
+ *   titles would have written `Recently liked YouTube videos: "" — from
+ *   channels:`. Guarding the input does not guarantee the output. Now
+ *   youtubeText.js, which checks what is actually rendered.
+ *
+ *   FIXED — spotify.js mood. The mean was `(f[key] || 0)`, so an ABSENT
+ *   reading counted as zero. Missing fields therefore produced "Music mood
+ *   right now: mellow or introspective, low-energy, chill (valence 0%, energy
+ *   0%)" — a specific false claim manufactured from no data, and one that a
+ *   registered snapshot metric would then keep permanently fresh. Now
+ *   spotifyMood.js: absent values are excluded from the mean, and too few real
+ *   readings means no observation at all. Same failure as the calendar's
+ *   "completely open day", third occurrence of it in this codebase.
+ *
+ *   OPEN — Spotify /v1/audio-features returns HTTP 403 for this app. The last
+ *   "Music mood right now" row is 2026-07-24; the metric has been silently
+ *   gone for three weeks. Caught by `catch (e) { // non-critical }`, so it
+ *   costs one wasted request per ingestion run and reports nothing. The
+ *   endpoint was restricted by Spotify; the mood feature needs a new source or
+ *   removal. (Note the fix above is what stops a REVIVED endpoint returning
+ *   null fields from fabricating a mood.) SUPERSEDED IN SCOPE — see the
+ *   audio-features sweep below; it is six call sites, not one.
+ *
+ * ---------------------------------------------------------------------------
+ * 2026-08-13 AUDIO-FEATURES SWEEP. Following the 403 above to its other
+ * callers. The finding that reframes it: THE CODEBASE ALREADY KNEW. There is a
+ * Nov 2024 note in transactions/transactionEmotionTagger.js ("Spotify
+ * restricted audio-features — heuristic is the only path"), a whole
+ * musicValenceDictionary.js written as the replacement, and a comment in
+ * routes/spotify-oauth.js reading "Genre-based energy level mapping (replaces
+ * deprecated audio-features API)". Six call sites never got the memo — two of
+ * them edited AFTER the replacement existed, one of them inside the very file
+ * carrying the "replaces" comment. The migration was started and abandoned.
+ *
+ *   FIXED — userContextAggregator.js. Not dead code: actively fabricating.
+ *   calculateAverageAudioFeatures([]) returned a hardcoded
+ *   { energy: 0.5, valence: 0.5, tempo: 100 }, which deriveMoodFromFeatures
+ *   read as "Balanced / Moderate energy and mood" and returned in currentMood
+ *   with nothing marking it synthetic. Because the endpoint is restricted,
+ *   that branch was the ONLY branch that ran: every user's music mood has been
+ *   the same invented constant since Nov 2024, indistinguishable downstream
+ *   from a measurement. Fourth occurrence of the calendar's "completely open
+ *   day". Now spotify/moodFromAudioFeatures.js — absent readings yield null,
+ *   and the caller omits currentMood/audioProfile rather than defaulting them.
+ *   All four consumers already tolerated absence (two optional-chain, two
+ *   guard) and spotifyTypes.ts already declared the field optional; the type
+ *   had been telling the truth that the runtime never produced.
+ *
+ *   FIXED — correlationEngine.js. The audio-features call sat in the outer try
+ *   with no local catch, so the 403 threw past the merge loop into
+ *   `catch { return null }`. Fifty already-fetched tracks were discarded
+ *   because optional enrichment failed — the exact inversion of which of the
+ *   two data sources matters. Now scoped to its own catch.
+ *
+ *   CORRECTION — the four remaining sites were logged here as "honest but
+ *   wasteful". That was wrong, and wrong in the direction that matters: TWO of
+ *   them destroyed data exactly like correlationEngine. realTimeExtractor sent
+ *   the 403 through fetchWithRetry, which retries twice and throws, so a
+ *   PERMANENT failure cost three requests and ~3s of backoff before throwing
+ *   past topTracks/topArtists/recentTracks/playlists — all four already
+ *   fetched — and returning success:false. spotifyEnhancedExtractor did the
+ *   same past TEN fetched datasets via spotifyRequest's throw-on-!ok. The test
+ *   measures both: three audio-features requests, 3.2s wall clock.
+ *
+ *   FIXED — all six sites now route through spotify/audioFeatures.js, a gate
+ *   reading SPOTIFY_AUDIO_FEATURES_ENABLED (default off). A gate rather than
+ *   six deletions because the endpoint is restricted, not deleted: restored
+ *   access should be a config change, not archaeology. Each site ALSO gained a
+ *   local catch, since the flag prevents the request but not the failure.
+ *
+ *   FIXED — a NaN the throw had been hiding. Returning [] instead of throwing
+ *   made analyzeMusicalSophistication reachable, and it divides by
+ *   validFeatures.length: 0/0 = NaN into complexityScore and
+ *   sophisticationScore, JSON-serialized to null, with `level` collapsing to
+ *   'mainstream-accessible' for every user. Sophistication now rests on niche
+ *   score and genre diversity when no features exist. Worth naming: fixing the
+ *   loud failure would have silently introduced a wrong number.
+ *
+ *   CORRECTION — spotifyEnhancedExtractor.js:674 was logged UNVERIFIED. It is
+ *   SOUND: analyzeEmotionalProfile returns early on validFeatures.length === 0,
+ *   so `currentMood = 'neutral'` is only reached with real readings that match
+ *   no branch.
+ *
+ *   FIXED — the last two instances, both reading STORED patterns rather than
+ *   calling the endpoint. getDefaultAudioPersonality() returned a fixed
+ *   { energy: .6, valence: .5, tempo: 120, dominantMood: 'balanced-versatile',
+ *   sophisticationLevel: 'moderate-sophistication' } — every user's audio
+ *   personality since Nov 2024. Measurements are now null and judgements
+ *   'unknown'; the keys stay so consumers reading `averageFeatures?.energy` do
+ *   not crash, and sampleSize: 0 remains the marker saying why.
+ *   determineMood ignored that marker and layered `|| 'neutral'`, `|| 0.5`,
+ *   `|| 120` on top, rendering "Balanced / steady and focused, valence 50%,
+ *   energy 50%". It now honours sampleSize and returns null with no evidence,
+ *   and getCurrentMoodInsights returns null rather than a success:true payload
+ *   of invented percentages. Both callers already had the right branch:
+ *   intelligent-twin falls back to energy-based analysis, soul-insights
+ *   answers "No recent Spotify data available". 'Balanced' survives as a
+ *   FINDING — a test pins that it is still reported when actually measured.
+ *
+ *   CONSEQUENCE, disclosed — nulling averageFeatures changed what flows into
+ *   calculateBigFive, whose `|| 0.5` silently converts absence back into a
+ *   number. Extraversion for unmeasured users therefore shifts (energy 0.6 to
+ *   0.5); neuroticism is unchanged. Both traits are derived from audio, so
+ *   they now carry `measured: boolean`. Scores stay numeric because the radar
+ *   charts type them as required numbers — this marks the placeholder rather
+ *   than removing it. Note what that means: the platform has been reporting
+ *   Big Five extraversion and neuroticism computed from a substituted 0.5 for
+ *   every Spotify user since Nov 2024. Marking is the non-breaking step;
+ *   deciding whether an unmeasured trait belongs on a personality radar at all
+ *   is a product question this does not answer.
+ *
+ *   FIXED (the code half) — Whoop ingestion silently dead since 2026-08-02.
+ *   Not a token expiry: the direct-token branch got a tagged throw in Phase 2
+ *   (2026-06-08), but the NANGO branch never did. It reads
+ *   `result.success ? records : []`, so a 404 from a missing connection
+ *   mapping became an empty array and the run was recorded as count=0 /
+ *   status=ok — eleven days of missing recovery, sleep and strain while the UI
+ *   read "connected". whoop.js:151 already carried a diagnostic log reading
+ *   "cron returns count=0 with status=ok — surface why"; this is the why.
+ *   Now: both endpoints failing throws tagged (401/403/404 -> AUTH_FAILED so
+ *   the orchestrator writes platform_connections.status='auth_failed' and the
+ *   Reconnect CTA appears; anything else -> TOKEN_UNAVAILABLE, because a
+ *   transient 500 must not send someone to a reconnect screen they do not
+ *   need). One endpoint failing is not evidence the connection is broken, and
+ *   success-with-zero-records stays quiet — tests pin both.
+ *
+ *   FIXED — getConnectionId filtered on status='active' and logged "No mapping
+ *   found" for any miss, so a mapping flagged needs_reconnect was
+ *   indistinguishable from never having connected. That is why this read as a
+ *   fresh install rather than a broken connection. It now selects the status
+ *   and reports the three cases separately.
+ *
+ *   STILL REQUIRES THE USER — none of the above restores the connection. The
+ *   Whoop authorization itself has to be re-granted by the account owner;
+ *   what changed is that the failure is now loud instead of silent.
+ *
+ *   SOUND — Gmail profile/messages, YouTube subscriptions, Spotify
+ *   recently-played / top-artists / shows / albums all match what the code
+ *   reads; currently-playing correctly handles its HTTP 204. Whoop's
+ *   score.recovery_score / score.hrv_rmssd_milli are correct v2 names but
+ *   could not be exercised because of the token failure. outlook.js makes no
+ *   API calls (it reads stored rows); discord.js and instagram.js are not
+ *   connected for this user, so neither was checked against a live payload.
+ *
+ *   FIXED — the dead YouTube activities call. youtube/v3/activities lost watch
+ *   history in 2016; the endpoint still answers 200, just never with
+ *   snippet.type === 'watch'. The filter looking for it matched nothing, so
+ *   three observations behind it — recently watched, weekly volume,
+ *   time-of-day peak — were unreachable while the request ran every ingestion
+ *   cycle. Removed; watch data reaches us through the browser extension. A
+ *   test pins the absence, because a dead call that still returns 200 is easy
+ *   to reintroduce.
+ *
+ * WHAT TIES ALL OF THESE TOGETHER: every failure was invisible by
+ * construction — bare catches annotated "non-critical", and a connection row
+ * that says connected while its token 404s. The bugs were not hard to find
+ * once someone asked the API; nothing in the system was asking.
+ *
+ * DO NOT re-cite the calendar temporal items from waves before 2026-08-13 —
+ * their ground truth was contaminated by (a). Re-measure once dated
+ * observations have accumulated for a full 14 days.
  *
  * WHAT REMAINS TRUE ABOUT THE DIGEST: it verifiably puts real recent events
  * into the prompt — a live chat turn cited Brent Faiyaz, the branch created

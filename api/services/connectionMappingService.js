@@ -14,16 +14,31 @@ export async function getConnectionId(userId, platform) {
     return null;
   }
 
+  // Selects without filtering on status so the two cases stay distinguishable.
+  // Filtering by status='active' made a mapping that exists but is flagged
+  // needs_reconnect log the same "No mapping found" as never having connected —
+  // which is how eleven days of dead Whoop ingestion read as a fresh install.
+  // The upsert in saveConnectionMapping is keyed on (user_id, platform), so
+  // there is at most one row and maybeSingle is safe.
   const { data, error } = await supabaseAdmin
     .from('nango_connection_mappings')
-    .select('nango_connection_id')
+    .select('nango_connection_id, status')
     .eq('user_id', userId)
     .eq('platform', platform)
-    .eq('status', 'active')
-    .single();
+    .maybeSingle();
 
-  if (error || !data) {
-    log.info(`No mapping found for ${platform} (user: ${userId})`);
+  if (error) {
+    log.warn(`Error reading ${platform} mapping (user: ${userId}): ${error.message}`);
+    return null;
+  }
+
+  if (!data) {
+    log.info(`No mapping row for ${platform} (user: ${userId}) — never connected`);
+    return null;
+  }
+
+  if (data.status !== 'active') {
+    log.warn(`${platform} mapping is '${data.status}', not active (user: ${userId}) — needs re-authorization`);
     return null;
   }
 

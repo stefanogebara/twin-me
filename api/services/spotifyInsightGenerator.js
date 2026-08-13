@@ -162,15 +162,23 @@ class SpotifyInsightGenerator {
       // Determine current mood label and description
       const mood = this.determineMood(emotionalProfile, audioPersonality);
 
+      // No measured mood means no mood insight. Returning null routes both
+      // callers into branches they already have — intelligent-twin's
+      // energy-based fallback and soul-insights' "No recent Spotify data
+      // available" — instead of a success:true payload of invented numbers.
+      if (!mood) return null;
+
+      const features = audioPersonality.averageFeatures || {};
+      const realFeatures = Object.fromEntries(
+        ['energy', 'valence', 'danceability', 'tempo']
+          .map((key) => [key, features[key]])
+          .filter(([, value]) => typeof value === 'number'),
+      );
+
       return {
         success: true,
         mood,
-        audioFeatures: {
-          energy: audioPersonality.averageFeatures?.energy || 0.5,
-          valence: audioPersonality.averageFeatures?.valence || 0.5,
-          danceability: audioPersonality.averageFeatures?.danceability || 0.5,
-          tempo: audioPersonality.averageFeatures?.tempo || 120
-        },
+        audioFeatures: realFeatures,
         timestamp: data.extracted_at
       };
 
@@ -201,6 +209,13 @@ class SpotifyInsightGenerator {
       ((overallMetrics.conscientiousness?.score || 0.5) * 100)
     );
     const conscientiousnessLevel = conscientiousnessScore > 70 ? 'high' : conscientiousnessScore > 40 ? 'moderate' : 'low';
+
+    // Whether any track was actually analysed. When audio-features is
+    // unavailable this is false, and the two traits below rest on a
+    // substituted 0.5 rather than on evidence — surfaced as `measured` so a
+    // caller can tell a computed score from a placeholder one.
+    const audioMeasured = (audioPersonality.sampleSize || 0) > 0
+      && typeof audioPersonality.averageFeatures?.energy === 'number';
 
     // Extraversion: energy levels + social playlist sharing
     const energyLevel = audioPersonality.averageFeatures?.energy || 0.5;
@@ -241,7 +256,10 @@ class SpotifyInsightGenerator {
       extraversion: {
         score: Math.min(100, Math.max(0, extraversionScore)),
         level: extraversionLevel,
-        description: this.traitDescriptions.extraversion[extraversionLevel]
+        description: this.traitDescriptions.extraversion[extraversionLevel],
+        // Derived partly from audio energy; false means that half rests on a
+        // placeholder, not a measurement.
+        measured: audioMeasured
       },
       agreeableness: {
         score: Math.min(100, Math.max(0, agreeablenessScore)),
@@ -251,7 +269,9 @@ class SpotifyInsightGenerator {
       neuroticism: {
         score: Math.min(100, Math.max(0, neuroticismScore)),
         level: neuroticismLevel,
-        description: this.traitDescriptions.neuroticism[neuroticismLevel]
+        description: this.traitDescriptions.neuroticism[neuroticismLevel],
+        // Derived entirely from valence and emotional variance.
+        measured: audioMeasured
       }
     };
   }
@@ -326,9 +346,26 @@ class SpotifyInsightGenerator {
    * Determine current mood from emotional profile
    */
   determineMood(emotionalProfile, audioPersonality) {
-    const currentMood = emotionalProfile.currentMood || 'neutral';
-    const avgValence = audioPersonality.averageFeatures?.valence || 0.5;
-    const avgEnergy = audioPersonality.averageFeatures?.energy || 0.5;
+    // `|| 'neutral'` and `|| 0.5` turned "we measured nothing" into
+    // "Balanced / steady and focused, valence 50%, energy 50%" — a reading the
+    // user never generated. sampleSize is the marker that says whether any
+    // track was actually analysed; it is now honoured rather than ignored.
+    const profile = emotionalProfile || {};
+    const personality = audioPersonality || {};
+    const features = personality.averageFeatures || {};
+    const hasRealFeatures = (personality.sampleSize || 0) > 0
+      && typeof features.valence === 'number'
+      && typeof features.energy === 'number';
+    const observedMood = typeof profile.currentMood === 'string' ? profile.currentMood : null;
+
+    // Nothing observed means no mood. Both callers already handle null:
+    // intelligent-twin falls back to its energy-based analysis, soul-insights
+    // answers "No recent Spotify data available".
+    if (!observedMood && !hasRealFeatures) return null;
+
+    const currentMood = observedMood || 'neutral';
+    const avgValence = features.valence;
+    const avgEnergy = features.energy;
 
     // Map mood states to labels and descriptions
     const moodMap = {
@@ -398,8 +435,11 @@ class SpotifyInsightGenerator {
 
     return {
       ...mood,
-      valence: Math.round(avgValence * 100),
-      energy: Math.round(avgEnergy * 100),
+      // Percentages only when a real average exists — an unmeasured mood must
+      // not arrive carrying "50%" numbers that look like measurements.
+      ...(hasRealFeatures
+        ? { valence: Math.round(avgValence * 100), energy: Math.round(avgEnergy * 100) }
+        : {}),
       raw: currentMood
     };
   }

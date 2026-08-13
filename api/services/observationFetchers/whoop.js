@@ -140,10 +140,12 @@ async function fetchWhoopObservations(userId) {
   let directHeaders = null;
 
   if (isNangoManaged) {
+    let recoveryResult = null;
+    let sleepResult = null;
     try {
       const nangoService = await import('../nangoService.js');
       // Whoop v2 caps limit at 25 — anything higher returns 400.
-      const [recoveryResult, sleepResult] = await Promise.all([
+      [recoveryResult, sleepResult] = await Promise.all([
         nangoService.whoop.getRecovery(userId, 25),
         nangoService.whoop.getSleep(userId, 25),
       ]);
@@ -163,8 +165,29 @@ async function fetchWhoopObservations(userId) {
       recoveryData = recoveryHistory[0] || null;
       sleepData = sleepResult.success ? (sleepResult.data?.records || []) : [];
     } catch (e) {
+      // Silently returning [] here was recorded upstream as no_new_data.
+      // Rethrow tagged so a broken connection is visible as a failure.
       log.warn('Whoop Nango fetch error', { error: e });
-      return observations;
+      const err = new Error(`Whoop Nango fetch error: ${e?.message || 'unknown'}`);
+      err.code = 'TOKEN_UNAVAILABLE';
+      throw err;
+    }
+
+    // success:false means the CALL failed, which is not the same as the user
+    // having no records — and treating them alike is why a dead connection was
+    // recorded as count=0/status=ok for eleven days while the UI read
+    // "connected". Only when BOTH endpoints fail do we conclude the connection
+    // itself is broken; one endpoint erroring is not evidence of that.
+    if (!recoveryResult?.success && !sleepResult?.success) {
+      const status = recoveryResult?.status ?? recoveryResult?.statusCode
+        ?? sleepResult?.status ?? sleepResult?.statusCode ?? null;
+      const detail = recoveryResult?.error || sleepResult?.error || 'unknown error';
+      const err = new Error(`Whoop Nango fetch failed: ${detail}`);
+      // 401/403/404 from the proxy means the connection or its mapping is gone,
+      // which needs the user to re-authorize. Anything else may be transient,
+      // and must not send someone to a Reconnect screen they do not need.
+      err.code = [401, 403, 404].includes(status) ? 'AUTH_FAILED' : 'TOKEN_UNAVAILABLE';
+      throw err;
     }
 
     // ── Workout data (Nango) ────────────────────────────────────────────────

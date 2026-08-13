@@ -19,6 +19,7 @@ import { lifeEventInferenceService } from './lifeEventInferenceService.js';
 import { whoop as nangoWhoop, getConnection as getNangoConnection } from './nangoService.js';
 import axios from 'axios';
 import { createLogger } from './logger.js';
+import { averageAudioFeatures, deriveMood } from './spotify/moodFromAudioFeatures.js';
 
 const log = createLogger('UserContextAggregator');
 
@@ -593,7 +594,8 @@ class UserContextAggregator {
         }
       }
 
-      // Calculate average mood from audio features
+      // Both are null when no real readings came back. The tracks are still
+      // good data — only the mood is unknown, so only the mood is omitted.
       const avgFeatures = this.calculateAverageAudioFeatures(audioFeatures);
       const currentMood = this.deriveMoodFromFeatures(avgFeatures);
 
@@ -604,14 +606,18 @@ class UserContextAggregator {
           artist: t.track.artists?.[0]?.name,
           playedAt: t.played_at
         })),
-        currentMood: {
-          label: currentMood.label,
-          energy: avgFeatures.energy,
-          valence: avgFeatures.valence,
-          tempo: avgFeatures.tempo,
-          description: currentMood.description
-        },
-        audioProfile: avgFeatures,
+        ...(currentMood && avgFeatures
+          ? {
+              currentMood: {
+                label: currentMood.label,
+                energy: avgFeatures.energy,
+                valence: avgFeatures.valence,
+                tempo: avgFeatures.tempo,
+                description: currentMood.description
+              },
+              audioProfile: avgFeatures
+            }
+          : {}),
         lastPlayed: recentTracks[0]?.played_at
       };
 
@@ -1467,44 +1473,16 @@ class UserContextAggregator {
     return 'stable';
   }
 
+  // Both delegate to spotify/moodFromAudioFeatures.js, which returns null
+  // instead of the midpoints this used to invent. See that module's header:
+  // /v1/audio-features is restricted, so the no-data branch was the ONLY
+  // branch running, and it reported every user as "Balanced".
   calculateAverageAudioFeatures(features) {
-    const validFeatures = features.filter(f => f != null);
-    if (validFeatures.length === 0) {
-      return { energy: 0.5, valence: 0.5, tempo: 100, danceability: 0.5 };
-    }
-
-    const sum = validFeatures.reduce((acc, f) => ({
-      energy: acc.energy + (f.energy || 0),
-      valence: acc.valence + (f.valence || 0),
-      tempo: acc.tempo + (f.tempo || 0),
-      danceability: acc.danceability + (f.danceability || 0)
-    }), { energy: 0, valence: 0, tempo: 0, danceability: 0 });
-
-    const count = validFeatures.length;
-    return {
-      energy: Math.round((sum.energy / count) * 100) / 100,
-      valence: Math.round((sum.valence / count) * 100) / 100,
-      tempo: Math.round(sum.tempo / count),
-      danceability: Math.round((sum.danceability / count) * 100) / 100
-    };
+    return averageAudioFeatures(features);
   }
 
   deriveMoodFromFeatures(features) {
-    const { energy, valence } = features;
-
-    if (energy > 0.7 && valence > 0.6) {
-      return { label: 'Energized', description: 'High energy, positive mood' };
-    }
-    if (energy > 0.7 && valence < 0.4) {
-      return { label: 'Intense', description: 'High energy, focused intensity' };
-    }
-    if (energy < 0.4 && valence > 0.6) {
-      return { label: 'Relaxed', description: 'Calm and content' };
-    }
-    if (energy < 0.4 && valence < 0.4) {
-      return { label: 'Calm', description: 'Low energy, introspective' };
-    }
-    return { label: 'Balanced', description: 'Moderate energy and mood' };
+    return deriveMood(features);
   }
 
   classifyEventType(title) {

@@ -165,9 +165,10 @@ async function fetchCalendarData(userId, days = CONFIG.ANALYSIS_DAYS) {
 }
 
 /**
- * Fetch Spotify listening data for correlation analysis
+ * Fetch Spotify listening data for correlation analysis.
+ * Exported for tests/api/services/correlationEngineSpotify.test.js.
  */
-async function fetchSpotifyData(userId, days = CONFIG.ANALYSIS_DAYS) {
+export async function fetchSpotifyData(userId, days = CONFIG.ANALYSIS_DAYS) {
   try {
     const tokenResult = await getValidAccessToken(userId, 'spotify');
     if (!tokenResult.success || !tokenResult.accessToken) {
@@ -189,24 +190,32 @@ async function fetchSpotifyData(userId, days = CONFIG.ANALYSIS_DAYS) {
       durationMs: item.track?.duration_ms
     }));
 
-    // Get audio features for tracks
+    // Get audio features for tracks. This is OPTIONAL enrichment on top of the
+    // tracks we already have, so it gets its own catch: without one, the 403
+    // Spotify now returns for /v1/audio-features threw to the outer handler and
+    // discarded all 50 successfully-fetched tracks. Absent features leave the
+    // fields undefined — consumers must not read that as zero.
     const trackIds = tracks.map(t => t.trackId).filter(Boolean).slice(0, 50);
     if (trackIds.length > 0) {
-      const featuresRes = await axios.get(`https://api.spotify.com/v1/audio-features?ids=${trackIds.join(',')}`, { headers });
-      const features = featuresRes.data?.audio_features || [];
+      try {
+        const featuresRes = await axios.get(`https://api.spotify.com/v1/audio-features?ids=${trackIds.join(',')}`, { headers });
+        const features = featuresRes.data?.audio_features || [];
 
-      // Merge features into tracks
-      tracks.forEach(track => {
-        const feature = features.find(f => f?.id === track.trackId);
-        if (feature) {
-          track.energy = feature.energy;
-          track.valence = feature.valence; // happiness
-          track.tempo = feature.tempo;
-          track.danceability = feature.danceability;
-          track.acousticness = feature.acousticness;
-          track.instrumentalness = feature.instrumentalness;
-        }
-      });
+        // Merge features into tracks
+        tracks.forEach(track => {
+          const feature = features.find(f => f?.id === track.trackId);
+          if (feature) {
+            track.energy = feature.energy;
+            track.valence = feature.valence; // happiness
+            track.tempo = feature.tempo;
+            track.danceability = feature.danceability;
+            track.acousticness = feature.acousticness;
+            track.instrumentalness = feature.instrumentalness;
+          }
+        });
+      } catch (featuresError) {
+        log.warn('Spotify audio-features unavailable, continuing without mood enrichment:', featuresError.message);
+      }
     }
 
     log.info(`Fetched Spotify: ${tracks.length} tracks`);

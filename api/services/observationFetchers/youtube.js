@@ -7,6 +7,7 @@ import axios from 'axios';
 import { getValidAccessToken } from '../tokenRefreshService.js';
 import { createLogger } from '../logger.js';
 import { sanitizeExternal, getSupabase, _hasNangoMapping } from '../observationUtils.js';
+import { buildLikedVideosObservation } from './youtubeText.js';
 
 const log = createLogger('ObservationIngestion');
 
@@ -87,48 +88,13 @@ async function fetchYouTubeObservations(userId) {
       log.warn('YouTube liked videos error', { error: e });
     }
 
-    // Watch activity (activities endpoint — direct token only, not available via Nango proxy)
-    try {
-      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-      const actRes = await axios.get(
-        `https://www.googleapis.com/youtube/v3/activities?part=snippet&mine=true&maxResults=50&publishedAfter=${sevenDaysAgo}`,
-        { headers: { Authorization: `Bearer ${tokenResult.accessToken}` }, timeout: 10000 }
-      );
-      const activities = actRes.data?.items || [];
-      const watchItems = activities.filter(a => a.snippet?.type === 'watch');
-      if (watchItems.length > 0) {
-        const recentTitles = watchItems.map(a => sanitizeExternal(a.snippet?.title, 80)).filter(Boolean).slice(0, 5);
-        observations.push({
-          content: `Recently watched on YouTube: ${recentTitles.map(t => `"${t}"`).join(', ')}`,
-          contentType: 'current_state',
-        });
-
-        // Weekly watch volume
-        observations.push({
-          content: `Watched ${watchItems.length} YouTube videos in the past 7 days (avg ${Math.round(watchItems.length / 7 * 10) / 10} per day)`,
-          contentType: 'weekly_summary',
-        });
-
-        // Time-of-day viewing pattern
-        const hourBuckets = { morning: 0, afternoon: 0, evening: 0, night: 0 };
-        for (const a of watchItems) {
-          const h = new Date(a.snippet?.publishedAt).getHours();
-          if (h >= 6 && h < 12) hourBuckets.morning++;
-          else if (h >= 12 && h < 17) hourBuckets.afternoon++;
-          else if (h >= 17 && h < 22) hourBuckets.evening++;
-          else hourBuckets.night++;
-        }
-        const peak = Object.entries(hourBuckets).sort((a, b) => b[1] - a[1])[0];
-        if (peak[1] > 0) {
-          observations.push({
-            content: `YouTube watching peaks in the ${peak[0]} (${peak[1]} of ${watchItems.length} videos)`,
-            contentType: 'weekly_summary',
-          });
-        }
-      }
-    } catch (e) {
-      // Activities endpoint may not always be available — non-critical
-    }
+    // No watch-activity fetch here. Google removed watch history from
+    // youtube/v3/activities in 2016: the endpoint still answers 200, but never
+    // with snippet.type === 'watch'. The filter that looked for it matched
+    // nothing, so the three observations behind it — recently watched, weekly
+    // volume, time-of-day peak — were unreachable while the request ran every
+    // ingestion cycle. Watch data reaches us through the browser extension
+    // instead (see the note in realTimeExtractor.extractYouTubeSignature).
   }
 
   // Subscribed channels
@@ -208,12 +174,12 @@ async function fetchYouTubeObservations(userId) {
 
   // Liked videos (recent activity signal)
   if (likedItems.length > 0) {
-    const titles = likedItems.map(v => sanitizeExternal(v.snippet?.title, 80)).filter(Boolean).slice(0, 5);
-    const channelsSeen = [...new Set(likedItems.map(v => sanitizeExternal(v.snippet?.channelTitle)).filter(Boolean))].slice(0, 5);
-    observations.push({
-      content: `Recently liked YouTube videos: "${titles.join('", "')}" — from channels: ${channelsSeen.join(', ')}`,
-      contentType: 'daily_summary',
-    });
+    // Guarding likedItems is not enough — the TITLES are what get rendered,
+    // and they can all vanish to sanitizing. See youtubeText.js.
+    const liked = buildLikedVideosObservation(likedItems);
+    if (liked) {
+      observations.push({ content: liked, contentType: 'daily_summary' });
+    }
 
     // Topic clustering from liked videos — prefer topicDetails (Wikipedia categories) over categoryId
     const topicCounts = {};

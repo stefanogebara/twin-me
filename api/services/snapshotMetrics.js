@@ -79,13 +79,55 @@ const SNAPSHOT_METRICS = [
   // Distinct from an event that merely quotes numbers: "Slept 7.1 hours" is a
   // specific night that stays true and must NOT be demoted.
   { rx: /^Your GitHub \d{4} activity:/i,                    like: 'Your GitHub % activity:%' },
-  { rx: /^Committed code on \d+ days in the last \d+ days/i, like: 'Committed code on %days in the last %days%' },
+  // `days?` and a `like` that does not pin the plural: the fetcher emits
+  // "1 day" when the count is one, and the old `\d+ days` pattern could not
+  // classify it. On 2026-08-02 that let "Committed code on 1 day in the last
+  // 30 days" and "...on 2 days..." both live in the stream, contradicting each
+  // other and the 22-day streak recorded the same day.
+  { rx: /^Committed code on \d+ days? in the last \d+ days/i,
+    like: 'Committed code on %in the last %days%' },
   { rx: /^Receives email from [\d,]+ distinct senders/i,     like: 'Receives email from %distinct senders%' },
   { rx: /^Most frequent email senders this week:/i,          like: 'Most frequent email senders this week:%' },
   { rx: /^Your email mix this week:/i,                       like: 'Your email mix this week:%' },
   { rx: /^YouTube subscription topics:/i,                    like: 'YouTube subscription topics:%' },
   { rx: /^YouTube subscription tenure:/i,                    like: 'YouTube subscription tenure:%' },
   { rx: /^Outlook inbox contains approximately/i,            like: 'Outlook inbox contains approximately%' },
+
+  // GitHub aggregates over a moving window, added 2026-08-13. Every one of
+  // these is recomputed from scratch each cycle and none was registered, so the
+  // digit-sensitive hash read each recomputation as a new fact: "GitHub rhythm:
+  // ... (1196 contributions)" landed four times as the count walked to 1215,
+  // and "Most active on GitHub on Tuesdays" was later contradicted by the same
+  // row naming Thursdays and then Sundays. Anchored on the template prefix, so
+  // the varying part — a count, a percentage, a weekday, a language split —
+  // never has to be expressed in the pattern.
+  { rx: /^Current GitHub contribution streak:/i,
+    like: 'Current GitHub contribution streak:%' },
+  { rx: /^Longest GitHub contribution streak in the past year:/i,
+    like: 'Longest GitHub contribution streak in the past year:%' },
+  { rx: /^GitHub rhythm: /i,                                 like: 'GitHub rhythm: %' },
+  { rx: /^Most active GitHub month in the past year:/i,
+    like: 'Most active GitHub month in the past year:%' },
+  { rx: /^Your GitHub language distribution:/i,              like: 'Your GitHub language distribution:%' },
+  { rx: /^Made \d+ commits? across \d+ repos? on GitHub this week/i,
+    like: 'Made %on GitHub this week%' },
+  { rx: /^Most active on GitHub on \w+ based on recent activity patterns/i,
+    like: 'Most active on GitHub on %based on recent activity patterns%' },
+  { rx: /^Primary GitHub tech stack:/i,                      like: 'Primary GitHub tech stack:%' },
+  { rx: /^Working on .+ GitHub repos, primarily focused on/i,
+    like: 'Working on %GitHub repos, primarily focused on%' },
+  { rx: /^Active on GitHub with .+ repositories/i,           like: 'Active on GitHub with %repositories%' },
+
+  // YouTube snapshots, added 2026-08-13. These carry a LIST whose order is not
+  // stable between runs, so digit-stripping alone would not have collapsed them
+  // — "Subscribed to 131 YouTube channels, including: ..." landed four times
+  // differing only in which channels came first. Matching on the template
+  // prefix ignores the list entirely.
+  { rx: /^Subscribed to \d+ YouTube channels?, including:/i,
+    like: 'Subscribed to %YouTube channel%including:%' },
+  { rx: /^Recently liked YouTube videos:/i,                  like: 'Recently liked YouTube videos:%' },
+  { rx: /^YouTube content interests:/i,                      like: 'YouTube content interests:%' },
+  { rx: /^Has \d+ YouTube playlists?:/i,                     like: 'Has %YouTube playlist%' },
 ];
 
 /** Regexes alone, for callers that only need classification. */

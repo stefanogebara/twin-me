@@ -673,6 +673,11 @@ async function runObservationIngestion(options = {}) {
             for (const obs of observations) {
               const content = typeof obs === 'string' ? obs : obs.content;
               const contentType = typeof obs === 'string' ? undefined : obs.contentType;
+              // The calendar day an observation DESCRIBES, which is not the day
+              // it was ingested (a 01:03Z run describes the previous local day).
+              // Without it, "on how many days did X happen" is unanswerable from
+              // the stream — fidelity-eval 2026-08-12.
+              const eventDate = typeof obs === 'string' ? undefined : obs.eventDate;
 
               // Skip invalid observations - empty/null content corrupts the memory stream
               if (!content || typeof content !== 'string' || content.trim() === '') {
@@ -707,6 +712,7 @@ async function runObservationIngestion(options = {}) {
                 ingestion_source: 'background',
                 ingested_at: new Date().toISOString(),
                 ...(contentType ? { content_type: contentType } : {}),
+                ...(eventDate ? { event_date: eventDate } : {}),
               };
               pendingObs.push({ content, meta: tagSensitivity(content, { ...baseMeta, platform }) });
             }

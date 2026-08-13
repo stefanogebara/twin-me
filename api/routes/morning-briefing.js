@@ -192,9 +192,12 @@ async function fetchCalendarEvents(userId) {
       if (content.includes('extraction_summary') || content.includes('"itemsExtracted"') || content.includes('"extract')) return false;
       // Skip very short or metadata-like content
       if (content.length < 20) return false;
-      // Dedup: use "Calendar schedule today" prefix as a key (same-day summaries are redundant)
-      const key = content.startsWith('Calendar schedule today')
-        ? 'calendar_schedule_today'
+      // Dedup: collapse repeated calendar day-summaries. The key carries the
+      // day, so two summaries for the SAME day are redundant but two different
+      // days both survive. ("today" is the pre-2026-08-12 undated form.)
+      const calDay = content.match(/^Calendar schedule (?:for ([^:]+)|(today)):/);
+      const key = calDay
+        ? `calendar_schedule_${calDay[1] || calDay[2]}`
         : content.substring(0, 50).toLowerCase();
       if (seen.has(key)) return false;
       seen.add(key);

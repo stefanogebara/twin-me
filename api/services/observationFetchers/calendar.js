@@ -7,6 +7,12 @@ import axios from 'axios';
 import { getValidAccessToken } from '../tokenRefreshService.js';
 import { createLogger } from '../logger.js';
 import { sanitizeExternal, getSupabase } from '../observationUtils.js';
+import {
+  localDayWindow,
+  formatEventTime,
+  formatDayLabel,
+  hourInTimeZone,
+} from './calendarDayWindow.js';
 
 const log = createLogger('ObservationIngestion');
 
@@ -29,8 +35,6 @@ async function fetchCalendarObservations(userId) {
 
   try {
     const now = new Date();
-    const todayEnd = new Date(now);
-    todayEnd.setHours(23, 59, 59, 999);
     // Forward window for raw-event persistence to user_platform_data.
     // 7 days is enough for the purchase-bot's "next 4h" window to always
     // find something if it exists, and for goalTrackingService to pick up
@@ -40,12 +44,20 @@ async function fetchCalendarObservations(userId) {
 
     // ── Fetch ALL calendars via CalendarList, then events from each ──────────
     let calendarIds = ['primary'];
+    let calendarTimeZone = null;
     try {
       const calListRes = await axios.get(
         'https://www.googleapis.com/calendar/v3/users/me/calendarList?maxResults=20',
         { headers, timeout: 8000 }
       );
       const calendars = calListRes.data?.items || [];
+      // The user's day boundary is their calendar's, not the server's. Prefer
+      // the primary calendar's zone; any owned calendar beats falling back to
+      // UTC (fidelity-eval 2026-08-12 — see calendarDayWindow.js).
+      calendarTimeZone =
+        calendars.find(c => c.primary)?.timeZone
+        || calendars.find(c => c.timeZone)?.timeZone
+        || null;
       // Use owner/writer calendars only (skip read-only subscriptions like "Holidays")
       calendarIds = calendars
         .filter(c => c.accessRole === 'owner' || c.accessRole === 'writer')
@@ -56,10 +68,18 @@ async function fetchCalendarObservations(userId) {
       log.warn('CalendarList fetch failed, falling back to primary', { error: e.message });
     }
 
-    // Fetch today's events (for natural-language observations) AND a 7-day
-    // forward window (for raw persistence) in parallel across all calendars.
-    // Today-only keeps the observation summaries tight; 7d forward gives the
-    // purchase-bot + goal tracker real upcoming context.
+    // The observation window is the user's WHOLE local day — not `now` forward.
+    // With timeMin: now, an evening run saw only the events still to come, so a
+    // three-meeting day was written to the memory stream as "completely open
+    // day for time management" (fidelity-eval 2026-08-12, BATTERY v3).
+    const dayWindow = localDayWindow(now, calendarTimeZone);
+    const { timeMin: dayStart, timeMax: dayEnd, dayKey, timeZone: tz } = dayWindow;
+    const dayLabel = formatDayLabel(dayKey);
+
+    // Fetch the local day's events (for natural-language observations) AND a
+    // 7-day forward window (for raw persistence) in parallel across all
+    // calendars. The day window keeps the observation summaries tight; 7d
+    // forward gives the purchase-bot + goal tracker real upcoming context.
     const fetchEventsForCalendar = (calId, timeMin, timeMax, maxResults) =>
       axios.get(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calId)}/events`, {
         headers,
@@ -74,7 +94,9 @@ async function fetchCalendarObservations(userId) {
       }).catch(() => null);
 
     const [todayResults, forwardResults] = await Promise.all([
-      Promise.all(calendarIds.map(id => fetchEventsForCalendar(id, now, todayEnd, 10))),
+      // 25, not 10: the window now covers the whole day rather than the tail
+      // of it, so a genuinely busy day must not be silently truncated.
+      Promise.all(calendarIds.map(id => fetchEventsForCalendar(id, dayStart, dayEnd, 25))),
       Promise.all(calendarIds.map(id => fetchEventsForCalendar(id, now, forwardEnd, 50))),
     ]);
 
@@ -136,6 +158,10 @@ async function fetchCalendarObservations(userId) {
     // Sort by start time
     events.sort((a, b) => new Date(a.start?.dateTime || a.start?.date || 0) - new Date(b.start?.dateTime || b.start?.date || 0));
 
+    // Every day-scoped observation carries the date it describes. Without it
+    // the stream is N undated "today" strings and no amount of retrieval can
+    // count distinct days — which is exactly how the twin lowballed "on how
+    // many days did you have an event" on the v3 battery.
     for (const e of events) {
       const title = e.summary || 'Untitled event';
       const startRaw = e.start?.dateTime || e.start?.date;
@@ -145,11 +171,19 @@ async function fetchCalendarObservations(userId) {
         const startDate = new Date(startRaw);
         const endDate = new Date(endRaw);
         if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) continue;
-        const startTime = startDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-        const endTime = endDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-        observations.push({ content: `Has a meeting '${title}' from ${startTime} to ${endTime}`, contentType: 'daily_summary' });
+        const startTime = formatEventTime(startDate, tz);
+        const endTime = formatEventTime(endDate, tz);
+        observations.push({
+          content: `Has a meeting '${title}' from ${startTime} to ${endTime} on ${dayLabel}`,
+          contentType: 'daily_summary',
+          eventDate: dayKey,
+        });
       } else if (startRaw) {
-        observations.push({ content: `Has an all-day event '${title}'`, contentType: 'daily_summary' });
+        observations.push({
+          content: `Has an all-day event '${title}' on ${dayLabel}`,
+          contentType: 'daily_summary',
+          eventDate: dayKey,
+        });
       }
     }
 
@@ -157,17 +191,26 @@ async function fetchCalendarObservations(userId) {
       observations.push({ content: `Events pulled from ${calendarIds.length} calendars (work, personal, shared)`, contentType: 'weekly_summary' });
     }
 
-    // Detect free afternoon — use daily_summary to avoid per-hour duplicates
+    // Detect free afternoon — use daily_summary to avoid per-hour duplicates.
+    // Hours are the USER's, not the server's: getHours() on a UTC box asked
+    // "is it past noon in UTC", which for a UTC-3 user was wrong for 3h a day.
     if (events.length === 0) {
-      if (now.getHours() >= 12) {
-        observations.push({ content: 'Free afternoon - no meetings scheduled', contentType: 'daily_summary' });
+      if (hourInTimeZone(now, tz) >= 12) {
+        observations.push({
+          content: `Free afternoon on ${dayLabel} - no meetings scheduled`,
+          contentType: 'daily_summary',
+          eventDate: dayKey,
+        });
       }
     } else {
       const lastEventEnd = events[events.length - 1]?.end?.dateTime;
       if (lastEventEnd) {
-        const lastEnd = new Date(lastEventEnd);
-        if (lastEnd.getHours() < 17) {
-          observations.push({ content: 'Free afternoon - meetings end before 5 PM', contentType: 'daily_summary' });
+        if (hourInTimeZone(new Date(lastEventEnd), tz) < 17) {
+          observations.push({
+            content: `Free afternoon on ${dayLabel} - meetings end before 5 PM`,
+            contentType: 'daily_summary',
+            eventDate: dayKey,
+          });
         }
       }
     }
@@ -183,12 +226,12 @@ async function fetchCalendarObservations(userId) {
       // Determine time clustering
       let timeCluster = '';
       if (timedEvents.length > 0) {
-        const hours = timedEvents.map(e => new Date(e.start.dateTime).getHours());
+        const hours = timedEvents.map(e => hourInTimeZone(new Date(e.start.dateTime), tz));
         const avgHour = hours.reduce((a, b) => a + b, 0) / hours.length;
         timeCluster = avgHour < 12 ? 'morning-heavy' : avgHour < 17 ? 'afternoon-focused' : 'evening-loaded';
       }
 
-      const parts = [`Calendar schedule today: ${events.length} event${events.length > 1 ? 's' : ''}`];
+      const parts = [`Calendar schedule for ${dayLabel}: ${events.length} event${events.length > 1 ? 's' : ''}`];
       if (titles.length <= 4) {
         parts.push(`(${titles.join(', ')})`);
       } else {
@@ -200,11 +243,15 @@ async function fetchCalendarObservations(userId) {
       observations.push({
         content: parts.join(' '),
         contentType: 'daily_summary',
+        eventDate: dayKey,
       });
     } else {
+      // Safe to assert now: the window covered the entire local day, so an
+      // empty result means the day really was empty rather than merely over.
       observations.push({
-        content: 'Calendar schedule today: no meetings or events — completely open day for time management',
+        content: `Calendar schedule for ${dayLabel}: no meetings or events — completely open day for time management`,
         contentType: 'daily_summary',
+        eventDate: dayKey,
       });
     }
 
@@ -242,7 +289,11 @@ async function fetchCalendarObservations(userId) {
 
     // Workload assessment: heavy meeting day
     if (events.length >= 5) {
-      observations.push({ content: `Heavy meeting day: ${events.length} meetings scheduled`, contentType: 'daily_summary' });
+      observations.push({
+        content: `Heavy meeting day on ${dayLabel}: ${events.length} meetings scheduled`,
+        contentType: 'daily_summary',
+        eventDate: dayKey,
+      });
     }
 
     // Back-to-back detection: events where one ends and next starts within 15 minutes
@@ -254,7 +305,11 @@ async function fetchCalendarObservations(userId) {
         if (gapMs >= 0 && gapMs <= 15 * 60 * 1000) {
           const currentTitle = events[i].summary || 'meeting';
           const nextTitle = events[i + 1].summary || 'meeting';
-          observations.push({ content: `Back-to-back meetings: '${currentTitle}' then '${nextTitle}' with ${Math.round(gapMs / 60000)} min gap`, contentType: 'current_state' });
+          observations.push({
+            content: `Back-to-back meetings on ${dayLabel}: '${currentTitle}' then '${nextTitle}' with ${Math.round(gapMs / 60000)} min gap`,
+            contentType: 'current_state',
+            eventDate: dayKey,
+          });
         }
       }
     }
