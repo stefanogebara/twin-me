@@ -913,22 +913,32 @@ class SpotifyEnhancedExtractor {
     };
   }
 
+  /**
+   * The shape returned when NOTHING was measured. It used to describe a whole
+   * person — energy .6, valence .5, tempo 120, 'balanced-versatile',
+   * 'moderate-sophistication' — and with /v1/audio-features restricted this was
+   * every user's audio personality, indistinguishable from a real reading.
+   *
+   * Measurements are null and judgements are 'unknown'. The keys stay so
+   * consumers reading `averageFeatures?.energy` do not crash; sampleSize: 0
+   * remains the marker that says why everything is empty.
+   */
   getDefaultAudioPersonality() {
     return {
       averageFeatures: {
-        energy: 0.6,
-        valence: 0.5,
-        danceability: 0.6,
-        acousticness: 0.3,
-        instrumentalness: 0.1,
-        speechiness: 0.1,
-        liveness: 0.1,
-        tempo: 120
+        energy: null,
+        valence: null,
+        danceability: null,
+        acousticness: null,
+        instrumentalness: null,
+        speechiness: null,
+        liveness: null,
+        tempo: null
       },
-      variance: { overall: 0, emotionalRange: 'unknown' },
-      emotionalProfile: { dominantMood: 'balanced-versatile', energyLevel: 'balanced-energy', valenceTendency: 'emotionally-balanced', emotionalRange: 'unknown', emotionalStability: 'unknown' },
-      complexityProfile: { complexityScore: 0.5, organicVsElectronic: 'balanced', vocalVsInstrumental: 'mixed', lyricImportance: 'unknown', sophisticationLevel: 'moderate-sophistication' },
-      energyProfile: { energyConsistency: 0.6, danceability: 0.6, tempo: 120, movementScore: 0.6, preferredPace: 'moderate-paced', physicalEngagement: 'moderate-movement' },
+      variance: { overall: null, emotionalRange: 'unknown' },
+      emotionalProfile: { dominantMood: 'unknown', energyLevel: 'unknown', valenceTendency: 'unknown', emotionalRange: 'unknown', emotionalStability: 'unknown' },
+      complexityProfile: { complexityScore: null, organicVsElectronic: 'unknown', vocalVsInstrumental: 'unknown', lyricImportance: 'unknown', sophisticationLevel: 'unknown' },
+      energyProfile: { energyConsistency: null, danceability: null, tempo: null, movementScore: null, preferredPace: 'unknown', physicalEngagement: 'unknown' },
       sampleSize: 0
     };
   }

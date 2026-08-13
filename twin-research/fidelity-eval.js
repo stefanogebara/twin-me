@@ -412,15 +412,33 @@
  *   so `currentMood = 'neutral'` is only reached with real readings that match
  *   no branch.
  *
- *   OPEN — two more instances of the fabrication family, both reading STORED
- *   patterns rather than calling the endpoint, so neither is one of the six
- *   call sites. getDefaultAudioPersonality() returns a fixed
+ *   FIXED — the last two instances, both reading STORED patterns rather than
+ *   calling the endpoint. getDefaultAudioPersonality() returned a fixed
  *   { energy: .6, valence: .5, tempo: 120, dominantMood: 'balanced-versatile',
  *   sophisticationLevel: 'moderate-sophistication' } — every user's audio
- *   personality since Nov 2024. It does carry sampleSize: 0, the one honest
- *   marker in this family, but spotifyInsightGenerator.determineMood ignores it
- *   and layers its own `|| 'neutral'`, `|| 0.5`, `|| 120` on top, rendering
- *   "Balanced / steady and focused, valence 50%, energy 50%" as a reading.
+ *   personality since Nov 2024. Measurements are now null and judgements
+ *   'unknown'; the keys stay so consumers reading `averageFeatures?.energy` do
+ *   not crash, and sampleSize: 0 remains the marker saying why.
+ *   determineMood ignored that marker and layered `|| 'neutral'`, `|| 0.5`,
+ *   `|| 120` on top, rendering "Balanced / steady and focused, valence 50%,
+ *   energy 50%". It now honours sampleSize and returns null with no evidence,
+ *   and getCurrentMoodInsights returns null rather than a success:true payload
+ *   of invented percentages. Both callers already had the right branch:
+ *   intelligent-twin falls back to energy-based analysis, soul-insights
+ *   answers "No recent Spotify data available". 'Balanced' survives as a
+ *   FINDING — a test pins that it is still reported when actually measured.
+ *
+ *   CONSEQUENCE, disclosed — nulling averageFeatures changed what flows into
+ *   calculateBigFive, whose `|| 0.5` silently converts absence back into a
+ *   number. Extraversion for unmeasured users therefore shifts (energy 0.6 to
+ *   0.5); neuroticism is unchanged. Both traits are derived from audio, so
+ *   they now carry `measured: boolean`. Scores stay numeric because the radar
+ *   charts type them as required numbers — this marks the placeholder rather
+ *   than removing it. Note what that means: the platform has been reporting
+ *   Big Five extraversion and neuroticism computed from a substituted 0.5 for
+ *   every Spotify user since Nov 2024. Marking is the non-breaking step;
+ *   deciding whether an unmeasured trait belongs on a personality radar at all
+ *   is a product question this does not answer.
  *
  *   OPEN — Whoop ingestion is failing entirely: "No mapping found for whoop"
  *   then Nango 404, while platform_connections still reads status=connected.
