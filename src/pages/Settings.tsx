@@ -6,7 +6,6 @@ import { API_URL, getAccessToken } from '@/services/api/apiBase';
 import { usePlatformsSummary, useDisconnectPlatform } from '../hooks/usePlatformsSummary';
 import { useBackgroundMode } from '../contexts/BackgroundModeContext';
 import { useTheme, type Theme } from '../contexts/ThemeContext';
-import { ClauraZonedBackground } from '@/components/ClauraZonedBackground';
 import { Download, Info, ArrowRight, Send, ExternalLink, Check, Brain } from 'lucide-react';
 import ConnectedPlatformsSettings from './components/settings/ConnectedPlatformsSettings';
 import AutonomySettings from './components/settings/AutonomySettings';
@@ -208,7 +207,7 @@ const TelegramConnect: React.FC = () => {
         </div>
         {status?.linked ? (
           <div className="flex items-center gap-2">
-            <span className="flex items-center gap-1 text-[11px]" style={{ color: 'rgba(16,183,127,0.8)' }}>
+            <span className="flex items-center gap-1 text-[11px]" style={{ color: 'color-mix(in srgb, var(--success) 80%, transparent)' }}>
               <Check className="w-3 h-3" /> Linked
             </span>
             <button
@@ -499,8 +498,7 @@ const Settings = () => {
 
   return (
     <div className="max-w-[1100px] mx-auto px-4 sm:px-6 py-10 sm:py-16">
-      {/* Claura zoned photography — the forest, both appearances (see /preview/settings). */}
-      <ClauraZonedBackground dark="forest.png" light="forest.png" darkPosition="center 40%" lightPosition="center 40%" />
+      {/* Page wrapper stays transparent — AppBackground (orb canvas) renders behind. */}
 
       {/* Mobile jump-to-section dropdown (sticky top) — hidden on lg+ */}
       <div
@@ -545,8 +543,8 @@ const Settings = () => {
                       onClick={() => scrollToSection(s.id)}
                       className="w-full text-left px-3 py-2 rounded-[6px] transition-colors text-[13px]"
                       style={{
-                        color: isActive ? 'var(--accent-vibrant, #c17e2c)' : 'var(--text-secondary)',
-                        background: isActive ? 'var(--accent-vibrant-glow, rgba(255,132,0,0.10))' : 'transparent',
+                        color: isActive ? 'var(--accent-vibrant)' : 'var(--text-secondary)',
+                        background: isActive ? 'var(--accent-vibrant-glow)' : 'transparent',
                         fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
                         fontWeight: isActive ? 500 : 400,
                       }}
@@ -674,7 +672,7 @@ const Settings = () => {
               {PLAN_NAMES[subscription?.plan || 'free'] || 'Free'}
             </span>
             {subscription?.cancelAtPeriodEnd && (
-              <p className="text-[12px] mt-0.5" style={{ color: 'rgba(239,68,68,0.6)' }}>
+              <p className="text-[12px] mt-0.5" style={{ color: 'color-mix(in srgb, var(--destructive) 60%, transparent)' }}>
                 Cancels at end of period
               </p>
             )}

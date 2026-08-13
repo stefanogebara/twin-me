@@ -15,8 +15,8 @@ import { useState, useCallback } from 'react';
 
 const LABEL_STYLE = 'text-[11px] uppercase tracking-[0.12em] font-medium mb-4';
 
-const DEFAULT_DEPT_COLOR = 'rgba(255,255,255,0.15)';
-const DISABLED_COLOR = 'rgba(255,255,255,0.08)';
+const DEFAULT_DEPT_COLOR = 'var(--surface-solid)';
+const DISABLED_COLOR = 'var(--secondary)';
 
 export function DepartmentWidget() {
   const navigate = useNavigate();
@@ -68,22 +68,14 @@ export function DepartmentWidget() {
         </h2>
       </div>
 
-      <div
-        className="rounded-[20px] px-5 py-4"
-        style={{
-          background: 'var(--surface)',
-          backdropFilter: 'blur(42px)',
-          WebkitBackdropFilter: 'blur(42px)',
-          border: '1px solid var(--border-glass)',
-        }}
-      >
+      <div className="claura-glass rounded-[20px] px-5 py-4">
         {/* Department status chips */}
         {departmentsLoading ? (
           <div className="flex flex-wrap items-center gap-2 mb-4">
             {[0, 1, 2, 3, 4].map((i) => (
               <div
                 key={i}
-                className="h-[22px] w-24 rounded-full bg-white/[0.04] animate-pulse"
+                className="h-[22px] w-24 rounded-full bg-[var(--surface)] animate-pulse"
               />
             ))}
           </div>
@@ -119,10 +111,12 @@ export function DepartmentWidget() {
               key={dept.name}
               className="flex items-center gap-1.5 px-2 py-1 rounded-full"
               style={{
+                // color-mix instead of hex-alpha suffixes: config.color may be a
+                // hex, DEFAULT_DEPT_COLOR is a CSS var — suffixing breaks the var.
                 background: dept.isEnabled
-                  ? `${dept.config.color || DEFAULT_DEPT_COLOR}18`
-                  : 'rgba(255,255,255,0.04)',
-                border: `1px solid ${dept.isEnabled ? (dept.config.color || DEFAULT_DEPT_COLOR) + '30' : 'rgba(255,255,255,0.06)'}`,
+                  ? `color-mix(in srgb, ${dept.config.color || DEFAULT_DEPT_COLOR} 9%, transparent)`
+                  : 'var(--surface)',
+                border: `1px solid ${dept.isEnabled ? `color-mix(in srgb, ${dept.config.color || DEFAULT_DEPT_COLOR} 19%, transparent)` : 'var(--border-glass)'}`,
               }}
             >
               <div

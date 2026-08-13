@@ -46,9 +46,11 @@ export function ChatMessage({
       <div
         className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center"
         style={{
+          // Gradient stops derived from --foreground so both themes resolve;
+          // user stops match the old #6b7280 -> #4b5563 greys on the dark canvas.
           background: isAssistant
-            ? 'linear-gradient(135deg, var(--foreground), rgba(255,255,255,0.4))'
-            : 'linear-gradient(135deg, #6b7280, #4b5563)'
+            ? 'linear-gradient(135deg, var(--foreground), color-mix(in srgb, var(--foreground) 40%, transparent))'
+            : 'linear-gradient(135deg, color-mix(in srgb, var(--foreground) 38%, transparent), color-mix(in srgb, var(--foreground) 24%, transparent))'
         }}
       >
         {isAssistant ? (

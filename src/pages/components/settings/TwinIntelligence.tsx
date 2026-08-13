@@ -74,7 +74,7 @@ const TwinIntelligence: React.FC = () => {
 
       <div>
         {/* Fidelity Score */}
-        <div className="flex items-center justify-between py-3 -mx-1 px-1 rounded-[4px] transition-colors" style={{ borderBottom: '1px solid var(--border-glass)' }} onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.025)')} onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}>
+        <div className="flex items-center justify-between py-3 -mx-1 px-1 rounded-[4px] transition-colors" style={{ borderBottom: '1px solid var(--border-glass)' }} onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--accent)')} onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}>
           <div className="flex items-center gap-3">
             <Brain className="w-4 h-4 flex-shrink-0" style={{ color: 'rgba(199,146,234,0.7)' }} />
             <div>
@@ -125,7 +125,7 @@ const TwinIntelligence: React.FC = () => {
         </div>
 
         {measureError && (
-          <p className="text-xs py-2" style={{ color: 'rgba(255,140,160,0.8)' }}>{measureError}</p>
+          <p className="text-xs py-2" style={{ color: 'var(--claura-danger-ink)' }}>{measureError}</p>
         )}
       </div>
     </div>

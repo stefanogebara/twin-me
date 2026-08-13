@@ -263,7 +263,7 @@ const SkillRow: React.FC<SkillRowProps> = ({ skill, isUpdating, onLevelChange })
                 left: `calc(${(i / 4) * 100}% - 6px)`,
                 background: i <= level
                   ? AUTONOMY_LEVELS[i].color
-                  : 'rgba(255,255,255,0.12)',
+                  : 'var(--surface-solid)',
                 border: i === level
                   ? '2px solid var(--accent-vibrant)'
                   : '1px solid var(--glass-surface-border)',
@@ -285,7 +285,7 @@ const SkillRow: React.FC<SkillRowProps> = ({ skill, isUpdating, onLevelChange })
             tabIndex={isUpdating ? -1 : 0}
             className="text-[9px] cursor-pointer transition-colors"
             style={{
-              color: i === level ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.55)',
+              color: i === level ? 'var(--text-narrative)' : 'var(--text-secondary)',
               width: i === 0 ? 'auto' : i === 4 ? 'auto' : '20%',
               textAlign: i === 0 ? 'left' : i === 4 ? 'right' : 'center',
             }}

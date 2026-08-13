@@ -78,7 +78,7 @@ export default function GitHubConnectCard({ cardStyle }: GitHubConnectCardProps)
           <Github className="w-5 h-5" style={{ color: 'var(--text-secondary)' }} />
           <h2
             className="text-[11px] font-medium tracking-widest uppercase"
-            style={{ color: '#10b77f' }}
+            style={{ color: 'var(--success)' }}
           >
             GitHub Activity
           </h2>
@@ -97,14 +97,14 @@ export default function GitHubConnectCard({ cardStyle }: GitHubConnectCardProps)
           <Github className="w-5 h-5" style={{ color: 'var(--text-secondary)' }} />
           <h2
             className="text-[11px] font-medium tracking-widest uppercase"
-            style={{ color: '#10b77f' }}
+            style={{ color: 'var(--success)' }}
           >
             GitHub Activity
           </h2>
           {status?.connected && (
             <span
               className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full"
-              style={{ backgroundColor: 'rgba(16,185,129,0.1)', color: '#10B981', border: '1px solid rgba(16,185,129,0.2)' }}
+              style={{ backgroundColor: 'color-mix(in srgb, var(--success) 10%, transparent)', color: 'var(--success)', border: '1px solid color-mix(in srgb, var(--success) 20%, transparent)' }}
             >
               <CheckCircle className="w-3 h-3" /> Connected
             </span>
@@ -174,7 +174,7 @@ export default function GitHubConnectCard({ cardStyle }: GitHubConnectCardProps)
               onClick={() => connectMut.mutate()}
               disabled={!pat.trim() || connectMut.isPending}
               className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg disabled:opacity-40 transition-colors"
-              style={{ backgroundColor: '#10b77f', color: '#0a0f0a' }}
+              style={{ backgroundColor: 'var(--success)', color: 'var(--success-foreground)' }}
             >
               {connectMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Github className="w-4 h-4" />}
               Connect GitHub

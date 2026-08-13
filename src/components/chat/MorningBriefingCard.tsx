@@ -106,14 +106,15 @@ const MorningBriefingCard: React.FC<MorningBriefingCardProps> = ({ onAskTwin }) 
   if (isLoading) {
     return (
       <div
-        className="rounded-[24px] overflow-hidden relative"
+        className="claura-glass overflow-hidden relative"
         style={{
-          backgroundColor: 'var(--surface)',
+          // Amber/purple orb tints layered over the claura card gradient —
+          // inline backgroundImage replaces the class's background image, so
+          // var(--claura-card) must be re-listed as the base layer. Inline
+          // borderRadius keeps the original 24px over claura-glass's 16px.
           backgroundImage:
-            'radial-gradient(ellipse 80% 60% at 0% 0%, rgba(210,145,55,0.10) 0%, transparent 60%), radial-gradient(ellipse 60% 50% at 100% 100%, rgba(93,92,174,0.08) 0%, transparent 60%)',
-          border: '1px solid var(--glass-surface-border)',
-          backdropFilter: 'blur(42px)',
-          WebkitBackdropFilter: 'blur(42px)',
+            'radial-gradient(ellipse 80% 60% at 0% 0%, rgba(210,145,55,0.10) 0%, transparent 60%), radial-gradient(ellipse 60% 50% at 100% 100%, rgba(93,92,174,0.08) 0%, transparent 60%), var(--claura-card)',
+          borderRadius: 24,
         }}
       >
         <div className="px-7 pt-6 pb-3 flex items-center justify-between">
@@ -170,14 +171,11 @@ const MorningBriefingCard: React.FC<MorningBriefingCardProps> = ({ onAskTwin }) 
   if (isError || !briefing) {
     return (
       <div
-        className="rounded-[24px] overflow-hidden relative"
+        className="claura-glass overflow-hidden relative"
         style={{
-          backgroundColor: 'var(--surface)',
           backgroundImage:
-            'radial-gradient(ellipse 80% 60% at 0% 0%, rgba(210,145,55,0.10) 0%, transparent 60%), radial-gradient(ellipse 60% 50% at 100% 100%, rgba(93,92,174,0.08) 0%, transparent 60%)',
-          border: '1px solid var(--glass-surface-border)',
-          backdropFilter: 'blur(42px)',
-          WebkitBackdropFilter: 'blur(42px)',
+            'radial-gradient(ellipse 80% 60% at 0% 0%, rgba(210,145,55,0.10) 0%, transparent 60%), radial-gradient(ellipse 60% 50% at 100% 100%, rgba(93,92,174,0.08) 0%, transparent 60%), var(--claura-card)',
+          borderRadius: 24,
         }}
       >
         <div className="px-7 py-8 flex flex-col items-start gap-3">
@@ -213,15 +211,11 @@ const MorningBriefingCard: React.FC<MorningBriefingCardProps> = ({ onAskTwin }) 
 
   return (
     <div
-      className="rounded-[24px] overflow-hidden relative"
+      className="claura-glass overflow-hidden relative"
       style={{
-        backgroundColor: 'var(--surface)',
         backgroundImage:
-          'radial-gradient(ellipse 80% 60% at 0% 0%, rgba(210,145,55,0.10) 0%, transparent 60%), radial-gradient(ellipse 60% 50% at 100% 100%, rgba(93,92,174,0.08) 0%, transparent 60%)',
-        border: '1px solid var(--glass-surface-border)',
-        backdropFilter: 'blur(42px)',
-        WebkitBackdropFilter: 'blur(42px)',
-        boxShadow: '0 8px 24px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.08)',
+          'radial-gradient(ellipse 80% 60% at 0% 0%, rgba(210,145,55,0.10) 0%, transparent 60%), radial-gradient(ellipse 60% 50% at 100% 100%, rgba(93,92,174,0.08) 0%, transparent 60%), var(--claura-card)',
+        borderRadius: 24,
       }}
     >
       {/* Header — location + time */}

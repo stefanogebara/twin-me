@@ -285,16 +285,12 @@ const InsightCards: React.FC<InsightCardsProps> = (props) => {
         {cards.map((card, index) => (
           <motion.div
             key={card.id}
-            className="snap-start flex-shrink-0 w-[280px] transition-transform duration-300 hover:translate-y-[-3px]"
+            className="claura-glass snap-start flex-shrink-0 w-[280px] transition-transform duration-300 hover:translate-y-[-3px]"
             style={{
-              background: 'var(--surface)',
-              border: '1px solid var(--glass-surface-border)',
               borderRadius: '18px',
               padding: '22px',
+              // Accent rail overrides only the left edge of claura-glass's border
               borderLeft: `4px solid ${card.accentColor}`,
-              backdropFilter: 'blur(42px)',
-              WebkitBackdropFilter: 'blur(42px)',
-              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), 0 4px 12px rgba(0,0,0,0.12)',
             }}
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}

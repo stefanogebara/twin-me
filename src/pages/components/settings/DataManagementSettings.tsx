@@ -41,7 +41,7 @@ const DataManagementSettings: React.FC<DataManagementSettingsProps> = ({
         <Download className="w-5 h-5" style={{ color: 'var(--foreground)' }} />
         <h2
           className="text-[11px] font-medium tracking-widest uppercase"
-          style={{ color: '#10b77f' }}
+          style={{ color: 'var(--success)' }}
         >
           Your Data
         </h2>
@@ -55,8 +55,8 @@ const DataManagementSettings: React.FC<DataManagementSettingsProps> = ({
         <div
           className="flex items-center gap-2 p-3 rounded-xl mb-4 text-sm"
           style={{
-            backgroundColor: dataMessage.type === 'success' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-            color: dataMessage.type === 'success' ? '#10B981' : '#ef4444'
+            backgroundColor: dataMessage.type === 'success' ? 'color-mix(in srgb, var(--success) 10%, transparent)' : 'color-mix(in srgb, var(--destructive) 10%, transparent)',
+            color: dataMessage.type === 'success' ? 'var(--success)' : 'var(--claura-danger-ink)'
           }}
         >
           {dataMessage.type === 'success' ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
@@ -104,9 +104,9 @@ const DataManagementSettings: React.FC<DataManagementSettingsProps> = ({
             onClick={() => setShowDeleteConfirm(true)}
             className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl transition-all hover:scale-[1.01]"
             style={{
-              backgroundColor: 'rgba(239, 68, 68, 0.08)',
-              border: '1px solid rgba(239, 68, 68, 0.2)',
-              color: '#ef4444',
+              backgroundColor: 'color-mix(in srgb, var(--destructive) 8%, transparent)',
+              border: '1px solid color-mix(in srgb, var(--destructive) 20%, transparent)',
+              color: 'var(--claura-danger-ink)',
               fontFamily: "'Inter', sans-serif",
               fontWeight: 500,
             }}
@@ -118,14 +118,14 @@ const DataManagementSettings: React.FC<DataManagementSettingsProps> = ({
           <div
             className="p-4 rounded-xl space-y-3"
             style={{
-              backgroundColor: 'rgba(239, 68, 68, 0.04)',
-              border: '1px solid rgba(239, 68, 68, 0.2)',
+              backgroundColor: 'color-mix(in srgb, var(--destructive) 4%, transparent)',
+              border: '1px solid color-mix(in srgb, var(--destructive) 20%, transparent)',
             }}
           >
-            <p className="text-sm font-medium" style={{ color: '#ef4444' }}>
+            <p className="text-sm font-medium" style={{ color: 'var(--claura-danger-ink)' }}>
               This will permanently delete:
             </p>
-            <ul className="text-xs space-y-1" style={{ color: '#dc2626' }}>
+            <ul className="text-xs space-y-1" style={{ color: 'var(--claura-danger-ink)' }}>
               <li>- Your profile and account data</li>
               <li>- All platform connections and extracted data</li>
               <li>- Your soul signature and personality analysis</li>
@@ -133,7 +133,7 @@ const DataManagementSettings: React.FC<DataManagementSettingsProps> = ({
               <li>- Behavioral patterns and insights</li>
             </ul>
             <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-              Type <strong style={{ color: '#ef4444' }}>DELETE</strong> to confirm:
+              Type <strong style={{ color: 'var(--claura-danger-ink)' }}>DELETE</strong> to confirm:
             </p>
             <input
               type="text"
@@ -143,7 +143,7 @@ const DataManagementSettings: React.FC<DataManagementSettingsProps> = ({
               className="w-full px-3 py-2 rounded-lg text-sm outline-none"
               style={{
                 backgroundColor: 'var(--surface)',
-                border: '1px solid rgba(239, 68, 68, 0.3)',
+                border: '1px solid color-mix(in srgb, var(--destructive) 30%, transparent)',
                 color: 'var(--foreground)',
                 fontFamily: "'Inter', sans-serif",
               }}
@@ -165,7 +165,7 @@ const DataManagementSettings: React.FC<DataManagementSettingsProps> = ({
                 disabled={deleteConfirmText !== 'DELETE' || deleting}
                 className="flex-1 px-4 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-2"
                 style={{
-                  backgroundColor: deleteConfirmText === 'DELETE' ? '#ef4444' : 'rgba(239, 68, 68, 0.3)',
+                  backgroundColor: deleteConfirmText === 'DELETE' ? 'var(--destructive)' : 'color-mix(in srgb, var(--destructive) 30%, transparent)',
                   color: 'var(--foreground)',
                   fontFamily: "'Inter', sans-serif",
                   opacity: deleteConfirmText !== 'DELETE' ? 0.5 : 1,

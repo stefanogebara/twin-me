@@ -74,7 +74,8 @@ const PLATFORM_DISPLAY_NAMES: Record<string, string> = {
 function getRingColor(score: number): string {
   if (score > 70) return '#22c55e';
   if (score >= 40) return '#f59e0b';
-  return 'rgba(255,255,255,0.20)';
+  // Low-score ring: neutral ink derivative so it stays visible in light theme
+  return 'color-mix(in srgb, var(--foreground) 20%, transparent)';
 }
 
 /* ------------------------------------------------------------------ */
@@ -115,7 +116,10 @@ const ScoreRing: React.FC<{ score: number; compact?: boolean }> = ({ score, comp
       <div
         className="absolute inset-0 rounded-full"
         style={{
-          background: `radial-gradient(circle, ${ringColor}15 0%, transparent 70%)`,
+          // color-mix instead of hex-alpha concat: ringColor may itself be a
+          // color-mix() expression (low-score branch), which "#RRGGBB15"-style
+          // suffixing would turn into invalid CSS.
+          background: `radial-gradient(circle, color-mix(in srgb, ${ringColor} 8%, transparent) 0%, transparent 70%)`,
           filter: 'blur(20px)',
         }}
       />
@@ -179,28 +183,21 @@ const ContributorCard: React.FC<ContributorCardProps> = ({ domain, connected, sc
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.3 + index * 0.1, duration: 0.5, ease: 'easeOut' }}
-      style={{
-        background: locked ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.06)',
-        border: '1px solid var(--glass-surface-border)',
-        backdropFilter: 'blur(42px)',
-        WebkitBackdropFilter: 'blur(42px)',
-        borderRadius: 20,
-        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), 0 4px 12px rgba(0,0,0,0.15)',
-      }}
-      className={`${compact ? 'px-3 py-3' : 'px-5 py-5'} flex flex-col gap-2 transition-all duration-300 hover:translate-y-[-2px] hover:shadow-lg cursor-default`}
+      style={{ borderRadius: 20 }}
+      className={`claura-glass ${compact ? 'px-3 py-3' : 'px-5 py-5'} flex flex-col gap-2 transition-all duration-300 hover:translate-y-[-2px] hover:shadow-lg cursor-default`}
     >
       {/* Header row */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Icon
             size={18}
-            style={{ color: locked ? 'rgba(255,255,255,0.15)' : domain.color }}
+            style={{ color: locked ? 'color-mix(in srgb, var(--foreground) 15%, transparent)' : domain.color }}
           />
           <span
             className="text-[13px] font-medium"
             style={{
               fontFamily: "'Inter', sans-serif",
-              color: locked ? 'var(--text-secondary)' : '#F5F5F4',
+              color: locked ? 'var(--text-secondary)' : 'var(--foreground)',
             }}
           >
             {domain.label}

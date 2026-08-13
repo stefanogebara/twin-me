@@ -85,17 +85,17 @@ export default function WhatsAppImportCard({ cardStyle }: WhatsAppImportCardProp
   return (
     <section className={sectionClass} style={sectionStyle}>
       <div className="flex items-center gap-3 mb-4">
-        <MessageCircle className="w-5 h-5" style={{ color: '#10b77f' }} />
+        <MessageCircle className="w-5 h-5" style={{ color: 'var(--success)' }} />
         <h2
           className="text-[11px] font-medium tracking-widest uppercase"
-          style={{ color: '#10b77f' }}
+          style={{ color: 'var(--success)' }}
         >
           WhatsApp Patterns
         </h2>
         {status === 'success' && (
           <span
             className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full"
-            style={{ backgroundColor: 'rgba(16,185,129,0.1)', color: '#10B981', border: '1px solid rgba(16,185,129,0.2)' }}
+            style={{ backgroundColor: 'color-mix(in srgb, var(--success) 10%, transparent)', color: 'var(--success)', border: '1px solid color-mix(in srgb, var(--success) 20%, transparent)' }}
           >
             <CheckCircle className="w-3 h-3" /> Imported
           </span>
@@ -149,9 +149,9 @@ export default function WhatsAppImportCard({ cardStyle }: WhatsAppImportCardProp
           </div>
 
           {status === 'error' && error && (
-            <div className="flex items-start gap-2 mt-3 p-3 rounded-lg" style={{ backgroundColor: 'rgba(239,68,68,0.08)' }}>
-              <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
-              <p className="text-xs text-red-400">{error}</p>
+            <div className="flex items-start gap-2 mt-3 p-3 rounded-lg" style={{ backgroundColor: 'color-mix(in srgb, var(--destructive) 8%, transparent)' }}>
+              <AlertCircle className="w-4 h-4 text-[var(--destructive)] flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-[var(--claura-danger-ink)]">{error}</p>
             </div>
           )}
 

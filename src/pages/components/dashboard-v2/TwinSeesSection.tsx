@@ -53,21 +53,14 @@ const MOTION_CSS = `
 `;
 
 const GLASS: React.CSSProperties = {
-  position: 'relative',
   overflow: 'hidden',
-  background: 'var(--surface)',
-  backdropFilter: 'blur(40px) saturate(1.4)',
-  WebkitBackdropFilter: 'blur(40px) saturate(1.4)',
-  border: '1px solid var(--border)',
   borderRadius: 22,
-  boxShadow:
-    '0 14px 44px rgba(0,0,0,0.46), inset 0 1px 0 rgba(255,255,255,0.24), inset 0 -1px 0 rgba(255,255,255,0.05)',
 };
 
 function RevelationCard({ rev, hero = false }: { rev: Revelation; hero?: boolean }) {
   return (
     <div
-      className={hero ? 'ts-hero' : 'ts-card'}
+      className={`claura-glass ${hero ? 'ts-hero' : 'ts-card'}`}
       style={{
         ...GLASS,
         padding: hero ? '24px 26px' : '18px 20px',

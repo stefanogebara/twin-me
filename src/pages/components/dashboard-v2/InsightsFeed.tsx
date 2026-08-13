@@ -37,9 +37,9 @@ const CATEGORY_ICON: Record<InsightCategory, React.ReactNode> = {
 };
 
 const URGENCY_COLOR: Record<string, string> = {
-  high:   '#ef4444',
+  high:   'var(--destructive)',
   medium: '#C9B99A',
-  low:    'var(--text-muted, #86807b)',
+  low:    'var(--text-muted)',
 };
 
 function relativeTime(dateStr: string): string {
@@ -168,7 +168,7 @@ export function InsightsFeed({
                 {insight.category === 'nudge' && insight.nudge_action && (
                   <p
                     className="text-xs mt-1 italic"
-                    style={{ color: 'var(--text-secondary, #4a4242)' }}
+                    style={{ color: 'var(--text-secondary)' }}
                   >
                     Try: {insight.nudge_action}
                   </p>
@@ -178,14 +178,14 @@ export function InsightsFeed({
                 <div className="flex items-center gap-3 mt-2">
                   <span
                     className="text-[11px]"
-                    style={{ color: 'var(--text-muted, #86807b)' }}
+                    style={{ color: 'var(--text-muted)' }}
                   >
                     {relativeTime(insight.created_at)}
                   </span>
                   <button
                     onClick={() => handleDiscuss(insight)}
                     className="text-[11px] bg-transparent border-none cursor-pointer transition-all duration-150 ease-out hover:opacity-70 active:scale-[0.97] p-0"
-                    style={{ color: 'var(--text-narrative-secondary, #E8E0D4)' }}
+                    style={{ color: 'var(--text-narrative-secondary)' }}
                   >
                     Discuss with twin &rarr;
                   </button>
@@ -216,7 +216,7 @@ export function InsightsFeed({
                       onClick={() => handleFeedback(insight, false)}
                       className="text-[11px] rounded-[6px] px-2 py-1 transition-all duration-150 ease-out hover:opacity-70 active:scale-[0.97] disabled:opacity-40 disabled:cursor-not-allowed bg-transparent"
                       style={{
-                        color: 'var(--text-muted, #9C9590)',
+                        color: 'var(--text-muted)',
                         border: 'none',
                       }}
                     >

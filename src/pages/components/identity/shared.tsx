@@ -1,8 +1,12 @@
 import React from 'react';
 
-export const SectionLabel: React.FC<{ label: string; color?: string }> = ({ label, color = '#E8E0D4' }) => (
+// Default label ink is the theme foreground; the leading dot renders only when
+// a caller passes a custom (accent) color.
+const DEFAULT_LABEL_COLOR = 'var(--foreground)';
+
+export const SectionLabel: React.FC<{ label: string; color?: string }> = ({ label, color = DEFAULT_LABEL_COLOR }) => (
   <div className="flex items-center gap-2 mb-4">
-    {color !== '#E8E0D4' && (
+    {color !== DEFAULT_LABEL_COLOR && (
       <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
     )}
     <h2

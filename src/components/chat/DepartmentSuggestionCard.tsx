@@ -38,7 +38,7 @@ interface DepartmentSuggestionCardProps {
 export function DepartmentSuggestionCard({ suggestion, onApprove }: DepartmentSuggestionCardProps) {
   const [state, setState] = useState<SuggestionState>('idle');
 
-  const color = DEPARTMENT_COLORS[suggestion.department] || '#6366F1';
+  const color = DEPARTMENT_COLORS[suggestion.department] || 'var(--accent-purple)';
   const displayName = suggestion.department.charAt(0).toUpperCase() + suggestion.department.slice(1);
 
   const handleApprove = async () => {
@@ -85,7 +85,7 @@ export function DepartmentSuggestionCard({ suggestion, onApprove }: DepartmentSu
         <p
           className="text-[12px] leading-snug truncate"
           style={{
-            color: '#D1D5DB',
+            color: 'var(--text-secondary)',
             fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
           }}
           title={suggestion.action}
@@ -132,7 +132,7 @@ export function DepartmentSuggestionCard({ suggestion, onApprove }: DepartmentSu
         {state === 'error' && (
           <span
             className="text-[10px] font-medium"
-            style={{ color: 'rgba(239,68,68,0.7)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+            style={{ color: 'color-mix(in srgb, var(--destructive) 70%, transparent)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
           >
             Failed
           </span>

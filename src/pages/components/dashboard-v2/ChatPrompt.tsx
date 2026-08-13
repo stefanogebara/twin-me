@@ -64,16 +64,7 @@ export function ChatPrompt() {
 
   return (
     <section className="mb-12">
-      <div
-        className="rounded-[20px] p-3 sm:p-4"
-        style={{
-          background: 'var(--glass-surface-bg)',
-          backdropFilter: 'blur(42px)',
-          WebkitBackdropFilter: 'blur(42px)',
-          border: '1px solid var(--glass-surface-border)',
-          boxShadow: '0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 var(--border-glass)',
-        }}
-      >
+      <div className="claura-glass rounded-[20px] p-3 sm:p-4">
         {/* Toast for triggered skills */}
         {triggering && (
           <div
@@ -131,11 +122,11 @@ export function ChatPrompt() {
               width: 28,
               height: 28,
               borderRadius: '100px',
-              background: '#252222',
+              background: 'var(--claura-bone)',
               padding: '4px',
             }}
           >
-            <ArrowUp size={16} style={{ color: 'var(--foreground)' }} />
+            <ArrowUp size={16} style={{ color: 'var(--claura-bone-ink)' }} />
           </button>
         </form>
       </div>

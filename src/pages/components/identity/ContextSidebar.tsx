@@ -19,13 +19,9 @@ import SoulScore from './SoulScore';
 import InsightCards from './InsightCards';
 import SidebarTabs, { type SidebarTab } from './SidebarTabs';
 
-const glassStyle: React.CSSProperties = {
-  background: 'var(--surface)',
-  backdropFilter: 'blur(42px)',
-  WebkitBackdropFilter: 'blur(42px)',
-  border: '1px solid var(--glass-surface-border)',
-  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), 0 4px 16px rgba(0,0,0,0.15)',
-};
+// Cards use the Claura glass material (claura.css). Inline borderRadius keeps
+// the sidebar's 20px radius winning over .claura-glass's 16px default.
+const glassStyle: React.CSSProperties = { borderRadius: 20 };
 
 interface ContextSidebarProps {
   className?: string;
@@ -140,7 +136,7 @@ const ContextSidebar: React.FC<ContextSidebarProps> = ({ className = '' }) => {
     <div className={`space-y-4 ${className}`}>
       {/* ── Card 1: Soul Score ────────────────────────────────── */}
       <div
-        className="rounded-[20px] px-5 py-5 transition-all duration-300 hover:-translate-y-0.5"
+        className="claura-glass px-5 py-5 transition-all duration-300 hover:-translate-y-0.5"
         style={glassStyle}
       >
         <SoulScore compact />
@@ -148,7 +144,7 @@ const ContextSidebar: React.FC<ContextSidebarProps> = ({ className = '' }) => {
 
       {/* ── Card 2: Tabbed Content ────────────────────────────── */}
       <div
-        className="rounded-[20px] px-5 py-5 transition-all duration-300 hover:-translate-y-0.5"
+        className="claura-glass px-5 py-5 transition-all duration-300 hover:-translate-y-0.5"
         style={glassStyle}
       >
         <SidebarTabs activeTab={activeTab} onTabChange={setActiveTab} />
@@ -189,7 +185,7 @@ const ContextSidebar: React.FC<ContextSidebarProps> = ({ className = '' }) => {
               ) : insightsFailed ? (
                 <div className="flex flex-col items-center gap-2.5 py-5">
                   <div className="flex items-center gap-2">
-                    <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'rgba(239,68,68,0.7)' }} />
+                    <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--destructive)' }} />
                     <span className="text-xs" style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
                       Could not load your insight stats
                     </span>
@@ -269,7 +265,9 @@ const ContextSidebar: React.FC<ContextSidebarProps> = ({ className = '' }) => {
         className="flex items-center justify-center gap-2 w-full px-4 py-3 rounded-[100px] text-sm font-medium transition-all duration-150 hover:opacity-85 active:scale-[0.98]"
         style={{
           background: 'var(--accent-vibrant)',
-          color: '#0a0909',
+          // --primary-foreground is the ink paired with the light CTA fill in
+          // both themes; the old #0a0909 literal stayed dark on light theme.
+          color: 'var(--primary-foreground)',
           fontFamily: "'Inter', sans-serif",
         }}
       >

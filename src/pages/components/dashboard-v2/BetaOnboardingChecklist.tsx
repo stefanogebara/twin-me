@@ -141,15 +141,7 @@ export function BetaOnboardingChecklist({ onDismiss }: BetaOnboardingChecklistPr
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -8 }}
           transition={{ duration: 0.35, ease: 'easeOut' }}
-          className="relative rounded-[20px] px-4 sm:px-5 py-5"
-          style={{
-            background: 'var(--glass-surface-bg)',
-            backdropFilter: 'blur(42px)',
-            WebkitBackdropFilter: 'blur(42px)',
-            border: '1px solid var(--glass-surface-border)',
-            boxShadow:
-              '0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 var(--border-glass)',
-          }}
+          className="claura-glass relative rounded-[20px] px-4 sm:px-5 py-5"
         >
           {/* Dismiss */}
           <button
@@ -219,18 +211,18 @@ export function BetaOnboardingChecklist({ onDismiss }: BetaOnboardingChecklistPr
                       width: 28,
                       height: 28,
                       background: step.isComplete
-                        ? 'rgba(16,183,127,0.15)'
-                        : 'rgba(255,255,255,0.06)',
+                        ? 'color-mix(in srgb, var(--success) 15%, transparent)'
+                        : 'var(--surface)',
                       border: step.isComplete
-                        ? '1px solid rgba(16,183,127,0.3)'
-                        : '1px solid rgba(255,255,255,0.08)',
+                        ? '1px solid color-mix(in srgb, var(--success) 30%, transparent)'
+                        : '1px solid var(--border)',
                     }}
                   >
                     <Icon
                       size={14}
                       style={{
                         color: step.isComplete
-                          ? '#10B77F'
+                          ? 'var(--success)'
                           : 'var(--text-secondary)',
                       }}
                     />
@@ -248,7 +240,7 @@ export function BetaOnboardingChecklist({ onDismiss }: BetaOnboardingChecklistPr
                         textDecoration: step.isComplete
                           ? 'line-through'
                           : 'none',
-                        textDecorationColor: 'rgba(255,255,255,0.15)',
+                        textDecorationColor: 'var(--glass-surface-border)',
                       }}
                     >
                       {step.title}

@@ -66,7 +66,7 @@ const WhatsAppConnect: React.FC = () => {
           <div className="flex items-center gap-2">
             <span
               className="flex items-center gap-1 text-[11px]"
-              style={{ color: 'rgba(16,183,127,0.8)' }}
+              style={{ color: 'color-mix(in srgb, var(--success) 80%, transparent)' }}
             >
               <Check className="w-3 h-3" /> {wa.linkedPhone}
             </span>
@@ -144,7 +144,9 @@ const WhatsAppConnect: React.FC = () => {
               className="flex-1 text-sm px-3 py-2 rounded-[6px] bg-transparent focus:outline-none tracking-[0.3em]"
               style={{
                 backgroundColor: 'var(--surface)',
-                border: wa.error ? '1px solid rgba(239,68,68,0.5)' : '1px solid rgba(255,255,255,0.08)',
+                border: wa.error
+                  ? '1px solid color-mix(in srgb, var(--destructive) 50%, transparent)'
+                  : '1px solid var(--border)',
                 color: 'var(--foreground)',
               }}
               onKeyDown={(e) => { if (e.key === 'Enter' && !wa.busy) submitCode(); }}
@@ -163,7 +165,7 @@ const WhatsAppConnect: React.FC = () => {
               {wa.info} Sent to <span style={{ color: 'var(--foreground)' }}>{wa.pendingPhone}</span>.
             </p>
           )}
-          {wa.error && <p className="text-[11px]" style={{ color: 'rgba(239,68,68,0.8)' }}>{wa.error}</p>}
+          {wa.error && <p className="text-[11px]" style={{ color: 'var(--destructive)' }}>{wa.error}</p>}
           <button
             onClick={() => { setCodeInput(''); wa.cancel(); }}
             className="text-[11px] transition-opacity hover:opacity-60"

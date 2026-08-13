@@ -37,11 +37,11 @@ function getErrorMessage(errorType?: ChatErrorType): string {
 function getErrorIcon(errorType?: ChatErrorType) {
   switch (errorType) {
     case 'timeout':
-      return <Clock className="w-4 h-4 flex-shrink-0" style={{ color: 'rgba(239,68,68,0.8)' }} />;
+      return <Clock className="w-4 h-4 flex-shrink-0" style={{ color: 'color-mix(in srgb, var(--destructive) 80%, transparent)' }} />;
     case 'network':
-      return <WifiOff className="w-4 h-4 flex-shrink-0" style={{ color: 'rgba(239,68,68,0.8)' }} />;
+      return <WifiOff className="w-4 h-4 flex-shrink-0" style={{ color: 'color-mix(in srgb, var(--destructive) 80%, transparent)' }} />;
     default:
-      return <AlertCircle className="w-4 h-4 flex-shrink-0" style={{ color: 'rgba(239,68,68,0.8)' }} />;
+      return <AlertCircle className="w-4 h-4 flex-shrink-0" style={{ color: 'color-mix(in srgb, var(--destructive) 80%, transparent)' }} />;
   }
 }
 
@@ -153,7 +153,7 @@ const AssistantMessageBody = memo(function AssistantMessageBody({
         className="prose prose-invert max-w-none [&>p]:mb-5 [&>p:first-child]:mt-0 [&>p:last-child]:mb-0 [&>h3]:mt-6 [&>h3]:mb-2 [&>hr]:my-5 [&>ul]:mb-5 [&>ol]:mb-5"
         style={{
           fontSize: '14px',
-          color: '#D1D5DB',
+          color: 'var(--text-narrative)',
           lineHeight: '24px',
         }}
       >
@@ -206,7 +206,7 @@ export const MessageList = memo(forwardRef<HTMLDivElement, MessageListProps>(
                       className="whitespace-pre-wrap text-right"
                       style={{
                         fontSize: '13px',
-                        color: message.failed ? '#EF4444' : '#EDEDED',
+                        color: message.failed ? 'var(--destructive)' : 'var(--foreground)',
                         opacity: message.failed ? 0.8 : 1,
                         lineHeight: 1.7,
                       }}
@@ -218,15 +218,15 @@ export const MessageList = memo(forwardRef<HTMLDivElement, MessageListProps>(
                       <div
                         className="mt-3 rounded-xl px-4 py-3"
                         style={{
-                          backgroundColor: 'rgba(239,68,68,0.08)',
-                          border: '1px solid rgba(239,68,68,0.15)',
+                          backgroundColor: 'color-mix(in srgb, var(--destructive) 8%, transparent)',
+                          border: '1px solid color-mix(in srgb, var(--destructive) 15%, transparent)',
                         }}
                       >
                         <div className="flex items-start gap-2.5">
                           {getErrorIcon(message.errorType)}
                           <p
                             className="text-[13px] leading-relaxed"
-                            style={{ color: 'rgba(239,68,68,0.8)' }}
+                            style={{ color: 'color-mix(in srgb, var(--destructive) 80%, transparent)' }}
                           >
                             {getErrorMessage(message.errorType)}
                           </p>
@@ -237,11 +237,11 @@ export const MessageList = memo(forwardRef<HTMLDivElement, MessageListProps>(
                               onClick={() => onRetry(message.content, message.id)}
                               className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-medium transition-colors"
                               style={{
-                                backgroundColor: 'rgba(239,68,68,0.1)',
-                                color: 'rgba(239,68,68,0.9)',
+                                backgroundColor: 'color-mix(in srgb, var(--destructive) 10%, transparent)',
+                                color: 'color-mix(in srgb, var(--destructive) 90%, transparent)',
                               }}
-                              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(239,68,68,0.15)'; }}
-                              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'rgba(239,68,68,0.1)'; }}
+                              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'color-mix(in srgb, var(--destructive) 15%, transparent)'; }}
+                              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'color-mix(in srgb, var(--destructive) 10%, transparent)'; }}
                             >
                               <RotateCcw className="w-3 h-3" />
                               Try again
@@ -314,15 +314,15 @@ export const MessageList = memo(forwardRef<HTMLDivElement, MessageListProps>(
                       <div
                         className="mt-3 rounded-xl px-4 py-3"
                         style={{
-                          backgroundColor: 'rgba(239,68,68,0.08)',
-                          border: '1px solid rgba(239,68,68,0.15)',
+                          backgroundColor: 'color-mix(in srgb, var(--destructive) 8%, transparent)',
+                          border: '1px solid color-mix(in srgb, var(--destructive) 15%, transparent)',
                         }}
                       >
                         <div className="flex items-start gap-2.5">
                           {getErrorIcon(message.errorType)}
                           <p
                             className="text-[13px] leading-relaxed"
-                            style={{ color: 'rgba(239,68,68,0.8)' }}
+                            style={{ color: 'color-mix(in srgb, var(--destructive) 80%, transparent)' }}
                           >
                             {getErrorMessage(message.errorType)}
                           </p>
@@ -343,11 +343,11 @@ export const MessageList = memo(forwardRef<HTMLDivElement, MessageListProps>(
                               }}
                               className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-medium transition-colors"
                               style={{
-                                backgroundColor: 'rgba(239,68,68,0.1)',
-                                color: 'rgba(239,68,68,0.9)',
+                                backgroundColor: 'color-mix(in srgb, var(--destructive) 10%, transparent)',
+                                color: 'color-mix(in srgb, var(--destructive) 90%, transparent)',
                               }}
-                              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(239,68,68,0.15)'; }}
-                              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'rgba(239,68,68,0.1)'; }}
+                              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'color-mix(in srgb, var(--destructive) 15%, transparent)'; }}
+                              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'color-mix(in srgb, var(--destructive) 10%, transparent)'; }}
                             >
                               <RotateCcw className="w-3 h-3" />
                               Try again
@@ -415,7 +415,7 @@ export const MessageList = memo(forwardRef<HTMLDivElement, MessageListProps>(
                                 markCopied(message.id);
                               }}
                               className="p-1 rounded-md transition-all hover:scale-110"
-                              style={{ color: copied[message.id] ? 'rgba(134,239,172,0.7)' : 'var(--text-muted)' }}
+                              style={{ color: copied[message.id] ? 'color-mix(in srgb, var(--success) 70%, transparent)' : 'var(--text-muted)' }}
                               aria-label="Copy message"
                               title={copied[message.id] ? 'Copied!' : 'Copy'}
                             >

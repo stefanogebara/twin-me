@@ -162,14 +162,10 @@ const ConnectionRevealCard: React.FC<Props> = ({ provider, onDismiss }) => {
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -8 }}
         transition={{ duration: 0.4, ease: 'easeOut' }}
-        className="relative mb-6 rounded-[20px] overflow-hidden"
-        style={{
-          background: 'var(--surface)',
-          backdropFilter: 'blur(42px)',
-          WebkitBackdropFilter: 'blur(42px)',
-          border: '1px solid var(--glass-surface-border)',
-          boxShadow: '0 4px 24px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.06)',
-        }}
+        className="claura-glass relative mb-6 rounded-[20px] overflow-hidden"
+        // Inline radius: claura-glass sets 16px; this card keeps its original
+        // 20px regardless of stylesheet order (::after rim inherits it).
+        style={{ borderRadius: 20 }}
       >
         {/* Ambient accent band — visually signals this is a meaningful moment */}
         <div

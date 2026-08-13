@@ -43,31 +43,17 @@ export function SoulSummaryCard() {
 
   if (isLoading) {
     return (
-      <div
-        className="rounded-[20px] px-5 py-5 backdrop-blur-[42px]"
-        style={{
-          background: 'var(--glass-surface-bg)',
-          border: '1px solid var(--glass-surface-border)',
-          boxShadow: '0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.06)',
-        }}
-      >
-        <div className="h-4 w-2/3 rounded bg-white/[0.06] animate-pulse mb-3" />
-        <div className="h-3 w-full rounded bg-white/[0.04] animate-pulse mb-2" />
-        <div className="h-3 w-5/6 rounded bg-white/[0.04] animate-pulse" />
+      <div className="claura-glass rounded-[20px] px-5 py-5">
+        <div className="h-4 w-2/3 rounded bg-[var(--surface)] animate-pulse mb-3" />
+        <div className="h-3 w-full rounded bg-[var(--surface)] animate-pulse mb-2" />
+        <div className="h-3 w-5/6 rounded bg-[var(--surface)] animate-pulse" />
       </div>
     );
   }
 
   if (isError) {
     return (
-      <div
-        className="rounded-[20px] px-5 py-5 backdrop-blur-[42px]"
-        style={{
-          background: 'var(--glass-surface-bg)',
-          border: '1px solid var(--glass-surface-border)',
-          boxShadow: '0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.06)',
-        }}
-      >
+      <div className="claura-glass rounded-[20px] px-5 py-5">
         <p className="text-xs font-medium mb-3" style={{ color: 'var(--text-muted)' }}>
           Soul Signature
         </p>
@@ -91,14 +77,7 @@ export function SoulSummaryCard() {
 
   if (!tasteStatement) {
     return (
-      <div
-        className="rounded-[20px] px-5 py-5 backdrop-blur-[42px]"
-        style={{
-          background: 'var(--glass-surface-bg)',
-          border: '1px solid var(--glass-surface-border)',
-          boxShadow: '0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.06)',
-        }}
-      >
+      <div className="claura-glass rounded-[20px] px-5 py-5">
         <p className="text-xs font-medium mb-3" style={{ color: 'var(--text-muted)' }}>
           Soul Signature
         </p>
@@ -121,14 +100,7 @@ export function SoulSummaryCard() {
   }
 
   return (
-    <div
-      className="rounded-[20px] px-5 py-5 backdrop-blur-[42px]"
-      style={{
-        background: 'var(--glass-surface-bg)',
-        border: '1px solid var(--glass-surface-border)',
-        boxShadow: '0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.06)',
-      }}
-    >
+    <div className="claura-glass rounded-[20px] px-5 py-5">
       <p className="text-xs font-medium mb-3" style={{ color: 'var(--text-muted)' }}>
         Soul Signature
       </p>

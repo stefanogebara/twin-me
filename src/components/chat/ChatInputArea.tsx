@@ -91,7 +91,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
             />
             {ghostSuggestion && !inputMessage && (
               <div className="absolute inset-0 flex items-center pointer-events-none overflow-hidden">
-                <span className="text-[13px] truncate opacity-20" style={{ color: '#D1D5DB' }}>
+                <span className="text-[13px] truncate opacity-20" style={{ color: 'var(--foreground)' }}>
                   {ghostSuggestion}
                 </span>
                 <span
@@ -113,7 +113,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
                 className="text-xs whitespace-nowrap"
                 style={{
                   color: chatUsage.remaining <= 5
-                    ? '#ef4444'
+                    ? 'var(--destructive)'
                     : 'var(--text-muted)',
                 }}
                 title={`${chatUsage.remaining} of ${chatUsage.limit} messages remaining this month`}

@@ -133,24 +133,24 @@ const PersonalityAxes: React.FC<PersonalityAxesProps> = ({ className = '', delay
                 className="px-4 py-3 rounded-[16px] transition-all duration-150"
                 style={{
                   background: isExpanded
-                    ? 'rgba(255,255,255,0.07)'
+                    ? 'var(--secondary)'
                     : isTop
-                      ? 'rgba(255,255,255,0.06)'
-                      : 'rgba(255,255,255,0.025)',
-                  border: `1px solid ${isExpanded ? 'rgba(255,255,255,0.12)' : isTop ? 'rgba(255,255,255,0.09)' : 'rgba(255,255,255,0.05)'}`,
-                  borderLeft: isTop ? `2px solid ${color}` : '1px solid rgba(255,255,255,0.05)',
+                      ? 'var(--surface)'
+                      : 'color-mix(in srgb, var(--surface) 45%, transparent)',
+                  border: `1px solid ${isExpanded ? 'var(--glass-surface-border)' : isTop ? 'var(--border)' : 'var(--border-glass)'}`,
+                  borderLeft: isTop ? `2px solid ${color}` : '1px solid var(--border-glass)',
                   opacity: isTop ? 1 : 0.75,
                 }}
               >
                 <div className="flex items-center gap-2.5">
                   <div
                     className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                    style={{ backgroundColor: isTop ? color : 'rgba(255,255,255,0.18)' }}
+                    style={{ backgroundColor: isTop ? color : 'color-mix(in srgb, var(--foreground) 18%, transparent)' }}
                   />
                   <span
                     className="text-[13px] flex-1 leading-snug"
                     style={{
-                      color: isTop ? 'rgba(255,255,255,0.85)' : 'var(--text-secondary)',
+                      color: isTop ? 'var(--text-narrative)' : 'var(--text-secondary)',
                       fontFamily: "'Inter', sans-serif",
                       fontWeight: isTop ? 500 : 400,
                     }}

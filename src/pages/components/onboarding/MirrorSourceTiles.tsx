@@ -49,20 +49,16 @@ const MirrorTile: React.FC<MirrorTileProps> = ({
   onCta,
 }) => (
   <div
-    className="flex items-center gap-4 px-5 py-4 rounded-[20px] transition-colors duration-150"
-    style={{
-      background: connected ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.03)',
-      backdropFilter: 'blur(42px)',
-      WebkitBackdropFilter: 'blur(42px)',
-      border: `1px solid ${connected ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.06)'}`,
-      boxShadow: '0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.06)',
-    }}
+    className="claura-glass flex items-center gap-4 px-5 py-4 rounded-[20px] transition-colors duration-150"
+    // Inline radius: claura-glass sets 16px; this tile keeps its original 20px
+    // regardless of stylesheet order (::after rim inherits it).
+    style={{ borderRadius: 20 }}
   >
     <div
       className="flex-shrink-0 w-11 h-11 rounded-xl flex items-center justify-center"
       style={{
         backgroundColor: 'var(--surface)',
-        color: connected ? color : 'rgba(255, 255, 255, 0.55)',
+        color: connected ? color : 'var(--text-secondary)',
       }}
     >
       {icon}
@@ -79,14 +75,14 @@ const MirrorTile: React.FC<MirrorTileProps> = ({
         {connected && (
           <Check
             className="w-3.5 h-3.5 flex-shrink-0"
-            style={{ color: '#10b981' }}
+            style={{ color: 'var(--success)' }}
             strokeWidth={2.5}
           />
         )}
       </div>
       <span
         className="text-[12px] leading-relaxed line-clamp-2 block mt-0.5"
-        style={{ color: connected ? 'rgba(255,255,255,0.60)' : 'rgba(255,255,255,0.50)', fontFamily: FONT }}
+        style={{ color: connected ? 'var(--text-secondary)' : 'var(--text-muted)', fontFamily: FONT }}
       >
         {description}
       </span>
@@ -96,9 +92,9 @@ const MirrorTile: React.FC<MirrorTileProps> = ({
       <span
         className="text-[12px] font-medium px-4 py-1.5 rounded-full flex-shrink-0"
         style={{
-          backgroundColor: 'rgba(16,185,129,0.10)',
-          color: '#10b981',
-          border: '1px solid rgba(16,185,129,0.18)',
+          backgroundColor: 'color-mix(in srgb, var(--success) 10%, transparent)',
+          color: 'var(--success)',
+          border: '1px solid color-mix(in srgb, var(--success) 18%, transparent)',
           fontFamily: FONT,
         }}
       >

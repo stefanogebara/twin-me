@@ -33,7 +33,7 @@ const DataConsentSettings: React.FC<DataConsentSettingsProps> = ({
         <Shield className="w-5 h-5" style={{ color: '#A78BFA' }} />
         <h2
           className="text-[11px] font-medium tracking-widest uppercase"
-          style={{ color: '#10b77f' }}
+          style={{ color: 'var(--success)' }}
         >
           Data Consent
         </h2>
@@ -89,7 +89,7 @@ const DataConsentSettings: React.FC<DataConsentSettingsProps> = ({
                 }}
                 disabled={revokingConsent === `${consent.consent_type}:${consent.platform}`}
                 className="text-xs px-3 py-1.5 rounded-lg transition-all"
-                style={{ color: '#ef4444', backgroundColor: 'rgba(239, 68, 68, 0.1)' }}
+                style={{ color: 'var(--claura-danger-ink)', backgroundColor: 'color-mix(in srgb, var(--destructive) 10%, transparent)' }}
               >
                 {revokingConsent === `${consent.consent_type}:${consent.platform}` ? '...' : 'Revoke'}
               </button>

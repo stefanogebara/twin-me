@@ -24,7 +24,6 @@ import TemporalComparison from './components/identity/TemporalComparison';
 import IdentityNarrativeCard from './components/identity/IdentityNarrativeCard';
 import SplitPanelLayout from '@/layouts/SplitPanelLayout';
 import ContextSidebar from './components/identity/ContextSidebar';
-import { ClauraZonedBackground } from '@/components/ClauraZonedBackground';
 
 // ── Types for 5-Layer Soul Signature ────────────────────────────────────
 
@@ -181,7 +180,8 @@ function timeAgo(dateStr: string): string {
 function growthTypeBadgeStyle(type: string): React.CSSProperties {
   switch (type) {
     case 'exploration':
-      return { background: 'rgba(93,92,174,0.15)', color: 'rgba(162,161,220,0.85)' };
+      // rgba(93,92,174) IS --accent-purple (#5d5cae) — use the var so theme swaps propagate
+      return { background: 'color-mix(in srgb, var(--accent-purple) 15%, transparent)', color: 'rgba(162,161,220,0.85)' };
     case 'growth':
       return { background: 'rgba(74,222,128,0.12)', color: 'rgba(74,222,128,0.85)' };
     case 'stress_response':
@@ -233,7 +233,7 @@ const RevealOverlay: React.FC<{ archetypeName: string; tagline: string; onDismis
   return (
     <motion.div
       className="fixed inset-0 z-50 flex flex-col items-center justify-center px-6"
-      style={{ background: '#0a0909' }}
+      style={{ background: 'var(--background)' }}
       initial={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.6, ease: 'easeInOut' }}
@@ -251,7 +251,7 @@ const RevealOverlay: React.FC<{ archetypeName: string; tagline: string; onDismis
           style={{
             width: 'min(400px, 90vw)',
             height: 'min(400px, 90vw)',
-            background: 'radial-gradient(circle, rgba(232,224,212,0.15) 0%, rgba(232,224,212,0.05) 40%, transparent 70%)',
+            background: 'radial-gradient(circle, color-mix(in srgb, var(--foreground) 15%, transparent) 0%, color-mix(in srgb, var(--foreground) 5%, transparent) 40%, transparent 70%)',
             animation: 'soulBreathe 4s ease-in-out infinite',
           }}
         />
@@ -609,34 +609,21 @@ const IdentityPage: React.FC = () => {
 
   // ── Glass card wrapper ──────────────────────────────────────────────
 
-  const glassCard = (children: React.ReactNode, className = '', variant: 'default' | 'anchor' = 'default') => (
+  // Claura glass material (claura.css). Inline borderRadius keeps the page's
+  // 20px radius winning over .claura-glass's 16px default regardless of CSS order.
+  // The 'anchor' variant is accepted for call-site compatibility but no longer
+  // changes the material — claura-glass is the single card surface.
+  const glassCard = (children: React.ReactNode, className = '', _variant: 'default' | 'anchor' = 'default') => (
     <div
-      className={`rounded-[20px] px-5 py-4 transition-all duration-300 hover:-translate-y-0.5 ${className}`}
-      style={{
-        background: variant === 'anchor' ? 'var(--glass-surface-bg)' : 'var(--surface)',
-        backdropFilter: 'blur(42px)',
-        WebkitBackdropFilter: 'blur(42px)',
-        border: variant === 'anchor' ? '1px solid var(--glass-surface-border)' : '1px solid var(--border-glass)',
-        boxShadow: variant === 'anchor'
-          ? 'inset 0 1px 0 rgba(255,255,255,0.08), 0 6px 24px rgba(0,0,0,0.20)'
-          : 'inset 0 1px 0 rgba(255,255,255,0.06), 0 4px 16px rgba(0,0,0,0.15)',
-      }}
+      className={`claura-glass px-5 py-4 transition-all duration-300 hover:-translate-y-0.5 ${className}`}
+      style={{ borderRadius: 20 }}
     >
       {children}
     </div>
   );
 
   const heroCard = (children: React.ReactNode) => (
-    <div
-      className="rounded-[20px] px-5 py-5"
-      style={{
-        background: 'var(--surface)',
-        backdropFilter: 'blur(42px)',
-        WebkitBackdropFilter: 'blur(42px)',
-        border: '1px solid var(--glass-surface-border)',
-        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.10), 0 8px 32px rgba(0,0,0,0.25)',
-      }}
-    >
+    <div className="claura-glass px-5 py-5" style={{ borderRadius: 20 }}>
       {children}
     </div>
   );
@@ -668,7 +655,7 @@ const IdentityPage: React.FC = () => {
         <>
           {archetypeResult ? (
             <>
-              <section className="relative pl-5" style={{ borderLeft: '3px solid rgba(255,255,255,0.20)' }}>
+              <section className="relative pl-5" style={{ borderLeft: '3px solid color-mix(in srgb, var(--foreground) 20%, transparent)' }}>
                 {/* Single-archetype headline — promoted from h2 to h1 so the hero has one dominant voice */}
                 <h1
                   style={{
@@ -967,11 +954,11 @@ const IdentityPage: React.FC = () => {
                   className="py-3"
                   style={{
                     borderBottom: idx < layers.values.values.length - 1
-                      ? '1px solid rgba(255,255,255,0.06)'
+                      ? '1px solid var(--border-glass)'
                       : 'none',
                   }}
                 >
-                  <h3 className="text-sm font-medium mb-1" style={{ color: '#E8E0D4', fontFamily: "'Inter', sans-serif" }}>
+                  <h3 className="text-sm font-medium mb-1" style={{ color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}>
                     {value.name}
                   </h3>
                   <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
@@ -995,7 +982,7 @@ const IdentityPage: React.FC = () => {
                 <SectionLabel>Your Rhythms</SectionLabel>
                 <span
                   className="inline-block px-3 py-1.5 rounded-full text-xs font-medium mb-3"
-                  style={{ background: 'var(--surface)', color: '#E8E0D4', fontFamily: "'Inter', sans-serif" }}
+                  style={{ background: 'var(--surface)', color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}
                 >
                   {formatChronotype(layers.rhythms.chronotype)}
                 </span>
@@ -1076,7 +1063,7 @@ const IdentityPage: React.FC = () => {
                 <SectionLabel>How You Connect</SectionLabel>
                 <span
                   className="inline-block px-3 py-1.5 rounded-full text-xs font-medium mb-3"
-                  style={{ background: 'var(--surface)', color: '#E8E0D4', fontFamily: "'Inter', sans-serif" }}
+                  style={{ background: 'var(--surface)', color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}
                 >
                   {formatConnectionStyle(layers.connections.style)}
                 </span>
@@ -1087,7 +1074,7 @@ const IdentityPage: React.FC = () => {
                   <ul className="space-y-1.5">
                     {layers.connections.patterns.map((pattern) => (
                       <li key={pattern} className="flex items-start gap-2 text-sm" style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
-                        <span className="mt-[7px] w-1 h-1 rounded-full flex-shrink-0" style={{ background: 'rgba(232,224,212,0.4)' }} />
+                        <span className="mt-[7px] w-1 h-1 rounded-full flex-shrink-0" style={{ background: 'color-mix(in srgb, var(--foreground) 40%, transparent)' }} />
                         {pattern}
                       </li>
                     ))}
@@ -1205,8 +1192,6 @@ const IdentityPage: React.FC = () => {
 
   return (
     <>
-      {/* Claura zoned photography — bubble-reader by night, train-field by day (/preview/you). */}
-      <ClauraZonedBackground dark="bubble-reader.png" light="train-field.png" darkPosition="center 36%" lightPosition="center 35%" />
       {/* First-time reveal overlay */}
       <AnimatePresence>
         {showReveal && archetypeResult && (

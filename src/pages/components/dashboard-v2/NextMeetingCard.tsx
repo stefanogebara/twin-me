@@ -87,13 +87,12 @@ export function NextMeetingCard() {
       // One-interface (2026-06-12): /meetings page is gone — the full prep
       // lives in conversation. Deep-link into chat with a prefilled ask.
       onClick={() => navigate('/talk-to-twin?prefill=' + encodeURIComponent('Prep me for my next meeting'))}
-      className="w-full text-left rounded-[20px] px-5 py-4 backdrop-blur-[42px] transition-all duration-150 hover:opacity-95 active:scale-[0.995]"
-      style={{
-        background: isSoon
-          ? 'linear-gradient(135deg, rgba(193,126,44,0.12) 0%, rgba(255,255,255,0.04) 70%)'
-          : 'rgba(255,255,255,0.06)',
-        border: `1px solid ${isSoon ? 'rgba(193,126,44,0.30)' : 'rgba(255,255,255,0.10)'}`,
-      }}
+      className="claura-glass w-full text-left rounded-[20px] px-5 py-4 transition-all duration-150 hover:opacity-95 active:scale-[0.995]"
+      // isSoon overrides the claura-glass fill with an amber urgency tint
+      style={isSoon ? {
+        background: 'linear-gradient(135deg, color-mix(in srgb, var(--accent-amber) 12%, transparent) 0%, var(--surface) 70%)',
+        border: '1px solid color-mix(in srgb, var(--accent-amber) 30%, transparent)',
+      } : undefined}
     >
       {/* Header row */}
       <div className="flex items-center justify-between gap-3 mb-2">
