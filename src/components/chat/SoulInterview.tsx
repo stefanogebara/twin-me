@@ -335,7 +335,7 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
                     className="flex items-start gap-3 py-3"
                     style={{ borderBottom: '1px solid var(--border-glass)' }}
                   >
-                    <Check className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: '#10b981' }} />
+                    <Check className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: 'var(--success)' }} />
                     <span
                       className="text-[14px] leading-relaxed"
                       style={{ color: 'var(--text-secondary)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
@@ -451,7 +451,7 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
                         }}
                       >
                         {isSubmitting ? (
-                          <div className="w-3.5 h-3.5 border-[1.5px] border-[#0C0B10] border-t-transparent rounded-full animate-spin" />
+                          <div className="w-3.5 h-3.5 border-[1.5px] border-[var(--claura-bone-ink)] border-t-transparent rounded-full animate-spin" />
                         ) : (
                           <>
                             Submit
@@ -465,7 +465,7 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
                   {submitError && (
                     <p
                       className="text-[13px] mt-3"
-                      style={{ color: '#f87171', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+                      style={{ color: 'var(--claura-danger-ink)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
                     >
                       Could not save your answer. Please try submitting again.
                     </p>

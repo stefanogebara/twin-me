@@ -240,7 +240,7 @@ function WriteResult({ data, tool }: { data: any; tool: string }) {
   const label = tool === 'calendar_delete_event' ? 'event' : title;
   return (
     <div className="flex items-center gap-2 py-1">
-      <Check className="w-4 h-4 flex-shrink-0" style={{ color: '#10b77f' }} />
+      <Check className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--success)' }} />
       <span className="text-[13px]" style={{ color: 'var(--foreground)' }}>
         {verb}: {label}
       </span>
@@ -265,8 +265,8 @@ export function WorkspaceActionCard({ action }: WorkspaceActionCardProps) {
       <motion.div
         initial={{ opacity: 0, y: 4 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-[var(--surface)] rounded-[20px] border border-[var(--border-glass)] px-5 py-4 mb-3"
-        style={{ boxShadow: 'inset 0 0 7px 1px rgba(255,255,255,0.1)' }}
+        className="claura-glass px-5 py-4 mb-3"
+        style={{ borderRadius: 20 }}
       >
         <div className="flex items-center gap-2 animate-pulse">
           <Icon className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
@@ -291,8 +291,8 @@ export function WorkspaceActionCard({ action }: WorkspaceActionCardProps) {
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="bg-[var(--surface)] rounded-[20px] border border-[var(--border-glass)] px-5 py-4 mb-3"
-          style={{ boxShadow: 'inset 0 0 7px 1px rgba(255,255,255,0.1)' }}
+          className="claura-glass px-5 py-4 mb-3"
+          style={{ borderRadius: 20 }}
         >
           <div className="flex items-center gap-2">
             <Clock className="w-4 h-4" style={{ color: 'rgba(217,119,6,0.7)' }} aria-hidden="true" />
@@ -316,14 +316,14 @@ export function WorkspaceActionCard({ action }: WorkspaceActionCardProps) {
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="bg-[var(--surface)] rounded-[20px] border border-[var(--border-glass)] px-5 py-4 mb-3"
-        style={{ boxShadow: 'inset 0 0 7px 1px rgba(255,255,255,0.1)' }}
+        className="claura-glass px-5 py-4 mb-3"
+        style={{ borderRadius: 20 }}
       >
         <div className="flex items-center gap-2">
-          <Icon className="w-4 h-4" style={{ color: 'rgba(239,68,68,0.6)' }} />
+          <Icon className="w-4 h-4" style={{ color: 'color-mix(in srgb, var(--destructive) 60%, transparent)' }} />
           <span
             className="text-[11px] uppercase tracking-[0.15em] font-medium"
-            style={{ color: 'rgba(239,68,68,0.6)' }}
+            style={{ color: 'color-mix(in srgb, var(--destructive) 60%, transparent)' }}
           >
             {config.label} failed
           </span>
@@ -337,8 +337,8 @@ export function WorkspaceActionCard({ action }: WorkspaceActionCardProps) {
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="bg-[var(--surface)] rounded-[20px] border border-[var(--border-glass)] px-5 py-4 mb-3"
-        style={{ boxShadow: 'inset 0 0 7px 1px rgba(255,255,255,0.1)' }}
+        className="claura-glass px-5 py-4 mb-3"
+        style={{ borderRadius: 20 }}
       >
         <div className="flex items-center gap-2 mb-1">
           <Icon className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
@@ -361,8 +361,8 @@ export function WorkspaceActionCard({ action }: WorkspaceActionCardProps) {
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="bg-[var(--surface)] rounded-[20px] border border-[var(--border-glass)] px-5 py-4 mb-3"
-        style={{ boxShadow: 'inset 0 0 7px 1px rgba(255,255,255,0.1)' }}
+        className="claura-glass px-5 py-4 mb-3"
+        style={{ borderRadius: 20 }}
       >
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
@@ -447,8 +447,8 @@ export function WorkspaceActionCard({ action }: WorkspaceActionCardProps) {
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="bg-[var(--surface)] rounded-[20px] border border-[var(--border-glass)] px-5 py-4 mb-3"
-        style={{ boxShadow: 'inset 0 0 7px 1px rgba(255,255,255,0.1)' }}
+        className="claura-glass px-5 py-4 mb-3"
+        style={{ borderRadius: 20 }}
       >
         <div className="flex items-center gap-2 mb-1">
           <Icon className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
@@ -471,8 +471,8 @@ export function WorkspaceActionCard({ action }: WorkspaceActionCardProps) {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="bg-[var(--surface)] rounded-[20px] border border-[var(--border-glass)] px-5 py-4 mb-3"
-        style={{ boxShadow: 'inset 0 0 7px 1px rgba(255,255,255,0.1)' }}
+      className="claura-glass px-5 py-4 mb-3"
+        style={{ borderRadius: 20 }}
     >
       <div className="flex items-center gap-2">
         <Icon className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />

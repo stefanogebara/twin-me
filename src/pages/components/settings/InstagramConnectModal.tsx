@@ -77,20 +77,20 @@ export function InstagramConnectModal({ open, onClose, onSuccess }: InstagramCon
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && !recording && onClose()}>
-      <DialogContent className="max-w-md bg-[rgba(19,18,26,0.98)] border border-[var(--glass-surface-border)] rounded-[20px] backdrop-blur-[42px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-md bg-[var(--popover)] border border-[var(--glass-surface-border)] rounded-[20px] backdrop-blur-[42px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-[var(--foreground)] font-medium text-base">
             Connect Instagram
           </DialogTitle>
         </DialogHeader>
 
-        <p className="text-[#A8A29E] text-sm -mt-1 mb-3">
+        <p className="text-[var(--text-secondary)] text-sm -mt-1 mb-3">
           Your aesthetic and social signals — what you save, follow, and post — added to your soul signature.
         </p>
 
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
-            <label className="text-[12px] text-[#9C9590]">Your Instagram username</label>
+            <label className="text-[12px] text-[var(--text-muted)]">Your Instagram username</label>
             <input
               type="text"
               value={username}
@@ -103,8 +103,8 @@ export function InstagramConnectModal({ open, onClose, onSuccess }: InstagramCon
           </div>
 
           <div className="border border-[var(--border-glass)] rounded-[10px] p-3 bg-[var(--surface)] flex flex-col gap-2">
-            <p className="text-[11px] text-[#A8A29E] font-medium">How this works:</p>
-            <ol className="text-[11px] text-[#A8A29E] leading-relaxed space-y-1.5 list-decimal pl-4">
+            <p className="text-[11px] text-[var(--text-secondary)] font-medium">How this works:</p>
+            <ol className="text-[11px] text-[var(--text-secondary)] leading-relaxed space-y-1.5 list-decimal pl-4">
               <li>
                 Install the TwinMe browser extension (it runs in your own browser, with your own Instagram session — no passwords, no server-side scraping).
                 {!extensionInstalled && (
@@ -113,7 +113,7 @@ export function InstagramConnectModal({ open, onClose, onSuccess }: InstagramCon
                   </span>
                 )}
                 {extensionInstalled && (
-                  <span className="block mt-1.5 text-[10.5px] text-[#9bf5a8]">
+                  <span className="block mt-1.5 text-[10.5px] text-[var(--success)]">
                     Extension detected.
                   </span>
                 )}
@@ -143,7 +143,7 @@ export function InstagramConnectModal({ open, onClose, onSuccess }: InstagramCon
           </div>
 
           <div className="border border-[var(--border-glass)] rounded-[10px] p-3 bg-[var(--surface)] flex flex-col gap-2">
-            <p className="text-[11px] text-[#A8A29E] leading-snug">
+            <p className="text-[11px] text-[var(--text-secondary)] leading-snug">
               By connecting, you understand that:
             </p>
             <ul className="text-[11px] text-[var(--text-secondary)] leading-snug list-disc pl-4 space-y-1">
@@ -160,7 +160,7 @@ export function InstagramConnectModal({ open, onClose, onSuccess }: InstagramCon
               variant="ghost"
               onClick={() => { setUsername(''); onClose(); }}
               disabled={recording}
-              className="text-[#A8A29E] hover:text-[var(--foreground)] text-sm"
+              className="text-[var(--text-secondary)] hover:text-[var(--foreground)] text-sm"
             >
               Cancel
             </Button>

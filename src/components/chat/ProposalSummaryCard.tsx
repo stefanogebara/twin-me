@@ -39,15 +39,9 @@ export function ProposalSummaryCard({
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] }}
-      className="rounded-[20px] px-5 py-4 my-2 w-full max-w-[520px]"
-      style={{
-        backgroundColor: 'var(--surface)',
-        backdropFilter: 'blur(42px)',
-        WebkitBackdropFilter: 'blur(42px)',
-        border: '1px solid var(--glass-surface-border)',
-        boxShadow:
-          '0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.04)',
-      }}
+      className="claura-glass px-5 py-4 my-2 w-full max-w-[520px]"
+      // Inline borderRadius keeps the original 20px over claura-glass's 16px.
+      style={{ borderRadius: 20 }}
     >
       {/* Header */}
       <h3

@@ -289,7 +289,7 @@ export function SoulChatInterface({
           <div className="flex items-center gap-3 px-6 py-4">
             <div
               className="w-8 h-8 rounded-full flex items-center justify-center"
-              style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.15), rgba(255,255,255,0.08))' }}
+              style={{ background: 'linear-gradient(135deg, color-mix(in srgb, var(--foreground) 15%, transparent), color-mix(in srgb, var(--foreground) 8%, transparent))' }}
             >
               <Loader className="w-5 h-5 animate-spin" style={{ color: 'var(--foreground)' }} />
             </div>

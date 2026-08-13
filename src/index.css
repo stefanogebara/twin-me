@@ -74,6 +74,11 @@
     --accent-foreground: #F5F5F4;
     --destructive: #dc2626;
     --destructive-foreground: #ffffff;
+    /* Success/connected status. Added 2026-08-13: the design-drift sweep
+       found every connected/linked indicator hardcoding #10b981-family
+       greens because no token existed. */
+    --success: #10b981;
+    --success-foreground: #052e16;
     --input: rgba(255, 255, 255, 0.08);
 
     /* Sidebar Colors */
@@ -131,6 +136,9 @@
     --popover-foreground: #1c1917;
     --secondary: rgba(28, 25, 23, 0.06);
     --secondary-foreground: #1c1917;
+    /* Emerald-700: #10b981 reads ~2.3:1 on warm paper — illegible as text. */
+    --success: #047857;
+    --success-foreground: #ffffff;
     --muted: rgba(246, 243, 238, 0.8);
     --muted-foreground: #57534e;
     --accent: rgba(28, 25, 23, 0.05);

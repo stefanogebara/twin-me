@@ -110,7 +110,7 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
       </div>
 
       {error && (
-        <div className="flex items-center gap-2 mb-4 text-sm" style={{ color: '#ef4444' }}>
+        <div className="flex items-center gap-2 mb-4 text-sm" style={{ color: 'var(--destructive)' }}>
           <AlertCircle className="w-4 h-4" />
           {error}
         </div>
@@ -150,7 +150,7 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
                 <div className="flex items-center gap-2 flex-shrink-0">
                   {isActiveConnection ? (
                     <>
-                      <CheckCircle className="w-3.5 h-3.5" style={{ color: '#10B981' }} />
+                      <CheckCircle className="w-3.5 h-3.5" style={{ color: 'var(--success)' }} />
                       {connector.isOAuth && (
                         <button
                           onClick={() => requestDisconnect(connector.id)}
@@ -159,8 +159,8 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
                           style={{
                             color:
                               confirmingId === connector.id
-                                ? '#ef4444'
-                                : 'rgba(255, 255, 255, 0.55)',
+                                ? 'var(--destructive)'
+                                : 'var(--text-secondary)',
                           }}
                         >
                           {disconnectingService === connector.id
@@ -188,7 +188,7 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
                       <button
                         onClick={() => navigate('/get-started')}
                         className="text-[11px]"
-                        style={{ color: '#10b77f' }}
+                        style={{ color: 'var(--success)' }}
                       >
                         Connect
                       </button>
@@ -223,7 +223,7 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
                 className="text-[11px] min-h-[44px] px-2 transition-opacity hover:opacity-60 flex-shrink-0"
                 style={{
                   color:
-                    confirmingId === platform ? '#ef4444' : 'rgba(255, 255, 255, 0.55)',
+                    confirmingId === platform ? 'var(--destructive)' : 'var(--text-secondary)',
                 }}
               >
                 {disconnectingService === platform

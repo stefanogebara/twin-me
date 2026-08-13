@@ -107,11 +107,13 @@ export function PendingProposalsBadge({
               transition={{ duration: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
               className="absolute bottom-full mb-2 left-0 right-0 z-50 rounded-[20px] px-4 py-3 max-h-[280px] overflow-y-auto"
               style={{
-                backgroundColor: 'rgba(30,28,36,0.95)',
+                // Near-opaque popover token (not claura-glass): the dropdown must
+                // occlude the message stream beneath it to stay readable.
+                backgroundColor: 'var(--popover)',
                 backdropFilter: 'blur(42px)',
                 WebkitBackdropFilter: 'blur(42px)',
                 border: '1px solid var(--glass-surface-border)',
-                boxShadow: '0 -4px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.04)',
+                boxShadow: '0 -4px 24px rgba(0,0,0,0.3)',
               }}
             >
               <h4

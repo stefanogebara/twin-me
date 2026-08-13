@@ -101,7 +101,7 @@ const GoogleWorkspaceConnect: React.FC<GoogleWorkspaceConnectProps> = ({
               Google Workspace
             </h3>
             {isAnyGoogleConnected && (
-              <span className="flex items-center gap-1 text-[11px]" style={{ color: 'rgba(16,183,127,0.8)' }}>
+              <span className="flex items-center gap-1 text-[11px]" style={{ color: 'color-mix(in srgb, var(--success) 80%, transparent)' }}>
                 <Check className="w-3 h-3" /> Connected
               </span>
             )}
@@ -121,16 +121,16 @@ const GoogleWorkspaceConnect: React.FC<GoogleWorkspaceConnectProps> = ({
               className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[11px]"
               style={{
                 background: isAnyGoogleConnected
-                  ? 'rgba(16,183,127,0.08)'
-                  : 'rgba(255,255,255,0.04)',
+                  ? 'color-mix(in srgb, var(--success) 8%, transparent)'
+                  : 'var(--surface)',
                 border: `1px solid ${
                   isAnyGoogleConnected
-                    ? 'rgba(16,183,127,0.15)'
-                    : 'rgba(255,255,255,0.06)'
+                    ? 'color-mix(in srgb, var(--success) 15%, transparent)'
+                    : 'var(--border-glass)'
                 }`,
                 color: isAnyGoogleConnected
-                  ? 'rgba(16,183,127,0.95)'
-                  : 'rgba(255,255,255,0.55)',
+                  ? 'color-mix(in srgb, var(--success) 95%, transparent)'
+                  : 'var(--text-secondary)',
               }}
             >
               <PlatformLogo platform={service.logoKey} size={12} />
@@ -159,8 +159,8 @@ const GoogleWorkspaceConnect: React.FC<GoogleWorkspaceConnectProps> = ({
             disabled={connecting}
             className="w-full flex items-center justify-center gap-2 py-2.5 rounded-[100px] text-sm font-medium transition-opacity hover:opacity-90 disabled:opacity-40"
             style={{
-              background: '#F5F0EB',
-              color: 'var(--primary-foreground, #110f0f)',
+              background: 'var(--claura-bone)',
+              color: 'var(--claura-bone-ink)',
             }}
           >
             {connecting ? (
@@ -187,7 +187,7 @@ const GoogleWorkspaceConnect: React.FC<GoogleWorkspaceConnectProps> = ({
 
         {/* Error message */}
         {connectError && (
-          <p className="text-[12px] text-center mt-3" style={{ color: '#dc2626' }}>
+          <p className="text-[12px] text-center mt-3" style={{ color: 'var(--destructive)' }}>
             {connectError}
           </p>
         )}
@@ -207,15 +207,7 @@ const GoogleWorkspaceConnect: React.FC<GoogleWorkspaceConnectProps> = ({
           className="fixed inset-0 z-50 flex items-center justify-center px-4"
           style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}
         >
-          <div
-            className="relative w-full max-w-md rounded-2xl p-6"
-            style={{
-              background: 'var(--glass-surface-bg, rgba(30,28,34,0.95))',
-              backdropFilter: 'blur(42px)',
-              WebkitBackdropFilter: 'blur(42px)',
-              border: '1px solid var(--glass-surface-border, rgba(255,255,255,0.10))',
-            }}
-          >
+          <div className="claura-glass relative w-full max-w-md rounded-2xl p-6">
             {/* Close button */}
             <button
               onClick={() => setShowCheckboxModal(false)}
@@ -273,8 +265,8 @@ const GoogleWorkspaceConnect: React.FC<GoogleWorkspaceConnectProps> = ({
               onClick={handleContinueConnect}
               className="w-full flex items-center justify-center gap-2 py-2.5 rounded-[100px] text-sm font-medium transition-opacity hover:opacity-90"
               style={{
-                background: '#F5F0EB',
-                color: 'var(--primary-foreground, #110f0f)',
+                background: 'var(--claura-bone)',
+                color: 'var(--claura-bone-ink)',
               }}
             >
               Continue to Google

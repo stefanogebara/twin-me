@@ -1,7 +1,6 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { Home, ArrowLeft } from "lucide-react";
-import { ClauraZonedBackground } from "@/components/ClauraZonedBackground";
 
 // Claura 404 — lost among the rings. Saturn-window by night, soul-waves by day.
 const NotFound = () => {
@@ -14,7 +13,6 @@ const NotFound = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center px-6">
-      <ClauraZonedBackground dark="saturn-window.png" light="soul-waves.png" lightPosition="center 22%" />
       <div className="text-center max-w-md mx-auto">
         {/* 404 number — giant, faded into the scene */}
         <p

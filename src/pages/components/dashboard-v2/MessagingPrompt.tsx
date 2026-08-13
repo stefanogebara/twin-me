@@ -36,15 +36,7 @@ export function MessagingPrompt() {
 
   return (
     <section className="mb-6">
-      <div
-        className="relative flex items-center gap-3 rounded-[20px] px-5 py-4"
-        style={{
-          background: 'var(--glass-surface-bg)',
-          backdropFilter: 'blur(42px)',
-          WebkitBackdropFilter: 'blur(42px)',
-          border: '1px solid var(--glass-surface-border)',
-        }}
-      >
+      <div className="claura-glass relative flex items-center gap-3 rounded-[20px] px-5 py-4">
         <div
           className="flex items-center justify-center w-9 h-9 rounded-full shrink-0"
           style={{ background: 'rgba(0,136,204,0.12)' }}

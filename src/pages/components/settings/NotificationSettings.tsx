@@ -238,7 +238,7 @@ interface SettingRowProps {
 const SettingRow: React.FC<SettingRowProps> = ({ icon, label, description, error, isLast, children }) => (
   <div
     className="flex items-center justify-between py-4"
-    style={{ borderBottom: isLast ? 'none' : '1px solid rgba(255,255,255,0.04)' }}
+    style={{ borderBottom: isLast ? 'none' : '1px solid var(--border-glass)' }}
   >
     <div className="flex items-center gap-3 min-w-0">
       <div className="shrink-0">{icon}</div>
@@ -250,7 +250,7 @@ const SettingRow: React.FC<SettingRowProps> = ({ icon, label, description, error
           {description}
         </p>
         {error && (
-          <p className="flex items-center gap-1 text-[11px] mt-1" style={{ color: '#ef4444' }}>
+          <p className="flex items-center gap-1 text-[11px] mt-1" style={{ color: 'var(--destructive)' }}>
             <AlertCircle className="w-3 h-3" />
             {error}
           </p>
@@ -278,14 +278,14 @@ const ToggleSwitch: React.FC<ToggleSwitchProps> = ({ enabled, onChange, disabled
     onClick={() => !disabled && onChange(!enabled)}
     className="relative w-10 h-5 rounded-full transition-colors duration-200 ease-out active:scale-95"
     style={{
-      backgroundColor: enabled ? 'rgba(245,245,244,0.9)' : 'rgba(255,255,255,0.18)',
+      backgroundColor: enabled ? 'var(--primary)' : 'var(--surface-solid)',
       cursor: disabled ? 'not-allowed' : 'pointer',
       opacity: disabled ? 0.5 : 1,
     }}
   >
     <div
       className="absolute top-0.5 w-4 h-4 rounded-full transition-all duration-200 ease-out"
-      style={{ left: enabled ? '22px' : '2px', backgroundColor: enabled ? '#110f0f' : '#A8A29E' }}
+      style={{ left: enabled ? '22px' : '2px', backgroundColor: enabled ? 'var(--primary-foreground)' : 'var(--text-secondary)' }}
     />
   </button>
 );

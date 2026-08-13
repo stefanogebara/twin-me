@@ -68,15 +68,7 @@ export function DailyTimeline() {
         >
           Today
         </h2>
-        <div
-          className="rounded-[20px] p-5 text-center"
-          style={{
-            background: 'var(--glass-surface-bg)',
-            backdropFilter: 'blur(42px)',
-            WebkitBackdropFilter: 'blur(42px)',
-            border: '1px solid var(--glass-surface-border)',
-          }}
-        >
+        <div className="claura-glass rounded-[20px] p-5 text-center">
           <Bot className="w-5 h-5 mx-auto mb-2" style={{ color: 'var(--text-muted)' }} />
           <p className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>
             Activity will appear here as your twin learns.
@@ -94,20 +86,12 @@ export function DailyTimeline() {
       >
         Today
       </h2>
-      <div
-        className="rounded-[20px] px-5 py-4"
-        style={{
-          background: 'var(--glass-surface-bg)',
-          backdropFilter: 'blur(42px)',
-          WebkitBackdropFilter: 'blur(42px)',
-          border: '1px solid var(--glass-surface-border)',
-        }}
-      >
+      <div className="claura-glass rounded-[20px] px-5 py-4">
         {items.slice(0, 10).map((item, i) => (
           <div
             key={item.id}
             className="flex gap-3 py-2.5"
-            style={{ borderBottom: i < Math.min(items.length, 10) - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}
+            style={{ borderBottom: i < Math.min(items.length, 10) - 1 ? '1px solid var(--border-glass)' : 'none' }}
           >
             {/* Time */}
             <span className="text-[10px] w-12 shrink-0 pt-0.5 text-right" style={{ color: 'var(--text-secondary)' }}>

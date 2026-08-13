@@ -51,14 +51,12 @@ export function DepartmentProposalBubble({
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: isDimmed ? 0.5 : 1, y: 0 }}
       transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
-      className="rounded-[20px] px-4 py-3 my-2 max-w-[420px]"
+      className="claura-glass px-4 py-3 my-2 max-w-[420px]"
       style={{
-        backgroundColor: 'var(--surface)',
-        backdropFilter: 'blur(42px)',
-        WebkitBackdropFilter: 'blur(42px)',
-        border: '1px solid var(--glass-surface-border)',
+        // Inline borderRadius keeps the original 20px over claura-glass's 16px;
+        // the department accent overrides only the left edge of the glass border.
+        borderRadius: 20,
         borderLeft: `2px solid ${proposal.departmentColor}`,
-        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)',
       }}
     >
       {/* Department label pill */}
@@ -82,7 +80,7 @@ export function DepartmentProposalBubble({
       <p
         className="text-[13px] leading-relaxed mb-2"
         style={{
-          color: '#D1D5DB',
+          color: 'var(--text-secondary)',
           fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
         }}
       >
@@ -159,7 +157,7 @@ export function DepartmentProposalBubble({
           <div className="flex items-center gap-1.5">
             <Check
               className="w-3.5 h-3.5"
-              style={{ color: '#10b77f' }}
+              style={{ color: 'var(--success)' }}
             />
             <span
               className="text-[11px] font-medium"

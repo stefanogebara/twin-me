@@ -128,7 +128,7 @@ const IdentityNarrativeCard: React.FC = () => {
   // ── Loading / empty / error states ─────────────────────────────
   if (isLoading) {
     return (
-      <div className="rounded-[20px] border border-[var(--glass-surface-border)] bg-[var(--surface)] backdrop-blur-[42px] px-5 py-4 animate-pulse">
+      <div className="claura-glass px-5 py-4 animate-pulse" style={{ borderRadius: 20 }}>
         <div className="h-4 w-32 bg-[var(--surface)] rounded mb-3" />
         <div className="h-3 w-full bg-[var(--surface)] rounded mb-2" />
         <div className="h-3 w-3/4 bg-[var(--surface)] rounded" />
@@ -140,14 +140,14 @@ const IdentityNarrativeCard: React.FC = () => {
   // null made "my narrative disappeared" undebuggable (audit-2026-07-03).
   if (isError) {
     return (
-      <div className="rounded-[20px] border border-[var(--glass-surface-border)] bg-[var(--surface)] backdrop-blur-[42px] px-5 py-4">
-        <p className="text-sm" style={{ color: '#A8A29E' }}>
+      <div className="claura-glass px-5 py-4" style={{ borderRadius: 20 }}>
+        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
           Could not load your narrative.
         </p>
         <button
           onClick={() => refetch()}
           className="mt-2 text-sm underline transition-opacity hover:opacity-70"
-          style={{ color: '#9C9590' }}
+          style={{ color: 'var(--text-muted)' }}
         >
           Try again
         </button>
@@ -167,7 +167,7 @@ const IdentityNarrativeCard: React.FC = () => {
 
   // ── Render ──────────────────────────────────────────────────────
   return (
-    <div className="rounded-[20px] border border-[var(--glass-surface-border)] bg-[var(--surface)] backdrop-blur-[42px] px-5 py-4 shadow-[0_4px_4px_rgba(0,0,0,0.12),inset_0_1px_0_rgba(255,255,255,0.06)]">
+    <div className="claura-glass px-5 py-4" style={{ borderRadius: 20 }}>
       {/* Header: badge + edit button */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
@@ -252,9 +252,9 @@ const IdentityNarrativeCard: React.FC = () => {
             disabled={mode === 'saving'}
             rows={10}
             maxLength={MAX_CHARS}
-            className="w-full rounded-[6px] px-3 py-2.5 text-[14.5px] leading-relaxed resize-y focus:outline-none focus:ring-1 focus:ring-[rgba(255,255,255,0.25)]"
+            className="w-full rounded-[6px] px-3 py-2.5 text-[14.5px] leading-relaxed resize-y focus:outline-none focus:ring-1 focus:ring-[color:var(--ring)]"
             style={{
-              backgroundColor: 'var(--surface)',
+              backgroundColor: 'var(--input)',
               border: '1px solid var(--border-glass)',
               color: 'var(--text-narrative)',
               fontFamily: 'Geist, Inter, system-ui, sans-serif',

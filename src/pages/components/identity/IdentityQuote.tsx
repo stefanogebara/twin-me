@@ -62,16 +62,10 @@ const IdentityQuote: React.FC<{ className?: string }> = ({ className = '' }) => 
       transition={{ duration: 0.8, delay: 0.2 }}
     >
       <div
-        className="rounded-[20px] px-5 py-4 transition-all duration-300 hover:-translate-y-0.5"
-        style={{
-          background: 'var(--surface)',
-          backdropFilter: 'blur(42px)',
-          WebkitBackdropFilter: 'blur(42px)',
-          border: '1px solid var(--glass-surface-border)',
-          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), 0 4px 16px rgba(0,0,0,0.15)',
-        }}
+        className="claura-glass px-5 py-4 transition-all duration-300 hover:-translate-y-0.5"
+        style={{ borderRadius: 20 }}
       >
-        <div className="pl-4" style={{ borderLeft: '2px solid rgba(255,255,255,0.18)' }}>
+        <div className="pl-4" style={{ borderLeft: '2px solid color-mix(in srgb, var(--foreground) 18%, transparent)' }}>
           <p
             className="text-lg leading-relaxed"
             style={{

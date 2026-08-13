@@ -80,15 +80,7 @@ export function WelcomeGuide({ firstName }: WelcomeGuideProps) {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -8 }}
           transition={{ duration: 0.35, ease: 'easeOut' }}
-          className="relative mb-10 rounded-[20px] px-4 sm:px-5 py-5"
-          style={{
-            background: 'var(--glass-surface-bg)',
-            backdropFilter: 'blur(42px)',
-            WebkitBackdropFilter: 'blur(42px)',
-            border: '1px solid var(--glass-surface-border)',
-            boxShadow:
-              '0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 var(--border-glass)',
-          }}
+          className="claura-glass relative mb-10 rounded-[20px] px-4 sm:px-5 py-5"
         >
           {/* Dismiss button */}
           <button
@@ -193,7 +185,7 @@ export function WelcomeGuide({ firstName }: WelcomeGuideProps) {
               style={{
                 background: 'transparent',
                 border: '1px solid var(--glass-surface-border)',
-                color: '#E8E0D4',
+                color: 'var(--foreground)',
               }}
             >
               See my signature

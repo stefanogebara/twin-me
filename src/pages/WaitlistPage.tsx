@@ -3,7 +3,6 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Loader2, ArrowLeft } from 'lucide-react';
 import { useAnalytics } from '../contexts/AnalyticsContext';
 import { API_URL } from '@/services/api/apiBase';
-import { ClauraZonedBackground } from '@/components/ClauraZonedBackground';
 
 const WaitlistPage = () => {
   const [searchParams] = useSearchParams();
@@ -53,7 +52,6 @@ const WaitlistPage = () => {
     <div
       className="min-h-screen flex items-center justify-center px-6"
     >
-      <ClauraZonedBackground dark="dusk-train.png" light="chair-hill.png" darkPosition="center 40%" lightPosition="center 45%" />
       <div className="w-full max-w-[420px] text-center">
         {/* Logo */}
         <div className="flex items-center justify-center gap-2 mb-12">

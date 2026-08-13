@@ -221,15 +221,12 @@ export default function ChatImportCard({ cardStyle }: ChatImportCardProps) {
     updateContext(id, { status: 'pending', error: undefined });
   };
 
-  const sectionClass = cardStyle ? `p-5 ${cardStyle}` : 'p-5 rounded-[16px]';
-  const sectionStyle = cardStyle ? {} : {
-    background: 'var(--glass-surface-bg)',
-    backdropFilter: 'blur(42px)',
-    border: '1px solid var(--glass-surface-border)',
-  };
+  // claura-glass replaces the hand-rolled glass (bg + blur + border) when the
+  // parent does not supply its own card style.
+  const sectionClass = cardStyle ? `p-5 ${cardStyle}` : 'claura-glass p-5 rounded-[16px]';
 
   return (
-    <section className={sectionClass} style={sectionStyle}>
+    <section className={sectionClass}>
       {/* Hidden file input — shared across all contexts */}
       <input
         ref={fileRef}
@@ -251,9 +248,9 @@ export default function ChatImportCard({ cardStyle }: ChatImportCardProps) {
         <span
           className="text-[10px] px-2 py-0.5 rounded-full flex-shrink-0"
           style={{
-            background: completedCount > 0 ? `${cfg.color}15` : 'rgba(255,255,255,0.05)',
+            background: completedCount > 0 ? `${cfg.color}15` : 'var(--surface)',
             color: completedCount > 0 ? cfg.color : 'var(--text-muted)',
-            border: `1px solid ${completedCount > 0 ? `${cfg.color}30` : 'rgba(255,255,255,0.08)'}`,
+            border: `1px solid ${completedCount > 0 ? `${cfg.color}30` : 'var(--border)'}`,
           }}
         >
           {completedCount} of {totalCount} voice contexts captured
@@ -342,8 +339,8 @@ export default function ChatImportCard({ cardStyle }: ChatImportCardProps) {
               key={def.id}
               className="flex items-center gap-3 p-3 rounded-[12px] transition-all"
               style={{
-                background: isDone ? `${cfg.color}08` : 'rgba(255,255,255,0.03)',
-                border: `1px solid ${isDone ? `${cfg.color}20` : isError ? 'rgba(239,68,68,0.15)' : 'rgba(255,255,255,0.06)'}`,
+                background: isDone ? `${cfg.color}08` : 'var(--surface)',
+                border: `1px solid ${isDone ? `${cfg.color}20` : isError ? 'color-mix(in srgb, var(--destructive) 15%, transparent)' : 'var(--border-glass)'}`,
                 opacity: isSkipped ? 0.4 : 1,
               }}
             >
@@ -351,7 +348,7 @@ export default function ChatImportCard({ cardStyle }: ChatImportCardProps) {
               <div
                 className="flex-shrink-0 w-8 h-8 rounded-[8px] flex items-center justify-center"
                 style={{
-                  background: isDone ? `${cfg.color}15` : 'rgba(255,255,255,0.05)',
+                  background: isDone ? `${cfg.color}15` : 'var(--surface)',
                 }}
               >
                 {isDone
@@ -424,7 +421,7 @@ export default function ChatImportCard({ cardStyle }: ChatImportCardProps) {
                   <button
                     onClick={() => retryContext(def.id)}
                     className="text-[11px] px-2 py-1 rounded transition-opacity hover:opacity-80"
-                    style={{ color: 'rgba(255,100,100,0.8)', background: 'rgba(239,68,68,0.08)' }}
+                    style={{ color: 'var(--claura-danger-ink)', background: 'color-mix(in srgb, var(--destructive) 8%, transparent)' }}
                   >
                     Retry
                   </button>

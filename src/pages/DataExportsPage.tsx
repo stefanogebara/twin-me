@@ -23,7 +23,6 @@ import { Briefcase, Hash, Instagram, Upload, Trash2, ExternalLink, Loader2, Chec
 import { exportsAPI, type ExportPlatform, type ExportRow } from '@/services/api/exportsAPI';
 import { isAbortError } from '@/services/api/apiBase';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
-import { ClauraZonedBackground } from '@/components/ClauraZonedBackground';
 
 interface PlatformCardConfig {
   id: ExportPlatform;
@@ -361,8 +360,6 @@ export default function DataExportsPage() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
-      {/* Claura zoned photography — train-field, both appearances (/preview/history). */}
-      <ClauraZonedBackground dark="train-field.png" light="train-field.png" darkPosition="center 62%" lightPosition="center 62%" />
       <header className="mb-6">
         <h1
           className="text-[32px] leading-[1.1] tracking-[-0.64px]"

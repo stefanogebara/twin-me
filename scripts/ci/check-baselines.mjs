@@ -2,10 +2,12 @@
 /**
  * CI baseline RATCHET guard — audit 2026-06 M0.5, ratcheted 2026-07 (A2-M2c).
  *
- * Tracks three regression-prone counts that may only stay flat or SHRINK:
+ * Tracks four regression-prone counts that may only stay flat or SHRINK:
  *   - routesWithDirectFrom : files under api/routes that hit Supabase directly (.from('...'))
  *   - eslintErrors         : whole-repo ESLint errors
  *   - tscErrors            : tsc (app) type errors
+ *   - whiteAlphaLiterals   : hardcoded rgba(255,255,255,...) in src/pages + src/components
+ *                            (dark-only colors that break light theme; design-drift audit 2026-08-12)
  *
  * A ratchet, not just a freeze: the guard FAILS on ANY drift from the baseline
  * — both when a metric REGRESSES above it (new violations) AND when a metric
@@ -22,7 +24,7 @@
  * regression (that still requires a real fix, or a hand-edit of baselines.json
  * with justification in the commit — reviewed via the file diff).
  */
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, readdirSync, statSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -87,14 +89,41 @@ function countTscErrors() {
   return { errors: lines.length, sample: lines.slice(0, 25) };
 }
 
+// Hardcoded white-alpha color literals in pages/components. These are the
+// dark-theme-only colors (fills, borders, text) that made light theme
+// unreadable twice (cc8d5683, PR #255) — the design-drift audit found 337
+// of them. New UI must use semantic/--claura-* tokens; this ratchet stops
+// the count creeping back up while legacy pages are cleaned incrementally.
+function countWhiteAlphaLiterals() {
+  const roots = ['src/pages', 'src/components'];
+  // Sanctioned literals: the ambient orb painters are DOCUMENTED as
+  // hardcoded rgba (CLAUDE.md, Background Gradient System).
+  const allow = new Set(['src/components/ClassicBackground.tsx', 'src/components/DayNightBackground.tsx']);
+  let count = 0;
+  const walk = (dir) => {
+    for (const name of readdirSync(dir)) {
+      const full = `${dir}/${name}`;
+      if (statSync(full).isDirectory()) walk(full);
+      else if (/\.(tsx|ts|css)$/.test(name) && !allow.has(full.replace(/\\/g, '/'))) {
+        const matches = readFileSync(full, 'utf8').match(/rgba\(\s*255\s*,\s*255\s*,\s*255/g);
+        count += matches ? matches.length : 0;
+      }
+    }
+  };
+  for (const root of roots) walk(root);
+  return count;
+}
+
 const routes = countRoutesWithFrom();
 const { errors: eslintErrors, offenders } = countEslintErrors();
 const { errors: tscErrors, sample } = countTscErrors();
+const whiteAlphaLiterals = countWhiteAlphaLiterals();
 
 const checks = [
   ['routesWithDirectFrom', routes, baselines.routesWithDirectFrom],
   ['eslintErrors', eslintErrors, baselines.eslintErrors],
   ['tscErrors', tscErrors, baselines.tscErrors],
+  ['whiteAlphaLiterals', whiteAlphaLiterals, baselines.whiteAlphaLiterals ?? whiteAlphaLiterals],
 ];
 
 console.log('\nCI baseline ratchet');

@@ -47,7 +47,7 @@ const ClaudeDesktopSync: React.FC<ClaudeDesktopSyncProps> = ({
         <MessageSquare className="w-5 h-5" style={{ color: '#A78BFA' }} />
         <h2
           className="text-[11px] font-medium tracking-widest uppercase"
-          style={{ color: '#10b77f' }}
+          style={{ color: 'var(--success)' }}
         >
           Claude Desktop Sync
         </h2>
@@ -64,9 +64,9 @@ const ClaudeDesktopSync: React.FC<ClaudeDesktopSyncProps> = ({
       ) : syncStats && syncStats.claudeDesktopConversations > 0 ? (
         <div
           className="flex items-center gap-4 p-3 rounded-xl mb-4"
-          style={{ backgroundColor: 'rgba(16, 185, 129, 0.05)' }}
+          style={{ backgroundColor: 'color-mix(in srgb, var(--success) 5%, transparent)' }}
         >
-          <CheckCircle className="w-5 h-5" style={{ color: '#10B981' }} />
+          <CheckCircle className="w-5 h-5" style={{ color: 'var(--success)' }} />
           <div className="flex-1">
             <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>
               {syncStats.claudeDesktopConversations} conversations imported
@@ -84,10 +84,10 @@ const ClaudeDesktopSync: React.FC<ClaudeDesktopSyncProps> = ({
         <div
           className="flex items-center gap-2 p-3 rounded-xl mb-4 text-sm"
           style={{
-            backgroundColor: syncMessage.type === 'success' ? 'rgba(16, 185, 129, 0.1)' :
-                             syncMessage.type === 'error' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(167, 139, 250, 0.1)',
-            color: syncMessage.type === 'success' ? '#10B981' :
-                   syncMessage.type === 'error' ? '#ef4444' : '#A78BFA'
+            backgroundColor: syncMessage.type === 'success' ? 'color-mix(in srgb, var(--success) 10%, transparent)' :
+                             syncMessage.type === 'error' ? 'color-mix(in srgb, var(--destructive) 10%, transparent)' : 'rgba(167, 139, 250, 0.1)',
+            color: syncMessage.type === 'success' ? 'var(--success)' :
+                   syncMessage.type === 'error' ? 'var(--claura-danger-ink)' : '#A78BFA'
           }}
         >
           {syncMessage.type === 'success' ? <CheckCircle className="w-4 h-4" /> :
@@ -102,7 +102,7 @@ const ClaudeDesktopSync: React.FC<ClaudeDesktopSyncProps> = ({
           disabled={syncing}
           className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl transition-all hover:scale-[1.01]"
           style={{
-            backgroundColor: '#252222',
+            backgroundColor: 'var(--surface-solid)',
             border: '1px solid var(--border)',
             color: 'var(--foreground)',
             fontFamily: "'Inter', sans-serif",
@@ -141,8 +141,8 @@ const ClaudeDesktopSync: React.FC<ClaudeDesktopSyncProps> = ({
                   onClick={handleCopyUserId}
                   className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg transition-colors"
                   style={{
-                    backgroundColor: userIdCopied ? 'rgba(16, 185, 129, 0.1)' : 'transparent',
-                    color: userIdCopied ? '#10B981' : '#8A857D'
+                    backgroundColor: userIdCopied ? 'color-mix(in srgb, var(--success) 10%, transparent)' : 'transparent',
+                    color: userIdCopied ? 'var(--success)' : 'var(--text-muted)'
                   }}
                 >
                   {userIdCopied ? <CheckCircle className="w-3 h-3" /> : <Copy className="w-3 h-3" />}

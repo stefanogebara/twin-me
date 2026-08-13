@@ -62,14 +62,8 @@ const TemporalComparison: React.FC = () => {
       </h2>
 
       <div
-        className="rounded-[20px] px-5 py-5"
-        style={{
-          background: 'var(--surface)',
-          backdropFilter: 'blur(42px)',
-          WebkitBackdropFilter: 'blur(42px)',
-          border: '1px solid var(--glass-surface-border)',
-          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06), 0 4px 16px rgba(0,0,0,0.15)',
-        }}
+        className="claura-glass px-5 py-5"
+        style={{ borderRadius: 20 }}
       >
         <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_1fr] gap-5 sm:gap-4 items-stretch">
           {/* THEN */}

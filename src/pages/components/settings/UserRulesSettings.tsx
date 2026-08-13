@@ -160,7 +160,7 @@ const UserRulesSettings: React.FC = () => {
       </div>
 
       {error && (
-        <p className="text-[11px] mt-2" style={{ color: 'rgba(239,68,68,0.7)' }}>{error}</p>
+        <p className="text-[11px] mt-2" style={{ color: 'color-mix(in srgb, var(--destructive) 70%, transparent)' }}>{error}</p>
       )}
 
       <p className="text-[10px] mt-2" style={{ color: 'var(--text-secondary)' }}>
