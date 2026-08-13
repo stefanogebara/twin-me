@@ -118,12 +118,16 @@
  * candidate must be measured against a same-session control arm, and a
  * claimed win should survive at least two separate days.
  *
+ * [-> 2026-08-13: ALL THREE EXAMPLES IN THE PARAGRAPH BELOW WERE CHECKED
+ *  AGAINST THE PLATFORM APIs AND ALL THREE ARE WRONG. IN EVERY CASE THE LOG
+ *  WAS WRONG, NOT THE USER, SO THE CONCLUSION DOES NOT HOLD. The paragraph is
+ *  kept verbatim as the record of what was believed; see the correction that
+ *  follows it. Do not cite this paragraph.]
+ *
  * WHY THE TEMPORAL ITEMS MAY BE PARTLY UNWINNABLE: for several of them the
  * platform data genuinely disagrees with the user's self-report — they call
  * a calendar "packed — commitments most days" that logs 33 events across 8
- * of 15 days [-> 2026-08-13: THE CALENDAR NUMBERS IN THIS SENTENCE ARE WRONG
- * AND THE INFERENCE FROM THEM DOES NOT HOLD. See the correction below];
- * they report "many small scattered things" while GitHub shows
+ * of 15 days; they report "many small scattered things" while GitHub shows
  * concentrated work in one repo; they report "entertainment and unwinding"
  * against 8 YouTube events tagged sports/society. Better grounding cannot
  * close a gap between felt experience and logged behavior. Before investing
@@ -131,11 +135,14 @@
  * twin fidelity or measure that gap — a twin that answered from the logs
  * would be "wrong" on this battery while being more factually accurate.
  *
- * 2026-08-13 CALENDAR CORRECTION — the calendar clause above was measured
- * wrong, and the conclusion drawn from it ("the ingested evidence genuinely
- * understates the calendar") is false. "33 events across 8 of 15 days"
- * counted MEMORY ROWS, not events. Measured against the Google Calendar API
- * directly for user 167c27b5, the 14 days ending 2026-08-12:
+ * 2026-08-13 CORRECTION — all three clauses checked against their platform
+ * APIs for user 167c27b5. All three are wrong, each in a different way.
+ *
+ * ── (1) CALENDAR ──
+ * The calendar clause was measured wrong, and the conclusion drawn from it
+ * ("the ingested evidence genuinely understates the calendar") is false.
+ * "33 events across 8 of 15 days" counted MEMORY ROWS, not events. Measured
+ * against the Google Calendar API directly, the 14 days ending 2026-08-12:
  *
  *   Google, all 6 calendars       16 events on  9 distinct days
  *   Google, owned calendars only  14 events on  9 distinct days
@@ -168,13 +175,79 @@
  *       Vercel), so a 07:45 America/Sao_Paulo appointment is stored as
  *       "10:45 AM" and the user's day ends at 21:00 local.
  *
- * METHOD LESSON: "the platform data disagrees with the user" is a claim about
- * the PLATFORM, so it must be checked against the platform's API, never
- * against our own ingested rows. Counting memory rows and calling them events
- * conflated a bug in our writer with a gap in the user's self-knowledge, and
- * pointed the next round of work at retrieval when the defect was upstream of
- * it. Applies equally to the GitHub and YouTube clauses above, which have NOT
- * been re-checked against their APIs and should not be cited until they are.
+ * ── (2) GITHUB ──
+ * "GitHub shows concentrated work in one repo" is false. The events API for
+ * login stefanogebara returned 291 events across ELEVEN repos:
+ *
+ *    93  twin-me            36  cockpit-vendas      3  midia-paga
+ *    63  restaurant-ai-mcp  31  squad-checkout      2  racha
+ *    55  roca                4  affaan-m/ECC        2  brandbook-builder
+ *                                                   1  pauta-ai
+ *                                                   1  squad-partner-hub
+ *
+ * The top repo is 32% of activity and five repos have 30+ events each.
+ * Independently, /user/repos shows 8 distinct repos with pushed_at inside the
+ * 15-day window. That IS "many small scattered things" — the user's
+ * self-report was accurate and the log's characterisation was the error. Our
+ * own ingested rows never supported the claim either: they name branches
+ * created in brandbook-builder, squad-checkout AND twin-me.
+ *
+ * Caveats on those numbers: the events API caps at 300 and only reached back
+ * to 2026-08-04, so this covers ~9 of the 15 days (which understates spread,
+ * not overstates it), and the per-repo COMMIT tally could not be read from
+ * the event payloads — event counts only.
+ *
+ * ── (3) YOUTUBE ──
+ * "8 YouTube events tagged sports/society" rests on three broken links.
+ *
+ *   (i)   There is NO watch data at all. activities?mine=true returns 0 items
+ *         and 0 of type "watch" — Google removed watch history from the Data
+ *         API in 2016, so the "watch activity" branch in
+ *         observationFetchers/youtube.js is a dead path. A self-report about
+ *         WATCHING was being scored against something that is not watching.
+ *   (ii)  The tags come from the LIKED-VIDEOS list, which is a lifetime
+ *         archive, not recent behaviour: video publish dates run 2014-2025 and
+ *         cluster in 2016-2021. The API returns no like timestamps, so the
+ *         "Recently liked ..." observation label is an assumption the data
+ *         does not support.
+ *   (iii) topicCategories are Wikipedia SUBJECT tags, not mode-of-consumption.
+ *         "Cortes do Casimito" — a Brazilian comedy reaction channel — tags as
+ *         "Association football, Sport". A football-reaction comedy clip IS
+ *         entertainment and unwinding. The two descriptions were never in
+ *         conflict.
+ *
+ * The full 46-video tally also leans the user's way, not the log's: Lifestyle
+ * 11, Music 7, Pop music 6, Sport 6, Association football 5, Electronic music
+ * 5, Action game 5, Video game culture 5, Knowledge 4, Technology 4, Society
+ * 2. The ingested "Knowledge (4), Sport (3), Technology (2)" row is computed
+ * from only the top 15 (the fetcher's maxResults). Subscriptions corroborate
+ * the user: CazéTV, Cortes do Casimito, Neymar Jr, Ibai, IShowSpeed, Sidemen.
+ *
+ * ── METHOD LESSON ──
+ * "The platform data disagrees with the user" is a claim about the PLATFORM,
+ * so it must be checked against the platform's API, never against our own
+ * ingested rows. Every one of the three clauses failed at that step: calendar
+ * counted memory rows as events, GitHub read a claim our own rows already
+ * contradicted, YouTube scored a watching self-report against a lifetime like
+ * list via a dead endpoint. Each conflated a bug in our writer with a gap in
+ * the user's self-knowledge, and pointed the next round of work at retrieval
+ * when the defect was upstream of it.
+ *
+ * Corollary for the battery: before calling a temporal item "unwinnable",
+ * verify the ground truth against the source API. On this evidence the items
+ * were gradeable and the twin was answering from a corrupted log.
+ *
+ * OPEN, NOT FIXED HERE — a dedup-defeat bug family found while checking:
+ * a single changing digit makes the same fact land repeatedly, and some of it
+ * is false. On 2026-08-02 the stream holds three mutually contradictory rows:
+ * "Current GitHub contribution streak: 22 consecutive days", "Committed code
+ * on 2 days in the last 30 days" and "Committed code on 1 day in the last 30
+ * days". "GitHub rhythm: weekday coder — peak day is Monday (1196 / 1202 /
+ * 1208 / 1215 contributions)" is four rows of one fact; "Subscribed to 131
+ * YouTube channels, including: ..." is four rows differing only in channel
+ * order. Also unsupported: "Working on 17 public, 13 private GitHub repos,
+ * primarily focused on data science / ML" — the same sentence reports
+ * JavaScript 53% / TypeScript 43%.
  *
  * DO NOT re-cite the calendar temporal items from waves before 2026-08-13 —
  * their ground truth was contaminated by (a). Re-measure once dated
