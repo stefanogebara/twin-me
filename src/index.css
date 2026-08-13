@@ -45,6 +45,11 @@
 
     /* Glass Surface (dark mode) */
     --glass-surface-bg: rgba(255, 255, 255, 0.06);
+    /* Subtle variant for hover fills. Was referenced by BackButton and
+       StandardButton ghost hover with NO definition and NO fallback, so
+       those hover states silently rendered nothing (phantom-token gate:
+       tests/frontend/phantomTokens.test.ts). */
+    --glass-surface-bg-subtle: rgba(255, 255, 255, 0.04);
     --glass-surface-border: rgba(255, 255, 255, 0.10);
 
     /* Border Colors */
@@ -113,6 +118,7 @@
     --text-placeholder: #a8a29e;
     --accent-streak: #8a6a3c;
     --glass-surface-bg: rgba(255, 253, 250, 0.55);
+    --glass-surface-bg-subtle: rgba(28, 25, 23, 0.04);
     --glass-surface-border: rgba(28, 25, 23, 0.12);
     --border: rgba(28, 25, 23, 0.12);
     --border-glass: rgba(28, 25, 23, 0.08);

@@ -103,7 +103,9 @@ const WhatsAppConnect: React.FC = () => {
               className="flex-1 text-sm px-3 py-2 rounded-[6px] bg-transparent focus:outline-none"
               style={{
                 backgroundColor: 'var(--surface)',
-                border: (wa.error || phoneFormatError) ? '1px solid rgba(239,68,68,0.5)' : '1px solid rgba(255,255,255,0.08)',
+                border: (wa.error || phoneFormatError)
+                  ? '1px solid color-mix(in srgb, var(--destructive) 50%, transparent)'
+                  : '1px solid var(--border)',
                 color: 'var(--foreground)',
               }}
               onKeyDown={(e) => { if (e.key === 'Enter' && !wa.busy) submitPhone(); }}
@@ -112,13 +114,13 @@ const WhatsAppConnect: React.FC = () => {
               onClick={submitPhone}
               disabled={wa.busy || !phoneInput.trim()}
               className="text-[12px] px-3 py-2 rounded-[6px] transition-opacity hover:opacity-80 disabled:opacity-40 flex items-center gap-1.5"
-              style={{ backgroundColor: 'var(--button-bg-dark, #252222)', color: 'var(--foreground)' }}
+              style={{ backgroundColor: 'var(--secondary)', color: 'var(--secondary-foreground)' }}
             >
               {wa.busy ? (<><Loader2 className="w-3 h-3 animate-spin" />Sending...</>) : 'Send code'}
             </button>
           </div>
           {(wa.error || phoneFormatError) && (
-            <p className="text-[11px]" style={{ color: 'rgba(239,68,68,0.8)' }}>{wa.error || phoneFormatError}</p>
+            <p className="text-[11px]" style={{ color: 'var(--destructive)' }}>{wa.error || phoneFormatError}</p>
           )}
           <p className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
             Enter your number in international format. We will send a code to confirm it is yours.
