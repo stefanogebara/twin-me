@@ -224,7 +224,7 @@ const TelegramConnect: React.FC = () => {
             onClick={generateCode}
             disabled={!!linkCode}
             className="text-[12px] px-3 py-1.5 rounded-[6px] transition-opacity hover:opacity-80 disabled:opacity-40"
-            style={{ backgroundColor: 'var(--button-bg-dark, #252222)', color: 'var(--foreground)' }}
+            style={{ backgroundColor: 'var(--secondary)', color: 'var(--secondary-foreground)' }}
           >
             Connect
           </button>
@@ -692,8 +692,8 @@ const Settings = () => {
             ) : (
               <button
                 onClick={() => navigate('/pricing')}
-                className="text-[12px] px-3 py-1.5 rounded-[100px] font-medium transition-opacity hover:opacity-80"
-                style={{ background: 'rgba(196,162,101,0.15)', color: '#C4A265' }}
+                className="text-[12px] px-3 py-1.5 rounded-[12px] font-medium transition-opacity hover:opacity-80"
+                style={{ background: 'var(--claura-bone)', color: 'var(--claura-bone-ink)' }}
               >
                 Upgrade
               </button>
@@ -822,14 +822,14 @@ const Settings = () => {
         {/* Danger zone — subtle red border, no heavy card */}
         <div
           className="mt-4 p-4 rounded-[8px]"
-          style={{ border: '1px solid rgba(255,100,100,0.1)' }}
+          style={{ border: '1px solid color-mix(in srgb, var(--destructive) 12%, transparent)' }}
         >
           <SettingsRow label="Delete Account">
             {!showDeleteConfirm ? (
               <button
                 onClick={() => setShowDeleteConfirm(true)}
                 className="text-[12px] transition-opacity hover:opacity-60"
-                style={{ color: '#e05a3e' }}
+                style={{ color: 'var(--destructive)' }}
               >
                 Delete everything
               </button>
@@ -842,13 +842,13 @@ const Settings = () => {
                   onChange={(e) => setDeleteConfirmText(e.target.value)}
                   aria-label="Type DELETE to confirm account deletion"
                   className="text-sm px-2 py-1 rounded w-24 sm:w-28 bg-transparent focus:outline-none"
-                  style={{ border: '1px solid rgba(193,69,44,0.3)', color: '#e05a3e' }}
+                  style={{ border: '1px solid color-mix(in srgb, var(--destructive) 30%, transparent)', color: 'var(--destructive)' }}
                 />
                 <button
                   onClick={handleDeleteAccount}
                   disabled={deleteConfirmText !== 'DELETE' || deleting}
                   className="text-[12px] px-3 py-1 rounded transition-opacity disabled:opacity-30 flex-shrink-0"
-                  style={{ backgroundColor: 'rgba(193,69,44,0.15)', color: '#e05a3e' }}
+                  style={{ backgroundColor: 'color-mix(in srgb, var(--destructive) 15%, transparent)', color: 'var(--destructive)' }}
                 >
                   {deleting ? '...' : 'Confirm'}
                 </button>

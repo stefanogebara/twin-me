@@ -458,11 +458,14 @@ const IdentityPage: React.FC = () => {
       <div className="max-w-2xl mx-auto px-6 py-16">
         <div
           className="flex flex-col items-start gap-3 px-5 py-4 rounded-[20px]"
-          style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}
+          style={{
+            background: 'color-mix(in srgb, var(--destructive) 8%, transparent)',
+            border: '1px solid color-mix(in srgb, var(--destructive) 20%, transparent)',
+          }}
         >
           <div className="flex items-center gap-3">
-            <AlertCircle className="w-5 h-5 flex-shrink-0" style={{ color: '#EF4444' }} />
-            <span className="text-sm font-medium" style={{ color: '#EF4444' }}>
+            <AlertCircle className="w-5 h-5 flex-shrink-0" style={{ color: 'var(--destructive)' }} />
+            <span className="text-sm font-medium" style={{ color: 'var(--destructive)' }}>
               {errorMsg}
             </span>
           </div>
@@ -473,8 +476,8 @@ const IdentityPage: React.FC = () => {
               if (identityError) refetchIdentity();
               if (soulError) refetchSoul();
             }}
-            className="text-sm font-medium px-4 py-2 rounded-[100px] transition-all duration-150 ease-out hover:opacity-80 active:scale-[0.97]"
-            style={{ backgroundColor: 'var(--button-bg-dark, #252222)', color: 'var(--foreground)' }}
+            className="text-sm font-medium px-4 py-2 rounded-[12px] transition-all duration-150 ease-out hover:opacity-80 active:scale-[0.97]"
+            style={{ backgroundColor: 'var(--secondary)', color: 'var(--secondary-foreground)' }}
           >
             Try again
           </button>

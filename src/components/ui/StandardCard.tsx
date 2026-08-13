@@ -120,7 +120,7 @@ export const CardFooter: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({
   return (
     <div
       className={cn('flex items-center justify-between pt-4 mt-4', className)}
-      style={{ borderTop: '1px solid var(--card-separator, rgba(50,47,47,0.05))' }}
+      style={{ borderTop: '1px solid var(--border-glass)' }}
       {...props}
     >
       {children}
