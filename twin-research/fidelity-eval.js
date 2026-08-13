@@ -237,17 +237,43 @@
  * verify the ground truth against the source API. On this evidence the items
  * were gradeable and the twin was answering from a corrupted log.
  *
- * OPEN, NOT FIXED HERE — a dedup-defeat bug family found while checking:
- * a single changing digit makes the same fact land repeatedly, and some of it
- * is false. On 2026-08-02 the stream holds three mutually contradictory rows:
+ * DEDUP-DEFEAT BUG FAMILY — found while checking the above, FIXED 2026-08-13.
+ * A single changing digit made the same fact land repeatedly, and some of it
+ * was false. On 2026-08-02 the stream held three mutually contradictory rows:
  * "Current GitHub contribution streak: 22 consecutive days", "Committed code
  * on 2 days in the last 30 days" and "Committed code on 1 day in the last 30
- * days". "GitHub rhythm: weekday coder — peak day is Monday (1196 / 1202 /
- * 1208 / 1215 contributions)" is four rows of one fact; "Subscribed to 131
- * YouTube channels, including: ..." is four rows differing only in channel
- * order. Also unsupported: "Working on 17 public, 13 private GitHub repos,
+ * days".
+ *
+ * Cause: snapshotMetrics.js already had the machinery — a registry of
+ * {rx, like} templates that classifies a rolling aggregate and refreshes the
+ * prior row IN PLACE instead of inserting another. These GitHub and YouTube
+ * aggregates were simply never registered, so the digit-sensitive content hash
+ * read every recomputation as a brand-new fact. One entry that WAS registered,
+ * "Committed code on N days", used `\d+ days` and so could not classify the
+ * singular "1 day" the fetcher emits when the count is one — which is exactly
+ * how that contradiction got in.
+ *
+ * Measured over this user's 151 GitHub+YouTube platform_data rows from the
+ * same 15 days, the added entries retire 75 of them — half the stream was one
+ * fact repeated:
+ *
+ *   27x  Your GitHub language distribution: JavaScript (53%/54%/55%/56%)...
+ *   21x  GitHub rhythm: ... peak day is Monday (1196 / 1202 / 1208 / 1215)
+ *   15x  Current GitHub contribution streak: 18 / 19 / 21 / 22 / 23 days
+ *    7x  Most active on GitHub on Tuesdays / Thursdays / Sundays / Fridays
+ *    4x  Subscribed to 131 YouTube channels, including: ... (list reordered)
+ *
+ * Note the 4th group: those rows do not merely repeat, they contradict each
+ * other and the "peak day is Monday" row above them. And these were not
+ * low-value rows sitting harmlessly in the tail — several carried
+ * LLM-assigned importance 6-7, i.e. a stale self-contradictory aggregate was
+ * outranking real events in retrieval. Registering them clamps the whole class
+ * to SNAPSHOT_METRIC_SCORE (4), below the Tier 2 archival ceiling.
+ *
+ * Still open, not a dedup bug: "Working on 17 public, 13 private GitHub repos,
  * primarily focused on data science / ML" — the same sentence reports
- * JavaScript 53% / TypeScript 43%.
+ * JavaScript 53% / TypeScript 43%, so the projectType classifier looks wrong.
+ * Also "Opened PR in twin-me: """ stores an empty PR title.
  *
  * DO NOT re-cite the calendar temporal items from waves before 2026-08-13 —
  * their ground truth was contaminated by (a). Re-measure once dated
