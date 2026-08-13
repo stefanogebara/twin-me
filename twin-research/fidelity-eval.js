@@ -440,11 +440,30 @@
  *   deciding whether an unmeasured trait belongs on a personality radar at all
  *   is a product question this does not answer.
  *
- *   OPEN — Whoop ingestion is failing entirely: "No mapping found for whoop"
- *   then Nango 404, while platform_connections still reads status=connected.
- *   Last successful sync 2026-08-02. Eleven days of missing recovery, sleep
- *   and strain while the UI claims health. Likely needs a reconnect, but the
- *   health path plainly does not notice a token it cannot obtain.
+ *   FIXED (the code half) — Whoop ingestion silently dead since 2026-08-02.
+ *   Not a token expiry: the direct-token branch got a tagged throw in Phase 2
+ *   (2026-06-08), but the NANGO branch never did. It reads
+ *   `result.success ? records : []`, so a 404 from a missing connection
+ *   mapping became an empty array and the run was recorded as count=0 /
+ *   status=ok — eleven days of missing recovery, sleep and strain while the UI
+ *   read "connected". whoop.js:151 already carried a diagnostic log reading
+ *   "cron returns count=0 with status=ok — surface why"; this is the why.
+ *   Now: both endpoints failing throws tagged (401/403/404 -> AUTH_FAILED so
+ *   the orchestrator writes platform_connections.status='auth_failed' and the
+ *   Reconnect CTA appears; anything else -> TOKEN_UNAVAILABLE, because a
+ *   transient 500 must not send someone to a reconnect screen they do not
+ *   need). One endpoint failing is not evidence the connection is broken, and
+ *   success-with-zero-records stays quiet — tests pin both.
+ *
+ *   FIXED — getConnectionId filtered on status='active' and logged "No mapping
+ *   found" for any miss, so a mapping flagged needs_reconnect was
+ *   indistinguishable from never having connected. That is why this read as a
+ *   fresh install rather than a broken connection. It now selects the status
+ *   and reports the three cases separately.
+ *
+ *   STILL REQUIRES THE USER — none of the above restores the connection. The
+ *   Whoop authorization itself has to be re-granted by the account owner;
+ *   what changed is that the failure is now loud instead of silent.
  *
  *   SOUND — Gmail profile/messages, YouTube subscriptions, Spotify
  *   recently-played / top-artists / shows / albums all match what the code
@@ -453,6 +472,15 @@
  *   could not be exercised because of the token failure. outlook.js makes no
  *   API calls (it reads stored rows); discord.js and instagram.js are not
  *   connected for this user, so neither was checked against a live payload.
+ *
+ *   FIXED — the dead YouTube activities call. youtube/v3/activities lost watch
+ *   history in 2016; the endpoint still answers 200, just never with
+ *   snippet.type === 'watch'. The filter looking for it matched nothing, so
+ *   three observations behind it — recently watched, weekly volume,
+ *   time-of-day peak — were unreachable while the request ran every ingestion
+ *   cycle. Removed; watch data reaches us through the browser extension. A
+ *   test pins the absence, because a dead call that still returns 200 is easy
+ *   to reintroduce.
  *
  * WHAT TIES ALL OF THESE TOGETHER: every failure was invisible by
  * construction — bare catches annotated "non-critical", and a connection row
