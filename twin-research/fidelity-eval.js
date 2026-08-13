@@ -270,10 +270,34 @@
  * outranking real events in retrieval. Registering them clamps the whole class
  * to SNAPSHOT_METRIC_SCORE (4), below the Tier 2 archival ceiling.
  *
- * Still open, not a dedup bug: "Working on 17 public, 13 private GitHub repos,
- * primarily focused on data science / ML" — the same sentence reports
- * JavaScript 53% / TypeScript 43%, so the projectType classifier looks wrong.
- * Also "Opened PR in twin-me: """ stores an empty PR title.
+ * PROJECT-TYPE CLASSIFIER — also wrong, FIXED 2026-08-13. "Working on 17
+ * public, 13 private GitHub repos, primarily focused on data science / ML"
+ * described an account whose repos are TypeScript 16 / JavaScript 10 /
+ * Python 1. Replaying the old classifier over the live /user/repos response
+ * shows all seven of its "data science / ML" hits came from one token, `ai`:
+ *
+ *   restaurant-ai-mcp, pauta-ai, ai-olympics, ai-flight-agent,
+ *   condoos ("AI-powered"), instagram-dashboard ("Inner AI"),
+ *   gauntlet-fixture-hello ("AI Olympics")
+ *
+ * Nothing matched pytorch, pandas, sklearn, kaggle or notebook. In 2026 an
+ * "ai" in a repo name says the product CALLS a model, not that its author
+ * trains one — so the label came out backwards on the strongest evidence
+ * available, and the twin then held a flatly false belief about the user's
+ * working life.
+ *
+ * Rewritten as observationFetchers/githubProjectType.js: `ai` and `data` are
+ * gone from the ML signals, each repo's primary LANGUAGE votes alongside its
+ * name and description (text 2, language 1), and the classifier returns null
+ * — caller falls back to "Active on GitHub with N repositories" — when the
+ * leader is under a floor or fails to clear the runner-up by 1.5x. On the same
+ * live response it now returns "web development".
+ *
+ * The shape of this bug is worth keeping: a token that was diagnostic when the
+ * list was written became product vocabulary later, and nothing re-checked it.
+ * Keyword classifiers rot as language drifts, and this one had no test.
+ *
+ * Still open: "Opened PR in twin-me: """ stores an empty PR title.
  *
  * DO NOT re-cite the calendar temporal items from waves before 2026-08-13 —
  * their ground truth was contaminated by (a). Re-measure once dated

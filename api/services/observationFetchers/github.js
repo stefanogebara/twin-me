@@ -9,6 +9,7 @@ import { decryptToken } from '../encryption.js';
 import { createLogger } from '../logger.js';
 import { sanitizeExternal, getSupabase } from '../observationUtils.js';
 import { aggregateLanguages } from './githubLanguageAggregator.js';
+import { detectGitHubProjectType } from './githubProjectType.js';
 
 /**
  * Decrypt a stored PAT, with a one-time fallback for legacy plaintext rows
@@ -32,30 +33,6 @@ function readPATFromConfig(stored) {
 }
 
 const log = createLogger('ObservationIngestion');
-
-/**
- * Classify a list of repo names/topics into broad project type categories.
- * Returns the dominant category label or null if none match.
- */
-function detectGitHubProjectType(repoNames) {
-  const patterns = {
-    'web development':   /\b(web|frontend|backend|api|server|client|react|vue|angular|next|express|fastapi|django|rails|node)\b/i,
-    'mobile':            /\b(mobile|android|ios|react.native|flutter|swift|kotlin|expo)\b/i,
-    'data science / ML': /\b(ml|ai|data|model|notebook|pytorch|tensorflow|sklearn|pandas|kaggle|analysis|predict)\b/i,
-    'DevOps / infra':    /\b(docker|k8s|kubernetes|terraform|ansible|infra|deploy|ci|cd|helm|aws|gcp|azure|ops)\b/i,
-    'CLI / tooling':     /\b(cli|tool|script|util|helper|gen|generator|automation|bot|plugin)\b/i,
-    'game dev':          /\b(game|unity|godot|unreal|engine|shader|rpg|fps)\b/i,
-    'open source libs':  /\b(lib|library|sdk|framework|package|npm|pypi|crate|gem)\b/i,
-  };
-  const counts = {};
-  for (const name of repoNames) {
-    for (const [label, re] of Object.entries(patterns)) {
-      if (re.test(name)) counts[label] = (counts[label] || 0) + 1;
-    }
-  }
-  const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
-  return sorted.length > 0 ? sorted[0][0] : null;
-}
 
 /**
  * Mark a GitHub connection as needing re-authentication in platform_connections.
@@ -529,11 +506,13 @@ async function fetchGitHubObservations(userId) {
       });
     }
 
-    // Project type classification
-    const repoNamesAndDescriptions = repos.map(r =>
-      `${r.name || ''} ${r.description || ''}`
-    );
-    const projectType = detectGitHubProjectType(repoNamesAndDescriptions);
+    // Project type classification. The repo objects go in whole, not
+    // pre-joined name+description strings: the classifier weighs each repo's
+    // primary LANGUAGE too, which is what stops an account full of
+    // "…-ai" TypeScript products reading as data science (see
+    // githubProjectType.js). Returns null on thin or split evidence, and the
+    // else-branch below then says nothing about focus.
+    const projectType = detectGitHubProjectType(repos);
     const publicCount = repos.filter(r => !r.private).length;
     const privateCount = repos.filter(r => r.private).length;
 
