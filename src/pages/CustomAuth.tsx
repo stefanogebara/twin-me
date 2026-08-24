@@ -564,7 +564,7 @@ For privacy concerns: privacy@twinme.me`
         >
           New here?{' '}
           <button
-            onClick={() => navigate('/discover')}
+            onClick={() => navigate('/')}
             className="transition-opacity hover:opacity-70"
             style={{ color: 'var(--foreground)' }}
           >

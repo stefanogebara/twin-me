@@ -6,6 +6,7 @@ import { useAnalytics } from '../contexts/AnalyticsContext';
 
 import { InlineEvidence } from '../components/landing/InlineEvidence';
 import ClauraHero from '../components/landing/ClauraHero';
+import { LandingPricing, LandingFAQ } from '../components/landing/LandingPricingFAQ';
 import { ClassicBackground } from '../components/ClassicBackground';
 import { useLenis } from '../hooks/useLenis';
 import {
@@ -84,6 +85,7 @@ const Index = () => {
             {[
               { id: 'features', label: 'Features' },
               { id: 'how-it-works', label: 'How it works' },
+              { id: 'pricing', label: 'Pricing' },
             ].map(({ id, label }) => (
               <a
                 key={id}
@@ -122,7 +124,7 @@ const Index = () => {
       {/* Mobile menu dropdown */}
       {mobileMenuOpen && (
         <div className="md:hidden mt-2 rounded-2xl bg-[rgba(20,20,20,0.95)] backdrop-blur-[19.65px] border border-white/[0.08] py-3 px-5 flex flex-col gap-3">
-          {['features', 'how-it-works'].map((section) => (
+          {['features', 'how-it-works', 'pricing', 'faq'].map((section) => (
             <a
               key={section}
               href={`#${section}`}
@@ -133,7 +135,7 @@ const Index = () => {
                 document.getElementById(section)?.scrollIntoView({ behavior: 'smooth' });
               }}
             >
-              {section === 'how-it-works' ? 'How it works' : 'Features'}
+              {{ 'features': 'Features', 'how-it-works': 'How it works', 'pricing': 'Pricing', 'faq': 'FAQ' }[section]}
             </a>
           ))}
         </div>
@@ -365,6 +367,12 @@ const Index = () => {
         </div>
       </section>
 
+      {/* ────────────── PRICING ────────────── */}
+      <LandingPricing onNavigate={navigate} />
+
+      {/* ────────────── FAQ ────────────── */}
+      <LandingFAQ onNavigate={navigate} />
+
       {/* ────────────── FINAL CTA ────────────── */}
       <section className="px-6 lg:px-16 py-24 relative">
         <div className="max-w-[720px] mx-auto text-center flex flex-col items-center gap-6">
@@ -401,6 +409,8 @@ const Index = () => {
               <ul className="space-y-2.5 font-sans text-sm font-medium text-[var(--text-secondary)] leading-[1.65]">
                 <li><a href="/#features" className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">Features</a></li>
                 <li><a href="/#how-it-works" className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">How it works</a></li>
+                <li><a href="/#pricing" className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">Pricing</a></li>
+                <li><a href="/#faq" className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">FAQ</a></li>
                 <li><a href="/get-started" className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">Connect your data</a></li>
                 <li><a href="/soul-signature" className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">Soul Signature</a></li>
               </ul>
