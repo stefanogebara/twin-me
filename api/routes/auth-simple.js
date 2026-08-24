@@ -937,7 +937,14 @@ router.get('/magic-link/verify', async (req, res) => {
           log.warn('Invite redeem failed (non-blocking)', { error: err?.message })
         );
       }
-      sendWelcomeEmail({ toEmail: user.email, firstName: user.first_name }).catch(() => {});
+      // Awaited, not fire-and-forget: on Vercel the invocation freezes the
+      // moment the response flushes, so a detached send never runs at all
+      // (same root cause as the 2026-08-24 magic-link outage). One send costs
+      // <1s on a once-per-account path. sendWelcomeEmail resolves false on
+      // failure rather than throwing — a missing welcome email must not cost
+      // the user their session, so we log and continue.
+      const welcomed = await sendWelcomeEmail({ toEmail: user.email, firstName: user.first_name });
+      if (!welcomed) log.warn('Welcome email did not send', { userId: user.id });
     } else {
       // Bug H11 fix (audit-2026-05-12): existing users who previously signed
       // in via Google OAuth keep oauth_provider='google' forever, so /settings
@@ -1392,8 +1399,11 @@ router.get('/oauth/callback', async (req, res) => {
         })
         .catch(err => log.error('Enrichment failed (non-blocking)', { error: err }));
 
-      // Send welcome email (non-blocking)
-      sendWelcomeEmail({ toEmail: userData.email, firstName: userData.firstName }).catch(() => {});
+      // Awaited: a detached send is frozen by Vercel once the response
+      // flushes, so it never runs (see the magic-link outage, 2026-08-24).
+      // Failure is logged, never fatal — signup completes either way.
+      const welcomed = await sendWelcomeEmail({ toEmail: userData.email, firstName: userData.firstName });
+      if (!welcomed) log.warn('Welcome email did not send', { userId: user.id });
     }
 
     // Handle redirect for connector OAuth flow
@@ -1673,8 +1683,11 @@ router.post('/oauth/callback', async (req, res) => {
           })
           .catch(err => log.error('Enrichment failed (non-blocking)', { error: err }));
 
-        // Send welcome email (non-blocking)
-        sendWelcomeEmail({ toEmail: userData.email, firstName: userData.firstName }).catch(() => {});
+        // Awaited: a detached send is frozen by Vercel once the response
+        // flushes, so it never runs (see the magic-link outage, 2026-08-24).
+        // Failure is logged, never fatal — signup completes either way.
+        const welcomed = await sendWelcomeEmail({ toEmail: userData.email, firstName: userData.firstName });
+        if (!welcomed) log.warn('Welcome email did not send', { userId: user.id });
       } else {
         log.info('Existing user found', { userId: existingUser.id });
         user = existingUser;

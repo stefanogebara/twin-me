@@ -82,13 +82,22 @@ router.all('/', async (req, res) => {
         // Generate the briefing (may call LLM for users with enough data)
         const briefing = await generateMorningBriefing(user.id);
 
-        // Send the email
-        await sendMorningBriefing({
+        // Send the email. Resolves false on failure rather than throwing
+        // (Resend reports API errors through { data, error }), so the
+        // cooldown record below must branch on the boolean — recording a
+        // send that never happened suppresses tomorrow's briefing too.
+        const sentOk = await sendMorningBriefing({
           toEmail: user.email,
           firstName: user.first_name || 'there',
           userId: user.id,
           briefing,
         });
+
+        if (!sentOk) {
+          log.error('Morning briefing did not send — no cooldown recorded', { userId: user.id });
+          errors++;
+          continue;
+        }
 
         // Record for cooldown tracking
         await recordBriefingEmailSent(user.id);
