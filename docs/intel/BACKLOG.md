@@ -55,6 +55,62 @@ condição de parada original continua valendo e fica **mais provável**: a
 evidência gravada é *feature* (`feature_name` + valor normalizado), não evento
 nomeável.
 
+**Fundidos aqui em 2026-08-24** (trava da rubrica: dois itens que apontam pro mesmo
+movimento viram um, com o score do maior — 13/15 prevalece):
+
+- **MemFuse** — [arXiv 2608.18704](https://arxiv.org/abs/2608.18704), 19/ago. Guarda cada
+  observação como **evento atômico imutável** que retém a fonte, e agrupa eventos
+  relacionados em `FusedNodes` com sumário e **back-pointers**, ligados por arestas
+  tipadas Belong / Causal / Semantic. A recuperação projeta o nó fundido de volta nos
+  eventos atômicos — é isso que produz a rastreabilidade.
+  **O que acrescenta a este spike:** nomeia a peça que falta. A camada de cluster com
+  sumário e back-pointer é o mecanismo que transforma agregado difuso em evento nomeável,
+  ou seja, ataca diretamente o `Parar se` já escrito aqui. E a leitura do schema **confirma
+  que esse `Parar se` é provável**: `behavioral_evidence` guarda `feature_name` +
+  `feature_value DECIMAL(5,4)` normalizado, não evento.
+  **Traz também:** taxonomia de seis categorias diagnósticas (Causal, Fusion, User Agg.,
+  User Query, Conflict, Perspective) com distratores adversariais — material barato para
+  estender `api/config/fidelityBattery.js`, que é o portão de merge.
+  **E traz um aviso que este spike deve absorver antes de rodar:** o MemFuse **perde para
+  o contexto longo puro em 2 dos 3 backbones** (GPT-4.1 Mini 0,4574 vs 0,5223; Gemini
+  0,4698 vs 0,5201), ganhando só no Qwen3-30B. Isso ecoa o que este repo já mediu ao matar
+  o temporal spine, e reforça que a métrica de sucesso aqui tem de ser **auditabilidade
+  pelo usuário**, não escore de recuperação.
+  **Nota lateral útil:** a tabela `memory_timeline_nodes` foi **retida** na deleção do
+  spine (dados preservados, migration `20260728c`), então os nós de evento para uma camada
+  de cluster já estão no banco.
+
+- **Compilação na ingestão (ISC)** — [arXiv 2608.20845](https://arxiv.org/abs/2608.20845),
+  21/ago. Entra como **perna 0 deste spike**, a ser rodada **antes** da perna de render.
+  Compila no write time duas camadas acopladas: embeddings incrementais mais **claims
+  atômicos cujo quote de suporte é validado por string-match exato contra a fonte**,
+  guardados em Postgres com `document_id`, quote verbatim, offsets e `content_hash`. Em 500
+  transcrições do MediaSum: 85,2% de acerto com ~2,2k tokens de leitor contra 72,5% com
+  16,3k do melhor chunking, 24 comparações sobrevivendo a Holm.
+  **Por que é a perna que faltava:** o `Parar se` deste spike identifica a **geração** do
+  traço como o gargalo real, e o ISC é exatamente o passo de produção do claim. Mais: o
+  repo **já tem um compilador de claims** — `api/services/taskBriefService.js` exige
+  literalmente *"Every claim MUST cite the evidence line numbers"* — só que ele roda na
+  query e joga o resultado fora.
+  **Spike da perna 0 (1 dia):** rodar o prompt de extração que já existe em
+  `taskBriefService.js`, sem query de tarefa, varrendo as memórias do usuário de teste, e
+  gravar numa tabela `compiled_claims` (claim, `source_memory_id`, quote verbatim, offsets,
+  tier de `memoryProvenance.trustTier`, `content_hash`). Validar cada quote por string-match
+  exato, como o paper faz (rejeitou 1,1%). Depois adicionar um braço `claims` em
+  `twin-research/fidelity-eval.js` e rodar com `--trials 5`.
+  **Medir:** (1) taxa de aterramento, sucesso ≥60%; (2) `twin_accuracy` não regride;
+  (3) tokens do bloco de grounding ≥3× menores. **Atenção:** hoje **não existe contagem de
+  tokens** em `twinPromptAssembly.js`, e sem ela a métrica central do paper é inmensurável
+  aqui — instrumentar isso é parte da perna 0.
+  **Parar se** a taxa de aterramento ficar abaixo de 60%: a memória do TwinMe é
+  majoritariamente `platform_data` já sintetizado ("ouviu X 40 vezes"), não fala verbatim
+  como as transcrições do MediaSum, e claim sem o que citar reproduz o mesmo agregado
+  difuso. Nesse caso o buraco é a **ingestão** reter texto citável, não a compilação — e o
+  spike de render herda a resposta e economiza o dia dele.
+  Custo do outro lado, declarado pelo paper e não estressado: **US$0,064 por documento** de
+  extração, medido sobre documento estático — aqui o fluxo é clip contínuo, e a assimetria
+  write/read pode se inverter.
+
 **Status:** aberto
 
 ---
@@ -104,6 +160,34 @@ precedente: um índice FTS irmão foi **dropado por não uso** em
 E o próprio `twin-config.js` registra que o blend de 10% nunca foi validado
 pelo eval — medir isso é parte do spike, não pressuposto dele.
 
+**Nota de viabilidade, 2026-08-24 — um braço foi fechado antes de nascer.**
+BM25 nativo em Postgres amadureceu em dois sabores: [`timescale/pg_textsearch`](https://github.com/timescale/pg_textsearch)
+(licença PostgreSQL permissiva, v1.4.0 em 18/ago, access method novo com Block-Max WAND) e
+[`paradedb/paradedb`](https://github.com/paradedb/paradedb) (AGPL-3.0, v0.25.3 em 17/ago,
+Tantivy embutido). A tentação era usar um deles como quarto braço da comparação.
+
+**Não dá.** A checagem contra a lista canônica de extensões da imagem do Supabase
+(`supabase/postgres`, `nix/ext/versions.json`) mostra **30 entradas, nenhuma com `search`,
+`bm25`, `tantivy` ou `parade` no nome** — e o `pg_textsearch` ainda exige
+`shared_preload_libraries` no `postgresql.conf` com restart, que Postgres gerenciado não
+expõe. A própria doc da ParadeDB admite que em serviço gerenciado não dá para instalar até
+o provedor suportar explicitamente.
+
+**O braço esparso viável continua sendo `websearch_to_tsquery` / `ts_rank` sobre o índice
+GIN que já existe e ninguém usa** (`20260204_create_user_memories.sql`). Um grep repo-wide
+confirma: `to_tsquery` e `websearch_to_tsquery` aparecem **zero vezes** em código ou SQL.
+
+**O precedente é contra, e vale considerar antes de gastar o dia:**
+`20260514_audit_l2_drop_unused_indexes_pass1.sql` dropou `idx_user_memories_fts` com a
+justificativa explícita de que *"TwinMe uses pgvector for memory retrieval, not Postgres
+FTS"*, com 0 scans em 22k linhas. O `idx_user_memories_content_gin` sobreviveu por acaso.
+
+**Decisão que fica com o Stefano** (registrada em `INTEL.md` como DISCUTIR 8/15): construir
+o braço esparso atrás de uma **fronteira de função**, de modo que trocar por `pg_textsearch`
+no dia em que o Supabase adotar seja trocar só o operador de score — ou aceitar que o canal
+léxico fica sendo o `BM25_BLEND_WEIGHT = 0.10` em JS, nunca validado pelo eval, e este spike
+roda com dois braços em vez de três.
+
 **Status:** aberto
 
 ---
@@ -149,6 +233,36 @@ em vez de inventar uma. O gap real que ele ataca continua aberto: o esquecimento
 está resolvido para **memória** (cron de 5 tiers, supersessão, decay Ebbinghaus)
 e não existe para **persona** — `behavioral_evidence` tem um `UNIQUE` que faz o
 upsert sobrescrever sem versionar.
+
+**Fundido aqui em 2026-08-24 — supersessão determinística por slot.**
+[arXiv 2608.20685](https://arxiv.org/abs/2608.20685), 21/ago. Mantém memória de supersessão
+por tripla (sujeito, relação, objeto): valor novo retira o antigo **por chave exata**, não
+por similaridade, porque velho e novo têm embedding quase idêntico. Em 130 transições
+atômicas extraídas de 707 issues reais do SWE-bench, o RAG serve o valor superseditado
+**36–38% das vezes** e o reranker não corrige; a abordagem por slot leva a ~0, na latência
+do RAG (~2,1s contra ~18s do reranker).
+
+**Entra como braço, não como spike novo** (DISCUTIR 10 sozinho, fundido pelo maior: 11).
+Este repo **já internalizou o mecanismo** em julho — `superseded_by`/`superseded_at`, filtro
+`p_include_superseded` na RPC, Tier 2b no cron de esquecimento, e o risco de
+`ON DELETE SET NULL` já caçado em `20260728151001`. Redundância não é alavanca.
+
+**O que sobra e vale:** o `UNIQUE(user_id, platform, feature_name, dimension)` de
+`behavioral_evidence` **já é uma chave de slot**, e `evidenceGeneratorService.js:419-420`
+faz upsert com `onConflict` nessa exata chave. Versionar em vez de sobrescrever é migração,
+não pesquisa.
+
+**A pergunta que este braço levanta, e que está em `INTEL.md`:** um traço de persona é um
+slot com um único valor corrente, ou é uma distribuição que oscila legitimamente? Se for a
+segunda, versionar por slot é a forma errada e o gap se fecha por **confiança decrescente e
+TTL**, não por supersessão. A resposta muda este spike de *grava / verifica / pergunta* para
+*grava / retira / pergunta*.
+
+**Achado colateral que virou tarefa separada** (não faz parte deste spike): a detecção de
+supersessão do repo é **heurística**, `SUPERSEDE_SIMILARITY_THRESHOLD = 0.93` por cosseno
+restrito a `platform_data`, e a precisão desse limiar nunca foi medida. E duas rotas de
+prompt — `soulSignatureRegenService.js` e `wikiCompilationService.js` — puxam memórias
+**sem filtro de liveness**, contrariando a regra documentada em `memoryStreamService.js`.
 
 **Status:** aberto
 
@@ -201,6 +315,39 @@ tem a decidir é se whisper.cpp, já compilado no binário, consegue ser o
 primeiro estágio local de verdade. Ver a divergência sobre `bets[2]` no
 `STATE.md`: a promessa de "local" ainda não é feita como copy em lugar nenhum,
 então ainda não há dívida pública — só uma aposta não cobrada.
+
+**Fundido aqui em 2026-08-24 — a categoria já tem produto, preço e licença.**
+[screenpipe](https://github.com/screenpipe/screenpipe), ~21k estrelas, YC S26, releases quase
+diárias. Captura **orientada a evento**, não contínua: o daemon escuta eventos do SO (troca
+de app, clique, pausa de digitação) e só então tira screenshot pareado com a **árvore de
+Acessibilidade**, caindo para OCR quando a AX tree não existe. Áudio por Whisper local.
+Tudo em SQLite local com FTS5, API REST em `localhost:3030`.
+
+**Empate em 11/15 — mantém o veredito e não abre spike novo.** O que ele muda é o
+**argumento**: troca risco de vazamento de persona destilada por um argumento de mercado com
+artefato. "Local" deixou de ser diferencial e virou piso de categoria, o que reforça a
+divergência já registrada sobre a `bets[2]`.
+
+**Duas ressalvas que mudam o desenho, e a primeira é dura:**
+1. **Não é open-source.** A `LICENSE.md` é comercial source-available: libera uso pessoal e
+   não-comercial, pesquisa e 7 dias de avaliação, e **proíbe explicitamente** *"use the
+   Licensed Work to build, offer, or operate a competing product"*. Serve como **arquitetura
+   lida**, nunca como dependência ou código copiado. Não clonar além do que a licença permite.
+2. **Os números não sustentam nada.** CPU, RAM e disco são afirmações de README sem baseline
+   nem hardware — e **as duas renderizações do próprio README divergem no armazenamento**
+   (~5-10 GB/mês contra ~20 GB/mês), o que derruba a métrica mais importante do argumento.
+
+**Emenda ao spike, sem timebox adicional:** instrumentar `clip_indexer.rs` por 8h de uso
+real e contar clips gerados, fração com `content == NULL` (**hoje 100% no Windows**, ver
+comentário em `observations-clip.js`), bytes que o `sync.rs` de fato posta, e CPU média.
+O `clip_indexer.rs` usa `POLL_INTERVAL = 5s` — poll cego, com leak de `AXUIElementRef` já
+anotado em `active_window.rs` — contra o modelo por evento; e não há **fallback de OCR**
+quando a AX tree volta vazia.
+**Medir:** % de clips com `content` não-nulo e bytes/hora enviados — este segundo número é
+entrada direta para a decisão de inferência local que é o coração deste spike.
+**Parar se** a captura por evento no macOS exigir API privada ou entitlement extra, ou
+piorar o leak já anotado: mantém o poll e o spike volta a ser só sobre **o que sai da
+máquina**, que é a pergunta que de fato importa.
 
 **Status:** aberto
 

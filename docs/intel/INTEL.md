@@ -197,7 +197,15 @@ do copy?
 
 ## Fila de trabalho
 
-Spikes escritos em `BACKLOG.md`, os quatro com âncora preenchida em 2026-08-24:
+Spikes escritos em `BACKLOG.md`, os quatro com âncora preenchida em 2026-08-24.
+
+**Cinco itens desta passada foram fundidos neles em vez de virar spike novo**, pela trava
+da rubrica — o que cada fusão acrescenta está registrado dentro do spike correspondente no
+`BACKLOG.md`, não aqui. Um deles (a compilação de claims na ingestão) entrou como **perna 0
+de `pgmem-proveniencia`**, a ser rodada antes da perna de render: se a taxa de aterramento
+reprovar, o spike de render herda a resposta e economiza um dia. E um braço de
+`desa-hibrido` foi **fechado antes de nascer** por inviabilidade de stack.
+
 
 - [PROTOTIPAR 13/15] Proveniência de traço OCEAN (PGMem) → `BACKLOG.md#pgmem-proveniencia`
   · âncora: `api/services/evidenceGeneratorService.js`, `src/pages/components/soul-signature/BigFivePanel.tsx`
