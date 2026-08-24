@@ -1,0 +1,87 @@
+{
+  "project": "TwinMe",
+  "url": "https://twinme.me",
+  "one_line": "Gêmeo digital auto-referente: conecta a vida digital do usuário e revela sua soul signature.",
+  "audience": "pessoa curiosa sobre si mesma, não empresa querendo clonar funcionário",
+  "stack": [
+    "Generative Agents (Park et al.) — memory stream + reflexões (api/services/reflectionEngine.js, memoryStreamService.js)",
+    "OCEAN / Big Five (api/services/bigFiveAssessmentService.js)",
+    "pgvector 1536d + índice HNSW no Supabase",
+    "Supabase (PostgreSQL) — único banco ativo",
+    "OpenRouter como gateway único de LLM; DeepSeek V3.2 é o modelo padrão inclusive no tier Deep; Gemini 2.5 Flash em visão",
+    "OpenAI text-embedding-3-small para embeddings",
+    "React 18 + Vite + Tailwind + Radix/shadcn (front), Express 5 (api/server.js)",
+    "extensão de navegador MV3 (browser-extension/), coletores Netflix/YouTube/Discord/Instagram",
+    "Tauri 2 desktop (desktop/src-tauri/) — captura de janela, gravação de reunião, whisper.cpp compilado",
+    "app mobile Expo / React Native (mobile/)",
+    "Bull + Redis + Inngest para fila; ~15 crons na Vercel",
+    "canais de conversa: WhatsApp (5 webhooks), Telegram (grammy), voz (ElevenLabs + Vapi)",
+    "Stripe, Sentry, PostHog, Resend, Nango"
+  ],
+  "bets": [
+    "auto-referente vence hetero-referente: o valor é o usuário se entender, não outra pessoa consumir o gêmeo",
+    "profundidade de ingestão (30+ plataformas) é o fosso, não a qualidade do modelo",
+    "processamento local no app Tauri é diferencial de confiança, não só detalhe técnico"
+  ],
+  "known_gaps": [
+    "behavioral_evidence é WRITE-ONLY: a tabela de proveniência traço→evidência existe (database/supabase/migrations/20260114_behavioral_evidence.sql) e é escrita por api/services/evidenceGeneratorService.js:418, mas NENHUMA rota em api/routes/ e NENHUM arquivo em src/ lê de volta. A soul signature continua sendo afirmação sem rastro. Agrava: a evidência gravada é feature agregada, não evento nomeável",
+    "sem política de esquecimento PARA PERSONA. Para memória o problema está resolvido (api/routes/cron-memory-forgetting.js com 5 tiers, supersessão real, decay Ebbinghaus per-memory). Mas personality_scores, behavioral_evidence e soul_signatures não têm TTL, confiança decrescente nem revisão; o UNIQUE em behavioral_evidence faz upsert sobrescrever sem versionar. O único refresh é regeneração total, motivada por staleness e não por erro",
+    "a recuperação tem rescoring léxico, não canal esparso independente. BM25 existe (api/services/bm25Service.js) mas roda em JS sobre candidatos que a busca vetorial já trouxe, com peso 0.10 (twin-research/twin-config.js:342) que o próprio config admite nunca ter sido validado pelo eval. Nenhuma RPC usa to_tsquery/websearch_to_tsquery; o índice FTS irmão foi DROPADO por não uso em 20260514_audit_l2_drop_unused_indexes_pass1.sql:53",
+    "o custo de contexto é limitado por CONTAGEM DE ITENS e por TEMPO, não por token. MEMORY_CONTEXT_BUDGETS fixa reflexões:3, platform_data:6, facts:5, conversas:10; o budget de 12s de 52b40c42 cobre o contexto, não a perna do LLM — o próprio commit registra um healthy path de 57s. Não há contagem de tokens em api/services/twinPromptAssembly.js",
+    "a ingestão continua passando por servidor. desktop/src-tauri/src/sync.rs posta para /api/observations/clip e api/routes/observations-clip.js aceita MAX_CONTENT_CHARS=8000 de conteúdo bruto por clip, 100 clips por batch. Embeddings e inferência de persona são todos server-side. A única inferência local que já compila é whisper.cpp em desktop/src-tauri/src/transcribe.rs, e transcribe_wav está marcado #[allow(dead_code)] — não plugado no pipeline",
+    "extratores de evidência comportamental stubados com objeto vazio para Gmail, Outlook, LinkedIn, Whoop e Twitch (api/services/behavioralEvidencePipeline.js:13-16) — Whoop e Gmail são conectores ATIVOS que não produzem evidência nenhuma",
+    "escopos OAuth nunca são conferidos contra o que foi de fato concedido (api/services/scopeEscalationService.js:43, TODO explícito)",
+    "três árvores de migração convivem — database/migrations/ (77), database/supabase/migrations/ (100) e supabase/migrations/ (15, numeração antiga). Já causou confusão documentada em 6d79c4c7 e 74441933",
+    "README promete 10 plataformas conectáveis; o código tem 7 (api/config/platformConfigs.js:14)",
+    "ml/gnn_model.py (HGT em PyTorch Geometric) + neo4j em ml/requirements.txt estão parados desde 2025-11-17, mas continuam nominalmente importados por api/services/graphProcessor.js e temporalPatternDetector.js"
+  ],
+  "settled": [
+    "não vira ferramenta de clonagem para terceiros",
+    "pgvector no Supabase fica; não migrar pra banco vetorial dedicado sem gargalo medido",
+    "todo LLM passa por OpenRouter; DeepSeek V3.2 é o padrão inclusive no tier Deep, com teste anti-drift (af69a4db, 2026-06-23)",
+    "o portfólio de plataformas está fechado em 7 keepers: Spotify, YouTube, Discord, Whoop, Calendar, GitHub, Gmail (e2b804d2, 2026-06-11)",
+    "agregadores bancários estão fora; captura financeira é por WhatsApp (4a74a4d6, 2026-06-12)",
+    "flag só entra em produção se mover o score da harness de fidelidade (46da9e52, 2026-08-11) — aplicado sem dó em a8b3314e, que deletou o temporal spine porque o eval reprovou",
+    "o gêmeo não pode se citar como fato: filing de query barrado e reflexões não comem o próprio output (df8b146e, 4c73e592, 2026-08-10)",
+    "a IA do produto está colapsada em cinco superfícies: Today, Twin, You, Connect, Settings (c2aefd1f, 2026-08-10)"
+  ],
+  "deprecated": [
+    "temporal spine — deletado em a8b3314e (2026-08-11) após 14 dias de vida, porque o eval reprovou",
+    "reranker LLM, modos de neurotransmissor e roteador neuropil — 01e00797 (2026-08-10)",
+    "15 dos 30 cron jobs — 3073983f (2026-08-10); saliency-replay e cache-warm de grafo em 00a8e241",
+    "Pluggy, Plaid e TrueLayer (agregadores bancários) — 4a74a4d6 (2026-06-12)",
+    "LinkedIn, Reddit, Twitch, Notion, Pinterest, Steam, SoundCloud — cortados do portfólio (e2b804d2, d156e4b2, jun/2026)",
+    "Anthropic SDK como dependência direta do produto — substituído por OpenRouter/DeepSeek (af69a4db)",
+    "índice idx_user_memories_fts — DROPADO por não uso (20260514_audit_l2_drop_unused_indexes_pass1.sql)",
+    "receptor de event-subscription do Slack — 80959aec (2026-08-03)",
+    "permissões wildcard de host na extensão — causa da rejeição na Chrome Web Store (c45153f8, 2026-07-05)",
+    "páginas Meetings, Knowledge e Inbox — c5dccddf (2026-06-12), 'one interface'"
+  ],
+  "focus_areas": [
+    "digital twin pessoal",
+    "AI persona e companion",
+    "memória de longo prazo em agentes",
+    "embeddings e busca vetorial",
+    "inferência de personalidade",
+    "ingestão de dados pessoais",
+    "privacidade e on-device",
+    "agregadores de dados pessoais",
+    "proveniência e auditabilidade de inferência sobre pessoa",
+    "avaliação de fidelidade de persona (eval harness)",
+    "captura ambiente em desktop (janela ativa, reunião, transcrição local)"
+  ],
+  "scout_modalities": ["concorrentes-diretos", "concorrentes-adjacentes", "papers", "repos", "funding", "plataforma"],
+  "platform_deps": [
+    "OpenRouter (gateway único de LLM)",
+    "DeepSeek V3.2 e Google Gemini 2.5 Flash (modelos)",
+    "OpenAI text-embedding-3-small (embeddings)",
+    "Supabase + pgvector",
+    "Tauri 2",
+    "Chrome Web Store (extensão MV3)",
+    "APIs de Spotify / YouTube / GitHub / Discord / Google Calendar / Gmail / Whoop",
+    "WhatsApp, Telegram, ElevenLabs, Vapi",
+    "Vercel, Stripe, Sentry, PostHog, Resend, Nango"
+  ],
+  "verdict_note": "Anthropic NÃO é dependência direta deste produto — todo LLM passa por OpenRouter e o padrão é DeepSeek V3.2. Item sobre preço/limite/modelo da Anthropic só importa por via do OpenRouter. Atenção especial: itens que atacam proveniência de traço têm âncora forte e barata aqui, porque behavioral_evidence já existe e só falta o caminho de leitura.",
+  "feed_url": "https://claude.ai/code/artifact/53796b2d-d805-48eb-85d9-6f0a7f086be5"
+}
