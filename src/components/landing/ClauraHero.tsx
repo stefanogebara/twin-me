@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { ArrowRight, Sparkles, Check, X } from 'lucide-react';
+import { useEffect, useState, type FormEvent } from 'react';
+import { ArrowRight } from 'lucide-react';
 import { discoveryScan, type QuickEnrichmentData } from '../../services/enrichmentService';
+import RevealStory from './RevealStory';
 
 /**
  * ClauraHero — reveal-first landing hero (2026-08 hero inversion).
@@ -8,9 +9,10 @@ import { discoveryScan, type QuickEnrichmentData } from '../../services/enrichme
  * The email-enrichment reveal that used to live on /discover IS the hero:
  * one input, instant wow, no cosmic film. Sits directly on the global
  * AppBackground ambient canvas — paints no background of its own.
+ * The reveal itself is a card story (RevealStory, Wrapped grammar).
  */
 
-type ScanPhase = 'idle' | 'scanning' | 'revealed' | 'confirmed';
+type ScanPhase = 'idle' | 'scanning' | 'revealed';
 
 const SCAN_STATUS_LINES = [
   'Scanning your public footprint...',
@@ -42,24 +44,6 @@ const DEV_SAMPLE: QuickEnrichmentData = {
   ],
 };
 
-/** Split a narrative into at most two paragraphs at a sentence boundary. */
-function splitNarrative(text: string): string[] {
-  const clean = text.trim();
-  if (clean.length < 260) return [clean];
-  const mid = Math.floor(clean.length / 2);
-  const cut = clean.indexOf('. ', mid);
-  if (cut === -1 || cut > clean.length - 80) return [clean];
-  return [clean.slice(0, cut + 1), clean.slice(cut + 2)];
-}
-
-function hostnameOf(url: string): string {
-  try {
-    return new URL(url).hostname.replace(/^www\./, '');
-  } catch {
-    return url;
-  }
-}
-
 interface ClauraHeroProps {
   onCreateTwin: () => void;
   trackFunnel?: (event: string, props?: Record<string, unknown>) => void;
@@ -71,7 +55,6 @@ const ClauraHero = ({ onCreateTwin, trackFunnel }: ClauraHeroProps) => {
   const [statusIdx, setStatusIdx] = useState(0);
   const [data, setData] = useState<QuickEnrichmentData | null>(null);
   const [error, setError] = useState('');
-  const revealRef = useRef<HTMLDivElement | null>(null);
 
   /* Rotate status lines while scanning */
   useEffect(() => {
@@ -81,12 +64,6 @@ const ClauraHero = ({ onCreateTwin, trackFunnel }: ClauraHeroProps) => {
       setStatusIdx((i) => Math.min(i + 1, SCAN_STATUS_LINES.length - 1));
     }, 2600);
     return () => clearInterval(t);
-  }, [phase]);
-
-  useEffect(() => {
-    if (phase === 'revealed') {
-      revealRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }
   }, [phase]);
 
   const handleScan = async (e: FormEvent) => {
@@ -126,20 +103,12 @@ const ClauraHero = ({ onCreateTwin, trackFunnel }: ClauraHeroProps) => {
     trackFunnel?.('landing_scan_empty');
   };
 
-  const handleConfirm = (isMe: boolean) => {
-    trackFunnel?.(isMe ? 'landing_identity_confirmed' : 'landing_identity_rejected');
-    if (isMe) {
-      setPhase('confirmed');
-    } else {
-      sessionStorage.removeItem('twinme_discovery_data');
-      setData(null);
-      setPhase('idle');
-      setError('');
-    }
+  const handleNotMe = () => {
+    sessionStorage.removeItem('twinme_discovery_data');
+    setData(null);
+    setPhase('idle');
+    setError('');
   };
-
-  const paragraphs = data?.persona_summary ? splitNarrative(data.persona_summary) : [];
-  const sources = (data?.web_sources ?? []).slice(0, 6);
 
   return (
     <section className="relative min-h-screen flex flex-col items-center justify-center px-6 pt-28 pb-16">
@@ -218,71 +187,14 @@ const ClauraHero = ({ onCreateTwin, trackFunnel }: ClauraHeroProps) => {
           </div>
         )}
 
-        {/* ── Reveal ── */}
-        {(phase === 'revealed' || phase === 'confirmed') && data && (
-          <div ref={revealRef} className="w-full max-w-[600px] text-left">
-            <div className="claura-glass claura-glass--refract px-7 py-7 md:px-9 md:py-8">
-              <p className="font-sans text-[11px] font-medium tracking-[0.15em] uppercase text-[var(--text-muted)] mb-4 flex items-center gap-2">
-                <Sparkles className="w-3.5 h-3.5" />
-                {data.discovered_name
-                  ? `What the internet says about ${data.discovered_name.split(' ')[0]}`
-                  : 'What your footprint reveals'}
-              </p>
-
-              {paragraphs.map((p, i) => (
-                <p
-                  key={i}
-                  className="font-heading text-[19px] md:text-[21px] leading-[1.5] tracking-[-0.01em] mb-4 last:mb-0"
-                  style={{ color: 'var(--text-narrative)' }}
-                >
-                  {p}
-                </p>
-              ))}
-
-              {sources.length > 0 && (
-                <div className="mt-6 pt-5 border-t border-[var(--border-glass)]">
-                  <p className="font-sans text-[11px] font-medium tracking-[0.12em] uppercase text-[var(--text-muted)] mb-3">
-                    Read from
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {sources.map((s, i) => (
-                      <span
-                        key={i}
-                        className="font-sans text-[12px] font-medium text-[var(--text-secondary)] bg-[rgba(255,255,255,0.06)] border border-[rgba(255,255,255,0.10)] rounded-[46px] px-3 py-1.5"
-                      >
-                        {hostnameOf(s.url)}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Identity gate → CTA */}
-            {phase === 'revealed' ? (
-              <div className="flex items-center justify-center gap-3 mt-6">
-                <p className="font-sans text-sm font-medium text-[var(--text-secondary)] mr-1">
-                  Is this you?
-                </p>
-                <button onClick={() => handleConfirm(true)} className="claura-btn-primary" style={{ padding: '10px 18px' }}>
-                  <Check className="w-4 h-4" /> Yes, that's me
-                </button>
-                <button onClick={() => handleConfirm(false)} className="claura-btn-glass" style={{ padding: '10px 18px' }}>
-                  <X className="w-4 h-4" /> Not me
-                </button>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center mt-7 gap-3">
-                <p className="font-sans text-sm font-medium text-[var(--text-secondary)] max-w-[420px] text-center">
-                  This is only your public surface. Connect what you actually use — Spotify,
-                  YouTube, Calendar — and meet the twin that knows the rest.
-                </p>
-                <button onClick={onCreateTwin} className="claura-btn-primary" style={{ padding: '13px 24px' }}>
-                  Create your twin <ArrowRight className="w-4 h-4" />
-                </button>
-              </div>
-            )}
-          </div>
+        {/* ── Reveal story ── */}
+        {phase === 'revealed' && data && (
+          <RevealStory
+            data={data}
+            onCreateTwin={onCreateTwin}
+            onNotMe={handleNotMe}
+            trackFunnel={trackFunnel}
+          />
         )}
       </div>
     </section>
