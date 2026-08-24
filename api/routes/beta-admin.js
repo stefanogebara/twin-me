@@ -82,20 +82,21 @@ adminRouter.post('/invite', async (req, res) => {
       expiresAt,
     });
 
+    // sendBetaInvite resolves false on failure (Resend reports API errors
+    // through { data, error } rather than throwing). Report the real outcome
+    // to the admin — a "success" with no email means they sit waiting for a
+    // reply from someone who was never invited.
+    let emailSent = null;
     if (sendEmail && email) {
-      try {
-        await sendBetaInvite({
-          toEmail: email,
-          firstName: name || email.split('@')[0],
-          inviteCode: invite.code,
-        });
-        log.info('Invite email sent', { email, code: invite.code });
-      } catch (emailErr) {
-        log.error('Invite email failed (code still created)', { error: emailErr.message });
-      }
+      emailSent = await sendBetaInvite({
+        toEmail: email,
+        firstName: name || email.split('@')[0],
+        inviteCode: invite.code,
+      });
+      if (!emailSent) log.error('Invite email did not send (code still created)', { email, code: invite.code });
     }
 
-    res.json({ success: true, data: invite });
+    res.json({ success: true, data: invite, emailSent });
   } catch (error) {
     log.error('Create invite error', { error: error.message });
     res.status(500).json({ success: false, error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error' });
@@ -151,18 +152,15 @@ adminRouter.post('/invite-from-waitlist', async (req, res) => {
     const invite = await createInviteCode({ email, name });
     await removeFromWaitlist(email);
 
-    // Send invite email
-    try {
-      await sendBetaInvite({
-        toEmail: email,
-        firstName: name || email.split('@')[0],
-        inviteCode: invite.code,
-      });
-    } catch (emailErr) {
-      log.error('Invite email failed', { error: emailErr.message });
-    }
+    // Send invite email — resolves false on failure rather than throwing.
+    const emailSent = await sendBetaInvite({
+      toEmail: email,
+      firstName: name || email.split('@')[0],
+      inviteCode: invite.code,
+    });
+    if (!emailSent) log.error('Invite email did not send (code still created)', { email, code: invite.code });
 
-    res.json({ success: true, data: invite });
+    res.json({ success: true, data: invite, emailSent });
   } catch (error) {
     log.error('Invite from waitlist error', { error: error.message });
     res.status(500).json({ success: false, error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error' });

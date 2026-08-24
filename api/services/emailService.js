@@ -93,6 +93,48 @@ const S = {
 
 
 /**
+ * The one path every email leaves through.
+ *
+ * Two failure modes here are silent by default, and both of them together
+ * were the 2026-08-24 auth outage:
+ *   - The Resend SDK does not throw on API errors (unverified domain, bad
+ *     from address, quota). It RESOLVES with { data, error }, so a sender
+ *     that only try/catches reports success on a rejected send.
+ *   - With RESEND_API_KEY unset, `resend` is null and there is nothing to
+ *     send at all.
+ *
+ * Every sender returns the boolean this produces: true only when Resend
+ * accepted the message. Senders never throw — callers that record "already
+ * emailed" state must branch on the boolean, not on the absence of an
+ * exception.
+ *
+ * @returns {Promise<boolean>} true only if Resend accepted the message
+ */
+async function deliver(label, payload, meta = {}) {
+  if (!resend) {
+    log.warn(`Skipping ${label} (Resend not configured)`, meta);
+    return false;
+  }
+  try {
+    const { data, error } = await resend.emails.send(payload);
+    if (error) {
+      log.error(`${label} rejected by Resend`, {
+        name: error.name,
+        statusCode: error.statusCode,
+        error: error.message,
+        ...meta,
+      });
+      return false;
+    }
+    log.info(`${label} sent`, { messageId: data?.id, ...meta });
+    return true;
+  } catch (err) {
+    log.error(`${label} failed`, { error: err.message, ...meta });
+    return false;
+  }
+}
+
+/**
  * Generate a signed unsubscribe token for a user.
  */
 export function generateUnsubscribeToken(userId) {
@@ -107,9 +149,10 @@ export function verifyUnsubscribeToken(userId, token) {
 
 /**
  * Weekly digest email.
+ * @returns {Promise<boolean>} true only if Resend accepted the message
  */
 export async function sendWeeklyDigest({ toEmail, firstName, reflections, newMemories, userId }) {
-  if (!resend) throw new Error('Email service not configured');
+  if (!resend) { log.warn('Skipping weekly digest (Resend not configured)', { userId }); return false; }
 
   const unsubToken = generateUnsubscribeToken(userId);
   const unsubUrl = `${APP_URL}/api/email/unsubscribe?uid=${userId}&token=${unsubToken}`;
@@ -142,20 +185,21 @@ export async function sendWeeklyDigest({ toEmail, firstName, reflections, newMem
     <p style="margin:0;"><a href="${unsubUrl}" style="${S.footerLink}">Unsubscribe from weekly emails</a></p>
   </div>`;
 
-  return resend.emails.send({
+  return deliver('Weekly digest email', {
     from: FROM,
     to: toEmail,
     subject: `Your twin noticed something this week, ${safeName}`,
     html: emailShell(body),
-  });
+  }, { userId });
 }
 
 /**
  * Financial-Emotional Twin — weekly report.
  * Sent Sunday 8am (São Paulo) to users who uploaded a bank statement.
+ * @returns {Promise<boolean>} true only if Resend accepted the message
  */
 export async function sendFinancialWeeklyReport({ toEmail, firstName, report, userId }) {
-  if (!resend) throw new Error('Email service not configured');
+  if (!resend) { log.warn('Skipping financial weekly report (Resend not configured)', { userId }); return false; }
   const safeName = escapeHtml(firstName || 'amigo');
   const unsubToken = generateUnsubscribeToken(userId);
   const unsubUrl = `${APP_URL}/api/email/unsubscribe?uid=${userId}&token=${unsubToken}`;
@@ -243,12 +287,12 @@ export async function sendFinancialWeeklyReport({ toEmail, firstName, report, us
     <p style="margin:0;"><a href="${unsubUrl}" style="${S.footerLink}">Cancelar emails semanais</a></p>
   </div>`;
 
-  return resend.emails.send({
+  return deliver('Financial weekly report email', {
     from: FROM,
     to: toEmail,
     subject: `Sua semana financeira, ${safeName}`,
     html: emailShell(body),
-  });
+  }, { userId });
 }
 
 /**
@@ -260,6 +304,7 @@ export async function sendFinancialWeeklyReport({ toEmail, firstName, report, us
  * redirect_uri_mismatch — see C0). The link in this email is single-use
  * and 15-minute expiry; the verify route signs the user in and sets the
  * httpOnly refresh cookie + access JWT exactly like the Google path.
+ * @returns {Promise<boolean>} true only if Resend accepted the message
  */
 export async function sendMagicLink({ toEmail, link }) {
   if (!resend) { log.warn('Skipping magic-link email (Resend not configured)'); return false; }
@@ -279,36 +324,20 @@ export async function sendMagicLink({ toEmail, link }) {
     <p style="margin:0;color:#2A2624;">TwinMe &mdash; discover what makes you, you.</p>
   </div>`;
 
-  try {
-    // The Resend SDK does not throw on API errors — it resolves with
-    // { data, error }. An unhandled error object here was a silent
-    // production outage (2026-08-24): sends were rejected but reported ok.
-    const { error } = await resend.emails.send({
-      from: FROM,
-      to: toEmail,
-      subject: 'Your TwinMe signin link',
-      html: emailShell(body),
-    });
-    if (error) {
-      log.error('Magic-link email rejected by Resend', {
-        name: error.name,
-        statusCode: error.statusCode,
-        error: error.message,
-      });
-      return false;
-    }
-    return true;
-  } catch (err) {
-    log.error('Magic-link email failed', { error: err.message });
-    return false;
-  }
+  return deliver('Magic-link email', {
+    from: FROM,
+    to: toEmail,
+    subject: 'Your TwinMe signin link',
+    html: emailShell(body),
+  });
 }
 
 /**
  * Welcome email for new beta users.
+ * @returns {Promise<boolean>} true only if Resend accepted the message
  */
 export async function sendWelcomeEmail({ toEmail, firstName }) {
-  if (!resend) return;
+  if (!resend) { log.warn('Skipping welcome email (Resend not configured)'); return false; }
 
   const safeName = escapeHtml(firstName || 'there');
 
@@ -333,23 +362,20 @@ export async function sendWelcomeEmail({ toEmail, firstName }) {
     <p style="margin:0;color:#2A2624;">TwinMe &mdash; discover what makes you, you.</p>
   </div>`;
 
-  try {
-    await resend.emails.send({
-      from: FROM,
-      to: toEmail,
-      subject: `Welcome to TwinMe, ${safeName}`,
-      html: emailShell(body),
-    });
-  } catch (err) {
-    log.error('Welcome email failed', { error: err.message, email: toEmail });
-  }
+  return deliver('Welcome email', {
+    from: FROM,
+    to: toEmail,
+    subject: `Welcome to TwinMe, ${safeName}`,
+    html: emailShell(body),
+  }, { email: toEmail });
 }
 
 /**
  * Beta invite email.
+ * @returns {Promise<boolean>} true only if Resend accepted the message
  */
 export async function sendBetaInvite({ toEmail, firstName, inviteCode }) {
-  if (!resend) { log.warn('Skipping beta invite email (Resend not configured)'); return; }
+  if (!resend) { log.warn('Skipping beta invite email (Resend not configured)'); return false; }
 
   const safeName = escapeHtml(firstName || 'there');
   const safeCode = escapeHtml(inviteCode);
@@ -375,19 +401,20 @@ export async function sendBetaInvite({ toEmail, firstName, inviteCode }) {
     <p style="margin:0;color:#2A2624;">TwinMe &mdash; discover what makes you, you.</p>
   </div>`;
 
-  return resend.emails.send({
+  return deliver('Beta invite email', {
     from: FROM,
     to: toEmail,
     subject: `${safeName}, you're invited to TwinMe`,
     html: emailShell(body),
-  });
+  }, { email: toEmail });
 }
 
 /**
  * Platform nudge email for beta users who signed up but haven't connected platforms or chatted.
+ * @returns {Promise<boolean>} true only if Resend accepted the message
  */
 export async function sendPlatformNudge({ toEmail, firstName, userId }) {
-  if (!resend) { log.warn('Skipping platform nudge email (Resend not configured)'); return; }
+  if (!resend) { log.warn('Skipping platform nudge email (Resend not configured)'); return false; }
 
   const safeName = escapeHtml(firstName || 'there');
   const unsubToken = generateUnsubscribeToken(userId);
@@ -426,18 +453,12 @@ export async function sendPlatformNudge({ toEmail, firstName, userId }) {
     <p style="margin:0;"><a href="${unsubUrl}" style="${S.footerLink}">Unsubscribe from emails</a></p>
   </div>`;
 
-  try {
-    await resend.emails.send({
-      from: FROM,
-      to: toEmail,
-      subject: `Your twin is waiting for you, ${safeName}`,
-      html: emailShell(body),
-    });
-    log.info('Platform nudge email sent', { email: toEmail, userId });
-  } catch (err) {
-    log.error('Platform nudge email failed', { error: err.message, email: toEmail });
-    throw err;
-  }
+  return deliver('Platform nudge email', {
+    from: FROM,
+    to: toEmail,
+    subject: `Your twin is waiting for you, ${safeName}`,
+    html: emailShell(body),
+  }, { email: toEmail, userId });
 }
 
 /**
@@ -448,10 +469,11 @@ export async function sendPlatformNudge({ toEmail, firstName, userId }) {
  * @param {string} params.firstName
  * @param {string} params.userId
  * @param {Array<{insight: string, category: string, urgency: string}>} params.insights
+ * @returns {Promise<boolean>} true only if Resend accepted the message
  */
 export async function sendInsightNotification({ toEmail, firstName, userId, insights }) {
-  if (!resend) { log.warn('Skipping insight notification email (Resend not configured)'); return; }
-  if (!insights?.length) return;
+  if (!resend) { log.warn('Skipping insight notification email (Resend not configured)'); return false; }
+  if (!insights?.length) return false;
 
   const safeName = escapeHtml(firstName || 'there');
   const unsubToken = generateUnsubscribeToken(userId);
@@ -498,18 +520,12 @@ export async function sendInsightNotification({ toEmail, firstName, userId, insi
     <p style="margin:0;"><a href="${unsubUrl}" style="${S.footerLink}">Unsubscribe from notifications</a></p>
   </div>`;
 
-  try {
-    await resend.emails.send({
-      from: FROM,
-      to: toEmail,
-      subject: subjectLine,
-      html: emailShell(body),
-    });
-    log.info('Insight notification email sent', { email: toEmail, userId, count: insights.length });
-  } catch (err) {
-    log.error('Insight notification email failed', { error: err.message, email: toEmail });
-    throw err;
-  }
+  return deliver('Insight notification email', {
+    from: FROM,
+    to: toEmail,
+    subject: subjectLine,
+    html: emailShell(body),
+  }, { email: toEmail, userId, count: insights.length });
 }
 
 /**
@@ -520,9 +536,10 @@ export async function sendInsightNotification({ toEmail, firstName, userId, insi
  * @param {string} params.firstName
  * @param {string} params.userId
  * @param {object} params.briefing - { greeting, highlight, stats, cta, isGettingStarted }
+ * @returns {Promise<boolean>} true only if Resend accepted the message
  */
 export async function sendMorningBriefing({ toEmail, firstName, userId, briefing }) {
-  if (!resend) { log.warn('Skipping morning briefing email (Resend not configured)'); return; }
+  if (!resend) { log.warn('Skipping morning briefing email (Resend not configured)'); return false; }
 
   const safeName = escapeHtml(firstName || 'there');
   const safeGreeting = escapeHtml(briefing.greeting);
@@ -587,16 +604,10 @@ export async function sendMorningBriefing({ toEmail, firstName, userId, briefing
     <p style="margin:0;"><a href="${unsubUrl}" style="${S.footerLink}">Unsubscribe from morning briefings</a></p>
   </div>`;
 
-  try {
-    await resend.emails.send({
-      from: FROM,
-      to: toEmail,
-      subject: `${safeGreeting}`,
-      html: emailShell(body),
-    });
-    log.info('Morning briefing email sent', { email: toEmail, userId });
-  } catch (err) {
-    log.error('Morning briefing email failed', { error: err.message, email: toEmail });
-    throw err;
-  }
+  return deliver('Morning briefing email', {
+    from: FROM,
+    to: toEmail,
+    subject: `${safeGreeting}`,
+    html: emailShell(body),
+  }, { email: toEmail, userId });
 }

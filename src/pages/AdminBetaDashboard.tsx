@@ -216,6 +216,11 @@ function CreateCodeForm({ onCreated }: { onCreated: () => void }) {
       const json = await res.json();
       if (!json.success) throw new Error(json.error || 'Failed to create code');
       setCreatedCode(json.data.code);
+      // The code is created even when the invite email is rejected. Say so —
+      // otherwise the invite looks delivered and nobody sends the code on.
+      if (json.emailSent === false) {
+        setError('Code created, but the invite email did not send. Share the code manually.');
+      }
       setName('');
       setEmail('');
       onCreated();
@@ -437,6 +442,11 @@ function AdminBetaDashboard() {
       });
       const json = await res.json();
       if (!json.success) throw new Error(json.error || 'Failed to invite');
+      // The waitlist row is removed either way, so a silently rejected email
+      // would drop the person off both lists without ever inviting them.
+      if (json.emailSent === false) {
+        setError(`Invite code created for ${email}, but the email did not send. Share the code manually.`);
+      }
       await fetchAll();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to invite from waitlist');
