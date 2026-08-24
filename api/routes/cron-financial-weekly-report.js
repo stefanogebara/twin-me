@@ -96,12 +96,22 @@ router.all('/', async (req, res) => {
           continue;
         }
 
-        await sendFinancialWeeklyReport({
+        // Resolves false on failure rather than throwing (Resend reports API
+        // errors through { data, error }). The cooldown row below must not be
+        // written for a send that never landed — it would skip the user for
+        // COOLDOWN_DAYS on the strength of an email they never received.
+        const sentOk = await sendFinancialWeeklyReport({
           toEmail: user.email,
           firstName: user.first_name,
           report,
           userId: user.id,
         });
+
+        if (!sentOk) {
+          log.error(`weekly report did not send for user ${user.id} — no cooldown recorded`);
+          results.errors++;
+          continue;
+        }
 
         // Record send to enforce cooldown
         await supabaseAdmin.from('user_platform_data').insert({

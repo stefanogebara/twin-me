@@ -811,15 +811,26 @@ router.post('/magic-link/request', authLimiter, async (req, res) => {
       return res.status(500).json({ success: false, error: 'Failed to send signin link' });
     }
 
-    // Email the link. Best-effort — don't block on Resend latency.
     const appUrl = resolveAppUrl(req);
     const redirect = typeof req.body?.redirect === 'string' && req.body.redirect.startsWith('/') && !req.body.redirect.startsWith('//')
       ? `&redirect=${encodeURIComponent(req.body.redirect)}`
       : '';
     const link = `${appUrl}/api/auth/magic-link/verify?token=${rawToken}${redirect}`;
-    sendMagicLink({ toEmail: emailRaw, link }).catch(err =>
-      log.warn('Magic-link email send failed', { error: err?.message })
-    );
+
+    // Await the send and surface failure. This used to be fire-and-forget
+    // "best-effort", which meant a broken Resend config returned "check
+    // your email" while delivering nothing — a silent auth outage
+    // (2026-08-24). One awaited send costs <1s; lying to the user costs
+    // the signup. Note sendMagicLink resolves false on failure (including
+    // Resend's { data, error } API-error contract) — it does not throw.
+    const sent = await sendMagicLink({ toEmail: emailRaw, link });
+    if (!sent) {
+      log.error('Magic-link email did not send', { email: redactEmail(emailRaw) });
+      return res.status(500).json({
+        success: false,
+        error: 'We could not send the signin email. Try again in a minute, or continue with Google.',
+      });
+    }
 
     // Local-dev fallback. The raw token is deliberately never persisted (only
     // token_hash is), so when Resend is unconfigured there is no way to
@@ -926,7 +937,14 @@ router.get('/magic-link/verify', async (req, res) => {
           log.warn('Invite redeem failed (non-blocking)', { error: err?.message })
         );
       }
-      sendWelcomeEmail({ toEmail: user.email, firstName: user.first_name }).catch(() => {});
+      // Awaited, not fire-and-forget: on Vercel the invocation freezes the
+      // moment the response flushes, so a detached send never runs at all
+      // (same root cause as the 2026-08-24 magic-link outage). One send costs
+      // <1s on a once-per-account path. sendWelcomeEmail resolves false on
+      // failure rather than throwing — a missing welcome email must not cost
+      // the user their session, so we log and continue.
+      const welcomed = await sendWelcomeEmail({ toEmail: user.email, firstName: user.first_name });
+      if (!welcomed) log.warn('Welcome email did not send', { userId: user.id });
     } else {
       // Bug H11 fix (audit-2026-05-12): existing users who previously signed
       // in via Google OAuth keep oauth_provider='google' forever, so /settings
@@ -1381,8 +1399,11 @@ router.get('/oauth/callback', async (req, res) => {
         })
         .catch(err => log.error('Enrichment failed (non-blocking)', { error: err }));
 
-      // Send welcome email (non-blocking)
-      sendWelcomeEmail({ toEmail: userData.email, firstName: userData.firstName }).catch(() => {});
+      // Awaited: a detached send is frozen by Vercel once the response
+      // flushes, so it never runs (see the magic-link outage, 2026-08-24).
+      // Failure is logged, never fatal — signup completes either way.
+      const welcomed = await sendWelcomeEmail({ toEmail: userData.email, firstName: userData.firstName });
+      if (!welcomed) log.warn('Welcome email did not send', { userId: user.id });
     }
 
     // Handle redirect for connector OAuth flow
@@ -1662,8 +1683,11 @@ router.post('/oauth/callback', async (req, res) => {
           })
           .catch(err => log.error('Enrichment failed (non-blocking)', { error: err }));
 
-        // Send welcome email (non-blocking)
-        sendWelcomeEmail({ toEmail: userData.email, firstName: userData.firstName }).catch(() => {});
+        // Awaited: a detached send is frozen by Vercel once the response
+        // flushes, so it never runs (see the magic-link outage, 2026-08-24).
+        // Failure is logged, never fatal — signup completes either way.
+        const welcomed = await sendWelcomeEmail({ toEmail: userData.email, firstName: userData.firstName });
+        if (!welcomed) log.warn('Welcome email did not send', { userId: user.id });
       } else {
         log.info('Existing user found', { userId: existingUser.id });
         user = existingUser;

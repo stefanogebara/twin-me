@@ -244,13 +244,21 @@ async function tryEmailDelivery(userId, recentInsights) {
 
     if (emailableInsights.length === 0) return;
 
-    // 4. Send email (fire-and-forget, don't await in caller)
-    await sendInsightNotification({
+    // 4. Send email. sendInsightNotification resolves false on failure — it
+    //    does not throw — so the cooldown marker below must branch on the
+    //    boolean. Writing the marker after a failed send silences the next
+    //    EMAIL_COOLDOWN_HOURS of insight emails for nothing.
+    const emailed = await sendInsightNotification({
       toEmail: user.email,
       firstName: user.first_name,
       userId,
       insights: emailableInsights,
     });
+
+    if (!emailed) {
+      log.warn('Insight email did not send — skipping cooldown marker', { userId });
+      return;
+    }
 
     // 5. Insert cooldown marker (system marker — excluded from eval/display)
     await supabaseAdmin.from('proactive_insights').insert({

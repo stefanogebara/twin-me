@@ -36,6 +36,7 @@ router.all('/', async (req, res) => {
 
   let sent = 0;
   let skipped = 0;
+  let errors = 0;
 
   for (const userId of userIds) {
     try {
@@ -82,7 +83,11 @@ router.all('/', async (req, res) => {
         .eq('user_id', userId)
         .gte('created_at', weekAgo);
 
-      await sendWeeklyDigest({
+      // Resolves false on failure rather than throwing (Resend reports API
+      // errors through { data, error }). `sent` is the only health signal
+      // this cron emits — counting rejected sends in it would report a
+      // fully broken digest as a fully successful run.
+      const sentOk = await sendWeeklyDigest({
         toEmail: user.email,
         firstName: user.first_name || 'there',
         reflections: reflections.map(r => r.content),
@@ -90,16 +95,21 @@ router.all('/', async (req, res) => {
         userId,
       });
 
-      sent++;
+      if (sentOk) sent++;
+      else {
+        log.error('Weekly digest did not send', { userId });
+        errors++;
+      }
     } catch (err) {
       log.error('Failed for user', { userId, error: err.message });
+      errors++;
     }
   }
 
   const elapsed = Date.now() - startTime;
-  log.info('Digest run complete', { sent, skipped });
-  await logCronExecution('email-digest', 'success', elapsed, { sent, skipped });
-  res.json({ sent, skipped });
+  log.info('Digest run complete', { sent, skipped, errors });
+  await logCronExecution('email-digest', 'success', elapsed, { sent, skipped, errors });
+  res.json({ sent, skipped, errors });
 });
 
 export default router;

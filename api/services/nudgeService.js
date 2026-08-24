@@ -92,11 +92,20 @@ export async function sendNudgeEmails() {
 
   for (const user of users) {
     try {
-      await sendPlatformNudge({
+      const nudged = await sendPlatformNudge({
         toEmail: user.email,
         firstName: user.first_name || user.email.split('@')[0],
         userId: user.id,
       });
+
+      // platform_nudge_sent_at is a permanent "never nudge again" flag, so
+      // stamping it after a failed send burns the user forever. sendPlatformNudge
+      // resolves false (it does not throw) when Resend rejects the message.
+      if (!nudged) {
+        log.error('Nudge email did not send — leaving user eligible for retry', { userId: user.id });
+        errors++;
+        continue;
+      }
 
       // Mark user as nudged to prevent duplicate sends
       const { error: updateErr } = await supabaseAdmin
