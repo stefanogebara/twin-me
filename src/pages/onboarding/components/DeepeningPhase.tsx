@@ -43,14 +43,14 @@ const DeepeningPhase: React.FC<DeepeningPhaseProps> = ({
       <div className="text-center mb-8">
         <h2
           className="text-2xl md:text-3xl mb-2"
-          style={{ fontFamily: 'var(--font-heading)', color: '#E8D5B7' }}
+          style={{ fontFamily: 'var(--font-heading)', color: 'var(--text-primary)' }}
         >
           {signature ? 'Your Soul Signature' : 'A few quick taps'}
         </h2>
         {!signature && (
           <p
             className="text-sm opacity-50"
-            style={{ fontFamily: 'var(--font-body)', color: '#E8D5B7' }}
+            style={{ fontFamily: 'var(--font-body)', color: 'var(--text-primary)' }}
           >
             Help your twin understand who you are
           </p>
@@ -62,10 +62,10 @@ const DeepeningPhase: React.FC<DeepeningPhaseProps> = ({
         <>
           {loadingQuestions ? (
             <div className="flex items-center justify-center gap-3 py-12">
-              <Loader2 className="w-5 h-5 animate-spin" style={{ color: '#E8D5B7' }} />
+              <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--text-primary)' }} />
               <span
                 className="text-sm"
-                style={{ color: 'rgba(232, 213, 183, 0.6)', fontFamily: 'var(--font-body)' }}
+                style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-body)' }}
               >
                 Preparing your questions...
               </span>
@@ -81,7 +81,7 @@ const DeepeningPhase: React.FC<DeepeningPhaseProps> = ({
             <div className="flex flex-col gap-3 mb-8">
               <p
                 className="text-sm text-center mb-2"
-                style={{ color: 'rgba(232, 213, 183, 0.6)', fontFamily: 'var(--font-body)' }}
+                style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-body)' }}
               >
                 We couldn't load your questions right now. You can continue — your twin will keep learning as you go.
               </p>
@@ -89,8 +89,8 @@ const DeepeningPhase: React.FC<DeepeningPhaseProps> = ({
                 onClick={onComplete}
                 className="w-full px-6 py-4 rounded-xl text-base font-medium transition-all duration-200 hover:scale-[1.01] flex items-center justify-center gap-2"
                 style={{
-                  background: 'linear-gradient(135deg, #E8D5B7 0%, #D4C4A8 100%)',
-                  color: '#0C0C0C',
+                  background: 'var(--claura-bone)',
+                  color: 'var(--claura-bone-ink)',
                   fontFamily: 'var(--font-body)',
                 }}
               >
@@ -102,8 +102,8 @@ const DeepeningPhase: React.FC<DeepeningPhaseProps> = ({
                 className="w-full px-6 py-3 rounded-xl text-sm transition-all duration-200 hover:scale-[1.01] flex items-center justify-center gap-2"
                 style={{
                   background: 'transparent',
-                  border: '1px solid rgba(232, 213, 183, 0.2)',
-                  color: 'rgba(232, 213, 183, 0.7)',
+                  border: '1px solid rgba(255,255,255,0.16)',
+                  color: 'var(--text-secondary)',
                   fontFamily: 'var(--font-body)',
                 }}
               >
@@ -118,10 +118,10 @@ const DeepeningPhase: React.FC<DeepeningPhaseProps> = ({
       {/* Generating signature spinner */}
       {generatingSignature && (
         <div className="flex items-center justify-center gap-3 py-6">
-          <Loader2 className="w-5 h-5 animate-spin" style={{ color: '#E8D5B7' }} />
+          <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--text-primary)' }} />
           <span
             className="text-sm"
-            style={{ color: 'rgba(232, 213, 183, 0.6)', fontFamily: 'var(--font-body)' }}
+            style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-body)' }}
           >
             Crafting your soul signature...
           </span>
@@ -133,14 +133,14 @@ const DeepeningPhase: React.FC<DeepeningPhaseProps> = ({
         <div
           className="rounded-2xl p-6 mb-6 transition-all duration-500"
           style={{
-            backgroundColor: 'rgba(232, 213, 183, 0.06)',
-            border: '1px solid rgba(232, 213, 183, 0.15)',
+            backgroundColor: 'rgba(255,255,255,0.06)',
+            border: '1px solid rgba(255,255,255,0.14)',
           }}
         >
           <p
             className="text-xs uppercase tracking-widest mb-3"
             style={{
-              color: 'rgba(232, 213, 183, 0.4)',
+              color: 'var(--text-muted)',
               fontFamily: 'var(--font-body)',
               letterSpacing: '0.15em',
             }}
@@ -149,14 +149,14 @@ const DeepeningPhase: React.FC<DeepeningPhaseProps> = ({
           </p>
           <h3
             className="text-xl mb-2"
-            style={{ fontFamily: 'var(--font-heading)', color: '#E8D5B7' }}
+            style={{ fontFamily: 'var(--font-heading)', color: 'var(--text-primary)' }}
           >
             {signature.archetype_name}
           </h3>
           <p
             className="text-sm mb-3"
             style={{
-              color: 'rgba(232, 213, 183, 0.7)',
+              color: 'var(--text-secondary)',
               fontFamily: 'var(--font-heading)',
               fontStyle: 'italic',
             }}
@@ -166,7 +166,7 @@ const DeepeningPhase: React.FC<DeepeningPhaseProps> = ({
           <p
             className="text-sm leading-relaxed"
             style={{
-              color: 'rgba(232, 213, 183, 0.6)',
+              color: 'var(--text-secondary)',
               fontFamily: 'var(--font-body)',
             }}
           >
@@ -182,8 +182,8 @@ const DeepeningPhase: React.FC<DeepeningPhaseProps> = ({
             onClick={onComplete}
             className="w-full px-6 py-4 rounded-xl text-base font-medium transition-all duration-200 hover:scale-[1.01] flex items-center justify-center gap-2"
             style={{
-              background: 'linear-gradient(135deg, #E8D5B7 0%, #D4C4A8 100%)',
-              color: '#0C0C0C',
+              background: 'var(--claura-bone)',
+              color: 'var(--claura-bone-ink)',
               fontFamily: 'var(--font-body)',
             }}
           >
@@ -196,8 +196,8 @@ const DeepeningPhase: React.FC<DeepeningPhaseProps> = ({
             className="w-full px-6 py-3 rounded-xl text-sm transition-all duration-200 hover:scale-[1.01] flex items-center justify-center gap-2"
             style={{
               background: 'transparent',
-              border: '1px solid rgba(232, 213, 183, 0.2)',
-              color: 'rgba(232, 213, 183, 0.7)',
+              border: '1px solid rgba(255,255,255,0.16)',
+              color: 'var(--text-secondary)',
               fontFamily: 'var(--font-body)',
             }}
           >
@@ -213,7 +213,7 @@ const DeepeningPhase: React.FC<DeepeningPhaseProps> = ({
           <div className="flex flex-col gap-3 mb-8">
             <p
               className="text-sm text-center mb-2"
-              style={{ color: 'rgba(232, 213, 183, 0.7)', fontFamily: 'var(--font-body)' }}
+              style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-body)' }}
             >
               {signatureError}
             </p>
@@ -221,8 +221,8 @@ const DeepeningPhase: React.FC<DeepeningPhaseProps> = ({
               onClick={onRetrySignature}
               className="w-full px-6 py-4 rounded-xl text-base font-medium transition-all duration-200 hover:scale-[1.01] flex items-center justify-center gap-2"
               style={{
-                background: 'linear-gradient(135deg, #E8D5B7 0%, #D4C4A8 100%)',
-                color: '#0C0C0C',
+                background: 'var(--claura-bone)',
+                color: 'var(--claura-bone-ink)',
                 fontFamily: 'var(--font-body)',
               }}
             >
@@ -233,8 +233,8 @@ const DeepeningPhase: React.FC<DeepeningPhaseProps> = ({
               className="w-full px-6 py-3 rounded-xl text-sm transition-all duration-200 hover:scale-[1.01] flex items-center justify-center gap-2"
               style={{
                 background: 'transparent',
-                border: '1px solid rgba(232, 213, 183, 0.2)',
-                color: 'rgba(232, 213, 183, 0.7)',
+                border: '1px solid rgba(255,255,255,0.16)',
+                color: 'var(--text-secondary)',
                 fontFamily: 'var(--font-body)',
               }}
             >
@@ -245,7 +245,7 @@ const DeepeningPhase: React.FC<DeepeningPhaseProps> = ({
         ) : (
           /* Momentary: render gap between allQAnswered flipping and generateSignature starting */
           <div className="flex items-center justify-center gap-3 py-6 mb-8">
-            <Loader2 className="w-5 h-5 animate-spin" style={{ color: '#E8D5B7' }} />
+            <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--text-primary)' }} />
           </div>
         )
       )}

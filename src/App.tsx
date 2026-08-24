@@ -62,7 +62,6 @@ const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 const PortfolioPage = lazy(() => import("./pages/PortfolioPage"));
 const NewDiscoverFlow = lazy(() => import("./pages/onboarding/NewDiscoverFlow"));
 const OnboardingWowPage = lazy(() => import("./pages/onboarding/OnboardingWowPage"));
-const DiscoverLanding = lazy(() => import("./pages/DiscoverLanding"));
 const WaitlistPage = lazy(() => import("./pages/WaitlistPage"));
 const BetaSignupPage = lazy(() => import("./pages/BetaSignupPage"));
 const GmailCallback = lazy(() => import("./pages/oauth/GmailCallback"));
@@ -180,7 +179,9 @@ const App = () => {
 
             {/* Landing */}
             <Route path="/" element={<Index />} />
-            <Route path="/discover" element={<DiscoverLanding />} />
+            {/* hero-inversion 2026-08: /discover's email-enrichment reveal IS
+                the landing now — one front door. Old links keep working. */}
+            <Route path="/discover" element={<Navigate to="/" replace />} />
 
             {/* Cinematic redesign prototypes (isolated static bundle in /public/cinematic).
                 Dev-only: 16 prototype routes were shipping in production routing

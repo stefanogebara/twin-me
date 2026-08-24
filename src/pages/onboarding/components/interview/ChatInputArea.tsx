@@ -125,7 +125,7 @@ const ChatInputArea: React.FC<ChatInputAreaProps> = ({
             minHeight: '24px',
             maxHeight: '120px',
             overflowY: 'auto',
-            caretColor: 'rgba(232, 213, 183, 0.6)',
+            caretColor: 'var(--text-secondary)',
             outline: 'none',
           }}
         />
@@ -139,7 +139,7 @@ const ChatInputArea: React.FC<ChatInputAreaProps> = ({
             height: '36px',
             borderRadius: '100px',
             backgroundColor: input.trim() ? '#F5F5F4' : 'transparent',
-            color: input.trim() ? '#0C0C0C' : 'var(--text-muted)',
+            color: input.trim() ? 'var(--claura-bone-ink)' : 'var(--text-muted)',
             cursor: input.trim() ? 'pointer' : 'default',
             opacity: input.trim() ? 1 : 0.3,
           }}

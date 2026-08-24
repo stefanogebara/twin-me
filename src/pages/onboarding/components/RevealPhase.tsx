@@ -85,7 +85,7 @@ const RevealPhase: React.FC<RevealPhaseProps> = ({
       <p
         className="text-sm uppercase tracking-widest mb-8 text-center transition-all duration-300"
         style={{
-          color: 'rgba(232, 213, 183, 0.5)',
+          color: 'var(--text-muted)',
           fontFamily: 'var(--font-body)',
           letterSpacing: '0.15em',
         }}
@@ -115,7 +115,7 @@ const RevealPhase: React.FC<RevealPhaseProps> = ({
           <p
             className="text-xs text-center mb-2"
             style={{
-              color: 'rgba(232, 213, 183, 0.4)',
+              color: 'var(--text-muted)',
               fontFamily: 'var(--font-body)',
             }}
           >
@@ -128,9 +128,9 @@ const RevealPhase: React.FC<RevealPhaseProps> = ({
             placeholder="https://linkedin.com/in/yourprofile"
             className="w-full px-4 py-2.5 rounded-xl text-sm outline-none transition-all duration-200"
             style={{
-              background: 'rgba(232, 213, 183, 0.06)',
-              border: '1px solid rgba(232, 213, 183, 0.12)',
-              color: 'rgba(232, 213, 183, 0.8)',
+              background: 'rgba(255,255,255,0.06)',
+              border: '1px solid rgba(255,255,255,0.10)',
+              color: 'var(--text-narrative)',
               fontFamily: 'var(--font-body)',
             }}
           />
@@ -146,7 +146,7 @@ const RevealPhase: React.FC<RevealPhaseProps> = ({
             style={{
               fontFamily: 'var(--font-heading)',
               fontStyle: 'italic',
-              color: 'rgba(232, 213, 183, 0.9)',
+              color: 'var(--text-narrative)',
               letterSpacing: '-0.02em',
             }}
           >
@@ -160,18 +160,18 @@ const RevealPhase: React.FC<RevealPhaseProps> = ({
                 key={idx}
                 className="flex items-start gap-3 px-4 py-3 rounded-2xl transition-all duration-300"
                 style={{
-                  background: 'rgba(232, 213, 183, 0.06)',
-                  border: '1px solid rgba(232, 213, 183, 0.10)',
+                  background: 'rgba(255,255,255,0.06)',
+                  border: '1px solid rgba(255,255,255,0.10)',
                 }}
               >
                 <Sparkles
                   className="w-4 h-4 mt-0.5 flex-shrink-0"
-                  style={{ color: 'rgba(232, 213, 183, 0.5)' }}
+                  style={{ color: 'var(--text-muted)' }}
                 />
                 <p
                   className="text-sm leading-relaxed"
                   style={{
-                    color: 'rgba(232, 213, 183, 0.75)',
+                    color: 'var(--text-secondary)',
                     fontFamily: 'var(--font-body)',
                   }}
                 >
@@ -187,7 +187,7 @@ const RevealPhase: React.FC<RevealPhaseProps> = ({
               <p
                 className="text-xs uppercase tracking-widest mb-2 px-1"
                 style={{
-                  color: 'rgba(232, 213, 183, 0.35)',
+                  color: 'var(--text-muted)',
                   fontFamily: 'var(--font-body)',
                   letterSpacing: '0.12em',
                 }}
@@ -200,18 +200,18 @@ const RevealPhase: React.FC<RevealPhaseProps> = ({
                     key={idx}
                     className="flex items-start gap-3 px-4 py-2.5 rounded-xl"
                     style={{
-                      background: 'rgba(232, 213, 183, 0.03)',
-                      border: '1px dashed rgba(232, 213, 183, 0.12)',
+                      background: 'rgba(255,255,255,0.04)',
+                      border: '1px dashed rgba(255,255,255,0.10)',
                     }}
                   >
                     <Link2
                       className="w-3.5 h-3.5 mt-0.5 flex-shrink-0"
-                      style={{ color: 'rgba(232, 213, 183, 0.35)' }}
+                      style={{ color: 'var(--text-muted)' }}
                     />
                     <p
                       className="text-xs leading-relaxed"
                       style={{
-                        color: 'rgba(232, 213, 183, 0.45)',
+                        color: 'var(--text-muted)',
                         fontFamily: 'var(--font-body)',
                       }}
                     >
@@ -244,7 +244,7 @@ const RevealPhase: React.FC<RevealPhaseProps> = ({
         <p
           className="text-base leading-relaxed mt-6 text-center max-w-md transition-all duration-500"
           style={{
-            color: 'rgba(232, 213, 183, 0.7)',
+            color: 'var(--text-secondary)',
             fontFamily: 'var(--font-heading)',
             fontStyle: 'italic',
           }}
@@ -264,7 +264,7 @@ const RevealPhase: React.FC<RevealPhaseProps> = ({
         <p
           className="text-sm text-center mt-6 max-w-sm transition-all duration-300"
           style={{
-            color: 'rgba(232, 213, 183, 0.5)',
+            color: 'var(--text-muted)',
             fontFamily: 'var(--font-body)',
           }}
         >
@@ -278,7 +278,7 @@ const RevealPhase: React.FC<RevealPhaseProps> = ({
           <p
             className="text-sm mb-5"
             style={{
-              color: 'rgba(232, 213, 183, 0.5)',
+              color: 'var(--text-muted)',
               fontFamily: 'var(--font-body)',
             }}
           >
@@ -299,13 +299,13 @@ const RevealPhase: React.FC<RevealPhaseProps> = ({
           <div
             className="rounded-xl p-5 text-center"
             style={{
-              background: 'rgba(232, 213, 183, 0.06)',
-              border: '1px solid rgba(232, 213, 183, 0.15)',
+              background: 'rgba(255,255,255,0.06)',
+              border: '1px solid rgba(255,255,255,0.14)',
             }}
           >
             <p
               className="text-sm mb-4"
-              style={{ color: 'rgba(232, 213, 183, 0.8)', fontFamily: 'var(--font-body)' }}
+              style={{ color: 'var(--text-narrative)', fontFamily: 'var(--font-body)' }}
             >
               Is this information about you?
             </p>
@@ -314,8 +314,8 @@ const RevealPhase: React.FC<RevealPhaseProps> = ({
                 onClick={onConfirmIdentity}
                 className="flex-1 py-2.5 rounded-full text-sm font-medium transition-all duration-200 hover:scale-[1.02]"
                 style={{
-                  background: 'linear-gradient(135deg, #E8D5B7 0%, #D4C4A8 100%)',
-                  color: '#0C0C0C',
+                  background: 'var(--claura-bone)',
+                  color: 'var(--claura-bone-ink)',
                   fontFamily: 'var(--font-body)',
                   cursor: 'pointer',
                 }}
@@ -327,8 +327,8 @@ const RevealPhase: React.FC<RevealPhaseProps> = ({
                 className="flex-1 py-2.5 rounded-full text-sm font-medium transition-all duration-200 hover:opacity-80"
                 style={{
                   background: 'transparent',
-                  border: '1px solid rgba(232, 213, 183, 0.3)',
-                  color: 'rgba(232, 213, 183, 0.7)',
+                  border: '1px solid rgba(255,255,255,0.22)',
+                  color: 'var(--text-secondary)',
                   fontFamily: 'var(--font-body)',
                   cursor: 'pointer',
                 }}
@@ -360,8 +360,8 @@ const RevealPhase: React.FC<RevealPhaseProps> = ({
             onClick={onAdvance}
             className="px-8 py-3 rounded-full text-base flex items-center gap-2 transition-all duration-200 hover:scale-[1.03]"
             style={{
-              background: 'linear-gradient(135deg, #E8D5B7 0%, #D4C4A8 100%)',
-              color: '#0C0C0C',
+              background: 'var(--claura-bone)',
+              color: 'var(--claura-bone-ink)',
               fontFamily: 'var(--font-body)',
               fontWeight: 500,
             }}
@@ -405,16 +405,16 @@ const LinkedInInputBox: React.FC<{
     <div
       className={`rounded-xl ${compact ? 'p-3' : 'p-4'}`}
       style={{
-        background: 'rgba(232, 213, 183, 0.04)',
-        border: '1px solid rgba(232, 213, 183, 0.10)',
+        background: 'rgba(255,255,255,0.04)',
+        border: '1px solid rgba(255,255,255,0.10)',
       }}
     >
       {!compact && (
         <div className="flex items-center gap-2 mb-3">
-          <Linkedin className="w-4 h-4" style={{ color: 'rgba(232, 213, 183, 0.5)' }} />
+          <Linkedin className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
           <p
             className="text-xs"
-            style={{ color: 'rgba(232, 213, 183, 0.5)', fontFamily: 'var(--font-body)' }}
+            style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-body)' }}
           >
             Paste your LinkedIn URL for a more accurate profile
           </p>
@@ -429,9 +429,9 @@ const LinkedInInputBox: React.FC<{
           placeholder={compact ? 'linkedin.com/in/you' : 'https://linkedin.com/in/yourprofile'}
           className="flex-1 px-3 py-2 rounded-lg text-sm outline-none transition-all"
           style={{
-            background: 'rgba(232, 213, 183, 0.06)',
-            border: `1px solid ${value && !isValid ? 'rgba(239, 68, 68, 0.4)' : 'rgba(232, 213, 183, 0.12)'}`,
-            color: 'rgba(232, 213, 183, 0.8)',
+            background: 'rgba(255,255,255,0.06)',
+            border: `1px solid ${value && !isValid ? 'rgba(239, 68, 68, 0.4)' : 'rgba(255,255,255,0.10)'}`,
+            color: 'var(--text-narrative)',
             fontFamily: 'var(--font-body)',
           }}
         />
@@ -440,9 +440,9 @@ const LinkedInInputBox: React.FC<{
           disabled={!canSubmit}
           className="px-4 py-2 rounded-lg text-xs font-medium transition-all duration-200 hover:scale-[1.02] disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1.5"
           style={{
-            background: canSubmit ? 'rgba(232, 213, 183, 0.15)' : 'rgba(232, 213, 183, 0.06)',
-            border: '1px solid rgba(232, 213, 183, 0.15)',
-            color: 'rgba(232, 213, 183, 0.8)',
+            background: canSubmit ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.06)',
+            border: '1px solid rgba(255,255,255,0.14)',
+            color: 'var(--text-narrative)',
             fontFamily: 'var(--font-body)',
           }}
         >

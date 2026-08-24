@@ -112,7 +112,7 @@ const CustomAuth = () => {
         sessionStorage.setItem('beta_invite_code', code.trim());
         trackFunnel('beta_invite_validated', { code: code.trim() });
       } else {
-        setError(data.error || 'Invalid invite code');
+        setError(typeof data.error === 'string' ? data.error : 'Invalid invite code');
         sessionStorage.removeItem('beta_invite_code');
       }
     } catch {
@@ -182,7 +182,9 @@ const CustomAuth = () => {
       if (res.ok && data?.success) {
         setMagicLinkSent(true);
       } else {
-        setError(data?.error || 'Could not send signin link. Try again in a moment.');
+        // Coerce: a proxy/edge layer (e.g. Vercel deployment protection) can
+        // return { error: {...} } — rendering an object crashes React (#31).
+        setError(typeof data?.error === 'string' ? data.error : 'Could not send signin link. Try again in a moment.');
       }
     } catch {
       setError('Network error. Check your connection and try again.');
@@ -564,7 +566,7 @@ For privacy concerns: privacy@twinme.me`
         >
           New here?{' '}
           <button
-            onClick={() => navigate('/discover')}
+            onClick={() => navigate('/')}
             className="transition-opacity hover:opacity-70"
             style={{ color: 'var(--foreground)' }}
           >

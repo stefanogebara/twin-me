@@ -44,7 +44,7 @@ const QuickQuestionCard: React.FC<QuickQuestionCardProps> = ({
         className="text-lg mb-4"
         style={{
           fontFamily: 'var(--font-heading)',
-          color: 'rgba(232, 213, 183, 0.9)',
+          color: 'var(--text-narrative)',
         }}
       >
         {question.question}
@@ -59,14 +59,14 @@ const QuickQuestionCard: React.FC<QuickQuestionCardProps> = ({
               className="px-5 py-2.5 rounded-full text-sm transition-all duration-200"
               style={{
                 backgroundColor: isSelected
-                  ? 'rgba(232, 213, 183, 0.2)'
-                  : 'rgba(232, 213, 183, 0.05)',
+                  ? 'rgba(255,255,255,0.16)'
+                  : 'rgba(255,255,255,0.05)',
                 border: isSelected
-                  ? '1px solid rgba(232, 213, 183, 0.5)'
-                  : '1px solid rgba(232, 213, 183, 0.15)',
+                  ? '1px solid var(--text-muted)'
+                  : '1px solid rgba(255,255,255,0.14)',
                 color: isSelected
-                  ? '#E8D5B7'
-                  : 'rgba(232, 213, 183, 0.7)',
+                  ? 'var(--text-primary)'
+                  : 'var(--text-secondary)',
                 fontFamily: "'Inter', sans-serif",
               }}
             >

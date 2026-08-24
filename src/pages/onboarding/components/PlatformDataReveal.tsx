@@ -41,7 +41,7 @@ const PlatformDataReveal: React.FC<PlatformDataRevealProps> = ({
   onDismiss,
 }) => {
   const [visible, setVisible] = useState(true);
-  const accentColor = PLATFORM_COLORS[platform] || '#E8D5B7';
+  const accentColor = PLATFORM_COLORS[platform] || '#c17e2c';
 
   // Auto-dismiss after 8 seconds
   useEffect(() => {
@@ -63,7 +63,7 @@ const PlatformDataReveal: React.FC<PlatformDataRevealProps> = ({
     <div
       className="rounded-2xl p-5 mb-4 relative overflow-hidden"
       style={{
-        backgroundColor: 'rgba(232, 213, 183, 0.04)',
+        backgroundColor: 'rgba(255,255,255,0.04)',
         border: `1px solid ${accentColor}33`,
       }}
     >
@@ -79,7 +79,7 @@ const PlatformDataReveal: React.FC<PlatformDataRevealProps> = ({
       <button
         onClick={handleDismiss}
         className="absolute top-3 right-3 p-1 rounded-full transition-opacity hover:opacity-70"
-        style={{ color: 'rgba(232, 213, 183, 0.4)' }}
+        style={{ color: 'var(--text-muted)' }}
       >
         <X className="w-3.5 h-3.5" />
       </button>
@@ -100,7 +100,7 @@ const PlatformDataReveal: React.FC<PlatformDataRevealProps> = ({
       <p
         className="text-sm mb-4 leading-relaxed"
         style={{
-          color: 'rgba(232, 213, 183, 0.85)',
+          color: 'var(--text-narrative)',
           fontFamily: 'var(--font-heading)',
         }}
       >
@@ -125,7 +125,7 @@ const PlatformDataReveal: React.FC<PlatformDataRevealProps> = ({
               <span
                 className="text-xs"
                 style={{
-                  color: 'rgba(232, 213, 183, 0.5)',
+                  color: 'var(--text-muted)',
                   fontFamily: "'Inter', sans-serif",
                 }}
               >
@@ -134,7 +134,7 @@ const PlatformDataReveal: React.FC<PlatformDataRevealProps> = ({
               <span
                 className="text-xs font-medium"
                 style={{
-                  color: 'rgba(232, 213, 183, 0.85)',
+                  color: 'var(--text-narrative)',
                   fontFamily: "'Inter', sans-serif",
                 }}
               >
@@ -150,7 +150,7 @@ const PlatformDataReveal: React.FC<PlatformDataRevealProps> = ({
         <p
           className="text-xs leading-relaxed"
           style={{
-            color: 'rgba(232, 213, 183, 0.5)',
+            color: 'var(--text-muted)',
             fontFamily: 'var(--font-heading)',
             fontStyle: 'italic',
           }}
