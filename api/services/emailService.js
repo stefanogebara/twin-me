@@ -280,12 +280,23 @@ export async function sendMagicLink({ toEmail, link }) {
   </div>`;
 
   try {
-    await resend.emails.send({
+    // The Resend SDK does not throw on API errors — it resolves with
+    // { data, error }. An unhandled error object here was a silent
+    // production outage (2026-08-24): sends were rejected but reported ok.
+    const { error } = await resend.emails.send({
       from: FROM,
       to: toEmail,
       subject: 'Your TwinMe signin link',
       html: emailShell(body),
     });
+    if (error) {
+      log.error('Magic-link email rejected by Resend', {
+        name: error.name,
+        statusCode: error.statusCode,
+        error: error.message,
+      });
+      return false;
+    }
     return true;
   } catch (err) {
     log.error('Magic-link email failed', { error: err.message });

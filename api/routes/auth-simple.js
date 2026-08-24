@@ -811,15 +811,26 @@ router.post('/magic-link/request', authLimiter, async (req, res) => {
       return res.status(500).json({ success: false, error: 'Failed to send signin link' });
     }
 
-    // Email the link. Best-effort — don't block on Resend latency.
     const appUrl = resolveAppUrl(req);
     const redirect = typeof req.body?.redirect === 'string' && req.body.redirect.startsWith('/') && !req.body.redirect.startsWith('//')
       ? `&redirect=${encodeURIComponent(req.body.redirect)}`
       : '';
     const link = `${appUrl}/api/auth/magic-link/verify?token=${rawToken}${redirect}`;
-    sendMagicLink({ toEmail: emailRaw, link }).catch(err =>
-      log.warn('Magic-link email send failed', { error: err?.message })
-    );
+
+    // Await the send and surface failure. This used to be fire-and-forget
+    // "best-effort", which meant a broken Resend config returned "check
+    // your email" while delivering nothing — a silent auth outage
+    // (2026-08-24). One awaited send costs <1s; lying to the user costs
+    // the signup. Note sendMagicLink resolves false on failure (including
+    // Resend's { data, error } API-error contract) — it does not throw.
+    const sent = await sendMagicLink({ toEmail: emailRaw, link });
+    if (!sent) {
+      log.error('Magic-link email did not send', { email: redactEmail(emailRaw) });
+      return res.status(500).json({
+        success: false,
+        error: 'We could not send the signin email. Try again in a minute, or continue with Google.',
+      });
+    }
 
     // Local-dev fallback. The raw token is deliberately never persisted (only
     // token_hash is), so when Resend is unconfigured there is no way to
