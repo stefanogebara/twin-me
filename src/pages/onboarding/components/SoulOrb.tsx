@@ -36,9 +36,9 @@ const voiceOverrides: Record<OrbVoiceState, {
   shimmerSpeed: number;
   ringColor: string;
 }> = {
-  idle: { glowMultiplier: 1, pulseScale: 1.04, pulseDuration: 3, shimmerSpeed: 20, ringColor: '#E8D5B7' },
+  idle: { glowMultiplier: 1, pulseScale: 1.04, pulseDuration: 3, shimmerSpeed: 20, ringColor: '#F1EBE1' },
   listening: { glowMultiplier: 1.8, pulseScale: 1.08, pulseDuration: 1.2, shimmerSpeed: 8, ringColor: '#F0C880' },
-  thinking: { glowMultiplier: 1.4, pulseScale: 1.02, pulseDuration: 0.8, shimmerSpeed: 4, ringColor: '#E8D5B7' },
+  thinking: { glowMultiplier: 1.4, pulseScale: 1.02, pulseDuration: 0.8, shimmerSpeed: 4, ringColor: '#F1EBE1' },
   speaking: { glowMultiplier: 2.2, pulseScale: 1.06, pulseDuration: 2, shimmerSpeed: 12, ringColor: '#FFB347' },
 };
 
@@ -86,7 +86,7 @@ const SoulOrb: React.FC<SoulOrbProps> = ({
           style={{
             width: config.size + 60,
             height: config.size + 60,
-            background: `radial-gradient(circle, rgba(232, 213, 183, ${effectiveGlow * 0.4}) 0%, transparent 70%)`,
+            background: `radial-gradient(circle, rgba(210, 145, 55, ${effectiveGlow * 0.4}) 0%, transparent 70%)`,
             animationDuration: `${effectivePulseDuration}s`,
           }}
         />
@@ -114,13 +114,13 @@ const SoulOrb: React.FC<SoulOrbProps> = ({
             background: `
               radial-gradient(circle at 35% 35%,
                 rgba(255, 245, 230, ${voiceState !== 'idle' ? 0.6 : (phase === 'alive' ? 0.6 : 0.3)}) 0%,
-                rgba(232, 213, 183, ${voiceState !== 'idle' ? 0.5 : (phase === 'alive' ? 0.5 : 0.25)}) 30%,
+                rgba(241, 235, 225, ${voiceState !== 'idle' ? 0.5 : (phase === 'alive' ? 0.5 : 0.25)}) 30%,
                 rgba(180, 160, 130, ${voiceState !== 'idle' ? 0.35 : (phase === 'alive' ? 0.35 : 0.15)}) 60%,
                 rgba(100, 85, 65, 0.1) 100%)
             `,
             boxShadow: `
-              0 0 ${voiceState !== 'idle' ? 80 : (phase === 'alive' ? 80 : 40)}px rgba(232, 213, 183, ${effectiveGlow}),
-              inset 0 0 ${voiceState !== 'idle' ? 60 : (phase === 'alive' ? 60 : 30)}px rgba(232, 213, 183, ${effectiveGlow * 0.5})
+              0 0 ${voiceState !== 'idle' ? 80 : (phase === 'alive' ? 80 : 40)}px rgba(210, 145, 55, ${effectiveGlow}),
+              inset 0 0 ${voiceState !== 'idle' ? 60 : (phase === 'alive' ? 60 : 30)}px rgba(210, 145, 55, ${effectiveGlow * 0.5})
             `,
             transition: 'box-shadow 0.3s ease',
           }}
@@ -133,9 +133,9 @@ const SoulOrb: React.FC<SoulOrbProps> = ({
                 conic-gradient(
                   from 0deg,
                   transparent 0%,
-                  rgba(232, 213, 183, ${voiceState !== 'idle' ? 0.2 : (phase === 'alive' ? 0.15 : 0.05)}) 25%,
+                  rgba(241, 235, 225, ${voiceState !== 'idle' ? 0.2 : (phase === 'alive' ? 0.15 : 0.05)}) 25%,
                   transparent 50%,
-                  rgba(232, 213, 183, ${voiceState !== 'idle' ? 0.15 : (phase === 'alive' ? 0.1 : 0.03)}) 75%,
+                  rgba(241, 235, 225, ${voiceState !== 'idle' ? 0.15 : (phase === 'alive' ? 0.1 : 0.03)}) 75%,
                   transparent 100%
                 )
               `,
@@ -146,7 +146,7 @@ const SoulOrb: React.FC<SoulOrbProps> = ({
           {/* Mic icon — visible when clickable and idle */}
           {isClickable && voiceState === 'idle' && (
             <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-60 transition-opacity duration-300">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(232, 213, 183, 0.8)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(241, 235, 225, 0.85)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
                 <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
                 <line x1="12" x2="12" y1="19" y2="22" />

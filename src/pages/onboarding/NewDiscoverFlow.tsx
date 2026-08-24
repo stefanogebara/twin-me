@@ -593,7 +593,7 @@ const NewDiscoverFlow: React.FC = () => {
   if (!authLoaded || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin" style={{ color: '#E8D5B7' }} />
+        <Loader2 className="w-8 h-8 animate-spin" style={{ color: 'var(--text-primary)' }} />
       </div>
     );
   }
@@ -628,7 +628,7 @@ const NewDiscoverFlow: React.FC = () => {
       <div className="relative z-10 flex justify-between items-center px-6 md:px-8 py-5">
         <div
           className="text-xl tracking-tight"
-          style={{ fontFamily: 'var(--font-heading)', color: '#E8D5B7' }}
+          style={{ fontFamily: 'var(--font-heading)', color: 'var(--text-primary)' }}
         >
           Twin Me
         </div>
@@ -636,7 +636,7 @@ const NewDiscoverFlow: React.FC = () => {
           <button
             onClick={handleSkipExit}
             className="text-sm tracking-wide uppercase opacity-40 hover:opacity-80 transition-opacity"
-            style={{ fontFamily: 'var(--font-body)', color: '#E8D5B7', letterSpacing: '0.1em' }}
+            style={{ fontFamily: 'var(--font-body)', color: 'var(--text-primary)', letterSpacing: '0.1em' }}
           >
             Skip
           </button>

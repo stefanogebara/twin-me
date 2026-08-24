@@ -169,13 +169,13 @@ const PlatformConnectStep: React.FC<PlatformConnectStepProps> = ({ userId, onCon
       >
         <h2
           className="text-2xl md:text-3xl mb-3"
-          style={{ fontFamily: 'var(--font-heading)', color: '#E8D5B7' }}
+          style={{ fontFamily: 'var(--font-heading)', color: 'var(--text-primary)' }}
         >
           I've seen what the internet knows about you.
         </h2>
         <p
           className="text-sm opacity-60 leading-relaxed"
-          style={{ fontFamily: "'Inter', sans-serif", color: '#E8D5B7' }}
+          style={{ fontFamily: "'Inter', sans-serif", color: 'var(--text-primary)' }}
         >
           Now let me see what only you can show me.
         </p>
@@ -194,11 +194,11 @@ const PlatformConnectStep: React.FC<PlatformConnectStepProps> = ({ userId, onCon
               className="rounded-2xl overflow-hidden"
               style={{
                 backgroundColor: isConnected
-                  ? 'rgba(232, 213, 183, 0.08)'
-                  : 'rgba(232, 213, 183, 0.04)',
+                  ? 'rgba(255,255,255,0.08)'
+                  : 'rgba(255,255,255,0.04)',
                 border: isConnected
                   ? `1px solid ${platform.color}55`
-                  : '1px solid rgba(232, 213, 183, 0.1)',
+                  : '1px solid rgba(255,255,255,0.10)',
               }}
             >
               {/* Card header row */}
@@ -208,13 +208,13 @@ const PlatformConnectStep: React.FC<PlatformConnectStepProps> = ({ userId, onCon
                 <div className="flex-1 min-w-0">
                   <div
                     className="text-sm font-medium mb-0.5"
-                    style={{ color: '#E8D5B7', fontFamily: "'Inter', sans-serif" }}
+                    style={{ color: 'var(--text-primary)', fontFamily: "'Inter', sans-serif" }}
                   >
                     {platform.name}
                   </div>
                   <div
                     className="text-xs opacity-50 truncate"
-                    style={{ color: '#E8D5B7', fontFamily: "'Inter', sans-serif" }}
+                    style={{ color: 'var(--text-primary)', fontFamily: "'Inter', sans-serif" }}
                   >
                     {platform.teaser}
                   </div>
@@ -231,7 +231,7 @@ const PlatformConnectStep: React.FC<PlatformConnectStepProps> = ({ userId, onCon
                       <ChevronRight
                         className="w-4 h-4 transition-transform duration-200"
                         style={{
-                          color: '#E8D5B7',
+                          color: 'var(--text-primary)',
                           transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
                         }}
                       />
@@ -275,14 +275,14 @@ const PlatformConnectStep: React.FC<PlatformConnectStepProps> = ({ userId, onCon
                   >
                     <div
                       className="px-5 pb-4 pt-0 border-t"
-                      style={{ borderColor: 'rgba(232, 213, 183, 0.08)' }}
+                      style={{ borderColor: 'rgba(255,255,255,0.08)' }}
                     >
                       <ul className="mt-3 space-y-1.5">
                         {platform.details.map((detail, j) => (
                           <li
                             key={j}
                             className="flex items-start gap-2 text-xs opacity-50"
-                            style={{ color: '#E8D5B7', fontFamily: "'Inter', sans-serif" }}
+                            style={{ color: 'var(--text-primary)', fontFamily: "'Inter', sans-serif" }}
                           >
                             <span className="mt-0.5 shrink-0" style={{ color: platform.color }}>·</span>
                             {detail}
@@ -305,10 +305,10 @@ const PlatformConnectStep: React.FC<PlatformConnectStepProps> = ({ userId, onCon
           onClick={() => onContinue(connectedAll)}
           className="w-full py-3.5 rounded-xl text-sm font-medium transition-all duration-200 hover:opacity-90"
           style={{
-            backgroundColor: connectedAll.length > 0 ? '#E8D5B7' : 'rgba(232, 213, 183, 0.1)',
-            color: connectedAll.length > 0 ? '#0C0C0C' : 'rgba(232, 213, 183, 0.5)',
+            background: connectedAll.length > 0 ? 'var(--claura-bone)' : 'rgba(255,255,255,0.10)',
+            color: connectedAll.length > 0 ? 'var(--claura-bone-ink)' : 'var(--text-muted)',
             fontFamily: "'Inter', sans-serif",
-            border: connectedAll.length > 0 ? 'none' : '1px solid rgba(232, 213, 183, 0.15)',
+            border: connectedAll.length > 0 ? 'none' : '1px solid rgba(255,255,255,0.14)',
           }}
         >
           {allConnected
@@ -322,7 +322,7 @@ const PlatformConnectStep: React.FC<PlatformConnectStepProps> = ({ userId, onCon
           <button
             onClick={() => onContinue([])}
             className="text-xs opacity-25 hover:opacity-50 transition-opacity"
-            style={{ color: '#E8D5B7', fontFamily: "'Inter', sans-serif" }}
+            style={{ color: 'var(--text-primary)', fontFamily: "'Inter', sans-serif" }}
           >
             Skip — I'll connect later
           </button>

@@ -33,8 +33,8 @@ const DataRevealItem: React.FC<DataRevealItemProps> = ({ icon, label, value }) =
       <div
         className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center"
         style={{
-          backgroundColor: 'rgba(232, 213, 183, 0.08)',
-          color: 'rgba(232, 213, 183, 0.6)',
+          backgroundColor: 'rgba(255,255,255,0.08)',
+          color: 'var(--text-secondary)',
         }}
       >
         {iconElement}
@@ -43,7 +43,7 @@ const DataRevealItem: React.FC<DataRevealItemProps> = ({ icon, label, value }) =
         <span
           className="text-xs uppercase tracking-wider block"
           style={{
-            color: 'rgba(232, 213, 183, 0.4)',
+            color: 'var(--text-muted)',
             fontFamily: "'Inter', sans-serif",
             letterSpacing: '0.08em',
           }}
@@ -53,7 +53,7 @@ const DataRevealItem: React.FC<DataRevealItemProps> = ({ icon, label, value }) =
         <span
           className="text-sm block"
           style={{
-            color: 'rgba(232, 213, 183, 0.9)',
+            color: 'var(--text-narrative)',
             fontFamily: "'Inter', sans-serif",
           }}
         >

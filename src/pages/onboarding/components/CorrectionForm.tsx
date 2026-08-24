@@ -47,7 +47,7 @@ const CorrectionForm: React.FC<CorrectionFormProps> = ({
       <p
         className="text-sm text-center mb-6"
         style={{
-          color: 'rgba(232, 213, 183, 0.7)',
+          color: 'var(--text-secondary)',
           fontFamily: "'Inter', sans-serif",
         }}
       >
@@ -59,7 +59,7 @@ const CorrectionForm: React.FC<CorrectionFormProps> = ({
         <label
           className="block text-xs uppercase tracking-widest mb-2"
           style={{
-            color: 'rgba(232, 213, 183, 0.4)',
+            color: 'var(--text-muted)',
             fontFamily: "'Inter', sans-serif",
             letterSpacing: '0.1em',
           }}
@@ -73,9 +73,9 @@ const CorrectionForm: React.FC<CorrectionFormProps> = ({
           onKeyDown={handleKeyDown}
           className="w-full px-4 py-3 rounded-xl text-sm outline-none transition-colors"
           style={{
-            backgroundColor: 'rgba(232, 213, 183, 0.06)',
-            border: `1px solid ${linkedIn && !linkedInValid ? 'rgba(239, 68, 68, 0.5)' : 'rgba(232, 213, 183, 0.15)'}`,
-            color: '#E8D5B7',
+            backgroundColor: 'rgba(255,255,255,0.06)',
+            border: `1px solid ${linkedIn && !linkedInValid ? 'rgba(239, 68, 68, 0.5)' : 'rgba(255,255,255,0.14)'}`,
+            color: 'var(--text-primary)',
             fontFamily: "'Inter', sans-serif",
           }}
           placeholder="https://linkedin.com/in/yourprofile"
@@ -90,7 +90,7 @@ const CorrectionForm: React.FC<CorrectionFormProps> = ({
         )}
         <p
           className="text-xs mt-1.5"
-          style={{ color: 'rgba(232, 213, 183, 0.3)', fontFamily: "'Inter', sans-serif" }}
+          style={{ color: 'rgba(255,255,255,0.22)', fontFamily: "'Inter', sans-serif" }}
         >
           Paste your full LinkedIn profile URL
         </p>
@@ -101,7 +101,7 @@ const CorrectionForm: React.FC<CorrectionFormProps> = ({
         <label
           className="block text-xs uppercase tracking-widest mb-2"
           style={{
-            color: 'rgba(232, 213, 183, 0.4)',
+            color: 'var(--text-muted)',
             fontFamily: "'Inter', sans-serif",
             letterSpacing: '0.1em',
           }}
@@ -115,9 +115,9 @@ const CorrectionForm: React.FC<CorrectionFormProps> = ({
           onKeyDown={handleKeyDown}
           className="w-full px-4 py-3 rounded-xl text-sm outline-none transition-colors"
           style={{
-            backgroundColor: 'rgba(232, 213, 183, 0.06)',
-            border: '1px solid rgba(232, 213, 183, 0.15)',
-            color: '#E8D5B7',
+            backgroundColor: 'rgba(255,255,255,0.06)',
+            border: '1px solid rgba(255,255,255,0.14)',
+            color: 'var(--text-primary)',
             fontFamily: "'Inter', sans-serif",
           }}
           placeholder="Your full name"
@@ -131,8 +131,8 @@ const CorrectionForm: React.FC<CorrectionFormProps> = ({
           disabled={!canSubmit}
           className="w-full px-6 py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2 transition-all duration-200 hover:scale-[1.01] disabled:opacity-40 disabled:cursor-not-allowed"
           style={{
-            background: 'linear-gradient(135deg, #E8D5B7 0%, #D4C4A8 100%)',
-            color: '#0C0C0C',
+            background: 'var(--claura-bone)',
+            color: 'var(--claura-bone-ink)',
             fontFamily: "'Inter', sans-serif",
           }}
         >
@@ -149,7 +149,7 @@ const CorrectionForm: React.FC<CorrectionFormProps> = ({
           disabled={isRetrying}
           className="w-full px-6 py-3 rounded-xl text-sm transition-opacity hover:opacity-80 disabled:opacity-30"
           style={{
-            color: 'rgba(232, 213, 183, 0.5)',
+            color: 'var(--text-muted)',
             fontFamily: "'Inter', sans-serif",
             background: 'transparent',
             border: 'none',

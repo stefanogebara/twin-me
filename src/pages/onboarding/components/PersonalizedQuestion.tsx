@@ -49,7 +49,7 @@ const TypewriterText: React.FC<{ text: string; onComplete?: () => void }> = ({ t
       {!done && (
         <span
           className="inline-block w-0.5 h-5 ml-0.5 align-middle animate-pulse"
-          style={{ backgroundColor: 'rgba(232, 213, 183, 0.6)' }}
+          style={{ backgroundColor: 'var(--text-secondary)' }}
         />
       )}
     </span>
@@ -101,10 +101,10 @@ const PersonalizedQuestions: React.FC<PersonalizedQuestionProps> = ({
               width: i === currentIndex ? 10 : 6,
               height: i === currentIndex ? 10 : 6,
               backgroundColor: i < currentIndex
-                ? 'rgba(232, 213, 183, 0.6)'
+                ? 'var(--text-secondary)'
                 : i === currentIndex
-                  ? '#E8D5B7'
-                  : 'rgba(232, 213, 183, 0.15)',
+                  ? 'var(--text-primary)'
+                  : 'rgba(255,255,255,0.14)',
             }}
           />
         ))}
@@ -117,13 +117,13 @@ const PersonalizedQuestions: React.FC<PersonalizedQuestionProps> = ({
       >
         {/* Domain icon + label */}
         <div className="flex items-center gap-2 mb-4">
-          <span style={{ color: 'rgba(232, 213, 183, 0.4)' }}>
+          <span style={{ color: 'var(--text-muted)' }}>
             {DOMAIN_ICONS[currentQuestion.domain] || DOMAIN_ICONS.motivation}
           </span>
           <span
             className="text-xs uppercase tracking-widest"
             style={{
-              color: 'rgba(232, 213, 183, 0.35)',
+              color: 'var(--text-muted)',
               fontFamily: "'Inter', sans-serif",
               letterSpacing: '0.15em',
             }}
@@ -137,7 +137,7 @@ const PersonalizedQuestions: React.FC<PersonalizedQuestionProps> = ({
           className="text-lg md:text-xl mb-6 min-h-[3rem]"
           style={{
             fontFamily: 'var(--font-heading)',
-            color: 'rgba(232, 213, 183, 0.9)',
+            color: 'var(--text-narrative)',
             lineHeight: 1.4,
           }}
         >
@@ -161,14 +161,14 @@ const PersonalizedQuestions: React.FC<PersonalizedQuestionProps> = ({
                   className="px-5 py-2.5 rounded-full text-sm transition-all duration-200"
                   style={{
                     backgroundColor: isSelected
-                      ? 'rgba(232, 213, 183, 0.2)'
-                      : 'rgba(232, 213, 183, 0.05)',
+                      ? 'rgba(255,255,255,0.16)'
+                      : 'rgba(255,255,255,0.05)',
                     border: isSelected
-                      ? '1px solid rgba(232, 213, 183, 0.5)'
-                      : '1px solid rgba(232, 213, 183, 0.15)',
+                      ? '1px solid var(--text-muted)'
+                      : '1px solid rgba(255,255,255,0.14)',
                     color: isSelected
-                      ? '#E8D5B7'
-                      : 'rgba(232, 213, 183, 0.7)',
+                      ? 'var(--text-primary)'
+                      : 'var(--text-secondary)',
                     fontFamily: "'Inter', sans-serif",
                   }}
                 >

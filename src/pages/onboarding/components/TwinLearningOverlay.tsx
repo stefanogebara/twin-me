@@ -82,7 +82,7 @@ const TwinLearningOverlay: React.FC<TwinLearningOverlayProps> = ({
   const discoveryTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const hasTransitionedToReveal = useRef(false);
 
-  const color = PLATFORM_COLORS[platform] || '#E8D5B7';
+  const color = PLATFORM_COLORS[platform] || '#c17e2c';
   const label = PLATFORM_LABELS[platform] || platform;
   const verbs = DISCOVERY_VERBS[platform] || ['your data', 'your patterns', 'your identity'];
 
