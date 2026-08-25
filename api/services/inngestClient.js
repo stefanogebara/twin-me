@@ -37,6 +37,9 @@ export const EVENTS = {
   GENERATE_BRIEFING: 'twin/briefing.generate',
   INGEST_USER_OBSERVATIONS: 'twin/observation.ingest_user',
 
+  // New-user onboarding
+  ENRICH_PROFILE: 'twin/profile.enrich',
+
   // Skills
   MUSIC_MOOD_MATCH: 'twin/skill.music_mood_match',
   EVENING_RECAP: 'twin/skill.evening_recap',
