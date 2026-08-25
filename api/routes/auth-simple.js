@@ -867,20 +867,21 @@ router.post('/magic-link/request', authLimiter, async (req, res) => {
     // Resend's { data, error } API-error contract) — it does not throw.
     const sent = await sendMagicLink({ toEmail: emailRaw, link });
     if (!sent) {
+      // Local-dev fallback. The raw token is deliberately never persisted
+      // (only token_hash is), so when Resend is unconfigured the console is
+      // the only way to get the link — the standard dev pattern. This must
+      // run BEFORE the failure return, or local sign-in is impossible (the
+      // awaited-send fix regressed this ordering, caught 2026-08-24).
+      // Hard-gated: never in production.
+      if (process.env.NODE_ENV !== 'production' && !process.env.RESEND_API_KEY) {
+        log.warn(`[dev] Email is not configured — open this signin link manually:\n${link}`);
+        return res.json({ success: true, message: 'Dev mode: signin link printed to the server console.' });
+      }
       log.error('Magic-link email did not send', { email: redactEmail(emailRaw) });
       return res.status(500).json({
         success: false,
         error: 'We could not send the signin email. Try again in a minute, or continue with Google.',
       });
-    }
-
-    // Local-dev fallback. The raw token is deliberately never persisted (only
-    // token_hash is), so when Resend is unconfigured there is no way to
-    // recover the link and local sign-in is simply impossible. Print it to the
-    // server console the developer already owns — the standard dev pattern.
-    // Hard-gated: never in production, and never when email actually works.
-    if (process.env.NODE_ENV !== 'production' && !process.env.RESEND_API_KEY) {
-      log.warn(`[dev] Email is not configured — open this signin link manually:\n${link}`);
     }
 
     log.info('Magic-link issued', { email: redactEmail(emailRaw), elapsedMs: Date.now() - startedAt });

@@ -256,6 +256,9 @@ export interface PersonalizedQuestion {
   id: string;
   text: string;
   options: string[];
+  /** Twin's in-character inference per option, parallel to options.
+   *  Optional — absent on the static fallback questions. */
+  reactions?: string[];
   domain: 'motivation' | 'lifestyle' | 'personality' | 'cultural' | 'social';
 }
 
