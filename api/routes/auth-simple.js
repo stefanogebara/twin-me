@@ -5,8 +5,8 @@ import bcrypt from 'bcrypt';
 import rateLimit from 'express-rate-limit';
 import { supabase, supabaseAdmin } from '../config/supabase.js';
 import { encryptToken, encryptState, decryptState } from '../services/encryption.js';
-import profileEnrichmentService from '../services/profileEnrichmentService.js';
 import * as betaInviteService from '../services/betaInviteService.js';
+import { inngest, EVENTS } from '../services/inngestClient.js';
 import { sendWelcomeEmail, sendMagicLink } from '../services/emailService.js';
 import { getRedisClient, isRedisAvailable } from '../services/redisClient.js';
 import { createLogger } from '../services/logger.js';
@@ -28,6 +28,38 @@ function redactEmail(email) {
   const domain = email.slice(at + 1);
   const prefix = local.slice(0, 2);
   return `${prefix}***@${domain}`;
+}
+
+// ====================================================================
+// Enqueue new-user profile enrichment on the durable queue.
+//
+// This used to be `enrichFromEmail(...).then(save).catch(log)` immediately
+// before res.redirect()/res.json(). On Vercel the invocation is frozen the
+// moment the response flushes, so the enrichment never ran and no new user
+// ever got the profile the onboarding screen reads (same root cause as the
+// 2026-08-24 magic-link outage).
+//
+// It can't be awaited inline either — enrichFromEmail fans out to Gravatar,
+// GitHub, Brave/Gemini, PDL and an LLM pass. So we await the ENQUEUE (one
+// HTTP POST) and let api/inngest/functions/profileEnrichment.js do the work
+// durably, with retries, outside this request.
+//
+// A failed enqueue is logged loudly and never fatal: the account exists and
+// the user can still be enriched via POST /api/enrichment/search.
+// ====================================================================
+async function enqueueProfileEnrichment({ userId, email, fullName }) {
+  try {
+    await inngest.send({
+      name: EVENTS.ENRICH_PROFILE,
+      data: { userId, email, fullName: fullName || null },
+    });
+    log.info('Profile enrichment enqueued', { userId });
+  } catch (err) {
+    log.error('Profile enrichment enqueue failed — user has no enriched profile', {
+      userId,
+      error: err?.message,
+    });
+  }
 }
 
 // ====================================================================
@@ -391,7 +423,10 @@ router.post('/signup', authLimiter, async (req, res) => {
       req._betaInviteCode = code; // Cache for redemption after user creation
 
       if (!code) {
-        betaInviteService.addToWaitlist(normalizedEmail, `${(firstName || '')} ${(lastName || '')}`.trim(), 'rejected_signup').catch(() => {});
+        // Awaited: detached, this never ran on Vercel, so users rejected at
+        // the gate were told they were on the waitlist and added to nothing.
+        // addToWaitlist swallows its own DB errors and never throws.
+        await betaInviteService.addToWaitlist(normalizedEmail, `${(firstName || '')} ${(lastName || '')}`.trim(), 'rejected_signup');
         return res.status(403).json({ success: false, error: 'Beta invite code required', waitlist: true });
       }
 
@@ -425,9 +460,14 @@ router.post('/signup', authLimiter, async (req, res) => {
     if (betaInviteService.isBetaGateEnabled()) {
       const code = req.body.inviteCode || req._betaInviteCode;
       if (code) {
-        betaInviteService.redeemInviteCode(code, newUser.id).catch(err =>
-          log.error('Invite redeem failed (non-blocking)', { error: err })
-        );
+        // Awaited: a single DB write on a path that already does several.
+        // Detached it never ran, so a single-use beta code stayed redeemable
+        // forever. A failed redemption must not cost the user the account
+        // that was just created — log and continue.
+        const redeemed = await betaInviteService.redeemInviteCode(code, newUser.id);
+        if (!redeemed?.success) {
+          log.error('Invite redeem failed — code may still be reusable', { userId: newUser.id, error: redeemed?.error });
+        }
       }
     }
 
@@ -475,15 +515,12 @@ router.post('/signup', authLimiter, async (req, res) => {
       return res.status(500).json({ success: false, error: 'Failed to persist session. Please try again.' });
     }
 
-    // Trigger background enrichment for email signup users
-    // Save to enriched_profiles for display in onboarding, but do NOT seed memories yet.
-    // Memory seeding happens only after user confirms via POST /api/enrichment/confirm.
+    // Queue background enrichment for email signup users (see
+    // enqueueProfileEnrichment — running it inline here never worked on Vercel).
+    // Saves to enriched_profiles for display in onboarding, but does NOT seed
+    // memories yet; that happens only after POST /api/enrichment/confirm.
     const fullName = `${(firstName || '').trim()} ${(lastName || '').trim()}`.trim();
-    profileEnrichmentService.enrichFromEmail(normalizedEmail, fullName)
-      .then(data => {
-        if (data) return profileEnrichmentService.saveEnrichment(newUser.id, normalizedEmail, data);
-      })
-      .catch(err => log.error('Enrichment failed (non-blocking)', { error: err }));
+    await enqueueProfileEnrichment({ userId: newUser.id, email: normalizedEmail, fullName });
 
     setRefreshCookie(res, refreshToken, req);
 
@@ -600,7 +637,12 @@ router.get('/verify', authenticateUser, async (req, res) => {
     const builtUser = buildAuthUser(user);
 
     if (redis && isRedisAvailable()) {
-      redis.set(cacheKey, JSON.stringify(builtUser), 'EX', 300).catch(() => {});
+      // Awaited: detached, this SET never landed on Vercel, so the 5-minute
+      // verify cache has never been populated in production and every /verify
+      // paid a full Supabase round-trip. One Redis SET is cheaper than that.
+      await redis.set(cacheKey, JSON.stringify(builtUser), 'EX', 300).catch(err =>
+        log.warn('Verify cache write failed', { error: err?.message })
+      );
     }
 
     res.json({ success: true, user: builtUser });
@@ -933,9 +975,12 @@ router.get('/magic-link/verify', async (req, res) => {
       }
       user = newUser;
       if (resolvedInvite) {
-        betaInviteService.redeemInviteCode(resolvedInvite, user.id).catch(err =>
-          log.warn('Invite redeem failed (non-blocking)', { error: err?.message })
-        );
+        // Awaited: one DB write. Detached it never ran on Vercel, leaving a
+        // single-use invite code redeemable forever.
+        const redeemed = await betaInviteService.redeemInviteCode(resolvedInvite, user.id);
+        if (!redeemed?.success) {
+          log.error('Invite redeem failed — code may still be reusable', { userId: user.id, error: redeemed?.error });
+        }
       }
       // Awaited, not fire-and-forget: on Vercel the invocation freezes the
       // moment the response flushes, so a detached send never runs at all
@@ -1034,7 +1079,11 @@ router.post('/logout', async (req, res) => {
         // Bust verify cache so next login gets a fresh profile
         const redisClient = getRedisClient();
         if (redisClient && isRedisAvailable()) {
-          redisClient.del(`verify:${decoded.id}`).catch(() => {});
+          // Awaited for the same reason as the SET above — detached, the
+          // bust never ran, so a stale profile could outlive logout.
+          await redisClient.del(`verify:${decoded.id}`).catch(err =>
+            log.warn('Verify cache bust failed', { error: err?.message })
+          );
         }
       } catch {
         // Token expired or invalid — still clear on best effort
@@ -1347,14 +1396,18 @@ router.get('/oauth/callback', async (req, res) => {
 
         if (!resolvedInviteCode) {
           log.info('New user rejected (no invite code)', { email: redactEmail(userData.email) });
-          betaInviteService.addToWaitlist(userData.email, `${userData.firstName || ''} ${userData.lastName || ''}`.trim(), 'rejected_signup').catch(() => {});
+          // Awaited: detached, this never ran on Vercel — the user was
+          // redirected to /waitlist and added to nothing.
+          await betaInviteService.addToWaitlist(userData.email, `${userData.firstName || ''} ${userData.lastName || ''}`.trim(), 'rejected_signup');
           return res.redirect(`${appUrl}/waitlist?email=${encodeURIComponent(userData.email)}`);
         }
 
         const validation = await betaInviteService.validateInviteCode(resolvedInviteCode);
         if (!validation.valid) {
           log.info('New user rejected (invalid invite)', { email: redactEmail(userData.email), error: validation.error });
-          betaInviteService.addToWaitlist(userData.email, `${userData.firstName || ''} ${userData.lastName || ''}`.trim(), 'invalid_invite').catch(() => {});
+          // Awaited: detached, this never ran on Vercel — the user was
+          // redirected to /waitlist and added to nothing.
+          await betaInviteService.addToWaitlist(userData.email, `${userData.firstName || ''} ${userData.lastName || ''}`.trim(), 'invalid_invite');
           return res.redirect(`${appUrl}/waitlist?email=${encodeURIComponent(userData.email)}&error=${encodeURIComponent(validation.error)}`);
         }
       }
@@ -1383,21 +1436,20 @@ router.get('/oauth/callback', async (req, res) => {
 
       // Redeem invite code after successful user creation (reuse cached code)
       if (resolvedInviteCode) {
-        betaInviteService.redeemInviteCode(resolvedInviteCode, user.id).catch(err =>
-          log.error('Invite redeem failed (non-blocking)', { error: err })
-        );
+        // Awaited: one DB write. Detached it never ran on Vercel, leaving a
+        // single-use invite code redeemable forever.
+        const redeemed = await betaInviteService.redeemInviteCode(resolvedInviteCode, user.id);
+        if (!redeemed?.success) {
+          log.error('Invite redeem failed — code may still be reusable', { userId: user.id, error: redeemed?.error });
+        }
       }
 
-      // Trigger background enrichment for new users
-      // Save to enriched_profiles for display in onboarding, but do NOT seed memories yet.
-      // Memory seeding happens only after user confirms via POST /api/enrichment/confirm.
+      // Queue background enrichment for new users (see enqueueProfileEnrichment
+      // — running it inline here never worked on Vercel). Saves to
+      // enriched_profiles for display in onboarding, but does NOT seed memories
+      // yet; that happens only after POST /api/enrichment/confirm.
       const fullName = `${userData.firstName || ''} ${userData.lastName || ''}`.trim();
-      log.info('Triggering background enrichment for new user', { userId: user.id });
-      profileEnrichmentService.enrichFromEmail(userData.email, fullName)
-        .then(data => {
-          if (data) return profileEnrichmentService.saveEnrichment(user.id, userData.email, data);
-        })
-        .catch(err => log.error('Enrichment failed (non-blocking)', { error: err }));
+      await enqueueProfileEnrichment({ userId: user.id, email: userData.email, fullName });
 
       // Awaited: a detached send is frozen by Vercel once the response
       // flushes, so it never runs (see the magic-link outage, 2026-08-24).
@@ -1613,7 +1665,9 @@ router.post('/oauth/callback', async (req, res) => {
 
           if (!resolvedInviteCodePost) {
             log.info('New user rejected via POST (no invite)', { email: redactEmail(userData.email) });
-            betaInviteService.addToWaitlist(userData.email, `${userData.firstName || ''} ${userData.lastName || ''}`.trim(), 'rejected_signup').catch(() => {});
+            // Awaited: detached, this never ran on Vercel — the user was
+            // told they were waitlisted and added to nothing.
+            await betaInviteService.addToWaitlist(userData.email, `${userData.firstName || ''} ${userData.lastName || ''}`.trim(), 'rejected_signup');
             return res.status(403).json({ success: false, error: 'Beta invite code required', waitlist: true });
           }
 
@@ -1667,21 +1721,20 @@ router.post('/oauth/callback', async (req, res) => {
 
         // Redeem invite code after user creation (reuse cached code)
         if (resolvedInviteCodePost) {
-          betaInviteService.redeemInviteCode(resolvedInviteCodePost, user.id).catch(err =>
-            log.error('Invite redeem failed (non-blocking)', { error: err })
-          );
+          // Awaited: one DB write. Detached it never ran on Vercel, leaving a
+          // single-use invite code redeemable forever.
+          const redeemed = await betaInviteService.redeemInviteCode(resolvedInviteCodePost, user.id);
+          if (!redeemed?.success) {
+            log.error('Invite redeem failed — code may still be reusable', { userId: user.id, error: redeemed?.error });
+          }
         }
 
-        // Trigger background enrichment for new users
-        // Save to enriched_profiles for display in onboarding, but do NOT seed memories yet.
-        // Memory seeding happens only after user confirms via POST /api/enrichment/confirm.
+        // Queue background enrichment for new users (see enqueueProfileEnrichment
+        // — running it inline here never worked on Vercel). Saves to
+        // enriched_profiles for display in onboarding, but does NOT seed memories
+        // yet; that happens only after POST /api/enrichment/confirm.
         const fullName = `${userData.firstName || ''} ${userData.lastName || ''}`.trim();
-        log.info('Triggering background enrichment for new user', { userId: user.id });
-        profileEnrichmentService.enrichFromEmail(userData.email, fullName)
-          .then(data => {
-            if (data) return profileEnrichmentService.saveEnrichment(user.id, userData.email, data);
-          })
-          .catch(err => log.error('Enrichment failed (non-blocking)', { error: err }));
+        await enqueueProfileEnrichment({ userId: user.id, email: userData.email, fullName });
 
         // Awaited: a detached send is frozen by Vercel once the response
         // flushes, so it never runs (see the magic-link outage, 2026-08-24).
