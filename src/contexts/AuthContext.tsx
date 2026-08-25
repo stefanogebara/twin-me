@@ -277,6 +277,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           })
             .then(r => r.ok ? r.json() : Promise.reject(new Error(`new-user-check ${r.status}`)))
             .then(data => {
+              // Rehydrate the twin's name from the server so it survives a
+              // new device / cleared storage. Written at the hatching moment
+              // (2026-08-25); the chat empty state reads it locally.
+              if (typeof data?.twinName === 'string' && data.twinName.trim()) {
+                try { localStorage.setItem('twinme_twin_name', data.twinName.trim()); } catch { /* non-fatal */ }
+              }
               if (data?.isNew) {
                 setNeedsOnboarding(true);
               } else {

@@ -44,7 +44,7 @@ export const successNotifications = {
    */
   soulSignatureUpdated: () => {
     toast.success('Soul signature updated!', {
-      description: 'Your digital twin has been refreshed with new data.',
+      description: 'Your twin has been refreshed with new data.',
       duration: 4000,
     });
   },
@@ -64,7 +64,7 @@ export const successNotifications = {
    */
   trainingStarted: () => {
     toast.success('Training started!', {
-      description: 'Your digital twin is learning from your data.',
+      description: 'Your twin is learning from your data.',
       duration: 4000,
     });
   },
@@ -74,7 +74,7 @@ export const successNotifications = {
    */
   trainingCompleted: () => {
     toast.success('Training complete!', {
-      description: 'Your digital twin is now ready to chat.',
+      description: 'Your twin is now ready to chat.',
       duration: 5000,
     });
   },
@@ -323,7 +323,7 @@ export const warningNotifications = {
    */
   trainingRequired: () => {
     toast.warning('Training required', {
-      description: 'Train your digital twin before starting a conversation.',
+      description: 'Train your twin before starting a conversation.',
       duration: 5000,
       action: {
         label: 'Start Training',
@@ -375,7 +375,7 @@ export const infoNotifications = {
       ? `Training progress: ${progress}%`
       : 'This may take several minutes.';
 
-    return toast.loading('Training your digital twin...', {
+    return toast.loading('Training your twin...', {
       description,
     });
   },

@@ -39,7 +39,14 @@ interface PortfolioData {
     mbti_code: string | null;
   } | null;
   platforms: Array<{ name: string; features: Array<{ type: string; value: number | string }> }>;
-  fidelity: { accuracy: number; wave: number; measured_at: string } | null;
+  fidelity: {
+    accuracy: number;
+    normalized: number | null;
+    self_consistency: number | null;
+    items: number | null;
+    wave: number;
+    measured_at: string;
+  } | null;
 }
 
 const PortfolioPage: React.FC = () => {
@@ -180,31 +187,65 @@ const PortfolioPage: React.FC = () => {
         colorScheme={colorScheme}
       />
 
-      {/* Fidelity — the headline proof metric (Phase 2 product-truth-review):
-          measured twin accuracy from the test-retest battery, not a vibe. */}
-      {portfolio.fidelity && (
-        <div
-          className="mt-8 rounded-[20px] px-6 py-5 text-center"
-          style={{
-            background: 'var(--glass-surface-bg)',
-            border: '1px solid var(--glass-surface-border)',
-            backdropFilter: 'blur(42px)',
-            WebkitBackdropFilter: 'blur(42px)',
-          }}
-        >
+      {/* Fidelity, stated honestly (2026-08-25).
+          This block is served to anyone with the URL, with no auth. It used
+          to print the RAW accuracy at 40px under "measured by a blind
+          test-retest battery" — a clinical-sounding caption over a single
+          session of self-report items, with the honest denominator
+          (normalized_fidelity) computed and thrown away.
+          It now leads with the normalized number where one exists, names the
+          denominator, and carries its n and date. Falls back to raw only when
+          the ceiling is unmeasurable, and says so. */}
+      {portfolio.fidelity && (() => {
+        const f = portfolio.fidelity;
+        const isNormalized = typeof f.normalized === 'number' && f.normalized > 0;
+        const shown = isNormalized ? f.normalized! : f.accuracy;
+        const measuredOn = new Date(f.measured_at).toLocaleDateString(undefined, {
+          year: 'numeric', month: 'short', day: 'numeric',
+        });
+        const who = portfolio.first_name || 'its human';
+        return (
           <div
-            className="text-[40px] leading-none"
-            style={{ fontFamily: "'Instrument Serif', serif", color: colorScheme.accent }}
+            className="mt-8 rounded-[20px] px-6 py-5 text-center"
+            style={{
+              background: 'var(--glass-surface-bg)',
+              border: '1px solid var(--glass-surface-border)',
+              backdropFilter: 'blur(42px)',
+              WebkitBackdropFilter: 'blur(42px)',
+            }}
           >
-            {Math.round(portfolio.fidelity.accuracy * 100)}%
+            <div
+              className="text-[40px] leading-none"
+              style={{ fontFamily: "'Instrument Serif', serif", color: colorScheme.accent }}
+            >
+              {Math.round(shown * 100)}%
+            </div>
+            <div className="mt-2 text-sm" style={{ color: 'var(--text-narrative-secondary)' }}>
+              {isNormalized ? (
+                <>
+                  how often this twin picked the same answer as {who}, measured
+                  against how often {who} agrees with themselves
+                </>
+              ) : (
+                <>how often this twin picked the same answer as {who}</>
+              )}
+            </div>
+            <div
+              className="mt-3 text-[11px] leading-relaxed"
+              style={{ color: 'var(--text-narrative-muted)' }}
+            >
+              {f.items ? `${f.items} self-report items` : 'Self-report items'}
+              {' · '}one session{f.wave ? `, wave ${f.wave}` : ''}
+              {' · '}{measuredOn}
+              {isNormalized && typeof f.self_consistency === 'number'
+                ? ` · self-consistency ${Math.round(f.self_consistency * 100)}%`
+                : ''}
+              <br />
+              Not a clinical measure.
+            </div>
           </div>
-          <div className="mt-2 text-sm" style={{ color: 'var(--text-narrative-secondary)' }}>
-            twin fidelity — how accurately this twin answers as{' '}
-            {portfolio.first_name || 'its human'}, measured by a blind
-            test-retest battery
-          </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Section 2: Personality Radar (only if personality data exists) */}
       {portfolio.personality && (

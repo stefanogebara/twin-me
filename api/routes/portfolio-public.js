@@ -90,7 +90,7 @@ router.get('/public/:userId', async (req, res) => {
       // the twin actually answered count (twin_accuracy non-null).
       supabaseAdmin
         .from('twin_fidelity_checks')
-        .select('twin_accuracy, wave, created_at')
+        .select('twin_accuracy, self_consistency, normalized_fidelity, user_answers, wave, created_at')
         .eq('user_id', userId)
         .not('twin_accuracy', 'is', null)
         .order('wave', { ascending: false })
@@ -173,9 +173,21 @@ router.get('/public/:userId', async (req, res) => {
           }
         : null,
       platforms,
+      // Fidelity, stated honestly (2026-08-25). The page used to publish the
+      // RAW twin_accuracy with a "blind test-retest battery" caption, while
+      // normalized_fidelity — the paper's actual headline metric, accuracy
+      // divided by the human's own test-retest ceiling — sat unused in the
+      // same row. A number served to strangers without auth has to carry its
+      // own denominator, its n, and its date, or it is a claim rather than a
+      // measurement.
       fidelity: fidelityWave
         ? {
             accuracy: fidelityWave.twin_accuracy,
+            normalized: fidelityWave.normalized_fidelity,
+            self_consistency: fidelityWave.self_consistency,
+            items: fidelityWave.user_answers && typeof fidelityWave.user_answers === 'object'
+              ? Object.keys(fidelityWave.user_answers).length
+              : null,
             wave: fidelityWave.wave,
             measured_at: fidelityWave.created_at,
           }
