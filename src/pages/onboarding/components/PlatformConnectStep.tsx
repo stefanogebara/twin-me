@@ -179,6 +179,15 @@ const PlatformConnectStep: React.FC<PlatformConnectStepProps> = ({ userId, onCon
         >
           Now let me see what only you can show me.
         </p>
+        {/* Negative assurance (Plaid trust-gap research): say what we CANNOT
+            do, not just what we read — this is what moves connect rates. */}
+        <p
+          className="text-xs mt-3 leading-relaxed"
+          style={{ fontFamily: "'Inter', sans-serif", color: 'var(--text-muted)' }}
+        >
+          Read-only access. I can never post, change, or delete anything — and you can
+          disconnect any platform at any time.
+        </p>
       </div>
 
       {/* Platform cards */}
