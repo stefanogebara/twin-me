@@ -58,13 +58,15 @@ const ConversationSnippet: React.FC<{ lines: ConversationLine[] }> = ({ lines })
         className={`flex ${line.role === 'user' ? 'justify-end' : 'justify-start'}`}
       >
         <div
-          className={`px-3.5 py-2 text-[12px] max-w-[85%] ${line.role === 'twin' ? 'narrative-voice-upright' : 'leading-relaxed'}`}
+          className={`px-3.5 py-2 max-w-[85%] ${line.role === 'twin' ? 'narrative-voice-upright text-[13.5px]' : 'leading-relaxed text-[12px]'}`}
           style={{
             borderRadius: line.role === 'user' ? '10px 10px 4px 10px' : '10px 10px 10px 4px',
             background: line.role === 'user'
               ? 'rgba(232, 160, 80, 0.15)'
               : 'rgba(255, 255, 255, 0.05)',
-            color: line.role === 'user' ? '#E8A050' : 'rgba(245, 240, 235, 0.6)',
+            // Serif at 12px/0.6 was unreadable — the twin's voice carries the
+            // proof, it must be the most legible thing in the card.
+            color: line.role === 'user' ? '#E8A050' : 'rgba(245, 245, 244, 0.78)',
           }}
         >
           {line.text}
