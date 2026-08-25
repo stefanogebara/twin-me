@@ -312,7 +312,7 @@ const RevealPhase: React.FC<RevealPhaseProps> = ({
             <div className="flex gap-3">
               <button
                 onClick={onConfirmIdentity}
-                className="flex-1 py-2.5 rounded-full text-sm font-medium transition-all duration-200 hover:scale-[1.02]"
+                className="flex-1 py-2.5 rounded-[12px] text-sm font-medium transition-all duration-200 hover:scale-[1.02]"
                 style={{
                   background: 'var(--claura-bone)',
                   color: 'var(--claura-bone-ink)',
@@ -324,7 +324,7 @@ const RevealPhase: React.FC<RevealPhaseProps> = ({
               </button>
               <button
                 onClick={onNotMe}
-                className="flex-1 py-2.5 rounded-full text-sm font-medium transition-all duration-200 hover:opacity-80"
+                className="flex-1 py-2.5 rounded-[12px] text-sm font-medium transition-all duration-200 hover:opacity-80"
                 style={{
                   background: 'transparent',
                   border: '1px solid rgba(255,255,255,0.22)',
@@ -358,7 +358,7 @@ const RevealPhase: React.FC<RevealPhaseProps> = ({
         <div className="flex flex-col items-center mt-8 transition-all duration-300">
           <button
             onClick={onAdvance}
-            className="px-8 py-3 rounded-full text-base flex items-center gap-2 transition-all duration-200 hover:scale-[1.03]"
+            className="px-8 py-3 rounded-[12px] text-base flex items-center gap-2 transition-all duration-200 hover:scale-[1.03]"
             style={{
               background: 'var(--claura-bone)',
               color: 'var(--claura-bone-ink)',
