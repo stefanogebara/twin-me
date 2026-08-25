@@ -232,7 +232,7 @@ export function CompletenessProgress({ completeness, breakdown, className = '' }
                 </p>
                 <p className={`text-xs mt-0.5 ${completeness >= 50 ? 'text-green-400' : 'text-muted-foreground'}`}>
                   {completeness >= 50
-                    ? 'Unlocked - Chat with your digital twin'
+                    ? 'Unlocked - Chat with your twin'
                     : `${Math.max(0, 50 - completeness)}% more data needed to unlock`}
                 </p>
               </div>

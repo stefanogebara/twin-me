@@ -499,7 +499,11 @@ export async function getFidelityResults(userId) {
     .from('twin_fidelity_checks')
     .select('wave, battery_version, twin_accuracy, self_consistency, normalized_fidelity, calibration, created_at')
     .eq('user_id', userId)
-    .order('wave', { ascending: false });
+    // Same tie-break as the public portfolio: wave restarts at 1 on each
+    // battery revision, so wave alone does not order history.
+    .order('battery_version', { ascending: false })
+    .order('wave', { ascending: false })
+    .order('created_at', { ascending: false });
   if (error) {
     log.warn('Fidelity results fetch failed', { userId, error: error.message });
     return [];

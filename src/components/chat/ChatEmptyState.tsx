@@ -53,6 +53,17 @@ export const ChatEmptyState = ({
   const { user } = useAuth();
   const weather = useWeather();
   const firstName = user?.firstName || 'there';
+  // The name given at the hatching moment (onboarding). Written locally on
+  // commit and rehydrated from new-user-check on sign-in, so the ritual pays
+  // off where the twin actually speaks. Nameless twins are supported.
+  const twinName = (() => {
+    try {
+      const n = localStorage.getItem('twinme_twin_name');
+      return n && n.trim() ? n.trim().slice(0, 40) : null;
+    } catch {
+      return null;
+    }
+  })();
 
   // Use location-derived timezone for greeting and date (falls back to browser local)
   const timezone = weather?.timezone;
@@ -127,7 +138,9 @@ export const ChatEmptyState = ({
             fontFamily: "'Inter', sans-serif",
           }}
         >
-          Ask me anything — I know more than you think.
+          {twinName
+            ? `${twinName} here. Ask me anything — I know more than you think.`
+            : 'Ask me anything — I know more than you think.'}
         </p>
       )}
 

@@ -985,7 +985,7 @@ router.get('/new-user-check', authenticateUser, async (req, res) => {
     const [calibRes, memRes, nangoConnRes, classicConnRes] = await Promise.all([
       supabaseAdmin
         .from('onboarding_calibration')
-        .select('completed_at')
+        .select('completed_at, enrichment_context')
         .eq('user_id', userId)
         .maybeSingle(),
       supabaseAdmin
@@ -1024,11 +1024,17 @@ router.get('/new-user-check', authenticateUser, async (req, res) => {
     ]);
 
     const hasCalibration = !!(calibRes.data?.completed_at);
+    // The name given at the hatching moment. Carried on this already-running
+    // query so the twin keeps its name across devices without costing the
+    // chat path a round-trip (sequencing follow-up, 2026-08-25).
+    const twinName = typeof calibRes.data?.enrichment_context?.twin_name === 'string'
+      ? calibRes.data.enrichment_context.twin_name.slice(0, 40)
+      : null;
     const memoriesCount = memRes.count ?? 0;
     const connectionsCount = (nangoConnRes.count ?? 0) + (classicConnRes.count ?? 0);
     const isNew = !hasCalibration && memoriesCount < 5 && connectionsCount === 0;
 
-    return res.json({ success: true, isNew, memoriesCount, hasCalibration, connectionsCount });
+    return res.json({ success: true, isNew, memoriesCount, hasCalibration, connectionsCount, twinName });
   } catch (error) {
     log.error('Status check error', { error });
     return res.status(500).json({ success: false, error: 'Failed to check onboarding status' });

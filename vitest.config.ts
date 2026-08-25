@@ -32,7 +32,22 @@ const MAX_FORKS = Number(process.env.VITEST_MAX_FORKS) || Math.max(2, Math.min(6
 export default defineConfig({
   test: {
     environment: 'node',
+    // jsdom refuses localStorage/sessionStorage for OPAQUE origins, and with
+    // no url the document origin is opaque. Vitest copies window properties
+    // onto globalThis during setup, the storage getter throws SecurityError
+    // there, and the property lands as `undefined` — so a jsdom test reads
+    // `localStorage` as undefined rather than getting a clear error. Giving
+    // the environment a real origin is what makes storage exist at all.
+    // (Node 26 also ships a native `localStorage` global that is undefined
+    // without --localstorage-file, which makes the same symptom look like a
+    // Node problem. It is not — this url is the fix.)
+    environmentOptions: {
+      jsdom: { url: 'http://localhost:3000' },
+    },
     globals: true,
+    // See tests/setup/browserStorage.ts — restores localStorage under jsdom,
+    // which Node 26's native (undefined) global otherwise shadows.
+    setupFiles: ['tests/setup/browserStorage.ts'],
     include: ['tests/**/*.test.{ts,tsx,js}'],
     pool: 'forks',
     maxWorkers: MAX_FORKS,

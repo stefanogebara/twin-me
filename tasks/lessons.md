@@ -518,3 +518,44 @@ I shipped the recent-platform digest into production on a measured "+0.048 overa
 The error: trials at temperature 0.3 sample LLM noise, which was near zero (five trials often returned an identical score). That near-zero spread reads as tight confidence, but the variance that actually decides these questions is day-to-day drift in the underlying user data, which repeated trials in one session cannot see.
 
 Rules going forward: a candidate is measured against a same-session control arm, never against a number recorded on another day; a claimed win must survive at least two separate days before it justifies shipping or deleting anything; and when reporting, separate demonstrated capability (the twin cited real recent events, traced line by line) from measured improvement (a replicated score) — they are different claims and only the second needs statistics.
+
+## 2026-08-25 — a green subset is not a green suite, and a tie is not an order
+
+Three corrections from the front-door rebuild, all the same shape: a check
+that looked authoritative but was not measuring what I thought.
+
+**Running `tests/unit/` and reporting "1143 passing."** The payload change I
+had just made broke an expectation in `tests/api/`, which that path never
+executed. The number was true and irrelevant. Report the suite you ran, and
+before claiming a change is safe, run the suite that covers the file you
+touched — `npx vitest run` with no path, or at minimum the directory holding
+the tests for that module.
+
+**Ordering by a column that ties.** `/p/:userId` published twin fidelity
+`ORDER BY wave DESC LIMIT 1`. `wave` restarts at 1 on every battery revision,
+so all three real checks were wave 1, the tie fell to Postgres, and the public
+page served the *highest* score (0.825) from a *retired* 20-item battery nine
+days after the current battery measured 0.610. Nothing errored; the number was
+real; it was simply the wrong row. When a column can repeat, `LIMIT 1` is a
+coin flip — order by the full key (`battery_version, wave, created_at`) and
+pin it with a test that records the `order()` calls, because ordering is
+invisible in the returned rows.
+
+**Reading a null as "not measured yet" instead of asking why.**
+`normalized_fidelity` was null for every user. The reason was not a bug in the
+metric: the ceiling needs two waves on the *same* battery version, the battery
+was revised three times in nine days, and nothing in the UI ever said a retake
+was what produced it. A null that is null for *everyone* is a design question,
+not a data gap.
+
+**Also, two infrastructure notes.**
+- Merging four PRs back-to-back queued four full production builds (~18 min
+  each, serialized) where one would have done. Vercel does not supersede
+  in-flight production deploys. Batch the merges, or space them.
+- `tests/hooks/useDashboardContext.test.ts` had failed permanently for long
+  enough to read as background noise. Cause: Node 26 ships a native
+  `localStorage` global that is `undefined` without `--localstorage-file`, and
+  in Vitest's jsdom environment `window === globalThis`, so that native getter
+  shadows jsdom's storage. Fixed for the whole suite in
+  `tests/setup/browserStorage.ts`. A test that always fails trains everyone to
+  ignore the one that starts failing.
