@@ -33,11 +33,11 @@ class MemoryStorage implements Storage {
   setItem(key: string, value: string): void {
     this.#map.set(String(key), String(value));
   }
-  [name: string]: any;
+  [name: string]: unknown;
 }
 
 function install(name: 'localStorage' | 'sessionStorage') {
-  const g = globalThis as any;
+  const g = globalThis as unknown as Record<string, Storage | undefined>;
   let usable = false;
   try {
     usable = !!g[name] && typeof g[name].getItem === 'function';
