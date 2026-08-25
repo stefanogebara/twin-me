@@ -5,6 +5,7 @@ import { useAnalytics } from '../contexts/AnalyticsContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { Loader2, X, Check, Ticket } from 'lucide-react';
 import { API_URL } from '@/services/api/apiBase';
+import { ClassicBackground } from '../components/ClassicBackground';
 
 const CustomAuth = () => {
   const navigate = useNavigate();
@@ -34,6 +35,30 @@ const CustomAuth = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [activeModal, setActiveModal] = useState<'terms' | 'privacy' | null>(null);
+
+  // Continuity from the landing reveal (hero inversion, 2026-08). The hero
+  // stores the enrichment reading before sending the user here; without this
+  // the auth page reads as a cold wall right after the product's best moment.
+  // Signup then becomes "save what you already have", not "pay to enter"
+  // (the Duolingo deferred-signup framing).
+  const [reveal] = useState<{ name: string | null; line: string | null } | null>(() => {
+    try {
+      const raw = sessionStorage.getItem('twinme_discovery_data');
+      if (!raw) return null;
+      const d = JSON.parse(raw) as { discovered_name?: string | null; persona_summary?: string | null };
+      const summary = (d.persona_summary || '').trim();
+      if (!d.discovered_name && !summary) return null;
+      // First sentence only — the card is a reminder, not the reading.
+      const firstSentence = summary ? (summary.match(/^[^.!?]+[.!?]/)?.[0] || summary).trim() : null;
+      return { name: d.discovered_name || null, line: firstSentence };
+    } catch {
+      return null;
+    }
+  });
+
+  // A returning user has signed in on this device before, so the private-beta
+  // gate does not apply to them — the server passes any existing user through.
+  const [isReturning] = useState(() => !!localStorage.getItem('auth_user'));
 
   // Beta invite state
   const [inviteCode, setInviteCode] = useState('');
@@ -280,10 +305,15 @@ For privacy concerns: privacy@twinme.me`
 
   return (
     <div
-      className="min-h-screen flex"
+      className="min-h-screen flex relative"
     >
+      {/* Like the landing, auth always presents the brand canvas — the
+          DayNight photo background is an in-app preference, and the funnel
+          reads as one product only if it holds one surface throughout. */}
+      <ClassicBackground />
+
       {/* Left panel — form (glass card on mobile, clean on desktop) */}
-      <div className="flex-1 flex items-center justify-center px-4 sm:px-6">
+      <div className="relative z-[1] flex-1 flex items-center justify-center px-4 sm:px-6">
       <div className="claura-glass w-full max-w-[420px] rounded-[24px] px-6 py-8">
 
         {/* Logo */}
@@ -307,7 +337,9 @@ For privacy concerns: privacy@twinme.me`
           </span>
         </div>
 
-        {/* Heading */}
+        {/* Heading — the page is a signup for most people who reach it, so it
+            must not greet them with "Sign in". Three states: arriving from the
+            landing reveal, returning, or new. */}
         <h1
           className="mb-2"
           style={{
@@ -319,14 +351,47 @@ For privacy concerns: privacy@twinme.me`
             color: 'var(--foreground)',
           }}
         >
-          Sign in
+          {reveal ? 'Keep your reading' : isReturning ? 'Welcome back' : 'Create your twin'}
         </h1>
         <p
-          className="text-sm mb-10"
+          className="text-sm mb-8"
           style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
         >
-          Sign in to discover your soul signature
+          {reveal
+            ? 'Your twin starts here. Create an account and it keeps learning.'
+            : isReturning
+              ? 'Sign in to your soul signature.'
+              : 'One account. Your data stays yours, and you can delete it anytime.'}
         </p>
+
+        {/* Continuity card — what the landing already found about them */}
+        {reveal && (
+          <div
+            className="mb-8 px-4 py-3.5 rounded-[12px]"
+            style={{
+              backgroundColor: 'var(--glass-surface-bg)',
+              border: '1px solid var(--glass-surface-border)',
+            }}
+          >
+            <p
+              className="text-[10px] uppercase tracking-[0.14em] mb-2"
+              style={{ color: 'var(--text-muted)', fontFamily: "'Inter', sans-serif" }}
+            >
+              {reveal.name ? `Your first reading, ${reveal.name.split(' ')[0]}` : 'Your first reading'}
+            </p>
+            {reveal.line && (
+              <p
+                className="text-[14px] leading-relaxed"
+                style={{
+                  fontFamily: "'Instrument Serif', Georgia, serif",
+                  color: 'var(--text-narrative)',
+                }}
+              >
+                {reveal.line}
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Beta invite code section.
             When inviteValid is true but a top-level error is also showing
@@ -356,8 +421,16 @@ For privacy concerns: privacy@twinme.me`
             </span>
           </div>
           )
-        ) : (
+        ) : isReturning ? null : (
           <div className="mb-6">
+            {/* The gate is a fact about the product, not a bouncer. Saying so
+                costs one line and stops the cold-form read. */}
+            <p
+              className="text-[13px] mb-2.5 leading-relaxed"
+              style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
+            >
+              TwinMe is in private beta — enter your invite code to claim a place.
+            </p>
             <div className="flex gap-2">
               <div className="relative flex-1">
                 <Ticket className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--text-placeholder)' }} />
@@ -464,9 +537,9 @@ For privacy concerns: privacy@twinme.me`
             </>
           )}
         </button>
-        {!inviteValid && !localStorage.getItem('auth_user') && (
-          <p className="text-xs mt-1" style={{ color: 'var(--text-muted)', fontFamily: "'Inter', sans-serif" }}>
-            New user? Enter your beta invite code above
+        {!inviteValid && !isReturning && (
+          <p className="text-xs mt-2" style={{ color: 'var(--text-muted)', fontFamily: "'Inter', sans-serif" }}>
+            New here? Add your invite code above first.
           </p>
         )}
 
@@ -583,35 +656,32 @@ For privacy concerns: privacy@twinme.me`
       </div>
       </div>
 
-      {/* Right panel — Claura zoned photography: cosmic-swirl by night,
-          soul-waves by day, calmed by a theme-aware veil. */}
+      {/* Right panel — the Claura canvas, not photography. The photoreal
+          cosmic-swirl / soul-waves pair was a fourth visual language between
+          the landing and the app (hero inversion, 2026-08); the funnel now
+          holds one system end to end: charcoal + the four ambient orbs. */}
       <div
-        className="hidden lg:flex relative flex-1 m-4 ml-0 flex-col items-center justify-center px-12 overflow-hidden"
-        style={{
-          backgroundImage:
-            resolvedTheme === 'light'
-              ? "url('/cinematic/assets/soul-waves.png')"
-              : "url('/cinematic/assets/cosmic-swirl.png')",
-          backgroundSize: 'cover',
-          backgroundPosition: 'center 30%',
-          borderRadius: '24px',
-        }}
+        className="claura-glass hidden lg:flex relative z-[1] flex-1 m-4 ml-0 flex-col items-center justify-center px-12 overflow-hidden"
+        style={{ borderRadius: '24px' }}
       >
-        {/* Claura scrim — night ink or paper veil, deepening toward the base.
-            Daylight scenes stay vivid: the light veil is much gentler. */}
+        {/* A breath of amber inside the glass so the panel has its own light
+            rather than repeating the canvas behind it. */}
         <div
           aria-hidden
           className="absolute inset-0 pointer-events-none"
           style={{
-            background:
-              resolvedTheme === 'light'
-                ? 'linear-gradient(200deg, rgba(var(--claura-scrim-rgb),0.08) 0%, rgba(var(--claura-scrim-rgb),0.22) 55%, rgba(var(--claura-scrim-rgb),0.45) 100%)'
-                : 'linear-gradient(200deg, rgba(var(--claura-scrim-rgb),0.16) 0%, rgba(var(--claura-scrim-rgb),0.42) 55%, rgba(var(--claura-scrim-rgb),0.72) 100%)',
+            background: [
+              'radial-gradient(ellipse 70% 55% at 22% 14%, rgba(210,145,55,0.20) 0%, transparent 68%)',
+              'radial-gradient(ellipse 60% 50% at 78% 88%, rgba(160,95,55,0.16) 0%, transparent 66%)',
+              'radial-gradient(ellipse 50% 45% at 82% 34%, rgba(93,92,174,0.12) 0%, transparent 62%)',
+            ].join(','),
             borderRadius: '24px',
           }}
         />
+        {/* No halation here: that glow existed to lift text off a busy photo.
+            On the canvas it only muddies the type. */}
         <h2
-          className="relative text-center mb-4"
+          className="relative text-center mb-5"
           style={{
             fontFamily: "'Instrument Serif', Georgia, serif",
             fontStyle: 'italic',
@@ -620,20 +690,15 @@ For privacy concerns: privacy@twinme.me`
             letterSpacing: '-0.72px',
             lineHeight: 1.15,
             color: 'var(--claura-text)',
-            // Claura halation on the night photo; clean ink by day
-            textShadow:
-              resolvedTheme === 'light'
-                ? 'none'
-                : '0 0 4px rgba(255,255,255,0.9), 0 0 42px rgba(220,235,210,0.35)',
           }}
         >
           Your soul signature
           <br />
-          awaits
+          starts here
         </h2>
 
         <p
-          className="relative text-center max-w-[320px]"
+          className="relative text-center max-w-[340px] mb-9"
           style={{
             fontFamily: "'Inter', sans-serif",
             fontSize: '14px',
@@ -641,8 +706,36 @@ For privacy concerns: privacy@twinme.me`
             color: 'var(--claura-narr)',
           }}
         >
-          Connect your platforms, discover your patterns, meet your digital twin.
+          Connect what you actually use, and meet the twin that reads your patterns
+          instead of your resume.
         </p>
+
+        {/* The commitment moment is where uncertainty peaks — answer it with
+            the three facts people actually hesitate over (Plaid trust-gap). */}
+        <ul className="relative flex flex-col gap-3 w-full max-w-[300px]">
+          {[
+            'Read-only. It can never post or delete.',
+            'Your data is never used to train models.',
+            'Delete everything, anytime, in one click.',
+          ].map((fact) => (
+            <li key={fact} className="flex items-start gap-2.5">
+              <Check
+                className="w-3.5 h-3.5 mt-[3px] flex-shrink-0"
+                style={{ color: 'var(--claura-narr)' }}
+              />
+              <span
+                style={{
+                  fontFamily: "'Inter', sans-serif",
+                  fontSize: '13px',
+                  lineHeight: 1.5,
+                  color: 'var(--claura-narr)',
+                }}
+              >
+                {fact}
+              </span>
+            </li>
+          ))}
+        </ul>
       </div>
 
       {/* Modal */}
