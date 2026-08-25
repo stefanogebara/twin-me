@@ -304,8 +304,24 @@ class UserContextAggregator {
         return null;
       }
 
-      // Access token is stored encrypted in the database
-      let accessToken = decryptToken(connection.access_token);
+      // Access token is stored encrypted in the database. Legacy rows
+      // encrypted under an old key/format can never decrypt, so a failure
+      // here is permanent — flip the row to needs_reauth so the
+      // status='connected' filter above skips it on future requests and the
+      // UI prompts a reconnect, instead of re-logging the same decryption
+      // error on every context warmup.
+      let accessToken;
+      try {
+        accessToken = decryptToken(connection.access_token);
+      } catch (decryptErr) {
+        log.warn(`Whoop token undecryptable (legacy key/format), marking needs_reauth: ${decryptErr.message}`);
+        const { error: updateErr } = await supabaseAdmin
+          .from('platform_connections')
+          .update({ status: 'needs_reauth', updated_at: new Date().toISOString() })
+          .eq('id', connection.id);
+        if (updateErr) log.warn(`Failed to mark Whoop connection needs_reauth: ${updateErr.message}`);
+        return { connected: false, needsReauth: true };
+      }
       const tokenExpired = new Date(connection.token_expires_at) < new Date();
 
       if (tokenExpired && connection.refresh_token) {
@@ -817,26 +833,31 @@ class UserContextAggregator {
         };
       }
 
-      // Fall back to personality_scores (behavioral learning)
-      const { data: scores, error: scoresErr } = await supabaseAdmin
-        .from('personality_scores')
-        .select('*')
+      // Fall back to user_personality_profiles (behavioral learning, built by
+      // personalityProfileService). Scores there are 0-1; the assessment path
+      // above returns 0-100 percentiles, so scale up to keep one range.
+      const { data: profile, error: profileErr } = await supabaseAdmin
+        .from('user_personality_profiles')
+        .select('openness, conscientiousness, extraversion, agreeableness, neuroticism, confidence')
         .eq('user_id', userId)
         .single();
-      if (scoresErr && scoresErr.code !== 'PGRST116') log.warn('personality_scores fetch error:', scoresErr.message);
+      if (profileErr && profileErr.code !== 'PGRST116') log.warn('user_personality_profiles fetch error:', profileErr.message);
 
-      if (!scores) return null;
+      if (!profile) return null;
 
-      log.info(`Using behavioral personality scores`);
+      log.info(`Using behavioral personality profile`);
+      const scores = {
+        openness: Math.round((profile.openness ?? 0.5) * 100),
+        conscientiousness: Math.round((profile.conscientiousness ?? 0.5) * 100),
+        extraversion: Math.round((profile.extraversion ?? 0.5) * 100),
+        agreeableness: Math.round((profile.agreeableness ?? 0.5) * 100),
+        neuroticism: Math.round((profile.neuroticism ?? 0.5) * 100)
+      };
       return {
         source: 'behavioral',
-        openness: scores.openness,
-        conscientiousness: scores.conscientiousness,
-        extraversion: scores.extraversion,
-        agreeableness: scores.agreeableness,
-        neuroticism: scores.neuroticism,
+        ...scores,
         dominantTraits: this.getDominantTraits(scores),
-        confidence: this.getAverageConfidence(scores)
+        confidence: profile.confidence != null ? Math.round(profile.confidence * 100) : null
       };
 
     } catch (error) {
@@ -1531,19 +1552,6 @@ class UserContextAggregator {
       .sort((a, b) => b.score - a.score)
       .slice(0, 2)
       .map(t => t.name);
-  }
-
-  getAverageConfidence(scores) {
-    const confidences = [
-      scores.openness_confidence,
-      scores.conscientiousness_confidence,
-      scores.extraversion_confidence,
-      scores.agreeableness_confidence,
-      scores.neuroticism_confidence
-    ].filter(c => c != null);
-
-    if (confidences.length === 0) return null;
-    return Math.round(confidences.reduce((a, b) => a + b, 0) / confidences.length);
   }
 
   generateWhoopRecommendations(recovery, strain) {
