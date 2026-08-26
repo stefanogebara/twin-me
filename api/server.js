@@ -1,4 +1,5 @@
 import express from 'express';
+import { resolveRequestTimeout } from './config/requestTimeouts.js';
 import helmet from 'helmet';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
@@ -273,27 +274,18 @@ app.post('/api/desktop/observe-summary', aiLimiter); // UNAUTHENTICATED LLM endp
 app.use('/api/extension/batch', aiLimiter);   // batch ingest fans out embedding + importance LLM calls — cap cost (audit)
 app.use('/api/extension/analyze', aiLimiter); // LLM/integration analysis endpoint — cap cost (audit)
 
-// Global request timeout to prevent hanging on DB outages
-// Longer timeout in dev when Cloudflare workaround adds latency per query
-const DEFAULT_TIMEOUT = process.env.USE_CURL_FETCH === 'true' ? 120000 : 30000;
+// Global request timeout to prevent hanging on DB outages.
+// The table lives in api/config/requestTimeouts.js so it is testable: a route
+// missing from it inherits 30s and dies mid-flight with a 504 that reads like
+// a downstream outage. That is how /api/inngest killed every Inngest step at
+// 30,007ms on 2026-08-26 (a step runs its whole body in ONE request).
+// Values are clamped to just under Vercel's 60s maxDuration so the graceful
+// 504 can actually return (audit 2026-07-02 M-5).
 app.use((req, res, next) => {
-  // Chat and cron endpoints need extra time; default 30s for all others
-  const timeout = req.path.includes('/chat/message') ? 60000
-    : req.path.includes('/cron/') ? 115000
-    : req.path.includes('/soul-signature/layers') ? 90000
-    : req.path.includes('/onboarding/calibration') ? 90000
-    : req.path.includes('/whatsapp-twin/webhook') ? 90000
-    : req.path.includes('/whatsapp-zapi/webhook') ? 90000  // inbound pipeline runs twin chat (~25s)
-    : req.path.includes('/whatsapp-evolution/webhook') ? 90000  // same inbound pipeline
-    : req.path.includes('/telegram-webhook') ? 90000
-    : req.path.includes('/discovery/scan') ? 55000
-    : req.path.includes('/departments/heartbeat') ? 55000  // LLM heartbeat needs time
-    : req.path.includes('/templates/') && req.method === 'POST' ? 45000  // Template apply does multiple DB writes
-    : DEFAULT_TIMEOUT;
-  // Vercel maxDuration is 60s (vercel.json). Any value above that is dead config:
-  // the platform kills the container before our 504 handler fires. Clamp just under
-  // the hard cap so the graceful 504 can actually return (audit 2026-07-02 M-5).
-  const capped = Math.min(timeout, 58000);
+  const capped = resolveRequestTimeout(req.path, {
+    method: req.method,
+    useCurlFetch: process.env.USE_CURL_FETCH === 'true',
+  });
   req.setTimeout(capped);
   res.setTimeout(capped, () => {
     if (!res.headersSent) {
