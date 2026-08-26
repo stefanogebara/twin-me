@@ -33,7 +33,8 @@
     "escopos OAuth nunca são conferidos contra o que foi de fato concedido (api/services/scopeEscalationService.js:43, TODO explícito)",
     "três árvores de migração convivem — database/migrations/ (77), database/supabase/migrations/ (100) e supabase/migrations/ (15, numeração antiga). Já causou confusão documentada em 6d79c4c7 e 74441933",
     "README promete 10 plataformas conectáveis; o código tem 7 (api/config/platformConfigs.js:14)",
-    "ml/gnn_model.py (HGT em PyTorch Geometric) + neo4j em ml/requirements.txt estão parados desde 2025-11-17, mas continuam nominalmente importados por api/services/graphProcessor.js e temporalPatternDetector.js"
+    "ml/gnn_model.py (HGT em PyTorch Geometric) + neo4j em ml/requirements.txt estão parados desde 2025-11-17, mas continuam nominalmente importados por api/services/graphProcessor.js e temporalPatternDetector.js",
+    "normalized_fidelity é NULL para todo mundo e o teto nunca foi medido: ele exige duas waves na MESMA battery_version, a bateria foi revisada 3x em 9 dias (v1 20 itens, v2 e v3 25) e cada tentativa virou uma wave 1 nova. v3 está estável desde 2026-08-12, então um retake agora produz o primeiro teto real; /fidelity passou a explicar isso. Enquanto não houver wave 2, o número público é o bruto, rotulado como tal"
   ],
   "settled": [
     "não vira ferramenta de clonagem para terceiros",
@@ -43,7 +44,10 @@
     "agregadores bancários estão fora; captura financeira é por WhatsApp (4a74a4d6, 2026-06-12)",
     "flag só entra em produção se mover o score da harness de fidelidade (46da9e52, 2026-08-11) — aplicado sem dó em a8b3314e, que deletou o temporal spine porque o eval reprovou",
     "o gêmeo não pode se citar como fato: filing de query barrado e reflexões não comem o próprio output (df8b146e, 4c73e592, 2026-08-10)",
-    "a IA do produto está colapsada em cinco superfícies: Today, Twin, You, Connect, Settings (c2aefd1f, 2026-08-10)"
+    "a IA do produto está colapsada em cinco superfícies: Today, Twin, You, Connect, Settings (c2aefd1f, 2026-08-10)",
+    "o número público de fidelidade fica, mas honesto: /p/:userId publica o normalizado quando existe, com n, wave e data, sob \"Not a clinical measure\" — e a query ordena battery_version, wave, created_at (2026-08-25, PR #266). Opções (b) tirar o número e (c) aceitar o risco seguem disponíveis; (a) foi a escolhida porque torna a afirmação verdadeira sem virar decisão de negócio",
+    "\"digital twin\" sai da UI (11 strings -> \"your twin\" / \"soul signature\") mas FICA em Terms/Privacy, onde é definição legal do serviço, e nos prompts de LLM, onde mudar texto é mudar comportamento e deve ao eval uma rodada (2026-08-25)",
+    "o funil de aquisição é um sistema só: landing, auth e onboarding fixam ClassicBackground e usam .claura-glass + --claura-bone. Uma quarta paleta no funil é regressão (2026-08-25, PRs #259/#261/#263/#264/#265)"
   ],
   "deprecated": [
     "temporal spine — deletado em a8b3314e (2026-08-11) após 14 dias de vida, porque o eval reprovou",
@@ -70,7 +74,14 @@
     "avaliação de fidelidade de persona (eval harness)",
     "captura ambiente em desktop (janela ativa, reunião, transcrição local)"
   ],
-  "scout_modalities": ["concorrentes-diretos", "concorrentes-adjacentes", "papers", "repos", "funding", "plataforma"],
+  "scout_modalities": [
+    "concorrentes-diretos",
+    "concorrentes-adjacentes",
+    "papers",
+    "repos",
+    "funding",
+    "plataforma"
+  ],
   "platform_deps": [
     "OpenRouter (gateway único de LLM)",
     "DeepSeek V3.2 e Google Gemini 2.5 Flash (modelos)",
