@@ -27,8 +27,8 @@ export const meetingPrepFunction = inngest.createFunction(
     name: 'Meeting Prep Briefing',
     retries: 2,
     concurrency: { limit: 1, key: 'event.data.userId' },
+    triggers: [{ event: EVENTS.MEETING_PREP }],
   },
-  { event: EVENTS.MEETING_PREP },
   async ({ event, step }) => {
     const { userId, eventId, eventTitle, eventStart, attendees } = event.data;
 

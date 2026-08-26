@@ -32,8 +32,8 @@ export const emailTriageFunction = inngest.createFunction(
     name: 'Smart Email Triage',
     retries: 1,
     concurrency: { limit: 1, key: 'event.data.userId' },
+    triggers: [{ event: EVENTS.EMAIL_TRIAGE }],
   },
-  { event: EVENTS.EMAIL_TRIAGE },
   async ({ event, step }) => {
     const { userId } = event.data;
 
