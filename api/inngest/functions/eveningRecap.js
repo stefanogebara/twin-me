@@ -31,8 +31,8 @@ export const eveningRecapFunction = inngest.createFunction(
     name: 'Daily Evening Recap',
     retries: 1,
     concurrency: { limit: 1, key: 'event.data.userId' },
+    triggers: [{ event: EVENTS.EVENING_RECAP }],
   },
-  { event: EVENTS.EVENING_RECAP },
   async ({ event, step }) => {
     const { userId } = event.data;
 

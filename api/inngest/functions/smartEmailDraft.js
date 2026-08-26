@@ -55,8 +55,8 @@ export const smartEmailDraftFunction = inngest.createFunction(
     name: 'Smart Email Draft',
     retries: 1,
     concurrency: { limit: 1, key: 'event.data.userId' },
+    triggers: [{ event: EVENTS.EMAIL_DRAFT }],
   },
-  { event: EVENTS.EMAIL_DRAFT },
   async ({ event, step }) => {
     const { userId } = event.data;
 

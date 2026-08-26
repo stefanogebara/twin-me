@@ -69,8 +69,8 @@ export const profileEnrichmentFunction = inngest.createFunction(
     // share of the same plan. 1-per-user prevents a double-enqueue from
     // paying the external APIs twice concurrently.
     concurrency: [{ limit: 3 }, { limit: 1, key: 'event.data.userId' }],
+    triggers: [{ event: EVENTS.ENRICH_PROFILE }],
   },
-  { event: EVENTS.ENRICH_PROFILE },
   async ({ event, step }) => {
     const { userId, email, fullName } = event.data || {};
     if (!userId || !email) return { skipped: true, reason: 'missing_user' };

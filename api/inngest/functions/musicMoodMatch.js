@@ -41,8 +41,8 @@ export const musicMoodMatchFunction = inngest.createFunction(
     name: 'Music Mood Match',
     retries: 1,
     concurrency: { limit: 1, key: 'event.data.userId' },
+    triggers: [{ event: EVENTS.MUSIC_MOOD_MATCH }],
   },
-  { event: EVENTS.MUSIC_MOOD_MATCH },
   async ({ event, step }) => {
     const { userId } = event.data;
 

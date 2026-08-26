@@ -57,8 +57,8 @@ export const personalityValidationFunction = inngest.createFunction(
     name: 'Personality Anchor Validation',
     retries: 1,
     concurrency: { limit: 1, key: 'event.data.userId' },
+    triggers: [{ event: EVENTS.PERSONALITY_VALIDATION }],
   },
-  { event: EVENTS.PERSONALITY_VALIDATION },
   async ({ event, step }) => {
     const { userId } = event.data;
 

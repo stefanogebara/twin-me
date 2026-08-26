@@ -33,8 +33,8 @@ export const calendarOptimizationFunction = inngest.createFunction(
     name: 'Calendar Optimization',
     retries: 1,
     concurrency: { limit: 1, key: 'event.data.userId' },
+    triggers: [{ event: EVENTS.CALENDAR_OPTIMIZATION }],
   },
-  { event: EVENTS.CALENDAR_OPTIMIZATION },
   async ({ event, step }) => {
     const { userId } = event.data;
 
