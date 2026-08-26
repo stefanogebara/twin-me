@@ -92,6 +92,32 @@ async function runInlineIngestion(opts) {
 }
 
 /**
+ * Write the response, once, and never throw.
+ *
+ * Vercel closes the response at the 60s ceiling. Any write after that throws
+ * ERR_HTTP_HEADERS_SENT — and when such a write sat inside the fan-out try
+ * below, the catch misread a dead SOCKET as a dead INNGEST and ran a second,
+ * full, all-users ingestion that had just completed (live 2026-08-18 and four
+ * times on 2026-08-25, logging 21-61 minute executions). A response failure
+ * must never cause work, and never cascade into further writes.
+ *
+ * @returns {boolean} whether the body actually reached the client
+ */
+function sendOnce(res, status, body) {
+  if (res.headersSent) {
+    log.warn('Response already closed - skipping write', { status });
+    return false;
+  }
+  try {
+    res.status(status).json(body);
+    return true;
+  } catch (writeErr) {
+    log.warn('Response write failed - client is gone', { error: writeErr.message });
+    return false;
+  }
+}
+
+/**
  * Vercel Cron Job Handler — called every 30 minutes by Vercel Cron.
  */
 export default async function handler(req, res) {
@@ -128,7 +154,7 @@ export default async function handler(req, res) {
       const status = result.errors.length > 0 && result.observationsStored === 0 ? 500 : 200;
       const durationMs = Date.now() - startTime;
       await logCronExecution('observation-ingestion', status === 200 ? 'success' : 'error', durationMs, { ...result, mode: 'inline-manual' }, result.errors?.length > 0 ? result.errors.join('; ') : null);
-      return res.status(status).json({ success: status === 200, ...result, mode: 'inline-manual', timestamp: new Date().toISOString(), cronType: 'observation-ingestion' });
+      return sendOnce(res, status, { success: status === 200, ...result, mode: 'inline-manual', timestamp: new Date().toISOString(), cronType: 'observation-ingestion' });
     }
 
     // All-users path: enumerate eligible users and fan out one Inngest event each.
@@ -136,9 +162,10 @@ export default async function handler(req, res) {
     if (eligibleUserIds.length === 0) {
       log.info('No connected platform users — skipping run');
       await logCronExecution('observation-ingestion', 'success', Date.now() - startTime, { enqueued: 0, skipped: true });
-      return res.json({ success: true, skipped: true, reason: 'no connected platforms', durationMs: Date.now() - startTime });
+      return sendOnce(res, 200, { success: true, skipped: true, reason: 'no connected platforms', durationMs: Date.now() - startTime });
     }
 
+    let outcome;
     try {
       // One durable per-user job each (observation-ingestion-user Inngest fn).
       // Batch send = a single network round-trip for the whole fan-out.
@@ -174,13 +201,13 @@ export default async function handler(req, res) {
         await logCronExecution('observation-ingestion', 'success', durationMs, {
           enqueued: eligibleUserIds.length, starved: starved.length, ...result, mode: 'inngest-fanout+starvation-fallback',
         });
-        return res.json({ success: true, enqueued: eligibleUserIds.length, starved: starved.length, ...result, mode: 'inngest-fanout+starvation-fallback', durationMs, timestamp: new Date().toISOString(), cronType: 'observation-ingestion' });
+        outcome = { status: 200, body: { success: true, enqueued: eligibleUserIds.length, starved: starved.length, ...result, mode: 'inngest-fanout+starvation-fallback', durationMs, timestamp: new Date().toISOString(), cronType: 'observation-ingestion' } };
+      } else {
+        const durationMs = Date.now() - startTime;
+        log.info('Observation ingestion fanned out via Inngest', { enqueued: eligibleUserIds.length, durationMs });
+        await logCronExecution('observation-ingestion', 'success', durationMs, { enqueued: eligibleUserIds.length, mode: 'inngest-fanout' });
+        outcome = { status: 200, body: { success: true, enqueued: eligibleUserIds.length, mode: 'inngest-fanout', durationMs, timestamp: new Date().toISOString(), cronType: 'observation-ingestion' } };
       }
-
-      const durationMs = Date.now() - startTime;
-      log.info('Observation ingestion fanned out via Inngest', { enqueued: eligibleUserIds.length, durationMs });
-      await logCronExecution('observation-ingestion', 'success', durationMs, { enqueued: eligibleUserIds.length, mode: 'inngest-fanout' });
-      return res.json({ success: true, enqueued: eligibleUserIds.length, mode: 'inngest-fanout', durationMs, timestamp: new Date().toISOString(), cronType: 'observation-ingestion' });
     } catch (fanoutErr) {
       // Inngest unavailable (e.g. missing keys) — fall back to the bounded inline
       // rotation so ingestion still happens. MAX_USERS_PER_RUN is the fallback,
@@ -190,13 +217,17 @@ export default async function handler(req, res) {
       const status = result.errors.length > 0 && result.observationsStored === 0 ? 500 : 200;
       const durationMs = Date.now() - startTime;
       await logCronExecution('observation-ingestion', status === 200 ? 'success' : 'error', durationMs, { ...result, mode: 'inline-fallback' }, result.errors?.length > 0 ? result.errors.join('; ') : null);
-      return res.status(status).json({ success: status === 200, ...result, mode: 'inline-fallback', timestamp: new Date().toISOString(), cronType: 'observation-ingestion' });
+      outcome = { status, body: { success: status === 200, ...result, mode: 'inline-fallback', timestamp: new Date().toISOString(), cronType: 'observation-ingestion' } };
     }
+
+    // Responding happens OUTSIDE the fan-out try on purpose: a failed write
+    // must not be catchable as a fan-out failure.
+    return sendOnce(res, outcome.status, outcome.body);
   } catch (error) {
     const durationMs = Date.now() - startTime;
     await logCronExecution('observation-ingestion', 'error', durationMs, null, error.message);
     log.error('Observation ingestion failed', { error: error.message });
-    return res.status(500).json({
+    return sendOnce(res, 500, {
       success: false,
       error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error',
       timestamp: new Date().toISOString(),
