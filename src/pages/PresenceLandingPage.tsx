@@ -1,4 +1,4 @@
-import { ArrowRight, Check, Mic, ShieldCheck } from 'lucide-react';
+import { ArrowRight, Check, Mic, Play, ShieldCheck, Volume2 } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import '@/styles/presence-marketing.css';
@@ -181,17 +181,31 @@ export default function PresenceLandingPage() {
           </article>
 
           <article className="presence-scene presence-scene--relay">
-            <div className="presence-scene-meta"><span>Family relay</span><span>Ready</span></div>
-            <div className="presence-relay-ui">
-              <span>What needs you</span>
-              <h3>Thursday call</h3>
-              <p>She’ll be home from garden club after five and would like to hear your voice.</p>
-              <div className="presence-relay-action">
-                <div><span>Your reply</span><strong>I’ll call you at 6:00.</strong></div>
-                <button type="button" aria-label="Send reply"><ArrowRight size={16} /></button>
+            <div className="presence-relay-split">
+              <div className="presence-relay-split-copy">
+                <span>A voice they already know</span>
+                <h3>Familiar enough to feel close.</h3>
+                <p>Approved by family. Always identified as AI.</p>
+              </div>
+              <div className="presence-relay-split-visual" aria-label="Live Presence conversation interface">
+                <div className="presence-signal-code" aria-hidden="true">
+                  <span>110101101011</span><span>011010010101</span><span>101101001101</span>
+                </div>
+                <div className="presence-liquid-call">
+                  <div className="presence-liquid-call-head">
+                    <div><span className="presence-call-signal" aria-hidden="true" /><strong>Conversation with Sofia</strong></div>
+                    <span>09:17</span>
+                  </div>
+                  <div className="presence-liquid-call-player">
+                    <span className="presence-call-play" aria-hidden="true"><Play size={13} fill="currentColor" /></span>
+                    <div className="presence-call-track" aria-hidden="true"><i /></div>
+                    <span>04:12</span>
+                    <Volume2 size={16} aria-hidden="true" />
+                  </div>
+                  <p>“Tell me more about the garden. I’m listening.”</p>
+                </div>
               </div>
             </div>
-            <footer><span>03</span><p>Presence can listen. Only you can make the promise.</p></footer>
           </article>
         </div>
       </section>

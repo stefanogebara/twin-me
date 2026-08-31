@@ -582,3 +582,131 @@
       linear-gradient(110deg,rgba(255,255,255,.12),transparent 50%,rgba(255,255,255,.2));
   }
 }
+
+/* Shared signal and liquid-glass instrument used by product moment 03. */
+.presence-signal-code{
+  position:absolute;
+  inset:12% 7% 8% 20%;
+  display:grid;
+  align-content:space-between;
+  color:rgba(244,255,239,.26);
+  font:500 12px/1.1 'DM Mono',monospace;
+  letter-spacing:.2em;
+  pointer-events:none;
+}
+.presence-signal-code span:nth-child(2){justify-self:end}.presence-signal-code span:nth-child(3){margin-left:16%}.presence-signal-code span:nth-child(4){justify-self:center}
+.presence-liquid-call{
+  position:relative;
+  z-index:2;
+  width:min(100%,660px);
+  padding:24px 26px 22px;
+  border:1px solid rgba(255,255,255,.46);
+  border-radius:20px;
+  background:linear-gradient(135deg,rgba(255,255,255,.24),rgba(213,240,214,.09));
+  backdrop-filter:blur(32px) saturate(1.26) brightness(1.04);
+  box-shadow:0 1px 0 rgba(255,255,255,.54) inset,0 18px 54px rgba(22,75,48,.18),0 2px 5px rgba(25,74,50,.12);
+  color:#f8fff5;
+}
+.presence-liquid-call::after{
+  content:'';
+  position:absolute;
+  inset:1px;
+  border-radius:18px;
+  border-top:1px solid rgba(255,255,255,.38);
+  border-left:1px solid rgba(255,255,255,.16);
+  pointer-events:none;
+}
+.presence-liquid-call-head,.presence-liquid-call-head>div,.presence-liquid-call-player{display:flex;align-items:center}
+.presence-liquid-call-head{justify-content:space-between;gap:20px;font-size:14px}.presence-liquid-call-head>div{gap:10px}.presence-liquid-call-head strong{font-weight:600}.presence-liquid-call-head>span{font-variant-numeric:tabular-nums;font-weight:500}
+.presence-call-signal{width:8px;height:8px;border-radius:50%;background:#f7fff2;box-shadow:0 0 16px rgba(245,255,239,.8)}
+.presence-liquid-call-player{gap:12px;margin-top:36px;font-size:12px;font-variant-numeric:tabular-nums}
+.presence-call-play{width:30px;height:30px;flex:0 0 auto;border:1px solid rgba(255,255,255,.4);border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.16)}
+.presence-call-track{position:relative;flex:1;height:2px;background:rgba(255,255,255,.42)}.presence-call-track i{position:absolute;inset:0 43% 0 0;background:#fff}.presence-call-track i::after{content:'';position:absolute;right:-3px;top:-2px;width:6px;height:6px;border-radius:50%;background:#fff;box-shadow:0 0 9px rgba(255,255,255,.72)}
+.presence-liquid-call>p{margin:32px 0 0!important;padding-top:18px;border-top:1px solid rgba(255,255,255,.22);color:rgba(250,255,247,.82)!important;font:400 19px/1.35 var(--p-story)!important}
+
+@media(max-width:620px){
+  .presence-liquid-call{padding:20px 18px}.presence-liquid-call-head{font-size:12px}.presence-liquid-call-player{gap:9px}.presence-liquid-call>p{font-size:17px!important}
+}
+
+/* Product moment 03: the reference-inspired voice field replaces Thursday Call. */
+.presence-product-scenes .presence-scene--relay{
+  min-height:0;
+  background:#f8f5ef;
+  color:#283029;
+}
+.presence-product-scenes .presence-scene--relay::before{
+  inset:0;
+  background:
+    radial-gradient(ellipse 62% 110% at 62% 2%,rgba(100,208,235,.9),transparent 61%),
+    radial-gradient(ellipse 72% 130% at 98% 94%,rgba(25,123,70,.98),transparent 66%),
+    radial-gradient(ellipse 66% 110% at 57% 94%,rgba(166,201,45,.94),transparent 69%),
+    linear-gradient(135deg,#d9eef1 32%,#91c957 68%,#17734c 100%);
+  filter:none;
+  transform:none;
+}
+.presence-product-scenes .presence-scene--relay::after{
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.78' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.18'/%3E%3C/svg%3E"),
+    linear-gradient(90deg,rgba(248,245,239,.98) 0%,rgba(248,245,239,.98) 36%,rgba(248,245,239,.72) 46%,rgba(248,245,239,.12) 58%,transparent 68%);
+  background-size:120px 120px,auto;
+  background-blend-mode:soft-light,normal;
+}
+.presence-relay-split{
+  position:relative;
+  z-index:2;
+  min-height:480px;
+  display:grid;
+  grid-template-columns:minmax(250px,.8fr) minmax(0,1.2fr);
+}
+.presence-relay-split-copy{
+  position:relative;
+  z-index:2;
+  padding:clamp(34px,4vw,62px) clamp(28px,4vw,58px);
+  display:flex;
+  flex-direction:column;
+  color:#293029;
+}
+.presence-relay-split-copy>span{
+  color:rgba(42,48,42,.58);
+  font:600 10px/1.2 var(--p-ui);
+  letter-spacing:.11em;
+  text-transform:uppercase;
+}
+.presence-relay-split-copy h3{
+  max-width:430px;
+  margin:24px 0 0;
+  color:#282d28!important;
+  font:400 clamp(42px,4.2vw,66px)/.92 var(--p-story);
+  letter-spacing:-.05em;
+  text-wrap:balance;
+}
+.presence-relay-split-copy p{
+  max-width:340px;
+  margin:auto 0 0!important;
+  color:rgba(41,47,41,.68)!important;
+  font:500 clamp(14px,1.15vw,17px)/1.45 var(--p-ui)!important;
+}
+.presence-relay-split-visual{
+  position:relative;
+  min-width:0;
+  display:grid;
+  place-items:center;
+  padding:48px clamp(28px,4vw,58px);
+}
+.presence-relay-split-visual .presence-signal-code{inset:10% 5% 8% 8%}
+.presence-relay-split-visual .presence-liquid-call{width:min(100%,620px)}
+
+@media(max-width:1000px){
+  .presence-relay-split{min-height:68svh;grid-template-columns:minmax(280px,.8fr) minmax(0,1.2fr)}
+}
+@media(max-width:700px){
+  .presence-product-scenes .presence-scene--relay::after{
+    background:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.78' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.18'/%3E%3C/svg%3E"),
+      linear-gradient(180deg,rgba(248,245,239,.98) 0%,rgba(248,245,239,.98) 35%,rgba(248,245,239,.72) 46%,rgba(248,245,239,.1) 59%,transparent 69%);
+    background-size:120px 120px,auto;
+  }
+  .presence-relay-split{min-height:760px;grid-template-columns:1fr;grid-template-rows:330px 1fr}
+  .presence-relay-split-copy{padding:44px 20px 28px}.presence-relay-split-copy h3{font-size:52px}.presence-relay-split-copy p{margin-top:40px!important;font-size:15px!important}
+  .presence-relay-split-visual{padding:58px 20px 42px}
+}
