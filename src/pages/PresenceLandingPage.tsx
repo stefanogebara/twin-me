@@ -1,10 +1,16 @@
-import { ArrowRight, Check, Mic, Play, ShieldCheck, Volume2 } from 'lucide-react';
+import { ArrowRight, Mic, Play, ShieldCheck, Volume2 } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import '@/styles/presence-marketing.css';
 
 export default function PresenceLandingPage() {
   const pipoPhoneRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const previousTitle = document.title;
+    document.title = 'Presence · An AI voice companion for families';
+    return () => { document.title = previousTitle; };
+  }, []);
 
   useEffect(() => {
     const phone = pipoPhoneRef.current;
@@ -69,16 +75,11 @@ export default function PresenceLandingPage() {
           <p className="presence-kicker">An AI voice companion for families</p>
           <h1>More time to talk. Less distance between you.</h1>
           <p className="presence-hero-lede">
-            Presence gives an older adult a familiar AI voice that listens patiently. Their family receives grounded summaries, memories and requests—and can reply in seconds.
+            Presence gives an older adult a familiar AI voice that listens patiently. The family gets a short, grounded update and can reply in seconds.
           </p>
           <div className="presence-hero-actions">
             <Link className="presence-dark-button presence-dark-button--large" to="/presence/onboarding">Create a first Presence <ArrowRight size={16} /></Link>
             <a className="presence-text-link" href="#how-it-works">See how the family relay works</a>
-          </div>
-          <div className="presence-hero-facts">
-            <span><Check size={14} /> Familiar, clearly identified AI voice</span>
-            <span><Check size={14} /> Private family summaries</span>
-            <span><Check size={14} /> Only family makes promises</span>
           </div>
         </div>
 
@@ -110,7 +111,6 @@ export default function PresenceLandingPage() {
             <footer><span>Summary grounded in 24:08 of conversation</span><span>Private to family</span></footer>
           </section>
         </aside>
-
       </section>
 
       <section className="presence-relay-explainer" id="how-it-works">
@@ -137,15 +137,7 @@ export default function PresenceLandingPage() {
         </div>
       </section>
 
-      <section className="presence-product-lab" aria-labelledby="presence-product-lab-title">
-        <header className="presence-product-lab-header">
-          <div>
-            <p className="presence-kicker">The product, in motion</p>
-            <h2 id="presence-product-lab-title">One relationship. Three clear product moments.</h2>
-          </div>
-          <p>The older adult speaks. Presence preserves what matters. The family sees what happened and decides what comes next.</p>
-        </header>
-
+      <section className="presence-product-lab" aria-label="The product, in three moments">
         <div className="presence-product-scenes">
           <article className="presence-scene presence-scene--listen">
             <div className="presence-scene-meta"><span>Conversation</span><span>Live</span></div>
@@ -157,7 +149,6 @@ export default function PresenceLandingPage() {
               </div>
               <button type="button" aria-label="Pause listening"><Mic size={20} /></button>
             </div>
-            <footer><span>01</span><p>One unmistakable state. No menus while she is speaking.</p></footer>
           </article>
 
           <article className="presence-scene presence-scene--memory">
@@ -177,7 +168,6 @@ export default function PresenceLandingPage() {
                 <small>Source: Sofia · Today’s conversation</small>
               </div>
             </div>
-            <footer><span>02</span><p>The memory stays specific instead of becoming a generic summary.</p></footer>
           </article>
 
           <article className="presence-scene presence-scene--relay">
@@ -210,12 +200,28 @@ export default function PresenceLandingPage() {
         </div>
       </section>
 
+      <figure className="presence-photo-band" role="img" aria-label="An older adult holding a phone showing the Presence listening screen">
+        <figcaption className="presence-photo-caption">
+          <span>No new device</span>
+          <p>Presence lives in the phone she already answers.</p>
+        </figcaption>
+      </figure>
+
       <section className="presence-trust-section" id="trust">
         <div><ShieldCheck size={22} /><p className="presence-kicker">Trust is part of the interface</p></div>
         <h2>The AI never pretends to be a phone call from you.</h2>
-        <p>Identity, consent and provenance stay visible. Visits, money, medicine and promises always require verified family input.</p>
+        <p>Every conversation is clearly identified as AI. Visits, money, medicine and promises always require verified family input.</p>
         <Link className="presence-dark-button" to="/presence/onboarding">Begin with consent <ArrowRight size={15} /></Link>
       </section>
+
+      <footer className="presence-marketing-footer">
+        <div><span className="presence-marketing-mark" aria-hidden="true" />Presence · by TwinMe</div>
+        <nav aria-label="Presence footer">
+          <Link to="/presence/login">Sign in</Link>
+          <Link to="/terms">Terms</Link>
+          <Link to="/privacy">Privacy</Link>
+        </nav>
+      </footer>
     </main>
   );
 }

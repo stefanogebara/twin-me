@@ -119,7 +119,9 @@ export function PresenceExperience({ persistDraft = false, onExit }: PresenceExp
   const [promptIndex, setPromptIndex] = useState(0);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [consent, setConsent] = useState(true);
+  // Consent must start unchecked: a pre-ticked voice-consent box undercuts
+  // the "consent stays visible" claim this product is built on.
+  const [consent, setConsent] = useState(false);
   const [interviewIndex, setInterviewIndex] = useState(0);
   const [micError, setMicError] = useState<string | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
@@ -404,9 +406,9 @@ export function PresenceExperience({ persistDraft = false, onExit }: PresenceExp
                     <span>First-pass fidelity</span>
                     <strong>{recordingState === 'complete' ? '82' : '—'}<small>/100</small></strong>
                   </div>
-                  <div className="presence-quality-line"><span>Clarity</span><i style={{ '--score': '88%' } as React.CSSProperties} /></div>
-                  <div className="presence-quality-line"><span>Cadence</span><i style={{ '--score': '74%' } as React.CSSProperties} /></div>
-                  <div className="presence-quality-line"><span>Warmth</span><i style={{ '--score': '83%' } as React.CSSProperties} /></div>
+                  <div className="presence-quality-line"><span>Clarity</span><i style={{ '--score': recordingState === 'complete' ? '88%' : '0%' } as React.CSSProperties} /></div>
+                  <div className="presence-quality-line"><span>Cadence</span><i style={{ '--score': recordingState === 'complete' ? '74%' : '0%' } as React.CSSProperties} /></div>
+                  <div className="presence-quality-line"><span>Warmth</span><i style={{ '--score': recordingState === 'complete' ? '83%' : '0%' } as React.CSSProperties} /></div>
                   <p>Prototype only. A production clone would require provider verification before this score is shown.</p>
                   <label className="presence-consent-row">
                     <input type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} />

@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;1,6..72,400&display=swap');
+/* Fonts (Manrope, Newsreader, DM Mono) load once from index.html. */
 
 .ps-system,
 .presence-shell {
@@ -35,12 +35,21 @@
 .ps-system a { color: inherit; text-decoration: none; }
 .ps-system button,
 .ps-system input { font: inherit; }
+/* The app's global heading rule paints h1-h6 in Claura's warm white
+   (#F5F5F4) — invisible on this paper system. Both scope roots must
+   re-anchor headings to ink, or card titles ghost out. */
 .ps-system h1,
 .ps-system h2,
 .ps-system h3,
 .ps-system h4,
 .ps-system h5,
-.ps-system h6 { color: var(--ps-ink); }
+.ps-system h6,
+.presence-shell h1,
+.presence-shell h2,
+.presence-shell h3,
+.presence-shell h4,
+.presence-shell h5,
+.presence-shell h6 { color: var(--ps-ink); }
 
 .ps-topbar,
 .presence-nav {

@@ -11,6 +11,12 @@ export default function PresenceLoginPage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
+    const previousTitle = document.title;
+    document.title = 'Sign in · Presence';
+    return () => { document.title = previousTitle; };
+  }, []);
+
+  useEffect(() => {
     if (isLoaded && isSignedIn) navigate('/presence/onboarding', { replace: true });
   }, [isLoaded, isSignedIn, navigate]);
 
