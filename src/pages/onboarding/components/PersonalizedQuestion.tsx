@@ -64,26 +64,36 @@ const PersonalizedQuestions: React.FC<PersonalizedQuestionProps> = ({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [typingDone, setTypingDone] = useState(false);
+  const [reaction, setReaction] = useState<string | null>(null);
 
   const currentQuestion = questions[currentIndex];
   const totalQuestions = questions.length;
 
   const handleSelect = (option: string) => {
     if (!currentQuestion) return;
+    if (reaction) return; // answer locked while the twin is reacting
 
     const newAnswers = { ...answers, [currentQuestion.id]: option };
     setAnswers(newAnswers);
     onAnswer(currentQuestion.id, option, currentQuestion.domain);
 
-    // Advance to next question after a brief pause
+    // Sequencing 2026-08 (the Cofounder ratio): when the LLM supplied a
+    // per-option reaction, the twin answers back before the next question —
+    // every input visibly teaches it something. Longer dwell so it reads.
+    const optionIdx = currentQuestion.options.indexOf(option);
+    const twinReaction = currentQuestion.reactions?.[optionIdx] ?? null;
+    setReaction(twinReaction);
+    const dwell = twinReaction ? 2400 : 400;
+
     if (currentIndex < totalQuestions - 1) {
       setTimeout(() => {
         setCurrentIndex(prev => prev + 1);
         setTypingDone(false);
-      }, 400);
+        setReaction(null);
+      }, dwell);
     } else {
       // All answered
-      setTimeout(() => onAllAnswered(), 500);
+      setTimeout(() => onAllAnswered(), twinReaction ? 2400 : 500);
     }
   };
 
@@ -177,6 +187,21 @@ const PersonalizedQuestions: React.FC<PersonalizedQuestionProps> = ({
               );
             })}
           </div>
+        )}
+
+        {/* Twin reaction beat — the answer taught it something */}
+        {reaction && (
+          <p
+            className="mt-5 text-[15px] animate-in fade-in duration-300"
+            style={{
+              fontFamily: 'var(--font-heading)',
+              fontStyle: 'italic',
+              color: 'var(--text-narrative)',
+              lineHeight: 1.5,
+            }}
+          >
+            {reaction}
+          </p>
         )}
       </div>
     </div>

@@ -101,7 +101,7 @@ const OnboardingExplainer: React.FC<OnboardingExplainerProps> = ({ onComplete })
         {/* Next / Get Started button */}
         <button
           onClick={handleNext}
-          className="flex items-center justify-center gap-2 rounded-full px-8 py-3 transition-all duration-200 hover:opacity-90 active:scale-[0.98]"
+          className="flex items-center justify-center gap-2 rounded-[12px] px-8 py-3 transition-all duration-200 hover:opacity-90 active:scale-[0.98]"
           style={{
             background: 'var(--claura-bone)',
             color: 'var(--claura-bone-ink)',

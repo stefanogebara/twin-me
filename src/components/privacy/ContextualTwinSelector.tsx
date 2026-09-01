@@ -298,7 +298,7 @@ export const ContextualTwinSelector: React.FC<ContextualTwinSelectorProps> = ({
       <div className="p-4 rounded-xl bg-[var(--surface)] border border-[var(--glass-surface-border)] backdrop-blur-[42px]">
         <p className="text-sm text-[var(--text-narrative-secondary)] leading-relaxed" style={{ fontFamily: "'Inter', sans-serif" }}>
           <strong className="font-medium">Pro tip:</strong> Switch between twins
-          based on your context. Your digital twin will automatically adjust what
+          based on your context. Your twin will automatically adjust what
           it reveals about you to match the selected audience.
         </p>
       </div>

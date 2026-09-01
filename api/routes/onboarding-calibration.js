@@ -410,7 +410,13 @@ const FALLBACK_QUICK_QUESTIONS = [
  * Fast path: Uses TIER_EXTRACTION for speed and cost efficiency.
  *
  * Request:  { enrichmentContext: { name, company, title, bio, location } }
- * Response: { questions: [{ id, text, options: [4 strings], domain }] }
+ * Response: { questions: [{ id, text, options: [4 strings], reactions: [4 strings], domain }] }
+ *
+ * reactions[i] is the twin's in-character response to options[i] — an
+ * INFERENCE about the person, not an acknowledgment ("Noted"). The frontend
+ * shows it as a beat after selection so every answer visibly teaches the
+ * twin something (sequencing research 2026-08: the Cofounder ratio — every
+ * input changes the output). Optional: absent on the static fallback.
  */
 router.post('/quick-questions', authenticateUser, async (req, res) => {
   try {
@@ -446,23 +452,32 @@ RULES:
 - Reference their company/title/location naturally when relevant (e.g. "As a ${enrichmentContext.title || 'professional'} at ${enrichmentContext.company || 'your company'}...")
 - Questions should make them think, not just pick the obvious answer
 - Don't start every question with "As someone who..."
+- For EACH option, also write the twin's reaction if the person picks it: a
+  short first-person inference about them (max 14 words), speaking as their
+  nascent twin. It must INFER something, never just acknowledge. No emojis.
+  Example: option "Start a project" -> reaction "You relax by making things. Rest, for you, is momentum."
 
 Return ONLY this JSON array (no markdown, no explanation):
 [
-  {"id":"motivation_q","text":"question text","options":["opt1","opt2","opt3","opt4"],"domain":"motivation"},
-  {"id":"lifestyle_q","text":"question text","options":["opt1","opt2","opt3","opt4"],"domain":"lifestyle"},
-  {"id":"personality_q","text":"question text","options":["opt1","opt2","opt3","opt4"],"domain":"personality"},
-  {"id":"cultural_q","text":"question text","options":["opt1","opt2","opt3","opt4"],"domain":"cultural"},
-  {"id":"social_q","text":"question text","options":["opt1","opt2","opt3","opt4"],"domain":"social"}
+  {"id":"motivation_q","text":"question text","options":["opt1","opt2","opt3","opt4"],"reactions":["r1","r2","r3","r4"],"domain":"motivation"},
+  {"id":"lifestyle_q","text":"question text","options":["opt1","opt2","opt3","opt4"],"reactions":["r1","r2","r3","r4"],"domain":"lifestyle"},
+  {"id":"personality_q","text":"question text","options":["opt1","opt2","opt3","opt4"],"reactions":["r1","r2","r3","r4"],"domain":"personality"},
+  {"id":"cultural_q","text":"question text","options":["opt1","opt2","opt3","opt4"],"reactions":["r1","r2","r3","r4"],"domain":"cultural"},
+  {"id":"social_q","text":"question text","options":["opt1","opt2","opt3","opt4"],"reactions":["r1","r2","r3","r4"],"domain":"social"}
 ]`;
 
     const result = await complete({
       tier: TIER_EXTRACTION,
       messages: [{ role: 'user', content: prompt }],
-      maxTokens: 600,
+      maxTokens: 1200,
       temperature: 0.8,
       userId: req.user?.id,
       serviceName: 'onboarding-quick-questions',
+      // Reactions grew the generation past DeepSeek's reach inside the
+      // extraction tier's 15s timeout (measured: 2x timeout). Gemini Flash
+      // does the full payload in ~5.5s at ~$0.002 (measured 2026-08-25),
+      // same model the Chat Light route already trusts.
+      modelOverride: 'google/gemini-2.5-flash',
     });
 
     // Parse the JSON response
@@ -479,6 +494,15 @@ Return ONLY this JSON array (no markdown, no explanation):
         );
 
       if (isValid) {
+        // Reactions are best-effort: keep them only when well-formed (4
+        // non-empty strings), so a partial LLM answer degrades to questions
+        // without reactions instead of the static fallback.
+        for (const q of questions) {
+          const ok = Array.isArray(q.reactions) &&
+            q.reactions.length === 4 &&
+            q.reactions.every(r => typeof r === 'string' && r.trim().length > 0);
+          if (!ok) delete q.reactions;
+        }
         return res.json({ success: true, questions });
       }
     }
@@ -913,9 +937,11 @@ router.post('/complete', authenticateUser, async (req, res) => {
     }
 
     const completedAt = new Date().toISOString();
-    // No dedicated metadata column on this table (20260304 migration) — the
-    // completion_source marker rides in the enrichment_context jsonb, merged
-    // so interview-written keys are never clobbered.
+    // Hatching (sequencing 2026-08): the name the user gave their twin at
+    // the birth moment. Rides in enrichment_context like completion_source —
+    // no dedicated column on this table (20260304 migration).
+    const twinNameRaw = typeof req.body?.twinName === 'string' ? req.body.twinName.trim() : '';
+    const twinName = twinNameRaw.slice(0, 40);
     const { error: saveError } = await supabaseAdmin
       .from('onboarding_calibration')
       .upsert({
@@ -924,6 +950,7 @@ router.post('/complete', authenticateUser, async (req, res) => {
         enrichment_context: {
           ...(existing?.enrichment_context || {}),
           completion_source: 'flow_finish',
+          ...(twinName ? { twin_name: twinName } : {}),
         },
         updated_at: completedAt,
       }, { onConflict: 'user_id' });
@@ -958,7 +985,7 @@ router.get('/new-user-check', authenticateUser, async (req, res) => {
     const [calibRes, memRes, nangoConnRes, classicConnRes] = await Promise.all([
       supabaseAdmin
         .from('onboarding_calibration')
-        .select('completed_at')
+        .select('completed_at, enrichment_context')
         .eq('user_id', userId)
         .maybeSingle(),
       supabaseAdmin
@@ -997,11 +1024,17 @@ router.get('/new-user-check', authenticateUser, async (req, res) => {
     ]);
 
     const hasCalibration = !!(calibRes.data?.completed_at);
+    // The name given at the hatching moment. Carried on this already-running
+    // query so the twin keeps its name across devices without costing the
+    // chat path a round-trip (sequencing follow-up, 2026-08-25).
+    const twinName = typeof calibRes.data?.enrichment_context?.twin_name === 'string'
+      ? calibRes.data.enrichment_context.twin_name.slice(0, 40)
+      : null;
     const memoriesCount = memRes.count ?? 0;
     const connectionsCount = (nangoConnRes.count ?? 0) + (classicConnRes.count ?? 0);
     const isNew = !hasCalibration && memoriesCount < 5 && connectionsCount === 0;
 
-    return res.json({ success: true, isNew, memoriesCount, hasCalibration, connectionsCount });
+    return res.json({ success: true, isNew, memoriesCount, hasCalibration, connectionsCount, twinName });
   } catch (error) {
     log.error('Status check error', { error });
     return res.status(500).json({ success: false, error: 'Failed to check onboarding status' });

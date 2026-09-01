@@ -420,6 +420,22 @@ export default function FidelityPage() {
             {waves.length === 0 ? 'Take the first check' : 'Take the check again'}
           </button>
 
+          {/* The normalized score — twin accuracy measured against the user's
+              OWN answer-to-answer consistency — needs two checks on the same
+              question set. Nothing used to say so, so in practice no ceiling
+              was ever measured and the raw score stood in for it. */}
+          {waves.length > 0 && !waves.some(w => w.self_consistency !== null) && (
+            <p
+              className="text-[13px] leading-relaxed -mt-6 mb-10"
+              style={{ color: 'var(--text-secondary)', fontFamily: 'Inter, sans-serif' }}
+            >
+              Take it again on this same set of questions to unlock your normalized
+              score — how close your twin gets, measured against how consistently you
+              answer yourself. Nobody answers identically twice, so that ceiling is
+              what makes the raw number mean anything.
+            </p>
+          )}
+
           {waves.length > 0 && (
             <div className="space-y-3">
               <span className="text-[11px] font-medium tracking-widest uppercase block" style={{ color: 'var(--text-muted)', fontFamily: 'Inter, sans-serif' }}>

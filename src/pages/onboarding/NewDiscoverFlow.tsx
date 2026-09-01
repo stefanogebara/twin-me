@@ -8,6 +8,7 @@ import { enrichmentService, QuickEnrichmentData, EnrichmentData, PersonalizedQue
 import ParticleField from './components/ParticleField';
 import PlatformConnectStep from './components/PlatformConnectStep';
 import DeepInterview from './components/DeepInterview';
+import HatchingPhase from './components/HatchingPhase';
 import RevealPhase from './components/RevealPhase';
 import DeepeningPhase from './components/DeepeningPhase';
 import OnboardingExplainer from './components/OnboardingExplainer';
@@ -45,7 +46,7 @@ const inferNameFromEmail = (email: string): string => {
   return result.length === 0 ? local.charAt(0).toUpperCase() + local.slice(1) : result.join(' ');
 };
 
-type FlowPhase = 'explainer' | 'entry' | 'reveal' | 'platforms' | 'deepening' | 'deep-interview' | 'complete';
+type FlowPhase = 'explainer' | 'entry' | 'reveal' | 'platforms' | 'deepening' | 'deep-interview' | 'hatching' | 'complete';
 type OrbPhase = 'dormant' | 'awakening' | 'alive';
 
 interface DataPoint {
@@ -60,6 +61,17 @@ interface SoulSignature {
   signature_quote: string;
   first_impression: string;
 }
+
+// Dev-only: ?phase=<name> jumps straight to a phase for design QA, and also
+// suppresses the confirmed-user bounce to /today. Inert in production builds.
+const devForcedPhase: FlowPhase | null = import.meta.env.DEV
+  ? ((): FlowPhase | null => {
+      const forced = new URLSearchParams(window.location.search).get('phase') as FlowPhase | null;
+      return forced && ['explainer', 'entry', 'reveal', 'platforms', 'deepening', 'deep-interview', 'hatching'].includes(forced)
+        ? forced
+        : null;
+    })()
+  : null;
 
 const NewDiscoverFlow: React.FC = () => {
   const navigate = useNavigate();
@@ -80,6 +92,9 @@ const NewDiscoverFlow: React.FC = () => {
 
   // Flow state — show explainer on first visit (no sessionStorage flag)
   const [phase, setPhase] = useState<FlowPhase>(() => {
+    // Dev-only: ?phase=<name> jumps straight to a phase for design QA.
+    // Stripped from production builds by the DEV guard.
+    if (devForcedPhase) return devForcedPhase;
     if (resumedAtPlatforms) return 'platforms';
     const seen = sessionStorage.getItem('twinme_explainer_seen');
     return seen ? 'entry' : 'explainer';
@@ -132,7 +147,7 @@ const NewDiscoverFlow: React.FC = () => {
         // handleAdvanceToDeepening confirms enrichment BEFORE the platforms phase, so a
         // user returning from OAuth may already be confirmed — don't bounce them to
         // /dashboard mid-flow (audit-2026-06-10)
-        if (status.isConfirmed && !resumedAtPlatforms) {
+        if (status.isConfirmed && !resumedAtPlatforms && !devForcedPhase) {
           // A confirmed user can land here with needsOnboarding=true (e.g. they
           // skipped after confirm last session, so new-user-check re-gated them).
           // Clear the client gate BEFORE navigating, or ProtectedRoute bounces
@@ -153,6 +168,12 @@ const NewDiscoverFlow: React.FC = () => {
   useEffect(() => {
     if (loading || !user || hasStartedRef.current) return;
     hasStartedRef.current = true;
+    if (devForcedPhase) {
+      // Design-QA jump: the forced phase must not be stomped by startReveal.
+      // Deepening still needs its questions loaded to render.
+      if (devForcedPhase === 'deepening') loadQuickQuestions();
+      return;
+    }
     if (resumedAtPlatforms) {
       // Don't restart the reveal (startReveal forces phase back to 'reveal'); prefetch
       // the deepening questions handleAdvanceToDeepening would have loaded before the
@@ -561,10 +582,17 @@ const NewDiscoverFlow: React.FC = () => {
     navigate('/auth');
   }, [navigate]);
 
-  const handleComplete = () => {
+  const handleComplete = (twinName?: string | null) => {
     // audit-2026-06-10: persist completion server-side so new-user-check
     // never re-gates this user. Fire-and-forget — navigation must not block.
-    authFetch('/onboarding/complete', { method: 'POST' })
+    // Hatching (sequencing 2026-08): the twin's name rides along and lands
+    // in enrichment_context.twin_name; also kept client-side for instant use.
+    if (twinName) localStorage.setItem('twinme_twin_name', twinName);
+    authFetch('/onboarding/complete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(twinName ? { twinName } : {}),
+    })
       .then(res => {
         if (!res.ok) console.error('Failed to persist onboarding completion:', res.status);
       })
@@ -717,9 +745,20 @@ const NewDiscoverFlow: React.FC = () => {
                 if (enhancedSignature) {
                   setSignature(enhancedSignature);
                 }
-                handleComplete();
+                // Finishing the interview earns the birth moment; skipping
+                // does not get another gate (escape hatches stay short).
+                setPhaseTracked('hatching');
               }}
-              onSkip={handleComplete}
+              onSkip={() => handleComplete()}
+            />
+          </div>
+        )}
+
+        {phase === 'hatching' && (
+          <div className="w-full flex justify-center transition-all duration-500">
+            <HatchingPhase
+              userFirstName={(enrichmentDataRef.current?.discovered_name || quickDataRef.current?.discovered_name || user.fullName || '').split(' ')[0] || null}
+              onCommit={(twinName) => handleComplete(twinName)}
             />
           </div>
         )}

@@ -25,6 +25,7 @@ import { smartEmailDraftFunction } from '../inngest/functions/smartEmailDraft.js
 import { calendarOptimizationFunction } from '../inngest/functions/calendarOptimization.js';
 import { meetingPrepFunction } from '../inngest/functions/meetingPrep.js';
 import { userObservationIngestionFunction } from '../inngest/functions/userObservationIngestion.js';
+import { profileEnrichmentFunction } from '../inngest/functions/profileEnrichment.js';
 import { createLogger } from '../services/logger.js';
 import { getSelfBaseUrl } from '../services/inngestSelfHeal.js';
 
@@ -62,6 +63,7 @@ function getHandler() {
           calendarOptimizationFunction,
           meetingPrepFunction,
           userObservationIngestionFunction,
+          profileEnrichmentFunction,
         ],
       });
       log.info('Inngest handler initialized');

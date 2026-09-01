@@ -117,7 +117,7 @@ const WaitlistPage = () => {
               className="text-sm mb-10"
               style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif", lineHeight: 1.6 }}
             >
-              TwinMe is in private beta. Join the waitlist to be among the first to meet your digital twin.
+              TwinMe is in private beta. Join the waitlist to be among the first to meet your twin.
             </p>
 
             {error && (

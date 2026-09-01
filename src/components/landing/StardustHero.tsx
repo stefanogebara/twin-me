@@ -167,7 +167,7 @@ export default function StardustHero() {
             className="mt-4 text-[13px] leading-relaxed max-w-[440px] text-[rgba(245,245,244,0.62)]"
             style={{ fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
           >
-            Build a digital twin from your real footprint — your Soul Signature,
+            Build a twin from your real footprint — your Soul Signature,
             captured in the patterns only you leave behind.
           </p>
         </div>

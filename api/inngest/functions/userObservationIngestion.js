@@ -28,8 +28,8 @@ export const userObservationIngestionFunction = inngest.createFunction(
     // logged success. Guarded by tests/goals/inngest-plan-limits.goal.test.js;
     // raise only together with a plan upgrade.
     concurrency: [{ limit: 5 }, { limit: 1, key: 'event.data.userId' }],
+    triggers: [{ event: EVENTS.INGEST_USER_OBSERVATIONS }],
   },
-  { event: EVENTS.INGEST_USER_OBSERVATIONS },
   async ({ event, step }) => {
     const { userId } = event.data;
     if (!userId) return { skipped: true, reason: 'no_user_id' };

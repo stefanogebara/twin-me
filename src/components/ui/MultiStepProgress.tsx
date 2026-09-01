@@ -266,7 +266,7 @@ export const OnboardingSteps: Step[] = [
   {
     id: 'build',
     title: 'Build Your Twin',
-    description: 'Create your digital twin'
+    description: 'Create your twin'
   },
   {
     id: 'ready',

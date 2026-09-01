@@ -130,8 +130,8 @@ class ErrorBoundary extends Component<Props, State> {
             <div className="flex flex-col sm:flex-row gap-3">
               <button
                 onClick={this.handleRetry}
-                className="flex-1 flex items-center justify-center gap-2 rounded-full px-4 py-2.5 text-sm"
-                style={{ backgroundColor: '#10b77f', color: '#0a0f0a', fontWeight: 600 }}
+                className="flex-1 flex items-center justify-center gap-2 rounded-[12px] px-4 py-2.5 text-sm"
+                style={{ background: 'var(--claura-bone)', color: 'var(--claura-bone-ink)', fontWeight: 600 }}
               >
                 <RefreshCw className="w-4 h-4" />
                 Try Again
@@ -140,7 +140,7 @@ class ErrorBoundary extends Component<Props, State> {
               {this.props.showReloadButton !== false && (
                 <button
                   onClick={this.handleReload}
-                  className="flex-1 flex items-center justify-center gap-2 rounded-full px-4 py-2.5 text-sm"
+                  className="flex-1 flex items-center justify-center gap-2 rounded-[12px] px-4 py-2.5 text-sm"
                   style={{ backgroundColor: 'var(--sidebar)', color: 'var(--foreground)', border: '1px solid var(--glass-surface-border)', fontWeight: 500 }}
                 >
                   <RefreshCw className="w-4 h-4" />
@@ -151,7 +151,7 @@ class ErrorBoundary extends Component<Props, State> {
               {this.props.showHomeButton && (
                 <button
                   onClick={this.handleGoHome}
-                  className="flex-1 flex items-center justify-center gap-2 rounded-full px-4 py-2.5 text-sm"
+                  className="flex-1 flex items-center justify-center gap-2 rounded-[12px] px-4 py-2.5 text-sm"
                   style={{ backgroundColor: 'var(--sidebar)', color: 'var(--foreground)', border: '1px solid var(--glass-surface-border)', fontWeight: 500 }}
                 >
                   <Home className="w-4 h-4" />

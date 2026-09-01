@@ -202,7 +202,7 @@ const InstantTwinOnboarding = () => {
     setIsGenerating(true);
     toast({
       title: "Setting up your Soul Signature dashboard...",
-      description: "Creating your digital twin structure",
+      description: "Creating your soul signature structure",
     });
 
     try {
