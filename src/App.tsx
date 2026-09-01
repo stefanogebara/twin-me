@@ -36,6 +36,10 @@ const PresencePrototype = import.meta.env.DEV ? lazy(() => import("./pages/previ
 const PresenceDesignSystem = import.meta.env.DEV ? lazy(() => import("./pages/preview/PresenceDesignSystem")) : () => null;
 const StardustHero = import.meta.env.DEV ? lazy(() => import("./components/landing/StardustHero")) : () => null;
 const StardustLanding = import.meta.env.DEV ? lazy(() => import("./pages/StardustLanding")) : () => null;
+// Nocturne — design-system rebuild preview (design/nocturne branch). Public
+// routes on purpose: the flagship must be judgeable on a real deploy.
+const NocturneLanding = lazy(() => import("./pages/nocturne/NocturneLanding"));
+const NocturneSpec = lazy(() => import("./pages/nocturne/NocturneSpec"));
 // audit-2026-05-13 H1: route-local Suspense fallback for /talk-to-twin so
 // mobile users see the chat shell (header + composer placeholder) within
 // the first paint instead of waiting on a centered loading spinner.
@@ -196,6 +200,8 @@ const App = () => {
             <Route element={<Suspense fallback={null}><Outlet /></Suspense>}>
             <Route path="/preview/stardust-hero" element={<div className="w-full min-h-screen" style={{ background: 'var(--background)' }}><StardustHero /></div>} />
             <Route path="/preview/stardust" element={<StardustLanding />} />
+            <Route path="/nocturne" element={<Suspense fallback={null}><NocturneLanding /></Suspense>} />
+            <Route path="/nocturne/system" element={<Suspense fallback={null}><NocturneSpec /></Suspense>} />
             <Route path="/preview/landing" element={<CinematicFrame src="/cinematic/landing.html" title="Twin.me — cinematic landing" />} />
             <Route path="/preview/dashboard" element={<CinematicFrame src="/cinematic/dashboard.html" title="Twin.me — cinematic dashboard" />} />
             <Route path="/preview/talk" element={<CinematicFrame src="/cinematic/talk.html" title="Twin.me — cinematic talk" />} />
