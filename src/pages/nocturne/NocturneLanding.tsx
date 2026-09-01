@@ -26,6 +26,7 @@ const SCAN_STATUS_LINES = [
 const SIGNATURES = [
   {
     tint: 'ember',
+    plate: '/images/nocturne/sig-ember.jpg',
     glyph: 'M',
     domain: 'Motivation & Drive',
     line: 'What pulls you, and when it lets go.',
@@ -33,6 +34,7 @@ const SIGNATURES = [
   },
   {
     tint: 'iris',
+    plate: '/images/nocturne/sig-iris.jpg',
     glyph: 'P',
     domain: 'Personality & Emotion',
     line: 'How you actually process a hard day.',
@@ -40,6 +42,7 @@ const SIGNATURES = [
   },
   {
     tint: 'verdigris',
+    plate: '/images/nocturne/sig-verdigris.jpg',
     glyph: 'C',
     domain: 'Cultural Identity',
     line: 'The taste underneath your taste.',
@@ -47,6 +50,7 @@ const SIGNATURES = [
   },
   {
     tint: 'orchid',
+    plate: '/images/nocturne/sig-orchid.jpg',
     glyph: 'S',
     domain: 'Social Dynamics',
     line: 'Who gets your energy, and what it costs.',
@@ -54,6 +58,7 @@ const SIGNATURES = [
   },
   {
     tint: 'periwinkle',
+    plate: '/images/nocturne/sig-periwinkle.jpg',
     glyph: 'L',
     domain: 'Lifestyle & Rhythms',
     line: 'The week your calendar cannot see.',
@@ -168,7 +173,20 @@ const NocturneLanding = () => {
       {/* ─────────────────── ATMOSPHERE HERO ─────────────────── */}
       {/* Atmosphere is built entirely in CSS — no legacy imagery anywhere
           in Nocturne (owner decision 2026-09-01: all backgrounds from scratch). */}
-      <header className="n-atmosphere">
+      <header className="n-atmosphere" style={{ ["--n-plate" as string]: "url('/images/nocturne/atmosphere.jpg')" }}>
+        {/* Motion is an enhancement, never the content: the still plate behind
+            it is the poster, the fallback, and what reduced-motion users get. */}
+        <video
+          className="n-atmosphere__motion"
+          src="/video/nocturne-atmosphere.mp4"
+          poster="/images/nocturne/atmosphere.jpg"
+          autoPlay
+          muted
+          loop
+          playsInline
+          aria-hidden="true"
+          onCanPlay={(event) => event.currentTarget.classList.add('is-ready')}
+        />
         <div className="n-rise" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--n-s5)', padding: '0 24px', textAlign: 'center' }}>
           <span className="n-badge">Private beta — invite only</span>
           <h1 className="n-display" style={{ color: 'var(--n-pure)' }}>
@@ -235,7 +253,10 @@ const NocturneLanding = () => {
 
         <div className="n-grid-3" style={{ marginBottom: 14 }}>
           {SIGNATURES.slice(0, 3).map((sig) => (
-            <article key={sig.tint} className={`n-tile n-tile--${sig.tint}`}>
+            <article key={sig.tint} className={`n-tile n-tile--plated n-tile--${sig.tint}`}>
+              <div className="n-tile__plate" style={{ backgroundImage: `url('${sig.plate}')` }} />
+              <div className="n-tile__wash" style={{ background: `var(--n-${sig.tint})` }} />
+              <div className="n-tile__scrim" />
               <span className="n-tile__glyph" aria-hidden="true">{sig.glyph}</span>
               <div className="n-tile__caption">
                 <p className="n-micro">{sig.domain}</p>
@@ -247,7 +268,10 @@ const NocturneLanding = () => {
         </div>
         <div className="n-grid-2" style={{ maxWidth: 810, margin: '0 auto' }}>
           {SIGNATURES.slice(3).map((sig) => (
-            <article key={sig.tint} className={`n-tile n-tile--${sig.tint}`}>
+            <article key={sig.tint} className={`n-tile n-tile--plated n-tile--${sig.tint}`}>
+              <div className="n-tile__plate" style={{ backgroundImage: `url('${sig.plate}')` }} />
+              <div className="n-tile__wash" style={{ background: `var(--n-${sig.tint})` }} />
+              <div className="n-tile__scrim" />
               <span className="n-tile__glyph" aria-hidden="true">{sig.glyph}</span>
               <div className="n-tile__caption">
                 <p className="n-micro">{sig.domain}</p>

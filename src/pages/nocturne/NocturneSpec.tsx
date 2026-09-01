@@ -167,6 +167,27 @@ const NocturneSpec = () => (
         </div>
       </Section>
 
+      <Section id="07b" title="Imagery" note="Generated in-house, never stock: nocturnal atmospheric plates, one per signature, desaturated to near-black so type always wins. Photography appears only as an atmospheric hero or under a tile wash — never as decoration, never behind body copy.">
+        <div className="n-grid-3" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+          {[
+            ['atmosphere.jpg', 'Atmosphere', 'hero plate — landing'],
+            ['sig-ember.jpg', 'Ember', 'motivation & drive'],
+            ['sig-iris.jpg', 'Iris', 'personality & emotion'],
+            ['sig-verdigris.jpg', 'Verdigris', 'cultural identity'],
+            ['sig-orchid.jpg', 'Orchid', 'social dynamics'],
+            ['sig-periwinkle.jpg', 'Periwinkle', 'lifestyle & rhythms'],
+          ].map(([file, name, role]) => (
+            <div key={file} style={{ borderRadius: 'var(--n-r-card)', overflow: 'hidden', border: '1px solid var(--n-line)' }}>
+              <div style={{ height: 132, backgroundImage: `url('/images/nocturne/${file}')`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
+              <div style={{ padding: '12px 16px' }}>
+                <p className="n-label">{name}</p>
+                <p className="n-micro" style={{ marginTop: 4 }}>{role}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </Section>
+
       <Section id="08" title="The reading" note="Nocturne's own component — a mono source annotation over an italic serif statement. Data becomes portrait.">
         <div className="n-reading" style={{ maxWidth: 640 }}>
           <p className="n-micro">GITHUB · 02:14 · BRANCH: still-awake</p>

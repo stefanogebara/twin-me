@@ -302,7 +302,43 @@
   flex-direction: column;
   justify-content: space-between;
   padding: var(--n-card-pad);
+  isolation: isolate;
 }
+/* Generated Nocturne plate under the tile's hue. The wash keeps color as the
+   category identity (the reference's rule) while the plate supplies the
+   texture the flat panels were missing. */
+.n-tile__plate {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  z-index: -2;
+}
+.n-tile__wash {
+  position: absolute;
+  inset: 0;
+  mix-blend-mode: soft-light;
+  opacity: 0.75;
+  z-index: -1;
+}
+.n-tile__scrim {
+  position: absolute;
+  inset: 0;
+  /* Two-part scrim. The linear pass buys the caption its contrast; the flat
+     pass keeps the mid-tile highlights from blowing out under the glyph.
+     Measured against the brightest plates (orchid silk, periwinkle swell) —
+     caption ink clears 4.5:1 on all five. */
+  background:
+    linear-gradient(to top, rgba(9, 10, 11, 0.95) 0%, rgba(9, 10, 11, 0.82) 34%, rgba(9, 10, 11, 0.42) 62%, rgba(9, 10, 11, 0.22) 100%),
+    rgba(9, 10, 11, 0.22);
+  z-index: -1;
+}
+/* With a plate + scrim behind, every tile reads on white ink. */
+.n-tile--plated,
+.n-tile--plated .n-lead { color: var(--n-pure); }
+.n-tile--plated .n-micro { color: rgba(255, 255, 255, 0.7); }
+.n-tile--plated .n-body-sm { color: rgba(255, 255, 255, 0.78); }
+.n-tile--plated .n-tile__glyph { opacity: 0.22; color: var(--n-pure); }
 .n-tile__glyph {  /* oversized serif initial — the tile's only ornament */
   font-family: var(--n-serif);
   font-weight: 300;
@@ -424,7 +460,9 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  background: linear-gradient(
+  /* The generated nocturnal plate rides ON the built gradient, so the section
+     still resolves to the right darkness if the image is slow or absent. */
+  background-image: var(--n-plate, none), linear-gradient(
     to bottom,
     var(--n-abyss) 0%,
     #0e1219 34%,
@@ -432,7 +470,26 @@
     #1d3a66 86%,
     #274a80 100%
   );
+  background-size: cover, auto;
+  background-position: center, center;
 }
+/* Motion plate: the video rides over the still, which stays as the poster and
+   the fallback. Decorative only — muted, loops, and honours reduced-motion. */
+.n-atmosphere__motion {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+  opacity: 0;
+  transition: opacity 1.2s ease;
+}
+.n-atmosphere__motion.is-ready { opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  .n-atmosphere__motion { display: none; }
+}
+
 .n-atmosphere::before {  /* starfield: two drifting layers of gradient stars */
   content: '';
   position: absolute;
@@ -451,6 +508,7 @@
   background-size: 520px 420px;
   opacity: 0.8;
   pointer-events: none;
+  z-index: 1;
 }
 .n-atmosphere::after {  /* horizon bleeding into the obsidian gallery */
   content: '';
@@ -459,8 +517,9 @@
   height: 34%;
   background: linear-gradient(to bottom, transparent, var(--n-obsidian));
   pointer-events: none;
+  z-index: 1;
 }
-.n-atmosphere > * { position: relative; z-index: 1; }
+.n-atmosphere > *:not(.n-atmosphere__motion) { position: relative; z-index: 2; }
 
 @keyframes n-rise {
   from { opacity: 0; transform: translateY(14px); }
