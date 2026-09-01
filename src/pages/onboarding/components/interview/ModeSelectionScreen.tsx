@@ -42,7 +42,7 @@ const ModeSelectionScreen: React.FC<ModeSelectionScreenProps> = ({
       <h2
         className="text-2xl md:text-3xl text-center mb-2 mode-animate"
         style={{
-          fontFamily: "'Instrument Serif', Georgia, serif",
+          fontFamily: "var(--font-heading)",
           fontWeight: 400,
           letterSpacing: '-0.02em',
           color: 'var(--foreground)',

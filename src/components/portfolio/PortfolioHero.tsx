@@ -47,7 +47,7 @@ const PortfolioHero: React.FC<PortfolioHeroProps> = ({
       <a
         href="/"
         className="absolute top-6 left-6 text-lg tracking-tight transition-opacity hover:opacity-70"
-        style={{ fontFamily: "'Instrument Serif', Georgia, serif", color: '#E8D5B7', textDecoration: 'none' }}
+        style={{ fontFamily: "var(--font-heading)", color: '#E8D5B7', textDecoration: 'none' }}
       >
         TwinMe
       </a>
@@ -83,7 +83,7 @@ const PortfolioHero: React.FC<PortfolioHeroProps> = ({
       <h1
         className="text-4xl md:text-5xl text-center mb-3"
         style={{
-          fontFamily: "'Instrument Serif', Georgia, serif",
+          fontFamily: "var(--font-heading)",
           color: '#E8D5B7',
           fontWeight: 400,
         }}

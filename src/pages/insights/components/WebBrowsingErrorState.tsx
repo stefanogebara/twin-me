@@ -36,7 +36,7 @@ export const WebBrowsingErrorState: React.FC<WebBrowsingErrorStateProps> = ({
           <div>
             <h1
               className="text-2xl"
-              style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontWeight: 500, color: colors.text }}
+              style={{ fontFamily: "var(--font-heading)", fontWeight: 500, color: colors.text }}
             >
               Your Digital Life
             </h1>

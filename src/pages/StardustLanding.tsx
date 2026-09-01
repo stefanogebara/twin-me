@@ -14,7 +14,7 @@ import StardustHero from '../components/landing/StardustHero';
  * assets. Marketing surface: dark-cosmic, light text, does not theme-flip.
  */
 
-const SERIF = "'Instrument Serif', Georgia, serif";
+const SERIF = "var(--font-heading)";
 const SANS = "'Geist', 'Inter', system-ui, sans-serif";
 
 /* ── shared bits ── */

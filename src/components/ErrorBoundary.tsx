@@ -90,7 +90,7 @@ class ErrorBoundary extends Component<Props, State> {
 
             <h2
               className="text-xl mb-4"
-              style={{ fontFamily: "'Instrument Serif', Georgia, serif" }}
+              style={{ fontFamily: "var(--font-heading)" }}
             >
               Something went wrong
             </h2>

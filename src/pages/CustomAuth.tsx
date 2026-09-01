@@ -297,7 +297,7 @@ For privacy concerns: privacy@twinme.me`
           </div>
           <span
             style={{
-              fontFamily: "'Instrument Serif', Georgia, serif",
+              fontFamily: "var(--font-heading)",
               fontSize: '22px',
               letterSpacing: '-0.5px',
               color: 'var(--foreground)',
@@ -311,7 +311,7 @@ For privacy concerns: privacy@twinme.me`
         <h1
           className="mb-2"
           style={{
-            fontFamily: "'Instrument Serif', Georgia, serif",
+            fontFamily: "var(--font-heading)",
             fontStyle: 'italic',
             fontSize: '32px',
             fontWeight: 400,
@@ -583,66 +583,29 @@ For privacy concerns: privacy@twinme.me`
       </div>
       </div>
 
-      {/* Right panel — Claura zoned photography: cosmic-swirl by night,
-          soul-waves by day, calmed by a theme-aware veil. */}
+      {/* Right panel — Nocturne graphite panel (flip 2026-09-01): no
+          photography, no scrims. Serif statement + the three facts people
+          hesitate over, in the mono voice. */}
       <div
-        className="hidden lg:flex relative flex-1 m-4 ml-0 flex-col items-center justify-center px-12 overflow-hidden"
-        style={{
-          backgroundImage:
-            resolvedTheme === 'light'
-              ? "url('/cinematic/assets/soul-waves.png')"
-              : "url('/cinematic/assets/cosmic-swirl.png')",
-          backgroundSize: 'cover',
-          backgroundPosition: 'center 30%',
-          borderRadius: '24px',
-        }}
+        className="hidden lg:flex relative flex-1 m-4 ml-0 flex-col items-center justify-center px-12"
+        style={{ background: 'var(--n-graphite)', borderRadius: 'var(--n-r-tile)' }}
       >
-        {/* Claura scrim — night ink or paper veil, deepening toward the base.
-            Daylight scenes stay vivid: the light veil is much gentler. */}
-        <div
-          aria-hidden
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background:
-              resolvedTheme === 'light'
-                ? 'linear-gradient(200deg, rgba(var(--claura-scrim-rgb),0.08) 0%, rgba(var(--claura-scrim-rgb),0.22) 55%, rgba(var(--claura-scrim-rgb),0.45) 100%)'
-                : 'linear-gradient(200deg, rgba(var(--claura-scrim-rgb),0.16) 0%, rgba(var(--claura-scrim-rgb),0.42) 55%, rgba(var(--claura-scrim-rgb),0.72) 100%)',
-            borderRadius: '24px',
-          }}
-        />
-        <h2
-          className="relative text-center mb-4"
-          style={{
-            fontFamily: "'Instrument Serif', Georgia, serif",
-            fontStyle: 'italic',
-            fontSize: '36px',
-            fontWeight: 400,
-            letterSpacing: '-0.72px',
-            lineHeight: 1.15,
-            color: 'var(--claura-text)',
-            // Claura halation on the night photo; clean ink by day
-            textShadow:
-              resolvedTheme === 'light'
-                ? 'none'
-                : '0 0 4px rgba(255,255,255,0.9), 0 0 42px rgba(220,235,210,0.35)',
-          }}
-        >
-          Your soul signature
-          <br />
-          awaits
+        <h2 className="n-display-sm" style={{ textAlign: 'center', fontSize: 'clamp(36px, 4vw, 56px)' }}>
+          <em>Know</em> yourself.
         </h2>
-
-        <p
-          className="relative text-center max-w-[320px]"
-          style={{
-            fontFamily: "'Inter', sans-serif",
-            fontSize: '14px',
-            lineHeight: 1.6,
-            color: 'var(--claura-narr)',
-          }}
-        >
-          Connect your platforms, discover your patterns, meet your digital twin.
+        <p className="n-body" style={{ textAlign: 'center', maxWidth: 340, marginTop: 20 }}>
+          Connect what you actually use, and meet the twin that reads your
+          patterns instead of your resume.
         </p>
+        <ul style={{ listStyle: 'none', padding: 0, margin: '36px 0 0', display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {[
+            'READ-ONLY. IT CAN NEVER POST OR DELETE.',
+            'YOUR DATA NEVER TRAINS MODELS.',
+            'DELETE EVERYTHING, ANYTIME, IN ONE CLICK.',
+          ].map((fact) => (
+            <li key={fact} className="n-micro" style={{ color: 'var(--n-ash)' }}>{fact}</li>
+          ))}
+        </ul>
       </div>
 
       {/* Modal */}
@@ -666,7 +629,7 @@ For privacy concerns: privacy@twinme.me`
             >
               <h2
                 style={{
-                  fontFamily: "'Instrument Serif', Georgia, serif",
+                  fontFamily: "var(--font-heading)",
                   fontSize: '20px',
                   fontWeight: 400,
                   color: 'var(--foreground)',

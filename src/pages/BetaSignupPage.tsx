@@ -134,7 +134,7 @@ function BetaSignupPage() {
           </div>
           <span
             style={{
-              fontFamily: "'Instrument Serif', Georgia, serif",
+              fontFamily: "var(--font-heading)",
               fontSize: '22px',
               letterSpacing: '-0.5px',
               color: 'var(--foreground)',
@@ -150,7 +150,7 @@ function BetaSignupPage() {
             <h1
               className="mb-3"
               style={{
-                fontFamily: "'Instrument Serif', Georgia, serif",
+                fontFamily: "var(--font-heading)",
                 fontSize: '36px',
                 fontWeight: 400,
                 letterSpacing: '-0.02em',
@@ -211,7 +211,7 @@ function BetaSignupPage() {
               <h1
                 className="mb-3"
                 style={{
-                  fontFamily: "'Instrument Serif', Georgia, serif",
+                  fontFamily: "var(--font-heading)",
                   fontSize: '36px',
                   fontWeight: 400,
                   letterSpacing: '-0.02em',

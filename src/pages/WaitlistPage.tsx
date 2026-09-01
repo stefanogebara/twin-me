@@ -66,7 +66,7 @@ const WaitlistPage = () => {
           </div>
           <span
             style={{
-              fontFamily: "'Instrument Serif', Georgia, serif",
+              fontFamily: "var(--font-heading)",
               fontSize: '22px',
               letterSpacing: '-0.5px',
               color: 'var(--foreground)',
@@ -81,7 +81,7 @@ const WaitlistPage = () => {
             <h1
               className="mb-4"
               style={{
-                fontFamily: "'Instrument Serif', Georgia, serif",
+                fontFamily: "var(--font-heading)",
                 fontStyle: 'italic',
                 fontSize: '32px',
                 fontWeight: 400,
@@ -103,7 +103,7 @@ const WaitlistPage = () => {
             <h1
               className="mb-3"
               style={{
-                fontFamily: "'Instrument Serif', Georgia, serif",
+                fontFamily: "var(--font-heading)",
                 fontStyle: 'italic',
                 fontSize: '32px',
                 fontWeight: 400,

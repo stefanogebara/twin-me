@@ -105,7 +105,7 @@ function RevelationCard({ rev, hero = false }: { rev: Revelation; hero?: boolean
 
         <p
           style={{
-            fontFamily: "'Instrument Serif', serif",
+            fontFamily: "var(--font-heading)",
             letterSpacing: '-0.01em',
             fontSize: hero ? 25 : 18,
             lineHeight: hero ? 1.24 : 1.3,
@@ -177,7 +177,7 @@ export function TwinSeesSection() {
         <h2 className="text-[11px] uppercase tracking-[0.15em] font-medium" style={{ color: 'var(--text-narrative-muted)', marginBottom: 8 }}>
           What your twin sees
         </h2>
-        <p style={{ fontFamily: "'Instrument Serif', serif", fontSize: 22, letterSpacing: '-0.02em', color: 'var(--text-narrative-secondary)', marginBottom: 22 }}>
+        <p style={{ fontFamily: "var(--font-heading)", fontSize: 22, letterSpacing: '-0.02em', color: 'var(--text-narrative-secondary)', marginBottom: 22 }}>
           Your patterns, read back to you
         </p>
 

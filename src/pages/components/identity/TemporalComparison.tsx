@@ -49,7 +49,7 @@ const TemporalComparison: React.FC = () => {
       <h2
         className="mb-4"
         style={{
-          fontFamily: "'Instrument Serif', Georgia, serif",
+          fontFamily: "var(--font-heading)",
           fontStyle: 'italic',
           fontSize: 'clamp(22px, 3vw, 28px)',
           fontWeight: 400,

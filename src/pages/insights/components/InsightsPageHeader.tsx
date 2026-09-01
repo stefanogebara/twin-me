@@ -50,7 +50,7 @@ export const InsightsPageHeader: React.FC<InsightsPageHeaderProps> = ({
             className="text-2xl"
             style={{
               color: textColor,
-              fontFamily: "'Instrument Serif', Georgia, serif",
+              fontFamily: "var(--font-heading)",
               fontStyle: 'italic',
               fontWeight: 400,
               letterSpacing: '-0.02em',

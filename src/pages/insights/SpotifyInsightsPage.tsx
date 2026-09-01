@@ -117,7 +117,7 @@ const SpotifyInsightsPage: React.FC = () => {
                 fontWeight: 400,
                 letterSpacing: '-0.02em',
                 fontStyle: 'italic',
-                fontFamily: "'Instrument Serif', serif",
+                fontFamily: "var(--font-heading)",
                 color: colors.text
               }}
             >

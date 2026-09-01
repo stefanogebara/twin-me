@@ -207,7 +207,7 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
             <h2
               className="text-[32px] sm:text-[40px]"
               style={{
-                fontFamily: "'Instrument Serif', Georgia, serif",
+                fontFamily: "var(--font-heading)",
                 fontStyle: 'italic',
                 color: 'var(--foreground)',
                 letterSpacing: '-0.03em',
@@ -394,7 +394,7 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
                   <h2
                     className="mb-8 text-[22px] sm:text-[26px] leading-[1.4]"
                     style={{
-                      fontFamily: "'Instrument Serif', Georgia, serif",
+                      fontFamily: "var(--font-heading)",
                       fontStyle: 'italic',
                       color: 'var(--foreground)',
                       letterSpacing: '-0.02em',

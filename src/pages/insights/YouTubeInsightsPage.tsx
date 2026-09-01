@@ -209,7 +209,7 @@ const YouTubeInsightsPage: React.FC = () => {
                 fontWeight: 400,
                 letterSpacing: '-0.02em',
                 fontStyle: 'italic',
-                fontFamily: "'Instrument Serif', Georgia, serif",
+                fontFamily: "var(--font-heading)",
                 color: colors.text
               }}
             >
@@ -595,7 +595,7 @@ const YouTubeInsightsPage: React.FC = () => {
             <Video className="w-12 h-12 mx-auto mb-4" style={{ color: 'var(--text-secondary)' }} />
             <h3 style={{
               color: colors.text,
-              fontFamily: "'Instrument Serif', Georgia, serif",
+              fontFamily: "var(--font-heading)",
               fontSize: '28px',
               fontWeight: 400,
               letterSpacing: '-0.02em',

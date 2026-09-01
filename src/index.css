@@ -13,6 +13,9 @@
 /* ===== CLAURA DESIGN SYSTEM (port Phase 0 — additive token layer) ===== */
 @import './styles/claura.css';
 
+/* ===== NOCTURNE — the active design system (claura retired via bridge) ===== */
+@import './styles/nocturne-bridge.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

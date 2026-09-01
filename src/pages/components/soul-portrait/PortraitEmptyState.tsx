@@ -19,7 +19,7 @@ export const PortraitEmptyState: React.FC = () => {
       />
       <h3
         style={{
-          fontFamily: "'Instrument Serif', Georgia, serif",
+          fontFamily: "var(--font-heading)",
           fontStyle: 'italic',
           fontSize: '28px',
           fontWeight: 400,

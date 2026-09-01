@@ -37,7 +37,7 @@ export const LimitReachedBanner: React.FC<LimitReachedBannerProps> = ({ chatUsag
 
       <h3
         className="text-[20px] tracking-tight"
-        style={{ fontFamily: "'Instrument Serif', serif", color: 'var(--foreground)' }}
+        style={{ fontFamily: "var(--font-heading)", color: 'var(--foreground)' }}
       >
         You've reached this month's limit
       </h3>

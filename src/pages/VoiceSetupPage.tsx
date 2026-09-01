@@ -143,7 +143,7 @@ export default function VoiceSetupPage() {
         <h1
           className="text-[36px] mb-2"
           style={{
-            fontFamily: "'Instrument Serif', Georgia, serif",
+            fontFamily: "var(--font-heading)",
             fontStyle: 'italic',
             letterSpacing: '-0.02em',
             color: 'var(--foreground)',

@@ -109,7 +109,7 @@ function MetricCard({ label, value }: { label: string; value: string }) {
       <div
         className="mt-2"
         style={{
-          fontFamily: "'Instrument Serif', serif",
+          fontFamily: "var(--font-heading)",
           fontSize: '40px',
           lineHeight: '1',
           letterSpacing: '-0.02em',
@@ -251,7 +251,7 @@ function AdminBetaPage() {
           <h1
             className="tracking-tight"
             style={{
-              fontFamily: "'Instrument Serif', serif",
+              fontFamily: "var(--font-heading)",
               fontSize: '48px',
               lineHeight: '1',
               letterSpacing: '-0.02em',

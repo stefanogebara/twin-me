@@ -113,7 +113,7 @@ const PricingPage: React.FC = () => {
           <h1
             className="mb-3"
             style={{
-              fontFamily: "'Instrument Serif', serif",
+              fontFamily: "var(--font-heading)",
               fontSize: '40px',
               fontWeight: 400,
               letterSpacing: '-0.8px',

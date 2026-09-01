@@ -317,7 +317,7 @@ const DiscordInsightsPage: React.FC = () => {
             </div>
             <h3
               className="text-xl mb-2"
-              style={{ color: colors.text, fontFamily: "'Instrument Serif', Georgia, serif" }}
+              style={{ color: colors.text, fontFamily: "var(--font-heading)" }}
             >
               Your twin is listening in
             </h3>

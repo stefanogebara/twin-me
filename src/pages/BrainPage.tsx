@@ -207,7 +207,7 @@ const BrainPage: React.FC = () => {
         <h1
           className="mb-2"
           style={{
-            fontFamily: "'Instrument Serif', Georgia, serif",
+            fontFamily: "var(--font-heading)",
             fontStyle: 'italic',
             fontSize: '32px',
             fontWeight: 400,
@@ -244,7 +244,7 @@ const BrainPage: React.FC = () => {
         <div className="flex items-baseline justify-between mb-3">
           <h1
             style={{
-              fontFamily: "'Instrument Serif', Georgia, serif",
+              fontFamily: "var(--font-heading)",
               fontStyle: 'italic',
               fontSize: '32px',
               fontWeight: 400,

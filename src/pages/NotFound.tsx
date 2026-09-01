@@ -22,7 +22,7 @@ const NotFound = () => {
             fontSize: 'clamp(110px, 20vw, 160px)',
             opacity: 0.16,
             color: 'var(--claura-text)',
-            fontFamily: "'Instrument Serif', Georgia, serif",
+            fontFamily: "var(--font-heading)",
             lineHeight: 1,
             letterSpacing: '-0.04em',
           }}
@@ -34,7 +34,7 @@ const NotFound = () => {
         <h1
           className="mb-3"
           style={{
-            fontFamily: "'Instrument Serif', Georgia, serif",
+            fontFamily: "var(--font-heading)",
             fontStyle: 'italic',
             fontSize: '32px',
             fontWeight: 400,

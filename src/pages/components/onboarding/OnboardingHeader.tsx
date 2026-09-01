@@ -28,7 +28,7 @@ export const OnboardingHeader: React.FC<OnboardingHeaderProps> = ({
     <h1
       className="mb-2"
       style={{
-        fontFamily: "'Instrument Serif', Georgia, serif",
+        fontFamily: "var(--font-heading)",
         fontStyle: 'italic',
         fontSize: '32px',
         fontWeight: 400,

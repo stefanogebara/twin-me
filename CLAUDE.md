@@ -3,7 +3,7 @@
 ## User Preferences (MUST FOLLOW)
 
 - **NO EMOJIS** — The user dislikes emojis. Never use them in UI text, twin responses, insight text, or any user-facing content. Use plain text only.
-- **Design**: Claura, two appearances — dark (default) + light, switched by `data-theme` on `<html>` (ThemeContext, persisted as `claura-theme`). Sidebar must be FLAT (straight edges, no rounded pill). Dark canvas is #13121a (or AppBackground's ambient orbs / DayNight photos); light canvas is warm paper #f6f3ee — NEVER navy blue. Light always uses the ambient canvas (see `pickBackgroundVariant`).
+- **Design**: Nocturne (since 2026-09-01) — the midnight gallery of the self. Flat obsidian #0f1011 canvas, zero photography/orbs/glass, Fraunces 300 display with the italic verb, Inter UI, Roboto Mono uppercase for everything small, white-on-black as the only primary action, chroma confined to the five signature tiles. Single appearance (dark by design). Contract: /nocturne/system + src/styles/nocturne.css. Full section below.
 
 ## Vercel Cost Rules (CRITICAL — $375 bill incident March 2026)
 
@@ -414,169 +414,72 @@ Recent memories are dominated by reflections (~90 of last 100). Platform data ob
 - `/design-review` - Design review with browser testing
 
 ---
+## Design System (Nocturne — active since 2026-09-01)
 
-## Design System (Claura — two appearances)
-> Dark is the DEFAULT appearance; light (warm paper #f6f3ee) is user-selectable in
-> Settings → Appearance (Dark / Light / System). `[data-theme="light"]` on `<html>`
-> flips the semantic tokens (`src/index.css`) and the Claura foundation layer
-> (`src/styles/claura.css`, `--claura-*`). Values below are the DARK defaults.
-> CSS tokens in `src/index.css`, opacity scale in `src/styles/tokens.ts`.
+> Nocturne replaced Claura in the flip of 2026-09-01. Claura's files still load
+> underneath the bridge for unported edge values; do not build anything new on
+> them. The living contract is the /nocturne/system route — if a surface
+> disagrees with that page, the surface is wrong.
+> Source of truth: `src/styles/nocturne.css` (tokens + primitives, documented)
+> and `src/styles/nocturne-bridge.css` (semantic-token adoption layer).
+> Reference: Origin Financial (useorigin.com) — Refero extraction + live audit,
+> adapted. Decision ledger in PR #274.
 
-### Color Tokens (`:root` — single dark theme)
+### The five laws
+1. Elevation is a color step, never a shadow.
+2. White-on-black is the only primary action.
+3. Chromatic color exists only as signature tiles and data strokes — never
+   text under 18px, never borders, never washes.
+4. The italic marks one word per display line: the verb of self-knowledge.
+5. Anything smaller than 13px speaks mono, uppercase, tracked.
 
-**Backgrounds:**
-- `--background: #13121a` — night sky base
-- `--surface: rgba(255,255,255,0.06)` — elevated surface
-- `--surface-solid: rgba(255,255,255,0.12)` — raised surface (hover, active)
+### Three voices
+- **Fraunces 300** (`--n-serif`) — display/headings only, never bolder, true
+  italics. Sizes 96/80/38 at line-height 0.9-1.0.
+- **Inter 400/500** (`--n-sans`) — all interface text.
+- **Roboto Mono 400/500 UPPERCASE** (`--n-mono`) — labels, badges, buttons,
+  data readouts, legal. Tracking 0.02em (12px) to 0.18em (11px micro).
 
-**Text:**
-- `--foreground: #F5F5F4` — primary text (warm stone-50)
-- `--text-primary: #F5F5F4`
-- `--text-secondary: #A8A29E` — body secondary (stone-400)
-- `--text-muted: #9C9590` — labels, captions
-- `--text-placeholder: #57534E` — input placeholders (stone-600)
+### Surfaces (flat elevation ladder)
+`#0f1011` obsidian canvas → `#090a0b` abyss bands → `#1c1d1f` graphite cards →
+`#2c2d2f` steel hover → `#cacaca` silver inverted (max 1-2 per page).
+Hairlines `rgba(255,255,255,.08)`. Zero glass, zero orbs, zero photography —
+every background is built in code.
 
-**Glass Surface (dark glassmorphism):**
-- `--glass-surface-bg: rgba(255,255,255,0.06)` — card/panel fill
-- `--glass-surface-border: rgba(255,255,255,0.10)` — card border
+### Ink
+Pure `#ffffff` (actions; display on dark media) · Cloud `#fafafa` (headings) ·
+Ash `#9f9fa0` (body — never full white) · Fog `#6a6b6b` (muted).
 
-**Borders:**
-- `--border: rgba(255,255,255,0.08)` — default border
-- `--border-glass: rgba(255,255,255,0.06)` — subtle glass border
+### The five signatures (tile + data roles ONLY)
+ember `#dd8f4c` motivation · iris `#847dff` personality · verdigris `#55a08e`
+cultural · orchid `#dd90d8` social · periwinkle `#90b8f0` lifestyle.
+Data signal `#00b3dd` for chart strokes only.
 
-**Interactive:**
-- `--primary: #F5F5F4` — primary button bg (light on dark)
-- `--primary-foreground: #110f0f` — primary button text (dark)
-- `--ring: rgba(255,255,255,0.25) — focus ring
-- `--input: rgba(255,255,255,0.08)` — input field bg
+### Shape & motion
+Controls 8px · cards 16px · tiles/feature panels 24px · pills 9999px (chips,
+prompt, avatars only). States 0.2s ease; atmospheric reveals 2.5s
+cubic-bezier(.455,.03,.515,.955); nothing bounces, nothing loops.
 
-**Component colors:**
-- `--card: rgba(255,255,255,0.06)` / `--card-foreground: #F5F5F4`
-- `--popover: rgba(40,37,36,0.95)` / `--popover-foreground: #F5F5F4`
-- `--secondary: rgba(255,255,255,0.08)` / `--secondary-foreground: #F5F5F4`
-- `--muted: rgba(17,15,15,0.8)` / `--muted-foreground: #A8A29E`
-- `--accent: rgba(255,255,255,0.06)` / `--accent-foreground: #F5F5F4`
-- `--destructive: #dc2626`
+### Components (see /nocturne/system for rendered spec)
+`.n-btn--primary` (white/black mono) · `.n-btn--ghost` (borderless white-10%) ·
+`.n-badge` · `.n-prompt` (frosted pill + circular submit) · `.n-card` /
+`.n-card--inverted` · `.n-tile--{ember|iris|verdigris|orchid|periwinkle}` ·
+`.n-reading` (mono source line over italic serif observation — the system's
+signature move) · `.n-stanza` section rhythm · `.n-nav` · `.n-atmosphere`.
 
-**Sidebar:**
-- `--sidebar: rgba(255,255,255,0.05)` / `--sidebar-foreground: #D6D3D1`
-- `--sidebar-accent: rgba(255,255,255,0.08)` / `--sidebar-border: rgba(255,255,255,0.08)`
-
-**Accent (vibrant):**
-- `--accent-vibrant: #F5F5F4 — warm white CTA highlight
-- `--accent-vibrant-glow: rgba(255,255,255,0.10) — active nav pill fill
-- `--accent-amber: #c17e2c` — warm copper (gradient core)
-- `--accent-purple: #5d5cae` — cool purple (gradient corner only)
-
-**Narrative text (Sesame-inspired opacity hierarchy):**
-- `--text-narrative: rgba(245,245,244,0.9)` — primary narrative
-- `--text-narrative-secondary: rgba(245,245,244,0.6)` — body narrative
-- `--text-narrative-muted: rgba(245,245,244,0.4)` — captions, timestamps
-
-### Background Gradient System (Ambient Orbs)
-
-The page background is a fixed, full-viewport element rendered behind the app, NOT a `body` CSS rule (`body` is `background-color: transparent`). `AppBackground` in `src/App.tsx` selects the variant: `<DayNightBackground />` (natural mode — the default when `localStorage.bg_mode` is unset — time-of-day photos) or `<ClassicBackground />` (dark mode). `SunContext` still provides `sunPhase` via `useSun()` (consumed by DayNightBackground) and persists location to the backend — it no longer drives any CSS gradient variables.
-
-`ClassicBackground` (`src/components/ClassicBackground.tsx`) paints FOUR overlapping radial-gradient orbs as hardcoded rgba literals on `#13121a`:
-- Orb 1: `rgba(210,145,55,0.38)` — warm amber, top-left
-- Orb 2: `rgba(180,110,65,0.30)` — copper, top-right
-- Orb 3: `rgba(160,95,55,0.34)` — deep amber, bottom-center
-- Orb 4: `rgba(55,45,140,0.28)` — purple accent, center-right (sanctioned)
-
-### Glass Surface (REQUIRED for all cards/panels)
-Use the `.claura-glass` class (`src/styles/claura.css`) — warm liquid glass with
-the Apple anatomy, correct in both themes:
-```css
-background: var(--claura-card);        /* warm gradient, translucent — never flat white-alpha */
-backdrop-filter: blur(42px) saturate(1.4) brightness(.94);   /* light: 1.06 */
-border: 1px solid rgba(255,255,255,.07);
-border-radius: 16px;                   /* --claura-r-card */
-box-shadow: 0 1px 2px rgba(0,0,0,.18), 0 12px 32px rgba(0,0,0,.26), inset 0 0 34px rgba(255,255,255,.02);
-/* + ::after specular rim; .claura-glass--refract adds the #liquid edge-lens filter (hero panels only) */
-```
-The shadcn `Card` applies this automatically. The `#liquid` SVG filter is mounted
-once in `App.tsx` via `LiquidGlassFilter`.
-
-### Blur + Radius Reference
-| Element                 | backdrop-filter  | border-radius  | padding              |
-|-------------------------|------------------|----------------|----------------------|
-| Floating navbar         | blur(19.65px)    | 32px           | pl-5 pr-3 py-2.5     |
-| Cards / Chatbox         | blur(42px)       | 16px           | px-5 py-4            |
-| Buttons (all variants)  | —                | 12px           | h-10/12/14           |
-| Suggestion pills        | blur(42px)       | 46px           | px-3 py-2.5          |
-| Auth modal card         | blur(51px)       | 24px           | px-6 py-4            |
-| Settings sidebar        | blur(42px)       | 8px            | pt-3 px-5            |
-| Top navbar (app)        | blur(16px)       | 0 (full-width) | p-3                  |
-| Share button (ghost)    | blur(16px)       | 6px            | px-2 py-0.5          |
-
-### Typography
-- **`Instrument Serif`** — hero headings, auth titles, brand name, narrative voice (`.text-heading`, `.narrative-voice`). Weight 400, tracking -0.02em to -0.05em
-  - Auth title: `text-[36px] tracking-[-0.72px]` / Hero: `text-[48px] tracking-[-0.96px]` / Large: `text-[56px] tracking-[-1.12px]`
-- **`Geist` / `Inter`** — ALL UI text (body, labels, inputs, buttons, nav). Font stack: `'Geist', 'Inter', system-ui, sans-serif`
-  - Regular (400): labels, descriptions, placeholders. Weight 500 is the base body weight.
-  - Medium (500): body text, button text, active states
-  - Semi Bold (600): headings h4-h6, breadcrumbs
-- Scale: `text-xs 12px` / `text-sm 14px` / `14.5px base` / `text-base 16px` / `text-lg 18px` / `text-xl 20px`
-
-### Component Specs
-
-**Glass Card** (standard):
-- `bg-[rgba(255,255,255,0.06)] border border-[rgba(255,255,255,0.10)] rounded-[20px] px-5 py-4 backdrop-blur-[42px]`
-
-**AI Chatbox** (`backdrop-blur(42px)` card):
-- `bg-[rgba(255,255,255,0.06)] border border-[rgba(255,255,255,0.10)] rounded-[20px] px-5 py-4`
-- Placeholder: Geist/Inter 14px `#57534E`
-
-**Send Button** (light pill on dark):
-- `bg-[#F5F5F4] text-[#110f0f] rounded-[100px] p-[4px]` — total `28x28px` with `20x20` arrow icon
-- `opacity-50` when disabled
-
-**Primary CTA Button** (bone gradient — the Claura default):
-- `bg-[image:var(--claura-bone)] text-[var(--claura-bone-ink)] rounded-[12px]`
-- Warm gradient `#F1EBE1 → #D8CEBF` (flips to ink in light) — never a stark white pill
-- Hover: 2px lift + `brightness(1.05)`; Geist/Inter SemiBold 14px
-- Pills (100px) are reserved for chips, nav items and avatars — NOT buttons
-
-**Secondary/Ghost Button** (transparent on dark):
-- No background, `rounded-[6px] px-2 py-0.5`
-- Geist/Inter Medium 12px, `text-[#F5F5F4]`
-
-**Input Field**:
-- `bg-[rgba(255,255,255,0.08)] border border-[rgba(255,255,255,0.08)] rounded-[6px]`
-- `px-3 py-2.5`
-- Label above: 12px `#9C9590` / Placeholder: 14px `#57534E`
-
-**Suggestion Pills** (glass chips):
-- `backdrop-blur-[42px] bg-[rgba(255,255,255,0.06)] border border-[rgba(255,255,255,0.10)]`
-- `rounded-[46px] px-3 py-2.5 gap-1`
-- Icon 16px + Geist/Inter Medium 12px
-
-**Sidebar Nav (app sidebar)**:
-- Floating pill `rounded-[32px]` (NOT full-width bar)
-- Active item: `bg-[var(--accent-vibrant-glow)] rounded-full px-4 py-2.5`
-- Icon: `color: var(--accent-vibrant)` when active
-- Inactive: transparent + hover `bg-sidebar-accent`
-- Font: Geist/Inter Medium 14px
-
-**Shadow tokens**:
-- `translucent`: `blur(84px)` + `drop-shadow(0 4px 4px rgba(0,0,0,0.12))`
-- `shadow-lg`: `drop-shadow(0 4px 6px rgba(0,0,0,0.1)) drop-shadow(0 10px 15px rgba(0,0,0,0.1))`
-
-### 12 Rules for AI Code Generation
-
-1. Every card/panel → `.claura-glass` (warm-gradient fill, blur 42 + saturate + brightness, specular rim, 16px)
-2. Never flat white or solid colors on app surfaces — always translucent glass; use semantic/`--claura-*` tokens, not hardcoded white-alpha, so both themes resolve
-3. Page wrapper → transparent; the background is a fixed sibling (`AppBackground` → ClassicBackground / DayNightBackground) painting `--background` (#13121a) + 4-orb ambient gradient
-4. Primary CTA → bone gradient rounded-rect 12px (`--claura-bone` / `--claura-bone-ink`); pills are for chips/nav/avatars only
-5. Suggestion chips → `rounded-[46px]`, NOT `rounded-full`
-6. Floating navbar → `rounded-[32px]` pill with `blur(19.65px)`, NOT full-width bar
-7. Font → Geist/Inter for ALL UI; Instrument Serif for hero/display/auth titles and narrative voice only
-8. Headings → always negative letter-spacing (`tracking-tight` or explicit negative value)
-9. Active sidebar nav → full pill fill (`accent-vibrant-glow`), icon in `accent-vibrant`, NEVER underline or left border
-10. Gradients → amber/copper orbs on #13121a charcoal, purple accent orb — never neon, never flat
-11. Input fields → `rgba(255,255,255,0.08)` bg (NOT glass-surface-bg) — subtler fill
-12. Theme via ThemeContext only ('dark' | 'light' | 'system', dark default). Never hardcode a theme check — read `resolvedTheme` or use `[data-theme="light"]` CSS overrides; new colors must exist in both token blocks
-
+### Rules for AI code generation
+1. New surfaces use `n-*` primitives directly; legacy surfaces inherit through
+   the bridge until ported — never add new `claura-*` usage.
+2. NO EMOJIS in user-facing UI (unchanged, permanent).
+3. Never bold the serif; never color body text with signature hues; never add
+   shadows or glassmorphism.
+4. Buttons and labels speak mono uppercase. Prose speaks Inter. Emotion speaks
+   Fraunces 300.
+5. Single appearance: Nocturne is dark by design (the reference is a nocturnal
+   gallery). A light variant must be designed deliberately, not toggled.
+6. The DayNight photo backgrounds, ambient orbs, and all legacy background
+   imagery are retired — the canvas is flat obsidian, painted by
+   ClassicBackground.
 
 ## Inteligência de mercado e técnica
 

@@ -202,7 +202,7 @@ const ConnectionRevealCard: React.FC<Props> = ({ provider, onDismiss }) => {
 
           <h3
             style={{
-              fontFamily: "'Instrument Serif', Georgia, serif",
+              fontFamily: "var(--font-heading)",
               fontStyle: 'italic',
               fontSize: 'clamp(22px, 3.2vw, 28px)',
               fontWeight: 400,

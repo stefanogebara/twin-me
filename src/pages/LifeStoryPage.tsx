@@ -267,7 +267,7 @@ export default function LifeStoryPage() {
           <div className="flex-1">
             <h1
               style={{
-                fontFamily: "'Instrument Serif', Georgia, serif",
+                fontFamily: "var(--font-heading)",
                 fontSize: '22px',
                 fontWeight: 400,
                 letterSpacing: '-0.02em',
@@ -425,7 +425,7 @@ export default function LifeStoryPage() {
       <h1
         className="mb-2"
         style={{
-          fontFamily: "'Instrument Serif', Georgia, serif",
+          fontFamily: "var(--font-heading)",
           fontSize: '28px',
           fontWeight: 400,
           letterSpacing: '-0.02em',
@@ -488,7 +488,7 @@ export default function LifeStoryPage() {
                 <div className="flex items-start justify-between gap-2 mb-1.5">
                   <span
                     style={{
-                      fontFamily: "'Instrument Serif', Georgia, serif",
+                      fontFamily: "var(--font-heading)",
                       fontSize: '18px',
                       letterSpacing: '-0.02em',
                       color: 'var(--foreground)',

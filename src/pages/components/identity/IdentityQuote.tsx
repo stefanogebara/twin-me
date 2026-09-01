@@ -75,7 +75,7 @@ const IdentityQuote: React.FC<{ className?: string }> = ({ className = '' }) => 
           <p
             className="text-lg leading-relaxed"
             style={{
-              fontFamily: "'Instrument Serif', Georgia, serif",
+              fontFamily: "var(--font-heading)",
               fontStyle: 'italic',
               color: 'var(--text-secondary)',
               maxWidth: '520px',
