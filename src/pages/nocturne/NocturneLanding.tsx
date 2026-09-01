@@ -356,8 +356,8 @@ const NocturneLanding = () => {
           </div>
           <div style={{ maxWidth: 720, margin: '0 auto' }}>
             {FAQ.map(([question, answer]) => (
-              <details key={question} style={{ borderTop: '1px solid var(--n-line)', padding: '20px 0' }}>
-                <summary className="n-lead" style={{ cursor: 'pointer', listStyle: 'none' }}>{question}</summary>
+              <details key={question} className="n-disclosure">
+                <summary className="n-lead">{question}</summary>
                 <p className="n-body n-body-sm" style={{ marginTop: 12, maxWidth: 600 }}>{answer}</p>
               </details>
             ))}

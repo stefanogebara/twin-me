@@ -476,6 +476,38 @@
 }
 
 /* ============================================================================
+   DISCLOSURE — the FAQ row. A mono +/- carries the affordance, since the
+   native marker is removed; nothing else signals that the row expands.
+   ========================================================================== */
+
+.n-disclosure {
+  border-top: 1px solid var(--n-line);
+  padding: var(--n-s5) 0;
+}
+.n-disclosure > summary {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--n-s4);
+  cursor: pointer;
+  list-style: none;
+}
+.n-disclosure > summary::-webkit-details-marker { display: none; }
+.n-disclosure > summary::after {
+  content: '+';
+  font-family: var(--n-mono);
+  font-size: var(--n-label);
+  color: var(--n-fog);
+  transition: color var(--n-quick);
+}
+.n-disclosure[open] > summary::after { content: '−'; color: var(--n-cloud); }
+.n-disclosure > summary:hover::after { color: var(--n-cloud); }
+.n-disclosure > summary:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.6);
+  outline-offset: 4px;
+}
+
+/* ============================================================================
    READING STRIP — Nocturne's own move (no Origin equivalent):
    the twin's observation as a mono data annotation over a serif statement.
    Data becomes portrait — the product thesis in one component.
