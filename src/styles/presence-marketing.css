@@ -85,7 +85,7 @@
     radial-gradient(circle at 24% 90%, var(--p-ink) 0 3px, transparent 3.2px),
     radial-gradient(circle at 8% 40%, var(--p-ink) 0 3px, transparent 3.2px);
 }
-.presence-marketing-links { display: flex; gap: 30px; color: var(--p-graphite); font-size: 12px; }
+.presence-marketing-links { display: flex; gap: 30px; color: var(--p-graphite); font-size: 13px; }
 .presence-marketing-links a, .presence-text-link { text-underline-offset: 5px; }
 .presence-marketing-links a:hover, .presence-text-link:hover { text-decoration: underline; }
 .presence-marketing-actions { justify-self: end; display: flex; align-items: center; gap: 8px; }
@@ -94,7 +94,7 @@
 .presence-link-button, .presence-dark-button {
   min-height: 42px; padding: 0 15px; border-radius: 10px;
   display: inline-flex; align-items: center; justify-content: center; gap: 12px;
-  font-size: 11px; font-weight: 500;
+  font-size: 13px; font-weight: 500;
   transition: transform 150ms var(--p-ease), background 150ms var(--p-ease);
 }
 .presence-link-button { color: var(--p-graphite); }
@@ -102,16 +102,15 @@
 .presence-dark-button:hover { transform: translateY(-1px); background: #272822; }
 .presence-dark-button:active { transform: scale(.98); }
 .presence-dark-button--large { min-height: 52px; padding: 0 20px; }
-.presence-text-link { color: var(--p-graphite); font-size: 11px; }
-.presence-kicker { margin: 0; color: var(--p-graphite); font-size: 10px; font-weight: 500; letter-spacing: .13em; text-transform: uppercase; }
+.presence-text-link { color: var(--p-graphite); font-size: 13px; }
+.presence-kicker { margin: 0; color: var(--p-graphite); font-size: 11px; font-weight: 500; letter-spacing: .13em; text-transform: uppercase; }
 
 /* --------------------------------------------------------------------------
    Hero: paper field with column rules, copy left, device pair right
    -------------------------------------------------------------------------- */
 .presence-hero {
   position: relative;
-  min-height: calc(100vh - 72px);
-  padding: clamp(72px, 8vw, 112px) clamp(24px, 4vw, 64px);
+  padding: clamp(56px, 6vw, 88px) clamp(24px, 4vw, 64px);
   display: grid;
   grid-template-columns: minmax(0, .88fr) minmax(440px, 1.12fr);
   gap: clamp(52px, 7vw, 112px);
@@ -172,14 +171,14 @@
 }
 .presence-listener-device::before { content: ''; position: absolute; top: 8px; left: 50%; width: 38%; height: 18px; border-radius: 999px; background: #171a1c; box-shadow: 0 1px 0 rgba(255, 255, 255, .11) inset; transform: translateX(-50%); }
 .presence-listener-device::after { content: ''; position: absolute; right: -9px; top: 112px; width: 3px; height: 72px; border-radius: 0 3px 3px 0; background: #3a4043; box-shadow: 0 96px 0 #3a4043; }
-.presence-listener-device > header { min-height: 54px; padding-top: 19px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid rgba(35, 59, 73, .2); font-size: 8px; letter-spacing: .07em; text-transform: uppercase; }
+.presence-listener-device > header { min-height: 54px; padding-top: 19px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid rgba(35, 59, 73, .2); font-size: 10px; letter-spacing: .07em; text-transform: uppercase; }
 .presence-console-dot { width: 6px; height: 6px; border-radius: 50%; background: #6f7882; box-shadow: 0 0 12px rgba(88, 112, 137, .28); }
 .presence-listener-device > div { height: calc(100% - 110px); padding: 42px 2px 24px; display: flex; flex-direction: column; }
-.presence-listener-device > div > p { margin: 0 !important; color: rgba(31, 56, 70, .58) !important; font-size: 8px !important; letter-spacing: .1em; text-transform: uppercase; }
+.presence-listener-device > div > p { margin: 0 !important; color: rgba(31, 56, 70, .58) !important; font-size: 10px !important; letter-spacing: .1em; text-transform: uppercase; }
 .presence-listener-device > div h2 { max-width: 220px; margin: 20px 0 0; color: #1f3745 !important; font: 400 clamp(31px, 3vw, 45px)/.98 var(--p-story); letter-spacing: -.04em; }
 .presence-device-wave { height: 90px; margin: auto -22px 24px; padding: 0 22px; border-top: 1px solid rgba(35, 59, 73, .16); border-bottom: 1px solid rgba(35, 59, 73, .16); display: flex; align-items: center; justify-content: space-between; }
 .presence-device-wave i { width: 2px; border-radius: 4px; background: rgba(57, 72, 88, .66); }
-.presence-listener-device > footer { display: flex; align-items: center; justify-content: space-between; gap: 10px; color: rgba(31, 54, 67, .62); font-size: 8px; }
+.presence-listener-device > footer { display: flex; align-items: center; justify-content: space-between; gap: 10px; color: rgba(31, 54, 67, .62); font-size: 10px; }
 .presence-listener-device > footer span { flex: 1; }
 .presence-listener-device > footer strong { font-weight: 500; font-variant-numeric: tabular-nums; }
 
@@ -199,54 +198,57 @@
   transform: rotateY(-8deg) rotateZ(1.4deg);
   transform-origin: right center;
 }
-.presence-family-device > header { min-height: 54px; display: flex; align-items: center; justify-content: space-between; color: rgba(25, 27, 24, .54); border-bottom: 1px solid rgba(26, 31, 30, .14); font-size: 8px; }
+.presence-family-device > header { min-height: 54px; display: flex; align-items: center; justify-content: space-between; color: rgba(25, 27, 24, .54); border-bottom: 1px solid rgba(26, 31, 30, .14); font-size: 10px; }
 .presence-family-device > header > div { display: flex; align-items: center; gap: 12px; }
-.presence-family-device > header strong { color: #242622; font-size: 9px; font-weight: 500; }
+.presence-family-device > header strong { color: #242622; font-size: 12px; font-weight: 500; }
 .presence-family-device > header span { letter-spacing: .08em; text-transform: uppercase; }
 .presence-family-summary { padding: 48px 0 0; }
-.presence-family-summary > span { color: rgba(25, 27, 24, .5); font-size: 8px; letter-spacing: .1em; text-transform: uppercase; }
+.presence-family-summary > span { color: rgba(25, 27, 24, .5); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; }
 .presence-family-summary h2 { max-width: 470px; margin: 16px 0 18px; color: #191b18 !important; font: 400 clamp(35px, 4vw, 57px)/.96 var(--p-story); letter-spacing: -.045em; }
-.presence-family-summary > p { max-width: 430px; margin: 0 !important; color: #62655f !important; font-size: 11px !important; line-height: 1.55 !important; }
+.presence-family-summary > p { max-width: 430px; margin: 0 !important; color: #62655f !important; font-size: 13px !important; line-height: 1.55 !important; }
 .presence-family-action { margin-top: 38px; padding: 16px 0; border-top: 1px solid rgba(26, 31, 30, .16); border-bottom: 1px solid rgba(26, 31, 30, .16); display: grid; grid-template-columns: 1fr 42px; gap: 18px; align-items: center; }
 .presence-family-action div { display: grid; gap: 6px; }
-.presence-family-action span { color: rgba(25, 27, 24, .46); font-size: 7px; letter-spacing: .09em; text-transform: uppercase; }
-.presence-family-action strong { font-size: 11px; font-weight: 500; }
+.presence-family-action span { color: rgba(25, 27, 24, .46); font-size: 10px; letter-spacing: .09em; text-transform: uppercase; }
+.presence-family-action strong { font-size: 13px; font-weight: 500; }
 .presence-family-action button { width: 42px; height: 42px; border: 0; border-radius: 50%; background: #191b18; color: #f6f5f1; display: grid; place-items: center; transition: transform 150ms var(--p-ease); }
 .presence-family-action button:hover { transform: translateY(-1px); }
-.presence-family-device > footer { position: absolute; left: 28px; right: 28px; bottom: 20px; display: flex; justify-content: space-between; color: rgba(25, 27, 24, .46); font-size: 8px; }
+.presence-family-device > footer { position: absolute; left: 28px; right: 28px; bottom: 20px; display: flex; justify-content: space-between; color: rgba(25, 27, 24, .46); font-size: 10px; }
 
 /* --------------------------------------------------------------------------
    The relay, drawn open on the paper — time and transformation, no container
    -------------------------------------------------------------------------- */
-.presence-relay-explainer { padding: clamp(110px, 12vw, 180px) clamp(24px, 5vw, 80px); background: var(--p-paper); }
+.presence-relay-explainer { padding: clamp(72px, 7vw, 110px) clamp(24px, 5vw, 80px); background: var(--p-paper); }
 .presence-section-intro { max-width: 1440px; margin-inline: auto; display: grid; grid-template-columns: minmax(160px, .35fr) minmax(0, 1fr); gap: clamp(40px, 8vw, 130px); align-items: start; }
 .presence-section-intro h2 { max-width: 850px; margin: 0; font: 400 clamp(52px, 6vw, 88px)/.94 var(--p-ui); letter-spacing: -.06em; text-wrap: balance; }
 .presence-relay-map {
   max-width: 1440px;
-  min-height: 460px;
-  margin: clamp(72px, 9vw, 130px) auto 0;
+  min-height: 400px;
+  margin: clamp(48px, 5vw, 72px) auto 0;
   border-top: 1px solid var(--p-rule-strong);
   border-bottom: 1px solid var(--p-rule-strong);
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(180px, .42fr) minmax(0, 1fr);
   color: var(--p-ink);
 }
-.presence-relay-origin, .presence-relay-result { padding: 36px 0 42px; display: flex; flex-direction: column; justify-content: space-between; }
+.presence-relay-origin, .presence-relay-result { padding: 32px 0 36px; display: flex; flex-direction: column; justify-content: space-between; }
 .presence-relay-origin { padding-right: clamp(30px, 5vw, 76px); }
 .presence-relay-result { padding-left: clamp(30px, 5vw, 76px); }
 .presence-relay-time { display: flex; align-items: baseline; justify-content: space-between; gap: 20px; }
 .presence-relay-time strong { font-size: clamp(54px, 6vw, 86px); font-weight: 400; line-height: 1; letter-spacing: -.065em; font-variant-numeric: tabular-nums; }
-.presence-relay-time span { color: var(--p-faint); font-size: 8px; letter-spacing: .11em; text-transform: uppercase; }
-.presence-relay-origin blockquote { max-width: 520px; margin: 88px 0 0; color: var(--p-ink); font: 400 clamp(31px, 3.4vw, 47px)/1.08 var(--p-story); letter-spacing: -.03em; }
-.presence-relay-thread { position: relative; border-left: 1px solid var(--p-rule); border-right: 1px solid var(--p-rule); display: flex; align-items: center; justify-content: space-evenly; gap: 7px; }
-.presence-relay-thread::before { content: ''; position: absolute; left: 16%; right: 16%; top: 50%; height: 1px; background: var(--p-rule-strong); }
-.presence-relay-thread span { position: relative; z-index: 1; width: 7px; height: 7px; border: 1px solid var(--p-rule-strong); border-radius: 50%; background: var(--p-paper); }
-.presence-relay-thread span:first-child { width: 13px; height: 13px; background: var(--p-ink); border-color: var(--p-ink); }
-.presence-relay-thread span:last-child { width: 13px; height: 13px; background: #fff; }
-.presence-relay-decision { max-width: 480px; margin-top: 72px; padding-top: 18px; border-top: 1px solid var(--p-rule-strong); }
-.presence-relay-decision > span { color: var(--p-faint); font-size: 8px; letter-spacing: .11em; text-transform: uppercase; }
+.presence-relay-time span { color: var(--p-faint); font-size: 11px; letter-spacing: .11em; text-transform: uppercase; }
+.presence-relay-origin blockquote { max-width: 520px; margin: 56px 0 0; color: var(--p-ink); font: 400 clamp(31px, 3.4vw, 47px)/1.08 var(--p-story); letter-spacing: -.03em; }
+/* The thread carries the idea: her forty minutes become your forty-five seconds. */
+.presence-relay-thread { position: relative; padding: 0 clamp(16px, 2vw, 28px); border-left: 1px solid var(--p-rule); border-right: 1px solid var(--p-rule); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; }
+.presence-relay-thread-dots { position: relative; width: 100%; display: flex; align-items: center; justify-content: space-between; }
+.presence-relay-thread-dots::before { content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: var(--p-rule-strong); }
+.presence-relay-thread-dots span { position: relative; z-index: 1; width: 10px; height: 10px; border: 1px solid var(--p-rule-strong); border-radius: 50%; background: var(--p-paper); }
+.presence-relay-thread-dots span:first-child { width: 16px; height: 16px; background: var(--p-ink); border-color: var(--p-ink); }
+.presence-relay-thread-dots span:last-child { width: 16px; height: 16px; background: #fff; }
+.presence-relay-thread em { color: var(--p-graphite); font: 500 11px/1.4 var(--p-ui); font-style: normal; letter-spacing: .11em; text-transform: uppercase; text-align: center; }
+.presence-relay-decision { max-width: 480px; margin-top: 48px; padding-top: 18px; border-top: 1px solid var(--p-rule-strong); }
+.presence-relay-decision > span { color: var(--p-faint); font-size: 11px; letter-spacing: .11em; text-transform: uppercase; }
 .presence-relay-decision > strong { display: block; margin-top: 12px; color: var(--p-ink); font: 400 clamp(28px, 3vw, 40px)/1.08 var(--p-story); }
-.presence-relay-decision > p { max-width: 340px; margin: 18px 0 0 !important; color: var(--p-graphite) !important; font-size: 10px !important; line-height: 1.5 !important; }
+.presence-relay-decision > p { max-width: 380px; margin: 18px 0 0 !important; color: var(--p-graphite) !important; font-size: 14px !important; line-height: 1.5 !important; }
 
 /* --------------------------------------------------------------------------
    Product moments: one continuous full-bleed color field, three compositions
@@ -263,7 +265,7 @@
 .presence-scene { position: relative; overflow: hidden; isolation: isolate; display: flex; flex-direction: column; min-height: 0; }
 .presence-scene::before { content: ''; position: absolute; z-index: -2; inset: 0; }
 .presence-scene::after { content: ''; position: absolute; z-index: -1; inset: 0; }
-.presence-scene-meta { height: 72px; padding: 0 clamp(24px, 4vw, 64px); display: flex; align-items: center; justify-content: space-between; font-size: 8px; letter-spacing: .11em; text-transform: uppercase; }
+.presence-scene-meta { height: 72px; padding: 0 clamp(24px, 4vw, 64px); display: flex; align-items: center; justify-content: space-between; font-size: 12px; font-weight: 500; letter-spacing: .11em; text-transform: uppercase; }
 .presence-scene-meta span:last-child { display: flex; align-items: center; gap: 7px; }
 .presence-scene-meta span:last-child::before { content: ''; width: 5px; height: 5px; border-radius: 50%; }
 .presence-scene button { transition: transform 150ms var(--p-ease), background 150ms var(--p-ease); }
@@ -287,9 +289,15 @@
 }
 .presence-scene--listen .presence-scene-meta { color: rgba(45, 58, 73, .58); }
 .presence-scene--listen .presence-scene-meta span:last-child::before { background: #526b84; box-shadow: 0 0 12px rgba(82, 107, 132, .3); }
-.presence-listening-ui { min-height: calc(960px - 72px); padding: 56px 42px 32px; display: flex; flex-direction: column; }
-.presence-ai-label { color: rgba(49, 62, 78, .58); font-size: 8px; letter-spacing: .1em; text-transform: uppercase; }
-.presence-listening-ui h3 { max-width: 520px; margin: 74px 0 0; color: #293b4d !important; font: 400 clamp(62px, 6vw, 96px)/.9 var(--p-story); letter-spacing: -.035em; }
+.presence-listening-ui { min-height: calc(960px - 72px); padding: 48px 42px 32px; display: flex; flex-direction: column; }
+.presence-ai-label { color: rgba(49, 62, 78, .58); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; }
+.presence-listening-ui h3 { max-width: 520px; margin: 40px 0 0; color: #293b4d !important; font: 400 clamp(54px, 5vw, 80px)/.92 var(--p-story); letter-spacing: -.035em; }
+/* What listening looks like: her words arriving as she says them. */
+.presence-live-captions { max-width: 540px; margin: 48px 0 auto; padding-top: 24px; border-top: 1px solid rgba(58, 74, 94, .18); display: grid; gap: 12px; }
+.presence-live-captions > span { color: rgba(49, 62, 78, .58); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; }
+.presence-live-captions p { margin: 0 !important; color: rgba(41, 59, 77, .5) !important; font: 400 16px/1.45 var(--p-story) !important; }
+.presence-live-captions p.is-current { color: #293b4d !important; font-size: 19px !important; }
+.presence-live-captions p.is-arriving { color: rgba(41, 59, 77, .34) !important; }
 .presence-live-wave { width: calc(100% + 84px); height: 170px; margin: auto -42px 0; padding: 0 42px; border-top: 1px solid rgba(58, 74, 94, .18); border-bottom: 1px solid rgba(58, 74, 94, .18); display: flex; align-items: center; justify-content: space-between; }
 .presence-live-wave i { width: 3px; border-radius: 4px; background: rgba(55, 73, 94, .7); box-shadow: 0 0 12px rgba(92, 111, 139, .18); }
 .presence-listening-ui button { width: 64px; height: 64px; margin: 26px 0 0 auto; border: 1px solid rgba(255, 255, 255, .7); border-radius: 50%; color: #344b60; background: linear-gradient(145deg, rgba(255, 255, 255, .94), rgba(220, 224, 238, .74)); display: grid; place-items: center; box-shadow: 0 1px 0 rgba(255, 255, 255, .96) inset, 0 1px 2px rgba(67, 74, 94, .14), 0 12px 30px rgba(81, 91, 120, .14); }
@@ -313,13 +321,13 @@
 .presence-scene--memory .presence-scene-meta span:last-child::before { background: #526f7c; box-shadow: 0 0 12px rgba(82, 111, 124, .25); }
 .presence-memory-demo { position: relative; z-index: 2; min-height: 480px; padding: 90px 28px 46px; display: grid; grid-template-columns: minmax(0, .8fr) 58px minmax(0, 1.2fr); gap: 18px; align-items: center; }
 .presence-memory-transcript { display: grid; gap: 12px; padding-left: 16px; border-left: 1px solid rgba(46, 72, 83, .24); }
-.presence-memory-transcript > span, .presence-memory-record > span { color: rgba(38, 57, 66, .5); font-size: 7px; letter-spacing: .1em; text-transform: uppercase; }
-.presence-memory-transcript p { margin: 0 !important; color: rgba(38, 57, 66, .38) !important; font-size: 9px !important; line-height: 1.45 !important; }
-.presence-memory-transcript .presence-memory-transcript-focus { margin-left: -17px !important; padding: 12px 14px; border-left: 2px solid #557684; background: rgba(255, 255, 255, .46); color: #2f4955 !important; font-weight: 500; }
+.presence-memory-transcript > span, .presence-memory-record > span { color: rgba(38, 57, 66, .56); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; }
+.presence-memory-transcript p { margin: 0 !important; color: rgba(38, 57, 66, .62) !important; font-size: 13px !important; line-height: 1.45 !important; }
+.presence-memory-transcript .presence-memory-transcript-focus { margin-left: -17px !important; padding: 12px 14px; border-left: 2px solid #557684; background: rgba(255, 255, 255, .46); color: #2f4955 !important; font-size: 14px !important; font-weight: 500; }
 .presence-memory-route { position: relative; height: 100%; display: flex; align-items: center; justify-content: space-between; }
 .presence-memory-route::before { content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: rgba(58, 85, 96, .32); }
-.presence-memory-route i { position: relative; z-index: 1; width: 6px; height: 6px; border: 1px solid rgba(58, 85, 96, .5); border-radius: 50%; background: #e6eef0; }
-.presence-memory-route i:last-child { width: 10px; height: 10px; background: #5e7d89; }
+.presence-memory-route i { position: relative; z-index: 1; width: 8px; height: 8px; border: 1px solid rgba(58, 85, 96, .5); border-radius: 50%; background: #e6eef0; }
+.presence-memory-route i:last-child { width: 13px; height: 13px; background: #5e7d89; }
 /* The record is the scene's one liquid-glass object. */
 .presence-memory-record {
   padding: 20px;
@@ -332,8 +340,8 @@
 }
 .presence-memory-record blockquote { margin: 22px 0 18px; color: #263942; font: 400 clamp(24px, 2.7vw, 39px)/1.02 var(--p-story); letter-spacing: -.035em; }
 .presence-memory-tags { display: flex; gap: 7px; }
-.presence-memory-tags span { padding: 8px 10px; border: 1px solid rgba(48, 73, 84, .2); border-radius: 999px; color: rgba(38, 57, 66, .66); background: rgba(255, 255, 255, .48); font-size: 8px; }
-.presence-memory-record small { display: block; margin-top: 18px; padding-top: 12px; border-top: 1px solid rgba(53, 76, 86, .15); color: rgba(38, 57, 66, .46); font-size: 7px; }
+.presence-memory-tags span { padding: 8px 12px; border: 1px solid rgba(48, 73, 84, .2); border-radius: 999px; color: rgba(38, 57, 66, .7); background: rgba(255, 255, 255, .48); font-size: 12px; }
+.presence-memory-record small { display: block; margin-top: 18px; padding-top: 12px; border-top: 1px solid rgba(53, 76, 86, .15); color: rgba(38, 57, 66, .56); font-size: 12px; }
 
 /* Moment 03 — the voice: copy beside a liquid-glass call over the green field. */
 .presence-scene--relay { grid-column: 2; grid-row: 2; background: #f8f5ef; color: #283029; }
@@ -353,7 +361,7 @@
 }
 .presence-relay-split { position: relative; z-index: 2; min-height: 480px; display: grid; grid-template-columns: minmax(250px, .8fr) minmax(0, 1.2fr); }
 .presence-relay-split-copy { position: relative; z-index: 2; padding: clamp(34px, 4vw, 62px) clamp(28px, 4vw, 58px); display: flex; flex-direction: column; color: #293029; }
-.presence-relay-split-copy > span { color: rgba(42, 48, 42, .58); font: 600 10px/1.2 var(--p-ui); letter-spacing: .11em; text-transform: uppercase; }
+.presence-relay-split-copy > span { color: rgba(42, 48, 42, .58); font: 600 11px/1.2 var(--p-ui); letter-spacing: .11em; text-transform: uppercase; }
 .presence-relay-split-copy h3 { max-width: 430px; margin: 24px 0 0; color: #282d28 !important; font: 400 clamp(42px, 4.2vw, 66px)/.92 var(--p-story); letter-spacing: -.05em; text-wrap: balance; }
 .presence-relay-split-copy p { max-width: 340px; margin: auto 0 0 !important; color: rgba(41, 47, 41, .68) !important; font: 500 clamp(14px, 1.15vw, 17px)/1.45 var(--p-ui) !important; }
 .presence-relay-split-visual { position: relative; min-width: 0; display: grid; place-items: center; padding: 48px clamp(28px, 4vw, 58px); }
@@ -395,31 +403,33 @@
    -------------------------------------------------------------------------- */
 .presence-photo-band { position: relative; min-height: 84svh; background: #3b3a35 url('/images/presence/presence-in-use-v1.png') center 42%/cover no-repeat; border-bottom: 1px solid var(--p-rule); }
 .presence-photo-band::before { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(24, 24, 20, .16), transparent 26%, transparent 70%, rgba(24, 24, 20, .2)); pointer-events: none; }
+/* Sits bottom-right over the dark table and sleeve, never the bright window. */
 .presence-photo-caption {
   position: absolute;
-  left: clamp(24px, 4vw, 64px);
+  right: clamp(24px, 4vw, 64px);
   bottom: clamp(24px, 4vw, 56px);
   width: min(400px, calc(100% - 48px));
   margin: 0;
   padding: 20px 22px;
-  border: 1px solid rgba(255, 255, 255, .46);
+  border: 1px solid rgba(255, 255, 255, .36);
   border-radius: 20px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, .3), rgba(240, 238, 230, .12));
-  backdrop-filter: blur(32px) saturate(1.26) brightness(1.04);
-  box-shadow: 0 1px 0 rgba(255, 255, 255, .5) inset, 0 18px 54px rgba(20, 22, 18, .22);
+  background: linear-gradient(135deg, rgba(48, 44, 38, .46), rgba(48, 44, 38, .28));
+  backdrop-filter: blur(32px) saturate(1.2);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, .28) inset, 0 18px 54px rgba(20, 22, 18, .28);
   color: #fdfcf8;
 }
-.presence-photo-caption span { font-size: 9px; font-weight: 600; letter-spacing: .11em; text-transform: uppercase; color: rgba(253, 252, 248, .72); }
+.presence-photo-caption span { font-size: 11px; font-weight: 600; letter-spacing: .11em; text-transform: uppercase; color: rgba(253, 252, 248, .8); }
 .presence-photo-caption p { margin: 10px 0 0 !important; color: #fdfcf8 !important; font: 400 19px/1.3 var(--p-story) !important; }
 
 /* --------------------------------------------------------------------------
    Trust: asymmetric editorial columns on paper
    -------------------------------------------------------------------------- */
 .presence-trust-section {
-  padding: clamp(130px, 15vw, 220px) clamp(24px, 8vw, 128px);
+  padding: clamp(80px, 9vw, 128px) clamp(24px, 8vw, 128px);
   display: grid;
   grid-template-columns: minmax(220px, .55fr) minmax(0, 1.45fr);
-  gap: clamp(48px, 9vw, 150px);
+  column-gap: clamp(48px, 9vw, 150px);
+  row-gap: 0;
   align-items: start;
   background: var(--p-paper);
 }
@@ -430,7 +440,7 @@
 .presence-trust-section .presence-dark-button { grid-column: 2; width: fit-content; }
 
 /* Footer */
-.presence-marketing-footer { min-height: 72px; padding: 0 clamp(24px, 4vw, 64px); border-top: 1px solid var(--p-rule); display: flex; align-items: center; justify-content: space-between; gap: 24px; color: var(--p-faint); font-size: 10px; }
+.presence-marketing-footer { min-height: 72px; padding: 0 clamp(24px, 4vw, 64px); border-top: 1px solid var(--p-rule); display: flex; align-items: center; justify-content: space-between; gap: 24px; color: var(--p-graphite); font-size: 12px; }
 .presence-marketing-footer > div { display: inline-flex; align-items: center; gap: 11px; }
 .presence-marketing-footer .presence-marketing-mark { transform: scale(.85); }
 .presence-marketing-footer nav { display: flex; gap: 22px; }
@@ -451,20 +461,20 @@
     radial-gradient(circle at 18% 82%, rgba(233, 236, 239, .92), transparent 52%),
     linear-gradient(145deg, #98afc7, #e9ecef);
 }
-.presence-login-back { position: absolute; top: 28px; left: clamp(24px, 4vw, 64px); display: flex; align-items: center; gap: 8px; color: var(--p-graphite) !important; font-size: 11px; }
+.presence-login-back { position: absolute; top: 28px; left: clamp(24px, 4vw, 64px); display: flex; align-items: center; gap: 8px; color: var(--p-graphite) !important; font-size: 13px; }
 .presence-login-copy h1 { max-width: 700px; margin: 20px 0 24px; font: 400 clamp(50px, 6vw, 78px)/.98 var(--p-ui); letter-spacing: -.058em; text-wrap: balance; }
 .presence-login-copy > p:not(.presence-kicker) { max-width: 580px; color: var(--p-graphite); font: 400 20px/1.35 var(--p-story); }
-.presence-login-trust { max-width: 520px; margin-top: 34px; padding-top: 20px; border-top: 1px solid var(--p-rule); display: flex; gap: 10px; color: var(--p-graphite); font-size: 10px; line-height: 1.45; }
+.presence-login-trust { max-width: 520px; margin-top: 34px; padding-top: 20px; border-top: 1px solid var(--p-rule); display: flex; gap: 10px; color: var(--p-graphite); font-size: 13px; line-height: 1.45; }
 .presence-login-card { padding: 30px; border: 1px solid var(--p-rule-strong); border-radius: 28px; background: var(--p-raised); box-shadow: 0 2px 4px rgba(36, 36, 31, .04), 0 28px 80px rgba(36, 36, 31, .08); display: flex; flex-direction: column; }
 .presence-login-card h2 { margin: 16px 0 8px; font-size: 28px; font-weight: 400; letter-spacing: -.04em; }
 .presence-login-card > div > p:last-child { margin: 0; color: var(--p-graphite); font: 400 15px/1.35 var(--p-story); }
-.presence-google-button { width: 100%; min-height: 52px; margin-top: 34px; padding: 0 16px; border: 1px solid var(--p-ink); border-radius: 10px; background: var(--p-ink); color: var(--p-paper); display: grid; grid-template-columns: 20px 1fr 20px; align-items: center; text-align: center; font-size: 11px; cursor: pointer; }
+.presence-google-button { width: 100%; min-height: 52px; margin-top: 34px; padding: 0 16px; border: 1px solid var(--p-ink); border-radius: 10px; background: var(--p-ink); color: var(--p-paper); display: grid; grid-template-columns: 20px 1fr 20px; align-items: center; text-align: center; font-size: 13px; cursor: pointer; }
 .presence-google-button:disabled { cursor: wait; opacity: .65; }
 .presence-google-g { width: 20px; height: 20px; border-radius: 50%; background: var(--p-paper); color: var(--p-ink); display: grid; place-items: center; font-size: 10px; font-weight: 600; }
 .presence-spin { animation: presence-spin .8s linear infinite; }
 @keyframes presence-spin { to { transform: rotate(360deg); } }
-.presence-login-error { margin: 14px 0 0; color: var(--p-coral); font-size: 11px; }
-.presence-login-legal { margin: 20px 0 0; color: var(--p-faint); font-size: 9px; line-height: 1.5; text-align: center; }
+.presence-login-error { margin: 14px 0 0; color: var(--p-coral); font-size: 13px; }
+.presence-login-legal { margin: 20px 0 0; color: var(--p-graphite); font-size: 12px; line-height: 1.5; text-align: center; }
 .presence-login-legal a { text-decoration: underline; text-underline-offset: 3px; }
 
 /* --------------------------------------------------------------------------
@@ -518,7 +528,7 @@
   .presence-relay-origin, .presence-relay-result { min-height: 330px; padding: 32px 0; }
   .presence-relay-origin { padding-right: 0; }
   .presence-relay-result { padding-left: 0; }
-  .presence-relay-thread { height: 110px; border-left: 0; border-right: 0; border-top: 1px solid var(--p-rule); border-bottom: 1px solid var(--p-rule); }
+  .presence-relay-thread { padding: 28px 0; border-left: 0; border-right: 0; border-top: 1px solid var(--p-rule); border-bottom: 1px solid var(--p-rule); }
   .presence-relay-origin blockquote { margin-top: 60px; }
   .presence-relay-decision { margin-top: 48px; }
   .presence-login { grid-template-columns: 1fr; padding-top: 110px; }
@@ -554,7 +564,7 @@
   .presence-listener-device > div h2 { font-size: 28px; }
   .presence-device-wave { height: 68px; margin-inline: -18px; padding-inline: 18px; }
   .presence-listener-device > footer { font-size: 7px; }
-  .presence-family-device { top: 12%; right: -16%; width: 78%; min-height: 430px; padding: 0 20px 22px; }
+  .presence-family-device { top: 12%; right: -3%; width: 78%; min-height: 430px; padding: 0 20px 22px; }
   .presence-family-summary { padding-top: 38px; }
   .presence-family-summary h2 { max-width: 300px; font-size: 37px; }
   .presence-family-summary > p { max-width: 300px; }

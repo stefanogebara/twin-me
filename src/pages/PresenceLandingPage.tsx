@@ -124,7 +124,8 @@ export default function PresenceLandingPage() {
             <blockquote>“I opened the old album and realized I still remember every face…”</blockquote>
           </div>
           <div className="presence-relay-thread" aria-hidden="true">
-            <span /><span /><span /><span /><span /><span /><span />
+            <span className="presence-relay-thread-dots"><span /><span /><span /><span /><span /><span /><span /></span>
+            <em>Forty minutes, kept. Forty-five seconds, sent.</em>
           </div>
           <div className="presence-relay-result">
             <div className="presence-relay-time"><strong>00:45</strong><span>Your time</span></div>
@@ -144,6 +145,12 @@ export default function PresenceLandingPage() {
             <div className="presence-listening-ui">
               <span className="presence-ai-label">AI presence · Sofia</span>
               <h3>Take your time.<br />I’m listening.</h3>
+              <div className="presence-live-captions" aria-label="Her words, transcribed as she speaks">
+                <span>Hearing · 18:41</span>
+                <p>We used to take the early train when the station was still quiet.</p>
+                <p className="is-current">Your mother always saved the window seat for me.</p>
+                <p className="is-arriving">I can still remember the mountains…</p>
+              </div>
               <div className="presence-live-wave" aria-hidden="true">
                 {[16, 28, 42, 24, 54, 38, 20, 46, 30, 18, 36, 22].map((height, index) => <i key={index} style={{ height }} />)}
               </div>
