@@ -340,18 +340,17 @@ For privacy concerns: privacy@twinme.me`
         {/* Heading — the page is a signup for most people who reach it, so it
             must not greet them with "Sign in". Three states: arriving from the
             landing reveal, returning, or new. */}
-        <h1
-          className="mb-2"
-          style={{
-            fontFamily: "var(--font-heading)",
-            fontStyle: 'italic',
-            fontSize: '32px',
-            fontWeight: 400,
-            letterSpacing: '-0.02em',
-            color: 'var(--foreground)',
-          }}
-        >
-          {reveal ? 'Keep your reading' : isReturning ? 'Welcome back' : 'Create your twin'}
+        {/* Law 4: the italic marks ONE word per display line — the verb. This
+            heading arrived from #265 set fully italic at weight 400, which was
+            right for Claura's Instrument Serif and wrong for Fraunces 300. */}
+        <h1 className="n-heading mb-2" style={{ fontSize: '32px' }}>
+          {reveal ? (
+            <><em>Keep</em> your reading</>
+          ) : isReturning ? (
+            <><em>Welcome</em> back</>
+          ) : (
+            <><em>Create</em> your twin</>
+          )}
         </h1>
         <p
           className="text-sm mb-8"
