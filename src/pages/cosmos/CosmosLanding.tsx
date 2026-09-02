@@ -57,13 +57,14 @@ const NOTES = [
 ];
 
 const IMG = {
-  desk: '/images/twinme/cosmos-01-desk.jpg',
-  records: '/images/twinme/cosmos-02-records.jpg',
-  calendar: '/images/twinme/cosmos-03-calendar.jpg',
-  run: '/images/twinme/cosmos-04-run.jpg',
-  kitchen: '/images/twinme/cosmos-05-kitchen.jpg',
-  portrait: '/images/twinme/cosmos-06-portrait.jpg',
-  room: '/images/twinme/cosmos-07-room.jpg',
+  crt: '/images/twinme/cosmos-01-crt.jpg',
+  doorway: '/images/twinme/cosmos-02-doorway.jpg',
+  orbit: '/images/twinme/cosmos-03-orbit.jpg',
+  bouquet: '/images/twinme/cosmos-04-bouquet.jpg',
+  meadow: '/images/twinme/cosmos-05-meadow.jpg',
+  vortex: '/images/twinme/cosmos-06-vortex.jpg',
+  galaxy: '/images/twinme/cosmos-07-galaxy.jpg',
+  chair: '/images/twinme/cosmos-08-chair.jpg',
 };
 
 function Mark() {
@@ -206,12 +207,12 @@ export default function CosmosLanding() {
 
       <section className="pc-hero" aria-labelledby="pc-hero-title">
         <div className="pc-hero-tiles" aria-hidden="true">
-          <img className="pc-tile" src={IMG.records} alt="" style={{ left: '9%', top: '21%', width: 104, height: 104, transform: 'rotate(-5deg)' }} />
-          <img className="pc-tile" src={IMG.calendar} alt="" style={{ right: '29%', top: '10%', width: 84, height: 84, transform: 'rotate(-6deg)' }} />
-          <img className="pc-tile" src={IMG.run} alt="" style={{ right: '8%', top: '17%', width: 132, height: 132, transform: 'rotate(4deg)' }} />
-          <img className="pc-tile" src={IMG.portrait} alt="" style={{ left: '13%', bottom: '37%', width: 88, height: 88, transform: 'rotate(3deg)' }} />
-          <img className="pc-tile" src={IMG.desk} alt="" style={{ right: '11%', bottom: '35%', width: 118, height: 118, transform: 'rotate(-3deg)' }} />
-          <img className="pc-tile" src={IMG.kitchen} alt="" style={{ left: '29%', top: '11%', width: 74, height: 74, transform: 'rotate(7deg)' }} />
+          <img className="pc-tile" src={IMG.doorway} alt="" style={{ left: '9%', top: '21%', width: 104, height: 104, transform: 'rotate(-5deg)' }} />
+          <img className="pc-tile" src={IMG.orbit} alt="" style={{ right: '29%', top: '10%', width: 84, height: 84, transform: 'rotate(-6deg)' }} />
+          <img className="pc-tile" src={IMG.bouquet} alt="" style={{ right: '8%', top: '17%', width: 132, height: 132, transform: 'rotate(4deg)' }} />
+          <img className="pc-tile" src={IMG.vortex} alt="" style={{ left: '13%', bottom: '37%', width: 88, height: 88, transform: 'rotate(3deg)' }} />
+          <img className="pc-tile" src={IMG.crt} alt="" style={{ right: '11%', bottom: '35%', width: 118, height: 118, transform: 'rotate(-3deg)' }} />
+          <img className="pc-tile" src={IMG.meadow} alt="" style={{ left: '29%', top: '11%', width: 74, height: 74, transform: 'rotate(7deg)' }} />
         </div>
         <div className="pc-hero-inner">
           <p className="pc-kicker">TwinMe</p>
@@ -235,14 +236,14 @@ export default function CosmosLanding() {
         </div>
         <a className="pc-hero-film-link" href="#film">
           <Play size={14} fill="currentColor" strokeWidth={0} />
-          Watch the film, with Marina, 31
+          See the film
           <ChevronDown size={14} />
         </a>
       </section>
 
       <section className="pc-film" id="film" aria-label="The TwinMe film">
         <div className="pc-film-card pc-reveal" role="button" tabIndex={0} onClick={toggleFilm} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleFilm(); } }} aria-label="Play or pause the film">
-          <video ref={videoRef} poster={IMG.room} muted loop playsInline preload="metadata" onPlaying={() => setFilmLoading(false)} />
+          <video ref={videoRef} poster={IMG.galaxy} muted loop playsInline preload="metadata" onPlaying={() => setFilmLoading(false)} />
           <span className={`pc-film-dots ${filmLoading ? '' : 'is-hidden'}`} aria-hidden="true">
             <svg width="44" height="44" viewBox="0 0 28 28" fill="currentColor">
               <circle cx="5" cy="5" r="2.7" /><circle cx="14" cy="5" r="2.7" /><circle cx="23" cy="5" r="2.7" /><circle cx="23" cy="14" r="2.7" />
@@ -250,7 +251,7 @@ export default function CosmosLanding() {
             </svg>
           </span>
           <div className="pc-film-title" aria-hidden="true"><span><Play fill="currentColor" strokeWidth={0} /> Watch</span><span>the film</span></div>
-          <p className="pc-film-caption">with Marina, 31</p>
+          <p className="pc-film-caption">Coming with the private beta</p>
         </div>
       </section>
 
@@ -258,9 +259,9 @@ export default function CosmosLanding() {
         <section className="pc-section" id="how" aria-labelledby="pc-world-title">
           <h2 className="pc-h2 pc-reveal" id="pc-world-title">Every signal opens a new reading.</h2>
           <div className="pc-strip pc-reveal" style={{ '--d': '0.1s' } as React.CSSProperties} aria-label="Photographs from a week, and the reading they produced">
-            <img className="pc-strip-a" src={IMG.desk} alt="Marina at her desk late at night with headphones on" loading="lazy" />
-            <img className="pc-strip-b" src={IMG.records} alt="A hand pulling a record from a shelf" loading="lazy" />
-            <img className="pc-strip-c" src={IMG.calendar} alt="A wall calendar with a Tuesday crossed out" loading="lazy" />
+            <img className="pc-strip-a" src={IMG.crt} alt="A CRT computer at golden hour with a sunset on its screen" loading="lazy" />
+            <img className="pc-strip-b" src={IMG.doorway} alt="A figure walking through a doorway into blue sky, photographs in the air" loading="lazy" />
+            <img className="pc-strip-c" src={IMG.orbit} alt="A woman on an armchair at night, a ring of small screens orbiting her laptop" loading="lazy" />
             <div className="pc-glass" aria-live="polite"><Wave /><span className={`pc-cycle ${chip.out ? 'is-out' : ''}`}>{chip.text}</span></div>
           </div>
         </section>
@@ -273,18 +274,18 @@ export default function CosmosLanding() {
           <h2 className="pc-h2 pc-reveal" id="pc-think-title">Read the way you live.</h2>
           <div className="pc-trio">
             <article className="pc-card pc-reveal" style={{ '--d': '0.05s' } as React.CSSProperties}>
-              <img src={IMG.run} alt="Marina running along a river at dawn" loading="lazy" />
+              <img src={IMG.bouquet} alt="A man reading his phone, flowers and photographs growing out of it" loading="lazy" />
               <div className="pc-glass pc-glass--big"><Wave /> 05:52</div>
             </article>
             <article className="pc-card pc-reveal" style={{ '--d': '0.12s' } as React.CSSProperties}>
-              <img src={IMG.kitchen} alt="Marina on her kitchen floor with a coffee in the morning" loading="lazy" />
+              <img src={IMG.meadow} alt="An old desktop computer in a meadow of daisies and butterflies" loading="lazy" />
               <div className="pc-float">
                 <p className="pc-float-label">Saved reading · Tuesday</p>
                 <blockquote>“Every Tuesday ends in back-to-back calls, and every Tuesday night your music turns ambient.”</blockquote>
               </div>
             </article>
             <article className="pc-card pc-reveal" style={{ '--d': '0.19s' } as React.CSSProperties}>
-              <img src={IMG.portrait} alt="A quiet portrait of Marina" loading="lazy" />
+              <img src={IMG.vortex} alt="A man on a hill of poppies under a sky of drifting cards" loading="lazy" />
               <div className="pc-float pc-float--center">
                 <p className="pc-float-label">Your twin</p>
                 <p className="pc-float-sub">Answers as you, and cites what it read</p>
@@ -303,7 +304,7 @@ export default function CosmosLanding() {
           <div className="pc-know">
             <h2 className="pc-h2 pc-reveal" id="pc-know-title">Know what you're made of.</h2>
             <figure className="pc-know-figure pc-reveal" style={{ '--d': '0.08s' } as React.CSSProperties}>
-              <img src={IMG.room} alt="Marina's living room at dusk" loading="lazy" />
+              <img src={IMG.chair} alt="An empty chair on a grassy hill under a daytime moon" loading="lazy" />
               <figcaption>Read from <span className="pc-glass">6 sources</span></figcaption>
             </figure>
             <p className="pc-lede pc-reveal" style={{ '--d': '0.16s' } as React.CSSProperties}>

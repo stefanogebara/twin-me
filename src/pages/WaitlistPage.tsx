@@ -123,9 +123,9 @@ const WaitlistPage = () => {
         </section>
 
         <aside className="pc-auth-panel" aria-hidden="true">
-          <img src="/images/twinme/cosmos-05-kitchen.jpg" alt="" style={{ top: '-4%', width: 220, height: 290, transform: 'translateX(-50%) rotate(-2deg)' }} />
-          <img src="/images/twinme/cosmos-03-calendar.jpg" alt="" style={{ top: '30%', width: 360, height: 240, transform: 'translateX(-50%) rotate(1.5deg)' }} />
-          <img src="/images/twinme/cosmos-01-desk.jpg" alt="" style={{ top: '64%', width: 200, height: 270, transform: 'translateX(-50%) rotate(-3deg)' }} />
+          <img src="/images/twinme/cosmos-05-meadow.jpg" alt="" style={{ top: '-4%', width: 220, height: 290, transform: 'translateX(-50%) rotate(-2deg)' }} />
+          <img src="/images/twinme/cosmos-03-orbit.jpg" alt="" style={{ top: '30%', width: 360, height: 240, transform: 'translateX(-50%) rotate(1.5deg)' }} />
+          <img src="/images/twinme/cosmos-01-crt.jpg" alt="" style={{ top: '64%', width: 200, height: 270, transform: 'translateX(-50%) rotate(-3deg)' }} />
           <p className="pc-auth-caption">
             <strong>Your best work happens after 22:00, and your calendar says nothing about it.</strong>
             Read from commits and a calendar. Timestamped, sourced, yours.

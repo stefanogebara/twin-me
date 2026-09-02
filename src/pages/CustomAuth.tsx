@@ -460,9 +460,9 @@ const CustomAuth = () => {
         </section>
 
         <aside className="pc-auth-panel" aria-hidden="true">
-          <img src="/images/twinme/cosmos-02-records.jpg" alt="" style={{ top: '-4%', width: 220, height: 290, transform: 'translateX(-50%) rotate(-2deg)' }} />
-          <img src="/images/twinme/cosmos-07-room.jpg" alt="" style={{ top: '30%', width: 360, height: 240, transform: 'translateX(-50%) rotate(1.5deg)' }} />
-          <img src="/images/twinme/cosmos-04-run.jpg" alt="" style={{ top: '64%', width: 200, height: 270, transform: 'translateX(-50%) rotate(-3deg)' }} />
+          <img src="/images/twinme/cosmos-02-doorway.jpg" alt="" style={{ top: '-4%', width: 220, height: 290, transform: 'translateX(-50%) rotate(-2deg)' }} />
+          <img src="/images/twinme/cosmos-07-galaxy.jpg" alt="" style={{ top: '30%', width: 360, height: 240, transform: 'translateX(-50%) rotate(1.5deg)' }} />
+          <img src="/images/twinme/cosmos-04-bouquet.jpg" alt="" style={{ top: '64%', width: 200, height: 270, transform: 'translateX(-50%) rotate(-3deg)' }} />
           <p className="pc-auth-caption">
             <strong>Every Tuesday ends in back-to-back calls, and every Tuesday night the music turns ambient.</strong>
             Read from a calendar and a listening history. Cited, not guessed.
