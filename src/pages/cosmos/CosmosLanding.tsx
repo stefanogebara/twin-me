@@ -284,7 +284,7 @@ export default function CosmosLanding() {
               </div>
             </article>
             <article className="pc-card pc-reveal" style={{ '--d': '0.19s' } as React.CSSProperties}>
-              <img src={IMG.portrait} alt="A quiet portrait of Marina" loading="lazy" />
+              <img src={IMG.portrait} alt="Marina at her window at blue hour, lit by a lamp" loading="lazy" style={{ objectPosition: '50% 100%' }} />
               <div className="pc-float pc-float--center">
                 <p className="pc-float-label">Your twin</p>
                 <p className="pc-float-sub">Answers as you, and cites what it read</p>
