@@ -197,12 +197,12 @@ export default function CosmosSpec() {
 
       <Section id="glass" n="07" title="Glass, on media only." note="Dark glass at 20% black and blur 30 sits on photographs. The big glass holds a live readout. White cards float at 16px with a whisper shadow.">
         <div className="pc-spec-media">
-          <img src="/images/twinme/cosmos-04-bouquet.jpg" alt="" loading="lazy" />
+          <img src="/images/twinme/cosmos-04-run.jpg" alt="" loading="lazy" />
           <span className="pc-glass"><Wave /> loops the same three songs before a deadline</span>
           <span className="pc-glass pc-glass--big"><Wave /> 05:52</span>
         </div>
         <div className="pc-spec-media pc-spec-media--tall">
-          <img src="/images/twinme/cosmos-06-vortex.jpg" alt="" loading="lazy" />
+          <img src="/images/twinme/cosmos-06-portrait.jpg" alt="" loading="lazy" />
           <div className="pc-float">
             <p className="pc-float-label">Your twin</p>
             <p className="pc-float-sub">Answers as you, and cites what it read</p>
@@ -218,8 +218,8 @@ export default function CosmosSpec() {
       <Section id="cards" n="08" title="Polaroids, notes and the film." note="Photos at 12px, loosely rotated, with a whisper shadow. A note is a white card with a reading and its source line. The film card is 4:3 with a split title and a caption on a scrim.">
         <div className="pc-spec-row" style={{ alignItems: 'flex-start' }}>
           <div className="pc-spec-polaroids">
-            <img src="/images/twinme/cosmos-02-doorway.jpg" alt="" loading="lazy" style={{ transform: 'rotate(-4deg)' }} />
-            <img src="/images/twinme/cosmos-05-meadow.jpg" alt="" loading="lazy" style={{ transform: 'rotate(3deg)' }} />
+            <img src="/images/twinme/cosmos-02-records.jpg" alt="" loading="lazy" style={{ transform: 'rotate(-4deg)' }} />
+            <img src="/images/twinme/cosmos-05-kitchen.jpg" alt="" loading="lazy" style={{ transform: 'rotate(3deg)' }} />
           </div>
           <article className="pc-note" style={{ width: 300 }}>
             <p>Every Tuesday ends in back-to-back calls, and every Tuesday night your music turns ambient.</p>
@@ -227,9 +227,9 @@ export default function CosmosSpec() {
           </article>
         </div>
         <div className="pc-spec-film">
-          <img src="/images/twinme/cosmos-07-galaxy.jpg" alt="" loading="lazy" />
+          <img src="/images/twinme/cosmos-07-room.jpg" alt="" loading="lazy" />
           <div className="pc-film-title" aria-hidden="true"><span><Play fill="currentColor" strokeWidth={0} /> Watch</span><span>the film</span></div>
-          <p className="pc-film-caption">Coming with the private beta</p>
+          <p className="pc-film-caption">with Marina, 31</p>
         </div>
       </Section>
 
