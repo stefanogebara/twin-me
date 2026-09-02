@@ -1,18 +1,133 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { ArrowLeft, Loader2, ShieldCheck, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useAnalytics } from '../contexts/AnalyticsContext';
-import { useTheme } from '../contexts/ThemeContext';
-import { Loader2, X, Check, Ticket } from 'lucide-react';
 import { API_URL } from '@/services/api/apiBase';
-import { ClassicBackground } from '../components/ClassicBackground';
+import '@/styles/presence-cosmos.css';
+
+/**
+ * /auth — the Cosmos auth layout shared with /presence/login (Auth section of
+ * presence-cosmos.css): a narrow centered column on linen beside a paper-white panel of
+ * polaroids, the wordmark as the floor.
+ *
+ * The logic is unchanged from the Nocturne version: signed-in redirect honoring a safe
+ * ?redirect=, the landing-reveal continuity card, the private-beta invite gate with its
+ * bypasses, Google OAuth, the magic-link fallback, session-expired cleanup, and the
+ * terms/privacy modals.
+ */
+
+function Mark() {
+  return (
+    <svg className="pc-mark" viewBox="0 0 28 28" fill="currentColor" aria-hidden="true">
+      <circle cx="5" cy="5" r="2.7" />
+      <circle cx="14" cy="5" r="2.7" />
+      <circle cx="23" cy="5" r="2.7" />
+      <circle cx="23" cy="14" r="2.7" />
+      <circle cx="23" cy="23" r="2.7" />
+      <circle cx="14" cy="23" r="2.7" />
+      <circle cx="5" cy="23" r="2.7" />
+      <circle cx="5" cy="14" r="2.7" />
+    </svg>
+  );
+}
+
+const LEGAL = {
+  terms: {
+    title: 'Terms of Service',
+    content: `Last updated: March 2026
+
+1. Acceptance of Terms
+By accessing and using Twin Me, you agree to be bound by these Terms of Service. If you do not agree, please do not use our service.
+
+2. Description of Service
+Twin Me provides a digital twin platform that analyzes your connected platform data to generate personalized insights and recommendations.
+
+3. User Data & Privacy
+- You retain ownership of all data you provide
+- We process data only to provide our services
+- You can delete your data at any time
+- See our Privacy Policy for details
+
+4. User Responsibilities
+- Provide accurate information
+- Maintain the security of your account
+- Use the service in compliance with applicable laws
+- Do not attempt to reverse engineer the service
+
+5. Intellectual Property
+All platform content, design, and technology remain our property. Your generated insights and soul signature are yours.
+
+6. Limitation of Liability
+The service is provided "as is" without warranties. We are not liable for indirect, incidental, or consequential damages.
+
+7. Changes to Terms
+We may update these terms. Continued use constitutes acceptance of changes.
+
+8. Contact
+For questions about these terms, contact support@twinme.me`,
+  },
+  privacy: {
+    title: 'Privacy Policy',
+    content: `Last updated: March 2026
+
+1. Information We Collect
+- Account information (email, name from Google OAuth)
+- Connected platform data (Spotify, Calendar, YouTube, etc.)
+- Usage analytics and preferences
+
+2. How We Use Your Information
+- Generate your personalized Soul Signature
+- Provide music and wellness recommendations
+- Improve our AI algorithms
+- Send relevant notifications (with your consent)
+
+3. Data Storage & Security
+- Data is encrypted in transit and at rest
+- We use Supabase (PostgreSQL) for secure storage
+- Access is limited to authorized personnel only
+
+4. Your Privacy Controls
+- Choose what data to share via Privacy Spectrum
+- Disconnect platforms at any time
+- Export or delete your data on request
+- Control notification preferences
+
+5. Third-Party Services
+- We use Google OAuth for authentication
+- Connected platforms have their own privacy policies
+- We do not sell your data to third parties
+
+6. Data Retention
+- Active accounts: data retained while account exists
+- Deleted accounts: data removed within 30 days
+- Anonymous analytics may be retained indefinitely
+
+7. Children's Privacy
+Our service is not intended for users under 13.
+
+8. International Users
+Data may be processed in the United States.
+
+9. Updates to This Policy
+We'll notify you of significant changes via email.
+
+10. Contact Us
+For privacy concerns: privacy@twinme.me`,
+  },
+} as const;
 
 const CustomAuth = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { signInWithOAuth, isSignedIn, isLoaded } = useAuth();
   const { trackFunnel } = useAnalytics();
-  const { resolvedTheme } = useTheme();
+
+  useEffect(() => {
+    const previousTitle = document.title;
+    document.title = 'Sign in · TwinMe';
+    return () => { document.title = previousTitle; };
+  }, []);
 
   // Redirect already-signed-in users away from auth page, unless `?view=public`
   // is set (lets marketers QA the auth UI while signed-in and supports a
@@ -39,8 +154,7 @@ const CustomAuth = () => {
   // Continuity from the landing reveal (hero inversion, 2026-08). The hero
   // stores the enrichment reading before sending the user here; without this
   // the auth page reads as a cold wall right after the product's best moment.
-  // Signup then becomes "save what you already have", not "pay to enter"
-  // (the Duolingo deferred-signup framing).
+  // Signup then becomes "save what you already have", not "pay to enter".
   const [reveal] = useState<{ name: string | null; line: string | null } | null>(() => {
     try {
       const raw = sessionStorage.getItem('twinme_discovery_data');
@@ -70,8 +184,6 @@ const CustomAuth = () => {
     trackFunnel('auth_page_viewed', {});
 
     // Surface session-expired message from AuthContext init redirect (2026-04-22)
-    // audit-2026-05-09 F-H1: were Portuguese strings — landing page is English
-    // by default, English-speaking users were seeing PT-BR copy on the auth page.
     const urlError = searchParams.get('error');
     if (urlError === 'session_expired') {
       setError('Your session expired. Please sign in again.');
@@ -218,524 +330,158 @@ const CustomAuth = () => {
     }
   };
 
-  const modalContent = {
-    terms: {
-      title: 'Terms of Service',
-      content: `Last updated: March 2026
-
-1. Acceptance of Terms
-By accessing and using Twin Me, you agree to be bound by these Terms of Service. If you do not agree, please do not use our service.
-
-2. Description of Service
-Twin Me provides a digital twin platform that analyzes your connected platform data to generate personalized insights and recommendations.
-
-3. User Data & Privacy
-- You retain ownership of all data you provide
-- We process data only to provide our services
-- You can delete your data at any time
-- See our Privacy Policy for details
-
-4. User Responsibilities
-- Provide accurate information
-- Maintain the security of your account
-- Use the service in compliance with applicable laws
-- Do not attempt to reverse engineer the service
-
-5. Intellectual Property
-All platform content, design, and technology remain our property. Your generated insights and soul signature are yours.
-
-6. Limitation of Liability
-The service is provided "as is" without warranties. We are not liable for indirect, incidental, or consequential damages.
-
-7. Changes to Terms
-We may update these terms. Continued use constitutes acceptance of changes.
-
-8. Contact
-For questions about these terms, contact support@twinme.me`
-    },
-    privacy: {
-      title: 'Privacy Policy',
-      content: `Last updated: March 2026
-
-1. Information We Collect
-- Account information (email, name from Google OAuth)
-- Connected platform data (Spotify, Calendar, YouTube, etc.)
-- Usage analytics and preferences
-
-2. How We Use Your Information
-- Generate your personalized Soul Signature
-- Provide music and wellness recommendations
-- Improve our AI algorithms
-- Send relevant notifications (with your consent)
-
-3. Data Storage & Security
-- Data is encrypted in transit and at rest
-- We use Supabase (PostgreSQL) for secure storage
-- Access is limited to authorized personnel only
-
-4. Your Privacy Controls
-- Choose what data to share via Privacy Spectrum
-- Disconnect platforms at any time
-- Export or delete your data on request
-- Control notification preferences
-
-5. Third-Party Services
-- We use Google OAuth for authentication
-- Connected platforms have their own privacy policies
-- We do not sell your data to third parties
-
-6. Data Retention
-- Active accounts: data retained while account exists
-- Deleted accounts: data removed within 30 days
-- Anonymous analytics may be retained indefinitely
-
-7. Children's Privacy
-Our service is not intended for users under 13.
-
-8. International Users
-Data may be processed in the United States.
-
-9. Updates to This Policy
-We'll notify you of significant changes via email.
-
-10. Contact Us
-For privacy concerns: privacy@twinme.me`
-    }
-  };
+  const emailHint = searchParams.get('email');
+  const gateOpen = inviteValid || isReturning;
 
   return (
-    <div
-      className="min-h-screen flex relative"
-    >
-      {/* Like the landing, auth always presents the brand canvas — the
-          DayNight photo background is an in-app preference, and the funnel
-          reads as one product only if it holds one surface throughout. */}
-      <ClassicBackground />
+    <main className="presence-cosmos" id="main-content">
+      <div className="pc-auth">
+        <section className="pc-auth-left">
+          <Link className="pc-auth-back" to="/"><ArrowLeft size={15} /> TwinMe</Link>
+          <Mark />
 
-      {/* Left panel — form (glass card on mobile, clean on desktop) */}
-      <div className="relative z-[1] flex-1 flex items-center justify-center px-4 sm:px-6">
-      <div className="claura-glass w-full max-w-[420px] rounded-[24px] px-6 py-8">
-
-        {/* Logo */}
-        <div className="flex items-center gap-2 mb-10">
-          <div className="w-7 h-7 rounded-full overflow-hidden flex-shrink-0">
-            <img
-              src="/images/backgrounds/flower.png"
-              alt="TwinMe"
-              className="w-full h-full object-cover"
-            />
-          </div>
-          <span
-            style={{
-              fontFamily: "var(--font-heading)",
-              fontSize: '22px',
-              letterSpacing: '-0.5px',
-              color: 'var(--foreground)',
-            }}
-          >
-            TwinMe
-          </span>
-        </div>
-
-        {/* Heading — the page is a signup for most people who reach it, so it
-            must not greet them with "Sign in". Three states: arriving from the
-            landing reveal, returning, or new. */}
-        {/* Law 4: the italic marks ONE word per display line — the verb. This
-            heading arrived from #265 set fully italic at weight 400, which was
-            right for Claura's Instrument Serif and wrong for Fraunces 300. */}
-        <h1 className="n-heading mb-2" style={{ fontSize: '32px' }}>
-          {reveal ? (
-            <><em>Keep</em> your reading</>
-          ) : isReturning ? (
-            <><em>Welcome</em> back</>
-          ) : (
-            <><em>Create</em> your twin</>
-          )}
-        </h1>
-        <p
-          className="text-sm mb-8"
-          style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
-        >
-          {reveal
-            ? 'Your twin starts here. Create an account and it keeps learning.'
-            : isReturning
-              ? 'Sign in to your soul signature.'
-              : 'One account. Your data stays yours, and you can delete it anytime.'}
-        </p>
-
-        {/* Continuity card — what the landing already found about them */}
-        {reveal && (
-          <div
-            className="mb-8 px-4 py-3.5 rounded-[12px]"
-            style={{
-              backgroundColor: 'var(--glass-surface-bg)',
-              border: '1px solid var(--glass-surface-border)',
-            }}
-          >
-            <p
-              className="text-[10px] uppercase tracking-[0.14em] mb-2"
-              style={{ color: 'var(--text-muted)', fontFamily: "'Inter', sans-serif" }}
-            >
-              {reveal.name ? `Your first reading, ${reveal.name.split(' ')[0]}` : 'Your first reading'}
+          <div className="pc-auth-card">
+            {/* The page is a signup for most people who reach it, so it must not
+                greet them with "Sign in". Three states: arriving from the landing
+                reveal, returning, or new. */}
+            <h1>
+              {reveal ? 'Keep your reading.' : isReturning ? 'Welcome back.' : 'Create your twin.'}
+            </h1>
+            <p className="pc-auth-sub">
+              {reveal
+                ? 'One account, and it keeps learning.'
+                : isReturning
+                  ? 'Sign in to your soul signature.'
+                  : <>Your data stays yours, and you can delete it anytime. Or <Link to="/">read how it works</Link>.</>}
             </p>
-            {reveal.line && (
-              <p
-                className="text-[14px] leading-relaxed"
-                style={{
-                  fontFamily: "'Instrument Serif', Georgia, serif",
-                  color: 'var(--text-narrative)',
-                }}
-              >
-                {reveal.line}
-              </p>
-            )}
-          </div>
-        )}
 
-        {/* Beta invite code section.
-            When inviteValid is true but a top-level error is also showing
-            (e.g. /auth?error=session_expired bounce-back), suppress the
-            green "Access granted" badge entirely — otherwise the page reads
-            as "✓ access granted ✗ session expired" which is contradictory
-            from the user's POV. The badge returns on the next successful
-            render. We still keep inviteValid=true so the user is NOT asked
-            to re-enter their invite code; only the badge UI is hidden.
-            Audit 2026-05-22. */}
-        {inviteValid ? (
-          error ? null : (
-          <div
-            className="flex items-center gap-2.5 mb-6 py-3 px-4 rounded-lg"
-            style={{
-              backgroundColor: 'var(--surface)',
-              border: '1px solid var(--glass-surface-border)',
-            }}
-          >
-            <Check className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--foreground)' }} />
-            <span className="text-sm" style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
-              {inviteCode ? (
-                <>Invite code: <strong style={{ color: 'var(--foreground)', letterSpacing: '1px' }}>{inviteCode}</strong></>
-              ) : (
-                'Access granted'
-              )}
-            </span>
-          </div>
-          )
-        ) : isReturning ? null : (
-          <div className="mb-6">
-            {/* The gate is a fact about the product, not a bouncer. Saying so
-                costs one line and stops the cold-form read. */}
-            <p
-              className="text-[13px] mb-2.5 leading-relaxed"
-              style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
-            >
-              TwinMe is in private beta — enter your invite code to claim a place.
-            </p>
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <Ticket className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--text-placeholder)' }} />
-                <input
-                  type="text"
-                  value={inviteCode}
-                  onChange={(e) => {
-                    setInviteCode(e.target.value);
-                    setError('');
-                    setInviteValid(false);
-                  }}
-                  placeholder="Enter invite code"
-                  className="w-full h-10 pl-9 pr-3 rounded-[12px] text-sm outline-none"
-                  style={{
-                    backgroundColor: 'var(--input)',
-                    border: '1px solid var(--border)',
-                    color: 'var(--foreground)',
-                    fontFamily: "'Inter', sans-serif",
-                  }}
-                  onKeyDown={(e) => e.key === 'Enter' && validateCode(inviteCode)}
-                />
+            {/* Continuity card: what the landing already found about them. */}
+            {reveal ? (
+              <div className="pc-auth-reveal">
+                <span>{reveal.name ? `Your first reading, ${reveal.name.split(' ')[0]}` : 'Your first reading'}</span>
+                {reveal.line ? <p>{reveal.line}</p> : null}
               </div>
-              <button
-                onClick={() => validateCode(inviteCode)}
-                disabled={validating || inviteCode.length < 4}
-                className="h-10 px-4 rounded-[12px] text-sm font-medium transition-opacity hover:opacity-90 disabled:opacity-40"
-                style={{
-                  background: 'var(--secondary)',
-                  border: '1px solid var(--border)',
-                  color: 'var(--foreground)',
-                  fontFamily: "'Inter', sans-serif",
-                }}
-              >
-                {validating ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Verify'}
+            ) : null}
+
+            {/* Beta invite gate. When inviteValid is true but a top-level error is
+                also showing (e.g. /auth?error=session_expired), the granted line is
+                suppressed so the page does not read "granted" and "expired" at once;
+                inviteValid stays true so the code is not asked for again. */}
+            {inviteValid ? (
+              error ? null : (
+                <p className="pc-auth-granted">
+                  {inviteCode ? <>Invite code <strong>{inviteCode}</strong></> : 'Access granted'}
+                </p>
+              )
+            ) : isReturning ? null : (
+              <div className="pc-auth-gate">
+                <p className="pc-auth-note">TwinMe is in private beta. Enter your invite code to claim a place.</p>
+                <div className="pc-auth-row">
+                  <label className="pc-ob-field">
+                    <input
+                      type="text"
+                      value={inviteCode}
+                      aria-label="Invite code"
+                      placeholder="Invite code"
+                      autoCapitalize="characters"
+                      onChange={(e) => { setInviteCode(e.target.value); setError(''); setInviteValid(false); }}
+                      onKeyDown={(e) => { if (e.key === 'Enter') validateCode(inviteCode); }}
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    className="pc-btn pc-btn--ghost"
+                    onClick={() => validateCode(inviteCode)}
+                    disabled={validating || inviteCode.trim().length < 4}
+                  >
+                    {validating ? <Loader2 className="pc-spin" size={18} /> : 'Verify'}
+                  </button>
+                </div>
+                <p className="pc-auth-note">
+                  No code? <Link to="/waitlist">Join the waitlist</Link>
+                </p>
+              </div>
+            )}
+
+            {emailHint ? (
+              <p className="pc-auth-note pc-auth-note--hint">
+                Signing up as <strong>{emailHint}</strong>
+              </p>
+            ) : null}
+
+            <div className="pc-auth-actions">
+              <button className="pc-auth-google" onClick={handleGoogleSignIn} disabled={loading}>
+                {loading ? <Loader2 className="pc-spin" size={18} /> : <span className="pc-auth-g">G</span>}
+                {loading ? 'Connecting' : 'Continue with Google'}
               </button>
+              {!gateOpen ? <p className="pc-auth-note">New here? Add your invite code above first.</p> : null}
             </div>
-            <p className="text-[12px] mt-2" style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
-              No code?{' '}
-              <button
-                onClick={() => navigate('/waitlist')}
-                className="underline transition-opacity hover:opacity-70 min-h-[44px] inline-flex items-center"
-                style={{ color: 'var(--text-secondary)' }}
-              >
-                Join the waitlist
-              </button>
+
+            {error ? <p className="pc-auth-error" role="alert">{error}</p> : null}
+
+            <div className="pc-auth-or" aria-hidden="true"><span>or</span></div>
+
+            {magicLinkSent ? (
+              <div className="pc-auth-sent" role="status">
+                <strong>Check your email for a sign-in link.</strong>
+                It works once and expires in 15 minutes.
+              </div>
+            ) : (
+              <form className="pc-auth-magic" onSubmit={handleMagicLinkRequest}>
+                <label className="pc-ob-field">
+                  <input
+                    type="email"
+                    autoComplete="email"
+                    aria-label="Email address"
+                    value={email}
+                    placeholder="you@example.com"
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                </label>
+                <button type="submit" className="pc-btn pc-btn--ghost" disabled={magicLinkLoading || !email.trim()}>
+                  {magicLinkLoading ? <Loader2 className="pc-spin" size={18} /> : 'Email me a sign-in link'}
+                </button>
+              </form>
+            )}
+
+            <p className="pc-auth-legal">
+              By continuing, you agree to TwinMe’s{' '}
+              <button type="button" onClick={() => setActiveModal('terms')}>Terms</button> and{' '}
+              <button type="button" onClick={() => setActiveModal('privacy')}>Privacy Policy</button>.
+            </p>
+
+            <p className="pc-auth-trust">
+              <ShieldCheck size={16} />
+              Read-only. It can never post or delete, your data never trains a model, and you can delete everything in one click.
             </p>
           </div>
-        )}
 
-        {/* Email hint */}
-        {searchParams.get('email') && (
-          <div
-            className="text-sm mb-6 py-3 px-4 rounded-[12px]"
-            style={{
-              backgroundColor: 'var(--glass-surface-bg)',
-              border: '1px solid var(--border-glass)',
-              color: 'var(--text-secondary)',
-            }}
-          >
-            Signing up as <strong style={{ color: 'var(--foreground)' }}>{searchParams.get('email')}</strong>
-          </div>
-        )}
+          <div className="pc-auth-wordmark" aria-hidden="true">TWINME</div>
+        </section>
 
-        {/* Error */}
-        {error && (
-          <div
-            className="text-sm mb-6 py-3 px-4 rounded-[10px]"
-            style={{
-              backgroundColor: 'rgba(220, 38, 38, 0.10)',
-              border: '1px solid rgba(220, 38, 38, 0.35)',
-              color: 'var(--claura-danger-ink)',
-            }}
-          >
-            {error}
-          </div>
-        )}
-
-        {/* Google sign-in */}
-        <button
-          onClick={handleGoogleSignIn}
-          disabled={loading}
-          className="w-full flex items-center justify-center gap-2.5 h-12 rounded-[12px] text-sm font-semibold transition-all duration-200 hover:-translate-y-0.5 hover:brightness-105 hover:shadow-lg disabled:opacity-50"
-          style={{
-            background: 'var(--claura-bone)',
-            color: 'var(--claura-bone-ink)',
-            fontFamily: "'Inter', sans-serif",
-            cursor: loading ? 'not-allowed' : 'pointer',
-          }}
-        >
-          {loading ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin" />
-              <span>Connecting...</span>
-            </>
-          ) : (
-            <>
-              <svg width="18" height="18" viewBox="0 0 24 24">
-                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-              </svg>
-              <span>Continue with Google</span>
-            </>
-          )}
-        </button>
-        {!inviteValid && !isReturning && (
-          <p className="text-xs mt-2" style={{ color: 'var(--text-muted)', fontFamily: "'Inter', sans-serif" }}>
-            New here? Add your invite code above first.
+        <aside className="pc-auth-panel" aria-hidden="true">
+          <img src="/images/twinme/cosmos-02-records.jpg" alt="" style={{ top: '-4%', width: 220, height: 290, transform: 'translateX(-50%) rotate(-2deg)' }} />
+          <img src="/images/twinme/cosmos-07-room.jpg" alt="" style={{ top: '30%', width: 360, height: 240, transform: 'translateX(-50%) rotate(1.5deg)' }} />
+          <img src="/images/twinme/cosmos-04-run.jpg" alt="" style={{ top: '64%', width: 200, height: 270, transform: 'translateX(-50%) rotate(-3deg)' }} />
+          <p className="pc-auth-caption">
+            <strong>Every Tuesday ends in back-to-back calls, and every Tuesday night the music turns ambient.</strong>
+            Read from a calendar and a listening history. Cited, not guessed.
           </p>
-        )}
-
-        {/* audit-2026-05-09 F-M2: magic-link email signin (fallback path) */}
-        <div className="mt-5 flex items-center gap-3" aria-hidden="true">
-          <div className="flex-1" style={{ borderTop: '1px solid var(--border-glass)' }} />
-          <span className="text-[11px] uppercase tracking-wider" style={{ color: 'var(--text-muted)', fontFamily: "'Inter', sans-serif" }}>or</span>
-          <div className="flex-1" style={{ borderTop: '1px solid var(--border-glass)' }} />
-        </div>
-
-        {magicLinkSent ? (
-          <div
-            className="mt-5 rounded-[12px] px-4 py-3.5 text-sm text-center"
-            style={{
-              backgroundColor: 'var(--glass-surface-bg)',
-              border: '1px solid var(--glass-surface-border)',
-              color: 'var(--foreground)',
-              fontFamily: "'Inter', sans-serif",
-            }}
-          >
-            Check your email for a signin link.<br/>
-            <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>
-              It works once and expires in 15 minutes.
-            </span>
-          </div>
-        ) : (
-          <form onSubmit={handleMagicLinkRequest} className="mt-5 flex flex-col gap-2.5">
-            <input
-              type="email"
-              autoComplete="email"
-              aria-label="Email address"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              className="w-full h-12 px-4 rounded-[12px] text-sm outline-none transition-colors"
-              style={{
-                backgroundColor: 'var(--glass-surface-bg)',
-                border: '1px solid var(--glass-surface-border)',
-                color: 'var(--foreground)',
-                fontFamily: "'Inter', sans-serif",
-              }}
-            />
-            <button
-              type="submit"
-              disabled={magicLinkLoading || !email.trim()}
-              className="w-full flex items-center justify-center gap-2 h-12 rounded-[12px] text-sm font-medium transition-opacity hover:opacity-90 disabled:opacity-50"
-              style={{
-                backgroundColor: 'var(--glass-surface-bg)',
-                border: '1px solid var(--glass-surface-border)',
-                color: 'var(--foreground)',
-                fontFamily: "'Inter', sans-serif",
-                cursor: magicLinkLoading ? 'not-allowed' : 'pointer',
-              }}
-            >
-              {magicLinkLoading ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Sending...</span>
-                </>
-              ) : (
-                <span>Email me a signin link</span>
-              )}
-            </button>
-          </form>
-        )}
-
-        {/* Divider */}
-        <div className="my-8" style={{ borderTop: '1px solid var(--border-glass)' }} />
-
-        {/* Terms */}
-        <p
-          className="text-center text-[12px] leading-relaxed"
-          style={{ color: 'var(--text-muted)', fontFamily: "'Inter', sans-serif" }}
-        >
-          By continuing, you agree to our{' '}
-          <button
-            onClick={() => setActiveModal('terms')}
-            className="underline transition-opacity hover:opacity-70 min-h-[44px] inline-flex items-center"
-            style={{ color: 'var(--text-secondary)' }}
-          >
-            Terms of Service
-          </button>
-          {' '}and{' '}
-          <button
-            onClick={() => setActiveModal('privacy')}
-            className="underline transition-opacity hover:opacity-70 min-h-[44px] inline-flex items-center"
-            style={{ color: 'var(--text-secondary)' }}
-          >
-            Privacy Policy
-          </button>
-        </p>
-
-        {/* Explore link */}
-        <p
-          className="text-center text-[13px] mt-6"
-          style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
-        >
-          New here?{' '}
-          <button
-            onClick={() => navigate('/')}
-            className="transition-opacity hover:opacity-70"
-            style={{ color: 'var(--foreground)' }}
-          >
-            Learn more
-          </button>
-        </p>
-
-        {/* Footer */}
-        <div className="mt-10 text-center">
-          <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-            &copy; 2026 TwinMe Inc.
-          </span>
-        </div>
-      </div>
+        </aside>
       </div>
 
-      {/* Right panel — Nocturne graphite panel (flip 2026-09-01): no
-          photography, no scrims. Serif statement + the three facts people
-          hesitate over, in the mono voice. */}
-      <div
-        className="hidden lg:flex relative flex-1 m-4 ml-0 flex-col items-center justify-center px-12"
-        style={{ background: 'var(--n-graphite)', borderRadius: 'var(--n-r-tile)' }}
-      >
-        <h2 className="n-display-sm" style={{ textAlign: 'center', fontSize: 'clamp(36px, 4vw, 56px)' }}>
-          Your soul signature
-          <br />
-          <em>starts</em> here.
-        </h2>
-        <p className="n-body" style={{ textAlign: 'center', maxWidth: 340, marginTop: 20 }}>
-          Connect what you actually use, and meet the twin that reads your
-          patterns instead of your resume.
-        </p>
-        <ul style={{ listStyle: 'none', padding: 0, margin: '36px 0 0', display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {[
-            'READ-ONLY. IT CAN NEVER POST OR DELETE.',
-            'YOUR DATA NEVER TRAINS MODELS.',
-            'DELETE EVERYTHING, ANYTIME, IN ONE CLICK.',
-          ].map((fact) => (
-            <li key={fact} className="n-micro" style={{ color: 'var(--n-ash)' }}>{fact}</li>
-          ))}
-        </ul>
-      </div>
-
-      {/* Modal */}
-      {activeModal && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          onClick={() => setActiveModal(null)}
-        >
-          <div className="absolute inset-0" style={{ backgroundColor: 'rgba(0,0,0,0.6)' }} />
-          <div
-            className="relative w-full max-w-[600px] max-h-[80vh] overflow-hidden rounded-xl"
-            style={{
-              backgroundColor: 'var(--background)',
-              border: '1px solid var(--border-glass)',
-            }}
-            onClick={e => e.stopPropagation()}
-          >
-            <div
-              className="flex items-center justify-between px-6 py-4"
-              style={{ borderBottom: '1px solid var(--border-glass)' }}
-            >
-              <h2
-                style={{
-                  fontFamily: "var(--font-heading)",
-                  fontSize: '20px',
-                  fontWeight: 400,
-                  color: 'var(--foreground)',
-                }}
-              >
-                {modalContent[activeModal].title}
-              </h2>
-              <button
-                onClick={() => setActiveModal(null)}
-                aria-label="Close"
-                className="p-1 transition-opacity hover:opacity-60"
-                style={{ color: 'var(--text-muted)' }}
-              >
-                <X className="w-4 h-4" />
-              </button>
+      {activeModal ? (
+        <div className="pc-modal" role="dialog" aria-modal="true" aria-labelledby="pc-modal-title" onClick={() => setActiveModal(null)}>
+          <div className="pc-modal-card" onClick={(e) => e.stopPropagation()}>
+            <div className="pc-modal-head">
+              <h2 id="pc-modal-title">{LEGAL[activeModal].title}</h2>
+              <button type="button" className="pc-modal-close" onClick={() => setActiveModal(null)} aria-label="Close"><X size={16} /></button>
             </div>
-            <div className="px-6 py-5 overflow-y-auto" style={{ maxHeight: 'calc(80vh - 60px)' }}>
-              <pre
-                className="whitespace-pre-wrap text-[13px] leading-relaxed"
-                style={{
-                  fontFamily: "'Inter', sans-serif",
-                  color: 'var(--text-secondary)',
-                  margin: 0,
-                }}
-              >
-                {modalContent[activeModal].content}
-              </pre>
-            </div>
+            <pre className="pc-modal-body">{LEGAL[activeModal].content}</pre>
           </div>
         </div>
-      )}
-    </div>
+      ) : null}
+    </main>
   );
 };
 
