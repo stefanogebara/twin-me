@@ -1,17 +1,16 @@
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import NocturneLanding from './nocturne/NocturneLanding';
+import MercuryLanding from './mercury/MercuryLanding';
 
 /**
- * / — the front door, on Nocturne since the flip (2026-09-01).
- * All landing content and the acquisition flow live in NocturneLanding;
- * this shell only owns the signed-in redirect. The prior cognition-hero
- * experiment is preserved in the pre-flip stash snapshot.
+ * / — the front door, in the Mercury register since 2026-09-02 (decision: Stefano).
+ * All landing content and the acquisition flow live in MercuryLanding; this shell
+ * only owns the signed-in redirect. The Nocturne landing stays browsable at /nocturne.
  */
 const Index = () => {
   const { isSignedIn, isLoaded } = useAuth();
   if (isLoaded && isSignedIn) return <Navigate to="/today" replace />;
-  return <NocturneLanding />;
+  return <MercuryLanding />;
 };
 
 export default Index;
