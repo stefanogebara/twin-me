@@ -153,7 +153,7 @@ router.post('/transcribe', authenticateUser, userRateLimit(30, 15 * 60 * 1000), 
     if (!voiceService.speechToTextEnabled) {
       return res.status(503).json({
         error: 'Speech-to-text service unavailable',
-        message: 'OpenAI API key is not configured'
+        message: 'No OpenAI or OpenRouter API key configured'
       });
     }
 

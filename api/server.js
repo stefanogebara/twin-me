@@ -551,6 +551,8 @@ import telegramLinkRoutes from './routes/telegram-link.js';
 import whatsappLinkRoutes from './routes/whatsapp-link.js';
 import inngestRoutes from './routes/inngest.js';
 import skillsRoutes from './routes/skills.js';
+import presenceRoutes from './routes/presence.js';
+import presenceCallRoutes from './routes/presence-call.js';
 import twinScalingRoutes from './routes/twin-scaling.js';
 import multimodalRoutes from './routes/multimodal.js';
 import morningBriefingRoutes from './routes/morning-briefing.js';
@@ -694,6 +696,8 @@ app.use('/api/costs', (await import('./routes/cost-dashboard.js')).default); // 
 app.use('/api/insights', platformInsightsRoutes); // Platform-specific conversational insights
 app.use('/api/goals', goalsRoutes); // Twin-driven goal tracking (suggestions, progress, accountability)
 app.use('/api/twin-directives', twinDirectivesRoutes); // pi-reflect — learned directives from user corrections
+app.use('/api/presence', presenceRoutes); // Presence family-relay onboarding (plans 2026-08-31-presence-*)
+app.use('/api/presence-call', presenceCallRoutes); // Presence elder channel — public token-authed call endpoints
 app.use('/api/actions', actionsRoutes); // M1 action inbox — list + send/edit/reject voice-reply drafts
 app.use('/api/onboarding', onboardingWowRoutes); // M1 activation — POST /api/onboarding/wow (Gmail -> instant drafts + voice read)
 app.use('/api/observations', observationsClipRoutes); // TwinMe Desktop: batch clip sync (foreground app + window title -> observation memories)

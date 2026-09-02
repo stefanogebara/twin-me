@@ -1,8 +1,5 @@
-import { useNavigate } from 'react-router-dom';
-import { PresenceExperience } from './preview/PresencePrototype';
+import { PresenceOnboardingRoute } from './presence/PresenceOnboarding';
 
 export default function PresencePage() {
-  const navigate = useNavigate();
-
-  return <PresenceExperience persistDraft onExit={() => navigate('/presence')} />;
+  return <PresenceOnboardingRoute />;
 }

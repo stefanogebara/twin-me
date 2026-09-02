@@ -1,0 +1,2911 @@
+/**
+ * /presence — Cosmos-style implementation
+ *
+ * Built from a live read of cosmos.so (computed styles, tokens, keyframes, layout
+ * measurements) rather than from the previous Presence layout. Self-contained and
+ * scoped under .presence-cosmos so nothing leaks into the dark Claura app shell, and
+ * /presence/login (still on presence-marketing.css) is untouched.
+ *
+ * What was lifted from Cosmos, and how it maps here:
+ *   - Warm paper canvas (#f9f7f3 / oklch 97.11% .0034 67.78), near-black ink #0d0d0d,
+ *     warm-gray secondary text. No accent color anywhere; imagery carries all color.
+ *   - One neo-grotesque for everything. Cosmos ships a licensed cut of Oracle; Geist is
+ *     the closest face already loaded site-wide, so it stands in at the same sizes,
+ *     weights and tracking (display 74px at weight 300–350, -5% tracking, line-height 1).
+ *   - Everything centered, sentence case, period-ended. 200px between sections.
+ *   - Buttons at the system's signature 16px radius (per the Refero Cosmos spec:
+ *     "pill-like but squared") — black primary + 0.5px-border ghost as a matched pair;
+ *     true pills only for the nav bar, search, glass chips, and the giant CTA.
+ *   - Two glass recipes: a near-white inset-lit search pill, and on-media dark glass
+ *     (rgba(0,0,0,.2) + blur(30px)). White floating cards at 16px radius sit on photos.
+ *   - Photo cards at 12px radius, feature cards at 16px, no borders, whisper shadows.
+ *   - Motion: transform .72s cubic-bezier(.32,.72,0,1) for anything that moves in
+ *     space, .25s cubic-bezier(.22,1,.36,1) for UI, a sticky hero the film card scrolls
+ *     over, a shimmer sweep on placeholder text, and an edge-faded marquee.
+ */
+
+.presence-cosmos {
+  /* ===== Tokens ===== */
+  --c-paper: #f7f5f3; /* Linen Canvas — spec root, never pure white */
+  --c-canvas: #f7f5f3;
+  --c-white: #ffffff;
+  --c-search: #fbfaf9;
+  --c-ink: #0d0d0d;
+  --c-ink-2: #6e6a69;
+  --c-ink-3: #9a9796;
+  --c-ink-4: #d0cdcd;
+  --c-border: rgba(13, 13, 13, 0.12);
+  --c-hover-primary: #232323;
+  --c-hover-secondary: #e8e6e4;
+  --c-olive: #a6a698;
+  --c-on-media: rgba(255, 255, 255, 0.7);
+  --c-font: 'Geist', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --c-ease-out: cubic-bezier(0.32, 0.72, 0, 1);
+  --c-ease-ui: cubic-bezier(0.22, 1, 0.36, 1);
+  --c-header-h: 56px;
+  --c-header-outer: 92px;
+  --c-pad-x: 32px;
+  --c-max: 1280px;
+  --c-section-gap: clamp(112px, 15vw, 200px);
+
+  /* ===== Root / route isolation ===== */
+  position: relative;
+  z-index: 2;
+  isolation: isolate;
+  display: flow-root;
+  min-height: 100dvh;
+  background: var(--c-paper) !important;
+  color: var(--c-ink) !important;
+  font-family: var(--c-font);
+  font-size: 16px;
+  line-height: 1.5;
+  letter-spacing: -0.02em;
+  font-synthesis: none;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: clip;
+}
+
+.presence-cosmos *,
+.presence-cosmos *::before,
+.presence-cosmos *::after {
+  box-sizing: border-box;
+}
+
+.presence-cosmos a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Zero-specificity reset (:where) so single-class component styles always win —
+   a plain `.presence-cosmos button` selector outweighs `.pc-btn` and silently
+   strips fills and borders from real <button> elements. */
+:where(.presence-cosmos) :where(button) {
+  font: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+.presence-cosmos h1,
+.presence-cosmos h2,
+.presence-cosmos h3,
+.presence-cosmos p {
+  margin: 0;
+  color: var(--c-ink);
+}
+
+.presence-cosmos img,
+.presence-cosmos video {
+  display: block;
+  max-width: 100%;
+}
+
+.presence-cosmos :focus-visible {
+  outline: 2px solid var(--c-ink);
+  outline-offset: 3px;
+  border-radius: 999px;
+}
+
+/* ============================================================
+   Header — 56px bar inside a 92px band, three-column grid
+   ============================================================ */
+
+.pc-nav {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  height: var(--c-header-outer);
+  padding: 18px var(--c-pad-x);
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  pointer-events: none;
+}
+
+/* Legibility band while the film card slides underneath: a soft blur that fades out. */
+.pc-nav::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 -28px;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  /* Long fade so the blur has no visible bottom edge as content passes under it. */
+  -webkit-mask-image: linear-gradient(#000 30%, transparent);
+  mask-image: linear-gradient(#000 30%, transparent);
+  pointer-events: none;
+}
+
+.pc-nav > * {
+  position: relative;
+  pointer-events: auto;
+}
+
+.pc-nav-left,
+.pc-nav-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pc-nav-right {
+  justify-self: end;
+}
+
+.pc-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  height: var(--c-header-h);
+  padding: 0 4px;
+  color: var(--c-ink);
+}
+
+/* Six-dot ring mark. On hover the dots take turns rising — Cosmos's dot-wave. */
+.pc-mark {
+  width: 28px;
+  height: 28px;
+  display: block;
+}
+
+.pc-mark circle {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.pc-brand:hover .pc-mark circle,
+.pc-footer-mark:hover .pc-mark circle {
+  animation: pc-dot-wave 1.1s var(--c-ease-ui) infinite;
+}
+
+.pc-mark circle:nth-child(2) { animation-delay: 0.09s; }
+.pc-mark circle:nth-child(3) { animation-delay: 0.18s; }
+.pc-mark circle:nth-child(4) { animation-delay: 0.27s; }
+.pc-mark circle:nth-child(5) { animation-delay: 0.36s; }
+.pc-mark circle:nth-child(6) { animation-delay: 0.45s; }
+.pc-mark circle:nth-child(7) { animation-delay: 0.54s; }
+.pc-mark circle:nth-child(8) { animation-delay: 0.63s; }
+
+@keyframes pc-dot-wave {
+  0%, 60%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-2.5px); }
+}
+
+.pc-menu {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 40px;
+  padding: 0 8px;
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  border-radius: 999px;
+  transition: background 0.2s;
+}
+
+.pc-menu:hover {
+  background: var(--c-hover-secondary);
+}
+
+.pc-menu svg {
+  transition: transform 0.25s var(--c-ease-ui);
+}
+
+.pc-menu:hover svg {
+  transform: translateY(1px);
+}
+
+/* The center pill. Cosmos's search; here, the note a family sends into tomorrow's
+   conversation. Near-white with an inset highlight so it reads as a lit surface. */
+.pc-search {
+  height: var(--c-header-h);
+  width: min(456px, 40vw);
+  padding: 0 14px 0 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-radius: 999px;
+  background: var(--c-search);
+  border: 0.5px solid var(--c-border);
+  box-shadow:
+    inset 0 1px 1.5px rgba(255, 255, 255, 0.7),
+    inset 0 -1px 1.5px rgba(0, 0, 0, 0.03);
+  color: var(--c-ink);
+  transition: transform 0.25s var(--c-ease-ui), box-shadow 0.25s;
+}
+
+.pc-search:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 1px 1.5px rgba(255, 255, 255, 0.7),
+    inset 0 -1px 1.5px rgba(0, 0, 0, 0.03),
+    0 8px 24px rgba(13, 13, 13, 0.06);
+}
+
+.pc-search > svg:first-child {
+  flex: none;
+  color: var(--c-ink-2);
+}
+
+.pc-search-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 14px;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+}
+
+/* Shimmer sweep: the placeholder darkens letter by letter, left to right, on a loop. */
+.pc-shimmer {
+  background: linear-gradient(90deg, var(--c-ink-3) 0%, var(--c-ink-3) 42%, var(--c-ink) 50%, var(--c-ink-3) 58%, var(--c-ink-3) 100%);
+  background-size: 260% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: pc-shimmer 4s linear infinite;
+}
+
+@keyframes pc-shimmer {
+  from { background-position: 100% 0; }
+  to { background-position: -60% 0; }
+}
+
+.pc-search-icons {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--c-ink-2);
+}
+
+/* The pill is a real field: the note is typed here, kept across sign-in, and
+   handed to the first conversation. The cycling hint doubles as its placeholder. */
+.pc-search-field {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.pc-search-input {
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--c-ink);
+  font: inherit;
+  font-size: 14px;
+  letter-spacing: -0.02em;
+}
+
+.pc-search-field .pc-search-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+}
+
+.pc-search.has-value .pc-search-text {
+  display: none;
+}
+
+.pc-search:focus-within {
+  box-shadow:
+    inset 0 1px 1.5px rgba(255, 255, 255, 0.7),
+    inset 0 -1px 1.5px rgba(0, 0, 0, 0.03),
+    0 8px 24px rgba(13, 13, 13, 0.08);
+}
+
+button.pc-search-icons {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  color: var(--c-ink-2);
+}
+
+/* Six colored dots — the "ask the AI" affordance. Spins slowly on hover. */
+.pc-ai-dots {
+  width: 20px;
+  height: 20px;
+  display: block;
+}
+
+.pc-search:hover .pc-ai-dots {
+  animation: pc-spin 1.8s linear infinite;
+}
+
+/* Spinner for in-flight buttons (auth). */
+.pc-spin {
+  animation: pc-spin 0.8s linear infinite;
+}
+
+@keyframes pc-spin {
+  to { transform: rotate(360deg); }
+}
+
+.pc-nav-login {
+  height: 48px;
+  padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  color: var(--c-ink-2);
+  border-radius: 999px;
+  transition: color 0.2s, background 0.2s;
+}
+
+.pc-nav-login:hover {
+  color: var(--c-ink);
+  background: var(--c-hover-secondary);
+}
+
+/* ============================================================
+   Buttons — pills only
+   ============================================================ */
+
+.pc-btn {
+  height: 52px;
+  padding: 0 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  /* Spec: 16px is the signature radius for buttons — squared pills, not round ones. */
+  border-radius: 16px;
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  user-select: none;
+  transition: background 0.2s, color 0.2s, transform 0.25s var(--c-ease-ui), border-color 0.2s;
+}
+
+.pc-btn:active {
+  transform: scale(0.98);
+}
+
+.pc-btn:disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.pc-btn--primary {
+  background: var(--c-ink);
+  color: var(--c-white) !important;
+  border: 0.5px solid transparent;
+}
+
+.pc-btn--primary:hover {
+  background: var(--c-hover-primary);
+}
+
+.pc-btn--ghost {
+  background: transparent;
+  color: var(--c-ink) !important;
+  border: 0.5px solid var(--c-border);
+}
+
+.pc-btn--ghost:hover {
+  background: var(--c-hover-secondary);
+}
+
+.pc-btn--canvas {
+  height: 56px;
+  padding: 0 24px;
+  background: var(--c-canvas);
+  color: var(--c-ink) !important;
+  border: 0.5px solid var(--c-border);
+}
+
+.pc-btn--canvas:hover {
+  background: var(--c-hover-secondary);
+}
+
+/* ============================================================
+   Hero — pinned; the film card scrolls up over it
+   ============================================================ */
+
+.pc-hero {
+  position: sticky;
+  top: 0;
+  z-index: 0;
+  margin-top: calc(var(--c-header-outer) * -1);
+  height: 100dvh;
+  min-height: 640px;
+  padding: var(--c-header-outer) 16px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  background: var(--c-canvas);
+}
+
+/* The bottom of the hero fades into paper so the incoming card has a soft edge to
+   rise from. Cosmos does this with a blurred gradient scrim; same recipe. */
+.pc-hero::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 42%;
+  /* A plain gradient reads the same as the blurred scrim and costs no compositor
+     layer: with the nav band and the glass chips this page already stacks enough
+     backdrop-filters to stall older iPads. */
+  background: linear-gradient(rgba(249, 247, 243, 0) 0%, var(--c-paper) 52%);
+  pointer-events: none;
+}
+
+.pc-hero-inner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform: translateY(-4vh);
+}
+
+.pc-kicker {
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  line-height: 1;
+  color: var(--c-ink);
+}
+
+.pc-hero h1 {
+  margin: 10px 0 44px;
+  max-width: 14ch;
+  font-size: clamp(46px, 6.3vw, 74px);
+  font-weight: 300;
+  line-height: 1;
+  letter-spacing: -0.05em;
+  text-wrap: balance;
+}
+
+.pc-hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pc-hero-film-link {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 40px;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  color: var(--c-ink-2);
+  transition: color 0.2s;
+}
+
+.pc-hero-film-link:hover {
+  color: var(--c-ink);
+}
+
+.pc-hero-film-link svg {
+  transition: transform 0.25s var(--c-ease-ui);
+}
+
+.pc-hero-film-link:hover svg {
+  transform: translateY(2px);
+}
+
+/* Hero collage — polaroids pinned around the centered copy. The one place the
+   system casts shadows: the tiles read as physical objects on the linen wall. */
+.pc-hero-tiles {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.pc-tile {
+  position: absolute;
+  border-radius: 12px;
+  object-fit: cover;
+  box-shadow: 0 16px 44px rgba(13, 13, 13, 0.16);
+}
+
+/* ============================================================
+   Film card
+   ============================================================ */
+
+.pc-film {
+  position: relative;
+  z-index: 1;
+  margin-top: -22vh;
+  padding: 0 var(--c-pad-x);
+  display: flex;
+  justify-content: center;
+}
+
+.pc-film-card {
+  position: relative;
+  width: min(100%, 1104px);
+  aspect-ratio: 4 / 3;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #27302d;
+  cursor: pointer;
+  transition: transform 0.72s var(--c-ease-out);
+  /* Chrome needs this to clip the video to the radius during the transform. */
+  transform: translateZ(0);
+}
+
+.pc-film-card:hover {
+  transform: translateZ(0) scale(1.007);
+}
+
+.pc-film-card video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* The 8-dot cluster sits centered over the poster until playback begins. */
+.pc-film-dots {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--c-white);
+  opacity: 0.6;
+  pointer-events: none;
+  transition: opacity 0.5s var(--c-ease-ui);
+}
+
+.pc-film-dots.is-hidden {
+  opacity: 0;
+}
+
+.pc-film-title {
+  position: absolute;
+  inset: 0;
+  padding: 0 clamp(20px, 4vw, 48px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--c-white);
+  font-size: clamp(26px, 3.1vw, 38px);
+  font-weight: 300;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  pointer-events: none;
+  text-shadow: 0 2px 30px rgba(0, 0, 0, 0.18);
+}
+
+.pc-film-title > span:first-child {
+  display: inline-flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.pc-film-title svg {
+  width: clamp(20px, 2.6vw, 32px);
+  height: auto;
+}
+
+.pc-film-caption {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 22px;
+  text-align: center;
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  color: rgba(255, 255, 255, 0.9);
+  text-shadow: 0 1px 14px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+}
+
+/* ============================================================
+   Body sheet — everything below the film card scrolls as one
+   opaque surface over the pinned hero. Without this the hero's
+   h1 and buttons show through every transparent section gap.
+   ============================================================ */
+
+.pc-body {
+  position: relative;
+  z-index: 1;
+  background: var(--c-paper);
+  padding-top: var(--c-section-gap);
+}
+
+.pc-body > .pc-section:first-child {
+  margin-top: 0;
+}
+
+/* ============================================================
+   Section shell + type
+   ============================================================ */
+
+.pc-section {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: var(--c-max);
+  margin: var(--c-section-gap) auto 0;
+  padding: 0 var(--c-pad-x);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.pc-h2 {
+  max-width: 20ch;
+  font-size: clamp(38px, 5.5vw, 66px);
+  font-weight: 400;
+  line-height: 1.08;
+  letter-spacing: -0.04em;
+  text-wrap: balance;
+}
+
+.pc-h2--sm {
+  max-width: none;
+  font-size: clamp(28px, 3.2vw, 38px);
+}
+
+.pc-lede {
+  max-width: 640px;
+  font-size: clamp(20px, 2.2vw, 26px);
+  font-weight: 400;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  color: var(--c-ink-2);
+  text-wrap: balance;
+}
+
+.pc-section--lede {
+  margin-top: clamp(64px, 9vw, 120px);
+}
+
+/* ============================================================
+   World strip — olive board, three photographs, one glass chip
+   ============================================================ */
+
+.pc-strip {
+  position: relative;
+  width: 100%;
+  max-width: 1168px;
+  height: 420px;
+  margin-top: 64px;
+  border-radius: 12px;
+  background: var(--c-olive);
+  overflow: hidden;
+}
+
+.pc-strip img {
+  position: absolute;
+  border-radius: 12px;
+  object-fit: cover;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.16);
+  transition: transform 0.72s var(--c-ease-out);
+}
+
+.pc-strip:hover img {
+  transform: translateY(-6px);
+}
+
+.pc-strip-a { left: 64px; bottom: -34px; width: 284px; height: 394px; }
+.pc-strip-b { left: 50%; top: 62px; width: 214px; height: 296px; transform: translateX(-50%); }
+.pc-strip:hover .pc-strip-b { transform: translateX(-50%) translateY(-6px); }
+.pc-strip-c { right: 64px; bottom: -58px; width: 278px; height: 387px; }
+
+/* On-media glass pill: the Cosmos recipe, verbatim. */
+.pc-glass {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  height: 54px;
+  padding: 0 22px 0 18px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
+  border: 0.5px solid rgba(255, 255, 255, 0.08);
+  color: var(--c-white);
+  font-size: 16px;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+}
+
+.pc-strip .pc-glass {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+}
+
+/* The chip text cycles through a few notes; each swap is a short crossfade. */
+.pc-cycle {
+  display: inline-block;
+  transition: opacity 0.35s var(--c-ease-ui), transform 0.35s var(--c-ease-ui);
+}
+
+.pc-cycle.is-out {
+  opacity: 0;
+  transform: translateY(4px);
+}
+
+/* Tiny live waveform: five bars breathing out of phase. */
+.pc-wave {
+  display: inline-flex;
+  align-items: center;
+  gap: 2.5px;
+  height: 14px;
+}
+
+.pc-wave i {
+  width: 2px;
+  height: 100%;
+  border-radius: 1px;
+  background: currentColor;
+  transform-origin: center;
+  animation: pc-wave 1.3s ease-in-out infinite;
+}
+
+.pc-wave i:nth-child(1) { animation-delay: 0s; }
+.pc-wave i:nth-child(2) { animation-delay: 0.16s; }
+.pc-wave i:nth-child(3) { animation-delay: 0.32s; }
+.pc-wave i:nth-child(4) { animation-delay: 0.48s; }
+.pc-wave i:nth-child(5) { animation-delay: 0.64s; }
+
+@keyframes pc-wave {
+  0%, 100% { transform: scaleY(0.3); }
+  50% { transform: scaleY(1); }
+}
+
+/* ============================================================
+   Feature trio — photo cards with one floating UI element each
+   ============================================================ */
+
+.pc-trio {
+  width: 100%;
+  max-width: 1168px;
+  margin-top: 64px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.pc-card {
+  position: relative;
+  aspect-ratio: 8 / 9;
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--c-ink-4);
+  transform: translateZ(0);
+}
+
+.pc-card img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.72s var(--c-ease-out);
+}
+
+.pc-card:hover img {
+  transform: scale(1.03);
+}
+
+/* The close portrait is 3:4 in an 8:9 frame; bias the crop upward so the eyes stay
+   clear of the floating card that sits over the lower third. */
+.pc-card:nth-child(3) img {
+  object-position: 50% 28%;
+}
+
+/* Card 1: a big glass chip with the live timer — Cosmos's color-swatch chip. */
+.pc-card .pc-glass--big {
+  position: absolute;
+  left: 32px;
+  top: 56%;
+  height: 64px;
+  padding: 0 26px 0 22px;
+  gap: 14px;
+  font-size: 30px;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.pc-card .pc-glass--big .pc-wave {
+  height: 22px;
+}
+
+.pc-card .pc-glass--big .pc-wave i {
+  width: 3px;
+}
+
+/* Cards 2 & 3: white floating cards at 16px radius. */
+.pc-float {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 16px;
+  padding: 16px;
+  border-radius: 16px;
+  background: var(--c-white);
+  color: var(--c-ink);
+  text-align: left;
+}
+
+.pc-float--center {
+  text-align: center;
+}
+
+.pc-float-label {
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.43;
+}
+
+.pc-float-sub {
+  font-size: 14px;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1.43;
+  color: var(--c-ink-2);
+}
+
+.pc-float blockquote {
+  margin: 8px 0 0;
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 1.3;
+  letter-spacing: -0.02em;
+}
+
+/* Segmented control: one black pill, the rest quiet. */
+.pc-segment {
+  margin-top: 12px;
+  height: 48px;
+  padding: 4px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border: 0.5px solid var(--c-border);
+  border-radius: 999px;
+  background: var(--c-white);
+}
+
+.pc-segment span {
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  color: var(--c-ink);
+  transition: background 0.2s;
+}
+
+.pc-segment span.is-active {
+  background: var(--c-ink);
+  color: var(--c-white);
+}
+
+.pc-segment span:not(.is-active):hover {
+  background: var(--c-hover-secondary);
+}
+
+.pc-trio-captions {
+  width: 100%;
+  max-width: 1168px;
+  margin-top: 24px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.pc-trio-captions p {
+  font-size: 24px;
+  font-weight: 400;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+/* ============================================================
+   Know — big text right-aligned, portrait, lede left-aligned
+   ============================================================ */
+
+.pc-know {
+  width: 100%;
+  max-width: 1168px;
+  margin-top: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px minmax(0, 1fr);
+  gap: clamp(24px, 4vw, 48px);
+  align-items: center;
+  text-align: left;
+}
+
+.pc-know .pc-h2 {
+  justify-self: end;
+  text-align: right;
+  max-width: 11ch;
+}
+
+.pc-know-figure {
+  position: relative;
+  margin: 0;
+  height: 548px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--c-ink-4);
+  transform: translateZ(0);
+}
+
+.pc-know-figure img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.72s var(--c-ease-out);
+}
+
+.pc-know-figure:hover img {
+  transform: scale(1.03);
+}
+
+/* Sits at the foot of the doorway on its own scrim, never on her light shirt. */
+.pc-know-figure figcaption {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 72px 16px 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--c-white);
+  font-size: 16px;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  text-shadow: 0 1px 14px rgba(0, 0, 0, 0.4);
+  background: linear-gradient(rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.46));
+}
+
+.pc-know-figure figcaption .pc-glass {
+  height: 34px;
+  padding: 0 12px;
+  gap: 0;
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+.pc-know .pc-lede {
+  max-width: 300px;
+  justify-self: start;
+}
+
+/* ============================================================
+   Notes marquee — replaces Cosmos's logo strip
+   ============================================================ */
+
+.pc-marquee {
+  position: relative;
+  width: 100%;
+  margin-top: 48px;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+}
+
+.pc-marquee-track {
+  display: flex;
+  gap: 16px;
+  width: max-content;
+  animation: pc-marquee 46s linear infinite;
+}
+
+.pc-marquee:hover .pc-marquee-track {
+  animation-play-state: paused;
+}
+
+@keyframes pc-marquee {
+  to { transform: translateX(-50%); }
+}
+
+.pc-note {
+  flex: none;
+  width: 320px;
+  padding: 20px 22px;
+  border-radius: 16px;
+  background: var(--c-white);
+  border: 0.5px solid var(--c-border);
+  text-align: left;
+}
+
+.pc-note p {
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 1.3;
+  letter-spacing: -0.02em;
+}
+
+.pc-note span {
+  display: block;
+  margin-top: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  color: var(--c-ink-3);
+}
+
+/* ============================================================
+   Giant CTA
+   ============================================================ */
+
+.pc-cta {
+  gap: 20px;
+}
+
+.pc-cta > p:first-child {
+  font-size: 26px;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+.pc-cta-giant {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: clamp(80px, 9vw, 122px);
+  padding: 0 clamp(28px, 4vw, 48px);
+  border-radius: 999px;
+  background: var(--c-ink);
+  color: var(--c-white) !important;
+  font-size: clamp(32px, 4.8vw, 58px);
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  white-space: nowrap;
+  transition: background 0.2s, transform 0.72s var(--c-ease-out);
+}
+
+.pc-cta-giant:hover {
+  background: var(--c-hover-primary);
+  transform: scale(1.012);
+}
+
+.pc-cta-giant:active {
+  transform: scale(0.99);
+  transition-duration: 0.15s;
+}
+
+.pc-cta-trust {
+  margin-top: 12px;
+  max-width: 560px;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: -0.02em;
+  color: var(--c-ink-2);
+  text-wrap: balance;
+}
+
+/* ============================================================
+   Footer — link rows, mark, giant clipped wordmark
+   ============================================================ */
+
+.pc-footer {
+  position: relative;
+  z-index: 1;
+  margin-top: clamp(96px, 12vw, 160px);
+  padding: 0 var(--c-pad-x);
+}
+
+.pc-footer-row {
+  max-width: var(--c-max);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+}
+
+.pc-footer-links {
+  display: flex;
+  gap: 24px;
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  color: var(--c-ink-2);
+}
+
+.pc-footer-links:last-child {
+  justify-self: end;
+}
+
+.pc-footer-links a {
+  transition: color 0.2s;
+}
+
+.pc-footer-links a:hover {
+  color: var(--c-ink);
+}
+
+.pc-footer-mark {
+  display: block;
+  color: var(--c-ink);
+}
+
+.pc-footer-mark .pc-mark {
+  width: 40px;
+  height: 40px;
+}
+
+.pc-wordmark {
+  height: 0.6em;
+  margin: 40px calc(var(--c-pad-x) * -1) 0;
+  overflow: hidden;
+  /* Eight letters at -5% tracking span ~98vw at 20.5vw, so the whole word fits with
+     the glyphs just kissing the edges, the way COSMOS does. */
+  font-size: clamp(72px, 20.5vw, 300px);
+  font-weight: 500;
+  line-height: 0.82;
+  letter-spacing: -0.05em;
+  text-align: center;
+  color: var(--c-ink);
+  user-select: none;
+}
+
+/* ============================================================
+   Scroll reveal — one recipe, staggered with --d
+   ============================================================ */
+
+.pc-reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition:
+    opacity 0.72s var(--c-ease-out) var(--d, 0s),
+    transform 0.72s var(--c-ease-out) var(--d, 0s);
+}
+
+.pc-reveal.is-in {
+  opacity: 1;
+  transform: none;
+}
+
+/* ============================================================
+   Responsive
+   ============================================================ */
+
+@media (max-width: 1100px) {
+  .pc-know {
+    grid-template-columns: minmax(0, 1fr) 320px minmax(0, 1fr);
+  }
+
+  .pc-know-figure {
+    height: 480px;
+  }
+}
+
+@media (max-width: 960px) {
+  .pc-nav {
+    grid-template-columns: 1fr auto;
+    padding-inline: 20px;
+  }
+
+  .pc-search {
+    display: none;
+  }
+
+  /* Phones keep three polaroids so the hero keeps its signature; the inline
+     desktop positions are overridden here, which is why these are !important. */
+  .pc-tile:nth-child(2),
+  .pc-tile:nth-child(4),
+  .pc-tile:nth-child(6) {
+    display: none;
+  }
+  .pc-tile:nth-child(1) { left: 5% !important; top: 15% !important; width: 76px !important; height: 76px !important; }
+  .pc-tile:nth-child(3) { right: 5% !important; top: 13% !important; width: 92px !important; height: 92px !important; }
+  /* All three stay in the band above the headline: anything lower sits under the
+     hero's opaque bottom scrim and disappears. */
+  .pc-tile:nth-child(5) { left: 41% !important; right: auto !important; top: 22% !important; bottom: auto !important; width: 66px !important; height: 66px !important; }
+
+  .pc-hero h1 {
+    max-width: 12ch;
+  }
+
+  .pc-film {
+    margin-top: -16vh;
+    padding-inline: 20px;
+  }
+
+  .pc-section {
+    padding-inline: 20px;
+  }
+
+  .pc-strip {
+    height: 340px;
+  }
+
+  .pc-strip-a { left: 24px; width: 220px; height: 306px; }
+  .pc-strip-b { top: 44px; width: 170px; height: 236px; }
+  .pc-strip-c { right: 24px; width: 214px; height: 298px; }
+
+  .pc-trio,
+  .pc-trio-captions {
+    grid-template-columns: 1fr;
+  }
+
+  .pc-trio-captions p {
+    font-size: 20px;
+  }
+
+  .pc-card {
+    aspect-ratio: 4 / 5;
+    max-width: 560px;
+    width: 100%;
+    justify-self: center;
+  }
+
+  .pc-card .pc-glass--big {
+    left: 24px;
+    height: 56px;
+    font-size: 26px;
+  }
+
+  .pc-know {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    text-align: center;
+  }
+
+  .pc-know .pc-h2 {
+    justify-self: center;
+    text-align: center;
+    max-width: 14ch;
+  }
+
+  .pc-know-figure {
+    width: min(100%, 360px);
+    height: 480px;
+  }
+
+  .pc-know .pc-lede {
+    max-width: 420px;
+    justify-self: center;
+  }
+
+  .pc-footer-row {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    gap: 24px;
+  }
+
+  .pc-footer-links:last-child {
+    justify-self: center;
+  }
+}
+
+@media (max-width: 600px) {
+  .pc-nav {
+    height: 76px;
+    padding: 14px 16px;
+  }
+
+  .pc-hero {
+    min-height: 560px;
+  }
+
+  .pc-hero h1 {
+    margin-bottom: 32px;
+  }
+
+  .pc-hero-actions {
+    flex-direction: column;
+    width: min(100%, 320px);
+  }
+
+  .pc-hero-actions .pc-btn {
+    width: 100%;
+  }
+
+  .pc-hero-film-link {
+    bottom: 28px;
+  }
+
+  .pc-film {
+    margin-top: -12vh;
+    padding-inline: 12px;
+  }
+
+  .pc-film-card {
+    aspect-ratio: 4 / 5;
+  }
+
+  .pc-film-title {
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 6px;
+  }
+
+  .pc-strip {
+    height: 300px;
+    margin-top: 40px;
+  }
+
+  .pc-strip-a { left: 12px; width: 150px; height: 208px; bottom: -22px; }
+  .pc-strip-b { top: 32px; width: 118px; height: 164px; }
+  .pc-strip-c { right: 12px; width: 146px; height: 204px; bottom: -34px; }
+
+  .pc-strip .pc-glass {
+    height: 46px;
+    font-size: 14px;
+    padding: 0 16px 0 14px;
+  }
+
+  .pc-float {
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+  }
+
+  .pc-note {
+    width: 260px;
+  }
+
+  .pc-cta-giant {
+    white-space: normal;
+    text-align: center;
+    height: auto;
+    padding: 22px 32px;
+  }
+
+  .pc-footer-links {
+    gap: 16px;
+    font-size: 15px;
+  }
+
+  .pc-wordmark {
+    margin-top: 28px;
+  }
+}
+
+/* ============================================================
+   Motion preferences
+   ============================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .presence-cosmos *,
+  .presence-cosmos *::before,
+  .presence-cosmos *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .pc-reveal {
+    opacity: 1;
+    transform: none;
+  }
+
+  .pc-shimmer {
+    color: var(--c-ink-3);
+    background: none;
+    animation: none;
+  }
+}
+
+
+/* ============================================================
+   Auth — /presence/login
+   Cosmos /start pattern: a narrow centered column on linen, a
+   white collage panel beside it, the wordmark as the floor.
+   ============================================================ */
+
+.pc-auth {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  min-height: 100dvh;
+}
+
+.pc-auth-left {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px 24px 32px;
+}
+
+.pc-auth-back {
+  position: absolute;
+  top: 28px;
+  left: 28px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 16px;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--c-ink-2);
+  transition: color 0.2s, background 0.2s;
+}
+
+.pc-auth-back:hover {
+  color: var(--c-ink);
+  background: var(--c-hover-secondary);
+}
+
+.pc-auth-left > .pc-mark {
+  width: 32px;
+  height: 32px;
+  margin-top: 16px;
+  color: var(--c-ink);
+}
+
+.pc-auth-card {
+  width: min(344px, 100%);
+  margin: auto 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  text-align: center;
+}
+
+.pc-auth-card h1 {
+  font-size: 20px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+.pc-auth-sub {
+  margin-top: 6px;
+  font-size: 15px;
+  color: var(--c-ink-2);
+}
+
+.pc-auth-sub a {
+  color: var(--c-ink);
+  font-weight: 500;
+}
+
+.pc-auth-sub a:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.pc-auth-actions {
+  margin-top: 28px;
+  display: grid;
+  gap: 10px;
+}
+
+.pc-auth-google {
+  height: 56px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border-radius: 16px;
+  background: var(--c-ink);
+  color: var(--c-white) !important;
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  transition: background 0.2s, transform 0.25s var(--c-ease-ui);
+}
+
+.pc-auth-google:hover {
+  background: var(--c-hover-primary);
+}
+
+.pc-auth-google:active {
+  transform: scale(0.985);
+}
+
+.pc-auth-google:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.pc-auth-g {
+  width: 22px;
+  height: 22px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--c-white);
+  color: var(--c-ink);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.pc-auth-error {
+  margin-top: 12px;
+  font-size: 14px;
+  color: var(--c-ink);
+}
+
+.pc-auth-legal {
+  margin-top: 16px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--c-ink-3);
+  text-wrap: balance;
+}
+
+.pc-auth-legal a {
+  color: var(--c-ink-2);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.pc-auth-trust {
+  margin-top: 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--c-ink-2);
+  text-wrap: balance;
+}
+
+.pc-auth-trust svg {
+  flex: none;
+}
+
+.pc-auth-wordmark {
+  margin-top: auto;
+  padding-top: 40px;
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  color: var(--c-ink);
+  user-select: none;
+}
+
+/* Right panel: paper-white room with a loose stack of polaroids and a caption. */
+.pc-auth-panel {
+  position: relative;
+  background: var(--c-white);
+  overflow: hidden;
+}
+
+.pc-auth-panel img {
+  position: absolute;
+  left: 50%;
+  object-fit: cover;
+  border-radius: 12px;
+  box-shadow: 0 16px 44px rgba(13, 13, 13, 0.14);
+}
+
+.pc-auth-caption {
+  position: absolute;
+  left: 24px;
+  bottom: 20px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--c-ink-2);
+}
+
+.pc-auth-caption strong {
+  display: block;
+  font-weight: 500;
+  color: var(--c-ink);
+}
+
+@media (max-width: 900px) {
+  .pc-auth {
+    grid-template-columns: 1fr;
+  }
+
+  .pc-auth-panel {
+    display: none;
+  }
+}
+
+/* ============================================================
+   Onboarding — /presence/onboarding
+   Same linen room: a 2px ink progress filament at the very top,
+   a quiet bar, one centered stage per step, white cards at 16px.
+   ============================================================ */
+
+.pc-ob {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+}
+
+.pc-ob-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  height: 2px;
+  background: var(--c-hover-secondary);
+}
+
+.pc-ob-progress span {
+  display: block;
+  height: 100%;
+  background: var(--c-ink);
+  transition: width 0.72s var(--c-ease-out);
+}
+
+.pc-ob-nav {
+  height: 76px;
+  padding: 0 28px;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+}
+
+.pc-ob-nav .pc-brand {
+  justify-self: start;
+}
+
+.pc-ob-steps {
+  display: flex;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--c-ink-3);
+}
+
+.pc-ob-steps button {
+  padding: 6px 12px;
+  border-radius: 16px;
+  color: inherit;
+  transition: background 0.2s, color 0.2s;
+}
+
+.pc-ob-steps button.is-done {
+  color: var(--c-ink-2);
+}
+
+.pc-ob-steps button.is-current {
+  color: var(--c-ink);
+  background: var(--c-hover-secondary);
+}
+
+.pc-ob-steps button:disabled {
+  cursor: default;
+}
+
+.pc-ob-exit {
+  justify-self: end;
+  height: 40px;
+  padding: 0 16px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 16px;
+  border: 0.5px solid var(--c-border);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--c-ink);
+  transition: background 0.2s;
+}
+
+.pc-ob-exit:hover {
+  background: var(--c-hover-secondary);
+}
+
+.pc-ob-stage {
+  flex: 1;
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  /* Bottom room for the sticky footer so the last card's controls never hide under it. */
+  padding: clamp(24px, 5vh, 56px) 24px 112px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.pc-ob-eyebrow {
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--c-ink-2);
+}
+
+.pc-ob-stage h1 {
+  margin: 10px 0 12px;
+  max-width: 16ch;
+  font-size: clamp(32px, 4.6vw, 46px);
+  font-weight: 300;
+  line-height: 1.04;
+  letter-spacing: -0.04em;
+  text-wrap: balance;
+}
+
+.pc-ob-sub {
+  max-width: 46ch;
+  font-size: 17px;
+  line-height: 1.4;
+  color: var(--c-ink-2);
+  text-wrap: balance;
+}
+
+.pc-ob-body {
+  width: 100%;
+  margin-top: 32px;
+  display: grid;
+  gap: 16px;
+  text-align: left;
+}
+
+/* White card, 16px, no shadow — elevation by surface contrast. */
+.pc-ob-card {
+  padding: 24px;
+  border-radius: 16px;
+  background: var(--c-white);
+  border: 0.5px solid var(--c-border);
+}
+
+.pc-ob-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.pc-ob-field {
+  display: grid;
+  gap: 8px;
+}
+
+.pc-ob-field > span {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--c-ink);
+}
+
+.pc-ob-field small {
+  font-size: 13px;
+  color: var(--c-ink-3);
+}
+
+.pc-ob-field input,
+.pc-ob-field select,
+.pc-ob-textarea {
+  height: 56px;
+  padding: 0 16px;
+  border-radius: 16px;
+  border: 0.5px solid var(--c-border);
+  background: var(--c-white);
+  color: var(--c-ink);
+  font: inherit;
+  font-size: 16px;
+  letter-spacing: -0.02em;
+  transition: border-color 0.2s;
+  appearance: none;
+}
+
+.pc-ob-field input:focus-visible,
+.pc-ob-field select:focus-visible,
+.pc-ob-textarea:focus-visible {
+  outline: none;
+  border-color: var(--c-ink);
+}
+
+.pc-ob-field input::placeholder {
+  color: var(--c-ink-3);
+}
+
+.pc-ob-select-wrap {
+  position: relative;
+}
+
+.pc-ob-select-wrap svg {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--c-ink-2);
+  pointer-events: none;
+}
+
+.pc-ob-select-wrap select {
+  width: 100%;
+  padding-right: 44px;
+}
+
+.pc-ob-textarea {
+  height: auto;
+  min-height: 132px;
+  padding: 16px;
+  line-height: 1.45;
+  resize: vertical;
+  width: 100%;
+}
+
+.pc-ob-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pc-ob-chip {
+  height: 44px;
+  padding: 0 18px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 16px;
+  border: 0.5px solid var(--c-border);
+  background: var(--c-white);
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--c-ink);
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.pc-ob-chip:hover {
+  background: var(--c-hover-secondary);
+}
+
+.pc-ob-chip.is-selected {
+  background: var(--c-ink);
+  border-color: var(--c-ink);
+  color: var(--c-white);
+}
+
+/* Family map rows */
+.pc-ob-person-row {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr 1fr auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.pc-ob-person-remove {
+  width: 44px;
+  height: 56px;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  color: var(--c-ink-3);
+  transition: background 0.2s, color 0.2s;
+}
+
+.pc-ob-person-remove:hover {
+  background: var(--c-hover-secondary);
+  color: var(--c-ink);
+}
+
+.pc-ob-person-remove:disabled {
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+@media (max-width: 720px) {
+  .pc-ob-person-row {
+    grid-template-columns: 1fr auto;
+  }
+
+  .pc-ob-person-row .pc-ob-field:nth-child(2),
+  .pc-ob-person-row .pc-ob-field:nth-child(3) {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Consent card comes before the microphone, always. */
+.pc-ob-consent {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.pc-ob-consent input {
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+  accent-color: var(--c-ink);
+  flex: none;
+}
+
+.pc-ob-consent p {
+  font-size: 15px;
+  line-height: 1.45;
+  color: var(--c-ink-2);
+}
+
+.pc-ob-consent strong {
+  color: var(--c-ink);
+  font-weight: 500;
+}
+
+/* Recorder */
+.pc-ob-recorder-head {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  color: var(--c-ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.pc-ob-recorder-head .is-recording {
+  color: var(--c-ink);
+  font-weight: 500;
+}
+
+.pc-ob-recorder blockquote {
+  margin: 16px 0 20px;
+  font-size: clamp(20px, 2.6vw, 26px);
+  font-weight: 300;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  color: var(--c-ink);
+}
+
+.pc-ob-wave {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: 44px;
+  margin-bottom: 20px;
+}
+
+.pc-ob-wave span {
+  flex: 1;
+  border-radius: 1px;
+  background: var(--c-ink-4);
+  transform-origin: center;
+}
+
+.pc-ob-wave.is-active span {
+  background: var(--c-ink);
+  animation: pc-wave 1.1s ease-in-out infinite;
+}
+
+.pc-ob-recorder-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  min-height: 52px;
+}
+
+.pc-ob-round {
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 0.5px solid var(--c-border);
+  background: var(--c-white);
+  color: var(--c-ink);
+  transition: background 0.2s;
+}
+
+.pc-ob-round:hover {
+  background: var(--c-hover-secondary);
+}
+
+.pc-ob-hint {
+  font-size: 14px;
+  color: var(--c-ink-3);
+}
+
+.pc-ob-error {
+  margin-top: 10px;
+  font-size: 14px;
+  color: var(--c-ink);
+}
+
+.pc-ob-dots {
+  margin-top: 18px;
+  display: flex;
+  gap: 8px;
+}
+
+.pc-ob-dots button {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--c-ink-4);
+  transition: background 0.2s, transform 0.2s;
+}
+
+.pc-ob-dots button.is-current {
+  background: var(--c-ink);
+  transform: scale(1.25);
+}
+
+/* Interview */
+.pc-ob-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  color: var(--c-ink-3);
+}
+
+.pc-ob-question {
+  margin: 14px 0 16px;
+  font-size: clamp(20px, 2.6vw, 26px);
+  font-weight: 300;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.pc-ob-learned {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  font-size: 14px;
+  color: var(--c-ink-2);
+}
+
+.pc-ob-learned span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 16px;
+  border: 0.5px solid var(--c-border);
+  background: var(--c-white);
+}
+
+/* Relay preview reuses landing cards at reduced scale */
+.pc-ob-relay {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.pc-ob-relay h3 {
+  margin: 10px 0 6px;
+  font-size: 20px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+.pc-ob-relay p,
+.pc-ob-relay li {
+  font-size: 15px;
+  line-height: 1.45;
+  color: var(--c-ink-2);
+}
+
+.pc-ob-relay ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
+
+.pc-ob-relay li strong {
+  color: var(--c-ink);
+  font-weight: 500;
+}
+
+.pc-ob-tag {
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--c-ink-3);
+}
+
+/* Footer controls */
+.pc-ob-footer {
+  position: sticky;
+  bottom: 0;
+  margin-top: auto;
+  padding: 16px 28px calc(16px + env(safe-area-inset-bottom));
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 16px;
+  background: linear-gradient(rgba(247, 245, 243, 0), var(--c-paper) 40%);
+}
+
+.pc-ob-footer .pc-btn:first-child {
+  justify-self: start;
+}
+
+.pc-ob-footer-hint {
+  font-size: 14px;
+  color: var(--c-ink-3);
+  text-align: center;
+}
+
+.pc-ob-footer .pc-btn:last-child {
+  justify-self: end;
+}
+
+@media (max-width: 720px) {
+  .pc-ob-nav {
+    padding: 0 16px;
+  }
+
+  .pc-ob-steps {
+    display: none;
+  }
+
+  .pc-ob-grid,
+  .pc-ob-relay {
+    grid-template-columns: 1fr;
+  }
+
+  .pc-ob-footer {
+    grid-template-columns: auto 1fr;
+    padding-inline: 16px;
+  }
+
+  .pc-ob-footer-hint {
+    display: none;
+  }
+}
+
+
+/* ============================================================
+   Elder call page — /call/:token
+   One purpose, giant type, zero chrome. Everything pt-BR.
+   ============================================================ */
+
+.pc-call {
+  min-height: 100dvh;
+  padding: 32px 24px calc(32px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.pc-call-stamp {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--c-ink-2);
+}
+
+.pc-call-stage {
+  margin: auto 0;
+  width: min(680px, 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px;
+}
+
+.pc-call-stage h1 {
+  font-size: clamp(40px, 9vw, 64px);
+  font-weight: 300;
+  line-height: 1.05;
+  letter-spacing: -0.04em;
+  text-wrap: balance;
+}
+
+.pc-call-sub {
+  font-size: clamp(20px, 3vw, 24px);
+  line-height: 1.35;
+  color: var(--c-ink-2);
+  text-wrap: balance;
+}
+
+/* The one button. Enormous on purpose. */
+.pc-call-button {
+  width: min(520px, 100%);
+  min-height: 96px;
+  padding: 20px 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  border-radius: 24px;
+  background: var(--c-ink);
+  color: var(--c-white) !important;
+  font-size: clamp(24px, 3.4vw, 30px);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  transition: background 0.2s, transform 0.25s var(--c-ease-ui);
+}
+
+.pc-call-button:hover { background: var(--c-hover-primary); }
+.pc-call-button:active { transform: scale(0.985); }
+.pc-call-button:disabled { opacity: 0.5; pointer-events: none; }
+
+.pc-call-button--end {
+  background: var(--c-white);
+  color: var(--c-ink) !important;
+  border: 1.5px solid var(--c-ink);
+}
+
+.pc-call-button--end:hover { background: var(--c-hover-secondary); }
+
+/* Live indicator: a breathing ink disc. */
+.pc-call-live {
+  width: 132px;
+  height: 132px;
+  border-radius: 50%;
+  background: var(--c-ink);
+  display: grid;
+  place-items: center;
+  color: var(--c-white);
+  animation: pc-breathe 2.6s ease-in-out infinite;
+}
+
+@keyframes pc-breathe {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(13, 13, 13, 0.14); }
+  50% { transform: scale(1.06); box-shadow: 0 0 0 26px rgba(13, 13, 13, 0); }
+}
+
+.pc-call-disclosure {
+  max-width: 46ch;
+  font-size: 17px;
+  line-height: 1.45;
+  color: var(--c-ink-3);
+  text-wrap: balance;
+}
+
+.pc-call-error {
+  max-width: 40ch;
+  font-size: clamp(20px, 3vw, 24px);
+  line-height: 1.4;
+  color: var(--c-ink);
+  text-wrap: balance;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pc-call-live { animation: none; }
+}
+
+/* ============================================================
+   Family dashboard — /presence/home
+   Reuses the onboarding card vocabulary on a wider, denser stage.
+   ============================================================ */
+
+.pc-dash {
+  width: 100%;
+  max-width: 920px;
+  margin: 0 auto;
+  padding: clamp(20px, 4vh, 44px) 24px 64px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.pc-dash-head {
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.pc-dash-head h1 {
+  font-size: clamp(38px, 5.4vw, 58px);
+  font-weight: 300;
+  line-height: 1.02;
+  letter-spacing: -0.045em;
+}
+
+.pc-dash-head p {
+  margin-top: 8px;
+  font-size: 17px;
+  color: var(--c-ink-2);
+}
+
+.pc-dash-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+
+.pc-dash-grid > .is-wide { grid-column: 1 / -1; }
+
+.pc-dash h2 {
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+.pc-dash .pc-ob-card { display: grid; gap: 14px; text-align: left; }
+
+.pc-dash-link-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.pc-dash-token {
+  flex: 1;
+  min-width: 0;
+  height: 52px;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  border: 0.5px solid var(--c-border);
+  border-radius: 16px;
+  background: var(--c-paper);
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 13px;
+  color: var(--c-ink-2);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.pc-conv {
+  padding: 16px 0;
+  border-top: 0.5px solid var(--c-border);
+  display: grid;
+  gap: 8px;
+}
+
+.pc-conv:first-of-type { border-top: 0; padding-top: 0; }
+
+.pc-conv-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--c-ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.pc-conv p { font-size: 15.5px; line-height: 1.45; color: var(--c-ink); }
+
+.pc-need {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 14px;
+  border: 1px solid var(--c-ink);
+  border-radius: 12px;
+  background: var(--c-white);
+  font-size: 14.5px;
+  line-height: 1.4;
+  color: var(--c-ink);
+}
+
+.pc-need svg { flex: none; margin-top: 2px; }
+
+.pc-note-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 0.5px solid var(--c-border);
+  font-size: 15px;
+}
+
+.pc-note-row:first-of-type { border-top: 0; padding-top: 0; }
+.pc-note-row.is-delivered { color: var(--c-ink-3); }
+.pc-note-row .pc-ob-tag { flex: none; }
+
+.pc-dash-empty { font-size: 15px; color: var(--c-ink-3); }
+
+@media (max-width: 760px) {
+  .pc-dash-grid { grid-template-columns: 1fr; }
+  .pc-dash-link-row { flex-wrap: wrap; }
+}
+
+
+/* ============================================================
+   Live-call v2 — gradient orb + liquid-glass transcript
+   (user-directed: OpenAI-style orb; glass like the hero demos)
+   ============================================================ */
+
+.pc-orb {
+  --orb: 1;
+  position: relative;
+  width: 172px;
+  height: 172px;
+  border-radius: 50%;
+  transform: scale(var(--orb));
+  transition: transform 90ms linear;
+  background:
+    radial-gradient(circle at 32% 30%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0) 42%),
+    radial-gradient(circle at 70% 28%, #9ec8ff 0%, rgba(158, 200, 255, 0) 52%),
+    radial-gradient(circle at 26% 74%, #ffc9a8 0%, rgba(255, 201, 168, 0) 54%),
+    radial-gradient(circle at 76% 76%, #d3b8ff 0%, rgba(211, 184, 255, 0) 56%),
+    radial-gradient(circle at 50% 50%, #bfd8f6 0%, #e8eef9 100%);
+  box-shadow:
+    inset 0 0 34px rgba(255, 255, 255, 0.55),
+    0 18px 60px rgba(120, 150, 200, 0.35);
+}
+
+/* A soft rotating sheen keeps it alive even in silence. */
+.pc-orb::before {
+  content: '';
+  position: absolute;
+  inset: -6%;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg,
+    rgba(158, 200, 255, 0) 0%, rgba(158, 200, 255, 0.5) 18%,
+    rgba(255, 201, 168, 0.45) 42%, rgba(211, 184, 255, 0.5) 68%,
+    rgba(158, 200, 255, 0) 100%);
+  filter: blur(18px);
+  animation: pc-orb-spin 9s linear infinite;
+  z-index: -1;
+}
+
+.pc-orb.is-listening::before { animation-duration: 6s; }
+.pc-orb.is-speaking::before { animation-duration: 3.2s; }
+
+@keyframes pc-orb-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pc-orb::before { animation: none; }
+  .pc-orb { transition: none; }
+}
+
+/* Liquid-glass transcript panel: translucent, blurred, inset-lit. */
+.pc-transcript {
+  width: min(640px, 100%);
+  max-height: min(34vh, 300px);
+  padding: 20px 22px;
+  overflow-y: auto;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(28px) saturate(1.25);
+  -webkit-backdrop-filter: blur(28px) saturate(1.25);
+  border: 0.5px solid rgba(13, 13, 13, 0.1);
+  box-shadow:
+    inset 0 1px 1.5px rgba(255, 255, 255, 0.8),
+    inset 0 -1px 1.5px rgba(0, 0, 0, 0.03),
+    0 18px 50px rgba(13, 13, 13, 0.07);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  text-align: left;
+  scroll-behavior: smooth;
+}
+
+.pc-transcript-row {
+  display: grid;
+  gap: 3px;
+}
+
+.pc-transcript-row span {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--c-ink-3);
+}
+
+.pc-transcript-row p {
+  font-size: 18px;
+  line-height: 1.4;
+  color: var(--c-ink);
+}
+
+.pc-transcript-row.is-user p { color: var(--c-ink-2); }
+
+.pc-transcript:empty { display: none; }
+
+
+/* ============================================================
+   Elder call page v3 — Cosmos rhythm
+   Brand top-left, orb as the hero image, display headline, lede,
+   squared-pill button pair, honesty card on demand, quiet footer.
+   Later in the cascade than v1/v2 on purpose: same class names win.
+   ============================================================ */
+
+.pc-call {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  min-height: 100dvh;
+  padding: 24px 32px calc(28px + env(safe-area-inset-bottom));
+  text-align: center;
+}
+
+.pc-call-brand {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  height: 44px;
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  color: var(--c-ink);
+}
+
+.pc-call-brand .pc-mark { width: 24px; height: 24px; }
+
+.pc-call-stage {
+  align-self: center;
+  justify-self: center;
+  margin: 0;
+  width: min(820px, 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  padding: 24px 0;
+}
+
+.pc-call-stage > .pc-orb {
+  width: 232px;
+  height: 232px;
+  margin-bottom: 56px;
+}
+
+.pc-call-stage.is-live > .pc-orb {
+  width: 200px;
+  height: 200px;
+  margin-bottom: 36px;
+}
+
+.pc-call-stage h1 {
+  margin: 0 0 22px;
+  font-size: clamp(56px, 7vw, 84px);
+  font-weight: 300;
+  line-height: 1;
+  letter-spacing: -0.05em;
+  text-wrap: balance;
+}
+
+.pc-call-stage .pc-call-sub {
+  margin: 0 0 44px;
+  max-width: 32ch;
+  font-size: clamp(22px, 2.2vw, 26px);
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  color: var(--c-ink-2);
+  text-wrap: balance;
+}
+
+.pc-call-stage .pc-call-status {
+  margin: 0 0 28px;
+  font-size: 20px;
+  letter-spacing: -0.02em;
+  color: var(--c-ink-2);
+}
+
+.pc-call-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+}
+
+/* Cosmos button pair, scaled for an elder's finger: 64px tall, 20px text, 16px radius. */
+.pc-call-cta {
+  height: 64px;
+  padding: 0 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16px;
+  background: var(--c-ink);
+  color: var(--c-white) !important;
+  font-size: 20px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  transition: background 0.2s, transform 0.25s var(--c-ease-ui);
+}
+
+.pc-call-cta:hover { background: var(--c-hover-primary); }
+.pc-call-cta:active { transform: scale(0.985); }
+.pc-call-cta:disabled { opacity: 0.45; pointer-events: none; }
+
+.pc-call-cta--ghost {
+  background: transparent;
+  color: var(--c-ink) !important;
+  border: 0.5px solid var(--c-border);
+}
+
+.pc-call-cta--ghost:hover { background: var(--c-hover-secondary); }
+
+.pc-call-explain {
+  margin-top: 36px;
+  width: min(580px, 100%);
+  padding: 26px 30px;
+  border-radius: 16px;
+  background: var(--c-white);
+  border: 0.5px solid var(--c-border);
+  font-size: 19px;
+  line-height: 1.42;
+  letter-spacing: -0.01em;
+  color: var(--c-ink-2);
+  text-align: left;
+}
+
+.pc-call-explain strong { color: var(--c-ink); font-weight: 500; }
+
+/* Live transcript: wider, roomier, larger type than v2. */
+.pc-call-stage .pc-transcript {
+  width: min(720px, 100%);
+  max-height: min(38vh, 340px);
+  padding: 28px 30px;
+  gap: 18px;
+  margin-bottom: 36px;
+}
+
+.pc-call-stage .pc-transcript-row p { font-size: 20px; line-height: 1.38; }
+
+.pc-call-footer {
+  justify-self: center;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 64ch;
+  font-size: 15px;
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+  color: var(--c-ink-3);
+  text-align: left;
+}
+
+.pc-call-footer svg { flex: none; }
+
+.pc-call-stage .pc-call-error {
+  margin: 0 0 36px;
+}
+
+@media (max-width: 640px) {
+  .pc-call { padding: 16px 20px calc(20px + env(safe-area-inset-bottom)); }
+  .pc-call-stage > .pc-orb, .pc-call-stage.is-live > .pc-orb { width: 168px; height: 168px; margin-bottom: 36px; }
+  .pc-call-stage h1 { font-size: clamp(44px, 12vw, 56px); }
+  .pc-call-stage .pc-call-sub { font-size: 21px; margin-bottom: 32px; }
+  .pc-call-actions { width: 100%; flex-direction: column; }
+  .pc-call-cta { width: 100%; }
+  .pc-call-footer { font-size: 14px; }
+}
+
+
+/* ============================================================
+   Her home — what she sees between conversations
+   Same Cosmos rhythm; nothing here is a control she can get wrong.
+   ============================================================ */
+
+.pc-call-home {
+  width: min(680px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 48px;
+}
+
+/* A note is waiting. The body is never shown — it is delivered aloud, as
+   coming from its author, inside the conversation. */
+.pc-home-note {
+  padding: 22px 26px;
+  border-radius: 16px;
+  background: var(--c-white);
+  border: 0.5px solid var(--c-border);
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  text-align: left;
+}
+
+.pc-home-note-dot {
+  width: 12px;
+  height: 12px;
+  margin-top: 9px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--c-ink);
+}
+
+.pc-home-note p {
+  font-size: 20px;
+  line-height: 1.35;
+  letter-spacing: -0.02em;
+  color: var(--c-ink);
+}
+
+.pc-home-note small {
+  display: block;
+  margin-top: 4px;
+  font-size: 16px;
+  color: var(--c-ink-2);
+}
+
+/* Her own conversations, in her words. No summaries, no analysis. */
+.pc-home-recaps {
+  padding: 8px 26px 22px;
+  border-radius: 16px;
+  background: var(--c-white);
+  border: 0.5px solid var(--c-border);
+  text-align: left;
+}
+
+.pc-home-recaps h2 {
+  margin: 0;
+  padding: 18px 0 4px;
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--c-ink-3);
+}
+
+.pc-home-recap {
+  padding: 16px 0;
+  border-top: 0.5px solid var(--c-border);
+}
+
+.pc-home-recap:first-of-type { border-top: 0; }
+
+.pc-home-recap span {
+  display: block;
+  font-size: 15px;
+  color: var(--c-ink-3);
+  margin-bottom: 4px;
+}
+
+.pc-home-recap p {
+  font-size: 19px;
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+  color: var(--c-ink);
+}
+
+@media (max-width: 640px) {
+  .pc-home-note { padding: 18px 20px; }
+  .pc-home-note p { font-size: 18px; }
+  .pc-home-recaps { padding: 4px 20px 18px; }
+  .pc-home-recap p { font-size: 17px; }
+}
+
+/* ============================================================
+   Family dashboard — reading the actual conversation
+   ============================================================ */
+
+.pc-conv-toggle {
+  justify-self: start;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  color: var(--c-ink-2);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: color 0.2s;
+}
+
+.pc-conv-toggle:hover { color: var(--c-ink); }
+
+.pc-transcript-read {
+  margin-top: 6px;
+  padding: 18px 20px;
+  border-radius: 12px;
+  background: var(--c-paper);
+  border: 0.5px solid var(--c-border);
+  display: grid;
+  gap: 14px;
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+.pc-transcript-read div { display: grid; gap: 3px; }
+
+.pc-transcript-read span {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--c-ink-3);
+}
+
+.pc-transcript-read p {
+  font-size: 15.5px;
+  line-height: 1.45;
+  color: var(--c-ink);
+}
+
+.pc-transcript-read .is-ai p { color: var(--c-ink-2); }
+
+
+/* ============================================================
+   Dashboard fixes from the 2026-09-01 screenshot pass
+   ============================================================ */
+
+/* The composer's footer was a flex row: the hint wrapped to six lines beside the
+   button. Give the hint the full width and let the button sit under it. */
+.pc-dash-compose-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pc-dash-compose-foot .pc-dash-empty {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+.pc-dash-compose-foot .pc-btn {
+  flex: none;
+}
+
+/* Queued/delivered rows: the body takes the space, the status tag never squeezes it. */
+.pc-note-row {
+  align-items: baseline;
+}
+
+.pc-note-row > span:first-child {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.pc-note-row .pc-ob-tag {
+  flex: 0 0 auto;
+  font-size: 11px;
+}
+
+/* The call URL is long and unbreakable. Grid/flex children default to
+   min-width:auto, so its min-content width pushed the whole card wider than its
+   column and the body text rendered underneath the neighbouring card (caught in
+   the screenshot pass). Every card child must be allowed to shrink. */
+.pc-dash .pc-ob-card,
+.pc-dash .pc-ob-card > * {
+  min-width: 0;
+}
+
+.pc-dash-link-row {
+  min-width: 0;
+}
+
+.pc-dash-token {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

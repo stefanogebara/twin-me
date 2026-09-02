@@ -32,7 +32,7 @@ import NotFound from "./pages/NotFound";
 // DEV ternary lets Vite dead-code-eliminate the dynamic imports in prod, so
 // no prototype chunks are emitted at all.
 const CinematicFrame = import.meta.env.DEV ? lazy(() => import("./pages/preview/CinematicFrame")) : () => null;
-const PresencePrototype = import.meta.env.DEV ? lazy(() => import("./pages/preview/PresencePrototype")) : () => null;
+const PresencePrototype = import.meta.env.DEV ? lazy(() => import("./pages/presence/PresenceOnboarding")) : () => null;
 const PresenceDesignSystem = import.meta.env.DEV ? lazy(() => import("./pages/preview/PresenceDesignSystem")) : () => null;
 const StardustHero = import.meta.env.DEV ? lazy(() => import("./components/landing/StardustHero")) : () => null;
 const StardustLanding = import.meta.env.DEV ? lazy(() => import("./pages/StardustLanding")) : () => null;
@@ -91,6 +91,8 @@ const PricingPage = lazy(() => import("./pages/PricingPage"));
 const PresencePage = lazy(() => import("./pages/PresencePage"));
 const PresenceLandingPage = lazy(() => import("./pages/PresenceLandingPage"));
 const PresenceLoginPage = lazy(() => import("./pages/PresenceLoginPage"));
+const PresenceHome = lazy(() => import("./pages/presence/PresenceHome"));
+const PresenceCallPage = lazy(() => import("./pages/presence/PresenceCallPage"));
 
 
 
@@ -244,6 +246,15 @@ const App = () => {
             } />
             <Route path="/presence" element={<PresenceLandingPage />} />
             <Route path="/presence/login" element={<PresenceLoginPage />} />
+            {/* Elder channel: public, token-authed — the elder has no account. */}
+            <Route path="/call/:token" element={<PresenceCallPage />} />
+            <Route path="/presence/home" element={
+              <ProtectedRoute fallbackPath="/presence/login">
+                <ErrorBoundary>
+                  <PresenceHome />
+                </ErrorBoundary>
+              </ProtectedRoute>
+            } />
             <Route path="/presence/onboarding" element={
               <ProtectedRoute fallbackPath="/presence/login">
                 <ErrorBoundary>

@@ -24,14 +24,25 @@ class VoiceService {
     }
 
     // Initialize OpenAI for speech-to-text
+    // Speech-to-text: prefer OpenAI direct; fall back to OpenRouter's Whisper proxy
+    // (verified working 2026-08-31: POST /audio/transcriptions with model
+    // openai/whisper-1, ~$0.006/min). Same SDK, different baseURL + model id.
     const openaiApiKey = process.env.OPENAI_API_KEY;
+    const openrouterApiKey = process.env.OPENROUTER_API_KEY;
     if (openaiApiKey && openaiApiKey !== 'your_openai_api_key_here') {
-      this.openai = new OpenAI({
-        apiKey: openaiApiKey,
-      });
+      this.openai = new OpenAI({ apiKey: openaiApiKey });
+      this.sttModel = 'whisper-1';
       this.speechToTextEnabled = true;
+    } else if (openrouterApiKey) {
+      this.openai = new OpenAI({
+        apiKey: openrouterApiKey,
+        baseURL: 'https://openrouter.ai/api/v1',
+      });
+      this.sttModel = 'openai/whisper-1';
+      this.speechToTextEnabled = true;
+      log.info('Speech-to-text via OpenRouter Whisper proxy (no direct OpenAI key)');
     } else {
-      log.warn('OpenAI API key not configured. Speech-to-text will be disabled.');
+      log.warn('Neither OpenAI nor OpenRouter API key configured. Speech-to-text will be disabled.');
       this.speechToTextEnabled = false;
     }
   }
@@ -102,7 +113,9 @@ class VoiceService {
         `${this.baseUrl}/text-to-speech/${selectedVoiceId}`,
         {
           text: text,
-          model_id: 'eleven_monolingual_v1',
+          // eleven_monolingual_v1 was deprecated by ElevenLabs (400 unsupported_model,
+          // caught in QA 2026-08-31). multilingual_v2 covers pt-BR for Presence calls.
+          model_id: 'eleven_multilingual_v2',
           voice_settings: {
             stability,
             similarity_boost,
@@ -143,6 +156,10 @@ class VoiceService {
     }
 
     try {
+      // Native fetch + FormData: the previous axios call mixed the global (undici)
+      // FormData with the form-data package's getHeaders(), which doesn't exist on
+      // the native class — cloning crashed before ever reaching ElevenLabs
+      // (TypeError caught in QA 2026-08-31). fetch sets the multipart boundary itself.
       const audioData = fs.readFileSync(audioFilePath);
       const formData = new FormData();
 
@@ -150,16 +167,24 @@ class VoiceService {
       formData.append('description', description);
       formData.append('files', new Blob([audioData], { type: 'audio/mpeg' }), path.basename(audioFilePath));
 
-      const response = await axios.post(`${this.baseUrl}/voices/add`, formData, {
-        headers: {
-          'xi-api-key': this.apiKey,
-          ...formData.getHeaders()
-        }
+      const response = await fetch(`${this.baseUrl}/voices/add`, {
+        method: 'POST',
+        headers: { 'xi-api-key': this.apiKey },
+        body: formData
       });
 
+      if (!response.ok) {
+        const detail = await response.json().catch(() => ({}));
+        return {
+          success: false,
+          error: detail?.detail || `ElevenLabs returned ${response.status}`
+        };
+      }
+
+      const data = await response.json();
       return {
         success: true,
-        voiceId: response.data.voice_id,
+        voiceId: data.voice_id,
         message: 'Voice cloned successfully'
       };
     } catch (error) {
@@ -168,6 +193,34 @@ class VoiceService {
         success: false,
         error: error.response?.data?.detail || error.message
       };
+    }
+  }
+
+  /**
+   * Add more samples to an existing cloned voice (improves fidelity over time).
+   */
+  async addSamplesToVoice(voiceId, audioFilePath, voiceName) {
+    if (!this.enabled) {
+      throw new Error('Voice service not available - API key not configured');
+    }
+    try {
+      const audioData = fs.readFileSync(audioFilePath);
+      const formData = new FormData();
+      if (voiceName) formData.append('name', voiceName);
+      formData.append('files', new Blob([audioData], { type: 'audio/mpeg' }), path.basename(audioFilePath));
+      const response = await fetch(`${this.baseUrl}/voices/${voiceId}/edit`, {
+        method: 'POST',
+        headers: { 'xi-api-key': this.apiKey },
+        body: formData
+      });
+      if (!response.ok) {
+        const detail = await response.json().catch(() => ({}));
+        return { success: false, error: detail?.detail || `ElevenLabs returned ${response.status}` };
+      }
+      return { success: true };
+    } catch (error) {
+      log.error('Adding voice samples failed:', error);
+      return { success: false, error: error.message };
     }
   }
 
@@ -394,20 +447,23 @@ class VoiceService {
    */
   async speechToText(audioFile) {
     if (!this.speechToTextEnabled) {
-      throw new Error('Speech-to-text service not available - OpenAI API key not configured');
+      throw new Error('Speech-to-text service not available - no OpenAI or OpenRouter API key configured');
     }
 
     try {
+      // No language pin: Whisper auto-detects. The old hardcoded 'en' would have
+      // mistranscribed Portuguese (Presence conversations are pt-BR).
+      // response_format 'json' works on both OpenAI direct and OpenRouter's proxy
+      // (OpenRouter rejects 'text' with a 400 — found in QA 2026-08-31).
       const transcription = await this.openai.audio.transcriptions.create({
         file: audioFile,
-        model: 'whisper-1',
-        response_format: 'text',
-        language: 'en'
+        model: this.sttModel,
+        response_format: 'json'
       });
 
       return {
         success: true,
-        transcription: transcription.trim()
+        transcription: (transcription.text ?? String(transcription)).trim()
       };
     } catch (error) {
       log.error('Speech-to-text failed:', error);
