@@ -143,8 +143,20 @@ function ReadingRow({ reading, now, verdict, onVerdict, cite, ordinal }: {
 
 const SECTIONS = ['signature', 'ask', 'sources'] as const;
 
-/** One photograph on the page: the room at blue hour, warm lamp, Portra grain. */
-const STILL_HERO = '/images/twinme/cosmos-07-room.jpg';
+/**
+ * The hero scatters stills across paper at different sizes, angles and depths —
+ * the cosmos.so arrangement the landing already uses. Near ones are sharp, far
+ * ones soft, so the page has depth without a photograph swallowing it.
+ */
+const TILES = [
+  { src: '/images/twinme/cosmos-02-records.jpg', style: { left: '4%', top: '20%', width: 116, height: 116, transform: 'rotate(-6deg)' } },
+  { src: '/images/twinme/cosmos-03-calendar.jpg', style: { left: '11%', top: '58%', width: 74, height: 74, transform: 'rotate(4deg)', filter: 'blur(2px)', opacity: 0.66 } },
+  { src: '/images/twinme/cosmos-05-kitchen.jpg', style: { left: '2%', bottom: '10%', width: 128, height: 128, transform: 'rotate(3deg)' } },
+  { src: '/images/twinme/cosmos-04-run.jpg', style: { right: '12%', top: '14%', width: 80, height: 80, transform: 'rotate(5deg)', filter: 'blur(3px)', opacity: 0.55 } },
+  { src: '/images/twinme/cosmos-07-room.jpg', style: { right: '3%', top: '34%', width: 136, height: 136, transform: 'rotate(-4deg)' } },
+  { src: '/images/twinme/cosmos-01-desk.jpg', style: { right: '6%', bottom: '12%', width: 104, height: 104, transform: 'rotate(6deg)' } },
+  { src: '/images/twinme/cosmos-06-portrait.jpg', style: { left: '20%', bottom: '4%', width: 68, height: 68, transform: 'rotate(-8deg)', filter: 'blur(4px)', opacity: 0.45 } },
+];
 
 export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, onDeleteSource }: { data: PortraitData; now: Date; banner?: React.ReactNode } & PortraitHandlers) {
   const [here, setHere] = useState<string | null>(null);
@@ -287,10 +299,10 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
 
   return (
     <main className="presence-cosmos pc-portrait" id="main-content">
-      <div className="pc-pt-backdrop" aria-hidden="true">
-        <img className="pc-pt-still" src={STILL_HERO} alt="" />
-      </div>
       <section className="pc-pt-hero" aria-labelledby="pc-pt-headline">
+        <div className="pc-pt-tiles" aria-hidden="true">
+          {TILES.map((t) => <img key={t.src + String(t.style.left) + String(t.style.right)} className="pc-pt-tile" src={t.src} alt="" style={t.style as React.CSSProperties} />)}
+        </div>
         <header className="pc-pt-masthead">
           <Link to="/" className="pc-pt-wordmark">TwinMe</Link>
           <nav aria-label="Sections">
