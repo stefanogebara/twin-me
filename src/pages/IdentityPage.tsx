@@ -24,7 +24,6 @@ import TemporalComparison from './components/identity/TemporalComparison';
 import IdentityNarrativeCard from './components/identity/IdentityNarrativeCard';
 import SplitPanelLayout from '@/layouts/SplitPanelLayout';
 import ContextSidebar from './components/identity/ContextSidebar';
-import { ClauraZonedBackground } from '@/components/ClauraZonedBackground';
 
 // ── Types for 5-Layer Soul Signature ────────────────────────────────────
 
@@ -1203,7 +1202,6 @@ const IdentityPage: React.FC = () => {
   return (
     <>
       {/* Claura zoned photography — bubble-reader by night, train-field by day (/preview/you). */}
-      <ClauraZonedBackground dark="bubble-reader.png" light="train-field.png" darkPosition="center 36%" lightPosition="center 35%" />
       {/* First-time reveal overlay */}
       <AnimatePresence>
         {showReveal && archetypeResult && (

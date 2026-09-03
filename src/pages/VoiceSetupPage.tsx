@@ -20,7 +20,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { authFetch } from '@/services/api/apiBase';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
-import { ClauraZonedBackground } from '@/components/ClauraZonedBackground';
 
 type Status = 'loading' | 'none' | 'pending' | 'linked' | 'error';
 
@@ -138,7 +137,6 @@ export default function VoiceSetupPage() {
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 py-10">
       {/* Claura zoned photography — saturn-window by night, soul-waves by day (/preview/voice). */}
-      <ClauraZonedBackground dark="saturn-window.png" light="soul-waves.png" darkPosition="center 24%" lightPosition="center 22%" />
       <header className="mb-8">
         <h1
           className="text-[36px] mb-2"
