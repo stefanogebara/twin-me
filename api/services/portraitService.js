@@ -222,6 +222,31 @@ export function buildPortrait({ owner, reflections = [], eventsById = new Map(),
 // Loading half
 // ------------------------------------------------------------------
 
+/**
+ * Receipts survive forgetting. The weekly cron archives raw events after 30 days
+ * (user_memories -> user_memories_archive), so a reading's evidence is resolved from
+ * the hot table first and the archive for whatever is missing. Both carry the same
+ * columns; the archive row is marked so the card can say it is older.
+ */
+export async function loadEvents(ids) {
+  const eventsById = new Map();
+  if (!ids.length) return eventsById;
+  const { data: hot } = await supabaseAdmin.from('user_memories')
+    .select('id, content, metadata, memory_type, created_at').in('id', ids);
+  for (const e of hot || []) eventsById.set(e.id, e);
+  const missing = ids.filter((id) => !eventsById.has(id));
+  if (missing.length) {
+    const { data: archived } = await supabaseAdmin.from('user_memories_archive')
+      .select('id, content, metadata, memory_type, created_at, archive_reason').in('id', missing);
+    // What the person deleted stays deleted: only the cron's own archiving is read back.
+    for (const e of archived || []) {
+      if (e.archive_reason === 'person_deleted_source') continue;
+      eventsById.set(e.id, { ...e, archived: true });
+    }
+  }
+  return eventsById;
+}
+
 export async function loadPortrait(userId, now = new Date()) {
   const [{ data: user }, { data: reflections }, { data: connections }, { data: wikiPages }] = await Promise.all([
     supabaseAdmin.from('users').select('first_name').eq('id', userId).single(),
@@ -234,12 +259,7 @@ export async function loadPortrait(userId, now = new Date()) {
   ]);
 
   const ids = [...new Set((reflections || []).flatMap((r) => r.metadata?.observation_ids || []))];
-  let eventsById = new Map();
-  if (ids.length) {
-    const { data: events } = await supabaseAdmin.from('user_memories')
-      .select('id, content, metadata, memory_type, created_at').in('id', ids);
-    eventsById = new Map((events || []).map((e) => [e.id, e]));
-  }
+  const eventsById = await loadEvents(ids);
 
   return buildPortrait({
     owner: user?.first_name || 'Your',
@@ -279,4 +299,61 @@ export async function answerQuestion(userId, readingIds, answer) {
   if (readingId) await setVerdict(userId, readingId, positive ? 'true' : (/^not really/i.test(text) ? 'wrong' : 'partly'), positive ? null : text);
   await addMemory(userId, `You said: ${text}`, 'fact', { source: 'you', reading_ids: readingIds || [] }, { skipImportance: true, importanceScore: 10 });
   return { answered: true };
+}
+
+// ------------------------------------------------------------------
+// Sources: delete everything from one platform
+// ------------------------------------------------------------------
+
+const DELETE_BATCH = 500;
+const DELETE_MAX_BATCHES = 40;
+
+/** Pure: which readings leaned on any of the deleted events. */
+export function readingsTouchedBy(reflections, deletedIds) {
+  const gone = new Set(deletedIds);
+  return (reflections || []).filter((r) => (r.metadata?.observation_ids || []).some((id) => gone.has(id)));
+}
+
+/**
+ * Archives every raw event from one platform (so the person can still audit what was
+ * read) and deletes it from the hot table, then marks the readings that leaned on those
+ * events with evidence_deleted_at. The Portrait shows them as fading with that reason;
+ * nothing else is deleted by the system.
+ */
+export async function deleteSource(userId, platform) {
+  if (!/^[a-z_]+$/.test(platform)) throw new Error('invalid platform');
+  let deleted = 0;
+  const deletedIds = [];
+  for (let batch = 0; batch < DELETE_MAX_BATCHES; batch++) {
+    const { data: rows, error } = await supabaseAdmin.from('user_memories')
+      .select('id, user_id, content, memory_type, metadata, importance_score, created_at, last_accessed_at')
+      .eq('user_id', userId)
+      .in('memory_type', ['platform_data', 'observation'])
+      .or(`metadata->>platform.eq.${platform},metadata->>source.eq.${platform}`)
+      .limit(DELETE_BATCH);
+    if (error) throw error;
+    if (!rows || rows.length === 0) break;
+    const { error: insertErr } = await supabaseAdmin.from('user_memories_archive')
+      .insert(rows.map((r) => ({ ...r, archived_at: new Date().toISOString(), archive_reason: 'person_deleted_source' })));
+    if (insertErr) throw insertErr;
+    const ids = rows.map((r) => r.id);
+    const { error: delErr } = await supabaseAdmin.from('user_memories').delete().in('id', ids);
+    if (delErr) throw delErr;
+    deleted += ids.length;
+    deletedIds.push(...ids);
+    if (rows.length < DELETE_BATCH) break;
+  }
+
+  const { data: reflections } = await supabaseAdmin.from('user_memories')
+    .select('id, metadata').eq('user_id', userId).eq('memory_type', 'reflection')
+    .not('metadata->observation_ids', 'is', null).limit(500);
+  const touched = readingsTouchedBy(reflections, deletedIds);
+  const stamp = new Date().toISOString();
+  for (const r of touched) {
+    await supabaseAdmin.from('user_memories')
+      .update({ metadata: { ...(r.metadata || {}), evidence_deleted_at: stamp, evidence_deleted_source: platform } })
+      .eq('id', r.id).eq('user_id', userId);
+  }
+  log.info('Source deleted by the person', { userId, platform, deleted, readingsTouched: touched.length });
+  return { platform, deleted, readingsTouched: touched.length };
 }

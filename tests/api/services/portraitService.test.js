@@ -14,7 +14,7 @@ vi.mock('../../../api/services/logger.js', () => ({
   createLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
 }));
 
-const { plainEvent, buildPortrait } = await import('../../../api/services/portraitService.js');
+const { plainEvent, buildPortrait, readingsTouchedBy } = await import('../../../api/services/portraitService.js');
 
 const ev = (id, platform, content, created_at) => ({ id, memory_type: 'platform_data', content, metadata: { platform }, created_at });
 
@@ -108,5 +108,17 @@ describe('buildPortrait', () => {
     expect(portrait.sources).toEqual([
       { platform: 'spotify', label: 'Spotify', read: '246 items', since: '2026-08-26', kinds: 'plays, repeats, new artists' },
     ]);
+  });
+});
+
+describe('readingsTouchedBy', () => {
+  it('finds the readings that leaned on deleted events', () => {
+    const reflections = [
+      { id: 'r1', metadata: { observation_ids: ['e1', 'e2'] } },
+      { id: 'r2', metadata: { observation_ids: ['e3'] } },
+      { id: 'r3', metadata: {} },
+    ];
+    expect(readingsTouchedBy(reflections, ['e2', 'zzz']).map((r) => r.id)).toEqual(['r1']);
+    expect(readingsTouchedBy(reflections, [])).toEqual([]);
   });
 });

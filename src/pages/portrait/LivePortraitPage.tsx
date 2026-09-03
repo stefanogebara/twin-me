@@ -23,20 +23,26 @@ export default function LivePortraitPage() {
     return () => { document.title = previousTitle; };
   }, []);
 
+  async function load() {
+    const res = await authFetch('/portrait');
+    const json = await res.json().catch(() => null);
+    if (!res.ok || !json?.success) throw new Error(typeof json?.error === 'string' ? json.error : 'Could not load your Portrait.');
+    return toPortraitData(json.data);
+  }
+
   useEffect(() => {
     let cancelled = false;
-    (async () => {
-      try {
-        const res = await authFetch('/portrait');
-        const json = await res.json().catch(() => null);
-        if (!res.ok || !json?.success) throw new Error(typeof json?.error === 'string' ? json.error : 'Could not load your Portrait.');
-        if (!cancelled) setState({ status: 'ready', data: toPortraitData(json.data) });
-      } catch (err) {
-        if (!cancelled) setState({ status: 'error', message: err instanceof Error ? err.message : 'Could not load your Portrait.' });
-      }
-    })();
+    load()
+      .then((data) => { if (!cancelled) setState({ status: 'ready', data }); })
+      .catch((err) => { if (!cancelled) setState({ status: 'error', message: err instanceof Error ? err.message : 'Could not load your Portrait.' }); });
     return () => { cancelled = true; };
   }, []);
+
+  async function onDeleteSource(platform: string) {
+    await authFetch(`/portrait/sources/${encodeURIComponent(platform)}`, { method: 'DELETE' });
+    const data = await load().catch(() => null);
+    if (data) setState({ status: 'ready', data });
+  }
 
   async function onVerdict(readingId: string, verdict: Verdict) {
     await authFetch(`/portrait/readings/${encodeURIComponent(readingId)}/verdict`, {
@@ -74,5 +80,5 @@ export default function LivePortraitPage() {
       </main>
     );
   }
-  return <PortraitPage data={state.data} now={new Date()} onVerdict={onVerdict} onAnswer={onAnswer} onAsk={onAsk} />;
+  return <PortraitPage data={state.data} now={new Date()} onVerdict={onVerdict} onAnswer={onAnswer} onAsk={onAsk} onDeleteSource={onDeleteSource} />;
 }

@@ -4154,3 +4154,41 @@ button.pc-search-icons {
   line-height: 1.5;
   color: var(--c-ink-2);
 }
+
+/* Sources: the one destructive act, in two steps, inside the row. */
+.pc-pt-source-delete {
+  grid-column: 1 / -1;
+  justify-self: start;
+  margin-top: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--c-ink-3);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.pc-pt-source-delete:hover {
+  color: var(--c-ink);
+}
+
+.pc-pt-source-confirm {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 12px;
+  border-top: 0.5px solid var(--c-border);
+}
+
+.pc-pt-source-confirm > span {
+  flex: 1 1 100%;
+  font-size: 14px;
+  color: var(--c-ink);
+}
+
+.pc-pt-source-confirm .pc-btn {
+  height: 40px;
+  padding: 0 16px;
+}

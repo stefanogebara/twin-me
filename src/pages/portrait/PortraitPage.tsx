@@ -70,15 +70,19 @@ export type PortraitHandlers = {
   onAnswer?: (readingIds: string[], answer: string) => Promise<void> | void;
   /** Live: ask the twin. Resolves to the answer and the readings it cites; the demo uses the scripted path when absent. */
   onAsk?: (question: string) => Promise<{ a: string; cites: string[] }>;
+  /** Live: delete everything read from one platform. Absent in the demo, so no control shows. */
+  onDeleteSource?: (platform: string) => Promise<void> | void;
 };
 
-export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk }: { data: PortraitData; now: Date; banner?: React.ReactNode } & PortraitHandlers) {
+export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, onDeleteSource }: { data: PortraitData; now: Date; banner?: React.ReactNode } & PortraitHandlers) {
   const [verdicts, setVerdicts] = useState<Record<string, Verdict>>(() => Object.fromEntries(data.readings.map((r) => [r.id, r.verdict])));
   const [open, setOpen] = useState<string | null>(null);
   const [answer, setAnswer] = useState<string | null>(data.question.yourAnswer);
   const [query, setQuery] = useState('');
   const [reply, setReply] = useState<{ a: string; cites: string[] } | null>(null);
   const [lit, setLit] = useState<string[]>([]);
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   const readings = useMemo(() => data.readings.map((r) => ({ ...r, verdict: verdicts[r.id] ?? null })), [data.readings, verdicts]);
   const groups = useMemo(() => groupReadings(readings, now), [readings, now]);
@@ -208,6 +212,20 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk }: 
               <span>{s.read} · since {s.since}</span>
               <small>{s.kinds}</small>
               <em>Read only</em>
+              {onDeleteSource ? (
+                confirmDelete === s.platform ? (
+                  <div className="pc-pt-source-confirm" role="group" aria-label={`Delete everything from ${s.label}`}>
+                    <span>Delete everything read from {s.label}? Readings that leaned on it will fade.</span>
+                    <button type="button" className="pc-btn pc-btn--primary" disabled={deleting === s.platform}
+                      onClick={async () => { setDeleting(s.platform); try { await onDeleteSource(s.platform); } finally { setDeleting(null); setConfirmDelete(null); } }}>
+                      {deleting === s.platform ? 'Deleting' : 'Yes, delete'}
+                    </button>
+                    <button type="button" className="pc-btn pc-btn--ghost" onClick={() => setConfirmDelete(null)}>Keep</button>
+                  </div>
+                ) : (
+                  <button type="button" className="pc-pt-source-delete" onClick={() => setConfirmDelete(s.platform)}>Delete everything from this source</button>
+                )
+              ) : null}
             </div>
           ))}
         </div>
