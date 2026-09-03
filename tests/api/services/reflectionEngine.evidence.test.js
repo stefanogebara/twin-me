@@ -134,6 +134,14 @@ describe('generateReflections records receipts', () => {
     expect(expertPrompt.messages[0].content).toContain('Opened PR #22 in roca');
   });
 
+  it('asks every expert to write to the person, in plain words', async () => {
+    wireRun(OBS);
+    await generateReflections(freshUser());
+    const expertPrompt = complete.mock.calls.map(([a]) => a).find((a) => a.serviceName !== 'reflection-salient-questions');
+    expect(expertPrompt.messages[0].content).toContain('Address the person as "you"');
+    expect(expertPrompt.messages[0].content).toContain('No platform or technical vocabulary');
+  });
+
   it('does not write a reading with fewer than two events', async () => {
     wireRun([OBS[0]]);
     const n = await generateReflections(freshUser());

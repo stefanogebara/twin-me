@@ -54,6 +54,12 @@ const SOURCE_KINDS = {
 const NEW_DAYS = 7;
 const MAX_EVIDENCE = 5;
 const MIN_EVIDENCE = 2;
+const MAX_READINGS = 40;
+
+/** A reading addressed to the person, not about them. Older readings say "This person" or "They". */
+export function isSecondPerson(text) {
+  return /^\s*(you|your)\b/i.test(String(text || ''));
+}
 
 function sourceOf(memory) {
   return memory?.metadata?.platform || memory?.metadata?.source || 'unknown';
@@ -184,6 +190,10 @@ export function buildPortrait({ owner, reflections = [], eventsById = new Map(),
       verdictNote: r.metadata?.verdict_note || undefined,
     });
   }
+
+  // Second-person readings first, then the rest, newest first within each; the page shows a bounded ledger.
+  readings.sort((x, y) => (Number(isSecondPerson(y.text)) - Number(isSecondPerson(x.text))) || (y.writtenAt < x.writtenAt ? -1 : y.writtenAt > x.writtenAt ? 1 : 0));
+  readings.splice(MAX_READINGS);
 
   const byDomain = (d) => readings.filter((x) => x.domain === d && x.verdict !== 'wrong');
   const signature = DOMAINS.map((domain) => {

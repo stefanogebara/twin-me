@@ -14,7 +14,7 @@ vi.mock('../../../api/services/logger.js', () => ({
   createLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
 }));
 
-const { plainEvent, buildPortrait, readingsTouchedBy } = await import('../../../api/services/portraitService.js');
+const { plainEvent, buildPortrait, readingsTouchedBy, isSecondPerson } = await import('../../../api/services/portraitService.js');
 
 const ev = (id, platform, content, created_at) => ({ id, memory_type: 'platform_data', content, metadata: { platform }, created_at });
 
@@ -120,5 +120,26 @@ describe('readingsTouchedBy', () => {
     ];
     expect(readingsTouchedBy(reflections, ['e2', 'zzz']).map((r) => r.id)).toEqual(['r1']);
     expect(readingsTouchedBy(reflections, [])).toEqual([]);
+  });
+});
+
+describe('second person first', () => {
+  it('recognises readings addressed to the person', () => {
+    expect(isSecondPerson('You loop the same songs.')).toBe(true);
+    expect(isSecondPerson('Your bedtime moves by hours.')).toBe(true);
+    expect(isSecondPerson('This person uses TypeScript.')).toBe(false);
+    expect(isSecondPerson('They build tools.')).toBe(false);
+  });
+
+  it('orders the ledger with second-person readings ahead of third-person ones', () => {
+    const events = new Map([
+      ['a', ev('a', 'spotify', 'x', '2026-09-03T09:00:00Z')],
+      ['b', ev('b', 'spotify', 'y', '2026-09-03T10:00:00Z')],
+    ]);
+    const portrait = buildPortrait({ owner: 'S', eventsById: events, now: new Date('2026-09-04T00:00:00Z'), reflections: [
+      { id: 'third', content: 'This person works late.', created_at: '2026-09-03T12:00:00Z', metadata: { expert: 'code_architect', observation_ids: ['a', 'b'] } },
+      { id: 'second', content: 'You work late.', created_at: '2026-09-02T12:00:00Z', metadata: { expert: 'motivation_analyst', observation_ids: ['a', 'b'] } },
+    ] });
+    expect(portrait.readings.map((r) => r.id)).toEqual(['second', 'third']);
   });
 });

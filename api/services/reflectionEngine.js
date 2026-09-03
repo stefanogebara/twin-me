@@ -584,6 +584,14 @@ function buildExpertAnchor(expert, salientQuestions) {
 // ====================================================================
 
 const EVENT_MEMORY_TYPES = ['platform_data', 'observation'];
+
+/**
+ * Language rule (Portrait spec): a reading is addressed to the person, in the words
+ * they would use about their own life. Appended to every expert prompt.
+ */
+export const PLAIN_LANGUAGE_RULE = `
+
+LANGUAGE: Address the person as "you". Write each observation as one plain sentence a friend would say, about what they actually do. No platform or technical vocabulary (no "PRs", "commits", "branches", "repos", "HRV", "consistency %", "strain"); say "finished a piece of work", "a restless night", "most of your mail". Numbers only where a person would say them (hours of sleep, a time of day, how many songs).`;
 const MIN_EVENTS_PER_READING = 2;
 
 function summarizeSupport(memories) {
@@ -672,7 +680,8 @@ async function runExpertAnalysis(userId, expert, formattedObservations, depth, i
         role: 'user',
         content: identityPreamble + expert.prompt
           .replace('{observations}', formattedObservations)
-          .replace('{evidence}', evidence),
+          .replace('{evidence}', evidence)
+          + PLAIN_LANGUAGE_RULE,
       }],
       // R7c: room for up to 5 evidence-scaled observations (was 400 for 2-3)
       maxTokens: 600,
