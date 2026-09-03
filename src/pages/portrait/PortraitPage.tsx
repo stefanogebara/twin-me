@@ -311,6 +311,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
 
   return (
     <main className="presence-cosmos pc-portrait" id="main-content">
+      <div className="pc-pt-ground" aria-hidden="true" />
       <section className="pc-pt-hero" aria-labelledby="pc-pt-headline">
         <header className="pc-pt-masthead">
           <Link to="/" className="pc-pt-wordmark">TwinMe</Link>

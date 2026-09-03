@@ -3811,9 +3811,31 @@ button.pc-search-icons {
 
 .pc-portrait {
   position: relative;
-  padding: 0 0 96px;
-  background: var(--c-paper);
+  padding: 0 0 128px;
   overflow-x: clip;
+  /* Inverted semantics: everything below reads as light on the room. */
+  --c-paper: #0b0d10;
+  --c-ink: #ffffff;
+  --c-ink-2: rgba(255, 255, 255, 0.86);
+  --c-ink-3: rgba(255, 255, 255, 0.62);
+  --c-ink-4: rgba(255, 255, 255, 0.24);
+  --c-border: rgba(255, 255, 255, 0.14);
+  --c-mono-ink: rgba(255, 255, 255, 0.46);
+  --c-on-white: #0d0d0d;
+  background: var(--c-paper);
+  color: var(--c-ink);
+}
+
+/* One still, held still: the page scrolls through the room rather than past a
+   picture of it. */
+.pc-pt-ground {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(8, 10, 13, 0.4) 0%, rgba(8, 10, 13, 0.68) 44%, rgba(8, 10, 13, 0.88) 100%),
+    #0b0d10 url('/images/twinme/cosmos-07-room.jpg') 50% 46% / cover;
 }
 
 .pc-pt-paper {
@@ -3889,11 +3911,12 @@ button.pc-search-icons {
   height: 44px;
   padding: 0 22px;
   border-radius: 999px;
+  white-space: nowrap;
   background: var(--c-white);
   font-size: 15px;
   font-weight: 500;
   letter-spacing: -0.02em;
-  color: var(--c-ink) !important;
+  color: var(--c-on-white) !important;
   transition: opacity 0.15s var(--pt-ease);
 }
 
@@ -3914,29 +3937,7 @@ button.pc-search-icons {
   color: var(--c-white);
 }
 
-/* One room, full bleed, dissolving into the paper at its foot: everything above
-   the fold stands in the same space rather than beside pictures of it. */
-.pc-pt-hero::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: -2;
-  background: #0d0f12 url('/images/twinme/cosmos-07-room.jpg') 50% 46% / cover;
-}
 
-.pc-pt-hero::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  background: linear-gradient(
-    180deg,
-    rgba(9, 11, 14, 0.76) 0%,
-    rgba(9, 11, 14, 0.42) 32%,
-    rgba(9, 11, 14, 0.56) 64%,
-    rgba(9, 11, 14, 0.82) 100%
-  );
-}
 
 .pc-pt-hero-body {
   position: relative;
@@ -4012,7 +4013,7 @@ button.pc-search-icons {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(96deg, rgba(9, 11, 14, 0.48) 0%, rgba(9, 11, 14, 0.2) 56%, rgba(9, 11, 14, 0) 100%);
+  background: linear-gradient(96deg, rgba(9, 11, 14, 0.34) 0%, rgba(9, 11, 14, 0.12) 58%, rgba(9, 11, 14, 0) 100%);
 }
 
 .pc-pt-today > * {
@@ -4088,7 +4089,7 @@ button.pc-search-icons {
 
 .pc-portrait .pc-pt-choices .is-lead {
   background: var(--c-white);
-  color: var(--c-ink);
+  color: var(--c-on-white);
 }
 
 .pc-portrait .pc-pt-choices .is-quiet {
@@ -4170,10 +4171,10 @@ button.pc-search-icons {
   flex-direction: column;
   justify-content: flex-end;
   border-radius: var(--pt-card);
-  /* One photograph carries the page, and it is the question. Every other panel
-     is ground: obsidian, a hairline, and the words. */
-  background: #101215;
-  box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.07);
+  background: rgba(10, 12, 15, 0.42);
+  backdrop-filter: blur(24px) saturate(116%);
+  -webkit-backdrop-filter: blur(24px) saturate(116%);
+  box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.12);
   color: var(--c-white);
 }
 
@@ -4414,7 +4415,7 @@ button.pc-search-icons {
 .pc-portrait .pc-pt-vote button.is-active {
   background: var(--c-white);
   border-color: var(--c-white);
-  color: var(--c-ink);
+  color: var(--c-on-white);
 }
 
 .presence-cosmos .pc-pt-note {
@@ -4490,8 +4491,10 @@ button.pc-search-icons {
   min-height: 108px;
   padding: 20px 24px 20px 34px;
   border-radius: 24px;
-  background: var(--c-white);
-  border: 0.5px solid var(--c-border);
+  background: rgba(10, 12, 15, 0.34);
+  backdrop-filter: blur(26px) saturate(118%);
+  -webkit-backdrop-filter: blur(26px) saturate(118%);
+  border: 0.5px solid rgba(255, 255, 255, 0.18);
   transition: border-color 0.15s var(--pt-ease);
 }
 
@@ -4544,8 +4547,10 @@ button.pc-search-icons {
   margin: 20px 0 0;
   padding: 32px;
   border-radius: 20px;
-  background: var(--c-white);
-  border: 0.5px solid var(--c-border);
+  background: rgba(10, 12, 15, 0.34);
+  backdrop-filter: blur(26px) saturate(118%);
+  -webkit-backdrop-filter: blur(26px) saturate(118%);
+  border: 0.5px solid rgba(255, 255, 255, 0.18);
 }
 
 .presence-cosmos .pc-pt-reply p {
@@ -4666,10 +4671,12 @@ button.pc-search-icons {
   max-width: var(--pt-max);
   width: calc(100% - 48px);
   margin: 120px auto 0;
-  padding: 112px 56px 116px;
+  padding: 96px 56px 84px;
   border-radius: var(--pt-card);
-  background: #101215;
-  box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.07);
+  background: rgba(10, 12, 15, 0.42);
+  backdrop-filter: blur(24px) saturate(116%);
+  -webkit-backdrop-filter: blur(24px) saturate(116%);
+  box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.12);
   color: var(--c-white);
 }
 
@@ -4721,11 +4728,12 @@ button.pc-search-icons {
   height: 48px;
   padding: 0 26px;
   border-radius: 999px;
+  white-space: nowrap;
   background: var(--c-white);
   font-size: 15px;
   font-weight: 500;
   letter-spacing: -0.02em;
-  color: var(--c-ink) !important;
+  color: var(--c-on-white) !important;
   transition: opacity 0.15s var(--pt-ease);
 }
 
@@ -4772,7 +4780,7 @@ button.pc-search-icons {
 @media (max-width: 760px) {
   .pc-pt-hero { min-height: 78vh; }
   .pc-pt-masthead { width: calc(100% - 32px); }
-  .pc-pt-masthead nav { gap: 18px; font-size: 14px; }
+  .pc-pt-masthead nav { gap: 16px; }
   .pc-portrait .pc-pt-masthead nav a { font-size: 14px; }
   .presence-cosmos .pc-pt-nav-link { height: 38px; padding: 0 16px; font-size: 14px; }
   .pc-pt-hero-body { width: calc(100% - 32px); padding: 56px 0 64px; }
@@ -4803,4 +4811,9 @@ button.pc-search-icons {
   .presence-cosmos .pc-pt-source-line { flex-wrap: wrap; gap: 6px 12px; }
   .pc-pt-source-name { width: auto; }
   .pc-pt-source-kind { flex-basis: 100%; order: 3; }
+}
+
+/* On a narrow phone the action wins the bar; the sections are a scroll away. */
+@media (max-width: 560px) {
+  .pc-pt-masthead nav { display: none; }
 }
