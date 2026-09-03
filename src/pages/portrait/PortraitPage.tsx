@@ -328,7 +328,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
               </a>
             ))}
           </nav>
-          <Link to={banner ? '/' : '/sources'} className="pc-pt-nav-link">{banner ? 'Read yourself' : 'Your sources'}</Link>
+          <Link to={banner ? '/' : '/sources'} className="pc-pt-nav-link">{banner ? 'Read your own' : 'Your sources'}</Link>
         </header>
         <div className="pc-pt-hero-body">
           <p className="pc-pt-kicker">{banner ?? <Kicker owner={data.owner} now={now} />}</p>
@@ -340,7 +340,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
           <div className="pc-pt-today-inner">
             <div className="pc-pt-q-main">
               <p className="pc-pt-q-mark">Today, from {questionSource}</p>
-              <h2 id="pc-pt-q-title" className="pc-pt-serif">{data.question.question}</h2>
+              <h2 id="pc-pt-q-title" className="pc-pt-serif"><Headline text={data.question.question} /></h2>
               {questionReceipt ? (
                 <p className="pc-pt-q-receipt">
                   <span className="pc-pt-mono">{when(questionReceipt.at)} · {SOURCE_LABEL[questionReceipt.source] ?? questionReceipt.source}</span>
@@ -474,7 +474,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
       <section className="pc-pt-close" aria-label="What is not read">
         <div className="pc-pt-close-inner pc-pt-grid">
           <p className="pc-pt-close-note">Messages, photos, location and anything typed here are never read</p>
-          <p className="pc-pt-serif">Nothing here trains a model.</p>
+          <p className="pc-pt-serif"><em>Nothing</em> here trains a model.</p>
           <div className="pc-pt-rail pc-pt-close-rail">
             {banner
               ? <Link className="pc-pt-close-cta" to="/">Read your own &#8594;</Link>
