@@ -37,7 +37,7 @@ const SEARCH_HINTS = [
 const CHIP_READINGS = [
   'loops the same three songs before a deadline',
   'Tuesdays cost the most',
-  'best commits after midnight, alone',
+  'your best work after midnight, alone',
   'never keeps four people waiting',
 ];
 
@@ -51,7 +51,7 @@ const SCAN_STATUS_LINES = [
 const NOTES = [
   { text: 'You loop the same three songs when a deadline is close. Focus, for you, sounds like ritual.', who: 'Spotify · 23:41 · repeat ×4' },
   { text: 'Every Tuesday ends in back-to-back calls, and every Tuesday night your music turns ambient.', who: 'Calendar · Tuesdays · 6 weeks' },
-  { text: 'Your best commits happen after midnight, in bursts, alone. Rest, for you, is momentum.', who: 'GitHub · 02:14 · branch: still-awake' },
+  { text: 'Your best work happens after midnight, in bursts, alone. Rest, for you, is momentum.', who: 'GitHub · 02:14' },
   { text: 'You reply to four people within minutes and let everyone else wait a day. They are the same four every month.', who: 'Gmail · reply latency' },
   { text: 'Recovery is lowest on Wednesdays. The runs are on Thursdays. You already knew.', who: 'Whoop · 8 weeks' },
   { text: 'At 2am you watch the same documentary channel you never mention to anyone.', who: 'YouTube · late' },
