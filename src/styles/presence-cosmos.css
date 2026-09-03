@@ -3798,7 +3798,7 @@ button.pc-search-icons {
   /* Switzer to read and to press, iA Writer Mono for what a machine recorded.
      Deliberately not the Instrument Serif and Geist used elsewhere. */
   --c-mono: 'iA Writer Mono', ui-monospace, 'SF Mono', Menlo, monospace;
-  --c-serif: 'Switzer', ui-sans-serif, system-ui, sans-serif;
+  --c-serif: 'Instrument Serif', 'Times New Roman', Times, serif;
   --c-sans-ui: 'Switzer', ui-sans-serif, system-ui, sans-serif;
   --c-mono-ink: #6e6b69;
   --pt-max: 1200px;
@@ -3838,10 +3838,10 @@ button.pc-search-icons {
 }
 
 .presence-cosmos .pc-pt-serif {
-  font-family: var(--c-sans-ui);
+  font-family: var(--c-serif);
   font-weight: 400;
   line-height: 1.12;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.012em;
   color: var(--c-ink);
 }
 
@@ -3964,13 +3964,13 @@ button.pc-search-icons {
 }
 
 .presence-cosmos .pc-pt-hero h1 {
-  max-width: 17ch;
+  max-width: 19ch;
   margin: 0;
-  font-family: var(--c-sans-ui);
-  font-size: clamp(46px, 6.6vw, 92px);
+  font-family: var(--c-serif);
+  font-size: clamp(50px, 7.2vw, 104px);
   font-weight: 400;
-  line-height: 0.96;
-  letter-spacing: -0.05em;
+  line-height: 0.94;
+  letter-spacing: -0.018em;
   text-wrap: balance;
   color: var(--c-white);
 }
@@ -4001,9 +4001,9 @@ button.pc-search-icons {
   overflow: hidden;
   border-radius: var(--pt-card);
   /* Glass in the room it is asking about: the lamp keeps burning behind it. */
-  background: rgba(10, 12, 15, 0.34);
-  backdrop-filter: blur(26px) saturate(118%);
-  -webkit-backdrop-filter: blur(26px) saturate(118%);
+  background: rgba(10, 12, 15, 0.2);
+  backdrop-filter: blur(34px) saturate(122%);
+  -webkit-backdrop-filter: blur(34px) saturate(122%);
   box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.14);
   color: var(--c-white);
 }
@@ -4012,7 +4012,7 @@ button.pc-search-icons {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(96deg, rgba(9, 11, 14, 0.62) 0%, rgba(9, 11, 14, 0.34) 52%, rgba(9, 11, 14, 0.1) 100%);
+  background: linear-gradient(96deg, rgba(9, 11, 14, 0.48) 0%, rgba(9, 11, 14, 0.2) 56%, rgba(9, 11, 14, 0) 100%);
 }
 
 .pc-pt-today > * {
@@ -4023,7 +4023,7 @@ button.pc-search-icons {
   width: 100%;
   max-width: var(--pt-max);
   margin: 0 auto;
-  padding: 92px 56px 96px;
+  padding: 92px 56px 68px;
   text-align: left;
 }
 
@@ -4038,12 +4038,12 @@ button.pc-search-icons {
 
 /* Four lines, each ending on a clause: the measure is set by the rag, not the box. */
 .presence-cosmos .pc-pt-today h2 {
-  max-width: 18ch;
+  max-width: 20ch;
   margin: 0;
-  font-size: clamp(36px, 4.4vw, 62px);
+  font-size: clamp(38px, 4.8vw, 68px);
   font-weight: 400;
   line-height: 1;
-  letter-spacing: -0.046em;
+  letter-spacing: -0.014em;
   text-wrap: balance;
   color: var(--c-white);
 }
@@ -4103,6 +4103,8 @@ button.pc-search-icons {
 
 .pc-portrait .pc-pt-skip {
   margin-top: 22px;
+  padding-bottom: 3px;
+  border-bottom: 0.5px solid rgba(255, 255, 255, 0.28);
   font-family: var(--c-mono);
   font-size: 11px;
   letter-spacing: 0.1em;
@@ -4233,7 +4235,8 @@ button.pc-search-icons {
   margin-bottom: auto;
   justify-self: end;
   align-self: center;
-  padding: 6px 0;
+  padding: 6px 0 5px;
+  border-bottom: 0.5px solid rgba(255, 255, 255, 0.28);
   font-family: var(--c-mono);
   font-size: 10px;
   letter-spacing: 0.12em;
@@ -4247,15 +4250,15 @@ button.pc-search-icons {
 }
 
 .presence-cosmos .pc-pt-line:not(.is-open) .pc-pt-sentence {
-  min-height: calc(2 * 24px * 1.18);
+  min-height: calc(2 * 27px * 1.16);
 }
 
 .presence-cosmos .pc-pt-sentence {
   grid-column: 1 / -1;
   margin: 0;
-  font-size: 24px;
-  line-height: 1.18;
-  letter-spacing: -0.034em;
+  font-size: 27px;
+  line-height: 1.16;
+  letter-spacing: -0.008em;
   text-wrap: pretty;
   color: var(--c-white);
 }
@@ -4470,21 +4473,22 @@ button.pc-search-icons {
 }
 
 .presence-cosmos .pc-pt-ask-lead {
-  max-width: 18ch;
+  max-width: 20ch;
   margin: 0 0 30px;
-  font-size: clamp(30px, 3.4vw, 46px);
+  font-family: var(--c-serif);
+  font-size: clamp(32px, 3.8vw, 52px);
   line-height: 1.06;
-  letter-spacing: -0.042em;
+  letter-spacing: -0.012em;
   text-wrap: balance;
   color: var(--c-ink);
 }
 
 .pc-pt-prompt {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 16px;
-  min-height: 152px;
-  padding: 34px 24px 24px 34px;
+  min-height: 108px;
+  padding: 20px 24px 20px 34px;
   border-radius: 24px;
   background: var(--c-white);
   border: 0.5px solid var(--c-border);
@@ -4513,7 +4517,7 @@ button.pc-search-icons {
 
 .pc-portrait .pc-pt-send {
   flex: none;
-  align-self: flex-end;
+  align-self: center;
   width: 44px;
   height: 44px;
   padding: 0;
@@ -4575,15 +4579,29 @@ button.pc-search-icons {
 }
 
 .presence-cosmos .pc-pt-source-line {
+  position: relative;
   display: flex;
   align-items: baseline;
   gap: 16px;
   margin: 0;
-  padding: 16px 4px;
-  border-bottom: 0.5px solid var(--c-border);
+  padding: 14px 4px 20px;
   font-size: 16px;
   letter-spacing: -0.024em;
   color: var(--c-ink);
+}
+
+.presence-cosmos .pc-pt-source-line::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    var(--c-ink) 0 var(--pt-share, 0%),
+    var(--c-border) var(--pt-share, 0%) 100%
+  );
 }
 
 .pc-pt-source-name {
@@ -4686,9 +4704,9 @@ button.pc-search-icons {
 .presence-cosmos .pc-pt-close p {
   max-width: 22ch;
   margin: 0;
-  font-size: clamp(30px, 3.4vw, 46px);
+  font-size: clamp(32px, 3.8vw, 52px);
   line-height: 1.06;
-  letter-spacing: -0.042em;
+  letter-spacing: -0.012em;
   text-wrap: balance;
   color: var(--c-white);
 }

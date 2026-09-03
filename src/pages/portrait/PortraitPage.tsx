@@ -114,15 +114,17 @@ function Ticks({ evidence, now, days = 30 }: { evidence: Evidence[]; now: Date; 
   if (!landed) return null;
   return (
     <span className="pc-pt-ticks">
-      <svg viewBox={`0 0 ${days * 4} 22`} preserveAspectRatio="none" aria-hidden="true">
-        {/* A quiet baseline across the window, so empty days read as empty rather than as noise. */}
-        <rect x="0" y="21" width={days * 4 - 2.6} height="1" opacity="0.16" />
-        {counts.map((c, i) =>
-          c ? (
-            <rect key={i} x={i * 4} y={22 - (6 + (c / max) * 16)} width="2.6" height={6 + (c / max) * 16} opacity="0.92" />
-          ) : null,
-        )}
-      </svg>
+      {landed >= 5 ? (
+        <svg viewBox={`0 0 ${days * 4} 22`} preserveAspectRatio="none" aria-hidden="true">
+          {/* A quiet baseline across the window, so empty days read as empty rather than as noise. */}
+          <rect x="0" y="21" width={days * 4 - 2.6} height="1" opacity="0.16" />
+          {counts.map((c, i) =>
+            c ? (
+              <rect key={i} x={i * 4} y={22 - (6 + (c / max) * 16)} width="2.6" height={6 + (c / max) * 16} opacity="0.92" />
+            ) : null,
+          )}
+        </svg>
+      ) : null}
       <span className="pc-pt-mono">{landed} of the last {days} days</span>
     </span>
   );
@@ -302,6 +304,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
     return [...all].sort((a, b) => b.at.localeCompare(a.at))[0] ?? null;
   }, [data.question, byId]);
   const questionEvidence = data.question ? data.question.evidenceLine.split(':').slice(1).join(':').trim() : '';
+  const mostRead = Math.max(1, ...data.sources.map((s) => parseInt(s.read, 10) || 0));
   const firstSince = data.sources.length ? [...data.sources].map((s) => s.since).sort()[0] : null;
   const since = firstSince ? spokenDay(firstSince, true) : null;
   const daysReading = firstSince ? Math.max(1, daysSince(firstSince, now)) : 0;
@@ -413,7 +416,10 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
         <ul className="pc-pt-sourcelist">
           {[...data.sources].sort((a, b) => (parseInt(b.read, 10) || 0) - (parseInt(a.read, 10) || 0)).map((s) => (
             <li key={s.platform}>
-              <p className="pc-pt-source-line">
+              <p
+                className="pc-pt-source-line"
+                style={{ '--pt-share': `${Math.round(((parseInt(s.read, 10) || 0) / mostRead) * 100)}%` } as React.CSSProperties}
+              >
                 <span className="pc-pt-source-name">{s.label}</span>
                 <span className="pc-pt-source-kind">{s.kinds}</span>
                 <span className="pc-pt-mono pc-pt-source-count">{parseInt(s.read, 10) || 0}</span>
