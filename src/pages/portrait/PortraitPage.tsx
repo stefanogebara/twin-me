@@ -143,19 +143,36 @@ function ReadingRow({ reading, now, verdict, onVerdict, cite, ordinal }: {
 
 const SECTIONS = ['signature', 'ask', 'sources'] as const;
 
+const STILLS = [
+  '/images/twinme/cosmos-01-desk.jpg',
+  '/images/twinme/cosmos-02-records.jpg',
+  '/images/twinme/cosmos-03-calendar.jpg',
+  '/images/twinme/cosmos-04-run.jpg',
+  '/images/twinme/cosmos-05-kitchen.jpg',
+  '/images/twinme/cosmos-06-portrait.jpg',
+  '/images/twinme/cosmos-07-room.jpg',
+];
+
 /**
- * The hero scatters stills across paper at different sizes, angles and depths —
- * the cosmos.so arrangement the landing already uses. Near ones are sharp, far
- * ones soft, so the page has depth without a photograph swallowing it.
+ * The field the page stands in, read from cosmos.so: not a ring of ornaments but a
+ * depth of field. Each tuple is [x%, y%, size, rotation, depth 0..1, still, crop%],
+ * where depth drives blur and opacity, so far stills fall back into the paper. Many
+ * are sliced by the frame, none sits in the measure of the headline, and the near
+ * ones are allowed to pass in front of what follows.
+ * x and y are percentages of the hero, and may be negative to cross the edge.
  */
-const TILES = [
-  { src: '/images/twinme/cosmos-02-records.jpg', style: { left: '4%', top: '20%', width: 116, height: 116, transform: 'rotate(-6deg)' } },
-  { src: '/images/twinme/cosmos-03-calendar.jpg', style: { left: '11%', top: '58%', width: 74, height: 74, transform: 'rotate(4deg)', filter: 'blur(2px)', opacity: 0.66 } },
-  { src: '/images/twinme/cosmos-05-kitchen.jpg', style: { left: '2%', bottom: '10%', width: 128, height: 128, transform: 'rotate(3deg)' } },
-  { src: '/images/twinme/cosmos-04-run.jpg', style: { right: '12%', top: '14%', width: 80, height: 80, transform: 'rotate(5deg)', filter: 'blur(3px)', opacity: 0.55 } },
-  { src: '/images/twinme/cosmos-07-room.jpg', style: { right: '3%', top: '34%', width: 136, height: 136, transform: 'rotate(-4deg)' } },
-  { src: '/images/twinme/cosmos-01-desk.jpg', style: { right: '6%', bottom: '12%', width: 104, height: 104, transform: 'rotate(6deg)' } },
-  { src: '/images/twinme/cosmos-06-portrait.jpg', style: { left: '20%', bottom: '4%', width: 68, height: 68, transform: 'rotate(-8deg)', filter: 'blur(4px)', opacity: 0.45 } },
+const FIELD: [number, number, number, number, number, number, number][] = [
+  [-3, 6, 132, -7, 0.15, 6, 40], [7, 17, 74, 5, 0.62, 2, 55], [2, 34, 196, 4, 0, 4, 50],
+  [11, 52, 58, -9, 0.78, 1, 30], [-4, 63, 148, 8, 0.28, 0, 60], [14, 78, 92, -3, 0.45, 5, 45],
+  [4, 92, 118, 6, 0.1, 3, 50], [19, 8, 46, 12, 0.85, 0, 35], [22, 37, 40, -6, 0.9, 3, 60],
+  [17, 96, 66, 3, 0.7, 6, 40], [-2, 46, 52, -11, 0.8, 2, 70], [9, 4, 88, 9, 0.5, 4, 25],
+  [24, 62, 44, 7, 0.88, 5, 55], [78, 3, 104, 6, 0.32, 1, 45], [88, 12, 152, -5, 0.05, 3, 55],
+  [72, 22, 54, 10, 0.75, 6, 35], [95, 31, 96, 3, 0.4, 5, 50], [80, 44, 232, -6, 0, 0, 45],
+  [69, 57, 48, 8, 0.86, 2, 60], [92, 66, 128, 5, 0.2, 4, 40], [76, 79, 78, -8, 0.55, 3, 65],
+  [97, 88, 110, 4, 0.25, 6, 35], [66, 91, 62, -4, 0.72, 1, 50], [84, 96, 84, 7, 0.48, 5, 55],
+  [71, 9, 42, -10, 0.92, 4, 45], [63, 36, 38, 6, 0.94, 0, 40], [86, 55, 46, -7, 0.84, 1, 30],
+  [30, 2, 58, 4, 0.8, 2, 50], [61, 2, 50, -6, 0.87, 5, 45], [35, 97, 54, 9, 0.82, 4, 40],
+  [56, 95, 44, -5, 0.9, 6, 55], [42, 1, 40, 7, 0.93, 3, 60], [50, 99, 48, -3, 0.9, 1, 35],
 ];
 
 export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, onDeleteSource }: { data: PortraitData; now: Date; banner?: React.ReactNode } & PortraitHandlers) {
@@ -301,7 +318,27 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
     <main className="presence-cosmos pc-portrait" id="main-content">
       <section className="pc-pt-hero" aria-labelledby="pc-pt-headline">
         <div className="pc-pt-tiles" aria-hidden="true">
-          {TILES.map((t) => <img key={t.src + String(t.style.left) + String(t.style.right)} className="pc-pt-tile" src={t.src} alt="" style={t.style as React.CSSProperties} />)}
+          {FIELD.map(([x, y, size, rot, depth, still, crop], i) => (
+            <img
+              key={i}
+              className="pc-pt-tile"
+              src={STILLS[still]}
+              alt=""
+              loading="lazy"
+              style={{
+                left: `${x}%`,
+                top: `${y}%`,
+                width: size,
+                height: size,
+                objectPosition: `${crop}% 50%`,
+                transform: `translate(-50%, -50%) rotate(${rot}deg)`,
+                filter: depth > 0.05 ? `blur(${(depth * 7).toFixed(1)}px)` : undefined,
+                opacity: 1 - depth * 0.78,
+                zIndex: depth < 0.2 ? 2 : 0,
+                animationDelay: `${(i % 9) * 0.045}s`,
+              } as React.CSSProperties}
+            />
+          ))}
         </div>
         <header className="pc-pt-masthead">
           <Link to="/" className="pc-pt-wordmark">TwinMe</Link>
