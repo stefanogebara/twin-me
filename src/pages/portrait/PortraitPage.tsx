@@ -63,7 +63,16 @@ function ReadingRow({ reading, now, verdict, onVerdict, open, onToggle, lit }: {
   );
 }
 
-export function PortraitPage({ data, now, banner }: { data: PortraitData; now: Date; banner?: React.ReactNode }) {
+export type PortraitHandlers = {
+  /** Live: persist a verdict. The page updates optimistically either way. */
+  onVerdict?: (readingId: string, verdict: Verdict) => Promise<void> | void;
+  /** Live: persist today's answer. */
+  onAnswer?: (readingIds: string[], answer: string) => Promise<void> | void;
+  /** Live: ask the twin. Resolves to the answer and the readings it cites; the demo uses the scripted path when absent. */
+  onAsk?: (question: string) => Promise<{ a: string; cites: string[] }>;
+};
+
+export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk }: { data: PortraitData; now: Date; banner?: React.ReactNode } & PortraitHandlers) {
   const [verdicts, setVerdicts] = useState<Record<string, Verdict>>(() => Object.fromEntries(data.readings.map((r) => [r.id, r.verdict])));
   const [open, setOpen] = useState<string | null>(null);
   const [answer, setAnswer] = useState<string | null>(data.question.yourAnswer);
@@ -75,17 +84,34 @@ export function PortraitPage({ data, now, banner }: { data: PortraitData; now: D
   const groups = useMemo(() => groupReadings(readings, now), [readings, now]);
   const sourceCount = data.sources.length;
 
-  function ask(q: string) {
-    const hit = findScripted(data.ask, q);
-    if (!hit) {
-      setReply({ a: `I do not know that yet. Nothing in the ${sourceCount} sources I read supports an answer.`, cites: [] });
-      setLit([]);
+  function showReply(r: { a: string; cites: string[] }) {
+    setReply(r);
+    setLit(r.cites);
+    if (r.cites[0]) {
+      setOpen(r.cites[0]);
+      document.getElementById(`reading-${r.cites[0]}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }
+
+  async function ask(q: string) {
+    if (!q.trim()) return;
+    if (onAsk) {
+      try { showReply(await onAsk(q)); } catch { showReply({ a: 'Something went wrong on my side. Ask again in a moment.', cites: [] }); }
       return;
     }
-    setReply({ a: hit.a, cites: hit.cites });
-    setLit(hit.cites);
-    setOpen(hit.cites[0]);
-    document.getElementById(`reading-${hit.cites[0]}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const hit = findScripted(data.ask, q);
+    if (!hit) { showReply({ a: `I do not know that yet. Nothing in the ${sourceCount} sources I read supports an answer.`, cites: [] }); return; }
+    showReply({ a: hit.a, cites: hit.cites });
+  }
+
+  function verdict(readingId: string, v: Verdict) {
+    setVerdicts((s) => ({ ...s, [readingId]: v }));
+    void onVerdict?.(readingId, v);
+  }
+
+  function answerToday(a: string) {
+    setAnswer(a);
+    if (a !== 'skipped') void onAnswer?.(data.question.fromReadings, a);
   }
 
   return (
@@ -97,15 +123,17 @@ export function PortraitPage({ data, now, banner }: { data: PortraitData; now: D
       </header>
 
       <section className="pc-pt-ask" id="ask" aria-label="Ask your twin">
-        <form className="pc-search" onSubmit={(e) => { e.preventDefault(); ask(query); }}>
+        <form className="pc-search" onSubmit={(e) => { e.preventDefault(); void ask(query); }}>
           <label className="pc-search-field">
             <input className="pc-search-input" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Ask your twin. It answers with what it read." aria-label="Ask your twin" />
           </label>
           <button type="submit" className="pc-search-icons" aria-label="Ask"><ArrowUp size={18} /></button>
         </form>
-        <div className="pc-pt-ask-hints">
-          {data.ask.map((s) => <button key={s.q} type="button" onClick={() => { setQuery(s.q); ask(s.q); }}>{s.q}</button>)}
-        </div>
+        {data.ask.length ? (
+          <div className="pc-pt-ask-hints">
+            {data.ask.map((s) => <button key={s.q} type="button" onClick={() => { setQuery(s.q); void ask(s.q); }}>{s.q}</button>)}
+          </div>
+        ) : null}
       </section>
       {reply ? (
         <section className="pc-pt-reply" aria-live="polite">
@@ -121,6 +149,7 @@ export function PortraitPage({ data, now, banner }: { data: PortraitData; now: D
         </section>
       ) : null}
 
+      {data.question ? (
       <section className="pc-pt-question" aria-labelledby="pc-pt-q-title">
         <p className="pc-spec-n">Today's question</p>
         <p className="pc-pt-evidence-line">{data.question.evidenceLine}</p>
@@ -129,11 +158,12 @@ export function PortraitPage({ data, now, banner }: { data: PortraitData; now: D
           <p className="pc-pt-answered"><Check size={14} /> In your words: {answer}. Saved as the heaviest memory of the day.</p>
         ) : (
           <div className="pc-pt-answers">
-            {data.question.answers.map((a) => <button key={a} type="button" className="pc-btn pc-btn--primary" onClick={() => setAnswer(a)}>{a}</button>)}
-            <button type="button" className="pc-btn pc-btn--canvas" onClick={() => setAnswer('skipped')}>Skip</button>
+            {data.question.answers.map((a) => <button key={a} type="button" className="pc-btn pc-btn--primary" onClick={() => answerToday(a)}>{a}</button>)}
+            <button type="button" className="pc-btn pc-btn--canvas" onClick={() => answerToday('skipped')}>Skip</button>
           </div>
         )}
       </section>
+      ) : null}
 
       <section className="pc-pt-signature" id="portrait" aria-labelledby="pc-pt-sig-title">
         <h1 id="pc-pt-sig-title">{data.owner}'s signature.</h1>
@@ -162,7 +192,7 @@ export function PortraitPage({ data, now, banner }: { data: PortraitData; now: D
             <p className="pc-spec-n">{STATE_LABEL[g.state]} · {g.readings.length}</p>
             {g.readings.map((r) => (
               <ReadingRow key={r.id} reading={r} now={now} verdict={verdicts[r.id] ?? null}
-                onVerdict={(v) => setVerdicts((s) => ({ ...s, [r.id]: v }))}
+                onVerdict={(v) => verdict(r.id, v)}
                 open={open === r.id} onToggle={() => setOpen(open === r.id ? null : r.id)} lit={lit.includes(r.id)} />
             ))}
           </div>

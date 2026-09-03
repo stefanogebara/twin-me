@@ -94,6 +94,7 @@ const PresencePage = lazy(() => import("./pages/PresencePage"));
 const PresenceLandingPage = lazy(() => import("./pages/PresenceLandingPage"));
 const PresenceLoginPage = lazy(() => import("./pages/PresenceLoginPage"));
 const DemoPortraitPage = lazy(() => import("./pages/portrait/DemoPortraitPage"));
+const LivePortraitPage = lazy(() => import("./pages/portrait/LivePortraitPage"));
 const PresenceHome = lazy(() => import("./pages/presence/PresenceHome"));
 const PresenceCallPage = lazy(() => import("./pages/presence/PresenceCallPage"));
 
@@ -239,6 +240,14 @@ const App = () => {
                 MorningBriefingCard as /today — three homes collapsed to one. */}
             <Route path="/dashboard" element={<Navigate to="/today" replace />} />
             <Route path="/briefing" element={<Navigate to="/today" replace />} />
+            {/* The Portrait — the signed-in home since the reconstruction (spec 2026-09-03). */}
+            <Route path="/portrait" element={
+              <ProtectedRoute>
+                <ErrorBoundary>
+                  <Suspense fallback={null}><LivePortraitPage /></Suspense>
+                </ErrorBoundary>
+              </ProtectedRoute>
+            } />
             {/* Today — the one home: brief + action inbox + twin composer. */}
             <Route path="/today" element={
               <ProtectedRoute>

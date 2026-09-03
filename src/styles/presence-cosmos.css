@@ -4131,3 +4131,26 @@ button.pc-search-icons {
   .pc-pt-source span, .pc-pt-source small { grid-column: 1; }
   .pc-pt-row-body { padding-left: 18px; }
 }
+
+/* Portrait: loading, error and empty states share one quiet column. */
+.pc-pt-empty {
+  min-height: 70dvh;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 16px;
+  text-align: center;
+}
+
+.presence-cosmos .pc-pt-empty h1 {
+  font-size: clamp(32px, 4vw, 44px);
+  font-weight: 300;
+  letter-spacing: -0.04em;
+}
+
+.presence-cosmos .pc-pt-empty p {
+  max-width: 440px;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--c-ink-2);
+}

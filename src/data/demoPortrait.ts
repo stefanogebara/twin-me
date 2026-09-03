@@ -26,7 +26,7 @@ export type SourceRow = { platform: string; label: string; read: string; since: 
 export type PortraitData = {
   owner: string;
   sources: SourceRow[];
-  question: Question;
+  question: Question | null;
   signature: SignatureLine[];
   readings: Reading[];
   ask: AskScript[];
