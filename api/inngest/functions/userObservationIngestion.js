@@ -21,12 +21,15 @@ export const userObservationIngestionFunction = inngest.createFunction(
     name: 'Per-User Observation Ingestion',
     retries: 1,
     // 1-per-user: never run two ingestions for the same user concurrently.
-    // Global limit 5 = the Inngest PLAN CAP. It was 6, and Inngest cloud
-    // rejects the ENTIRE app sync when any function exceeds the plan limit -
-    // all 12 functions unregistered, every fan-out event silently dropped,
-    // observation ingestion dead 2026-06-20 -> 2026-07-13 while the cron
-    // logged success. Guarded by tests/goals/inngest-plan-limits.goal.test.js;
-    // raise only together with a plan upgrade.
+    // Global limit 5 = the Inngest PLAN CAP; an over-cap limit does break an
+    // app sync, so keep it here and raise it only with a plan upgrade
+    // (guarded by tests/goals/inngest-plan-limits.goal.test.js).
+    //
+    // It was NOT the cause of the 2026-06 -> 2026-07 ingestion outage, though
+    // the comment here used to say so. The real cause was the v3
+    // createFunction signature against inngest v4 (PR #270): this function had
+    // no triggers and no callable handler, so it never ran once until
+    // 2026-08-26. The inline starvation fallback was doing all the work.
     concurrency: [{ limit: 5 }, { limit: 1, key: 'event.data.userId' }],
     triggers: [{ event: EVENTS.INGEST_USER_OBSERVATIONS }],
   },

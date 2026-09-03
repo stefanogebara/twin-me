@@ -2,9 +2,13 @@
  * Inngest Self-Heal
  * =================
  * The ingestion cron fans out one Inngest event per eligible user. If the app's
- * Inngest registration is stale or rejected (recurring after deploys, and the
- * cause of the 3-week 2026-06 outage), those events "send" successfully but no
- * function runs — ingestion silently falls back to the bounded starvation path.
+ * Inngest registration is stale or rejected, those events "send" successfully
+ * but no function runs — ingestion silently falls back to the bounded
+ * starvation path. (This was long believed to be the cause of the 3-week
+ * 2026-06 outage. It was not: the v3/v4 createFunction signature meant no
+ * function had a trigger or a handler until PR #270, so no resync could ever
+ * have helped. A resync is still worth attempting for a genuinely stale
+ * registration.)
  *
  * When the cron DETECTS starvation (the exact signature of a non-consuming
  * registration), it calls selfHealInngestRegistration(): a best-effort,
