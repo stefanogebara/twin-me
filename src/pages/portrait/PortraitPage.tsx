@@ -313,7 +313,9 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
     return [...all].sort((a, b) => b.at.localeCompare(a.at))[0] ?? null;
   }, [data.question, byId]);
   const questionEvidence = data.question ? data.question.evidenceLine.split(':').slice(1).join(':').trim() : '';
-  const since = data.sources.length ? spokenDay([...data.sources].map((s) => s.since).sort()[0], true) : null;
+  const firstSince = data.sources.length ? [...data.sources].map((s) => s.since).sort()[0] : null;
+  const since = firstSince ? spokenDay(firstSince, true) : null;
+  const daysReading = firstSince ? Math.max(1, daysSince(firstSince, now)) : 0;
 
   return (
     <main className="presence-cosmos pc-portrait" id="main-content">
@@ -329,11 +331,13 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
               style={{
                 left: `${x}%`,
                 top: `${y}%`,
-                width: size,
-                height: size,
+                // One depth value drives size, blur and opacity together, so the
+                // field reads as distance rather than as scattered decoration.
+                width: Math.round(size * (1 - depth * 0.34)),
+                height: Math.round(size * (1 - depth * 0.34)),
                 objectPosition: `${cropX}% ${cropY}%`,
                 transform: `translate(-50%, -50%) rotate(${rot}deg)`,
-                filter: depth > 0.05 ? `blur(${(depth * 7).toFixed(1)}px)` : undefined,
+                filter: depth > 0.06 ? `blur(${(depth * depth * 9).toFixed(1)}px)` : undefined,
                 opacity: 1 - depth * 0.78,
                 zIndex: depth < 0.2 ? 2 : 0,
                 animationDelay: `${(i % 9) * 0.045}s`,
@@ -355,7 +359,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
         <div className="pc-pt-hero-body">
           <p className="pc-pt-kicker">{banner ?? <Kicker owner={data.owner} now={now} />}</p>
           <h1 id="pc-pt-headline" className="pc-pt-serif">{lead ? <Headline text={lead} /> : `${data.owner}.`}</h1>
-          <p className="pc-pt-promise">Every line here keeps its receipts.</p>
+
         </div>
       {data.question ? (
         <section className="pc-pt-today" aria-labelledby="pc-pt-q-title">
@@ -416,6 +420,15 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
             </li>
           ))}
         </ol>
+      </section>
+
+      <section className="pc-pt-tally" aria-label="What it read">
+        <dl>
+          <div><dd>{readingCount}</dd><dt className="pc-pt-mono">readings</dt></div>
+          <div><dd>{receiptCount}</dd><dt className="pc-pt-mono">receipts</dt></div>
+          <div><dd>{sourceCount}</dd><dt className="pc-pt-mono">sources</dt></div>
+          {daysReading ? <div><dd>{daysReading}</dd><dt className="pc-pt-mono">days reading you</dt></div> : null}
+        </dl>
       </section>
 
       <section className="pc-pt-ask" id="ask" aria-label="Ask">

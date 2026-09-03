@@ -3812,7 +3812,10 @@ button.pc-search-icons {
 .pc-portrait {
   position: relative;
   padding: 0 0 96px;
-  background: var(--c-paper);
+  background:
+    radial-gradient(120% 60% at 78% 8%, rgba(233, 214, 186, 0.55) 0%, rgba(233, 214, 186, 0) 62%),
+    radial-gradient(90% 50% at 12% 42%, rgba(214, 219, 231, 0.42) 0%, rgba(214, 219, 231, 0) 60%),
+    var(--c-paper);
   overflow-x: clip;
 }
 
@@ -4123,6 +4126,46 @@ button.pc-search-icons {
 
 /* ---- The sections ------------------------------------------------ */
 
+.pc-pt-tally {
+  position: relative;
+  z-index: 1;
+  max-width: var(--pt-max);
+  width: calc(100% - 48px);
+  margin: 56px auto 0;
+}
+
+.pc-pt-tally dl {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 24px;
+  margin: 0;
+  padding: 26px 0 0;
+  border-top: 0.5px solid var(--c-border);
+}
+
+.pc-pt-tally div {
+  display: grid;
+  gap: 6px;
+}
+
+.presence-cosmos .pc-pt-tally dd {
+  margin: 0;
+  font-size: clamp(40px, 4.4vw, 62px);
+  font-weight: 300;
+  line-height: 0.94;
+  letter-spacing: -0.055em;
+  font-variant-numeric: tabular-nums lining-nums;
+  color: var(--c-ink);
+}
+
+.presence-cosmos .pc-pt-tally dt {
+  font-family: var(--c-mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--c-mono-ink);
+}
+
 .pc-pt-signature,
 .pc-pt-ask,
 .pc-pt-sources {
@@ -4148,9 +4191,12 @@ button.pc-search-icons {
 
 /* ---- The signature: ambient panels, one per stanza ---------------- */
 
+/* Two across, so five stanzas are not five identical bars; the open one takes
+   the full measure and the others sit beside each other. */
 .pc-pt-lines {
   list-style: none;
   display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
   margin: 0;
   padding: 0;
@@ -4159,19 +4205,36 @@ button.pc-search-icons {
 .pc-pt-line {
   position: relative;
   overflow: hidden;
+  min-height: 232px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
   border-radius: var(--pt-card);
-  background: #12141a var(--still) center 55% / 130% auto;
+  background: #12141a var(--still) center 52% / cover;
   color: var(--c-white);
 }
 
-/* The photograph is held far back so the words sit calmly on it. */
+.pc-pt-line.is-open {
+  grid-column: 1 / -1;
+  min-height: 0;
+  display: block;
+}
+
+/* Frosted, not filled: you can still read the room through the glass, and the
+   words sit on the weighted foot of it. */
 .pc-pt-line::before {
   content: '';
   position: absolute;
   inset: 0;
-  backdrop-filter: blur(30px) saturate(115%);
-  -webkit-backdrop-filter: blur(30px) saturate(115%);
-  background: linear-gradient(180deg, rgba(11, 13, 17, 0.9) 0%, rgba(11, 13, 17, 0.95) 100%);
+  backdrop-filter: blur(16px) saturate(118%);
+  -webkit-backdrop-filter: blur(16px) saturate(118%);
+  background:
+    linear-gradient(180deg, rgba(10, 12, 16, 0.24) 0%, rgba(10, 12, 16, 0.52) 46%, rgba(10, 12, 16, 0.84) 100%);
+}
+
+.pc-pt-line.is-open::before {
+  background:
+    linear-gradient(180deg, rgba(10, 12, 16, 0.62) 0%, rgba(10, 12, 16, 0.8) 40%, rgba(10, 12, 16, 0.88) 100%);
 }
 
 .pc-pt-line > * {
@@ -4181,17 +4244,24 @@ button.pc-search-icons {
 .pc-portrait .pc-pt-line-head {
   display: grid;
   width: 100%;
-  grid-template-columns: minmax(0, 1fr) var(--pt-rail);
-  gap: 8px var(--pt-gap);
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px 20px;
   align-items: start;
-  padding: 28px 32px 30px;
+  padding: 26px 28px 28px;
   text-align: left;
+}
+
+.pc-pt-line.is-open .pc-pt-line-head {
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 30px 32px 26px;
 }
 
 /* The pill label the boards put in the corner of every card. */
 .presence-cosmos .pc-pt-label {
+  grid-column: 1;
+  grid-row: 1;
   justify-self: start;
-  margin: 0 0 18px;
+  margin: 0 0 auto;
   padding: 6px 13px;
   border-radius: 999px;
   border: 0.5px solid rgba(255, 255, 255, 0.28);
@@ -4206,6 +4276,7 @@ button.pc-search-icons {
 .pc-pt-open-mark {
   grid-column: 2;
   grid-row: 1;
+  margin-bottom: auto;
   justify-self: end;
   align-self: start;
   padding: 6px 13px;
@@ -4223,21 +4294,28 @@ button.pc-search-icons {
 }
 
 .presence-cosmos .pc-pt-sentence {
-  grid-column: 1;
+  grid-column: 1 / -1;
   margin: 0;
-  font-size: clamp(24px, 2.1vw, 30px);
-  line-height: 1.16;
+  font-size: 24px;
+  line-height: 1.18;
   letter-spacing: -0.034em;
   text-wrap: pretty;
   color: var(--c-white);
 }
 
+.pc-pt-line.is-open .pc-pt-sentence {
+  grid-column: 1;
+  font-size: clamp(26px, 2.3vw, 32px);
+  line-height: 1.14;
+}
+
 .presence-cosmos .pc-pt-count {
-  grid-column: 2;
+  grid-column: 1 / -1;
   display: grid;
-  gap: 5px;
-  margin: 0;
-  padding-top: 6px;
+  gap: 4px;
+  margin: 14px 0 0;
+  padding-top: 14px;
+  border-top: 0.5px solid rgba(255, 255, 255, 0.18);
   font-size: 14px;
   line-height: 1.45;
   letter-spacing: -0.015em;
@@ -4693,6 +4771,10 @@ button.pc-search-icons {
   .pc-pt-close { width: calc(100% - 24px); margin-top: 48px; }
   .pc-pt-today-inner { padding: 44px 22px 48px; }
   .presence-cosmos .pc-pt-today h2 { max-width: none; }
+  .pc-pt-lines { grid-template-columns: 1fr; }
+  .pc-pt-line { min-height: 200px; }
+  .pc-pt-tally { width: calc(100% - 24px); }
+  .pc-pt-tally dl { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
   .pc-portrait .pc-pt-line-head,
   .pc-pt-row,
   .pc-pt-close-inner { grid-template-columns: 1fr; gap: 14px 0; }
