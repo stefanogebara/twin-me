@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { SOURCE_LABEL, type Domain, type PortraitData, type Reading, type Verdict } from '../../data/demoPortrait';
 import { deriveState, daysSince, findScripted } from '../../lib/portrait';
@@ -47,7 +47,7 @@ export type PortraitHandlers = {
 type Block = { domain: Domain; line: string | null; readings: Reading[] };
 
 function spoken(d: Date, withYear = true) {
-  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', ...(withYear ? { year: 'numeric' } : {}), timeZone: 'UTC' });
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', ...(withYear ? { year: 'numeric' } : {}), timeZone: 'UTC' });
 }
 
 function spokenDay(iso: string, withYear = false) {
@@ -66,18 +66,16 @@ const HEADLINE_STOPWORDS = new Set([
  * the punctuation around it stays roman.
  */
 function Headline({ text }: { text: string }) {
-  const clauseEnd = text.search(/[,;:.]/);
   const tokens = text.split(/(\s+)/);
   let best = -1;
   let bestLength = 2;
-  let seen = 0;
+  const last = tokens.map((t) => /\S/.test(t)).lastIndexOf(true);
   tokens.forEach((tok, i) => {
-    const start = seen;
-    seen += tok.length;
     if (/^\s*$/.test(tok)) return;
-    if (clauseEnd >= 0 && start > clauseEnd) return;
     const word = tok.replace(/[^A-Za-z'-]/g, '');
     if (!word || HEADLINE_STOPWORDS.has(word.toLowerCase())) return;
+    // The last word closes the sentence; the accent belongs before it.
+    if (i === last && bestLength > 2) return;
     if (word.length > bestLength) { best = i; bestLength = word.length; }
   });
   if (best < 0) return <>{text}</>;
@@ -100,30 +98,35 @@ function when(at: string) {
 const RECEIPTS_SHOWN = 3;
 
 function Receipts({ reading }: { reading: Reading }) {
-  const rest = reading.evidence.length - RECEIPTS_SHOWN;
+  const shown = reading.evidence.slice(0, RECEIPTS_SHOWN);
+  const rest = reading.evidence.length - shown.length;
   return (
     <ol className="pc-pt-evidence" aria-label="Receipts">
-      {reading.evidence.slice(0, RECEIPTS_SHOWN).map((e, i) => (
+      {shown.map((e, i) => (
         <li key={i}>
-          <span className="pc-pt-when">{when(e.at)} · {SOURCE_LABEL[e.source] ?? e.source}</span>
+          <span className="pc-pt-when">{when(e.at)}</span>
+          <span className="pc-pt-src">{SOURCE_LABEL[e.source] ?? e.source}</span>
           <span className="pc-pt-event">{e.event}</span>
         </li>
       ))}
-      {rest > 0 ? <li className="pc-pt-more"><span className="pc-pt-event">and {rest} more like {rest === 1 ? 'it' : 'them'}</span></li> : null}
+      {rest > 0 ? <li className="pc-pt-more"><span /><span /><span className="pc-pt-mono">+{rest} more</span></li> : null}
     </ol>
   );
 }
 
-function ReadingRow({ reading, now, verdict, onVerdict, cite }: {
-  reading: Reading; now: Date; verdict: Verdict; onVerdict: (v: Verdict) => void; cite: number | null;
+function ReadingRow({ reading, now, verdict, onVerdict, cite, ordinal }: {
+  reading: Reading; now: Date; verdict: Verdict; onVerdict: (v: Verdict) => void; cite: number | null; ordinal: number;
 }) {
   const state = deriveState({ ...reading, verdict }, now);
   const note = state === 'fading' ? `Fading, last supported ${daysSince(reading.supportedAt, now)} days ago` : state === 'disputed' ? 'Disputed' : null;
   return (
     <li className={`pc-pt-row is-${state}`} id={`reading-${reading.id}`}>
-      <p className="pc-pt-mono pc-pt-row-index">{cite ? `[${cite}]` : ''}</p>
+      <p className="pc-pt-mono pc-pt-row-index">
+        <span>{String(ordinal).padStart(2, '0')}</span>
+        {cite ? <b>Cited [{cite}]</b> : null}
+      </p>
       <div>
-        <p className="pc-pt-claim">{reading.text}</p>
+        <p className="pc-pt-serif pc-pt-claim">{reading.text}</p>
         <div className="pc-pt-vote" role="group" aria-label={`True of you? ${reading.text}`}>
           {(['true', 'partly', 'wrong'] as const).map((v) => (
             <button key={v} type="button" className={verdict === v ? 'is-active' : ''} aria-pressed={verdict === v} onClick={() => onVerdict(verdict === v ? null : v)}>
@@ -138,7 +141,10 @@ function ReadingRow({ reading, now, verdict, onVerdict, cite }: {
   );
 }
 
+const SECTIONS = ['signature', 'ask', 'sources'] as const;
+
 export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, onDeleteSource }: { data: PortraitData; now: Date; banner?: React.ReactNode } & PortraitHandlers) {
+  const [here, setHere] = useState<string | null>(null);
   const [verdicts, setVerdicts] = useState<Record<string, Verdict>>(() => Object.fromEntries(data.readings.map((r) => [r.id, r.verdict])));
   const [answer, setAnswer] = useState<string | null>(data.question?.yourAnswer ?? null);
   const [query, setQuery] = useState('');
@@ -171,6 +177,18 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
   const [openDomain, setOpenDomain] = useState<Domain | null>(() => (
     ORDER.find((d) => readings.some((r) => r.domain === d)) ?? null
   ));
+
+  // The nav follows the page: whichever section owns the upper third is the one you are in.
+  useEffect(() => {
+    const seen = new Map<string, number>();
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((e) => seen.set(e.target.id, e.intersectionRatio));
+      const [top] = [...seen.entries()].filter(([, r]) => r > 0).sort((a, b) => b[1] - a[1]);
+      setHere(top ? top[0] : null);
+    }, { rootMargin: '-10% 0px -60% 0px', threshold: [0, 0.25, 0.5, 1] });
+    SECTIONS.forEach((id) => { const el = document.getElementById(id); if (el) io.observe(el); });
+    return () => io.disconnect();
+  }, []);
 
   function showReading(id: string) {
     const r = byId.get(id);
@@ -205,15 +223,32 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
     if (a !== 'skipped' && data.question) void onAnswer?.(data.question.fromReadings, a);
   }
 
-  /** The rail of a stanza: the way in, or the way out. */
-  function stanzaRail(b: Block) {
-    const isOpen = openDomain === b.domain;
+  /** The evidence column of a stanza: what it was read from, and how much. */
+  function stanzaRail(b: Block, open: boolean) {
     if (!b.readings.length) return <span />;
+    const live = b.readings.filter((r) => deriveState(r, now) !== 'disputed');
+    const sources = [...new Set(live.flatMap((r) => r.evidence.map((e) => SOURCE_LABEL[e.source] ?? e.source)))];
+    const receipts = live.reduce((n, r) => n + r.evidence.length, 0);
+    const [first] = live[0]?.evidence ?? [];
+    if (!open) {
+      return (
+        <p className="pc-pt-count">
+          <span>{sources.join(', ')}</span>
+          <span className="pc-pt-mono">{b.readings.length} readings · {receipts} receipts</span>
+        </p>
+      );
+    }
     return (
-      <div className="pc-pt-count">
-        <button type="button" className={`pc-pt-open ${isOpen ? 'is-on' : ''}`} aria-expanded={isOpen} onClick={() => setOpenDomain(isOpen ? null : b.domain)}>
-          {isOpen ? 'Close' : 'Read them'}
-        </button>
+      <div className="pc-pt-count is-open">
+        <p>{sources.join(', ')}</p>
+        {first ? (
+          <p className="pc-pt-peek">
+            <span className="pc-pt-when">{when(first.at)}</span>
+            <span className="pc-pt-src">{SOURCE_LABEL[first.source] ?? first.source}</span>
+            <span className="pc-pt-event">{first.event}</span>
+            <span className="pc-pt-mono pc-pt-of">1/{receipts}</span>
+          </p>
+        ) : null}
       </div>
     );
   }
@@ -226,36 +261,45 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
     return (
       <ul className="pc-pt-ledger">
         <li className="pc-pt-ledger-mark">
-          <span /><span className="pc-pt-mono">True of you?</span>
-          <span className="pc-pt-mono">Read from {sources.join(', ')} · {receipts} receipts</span>
+          <span /><span>True of you?</span>
+          <span>The receipts</span>
         </li>
-        {b.readings.map((r) => (
-          <ReadingRow key={r.id} reading={r} now={now} verdict={verdicts[r.id] ?? null} onVerdict={(v) => verdict(r.id, v)} cite={cites.includes(r.id) ? cites.indexOf(r.id) + 1 : null} />
+        {b.readings.map((r, i) => (
+          <ReadingRow key={r.id} reading={r} now={now} verdict={verdicts[r.id] ?? null} onVerdict={(v) => verdict(r.id, v)} cite={cites.includes(r.id) ? cites.indexOf(r.id) + 1 : null} ordinal={i + 1} />
         ))}
       </ul>
     );
   }
 
   const questionSource = data.question ? data.question.evidenceLine.split(':')[0] : '';
+  // The band shows the newest receipt under the readings the question came from.
+  const questionReceipt = useMemo(() => {
+    if (!data.question) return null;
+    const from = data.question.fromReadings.map((id) => byId.get(id)).filter(Boolean) as Reading[];
+    const all = from.flatMap((r) => r.evidence);
+    return [...all].sort((a, b) => b.at.localeCompare(a.at))[0] ?? null;
+  }, [data.question, byId]);
   const questionEvidence = data.question ? data.question.evidenceLine.split(':').slice(1).join(':').trim() : '';
   const since = data.sources.length ? spokenDay([...data.sources].map((s) => s.since).sort()[0], true) : null;
 
   return (
     <main className="presence-cosmos pc-portrait" id="main-content">
       <header className="pc-pt-masthead">
-        <Link to="/" className="pc-pt-mono pc-pt-wordmark">TwinMe</Link>
+        <Link to="/" className="pc-pt-wordmark">TwinMe</Link>
         <nav className="pc-pt-mono" aria-label="Sections">
-          <a href="#signature">Signature</a>
-          <a href="#ask">Ask</a>
-          <a href="#sources">Sources</a>
+          {SECTIONS.map((id) => (
+            <a key={id} href={`#${id}`} className={here === id ? 'is-here' : ''} aria-current={here === id ? 'true' : undefined}>
+              {id === 'signature' ? 'Signature' : id === 'ask' ? 'Ask' : 'Sources'}
+            </a>
+          ))}
         </nav>
       </header>
 
       <section className="pc-pt-hero" aria-labelledby="pc-pt-headline">
-        <p className="pc-pt-mono pc-pt-kicker">{banner ?? <>{data.owner}'s portrait</>}</p>
+        <p className="pc-pt-mono pc-pt-kicker">{banner ?? <>Read from your own data</>}</p>
         <h1 id="pc-pt-headline" className="pc-pt-serif">{lead ? <Headline text={lead} /> : `${data.owner}.`}</h1>
-        <p className="pc-pt-mono pc-pt-index">
-          <span>{readingCount} readings from {receiptCount} receipts</span>
+        <p className="pc-pt-index">
+          <span>{readingCount} readings · {receiptCount} receipts · {sourceCount} sources</span>
           <span>Read {spoken(now)}</span>
         </p>
 
@@ -265,38 +309,50 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
         <section className="pc-pt-today" aria-labelledby="pc-pt-q-title">
           <div className="pc-pt-today-inner pc-pt-grid">
             <div>
+              <p className="pc-pt-q-mark">Today, from {questionSource}</p>
               <h2 id="pc-pt-q-title" className="pc-pt-serif">{data.question.question}</h2>
+              <p className="pc-pt-q-evidence">{questionEvidence}</p>
+            </div>
+            <div className="pc-pt-q-answer">
+              {questionReceipt ? (
+                <p className="pc-pt-q-receipt">
+                  <span className="pc-pt-mono">{when(questionReceipt.at)} · {SOURCE_LABEL[questionReceipt.source] ?? questionReceipt.source}</span>
+                  <span>{questionReceipt.event}</span>
+                </p>
+              ) : null}
               {answer ? (
                 <p className="pc-pt-serif pc-pt-answered">{answer === 'skipped' ? 'Skipped for today.' : <em>{answer}.</em>}</p>
               ) : (
                 <>
                   <div className="pc-pt-choices">
                     {data.question.answers.map((a) => (
-                      <button key={a} type="button" onClick={() => answerToday(a)}>{a}</button>
+                      <button key={a} type="button" className={a === data.question!.answers[0] ? 'is-lead' : ''} onClick={() => answerToday(a)}>{a}</button>
                     ))}
                   </div>
                   <button type="button" className="pc-pt-skip" onClick={() => answerToday('skipped')}>Skip today</button>
                 </>
               )}
             </div>
-            <div className="pc-pt-q-evidence">
-              <span className="pc-pt-mono">Today, from {questionSource}</span>
-              <span>{questionEvidence}</span>
-            </div>
           </div>
         </section>
       ) : null}
 
       <section className="pc-pt-signature" id="signature" aria-label="Signature">
-        <p className="pc-pt-mono pc-pt-section-mark">Signature</p>
+        <p className="pc-pt-section-mark">Signature</p>
         <ol className="pc-pt-lines">
           {blocks.map((b, i) => (
             <li key={b.domain} className={`pc-pt-line ${i === 0 ? 'is-first' : ''} ${openDomain === b.domain ? 'is-open' : ''}`}>
-              <div className="pc-pt-line-head">
-                <p className="pc-pt-mono pc-pt-label">{STANZA[b.domain]}{b.readings.length ? <b>{b.readings.length}</b> : null}</p>
-                <p className="pc-pt-serif pc-pt-sentence">{(b === promoted ? b.readings[0]?.text : b.line) ?? b.readings[0]?.text}</p>
-                {stanzaRail(b)}
-              </div>
+              <button
+                type="button"
+                className="pc-pt-line-head"
+                aria-expanded={openDomain === b.domain}
+                disabled={!b.readings.length}
+                onClick={() => setOpenDomain(openDomain === b.domain ? null : b.domain)}
+              >
+                <span className="pc-pt-label">{STANZA[b.domain]}</span>
+                <span className="pc-pt-serif pc-pt-sentence">{(b === promoted ? b.readings[0]?.text : b.line) ?? b.readings[0]?.text}</span>
+                {stanzaRail(b, openDomain === b.domain)}
+              </button>
               {ledger(b)}
             </li>
           ))}
@@ -304,16 +360,16 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
       </section>
 
       <section className="pc-pt-ask" id="ask" aria-label="Ask">
-        <p className="pc-pt-mono pc-pt-section-mark">Ask</p>
-        <div className="pc-pt-grid pc-pt-ask-body">
+        <p className="pc-pt-section-mark">Ask</p>
+        <div className="pc-pt-ask-body">
+          <form className="pc-pt-prompt" onSubmit={(e) => { e.preventDefault(); void ask(query); }}>
+            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={data.ask[0] ? `Ask anything — “${data.ask[0].q}”` : 'Ask something about yourself'} aria-label="Ask something about yourself" />
+            <button type="submit" className="pc-pt-send">Ask</button>
+          </form>
           <div>
-            <form className="pc-pt-prompt" onSubmit={(e) => { e.preventDefault(); void ask(query); }}>
-              <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Ask something about yourself" aria-label="Ask something about yourself" />
-              <button type="submit" className="pc-pt-send">Ask</button>
-            </form>
             {reply ? (
               <blockquote className="pc-pt-reply" aria-live="polite">
-                <p className="pc-pt-serif">{reply.a}</p>
+                <p>{reply.a}</p>
                 <footer className="pc-pt-cites">
                   {reply.cites.length
                     ? <>It read {reply.cites.map((id, i) => <a key={id} href={`#reading-${id}`} onClick={(e) => { e.preventDefault(); showReading(id); }}>[{i + 1}]</a>)} to answer that.</>
@@ -322,26 +378,17 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
               </blockquote>
             ) : null}
           </div>
-          {data.ask.length ? (
-            <div className="pc-pt-rail pc-pt-hints">
-              {data.ask.filter((s) => s.q !== query).map((s) => (
-                <button key={s.q} type="button" onClick={() => { setQuery(s.q); void ask(s.q); }}>
-                  <span>{s.q}</span><i aria-hidden="true">&#8594;</i>
-                </button>
-              ))}
-            </div>
-          ) : null}
         </div>
       </section>
 
       <section className="pc-pt-sources" id="sources" aria-label="Sources">
-        <p className="pc-pt-mono pc-pt-section-mark">Sources</p>
+        <p className="pc-pt-section-mark is-bare">Sources</p>
         <table className="pc-pt-table">
-          <thead className="pc-pt-mono">
+          <thead>
             <tr><th>Source</th><th>What was read</th><th>Since</th><th className="is-num">Items</th>{onDeleteSource ? <th /> : null}</tr>
           </thead>
           <tbody>
-            {data.sources.map((s) => {
+            {[...data.sources].sort((a, b) => (parseInt(b.read, 10) || 0) - (parseInt(a.read, 10) || 0)).map((s) => {
               const items = parseInt(s.read, 10) || 0;
               return (
               <React.Fragment key={s.platform}>

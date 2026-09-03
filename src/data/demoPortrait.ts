@@ -46,7 +46,7 @@ export const SOURCE_LABEL: Record<string, string> = {
 
 export const DEMO_PORTRAIT: PortraitData = {
   owner: 'Stefano',
-  lead: 'You do your best work alone, with nobody waiting on you.',
+  lead: 'You work best on the days nothing is scheduled.',
   sources: [
     { platform: 'github', label: 'GitHub', read: '182 items', since: '2026-06-08', kinds: 'finished work, and the hours you do it' },
     { platform: 'spotify', label: 'Spotify', read: '246 items', since: '2026-08-26', kinds: 'plays, repeats, new artists' },
@@ -57,13 +57,13 @@ export const DEMO_PORTRAIT: PortraitData = {
   ],
   question: {
     fromReadings: ['r06', 'r08'],
-    evidenceLine: 'Whoop, Thursday: well recovered, but bedtime far from your usual.',
+    evidenceLine: 'Whoop, Thursday: Well recovered, but bedtime far from your usual.',
     question: 'Your best days follow long sleep, and your bedtime moves by hours. Last night ran late again.',
     answers: ['I chose to stay up', 'It got away from me'],
     yourAnswer: null,
   },
   signature: [
-    { domain: 'motivation', line: 'You work in bursts: days of quiet, then a week of work in one afternoon, by yourself.', from: ['r01', 'r02', 'r11'] },
+    { domain: 'motivation', line: 'Nothing moves for days. Then everything ships at once.', from: ['r01', 'r02', 'r11'] },
     { domain: 'personality', line: 'Repetition is how you settle. The same songs, the same order, until the thing is done.', from: ['r03', 'r08'] },
     { domain: 'cultural', line: 'A new artist becomes a whole morning. On YouTube it splits: football for joy, sociology for the toolkit.', from: ['r04', 'r05'] },
     { domain: 'social', line: 'You keep the circle tight and the evenings yours.', from: ['r09', 'r10'] },
@@ -81,14 +81,14 @@ export const DEMO_PORTRAIT: PortraitData = {
         { source: 'github', at: '2026-09-03', event: 'Started and finished a second fix, same tool' },
         { source: 'github', at: '2026-09-03', event: 'Shipped the new design of your own product' },
       ],
-      writtenAt: '2026-09-02', supportedAt: '2026-09-03', verdict: null,
+      writtenAt: '2026-09-02', supportedAt: '2026-09-03', verdict: 'true',
     },
     {
       id: 'r02', domain: 'motivation',
       text: 'You do your work alone from start to finish; nobody reviews it and you wait for no one.',
       sourceReflection: '3b7b5bd3-d4ce-47cc-96d1-7ca24ee3125d',
       evidence: [
-        { source: 'github', at: '2026-09-03', event: 'Started a change to one of your projects' },
+        { source: 'github', at: '2026-09-02', event: 'Opened a change nobody else was on' },
         { source: 'github', at: '2026-09-03', event: 'Finished it yourself, minutes later' },
         { source: 'github', at: '2026-09-03', event: 'Started another change to your own product' },
         { source: 'github', at: '2026-06-08', event: '649 pieces of work shipped, none reviewed by anyone else' },
