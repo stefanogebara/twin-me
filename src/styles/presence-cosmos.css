@@ -4007,7 +4007,8 @@ button.pc-search-icons {
   margin: 0 auto;
   overflow: hidden;
   border-radius: var(--pt-card);
-  background: #14161a var(--pt-today-still, url('/images/twinme/cosmos-07-room.jpg')) 62% 68% / 150% auto;
+  /* The lamp sits to the right, so the words get the dark side of the room. */
+  background: #14161a url('/images/twinme/cosmos-07-room.jpg') 78% 66% / 132% auto;
   color: var(--c-white);
 }
 
@@ -4015,7 +4016,7 @@ button.pc-search-icons {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(10, 12, 15, 0.5) 0%, rgba(10, 12, 15, 0.74) 100%);
+  background: linear-gradient(96deg, rgba(10, 12, 15, 0.9) 0%, rgba(10, 12, 15, 0.72) 46%, rgba(10, 12, 15, 0.34) 100%);
 }
 
 .pc-pt-today > * {
@@ -4024,10 +4025,10 @@ button.pc-search-icons {
 
 .pc-pt-today-inner {
   width: 100%;
-  max-width: 640px;
+  max-width: var(--pt-max);
   margin: 0 auto;
-  padding: 72px 32px 76px;
-  text-align: center;
+  padding: 92px 56px 96px;
+  text-align: left;
 }
 
 .presence-cosmos .pc-pt-q-mark {
@@ -4040,12 +4041,12 @@ button.pc-search-icons {
 }
 
 .presence-cosmos .pc-pt-today h2 {
-  max-width: 20ch;
-  margin: 0 auto;
-  font-size: clamp(28px, 3vw, 40px);
+  max-width: 16ch;
+  margin: 0;
+  font-size: clamp(36px, 4.4vw, 62px);
   font-weight: 400;
-  line-height: 1.06;
-  letter-spacing: -0.038em;
+  line-height: 1;
+  letter-spacing: -0.046em;
   text-wrap: balance;
   color: var(--c-white);
 }
@@ -4053,7 +4054,8 @@ button.pc-search-icons {
 .presence-cosmos .pc-pt-q-receipt {
   display: grid;
   gap: 8px;
-  margin: 26px 0 0;
+  max-width: 34ch;
+  margin: 30px 0 0;
   font-size: 17px;
   line-height: 1.4;
   letter-spacing: -0.02em;
@@ -4071,7 +4073,6 @@ button.pc-search-icons {
 .pc-pt-choices {
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
   gap: 10px;
 }
 
@@ -4336,6 +4337,23 @@ button.pc-search-icons {
   display: grid;
   gap: 3px;
   margin: 0;
+}
+
+.pc-pt-ticks {
+  display: grid;
+  gap: 7px;
+  margin-top: 14px;
+}
+
+.pc-pt-ticks svg {
+  width: 100%;
+  height: 22px;
+  fill: currentColor;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.pc-portrait .pc-pt-ticks .pc-pt-mono {
+  color: rgba(255, 255, 255, 0.45);
 }
 
 /* ---- The readings inside an open stanza -------------------------- */

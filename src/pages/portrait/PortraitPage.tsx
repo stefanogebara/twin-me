@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { SOURCE_LABEL, type Domain, type PortraitData, type Reading, type Verdict } from '../../data/demoPortrait';
+import { SOURCE_LABEL, type Domain, type Evidence, type PortraitData, type Reading, type Verdict } from '../../data/demoPortrait';
 import { deriveState, daysSince, findScripted } from '../../lib/portrait';
 import '../../styles/presence-cosmos.css';
 
@@ -92,6 +92,40 @@ function when(at: string) {
   const d = new Date(`${date}T00:00:00Z`);
   const day = Number.isNaN(d.getTime()) ? date : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
   return time ? `${day} ${time}` : day;
+}
+
+/**
+ * When a stanza was true: one tick per day across the window, taller where more
+ * receipts landed on it. Drawn from the receipts themselves, so it never claims
+ * anything the page cannot already show — the hairline charts on the boards,
+ * carrying real series rather than decoration.
+ */
+function Ticks({ evidence, now, days = 30 }: { evidence: Evidence[]; now: Date; days?: number }) {
+  const counts = new Array(days).fill(0);
+  const end = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  for (const e of evidence) {
+    const t = Date.parse(`${e.at.slice(0, 10)}T00:00:00Z`);
+    if (Number.isNaN(t)) continue;
+    const i = days - 1 - Math.round((end - t) / 86_400_000);
+    if (i >= 0 && i < days) counts[i] += 1;
+  }
+  const max = Math.max(1, ...counts);
+  const landed = counts.filter(Boolean).length;
+  if (!landed) return null;
+  return (
+    <span className="pc-pt-ticks">
+      <svg viewBox={`0 0 ${days * 4} 22`} preserveAspectRatio="none" aria-hidden="true">
+        {/* A quiet baseline across the window, so empty days read as empty rather than as noise. */}
+        <rect x="0" y="21" width={days * 4 - 2.6} height="1" opacity="0.16" />
+        {counts.map((c, i) =>
+          c ? (
+            <rect key={i} x={i * 4} y={22 - (6 + (c / max) * 16)} width="2.6" height={6 + (c / max) * 16} opacity="0.92" />
+          ) : null,
+        )}
+      </svg>
+      <span className="pc-pt-mono">{landed} of the last {days} days</span>
+    </span>
+  );
 }
 
 /** The proof of one reading, in the margin beside it. */
@@ -258,33 +292,20 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
   /** The evidence column of a stanza: what it was read from, and how much. */
   function stanzaRail(b: Block, open: boolean) {
     if (!b.readings.length) return <span />;
+    // Open stanzas carry their own ledger below; the rail would only repeat it.
+    if (open) return <span />;
     const live = b.readings.filter((r) => deriveState(r, now) !== 'disputed');
     const sources = [...new Set(live.flatMap((r) => r.evidence.map((e) => SOURCE_LABEL[e.source] ?? e.source)))];
-    const receipts = live.reduce((n, r) => n + r.evidence.length, 0);
     const [first] = live[0]?.evidence ?? [];
-    if (open) return <span />;
-    if (!open) {
-      return (
-        <p className="pc-pt-count">
-          {first ? (
-            <>
-              <span className="pc-pt-when">{when(first.at)} · {SOURCE_LABEL[first.source] ?? first.source}</span>
-              <span className="pc-pt-event">{first.event}</span>
-            </>
-          ) : <span>{sources.join(', ')}</span>}
-        </p>
-      );
-    }
     return (
-      <div className="pc-pt-count is-open">
-        <p>{sources.join(', ')}</p>
+      <div className="pc-pt-count">
         {first ? (
           <p className="pc-pt-peek">
-            <span className="pc-pt-when">{when(first.at)}</span>
-            <span className="pc-pt-src">{SOURCE_LABEL[first.source] ?? first.source}</span>
+            <span className="pc-pt-when">{when(first.at)} · {SOURCE_LABEL[first.source] ?? first.source}</span>
             <span className="pc-pt-event">{first.event}</span>
           </p>
-        ) : null}
+        ) : <p className="pc-pt-peek"><span>{sources.join(', ')}</span></p>}
+        <Ticks evidence={live.flatMap((r) => r.evidence)} now={now} />
       </div>
     );
   }
