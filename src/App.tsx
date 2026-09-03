@@ -41,6 +41,7 @@ const StardustLanding = import.meta.env.DEV ? lazy(() => import("./pages/Stardus
 const NocturneLanding = lazy(() => import("./pages/nocturne/NocturneLanding"));
 const NocturneSpec = lazy(() => import("./pages/nocturne/NocturneSpec"));
 const CosmosSpec = lazy(() => import("./pages/cosmos/CosmosSpec"));
+const CosmosDemos = lazy(() => import("./pages/cosmos/CosmosDemos"));
 const NocturneSignature = lazy(() => import("./pages/nocturne/NocturneSignature"));
 const NocturneTwin = lazy(() => import("./pages/nocturne/NocturneTwin"));
 // audit-2026-05-13 H1: route-local Suspense fallback for /talk-to-twin so
@@ -208,6 +209,7 @@ const App = () => {
             <Route path="/nocturne" element={<Suspense fallback={null}><NocturneLanding /></Suspense>} />
             <Route path="/nocturne/system" element={<Suspense fallback={null}><NocturneSpec /></Suspense>} />
             <Route path="/cosmos/system" element={<Suspense fallback={null}><CosmosSpec /></Suspense>} />
+            <Route path="/cosmos/demos" element={<Suspense fallback={null}><CosmosDemos /></Suspense>} />
             <Route path="/nocturne/signature" element={<Suspense fallback={null}><NocturneSignature /></Suspense>} />
             <Route path="/nocturne/twin" element={<Suspense fallback={null}><NocturneTwin /></Suspense>} />
             <Route path="/preview/landing" element={<CinematicFrame src="/cinematic/landing.html" title="Twin.me — cinematic landing" />} />
