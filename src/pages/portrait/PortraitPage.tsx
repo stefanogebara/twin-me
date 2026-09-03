@@ -120,7 +120,7 @@ function ReadingRow({ reading, now, verdict, onVerdict, cite, ordinal }: {
   const state = deriveState({ ...reading, verdict }, now);
   const note = state === 'fading' ? `Fading, last supported ${daysSince(reading.supportedAt, now)} days ago` : state === 'disputed' ? 'Disputed' : null;
   return (
-    <li className={`pc-pt-row is-${state}`} id={`reading-${reading.id}`}>
+    <li className={`pc-pt-row is-${state} ${verdict ? 'is-answered' : ''}`} id={`reading-${reading.id}`}>
       <p className="pc-pt-mono pc-pt-row-index">
         <span>{String(ordinal).padStart(2, '0')}</span>
         {cite ? <b>Cited [{cite}]</b> : null}
@@ -142,6 +142,9 @@ function ReadingRow({ reading, now, verdict, onVerdict, cite, ordinal }: {
 }
 
 const SECTIONS = ['signature', 'ask', 'sources'] as const;
+
+/** One photograph on the page: the room at blue hour, warm lamp, Portra grain. */
+const STILL_HERO = '/images/twinme/cosmos-07-room.jpg';
 
 export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, onDeleteSource }: { data: PortraitData; now: Date; banner?: React.ReactNode } & PortraitHandlers) {
   const [here, setHere] = useState<string | null>(null);
@@ -284,42 +287,40 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
 
   return (
     <main className="presence-cosmos pc-portrait" id="main-content">
-      <header className="pc-pt-masthead">
-        <Link to="/" className="pc-pt-wordmark">TwinMe</Link>
-        <nav className="pc-pt-mono" aria-label="Sections">
-          {SECTIONS.map((id) => (
-            <a key={id} href={`#${id}`} className={here === id ? 'is-here' : ''} aria-current={here === id ? 'true' : undefined}>
-              {id === 'signature' ? 'Signature' : id === 'ask' ? 'Ask' : 'Sources'}
-            </a>
-          ))}
-        </nav>
-      </header>
-
       <section className="pc-pt-hero" aria-labelledby="pc-pt-headline">
-        <p className="pc-pt-mono pc-pt-kicker">{banner ?? <>Read from your own data</>}</p>
-        <h1 id="pc-pt-headline" className="pc-pt-serif">{lead ? <Headline text={lead} /> : `${data.owner}.`}</h1>
-        <p className="pc-pt-index">
-          <span>{readingCount} readings · {receiptCount} receipts · {sourceCount} sources</span>
-          <span>Read {spoken(now)}</span>
-        </p>
-
+        <img className="pc-pt-still" src={STILL_HERO} alt="" aria-hidden="true" />
+        <header className="pc-pt-masthead">
+          <Link to="/" className="pc-pt-wordmark">TwinMe</Link>
+          <nav aria-label="Sections">
+            {SECTIONS.map((id) => (
+              <a key={id} href={`#${id}`} className={here === id ? 'is-here' : ''} aria-current={here === id ? 'true' : undefined}>
+                {id === 'signature' ? 'Signature' : id === 'ask' ? 'Ask' : 'Sources'}
+              </a>
+            ))}
+          </nav>
+          <Link to={banner ? '/' : '/sources'} className="pc-pt-nav-cta">{banner ? 'Read yourself' : 'Your sources'}</Link>
+        </header>
+        <div className="pc-pt-hero-body">
+          <p className="pc-pt-kicker">{banner ?? <>{data.owner}'s portrait</>}</p>
+          <h1 id="pc-pt-headline" className="pc-pt-serif">{lead ? <Headline text={lead} /> : `${data.owner}.`}</h1>
+          <p className="pc-pt-promise">Every line here is something you did, and every line keeps its receipts.</p>
+        </div>
       </section>
 
       {data.question ? (
         <section className="pc-pt-today" aria-labelledby="pc-pt-q-title">
-          <div className="pc-pt-today-inner pc-pt-grid">
+          <div className="pc-pt-today-inner">
             <div>
               <p className="pc-pt-q-mark">Today, from {questionSource}</p>
               <h2 id="pc-pt-q-title" className="pc-pt-serif">{data.question.question}</h2>
-              <p className="pc-pt-q-evidence">{questionEvidence}</p>
-            </div>
-            <div className="pc-pt-q-answer">
               {questionReceipt ? (
                 <p className="pc-pt-q-receipt">
                   <span className="pc-pt-mono">{when(questionReceipt.at)} · {SOURCE_LABEL[questionReceipt.source] ?? questionReceipt.source}</span>
                   <span>{questionReceipt.event}</span>
                 </p>
               ) : null}
+            </div>
+            <div className="pc-pt-q-answer">
               {answer ? (
                 <p className="pc-pt-serif pc-pt-answered">{answer === 'skipped' ? 'Skipped for today.' : <em>{answer}.</em>}</p>
               ) : (
@@ -383,54 +384,33 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
 
       <section className="pc-pt-sources" id="sources" aria-label="Sources">
         <p className="pc-pt-section-mark is-bare">Sources</p>
-        <table className="pc-pt-table">
-          <thead>
-            <tr><th>Source</th><th>What was read</th><th>Since</th><th className="is-num">Items</th>{onDeleteSource ? <th /> : null}</tr>
-          </thead>
-          <tbody>
-            {[...data.sources].sort((a, b) => (parseInt(b.read, 10) || 0) - (parseInt(a.read, 10) || 0)).map((s) => {
-              const items = parseInt(s.read, 10) || 0;
-              return (
-              <React.Fragment key={s.platform}>
-                <tr>
-                  <td>{s.label}</td>
-                  <td className="is-kinds">{s.kinds}</td>
-                  <td className="is-since">{spokenDay(s.since, true)}</td>
-                  <td className="is-num">{items}</td>
-                  {onDeleteSource ? (
-                    <td className="is-act">
-                      {confirmDelete === s.platform ? null : <button type="button" className="pc-pt-textbtn" onClick={() => setConfirmDelete(s.platform)}>Delete</button>}
-                    </td>
-                  ) : null}
-                </tr>
-                {onDeleteSource && confirmDelete === s.platform ? (
-                  <tr className="pc-pt-confirm-row">
-                    <td colSpan={5}>
-                      <div className="pc-pt-confirm" role="group" aria-label={`Delete everything from ${s.label}`}>
-                        <span>Delete everything read from {s.label}? Readings that leaned on it will fade.</span>
-                        <button type="button" className="pc-pt-textbtn is-strong" disabled={deleting === s.platform}
-                          onClick={async () => { setDeleting(s.platform); try { await onDeleteSource(s.platform); } finally { setDeleting(null); setConfirmDelete(null); } }}>
-                          {deleting === s.platform ? 'Deleting' : 'Yes, delete'}
-                        </button>
-                        <button type="button" className="pc-pt-textbtn" onClick={() => setConfirmDelete(null)}>Keep</button>
-                      </div>
-                    </td>
-                  </tr>
+        <ul className="pc-pt-sourcelist">
+          {[...data.sources].sort((a, b) => (parseInt(b.read, 10) || 0) - (parseInt(a.read, 10) || 0)).map((s) => (
+            <li key={s.platform}>
+              <p className="pc-pt-source-line">
+                <span className="pc-pt-source-name">{s.label}</span>
+                <span className="pc-pt-source-kind">{s.kinds}</span>
+                <span className="pc-pt-mono pc-pt-source-count">{parseInt(s.read, 10) || 0}</span>
+                {onDeleteSource && confirmDelete !== s.platform ? (
+                  <button type="button" className="pc-pt-textbtn" onClick={() => setConfirmDelete(s.platform)}>Delete</button>
                 ) : null}
-              </React.Fragment>
-              );
-            })}
-          </tbody>
-          <tfoot>
-            <tr>
-              <td>{sourceCount} sources</td>
-              <td className="is-kinds" />
-              <td className="is-since" />
-              <td className="is-num">{data.sources.reduce((n, s) => n + (parseInt(s.read, 10) || 0), 0)} items</td>
-              {onDeleteSource ? <td /> : null}
-            </tr>
-          </tfoot>
-        </table>
+              </p>
+              {onDeleteSource && confirmDelete === s.platform ? (
+                <p className="pc-pt-confirm" role="group" aria-label={`Delete everything from ${s.label}`}>
+                  <span>Delete everything read from {s.label}? Readings that leaned on it will fade.</span>
+                  <button type="button" className="pc-pt-textbtn is-strong" disabled={deleting === s.platform}
+                    onClick={async () => { setDeleting(s.platform); try { await onDeleteSource(s.platform); } finally { setDeleting(null); setConfirmDelete(null); } }}>
+                    {deleting === s.platform ? 'Deleting' : 'Yes, delete'}
+                  </button>
+                  <button type="button" className="pc-pt-textbtn" onClick={() => setConfirmDelete(null)}>Keep</button>
+                </p>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+        <p className="pc-pt-mono pc-pt-sourcefoot">
+          {sourceCount} sources · {data.sources.reduce((n, s) => n + (parseInt(s.read, 10) || 0), 0)} items · {readingCount} readings · {receiptCount} receipts · since {since}
+        </p>
       </section>
 
       <section className="pc-pt-close" aria-label="What is not read">
@@ -438,8 +418,8 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
           <p className="pc-pt-serif">Messages, photos, location and anything typed here are never read. Nothing trains a model.</p>
           <div className="pc-pt-rail pc-pt-close-rail">
             {banner
-              ? <Link className="pc-pt-close-cta" to="/">Read yourself</Link>
-              : <Link className="pc-pt-close-cta" to="/sources">Delete everything</Link>}
+              ? <Link className="pc-pt-close-cta" to="/">Read yourself &#8594;</Link>
+              : <Link className="pc-pt-close-cta" to="/sources">Delete everything &#8594;</Link>}
           </div>
         </div>
       </section>

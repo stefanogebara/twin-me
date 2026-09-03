@@ -3782,13 +3782,14 @@ button.pc-search-icons {
 }
 
 /* ============================================================
-   Portrait — the product's one page, 2026-09-03 (iteration 42)
-   One skeleton, everywhere: a claim column and an evidence column.
-   One stanza is a spread, with its readings and their receipts;
-   the other four are an index. Serif is what is read; mono is only
-   timestamps and counters, so mono still means a machine wrote it;
-   every other small thing is sans, like the names of things.
-   Monochrome by decision: the page is ink, paper and rules.
+   Portrait — the product's one page, 2026-09-03 (iteration 47)
+   Locked to the references Stefano chose (cora.computer,
+   createanything.com) and to this product's own landing: the page
+   opens inside a photographed room, the frosted pill floats over
+   it, and everything below is a soft card on paper. Serif for what
+   is read, sans for everything you can press, mono only for
+   timestamps and counters. The stills are the ones the landing
+   already uses: warm lamp, blue hour, Portra grain.
    ============================================================ */
 
 .presence-cosmos {
@@ -3797,20 +3798,16 @@ button.pc-search-icons {
   --c-sans-ui: 'Geist', ui-sans-serif, system-ui, sans-serif;
   --c-mono-ink: #6e6b69;
   --pt-max: 1200px;
-  --pt-rail: 440px;
-  --pt-gap: 32px;
+  --pt-rail: 380px;
+  --pt-gap: 40px;
   --pt-idx: 150px;
-  --pt-indent: 40px;
-  --pt-stanza: 96px;
-  --pt-serif-1: clamp(54px, 8.4vw, 122px);
-  --pt-serif-2: clamp(34px, 4.8vw, 68px);
-  --pt-serif-3: clamp(27px, 2.5vw, 34px);
-  --pt-serif-4: 21px;
-  --pt-serif-lead: clamp(32px, 3.4vw, 46px);
+  --pt-card: 24px;
+  --pt-shadow: 0 1px 2px rgba(13, 13, 13, 0.04), 0 12px 32px rgba(13, 13, 13, 0.06);
 }
 
 .pc-portrait {
-  padding: 0 var(--c-pad-x);
+  padding: 0 0 96px;
+  background: var(--c-paper);
 }
 
 .pc-pt-grid {
@@ -3820,221 +3817,279 @@ button.pc-search-icons {
   align-items: start;
 }
 
-/* Voices: mono labels and timestamps, sans everything operational, serif what is read. */
+/* Voices */
 .pc-portrait .pc-pt-mono,
-.pc-portrait .pc-pt-mono a,
-.pc-portrait .pc-pt-mono button,
-.pc-portrait .pc-pt-mono th,
-.pc-portrait .pc-pt-mono span {
+.pc-portrait .pc-pt-mono span,
+.pc-pt-when,
+.pc-pt-src {
   font-family: var(--c-mono);
   font-size: 11px;
   font-weight: 500;
-  letter-spacing: 0.09em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  line-height: 1.5;
+  line-height: 1.6;
+  font-variant-numeric: tabular-nums;
   color: var(--c-mono-ink);
-}
-
-.pc-portrait .pc-pt-mono a,
-.pc-portrait .pc-pt-mono button {
-  color: var(--c-ink-2);
-  transition: color 0.2s;
-}
-
-.pc-portrait .pc-pt-mono a:hover,
-.pc-portrait .pc-pt-mono button:hover {
-  color: var(--c-ink);
 }
 
 .presence-cosmos .pc-pt-serif {
   font-family: var(--c-serif);
   font-weight: 400;
-  font-size: var(--pt-serif-4);
-  line-height: 1.14;
-  letter-spacing: -0.012em;
+  line-height: 1.12;
+  letter-spacing: -0.014em;
   color: var(--c-ink);
 }
 
-.pc-portrait .pc-pt-textbtn {
-  text-decoration: underline;
-  text-underline-offset: 3px;
+/* ---- The room -------------------------------------------------- */
+
+.pc-pt-hero {
+  position: relative;
+  min-height: min(100vh, 940px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #14161a;
+  color: var(--c-white);
 }
 
-.pc-portrait .pc-pt-textbtn.is-strong {
-  color: var(--c-ink);
+.pc-pt-still {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 52%;
+  filter: brightness(1.06) saturate(1.06);
 }
 
-/* Masthead. */
+/* The room is dimmed enough that type holds anywhere on it. */
+.pc-pt-hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(58% 46% at 50% 42%, rgba(8, 10, 13, 0.62) 0%, rgba(8, 10, 13, 0.28) 62%, rgba(8, 10, 13, 0) 100%),
+    linear-gradient(180deg, rgba(10, 12, 15, 0.42) 0%, rgba(10, 12, 15, 0.2) 26%, rgba(10, 12, 15, 0.5) 64%, rgba(10, 12, 15, 0.8) 100%);
+}
+
+
+
+.pc-pt-hero > *:not(.pc-pt-still) {
+  position: relative;
+  z-index: 1;
+}
+
+/* The frosted pill, floating. */
 .pc-pt-masthead {
-  max-width: var(--pt-max);
-  height: 76px;
-  margin: 0 auto;
+  position: sticky;
+  top: 20px;
+  z-index: 3;
+  width: min(var(--pt-max), calc(100% - 48px));
+  margin: 20px auto 0;
+  height: 60px;
+  padding: 0 10px 0 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 24px;
+  border-radius: 999px;
+  background: rgba(16, 18, 22, 0.32);
+  backdrop-filter: blur(24px) saturate(140%);
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
+  border: 0.5px solid rgba(255, 255, 255, 0.14);
 }
 
 .pc-portrait .pc-pt-wordmark {
-  font-family: var(--c-sans-ui);
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 500;
-  line-height: 1;
   letter-spacing: -0.01em;
-  color: var(--c-ink);
-}
-
-.pc-portrait .pc-pt-masthead nav a {
-  font-family: var(--c-sans-ui);
-  font-size: 13px;
-  font-weight: 500;
-  letter-spacing: 0;
-  text-transform: none;
-  line-height: 1;
+  color: var(--c-white);
 }
 
 .pc-pt-masthead nav {
   display: flex;
-  gap: 32px;
-  line-height: 1;
+  gap: 28px;
 }
 
 .pc-portrait .pc-pt-masthead nav a {
-  padding-bottom: 4px;
-  border-bottom: 0.5px solid transparent;
-  color: var(--c-ink-2);
+  font-size: 15px;
+  letter-spacing: -0.01em;
+  color: rgba(255, 255, 255, 0.72);
+  transition: color 0.2s;
 }
 
-.pc-portrait .pc-pt-masthead nav a:hover {
-  border-bottom-color: var(--c-ink);
-}
-
+.pc-portrait .pc-pt-masthead nav a:hover,
 .pc-portrait .pc-pt-masthead nav a.is-here {
-  color: var(--c-ink);
-  border-bottom-color: var(--c-ink);
+  color: var(--c-white);
 }
 
-.pc-pt-masthead-end {
-  justify-self: end;
+.presence-cosmos .pc-pt-nav-cta {
+  display: inline-flex;
+  align-items: center;
+  height: 40px;
+  padding: 0 20px;
+  border-radius: 999px;
+  background: var(--c-white);
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--c-ink) !important;
+  transition: opacity 0.2s;
 }
 
-.pc-portrait .pc-pt-masthead-end a {
-  padding-bottom: 4px;
-  border-bottom: 0.5px solid var(--c-ink);
-  color: var(--c-ink);
+.presence-cosmos .pc-pt-nav-cta:hover {
+  opacity: 0.86;
 }
 
-/* Movement one: the headline, its index, and its own stanza. */
-.pc-pt-hero {
+/* The headline stands in the room. */
+.pc-pt-hero-body {
+  flex: 1;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  min-height: min(66vh, 560px);
+  align-items: center;
+  text-align: center;
   max-width: var(--pt-max);
+  width: calc(100% - 48px);
   margin: 0 auto;
-  padding: 56px 0;
+  padding-bottom: 190px;
 }
 
-.pc-pt-index {
-  display: flex;
-  justify-content: space-between;
-  gap: 24px;
-  margin: 34px 0 0;
-  padding-top: 18px;
-  border-top: 0.5px solid var(--c-ink);
+.presence-cosmos .pc-pt-kicker {
+  margin: 0 0 24px;
   font-family: var(--c-mono);
   font-size: 11px;
   font-weight: 500;
-  letter-spacing: 0.09em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--c-mono-ink);
-}
-
-.pc-pt-kicker {
-  margin: 0 0 30px;
+  color: rgba(255, 255, 255, 0.82);
 }
 
 .presence-cosmos .pc-pt-hero h1 {
-  max-width: 22ch;
-  padding-bottom: 0.14em;
-  font-size: var(--pt-serif-1);
-  line-height: 0.96;
-  letter-spacing: -0.028em;
+  max-width: 17ch;
+  margin: 0;
+  font-size: clamp(40px, 5.4vw, 74px);
+  line-height: 1.06;
+  letter-spacing: -0.02em;
   text-wrap: balance;
+  color: var(--c-white);
+  text-shadow: 0 1px 40px rgba(6, 8, 11, 0.35);
 }
 
 .presence-cosmos .pc-pt-hero h1 em {
   font-style: italic;
 }
 
-/* Movement two: the band, the pivot of the page. */
+.presence-cosmos .pc-pt-promise {
+  max-width: 46ch;
+  margin: 26px 0 0;
+  font-size: 19px;
+  line-height: 1.5;
+  letter-spacing: -0.012em;
+  color: rgba(255, 255, 255, 0.84);
+}
+
+/* ---- Today: the second photographed beat ------------------------ */
+
 .pc-pt-today {
-  margin: 0 calc(-1 * var(--c-pad-x));
-  padding: 72px var(--c-pad-x) 76px;
+  position: relative;
+  z-index: 2;
+  max-width: var(--pt-max);
+  margin: -200px auto 0;
+  border: 0.5px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 30px 80px rgba(10, 12, 15, 0.4);
+  width: calc(100% - 48px);
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  border-radius: var(--pt-card);
   background: var(--c-ink);
   color: var(--c-white);
 }
 
 .pc-pt-today-inner {
-  max-width: var(--pt-max);
+  width: 100%;
+  max-width: 640px;
   margin: 0 auto;
-  align-items: start;
+  padding: 64px 32px 68px;
+  text-align: center;
 }
 
-.pc-portrait .pc-pt-today .pc-pt-mono,
-.pc-portrait .pc-pt-today .pc-pt-mono span {
-  color: rgba(255, 255, 255, 0.5);
+.pc-pt-q-answer {
+  padding-top: 32px;
+}
+
+.presence-cosmos .pc-pt-q-mark {
+  margin: 0 0 20px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.78);
 }
 
 .presence-cosmos .pc-pt-today h2 {
-  max-width: 22ch;
-  font-size: clamp(28px, 3vw, 44px);
-  line-height: 1.06;
-  letter-spacing: -0.018em;
-  text-wrap: balance;
+  max-width: none;
+  margin: 0;
+  font-family: var(--c-serif);
+  font-size: clamp(28px, 3.2vw, 46px);
+  line-height: 1.08;
   letter-spacing: -0.016em;
+  text-wrap: balance;
   color: var(--c-white);
+}
+
+.presence-cosmos .pc-pt-q-evidence {
+  max-width: 40ch;
+  margin: 22px 0 0;
+  font-size: 15px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.presence-cosmos .pc-pt-q-receipt {
+  display: grid;
+  gap: 8px;
+  margin: 26px 0 0;
+  font-size: 17px;
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+  color: var(--c-white);
+}
+
+.pc-portrait .pc-pt-q-receipt .pc-pt-mono {
+  color: rgba(255, 255, 255, 0.68);
 }
 
 .pc-pt-choices {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
-  margin-top: 0;
+  justify-content: center;
+  gap: 10px;
 }
 
 .pc-portrait .pc-pt-choices button {
-  height: 44px;
+  height: 48px;
   padding: 0 22px;
+  border-radius: 16px;
+  border: 0.5px solid rgba(255, 255, 255, 0.4);
   font-family: var(--c-sans-ui);
   font-size: 15px;
+  font-weight: 500;
   letter-spacing: -0.01em;
-  border: 1px solid rgba(255, 255, 255, 0.45);
-  line-height: 1;
   color: var(--c-white);
-  transition: background 0.2s, border-color 0.2s, color 0.2s;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
 }
 
-.pc-portrait .pc-pt-choices .is-lead {
+.pc-portrait .pc-pt-choices .is-lead,
+.pc-portrait .pc-pt-choices button:hover {
   background: var(--c-white);
   border-color: var(--c-white);
   color: var(--c-ink);
 }
 
-.pc-portrait .pc-pt-choices button:hover,
-.pc-portrait .pc-pt-choices button:focus-visible {
-  background: var(--c-white);
-  color: var(--c-ink);
-}
-
 .pc-portrait .pc-pt-skip {
-  margin-top: 26px;
+  margin-top: 20px;
   font-family: var(--c-sans-ui);
   font-size: 14px;
-  letter-spacing: -0.01em;
-  font-family: var(--c-sans-ui);
-  font-size: 14px;
-  letter-spacing: -0.01em;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.6);
   text-decoration: underline;
   text-underline-offset: 4px;
   transition: color 0.2s;
@@ -4045,100 +4100,46 @@ button.pc-search-icons {
 }
 
 .presence-cosmos .pc-pt-answered {
-  margin-top: 32px;
-  font-size: var(--pt-serif-3);
+  margin: 0;
+  font-family: var(--c-serif);
+  font-size: 28px;
   color: var(--c-white);
 }
 
-.pc-pt-q-mark {
-  margin: 0 0 18px;
-  font-size: 13px;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.5);
-}
+/* ---- The page below: cards on paper ----------------------------- */
 
-.pc-pt-q-evidence {
-  max-width: 34ch;
-  margin: 22px 0 0;
-  font-size: 15px;
-  line-height: 1.5;
-  color: rgba(255, 255, 255, 0.6);
-}
-
-.pc-pt-q-answer {
-  padding-top: 4px;
-}
-
-.pc-pt-q-receipt {
-  display: grid;
-  gap: 10px;
-  margin: 0 0 36px;
-  font-size: 19px;
-  line-height: 1.35;
-  letter-spacing: -0.012em;
-  color: var(--c-white);
-}
-
-.pc-portrait .pc-pt-q-receipt .pc-pt-mono {
-  color: rgba(255, 255, 255, 0.5);
-}
-
-/* Movements three and four. */
 .pc-pt-signature,
 .pc-pt-ask,
 .pc-pt-sources {
   max-width: var(--pt-max);
-  margin: 96px auto 0;
-}
-
-/* One heavy rule on the page: the floor under the document. */
-.pc-pt-sources {
-  padding-top: 26px;
-  border-top: 2px solid var(--c-ink);
-}
-
-.pc-portrait .pc-pt-section-mark.is-bare {
-  border-bottom: 0;
-  padding-bottom: 0;
+  width: calc(100% - 48px);
+  margin: 80px auto 0;
 }
 
 .pc-portrait .pc-pt-section-mark {
-  display: flex;
-  justify-content: space-between;
-  gap: 24px;
-  margin: 0;
-  padding-bottom: 14px;
-  border-bottom: 0.5px solid var(--c-ink);
-  font-family: var(--c-sans-ui);
-  font-size: 13px;
+  margin: 0 0 16px;
+  padding: 0 4px;
+  font-family: var(--c-mono);
+  font-size: 11px;
   font-weight: 500;
-  letter-spacing: 0.02em;
-  text-transform: none;
-  color: var(--c-ink);
-}
-
-.pc-portrait .pc-pt-section-mark span:last-child:not(:first-child) {
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
   color: var(--c-mono-ink);
 }
 
-.pc-portrait .pc-pt-section-mark > span:first-child {
-  color: var(--c-ink);
-}
-
-/* The stanzas. */
 .pc-pt-lines {
   list-style: none;
+  display: grid;
+  gap: 12px;
   margin: 0;
   padding: 0;
 }
 
 .pc-pt-line {
-  border-bottom: 0.5px solid var(--c-border);
-}
-
-/* Chroma: a rule down the whole stanza, brighter when it is open. */
-.pc-pt-line.is-open {
-  border-bottom-color: var(--c-ink);
+  border-radius: var(--pt-card);
+  background: var(--c-white);
+  border: 0.5px solid var(--c-border);
+  overflow: hidden;
 }
 
 .pc-portrait .pc-pt-line-head {
@@ -4147,118 +4148,68 @@ button.pc-search-icons {
   grid-template-columns: var(--pt-idx) minmax(0, 1fr) var(--pt-rail);
   gap: 0 var(--pt-gap);
   align-items: start;
-  padding: 22px 0 24px;
+  padding: 30px 32px 32px;
   text-align: left;
+  transition: background 0.2s;
 }
 
 .pc-portrait .pc-pt-line-head:not(:disabled):hover {
-  background: rgba(13, 13, 13, 0.025);
-  box-shadow: 0 0 0 var(--pt-gap) rgba(13, 13, 13, 0.025);
-}
-
-.pc-portrait .pc-pt-line-head:not(:disabled):hover .pc-pt-sentence {
-  text-decoration: underline;
-  text-decoration-thickness: 0.5px;
-  text-underline-offset: 6px;
-  text-decoration-color: var(--c-ink-4);
+  background: rgba(13, 13, 13, 0.022);
 }
 
 .presence-cosmos .pc-pt-label {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
   margin: 0;
-  padding-top: 10px;
+  padding-top: 8px;
   font-family: var(--c-sans-ui);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
-  letter-spacing: 0;
+  letter-spacing: -0.01em;
   text-transform: none;
-  color: var(--c-ink-2);
-}
-
-.pc-portrait .pc-pt-label b {
-  font-weight: 500;
-  color: var(--c-ink-4);
+  color: var(--c-ink-3);
 }
 
 .presence-cosmos .pc-pt-sentence {
-  text-wrap: pretty;
-  font-size: var(--pt-serif-3);
-}
-
-.pc-pt-line.is-first .pc-pt-sentence {
-  font-size: var(--pt-serif-lead);
-  line-height: 1.08;
-}
-
-
-
-.pc-pt-count {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 20px;
   margin: 0;
-  padding-top: 12px;
+  font-size: clamp(24px, 2.2vw, 30px);
+  text-wrap: pretty;
+}
+
+.presence-cosmos .pc-pt-count {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding-top: 10px;
   font-size: 14px;
-  line-height: 1.4;
+  line-height: 1.45;
   color: var(--c-ink-3);
 }
 
 .pc-pt-count.is-open {
-  display: grid;
   gap: 10px;
-  padding-top: 9px;
 }
 
-.pc-portrait .pc-pt-count .pc-pt-mono {
-  font-variant-numeric: tabular-nums;
-}
-
-.pc-pt-count > p {
-  margin: 0;
-}
-
-/* index.css clips `button span`; a receipt you cannot read is not a receipt. */
-.pc-portrait .pc-pt-line-head span,
-.pc-portrait .pc-pt-hints button span,
-.pc-portrait .pc-pt-vote button span {
-  overflow: visible;
-  white-space: normal;
-  text-overflow: clip;
-}
-
-.pc-pt-peek {
+.presence-cosmos .pc-pt-peek {
   display: grid;
-  grid-template-columns: 96px 58px minmax(0, 1fr) auto;
-  gap: 0 14px;
+  grid-template-columns: 88px 56px minmax(0, 1fr) auto;
+  gap: 0 12px;
   align-items: baseline;
-  padding-top: 10px;
+  margin: 4px 0 0;
+  padding-top: 12px;
   border-top: 0.5px solid var(--c-border);
 }
 
 .pc-portrait .pc-pt-of {
-  padding-left: 12px;
+  padding-left: 10px;
   color: var(--c-ink-4);
 }
 
-.pc-portrait .pc-pt-open:hover {
-  color: var(--c-ink);
-}
-
-
-
-/* The open stanza: a claim, its verdict beneath, its proof in the margin. */
+/* The readings inside an open card. */
 .pc-pt-ledger {
   list-style: none;
   margin: 0;
-  padding: 0 0 20px;
+  padding: 0 32px 28px;
   animation: pc-pt-open 0.4s var(--c-ease-ui);
 }
-
-
 
 @keyframes pc-pt-open {
   from { opacity: 0; transform: translateY(-6px); }
@@ -4270,6 +4221,7 @@ button.pc-search-icons {
   grid-template-columns: var(--pt-idx) minmax(0, 1fr) var(--pt-rail);
   gap: 0 var(--pt-gap);
   padding-bottom: 12px;
+  font-family: var(--c-sans-ui);
   font-size: 13px;
   font-weight: 500;
   color: var(--c-ink-3);
@@ -4280,26 +4232,22 @@ button.pc-search-icons {
   grid-template-columns: var(--pt-idx) minmax(0, 1fr) var(--pt-rail);
   gap: 0 var(--pt-gap);
   align-items: start;
-  padding: 26px 0 30px;
+  padding: 24px 0 26px;
   border-top: 0.5px solid var(--c-border);
 }
 
 .pc-pt-row > div {
   display: grid;
-  gap: 20px;
+  gap: 18px;
   align-content: start;
 }
 
-.pc-pt-row-index {
-  display: grid;
-  gap: 6px;
+.presence-cosmos .pc-pt-row-index {
   margin: 0;
-  padding-top: 9px;
+  padding-top: 6px;
   font-family: var(--c-sans-ui);
   font-size: 13px;
   font-weight: 500;
-  letter-spacing: 0;
-  text-transform: none;
   color: var(--c-ink-4);
 }
 
@@ -4316,53 +4264,43 @@ button.pc-search-icons {
   color: var(--c-ink);
 }
 
-.pc-portrait .pc-pt-cite-mark {
-  margin-right: 12px;
-  color: var(--c-ink);
-}
-
 .pc-pt-row.is-fading .pc-pt-claim,
 .pc-pt-row.is-disputed .pc-pt-claim {
   color: var(--c-ink-3);
 }
 
-/* The verdict: three words, not three boxes. */
+/* The verdict: pills, like every other control in Cosmos. */
 .pc-pt-vote {
   display: flex;
   flex-wrap: wrap;
+  gap: 8px;
   align-items: center;
+  opacity: 0;
+  transition: opacity 0.2s;
 }
 
-.pc-portrait .pc-pt-more {
-  padding-top: 10px;
-  border-top: 0.5px solid var(--c-border);
-  font-size: 14px;
-  color: var(--c-ink-3);
+.pc-pt-row:hover .pc-pt-vote,
+.pc-pt-row:focus-within .pc-pt-vote,
+.pc-pt-row.is-answered .pc-pt-vote {
+  opacity: 1;
 }
 
 .pc-portrait .pc-pt-vote button {
-  min-width: 84px;
-  height: 40px;
-  padding: 0 16px;
+  height: 38px;
+  padding: 0 18px;
+  border-radius: 999px;
+  border: 0.5px solid var(--c-border);
   font-family: var(--c-sans-ui);
   font-size: 14px;
+  font-weight: 500;
   letter-spacing: -0.01em;
-  border: 0.5px solid var(--c-ink-3);
-  line-height: 1;
-  color: var(--c-ink);
-  transition: background 0.2s, color 0.2s;
-}
-
-.pc-portrait .pc-pt-vote button + button {
-  margin-left: -0.5px;
-}
-
-.pc-portrait .pc-pt-vote button + button {
-  border-left: 0;
+  color: var(--c-ink-2);
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
 }
 
 .pc-portrait .pc-pt-vote button:hover {
-  background: rgba(13, 13, 13, 0.05);
+  border-color: var(--c-ink-3);
+  color: var(--c-ink);
 }
 
 .pc-portrait .pc-pt-vote button.is-active {
@@ -4371,51 +4309,24 @@ button.pc-search-icons {
   color: var(--c-white);
 }
 
-.pc-pt-note {
+.presence-cosmos .pc-pt-note {
   font-size: 14px;
-  letter-spacing: -0.01em;
   color: var(--c-ink-3);
 }
 
-/* Receipts, in the margin. */
+/* Receipts. */
 .pc-pt-evidence {
   list-style: none;
   margin: 0;
-  padding-top: 9px;
+  padding-top: 8px;
 }
 
 .pc-portrait .pc-pt-evidence li {
   display: grid;
-  grid-template-columns: 96px 58px minmax(0, 1fr);
-  gap: 0 14px;
+  grid-template-columns: 88px 56px minmax(0, 1fr);
+  gap: 0 12px;
   align-items: baseline;
   padding: 0 0 10px;
-}
-
-.pc-pt-evidence,
-.pc-pt-peek {
-  padding-right: 0;
-}
-
-.pc-portrait .pc-pt-evidence li + li {
-  padding-top: 0;
-}
-
-.pc-portrait .pc-pt-evidence .pc-pt-mono {
-  font-variant-numeric: tabular-nums;
-}
-
-.pc-pt-when,
-.pc-pt-src {
-  font-family: var(--c-mono);
-  white-space: nowrap;
-  font-size: 10px;
-  font-weight: 500;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  line-height: 1.7;
-  font-variant-numeric: tabular-nums;
-  color: var(--c-ink-2);
 }
 
 .presence-cosmos .pc-pt-event {
@@ -4425,17 +4336,33 @@ button.pc-search-icons {
   color: var(--c-ink-2);
 }
 
-/* Ask: the page's most open air; the answer is read, so it speaks serif. */
+.pc-portrait .pc-pt-more {
+  padding-top: 10px;
+  border-top: 0.5px solid var(--c-border);
+  font-size: 14px;
+  color: var(--c-ink-3);
+}
+
+/* ---- Ask: the big soft field the references both use ------------ */
+
 .pc-pt-ask-body {
-  padding-top: 40px;
+  padding: 0;
 }
 
 .pc-pt-prompt {
   display: flex;
   align-items: center;
   gap: 16px;
-  height: 64px;
-  border-bottom: 0.5px solid var(--c-ink);
+  height: 76px;
+  padding: 0 12px 0 28px;
+  border-radius: var(--pt-card);
+  background: var(--c-white);
+  border: 0.5px solid var(--c-border);
+  transition: border-color 0.2s;
+}
+
+.pc-pt-prompt:focus-within {
+  border-color: var(--c-ink-3);
 }
 
 .presence-cosmos .pc-pt-prompt input {
@@ -4444,7 +4371,7 @@ button.pc-search-icons {
   border: 0;
   background: transparent;
   font: inherit;
-  font-size: 17px;
+  font-size: 18px;
   letter-spacing: -0.012em;
   color: var(--c-ink);
   outline: none;
@@ -4456,62 +4383,29 @@ button.pc-search-icons {
 
 .pc-portrait .pc-pt-send {
   flex: none;
-  height: 40px;
-  padding: 0 22px;
-  border-radius: 0;
-  font-family: var(--c-sans-ui);
-  font-size: 14px;
-  letter-spacing: -0.01em;
+  height: 52px;
+  padding: 0 26px;
+  border-radius: 16px;
   background: var(--c-ink);
+  font-family: var(--c-sans-ui);
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
   color: var(--c-white);
-  transition: opacity 0.2s;
+  transition: background 0.2s;
 }
 
 .pc-portrait .pc-pt-send:hover {
-  opacity: 0.85;
+  background: var(--c-hover-primary);
   color: var(--c-white);
 }
 
-.pc-pt-hints {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 4px 20px;
-  margin: 0;
-  padding-top: 18px;
-}
-
-.pc-portrait .pc-pt-hints > .pc-pt-mono {
-  padding: 0 0 12px;
-}
-
-.pc-portrait .pc-pt-hints button {
-  font-family: var(--c-sans-ui);
-  font-size: 15px;
-  letter-spacing: -0.01em;
-  line-height: 1.5;
-  color: var(--c-ink-2);
-  border-bottom: 0.5px solid var(--c-ink-4);
-  transition: color 0.2s, border-color 0.2s;
-}
-
-.pc-portrait .pc-pt-hints button:hover {
-  color: var(--c-ink);
-  border-bottom-color: var(--c-ink);
-}
-
-.pc-portrait .pc-pt-hints button:hover {
-  color: var(--c-ink);
-}
-
-.pc-portrait .pc-pt-hints button:hover span {
-  text-decoration: underline;
-  text-underline-offset: 4px;
-}
-
 .pc-pt-reply {
-  margin: 44px 0 0;
-  padding: 0;
+  margin: 20px 0 0;
+  padding: 32px;
+  border-radius: var(--pt-card);
+  background: var(--c-white);
+  border: 0.5px solid var(--c-border);
 }
 
 .presence-cosmos .pc-pt-reply p {
@@ -4524,145 +4418,138 @@ button.pc-search-icons {
 }
 
 .presence-cosmos .pc-pt-reply footer {
-  margin-top: 24px;
+  margin-top: 20px;
   font-size: 14px;
   letter-spacing: -0.01em;
-  color: var(--c-ink-2);
+  color: var(--c-ink-3);
 }
 
 .presence-cosmos .pc-pt-reply footer a {
   margin: 0 2px;
   color: var(--c-ink);
-  border-bottom: 0.5px solid currentColor;
+  border-bottom: 0.5px solid var(--c-ink-4);
 }
 
-/* Sources. */
-.pc-pt-table {
-  width: 100%;
-  table-layout: fixed;
-  border-collapse: collapse;
-  font-size: 15px;
+/* ---- Sources: six lines, no grid -------------------------------- */
+
+.pc-pt-sourcelist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
 }
 
-.pc-pt-table th {
-  padding: 18px 24px 12px 0;
-  text-align: left;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--c-ink-3);
-  border-bottom: 0.5px solid var(--c-ink);
-}
-
-.pc-pt-table td {
-  padding: 15px 24px 15px 0;
-  vertical-align: baseline;
-  border-bottom: 0.5px solid var(--c-border);
-}
-
-.pc-pt-table td:first-child,
-.pc-pt-table th:first-child {
-  width: 180px;
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-.pc-pt-table .is-kinds {
-  width: 44%;
-}
-
-.pc-pt-table .is-kinds {
-  color: var(--c-ink-2);
-}
-
-.pc-pt-table .is-since {
-  width: 180px;
-  color: var(--c-ink-2);
-  white-space: nowrap;
-}
-
-.pc-pt-table .is-num {
-  width: 90px;
-  padding-right: 0;
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
-
-.pc-pt-table tfoot td {
-  padding-top: 18px;
-  border-top: 1px solid var(--c-ink);
-  border-bottom: 0;
-  font-weight: 500;
+.presence-cosmos .pc-pt-source-line {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  margin: 0;
+  padding: 13px 4px;
+  font-size: 16px;
+  letter-spacing: -0.012em;
   color: var(--c-ink);
 }
 
-.pc-pt-table .is-act {
-  width: 80px;
-  text-align: right;
-  padding-right: 0;
-  white-space: nowrap;
+.pc-pt-source-name {
+  width: 120px;
+  flex: none;
+  font-weight: 500;
 }
 
-.pc-pt-confirm-row td {
-  padding-top: 0;
+.pc-pt-source-kind {
+  flex: 1;
+  min-width: 0;
+  color: var(--c-ink-3);
 }
 
-.pc-pt-confirm {
+.pc-portrait .pc-pt-source-count {
+  flex: none;
+  color: var(--c-ink-2);
+}
+
+.presence-cosmos .pc-pt-sourcefoot {
+  margin: 18px 0 0;
+  padding: 0 4px;
+  color: var(--c-ink-3);
+}
+
+.pc-portrait .pc-pt-textbtn {
+  font-family: var(--c-sans-ui);
+  font-size: 14px;
+  color: var(--c-ink-2);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.pc-portrait .pc-pt-textbtn.is-strong {
+  color: var(--c-ink);
+}
+
+.presence-cosmos .pc-pt-confirm {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 12px 20px;
-  padding: 16px 0 4px;
+  padding: 4px 0 16px;
   font-size: 14px;
   color: var(--c-ink);
 }
 
+/* ---- The close: back into the room ------------------------------ */
+
 .pc-pt-close {
-  margin: 96px calc(-1 * var(--c-pad-x)) 0;
-  padding: 72px var(--c-pad-x) 76px;
+  max-width: var(--pt-max);
+  width: calc(100% - 48px);
+  margin: 72px auto 0;
+  padding: 48px 56px;
+  border-radius: var(--pt-card);
   background: var(--c-ink);
   color: var(--c-white);
 }
 
 .pc-pt-close-inner {
-  max-width: var(--pt-max);
-  margin: 0 auto;
+  align-items: center;
 }
 
 .presence-cosmos .pc-pt-close p {
   max-width: 34ch;
   margin: 0;
   font-family: var(--c-sans-ui);
-  font-size: 21px;
-  line-height: 1.45;
-  letter-spacing: -0.014em;
-  color: var(--c-white);
+  font-size: 19px;
+  line-height: 1.5;
+  letter-spacing: -0.012em;
+  color: rgba(255, 255, 255, 0.86);
 }
 
 .pc-pt-close-rail {
-  display: grid;
-  justify-items: end;
-  gap: 20px;
-  padding-top: 8px;
+  display: flex;
+  justify-content: flex-end;
 }
 
 .presence-cosmos .pc-pt-close-cta {
   display: inline-flex;
   align-items: center;
-  height: 46px;
-  padding: 0 26px;
-  font-size: 15px;
-  letter-spacing: -0.01em;
+  height: 52px;
+  padding: 0 28px;
+  border-radius: 16px;
   background: var(--c-white);
+  font-family: var(--c-sans-ui);
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
   color: var(--c-ink) !important;
   transition: opacity 0.2s;
 }
 
 .presence-cosmos .pc-pt-close-cta:hover {
-  opacity: 0.82;
+  opacity: 0.86;
 }
 
-.pc-portrait .pc-pt-close .pc-pt-mono {
-  color: rgba(255, 255, 255, 0.5);
+/* index.css clips `button span`; a receipt you cannot read is not a receipt. */
+.pc-portrait .pc-pt-line-head span,
+.pc-portrait .pc-pt-vote button span {
+  overflow: visible;
+  white-space: normal;
+  text-overflow: clip;
 }
 
 /* Loading, error and empty states share one quiet column. */
@@ -4689,44 +4576,37 @@ button.pc-search-icons {
 }
 
 @media (max-width: 1080px) {
-  .presence-cosmos { --pt-rail: 320px; --pt-gap: 40px; --pt-indent: 24px; }
-  .presence-cosmos { --pt-idx: 140px; }
-  .presence-cosmos .pc-pt-claim { max-width: none; }
-  .presence-cosmos .pc-pt-sentence { max-width: none; }
+  .presence-cosmos { --pt-rail: 300px; --pt-gap: 28px; --pt-idx: 130px; }
 }
 
 @media (max-width: 760px) {
-  .presence-cosmos { --pt-stanza: 64px; --pt-indent: 16px; }
-  .pc-portrait { padding: 0 20px 64px; }
-  .pc-pt-grid, .pc-pt-line-head, .pc-pt-row, .pc-pt-ledger-mark,
-  .pc-pt-ledger .pc-pt-row, .pc-pt-ledger .pc-pt-ledger-mark { grid-template-columns: 1fr; gap: 14px 0; }
-  .pc-pt-hints { grid-template-columns: 1fr; gap: 10px 0; }
+  .pc-pt-hero { min-height: 78vh; }
+  .pc-pt-masthead { width: calc(100% - 32px); padding: 0 8px 0 18px; gap: 12px; }
+  .pc-pt-masthead nav { display: none; }
+  .pc-pt-hero-body { width: calc(100% - 32px); padding-bottom: 56px; }
+  .presence-cosmos .pc-pt-hero h1 { max-width: none; }
+  .pc-pt-today { width: calc(100% - 32px); margin-top: -56px; }
+  .pc-pt-signature,
+  .pc-pt-ask,
+  .pc-pt-sources,
+  .pc-pt-close { width: calc(100% - 32px); margin-top: 48px; }
+  .pc-pt-today-inner { padding: 36px 24px; }
+  .presence-cosmos .pc-pt-today h2 { max-width: none; }
+  .pc-pt-grid, .pc-pt-line-head, .pc-pt-row, .pc-pt-ledger-mark, .pc-pt-close-inner { grid-template-columns: 1fr; gap: 16px 0; }
+  .pc-portrait .pc-pt-line-head { padding: 24px; }
+  .pc-pt-ledger { padding: 0 24px 20px; }
   .pc-pt-count { padding-top: 0; }
   .pc-pt-row-index { padding-top: 0; }
-  .presence-cosmos .pc-pt-label { padding-top: 0; }
-  .presence-cosmos .pc-pt-sentence { max-width: none; }
-  .pc-pt-index { flex-direction: column; gap: 8px; }
-  .pc-pt-masthead { height: 64px; }
-  .pc-pt-masthead nav { display: none; }
-  .pc-pt-hero { min-height: 0; padding: 32px 0 48px; }
-  .presence-cosmos .pc-pt-hero h1 { max-width: none; }
-  .pc-pt-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 16px; }
-  .pc-pt-today { margin: var(--pt-stanza) -20px 0; padding: 56px 20px; }
-  .presence-cosmos .pc-pt-today h2 { max-width: none; }
-  .pc-pt-count { padding-top: 0; }
   .pc-portrait .pc-pt-evidence li,
-  .pc-pt-peek { grid-template-columns: 62px minmax(0, 1fr); gap: 0 10px; }
+  .pc-pt-peek { grid-template-columns: 88px minmax(0, 1fr); gap: 0 10px; }
   .pc-portrait .pc-pt-evidence li > .pc-pt-src,
   .pc-pt-peek > .pc-pt-src { display: none; }
-  .pc-pt-close-rail { justify-items: start; }
-  .pc-pt-ask-body { padding-top: 26px; }
-  .pc-pt-hints { padding-top: 0; }
-  .presence-cosmos .pc-pt-reply p { max-width: none; }
+  .pc-pt-prompt { height: 64px; padding: 0 8px 0 20px; }
+  .pc-pt-close { padding: 36px 24px; }
+  .pc-pt-close-rail { justify-content: flex-start; }
   .pc-pt-table thead { display: none; }
-  .pc-pt-table tr { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; padding: 14px 0; border-bottom: 0.5px solid var(--c-border); }
+  .pc-pt-table tr { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; padding: 16px 20px; border-top: 0.5px solid var(--c-border); }
   .pc-pt-table td { padding: 0; border: 0; width: auto; }
-  .pc-pt-table td.is-kinds { grid-column: 1 / -1; }
-  .pc-pt-table td.is-num { width: auto; }
-  .pc-pt-close { margin: var(--pt-stanza) -20px 0; padding: 56px 20px 60px; }
-  .presence-cosmos .pc-pt-close p { max-width: none; }
+  .pc-pt-table td.is-kinds { grid-column: 1 / -1; width: auto; }
+  .pc-pt-table td.is-since, .pc-pt-table td.is-num { width: auto; }
 }
