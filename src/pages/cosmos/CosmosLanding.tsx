@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { discoveryScan, type QuickEnrichmentData } from '../../services/enrichmentService';
 import { useAnalytics } from '../../contexts/AnalyticsContext';
 import RevealStory from '../../components/landing/RevealStory';
+import { CosmosDemosSection } from './CosmosDemos';
 import '../../styles/presence-cosmos.css';
 
 /**
@@ -298,6 +299,8 @@ export default function CosmosLanding() {
             <p>And never from a quiz.</p>
           </div>
         </section>
+
+        <CosmosDemosSection />
 
         <section className="pc-section" aria-labelledby="pc-know-title">
           <div className="pc-know">
