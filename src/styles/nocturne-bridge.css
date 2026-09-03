@@ -1,0 +1,129 @@
+/* ============================================================================
+   NOCTURNE BRIDGE — system-wide adoption layer (2026-09-01)
+   ============================================================================
+   Loaded AFTER claura.css and the semantic token blocks, so every page that
+   speaks semantic tokens or Claura utility classes wakes up inside Nocturne
+   without being edited. This is the adoption strategy: flip the foundation,
+   then polish surfaces page by page against /nocturne/system.
+
+   Claura is retired by this file, not deleted — claura.css still loads for
+   any value the bridge does not override, and reverting the flip is removing
+   one import.
+   ========================================================================== */
+
+@import './nocturne.css';
+
+:root, [data-theme='light'] {
+  /* Nocturne is single-appearance by design (the reference is a nocturnal
+     gallery). The light theme maps to the same world until a lit variant is
+     designed deliberately. */
+
+  /* ---- Canvas & surfaces: flat elevation, no glass ---- */
+  --background: var(--n-obsidian);
+  --surface: var(--n-graphite);
+  --surface-solid: var(--n-steel);
+  --card: var(--n-graphite);
+  --card-foreground: var(--n-cloud);
+  --popover: #191a1c;
+  --popover-foreground: var(--n-cloud);
+  --muted: var(--n-abyss);
+  --muted-foreground: var(--n-ash);
+  --accent: var(--n-steel);
+  --accent-foreground: var(--n-cloud);
+  --secondary: rgba(255, 255, 255, 0.1);
+  --secondary-foreground: var(--n-cloud);
+
+  /* ---- Ink ---- */
+  --foreground: var(--n-cloud);
+  --text-primary: var(--n-cloud);
+  --text-secondary: var(--n-ash);
+  --text-muted: var(--n-ash);
+  --text-placeholder: var(--n-fog);
+  --text-narrative: var(--n-cloud);
+  --text-narrative-secondary: var(--n-ash);
+  --text-narrative-muted: var(--n-fog);
+
+  /* ---- Lines & fields ---- */
+  --border: var(--n-line);
+  --border-glass: var(--n-line);
+  --glass-surface-bg: var(--n-graphite);
+  --glass-surface-border: var(--n-line);
+  --input: rgba(255, 255, 255, 0.06);
+  --ring: rgba(255, 255, 255, 0.6);
+
+  /* ---- Actions: Law 2 — white on black, nothing else ---- */
+  --primary: var(--n-pure);
+  --primary-foreground: var(--n-void);
+  --accent-vibrant: var(--n-pure);
+  --accent-vibrant-glow: rgba(255, 255, 255, 0.1);
+  --claura-bone: var(--n-pure);          /* bone gradient collapses to Pure */
+  --claura-bone-ink: var(--n-void);
+  --claura-text: var(--n-cloud);
+  --claura-narr: var(--n-ash);
+  --claura-card: var(--n-graphite);
+  --claura-card-border: var(--n-line);
+
+  /* ---- Legacy accents: ember carries the amber heritage; purple retires ---- */
+  --accent-amber: var(--n-ember);
+  --accent-purple: var(--n-iris);
+
+  /* ---- Voices ---- */
+  --font-heading: var(--n-serif);
+  --font-accent: var(--n-serif);
+  --font-serif: var(--n-serif);
+  --font-body: var(--n-sans);
+  --font-ui: var(--n-sans);
+  --font-sans: var(--n-sans);
+
+  /* ---- Sidebar ---- */
+  --sidebar: var(--n-abyss);
+  --sidebar-foreground: var(--n-ash);
+  --sidebar-accent: rgba(255, 255, 255, 0.06);
+  --sidebar-border: var(--n-line);
+}
+
+/* ---- Glass retires: Claura's cards become flat graphite steps ---- */
+.claura-glass,
+[data-theme='light'] .claura-glass {
+  background: var(--n-graphite);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: 1px solid var(--n-line);
+  border-radius: var(--n-r-card);
+  box-shadow: none;
+}
+.claura-glass::after { display: none; }          /* specular rim off */
+.claura-glass--refract {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* ---- Claura buttons speak Nocturne ---- */
+.claura-btn-primary,
+[data-theme='light'] .claura-btn-primary {
+  background: var(--n-pure);
+  color: var(--n-void);
+  border-radius: var(--n-r-control);
+  box-shadow: none;
+  font-family: var(--n-mono);
+  font-size: var(--n-label);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.claura-btn-primary:hover { transform: none; filter: none; background: var(--n-cloud); }
+.claura-btn-glass,
+[data-theme='light'] .claura-btn-glass {
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: var(--n-cloud);
+  border-radius: var(--n-r-control);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  font-family: var(--n-mono);
+  font-size: var(--n-label);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.claura-btn-glass:hover { background: rgba(255, 255, 255, 0.16); }

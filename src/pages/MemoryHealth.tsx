@@ -128,7 +128,7 @@ export default function MemoryHealth() {
       <div className="flex items-center justify-between mb-2">
         <h1
           style={{
-            fontFamily: "'Instrument Serif', Georgia, serif",
+            fontFamily: "var(--font-heading)",
             fontStyle: 'italic',
             fontSize: '28px',
             fontWeight: 400,

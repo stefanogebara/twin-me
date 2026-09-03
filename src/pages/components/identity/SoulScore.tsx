@@ -141,7 +141,7 @@ const ScoreRing: React.FC<{ score: number; compact?: boolean }> = ({ score, comp
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <span
           className={`font-normal tracking-[-1px] ${compact ? 'text-[32px]' : 'text-[44px]'}`}
-          style={{ fontFamily: "'Instrument Serif', serif", color: 'var(--foreground)' }}
+          style={{ fontFamily: "var(--font-heading)", color: 'var(--foreground)' }}
         >
           <AnimatedCounter target={score} />
         </span>

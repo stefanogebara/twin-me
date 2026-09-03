@@ -327,7 +327,7 @@ For privacy concerns: privacy@twinme.me`
           </div>
           <span
             style={{
-              fontFamily: "'Instrument Serif', Georgia, serif",
+              fontFamily: "var(--font-heading)",
               fontSize: '22px',
               letterSpacing: '-0.5px',
               color: 'var(--foreground)',
@@ -340,18 +340,17 @@ For privacy concerns: privacy@twinme.me`
         {/* Heading — the page is a signup for most people who reach it, so it
             must not greet them with "Sign in". Three states: arriving from the
             landing reveal, returning, or new. */}
-        <h1
-          className="mb-2"
-          style={{
-            fontFamily: "'Instrument Serif', Georgia, serif",
-            fontStyle: 'italic',
-            fontSize: '32px',
-            fontWeight: 400,
-            letterSpacing: '-0.02em',
-            color: 'var(--foreground)',
-          }}
-        >
-          {reveal ? 'Keep your reading' : isReturning ? 'Welcome back' : 'Create your twin'}
+        {/* Law 4: the italic marks ONE word per display line — the verb. This
+            heading arrived from #265 set fully italic at weight 400, which was
+            right for Claura's Instrument Serif and wrong for Fraunces 300. */}
+        <h1 className="n-heading mb-2" style={{ fontSize: '32px' }}>
+          {reveal ? (
+            <><em>Keep</em> your reading</>
+          ) : isReturning ? (
+            <><em>Welcome</em> back</>
+          ) : (
+            <><em>Create</em> your twin</>
+          )}
         </h1>
         <p
           className="text-sm mb-8"
@@ -656,84 +655,29 @@ For privacy concerns: privacy@twinme.me`
       </div>
       </div>
 
-      {/* Right panel — the Claura canvas, not photography. The photoreal
-          cosmic-swirl / soul-waves pair was a fourth visual language between
-          the landing and the app (hero inversion, 2026-08); the funnel now
-          holds one system end to end: charcoal + the four ambient orbs. */}
+      {/* Right panel — Nocturne graphite panel (flip 2026-09-01): no
+          photography, no scrims. Serif statement + the three facts people
+          hesitate over, in the mono voice. */}
       <div
-        className="claura-glass hidden lg:flex relative z-[1] flex-1 m-4 ml-0 flex-col items-center justify-center px-12 overflow-hidden"
-        style={{ borderRadius: '24px' }}
+        className="hidden lg:flex relative flex-1 m-4 ml-0 flex-col items-center justify-center px-12"
+        style={{ background: 'var(--n-graphite)', borderRadius: 'var(--n-r-tile)' }}
       >
-        {/* A breath of amber inside the glass so the panel has its own light
-            rather than repeating the canvas behind it. */}
-        <div
-          aria-hidden
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background: [
-              'radial-gradient(ellipse 70% 55% at 22% 14%, rgba(210,145,55,0.20) 0%, transparent 68%)',
-              'radial-gradient(ellipse 60% 50% at 78% 88%, rgba(160,95,55,0.16) 0%, transparent 66%)',
-              'radial-gradient(ellipse 50% 45% at 82% 34%, rgba(93,92,174,0.12) 0%, transparent 62%)',
-            ].join(','),
-            borderRadius: '24px',
-          }}
-        />
-        {/* No halation here: that glow existed to lift text off a busy photo.
-            On the canvas it only muddies the type. */}
-        <h2
-          className="relative text-center mb-5"
-          style={{
-            fontFamily: "'Instrument Serif', Georgia, serif",
-            fontStyle: 'italic',
-            fontSize: '36px',
-            fontWeight: 400,
-            letterSpacing: '-0.72px',
-            lineHeight: 1.15,
-            color: 'var(--claura-text)',
-          }}
-        >
+        <h2 className="n-display-sm" style={{ textAlign: 'center', fontSize: 'clamp(36px, 4vw, 56px)' }}>
           Your soul signature
           <br />
-          starts here
+          <em>starts</em> here.
         </h2>
-
-        <p
-          className="relative text-center max-w-[340px] mb-9"
-          style={{
-            fontFamily: "'Inter', sans-serif",
-            fontSize: '14px',
-            lineHeight: 1.6,
-            color: 'var(--claura-narr)',
-          }}
-        >
-          Connect what you actually use, and meet the twin that reads your patterns
-          instead of your resume.
+        <p className="n-body" style={{ textAlign: 'center', maxWidth: 340, marginTop: 20 }}>
+          Connect what you actually use, and meet the twin that reads your
+          patterns instead of your resume.
         </p>
-
-        {/* The commitment moment is where uncertainty peaks — answer it with
-            the three facts people actually hesitate over (Plaid trust-gap). */}
-        <ul className="relative flex flex-col gap-3 w-full max-w-[300px]">
+        <ul style={{ listStyle: 'none', padding: 0, margin: '36px 0 0', display: 'flex', flexDirection: 'column', gap: 14 }}>
           {[
-            'Read-only. It can never post or delete.',
-            'Your data is never used to train models.',
-            'Delete everything, anytime, in one click.',
+            'READ-ONLY. IT CAN NEVER POST OR DELETE.',
+            'YOUR DATA NEVER TRAINS MODELS.',
+            'DELETE EVERYTHING, ANYTIME, IN ONE CLICK.',
           ].map((fact) => (
-            <li key={fact} className="flex items-start gap-2.5">
-              <Check
-                className="w-3.5 h-3.5 mt-[3px] flex-shrink-0"
-                style={{ color: 'var(--claura-narr)' }}
-              />
-              <span
-                style={{
-                  fontFamily: "'Inter', sans-serif",
-                  fontSize: '13px',
-                  lineHeight: 1.5,
-                  color: 'var(--claura-narr)',
-                }}
-              >
-                {fact}
-              </span>
-            </li>
+            <li key={fact} className="n-micro" style={{ color: 'var(--n-ash)' }}>{fact}</li>
           ))}
         </ul>
       </div>
@@ -759,7 +703,7 @@ For privacy concerns: privacy@twinme.me`
             >
               <h2
                 style={{
-                  fontFamily: "'Instrument Serif', Georgia, serif",
+                  fontFamily: "var(--font-heading)",
                   fontSize: '20px',
                   fontWeight: 400,
                   color: 'var(--foreground)',

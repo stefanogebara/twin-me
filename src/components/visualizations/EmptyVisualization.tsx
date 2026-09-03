@@ -39,7 +39,7 @@ export function EmptyVisualization({
         )}
 
         {/* Title */}
-        <h3 className="text-xl font-semibold text-foreground mb-3" style={{ fontFamily: "'Instrument Serif', Georgia, serif" }}>
+        <h3 className="text-xl font-semibold text-foreground mb-3" style={{ fontFamily: "var(--font-heading)" }}>
           {title}
         </h3>
 

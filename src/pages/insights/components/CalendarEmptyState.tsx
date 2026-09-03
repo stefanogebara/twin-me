@@ -28,7 +28,7 @@ export const CalendarEmptyState: React.FC<CalendarEmptyStateProps> = ({ colors, 
         style={{ border: '1px solid var(--border-glass)', backgroundColor: 'var(--surface)' }}
       >
         <Calendar className="w-12 h-12 mx-auto mb-4" style={{ color: 'var(--text-secondary)' }} />
-        <h3 style={{ color: colors.text, fontFamily: "'Instrument Serif', Georgia, serif" }}>
+        <h3 style={{ color: colors.text, fontFamily: "var(--font-heading)" }}>
           Your twin is studying your schedule
         </h3>
         <p className="mt-2 mb-6 max-w-sm mx-auto" style={{ color: 'var(--text-secondary)' }}>

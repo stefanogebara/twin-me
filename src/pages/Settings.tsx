@@ -573,7 +573,7 @@ const Settings = () => {
       <h1
         className="mb-12"
         style={{
-          fontFamily: "'Instrument Serif', Georgia, serif",
+          fontFamily: "var(--font-heading)",
           fontStyle: 'italic',
           fontSize: '28px',
           fontWeight: 400,

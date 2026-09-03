@@ -378,7 +378,7 @@ const PrivacySpectrumDashboard: React.FC = () => {
               fontWeight: 700,
               color: TEXT_PRIMARY,
               margin: 0,
-              fontFamily: "'Instrument Serif', Georgia, serif",
+              fontFamily: "var(--font-heading)",
             }}
           >
             Privacy Spectrum

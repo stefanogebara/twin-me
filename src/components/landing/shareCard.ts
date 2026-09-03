@@ -57,7 +57,7 @@ export async function renderShareCard({ name, lines, sources }: ShareCardInput):
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('canvas 2d context unavailable');
 
-  const serif = "'Instrument Serif', Georgia, 'Times New Roman', serif";
+  const serif = "var(--font-heading)";
   const sans = "'Geist', 'Inter', system-ui, sans-serif";
 
   // Canvas + orbs (ClassicBackground geometry, scaled)

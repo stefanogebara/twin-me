@@ -206,7 +206,7 @@ export default function FidelityPage() {
         <h2
           className="mb-8"
           style={{
-            fontFamily: "'Instrument Serif', Georgia, serif",
+            fontFamily: "var(--font-heading)",
             fontSize: '24px',
             fontWeight: 400,
             letterSpacing: '-0.02em',
@@ -301,7 +301,7 @@ export default function FidelityPage() {
       <div className="max-w-2xl mx-auto px-6 py-16">
         <h1
           className="mb-2"
-          style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: '28px', fontWeight: 400, letterSpacing: '-0.02em', color: 'var(--foreground)' }}
+          style={{ fontFamily: "var(--font-heading)", fontSize: '28px', fontWeight: 400, letterSpacing: '-0.02em', color: 'var(--foreground)' }}
         >
           Wave {result.wave} complete
         </h1>
@@ -316,7 +316,7 @@ export default function FidelityPage() {
           <span className="text-[11px] font-medium tracking-widest uppercase block mb-2" style={{ color: 'var(--accent-vibrant)', fontFamily: 'Inter, sans-serif' }}>
             Twin accuracy
           </span>
-          <p style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: '44px', letterSpacing: '-0.02em', color: 'var(--foreground)' }}>
+          <p style={{ fontFamily: "var(--font-heading)", fontSize: '44px', letterSpacing: '-0.02em', color: 'var(--foreground)' }}>
             {twinPct !== null ? `${twinPct}%` : 'Unavailable'}
           </p>
           <p className="text-[13px] leading-relaxed mt-2" style={{ color: 'var(--text-secondary)' }}>
@@ -349,7 +349,7 @@ export default function FidelityPage() {
             <span className="text-[11px] font-medium tracking-widest uppercase block mb-2" style={{ color: 'var(--accent-vibrant)', fontFamily: 'Inter, sans-serif' }}>
               Normalized fidelity
             </span>
-            <p style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: '44px', letterSpacing: '-0.02em', color: 'var(--foreground)' }}>
+            <p style={{ fontFamily: "var(--font-heading)", fontSize: '44px', letterSpacing: '-0.02em', color: 'var(--foreground)' }}>
               {normPct}%
             </p>
             <p className="text-[13px] leading-relaxed mt-2" style={{ color: 'var(--text-secondary)' }}>
@@ -380,7 +380,7 @@ export default function FidelityPage() {
     <div className="max-w-2xl mx-auto px-6 py-16">
       <h1
         className="mb-2"
-        style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: '28px', fontWeight: 400, letterSpacing: '-0.02em', color: 'var(--foreground)' }}
+        style={{ fontFamily: "var(--font-heading)", fontSize: '28px', fontWeight: 400, letterSpacing: '-0.02em', color: 'var(--foreground)' }}
       >
         How well does your twin know you?
       </h1>

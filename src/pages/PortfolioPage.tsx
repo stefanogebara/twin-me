@@ -117,7 +117,7 @@ const PortfolioPage: React.FC = () => {
           <Sparkles className="w-10 h-10 mx-auto mb-4" style={{ color: 'rgba(232, 213, 183, 0.3)' }} />
           <h1
             className="text-xl mb-2"
-            style={{ fontFamily: "'Instrument Serif', Georgia, serif", color: '#E8D5B7' }}
+            style={{ fontFamily: "var(--font-heading)", color: '#E8D5B7' }}
           >
             {loadFailed ? 'Could Not Load Portfolio' : 'Portfolio Not Found'}
           </h1>
@@ -210,13 +210,11 @@ const PortfolioPage: React.FC = () => {
             style={{
               background: 'var(--glass-surface-bg)',
               border: '1px solid var(--glass-surface-border)',
-              backdropFilter: 'blur(42px)',
-              WebkitBackdropFilter: 'blur(42px)',
             }}
           >
             <div
               className="text-[40px] leading-none"
-              style={{ fontFamily: "'Instrument Serif', serif", color: colorScheme.accent }}
+              style={{ fontFamily: 'var(--font-heading)', color: colorScheme.accent }}
             >
               {Math.round(shown * 100)}%
             </div>

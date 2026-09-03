@@ -545,7 +545,7 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
             <h2
               className="text-lg md:text-xl mb-0.5"
               style={{
-                fontFamily: 'Instrument Serif, Georgia, serif',
+                fontFamily: 'var(--font-heading)',
                 fontWeight: 400,
                 letterSpacing: '-0.03em',
                 color: 'var(--foreground)',

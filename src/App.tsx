@@ -32,8 +32,16 @@ import NotFound from "./pages/NotFound";
 // DEV ternary lets Vite dead-code-eliminate the dynamic imports in prod, so
 // no prototype chunks are emitted at all.
 const CinematicFrame = import.meta.env.DEV ? lazy(() => import("./pages/preview/CinematicFrame")) : () => null;
+const PresencePrototype = import.meta.env.DEV ? lazy(() => import("./pages/preview/PresencePrototype")) : () => null;
+const PresenceDesignSystem = import.meta.env.DEV ? lazy(() => import("./pages/preview/PresenceDesignSystem")) : () => null;
 const StardustHero = import.meta.env.DEV ? lazy(() => import("./components/landing/StardustHero")) : () => null;
 const StardustLanding = import.meta.env.DEV ? lazy(() => import("./pages/StardustLanding")) : () => null;
+// Nocturne — design-system rebuild preview (design/nocturne branch). Public
+// routes on purpose: the flagship must be judgeable on a real deploy.
+const NocturneLanding = lazy(() => import("./pages/nocturne/NocturneLanding"));
+const NocturneSpec = lazy(() => import("./pages/nocturne/NocturneSpec"));
+const NocturneSignature = lazy(() => import("./pages/nocturne/NocturneSignature"));
+const NocturneTwin = lazy(() => import("./pages/nocturne/NocturneTwin"));
 // audit-2026-05-13 H1: route-local Suspense fallback for /talk-to-twin so
 // mobile users see the chat shell (header + composer placeholder) within
 // the first paint instead of waiting on a centered loading spinner.
@@ -80,6 +88,9 @@ const MoneyPage = lazy(loadMoneyPage);
 const MoneyInsightsPage = lazy(loadMoneyInsightsPage);
 const TodayPage = lazy(loadTodayPage);
 const PricingPage = lazy(() => import("./pages/PricingPage"));
+const PresencePage = lazy(() => import("./pages/PresencePage"));
+const PresenceLandingPage = lazy(() => import("./pages/PresenceLandingPage"));
+const PresenceLoginPage = lazy(() => import("./pages/PresenceLoginPage"));
 
 
 
@@ -191,6 +202,10 @@ const App = () => {
             <Route element={<Suspense fallback={null}><Outlet /></Suspense>}>
             <Route path="/preview/stardust-hero" element={<div className="w-full min-h-screen" style={{ background: 'var(--background)' }}><StardustHero /></div>} />
             <Route path="/preview/stardust" element={<StardustLanding />} />
+            <Route path="/nocturne" element={<Suspense fallback={null}><NocturneLanding /></Suspense>} />
+            <Route path="/nocturne/system" element={<Suspense fallback={null}><NocturneSpec /></Suspense>} />
+            <Route path="/nocturne/signature" element={<Suspense fallback={null}><NocturneSignature /></Suspense>} />
+            <Route path="/nocturne/twin" element={<Suspense fallback={null}><NocturneTwin /></Suspense>} />
             <Route path="/preview/landing" element={<CinematicFrame src="/cinematic/landing.html" title="Twin.me — cinematic landing" />} />
             <Route path="/preview/dashboard" element={<CinematicFrame src="/cinematic/dashboard.html" title="Twin.me — cinematic dashboard" />} />
             <Route path="/preview/talk" element={<CinematicFrame src="/cinematic/talk.html" title="Twin.me — cinematic talk" />} />
@@ -205,6 +220,8 @@ const App = () => {
             <Route path="/preview/history" element={<CinematicFrame src="/cinematic/history.html" title="Twin.me — History import" />} />
             <Route path="/preview/goals" element={<CinematicFrame src="/cinematic/goals.html" title="Twin.me — Goals" />} />
             <Route path="/preview/voice" element={<CinematicFrame src="/cinematic/voice.html" title="Twin.me — Voice setup" />} />
+            <Route path="/preview/presence" element={<PresencePrototype />} />
+            <Route path="/preview/presence-system" element={<PresenceDesignSystem />} />
             <Route path="/preview/pricing" element={<CinematicFrame src="/cinematic/pricing.html" title="Twin.me — Pricing" />} />
             <Route path="/preview" element={<CinematicFrame src="/cinematic/gallery.html" title="Twin.me — Claura, all screens" />} />
             </Route>
@@ -223,6 +240,15 @@ const App = () => {
                     <TodayPage />
                   </ErrorBoundary>
                 </SidebarLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/presence" element={<PresenceLandingPage />} />
+            <Route path="/presence/login" element={<PresenceLoginPage />} />
+            <Route path="/presence/onboarding" element={
+              <ProtectedRoute fallbackPath="/presence/login">
+                <ErrorBoundary>
+                  <PresencePage />
+                </ErrorBoundary>
               </ProtectedRoute>
             } />
             {/* Twin Insight Pages */}

@@ -174,7 +174,7 @@ const IdentityNarrativeCard: React.FC = () => {
           <Sparkles className="w-4 h-4" style={{ color: 'var(--accent-vibrant)' }} />
           <h3
             className="text-[18px]"
-            style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontWeight: 400, letterSpacing: '-0.36px' }}
+            style={{ fontFamily: "var(--font-heading)", fontWeight: 400, letterSpacing: '-0.36px' }}
           >
             Your soul, in your own words
           </h3>

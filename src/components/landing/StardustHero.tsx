@@ -124,7 +124,7 @@ export default function StardustHero() {
           <h1
             className="text-[#F5F5F4] font-normal leading-[1.02] tracking-[-0.02em]"
             style={{
-              fontFamily: "'Instrument Serif', Georgia, serif",
+              fontFamily: "var(--font-heading)",
               fontSize: 'clamp(44px, 7vw, 88px)',
               textShadow: '0 2px 40px rgba(0,0,0,0.35)',
               maxWidth: '12ch',
@@ -179,7 +179,7 @@ export default function StardustHero() {
           aria-label="Twin.me"
           className="font-normal leading-none text-[#F5F5F4] select-none"
           style={{
-            fontFamily: "'Instrument Serif', Georgia, serif",
+            fontFamily: "var(--font-heading)",
             fontSize: 'clamp(72px, 12vw, 168px)',
             textShadow:
               '0 0 24px rgba(245,245,244,0.35), 0 0 64px rgba(245,245,244,0.18), 0 0 120px rgba(232,224,212,0.12)',
@@ -191,7 +191,7 @@ export default function StardustHero() {
         <p
           className="mt-4 sm:mt-6 font-normal leading-[1.05] tracking-[-0.01em]"
           style={{
-            fontFamily: "'Instrument Serif', Georgia, serif",
+            fontFamily: "var(--font-heading)",
             fontSize: 'clamp(40px, 6.5vw, 84px)',
             color: 'rgba(245,245,244,0.82)',
             maxWidth: '14ch',

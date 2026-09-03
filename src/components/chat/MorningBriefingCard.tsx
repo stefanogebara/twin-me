@@ -260,7 +260,7 @@ const MorningBriefingCard: React.FC<MorningBriefingCardProps> = ({ onAskTwin }) 
         <h2
           className="text-[32px] sm:text-[36px] mb-2.5 leading-[1.1]"
           style={{
-            fontFamily: "'Instrument Serif', Georgia, serif",
+            fontFamily: "var(--font-heading)",
             fontStyle: 'italic',
             fontWeight: 400,
             color: 'var(--foreground)',

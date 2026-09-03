@@ -159,7 +159,7 @@ function UploadZone({ onUpload, onError }: UploadZoneProps) {
       </div>
       <p
         style={{
-          fontFamily: "'Instrument Serif', Georgia, serif",
+          fontFamily: "var(--font-heading)",
           fontSize: 18,
           color: 'var(--foreground)',
           letterSpacing: '-0.01em',
@@ -228,7 +228,7 @@ function SummaryBar({ summary, currency, mixedCurrency }: { summary: Transaction
         <div>
           <p
             style={{
-              fontFamily: "'Instrument Serif', Georgia, serif",
+              fontFamily: "var(--font-heading)",
               fontSize: 26,
               letterSpacing: '-0.02em',
               color: 'var(--foreground)',
@@ -244,7 +244,7 @@ function SummaryBar({ summary, currency, mixedCurrency }: { summary: Transaction
         <div>
           <p
             style={{
-              fontFamily: "'Instrument Serif', Georgia, serif",
+              fontFamily: "var(--font-heading)",
               fontSize: 26,
               letterSpacing: '-0.02em',
               color: emotionalPct !== null && emotionalPct > 30 ? 'rgba(232, 160, 80, 0.95)' : 'var(--foreground)',
@@ -260,7 +260,7 @@ function SummaryBar({ summary, currency, mixedCurrency }: { summary: Transaction
         <div>
           <p
             style={{
-              fontFamily: "'Instrument Serif', Georgia, serif",
+              fontFamily: "var(--font-heading)",
               fontSize: 26,
               letterSpacing: '-0.02em',
               color: 'var(--foreground)',
@@ -285,7 +285,7 @@ function SummaryBar({ summary, currency, mixedCurrency }: { summary: Transaction
             <div key={c.currency}>
               <p
                 style={{
-                  fontFamily: "'Instrument Serif', Georgia, serif",
+                  fontFamily: "var(--font-heading)",
                   fontSize: 17,
                   color: 'var(--foreground)',
                   lineHeight: 1.1,
@@ -738,7 +738,7 @@ export default function MoneyPage() {
       <div className="flex items-baseline justify-between gap-3 pt-6 mb-2">
         <h1
           style={{
-            fontFamily: "'Instrument Serif', Georgia, serif",
+            fontFamily: "var(--font-heading)",
             fontSize: 36,
             letterSpacing: '-0.03em',
             color: 'var(--foreground)',
@@ -788,7 +788,7 @@ export default function MoneyPage() {
       <p
         className="mb-6"
         style={{
-          fontFamily: "'Instrument Serif', Georgia, serif",
+          fontFamily: "var(--font-heading)",
           fontSize: 19,
           lineHeight: 1.4,
           color: 'var(--foreground)',
@@ -930,7 +930,7 @@ export default function MoneyPage() {
           <FileText className="w-8 h-8 mx-auto mb-3" style={{ color: 'var(--text-secondary)' }} />
           <p
             style={{
-              fontFamily: "'Instrument Serif', Georgia, serif",
+              fontFamily: "var(--font-heading)",
               fontSize: 18,
               color: 'var(--foreground)',
               marginBottom: 6,
@@ -958,7 +958,7 @@ export default function MoneyPage() {
         <p
           className="text-center mt-8"
           style={{
-            fontFamily: "'Instrument Serif', Georgia, serif",
+            fontFamily: "var(--font-heading)",
             fontSize: 14,
             fontStyle: 'italic',
             color: 'var(--text-secondary)',

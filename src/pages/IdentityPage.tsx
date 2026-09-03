@@ -261,7 +261,7 @@ const RevealOverlay: React.FC<{ archetypeName: string; tagline: string; onDismis
         aria-label={archetypeName}
         className="relative z-10 text-center"
         style={{
-          fontFamily: "'Instrument Serif', Georgia, serif",
+          fontFamily: "var(--font-heading)",
           fontStyle: 'italic',
           fontSize: 'clamp(40px, 8vw, 64px)',
           fontWeight: 400,
@@ -669,7 +669,7 @@ const IdentityPage: React.FC = () => {
                 {/* Single-archetype headline — promoted from h2 to h1 so the hero has one dominant voice */}
                 <h1
                   style={{
-                    fontFamily: "'Instrument Serif', Georgia, serif",
+                    fontFamily: "var(--font-heading)",
                     fontStyle: 'italic',
                     fontSize: 'clamp(36px, 6.5vw, 56px)',
                     fontWeight: 400,
@@ -778,7 +778,7 @@ const IdentityPage: React.FC = () => {
             <div>
               <h1
                 style={{
-                  fontFamily: "'Instrument Serif', Georgia, serif",
+                  fontFamily: "var(--font-heading)",
                   fontStyle: 'italic',
                   fontSize: 'clamp(32px, 6vw, 48px)',
                   fontWeight: 400,
@@ -875,7 +875,7 @@ const IdentityPage: React.FC = () => {
                       <div className="flex-1 min-w-0">
                         <p
                           style={{
-                            fontFamily: "'Instrument Serif', Georgia, serif",
+                            fontFamily: "var(--font-heading)",
                             fontStyle: 'italic',
                             fontSize: '14px',
                             color: 'var(--foreground)',
@@ -896,7 +896,7 @@ const IdentityPage: React.FC = () => {
                             >
                               <p
                                 style={{
-                                  fontFamily: "'Instrument Serif', Georgia, serif",
+                                  fontFamily: "var(--font-heading)",
                                   fontStyle: 'italic',
                                   fontSize: '14px',
                                   color: 'var(--text-secondary)',
@@ -1311,7 +1311,7 @@ const GeneratingState: React.FC<{ message?: string }> = ({ message }) => (
     <h2
       className="text-xl mb-3"
       style={{
-        fontFamily: "'Instrument Serif', Georgia, serif",
+        fontFamily: "var(--font-heading)",
         fontStyle: 'italic',
         color: 'var(--foreground)',
         opacity: 0.8,
@@ -1336,7 +1336,7 @@ const EmptyState: React.FC<{ message?: string }> = ({ message }) => {
       <h2
         className="text-xl mb-3"
         style={{
-          fontFamily: "'Instrument Serif', Georgia, serif",
+          fontFamily: "var(--font-heading)",
           fontStyle: 'italic',
           color: 'var(--foreground)',
           opacity: 0.8,

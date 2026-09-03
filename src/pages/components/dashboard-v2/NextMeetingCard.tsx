@@ -131,7 +131,7 @@ export function NextMeetingCard() {
       {/* Title */}
       <p
         style={{
-          fontFamily: "'Instrument Serif', Georgia, serif",
+          fontFamily: "var(--font-heading)",
           fontSize: 20,
           letterSpacing: '-0.02em',
           color: 'var(--foreground)',

@@ -72,7 +72,7 @@ export function UnlockProgressCard({ timeline, transactions }: Props) {
 
       <p
         style={{
-          fontFamily: "'Instrument Serif', Georgia, serif",
+          fontFamily: "var(--font-heading)",
           fontSize: 19,
           lineHeight: 1.4,
           color: 'var(--foreground)',

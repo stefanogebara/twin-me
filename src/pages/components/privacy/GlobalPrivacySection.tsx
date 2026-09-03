@@ -74,7 +74,7 @@ const GlobalPrivacySection: React.FC<GlobalPrivacySectionProps> = ({
           fontSize: 22,
           fontWeight: 800,
           color: TEXT_PRIMARY,
-          fontFamily: "'Instrument Serif', Georgia, serif",
+          fontFamily: "var(--font-heading)",
         }}
       >
         {currentGlobal}%

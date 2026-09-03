@@ -366,7 +366,7 @@ export default function DataExportsPage() {
       <header className="mb-6">
         <h1
           className="text-[32px] leading-[1.1] tracking-[-0.64px]"
-          style={{ color: 'var(--text-primary)', fontFamily: 'Instrument Serif, serif' }}
+          style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-heading)' }}
         >
           One-time history import
         </h1>

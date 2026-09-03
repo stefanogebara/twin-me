@@ -21,7 +21,7 @@ export const SpotifyEmptyState: React.FC<SpotifyEmptyStateProps> = ({
     <div className="space-y-4">
       <div className="text-center py-10 rounded-lg" style={{ border: '1px solid var(--border-glass)', backgroundColor: 'var(--surface)' }}>
         <Music className="w-12 h-12 mx-auto mb-4" style={{ color: colors.textSecondary }} />
-        <h3 style={{ color: colors.text, fontFamily: "'Instrument Serif', Georgia, serif", fontStyle: 'italic', fontWeight: 400, letterSpacing: '-0.02em' }}>
+        <h3 style={{ color: colors.text, fontFamily: "var(--font-heading)", fontStyle: 'italic', fontWeight: 400, letterSpacing: '-0.02em' }}>
           Your twin is listening
         </h3>
         <p className="mt-2 mb-6 max-w-sm mx-auto" style={{ color: colors.textSecondary }}>

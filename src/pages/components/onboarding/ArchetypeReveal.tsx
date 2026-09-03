@@ -24,7 +24,7 @@ export const ArchetypeReveal: React.FC<ArchetypeRevealProps> = ({
           <h2
             className="text-xl mb-2"
             style={{
-              fontFamily: "'Instrument Serif', Georgia, serif",
+              fontFamily: "var(--font-heading)",
               fontWeight: 400,
               color: 'var(--foreground)',
             }}
@@ -48,7 +48,7 @@ export const ArchetypeReveal: React.FC<ArchetypeRevealProps> = ({
         <h2
           className="text-3xl mb-3"
           style={{
-            fontFamily: "'Instrument Serif', Georgia, serif",
+            fontFamily: "var(--font-heading)",
             fontStyle: 'italic',
             fontWeight: 400,
             letterSpacing: '-0.02em',

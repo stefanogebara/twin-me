@@ -53,7 +53,7 @@ const WebBrowsingInsightsPage: React.FC = () => {
     <div className="max-w-[680px] mx-auto px-4 sm:px-6 py-10 sm:py-16">
       {/* Header */}
       <div className="flex items-center justify-between mb-2">
-        <h1 style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontStyle: 'italic', fontSize: '28px', fontWeight: 400, color: 'var(--foreground)', letterSpacing: '-0.02em' }}>
+        <h1 style={{ fontFamily: "var(--font-heading)", fontStyle: 'italic', fontSize: '28px', fontWeight: 400, color: 'var(--foreground)', letterSpacing: '-0.02em' }}>
           Your Digital Life
         </h1>
         <button onClick={refresh} disabled={isRefreshing} className="p-2 rounded-lg transition-opacity hover:opacity-60" style={{ color: 'var(--text-muted)' }} title="Refresh" aria-label={isRefreshing ? 'Refreshing insights' : 'Refresh insights'}>
@@ -176,7 +176,7 @@ const WebBrowsingInsightsPage: React.FC = () => {
           style={{ border: '1px solid var(--border-glass)', backgroundColor: 'var(--surface)' }}
         >
           <Globe className="w-12 h-12 mx-auto mb-4" style={{ color: colors.textSecondary }} />
-          <h3 style={{ color: colors.text, fontFamily: "'Instrument Serif', Georgia, serif" }}>
+          <h3 style={{ color: colors.text, fontFamily: "var(--font-heading)" }}>
             Your twin is exploring
           </h3>
           <p className="mt-2" style={{ color: colors.textSecondary }}>

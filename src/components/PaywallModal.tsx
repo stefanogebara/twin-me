@@ -68,7 +68,7 @@ const PaywallModal: React.FC<Props> = ({ isOpen }) => {
         {/* Header */}
         <div className="text-center space-y-2">
           <p className="text-xs uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>Your twin is ready</p>
-          <h2 className="text-4xl font-normal tracking-tight" style={{ fontFamily: "'Instrument Serif', Georgia, serif" }}>Keep the conversation going.</h2>
+          <h2 className="text-4xl font-normal tracking-tight" style={{ fontFamily: "var(--font-heading)" }}>Keep the conversation going.</h2>
           <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Unlock full access to everything your twin can do.</p>
         </div>
 
@@ -96,7 +96,7 @@ const PaywallModal: React.FC<Props> = ({ isOpen }) => {
 
               {/* Price */}
               <div className="flex items-baseline gap-1">
-                <span className="text-4xl font-normal" style={{ fontFamily: "'Instrument Serif', Georgia, serif" }}>{plan.price}</span>
+                <span className="text-4xl font-normal" style={{ fontFamily: "var(--font-heading)" }}>{plan.price}</span>
                 <span className="text-sm" style={{ color: 'var(--text-muted)' }}>{plan.period}</span>
               </div>
 

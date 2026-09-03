@@ -646,7 +646,7 @@ const OAuthCallback = () => {
           />
           <h1
             className="text-2xl"
-            style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontWeight: 400 }}
+            style={{ fontFamily: "var(--font-heading)", fontWeight: 400 }}
           >
             Twin Me
           </h1>
@@ -665,7 +665,7 @@ const OAuthCallback = () => {
             <>
               <h2
                 className="text-xl mb-2"
-                style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontWeight: 400 }}
+                style={{ fontFamily: "var(--font-heading)", fontWeight: 400 }}
               >
                 {displayStatus === 'loading' && 'Authenticating...'}
                 {displayStatus === 'success' && 'Welcome!'}

@@ -66,7 +66,7 @@ const WaitlistPage = () => {
           </div>
           <span
             style={{
-              fontFamily: "'Instrument Serif', Georgia, serif",
+              fontFamily: "var(--font-heading)",
               fontSize: '22px',
               letterSpacing: '-0.5px',
               color: 'var(--foreground)',
@@ -78,18 +78,8 @@ const WaitlistPage = () => {
 
         {submitted ? (
           <>
-            <h1
-              className="mb-4"
-              style={{
-                fontFamily: "'Instrument Serif', Georgia, serif",
-                fontStyle: 'italic',
-                fontSize: '32px',
-                fontWeight: 400,
-                letterSpacing: '-0.02em',
-                color: 'var(--foreground)',
-              }}
-            >
-              You're on the list
+            <h1 className="n-heading mb-4" style={{ fontSize: '32px' }}>
+              <em>You're</em> on the list
             </h1>
             <p
               className="text-sm mb-8"
@@ -100,18 +90,8 @@ const WaitlistPage = () => {
           </>
         ) : (
           <>
-            <h1
-              className="mb-3"
-              style={{
-                fontFamily: "'Instrument Serif', Georgia, serif",
-                fontStyle: 'italic',
-                fontSize: '32px',
-                fontWeight: 400,
-                letterSpacing: '-0.02em',
-                color: 'var(--foreground)',
-              }}
-            >
-              We're crafting something special
+            <h1 className="n-heading mb-3" style={{ fontSize: '32px' }}>
+              We're <em>building</em> something worth the wait
             </h1>
             <p
               className="text-sm mb-10"

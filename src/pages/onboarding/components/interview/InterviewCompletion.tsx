@@ -31,7 +31,7 @@ const InterviewCompletion: React.FC<InterviewCompletionProps> = ({
         <p
           className="text-lg mb-1"
           style={{
-            fontFamily: 'Instrument Serif, Georgia, serif',
+            fontFamily: 'var(--font-heading)',
             fontWeight: 500,
             color: 'var(--foreground)',
           }}
@@ -62,7 +62,7 @@ const InterviewCompletion: React.FC<InterviewCompletionProps> = ({
             className="text-xs leading-relaxed max-w-sm mx-auto mt-2"
             style={{
               color: 'var(--text-muted)',
-              fontFamily: 'Instrument Serif, Georgia, serif',
+              fontFamily: 'var(--font-heading)',
               fontStyle: 'italic',
               opacity: 0.8,
             }}
@@ -76,7 +76,7 @@ const InterviewCompletion: React.FC<InterviewCompletionProps> = ({
             className="text-sm leading-relaxed max-w-sm mx-auto"
             style={{
               color: 'var(--text-muted)',
-              fontFamily: 'Instrument Serif, Georgia, serif',
+              fontFamily: 'var(--font-heading)',
               fontStyle: 'italic',
             }}
           >
