@@ -8,8 +8,8 @@ import '@/styles/presence-cosmos.css';
 
 /**
  * /portrait: the signed-in person's Portrait, from /api/portrait. Verdicts and today's
- * answer post back; the page updates first and the API follows. Ask is not wired here
- * yet (product plan Task 4): the pill answers that it cannot cite anything yet.
+ * answer post back; the page updates first and the API follows. Ask goes to
+ * /api/portrait/ask, which answers from the readings only and returns what it cites.
  */
 
 type State = { status: 'loading' } | { status: 'ready'; data: PortraitData } | { status: 'error'; message: string };
@@ -56,8 +56,15 @@ export default function LivePortraitPage() {
     }).catch(() => undefined);
   }
 
-  async function onAsk() {
-    return { a: 'I cannot cite anything yet: asking is not connected to your readings in this version. It will be, and every answer will point at them.', cites: [] };
+  async function onAsk(question: string) {
+    const res = await authFetch('/portrait/ask', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ question }),
+    });
+    const json = await res.json().catch(() => null);
+    if (res.status === 429) return { a: typeof json?.error === 'string' ? json.error : 'That is enough questions for today.', cites: [] };
+    if (!res.ok || !json?.success) throw new Error('ask failed');
+    const cites = Array.isArray(json.data?.cites) ? json.data.cites.filter((c: unknown): c is string => typeof c === 'string') : [];
+    return { a: typeof json.data?.a === 'string' ? json.data.a : '', cites };
   }
 
   if (state.status === 'loading') {

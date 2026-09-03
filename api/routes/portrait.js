@@ -5,6 +5,7 @@
  * POST /api/portrait/readings/:id/verdict   { verdict: true|partly|wrong|null, note? }
  * POST /api/portrait/question/answer        { readingIds: [], answer }
  * DELETE /api/portrait/sources/:platform    archive and delete everything read from one platform
+ * POST /api/portrait/ask                    { question } -> { a, cites[] }, from the readings only
  *
  * Spec: .claude/plans/2026-09-03-portrait/README.md
  */
@@ -12,6 +13,7 @@
 import { Router } from 'express';
 import { authenticateUser } from '../middleware/auth.js';
 import { loadPortrait, setVerdict, answerQuestion, deleteSource } from '../services/portraitService.js';
+import { askPortrait } from '../services/portraitAskService.js';
 import { createLogger } from '../services/logger.js';
 
 const log = createLogger('PortraitRoute');
@@ -67,6 +69,19 @@ router.delete('/sources/:platform', async (req, res) => {
     res.json({ success: true, data });
   } catch (error) {
     log.error('Failed to delete source', { error: error.message, platform });
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+router.post('/ask', async (req, res) => {
+  const question = typeof req.body?.question === 'string' ? req.body.question.trim() : '';
+  if (!question) return res.status(400).json({ success: false, error: 'question is required' });
+  try {
+    const data = await askPortrait(req.user.id, question);
+    res.json({ success: true, data });
+  } catch (error) {
+    if (error.code === 'CAP') return res.status(429).json({ success: false, error: 'That is enough questions for today. Ask again tomorrow.' });
+    log.error('Failed to answer from the Portrait', { error: error.message });
     res.status(500).json({ success: false, error: 'Internal server error' });
   }
 });
