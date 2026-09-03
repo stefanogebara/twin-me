@@ -302,7 +302,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
               </a>
             ))}
           </nav>
-          <Link to={banner ? '/' : '/sources'} className="pc-pt-nav-cta">{banner ? 'Read yourself' : 'Your sources'}</Link>
+          <Link to={banner ? '/' : '/sources'} className="pc-pt-nav-link">{banner ? 'Read yourself' : 'Your sources'}</Link>
         </header>
         <div className="pc-pt-hero-body">
           <h1 id="pc-pt-headline" className="pc-pt-serif">{lead ? <Headline text={lead} /> : `${data.owner}.`}</h1>

@@ -3846,7 +3846,7 @@ button.pc-search-icons {
   position: relative;
   display: flex;
   flex-direction: column;
-  padding-bottom: 96px;
+  padding-bottom: 132px;
   overflow: hidden;
   background: #14161a;
   color: var(--c-white);
@@ -3854,13 +3854,14 @@ button.pc-search-icons {
 
 .pc-pt-still {
   position: absolute;
-  inset: -6px;
-  width: calc(100% + 12px);
-  height: calc(100% + 12px);
+  top: -16%;
+  left: 0;
+  width: 100%;
+  height: 132%;
   object-fit: cover;
-  /* Cropped to the lamp side: one warm incident, most of the frame quiet. */
-  object-position: 74% 62%;
-  filter: brightness(1.04) saturate(1.06);
+  /* Cropped into the window: blue hour as the field, the lamp as its one incident. */
+  object-position: 47% 48%;
+  filter: brightness(1.08) saturate(1.12);
 }
 
 /* The room is dimmed enough that type holds anywhere on it. */
@@ -3869,8 +3870,8 @@ button.pc-search-icons {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(70% 50% at 50% 34%, rgba(8, 10, 13, 0.5) 0%, rgba(8, 10, 13, 0.24) 60%, rgba(8, 10, 13, 0.12) 100%),
-    linear-gradient(180deg, rgba(10, 12, 15, 0.4) 0%, rgba(10, 12, 15, 0.26) 30%, rgba(10, 12, 15, 0.34) 100%);
+    radial-gradient(64% 46% at 50% 30%, rgba(8, 10, 13, 0.46) 0%, rgba(8, 10, 13, 0.2) 62%, rgba(8, 10, 13, 0.08) 100%),
+    linear-gradient(180deg, rgba(10, 12, 15, 0.36) 0%, rgba(10, 12, 15, 0.2) 26%, rgba(10, 12, 15, 0.26) 72%, var(--c-paper) 100%);
 }
 
 
@@ -3888,7 +3889,7 @@ button.pc-search-icons {
   width: min(var(--pt-max), calc(100% - 48px));
   margin: 20px auto 0;
   height: 60px;
-  padding: 0 10px 0 24px;
+  padding: 0 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -3924,22 +3925,15 @@ button.pc-search-icons {
   color: var(--c-white);
 }
 
-.presence-cosmos .pc-pt-nav-cta {
-  display: inline-flex;
-  align-items: center;
-  height: 40px;
-  padding: 0 20px;
-  border-radius: 999px;
-  background: var(--c-white);
+.presence-cosmos .pc-pt-nav-link {
   font-size: 15px;
-  font-weight: 500;
   letter-spacing: -0.01em;
-  color: var(--c-ink) !important;
-  transition: opacity 0.2s;
+  color: rgba(255, 255, 255, 0.72) !important;
+  transition: color 0.2s;
 }
 
-.presence-cosmos .pc-pt-nav-cta:hover {
-  opacity: 0.86;
+.presence-cosmos .pc-pt-nav-link:hover {
+  color: var(--c-white) !important;
 }
 
 /* The headline stands in the room. */
