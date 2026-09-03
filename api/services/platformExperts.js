@@ -24,6 +24,8 @@
  */
 
 import { complete, TIER_ANALYSIS } from './llmGateway.js';
+// The Portrait shows these readings to the person: they speak the person's language.
+import { PLAIN_LANGUAGE_RULE } from './reflectionEngine.js';
 import {
   retrieveMemories,
   addReflection,
@@ -491,7 +493,8 @@ export async function runPlatformExpert(userId, platform, recentObservationIds =
         role: 'user',
         content: expert.prompt
           .replace('{observations}', formattedObservations)
-          .replace('{evidence}', evidence),
+          .replace('{evidence}', evidence)
+          + PLAIN_LANGUAGE_RULE,
       }],
       maxTokens: 500,
       temperature: 0.4,
