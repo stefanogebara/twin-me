@@ -64,7 +64,7 @@ const TABLE_BORDER = '1px solid var(--border-glass)';
 
 // CLAUDE.md: NEVER navy blue. Use warm-amber + purple-accent from the design tokens.
 const CATEGORY_COLORS: Record<string, string> = {
-  bug: 'bg-red-500/20 text-red-400 border-red-500/30',
+  bug: 'bg-red-500/20 text-[var(--n-danger-ink)] border-red-500/30',
   feature: 'bg-[rgba(193,126,44,0.20)] text-[var(--accent-amber)] border-[rgba(193,126,44,0.30)]',
   ux: 'bg-[rgba(93,92,174,0.20)] text-[var(--accent-purple)] border-[rgba(93,92,174,0.30)]',
   general: 'bg-gray-500/20 text-gray-400 border-gray-500/30',
@@ -96,15 +96,15 @@ function formatDateTime(iso: string): string {
 function getInviteStatus(invite: InviteCode): { label: string; cls: string } {
   const now = new Date();
   if (invite.expires_at && new Date(invite.expires_at) < now) {
-    return { label: 'Expired', cls: 'bg-red-500/20 text-red-400 border-red-500/30' };
+    return { label: 'Expired', cls: 'bg-red-500/20 text-[var(--n-danger-ink)] border-red-500/30' };
   }
   if (invite.use_count >= invite.max_uses) {
-    return { label: 'Used', cls: 'bg-red-500/20 text-red-400 border-red-500/30' };
+    return { label: 'Used', cls: 'bg-red-500/20 text-[var(--n-danger-ink)] border-red-500/30' };
   }
   if (invite.use_count > 0) {
     return { label: 'Partial', cls: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' };
   }
-  return { label: 'Available', cls: 'bg-green-500/20 text-green-400 border-green-500/30' };
+  return { label: 'Available', cls: 'bg-green-500/20 text-[var(--n-verdigris)] border-green-500/30' };
 }
 
 // ========================================================================
@@ -149,7 +149,7 @@ function CopyableCode({ code }: { code: string }) {
     >
       {code}
       {copied ? (
-        <Check className="w-3 h-3 text-green-400" />
+        <Check className="w-3 h-3 text-[var(--n-verdigris)]" />
       ) : (
         <ClipboardCopy className="w-3 h-3" style={{ color: 'var(--text-muted)' }} />
       )}
@@ -365,19 +365,19 @@ function CreateCodeForm({ onCreated }: { onCreated: () => void }) {
       </div>
 
       {error && (
-        <div className="text-red-400 text-[13px] mb-3">{error}</div>
+        <div className="text-[var(--n-danger-ink)] text-[13px] mb-3">{error}</div>
       )}
 
       {createdCode && (
         <div className="rounded-lg px-4 py-3" style={{ backgroundColor: 'rgba(16,183,127,0.1)', border: '1px solid rgba(16,183,127,0.3)' }}>
-          <span className="text-[13px] text-green-400 mr-2">Code created:</span>
+          <span className="text-[13px] text-[var(--n-verdigris)] mr-2">Code created:</span>
           <CopyableCode code={createdCode} />
         </div>
       )}
 
       {createdBatch.length > 0 && (
         <div className="rounded-lg px-4 py-3" style={{ backgroundColor: 'rgba(16,183,127,0.1)', border: '1px solid rgba(16,183,127,0.3)' }}>
-          <span className="text-[13px] text-green-400 block mb-2">5 codes created:</span>
+          <span className="text-[13px] text-[var(--n-verdigris)] block mb-2">5 codes created:</span>
           <div className="flex flex-wrap gap-2">
             {createdBatch.map(code => (
               <CopyableCode key={code} code={code} />
@@ -490,7 +490,7 @@ function AdminBetaDashboard() {
       </div>
 
       {error && (
-        <div className="rounded-lg px-4 py-3 mb-6 text-red-400 text-[13px]" style={{ backgroundColor: 'rgba(220,38,38,0.1)', border: '1px solid rgba(220,38,38,0.3)' }}>
+        <div className="rounded-lg px-4 py-3 mb-6 text-[var(--n-danger-ink)] text-[13px]" style={{ backgroundColor: 'rgb(var(--n-danger-rgb) / 0.1)', border: '1px solid rgb(var(--n-danger-rgb) / 0.3)' }}>
           {error}
         </div>
       )}
@@ -503,7 +503,7 @@ function AdminBetaDashboard() {
           value={totalCodes}
         />
         <StatCard
-          icon={<Check className="w-4 h-4" style={{ color: '#22C55E' }} />}
+          icon={<Check className="w-4 h-4" style={{ color: 'var(--n-verdigris)' }} />}
           label="Used"
           value={usedCodes}
         />

@@ -91,7 +91,7 @@ export function ContextualQuickActions({
             label: 'Show me playlists',
             icon: Music,
             action: () => onAction('show-playlists'),
-            color: 'text-green-400'
+            color: 'text-[var(--n-verdigris)]'
           },
           {
             id: 'compare-artists',
@@ -117,7 +117,7 @@ export function ContextualQuickActions({
             label: 'View top channels',
             icon: PlayCircle,
             action: () => onAction('top-channels'),
-            color: 'text-red-400'
+            color: 'text-[var(--n-danger-ink)]'
           },
           {
             id: 'learning-paths',
@@ -131,7 +131,7 @@ export function ContextualQuickActions({
             label: 'Watch time analysis',
             icon: Calendar,
             action: () => onAction('watch-time'),
-            color: 'text-green-400'
+            color: 'text-[var(--n-verdigris)]'
           },
           ...baseActions
         ];
@@ -157,7 +157,7 @@ export function ContextualQuickActions({
             label: 'Contribution graph',
             icon: Calendar,
             action: () => onAction('contribution-graph'),
-            color: 'text-green-400'
+            color: 'text-[var(--n-verdigris)]'
           },
           ...baseActions
         ];

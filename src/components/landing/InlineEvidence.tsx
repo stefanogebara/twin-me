@@ -62,7 +62,7 @@ const ConversationSnippet: React.FC<{ lines: ConversationLine[] }> = ({ lines })
           style={{
             borderRadius: line.role === 'user' ? '10px 10px 4px 10px' : '10px 10px 10px 4px',
             background: line.role === 'user'
-              ? 'rgba(232, 160, 80, 0.15)'
+              ? 'rgb(var(--n-ember-rgb) / 0.15)'
               : 'rgba(255, 255, 255, 0.05)',
             // Serif at 12px/0.6 was unreadable — the twin's voice carries the
             // proof, it must be the most legible thing in the card.
@@ -130,7 +130,7 @@ export const InlineEvidence: React.FC<EvidenceProps> = (props) => {
     >
       {/* Subtle label */}
       <div className="flex items-center gap-1.5 mb-2.5">
-        <Sparkles className="w-2.5 h-2.5" style={{ color: 'rgba(232, 160, 80, 0.5)' }} />
+        <Sparkles className="w-2.5 h-2.5" style={{ color: 'rgb(var(--n-ember-rgb) / 0.5)' }} />
         <span className="text-[9px] uppercase tracking-widest" style={{ color: 'rgba(245, 240, 235, 0.25)' }}>
           {props.variant === 'conversation' ? 'Example exchange' : props.variant === 'insight' ? 'Example insight' : 'Example memory'}
         </span>

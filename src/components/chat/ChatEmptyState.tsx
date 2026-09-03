@@ -151,7 +151,7 @@ export const ChatEmptyState = ({
         <button
           onClick={() => navigate('/connect')}
           className="text-center mb-6 text-[12px] transition-opacity hover:opacity-80"
-          // audit-2026-07-03 H5: was rgba(217,119,6,0.7) = 3.43:1, the primary
+          // audit-2026-07-03 H5: was rgb(var(--n-ember-rgb) / 0.7) = 3.43:1, the primary
           // recovery action for a degraded twin. Solid #d97706 = 5.84:1 on the
           // #13121a base, clearing AA for this actionable amber link.
           style={{ color: '#d97706' }}

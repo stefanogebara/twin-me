@@ -51,7 +51,7 @@ export const EvidenceSection: React.FC<EvidenceSectionProps> = ({
     textSecondary: 'rgba(255, 255, 255, 0.55)',
     border: 'var(--border-glass)',
     bgSubtle: 'rgba(255,255,255,0.04)',
-    confidenceHigh: '#22c55e',
+    confidenceHigh: 'var(--n-verdigris)',
     confidenceMedium: '#C9B99A',
     confidenceLow: '#64748b'
   };
@@ -123,8 +123,8 @@ export const EvidenceSection: React.FC<EvidenceSectionProps> = ({
                 <span
                   className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
                   style={{
-                    backgroundColor: 'rgba(34, 197, 94, 0.10)',
-                    color: '#22c55e'
+                    backgroundColor: 'rgb(var(--n-verdigris-rgb) / 0.10)',
+                    color: 'var(--n-verdigris)'
                   }}
                 >
                   <Activity className="h-3 w-3" />

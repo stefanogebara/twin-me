@@ -146,8 +146,8 @@ function ToastItem({ toast, onClose }: { toast: ToastMessage; onClose: () => voi
   }, [type, duration, onClose]);
 
   const icons = {
-    success: <CheckCircle className="w-5 h-5 text-green-400" />,
-    error: <XCircle className="w-5 h-5 text-red-400" />,
+    success: <CheckCircle className="w-5 h-5 text-[var(--n-verdigris)]" />,
+    error: <XCircle className="w-5 h-5 text-[var(--n-danger-ink)]" />,
     warning: <AlertCircle className="w-5 h-5 text-muted-foreground" />,
     info: <Info className="w-5 h-5 text-[var(--accent-amber)]" />,
     loading: <Loader2 className="w-5 h-5 text-[var(--accent-vibrant)] animate-spin" />,
@@ -243,7 +243,7 @@ export function ToastExamples() {
 
       <button
         onClick={() => toast.error('Connection Failed', 'Unable to connect to Spotify. Please try again.')}
-        className="px-4 py-2 bg-red-600 text-white rounded"
+        className="px-4 py-2 bg-[var(--n-danger)] text-white rounded"
       >
         Show Error
       </button>

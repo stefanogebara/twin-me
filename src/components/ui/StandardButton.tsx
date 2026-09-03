@@ -20,7 +20,7 @@ const variants = {
   secondary: 'bg-[var(--text-muted)] hover:bg-[var(--foreground)] text-white',
   outline: 'border-2 border-[var(--accent-vibrant)] text-[var(--accent-vibrant)] hover:bg-[var(--accent-vibrant)] hover:text-white',
   ghost: 'text-[var(--foreground)] hover:bg-[var(--glass-surface-bg-subtle)]',
-  danger: 'bg-red-600 hover:bg-red-700 text-white'
+  danger: 'bg-[var(--n-danger)] hover:bg-red-700 text-white'
 };
 
 const sizes = {

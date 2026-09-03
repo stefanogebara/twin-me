@@ -227,8 +227,8 @@ export const PlatformTile: React.FC<PlatformTileProps> = ({
               )}
               <button
                 onClick={() => { setShowMenu(false); onManage?.(); }}
-                className="w-full flex items-center gap-2 px-3 py-2 text-[12px] transition-colors hover:bg-[rgba(220,38,38,0.08)]"
-                style={{ color: 'rgba(220,38,38,0.85)', fontFamily: 'var(--font-ui)' }}
+                className="w-full flex items-center gap-2 px-3 py-2 text-[12px] transition-colors hover:bg-[rgb(var(--n-danger-rgb)_/_0.08)]"
+                style={{ color: 'rgb(var(--n-danger-rgb) / 0.85)', fontFamily: 'var(--font-ui)' }}
               >
                 <LogOut className="w-3.5 h-3.5" />
                 Disconnect

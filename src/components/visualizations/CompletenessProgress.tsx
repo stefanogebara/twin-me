@@ -162,7 +162,7 @@ export function CompletenessProgress({ completeness, breakdown, className = '' }
               </div>
               <div>
                 <p className="text-sm font-semibold text-green-900">Musical Identity</p>
-                <p className="text-xs text-green-400 mt-0.5">Spotify connected - emotional patterns discovered</p>
+                <p className="text-xs text-[var(--n-verdigris)] mt-0.5">Spotify connected - emotional patterns discovered</p>
               </div>
             </div>
           </div>
@@ -194,7 +194,7 @@ export function CompletenessProgress({ completeness, breakdown, className = '' }
                 <p className={`text-sm font-semibold ${breakdown.personal >= 30 ? 'text-green-900' : 'text-muted-foreground'}`}>
                   Deep Personality Analysis
                 </p>
-                <p className={`text-xs mt-0.5 ${breakdown.personal >= 30 ? 'text-green-400' : 'text-muted-foreground'}`}>
+                <p className={`text-xs mt-0.5 ${breakdown.personal >= 30 ? 'text-[var(--n-verdigris)]' : 'text-muted-foreground'}`}>
                   {breakdown.personal >= 30
                     ? 'Unlocked - 20+ insights generated'
                     : 'Connect 3 more personal platforms to unlock'}
@@ -230,7 +230,7 @@ export function CompletenessProgress({ completeness, breakdown, className = '' }
                 <p className={`text-sm font-semibold ${completeness >= 50 ? 'text-green-900' : 'text-muted-foreground'}`}>
                   AI Twin Chat
                 </p>
-                <p className={`text-xs mt-0.5 ${completeness >= 50 ? 'text-green-400' : 'text-muted-foreground'}`}>
+                <p className={`text-xs mt-0.5 ${completeness >= 50 ? 'text-[var(--n-verdigris)]' : 'text-muted-foreground'}`}>
                   {completeness >= 50
                     ? 'Unlocked - Chat with your twin'
                     : `${Math.max(0, 50 - completeness)}% more data needed to unlock`}
@@ -266,7 +266,7 @@ export function CompletenessProgress({ completeness, breakdown, className = '' }
                 <p className={`text-sm font-semibold ${completeness >= 75 ? 'text-green-900' : 'text-muted-foreground'}`}>
                   Soul Matching
                 </p>
-                <p className={`text-xs mt-0.5 ${completeness >= 75 ? 'text-green-400' : 'text-muted-foreground'}`}>
+                <p className={`text-xs mt-0.5 ${completeness >= 75 ? 'text-[var(--n-verdigris)]' : 'text-muted-foreground'}`}>
                   {completeness >= 75
                     ? 'Unlocked - Find compatible souls'
                     : `${Math.max(0, 75 - completeness)}% more data needed to unlock`}

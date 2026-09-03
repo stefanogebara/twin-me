@@ -289,7 +289,7 @@ const YouTubeInsightsPage: React.FC = () => {
                       {item.watchPercentage != null && (
                         <div className="flex items-center gap-1">
                           <div className="w-16 h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--glass-surface-bg)' }}>
-                            <div className="h-full rounded-full" style={{ width: `${item.watchPercentage}%`, backgroundColor: item.completed ? '#22c55e' : colors.youtubeRed }} />
+                            <div className="h-full rounded-full" style={{ width: `${item.watchPercentage}%`, backgroundColor: item.completed ? 'var(--n-verdigris)' : colors.youtubeRed }} />
                           </div>
                           <span className="text-xs" style={{ color: colors.textSecondary }}>{item.watchPercentage}%</span>
                         </div>

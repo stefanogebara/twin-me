@@ -260,7 +260,7 @@ export default function VoiceSetupPage() {
 
         {state.status === 'error' && (
           <div className="flex flex-col items-start gap-3">
-            <p className="text-[14px]" style={{ color: 'rgba(217,119,6,0.9)' }}>
+            <p className="text-[14px]" style={{ color: 'rgb(var(--n-ember-rgb) / 0.9)' }}>
               {state.errorMessage || 'Something went wrong.'}
             </p>
             <button

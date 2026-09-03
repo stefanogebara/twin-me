@@ -25,7 +25,7 @@ export function PatternDiscoveryCard({ pattern, className = '' }: PatternDiscove
   };
 
   const getConfidenceColor = (confidence: number): string => {
-    if (confidence >= 90) return 'text-green-400 bg-green-900/20 border-green-800/30';
+    if (confidence >= 90) return 'text-[var(--n-verdigris)] bg-green-900/20 border-green-800/30';
     // CLAUDE.md: never navy blue — use the warm-amber accent for medium-confidence.
     if (confidence >= 70) return 'text-[var(--accent-amber)] bg-[rgba(193,126,44,0.12)] border-[rgba(193,126,44,0.30)]';
     if (confidence >= 50) return 'text-[#E8E0D4] bg-[#E8E0D4]/10 border-[#E8E0D4]/15';

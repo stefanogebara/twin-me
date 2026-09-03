@@ -207,8 +207,8 @@ const MoneyInsightsPage: React.FC = () => {
       </Section>
 
       {error ? (
-        <div className="mt-8 rounded-[14px] border border-[rgba(220,38,38,0.3)] bg-[rgba(220,38,38,0.05)] px-4 py-3 flex items-start gap-3">
-          <AlertCircle className="h-4 w-4 text-red-400 mt-0.5 shrink-0" />
+        <div className="mt-8 rounded-[14px] border border-[rgb(var(--n-danger-rgb)_/_0.3)] bg-[rgb(var(--n-danger-rgb)_/_0.05)] px-4 py-3 flex items-start gap-3">
+          <AlertCircle className="h-4 w-4 text-[var(--n-danger-ink)] mt-0.5 shrink-0" />
           <p className="text-[13.5px] text-[var(--text-narrative-secondary)]">{error}</p>
         </div>
       ) : null}

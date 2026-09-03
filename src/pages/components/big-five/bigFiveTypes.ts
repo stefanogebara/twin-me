@@ -69,7 +69,7 @@ export const DOMAIN_INFO: Record<string, { name: string; color: string; descript
   },
   C: {
     name: 'Conscientiousness',
-    color: '#22c55e',
+    color: 'var(--n-verdigris)',
     description: 'Organization, dependability, and self-discipline'
   },
   E: {

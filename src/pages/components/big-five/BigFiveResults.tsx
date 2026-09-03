@@ -35,8 +35,8 @@ export function BigFiveResults({
         <div
           className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm mb-4"
           style={{
-            backgroundColor: 'rgba(34, 197, 94, 0.15)',
-            color: '#22c55e'
+            backgroundColor: 'rgb(var(--n-verdigris-rgb) / 0.15)',
+            color: 'var(--n-verdigris)'
           }}
         >
           <Check className="w-4 h-4" />

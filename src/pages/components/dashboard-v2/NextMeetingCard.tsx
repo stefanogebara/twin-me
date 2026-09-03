@@ -100,7 +100,7 @@ export function NextMeetingCard() {
         <div className="flex items-center gap-2">
           <CalendarCheck
             className="w-4 h-4"
-            style={{ color: isSoon ? 'rgba(232,160,80,0.95)' : 'var(--text-secondary)' }}
+            style={{ color: isSoon ? 'rgb(var(--n-ember-rgb) / 0.95)' : 'var(--text-secondary)' }}
           />
           <span
             style={{
@@ -109,7 +109,7 @@ export function NextMeetingCard() {
               fontWeight: 500,
               letterSpacing: '0.08em',
               textTransform: 'uppercase',
-              color: isSoon ? 'rgba(232,160,80,0.85)' : 'var(--text-secondary)',
+              color: isSoon ? 'rgb(var(--n-ember-rgb) / 0.85)' : 'var(--text-secondary)',
             }}
           >
             Next meeting · {timeUntilLabel(meeting.startTime)}
@@ -157,7 +157,7 @@ export function NextMeetingCard() {
                 borderLeft: '2px solid rgba(193,126,44,0.35)',
               }}
             >
-              <Sparkles className="w-3 h-3 flex-shrink-0 mt-0.5" style={{ color: 'rgba(232,160,80,0.7)' }} />
+              <Sparkles className="w-3 h-3 flex-shrink-0 mt-0.5" style={{ color: 'rgb(var(--n-ember-rgb) / 0.7)' }} />
               {tp}
             </p>
           ))}
@@ -171,7 +171,7 @@ export function NextMeetingCard() {
           fontFamily: 'var(--font-ui)',
           fontSize: 12,
           fontWeight: 500,
-          color: isSoon ? 'rgba(232,160,80,0.95)' : 'var(--text-secondary)',
+          color: isSoon ? 'rgb(var(--n-ember-rgb) / 0.95)' : 'var(--text-secondary)',
         }}
       >
         Ask your twin for the full prep <ArrowRight className="w-3 h-3" />

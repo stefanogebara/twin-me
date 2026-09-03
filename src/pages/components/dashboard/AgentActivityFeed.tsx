@@ -30,7 +30,7 @@ const SKILL_LABELS: Record<string, string> = {
 };
 
 const STATUS_ICON: Record<string, React.ReactNode> = {
-  accepted: <CheckCircle2 className="w-3 h-3" style={{ color: 'rgba(34,197,94,0.6)' }} />,
+  accepted: <CheckCircle2 className="w-3 h-3" style={{ color: 'rgb(var(--n-verdigris-rgb) / 0.6)' }} />,
   rejected: <XCircle className="w-3 h-3" style={{ color: 'rgba(239,68,68,0.5)' }} />,
   pending: <Clock className="w-3 h-3" style={{ color: 'var(--text-muted)' }} />,
 };

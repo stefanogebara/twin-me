@@ -126,7 +126,7 @@ const PERIOD_OPTIONS: PeriodOption[] = [
 const TIER_COLORS: Record<string, string> = {
   chat: 'bg-[rgba(193,126,44,0.20)] text-[var(--accent-amber)] border-[rgba(193,126,44,0.30)]',
   analysis: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-  extraction: 'bg-green-500/20 text-green-400 border-green-500/30',
+  extraction: 'bg-green-500/20 text-[var(--n-verdigris)] border-green-500/30',
 };
 
 const TIER_DOT_COLORS: Record<string, string> = {
@@ -138,7 +138,7 @@ const TIER_DOT_COLORS: Record<string, string> = {
 const TIER_BAR_COLORS: Record<string, string> = {
   chat: '#c17e2c', // --accent-amber
   analysis: '#EAB308',
-  extraction: '#22C55E',
+  extraction: 'var(--n-verdigris)',
 };
 
 const DEPT_COLORS: Record<string, string> = {
@@ -970,14 +970,14 @@ const AdminLLMCosts: React.FC = () => {
                         <td className="px-4 py-2.5 font-mono text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
                           {formatNumber(call.input_tokens)}/{formatNumber(call.output_tokens)}
                           {call.cached_tokens > 0 && (
-                            <span style={{ color: '#22C55E' }}> ({formatNumber(call.cached_tokens)}c)</span>
+                            <span style={{ color: 'var(--n-verdigris)' }}> ({formatNumber(call.cached_tokens)}c)</span>
                           )}
                         </td>
                         <td className="px-4 py-2.5 font-mono text-xs" style={{ color: 'var(--foreground)' }}>{formatCost(call.cost_usd)}</td>
                         <td className="px-4 py-2.5 font-mono text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>{call.latency_ms ? `${call.latency_ms}ms` : '--'}</td>
                         <td className="px-4 py-2.5">
                           {call.cache_hit
-                            ? <span className="text-green-400 text-xs">HIT</span>
+                            ? <span className="text-[var(--n-verdigris)] text-xs">HIT</span>
                             : <span className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>MISS</span>
                           }
                         </td>

@@ -55,6 +55,34 @@
   /* ---- Data signal (charts/sparklines only — never fills, never text) ---- */
   --n-signal: #00b3dd;
 
+  /* ---- Danger ----
+     Not a signature. The five above are identity colours; an error is a
+     function, and a red error affordance is worth more to a user than palette
+     purity. Kept out of the signature set so it can never be mistaken for
+     one, and so Law 3 keeps meaning what it says.
+
+     TWO values, because one cannot do both jobs on this canvas. Measured on
+     obsidian #0f1011: #dc2626 is 3.94:1 — fine for a border, an icon or a
+     fill (AA non-text is 3:1), and BELOW the 4.5:1 AA floor for body text.
+     Error copy uses --n-danger-ink at 6.89:1 instead. Do not collapse them. */
+  --n-danger: #dc2626;      /* strokes, fills, borders, icons */
+  --n-danger-ink: #f87171;  /* any error TEXT — 6.89:1 on obsidian */
+
+  /* ---- Channel triplets ----
+     A signature at partial alpha used to mean pasting rgba(232,160,80,0.7)
+     into a component, which is how ~50 hard-coded Claura ambers and Tailwind
+     greens survived the flip: a token can express the hue but not the fade,
+     so people reached for a literal. These let a call site keep its alpha and
+     still name the colour: rgb(var(--n-ember-rgb) / 0.7).
+     NOTE: `var()` does NOT resolve inside SVG presentation attributes or a
+     canvas ctx.font/fillStyle — those need a literal. */
+  --n-ember-rgb: 221 143 76;
+  --n-iris-rgb: 132 125 255;
+  --n-verdigris-rgb: 85 160 142;
+  --n-orchid-rgb: 221 144 216;
+  --n-periwinkle-rgb: 144 184 240;
+  --n-danger-rgb: 220 38 38;
+
   /* ---- Voices ---- */
   --n-serif: 'Fraunces', Georgia, 'Times New Roman', serif;
   --n-sans: 'Inter', 'Geist', system-ui, -apple-system, sans-serif;

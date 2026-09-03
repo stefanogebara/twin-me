@@ -295,10 +295,10 @@ export function WorkspaceActionCard({ action }: WorkspaceActionCardProps) {
           style={{ boxShadow: 'inset 0 0 7px 1px rgba(255,255,255,0.1)' }}
         >
           <div className="flex items-center gap-2">
-            <Clock className="w-4 h-4" style={{ color: 'rgba(217,119,6,0.7)' }} aria-hidden="true" />
+            <Clock className="w-4 h-4" style={{ color: 'rgb(var(--n-ember-rgb) / 0.7)' }} aria-hidden="true" />
             <span
               className="text-[11px] uppercase tracking-[0.15em] font-medium"
-              style={{ color: 'rgba(217,119,6,0.7)' }}
+              style={{ color: 'rgb(var(--n-ember-rgb) / 0.7)' }}
             >
               {config.label} lookup timed out
             </span>

@@ -76,13 +76,25 @@ function CustomTooltip({ active, payload, label, currency }: CustomTooltipProps)
         {formatSpend(spend, currency)} spent
       </div>
       {stress !== null && (
-        <div style={{ color: stress >= STRESS_THRESHOLD * 100 ? 'rgba(232,160,80,0.95)' : 'rgba(134,239,172,0.85)' }}>
+        <div style={{ color: stress >= STRESS_THRESHOLD * 100 ? 'rgb(var(--n-ember-rgb) / 0.95)' : 'rgb(var(--n-verdigris-rgb) / 0.85)' }}>
           stress {Math.round(stress)}%
         </div>
       )}
     </div>
   );
 }
+
+// Recharts writes these to SVG presentation attributes, where var() does NOT
+// resolve — the same rule that silently broke the share card's canvas fonts.
+// So the chart keeps literal values. They are the Nocturne tokens spelled out:
+// --n-ember #dd8f4c = 221 143 76, --n-verdigris #55a08e = 85 160 142. If the
+// palette moves, these move with it (tests/frontend/retiredPalette.test.ts
+// does not cover them precisely because they cannot be tokens).
+const EMBER_RGB = '221, 143, 76';
+const SVG_STROKE = `rgba(${EMBER_RGB}, 0.85)`;
+const SVG_STROKE_FAINT = `rgba(${EMBER_RGB}, 0.3)`;
+const SVG_TICK = `rgba(${EMBER_RGB}, 0.6)`;
+const SVG_DOT = `rgba(${EMBER_RGB}, 0.95)`;
 
 export function StressSpendTimeline({ days, currency = 'BRL', windowDays = 30 }: Props) {
   const chartData = useMemo(() =>
@@ -122,11 +134,11 @@ export function StressSpendTimeline({ days, currency = 'BRL', windowDays = 30 }:
         <div style={{
           marginBottom: 16,
           padding: '10px 14px',
-          background: 'rgba(217,119,6,0.1)',
-          border: '1px solid rgba(217,119,6,0.2)',
+          background: 'rgb(var(--n-ember-rgb) / 0.1)',
+          border: '1px solid rgb(var(--n-ember-rgb) / 0.2)',
           borderRadius: 10,
           fontSize: 13,
-          color: 'rgba(232,160,80,0.95)',
+          color: 'rgb(var(--n-ember-rgb) / 0.95)',
         }}>
           {correlatedDays} {correlatedDays === 1 ? 'day' : 'days'} where high stress and high spending coincided in the last {windowDays} days.
         </div>
@@ -151,7 +163,7 @@ export function StressSpendTimeline({ days, currency = 'BRL', windowDays = 30 }:
             orientation="left"
             domain={[0, 100]}
             tickFormatter={(v: number) => `${v}%`}
-            tick={{ fill: 'rgba(232,160,80,0.6)', fontSize: 11 }}
+            tick={{ fill: SVG_TICK, fontSize: 11 }}
             axisLine={false}
             tickLine={false}
             width={36}
@@ -174,7 +186,7 @@ export function StressSpendTimeline({ days, currency = 'BRL', windowDays = 30 }:
           <ReferenceLine
             yAxisId="stress"
             y={STRESS_THRESHOLD * 100}
-            stroke="rgba(217,119,6,0.3)"
+            stroke={SVG_STROKE_FAINT}
             strokeDasharray="4 4"
           />
 
@@ -191,11 +203,11 @@ export function StressSpendTimeline({ days, currency = 'BRL', windowDays = 30 }:
           <Line
             yAxisId="stress"
             dataKey="stress_pct"
-            stroke="rgba(232,160,80,0.85)"
+            stroke={SVG_STROKE}
             strokeWidth={2}
             dot={false}
             connectNulls
-            activeDot={{ r: 4, fill: 'rgba(232,160,80,0.95)', strokeWidth: 0 }}
+            activeDot={{ r: 4, fill: SVG_DOT, strokeWidth: 0 }}
           />
         </ComposedChart>
       </ResponsiveContainer>
@@ -206,11 +218,11 @@ export function StressSpendTimeline({ days, currency = 'BRL', windowDays = 30 }:
           Daily spending
         </span>
         <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ width: 16, height: 2, background: 'rgba(232,160,80,0.85)', display: 'inline-block', borderRadius: 1 }} />
+          <span style={{ width: 16, height: 2, background: 'rgb(var(--n-ember-rgb) / 0.85)', display: 'inline-block', borderRadius: 1 }} />
           Stress level
         </span>
         <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ width: 16, height: 0, borderTop: '1px dashed rgba(217,119,6,0.8)', display: 'inline-block' }} />
+          <span style={{ width: 16, height: 0, borderTop: '1px dashed rgb(var(--n-ember-rgb) / 0.8)', display: 'inline-block' }} />
           Stress threshold (60%)
         </span>
       </div>

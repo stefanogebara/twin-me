@@ -59,6 +59,26 @@ describe('retired values stay retired', () => {
     ).toEqual([]);
   });
 
+  it('no component pastes a raw Claura-amber or Tailwind-green/red literal', () => {
+    // These are the hues the flip left behind — Claura's amber, and the
+    // Tailwind greens/reds that predate every palette this product has had.
+    // A signature at partial alpha is why they survived: a token could
+    // express the hue but not the fade, so people pasted rgba(). The channel
+    // triplets (--n-ember-rgb and friends) close that gap, so there is no
+    // longer any reason to paste one.
+    const RAW = /rgba?\(\s*(232,\s*160,\s*80|217,\s*119,\s*6|134,\s*239,\s*172|34,\s*197,\s*94|252,\s*165,\s*165)\s*[,)]/;
+    const offenders = files.filter((f) => RAW.test(readFileSync(f, 'utf8')));
+    expect(
+      offenders.map((f) => f.slice(SRC.length + 1)),
+      'Use rgb(var(--n-ember-rgb) / <alpha>) or the verdigris equivalent.',
+    ).toEqual([]);
+  });
+
+  it('#22c55e, the green that is not verdigris, appears nowhere', () => {
+    const offenders = files.filter((f) => /#22c55e/i.test(readFileSync(f, 'utf8')));
+    expect(offenders.map((f) => f.slice(SRC.length + 1))).toEqual([]);
+  });
+
   it('the scan is actually reading files (guards against a silent empty walk)', () => {
     expect(files.length).toBeGreaterThan(200);
   });

@@ -85,7 +85,7 @@ class ErrorBoundary extends Component<Props, State> {
               className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6"
               style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)' }}
             >
-              <AlertTriangle className="w-8 h-8 text-red-500" />
+              <AlertTriangle className="w-8 h-8 text-[var(--n-danger-ink)]" />
             </div>
 
             <h2
@@ -114,7 +114,7 @@ class ErrorBoundary extends Component<Props, State> {
                   className="p-3 rounded-lg text-xs overflow-auto max-h-32"
                   style={{ backgroundColor: 'var(--sidebar)' }}
                 >
-                  <div className="font-mono text-red-400 mb-2">
+                  <div className="font-mono text-[var(--n-danger-ink)] mb-2">
                     {this.state.error.name}: {this.state.error.message}
                   </div>
                   <div

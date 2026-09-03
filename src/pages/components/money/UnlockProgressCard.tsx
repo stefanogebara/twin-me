@@ -61,7 +61,7 @@ export function UnlockProgressCard({ timeline, transactions }: Props) {
     >
       <div className="flex items-center gap-2 mb-3">
         {progress.unlocked ? (
-          <Activity className="w-3.5 h-3.5" style={{ color: 'rgba(232, 160, 80, 0.85)' }} />
+          <Activity className="w-3.5 h-3.5" style={{ color: 'rgb(var(--n-ember-rgb) / 0.85)' }} />
         ) : (
           <Lock className="w-3.5 h-3.5" style={{ color: 'var(--text-secondary)' }} />
         )}
@@ -114,7 +114,7 @@ export function UnlockProgressCard({ timeline, transactions }: Props) {
             width: `${progress.pct}%`,
             height: '100%',
             borderRadius: 100,
-            background: 'rgba(232, 160, 80, 0.75)',
+            background: 'rgb(var(--n-ember-rgb) / 0.75)',
             transition: 'width 300ms ease-out',
           }}
         />

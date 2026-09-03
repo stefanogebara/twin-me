@@ -52,7 +52,7 @@ function CopyableInviteCode({ code }: { code: string }) {
     >
       {code}
       {copied ? (
-        <Check className="w-4 h-4 text-green-400" />
+        <Check className="w-4 h-4 text-[var(--n-verdigris)]" />
       ) : (
         <ClipboardCopy className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
       )}

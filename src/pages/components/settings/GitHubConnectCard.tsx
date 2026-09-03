@@ -166,7 +166,7 @@ export default function GitHubConnectCard({ cardStyle }: GitHubConnectCardProps)
           </div>
 
           {errorMsg && (
-            <p className="text-xs text-red-500">{errorMsg}</p>
+            <p className="text-xs text-[var(--n-danger-ink)]">{errorMsg}</p>
           )}
 
           <div className="flex items-center gap-3">
