@@ -6,7 +6,6 @@ import { API_URL, getAccessToken } from '@/services/api/apiBase';
 import { usePlatformsSummary, useDisconnectPlatform } from '../hooks/usePlatformsSummary';
 import { useBackgroundMode } from '../contexts/BackgroundModeContext';
 import { useTheme, type Theme } from '../contexts/ThemeContext';
-import { ClauraZonedBackground } from '@/components/ClauraZonedBackground';
 import { Download, Info, ArrowRight, Send, ExternalLink, Check, Brain } from 'lucide-react';
 import ConnectedPlatformsSettings from './components/settings/ConnectedPlatformsSettings';
 import AutonomySettings from './components/settings/AutonomySettings';
@@ -224,7 +223,7 @@ const TelegramConnect: React.FC = () => {
             onClick={generateCode}
             disabled={!!linkCode}
             className="text-[12px] px-3 py-1.5 rounded-[6px] transition-opacity hover:opacity-80 disabled:opacity-40"
-            style={{ backgroundColor: 'var(--button-bg-dark, #252222)', color: 'var(--foreground)' }}
+            style={{ backgroundColor: 'var(--n-steel)', color: 'var(--foreground)' }}
           >
             Connect
           </button>
@@ -500,7 +499,6 @@ const Settings = () => {
   return (
     <div className="max-w-[1100px] mx-auto px-4 sm:px-6 py-10 sm:py-16">
       {/* Claura zoned photography — the forest, both appearances (see /preview/settings). */}
-      <ClauraZonedBackground dark="forest.png" light="forest.png" darkPosition="center 40%" lightPosition="center 40%" />
 
       {/* Mobile jump-to-section dropdown (sticky top) — hidden on lg+ */}
       <div

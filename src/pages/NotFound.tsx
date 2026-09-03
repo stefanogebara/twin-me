@@ -1,9 +1,10 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { Home, ArrowLeft } from "lucide-react";
-import { ClauraZonedBackground } from "@/components/ClauraZonedBackground";
 
-// Claura 404 — lost among the rings. Saturn-window by night, soul-waves by day.
+// Nocturne 404. The numeral is the only ornament — a serif ghost at 8% on
+// obsidian, no photography behind it (the saturn-window/soul-waves pair
+// retired with the flip).
 const NotFound = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -14,15 +15,13 @@ const NotFound = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center px-6">
-      <ClauraZonedBackground dark="saturn-window.png" light="soul-waves.png" lightPosition="center 22%" />
       <div className="text-center max-w-md mx-auto">
-        {/* 404 number — giant, faded into the scene */}
         <p
+          aria-hidden
+          className="n-display"
           style={{
             fontSize: 'clamp(110px, 20vw, 160px)',
-            opacity: 0.16,
-            color: 'var(--claura-text)',
-            fontFamily: "var(--font-heading)",
+            opacity: 0.08,
             lineHeight: 1,
             letterSpacing: '-0.04em',
           }}
@@ -30,65 +29,29 @@ const NotFound = () => {
           404
         </p>
 
-        {/* Heading */}
-        <h1
-          className="mb-3"
-          style={{
-            fontFamily: "var(--font-heading)",
-            fontStyle: 'italic',
-            fontSize: '32px',
-            fontWeight: 400,
-            color: 'var(--foreground)',
-            letterSpacing: '-0.02em',
-            marginTop: '-24px',
-          }}
-        >
-          Page Not Found
+        {/* Law 4: the italic marks the verb, not the line. */}
+        <h1 className="n-heading mb-3" style={{ fontSize: '32px', marginTop: '-8px' }}>
+          This page went <em>missing</em>
         </h1>
 
-        {/* Subtitle */}
-        <p
-          className="text-sm mb-10 leading-relaxed"
-          style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
-        >
-          The page you're looking for doesn't exist or may have been moved.
+        <p className="n-body mb-10" style={{ color: 'var(--n-ash)' }}>
+          The page you're looking for doesn't exist, or has moved since it was linked.
         </p>
 
-        {/* Buttons — bone primary, glass secondary */}
+        {/* Law 2: one white primary, one ghost. No shadow, no lift, no blur. */}
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <button
-            onClick={() => navigate('/')}
-            className="flex items-center gap-2 justify-center py-2.5 px-6 rounded-[12px] text-sm font-semibold transition-all duration-200 hover:-translate-y-0.5 hover:brightness-105 hover:shadow-lg"
-            style={{
-              background: 'var(--claura-bone)',
-              color: 'var(--claura-bone-ink)',
-              fontFamily: "'Inter', sans-serif",
-            }}
-          >
-            <Home className="w-4 h-4" />
+          <button onClick={() => navigate('/')} className="n-btn n-btn--primary">
+            <Home className="w-4 h-4" aria-hidden />
             Home
           </button>
-          <button
-            onClick={() => navigate(-1)}
-            className="flex items-center gap-2 justify-center py-2.5 px-6 rounded-[12px] text-sm transition-opacity hover:opacity-70 backdrop-blur-[42px]"
-            style={{
-              background: 'var(--secondary)',
-              border: '1px solid var(--border)',
-              color: 'var(--foreground)',
-              fontFamily: "'Inter', sans-serif",
-            }}
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Go Back
+          <button onClick={() => navigate(-1)} className="n-btn n-btn--ghost">
+            <ArrowLeft className="w-4 h-4" aria-hidden />
+            Go back
           </button>
         </div>
 
-        {/* Footer hint */}
-        <p
-          className="text-xs mt-12"
-          style={{ color: 'var(--text-muted)', fontFamily: "'Inter', sans-serif" }}
-        >
-          Lost? Head back home to find your soul signature.
+        <p className="n-micro mt-12" style={{ color: 'var(--n-fog)' }}>
+          LOST? HEAD HOME TO FIND YOUR SOUL SIGNATURE.
         </p>
       </div>
     </div>

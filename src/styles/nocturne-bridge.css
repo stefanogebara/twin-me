@@ -1,10 +1,21 @@
 /* ============================================================================
    NOCTURNE BRIDGE — system-wide adoption layer (2026-09-01)
    ============================================================================
-   Loaded AFTER claura.css and the semantic token blocks, so every page that
-   speaks semantic tokens or Claura utility classes wakes up inside Nocturne
-   without being edited. This is the adoption strategy: flip the foundation,
-   then polish surfaces page by page against /nocturne/system.
+   Every page that speaks semantic tokens or Claura utility classes wakes up
+   inside Nocturne without being edited. This is the adoption strategy: flip
+   the foundation, then polish surfaces page by page against /nocturne/system.
+
+   The token block below is :root:root, and that doubling is load-bearing.
+   This file is @imported at the top of index.css, but Tailwind v3 HOISTS the
+   `@layer base { :root { ... } }` blocks further down that file up into the
+   `@tailwind base` position — which lands after this import. Equal
+   specificity, later wins, so for the first days of the flip the bridge lost
+   43 of its 50 tokens and every legacy page was still rendering Claura:
+   #13121a charcoal instead of obsidian, Instrument Serif instead of Fraunces,
+   translucent glass instead of flat graphite. It looked like the flip had
+   worked because the pages built directly on n-* primitives don't use the
+   bridge at all. :root:root outranks :root on specificity, which no hoisting
+   can reorder.
 
    Claura is retired by this file, not deleted — claura.css still loads for
    any value the bridge does not override, and reverting the flip is removing
@@ -13,7 +24,7 @@
 
 @import './nocturne.css';
 
-:root, [data-theme='light'] {
+:root:root, :root:root[data-theme='light'] {
   /* Nocturne is single-appearance by design (the reference is a nocturnal
      gallery). The light theme maps to the same world until a lit variant is
      designed deliberately. */
@@ -48,6 +59,10 @@
   --border-glass: var(--n-line);
   --glass-surface-bg: var(--n-graphite);
   --glass-surface-border: var(--n-line);
+  /* Referenced by BackButton and StandardButton's ghost variant as a hover
+     wash, but defined in no stylesheet on either side of the flip — so those
+     hover states silently did nothing. Matches .n-btn--ghost's rest state. */
+  --glass-surface-bg-subtle: rgba(255, 255, 255, 0.1);
   --input: rgba(255, 255, 255, 0.06);
   --ring: rgba(255, 255, 255, 0.6);
 

@@ -112,7 +112,7 @@ const WhatsAppConnect: React.FC = () => {
               onClick={submitPhone}
               disabled={wa.busy || !phoneInput.trim()}
               className="text-[12px] px-3 py-2 rounded-[6px] transition-opacity hover:opacity-80 disabled:opacity-40 flex items-center gap-1.5"
-              style={{ backgroundColor: 'var(--button-bg-dark, #252222)', color: 'var(--foreground)' }}
+              style={{ backgroundColor: 'var(--n-steel)', color: 'var(--foreground)' }}
             >
               {wa.busy ? (<><Loader2 className="w-3 h-3 animate-spin" />Sending...</>) : 'Send code'}
             </button>

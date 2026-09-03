@@ -3,7 +3,6 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Loader2, ArrowLeft } from 'lucide-react';
 import { useAnalytics } from '../contexts/AnalyticsContext';
 import { API_URL } from '@/services/api/apiBase';
-import { ClauraZonedBackground } from '@/components/ClauraZonedBackground';
 
 const WaitlistPage = () => {
   const [searchParams] = useSearchParams();
@@ -53,7 +52,6 @@ const WaitlistPage = () => {
     <div
       className="min-h-screen flex items-center justify-center px-6"
     >
-      <ClauraZonedBackground dark="dusk-train.png" light="chair-hill.png" darkPosition="center 40%" lightPosition="center 45%" />
       <div className="w-full max-w-[420px] text-center">
         {/* Logo */}
         <div className="flex items-center justify-center gap-2 mb-12">
@@ -132,12 +130,7 @@ const WaitlistPage = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="h-11 px-6 rounded-[12px] text-sm font-semibold transition-all duration-200 hover:-translate-y-0.5 hover:brightness-105 hover:shadow-lg disabled:opacity-50"
-                style={{
-                  background: 'var(--claura-bone)',
-                  color: 'var(--claura-bone-ink)',
-                  fontFamily: "'Inter', sans-serif",
-                }}
+                className="n-btn n-btn--primary h-11"
               >
                 {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Join'}
               </button>
@@ -148,15 +141,15 @@ const WaitlistPage = () => {
         {/* Back to sign in */}
         <button
           onClick={() => navigate('/auth')}
-          className="mt-8 inline-flex items-center gap-1.5 text-[13px] transition-opacity hover:opacity-70"
-          style={{ color: 'var(--text-muted)', fontFamily: "'Inter', sans-serif" }}
+          className="n-label mt-8 inline-flex items-center gap-2 transition-opacity hover:opacity-70"
+          style={{ color: 'var(--n-ash)' }}
         >
-          <ArrowLeft className="w-3.5 h-3.5" />
+          <ArrowLeft className="w-3.5 h-3.5" aria-hidden />
           Have an invite code? Sign in
         </button>
 
         <div className="mt-16">
-          <span className="text-[11px]" style={{ color: 'var(--text-muted)', opacity: 0.6 }}>
+          <span className="n-micro" style={{ color: 'var(--n-fog)' }}>
             &copy; 2026 TwinMe Inc.
           </span>
         </div>

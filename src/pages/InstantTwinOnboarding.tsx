@@ -34,7 +34,6 @@ import { InstagramConnectModal } from './components/settings/InstagramConnectMod
 import { CONNECTION_INSIGHT_MESSAGES } from './components/onboarding/connectionInsights';
 import { removePlatformFromSummary } from './components/onboarding/onboardingHelpers';
 import ConnectionRevealCard from './components/onboarding/ConnectionRevealCard';
-import { ClauraZonedBackground } from '@/components/ClauraZonedBackground';
 
 const InstantTwinOnboarding = () => {
   useDocumentTitle('Connect Platforms');
@@ -297,7 +296,6 @@ const InstantTwinOnboarding = () => {
   return (
     <>
       {/* Claura zoned photography — cosmic-swirl by night, soul-waves by day (/preview/connect). */}
-      <ClauraZonedBackground dark="cosmic-swirl.png" light="soul-waves.png" darkPosition="center top" lightPosition="center 22%" />
       <div className="max-w-[680px] mx-auto px-4 sm:px-6 py-10 sm:py-16">
         {/* Banner ONLY for genuine auth failures (state === 'expired');
             stale never demands a reconnect (batch-3 display convention). */}
