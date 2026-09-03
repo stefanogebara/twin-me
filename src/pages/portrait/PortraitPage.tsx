@@ -303,6 +303,14 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
     const all = from.flatMap((r) => r.evidence);
     return [...all].sort((a, b) => b.at.localeCompare(a.at))[0] ?? null;
   }, [data.question, byId]);
+  // The receipts behind today's question, after the one already quoted under it.
+  const questionDay = useMemo(() => {
+    if (!data.question) return [];
+    const from = data.question.fromReadings.map((id) => byId.get(id)).filter(Boolean) as Reading[];
+    return [...from.flatMap((r) => r.evidence)]
+      .sort((a, b) => b.at.localeCompare(a.at))
+      .slice(1, 5);
+  }, [data.question, byId]);
   const questionEvidence = data.question ? data.question.evidenceLine.split(':').slice(1).join(':').trim() : '';
   const mostRead = Math.max(1, ...data.sources.map((s) => parseInt(s.read, 10) || 0));
   const firstSince = data.sources.length ? [...data.sources].map((s) => s.since).sort()[0] : null;
@@ -332,7 +340,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
       {data.question ? (
         <section className="pc-pt-today" aria-labelledby="pc-pt-q-title">
           <div className="pc-pt-today-inner">
-            <div>
+            <div className="pc-pt-q-main">
               <p className="pc-pt-q-mark">Today, from {questionSource}</p>
               <h2 id="pc-pt-q-title" className="pc-pt-serif">{data.question.question}</h2>
               {questionReceipt ? (
@@ -356,6 +364,16 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
                 </>
               )}
             </div>
+            {questionDay.length ? (
+              <ul className="pc-pt-q-day" aria-label="The rest of today">
+                {questionDay.map((e) => (
+                  <li key={`${e.source}-${e.at}-${e.event}`}>
+                    <span className="pc-pt-mono">{when(e.at)} · {SOURCE_LABEL[e.source] ?? e.source}</span>
+                    <span>{e.event}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
           </div>
         </section>
       ) : null}
@@ -442,7 +460,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
           ))}
         </ul>
         <p className="pc-pt-mono pc-pt-sourcefoot">
-          {sourceCount} sources · {data.sources.reduce((n, s) => n + (parseInt(s.read, 10) || 0), 0)} items · {readingCount} readings · {receiptCount} receipts · reading you for {daysReading} days, since {since}
+          {data.sources.reduce((n, s) => n + (parseInt(s.read, 10) || 0), 0)} things read across {sourceCount} sources · reading you for {daysReading} days, since {since}
         </p>
       </section>
 

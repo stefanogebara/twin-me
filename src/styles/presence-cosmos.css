@@ -3834,8 +3834,8 @@ button.pc-search-icons {
   z-index: 0;
   pointer-events: none;
   background:
-    linear-gradient(180deg, rgba(8, 10, 13, 0.4) 0%, rgba(8, 10, 13, 0.68) 44%, rgba(8, 10, 13, 0.88) 100%),
-    #0b0d10 url('/images/twinme/cosmos-07-room.jpg') 50% 46% / cover;
+    linear-gradient(180deg, rgba(8, 10, 13, 0.3) 0%, rgba(8, 10, 13, 0.44) 46%, rgba(8, 10, 13, 0.62) 100%),
+    #0b0d10 url('/images/twinme/cosmos-07-room.jpg') 58% 46% / cover;
 }
 
 .pc-pt-paper {
@@ -3951,7 +3951,7 @@ button.pc-search-icons {
   max-width: var(--pt-max);
   width: calc(100% - 48px);
   margin: 0 auto;
-  padding: 108px 0 92px;
+  padding: 108px 56px 92px;
 }
 
 .presence-cosmos .pc-pt-kicker {
@@ -3977,7 +3977,7 @@ button.pc-search-icons {
 }
 
 .presence-cosmos .pc-pt-hero h1 em {
-  font-style: normal;
+  font-style: italic;
   font-weight: 400;
   color: inherit;
 }
@@ -4021,11 +4021,49 @@ button.pc-search-icons {
 }
 
 .pc-pt-today-inner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--pt-rail);
+  gap: var(--pt-gap);
+  align-items: start;
   width: 100%;
   max-width: var(--pt-max);
   margin: 0 auto;
-  padding: 92px 56px 68px;
+  padding: 84px 56px 68px;
   text-align: left;
+}
+
+.pc-pt-q-main {
+  grid-column: 1;
+}
+
+.pc-pt-q-answer {
+  grid-column: 1;
+}
+
+/* What else the day looked like, in the space the question was not using. */
+.pc-pt-q-day {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 18px;
+}
+
+.pc-pt-q-day li {
+  display: grid;
+  gap: 4px;
+  padding-bottom: 16px;
+  border-bottom: 0.5px solid rgba(255, 255, 255, 0.12);
+  font-size: 15px;
+  line-height: 1.45;
+  letter-spacing: -0.018em;
+  color: rgba(255, 255, 255, 0.84);
+}
+
+.pc-pt-q-day li:last-child {
+  border-bottom: 0;
 }
 
 .presence-cosmos .pc-pt-q-mark {
@@ -4066,6 +4104,10 @@ button.pc-search-icons {
 
 .pc-pt-q-answer {
   padding-top: 32px;
+}
+
+.presence-cosmos .pc-pt-q-day .pc-pt-mono {
+  color: rgba(255, 255, 255, 0.46);
 }
 
 .pc-pt-choices {
@@ -4137,11 +4179,22 @@ button.pc-search-icons {
   margin: 96px auto 0;
 }
 
+.pc-pt-sourcelist {
+  list-style: none;
+  margin: 0;
+  padding: 12px 56px 28px;
+  border-radius: var(--pt-card);
+  background: rgba(10, 12, 15, 0.42);
+  backdrop-filter: blur(24px) saturate(116%);
+  -webkit-backdrop-filter: blur(24px) saturate(116%);
+  box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.12);
+}
+
 .pc-pt-signature { margin-top: 56px; }
 
 .pc-portrait .pc-pt-section-mark {
-  margin: 0 0 16px;
-  padding: 0;
+  margin: 0 0 18px;
+  padding: 0 56px;
   font-family: var(--c-mono);
   font-size: 11px;
   font-weight: 400;
@@ -4210,7 +4263,7 @@ button.pc-search-icons {
 
 .pc-pt-line.is-open .pc-pt-line-head {
   grid-template-columns: minmax(0, 1fr) auto;
-  padding: 30px 32px 26px;
+  padding: 34px 56px 26px;
 }
 
 /* The pill label the boards put in the corner of every card. */
@@ -4321,7 +4374,7 @@ button.pc-search-icons {
 .pc-pt-ledger {
   list-style: none;
   margin: 0;
-  padding: 0 32px 28px;
+  padding: 0 56px 34px;
   animation: pc-pt-open 0.45s var(--pt-ease);
 }
 
@@ -4475,7 +4528,8 @@ button.pc-search-icons {
 
 .presence-cosmos .pc-pt-ask-lead {
   max-width: 20ch;
-  margin: 0 0 30px;
+  margin: 0 0 34px;
+  padding-left: 56px;
   font-family: var(--c-serif);
   font-size: clamp(32px, 3.8vw, 52px);
   line-height: 1.06;
@@ -4577,11 +4631,7 @@ button.pc-search-icons {
 
 /* ---- Sources: big soft numbers, a small word after them ---------- */
 
-.pc-pt-sourcelist {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
+
 
 .presence-cosmos .pc-pt-source-line {
   position: relative;
@@ -4589,7 +4639,8 @@ button.pc-search-icons {
   align-items: baseline;
   gap: 16px;
   margin: 0;
-  padding: 14px 4px 20px;
+  padding: 14px 0 20px;
+  border-bottom: 0.5px solid var(--c-border);
   font-size: 16px;
   letter-spacing: -0.024em;
   color: var(--c-ink);
@@ -4599,14 +4650,10 @@ button.pc-search-icons {
   content: '';
   position: absolute;
   left: 0;
-  right: 0;
-  bottom: 0;
-  height: 1px;
-  background: linear-gradient(
-    90deg,
-    var(--c-ink) 0 var(--pt-share, 0%),
-    var(--c-border) var(--pt-share, 0%) 100%
-  );
+  width: var(--pt-share, 0%);
+  bottom: -1px;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.7);
 }
 
 .pc-pt-source-name {
@@ -4634,8 +4681,8 @@ button.pc-search-icons {
 }
 
 .presence-cosmos .pc-pt-sourcefoot {
-  margin: 20px 0 0;
-  padding: 0 4px;
+  margin: 22px 0 0;
+  padding: 0 56px;
   color: var(--c-ink-3);
 }
 
@@ -4789,7 +4836,8 @@ button.pc-search-icons {
   .pc-pt-signature,
   .pc-pt-ask,
   .pc-pt-sources,
-  .pc-pt-close { width: calc(100% - 24px); margin-top: 48px; }
+  .pc-pt-close { width: calc(100% - 24px); margin-top: 72px; }
+  .pc-pt-lines { gap: 24px; }
   .pc-pt-today-inner { padding: 44px 22px 48px; }
   .presence-cosmos .pc-pt-today h2 { max-width: none; }
   .pc-pt-lines { grid-template-columns: 1fr; }
@@ -4807,7 +4855,13 @@ button.pc-search-icons {
   .pc-pt-close { padding: 48px 24px; }
   .pc-pt-close-rail { justify-content: flex-start; }
   .presence-cosmos .pc-pt-close p { max-width: none; }
-  .presence-cosmos .pc-pt-ask-lead { max-width: none; }
+  .presence-cosmos .pc-pt-ask-lead { max-width: none; padding-left: 20px; }
+  .pc-portrait .pc-pt-section-mark { padding: 0 20px; }
+  .pc-pt-sourcelist { padding: 8px 20px 20px; }
+  .presence-cosmos .pc-pt-sourcefoot { padding: 0 20px; }
+  .pc-pt-line.is-open .pc-pt-line-head { padding: 24px 20px 22px; }
+  .pc-pt-today-inner { grid-template-columns: 1fr; }
+  .pc-pt-q-day { grid-column: 1; grid-row: auto; margin-top: 28px; }
   .presence-cosmos .pc-pt-source-line { flex-wrap: wrap; gap: 6px 12px; }
   .pc-pt-source-name { width: auto; }
   .pc-pt-source-kind { flex-basis: 100%; order: 3; }
