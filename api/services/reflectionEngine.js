@@ -51,6 +51,7 @@ import {
   getMemoryStats,
 } from './memoryStreamService.js';
 import { inferIdentityContext } from './identityContextService.js';
+import { getFeatureFlags } from './featureFlagsService.js';
 import { supabaseAdmin } from './database.js';
 import { generateEmbedding } from './embeddingService.js';
 import { autoLinkMemory } from './memoryLinksService.js';
@@ -574,6 +575,37 @@ function buildExpertAnchor(expert, salientQuestions) {
 // Core Expert Reflection Pipeline
 // ====================================================================
 
+// ====================================================================
+// Receipts (Portrait spec, 2026-09-03)
+// A reading must carry the raw events that support it. The retrieval context
+// (reflections, facts, chat turns) is not evidence; only platform_data and
+// observation memories are. This summary is what the Portrait shows as
+// "4 events, 2 sources, 9 days", never a confidence number.
+// ====================================================================
+
+const EVENT_MEMORY_TYPES = ['platform_data', 'observation'];
+const MIN_EVENTS_PER_READING = 2;
+
+function summarizeSupport(memories) {
+  const events = (memories || []).filter(m => EVENT_MEMORY_TYPES.includes(m.memory_type));
+  const observationIds = events.map(m => m.id);
+  const sources = new Set(events.map(m => m.metadata?.platform || m.metadata?.source).filter(Boolean));
+  const days = events.map(m => Math.floor(Date.parse(m.created_at) / 86_400_000)).filter(Number.isFinite);
+  const span_days = days.length ? Math.max(...days) - Math.min(...days) + 1 : 0;
+  return { observationIds, support: { observations: events.length, sources: sources.size, span_days } };
+}
+
+/** The gate is on unless the flag is explicitly false (flags default to true). */
+async function evidenceGateOn(userId) {
+  try {
+    const flags = await getFeatureFlags(userId);
+    return flags?.portrait_evidence_gate !== false;
+  } catch {
+    return true;
+  }
+}
+
+
 /**
  * Run a single expert persona against a user's memories.
  * Returns an array of generated reflections (1-5, evidence-scaled).
@@ -583,8 +615,18 @@ async function runExpertAnalysis(userId, expert, formattedObservations, depth, i
     // Retrieve domain-relevant memories via vector search (reflection weights:
     // relevance dominant, no recency bias). R7a: the anchor is the static
     // domain query sharpened by this cycle's salient question when available.
-    const domainMemories = await retrieveMemories(userId, buildExpertAnchor(expert, salientQuestions), 10, 'reflection');
+    const anchor = buildExpertAnchor(expert, salientQuestions);
+    const domainMemories = await retrieveMemories(userId, anchor, 10, 'reflection');
     const evidenceIds = domainMemories.map(m => m.id);
+
+    // Receipts: the raw events this reading will rest on, retrieved on their own so
+    // they never compete with higher-importance reflections in the ranking.
+    const eventMemories = await retrieveMemories(userId, anchor, 10, 'reflection', { memoryTypes: EVENT_MEMORY_TYPES });
+    const { observationIds, support } = summarizeSupport(eventMemories);
+    if (support.observations < MIN_EVENTS_PER_READING && await evidenceGateOn(userId)) {
+      log.info('Expert run skipped — fewer than two events to rest a reading on', { expert: expert.id, support });
+      return [];
+    }
 
     // replan-2026-06-10 Track B: re-running an expert on an essentially unchanged
     // evidence window re-derives the same thesis in new words. Skip the run (and
@@ -601,11 +643,18 @@ async function runExpertAnalysis(userId, expert, formattedObservations, depth, i
       }
     }
 
-    const evidence = domainMemories.length > 0
+    const contextLines = domainMemories.length > 0
       ? domainMemories
           .map(m => `- ${m.content.substring(0, 250)}`)
           .join('\n')
       : 'No additional domain-specific evidence available.';
+    const eventLines = eventMemories
+      .filter(m => EVENT_MEMORY_TYPES.includes(m.memory_type))
+      .map(m => `- [${m.metadata?.platform || m.metadata?.source || 'event'}] ${m.content.substring(0, 200)}`)
+      .join('\n');
+    const evidence = eventLines
+      ? `Events (what actually happened):\n${eventLines}\n\nContext:\n${contextLines}`
+      : contextLines;
 
     // S4.2: Prepend identity context preamble so the expert frames insights appropriately
     const identityPreamble = identityContext?.promptFragment
@@ -670,6 +719,9 @@ async function runExpertAnalysis(userId, expert, formattedObservations, depth, i
         expertType: 'generic',   // distinguish from platform experts (metadata.expertType='platform')
         reflectionDepth: depth,
         evidenceCount: domainMemories.length,
+        // Receipts: the raw events behind this reading and their summary
+        observation_ids: observationIds,
+        support,
       }, {
         // S3.5: Store reasoning + grounding_ids on all generic expert reflections
         reasoning,
@@ -999,4 +1051,6 @@ export {
   // R7a question-first anchors (exported for unit tests)
   generateSalientQuestions,
   buildExpertAnchor,
+  // Receipts (Portrait spec): exported for unit tests
+  summarizeSupport,
 };
