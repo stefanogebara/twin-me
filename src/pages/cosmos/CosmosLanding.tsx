@@ -277,7 +277,7 @@ export default function CosmosLanding() {
               <div className="pc-glass pc-glass--big"><Wave /> 05:52</div>
             </article>
             <article className="pc-card pc-reveal" style={{ '--d': '0.12s' } as React.CSSProperties}>
-              <img src={IMG.kitchen} alt="Marina on her kitchen floor with a coffee in the morning" loading="lazy" />
+              <img src={IMG.kitchen} alt="Marina on her kitchen floor at night with a mug, lit by a lamp" loading="lazy" />
               <div className="pc-float">
                 <p className="pc-float-label">Saved reading · Tuesday</p>
                 <blockquote>“Every Tuesday ends in back-to-back calls, and every Tuesday night your music turns ambient.”</blockquote>
