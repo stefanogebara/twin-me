@@ -154,25 +154,25 @@ const STILLS = [
 ];
 
 /**
- * The field the page stands in, read from cosmos.so: not a ring of ornaments but a
- * depth of field. Each tuple is [x%, y%, size, rotation, depth 0..1, still, crop%],
- * where depth drives blur and opacity, so far stills fall back into the paper. Many
- * are sliced by the frame, none sits in the measure of the headline, and the near
- * ones are allowed to pass in front of what follows.
- * x and y are percentages of the hero, and may be negative to cross the edge.
+ * The field the page stands in, read from cosmos.so: a depth of field, not a ring of
+ * ornaments. Each tuple is [x%, y%, size, rotation, depth 0..1, still, cropX%, cropY%],
+ * and depth drives blur and opacity so far stills fall back into the paper.
+ *
+ * There are only seven photographs, so no two sharp tiles may show the same one, and
+ * every tile takes a different crop of it — the lamp, a window corner, a shoulder —
+ * so the field reads as a library rather than one picture repeated. Anything
+ * recognisable stays out of the centre column and off the one action.
  */
-const FIELD: [number, number, number, number, number, number, number][] = [
-  [-3, 6, 132, -7, 0.15, 6, 40], [7, 17, 74, 5, 0.62, 2, 55], [2, 34, 196, 4, 0, 4, 50],
-  [11, 52, 58, -9, 0.78, 1, 30], [-4, 63, 148, 8, 0.28, 0, 60], [14, 78, 92, -3, 0.45, 5, 45],
-  [4, 92, 118, 6, 0.1, 3, 50], [19, 8, 46, 12, 0.85, 0, 35], [22, 37, 40, -6, 0.9, 3, 60],
-  [17, 96, 66, 3, 0.7, 6, 40], [-2, 46, 52, -11, 0.8, 2, 70], [9, 4, 88, 9, 0.5, 4, 25],
-  [24, 62, 44, 7, 0.88, 5, 55], [78, 3, 104, 6, 0.32, 1, 45], [88, 12, 152, -5, 0.05, 3, 55],
-  [72, 22, 54, 10, 0.75, 6, 35], [95, 31, 96, 3, 0.4, 5, 50], [80, 44, 232, -6, 0, 0, 45],
-  [69, 57, 48, 8, 0.86, 2, 60], [92, 66, 128, 5, 0.2, 4, 40], [76, 79, 78, -8, 0.55, 3, 65],
-  [97, 88, 110, 4, 0.25, 6, 35], [66, 91, 62, -4, 0.72, 1, 50], [84, 96, 84, 7, 0.48, 5, 55],
-  [71, 9, 42, -10, 0.92, 4, 45], [63, 36, 38, 6, 0.94, 0, 40], [86, 55, 46, -7, 0.84, 1, 30],
-  [30, 2, 58, 4, 0.8, 2, 50], [61, 2, 50, -6, 0.87, 5, 45], [35, 97, 54, 9, 0.82, 4, 40],
-  [56, 95, 44, -5, 0.9, 6, 55], [42, 1, 40, 7, 0.93, 3, 60], [50, 99, 48, -3, 0.9, 1, 35],
+const FIELD: [number, number, number, number, number, number, number, number][] = [
+  // Near: six photographs, six crops, none of them shown twice.
+  [1, 22, 178, 4, 0, 4, 62, 30], [-2, 66, 140, 7, 0.06, 0, 30, 74],
+  [90, 34, 196, -5, 0, 6, 38, 46], [97, 74, 132, 5, 0.1, 3, 66, 24],
+  [8, 93, 112, -6, 0.14, 5, 24, 62], [73, 4, 76, 6, 0.5, 1, 70, 38],
+  // Far: small, soft, unrecognisable, holding the corners of the frame.
+  [16, 6, 62, 9, 0.62, 2, 40, 20], [21, 47, 48, -8, 0.78, 6, 55, 80],
+  [12, 78, 54, 5, 0.7, 1, 18, 44], [78, 19, 52, -7, 0.74, 5, 72, 66],
+  [72, 54, 44, 8, 0.84, 2, 35, 30], [88, 92, 58, -4, 0.68, 4, 58, 82],
+  [33, 98, 46, 6, 0.86, 3, 46, 12], [64, 97, 42, -9, 0.88, 0, 78, 58],
 ];
 
 export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, onDeleteSource }: { data: PortraitData; now: Date; banner?: React.ReactNode } & PortraitHandlers) {
@@ -318,7 +318,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
     <main className="presence-cosmos pc-portrait" id="main-content">
       <section className="pc-pt-hero" aria-labelledby="pc-pt-headline">
         <div className="pc-pt-tiles" aria-hidden="true">
-          {FIELD.map(([x, y, size, rot, depth, still, crop], i) => (
+          {FIELD.map(([x, y, size, rot, depth, still, cropX, cropY], i) => (
             <img
               key={i}
               className="pc-pt-tile"
@@ -330,7 +330,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
                 top: `${y}%`,
                 width: size,
                 height: size,
-                objectPosition: `${crop}% 50%`,
+                objectPosition: `${cropX}% ${cropY}%`,
                 transform: `translate(-50%, -50%) rotate(${rot}deg)`,
                 filter: depth > 0.05 ? `blur(${(depth * 7).toFixed(1)}px)` : undefined,
                 opacity: 1 - depth * 0.78,
@@ -352,8 +352,9 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
           <Link to={banner ? '/' : '/sources'} className="pc-pt-nav-link">{banner ? 'Read yourself' : 'Your sources'}</Link>
         </header>
         <div className="pc-pt-hero-body">
+          <p className="pc-pt-kicker">{banner ?? <Kicker owner={data.owner} now={now} />}</p>
           <h1 id="pc-pt-headline" className="pc-pt-serif">{lead ? <Headline text={lead} /> : `${data.owner}.`}</h1>
-          <p className="pc-pt-promise">{banner ? <>Stefano's own data. Every line keeps its receipts.</> : <>Every line here keeps its receipts.</>}</p>
+          <p className="pc-pt-promise">Every line here keeps its receipts.</p>
         </div>
       {data.question ? (
         <section className="pc-pt-today" aria-labelledby="pc-pt-q-title">

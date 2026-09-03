@@ -3993,8 +3993,8 @@ button.pc-search-icons {
 
 .presence-cosmos .pc-pt-hero h1 em {
   font-style: normal;
-  font-weight: 200;
-  color: var(--c-ink-2);
+  font-weight: 400;
+  color: inherit;
 }
 
 .presence-cosmos .pc-pt-promise {
@@ -4446,16 +4446,28 @@ button.pc-search-icons {
 
 .pc-portrait .pc-pt-send {
   flex: none;
-  height: 52px;
-  padding: 0 26px;
-  border-radius: 16px;
-  background: var(--c-ink);
+  align-self: flex-end;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 999px;
+  border: 0.5px solid var(--c-border);
+  background: transparent;
+  font-size: 0;
+  color: var(--c-ink);
+  transition: background 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.pc-portrait .pc-pt-send::after {
+  content: '\2191';
   font-family: var(--c-sans-ui);
-  font-size: 15px;
-  font-weight: 500;
-  letter-spacing: -0.01em;
-  color: var(--c-white);
-  transition: background 0.2s;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.pc-portrait .pc-pt-send:hover {
+  background: rgba(13, 13, 13, 0.05);
+  color: var(--c-ink);
 }
 
 .pc-portrait .pc-pt-send:hover {
@@ -4567,13 +4579,26 @@ button.pc-search-icons {
 /* ---- The close: back into the room ------------------------------ */
 
 .pc-pt-close {
+  position: relative;
+  overflow: hidden;
   max-width: var(--pt-max);
   width: calc(100% - 48px);
-  margin: 72px auto 0;
-  padding: 48px 56px;
+  margin: 80px auto 0;
+  padding: 76px 56px;
   border-radius: var(--pt-card);
-  background: var(--c-ink);
+  background: #14161a url('/images/twinme/cosmos-05-kitchen.jpg') 34% 30% / 132% auto;
   color: var(--c-white);
+}
+
+.pc-pt-close::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(10, 12, 15, 0.9) 0%, rgba(10, 12, 15, 0.74) 54%, rgba(10, 12, 15, 0.46) 100%);
+}
+
+.pc-pt-close > * {
+  position: relative;
 }
 
 .pc-pt-close-inner {

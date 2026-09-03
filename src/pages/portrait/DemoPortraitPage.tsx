@@ -14,6 +14,6 @@ export default function DemoPortraitPage() {
     return () => { document.title = previousTitle; };
   }, []);
   // Rendered as the hero kicker; the page adds the "Read yourself" action when a banner is present.
-  const banner = <>Read from Stefano's own data</>;
+  const banner = <>Stefano&rsquo;s portrait &middot; read from his own data</>;
   return <PortraitPage data={DEMO_PORTRAIT} now={new Date('2026-09-04T12:00:00Z')} banner={banner} />;
 }
