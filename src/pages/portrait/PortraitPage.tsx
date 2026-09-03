@@ -177,37 +177,6 @@ function ReadingRow({ reading, now, verdict, onVerdict, cite, ordinal }: {
 
 const SECTIONS = ['signature', 'ask', 'sources'] as const;
 
-const STILLS = [
-  '/images/twinme/cosmos-01-desk.jpg',
-  '/images/twinme/cosmos-02-records.jpg',
-  '/images/twinme/cosmos-03-calendar.jpg',
-  '/images/twinme/cosmos-04-run.jpg',
-  '/images/twinme/cosmos-05-kitchen.jpg',
-  '/images/twinme/cosmos-06-portrait.jpg',
-  '/images/twinme/cosmos-07-room.jpg',
-];
-
-/**
- * The field the page stands in, read from cosmos.so: a depth of field, not a ring of
- * ornaments. Each tuple is [x%, y%, size, rotation, depth 0..1, still, cropX%, cropY%],
- * and depth drives blur and opacity so far stills fall back into the paper.
- *
- * There are only seven photographs, so no two sharp tiles may show the same one, and
- * every tile takes a different crop of it — the lamp, a window corner, a shoulder —
- * so the field reads as a library rather than one picture repeated. Anything
- * recognisable stays out of the centre column and off the one action.
- */
-const FIELD: [number, number, number, number, number, number, number, number][] = [
-  // Near: five photographs, five crops, none of them shown twice.
-  [1, 26, 178, 4, 0, 4, 62, 30], [-2, 68, 140, 7, 0.06, 0, 30, 74],
-  [92, 36, 196, -5, 0, 6, 38, 46], [99, 76, 132, 5, 0.1, 3, 66, 24],
-  [6, 93, 112, -6, 0.14, 5, 24, 62],
-  // Far: small and soft, holding the outer margins.
-  [11, 12, 62, 9, 0.62, 2, 40, 20], [13, 51, 54, 5, 0.7, 1, 18, 44],
-  [93, 17, 52, -7, 0.74, 5, 72, 66], [89, 61, 44, 8, 0.84, 2, 35, 30],
-  [95, 95, 58, -4, 0.68, 4, 58, 82], [7, 82, 46, 6, 0.86, 3, 46, 12],
-];
-
 export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, onDeleteSource }: { data: PortraitData; now: Date; banner?: React.ReactNode } & PortraitHandlers) {
   const [here, setHere] = useState<string | null>(null);
   const [verdicts, setVerdicts] = useState<Record<string, Verdict>>(() => Object.fromEntries(data.readings.map((r) => [r.id, r.verdict])));
@@ -340,31 +309,6 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
   return (
     <main className="presence-cosmos pc-portrait" id="main-content">
       <section className="pc-pt-hero" aria-labelledby="pc-pt-headline">
-        <div className="pc-pt-tiles" aria-hidden="true">
-          {FIELD.map(([x, y, size, rot, depth, still, cropX, cropY], i) => (
-            <img
-              key={i}
-              className="pc-pt-tile"
-              src={STILLS[still]}
-              alt=""
-              loading="lazy"
-              style={{
-                left: `${x}%`,
-                top: `${y}%`,
-                // One depth value drives size, blur and opacity together, so the
-                // field reads as distance rather than as scattered decoration.
-                width: Math.round(size * (1 - depth * 0.34)),
-                height: Math.round(size * (1 - depth * 0.34)),
-                objectPosition: `${cropX}% ${cropY}%`,
-                transform: `translate(-50%, -50%) rotate(${rot}deg)`,
-                filter: depth > 0.06 ? `blur(${(depth * depth * 9).toFixed(1)}px)` : undefined,
-                opacity: 1 - depth * 0.78,
-                zIndex: depth < 0.2 ? 2 : 0,
-                animationDelay: `${(i % 9) * 0.045}s`,
-              } as React.CSSProperties}
-            />
-          ))}
-        </div>
         <header className="pc-pt-masthead">
           <Link to="/" className="pc-pt-wordmark">TwinMe</Link>
           <nav aria-label="Sections">
