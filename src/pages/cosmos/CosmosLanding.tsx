@@ -259,8 +259,8 @@ export default function CosmosLanding() {
           <h2 className="pc-h2 pc-reveal" id="pc-world-title">Every signal opens a new reading.</h2>
           <div className="pc-strip pc-reveal" style={{ '--d': '0.1s' } as React.CSSProperties} aria-label="Photographs from a week, and the reading they produced">
             <img className="pc-strip-a" src={IMG.desk} alt="Marina at her desk late at night with headphones on" loading="lazy" />
-            <img className="pc-strip-b" src={IMG.records} alt="A hand pulling a record from a shelf" loading="lazy" />
-            <img className="pc-strip-c" src={IMG.calendar} alt="A wall calendar with a Tuesday crossed out" loading="lazy" />
+            <img className="pc-strip-b" src={IMG.records} alt="A hand pulling a record from the shelf at night, lit by a lamp" loading="lazy" />
+            <img className="pc-strip-c" src={IMG.calendar} alt="A hand crossing a day off the kitchen calendar at night" loading="lazy" />
             <div className="pc-glass" aria-live="polite"><Wave /><span className={`pc-cycle ${chip.out ? 'is-out' : ''}`}>{chip.text}</span></div>
           </div>
         </section>
@@ -273,7 +273,7 @@ export default function CosmosLanding() {
           <h2 className="pc-h2 pc-reveal" id="pc-think-title">Read the way you live.</h2>
           <div className="pc-trio">
             <article className="pc-card pc-reveal" style={{ '--d': '0.05s' } as React.CSSProperties}>
-              <img src={IMG.run} alt="Marina running along a river at dawn" loading="lazy" />
+              <img src={IMG.run} alt="Marina running along the river at blue hour under the street lamps" loading="lazy" />
               <div className="pc-glass pc-glass--big"><Wave /> 05:52</div>
             </article>
             <article className="pc-card pc-reveal" style={{ '--d': '0.12s' } as React.CSSProperties}>
