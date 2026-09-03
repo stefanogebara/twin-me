@@ -333,6 +333,7 @@ export default function CosmosLanding() {
           <p className="pc-cta-trust pc-reveal" style={{ '--d': '0.22s' } as React.CSSProperties}>
             Six platforms. Five signatures. Your data never trains a model, and you can delete any of it.
           </p>
+          <Link className="pc-btn pc-btn--canvas pc-reveal" style={{ '--d': '0.3s' } as React.CSSProperties} to="/demo">See Stefano's Portrait <ArrowRight size={16} /></Link>
         </section>
 
         <footer className="pc-footer">

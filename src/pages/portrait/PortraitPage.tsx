@@ -106,7 +106,9 @@ export function PortraitPage({ data, now, banner }: { data: PortraitData; now: D
         <div className="pc-pt-ask-hints">
           {data.ask.map((s) => <button key={s.q} type="button" onClick={() => { setQuery(s.q); ask(s.q); }}>{s.q}</button>)}
         </div>
-        {reply ? (
+      </section>
+      {reply ? (
+        <section className="pc-pt-reply" aria-live="polite">
           <div className="pc-demo-answer is-in">
             <span>Your twin</span>
             <p>{reply.a}</p>
@@ -116,8 +118,8 @@ export function PortraitPage({ data, now, banner }: { data: PortraitData; now: D
               </div>
             ) : null}
           </div>
-        ) : null}
-      </section>
+        </section>
+      ) : null}
 
       <section className="pc-pt-question" aria-labelledby="pc-pt-q-title">
         <p className="pc-spec-n">Today's question</p>

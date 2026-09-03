@@ -3849,6 +3849,12 @@ button.pc-search-icons {
   gap: 10px;
 }
 
+/* The reply sits under the pinned pill and scrolls with the page. */
+.pc-pt-reply {
+  max-width: 720px;
+  margin: 16px auto 0;
+}
+
 .pc-pt-ask .pc-search {
   width: 100%;
 }
@@ -4069,7 +4075,7 @@ button.pc-search-icons {
 
 .pc-pt-verdict .pc-btn.is-active {
   background: var(--c-ink);
-  color: var(--c-white);
+  color: var(--c-white) !important; /* the ghost recipe pins its ink with !important */
   border-color: var(--c-ink);
 }
 
