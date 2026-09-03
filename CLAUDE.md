@@ -3,7 +3,7 @@
 ## User Preferences (MUST FOLLOW)
 
 - **NO EMOJIS** — The user dislikes emojis. Never use them in UI text, twin responses, insight text, or any user-facing content. Use plain text only.
-- **Design**: Nocturne (since 2026-09-01) — the midnight gallery of the self. Flat obsidian #0f1011 canvas, zero photography/orbs/glass, Fraunces 300 display with the italic verb, Inter UI, Roboto Mono uppercase for everything small, white-on-black as the only primary action, chroma confined to the five signature tiles. Single appearance (dark by design). Contract: /nocturne/system + src/styles/nocturne.css. Full section below.
+- **Design**: Cosmos (since 2026-09-03) — a photographed room at blue hour. Paper #f7f5f3, one still carrying the page with content lifted onto it on rounded panels, frosted glass over the image, Instrument Serif for what is read, Geist for interface, Geist Mono for timestamps and counters only. The bar is cora.computer and createanything.com. Contract: src/styles/presence-cosmos.css (`pc-*`) + /cosmos/system. Nocturne and Claura are previous eras, still loading for unported app surfaces. Full section below.
 
 ## Vercel Cost Rules (CRITICAL — $375 bill incident March 2026)
 
@@ -414,72 +414,61 @@ Recent memories are dominated by reflections (~90 of last 100). Platform data ob
 - `/design-review` - Design review with browser testing
 
 ---
-## Design System (Nocturne — active since 2026-09-01)
+## Design System (Cosmos — active since 2026-09-03)
 
-> Nocturne replaced Claura in the flip of 2026-09-01. Claura's files still load
-> underneath the bridge for unported edge values; do not build anything new on
-> them. The living contract is the /nocturne/system route — if a surface
-> disagrees with that page, the surface is wrong.
-> Source of truth: `src/styles/nocturne.css` (tokens + primitives, documented)
-> and `src/styles/nocturne-bridge.css` (semantic-token adoption layer).
-> Reference: Origin Financial (useorigin.com) — Refero extraction + live audit,
-> adapted. Decision ledger in PR #274.
+> Cosmos is the current language, and where a surface disagrees with it, the
+> surface is wrong. It replaced Nocturne for everything the user actually meets:
+> the landing, auth, onboarding, Presence, and the Portrait. Nocturne
+> (`src/styles/nocturne.css`, `/nocturne/*`) and Claura beneath it are the
+> previous eras — they still load for unported app surfaces, but nothing new is
+> built on them.
+> Source of truth: `src/styles/presence-cosmos.css` (the `pc-*` primitives) and
+> the rendered spec at `/cosmos/system`.
+> The quality bar is two references the user chose: **cora.computer** and
+> **createanything.com**. Judge new design against those, not against an
+> imagined studio.
 
-### The five laws
-1. Elevation is a color step, never a shadow.
-2. White-on-black is the only primary action.
-3. Chromatic color exists only as signature tiles and data strokes — never
-   text under 18px, never borders, never washes.
-4. The italic marks one word per display line: the verb of self-knowledge.
-5. Anything smaller than 13px speaks mono, uppercase, tracked.
+### What Cosmos is
+Paper `#f7f5f3` and ink `#0d0d0d`, Geist for interface, **Instrument Serif for
+what is read**, Geist Mono only for timestamps and counters, so mono still
+means a machine wrote it. Warm, soft, centred where it matters. The register is
+a photographed room at blue hour, not a gallery wall.
 
-### Three voices
-- **Fraunces 300** (`--n-serif`) — display/headings only, never bolder, true
-  italics. Sizes 96/80/38 at line-height 0.9-1.0.
-- **Inter 400/500** (`--n-sans`) — all interface text.
-- **Roboto Mono 400/500 UPPERCASE** (`--n-mono`) — labels, badges, buttons,
-  data readouts, legal. Tracking 0.02em (12px) to 0.18em (11px micro).
+### The laws
+1. **One photograph carries the page.** It is the ground, never a banner: it
+   runs behind the content, and the content lifts onto it on a rounded panel.
+   Never cut the image with a hard horizontal seam.
+2. **Panels float inside the photograph**, frosted, so the room reads through
+   them — the way both references float their product on their image.
+3. **Serif is what is read** (the headline, today's question, the five signature
+   lines). Everything you can press is sans. Mono is provenance only.
+4. **One italic word per display line**, on the line's most particular word,
+   never on its last.
+5. **Rounded, not sharp**: 24-28px cards and panels, 16px buttons, 999px pills
+   and nav capsules. Hairlines, not shadows.
+6. **One conversion per page**, at its end.
 
-### Surfaces (flat elevation ladder)
-`#0f1011` obsidian canvas → `#090a0b` abyss bands → `#1c1d1f` graphite cards →
-`#2c2d2f` steel hover → `#cacaca` silver inverted (max 1-2 per page).
-Hairlines `rgba(255,255,255,.08)`. Zero glass, zero orbs, zero photography —
-every background is built in code.
-
-### Ink
-Pure `#ffffff` (actions; display on dark media) · Cloud `#fafafa` (headings) ·
-Ash `#9f9fa0` (body — never full white) · Fog `#6a6b6b` (muted).
-
-### The five signatures (tile + data roles ONLY)
-ember `#dd8f4c` motivation · iris `#847dff` personality · verdigris `#55a08e`
-cultural · orchid `#dd90d8` social · periwinkle `#90b8f0` lifestyle.
-Data signal `#00b3dd` for chart strokes only.
-
-### Shape & motion
-Controls 8px · cards 16px · tiles/feature panels 24px · pills 9999px (chips,
-prompt, avatars only). States 0.2s ease; atmospheric reveals 2.5s
-cubic-bezier(.455,.03,.515,.955); nothing bounces, nothing loops.
-
-### Components (see /nocturne/system for rendered spec)
-`.n-btn--primary` (white/black mono) · `.n-btn--ghost` (borderless white-10%) ·
-`.n-badge` · `.n-prompt` (frosted pill + circular submit) · `.n-card` /
-`.n-card--inverted` · `.n-tile--{ember|iris|verdigris|orchid|periwinkle}` ·
-`.n-reading` (mono source line over italic serif observation — the system's
-signature move) · `.n-stanza` section rhythm · `.n-nav` · `.n-atmosphere`.
+### Imagery
+The stills in `public/images/twinme/cosmos-*.jpg`: warm tungsten lamp, cobalt
+blue-hour window, Portra grain. Crop past the accidents (posters, doorways),
+and let a luminous region (the window) be the field that display type sits on.
+Do not swap this family for skies or bright fields — it is a chosen register.
 
 ### Rules for AI code generation
-1. New surfaces use `n-*` primitives directly; legacy surfaces inherit through
-   the bridge until ported — never add new `claura-*` usage.
+1. Reuse the `pc-*` primitives; never restyle Presence to make something else fit.
 2. NO EMOJIS in user-facing UI (unchanged, permanent).
-3. Never bold the serif; never color body text with signature hues; never add
-   shadows or glassmorphism.
-4. Buttons and labels speak mono uppercase. Prose speaks Inter. Emotion speaks
-   Fraunces 300.
-5. Single appearance: Nocturne is dark by design (the reference is a nocturnal
-   gallery). A light variant must be designed deliberately, not toggled.
-6. The DayNight photo backgrounds, ambient orbs, and all legacy background
-   imagery are retired — the canvas is flat obsidian, painted by
-   ClassicBackground.
+3. Never bold the serif; never colour body text with the signature hues.
+4. `.presence-cosmos p` and `.presence-cosmos a` out-specify a bare class —
+   scope new rules as `.presence-cosmos .thing`, or the colour will not apply.
+5. `index.css` truncates every `button span` with an ellipsis. Any text inside a
+   button needs `white-space: normal; overflow: visible` in the Cosmos scope.
+
+### The five signature hues
+ember `#dd8f4c` motivation · iris `#847dff` personality · verdigris `#55a08e`
+cultural · orchid `#dd90d8` social · periwinkle `#90b8f0` lifestyle. They name
+the five domains in data and in any tile that needs them; the Portrait itself is
+monochrome by decision.
+
 
 ## Inteligência de mercado e técnica
 
