@@ -253,7 +253,6 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
             <span className="pc-pt-when">{when(first.at)}</span>
             <span className="pc-pt-src">{SOURCE_LABEL[first.source] ?? first.source}</span>
             <span className="pc-pt-event">{first.event}</span>
-            <span className="pc-pt-mono pc-pt-of">1/{receipts}</span>
           </p>
         ) : null}
       </div>
@@ -267,10 +266,6 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
     const receipts = live.reduce((n, r) => n + r.evidence.length, 0);
     return (
       <ul className="pc-pt-ledger">
-        <li className="pc-pt-ledger-mark">
-          <span /><span>True of you?</span>
-          <span>The receipts</span>
-        </li>
         {b.readings.map((r, i) => (
           <ReadingRow key={r.id} reading={r} now={now} verdict={verdicts[r.id] ?? null} onVerdict={(v) => verdict(r.id, v)} cite={cites.includes(r.id) ? cites.indexOf(r.id) + 1 : null} ordinal={i + 1} />
         ))}
@@ -291,8 +286,10 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
 
   return (
     <main className="presence-cosmos pc-portrait" id="main-content">
+      <div className="pc-pt-backdrop" aria-hidden="true">
+        <img className="pc-pt-still" src={STILL_HERO} alt="" />
+      </div>
       <section className="pc-pt-hero" aria-labelledby="pc-pt-headline">
-        <img className="pc-pt-still" src={STILL_HERO} alt="" aria-hidden="true" />
         <header className="pc-pt-masthead">
           <Link to="/" className="pc-pt-wordmark">TwinMe</Link>
           <nav aria-label="Sections">
@@ -341,6 +338,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
 
       </section>
 
+      <div className="pc-pt-paper">
       <section className="pc-pt-signature" id="signature" aria-label="Signature">
         <p className="pc-pt-section-mark">Signature</p>
         <ol className="pc-pt-lines">
@@ -421,11 +419,12 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
           <p className="pc-pt-serif">Messages, photos, location and anything typed here are never read. Nothing trains a model.</p>
           <div className="pc-pt-rail pc-pt-close-rail">
             {banner
-              ? <Link className="pc-pt-close-cta" to="/">Read yourself &#8594;</Link>
+              ? <Link className="pc-pt-close-cta" to="/">Read your own &#8594;</Link>
               : <Link className="pc-pt-close-cta" to="/sources">Delete everything &#8594;</Link>}
           </div>
         </div>
       </section>
+      </div>
     </main>
   );
 }

@@ -3782,7 +3782,7 @@ button.pc-search-icons {
 }
 
 /* ============================================================
-   Portrait — the product's one page, 2026-09-03 (iteration 49)
+   Portrait — the product's one page, 2026-09-03 (iteration 54)
    Locked to the references Stefano chose (cora.computer,
    createanything.com) and to this product's own landing: the page
    opens inside a photographed room, the frosted pill floats over
@@ -3806,7 +3806,41 @@ button.pc-search-icons {
 }
 
 .pc-portrait {
+  position: relative;
   padding: 0 0 96px;
+  background: var(--c-ink);
+}
+
+.pc-pt-backdrop {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.pc-pt-backdrop::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(64% 26% at 50% 14%, rgba(8, 10, 13, 0.44) 0%, rgba(8, 10, 13, 0.18) 62%, rgba(8, 10, 13, 0.06) 100%),
+    linear-gradient(180deg,
+      rgba(10, 12, 15, 0.34) 0%,
+      rgba(10, 12, 15, 0.16) 14%,
+      rgba(10, 12, 15, 0.34) 30%,
+      rgba(24, 24, 22, 0.72) 40%,
+      var(--c-paper) 52%,
+      var(--c-paper) 100%);
+}
+
+/* The paper does not begin at a seam: it lifts over the photograph. */
+.pc-pt-paper {
+  position: relative;
+  z-index: 1;
+  max-width: 1416px;
+  width: calc(100% - 48px);
+  margin: -96px auto 0;
+  padding: 8px 0 88px;
+  border-radius: 36px 36px 0 0;
   background: var(--c-paper);
 }
 
@@ -3844,47 +3878,36 @@ button.pc-search-icons {
 
 .pc-pt-hero {
   position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
-  padding-bottom: 132px;
-  overflow: hidden;
-  background: #14161a;
+  padding-bottom: 152px;
   color: var(--c-white);
 }
 
 .pc-pt-still {
   position: absolute;
-  top: -16%;
+  top: -260px;
   left: 0;
   width: 100%;
-  height: 132%;
+  height: 1800px;
   object-fit: cover;
-  /* Cropped into the window: blue hour as the field, the lamp as its one incident. */
-  object-position: 47% 48%;
+  /* Cropped into the window: blue hour as the field, the lamp as its one incident,
+     and the poster and the doorway both outside the frame. */
+  object-position: 50% 46%;
   filter: brightness(1.08) saturate(1.12);
 }
 
 /* The room is dimmed enough that type holds anywhere on it. */
-.pc-pt-hero::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(64% 46% at 50% 30%, rgba(8, 10, 13, 0.46) 0%, rgba(8, 10, 13, 0.2) 62%, rgba(8, 10, 13, 0.08) 100%),
-    linear-gradient(180deg, rgba(10, 12, 15, 0.36) 0%, rgba(10, 12, 15, 0.2) 26%, rgba(10, 12, 15, 0.26) 72%, var(--c-paper) 100%);
-}
 
 
 
-.pc-pt-hero > *:not(.pc-pt-still) {
-  position: relative;
-  z-index: 1;
-}
+
+
 
 /* The frosted pill, floating. */
 .pc-pt-masthead {
-  position: sticky;
-  top: 20px;
+  position: relative;
   z-index: 3;
   width: min(var(--pt-max), calc(100% - 48px));
   margin: 20px auto 0;
@@ -3945,9 +3968,9 @@ button.pc-search-icons {
   text-align: center;
   max-width: var(--pt-max);
   width: calc(100% - 48px);
-  min-height: 62vh;
+  min-height: 58vh;
   margin: 0 auto;
-  padding: 40px 0 72px;
+  padding: 80px 0 78px;
 }
 
 .presence-cosmos .pc-pt-kicker {
@@ -3977,11 +4000,11 @@ button.pc-search-icons {
 
 .presence-cosmos .pc-pt-promise {
   max-width: none;
-  margin: 28px 0 0;
-  font-size: 20px;
-  line-height: 1.5;
-  letter-spacing: -0.012em;
-  color: rgba(255, 255, 255, 0.86);
+  margin: 30px 0 0;
+  font-size: 21px;
+  line-height: 1.45;
+  letter-spacing: -0.014em;
+  color: rgba(255, 255, 255, 0.92);
 }
 
 /* ---- Today: the second photographed beat ------------------------ */
@@ -3989,15 +4012,15 @@ button.pc-search-icons {
 .pc-pt-today {
   position: relative;
   z-index: 1;
-  max-width: 900px;
+  max-width: 880px;
   width: calc(100% - 48px);
   margin: 0 auto;
   overflow: hidden;
-  border-radius: var(--pt-card);
-  background: rgba(10, 12, 15, 0.58);
-  backdrop-filter: blur(30px) saturate(140%);
-  -webkit-backdrop-filter: blur(30px) saturate(140%);
-  border: 0.5px solid rgba(255, 255, 255, 0.16);
+  border-radius: 28px;
+  background: rgba(12, 14, 18, 0.42);
+  backdrop-filter: blur(40px) saturate(150%);
+  -webkit-backdrop-filter: blur(40px) saturate(150%);
+  border: 0.5px solid rgba(255, 255, 255, 0.18);
   color: var(--c-white);
 }
 
@@ -4148,7 +4171,7 @@ button.pc-search-icons {
 
 /* The one that is open becomes an object; the rest stay a list. */
 .pc-pt-line.is-open {
-  margin: 0 -32px 20px;
+  margin: 0 0 20px;
   border-bottom: 0;
   border-radius: var(--pt-card);
   background: var(--c-white);
@@ -4168,7 +4191,7 @@ button.pc-search-icons {
 }
 
 .pc-pt-line.is-open .pc-pt-line-head {
-  padding: 30px 32px 26px;
+  padding: 28px 28px 26px;
 }
 
 .pc-portrait .pc-pt-line-head:not(:disabled):hover .pc-pt-sentence {
@@ -4236,7 +4259,7 @@ button.pc-search-icons {
 .pc-pt-ledger {
   list-style: none;
   margin: 0;
-  padding: 0 32px 28px;
+  padding: 0 28px 24px;
   animation: pc-pt-open 0.4s var(--c-ease-ui);
 }
 
@@ -4308,14 +4331,6 @@ button.pc-search-icons {
   flex-wrap: wrap;
   gap: 8px;
   align-items: center;
-  opacity: 0;
-  transition: opacity 0.2s;
-}
-
-.pc-pt-row:hover .pc-pt-vote,
-.pc-pt-row:focus-within .pc-pt-vote,
-.pc-pt-row.is-answered .pc-pt-vote {
-  opacity: 1;
 }
 
 .pc-portrait .pc-pt-vote button {
@@ -4618,7 +4633,8 @@ button.pc-search-icons {
   .pc-pt-masthead nav { display: none; }
   .pc-pt-hero-body { width: calc(100% - 32px); padding-bottom: 56px; }
   .presence-cosmos .pc-pt-hero h1 { max-width: none; }
-  .pc-pt-today { width: calc(100% - 32px); margin-top: -56px; }
+  .pc-pt-paper { width: calc(100% - 20px); margin-top: -48px; border-radius: 24px 24px 0 0; }
+  .pc-pt-today { width: calc(100% - 32px); }
   .pc-pt-signature,
   .pc-pt-ask,
   .pc-pt-sources,
