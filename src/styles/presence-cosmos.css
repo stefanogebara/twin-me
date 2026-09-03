@@ -4040,8 +4040,9 @@ button.pc-search-icons {
   color: rgba(255, 255, 255, 0.6);
 }
 
+/* Four lines, each ending on a clause: the measure is set by the rag, not the box. */
 .presence-cosmos .pc-pt-today h2 {
-  max-width: 16ch;
+  max-width: 18ch;
   margin: 0;
   font-size: clamp(36px, 4.4vw, 62px);
   font-weight: 400;
@@ -4127,46 +4128,6 @@ button.pc-search-icons {
 
 /* ---- The sections ------------------------------------------------ */
 
-.pc-pt-tally {
-  position: relative;
-  z-index: 1;
-  max-width: var(--pt-max);
-  width: calc(100% - 48px);
-  margin: 56px auto 0;
-}
-
-.pc-pt-tally dl {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 24px;
-  margin: 0;
-  padding: 26px 0 0;
-  border-top: 0.5px solid var(--c-border);
-}
-
-.pc-pt-tally div {
-  display: grid;
-  gap: 6px;
-}
-
-.presence-cosmos .pc-pt-tally dd {
-  margin: 0;
-  font-size: clamp(40px, 4.4vw, 62px);
-  font-weight: 300;
-  line-height: 0.94;
-  letter-spacing: -0.055em;
-  font-variant-numeric: tabular-nums lining-nums;
-  color: var(--c-ink);
-}
-
-.presence-cosmos .pc-pt-tally dt {
-  font-family: var(--c-mono);
-  font-size: 11px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--c-mono-ink);
-}
-
 .pc-pt-signature,
 .pc-pt-ask,
 .pc-pt-sources {
@@ -4211,7 +4172,10 @@ button.pc-search-icons {
   flex-direction: column;
   justify-content: flex-end;
   border-radius: var(--pt-card);
-  background: #12141a var(--still) center 52% / cover;
+  /* One photograph carries the page, and it is the question. Every other panel
+     is ground: obsidian, a hairline, and the words. */
+  background: #101215;
+  box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.07);
   color: var(--c-white);
 }
 
@@ -4223,19 +4187,12 @@ button.pc-search-icons {
 
 /* Frosted, not filled: you can still read the room through the glass, and the
    words sit on the weighted foot of it. */
+/* The barest lift at the head, so a tall card does not read as a flat slab. */
 .pc-pt-line::before {
   content: '';
   position: absolute;
   inset: 0;
-  backdrop-filter: blur(16px) saturate(118%);
-  -webkit-backdrop-filter: blur(16px) saturate(118%);
-  background:
-    linear-gradient(180deg, rgba(10, 12, 16, 0.24) 0%, rgba(10, 12, 16, 0.52) 46%, rgba(10, 12, 16, 0.84) 100%);
-}
-
-.pc-pt-line.is-open::before {
-  background:
-    linear-gradient(180deg, rgba(10, 12, 16, 0.62) 0%, rgba(10, 12, 16, 0.8) 40%, rgba(10, 12, 16, 0.88) 100%);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.035) 0%, rgba(255, 255, 255, 0) 42%);
 }
 
 .pc-pt-line > * {
@@ -4279,14 +4236,13 @@ button.pc-search-icons {
   grid-row: 1;
   margin-bottom: auto;
   justify-self: end;
-  align-self: start;
-  padding: 6px 13px;
-  border-radius: 999px;
+  align-self: center;
+  padding: 6px 0;
   font-family: var(--c-mono);
   font-size: 10px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.55);
+  color: rgba(255, 255, 255, 0.44);
   transition: color 0.15s var(--pt-ease);
 }
 
@@ -4296,6 +4252,7 @@ button.pc-search-icons {
 
 .presence-cosmos .pc-pt-sentence {
   grid-column: 1 / -1;
+  min-height: calc(2 * 24px * 1.18);
   margin: 0;
   font-size: 24px;
   line-height: 1.18;
@@ -4513,13 +4470,23 @@ button.pc-search-icons {
   padding-top: 8px;
 }
 
+.presence-cosmos .pc-pt-ask-lead {
+  max-width: 18ch;
+  margin: 0 0 30px;
+  font-size: clamp(30px, 3.4vw, 46px);
+  line-height: 1.06;
+  letter-spacing: -0.042em;
+  text-wrap: balance;
+  color: var(--c-ink);
+}
+
 .pc-pt-prompt {
   display: flex;
   align-items: flex-start;
   gap: 16px;
-  min-height: 116px;
-  padding: 26px 20px 20px 28px;
-  border-radius: 20px;
+  min-height: 152px;
+  padding: 34px 24px 24px 34px;
+  border-radius: 24px;
   background: var(--c-white);
   border: 0.5px solid var(--c-border);
   transition: border-color 0.15s var(--pt-ease);
@@ -4535,8 +4502,8 @@ button.pc-search-icons {
   border: 0;
   background: transparent;
   font: inherit;
-  font-size: 18px;
-  letter-spacing: -0.024em;
+  font-size: 22px;
+  letter-spacing: -0.028em;
   color: var(--c-ink);
   outline: none;
 }
@@ -4681,10 +4648,11 @@ button.pc-search-icons {
   overflow: hidden;
   max-width: var(--pt-max);
   width: calc(100% - 48px);
-  margin: 80px auto 0;
-  padding: 76px 56px;
+  margin: 120px auto 0;
+  padding: 112px 56px 116px;
   border-radius: var(--pt-card);
-  background: #14161a url('/images/twinme/cosmos-03-calendar.jpg') 40% 40% / 130% auto;
+  background: #101215;
+  box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.07);
   color: var(--c-white);
 }
 
@@ -4692,9 +4660,7 @@ button.pc-search-icons {
   content: '';
   position: absolute;
   inset: 0;
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-  background: linear-gradient(90deg, rgba(10, 12, 15, 0.88) 0%, rgba(10, 12, 15, 0.74) 56%, rgba(10, 12, 15, 0.56) 100%);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.035) 0%, rgba(255, 255, 255, 0) 38%);
 }
 
 .pc-pt-close > * {
@@ -4703,23 +4669,33 @@ button.pc-search-icons {
 
 .pc-pt-close-inner {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 32px;
-  align-items: center;
+  gap: 34px;
+  justify-items: start;
+}
+
+/* The condition is stated quietly; the promise is the line that lands. */
+.presence-cosmos .pc-pt-close-note {
+  max-width: 40ch;
+  font-family: var(--c-mono);
+  font-size: 12px;
+  line-height: 1.6;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.48);
 }
 
 .presence-cosmos .pc-pt-close p {
-  max-width: 34ch;
+  max-width: 22ch;
   margin: 0;
-  font-size: 19px;
-  line-height: 1.5;
-  letter-spacing: -0.024em;
-  color: rgba(255, 255, 255, 0.86);
+  font-size: clamp(30px, 3.4vw, 46px);
+  line-height: 1.06;
+  letter-spacing: -0.042em;
+  text-wrap: balance;
+  color: var(--c-white);
 }
 
 .pc-pt-close-rail {
   display: flex;
-  justify-content: flex-end;
 }
 
 .presence-cosmos .pc-pt-close-cta {
@@ -4791,8 +4767,6 @@ button.pc-search-icons {
   .presence-cosmos .pc-pt-today h2 { max-width: none; }
   .pc-pt-lines { grid-template-columns: 1fr; }
   .pc-pt-line { min-height: 200px; }
-  .pc-pt-tally { width: calc(100% - 24px); }
-  .pc-pt-tally dl { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
   .pc-portrait .pc-pt-line-head,
   .pc-pt-row,
   .pc-pt-close-inner { grid-template-columns: 1fr; gap: 14px 0; }

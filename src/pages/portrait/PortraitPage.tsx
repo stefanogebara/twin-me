@@ -198,15 +198,14 @@ const STILLS = [
  * recognisable stays out of the centre column and off the one action.
  */
 const FIELD: [number, number, number, number, number, number, number, number][] = [
-  // Near: six photographs, six crops, none of them shown twice.
-  [1, 22, 178, 4, 0, 4, 62, 30], [-2, 66, 140, 7, 0.06, 0, 30, 74],
-  [90, 34, 196, -5, 0, 6, 38, 46], [97, 74, 132, 5, 0.1, 3, 66, 24],
-  [8, 93, 112, -6, 0.14, 5, 24, 62], [73, 4, 76, 6, 0.5, 1, 70, 38],
-  // Far: small, soft, unrecognisable, holding the corners of the frame.
-  [16, 6, 62, 9, 0.62, 2, 40, 20], [21, 47, 48, -8, 0.78, 6, 55, 80],
-  [12, 78, 54, 5, 0.7, 1, 18, 44], [78, 19, 52, -7, 0.74, 5, 72, 66],
-  [72, 54, 44, 8, 0.84, 2, 35, 30], [88, 92, 58, -4, 0.68, 4, 58, 82],
-  [33, 98, 46, 6, 0.86, 3, 46, 12], [64, 97, 42, -9, 0.88, 0, 78, 58],
+  // Near: five photographs, five crops, none of them shown twice.
+  [1, 26, 178, 4, 0, 4, 62, 30], [-2, 68, 140, 7, 0.06, 0, 30, 74],
+  [92, 36, 196, -5, 0, 6, 38, 46], [99, 76, 132, 5, 0.1, 3, 66, 24],
+  [6, 93, 112, -6, 0.14, 5, 24, 62],
+  // Far: small and soft, holding the outer margins.
+  [11, 12, 62, 9, 0.62, 2, 40, 20], [13, 51, 54, 5, 0.7, 1, 18, 44],
+  [93, 17, 52, -7, 0.74, 5, 72, 66], [89, 61, 44, 8, 0.84, 2, 35, 30],
+  [95, 95, 58, -4, 0.68, 4, 58, 82], [7, 82, 46, 6, 0.86, 3, 46, 12],
 ];
 
 export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, onDeleteSource }: { data: PortraitData; now: Date; banner?: React.ReactNode } & PortraitHandlers) {
@@ -423,7 +422,6 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
             <li
               key={b.domain}
               className={`pc-pt-line ${i === 0 ? 'is-first' : ''} ${openDomain === b.domain ? 'is-open' : ''}`}
-              style={{ '--still': `url('${STILLS[(i * 3 + 2) % STILLS.length]}')` } as React.CSSProperties}
             >
               <button
                 type="button"
@@ -443,18 +441,10 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
         </ol>
       </section>
 
-      <section className="pc-pt-tally" aria-label="What it read">
-        <dl>
-          <div><dd>{readingCount}</dd><dt className="pc-pt-mono">readings</dt></div>
-          <div><dd>{receiptCount}</dd><dt className="pc-pt-mono">receipts</dt></div>
-          <div><dd>{sourceCount}</dd><dt className="pc-pt-mono">sources</dt></div>
-          {daysReading ? <div><dd>{daysReading}</dd><dt className="pc-pt-mono">days reading you</dt></div> : null}
-        </dl>
-      </section>
-
       <section className="pc-pt-ask" id="ask" aria-label="Ask">
         <p className="pc-pt-section-mark">Ask</p>
         <div className="pc-pt-ask-body">
+          <p className="pc-pt-ask-lead">Ask it anything. It answers from what it read, or not at all.</p>
           <form className="pc-pt-prompt" onSubmit={(e) => { e.preventDefault(); void ask(query); }}>
             <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={data.ask[0] ? `Ask anything — “${data.ask[0].q}”` : 'Ask something about yourself'} aria-label="Ask something about yourself" />
             <button type="submit" className="pc-pt-send">Ask</button>
@@ -501,13 +491,14 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
           ))}
         </ul>
         <p className="pc-pt-mono pc-pt-sourcefoot">
-          {sourceCount} sources · {data.sources.reduce((n, s) => n + (parseInt(s.read, 10) || 0), 0)} items · {readingCount} readings · {receiptCount} receipts · since {since}
+          {sourceCount} sources · {data.sources.reduce((n, s) => n + (parseInt(s.read, 10) || 0), 0)} items · {readingCount} readings · {receiptCount} receipts · reading you for {daysReading} days, since {since}
         </p>
       </section>
 
       <section className="pc-pt-close" aria-label="What is not read">
         <div className="pc-pt-close-inner pc-pt-grid">
-          <p className="pc-pt-serif">Messages, photos, location and anything typed here are never read. Nothing trains a model.</p>
+          <p className="pc-pt-close-note">Messages, photos, location and anything typed here are never read</p>
+          <p className="pc-pt-serif">Nothing here trains a model.</p>
           <div className="pc-pt-rail pc-pt-close-rail">
             {banner
               ? <Link className="pc-pt-close-cta" to="/">Read your own &#8594;</Link>
