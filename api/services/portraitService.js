@@ -55,6 +55,9 @@ const NEW_DAYS = 7;
 const MAX_EVIDENCE = 5;
 const MIN_EVIDENCE = 2;
 const MAX_READINGS = 40;
+// The engine writes many near-identical readings for an active domain. A stanza is
+// meant to be read, not scrolled: it shows its strongest few.
+const MAX_PER_DOMAIN = 4;
 
 /** A reading addressed to the person, not about them. Older readings say "This person" or "They". */
 export function isSecondPerson(text) {
@@ -89,12 +92,30 @@ const TRANSLATIONS = {
     [/^Listened to '(.+)' by (.+?) at .+$/, (m) => `${m[1]}, ${m[2]}`],
     [/^Currently playing '(.+)' by (.+)$/, (m) => `${m[1]}, ${m[2]}, playing now`],
     [/^Discovered new artist: (.+)$/, (m) => `A new artist: ${m[1]}`],
+    [/^Extended listening session \((\d+) tracks/, (m) => `A long listen, ${m[1]} songs in a row`],
+    [/^Late-night listening session/, () => 'Listening after midnight'],
+    [/^Top artist this week: (.+)$/, (m) => `Most played this week: ${m[1]}`],
+    [/^Spotify music listening pattern: top artist is (.+?) also listening to (.+?)(?:\s+recently played.*)?(?:\s*[—-].*)?$/, (m) => `Mostly ${m[1]}, and ${m[2]}`],
+    [/^Spotify music listening pattern: recently played (.+?)(?:\s*[—-].*)?$/, (m) => `Lately: ${m[1]}`],
+    [/^Listens to \d+ podcasts on Spotify: (.+?)(?:\s*[—-].*)?$/, (m) => `Podcasts: ${m[1]}`],
+    [/^Listening on (?:smartphone|computer|speaker)/, () => 'Listening while you did something else'],
   ],
   github: [
     [/^Opened PR #\d+ in (\S+)/, (m) => `Started a change to ${m[1]}`],
     [/^Merged PR #\d+ in (\S+)/, (m) => `Finished a change to ${m[1]}`],
     [/^Closed PR #\d+ in (\S+)/, (m) => `Set aside a change to ${m[1]}`],
     [/^Pushed (\d+) commits? to (\S+)/, (m) => `Worked on ${m[2]}`],
+    [/^Created branch .+? in (\S+)/, (m) => `Started a change to ${m[1]}`],
+    [/^Primary GitHub tech stack: (.+?) based on/, (m) => `What you build with: ${m[1]}`],
+    [/^Most active GitHub month in the past year: (\w+ \d{4})/, (m) => `Your busiest month was ${m[1]}`],
+    [/^GitHub rhythm: (weekday|weekend) coder, peak day is (\w+)/, (m) => (
+      m[1] === 'weekday' ? `You work on weekdays, ${m[2]}s most of all` : `You work at weekends, ${m[2]}s most of all`
+    )],
+    [/^Working on (\d+) public.*?(\d+) private repos/, (m) => `Working on ${Number(m[1]) + Number(m[2])} projects`],
+    [/^(?:Contributed|Committed) code on (\d+) days? in the last (\d+) days/, (m) => (
+      `You wrote something on ${m[1]} of the last ${m[2]} days`
+    )],
+    [/^Your GitHub language distribution: (\w+) \((\d+)%\)/, (m) => `Mostly ${m[1]}, ${m[2]}% of what you write`],
   ],
   whoop: [
     [/^Slept ([\d.]+) hours \((.+?)\)/, (m) => `Slept ${m[1]} hours, ${m[2].replace('-', ' ')}`],
@@ -108,6 +129,10 @@ const TRANSLATIONS = {
     }],
   ],
   google_calendar: [
+    [/^Calendar schedule today: no meetings/, () => 'A day with nothing in it'],
+    [/^Calendar work style: organized (\d+)% of own meetings.*?mostly (in-person|virtual)/, (m) => (
+      `You set up your own meetings, mostly ${m[2] === 'in-person' ? 'in person' : 'online'}`
+    )],
     [/^Calendar schedule for (\w+) [\d-]+: (\d+) events? \(.*\) — (\w+)-(loaded|focused) scheduling/, (m) => `${m[1]}: ${m[2]} event${m[2] === '1' ? '' : 's'}, ${m[3]} ${m[4] === 'loaded' ? 'heavy' : 'focused'}`],
     [/^Has a meeting '.+' from (.+?) to (.+?) on (\w+)/, (m) => `An appointment ${m[3]} at ${m[1]}`],
   ],
@@ -122,6 +147,7 @@ const TRANSLATIONS = {
     [/^Sending rhythm: emails almost exclusively on weekdays/, () => 'You send email almost only on weekdays'],
   ],
   youtube: [
+    [/^Has \d+ YouTube playlists?: (.+?) \(avg/, (m) => `A playlist of your own: ${m[1]}`],
     [/^YouTube subscription topics: (.+)$/, (m) => `What you follow: ${m[1]}`],
     [/^Subscribed to (\d+) YouTube channels, including: (.+)$/, (m) => `${m[1]} channels, including ${m[2]}`],
     [/^YouTube subscription tenure: average (\d+) months/, (m) => `You have followed your channels for ${m[1]} months on average`],
@@ -132,25 +158,40 @@ const TRANSLATIONS = {
  * One evidence card from a raw memory: source, minute, plain event.
  * Unknown shapes fall back to the raw text with platform punctuation softened.
  */
+/**
+ * Vocabulary that belongs to a platform, not to a person: a receipt carrying any
+ * of it has not been translated, whatever else it says.
+ */
+const RAW_MARKERS = /\b(PRs?|pull requests?|branch(es)?|commits?|contributions?|merg(e|ed|ing)|repos?|repositor(y|ies)|HRV|SpO2|bpm|strain|consistency|tech stack|API|refactor)\b/i;
+
+/**
+ * A receipt the person can read, or nothing. `translated: false` marks the ones
+ * that fell through, so the page can prefer the ones it can actually say and
+ * never print a branch name at somebody.
+ */
 export function plainEvent(memory) {
   const source = sourceOf(memory);
   const content = String(memory?.content || '').trim();
+  const at = minute(memory.created_at);
   for (const [re, render] of TRANSLATIONS[source] || []) {
     const m = content.match(re);
-    if (m) return { source, at: minute(memory.created_at), event: render(m) };
+    if (m) {
+      const event = render(m);
+      return { source, at, event, translated: !RAW_MARKERS.test(event) };
+    }
   }
-  return { source, at: minute(memory.created_at), event: content.replace(/\s+—\s+/g, ', ') };
+  const event = content.replace(/\s+—\s+/g, ', ');
+  return { source, at, event, translated: !RAW_MARKERS.test(event) };
 }
 
-function firstSentence(markdown) {
-  const text = String(markdown || '')
-    .replace(/^#.*$/gm, '')
-    .replace(/\[\[[^\]]*\]\]/g, '')
-    .replace(/[*_`>]/g, '')
-    .replace(/\s+/g, ' ')
-    .trim();
-  const m = text.match(/^[^.!?]+[.!?]/);
-  return m ? m[0].trim() : text.slice(0, 160);
+/**
+ * Every line on this page keeps its receipts, so a signature line is one of the
+ * domain's own readings — evidence-backed, in the person's words. The wiki page
+ * is a compiled summary with nothing under it; a domain with no reading of its
+ * own gets no line rather than a claim the page cannot show the person.
+ */
+function signatureLine(readingText) {
+  return readingText || '';
 }
 
 function daysBetween(a, b) {
@@ -164,26 +205,30 @@ function daysBetween(a, b) {
  * @param {object[]} p.reflections    user_memories rows, memory_type reflection
  * @param {Map|object} p.eventsById   raw platform_data/observation rows by id
  * @param {object[]} p.connections    platform_connections rows
- * @param {object[]} p.wikiPages      user_wiki_pages rows (domain, content_md)
  * @param {Date} p.now
  */
-export function buildPortrait({ owner, reflections = [], eventsById = new Map(), connections = [], wikiPages = [], now = new Date() }) {
+export function buildPortrait({ owner, reflections = [], eventsById = new Map(), connections = [], now = new Date() }) {
   const getEvent = (id) => (eventsById instanceof Map ? eventsById.get(id) : eventsById[id]);
 
   const readings = [];
   for (const r of reflections) {
     const ids = Array.isArray(r.metadata?.observation_ids) ? r.metadata.observation_ids : [];
-    const events = ids.map(getEvent).filter(Boolean)
-      .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))
+    // A receipt the page cannot say plainly is not shown: newest first, but only
+    // among the ones that survived translation.
+    const all = ids.map(getEvent).filter(Boolean).map(plainEvent);
+    const sayable = all.filter((e) => e.translated);
+    if (sayable.length < MIN_EVIDENCE) continue;
+    const evidence = sayable
+      .sort((a, b) => (a.at < b.at ? 1 : a.at > b.at ? -1 : 0))
       .slice(0, MAX_EVIDENCE);
-    if (events.length < MIN_EVIDENCE) continue;
-    const supportedAt = events.reduce((max, e) => (e.created_at > max ? e.created_at : max), events[0].created_at);
+    const supportedAt = evidence[0].at;
     readings.push({
       id: r.id,
       domain: DOMAIN_OF_EXPERT[r.metadata?.expert] || 'personality',
-      text: r.content,
+      // The plain rewrite when one exists; the original analysis stays on the row.
+      text: r.metadata?.plain || r.content,
       sourceReflection: r.id,
-      evidence: events.map(plainEvent),
+      evidence,
       writtenAt: day(r.created_at),
       supportedAt: day(supportedAt),
       verdict: r.metadata?.verdict ?? null,
@@ -193,13 +238,19 @@ export function buildPortrait({ owner, reflections = [], eventsById = new Map(),
 
   // Second-person readings first, then the rest, newest first within each; the page shows a bounded ledger.
   readings.sort((x, y) => (Number(isSecondPerson(y.text)) - Number(isSecondPerson(x.text))) || (y.writtenAt < x.writtenAt ? -1 : y.writtenAt > x.writtenAt ? 1 : 0));
-  readings.splice(MAX_READINGS);
+  const perDomain = new Map();
+  const kept = readings.filter((r) => {
+    const n = (perDomain.get(r.domain) || 0) + 1;
+    perDomain.set(r.domain, n);
+    return n <= MAX_PER_DOMAIN;
+  });
+  readings.length = 0;
+  readings.push(...kept.slice(0, MAX_READINGS));
 
   const byDomain = (d) => readings.filter((x) => x.domain === d && x.verdict !== 'wrong');
   const signature = DOMAINS.map((domain) => {
     const own = byDomain(domain);
-    const page = wikiPages.find((p) => p.domain === domain);
-    const line = page ? firstSentence(page.content_md) : (own[0]?.text || '');
+    const line = signatureLine(own[0]?.text);
     return { domain, line, from: own.map((x) => x.id) };
   }).filter((s) => s.line);
 
@@ -208,6 +259,7 @@ export function buildPortrait({ owner, reflections = [], eventsById = new Map(),
   const question = thinnest
     ? {
         fromReadings: [thinnest.id],
+        source: SOURCE_LABEL[thinnest.evidence[0].source] || thinnest.evidence[0].source,
         evidenceLine: `${SOURCE_LABEL[thinnest.evidence[0].source] || thinnest.evidence[0].source}, ${thinnest.evidence[0].at}: ${thinnest.evidence[0].event}.`,
         question: `Does this sound like you? ${thinnest.text}`,
         answers: ['Yes, that is me', 'Not really'],
@@ -258,14 +310,13 @@ export async function loadEvents(ids) {
 }
 
 export async function loadPortrait(userId, now = new Date()) {
-  const [{ data: user }, { data: reflections }, { data: connections }, { data: wikiPages }] = await Promise.all([
+  const [{ data: user }, { data: reflections }, { data: connections }] = await Promise.all([
     supabaseAdmin.from('users').select('first_name').eq('id', userId).single(),
     supabaseAdmin.from('user_memories').select('id, content, metadata, created_at')
       .eq('user_id', userId).eq('memory_type', 'reflection')
       .not('metadata->observation_ids', 'is', null)
       .order('created_at', { ascending: false }).limit(80),
     supabaseAdmin.from('platform_connections').select('platform, status, content_volume, connected_at').eq('user_id', userId),
-    supabaseAdmin.from('user_wiki_pages').select('domain, content_md').eq('user_id', userId),
   ]);
 
   const ids = [...new Set((reflections || []).flatMap((r) => r.metadata?.observation_ids || []))];
@@ -276,7 +327,6 @@ export async function loadPortrait(userId, now = new Date()) {
     reflections: reflections || [],
     eventsById,
     connections: connections || [],
-    wikiPages: wikiPages || [],
     now,
   });
 }

@@ -43,6 +43,7 @@ export function toPortraitData(payload: unknown): PortraitData {
   const question = q && str(q.question)
     ? {
         fromReadings: arr<string>(q.fromReadings).filter((id) => ids.has(id)),
+        source: str(q.source) || undefined,
         evidenceLine: str(q.evidenceLine),
         question: str(q.question),
         answers: arr<string>(q.answers).filter(Boolean).slice(0, 3),

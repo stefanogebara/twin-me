@@ -51,7 +51,7 @@ describe('plainEvent speaks the person\'s language', () => {
 
   it('keeps the source and the minute, and softens unknown shapes', () => {
     const e = plainEvent(ev('u', 'spotify', 'Some new shape — with a dash', '2026-09-03T09:35:12Z'));
-    expect(e).toEqual({ source: 'spotify', at: '2026-09-03 09:35', event: 'Some new shape, with a dash' });
+    expect(e).toEqual({ source: 'spotify', at: '2026-09-03 09:35', event: 'Some new shape, with a dash', translated: true });
   });
 });
 
@@ -71,9 +71,8 @@ describe('buildPortrait', () => {
     { platform: 'spotify', status: 'connected', content_volume: 246, connected_at: '2026-08-26T10:00:00Z' },
     { platform: 'reddit', status: 'disconnected', content_volume: 0, connected_at: '2026-04-18T10:00:00Z' },
   ];
-  const wikiPages = [{ domain: 'personality', content_md: '# Personality\n\nYou steady yourself with repetition. More text here.' }];
   const now = new Date('2026-09-04T12:00:00Z');
-  const portrait = buildPortrait({ owner: 'Stefano', reflections, eventsById: events, connections, wikiPages, now });
+  const portrait = buildPortrait({ owner: 'Stefano', reflections, eventsById: events, connections, now });
 
   it('keeps only readings with at least two resolvable events, mapped to a domain', () => {
     expect(portrait.readings.map((r) => [r.id, r.domain, r.evidence.length])).toEqual([
@@ -85,13 +84,13 @@ describe('buildPortrait', () => {
     const r1 = portrait.readings[0];
     expect(r1.writtenAt).toBe('2026-09-03');
     expect(r1.supportedAt).toBe('2026-09-03');
-    expect(r1.evidence[0]).toEqual({ source: 'spotify', at: '2026-09-03 10:10', event: 'Pipe Down, Drake' });
+    expect(r1.evidence[0]).toEqual({ source: 'spotify', at: '2026-09-03 10:10', event: 'Pipe Down, Drake', translated: true });
     expect(r1.verdict).toBeNull();
   });
 
-  it('writes the signature from the wiki page when there is one, else from the strongest reading', () => {
+  it('writes the signature from the strongest reading, the line that has receipts under it', () => {
     const personality = portrait.signature.find((s) => s.domain === 'personality');
-    expect(personality.line).toBe('You steady yourself with repetition.');
+    expect(personality.line).toBe('You put the same songs on repeat to get into deep work.');
     expect(personality.from).toEqual(['r1']);
     const motivation = portrait.signature.find((s) => s.domain === 'motivation');
     expect(motivation.line).toBe('You start work in bursts.');
@@ -141,5 +140,113 @@ describe('second person first', () => {
       { id: 'second', content: 'You work late.', created_at: '2026-09-02T12:00:00Z', metadata: { expert: 'motivation_analyst', observation_ids: ['a', 'b'] } },
     ] });
     expect(portrait.readings.map((r) => r.id)).toEqual(['second', 'third']);
+  });
+});
+
+describe('the plain rewrite', () => {
+  const events = new Map([
+    ['a', ev('a', 'github', 'Opened PR #22 in roca', '2026-09-03T09:00:00Z')],
+    ['b', ev('b', 'github', 'Merged PR #23 in roca', '2026-09-03T10:00:00Z')],
+  ]);
+
+  it('reads the plain sentence when the row carries one, and the original when it does not', () => {
+    const portrait = buildPortrait({
+      owner: 'S', eventsById: events, now: new Date('2026-09-04T00:00:00Z'), reflections: [
+        { id: 'r1', content: 'This person merges their PRs the same day they open them.', created_at: '2026-09-03T12:00:00Z',
+          metadata: { expert: 'code_architect', observation_ids: ['a', 'b'], plain: 'You finish a piece of work the same day you start it.' } },
+        { id: 'r2', content: 'You keep the evenings yours.', created_at: '2026-09-02T12:00:00Z',
+          metadata: { expert: 'social_dynamics', observation_ids: ['a', 'b'] } },
+      ],
+    });
+    expect(portrait.readings.map((r) => r.text)).toEqual([
+      'You finish a piece of work the same day you start it.',
+      'You keep the evenings yours.',
+    ]);
+  });
+});
+
+describe('signature lines keep their receipts', () => {
+  const events = new Map([
+    ['a', ev('a', 'spotify', 'x', '2026-09-03T09:00:00Z')],
+    ['b', ev('b', 'spotify', 'y', '2026-09-03T10:00:00Z')],
+  ]);
+
+  it('speaks a domain\'s own reading, and stays silent where there is none', () => {
+    const portrait = buildPortrait({
+      owner: 'S', eventsById: events, now: new Date('2026-09-04T00:00:00Z'),
+      reflections: [{ id: 'r1', content: 'You loop the same two songs to lock in.', created_at: '2026-09-03T12:00:00Z',
+        metadata: { expert: 'cultural_identity', observation_ids: ['a', 'b'] } }],
+    });
+    const line = (d) => portrait.signature.find((s) => s.domain === d)?.line;
+    expect(line('cultural')).toBe('You loop the same two songs to lock in.');
+    expect(line('social')).toBeUndefined();
+  });
+});
+
+describe('a receipt the page cannot say plainly', () => {
+  // A shape no rule covers, carrying vocabulary that belongs to the platform.
+  const raw = (id, at) => ev(id, 'github', 'Repository roca now has 12 open pull requests awaiting review', at);
+  const said = (id, at) => ev(id, 'github', `Merged PR #1 in roca`, at);
+
+  it('never reaches the person', () => {
+    const events = new Map([
+      ['a', said('a', '2026-09-03T09:00:00Z')],
+      ['b', said('b', '2026-09-03T10:00:00Z')],
+      ['c', raw('c', '2026-09-03T11:00:00Z')],
+    ]);
+    const portrait = buildPortrait({
+      owner: 'S', eventsById: events, now: new Date('2026-09-04T00:00:00Z'),
+      reflections: [{ id: 'r1', content: 'You finish what you start.', created_at: '2026-09-03T12:00:00Z',
+        metadata: { expert: 'code_architect', observation_ids: ['a', 'b', 'c'] } }],
+    });
+    const shown = portrait.readings[0].evidence.map((e) => e.event);
+    expect(shown).toEqual(['Finished a change to roca', 'Finished a change to roca']);
+    expect(shown.join(' ')).not.toMatch(/branch|commits/i);
+  });
+
+  it('takes the reading with it when too few are left', () => {
+    const events = new Map([
+      ['a', said('a', '2026-09-03T09:00:00Z')],
+      ['c', raw('c', '2026-09-03T11:00:00Z')],
+    ]);
+    const portrait = buildPortrait({
+      owner: 'S', eventsById: events, now: new Date('2026-09-04T00:00:00Z'),
+      reflections: [{ id: 'r1', content: 'You finish what you start.', created_at: '2026-09-03T12:00:00Z',
+        metadata: { expert: 'code_architect', observation_ids: ['a', 'c'] } }],
+    });
+    expect(portrait.readings).toEqual([]);
+  });
+
+  it('says the shapes the real data actually has', () => {
+    const cases = [
+      ['github', 'Created branch \'claude/cards\' in roca', 'Started a change to roca'],
+      ['github', 'GitHub rhythm: weekday coder, peak day is Monday (1198 contributions), 25% weekends', 'You work on weekdays, Mondays most of all'],
+      ['github', 'Most active GitHub month in the past year: February 2026 with 1543 contributions', 'Your busiest month was February 2026'],
+      ['spotify', 'Extended listening session (5 tracks recently)', 'A long listen, 5 songs in a row'],
+      ['spotify', 'Top artist this week: Drake', 'Most played this week: Drake'],
+      ['spotify', 'Late-night listening session (after midnight)', 'Listening after midnight'],
+      ['youtube', 'Has 1 YouTube playlist: Stefano hot songs (avg 1 videos each)', 'A playlist of your own: Stefano hot songs'],
+    ];
+    for (const [platform, content, expected] of cases) {
+      const out = plainEvent(ev('x', platform, content, '2026-09-03T09:00:00Z'));
+      expect(out.event, content).toBe(expected);
+      expect(out.translated, content).toBe(true);
+    }
+  });
+});
+
+describe('a stanza is meant to be read', () => {
+  it('keeps only its strongest few, however many the engine wrote', () => {
+    const events = new Map([
+      ['a', ev('a', 'spotify', "Listened to 'x' by y at 9:00 AM", '2026-09-03T09:00:00Z')],
+      ['b', ev('b', 'spotify', "Listened to 'z' by y at 10:00 AM", '2026-09-03T10:00:00Z')],
+    ]);
+    const reflections = Array.from({ length: 9 }, (_, i) => ({
+      id: `r${i}`, content: `You do the thing, take ${i}.`, created_at: `2026-09-0${(i % 3) + 1}T12:00:00Z`,
+      metadata: { expert: 'cultural_identity', observation_ids: ['a', 'b'] },
+    }));
+    const portrait = buildPortrait({ owner: 'S', reflections, eventsById: events, now: new Date('2026-09-04T00:00:00Z') });
+    expect(portrait.readings.length).toBe(4);
+    expect(new Set(portrait.readings.map((r) => r.domain))).toEqual(new Set(['cultural']));
   });
 });

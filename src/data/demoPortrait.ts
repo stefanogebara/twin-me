@@ -20,7 +20,7 @@ export type Reading = {
   verdictNote?: string;
 };
 export type SignatureLine = { domain: Domain; line: string; from: string[] };
-export type Question = { fromReadings: string[]; evidenceLine: string; question: string; answers: string[]; yourAnswer: string | null };
+export type Question = { fromReadings: string[]; source?: string; evidenceLine: string; question: string; answers: string[]; yourAnswer: string | null };
 export type AskScript = { q: string; a: string; cites: string[] };
 export type SourceRow = { platform: string; label: string; read: string; since: string; kinds: string };
 export type PortraitData = {
@@ -57,6 +57,7 @@ export const DEMO_PORTRAIT: PortraitData = {
   ],
   question: {
     fromReadings: ['r06', 'r08'],
+    source: 'Whoop',
     evidenceLine: 'Whoop, Thursday: Well recovered, but bedtime far from your usual.',
     question: 'Your best days follow long sleep, and your bedtime moves by hours. Last night ran late again.',
     answers: ['I chose to stay up', 'It got away from me'],

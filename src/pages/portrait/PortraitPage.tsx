@@ -273,7 +273,8 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
     );
   }
 
-  const questionSource = data.question ? data.question.evidenceLine.split(':')[0] : '';
+  // The source names itself; splitting the evidence line on ':' swallowed the timestamp.
+  const questionSource = data.question?.source || data.question?.evidenceLine.split(',')[0] || '';
   // The band shows the newest receipt under the readings the question came from.
   const questionReceipt = useMemo(() => {
     if (!data.question) return null;
