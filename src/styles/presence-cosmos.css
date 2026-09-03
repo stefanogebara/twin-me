@@ -3872,8 +3872,10 @@ button.pc-search-icons {
 .pc-pt-masthead {
   position: relative;
   z-index: 4;
+  box-sizing: border-box;
   width: min(var(--pt-max), calc(100% - 48px));
   margin: 22px auto 0;
+  padding: 0 56px;
   height: 52px;
   display: flex;
   align-items: center;
@@ -4211,7 +4213,7 @@ button.pc-search-icons {
   list-style: none;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
+  gap: 32px;
   margin: 0;
   padding: 0;
 }
@@ -4526,6 +4528,32 @@ button.pc-search-icons {
   padding-top: 8px;
 }
 
+.pc-pt-asks {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 18px 0 0;
+  padding: 0 56px;
+}
+
+.pc-portrait .pc-pt-asks button {
+  padding: 9px 16px;
+  border-radius: 999px;
+  border: 0.5px solid rgba(255, 255, 255, 0.22);
+  background: transparent;
+  font-family: var(--c-sans-ui);
+  font-size: 14px;
+  letter-spacing: -0.018em;
+  color: rgba(255, 255, 255, 0.72);
+  transition: color 0.15s var(--pt-ease), border-color 0.15s var(--pt-ease);
+}
+
+.pc-portrait .pc-pt-asks button:hover {
+  border-color: rgba(255, 255, 255, 0.5);
+  color: var(--c-white);
+}
+
 .presence-cosmos .pc-pt-ask-lead {
   max-width: 20ch;
   margin: 0 0 34px;
@@ -4711,6 +4739,24 @@ button.pc-search-icons {
 
 /* ---- The close --------------------------------------------------- */
 
+.pc-pt-foot {
+  position: relative;
+  z-index: 1;
+  box-sizing: border-box;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 24px;
+  max-width: var(--pt-max);
+  width: calc(100% - 48px);
+  margin: 40px auto 0;
+  padding: 0 56px;
+}
+
+.pc-portrait .pc-pt-foot .pc-pt-mono {
+  color: var(--c-mono-ink);
+}
+
 .pc-pt-close {
   position: relative;
   z-index: 1;
@@ -4718,7 +4764,7 @@ button.pc-search-icons {
   max-width: var(--pt-max);
   width: calc(100% - 48px);
   margin: 120px auto 0;
-  padding: 96px 56px 84px;
+  padding: 88px 56px 88px;
   border-radius: var(--pt-card);
   background: rgba(10, 12, 15, 0.42);
   backdrop-filter: blur(24px) saturate(116%);
@@ -4740,8 +4786,21 @@ button.pc-search-icons {
 
 .pc-pt-close-inner {
   display: grid;
-  gap: 34px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 26px 40px;
+  align-items: end;
   justify-items: start;
+}
+
+.presence-cosmos .pc-pt-close-note,
+.presence-cosmos .pc-pt-close p {
+  grid-column: 1;
+}
+
+.pc-pt-close-rail {
+  grid-column: 2;
+  grid-row: 2;
+  align-self: end;
 }
 
 /* The condition is stated quietly; the promise is the line that lands. */
@@ -4856,6 +4915,10 @@ button.pc-search-icons {
   .pc-pt-close-rail { justify-content: flex-start; }
   .presence-cosmos .pc-pt-close p { max-width: none; }
   .presence-cosmos .pc-pt-ask-lead { max-width: none; padding-left: 20px; }
+  .pc-pt-asks { padding: 0 20px; }
+  .pc-pt-foot { padding: 0 20px; flex-direction: column; gap: 8px; }
+  .pc-pt-masthead { padding: 0; }
+  .presence-cosmos .pc-pt-prompt input { font-size: 17px; }
   .pc-portrait .pc-pt-section-mark { padding: 0 20px; }
   .pc-pt-sourcelist { padding: 8px 20px 20px; }
   .presence-cosmos .pc-pt-sourcefoot { padding: 0 20px; }

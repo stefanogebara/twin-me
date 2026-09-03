@@ -412,9 +412,18 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
         <div className="pc-pt-ask-body">
           <p className="pc-pt-ask-lead">Ask it anything. It answers from what it read, or not at all.</p>
           <form className="pc-pt-prompt" onSubmit={(e) => { e.preventDefault(); void ask(query); }}>
-            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={data.ask[0] ? `Ask anything — “${data.ask[0].q}”` : 'Ask something about yourself'} aria-label="Ask something about yourself" />
+            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Ask anything about yourself" aria-label="Ask something about yourself" />
             <button type="submit" className="pc-pt-send">Ask</button>
           </form>
+          {data.ask.length ? (
+            <ul className="pc-pt-asks" aria-label="Questions it can answer">
+              {data.ask.slice(0, 3).map((s) => (
+                <li key={s.q}>
+                  <button type="button" onClick={() => { setQuery(s.q); void ask(s.q); }}>{s.q}</button>
+                </li>
+              ))}
+            </ul>
+          ) : null}
           <div>
             {reply ? (
               <blockquote className="pc-pt-reply" aria-live="polite">
@@ -460,7 +469,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
           ))}
         </ul>
         <p className="pc-pt-mono pc-pt-sourcefoot">
-          {data.sources.reduce((n, s) => n + (parseInt(s.read, 10) || 0), 0)} things read across {sourceCount} sources · reading you for {daysReading} days, since {since}
+          {data.sources.reduce((n, s) => n + (parseInt(s.read, 10) || 0), 0)} things read across {sourceCount} sources · since {since}, {daysReading} days ago
         </p>
       </section>
 
@@ -475,6 +484,11 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
           </div>
         </div>
       </section>
+
+      <footer className="pc-pt-foot">
+        <span className="pc-pt-wordmark">TwinMe</span>
+        <span className="pc-pt-mono">Read from what you already made</span>
+      </footer>
       </div>
     </main>
   );
