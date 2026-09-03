@@ -25,6 +25,8 @@ export type AskScript = { q: string; a: string; cites: string[] };
 export type SourceRow = { platform: string; label: string; read: string; since: string; kinds: string };
 export type PortraitData = {
   owner: string;
+  /** The one line the portrait opens with: a synthesis, never one of the five below. */
+  lead?: string;
   sources: SourceRow[];
   question: Question | null;
   signature: SignatureLine[];
@@ -44,27 +46,28 @@ export const SOURCE_LABEL: Record<string, string> = {
 
 export const DEMO_PORTRAIT: PortraitData = {
   owner: 'Stefano',
+  lead: 'You do your best work alone, with nobody waiting on you.',
   sources: [
-    { platform: 'github', label: 'GitHub', read: '182 items', since: '2026-06-08', kinds: 'work finished and shipped, and when you do it' },
+    { platform: 'github', label: 'GitHub', read: '182 items', since: '2026-06-08', kinds: 'finished work, and the hours you do it' },
     { platform: 'spotify', label: 'Spotify', read: '246 items', since: '2026-08-26', kinds: 'plays, repeats, new artists' },
-    { platform: 'google_gmail', label: 'Gmail', read: '155 items', since: '2026-07-15', kinds: 'metadata only: sender counts, send times, mix' },
+    { platform: 'google_gmail', label: 'Gmail', read: '155 items', since: '2026-07-15', kinds: 'sender counts, send times, never a name' },
     { platform: 'whoop', label: 'Whoop', read: '68 items', since: '2026-08-26', kinds: 'sleep, recovery, workouts' },
-    { platform: 'google_calendar', label: 'Calendar', read: '23 items', since: '2026-07-15', kinds: 'aggregates only: events per day, time of day' },
+    { platform: 'google_calendar', label: 'Calendar', read: '23 items', since: '2026-07-15', kinds: 'events per day, time of day, never a title' },
     { platform: 'youtube', label: 'YouTube', read: '4 items', since: '2026-07-15', kinds: 'subscriptions, topics' },
   ],
   question: {
     fromReadings: ['r06', 'r08'],
     evidenceLine: 'Whoop, Thursday: well recovered, but bedtime far from your usual.',
-    question: 'Your best days follow long sleep, and your bedtime moves by hours. Is the late night a choice or a spill-over?',
-    answers: ['A choice', 'Spill-over'],
+    question: 'Your best days follow long sleep, and your bedtime moves by hours. Last night ran late again.',
+    answers: ['I chose to stay up', 'It got away from me'],
     yourAnswer: null,
   },
   signature: [
     { domain: 'motivation', line: 'You work in bursts: days of quiet, then a week of work in one afternoon, by yourself.', from: ['r01', 'r02', 'r11'] },
-    { domain: 'personality', line: 'You steady yourself with repetition: the same songs, the same sequence, the same task until it is done.', from: ['r03', 'r08'] },
-    { domain: 'cultural', line: 'A new artist is a rabbit hole; your YouTube is football for joy and sociology for the toolkit.', from: ['r04', 'r05'] },
+    { domain: 'personality', line: 'Repetition is how you settle. The same songs, the same order, until the thing is done.', from: ['r03', 'r08'] },
+    { domain: 'cultural', line: 'A new artist becomes a whole morning. On YouTube it splits: football for joy, sociology for the toolkit.', from: ['r04', 'r05'] },
     { domain: 'social', line: 'You keep the circle tight and the evenings yours.', from: ['r09', 'r10'] },
-    { domain: 'lifestyle', line: 'Your rhythm follows your recovery score, and you rarely take the rest day it asks for.', from: ['r06', 'r07'] },
+    { domain: 'lifestyle', line: 'Your week runs on what you slept. The rest day your body asks for, you almost never take.', from: ['r06', 'r07'] },
   ],
   readings: [
     {
@@ -133,7 +136,7 @@ export const DEMO_PORTRAIT: PortraitData = {
       sourceReflection: '84a9f752-5282-4e25-9341-48cf55e97464',
       evidence: [
         { source: 'whoop', at: '2026-09-03 09:32', event: 'Slept 8.4 hours, well rested' },
-        { source: 'whoop', at: '2026-09-03 09:32', event: 'Recovered well, resting heart rate 50' },
+        { source: 'whoop', at: '2026-09-03 09:41', event: 'Recovered well, resting heart rate 50' },
         { source: 'github', at: '2026-09-03', event: 'Six pieces of work finished before lunch' },
       ],
       writtenAt: '2026-09-03', supportedAt: '2026-09-03', verdict: null,

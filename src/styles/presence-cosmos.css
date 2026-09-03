@@ -3782,357 +3782,750 @@ button.pc-search-icons {
 }
 
 /* ============================================================
-   Portrait — the product's one page (/demo first), 2026-09-03
-   Paper, one column of 720px, the ask pill pinned, bands with
-   the section rhythm, evidence cards from the demo recipe.
+   Portrait — the product's one page, 2026-09-03 (iteration 28)
+   One spine, one right edge, one gutter. Claims run in the wide
+   column, their proof sits beside them. Serif is what is read;
+   everything small is mono uppercase at one size and one grey;
+   every control is a hairline box that fills when it is chosen.
+   Monochrome by decision: the page is ink, paper and rules.
    ============================================================ */
 
+.presence-cosmos {
+  --c-mono: 'Geist Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --c-serif: 'Instrument Serif', 'Times New Roman', serif;
+  --c-sans-ui: 'Geist', ui-sans-serif, system-ui, sans-serif;
+  --c-mono-ink: #787573;
+  --pt-max: 1200px;
+  --pt-rail: 440px;
+  --pt-gap: 32px;
+  --pt-idx: 150px;
+  --pt-indent: 40px;
+  --pt-stanza: 96px;
+  --pt-serif-1: clamp(54px, 8.4vw, 122px);
+  --pt-serif-2: clamp(34px, 4.8vw, 68px);
+  --pt-serif-3: clamp(21px, 1.7vw, 24px);
+  --pt-serif-4: 21px;
+  --pt-serif-lead: clamp(32px, 3.4vw, 46px);
+}
+
 .pc-portrait {
-  padding: 0 var(--c-pad-x) 120px;
+  padding: 0 var(--c-pad-x);
 }
 
-.pc-pt-banner {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: 8px 16px;
-  margin: 0 calc(-1 * var(--c-pad-x));
-  padding: 12px var(--c-pad-x);
-  background: var(--c-ink);
-  color: var(--c-white);
-  font-size: 14px;
-  letter-spacing: -0.01em;
-  text-align: center;
+.pc-pt-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--pt-rail);
+  gap: 0 var(--pt-gap);
+  align-items: start;
 }
 
-.pc-pt-banner a {
-  color: var(--c-white);
+/* Voices: mono labels and timestamps, sans everything operational, serif what is read. */
+.pc-portrait .pc-pt-mono,
+.pc-portrait .pc-pt-mono a,
+.pc-portrait .pc-pt-mono button,
+.pc-portrait .pc-pt-mono th,
+.pc-portrait .pc-pt-mono span {
+  font-family: var(--c-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  line-height: 1.5;
+  color: var(--c-mono-ink);
+}
+
+.pc-portrait .pc-pt-mono a,
+.pc-portrait .pc-pt-mono button {
+  color: var(--c-ink-2);
+  transition: color 0.2s;
+}
+
+.pc-portrait .pc-pt-mono a:hover,
+.pc-portrait .pc-pt-mono button:hover {
+  color: var(--c-ink);
+}
+
+.presence-cosmos .pc-pt-serif {
+  font-family: var(--c-serif);
+  font-weight: 400;
+  font-size: var(--pt-serif-4);
+  line-height: 1.14;
+  letter-spacing: -0.012em;
+  color: var(--c-ink);
+}
+
+.pc-portrait .pc-pt-textbtn {
   text-decoration: underline;
   text-underline-offset: 3px;
 }
 
-.pc-pt-nav {
+.pc-portrait .pc-pt-textbtn.is-strong {
+  color: var(--c-ink);
+}
+
+/* Masthead. */
+.pc-pt-masthead {
+  max-width: var(--pt-max);
+  height: 76px;
+  margin: 0 auto;
   display: flex;
   align-items: center;
-  gap: 24px;
-  height: var(--c-header-outer);
-  max-width: 720px;
-  margin: 0 auto;
+  justify-content: space-between;
 }
 
-.pc-pt-nav .pc-mark {
-  width: 28px;
-  height: 28px;
-  color: var(--c-ink);
-}
-
-.pc-pt-nav nav {
-  display: flex;
-  gap: 18px;
-  font-size: 15px;
-  font-weight: 500;
-  color: var(--c-ink-2);
-}
-
-.pc-pt-nav nav a.is-active {
-  color: var(--c-ink);
-}
-
-.pc-pt-ask {
-  position: sticky;
-  top: 0;
-  z-index: 20;
-  max-width: 720px;
-  margin: 8px auto 0;
-  padding: 12px 0 10px;
-  display: grid;
-  gap: 10px;
-  background: var(--c-paper);
-  box-shadow: 0 12px 16px -12px rgba(13, 13, 13, 0.08);
-}
-
-/* The reply sits under the pinned pill and scrolls with the page. */
-.pc-pt-reply {
-  max-width: 720px;
-  margin: 16px auto 0;
-}
-
-.pc-pt-ask .pc-search {
-  width: 100%;
-}
-
-.pc-pt-ask-hints {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 6px;
-}
-
-.pc-pt-ask-hints button {
-  height: 30px;
-  padding: 0 12px;
-  border-radius: 999px;
-  border: 0.5px solid var(--c-border);
-  background: var(--c-paper);
+.pc-portrait .pc-pt-wordmark {
   font-size: 13px;
-  font-weight: 500;
-  color: var(--c-ink-2);
-  transition: background 0.2s, color 0.2s;
-}
-
-.pc-pt-ask-hints button:hover {
-  background: var(--c-hover-secondary);
+  letter-spacing: 0.16em;
   color: var(--c-ink);
 }
 
-.pc-pt-question,
-.pc-pt-signature,
-.pc-pt-ledger,
-.pc-pt-sources {
-  max-width: 720px;
-  margin: 96px auto 0;
+.pc-pt-masthead nav {
+  display: flex;
+  gap: 32px;
+  line-height: 1;
 }
 
-.pc-pt-question {
-  padding: 24px 26px 26px;
-  border-radius: 16px;
-  background: var(--c-white);
-  border: 0.5px solid var(--c-border);
-}
-
-.presence-cosmos .pc-pt-evidence-line {
-  margin-top: 10px;
-  font-size: 14px;
+.pc-portrait .pc-pt-masthead nav a {
+  padding-bottom: 4px;
+  border-bottom: 0.5px solid transparent;
   color: var(--c-ink-2);
 }
 
-.presence-cosmos .pc-pt-question h2 {
-  margin-top: 10px;
-  font-size: 26px;
-  font-weight: 400;
-  line-height: 1.25;
-  letter-spacing: -0.03em;
+.pc-portrait .pc-pt-masthead nav a:hover {
+  border-bottom-color: var(--c-ink);
 }
 
-.pc-pt-answers {
+.pc-pt-masthead-end {
+  justify-self: end;
+}
+
+.pc-portrait .pc-pt-masthead-end a {
+  padding-bottom: 4px;
+  border-bottom: 0.5px solid var(--c-ink);
+  color: var(--c-ink);
+}
+
+/* Movement one: the headline, its index, and its own stanza. */
+.pc-pt-hero {
+  max-width: var(--pt-max);
+  margin: 92px auto 0;
+  padding-bottom: 72px;
+}
+
+.pc-pt-index {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  margin: 48px 0 0;
+  padding-top: 18px;
+  border-top: 0.5px solid var(--c-ink);
+}
+
+.pc-pt-kicker {
+  margin: 0 0 26px;
+}
+
+.presence-cosmos .pc-pt-hero h1 {
+  max-width: 22ch;
+  padding-bottom: 0.14em;
+  font-size: var(--pt-serif-1);
+  line-height: 0.96;
+  letter-spacing: -0.028em;
+  text-wrap: balance;
+}
+
+.presence-cosmos .pc-pt-hero h1 em {
+  font-style: italic;
+}
+
+/* Movement two: the band, the pivot of the page. */
+.pc-pt-today {
+  margin: 0 calc(-1 * var(--c-pad-x));
+  padding: 108px var(--c-pad-x) 116px;
+  background: var(--c-ink);
+  color: var(--c-white);
+}
+
+.pc-pt-today-inner {
+  max-width: var(--pt-max);
+  margin: 0 auto;
+  display: block;
+}
+
+.pc-portrait .pc-pt-today .pc-pt-mono,
+.pc-portrait .pc-pt-today .pc-pt-mono span {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.presence-cosmos .pc-pt-today h2 {
+  max-width: 24ch;
+  font-size: var(--pt-serif-2);
+  line-height: 1;
+  letter-spacing: -0.022em;
+  text-wrap: balance;
+  letter-spacing: -0.016em;
+  color: var(--c-white);
+}
+
+.pc-pt-choices {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 20px;
+  gap: 12px;
+  margin-top: 40px;
+}
+
+.pc-portrait .pc-pt-choices button {
+  height: 40px;
+  padding: 0 20px;
+  font-family: var(--c-sans-ui);
+  font-size: 15px;
+  letter-spacing: -0.01em;
+  border: 0.5px solid rgba(255, 255, 255, 0.6);
+  line-height: 1;
+  color: var(--c-white);
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.pc-portrait .pc-pt-choices button:hover,
+.pc-portrait .pc-pt-choices button:focus-visible {
+  background: var(--c-white);
+  color: var(--c-ink);
+}
+
+.pc-portrait .pc-pt-skip {
+  margin-top: 34px;
+  font-family: var(--c-sans-ui);
+  font-size: 14px;
+  letter-spacing: -0.01em;
+  font-family: var(--c-sans-ui);
+  font-size: 14px;
+  letter-spacing: -0.01em;
+  color: rgba(255, 255, 255, 0.5);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  transition: color 0.2s;
+}
+
+.pc-portrait .pc-pt-today .pc-pt-skip:hover {
+  color: var(--c-white);
 }
 
 .presence-cosmos .pc-pt-answered {
+  margin-top: 32px;
+  font-size: var(--pt-serif-3);
+  color: var(--c-white);
+}
+
+.pc-pt-q-evidence {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  padding-top: 12px;
+  font-size: 15px;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* Movements three and four. */
+.pc-pt-signature,
+.pc-pt-ask,
+.pc-pt-sources {
+  max-width: var(--pt-max);
+  margin: 0 auto;
+}
+
+.pc-pt-signature,
+.pc-pt-ask,
+.pc-pt-sources { margin-top: 96px; }
+
+.pc-portrait .pc-pt-section-mark {
+  margin: 0;
+  padding-bottom: 14px;
+  border-bottom: 0.5px solid var(--c-ink);
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  color: var(--c-ink);
+}
+
+.pc-portrait .pc-pt-section-mark > span:first-child {
+  color: var(--c-ink);
+}
+
+/* The stanzas. */
+.pc-pt-lines {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.pc-pt-line {
+  border-bottom: 0.5px solid var(--c-border);
+}
+
+/* Chroma: a rule down the whole stanza, brighter when it is open. */
+.pc-pt-line.is-open {
+  border-bottom-color: var(--c-ink);
+}
+
+.pc-pt-line-head {
+  display: grid;
+  grid-template-columns: var(--pt-idx) minmax(0, 1fr) var(--pt-rail);
+  gap: 0 var(--pt-gap);
+  align-items: start;
+  padding: 28px 0 30px;
+}
+
+.presence-cosmos .pc-pt-label {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0;
+  padding-top: 9px;
+  color: var(--c-ink-2);
+}
+
+.pc-portrait .pc-pt-label b {
+  font-weight: 500;
+  color: var(--c-ink-4);
+}
+
+.presence-cosmos .pc-pt-sentence {
+  text-wrap: pretty;
+  font-size: var(--pt-serif-3);
+}
+
+.pc-pt-line.is-first .pc-pt-sentence {
+  font-size: var(--pt-serif-lead);
+  line-height: 1.08;
+}
+
+
+
+.pc-pt-count {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 2px;
+}
+
+.pc-portrait .pc-pt-open {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  margin-top: 18px;
-  font-size: 15px;
+  flex: none;
+  height: 40px;
+  padding: 0 18px;
+  font-family: var(--c-sans-ui);
+  font-size: 14px;
+  letter-spacing: -0.01em;
+  border: 0.5px solid var(--c-ink-3);
+  color: var(--c-ink);
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.pc-portrait .pc-pt-open:hover {
+  background: rgba(13, 13, 13, 0.05);
+}
+
+.pc-portrait .pc-pt-open.is-on {
+  border-color: var(--c-ink-4);
   color: var(--c-ink-2);
 }
 
-.presence-cosmos .pc-pt-signature h1 {
-  font-size: clamp(38px, 5vw, 56px);
-  font-weight: 300;
-  line-height: 1;
-  letter-spacing: -0.04em;
+.pc-portrait .pc-pt-open:hover {
+  color: var(--c-ink);
 }
 
-.pc-pt-signature ol {
+
+
+/* The open stanza: a claim, its verdict beneath, its proof in the margin. */
+.pc-pt-ledger {
   list-style: none;
-  margin: 32px 0 0;
-  padding: 0;
+  margin: 0;
+  padding: 0 0 18px;
+  animation: pc-pt-open 0.4s var(--c-ease-ui);
+}
+
+
+
+@keyframes pc-pt-open {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: none; }
+}
+
+.pc-pt-ledger-mark {
   display: grid;
-  gap: 22px;
-}
-
-.pc-pt-signature li {
-  display: grid;
-  grid-template-columns: 10px minmax(0, 1fr);
-  gap: 14px;
-  align-items: start;
-}
-
-.pc-pt-signature li i {
-  width: 10px;
-  height: 10px;
-  margin-top: 9px;
-  border-radius: 50%;
-}
-
-.presence-cosmos .pc-pt-signature li p {
-  font-size: 22px;
-  line-height: 1.3;
-  letter-spacing: -0.03em;
-}
-
-.pc-pt-signature li small {
-  display: block;
-  margin-top: 4px;
-  font-size: 13px;
-  color: var(--c-ink-3);
-}
-
-.pc-pt-signature li span {
-  display: flex;
-  gap: 6px;
-  margin-top: 6px;
-}
-
-.pc-pt-signature li span a {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--c-ink-2);
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
-.pc-pt-group {
-  margin-top: 28px;
-  display: grid;
-  gap: 8px;
-}
-
-.presence-cosmos .pc-pt-ledger .pc-h2,
-.presence-cosmos .pc-pt-sources .pc-h2 {
-  text-align: left;
+  grid-template-columns: var(--pt-idx) minmax(0, 1fr) var(--pt-rail);
+  gap: 0 var(--pt-gap);
+  padding-bottom: 12px;
 }
 
 .pc-pt-row {
-  border-radius: 16px;
-  background: var(--c-white);
-  border: 0.5px solid var(--c-border);
-  transition: border-color 0.2s, box-shadow 0.4s var(--c-ease-ui);
-}
-
-.pc-pt-row.is-lit {
-  border-color: var(--c-ink);
-  box-shadow: 0 0 0 3px rgba(13, 13, 13, 0.06);
-}
-
-.pc-pt-row-head {
-  width: 100%;
   display: grid;
-  grid-template-columns: 10px minmax(0, 1fr) 16px;
-  gap: 6px 14px;
+  grid-template-columns: var(--pt-idx) minmax(0, 1fr) var(--pt-rail);
+  gap: 0 var(--pt-gap);
   align-items: start;
-  padding: 16px 18px;
-  text-align: left;
+  padding: 26px 0 30px;
+  border-top: 0.5px solid var(--c-border);
 }
 
-.pc-pt-row-head i {
-  width: 10px;
-  height: 10px;
-  margin-top: 7px;
-  border-radius: 50%;
-}
-
-.presence-cosmos .pc-pt-row-head p {
-  font-size: 17px;
-  line-height: 1.35;
-  letter-spacing: -0.02em;
-}
-
-.pc-pt-row-head span {
-  grid-column: 2;
-  font-size: 13px;
-  color: var(--c-ink-3);
-}
-
-.pc-pt-row-head svg {
-  grid-column: 3;
-  grid-row: 1;
-  margin-top: 4px;
-  color: var(--c-ink-3);
-  transition: transform 0.25s var(--c-ease-ui);
-}
-
-.pc-pt-row.is-open .pc-pt-row-head svg {
-  transform: rotate(180deg);
-}
-
-.pc-pt-row-body {
-  padding: 0 18px 18px 42px;
+.pc-pt-row > div {
   display: grid;
-  gap: 14px;
+  gap: 20px;
+  align-content: start;
 }
 
-.pc-pt-verdict {
+.pc-pt-row-index {
+  margin: 0;
+  padding-top: 9px;
+}
+
+.presence-cosmos .pc-pt-claim {
+  margin: 0;
+  font-size: 17px;
+  line-height: 1.5;
+  letter-spacing: -0.012em;
+  text-wrap: pretty;
+  color: var(--c-ink);
+}
+
+.pc-portrait .pc-pt-cite-mark {
+  margin-right: 12px;
+  color: var(--c-ink);
+}
+
+.pc-pt-row.is-fading .pc-pt-claim,
+.pc-pt-row.is-disputed .pc-pt-claim {
+  color: var(--c-ink-3);
+}
+
+/* The verdict: three words, not three boxes. */
+.pc-pt-vote {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
 }
 
-.pc-pt-verdict small {
-  margin-right: 6px;
-  font-size: 13px;
+.pc-portrait .pc-pt-more .pc-pt-event {
   color: var(--c-ink-3);
 }
 
-.pc-pt-verdict .pc-btn {
+.pc-portrait .pc-pt-vote button {
+  min-width: 88px;
   height: 40px;
   padding: 0 16px;
-  gap: 6px;
-}
-
-.pc-pt-verdict .pc-btn.is-active {
-  background: var(--c-ink);
-  color: var(--c-white) !important; /* the ghost recipe pins its ink with !important */
-  border-color: var(--c-ink);
-}
-
-.pc-pt-source-list {
-  margin-top: 24px;
-  display: grid;
-  gap: 8px;
-}
-
-.pc-pt-source {
-  display: grid;
-  grid-template-columns: 110px minmax(0, 1fr) auto;
-  gap: 2px 16px;
-  align-items: baseline;
-  padding: 14px 18px;
-  border-radius: 16px;
-  background: var(--c-white);
-  border: 0.5px solid var(--c-border);
+  font-family: var(--c-sans-ui);
   font-size: 14px;
+  letter-spacing: -0.01em;
+  border: 0.5px solid var(--c-ink-3);
+  line-height: 1;
+  color: var(--c-ink);
+  transition: background 0.2s, color 0.2s;
 }
 
-.pc-pt-source strong {
-  font-weight: 500;
+.pc-portrait .pc-pt-vote button + button {
+  border-left: 0;
 }
 
-.pc-pt-source span {
+.pc-portrait .pc-pt-vote button:hover {
+  background: rgba(13, 13, 13, 0.05);
+}
+
+.pc-portrait .pc-pt-vote button.is-active {
+  background: var(--c-ink);
+  border-color: var(--c-ink);
+  color: var(--c-white);
+}
+
+.pc-pt-note {
+  font-size: 14px;
+  letter-spacing: -0.01em;
+  color: var(--c-ink-3);
+}
+
+/* Receipts, in the margin. */
+.pc-pt-evidence {
+  list-style: none;
+  margin: 0;
+  padding-top: 9px;
+}
+
+.pc-portrait .pc-pt-evidence li {
+  display: grid;
+  gap: 3px;
+  padding: 0 0 14px;
+}
+
+.pc-portrait .pc-pt-evidence li + li {
+  padding-top: 14px;
+  border-top: 0.5px solid var(--c-border);
+}
+
+.pc-portrait .pc-pt-evidence .pc-pt-mono {
+  font-variant-numeric: tabular-nums;
+}
+
+.pc-pt-when {
+  font-size: 13px;
+  letter-spacing: -0.005em;
+  font-variant-numeric: tabular-nums;
+  color: var(--c-ink-3);
+}
+
+.presence-cosmos .pc-pt-event {
+  font-size: 15px;
+  letter-spacing: -0.01em;
+  line-height: 1.4;
+  color: var(--c-ink);
+}
+
+/* Ask: the page's most open air; the answer is read, so it speaks serif. */
+.pc-pt-ask-body {
+  padding-top: 40px;
+  align-items: start;
+  grid-template-columns: minmax(0, 1fr) 300px;
+}
+
+.pc-pt-prompt {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  height: 64px;
+  border-bottom: 0.5px solid var(--c-ink);
+}
+
+.presence-cosmos .pc-pt-prompt input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 20px;
+  letter-spacing: -0.014em;
+  color: var(--c-ink);
+  outline: none;
+}
+
+.presence-cosmos .pc-pt-prompt input::placeholder {
+  color: var(--c-ink-3);
+}
+
+.pc-portrait .pc-pt-send {
+  flex: none;
+  height: 40px;
+  padding: 0 20px;
+  font-family: var(--c-sans-ui);
+  font-size: 14px;
+  letter-spacing: -0.01em;
+  background: var(--c-ink);
+  color: var(--c-white);
+  transition: opacity 0.2s;
+}
+
+.pc-portrait .pc-pt-send:hover {
+  opacity: 0.85;
+  color: var(--c-white);
+}
+
+.pc-portrait .pc-pt-send::after {
+  content: ' \2192';
+}
+
+.pc-pt-hints {
+  display: grid;
+  align-content: start;
+}
+
+.pc-portrait .pc-pt-hints > .pc-pt-mono {
+  padding: 0 0 12px;
+}
+
+.pc-portrait .pc-pt-hints button {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  text-align: left;
+  font-family: var(--c-sans-ui);
+  font-size: 15px;
+  letter-spacing: -0.01em;
+  line-height: 1.4;
+  color: var(--c-ink-2);
+  padding: 12px 0;
+  border-top: 0.5px solid var(--c-border);
+  transition: color 0.2s;
+}
+
+.pc-portrait .pc-pt-hints button i {
+  display: none;
+}
+
+.pc-portrait .pc-pt-hints button:hover {
+  color: var(--c-ink);
+}
+
+.pc-portrait .pc-pt-hints button:hover span {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.pc-portrait .pc-pt-hints button:last-child {
+  border-bottom: 0.5px solid var(--c-border);
+}
+
+.pc-pt-reply {
+  margin: 36px 0 0;
+  padding: 0;
+}
+
+.presence-cosmos .pc-pt-reply p {
+  max-width: 54ch;
+  margin: 0;
+  font-size: 19px;
+  line-height: 1.6;
+  letter-spacing: -0.012em;
+  color: var(--c-ink);
+}
+
+.presence-cosmos .pc-pt-reply footer {
+  margin-top: 24px;
+  font-size: 14px;
+  letter-spacing: -0.01em;
   color: var(--c-ink-2);
 }
 
-.pc-pt-source small {
-  grid-column: 2;
-  font-size: 13px;
-  color: var(--c-ink-3);
+.presence-cosmos .pc-pt-reply footer a {
+  margin: 0 2px;
+  color: var(--c-ink);
+  border-bottom: 0.5px solid currentColor;
 }
 
-.pc-pt-source em {
-  grid-column: 3;
-  grid-row: 1;
-  font-style: normal;
-  font-size: 13px;
+/* Sources. */
+.pc-pt-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: 15px;
+}
+
+.pc-pt-table th {
+  padding: 18px 24px 12px 0;
+  text-align: left;
+  color: var(--c-ink);
+  border-bottom: 0.5px solid var(--c-ink);
+}
+
+.pc-pt-table td {
+  padding: 15px 24px 15px 0;
+  vertical-align: baseline;
+  border-bottom: 0.5px solid var(--c-border);
+}
+
+.pc-pt-table td:first-child,
+.pc-pt-table th:first-child {
+  width: 180px;
   font-weight: 500;
-  color: var(--c-ink-3);
+  white-space: nowrap;
 }
 
-@media (max-width: 640px) {
-  .pc-portrait { padding: 0 20px 96px; }
-  .pc-pt-banner { margin: 0 -20px; padding: 12px 20px; }
-  .pc-pt-question, .pc-pt-signature, .pc-pt-ledger, .pc-pt-sources { margin-top: 64px; }
-  .pc-pt-source { grid-template-columns: minmax(0, 1fr) auto; }
-  .pc-pt-source span, .pc-pt-source small { grid-column: 1; }
-  .pc-pt-row-body { padding-left: 18px; }
+.pc-pt-table .is-kinds {
+  width: 44%;
 }
 
-/* Portrait: loading, error and empty states share one quiet column. */
+.pc-pt-table .is-kinds {
+  color: var(--c-ink-2);
+}
+
+.pc-pt-table .is-since {
+  color: var(--c-ink-2);
+  white-space: nowrap;
+}
+
+.pc-pt-table .is-num {
+  width: 120px;
+  padding-right: 0;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.pc-pt-table tfoot td {
+  padding-top: 18px;
+  border-top: 1px solid var(--c-ink);
+  border-bottom: 0;
+  font-weight: 500;
+  color: var(--c-ink);
+}
+
+.pc-pt-table .is-act {
+  width: 80px;
+  text-align: right;
+  padding-right: 0;
+  white-space: nowrap;
+}
+
+.pc-pt-confirm-row td {
+  padding-top: 0;
+}
+
+.pc-pt-confirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 20px;
+  padding: 16px 0 4px;
+  font-size: 14px;
+  color: var(--c-ink);
+}
+
+.pc-pt-close {
+  margin: 96px calc(-1 * var(--c-pad-x)) 0;
+  padding: 64px var(--c-pad-x) 68px;
+  background: var(--c-ink);
+  color: var(--c-white);
+}
+
+.pc-pt-close-inner {
+  max-width: var(--pt-max);
+  margin: 0 auto;
+}
+
+.presence-cosmos .pc-pt-close p {
+  max-width: 34ch;
+  margin: 0;
+  font-family: var(--c-sans-ui);
+  font-size: 17px;
+  line-height: 1.5;
+  letter-spacing: -0.01em;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.pc-pt-close-rail {
+  display: grid;
+  justify-items: start;
+  gap: 20px;
+  padding-top: 14px;
+}
+
+.presence-cosmos .pc-pt-close-cta {
+  display: inline-flex;
+  align-items: center;
+  height: 52px;
+  padding: 0 28px;
+  font-size: 15px;
+  letter-spacing: -0.01em;
+  background: var(--c-white);
+  color: var(--c-ink) !important;
+  transition: opacity 0.2s;
+}
+
+.presence-cosmos .pc-pt-close-cta:hover {
+  opacity: 0.82;
+}
+
+.pc-portrait .pc-pt-close .pc-pt-mono {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* Loading, error and empty states share one quiet column. */
 .pc-pt-empty {
   min-height: 70dvh;
   display: grid;
@@ -4155,40 +4548,39 @@ button.pc-search-icons {
   color: var(--c-ink-2);
 }
 
-/* Sources: the one destructive act, in two steps, inside the row. */
-.pc-pt-source-delete {
-  grid-column: 1 / -1;
-  justify-self: start;
-  margin-top: 6px;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--c-ink-3);
-  text-decoration: underline;
-  text-underline-offset: 3px;
+@media (max-width: 1080px) {
+  .presence-cosmos { --pt-rail: 320px; --pt-gap: 40px; --pt-indent: 24px; }
+  .presence-cosmos { --pt-idx: 140px; }
+  .presence-cosmos .pc-pt-claim { max-width: none; }
+  .presence-cosmos .pc-pt-sentence { max-width: none; }
 }
 
-.pc-pt-source-delete:hover {
-  color: var(--c-ink);
-}
-
-.pc-pt-source-confirm {
-  grid-column: 1 / -1;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  margin-top: 10px;
-  padding-top: 12px;
-  border-top: 0.5px solid var(--c-border);
-}
-
-.pc-pt-source-confirm > span {
-  flex: 1 1 100%;
-  font-size: 14px;
-  color: var(--c-ink);
-}
-
-.pc-pt-source-confirm .pc-btn {
-  height: 40px;
-  padding: 0 16px;
+@media (max-width: 760px) {
+  .presence-cosmos { --pt-stanza: 64px; --pt-indent: 16px; }
+  .pc-portrait { padding: 0 20px 64px; }
+  .pc-pt-grid, .pc-pt-line-head, .pc-pt-row, .pc-pt-ledger-mark,
+  .pc-pt-ledger .pc-pt-row, .pc-pt-ledger .pc-pt-ledger-mark { grid-template-columns: 1fr; gap: 14px 0; }
+  .pc-pt-ledger { margin-left: 0; padding-left: 16px; }
+  .pc-pt-row-index { padding-top: 0; }
+  .presence-cosmos .pc-pt-label { padding-top: 0; }
+  .presence-cosmos .pc-pt-sentence { max-width: none; }
+  .pc-pt-index { flex-direction: column; gap: 8px; }
+  .pc-pt-masthead { height: 64px; }
+  .pc-pt-masthead nav { display: none; }
+  .pc-pt-hero { margin-top: 40px; }
+  .presence-cosmos .pc-pt-hero h1 { max-width: none; }
+  .pc-pt-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 16px; }
+  .pc-pt-today { margin: var(--pt-stanza) -20px 0; padding: 56px 20px; }
+  .presence-cosmos .pc-pt-today h2 { max-width: none; }
+  .pc-pt-count { flex-wrap: wrap; gap: 10px 20px; }
+  .pc-pt-ask-body { padding-top: 26px; }
+  .pc-pt-hints { padding-top: 0; }
+  .presence-cosmos .pc-pt-reply p { max-width: none; }
+  .pc-pt-table thead { display: none; }
+  .pc-pt-table tr { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; padding: 14px 0; border-bottom: 0.5px solid var(--c-border); }
+  .pc-pt-table td { padding: 0; border: 0; width: auto; }
+  .pc-pt-table td.is-kinds { grid-column: 1 / -1; }
+  .pc-pt-table td.is-num { width: auto; }
+  .pc-pt-close { margin: var(--pt-stanza) -20px 0; padding: 56px 20px 60px; }
+  .presence-cosmos .pc-pt-close p { max-width: none; }
 }

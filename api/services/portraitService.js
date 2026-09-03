@@ -41,14 +41,14 @@ export const SOURCE_LABEL = {
 };
 
 const SOURCE_KINDS = {
-  github: 'work finished and shipped, and when you do it',
+  github: 'finished work, and the hours you do it',
   spotify: 'plays, repeats, new artists',
-  google_gmail: 'counts and rhythms only, never a name or a subject',
+  google_gmail: 'sender counts, send times, never a name',
   whoop: 'sleep, recovery, workouts',
-  google_calendar: 'aggregates only: events per day, time of day',
+  google_calendar: 'events per day, time of day, never a title',
   youtube: 'subscriptions, topics',
-  discord: 'where you talk and how much',
-  outlook: 'counts and rhythms only',
+  discord: 'where you talk, how much',
+  outlook: 'send times, never a name',
 };
 
 const NEW_DAYS = 7;
