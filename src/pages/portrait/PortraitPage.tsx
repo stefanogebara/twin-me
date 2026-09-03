@@ -236,8 +236,12 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
     if (!open) {
       return (
         <p className="pc-pt-count">
-          <span>{sources.join(', ')}</span>
-          <span className="pc-pt-mono">{b.readings.length} readings · {receipts} receipts</span>
+          {first ? (
+            <>
+              <span className="pc-pt-when">{when(first.at)} · {SOURCE_LABEL[first.source] ?? first.source}</span>
+              <span className="pc-pt-event">{first.event}</span>
+            </>
+          ) : <span>{sources.join(', ')}</span>}
         </p>
       );
     }
@@ -301,12 +305,9 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
           <Link to={banner ? '/' : '/sources'} className="pc-pt-nav-cta">{banner ? 'Read yourself' : 'Your sources'}</Link>
         </header>
         <div className="pc-pt-hero-body">
-          <p className="pc-pt-kicker">{banner ?? <>{data.owner}'s portrait</>}</p>
           <h1 id="pc-pt-headline" className="pc-pt-serif">{lead ? <Headline text={lead} /> : `${data.owner}.`}</h1>
-          <p className="pc-pt-promise">Every line here is something you did, and every line keeps its receipts.</p>
+          <p className="pc-pt-promise">{banner ? <>Stefano's own data. Every line keeps its receipts.</> : <>Every line here keeps its receipts.</>}</p>
         </div>
-      </section>
-
       {data.question ? (
         <section className="pc-pt-today" aria-labelledby="pc-pt-q-title">
           <div className="pc-pt-today-inner">
@@ -326,8 +327,8 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
               ) : (
                 <>
                   <div className="pc-pt-choices">
-                    {data.question.answers.map((a) => (
-                      <button key={a} type="button" className={a === data.question!.answers[0] ? 'is-lead' : ''} onClick={() => answerToday(a)}>{a}</button>
+                    {data.question.answers.map((a, i) => (
+                      <button key={a} type="button" className={i === 0 ? 'is-lead' : 'is-quiet'} onClick={() => answerToday(a)}>{a}</button>
                     ))}
                   </div>
                   <button type="button" className="pc-pt-skip" onClick={() => answerToday('skipped')}>Skip today</button>
@@ -337,6 +338,8 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
           </div>
         </section>
       ) : null}
+
+      </section>
 
       <section className="pc-pt-signature" id="signature" aria-label="Signature">
         <p className="pc-pt-section-mark">Signature</p>

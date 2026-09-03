@@ -3782,7 +3782,7 @@ button.pc-search-icons {
 }
 
 /* ============================================================
-   Portrait — the product's one page, 2026-09-03 (iteration 47)
+   Portrait — the product's one page, 2026-09-03 (iteration 49)
    Locked to the references Stefano chose (cora.computer,
    createanything.com) and to this product's own landing: the page
    opens inside a photographed room, the frosted pill floats over
@@ -3844,9 +3844,9 @@ button.pc-search-icons {
 
 .pc-pt-hero {
   position: relative;
-  min-height: min(100vh, 940px);
   display: flex;
   flex-direction: column;
+  padding-bottom: 96px;
   overflow: hidden;
   background: #14161a;
   color: var(--c-white);
@@ -3854,12 +3854,13 @@ button.pc-search-icons {
 
 .pc-pt-still {
   position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+  inset: -6px;
+  width: calc(100% + 12px);
+  height: calc(100% + 12px);
   object-fit: cover;
-  object-position: center 52%;
-  filter: brightness(1.06) saturate(1.06);
+  /* Cropped to the lamp side: one warm incident, most of the frame quiet. */
+  object-position: 74% 62%;
+  filter: brightness(1.04) saturate(1.06);
 }
 
 /* The room is dimmed enough that type holds anywhere on it. */
@@ -3868,8 +3869,8 @@ button.pc-search-icons {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(58% 46% at 50% 42%, rgba(8, 10, 13, 0.62) 0%, rgba(8, 10, 13, 0.28) 62%, rgba(8, 10, 13, 0) 100%),
-    linear-gradient(180deg, rgba(10, 12, 15, 0.42) 0%, rgba(10, 12, 15, 0.2) 26%, rgba(10, 12, 15, 0.5) 64%, rgba(10, 12, 15, 0.8) 100%);
+    radial-gradient(70% 50% at 50% 34%, rgba(8, 10, 13, 0.5) 0%, rgba(8, 10, 13, 0.24) 60%, rgba(8, 10, 13, 0.12) 100%),
+    linear-gradient(180deg, rgba(10, 12, 15, 0.4) 0%, rgba(10, 12, 15, 0.26) 30%, rgba(10, 12, 15, 0.34) 100%);
 }
 
 
@@ -3943,7 +3944,6 @@ button.pc-search-icons {
 
 /* The headline stands in the room. */
 .pc-pt-hero-body {
-  flex: 1;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -3951,8 +3951,9 @@ button.pc-search-icons {
   text-align: center;
   max-width: var(--pt-max);
   width: calc(100% - 48px);
+  min-height: 62vh;
   margin: 0 auto;
-  padding-bottom: 190px;
+  padding: 40px 0 72px;
 }
 
 .presence-cosmos .pc-pt-kicker {
@@ -3966,14 +3967,14 @@ button.pc-search-icons {
 }
 
 .presence-cosmos .pc-pt-hero h1 {
-  max-width: 17ch;
+  max-width: 24ch;
   margin: 0;
-  font-size: clamp(40px, 5.4vw, 74px);
-  line-height: 1.06;
-  letter-spacing: -0.02em;
+  font-size: clamp(44px, 6.2vw, 86px);
+  line-height: 1.02;
+  letter-spacing: -0.022em;
   text-wrap: balance;
   color: var(--c-white);
-  text-shadow: 0 1px 40px rgba(6, 8, 11, 0.35);
+  text-shadow: 0 1px 50px rgba(6, 8, 11, 0.4);
 }
 
 .presence-cosmos .pc-pt-hero h1 em {
@@ -3981,29 +3982,28 @@ button.pc-search-icons {
 }
 
 .presence-cosmos .pc-pt-promise {
-  max-width: 46ch;
-  margin: 26px 0 0;
-  font-size: 19px;
+  max-width: none;
+  margin: 28px 0 0;
+  font-size: 20px;
   line-height: 1.5;
   letter-spacing: -0.012em;
-  color: rgba(255, 255, 255, 0.84);
+  color: rgba(255, 255, 255, 0.86);
 }
 
 /* ---- Today: the second photographed beat ------------------------ */
 
 .pc-pt-today {
   position: relative;
-  z-index: 2;
-  max-width: var(--pt-max);
-  margin: -200px auto 0;
-  border: 0.5px solid rgba(255, 255, 255, 0.14);
-  box-shadow: 0 30px 80px rgba(10, 12, 15, 0.4);
+  z-index: 1;
+  max-width: 900px;
   width: calc(100% - 48px);
-  display: flex;
-  align-items: center;
+  margin: 0 auto;
   overflow: hidden;
   border-radius: var(--pt-card);
-  background: var(--c-ink);
+  background: rgba(10, 12, 15, 0.58);
+  backdrop-filter: blur(30px) saturate(140%);
+  -webkit-backdrop-filter: blur(30px) saturate(140%);
+  border: 0.5px solid rgba(255, 255, 255, 0.16);
   color: var(--c-white);
 }
 
@@ -4066,32 +4066,39 @@ button.pc-search-icons {
 }
 
 .pc-portrait .pc-pt-choices button {
-  height: 48px;
-  padding: 0 22px;
-  border-radius: 16px;
-  border: 0.5px solid rgba(255, 255, 255, 0.4);
+  height: 50px;
+  padding: 0 26px;
+  border-radius: 999px;
+  border: 0.5px solid transparent;
   font-family: var(--c-sans-ui);
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 500;
   letter-spacing: -0.01em;
   color: var(--c-white);
   transition: background 0.2s, color 0.2s, border-color 0.2s;
 }
 
-.pc-portrait .pc-pt-choices .is-lead,
-.pc-portrait .pc-pt-choices button:hover {
+.pc-portrait .pc-pt-choices .is-lead {
   background: var(--c-white);
-  border-color: var(--c-white);
   color: var(--c-ink);
 }
 
+.pc-portrait .pc-pt-choices .is-quiet {
+  border-color: rgba(255, 255, 255, 0.32);
+}
+
+.pc-portrait .pc-pt-choices .is-quiet:hover {
+  border-color: var(--c-white);
+}
+
 .pc-portrait .pc-pt-skip {
-  margin-top: 20px;
-  font-family: var(--c-sans-ui);
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.6);
-  text-decoration: underline;
-  text-underline-offset: 4px;
+  margin-top: 22px;
+  font-family: var(--c-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.5);
   transition: color 0.2s;
 }
 
@@ -4113,12 +4120,14 @@ button.pc-search-icons {
 .pc-pt-sources {
   max-width: var(--pt-max);
   width: calc(100% - 48px);
-  margin: 80px auto 0;
+  margin: 72px auto 0;
 }
 
+.pc-pt-signature { margin-top: 88px; }
+
 .pc-portrait .pc-pt-section-mark {
-  margin: 0 0 16px;
-  padding: 0 4px;
+  margin: 0 0 14px;
+  padding: 0;
   font-family: var(--c-mono);
   font-size: 11px;
   font-weight: 500;
@@ -4130,12 +4139,23 @@ button.pc-search-icons {
 .pc-pt-lines {
   list-style: none;
   display: grid;
-  gap: 12px;
+  gap: 0;
   margin: 0;
   padding: 0;
 }
 
 .pc-pt-line {
+  border-bottom: 0.5px solid var(--c-border);
+}
+
+.pc-pt-line:last-child {
+  border-bottom: 0;
+}
+
+/* The one that is open becomes an object; the rest stay a list. */
+.pc-pt-line.is-open {
+  margin: 0 -32px 20px;
+  border-bottom: 0;
   border-radius: var(--pt-card);
   background: var(--c-white);
   border: 0.5px solid var(--c-border);
@@ -4148,14 +4168,23 @@ button.pc-search-icons {
   grid-template-columns: var(--pt-idx) minmax(0, 1fr) var(--pt-rail);
   gap: 0 var(--pt-gap);
   align-items: start;
-  padding: 30px 32px 32px;
+  padding: 22px 0 24px;
   text-align: left;
-  transition: background 0.2s;
+  transition: opacity 0.2s;
 }
 
-.pc-portrait .pc-pt-line-head:not(:disabled):hover {
-  background: rgba(13, 13, 13, 0.022);
+.pc-pt-line.is-open .pc-pt-line-head {
+  padding: 30px 32px 26px;
 }
+
+.pc-portrait .pc-pt-line-head:not(:disabled):hover .pc-pt-sentence {
+  text-decoration: underline;
+  text-decoration-thickness: 0.5px;
+  text-underline-offset: 6px;
+  text-decoration-color: var(--c-ink-4);
+}
+
+
 
 .presence-cosmos .pc-pt-label {
   margin: 0;
@@ -4170,15 +4199,21 @@ button.pc-search-icons {
 
 .presence-cosmos .pc-pt-sentence {
   margin: 0;
-  font-size: clamp(24px, 2.2vw, 30px);
+  font-size: 24px;
+  line-height: 1.2;
   text-wrap: pretty;
+}
+
+.pc-pt-line.is-open .pc-pt-sentence {
+  font-size: clamp(26px, 2.4vw, 33px);
+  line-height: 1.14;
 }
 
 .presence-cosmos .pc-pt-count {
   display: grid;
-  gap: 6px;
+  gap: 3px;
   margin: 0;
-  padding-top: 10px;
+  padding-top: 6px;
   font-size: 14px;
   line-height: 1.45;
   color: var(--c-ink-3);
@@ -4232,8 +4267,12 @@ button.pc-search-icons {
   grid-template-columns: var(--pt-idx) minmax(0, 1fr) var(--pt-rail);
   gap: 0 var(--pt-gap);
   align-items: start;
-  padding: 24px 0 26px;
+  padding: 22px 0 24px;
   border-top: 0.5px solid var(--c-border);
+}
+
+.pc-pt-row:last-child {
+  padding-bottom: 4px;
 }
 
 .pc-pt-row > div {
