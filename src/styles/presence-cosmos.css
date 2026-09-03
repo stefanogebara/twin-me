@@ -3841,12 +3841,15 @@ button.pc-search-icons {
 
 .pc-pt-ask {
   position: sticky;
-  top: 12px;
+  top: 0;
   z-index: 20;
   max-width: 720px;
   margin: 8px auto 0;
+  padding: 12px 0 10px;
   display: grid;
   gap: 10px;
+  background: var(--c-paper);
+  box-shadow: 0 12px 16px -12px rgba(13, 13, 13, 0.08);
 }
 
 /* The reply sits under the pinned pill and scrolls with the page. */
