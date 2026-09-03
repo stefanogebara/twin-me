@@ -15,6 +15,10 @@
 
 ## Em aberto — precisa de decisão do Stefano
 
+> Dois itens desta seção foram **decididos em 2026-08-25** e estão marcados
+> DECIDIDO no corpo: o número público de fidelidade e o vocabulário "digital
+> twin". Ficam aqui para registro do raciocínio; não precisam ser rediscutidos.
+
 ### [DISCUTIR 10/15] Um processo mira o número de acurácia, não a inferência
 **Data:** 2026-08-24 · **Eixos:** P2 A2 D2 E2 L2
 **Fonte:** [petição inicial, Surber v. Oura, 3:26-cv-08686 N.D. Cal.](https://clarksonlawfirm.com/wp-content/uploads/2026/08/COMPLAINT-26-cv-08686-Surber-v.-Oura-Inc.-et-al.pdf) · [TechCrunch](https://techcrunch.com/2026/08/21/oura-faces-lawsuit-accusing-it-of-misleading-consumers-about-sleep-tracking-accuracy/)
@@ -48,12 +52,21 @@ analogia é imperfeita — Big Five não tem equivalente de polissonografia, ent
 mais forte do caso (contradição contra gold standard) não transfere. O que transfere é a
 perna do claim quantificado autoproduzido.
 
-**A pergunta:** o `/p/:userId` é a única superfície hetero-referente do produto e é
-justamente ela que carrega o número para terceiros sem auth — enquanto a `bets[0]` diz que
-o valor é o usuário se entender. Você quer (a) manter o número e blindá-lo publicando
-`normalized_fidelity` com n e data, (b) manter o portfólio e tirar o número, ou (c)
-aceitar que a vitrine pública é aposta de crescimento e vale o risco? É exatamente a zona
-cinzenta que o `STATE.md` pediu para escrever em `settled[0]`.
+**DECIDIDO em 2026-08-25 (PR #266) — opção (a).** O número fica e ficou honesto: o
+payload publica `normalized_fidelity` quando existe, com `self_consistency`, n, wave e
+data, sob "Not a clinical measure"; o bruto virou fallback rotulado.
+
+A investigação achou algo pior que a legenda. `wave` reinicia em 1 a cada revisão de
+bateria, e as duas leituras ordenavam só por `wave` — com as três checagens reais empatadas
+em wave 1, o Postgres escolhia. A página pública servia **0.825 da bateria v1 aposentada
+(20 itens, 3/ago)** enquanto a v3 corrente media **0.610 (12/ago)**: o maior dos três, de
+uma versão que não existe mais, sem data até a correção da legenda. As duas queries agora
+ordenam `battery_version, wave, created_at`, com teste de regressão que grava as chamadas
+de `order()`.
+
+(b) tirar o número e (c) aceitar o risco continuam disponíveis — o bloco está a um delete
+de (b). (a) foi escolhida por ser a única que não exige juízo de negócio: torna a afirmação
+verdadeira em vez de removê-la ou defendê-la.
 
 ---
 
@@ -188,10 +201,16 @@ publicamente a coisa da Simile.
 **O que a fonte não prova:** é reportagem de rodada, não benchmark. Nada sobre
 qualidade da simulação nem sobre roadmap de produto ao consumidor.
 
-**A pergunta:** vale continuar chamando de "gêmeo digital" quando o termo
-está sendo capturado por um player de US$ 2 bi fazendo o oposto do que você
-faz — ou "soul signature" passa a ser o nome de tudo, e "gêmeo digital" some
-do copy?
+**DECIDIDO em 2026-08-25 (PR #266).** "digital twin" saiu da UI — 11 strings viraram
+"your twin" / "soul signature" em notificações, waitlist, onboarding, progresso e privacidade.
+
+Ficou deliberadamente em dois lugares: **Terms e Privacy**, onde é a definição em linguagem
+simples do que o serviço faz (reescrever definição legal para ganhar discussão de
+posicionamento deixa o documento menos exato, não mais atual), e nos **prompts de LLM**
+(`TWIN_BASE_INSTRUCTIONS` etc.), que nenhum usuário lê e onde mudar texto é mudar
+comportamento — deve ao harness de fidelidade uma rodada, e a regra de `settled` é que flag
+só entra se mover o score. Se o termo sair dos prompts, que seja de carona numa mudança que
+já vá ser avaliada.
 
 ---
 
