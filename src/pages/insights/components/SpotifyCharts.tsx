@@ -25,7 +25,7 @@ export const SpotifyCharts: React.FC<SpotifyChartsProps> = ({
         <div className="mb-6">
           <span
             className="text-[11px] font-medium tracking-widest uppercase block mb-4"
-            style={{ color: '#10b77f' }}
+            style={{ color: 'var(--n-verdigris)' }}
           >
             Recently Playing
           </span>
@@ -75,7 +75,7 @@ export const SpotifyCharts: React.FC<SpotifyChartsProps> = ({
         <div className="p-4 rounded-[20px] mb-6" style={{ border: '1px solid var(--border-glass)', backgroundColor: 'var(--surface)', backdropFilter: 'blur(42px)', WebkitBackdropFilter: 'blur(42px)' }}>
           <span
             className="text-[11px] font-medium tracking-widest uppercase block mb-4"
-            style={{ color: '#10b77f' }}
+            style={{ color: 'var(--n-verdigris)' }}
           >
             Top Artists
           </span>
@@ -119,7 +119,7 @@ export const SpotifyCharts: React.FC<SpotifyChartsProps> = ({
         <div className="p-4 rounded-[20px] mb-6" style={{ border: '1px solid var(--border-glass)', backgroundColor: 'var(--surface)', backdropFilter: 'blur(42px)', WebkitBackdropFilter: 'blur(42px)' }}>
           <span
             className="text-[11px] font-medium tracking-widest uppercase block mb-4"
-            style={{ color: '#10b77f' }}
+            style={{ color: 'var(--n-verdigris)' }}
           >
             Genre Distribution
           </span>
@@ -182,7 +182,7 @@ export const SpotifyCharts: React.FC<SpotifyChartsProps> = ({
         <div className="p-4 rounded-[20px] mb-6" style={{ border: '1px solid var(--border-glass)', backgroundColor: 'var(--surface)', backdropFilter: 'blur(42px)', WebkitBackdropFilter: 'blur(42px)' }}>
           <span
             className="text-[11px] font-medium tracking-widest uppercase block mb-4"
-            style={{ color: '#10b77f' }}
+            style={{ color: 'var(--n-verdigris)' }}
           >
             Your Peak Listening Hours
           </span>

@@ -78,7 +78,7 @@ export default function GitHubConnectCard({ cardStyle }: GitHubConnectCardProps)
           <Github className="w-5 h-5" style={{ color: 'var(--text-secondary)' }} />
           <h2
             className="text-[11px] font-medium tracking-widest uppercase"
-            style={{ color: '#10b77f' }}
+            style={{ color: 'var(--n-verdigris)' }}
           >
             GitHub Activity
           </h2>
@@ -97,7 +97,7 @@ export default function GitHubConnectCard({ cardStyle }: GitHubConnectCardProps)
           <Github className="w-5 h-5" style={{ color: 'var(--text-secondary)' }} />
           <h2
             className="text-[11px] font-medium tracking-widest uppercase"
-            style={{ color: '#10b77f' }}
+            style={{ color: 'var(--n-verdigris)' }}
           >
             GitHub Activity
           </h2>
@@ -174,7 +174,7 @@ export default function GitHubConnectCard({ cardStyle }: GitHubConnectCardProps)
               onClick={() => connectMut.mutate()}
               disabled={!pat.trim() || connectMut.isPending}
               className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg disabled:opacity-40 transition-colors"
-              style={{ backgroundColor: '#10b77f', color: '#0a0f0a' }}
+              style={{ backgroundColor: 'var(--n-verdigris)', color: '#0a0f0a' }}
             >
               {connectMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Github className="w-4 h-4" />}
               Connect GitHub

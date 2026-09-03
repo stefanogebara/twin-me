@@ -10,7 +10,7 @@ const CHIP_STYLE: React.CSSProperties = {
   background: 'var(--surface)',
   border: '1px solid var(--border-glass)',
   color: 'var(--text-secondary)',
-  fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
+  fontFamily: 'var(--font-ui)',
 };
 
 /**

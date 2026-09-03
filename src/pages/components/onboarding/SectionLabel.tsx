@@ -11,7 +11,7 @@ interface SectionLabelProps {
 export const SectionLabel: React.FC<SectionLabelProps> = ({ label }) => (
   <span
     className="text-[12px] font-medium tracking-[0.08em] uppercase block mb-4"
-    style={{ color: 'var(--text-secondary)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+    style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-ui)' }}
   >
     {label}
   </span>

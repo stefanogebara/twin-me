@@ -64,7 +64,7 @@ export const DataVerification: React.FC<DataVerificationProps> = ({ connectedSer
       <div className="flex items-center justify-between mb-3">
         <span
           className="text-[11px] tracking-[0.08em] uppercase"
-          style={{ color: 'var(--text-muted)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+          style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}
         >
           Platform Status
         </span>
@@ -112,7 +112,7 @@ export const DataVerification: React.FC<DataVerificationProps> = ({ connectedSer
                   className="text-[12px]"
                   style={{
                     color: expired ? 'rgba(220,38,38,0.8)' : 'rgba(255,255,255,0.50)',
-                    fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
+                    fontFamily: 'var(--font-ui)',
                   }}
                 >
                   {name}

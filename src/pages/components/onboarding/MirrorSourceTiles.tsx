@@ -14,7 +14,7 @@ import { Check, Monitor } from 'lucide-react';
 import type { PlatformBreakdownEntry } from '@/hooks/usePlatformsSummary';
 import { AVAILABLE_CONNECTORS } from '../../onboarding/components/connectorConfig';
 
-const FONT = "'Geist', 'Inter', system-ui, sans-serif";
+const FONT = 'var(--font-ui)';
 
 function relativeTime(dateStr: string | null | undefined): string {
   if (!dateStr) return 'recently';

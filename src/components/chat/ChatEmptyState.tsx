@@ -185,7 +185,7 @@ export const ChatEmptyState = ({
               color: 'var(--foreground)',
               background: 'var(--surface)',
               border: '1px solid var(--glass-surface-border)',
-              fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
+              fontFamily: 'var(--font-ui)',
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = 'var(--surface-solid)';
@@ -218,7 +218,7 @@ export const ChatEmptyState = ({
                 color: 'var(--text-secondary)',
                 background: 'transparent',
                 border: '1px solid var(--border-glass)',
-                fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
+                fontFamily: 'var(--font-ui)',
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = 'var(--surface)';

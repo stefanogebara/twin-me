@@ -1,7 +1,7 @@
 /**
  * Soul Signature share card — drawn directly on canvas, no DOM capture.
- * 1080x1920 (Instagram Stories) on the Claura canvas: #13121a + the four
- * ambient orbs from ClassicBackground, Instrument Serif narrative.
+ * 1080x1920 (Instagram Stories) on the Nocturne canvas: flat obsidian,
+ * no orbs, Fraunces narrative over a mono source line.
  */
 
 interface ShareCardInput {
@@ -12,20 +12,6 @@ interface ShareCardInput {
 
 const W = 1080;
 const H = 1920;
-
-function orb(
-  ctx: CanvasRenderingContext2D,
-  cx: number,
-  cy: number,
-  r: number,
-  rgba: string,
-) {
-  const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-  g.addColorStop(0, rgba);
-  g.addColorStop(1, 'rgba(0,0,0,0)');
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, W, H);
-}
 
 function wrapText(
   ctx: CanvasRenderingContext2D,
@@ -57,26 +43,27 @@ export async function renderShareCard({ name, lines, sources }: ShareCardInput):
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('canvas 2d context unavailable');
 
-  const serif = "var(--font-heading)";
-  const sans = "'Geist', 'Inter', system-ui, sans-serif";
+  // Canvas resolves NO CSS custom properties. `ctx.font = '400 54px
+  // var(--font-heading)'` is an invalid font string, and the spec says an
+  // invalid assignment is IGNORED — so ctx.font silently stayed at its
+  // default 10px sans-serif and the whole card rendered in tiny system type.
+  // That shipped: the var() spelling is on main. Canvas needs real families.
+  const serif = "'Fraunces', Georgia, 'Times New Roman', serif";
+  const sans = "'Inter', system-ui, -apple-system, sans-serif";
 
-  // Canvas + orbs (ClassicBackground geometry, scaled)
-  ctx.fillStyle = '#13121a';
+  // Nocturne: flat obsidian, no orbs (Law 1 — elevation is a colour step).
+  ctx.fillStyle = '#0f1011';
   ctx.fillRect(0, 0, W, H);
-  orb(ctx, W * 0.15, H * 0.12, 620, 'rgba(210,145,55,0.34)');
-  orb(ctx, W * 0.85, H * 0.1, 520, 'rgba(180,110,65,0.26)');
-  orb(ctx, W * 0.5, H * 0.94, 640, 'rgba(160,95,55,0.30)');
-  orb(ctx, W * 0.74, H * 0.52, 460, 'rgba(55,45,140,0.24)');
 
   // Wordmark
-  ctx.fillStyle = '#F5F5F4';
+  ctx.fillStyle = '#fafafa';
   ctx.font = `400 54px ${serif}`;
   ctx.textBaseline = 'top';
   ctx.fillText('TwinMe', 96, 120);
 
   // Kicker
   ctx.font = `500 30px ${sans}`;
-  ctx.fillStyle = 'rgba(245,245,244,0.5)';
+  ctx.fillStyle = '#9f9fa0';
   const kicker = 'SOUL SIGNATURE — FIRST GLIMPSE';
   ctx.save();
   // letter-spacing by hand (canvas has no tracking pre-Chrome-99 fallback)
@@ -90,13 +77,13 @@ export async function renderShareCard({ name, lines, sources }: ShareCardInput):
   // Name
   if (name) {
     ctx.font = `400 96px ${serif}`;
-    ctx.fillStyle = '#F5F5F4';
+    ctx.fillStyle = '#fafafa';
     ctx.fillText(name, 96, 400);
   }
 
   // Narrative — up to two beats, serif, generous leading
   ctx.font = `400 52px ${serif}`;
-  ctx.fillStyle = 'rgba(245,245,244,0.9)';
+  ctx.fillStyle = '#fafafa';
   let y = name ? 600 : 440;
   for (const beat of lines.slice(0, 2)) {
     for (const l of wrapText(ctx, beat, W - 192)) {
@@ -110,16 +97,16 @@ export async function renderShareCard({ name, lines, sources }: ShareCardInput):
   // Sources
   if (sources.length > 0) {
     ctx.font = `500 28px ${sans}`;
-    ctx.fillStyle = 'rgba(245,245,244,0.4)';
+    ctx.fillStyle = '#6a6b6b';
     ctx.fillText('READ FROM', 96, H - 380);
     ctx.font = `500 32px ${sans}`;
-    ctx.fillStyle = 'rgba(245,245,244,0.6)';
+    ctx.fillStyle = '#9f9fa0';
     ctx.fillText(sources.slice(0, 5).join('  ·  '), 96, H - 328);
   }
 
   // Footer
   ctx.font = `500 34px ${sans}`;
-  ctx.fillStyle = 'rgba(245,245,244,0.45)';
+  ctx.fillStyle = '#6a6b6b';
   ctx.fillText('Discover who you really are — twinme.me', 96, H - 180);
 
   return new Promise((resolve, reject) => {

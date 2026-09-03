@@ -54,7 +54,7 @@ export const ContextSidebar = ({
         <div className="flex items-center justify-between mb-6">
           <span
             className="text-[11px] font-medium tracking-widest uppercase"
-            style={{ color: '#10b77f' }}
+            style={{ color: 'var(--n-verdigris)' }}
           >
             Context
           </span>
@@ -102,7 +102,7 @@ export const ContextSidebar = ({
                   <button
                     onClick={() => navigate('/get-started')}
                     className="text-[11px] transition-opacity hover:opacity-70"
-                    style={{ color: '#10b77f' }}
+                    style={{ color: 'var(--n-verdigris)' }}
                   >
                     Connect
                   </button>
@@ -124,7 +124,7 @@ export const ContextSidebar = ({
           </h3>
           {isLoadingContext ? (
             <div className="flex items-center justify-center py-4">
-              <Loader2 className="w-4 h-4 animate-spin" style={{ color: '#10b77f' }} />
+              <Loader2 className="w-4 h-4 animate-spin" style={{ color: 'var(--n-verdigris)' }} />
             </div>
           ) : contextItems.filter(i => i.type !== 'platform').length > 0 ? (
             <div className="space-y-3">

@@ -143,7 +143,7 @@ export function SoulSummaryCard() {
       <button
         onClick={() => navigate('/identity')}
         className="mt-3 text-xs font-medium transition-opacity hover:opacity-70"
-        style={{ color: 'var(--text-secondary)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+        style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-ui)' }}
       >
         See full soul signature &rarr;
       </button>

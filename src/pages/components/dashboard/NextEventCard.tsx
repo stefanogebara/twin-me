@@ -36,7 +36,7 @@ export const NextEventCard: React.FC<NextEventCardProps> = ({
               <div className="flex items-center gap-2 mb-2">
                 <span
                   className="text-[11px] font-medium tracking-widest uppercase"
-                  style={{ color: '#10b77f' }}
+                  style={{ color: 'var(--n-verdigris)' }}
                 >
                   Next Important Event
                 </span>
@@ -105,7 +105,7 @@ export const NextEventCard: React.FC<NextEventCardProps> = ({
           <button
             onClick={() => onNavigate('/insights/calendar')}
             className="w-full py-2 flex items-center justify-center gap-2 rounded-[100px]"
-            style={{ backgroundColor: '#10b77f', color: '#0a0f0a', fontWeight: 600 }}
+            style={{ backgroundColor: 'var(--n-verdigris)', color: '#0a0f0a', fontWeight: 600 }}
           >
             <Sparkles className="w-5 h-5" />
             <span

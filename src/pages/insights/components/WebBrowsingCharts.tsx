@@ -25,7 +25,7 @@ export const WebBrowsingCharts: React.FC<WebBrowsingChartsProps> = ({
         <div className="p-4 rounded-lg mb-6" style={{ border: '1px solid var(--border-glass)', backgroundColor: 'var(--surface)' }}>
           <span
             className="text-[11px] font-medium tracking-widest uppercase block mb-4"
-            style={{ color: '#10b77f' }}
+            style={{ color: 'var(--n-verdigris)' }}
           >
             Your Interest Universe
           </span>
@@ -63,7 +63,7 @@ export const WebBrowsingCharts: React.FC<WebBrowsingChartsProps> = ({
         <div className="p-4 rounded-lg mb-6" style={{ border: '1px solid var(--border-glass)', backgroundColor: 'var(--surface)' }}>
           <span
             className="text-[11px] font-medium tracking-widest uppercase block mb-4"
-            style={{ color: '#10b77f' }}
+            style={{ color: 'var(--n-verdigris)' }}
           >
             What You Search For
           </span>
@@ -89,7 +89,7 @@ export const WebBrowsingCharts: React.FC<WebBrowsingChartsProps> = ({
         <div className="p-4 rounded-lg mb-6" style={{ border: '1px solid var(--border-glass)', backgroundColor: 'var(--surface)' }}>
           <span
             className="text-[11px] font-medium tracking-widest uppercase block mb-4"
-            style={{ color: '#10b77f' }}
+            style={{ color: 'var(--n-verdigris)' }}
           >
             Your Reading Profile
           </span>
@@ -138,7 +138,7 @@ export const WebBrowsingCharts: React.FC<WebBrowsingChartsProps> = ({
         <div className="p-4 rounded-lg mb-6" style={{ border: '1px solid var(--border-glass)', backgroundColor: 'var(--surface)' }}>
           <span
             className="text-[11px] font-medium tracking-widest uppercase block mb-4"
-            style={{ color: '#10b77f' }}
+            style={{ color: 'var(--n-verdigris)' }}
           >
             Your Digital Landscape
           </span>
@@ -173,7 +173,7 @@ export const WebBrowsingCharts: React.FC<WebBrowsingChartsProps> = ({
         <div className="p-4 rounded-lg mb-6" style={{ border: '1px solid var(--border-glass)', backgroundColor: 'var(--surface)' }}>
           <span
             className="text-[11px] font-medium tracking-widest uppercase block mb-4"
-            style={{ color: '#10b77f' }}
+            style={{ color: 'var(--n-verdigris)' }}
           >
             Topics That Draw You In
           </span>
@@ -200,7 +200,7 @@ export const WebBrowsingCharts: React.FC<WebBrowsingChartsProps> = ({
         <div className="p-4 rounded-lg mb-6" style={{ border: '1px solid var(--border-glass)', backgroundColor: 'var(--surface)' }}>
           <span
             className="text-[11px] font-medium tracking-widest uppercase block mb-4"
-            style={{ color: '#10b77f' }}
+            style={{ color: 'var(--n-verdigris)' }}
           >
             Recent Browsing
           </span>

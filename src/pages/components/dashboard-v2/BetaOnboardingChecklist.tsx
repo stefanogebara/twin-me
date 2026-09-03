@@ -230,7 +230,7 @@ export function BetaOnboardingChecklist({ onDismiss }: BetaOnboardingChecklistPr
                       size={14}
                       style={{
                         color: step.isComplete
-                          ? '#10B77F'
+                          ? 'var(--n-verdigris)'
                           : 'var(--text-secondary)',
                       }}
                     />
@@ -275,7 +275,7 @@ export function BetaOnboardingChecklist({ onDismiss }: BetaOnboardingChecklistPr
                         background: 'var(--claura-bone)',
                         color: 'var(--claura-bone-ink)',
                         border: 'none',
-                        fontFamily: "'Geist', 'Inter', sans-serif",
+                        fontFamily: 'var(--font-ui)',
                       }}
                     >
                       {step.actionLabel}

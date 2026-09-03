@@ -41,7 +41,7 @@ export const PortraitEmptyState: React.FC = () => {
         <button
           onClick={() => navigate('/story')}
           className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium text-sm"
-          style={{ backgroundColor: '#10b77f', color: '#0a0f0a' }}
+          style={{ backgroundColor: 'var(--n-verdigris)', color: '#0a0f0a' }}
         >
           <BookOpen className="w-4 h-4" />
           Tell Your Story

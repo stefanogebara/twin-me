@@ -49,7 +49,7 @@ export function ConversationControls({
       <button
         onClick={onNewChat}
         className="flex items-center gap-2 px-4 py-2 font-medium shadow-sm hover:opacity-90 transition-opacity rounded-[100px]"
-        style={{ backgroundColor: '#10b77f', color: '#0a0f0a', fontWeight: 600 }}
+        style={{ backgroundColor: 'var(--n-verdigris)', color: '#0a0f0a', fontWeight: 600 }}
       >
         <Plus className="w-4 h-4" />
         <span>New Chat</span>

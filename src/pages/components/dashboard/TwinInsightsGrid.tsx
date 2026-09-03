@@ -51,7 +51,7 @@ export const TwinInsightsGrid: React.FC<TwinInsightsGridProps> = ({
         />
         <h3
           className="text-[11px] font-medium tracking-widest uppercase"
-          style={{ color: '#10b77f' }}
+          style={{ color: 'var(--n-verdigris)' }}
         >
           Twin Insights
         </h3>

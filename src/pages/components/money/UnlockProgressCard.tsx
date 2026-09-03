@@ -22,7 +22,7 @@ const CARD_STYLE: React.CSSProperties = {
 };
 
 const LABEL_STYLE: React.CSSProperties = {
-  fontFamily: "'Geist', 'Inter', sans-serif",
+  fontFamily: 'var(--font-ui)',
   fontSize: 11,
   fontWeight: 500,
   letterSpacing: '0.08em',
@@ -86,7 +86,7 @@ export function UnlockProgressCard({ timeline, transactions }: Props) {
       </p>
       <p
         style={{
-          fontFamily: "'Geist', 'Inter', sans-serif",
+          fontFamily: 'var(--font-ui)',
           fontSize: 13,
           color: 'var(--text-secondary)',
           lineHeight: 1.55,
@@ -121,7 +121,7 @@ export function UnlockProgressCard({ timeline, transactions }: Props) {
       </div>
       <p
         style={{
-          fontFamily: "'Geist', 'Inter', sans-serif",
+          fontFamily: 'var(--font-ui)',
           fontSize: 12,
           color: 'var(--text-secondary)',
         }}

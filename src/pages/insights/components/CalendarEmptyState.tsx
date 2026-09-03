@@ -40,7 +40,7 @@ export const CalendarEmptyState: React.FC<CalendarEmptyStateProps> = ({ colors, 
           <button
             onClick={onConnect}
             className="px-5 py-2.5 rounded-xl text-sm font-medium transition-all hover:scale-[1.02]"
-            style={{ backgroundColor: '#10b77f', color: '#0a0f0a' }}
+            style={{ backgroundColor: 'var(--n-verdigris)', color: '#0a0f0a' }}
           >
             Connect Calendar
           </button>
@@ -49,11 +49,11 @@ export const CalendarEmptyState: React.FC<CalendarEmptyStateProps> = ({ colors, 
             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm"
             style={{
               backgroundColor: 'rgba(16, 183, 127, 0.05)',
-              color: '#10b77f',
+              color: 'var(--n-verdigris)',
               border: '1px solid rgba(16, 183, 127, 0.2)',
             }}
           >
-            <div aria-hidden="true" className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: '#10b77f' }} />
+            <div aria-hidden="true" className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: 'var(--n-verdigris)' }} />
             Your twin is collecting data... check back soon
           </div>
         )}
@@ -62,7 +62,7 @@ export const CalendarEmptyState: React.FC<CalendarEmptyStateProps> = ({ colors, 
       <div aria-hidden="true" className="opacity-50 pointer-events-none space-y-3">
         <span
           className="text-[11px] font-medium tracking-widest uppercase block mb-4"
-          style={{ color: '#10b77f' }}
+          style={{ color: 'var(--n-verdigris)' }}
         >
           Preview of your insights
         </span>

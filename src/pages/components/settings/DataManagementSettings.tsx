@@ -41,7 +41,7 @@ const DataManagementSettings: React.FC<DataManagementSettingsProps> = ({
         <Download className="w-5 h-5" style={{ color: 'var(--foreground)' }} />
         <h2
           className="text-[11px] font-medium tracking-widest uppercase"
-          style={{ color: '#10b77f' }}
+          style={{ color: 'var(--n-verdigris)' }}
         >
           Your Data
         </h2>

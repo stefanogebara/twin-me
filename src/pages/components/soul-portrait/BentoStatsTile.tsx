@@ -46,7 +46,7 @@ export const BentoStatsTile: React.FC<Props> = ({ stats, firstMemoryAt, connecte
     >
       <p
         className="text-[11px] font-medium tracking-widest uppercase mb-4"
-        style={{ color: '#10b77f' }}
+        style={{ color: 'var(--n-verdigris)' }}
       >
         Twin Stats
       </p>

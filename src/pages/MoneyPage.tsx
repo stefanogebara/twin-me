@@ -48,7 +48,7 @@ const CARD_STYLE: React.CSSProperties = {
 const MONEY_WINDOW_DAYS = 30;
 
 const LABEL_STYLE: React.CSSProperties = {
-  fontFamily: "'Geist', 'Inter', sans-serif",
+  fontFamily: 'var(--font-ui)',
   fontSize: 11,
   fontWeight: 500,
   letterSpacing: '0.08em',
@@ -77,11 +77,17 @@ function formatDate(iso: string): string {
   return d.toLocaleDateString('en-US', { day: '2-digit', month: 'short' });
 }
 
-function stressChipColor(score: number | null): { bg: string; fg: string; label: string } {
-  if (score === null) return { bg: 'rgba(255,255,255,0.06)', fg: 'rgba(255, 255, 255, 0.55)', label: 'no signal' };
-  if (score >= 0.6) return { bg: 'rgba(217, 119, 6, 0.15)', fg: 'rgba(232, 160, 80, 0.95)', label: `stress ${Math.round(score * 100)}%` };
-  if (score >= 0.4) return { bg: 'rgba(255,255,255,0.06)', fg: 'rgba(255,255,255,0.55)', label: `moderate ${Math.round(score * 100)}%` };
-  return { bg: 'rgba(34, 197, 94, 0.12)', fg: 'rgba(134, 239, 172, 0.90)', label: `calm ${Math.round(score * 100)}%` };
+// Law 3: chroma lives in signature tiles and DATA STROKES — never as text
+// under 18px, never as a wash. These chips broke both rules twice over: the
+// label was Tailwind green-300 at 10px on a green-500 wash, in two hues that
+// belong to no Nocturne palette. The signal is worth keeping, so it moves to
+// a stroke — a signature-coloured dot — and the label drops to the mono voice
+// every sub-13px string is required to speak (Law 5).
+function stressChip(score: number | null): { dot: string; label: string } {
+  if (score === null) return { dot: 'var(--n-fog)', label: 'no signal' };
+  if (score >= 0.6) return { dot: 'var(--n-ember)', label: `stress ${Math.round(score * 100)}%` };
+  if (score >= 0.4) return { dot: 'var(--n-fog)', label: `moderate ${Math.round(score * 100)}%` };
+  return { dot: 'var(--n-verdigris)', label: `calm ${Math.round(score * 100)}%` };
 }
 
 interface UploadZoneProps {
@@ -133,7 +139,7 @@ function UploadZone({ onUpload, onError }: UploadZoneProps) {
         padding: '32px 24px',
         textAlign: 'center',
         cursor: uploading ? 'wait' : 'pointer',
-        borderColor: isDragging ? 'rgba(232, 160, 80, 0.55)' : 'rgba(255,255,255,0.08)',
+        borderColor: isDragging ? 'var(--n-ember)' : 'var(--n-line)',
         borderStyle: 'dashed',
         transition: 'all 150ms ease-out',
       }}
@@ -169,7 +175,7 @@ function UploadZone({ onUpload, onError }: UploadZoneProps) {
       </p>
       <p
         style={{
-          fontFamily: "'Geist', 'Inter', sans-serif",
+          fontFamily: 'var(--font-ui)',
           fontSize: 13,
           color: 'var(--text-secondary)',
           lineHeight: 1.5,
@@ -211,11 +217,11 @@ function SummaryBar({ summary, currency, mixedCurrency }: { summary: Transaction
           <span
             className="px-2 py-0.5 rounded-full text-xs"
             style={{
-              background: 'rgba(217, 119, 6, 0.12)',
-              color: 'rgba(232, 160, 80, 0.95)',
-              fontFamily: "'Geist', 'Inter', sans-serif",
-              letterSpacing: 0,
-              textTransform: 'none',
+              background: 'var(--n-steel)',
+              color: 'var(--n-ash)',
+              fontFamily: 'var(--n-mono)',
+              letterSpacing: '0.02em',
+              textTransform: 'uppercase',
             }}
             title="You have transactions in more than one currency. Amounts are NOT converted — each total is shown in its own currency below."
           >
@@ -236,7 +242,7 @@ function SummaryBar({ summary, currency, mixedCurrency }: { summary: Transaction
           >
             {formatCurrency(headlineOutflow, currency)}
           </p>
-          <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4, fontFamily: "'Geist', 'Inter', sans-serif" }}>
+          <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4, fontFamily: 'var(--font-ui)' }}>
             {mixedCurrency ? `Total spending (${currency})` : 'Total spending'}
           </p>
         </div>
@@ -246,13 +252,13 @@ function SummaryBar({ summary, currency, mixedCurrency }: { summary: Transaction
               fontFamily: "var(--font-heading)",
               fontSize: 26,
               letterSpacing: '-0.02em',
-              color: emotionalPct !== null && emotionalPct > 30 ? 'rgba(232, 160, 80, 0.95)' : 'var(--foreground)',
+              color: emotionalPct !== null && emotionalPct > 30 ? 'var(--n-ember)' : 'var(--foreground)',
               lineHeight: 1.1,
             }}
           >
             {emotionalPct !== null ? `${emotionalPct}%` : '—'}
           </p>
-          <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4, fontFamily: "'Geist', 'Inter', sans-serif" }}>
+          <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4, fontFamily: 'var(--font-ui)' }}>
             Under stress
           </p>
         </div>
@@ -268,7 +274,7 @@ function SummaryBar({ summary, currency, mixedCurrency }: { summary: Transaction
           >
             {summary.stress_shop_count}
           </p>
-          <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4, fontFamily: "'Geist', 'Inter', sans-serif" }}>
+          <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4, fontFamily: 'var(--font-ui)' }}>
             Impulse purchases
           </p>
         </div>
@@ -299,7 +305,7 @@ function SummaryBar({ summary, currency, mixedCurrency }: { summary: Transaction
                   letterSpacing: '0.04em',
                   textTransform: 'uppercase',
                   color: 'var(--text-secondary)',
-                  fontFamily: "'Geist', 'Inter', sans-serif",
+                  fontFamily: 'var(--font-ui)',
                   marginTop: 2,
                 }}
               >
@@ -364,7 +370,7 @@ function FeedbackToggle({ txId, initial }: { txId: string; initial: boolean | nu
   };
 
   const btnBase: React.CSSProperties = {
-    fontFamily: "'Geist', 'Inter', sans-serif",
+    fontFamily: 'var(--font-ui)',
     fontSize: 10,
     fontWeight: 500,
     padding: '2px 8px',
@@ -378,14 +384,14 @@ function FeedbackToggle({ txId, initial }: { txId: string; initial: boolean | nu
 
   return (
     <div className="flex items-center gap-1.5 mt-1" title="Was this a stress purchase?">
-      <span style={{ fontSize: 10, color: 'var(--text-secondary)', fontFamily: "'Geist','Inter',sans-serif" }}>stress?</span>
+      <span style={{ fontSize: 10, color: 'var(--text-secondary)', fontFamily: 'var(--font-ui)' }}>stress?</span>
       <button
         onClick={() => { void toggle(true); }}
         style={{
           ...btnBase,
-          borderColor: value === true ? 'rgba(232,160,80,0.6)' : 'rgba(255,255,255,0.12)',
-          color: value === true ? 'rgba(232,160,80,0.95)' : 'rgba(255,255,255,0.55)',
-          background: value === true ? 'rgba(217,119,6,0.12)' : 'transparent',
+          borderColor: 'var(--n-line)',
+          color: value === true ? 'var(--n-void)' : 'var(--n-ash)',
+          background: value === true ? 'var(--n-pure)' : 'transparent',
         }}
       >
         yes
@@ -394,9 +400,9 @@ function FeedbackToggle({ txId, initial }: { txId: string; initial: boolean | nu
         onClick={() => { void toggle(false); }}
         style={{
           ...btnBase,
-          borderColor: value === false ? 'rgba(134,239,172,0.5)' : 'rgba(255,255,255,0.12)',
-          color: value === false ? 'rgba(134,239,172,0.90)' : 'rgba(255,255,255,0.55)',
-          background: value === false ? 'rgba(34,197,94,0.08)' : 'transparent',
+          borderColor: 'var(--n-line)',
+          color: value === false ? 'var(--n-void)' : 'var(--n-ash)',
+          background: value === false ? 'var(--n-pure)' : 'transparent',
         }}
       >
         no
@@ -404,7 +410,7 @@ function FeedbackToggle({ txId, initial }: { txId: string; initial: boolean | nu
       {saveError && (
         <span
           role="alert"
-          style={{ fontSize: 10, color: 'rgba(252,165,165,0.9)', fontFamily: "'Geist','Inter',sans-serif" }}
+          className='n-micro' style={{ color: 'var(--destructive)' }}
         >
           couldn't save — try again
         </span>
@@ -448,7 +454,7 @@ function WhatsAppCaptureCard() {
       <div className="flex-1 min-w-[220px]">
         <p
           style={{
-            fontFamily: "'Geist', 'Inter', sans-serif",
+            fontFamily: 'var(--font-ui)',
             fontSize: 14,
             fontWeight: 500,
             color: 'var(--text-primary)',
@@ -459,7 +465,7 @@ function WhatsAppCaptureCard() {
         </p>
         <p
           style={{
-            fontFamily: "'Geist', 'Inter', sans-serif",
+            fontFamily: 'var(--font-ui)',
             fontSize: 12,
             color: 'var(--text-secondary)',
           }}
@@ -471,11 +477,13 @@ function WhatsAppCaptureCard() {
         <span
           className="flex items-center gap-1.5 text-xs"
           style={{
-            color: 'rgba(134,239,172,0.90)',
-            fontFamily: "'Geist', 'Inter', sans-serif",
+            color: 'var(--n-ash)',
+            fontFamily: 'var(--n-mono)',
+            letterSpacing: '0.02em',
+            textTransform: 'uppercase',
           }}
         >
-          <Check size={14} /> WhatsApp linked
+          <Check size={14} style={{ color: 'var(--n-verdigris)' }} /> WhatsApp linked
         </span>
       ) : (
         <Link
@@ -485,7 +493,7 @@ function WhatsAppCaptureCard() {
             background: 'var(--claura-bone)',
             color: 'var(--claura-bone-ink)',
             borderRadius: 12,
-            fontFamily: "'Geist', 'Inter', sans-serif",
+            fontFamily: 'var(--font-ui)',
             fontSize: 13,
             fontWeight: 500,
             whiteSpace: 'nowrap',
@@ -501,7 +509,7 @@ function WhatsAppCaptureCard() {
 function TransactionRow({ tx }: { tx: Transaction }) {
   const isOutflow = tx.amount < 0;
   const ec = tx.emotional_context;
-  const stress = stressChipColor(ec?.computed_stress_score ?? null);
+  const stress = stressChip(ec?.computed_stress_score ?? null);
   const displayMerchant = tx.merchant_normalized || tx.merchant_raw;
   const categoryLabel = tx.category ? CATEGORY_LABELS[tx.category] || tx.category : null;
   const showFeedback = isOutflow && ec !== null && ec.signals_found > 0;
@@ -518,7 +526,7 @@ function TransactionRow({ tx }: { tx: Transaction }) {
           data-testid="transaction-merchant"
           className="truncate"
           style={{
-            fontFamily: "'Geist', 'Inter', sans-serif",
+            fontFamily: 'var(--font-ui)',
             fontSize: 14,
             fontWeight: 500,
             color: 'var(--foreground)',
@@ -529,7 +537,7 @@ function TransactionRow({ tx }: { tx: Transaction }) {
         <div className="flex items-center gap-2 mt-1" style={{ flexWrap: 'wrap' }}>
           <span
             style={{
-              fontFamily: "'Geist', 'Inter', sans-serif",
+              fontFamily: 'var(--font-ui)',
               fontSize: 11,
               color: 'var(--text-secondary)',
             }}
@@ -544,7 +552,7 @@ function TransactionRow({ tx }: { tx: Transaction }) {
                 borderRadius: 46,
                 background: 'var(--surface)',
                 color: 'var(--text-secondary)',
-                fontFamily: "'Geist', 'Inter', sans-serif",
+                fontFamily: 'var(--font-ui)',
                 fontWeight: 500,
                 letterSpacing: '0.02em',
               }}
@@ -554,17 +562,24 @@ function TransactionRow({ tx }: { tx: Transaction }) {
           )}
           {ec && ec.signals_found > 0 && (
             <span
+              className="n-micro"
               style={{
-                fontSize: 10,
-                padding: '2px 8px',
-                borderRadius: 46,
-                background: stress.bg,
-                color: stress.fg,
-                fontFamily: "'Geist', 'Inter', sans-serif",
-                fontWeight: 500,
-                letterSpacing: '0.02em',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                color: 'var(--n-ash)',
               }}
             >
+              <span
+                aria-hidden
+                style={{
+                  width: 5,
+                  height: 5,
+                  borderRadius: '50%',
+                  background: stress.dot,
+                  flexShrink: 0,
+                }}
+              />
               {stress.label}
             </span>
           )}
@@ -574,10 +589,12 @@ function TransactionRow({ tx }: { tx: Transaction }) {
                 fontSize: 10,
                 padding: '2px 8px',
                 borderRadius: 20,
-                background: 'rgba(220, 38, 38, 0.15)',
-                color: 'rgba(252, 165, 165, 0.95)',
-                fontFamily: "'Geist', 'Inter', sans-serif",
+                background: 'var(--n-steel)',
+                color: 'var(--n-ash)',
+                fontFamily: 'var(--n-mono)',
                 fontWeight: 500,
+                letterSpacing: '0.18em',
+                textTransform: 'uppercase',
               }}
             >
               impulse
@@ -591,7 +608,7 @@ function TransactionRow({ tx }: { tx: Transaction }) {
                 borderRadius: 20,
                 background: 'var(--surface)',
                 color: 'var(--text-secondary)',
-                fontFamily: "'Geist', 'Inter', sans-serif",
+                fontFamily: 'var(--font-ui)',
                 fontWeight: 500,
                 letterSpacing: '0.02em',
               }}
@@ -608,7 +625,7 @@ function TransactionRow({ tx }: { tx: Transaction }) {
                 borderRadius: 20,
                 background: 'var(--surface)',
                 color: 'var(--text-secondary)',
-                fontFamily: "'Geist', 'Inter', sans-serif",
+                fontFamily: 'var(--font-ui)',
               }}
               title={`Music valence ${ec.music_valence.toFixed(2)}`}
             >
@@ -623,7 +640,7 @@ function TransactionRow({ tx }: { tx: Transaction }) {
                 borderRadius: 20,
                 background: 'var(--surface)',
                 color: 'var(--text-secondary)',
-                fontFamily: "'Geist', 'Inter', sans-serif",
+                fontFamily: 'var(--font-ui)',
               }}
               title={`Recovery ${Math.round(ec.recovery_score)}%`}
             >
@@ -635,10 +652,10 @@ function TransactionRow({ tx }: { tx: Transaction }) {
       </div>
       <div
         style={{
-          fontFamily: "'Geist', 'Inter', sans-serif",
+          fontFamily: 'var(--font-ui)',
           fontSize: 15,
           fontWeight: 500,
-          color: isOutflow ? 'var(--foreground)' : 'rgba(134, 239, 172, 0.90)',
+          color: isOutflow ? 'var(--foreground)' : 'var(--n-cloud)',
           flexShrink: 0,
         }}
       >
@@ -755,7 +772,7 @@ export default function MoneyPage() {
                 border: '1px solid var(--border-glass)',
                 fontSize: 12,
                 color: 'var(--foreground)',
-                fontFamily: "'Geist', 'Inter', sans-serif",
+                fontFamily: 'var(--font-ui)',
               }}
               title="A narrative read of your patterns, subscriptions, trades, and stress timeline"
             >
@@ -773,7 +790,7 @@ export default function MoneyPage() {
                 border: '1px solid var(--border-glass)',
                 fontSize: 12,
                 color: 'var(--text-secondary)',
-                fontFamily: "'Geist', 'Inter', sans-serif",
+                fontFamily: 'var(--font-ui)',
               }}
               title="Recompute emotional context with latest HRV/music/calendar data"
             >
@@ -829,15 +846,15 @@ export default function MoneyPage() {
           className="mb-6 px-4 py-3 flex items-start gap-3"
           style={{
             ...CARD_STYLE,
-            background: 'rgba(34, 197, 94, 0.08)',
-            borderColor: 'rgba(34, 197, 94, 0.20)',
+            background: 'var(--n-graphite)',
+            borderColor: 'var(--n-line)',
           }}
         >
-          <Sparkles className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: 'rgba(134, 239, 172, 0.95)' }} />
+          <Sparkles className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: 'var(--n-verdigris)' }} />
           <div className="flex-1 min-w-0">
             <p
               style={{
-                fontFamily: "'Geist', 'Inter', sans-serif",
+                fontFamily: 'var(--font-ui)',
                 fontSize: 14,
                 color: 'var(--foreground)',
                 lineHeight: 1.4,
@@ -850,7 +867,7 @@ export default function MoneyPage() {
                 fontSize: 12,
                 color: 'var(--text-secondary)',
                 marginTop: 4,
-                fontFamily: "'Geist', 'Inter', sans-serif",
+                fontFamily: 'var(--font-ui)',
               }}
             >
               I am connecting each purchase with your mood, stress, and body. Check back in a few seconds.
@@ -870,14 +887,14 @@ export default function MoneyPage() {
           className="mb-6 px-4 py-3 flex items-start gap-3"
           style={{
             ...CARD_STYLE,
-            background: 'rgba(220, 38, 38, 0.08)',
-            borderColor: 'rgba(220, 38, 38, 0.25)',
+            background: 'var(--n-graphite)',
+            borderColor: 'var(--n-line)',
           }}
         >
-          <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: 'rgba(252, 165, 165, 0.95)' }} />
+          <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: 'var(--destructive)' }} />
           <p
             style={{
-              fontFamily: "'Geist', 'Inter', sans-serif",
+              fontFamily: 'var(--font-ui)',
               fontSize: 13,
               color: 'rgba(254, 202, 202, 0.95)',
               lineHeight: 1.4,
@@ -939,7 +956,7 @@ export default function MoneyPage() {
           </p>
           <p
             style={{
-              fontFamily: "'Geist', 'Inter', sans-serif",
+              fontFamily: 'var(--font-ui)',
               fontSize: 13,
               color: 'var(--text-secondary)',
               lineHeight: 1.6,

@@ -26,7 +26,7 @@ export function TwinReadinessScore({
 }: TwinReadinessScoreProps) {
   const scoreColor = getScoreColor(score);
   const barGradient = getBarGradient(score);
-  const font = "'Geist', 'Inter', system-ui, sans-serif";
+  const font = 'var(--font-ui)';
 
   if (compact) {
     return (

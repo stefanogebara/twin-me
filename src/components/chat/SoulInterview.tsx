@@ -224,7 +224,7 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
             {isLoadingSummary ? (
               <div className="flex items-center justify-center py-16">
                 <div className="w-4 h-4 border-[1.5px] border-[var(--border)] border-t-transparent rounded-full animate-spin" />
-                <span className="ml-3 text-[13px]" style={{ color: 'var(--text-muted)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}>
+                <span className="ml-3 text-[13px]" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>
                   Synthesizing your portrait...
                 </span>
               </div>
@@ -238,7 +238,7 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
                   className="text-[16px] leading-[1.75] whitespace-pre-line"
                   style={{
                     color: 'var(--foreground)',
-                    fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
+                    fontFamily: 'var(--font-ui)',
                     fontWeight: 400,
                   }}
                 >
@@ -256,7 +256,7 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
             style={{
               background: 'var(--claura-bone)',
               color: 'var(--claura-bone-ink)',
-              fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
+              fontFamily: 'var(--font-ui)',
             }}
           >
             Start chatting with your twin
@@ -282,7 +282,7 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
           {/* Step indicator */}
           <span
             className="text-[13px] font-medium flex-shrink-0"
-            style={{ color: 'var(--text-secondary)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+            style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-ui)' }}
           >
             {questionNumber + 1} of {totalQuestions}
           </span>
@@ -322,7 +322,7 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
             >
               <p
                 className="text-[11px] uppercase tracking-[0.1em] mb-6"
-                style={{ color: 'var(--text-muted)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif", fontWeight: 500 }}
+                style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)', fontWeight: 500 }}
               >
                 Learned about you
               </p>
@@ -338,7 +338,7 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
                     <Check className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: '#10b981' }} />
                     <span
                       className="text-[14px] leading-relaxed"
-                      style={{ color: 'var(--text-secondary)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+                      style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-ui)' }}
                     >
                       {fact.text}
                     </span>
@@ -364,7 +364,7 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
                 <div className="flex flex-col items-center justify-center py-24 gap-4">
                   <p
                     className="text-[14px] text-center"
-                    style={{ color: 'var(--text-secondary)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+                    style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-ui)' }}
                   >
                     Could not load the next question.
                   </p>
@@ -374,7 +374,7 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
                     style={{
                       background: 'var(--claura-bone)',
                       color: 'var(--claura-bone-ink)',
-                      fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
+                      fontFamily: 'var(--font-ui)',
                     }}
                   >
                     Retry
@@ -385,7 +385,7 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
                   {/* Category label */}
                   <span
                     className="text-[11px] uppercase tracking-[0.1em] mb-4"
-                    style={{ color: 'var(--text-muted)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif", fontWeight: 500 }}
+                    style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)', fontWeight: 500 }}
                   >
                     {categoryLabel}
                   </span>
@@ -410,7 +410,7 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
                       style={{
                         backgroundColor: 'var(--surface)',
                         color: 'var(--text-muted)',
-                        fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
+                        fontFamily: 'var(--font-ui)',
                       }}
                     >
                       {CATEGORY_TOOLTIPS[category] || 'Take your time with this one'}
@@ -434,7 +434,7 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
                       className="w-full bg-transparent px-5 py-4 text-[15px] leading-relaxed resize-none outline-none min-h-[100px] max-h-[200px]"
                       style={{
                         color: 'var(--foreground)',
-                        fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
+                        fontFamily: 'var(--font-ui)',
                         fontWeight: 400,
                       }}
                       disabled={isSubmitting}
@@ -447,7 +447,7 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
                         style={{
                           background: answer.trim() ? 'var(--claura-bone)' : 'var(--surface)',
                           color: answer.trim() ? 'var(--claura-bone-ink)' : 'var(--text-muted)',
-                          fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
+                          fontFamily: 'var(--font-ui)',
                         }}
                       >
                         {isSubmitting ? (
@@ -465,7 +465,7 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
                   {submitError && (
                     <p
                       className="text-[13px] mt-3"
-                      style={{ color: '#f87171', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+                      style={{ color: '#f87171', fontFamily: 'var(--font-ui)' }}
                     >
                       Could not save your answer. Please try submitting again.
                     </p>
@@ -477,7 +477,7 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
                       onClick={handleSkip}
                       disabled={isSubmitting}
                       className="flex items-center gap-1.5 text-[13px] py-1.5 transition-colors hover:text-[var(--text-secondary)] disabled:opacity-30"
-                      style={{ color: 'var(--text-muted)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+                      style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}
                     >
                       <SkipForward className="w-3.5 h-3.5" />
                       Skip this question

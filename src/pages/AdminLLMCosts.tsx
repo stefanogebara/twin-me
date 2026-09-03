@@ -236,8 +236,8 @@ function DailyTrendChart({ daily }: { daily: DailyEntry[] }) {
   return (
     <div className="mb-10">
       <div className="flex items-center gap-2 mb-4">
-        <BarChart3 className="w-4 h-4" style={{ color: '#10b77f' }} />
-        <span className="text-[11px] font-medium tracking-widest uppercase" style={{ color: '#10b77f' }}>
+        <BarChart3 className="w-4 h-4" style={{ color: 'var(--n-verdigris)' }} />
+        <span className="text-[11px] font-medium tracking-widest uppercase" style={{ color: 'var(--n-verdigris)' }}>
           Daily Spend Trend
         </span>
       </div>
@@ -563,7 +563,7 @@ const AdminLLMCosts: React.FC = () => {
       <h1
         className="mb-2"
         style={{
-          fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
+          fontFamily: 'var(--font-ui)',
           fontSize: '28px',
           fontWeight: 600,
           color: 'var(--foreground)',
@@ -628,7 +628,7 @@ const AdminLLMCosts: React.FC = () => {
         {[
           {
             icon: DollarSign,
-            color: '#10b77f',
+            color: 'var(--n-verdigris)',
             label: 'Total Spend',
             value: formatCost(summary?.total_cost_usd || 0),
             sub: `${summary?.period_days || selectedPeriod}-day period`,
@@ -695,8 +695,8 @@ const AdminLLMCosts: React.FC = () => {
       {costByService.length > 0 && (
         <div className="mb-10">
           <div className="flex items-center gap-2 mb-4">
-            <Layers className="w-4 h-4" style={{ color: '#10b77f' }} />
-            <span className="text-[11px] font-medium tracking-widest uppercase" style={{ color: '#10b77f' }}>
+            <Layers className="w-4 h-4" style={{ color: 'var(--n-verdigris)' }} />
+            <span className="text-[11px] font-medium tracking-widest uppercase" style={{ color: 'var(--n-verdigris)' }}>
               Cost by Service
             </span>
           </div>
@@ -720,7 +720,7 @@ const AdminLLMCosts: React.FC = () => {
                       <td className="px-4 py-3 font-mono text-xs font-semibold" style={{ color: 'var(--foreground)' }}>{formatCost(row.cost)}</td>
                       <td className="px-4 py-3 text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>{formatPercent(row.cost, totalServiceCost)}</td>
                       <td className="px-4 py-3 w-24">
-                        <PercentBar value={row.cost} total={totalServiceCost} color="#10b77f" />
+                        <PercentBar value={row.cost} total={totalServiceCost} color="var(--n-verdigris)" />
                       </td>
                     </tr>
                   ))}
@@ -737,8 +737,8 @@ const AdminLLMCosts: React.FC = () => {
       {costByModel.length > 0 && (
         <div className="mb-10">
           <div className="flex items-center gap-2 mb-4">
-            <Cpu className="w-4 h-4" style={{ color: '#10b77f' }} />
-            <span className="text-[11px] font-medium tracking-widest uppercase" style={{ color: '#10b77f' }}>
+            <Cpu className="w-4 h-4" style={{ color: 'var(--n-verdigris)' }} />
+            <span className="text-[11px] font-medium tracking-widest uppercase" style={{ color: 'var(--n-verdigris)' }}>
               Cost by Model
             </span>
           </div>
@@ -779,8 +779,8 @@ const AdminLLMCosts: React.FC = () => {
       {userCosts && userCosts.users.length > 0 && (
         <div className="mb-10">
           <div className="flex items-center gap-2 mb-4">
-            <Users className="w-4 h-4" style={{ color: '#10b77f' }} />
-            <span className="text-[11px] font-medium tracking-widest uppercase" style={{ color: '#10b77f' }}>Top Users by Cost</span>
+            <Users className="w-4 h-4" style={{ color: 'var(--n-verdigris)' }} />
+            <span className="text-[11px] font-medium tracking-widest uppercase" style={{ color: 'var(--n-verdigris)' }}>Top Users by Cost</span>
           </div>
           <div className="rounded-lg overflow-hidden" style={CARD_STYLE}>
             <div className="overflow-x-auto">
@@ -828,8 +828,8 @@ const AdminLLMCosts: React.FC = () => {
       {deptBudgets.length > 0 && (
         <div className="mb-10">
           <div className="flex items-center gap-2 mb-4">
-            <LayoutGrid className="w-4 h-4" style={{ color: '#10b77f' }} />
-            <span className="text-[11px] font-medium tracking-widest uppercase" style={{ color: '#10b77f' }}>
+            <LayoutGrid className="w-4 h-4" style={{ color: 'var(--n-verdigris)' }} />
+            <span className="text-[11px] font-medium tracking-widest uppercase" style={{ color: 'var(--n-verdigris)' }}>
               Department Spending
             </span>
           </div>
@@ -891,7 +891,7 @@ const AdminLLMCosts: React.FC = () => {
                       <PercentBar
                         value={deptBudgets.reduce((s, d) => s + d.spent_this_month_usd, 0)}
                         total={deptBudgets.reduce((s, d) => s + d.monthly_budget_usd, 0)}
-                        color="#10b77f"
+                        color="var(--n-verdigris)"
                       />
                     </td>
                   </tr>
@@ -908,8 +908,8 @@ const AdminLLMCosts: React.FC = () => {
       {summary && Object.keys(summary.by_tier).length > 0 && (
         <div className="mb-10">
           <div className="flex items-center gap-2 mb-4">
-            <BarChart3 className="w-4 h-4" style={{ color: '#10b77f' }} />
-            <span className="text-[11px] font-medium tracking-widest uppercase" style={{ color: '#10b77f' }}>By Tier</span>
+            <BarChart3 className="w-4 h-4" style={{ color: 'var(--n-verdigris)' }} />
+            <span className="text-[11px] font-medium tracking-widest uppercase" style={{ color: 'var(--n-verdigris)' }}>By Tier</span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {Object.entries(summary.by_tier).map(([tier, data]) => (
@@ -934,8 +934,8 @@ const AdminLLMCosts: React.FC = () => {
       {realtime && (
         <div className="mb-10">
           <div className="flex items-center gap-2 mb-4">
-            <Clock className="w-4 h-4" style={{ color: '#10b77f' }} />
-            <span className="text-[11px] font-medium tracking-widest uppercase" style={{ color: '#10b77f' }}>Recent Calls</span>
+            <Clock className="w-4 h-4" style={{ color: 'var(--n-verdigris)' }} />
+            <span className="text-[11px] font-medium tracking-widest uppercase" style={{ color: 'var(--n-verdigris)' }}>Recent Calls</span>
             <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.3)' }}>({realtime.count})</span>
           </div>
           <div className="rounded-lg overflow-hidden" style={CARD_STYLE}>

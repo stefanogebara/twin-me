@@ -23,7 +23,7 @@ export const GlassBox: React.FC<GlassBoxProps> = ({
     strong: { border: '1px solid var(--border)', backgroundColor: 'var(--surface)' },
     subtle: { border: '1px solid var(--border-glass)', backgroundColor: 'var(--surface)' },
     button: { border: '1px solid var(--border)', backgroundColor: 'var(--surface)' },
-    'button-primary': { backgroundColor: '#10b77f', color: '#0a0f0a' },
+    'button-primary': { backgroundColor: 'var(--n-verdigris)', color: '#0a0f0a' },
   };
 
   const hoverClasses = hover ? 'hover:scale-[1.02] cursor-pointer' : '';

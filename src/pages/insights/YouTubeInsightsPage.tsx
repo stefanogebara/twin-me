@@ -174,7 +174,7 @@ const YouTubeInsightsPage: React.FC = () => {
           <button
             onClick={() => navigate('/get-started')}
             className="px-4 py-2 rounded-lg text-sm font-medium"
-            style={{ backgroundColor: '#10b77f', color: '#0a0f0a' }}
+            style={{ backgroundColor: 'var(--n-verdigris)', color: '#0a0f0a' }}
           >
             Connect YouTube
           </button>
@@ -264,7 +264,7 @@ const YouTubeInsightsPage: React.FC = () => {
         <div className="mb-6">
           <span
             className="text-[11px] font-medium tracking-widest uppercase block mb-4"
-            style={{ color: '#10b77f' }}
+            style={{ color: 'var(--n-verdigris)' }}
           >
             Recent Watch History
           </span>
@@ -313,7 +313,7 @@ const YouTubeInsightsPage: React.FC = () => {
         <div className="mb-6">
           <span
             className="text-[11px] font-medium tracking-widest uppercase block mb-4"
-            style={{ color: '#10b77f' }}
+            style={{ color: 'var(--n-verdigris)' }}
           >
             Search Interests
           </span>
@@ -344,7 +344,7 @@ const YouTubeInsightsPage: React.FC = () => {
         <div className="mb-6">
           <span
             className="text-[11px] font-medium tracking-widest uppercase block mb-4"
-            style={{ color: '#10b77f' }}
+            style={{ color: 'var(--n-verdigris)' }}
           >
             Top Subscriptions
           </span>
@@ -383,7 +383,7 @@ const YouTubeInsightsPage: React.FC = () => {
         <div className="mb-6">
           <span
             className="text-[11px] font-medium tracking-widest uppercase block mb-4"
-            style={{ color: '#10b77f' }}
+            style={{ color: 'var(--n-verdigris)' }}
           >
             Content Categories
           </span>
@@ -448,7 +448,7 @@ const YouTubeInsightsPage: React.FC = () => {
         <div className="mb-6">
           <span
             className="text-[11px] font-medium tracking-widest uppercase block mb-4"
-            style={{ color: '#10b77f' }}
+            style={{ color: 'var(--n-verdigris)' }}
           >
             Learning vs Entertainment
           </span>
@@ -483,7 +483,7 @@ const YouTubeInsightsPage: React.FC = () => {
         <div className="mb-6">
           <span
             className="text-[11px] font-medium tracking-widest uppercase block mb-4"
-            style={{ color: '#10b77f' }}
+            style={{ color: 'var(--n-verdigris)' }}
           >
             Recently Liked
           </span>
@@ -538,7 +538,7 @@ const YouTubeInsightsPage: React.FC = () => {
         <div className="mb-8">
           <span
             className="text-[11px] font-medium tracking-widest uppercase block mb-4"
-            style={{ color: '#10b77f' }}
+            style={{ color: 'var(--n-verdigris)' }}
           >
             Patterns I've Noticed
           </span>
@@ -559,7 +559,7 @@ const YouTubeInsightsPage: React.FC = () => {
         <div>
           <span
             className="text-[11px] font-medium tracking-widest uppercase block mb-4"
-            style={{ color: '#10b77f' }}
+            style={{ color: 'var(--n-verdigris)' }}
           >
             Past Observations
           </span>
@@ -612,7 +612,7 @@ const YouTubeInsightsPage: React.FC = () => {
               <button
                 onClick={() => navigate('/get-started')}
                 className="px-4 py-2 rounded-lg text-sm font-medium"
-                style={{ backgroundColor: '#10b77f', color: '#0a0f0a' }}
+                style={{ backgroundColor: 'var(--n-verdigris)', color: '#0a0f0a' }}
               >
                 Connect YouTube
               </button>

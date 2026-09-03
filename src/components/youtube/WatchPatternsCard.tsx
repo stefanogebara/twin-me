@@ -62,7 +62,7 @@ export const WatchPatternsCard: React.FC<WatchPatternsCardProps> = ({
             <Clock className="w-5 h-5 text-[#FF0000]" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-[11px] font-medium tracking-widest uppercase mb-0.5" style={{ color: '#10b77f' }}>
+            <p className="text-[11px] font-medium tracking-widest uppercase mb-0.5" style={{ color: 'var(--n-verdigris)' }}>
               Peak Hours
             </p>
             <p className="text-sm font-medium" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>
@@ -83,7 +83,7 @@ export const WatchPatternsCard: React.FC<WatchPatternsCardProps> = ({
             <TrendingUp className="w-5 h-5 text-[#FF0000]" />
           </div>
           <div className="flex-1">
-            <p className="text-[11px] font-medium tracking-widest uppercase mb-0.5" style={{ color: '#10b77f' }}>
+            <p className="text-[11px] font-medium tracking-widest uppercase mb-0.5" style={{ color: 'var(--n-verdigris)' }}>
               Avg Videos Per Session
             </p>
             <p className="text-xl font-medium" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>
@@ -101,7 +101,7 @@ export const WatchPatternsCard: React.FC<WatchPatternsCardProps> = ({
             <Clock className="w-5 h-5 text-[#FF0000]" />
           </div>
           <div className="flex-1">
-            <p className="text-[11px] font-medium tracking-widest uppercase mb-0.5" style={{ color: '#10b77f' }}>
+            <p className="text-[11px] font-medium tracking-widest uppercase mb-0.5" style={{ color: 'var(--n-verdigris)' }}>
               Avg Watch Duration
             </p>
             <p className="text-xl font-medium" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>
@@ -119,7 +119,7 @@ export const WatchPatternsCard: React.FC<WatchPatternsCardProps> = ({
             <CheckCircle className="w-5 h-5 text-[#FF0000]" />
           </div>
           <div className="flex-1">
-            <p className="text-[11px] font-medium tracking-widest uppercase mb-0.5" style={{ color: '#10b77f' }}>
+            <p className="text-[11px] font-medium tracking-widest uppercase mb-0.5" style={{ color: 'var(--n-verdigris)' }}>
               Completion Rate
             </p>
             <p className="text-xl font-medium" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>
@@ -135,7 +135,7 @@ export const WatchPatternsCard: React.FC<WatchPatternsCardProps> = ({
         >
           <div className="flex items-center gap-2 mb-3">
             <Calendar className="w-4 h-4 text-[#FF0000]" />
-            <p className="text-[11px] font-medium tracking-widest uppercase" style={{ color: '#10b77f' }}>
+            <p className="text-[11px] font-medium tracking-widest uppercase" style={{ color: 'var(--n-verdigris)' }}>
               Weekday vs Weekend
             </p>
           </div>

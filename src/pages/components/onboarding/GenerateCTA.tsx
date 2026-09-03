@@ -64,7 +64,7 @@ export const GenerateCTA: React.FC<GenerateCTAProps> = ({
           <CheckCircle2 className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
           <span
             className="text-[13px]"
-            style={{ color: 'var(--text-secondary)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+            style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-ui)' }}
           >
             {activeCount} platform{activeCount !== 1 ? 's' : ''} active
             {reconnectCount > 0 && (
@@ -83,7 +83,7 @@ export const GenerateCTA: React.FC<GenerateCTAProps> = ({
           style={{
             backgroundColor: connectedServices.length > 0 ? '#F5F5F4' : 'rgba(245,245,244,0.1)',
             color: connectedServices.length > 0 ? '#110f0f' : 'rgba(245,245,244,0.4)',
-            fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
+            fontFamily: 'var(--font-ui)',
             cursor: isGenerating || connectedServices.length === 0 ? 'not-allowed' : 'pointer',
           }}
         >
@@ -108,7 +108,7 @@ export const GenerateCTA: React.FC<GenerateCTAProps> = ({
           <button
             onClick={onSkip}
             className="inline-flex items-center gap-1.5 text-[12px] transition-opacity hover:opacity-70 mt-3"
-            style={{ color: 'var(--text-secondary)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+            style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-ui)' }}
           >
             Skip for now — I'll connect later
             <ArrowRight className="w-3 h-3" />

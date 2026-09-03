@@ -586,7 +586,7 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
                 backgroundColor: 'rgba(255, 100, 100, 0.1)',
                 border: '1px solid rgba(255, 100, 100, 0.2)',
                 color: 'rgba(255, 150, 150, 0.8)',
-                fontFamily: "'Geist', sans-serif",
+                fontFamily: 'var(--font-ui)',
               }}
             >
               {voiceError}
@@ -652,7 +652,7 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
                 style={{
                   background: 'var(--claura-bone)',
                   color: 'var(--claura-bone-ink)',
-                  fontFamily: "'Geist', 'Inter', sans-serif",
+                  fontFamily: 'var(--font-ui)',
                 }}
               >
                 Try again

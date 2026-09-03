@@ -188,7 +188,7 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
                       <button
                         onClick={() => navigate('/get-started')}
                         className="text-[11px]"
-                        style={{ color: '#10b77f' }}
+                        style={{ color: 'var(--n-verdigris)' }}
                       >
                         Connect
                       </button>

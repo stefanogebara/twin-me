@@ -233,7 +233,7 @@ export default function VoiceSetupPage() {
             <div className="flex items-center gap-3">
               <span
                 className="w-2 h-2 rounded-full inline-block"
-                style={{ background: '#10b77f' }}
+                style={{ background: 'var(--n-verdigris)' }}
                 aria-hidden="true"
               />
               <p className="text-[15px]" style={{ color: 'var(--foreground)' }}>

@@ -44,10 +44,10 @@ const SoulRichnessBar: React.FC = () => {
   return (
     <div className="space-y-1.5">
       <div className="flex justify-between text-sm">
-        <span style={{ color: 'var(--text-secondary)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}>
+        <span style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-ui)' }}>
           Soul Score
         </span>
-        <span style={{ color: 'var(--foreground)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif", fontWeight: 500 }}>
+        <span style={{ color: 'var(--foreground)', fontFamily: 'var(--font-ui)', fontWeight: 500 }}>
           {isLoading ? '—' : `${score}%`}
         </span>
       </div>
@@ -63,7 +63,7 @@ const SoulRichnessBar: React.FC = () => {
           }}
         />
       </div>
-      <p className="text-xs" style={{ color: 'var(--text-muted)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}>
+      <p className="text-xs" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>
         {isLoading ? 'Checking your connections...' : label(score)}
       </p>
     </div>

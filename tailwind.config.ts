@@ -15,13 +15,21 @@ export default {
     },
     extend: {
       fontFamily: {
-        // Claura Design System Fonts
-        'heading': ['Instrument Serif', 'Georgia', 'serif'],         // Serif headings
-        'body': ['Geist', 'Inter', 'system-ui', 'sans-serif'],   // Body text
-        'ui': ['Geist', 'Inter', 'system-ui', 'sans-serif'],     // UI elements
-        'sans': ['Geist', 'Inter', 'system-ui', 'sans-serif'],   // Default sans
-        'serif': ['Instrument Serif', 'Georgia', 'serif'],            // Default serif
-        'mono': ['JetBrains Mono', 'Consolas', 'monospace'],
+        // Nocturne's three voices, reached through the tokens rather than
+        // repeated here. This block used to hard-code the Claura stacks, and
+        // because Tailwind emits a LITERAL font stack for font-heading /
+        // font-sans / font-mono, no CSS variable could reach them: the flip
+        // and the bridge both went straight past. 162 uses of font-heading
+        // across 80 files were still rendering Instrument Serif, and every
+        // font-sans/body/ui was still leading with Geist.
+        // Keep these pointing at the vars so the token layer stays the single
+        // source of truth — nocturne.css defines them on :root.
+        'heading': 'var(--n-serif)',   // Fraunces 300
+        'serif': 'var(--n-serif)',
+        'body': 'var(--n-sans)',       // Inter
+        'ui': 'var(--n-sans)',
+        'sans': 'var(--n-sans)',
+        'mono': 'var(--n-mono)',       // Roboto Mono
       },
       colors: {
         // Semantic tokens from CSS variables (no hsl wrapper — vars contain hex/rgba)

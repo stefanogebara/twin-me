@@ -92,7 +92,7 @@ export const DataTransparencyPanel: React.FC<DataTransparencyPanelProps> = ({
           <button
             onClick={onExportData}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm shadow-md hover:shadow-lg transition-all duration-200"
-            style={{ backgroundColor: '#10b77f', color: '#0a0f0a', fontFamily: "'Inter', sans-serif" }}
+            style={{ backgroundColor: 'var(--n-verdigris)', color: '#0a0f0a', fontFamily: "'Inter', sans-serif" }}
           >
             <Download className="w-4 h-4" />
             Export All Data

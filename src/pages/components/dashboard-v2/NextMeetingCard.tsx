@@ -104,7 +104,7 @@ export function NextMeetingCard() {
           />
           <span
             style={{
-              fontFamily: "'Geist', 'Inter', sans-serif",
+              fontFamily: 'var(--font-ui)',
               fontSize: 11,
               fontWeight: 500,
               letterSpacing: '0.08em',
@@ -118,7 +118,7 @@ export function NextMeetingCard() {
         <span
           className="flex items-center gap-1"
           style={{
-            fontFamily: "'Geist', 'Inter', sans-serif",
+            fontFamily: 'var(--font-ui)',
             fontSize: 11.5,
             color: 'var(--text-secondary)',
           }}
@@ -150,7 +150,7 @@ export function NextMeetingCard() {
               key={i}
               className="pl-3 flex items-start gap-1.5"
               style={{
-                fontFamily: "'Geist', 'Inter', sans-serif",
+                fontFamily: 'var(--font-ui)',
                 fontSize: 12.5,
                 color: 'var(--text-secondary)',
                 lineHeight: 1.45,
@@ -168,7 +168,7 @@ export function NextMeetingCard() {
       <span
         className="inline-flex items-center gap-1"
         style={{
-          fontFamily: "'Geist', 'Inter', sans-serif",
+          fontFamily: 'var(--font-ui)',
           fontSize: 12,
           fontWeight: 500,
           color: isSoon ? 'rgba(232,160,80,0.95)' : 'var(--text-secondary)',

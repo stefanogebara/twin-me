@@ -56,7 +56,7 @@ export const ListeningPatternsCard: React.FC<ListeningPatternsCardProps> = ({
         <div>
           <div className="flex items-center gap-2 mb-2">
             <Clock className="w-4 h-4 text-[#1DB954]" />
-            <span className="text-[11px] font-medium tracking-widest uppercase" style={{ color: '#10b77f' }}>
+            <span className="text-[11px] font-medium tracking-widest uppercase" style={{ color: 'var(--n-verdigris)' }}>
               Peak Listening Hours
             </span>
           </div>
@@ -74,7 +74,7 @@ export const ListeningPatternsCard: React.FC<ListeningPatternsCardProps> = ({
         <div>
           <div className="flex items-center gap-2 mb-3">
             <Calendar className="w-4 h-4 text-[#1DB954]" />
-            <span className="text-[11px] font-medium tracking-widest uppercase" style={{ color: '#10b77f' }}>
+            <span className="text-[11px] font-medium tracking-widest uppercase" style={{ color: 'var(--n-verdigris)' }}>
               Weekday vs Weekend
             </span>
           </div>
@@ -153,7 +153,7 @@ export const ListeningPatternsCard: React.FC<ListeningPatternsCardProps> = ({
         <div>
           <div className="flex items-center gap-2 mb-2">
             <SkipForward className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
-            <span className="text-[11px] font-medium tracking-widest uppercase" style={{ color: '#10b77f' }}>
+            <span className="text-[11px] font-medium tracking-widest uppercase" style={{ color: 'var(--n-verdigris)' }}>
               Skip Rate
             </span>
           </div>

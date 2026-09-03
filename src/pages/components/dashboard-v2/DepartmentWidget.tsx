@@ -93,7 +93,7 @@ export function DepartmentWidget() {
               className="text-xs"
               style={{
                 color: 'var(--text-secondary)',
-                fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
+                fontFamily: 'var(--font-ui)',
               }}
             >
               Could not load your AI team.
@@ -106,7 +106,7 @@ export function DepartmentWidget() {
                 color: 'var(--foreground)',
                 border: 'none',
                 cursor: 'pointer',
-                fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
+                fontFamily: 'var(--font-ui)',
               }}
             >
               Retry
@@ -137,7 +137,7 @@ export function DepartmentWidget() {
                 className="text-[10px] font-medium leading-none"
                 style={{
                   color: dept.isEnabled ? 'var(--text-secondary)' : 'var(--text-muted)',
-                  fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
+                  fontFamily: 'var(--font-ui)',
                 }}
               >
                 {dept.config.name}
@@ -150,7 +150,7 @@ export function DepartmentWidget() {
               style={{
                 backgroundColor: 'var(--surface-solid)',
                 color: 'var(--text-secondary)',
-                fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
+                fontFamily: 'var(--font-ui)',
               }}
             >
               {pendingCount} pending
@@ -176,7 +176,7 @@ export function DepartmentWidget() {
                     className="text-xs truncate"
                     style={{
                       color: 'var(--text-secondary)',
-                      fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
+                      fontFamily: 'var(--font-ui)',
                     }}
                   >
                     {proposal.description}
@@ -191,7 +191,7 @@ export function DepartmentWidget() {
                     color: 'var(--foreground)',
                     border: 'none',
                     cursor: approvingId === proposal.id ? 'wait' : 'pointer',
-                    fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
+                    fontFamily: 'var(--font-ui)',
                   }}
                 >
                   <Check className="w-3 h-3" />
@@ -204,7 +204,7 @@ export function DepartmentWidget() {
                 className="text-[10px]"
                 style={{
                   color: 'var(--text-secondary)',
-                  fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
+                  fontFamily: 'var(--font-ui)',
                 }}
               >
                 +{proposals.length - 3} more proposals
@@ -216,7 +216,7 @@ export function DepartmentWidget() {
             className="text-xs"
             style={{
               color: 'var(--text-secondary)',
-              fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
+              fontFamily: 'var(--font-ui)',
             }}
           >
             All quiet. Your departments are watching.

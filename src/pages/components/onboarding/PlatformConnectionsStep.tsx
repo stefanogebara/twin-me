@@ -214,7 +214,7 @@ export const PlatformConnectionsStep: React.FC<PlatformConnectionsStepProps> = (
       <SectionLabel label="Google Workspace" />
       <p
         className="text-[13px] -mt-2 mb-4 leading-relaxed"
-        style={{ color: 'var(--text-secondary)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+        style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-ui)' }}
       >
         Access your email and calendar — your twin reads and understands your schedule and communication patterns
       </p>
@@ -224,7 +224,7 @@ export const PlatformConnectionsStep: React.FC<PlatformConnectionsStepProps> = (
       />
       <p
         className="text-[11px] mt-3"
-        style={{ color: 'var(--text-secondary)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+        style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-ui)' }}
       >
         Your data stays yours. We never train AI on your personal data or sell it.
       </p>

@@ -77,7 +77,7 @@ export const LoadingButton: React.FC<LoadingButtonProps> = ({
   const baseClasses = 'inline-flex items-center justify-center font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed';
 
   const variantStyles: Record<string, React.CSSProperties> = {
-    primary: { backgroundColor: '#10b77f', color: '#0a0f0a', fontWeight: 600 },
+    primary: { backgroundColor: 'var(--n-verdigris)', color: '#0a0f0a', fontWeight: 600 },
     secondary: { backgroundColor: 'var(--sidebar)', color: 'var(--foreground)', border: '1px solid var(--glass-surface-border)' },
     outline: { backgroundColor: 'var(--sidebar)', color: 'var(--foreground)', border: '1px solid var(--glass-surface-border)' }
   };

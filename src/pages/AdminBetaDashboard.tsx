@@ -266,8 +266,8 @@ function CreateCodeForm({ onCreated }: { onCreated: () => void }) {
   return (
     <div className="rounded-lg p-5" style={CARD_STYLE}>
       <div className="flex items-center gap-2 mb-4">
-        <Plus className="w-4 h-4" style={{ color: '#10b77f' }} />
-        <span className="text-[11px] font-medium tracking-widest uppercase" style={{ color: '#10b77f' }}>
+        <Plus className="w-4 h-4" style={{ color: 'var(--n-verdigris)' }} />
+        <span className="text-[11px] font-medium tracking-widest uppercase" style={{ color: 'var(--n-verdigris)' }}>
           Create New Code
         </span>
       </div>

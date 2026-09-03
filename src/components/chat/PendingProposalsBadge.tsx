@@ -118,7 +118,7 @@ export function PendingProposalsBadge({
                 className="text-[12px] font-medium mb-2 uppercase tracking-[0.06em]"
                 style={{
                   color: 'var(--text-secondary)',
-                  fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
+                  fontFamily: 'var(--font-ui)',
                 }}
               >
                 Pending proposals
@@ -150,7 +150,7 @@ export function PendingProposalsBadge({
                           className="text-[10px] font-medium uppercase tracking-[0.06em] block mb-0.5"
                           style={{
                             color: proposal.departmentColor,
-                            fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
+                            fontFamily: 'var(--font-ui)',
                           }}
                         >
                           {proposal.department}
@@ -159,7 +159,7 @@ export function PendingProposalsBadge({
                           className="text-[12px] leading-snug"
                           style={{
                             color: 'var(--text-secondary)',
-                            fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
+                            fontFamily: 'var(--font-ui)',
                           }}
                         >
                           {proposal.description}
@@ -205,7 +205,7 @@ export function PendingProposalsBadge({
           backdropFilter: 'blur(42px)',
           WebkitBackdropFilter: 'blur(42px)',
           border: '1px solid var(--glass-surface-border)',
-          fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
+          fontFamily: 'var(--font-ui)',
         }}
         aria-label={`${proposals.length} pending proposal${proposals.length !== 1 ? 's' : ''}`}
       >

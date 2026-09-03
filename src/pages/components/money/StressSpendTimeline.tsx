@@ -68,7 +68,7 @@ function CustomTooltip({ active, payload, label, currency }: CustomTooltipProps)
       border: '1px solid var(--glass-surface-border)',
       borderRadius: 12,
       padding: '10px 14px',
-      fontFamily: "'Geist','Inter',sans-serif",
+      fontFamily: 'var(--font-ui)',
       fontSize: 13,
     }}>
       <div style={{ color: 'var(--text-secondary)', marginBottom: 6, fontSize: 11 }}>{formatDay(label)}</div>
@@ -103,7 +103,7 @@ export function StressSpendTimeline({ days, currency = 'BRL', windowDays = 30 }:
         padding: '40px 24px',
         textAlign: 'center',
         color: 'var(--text-secondary)',
-        fontFamily: "'Geist','Inter',sans-serif",
+        fontFamily: 'var(--font-ui)',
         fontSize: 14,
       }}>
         Not enough data to draw the timeline chart yet.
@@ -117,7 +117,7 @@ export function StressSpendTimeline({ days, currency = 'BRL', windowDays = 30 }:
   ).length;
 
   return (
-    <div style={{ fontFamily: "'Geist','Inter',sans-serif" }}>
+    <div style={{ fontFamily: 'var(--font-ui)' }}>
       {correlatedDays > 0 && (
         <div style={{
           marginBottom: 16,

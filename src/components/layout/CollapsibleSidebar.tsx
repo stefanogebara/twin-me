@@ -250,7 +250,7 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
                         <span
                           className="text-sm truncate flex-1 text-left"
                           style={{
-                            fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
+                            fontFamily: 'var(--font-ui)',
                             fontWeight: active ? 500 : 400,
                             color: active ? 'var(--foreground)' : 'var(--text-secondary)',
                           }}
@@ -296,7 +296,7 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
                   <span
                     className="text-sm"
                     style={{
-                      fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
+                      fontFamily: 'var(--font-ui)',
                       fontWeight: 400,
                       color: 'var(--text-secondary)',
                     }}

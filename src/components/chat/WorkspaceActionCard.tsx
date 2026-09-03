@@ -240,7 +240,7 @@ function WriteResult({ data, tool }: { data: any; tool: string }) {
   const label = tool === 'calendar_delete_event' ? 'event' : title;
   return (
     <div className="flex items-center gap-2 py-1">
-      <Check className="w-4 h-4 flex-shrink-0" style={{ color: '#10b77f' }} />
+      <Check className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--n-verdigris)' }} />
       <span className="text-[13px]" style={{ color: 'var(--foreground)' }}>
         {verb}: {label}
       </span>

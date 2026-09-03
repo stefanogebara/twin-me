@@ -51,7 +51,7 @@ const InterviewCompletion: React.FC<InterviewCompletionProps> = ({
         {enhancedSignature?.first_impression && (
           <p
             className="text-xs leading-relaxed max-w-sm mx-auto mb-1"
-            style={{ color: 'var(--text-muted)', fontFamily: "'Geist', sans-serif" }}
+            style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}
           >
             {enhancedSignature.first_impression}
           </p>
@@ -95,7 +95,7 @@ const InterviewCompletion: React.FC<InterviewCompletionProps> = ({
                 backgroundColor: 'var(--surface)',
                 border: '1px solid var(--border-glass)',
                 color: 'var(--text-muted)',
-                fontFamily: "'Geist', sans-serif",
+                fontFamily: 'var(--font-ui)',
               }}
             >
               {t.trait}
@@ -110,7 +110,7 @@ const InterviewCompletion: React.FC<InterviewCompletionProps> = ({
         style={{
           backgroundColor: 'var(--foreground)',
           color: 'var(--background)',
-          fontFamily: "'Geist', sans-serif",
+          fontFamily: 'var(--font-ui)',
           letterSpacing: '0.02em',
           textTransform: 'uppercase',
           fontSize: '12px',

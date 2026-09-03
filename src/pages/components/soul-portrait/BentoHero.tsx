@@ -39,14 +39,14 @@ export const BentoHero: React.FC<Props> = ({ data }) => {
       <div
         className="absolute left-0 top-0 bottom-0 w-1 rounded-l-lg"
         style={{
-          background: 'linear-gradient(180deg, #10b77f 0%, rgba(16, 183, 127, 0.15) 100%)',
+          background: 'linear-gradient(180deg, var(--n-verdigris) 0%, rgba(16, 183, 127, 0.15) 100%)',
         }}
       />
 
       <div className="relative pl-2">
         <p
           className="text-[11px] font-medium tracking-widest uppercase mb-4"
-          style={{ color: '#10b77f' }}
+          style={{ color: 'var(--n-verdigris)' }}
         >
           Soul Summary
         </p>
