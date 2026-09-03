@@ -262,6 +262,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
     const sources = [...new Set(live.flatMap((r) => r.evidence.map((e) => SOURCE_LABEL[e.source] ?? e.source)))];
     const receipts = live.reduce((n, r) => n + r.evidence.length, 0);
     const [first] = live[0]?.evidence ?? [];
+    if (open) return <span />;
     if (!open) {
       return (
         <p className="pc-pt-count">
@@ -394,7 +395,11 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
         <p className="pc-pt-section-mark">Signature</p>
         <ol className="pc-pt-lines">
           {blocks.map((b, i) => (
-            <li key={b.domain} className={`pc-pt-line ${i === 0 ? 'is-first' : ''} ${openDomain === b.domain ? 'is-open' : ''}`}>
+            <li
+              key={b.domain}
+              className={`pc-pt-line ${i === 0 ? 'is-first' : ''} ${openDomain === b.domain ? 'is-open' : ''}`}
+              style={{ '--still': `url('${STILLS[(i * 3 + 2) % STILLS.length]}')` } as React.CSSProperties}
+            >
               <button
                 type="button"
                 className="pc-pt-line-head"
@@ -403,6 +408,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
                 onClick={() => setOpenDomain(openDomain === b.domain ? null : b.domain)}
               >
                 <span className="pc-pt-label">{STANZA[b.domain]}</span>
+                <span className="pc-pt-open-mark" aria-hidden="true">{openDomain === b.domain ? 'Close' : 'Read'}</span>
                 <span className="pc-pt-serif pc-pt-sentence">{(b === promoted ? b.readings[0]?.text : b.line) ?? b.readings[0]?.text}</span>
                 {stanzaRail(b, openDomain === b.domain)}
               </button>

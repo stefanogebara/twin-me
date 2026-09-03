@@ -3782,87 +3782,43 @@ button.pc-search-icons {
 }
 
 /* ============================================================
-   Portrait — the product's one page, 2026-09-03 (iteration 55)
-   Read from how the three references are actually built, not from
-   their screenshots. cosmos.so: paper ground, stills scattered at
-   different sizes, angles and depths (near sharp, far blurred), one
-   huge grotesk headline tracked tight, pill actions.
-   cora.computer: Switzer for everything you read and press.
-   createanything.com: iA Writer Mono for machine values.
-   No serif on this page, and none of the type the rest of TwinMe uses.
+   Portrait — the product's one page, 2026-09-04 (iteration 65)
+   Read from how the references are built, not from screenshots.
+   cosmos.so: paper ground, stills scattered at real depth, one huge
+   grotesk line tracked tight, pill actions. cora.computer: Switzer,
+   and a world that never stops at the fold. createanything.com: iA
+   Writer Mono for machine values, a tall soft ask field.
+   And from the boards Stefano sent (Oura, Ohm, the memory cards):
+   make the data feel calm and ambient — frosted panels over blurred
+   photography, a pill label at the corner, hairline rules, big soft
+   numbers with a small word after them. No serif anywhere.
    ============================================================ */
 
 .presence-cosmos {
-  /* The Portrait's own type: Switzer to read and to press, iA Writer Mono for what a
-     machine recorded. Deliberately not the Instrument Serif and Geist used elsewhere. */
+  /* Switzer to read and to press, iA Writer Mono for what a machine recorded.
+     Deliberately not the Instrument Serif and Geist used elsewhere. */
   --c-mono: 'iA Writer Mono', ui-monospace, 'SF Mono', Menlo, monospace;
   --c-serif: 'Switzer', ui-sans-serif, system-ui, sans-serif;
   --c-sans-ui: 'Switzer', ui-sans-serif, system-ui, sans-serif;
   --c-mono-ink: #6e6b69;
   --pt-max: 1200px;
-  --pt-rail: 380px;
-  --pt-gap: 40px;
+  --pt-rail: 440px;
+  --pt-gap: 32px;
   --pt-idx: 124px;
   --pt-card: 24px;
-  --pt-shadow: 0 1px 2px rgba(13, 13, 13, 0.04), 0 12px 32px rgba(13, 13, 13, 0.06);
+  --pt-ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .pc-portrait {
   position: relative;
   padding: 0 0 96px;
   background: var(--c-paper);
+  overflow-x: clip;
 }
 
-.pc-pt-paper {
-  position: relative;
-  z-index: 1;
-}
+/* ---- The field: one world, the length of the page ---------------- */
 
-.pc-pt-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) var(--pt-rail);
-  gap: 0 var(--pt-gap);
-  align-items: start;
-}
-
-/* Voices */
-.pc-portrait .pc-pt-mono,
-.pc-portrait .pc-pt-mono span,
-.pc-pt-when,
-.pc-pt-src {
-  font-family: var(--c-mono);
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  line-height: 1.6;
-  font-variant-numeric: tabular-nums;
-  color: var(--c-mono-ink);
-}
-
-.presence-cosmos .pc-pt-serif {
-  font-family: var(--c-serif);
-  font-weight: 400;
-  line-height: 1.12;
-  letter-spacing: -0.014em;
-  color: var(--c-ink);
-}
-
-/* ---- The room -------------------------------------------------- */
-
-.pc-pt-hero {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-  min-height: min(86vh, 820px);
-  padding-bottom: 56px;
-  color: var(--c-ink);
-}
-
-/* Scattered stills: near ones sharp, far ones soft, none of them decoration you
-   have to read past. */
-.pc-pt-tiles {
+.pc-pt-field {
   position: absolute;
   inset: 0;
   pointer-events: none;
@@ -3874,25 +3830,47 @@ button.pc-search-icons {
   border-radius: 12px;
   object-fit: cover;
   box-shadow: 0 14px 40px rgba(13, 13, 13, 0.12);
-  /* Only the opacity animates: each tile's transform carries its own place and angle. */
-  animation: pc-pt-fade 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: pc-pt-fade 0.8s var(--pt-ease) both;
 }
 
 @keyframes pc-pt-fade {
   from { opacity: 0; }
 }
 
-/* The room is dimmed enough that type holds anywhere on it. */
+.pc-pt-paper {
+  position: relative;
+  z-index: 1;
+}
 
+/* ---- Voices ------------------------------------------------------ */
 
+.pc-portrait .pc-pt-mono,
+.pc-portrait .pc-pt-mono span,
+.pc-pt-when,
+.pc-pt-src {
+  font-family: var(--c-mono);
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  line-height: 1.6;
+  font-variant-numeric: tabular-nums;
+  color: var(--c-mono-ink);
+}
 
+.presence-cosmos .pc-pt-serif {
+  font-family: var(--c-sans-ui);
+  font-weight: 400;
+  line-height: 1.12;
+  letter-spacing: -0.03em;
+  color: var(--c-ink);
+}
 
+/* ---- Masthead ---------------------------------------------------- */
 
-
-/* The frosted pill, floating. */
 .pc-pt-masthead {
   position: relative;
-  z-index: 3;
+  z-index: 4;
   width: min(var(--pt-max), calc(100% - 48px));
   margin: 22px auto 0;
   height: 52px;
@@ -3918,7 +3896,7 @@ button.pc-search-icons {
   font-size: 15px;
   letter-spacing: -0.02em;
   color: var(--c-ink-3);
-  transition: color 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: color 0.15s var(--pt-ease);
 }
 
 .pc-portrait .pc-pt-masthead nav a:hover,
@@ -3937,15 +3915,25 @@ button.pc-search-icons {
   font-weight: 500;
   letter-spacing: -0.02em;
   color: var(--c-white) !important;
-  transition: opacity 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: opacity 0.15s var(--pt-ease);
 }
 
 .presence-cosmos .pc-pt-nav-link:hover {
   opacity: 0.84;
 }
 
-/* The headline stands in the room. */
-/* The clearing: paper breathed over the field so the words never fight it. */
+/* ---- The hero ---------------------------------------------------- */
+
+.pc-pt-hero {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: min(86vh, 820px);
+  padding-bottom: 56px;
+  color: var(--c-ink);
+}
+
 .pc-pt-hero-body::before {
   content: '';
   position: absolute;
@@ -3966,26 +3954,26 @@ button.pc-search-icons {
   max-width: var(--pt-max);
   width: calc(100% - 48px);
   margin: 0 auto;
-  padding: 40px 0 64px;
+  padding: 96px 0 84px;
 }
 
 .presence-cosmos .pc-pt-kicker {
-  margin: 0 0 26px;
+  margin: 0 0 30px;
   font-family: var(--c-mono);
   font-size: 12px;
   font-weight: 400;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--c-ink-3);
 }
 
 .presence-cosmos .pc-pt-hero h1 {
-  max-width: 17ch;
+  max-width: 22ch;
   margin: 0;
   font-family: var(--c-sans-ui);
   font-size: clamp(46px, 6.6vw, 92px);
   font-weight: 400;
-  line-height: 0.98;
+  line-height: 0.96;
   letter-spacing: -0.05em;
   text-wrap: balance;
   color: var(--c-ink);
@@ -3998,25 +3986,25 @@ button.pc-search-icons {
 }
 
 .presence-cosmos .pc-pt-promise {
-  max-width: 46ch;
   margin: 26px 0 0;
-  font-size: 20px;
-  line-height: 1.45;
-  letter-spacing: -0.02em;
-  color: var(--c-ink-2);
+  font-family: var(--c-mono);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--c-ink-3);
 }
 
-/* ---- Today: the second photographed beat ------------------------ */
+/* ---- Today: the one question, over the room --------------------- */
 
 .pc-pt-today {
   position: relative;
-  z-index: 3;
-  max-width: 880px;
+  z-index: 2;
+  max-width: var(--pt-max);
   width: calc(100% - 48px);
   margin: 0 auto;
   overflow: hidden;
-  border-radius: 24px;
-  background: #14161a url('/images/twinme/cosmos-07-room.jpg') 62% 68% / 150% auto;
+  border-radius: var(--pt-card);
+  background: #14161a var(--pt-today-still, url('/images/twinme/cosmos-07-room.jpg')) 62% 68% / 150% auto;
   color: var(--c-white);
 }
 
@@ -4024,7 +4012,7 @@ button.pc-search-icons {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(10, 12, 15, 0.5) 0%, rgba(10, 12, 15, 0.72) 100%);
+  background: linear-gradient(180deg, rgba(10, 12, 15, 0.5) 0%, rgba(10, 12, 15, 0.74) 100%);
 }
 
 .pc-pt-today > * {
@@ -4035,37 +4023,28 @@ button.pc-search-icons {
   width: 100%;
   max-width: 640px;
   margin: 0 auto;
-  padding: 64px 32px 68px;
+  padding: 72px 32px 76px;
   text-align: center;
-}
-
-.pc-pt-q-answer {
-  padding-top: 32px;
 }
 
 .presence-cosmos .pc-pt-q-mark {
   margin: 0 0 20px;
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.78);
+  font-family: var(--c-mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.6);
 }
 
 .presence-cosmos .pc-pt-today h2 {
-  max-width: none;
-  margin: 0;
-  font-family: var(--c-serif);
-  font-size: clamp(28px, 3.2vw, 46px);
-  line-height: 1.08;
-  letter-spacing: -0.016em;
+  max-width: 20ch;
+  margin: 0 auto;
+  font-size: clamp(28px, 3vw, 40px);
+  font-weight: 400;
+  line-height: 1.06;
+  letter-spacing: -0.038em;
   text-wrap: balance;
   color: var(--c-white);
-}
-
-.presence-cosmos .pc-pt-q-evidence {
-  max-width: 40ch;
-  margin: 22px 0 0;
-  font-size: 15px;
-  line-height: 1.5;
-  color: rgba(255, 255, 255, 0.8);
 }
 
 .presence-cosmos .pc-pt-q-receipt {
@@ -4074,12 +4053,16 @@ button.pc-search-icons {
   margin: 26px 0 0;
   font-size: 17px;
   line-height: 1.4;
-  letter-spacing: -0.01em;
-  color: var(--c-white);
+  letter-spacing: -0.02em;
+  color: rgba(255, 255, 255, 0.88);
 }
 
 .pc-portrait .pc-pt-q-receipt .pc-pt-mono {
-  color: rgba(255, 255, 255, 0.68);
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.pc-pt-q-answer {
+  padding-top: 32px;
 }
 
 .pc-pt-choices {
@@ -4097,9 +4080,9 @@ button.pc-search-icons {
   font-family: var(--c-sans-ui);
   font-size: 16px;
   font-weight: 500;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
   color: var(--c-white);
-  transition: background 0.2s, color 0.2s, border-color 0.2s;
+  transition: background 0.15s var(--pt-ease), color 0.15s var(--pt-ease), border-color 0.15s var(--pt-ease);
 }
 
 .pc-portrait .pc-pt-choices .is-lead {
@@ -4108,7 +4091,9 @@ button.pc-search-icons {
 }
 
 .pc-portrait .pc-pt-choices .is-quiet {
-  border-color: rgba(255, 255, 255, 0.32);
+  border-color: rgba(255, 255, 255, 0.34);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
 }
 
 .pc-portrait .pc-pt-choices .is-quiet:hover {
@@ -4119,11 +4104,10 @@ button.pc-search-icons {
   margin-top: 22px;
   font-family: var(--c-mono);
   font-size: 11px;
-  font-weight: 500;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: rgba(255, 255, 255, 0.5);
-  transition: color 0.2s;
+  transition: color 0.15s var(--pt-ease);
 }
 
 .pc-portrait .pc-pt-today .pc-pt-skip:hover {
@@ -4132,296 +4116,317 @@ button.pc-search-icons {
 
 .presence-cosmos .pc-pt-answered {
   margin: 0;
-  font-family: var(--c-serif);
-  font-size: 28px;
+  font-size: 26px;
+  letter-spacing: -0.03em;
   color: var(--c-white);
 }
 
-/* ---- The page below: cards on paper ----------------------------- */
+/* ---- The sections ------------------------------------------------ */
 
 .pc-pt-signature,
 .pc-pt-ask,
 .pc-pt-sources {
+  position: relative;
+  z-index: 1;
   max-width: var(--pt-max);
   width: calc(100% - 48px);
-  margin: 72px auto 0;
+  margin: 96px auto 0;
 }
 
 .pc-pt-signature { margin-top: 56px; }
 
 .pc-portrait .pc-pt-section-mark {
-  margin: 0 0 14px;
+  margin: 0 0 16px;
   padding: 0;
   font-family: var(--c-mono);
   font-size: 11px;
-  font-weight: 500;
+  font-weight: 400;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--c-mono-ink);
 }
 
+/* ---- The signature: ambient panels, one per stanza ---------------- */
+
 .pc-pt-lines {
   list-style: none;
   display: grid;
-  gap: 0;
+  gap: 14px;
   margin: 0;
   padding: 0;
 }
 
 .pc-pt-line {
-  border-bottom: 0.5px solid var(--c-border);
-}
-
-.pc-pt-line:last-child {
-  border-bottom: 0;
-}
-
-/* The one that is open becomes an object; the rest stay a list. */
-.pc-pt-line.is-open {
-  margin: 0 0 20px;
-  border-bottom: 0;
-  border-radius: var(--pt-card);
-  background: var(--c-white);
-  border: 0.5px solid var(--c-border);
+  position: relative;
   overflow: hidden;
+  border-radius: var(--pt-card);
+  background: #12141a var(--still) center 55% / 130% auto;
+  color: var(--c-white);
+}
+
+/* The photograph is held far back so the words sit calmly on it. */
+.pc-pt-line::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  backdrop-filter: blur(30px) saturate(115%);
+  -webkit-backdrop-filter: blur(30px) saturate(115%);
+  background: linear-gradient(180deg, rgba(11, 13, 17, 0.9) 0%, rgba(11, 13, 17, 0.95) 100%);
+}
+
+.pc-pt-line > * {
+  position: relative;
 }
 
 .pc-portrait .pc-pt-line-head {
   display: grid;
   width: 100%;
-  grid-template-columns: var(--pt-idx) minmax(0, 1fr) var(--pt-rail);
-  gap: 0 var(--pt-gap);
+  grid-template-columns: minmax(0, 1fr) var(--pt-rail);
+  gap: 8px var(--pt-gap);
   align-items: start;
-  padding: 22px 0 24px;
+  padding: 28px 32px 30px;
   text-align: left;
-  transition: opacity 0.2s;
 }
 
-.pc-pt-line.is-open .pc-pt-line-head {
-  padding: 28px 28px 26px;
-}
-
-.pc-portrait .pc-pt-line-head:not(:disabled):hover .pc-pt-sentence {
-  text-decoration: underline;
-  text-decoration-thickness: 0.5px;
-  text-underline-offset: 6px;
-  text-decoration-color: var(--c-ink-4);
-}
-
-
-
+/* The pill label the boards put in the corner of every card. */
 .presence-cosmos .pc-pt-label {
-  margin: 0;
-  padding-top: 8px;
-  font-family: var(--c-sans-ui);
-  font-size: 14px;
-  font-weight: 500;
-  letter-spacing: -0.01em;
-  text-transform: none;
-  color: var(--c-ink-3);
+  justify-self: start;
+  margin: 0 0 18px;
+  padding: 6px 13px;
+  border-radius: 999px;
+  border: 0.5px solid rgba(255, 255, 255, 0.28);
+  font-family: var(--c-mono);
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.pc-pt-open-mark {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: end;
+  align-self: start;
+  padding: 6px 13px;
+  border-radius: 999px;
+  font-family: var(--c-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+  transition: color 0.15s var(--pt-ease);
+}
+
+.pc-portrait .pc-pt-line-head:hover .pc-pt-open-mark {
+  color: var(--c-white);
 }
 
 .presence-cosmos .pc-pt-sentence {
+  grid-column: 1;
   margin: 0;
-  font-size: 24px;
-  line-height: 1.2;
+  font-size: clamp(24px, 2.1vw, 30px);
+  line-height: 1.16;
+  letter-spacing: -0.034em;
   text-wrap: pretty;
-}
-
-.pc-pt-line.is-open .pc-pt-sentence {
-  font-size: clamp(26px, 2.4vw, 33px);
-  line-height: 1.14;
+  color: var(--c-white);
 }
 
 .presence-cosmos .pc-pt-count {
+  grid-column: 2;
   display: grid;
-  gap: 3px;
+  gap: 5px;
   margin: 0;
   padding-top: 6px;
   font-size: 14px;
   line-height: 1.45;
-  color: var(--c-ink-3);
+  letter-spacing: -0.015em;
+  color: rgba(255, 255, 255, 0.82);
 }
 
-.pc-pt-count.is-open {
-  gap: 10px;
+.pc-portrait .pc-pt-count .pc-pt-when,
+.pc-portrait .pc-pt-count .pc-pt-mono,
+.pc-portrait .pc-pt-count .pc-pt-src {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.presence-cosmos .pc-pt-count .pc-pt-event {
+  color: rgba(255, 255, 255, 0.88);
 }
 
 .presence-cosmos .pc-pt-peek {
   display: grid;
-  grid-template-columns: 88px 56px minmax(0, 1fr) auto;
-  gap: 0 12px;
-  align-items: baseline;
-  margin: 4px 0 0;
-  padding-top: 12px;
-  border-top: 0.5px solid var(--c-border);
+  gap: 3px;
+  margin: 0;
 }
 
-.pc-portrait .pc-pt-of {
-  padding-left: 10px;
-  color: var(--c-ink-4);
-}
+/* ---- The readings inside an open stanza -------------------------- */
 
-/* The readings inside an open card. */
 .pc-pt-ledger {
   list-style: none;
   margin: 0;
-  padding: 0 28px 24px;
-  animation: pc-pt-open 0.4s var(--c-ease-ui);
+  padding: 0 32px 28px;
+  animation: pc-pt-open 0.45s var(--pt-ease);
 }
 
 @keyframes pc-pt-open {
   from { opacity: 0; transform: translateY(-6px); }
-  to { opacity: 1; transform: none; }
 }
 
 .pc-pt-ledger-mark {
-  display: grid;
-  grid-template-columns: var(--pt-idx) minmax(0, 1fr) var(--pt-rail);
-  gap: 0 var(--pt-gap);
-  padding-bottom: 12px;
-  font-family: var(--c-sans-ui);
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--c-ink-3);
+  display: none;
 }
 
 .pc-pt-row {
   display: grid;
-  grid-template-columns: var(--pt-idx) minmax(0, 1fr) var(--pt-rail);
+  grid-template-columns: 44px minmax(0, 1fr) var(--pt-rail);
   gap: 0 var(--pt-gap);
   align-items: start;
   padding: 22px 0 24px;
-  border-top: 0.5px solid var(--c-border);
-}
-
-.pc-pt-row:last-child {
-  padding-bottom: 4px;
+  border-top: 0.5px solid rgba(255, 255, 255, 0.14);
 }
 
 .pc-pt-row > div {
   display: grid;
-  gap: 18px;
+  gap: 16px;
   align-content: start;
 }
 
 .presence-cosmos .pc-pt-row-index {
   margin: 0;
-  padding-top: 6px;
-  font-family: var(--c-sans-ui);
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--c-ink-4);
+  padding-top: 5px;
+  font-family: var(--c-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.45);
 }
 
 .pc-portrait .pc-pt-row-index b {
-  font-weight: 500;
-  color: var(--c-ink);
+  display: block;
+  font-weight: 400;
+  color: var(--c-white);
 }
 
 .presence-cosmos .pc-pt-claim {
   margin: 0;
-  font-size: 20px;
-  line-height: 1.32;
+  font-size: 22px;
+  line-height: 1.26;
+  letter-spacing: -0.03em;
   text-wrap: pretty;
-  color: var(--c-ink);
+  color: var(--c-white);
 }
 
 .pc-pt-row.is-fading .pc-pt-claim,
 .pc-pt-row.is-disputed .pc-pt-claim {
-  color: var(--c-ink-3);
+  color: rgba(255, 255, 255, 0.5);
 }
 
-/* The verdict: pills, like every other control in Cosmos. */
+/* The verdict: frosted pills, filled when chosen. */
 .pc-pt-vote {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   align-items: center;
-  opacity: 0;
-  transition: opacity 0.15s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.pc-pt-row:hover .pc-pt-vote,
-.pc-pt-row:focus-within .pc-pt-vote,
-.pc-pt-row.is-answered .pc-pt-vote {
-  opacity: 1;
+.pc-pt-vote > span:first-child {
+  margin-right: 6px;
+  font-family: var(--c-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.4);
 }
 
 .pc-portrait .pc-pt-vote button {
-  height: 38px;
-  padding: 0 18px;
+  height: 34px;
+  padding: 0 16px;
   border-radius: 999px;
-  border: 0.5px solid var(--c-border);
+  border: 0.5px solid rgba(255, 255, 255, 0.26);
   font-family: var(--c-sans-ui);
   font-size: 14px;
-  font-weight: 500;
-  letter-spacing: -0.01em;
-  color: var(--c-ink-2);
-  transition: background 0.2s, color 0.2s, border-color 0.2s;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.82);
+  transition: background 0.15s var(--pt-ease), color 0.15s var(--pt-ease), border-color 0.15s var(--pt-ease);
 }
 
 .pc-portrait .pc-pt-vote button:hover {
-  border-color: var(--c-ink-3);
-  color: var(--c-ink);
-}
-
-.pc-portrait .pc-pt-vote button.is-active {
-  background: var(--c-ink);
-  border-color: var(--c-ink);
+  border-color: var(--c-white);
   color: var(--c-white);
 }
 
-.presence-cosmos .pc-pt-note {
-  font-size: 14px;
-  color: var(--c-ink-3);
+.pc-portrait .pc-pt-vote button.is-active {
+  background: var(--c-white);
+  border-color: var(--c-white);
+  color: var(--c-ink);
 }
 
-/* Receipts. */
+.presence-cosmos .pc-pt-note {
+  font-family: var(--c-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+/* Receipts: hairline rows, subordinate to the claim they support. */
 .pc-pt-evidence {
   list-style: none;
   margin: 0;
-  padding-top: 8px;
+  padding-top: 6px;
 }
 
 .pc-portrait .pc-pt-evidence li {
-  display: grid;
-  grid-template-columns: 88px 56px minmax(0, 1fr);
-  gap: 0 12px;
-  align-items: baseline;
-  padding: 0 0 10px;
+  display: block;
+  padding: 0 0 12px;
+}
+
+.pc-portrait .pc-pt-evidence .pc-pt-when,
+.pc-portrait .pc-pt-evidence .pc-pt-src {
+  display: inline;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.pc-portrait .pc-pt-evidence .pc-pt-src::before {
+  content: '·';
+  margin: 0 6px;
 }
 
 .presence-cosmos .pc-pt-event {
+  display: block;
+  margin-top: 3px;
   font-size: 14px;
-  letter-spacing: -0.005em;
+  letter-spacing: -0.018em;
   line-height: 1.45;
-  color: var(--c-ink-2);
+  color: rgba(255, 255, 255, 0.86);
 }
 
 .pc-portrait .pc-pt-more {
-  padding-top: 10px;
-  border-top: 0.5px solid var(--c-border);
-  font-size: 14px;
-  color: var(--c-ink-3);
+  padding-top: 8px;
+  border-top: 0.5px solid rgba(255, 255, 255, 0.14);
 }
 
-/* ---- Ask: the big soft field the references both use ------------ */
+.pc-portrait .pc-pt-more .pc-pt-mono {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+/* ---- Ask --------------------------------------------------------- */
 
 .pc-pt-ask-body {
-  padding: 0;
+  padding-top: 8px;
 }
 
 .pc-pt-prompt {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 16px;
-  height: 76px;
-  padding: 0 12px 0 28px;
-  border-radius: var(--pt-card);
+  min-height: 116px;
+  padding: 26px 20px 20px 28px;
+  border-radius: 20px;
   background: var(--c-white);
   border: 0.5px solid var(--c-border);
-  transition: border-color 0.2s;
+  transition: border-color 0.15s var(--pt-ease);
 }
 
 .pc-pt-prompt:focus-within {
@@ -4435,7 +4440,7 @@ button.pc-search-icons {
   background: transparent;
   font: inherit;
   font-size: 18px;
-  letter-spacing: -0.012em;
+  letter-spacing: -0.024em;
   color: var(--c-ink);
   outline: none;
 }
@@ -4455,7 +4460,7 @@ button.pc-search-icons {
   background: transparent;
   font-size: 0;
   color: var(--c-ink);
-  transition: background 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background 0.15s var(--pt-ease);
 }
 
 .pc-portrait .pc-pt-send::after {
@@ -4467,18 +4472,12 @@ button.pc-search-icons {
 
 .pc-portrait .pc-pt-send:hover {
   background: rgba(13, 13, 13, 0.05);
-  color: var(--c-ink);
-}
-
-.pc-portrait .pc-pt-send:hover {
-  background: var(--c-hover-primary);
-  color: var(--c-white);
 }
 
 .pc-pt-reply {
   margin: 20px 0 0;
   padding: 32px;
-  border-radius: var(--pt-card);
+  border-radius: 20px;
   background: var(--c-white);
   border: 0.5px solid var(--c-border);
 }
@@ -4488,14 +4487,14 @@ button.pc-search-icons {
   margin: 0;
   font-size: 19px;
   line-height: 1.6;
-  letter-spacing: -0.012em;
+  letter-spacing: -0.022em;
   color: var(--c-ink);
 }
 
 .presence-cosmos .pc-pt-reply footer {
   margin-top: 20px;
   font-size: 14px;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.015em;
   color: var(--c-ink-3);
 }
 
@@ -4505,7 +4504,7 @@ button.pc-search-icons {
   border-bottom: 0.5px solid var(--c-ink-4);
 }
 
-/* ---- Sources: six lines, no grid -------------------------------- */
+/* ---- Sources: big soft numbers, a small word after them ---------- */
 
 .pc-pt-sourcelist {
   list-style: none;
@@ -4518,15 +4517,15 @@ button.pc-search-icons {
   align-items: baseline;
   gap: 16px;
   margin: 0;
-  padding: 14px 4px;
+  padding: 16px 4px;
   border-bottom: 0.5px solid var(--c-border);
   font-size: 16px;
-  letter-spacing: -0.012em;
+  letter-spacing: -0.024em;
   color: var(--c-ink);
 }
 
 .pc-pt-source-name {
-  width: 120px;
+  width: var(--pt-idx);
   flex: none;
   font-weight: 500;
 }
@@ -4541,15 +4540,16 @@ button.pc-search-icons {
   flex: none;
   min-width: 92px;
   text-align: right;
-  font-size: 28px;
+  font-family: var(--c-sans-ui);
+  font-size: 30px;
   font-weight: 300;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.05em;
   text-transform: none;
   color: var(--c-ink);
 }
 
 .presence-cosmos .pc-pt-sourcefoot {
-  margin: 18px 0 0;
+  margin: 20px 0 0;
   padding: 0 4px;
   color: var(--c-ink-3);
 }
@@ -4557,7 +4557,8 @@ button.pc-search-icons {
 .pc-portrait .pc-pt-textbtn {
   font-family: var(--c-sans-ui);
   font-size: 14px;
-  color: var(--c-ink-2);
+  letter-spacing: -0.02em;
+  color: var(--c-ink-3);
   text-decoration: underline;
   text-underline-offset: 3px;
 }
@@ -4576,17 +4577,18 @@ button.pc-search-icons {
   color: var(--c-ink);
 }
 
-/* ---- The close: back into the room ------------------------------ */
+/* ---- The close --------------------------------------------------- */
 
 .pc-pt-close {
   position: relative;
+  z-index: 1;
   overflow: hidden;
   max-width: var(--pt-max);
   width: calc(100% - 48px);
   margin: 80px auto 0;
   padding: 76px 56px;
   border-radius: var(--pt-card);
-  background: #14161a url('/images/twinme/cosmos-05-kitchen.jpg') 34% 30% / 132% auto;
+  background: #14161a url('/images/twinme/cosmos-03-calendar.jpg') 40% 40% / 130% auto;
   color: var(--c-white);
 }
 
@@ -4594,7 +4596,9 @@ button.pc-search-icons {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, rgba(10, 12, 15, 0.9) 0%, rgba(10, 12, 15, 0.74) 54%, rgba(10, 12, 15, 0.46) 100%);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  background: linear-gradient(90deg, rgba(10, 12, 15, 0.88) 0%, rgba(10, 12, 15, 0.74) 56%, rgba(10, 12, 15, 0.56) 100%);
 }
 
 .pc-pt-close > * {
@@ -4602,6 +4606,9 @@ button.pc-search-icons {
 }
 
 .pc-pt-close-inner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 32px;
   align-items: center;
 }
 
@@ -4610,7 +4617,7 @@ button.pc-search-icons {
   margin: 0;
   font-size: 19px;
   line-height: 1.5;
-  letter-spacing: -0.022em;
+  letter-spacing: -0.024em;
   color: rgba(255, 255, 255, 0.86);
 }
 
@@ -4622,16 +4629,15 @@ button.pc-search-icons {
 .presence-cosmos .pc-pt-close-cta {
   display: inline-flex;
   align-items: center;
-  height: 52px;
-  padding: 0 28px;
-  border-radius: 16px;
+  height: 48px;
+  padding: 0 26px;
+  border-radius: 999px;
   background: var(--c-white);
-  font-family: var(--c-sans-ui);
   font-size: 15px;
   font-weight: 500;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
   color: var(--c-ink) !important;
-  transition: opacity 0.2s;
+  transition: opacity 0.15s var(--pt-ease);
 }
 
 .presence-cosmos .pc-pt-close-cta:hover {
@@ -4646,7 +4652,8 @@ button.pc-search-icons {
   text-overflow: clip;
 }
 
-/* Loading, error and empty states share one quiet column. */
+/* ---- Loading, error and empty ------------------------------------ */
+
 .pc-pt-empty {
   min-height: 70dvh;
   display: grid;
@@ -4658,7 +4665,7 @@ button.pc-search-icons {
 
 .presence-cosmos .pc-pt-empty h1 {
   font-size: clamp(32px, 4vw, 44px);
-  font-weight: 300;
+  font-weight: 400;
   letter-spacing: -0.04em;
 }
 
@@ -4670,38 +4677,36 @@ button.pc-search-icons {
 }
 
 @media (max-width: 1080px) {
-  .presence-cosmos { --pt-rail: 300px; --pt-gap: 28px; --pt-idx: 130px; }
+  .presence-cosmos { --pt-rail: 300px; --pt-gap: 24px; --pt-idx: 110px; }
 }
 
 @media (max-width: 760px) {
   .pc-pt-hero { min-height: 78vh; }
-  .pc-pt-masthead { width: calc(100% - 32px); padding: 0 8px 0 18px; gap: 12px; }
+  .pc-pt-masthead { width: calc(100% - 32px); }
   .pc-pt-masthead nav { display: none; }
-  .pc-pt-hero-body { width: calc(100% - 32px); padding-bottom: 56px; }
+  .pc-pt-hero-body { width: calc(100% - 32px); padding: 56px 0 64px; }
   .presence-cosmos .pc-pt-hero h1 { max-width: none; }
-  .pc-pt-paper { width: calc(100% - 20px); margin-top: -48px; border-radius: 24px 24px 0 0; }
-  .pc-pt-today { width: calc(100% - 32px); }
+  .pc-pt-today,
   .pc-pt-signature,
   .pc-pt-ask,
   .pc-pt-sources,
-  .pc-pt-close { width: calc(100% - 32px); margin-top: 48px; }
-  .pc-pt-today-inner { padding: 36px 24px; }
+  .pc-pt-close { width: calc(100% - 24px); margin-top: 48px; }
+  .pc-pt-today-inner { padding: 44px 22px 48px; }
   .presence-cosmos .pc-pt-today h2 { max-width: none; }
-  .pc-pt-grid, .pc-pt-line-head, .pc-pt-row, .pc-pt-ledger-mark, .pc-pt-close-inner { grid-template-columns: 1fr; gap: 16px 0; }
-  .pc-portrait .pc-pt-line-head { padding: 24px; }
-  .pc-pt-ledger { padding: 0 24px 20px; }
-  .pc-pt-count { padding-top: 0; }
-  .pc-pt-row-index { padding-top: 0; }
-  .pc-portrait .pc-pt-evidence li,
-  .pc-pt-peek { grid-template-columns: 88px minmax(0, 1fr); gap: 0 10px; }
-  .pc-portrait .pc-pt-evidence li > .pc-pt-src,
-  .pc-pt-peek > .pc-pt-src { display: none; }
-  .pc-pt-prompt { height: 64px; padding: 0 8px 0 20px; }
-  .pc-pt-close { padding: 36px 24px; }
+  .pc-portrait .pc-pt-line-head,
+  .pc-pt-row,
+  .pc-pt-close-inner { grid-template-columns: 1fr; gap: 14px 0; }
+  .pc-portrait .pc-pt-line-head { padding: 24px 20px 26px; }
+  .pc-pt-open-mark { grid-column: 1; grid-row: auto; justify-self: start; padding-left: 0; }
+  .presence-cosmos .pc-pt-count { grid-column: 1; padding-top: 0; }
+  .pc-pt-ledger { padding: 0 20px 20px; }
+  .presence-cosmos .pc-pt-row-index { padding-top: 0; }
+  .pc-portrait .pc-pt-evidence li { grid-template-columns: 84px minmax(0, 1fr); }
+  .pc-pt-prompt { min-height: 96px; padding: 20px 16px 16px 20px; }
+  .pc-pt-close { padding: 48px 24px; }
   .pc-pt-close-rail { justify-content: flex-start; }
-  .pc-pt-table thead { display: none; }
-  .pc-pt-table tr { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; padding: 16px 20px; border-top: 0.5px solid var(--c-border); }
-  .pc-pt-table td { padding: 0; border: 0; width: auto; }
-  .pc-pt-table td.is-kinds { grid-column: 1 / -1; width: auto; }
-  .pc-pt-table td.is-since, .pc-pt-table td.is-num { width: auto; }
+  .presence-cosmos .pc-pt-close p { max-width: none; }
+  .presence-cosmos .pc-pt-source-line { flex-wrap: wrap; gap: 6px 12px; }
+  .pc-pt-source-name { width: auto; }
+  .pc-pt-source-kind { flex-basis: 100%; order: 3; }
 }
