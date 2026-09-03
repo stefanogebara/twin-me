@@ -282,7 +282,7 @@ function AdminBetaPage() {
       {error && (
         <div
           className="rounded-[12px] px-4 py-3 mb-6 text-[13px]"
-          style={{ backgroundColor: 'rgba(220,38,38,0.1)', border: '1px solid rgba(220,38,38,0.3)', color: '#f87171' }}
+          style={{ backgroundColor: 'rgb(var(--n-danger-rgb) / 0.1)', border: '1px solid rgb(var(--n-danger-rgb) / 0.3)', color: '#f87171' }}
         >
           {error}
         </div>

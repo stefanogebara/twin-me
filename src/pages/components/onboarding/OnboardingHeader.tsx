@@ -40,7 +40,7 @@ export const OnboardingHeader: React.FC<OnboardingHeaderProps> = ({
     </h1>
     <p
       className="text-[14px] leading-relaxed mb-10"
-      style={{ color: 'var(--text-secondary)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+      style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-ui)' }}
     >
       Link your digital footprints to build your soul signature
     </p>
@@ -61,14 +61,14 @@ export const OnboardingHeader: React.FC<OnboardingHeaderProps> = ({
         <div>
           <span
             className="text-[13px]"
-            style={{ color: 'var(--text-secondary)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+            style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-ui)' }}
           >
             {activeCount} platform{activeCount !== 1 ? 's' : ''} active
           </span>
           {reconnectCount > 0 && (
             <span
               className="text-[13px] ml-2"
-              style={{ color: '#C9B99A', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+              style={{ color: '#C9B99A', fontFamily: 'var(--font-ui)' }}
             >
               {/* reconnectCount = expired + stale; stale is not an auth failure,
                   so the combined warning says "need attention", never "reconnect"

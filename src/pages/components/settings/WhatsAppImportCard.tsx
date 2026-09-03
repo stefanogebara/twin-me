@@ -85,10 +85,10 @@ export default function WhatsAppImportCard({ cardStyle }: WhatsAppImportCardProp
   return (
     <section className={sectionClass} style={sectionStyle}>
       <div className="flex items-center gap-3 mb-4">
-        <MessageCircle className="w-5 h-5" style={{ color: '#10b77f' }} />
+        <MessageCircle className="w-5 h-5" style={{ color: 'var(--n-verdigris)' }} />
         <h2
           className="text-[11px] font-medium tracking-widest uppercase"
-          style={{ color: '#10b77f' }}
+          style={{ color: 'var(--n-verdigris)' }}
         >
           WhatsApp Patterns
         </h2>
@@ -150,8 +150,8 @@ export default function WhatsAppImportCard({ cardStyle }: WhatsAppImportCardProp
 
           {status === 'error' && error && (
             <div className="flex items-start gap-2 mt-3 p-3 rounded-lg" style={{ backgroundColor: 'rgba(239,68,68,0.08)' }}>
-              <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
-              <p className="text-xs text-red-400">{error}</p>
+              <AlertCircle className="w-4 h-4 text-[var(--n-danger-ink)] flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-[var(--n-danger-ink)]">{error}</p>
             </div>
           )}
 

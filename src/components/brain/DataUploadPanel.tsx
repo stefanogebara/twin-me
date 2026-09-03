@@ -562,13 +562,13 @@ export function DataUploadPanel({ userId, onImportComplete }: DataUploadPanelPro
           }}
         >
           <div className="flex items-center gap-2">
-            <AlertCircle size={20} className="text-red-500" />
-            <span className="font-semibold text-sm text-red-400">Import failed</span>
+            <AlertCircle size={20} className="text-[var(--n-danger-ink)]" />
+            <span className="font-semibold text-sm text-[var(--n-danger-ink)]">Import failed</span>
           </div>
-          <p className="text-xs text-red-400 leading-relaxed">{result.error}</p>
+          <p className="text-xs text-[var(--n-danger-ink)] leading-relaxed">{result.error}</p>
           <button
             onClick={() => setStep('uploading')}
-            className="text-xs px-3 py-1.5 rounded-lg border border-red-800/30 text-red-400 hover:bg-red-900/20"
+            className="text-xs px-3 py-1.5 rounded-lg border border-red-800/30 text-[var(--n-danger-ink)] hover:bg-red-900/20"
           >
             Try again
           </button>

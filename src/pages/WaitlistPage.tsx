@@ -102,8 +102,8 @@ const WaitlistPage = () => {
               <div
                 className="text-sm mb-6 py-3 px-4 rounded-[10px] text-left"
                 style={{
-                  backgroundColor: 'rgba(220, 38, 38, 0.10)',
-                  border: '1px solid rgba(220, 38, 38, 0.35)',
+                  backgroundColor: 'rgb(var(--n-danger-rgb) / 0.10)',
+                  border: '1px solid rgb(var(--n-danger-rgb) / 0.35)',
                   color: 'var(--claura-danger-ink)',
                 }}
               >

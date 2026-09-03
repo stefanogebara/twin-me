@@ -59,15 +59,15 @@ export function GmailCourierToggle() {
       disabled={enabled === null || saving}
       className="inline-flex items-center gap-2 px-3 py-2 transition-colors disabled:opacity-60"
       style={{
-        background: enabled ? 'rgba(134,239,172,0.10)' : 'rgba(255,255,255,0.06)',
-        border: `1px solid ${enabled ? 'rgba(134,239,172,0.28)' : 'rgba(255,255,255,0.10)'}`,
+        background: enabled ? 'var(--n-steel)' : 'rgba(255,255,255,0.06)',
+        border: `1px solid var(--n-line)`,
         borderRadius: 46,
         backdropFilter: 'blur(42px)',
         WebkitBackdropFilter: 'blur(42px)',
-        fontFamily: "'Geist', 'Inter', sans-serif",
+        fontFamily: 'var(--font-ui)',
         fontWeight: 500,
         fontSize: 12,
-        color: enabled ? 'rgba(134,239,172,0.95)' : 'rgba(255,255,255,0.70)',
+        color: enabled ? 'var(--n-cloud)' : 'var(--n-ash)',
       }}
       title="When on, TwinMe checks your Gmail for OFX statement attachments (like Nubank's Exportar Extrato email) and imports them automatically. Only statement files are read, never your email text."
     >

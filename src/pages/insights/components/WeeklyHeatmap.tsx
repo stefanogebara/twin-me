@@ -29,7 +29,7 @@ export const WeeklyHeatmap: React.FC<WeeklyHeatmapProps> = ({ heatmap, colors })
     >
       <span
         className="text-[11px] font-medium tracking-widest uppercase block mb-4"
-        style={{ color: '#10b77f' }}
+        style={{ color: 'var(--n-verdigris)' }}
       >
         <Clock className="w-4 h-4 inline-block mr-2" />
         Weekly Busy Hours

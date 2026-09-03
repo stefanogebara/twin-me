@@ -164,7 +164,7 @@ export const TokenExpiryBanner: React.FC<TokenExpiryBannerProps> = ({
           }}
         >
           {isExpired ? (
-            <AlertTriangle className="w-4 h-4 text-red-500" />
+            <AlertTriangle className="w-4 h-4 text-[var(--n-danger-ink)]" />
           ) : (
             <Bell className="w-4 h-4 text-amber-500" />
           )}

@@ -122,7 +122,7 @@ const WebBrowsingInsightsPage: React.FC = () => {
         <div className="mb-8">
           <h3
             className="text-xs uppercase tracking-wider mb-4"
-            style={{ color: '#10b77f', fontVariant: 'small-caps', letterSpacing: '0.08em' }}
+            style={{ color: 'var(--n-verdigris)', fontVariant: 'small-caps', letterSpacing: '0.08em' }}
           >
             Patterns I've Noticed
           </h3>
@@ -143,7 +143,7 @@ const WebBrowsingInsightsPage: React.FC = () => {
         <div>
           <h3
             className="text-xs uppercase tracking-wider mb-4"
-            style={{ color: '#10b77f', fontVariant: 'small-caps', letterSpacing: '0.08em' }}
+            style={{ color: 'var(--n-verdigris)', fontVariant: 'small-caps', letterSpacing: '0.08em' }}
           >
             Past Observations
           </h3>

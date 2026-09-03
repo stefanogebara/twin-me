@@ -64,7 +64,7 @@ export const DataVerification: React.FC<DataVerificationProps> = ({ connectedSer
       <div className="flex items-center justify-between mb-3">
         <span
           className="text-[11px] tracking-[0.08em] uppercase"
-          style={{ color: 'var(--text-muted)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+          style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}
         >
           Platform Status
         </span>
@@ -103,22 +103,22 @@ export const DataVerification: React.FC<DataVerificationProps> = ({ connectedSer
                 className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg"
                 title={lastSync ? `Last synced ${lastSync}` : 'Not synced yet'}
                 style={{
-                  backgroundColor: expired ? 'rgba(220,38,38,0.08)' : 'rgba(255,255,255,0.04)',
-                  border: `1px solid ${expired ? 'rgba(220,38,38,0.15)' : 'rgba(255,255,255,0.06)'}`,
+                  backgroundColor: expired ? 'rgb(var(--n-danger-rgb) / 0.08)' : 'rgba(255,255,255,0.04)',
+                  border: `1px solid ${expired ? 'rgb(var(--n-danger-rgb) / 0.15)' : 'rgba(255,255,255,0.06)'}`,
                 }}
               >
                 <PlatformLogo platform={entry.platform} size={14} />
                 <span
                   className="text-[12px]"
                   style={{
-                    color: expired ? 'rgba(220,38,38,0.8)' : 'rgba(255,255,255,0.50)',
-                    fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
+                    color: expired ? 'rgb(var(--n-danger-rgb) / 0.8)' : 'rgba(255,255,255,0.50)',
+                    fontFamily: 'var(--font-ui)',
                   }}
                 >
                   {name}
                 </span>
                 {expired ? (
-                  <AlertCircle className="w-3 h-3" style={{ color: 'rgba(220,38,38,0.6)' }} />
+                  <AlertCircle className="w-3 h-3" style={{ color: 'rgb(var(--n-danger-rgb) / 0.6)' }} />
                 ) : (
                   <Check
                     className="w-3 h-3"

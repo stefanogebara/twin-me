@@ -33,9 +33,9 @@ interface DataTransparencyPanelProps {
 }
 
 const getQualityColor = (quality: number) => {
-  if (quality >= 80) return 'text-green-400';
+  if (quality >= 80) return 'text-[var(--n-verdigris)]';
   if (quality >= 60) return 'text-yellow-600';
-  return 'text-red-400';
+  return 'text-[var(--n-danger-ink)]';
 };
 
 const getQualityLabel = (quality: number) => {
@@ -92,7 +92,7 @@ export const DataTransparencyPanel: React.FC<DataTransparencyPanelProps> = ({
           <button
             onClick={onExportData}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm shadow-md hover:shadow-lg transition-all duration-200"
-            style={{ backgroundColor: '#10b77f', color: '#0a0f0a', fontFamily: "'Inter', sans-serif" }}
+            style={{ backgroundColor: 'var(--n-verdigris)', color: '#0a0f0a', fontFamily: "'Inter', sans-serif" }}
           >
             <Download className="w-4 h-4" />
             Export All Data
@@ -304,7 +304,7 @@ export const DataTransparencyPanel: React.FC<DataTransparencyPanelProps> = ({
                             </p>
                             <button
                               onClick={() => handleDeleteConfirm(source.platform)}
-                              className="px-3 py-1.5 rounded-lg bg-red-600 text-white font-medium text-sm hover:bg-red-700 transition-colors"
+                              className="px-3 py-1.5 rounded-lg bg-[var(--n-danger)] text-white font-medium text-sm hover:bg-red-700 transition-colors"
                               style={{ fontFamily: "'Inter', sans-serif" }}
                             >
                               Yes, Delete

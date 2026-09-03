@@ -359,7 +359,7 @@ export default function ChatImportCard({ cardStyle }: ChatImportCardProps) {
                   : isUploading
                   ? <Loader2 className="w-4 h-4 animate-spin" style={{ color: cfg.color }} />
                   : isError
-                  ? <AlertCircle className="w-4 h-4 text-red-400" />
+                  ? <AlertCircle className="w-4 h-4 text-[var(--n-danger-ink)]" />
                   : <Icon className="w-4 h-4" style={{ color: isDone ? cfg.color : 'var(--text-muted)' }} />
                 }
               </div>

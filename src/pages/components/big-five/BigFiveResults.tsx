@@ -35,8 +35,8 @@ export function BigFiveResults({
         <div
           className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm mb-4"
           style={{
-            backgroundColor: 'rgba(34, 197, 94, 0.15)',
-            color: '#22c55e'
+            backgroundColor: 'rgb(var(--n-verdigris-rgb) / 0.15)',
+            color: 'var(--n-verdigris)'
           }}
         >
           <Check className="w-4 h-4" />
@@ -194,7 +194,7 @@ export function BigFiveResults({
           onClick={() => navigate('/soul-signature')}
           className="px-6 py-3 rounded-xl font-medium transition-all hover:scale-[1.02]"
           style={{
-            backgroundColor: '#10b77f',
+            backgroundColor: 'var(--n-verdigris)',
             color: '#0a0f0a'
           }}
         >

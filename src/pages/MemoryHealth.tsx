@@ -191,7 +191,7 @@ export default function MemoryHealth() {
           <div>
             <span
               className="text-[11px] font-medium tracking-widest uppercase block mb-4"
-              style={{ color: '#10b77f', fontFamily: 'Inter, sans-serif' }}
+              style={{ color: 'var(--n-verdigris)', fontFamily: 'Inter, sans-serif' }}
             >
               Quality Indicators
             </span>
@@ -224,7 +224,7 @@ export default function MemoryHealth() {
               className="p-5 rounded-lg"
               style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
             >
-              <span className="text-[11px] font-medium tracking-widest uppercase block mb-4" style={{ color: '#10b77f' }}>
+              <span className="text-[11px] font-medium tracking-widest uppercase block mb-4" style={{ color: 'var(--n-verdigris)' }}>
                 Memory Composition
               </span>
               <ResponsiveContainer width="100%" height={200}>
@@ -251,7 +251,7 @@ export default function MemoryHealth() {
               className="p-5 rounded-lg"
               style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
             >
-              <span className="text-[11px] font-medium tracking-widest uppercase block mb-4" style={{ color: '#10b77f' }}>
+              <span className="text-[11px] font-medium tracking-widest uppercase block mb-4" style={{ color: 'var(--n-verdigris)' }}>
                 Avg Importance by Type
               </span>
               <ResponsiveContainer width="100%" height={200}>
@@ -273,7 +273,7 @@ export default function MemoryHealth() {
           {/* Expert Breakdown */}
           {Object.keys(data.expertBreakdown).length > 0 && (
             <div>
-              <span className="text-[11px] font-medium tracking-widest uppercase block mb-4" style={{ color: '#10b77f' }}>
+              <span className="text-[11px] font-medium tracking-widest uppercase block mb-4" style={{ color: 'var(--n-verdigris)' }}>
                 Expert Memory Breakdown
               </span>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -325,7 +325,7 @@ export default function MemoryHealth() {
 
           {/* Top Memories */}
           <div>
-            <span className="text-[11px] font-medium tracking-widest uppercase block mb-4" style={{ color: '#10b77f' }}>
+            <span className="text-[11px] font-medium tracking-widest uppercase block mb-4" style={{ color: 'var(--n-verdigris)' }}>
               Top 10 Memories by Importance
             </span>
             <div className="space-y-0">

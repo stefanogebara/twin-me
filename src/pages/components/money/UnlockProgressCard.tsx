@@ -22,7 +22,7 @@ const CARD_STYLE: React.CSSProperties = {
 };
 
 const LABEL_STYLE: React.CSSProperties = {
-  fontFamily: "'Geist', 'Inter', sans-serif",
+  fontFamily: 'var(--font-ui)',
   fontSize: 11,
   fontWeight: 500,
   letterSpacing: '0.08em',
@@ -61,7 +61,7 @@ export function UnlockProgressCard({ timeline, transactions }: Props) {
     >
       <div className="flex items-center gap-2 mb-3">
         {progress.unlocked ? (
-          <Activity className="w-3.5 h-3.5" style={{ color: 'rgba(232, 160, 80, 0.85)' }} />
+          <Activity className="w-3.5 h-3.5" style={{ color: 'rgb(var(--n-ember-rgb) / 0.85)' }} />
         ) : (
           <Lock className="w-3.5 h-3.5" style={{ color: 'var(--text-secondary)' }} />
         )}
@@ -86,7 +86,7 @@ export function UnlockProgressCard({ timeline, transactions }: Props) {
       </p>
       <p
         style={{
-          fontFamily: "'Geist', 'Inter', sans-serif",
+          fontFamily: 'var(--font-ui)',
           fontSize: 13,
           color: 'var(--text-secondary)',
           lineHeight: 1.55,
@@ -114,14 +114,14 @@ export function UnlockProgressCard({ timeline, transactions }: Props) {
             width: `${progress.pct}%`,
             height: '100%',
             borderRadius: 100,
-            background: 'rgba(232, 160, 80, 0.75)',
+            background: 'rgb(var(--n-ember-rgb) / 0.75)',
             transition: 'width 300ms ease-out',
           }}
         />
       </div>
       <p
         style={{
-          fontFamily: "'Geist', 'Inter', sans-serif",
+          fontFamily: 'var(--font-ui)',
           fontSize: 12,
           color: 'var(--text-secondary)',
         }}

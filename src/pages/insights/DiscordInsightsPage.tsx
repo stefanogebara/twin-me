@@ -120,7 +120,7 @@ const DiscordInsightsPage: React.FC = () => {
           <button
             onClick={() => navigate('/get-started')}
             className="px-4 py-2 rounded-lg text-sm font-medium transition-all hover:opacity-90"
-            style={{ backgroundColor: '#10b77f', color: '#0a0f0a' }}
+            style={{ backgroundColor: 'var(--n-verdigris)', color: '#0a0f0a' }}
           >
             Connect Discord
           </button>
@@ -154,7 +154,7 @@ const DiscordInsightsPage: React.FC = () => {
         >
           <h3
             className="text-[11px] font-medium uppercase tracking-[0.08em] mb-3 flex items-center gap-2"
-            style={{ color: '#10b77f' }}
+            style={{ color: 'var(--n-verdigris)' }}
           >
             <Users className="w-4 h-4" />
             Your Communities ({insights.discordTotalServers ?? insights.discordServers.length})
@@ -185,7 +185,7 @@ const DiscordInsightsPage: React.FC = () => {
         >
           <h3
             className="text-[11px] font-medium uppercase tracking-[0.08em] mb-4 flex items-center gap-2"
-            style={{ color: '#10b77f' }}
+            style={{ color: 'var(--n-verdigris)' }}
           >
             <MessageSquare className="w-4 h-4" />
             Community Focus
@@ -242,7 +242,7 @@ const DiscordInsightsPage: React.FC = () => {
             <MessageSquare className="w-4 h-4" style={{ color: colors.discordPurple }} />
             <span
               className="text-[11px] font-medium uppercase tracking-[0.08em]"
-              style={{ color: '#10b77f' }}
+              style={{ color: 'var(--n-verdigris)' }}
             >
               Twin's Observation
             </span>
@@ -258,7 +258,7 @@ const DiscordInsightsPage: React.FC = () => {
         <div className="mb-8">
           <h3
             className="text-[11px] font-medium uppercase tracking-[0.08em] mb-4 flex items-center gap-2"
-            style={{ color: '#10b77f' }}
+            style={{ color: 'var(--n-verdigris)' }}
           >
             Patterns I've Noticed
           </h3>
@@ -279,7 +279,7 @@ const DiscordInsightsPage: React.FC = () => {
         <div>
           <h3
             className="text-[11px] font-medium uppercase tracking-[0.08em] mb-4"
-            style={{ color: '#10b77f' }}
+            style={{ color: 'var(--n-verdigris)' }}
           >
             Past Observations
           </h3>
@@ -330,7 +330,7 @@ const DiscordInsightsPage: React.FC = () => {
               <button
                 onClick={() => navigate('/get-started')}
                 className="px-5 py-2.5 rounded-xl text-sm font-medium transition-all hover:scale-[1.02]"
-                style={{ background: '#10b77f', color: '#0a0f0a' }}
+                style={{ background: 'var(--n-verdigris)', color: '#0a0f0a' }}
               >
                 Connect Discord
               </button>

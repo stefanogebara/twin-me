@@ -97,7 +97,7 @@ export const PlatformTile: React.FC<PlatformTileProps> = ({
         <div className="flex items-center gap-2">
           <span
             className="text-[14px] font-medium truncate"
-            style={{ color: 'var(--foreground)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+            style={{ color: 'var(--foreground)', fontFamily: 'var(--font-ui)' }}
           >
             {name}
           </span>
@@ -121,7 +121,7 @@ export const PlatformTile: React.FC<PlatformTileProps> = ({
                 background: 'rgba(251,191,36,0.10)',
                 color: 'rgba(251,191,36,0.85)',
                 border: '1px solid rgba(251,191,36,0.18)',
-                fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
+                fontFamily: 'var(--font-ui)',
                 letterSpacing: 0,
               }}
               title={attention}
@@ -133,21 +133,21 @@ export const PlatformTile: React.FC<PlatformTileProps> = ({
         {pitchHook && !connected && (
           <span
             className="text-[12px] leading-relaxed block mt-0.5"
-            style={{ color: 'var(--accent-vibrant, #c17e2c)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+            style={{ color: 'var(--accent-vibrant, #c17e2c)', fontFamily: 'var(--font-ui)' }}
           >
             {pitchHook}
           </span>
         )}
         <span
           className="text-[12px] leading-relaxed line-clamp-2 block mt-0.5"
-          style={{ color: 'var(--text-secondary)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+          style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-ui)' }}
         >
           {description}
         </span>
         {note && (
           <span
             className="text-[11px] leading-relaxed block mt-1"
-            style={{ color: 'rgba(251,191,36,0.70)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+            style={{ color: 'rgba(251,191,36,0.70)', fontFamily: 'var(--font-ui)' }}
             title={note}
           >
             {note}
@@ -162,7 +162,7 @@ export const PlatformTile: React.FC<PlatformTileProps> = ({
           style={{
             backgroundColor: 'var(--surface)',
             color: 'var(--text-secondary)',
-            fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
+            fontFamily: 'var(--font-ui)',
           }}
         >
           Soon
@@ -176,7 +176,7 @@ export const PlatformTile: React.FC<PlatformTileProps> = ({
           }}
         >
           <Loader2 className="w-3.5 h-3.5 animate-spin" />
-          <span className="text-[12px]" style={{ fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}>Syncing</span>
+          <span className="text-[12px]" style={{ fontFamily: 'var(--font-ui)' }}>Syncing</span>
         </div>
       ) : needsReconnect ? (
         <button
@@ -185,7 +185,7 @@ export const PlatformTile: React.FC<PlatformTileProps> = ({
           style={{
             backgroundColor: 'rgba(251,191,36,0.15)',
             color: '#FBBF24',
-            fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
+            fontFamily: 'var(--font-ui)',
             border: '1px solid rgba(251,191,36,0.25)',
           }}
         >
@@ -199,7 +199,7 @@ export const PlatformTile: React.FC<PlatformTileProps> = ({
             style={{
               backgroundColor: 'var(--surface)',
               color: 'var(--text-secondary)',
-              fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
+              fontFamily: 'var(--font-ui)',
               border: '1px solid var(--border-glass)',
             }}
           >
@@ -219,7 +219,7 @@ export const PlatformTile: React.FC<PlatformTileProps> = ({
                 <button
                   onClick={() => { setShowMenu(false); onConnect(); }}
                   className="w-full flex items-center gap-2 px-3 py-2 text-[12px] transition-colors hover:bg-[rgba(251,191,36,0.10)]"
-                  style={{ color: '#FBBF24', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+                  style={{ color: '#FBBF24', fontFamily: 'var(--font-ui)' }}
                 >
                   <RefreshCw className="w-3.5 h-3.5" />
                   Reconnect
@@ -227,8 +227,8 @@ export const PlatformTile: React.FC<PlatformTileProps> = ({
               )}
               <button
                 onClick={() => { setShowMenu(false); onManage?.(); }}
-                className="w-full flex items-center gap-2 px-3 py-2 text-[12px] transition-colors hover:bg-[rgba(220,38,38,0.08)]"
-                style={{ color: 'rgba(220,38,38,0.85)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+                className="w-full flex items-center gap-2 px-3 py-2 text-[12px] transition-colors hover:bg-[rgb(var(--n-danger-rgb)_/_0.08)]"
+                style={{ color: 'rgb(var(--n-danger-rgb) / 0.85)', fontFamily: 'var(--font-ui)' }}
               >
                 <LogOut className="w-3.5 h-3.5" />
                 Disconnect
@@ -243,7 +243,7 @@ export const PlatformTile: React.FC<PlatformTileProps> = ({
           style={{
             background: 'var(--claura-bone)',
             color: 'var(--claura-bone-ink)',
-            fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
+            fontFamily: 'var(--font-ui)',
           }}
         >
           Connect

@@ -326,7 +326,7 @@ export function SoulChatInterface({
             type="submit"
             disabled={!inputValue.trim() || isLoading}
             className="px-6 py-3 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed rounded-[100px]"
-            style={{ backgroundColor: '#10b77f', color: '#0a0f0a', fontWeight: 600 }}
+            style={{ backgroundColor: 'var(--n-verdigris)', color: '#0a0f0a', fontWeight: 600 }}
           >
             <Send className="w-5 h-5" />
           </button>

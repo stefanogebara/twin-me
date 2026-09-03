@@ -72,7 +72,7 @@ const PLATFORM_DISPLAY_NAMES: Record<string, string> = {
 /* ------------------------------------------------------------------ */
 
 function getRingColor(score: number): string {
-  if (score > 70) return '#22c55e';
+  if (score > 70) return 'var(--n-verdigris)';
   if (score >= 40) return '#f59e0b';
   return 'rgba(255,255,255,0.20)';
 }

@@ -119,7 +119,7 @@ const MorningBriefingCard: React.FC<MorningBriefingCardProps> = ({ onAskTwin }) 
         <div className="px-7 pt-6 pb-3 flex items-center justify-between">
           <span
             className="text-[11px] tracking-[0.12em] uppercase"
-            style={{ color: 'var(--text-secondary)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+            style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-ui)' }}
           >
             {location}{location ? ' — ' : ''}{time}{' — '}{label}
           </span>
@@ -183,20 +183,20 @@ const MorningBriefingCard: React.FC<MorningBriefingCardProps> = ({ onAskTwin }) 
         <div className="px-7 py-8 flex flex-col items-start gap-3">
           <span
             className="text-[11px] tracking-[0.12em] uppercase"
-            style={{ color: 'var(--text-secondary)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+            style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-ui)' }}
           >
             {location}{location ? ' — ' : ''}{time}{' — '}{label}
           </span>
           <p
             className="text-[16px] leading-relaxed"
-            style={{ color: 'var(--text-secondary)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+            style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-ui)' }}
           >
             {errorMessage}
           </p>
           <button
             onClick={fetchBriefing}
             className="flex items-center gap-1.5 text-[12px] font-medium transition-opacity hover:opacity-70"
-            style={{ color: 'var(--text-secondary)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+            style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-ui)' }}
           >
             <RefreshCw className="w-3 h-3" />
             Try again
@@ -228,7 +228,7 @@ const MorningBriefingCard: React.FC<MorningBriefingCardProps> = ({ onAskTwin }) 
       <div className="px-7 pt-6 pb-3 flex items-center justify-between">
         <span
           className="text-[11px] tracking-[0.12em] uppercase"
-          style={{ color: 'var(--text-secondary)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+          style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-ui)' }}
         >
           {location}{location ? ' \u2014 ' : ''}{time}{' \u2014 '}{label}
         </span>
@@ -271,7 +271,7 @@ const MorningBriefingCard: React.FC<MorningBriefingCardProps> = ({ onAskTwin }) 
         </h2>
         <p
           className="text-[16px] sm:text-[17px] leading-relaxed"
-          style={{ color: 'var(--foreground)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+          style={{ color: 'var(--foreground)', fontFamily: 'var(--font-ui)' }}
         >
           {briefing.schedule_summary}
         </p>
@@ -284,12 +284,12 @@ const MorningBriefingCard: React.FC<MorningBriefingCardProps> = ({ onAskTwin }) 
           <div className="flex items-start gap-3">
             <Calendar className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
             <div className="flex-1 min-w-0">
-              <span className="text-[11px] tracking-[0.06em] uppercase block mb-1" style={{ color: 'var(--text-secondary)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}>
+              <span className="text-[11px] tracking-[0.06em] uppercase block mb-1" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-ui)' }}>
                 Schedule
               </span>
               <div className="space-y-1">
                 {(briefing.schedule ?? []).slice(0, 3).map((event, i) => (
-                  <p key={i} className="text-[15px] truncate" style={{ color: 'var(--text-secondary)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}>
+                  <p key={i} className="text-[15px] truncate" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-ui)' }}>
                     {event}
                   </p>
                 ))}
@@ -303,10 +303,10 @@ const MorningBriefingCard: React.FC<MorningBriefingCardProps> = ({ onAskTwin }) 
           <div className="flex items-start gap-3">
             <Moon className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
             <div className="flex-1 min-w-0">
-              <span className="text-[11px] tracking-[0.06em] uppercase block mb-1" style={{ color: 'var(--text-secondary)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}>
+              <span className="text-[11px] tracking-[0.06em] uppercase block mb-1" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-ui)' }}>
                 Recovery
               </span>
-              <p className="text-[15px]" style={{ color: 'var(--text-secondary)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}>
+              <p className="text-[15px]" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-ui)' }}>
                 {briefing.rest}
               </p>
             </div>
@@ -318,10 +318,10 @@ const MorningBriefingCard: React.FC<MorningBriefingCardProps> = ({ onAskTwin }) 
           <div className="flex items-start gap-3">
             <Music className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
             <div className="flex-1 min-w-0">
-              <span className="text-[11px] tracking-[0.06em] uppercase block mb-1" style={{ color: 'var(--text-secondary)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}>
+              <span className="text-[11px] tracking-[0.06em] uppercase block mb-1" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-ui)' }}>
                 Listening
               </span>
-              <p className="text-[15px]" style={{ color: 'var(--text-secondary)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}>
+              <p className="text-[15px]" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-ui)' }}>
                 {briefing.music}
               </p>
             </div>
@@ -333,12 +333,12 @@ const MorningBriefingCard: React.FC<MorningBriefingCardProps> = ({ onAskTwin }) 
           <div className="flex items-start gap-3">
             <Sparkles className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
             <div className="flex-1 min-w-0">
-              <span className="text-[11px] tracking-[0.06em] uppercase block mb-1" style={{ color: 'var(--text-secondary)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}>
+              <span className="text-[11px] tracking-[0.06em] uppercase block mb-1" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-ui)' }}>
                 Patterns
               </span>
               <div className="space-y-1">
                 {((briefing.patterns?.length ?? 0) > 0 ? briefing.patterns : briefing.insights ?? []).slice(0, 2).map((item, i) => (
-                  <p key={i} className="text-[15px]" style={{ color: 'var(--text-secondary)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}>
+                  <p key={i} className="text-[15px]" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-ui)' }}>
                     {item}
                   </p>
                 ))}
@@ -355,7 +355,7 @@ const MorningBriefingCard: React.FC<MorningBriefingCardProps> = ({ onAskTwin }) 
           >
             <p
               className="text-[15px] leading-relaxed"
-              style={{ color: 'var(--text-secondary)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif", fontStyle: 'italic' }}
+              style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-ui)', fontStyle: 'italic' }}
             >
               {briefing.suggestion}
             </p>
@@ -367,7 +367,7 @@ const MorningBriefingCard: React.FC<MorningBriefingCardProps> = ({ onAskTwin }) 
           <button
             onClick={() => onAskTwin('Tell me more about my day')}
             className="flex items-center gap-1.5 text-[12px] font-medium mt-2 transition-opacity hover:opacity-70"
-            style={{ color: 'var(--text-secondary)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+            style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-ui)' }}
           >
             Dive deeper with your twin
             <ArrowRight className="w-3 h-3" />

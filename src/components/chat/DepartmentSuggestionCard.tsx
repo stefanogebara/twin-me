@@ -76,7 +76,7 @@ export function DepartmentSuggestionCard({ suggestion, onApprove }: DepartmentSu
             className="text-[10px] font-medium uppercase tracking-[0.06em]"
             style={{
               color,
-              fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
+              fontFamily: 'var(--font-ui)',
             }}
           >
             {displayName}
@@ -86,7 +86,7 @@ export function DepartmentSuggestionCard({ suggestion, onApprove }: DepartmentSu
           className="text-[12px] leading-snug truncate"
           style={{
             color: '#D1D5DB',
-            fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
+            fontFamily: 'var(--font-ui)',
           }}
           title={suggestion.action}
         >
@@ -103,7 +103,7 @@ export function DepartmentSuggestionCard({ suggestion, onApprove }: DepartmentSu
             style={{
               background: 'var(--claura-bone)',
               color: 'var(--claura-bone-ink)',
-              fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
+              fontFamily: 'var(--font-ui)',
             }}
           >
             Approve
@@ -119,10 +119,10 @@ export function DepartmentSuggestionCard({ suggestion, onApprove }: DepartmentSu
 
         {state === 'approved' && (
           <div className="flex items-center gap-1">
-            <Check className="w-3.5 h-3.5" style={{ color: '#10b77f' }} />
+            <Check className="w-3.5 h-3.5" style={{ color: 'var(--n-verdigris)' }} />
             <span
               className="text-[10px] font-medium"
-              style={{ color: 'var(--text-muted)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+              style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}
             >
               Sent
             </span>
@@ -132,7 +132,7 @@ export function DepartmentSuggestionCard({ suggestion, onApprove }: DepartmentSu
         {state === 'error' && (
           <span
             className="text-[10px] font-medium"
-            style={{ color: 'rgba(239,68,68,0.7)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+            style={{ color: 'rgba(239,68,68,0.7)', fontFamily: 'var(--font-ui)' }}
           >
             Failed
           </span>

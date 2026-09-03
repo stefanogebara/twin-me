@@ -104,7 +104,7 @@ export const BigFivePanel: React.FC<BigFivePanelProps> = ({
           <button
             onClick={onNavigateToBigFive}
             className="px-6 py-3 rounded-xl font-medium transition-all hover:scale-[1.02]"
-            style={{ backgroundColor: '#10b77f', color: '#0a0f0a' }}
+            style={{ backgroundColor: 'var(--n-verdigris)', color: '#0a0f0a' }}
           >
             Start Big Five Assessment
           </button>

@@ -15,7 +15,7 @@ import StardustHero from '../components/landing/StardustHero';
  */
 
 const SERIF = "var(--font-heading)";
-const SANS = "'Geist', 'Inter', system-ui, sans-serif";
+const SANS = 'var(--font-ui)';
 
 /* ── shared bits ── */
 function BoneButton({ children }: { children: React.ReactNode }) {

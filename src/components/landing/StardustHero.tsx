@@ -80,7 +80,7 @@ export default function StardustHero() {
                   type="button"
                   onClick={() => scrollTo(l.id)}
                   className="px-6 py-2.5 text-[14px] font-medium text-[rgba(245,245,244,0.82)] hover:text-[#F5F5F4] transition-colors duration-150"
-                  style={{ fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+                  style={{ fontFamily: 'var(--font-ui)' }}
                 >
                   {l.label}
                 </button>
@@ -96,7 +96,7 @@ export default function StardustHero() {
                   style={{
                     background: 'var(--claura-bone)',
                     color: 'var(--claura-bone-ink)',
-                    fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
+                    fontFamily: 'var(--font-ui)',
                   }}
                 >
                   Start now
@@ -109,7 +109,7 @@ export default function StardustHero() {
                   style={{
                     backgroundColor: 'rgba(255,255,255,0.10)',
                     border: '1px solid rgba(255,255,255,0.12)',
-                    fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
+                    fontFamily: 'var(--font-ui)',
                   }}
                 >
                   Sign in
@@ -150,7 +150,7 @@ export default function StardustHero() {
                 border: '1px solid rgba(255,255,255,0.14)',
                 backdropFilter: 'blur(20px)',
                 WebkitBackdropFilter: 'blur(20px)',
-                fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
+                fontFamily: 'var(--font-ui)',
               }}
             />
             <button
@@ -165,7 +165,7 @@ export default function StardustHero() {
 
           <p
             className="mt-4 text-[13px] leading-relaxed max-w-[440px] text-[rgba(245,245,244,0.62)]"
-            style={{ fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+            style={{ fontFamily: 'var(--font-ui)' }}
           >
             Build a twin from your real footprint — your Soul Signature,
             captured in the patterns only you leave behind.
@@ -208,7 +208,7 @@ export default function StardustHero() {
               style={{
                 background: 'var(--claura-bone)',
                 color: 'var(--claura-bone-ink)',
-                fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
+                fontFamily: 'var(--font-ui)',
               }}
             >
               Start for free
@@ -221,7 +221,7 @@ export default function StardustHero() {
               style={{
                 backgroundColor: 'rgba(255,255,255,0.10)',
                 border: '1px solid rgba(255,255,255,0.12)',
-                fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
+                fontFamily: 'var(--font-ui)',
               }}
             >
               Sign in

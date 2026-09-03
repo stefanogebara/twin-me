@@ -130,7 +130,7 @@ export function PersonalityCards({ data, className = '' }: PersonalityCardsProps
       {/* Bottom Insight */}
       <div className="mt-6 p-4 bg-gradient-to-r from-amber-900/15 to-orange-900/10 rounded-xl border border-amber-800/20">
         <div className="flex items-start gap-3">
-          <Sparkles className="w-5 h-5 text-amber-400 mt-0.5 flex-shrink-0" />
+          <Sparkles className="w-5 h-5 text-[var(--n-ember)] mt-0.5 flex-shrink-0" />
           <div>
             <h5 className="text-sm font-semibold text-amber-300 mb-1">
               What This Means for You

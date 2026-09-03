@@ -71,7 +71,7 @@ export function DepartmentProposalBubble({
           className="text-[10px] font-medium uppercase tracking-[0.08em]"
           style={{
             color: proposal.departmentColor,
-            fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
+            fontFamily: 'var(--font-ui)',
           }}
         >
           {proposal.department}
@@ -83,7 +83,7 @@ export function DepartmentProposalBubble({
         className="text-[13px] leading-relaxed mb-2"
         style={{
           color: '#D1D5DB',
-          fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
+          fontFamily: 'var(--font-ui)',
         }}
       >
         {proposal.description}
@@ -95,7 +95,7 @@ export function DepartmentProposalBubble({
           className="text-[10px] mb-3"
           style={{
             color: 'var(--text-muted)',
-            fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
+            fontFamily: 'var(--font-ui)',
           }}
         >
           {formatCost(proposal.estimatedCost)}
@@ -112,7 +112,7 @@ export function DepartmentProposalBubble({
               style={{
                 background: 'var(--claura-bone)',
                 color: 'var(--claura-bone-ink)',
-                fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
+                fontFamily: 'var(--font-ui)',
               }}
             >
               Approve
@@ -122,7 +122,7 @@ export function DepartmentProposalBubble({
               className="text-[11px] font-medium transition-opacity duration-150 hover:opacity-60"
               style={{
                 color: 'var(--text-muted)',
-                fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
+                fontFamily: 'var(--font-ui)',
               }}
             >
               Dismiss
@@ -140,7 +140,7 @@ export function DepartmentProposalBubble({
               className="text-[11px] font-medium"
               style={{
                 color: 'var(--text-muted)',
-                fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
+                fontFamily: 'var(--font-ui)',
                 animation: 'proposal-pulse 2s ease-in-out infinite',
               }}
             >
@@ -159,13 +159,13 @@ export function DepartmentProposalBubble({
           <div className="flex items-center gap-1.5">
             <Check
               className="w-3.5 h-3.5"
-              style={{ color: '#10b77f' }}
+              style={{ color: 'var(--n-verdigris)' }}
             />
             <span
               className="text-[11px] font-medium"
               style={{
                 color: 'var(--text-secondary)',
-                fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
+                fontFamily: 'var(--font-ui)',
               }}
             >
               Done
@@ -178,7 +178,7 @@ export function DepartmentProposalBubble({
             className="text-[11px] font-medium"
             style={{
               color: 'var(--text-muted)',
-              fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
+              fontFamily: 'var(--font-ui)',
             }}
           >
             Dismissed

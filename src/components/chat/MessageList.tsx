@@ -415,7 +415,7 @@ export const MessageList = memo(forwardRef<HTMLDivElement, MessageListProps>(
                                 markCopied(message.id);
                               }}
                               className="p-1 rounded-md transition-all hover:scale-110"
-                              style={{ color: copied[message.id] ? 'rgba(134,239,172,0.7)' : 'var(--text-muted)' }}
+                              style={{ color: copied[message.id] ? 'rgb(var(--n-verdigris-rgb) / 0.7)' : 'var(--text-muted)' }}
                               aria-label="Copy message"
                               title={copied[message.id] ? 'Copied!' : 'Copy'}
                             >

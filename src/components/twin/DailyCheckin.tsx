@@ -184,7 +184,7 @@ export function DailyCheckin({ onComplete }: DailyCheckinProps) {
       </div>
 
       {error && (
-        <p className="text-xs text-red-500">{error}</p>
+        <p className="text-xs text-[var(--n-danger-ink)]">{error}</p>
       )}
 
       <div className="max-h-56 overflow-y-auto pr-1 space-y-1">

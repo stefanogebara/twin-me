@@ -12,7 +12,7 @@ const buttonVariants = cva(
         // Claura: the bone button — warm gradient rounded-rect, never a stark white pill.
         // Pills (100px) are reserved for chips, nav items and avatars.
         default: "bg-[image:var(--claura-bone)] text-[var(--claura-bone-ink)] hover:shadow-lg hover:-translate-y-0.5 hover:brightness-105 rounded-[var(--claura-r-btn)]",
-        destructive: "bg-[rgba(220,38,38,0.10)] text-[var(--claura-danger-ink)] border border-[rgba(220,38,38,0.35)] hover:bg-[rgba(220,38,38,0.16)] hover:-translate-y-0.5 rounded-[10px]",
+        destructive: "bg-[rgb(var(--n-danger-rgb)_/_0.10)] text-[var(--claura-danger-ink)] border border-[rgb(var(--n-danger-rgb)_/_0.35)] hover:bg-[rgb(var(--n-danger-rgb)_/_0.16)] hover:-translate-y-0.5 rounded-[10px]",
         outline: "border border-[var(--glass-surface-border)] bg-[var(--glass-surface-bg)] backdrop-blur-[42px] hover:bg-[var(--surface-solid)] text-foreground rounded-[var(--claura-r-btn)] transition-all duration-200",
         secondary: "bg-[var(--surface)] text-secondary-foreground hover:bg-[var(--surface-solid)] rounded-[var(--claura-r-btn)]",
         ghost: "hover:bg-[var(--surface)] hover:text-accent-foreground rounded-[var(--claura-r-btn)]",

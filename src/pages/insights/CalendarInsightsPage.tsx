@@ -159,7 +159,7 @@ const CalendarInsightsPage: React.FC = () => {
           <button
             onClick={() => navigate('/get-started')}
             className="px-4 py-2 rounded-lg font-medium transition-colors"
-            style={{ color: '#10b77f', border: '1px solid rgba(16,183,127,0.3)' }}
+            style={{ color: 'var(--n-verdigris)', border: '1px solid rgba(16,183,127,0.3)' }}
           >
             Connect Calendar
           </button>
@@ -207,7 +207,7 @@ const CalendarInsightsPage: React.FC = () => {
         >
           <h3
             className="text-[11px] font-medium tracking-widest uppercase mb-4"
-            style={{ color: '#10b77f' }}
+            style={{ color: 'var(--n-verdigris)' }}
           >
             How You Spend Your Time
           </h3>
@@ -294,7 +294,7 @@ const CalendarInsightsPage: React.FC = () => {
         >
           <p
             className="text-[11px] font-medium tracking-widest uppercase mb-2"
-            style={{ color: '#10b77f' }}
+            style={{ color: 'var(--n-verdigris)' }}
           >
             Twin's Observation
           </p>
@@ -309,7 +309,7 @@ const CalendarInsightsPage: React.FC = () => {
         <div className="mb-8">
           <h3
             className="text-[11px] font-medium tracking-widest uppercase mb-4"
-            style={{ color: '#10b77f' }}
+            style={{ color: 'var(--n-verdigris)' }}
           >
             Patterns I've Noticed
           </h3>
@@ -330,7 +330,7 @@ const CalendarInsightsPage: React.FC = () => {
         <div>
           <h3
             className="text-[11px] font-medium tracking-widest uppercase mb-4"
-            style={{ color: '#10b77f' }}
+            style={{ color: 'var(--n-verdigris)' }}
           >
             Past Observations
           </h3>

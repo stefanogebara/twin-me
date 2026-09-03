@@ -50,11 +50,11 @@ export const MultiStepProgress: React.FC<MultiStepProgressProps> = ({
   const getStepIcon = (status: StepStatus, defaultIcon?: React.ReactNode) => {
     switch (status) {
       case 'completed':
-        return <CheckCircle2 className="w-5 h-5 text-green-400" />;
+        return <CheckCircle2 className="w-5 h-5 text-[var(--n-verdigris)]" />;
       case 'active':
         return <Loader2 className="w-5 h-5 text-[var(--accent-vibrant)] animate-spin" />;
       case 'error':
-        return <Circle className="w-5 h-5 text-red-400" />;
+        return <Circle className="w-5 h-5 text-[var(--n-danger-ink)]" />;
       default:
         return defaultIcon || <Circle className="w-5 h-5 text-[var(--text-muted)]" />;
     }
@@ -111,8 +111,8 @@ export const MultiStepProgress: React.FC<MultiStepProgressProps> = ({
                       className={cn(
                         'text-sm font-medium transition-colors',
                         status === 'active' && 'text-[var(--foreground)]',
-                        status === 'completed' && 'text-green-400',
-                        status === 'error' && 'text-red-400',
+                        status === 'completed' && 'text-[var(--n-verdigris)]',
+                        status === 'error' && 'text-[var(--n-danger-ink)]',
                         status === 'pending' && 'text-[var(--text-muted)]'
                       )}
                     >
@@ -192,8 +192,8 @@ export const MultiStepProgress: React.FC<MultiStepProgressProps> = ({
                   className={cn(
                     'font-medium transition-colors',
                     status === 'active' && 'text-[var(--foreground)]',
-                    status === 'completed' && 'text-green-400',
-                    status === 'error' && 'text-red-400',
+                    status === 'completed' && 'text-[var(--n-verdigris)]',
+                    status === 'error' && 'text-[var(--n-danger-ink)]',
                     status === 'pending' && 'text-[var(--text-muted)]'
                   )}
                 >

@@ -87,7 +87,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
                 primaryAction.variant === 'default' && 'text-white',
                 'min-w-[160px]'
               )}
-              style={primaryAction.variant === 'default' ? { backgroundColor: '#10b77f', color: '#0a0f0a' } : undefined}
+              style={primaryAction.variant === 'default' ? { backgroundColor: 'var(--n-verdigris)', color: '#0a0f0a' } : undefined}
             >
               {primaryAction.icon && <primaryAction.icon className="w-4 h-4 mr-2" />}
               {primaryAction.label}

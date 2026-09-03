@@ -163,9 +163,9 @@ const GmailCallback: React.FC = () => {
             {status === 'success' && (
               <div
                 className="w-16 h-16 rounded-full flex items-center justify-center"
-                style={{ background: 'rgba(34, 197, 94, 0.1)' }}
+                style={{ background: 'rgb(var(--n-verdigris-rgb) / 0.1)' }}
               >
-                <CheckCircle2 className="w-8 h-8 text-green-400" />
+                <CheckCircle2 className="w-8 h-8 text-[var(--n-verdigris)]" />
               </div>
             )}
             {status === 'error' && (
@@ -173,7 +173,7 @@ const GmailCallback: React.FC = () => {
                 className="w-16 h-16 rounded-full flex items-center justify-center"
                 style={{ background: 'rgba(239, 68, 68, 0.1)' }}
               >
-                <XCircle className="w-8 h-8 text-red-400" />
+                <XCircle className="w-8 h-8 text-[var(--n-danger-ink)]" />
               </div>
             )}
           </div>

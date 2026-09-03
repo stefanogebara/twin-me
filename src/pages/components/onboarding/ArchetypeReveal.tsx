@@ -19,7 +19,7 @@ export const ArchetypeReveal: React.FC<ArchetypeRevealProps> = ({
   <div className="flex flex-col items-center justify-center py-16">
     {!revealedArchetype ? (
       <div className="flex flex-col items-center gap-6">
-        <Loader2 className="w-6 h-6 animate-spin" style={{ color: '#10b77f' }} />
+        <Loader2 className="w-6 h-6 animate-spin" style={{ color: 'var(--n-verdigris)' }} />
         <div className="text-center">
           <h2
             className="text-xl mb-2"
@@ -40,7 +40,7 @@ export const ArchetypeReveal: React.FC<ArchetypeRevealProps> = ({
       <div className="w-full max-w-lg text-center">
         <span
           className="text-[11px] font-medium tracking-widest uppercase block mb-4"
-          style={{ color: '#10b77f', fontFamily: 'Inter, sans-serif' }}
+          style={{ color: 'var(--n-verdigris)', fontFamily: 'Inter, sans-serif' }}
         >
           Your Soul Archetype
         </span>
@@ -100,7 +100,7 @@ export const ArchetypeReveal: React.FC<ArchetypeRevealProps> = ({
           onClick={onEnterTwin}
           className="inline-flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-medium transition-opacity hover:opacity-90"
           style={{
-            backgroundColor: '#10b77f',
+            backgroundColor: 'var(--n-verdigris)',
             color: '#0a0f0a',
             fontFamily: "'Inter', sans-serif",
           }}

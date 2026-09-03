@@ -380,8 +380,8 @@ export default function DataExportsPage() {
         <div
           className="mb-6 rounded-[14px] px-4 py-3 text-[12.5px] leading-relaxed flex items-start gap-3"
           style={{
-            background: 'rgba(220,38,38,0.08)',
-            border: '1px solid rgba(220,38,38,0.25)',
+            background: 'rgb(var(--n-danger-rgb) / 0.08)',
+            border: '1px solid rgb(var(--n-danger-rgb) / 0.25)',
             color: 'var(--text-secondary)',
           }}
           role="alert"

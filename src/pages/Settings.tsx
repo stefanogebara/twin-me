@@ -4,8 +4,6 @@ import { toast } from 'sonner';
 import { useAuth } from '../contexts/AuthContext';
 import { API_URL, getAccessToken } from '@/services/api/apiBase';
 import { usePlatformsSummary, useDisconnectPlatform } from '../hooks/usePlatformsSummary';
-import { useBackgroundMode } from '../contexts/BackgroundModeContext';
-import { useTheme, type Theme } from '../contexts/ThemeContext';
 import { Download, Info, ArrowRight, Send, ExternalLink, Check, Brain } from 'lucide-react';
 import ConnectedPlatformsSettings from './components/settings/ConnectedPlatformsSettings';
 import AutonomySettings from './components/settings/AutonomySettings';
@@ -88,58 +86,18 @@ const ToggleSwitch: React.FC<{
   </button>
 );
 
-const APPEARANCE_OPTIONS: { value: Theme; label: string }[] = [
-  { value: 'dark', label: 'Dark' },
-  { value: 'light', label: 'Light' },
-  { value: 'system', label: 'System' },
-];
 
-const AppearanceRow: React.FC = () => {
-  const { theme, setTheme } = useTheme();
-  return (
-    <SettingsRow label="Appearance">
-      <div
-        role="radiogroup"
-        aria-label="Appearance"
-        className="flex items-center gap-1 p-1 rounded-[10px]"
-        style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}
-      >
-        {APPEARANCE_OPTIONS.map(o => (
-          <button
-            key={o.value}
-            role="radio"
-            aria-checked={theme === o.value}
-            onClick={() => setTheme(o.value)}
-            className="px-3 py-1.5 text-[12px] font-medium rounded-[7px] transition-colors"
-            style={
-              theme === o.value
-                ? { background: 'var(--claura-bone)', color: 'var(--claura-bone-ink)' }
-                : { background: 'transparent', color: 'var(--text-secondary)' }
-            }
-          >
-            {o.label}
-          </button>
-        ))}
-      </div>
-    </SettingsRow>
-  );
-};
-
-const BackgroundToggleRow: React.FC = () => {
-  const { mode, setMode } = useBackgroundMode();
-  return (
-    <SettingsRow
-      label="Background"
-      description={mode === 'natural' ? 'Sun-driven photo backgrounds' : 'Classic dark gradient'}
-    >
-      <ToggleSwitch
-        enabled={mode === 'natural'}
-        onChange={v => setMode(v ? 'natural' : 'dark')}
-        label="Background mode"
-      />
-    </SettingsRow>
-  );
-};
+const AppearanceRow: React.FC = () => (
+  // Nocturne is single-appearance by design — the reference is a nocturnal
+  // gallery, and nocturne-bridge.css maps [data-theme='light'] to the same
+  // values as :root. So this used to be a three-way radio where two of the
+  // options repainted nothing: the user picked Light and the app stayed dark.
+  // A lit variant has to be DESIGNED, not toggled, so until it exists this
+  // row reports the fact rather than pretending to take input.
+  <SettingsRow label="Appearance" description="Nocturne is dark by design. A light variant is not a toggle.">
+    <span className="n-label" style={{ color: 'var(--n-ash)' }}>DARK</span>
+  </SettingsRow>
+);
 
 const TelegramConnect: React.FC = () => {
   const [status, setStatus] = useState<{ linked: boolean; enabled: boolean } | null>(null);
@@ -517,7 +475,7 @@ const Settings = () => {
           value={activeSection}
           onChange={(e) => { setActiveSection(e.target.value); scrollToSection(e.target.value); }}
           className="w-full text-[14px] bg-transparent focus:outline-none"
-          style={{ color: 'var(--foreground)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+          style={{ color: 'var(--foreground)', fontFamily: 'var(--font-ui)' }}
         >
           {sections.map(s => (
             <option key={s.id} value={s.id} style={{ background: 'var(--popover)', color: 'var(--foreground)' }}>
@@ -545,7 +503,7 @@ const Settings = () => {
                       style={{
                         color: isActive ? 'var(--accent-vibrant, #c17e2c)' : 'var(--text-secondary)',
                         background: isActive ? 'var(--accent-vibrant-glow, rgba(255,132,0,0.10))' : 'transparent',
-                        fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
+                        fontFamily: 'var(--font-ui)',
                         fontWeight: isActive ? 500 : 400,
                       }}
                       onMouseEnter={(e) => {
@@ -647,7 +605,6 @@ const Settings = () => {
           </button>
         </SettingsRow>
         <AppearanceRow />
-        <BackgroundToggleRow />
       </div>
 
       </section>

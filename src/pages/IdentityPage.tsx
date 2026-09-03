@@ -237,24 +237,10 @@ const RevealOverlay: React.FC<{ archetypeName: string; tagline: string; onDismis
       exit={{ opacity: 0 }}
       transition={{ duration: 0.6, ease: 'easeInOut' }}
     >
-      <div
-        className="absolute inset-0 flex items-center justify-center pointer-events-none"
-        aria-hidden="true"
-      >
-        <div
-          // audit-2026-05-15 H8: was w-[400px] h-[400px] (fixed). Caused
-          // horizontal scroll on viewports <400px. min(400px, 90vw) keeps
-          // the decorative glow proportional on mobile while preserving
-          // the desktop size.
-          className="rounded-full"
-          style={{
-            width: 'min(400px, 90vw)',
-            height: 'min(400px, 90vw)',
-            background: 'radial-gradient(circle, rgba(232,224,212,0.15) 0%, rgba(232,224,212,0.05) 40%, transparent 70%)',
-            animation: 'soulBreathe 4s ease-in-out infinite',
-          }}
-        />
-      </div>
+      {/* The breathing orb that used to sit behind the archetype is gone.
+          Nocturne has no orbs and nothing loops (Law 1: elevation is a colour
+          step, never a glow) — and the reveal is stronger for it: the name
+          arrives on flat obsidian with nothing competing for the eye. */}
 
       <motion.h1
         aria-label={archetypeName}
@@ -299,12 +285,7 @@ const RevealOverlay: React.FC<{ archetypeName: string; tagline: string; onDismis
       </motion.p>
 
       <motion.button
-        className="relative z-10 mt-10 px-6 py-2.5 rounded-[100px] text-sm font-medium flex items-center gap-2 transition-all duration-150 hover:opacity-80 active:scale-[0.97]"
-        style={{
-          background: 'var(--claura-bone)',
-          color: 'var(--claura-bone-ink)',
-          fontFamily: "'Inter', sans-serif",
-        }}
+        className="n-btn n-btn--primary relative z-10 mt-10"
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 2.2, duration: 0.5 }}
@@ -758,12 +739,7 @@ const IdentityPage: React.FC = () => {
                   <button
                     onClick={handleShare}
                     aria-label="Share your soul signature"
-                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-[100px] text-sm font-medium transition-all duration-150 hover:opacity-90 active:scale-[0.97]"
-                    style={{
-                      background: 'var(--claura-bone)',
-                      color: 'var(--claura-bone-ink)',
-                      fontFamily: "'Inter', sans-serif",
-                    }}
+                    className="n-btn n-btn--primary"
                   >
                     <Share2 className="w-4 h-4" />
                     Share your signature
@@ -1220,10 +1196,6 @@ const IdentityPage: React.FC = () => {
 
       {/* ── Global keyframes ────────────────────────────────────────────── */}
       <style>{`
-        @keyframes soulBreathe {
-          0%, 100% { transform: scale(1); opacity: 0.6; }
-          50% { transform: scale(1.15); opacity: 1; }
-        }
       `}</style>
     </>
   );

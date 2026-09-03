@@ -72,7 +72,7 @@ export const CardHeader: React.FC<CardHeaderProps> = ({
     >
       <div className="flex items-start gap-3">
         {icon && (
-          <div style={{ color: '#10b77f' }}>
+          <div style={{ color: 'var(--n-verdigris)' }}>
             {icon}
           </div>
         )}

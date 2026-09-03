@@ -286,7 +286,7 @@ const EnhancedFileUpload: React.FC<EnhancedFileUploadProps> = ({
     if (fileType.includes('audio')) return <Music className="w-6 h-6 text-purple-500" />;
     if (fileType.includes('video')) return <Video className="w-6 h-6 text-[var(--accent-amber)]" />;
     if (fileType.includes('image')) return <Image className="w-6 h-6 text-green-500" />;
-    if (fileType.includes('pdf')) return <FileText className="w-6 h-6 text-red-500" />;
+    if (fileType.includes('pdf')) return <FileText className="w-6 h-6 text-[var(--n-danger-ink)]" />;
     if (fileType.includes('word') || fileType.includes('document')) return <FileText className="w-6 h-6 text-[var(--accent-amber)]" />;
     return <File className="w-6 h-6 text-muted-foreground" />;
   };
@@ -360,7 +360,7 @@ const EnhancedFileUpload: React.FC<EnhancedFileUploadProps> = ({
                   )}
                   {uploadingFile.status === 'error' && (
                     <div className="flex gap-2">
-                      <AlertCircle className="w-5 h-5 text-red-500" />
+                      <AlertCircle className="w-5 h-5 text-[var(--n-danger-ink)]" />
                       <Button
                         variant="ghost"
                         size="sm"
@@ -392,13 +392,13 @@ const EnhancedFileUpload: React.FC<EnhancedFileUploadProps> = ({
               )}
 
               {uploadingFile.status === 'error' && (
-                <p className="text-sm text-red-500">
+                <p className="text-sm text-[var(--n-danger-ink)]">
                   {uploadingFile.errorMessage || 'Upload failed'}
                 </p>
               )}
 
               {uploadingFile.status === 'completed' && (
-                <p className="text-sm text-green-400">
+                <p className="text-sm text-[var(--n-verdigris)]">
                   Upload completed successfully
                 </p>
               )}
@@ -415,7 +415,7 @@ const EnhancedFileUpload: React.FC<EnhancedFileUploadProps> = ({
           </h4>
           <div className="space-y-1">
             {completedFiles.map((file, index) => (
-              <p key={index} className="text-sm text-green-400">
+              <p key={index} className="text-sm text-[var(--n-verdigris)]">
                 {file.fileName} - {file.chunksProcessed} chunks processed
               </p>
             ))}

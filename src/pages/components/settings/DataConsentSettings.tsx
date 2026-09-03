@@ -33,7 +33,7 @@ const DataConsentSettings: React.FC<DataConsentSettingsProps> = ({
         <Shield className="w-5 h-5" style={{ color: '#A78BFA' }} />
         <h2
           className="text-[11px] font-medium tracking-widest uppercase"
-          style={{ color: '#10b77f' }}
+          style={{ color: 'var(--n-verdigris)' }}
         >
           Data Consent
         </h2>

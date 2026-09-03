@@ -151,7 +151,7 @@ export const AudioFeaturesRadar: React.FC<AudioFeaturesRadarProps> = ({
         >
           <div className="flex items-center gap-2 mb-2">
             <Activity className="w-4 h-4 text-[#1DB954]" />
-            <span className="text-[11px] font-medium tracking-widest uppercase" style={{ color: '#10b77f' }}>
+            <span className="text-[11px] font-medium tracking-widest uppercase" style={{ color: 'var(--n-verdigris)' }}>
               Musical Personality
             </span>
           </div>

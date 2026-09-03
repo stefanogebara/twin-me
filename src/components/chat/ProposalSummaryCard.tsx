@@ -54,7 +54,7 @@ export function ProposalSummaryCard({
         className="text-[14px] font-medium mb-3"
         style={{
           color: 'var(--foreground)',
-          fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
+          fontFamily: 'var(--font-ui)',
           letterSpacing: '-0.01em',
         }}
       >
@@ -84,7 +84,7 @@ export function ProposalSummaryCard({
                 className="text-[10px] font-medium uppercase tracking-[0.06em] block mb-0.5"
                 style={{
                   color: proposal.departmentColor,
-                  fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
+                  fontFamily: 'var(--font-ui)',
                 }}
               >
                 {proposal.department}
@@ -93,7 +93,7 @@ export function ProposalSummaryCard({
                 className="text-[13px] leading-snug"
                 style={{
                   color: 'var(--text-secondary)',
-                  fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
+                  fontFamily: 'var(--font-ui)',
                 }}
               >
                 {proposal.description}
@@ -134,7 +134,7 @@ export function ProposalSummaryCard({
           style={{
             background: 'var(--claura-bone)',
             color: 'var(--claura-bone-ink)',
-            fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
+            fontFamily: 'var(--font-ui)',
           }}
         >
           Approve All
@@ -145,7 +145,7 @@ export function ProposalSummaryCard({
             className="text-[11px] font-medium transition-opacity duration-150 hover:opacity-60"
             style={{
               color: 'var(--text-muted)',
-              fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
+              fontFamily: 'var(--font-ui)',
             }}
           >
             Review in Departments

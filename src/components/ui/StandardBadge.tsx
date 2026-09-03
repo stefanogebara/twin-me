@@ -17,7 +17,7 @@ export interface StandardBadgeProps extends React.HTMLAttributes<HTMLSpanElement
 const variants = {
   default: 'bg-[var(--surface)] text-[rgba(245,245,244,0.85)] border-[var(--glass-surface-border)]',
   success: 'bg-[rgba(16,185,129,0.10)] text-[rgba(16,185,129,0.85)] border-[rgba(16,185,129,0.15)]',
-  error: 'bg-[rgba(220,38,38,0.10)] text-[rgba(220,38,38,0.85)] border-[rgba(220,38,38,0.15)]',
+  error: 'bg-[rgb(var(--n-danger-rgb)_/_0.10)] text-[rgb(var(--n-danger-rgb)_/_0.85)] border-[rgb(var(--n-danger-rgb)_/_0.15)]',
   warning: 'bg-[rgba(245,158,11,0.10)] text-[rgba(245,158,11,0.85)] border-[rgba(245,158,11,0.15)]',
   info: 'bg-[var(--surface)] text-[var(--text-secondary)] border-[var(--glass-surface-border)]',
   premium: 'bg-[rgba(139,92,246,0.10)] text-[rgba(139,92,246,0.85)] border-[rgba(139,92,246,0.15)]',

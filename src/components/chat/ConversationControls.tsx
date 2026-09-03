@@ -49,7 +49,7 @@ export function ConversationControls({
       <button
         onClick={onNewChat}
         className="flex items-center gap-2 px-4 py-2 font-medium shadow-sm hover:opacity-90 transition-opacity rounded-[100px]"
-        style={{ backgroundColor: '#10b77f', color: '#0a0f0a', fontWeight: 600 }}
+        style={{ backgroundColor: 'var(--n-verdigris)', color: '#0a0f0a', fontWeight: 600 }}
       >
         <Plus className="w-4 h-4" />
         <span>New Chat</span>
@@ -64,7 +64,7 @@ export function ConversationControls({
           title={isSaved ? 'Conversation saved' : 'Save conversation'}
         >
           {savedRecently || isSaved ? (
-            <Check className="w-5 h-5 text-green-400" />
+            <Check className="w-5 h-5 text-[var(--n-verdigris)]" />
           ) : (
             <Save className="w-5 h-5" style={iconBtnStyle} />
           )}
@@ -98,7 +98,7 @@ export function ConversationControls({
                 className="w-full px-4 py-2 text-left flex items-center gap-2 text-sm transition-colors hover:bg-[var(--surface-solid)]"
                 style={{ color: 'var(--foreground)' }}
               >
-                <FileText className="w-4 h-4 text-red-500" />
+                <FileText className="w-4 h-4 text-[var(--n-danger-ink)]" />
                 <span>Export as PDF</span>
               </button>
               <button

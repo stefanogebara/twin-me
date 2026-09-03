@@ -89,7 +89,7 @@ const iconMap = {
 const priorityColors = {
   high: { bg: 'rgba(239, 68, 68, 0.1)', border: 'rgba(239, 68, 68, 0.3)', text: '#ef4444' },
   medium: { bg: 'rgba(201, 185, 154, 0.1)', border: 'rgba(201, 185, 154, 0.3)', text: '#C9B99A' },
-  low: { bg: 'rgba(34, 197, 94, 0.1)', border: 'rgba(34, 197, 94, 0.3)', text: '#22c55e' }
+  low: { bg: 'rgb(var(--n-verdigris-rgb) / 0.1)', border: 'rgb(var(--n-verdigris-rgb) / 0.3)', text: 'var(--n-verdigris)' }
 };
 
 const darkCardStyle: React.CSSProperties = {

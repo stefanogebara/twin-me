@@ -123,7 +123,7 @@ const PaywallModal: React.FC<Props> = ({ isOpen }) => {
               ) : (
                 <button onClick={() => upgrade(plan.key)} disabled={loading === plan.key}
                   className="w-full py-3 rounded-xl font-medium disabled:opacity-50"
-                  style={{ backgroundColor: '#10b77f', color: '#0a0f0a' }}>
+                  style={{ backgroundColor: 'var(--n-verdigris)', color: '#0a0f0a' }}>
                   {loading === plan.key ? 'Loading...' : plan.cta}
                 </button>
               )}

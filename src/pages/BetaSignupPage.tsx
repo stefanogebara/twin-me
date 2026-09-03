@@ -52,7 +52,7 @@ function CopyableInviteCode({ code }: { code: string }) {
     >
       {code}
       {copied ? (
-        <Check className="w-4 h-4 text-green-400" />
+        <Check className="w-4 h-4 text-[var(--n-verdigris)]" />
       ) : (
         <ClipboardCopy className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
       )}
@@ -164,7 +164,7 @@ function BetaSignupPage() {
               className="text-sm mb-8"
               style={{
                 color: 'var(--text-muted)',
-                fontFamily: "'Geist', 'Inter', sans-serif",
+                fontFamily: 'var(--font-ui)',
                 lineHeight: 1.6,
               }}
             >
@@ -225,7 +225,7 @@ function BetaSignupPage() {
                 className="text-sm"
                 style={{
                   color: 'var(--text-muted)',
-                  fontFamily: "'Geist', 'Inter', sans-serif",
+                  fontFamily: 'var(--font-ui)',
                   lineHeight: 1.6,
                 }}
               >
@@ -265,7 +265,7 @@ function BetaSignupPage() {
                     backgroundColor: 'var(--surface)',
                     border: '1px solid var(--border-glass)',
                     color: 'var(--foreground)',
-                    fontFamily: "'Geist', 'Inter', sans-serif",
+                    fontFamily: 'var(--font-ui)',
                     '--tw-ring-color': 'rgba(255,255,255,0.25)',
                   } as React.CSSProperties}
                 />
@@ -289,7 +289,7 @@ function BetaSignupPage() {
                     backgroundColor: 'var(--surface)',
                     border: '1px solid var(--border-glass)',
                     color: 'var(--foreground)',
-                    fontFamily: "'Geist', 'Inter', sans-serif",
+                    fontFamily: 'var(--font-ui)',
                     '--tw-ring-color': 'rgba(255,255,255,0.25)',
                   } as React.CSSProperties}
                 />
@@ -322,7 +322,7 @@ function BetaSignupPage() {
                           color: isSelected
                             ? 'var(--foreground)'
                             : 'var(--text-secondary)',
-                          fontFamily: "'Geist', 'Inter', sans-serif",
+                          fontFamily: 'var(--font-ui)',
                         }}
                       >
                         {p.label}
@@ -350,7 +350,7 @@ function BetaSignupPage() {
                     backgroundColor: 'var(--surface)',
                     border: '1px solid var(--border-glass)',
                     color: 'var(--foreground)',
-                    fontFamily: "'Geist', 'Inter', sans-serif",
+                    fontFamily: 'var(--font-ui)',
                     '--tw-ring-color': 'rgba(255,255,255,0.25)',
                   } as React.CSSProperties}
                 />
@@ -365,7 +365,7 @@ function BetaSignupPage() {
                   background: 'var(--claura-bone)',
                   color: 'var(--claura-bone-ink)',
                   border: 'none',
-                  fontFamily: "'Geist', 'Inter', sans-serif",
+                  fontFamily: 'var(--font-ui)',
                   cursor: loading ? 'wait' : 'pointer',
                 }}
               >
@@ -386,7 +386,7 @@ function BetaSignupPage() {
             className="inline-flex items-center gap-1.5 text-[13px] transition-opacity hover:opacity-70"
             style={{
               color: 'var(--text-muted)',
-              fontFamily: "'Geist', 'Inter', sans-serif",
+              fontFamily: 'var(--font-ui)',
               background: 'none',
               border: 'none',
               cursor: 'pointer',

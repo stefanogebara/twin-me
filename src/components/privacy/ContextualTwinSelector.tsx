@@ -118,7 +118,7 @@ export const ContextualTwinSelector: React.FC<ContextualTwinSelectorProps> = ({
           <button
             onClick={onCreateTwin}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm shadow-md hover:shadow-lg transition-all duration-200"
-            style={{ backgroundColor: '#10b77f', color: '#0a0f0a', fontFamily: "'Inter', sans-serif" }}
+            style={{ backgroundColor: 'var(--n-verdigris)', color: '#0a0f0a', fontFamily: "'Inter', sans-serif" }}
           >
             <Plus className="w-4 h-4" />
             Create Twin
@@ -154,7 +154,7 @@ export const ContextualTwinSelector: React.FC<ContextualTwinSelectorProps> = ({
             </p>
           </div>
           <div
-            className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-900/20 text-green-400"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-900/20 text-[var(--n-verdigris)]"
           >
             <Check className="w-4 h-4" />
             <span className="text-sm font-medium" style={{ fontFamily: "'Inter', sans-serif" }}>Active</span>
@@ -251,7 +251,7 @@ export const ContextualTwinSelector: React.FC<ContextualTwinSelectorProps> = ({
                           className="p-1.5 rounded-lg hover:bg-red-900/20 transition-colors"
                           title="Delete twin"
                         >
-                          <Trash2 className="w-3.5 h-3.5 text-red-400" />
+                          <Trash2 className="w-3.5 h-3.5 text-[var(--n-danger-ink)]" />
                         </button>
                       )}
                     </div>

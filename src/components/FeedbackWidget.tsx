@@ -136,8 +136,8 @@ export const FeedbackWidget: React.FC<FeedbackWidgetProps> = ({
       <div
         className="flex items-center gap-2 py-2 px-3 rounded-lg text-sm"
         style={{
-          backgroundColor: 'rgba(34, 197, 94, 0.08)',
-          color: '#22c55e'
+          backgroundColor: 'rgb(var(--n-verdigris-rgb) / 0.08)',
+          color: 'var(--n-verdigris)'
         }}
       >
         <Check className="w-4 h-4" />
@@ -164,9 +164,9 @@ export const FeedbackWidget: React.FC<FeedbackWidgetProps> = ({
           }`}
           style={{
             backgroundColor: thumbsVote === 'up'
-              ? 'rgba(34, 197, 94, 0.15)'
+              ? 'rgb(var(--n-verdigris-rgb) / 0.15)'
               : 'rgba(255,255,255,0.03)',
-            color: thumbsVote === 'up' ? '#22c55e' : 'rgba(255,255,255,0.4)'
+            color: thumbsVote === 'up' ? 'var(--n-verdigris)' : 'rgba(255,255,255,0.4)'
           }}
         >
           <ThumbsUp className="w-3.5 h-3.5" />
@@ -218,9 +218,9 @@ export const FeedbackWidget: React.FC<FeedbackWidgetProps> = ({
             }`}
             style={{
               backgroundColor: thumbsVote === 'up'
-                ? 'rgba(34, 197, 94, 0.15)'
+                ? 'rgb(var(--n-verdigris-rgb) / 0.15)'
                 : 'rgba(255,255,255,0.02)',
-              color: thumbsVote === 'up' ? '#22c55e' : 'rgba(255,255,255,0.4)'
+              color: thumbsVote === 'up' ? 'var(--n-verdigris)' : 'rgba(255,255,255,0.4)'
             }}
           >
             <ThumbsUp className="w-3.5 h-3.5" />

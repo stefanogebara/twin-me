@@ -78,6 +78,13 @@
   --claura-card: var(--n-graphite);
   --claura-card-border: var(--n-line);
 
+  /* ---- Danger: shadcn and the legacy pages both reach for this ---- */
+  --destructive: var(--n-danger);
+  --destructive-foreground: var(--n-cloud);
+  /* This one paints TEXT (button.tsx's destructive variant), so it takes the
+     ink value — --n-danger itself is 3.94:1 on obsidian and fails AA. */
+  --claura-danger-ink: var(--n-danger-ink);
+
   /* ---- Legacy accents: ember carries the amber heritage; purple retires ---- */
   --accent-amber: var(--n-ember);
   --accent-purple: var(--n-iris);

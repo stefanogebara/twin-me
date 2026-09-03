@@ -77,7 +77,7 @@ export const CATEGORY_COLORS: Record<string, string> = {
   Shopping: '#D4CBBE',
   Social: '#a78bfa',
   Entertainment: '#ec4899',
-  Productivity: '#22c55e',
+  Productivity: 'var(--n-verdigris)',
   Health: '#14b8a6',
   Reference: '#8b5cf6',
   Other: '#6b7280'

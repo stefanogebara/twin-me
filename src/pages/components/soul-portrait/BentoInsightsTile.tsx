@@ -51,7 +51,7 @@ export const BentoInsightsTile: React.FC<Props> = ({ insights }) => {
         </div>
         <p
           className="text-[11px] font-medium tracking-widest uppercase"
-          style={{ color: '#10b77f' }}
+          style={{ color: 'var(--n-verdigris)' }}
         >
           What Your Twin Noticed
         </p>

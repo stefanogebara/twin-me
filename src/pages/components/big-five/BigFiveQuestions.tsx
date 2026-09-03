@@ -58,7 +58,7 @@ export function BigFiveQuestions({
         </div>
       ) : error ? (
         <div className="text-center py-20">
-          <p className="text-red-400 mb-4">{error}</p>
+          <p className="text-[var(--n-danger-ink)] mb-4">{error}</p>
           <button
             onClick={() => fetchQuestions(version)}
             className="px-4 py-2 rounded-lg"
