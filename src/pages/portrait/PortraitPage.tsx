@@ -111,20 +111,18 @@ function Ticks({ evidence, now, days = 30 }: { evidence: Evidence[]; now: Date; 
   }
   const max = Math.max(1, ...counts);
   const landed = counts.filter(Boolean).length;
-  if (!landed) return null;
+  if (landed < 5) return null;
   return (
     <span className="pc-pt-ticks">
-      {landed >= 5 ? (
-        <svg viewBox={`0 0 ${days * 4} 22`} preserveAspectRatio="none" aria-hidden="true">
-          {/* A quiet baseline across the window, so empty days read as empty rather than as noise. */}
-          <rect x="0" y="21" width={days * 4 - 2.6} height="1" opacity="0.16" />
-          {counts.map((c, i) =>
-            c ? (
-              <rect key={i} x={i * 4} y={22 - (6 + (c / max) * 16)} width="2.6" height={6 + (c / max) * 16} opacity="0.92" />
-            ) : null,
-          )}
-        </svg>
-      ) : null}
+      <svg viewBox={`0 0 ${days * 4} 22`} preserveAspectRatio="none" aria-hidden="true">
+        {/* A quiet baseline across the window, so empty days read as empty rather than as noise. */}
+        <rect x="0" y="21" width={days * 4 - 2.6} height="1" opacity="0.16" />
+        {counts.map((c, i) =>
+          c ? (
+            <rect key={i} x={i * 4} y={22 - (6 + (c / max) * 16)} width="2.6" height={6 + (c / max) * 16} opacity="0.92" />
+          ) : null,
+        )}
+      </svg>
       <span className="pc-pt-mono">{landed} of the last {days} days</span>
     </span>
   );
@@ -446,7 +444,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
             <li key={s.platform}>
               <p
                 className="pc-pt-source-line"
-                style={{ '--pt-share': `${Math.round(((parseInt(s.read, 10) || 0) / mostRead) * 100)}%` } as React.CSSProperties}
+                style={{ '--pt-share': (parseInt(s.read, 10) || 0) / mostRead } as React.CSSProperties}
               >
                 <span className="pc-pt-source-name">{s.label}</span>
                 <span className="pc-pt-source-kind">{s.kinds}</span>
