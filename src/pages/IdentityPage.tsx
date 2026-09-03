@@ -474,7 +474,7 @@ const IdentityPage: React.FC = () => {
               if (soulError) refetchSoul();
             }}
             className="text-sm font-medium px-4 py-2 rounded-[100px] transition-all duration-150 ease-out hover:opacity-80 active:scale-[0.97]"
-            style={{ backgroundColor: 'var(--button-bg-dark, #252222)', color: 'var(--foreground)' }}
+            style={{ backgroundColor: 'var(--n-steel)', color: 'var(--foreground)' }}
           >
             Try again
           </button>

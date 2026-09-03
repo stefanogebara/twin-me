@@ -48,6 +48,10 @@
   --border-glass: var(--n-line);
   --glass-surface-bg: var(--n-graphite);
   --glass-surface-border: var(--n-line);
+  /* Referenced by BackButton and StandardButton's ghost variant as a hover
+     wash, but defined in no stylesheet on either side of the flip — so those
+     hover states silently did nothing. Matches .n-btn--ghost's rest state. */
+  --glass-surface-bg-subtle: rgba(255, 255, 255, 0.1);
   --input: rgba(255, 255, 255, 0.06);
   --ring: rgba(255, 255, 255, 0.6);
 

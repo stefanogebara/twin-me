@@ -224,7 +224,7 @@ const TelegramConnect: React.FC = () => {
             onClick={generateCode}
             disabled={!!linkCode}
             className="text-[12px] px-3 py-1.5 rounded-[6px] transition-opacity hover:opacity-80 disabled:opacity-40"
-            style={{ backgroundColor: 'var(--button-bg-dark, #252222)', color: 'var(--foreground)' }}
+            style={{ backgroundColor: 'var(--n-steel)', color: 'var(--foreground)' }}
           >
             Connect
           </button>
