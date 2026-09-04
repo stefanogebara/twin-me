@@ -3894,13 +3894,13 @@ button.pc-search-icons {
   color: var(--c-on);
 }
 
-.pc-portrait .pc-pt-glass.pc-pt-line,
+.pc-portrait .pc-pt-glass.pc-pt-lines,
 .pc-portrait .pc-pt-glass.pc-pt-sourcelist,
 .pc-portrait .pc-pt-glass.pc-pt-close,
 .pc-portrait .pc-pt-glass.pc-pt-today,
 .pc-portrait .pc-pt-glass.pc-pt-prompt,
 .pc-portrait .pc-pt-glass.pc-pt-reply {
-  background: rgba(247, 245, 243, 0.74);
+  background: rgba(247, 245, 243, 0.86);
   backdrop-filter: blur(28px) saturate(118%) brightness(1.06);
   -webkit-backdrop-filter: blur(28px) saturate(118%) brightness(1.06);
   box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.55);
@@ -4123,12 +4123,8 @@ button.pc-search-icons {
   width: 100%;
   max-width: var(--pt-max);
   margin: 0 auto;
-  padding: 84px 56px 68px;
+  padding: 64px 56px 60px;
   text-align: left;
-}
-
-.pc-pt-today-inner.has-day {
-  grid-template-columns: minmax(0, 1fr) var(--pt-rail);
 }
 
 .pc-pt-q-main {
@@ -4141,29 +4137,27 @@ button.pc-search-icons {
 
 /* What else the day looked like, in the space the question was not using. */
 .pc-pt-q-day {
-  grid-column: 2;
-  grid-row: 1 / span 2;
+  grid-column: 1;
   list-style: none;
-  margin: 6px 0 0;
+  margin: 0;
   padding: 0;
   display: grid;
-  gap: 18px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
 }
 
 .pc-pt-q-day li {
   display: grid;
   gap: 4px;
-  padding-bottom: 16px;
-  border-bottom: 0.5px solid rgba(var(--c-on-rgb), 0.12);
+  padding-top: 14px;
+  border-top: 0.5px solid rgba(var(--c-on-rgb), 0.14);
   font-size: 15px;
   line-height: 1.45;
   letter-spacing: -0.018em;
   color: rgba(var(--c-on-rgb), 0.84);
 }
 
-.pc-pt-q-day li:last-child {
-  border-bottom: 0;
-}
+.pc-pt-q-answer { padding-top: 8px; }
 
 .presence-cosmos .pc-pt-q-mark {
   margin: 0 0 20px;
@@ -4176,7 +4170,7 @@ button.pc-search-icons {
 
 /* Four lines, each ending on a clause: the measure is set by the rag, not the box. */
 .presence-cosmos .pc-pt-today h2 {
-  max-width: 30ch;
+  max-width: 34ch;
   margin: 0;
   font-size: clamp(32px, 3.6vw, 50px);
   font-weight: 400;
@@ -4308,35 +4302,23 @@ button.pc-search-icons {
    the full measure and the others sit beside each other. */
 .pc-pt-lines {
   list-style: none;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 32px;
+  display: block;
   margin: 0;
-  padding: 0;
+  padding: 8px 0;
+  border-radius: var(--pt-card);
 }
 
 .pc-pt-line {
   position: relative;
-  overflow: hidden;
-  min-height: 232px;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  border-radius: var(--pt-card);
-  background: rgba(10, 12, 15, 0.4);
-  backdrop-filter: blur(30px) saturate(112%) brightness(0.92);
-  -webkit-backdrop-filter: blur(30px) saturate(112%) brightness(0.92);
-  box-shadow: inset 0 0 0 0.5px rgba(var(--c-on-rgb), 0.12);
+  display: block;
   color: var(--c-on);
 }
 
-.pc-pt-lines > li:last-child:nth-child(odd) {
-  grid-column: 1 / -1;
+.pc-pt-line + .pc-pt-line {
+  border-top: 0.5px solid var(--c-border);
 }
 
 .pc-pt-line.is-open {
-  grid-column: 1 / -1;
-  min-height: 0;
   display: block;
 }
 
@@ -4353,21 +4335,22 @@ button.pc-search-icons {
 
 .pc-portrait .pc-pt-line-head {
   display: grid;
-  flex: 1;
-  /* The head grows to fill the card, but its rows do not: the tag and the
-     sentence stay together and the foot falls to the bottom. */
-  align-content: start;
   width: 100%;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 10px 20px;
+  grid-template-columns: 150px minmax(0, 1fr) 320px;
+  grid-template-areas: 'label sentence proof';
+  gap: 8px 32px;
   align-items: start;
-  padding: 26px 28px 28px;
+  padding: 30px 56px 30px;
   text-align: left;
 }
 
+.presence-cosmos .pc-pt-line-head .pc-pt-label { grid-area: label; padding-top: 6px; }
+.presence-cosmos .pc-pt-line-head .pc-pt-sentence { grid-area: sentence; }
+.presence-cosmos .pc-pt-line-head .pc-pt-count { grid-area: proof; margin-top: 2px; }
+.pc-pt-line-head .pc-pt-open-mark { grid-area: proof; justify-self: end; align-self: start; }
+
 .pc-pt-line.is-open .pc-pt-line-head {
-  grid-template-columns: minmax(0, 1fr) auto;
-  padding: 34px 56px 26px;
+  padding: 30px 56px 22px;
 }
 
 /* The pill label the boards put in the corner of every card. */
@@ -4415,14 +4398,10 @@ button.pc-search-icons {
   color: var(--c-on);
 }
 
-.presence-cosmos .pc-pt-line:not(.is-open) .pc-pt-sentence {
-  min-height: calc(2 * 27px * 1.16);
-}
-
 .presence-cosmos .pc-pt-sentence {
-  grid-column: 1 / -1;
   margin: 0;
-  font-size: 27px;
+  max-width: 30ch;
+  font-size: 26px;
   line-height: 1.16;
   letter-spacing: -0.008em;
   text-wrap: pretty;
@@ -4430,15 +4409,12 @@ button.pc-search-icons {
 }
 
 .pc-pt-line.is-open .pc-pt-sentence {
-  grid-column: 1;
   max-width: 30ch;
   font-size: clamp(26px, 2.3vw, 32px);
   line-height: 1.14;
 }
 
 .presence-cosmos .pc-pt-count {
-  grid-column: 1 / -1;
-  margin-top: auto;
   display: grid;
   gap: 4px;
   margin: 14px 0 0;
@@ -4699,8 +4675,8 @@ button.pc-search-icons {
   display: flex;
   align-items: center;
   gap: 16px;
-  min-height: 108px;
-  padding: 20px 24px 20px 34px;
+  min-height: 72px;
+  padding: 14px 24px 14px 34px;
   border-radius: 24px;
   background: rgba(10, 12, 15, 0.34);
   backdrop-filter: blur(30px) saturate(112%) brightness(0.92);
@@ -4735,10 +4711,11 @@ button.pc-search-icons {
   width: 44px;
   height: 44px;
   padding: 0;
-  border-radius: 999px;
-  border: 0.5px solid var(--c-border);
+  border: 0;
   background: transparent;
-  font-size: 0;
+  font-family: var(--c-sans-ui);
+  font-size: 22px;
+  line-height: 1;
   color: var(--c-ink);
   transition: background 0.15s var(--pt-ease);
 }
@@ -5068,7 +5045,9 @@ button.pc-search-icons {
   .pc-pt-today-inner { padding: 44px 22px 48px; }
   .presence-cosmos .pc-pt-today h2 { max-width: none; }
   .pc-pt-lines { grid-template-columns: 1fr; }
-  .pc-pt-line { min-height: 200px; }
+  .pc-portrait .pc-pt-line-head { grid-template-columns: 1fr; grid-template-areas: 'label' 'sentence' 'proof'; padding: 24px 20px 22px; }
+  .pc-pt-lines { padding: 4px 0; }
+  .pc-pt-q-day { grid-template-columns: 1fr; gap: 10px; }
   .pc-portrait .pc-pt-line-head,
   .pc-pt-row,
   .pc-pt-close-inner { grid-template-columns: 1fr; gap: 14px 0; }
@@ -5092,7 +5071,7 @@ button.pc-search-icons {
   .pc-portrait .pc-pt-section-mark { padding: 0 20px; }
   .pc-pt-sourcelist { padding: 8px 20px 20px; }
   .presence-cosmos .pc-pt-sourcefoot { padding: 0 20px; }
-  .pc-pt-line.is-open .pc-pt-line-head { padding: 24px 20px 22px; }
+
   .pc-pt-today-inner,
   .pc-pt-today-inner.has-day { grid-template-columns: 1fr; }
   .pc-pt-q-main { order: 0; }
@@ -5104,7 +5083,6 @@ button.pc-search-icons {
   .pc-pt-close-rail { grid-column: 1; grid-row: auto; }
   .pc-pt-close-rail { flex-wrap: wrap; gap: 14px; }
   .presence-cosmos .pc-pt-close-quiet { margin-left: 0; }
-  .pc-pt-lines { gap: 40px; }
   .pc-pt-line,
   .pc-pt-sourcelist,
   .pc-pt-close { background: rgba(10, 12, 15, 0.26); }
@@ -5121,4 +5099,13 @@ button.pc-search-icons {
 @media (max-width: 560px) {
   .pc-pt-masthead nav { display: none; }
   .pc-pt-bar:not(:has(.pc-pt-nav-link)) { display: none; }
+}
+
+.pc-portrait .pc-pt-line-head .pc-pt-count {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.presence-cosmos .pc-pt-line-head .pc-pt-sentence {
+  max-width: 34ch;
 }

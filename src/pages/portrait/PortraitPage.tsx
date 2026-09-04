@@ -181,7 +181,7 @@ function Ticks({ evidence, now, days = 30 }: { evidence: Evidence[]; now: Date; 
         <rect x="0" y="27" width={days * 4 - 3} height="1" opacity="0.16" />
         {counts.map((c, i) =>
           c ? (
-            <rect key={i} x={i * 4} y={28 - (8 + (c / max) * 20)} width="3" height={8 + (c / max) * 20} opacity="0.92" />
+            <rect key={i} x={i * 4} y={12} width="3" height={16} opacity="0.92" />
           ) : null,
         )}
       </svg>
@@ -431,28 +431,14 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
         </div>
       {data.question ? (
         <section className="pc-pt-today pc-pt-glass" aria-labelledby="pc-pt-q-title">
-          <div className="pc-pt-today-inner has-day">
+          <div className="pc-pt-today-inner">
             <div className="pc-pt-q-main">
               <p className="pc-pt-q-mark">New this week, from {questionSource}</p>
               <h2 id="pc-pt-q-title" className="pc-pt-serif">{data.question.question}</h2>
             </div>
-            <div className="pc-pt-q-answer">
-              {answer ? (
-                <p className="pc-pt-serif pc-pt-answered">{answer === 'skipped' ? 'Skipped for today.' : <em>{answer}.</em>}</p>
-              ) : (
-                <>
-                  <div className="pc-pt-choices">
-                    {data.question.answers.map((a, i) => (
-                      <button key={a} type="button" className={i === 0 ? 'is-lead' : 'is-quiet'} onClick={() => answerToday(a)}>{a}</button>
-                    ))}
-                  </div>
-                  <button type="button" className="pc-pt-skip" onClick={() => answerToday('skipped')}>Skip today</button>
-                </>
-              )}
-            </div>
             {questionReceipt ? (
               <ul className="pc-pt-q-day" aria-label="What it was read from">
-                {[questionReceipt, ...questionDay].map((e) => (
+                {[questionReceipt, ...questionDay].slice(0, 3).map((e) => (
                   <li key={`${e.source}-${e.at}-${e.event}`}>
                     <span className="pc-pt-mono">{when(e.at)} · {SOURCE_LABEL[e.source] ?? e.source}</span>
                     <span>{e.event}</span>
@@ -460,6 +446,20 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
                 ))}
               </ul>
             ) : null}
+            <div className="pc-pt-q-answer">
+              {answer ? (
+                <p className="pc-pt-serif pc-pt-answered">{answer === 'skipped' ? 'Skipped for today.' : <em>{answer}.</em>}</p>
+              ) : (
+                <>
+                  <div className="pc-pt-choices">
+                    {data.question.answers.map((a, i) => (
+                      <button key={a} type="button" className="is-quiet" onClick={() => answerToday(a)}>{a}</button>
+                    ))}
+                  </div>
+                  <button type="button" className="pc-pt-skip" onClick={() => answerToday('skipped')}>Skip today</button>
+                </>
+              )}
+            </div>
           </div>
         </section>
       ) : null}
@@ -469,11 +469,11 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
       <div className="pc-pt-paper">
       <section className="pc-pt-signature" id="signature" aria-label="Signature">
         <p className="pc-pt-section-mark">Signature</p>
-        <ol className="pc-pt-lines">
+        <ol className="pc-pt-lines pc-pt-glass">
           {blocks.map((b, i) => (
             <li
               key={b.domain}
-              className={`pc-pt-line pc-pt-glass ${i === 0 ? 'is-first' : ''} ${openDomain === b.domain ? 'is-open' : ''}`}
+              className={`pc-pt-line ${i === 0 ? 'is-first' : ''} ${openDomain === b.domain ? 'is-open' : ''}`}
             >
               <button
                 type="button"
@@ -501,7 +501,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
           <p className="pc-pt-ask-lead">Ask it anything. It answers from what it read, or not at all.</p>
           <form className="pc-pt-prompt pc-pt-glass" onSubmit={(e) => { e.preventDefault(); void ask(query); }}>
             <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="What do you want to know?" aria-label="Ask something about yourself" />
-            <button type="submit" className="pc-pt-send">Ask</button>
+            <button type="submit" className="pc-pt-send" aria-label="Ask">&#8594;</button>
           </form>
           {data.ask.length ? (
             <ul className="pc-pt-asks" aria-label="Questions it can answer">
@@ -561,7 +561,6 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
             </p>
             {onDeleteSource ? (
               <span className="pc-pt-source-actions">
-                <Link className="pc-pt-textbtn" to="/sources">Add a source</Link>
                 <button type="button" className="pc-pt-textbtn pc-pt-manage" onClick={() => { setManaging((m) => !m); setConfirmDelete(null); }}>
                   {managing ? 'Done' : 'Manage'}
                 </button>
@@ -572,21 +571,21 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
         </ul>
       </section>
 
-      <section className="pc-pt-close pc-pt-glass" aria-label="What is not read">
+      <section className="pc-pt-close pc-pt-glass" aria-label="Next">
         <div className="pc-pt-close-inner pc-pt-grid">
-          <p className="pc-pt-serif">Nothing here trains a model.</p>
-          <p className="pc-pt-close-note">Messages, photos, location and anything typed here are never read.</p>
+          <p className="pc-pt-serif">{banner ? 'Read yourself the same way.' : 'Read from one more place.'}</p>
+          <p className="pc-pt-close-note">{banner ? 'Nine sources, your own data, a portrait in a week.' : 'Every source you add is another kind of proof.'}</p>
           <div className="pc-pt-rail pc-pt-close-rail">
             {banner
               ? <Link className="pc-pt-close-cta" to="/">Read your own &#8594;</Link>
-              : null}
+              : <Link className="pc-pt-close-cta" to="/sources">Add a source &#8594;</Link>}
           </div>
         </div>
       </section>
 
       <footer className="pc-pt-foot">
         <span className="pc-pt-wordmark">TwinMe</span>
-        <span className="pc-pt-foot-line">Read from what you already made</span>
+        <span className="pc-pt-foot-line">Nothing here trains a model. Messages, photos, location and anything typed here are never read.</span>
       </footer>
       </div>
     </main>
