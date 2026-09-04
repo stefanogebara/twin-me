@@ -299,7 +299,7 @@ describe('receipts a person would accept as proof', () => {
 describe('the sources that carry names are never guessed at', () => {
   it('says a day with a title in it without the title', () => {
     const e = plainEvent(ev('x', 'google_calendar', 'Calendar schedule today: 1 event (Focused Inbox Review) — evening-loaded scheduling', '2026-07-29T16:30:00Z'));
-    expect(e.event).toBe('Today: 1 event, evening heavy');
+    expect(e.event).toBe('1 event that day, evening heavy');
     expect(e.translated).toBe(true);
   });
 

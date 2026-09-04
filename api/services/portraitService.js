@@ -168,7 +168,7 @@ const TRANSLATIONS = {
     )],
     [/^Calendar schedule for (\w+) [\d-]+: (\d+) events? \(.*\) — (\w+)-(loaded|focused) scheduling/, (m) => `${m[1]}: ${m[2]} event${m[2] === '1' ? '' : 's'}, ${m[3]} ${m[4] === 'loaded' ? 'heavy' : 'focused'}`],
     [/^Calendar schedule today: (\d+) events? \(.*?\)(?: — (\w+)-(loaded|focused) scheduling)?/, (m) => (
-      `Today: ${m[1]} event${m[1] === '1' ? '' : 's'}${m[2] ? `, ${m[2]} ${m[3] === 'loaded' ? 'heavy' : 'focused'}` : ''}`
+      `${m[1]} event${m[1] === '1' ? '' : 's'} that day${m[2] ? `, ${m[2]} ${m[3] === 'loaded' ? 'heavy' : 'focused'}` : ''}`
     )],
     [/^Has a meeting '.+' from (.+?) to (.+?) on (\w+)/, (m) => `An appointment ${m[3]} at ${m[1]}`],
   ],

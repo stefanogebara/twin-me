@@ -3867,6 +3867,12 @@ button.pc-search-icons {
   --c-on-rgb: 20, 19, 17;
   --c-on: #141311;
   --c-on-inverse: #f7f5f3;
+  --c-ink: var(--c-on);
+  --c-ink-2: rgba(var(--c-on-rgb), 0.86);
+  --c-ink-3: rgba(var(--c-on-rgb), 0.62);
+  --c-ink-4: rgba(var(--c-on-rgb), 0.24);
+  --c-border: rgba(var(--c-on-rgb), 0.14);
+  --c-mono-ink: rgba(var(--c-on-rgb), 0.5);
   color: var(--c-on);
 }
 
@@ -4146,7 +4152,7 @@ button.pc-search-icons {
 
 /* Four lines, each ending on a clause: the measure is set by the rag, not the box. */
 .presence-cosmos .pc-pt-today h2 {
-  max-width: 22ch;
+  max-width: 30ch;
   margin: 0;
   font-size: clamp(32px, 3.6vw, 50px);
   font-weight: 400;
@@ -4263,6 +4269,7 @@ button.pc-search-icons {
 .pc-portrait .pc-pt-section-mark {
   margin: 0 0 18px;
   padding: 0 56px;
+  color: rgba(255, 255, 255, 0.72);
   font-family: var(--c-mono);
   font-size: 11px;
   font-weight: 400;
@@ -4323,6 +4330,9 @@ button.pc-search-icons {
 .pc-portrait .pc-pt-line-head {
   display: grid;
   flex: 1;
+  /* The head grows to fill the card, but its rows do not: the tag and the
+     sentence stay together and the foot falls to the bottom. */
+  align-content: start;
   width: 100%;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 10px 20px;
@@ -4342,7 +4352,9 @@ button.pc-search-icons {
   grid-row: 1;
   justify-self: start;
   margin: 0 0 auto;
-  padding: 6px 13px;
+  padding: 6px 0;
+  border: 0 !important;
+  background: transparent !important;
   border-radius: 999px;
   border: 0.5px solid rgba(var(--c-on-rgb), 0.28);
   font-family: var(--c-mono);
@@ -4449,6 +4461,7 @@ button.pc-search-icons {
   width: 100%;
   height: 28px;
   fill: currentColor;
+  opacity: 0.55;
   color: rgba(var(--c-on-rgb), 0.82);
 }
 
@@ -4651,7 +4664,7 @@ button.pc-search-icons {
   margin: 0 0 34px;
   padding-left: 56px;
   font-family: var(--c-serif);
-  font-size: clamp(32px, 3.8vw, 52px);
+  font-size: clamp(32px, 3.6vw, 50px);
   line-height: 1.06;
   letter-spacing: -0.012em;
   text-wrap: balance;
@@ -4801,13 +4814,17 @@ button.pc-search-icons {
   color: var(--c-ink);
 }
 
-.pc-pt-manage {
-  margin: 16px 0 0;
-  padding: 0 56px;
+.pc-pt-source-note {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 24px;
+  padding-top: 18px;
 }
 
-.pc-pt-source-note {
-  padding-top: 18px;
+.pc-portrait .pc-pt-manage {
+  flex: none;
+  font-size: 13px;
 }
 
 .presence-cosmos .pc-pt-sourcefoot {
@@ -4876,7 +4893,7 @@ button.pc-search-icons {
   max-width: var(--pt-max);
   width: calc(100% - 48px);
   margin: 96px auto 0;
-  padding: 88px 56px 88px;
+  padding: 60px 56px 60px;
   border-radius: var(--pt-card);
   background: rgba(10, 12, 15, 0.4);
   backdrop-filter: blur(30px) saturate(112%) brightness(0.92);
@@ -4929,7 +4946,7 @@ button.pc-search-icons {
 .presence-cosmos .pc-pt-close p {
   max-width: 22ch;
   margin: 0;
-  font-size: clamp(32px, 3.8vw, 52px);
+  font-size: clamp(32px, 3.6vw, 50px);
   line-height: 1.06;
   letter-spacing: -0.012em;
   text-wrap: balance;
@@ -5000,8 +5017,9 @@ button.pc-search-icons {
   .pc-pt-masthead { width: calc(100% - 32px); }
   .pc-pt-masthead nav { gap: 14px; }
   .pc-pt-bar { gap: 14px; padding: 4px 4px 4px 16px; }
-  .pc-pt-choices { flex-direction: column; align-items: stretch; }
-  .pc-portrait .pc-pt-choices button { justify-content: center; }
+  .pc-pt-choices { flex-wrap: wrap; }
+  .pc-portrait .pc-pt-choices button { flex: 1 1 calc(50% - 5px); justify-content: center; }
+  .pc-portrait .pc-pt-choices .is-lead { flex-basis: 100%; }
   .pc-portrait .pc-pt-masthead nav a { font-size: 14px; }
   .presence-cosmos .pc-pt-nav-link { height: 38px; padding: 0 16px; font-size: 14px; }
   .pc-pt-hero-body { width: calc(100% - 32px); padding: 56px 0 64px; }
@@ -5019,7 +5037,8 @@ button.pc-search-icons {
   .pc-pt-row,
   .pc-pt-close-inner { grid-template-columns: 1fr; gap: 14px 0; }
   .pc-portrait .pc-pt-line-head { padding: 24px 20px 26px; }
-  .pc-pt-open-mark { grid-column: 1; grid-row: auto; justify-self: start; padding-left: 0; }
+  .pc-pt-open-mark { display: none; }
+  .pc-pt-line.is-open .pc-pt-open-mark { display: block; grid-column: 2; grid-row: 1; justify-self: end; }
   .presence-cosmos .pc-pt-count { grid-column: 1; padding-top: 0; }
   .pc-pt-ledger { padding: 0 20px 20px; }
   .presence-cosmos .pc-pt-row-index { padding-top: 0; }

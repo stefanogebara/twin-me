@@ -93,7 +93,7 @@ function Headline({ text }: { text: string }) {
  * began in.
  */
 const GROUND: [string, string][] = [
-  ['/images/twinme/cosmos-07-room.jpg', '34% 46%'],
+  ['/images/twinme/cosmos-07-room.jpg', '24% 46%'],
   ['/images/twinme/cosmos-07-room.jpg', '96% 30%'],
   ['/images/twinme/cosmos-07-room.jpg', '70% 78%'],
   ['/images/twinme/cosmos-07-room.jpg', '4% 62%'],
@@ -327,6 +327,25 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
   }
 
   /** The evidence column of a stanza: what it was read from, and how much. */
+  /**
+   * The receipt each closed card shows, assigned in page order so no two cards
+   * cite the same line. "A day with nothing in it, twice" and "..., 4 times" are
+   * the same receipt for this purpose.
+   */
+  const cardReceipt = useMemo(() => {
+    const base = (s: string) => s.replace(/, (?:twice|\d+ times)$/, '');
+    const taken = new Set<string>();
+    const out = new Map<Domain, Evidence | undefined>();
+    for (const b of blocks) {
+      const own = (shownReading(b) ?? b.readings[0])?.evidence ?? [];
+      const pick = own.find((e) => !taken.has(base(e.event))) ?? own[0];
+      if (pick) taken.add(base(pick.event));
+      out.set(b.domain, pick);
+    }
+    return out;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [blocks, promoted, data.question]);
+
   /** The reading a closed card speaks for: the strongest, unless the hero or the question already says it. */
   function shownReading(b: Block): Reading | undefined {
     const asked = data.question?.fromReadings ?? [];
@@ -340,7 +359,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
     // Open stanzas carry their own ledger below; the rail keeps only the strip.
     if (open) return <div className="pc-pt-count is-open"><Ticks evidence={live.flatMap((r) => r.evidence)} now={now} /></div>;
     const sources = [...new Set(live.flatMap((r) => r.evidence.map((e) => SOURCE_LABEL[e.source] ?? e.source)))];
-    const [first] = (shownReading(b) ?? live[0])?.evidence ?? [];
+    const first = cardReceipt.get(b.domain);
     return (
       <div className="pc-pt-count">
         {first ? (
@@ -405,7 +424,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
               </a>
             ))}
           </nav>
-          <Link to={banner ? '/' : '/sources'} className="pc-pt-nav-link">{banner ? 'Read your own' : 'Your sources'}</Link>
+          {banner ? <Link to="/" className="pc-pt-nav-link">Read your own</Link> : null}
           </div>
         </header>
         <div className="pc-pt-hero-body">
@@ -514,7 +533,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
       <section className="pc-pt-sources" id="sources" aria-label="Sources">
         <p className="pc-pt-section-mark is-bare">Sources</p>
         <ul className="pc-pt-sourcelist pc-pt-glass">
-          {[...data.sources].sort((a, b) => (parseInt(b.read, 10) || 0) - (parseInt(a.read, 10) || 0)).map((s) => (
+          {[...data.sources].filter((s) => (parseInt(s.read, 10) || 0) > 0).sort((a, b) => (parseInt(b.read, 10) || 0) - (parseInt(a.read, 10) || 0)).map((s) => (
             <li key={s.platform}>
               <p
                 className="pc-pt-source-line"
@@ -543,15 +562,13 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
             <p className="pc-pt-mono pc-pt-sourcefoot">
               {data.sources.reduce((n, s) => n + (parseInt(s.read, 10) || 0), 0)} things read across {sourceCount} sources · since {since}, {daysReading} days ago · never a name, never a title
             </p>
+            {onDeleteSource ? (
+              <button type="button" className="pc-pt-textbtn pc-pt-manage" onClick={() => { setManaging((m) => !m); setConfirmDelete(null); }}>
+                {managing ? 'Done' : 'Manage'}
+              </button>
+            ) : null}
           </li>
         </ul>
-        {onDeleteSource ? (
-          <p className="pc-pt-manage">
-            <button type="button" className="pc-pt-textbtn" onClick={() => { setManaging((m) => !m); setConfirmDelete(null); }}>
-              {managing ? 'Done' : 'Manage sources'}
-            </button>
-          </p>
-        ) : null}
       </section>
 
       <section className="pc-pt-close pc-pt-glass" aria-label="What is not read">
