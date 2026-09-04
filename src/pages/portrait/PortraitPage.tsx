@@ -469,7 +469,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
       <div className="pc-pt-paper">
       <section className="pc-pt-signature" id="signature" aria-label="Signature">
         <ol className="pc-pt-lines pc-pt-glass">
-          <li className="pc-pt-panel-mark"><span className="pc-pt-q-mark">Signature · four lines, each with its proof</span></li>
+          <li className="pc-pt-panel-mark"><span className="pc-pt-q-mark">Signature</span></li>
           {blocks.map((b, i) => (
             <li
               key={b.domain}
@@ -528,7 +528,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
 
       <section className="pc-pt-sources" id="sources" aria-label="Sources">
         <ul className="pc-pt-sourcelist pc-pt-glass">
-          <li className="pc-pt-panel-mark"><span className="pc-pt-q-mark">Sources · what it read, and how much</span></li>
+          <li className="pc-pt-panel-mark"><span className="pc-pt-q-mark">Sources</span></li>
           {[...data.sources].filter((s) => (parseInt(s.read, 10) || 0) > 0).sort((a, b) => (parseInt(b.read, 10) || 0) - (parseInt(a.read, 10) || 0)).map((s) => (
             <li key={s.platform}>
               <p

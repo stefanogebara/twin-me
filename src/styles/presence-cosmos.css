@@ -5082,10 +5082,6 @@ button.pc-search-icons {
   .pc-pt-close-rail { grid-column: 1; grid-row: auto; }
   .pc-pt-close-rail { flex-wrap: wrap; gap: 14px; }
   .presence-cosmos .pc-pt-close-quiet { margin-left: 0; }
-  .pc-pt-line,
-  .pc-pt-sourcelist,
-  .pc-pt-close { background: rgba(10, 12, 15, 0.26); }
-  .pc-pt-today { background: rgba(10, 12, 15, 0.22); }
   .pc-pt-ground::after { background: linear-gradient(180deg, rgba(8, 10, 13, 0.22) 0%, rgba(8, 10, 13, 0.36) 50%, rgba(8, 10, 13, 0.5) 100%); }
   .pc-pt-signature, .pc-pt-ask, .pc-pt-sources { margin-top: 88px; }
   .pc-portrait .pc-pt-source-count { margin-left: auto; min-width: 0; }
@@ -5175,4 +5171,28 @@ button.pc-search-icons {
   .pc-pt-masthead nav { display: flex; gap: 12px; }
   .pc-portrait .pc-pt-masthead nav a { font-size: 13px; }
   .pc-pt-bar:not(:has(.pc-pt-nav-link)) { display: flex; padding: 4px 14px; }
+}
+
+/* ---- Round thirteen ---------------------------------------------------- */
+
+/* The sources list already carries the panel inset; its eyebrow does not add one. */
+.pc-pt-sourcelist .pc-pt-panel-mark { padding-left: 0; padding-right: 0; }
+
+/* The statement takes the row's width; the label and the proof step back. */
+.pc-portrait .pc-pt-line-head { grid-template-columns: 120px minmax(0, 1fr) 280px; }
+.presence-cosmos .pc-pt-line-head .pc-pt-sentence { max-width: none; }
+
+/* The Ask bar is an input, not a fourth slab. */
+.pc-pt-prompt { max-width: 680px; }
+
+/* Receipts take the columns they fill, no more. */
+.pc-pt-q-day { grid-template-columns: repeat(auto-fit, minmax(220px, 300px)); }
+
+/* The least legible text on the page comes up. */
+.pc-portrait .pc-pt-masthead nav a { color: rgba(var(--c-on-rgb), 0.66); }
+.pc-portrait .pc-pt-foot .pc-pt-foot-line { color: rgba(255, 255, 255, 0.78); }
+
+@media (max-width: 760px) {
+  .pc-portrait .pc-pt-line-head { grid-template-columns: 1fr; }
+  .pc-pt-prompt { max-width: none; }
 }
