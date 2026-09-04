@@ -102,9 +102,9 @@ describe('buildPortrait', () => {
   });
 
   it('asks today about the thinnest fresh reading, with its first receipt as the evidence line', () => {
-    expect(portrait.question.fromReadings).toEqual(['r1']);
-    expect(portrait.question.evidenceLine).toBe('Spotify, 2026-09-03 10:10: Pipe Down, Drake, twice.');
-    expect(portrait.question.question).toContain('You put the same songs on repeat to get into deep work.');
+    // r1 is the personality line and r2 the motivation line, both already on the
+    // page; with nothing else fresh there is no question to ask.
+    expect(portrait.question).toBeNull();
   });
 
   it('lists only connected sources, in the person\'s words', () => {
@@ -330,5 +330,20 @@ describe('a standing fact is one receipt however often it was measured', () => {
     const p = buildPortrait({ owner: 'S', eventsById: events, now: new Date('2026-09-04T12:00:00Z'),
       reflections: [{ id: 'r1', content: 'You write JavaScript.', created_at: '2026-09-03T12:00:00Z', metadata: { expert: 'code_architect', observation_ids: ['a', 'b', 'c', 'd'] } }] });
     expect(p.readings[0].evidence.map((e) => e.event)).toEqual(['Mostly JavaScript, 66% of what you write', 'Started a change to your roca project']);
+  });
+});
+
+describe('the question is never a line already on the page', () => {
+  it('skips each domain\'s signature reading and asks about the next fresh one', () => {
+    const events = new Map([
+      ['a', ev('a', 'github', 'Opened PR #1 in roca', '2026-09-03T09:00:00Z')],
+      ['b', ev('b', 'github', 'Merged PR #2 in roca', '2026-09-03T10:00:00Z')],
+    ]);
+    const mk = (id, text, at) => ({ id, content: text, created_at: at, metadata: { expert: 'code_architect', observation_ids: ['a', 'b'] } });
+    const p = buildPortrait({ owner: 'S', eventsById: events, now: new Date('2026-09-04T12:00:00Z'),
+      reflections: [mk('r1', 'You ship in bursts.', '2026-09-03T12:00:00Z'), mk('r2', 'You review nothing.', '2026-09-02T12:00:00Z')] });
+    expect(p.signature.find((s) => s.domain === 'motivation').from[0]).toBe('r1');
+    expect(p.question.fromReadings).toEqual(['r2']);
+    expect(p.question.question).toBe('You review nothing.');
   });
 });

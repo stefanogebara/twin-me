@@ -43,12 +43,12 @@ export const SOURCE_LABEL = {
 const SOURCE_KINDS = {
   github: 'finished work, and the hours you do it',
   spotify: 'plays, repeats, new artists',
-  google_gmail: 'sender counts, send times, never a name',
+  google_gmail: 'sender counts, send times',
   whoop: 'sleep, recovery, workouts',
-  google_calendar: 'events per day, time of day, never a title',
+  google_calendar: 'events per day, time of day',
   youtube: 'subscriptions, topics',
   discord: 'where you talk, how much',
-  outlook: 'send times, never a name',
+  outlook: 'send times',
 };
 
 const NEW_DAYS = 7;
@@ -307,7 +307,8 @@ export function buildPortrait({ owner, reflections = [], eventsById = new Map(),
     return { domain, line, from: own.map((x) => x.id) };
   }).filter((s) => s.line);
 
-  const fresh = readings.filter((x) => daysBetween(x.writtenAt, now.toISOString()) <= NEW_DAYS && !x.verdict);
+  const shown = new Set(signature.flatMap((s) => s.from.slice(0, 1)));
+  const fresh = readings.filter((x) => !shown.has(x.id) && daysBetween(x.writtenAt, now.toISOString()) <= NEW_DAYS && !x.verdict);
   const thinnest = [...fresh].sort((a, b) => a.evidence.length - b.evidence.length)[0] || null;
   const question = thinnest
     ? {

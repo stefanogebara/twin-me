@@ -327,13 +327,20 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
   }
 
   /** The evidence column of a stanza: what it was read from, and how much. */
+  /** The reading a closed card speaks for: the strongest, unless the hero or the question already says it. */
+  function shownReading(b: Block): Reading | undefined {
+    const asked = data.question?.fromReadings ?? [];
+    if (b === promoted) return b.readings.find((r, i) => i > 0 && !asked.includes(r.id)) ?? b.readings[0];
+    return b.readings.find((r) => !asked.includes(r.id)) ?? b.readings[0];
+  }
+
   function stanzaRail(b: Block, open: boolean) {
     if (!b.readings.length) return <span />;
     const live = b.readings.filter((r) => deriveState(r, now) !== 'disputed');
     // Open stanzas carry their own ledger below; the rail keeps only the strip.
     if (open) return <div className="pc-pt-count is-open"><Ticks evidence={live.flatMap((r) => r.evidence)} now={now} /></div>;
     const sources = [...new Set(live.flatMap((r) => r.evidence.map((e) => SOURCE_LABEL[e.source] ?? e.source)))];
-    const [first] = live[0]?.evidence ?? [];
+    const [first] = (shownReading(b) ?? live[0])?.evidence ?? [];
     return (
       <div className="pc-pt-count">
         {first ? (
@@ -390,6 +397,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
       <section className="pc-pt-hero" aria-labelledby="pc-pt-headline">
         <header className="pc-pt-masthead">
           <Link to="/" className="pc-pt-wordmark">TwinMe</Link>
+          <div className="pc-pt-bar pc-pt-glass">
           <nav aria-label="Sections">
             {SECTIONS.map((id) => (
               <a key={id} href={`#${id}`} className={here === id ? 'is-here' : ''} aria-current={here === id ? 'true' : undefined}>
@@ -397,7 +405,8 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
               </a>
             ))}
           </nav>
-          <Link to={banner ? '/' : '/sources'} className={`pc-pt-nav-link ${banner ? '' : 'is-quiet'}`}>{banner ? 'Read your own' : 'Your sources'}</Link>
+          <Link to={banner ? '/' : '/sources'} className="pc-pt-nav-link">{banner ? 'Read your own' : 'Your sources'}</Link>
+          </div>
         </header>
         <div className="pc-pt-hero-body">
           <p className="pc-pt-kicker">{banner ?? <Kicker owner={data.owner} now={now} />}</p>
@@ -405,17 +414,11 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
 
         </div>
       {data.question ? (
-        <section className={`pc-pt-today ${questionDay.length >= 2 ? '' : 'is-narrow'}`} aria-labelledby="pc-pt-q-title">
-          <div className={`pc-pt-today-inner ${questionDay.length >= 2 ? 'has-day' : ''}`}>
+        <section className="pc-pt-today pc-pt-glass" aria-labelledby="pc-pt-q-title">
+          <div className="pc-pt-today-inner has-day">
             <div className="pc-pt-q-main">
               <p className="pc-pt-q-mark">New this week, from {questionSource}</p>
               <h2 id="pc-pt-q-title" className="pc-pt-serif">{data.question.question}</h2>
-              {questionReceipt ? (
-                <p className="pc-pt-q-receipt">
-                  <span className="pc-pt-mono">{when(questionReceipt.at)} · {SOURCE_LABEL[questionReceipt.source] ?? questionReceipt.source}</span>
-                  <span>{questionReceipt.event}</span>
-                </p>
-              ) : null}
             </div>
             <div className="pc-pt-q-answer">
               {answer ? (
@@ -431,9 +434,9 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
                 </>
               )}
             </div>
-            {questionDay.length >= 2 ? (
-              <ul className="pc-pt-q-day" aria-label="The rest of today">
-                {questionDay.map((e) => (
+            {questionReceipt ? (
+              <ul className="pc-pt-q-day" aria-label="What it was read from">
+                {[questionReceipt, ...questionDay].map((e) => (
                   <li key={`${e.source}-${e.at}-${e.event}`}>
                     <span className="pc-pt-mono">{when(e.at)} · {SOURCE_LABEL[e.source] ?? e.source}</span>
                     <span>{e.event}</span>
@@ -454,7 +457,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
           {blocks.map((b, i) => (
             <li
               key={b.domain}
-              className={`pc-pt-line ${i === 0 ? 'is-first' : ''} ${openDomain === b.domain ? 'is-open' : ''}`}
+              className={`pc-pt-line pc-pt-glass ${i === 0 ? 'is-first' : ''} ${openDomain === b.domain ? 'is-open' : ''}`}
             >
               <button
                 type="button"
@@ -467,7 +470,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
                 <span className="pc-pt-open-mark" aria-hidden="true">{openDomain === b.domain ? 'Close' : 'Read'}</span>
                 {b === promoted && openDomain === b.domain
                   ? null
-                  : <span className="pc-pt-serif pc-pt-sentence">{(b === promoted ? (b.readings[1]?.text ?? b.line) : b.line) ?? b.readings[0]?.text}</span>}
+                  : <span className="pc-pt-serif pc-pt-sentence">{(b === promoted ? shownReading(b)?.text : b.line) ?? b.readings[0]?.text}</span>}
                 {stanzaRail(b, openDomain === b.domain)}
               </button>
               {ledger(b)}
@@ -479,8 +482,8 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
       <section className="pc-pt-ask" id="ask" aria-label="Ask">
         <p className="pc-pt-section-mark">Ask</p>
         <div className="pc-pt-ask-body">
-          <p className="pc-pt-ask-lead"><Headline text="Ask it anything. It answers from what it read, or not at all." /></p>
-          <form className="pc-pt-prompt" onSubmit={(e) => { e.preventDefault(); void ask(query); }}>
+          <p className="pc-pt-ask-lead">Ask it anything. It answers from what it read, or not at all.</p>
+          <form className="pc-pt-prompt pc-pt-glass" onSubmit={(e) => { e.preventDefault(); void ask(query); }}>
             <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="What do you want to know?" aria-label="Ask something about yourself" />
             <button type="submit" className="pc-pt-send">Ask</button>
           </form>
@@ -495,7 +498,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
           ) : null}
           <div>
             {reply ? (
-              <blockquote className="pc-pt-reply" aria-live="polite">
+              <blockquote className="pc-pt-reply pc-pt-glass" aria-live="polite">
                 <p>{reply.a}</p>
                 <footer className="pc-pt-cites">
                   {reply.cites.length
@@ -510,7 +513,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
 
       <section className="pc-pt-sources" id="sources" aria-label="Sources">
         <p className="pc-pt-section-mark is-bare">Sources</p>
-        <ul className="pc-pt-sourcelist">
+        <ul className="pc-pt-sourcelist pc-pt-glass">
           {[...data.sources].sort((a, b) => (parseInt(b.read, 10) || 0) - (parseInt(a.read, 10) || 0)).map((s) => (
             <li key={s.platform}>
               <p
@@ -536,6 +539,11 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
               ) : null}
             </li>
           ))}
+          <li className="pc-pt-source-note">
+            <p className="pc-pt-mono pc-pt-sourcefoot">
+              {data.sources.reduce((n, s) => n + (parseInt(s.read, 10) || 0), 0)} things read across {sourceCount} sources · since {since}, {daysReading} days ago · never a name, never a title
+            </p>
+          </li>
         </ul>
         {onDeleteSource ? (
           <p className="pc-pt-manage">
@@ -544,23 +552,17 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
             </button>
           </p>
         ) : null}
-        <p className="pc-pt-mono pc-pt-sourcefoot">
-          {data.sources.reduce((n, s) => n + (parseInt(s.read, 10) || 0), 0)} things read across {sourceCount} sources · since {since}, {daysReading} days ago
-        </p>
       </section>
 
-      <section className="pc-pt-close" aria-label="What is not read">
+      <section className="pc-pt-close pc-pt-glass" aria-label="What is not read">
         <div className="pc-pt-close-inner pc-pt-grid">
           <p className="pc-pt-close-note">Messages, photos, location and anything typed here are never read</p>
-          <p className="pc-pt-serif"><em>Nothing</em> here trains a model.</p>
+          <p className="pc-pt-serif">Nothing here trains a model.</p>
           <div className="pc-pt-rail pc-pt-close-rail">
             {banner
               ? <Link className="pc-pt-close-cta" to="/">Read your own &#8594;</Link>
               : (
-                <>
-                  <Link className="pc-pt-close-cta" to="/sources">Add a source &#8594;</Link>
-                  <Link className="pc-pt-textbtn pc-pt-close-quiet" to="/sources">Delete everything</Link>
-                </>
+                <Link className="pc-pt-close-cta" to="/sources">Add a source &#8594;</Link>
               )}
           </div>
         </div>
@@ -569,6 +571,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
       <footer className="pc-pt-foot">
         <span className="pc-pt-wordmark">TwinMe</span>
         <span className="pc-pt-mono">Read from what you already made</span>
+        {!banner ? <Link className="pc-pt-textbtn" to="/sources">Delete everything</Link> : null}
       </footer>
       </div>
     </main>
