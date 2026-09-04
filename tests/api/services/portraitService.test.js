@@ -310,3 +310,10 @@ describe('the sources that carry names are never guessed at', () => {
     expect(plainEvent(ev('x', platform, content, '2026-09-03T09:00:00Z')).translated).toBe(false);
   });
 });
+
+describe('a receipt is a fragment', () => {
+  it('carries no trailing full stop, taught or softened', () => {
+    expect(plainEvent(ev('x', 'web', 'Visited claude.ai.', '2026-08-11T18:06:00Z')).event).toBe('Visited claude.ai');
+    expect(plainEvent(ev('y', 'spotify', "Listened to 'Pipe Down' by Drake at 9:35 AM.", '2026-09-03T09:35:00Z')).event).toBe('Pipe Down, Drake');
+  });
+});

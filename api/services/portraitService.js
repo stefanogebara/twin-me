@@ -203,14 +203,14 @@ export function plainEvent(memory) {
   for (const [re, render] of TRANSLATIONS[source] || []) {
     const m = content.match(re);
     if (m) {
-      const event = render(m);
+      const event = render(m).replace(/\.\s*$/, '');
       return { source, at, event, translated: !RAW_MARKERS.test(event) };
     }
   }
   // Everywhere else an unknown shape is softened and shown. Not here: these two
   // sources carry appointment titles and the names of people, so anything the page
   // has not been taught to say about them is dropped rather than guessed at.
-  const event = content.replace(/\s+—\s+/g, ', ');
+  const event = content.replace(/\s+—\s+/g, ', ').replace(/\.\s*$/, '');
   const guarded = source === 'google_calendar' || source === 'google_gmail' || source === 'outlook';
   return { source, at, event, translated: !guarded && !RAW_MARKERS.test(event) };
 }
@@ -302,7 +302,7 @@ export function buildPortrait({ owner, reflections = [], eventsById = new Map(),
         fromReadings: [thinnest.id],
         source: SOURCE_LABEL[thinnest.evidence[0].source] || thinnest.evidence[0].source,
         evidenceLine: `${SOURCE_LABEL[thinnest.evidence[0].source] || thinnest.evidence[0].source}, ${thinnest.evidence[0].at}: ${thinnest.evidence[0].event}.`,
-        question: `Does this sound like you? ${thinnest.text}`,
+        question: thinnest.text,
         answers: ['Yes, that is me', 'Not really'],
         yourAnswer: null,
       }

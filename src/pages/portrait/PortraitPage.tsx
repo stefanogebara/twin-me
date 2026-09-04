@@ -93,9 +93,9 @@ function Headline({ text }: { text: string }) {
  * began in.
  */
 const GROUND: [string, string][] = [
-  ['/images/twinme/cosmos-07-room.jpg', '58% 46%'],
-  ['/images/twinme/cosmos-03-calendar.jpg', '26% 56%'],
-  ['/images/twinme/cosmos-01-desk.jpg', '84% 44%'],
+  ['/images/twinme/cosmos-07-room.jpg', '66% 46%'],
+  ['/images/twinme/cosmos-03-calendar.jpg', '8% 42%'],
+  ['/images/twinme/cosmos-07-room.jpg', '92% 34%'],
   ['/images/twinme/cosmos-07-room.jpg', '18% 64%'],
 ];
 
@@ -325,9 +325,9 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
   /** The evidence column of a stanza: what it was read from, and how much. */
   function stanzaRail(b: Block, open: boolean) {
     if (!b.readings.length) return <span />;
-    // Open stanzas carry their own ledger below; the rail would only repeat it.
-    if (open) return <span />;
     const live = b.readings.filter((r) => deriveState(r, now) !== 'disputed');
+    // Open stanzas carry their own ledger below; the rail keeps only the strip.
+    if (open) return <div className="pc-pt-count is-open"><Ticks evidence={live.flatMap((r) => r.evidence)} now={now} /></div>;
     const sources = [...new Set(live.flatMap((r) => r.evidence.map((e) => SOURCE_LABEL[e.source] ?? e.source)))];
     const [first] = live[0]?.evidence ?? [];
     return (
@@ -401,11 +401,11 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
 
         </div>
       {data.question ? (
-        <section className="pc-pt-today" aria-labelledby="pc-pt-q-title">
-          <div className="pc-pt-today-inner">
+        <section className={`pc-pt-today ${questionDay.length >= 2 ? '' : 'is-narrow'}`} aria-labelledby="pc-pt-q-title">
+          <div className={`pc-pt-today-inner ${questionDay.length >= 2 ? 'has-day' : ''}`}>
             <div className="pc-pt-q-main">
               <p className="pc-pt-q-mark">Today, from {questionSource}</p>
-              <h2 id="pc-pt-q-title" className="pc-pt-serif"><Headline text={data.question.question} /></h2>
+              <h2 id="pc-pt-q-title" className="pc-pt-serif">{data.question.question}</h2>
               {questionReceipt ? (
                 <p className="pc-pt-q-receipt">
                   <span className="pc-pt-mono">{when(questionReceipt.at)} · {SOURCE_LABEL[questionReceipt.source] ?? questionReceipt.source}</span>
@@ -427,7 +427,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
                 </>
               )}
             </div>
-            {questionDay.length ? (
+            {questionDay.length >= 2 ? (
               <ul className="pc-pt-q-day" aria-label="The rest of today">
                 {questionDay.map((e) => (
                   <li key={`${e.source}-${e.at}-${e.event}`}>
@@ -461,7 +461,9 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
               >
                 <span className="pc-pt-label">{STANZA[b.domain]}</span>
                 <span className="pc-pt-open-mark" aria-hidden="true">{openDomain === b.domain ? 'Close' : 'Read'}</span>
-                <span className="pc-pt-serif pc-pt-sentence">{(b === promoted ? b.readings[0]?.text : b.line) ?? b.readings[0]?.text}</span>
+                {b === promoted && openDomain === b.domain
+                  ? null
+                  : <span className="pc-pt-serif pc-pt-sentence">{(b === promoted ? (b.readings[1]?.text ?? b.line) : b.line) ?? b.readings[0]?.text}</span>}
                 {stanzaRail(b, openDomain === b.domain)}
               </button>
               {ledger(b)}
@@ -473,7 +475,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
       <section className="pc-pt-ask" id="ask" aria-label="Ask">
         <p className="pc-pt-section-mark">Ask</p>
         <div className="pc-pt-ask-body">
-          <p className="pc-pt-ask-lead">Ask it anything. It answers from what it read, or not at all.</p>
+          <p className="pc-pt-ask-lead"><Headline text="Ask it anything. It answers from what it read, or not at all." /></p>
           <form className="pc-pt-prompt" onSubmit={(e) => { e.preventDefault(); void ask(query); }}>
             <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Ask anything about yourself" aria-label="Ask something about yourself" />
             <button type="submit" className="pc-pt-send">Ask</button>
@@ -514,7 +516,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
                 <span className="pc-pt-source-name">{s.label}</span>
                 <span className="pc-pt-source-kind">{s.kinds}</span>
                 <span className="pc-pt-mono pc-pt-source-count">{parseInt(s.read, 10) || 0}</span>
-                {onDeleteSource && confirmDelete !== s.platform ? (
+                {onDeleteSource && confirmDelete !== s.platform && (parseInt(s.read, 10) || 0) > 0 ? (
                   <button type="button" className="pc-pt-textbtn" onClick={() => setConfirmDelete(s.platform)}>Delete</button>
                 ) : null}
               </p>
@@ -543,7 +545,12 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
           <div className="pc-pt-rail pc-pt-close-rail">
             {banner
               ? <Link className="pc-pt-close-cta" to="/">Read your own &#8594;</Link>
-              : <Link className="pc-pt-close-cta" to="/sources">Delete everything &#8594;</Link>}
+              : (
+                <>
+                  <Link className="pc-pt-close-cta" to="/sources">Add a source &#8594;</Link>
+                  <Link className="pc-pt-textbtn pc-pt-close-quiet" to="/sources">Delete everything</Link>
+                </>
+              )}
           </div>
         </div>
       </section>
