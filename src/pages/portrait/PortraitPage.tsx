@@ -185,7 +185,7 @@ function Ticks({ evidence, now, days = 30 }: { evidence: Evidence[]; now: Date; 
           ) : null,
         )}
       </svg>
-      <span className="pc-pt-mono">{landed} of the last {days} days</span>
+      <span className="pc-pt-sr">{landed} of the last {days} days</span>
     </span>
   );
 }
@@ -468,7 +468,6 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
 
       <div className="pc-pt-paper">
       <section className="pc-pt-signature" id="signature" aria-label="Signature">
-        <p className="pc-pt-section-mark">Signature</p>
         <ol className="pc-pt-lines pc-pt-glass">
           {blocks.map((b, i) => (
             <li
@@ -496,7 +495,6 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
       </section>
 
       <section className="pc-pt-ask" id="ask" aria-label="Ask">
-        <p className="pc-pt-section-mark">Ask</p>
         <div className="pc-pt-ask-body">
           <p className="pc-pt-ask-lead">Ask it anything. It answers from what it read, or not at all.</p>
           <form className="pc-pt-prompt pc-pt-glass" onSubmit={(e) => { e.preventDefault(); void ask(query); }}>
@@ -528,7 +526,6 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
       </section>
 
       <section className="pc-pt-sources" id="sources" aria-label="Sources">
-        <p className="pc-pt-section-mark is-bare">Sources</p>
         <ul className="pc-pt-sourcelist pc-pt-glass">
           {[...data.sources].filter((s) => (parseInt(s.read, 10) || 0) > 0).sort((a, b) => (parseInt(b.read, 10) || 0) - (parseInt(a.read, 10) || 0)).map((s) => (
             <li key={s.platform}>
@@ -555,9 +552,14 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
               ) : null}
             </li>
           ))}
+          <li className="pc-pt-source-door">
+            {banner
+              ? <Link className="pc-pt-door" to="/">Read your own portrait <span aria-hidden="true">&#8594;</span></Link>
+              : <Link className="pc-pt-door" to="/sources">Read from one more place <span aria-hidden="true">&#8594;</span></Link>}
+          </li>
           <li className="pc-pt-source-note">
             <p className="pc-pt-mono pc-pt-sourcefoot">
-              {data.sources.reduce((n, s) => n + (parseInt(s.read, 10) || 0), 0)} things read across {sourceCount} sources · since {since}, {daysReading} days ago · never a name, never a title
+              {data.sources.reduce((n, s) => n + (parseInt(s.read, 10) || 0), 0)} things read across {sourceCount} sources<span className="pc-pt-since"> · since {since}, {daysReading} days ago</span>
             </p>
             {onDeleteSource ? (
               <span className="pc-pt-source-actions">
@@ -571,17 +573,6 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
         </ul>
       </section>
 
-      <section className="pc-pt-close pc-pt-glass" aria-label="Next">
-        <div className="pc-pt-close-inner pc-pt-grid">
-          <p className="pc-pt-serif">{banner ? 'Read yourself the same way.' : 'Read from one more place.'}</p>
-          <p className="pc-pt-close-note">{banner ? 'Nine sources, your own data, a portrait in a week.' : 'Every source you add is another kind of proof.'}</p>
-          <div className="pc-pt-rail pc-pt-close-rail">
-            {banner
-              ? <Link className="pc-pt-close-cta" to="/">Read your own &#8594;</Link>
-              : <Link className="pc-pt-close-cta" to="/sources">Add a source &#8594;</Link>}
-          </div>
-        </div>
-      </section>
 
       <footer className="pc-pt-foot">
         <span className="pc-pt-wordmark">TwinMe</span>

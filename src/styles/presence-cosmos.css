@@ -3842,7 +3842,7 @@ button.pc-search-icons {
   inset: -6%;
   background-repeat: no-repeat;
   background-size: cover;
-  filter: blur(var(--pt-field-blur, 12px)) saturate(1.18) brightness(1.04);
+  filter: blur(var(--pt-field-blur, 8px)) saturate(1.16) brightness(1.06);
   transform: scale(1.08);
   will-change: opacity, transform;
   animation: pc-pt-drift 46s ease-in-out infinite alternate;
@@ -3866,10 +3866,10 @@ button.pc-search-icons {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(8, 10, 13, 0.18) 0%, rgba(8, 10, 13, 0.24) 46%, rgba(8, 10, 13, 0.34) 100%);
+  background: linear-gradient(180deg, rgba(8, 10, 13, 0.14) 0%, rgba(8, 10, 13, 0.18) 46%, rgba(8, 10, 13, 0.26) 100%);
 }
 
-.pc-pt-ground-still:first-child { --pt-field-blur: 3px; }
+.pc-pt-ground-still:first-child { --pt-field-blur: 2px; }
 
 .pc-pt-paper {
   position: relative;
@@ -5107,4 +5107,47 @@ button.pc-search-icons {
 
 .presence-cosmos .pc-pt-line-head .pc-pt-sentence {
   max-width: 34ch;
+}
+
+/* ---- The door: the table's last row --------------------------------- */
+
+.pc-pt-source-door {
+  padding: 26px 0 8px;
+  border-top: 0.5px solid var(--c-border);
+}
+
+.presence-cosmos .pc-pt-door {
+  font-family: var(--c-serif);
+  font-size: 30px;
+  line-height: 1.1;
+  letter-spacing: -0.012em;
+  color: var(--c-ink) !important;
+  transition: opacity 0.15s var(--pt-ease);
+}
+
+.presence-cosmos .pc-pt-door:hover { opacity: 0.7; }
+
+.presence-cosmos .pc-pt-door span { margin-left: 8px; }
+
+.pc-pt-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.pc-pt-ticks { margin-top: 10px; }
+
+/* One rule across the receipts, not one per cell. */
+.pc-pt-q-day { border-top: 0.5px solid rgba(var(--c-on-rgb), 0.14); padding-top: 14px; }
+.pc-pt-q-day li { border-top: 0; padding-top: 0; }
+
+.pc-pt-today-inner { padding: 56px 56px 56px; }
+
+@media (max-width: 760px) {
+  .pc-pt-since { display: none; }
+  .pc-pt-source-door { padding: 22px 0 6px; }
+  .presence-cosmos .pc-pt-door { font-size: 24px; }
 }
