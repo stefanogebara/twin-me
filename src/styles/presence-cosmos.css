@@ -4314,8 +4314,14 @@ button.pc-search-icons {
   color: var(--c-on);
 }
 
-.pc-pt-line + .pc-pt-line {
-  border-top: 0.5px solid var(--c-border);
+.pc-pt-line + .pc-pt-line::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 56px;
+  right: 56px;
+  height: 0.5px;
+  background: var(--c-border);
 }
 
 .pc-pt-line.is-open {
@@ -4720,13 +4726,6 @@ button.pc-search-icons {
   transition: background 0.15s var(--pt-ease);
 }
 
-.pc-portrait .pc-pt-send::after {
-  content: '\2191';
-  font-family: var(--c-sans-ui);
-  font-size: 18px;
-  line-height: 1;
-}
-
 .pc-portrait .pc-pt-send:hover {
   background: rgba(13, 13, 13, 0.05);
 }
@@ -5030,9 +5029,9 @@ button.pc-search-icons {
   .pc-pt-ground-still:first-child { background-position: 70% 40% !important; }
   .pc-pt-masthead nav { gap: 14px; }
   .pc-pt-bar { gap: 14px; padding: 4px 4px 4px 16px; }
-  .pc-pt-choices { flex-wrap: wrap; }
-  .pc-portrait .pc-pt-choices button { flex: 1 1 calc(50% - 5px); justify-content: center; }
-  .pc-portrait .pc-pt-choices .is-lead { flex-basis: 100%; }
+  .pc-pt-choices { flex-wrap: nowrap; gap: 8px; }
+  .pc-portrait .pc-pt-choices button { flex: 1 1 0; min-width: 0; padding: 0 10px; justify-content: center; font-size: 14px; }
+  .pc-pt-line + .pc-pt-line::before { left: 20px; right: 20px; }
   .pc-portrait .pc-pt-masthead nav a { font-size: 14px; }
   .presence-cosmos .pc-pt-nav-link { height: 38px; padding: 0 16px; font-size: 14px; }
   .pc-pt-hero-body { width: calc(100% - 32px); padding: 56px 0 64px; }
