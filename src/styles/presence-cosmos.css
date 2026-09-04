@@ -5254,3 +5254,7 @@ button.pc-search-icons {
 @media (max-width: 760px) {
   .pc-pt-ask .pc-pt-prompt { margin: 0 20px; }
 }
+
+/* The longest label fits its column on one line. */
+.pc-portrait .pc-pt-line-head { grid-template-columns: 144px minmax(0, 1fr) 264px; }
+@media (max-width: 760px) { .pc-portrait .pc-pt-line-head { grid-template-columns: 1fr; } }
