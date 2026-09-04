@@ -165,7 +165,7 @@ const TRANSLATIONS = {
     [/^Calendar work style: organized (\d+)% of own meetings.*?mostly (in-person|virtual)/, (m) => (
       `You set up your own meetings, mostly ${m[2] === 'in-person' ? 'in person' : 'online'}`
     )],
-    [/^Calendar schedule for (\w+) [\d-]+: (\d+) events? \(.*\) — (\w+)-(loaded|focused) scheduling/, (m) => `${m[1]}: ${m[2]} event${m[2] === '1' ? '' : 's'}, ${m[3]} ${m[4] === 'loaded' ? 'heavy' : 'focused'}`],
+    [/^Calendar schedule for \w+ [\d-]+: (\d+) events? \(.*\) — (\w+)-(loaded|focused) scheduling/, (m) => `${m[1]} event${m[1] === '1' ? '' : 's'} that day, ${m[2]} ${m[3] === 'loaded' ? 'heavy' : 'focused'}`],
     [/^Calendar schedule today: (\d+) events? \(.*?\)(?: — (\w+)-(loaded|focused) scheduling)?/, (m) => (
       `${m[1]} event${m[1] === '1' ? '' : 's'} that day${m[2] ? `, ${m[2]} ${m[3] === 'loaded' ? 'heavy' : 'focused'}` : ''}`
     )],
