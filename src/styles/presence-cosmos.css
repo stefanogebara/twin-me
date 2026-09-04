@@ -5196,3 +5196,61 @@ button.pc-search-icons {
   .pc-portrait .pc-pt-line-head { grid-template-columns: 1fr; }
   .pc-pt-prompt { max-width: none; }
 }
+
+/* ---- Round fourteen ----------------------------------------------------- */
+
+/* Mono is for what a machine wrote: dates and counts. Eyebrows and row labels
+   are editorial, and set in the interface face. */
+.presence-cosmos .pc-pt-q-mark,
+.presence-cosmos .pc-pt-label,
+.presence-cosmos .pc-pt-kicker {
+  font-family: var(--c-sans-ui);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* The Ask input keeps the text edge and the panel family's radius. */
+.pc-pt-ask .pc-pt-prompt {
+  max-width: none;
+  margin: 0 56px;
+  border-radius: 20px;
+}
+
+/* The door is a pressable: sans, with its arrow. */
+.presence-cosmos .pc-pt-door {
+  font-family: var(--c-sans-ui);
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+.presence-cosmos .pc-pt-door span { margin-left: 6px; }
+
+/* The strip's ends. */
+.pc-pt-ticks-ends {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 4px;
+  font-family: var(--c-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(var(--c-on-rgb), 0.42);
+}
+
+/* The bar sits under the rule rather than on it, with a floor for a small count. */
+.presence-cosmos .pc-pt-source-line::after {
+  bottom: -3px;
+  min-width: 8px;
+}
+
+/* The answers exist beside the receipts. */
+.pc-portrait .pc-pt-choices .is-quiet {
+  border-color: rgba(var(--c-on-rgb), 0.3);
+}
+
+@media (max-width: 760px) {
+  .pc-pt-ask .pc-pt-prompt { margin: 0 20px; }
+}

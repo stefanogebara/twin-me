@@ -185,6 +185,7 @@ function Ticks({ evidence, now, days = 30 }: { evidence: Evidence[]; now: Date; 
           ) : null,
         )}
       </svg>
+      <span className="pc-pt-ticks-ends" aria-hidden="true"><span>{spoken(new Date(end - (days - 1) * 86_400_000), false)}</span><span>today</span></span>
       <span className="pc-pt-sr">{landed} of the last {days} days</span>
     </span>
   );
