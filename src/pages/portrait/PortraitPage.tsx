@@ -256,7 +256,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
 
   const readings = useMemo(() => data.readings.map((r) => ({ ...r, verdict: verdicts[r.id] ?? null })), [data.readings, verdicts]);
   const byId = useMemo(() => new Map(readings.map((r) => [r.id, r])), [readings]);
-  const sourceCount = data.sources.length;
+  const sourceCount = data.sources.filter((s) => (parseInt(s.read, 10) || 0) > 0).length;
   const readingCount = readings.length;
   const receiptCount = readings.reduce((n, r) => n + r.evidence.length, 0);
   const cites = reply?.cites ?? [];
@@ -563,9 +563,12 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
               {data.sources.reduce((n, s) => n + (parseInt(s.read, 10) || 0), 0)} things read across {sourceCount} sources · since {since}, {daysReading} days ago · never a name, never a title
             </p>
             {onDeleteSource ? (
-              <button type="button" className="pc-pt-textbtn pc-pt-manage" onClick={() => { setManaging((m) => !m); setConfirmDelete(null); }}>
-                {managing ? 'Done' : 'Manage'}
-              </button>
+              <span className="pc-pt-source-actions">
+                <Link className="pc-pt-textbtn" to="/sources">Add a source</Link>
+                <button type="button" className="pc-pt-textbtn pc-pt-manage" onClick={() => { setManaging((m) => !m); setConfirmDelete(null); }}>
+                  {managing ? 'Done' : 'Manage'}
+                </button>
+              </span>
             ) : null}
           </li>
         </ul>
@@ -573,21 +576,19 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
 
       <section className="pc-pt-close pc-pt-glass" aria-label="What is not read">
         <div className="pc-pt-close-inner pc-pt-grid">
-          <p className="pc-pt-close-note">Messages, photos, location and anything typed here are never read</p>
+          <p className="pc-pt-close-note">Messages, photos, location and anything typed here are never read.</p>
           <p className="pc-pt-serif">Nothing here trains a model.</p>
           <div className="pc-pt-rail pc-pt-close-rail">
             {banner
               ? <Link className="pc-pt-close-cta" to="/">Read your own &#8594;</Link>
-              : (
-                <Link className="pc-pt-close-cta" to="/sources">Add a source &#8594;</Link>
-              )}
+              : null}
           </div>
         </div>
       </section>
 
       <footer className="pc-pt-foot">
         <span className="pc-pt-wordmark">TwinMe</span>
-        <span className="pc-pt-mono">Read from what you already made</span>
+        <span className="pc-pt-foot-line">Read from what you already made</span>
         {!banner ? <Link className="pc-pt-textbtn" to="/sources">Delete everything</Link> : null}
       </footer>
       </div>

@@ -88,7 +88,8 @@ describe('buildPortrait', () => {
     expect(r1.writtenAt).toBe('2026-09-03');
     expect(r1.supportedAt).toBe('2026-09-03');
     // The same track twice is one receipt that says so, dated by the later play.
-    expect(r1.evidence[0]).toEqual({ source: 'spotify', at: '2026-09-03 10:10', event: 'Pipe Down, Drake, twice', translated: true });
+    // Several plays collapse to one receipt dated by the day, not by one of the minutes.
+    expect(r1.evidence[0]).toEqual({ source: 'spotify', at: '2026-09-03', event: 'Pipe Down, Drake, twice', translated: true });
     expect(r1.verdict).toBeNull();
   });
 
@@ -288,7 +289,7 @@ describe('receipts a person would accept as proof', () => {
     expect(new Set(said).size).toBe(said.length);
     expect(said).toEqual(['Finished a change to your roca project', 'Started a change to your roca project, twice']);
     // The collapsed line is dated by the later of the two.
-    expect(p.readings[0].evidence[1].at).toContain('2026-09-02');
+    expect(p.readings[0].evidence[1].at).toBe('2026-09-02');
   });
 
   it('drops the rolling day-count, which is a statistic and not something that happened', () => {

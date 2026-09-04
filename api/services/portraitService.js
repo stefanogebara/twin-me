@@ -271,7 +271,7 @@ export function buildPortrait({ owner, reflections = [], eventsById = new Map(),
       else byEvent.set(key, { ...e, times: 1 });
     }
     const evidence = [...byEvent.values()].slice(0, MAX_EVIDENCE).map(({ times, ...e }) => (
-      times > 1 ? { ...e, event: `${e.event}, ${times === 2 ? 'twice' : `${times} times`}` } : e
+      times > 1 ? { ...e, at: day(e.at), event: `${e.event}, ${times === 2 ? 'twice' : `${times} times`}` } : e
     ));
     if (evidence.length < MIN_EVIDENCE) continue;
     const supportedAt = evidence[0].at;

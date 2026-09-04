@@ -4882,8 +4882,16 @@ button.pc-search-icons {
   padding: 0 56px;
 }
 
-.pc-portrait .pc-pt-foot .pc-pt-mono {
-  color: var(--c-mono-ink);
+.pc-portrait .pc-pt-foot .pc-pt-foot-line {
+  font-size: 14px;
+  letter-spacing: -0.018em;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.pc-pt-source-actions {
+  display: inline-flex;
+  gap: 18px;
+  flex: none;
 }
 
 .pc-pt-close {
@@ -4935,11 +4943,10 @@ button.pc-search-icons {
 /* The condition is stated quietly; the promise is the line that lands. */
 .presence-cosmos .pc-pt-close .pc-pt-close-note {
   max-width: 40ch;
-  font-family: var(--c-mono);
-  font-size: 12px;
-  line-height: 1.6;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
+  font-family: var(--c-sans-ui);
+  font-size: 15px;
+  line-height: 1.5;
+  letter-spacing: -0.018em;
   color: rgba(var(--c-on-rgb), 0.48);
 }
 
@@ -5083,4 +5090,5 @@ button.pc-search-icons {
 /* On a narrow phone the action wins the bar; the sections are a scroll away. */
 @media (max-width: 560px) {
   .pc-pt-masthead nav { display: none; }
+  .pc-pt-bar:not(:has(.pc-pt-nav-link)) { display: none; }
 }
