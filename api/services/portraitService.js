@@ -104,8 +104,7 @@ function projectWords(repo) {
  */
 const SNAPSHOT = [
   /^Email mix this week:/,
-  /^Mostly \w+, \d+% of what you write$/,
-  /^What you build with:/,
+  /^(?:Mostly \w+, \d+% of what you write|What you build with:)/,
   /^Mostly .+, and /,
   /^Your busiest month was/,
   /^You work (?:on weekdays|at weekends)/,

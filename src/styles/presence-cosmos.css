@@ -5151,3 +5151,28 @@ button.pc-search-icons {
   .pc-pt-source-door { padding: 22px 0 6px; }
   .presence-cosmos .pc-pt-door { font-size: 24px; }
 }
+
+/* ---- Panel eyebrows, phone nav, the last chapter ---------------------- */
+
+.pc-pt-panel-mark {
+  padding: 22px 56px 4px;
+  list-style: none;
+}
+
+.pc-pt-panel-mark + .pc-pt-line::before { display: none; }
+
+/* The room is sharp again where the page ends. */
+.pc-pt-ground-still:last-child { --pt-field-blur: 3px; }
+
+@media (max-width: 760px) {
+  .pc-pt-panel-mark { padding: 18px 20px 2px; }
+  .pc-pt-today-inner { padding: 40px 22px 36px; }
+  .pc-portrait .pc-pt-choices button { font-size: 13px; padding: 0 8px; white-space: nowrap; }
+}
+
+/* The sections stay reachable on a narrow phone: three short words fit. */
+@media (max-width: 560px) {
+  .pc-pt-masthead nav { display: flex; gap: 12px; }
+  .pc-portrait .pc-pt-masthead nav a { font-size: 13px; }
+  .pc-pt-bar:not(:has(.pc-pt-nav-link)) { display: flex; padding: 4px 14px; }
+}

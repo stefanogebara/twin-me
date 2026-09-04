@@ -181,7 +181,7 @@ function Ticks({ evidence, now, days = 30 }: { evidence: Evidence[]; now: Date; 
         <rect x="0" y="27" width={days * 4 - 3} height="1" opacity="0.16" />
         {counts.map((c, i) =>
           c ? (
-            <rect key={i} x={i * 4} y={12} width="3" height={16} opacity="0.92" />
+            <rect key={i} x={i * 4 + 0.75} y={14} width="1.5" height={13} opacity="0.85" />
           ) : null,
         )}
       </svg>
@@ -469,6 +469,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
       <div className="pc-pt-paper">
       <section className="pc-pt-signature" id="signature" aria-label="Signature">
         <ol className="pc-pt-lines pc-pt-glass">
+          <li className="pc-pt-panel-mark"><span className="pc-pt-q-mark">Signature · four lines, each with its proof</span></li>
           {blocks.map((b, i) => (
             <li
               key={b.domain}
@@ -527,6 +528,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
 
       <section className="pc-pt-sources" id="sources" aria-label="Sources">
         <ul className="pc-pt-sourcelist pc-pt-glass">
+          <li className="pc-pt-panel-mark"><span className="pc-pt-q-mark">Sources · what it read, and how much</span></li>
           {[...data.sources].filter((s) => (parseInt(s.read, 10) || 0) > 0).sort((a, b) => (parseInt(b.read, 10) || 0) - (parseInt(a.read, 10) || 0)).map((s) => (
             <li key={s.platform}>
               <p
@@ -554,8 +556,8 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
           ))}
           <li className="pc-pt-source-door">
             {banner
-              ? <Link className="pc-pt-door" to="/">Read your own portrait <span aria-hidden="true">&#8594;</span></Link>
-              : <Link className="pc-pt-door" to="/sources">Read from one more place <span aria-hidden="true">&#8594;</span></Link>}
+              ? <Link className="pc-pt-door" to="/">Read your own portrait<span aria-hidden="true"> &#8594;</span></Link>
+              : <Link className="pc-pt-door" to="/sources">Read from one more place<span aria-hidden="true"> &#8594;</span></Link>}
           </li>
           <li className="pc-pt-source-note">
             <p className="pc-pt-mono pc-pt-sourcefoot">
@@ -576,7 +578,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
 
       <footer className="pc-pt-foot">
         <span className="pc-pt-wordmark">TwinMe</span>
-        <span className="pc-pt-foot-line">Nothing here trains a model. Messages, photos, location and anything typed here are never read.</span>
+        <span className="pc-pt-foot-line">Nothing here trains a model. Messages, photos and location are never read.</span>
       </footer>
       </div>
     </main>
