@@ -102,6 +102,16 @@ function projectWords(repo) {
  * "1 day in the last 30" sit side by side contradicting each other, and the stanza's
  * own thirty-day strip already says it properly.
  */
+const SNAPSHOT = [
+  /^Email mix this week:/,
+  /^Mostly \w+, \d+% of what you write$/,
+  /^What you build with:/,
+  /^Mostly .+, and /,
+  /^Your busiest month was/,
+  /^You work (?:on weekdays|at weekends)/,
+];
+const snapshotKey = (event) => SNAPSHOT.find((re) => re.test(event))?.source ?? null;
+
 const NOT_A_RECEIPT = /(?:in the last \d+ days|over the (?:past|last) \d+ days)/i;
 
 /** Session words a person would use, from Whoop's strain labels. */
@@ -165,7 +175,7 @@ const TRANSLATIONS = {
   google_gmail: [
     [/^Inbox grew by (\d+) unread emails? in the last (.+?);/, (m) => `${m[1]} new emails in ${m[2]}, most from one sender`],
     [/^Your email mix this week: (.+?) —/, (m) => {
-      const mix = m[1].replace(/\bdev\b/g, 'work');
+      const mix = m[1].replace(/\bdev\b/g, 'code');
       return /^work 100%$/.test(mix) ? 'Every email this week was about work' : `Email mix this week: ${mix}`;
     }],
     [/^Most frequent email senders this week: \S+ \((\d+)\)/, (m) => `Most mail this week came from one sender, ${m[1]} emails`],
@@ -254,9 +264,11 @@ export function buildPortrait({ owner, reflections = [], eventsById = new Map(),
     // line that counts itself, dated by the most recent of them.
     const byEvent = new Map();
     for (const e of sayable.sort((a, b) => (a.at < b.at ? 1 : a.at > b.at ? -1 : 0))) {
-      const seen = byEvent.get(e.event);
-      if (seen) seen.times += 1;
-      else byEvent.set(e.event, { ...e, times: 1 });
+      const snap = snapshotKey(e.event);
+      const key = snap ?? e.event;
+      const seen = byEvent.get(key);
+      if (seen) { if (!snap) seen.times += 1; }
+      else byEvent.set(key, { ...e, times: 1 });
     }
     const evidence = [...byEvent.values()].slice(0, MAX_EVIDENCE).map(({ times, ...e }) => (
       times > 1 ? { ...e, event: `${e.event}, ${times === 2 ? 'twice' : `${times} times`}` } : e
@@ -303,7 +315,7 @@ export function buildPortrait({ owner, reflections = [], eventsById = new Map(),
         source: SOURCE_LABEL[thinnest.evidence[0].source] || thinnest.evidence[0].source,
         evidenceLine: `${SOURCE_LABEL[thinnest.evidence[0].source] || thinnest.evidence[0].source}, ${thinnest.evidence[0].at}: ${thinnest.evidence[0].event}.`,
         question: thinnest.text,
-        answers: ['Yes, that is me', 'Not really'],
+        answers: ['That is me', 'Partly', 'Not me'],
         yourAnswer: null,
       }
     : null;

@@ -34,7 +34,8 @@ describe('plainEvent speaks the person\'s language', () => {
     ['google_calendar', "Calendar schedule for Thu 2026-09-03: 2 events (Murilo Personal, Álvaro psicólogo) — evening-loaded scheduling", 'Thu: 2 events, evening heavy'],
     ['google_calendar', "Has a meeting 'Álvaro psicólogo' from 7:00 PM to 8:00 PM on Thu 2026-09-03", 'An appointment Thu at 7:00 PM'],
     ['google_gmail', 'Inbox grew by 6 unread emails in the last 8 minutes; most frequent sender: github.com (19)', '6 new emails in 8 minutes, most from one sender'],
-    ['google_gmail', 'Your email mix this week: dev 100% — reveals attention allocation across communication types', 'Every email this week was about work'],
+    ['google_gmail', 'Your email mix this week: dev 100% — reveals attention allocation across communication types', 'Email mix this week: code 100%'],
+    ['google_gmail', 'Your email mix this week: dev 60%, work 30%, social 10% — reveals attention allocation', 'Email mix this week: code 60%, work 30%, social 10%'],
     ['google_gmail', 'Most frequent email senders this week: github.com (19), vercel.com (1)', 'Most mail this week came from one sender, 19 emails'],
     ['google_gmail', 'Receives email from 5 distinct senders/organizations in the past month', '5 different people wrote to you this month'],
     ['google_gmail', 'Sending rhythm: emails almost exclusively on weekdays (11% weekend sends from recent activity)', 'You send email almost only on weekdays'],
@@ -315,5 +316,19 @@ describe('a receipt is a fragment', () => {
   it('carries no trailing full stop, taught or softened', () => {
     expect(plainEvent(ev('x', 'web', 'Visited claude.ai.', '2026-08-11T18:06:00Z')).event).toBe('Visited claude.ai');
     expect(plainEvent(ev('y', 'spotify', "Listened to 'Pipe Down' by Drake at 9:35 AM.", '2026-09-03T09:35:00Z')).event).toBe('Pipe Down, Drake');
+  });
+});
+
+describe('a standing fact is one receipt however often it was measured', () => {
+  it('keeps only the newest snapshot of a shape, without a count', () => {
+    const events = {
+      a: ev('a', 'github', 'Your GitHub language distribution: JavaScript (69%)', '2026-08-04T11:30:00Z'),
+      b: ev('b', 'github', 'Your GitHub language distribution: JavaScript (68%)', '2026-08-11T15:31:00Z'),
+      c: ev('c', 'github', 'Your GitHub language distribution: JavaScript (66%)', '2026-09-03T18:32:00Z'),
+      d: ev('d', 'github', 'Opened PR #1 in roca', '2026-09-02T10:00:00Z'),
+    };
+    const p = buildPortrait({ owner: 'S', eventsById: events, now: new Date('2026-09-04T12:00:00Z'),
+      reflections: [{ id: 'r1', content: 'You write JavaScript.', created_at: '2026-09-03T12:00:00Z', metadata: { expert: 'code_architect', observation_ids: ['a', 'b', 'c', 'd'] } }] });
+    expect(p.readings[0].evidence.map((e) => e.event)).toEqual(['Mostly JavaScript, 66% of what you write', 'Started a change to your roca project']);
   });
 });

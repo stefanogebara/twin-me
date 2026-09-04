@@ -3801,7 +3801,7 @@ button.pc-search-icons {
   --c-serif: 'Instrument Serif', 'Times New Roman', Times, serif;
   --c-sans-ui: 'Switzer', ui-sans-serif, system-ui, sans-serif;
   --c-mono-ink: #6e6b69;
-  --pt-max: 1200px;
+  --pt-max: 1040px;
   --pt-rail: 440px;
   --pt-gap: 32px;
   --pt-idx: 124px;
@@ -3937,6 +3937,12 @@ button.pc-search-icons {
   transition: opacity 0.15s var(--pt-ease);
 }
 
+.presence-cosmos .pc-pt-nav-link.is-quiet {
+  background: transparent;
+  box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.34);
+  color: var(--c-white) !important;
+}
+
 .presence-cosmos .pc-pt-nav-link:hover {
   opacity: 0.84;
 }
@@ -4049,12 +4055,6 @@ button.pc-search-icons {
   margin: 0 auto;
   padding: 84px 56px 68px;
   text-align: left;
-}
-
-.pc-pt-today.is-narrow {
-  max-width: 800px;
-  margin-left: max(24px, calc((100% - var(--pt-max)) / 2));
-  margin-right: auto;
 }
 
 .pc-pt-today-inner.has-day {
@@ -4218,7 +4218,7 @@ button.pc-search-icons {
   box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.12);
 }
 
-.pc-pt-signature { margin-top: 56px; }
+.pc-pt-signature { margin-top: 96px; }
 
 .pc-portrait .pc-pt-section-mark {
   margin: 0 0 18px;
@@ -4405,7 +4405,7 @@ button.pc-search-icons {
 
 .pc-pt-ticks svg {
   width: 100%;
-  height: 22px;
+  height: 28px;
   fill: currentColor;
   color: rgba(255, 255, 255, 0.82);
 }
@@ -4473,6 +4473,11 @@ button.pc-search-icons {
 }
 
 .pc-pt-row.is-fading .pc-pt-claim,
+.presence-cosmos .pc-pt-claim.is-opening {
+  font-style: italic;
+  color: rgba(255, 255, 255, 0.5);
+}
+
 .pc-pt-row.is-disputed .pc-pt-claim {
   color: rgba(255, 255, 255, 0.5);
 }
@@ -4754,6 +4759,11 @@ button.pc-search-icons {
   color: var(--c-ink);
 }
 
+.pc-pt-manage {
+  margin: 16px 0 0;
+  padding: 0 56px;
+}
+
 .presence-cosmos .pc-pt-sourcefoot {
   margin: 22px 0 0;
   padding: 0 56px;
@@ -4805,7 +4815,7 @@ button.pc-search-icons {
   gap: 24px;
   max-width: var(--pt-max);
   width: calc(100% - 48px);
-  margin: 40px auto 0;
+  margin: 64px auto 0;
   padding: 0 56px;
 }
 
@@ -4819,7 +4829,7 @@ button.pc-search-icons {
   overflow: hidden;
   max-width: var(--pt-max);
   width: calc(100% - 48px);
-  margin: 120px auto 0;
+  margin: 96px auto 0;
   padding: 88px 56px 88px;
   border-radius: var(--pt-card);
   background: rgba(10, 12, 15, 0.4);

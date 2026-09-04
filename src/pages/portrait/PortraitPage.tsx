@@ -93,10 +93,10 @@ function Headline({ text }: { text: string }) {
  * began in.
  */
 const GROUND: [string, string][] = [
-  ['/images/twinme/cosmos-07-room.jpg', '66% 46%'],
-  ['/images/twinme/cosmos-03-calendar.jpg', '8% 42%'],
-  ['/images/twinme/cosmos-07-room.jpg', '92% 34%'],
-  ['/images/twinme/cosmos-07-room.jpg', '18% 64%'],
+  ['/images/twinme/cosmos-07-room.jpg', '34% 46%'],
+  ['/images/twinme/cosmos-07-room.jpg', '96% 30%'],
+  ['/images/twinme/cosmos-07-room.jpg', '70% 78%'],
+  ['/images/twinme/cosmos-07-room.jpg', '4% 62%'],
 ];
 
 function Ground() {
@@ -179,12 +179,12 @@ function Ticks({ evidence, now, days = 30 }: { evidence: Evidence[]; now: Date; 
   if (landed < 5) return null;
   return (
     <span className="pc-pt-ticks">
-      <svg viewBox={`0 0 ${days * 4} 22`} preserveAspectRatio="none" aria-hidden="true">
+      <svg viewBox={`0 0 ${days * 4} 28`} preserveAspectRatio="none" aria-hidden="true">
         {/* A quiet baseline across the window, so empty days read as empty rather than as noise. */}
-        <rect x="0" y="21" width={days * 4 - 2.6} height="1" opacity="0.16" />
+        <rect x="0" y="27" width={days * 4 - 3} height="1" opacity="0.16" />
         {counts.map((c, i) =>
           c ? (
-            <rect key={i} x={i * 4} y={22 - (6 + (c / max) * 16)} width="2.6" height={6 + (c / max) * 16} opacity="0.92" />
+            <rect key={i} x={i * 4} y={28 - (8 + (c / max) * 20)} width="3" height={8 + (c / max) * 20} opacity="0.92" />
           ) : null,
         )}
       </svg>
@@ -213,8 +213,10 @@ function Receipts({ reading }: { reading: Reading }) {
   );
 }
 
-function ReadingRow({ reading, now, verdict, onVerdict, cite, ordinal }: {
+function ReadingRow({ reading, now, verdict, onVerdict, cite, ordinal, opening = false }: {
   reading: Reading; now: Date; verdict: Verdict; onVerdict: (v: Verdict) => void; cite: number | null; ordinal: number;
+  /** The reading the page opened with: said once, up there, so the row keeps only its receipts and verdict. */
+  opening?: boolean;
 }) {
   const state = deriveState({ ...reading, verdict }, now);
   const note = state === 'fading' ? `Fading, last supported ${daysSince(reading.supportedAt, now)} days ago` : state === 'disputed' ? 'Disputed' : null;
@@ -225,11 +227,11 @@ function ReadingRow({ reading, now, verdict, onVerdict, cite, ordinal }: {
         {cite ? <b>Cited [{cite}]</b> : null}
       </p>
       <div>
-        <p className="pc-pt-serif pc-pt-claim">{reading.text}</p>
+        <p className={`pc-pt-serif pc-pt-claim ${opening ? 'is-opening' : ''}`}>{opening ? 'The line this portrait opens with.' : reading.text}</p>
         <div className="pc-pt-vote" role="group" aria-label={`True of you? ${reading.text}`}>
           {(['true', 'partly', 'wrong'] as const).map((v) => (
             <button key={v} type="button" className={verdict === v ? 'is-active' : ''} aria-pressed={verdict === v} onClick={() => onVerdict(verdict === v ? null : v)}>
-              {v === 'true' ? 'True' : v === 'partly' ? 'Partly' : 'Wrong'}
+              {v === 'true' ? 'That is me' : v === 'partly' ? 'Partly' : 'Not me'}
             </button>
           ))}
           {note ? <span className="pc-pt-mono pc-pt-note">{note}</span> : null}
@@ -249,6 +251,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
   const [query, setQuery] = useState('');
   const [reply, setReply] = useState<{ a: string; cites: string[] } | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [managing, setManaging] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
 
   const readings = useMemo(() => data.readings.map((r) => ({ ...r, verdict: verdicts[r.id] ?? null })), [data.readings, verdicts]);
@@ -273,9 +276,10 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
   // shows its own strongest reading instead, so nothing is printed twice.
   const promoted = data.lead ? null : blocks.find((b) => b.line) ?? null;
   const lead = data.lead ?? promoted?.line ?? null;
-  const [openDomain, setOpenDomain] = useState<Domain | null>(() => (
-    ORDER.find((d) => readings.some((r) => r.domain === d)) ?? null
-  ));
+  // Closed on arrival: the five lines are read first, and a stanza opens onto its
+  // ledger when you ask it to. Unfolding the heaviest section on first scroll left
+  // nothing to discover.
+  const [openDomain, setOpenDomain] = useState<Domain | null>(null);
 
   // The nav follows the page: whichever section owns the upper third is the one you are in.
   useEffect(() => {
@@ -351,7 +355,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
     return (
       <ul className="pc-pt-ledger">
         {b.readings.map((r, i) => (
-          <ReadingRow key={r.id} reading={r} now={now} verdict={verdicts[r.id] ?? null} onVerdict={(v) => verdict(r.id, v)} cite={cites.includes(r.id) ? cites.indexOf(r.id) + 1 : null} ordinal={i + 1} />
+          <ReadingRow key={r.id} reading={r} now={now} verdict={verdicts[r.id] ?? null} onVerdict={(v) => verdict(r.id, v)} cite={cites.includes(r.id) ? cites.indexOf(r.id) + 1 : null} ordinal={i + 1} opening={b === promoted && i === 0} />
         ))}
       </ul>
     );
@@ -393,7 +397,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
               </a>
             ))}
           </nav>
-          <Link to={banner ? '/' : '/sources'} className="pc-pt-nav-link">{banner ? 'Read your own' : 'Your sources'}</Link>
+          <Link to={banner ? '/' : '/sources'} className={`pc-pt-nav-link ${banner ? '' : 'is-quiet'}`}>{banner ? 'Read your own' : 'Your sources'}</Link>
         </header>
         <div className="pc-pt-hero-body">
           <p className="pc-pt-kicker">{banner ?? <Kicker owner={data.owner} now={now} />}</p>
@@ -404,7 +408,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
         <section className={`pc-pt-today ${questionDay.length >= 2 ? '' : 'is-narrow'}`} aria-labelledby="pc-pt-q-title">
           <div className={`pc-pt-today-inner ${questionDay.length >= 2 ? 'has-day' : ''}`}>
             <div className="pc-pt-q-main">
-              <p className="pc-pt-q-mark">Today, from {questionSource}</p>
+              <p className="pc-pt-q-mark">New this week, from {questionSource}</p>
               <h2 id="pc-pt-q-title" className="pc-pt-serif">{data.question.question}</h2>
               {questionReceipt ? (
                 <p className="pc-pt-q-receipt">
@@ -477,7 +481,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
         <div className="pc-pt-ask-body">
           <p className="pc-pt-ask-lead"><Headline text="Ask it anything. It answers from what it read, or not at all." /></p>
           <form className="pc-pt-prompt" onSubmit={(e) => { e.preventDefault(); void ask(query); }}>
-            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Ask anything about yourself" aria-label="Ask something about yourself" />
+            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="What do you want to know?" aria-label="Ask something about yourself" />
             <button type="submit" className="pc-pt-send">Ask</button>
           </form>
           {data.ask.length ? (
@@ -516,7 +520,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
                 <span className="pc-pt-source-name">{s.label}</span>
                 <span className="pc-pt-source-kind">{s.kinds}</span>
                 <span className="pc-pt-mono pc-pt-source-count">{parseInt(s.read, 10) || 0}</span>
-                {onDeleteSource && confirmDelete !== s.platform && (parseInt(s.read, 10) || 0) > 0 ? (
+                {onDeleteSource && managing && confirmDelete !== s.platform && (parseInt(s.read, 10) || 0) > 0 ? (
                   <button type="button" className="pc-pt-textbtn" onClick={() => setConfirmDelete(s.platform)}>Delete</button>
                 ) : null}
               </p>
@@ -533,6 +537,13 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
             </li>
           ))}
         </ul>
+        {onDeleteSource ? (
+          <p className="pc-pt-manage">
+            <button type="button" className="pc-pt-textbtn" onClick={() => { setManaging((m) => !m); setConfirmDelete(null); }}>
+              {managing ? 'Done' : 'Manage sources'}
+            </button>
+          </p>
+        ) : null}
         <p className="pc-pt-mono pc-pt-sourcefoot">
           {data.sources.reduce((n, s) => n + (parseInt(s.read, 10) || 0), 0)} things read across {sourceCount} sources · since {since}, {daysReading} days ago
         </p>
