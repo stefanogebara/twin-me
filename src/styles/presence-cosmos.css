@@ -5050,7 +5050,7 @@ button.pc-search-icons {
 @media (max-width: 760px) {
   .pc-pt-hero { min-height: 78vh; }
   .pc-pt-masthead { width: calc(100% - 40px); }
-  .pc-pt-ground-still:first-child { background-position: 58% 40%; }
+  .pc-pt-ground-still:first-child { background-position: 70% 40% !important; }
   .pc-pt-masthead nav { gap: 14px; }
   .pc-pt-bar { gap: 14px; padding: 4px 4px 4px 16px; }
   .pc-pt-choices { flex-wrap: wrap; }
