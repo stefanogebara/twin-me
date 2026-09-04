@@ -105,7 +105,6 @@ function Ground() {
     const el = ref.current;
     if (!el) return;
     const stills = Array.from(el.children) as HTMLElement[];
-    const still = !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
     const bands = Math.max(1, stills.length - 1);
     let frame = 0;
     const paint = () => {
@@ -120,7 +119,6 @@ function Ground() {
         const t = p * bands - (i - 1);
         const w = Math.min(1, Math.max(0, (t - 0.62) / 0.3));
         layer.style.opacity = i === 0 ? '1' : String(w * w * (3 - 2 * w));
-        if (still) layer.style.transform = `scale(1.08) translateY(${(p - i / bands) * 22}px)`;
       });
     };
     const onScroll = () => { if (!frame) frame = requestAnimationFrame(paint); };

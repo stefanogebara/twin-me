@@ -3839,19 +3839,37 @@ button.pc-search-icons {
 
 .pc-pt-ground-still {
   position: absolute;
-  inset: 0;
+  inset: -6%;
   background-repeat: no-repeat;
   background-size: cover;
+  filter: blur(var(--pt-field-blur, 26px)) saturate(1.22) brightness(1.04);
   transform: scale(1.08);
   will-change: opacity, transform;
+  animation: pc-pt-drift 46s ease-in-out infinite alternate;
+}
+
+.pc-pt-ground-still:nth-child(2) { animation-duration: 58s; animation-direction: alternate-reverse; }
+.pc-pt-ground-still:nth-child(3) { animation-duration: 52s; }
+.pc-pt-ground-still:nth-child(4) { animation-duration: 64s; animation-direction: alternate-reverse; }
+
+/* A slow breath, not a pan: the field moves the way light moves in a room. */
+@keyframes pc-pt-drift {
+  from { transform: scale(1.08) translate3d(-1.2%, 0.6%, 0); }
+  to { transform: scale(1.14) translate3d(1.2%, -0.8%, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pc-pt-ground-still { animation: none; }
 }
 
 .pc-pt-ground::after {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(8, 10, 13, 0.22) 0%, rgba(8, 10, 13, 0.3) 46%, rgba(8, 10, 13, 0.42) 100%);
+  background: linear-gradient(180deg, rgba(8, 10, 13, 0.18) 0%, rgba(8, 10, 13, 0.24) 46%, rgba(8, 10, 13, 0.34) 100%);
 }
+
+.pc-pt-ground-still:first-child { --pt-field-blur: 3px; }
 
 .pc-pt-paper {
   position: relative;
