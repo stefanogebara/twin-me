@@ -78,6 +78,32 @@ function minute(iso) {
   return m ? `${m[1]} ${m[2]}` : day(iso);
 }
 
+// Words that are in a repository name because it is a repository, not because the
+// project is about them.
+const REPO_NOISE = new Set([
+  'ai', 'mcp', 'api', 'app', 'apps', 'web', 'www', 'ui', 'ux', 'cli', 'js', 'ts', 'jsx', 'tsx',
+  'sdk', 'lib', 'libs', 'server', 'client', 'backend', 'frontend', 'bot', 'tool', 'tools',
+  'v1', 'v2', 'v3', 'next', 'react', 'node', 'py', 'go', 'rs', 'demo', 'test', 'tests', 'main',
+]);
+
+/** "stefanogebara/restaurant-ai-mcp" -> "your restaurant project". */
+function projectWords(repo) {
+  const slug = String(repo || '').split('/').pop();
+  const words = slug
+    .split(/[-_.]+/)
+    .map((w) => w.trim().toLowerCase())
+    .filter((w) => w && !REPO_NOISE.has(w) && !/^\d+$/.test(w));
+  return words.length ? `your ${words.join(' ')} project` : 'one of your projects';
+}
+
+/**
+ * Shapes that are statistics rather than things that happened. A receipt is dated,
+ * so a rolling window is not one: two snapshots of "3 days in the last 30" and
+ * "1 day in the last 30" sit side by side contradicting each other, and the stanza's
+ * own thirty-day strip already says it properly.
+ */
+const NOT_A_RECEIPT = /(?:in the last \d+ days|over the (?:past|last) \d+ days)/i;
+
 /** Session words a person would use, from Whoop's strain labels. */
 function sessionWord(label) {
   const l = (label || '').toLowerCase();
@@ -101,20 +127,17 @@ const TRANSLATIONS = {
     [/^Listening on (?:smartphone|computer|speaker)/, () => 'Listening while you did something else'],
   ],
   github: [
-    [/^Opened PR #\d+ in (\S+)/, (m) => `Started a change to ${m[1]}`],
-    [/^Merged PR #\d+ in (\S+)/, (m) => `Finished a change to ${m[1]}`],
-    [/^Closed PR #\d+ in (\S+)/, (m) => `Set aside a change to ${m[1]}`],
-    [/^Pushed (\d+) commits? to (\S+)/, (m) => `Worked on ${m[2]}`],
-    [/^Created branch .+? in (\S+)/, (m) => `Started a change to ${m[1]}`],
+    [/^Opened PR #\d+ in (\S+)/, (m) => `Started a change to ${projectWords(m[1])}`],
+    [/^Merged PR #\d+ in (\S+)/, (m) => `Finished a change to ${projectWords(m[1])}`],
+    [/^Closed PR #\d+ in (\S+)/, (m) => `Set aside a change to ${projectWords(m[1])}`],
+    [/^Pushed (\d+) commits? to (\S+)/, (m) => `Worked on ${projectWords(m[2])}`],
+    [/^Created branch .+? in (\S+)/, (m) => `Started a change to ${projectWords(m[1])}`],
     [/^Primary GitHub tech stack: (.+?) based on/, (m) => `What you build with: ${m[1]}`],
     [/^Most active GitHub month in the past year: (\w+ \d{4})/, (m) => `Your busiest month was ${m[1]}`],
     [/^GitHub rhythm: (weekday|weekend) coder, peak day is (\w+)/, (m) => (
       m[1] === 'weekday' ? `You work on weekdays, ${m[2]}s most of all` : `You work at weekends, ${m[2]}s most of all`
     )],
     [/^Working on (\d+) public.*?(\d+) private repos/, (m) => `Working on ${Number(m[1]) + Number(m[2])} projects`],
-    [/^(?:Contributed|Committed) code on (\d+) days? in the last (\d+) days/, (m) => (
-      `You wrote something on ${m[1]} of the last ${m[2]} days`
-    )],
     [/^Your GitHub language distribution: (\w+) \((\d+)%\)/, (m) => `Mostly ${m[1]}, ${m[2]}% of what you write`],
   ],
   whoop: [
@@ -134,6 +157,9 @@ const TRANSLATIONS = {
       `You set up your own meetings, mostly ${m[2] === 'in-person' ? 'in person' : 'online'}`
     )],
     [/^Calendar schedule for (\w+) [\d-]+: (\d+) events? \(.*\) — (\w+)-(loaded|focused) scheduling/, (m) => `${m[1]}: ${m[2]} event${m[2] === '1' ? '' : 's'}, ${m[3]} ${m[4] === 'loaded' ? 'heavy' : 'focused'}`],
+    [/^Calendar schedule today: (\d+) events? \(.*?\)(?: — (\w+)-(loaded|focused) scheduling)?/, (m) => (
+      `Today: ${m[1]} event${m[1] === '1' ? '' : 's'}${m[2] ? `, ${m[2]} ${m[3] === 'loaded' ? 'heavy' : 'focused'}` : ''}`
+    )],
     [/^Has a meeting '.+' from (.+?) to (.+?) on (\w+)/, (m) => `An appointment ${m[3]} at ${m[1]}`],
   ],
   google_gmail: [
@@ -173,6 +199,7 @@ export function plainEvent(memory) {
   const source = sourceOf(memory);
   const content = String(memory?.content || '').trim();
   const at = minute(memory.created_at);
+  if (NOT_A_RECEIPT.test(content)) return { source, at, event: content, translated: false };
   for (const [re, render] of TRANSLATIONS[source] || []) {
     const m = content.match(re);
     if (m) {
@@ -180,8 +207,12 @@ export function plainEvent(memory) {
       return { source, at, event, translated: !RAW_MARKERS.test(event) };
     }
   }
+  // Everywhere else an unknown shape is softened and shown. Not here: these two
+  // sources carry appointment titles and the names of people, so anything the page
+  // has not been taught to say about them is dropped rather than guessed at.
   const event = content.replace(/\s+—\s+/g, ', ');
-  return { source, at, event, translated: !RAW_MARKERS.test(event) };
+  const guarded = source === 'google_calendar' || source === 'google_gmail' || source === 'outlook';
+  return { source, at, event, translated: !guarded && !RAW_MARKERS.test(event) };
 }
 
 /**
@@ -218,9 +249,19 @@ export function buildPortrait({ owner, reflections = [], eventsById = new Map(),
     const all = ids.map(getEvent).filter(Boolean).map(plainEvent);
     const sayable = all.filter((e) => e.translated);
     if (sayable.length < MIN_EVIDENCE) continue;
-    const evidence = sayable
-      .sort((a, b) => (a.at < b.at ? 1 : a.at > b.at ? -1 : 0))
-      .slice(0, MAX_EVIDENCE);
+    // The same event three times is not three receipts, but the repetition is
+    // itself the proof of a claim about repeating — so the run collapses to one
+    // line that counts itself, dated by the most recent of them.
+    const byEvent = new Map();
+    for (const e of sayable.sort((a, b) => (a.at < b.at ? 1 : a.at > b.at ? -1 : 0))) {
+      const seen = byEvent.get(e.event);
+      if (seen) seen.times += 1;
+      else byEvent.set(e.event, { ...e, times: 1 });
+    }
+    const evidence = [...byEvent.values()].slice(0, MAX_EVIDENCE).map(({ times, ...e }) => (
+      times > 1 ? { ...e, event: `${e.event}, ${times === 2 ? 'twice' : `${times} times`}` } : e
+    ));
+    if (evidence.length < MIN_EVIDENCE) continue;
     const supportedAt = evidence[0].at;
     readings.push({
       id: r.id,

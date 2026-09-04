@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { SOURCE_LABEL, type Domain, type Evidence, type PortraitData, type Reading, type Verdict } from '../../data/demoPortrait';
 import { deriveState, daysSince, findScripted } from '../../lib/portrait';
@@ -84,6 +84,71 @@ function Headline({ text }: { text: string }) {
     const [, before, word, after] = tok.match(/^([^A-Za-z]*)(.*?)([^A-Za-z]*)$/s) ?? [null, '', tok, ''];
     return <React.Fragment key={i}>{before}<em>{word}</em>{after}</React.Fragment>;
   })}</>;
+}
+
+/**
+ * Four corners of one apartment at blue hour. The references do not hold a single
+ * frame for the length of a page — their ground is a space you travel through — so
+ * the stills stack and uncover with the scroll, and the page ends in the room it
+ * began in.
+ */
+const GROUND: [string, string][] = [
+  ['/images/twinme/cosmos-07-room.jpg', '58% 46%'],
+  ['/images/twinme/cosmos-03-calendar.jpg', '26% 56%'],
+  ['/images/twinme/cosmos-01-desk.jpg', '84% 44%'],
+  ['/images/twinme/cosmos-07-room.jpg', '18% 64%'],
+];
+
+function Ground() {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const stills = Array.from(el.children) as HTMLElement[];
+    const still = !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    const bands = Math.max(1, stills.length - 1);
+    let frame = 0;
+    const paint = () => {
+      frame = 0;
+      const span = document.documentElement.scrollHeight - window.innerHeight;
+      const p = span > 0 ? Math.min(1, Math.max(0, window.scrollY / span)) : 0;
+      stills.forEach((layer, i) => {
+        // The first still is the floor; each later one uncovers over its own band, so
+        // there is always one fully opaque image and never a seam between two. Each
+        // corner holds for most of its band and then crosses quickly: a slow
+        // cross-fade shows two rooms at once, which reads as a double exposure.
+        const t = p * bands - (i - 1);
+        const w = Math.min(1, Math.max(0, (t - 0.62) / 0.3));
+        layer.style.opacity = i === 0 ? '1' : String(w * w * (3 - 2 * w));
+        if (still) layer.style.transform = `scale(1.08) translateY(${(p - i / bands) * 22}px)`;
+      });
+    };
+    const onScroll = () => { if (!frame) frame = requestAnimationFrame(paint); };
+    paint();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onScroll);
+      if (frame) cancelAnimationFrame(frame);
+    };
+  }, []);
+  return (
+    <div className="pc-pt-ground" aria-hidden="true" ref={ref}>
+      {GROUND.map(([src, pos], i) => (
+        <div
+          key={i}
+          className="pc-pt-ground-still"
+          style={{ backgroundImage: `url('${src}')`, backgroundPosition: pos, opacity: i === 0 ? 1 : 0 }}
+        />
+      ))}
+    </div>
+  );
+}
+
+/** The signed-in eyebrow: whose portrait this is, and the day it was read. */
+function Kicker({ owner, now }: { owner: string; now: Date }) {
+  return <>{owner}&rsquo;s portrait &middot; read {spoken(now, false)}</>;
 }
 
 /** "3 Sep 09:32" or "3 Sep" in one mono line. */
@@ -317,7 +382,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
 
   return (
     <main className="presence-cosmos pc-portrait" id="main-content">
-      <div className="pc-pt-ground" aria-hidden="true" />
+      <Ground />
       <section className="pc-pt-hero" aria-labelledby="pc-pt-headline">
         <header className="pc-pt-masthead">
           <Link to="/" className="pc-pt-wordmark">TwinMe</Link>

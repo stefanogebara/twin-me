@@ -22,8 +22,10 @@ describe('plainEvent speaks the person\'s language', () => {
   const cases = [
     ['spotify', "Listened to 'Pipe Down' by Drake at 9:35 AM", 'Pipe Down, Drake'],
     ['spotify', 'Discovered new artist: PARTYNEXTDOOR', 'A new artist: PARTYNEXTDOOR'],
-    ['github', 'Opened PR #22 in roca from branch "claude/cards-v2"', 'Started a change to roca'],
-    ['github', 'Merged PR #129 in restaurant-ai-mcp from branch "fix/colunas"', 'Finished a change to restaurant-ai-mcp'],
+    ['github', 'Opened PR #22 in roca from branch "claude/cards-v2"', 'Started a change to your roca project'],
+    ['github', 'Merged PR #129 in restaurant-ai-mcp from branch "fix/colunas"', 'Finished a change to your restaurant project'],
+    ['github', 'Merged PR #7 in mcp-ai-sdk from branch "x"', 'Finished a change to one of your projects'],
+    ['github', 'Opened PR #3 in stefanogebara/twin-me from branch "y"', 'Started a change to your twin me project'],
     ['whoop', 'Slept 8.4 hours (well-rested) — sleep performance 80%', 'Slept 8.4 hours, well rested'],
     ['whoop', 'Recovery score: 81% (high recovery), HRV 134ms, resting heart rate 50bpm, SpO2 92%, skin temp 33.3°C', 'Recovery 81%, high recovery'],
     ['whoop', 'Latest Whoop workout: Kayaking — strain 12.5/21 (moderate), avg HR 140bpm, max HR 178bpm, ~533 kcal', 'Kayaking, a moderate session'],
@@ -76,7 +78,7 @@ describe('buildPortrait', () => {
 
   it('keeps only readings with at least two resolvable events, mapped to a domain', () => {
     expect(portrait.readings.map((r) => [r.id, r.domain, r.evidence.length])).toEqual([
-      ['r1', 'personality', 3], ['r2', 'motivation', 2],
+      ['r1', 'personality', 2], ['r2', 'motivation', 2],
     ]);
   });
 
@@ -84,7 +86,8 @@ describe('buildPortrait', () => {
     const r1 = portrait.readings[0];
     expect(r1.writtenAt).toBe('2026-09-03');
     expect(r1.supportedAt).toBe('2026-09-03');
-    expect(r1.evidence[0]).toEqual({ source: 'spotify', at: '2026-09-03 10:10', event: 'Pipe Down, Drake', translated: true });
+    // The same track twice is one receipt that says so, dated by the later play.
+    expect(r1.evidence[0]).toEqual({ source: 'spotify', at: '2026-09-03 10:10', event: 'Pipe Down, Drake, twice', translated: true });
     expect(r1.verdict).toBeNull();
   });
 
@@ -98,9 +101,9 @@ describe('buildPortrait', () => {
   });
 
   it('asks today about the thinnest fresh reading, with its first receipt as the evidence line', () => {
-    expect(portrait.question.fromReadings).toEqual(['r2']);
-    expect(portrait.question.evidenceLine).toBe('Spotify, 2026-09-03 10:10: Pipe Down, Drake.');
-    expect(portrait.question.question).toContain('You start work in bursts.');
+    expect(portrait.question.fromReadings).toEqual(['r1']);
+    expect(portrait.question.evidenceLine).toBe('Spotify, 2026-09-03 10:10: Pipe Down, Drake, twice.');
+    expect(portrait.question.question).toContain('You put the same songs on repeat to get into deep work.');
   });
 
   it('lists only connected sources, in the person\'s words', () => {
@@ -188,10 +191,12 @@ describe('a receipt the page cannot say plainly', () => {
   const raw = (id, at) => ev(id, 'github', 'Repository roca now has 12 open pull requests awaiting review', at);
   const said = (id, at) => ev(id, 'github', `Merged PR #1 in roca`, at);
 
+  const alsoSaid = (id, at) => ev(id, 'github', 'Opened PR #9 in roca', at);
+
   it('never reaches the person', () => {
     const events = new Map([
       ['a', said('a', '2026-09-03T09:00:00Z')],
-      ['b', said('b', '2026-09-03T10:00:00Z')],
+      ['b', alsoSaid('b', '2026-09-03T10:00:00Z')],
       ['c', raw('c', '2026-09-03T11:00:00Z')],
     ]);
     const portrait = buildPortrait({
@@ -200,8 +205,22 @@ describe('a receipt the page cannot say plainly', () => {
         metadata: { expert: 'code_architect', observation_ids: ['a', 'b', 'c'] } }],
     });
     const shown = portrait.readings[0].evidence.map((e) => e.event);
-    expect(shown).toEqual(['Finished a change to roca', 'Finished a change to roca']);
-    expect(shown.join(' ')).not.toMatch(/branch|commits/i);
+    expect(shown).toEqual(['Started a change to your roca project', 'Finished a change to your roca project']);
+    expect(shown.join(' ')).not.toMatch(/branch|commits|pull request/i);
+  });
+
+  it('drops a reading whose proof is one event said over and over', () => {
+    const events = new Map([
+      ['a', said('a', '2026-09-03T09:00:00Z')],
+      ['b', said('b', '2026-09-03T10:00:00Z')],
+      ['c', said('c', '2026-09-03T11:00:00Z')],
+    ]);
+    const portrait = buildPortrait({
+      owner: 'S', eventsById: events, now: new Date('2026-09-04T00:00:00Z'),
+      reflections: [{ id: 'r1', content: 'You finish what you start.', created_at: '2026-09-03T12:00:00Z',
+        metadata: { expert: 'code_architect', observation_ids: ['a', 'b', 'c'] } }],
+    });
+    expect(portrait.readings).toEqual([]);
   });
 
   it('takes the reading with it when too few are left', () => {
@@ -219,7 +238,7 @@ describe('a receipt the page cannot say plainly', () => {
 
   it('says the shapes the real data actually has', () => {
     const cases = [
-      ['github', 'Created branch \'claude/cards\' in roca', 'Started a change to roca'],
+      ['github', 'Created branch \'claude/cards\' in roca', 'Started a change to your roca project'],
       ['github', 'GitHub rhythm: weekday coder, peak day is Monday (1198 contributions), 25% weekends', 'You work on weekdays, Mondays most of all'],
       ['github', 'Most active GitHub month in the past year: February 2026 with 1543 contributions', 'Your busiest month was February 2026'],
       ['spotify', 'Extended listening session (5 tracks recently)', 'A long listen, 5 songs in a row'],
@@ -248,5 +267,46 @@ describe('a stanza is meant to be read', () => {
     const portrait = buildPortrait({ owner: 'S', reflections, eventsById: events, now: new Date('2026-09-04T00:00:00Z') });
     expect(portrait.readings.length).toBe(4);
     expect(new Set(portrait.readings.map((r) => r.domain))).toEqual(new Set(['cultural']));
+  });
+});
+
+describe('receipts a person would accept as proof', () => {
+  const reflection = (ids) => ({
+    id: 'r1', content: 'You ship in bursts.', created_at: '2026-09-03T10:00:00Z',
+    metadata: { expert: 'motivation_analyst', observation_ids: ids },
+  });
+
+  it('collapses a repeated event into one dated line that counts itself', () => {
+    const events = {
+      a: ev('a', 'github', 'Opened PR #1 in roca from branch "x"', '2026-09-01T10:00:00Z'),
+      b: ev('b', 'github', 'Opened PR #2 in roca from branch "y"', '2026-09-02T10:00:00Z'),
+      c: ev('c', 'github', 'Merged PR #3 in roca from branch "z"', '2026-09-03T10:00:00Z'),
+    };
+    const p = buildPortrait({ owner: 'Stefano', reflections: [reflection(['a', 'b', 'c'])], eventsById: events, now: new Date('2026-09-04T12:00:00Z') });
+    const said = p.readings[0].evidence.map((e) => e.event);
+    expect(new Set(said).size).toBe(said.length);
+    expect(said).toEqual(['Finished a change to your roca project', 'Started a change to your roca project, twice']);
+    // The collapsed line is dated by the later of the two.
+    expect(p.readings[0].evidence[1].at).toContain('2026-09-02');
+  });
+
+  it('drops the rolling day-count, which is a statistic and not something that happened', () => {
+    expect(plainEvent(ev('x', 'github', 'Contributed code on 3 days in the last 30 days', '2026-09-03T09:00:00Z')).translated).toBe(false);
+  });
+});
+
+describe('the sources that carry names are never guessed at', () => {
+  it('says a day with a title in it without the title', () => {
+    const e = plainEvent(ev('x', 'google_calendar', 'Calendar schedule today: 1 event (Focused Inbox Review) — evening-loaded scheduling', '2026-07-29T16:30:00Z'));
+    expect(e.event).toBe('Today: 1 event, evening heavy');
+    expect(e.translated).toBe(true);
+  });
+
+  it.each([
+    ['google_calendar', "Some new calendar shape mentioning 'Álvaro psicólogo'"],
+    ['google_gmail', 'Some new mail shape from alvaro@example.com'],
+    ['outlook', 'Some new outlook shape from a colleague'],
+  ])('drops an untaught %s shape rather than softening it', (platform, content) => {
+    expect(plainEvent(ev('x', platform, content, '2026-09-03T09:00:00Z')).translated).toBe(false);
   });
 });

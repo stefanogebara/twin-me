@@ -3826,16 +3826,31 @@ button.pc-search-icons {
   color: var(--c-ink);
 }
 
-/* One still, held still: the page scrolls through the room rather than past a
-   picture of it. */
+/* The room the page is read in: stills stacked in a fixed frame, uncovering as you
+   scroll, with one scrim over all of them so the light never jumps. */
 .pc-pt-ground {
   position: fixed;
   inset: 0;
   z-index: 0;
+  overflow: hidden;
   pointer-events: none;
-  background:
-    linear-gradient(180deg, rgba(8, 10, 13, 0.3) 0%, rgba(8, 10, 13, 0.44) 46%, rgba(8, 10, 13, 0.62) 100%),
-    #0b0d10 url('/images/twinme/cosmos-07-room.jpg') 58% 46% / cover;
+  background: #0b0d10;
+}
+
+.pc-pt-ground-still {
+  position: absolute;
+  inset: 0;
+  background-repeat: no-repeat;
+  background-size: cover;
+  transform: scale(1.08);
+  will-change: opacity, transform;
+}
+
+.pc-pt-ground::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(8, 10, 13, 0.3) 0%, rgba(8, 10, 13, 0.44) 46%, rgba(8, 10, 13, 0.62) 100%);
 }
 
 .pc-pt-paper {
