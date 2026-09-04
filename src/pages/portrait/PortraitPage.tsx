@@ -151,10 +151,9 @@ function Kicker({ owner, now }: { owner: string; now: Date }) {
 
 /** "3 Sep 09:32" or "3 Sep" in one mono line. */
 function when(at: string) {
-  const [date, time] = at.split(' ');
+  const [date] = at.split(' ');
   const d = new Date(`${date}T00:00:00Z`);
-  const day = Number.isNaN(d.getTime()) ? date : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
-  return time ? `${day} ${time}` : day;
+  return Number.isNaN(d.getTime()) ? date : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
 }
 
 /**
@@ -566,6 +565,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
                 <button type="button" className="pc-pt-textbtn pc-pt-manage" onClick={() => { setManaging((m) => !m); setConfirmDelete(null); }}>
                   {managing ? 'Done' : 'Manage'}
                 </button>
+                {managing ? <Link className="pc-pt-textbtn" to="/sources">Delete everything</Link> : null}
               </span>
             ) : null}
           </li>
@@ -574,8 +574,8 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
 
       <section className="pc-pt-close pc-pt-glass" aria-label="What is not read">
         <div className="pc-pt-close-inner pc-pt-grid">
-          <p className="pc-pt-close-note">Messages, photos, location and anything typed here are never read.</p>
           <p className="pc-pt-serif">Nothing here trains a model.</p>
+          <p className="pc-pt-close-note">Messages, photos, location and anything typed here are never read.</p>
           <div className="pc-pt-rail pc-pt-close-rail">
             {banner
               ? <Link className="pc-pt-close-cta" to="/">Read your own &#8594;</Link>
@@ -587,7 +587,6 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
       <footer className="pc-pt-foot">
         <span className="pc-pt-wordmark">TwinMe</span>
         <span className="pc-pt-foot-line">Read from what you already made</span>
-        {!banner ? <Link className="pc-pt-textbtn" to="/sources">Delete everything</Link> : null}
       </footer>
       </div>
     </main>
