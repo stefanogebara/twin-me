@@ -181,7 +181,7 @@ function LedgerRow({ domain, i }: { domain: Domain; i: number }) {
     <div ref={ref} className={`ld-sig ld-row ${inView ? 'is-in' : ''}`} style={{ transitionDelay: `${i * 60}ms` }}>
       <div>
         <span className="ld-label">{DOMAIN_LABEL[domain]}</span>
-        <p className="ld-d2"><Line domain={domain} /></p>
+        <p className="ld-v2"><Line domain={domain} /></p>
       </div>
       <Receipts evidence={b.evidence} sources={b.sources} />
     </div>
@@ -189,61 +189,6 @@ function LedgerRow({ domain, i }: { domain: Domain; i: number }) {
 }
 
 /* ---------- The one photograph: a reading arriving from its receipts, once ---------- */
-
-/**
- * The card's reading: from another part of life than the hero's, with at least three
- * receipts the page has not shown yet, across more than one day where it can.
- */
-function cardReading(seen: Set<string>) {
-  const fresh = (r: Reading) => r.evidence.filter((e) => !seen.has(receiptKey(e)) && plain(e));
-  const days = (es: Evidence[]) => new Set(es.map((e) => e.at.slice(0, 10))).size;
-  // Any reading with three plain receipts qualifies; the one with the most receipts the page
-  // has not shown wins, and across more than one day where it can.
-  const pool = DEMO_PORTRAIT.readings
-    .filter((r) => r.evidence.filter(plain).length >= 3)
-    .sort((a, b) => fresh(b).length - fresh(a).length || days(fresh(b)) - days(fresh(a)));
-  return pool[0] ?? DEMO_PORTRAIT.readings[0];
-}
-
-function ReadingPanel({ reduced, seen }: { reduced: boolean; seen: Set<string> }) {
-  const { ref, inView } = useInView<HTMLDivElement>('0px');
-  const [shown, setShown] = useState(reduced ? 3 : 0);
-  const [lineIn, setLineIn] = useState(reduced);
-  const READING = cardReading(seen);
-  // Plain receipts, the ones the page has not shown first.
-  const plainOnes = READING.evidence.filter(plain);
-  const receipts = spread([...plainOnes.filter((e) => !seen.has(receiptKey(e))), ...plainOnes.filter((e) => seen.has(receiptKey(e)))]);
-  useEffect(() => {
-    if (reduced || !inView) return;
-    let t = 0;
-    if (shown < receipts.length) t = window.setTimeout(() => setShown((n) => n + 1), shown === 0 ? 260 : 280);
-    else if (!lineIn) t = window.setTimeout(() => setLineIn(true), 420);
-    return () => window.clearTimeout(t);
-  }, [shown, lineIn, reduced, inView, receipts.length]);
-  const sources = [...new Set(READING.evidence.map((e) => sourceName(e.source)))];
-  // The signature line this reading stands behind, so the card shows where a reading goes.
-  const became = DEMO_PORTRAIT.signature.find((x) => x.from.includes(READING.id))?.line;
-  return (
-    <div className="ld-panel" ref={ref}>
-      <img src="/images/twinme/cosmos-08-window.jpg" alt="A room at blue hour: a lamp lit, the window still light" />
-      <div className="ld-frost" aria-label="A reading arriving from its receipts">
-        <span className="ld-label">{DOMAIN_LABEL[READING.domain]}</span>
-        <div className="ld-receipts">
-          {receipts.map((e, i) => (
-            <div key={i} className={`ld-receipt ${i < shown ? 'is-in' : ''}`}>
-              <b className={i > 0 && receipts[i - 1].at.slice(0, 10) === e.at.slice(0, 10) ? 'is-same' : undefined}>{day(e.at)}</b><span>{tidy(e.event)}</span>
-            </div>
-          ))}
-        </div>
-        <p className={`ld-reading ${lineIn ? 'is-in' : ''}`}>{tidy(READING.text)}</p>
-        <div className="ld-foot">
-          <span className="ld-mono">{provenance(READING.evidence.length, sources, receipts.length)}</span>
-        </div>
-        {became ? <p className={`ld-became ld-reading ${lineIn ? 'is-in' : ''}`}><b>It became the line</b>{tidy(became)}</p> : null}
-      </div>
-    </div>
-  );
-}
 
 /* ---------- The page ---------- */
 
@@ -259,12 +204,10 @@ export default function Landing() {
   }, []);
 
   const first = behind('motivation');
+  const firstReceipts = spread(first.evidence);
   const ask = DEMO_PORTRAIT.ask[1] ?? DEMO_PORTRAIT.ask[0];
   const askCited = ask.cites.map((id) => DEMO_PORTRAIT.readings.find((r) => r.id === id)).filter(Boolean) as Reading[];
-  const askSources = [...new Set(askCited.flatMap((r) => r.evidence.map((e) => sourceName(e.source))))];
   const rest = DEMO_PORTRAIT.signature.map((s) => s.domain).filter((d) => d !== 'motivation');
-  // Every receipt the hero and the ledger show, so the card shows others.
-  const seen = new Set<string>(DEMO_PORTRAIT.signature.flatMap((x) => spread(behind(x.domain).evidence).map(receiptKey)));
   const readSources = DEMO_PORTRAIT.sources.filter((x) => (parseInt(x.read, 10) || 0) > 0).length;
   const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   const earliest = DEMO_PORTRAIT.sources.map((x) => x.since).filter(Boolean).sort()[0] ?? '';
@@ -288,32 +231,36 @@ export default function Landing() {
           </div>
         </header>
 
-        <section className="ld-hero ld-col" aria-label={`${DEMO_PORTRAIT.owner}'s portrait, first line`}>
-          <p className="ld-label">{DEMO_PORTRAIT.owner}&rsquo;s portrait · {DOMAIN_LABEL.motivation}</p>
-          <h1 className="ld-d1"><Line domain="motivation" /></h1>
-          <div className="ld-row">
-            <div>
-              <p className="ld-lead ld-dek">A portrait of you, read from your days. This one is {DEMO_PORTRAIT.owner}&rsquo;s, from {readSources} sources since {sinceMonth}. Every line shows its evidence.</p>
-              <p className="ld-cta"><Link to={DEMO} className="ld-link">Read {DEMO_PORTRAIT.owner}&rsquo;s portrait<span className="ld-arrow" aria-hidden="true">&#8594;</span></Link></p>
+        {/* The room, and the first line of the portrait set in it. */}
+        <section className="ld-stage" aria-label={`${DEMO_PORTRAIT.owner}'s portrait, first line`}>
+          <img src="/images/twinme/cosmos-08-window.jpg" alt="A room at blue hour: a lamp lit, the window still light" />
+          <div className="ld-col">
+            <p className="ld-label">{DEMO_PORTRAIT.owner}&rsquo;s portrait · {DOMAIN_LABEL.motivation}</p>
+            <h1 className="ld-v1"><Line domain="motivation" /></h1>
+            <div className="ld-row">
+              <div>
+                <p className="ld-lead ld-dek">A portrait of you, read from your days. This one is {DEMO_PORTRAIT.owner}&rsquo;s, from {readSources} sources since {sinceMonth}. Every line shows its evidence.</p>
+                <p className="ld-cta"><Link to={DEMO} className="ld-link">Read {DEMO_PORTRAIT.owner}&rsquo;s portrait<span className="ld-arrow" aria-hidden="true">&#8594;</span></Link></p>
+              </div>
+              <div className="ld-glass" aria-label="Read from">
+                <ReceiptRows rows={firstReceipts} />
+                <span className="ld-meta ld-mono">{provenance(first.evidence.length, first.sources, firstReceipts.length)}</span>
+              </div>
             </div>
-            <Receipts evidence={first.evidence} sources={first.sources} />
           </div>
         </section>
-
-        <section className="ld-ledger ld-col" aria-label="The other four lines">
-          {rest.map((d, i) => <LedgerRow key={d} domain={d} i={i} />)}
+        {/* On a phone the receipts leave the room and sit on paper, where they can be read. */}
+        <section className="ld-col ld-hero-receipts ld-phone-only" aria-label="Read from">
+          <ReceiptRows rows={firstReceipts} />
+          <span className="ld-meta ld-mono">{provenance(first.evidence.length, first.sources, firstReceipts.length)}</span>
         </section>
 
-        <section className="ld-sect ld-how ld-col" aria-label="How it reads">
-          <ReadingPanel reduced={reduced} seen={seen} />
-          <p className="ld-caption">Receipts become a reading, and readings become a line. It reads what you do, and writes what it notices.</p>
-        </section>
-
+        {/* The second screen: the twin answering as you. */}
         <Rise as="section" className="ld-sect ld-ask ld-col">
           <div className="ld-row">
             <div>
               <p className="ld-q">Asked: {ask.q}</p>
-              <p className="ld-voice"><q>{tidy(ask.a)}</q></p>
+              <p className="ld-voice ld-v2"><q>{tidy(ask.a)}</q></p>
             </div>
             <div className="ld-cites" aria-label="What it cites">
               {askCited.map((r) => (
@@ -325,6 +272,11 @@ export default function Landing() {
             </div>
           </div>
         </Rise>
+
+        {/* The other four lines, each with its receipts. */}
+        <section className="ld-ledger ld-col" aria-label="The other four lines">
+          {rest.map((d, i) => <LedgerRow key={d} domain={d} i={i} />)}
+        </section>
 
         <Rise as="section" className="ld-sect ld-sources ld-col">
           <div className="ld-row">
@@ -339,13 +291,17 @@ export default function Landing() {
           </div>
         </Rise>
 
-        <Rise as="section" className="ld-close ld-col">
-          <h2 className="ld-d1">See what&nbsp;your days say.</h2>
-          <div className="ld-cta">
-            <Link to={START} className="ld-pill">Read my portrait</Link>
-            <small>One source is enough to begin.</small>
+        {/* The room again, and the one action, on glass. */}
+        <section className="ld-stage ld-stage--close" aria-label="Begin">
+          <img src="/images/twinme/cosmos-08-window.jpg" alt="" aria-hidden="true" />
+          <div className="ld-col">
+            <h2 className="ld-v3">See what&nbsp;your days say.</h2>
+            <div className="ld-glass">
+              <Link to={START} className="ld-pill ld-pill--light">Read my portrait</Link>
+              <small>One source is enough to begin.</small>
+            </div>
           </div>
-        </Rise>
+        </section>
 
         <footer className="ld-footer ld-col">
           <span>TwinMe, 2026</span>

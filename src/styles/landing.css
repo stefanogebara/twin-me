@@ -1,10 +1,10 @@
 /* ==========================================================================
-   TwinMe landing — from scratch, 2026-09-05 (v4 after the third critic round).
+   TwinMe landing — from scratch, 2026-09-05 (v9: the room opens and closes the page).
    Namespace: .ld. Lock: .claude/plans/2026-09-05-landing-from-scratch/README.md
-   The page is the portrait, on one grid: every line on the left seven columns,
-   its receipts on the right five. Ruled throughout. Three display sizes and one
-   lead size. One second voice — the serif — for the twin speaking as you, and
-   for nothing else. One photograph, sharp, once. One action, at the end.
+   The serif is what the twin says: every portrait line, its answer, the close.
+   The sans is the interface: labels, receipts, the dek, the nav, the button.
+   The room at blue hour is the ground of the first screen and of the last;
+   between them, paper, one grid, ruled. Integer line-heights only.
    ========================================================================== */
 
 .ld {
@@ -13,10 +13,8 @@
   --grey-2: #a3a3a3;
   --line: rgba(0, 0, 0, 0.1);
   --white: #ffffff;
-  --frost: rgba(255, 255, 255, 0.5);
-  --frost-line: rgba(255, 255, 255, 0.7);
   --col: min(1240px, calc(100% - 48px));
-  --r: 28px;
+  --serif: 'Instrument Serif', Georgia, 'Times New Roman', serif;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
   background: var(--white);
   color: var(--ink);
@@ -36,7 +34,7 @@
 :where(.ld) :where(h1, h2, h3, p, small, em, b, span, a, li, i, q) { color: inherit; font-family: inherit; font-weight: inherit; letter-spacing: inherit; }
 .ld a { color: inherit; text-decoration: none; }
 .ld button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
-.ld :focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; border-radius: 999px; }
+.ld :focus-visible { outline: 2px solid currentColor; outline-offset: 3px; border-radius: 999px; }
 .ld img { display: block; }
 
 /* The ground behind the sheet is white too, or the reveal shows the app's dark body. */
@@ -45,23 +43,24 @@ html:has(main.ld), body:has(main.ld), #root:has(main.ld) { background: #ffffff; 
 .ld .ld-col { width: var(--col); margin: 0 auto; }
 .ld .ld-mono { font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; line-height: 20px; letter-spacing: 0.02em; font-weight: 400; }
 .ld .ld-label { font-size: 12px; line-height: 16px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--grey); font-weight: 500; }
-/* The scale: three display sizes and one lead. */
-.ld .ld-d1 { color: var(--ink); font-family: inherit; font-size: 76px; line-height: 80px; font-weight: 300; letter-spacing: -0.045em; }
-.ld .ld-d2 { color: var(--ink); font-family: inherit; font-size: 44px; line-height: 50px; font-weight: 300; letter-spacing: -0.03em; }
+/* The twin's voice: one serif, three sizes. */
+.ld .ld-v1 { color: inherit; font-family: var(--serif); font-size: 96px; line-height: 100px; font-weight: 400; letter-spacing: -0.015em; }
+.ld .ld-v2 { color: inherit; font-family: var(--serif); font-size: 56px; line-height: 62px; font-weight: 400; letter-spacing: -0.01em; }
+.ld .ld-v3 { color: inherit; font-family: var(--serif); font-size: 64px; line-height: 68px; font-weight: 400; letter-spacing: -0.012em; }
 .ld .ld-lead { color: var(--ink); font-size: 22px; line-height: 30px; font-weight: 400; letter-spacing: -0.015em; text-wrap: pretty; }
 .ld .ld-lead--grey { color: var(--grey); }
-/* The twin's own voice, as you: the one serif on the page. */
-.ld .ld-voice { color: var(--ink); font-family: 'Instrument Serif', Georgia, 'Times New Roman', serif; font-size: 56px; line-height: 62px; font-weight: 400; letter-spacing: -0.01em; text-wrap: balance; text-indent: -0.38em; hyphens: manual; }
 /* A break set by hand, on desktop; on a phone the line wraps on its own. */
 .ld .ld-br { display: block; }
-.ld .ld-link { color: var(--ink); text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 1px; }
-.ld .ld-link:hover { color: var(--grey); }
+.ld .ld-link { color: inherit; text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 1px; }
+.ld .ld-link:hover { opacity: 0.7; }
 .ld .ld-link .ld-arrow { display: inline-block; text-decoration: none; margin-left: 0.2em; }
 
-/* The one pill: black, once, at the end. */
+/* The one pill: on paper it is ink; on the room it is white. */
 .ld .ld-pill { display: inline-flex; align-items: center; justify-content: center; height: 48px; padding: 0 22px; border-radius: 999px; font-size: 15px; line-height: 20px; font-weight: 500; white-space: nowrap; background: var(--ink); color: #fff; transition: transform 180ms var(--ease), background-color 180ms ease; }
 .ld .ld-pill:hover { background: #262626; }
 .ld .ld-pill:active { transform: scale(0.97); }
+.ld .ld-pill--light { background: #fff; color: var(--ink); }
+.ld .ld-pill--light:hover { background: #f0efed; }
 
 /* The entrance: one grey line on white, cycling what it reads, then the page lifts in. */
 .ld-pre { font-family: 'Geist', system-ui, -apple-system, sans-serif; color: #6f6f6f; position: fixed; inset: 0; z-index: 50; background: #fff; display: grid; place-items: center; transition: opacity 520ms var(--ease); }
@@ -78,13 +77,28 @@ html:has(main.ld), body:has(main.ld), #root:has(main.ld) { background: #ffffff; 
 /* Navigation: a white band on the column's own edges. */
 .ld-nav { position: fixed; top: 0; left: 0; right: 0; z-index: 40; height: 64px; background: #fff; }
 .ld-nav .ld-col { height: 100%; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); }
-.ld-brand { display: inline-flex; align-items: center; gap: 10px; color: var(--ink); font-size: 15px; line-height: 20px; font-weight: 500; }
-
+.ld-brand { color: var(--ink); font-size: 15px; line-height: 20px; font-weight: 500; }
 .ld-nav-right { display: flex; align-items: center; gap: 22px; font-size: 15px; line-height: 20px; }
 .ld-nav-right a { color: var(--grey); transition: color 160ms ease; }
 .ld-nav-right a:hover { color: var(--ink); }
 
-/* The grid every row sits on: the line on the left seven columns, its receipts on the right five. */
+/* The room: the ground of the first screen and of the last. */
+.ld-stage { position: relative; margin-top: 64px; height: clamp(640px, calc(100vh - 64px), 860px); color: #fff; isolation: isolate; overflow: hidden; }
+.ld-stage > img { position: absolute; inset: 0; width: 100%; max-width: none; height: 100%; object-fit: cover; object-position: 50% 46%; z-index: -2; }
+.ld-stage::after { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(to top, rgba(0, 0, 0, 0.55) 0%, rgba(0, 0, 0, 0.18) 45%, rgba(0, 0, 0, 0) 70%); }
+.ld-stage .ld-col { position: absolute; left: 0; right: 0; bottom: 48px; margin: 0 auto; }
+.ld-stage .ld-label { color: rgba(255, 255, 255, 0.72); }
+.ld-stage h1 { margin-top: 14px; text-shadow: 0 1px 24px rgba(0, 0, 0, 0.25); }
+.ld-stage .ld-row { margin-top: 28px; align-items: end; }
+.ld-stage .ld-dek { color: rgba(255, 255, 255, 0.86); max-width: 38ch; }
+.ld-stage .ld-cta { margin-top: 18px; font-size: 17px; line-height: 24px; }
+/* The receipts, frosted, at the base of the room. */
+.ld-glass { background: rgba(255, 255, 255, 0.12); border: 1px solid rgba(255, 255, 255, 0.22); -webkit-backdrop-filter: blur(18px) saturate(1.1); backdrop-filter: blur(18px) saturate(1.1); border-radius: 18px; padding: 16px 18px; --grey: rgba(255, 255, 255, 0.66); }
+.ld-glass .ld-receipt { color: #fff; }
+.ld-glass .ld-receipt b { color: rgba(255, 255, 255, 0.62); }
+.ld-glass .ld-meta { color: rgba(255, 255, 255, 0.66); }
+
+/* The grid every row sits on: the line on the left eight columns, its receipts on the right four. */
 .ld-row { display: grid; grid-template-columns: 8fr 4fr; column-gap: 48px; row-gap: 0; align-items: start; }
 .ld-receipts { display: flex; flex-direction: column; gap: 6px; }
 .ld-receipt { color: var(--ink); display: grid; grid-template-columns: 52px 1fr; gap: 14px; align-items: baseline; font-size: 16px; line-height: 24px; }
@@ -93,63 +107,41 @@ html:has(main.ld), body:has(main.ld), #root:has(main.ld) { background: #ffffff; 
 .ld-meta { display: block; color: var(--grey); }
 .ld-receipts + .ld-meta { margin-top: 14px; }
 
-/* The hero: the first line at the largest size, then its dek and its receipts on the grid. */
-.ld-hero { padding: 152px 0 48px; }
-.ld-hero h1 { margin-top: 12px; }
-.ld-hero .ld-row { margin-top: 36px; }
-.ld-hero .ld-dek { max-width: 40ch; }
-.ld-hero .ld-cta { margin-top: 24px; font-size: 17px; line-height: 24px; }
+/* Every section on paper is ruled the same way. */
+.ld-sect { padding: 96px 0 48px; border-top: 1px solid var(--line); }
+.ld-sect:first-of-type { border-top: 0; }
 
-/* The ledger: the other four lines, ruled, each with its receipts beside it. */
+/* Ask, the second screen: what was asked in mono, the answer in the twin's voice, the readings it cites beside it. */
+.ld-ask .ld-q { font-family: 'Geist Mono', ui-monospace, monospace; font-size: 14px; line-height: 20px; letter-spacing: 0.02em; color: var(--grey); }
+.ld-ask .ld-voice { margin-top: 18px; max-width: 26ch; text-wrap: balance; text-indent: -0.38em; hyphens: manual; }
+.ld-cites { padding-top: 6px; display: flex; flex-direction: column; gap: 14px; }
+.ld-cite { font-size: 16px; line-height: 24px; color: var(--ink); }
+.ld-cite .ld-mono { display: block; margin-top: 2px; color: var(--grey); }
+
+/* The ledger: the other four lines, in the twin's voice, each with its receipts. */
+.ld-ledger { padding-top: 48px; }
 .ld-sig { padding: 40px 0 48px; border-top: 1px solid var(--line); opacity: 0; transform: translateY(14px); transition: opacity 800ms var(--ease), transform 800ms var(--ease); }
 .ld-sig.is-in { opacity: 1; transform: none; }
 .ld-sig .ld-label { display: block; }
-.ld-sig p { margin-top: 10px; }
+.ld-sig p { margin-top: 10px; max-width: 30ch; }
 .ld-sig .ld-receipts { padding-top: 28px; }
 
-/* Every section after the ledger is ruled the same way. */
-.ld-sect { padding: 96px 0 48px; border-top: 1px solid var(--line); }
-.ld-sect.ld-how { padding-bottom: 48px; border-top: 2px solid rgba(0, 0, 0, 0.22); }
-.ld-sect > .ld-rise:last-child, .ld-sect > .ld-row:last-child { margin-bottom: 0; }
-.ld-sect .ld-lead { margin-top: 12px; max-width: 52ch; }
-.ld-caption { margin-top: 16px; font-size: 15px; line-height: 22px; color: var(--grey); max-width: 60ch; }
-
-/* The one photograph: sharp, the room at blue hour, the sheet on the window's light. */
-.ld-panel { position: relative; width: 100%; margin: 0; border-radius: var(--r); overflow: hidden; height: 640px; display: flex; align-items: flex-end; justify-content: center; padding: 40px; isolation: isolate; transform: translateZ(0); }
-.ld-panel > img { position: absolute; inset: 0; width: 100%; max-width: none; height: 100%; object-fit: cover; object-position: 50% 48%; z-index: -1; }
-.ld-frost { width: min(480px, 100%); color: var(--ink); background: var(--frost); border: 1px solid var(--frost-line); -webkit-backdrop-filter: blur(18px) saturate(1.1); backdrop-filter: blur(18px) saturate(1.1); border-radius: 22px; padding: 20px 22px 20px; display: flex; flex-direction: column; gap: 14px; --grey: #3f3d3b; }
-.ld-frost .ld-receipts { gap: 8px; }
-.ld-frost .ld-receipt { font-size: 15px; line-height: 22px; grid-template-columns: 52px 1fr; opacity: 0; transform: translateY(6px); transition: opacity 520ms var(--ease), transform 520ms var(--ease); }
-.ld-frost .ld-receipt.is-in { opacity: 1; transform: none; }
-.ld-reading { color: var(--ink); font-size: 24px; line-height: 32px; font-weight: 300; letter-spacing: -0.02em; text-wrap: pretty; opacity: 0; transform: translateY(6px); transition: opacity 560ms var(--ease), transform 560ms var(--ease); }
-.ld-reading.is-in { opacity: 1; transform: none; }
-.ld-foot { font-weight: 400; display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-size: 13px; line-height: 20px; white-space: nowrap; }
-.ld-frost .ld-became { border-top: 1px solid rgba(10, 10, 10, 0.14); padding-top: 12px; font-size: 15px; line-height: 22px; font-weight: 400; letter-spacing: 0; color: var(--ink); text-wrap: pretty; }
-.ld-frost .ld-became b { display: block; font-weight: 400; font-size: 13px; line-height: 20px; color: var(--grey); margin-bottom: 2px; }
-.ld-foot .ld-mono { color: var(--ink); font-size: 13px; line-height: 20px; }
-.ld-foot a { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
-.ld-foot a:hover { color: var(--ink); }
-
-/* Ask: the question in the lead size, the answer in the twin's voice. */
-.ld-ask .ld-q { margin-top: 0; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 14px; line-height: 20px; letter-spacing: 0.02em; color: var(--grey); }
-.ld-ask .ld-voice { margin-top: 20px; max-width: 30ch; }
-.ld-cites { padding-top: 30px; display: flex; flex-direction: column; gap: 14px; }
-.ld-cite { font-size: 16px; line-height: 24px; color: var(--ink); }
-.ld-cite .ld-mono { display: block; margin-top: 2px; color: var(--grey); }
-.ld-ask .ld-meta { margin-top: 22px; }
-
-/* Sources as a sentence; the privacy statement in words. */
+/* Sources as a sentence; what is never read, with the weight. */
 .ld-sources .ld-names { margin-top: 12px; max-width: 34ch; color: var(--grey); }
 .ld-sources .ld-privacy { margin-top: 12px; max-width: 34ch; color: var(--ink); }
 
-/* The end: one line, the one action. */
-.ld-close { padding: 96px 0 56px; border-top: 1px solid var(--line); }
-.ld .ld-close h2 { font-size: 56px; line-height: 60px; letter-spacing: -0.04em; }
-.ld-close .ld-cta { margin-top: 32px; display: flex; align-items: center; gap: 22px; }
-.ld-close small { color: var(--grey); font-weight: 400; font-size: 15px; line-height: 20px; }
-.ld-footer { display: flex; justify-content: space-between; align-items: center; padding: 20px 0 28px; border-top: 1px solid var(--line); font-size: 13px; line-height: 20px; color: var(--grey); }
+/* The close: the room again, one line, the one button on glass. */
+.ld-stage--close { margin-top: 96px; height: clamp(520px, 70vh, 680px); }
+.ld-stage--close > img { object-position: 30% 55%; }
+.ld-stage--close .ld-col { bottom: 56px; }
+.ld-stage--close h2 { max-width: 20ch; text-shadow: 0 1px 24px rgba(0, 0, 0, 0.25); }
+.ld-stage--close .ld-glass { display: inline-flex; align-items: center; gap: 18px; margin-top: 28px; padding: 10px 18px 10px 10px; border-radius: 999px; }
+.ld-stage--close small { color: rgba(255, 255, 255, 0.8); font-size: 15px; line-height: 20px; white-space: nowrap; }
+.ld-footer { display: flex; justify-content: space-between; align-items: center; padding: 20px 0 28px; font-size: 13px; line-height: 20px; color: var(--grey); }
 .ld-footer nav { display: flex; gap: 20px; }
 .ld-footer a:hover { color: var(--ink); }
+
+.ld-phone-only { display: none; }
 
 /* Arrival: one rise, once, when a thing enters the viewport. */
 .ld-rise { opacity: 0; transform: translateY(16px); transition: opacity 800ms var(--ease), transform 800ms var(--ease); }
@@ -158,38 +150,36 @@ html:has(main.ld), body:has(main.ld), #root:has(main.ld) { background: #ffffff; 
 @media (prefers-reduced-motion: reduce) {
   .ld-pre { display: none; }
   .ld-sheet.is-entering { animation: none; }
-  .ld-rise, .ld-frost .ld-receipt, .ld-reading, .ld-sig { opacity: 1; transform: none; transition: none; }
+  .ld-rise, .ld-sig { opacity: 1; transform: none; transition: none; }
   .ld .ld-pill, .ld-nav-right a { transition: none; }
 }
 
 @media (max-width: 720px) {
   .ld { --col: calc(100% - 48px); }
-  .ld .ld-close h2 { text-wrap: balance; font-size: 34px; line-height: 40px; }
-  .ld-hero h1 { text-wrap: balance; }
   .ld .ld-br { display: inline; }
   .ld .ld-br::before { content: ' '; }
-  .ld .ld-d1 { font-size: 40px; line-height: 44px; letter-spacing: -0.035em; }
-  .ld .ld-d2 { font-size: 30px; line-height: 36px; letter-spacing: -0.03em; }
+  .ld .ld-v1 { font-size: 46px; line-height: 50px; }
+  .ld .ld-v2 { font-size: 36px; line-height: 42px; }
+  .ld .ld-v3 { font-size: 40px; line-height: 44px; }
   .ld .ld-lead { font-size: 19px; line-height: 27px; }
-  .ld .ld-voice { font-size: 34px; line-height: 40px; }
   .ld-nav { height: 60px; }
-  .ld-row { grid-template-columns: 1fr; row-gap: 24px; }
-  .ld-hero { padding: 108px 0 40px; }
-  .ld-hero .ld-row { margin-top: 24px; }
+  .ld-stage { margin-top: 60px; height: clamp(560px, calc(100vh - 60px), 760px); }
+  .ld-stage::after { background: linear-gradient(to top, rgba(0, 0, 0, 0.62) 0%, rgba(0, 0, 0, 0.28) 50%, rgba(0, 0, 0, 0) 75%); }
+  .ld-stage .ld-col { bottom: 28px; }
+  .ld-stage h1 { text-wrap: balance; }
+  .ld-stage .ld-row { margin-top: 20px; }
+  .ld-stage .ld-glass { display: none; }
+  .ld-row { grid-template-columns: 1fr; row-gap: 22px; }
   .ld-receipt { font-size: 15px; line-height: 22px; grid-template-columns: 48px 1fr; }
+  .ld-sect { padding: 64px 0 40px; }
+  .ld-hero-receipts { padding: 28px 0 0; }
+  .ld-phone-only { display: block; }
+  .ld-cites { padding-top: 0; }
   .ld-sig { padding: 28px 0 32px; }
   .ld-sig .ld-receipts { padding-top: 0; }
-  .ld-cites { padding-top: 0; }
-  .ld-sources .ld-privacy { margin-top: 12px; }
-  .ld-sect { padding-top: 64px; }
-  .ld-panel { height: 760px; padding: 12px; border-radius: 24px; margin-top: 28px; align-items: flex-end; }
-  .ld-panel > img { left: -20%; width: 140%; object-position: 50% 40%; }
-  .ld-frost { padding: 16px 16px; gap: 12px; }
-  .ld-reading { font-size: 21px; line-height: 28px; }
-  .ld-foot { font-size: 11px; }
-  .ld-foot .ld-mono { font-size: 11px; }
-  .ld-close { padding: 64px 0 48px; }
-  .ld-close .ld-cta { flex-wrap: wrap; gap: 14px 22px; }
+  .ld-stage--close { margin-top: 64px; height: clamp(440px, 60vh, 560px); }
+  .ld-stage--close .ld-glass { display: inline-flex; }
+  .ld-stage--close small { display: none; }
   .ld-pre p { font-size: 26px; line-height: 32px; }
   .ld-footer { flex-direction: column; gap: 12px; align-items: flex-start; }
 }
