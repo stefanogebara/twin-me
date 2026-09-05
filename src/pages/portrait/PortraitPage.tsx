@@ -87,6 +87,12 @@ function useTyped(text: string, cps: number, enabled: boolean) {
   return { shown: text.slice(0, n), done: n >= text.length };
 }
 
+/** "11 Aug" from an ISO date: a receipt is dated the way a person says a day. */
+function spokenDay(iso: string) {
+  const d = new Date(`${iso.slice(0, 10)}T00:00:00Z`);
+  return Number.isNaN(d.getTime()) ? iso.slice(0, 10) : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+}
+
 /** A receipt as the front door shows one: source and day over the event. */
 function ReceiptRow({ e, i }: { e: Evidence; i: number }) {
   return (
