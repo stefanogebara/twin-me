@@ -559,3 +559,32 @@ not a data gap.
   shadows jsdom's storage. Fixed for the whole suite in
   `tests/setup/browserStorage.ts`. A test that always fails trains everyone to
   ignore the one that starts failing.
+
+## 2026-09-05 — "AI slop": glitches are measurable, so measure them
+
+The complaint was gradients, glitches and layout. The gradients were a style
+choice already gone; the glitches and the layout were things a script could
+count. What worked, in order:
+
+- **Sample the transition, not the end state.** A `requestAnimationFrame`
+  loop reading `getBoundingClientRect()` for ~900ms after a click gives the
+  height per frame. A jump cut is one frame with a step of hundreds of
+  pixels; a good glide is forty distinct heights, monotone, frames 11–14ms
+  apart. Screenshots of end states cannot tell the two apart.
+- **Nothing changes size without animating that size.** The glass is a
+  FLIP box (pin the old height, transition to the new); the ledger rows fold
+  by `grid-template-rows: 0fr → 1fr`. Three traps found by the numbers, not
+  by eye: the box's border is outside the content it measures (a 2px snap at
+  both ends); children's `transitionend` bubbles up and ends the glide early
+  (guard on `e.target` and `propertyName`); content unmounted before the fold
+  closes makes the close start from the wrong height (keep it mounted ~400ms).
+- **A fixed frame beats a growing one.** With the stage at 16:10 and the
+  glass centred in it, switching scenes moves nothing below the stage. But
+  `min-height: 0` on an `aspect-ratio` box disables the automatic minimum
+  that lets it grow to taller content: on the phone the glass was clipped to
+  a fifth of its height. `overflow: clip`, never `hidden`, for the same
+  reason (a scroll container does not grow either).
+- **Integer type.** Every fractional `line-height` (1.4 × 15 = 21px, but
+  1.45 × 14 = 20.3) puts text on half pixels. Set line heights in px.
+- **The Browser pane screenshots black when the pane is hidden**; the page is
+  fine. Playwright paints regardless, so proof stills come from there.

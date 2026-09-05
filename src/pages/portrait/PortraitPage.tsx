@@ -50,6 +50,9 @@ const STATE_LABEL: Record<ReadingState, string> = {
 
 const VERDICT_LABEL: Record<Exclude<Verdict, null>, string> = { true: 'That is me', partly: 'Partly', wrong: 'Not me' };
 
+/** Prompts for Ask when the data carries none of its own. They only prefill the question. */
+const DEFAULT_HINTS = ['What do I do when work piles up?', 'Am I resting enough?', 'Who do I actually talk to?'];
+
 /** One easing for every size change on the page: quick out of the gate, long settle. */
 const EASE = 'cubic-bezier(0.32, 0.72, 0, 1)';
 const GROW_MS = 460;
@@ -111,21 +114,35 @@ function AnimatedHeight({ children, className, reduced, duration = GROW_MS }: { 
   const settle = useRef<(() => void) | null>(null);
 
   const glide = (o: HTMLDivElement, from: number, to: number) => {
+    // Mid-glide, start from where the box is now, not from where it was going.
+    const start = settle.current ? o.getBoundingClientRect().height : from;
     settle.current?.();
+    if (document.hidden) return; // a hidden tab does not run transitions; leave the height alone
     o.style.transition = 'none';
-    o.style.height = `${from}px`;
+    o.style.height = `${start}px`;
     void o.offsetHeight; // commit the pinned height before the transition starts
     o.style.transition = `height ${duration}ms ${EASE}`;
     o.style.height = `${to}px`;
-    const done = () => { o.style.transition = ''; o.style.height = ''; o.removeEventListener('transitionend', done); settle.current = null; };
-    settle.current = done;
+    let timer = 0;
+    const done = (e?: TransitionEvent) => {
+      // Children's transitions bubble here; only the box's own height ends the glide.
+      if (e && (e.target !== o || e.propertyName !== 'height')) return;
+      window.clearTimeout(timer);
+      o.style.transition = ''; o.style.height = ''; o.removeEventListener('transitionend', done); settle.current = null;
+    };
+    settle.current = () => done();
     o.addEventListener('transitionend', done);
+    // If the end event never comes (tab hidden mid-glide), the pinned height still lets go.
+    timer = window.setTimeout(() => done(), duration + 120);
   };
+
+  // The box's own border is outside the content it measures; the target includes it.
+  const target = (o: HTMLDivElement, i: HTMLDivElement) => Math.round(i.getBoundingClientRect().height) + (o.offsetHeight - o.clientHeight);
 
   useLayoutEffect(() => {
     const o = outer.current; const i = inner.current;
     if (!o || !i) return;
-    const next = Math.round(i.getBoundingClientRect().height);
+    const next = target(o, i);
     const prev = last.current;
     last.current = next;
     if (prev === null || prev === next || reduced) return;
@@ -136,7 +153,7 @@ function AnimatedHeight({ children, className, reduced, duration = GROW_MS }: { 
     const o = outer.current; const i = inner.current;
     if (!o || !i || typeof ResizeObserver === 'undefined') return;
     const ro = new ResizeObserver(() => {
-      const next = Math.round(i.getBoundingClientRect().height);
+      const next = target(o, i);
       const prev = last.current;
       last.current = next;
       if (prev === null || prev === next || reduced) return;
@@ -172,16 +189,24 @@ function useSceneCross(scene: Scene, reduced: boolean) {
   return { shown, leaving };
 }
 
+/** The first words of a line, cut at a word, for a chip that names the reading it opens. */
+function shortLine(text: string, max = 36) {
+  if (text.length <= max) return text;
+  const cut = text.slice(0, max);
+  const at = cut.lastIndexOf(' ');
+  return `${(at > 12 ? cut.slice(0, at) : cut).replace(/[,;:.]$/, '')}\u2026`;
+}
+
 /** "11 Aug" from an ISO date: a receipt is dated the way a person says a day. */
 function spokenDay(iso: string) {
   const d = new Date(`${iso.slice(0, 10)}T00:00:00Z`);
   return Number.isNaN(d.getTime()) ? iso.slice(0, 10) : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
 }
 
-/** A receipt as the front door shows one: source and day over the event. */
-function ReceiptRow({ e, i }: { e: Evidence; i: number }) {
+/** A receipt as the front door shows one: source and day over the event. `pace` is the ms between arrivals. */
+function ReceiptRow({ e, i, pace = 110 }: { e: Evidence; i: number; pace?: number }) {
   return (
-    <div className="pc-demo-row is-in pc-pt-arrive" style={{ animationDelay: `${i * 110}ms` }}>
+    <div className="pc-demo-row is-in pc-pt-arrive" style={{ animationDelay: `${i * pace}ms` }}>
       <span>{SOURCE_LABEL[e.source] ?? e.source} · {spokenDay(e.at)}</span>
       <p>{e.event}</p>
     </div>
@@ -193,6 +218,13 @@ function ReadingRow({ reading, now, verdict, onVerdict, open, onToggle, lit }: {
 }) {
   const state = deriveState({ ...reading, verdict }, now);
   const age = daysSince(reading.supportedAt, now);
+  // Receipts stay in the tree while the fold closes, so the height it animates from is the height it had.
+  const [mounted, setMounted] = useState(open);
+  useEffect(() => {
+    if (open) { setMounted(true); return; }
+    const t = window.setTimeout(() => setMounted(false), 420);
+    return () => window.clearTimeout(t);
+  }, [open]);
   return (
     <article className={`pc-pt-row ${open ? 'is-open' : ''} ${lit ? 'is-lit' : ''}`} id={`reading-${reading.id}`}>
       <button type="button" className="pc-pt-row-head" onClick={onToggle} aria-expanded={open}>
@@ -206,7 +238,7 @@ function ReadingRow({ reading, now, verdict, onVerdict, open, onToggle, lit }: {
         <div className="pc-pt-row-fold-inner">
           <div className="pc-pt-row-body">
             <div className="pc-demo-log" aria-label="Evidence">
-              {open ? reading.evidence.map((e, i) => <ReceiptRow key={i} e={e} i={i} />) : null}
+              {mounted ? reading.evidence.map((e, i) => <ReceiptRow key={i} e={e} i={i} pace={40} />) : null}
             </div>
             <div className="pc-pt-verdict" role="group" aria-label="Your verdict">
               <small>{verdict ? 'Your verdict' : 'Not yet reviewed'}</small>
@@ -360,12 +392,12 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
               {shown === 'ask' ? (
                 <div className="pc-demo-scene" key="ask">
                   <form className={`pc-demo-ask ${reply || asking ? 'is-sent' : ''}`} onSubmit={(e) => { e.preventDefault(); void ask(query); }}>
-                    <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Ask your twin. It answers with what it read." aria-label="Ask your twin" />
+                    <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Ask your twin." aria-label="Ask your twin" />
                     <button type="submit" aria-label="Ask"><ArrowUp size={16} /></button>
                   </form>
                   {!reply && !asking ? (
                     <div className="pc-demo-chips is-in pc-pt-hints">
-                      {data.ask.map((s) => <button key={s.q} type="button" onClick={() => { setQuery(s.q); void ask(s.q); }}>{s.q}</button>)}
+                      {(data.ask.length ? data.ask.map((s) => s.q) : DEFAULT_HINTS).map((q) => <button key={q} type="button" onClick={() => { setQuery(q); void ask(q); }}>{q}</button>)}
                     </div>
                   ) : null}
                   {asking ? (
@@ -377,7 +409,15 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
                       <p>{twin.shown}{!twin.done ? <i className="pc-demo-caret" /> : null}</p>
                       <div className={`pc-demo-chips ${twin.done ? 'is-in' : ''}`}>
                         {reply.cites.length
-                          ? reply.cites.map((id, i) => <button key={id} type="button" onClick={() => jumpTo(id)}>Reading {i + 1}</button>)
+                          ? reply.cites.map((id) => {
+                            const r = byId.get(id);
+                            if (!r) return null;
+                            return (
+                              <button key={id} type="button" onClick={() => jumpTo(id)} aria-label={`Open the reading: ${r.text}`}>
+                                <i style={{ background: DOMAIN_HUE[r.domain] }} aria-hidden="true" />{shortLine(r.text)}
+                              </button>
+                            );
+                          })
                           : <b>Nothing it read supports more than this</b>}
                       </div>
                     </div>
@@ -403,7 +443,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
                     ))}
                   </div>
                   <div className="pc-demo-chips is-in pc-pt-arrive" style={{ animationDelay: `${signature.length * 120 + 80}ms` }}>
-                    <b><Check size={13} /> Read from {sourceCount} source{sourceCount === 1 ? '' : 's'}</b>
+                    <b><Check size={13} /> {signature.reduce((n, s) => n + s.receipts, 0)} receipts behind {signature.length} lines</b>
                     <b>Nothing self-reported</b>
                   </div>
                 </div>

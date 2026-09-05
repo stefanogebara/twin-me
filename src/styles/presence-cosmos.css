@@ -4323,16 +4323,20 @@ button.pc-search-icons {
   to { opacity: 1; transform: none; }
 }
 
-/* The stage sizes to the glass, so a scene change moves one edge: the bottom. */
+/* The stage is a fixed frame, 16:10 of its own width, and the glass floats in its
+   centre: a scene change breathes inside the photograph and moves nothing below it.
+   The frame is a min-height in container units rather than an aspect-ratio, because
+   Chrome will not grow an aspect-ratio box to content that is taller than the ratio
+   (measured: a 902px glass left the stage at 730). A taller glass grows this one. */
+.pc-portrait .pc-pt-stage-wrap { container-type: inline-size; }
+
 .pc-portrait .pc-pt-stage {
   aspect-ratio: auto;
-  min-height: 0;
-  padding: 48px 24px;
-  display: block;
-}
-
-.pc-portrait .pc-pt-stage > .pc-pt-glass {
-  margin: 0 auto;
+  min-height: calc(min(1168px, 100cqw) * 0.625);
+  padding: 24px;
+  display: grid;
+  place-items: center;
+  overflow: clip;
 }
 
 /* The still drifts a little, forty seconds out and forty back. */
@@ -4434,6 +4438,13 @@ button.pc-search-icons {
   transition: transform 320ms cubic-bezier(0.32, 0.72, 0, 1);
 }
 
+/* Inside a fold, receipts are already there as it opens: quick, tight arrivals. */
+.pc-portrait .pc-pt-row-body .pc-pt-arrive { animation-duration: 260ms; }
+
+/* A citation chip carries its reading's hue. */
+.pc-portrait .pc-demo-chips button { gap: 7px; }
+.pc-portrait .pc-demo-chips button i { width: 6px; height: 6px; border-radius: 50%; flex: none; }
+
 /* Presses register: a small settle, never a bounce. */
 .pc-portrait .pc-demo-chips button,
 .pc-portrait .pc-demo-tab,
@@ -4469,3 +4480,8 @@ button.pc-search-icons {
 
 /* The nav sits on the stage's edge, not on the readings column's. */
 .pc-pt-nav { max-width: min(1168px, calc(100% - 48px)); }
+
+/* The door stands off the last source card and reads as the page's one action. */
+.presence-cosmos .pc-pt-source-door { margin: 28px 0 0; font-size: 17px; font-weight: 500; letter-spacing: -0.02em; }
+.presence-cosmos .pc-pt-source-door a { color: var(--c-ink); }
+.presence-cosmos .pc-pt-source-door a:hover { opacity: 0.7; }
