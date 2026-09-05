@@ -88,7 +88,7 @@ function sourceName(key: string) { return SOURCE_LABEL[key] ?? key; }
 
 /** A short last word never sits alone on a line, and a hyphenated word never breaks at its hyphen. */
 function tidy(text: string) {
-  return text.replace(/(\w)-(\w)/g, '$1\u2011$2').replace(/(\d) (?=[a-z])/g, '$1\u00a0').replace(/ (\S+)$/, '\u00a0$1');
+  return text.replace(/(\w)-(\w)/g, '$1\u2011$2').replace(/(\d) (?=[a-z])/g, '$1\u00a0').replace(/ (\S{1,4})$/, '\u00a0$1');
 }
 
 /** Two receipts about the same thing count as the same receipt, however the engine phrased the second. */
@@ -152,36 +152,40 @@ function Rise({ as: Tag = 'div', className = '', children, delay = 0 }: { as?: '
 /** "12 receipts · GitHub, Gmail": the one provenance format on the page. */
 function provenance(count: number, sources: string[], shown?: number) { return `${shown !== undefined && shown < count ? `${shown} of ${count}` : count} receipts · ${sources.join(', ')}`; }
 
-/** Receipt rows: the day is written once, the way a ledger does, and blank while it stays the same. */
+/** Every receipt behind a line, plain ones only, in the order they happened. The spine of the page. */
 function ReceiptRows({ rows }: { rows: Evidence[] }) {
   return (
     <div className="ld-receipts">
       {rows.map((e, i) => (
-        <div key={i} className="ld-receipt">
-          <b className={i > 0 && rows[i - 1].at.slice(0, 10) === e.at.slice(0, 10) ? 'is-same' : undefined}>{day(e.at)}</b><span>{tidy(e.event)}</span>
-        </div>
+        <div key={i} className="ld-receipt"><b>{day(e.at)}</b><span>{tidy(e.event)}</span></div>
       ))}
     </div>
   );
 }
 
+function allReceipts(evidence: Evidence[]) {
+  const seen = new Set<string>();
+  return evidence.filter(plain).filter((e) => { const k = receiptKey(e) + e.at.slice(0, 10); if (seen.has(k)) return false; seen.add(k); return true; }).sort((a, b) => a.at.localeCompare(b.at));
+}
+
 function Receipts({ evidence, sources, label }: { evidence: Evidence[]; sources: string[]; label?: string }) {
+  const rows = allReceipts(evidence);
   return (
     <div aria-label={label ?? 'Read from'}>
-      <ReceiptRows rows={spread(evidence)} />
-      <span className="ld-meta ld-mono">{provenance(evidence.length, sources, Math.min(3, evidence.length))}</span>
+      <ReceiptRows rows={rows} />
+      <span className="ld-meta ld-mono">{provenance(rows.length, sources)}</span>
     </div>
   );
 }
 
-function LedgerRow({ domain, i }: { domain: Domain; i: number }) {
+function LedgerRow({ domain, i, above = false }: { domain: Domain; i: number; above?: boolean }) {
   const { ref, inView } = useInView<HTMLDivElement>();
   const b = behind(domain);
   return (
-    <div ref={ref} className={`ld-sig ld-row ${inView ? 'is-in' : ''}`} style={{ transitionDelay: `${i * 60}ms` }}>
+    <div ref={ref} className={`ld-entry ld-row ${inView ? 'is-in' : ''}`} style={{ transitionDelay: `${i * 60}ms` }}>
       <div>
-        <span className="ld-label">{DOMAIN_LABEL[domain]}</span>
-        <p className="ld-v2"><Line domain={domain} /></p>
+        <span className="ld-label">{DOMAIN_LABEL[domain]}{above ? ' · the line above' : ''}</span>
+        {above ? null : <p className="ld-v2">{LINES[domain].join(' ')}</p>}
       </div>
       <Receipts evidence={b.evidence} sources={b.sources} />
     </div>
@@ -204,7 +208,6 @@ export default function Landing() {
   }, []);
 
   const first = behind('motivation');
-  const firstReceipts = spread(first.evidence);
   const ask = DEMO_PORTRAIT.ask[1] ?? DEMO_PORTRAIT.ask[0];
   const askCited = ask.cites.map((id) => DEMO_PORTRAIT.readings.find((r) => r.id === id)).filter(Boolean) as Reading[];
   const rest = DEMO_PORTRAIT.signature.map((s) => s.domain).filter((d) => d !== 'motivation');
@@ -222,6 +225,11 @@ export default function Landing() {
         </div>
       ) : null}
       <main className={`ld ld-sheet ${pre.animateSheet ? 'is-entering' : ''}`} id="main-content">
+        {/* The one photograph, behind everything. */}
+        <div className="ld-ground" aria-hidden="true">
+          <img src="/images/twinme/cosmos-08-window.jpg" alt="" />
+        </div>
+
         <header className="ld-nav">
           <div className="ld-col">
             <Link to="/" className="ld-brand" aria-label="TwinMe home">TwinMe</Link>
@@ -231,35 +239,32 @@ export default function Landing() {
           </div>
         </header>
 
-        {/* The room, and the first line of the portrait set in it. */}
+        {/* The first line of the portrait, set in the room. */}
         <section className="ld-stage" aria-label={`${DEMO_PORTRAIT.owner}'s portrait, first line`}>
-          <img src="/images/twinme/cosmos-08-window.jpg" alt="A room at blue hour: a lamp lit, the window still light" />
           <div className="ld-col">
             <p className="ld-label">{DEMO_PORTRAIT.owner}&rsquo;s portrait · {DOMAIN_LABEL.motivation}</p>
             <h1 className="ld-v1"><Line domain="motivation" /></h1>
             <div className="ld-row">
               <div>
-                <p className="ld-lead ld-dek">A portrait of you, read from your days. This one is {DEMO_PORTRAIT.owner}&rsquo;s, from {readSources} sources since {sinceMonth}. Every line shows its evidence.</p>
+                <p className="ld-lead ld-dek">A portrait of you, read from your days. This one is {DEMO_PORTRAIT.owner}&rsquo;s, from {readSources} sources since {sinceMonth}. Every line shows its evidence, below.</p>
                 <p className="ld-cta"><Link to={DEMO} className="ld-link">Read {DEMO_PORTRAIT.owner}&rsquo;s portrait<span className="ld-arrow" aria-hidden="true">&#8594;</span></Link></p>
               </div>
-              <div className="ld-glass" aria-label="Read from">
-                <ReceiptRows rows={firstReceipts} />
-                <span className="ld-meta ld-mono">{provenance(first.evidence.length, first.sources, firstReceipts.length)}</span>
-              </div>
+              <p className="ld-since ld-mono">{allReceipts(first.evidence).length} receipts behind this line · {first.sources.join(', ')}</p>
             </div>
           </div>
         </section>
-        {/* On a phone the receipts leave the room and sit on paper, where they can be read. */}
-        <section className="ld-col ld-hero-receipts ld-phone-only" aria-label="Read from">
-          <ReceiptRows rows={firstReceipts} />
-          <span className="ld-meta ld-mono">{provenance(first.evidence.length, first.sources, firstReceipts.length)}</span>
-        </section>
 
-        {/* The second screen: the twin answering as you. */}
-        <Rise as="section" className="ld-sect ld-ask ld-col">
-          <div className="ld-row">
+        {/* The document, lifted onto one frosted panel over the room. */}
+        <div className="ld-paper">
+          <section aria-label="The portrait, with its evidence">
+            <LedgerRow domain="motivation" i={0} above />
+            {rest.map((d, i) => <LedgerRow key={d} domain={d} i={i + 1} />)}
+          </section>
+
+          <Rise as="section" className="ld-entry ld-ask ld-row">
             <div>
-              <p className="ld-q">Asked: {ask.q}</p>
+              <p className="ld-label">Asked</p>
+              <p className="ld-q">{ask.q}</p>
               <p className="ld-voice ld-v2"><q>{tidy(ask.a)}</q></p>
             </div>
             <div className="ld-cites" aria-label="What it cites">
@@ -270,16 +275,9 @@ export default function Landing() {
                 </div>
               ))}
             </div>
-          </div>
-        </Rise>
+          </Rise>
 
-        {/* The other four lines, each with its receipts. */}
-        <section className="ld-ledger ld-col" aria-label="The other four lines">
-          {rest.map((d, i) => <LedgerRow key={d} domain={d} i={i} />)}
-        </section>
-
-        <Rise as="section" className="ld-sect ld-sources ld-col">
-          <div className="ld-row">
+          <Rise as="section" className="ld-entry ld-sources ld-row">
             <div>
               <p className="ld-label">Reads from</p>
               <p className="ld-lead ld-names">{sourcesSentence}.</p>
@@ -288,20 +286,17 @@ export default function Landing() {
               <p className="ld-label">Never read</p>
               <p className="ld-lead ld-privacy">Messages, photos and location. Delete a source, and everything read from it goes with it.</p>
             </div>
+          </Rise>
+        </div>
+
+        {/* The ending, on the room. */}
+        <Rise as="section" className="ld-close ld-col">
+          <h2 className="ld-v0">See what your days&nbsp;say.</h2>
+          <div className="ld-cta">
+            <Link to={START} className="ld-pill">Read my portrait</Link>
+            <small>One source is enough to begin.</small>
           </div>
         </Rise>
-
-        {/* The room again, and the one action, on glass. */}
-        <section className="ld-stage ld-stage--close" aria-label="Begin">
-          <img src="/images/twinme/cosmos-08-window.jpg" alt="" aria-hidden="true" />
-          <div className="ld-col">
-            <h2 className="ld-v3">See what&nbsp;your days say.</h2>
-            <div className="ld-glass">
-              <Link to={START} className="ld-pill ld-pill--light">Read my portrait</Link>
-              <small>One source is enough to begin.</small>
-            </div>
-          </div>
-        </section>
 
         <footer className="ld-footer ld-col">
           <span>TwinMe, 2026</span>
