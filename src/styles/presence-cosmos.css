@@ -5280,3 +5280,30 @@ button.pc-search-icons {
   .pc-pt-signature, .pc-pt-ask, .pc-pt-sources { margin-top: 64px; }
   .presence-cosmos .pc-pt-line-head .pc-pt-sentence { font-size: 26px; }
 }
+
+/* ---- Round sixteen ------------------------------------------------------ */
+
+/* The section eyebrow and the row label sit on different levels. */
+.presence-cosmos .pc-pt-panel-mark .pc-pt-q-mark { color: var(--c-on); }
+.presence-cosmos .pc-pt-line-head .pc-pt-label { color: rgba(var(--c-on-rgb), 0.55); font-size: 10px; }
+
+/* One axis for the panel: the first row carries the ends, the rest carry marks. */
+.pc-pt-line + .pc-pt-line .pc-pt-ticks-ends { display: none; }
+
+/* The label column fits its caps; the statement has room before the proof. */
+.pc-portrait .pc-pt-line-head { grid-template-columns: 124px minmax(0, 1fr) 264px; gap: 8px 40px; }
+
+/* The Ask lead breaks where its sentences do. */
+.presence-cosmos .pc-pt-ask-lead { max-width: 42ch; }
+
+/* The number does not out-shout the name. */
+.pc-portrait .pc-pt-source-count { font-size: 18px; }
+
+@media (max-width: 760px) {
+  .pc-portrait .pc-pt-line-head { grid-template-columns: 1fr; gap: 8px 0; }
+  /* The placeholder was clipped under the arrow. */
+  .pc-pt-ask .pc-pt-prompt { padding: 12px 10px 12px 18px; gap: 8px; }
+  .presence-cosmos .pc-pt-prompt input { font-size: 16px; }
+  /* Pills size to their words. */
+  .pc-portrait .pc-pt-choices button { flex: 0 1 auto; padding: 0 16px; }
+}
