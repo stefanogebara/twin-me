@@ -368,7 +368,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
         </header>
         <div className="pc-cine-body pc-cine-body--stack">
           <div className="pc-cine-copy">
-            <p className="pc-cine-kicker animate-fade-rise">{data.owner}&rsquo;s portrait, read from {sourceCount} source{sourceCount === 1 ? '' : 's'}</p>
+            <p className="pc-cine-kicker animate-fade-rise">{banner ? `${data.owner}’s` : 'Your'} portrait, read from {sourceCount} source{sourceCount === 1 ? '' : 's'}</p>
             <h1 className="pc-cine-h1 animate-fade-rise-delay"><CineLine text={lead ?? `${data.owner}.`} /></h1>
           </div>
           <div className="pc-cine-panel animate-fade-rise-delay-2">
@@ -455,10 +455,10 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
               {shown === 'signature' ? (
                 <div className="pc-demo-scene" key="signature">
                   <div className="pc-demo-sig pc-pt-sig">
-                    {signature.map((s, i) => (
+                    {signature.filter((s) => s.line !== lead).map((s, i) => (
                       <div key={s.domain} className="pc-pt-sig-item pc-pt-arrive" style={{ animationDelay: `${i * 120}ms` }}>
                         <div className="pc-demo-sig-row is-in">
-                          <span><i style={{ background: DOMAIN_HUE[s.domain] }} />{DOMAIN_LABEL[s.domain]}</span>
+                          <span>{DOMAIN_HEAD[s.domain]}</span>
                           <small>
                             {s.sources.join(', ')}
                             {s.from[0] ? <> · <button type="button" className="pc-pt-sig-jump" onClick={() => jumpTo(s.from[0].id)} aria-label={`Open the reading behind ${DOMAIN_LABEL[s.domain]}`}>{s.receipts} receipt{s.receipts === 1 ? '' : 's'}</button></> : null}
@@ -469,7 +469,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
                     ))}
                   </div>
                   <p className="pc-pt-sig-foot pc-pt-arrive" style={{ animationDelay: `${signature.length * 120 + 80}ms` }}>
-                    {signature.reduce((n, s) => n + s.receipts, 0)} receipts behind {signature.length} lines. Nothing self-reported.
+                    {signature.reduce((n, s) => n + s.receipts, 0)} receipts behind {signature.length} lines, the headline among them. Nothing self-reported.
                   </p>
                 </div>
               ) : null}
@@ -483,6 +483,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
       <div className="pc-pt-paper-panel">
       <section className="pc-pt-ledger" id="readings" aria-labelledby="pc-pt-ledger-title">
         <h2 id="pc-pt-ledger-title" className="pc-h2 pc-h2--sm pc-pt-head">The readings</h2>
+        <p className="pc-pt-head-note">Each line keeps its receipts: what was read, how often, over how many days. Open one to see them.</p>
         {groups.map((g) => (
           <div key={g.domain} className="pc-pt-group">
             <p className="pc-pt-run">{DOMAIN_HEAD[g.domain]}</p>
@@ -510,12 +511,9 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
           <div className="pc-pt-src-stanza">
             <dl className="pc-pt-src-grid">
               {[...readSources].sort((a, b) => (parseInt(b.read, 10) || 0) - (parseInt(a.read, 10) || 0)).map((s) => (
-                <div key={s.platform}><dt>{s.label}</dt><dd>{parseInt(s.read, 10) || 0}</dd></div>
+                <div key={s.platform}><dt>{s.label}</dt><dd>{parseInt(s.read, 10) || 0}</dd><small>{s.kinds}, since {spokenDay(s.since)}</small></div>
               ))}
             </dl>
-            <p className="pc-pt-src-kinds">
-              Read since {spokenDay(readSources.map((s) => s.since).sort()[0])}: {readSources.map((s) => s.kinds.charAt(0).toLowerCase() + s.kinds.slice(1)).join('; ')}.
-            </p>
           </div>
         ) : null}
         <div className="pc-pt-source-list" hidden={!managing}>
@@ -546,7 +544,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
         <p className="pc-pt-close-line">Every line here was <em>read</em>, not asked.</p>
         {banner
           ? <Link to="/" className="liquid-glass pc-cine-pill">Read your own portrait</Link>
-          : <Link to="/sources" className="liquid-glass pc-cine-pill">Read from one more place</Link>}
+          : <Link to="/sources" className="liquid-glass pc-cine-pill">Connect one more source</Link>}
         <div className="pc-pt-foot">
           <span>TwinMe, 2026</span>
           <Link to="/privacy-policy">Privacy</Link>

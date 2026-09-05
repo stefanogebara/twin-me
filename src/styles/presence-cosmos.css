@@ -5169,3 +5169,33 @@ button.pc-search-icons {
 @media (max-width: 640px) {
   .pc-pt-paper-panel--sources { margin-top: 96px; }
 }
+
+/* ---- Three serif sizes: 64 for the two headlines, 32 for heads and lead lines, 24 for the rest ---- */
+.presence-cosmos .pc-pt-close-line { font-size: clamp(40px, 4.4vw, 64px); line-height: 0.98; max-width: 22ch; }
+.presence-cosmos .pc-pt-head { font-size: 32px; line-height: 37px; letter-spacing: -0.018em; }
+.presence-cosmos.pc-portrait .pc-pt-row-head p { font-size: 24px; line-height: 30px; }
+.presence-cosmos.pc-portrait .pc-pt-row.is-lead .pc-pt-row-head p { font-size: 32px; line-height: 37px; }
+.presence-cosmos .pc-pt-src-grid dt { font-size: 24px; line-height: 30px; }
+.presence-cosmos .pc-pt-cine .pc-demo-reading p,
+.presence-cosmos .pc-pt-cine .pc-pt-sig-line { font-size: 24px; line-height: 30px; }
+/* Section names are editorial, so they are sans small caps; mono stays for what a machine wrote. */
+.pc-portrait .pc-pt-run { font-family: var(--c-font); font-size: 12px; line-height: 16px; letter-spacing: 0.08em; font-weight: 500; color: var(--c-ink-3); }
+.presence-cosmos .pc-pt-head-note { margin: 10px 0 0; max-width: 52ch; font-size: 15px; line-height: 22px; color: var(--c-ink-2); }
+/* Rules separate; they do not terminate. */
+.pc-portrait .pc-pt-group:last-of-type > .pc-pt-row:last-child { border-bottom: 0; }
+.pc-portrait .pc-pt-cine .pc-pt-hints button:last-child { border-bottom: 0; }
+.pc-pt-paper-panel:not(.pc-pt-paper-panel--sources) { padding-bottom: 56px; }
+/* The eyebrow reads over the window. */
+.presence-cosmos .pc-cine-kicker { color: rgba(255, 255, 255, 0.82); }
+/* The coda sits on the open sky, not the roofline. */
+.pc-portrait .pc-pt-close { padding-top: 40px; }
+/* Sources: what was read sits under each name. */
+.pc-portrait .pc-pt-src-grid > div { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; gap: 4px 12px; padding-bottom: 14px; }
+.pc-portrait .pc-pt-src-grid > div small { grid-column: 1 / -1; font-size: 13px; line-height: 18px; color: var(--c-ink-2); }
+.pc-portrait .pc-pt-src-grid { gap: 22px 28px; }
+@media (max-width: 640px) {
+  .presence-cosmos .pc-pt-head { font-size: 28px; line-height: 32px; }
+  .presence-cosmos.pc-portrait .pc-pt-row.is-lead .pc-pt-row-head p { font-size: 27px; line-height: 32px; }
+  .presence-cosmos.pc-portrait .pc-pt-row-head p { font-size: 21px; line-height: 27px; }
+  .presence-cosmos .pc-pt-src-grid dt { font-size: 21px; line-height: 26px; }
+}
