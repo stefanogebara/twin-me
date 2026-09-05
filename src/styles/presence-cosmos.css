@@ -2375,7 +2375,7 @@ button.pc-search-icons {
   border: 0.5px solid var(--c-border);
   border-radius: 16px;
   background: var(--c-paper);
-  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-family: 'Geist Mono', ui-monospace, 'SF Mono', Menlo, monospace;
   font-size: 13px;
   color: var(--c-ink-2);
   overflow: hidden;
@@ -4790,3 +4790,101 @@ button.pc-search-icons {
 /* One image: the hero is transparent over the page's ground, so there is no seam where it ends. */
 .pc-pt-cine { background: transparent; }
 .pc-pt-room-ground { filter: brightness(0.74) saturate(1.05); }
+
+/* ---- The readings are set as type, the sources as a ledger, the page gets an ending ---- */
+.pc-pt-paper-panel { width: min(880px, calc(100% - 48px)); padding: 32px 0 64px; }
+.pc-pt-paper-panel .pc-pt-ledger { margin-top: 40px; }
+.pc-pt-paper-panel .pc-pt-sources { margin-top: 88px; }
+
+/* Provenance is mono, all of it: the index, the support line, the counts, the group label. */
+.pc-portrait .pc-pt-row-head .pc-pt-row-n,
+.pc-portrait .pc-pt-row-head .pc-pt-row-meta,
+.pc-portrait .pc-pt-source span,
+.pc-portrait .pc-pt-group > .pc-spec-n,
+.pc-portrait .pc-pt-sig-foot {
+  font-family: 'Geist Mono', var(--font-mono, ui-monospace, monospace);
+  font-size: 12px;
+  line-height: 18px;
+  letter-spacing: 0.02em;
+  font-weight: 400;
+  color: var(--c-ink-3);
+}
+
+/* A numbered column, hairline rules, the serif carrying the sentence. */
+.pc-portrait .pc-pt-group { gap: 0; margin-top: 24px; }
+.pc-portrait .pc-pt-group > .pc-spec-n { margin: 0; padding: 0 0 10px; }
+.pc-portrait .pc-pt-row { background: transparent; border: 0; border-top: 1px solid var(--c-border); border-radius: 0; }
+.pc-portrait .pc-pt-row:last-child { border-bottom: 1px solid var(--c-border); }
+.pc-portrait .pc-pt-row.is-lit { border-color: var(--c-ink); box-shadow: none; }
+.pc-portrait .pc-pt-row-head { grid-template-columns: 40px minmax(0, 1fr); gap: 8px 16px; padding: 22px 0 20px; }
+.pc-portrait .pc-pt-row-head .pc-pt-row-n { grid-column: 1; grid-row: 1; margin-top: 7px; }
+.presence-cosmos.pc-portrait .pc-pt-row-head p { grid-column: 2; font-family: 'Instrument Serif', serif; font-size: 24px; line-height: 30px; letter-spacing: -0.012em; }
+.pc-portrait .pc-pt-row-head .pc-pt-row-meta { grid-column: 2; display: inline-flex; align-items: center; gap: 8px; }
+.pc-portrait .pc-pt-row-meta i { width: 7px; height: 7px; margin: 0; border-radius: 50%; flex: none; }
+.pc-portrait .pc-pt-row-body { padding: 0 0 22px 56px; }
+
+/* Sources: name and count on one line, what is read beneath, one hairline between rows. */
+.pc-portrait .pc-pt-src-head { display: flex; align-items: baseline; justify-content: space-between; gap: 24px; }
+.pc-portrait .pc-pt-source-list { gap: 0; margin-top: 24px; border-top: 1px solid var(--c-border); }
+.pc-portrait .pc-pt-source { grid-template-columns: minmax(0, 1fr) auto auto; gap: 4px 20px; padding: 16px 0; background: transparent; border: 0; border-bottom: 1px solid var(--c-border); border-radius: 0; }
+.pc-portrait .pc-pt-source strong { font-size: 16px; line-height: 24px; letter-spacing: -0.02em; }
+.pc-portrait .pc-pt-source span { grid-column: 2; grid-row: 1; align-self: center; }
+.pc-portrait .pc-pt-source small { grid-column: 1 / span 3; grid-row: 2; font-size: 14px; line-height: 20px; color: var(--c-ink-2); }
+.pc-portrait .pc-pt-source em { grid-column: 3; grid-row: 1; align-self: center; }
+
+/* The ending: one line on the room, one door, the mark. */
+.pc-portrait .pc-pt-close { display: grid; justify-items: center; gap: 28px; padding: 104px 24px 80px; text-align: center; }
+.presence-cosmos .pc-pt-close-line { margin: 0; max-width: 18ch; font-family: 'Instrument Serif', serif; font-size: clamp(34px, 4vw, 52px); line-height: 1.05; letter-spacing: -0.02em; color: rgba(255, 255, 255, 0.94); text-wrap: balance; }
+.presence-cosmos .pc-pt-close-line em { font-style: italic; }
+.presence-cosmos .pc-pt-close .pc-cine-pill { color: #fff !important; font-size: 15px; padding: 14px 28px; }
+.pc-portrait .pc-pt-close-mark { margin-top: 20px; font-family: 'Instrument Serif', serif; font-size: 22px; letter-spacing: -0.02em; color: rgba(255, 255, 255, 0.55); }
+
+/* The nav sits in its own glass, so it reads over the window. */
+.pc-pt-cine .pc-cine-nav nav.pc-cine-navcap { border-radius: 999px; padding: 10px 22px; gap: 24px; }
+
+/* The panel and the headline share a top edge. */
+.pc-pt-cine .pc-cine-copy { padding-top: 6px; }
+
+/* Inside the glass the receipts are near-opaque, so frost does not sit on frost over the window. */
+.pc-pt-cine .pc-demo-row { background: rgba(255, 255, 255, 0.86); }
+.pc-pt-cine .pc-pt-under { margin-top: 12px; }
+
+/* Ask: the three suggestions stack, one hairline each, no orphan. */
+.pc-portrait .pc-pt-hints { flex-direction: column; align-items: stretch; gap: 0; margin-top: 10px; }
+.pc-portrait .pc-pt-hints button { justify-content: flex-start; height: 40px; padding: 0 2px; border: 0; border-top: 1px solid rgba(13, 13, 13, 0.08); border-radius: 0; background: transparent; text-align: left; color: var(--c-ink-2); }
+.pc-portrait .pc-pt-hints button:last-child { border-bottom: 1px solid rgba(13, 13, 13, 0.08); }
+.pc-portrait .pc-pt-hints button:hover { color: var(--c-ink); background: transparent; }
+
+/* Signature: no bars; the receipts count is the measure. */
+.pc-portrait .pc-demo-sig-row { grid-template-columns: minmax(0, 1fr) auto; }
+.pc-portrait .pc-pt-sig-foot { margin: 6px 0 0; }
+
+/* The ground drifts (the old selector needed a stage that no longer exists), and the poster leaves the frame. */
+.pc-portrait .pc-pt-room-ground.pc-pt-drift { animation: pc-pt-drift 40s ease-in-out infinite alternate; will-change: transform; }
+.pc-portrait .pc-pt-room-ground { left: -9%; width: 109%; object-position: 50% 58%; }
+
+@media (max-width: 640px) {
+  .pc-portrait .pc-pt-row-head { grid-template-columns: 30px minmax(0, 1fr); gap: 6px 12px; padding: 18px 0 16px; }
+  .presence-cosmos.pc-portrait .pc-pt-row-head p { font-size: 21px; line-height: 26px; }
+  .pc-portrait .pc-pt-row-body { padding-left: 0; }
+  .pc-portrait .pc-pt-close { padding: 72px 20px 56px; }
+  .pc-pt-paper-panel .pc-pt-ledger { margin-top: 24px; }
+  .pc-pt-paper-panel .pc-pt-sources { margin-top: 64px; }
+}
+
+/* The still with no accidents: lamp, cobalt window, dark walls. The display type takes the window; the glass takes the wall. */
+.pc-portrait .pc-pt-room-ground { left: -12%; width: 112%; object-position: 50% 46%; filter: brightness(0.92) saturate(1.04); }
+.pc-pt-cine .pc-pt-sig-item { background: rgba(255, 255, 255, 0.86); }
+.pc-pt-cine .pc-pt-sig-foot { color: var(--c-ink-2); }
+@media (max-width: 640px) {
+  .pc-pt-paper-panel { padding: 24px 18px 56px; }
+}
+.pc-portrait .pc-demo-row span,
+.pc-portrait .pc-demo-reading > span,
+.pc-portrait .pc-demo-answer > span { font-family: 'Geist Mono', var(--font-mono, ui-monospace, monospace); }
+
+/* One sentence and one room: the provenance is a kicker above the headline, not a paragraph under it. */
+.presence-cosmos .pc-cine-kicker { margin: 0 0 -6px; font-family: var(--font-body); font-size: 14px; line-height: 20px; letter-spacing: 0.01em; color: rgba(255, 255, 255, 0.62); }
+.pc-pt-cine .pc-cine-copy { gap: 22px; }
+.pc-pt-cine .pc-pt-sig-foot { color: rgba(13, 13, 13, 0.62); }
+.pc-portrait .pc-pt-room-ground { max-width: none; } /* the preflight's img { max-width: 100% } was capping the wider box */

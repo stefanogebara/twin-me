@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { ArrowUp, Check, ChevronDown } from 'lucide-react';
+import { ArrowUp } from 'lucide-react';
 import { DOMAIN_HUE, DOMAIN_LABEL, SOURCE_LABEL, type Evidence, type PortraitData, type Reading, type Verdict } from '../../data/demoPortrait';
 import { deriveState, supportLine, groupReadings, daysSince, findScripted, type ReadingState } from '../../lib/portrait';
 import '../../styles/presence-cosmos.css';
@@ -227,8 +227,8 @@ function ReceiptRow({ e, i, pace = 110 }: { e: Evidence; i: number; pace?: numbe
   );
 }
 
-function ReadingRow({ reading, now, verdict, onVerdict, open, onToggle, lit }: {
-  reading: Reading; now: Date; verdict: Verdict; onVerdict: (v: Verdict) => void; open: boolean; onToggle: () => void; lit: boolean;
+function ReadingRow({ reading, n, now, verdict, onVerdict, open, onToggle, lit }: {
+  reading: Reading; n: number; now: Date; verdict: Verdict; onVerdict: (v: Verdict) => void; open: boolean; onToggle: () => void; lit: boolean;
 }) {
   const state = deriveState({ ...reading, verdict }, now);
   const age = daysSince(reading.supportedAt, now);
@@ -242,10 +242,9 @@ function ReadingRow({ reading, now, verdict, onVerdict, open, onToggle, lit }: {
   return (
     <article className={`pc-pt-row ${open ? 'is-open' : ''} ${lit ? 'is-lit' : ''}`} id={`reading-${reading.id}`}>
       <button type="button" className="pc-pt-row-head" onClick={onToggle} aria-expanded={open}>
-        <i style={{ background: DOMAIN_HUE[reading.domain] }} aria-hidden="true" />
+        <span className="pc-pt-row-n" aria-hidden="true">{String(n).padStart(2, '0')}</span>
         <p>{reading.text}</p>
-        <span>{supportLine(reading)}{state === 'fading' ? ` · last supported ${age} days ago` : ''}</span>
-        <ChevronDown size={16} aria-hidden="true" />
+        <span className="pc-pt-row-meta"><i style={{ background: DOMAIN_HUE[reading.domain] }} aria-hidden="true" />{DOMAIN_LABEL[reading.domain]} · {supportLine(reading)}{state === 'fading' ? ` · last supported ${age} days ago` : ''}</span>
       </button>
       {/* Always in the tree so the height animates both ways; inert to readers and the keyboard when shut. */}
       <div className="pc-pt-row-fold" aria-hidden={!open}>
@@ -258,7 +257,7 @@ function ReadingRow({ reading, now, verdict, onVerdict, open, onToggle, lit }: {
               <small>{verdict ? 'Your verdict' : 'Not yet reviewed'}</small>
               {(['true', 'partly', 'wrong'] as const).map((v) => (
                 <button key={v} type="button" tabIndex={open ? 0 : -1} className={`pc-btn pc-btn--ghost ${verdict === v ? 'is-active' : ''}`} onClick={() => onVerdict(verdict === v ? null : v)}>
-                  {verdict === v ? <Check size={14} /> : null}{VERDICT_LABEL[v]}
+                  {VERDICT_LABEL[v]}
                 </button>
               ))}
             </div>
@@ -285,7 +284,10 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
 
   const readings = useMemo(() => data.readings.map((r) => ({ ...r, verdict: verdicts[r.id] ?? null })), [data.readings, verdicts]);
   const byId = useMemo(() => new Map(readings.map((r) => [r.id, r])), [readings]);
-  const groups = useMemo(() => groupReadings(readings, now), [readings, now]);
+  // The headline is the first reading; the ledger does not say it a second time.
+  const lead = data.lead ?? data.signature[0]?.line ?? data.readings[0]?.text ?? null;
+  const groups = useMemo(() => groupReadings(readings.filter((r) => r.text !== lead), now), [readings, now, lead]);
+  const ledgerIds = useMemo(() => groups.flatMap((g) => g.readings.map((r) => r.id)), [groups]);
   // A source with nothing read is not a source yet.
   const readSources = data.sources.filter((s) => (parseInt(s.read, 10) || 0) > 0);
   const sourceCount = readSources.length;
@@ -344,27 +346,25 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
   function jumpTo(id: string) {
     setOpen(id);
     setLit([id]);
-    document.getElementById(`reading-${id}`)?.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'center' });
+    (document.getElementById(`reading-${id}`) ?? document.getElementById('readings'))?.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'center' });
   }
 
   const current = SCENES.find((s) => s.id === scene)!;
 
-  const lead = data.lead ?? data.signature[0]?.line ?? data.readings[0]?.text ?? null;
-
   return (
     <main className="presence-cosmos pc-portrait" id="main-content">
       {HERO_VIDEO && !reduced ? (
-        <video className="pc-pt-room-ground" autoPlay loop muted playsInline poster="/images/twinme/cosmos-07-room.jpg" aria-hidden="true">
+        <video className="pc-pt-room-ground" autoPlay loop muted playsInline poster="/images/twinme/cosmos-08-window.jpg" aria-hidden="true">
           <source src={HERO_VIDEO} type="video/mp4" />
         </video>
       ) : (
-        <img className={`pc-pt-room-ground ${reduced ? '' : 'pc-pt-drift'}`} src="/images/twinme/cosmos-07-room.jpg" alt="" aria-hidden="true" />
+        <img className={`pc-pt-room-ground ${reduced ? '' : 'pc-pt-drift'}`} src="/images/twinme/cosmos-08-window.jpg" alt="" aria-hidden="true" />
       )}
       {banner}
       <section className="pc-pt-cine" id="portrait" aria-label="Your portrait">
         <header className="pc-pt-nav pc-cine-nav">
           <a href="/" className="pc-cine-mark">TwinMe</a>
-          <nav aria-label="Portrait">
+          <nav aria-label="Portrait" className="liquid-glass pc-cine-navcap">
             <a href="#portrait" className={scene !== 'ask' ? 'is-active' : ''} onClick={() => setScene(data.question ? 'question' : 'signature')}>Portrait</a>
             <a href="#readings">Readings</a>
             <a href="#sources">Sources</a>
@@ -373,10 +373,8 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
         </header>
         <div className="pc-cine-body pc-cine-body--split">
           <div className="pc-cine-copy">
-            <h1 className="pc-cine-h1 animate-fade-rise"><CineLine text={lead ?? `${data.owner}.`} /></h1>
-            <p className="pc-cine-sub animate-fade-rise-delay">
-              {data.owner}&rsquo;s portrait, read from {sourceCount} source{sourceCount === 1 ? '' : 's'}. Nothing self-reported; every line keeps its receipts.
-            </p>
+            <p className="pc-cine-kicker animate-fade-rise">{data.owner}&rsquo;s portrait, read from {sourceCount} source{sourceCount === 1 ? '' : 's'}</p>
+            <h1 className="pc-cine-h1 animate-fade-rise-delay"><CineLine text={lead ?? `${data.owner}.`} /></h1>
           </div>
           <div className="pc-cine-panel animate-fade-rise-delay-2">
           <AnimatedHeight className="pc-demo-glass pc-pt-glass" reduced={reduced}>
@@ -395,15 +393,12 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
                 <div className="pc-demo-scene" key="question">
                   {data.question ? (
                     <>
-                      <div className="pc-demo-log" aria-label="What it was read from">
-                        {questionReceipts.map((e, i) => <ReceiptRow key={`${e.source}-${e.at}-${i}`} e={e} i={i} />)}
-                      </div>
-                      <div className="pc-demo-reading is-in pc-pt-arrive" style={{ animationDelay: `${questionReceipts.length * 110 + 100}ms` }}>
+                      <div className="pc-demo-reading is-in pc-pt-arrive" style={{ animationDelay: '80ms' }}>
                         <span>{question.done ? 'New this week' : 'Writing a reading'}{!question.done ? <Wave /> : null}{data.question.source ? ` · ${data.question.source}` : ''}</span>
                         <p>{question.shown}{!question.done ? <i className="pc-demo-caret" /> : null}</p>
                         <div className={`pc-demo-chips pc-pt-answers ${question.done ? 'is-in' : ''}`}>
                           {answer ? (
-                            <b><Check size={13} /> {answer === 'skipped' ? 'Skipped for today' : `In your words: ${answer}`}</b>
+                            <b>{answer === 'skipped' ? 'Skipped for today' : `In your words: ${answer}`}</b>
                           ) : (
                             <>
                               {data.question.answers.map((a) => (
@@ -413,6 +408,9 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
                             </>
                           )}
                         </div>
+                      </div>
+                      <div className="pc-demo-log pc-pt-under" aria-label="What it was read from">
+                        {questionReceipts.map((e, i) => <ReceiptRow key={`${e.source}-${e.at}-${i}`} e={e} i={i + 3} />)}
                       </div>
                     </>
                   ) : (
@@ -467,7 +465,6 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
                       <div key={s.domain} className="pc-pt-sig-item pc-pt-arrive" style={{ animationDelay: `${i * 120}ms` }}>
                         <div className="pc-demo-sig-row is-in">
                           <span><i style={{ background: DOMAIN_HUE[s.domain] }} />{DOMAIN_LABEL[s.domain]}</span>
-                          <div className="pc-demo-bar"><b style={{ width: `${Math.round(s.share * 100)}%`, background: DOMAIN_HUE[s.domain] }} /></div>
                           <small>{s.sources.length > 2 ? `${s.sources.slice(0, 2).join(', ')} +${s.sources.length - 2}` : s.sources.join(', ')}</small>
                         </div>
                         <p className="pc-pt-sig-line">
@@ -477,10 +474,9 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
                       </div>
                     ))}
                   </div>
-                  <div className="pc-demo-chips is-in pc-pt-arrive" style={{ animationDelay: `${signature.length * 120 + 80}ms` }}>
-                    <b><Check size={13} /> {signature.reduce((n, s) => n + s.receipts, 0)} receipts behind {signature.length} lines</b>
-                    <b>Nothing self-reported</b>
-                  </div>
+                  <p className="pc-pt-sig-foot pc-pt-arrive" style={{ animationDelay: `${signature.length * 120 + 80}ms` }}>
+                    {signature.reduce((n, s) => n + s.receipts, 0)} receipts behind {signature.length} lines. Nothing self-reported.
+                  </p>
                 </div>
               ) : null}
             </div>
@@ -497,7 +493,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
           <div key={g.state} className="pc-pt-group">
             <p className="pc-spec-n">{STATE_LABEL[g.state]} · {g.readings.length}</p>
             {g.readings.map((r) => (
-              <ReadingRow key={r.id} reading={r} now={now} verdict={verdicts[r.id] ?? null}
+              <ReadingRow key={r.id} reading={r} n={ledgerIds.indexOf(r.id) + 1} now={now} verdict={verdicts[r.id] ?? null}
                 onVerdict={(v) => verdict(r.id, v)}
                 open={open === r.id} onToggle={() => setOpen(open === r.id ? null : r.id)} lit={lit.includes(r.id)} />
             ))}
@@ -506,7 +502,14 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
       </section>
 
       <section className="pc-pt-sources" id="sources" aria-labelledby="pc-pt-src-title">
-        <h2 id="pc-pt-src-title" className="pc-h2 pc-h2--sm pc-pt-head">Sources</h2>
+        <div className="pc-pt-src-head">
+          <h2 id="pc-pt-src-title" className="pc-h2 pc-h2--sm pc-pt-head">Sources</h2>
+          {onDeleteSource ? (
+            <button type="button" className="pc-pt-manage" onClick={() => { setManaging((m) => !m); setConfirmDelete(null); }}>
+              {managing ? 'Done' : 'Manage'}
+            </button>
+          ) : null}
+        </div>
         <div className="pc-pt-source-list">
           {readSources.map((s) => (
             <div key={s.platform} className="pc-pt-source">
@@ -527,19 +530,17 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
             </div>
           ))}
         </div>
-        <p className="pc-pt-source-door">
-          {banner
-            ? <Link to="/">Read your own portrait <span aria-hidden="true">&#8594;</span></Link>
-            : <Link to="/sources">Read from one more place <span aria-hidden="true">&#8594;</span></Link>}
-          {onDeleteSource ? (
-            <button type="button" className="pc-pt-manage" onClick={() => { setManaging((m) => !m); setConfirmDelete(null); }}>
-              {managing ? 'Done' : 'Manage'}
-            </button>
-          ) : null}
-        </p>
         <p className="pc-pt-source-note">Nothing here trains a model. Messages, photos and location are never read.</p>
       </section>
       </div>
+
+      <footer className="pc-pt-close">
+        <p className="pc-pt-close-line">Every line here was <em>read</em>, not asked.</p>
+        {banner
+          ? <Link to="/" className="liquid-glass pc-cine-pill">Read your own portrait</Link>
+          : <Link to="/sources" className="liquid-glass pc-cine-pill">Read from one more place</Link>}
+        <span className="pc-pt-close-mark">TwinMe</span>
+      </footer>
     </main>
   );
 }
