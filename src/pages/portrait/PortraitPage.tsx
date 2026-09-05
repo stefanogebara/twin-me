@@ -463,7 +463,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
         </div>
       </section>
 
-      <section className="pc-pt-ledger" aria-labelledby="pc-pt-ledger-title">
+      <section className="pc-pt-ledger" id="readings" aria-labelledby="pc-pt-ledger-title">
         <h2 id="pc-pt-ledger-title" className="pc-h2 pc-h2--sm">The readings.</h2>
         {groups.map((g) => (
           <div key={g.state} className="pc-pt-group">
