@@ -5218,3 +5218,10 @@ button.pc-search-icons {
   .pc-pt-cine .pc-pt-glass.pc-demo-glass { background: rgba(12, 14, 20, 0.5); border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 22px; backdrop-filter: blur(40px) saturate(1.2); -webkit-backdrop-filter: blur(40px) saturate(1.2); }
   .pc-portrait .pc-pt-cine .pc-pt-glass-inner { padding: 18px 18px 20px; }
 }
+
+/* Sources on a phone: one column, so the count never prints over the name and no description is cut. */
+.pc-portrait .pc-pt-src-grid > div small { white-space: normal; overflow: visible; text-overflow: clip; }
+@media (max-width: 640px) {
+  .pc-portrait .pc-pt-src-grid { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+  .pc-portrait .pc-pt-src-grid > div { grid-template-columns: minmax(0, 1fr) auto; }
+}
