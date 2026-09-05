@@ -1,19 +1,21 @@
 /* ==========================================================================
-   TwinMe landing — from scratch, 2026-09-05. Namespace: .ld
-   Reference lock: .claude/plans/2026-09-05-landing-from-scratch/README.md
-   White canvas, one light grotesk, centred; demonstrations as rounded panels
-   with one interaction each; grey statements between them; photographs only
-   inside panels, blurred, under one frosted sheet. Integer line-heights only.
+   TwinMe landing — from scratch, 2026-09-05 (v2 after the first critic round).
+   Namespace: .ld. Lock: .claude/plans/2026-09-05-landing-from-scratch/README.md
+   White canvas, one light grotesk. The hero is centred; the middle of the page
+   has a left axis. The signature is the display type, not a card. Photographs
+   live only inside the two demonstration panels, lightly blurred under one
+   frosted sheet. Integer line-heights only.
    ========================================================================== */
 
 .ld {
   --ink: #0a0a0a;
-  --grey: #8a8a8a;
-  --grey-2: #b9b9b9;
-  --line: rgba(0, 0, 0, 0.08);
+  --grey: #6f6f6f;
+  --grey-2: #a3a3a3;
+  --line: rgba(0, 0, 0, 0.1);
   --white: #ffffff;
-  --frost: rgba(255, 255, 255, 0.56);
-  --frost-line: rgba(255, 255, 255, 0.6);
+  --frost: rgba(255, 255, 255, 0.62);
+  --frost-line: rgba(255, 255, 255, 0.7);
+  --col: min(1240px, calc(100% - 48px));
   --r: 28px;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
   background: var(--white);
@@ -27,36 +29,35 @@
   overflow-x: hidden;
 }
 
-.ld *, .ld *::before, .ld *::after { box-sizing: border-box; }
-:where(.ld) :where(p, h1, h2, ul) { margin: 0; }
 /* The app's global sheet colours headings and paragraphs by element; here they inherit. */
-:where(.ld) :where(h1, h2, h3, p, small, em, b, span, a, li, i) { color: inherit; font-family: inherit; font-weight: inherit; letter-spacing: inherit; }
-:where(.ld-pre) p { color: inherit; font-family: inherit; }
+.ld *, .ld *::before, .ld *::after { box-sizing: border-box; }
+:where(.ld) :where(p, h1, h2, h3, ul) { margin: 0; }
 :where(.ld) ul { padding: 0; list-style: none; }
+:where(.ld) :where(h1, h2, h3, p, small, em, b, span, a, li, i) { color: inherit; font-family: inherit; font-weight: inherit; letter-spacing: inherit; }
 .ld a { color: inherit; text-decoration: none; }
 .ld button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
 .ld :focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; border-radius: 999px; }
 .ld img { display: block; }
 
-.ld .ld-mono { font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; line-height: 16px; letter-spacing: 0.02em; }
+/* The ground behind the sheet is white too, or the reveal shows the app's dark body. */
+html:has(main.ld), body:has(main.ld), #root:has(main.ld) { background: #ffffff; }
+
+.ld .ld-mono { font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; line-height: 16px; letter-spacing: 0.02em; font-weight: 400; }
 .ld .ld-label { font-size: 12px; line-height: 16px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--grey); font-weight: 500; }
 
 /* Pills: the only fills on the page. Black is the primary action, nothing else. */
 .ld .ld-pill { display: inline-flex; align-items: center; justify-content: center; height: 48px; padding: 0 22px; border-radius: 999px; font-size: 15px; line-height: 20px; font-weight: 500; white-space: nowrap; transition: transform 180ms var(--ease), background-color 180ms ease, border-color 180ms ease; }
 .ld .ld-pill--ink { background: var(--ink); color: #fff; }
 .ld .ld-pill--ink:hover { background: #262626; }
-.ld .ld-pill--line { border: 1px solid rgba(0, 0, 0, 0.12); color: var(--ink); }
-.ld .ld-pill--line:hover { border-color: rgba(0, 0, 0, 0.28); }
+.ld .ld-pill--line { border: 1px solid rgba(0, 0, 0, 0.14); color: var(--ink); }
+.ld .ld-pill--line:hover { border-color: rgba(0, 0, 0, 0.32); }
 .ld .ld-pill:active { transform: scale(0.97); }
 .ld .ld-pill--sm { height: 38px; padding: 0 16px; font-size: 14px; }
 
-/* The ground behind the sheet is white too, or the reveal shows the app's dark body. */
-html:has(main.ld), body:has(main.ld), #root:has(main.ld) { background: #ffffff; }
-
 /* The entrance: one grey line on white, cycling what it reads, then the page lifts in. */
-.ld-pre { font-family: 'Geist', system-ui, -apple-system, sans-serif; color: #8a8a8a; position: fixed; inset: 0; z-index: 50; background: #fff; display: grid; place-items: center; transition: opacity 520ms var(--ease); }
+.ld-pre { font-family: 'Geist', system-ui, -apple-system, sans-serif; color: #6f6f6f; position: fixed; inset: 0; z-index: 50; background: #fff; display: grid; place-items: center; transition: opacity 520ms var(--ease); }
 .ld-pre.is-done { opacity: 0; pointer-events: none; }
-.ld-pre p { font-size: 34px; line-height: 40px; font-weight: 300; letter-spacing: -0.02em; color: #8a8a8a; font-family: 'Geist', system-ui, -apple-system, sans-serif; animation: ld-word 340ms var(--ease) both; }
+.ld-pre p { font-size: 34px; line-height: 40px; font-weight: 300; letter-spacing: -0.02em; color: #6f6f6f; font-family: 'Geist', system-ui, -apple-system, sans-serif; margin: 0; animation: ld-word 340ms var(--ease) both; }
 @keyframes ld-word { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 .ld-sheet { transform-origin: 50% 36%; }
 .ld-sheet.is-entering { animation: ld-sheet 980ms var(--ease) both; }
@@ -65,71 +66,74 @@ html:has(main.ld), body:has(main.ld), #root:has(main.ld) { background: #ffffff; 
   to { clip-path: inset(0 round 0); transform: none; }
 }
 
-/* Navigation: fixed, fading into the canvas. */
-.ld-nav { position: fixed; top: 0; left: 0; right: 0; z-index: 40; height: 72px; display: flex; align-items: center; justify-content: space-between; padding: 0 28px; background: linear-gradient(#fff 58%, rgba(255, 255, 255, 0)); }
-.ld-brand { display: inline-flex; align-items: center; gap: 10px; font-size: 15px; line-height: 20px; font-weight: 500; }
-.ld-mark { width: 22px; height: 22px; }
+/* Navigation: a solid white band. The mark alone on the left; the name is said once, in the hero. */
+.ld-nav { position: fixed; top: 0; left: 0; right: 0; z-index: 40; height: 64px; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; background: #fff; }
+.ld-brand { display: inline-flex; align-items: center; color: var(--ink); }
+.ld-mark { width: 24px; height: 24px; }
 .ld-nav-right { display: flex; align-items: center; gap: 22px; font-size: 15px; line-height: 20px; }
 .ld-nav-right a:not(.ld-pill) { color: var(--grey); transition: color 160ms ease; }
 .ld-nav-right a:not(.ld-pill):hover { color: var(--ink); }
 
-/* Hero: label, one light headline, two pills. Nothing else competes. */
-.ld-hero { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 140px 24px 96px; gap: 28px; }
-.ld-hero h1 { color: var(--ink); font-family: inherit; font-size: 76px; line-height: 80px; font-weight: 300; letter-spacing: -0.045em; text-wrap: balance; max-width: 15ch; }
+/* Hero: label, one light headline, two pills, one paragraph. Then the page begins. */
+.ld-hero { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 176px 24px 72px; gap: 28px; }
+.ld-hero h1 { color: var(--ink); font-family: inherit; font-size: 76px; line-height: 80px; font-weight: 300; letter-spacing: -0.045em; max-width: 16ch; }
+.ld-hero h1 span { display: inline-block; }
+.ld-hero h1 span:first-child { white-space: nowrap; }
+.ld-hero h1 span:last-child { text-wrap: balance; }
 .ld-cta { display: flex; gap: 10px; margin-top: 4px; }
 .ld-sub { font-size: 17px; line-height: 24px; font-weight: 400; color: var(--grey); max-width: 46ch; text-wrap: pretty; margin-top: 10px; }
-.ld-watch { margin-top: 64px; display: inline-flex; align-items: center; gap: 10px; font-size: 15px; line-height: 20px; color: var(--grey); transition: color 160ms ease; }
-.ld-watch:hover { color: var(--ink); }
-.ld-watch svg { width: 10px; height: 12px; }
 
-/* Demonstration panels: full width, rounded, one blurred still, one frosted sheet. */
-.ld-panel { position: relative; width: min(1240px, calc(100% - 48px)); margin: 0 auto; border-radius: var(--r); overflow: hidden; min-height: 640px; display: grid; place-items: center; padding: 56px 24px; isolation: isolate; transform: translateZ(0); }
-.ld-panel > img { position: absolute; left: -6%; top: -6%; width: 112%; max-width: none; height: 112%; object-fit: cover; filter: blur(22px) saturate(1.05); z-index: -2; }
-.ld-panel::after { content: ''; position: absolute; inset: 0; background: rgba(255, 255, 255, 0.1); z-index: -1; }
-.ld-frost { width: min(560px, 100%); background: var(--frost); border: 1px solid var(--frost-line); -webkit-backdrop-filter: blur(24px) saturate(1.2); backdrop-filter: blur(24px) saturate(1.2); border-radius: 22px; padding: 24px 26px 24px; display: flex; flex-direction: column; gap: 18px; }
-.ld-frost--wide { width: min(680px, 100%); }
-/* Grey inside the frost is darker than grey on white: the sheet is not white. */
-.ld-frost { --grey: #5f5d5b; }
-.ld-kicker { color: var(--ink); display: inline-flex; align-items: center; height: 26px; padding: 0 11px; border: 1px solid rgba(10, 10, 10, 0.28); border-radius: 999px; font-size: 11px; line-height: 16px; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 500; color: var(--ink); align-self: flex-start; }
-.ld-kicker i { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--ink); margin-right: 8px; }
+/* Section intros: left on the column, ink, the one thing the section proves. */
+.ld-intro { width: var(--col); margin: 0 auto; padding: 128px 0 36px; color: var(--ink); font-family: inherit; font-size: 34px; line-height: 40px; font-weight: 300; letter-spacing: -0.025em; max-width: var(--col); text-wrap: pretty; }
+.ld-intro span { display: block; max-width: 26ch; }
+
+/* Demonstration panels: rounded, the column's width, a lightly blurred still, one frosted sheet. */
+.ld-panel { position: relative; width: var(--col); margin: 0 auto; border-radius: var(--r); overflow: hidden; min-height: 620px; display: grid; place-items: center; padding: 56px 24px; isolation: isolate; transform: translateZ(0); }
+.ld-panel > img { position: absolute; left: -3%; top: -3%; width: 106%; max-width: none; height: 106%; object-fit: cover; filter: blur(6px); z-index: -2; }
+.ld-panel::after { content: ''; position: absolute; inset: 0; background: rgba(255, 255, 255, 0.06); z-index: -1; }
+.ld-panel--ask { min-height: 560px; }
+.ld-frost { width: min(480px, 100%); color: var(--ink); background: var(--frost); border: 1px solid var(--frost-line); -webkit-backdrop-filter: blur(28px) saturate(1.15); backdrop-filter: blur(28px) saturate(1.15); border-radius: 22px; padding: 22px 24px 22px; display: flex; flex-direction: column; gap: 16px; --grey: #5a5856; }
+.ld-frost--ask { width: min(520px, 100%); gap: 14px; }
+.ld-kicker { display: inline-flex; align-items: center; height: 24px; padding: 0 10px; border: 1px solid rgba(10, 10, 10, 0.3); border-radius: 999px; font-size: 11px; line-height: 16px; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 500; color: var(--ink); align-self: flex-start; }
 
 .ld-receipts { display: flex; flex-direction: column; gap: 8px; min-height: 82px; }
 .ld-receipt { color: var(--ink); display: grid; grid-template-columns: 48px 1fr; gap: 14px; align-items: baseline; font-size: 15px; line-height: 22px; opacity: 0; transform: translateY(6px); transition: opacity 520ms var(--ease), transform 520ms var(--ease); }
 .ld-receipt.is-in { opacity: 1; transform: none; }
 .ld-receipt b { font-family: 'Geist Mono', ui-monospace, monospace; font-weight: 400; color: var(--grey); font-size: 12px; line-height: 16px; letter-spacing: 0.04em; text-transform: uppercase; }
-.ld-reading { color: var(--ink); font-size: 26px; line-height: 34px; font-weight: 300; letter-spacing: -0.02em; min-height: 68px; text-wrap: pretty; }
-.ld-reading.is-out, .ld-receipts.is-out { opacity: 0; transition: opacity 380ms ease; }
-.ld-caret { display: inline-block; width: 2px; height: 24px; background: var(--ink); vertical-align: -4px; margin-left: 3px; animation: ld-blink 1s steps(2, start) infinite; }
-@keyframes ld-blink { to { visibility: hidden; } }
-.ld-foot { font-weight: 400; display: flex; justify-content: space-between; align-items: center; color: var(--grey); font-size: 12px; line-height: 16px; }
-.ld-foot a { text-decoration: underline; text-underline-offset: 3px; color: var(--ink); }
+/* The line arrives whole, after its receipts. It is written from them, not typed at you. */
+.ld-reading { color: var(--ink); font-size: 26px; line-height: 34px; font-weight: 300; letter-spacing: -0.02em; text-wrap: pretty; opacity: 0; transform: translateY(6px); transition: opacity 560ms var(--ease), transform 560ms var(--ease); }
+.ld-reading.is-in { opacity: 1; transform: none; }
+.ld-receipts.is-out, .ld-reading.is-out { opacity: 0; transition: opacity 360ms ease; }
+.ld-foot { font-weight: 400; display: flex; justify-content: space-between; align-items: center; gap: 12px; color: var(--grey); font-size: 12px; line-height: 16px; }
+.ld-foot a { text-decoration: underline; text-underline-offset: 3px; color: var(--ink); white-space: nowrap; }
 
-/* The signature: five lines on hairlines, each with its count. No bars. */
-.ld-sig { width: 100%; }
-.ld-sig-row { display: grid; grid-template-columns: 1fr auto; gap: 4px 24px; padding: 16px 0; border-top: 1px solid rgba(10, 10, 10, 0.1); }
-.ld-sig-row:first-child { border-top: 0; padding-top: 0; }
-.ld-sig-row:last-child { padding-bottom: 0; }
-.ld-sig-row small { grid-column: 1 / -1; font-size: 11px; line-height: 16px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--grey); font-weight: 500; }
-.ld-sig-row p { color: var(--ink); font-size: 19px; line-height: 26px; font-weight: 400; letter-spacing: -0.01em; text-wrap: pretty; }
-.ld-sig-row em { font-style: normal; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 12px; line-height: 16px; color: var(--grey); white-space: nowrap; align-self: end; padding-bottom: 5px; }
+/* The signature: five lines as display type, on hairlines, the receipts in the margin. */
+.ld-sigs { width: var(--col); margin: 0 auto; }
+.ld-sig { display: grid; grid-template-columns: minmax(0, 1fr) 240px; gap: 8px 48px; padding: 40px 0 44px; border-top: 1px solid var(--line); opacity: 0; transform: translateY(14px); transition: opacity 800ms var(--ease), transform 800ms var(--ease); }
+.ld-sig.is-in { opacity: 1; transform: none; }
+.ld-sig:last-child { border-bottom: 1px solid var(--line); }
+.ld-sig small { grid-column: 1; font-size: 12px; line-height: 16px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--grey); font-weight: 500; }
+.ld-sig p { grid-column: 1; color: var(--ink); font-size: 52px; line-height: 58px; font-weight: 300; letter-spacing: -0.035em; max-width: 28ch; text-wrap: pretty; }
+.ld-sig em { grid-column: 2; grid-row: 1 / span 2; font-style: normal; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 13px; line-height: 20px; color: var(--grey); align-self: start; padding-top: 2px; text-wrap: pretty; }
 
-/* Ask: the question, the answer as you, what it cites. */
+/* Ask: a question in grey, the answer as you, what it cites. */
 .ld-ask-q { font-size: 15px; line-height: 22px; font-weight: 400; color: var(--grey); }
-.ld-ask-a { color: var(--ink); font-size: 24px; line-height: 32px; font-weight: 300; letter-spacing: -0.02em; min-height: 96px; text-wrap: pretty; }
+.ld-ask-a { color: var(--ink); font-size: 24px; line-height: 32px; font-weight: 300; letter-spacing: -0.02em; text-wrap: pretty; opacity: 0; transform: translateY(6px); transition: opacity 560ms var(--ease), transform 560ms var(--ease); }
+.ld-ask-a.is-in { opacity: 1; transform: none; }
+.ld-ask-a.is-out { opacity: 0; transition: opacity 360ms ease; }
 
-/* Statements: two grey lines saying the one thing a panel proved. */
-.ld-say { font-family: inherit; max-width: 760px; margin: 0 auto; padding: 128px 24px; text-align: center; font-size: 28px; line-height: 36px; font-weight: 300; letter-spacing: -0.02em; color: var(--grey); text-wrap: balance; }
-
-/* Sources and the privacy statement. Names, not tiles. */
-.ld-sources { text-align: center; padding: 8px 24px 0; }
-.ld-names { font-size: 22px; line-height: 32px; font-weight: 300; letter-spacing: -0.01em; color: var(--ink); max-width: 760px; margin: 16px auto 0; text-wrap: balance; }
-.ld-names span { color: var(--grey-2); padding: 0 10px; }
+/* Sources and the privacy statement. Names that never break inside, wrapping between. */
+.ld-sources { width: var(--col); margin: 0 auto; padding: 152px 0 0; text-align: center; }
+.ld-names { display: flex; flex-wrap: wrap; justify-content: center; align-items: baseline; gap: 6px 0; font-size: 22px; line-height: 32px; font-weight: 300; letter-spacing: -0.01em; color: var(--ink); max-width: 640px; margin: 16px auto 0; }
+.ld-names b { font-weight: 300; white-space: nowrap; }
+.ld-names span { color: var(--grey-2); padding: 0 12px; }
+.ld-privacy { max-width: 720px; margin: 88px auto 0; text-align: center; font-size: 28px; line-height: 36px; font-weight: 300; letter-spacing: -0.02em; color: var(--grey); text-wrap: balance; }
 
 /* The end: one line, one action. */
-.ld-close { text-align: center; padding: 160px 24px 128px; display: flex; flex-direction: column; align-items: center; gap: 26px; }
+.ld-close { text-align: center; padding: 168px 24px 128px; display: flex; flex-direction: column; align-items: center; gap: 26px; }
 .ld-close h2 { color: var(--ink); font-family: inherit; font-size: 56px; line-height: 60px; font-weight: 300; letter-spacing: -0.04em; text-wrap: balance; }
 .ld-close small { color: var(--grey); font-weight: 400; font-size: 14px; line-height: 20px; }
-.ld-footer { display: flex; justify-content: space-between; align-items: center; padding: 0 28px 28px; font-size: 13px; line-height: 20px; color: var(--grey); }
+.ld-footer { width: var(--col); margin: 0 auto; display: flex; justify-content: space-between; align-items: center; padding: 0 0 28px; font-size: 13px; line-height: 20px; color: var(--grey); }
 .ld-footer nav { display: flex; gap: 20px; }
 .ld-footer a:hover { color: var(--ink); }
 
@@ -140,28 +144,33 @@ html:has(main.ld), body:has(main.ld), #root:has(main.ld) { background: #ffffff; 
 @media (prefers-reduced-motion: reduce) {
   .ld-pre { display: none; }
   .ld-sheet.is-entering { animation: none; }
-  .ld-rise, .ld-receipt { opacity: 1; transform: none; transition: none; }
-  .ld-caret { animation: none; }
-  .ld .ld-pill, .ld-watch, .ld-nav-right a { transition: none; }
+  .ld-rise, .ld-receipt, .ld-reading, .ld-ask-a, .ld-sig { opacity: 1; transform: none; transition: none; }
+  .ld .ld-pill, .ld-nav-right a { transition: none; }
 }
 
 @media (max-width: 720px) {
-  .ld-nav { padding: 0 18px; height: 64px; }
-  .ld-hero { padding: 120px 20px 72px; gap: 22px; }
-  .ld-hero h1 { font-size: 46px; line-height: 50px; letter-spacing: -0.035em; }
+  .ld { --col: calc(100% - 32px); }
+  .ld-nav { padding: 0 16px; height: 60px; }
+  .ld-nav-right .ld-pill { display: none; }
+  .ld-hero { padding: 132px 16px 56px; gap: 22px; }
+  .ld-hero h1 { font-size: 40px; line-height: 44px; letter-spacing: -0.035em; }
   .ld-cta { flex-direction: column; align-items: stretch; width: 100%; max-width: 320px; }
-  .ld-watch { margin-top: 40px; }
-  .ld-panel { width: calc(100% - 24px); min-height: 560px; padding: 40px 14px; border-radius: 24px; }
-  .ld-frost { padding: 20px 18px; gap: 16px; }
-  .ld-reading { font-size: 22px; line-height: 30px; min-height: 60px; }
+  .ld-intro { padding: 88px 0 24px; font-size: 26px; line-height: 32px; }
+  .ld-panel { min-height: 520px; padding: 40px 12px; border-radius: 24px; }
+  .ld-panel--ask { min-height: 480px; }
+  .ld-frost { padding: 18px 16px; gap: 14px; }
+  .ld-reading { font-size: 22px; line-height: 30px; }
   .ld-ask-a { font-size: 21px; line-height: 28px; }
-  .ld-sig-row p { font-size: 17px; line-height: 24px; }
-  .ld-sig-row { grid-template-columns: 1fr; }
-  .ld-sig-row em { align-self: start; padding: 0; }
-  .ld-say { font-size: 22px; line-height: 30px; padding: 88px 24px; }
+  .ld-foot { flex-direction: column; align-items: flex-start; gap: 6px; }
+  .ld-sig { grid-template-columns: 1fr; gap: 6px 0; padding: 28px 0 30px; }
+  .ld-sig p { font-size: 30px; line-height: 36px; letter-spacing: -0.03em; }
+  .ld-sig em { grid-column: 1; grid-row: auto; padding-top: 6px; }
+  .ld-sources { padding-top: 104px; }
   .ld-names { font-size: 18px; line-height: 28px; }
-  .ld-close { padding: 120px 24px 96px; }
+  .ld-names span { padding: 0 8px; }
+  .ld-privacy { margin-top: 64px; font-size: 22px; line-height: 30px; }
+  .ld-close { padding: 120px 16px 96px; }
   .ld-close h2 { font-size: 40px; line-height: 44px; }
   .ld-pre p { font-size: 26px; line-height: 32px; }
-  .ld-footer { flex-direction: column; gap: 12px; align-items: flex-start; padding: 0 20px 28px; }
+  .ld-footer { flex-direction: column; gap: 12px; align-items: flex-start; }
 }
