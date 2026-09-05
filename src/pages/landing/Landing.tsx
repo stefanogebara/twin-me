@@ -199,11 +199,11 @@ function LedgerRow({ domain, i, above = false }: { domain: Domain; i: number; ab
 export default function Landing() {
   const reduced = usePrefersReducedMotion();
   const pre = usePreloader(reduced);
-  // The app's body is dark; this page's ground is white, including behind the entrance.
+  // The ground behind the entrance matches the room, so the sheet lifts in from the same dark.
   useEffect(() => {
     const prev = [document.documentElement.style.background, document.body.style.background];
-    document.documentElement.style.background = '#ffffff';
-    document.body.style.background = '#ffffff';
+    document.documentElement.style.background = '#0b0d12';
+    document.body.style.background = '#0b0d12';
     return () => { document.documentElement.style.background = prev[0]; document.body.style.background = prev[1]; };
   }, []);
 
