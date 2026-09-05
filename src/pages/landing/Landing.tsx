@@ -34,10 +34,10 @@ const PRE_MS = { first: 420, word: 300, last: 560 };
  */
 const LINES: Record<Domain, string[]> = {
   motivation: ['Nothing moves for\u00a0days.', 'Then\u00a0everything ships at\u00a0once.'],
-  personality: ['Repetition is how you\u00a0settle.', 'The same songs, the same\u00a0order,', 'until the thing is\u00a0done.'],
-  cultural: ['A new artist becomes a whole\u00a0morning.', 'On\u00a0YouTube it splits:', 'football for\u00a0joy,', 'sociology for the\u00a0toolkit.'],
+  personality: ['Repetition is how\u00a0you\u00a0settle.', 'The same songs, the same\u00a0order,', 'until the thing is\u00a0done.'],
+  cultural: ['A new artist becomes a\u00a0whole\u00a0morning.', 'On\u00a0YouTube it splits:', 'football for\u00a0joy,', 'sociology for the\u00a0toolkit.'],
   social: ['You keep the circle\u00a0tight', 'and the evenings\u00a0yours.'],
-  lifestyle: ['Your week runs on what you\u00a0slept.', 'The\u00a0rest day your body asks\u00a0for,', 'you almost never\u00a0take.'],
+  lifestyle: ['Your week runs on what\u00a0you\u00a0slept.', 'The\u00a0rest day your body asks\u00a0for,', 'you almost never\u00a0take.'],
 };
 
 if (import.meta.env.DEV) {
@@ -85,6 +85,14 @@ function names(list: string[]) {
 }
 
 function sourceName(key: string) { return SOURCE_LABEL[key] ?? key; }
+
+/** The five parts of life, as nouns. */
+const PART: Record<Domain, string> = { motivation: 'Motivation', personality: 'Personality', cultural: 'Culture', social: 'Social life', lifestyle: 'Lifestyle' };
+
+/** A title shouted in capitals is set the way the page speaks. */
+function quiet(text: string) {
+  return text.replace(/\b[A-Z]{4,}(?:\s+[A-Z]{2,})*\b/g, (w) => w.split(' ').map((x) => x[0] + x.slice(1).toLowerCase()).join(' '));
+}
 
 /** A short last word never sits alone on a line, and a hyphenated word never breaks at its hyphen. */
 function tidy(text: string) {
@@ -157,7 +165,7 @@ function ReceiptRows({ rows }: { rows: Evidence[] }) {
   return (
     <div className="ld-receipts">
       {rows.map((e, i) => (
-        <div key={i} className="ld-receipt"><b>{i > 0 && rows[i - 1].at.slice(0, 10) === e.at.slice(0, 10) ? '' : day(e.at)}</b><span>{tidy(e.event)}</span></div>
+        <div key={i} className="ld-receipt"><b>{i > 0 && rows[i - 1].at.slice(0, 10) === e.at.slice(0, 10) ? '' : day(e.at)}</b><span>{tidy(quiet(e.event))}</span></div>
       ))}
     </div>
   );
@@ -187,7 +195,7 @@ function LedgerRow({ domain, i, above = false }: { domain: Domain; i: number; ab
   return (
     <div ref={ref} className={`ld-entry ld-row ${inView ? 'is-in' : ''}`} style={{ transitionDelay: `${i * 60}ms` }}>
       <div>
-        <span className="ld-label">{DOMAIN_LABEL[domain]}</span>
+        <span className="ld-label">{PART[domain]}</span>
         {above ? <p className="ld-lead ld-above">{LINES[domain].join(' ')}</p> : <p className="ld-v2">{LINES[domain].join(' ')}</p>}
       </div>
       <Receipts evidence={b.evidence} sources={b.sources} />
@@ -259,14 +267,17 @@ export default function Landing() {
         {/* The first line of the portrait, set in the room. */}
         <section className="ld-stage" aria-label={`${DEMO_PORTRAIT.owner}'s portrait, first line`}>
           <div className="ld-col">
-            <p className="ld-label">{DEMO_PORTRAIT.owner}&rsquo;s portrait · {DOMAIN_LABEL.motivation}</p>
+            <p className="ld-label">{DEMO_PORTRAIT.owner}&rsquo;s portrait · {PART.motivation}</p>
             <h1 className="ld-v1"><Line domain="motivation" /></h1>
             <div className="ld-row">
               <div>
                 <p className="ld-lead ld-dek">A portrait of you, read from your days. This one is {DEMO_PORTRAIT.owner}&rsquo;s, from {readSources} sources since {sinceMonth}. Every line shows its evidence, below.</p>
                 <p className="ld-cta"><Link to={DEMO} className="ld-link">Read {DEMO_PORTRAIT.owner}&rsquo;s portrait</Link></p>
               </div>
-              <p className="ld-since ld-mono">{DEMO_PORTRAIT.owner}&rsquo;s portrait, {sinceMonth} to September</p>
+              <div className="ld-glass" aria-label="Read from">
+                <ReceiptRows rows={allReceipts(first.evidence)} />
+                <span className="ld-meta ld-mono">{provenance(allReceipts(first.evidence).length, first.sources)}</span>
+              </div>
             </div>
           </div>
         </section>
@@ -274,7 +285,6 @@ export default function Landing() {
         {/* The document, lifted onto one frosted panel over the room. */}
         <div className="ld-paper">
           <section aria-label="The portrait, with its evidence">
-            <LedgerRow domain="motivation" i={0} above />
             {rest.map((d, i) => <LedgerRow key={d} domain={d} i={i + 1} />)}
           </section>
 
@@ -288,7 +298,7 @@ export default function Landing() {
               {askCited.map((r) => (
                 <div key={r.id} className="ld-cite">
                   {tidy(r.text)}
-                  <span className="ld-mono">{DOMAIN_LABEL[r.domain]} · {[...new Set(r.evidence.map((e) => sourceName(e.source)))].join(', ')}</span>
+                  <span className="ld-mono">{PART[r.domain]} · {[...new Set(r.evidence.map((e) => sourceName(e.source)))].join(', ')}</span>
                 </div>
               ))}
             </div>
@@ -311,7 +321,6 @@ export default function Landing() {
           <h2 className="ld-v0">See what your days&nbsp;say.</h2>
           <div className="ld-cta">
             <Link to={START} className="ld-pill">Read my portrait</Link>
-            <small>One source is enough to begin.</small>
           </div>
         </Rise>
 
