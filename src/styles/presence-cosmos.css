@@ -4492,3 +4492,16 @@ button.pc-search-icons {
 .pc-portrait .pc-pt-manage { font: inherit; font-size: 14px; color: var(--c-ink-3); background: none; border: 0; padding: 0; cursor: pointer; }
 .pc-portrait .pc-pt-manage:hover { color: var(--c-ink); }
 .pc-portrait .pc-pt-row-head span { white-space: normal; overflow: visible; text-overflow: clip; }
+
+/* Skip is a way out, not a peer of the three answers. */
+.pc-portrait .pc-demo-chips button.pc-pt-skip {
+  background: none;
+  border: 0;
+  box-shadow: none;
+  padding: 0 4px;
+  color: var(--c-ink-3);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 0.5px;
+}
+.pc-portrait .pc-demo-chips button.pc-pt-skip:hover { color: var(--c-ink); opacity: 1; }

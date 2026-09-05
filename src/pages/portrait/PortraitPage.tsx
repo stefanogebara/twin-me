@@ -375,7 +375,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
                               {data.question.answers.map((a) => (
                                 <button key={a} type="button" className="is-quiet" onClick={() => answerToday(a)}>{a}</button>
                               ))}
-                              <button type="button" className="is-quiet" onClick={() => answerToday('skipped')}>Skip today</button>
+                              <button type="button" className="pc-pt-skip" onClick={() => answerToday('skipped')}>Skip today</button>
                             </>
                           )}
                         </div>
