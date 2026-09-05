@@ -4485,3 +4485,10 @@ button.pc-search-icons {
 .presence-cosmos .pc-pt-source-door { margin: 28px 0 0; font-size: 17px; font-weight: 500; letter-spacing: -0.02em; }
 .presence-cosmos .pc-pt-source-door a { color: var(--c-ink); }
 .presence-cosmos .pc-pt-source-door a:hover { opacity: 0.7; }
+
+/* ---- The page's end on one axis; provenance that is never cut ------------- */
+.presence-cosmos .pc-pt-source-note { margin: 22px 0 0; text-align: left; max-width: 640px; }
+.presence-cosmos .pc-pt-source-door { display: flex; align-items: baseline; justify-content: space-between; gap: 24px; }
+.pc-portrait .pc-pt-manage { font: inherit; font-size: 14px; color: var(--c-ink-3); background: none; border: 0; padding: 0; cursor: pointer; }
+.pc-portrait .pc-pt-manage:hover { color: var(--c-ink); }
+.pc-portrait .pc-pt-row-head span { white-space: normal; overflow: visible; text-overflow: clip; }

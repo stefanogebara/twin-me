@@ -266,6 +266,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
   const [lit, setLit] = useState<string[]>([]);
   const [scene, setScene] = useState<Scene>(data.question ? 'question' : 'signature');
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [managing, setManaging] = useState(false);
   const { shown, leaving } = useSceneCross(scene, reduced);
 
   const readings = useMemo(() => data.readings.map((r) => ({ ...r, verdict: verdicts[r.id] ?? null })), [data.readings, verdicts]);
@@ -341,7 +342,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
         <Mark />
         <nav aria-label="Portrait">
           <a href="#portrait" className={scene !== 'ask' ? 'is-active' : ''} onClick={() => setScene(data.question ? 'question' : 'signature')}>Portrait</a>
-          <a href="#portrait" className={scene === 'ask' ? 'is-active' : ''} onClick={() => setScene('ask')}>Ask</a>
+          <a href="#portrait" onClick={() => setScene('ask')}>Ask</a>
           <a href="#sources">Sources</a>
         </nav>
       </header>
@@ -484,7 +485,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
               <strong>{s.label}</strong>
               <span>{s.read} · since {spokenDay(s.since)}</span>
               <small>{s.kinds}</small>
-              {onDeleteSource ? (
+              {onDeleteSource && managing ? (
                 confirmDelete === s.platform ? (
                   <em className="pc-pt-source-confirm">
                     Delete everything read from {s.label}?
@@ -494,7 +495,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
                 ) : (
                   <em><button type="button" onClick={() => setConfirmDelete(s.platform)}>Delete</button></em>
                 )
-              ) : <em>Read only</em>}
+              ) : null}
             </div>
           ))}
         </div>
@@ -502,6 +503,11 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
           {banner
             ? <Link to="/">Read your own portrait <span aria-hidden="true">&#8594;</span></Link>
             : <Link to="/sources">Read from one more place <span aria-hidden="true">&#8594;</span></Link>}
+          {onDeleteSource ? (
+            <button type="button" className="pc-pt-manage" onClick={() => { setManaging((m) => !m); setConfirmDelete(null); }}>
+              {managing ? 'Done' : 'Manage'}
+            </button>
+          ) : null}
         </p>
         <p className="pc-pt-source-note">Nothing here trains a model. Messages, photos and location are never read.</p>
       </section>
