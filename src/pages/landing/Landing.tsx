@@ -236,7 +236,7 @@ function ReadingPanel({ reduced, seen }: { reduced: boolean; seen: Set<string> }
         <p className={`ld-reading ${lineIn ? 'is-in' : ''}`}>{tidy(READING.text)}</p>
         <div className="ld-foot">
           <span className="ld-mono">{provenance(READING.evidence.length, sources)}</span>
-          <Link to={DEMO}>Open this portrait</Link>
+          <Link to={DEMO}>Read {DEMO_PORTRAIT.owner}&rsquo;s portrait</Link>
         </div>
       </div>
     </div>
@@ -291,8 +291,8 @@ export default function Landing() {
           <h1 className="ld-d1"><Line domain="motivation" /></h1>
           <div className="ld-row">
             <div>
-              <p className="ld-lead ld-dek">A portrait of you, read from your days. This one is {DEMO_PORTRAIT.owner}&rsquo;s, read from {readSources} sources since {sinceMonth}. Every line comes with what it was read from.</p>
-              <p className="ld-cta"><Link to={DEMO} className="ld-link">Open {DEMO_PORTRAIT.owner}&rsquo;s portrait <span aria-hidden="true">&#8594;</span></Link></p>
+              <p className="ld-lead ld-dek">A portrait of you, read from your days. This one is {DEMO_PORTRAIT.owner}&rsquo;s, from {readSources} sources since {sinceMonth}. Every line shows its evidence.</p>
+              <p className="ld-cta"><Link to={DEMO} className="ld-link">Read {DEMO_PORTRAIT.owner}&rsquo;s portrait <span aria-hidden="true">&#8594;</span></Link></p>
             </div>
             <Receipts evidence={first.evidence} sources={first.sources} />
           </div>
@@ -321,7 +321,7 @@ export default function Landing() {
               {askCited.map((r) => (
                 <div key={r.id} className="ld-cite">
                   {tidy(r.text)}
-                  <span className="ld-mono">{provenance(r.evidence.length, [...new Set(r.evidence.map((e) => sourceName(e.source)))])}</span>
+                  <span className="ld-mono">{DOMAIN_LABEL[r.domain]} · {[...new Set(r.evidence.map((e) => sourceName(e.source)))].join(', ')}</span>
                 </div>
               ))}
             </div>
@@ -334,7 +334,10 @@ export default function Landing() {
               <p className="ld-label">Reads from</p>
               <p className="ld-lead ld-names">{sourcesSentence}.</p>
             </div>
-            <p className="ld-lead ld-lead--grey ld-privacy">Messages, photos and location are never read. Delete a source, and everything read from it goes with it.</p>
+            <div>
+              <p className="ld-label">Never read</p>
+              <p className="ld-lead ld-privacy">Messages, photos and location. Delete a source, and everything read from it goes with it.</p>
+            </div>
           </div>
         </Rise>
 
