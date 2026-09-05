@@ -157,15 +157,18 @@ function ReceiptRows({ rows }: { rows: Evidence[] }) {
   return (
     <div className="ld-receipts">
       {rows.map((e, i) => (
-        <div key={i} className="ld-receipt"><b>{day(e.at)}</b><span>{tidy(e.event)}</span></div>
+        <div key={i} className="ld-receipt"><b>{i > 0 && rows[i - 1].at.slice(0, 10) === e.at.slice(0, 10) ? '' : day(e.at)}</b><span>{tidy(e.event)}</span></div>
       ))}
     </div>
   );
 }
 
+/** A per-day row, not a season's total: totals that open with a big number stay out of the spine. */
+function perDay(e: Evidence) { return !/^\d{3,}\b/.test(e.event); }
+
 function allReceipts(evidence: Evidence[]) {
   const seen = new Set<string>();
-  return evidence.filter(plain).filter((e) => { const k = receiptKey(e) + e.at.slice(0, 10); if (seen.has(k)) return false; seen.add(k); return true; }).sort((a, b) => a.at.localeCompare(b.at));
+  return evidence.filter(plain).filter(perDay).filter((e) => { const k = receiptKey(e) + e.at.slice(0, 10); if (seen.has(k)) return false; seen.add(k); return true; }).sort((a, b) => a.at.localeCompare(b.at));
 }
 
 function Receipts({ evidence, sources, label }: { evidence: Evidence[]; sources: string[]; label?: string }) {
@@ -184,8 +187,8 @@ function LedgerRow({ domain, i, above = false }: { domain: Domain; i: number; ab
   return (
     <div ref={ref} className={`ld-entry ld-row ${inView ? 'is-in' : ''}`} style={{ transitionDelay: `${i * 60}ms` }}>
       <div>
-        <span className="ld-label">{DOMAIN_LABEL[domain]}{above ? ' · the line above' : ''}</span>
-        {above ? null : <p className="ld-v2">{LINES[domain].join(' ')}</p>}
+        <span className="ld-label">{DOMAIN_LABEL[domain]}</span>
+        {above ? <p className="ld-lead ld-above">{LINES[domain].join(' ')}</p> : <p className="ld-v2">{LINES[domain].join(' ')}</p>}
       </div>
       <Receipts evidence={b.evidence} sources={b.sources} />
     </div>
@@ -247,9 +250,9 @@ export default function Landing() {
             <div className="ld-row">
               <div>
                 <p className="ld-lead ld-dek">A portrait of you, read from your days. This one is {DEMO_PORTRAIT.owner}&rsquo;s, from {readSources} sources since {sinceMonth}. Every line shows its evidence, below.</p>
-                <p className="ld-cta"><Link to={DEMO} className="ld-link">Read {DEMO_PORTRAIT.owner}&rsquo;s portrait<span className="ld-arrow" aria-hidden="true">&#8594;</span></Link></p>
+                <p className="ld-cta"><Link to={DEMO} className="ld-link">Read {DEMO_PORTRAIT.owner}&rsquo;s portrait</Link></p>
               </div>
-              <p className="ld-since ld-mono">{allReceipts(first.evidence).length} receipts behind this line · {first.sources.join(', ')}</p>
+              <p className="ld-since ld-mono">{DEMO_PORTRAIT.owner}&rsquo;s portrait, {sinceMonth} to September</p>
             </div>
           </div>
         </section>
