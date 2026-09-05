@@ -107,9 +107,10 @@ html:has(main.ld), body:has(main.ld), #root:has(main.ld) { background: #ffffff; 
 
 /* Every section after the ledger is ruled the same way. */
 .ld-sect { padding: 96px 0 48px; border-top: 1px solid var(--line); }
-.ld-sect.ld-how { padding-bottom: 48px; }
+.ld-sect.ld-how { padding-bottom: 48px; border-top: 2px solid rgba(0, 0, 0, 0.22); }
 .ld-sect > .ld-rise:last-child, .ld-sect > .ld-row:last-child { margin-bottom: 0; }
 .ld-sect .ld-lead { margin-top: 12px; max-width: 52ch; }
+.ld-caption { margin-top: 16px; font-size: 15px; line-height: 22px; color: var(--grey); max-width: 60ch; }
 
 /* The one photograph: sharp, the room at blue hour, the sheet on the window's light. */
 .ld-panel { position: relative; width: 100%; margin: 40px 0 0; border-radius: var(--r); overflow: hidden; height: 640px; display: flex; align-items: center; justify-content: center; padding: 40px; isolation: isolate; transform: translateZ(0); }
@@ -121,6 +122,8 @@ html:has(main.ld), body:has(main.ld), #root:has(main.ld) { background: #ffffff; 
 .ld-reading { color: var(--ink); font-size: 24px; line-height: 32px; font-weight: 300; letter-spacing: -0.02em; text-wrap: pretty; opacity: 0; transform: translateY(6px); transition: opacity 560ms var(--ease), transform 560ms var(--ease); }
 .ld-reading.is-in { opacity: 1; transform: none; }
 .ld-foot { font-weight: 400; display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-size: 13px; line-height: 20px; white-space: nowrap; }
+.ld-frost .ld-became { border-top: 1px solid rgba(10, 10, 10, 0.14); padding-top: 12px; font-size: 15px; line-height: 22px; font-weight: 400; letter-spacing: 0; color: var(--ink); text-wrap: pretty; }
+.ld-frost .ld-became b { display: block; font-weight: 500; font-size: 11px; line-height: 16px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--grey); margin-bottom: 4px; }
 .ld-foot .ld-mono { color: var(--ink); font-size: 13px; line-height: 20px; }
 .ld-foot a { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
 .ld-foot a:hover { color: var(--ink); }

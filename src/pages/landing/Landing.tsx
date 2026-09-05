@@ -88,7 +88,7 @@ function sourceName(key: string) { return SOURCE_LABEL[key] ?? key; }
 
 /** A short last word never sits alone on a line, and a hyphenated word never breaks at its hyphen. */
 function tidy(text: string) {
-  return text.replace(/(\w)-(\w)/g, '$1\u2011$2').replace(/ (\S{1,4})$/, '\u00a0$1');
+  return text.replace(/(\w)-(\w)/g, '$1\u2011$2').replace(/ (\S+)$/, '\u00a0$1');
 }
 
 /** Two receipts about the same thing count as the same receipt, however the engine phrased the second. */
@@ -150,7 +150,7 @@ function Rise({ as: Tag = 'div', className = '', children, delay = 0 }: { as?: '
 /* ---------- The ledger: the other four lines ---------- */
 
 /** "12 receipts · GitHub, Gmail": the one provenance format on the page. */
-function provenance(count: number, sources: string[]) { return `${count} receipts · ${sources.join(', ')}`; }
+function provenance(count: number, sources: string[], shown?: number) { return `${shown !== undefined && shown < count ? `${shown} of ${count}` : count} receipts · ${sources.join(', ')}`; }
 
 /** Receipt rows: the day is written once, the way a ledger does, and blank while it stays the same. */
 function ReceiptRows({ rows }: { rows: Evidence[] }) {
@@ -169,7 +169,7 @@ function Receipts({ evidence, sources, label }: { evidence: Evidence[]; sources:
   return (
     <div aria-label={label ?? 'Read from'}>
       <ReceiptRows rows={spread(evidence)} />
-      <span className="ld-meta ld-mono">{provenance(evidence.length, sources)}</span>
+      <span className="ld-meta ld-mono">{provenance(evidence.length, sources, Math.min(3, evidence.length))}</span>
     </div>
   );
 }
@@ -221,6 +221,8 @@ function ReadingPanel({ reduced, seen }: { reduced: boolean; seen: Set<string> }
     return () => window.clearTimeout(t);
   }, [shown, lineIn, reduced, inView, receipts.length]);
   const sources = [...new Set(READING.evidence.map((e) => sourceName(e.source)))];
+  // The signature line this reading stands behind, so the card shows where a reading goes.
+  const became = DEMO_PORTRAIT.signature.find((x) => x.from.includes(READING.id))?.line;
   return (
     <div className="ld-panel" ref={ref}>
       <img src="/images/twinme/cosmos-08-window.jpg" alt="A room at blue hour: a lamp lit, the window still light" />
@@ -235,9 +237,9 @@ function ReadingPanel({ reduced, seen }: { reduced: boolean; seen: Set<string> }
         </div>
         <p className={`ld-reading ${lineIn ? 'is-in' : ''}`}>{tidy(READING.text)}</p>
         <div className="ld-foot">
-          <span className="ld-mono">{provenance(READING.evidence.length, sources)}</span>
-          <Link to={DEMO}>Read {DEMO_PORTRAIT.owner}&rsquo;s portrait</Link>
+          <span className="ld-mono">{provenance(READING.evidence.length, sources, receipts.length)}</span>
         </div>
+        {became ? <p className={`ld-became ld-reading ${lineIn ? 'is-in' : ''}`}><b>Became the line</b>{tidy(became)}</p> : null}
       </div>
     </div>
   );
@@ -305,9 +307,9 @@ export default function Landing() {
         <section className="ld-sect ld-how ld-col" aria-labelledby="ld-how-title">
           <Rise>
             <p className="ld-label" id="ld-how-title">How it reads</p>
-            <p className="ld-lead">It reads what you do, and writes what it notices.</p>
           </Rise>
           <ReadingPanel reduced={reduced} seen={seen} />
+          <p className="ld-caption">Receipts become a reading, and readings become a line. It reads what you do, and writes what it notices.</p>
         </section>
 
         <Rise as="section" className="ld-sect ld-ask ld-col">
