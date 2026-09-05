@@ -50,6 +50,9 @@
 .ld .ld-pill:active { transform: scale(0.97); }
 .ld .ld-pill--sm { height: 38px; padding: 0 16px; font-size: 14px; }
 
+/* The ground behind the sheet is white too, or the reveal shows the app's dark body. */
+html:has(main.ld), body:has(main.ld), #root:has(main.ld) { background: #ffffff; }
+
 /* The entrance: one grey line on white, cycling what it reads, then the page lifts in. */
 .ld-pre { font-family: 'Geist', system-ui, -apple-system, sans-serif; color: #8a8a8a; position: fixed; inset: 0; z-index: 50; background: #fff; display: grid; place-items: center; transition: opacity 520ms var(--ease); }
 .ld-pre.is-done { opacity: 0; pointer-events: none; }

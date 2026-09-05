@@ -230,6 +230,13 @@ function AskPanel({ reduced }: { reduced: boolean }) {
 export default function Landing() {
   const reduced = usePrefersReducedMotion();
   const pre = usePreloader(reduced);
+  // The app's body is dark; this page's ground is white, including behind the entrance.
+  useEffect(() => {
+    const prev = [document.documentElement.style.background, document.body.style.background];
+    document.documentElement.style.background = '#ffffff';
+    document.body.style.background = '#ffffff';
+    return () => { document.documentElement.style.background = prev[0]; document.body.style.background = prev[1]; };
+  }, []);
   return (
     <>
       {!pre.done || !reduced ? (
