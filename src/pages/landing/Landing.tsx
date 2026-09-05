@@ -182,9 +182,10 @@ function LedgerRow({ domain, i }: { domain: Domain; i: number }) {
  * receipts the page has not shown yet, across more than one day where it can.
  */
 function cardReading(seen: Set<string>) {
-  const fresh = (r: Reading) => r.evidence.filter((e) => !seen.has(e.event));
+  const fresh = (r: Reading) => r.evidence.filter((e) => !seen.has(e.event) && plain(e));
   const pool = DEMO_PORTRAIT.readings.filter((r) => r.domain !== 'motivation' && fresh(r).length >= 3);
-  return pool.find((r) => new Set(fresh(r).map((e) => e.at.slice(0, 10))).size >= 2) ?? pool[0] ?? DEMO_PORTRAIT.readings[0];
+  return pool.find((r) => new Set(fresh(r).map((e) => e.at.slice(0, 10))).size >= 2) ?? pool[0]
+    ?? DEMO_PORTRAIT.readings.find((r) => r.domain !== 'motivation' && r.evidence.filter((e) => !seen.has(e.event)).length >= 3) ?? DEMO_PORTRAIT.readings[0];
 }
 
 function ReadingPanel({ reduced, seen }: { reduced: boolean; seen: Set<string> }) {
@@ -192,7 +193,7 @@ function ReadingPanel({ reduced, seen }: { reduced: boolean; seen: Set<string> }
   const [shown, setShown] = useState(reduced ? 3 : 0);
   const [lineIn, setLineIn] = useState(reduced);
   const READING = cardReading(seen);
-  const receipts = spread(READING.evidence.filter((e) => !seen.has(e.event)));
+  const receipts = spread(READING.evidence.filter((e) => !seen.has(e.event) && plain(e)).length >= 3 ? READING.evidence.filter((e) => !seen.has(e.event) && plain(e)) : READING.evidence.filter((e) => !seen.has(e.event)));
   useEffect(() => {
     if (reduced || !inView) return;
     let t = 0;
