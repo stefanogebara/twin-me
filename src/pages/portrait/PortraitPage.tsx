@@ -370,7 +370,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
           </nav>
           {banner ? <Link to="/" className="liquid-glass pc-cine-pill">Read your own</Link> : <span />}
         </header>
-        <div className="pc-cine-body pc-cine-body--split">
+        <div className="pc-cine-body pc-cine-body--stack">
           <div className="pc-cine-copy">
             <p className="pc-cine-kicker animate-fade-rise">{data.owner}&rsquo;s portrait, read from {sourceCount} source{sourceCount === 1 ? '' : 's'}</p>
             <h1 className="pc-cine-h1 animate-fade-rise-delay"><CineLine text={lead ?? `${data.owner}.`} /></h1>
@@ -463,7 +463,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
                       <div key={s.domain} className="pc-pt-sig-item pc-pt-arrive" style={{ animationDelay: `${i * 120}ms` }}>
                         <div className="pc-demo-sig-row is-in">
                           <span><i style={{ background: DOMAIN_HUE[s.domain] }} />{DOMAIN_LABEL[s.domain]}</span>
-                          <small>{s.sources.length > 2 ? `${s.sources.slice(0, 2).join(', ')} +${s.sources.length - 2}` : s.sources.join(', ')}</small>
+                          <small>{s.sources.join(', ')}</small>
                         </div>
                         <p className="pc-pt-sig-line">
                           {s.line}
@@ -512,8 +512,8 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
           {readSources.map((s) => (
             <div key={s.platform} className="pc-pt-source">
               <strong>{s.label}</strong>
-              <span>{s.read} · since {spokenDay(s.since)}</span>
-              <small>{s.kinds}</small>
+              <span>{s.read}</span>
+              <small>{s.kinds}, since {spokenDay(s.since)}</small>
               {onDeleteSource && managing ? (
                 confirmDelete === s.platform ? (
                   <em className="pc-pt-source-confirm">
@@ -537,7 +537,6 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
         {banner
           ? <Link to="/" className="liquid-glass pc-cine-pill">Read your own portrait</Link>
           : <Link to="/sources" className="liquid-glass pc-cine-pill">Read from one more place</Link>}
-        <span className="pc-pt-close-mark">TwinMe</span>
         <div className="pc-pt-foot">
           <span>TwinMe, 2026</span>
           <Link to="/privacy-policy">Privacy</Link>

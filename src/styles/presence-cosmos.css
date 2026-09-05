@@ -4983,3 +4983,105 @@ button.pc-search-icons {
   /* The old page's side padding has no job now that the paper carries its own. */
   .presence-cosmos.pc-portrait { padding-left: 0; padding-right: 0; }
 }
+
+/* ---- One grid: the hero, the paper and the footer share the 880 column. The headline runs across the window; the glass sits under it, right. ---- */
+.pc-pt-cine .pc-cine-nav { width: min(880px, calc(100% - 48px)); max-width: none; padding: 24px 0; }
+.pc-pt-cine .pc-cine-body--stack {
+  display: grid; grid-template-columns: minmax(0, 1fr); justify-items: start; align-items: start; align-content: start;
+  width: min(880px, calc(100% - 48px)); margin: 0 auto; padding: 36px 0 72px; gap: 0; text-align: left;
+}
+.pc-pt-cine .pc-cine-body--stack .pc-cine-copy { display: grid; gap: 18px; width: 100%; padding-top: 0; }
+.presence-cosmos .pc-cine-body--stack .pc-cine-h1 { text-align: left; max-width: 100%; font-size: clamp(40px, 4.4vw, 64px); line-height: 0.98; letter-spacing: -0.032em; }
+.pc-pt-cine .pc-cine-body--stack .pc-cine-panel { justify-self: end; width: min(560px, 100%); min-width: 0; margin-top: 44px; }
+.pc-pt-cine { min-height: 100vh; }
+
+/* ---- The glass is the surface. Nothing inside it is a card: white type, hairlines, the room behind. ---- */
+.pc-pt-cine .pc-pt-glass.pc-demo-glass { min-height: 0; }
+.pc-pt-cine .pc-demo-row,
+.pc-pt-cine .pc-demo-reading,
+.pc-pt-cine .pc-demo-answer,
+.pc-pt-cine .pc-pt-sig-item,
+.pc-pt-cine .pc-demo-ask {
+  --c-on: #fff; --c-on-rgb: 255, 255, 255;
+  --c-ink: #fff; --c-ink-2: rgba(255, 255, 255, 0.72); --c-ink-3: rgba(255, 255, 255, 0.55);
+  color: #fff; background: transparent; border: 0; border-radius: 0; box-shadow: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.14); padding: 14px 0 14px;
+}
+.pc-pt-cine .pc-demo-log { gap: 0; }
+.pc-pt-cine .pc-pt-under { margin-top: 4px; }
+.pc-pt-cine .pc-demo-reading { border-top: 0; padding: 6px 0 16px; }
+.presence-cosmos .pc-pt-cine .pc-demo-reading p,
+.presence-cosmos .pc-pt-cine .pc-pt-sig-line { font-family: 'Instrument Serif', serif; font-size: 26px; line-height: 31px; letter-spacing: -0.012em; color: #fff; }
+.presence-cosmos .pc-pt-cine .pc-demo-reading > span,
+.presence-cosmos .pc-pt-cine .pc-demo-row span,
+.presence-cosmos .pc-pt-cine .pc-demo-answer > span { color: rgba(255, 255, 255, 0.55); }
+.presence-cosmos .pc-pt-cine .pc-demo-row p,
+.presence-cosmos .pc-pt-cine .pc-demo-answer p { color: #fff; }
+/* The answers are words, not a survey row. */
+.pc-pt-cine .pc-pt-answers { gap: 22px; margin-top: 12px; }
+.pc-portrait .pc-pt-cine .pc-pt-answers button {
+  height: auto; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none;
+  color: rgba(255, 255, 255, 0.82); font-size: 14px; font-weight: 500;
+  text-decoration: underline; text-underline-offset: 5px; text-decoration-color: rgba(255, 255, 255, 0.3);
+}
+.pc-portrait .pc-pt-cine .pc-pt-answers button:hover { color: #fff; text-decoration-color: #fff; opacity: 1; }
+.pc-portrait .pc-pt-cine .pc-pt-answers b { height: auto; padding: 0; border: 0; background: transparent; color: rgba(255, 255, 255, 0.82); font-size: 14px; }
+/* Ask: a hairline field, white words. */
+.pc-pt-cine .pc-demo-ask { padding: 0; min-height: 52px; border-top: 0; border-bottom: 1px solid rgba(255, 255, 255, 0.3); }
+.pc-pt-cine .pc-demo-ask.is-sent { background: transparent; }
+.presence-cosmos .pc-pt-cine .pc-demo-ask input { color: #fff; }
+.presence-cosmos .pc-pt-cine .pc-demo-ask input::placeholder { color: rgba(255, 255, 255, 0.5); }
+.pc-portrait .pc-pt-cine .pc-demo-ask .pc-pt-send { color: #fff; }
+.pc-portrait .pc-pt-cine .pc-demo-ask .pc-pt-send:hover { background: rgba(255, 255, 255, 0.1); }
+.pc-portrait .pc-pt-cine .pc-pt-hints { margin-top: 0; }
+.pc-portrait .pc-pt-cine .pc-pt-hints button:first-child { border-top: 0; }
+.pc-portrait .pc-pt-cine .pc-demo-answer .pc-demo-chips button { background: transparent; border: 1px solid rgba(255, 255, 255, 0.25); color: #fff; }
+.pc-portrait .pc-pt-cine .pc-demo-answer .pc-demo-chips b { background: transparent; border-color: rgba(255, 255, 255, 0.25); color: rgba(255, 255, 255, 0.8); }
+/* Signature: hairline rows, the count in grey, no underline in a panel. */
+.pc-pt-cine .pc-pt-sig { gap: 0; padding: 0; }
+.pc-pt-cine .pc-pt-sig-item { padding: 14px 0 16px; gap: 8px; }
+.pc-pt-cine .pc-pt-sig-item:first-child { border-top: 0; padding-top: 4px; }
+.pc-portrait .pc-pt-cine .pc-demo-sig-row > span { color: rgba(255, 255, 255, 0.9); }
+.pc-portrait .pc-pt-cine .pc-demo-sig-row small { color: rgba(255, 255, 255, 0.55); }
+.pc-portrait .pc-pt-sig-jump { text-decoration: none; color: var(--c-ink-3); }
+.pc-portrait .pc-pt-cine .pc-pt-sig-jump { color: rgba(255, 255, 255, 0.55); font-family: 'Geist', var(--c-font); font-size: 13px; margin-left: 10px; }
+.pc-portrait .pc-pt-cine .pc-pt-sig-jump:hover { color: #fff; }
+.pc-pt-cine .pc-pt-sig-foot { margin-top: 12px; padding-top: 14px; border-top: 1px solid rgba(255, 255, 255, 0.14); }
+
+/* The paper is frosted for real: the room shows through it. */
+.pc-pt-paper-panel { background: rgba(247, 245, 243, 0.9); backdrop-filter: blur(36px) saturate(1.1); -webkit-backdrop-filter: blur(36px) saturate(1.1); }
+
+/* Sources: the count alone at the right; when it began joins the description. */
+.pc-portrait .pc-pt-source span { letter-spacing: 0.03em; }
+
+/* One wordmark at the end: the footer row. */
+.pc-portrait .pc-pt-foot { margin-top: 48px; }
+
+@media (max-width: 640px) {
+  /* No frame on a phone: the scenes sit on the room. */
+  .pc-pt-cine .pc-pt-glass.pc-demo-glass { background: transparent; border: 0; backdrop-filter: none; -webkit-backdrop-filter: none; box-shadow: none; border-radius: 0; }
+  .pc-portrait .pc-pt-cine .pc-pt-glass-inner { padding: 4px 0 0; }
+  .pc-pt-cine .pc-cine-body--stack { padding: 12px 0 40px; }
+  .pc-pt-cine .pc-cine-body--stack .pc-cine-panel { margin-top: 32px; width: 100%; }
+  .presence-cosmos .pc-pt-cine .pc-demo-reading p, .presence-cosmos .pc-pt-cine .pc-pt-sig-line { font-size: 23px; line-height: 28px; }
+  /* The numeral hangs above the line instead of taking a gutter. */
+  .pc-portrait .pc-pt-row-head { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .pc-portrait .pc-pt-row-head .pc-pt-row-n { grid-column: 1; grid-row: 1; margin: 0; }
+  .presence-cosmos.pc-portrait .pc-pt-row-head p { grid-column: 1; grid-row: 2; }
+  .pc-portrait .pc-pt-row-head .pc-pt-row-meta { grid-column: 1; grid-row: 3; }
+  .pc-portrait .pc-pt-row-body { padding-left: 0; }
+}
+
+/* The signature fits the first screen: four lines, tighter. */
+.pc-pt-cine .pc-pt-sig-item { padding: 11px 0 13px; gap: 5px; }
+.presence-cosmos .pc-pt-cine .pc-pt-sig-line { font-size: 22px; line-height: 27px; }
+.pc-portrait .pc-pt-cine .pc-demo-sig-row > span { font-size: 13px; }
+.pc-portrait .pc-pt-cine .pc-demo-sig-row small { font-size: 12px; }
+.pc-pt-cine .pc-pt-sig-foot { margin-top: 8px; padding-top: 12px; }
+.pc-pt-cine .pc-cine-body--stack { padding-top: 28px; }
+.pc-pt-cine .pc-cine-body--stack .pc-cine-panel { margin-top: 36px; }
+.pc-pt-cine .pc-pt-sig-item { padding: 9px 0 11px; gap: 4px; }
+.presence-cosmos .pc-pt-cine .pc-pt-sig-line { font-size: 20px; line-height: 25px; }
+.pc-pt-cine .pc-pt-sig-foot { margin-top: 6px; padding-top: 10px; }
+.pc-pt-cine .pc-cine-body--stack { padding-top: 22px; }
+.pc-pt-cine .pc-cine-body--stack .pc-cine-panel { margin-top: 30px; }
