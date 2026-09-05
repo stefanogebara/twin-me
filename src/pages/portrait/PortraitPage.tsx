@@ -280,7 +280,9 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
   const byId = useMemo(() => new Map(readings.map((r) => [r.id, r])), [readings]);
   // The headline is the first reading; the ledger does not say it a second time.
   const lead = data.lead ?? data.signature[0]?.line ?? data.readings[0]?.text ?? null;
-  const groups = useMemo(() => groupByDomain(readings.filter((r) => r.text !== lead)), [readings, lead]);
+  // What the first screen already says is not said again below it: the headline, and today's question.
+  const onFirstScreen = useMemo(() => new Set(data.question?.fromReadings ?? []), [data.question]);
+  const groups = useMemo(() => groupByDomain(readings.filter((r) => r.text !== lead && !onFirstScreen.has(r.id))), [readings, lead, onFirstScreen]);
   // A source with nothing read is not a source yet.
   const readSources = data.sources.filter((s) => (parseInt(s.read, 10) || 0) > 0);
   const sourceCount = readSources.length;
@@ -417,8 +419,8 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
               {shown === 'ask' ? (
                 <div className="pc-demo-scene" key="ask">
                   <form className={`pc-demo-ask ${reply || asking ? 'is-sent' : ''}`} onSubmit={(e) => { e.preventDefault(); void ask(query); }}>
-                    <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Ask your twin" aria-label="Ask your twin" />
-                    <button type="submit" className="pc-pt-send">Ask</button>
+                    <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Your question" aria-label="Ask your twin" />
+                    <button type="submit" className="pc-pt-send">Send</button>
                   </form>
                   {!reply && !asking ? (
                     <div className="pc-demo-chips is-in pc-pt-hints">
@@ -492,7 +494,9 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
           </div>
         ))}
       </section>
+      </div>
 
+      <div className="pc-pt-paper-panel pc-pt-paper-panel--sources">
       <section className="pc-pt-sources" id="sources" aria-labelledby="pc-pt-src-title">
         <div className="pc-pt-src-head">
           <h2 id="pc-pt-src-title" className="pc-h2 pc-h2--sm pc-pt-head">Sources</h2>
@@ -505,8 +509,8 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
         {!managing ? (
           <div className="pc-pt-src-stanza">
             <dl className="pc-pt-src-grid">
-              {readSources.map((s) => (
-                <div key={s.platform}><dt>{s.label}</dt><dd>{s.read}</dd></div>
+              {[...readSources].sort((a, b) => (parseInt(b.read, 10) || 0) - (parseInt(a.read, 10) || 0)).map((s) => (
+                <div key={s.platform}><dt>{s.label}</dt><dd>{parseInt(s.read, 10) || 0}</dd></div>
               ))}
             </dl>
             <p className="pc-pt-src-kinds">

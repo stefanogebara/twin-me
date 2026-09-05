@@ -5140,3 +5140,32 @@ button.pc-search-icons {
 /* One column in the row: an older rule still sent the sentence and its provenance to a second, implicit one. */
 .presence-cosmos.pc-portrait .pc-pt-row-head p,
 .pc-portrait .pc-pt-row-head .pc-pt-row-meta { grid-column: 1; }
+
+/* ---- The glass is content-sized again (empty glass is the most visible flaw), and frosts harder ---- */
+.pc-pt-cine .pc-pt-glass.pc-demo-glass { min-height: 0; background: rgba(12, 14, 20, 0.5); backdrop-filter: blur(60px) saturate(1.2); -webkit-backdrop-filter: blur(60px) saturate(1.2); }
+/* Monochrome: the Signature names its domains in words; the pips go. Its provenance is mono like the rest. */
+.pc-pt-cine .pc-demo-sig-row > span i { display: none; }
+.pc-pt-cine .pc-demo-sig-row > span { gap: 0; }
+.pc-portrait .pc-pt-cine .pc-demo-sig-row small,
+.pc-portrait .pc-pt-cine .pc-pt-sig-jump { font-family: 'Geist Mono', var(--font-mono, ui-monospace, monospace); font-size: 11px; letter-spacing: 0.04em; margin-left: 0; }
+/* The answers are pills like everything else pressable. */
+.pc-portrait .pc-pt-cine .pc-pt-answers button {
+  height: 30px; padding: 0 12px; border: 1px solid rgba(255, 255, 255, 0.28); border-radius: 999px;
+  text-decoration: none; color: rgba(255, 255, 255, 0.86);
+}
+.pc-portrait .pc-pt-cine .pc-pt-answers button:hover { border-color: #fff; color: #fff; }
+.pc-pt-cine .pc-pt-answers { gap: 8px; }
+.pc-portrait .pc-demo-ask .pc-pt-send { font-weight: 500; }
+/* The ledger: a group boundary is not a row boundary. The label stands alone; the first row has no rule above it. */
+.pc-portrait .pc-pt-group { margin-top: 56px; }
+.pc-portrait .pc-pt-group:first-of-type { margin-top: 36px; }
+.pc-portrait .pc-pt-run { padding-bottom: 6px; }
+.pc-portrait .pc-pt-group > .pc-pt-row:first-of-type { border-top: 0; }
+.pc-portrait .pc-pt-group > .pc-pt-row:first-of-type .pc-pt-row-head { padding-top: 6px; }
+/* Two panels with the room between them, so the ground comes back mid-scroll. */
+.pc-pt-paper-panel--sources { margin-top: 160px; padding-top: 8px; }
+.pc-pt-paper-panel .pc-pt-sources { margin-top: 48px; }
+.pc-pt-paper-panel:not(.pc-pt-paper-panel--sources) { padding-bottom: 72px; }
+@media (max-width: 640px) {
+  .pc-pt-paper-panel--sources { margin-top: 96px; }
+}
