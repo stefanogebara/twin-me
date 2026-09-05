@@ -1,21 +1,48 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowUp, Check, ChevronDown } from 'lucide-react';
-import { DOMAIN_HUE, DOMAIN_LABEL, SOURCE_LABEL, type PortraitData, type Reading, type Verdict } from '../../data/demoPortrait';
+import { DOMAIN_HUE, DOMAIN_LABEL, SOURCE_LABEL, type Evidence, type PortraitData, type Reading, type Verdict } from '../../data/demoPortrait';
 import { deriveState, supportLine, groupReadings, daysSince, findScripted, type ReadingState } from '../../lib/portrait';
 import '../../styles/presence-cosmos.css';
 
 /**
- * The Portrait: the product's one page, in Cosmos. Three bands (today's question, the
- * signature, the ledger of readings with evidence and verdicts), Ask pinned above, the
- * Sources strip at the foot. Spec: .claude/plans/2026-09-03-portrait/README.md.
+ * The Portrait: the product's one page, built the way the front door shows it — a
+ * liquid-glass panel on the room photograph, holding the real interface. The panel has
+ * three scenes, the same three the front door demos: today's question (a reading and what
+ * it was read from), Ask (the twin answers in your words and shows what it cites), and
+ * your signature (five lines, each measured from named sources). Beneath the stage, on
+ * paper, the ledger of every reading with its evidence and your verdict, and the sources.
  *
- * Verdicts and the question's answer are local state here: this page renders a static
- * export. The product wires the same props to the API.
+ * The glass, the arriving rows, the typing: the same recipe as /cosmos/demos, but nothing
+ * here is scripted — every row is a receipt, every answer comes from the readings.
+ *
+ * Verdicts and today's answer update locally first; the live page wires the same props to
+ * the API through PortraitHandlers. Without onAsk, Ask answers from the export's scripts.
  */
+
+export type PortraitHandlers = {
+  /** Live: persist a verdict. The page updates optimistically either way. */
+  onVerdict?: (readingId: string, verdict: Verdict) => Promise<void> | void;
+  /** Live: persist today's answer. */
+  onAnswer?: (readingIds: string[], answer: string) => Promise<void> | void;
+  /** Live: ask the twin. Resolves to the answer and the readings it cites. */
+  onAsk?: (question: string) => Promise<{ a: string; cites: string[] }>;
+  /** Live: delete everything read from one platform. Absent in the demo, so no control shows. */
+  onDeleteSource?: (platform: string) => Promise<void> | void;
+};
+
+type Scene = 'question' | 'ask' | 'signature';
+
+const SCENES: { id: Scene; label: string; caption: string }[] = [
+  { id: 'question', label: "Today's question", caption: 'One new reading, and what it was read from. Say whether it is you.' },
+  { id: 'ask', label: 'Ask your twin', caption: 'It answers as you, in your words, and shows what it read to say so.' },
+  { id: 'signature', label: 'Your signature', caption: 'Five lines, each measured from named sources. Nothing from a quiz.' },
+];
 
 const STATE_LABEL: Record<ReadingState, string> = {
   new: 'New this week', standing: 'Standing', fading: 'Fading', disputed: 'Disputed',
 };
+
+const VERDICT_LABEL: Record<Exclude<Verdict, null>, string> = { true: 'That is me', partly: 'Partly', wrong: 'Not me' };
 
 function Mark() {
   return (
@@ -23,6 +50,50 @@ function Mark() {
       <circle cx="5" cy="5" r="2.7" /><circle cx="14" cy="5" r="2.7" /><circle cx="23" cy="5" r="2.7" /><circle cx="23" cy="14" r="2.7" />
       <circle cx="23" cy="23" r="2.7" /><circle cx="14" cy="23" r="2.7" /><circle cx="5" cy="23" r="2.7" /><circle cx="5" cy="14" r="2.7" />
     </svg>
+  );
+}
+
+function Wave() {
+  return <span className="pc-wave" aria-hidden="true"><i /><i /><i /><i /><i /></span>;
+}
+
+function usePrefersReducedMotion() {
+  const [reduced, setReduced] = useState(() => typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const onChange = () => setReduced(mq.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+  return reduced;
+}
+
+/** Text arriving at a typist's pace, the way the front door shows a reading being written. */
+function useTyped(text: string, cps: number, enabled: boolean) {
+  const [n, setN] = useState(enabled ? 0 : text.length);
+  useEffect(() => {
+    if (!enabled) { setN(text.length); return; }
+    setN(0);
+    const start = performance.now();
+    let raf = 0;
+    const tick = () => {
+      const k = Math.min(text.length, Math.floor(((performance.now() - start) / 1000) * cps));
+      setN(k);
+      if (k < text.length) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [text, cps, enabled]);
+  return { shown: text.slice(0, n), done: n >= text.length };
+}
+
+/** A receipt as the front door shows one: source and day over the event. */
+function ReceiptRow({ e, i }: { e: Evidence; i: number }) {
+  return (
+    <div className="pc-demo-row is-in pc-pt-arrive" style={{ animationDelay: `${i * 140}ms` }}>
+      <span>{SOURCE_LABEL[e.source] ?? e.source} · {e.at.slice(0, 10)}</span>
+      <p>{e.event}</p>
+    </div>
   );
 }
 
@@ -42,18 +113,13 @@ function ReadingRow({ reading, now, verdict, onVerdict, open, onToggle, lit }: {
       {open ? (
         <div className="pc-pt-row-body">
           <div className="pc-demo-log" aria-label="Evidence">
-            {reading.evidence.map((e, i) => (
-              <div key={i} className="pc-demo-row is-in">
-                <span>{SOURCE_LABEL[e.source] ?? e.source} · {e.at}</span>
-                <p>{e.event}</p>
-              </div>
-            ))}
+            {reading.evidence.map((e, i) => <ReceiptRow key={i} e={e} i={i} />)}
           </div>
           <div className="pc-pt-verdict" role="group" aria-label="Your verdict">
             <small>{verdict ? 'Your verdict' : 'Not yet reviewed'}</small>
             {(['true', 'partly', 'wrong'] as const).map((v) => (
               <button key={v} type="button" className={`pc-btn pc-btn--ghost ${verdict === v ? 'is-active' : ''}`} onClick={() => onVerdict(verdict === v ? null : v)}>
-                {verdict === v ? <Check size={14} /> : null}{v === 'true' ? 'True' : v === 'partly' ? 'Partly' : 'Wrong'}
+                {verdict === v ? <Check size={14} /> : null}{VERDICT_LABEL[v]}
               </button>
             ))}
           </div>
@@ -63,96 +129,198 @@ function ReadingRow({ reading, now, verdict, onVerdict, open, onToggle, lit }: {
   );
 }
 
-export function PortraitPage({ data, now, banner }: { data: PortraitData; now: Date; banner?: React.ReactNode }) {
+export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, onDeleteSource }: { data: PortraitData; now: Date; banner?: React.ReactNode } & PortraitHandlers) {
+  const reduced = usePrefersReducedMotion();
   const [verdicts, setVerdicts] = useState<Record<string, Verdict>>(() => Object.fromEntries(data.readings.map((r) => [r.id, r.verdict])));
   const [open, setOpen] = useState<string | null>(null);
-  const [answer, setAnswer] = useState<string | null>(data.question.yourAnswer);
+  const [answer, setAnswer] = useState<string | null>(data.question?.yourAnswer ?? null);
   const [query, setQuery] = useState('');
   const [reply, setReply] = useState<{ a: string; cites: string[] } | null>(null);
+  const [asking, setAsking] = useState(false);
   const [lit, setLit] = useState<string[]>([]);
+  const [scene, setScene] = useState<Scene>(data.question ? 'question' : 'signature');
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
   const readings = useMemo(() => data.readings.map((r) => ({ ...r, verdict: verdicts[r.id] ?? null })), [data.readings, verdicts]);
+  const byId = useMemo(() => new Map(readings.map((r) => [r.id, r])), [readings]);
   const groups = useMemo(() => groupReadings(readings, now), [readings, now]);
   const sourceCount = data.sources.length;
 
-  function ask(q: string) {
-    const hit = findScripted(data.ask, q);
-    if (!hit) {
-      setReply({ a: `I do not know that yet. Nothing in the ${sourceCount} sources I read supports an answer.`, cites: [] });
-      setLit([]);
+  // What today's question was read from: the receipts behind its readings, newest first.
+  const questionReceipts = useMemo(() => {
+    if (!data.question) return [];
+    const from = data.question.fromReadings.map((id) => byId.get(id)).filter(Boolean) as Reading[];
+    return [...from.flatMap((r) => r.evidence)].sort((a, b) => b.at.localeCompare(a.at)).slice(0, 4);
+  }, [data.question, byId]);
+
+  // The signature's bars: how much stands behind each line, against the fullest.
+  const signature = useMemo(() => {
+    const rows = data.signature.map((s) => {
+      const from = readings.filter((r) => s.from.includes(r.id) && deriveState(r, now) !== 'disputed');
+      const receipts = from.reduce((n, r) => n + r.evidence.length, 0);
+      const sources = [...new Set(from.flatMap((r) => r.evidence.map((e) => SOURCE_LABEL[e.source] ?? e.source)))];
+      return { ...s, from, receipts, sources };
+    });
+    const max = Math.max(1, ...rows.map((r) => r.receipts));
+    return rows.map((r) => ({ ...r, share: r.receipts / max }));
+  }, [data.signature, readings, now]);
+
+  const question = useTyped(data.question?.question ?? '', 38, !reduced && scene === 'question');
+  const twin = useTyped(reply?.a ?? '', 46, !reduced);
+
+  function verdict(id: string, v: Verdict) {
+    setVerdicts((s) => ({ ...s, [id]: v }));
+    void onVerdict?.(id, v);
+  }
+
+  function answerToday(a: string) {
+    setAnswer(a);
+    if (a !== 'skipped' && data.question) void onAnswer?.(data.question.fromReadings, a);
+  }
+
+  function showReply(r: { a: string; cites: string[] }) {
+    setReply(r);
+    setLit(r.cites);
+    if (r.cites[0]) setOpen(r.cites[0]);
+  }
+
+  async function ask(q: string) {
+    if (!q.trim()) return;
+    setScene('ask');
+    if (onAsk) {
+      setAsking(true);
+      try { showReply(await onAsk(q)); } catch { showReply({ a: 'Something went wrong on my side. Ask again in a moment.', cites: [] }); } finally { setAsking(false); }
       return;
     }
-    setReply({ a: hit.a, cites: hit.cites });
-    setLit(hit.cites);
-    setOpen(hit.cites[0]);
-    document.getElementById(`reading-${hit.cites[0]}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const hit = findScripted(data.ask, q);
+    if (!hit) { showReply({ a: `I do not know that yet. Nothing in the ${sourceCount} sources I read supports an answer.`, cites: [] }); return; }
+    showReply({ a: hit.a, cites: hit.cites });
   }
+
+  function jumpTo(id: string) {
+    setOpen(id);
+    setLit([id]);
+    document.getElementById(`reading-${id}`)?.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'center' });
+  }
+
+  const current = SCENES.find((s) => s.id === scene)!;
 
   return (
     <main className="presence-cosmos pc-portrait" id="main-content">
       {banner}
       <header className="pc-pt-nav">
         <Mark />
-        <nav aria-label="Portrait"><a href="#portrait" className="is-active">Portrait</a><a href="#ask">Ask</a><a href="#sources">Sources</a></nav>
+        <nav aria-label="Portrait">
+          <a href="#portrait" className={scene !== 'ask' ? 'is-active' : ''}>Portrait</a>
+          <a href="#portrait" className={scene === 'ask' ? 'is-active' : ''} onClick={() => setScene('ask')}>Ask</a>
+          <a href="#sources">Sources</a>
+        </nav>
       </header>
 
-      <section className="pc-pt-ask" id="ask" aria-label="Ask your twin">
-        <form className="pc-search" onSubmit={(e) => { e.preventDefault(); ask(query); }}>
-          <label className="pc-search-field">
-            <input className="pc-search-input" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Ask your twin. It answers with what it read." aria-label="Ask your twin" />
-          </label>
-          <button type="submit" className="pc-search-icons" aria-label="Ask"><ArrowUp size={18} /></button>
-        </form>
-        <div className="pc-pt-ask-hints">
-          {data.ask.map((s) => <button key={s.q} type="button" onClick={() => { setQuery(s.q); ask(s.q); }}>{s.q}</button>)}
-        </div>
-      </section>
-      {reply ? (
-        <section className="pc-pt-reply" aria-live="polite">
-          <div className="pc-demo-answer is-in">
-            <span>Your twin</span>
-            <p>{reply.a}</p>
-            {reply.cites.length ? (
-              <div className="pc-demo-chips is-in">
-                {reply.cites.map((id) => <b key={id}>Reading {id.replace('r', '')}</b>)}
+      <section className="pc-pt-stage-wrap" id="portrait" aria-label="Your portrait">
+        <div className="pc-demo-stage pc-pt-stage">
+          <img src="/images/twinme/cosmos-07-room.jpg" alt="" aria-hidden="true" />
+          <div className="pc-demo-glass pc-pt-glass" role="group" aria-label={current.label}>
+            <div className="pc-demo-head">
+              <span className="pc-demo-dot" /> TwinMe
+              <em>{data.owner}&rsquo;s portrait · read from {sourceCount} source{sourceCount === 1 ? '' : 's'}</em>
+            </div>
+
+            {scene === 'question' ? (
+              <div className="pc-demo-scene" key="question">
+                {data.question ? (
+                  <>
+                    <div className="pc-demo-log" aria-label="What it was read from">
+                      {questionReceipts.map((e, i) => <ReceiptRow key={`${e.source}-${e.at}-${i}`} e={e} i={i} />)}
+                    </div>
+                    <div className="pc-demo-reading is-in pc-pt-arrive" style={{ animationDelay: `${questionReceipts.length * 140 + 120}ms` }}>
+                      <span>{question.done ? 'New this week' : 'Writing a reading'}{!question.done ? <Wave /> : null}{data.question.source ? ` · ${data.question.source}` : ''}</span>
+                      <p>{question.shown}{!question.done ? <i className="pc-demo-caret" /> : null}</p>
+                      <div className={`pc-demo-chips pc-pt-answers ${question.done ? 'is-in' : ''}`}>
+                        {answer ? (
+                          <b><Check size={13} /> {answer === 'skipped' ? 'Skipped for today' : `In your words: ${answer}`}</b>
+                        ) : (
+                          <>
+                            {data.question.answers.map((a) => (
+                              <button key={a} type="button" onClick={() => answerToday(a)}>{a}</button>
+                            ))}
+                            <button type="button" className="is-quiet" onClick={() => answerToday('skipped')}>Skip today</button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="pc-demo-reading is-in">
+                    <span>This week</span>
+                    <p>Nothing new to ask you yet. Every line below still keeps its receipts.</p>
+                  </div>
+                )}
+              </div>
+            ) : null}
+
+            {scene === 'ask' ? (
+              <div className="pc-demo-scene" key="ask">
+                <form className={`pc-demo-ask ${reply || asking ? 'is-sent' : ''}`} onSubmit={(e) => { e.preventDefault(); void ask(query); }}>
+                  <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Ask your twin. It answers with what it read." aria-label="Ask your twin" />
+                  <button type="submit" aria-label="Ask"><ArrowUp size={16} /></button>
+                </form>
+                {!reply && !asking ? (
+                  <div className="pc-demo-chips is-in pc-pt-hints">
+                    {data.ask.map((s) => <button key={s.q} type="button" onClick={() => { setQuery(s.q); void ask(s.q); }}>{s.q}</button>)}
+                  </div>
+                ) : null}
+                {asking ? (
+                  <div className="pc-demo-answer is-in"><span>Your twin<Wave /></span><p>&nbsp;</p></div>
+                ) : null}
+                {reply ? (
+                  <div className="pc-demo-answer is-in pc-pt-arrive" aria-live="polite">
+                    <span>Your twin{!twin.done ? <Wave /> : null}</span>
+                    <p>{twin.shown}{!twin.done ? <i className="pc-demo-caret" /> : null}</p>
+                    <div className={`pc-demo-chips ${twin.done ? 'is-in' : ''}`}>
+                      {reply.cites.length
+                        ? reply.cites.map((id, i) => <button key={id} type="button" onClick={() => jumpTo(id)}>Reading {i + 1}</button>)
+                        : <b>Nothing it read supports more than this</b>}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+
+            {scene === 'signature' ? (
+              <div className="pc-demo-scene" key="signature">
+                <div className="pc-demo-sig pc-pt-sig">
+                  {signature.map((s, i) => (
+                    <div key={s.domain} className="pc-pt-sig-item pc-pt-arrive" style={{ animationDelay: `${i * 160}ms` }}>
+                      <div className="pc-demo-sig-row is-in">
+                        <span><i style={{ background: DOMAIN_HUE[s.domain] }} />{DOMAIN_LABEL[s.domain]}</span>
+                        <div className="pc-demo-bar"><b style={{ width: `${Math.round(s.share * 100)}%`, background: DOMAIN_HUE[s.domain] }} /></div>
+                        <small>{s.sources.join(', ')}</small>
+                      </div>
+                      <p className="pc-pt-sig-line">
+                        {s.line}
+                        {s.from[0] ? <button type="button" className="pc-pt-sig-jump" onClick={() => jumpTo(s.from[0].id)} aria-label={`Open the reading behind ${DOMAIN_LABEL[s.domain]}`}>{s.receipts} receipt{s.receipts === 1 ? '' : 's'}</button> : null}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+                <div className="pc-demo-chips is-in pc-pt-arrive" style={{ animationDelay: `${signature.length * 160 + 100}ms` }}>
+                  <b><Check size={13} /> Read from {sourceCount} source{sourceCount === 1 ? '' : 's'}</b>
+                  <b>Nothing self-reported</b>
+                </div>
               </div>
             ) : null}
           </div>
-        </section>
-      ) : null}
+        </div>
 
-      <section className="pc-pt-question" aria-labelledby="pc-pt-q-title">
-        <p className="pc-spec-n">Today's question</p>
-        <p className="pc-pt-evidence-line">{data.question.evidenceLine}</p>
-        <h2 id="pc-pt-q-title">{data.question.question}</h2>
-        {answer ? (
-          <p className="pc-pt-answered"><Check size={14} /> In your words: {answer}. Saved as the heaviest memory of the day.</p>
-        ) : (
-          <div className="pc-pt-answers">
-            {data.question.answers.map((a) => <button key={a} type="button" className="pc-btn pc-btn--primary" onClick={() => setAnswer(a)}>{a}</button>)}
-            <button type="button" className="pc-btn pc-btn--canvas" onClick={() => setAnswer('skipped')}>Skip</button>
-          </div>
-        )}
-      </section>
-
-      <section className="pc-pt-signature" id="portrait" aria-labelledby="pc-pt-sig-title">
-        <h1 id="pc-pt-sig-title">{data.owner}'s signature.</h1>
-        <ol>
-          {data.signature.map((s) => {
-            const from = readings.filter((r) => s.from.includes(r.id) && deriveState(r, now) !== 'disputed');
-            const sources = new Set(from.flatMap((r) => r.evidence.map((e) => e.source))).size;
-            return (
-              <li key={s.domain}>
-                <i style={{ background: DOMAIN_HUE[s.domain] }} aria-hidden="true" />
-                <div>
-                  <p>{s.line}</p>
-                  <small>{DOMAIN_LABEL[s.domain]} · from {from.length} reading{from.length === 1 ? '' : 's'}, {sources} source{sources === 1 ? '' : 's'}</small>
-                  <span>{s.from.map((id) => <a key={id} href={`#reading-${id}`} onClick={() => setOpen(id)}>{id.replace('r', '#')}</a>)}</span>
-                </div>
-              </li>
-            );
-          })}
-        </ol>
+        <div className="pc-demo-tabs" role="tablist" aria-label="Portrait">
+          {SCENES.map((s) => (
+            <button key={s.id} type="button" role="tab" aria-selected={s.id === scene} className={`pc-demo-tab ${s.id === scene ? 'is-active' : ''}`} onClick={() => setScene(s.id)}>
+              <strong>{s.label}</strong>
+              <small>{s.caption}</small>
+            </button>
+          ))}
+        </div>
       </section>
 
       <section className="pc-pt-ledger" aria-labelledby="pc-pt-ledger-title">
@@ -162,7 +330,7 @@ export function PortraitPage({ data, now, banner }: { data: PortraitData; now: D
             <p className="pc-spec-n">{STATE_LABEL[g.state]} · {g.readings.length}</p>
             {g.readings.map((r) => (
               <ReadingRow key={r.id} reading={r} now={now} verdict={verdicts[r.id] ?? null}
-                onVerdict={(v) => setVerdicts((s) => ({ ...s, [r.id]: v }))}
+                onVerdict={(v) => verdict(r.id, v)}
                 open={open === r.id} onToggle={() => setOpen(open === r.id ? null : r.id)} lit={lit.includes(r.id)} />
             ))}
           </div>
@@ -177,10 +345,21 @@ export function PortraitPage({ data, now, banner }: { data: PortraitData; now: D
               <strong>{s.label}</strong>
               <span>{s.read} · since {s.since}</span>
               <small>{s.kinds}</small>
-              <em>Read only</em>
+              {onDeleteSource ? (
+                confirmDelete === s.platform ? (
+                  <em className="pc-pt-source-confirm">
+                    Delete everything read from {s.label}?
+                    <button type="button" onClick={async () => { await onDeleteSource(s.platform); setConfirmDelete(null); }}>Yes, delete</button>
+                    <button type="button" onClick={() => setConfirmDelete(null)}>Keep</button>
+                  </em>
+                ) : (
+                  <em><button type="button" onClick={() => setConfirmDelete(s.platform)}>Delete</button></em>
+                )
+              ) : <em>Read only</em>}
             </div>
           ))}
         </div>
+        <p className="pc-pt-source-note">Nothing here trains a model. Messages, photos and location are never read.</p>
       </section>
     </main>
   );

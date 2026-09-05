@@ -4131,3 +4131,151 @@ button.pc-search-icons {
   .pc-pt-source span, .pc-pt-source small { grid-column: 1; }
   .pc-pt-row-body { padding-left: 18px; }
 }
+
+
+/* ============================================================
+   Portrait — the product inside the front door's glass (2026-09-05)
+   The stage and the liquid-glass recipe are the demo's (.pc-demo-*);
+   these rules only adapt them to a real, interactive interface.
+   ============================================================ */
+
+.pc-pt-stage-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px var(--c-pad-x) 0;
+}
+
+.pc-pt-stage {
+  margin-top: 0;
+}
+
+.pc-pt-stage > img {
+  object-position: 55% 42%;
+}
+
+.pc-pt-glass {
+  width: min(680px, calc(100% - 40px));
+  min-height: 380px;
+}
+
+/* Rows arrive the way the demo's do, one after another. */
+@keyframes pc-pt-arrive {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+.pc-pt-arrive {
+  animation: pc-pt-arrive 0.45s var(--c-ease-ui) both;
+}
+
+/* The answers and the question hints are the demo's chips, but pressable. */
+.pc-demo-chips button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 0.5px solid var(--c-ink);
+  background: var(--c-ink);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--c-white);
+  cursor: pointer;
+  transition: opacity 0.15s var(--c-ease-ui);
+}
+
+.pc-demo-chips button:hover { opacity: 0.84; }
+
+.pc-demo-chips button.is-quiet,
+.pc-pt-hints button {
+  background: var(--c-paper);
+  border-color: var(--c-border);
+  color: var(--c-ink-2);
+}
+
+.pc-demo-chips button.is-quiet:hover,
+.pc-pt-hints button:hover { opacity: 1; border-color: var(--c-ink-3); color: var(--c-ink); }
+
+/* The real input inside the demo's ask capsule. */
+.pc-demo-ask input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 16px;
+  letter-spacing: -0.02em;
+  color: var(--c-ink);
+  outline: none;
+}
+
+.pc-demo-ask input::placeholder { color: var(--c-ink-3); }
+
+/* The signature: the demo's row (dot, bar, sources) over the line it measures. */
+.pc-pt-sig { gap: 14px; }
+
+.pc-pt-sig-item {
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.6);
+  border: 0.5px solid rgba(13, 13, 13, 0.08);
+}
+
+.presence-cosmos .pc-pt-sig-line {
+  font-size: 16px;
+  line-height: 1.4;
+  letter-spacing: -0.02em;
+  color: var(--c-ink);
+}
+
+.pc-pt-sig-jump {
+  margin-left: 8px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  color: var(--c-ink-3);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.pc-pt-sig-jump:hover { color: var(--c-ink); }
+
+/* Deletion, one source at a time, with a second look. */
+.pc-pt-source em button {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.pc-pt-source-confirm { display: inline-flex; gap: 12px; align-items: baseline; }
+
+.presence-cosmos .pc-pt-source-note {
+  max-width: 560px;
+  margin: 28px auto 0;
+  font-size: 14px;
+  line-height: 1.5;
+  text-align: center;
+  color: var(--c-ink-3);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pc-pt-arrive { animation: none; }
+}
+
+@media (max-width: 640px) {
+  .pc-pt-stage-wrap { padding: 16px 12px 0; }
+  .pc-pt-glass { width: calc(100% - 24px); min-height: 0; }
+}
