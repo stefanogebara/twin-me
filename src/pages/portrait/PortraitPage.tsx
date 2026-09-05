@@ -198,6 +198,19 @@ function shortLine(text: string, max = 36) {
 }
 
 /** "11 Aug" from an ISO date: a receipt is dated the way a person says a day. */
+/** The ground of the first screen: a looping clip, the room still as its poster and its reduced-motion stand-in. */
+const HERO_VIDEO = 'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260314_131748_f2ca2a28-fed7-44c8-b9a9-bd9acdd5ec31.mp4';
+
+const CINE_STOP = new Set('you your yours the a an and then for of in on to it is are with that this into at by but so as from when they their not just like'.split(' '));
+
+/** The lead line with its two most particular words set in the muted ink, the way the reference sets "dreams" and "through the silence". */
+function CineLine({ text }: { text: string }) {
+  const tokens = text.split(/(\s+)/);
+  const words = tokens.map((t, i) => ({ t, i, w: t.replace(/[^A-Za-z'-]/g, '') })).filter((x) => x.w && !CINE_STOP.has(x.w.toLowerCase()));
+  const picks = new Set([...words].sort((a, b) => b.w.length - a.w.length).slice(0, 2).map((x) => x.i));
+  return <>{tokens.map((t, i) => picks.has(i) ? <em key={i} className="pc-cine-muted">{t}</em> : <React.Fragment key={i}>{t}</React.Fragment>)}</>;
+}
+
 function spokenDay(iso: string) {
   const d = new Date(`${iso.slice(0, 10)}T00:00:00Z`);
   return Number.isNaN(d.getTime()) ? iso.slice(0, 10) : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
@@ -335,17 +348,36 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
 
   const current = SCENES.find((s) => s.id === scene)!;
 
+  const lead = data.lead ?? data.signature[0]?.line ?? data.readings[0]?.text ?? null;
+
   return (
     <main className="presence-cosmos pc-portrait" id="main-content">
       {banner}
-      <header className="pc-pt-nav">
-        <Mark />
-        <nav aria-label="Portrait">
-          <a href="#portrait" className={scene !== 'ask' ? 'is-active' : ''} onClick={() => setScene(data.question ? 'question' : 'signature')}>Portrait</a>
-          <a href="#readings">Readings</a>
-          <a href="#sources">Sources</a>
-        </nav>
-      </header>
+      <section className="pc-pt-cine" aria-label="Your portrait, in one line">
+        {reduced ? (
+          <img className="pc-cine-ground" src="/images/twinme/cosmos-07-room.jpg" alt="" aria-hidden="true" />
+        ) : (
+          <video className="pc-cine-ground" autoPlay loop muted playsInline poster="/images/twinme/cosmos-07-room.jpg" aria-hidden="true">
+            <source src={HERO_VIDEO} type="video/mp4" />
+          </video>
+        )}
+        <header className="pc-pt-nav pc-cine-nav">
+          <a href="/" className="pc-cine-mark">TwinMe<sup>&reg;</sup></a>
+          <nav aria-label="Portrait">
+            <a href="#portrait" className={scene !== 'ask' ? 'is-active' : ''} onClick={() => setScene(data.question ? 'question' : 'signature')}>Portrait</a>
+            <a href="#readings">Readings</a>
+            <a href="#sources">Sources</a>
+          </nav>
+          <a href="#portrait" className="liquid-glass pc-cine-pill">{banner ? 'Read your own' : "Today's question"}</a>
+        </header>
+        <div className="pc-cine-body">
+          <h1 className="pc-cine-h1 animate-fade-rise"><CineLine text={lead ?? `${data.owner}.`} /></h1>
+          <p className="pc-cine-sub animate-fade-rise-delay">
+            Read from {sourceCount} source{sourceCount === 1 ? '' : 's'} you already use. Nothing self-reported, every line with its receipts.
+          </p>
+          <a href="#portrait" className="liquid-glass pc-cine-pill pc-cine-cta animate-fade-rise-delay-2">See what it read</a>
+        </div>
+      </section>
 
       <section className="pc-pt-stage-wrap" id="portrait" aria-label="Your portrait">
         <div className="pc-demo-stage pc-pt-stage">

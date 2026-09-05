@@ -4505,3 +4505,173 @@ button.pc-search-icons {
   text-decoration-thickness: 0.5px;
 }
 .pc-portrait .pc-demo-chips button.pc-pt-skip:hover { color: var(--c-ink); opacity: 1; }
+
+/* ---- The cinematic first screen ------------------------------------------ */
+/* A fullscreen looping clip is the ground; nothing is laid over it. The chrome
+   is liquid glass, the line is Instrument Serif at display scale, the body is
+   Inter. Tokens are the reference's, in HSL, scoped to this screen. */
+.pc-pt-cine {
+  --background: 201 100% 13%;
+  --foreground: 0 0% 100%;
+  --muted-foreground: 240 4% 66%;
+  --font-display: 'Instrument Serif', serif;
+  --font-body: 'Inter', sans-serif;
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: var(--font-body);
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.pc-cine-ground {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+}
+
+.pc-pt-cine .pc-cine-nav {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 24px 32px;
+  height: auto;
+}
+
+.presence-cosmos .pc-cine-mark {
+  font-family: var(--font-display);
+  font-size: 30px;
+  letter-spacing: -0.02em;
+  color: hsl(var(--foreground)) !important;
+  text-decoration: none;
+}
+
+.presence-cosmos .pc-cine-mark sup { font-size: 12px; margin-left: 2px; }
+
+.pc-pt-cine .pc-cine-nav nav { display: none; gap: 28px; }
+.pc-pt-cine .pc-cine-nav nav a {
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: hsl(var(--muted-foreground)) !important;
+  text-decoration: none;
+  transition: color 0.15s var(--pt-ease);
+}
+.pc-pt-cine .pc-cine-nav nav a:hover,
+.pc-pt-cine .pc-cine-nav nav a.is-active { color: hsl(var(--foreground)) !important; }
+
+@media (min-width: 768px) { .pc-pt-cine .pc-cine-nav nav { display: flex; } }
+
+/* Liquid glass, as specified. */
+.liquid-glass {
+  background: rgba(255, 255, 255, 0.01);
+  background-blend-mode: luminosity;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border: none;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+.liquid-glass::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.4px;
+  background: linear-gradient(180deg,
+    rgba(255,255,255,0.45) 0%, rgba(255,255,255,0.15) 20%,
+    rgba(255,255,255,0) 40%, rgba(255,255,255,0) 60%,
+    rgba(255,255,255,0.15) 80%, rgba(255,255,255,0.45) 100%);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.presence-cosmos .pc-cine-pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 10px 24px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 500;
+  color: hsl(var(--foreground)) !important;
+  text-decoration: none;
+  transition: transform 0.2s var(--pt-ease);
+}
+.presence-cosmos .pc-cine-pill:hover { transform: scale(1.03); }
+
+.pc-cine-body {
+  position: relative;
+  z-index: 10;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 90px 24px;
+}
+
+.presence-cosmos .pc-cine-h1 {
+  max-width: 1280px;
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(48px, 8vw, 96px);
+  line-height: 0.95;
+  letter-spacing: -2.46px;
+  color: hsl(var(--foreground));
+  text-wrap: balance;
+}
+
+.presence-cosmos .pc-cine-h1 .pc-cine-muted { font-style: normal; color: hsl(var(--muted-foreground)); }
+
+.presence-cosmos .pc-cine-sub {
+  max-width: 42rem;
+  margin: 32px 0 0;
+  font-family: var(--font-body);
+  font-size: clamp(16px, 1.25vw, 18px);
+  line-height: 1.6;
+  color: hsl(var(--muted-foreground));
+}
+
+.presence-cosmos .pc-cine-cta { margin-top: 48px; padding: 20px 56px; font-size: 16px; cursor: pointer; }
+
+@keyframes fade-rise {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-rise { animation: fade-rise 0.8s ease-out both; }
+.animate-fade-rise-delay { animation: fade-rise 0.8s ease-out 0.2s both; }
+.animate-fade-rise-delay-2 { animation: fade-rise 0.8s ease-out 0.4s both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-rise, .animate-fade-rise-delay, .animate-fade-rise-delay-2 { animation: none; }
+}
+
+/* The stage follows the first screen; it no longer carries the page's nav. */
+.pc-pt-cine + .pc-pt-stage-wrap { margin-top: 24px; }
+
+/* The first screen bleeds to the viewport's edges, whatever the page's own gutter. */
+.pc-portrait .pc-pt-cine { width: 100vw; margin-left: calc(50% - 50vw); margin-right: calc(50% - 50vw); }
+
+/* At phone size the display tracking eases; -2.46px is a desktop measure. */
+@media (max-width: 640px) {
+  .presence-cosmos .pc-cine-h1 { letter-spacing: -1.2px; font-size: clamp(40px, 12vw, 56px); }
+  .pc-pt-cine .pc-cine-nav { padding: 20px 20px; }
+  .presence-cosmos .pc-cine-cta { padding: 16px 36px; }
+}
