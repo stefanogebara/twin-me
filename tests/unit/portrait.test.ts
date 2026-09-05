@@ -33,10 +33,10 @@ describe('deriveState', () => {
 
 describe('supportLine', () => {
   it('counts events, distinct sources and the span in days', () => {
-    expect(supportLine(base)).toBe('2 events, 2 sources, 3 days');
+    expect(supportLine(base)).toBe('Seen 2 times over 3 days, from GitHub and Spotify');
   });
   it('says 1 day for evidence on a single day', () => {
-    expect(supportLine({ ...base, evidence: [base.evidence[1], base.evidence[1]] })).toBe('2 events, 1 source, 1 day');
+    expect(supportLine({ ...base, evidence: [base.evidence[1], base.evidence[1]] })).toBe('Seen 2 times over 1 day, from Spotify');
   });
 });
 

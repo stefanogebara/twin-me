@@ -4282,3 +4282,190 @@ button.pc-search-icons {
 
 /* The Ask scene is as tall as its capsule until there is an answer to hold. */
 .pc-pt-glass.pc-demo-glass.is-ask { min-height: 0; }
+
+
+/* ============================================================
+   Portrait — pixel audit, 2026-09-05
+   Every value below answers a measurement: fractional line-heights
+   put text on half pixels; half-pixel hairlines vanish at 1x; the
+   ash labels sat at 2.6:1; three columns disagreed; sizes changed
+   without moving. Scoped to .pc-portrait so the front door keeps
+   its own recipe.
+   ============================================================ */
+
+/* One column. The paper column is 720; the glass is the same 720. */
+.pc-portrait .pc-pt-glass {
+  width: min(720px, calc(100% - 48px));
+  min-height: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.pc-portrait .pc-pt-glass-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px 22px 22px;
+  transition: opacity 140ms cubic-bezier(0.4, 0, 1, 1), transform 140ms cubic-bezier(0.4, 0, 1, 1);
+}
+
+.pc-portrait .pc-pt-glass-inner.is-leaving {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+
+.pc-portrait .pc-pt-glass-inner.is-showing {
+  animation: pc-pt-scene-in 320ms cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+
+@keyframes pc-pt-scene-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* The stage sizes to the glass, so a scene change moves one edge: the bottom. */
+.pc-portrait .pc-pt-stage {
+  aspect-ratio: auto;
+  min-height: 0;
+  padding: 48px 24px;
+  display: block;
+}
+
+.pc-portrait .pc-pt-stage > .pc-pt-glass {
+  margin: 0 auto;
+}
+
+/* The still drifts a little, forty seconds out and forty back. */
+.pc-portrait .pc-pt-stage > img.pc-pt-drift {
+  animation: pc-pt-drift 40s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+@keyframes pc-pt-drift {
+  from { transform: scale(1.02) translate3d(0, 0, 0); }
+  to { transform: scale(1.07) translate3d(-1%, -1%, 0); }
+}
+
+/* Integer type: every line height a whole number of pixels. */
+.pc-portrait .pc-pt-nav nav a { font-size: 15px; line-height: 20px; }
+.pc-portrait .pc-demo-head { font-size: 14px; line-height: 20px; }
+.pc-portrait .pc-demo-head em { font-size: 13px; line-height: 20px; }
+.pc-portrait .pc-demo-row { padding: 10px 14px 11px; gap: 3px; }
+.pc-portrait .pc-demo-row span,
+.pc-portrait .pc-demo-reading > span,
+.pc-portrait .pc-demo-answer > span { font-size: 12px; line-height: 16px; letter-spacing: 0.06em; }
+.presence-cosmos.pc-portrait .pc-demo-row p { font-size: 15px; line-height: 22px; }
+.pc-portrait .pc-demo-reading,
+.pc-portrait .pc-demo-answer { padding: 16px 18px 18px; gap: 8px; }
+.presence-cosmos.pc-portrait .pc-demo-reading p,
+.presence-cosmos.pc-portrait .pc-demo-answer p { font-size: 18px; line-height: 26px; min-height: 26px; }
+.pc-portrait .pc-demo-chips { gap: 8px; margin-top: 4px; }
+.pc-portrait .pc-demo-chips b,
+.pc-portrait .pc-demo-chips button { height: 32px; font-size: 13px; line-height: 16px; }
+.pc-portrait .pc-demo-tab { padding: 18px 20px; gap: 6px; }
+.pc-portrait .pc-demo-tab strong { font-size: 16px; line-height: 22px; }
+.pc-portrait .pc-demo-tab small { font-size: 14px; line-height: 20px; }
+.presence-cosmos.pc-portrait .pc-pt-ledger h2,
+.presence-cosmos.pc-portrait .pc-pt-sources h2 { font-size: 38px; line-height: 44px; }
+.pc-portrait .pc-spec-n { font-size: 13px; line-height: 20px; }
+.presence-cosmos.pc-portrait .pc-pt-row-head p { font-size: 17px; line-height: 24px; }
+.pc-portrait .pc-pt-row-head span { font-size: 13px; line-height: 18px; }
+.pc-portrait .pc-pt-source strong,
+.pc-portrait .pc-pt-source span,
+.pc-portrait .pc-pt-source small,
+.pc-portrait .pc-pt-source em { font-size: 14px; line-height: 20px; }
+.pc-portrait .pc-pt-source-note { font-size: 14px; line-height: 20px; }
+.presence-cosmos.pc-portrait .pc-pt-sig-line { font-size: 16px; line-height: 22px; }
+.pc-portrait .pc-demo-sig-row > span { font-size: 14px; line-height: 20px; }
+.pc-portrait .pc-demo-sig-row small { font-size: 13px; line-height: 20px; }
+.pc-portrait .pc-demo-ask { min-height: 56px; }
+.presence-cosmos.pc-portrait .pc-demo-ask input { font-size: 16px; line-height: 24px; }
+
+/* Hairlines that exist at 1x: one device-independent pixel, lighter. */
+.pc-portrait .pc-demo-row,
+.pc-portrait .pc-demo-tab,
+.pc-portrait .pc-pt-row,
+.pc-portrait .pc-pt-source,
+.pc-portrait .pc-pt-sig-item,
+.pc-portrait .pc-demo-ask,
+.pc-portrait .pc-demo-chips b,
+.pc-portrait .pc-demo-chips button,
+.pc-portrait .pc-pt-verdict .pc-btn { border-width: 1px; }
+.pc-portrait .pc-pt-glass { border: 1px solid rgba(13, 13, 13, 0.08); }
+.pc-portrait .pc-demo-row { border-color: rgba(13, 13, 13, 0.06); }
+.pc-portrait .pc-demo-tab,
+.pc-portrait .pc-pt-row,
+.pc-portrait .pc-pt-source { border-color: rgba(13, 13, 13, 0.08); }
+
+/* Small caps you can read: 4.6:1 on white, not 2.6:1. */
+.pc-portrait .pc-demo-row span,
+.pc-portrait .pc-demo-reading > span,
+.pc-portrait .pc-demo-answer > span,
+.pc-portrait .pc-pt-row-head span,
+.pc-portrait .pc-spec-n,
+.pc-portrait .pc-pt-source-note { color: #6e6b69; }
+
+/* A reading opens by height. */
+.pc-portrait .pc-pt-row-fold {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 380ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.pc-portrait .pc-pt-row.is-open .pc-pt-row-fold {
+  grid-template-rows: 1fr;
+}
+
+.pc-portrait .pc-pt-row-fold-inner {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.pc-portrait .pc-pt-row-body {
+  opacity: 0;
+  transition: opacity 240ms ease 60ms;
+}
+
+.pc-portrait .pc-pt-row.is-open .pc-pt-row-body {
+  opacity: 1;
+}
+
+.pc-portrait .pc-pt-row-head svg {
+  transition: transform 320ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* Presses register: a small settle, never a bounce. */
+.pc-portrait .pc-demo-chips button,
+.pc-portrait .pc-demo-tab,
+.pc-portrait .pc-pt-verdict .pc-btn,
+.pc-portrait .pc-demo-ask button {
+  transition: transform 160ms cubic-bezier(0.32, 0.72, 0, 1), background-color 160ms ease, border-color 160ms ease, opacity 160ms ease;
+}
+
+.pc-portrait .pc-demo-chips button:active,
+.pc-portrait .pc-demo-tab:active,
+.pc-portrait .pc-pt-verdict .pc-btn:active,
+.pc-portrait .pc-demo-ask button:active { transform: scale(0.97); }
+
+.pc-portrait .pc-demo-tab.is-active { border-color: rgba(13, 13, 13, 0.9); }
+
+/* Tabs at the glass's width, under it, as one object. */
+.pc-portrait .pc-pt-tabs { max-width: 720px; margin-top: 16px; gap: 12px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .pc-portrait .pc-pt-glass-inner,
+  .pc-portrait .pc-pt-row-fold,
+  .pc-portrait .pc-pt-row-body,
+  .pc-portrait .pc-pt-row-head svg { transition: none; animation: none; }
+  .pc-portrait .pc-pt-glass-inner.is-showing { animation: none; }
+}
+
+@media (max-width: 760px) {
+  .pc-portrait .pc-pt-stage { padding: 20px 12px; }
+  .pc-portrait .pc-pt-glass { width: calc(100% - 0px); }
+  .pc-portrait .pc-pt-glass-inner { padding: 16px 14px 18px; }
+  .pc-portrait .pc-pt-tabs { grid-template-columns: 1fr; }
+}
+
+/* The nav sits on the stage's edge, not on the readings column's. */
+.pc-pt-nav { max-width: min(1168px, calc(100% - 48px)); }

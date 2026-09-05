@@ -3,7 +3,7 @@
  * State is derived from dates and the person's verdict; the support line is computed
  * from evidence, never shown as a number.
  */
-import type { AskScript, Reading } from '../data/demoPortrait';
+import { SOURCE_LABEL, type AskScript, type Reading } from '../data/demoPortrait';
 
 export type ReadingState = 'new' | 'standing' | 'fading' | 'disputed';
 
@@ -35,7 +35,9 @@ export function supportLine(reading: Reading): string {
   const days = reading.evidence.map((e) => Math.floor(parse(e.at) / DAY));
   const span = Math.max(...days) - Math.min(...days) + 1;
   const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
-  return `${plural(events, 'event')}, ${plural(sources, 'source')}, ${plural(span, 'day')}`;
+  const names = [...new Set(reading.evidence.map((e) => SOURCE_LABEL[e.source] ?? e.source))];
+  const from = names.length > 2 ? `${names.length} sources` : names.join(' and ');
+  return `Seen ${events === 1 ? 'once' : `${plural(events, 'time')}`} over ${plural(span, 'day')}, from ${from}`;
 }
 
 export const LEDGER_ORDER: ReadingState[] = ['new', 'standing', 'fading', 'disputed'];
