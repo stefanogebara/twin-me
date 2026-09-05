@@ -88,7 +88,7 @@ function sourceName(key: string) { return SOURCE_LABEL[key] ?? key; }
 
 /** A short last word never sits alone on a line, and a hyphenated word never breaks at its hyphen. */
 function tidy(text: string) {
-  return text.replace(/(\w)-(\w)/g, '$1\u2011$2').replace(/ (\S+)$/, '\u00a0$1');
+  return text.replace(/(\w)-(\w)/g, '$1\u2011$2').replace(/(\d) (?=[a-z])/g, '$1\u00a0').replace(/ (\S+)$/, '\u00a0$1');
 }
 
 /** Two receipts about the same thing count as the same receipt, however the engine phrased the second. */
@@ -158,7 +158,7 @@ function ReceiptRows({ rows }: { rows: Evidence[] }) {
     <div className="ld-receipts">
       {rows.map((e, i) => (
         <div key={i} className="ld-receipt">
-          <b>{i > 0 && rows[i - 1].at.slice(0, 10) === e.at.slice(0, 10) ? '' : day(e.at)}</b><span>{tidy(e.event)}</span>
+          <b className={i > 0 && rows[i - 1].at.slice(0, 10) === e.at.slice(0, 10) ? 'is-same' : undefined}>{day(e.at)}</b><span>{tidy(e.event)}</span>
         </div>
       ))}
     </div>
@@ -231,7 +231,7 @@ function ReadingPanel({ reduced, seen }: { reduced: boolean; seen: Set<string> }
         <div className="ld-receipts">
           {receipts.map((e, i) => (
             <div key={i} className={`ld-receipt ${i < shown ? 'is-in' : ''}`}>
-              <b>{i > 0 && receipts[i - 1].at.slice(0, 10) === e.at.slice(0, 10) ? '' : day(e.at)}</b><span>{tidy(e.event)}</span>
+              <b className={i > 0 && receipts[i - 1].at.slice(0, 10) === e.at.slice(0, 10) ? 'is-same' : undefined}>{day(e.at)}</b><span>{tidy(e.event)}</span>
             </div>
           ))}
         </div>
@@ -239,7 +239,7 @@ function ReadingPanel({ reduced, seen }: { reduced: boolean; seen: Set<string> }
         <div className="ld-foot">
           <span className="ld-mono">{provenance(READING.evidence.length, sources, receipts.length)}</span>
         </div>
-        {became ? <p className={`ld-became ld-reading ${lineIn ? 'is-in' : ''}`}><b>Became the line</b>{tidy(became)}</p> : null}
+        {became ? <p className={`ld-became ld-reading ${lineIn ? 'is-in' : ''}`}><b>It became the line</b>{tidy(became)}</p> : null}
       </div>
     </div>
   );
@@ -294,7 +294,7 @@ export default function Landing() {
           <div className="ld-row">
             <div>
               <p className="ld-lead ld-dek">A portrait of you, read from your days. This one is {DEMO_PORTRAIT.owner}&rsquo;s, from {readSources} sources since {sinceMonth}. Every line shows its evidence.</p>
-              <p className="ld-cta"><Link to={DEMO} className="ld-link">Read {DEMO_PORTRAIT.owner}&rsquo;s portrait <span aria-hidden="true">&#8594;</span></Link></p>
+              <p className="ld-cta"><Link to={DEMO} className="ld-link">Read {DEMO_PORTRAIT.owner}&rsquo;s portrait<span className="ld-arrow" aria-hidden="true">&#8594;</span></Link></p>
             </div>
             <Receipts evidence={first.evidence} sources={first.sources} />
           </div>
@@ -304,10 +304,7 @@ export default function Landing() {
           {rest.map((d, i) => <LedgerRow key={d} domain={d} i={i} />)}
         </section>
 
-        <section className="ld-sect ld-how ld-col" aria-labelledby="ld-how-title">
-          <Rise>
-            <p className="ld-label" id="ld-how-title">How it reads</p>
-          </Rise>
+        <section className="ld-sect ld-how ld-col" aria-label="How it reads">
           <ReadingPanel reduced={reduced} seen={seen} />
           <p className="ld-caption">Receipts become a reading, and readings become a line. It reads what you do, and writes what it notices.</p>
         </section>
@@ -315,8 +312,7 @@ export default function Landing() {
         <Rise as="section" className="ld-sect ld-ask ld-col">
           <div className="ld-row">
             <div>
-              <p className="ld-label">Ask</p>
-              <p className="ld-lead ld-lead--grey ld-q">{ask.q}</p>
+              <p className="ld-q">Asked: {ask.q}</p>
               <p className="ld-voice"><q>{tidy(ask.a)}</q></p>
             </div>
             <div className="ld-cites" aria-label="What it cites">

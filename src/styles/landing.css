@@ -56,6 +56,7 @@ html:has(main.ld), body:has(main.ld), #root:has(main.ld) { background: #ffffff; 
 .ld .ld-br { display: block; }
 .ld .ld-link { color: var(--ink); text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 1px; }
 .ld .ld-link:hover { color: var(--grey); }
+.ld .ld-link .ld-arrow { display: inline-block; text-decoration: none; margin-left: 0.2em; }
 
 /* The one pill: black, once, at the end. */
 .ld .ld-pill { display: inline-flex; align-items: center; justify-content: center; height: 48px; padding: 0 22px; border-radius: 999px; font-size: 15px; line-height: 20px; font-weight: 500; white-space: nowrap; background: var(--ink); color: #fff; transition: transform 180ms var(--ease), background-color 180ms ease; }
@@ -88,6 +89,7 @@ html:has(main.ld), body:has(main.ld), #root:has(main.ld) { background: #ffffff; 
 .ld-receipts { display: flex; flex-direction: column; gap: 6px; }
 .ld-receipt { color: var(--ink); display: grid; grid-template-columns: 52px 1fr; gap: 14px; align-items: baseline; font-size: 16px; line-height: 24px; }
 .ld-receipt b { font-family: 'Geist Mono', ui-monospace, monospace; font-weight: 400; color: var(--grey); font-size: 12px; line-height: 16px; letter-spacing: 0.04em; text-transform: uppercase; text-align: left; font-variant-numeric: tabular-nums; }
+.ld-receipt b.is-same { opacity: 0.38; }
 .ld-meta { display: block; color: var(--grey); }
 .ld-receipts + .ld-meta { margin-top: 14px; }
 
@@ -113,7 +115,7 @@ html:has(main.ld), body:has(main.ld), #root:has(main.ld) { background: #ffffff; 
 .ld-caption { margin-top: 16px; font-size: 15px; line-height: 22px; color: var(--grey); max-width: 60ch; }
 
 /* The one photograph: sharp, the room at blue hour, the sheet on the window's light. */
-.ld-panel { position: relative; width: 100%; margin: 40px 0 0; border-radius: var(--r); overflow: hidden; height: 640px; display: flex; align-items: center; justify-content: center; padding: 40px; isolation: isolate; transform: translateZ(0); }
+.ld-panel { position: relative; width: 100%; margin: 0; border-radius: var(--r); overflow: hidden; height: 640px; display: flex; align-items: flex-end; justify-content: center; padding: 40px; isolation: isolate; transform: translateZ(0); }
 .ld-panel > img { position: absolute; inset: 0; width: 100%; max-width: none; height: 100%; object-fit: cover; object-position: 50% 48%; z-index: -1; }
 .ld-frost { width: min(480px, 100%); color: var(--ink); background: var(--frost); border: 1px solid var(--frost-line); -webkit-backdrop-filter: blur(18px) saturate(1.1); backdrop-filter: blur(18px) saturate(1.1); border-radius: 22px; padding: 20px 22px 20px; display: flex; flex-direction: column; gap: 14px; --grey: #3f3d3b; }
 .ld-frost .ld-receipts { gap: 8px; }
@@ -123,13 +125,13 @@ html:has(main.ld), body:has(main.ld), #root:has(main.ld) { background: #ffffff; 
 .ld-reading.is-in { opacity: 1; transform: none; }
 .ld-foot { font-weight: 400; display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-size: 13px; line-height: 20px; white-space: nowrap; }
 .ld-frost .ld-became { border-top: 1px solid rgba(10, 10, 10, 0.14); padding-top: 12px; font-size: 15px; line-height: 22px; font-weight: 400; letter-spacing: 0; color: var(--ink); text-wrap: pretty; }
-.ld-frost .ld-became b { display: block; font-weight: 500; font-size: 11px; line-height: 16px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--grey); margin-bottom: 4px; }
+.ld-frost .ld-became b { display: block; font-weight: 400; font-size: 13px; line-height: 20px; color: var(--grey); margin-bottom: 2px; }
 .ld-foot .ld-mono { color: var(--ink); font-size: 13px; line-height: 20px; }
 .ld-foot a { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
 .ld-foot a:hover { color: var(--ink); }
 
 /* Ask: the question in the lead size, the answer in the twin's voice. */
-.ld-ask .ld-q { margin-top: 12px; }
+.ld-ask .ld-q { margin-top: 0; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 14px; line-height: 20px; letter-spacing: 0.02em; color: var(--grey); }
 .ld-ask .ld-voice { margin-top: 20px; max-width: 30ch; }
 .ld-cites { padding-top: 30px; display: flex; flex-direction: column; gap: 14px; }
 .ld-cite { font-size: 16px; line-height: 24px; color: var(--ink); }
