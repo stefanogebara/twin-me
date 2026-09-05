@@ -5085,3 +5085,9 @@ button.pc-search-icons {
 .pc-pt-cine .pc-pt-sig-foot { margin-top: 6px; padding-top: 10px; }
 .pc-pt-cine .pc-cine-body--stack { padding-top: 22px; }
 .pc-pt-cine .pc-cine-body--stack .pc-cine-panel { margin-top: 30px; }
+
+/* The glass tints toward the room's dark, so white type holds where the panel crosses the window. */
+.pc-pt-cine .pc-pt-glass.pc-demo-glass { background: rgba(12, 14, 20, 0.28); border-color: rgba(255, 255, 255, 0.14); }
+/* The footer row keeps off the lamp: everything sits at the right. */
+.pc-portrait .pc-pt-foot { justify-content: flex-end; }
+.pc-portrait .pc-pt-foot span { margin-right: 4px; }
