@@ -4675,3 +4675,58 @@ button.pc-search-icons {
   .pc-pt-cine .pc-cine-nav { padding: 20px 20px; }
   .presence-cosmos .pc-cine-cta { padding: 16px 36px; }
 }
+
+/* ---- One ground, one object ------------------------------------------------ */
+/* The room is the whole first screen; the line sits on its left, the glass on
+   its right, off the window. No stage frame, no tab cards, no seam. */
+.pc-pt-cine .pc-cine-body--split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 560px);
+  gap: 56px;
+  align-items: center;
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 40px 32px 72px;
+  text-align: left;
+}
+
+.pc-pt-cine .pc-cine-copy { display: grid; gap: 28px; }
+.presence-cosmos .pc-cine-body--split .pc-cine-h1 { text-align: left; font-size: clamp(44px, 5.6vw, 76px); max-width: 12ch; }
+.presence-cosmos .pc-cine-body--split .pc-cine-sub { margin: 0; max-width: 34rem; }
+
+.pc-pt-cine .pc-cine-panel { min-width: 0; }
+.pc-pt-cine .pc-cine-panel .pc-demo-glass { width: 100%; max-width: none; margin: 0; }
+
+/* The scene switcher lives in the glass, three words in a capsule. */
+.pc-cine-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.pc-cine-tabs {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 999px;
+  background: rgba(var(--c-on-rgb), 0.06);
+  box-shadow: inset 0 0 0 0.5px rgba(var(--c-on-rgb), 0.1);
+}
+.pc-portrait .pc-cine-tabs button {
+  height: 28px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(var(--c-on-rgb), 0.6);
+  cursor: pointer;
+  transition: background 0.15s var(--pt-ease), color 0.15s var(--pt-ease);
+}
+.pc-portrait .pc-cine-tabs button.is-active { background: rgba(255, 255, 255, 0.9); color: #111; }
+.pc-portrait .pc-cine-tabs button:hover { color: var(--c-on); }
+
+.pc-pt-cine + .pc-pt-stage-wrap { margin-top: 0; }
+
+@media (max-width: 960px) {
+  .pc-pt-cine .pc-cine-body--split { grid-template-columns: 1fr; gap: 32px; padding: 24px 20px 48px; }
+  .presence-cosmos .pc-cine-body--split .pc-cine-h1 { max-width: none; }
+}

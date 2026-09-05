@@ -199,7 +199,7 @@ function shortLine(text: string, max = 36) {
 
 /** "11 Aug" from an ISO date: a receipt is dated the way a person says a day. */
 /** The ground of the first screen: a looping clip, the room still as its poster and its reduced-motion stand-in. */
-const HERO_VIDEO = 'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260314_131748_f2ca2a28-fed7-44c8-b9a9-bd9acdd5ec31.mp4';
+const HERO_VIDEO: string | null = null; // set to our own room clip once it is generated
 
 const CINE_STOP = new Set('you your yours the a an and then for of in on to it is are with that this into at by but so as from when they their not just like'.split(' '));
 
@@ -353,13 +353,13 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
   return (
     <main className="presence-cosmos pc-portrait" id="main-content">
       {banner}
-      <section className="pc-pt-cine" aria-label="Your portrait, in one line">
-        {reduced ? (
-          <img className="pc-cine-ground" src="/images/twinme/cosmos-07-room.jpg" alt="" aria-hidden="true" />
-        ) : (
+      <section className="pc-pt-cine" id="portrait" aria-label="Your portrait">
+        {HERO_VIDEO && !reduced ? (
           <video className="pc-cine-ground" autoPlay loop muted playsInline poster="/images/twinme/cosmos-07-room.jpg" aria-hidden="true">
             <source src={HERO_VIDEO} type="video/mp4" />
           </video>
+        ) : (
+          <img className={`pc-cine-ground ${reduced ? '' : 'pc-pt-drift'}`} src="/images/twinme/cosmos-07-room.jpg" alt="" aria-hidden="true" />
         )}
         <header className="pc-pt-nav pc-cine-nav">
           <a href="/" className="pc-cine-mark">TwinMe<sup>&reg;</sup></a>
@@ -368,25 +368,27 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
             <a href="#readings">Readings</a>
             <a href="#sources">Sources</a>
           </nav>
-          <a href="#portrait" className="liquid-glass pc-cine-pill">{banner ? 'Read your own' : "Today's question"}</a>
+          {banner ? <Link to="/" className="liquid-glass pc-cine-pill">Read your own</Link> : <span />}
         </header>
-        <div className="pc-cine-body">
-          <h1 className="pc-cine-h1 animate-fade-rise"><CineLine text={lead ?? `${data.owner}.`} /></h1>
-          <p className="pc-cine-sub animate-fade-rise-delay">
-            Read from {sourceCount} source{sourceCount === 1 ? '' : 's'} you already use. Nothing self-reported, every line with its receipts.
-          </p>
-          <a href="#portrait" className="liquid-glass pc-cine-pill pc-cine-cta animate-fade-rise-delay-2">See what it read</a>
-        </div>
-      </section>
-
-      <section className="pc-pt-stage-wrap" id="portrait" aria-label="Your portrait">
-        <div className="pc-demo-stage pc-pt-stage">
-          <img src="/images/twinme/cosmos-07-room.jpg" alt="" aria-hidden="true" className={reduced ? '' : 'pc-pt-drift'} />
+        <div className="pc-cine-body pc-cine-body--split">
+          <div className="pc-cine-copy">
+            <h1 className="pc-cine-h1 animate-fade-rise"><CineLine text={lead ?? `${data.owner}.`} /></h1>
+            <p className="pc-cine-sub animate-fade-rise-delay">
+              {data.owner}&rsquo;s portrait, read from {sourceCount} source{sourceCount === 1 ? '' : 's'}. Nothing self-reported; every line keeps its receipts.
+            </p>
+          </div>
+          <div className="pc-cine-panel animate-fade-rise-delay-2">
           <AnimatedHeight className="pc-demo-glass pc-pt-glass" reduced={reduced}>
             <div role="group" aria-label={current.label} className={`pc-pt-glass-inner ${leaving ? 'is-leaving' : 'is-showing'}`}>
-              <div className="pc-demo-head">
-                <span className="pc-demo-dot" /> TwinMe
-                <em>{data.owner}&rsquo;s portrait · read from {sourceCount} source{sourceCount === 1 ? '' : 's'}</em>
+              <div className="pc-demo-head pc-cine-head">
+                <div className="pc-cine-tabs" role="tablist" aria-label="Portrait">
+                  {SCENES.map((t) => (
+                    <button key={t.id} type="button" role="tab" aria-selected={t.id === scene} className={t.id === scene ? 'is-active' : ''} onClick={() => setScene(t.id)} title={t.caption}>
+                      {t.id === 'question' ? 'Today' : t.id === 'ask' ? 'Ask' : 'Signature'}
+                    </button>
+                  ))}
+                </div>
+                <em>read from {sourceCount} source{sourceCount === 1 ? '' : 's'}</em>
               </div>
 
               {shown === 'question' ? (
@@ -483,17 +485,10 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
               ) : null}
             </div>
           </AnimatedHeight>
-        </div>
-
-        <div className="pc-demo-tabs pc-pt-tabs" role="tablist" aria-label="Portrait">
-          {SCENES.map((s) => (
-            <button key={s.id} type="button" role="tab" aria-selected={s.id === scene} className={`pc-demo-tab ${s.id === scene ? 'is-active' : ''}`} onClick={() => setScene(s.id)}>
-              <strong>{s.label}</strong>
-              <small>{s.caption}</small>
-            </button>
-          ))}
+          </div>
         </div>
       </section>
+
 
       <section className="pc-pt-ledger" id="readings" aria-labelledby="pc-pt-ledger-title">
         <h2 id="pc-pt-ledger-title" className="pc-h2 pc-h2--sm">The readings.</h2>
