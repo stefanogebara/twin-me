@@ -1,194 +1,164 @@
-/* ── Landing page pseudo-element styles ── */
-/* Only styles that CANNOT be expressed as Tailwind utilities belong here. */
-/* All other styles have been migrated to Tailwind classes in Index.tsx. */
+/* ==========================================================================
+   TwinMe landing — from scratch, 2026-09-05. Namespace: .ld
+   Reference lock: .claude/plans/2026-09-05-landing-from-scratch/README.md
+   White canvas, one light grotesk, centred; demonstrations as rounded panels
+   with one interaction each; grey statements between them; photographs only
+   inside panels, blurred, under one frosted sheet. Integer line-heights only.
+   ========================================================================== */
 
-/* Glass stat card — top gradient line (::before pseudo-element) */
-.glass-stat-standalone::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, #E8A050, #D4644A, transparent);
-  opacity: 0.6;
-}
-
-/* Glass feature card — top gradient line (::before pseudo-element) */
-.glass-feature-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, #E8A050, #D4644A, transparent);
-  opacity: 0.4;
-}
-
-/* Warm ambient glow (::before pseudo-element) */
-.warm-glow::before {
-  content: '';
-  position: absolute;
-  top: -100px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: min(600px, 100vw);
-  height: 400px;
-  background: radial-gradient(ellipse at center, rgba(232, 160, 80, 0.06) 0%, transparent 70%);
-  pointer-events: none;
-  z-index: 0;
-}
-
-/* Act transition divider — 3-stop gradient not expressible in Tailwind */
-.landing-divider-gradient {
-  background: linear-gradient(90deg, transparent, rgba(232, 160, 80, 0.4), transparent);
-}
-
-/* ── Cosmic hero typography ── */
-.cosmic-kicker {
-  font-family: 'Inter', 'Geist', system-ui, sans-serif;
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: 0.28em;
-  text-transform: uppercase;
-  color: rgba(245, 240, 235, 0.62);
-  margin-bottom: 24px;
-}
-
-.cosmic-h1 {
-  font-family: 'Instrument Serif', Georgia, serif;
+.ld {
+  --ink: #0a0a0a;
+  --grey: #8a8a8a;
+  --grey-2: #b9b9b9;
+  --line: rgba(0, 0, 0, 0.08);
+  --white: #ffffff;
+  --frost: rgba(255, 255, 255, 0.56);
+  --frost-line: rgba(255, 255, 255, 0.6);
+  --r: 28px;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  background: var(--white);
+  color: var(--ink);
+  font-family: 'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-size: 16px;
+  line-height: 24px;
   font-weight: 400;
-  font-size: clamp(60px, 9.5vw, 128px);
-  line-height: 0.98;
-  letter-spacing: -0.04em;
-  color: #F5F0EB;
-  margin-bottom: 32px;
-  text-shadow: 0 2px 48px rgba(0, 0, 0, 0.55), 0 1px 2px rgba(0,0,0,0.3);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+  overflow-x: hidden;
 }
 
-.cosmic-h2 {
-  font-family: 'Instrument Serif', Georgia, serif;
-  font-weight: 400;
-  font-size: clamp(32px, 5vw, 64px);
-  line-height: 1.12;
-  letter-spacing: -0.022em;
-  color: #F5F0EB;
-  text-shadow: 0 2px 32px rgba(0, 0, 0, 0.5);
+.ld *, .ld *::before, .ld *::after { box-sizing: border-box; }
+:where(.ld) :where(p, h1, h2, ul) { margin: 0; }
+/* The app's global sheet colours headings and paragraphs by element; here they inherit. */
+:where(.ld) :where(h1, h2, h3, p, small, em, b, span, a, li, i) { color: inherit; font-family: inherit; font-weight: inherit; letter-spacing: inherit; }
+:where(.ld-pre) p { color: inherit; font-family: inherit; }
+:where(.ld) ul { padding: 0; list-style: none; }
+.ld a { color: inherit; text-decoration: none; }
+.ld button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+.ld :focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; border-radius: 999px; }
+.ld img { display: block; }
+
+.ld .ld-mono { font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; line-height: 16px; letter-spacing: 0.02em; }
+.ld .ld-label { font-size: 12px; line-height: 16px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--grey); font-weight: 500; }
+
+/* Pills: the only fills on the page. Black is the primary action, nothing else. */
+.ld .ld-pill { display: inline-flex; align-items: center; justify-content: center; height: 48px; padding: 0 22px; border-radius: 999px; font-size: 15px; line-height: 20px; font-weight: 500; white-space: nowrap; transition: transform 180ms var(--ease), background-color 180ms ease, border-color 180ms ease; }
+.ld .ld-pill--ink { background: var(--ink); color: #fff; }
+.ld .ld-pill--ink:hover { background: #262626; }
+.ld .ld-pill--line { border: 1px solid rgba(0, 0, 0, 0.12); color: var(--ink); }
+.ld .ld-pill--line:hover { border-color: rgba(0, 0, 0, 0.28); }
+.ld .ld-pill:active { transform: scale(0.97); }
+.ld .ld-pill--sm { height: 38px; padding: 0 16px; font-size: 14px; }
+
+/* The entrance: one grey line on white, cycling what it reads, then the page lifts in. */
+.ld-pre { font-family: 'Geist', system-ui, -apple-system, sans-serif; color: #8a8a8a; position: fixed; inset: 0; z-index: 50; background: #fff; display: grid; place-items: center; transition: opacity 520ms var(--ease); }
+.ld-pre.is-done { opacity: 0; pointer-events: none; }
+.ld-pre p { font-size: 34px; line-height: 40px; font-weight: 300; letter-spacing: -0.02em; color: #8a8a8a; font-family: 'Geist', system-ui, -apple-system, sans-serif; animation: ld-word 340ms var(--ease) both; }
+@keyframes ld-word { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.ld-sheet { transform-origin: 50% 36%; }
+.ld-sheet.is-entering { animation: ld-sheet 980ms var(--ease) both; }
+@keyframes ld-sheet {
+  from { clip-path: inset(14px round 28px); transform: scale(0.982); }
+  to { clip-path: inset(0 round 0); transform: none; }
 }
 
-.cosmic-quote {
-  font-family: 'Instrument Serif', Georgia, serif;
-  font-style: italic;
-  font-size: clamp(13px, 1.4vw, 17px);
-  line-height: 1.5;
-  color: rgba(245, 240, 235, 0.72);
-  max-width: min(480px, 92vw);
-  margin-top: 8px;
-  padding: 0 8px;
-}
+/* Navigation: fixed, fading into the canvas. */
+.ld-nav { position: fixed; top: 0; left: 0; right: 0; z-index: 40; height: 72px; display: flex; align-items: center; justify-content: space-between; padding: 0 28px; background: linear-gradient(#fff 58%, rgba(255, 255, 255, 0)); }
+.ld-brand { display: inline-flex; align-items: center; gap: 10px; font-size: 15px; line-height: 20px; font-weight: 500; }
+.ld-mark { width: 22px; height: 22px; }
+.ld-nav-right { display: flex; align-items: center; gap: 22px; font-size: 15px; line-height: 20px; }
+.ld-nav-right a:not(.ld-pill) { color: var(--grey); transition: color 160ms ease; }
+.ld-nav-right a:not(.ld-pill):hover { color: var(--ink); }
 
-.cosmic-sub {
-  font-family: 'Inter', 'Geist', system-ui, sans-serif;
-  font-size: 15px;
-  font-weight: 500;
-  line-height: 1.65;
-  color: rgba(245, 240, 235, 0.75);
-  max-width: 460px;
-  text-shadow: 0 1px 24px rgba(0, 0, 0, 0.5);
-}
+/* Hero: label, one light headline, two pills. Nothing else competes. */
+.ld-hero { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 140px 24px 96px; gap: 28px; }
+.ld-hero h1 { color: var(--ink); font-family: inherit; font-size: 76px; line-height: 80px; font-weight: 300; letter-spacing: -0.045em; text-wrap: balance; max-width: 15ch; }
+.ld-cta { display: flex; gap: 10px; margin-top: 4px; }
+.ld-sub { font-size: 17px; line-height: 24px; font-weight: 400; color: var(--grey); max-width: 46ch; text-wrap: pretty; margin-top: 10px; }
+.ld-watch { margin-top: 64px; display: inline-flex; align-items: center; gap: 10px; font-size: 15px; line-height: 20px; color: var(--grey); transition: color 160ms ease; }
+.ld-watch:hover { color: var(--ink); }
+.ld-watch svg { width: 10px; height: 12px; }
 
-/* Respect reduced motion */
+/* Demonstration panels: full width, rounded, one blurred still, one frosted sheet. */
+.ld-panel { position: relative; width: min(1240px, calc(100% - 48px)); margin: 0 auto; border-radius: var(--r); overflow: hidden; min-height: 640px; display: grid; place-items: center; padding: 56px 24px; isolation: isolate; transform: translateZ(0); }
+.ld-panel > img { position: absolute; left: -6%; top: -6%; width: 112%; max-width: none; height: 112%; object-fit: cover; filter: blur(22px) saturate(1.05); z-index: -2; }
+.ld-panel::after { content: ''; position: absolute; inset: 0; background: rgba(255, 255, 255, 0.1); z-index: -1; }
+.ld-frost { width: min(560px, 100%); background: var(--frost); border: 1px solid var(--frost-line); -webkit-backdrop-filter: blur(24px) saturate(1.2); backdrop-filter: blur(24px) saturate(1.2); border-radius: 22px; padding: 24px 26px 24px; display: flex; flex-direction: column; gap: 18px; }
+.ld-frost--wide { width: min(680px, 100%); }
+/* Grey inside the frost is darker than grey on white: the sheet is not white. */
+.ld-frost { --grey: #5f5d5b; }
+.ld-kicker { color: var(--ink); display: inline-flex; align-items: center; height: 26px; padding: 0 11px; border: 1px solid rgba(10, 10, 10, 0.28); border-radius: 999px; font-size: 11px; line-height: 16px; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 500; color: var(--ink); align-self: flex-start; }
+.ld-kicker i { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--ink); margin-right: 8px; }
+
+.ld-receipts { display: flex; flex-direction: column; gap: 8px; min-height: 82px; }
+.ld-receipt { color: var(--ink); display: grid; grid-template-columns: 48px 1fr; gap: 14px; align-items: baseline; font-size: 15px; line-height: 22px; opacity: 0; transform: translateY(6px); transition: opacity 520ms var(--ease), transform 520ms var(--ease); }
+.ld-receipt.is-in { opacity: 1; transform: none; }
+.ld-receipt b { font-family: 'Geist Mono', ui-monospace, monospace; font-weight: 400; color: var(--grey); font-size: 12px; line-height: 16px; letter-spacing: 0.04em; text-transform: uppercase; }
+.ld-reading { color: var(--ink); font-size: 26px; line-height: 34px; font-weight: 300; letter-spacing: -0.02em; min-height: 68px; text-wrap: pretty; }
+.ld-reading.is-out, .ld-receipts.is-out { opacity: 0; transition: opacity 380ms ease; }
+.ld-caret { display: inline-block; width: 2px; height: 24px; background: var(--ink); vertical-align: -4px; margin-left: 3px; animation: ld-blink 1s steps(2, start) infinite; }
+@keyframes ld-blink { to { visibility: hidden; } }
+.ld-foot { font-weight: 400; display: flex; justify-content: space-between; align-items: center; color: var(--grey); font-size: 12px; line-height: 16px; }
+.ld-foot a { text-decoration: underline; text-underline-offset: 3px; color: var(--ink); }
+
+/* The signature: five lines on hairlines, each with its count. No bars. */
+.ld-sig { width: 100%; }
+.ld-sig-row { display: grid; grid-template-columns: 1fr auto; gap: 4px 24px; padding: 16px 0; border-top: 1px solid rgba(10, 10, 10, 0.1); }
+.ld-sig-row:first-child { border-top: 0; padding-top: 0; }
+.ld-sig-row:last-child { padding-bottom: 0; }
+.ld-sig-row small { grid-column: 1 / -1; font-size: 11px; line-height: 16px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--grey); font-weight: 500; }
+.ld-sig-row p { color: var(--ink); font-size: 19px; line-height: 26px; font-weight: 400; letter-spacing: -0.01em; text-wrap: pretty; }
+.ld-sig-row em { font-style: normal; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 12px; line-height: 16px; color: var(--grey); white-space: nowrap; align-self: end; padding-bottom: 5px; }
+
+/* Ask: the question, the answer as you, what it cites. */
+.ld-ask-q { font-size: 15px; line-height: 22px; font-weight: 400; color: var(--grey); }
+.ld-ask-a { color: var(--ink); font-size: 24px; line-height: 32px; font-weight: 300; letter-spacing: -0.02em; min-height: 96px; text-wrap: pretty; }
+
+/* Statements: two grey lines saying the one thing a panel proved. */
+.ld-say { font-family: inherit; max-width: 760px; margin: 0 auto; padding: 128px 24px; text-align: center; font-size: 28px; line-height: 36px; font-weight: 300; letter-spacing: -0.02em; color: var(--grey); text-wrap: balance; }
+
+/* Sources and the privacy statement. Names, not tiles. */
+.ld-sources { text-align: center; padding: 8px 24px 0; }
+.ld-names { font-size: 22px; line-height: 32px; font-weight: 300; letter-spacing: -0.01em; color: var(--ink); max-width: 760px; margin: 16px auto 0; text-wrap: balance; }
+.ld-names span { color: var(--grey-2); padding: 0 10px; }
+
+/* The end: one line, one action. */
+.ld-close { text-align: center; padding: 160px 24px 128px; display: flex; flex-direction: column; align-items: center; gap: 26px; }
+.ld-close h2 { color: var(--ink); font-family: inherit; font-size: 56px; line-height: 60px; font-weight: 300; letter-spacing: -0.04em; text-wrap: balance; }
+.ld-close small { color: var(--grey); font-weight: 400; font-size: 14px; line-height: 20px; }
+.ld-footer { display: flex; justify-content: space-between; align-items: center; padding: 0 28px 28px; font-size: 13px; line-height: 20px; color: var(--grey); }
+.ld-footer nav { display: flex; gap: 20px; }
+.ld-footer a:hover { color: var(--ink); }
+
+/* Arrival: one rise, once, when a thing enters the viewport. */
+.ld-rise { opacity: 0; transform: translateY(16px); transition: opacity 800ms var(--ease), transform 800ms var(--ease); }
+.ld-rise.is-in { opacity: 1; transform: none; }
+
 @media (prefers-reduced-motion: reduce) {
-  .cosmic-h1, .cosmic-h2 { text-shadow: none; }
+  .ld-pre { display: none; }
+  .ld-sheet.is-entering { animation: none; }
+  .ld-rise, .ld-receipt { opacity: 1; transform: none; transition: none; }
+  .ld-caret { animation: none; }
+  .ld .ld-pill, .ld-watch, .ld-nav-right a { transition: none; }
 }
 
-/* ── Continuous scroll storytelling — post-hero sections ──
- * Each chapter has a Ghibli background fixed to the viewport so it parallaxes
- * behind the scrolling content. A dark overlay keeps text/cards legible. */
-.chapter-bg {
-  position: relative;
-  isolation: isolate;  /* own stacking context */
-  overflow: hidden;
-}
-.chapter-bg::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-size: cover;
-  background-position: center;
-  /* scroll-attached — fixed breaks under Lenis smooth-scroll transforms */
-  z-index: 0;
-  pointer-events: none;
-}
-.chapter-bg::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  /* Lighter vignette so the Ghibli bg breathes through — text still legible via shadows + glass cards.
-   *
-   * 2026-05-12 Option B: stack a fine SVG-noise layer on top of the dark
-   * gradient. mix-blend-mode: overlay layers it onto the Ghibli image below,
-   * giving the painted backgrounds a film-grain texture that masks any
-   * residual flatness from the source illustration. The noise is procedurally
-   * generated by feTurbulence — no extra asset, no extra HTTP request,
-   * vector-perfect at any DPI. opacity 0.35 keeps it subtle. */
-  background:
-    url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.6' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.35 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
-    linear-gradient(180deg, rgba(19,18,26,0.55) 0%, rgba(19,18,26,0.40) 40%, rgba(19,18,26,0.55) 100%),
-    radial-gradient(ellipse at 50% 50%, transparent 20%, rgba(19,18,26,0.25) 90%);
-  background-blend-mode: overlay, normal, normal;
-  z-index: 1;
-  pointer-events: none;
-}
-
-/* Make sure section headings have enough contrast over the bg */
-.chapter-bg h2,
-.chapter-bg h3,
-.chapter-bg h4,
-.chapter-bg h1 {
-  text-shadow: 0 2px 20px rgba(0,0,0,0.45);
-}
-
-/* Slightly bump feature/stat/service card opacity so they pop against the Ghibli bg */
-.chapter-bg .glass-feature-card,
-.chapter-bg .glass-stat-standalone {
-  background-color: rgba(19,18,26,0.42) !important;
-  border-color: rgba(255,255,255,0.14) !important;
-}
-.chapter-bg > * { position: relative; z-index: 2; }
-
-/* 2026-05-10: WebP + 2× retina variants so the AI-generated 1376×768 source
- * doesn't visibly pixelate on Retina (2× DPI) displays. Browsers pick the
- * highest-density variant they need from image-set(). The original .jpg is
- * kept as a final fallback for the rare browser that doesn't support
- * image-set() OR WebP. Modern Chrome/Safari/Firefox support both. */
-.chapter-landscape::before {
-  background-image: url('/images/cosmic-v2/section6-landscape.jpg');
-  background-image: image-set(
-    url('/images/cosmic-v2/section6-landscape.webp') 1x,
-    url('/images/cosmic-v2/section6-landscape@2x.webp') 2x
-  );
-}
-.chapter-meadow::before {
-  background-image: url('/images/cosmic-v2/section8-meadow.jpg');
-  background-image: image-set(
-    url('/images/cosmic-v2/section8-meadow.webp') 1x,
-    url('/images/cosmic-v2/section8-meadow@2x.webp') 2x
-  );
-}
-.chapter-twin::before {
-  background-image: url('/images/cosmic-v2/section11-twin-meeting.jpg');
-  background-image: image-set(
-    url('/images/cosmic-v2/section11-twin-meeting.webp') 1x,
-    url('/images/cosmic-v2/section11-twin-meeting@2x.webp') 2x
-  );
-}
-
-
-
-/* Gentler overlay on CTA so the painted twin scene reads as emotional payoff */
-.chapter-twin::after {
-  background:
-    radial-gradient(ellipse 80% 70% at 50% 50%, rgba(19,18,26,0.35) 0%, rgba(19,18,26,0.70) 90%);
+@media (max-width: 720px) {
+  .ld-nav { padding: 0 18px; height: 64px; }
+  .ld-hero { padding: 120px 20px 72px; gap: 22px; }
+  .ld-hero h1 { font-size: 46px; line-height: 50px; letter-spacing: -0.035em; }
+  .ld-cta { flex-direction: column; align-items: stretch; width: 100%; max-width: 320px; }
+  .ld-watch { margin-top: 40px; }
+  .ld-panel { width: calc(100% - 24px); min-height: 560px; padding: 40px 14px; border-radius: 24px; }
+  .ld-frost { padding: 20px 18px; gap: 16px; }
+  .ld-reading { font-size: 22px; line-height: 30px; min-height: 60px; }
+  .ld-ask-a { font-size: 21px; line-height: 28px; }
+  .ld-sig-row p { font-size: 17px; line-height: 24px; }
+  .ld-sig-row { grid-template-columns: 1fr; }
+  .ld-sig-row em { align-self: start; padding: 0; }
+  .ld-say { font-size: 22px; line-height: 30px; padding: 88px 24px; }
+  .ld-names { font-size: 18px; line-height: 28px; }
+  .ld-close { padding: 120px 24px 96px; }
+  .ld-close h2 { font-size: 40px; line-height: 44px; }
+  .ld-pre p { font-size: 26px; line-height: 32px; }
+  .ld-footer { flex-direction: column; gap: 12px; align-items: flex-start; padding: 0 20px 28px; }
 }
