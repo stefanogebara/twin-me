@@ -342,7 +342,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
         <Mark />
         <nav aria-label="Portrait">
           <a href="#portrait" className={scene !== 'ask' ? 'is-active' : ''} onClick={() => setScene(data.question ? 'question' : 'signature')}>Portrait</a>
-          <a href="#portrait" onClick={() => setScene('ask')}>Ask</a>
+          <a href="#readings">Readings</a>
           <a href="#sources">Sources</a>
         </nav>
       </header>
