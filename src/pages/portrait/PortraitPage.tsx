@@ -469,7 +469,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
                     ))}
                   </div>
                   <p className="pc-pt-sig-foot pc-pt-arrive" style={{ animationDelay: `${signature.length * 120 + 80}ms` }}>
-                    {signature.reduce((n, s) => n + s.receipts, 0)} receipts behind {signature.length} lines, the headline among them. Nothing self-reported.
+                    {signature.reduce((n, s) => n + s.receipts, 0)} receipts behind {signature.length} lines, the headline among them.
                   </p>
                 </div>
               ) : null}
@@ -511,7 +511,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
           <div className="pc-pt-src-stanza">
             <dl className="pc-pt-src-grid">
               {[...readSources].sort((a, b) => (parseInt(b.read, 10) || 0) - (parseInt(a.read, 10) || 0)).map((s) => (
-                <div key={s.platform}><dt>{s.label}</dt><dd>{parseInt(s.read, 10) || 0}</dd><small>{s.kinds}, since {spokenDay(s.since)}</small></div>
+                <div key={s.platform}><dt>{s.label}</dt><dd>{parseInt(s.read, 10) || 0} · since {spokenDay(s.since)}</dd><small>{s.kinds}</small></div>
               ))}
             </dl>
           </div>
@@ -536,7 +536,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
             </div>
           ))}
         </div>
-        <p className="pc-pt-source-note">Nothing here trains a model. Messages, photos and location are never read.</p>
+        <p className="pc-pt-source-note">Messages, photos and location are never read, and nothing here trains a model.</p>
       </section>
       </div>
 

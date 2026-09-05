@@ -5199,3 +5199,22 @@ button.pc-search-icons {
   .presence-cosmos.pc-portrait .pc-pt-row-head p { font-size: 21px; line-height: 27px; }
   .presence-cosmos .pc-pt-src-grid dt { font-size: 21px; line-height: 26px; }
 }
+
+/* ---- Execution: one label system, a roomier glass, a selected tab without a white pill, one filled answer ---- */
+.pc-portrait .pc-pt-cine .pc-pt-glass-inner { padding: 28px 32px 30px; }
+.presence-cosmos .pc-pt-cine .pc-demo-reading > span,
+.presence-cosmos .pc-pt-cine .pc-demo-answer > span { font-family: var(--c-font); font-size: 11px; letter-spacing: 0.08em; font-weight: 500; text-transform: uppercase; }
+.pc-portrait .pc-pt-cine .pc-cine-tabs button.is-active { background: transparent; color: #fff; font-weight: 500; }
+.pc-portrait .pc-pt-cine .pc-cine-tabs button { color: rgba(255, 255, 255, 0.5); }
+.pc-pt-cine .pc-cine-tabs { background: transparent; box-shadow: none; padding: 0; gap: 18px; }
+.pc-portrait .pc-pt-cine .pc-pt-answers button:first-child { background: rgba(255, 255, 255, 0.94); color: #0d0d0d; border-color: transparent; }
+.pc-portrait .pc-pt-cine .pc-pt-answers button:first-child:hover { background: #fff; color: #0d0d0d; }
+/* Sources: the date joins the count in mono; the description stays one line. */
+.presence-cosmos .pc-pt-src-grid dd { font-size: 11px; }
+.pc-portrait .pc-pt-src-grid > div small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pc-pt-paper-panel--sources { padding-top: 32px; }
+/* A phone keeps a rounded glass, so the scene does not end on a hard seam against the window. */
+@media (max-width: 640px) {
+  .pc-pt-cine .pc-pt-glass.pc-demo-glass { background: rgba(12, 14, 20, 0.5); border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 22px; backdrop-filter: blur(40px) saturate(1.2); -webkit-backdrop-filter: blur(40px) saturate(1.2); }
+  .pc-portrait .pc-pt-cine .pc-pt-glass-inner { padding: 18px 18px 20px; }
+}
