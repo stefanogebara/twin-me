@@ -13,7 +13,7 @@ export default function DemoPortraitPage() {
     document.title = "Stefano's Portrait · TwinMe";
     return () => { document.title = previousTitle; };
   }, []);
-  // Rendered as the hero kicker; the page adds the "Read your own" action when a banner is present.
-  const banner = <>What it told Stefano, from his own data</>;
+  // Rendered as the hero kicker; the page adds the "Read yourself" action when a banner is present.
+  const banner = <>Stefano&rsquo;s portrait &middot; read from his own data</>;
   return <PortraitPage data={DEMO_PORTRAIT} now={new Date('2026-09-04T12:00:00Z')} banner={banner} />;
 }

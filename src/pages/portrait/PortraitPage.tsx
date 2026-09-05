@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { SOURCE_LABEL, type Domain, type Evidence, type PortraitData, type Reading, type Verdict } from '../../data/demoPortrait';
+import { SOURCE_LABEL, type Domain, type PortraitData, type Reading, type Verdict } from '../../data/demoPortrait';
 import { deriveState, daysSince, findScripted } from '../../lib/portrait';
 import '../../styles/presence-cosmos.css';
 
@@ -86,109 +86,17 @@ function Headline({ text }: { text: string }) {
   })}</>;
 }
 
-/**
- * Four corners of one apartment at blue hour. The references do not hold a single
- * frame for the length of a page — their ground is a space you travel through — so
- * the stills stack and uncover with the scroll, and the page ends in the room it
- * began in.
- */
-const GROUND: [string, string][] = [
-  ['/images/twinme/cosmos-07-room.jpg', '24% 46%'],
-  ['/images/twinme/cosmos-07-room.jpg', '96% 30%'],
-  ['/images/twinme/cosmos-07-room.jpg', '70% 78%'],
-  ['/images/twinme/cosmos-07-room.jpg', '4% 62%'],
-];
-
-function Ground() {
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const stills = Array.from(el.children) as HTMLElement[];
-    const bands = Math.max(1, stills.length - 1);
-    let frame = 0;
-    const paint = () => {
-      frame = 0;
-      const span = document.documentElement.scrollHeight - window.innerHeight;
-      const p = span > 0 ? Math.min(1, Math.max(0, window.scrollY / span)) : 0;
-      stills.forEach((layer, i) => {
-        // The first still is the floor; each later one uncovers over its own band, so
-        // there is always one fully opaque image and never a seam between two. Each
-        // corner holds for most of its band and then crosses quickly: a slow
-        // cross-fade shows two rooms at once, which reads as a double exposure.
-        const t = p * bands - (i - 1);
-        const w = Math.min(1, Math.max(0, (t - 0.62) / 0.3));
-        layer.style.opacity = i === 0 ? '1' : String(w * w * (3 - 2 * w));
-      });
-    };
-    const onScroll = () => { if (!frame) frame = requestAnimationFrame(paint); };
-    paint();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', onScroll);
-    return () => {
-      window.removeEventListener('scroll', onScroll);
-      window.removeEventListener('resize', onScroll);
-      if (frame) cancelAnimationFrame(frame);
-    };
-  }, []);
-  return (
-    <div className="pc-pt-ground" aria-hidden="true" ref={ref}>
-      {GROUND.map(([src, pos], i) => (
-        <div
-          key={i}
-          className="pc-pt-ground-still"
-          style={{ backgroundImage: `url('${src}')`, backgroundPosition: pos, opacity: i === 0 ? 1 : 0 }}
-        />
-      ))}
-    </div>
-  );
-}
-
-/** The signed-in eyebrow: whose portrait this is, and the day it was read. */
+/** The signed-in eyebrow: whose portrait this is, and the day. */
 function Kicker({ owner, now }: { owner: string; now: Date }) {
   return <>{owner}&rsquo;s portrait &middot; {spoken(now, false)}</>;
 }
 
 /** "3 Sep 09:32" or "3 Sep" in one mono line. */
 function when(at: string) {
-  const [date] = at.split(' ');
+  const [date, time] = at.split(' ');
   const d = new Date(`${date}T00:00:00Z`);
-  return Number.isNaN(d.getTime()) ? date : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
-}
-
-/**
- * When a stanza was true: one tick per day across the window, taller where more
- * receipts landed on it. Drawn from the receipts themselves, so it never claims
- * anything the page cannot already show — the hairline charts on the boards,
- * carrying real series rather than decoration.
- */
-function Ticks({ evidence, now, days = 30 }: { evidence: Evidence[]; now: Date; days?: number }) {
-  const counts = new Array(days).fill(0);
-  const end = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
-  for (const e of evidence) {
-    const t = Date.parse(`${e.at.slice(0, 10)}T00:00:00Z`);
-    if (Number.isNaN(t)) continue;
-    const i = days - 1 - Math.round((end - t) / 86_400_000);
-    if (i >= 0 && i < days) counts[i] += 1;
-  }
-  const max = Math.max(1, ...counts);
-  const landed = counts.filter(Boolean).length;
-  if (landed < 5) return null;
-  return (
-    <span className="pc-pt-ticks">
-      <svg viewBox={`0 0 ${days * 4} 28`} preserveAspectRatio="none" aria-hidden="true">
-        {/* A quiet baseline across the window, so empty days read as empty rather than as noise. */}
-        <rect x="0" y="27" width={days * 4 - 3} height="1" opacity="0.16" />
-        {counts.map((c, i) =>
-          c ? (
-            <rect key={i} x={i * 4 + 0.75} y={14} width="1.5" height={13} opacity="0.85" />
-          ) : null,
-        )}
-      </svg>
-      <span className="pc-pt-ticks-ends" aria-hidden="true"><span>{spoken(new Date(end - (days - 1) * 86_400_000), false)}</span><span>today</span></span>
-      <span className="pc-pt-sr">{landed} of the last {days} days</span>
-    </span>
-  );
+  const day = Number.isNaN(d.getTime()) ? date : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+  return time ? `${day} ${time}` : day;
 }
 
 /** The proof of one reading, in the margin beside it. */
@@ -211,10 +119,8 @@ function Receipts({ reading }: { reading: Reading }) {
   );
 }
 
-function ReadingRow({ reading, now, verdict, onVerdict, cite, ordinal, opening = false }: {
+function ReadingRow({ reading, now, verdict, onVerdict, cite, ordinal }: {
   reading: Reading; now: Date; verdict: Verdict; onVerdict: (v: Verdict) => void; cite: number | null; ordinal: number;
-  /** The reading the page opened with: said once, up there, so the row keeps only its receipts and verdict. */
-  opening?: boolean;
 }) {
   const state = deriveState({ ...reading, verdict }, now);
   const note = state === 'fading' ? `Fading, last supported ${daysSince(reading.supportedAt, now)} days ago` : state === 'disputed' ? 'Disputed' : null;
@@ -225,11 +131,11 @@ function ReadingRow({ reading, now, verdict, onVerdict, cite, ordinal, opening =
         {cite ? <b>Cited [{cite}]</b> : null}
       </p>
       <div>
-        <p className={`pc-pt-serif pc-pt-claim ${opening ? 'is-opening' : ''}`}>{opening ? 'The line this portrait opens with.' : reading.text}</p>
+        <p className="pc-pt-serif pc-pt-claim">{reading.text}</p>
         <div className="pc-pt-vote" role="group" aria-label={`True of you? ${reading.text}`}>
           {(['true', 'partly', 'wrong'] as const).map((v) => (
             <button key={v} type="button" className={verdict === v ? 'is-active' : ''} aria-pressed={verdict === v} onClick={() => onVerdict(verdict === v ? null : v)}>
-              {v === 'true' ? 'That is me' : v === 'partly' ? 'Partly' : 'Not me'}
+              {v === 'true' ? 'True' : v === 'partly' ? 'Partly' : 'Wrong'}
             </button>
           ))}
           {note ? <span className="pc-pt-mono pc-pt-note">{note}</span> : null}
@@ -242,6 +148,38 @@ function ReadingRow({ reading, now, verdict, onVerdict, cite, ordinal, opening =
 
 const SECTIONS = ['signature', 'ask', 'sources'] as const;
 
+const STILLS = [
+  '/images/twinme/cosmos-01-desk.jpg',
+  '/images/twinme/cosmos-02-records.jpg',
+  '/images/twinme/cosmos-03-calendar.jpg',
+  '/images/twinme/cosmos-04-run.jpg',
+  '/images/twinme/cosmos-05-kitchen.jpg',
+  '/images/twinme/cosmos-06-portrait.jpg',
+  '/images/twinme/cosmos-07-room.jpg',
+];
+
+/**
+ * The field the page stands in, read from cosmos.so: a depth of field, not a ring of
+ * ornaments. Each tuple is [x%, y%, size, rotation, depth 0..1, still, cropX%, cropY%],
+ * and depth drives blur and opacity so far stills fall back into the paper.
+ *
+ * There are only seven photographs, so no two sharp tiles may show the same one, and
+ * every tile takes a different crop of it — the lamp, a window corner, a shoulder —
+ * so the field reads as a library rather than one picture repeated. Anything
+ * recognisable stays out of the centre column and off the one action.
+ */
+const FIELD: [number, number, number, number, number, number, number, number][] = [
+  // Near: six photographs, six crops, none of them shown twice.
+  [1, 22, 178, 4, 0, 4, 62, 30], [-2, 66, 140, 7, 0.06, 0, 30, 74],
+  [90, 34, 196, -5, 0, 6, 38, 46], [97, 74, 132, 5, 0.1, 3, 66, 24],
+  [8, 93, 112, -6, 0.14, 5, 24, 62], [73, 4, 76, 6, 0.5, 1, 70, 38],
+  // Far: small, soft, unrecognisable, holding the corners of the frame.
+  [16, 6, 62, 9, 0.62, 2, 40, 20], [21, 47, 48, -8, 0.78, 6, 55, 80],
+  [12, 78, 54, 5, 0.7, 1, 18, 44], [78, 19, 52, -7, 0.74, 5, 72, 66],
+  [72, 54, 44, 8, 0.84, 2, 35, 30], [88, 92, 58, -4, 0.68, 4, 58, 82],
+  [33, 98, 46, 6, 0.86, 3, 46, 12], [64, 97, 42, -9, 0.88, 0, 78, 58],
+];
+
 export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, onDeleteSource }: { data: PortraitData; now: Date; banner?: React.ReactNode } & PortraitHandlers) {
   const [here, setHere] = useState<string | null>(null);
   const [verdicts, setVerdicts] = useState<Record<string, Verdict>>(() => Object.fromEntries(data.readings.map((r) => [r.id, r.verdict])));
@@ -249,12 +187,11 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
   const [query, setQuery] = useState('');
   const [reply, setReply] = useState<{ a: string; cites: string[] } | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
-  const [managing, setManaging] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
 
   const readings = useMemo(() => data.readings.map((r) => ({ ...r, verdict: verdicts[r.id] ?? null })), [data.readings, verdicts]);
   const byId = useMemo(() => new Map(readings.map((r) => [r.id, r])), [readings]);
-  const sourceCount = data.sources.filter((s) => (parseInt(s.read, 10) || 0) > 0).length;
+  const sourceCount = data.sources.length;
   const readingCount = readings.length;
   const receiptCount = readings.reduce((n, r) => n + r.evidence.length, 0);
   const cites = reply?.cites ?? [];
@@ -274,10 +211,9 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
   // shows its own strongest reading instead, so nothing is printed twice.
   const promoted = data.lead ? null : blocks.find((b) => b.line) ?? null;
   const lead = data.lead ?? promoted?.line ?? null;
-  // Closed on arrival: the five lines are read first, and a stanza opens onto its
-  // ledger when you ask it to. Unfolding the heaviest section on first scroll left
-  // nothing to discover.
-  const [openDomain, setOpenDomain] = useState<Domain | null>(null);
+  const [openDomain, setOpenDomain] = useState<Domain | null>(() => (
+    ORDER.find((d) => readings.some((r) => r.domain === d)) ?? null
+  ));
 
   // The nav follows the page: whichever section owns the upper third is the one you are in.
   useEffect(() => {
@@ -325,48 +261,35 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
   }
 
   /** The evidence column of a stanza: what it was read from, and how much. */
-  /**
-   * The receipt each closed card shows, assigned in page order so no two cards
-   * cite the same line. "A day with nothing in it, twice" and "..., 4 times" are
-   * the same receipt for this purpose.
-   */
-  const cardReceipt = useMemo(() => {
-    const base = (s: string) => s.replace(/, (?:twice|\d+ times)$/, '');
-    const taken = new Set<string>();
-    const out = new Map<Domain, Evidence | undefined>();
-    for (const b of blocks) {
-      const own = (shownReading(b) ?? b.readings[0])?.evidence ?? [];
-      const pick = own.find((e) => !taken.has(base(e.event))) ?? own[0];
-      if (pick) taken.add(base(pick.event));
-      out.set(b.domain, pick);
-    }
-    return out;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [blocks, promoted, data.question]);
-
-  /** The reading a closed card speaks for: the strongest, unless the hero or the question already says it. */
-  function shownReading(b: Block): Reading | undefined {
-    const asked = data.question?.fromReadings ?? [];
-    if (b === promoted) return b.readings.find((r, i) => i > 0 && !asked.includes(r.id)) ?? b.readings[0];
-    return b.readings.find((r) => !asked.includes(r.id)) ?? b.readings[0];
-  }
-
   function stanzaRail(b: Block, open: boolean) {
     if (!b.readings.length) return <span />;
     const live = b.readings.filter((r) => deriveState(r, now) !== 'disputed');
-    // Open stanzas carry their own ledger below; the rail keeps only the strip.
-    if (open) return <div className="pc-pt-count is-open"><Ticks evidence={live.flatMap((r) => r.evidence)} now={now} /></div>;
     const sources = [...new Set(live.flatMap((r) => r.evidence.map((e) => SOURCE_LABEL[e.source] ?? e.source)))];
-    const first = cardReceipt.get(b.domain);
+    const receipts = live.reduce((n, r) => n + r.evidence.length, 0);
+    const [first] = live[0]?.evidence ?? [];
+    if (open) return <span />;
+    if (!open) {
+      return (
+        <p className="pc-pt-count">
+          {first ? (
+            <>
+              <span className="pc-pt-when">{when(first.at)} · {SOURCE_LABEL[first.source] ?? first.source}</span>
+              <span className="pc-pt-event">{first.event}</span>
+            </>
+          ) : <span>{sources.join(', ')}</span>}
+        </p>
+      );
+    }
     return (
-      <div className="pc-pt-count">
+      <div className="pc-pt-count is-open">
+        <p>{sources.join(', ')}</p>
         {first ? (
           <p className="pc-pt-peek">
-            <span className="pc-pt-when">{when(first.at)} · {SOURCE_LABEL[first.source] ?? first.source}</span>
+            <span className="pc-pt-when">{when(first.at)}</span>
+            <span className="pc-pt-src">{SOURCE_LABEL[first.source] ?? first.source}</span>
             <span className="pc-pt-event">{first.event}</span>
           </p>
-        ) : <p className="pc-pt-peek"><span>{sources.join(', ')}</span></p>}
-        <Ticks evidence={live.flatMap((r) => r.evidence)} now={now} />
+        ) : null}
       </div>
     );
   }
@@ -379,7 +302,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
     return (
       <ul className="pc-pt-ledger">
         {b.readings.map((r, i) => (
-          <ReadingRow key={r.id} reading={r} now={now} verdict={verdicts[r.id] ?? null} onVerdict={(v) => verdict(r.id, v)} cite={cites.includes(r.id) ? cites.indexOf(r.id) + 1 : null} ordinal={i + 1} opening={b === promoted && i === 0} />
+          <ReadingRow key={r.id} reading={r} now={now} verdict={verdicts[r.id] ?? null} onVerdict={(v) => verdict(r.id, v)} cite={cites.includes(r.id) ? cites.indexOf(r.id) + 1 : null} ordinal={i + 1} />
         ))}
       </ul>
     );
@@ -394,27 +317,41 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
     const all = from.flatMap((r) => r.evidence);
     return [...all].sort((a, b) => b.at.localeCompare(a.at))[0] ?? null;
   }, [data.question, byId]);
-  // The receipts behind today's question, after the one already quoted under it.
-  const questionDay = useMemo(() => {
-    if (!data.question) return [];
-    const from = data.question.fromReadings.map((id) => byId.get(id)).filter(Boolean) as Reading[];
-    return [...from.flatMap((r) => r.evidence)]
-      .sort((a, b) => b.at.localeCompare(a.at))
-      .slice(1, 5);
-  }, [data.question, byId]);
   const questionEvidence = data.question ? data.question.evidenceLine.split(':').slice(1).join(':').trim() : '';
-  const mostRead = Math.max(1, ...data.sources.map((s) => parseInt(s.read, 10) || 0));
   const firstSince = data.sources.length ? [...data.sources].map((s) => s.since).sort()[0] : null;
   const since = firstSince ? spokenDay(firstSince, true) : null;
   const daysReading = firstSince ? Math.max(1, daysSince(firstSince, now)) : 0;
 
   return (
     <main className="presence-cosmos pc-portrait" id="main-content">
-      <Ground />
       <section className="pc-pt-hero" aria-labelledby="pc-pt-headline">
+        <div className="pc-pt-tiles" aria-hidden="true">
+          {FIELD.map(([x, y, size, rot, depth, still, cropX, cropY], i) => (
+            <img
+              key={i}
+              className="pc-pt-tile"
+              src={STILLS[still]}
+              alt=""
+              loading="lazy"
+              style={{
+                left: `${x}%`,
+                top: `${y}%`,
+                // One depth value drives size, blur and opacity together, so the
+                // field reads as distance rather than as scattered decoration.
+                width: Math.round(size * (1 - depth * 0.34)),
+                height: Math.round(size * (1 - depth * 0.34)),
+                objectPosition: `${cropX}% ${cropY}%`,
+                transform: `translate(-50%, -50%) rotate(${rot}deg)`,
+                filter: depth > 0.06 ? `blur(${(depth * depth * 9).toFixed(1)}px)` : undefined,
+                opacity: 1 - depth * 0.78,
+                zIndex: depth < 0.2 ? 2 : 0,
+                animationDelay: `${(i % 9) * 0.045}s`,
+              } as React.CSSProperties}
+            />
+          ))}
+        </div>
         <header className="pc-pt-masthead">
           <Link to="/" className="pc-pt-wordmark">TwinMe</Link>
-          <div className="pc-pt-bar pc-pt-glass">
           <nav aria-label="Sections">
             {SECTIONS.map((id) => (
               <a key={id} href={`#${id}`} className={here === id ? 'is-here' : ''} aria-current={here === id ? 'true' : undefined}>
@@ -422,8 +359,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
               </a>
             ))}
           </nav>
-          {banner ? <Link to="/" className="pc-pt-nav-link">Read your own</Link> : null}
-          </div>
+          <Link to={banner ? '/' : '/sources'} className="pc-pt-nav-link">{banner ? 'Read yourself' : 'Your sources'}</Link>
         </header>
         <div className="pc-pt-hero-body">
           <p className="pc-pt-kicker">{banner ?? <Kicker owner={data.owner} now={now} />}</p>
@@ -431,22 +367,18 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
 
         </div>
       {data.question ? (
-        <section className="pc-pt-today pc-pt-glass" aria-labelledby="pc-pt-q-title">
+        <section className="pc-pt-today" aria-labelledby="pc-pt-q-title">
           <div className="pc-pt-today-inner">
-            <div className="pc-pt-q-main">
-              <p className="pc-pt-q-mark">New this week &middot; {questionSource}</p>
+            <div>
+              <p className="pc-pt-q-mark">Today, from {questionSource}</p>
               <h2 id="pc-pt-q-title" className="pc-pt-serif">{data.question.question}</h2>
+              {questionReceipt ? (
+                <p className="pc-pt-q-receipt">
+                  <span className="pc-pt-mono">{when(questionReceipt.at)} · {SOURCE_LABEL[questionReceipt.source] ?? questionReceipt.source}</span>
+                  <span>{questionReceipt.event}</span>
+                </p>
+              ) : null}
             </div>
-            {questionReceipt ? (
-              <ul className="pc-pt-q-day" aria-label="What it was read from">
-                {[questionReceipt, ...questionDay].slice(0, 3).map((e) => (
-                  <li key={`${e.source}-${e.at}-${e.event}`}>
-                    <span className="pc-pt-mono">{when(e.at)} · {SOURCE_LABEL[e.source] ?? e.source}</span>
-                    <span>{e.event}</span>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
             <div className="pc-pt-q-answer">
               {answer ? (
                 <p className="pc-pt-serif pc-pt-answered">{answer === 'skipped' ? 'Skipped for today.' : <em>{answer}.</em>}</p>
@@ -454,7 +386,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
                 <>
                   <div className="pc-pt-choices">
                     {data.question.answers.map((a, i) => (
-                      <button key={a} type="button" className="is-quiet" onClick={() => answerToday(a)}>{a}</button>
+                      <button key={a} type="button" className={i === 0 ? 'is-lead' : 'is-quiet'} onClick={() => answerToday(a)}>{a}</button>
                     ))}
                   </div>
                   <button type="button" className="pc-pt-skip" onClick={() => answerToday('skipped')}>Skip today</button>
@@ -469,12 +401,13 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
 
       <div className="pc-pt-paper">
       <section className="pc-pt-signature" id="signature" aria-label="Signature">
-        <ol className="pc-pt-lines pc-pt-glass">
-          <li className="pc-pt-panel-mark"><span className="pc-pt-q-mark">Signature</span></li>
+        <p className="pc-pt-section-mark">Signature</p>
+        <ol className="pc-pt-lines">
           {blocks.map((b, i) => (
             <li
               key={b.domain}
               className={`pc-pt-line ${i === 0 ? 'is-first' : ''} ${openDomain === b.domain ? 'is-open' : ''}`}
+              style={{ '--still': `url('${STILLS[(i * 3 + 2) % STILLS.length]}')` } as React.CSSProperties}
             >
               <button
                 type="button"
@@ -485,9 +418,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
               >
                 <span className="pc-pt-label">{STANZA[b.domain]}</span>
                 <span className="pc-pt-open-mark" aria-hidden="true">{openDomain === b.domain ? 'Close' : 'Read'}</span>
-                {b === promoted && openDomain === b.domain
-                  ? null
-                  : <span className="pc-pt-serif pc-pt-sentence">{(b === promoted ? shownReading(b)?.text : b.line) ?? b.readings[0]?.text}</span>}
+                <span className="pc-pt-serif pc-pt-sentence">{(b === promoted ? b.readings[0]?.text : b.line) ?? b.readings[0]?.text}</span>
                 {stanzaRail(b, openDomain === b.domain)}
               </button>
               {ledger(b)}
@@ -496,25 +427,25 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
         </ol>
       </section>
 
+      <section className="pc-pt-tally" aria-label="What it read">
+        <dl>
+          <div><dd>{readingCount}</dd><dt className="pc-pt-mono">readings</dt></div>
+          <div><dd>{receiptCount}</dd><dt className="pc-pt-mono">receipts</dt></div>
+          <div><dd>{sourceCount}</dd><dt className="pc-pt-mono">sources</dt></div>
+          {daysReading ? <div><dd>{daysReading}</dd><dt className="pc-pt-mono">days reading you</dt></div> : null}
+        </dl>
+      </section>
+
       <section className="pc-pt-ask" id="ask" aria-label="Ask">
+        <p className="pc-pt-section-mark">Ask</p>
         <div className="pc-pt-ask-body">
-          <p className="pc-pt-ask-lead">Ask it anything.<br />It answers from what it read, or not at all.</p>
-          <form className="pc-pt-prompt pc-pt-glass" onSubmit={(e) => { e.preventDefault(); void ask(query); }}>
-            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="What do you want to know?" aria-label="Ask something about yourself" />
-            <button type="submit" className="pc-pt-send" aria-label="Ask">&#8594;</button>
+          <form className="pc-pt-prompt" onSubmit={(e) => { e.preventDefault(); void ask(query); }}>
+            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={data.ask[0] ? `Ask anything — “${data.ask[0].q}”` : 'Ask something about yourself'} aria-label="Ask something about yourself" />
+            <button type="submit" className="pc-pt-send">Ask</button>
           </form>
-          {data.ask.length ? (
-            <ul className="pc-pt-asks" aria-label="Questions it can answer">
-              {data.ask.slice(0, 3).map((s) => (
-                <li key={s.q}>
-                  <button type="button" onClick={() => { setQuery(s.q); void ask(s.q); }}>{s.q}</button>
-                </li>
-              ))}
-            </ul>
-          ) : null}
           <div>
             {reply ? (
-              <blockquote className="pc-pt-reply pc-pt-glass" aria-live="polite">
+              <blockquote className="pc-pt-reply" aria-live="polite">
                 <p>{reply.a}</p>
                 <footer className="pc-pt-cites">
                   {reply.cites.length
@@ -528,18 +459,15 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
       </section>
 
       <section className="pc-pt-sources" id="sources" aria-label="Sources">
-        <ul className="pc-pt-sourcelist pc-pt-glass">
-          <li className="pc-pt-panel-mark"><span className="pc-pt-q-mark">Sources</span></li>
-          {[...data.sources].filter((s) => (parseInt(s.read, 10) || 0) > 0).sort((a, b) => (parseInt(b.read, 10) || 0) - (parseInt(a.read, 10) || 0)).map((s) => (
+        <p className="pc-pt-section-mark is-bare">Sources</p>
+        <ul className="pc-pt-sourcelist">
+          {[...data.sources].sort((a, b) => (parseInt(b.read, 10) || 0) - (parseInt(a.read, 10) || 0)).map((s) => (
             <li key={s.platform}>
-              <p
-                className="pc-pt-source-line"
-                style={{ '--pt-share': (parseInt(s.read, 10) || 0) / mostRead } as React.CSSProperties}
-              >
+              <p className="pc-pt-source-line">
                 <span className="pc-pt-source-name">{s.label}</span>
                 <span className="pc-pt-source-kind">{s.kinds}</span>
                 <span className="pc-pt-mono pc-pt-source-count">{parseInt(s.read, 10) || 0}</span>
-                {onDeleteSource && managing && confirmDelete !== s.platform && (parseInt(s.read, 10) || 0) > 0 ? (
+                {onDeleteSource && confirmDelete !== s.platform ? (
                   <button type="button" className="pc-pt-textbtn" onClick={() => setConfirmDelete(s.platform)}>Delete</button>
                 ) : null}
               </p>
@@ -555,32 +483,22 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
               ) : null}
             </li>
           ))}
-          <li className="pc-pt-source-door">
-            {banner
-              ? <Link className="pc-pt-door" to="/">Read your own portrait<span aria-hidden="true"> &#8594;</span></Link>
-              : <Link className="pc-pt-door" to="/sources">Read from one more place<span aria-hidden="true"> &#8594;</span></Link>}
-          </li>
-          <li className="pc-pt-source-note">
-            <p className="pc-pt-mono pc-pt-sourcefoot">
-              {data.sources.reduce((n, s) => n + (parseInt(s.read, 10) || 0), 0)} things read across {sourceCount} sources<span className="pc-pt-since"> · since {since}, {daysReading} days ago</span>
-            </p>
-            {onDeleteSource ? (
-              <span className="pc-pt-source-actions">
-                <button type="button" className="pc-pt-textbtn pc-pt-manage" onClick={() => { setManaging((m) => !m); setConfirmDelete(null); }}>
-                  {managing ? 'Done' : 'Manage'}
-                </button>
-                {managing ? <Link className="pc-pt-textbtn" to="/sources">Delete everything</Link> : null}
-              </span>
-            ) : null}
-          </li>
         </ul>
+        <p className="pc-pt-mono pc-pt-sourcefoot">
+          {sourceCount} sources · {data.sources.reduce((n, s) => n + (parseInt(s.read, 10) || 0), 0)} items · {readingCount} readings · {receiptCount} receipts · since {since}
+        </p>
       </section>
 
-
-      <footer className="pc-pt-foot">
-        <span className="pc-pt-wordmark">TwinMe</span>
-        <span className="pc-pt-foot-line">Nothing here trains a model. Messages, photos and location are never read.</span>
-      </footer>
+      <section className="pc-pt-close" aria-label="What is not read">
+        <div className="pc-pt-close-inner pc-pt-grid">
+          <p className="pc-pt-serif">Messages, photos, location and anything typed here are never read. Nothing trains a model.</p>
+          <div className="pc-pt-rail pc-pt-close-rail">
+            {banner
+              ? <Link className="pc-pt-close-cta" to="/">Read your own &#8594;</Link>
+              : <Link className="pc-pt-close-cta" to="/sources">Delete everything &#8594;</Link>}
+          </div>
+        </div>
+      </section>
       </div>
     </main>
   );
