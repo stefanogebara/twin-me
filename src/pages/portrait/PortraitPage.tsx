@@ -146,7 +146,7 @@ function Ground() {
 
 /** The signed-in eyebrow: whose portrait this is, and the day it was read. */
 function Kicker({ owner, now }: { owner: string; now: Date }) {
-  return <>{owner}&rsquo;s portrait &middot; read {spoken(now, false)}</>;
+  return <>{owner}&rsquo;s portrait &middot; {spoken(now, false)}</>;
 }
 
 /** "3 Sep 09:32" or "3 Sep" in one mono line. */
@@ -434,7 +434,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
         <section className="pc-pt-today pc-pt-glass" aria-labelledby="pc-pt-q-title">
           <div className="pc-pt-today-inner">
             <div className="pc-pt-q-main">
-              <p className="pc-pt-q-mark">New this week, from {questionSource}</p>
+              <p className="pc-pt-q-mark">New this week &middot; {questionSource}</p>
               <h2 id="pc-pt-q-title" className="pc-pt-serif">{data.question.question}</h2>
             </div>
             {questionReceipt ? (
@@ -498,7 +498,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
 
       <section className="pc-pt-ask" id="ask" aria-label="Ask">
         <div className="pc-pt-ask-body">
-          <p className="pc-pt-ask-lead">Ask it anything. It answers from what it read, or not at all.</p>
+          <p className="pc-pt-ask-lead">Ask it anything.<br />It answers from what it read, or not at all.</p>
           <form className="pc-pt-prompt pc-pt-glass" onSubmit={(e) => { e.preventDefault(); void ask(query); }}>
             <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="What do you want to know?" aria-label="Ask something about yourself" />
             <button type="submit" className="pc-pt-send" aria-label="Ask">&#8594;</button>

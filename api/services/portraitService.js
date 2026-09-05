@@ -161,13 +161,13 @@ const TRANSLATIONS = {
     }],
   ],
   google_calendar: [
-    [/^Calendar schedule today: no meetings/, () => 'A day with nothing in it'],
+    [/^Calendar schedule today: no meetings/, () => 'Nothing on the calendar that day'],
     [/^Calendar work style: organized (\d+)% of own meetings.*?mostly (in-person|virtual)/, (m) => (
       `You set up your own meetings, mostly ${m[2] === 'in-person' ? 'in person' : 'online'}`
     )],
-    [/^Calendar schedule for \w+ [\d-]+: (\d+) events? \(.*\) — (\w+)-(loaded|focused) scheduling/, (m) => `${m[1]} event${m[1] === '1' ? '' : 's'} that day, ${m[2]} ${m[3] === 'loaded' ? 'heavy' : 'focused'}`],
-    [/^Calendar schedule today: (\d+) events? \(.*?\)(?: — (\w+)-(loaded|focused) scheduling)?/, (m) => (
-      `${m[1]} event${m[1] === '1' ? '' : 's'} that day${m[2] ? `, ${m[2]} ${m[3] === 'loaded' ? 'heavy' : 'focused'}` : ''}`
+    [/^Calendar schedule for \w+ [\d-]+: (\d+) events? \(.*\) — (\w+)-(?:loaded|focused) scheduling/, (m) => `${m[1]} event${m[1] === '1' ? '' : 's'} that day, in the ${m[2]}`],
+    [/^Calendar schedule today: (\d+) events? \(.*?\)(?: — (\w+)-(?:loaded|focused) scheduling)?/, (m) => (
+      `${m[1]} event${m[1] === '1' ? '' : 's'} that day${m[2] ? `, in the ${m[2]}` : ''}`
     )],
     [/^Has a meeting '.+' from (.+?) to (.+?) on (\w+)/, (m) => `An appointment ${m[3]} at ${m[1]}`],
   ],

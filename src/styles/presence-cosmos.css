@@ -5258,3 +5258,25 @@ button.pc-search-icons {
 /* The longest label fits its column on one line. */
 .pc-portrait .pc-pt-line-head { grid-template-columns: 144px minmax(0, 1fr) 264px; }
 @media (max-width: 760px) { .pc-portrait .pc-pt-line-head { grid-template-columns: 1fr; } }
+
+/* ---- Round fifteen ------------------------------------------------------ */
+
+/* The signature is the portrait: the largest serif below the hero, in full ink. */
+.presence-cosmos .pc-pt-line-head .pc-pt-sentence {
+  font-size: 32px;
+  line-height: 1.12;
+  color: var(--c-on);
+}
+
+/* Hairlines, not shadows; the field's padding is optically even. */
+.pc-portrait .pc-pt-choices button,
+.pc-portrait .pc-pt-vote button { box-shadow: none; }
+.pc-pt-ask .pc-pt-prompt { padding-left: 26px; padding-right: 18px; }
+
+/* The panel does not stop dead under its last row. */
+.pc-pt-lines { padding-bottom: 18px; }
+
+@media (max-width: 760px) {
+  .pc-pt-signature, .pc-pt-ask, .pc-pt-sources { margin-top: 64px; }
+  .presence-cosmos .pc-pt-line-head .pc-pt-sentence { font-size: 26px; }
+}

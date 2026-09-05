@@ -31,7 +31,7 @@ describe('plainEvent speaks the person\'s language', () => {
     ['whoop', 'Latest Whoop workout: Kayaking — strain 12.5/21 (moderate), avg HR 140bpm, max HR 178bpm, ~533 kcal', 'Kayaking, a moderate session'],
     ['whoop', 'Sleep details: respiratory rate 17 breaths/min, 16 disturbances, consistency 27%, 21% REM, 30% deep sleep', 'A restless night, woke 16 times, bedtime far from usual'],
     ['whoop', 'Whoop recovery trending up (52% → 73%)', 'Recovery climbing, 52% to 73%'],
-    ['google_calendar', "Calendar schedule for Thu 2026-09-03: 2 events (Murilo Personal, Álvaro psicólogo) — evening-loaded scheduling", '2 events that day, evening heavy'],
+    ['google_calendar', "Calendar schedule for Thu 2026-09-03: 2 events (Murilo Personal, Álvaro psicólogo) — evening-loaded scheduling", '2 events that day, in the evening'],
     ['google_calendar', "Has a meeting 'Álvaro psicólogo' from 7:00 PM to 8:00 PM on Thu 2026-09-03", 'An appointment Thu at 7:00 PM'],
     ['google_gmail', 'Inbox grew by 6 unread emails in the last 8 minutes; most frequent sender: github.com (19)', '6 new emails in 8 minutes, most from one sender'],
     ['google_gmail', 'Your email mix this week: dev 100% — reveals attention allocation across communication types', 'Email mix this week: code 100%'],
@@ -300,7 +300,7 @@ describe('receipts a person would accept as proof', () => {
 describe('the sources that carry names are never guessed at', () => {
   it('says a day with a title in it without the title', () => {
     const e = plainEvent(ev('x', 'google_calendar', 'Calendar schedule today: 1 event (Focused Inbox Review) — evening-loaded scheduling', '2026-07-29T16:30:00Z'));
-    expect(e.event).toBe('1 event that day, evening heavy');
+    expect(e.event).toBe('1 event that day, in the evening');
     expect(e.translated).toBe(true);
   });
 
