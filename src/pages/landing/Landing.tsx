@@ -86,6 +86,14 @@ function names(list: string[]) {
 
 function sourceName(key: string) { return SOURCE_LABEL[key] ?? key; }
 
+/** A short last word never sits alone on a line, and a hyphenated word never breaks at its hyphen. */
+function tidy(text: string) {
+  return text.replace(/(\w)-(\w)/g, '$1\u2011$2').replace(/ (\S{1,4})$/, '\u00a0$1');
+}
+
+/** Two receipts about the same thing count as the same receipt, however the engine phrased the second. */
+function receiptKey(e: Evidence) { return e.event.toLowerCase().replace(/[,;].*$/, '').replace(/\s+(again|twice|once more)$/, '').slice(0, 24); }
+
 /** A receipt a person would say aloud: no list of names or counts after a colon, no inventory. */
 function plain(e: Evidence) {
   return !/:\s.*,/.test(e.event) && (e.event.match(/,/g) ?? []).length <= 2 && !/\b\d+\s*(channels|months|topics)\b/i.test(e.event);
@@ -154,7 +162,7 @@ function Receipts({ evidence, sources, label }: { evidence: Evidence[]; sources:
   return (
     <div aria-label={label ?? 'Read from'}>
       <div className="ld-receipts">
-        {shown.map((e, i) => <div key={i} className="ld-receipt"><b>{day(e.at)}</b><span>{e.event}</span></div>)}
+        {shown.map((e, i) => <div key={i} className="ld-receipt"><b>{day(e.at)}</b><span>{tidy(e.event)}</span></div>)}
       </div>
       <span className="ld-meta ld-mono">{evidence.length} receipts · {sources.join(', ')}</span>
     </div>
@@ -182,10 +190,14 @@ function LedgerRow({ domain, i }: { domain: Domain; i: number }) {
  * receipts the page has not shown yet, across more than one day where it can.
  */
 function cardReading(seen: Set<string>) {
-  const fresh = (r: Reading) => r.evidence.filter((e) => !seen.has(e.event) && plain(e));
-  const pool = DEMO_PORTRAIT.readings.filter((r) => r.domain !== 'motivation' && fresh(r).length >= 3);
-  return pool.find((r) => new Set(fresh(r).map((e) => e.at.slice(0, 10))).size >= 2) ?? pool[0]
-    ?? DEMO_PORTRAIT.readings.find((r) => r.domain !== 'motivation' && r.evidence.filter((e) => !seen.has(e.event)).length >= 3) ?? DEMO_PORTRAIT.readings[0];
+  const fresh = (r: Reading) => r.evidence.filter((e) => !seen.has(receiptKey(e)) && plain(e));
+  const days = (es: Evidence[]) => new Set(es.map((e) => e.at.slice(0, 10))).size;
+  // Any reading with three plain receipts qualifies; the one with the most receipts the page
+  // has not shown wins, and across more than one day where it can.
+  const pool = DEMO_PORTRAIT.readings
+    .filter((r) => r.domain !== 'motivation' && r.evidence.filter(plain).length >= 3)
+    .sort((a, b) => fresh(b).length - fresh(a).length || days(fresh(b)) - days(fresh(a)));
+  return pool[0] ?? DEMO_PORTRAIT.readings[0];
 }
 
 function ReadingPanel({ reduced, seen }: { reduced: boolean; seen: Set<string> }) {
@@ -193,7 +205,9 @@ function ReadingPanel({ reduced, seen }: { reduced: boolean; seen: Set<string> }
   const [shown, setShown] = useState(reduced ? 3 : 0);
   const [lineIn, setLineIn] = useState(reduced);
   const READING = cardReading(seen);
-  const receipts = spread(READING.evidence.filter((e) => !seen.has(e.event) && plain(e)).length >= 3 ? READING.evidence.filter((e) => !seen.has(e.event) && plain(e)) : READING.evidence.filter((e) => !seen.has(e.event)));
+  // Plain receipts, the ones the page has not shown first.
+  const plainOnes = READING.evidence.filter(plain);
+  const receipts = spread([...plainOnes.filter((e) => !seen.has(receiptKey(e))), ...plainOnes.filter((e) => seen.has(receiptKey(e)))]);
   useEffect(() => {
     if (reduced || !inView) return;
     let t = 0;
@@ -210,7 +224,7 @@ function ReadingPanel({ reduced, seen }: { reduced: boolean; seen: Set<string> }
         <div className="ld-receipts">
           {receipts.map((e, i) => (
             <div key={i} className={`ld-receipt ${i < shown ? 'is-in' : ''}`}>
-              <b>{day(e.at)}</b><span>{e.event}</span>
+              <b>{day(e.at)}</b><span>{tidy(e.event)}</span>
             </div>
           ))}
         </div>
@@ -243,7 +257,7 @@ export default function Landing() {
   const askSources = [...new Set(askCited.flatMap((r) => r.evidence.map((e) => sourceName(e.source))))];
   const rest = DEMO_PORTRAIT.signature.map((s) => s.domain).filter((d) => d !== 'motivation');
   // Every receipt the hero and the ledger show, so the card shows others.
-  const seen = new Set<string>(DEMO_PORTRAIT.signature.flatMap((x) => spread(behind(x.domain).evidence).map((e) => e.event)));
+  const seen = new Set<string>(DEMO_PORTRAIT.signature.flatMap((x) => spread(behind(x.domain).evidence).map(receiptKey)));
   const readSources = DEMO_PORTRAIT.sources.filter((x) => (parseInt(x.read, 10) || 0) > 0).length;
   const sourcesSentence = names(SOURCES).replace(/ and (\S+)$/, ' and\u00a0$1');
 
@@ -265,7 +279,6 @@ export default function Landing() {
         </header>
 
         <section className="ld-hero ld-col" aria-label={`${DEMO_PORTRAIT.owner}'s portrait, first line`}>
-          <p className="ld-label">{DOMAIN_LABEL.motivation}</p>
           <h1 className="ld-d1"><Line domain="motivation" /></h1>
           <div className="ld-row">
             <div>
@@ -289,16 +302,31 @@ export default function Landing() {
         </section>
 
         <Rise as="section" className="ld-sect ld-ask ld-col">
-          <p className="ld-label">Ask</p>
-          <p className="ld-lead ld-lead--grey ld-q">{ask.q}</p>
-          <p className="ld-voice"><q>{ask.a}</q></p>
-          <span className="ld-meta ld-mono">Cites {ask.cites.length} readings · {askSources.join(', ')}</span>
+          <div className="ld-row">
+            <div>
+              <p className="ld-label">Ask</p>
+              <p className="ld-lead ld-lead--grey ld-q">{ask.q}</p>
+              <p className="ld-voice"><q>{tidy(ask.a)}</q></p>
+            </div>
+            <div className="ld-cites" aria-label="What it cites">
+              {askCited.map((r) => (
+                <div key={r.id} className="ld-cite">
+                  {tidy(r.text)}
+                  <span className="ld-mono">{DOMAIN_LABEL[r.domain]} · {r.evidence.length} receipts · {[...new Set(r.evidence.map((e) => sourceName(e.source)))].join(', ')}</span>
+                </div>
+              ))}
+            </div>
+          </div>
         </Rise>
 
         <Rise as="section" className="ld-sect ld-sources ld-col">
-          <p className="ld-label">Reads from</p>
-          <p className="ld-lead ld-names">{sourcesSentence}.</p>
-          <p className="ld-lead ld-lead--grey ld-privacy">Messages, photos and location are never read. Delete a source, and everything read from it goes with it.</p>
+          <div className="ld-row">
+            <div>
+              <p className="ld-label">Reads from</p>
+              <p className="ld-lead ld-names">{sourcesSentence}.</p>
+            </div>
+            <p className="ld-lead ld-lead--grey ld-privacy">Messages, photos and location are never read. Delete a source, and everything read from it goes with it.</p>
+          </div>
         </Rise>
 
         <Rise as="section" className="ld-close ld-col">

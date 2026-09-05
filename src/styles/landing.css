@@ -51,7 +51,7 @@ html:has(main.ld), body:has(main.ld), #root:has(main.ld) { background: #ffffff; 
 .ld .ld-lead { color: var(--ink); font-size: 22px; line-height: 30px; font-weight: 400; letter-spacing: -0.015em; text-wrap: pretty; }
 .ld .ld-lead--grey { color: var(--grey); }
 /* The twin's own voice, as you: the one serif on the page. */
-.ld .ld-voice { color: var(--ink); font-family: 'Instrument Serif', Georgia, 'Times New Roman', serif; font-size: 56px; line-height: 62px; font-weight: 400; letter-spacing: -0.01em; text-wrap: pretty; }
+.ld .ld-voice { color: var(--ink); font-family: 'Instrument Serif', Georgia, 'Times New Roman', serif; font-size: 56px; line-height: 62px; font-weight: 400; letter-spacing: -0.01em; text-wrap: balance; text-indent: -0.38em; hyphens: manual; }
 /* A break set by hand, on desktop; on a phone the line wraps on its own. */
 .ld .ld-br { display: block; }
 .ld .ld-link { color: var(--ink); text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 1px; }
@@ -75,7 +75,7 @@ html:has(main.ld), body:has(main.ld), #root:has(main.ld) { background: #ffffff; 
 }
 
 /* Navigation: a white band on the column's own edges. */
-.ld-nav { position: fixed; top: 0; left: 0; right: 0; z-index: 40; height: 64px; background: #fff; }
+.ld-nav { position: fixed; top: 0; left: 0; right: 0; z-index: 40; height: 64px; background: #fff; border-bottom: 1px solid var(--line); }
 .ld-nav .ld-col { height: 100%; display: flex; align-items: center; justify-content: space-between; }
 .ld-brand { display: inline-flex; align-items: center; gap: 10px; color: var(--ink); font-size: 15px; line-height: 20px; font-weight: 500; }
 .ld-mark { width: 22px; height: 22px; transform: rotate(22.5deg); }
@@ -87,30 +87,32 @@ html:has(main.ld), body:has(main.ld), #root:has(main.ld) { background: #ffffff; 
 .ld-row { display: grid; grid-template-columns: 8fr 4fr; column-gap: 48px; row-gap: 0; align-items: start; }
 .ld-receipts { display: flex; flex-direction: column; gap: 6px; }
 .ld-receipt { color: var(--ink); display: grid; grid-template-columns: 52px 1fr; gap: 14px; align-items: baseline; font-size: 16px; line-height: 24px; }
-.ld-receipt b { font-family: 'Geist Mono', ui-monospace, monospace; font-weight: 400; color: var(--grey); font-size: 12px; line-height: 16px; letter-spacing: 0.04em; text-transform: uppercase; }
+.ld-receipt b { font-family: 'Geist Mono', ui-monospace, monospace; font-weight: 400; color: var(--grey); font-size: 12px; line-height: 16px; letter-spacing: 0.04em; text-transform: uppercase; text-align: right; font-variant-numeric: tabular-nums; }
 .ld-meta { display: block; color: var(--grey); }
 .ld-receipts + .ld-meta { margin-top: 14px; }
 
 /* The hero: the first line at the largest size, then its dek and its receipts on the grid. */
-.ld-hero { padding: 152px 0 44px; }
-.ld-hero h1 { margin-top: 12px; }
+.ld-hero { padding: 152px 0 48px; }
+.ld-hero h1 { margin-top: 0; }
 .ld-hero .ld-row { margin-top: 36px; }
 .ld-hero .ld-dek { max-width: 30ch; }
 .ld-hero .ld-cta { margin-top: 24px; font-size: 15px; line-height: 20px; }
 
 /* The ledger: the other four lines, ruled, each with its receipts beside it. */
-.ld-sig { padding: 40px 0 44px; border-top: 1px solid var(--line); opacity: 0; transform: translateY(14px); transition: opacity 800ms var(--ease), transform 800ms var(--ease); }
+.ld-sig { padding: 40px 0 48px; border-top: 1px solid var(--line); opacity: 0; transform: translateY(14px); transition: opacity 800ms var(--ease), transform 800ms var(--ease); }
 .ld-sig.is-in { opacity: 1; transform: none; }
 .ld-sig .ld-label { display: block; }
 .ld-sig p { margin-top: 10px; }
 .ld-sig .ld-receipts { padding-top: 28px; }
 
 /* Every section after the ledger is ruled the same way. */
-.ld-sect { padding: 96px 0 0; border-top: 1px solid var(--line); }
+.ld-sect { padding: 96px 0 48px; border-top: 1px solid var(--line); }
+.ld-sect.ld-how { padding-bottom: 48px; }
+.ld-sect > .ld-rise:last-child, .ld-sect > .ld-row:last-child { margin-bottom: 0; }
 .ld-sect .ld-lead { margin-top: 12px; max-width: 30ch; }
 
 /* The one photograph: sharp, the room at blue hour, the sheet on the window's light. */
-.ld-panel { position: relative; width: 100%; margin-top: 40px; border-radius: var(--r); overflow: hidden; height: 640px; display: flex; align-items: center; justify-content: center; padding: 40px; isolation: isolate; transform: translateZ(0); }
+.ld-panel { position: relative; width: 100%; margin: 40px 0 0; border-radius: var(--r); overflow: hidden; height: 640px; display: flex; align-items: center; justify-content: center; padding: 40px; isolation: isolate; transform: translateZ(0); }
 .ld-panel > img { position: absolute; inset: 0; width: 100%; max-width: none; height: 100%; object-fit: cover; object-position: 50% 48%; z-index: -1; }
 .ld-frost { width: min(480px, 100%); color: var(--ink); background: var(--frost); border: 1px solid var(--frost-line); -webkit-backdrop-filter: blur(28px) saturate(1.15); backdrop-filter: blur(28px) saturate(1.15); border-radius: 22px; padding: 20px 22px 20px; display: flex; flex-direction: column; gap: 14px; --grey: #5a5856; }
 .ld-frost .ld-receipts { gap: 8px; }
@@ -120,17 +122,20 @@ html:has(main.ld), body:has(main.ld), #root:has(main.ld) { background: #ffffff; 
 .ld-reading.is-in { opacity: 1; transform: none; }
 .ld-foot { font-weight: 400; display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-size: 12px; line-height: 16px; white-space: nowrap; }
 .ld-foot .ld-mono { color: var(--ink); font-size: 12px; line-height: 16px; }
-.ld-foot a { color: var(--grey); text-decoration: underline; text-underline-offset: 3px; }
+.ld-foot a { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
 .ld-foot a:hover { color: var(--ink); }
 
 /* Ask: the question in the lead size, the answer in the twin's voice. */
 .ld-ask .ld-q { margin-top: 12px; }
 .ld-ask .ld-voice { margin-top: 20px; max-width: 30ch; }
+.ld-cites { padding-top: 30px; display: flex; flex-direction: column; gap: 14px; }
+.ld-cite { font-size: 16px; line-height: 24px; color: var(--ink); }
+.ld-cite .ld-mono { display: block; margin-top: 2px; color: var(--grey); }
 .ld-ask .ld-meta { margin-top: 22px; }
 
 /* Sources as a sentence; the privacy statement in words. */
 .ld-sources .ld-names { margin-top: 12px; max-width: 34ch; }
-.ld-sources .ld-privacy { margin-top: 28px; max-width: 34ch; }
+.ld-sources .ld-privacy { margin-top: 0; max-width: 34ch; padding-top: 30px; }
 
 /* The end: one line, the one action. */
 .ld-close { padding: 96px 0 120px; border-top: 1px solid var(--line); }
@@ -166,6 +171,8 @@ html:has(main.ld), body:has(main.ld), #root:has(main.ld) { background: #ffffff; 
   .ld-receipt { font-size: 15px; line-height: 22px; grid-template-columns: 48px 1fr; }
   .ld-sig { padding: 28px 0 32px; }
   .ld-sig .ld-receipts { padding-top: 0; }
+  .ld-cites { padding-top: 0; }
+  .ld-sources .ld-privacy { padding-top: 0; }
   .ld-sect { padding-top: 64px; }
   .ld-panel { height: 760px; padding: 12px; border-radius: 24px; margin-top: 28px; align-items: flex-end; }
   .ld-panel > img { left: -20%; width: 140%; object-position: 50% 40%; }
