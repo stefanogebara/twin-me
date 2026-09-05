@@ -5091,3 +5091,52 @@ button.pc-search-icons {
 /* The footer row keeps off the lamp: everything sits at the right. */
 .pc-portrait .pc-pt-foot { justify-content: flex-end; }
 .pc-portrait .pc-pt-foot span { margin-right: 4px; }
+
+/* ---- Under the fold: opaque paper, readings under running heads, the sources as a stanza ---- */
+.pc-pt-paper-panel { background: #f7f5f3; backdrop-filter: none; -webkit-backdrop-filter: none; }
+.presence-cosmos .pc-pt-head { font-size: 52px; line-height: 56px; letter-spacing: -0.02em; }
+.pc-pt-paper-panel .pc-pt-ledger { margin-top: 48px; }
+/* Running heads: mono, small, the group's plain name. */
+.pc-portrait .pc-pt-group { margin-top: 40px; }
+.pc-portrait .pc-pt-group:first-of-type { margin-top: 32px; }
+.pc-portrait .pc-pt-run {
+  margin: 0; padding: 0 0 10px;
+  font-family: 'Geist Mono', var(--font-mono, ui-monospace, monospace); font-size: 11px; line-height: 16px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--c-ink-3);
+}
+/* Rows: the group opens on its strongest line, set larger; the rest follow smaller. */
+.pc-portrait .pc-pt-row-head { grid-template-columns: minmax(0, 1fr); gap: 8px; padding: 20px 0 18px; }
+.presence-cosmos.pc-portrait .pc-pt-row-head p { font-size: 23px; line-height: 29px; }
+.presence-cosmos.pc-portrait .pc-pt-row.is-lead .pc-pt-row-head p { font-size: 32px; line-height: 37px; letter-spacing: -0.018em; }
+.pc-portrait .pc-pt-row.is-lead .pc-pt-row-head { padding: 22px 0 20px; }
+.pc-portrait .pc-pt-row-head .pc-pt-row-meta { font-family: 'Geist Mono', var(--font-mono, ui-monospace, monospace); font-size: 11px; line-height: 16px; letter-spacing: 0.04em; color: var(--c-ink-3); }
+.pc-portrait .pc-pt-row-body { padding-left: 0; }
+/* Sources: a stanza, not a table. Names in the serif, counts in mono, one line on what is read. */
+.pc-portrait .pc-pt-src-stanza { margin-top: 28px; }
+.pc-portrait .pc-pt-src-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px 24px; margin: 0; }
+.pc-portrait .pc-pt-src-grid > div { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--c-border); }
+.presence-cosmos .pc-pt-src-grid dt { margin: 0; font-family: 'Instrument Serif', serif; font-size: 26px; line-height: 30px; letter-spacing: -0.012em; color: var(--c-ink); }
+.presence-cosmos .pc-pt-src-grid dd { margin: 0; font-family: 'Geist Mono', var(--font-mono, ui-monospace, monospace); font-size: 12px; letter-spacing: 0.03em; color: var(--c-ink-3); white-space: nowrap; }
+.presence-cosmos .pc-pt-src-kinds { margin: 22px 0 0; max-width: 60ch; font-size: 15px; line-height: 22px; color: var(--c-ink-2); }
+.pc-portrait .pc-pt-source-list[hidden] { display: none; }
+.pc-pt-paper-panel .pc-pt-sources { margin-top: 96px; }
+
+/* The glass: one height for all three scenes, and frost that holds white type over the sash. */
+.pc-pt-cine .pc-pt-glass.pc-demo-glass { min-height: 520px; background: rgba(12, 14, 20, 0.42); backdrop-filter: blur(40px) saturate(1.2); -webkit-backdrop-filter: blur(40px) saturate(1.2); }
+
+/* A phone keeps its nav: the capsule sits beside the mark. */
+@media (max-width: 767px) {
+  .pc-pt-cine .pc-cine-nav nav.pc-cine-navcap { display: flex; position: static; transform: none; padding: 8px 14px; gap: 14px; }
+  .pc-pt-cine .pc-cine-nav nav a { font-size: 13px; }
+  .presence-cosmos .pc-cine-mark { font-size: 24px; }
+}
+@media (max-width: 640px) {
+  .presence-cosmos .pc-pt-head { font-size: 40px; line-height: 44px; }
+  .presence-cosmos.pc-portrait .pc-pt-row.is-lead .pc-pt-row-head p { font-size: 27px; line-height: 32px; }
+  .presence-cosmos.pc-portrait .pc-pt-row-head p { font-size: 21px; line-height: 27px; }
+  .pc-portrait .pc-pt-src-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 18px; }
+  .presence-cosmos .pc-pt-src-grid dt { font-size: 22px; line-height: 26px; }
+  .pc-pt-cine .pc-pt-glass.pc-demo-glass { min-height: 0; }
+}
+/* One column in the row: an older rule still sent the sentence and its provenance to a second, implicit one. */
+.presence-cosmos.pc-portrait .pc-pt-row-head p,
+.pc-portrait .pc-pt-row-head .pc-pt-row-meta { grid-column: 1; }

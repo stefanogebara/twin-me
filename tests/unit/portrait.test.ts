@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { deriveState, supportLine, groupReadings, daysSince, findScripted } from '../../src/lib/portrait';
+import { deriveState, supportLine, groupReadings, daysSince, findScripted, receiptLine, groupByDomain } from '../../src/lib/portrait';
 import type { Reading } from '../../src/data/demoPortrait';
 
 const base: Reading = {
@@ -67,5 +67,28 @@ describe('findScripted', () => {
   });
   it('returns null when nothing matches', () => {
     expect(findScripted(scripts, 'what is my name')).toBeNull();
+  });
+});
+
+describe('receiptLine and groupByDomain', () => {
+  const base: Reading = {
+    id: 'r', domain: 'cultural', text: 'You loop songs.', writtenAt: '2026-09-01', supportedAt: '2026-09-03', verdict: null,
+    evidence: [
+      { source: 'spotify', at: '2026-09-03', event: 'a' },
+      { source: 'spotify', at: '2026-09-01', event: 'b' },
+      { source: 'github', at: '2026-08-30', event: 'c' },
+    ],
+  };
+  it('writes provenance as a machine would: sources, count, span', () => {
+    expect(receiptLine(base)).toBe('Spotify, GitHub · 3 receipts · 5 days');
+    expect(receiptLine({ ...base, evidence: [base.evidence[0]] })).toBe('Spotify · 1 receipt · 1 day');
+  });
+  it('groups by domain in the fixed order, the most-supported reading first in each', () => {
+    const thin = { ...base, id: 'thin', domain: 'motivation' as const, evidence: base.evidence.slice(0, 1) };
+    const fat = { ...base, id: 'fat', domain: 'motivation' as const };
+    const taste = { ...base, id: 'taste' };
+    const groups = groupByDomain([thin, taste, fat]);
+    expect(groups.map((g) => g.domain)).toEqual(['motivation', 'cultural']);
+    expect(groups[0].readings.map((r) => r.id)).toEqual(['fat', 'thin']);
   });
 });

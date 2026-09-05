@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { DOMAIN_HUE, DOMAIN_LABEL, SOURCE_LABEL, type Evidence, type PortraitData, type Reading, type Verdict } from '../../data/demoPortrait';
-import { deriveState, supportLine, groupReadings, daysSince, findScripted, type ReadingState } from '../../lib/portrait';
+import { deriveState, receiptLine, groupByDomain, DOMAIN_HEAD, daysSince, findScripted } from '../../lib/portrait';
 import '../../styles/presence-cosmos.css';
 
 /**
@@ -42,10 +42,6 @@ const SCENES: { id: Scene; label: string; caption: string }[] = [
   { id: 'ask', label: 'Ask your twin', caption: 'It answers as you, in your words, and shows what it read to say so.' },
   { id: 'signature', label: 'Your signature', caption: 'One line per domain, each measured from named sources. Nothing from a quiz.' },
 ];
-
-const STATE_LABEL: Record<ReadingState, string> = {
-  new: 'New this week', standing: 'Standing', fading: 'Fading', disputed: 'Disputed',
-};
 
 const VERDICT_LABEL: Record<Exclude<Verdict, null>, string> = { true: 'That is me', partly: 'Partly', wrong: 'Not me' };
 
@@ -226,8 +222,8 @@ function ReceiptRow({ e, i, pace = 110 }: { e: Evidence; i: number; pace?: numbe
   );
 }
 
-function ReadingRow({ reading, n, now, verdict, onVerdict, open, onToggle, lit }: {
-  reading: Reading; n: number; now: Date; verdict: Verdict; onVerdict: (v: Verdict) => void; open: boolean; onToggle: () => void; lit: boolean;
+function ReadingRow({ reading, lead, now, verdict, onVerdict, open, onToggle, lit }: {
+  reading: Reading; lead: boolean; now: Date; verdict: Verdict; onVerdict: (v: Verdict) => void; open: boolean; onToggle: () => void; lit: boolean;
 }) {
   const state = deriveState({ ...reading, verdict }, now);
   const age = daysSince(reading.supportedAt, now);
@@ -239,11 +235,10 @@ function ReadingRow({ reading, n, now, verdict, onVerdict, open, onToggle, lit }
     return () => window.clearTimeout(t);
   }, [open]);
   return (
-    <article className={`pc-pt-row ${open ? 'is-open' : ''} ${lit ? 'is-lit' : ''}`} id={`reading-${reading.id}`}>
+    <article className={`pc-pt-row ${lead ? 'is-lead' : ''} ${open ? 'is-open' : ''} ${lit ? 'is-lit' : ''}`} id={`reading-${reading.id}`}>
       <button type="button" className="pc-pt-row-head" onClick={onToggle} aria-expanded={open}>
-        <span className="pc-pt-row-n" aria-hidden="true">{String(n).padStart(2, '0')}</span>
         <p>{reading.text}</p>
-        <span className="pc-pt-row-meta">{supportLine(reading)}{state === 'fading' ? ` · last supported ${age} days ago` : ''}</span>
+        <span className="pc-pt-row-meta">{receiptLine(reading)}{state === 'fading' ? ` · last supported ${age} days ago` : ''}</span>
       </button>
       {/* Always in the tree so the height animates both ways; inert to readers and the keyboard when shut. */}
       <div className="pc-pt-row-fold" aria-hidden={!open}>
@@ -285,8 +280,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
   const byId = useMemo(() => new Map(readings.map((r) => [r.id, r])), [readings]);
   // The headline is the first reading; the ledger does not say it a second time.
   const lead = data.lead ?? data.signature[0]?.line ?? data.readings[0]?.text ?? null;
-  const groups = useMemo(() => groupReadings(readings.filter((r) => r.text !== lead), now), [readings, now, lead]);
-  const ledgerIds = useMemo(() => groups.flatMap((g) => g.readings.map((r) => r.id)), [groups]);
+  const groups = useMemo(() => groupByDomain(readings.filter((r) => r.text !== lead)), [readings, lead]);
   // A source with nothing read is not a source yet.
   const readSources = data.sources.filter((s) => (parseInt(s.read, 10) || 0) > 0);
   const sourceCount = readSources.length;
@@ -463,12 +457,12 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
                       <div key={s.domain} className="pc-pt-sig-item pc-pt-arrive" style={{ animationDelay: `${i * 120}ms` }}>
                         <div className="pc-demo-sig-row is-in">
                           <span><i style={{ background: DOMAIN_HUE[s.domain] }} />{DOMAIN_LABEL[s.domain]}</span>
-                          <small>{s.sources.join(', ')}</small>
+                          <small>
+                            {s.sources.join(', ')}
+                            {s.from[0] ? <> · <button type="button" className="pc-pt-sig-jump" onClick={() => jumpTo(s.from[0].id)} aria-label={`Open the reading behind ${DOMAIN_LABEL[s.domain]}`}>{s.receipts} receipt{s.receipts === 1 ? '' : 's'}</button></> : null}
+                          </small>
                         </div>
-                        <p className="pc-pt-sig-line">
-                          {s.line}
-                          {s.from[0] ? <button type="button" className="pc-pt-sig-jump" onClick={() => jumpTo(s.from[0].id)} aria-label={`Open the reading behind ${DOMAIN_LABEL[s.domain]}`}>{s.receipts} receipt{s.receipts === 1 ? '' : 's'}</button> : null}
-                        </p>
+                        <p className="pc-pt-sig-line">{s.line}</p>
                       </div>
                     ))}
                   </div>
@@ -488,10 +482,10 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
       <section className="pc-pt-ledger" id="readings" aria-labelledby="pc-pt-ledger-title">
         <h2 id="pc-pt-ledger-title" className="pc-h2 pc-h2--sm pc-pt-head">The readings</h2>
         {groups.map((g) => (
-          <div key={g.state} className="pc-pt-group">
-            <p className="pc-spec-n">{STATE_LABEL[g.state]} · {g.readings.length}</p>
-            {g.readings.map((r) => (
-              <ReadingRow key={r.id} reading={r} n={ledgerIds.indexOf(r.id) + 1} now={now} verdict={verdicts[r.id] ?? null}
+          <div key={g.domain} className="pc-pt-group">
+            <p className="pc-pt-run">{DOMAIN_HEAD[g.domain]}</p>
+            {g.readings.map((r, i) => (
+              <ReadingRow key={r.id} reading={r} lead={i === 0} now={now} verdict={verdicts[r.id] ?? null}
                 onVerdict={(v) => verdict(r.id, v)}
                 open={open === r.id} onToggle={() => setOpen(open === r.id ? null : r.id)} lit={lit.includes(r.id)} />
             ))}
@@ -508,7 +502,19 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
             </button>
           ) : null}
         </div>
-        <div className="pc-pt-source-list">
+        {!managing ? (
+          <div className="pc-pt-src-stanza">
+            <dl className="pc-pt-src-grid">
+              {readSources.map((s) => (
+                <div key={s.platform}><dt>{s.label}</dt><dd>{s.read}</dd></div>
+              ))}
+            </dl>
+            <p className="pc-pt-src-kinds">
+              Read since {spokenDay(readSources.map((s) => s.since).sort()[0])}: {readSources.map((s) => s.kinds.charAt(0).toLowerCase() + s.kinds.slice(1)).join('; ')}.
+            </p>
+          </div>
+        ) : null}
+        <div className="pc-pt-source-list" hidden={!managing}>
           {readSources.map((s) => (
             <div key={s.platform} className="pc-pt-source">
               <strong>{s.label}</strong>

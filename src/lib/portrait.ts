@@ -41,7 +41,30 @@ export function supportLine(reading: Reading): string {
   return `Seen ${events === 1 ? 'once' : `${plural(events, 'time')}`} ${when}, from ${from}`;
 }
 
+/** Provenance as a machine would write it: `Spotify · 4 receipts · 35 days`. */
+export function receiptLine(reading: Reading): string {
+  const events = reading.evidence.length;
+  const days = reading.evidence.map((e) => Math.floor(parse(e.at) / DAY));
+  const span = Math.max(...days) - Math.min(...days) + 1;
+  const names = [...new Set(reading.evidence.map((e) => SOURCE_LABEL[e.source] ?? e.source))];
+  const from = names.length > 2 ? `${names.length} sources` : names.join(', ');
+  return `${from} · ${events} receipt${events === 1 ? '' : 's'} · ${span} day${span === 1 ? '' : 's'}`;
+}
+
 export const LEDGER_ORDER: ReadingState[] = ['new', 'standing', 'fading', 'disputed'];
+
+/** The ledger's running heads, in plain words: a person does not know what "cultural" means. */
+export const DOMAIN_HEAD: Record<Reading['domain'], string> = {
+  motivation: 'Work and drive', personality: 'Temperament', cultural: 'Taste', social: 'People', lifestyle: 'Days and nights',
+};
+export const DOMAIN_ORDER: Reading['domain'][] = ['motivation', 'personality', 'cultural', 'social', 'lifestyle'];
+
+/** Readings by domain, the most-supported first in each, so every group opens on its strongest line. */
+export function groupByDomain(readings: Reading[]): { domain: Reading['domain']; readings: Reading[] }[] {
+  return DOMAIN_ORDER
+    .map((domain) => ({ domain, readings: readings.filter((r) => r.domain === domain).sort((a, b) => b.evidence.length - a.evidence.length) }))
+    .filter((g) => g.readings.length > 0);
+}
 
 export function groupReadings(readings: Reading[], now: Date): { state: ReadingState; readings: Reading[] }[] {
   return LEDGER_ORDER

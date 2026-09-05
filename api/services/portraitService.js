@@ -379,7 +379,7 @@ export function buildPortrait({ owner, reflections = [], eventsById = new Map(),
         source: SOURCE_LABEL[thinnest.evidence[0].source] || thinnest.evidence[0].source,
         evidenceLine: `${SOURCE_LABEL[thinnest.evidence[0].source] || thinnest.evidence[0].source}, ${thinnest.evidence[0].at}: ${thinnest.evidence[0].event}.`,
         question: thinnest.text,
-        answers: ['That is me', 'Partly', 'Not me'],
+        answers: ['That is me', 'Not me'],
         yourAnswer: null,
       }
     : null;
