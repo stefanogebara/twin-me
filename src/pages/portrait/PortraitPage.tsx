@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom';
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { ArrowUp } from 'lucide-react';
 import { DOMAIN_HUE, DOMAIN_LABEL, SOURCE_LABEL, type Evidence, type PortraitData, type Reading, type Verdict } from '../../data/demoPortrait';
 import { deriveState, supportLine, groupReadings, daysSince, findScripted, type ReadingState } from '../../lib/portrait';
 import '../../styles/presence-cosmos.css';
@@ -244,7 +243,7 @@ function ReadingRow({ reading, n, now, verdict, onVerdict, open, onToggle, lit }
       <button type="button" className="pc-pt-row-head" onClick={onToggle} aria-expanded={open}>
         <span className="pc-pt-row-n" aria-hidden="true">{String(n).padStart(2, '0')}</span>
         <p>{reading.text}</p>
-        <span className="pc-pt-row-meta"><i style={{ background: DOMAIN_HUE[reading.domain] }} aria-hidden="true" />{DOMAIN_LABEL[reading.domain]} · {supportLine(reading)}{state === 'fading' ? ` · last supported ${age} days ago` : ''}</span>
+        <span className="pc-pt-row-meta">{supportLine(reading)}{state === 'fading' ? ` · last supported ${age} days ago` : ''}</span>
       </button>
       {/* Always in the tree so the height animates both ways; inert to readers and the keyboard when shut. */}
       <div className="pc-pt-row-fold" aria-hidden={!open}>
@@ -404,7 +403,6 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
                               {data.question.answers.map((a) => (
                                 <button key={a} type="button" className="is-quiet" onClick={() => answerToday(a)}>{a}</button>
                               ))}
-                              <button type="button" className="pc-pt-skip" onClick={() => answerToday('skipped')}>Skip today</button>
                             </>
                           )}
                         </div>
@@ -425,8 +423,8 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
               {shown === 'ask' ? (
                 <div className="pc-demo-scene" key="ask">
                   <form className={`pc-demo-ask ${reply || asking ? 'is-sent' : ''}`} onSubmit={(e) => { e.preventDefault(); void ask(query); }}>
-                    <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Ask your twin." aria-label="Ask your twin" />
-                    <button type="submit" aria-label="Ask"><ArrowUp size={16} /></button>
+                    <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Ask your twin" aria-label="Ask your twin" />
+                    <button type="submit" className="pc-pt-send">Ask</button>
                   </form>
                   {!reply && !asking ? (
                     <div className="pc-demo-chips is-in pc-pt-hints">
@@ -540,6 +538,11 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
           ? <Link to="/" className="liquid-glass pc-cine-pill">Read your own portrait</Link>
           : <Link to="/sources" className="liquid-glass pc-cine-pill">Read from one more place</Link>}
         <span className="pc-pt-close-mark">TwinMe</span>
+        <div className="pc-pt-foot">
+          <span>TwinMe, 2026</span>
+          <Link to="/privacy-policy">Privacy</Link>
+          <Link to="/terms">Terms</Link>
+        </div>
       </footer>
     </main>
   );

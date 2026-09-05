@@ -41,14 +41,14 @@ export const SOURCE_LABEL = {
 };
 
 const SOURCE_KINDS = {
-  github: 'finished work, and the hours you do it',
-  spotify: 'plays, repeats, new artists',
-  google_gmail: 'sender counts, send times',
-  whoop: 'sleep, recovery, workouts',
-  google_calendar: 'events per day, time of day',
-  youtube: 'subscriptions, topics',
-  discord: 'where you talk, how much',
-  outlook: 'send times',
+  github: 'Finished work and the hours you do it',
+  spotify: 'Plays, repeats, new artists',
+  google_gmail: 'Sender counts, send times',
+  whoop: 'Sleep, recovery, workouts',
+  google_calendar: 'Events per day, time of day',
+  youtube: 'Subscriptions, topics',
+  discord: 'Where you talk, how much',
+  outlook: 'Send times',
 };
 
 const NEW_DAYS = 7;
@@ -60,6 +60,65 @@ const MAX_READINGS = 40;
 const MAX_PER_DOMAIN = 4;
 
 /** A reading addressed to the person, not about them. Older readings say "This person" or "They". */
+// Words that carry no claim of their own; two readings sharing only these are not the same reading.
+const FOLD_STOP = new Set(('you your yours often like a an the and but to of in on for with by at it its is are be into just then when than that this those ' +
+  'these their them they own time day days late get make do doing done more most much very really keep help still even all one two some what which who how ' +
+  'out up down off over after before between while as from have has had can will would should may might also both each every other').split(' '));
+
+function foldStem(word) {
+  let w = word;
+  if (w.length > 3 && w.endsWith('s') && !w.endsWith('ss')) w = w.slice(0, -1);
+  for (const suffix of ['ing', 'ed']) {
+    if (w.endsWith(suffix) && w.length - suffix.length >= 5) { w = w.slice(0, -suffix.length); break; }
+  }
+  return w;
+}
+
+function foldStems(text) {
+  const out = new Set();
+  for (const raw of String(text).toLowerCase().match(/[a-z']+/g) || []) {
+    if (raw.length < 3 || FOLD_STOP.has(raw)) continue;
+    out.add(foldStem(raw));
+  }
+  return out;
+}
+
+/**
+ * Pure. Two readings that say the same thing in different words are one reading: the
+ * engine writes the Drake observation three times for three experts, and a person
+ * reading the page notices. A pair folds when it shares three words that carry a
+ * claim, or two such words and a receipt. Clusters keep the reading with the most
+ * receipts and take the others' receipts, newest first.
+ */
+export function foldNearDuplicates(readings, maxEvidence = MAX_EVIDENCE) {
+  const stems = readings.map((r) => foldStems(r.text));
+  const receipts = readings.map((r) => new Set((r.evidence || []).map((e) => `${e.source}|${e.event}`)));
+  const same = (i, j) => {
+    const shared = [...stems[i]].filter((x) => stems[j].has(x)).length;
+    const sharedReceipts = [...receipts[i]].filter((x) => receipts[j].has(x)).length;
+    return shared >= 3 || (shared >= 2 && sharedReceipts >= 1);
+  };
+  const parent = readings.map((_, i) => i);
+  const find = (i) => (parent[i] === i ? i : (parent[i] = find(parent[i])));
+  for (let i = 0; i < readings.length; i += 1) {
+    for (let j = i + 1; j < readings.length; j += 1) if (same(i, j)) parent[find(i)] = find(j);
+  }
+  const clusters = new Map();
+  readings.forEach((r, i) => { const k = find(i); if (!clusters.has(k)) clusters.set(k, []); clusters.get(k).push(r); });
+  const strength = (r) => [r.evidence.length, Number(isSecondPerson(r.text)), r.writtenAt || ''];
+  const stronger = (a, b) => { const x = strength(a); const y = strength(b); for (let k = 0; k < x.length; k += 1) if (x[k] !== y[k]) return x[k] > y[k] ? -1 : 1; return 0; };
+  const kept = new Map();
+  for (const members of clusters.values()) {
+    const [lead, ...rest] = [...members].sort(stronger);
+    if (!rest.length) { kept.set(lead.id, lead); continue; }
+    const seen = new Set(lead.evidence.map((e) => `${e.source}|${e.event}`));
+    const extra = rest.flatMap((r) => r.evidence).filter((e) => { const k = `${e.source}|${e.event}`; if (seen.has(k)) return false; seen.add(k); return true; });
+    const evidence = [...lead.evidence, ...extra].sort((a, b) => (a.at < b.at ? 1 : a.at > b.at ? -1 : 0)).slice(0, maxEvidence);
+    kept.set(lead.id, { ...lead, evidence, supportedAt: evidence[0] ? day(evidence[0].at) : lead.supportedAt, folded: rest.map((r) => r.id) });
+  }
+  return readings.filter((r) => kept.has(r.id)).map((r) => kept.get(r.id));
+}
+
 export function isSecondPerson(text) {
   return /^\s*(you|your)\b/i.test(String(text || ''));
 }
@@ -269,9 +328,14 @@ export function buildPortrait({ owner, reflections = [], eventsById = new Map(),
       if (seen) { if (!snap) seen.times += 1; }
       else byEvent.set(key, { ...e, times: 1 });
     }
-    const evidence = [...byEvent.values()].slice(0, MAX_EVIDENCE).map(({ times, ...e }) => (
-      times > 1 ? { ...e, at: day(e.at), event: `${e.event}, ${times === 2 ? 'twice' : `${times} times`}` } : e
-    ));
+    const evidence = [...byEvent.values()].slice(0, MAX_EVIDENCE).map(({ times, ...e }) => {
+      if (times <= 1) return e;
+      // An empty day repeated is not "nothing, twice"; it is a count of empty days.
+      const event = /^Nothing on the calendar/.test(e.event)
+        ? `Nothing on the calendar, ${times} days`
+        : `${e.event}, ${times === 2 ? 'twice' : `${times} times`}`;
+      return { ...e, at: day(e.at), event };
+    });
     if (evidence.length < MIN_EVIDENCE) continue;
     const supportedAt = evidence[0].at;
     readings.push({
@@ -297,7 +361,7 @@ export function buildPortrait({ owner, reflections = [], eventsById = new Map(),
     return n <= MAX_PER_DOMAIN;
   });
   readings.length = 0;
-  readings.push(...kept.slice(0, MAX_READINGS));
+  readings.push(...foldNearDuplicates(kept.slice(0, MAX_READINGS)));
 
   const byDomain = (d) => readings.filter((x) => x.domain === d && x.verdict !== 'wrong');
   const signature = DOMAINS.map((domain) => {

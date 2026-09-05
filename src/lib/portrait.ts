@@ -37,7 +37,8 @@ export function supportLine(reading: Reading): string {
   const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
   const names = [...new Set(reading.evidence.map((e) => SOURCE_LABEL[e.source] ?? e.source))];
   const from = names.length > 2 ? `${names.length} sources` : names.join(' and ');
-  return `Seen ${events === 1 ? 'once' : `${plural(events, 'time')}`} over ${plural(span, 'day')}, from ${from}`;
+  const when = span === 1 ? 'in one day' : `over ${plural(span, 'day')}`;
+  return `Seen ${events === 1 ? 'once' : `${plural(events, 'time')}`} ${when}, from ${from}`;
 }
 
 export const LEDGER_ORDER: ReadingState[] = ['new', 'standing', 'fading', 'disputed'];

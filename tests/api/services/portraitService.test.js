@@ -14,7 +14,7 @@ vi.mock('../../../api/services/logger.js', () => ({
   createLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
 }));
 
-const { plainEvent, buildPortrait, readingsTouchedBy, isSecondPerson } = await import('../../../api/services/portraitService.js');
+const { plainEvent, buildPortrait, readingsTouchedBy, isSecondPerson, foldNearDuplicates } = await import('../../../api/services/portraitService.js');
 
 const ev = (id, platform, content, created_at) => ({ id, memory_type: 'platform_data', content, metadata: { platform }, created_at });
 
@@ -110,7 +110,7 @@ describe('buildPortrait', () => {
 
   it('lists only connected sources, in the person\'s words', () => {
     expect(portrait.sources).toEqual([
-      { platform: 'spotify', label: 'Spotify', read: '246 items', since: '2026-08-26', kinds: 'plays, repeats, new artists' },
+      { platform: 'spotify', label: 'Spotify', read: '246 items', since: '2026-08-26', kinds: 'Plays, repeats, new artists' },
     ]);
   });
 });
@@ -262,8 +262,10 @@ describe('a stanza is meant to be read', () => {
       ['a', ev('a', 'spotify', "Listened to 'x' by y at 9:00 AM", '2026-09-03T09:00:00Z')],
       ['b', ev('b', 'spotify', "Listened to 'z' by y at 10:00 AM", '2026-09-03T10:00:00Z')],
     ]);
+    // Nine different sentences: the same sentence nine times would rightly fold to one.
+    const lines = ['You listen after midnight.', 'You loop one artist.', 'You skip slow tracks.', 'You favour long albums.', 'You replay old hits.', 'You discover weekly.', 'You queue by mood.', 'You mute the radio.', 'You hum while coding.'];
     const reflections = Array.from({ length: 9 }, (_, i) => ({
-      id: `r${i}`, content: `You do the thing, take ${i}.`, created_at: `2026-09-0${(i % 3) + 1}T12:00:00Z`,
+      id: `r${i}`, content: lines[i], created_at: `2026-09-0${(i % 3) + 1}T12:00:00Z`,
       metadata: { expert: 'cultural_identity', observation_ids: ['a', 'b'] },
     }));
     const portrait = buildPortrait({ owner: 'S', reflections, eventsById: events, now: new Date('2026-09-04T00:00:00Z') });
@@ -346,5 +348,46 @@ describe('the question is never a line already on the page', () => {
     expect(p.signature.find((s) => s.domain === 'motivation').from[0]).toBe('r1');
     expect(p.question.fromReadings).toEqual(['r2']);
     expect(p.question.question).toBe('You review nothing.');
+  });
+});
+
+describe('foldNearDuplicates: one observation, one reading', () => {
+  const rd = (id, text, evidence, writtenAt = '2026-09-01') => ({ id, text, evidence, writtenAt, supportedAt: evidence[0]?.at, domain: 'cultural', verdict: null });
+  const e = (source, event, at) => ({ source, event, at, translated: true });
+
+  it('folds readings that share two rare words, keeping the one with more receipts and taking the rest', () => {
+    const drakeA = rd('a', 'You loop the same two songs back-to-back to lock into a confident state.', [e('spotify', 'Pipe Down, Drake', '2026-09-01'), e('spotify', 'Nice For What, Drake', '2026-08-30')]);
+    const drakeB = rd('b', 'You play the same Drake songs on loop to lock into a focused state for deep work.', [e('spotify', 'Circo Loco, Drake', '2026-09-03'), e('spotify', 'High Fives, Drake', '2026-09-02'), e('spotify', 'Pipe Down, Drake', '2026-09-01')]);
+    const other = rd('c', 'You get your best work done in short bursts before you have to be somewhere else.', [e('google_calendar', '3 events that day, in the evening', '2026-09-02'), e('google_calendar', '2 events that day', '2026-08-29')]);
+    const out = foldNearDuplicates([drakeA, drakeB, other]);
+    expect(out.map((r) => r.id)).toEqual(['b', 'c']);
+    expect(out[0].folded).toEqual(['a']);
+    // The lead keeps its receipts and gains the other's distinct ones, newest first, without repeating the shared play.
+    expect(out[0].evidence.map((x) => x.event)).toEqual(['Circo Loco, Drake', 'High Fives, Drake', 'Pipe Down, Drake', 'Nice For What, Drake']);
+    expect(out[0].supportedAt).toBe('2026-09-03');
+  });
+
+  it('folds on one rare word when the two readings lean on the same receipt', () => {
+    const shared = e('google_calendar', 'Nothing on the calendar that day', '2026-08-11');
+    const a = rd('a', 'You protect your evenings for yourself, even with all your work messages.', [shared, e('google_calendar', '1 event that day, in the evening', '2026-07-29')]);
+    const b = rd('b', 'You use evening plans to make a clean break between your work and your time to rest.', [shared, e('google_calendar', '2 events that day', '2026-08-02')]);
+    expect(foldNearDuplicates([a, b]).map((r) => r.id)).toEqual(['a']);
+  });
+
+  it('leaves readings that only share everyday words', () => {
+    const a = rd('a', 'You often use AI to build new features quickly, then focus your own time on important fixes.', [e('github', 'Finished a change to your roca project', '2026-09-01'), e('github', 'Started a change to your roca project', '2026-08-30')]);
+    const b = rd('b', 'You plan your days around therapy and training, but you split your focus between deep work and new ideas.', [e('google_calendar', '2 events that day', '2026-09-02'), e('google_calendar', '1 event that day, in the morning', '2026-08-29')]);
+    expect(foldNearDuplicates([a, b]).map((r) => r.id)).toEqual(['a', 'b']);
+  });
+
+  it('says an empty day repeated as a count of days, not "nothing, twice"', () => {
+    const reflections = [{ id: 'r1', content: 'You keep evenings clear.', metadata: { expert: 'lifestyle_analyst', observation_ids: ['e1', 'e2', 'e3'] }, created_at: '2026-09-03T10:00:00Z' }];
+    const eventsById = new Map([
+      ['e1', ev('e1', 'google_calendar', 'Calendar schedule today: no meetings', '2026-09-02T08:00:00Z')],
+      ['e2', ev('e2', 'google_calendar', 'Calendar schedule today: no meetings', '2026-09-01T08:00:00Z')],
+      ['e3', ev('e3', 'google_calendar', 'Calendar schedule today: 2 events (x, y) — evening-loaded scheduling', '2026-08-30T08:00:00Z')],
+    ]);
+    const { readings } = buildPortrait({ owner: 'S', reflections, eventsById, connections: [], now: new Date('2026-09-04T00:00:00Z') });
+    expect(readings[0].evidence.map((x) => x.event)).toEqual(['Nothing on the calendar, 2 days', '2 events that day, in the evening']);
   });
 });
