@@ -41,7 +41,7 @@ type Scene = 'question' | 'ask' | 'signature';
 const SCENES: { id: Scene; label: string; caption: string }[] = [
   { id: 'question', label: "Today's question", caption: 'One new reading, and what it was read from. Say whether it is you.' },
   { id: 'ask', label: 'Ask your twin', caption: 'It answers as you, in your words, and shows what it read to say so.' },
-  { id: 'signature', label: 'Your signature', caption: 'Five lines, each measured from named sources. Nothing from a quiz.' },
+  { id: 'signature', label: 'Your signature', caption: 'One line per domain, each measured from named sources. Nothing from a quiz.' },
 ];
 
 const STATE_LABEL: Record<ReadingState, string> = {
