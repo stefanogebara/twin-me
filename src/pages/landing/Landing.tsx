@@ -195,8 +195,8 @@ function LedgerRow({ domain, i, above = false }: { domain: Domain; i: number; ab
   return (
     <div ref={ref} className={`ld-entry ld-row ${inView ? 'is-in' : ''}`} style={{ transitionDelay: `${i * 60}ms` }}>
       <div>
-        <span className="ld-label">{PART[domain]}</span>
-        {above ? <p className="ld-lead ld-above">{LINES[domain].join(' ')}</p> : <p className="ld-v2">{LINES[domain].join(' ')}</p>}
+        <span className="ld-label">{PART[domain]}{above ? ' · the line above' : ''}</span>
+        {above ? null : <p className="ld-v2">{LINES[domain].join(' ')}</p>}
       </div>
       <Receipts evidence={b.evidence} sources={b.sources} />
     </div>
@@ -272,7 +272,7 @@ export default function Landing() {
             <div className="ld-row">
               <div>
                 <p className="ld-lead ld-dek">A portrait of you, read from your days. This one is {DEMO_PORTRAIT.owner}&rsquo;s, from {readSources} sources since {sinceMonth}. Every line shows its evidence, below.</p>
-                <p className="ld-cta"><Link to={DEMO} className="ld-link">Read {DEMO_PORTRAIT.owner}&rsquo;s portrait</Link></p>
+                <p className="ld-cta"><Link to={DEMO} className="ld-link">See the whole portrait</Link></p>
               </div>
               <div className="ld-glass" aria-label="Read from">
                 <ReceiptRows rows={allReceipts(first.evidence)} />
