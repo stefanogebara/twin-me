@@ -4786,3 +4786,7 @@ button.pc-search-icons {
   .pc-pt-cine .pc-cine-body--split { padding-top: 24px; }
   .pc-pt-cine .pc-cine-copy { padding-top: 0; }
 }
+
+/* One image: the hero is transparent over the page's ground, so there is no seam where it ends. */
+.pc-pt-cine { background: transparent; }
+.pc-pt-room-ground { filter: brightness(0.74) saturate(1.05); }

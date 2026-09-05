@@ -353,16 +353,15 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
 
   return (
     <main className="presence-cosmos pc-portrait" id="main-content">
-      <img className="pc-pt-room-ground" src="/images/twinme/cosmos-07-room.jpg" alt="" aria-hidden="true" />
+      {HERO_VIDEO && !reduced ? (
+        <video className="pc-pt-room-ground" autoPlay loop muted playsInline poster="/images/twinme/cosmos-07-room.jpg" aria-hidden="true">
+          <source src={HERO_VIDEO} type="video/mp4" />
+        </video>
+      ) : (
+        <img className={`pc-pt-room-ground ${reduced ? '' : 'pc-pt-drift'}`} src="/images/twinme/cosmos-07-room.jpg" alt="" aria-hidden="true" />
+      )}
       {banner}
       <section className="pc-pt-cine" id="portrait" aria-label="Your portrait">
-        {HERO_VIDEO && !reduced ? (
-          <video className="pc-cine-ground" autoPlay loop muted playsInline poster="/images/twinme/cosmos-07-room.jpg" aria-hidden="true">
-            <source src={HERO_VIDEO} type="video/mp4" />
-          </video>
-        ) : (
-          <img className={`pc-cine-ground ${reduced ? '' : 'pc-pt-drift'}`} src="/images/twinme/cosmos-07-room.jpg" alt="" aria-hidden="true" />
-        )}
         <header className="pc-pt-nav pc-cine-nav">
           <a href="/" className="pc-cine-mark">TwinMe</a>
           <nav aria-label="Portrait">
