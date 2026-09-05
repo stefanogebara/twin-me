@@ -206,8 +206,9 @@ const CINE_STOP = new Set('you your yours the a an and then for of in on to it i
 /** The lead line with its two most particular words set in the muted ink, the way the reference sets "dreams" and "through the silence". */
 function CineLine({ text }: { text: string }) {
   const tokens = text.split(/(\s+)/);
-  const words = tokens.map((t, i) => ({ t, i, w: t.replace(/[^A-Za-z'-]/g, '') })).filter((x) => x.w && !CINE_STOP.has(x.w.toLowerCase()));
-  const picks = new Set([...words].sort((a, b) => b.w.length - a.w.length).slice(0, 2).map((x) => x.i));
+  const lastWord = tokens.map((t) => /\S/.test(t)).lastIndexOf(true);
+  const words = tokens.map((t, i) => ({ t, i, w: t.replace(/[^A-Za-z'-]/g, '') })).filter((x) => x.w && x.i !== lastWord && !CINE_STOP.has(x.w.toLowerCase()));
+  const picks = new Set([...words].sort((a, b) => b.w.length - a.w.length).slice(0, 1).map((x) => x.i));
   return <>{tokens.map((t, i) => picks.has(i) ? <em key={i} className="pc-cine-muted">{t}</em> : <React.Fragment key={i}>{t}</React.Fragment>)}</>;
 }
 
@@ -352,6 +353,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
 
   return (
     <main className="presence-cosmos pc-portrait" id="main-content">
+      <img className="pc-pt-room-ground" src="/images/twinme/cosmos-07-room.jpg" alt="" aria-hidden="true" />
       {banner}
       <section className="pc-pt-cine" id="portrait" aria-label="Your portrait">
         {HERO_VIDEO && !reduced ? (
@@ -362,7 +364,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
           <img className={`pc-cine-ground ${reduced ? '' : 'pc-pt-drift'}`} src="/images/twinme/cosmos-07-room.jpg" alt="" aria-hidden="true" />
         )}
         <header className="pc-pt-nav pc-cine-nav">
-          <a href="/" className="pc-cine-mark">TwinMe<sup>&reg;</sup></a>
+          <a href="/" className="pc-cine-mark">TwinMe</a>
           <nav aria-label="Portrait">
             <a href="#portrait" className={scene !== 'ask' ? 'is-active' : ''} onClick={() => setScene(data.question ? 'question' : 'signature')}>Portrait</a>
             <a href="#readings">Readings</a>
@@ -388,7 +390,6 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
                     </button>
                   ))}
                 </div>
-                <em>read from {sourceCount} source{sourceCount === 1 ? '' : 's'}</em>
               </div>
 
               {shown === 'question' ? (
@@ -490,8 +491,9 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
       </section>
 
 
+      <div className="pc-pt-paper-panel">
       <section className="pc-pt-ledger" id="readings" aria-labelledby="pc-pt-ledger-title">
-        <h2 id="pc-pt-ledger-title" className="pc-h2 pc-h2--sm">The readings.</h2>
+        <h2 id="pc-pt-ledger-title" className="pc-h2 pc-h2--sm pc-pt-head">The readings</h2>
         {groups.map((g) => (
           <div key={g.state} className="pc-pt-group">
             <p className="pc-spec-n">{STATE_LABEL[g.state]} · {g.readings.length}</p>
@@ -505,7 +507,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
       </section>
 
       <section className="pc-pt-sources" id="sources" aria-labelledby="pc-pt-src-title">
-        <h2 id="pc-pt-src-title" className="pc-h2 pc-h2--sm">Sources.</h2>
+        <h2 id="pc-pt-src-title" className="pc-h2 pc-h2--sm pc-pt-head">Sources</h2>
         <div className="pc-pt-source-list">
           {readSources.map((s) => (
             <div key={s.platform} className="pc-pt-source">
@@ -538,6 +540,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
         </p>
         <p className="pc-pt-source-note">Nothing here trains a model. Messages, photos and location are never read.</p>
       </section>
+      </div>
     </main>
   );
 }

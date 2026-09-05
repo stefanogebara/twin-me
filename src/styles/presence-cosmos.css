@@ -4730,3 +4730,59 @@ button.pc-search-icons {
   .pc-pt-cine .pc-cine-body--split { grid-template-columns: 1fr; gap: 32px; padding: 24px 20px 48px; }
   .presence-cosmos .pc-cine-body--split .pc-cine-h1 { max-width: none; }
 }
+
+/* ---- The room runs under the whole page ------------------------------------ */
+.pc-portrait { position: relative; background: #0b0d10; }
+.pc-pt-room-ground {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+  filter: brightness(0.62) saturate(1.05);
+  pointer-events: none;
+}
+.pc-portrait > *:not(.pc-pt-room-ground) { position: relative; z-index: 1; }
+
+/* The paper is one panel lifted out of the room, not a second page. */
+.pc-pt-paper-panel {
+  width: min(1168px, calc(100% - 48px));
+  margin: 24px auto 24px;
+  padding: 24px 0 56px;
+  border-radius: 28px;
+  background: var(--c-paper, #f7f5f3);
+}
+.pc-pt-paper-panel .pc-pt-source-note { color: var(--c-ink-3); }
+
+/* What is read is serif; the heads stop announcing themselves. */
+.presence-cosmos .pc-pt-head {
+  font-family: 'Instrument Serif', serif;
+  font-weight: 400;
+  font-size: 34px;
+  letter-spacing: -0.012em;
+}
+
+/* The panel's top edge is pinned; only its bottom moves between scenes. */
+.pc-pt-cine .pc-cine-body--split { align-items: start; padding-top: 72px; }
+.pc-pt-cine .pc-cine-copy { padding-top: 48px; }
+
+/* The accented word is white italic, not a tint that dies over the window. */
+.presence-cosmos .pc-cine-h1 .pc-cine-muted { font-style: italic; color: rgba(255, 255, 255, 0.92); }
+
+/* The send control is a hairline mark, not a black circle. */
+.pc-portrait .pc-demo-ask button {
+  background: transparent;
+  color: var(--c-ink);
+  box-shadow: inset 0 0 0 0.5px rgba(var(--c-on-rgb, 20, 19, 17), 0.3);
+}
+
+/* Hairlines, not shadows, under the paper cards. */
+.pc-portrait .pc-pt-row, .pc-portrait .pc-pt-source, .pc-portrait .pc-demo-tab { box-shadow: none; }
+
+/* On a phone the paper panel meets the edges. */
+@media (max-width: 760px) {
+  .pc-pt-paper-panel { width: calc(100% - 16px); margin: 12px auto; border-radius: 22px; }
+  .pc-pt-cine .pc-cine-body--split { padding-top: 24px; }
+  .pc-pt-cine .pc-cine-copy { padding-top: 0; }
+}
