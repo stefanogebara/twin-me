@@ -1,10 +1,10 @@
 /* ==========================================================================
-   TwinMe landing — from scratch, 2026-09-05 (v3 after the second critic round).
+   TwinMe landing — from scratch, 2026-09-05 (v4 after the third critic round).
    Namespace: .ld. Lock: .claude/plans/2026-09-05-landing-from-scratch/README.md
-   The page is the portrait: it opens on the first signature line at display
-   size with its receipts, and the other four follow as the ledger. One axis,
-   left, from the nav to the footer. One photograph, sharp, once. One display
-   cut (300) at every display size. Integer line-heights only.
+   The page is the portrait, on one grid: every line on the left seven columns,
+   its receipts on the right five. Ruled throughout. Three display sizes and one
+   lead size. One second voice — the serif — for the twin speaking as you, and
+   for nothing else. One photograph, sharp, once. One action, at the end.
    ========================================================================== */
 
 .ld {
@@ -33,7 +33,7 @@
 .ld *, .ld *::before, .ld *::after { box-sizing: border-box; }
 :where(.ld) :where(p, h1, h2, h3, ul) { margin: 0; }
 :where(.ld) ul { padding: 0; list-style: none; }
-:where(.ld) :where(h1, h2, h3, p, small, em, b, span, a, li, i) { color: inherit; font-family: inherit; font-weight: inherit; letter-spacing: inherit; }
+:where(.ld) :where(h1, h2, h3, p, small, em, b, span, a, li, i, q) { color: inherit; font-family: inherit; font-weight: inherit; letter-spacing: inherit; }
 .ld a { color: inherit; text-decoration: none; }
 .ld button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
 .ld :focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; border-radius: 999px; }
@@ -45,16 +45,19 @@ html:has(main.ld), body:has(main.ld), #root:has(main.ld) { background: #ffffff; 
 .ld .ld-col { width: var(--col); margin: 0 auto; }
 .ld .ld-mono { font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; line-height: 20px; letter-spacing: 0.02em; font-weight: 400; }
 .ld .ld-label { font-size: 12px; line-height: 16px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--grey); font-weight: 500; }
-/* Display: one cut, three sizes. */
+/* The scale: three display sizes and one lead. */
 .ld .ld-d1 { color: var(--ink); font-family: inherit; font-size: 76px; line-height: 80px; font-weight: 300; letter-spacing: -0.045em; }
-.ld .ld-d2 { color: var(--ink); font-family: inherit; font-size: 52px; line-height: 58px; font-weight: 300; letter-spacing: -0.035em; }
-.ld .ld-d3 { color: var(--ink); font-family: inherit; font-size: 40px; line-height: 46px; font-weight: 300; letter-spacing: -0.03em; }
+.ld .ld-d2 { color: var(--ink); font-family: inherit; font-size: 44px; line-height: 50px; font-weight: 300; letter-spacing: -0.03em; }
+.ld .ld-lead { color: var(--ink); font-size: 22px; line-height: 30px; font-weight: 400; letter-spacing: -0.015em; text-wrap: pretty; }
+.ld .ld-lead--grey { color: var(--grey); }
+/* The twin's own voice, as you: the one serif on the page. */
+.ld .ld-voice { color: var(--ink); font-family: 'Instrument Serif', Georgia, 'Times New Roman', serif; font-size: 56px; line-height: 62px; font-weight: 400; letter-spacing: -0.01em; text-wrap: pretty; }
 /* A break set by hand, on desktop; on a phone the line wraps on its own. */
 .ld .ld-br { display: block; }
 .ld .ld-link { color: var(--ink); text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 1px; }
 .ld .ld-link:hover { color: var(--grey); }
 
-/* Pills: the only fills on the page. Black is the primary action, nothing else. */
+/* The one pill: black, once, at the end. */
 .ld .ld-pill { display: inline-flex; align-items: center; justify-content: center; height: 48px; padding: 0 22px; border-radius: 999px; font-size: 15px; line-height: 20px; font-weight: 500; white-space: nowrap; background: var(--ink); color: #fff; transition: transform 180ms var(--ease), background-color 180ms ease; }
 .ld .ld-pill:hover { background: #262626; }
 .ld .ld-pill:active { transform: scale(0.97); }
@@ -71,67 +74,68 @@ html:has(main.ld), body:has(main.ld), #root:has(main.ld) { background: #ffffff; 
   to { clip-path: inset(0 round 0); transform: none; }
 }
 
-/* Navigation: a white band on the column's own edges. The name is said here, once. */
+/* Navigation: a white band on the column's own edges. */
 .ld-nav { position: fixed; top: 0; left: 0; right: 0; z-index: 40; height: 64px; background: #fff; }
 .ld-nav .ld-col { height: 100%; display: flex; align-items: center; justify-content: space-between; }
 .ld-brand { display: inline-flex; align-items: center; gap: 10px; color: var(--ink); font-size: 15px; line-height: 20px; font-weight: 500; }
-.ld-mark { width: 22px; height: 22px; }
+.ld-mark { width: 22px; height: 22px; transform: rotate(22.5deg); }
 .ld-nav-right { display: flex; align-items: center; gap: 22px; font-size: 15px; line-height: 20px; }
 .ld-nav-right a { color: var(--grey); transition: color 160ms ease; }
 .ld-nav-right a:hover { color: var(--ink); }
 
-/* The hero is the first line of the portrait, with its receipts. */
-.ld-hero { padding: 168px 0 56px; }
-.ld-hero .ld-eyebrow { font-size: 17px; line-height: 24px; color: var(--grey); font-weight: 400; }
-.ld-hero .ld-label { margin-top: 56px; }
-.ld-hero h1 { margin-top: 12px; }
-.ld-receipts { display: flex; flex-direction: column; gap: 6px; margin-top: 32px; }
-.ld-receipt { color: var(--ink); display: grid; grid-template-columns: 56px 1fr; gap: 14px; align-items: baseline; font-size: 16px; line-height: 24px; }
+/* The grid every row sits on: the line on the left seven columns, its receipts on the right five. */
+.ld-row { display: grid; grid-template-columns: 8fr 4fr; column-gap: 48px; row-gap: 0; align-items: start; }
+.ld-receipts { display: flex; flex-direction: column; gap: 6px; }
+.ld-receipt { color: var(--ink); display: grid; grid-template-columns: 52px 1fr; gap: 14px; align-items: baseline; font-size: 16px; line-height: 24px; }
 .ld-receipt b { font-family: 'Geist Mono', ui-monospace, monospace; font-weight: 400; color: var(--grey); font-size: 12px; line-height: 16px; letter-spacing: 0.04em; text-transform: uppercase; }
-.ld-hero .ld-meta { margin-top: 18px; color: var(--grey); }
-.ld-cta { display: flex; align-items: center; gap: 22px; margin-top: 40px; font-size: 15px; line-height: 20px; }
+.ld-meta { display: block; color: var(--grey); }
+.ld-receipts + .ld-meta { margin-top: 14px; }
 
-/* The ledger: the other four lines, on hairlines, each with its count beneath. */
-.ld-ledger { margin-top: 24px; }
-.ld-sig { padding: 36px 0 40px; border-top: 1px solid var(--line); opacity: 0; transform: translateY(14px); transition: opacity 800ms var(--ease), transform 800ms var(--ease); }
+/* The hero: the first line at the largest size, then its dek and its receipts on the grid. */
+.ld-hero { padding: 152px 0 44px; }
+.ld-hero h1 { margin-top: 12px; }
+.ld-hero .ld-row { margin-top: 36px; }
+.ld-hero .ld-dek { max-width: 30ch; }
+.ld-hero .ld-cta { margin-top: 24px; font-size: 15px; line-height: 20px; }
+
+/* The ledger: the other four lines, ruled, each with its receipts beside it. */
+.ld-sig { padding: 40px 0 44px; border-top: 1px solid var(--line); opacity: 0; transform: translateY(14px); transition: opacity 800ms var(--ease), transform 800ms var(--ease); }
 .ld-sig.is-in { opacity: 1; transform: none; }
-.ld-sig:last-child { border-bottom: 1px solid var(--line); }
 .ld-sig .ld-label { display: block; }
 .ld-sig p { margin-top: 10px; }
-.ld-sig .ld-meta { display: block; margin-top: 16px; color: var(--grey); }
+.ld-sig .ld-receipts { padding-top: 28px; }
 
-/* The one photograph: sharp, the room at blue hour, the sheet low on the left under the window. */
-.ld-how { padding: 160px 0 0; }
-.ld-how .ld-intro { margin-top: 12px; max-width: 22ch; }
-.ld-panel { position: relative; width: 100%; margin-top: 40px; border-radius: var(--r); overflow: hidden; height: 640px; display: flex; align-items: center; justify-content: flex-start; padding: 40px 40px 40px 12%; isolation: isolate; transform: translateZ(0); }
-.ld-panel > img { position: absolute; top: 0; bottom: 0; left: -40%; width: 140%; max-width: none; height: 100%; object-fit: cover; object-position: 50% 42%; z-index: -1; }
+/* Every section after the ledger is ruled the same way. */
+.ld-sect { padding: 96px 0 0; border-top: 1px solid var(--line); }
+.ld-sect .ld-lead { margin-top: 12px; max-width: 30ch; }
+
+/* The one photograph: sharp, the room at blue hour, the sheet on the window's light. */
+.ld-panel { position: relative; width: 100%; margin-top: 40px; border-radius: var(--r); overflow: hidden; height: 640px; display: flex; align-items: center; justify-content: center; padding: 40px; isolation: isolate; transform: translateZ(0); }
+.ld-panel > img { position: absolute; inset: 0; width: 100%; max-width: none; height: 100%; object-fit: cover; object-position: 50% 48%; z-index: -1; }
 .ld-frost { width: min(480px, 100%); color: var(--ink); background: var(--frost); border: 1px solid var(--frost-line); -webkit-backdrop-filter: blur(28px) saturate(1.15); backdrop-filter: blur(28px) saturate(1.15); border-radius: 22px; padding: 20px 22px 20px; display: flex; flex-direction: column; gap: 14px; --grey: #5a5856; }
-.ld-frost .ld-receipts { margin-top: 0; gap: 8px; min-height: 0; }
+.ld-frost .ld-receipts { gap: 8px; }
 .ld-frost .ld-receipt { font-size: 15px; line-height: 22px; grid-template-columns: 48px 1fr; opacity: 0; transform: translateY(6px); transition: opacity 520ms var(--ease), transform 520ms var(--ease); }
 .ld-frost .ld-receipt.is-in { opacity: 1; transform: none; }
 .ld-reading { color: var(--ink); font-size: 24px; line-height: 32px; font-weight: 300; letter-spacing: -0.02em; text-wrap: pretty; opacity: 0; transform: translateY(6px); transition: opacity 560ms var(--ease), transform 560ms var(--ease); }
 .ld-reading.is-in { opacity: 1; transform: none; }
-.ld-foot { font-weight: 400; display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-size: 12px; line-height: 16px; }
+.ld-foot { font-weight: 400; display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-size: 12px; line-height: 16px; white-space: nowrap; }
 .ld-foot .ld-mono { color: var(--ink); font-size: 12px; line-height: 16px; }
-.ld-foot a { color: var(--grey); text-decoration: underline; text-underline-offset: 3px; white-space: nowrap; }
+.ld-foot a { color: var(--grey); text-decoration: underline; text-underline-offset: 3px; }
 .ld-foot a:hover { color: var(--ink); }
 
-/* Ask: a question and the answer as you, set as type. */
-.ld-ask { padding: 128px 0 0; }
-.ld-ask .ld-q { margin-top: 12px; color: var(--grey); font-size: 28px; line-height: 36px; font-weight: 300; letter-spacing: -0.02em; }
-.ld-ask .ld-a { margin-top: 20px; max-width: 32ch; }
-.ld-ask .ld-meta { display: block; margin-top: 22px; color: var(--grey); }
+/* Ask: the question in the lead size, the answer in the twin's voice. */
+.ld-ask .ld-q { margin-top: 12px; }
+.ld-ask .ld-voice { margin-top: 20px; max-width: 30ch; }
+.ld-ask .ld-meta { margin-top: 22px; }
 
 /* Sources as a sentence; the privacy statement in words. */
-.ld-sources { padding: 160px 0 0; }
-.ld-sources .ld-names { margin-top: 12px; font-size: 28px; line-height: 36px; font-weight: 300; letter-spacing: -0.02em; color: var(--ink); max-width: 30ch; text-wrap: pretty; }
-.ld-sources .ld-privacy { margin-top: 40px; font-size: 22px; line-height: 30px; font-weight: 300; letter-spacing: -0.015em; color: var(--grey); max-width: 34ch; text-wrap: pretty; }
+.ld-sources .ld-names { margin-top: 12px; max-width: 34ch; }
+.ld-sources .ld-privacy { margin-top: 28px; max-width: 34ch; }
 
-/* The end: one line, one action. */
-.ld-close { padding: 200px 0 120px; }
-.ld-close h2 { max-width: none; }
-.ld-close .ld-cta { margin-top: 32px; }
-.ld-close small { display: block; margin-top: 18px; color: var(--grey); font-weight: 400; font-size: 14px; line-height: 20px; }
+/* The end: one line, the one action. */
+.ld-close { padding: 96px 0 120px; border-top: 1px solid var(--line); }
+.ld-close .ld-cta { margin-top: 32px; display: flex; align-items: center; gap: 22px; }
+.ld-close small { color: var(--grey); font-weight: 400; font-size: 15px; line-height: 20px; }
 .ld-footer { display: flex; justify-content: space-between; align-items: center; padding: 0 0 28px; font-size: 13px; line-height: 20px; color: var(--grey); }
 .ld-footer nav { display: flex; gap: 20px; }
 .ld-footer a:hover { color: var(--ink); }
@@ -153,26 +157,24 @@ html:has(main.ld), body:has(main.ld), #root:has(main.ld) { background: #ffffff; 
   .ld .ld-br::before { content: ' '; }
   .ld .ld-d1 { font-size: 40px; line-height: 44px; letter-spacing: -0.035em; }
   .ld .ld-d2 { font-size: 30px; line-height: 36px; letter-spacing: -0.03em; }
-  .ld .ld-d3 { font-size: 28px; line-height: 34px; letter-spacing: -0.025em; }
+  .ld .ld-lead { font-size: 19px; line-height: 27px; }
+  .ld .ld-voice { font-size: 34px; line-height: 40px; }
   .ld-nav { height: 60px; }
-  .ld-hero { padding: 116px 0 48px; }
-  .ld-hero .ld-label { margin-top: 40px; }
-  .ld-receipts { margin-top: 24px; }
+  .ld-row { grid-template-columns: 1fr; row-gap: 24px; }
+  .ld-hero { padding: 108px 0 40px; }
+  .ld-hero .ld-row { margin-top: 24px; }
   .ld-receipt { font-size: 15px; line-height: 22px; grid-template-columns: 48px 1fr; }
-  .ld-cta { margin-top: 32px; gap: 18px; flex-wrap: wrap; }
-  .ld-sig { padding: 26px 0 30px; }
-  .ld-how { padding-top: 96px; }
-  .ld-panel { height: 560px; padding: 12px; border-radius: 24px; margin-top: 28px; align-items: flex-end; }
-  .ld-panel > img { left: -30%; width: 130%; object-position: 50% 30%; }
+  .ld-sig { padding: 28px 0 32px; }
+  .ld-sig .ld-receipts { padding-top: 0; }
+  .ld-sect { padding-top: 64px; }
+  .ld-panel { height: 760px; padding: 12px; border-radius: 24px; margin-top: 28px; align-items: flex-end; }
+  .ld-panel > img { left: -20%; width: 140%; object-position: 50% 40%; }
   .ld-frost { padding: 16px 16px; gap: 12px; }
   .ld-reading { font-size: 21px; line-height: 28px; }
-  .ld-foot { flex-direction: column; align-items: flex-start; gap: 6px; }
-  .ld-ask { padding-top: 88px; }
-  .ld-ask .ld-q { font-size: 22px; line-height: 30px; }
-  .ld-sources { padding-top: 104px; }
-  .ld-sources .ld-names { font-size: 22px; line-height: 30px; }
-  .ld-sources .ld-privacy { font-size: 18px; line-height: 26px; }
-  .ld-close { padding: 128px 0 88px; }
+  .ld-foot { font-size: 11px; }
+  .ld-foot .ld-mono { font-size: 11px; }
+  .ld-close { padding: 64px 0 88px; }
+  .ld-close .ld-cta { flex-wrap: wrap; gap: 14px 22px; }
   .ld-pre p { font-size: 26px; line-height: 32px; }
   .ld-footer { flex-direction: column; gap: 12px; align-items: flex-start; }
 }
