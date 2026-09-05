@@ -91,7 +91,7 @@ function useTyped(text: string, cps: number, enabled: boolean) {
 function ReceiptRow({ e, i }: { e: Evidence; i: number }) {
   return (
     <div className="pc-demo-row is-in pc-pt-arrive" style={{ animationDelay: `${i * 140}ms` }}>
-      <span>{SOURCE_LABEL[e.source] ?? e.source} · {e.at.slice(0, 10)}</span>
+      <span>{SOURCE_LABEL[e.source] ?? e.source} · {spokenDay(e.at)}</span>
       <p>{e.event}</p>
     </div>
   );
@@ -144,7 +144,8 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
   const readings = useMemo(() => data.readings.map((r) => ({ ...r, verdict: verdicts[r.id] ?? null })), [data.readings, verdicts]);
   const byId = useMemo(() => new Map(readings.map((r) => [r.id, r])), [readings]);
   const groups = useMemo(() => groupReadings(readings, now), [readings, now]);
-  const sourceCount = data.sources.length;
+  const readSources = data.sources.filter((s) => (parseInt(s.read, 10) || 0) > 0);
+  const sourceCount = readSources.length;
 
   // What today's question was read from: the receipts behind its readings, newest first.
   const questionReceipts = useMemo(() => {
@@ -340,7 +341,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
       <section className="pc-pt-sources" id="sources" aria-labelledby="pc-pt-src-title">
         <h2 id="pc-pt-src-title" className="pc-h2 pc-h2--sm">Sources.</h2>
         <div className="pc-pt-source-list">
-          {data.sources.map((s) => (
+          {readSources.map((s) => (
             <div key={s.platform} className="pc-pt-source">
               <strong>{s.label}</strong>
               <span>{s.read} · since {s.since}</span>
