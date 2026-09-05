@@ -35,7 +35,7 @@ const PRE_MS = { first: 420, word: 300, last: 560 };
 const LINES: Record<Domain, string[]> = {
   motivation: ['Nothing moves for\u00a0days.', 'Then\u00a0everything ships at\u00a0once.'],
   personality: ['Repetition is how you\u00a0settle.', 'The same songs, the same\u00a0order,', 'until the thing is\u00a0done.'],
-  cultural: ['A new artist becomes a whole\u00a0morning.', 'On\u00a0YouTube it splits: football', 'for\u00a0joy, sociology for the\u00a0toolkit.'],
+  cultural: ['A new artist becomes a whole\u00a0morning.', 'On\u00a0YouTube it splits:', 'football for\u00a0joy,', 'sociology for the\u00a0toolkit.'],
   social: ['You keep the circle\u00a0tight', 'and the evenings\u00a0yours.'],
   lifestyle: ['Your week runs on what you\u00a0slept.', 'The\u00a0rest day your body asks\u00a0for,', 'you almost never\u00a0take.'],
 };
@@ -118,14 +118,6 @@ function behind(domain: Domain) {
   return { line: s.line, from, evidence, sources };
 }
 
-function Mark() {
-  return (
-    <svg className="ld-mark" viewBox="0 0 28 28" fill="currentColor" aria-hidden="true">
-      {Array.from({ length: 8 }, (_, k) => { const a = (k / 8) * Math.PI * 2; return <circle key={k} cx={(14 + 10 * Math.cos(a)).toFixed(2)} cy={(14 + 10 * Math.sin(a)).toFixed(2)} r="2.4" />; })}
-    </svg>
-  );
-}
-
 /** A display line with its breaks set by hand. */
 function Line({ domain }: { domain: Domain }) {
   return <>{LINES[domain].map((part, i) => <span key={i} className={i ? 'ld-br' : undefined}>{part}</span>)}</>;
@@ -157,14 +149,27 @@ function Rise({ as: Tag = 'div', className = '', children, delay = 0 }: { as?: '
 
 /* ---------- The ledger: the other four lines ---------- */
 
+/** "12 receipts · GitHub, Gmail": the one provenance format on the page. */
+function provenance(count: number, sources: string[]) { return `${count} receipts · ${sources.join(', ')}`; }
+
+/** Receipt rows: the day is written once, the way a ledger does, and blank while it stays the same. */
+function ReceiptRows({ rows }: { rows: Evidence[] }) {
+  return (
+    <div className="ld-receipts">
+      {rows.map((e, i) => (
+        <div key={i} className="ld-receipt">
+          <b>{i > 0 && rows[i - 1].at.slice(0, 10) === e.at.slice(0, 10) ? '' : day(e.at)}</b><span>{tidy(e.event)}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function Receipts({ evidence, sources, label }: { evidence: Evidence[]; sources: string[]; label?: string }) {
-  const shown = spread(evidence);
   return (
     <div aria-label={label ?? 'Read from'}>
-      <div className="ld-receipts">
-        {shown.map((e, i) => <div key={i} className="ld-receipt"><b>{day(e.at)}</b><span>{tidy(e.event)}</span></div>)}
-      </div>
-      <span className="ld-meta ld-mono">{evidence.length} receipts · {sources.join(', ')}</span>
+      <ReceiptRows rows={spread(evidence)} />
+      <span className="ld-meta ld-mono">{provenance(evidence.length, sources)}</span>
     </div>
   );
 }
@@ -195,7 +200,7 @@ function cardReading(seen: Set<string>) {
   // Any reading with three plain receipts qualifies; the one with the most receipts the page
   // has not shown wins, and across more than one day where it can.
   const pool = DEMO_PORTRAIT.readings
-    .filter((r) => r.domain !== 'motivation' && r.evidence.filter(plain).length >= 3)
+    .filter((r) => r.evidence.filter(plain).length >= 3)
     .sort((a, b) => fresh(b).length - fresh(a).length || days(fresh(b)) - days(fresh(a)));
   return pool[0] ?? DEMO_PORTRAIT.readings[0];
 }
@@ -220,17 +225,17 @@ function ReadingPanel({ reduced, seen }: { reduced: boolean; seen: Set<string> }
     <div className="ld-panel" ref={ref}>
       <img src="/images/twinme/cosmos-08-window.jpg" alt="A room at blue hour: a lamp lit, the window still light" />
       <div className="ld-frost" aria-label="A reading arriving from its receipts">
-        <span className="ld-label">{DOMAIN_LABEL[READING.domain]} · {names(sources)}</span>
+        <span className="ld-label">{DOMAIN_LABEL[READING.domain]}</span>
         <div className="ld-receipts">
           {receipts.map((e, i) => (
             <div key={i} className={`ld-receipt ${i < shown ? 'is-in' : ''}`}>
-              <b>{day(e.at)}</b><span>{tidy(e.event)}</span>
+              <b>{i > 0 && receipts[i - 1].at.slice(0, 10) === e.at.slice(0, 10) ? '' : day(e.at)}</b><span>{tidy(e.event)}</span>
             </div>
           ))}
         </div>
-        <p className={`ld-reading ${lineIn ? 'is-in' : ''}`}>{READING.text}</p>
+        <p className={`ld-reading ${lineIn ? 'is-in' : ''}`}>{tidy(READING.text)}</p>
         <div className="ld-foot">
-          <span className="ld-mono">{READING.evidence.length} receipts{READING.evidence.length > receipts.length ? `, ${receipts.length} shown` : ''}</span>
+          <span className="ld-mono">{provenance(READING.evidence.length, sources)}</span>
           <Link to={DEMO}>Open this portrait</Link>
         </div>
       </div>
@@ -259,6 +264,9 @@ export default function Landing() {
   // Every receipt the hero and the ledger show, so the card shows others.
   const seen = new Set<string>(DEMO_PORTRAIT.signature.flatMap((x) => spread(behind(x.domain).evidence).map(receiptKey)));
   const readSources = DEMO_PORTRAIT.sources.filter((x) => (parseInt(x.read, 10) || 0) > 0).length;
+  const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const earliest = DEMO_PORTRAIT.sources.map((x) => x.since).filter(Boolean).sort()[0] ?? '';
+  const sinceMonth = MONTH_NAMES[parseInt(earliest.slice(5, 7), 10) - 1] ?? 'this year';
   const sourcesSentence = names(SOURCES).replace(/ and (\S+)$/, ' and\u00a0$1');
 
   return (
@@ -271,7 +279,7 @@ export default function Landing() {
       <main className={`ld ld-sheet ${pre.animateSheet ? 'is-entering' : ''}`} id="main-content">
         <header className="ld-nav">
           <div className="ld-col">
-            <Link to="/" className="ld-brand" aria-label="TwinMe home"><Mark />TwinMe</Link>
+            <Link to="/" className="ld-brand" aria-label="TwinMe home">TwinMe</Link>
             <nav className="ld-nav-right" aria-label="Account">
               <Link to={START}>Log in</Link>
             </nav>
@@ -279,11 +287,12 @@ export default function Landing() {
         </header>
 
         <section className="ld-hero ld-col" aria-label={`${DEMO_PORTRAIT.owner}'s portrait, first line`}>
+          <p className="ld-label">{DEMO_PORTRAIT.owner}&rsquo;s portrait · {DOMAIN_LABEL.motivation}</p>
           <h1 className="ld-d1"><Line domain="motivation" /></h1>
           <div className="ld-row">
             <div>
-              <p className="ld-lead ld-dek">A portrait of you, read from your days. This one is {DEMO_PORTRAIT.owner}&rsquo;s, read from {readSources} sources over a summer. Every line comes with what it was read from.</p>
-              <p className="ld-cta"><Link to={DEMO} className="ld-link">Open {DEMO_PORTRAIT.owner}&rsquo;s portrait</Link></p>
+              <p className="ld-lead ld-dek">A portrait of you, read from your days. This one is {DEMO_PORTRAIT.owner}&rsquo;s, read from {readSources} sources since {sinceMonth}. Every line comes with what it was read from.</p>
+              <p className="ld-cta"><Link to={DEMO} className="ld-link">Open {DEMO_PORTRAIT.owner}&rsquo;s portrait <span aria-hidden="true">&#8594;</span></Link></p>
             </div>
             <Receipts evidence={first.evidence} sources={first.sources} />
           </div>
@@ -312,7 +321,7 @@ export default function Landing() {
               {askCited.map((r) => (
                 <div key={r.id} className="ld-cite">
                   {tidy(r.text)}
-                  <span className="ld-mono">{DOMAIN_LABEL[r.domain]} · {r.evidence.length} receipts · {[...new Set(r.evidence.map((e) => sourceName(e.source)))].join(', ')}</span>
+                  <span className="ld-mono">{provenance(r.evidence.length, [...new Set(r.evidence.map((e) => sourceName(e.source)))])}</span>
                 </div>
               ))}
             </div>
@@ -330,10 +339,10 @@ export default function Landing() {
         </Rise>
 
         <Rise as="section" className="ld-close ld-col">
-          <h2 className="ld-d1">See what your days&nbsp;say.</h2>
+          <h2 className="ld-d1">See what&nbsp;your days say.</h2>
           <div className="ld-cta">
             <Link to={START} className="ld-pill">Read my portrait</Link>
-            <small>Connect one source to begin.</small>
+            <small>One source is enough to begin.</small>
           </div>
         </Rise>
 
