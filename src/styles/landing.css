@@ -147,6 +147,8 @@ html:has(main.ld), body:has(main.ld), #root:has(main.ld) { background: #0b0d12; 
 .ld-footer nav { display: flex; gap: 20px; }
 .ld-footer a:hover { color: #fff; }
 
+.ld-phone-only { display: none; }
+
 /* Arrival: one rise, once, when a thing enters the viewport. */
 .ld-rise { opacity: 0; transform: translateY(16px); transition: opacity 800ms var(--ease), transform 800ms var(--ease); }
 .ld-rise.is-in { opacity: 1; transform: none; }
@@ -173,7 +175,8 @@ html:has(main.ld), body:has(main.ld), #root:has(main.ld) { background: #0b0d12; 
   .ld-row { grid-template-columns: 1fr; row-gap: 20px; }
   .ld-paper { width: 100%; padding: 8px 20px 4px; border-radius: 22px; }
   .ld-ground::after { background: linear-gradient(to top, rgba(0, 0, 0, 0.62) 0%, rgba(0, 0, 0, 0.36) 45%, rgba(0, 0, 0, 0.3) 100%); }
-  .ld-stage .ld-glass { padding: 4px 14px 10px; }
+  .ld-stage .ld-glass { display: none; }
+  .ld-phone-only { display: block; }
   .ld-entry { padding: 28px 0 30px; }
   .ld-entry:first-child { padding-top: 20px; }
   .ld-receipt { font-size: 14px; line-height: 20px; grid-template-columns: 1fr; gap: 2px; padding: 8px 0; }

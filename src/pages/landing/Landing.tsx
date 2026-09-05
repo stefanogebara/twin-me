@@ -285,6 +285,8 @@ export default function Landing() {
         {/* The document, lifted onto one frosted panel over the room. */}
         <div className="ld-paper">
           <section aria-label="The portrait, with its evidence">
+            {/* On a phone the first line's receipts leave the room and open the panel instead. */}
+            <div className="ld-phone-only"><LedgerRow domain="motivation" i={0} above /></div>
             {rest.map((d, i) => <LedgerRow key={d} domain={d} i={i + 1} />)}
           </section>
 
