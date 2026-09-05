@@ -35,7 +35,7 @@ type Scene = 'question' | 'ask' | 'signature';
 const SCENES: { id: Scene; label: string; caption: string }[] = [
   { id: 'question', label: "Today's question", caption: 'One new reading, and what it was read from. Say whether it is you.' },
   { id: 'ask', label: 'Ask your twin', caption: 'It answers as you, in your words, and shows what it read to say so.' },
-  { id: 'signature', label: 'Your signature', caption: 'Five lines, each measured from named sources. Nothing from a quiz.' },
+  { id: 'signature', label: 'Your signature', caption: 'One line per domain, each measured from named sources. Nothing from a quiz.' },
 ];
 
 const STATE_LABEL: Record<ReadingState, string> = {
@@ -227,7 +227,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
       <section className="pc-pt-stage-wrap" id="portrait" aria-label="Your portrait">
         <div className="pc-demo-stage pc-pt-stage">
           <img src="/images/twinme/cosmos-07-room.jpg" alt="" aria-hidden="true" />
-          <div className="pc-demo-glass pc-pt-glass" role="group" aria-label={current.label}>
+          <div className={`pc-demo-glass pc-pt-glass is-${current.id}`} role="group" aria-label={current.label}>
             <div className="pc-demo-head">
               <span className="pc-demo-dot" /> TwinMe
               <em>{data.owner}&rsquo;s portrait · read from {sourceCount} source{sourceCount === 1 ? '' : 's'}</em>
@@ -269,7 +269,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
             {scene === 'ask' ? (
               <div className="pc-demo-scene" key="ask">
                 <form className={`pc-demo-ask ${reply || asking ? 'is-sent' : ''}`} onSubmit={(e) => { e.preventDefault(); void ask(query); }}>
-                  <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Ask your twin. It answers with what it read." aria-label="Ask your twin" />
+                  <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Ask your twin" aria-label="Ask your twin. It answers with what it read." />
                   <button type="submit" aria-label="Ask"><ArrowUp size={16} /></button>
                 </form>
                 {!reply && !asking ? (

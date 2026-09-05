@@ -4279,3 +4279,6 @@ button.pc-search-icons {
   .pc-pt-stage-wrap { padding: 16px 12px 0; }
   .pc-pt-glass { width: calc(100% - 24px); min-height: 0; }
 }
+
+/* The Ask scene is as tall as its capsule until there is an answer to hold. */
+.pc-pt-glass.pc-demo-glass.is-ask { min-height: 0; }

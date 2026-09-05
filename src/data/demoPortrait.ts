@@ -41,6 +41,7 @@ export const DOMAIN_LABEL: Record<Domain, string> = {
   motivation: 'Motivation', personality: 'Personality', cultural: 'Cultural', social: 'Social', lifestyle: 'Lifestyle',
 };
 export const SOURCE_LABEL: Record<string, string> = {
+  web: 'Web',
   github: 'GitHub', spotify: 'Spotify', google_gmail: 'Gmail', whoop: 'Whoop', google_calendar: 'Calendar', youtube: 'YouTube',
 };
 
