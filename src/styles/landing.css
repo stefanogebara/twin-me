@@ -44,7 +44,13 @@ html:has(main.ld), body:has(main.ld), #root:has(main.ld) { background: #0b0d12; 
 
 /* The one photograph, fixed behind everything, with a scrim that deepens toward the base. */
 .ld-ground { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
-.ld-ground img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 46%; }
+.ld-ground img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 46%; }
+/* Time passes in the room as the page is read: the later hour arrives with the scroll. */
+.ld-ground .is-later { opacity: 0; will-change: opacity; }
+@supports (animation-timeline: scroll()) {
+  .ld-ground .is-later { animation: ld-dusk linear both; animation-timeline: scroll(root); }
+}
+@keyframes ld-dusk { from { opacity: 0; } 25% { opacity: 0; } 85% { opacity: 1; } to { opacity: 1; } }
 .ld-ground::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to top, rgba(0, 0, 0, 0.5) 0%, rgba(0, 0, 0, 0.16) 40%, rgba(0, 0, 0, 0.06) 100%); }
 .ld > :not(.ld-ground) { position: relative; z-index: 1; }
 

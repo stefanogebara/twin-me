@@ -202,6 +202,19 @@ function LedgerRow({ domain, i, above = false }: { domain: Domain; i: number; ab
 export default function Landing() {
   const reduced = usePrefersReducedMotion();
   const pre = usePreloader(reduced);
+  // Where the browser cannot drive an animation from the scroll, the later hour follows it by hand.
+  const later = useRef<HTMLImageElement>(null);
+  useEffect(() => {
+    if (typeof CSS !== 'undefined' && CSS.supports('animation-timeline: scroll()')) return;
+    const el = later.current; if (!el) return;
+    let raf = 0;
+    const tick = () => { raf = 0; const max = document.documentElement.scrollHeight - window.innerHeight; const p = max > 0 ? window.scrollY / max : 0; el.style.opacity = String(Math.min(1, Math.max(0, (p - 0.25) / 0.6))); };
+    const onScroll = () => { if (!raf) raf = requestAnimationFrame(tick); };
+    tick();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+    return () => { window.removeEventListener('scroll', onScroll); window.removeEventListener('resize', onScroll); if (raf) cancelAnimationFrame(raf); };
+  }, []);
   // The ground behind the entrance matches the room, so the sheet lifts in from the same dark.
   useEffect(() => {
     const prev = [document.documentElement.style.background, document.body.style.background];
@@ -231,6 +244,7 @@ export default function Landing() {
         {/* The one photograph, behind everything. */}
         <div className="ld-ground" aria-hidden="true">
           <img src="/images/twinme/cosmos-08-window.jpg" alt="" />
+          <img ref={later} className="is-later" src="/images/twinme/cosmos-09-window-night.jpg" alt="" />
         </div>
 
         <header className="ld-nav">
