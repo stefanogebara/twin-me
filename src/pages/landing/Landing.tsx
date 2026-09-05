@@ -155,7 +155,8 @@ function ReadingPanel({ reduced }: { reduced: boolean }) {
           ))}
         </div>
         <p className={`ld-reading ${out ? 'is-out' : ''}`}>
-          {reduced ? reading.text : typed.shown}{!reduced && phase === 'type' && !typed.done ? <i className="ld-caret" /> : null}
+          {/* Empty until the receipts are in: the line is written from them, not before them. */}
+          {reduced ? reading.text : phase === 'receipts' ? '' : typed.shown}{!reduced && phase === 'type' && !typed.done ? <i className="ld-caret" /> : null}
         </p>
         <div className="ld-foot">
           <span className="ld-mono">{reading.evidence.length} receipts · {reading.evidence.length === receipts.length ? 'all shown' : `${receipts.length} shown`}</span>
