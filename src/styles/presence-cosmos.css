@@ -5327,3 +5327,88 @@ button.pc-search-icons {
 .pc-pt-phone-ui { grid-template-rows: auto auto 1fr; gap: 14px; }
 .presence-cosmos .pc-pt-phone-head { margin: 6px 6px 0; font-family: 'Instrument Serif', serif; font-size: 25px; line-height: 1; letter-spacing: -0.02em; color: #fff; text-wrap: balance; }
 .presence-cosmos .pc-pt-phone-head .pc-cine-muted { font-style: italic; color: rgba(255, 255, 255, 0.92); }
+
+/* ==== One glass. The nav capsule's recipe, on every panel: near-clear, a light blur, a hairline that catches light. ==== */
+.pc-pt-cine .pc-pt-glass.pc-demo-glass,
+.pc-pt-glasscard,
+.pc-pt-phone-glass,
+.pc-pt-tile,
+.pc-pt-chip {
+  background: rgba(255, 255, 255, 0.045);
+  background-blend-mode: luminosity;
+  backdrop-filter: blur(18px) saturate(1.15);
+  -webkit-backdrop-filter: blur(18px) saturate(1.15);
+  border: none;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1);
+}
+.pc-pt-cine .pc-pt-glass.pc-demo-glass { min-height: 0; }
+.pc-portrait .pc-pt-cine .pc-pt-glass { border: none; }
+.pc-portrait .pc-pt-glass.liquid-glass { overflow: hidden; }
+/* Over the window the recipe needs a breath more tint to hold white type. */
+.pc-pt-cine .pc-pt-glass.pc-demo-glass { background: rgba(10, 12, 18, 0.22); backdrop-filter: blur(22px) saturate(1.15); -webkit-backdrop-filter: blur(22px) saturate(1.15); }
+.pc-pt-glasscard { background: rgba(10, 12, 18, 0.18); }
+
+/* ---- Scene: the field of receipts ---- */
+.pc-pt-scene--field { grid-template-columns: 1fr; justify-items: center; padding: 120px 0 40px; gap: 36px; }
+.pc-pt-scene-copy--center { text-align: center; justify-items: center; max-width: 34ch; }
+.pc-pt-scene-copy--center .pc-pt-scene-line { text-align: center; }
+.pc-pt-field { position: relative; width: min(1180px, 100vw - 48px); height: 520px; margin: 0 calc(50% - min(590px, 50vw - 24px)); }
+.pc-pt-chip {
+  position: absolute; display: grid; gap: 3px; max-width: 280px; padding: 10px 14px 11px; border-radius: 16px; color: #fff;
+  transform: rotate(var(--r, 0deg));
+  animation: pc-pt-float 9s ease-in-out infinite alternate; animation-delay: var(--d, 0s);
+}
+.pc-pt-chip span { font-family: 'Geist Mono', var(--font-mono, monospace); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: rgba(255, 255, 255, 0.6); }
+.presence-cosmos .pc-pt-chip p { margin: 0; font-size: 14px; line-height: 18px; color: #fff; white-space: nowrap; }
+@keyframes pc-pt-float {
+  from { translate: 0 0; }
+  to { translate: 0 -14px; }
+}
+
+/* ---- Scene: the readings, a sticky index beside the panels ---- */
+.pc-pt-scene--ledger { grid-template-columns: 280px minmax(0, 1fr); align-items: start; gap: 48px; padding: 120px 0 60px; }
+.pc-pt-index { position: sticky; top: 96px; display: grid; gap: 20px; }
+.pc-pt-index-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.pc-pt-index-list a { display: flex; gap: 14px; align-items: baseline; padding: 8px 0; font-size: 17px; line-height: 24px; letter-spacing: -0.01em; color: rgba(255, 255, 255, 0.45) !important; text-decoration: none; transition: color 0.3s ease; }
+.pc-pt-index-list a span { font-family: 'Geist Mono', var(--font-mono, monospace); font-size: 11px; letter-spacing: 0.04em; color: rgba(255, 255, 255, 0.4); }
+.pc-pt-index-list li.is-active a, .pc-pt-index-list a:hover { color: #fff !important; }
+.pc-pt-index .pc-pt-head-note { color: rgba(255, 255, 255, 0.55); font-size: 14px; }
+.pc-pt-ledger-stack { display: grid; gap: 28px; width: 100%; }
+.pc-pt-ledger-stack .pc-pt-glasscard { width: 100%; justify-self: stretch; opacity: 0.55; transition: opacity 0.5s ease; }
+.pc-pt-ledger-stack .pc-pt-glasscard.is-active { opacity: 1; }
+.pc-pt-scene > .pc-pt-glasscard:nth-of-type(even) { justify-self: start; }
+
+/* ---- Scene: the sources as tiles ---- */
+.pc-pt-scene--sources { grid-template-columns: 1fr; justify-items: center; gap: 36px; padding: 120px 0 40px; }
+.pc-pt-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; width: 100%; }
+.pc-pt-tile { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 12px; align-items: baseline; padding: 20px 22px 18px; border-radius: 22px; color: #fff; }
+.pc-pt-tile strong { font-family: 'Instrument Serif', serif; font-weight: 400; font-size: 26px; line-height: 30px; letter-spacing: -0.012em; }
+.pc-pt-tile span { font-family: 'Geist Mono', var(--font-mono, monospace); font-size: 12px; letter-spacing: 0.03em; color: rgba(255, 255, 255, 0.6); }
+.pc-pt-tile small { grid-column: 1 / -1; font-size: 13px; line-height: 18px; color: rgba(255, 255, 255, 0.62); }
+.pc-portrait .pc-pt-scene--sources .pc-pt-manage { color: rgba(255, 255, 255, 0.55); }
+.pc-portrait .pc-pt-scene--sources .pc-pt-manage:hover { color: #fff; }
+.pc-portrait .pc-pt-source-note--room { color: rgba(255, 255, 255, 0.5); text-align: center; justify-self: center; margin: 0; }
+.pc-pt-scene--sources .pc-pt-glasscard[hidden] { display: none; }
+
+/* The coda comes sooner; the eye has had its scroll. */
+.pc-portrait .pc-pt-close { padding-top: 120px; }
+
+@media (max-width: 900px) {
+  .pc-pt-scene--ledger { grid-template-columns: 1fr; gap: 24px; }
+  .pc-pt-index { position: static; }
+  .pc-pt-index-list { display: flex; flex-wrap: wrap; gap: 4px 18px; }
+  .pc-pt-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 640px) {
+  .pc-pt-field { height: 440px; }
+  .pc-pt-chip { max-width: 220px; padding: 8px 11px 9px; }
+  .presence-cosmos .pc-pt-chip p { font-size: 12px; line-height: 16px; white-space: normal; }
+  .pc-pt-tiles { grid-template-columns: 1fr; }
+  .pc-pt-scene--field, .pc-pt-scene--sources { padding: 72px 0 24px; }
+}
+/* On a phone the receipts flow in two columns instead of floating; the tilt stays. */
+@media (max-width: 640px) {
+  .pc-pt-field { height: auto; width: 100%; margin: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 10px; padding: 8px 4px; }
+  .pc-pt-chip { position: static; max-width: none; animation: none; }
+  .pc-pt-chip:nth-child(n + 9) { display: none; }
+}

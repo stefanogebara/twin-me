@@ -202,26 +202,47 @@ const GROUNDS = [
   { id: 'night', src: '/images/twinme/cosmos-12-night.jpg' },
 ];
 
-function useGround(reduced: boolean) {
-  const [ground, setGround] = useState('window');
+/** The value of `data-<attr>` on whichever element sits under the middle of the screen. */
+function useCentered(attr: string, fallback: string, reduced: boolean) {
+  const [value, setValue] = useState(fallback);
   useEffect(() => {
-    if (reduced) return;
     let raf = 0;
     const pick = () => {
       raf = 0;
       const mid = window.innerHeight * 0.5;
-      const els = Array.from(document.querySelectorAll<HTMLElement>('[data-ground]'));
-      // The section under the middle of the screen decides which way the room faces.
+      const els = Array.from(document.querySelectorAll<HTMLElement>(`[data-${attr}]`));
       const hit = els.find((el) => { const r = el.getBoundingClientRect(); return r.top <= mid && r.bottom > mid; });
-      setGround(hit?.dataset.ground || 'window');
+      setValue(hit?.dataset[attr] || fallback);
     };
     const onScroll = () => { if (!raf) raf = window.requestAnimationFrame(pick); };
     pick();
+    if (reduced && attr === 'ground') return;
     window.addEventListener('scroll', onScroll, { passive: true });
     window.addEventListener('resize', onScroll);
     return () => { window.removeEventListener('scroll', onScroll); window.removeEventListener('resize', onScroll); if (raf) window.cancelAnimationFrame(raf); };
-  }, [reduced]);
-  return ground;
+  }, [attr, fallback, reduced]);
+  return value;
+}
+
+// Where the receipt chips float, as fractions of the field, with a small tilt each.
+const CHIP_SPOTS: [number, number, number][] = [
+  [3, 6, -3], [30, 2, 2], [60, 9, -2], [82, 4, 3], [10, 40, 2], [42, 34, -3], [70, 42, 2], [88, 52, -2], [18, 74, -2], [50, 68, 3], [76, 80, -3], [34, 88, 2],
+];
+
+function ReceiptField({ evidence }: { evidence: Evidence[] }) {
+  return (
+    <div className="pc-pt-field" aria-hidden="true">
+      {evidence.slice(0, CHIP_SPOTS.length).map((e, i) => {
+        const [x, y, r] = CHIP_SPOTS[i];
+        return (
+          <div key={`${e.source}-${e.at}-${i}`} className="liquid-glass pc-pt-chip" style={{ left: `${x}%`, top: `${y}%`, '--r': `${r}deg`, '--d': `${(i % 5) * -1.7}s` } as React.CSSProperties}>
+            <span>{SOURCE_LABEL[e.source] ?? e.source} · {spokenDay(e.at)}</span>
+            <p>{e.event}</p>
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 function PhoneMock({ now, lead, question, source, answers, receipts }: { now: Date; lead: string | null; question: string; source?: string; answers: string[]; receipts: Evidence[] }) {
@@ -229,11 +250,11 @@ function PhoneMock({ now, lead, question, source, answers, receipts }: { now: Da
   return (
     <div className="pc-pt-phone" aria-hidden="true">
       <div className="pc-pt-phone-screen">
-        <img src="/images/twinme/cosmos-08-window.jpg" alt="" />
+        <img src="/images/twinme/cosmos-12-night.jpg" alt="" />
         <div className="pc-pt-phone-ui">
           <div className="pc-pt-phone-bar"><span>TwinMe</span><span className="pc-pt-phone-time">{time}</span></div>
           {lead ? <p className="pc-pt-phone-head"><CineLine text={lead} /></p> : null}
-          <div className="pc-pt-phone-glass">
+          <div className="liquid-glass pc-pt-phone-glass">
             <span className="pc-pt-phone-label">New this week{source ? ` · ${source}` : ''}</span>
             <p>{question}</p>
             <div className="pc-pt-phone-answers">{answers.map((a) => <b key={a}>{a}</b>)}</div>
@@ -256,6 +277,12 @@ function CineLine({ text }: { text: string }) {
   const words = tokens.map((t, i) => ({ t, i, w: t.replace(/[^A-Za-z'-]/g, '') })).filter((x) => x.w && x.i !== lastWord && !CINE_STOP.has(x.w.toLowerCase()));
   const picks = new Set([...words].sort((a, b) => b.w.length - a.w.length).slice(0, 1).map((x) => x.i));
   return <>{tokens.map((t, i) => picks.has(i) ? <em key={i} className="pc-cine-muted">{t}</em> : <React.Fragment key={i}>{t}</React.Fragment>)}</>;
+}
+
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+function monthName(iso: string) {
+  const m = Number(String(iso).slice(5, 7));
+  return MONTHS[m - 1] ?? '';
 }
 
 function spokenDay(iso: string) {
@@ -315,7 +342,8 @@ function ReadingRow({ reading, lead, now, verdict, onVerdict, open, onToggle, li
 
 export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, onDeleteSource }: { data: PortraitData; now: Date; banner?: React.ReactNode } & PortraitHandlers) {
   const reduced = usePrefersReducedMotion();
-  const ground = useGround(reduced);
+  const ground = useCentered('ground', 'window', reduced);
+  const activeGroup = useCentered('group', '', reduced);
   const [verdicts, setVerdicts] = useState<Record<string, Verdict>>(() => Object.fromEntries(data.readings.map((r) => [r.id, r.verdict])));
   const [open, setOpen] = useState<string | null>(null);
   const [answer, setAnswer] = useState<string | null>(data.question?.yourAnswer ?? null);
@@ -345,6 +373,14 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
     const from = data.question.fromReadings.map((id) => byId.get(id)).filter(Boolean) as Reading[];
     return [...from.flatMap((r) => r.evidence)].sort((a, b) => b.at.localeCompare(a.at)).slice(0, 4);
   }, [data.question, byId]);
+
+  // The field of receipts: every distinct receipt, the short ones first so they read as chips.
+  const fieldReceipts = useMemo(() => {
+    const seen = new Set<string>();
+    return readings.flatMap((r) => r.evidence).filter((e) => { const k = `${e.source}|${e.event}`; if (seen.has(k)) return false; seen.add(k); return true; })
+      .filter((e) => e.event.length <= 46).sort((a, b) => b.at.localeCompare(a.at));
+  }, [readings]);
+  const receiptCount = useMemo(() => readings.reduce((n, r) => n + r.evidence.length, 0), [readings]);
 
   // The signature's bars: how much stands behind each line, against the fullest.
   const signature = useMemo(() => {
@@ -427,7 +463,7 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
             <h1 className="pc-cine-h1 animate-fade-rise-delay"><CineLine text={lead ?? `${data.owner}.`} /></h1>
           </div>
           <div className="pc-cine-panel animate-fade-rise-delay-2">
-          <AnimatedHeight className="pc-demo-glass pc-pt-glass" reduced={reduced}>
+          <AnimatedHeight className="liquid-glass pc-demo-glass pc-pt-glass" reduced={reduced}>
             <div role="group" aria-label={current.label} className={`pc-pt-glass-inner ${leaving ? 'is-leaving' : 'is-showing'}`}>
               <div className="pc-demo-head pc-cine-head">
                 <div className="pc-cine-tabs" role="tablist" aria-label="Portrait">
@@ -535,21 +571,38 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
       </section>
 
 
-      <section className="pc-pt-scene" id="readings" data-ground="lamp" aria-labelledby="pc-pt-ledger-title">
-        <div className="pc-pt-scene-head">
-          <h2 id="pc-pt-ledger-title" className="pc-pt-head pc-pt-head--room">The readings</h2>
-          <p className="pc-pt-head-note">Each line keeps its receipts: what was read, how often, over how many days. Open one to see them.</p>
+      <section className="pc-pt-scene pc-pt-scene--field" data-ground="window" aria-label="The receipts">
+        <div className="pc-pt-scene-copy pc-pt-scene-copy--center">
+          <p className="pc-pt-scene-line">{receiptCount} receipts, read from {sourceCount} <em>places</em>.</p>
+          <p className="pc-pt-head-note">Nothing self-reported. Every line on this page keeps the receipts it was read from.</p>
         </div>
-        {groups.map((g) => (
-          <div key={g.domain} className="pc-pt-group pc-pt-glasscard">
-            <p className="pc-pt-run">{DOMAIN_HEAD[g.domain]}</p>
-            {g.readings.map((r, i) => (
-              <ReadingRow key={r.id} reading={r} lead={i === 0} now={now} verdict={verdicts[r.id] ?? null}
-                onVerdict={(v) => verdict(r.id, v)}
-                open={open === r.id} onToggle={() => setOpen(open === r.id ? null : r.id)} lit={lit.includes(r.id)} />
+        <ReceiptField evidence={fieldReceipts} />
+      </section>
+
+      <section className="pc-pt-scene pc-pt-scene--ledger" id="readings" data-ground="lamp" aria-labelledby="pc-pt-ledger-title">
+        <div className="pc-pt-index">
+          <h2 id="pc-pt-ledger-title" className="pc-pt-head pc-pt-head--room">The readings</h2>
+          <ol className="pc-pt-index-list">
+            {groups.map((g, i) => (
+              <li key={g.domain} className={activeGroup === g.domain ? 'is-active' : ''}>
+                <a href={`#group-${g.domain}`}><span>{String(i + 1).padStart(2, '0')}</span>{DOMAIN_HEAD[g.domain]}</a>
+              </li>
             ))}
-          </div>
-        ))}
+          </ol>
+          <p className="pc-pt-head-note">Open a line to see what it was read from, and say whether it is you.</p>
+        </div>
+        <div className="pc-pt-ledger-stack">
+          {groups.map((g) => (
+            <div key={g.domain} id={`group-${g.domain}`} data-group={g.domain} className={`pc-pt-group liquid-glass pc-pt-glasscard ${activeGroup === g.domain ? 'is-active' : ''}`}>
+              <p className="pc-pt-run">{DOMAIN_HEAD[g.domain]}</p>
+              {g.readings.map((r, i) => (
+                <ReadingRow key={r.id} reading={r} lead={i === 0} now={now} verdict={verdicts[r.id] ?? null}
+                  onVerdict={(v) => verdict(r.id, v)}
+                  open={open === r.id} onToggle={() => setOpen(open === r.id ? null : r.id)} lit={lit.includes(r.id)} />
+              ))}
+            </div>
+          ))}
+        </div>
       </section>
 
       {data.question ? (
@@ -562,26 +615,28 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
         </section>
       ) : null}
 
-      <section className="pc-pt-scene" id="sources" data-ground="night" aria-labelledby="pc-pt-src-title">
-        <div className="pc-pt-glasscard pc-pt-glasscard--wide">
-        <div className="pc-pt-src-head">
-          <h2 id="pc-pt-src-title" className="pc-pt-head">Sources</h2>
+      <section className="pc-pt-scene pc-pt-scene--sources" id="sources" data-ground="night" aria-labelledby="pc-pt-src-title">
+        <div className="pc-pt-scene-copy pc-pt-scene-copy--center">
+          <h2 id="pc-pt-src-title" className="pc-pt-scene-line">Read from {sourceCount} places since <em>{monthName(readSources.map((s) => s.since).sort()[0])}</em>.</h2>
           {onDeleteSource ? (
             <button type="button" className="pc-pt-manage" onClick={() => { setManaging((m) => !m); setConfirmDelete(null); }}>
-              {managing ? 'Done' : 'Manage'}
+              {managing ? 'Done' : 'Manage sources'}
             </button>
           ) : null}
         </div>
         {!managing ? (
-          <div className="pc-pt-src-stanza">
-            <dl className="pc-pt-src-grid">
-              {[...readSources].sort((a, b) => (parseInt(b.read, 10) || 0) - (parseInt(a.read, 10) || 0)).map((s) => (
-                <div key={s.platform}><dt>{s.label}</dt><dd>{parseInt(s.read, 10) || 0} · since {spokenDay(s.since)}</dd><small>{s.kinds}</small></div>
-              ))}
-            </dl>
+          <div className="pc-pt-tiles">
+            {[...readSources].sort((a, b) => (parseInt(b.read, 10) || 0) - (parseInt(a.read, 10) || 0)).map((s) => (
+              <div key={s.platform} className="liquid-glass pc-pt-tile">
+                <strong>{s.label}</strong>
+                <span>{parseInt(s.read, 10) || 0}</span>
+                <small>{s.kinds}</small>
+              </div>
+            ))}
           </div>
         ) : null}
-        <div className="pc-pt-source-list" hidden={!managing}>
+        <div className="liquid-glass pc-pt-glasscard pc-pt-glasscard--wide" hidden={!managing}>
+        <div className="pc-pt-source-list">
           {readSources.map((s) => (
             <div key={s.platform} className="pc-pt-source">
               <strong>{s.label}</strong>
@@ -601,8 +656,8 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
             </div>
           ))}
         </div>
-        <p className="pc-pt-source-note">Messages, photos and location are never read, and nothing here trains a model.</p>
         </div>
+        <p className="pc-pt-source-note pc-pt-source-note--room">Messages, photos and location are never read, and nothing here trains a model.</p>
       </section>
 
       <footer className="pc-pt-close" data-ground="window">
