@@ -96,6 +96,11 @@ const PresenceLandingPage = lazy(() => import("./pages/PresenceLandingPage"));
 const PresenceLoginPage = lazy(() => import("./pages/PresenceLoginPage"));
 const DemoPortraitPage = lazy(() => import("./pages/portrait/DemoPortraitPage"));
 const LivePortraitPage = lazy(() => import("./pages/portrait/LivePortraitPage"));
+const ProtoCofounder = lazy(() => import("./pages/proto/ProtoCofounder"));
+const ProtoDimension = lazy(() => import("./pages/proto/ProtoDimension"));
+const ProtoAir = lazy(() => import("./pages/proto/ProtoAir"));
+const ProtoCosmos = lazy(() => import("./pages/proto/ProtoCosmos"));
+const ProtoIndexPage = lazy(() => import("./pages/proto/kit").then((m) => ({ default: m.ProtoIndex })));
 const PresenceHome = lazy(() => import("./pages/presence/PresenceHome"));
 const PresenceCallPage = lazy(() => import("./pages/presence/PresenceCallPage"));
 
@@ -264,6 +269,11 @@ const App = () => {
             } />
             <Route path="/presence" element={<PresenceLandingPage />} />
             <Route path="/demo" element={<Suspense fallback={null}><DemoPortraitPage /></Suspense>} />
+            <Route path="/proto" element={<Suspense fallback={null}><ProtoIndexPage /></Suspense>} />
+            <Route path="/proto/cofounder" element={<Suspense fallback={null}><ProtoCofounder /></Suspense>} />
+            <Route path="/proto/dimension" element={<Suspense fallback={null}><ProtoDimension /></Suspense>} />
+            <Route path="/proto/air" element={<Suspense fallback={null}><ProtoAir /></Suspense>} />
+            <Route path="/proto/cosmos" element={<Suspense fallback={null}><ProtoCosmos /></Suspense>} />
             <Route path="/presence/login" element={<PresenceLoginPage />} />
             {/* Elder channel: public, token-authed — the elder has no account. */}
             <Route path="/call/:token" element={<PresenceCallPage />} />
