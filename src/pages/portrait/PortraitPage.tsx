@@ -194,7 +194,58 @@ function shortLine(text: string, max = 36) {
 
 /** "11 Aug" from an ISO date: a receipt is dated the way a person says a day. */
 /** The ground of the first screen: a looping clip, the room still as its poster and its reduced-motion stand-in. */
-const HERO_VIDEO: string | null = null; // set to our own room clip once it is generated
+const HERO_VIDEO: string | null = '/images/twinme/cosmos-08-window.mp4'; // the room, blue hour deepening to night and back, 12s loop
+// The other angles of the same room; the page turns toward them as it is read.
+const GROUNDS = [
+  { id: 'lamp', src: '/images/twinme/cosmos-10-lamp.jpg' },
+  { id: 'chair', src: '/images/twinme/cosmos-11-chair.jpg' },
+  { id: 'night', src: '/images/twinme/cosmos-12-night.jpg' },
+];
+
+function useGround(reduced: boolean) {
+  const [ground, setGround] = useState('window');
+  useEffect(() => {
+    if (reduced) return;
+    let raf = 0;
+    const pick = () => {
+      raf = 0;
+      const mid = window.innerHeight * 0.5;
+      const els = Array.from(document.querySelectorAll<HTMLElement>('[data-ground]'));
+      // The section under the middle of the screen decides which way the room faces.
+      const hit = els.find((el) => { const r = el.getBoundingClientRect(); return r.top <= mid && r.bottom > mid; });
+      setGround(hit?.dataset.ground || 'window');
+    };
+    const onScroll = () => { if (!raf) raf = window.requestAnimationFrame(pick); };
+    pick();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+    return () => { window.removeEventListener('scroll', onScroll); window.removeEventListener('resize', onScroll); if (raf) window.cancelAnimationFrame(raf); };
+  }, [reduced]);
+  return ground;
+}
+
+function PhoneMock({ now, lead, question, source, answers, receipts }: { now: Date; lead: string | null; question: string; source?: string; answers: string[]; receipts: Evidence[] }) {
+  const time = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  return (
+    <div className="pc-pt-phone" aria-hidden="true">
+      <div className="pc-pt-phone-screen">
+        <img src="/images/twinme/cosmos-08-window.jpg" alt="" />
+        <div className="pc-pt-phone-ui">
+          <div className="pc-pt-phone-bar"><span>TwinMe</span><span className="pc-pt-phone-time">{time}</span></div>
+          {lead ? <p className="pc-pt-phone-head"><CineLine text={lead} /></p> : null}
+          <div className="pc-pt-phone-glass">
+            <span className="pc-pt-phone-label">New this week{source ? ` · ${source}` : ''}</span>
+            <p>{question}</p>
+            <div className="pc-pt-phone-answers">{answers.map((a) => <b key={a}>{a}</b>)}</div>
+            {receipts.slice(0, 2).map((e, i) => (
+              <div key={i} className="pc-pt-phone-receipt"><span>{SOURCE_LABEL[e.source] ?? e.source} · {spokenDay(e.at)}</span><p>{e.event}</p></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const CINE_STOP = new Set('you your yours the a an and then for of in on to it is are with that this into at by but so as from when they their not just like'.split(' '));
 
@@ -264,6 +315,7 @@ function ReadingRow({ reading, lead, now, verdict, onVerdict, open, onToggle, li
 
 export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, onDeleteSource }: { data: PortraitData; now: Date; banner?: React.ReactNode } & PortraitHandlers) {
   const reduced = usePrefersReducedMotion();
+  const ground = useGround(reduced);
   const [verdicts, setVerdicts] = useState<Record<string, Verdict>>(() => Object.fromEntries(data.readings.map((r) => [r.id, r.verdict])));
   const [open, setOpen] = useState<string | null>(null);
   const [answer, setAnswer] = useState<string | null>(data.question?.yourAnswer ?? null);
@@ -355,8 +407,11 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
       ) : (
         <img className={`pc-pt-room-ground ${reduced ? '' : 'pc-pt-drift'}`} src="/images/twinme/cosmos-08-window.jpg" alt="" aria-hidden="true" />
       )}
+      {GROUNDS.map((g) => (
+        <img key={g.id} className={`pc-pt-room-ground pc-pt-room-ground--alt ${ground === g.id ? 'is-on' : ''}`} src={g.src} alt="" aria-hidden="true" loading="lazy" />
+      ))}
       {banner}
-      <section className="pc-pt-cine" id="portrait" aria-label="Your portrait">
+      <section className="pc-pt-cine" id="portrait" data-ground="window" aria-label="Your portrait">
         <header className="pc-pt-nav pc-cine-nav">
           <a href="/" className="pc-cine-mark">TwinMe</a>
           <nav aria-label="Portrait" className="liquid-glass pc-cine-navcap">
@@ -480,12 +535,13 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
       </section>
 
 
-      <div className="pc-pt-paper-panel">
-      <section className="pc-pt-ledger" id="readings" aria-labelledby="pc-pt-ledger-title">
-        <h2 id="pc-pt-ledger-title" className="pc-h2 pc-h2--sm pc-pt-head">The readings</h2>
-        <p className="pc-pt-head-note">Each line keeps its receipts: what was read, how often, over how many days. Open one to see them.</p>
+      <section className="pc-pt-scene" id="readings" data-ground="lamp" aria-labelledby="pc-pt-ledger-title">
+        <div className="pc-pt-scene-head">
+          <h2 id="pc-pt-ledger-title" className="pc-pt-head pc-pt-head--room">The readings</h2>
+          <p className="pc-pt-head-note">Each line keeps its receipts: what was read, how often, over how many days. Open one to see them.</p>
+        </div>
         {groups.map((g) => (
-          <div key={g.domain} className="pc-pt-group">
+          <div key={g.domain} className="pc-pt-group pc-pt-glasscard">
             <p className="pc-pt-run">{DOMAIN_HEAD[g.domain]}</p>
             {g.readings.map((r, i) => (
               <ReadingRow key={r.id} reading={r} lead={i === 0} now={now} verdict={verdicts[r.id] ?? null}
@@ -495,12 +551,21 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
           </div>
         ))}
       </section>
-      </div>
 
-      <div className="pc-pt-paper-panel pc-pt-paper-panel--sources">
-      <section className="pc-pt-sources" id="sources" aria-labelledby="pc-pt-src-title">
+      {data.question ? (
+        <section className="pc-pt-scene pc-pt-scene--phone" data-ground="chair" aria-label="The portrait on a phone">
+          <PhoneMock now={now} lead={lead} question={data.question.question} source={data.question.source} answers={data.question.answers} receipts={questionReceipts} />
+          <div className="pc-pt-scene-copy">
+            <p className="pc-pt-scene-line">The same portrait, on your <em>phone</em>.</p>
+            <p className="pc-pt-head-note">Today&rsquo;s question and its receipts, wherever you open it.</p>
+          </div>
+        </section>
+      ) : null}
+
+      <section className="pc-pt-scene" id="sources" data-ground="night" aria-labelledby="pc-pt-src-title">
+        <div className="pc-pt-glasscard pc-pt-glasscard--wide">
         <div className="pc-pt-src-head">
-          <h2 id="pc-pt-src-title" className="pc-h2 pc-h2--sm pc-pt-head">Sources</h2>
+          <h2 id="pc-pt-src-title" className="pc-pt-head">Sources</h2>
           {onDeleteSource ? (
             <button type="button" className="pc-pt-manage" onClick={() => { setManaging((m) => !m); setConfirmDelete(null); }}>
               {managing ? 'Done' : 'Manage'}
@@ -537,10 +602,10 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
           ))}
         </div>
         <p className="pc-pt-source-note">Messages, photos and location are never read, and nothing here trains a model.</p>
+        </div>
       </section>
-      </div>
 
-      <footer className="pc-pt-close">
+      <footer className="pc-pt-close" data-ground="window">
         <p className="pc-pt-close-line">Every line here was <em>read</em>, not asked.</p>
         {banner
           ? <Link to="/" className="liquid-glass pc-cine-pill">Read your own portrait</Link>
