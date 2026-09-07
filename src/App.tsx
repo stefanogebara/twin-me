@@ -102,6 +102,7 @@ const ProtoAir = lazy(() => import("./pages/proto/ProtoAir"));
 const ProtoCosmos = lazy(() => import("./pages/proto/ProtoCosmos"));
 const ProtoIndexPage = lazy(() => import("./pages/proto/kit").then((m) => ({ default: m.ProtoIndex })));
 const ProtoTwin = lazy(() => import("./pages/proto/ProtoTwin"));
+const MoneyV2Page = lazy(() => import("./pages/money/MoneyV2Page"));
 const PresenceHome = lazy(() => import("./pages/presence/PresenceHome"));
 const PresenceCallPage = lazy(() => import("./pages/presence/PresenceCallPage"));
 
@@ -425,11 +426,9 @@ const App = () => {
             {/* Financial-Emotional Twin — bank statement upload + emotional tagging (Phase 2) */}
             <Route path="/money" element={
               <ProtectedRoute>
-                <SidebarLayout>
-                  <ErrorBoundary>
-                    <MoneyPage />
-                  </ErrorBoundary>
-                </SidebarLayout>
+                <ErrorBoundary>
+                  <Suspense fallback={null}><MoneyV2Page /></Suspense>
+                </ErrorBoundary>
               </ProtectedRoute>
             } />
 
