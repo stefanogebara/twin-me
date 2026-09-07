@@ -65,12 +65,14 @@ CREATE TABLE IF NOT EXISTS public.money_sightings (
   merchant_raw          TEXT,
   merchant_key          TEXT,
   occurred_at           TIMESTAMPTZ,
+  channel               TEXT,                          -- card | bizum | transfer | cash | direct_debit, as the channel saw it
   card_last4            TEXT,
   parse_confidence      NUMERIC(3,2),                  -- 1.00 bankfeed, 0.85 phone, 0.60 gmail
   transaction_id        UUID REFERENCES public.money_transactions(id) ON DELETE SET NULL,
   created_at            TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-CREATE UNIQUE INDEX IF NOT EXISTS money_sightings_source_ref_key ON public.money_sightings (user_id, source, source_ref) WHERE source_ref IS NOT NULL;
+-- Plain, not partial: PostgREST upserts need a full unique index to infer ON CONFLICT, and NULL source_refs never collide anyway.
+CREATE UNIQUE INDEX IF NOT EXISTS money_sightings_source_ref_key ON public.money_sightings (user_id, source, source_ref);
 CREATE INDEX IF NOT EXISTS idx_money_sightings_user_time ON public.money_sightings (user_id, occurred_at DESC);
 CREATE INDEX IF NOT EXISTS idx_money_sightings_unlinked ON public.money_sightings (user_id) WHERE transaction_id IS NULL;
 
