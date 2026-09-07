@@ -8,6 +8,7 @@ import { createLogger } from '../logger.js';
 import { reconcile } from './ledger.js';
 import { detectRecurring } from './recurring.js';
 import { projectMonth } from './projection.js';
+import { fetchTransactions, toSighting } from './feeds/enableBanking.js';
 
 const log = createLogger('money-store');
 
@@ -107,4 +108,54 @@ export async function setVerdict(userId, transactionId, verdict) {
     .eq('user_id', userId).eq('id', transactionId).select().single();
   if (error) throw new Error(error.message);
   return data;
+}
+
+/** The user behind a capture key (one of api_keys, SHA-256 hashed), or null. Touches last_used_at. */
+export async function userForCaptureKey(keyHash) {
+  const { data } = await supabaseAdmin.from('api_keys').select('id, user_id, is_active, expires_at').eq('key_hash', keyHash).maybeSingle();
+  if (!data || !data.is_active || (data.expires_at && new Date(data.expires_at) < new Date())) return null;
+  supabaseAdmin.from('api_keys').update({ last_used_at: new Date().toISOString() }).eq('id', data.id).then(() => {}, () => {});
+  return data.user_id;
+}
+
+/** Persist the accounts a bank authorisation returned. */
+export async function saveBankAccounts(userId, { sessionId, validUntil, accounts }) {
+  const rows = accounts.map((a) => ({
+    user_id: userId, provider: 'enablebanking', provider_account_id: a.uid, name: a.name, currency: a.currency || 'EUR',
+    iban_mask: a.iban ? `${a.iban.slice(0, 4)} **** ${a.iban.slice(-4)}` : null, consent_expires_at: validUntil, session_id: sessionId,
+  }));
+  const { data, error } = await supabaseAdmin.from('money_accounts').upsert(rows, { onConflict: 'user_id,provider,provider_account_id' }).select();
+  if (error) throw new Error(`accounts upsert failed: ${error.message}`);
+  return data || [];
+}
+
+export async function listBankAccounts(userId) {
+  const { data } = await supabaseAdmin.from('money_accounts').select('id, provider, provider_account_id, name, iban_mask, currency, consent_expires_at, last_pulled_at').eq('user_id', userId).eq('provider', 'enablebanking');
+  return data || [];
+}
+
+/**
+ * The truth path: pull each account since its last pull (or 90 days) and reconcile every row.
+ * PSD2 allows four unattended pulls a day per account; callers schedule accordingly.
+ */
+export async function pullBankFeed(userId, { since } = {}) {
+  const accounts = await listBankAccounts(userId);
+  const summary = [];
+  for (const acc of accounts) {
+    const from = since || (acc.last_pulled_at ? acc.last_pulled_at.slice(0, 10) : new Date(Date.now() - 90 * 86400000).toISOString().slice(0, 10));
+    let key = null; let seen = 0; let created = 0;
+    do {
+      const page = await fetchTransactions(acc.provider_account_id, from, key);
+      for (const row of page.rows) {
+        const s = toSighting(row, acc.id);
+        if (!s.occurred_at || !s.amount) continue;
+        const r = await ingestSighting(userId, s);
+        seen += 1; if (r.action === 'create') created += 1;
+      }
+      key = page.continuationKey;
+    } while (key);
+    await supabaseAdmin.from('money_accounts').update({ last_pulled_at: new Date().toISOString() }).eq('id', acc.id);
+    summary.push({ account: acc.name || acc.iban_mask, seen, created });
+  }
+  return summary;
 }
