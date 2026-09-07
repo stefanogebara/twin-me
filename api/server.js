@@ -538,6 +538,7 @@ import cronHealthMonitorRoutes from './routes/cron-health-monitor.js';
 import cronMeetingDebriefRoutes from './routes/cron-meeting-debrief.js';
 import wikiRoutes from './routes/wiki.js';
 import portraitRoutes from './routes/portrait.js';
+import moneyRoutes from './routes/money.js';
 import revelationsRoutes from './routes/revelations.js';
 import insightFeedbackRoutes from './routes/insight-feedback.js';
 import userRulesRoutes from './routes/user-rules.js';
@@ -705,6 +706,7 @@ app.use('/api/observations', observationsClipRoutes); // TwinMe Desktop: batch c
 app.use('/api/observations', observationsMeetingRoutes); // TwinMe Desktop: batch meeting session sync (Zoom/Meet/Teams -> observation memories)
 app.use('/api/wiki', wikiRoutes); // LLM Wiki compiled knowledge pages (Karpathy pattern)
 app.use('/api/portrait', portraitRoutes); // The Portrait: readings with receipts, verdicts, today's question (spec 2026-09-03)
+app.use('/api/money', moneyRoutes); // Money Twin v2, from zero: sightings → ledger, recurring, forecast (spec 2026-09-07)
 app.use('/api/revelations', revelationsRoutes); // "What your twin sees" PULL surface — first-party self-revelations, ungated by the interrupt-Editor
 app.use('/api/checkin', checkinRoutes); // Daily mood check-in (50 moods)
 app.use('/api/twin', twinPipelineRoutes); // Twin formation pipeline (form, status, profile, evolution)
