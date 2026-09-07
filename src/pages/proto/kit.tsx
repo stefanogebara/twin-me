@@ -202,6 +202,7 @@ export function ProtoFooter({ tone = 'light' }: { tone?: 'light' | 'dark' }) {
 /** /proto: the four prototypes, one link each. */
 export function ProtoIndex() {
   const items: [string, string, string][] = [
+    ['/proto/twin', 'Twinme, from scratch', 'Cream paper, a warm serif, painted traces, one frame, a manifesto. After Littlebird and Hark.'],
     ['/proto/cofounder', 'Cofounder', 'Illustrated scene, serif wordmark, numbered chapters with product frames.'],
     ['/proto/dimension', 'Dimension', 'Dawn gradient, one big device frame, a sticky list that drives what it shows.'],
     ['/proto/air', 'Air', 'A sky, centred type, glass tiles with the product inside them.'],
