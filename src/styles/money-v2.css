@@ -1,0 +1,121 @@
+/* ==========================================================================
+   Money, in the cosmos.so register: white canvas, Geist set tight, black pills,
+   one statement per screen, hairlines. No photograph, no glass, no dossier.
+   ========================================================================== */
+.mv {
+  --canvas: #fbfaf8; --ink: #111; --ink-2: #555; --ink-3: #8a8a8a; --rule: rgba(17, 17, 17, 0.1); --card: #f2f0eb;
+  --sans: 'Geist', 'Inter Tight', 'Inter', system-ui, sans-serif; --mono: 'Geist Mono', 'DM Mono', ui-monospace, monospace;
+  min-height: 100vh; background: var(--canvas); color: var(--ink); font-family: var(--sans); font-size: 16px; line-height: 1.5; -webkit-font-smoothing: antialiased; overflow-x: clip;
+}
+.mv h1, .mv h2, .mv p, .mv ul, .mv ol, .mv li, .mv span, .mv small, .mv b, .mv em, .mv a, .mv code, .mv button { color: inherit; margin: 0; }
+.mv ul, .mv ol { list-style: none; padding: 0; }
+.mv a { text-decoration: none; }
+.mv button { font: inherit; background: none; border: 0; cursor: pointer; }
+.mv button span, .mv a span { white-space: normal; overflow: visible; }
+.mv h1, .mv h2 { font-weight: 500; letter-spacing: -0.045em; line-height: 0.98; }
+
+.mv .mv-pill { display: inline-flex; align-items: center; justify-content: center; height: 48px; padding: 0 24px; border-radius: 999px; background: var(--ink); color: #fff; font-size: 15px; font-weight: 500; letter-spacing: -0.01em; transition: transform 0.2s ease, opacity 0.2s ease; }
+.mv .mv-pill:hover { transform: translateY(-1px); }
+.mv .mv-pill:disabled { opacity: 0.5; cursor: default; transform: none; }
+.mv .mv-pill--ghost { background: transparent; color: var(--ink); border: 1px solid rgba(17, 17, 17, 0.16); }
+.mv .mv-pill--sm { height: 34px; padding: 0 14px; font-size: 13px; }
+.mv .mv-quiet { font-size: 15px; color: var(--ink-3); }
+.mv .mv-kicker { font-size: 16px; font-weight: 600; letter-spacing: 0.02em; text-transform: uppercase; color: var(--ink-3); }
+.mv .mv-card-kicker { display: block; font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; font-weight: 500; color: var(--ink-3); }
+
+/* Nav, cosmos style: dots mark, links, one pill */
+.mv-nav { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 24px; width: min(1360px, 100% - 40px); margin: 0 auto; padding: 18px 0; position: relative; z-index: 3; }
+.mv-mark { display: grid; grid-template-columns: repeat(3, 6px); gap: 3px; width: 24px; }
+.mv-mark i { width: 6px; height: 6px; border-radius: 50%; background: var(--ink); }
+.mv-nav nav { display: flex; gap: 22px; font-size: 15px; color: var(--ink-2); }
+.mv-nav nav a:hover { color: var(--ink); }
+.mv-nav .mv-pill { height: 40px; padding: 0 18px; font-size: 14px; }
+
+/* Hero: the number, with the receipts scattered as tiles */
+.mv-hero { position: relative; min-height: 78vh; display: grid; align-content: center; justify-items: center; text-align: center; gap: 22px; padding: 40px 24px 60px; overflow: hidden; }
+.mv-hero > :not(.mv-tiles) { position: relative; z-index: 1; }
+.mv-hero h1 { font-size: clamp(56px, 8vw, 116px); }
+.mv-hero .mv-lede { max-width: 38rem; font-size: 19px; line-height: 1.45; color: var(--ink-2); text-wrap: balance; }
+.mv-ctas { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 8px; }
+.mv-tiles { position: absolute; inset: 0; pointer-events: none; }
+.mv-tile { position: absolute; display: grid; gap: 2px; width: 150px; padding: 12px 14px; border-radius: 12px; background: #fff; box-shadow: 0 18px 44px rgba(0, 0, 0, 0.1); transform: rotate(var(--r, 0deg)); animation: mv-float 8s ease-in-out infinite alternate; animation-delay: var(--d, 0s); text-align: left; }
+.mv-tile span { font-family: var(--mono); font-size: 9px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); }
+.mv-tile b { font-weight: 500; font-size: 13px; line-height: 17px; letter-spacing: -0.01em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mv-tile em { font-style: normal; font-size: 15px; font-weight: 500; letter-spacing: -0.02em; }
+@keyframes mv-float { from { translate: 0 0; } to { translate: 0 -12px; } }
+
+/* The band */
+.mv-band { width: min(880px, 100% - 48px); margin: -20px auto 0; display: grid; gap: 12px; }
+.mv-band-track { position: relative; height: 10px; border-radius: 999px; background: var(--card); overflow: visible; }
+.mv-band-range { position: absolute; top: 0; height: 100%; border-radius: 999px; background: rgba(17, 17, 17, 0.14); }
+.mv-band-spent { position: absolute; top: 0; left: 0; height: 100%; border-radius: 999px; background: var(--ink); }
+.mv-band-mark { position: absolute; top: -5px; width: 2px; height: 20px; background: var(--ink); transform: translateX(-1px); }
+.mv-band-labels { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-3); }
+
+/* Sections: one statement, then the object */
+.mv-section { width: min(1120px, 100% - 48px); margin: 160px auto 0; display: grid; gap: 36px; justify-items: center; }
+.mv-section h2 { font-size: clamp(36px, 4.6vw, 64px); text-align: center; text-wrap: balance; }
+.mv-section > .mv-quiet { text-align: center; max-width: 44rem; }
+
+/* Ledger rows */
+.mv-ledger { width: min(760px, 100%); border-top: 1px solid var(--rule); }
+.mv-row { border-bottom: 1px solid var(--rule); }
+.mv-row-head { width: 100%; display: grid; grid-template-columns: 72px minmax(0, 1fr) auto; gap: 16px; align-items: baseline; padding: 16px 4px; text-align: left; }
+.mv-row-head:hover { background: rgba(17, 17, 17, 0.02); }
+.mv-row-date { font-family: var(--mono); font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-3); }
+.mv-row-merchant { font-size: 17px; letter-spacing: -0.015em; display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.mv-row-merchant small { font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-3); }
+.mv-row-merchant .mv-verdict-tag.is-worth_it { color: var(--ink); }
+.mv-row-amount { font-size: 17px; font-weight: 500; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.mv-row.is-in .mv-row-amount { color: var(--ink-2); }
+.mv-row-body { display: grid; gap: 14px; padding: 0 4px 18px 88px; }
+.mv-receipts { display: grid; gap: 8px; }
+.mv-receipts li { display: grid; gap: 2px; padding: 10px 14px; border-radius: 12px; background: var(--card); }
+.mv-receipts span { font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); }
+.mv-receipts p { font-size: 14px; line-height: 19px; }
+.mv-verdicts { display: flex; gap: 8px; }
+
+/* Recurring cards, cosmos tiles */
+.mv-grid { width: 100%; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.mv-card { display: grid; gap: 6px; padding: 22px 22px 20px; border-radius: 18px; background: #fff; box-shadow: 0 14px 40px rgba(0, 0, 0, 0.06); }
+.mv-card b { font-weight: 500; font-size: 22px; letter-spacing: -0.03em; line-height: 1.1; }
+.mv-card em { font-style: normal; font-size: 30px; font-weight: 500; letter-spacing: -0.04em; line-height: 1; margin-top: 4px; }
+.mv-card small { font-size: 13px; line-height: 18px; color: var(--ink-2); margin-top: 6px; }
+
+/* Sources: two big rounded panels, the film-block scale */
+.mv-sources { width: 100%; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.mv-source { display: grid; gap: 14px; align-content: start; padding: 34px 34px 30px; border-radius: 24px; background: var(--card); }
+.mv-source b { font-weight: 500; font-size: clamp(26px, 2.6vw, 34px); letter-spacing: -0.035em; line-height: 1.05; }
+.mv-source p { font-size: 16px; line-height: 1.5; color: var(--ink-2); max-width: 40rem; }
+.mv-source .mv-ctas { justify-content: flex-start; margin-top: 4px; }
+.mv-accounts { display: grid; border-top: 1px solid var(--rule); }
+.mv-accounts li { display: flex; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--rule); font-size: 15px; }
+.mv-accounts small { font-family: var(--mono); font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-3); }
+.mv-key { display: grid; gap: 6px; padding: 16px 18px; border-radius: 14px; background: #fff; }
+.mv-key code { font-family: var(--mono); font-size: 14px; word-break: break-all; }
+.mv-key small { font-size: 13px; color: var(--ink-3); }
+.mv-steps { display: grid; gap: 10px; counter-reset: step; font-size: 14px; line-height: 1.5; color: var(--ink-2); padding-left: 0; }
+.mv-steps li { position: relative; padding-left: 28px; }
+.mv-steps li::before { counter-increment: step; content: counter(step); position: absolute; left: 0; top: 2px; width: 18px; height: 18px; border-radius: 50%; border: 1px solid rgba(17, 17, 17, 0.2); font-size: 11px; display: grid; place-items: center; color: var(--ink); }
+.mv-steps code { font-family: var(--mono); font-size: 12px; background: #fff; padding: 1px 6px; border-radius: 6px; }
+.mv-note { color: var(--ink); }
+
+.mv-footer { display: flex; justify-content: space-between; gap: 24px; width: min(1360px, 100% - 40px); margin: 160px auto 0; padding: 24px 0 40px; border-top: 1px solid var(--rule); font-size: 14px; color: var(--ink-2); }
+.mv-footer nav { display: flex; gap: 20px; }
+
+@media (max-width: 900px) {
+  .mv-nav nav { display: none; }
+  .mv-tile { width: 120px; }
+  .mv-tile:nth-child(n + 5) { display: none; }
+  .mv-grid, .mv-sources { grid-template-columns: 1fr; }
+  .mv-section { margin-top: 110px; }
+  .mv-row-head { grid-template-columns: 56px minmax(0, 1fr) auto; }
+  .mv-row-body { padding-left: 4px; }
+  .mv-source { padding: 26px 22px 24px; }
+}
+@media (max-width: 640px) {
+  .mv-tiles { display: none; }
+  .mv-nav { grid-template-columns: auto 1fr; }
+  .mv-nav .mv-pill { justify-self: end; }
+  .mv-hero { min-height: 70vh; }
+}
