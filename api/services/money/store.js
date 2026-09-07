@@ -108,3 +108,11 @@ export async function setVerdict(userId, transactionId, verdict) {
   if (error) throw new Error(error.message);
   return data;
 }
+
+/** The user behind a capture key (one of api_keys, SHA-256 hashed), or null. Touches last_used_at. */
+export async function userForCaptureKey(keyHash) {
+  const { data } = await supabaseAdmin.from('api_keys').select('id, user_id, is_active, expires_at').eq('key_hash', keyHash).maybeSingle();
+  if (!data || !data.is_active || (data.expires_at && new Date(data.expires_at) < new Date())) return null;
+  supabaseAdmin.from('api_keys').update({ last_used_at: new Date().toISOString() }).eq('id', data.id).then(() => {}, () => {});
+  return data.user_id;
+}

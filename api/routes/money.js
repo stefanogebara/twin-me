@@ -15,10 +15,9 @@
 import { Router } from 'express';
 import crypto from 'node:crypto';
 import { authenticateUser } from '../middleware/auth.js';
-import { supabaseAdmin } from '../services/database.js';
 import { createLogger } from '../services/logger.js';
 import { parseCapture, parseStructured } from '../services/money/captureParser.js';
-import { ingestSighting, listTransactions, sightingsFor, refreshRecurring, forecast, setVerdict } from '../services/money/store.js';
+import { ingestSighting, listTransactions, sightingsFor, refreshRecurring, forecast, setVerdict, userForCaptureKey } from '../services/money/store.js';
 import { isConfigured, listBanks } from '../services/money/feeds/enableBanking.js';
 
 const log = createLogger('MoneyRoute');
@@ -33,13 +32,9 @@ async function authenticateUserOrKey(req, res, next) {
   const key = req.get('x-twinme-key') || (typeof req.query.key === 'string' ? req.query.key : null);
   if (!key) return authenticateUser(req, res, next);
   try {
-    const hash = crypto.createHash('sha256').update(key).digest('hex');
-    const { data } = await supabaseAdmin.from('api_keys').select('id, user_id, is_active, expires_at').eq('key_hash', hash).maybeSingle();
-    if (!data || !data.is_active || (data.expires_at && new Date(data.expires_at) < new Date())) {
-      return res.status(401).json({ success: false, error: 'Invalid capture key' });
-    }
-    req.user = { id: data.user_id };
-    supabaseAdmin.from('api_keys').update({ last_used_at: new Date().toISOString() }).eq('id', data.id).then(() => {}, () => {});
+    const userId = await userForCaptureKey(crypto.createHash('sha256').update(key).digest('hex'));
+    if (!userId) return res.status(401).json({ success: false, error: 'Invalid capture key' });
+    req.user = { id: userId };
     return next();
   } catch (error) {
     log.error('capture key check failed', { error: error.message });
