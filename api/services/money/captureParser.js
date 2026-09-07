@@ -125,3 +125,30 @@ export function parseCapture(text, opts = {}) {
     parse_confidence: Math.min(0.95, Math.round(confidence * 100) / 100),
   };
 }
+
+/**
+ * A structured capture from an iOS Shortcut "Transaction" automation (Apple Pay / Wallet):
+ * { merchant, amount, card, date } → sighting. Amount may be "12,50 €", "€12.50" or a number.
+ */
+export function parseStructured(p = {}) {
+  const raw = typeof p.amount === 'number' ? String(p.amount) : String(p.amount ?? '');
+  const m = raw.match(/(\d{1,3}(?:\.\d{3})+(?:,\d{1,2})?|\d+[.,]\d{1,2}|\d+)/);
+  const amount = m ? parseEuroAmount(m[1]) : null;
+  if (!amount || amount <= 0) return null;
+  const merchantRaw = p.merchant ? String(p.merchant).slice(0, 80) : null;
+  const card = p.card ? String(p.card).match(/(\d{4})\D*$/) : null;
+  const when = p.date ? new Date(p.date) : new Date();
+  return {
+    source: 'phone',
+    raw_text: [p.merchant, raw, p.card, p.date].filter(Boolean).join(' · '),
+    amount,
+    currency: /USD|\$/.test(raw) ? 'USD' : 'EUR',
+    direction: p.direction === 'in' ? 'in' : 'out',
+    channel: 'card',
+    merchant_raw: merchantRaw,
+    merchant_key: merchantKey(merchantRaw),
+    card_last4: card ? card[1] : null,
+    occurred_at: (Number.isNaN(when.getTime()) ? new Date() : when).toISOString(),
+    parse_confidence: merchantRaw ? 0.9 : 0.7,
+  };
+}
