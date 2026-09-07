@@ -37,8 +37,12 @@ function walk(dir: string, out: string[] = []): string[] {
   return out;
 }
 
-/** Token definitions are the one place a raw value is allowed to live. */
-const TOKEN_FILES = /styles[\\/](nocturne|nocturne-bridge|claura)\.css$|index\.css$/;
+/**
+ * Token definitions are the one place a raw value is allowed to live.
+ * money-v2.css is the token layer of the Money surface's own register (cosmos.so, 2026-09-07):
+ * it declares its faces once on `.mv` and every rule below references the variables.
+ */
+const TOKEN_FILES = /styles[\\/](nocturne|nocturne-bridge|claura|money-v2)\.css$|index\.css$/;
 
 const files = walk(SRC).filter((f) => !TOKEN_FILES.test(f));
 
