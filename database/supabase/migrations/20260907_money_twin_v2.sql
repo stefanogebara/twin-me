@@ -20,6 +20,8 @@ CREATE TABLE IF NOT EXISTS public.money_accounts (
   iban_mask             TEXT,                          -- "ES** **** 1234"
   currency              TEXT NOT NULL DEFAULT 'EUR',
   consent_expires_at    TIMESTAMPTZ,                   -- PSD2: SCA again every 180 days
+  session_id            TEXT,                          -- aggregator session behind this consent
+  last_pulled_at        TIMESTAMPTZ,
   created_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   UNIQUE (user_id, provider, provider_account_id)
 );
