@@ -130,3 +130,7 @@
 /* The illustrations are painted on their own cream; multiplied onto the page paper the paper disappears. */
 .tl-edge, .tl-trace img, .tl-easel { mix-blend-mode: multiply; }
 .tl-trace img, .tl-easel { background: transparent; }
+/* The edge vignettes dissolve into the paper instead of ending on a rectangle. */
+.tl-edge { mix-blend-mode: multiply; opacity: 1; -webkit-mask-composite: source-in; mask-composite: intersect; }
+.tl-edge--left { -webkit-mask-image: linear-gradient(to right, #000 30%, transparent 92%), linear-gradient(to bottom, transparent 0, #000 14%, #000 82%, transparent 100%); mask-image: linear-gradient(to right, #000 30%, transparent 92%), linear-gradient(to bottom, transparent 0, #000 14%, #000 82%, transparent 100%); }
+.tl-edge--right { -webkit-mask-image: linear-gradient(to left, #000 30%, transparent 92%), linear-gradient(to bottom, transparent 0, #000 14%, #000 82%, transparent 100%); mask-image: linear-gradient(to left, #000 30%, transparent 92%), linear-gradient(to bottom, transparent 0, #000 14%, #000 82%, transparent 100%); }
