@@ -54,6 +54,7 @@ import { TalkToTwinSkeleton } from "./pages/components/TalkToTwinSkeleton";
 const loadTalkToTwin = () => import("./pages/TalkToTwin");
 const loadTodayPage = () => import("./pages/TodayPage");
 const loadMoneyPage = () => import("./pages/MoneyPage");
+const MoneyV2Page = lazy(() => import("./pages/money/MoneyV2Page"));
 const loadMoneyInsightsPage = () => import("./pages/MoneyInsightsPage");
 
 const Settings = lazy(() => import("./pages/Settings"));
@@ -383,11 +384,9 @@ const App = () => {
             {/* Financial-Emotional Twin — bank statement upload + emotional tagging (Phase 2) */}
             <Route path="/money" element={
               <ProtectedRoute>
-                <SidebarLayout>
-                  <ErrorBoundary>
-                    <MoneyPage />
-                  </ErrorBoundary>
-                </SidebarLayout>
+                <ErrorBoundary>
+                  <Suspense fallback={null}><MoneyV2Page /></Suspense>
+                </ErrorBoundary>
               </ProtectedRoute>
             } />
 
