@@ -161,9 +161,10 @@ bankCallback.get('/bank/callback', async (req, res) => {
   try {
     const session = await createSession(code);
     await saveBankAccounts(userId, session);
-    res.redirect(302, '/portrait?bank=connected');
+    /* Back to the page the connection was started from, which is the Money surface. */
+    res.redirect(302, '/money?bank=connected');
   } catch (error) {
     log.error('bank callback failed', { error: error.message });
-    res.status(502).send('The bank connection could not be completed. Try again from TwinMe.');
+    res.redirect(302, '/money?bank=failed');
   }
 });

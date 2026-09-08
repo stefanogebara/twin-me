@@ -44,6 +44,15 @@ export default function MoneyV2Page() {
   }, []);
   useEffect(() => { void load(); }, [load]);
 
+  /* The bank sends the person back here through the callback, which says how it went. */
+  useEffect(() => {
+    const outcome = new URLSearchParams(window.location.search).get('bank');
+    if (!outcome) return;
+    setNote(outcome === 'connected' ? 'Santander is connected. The first read is on its way.' : 'The bank connection did not go through. Try it again.');
+    window.history.replaceState(null, '', window.location.pathname + window.location.hash);
+    if (outcome === 'connected') void moneyAPI.pull().then(() => load()).catch(() => { /* the note already says where we are */ });
+  }, [load]);
+
   const empty = loaded && ledger.length === 0;
   /* One purchase makes p10, p50 and p90 the same euro, and reading the same number three
      times looks broken rather than honest. Say nothing about the month until the band opens. */
