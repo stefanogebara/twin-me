@@ -1,0 +1,79 @@
+/* ==========================================================================
+   Money setup, in the money-v2 register: one question per screen, centred,
+   the question in display type, its evidence quiet underneath. No new colours,
+   no shadows on the question itself, hairlines and the black pill as elsewhere.
+   Vars (--ink, --card, --sans, --mono) come from .mv, which is on the root.
+   ========================================================================== */
+
+/* index.css styles h1/h2/p by element and truncates every button span, so both
+   have to be named again inside this scope or the page renders in Inter with
+   clipped pills. */
+.ms h1, .ms h2, .ms p, .ms li, .ms label, .ms small, .ms span { font-family: var(--sans); }
+.ms input { font-family: var(--sans); color: var(--ink); }
+.ms button span, .ms label span { white-space: normal; overflow: visible; }
+.ms { display: grid; grid-template-rows: auto 1fr auto; }
+.ms :focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+.ms .mv-footer { margin-top: 40px; }
+
+/* The stage: one question, held in the middle of the screen */
+.ms-stage { width: min(680px, 100% - 40px); margin: 0 auto; padding: 48px 0 64px; display: grid; align-content: center; justify-items: start; gap: 16px; }
+.ms-stage form { display: grid; gap: 16px; width: 100%; justify-items: start; }
+.ms-count { font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); }
+.ms .ms-ask { font-size: clamp(29px, 4.2vw, 48px); font-weight: 500; letter-spacing: -0.045em; line-height: 1.03; text-wrap: balance; }
+.ms .ms-why { font-size: 18px; line-height: 1.45; color: var(--ink-2); max-width: 34rem; }
+.ms .ms-help { font-size: 14.5px; line-height: 1.5; color: var(--ink-3); max-width: 34rem; }
+.ms .ms-turn { font-size: 15px; line-height: 1.45; color: var(--ink-2); max-width: 34rem; }
+.ms-changes { font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); }
+.ms-stage-inner { display: grid; gap: 16px; width: 100%; justify-items: start; animation: ms-rise 0.3s ease both; }
+@keyframes ms-rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+/* Fields */
+.ms-field { display: grid; gap: 7px; width: 100%; }
+.ms-label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); }
+.ms .ms-input { width: 100%; height: 56px; padding: 0 18px; border-radius: 16px; border: 1px solid rgba(17, 17, 17, 0.16); background: #fff; font-size: 18px; letter-spacing: -0.015em; }
+.ms .ms-input::placeholder { color: var(--ink-3); }
+.ms .ms-input:focus { border-color: var(--ink); }
+.ms .ms-input--sm { height: 44px; padding: 0 14px; font-size: 16px; border-radius: 12px; }
+.ms .ms-input--num { font-variant-numeric: tabular-nums; }
+.ms-choices { display: flex; flex-wrap: wrap; gap: 8px; width: 100%; }
+
+/* Repeatable rows, for what leaves every month and what comes in */
+.ms-rows { display: grid; gap: 10px; width: 100%; }
+.ms-row { display: grid; gap: 12px; align-items: end; padding: 16px 18px; border-radius: 18px; background: var(--card); }
+.ms-row--three { grid-template-columns: minmax(0, 1fr) 7.5rem 5rem; }
+.ms-row--share { grid-template-columns: minmax(0, 1fr) 8rem; }
+.ms-share-quick { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px; }
+.ms-pct { display: flex; align-items: center; gap: 8px; }
+.ms-pct span { font-family: var(--mono); font-size: 12px; color: var(--ink-3); }
+.ms .ms-drop { grid-column: 1 / -1; justify-self: end; font-size: 13px; color: var(--ink-3); padding: 0; }
+.ms .ms-drop:hover { color: var(--ink); }
+.ms .ms-add { justify-self: start; }
+
+/* Actions, and what the save had to say */
+.ms-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 6px; }
+.ms .ms-note { font-size: 14.5px; line-height: 1.45; color: var(--ink-2); }
+
+/* What it now knows */
+.ms-facts { width: 100%; display: grid; gap: 2px; border-top: 1px solid var(--rule); }
+.ms-facts li { display: grid; grid-template-columns: 9rem minmax(0, 1fr) auto; gap: 14px; align-items: baseline; padding: 13px 4px; border-bottom: 1px solid var(--rule); }
+.ms-fact-kind { font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); }
+.ms-fact-what { font-size: 16px; letter-spacing: -0.015em; }
+.ms-fact-amount { font-size: 16px; font-weight: 500; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.ms .ms-fact-note { grid-column: 2 / -1; font-size: 13.5px; line-height: 1.45; color: var(--ink-3); }
+
+@media (max-width: 640px) {
+  .ms-stage { width: min(680px, 100% - 32px); padding: 28px 0 48px; }
+  .ms .ms-why { font-size: 17px; }
+  .ms-row--three { grid-template-columns: 1fr 1fr; }
+  .ms-row--three > :first-child { grid-column: 1 / -1; }
+  .ms-row--share { grid-template-columns: 1fr auto; }
+  .ms-facts li { grid-template-columns: minmax(0, 1fr) auto; }
+  .ms-fact-kind { grid-column: 1 / -1; }
+  .ms .ms-fact-note { grid-column: 1 / -1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ms-stage-inner { animation: none; }
+  .ms .mv-pill { transition: none; }
+  .ms .mv-pill:hover { transform: none; }
+}
