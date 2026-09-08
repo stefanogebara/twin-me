@@ -78,3 +78,36 @@ describe('parseStructured: the iOS Shortcut Transaction automation', () => {
     expect(parseStructured({})).toBeNull();
   });
 });
+
+/**
+ * The phone is a Samsung, not an iPhone, so the capture is the bank's own notification text
+ * rather than Apple's structured fields. These are the wordings Santander sends.
+ */
+describe('parseCapture reads an Android notification', () => {
+  const cases = [
+    ['Santander: Compra de 4,20 EUR en CAFETERIA UNIVERSIDAD con tarjeta *1234', 4.2, 'out', 'card', 'CAFETERIA UNIVERSIDAD'],
+    ['Has realizado una compra de 23,45\u20ac en MERCADONA con tu tarjeta terminada en 1245', 23.45, 'out', 'card', 'MERCADONA'],
+    ['Pago de 12,50 EUR en SIMPLY ALCALA el 08/09/2026', 12.5, 'out', 'card', 'SIMPLY ALCALA'],
+    ['Bizum enviado de 15,00\u20ac a Juan Perez', 15, 'out', 'bizum', 'Juan Perez'],
+    ['Bizum recibido de 20,00\u20ac de Ana Lopez', 20, 'in', 'bizum', 'Ana Lopez'],
+    ['Se ha realizado un cargo de 11,99 EUR de SPOTIFY', 11.99, 'out', 'card', 'SPOTIFY'],
+  ];
+  for (const [text, amount, direction, channel, merchant] of cases) {
+    it(`reads "${text.slice(0, 42)}"`, () => {
+      expect(parseCapture(text)).toMatchObject({ amount, direction, channel, merchant_raw: merchant });
+    });
+  }
+
+  it('keeps a shop whose name begins with an article', () => {
+    /* The guard that drops "tu tarjeta" was case-insensitive and dropped EL CORTE INGLES
+       with it. Spanish notifications write articles in lower case and shops in capitals. */
+    expect(parseCapture('Compra en EL CORTE INGLES por 116,76 EUR')).toMatchObject({
+      amount: 116.76, merchant_raw: 'EL CORTE INGLES',
+    });
+    expect(parseCapture('Compra de 9,00 EUR con tu tarjeta terminada en 1245').merchant_raw).toBe(null);
+  });
+
+  it('reads an amount even where no merchant is named, rather than dropping the payment', () => {
+    expect(parseCapture('Retirada de efectivo de 50,00 EUR en cajero')).toMatchObject({ amount: 50, channel: 'cash' });
+  });
+});
