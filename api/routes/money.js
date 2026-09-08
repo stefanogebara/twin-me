@@ -10,6 +10,7 @@
  * POST /api/money/statement                a bank statement (xlsx/csv) becomes sightings
  * GET  /api/money/categories[?month=]      where a month went, by kind of place
  * GET  /api/money/places                   the places behind the ledger
+ * POST /api/money/places/lookup            look up the merchants not yet placed
  * POST /api/money/places/:key/category     a person's correction to a category
  * GET  /api/money/months                   money in and out per calendar month
  * GET  /api/money/readings[?refresh=1]     what the ledger says, with its receipts
@@ -30,7 +31,7 @@ import multer from 'multer';
 import { authenticateUser } from '../middleware/auth.js';
 import { createLogger } from '../services/logger.js';
 import { parseCapture, parseStructured } from '../services/money/captureParser.js';
-import { ingestSighting, ingestSightings, listTransactions, sightingsFor, refreshRecurring, forecast, setVerdict, userForCaptureKey, saveBankAccounts, listBankAccounts, pullBankFeed, refreshReadings, listReadings, setReadingVerdict, months, feedBudget, categorySpend, listPlaces, setPlaceCategory } from '../services/money/store.js';
+import { ingestSighting, ingestSightings, listTransactions, sightingsFor, refreshRecurring, forecast, setVerdict, userForCaptureKey, saveBankAccounts, listBankAccounts, pullBankFeed, refreshReadings, listReadings, setReadingVerdict, months, feedBudget, categorySpend, listPlaces, setPlaceCategory, enrichPlaces } from '../services/money/store.js';
 import { parseDelimited, parseWorkbook, toSightings } from '../services/money/statements/importer.js';
 import { isConfigured, listBanks, startAuthorisation, createSession } from '../services/money/feeds/enableBanking.js';
 
@@ -211,6 +212,13 @@ router.post('/statement', upload.single('file'), async (req, res) => {
 router.get('/categories', async (req, res) => {
   try { res.json({ success: true, data: await categorySpend(req.user.id, { month: typeof req.query.month === 'string' ? req.query.month : null }) }); }
   catch (error) { log.error('categories failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
+});
+
+/** Look up the merchants not yet placed. Repeat until `left` is zero. */
+router.post('/places/lookup', async (req, res) => {
+  const limit = Math.min(Math.max(parseInt(String(req.body?.limit ?? '12'), 10) || 12, 1), 40);
+  try { res.json({ success: true, data: await enrichPlaces(req.user.id, { limit }) }); }
+  catch (error) { log.error('place lookup failed', { error: error.message }); res.status(502).json({ success: false, error: 'The place lookup did not answer.' }); }
 });
 
 /** The places behind the ledger, with what each has taken. */

@@ -53,7 +53,7 @@ export default function MoneyV2Page() {
 
   const load = useCallback(async () => {
     const [f, l, r, a, m, rd, c] = await Promise.allSettled([
-      moneyAPI.forecast(), moneyAPI.ledger(), moneyAPI.recurring(), moneyAPI.accounts(), moneyAPI.months(), moneyAPI.readings(), moneyAPI.categories(),
+      moneyAPI.forecast(), moneyAPI.ledger(), moneyAPI.recurring(), moneyAPI.accounts(), moneyAPI.months(), moneyAPI.readings(), moneyAPI.categories(`${new Date().toISOString().slice(0, 7)}-01`),
     ]);
     if (f.status === 'fulfilled') setForecast(f.value);
     if (l.status === 'fulfilled') setLedger(l.value);
@@ -254,7 +254,7 @@ export default function MoneyV2Page() {
       {/* Where it went, by kind of place */}
       {categories && categories.groups.length ? (
         <section className="mv-section" id="where">
-          <h2>Where it went.</h2>
+          <h2>Where it went this month.</h2>
           <p className="mv-quiet">
             {categories.read < categories.total
               ? `${euro(categories.read)} of ${euro(categories.total)} is placed so far. The rest is waiting on a lookup.`

@@ -3,7 +3,7 @@
  * before there is enough to see. These tests hold both halves of that.
  */
 import { describe, it, expect } from 'vitest';
-import { monthSegments, readLedger } from '../../../../api/services/money/analyst.js';
+import { monthSegments, readLedger, categoryShape } from '../../../../api/services/money/analyst.js';
 
 /* es-ES currency puts a non-breaking space before the euro sign; read sentences plainly. */
 const plain = (s) => String(s).replace(/\u00a0/g, ' ');
@@ -184,5 +184,44 @@ describe('readLedger', () => {
       expect(Array.isArray(f.receipts)).toBe(true);
       expect(f.evidence_count).toBeGreaterThan(0);
     }
+  });
+});
+
+describe('categoryShape', () => {
+  const NOW2 = new Date('2026-09-08T10:00:00Z');
+  const kinds = { tools: 'software', shop: 'groceries', ride: 'taxi' };
+  const categoryOf = (t) => kinds[t.merchant_key] || null;
+
+  it('names the kind of place that takes the most, and says how much was placed', () => {
+    const rows = [
+      ...Array.from({ length: 12 }, () => tx('2026-08-10', -50, 'tools')),
+      ...Array.from({ length: 8 }, () => tx('2026-08-12', -10, 'shop')),
+      ...Array.from({ length: 4 }, () => tx('2026-08-14', -8, 'ride')),
+    ];
+    const f = categoryShape(rows, categoryOf, NOW2);
+    expect(plain(f.sentence)).toBe('84% of what you have spent in 120 days went to software: 600,00 €.');
+    expect(f.numbers).toMatchObject({ category: 'software', share_percent: 84, placed: 712, total: 712 });
+    expect(f.receipts).toHaveLength(4);
+  });
+
+  it('refuses a share when most of the money has no kind of place yet', () => {
+    const rows = [
+      ...Array.from({ length: 6 }, () => tx('2026-08-10', -50, 'tools')),
+      ...Array.from({ length: 20 }, (_, i) => tx('2026-08-12', -40, `unknown${i}`)),
+    ];
+    expect(categoryShape(rows, categoryOf, NOW2)).toBe(null);
+  });
+
+  it('says nothing on a thin window, and nothing when no kind stands out', () => {
+    expect(categoryShape([tx('2026-09-01', -10, 'tools')], categoryOf, NOW2)).toBe(null);
+    const even = ['tools', 'shop', 'ride'].flatMap((k) => Array.from({ length: 8 }, () => tx('2026-08-10', -10, k)));
+    const f = categoryShape(even, categoryOf, NOW2);
+    expect(f === null || f.numbers.share_percent >= 25).toBe(true);
+  });
+
+  it('is absent from readLedger until a category source is given', () => {
+    const rows = Array.from({ length: 24 }, () => tx('2026-08-10', -20, 'tools'));
+    expect(readLedger({ transactions: rows, now: NOW2 }).findings.find((f) => f.kind === 'category_shape')).toBeUndefined();
+    expect(readLedger({ transactions: rows, categoryOf, now: NOW2 }).findings.find((f) => f.kind === 'category_shape')).toBeTruthy();
   });
 });
