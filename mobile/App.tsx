@@ -19,6 +19,7 @@ import {
 
 import { useAuth } from './src/hooks/useAuth';
 import { registerBackgroundSync, runSyncNow } from './src/services/backgroundSync';
+import { ensureCaptureKey } from './src/services/captureKey';
 import { addLocationSample, SAMPLE_INTERVAL_MS } from './src/services/locationClusters';
 import { registerForPushNotifications } from './src/services/pushNotifications';
 import { usePushNotifications } from './src/hooks/usePushNotifications';
@@ -93,6 +94,12 @@ export default function App() {
       );
       checkPermissionsNeeded();
       NotifListenerBg.setAuthToken(token);
+      /* And a capture key, which outlives the session token the line above sets. The money
+         listener runs for months in the background; a JWT expiring there would take every
+         payment with it, silently. */
+      ensureCaptureKey().catch(err =>
+        console.warn('[Capture] Key not set (non-fatal):', err)
+      );
     } else {
       setShowPermissions(null);
     }

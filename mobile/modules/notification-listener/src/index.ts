@@ -17,6 +17,10 @@ export interface NotificationStatsModuleType extends NativeModule {
   getNotificationStats(): Promise<NotificationEntry[]>;
   clearStats(): void;
   setAuthToken(token: string): void;
+  /** The money capture key. Survives token expiry; see the Kotlin for why that matters. */
+  setCaptureKey(key: string): void;
+  /** Captures held back because the phone could not reach the server. */
+  pendingCaptureCount(): number;
   addListener(eventName: string, listener: (event: PurchaseEvent) => void): EventSubscription;
 }
 

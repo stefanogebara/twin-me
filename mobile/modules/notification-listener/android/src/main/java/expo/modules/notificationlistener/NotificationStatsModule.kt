@@ -36,6 +36,27 @@ class NotificationStatsModule : Module() {
       }
     }
 
+    /**
+     * The credential the money capture uses. Deliberately not the session token: this
+     * service runs for months without the app being opened, a JWT would expire quietly, and
+     * every payment after that would vanish with no error anybody would see. A capture key
+     * does not expire and can be revoked on its own.
+     */
+    Function("setCaptureKey") { key: String ->
+      appContext.reactContext?.let { ctx ->
+        TwinNotificationListenerService.getBgPrefs(ctx)
+          .edit().putString("capture_key", key).apply()
+      }
+    }
+
+    /** How many captures are waiting because the phone could not reach the server. */
+    Function("pendingCaptureCount") {
+      appContext.reactContext?.let { ctx ->
+        TwinNotificationListenerService.getBgPrefs(ctx)
+          .getStringSet("pending_captures", emptySet())?.size ?: 0
+      } ?: 0
+    }
+
     OnDestroy {
       TwinNotificationListenerService.purchaseListener = null
     }
