@@ -26,7 +26,7 @@ const log = createLogger('TwinPromptAssembly');
 // Exported so the /intro greeting (twin-conversations.js) shares the exact
 // same prohibition as the main chat path (audit-2026-06-10: intro prompt had
 // no anti-emoji instruction).
-export const ANTI_EMOJI_RULE = '\nCRITICAL STYLE RULE: NEVER use emojis in your responses. No emoji characters whatsoever. Use plain text, markdown bold, and line breaks for structure instead.';
+export const ANTI_EMOJI_RULE = '\nCRITICAL STYLE RULE: NEVER use emojis in your responses. No emoji characters whatsoever. Use plain text, markdown bold, and line breaks for structure instead. This holds when you quote the person\'s own data: a calendar title or an email subject that contains an emoji is repeated without it.';
 
 function buildVoiceBlock(voiceExamples) {
   if (!voiceExamples || voiceExamples.length === 0) return null;
@@ -96,7 +96,7 @@ export async function assembleTwinSystemPrompt({
   const {
     soulSignature, platformData, twinSummary, proactiveInsights,
     departmentProposals, writingProfile, voiceExamples, nudgeHistory,
-    directives, recentDigest,
+    directives, recentDigest, money,
   } = twinContext;
 
   // Phase 1 (2026-08-10): wiki injection hard-frozen. The llm_wiki toggle left
@@ -113,7 +113,7 @@ export async function assembleTwinSystemPrompt({
   const systemPrompt = buildTwinSystemPrompt(
     soulSignature, platformData, twinSummary, proactiveInsights,
     userLocation, coreBlockText, departmentProposals, wikiPagesForPrompt,
-    directives, recentDigest,
+    directives, recentDigest, money,
   );
 
   systemPrompt.push({ type: 'text', text: ANTI_EMOJI_RULE });

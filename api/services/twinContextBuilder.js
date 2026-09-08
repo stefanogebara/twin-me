@@ -457,6 +457,12 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
       return [];
     })),
 
+    // Money: this month, what comes back, and what the ledger says. Two indexed reads,
+    // and null when there is no ledger, so a twin with no bank connected says nothing.
+    timed('money', import('./money/store.js')
+      .then((m) => m.moneyContext(userId))
+      .catch(err => { log.warn('Money context fetch failed:', err.message); return null; })),
+
     // Self-improving twin: directives learned from past user corrections
     // (pi-reflect pattern, askjo.ai-inspired). Injected into the system
     // prompt as sticky-note rules. Hot path — single indexed read.
@@ -517,6 +523,7 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
     nudgeHistory,
     departmentProposals,
     wikiPages,
+    money,
     directives,
     recentDigest,
   ] = contextResults;
@@ -874,6 +881,7 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
     nudgeHistory,
     departmentProposals,
     wikiPages,
+    money,
     directives,
     recentDigest,
     timings,

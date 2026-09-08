@@ -10,6 +10,7 @@ import { detectRecurring } from './recurring.js';
 import { projectMonth } from './projection.js';
 import { fetchTransactions, toSighting } from './feeds/enableBanking.js';
 import { readLedger, monthSegments } from './analyst.js';
+import { tellTwin } from './twinBridge.js';
 
 const log = createLogger('money-store');
 
@@ -319,7 +320,10 @@ export async function refreshReadings(userId, now = new Date()) {
   /* A finding that no longer holds should stop being shown, not linger from last week. */
   const stale = (existing || []).filter((r) => !seen.has(keyOf(r.kind, r.month))).map((r) => r.id);
   if (stale.length) await supabaseAdmin.from('money_readings').delete().in('id', stale);
-  return { segments, findings };
+  /* The twin should know what the money says, in the same stream as everything else it
+     knows. Duplicate content inside a day is skipped by the memory stream itself. */
+  const told = await tellTwin(userId, findings).catch((e) => { log.warn(`twin bridge failed: ${e.message}`); return { written: 0 }; });
+  return { segments, findings, told: told.written };
 }
 
 /** The stored readings with their receipts resolved, newest computation first. */
@@ -348,4 +352,33 @@ export async function setReadingVerdict(userId, readingId, verdict) {
 export async function months(userId, now = new Date()) {
   const transactions = await listTransactions(userId, { limit: 5000 });
   return monthSegments(transactions, now);
+}
+
+/**
+ * The money the twin should have in front of it in any conversation: this month, what
+ * comes back, and the two or three things the ledger has to say. Compact by design —
+ * two queries, a few hundred characters — because it rides in every system prompt.
+ * Returns null when there is no ledger, so the twin says nothing rather than guessing.
+ */
+export async function moneyContext(userId, now = new Date()) {
+  const [transactions, readings] = await Promise.all([
+    listTransactions(userId, { limit: 2000 }),
+    supabaseAdmin.from('money_readings').select('kind, sentence, detail, computed_at').eq('user_id', userId)
+      .order('computed_at', { ascending: false }).limit(4).then((r) => r.data || []),
+  ]);
+  if (!transactions.length) return null;
+  const segments = monthSegments(transactions, now);
+  const here = segments[0];
+  const before = segments[1] || null;
+  return {
+    month: here?.month || null,
+    spent: here?.spent ?? 0,
+    received: here?.received ?? 0,
+    days_covered: here?.days_covered ?? 0,
+    days_in_month: here?.days_in_month ?? 30,
+    previous_month_spent: before ? before.spent : null,
+    lines: here?.lines ?? 0,
+    currency: transactions[0]?.currency || 'EUR',
+    readings: readings.map((r) => ({ kind: r.kind, sentence: r.sentence, detail: r.detail })),
+  };
 }
