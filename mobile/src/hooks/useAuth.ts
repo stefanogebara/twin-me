@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
+import { DeviceEventEmitter } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
 import { STORAGE_KEYS, OAUTH_API_URL } from '../constants';
 import {
+  SESSION_EXPIRED,
   authFetch,
   claimAuthCode,
   clearStoredSession,
@@ -37,6 +39,14 @@ export function useAuth() {
     user: null,
     isLoading: true,
   });
+
+  // A refused refresh anywhere in the app ends the session here, so the shell shows the door.
+  useEffect(() => {
+    const sub = DeviceEventEmitter.addListener(SESSION_EXPIRED, () => {
+      setState({ token: null, user: null, isLoading: false });
+    });
+    return () => sub.remove();
+  }, []);
 
   // On mount: load cached session immediately, then verify in background
   useEffect(() => {

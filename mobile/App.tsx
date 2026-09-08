@@ -18,7 +18,7 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { LayoutChangeEvent, Linking, Platform, StyleSheet, View } from 'react-native';
+import { DeviceEventEmitter, LayoutChangeEvent, Linking, Platform, StyleSheet, View } from 'react-native';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
@@ -38,20 +38,21 @@ import { NotificationListenerModule as NotifListenerBg } from './modules/notific
 import FrontDoorScreen from './src/screens/FrontDoorScreen';
 import BankScreen from './src/screens/BankScreen';
 import PhoneCaptureScreen from './src/screens/PhoneCaptureScreen';
-import QuestionsScreen from './src/screens/QuestionsScreen';
+import ChatScreen from './src/screens/ChatScreen';
 import MonthScreen from './src/screens/MonthScreen';
 import LedgerScreen from './src/screens/LedgerScreen';
 import YouScreen from './src/screens/YouScreen';
 
 type Setup = 'checking' | 'bank' | 'phone' | 'questions' | 'done';
-type Place = 'month' | 'ledger' | 'you';
-type Sheet = 'phone' | 'bank' | 'questions' | null;
+type Place = 'month' | 'ledger' | 'ask' | 'you';
+type Sheet = 'phone' | 'bank' | null;
 
 const PHONE_SEEN = 'twinme_money_phone_step_seen';
 const BANK_SKIPPED = 'twinme_money_bank_step_skipped';
 const PLACES: { id: Place; label: string }[] = [
   { id: 'month', label: 'Month' },
   { id: 'ledger', label: 'Ledger' },
+  { id: 'ask', label: 'Ask' },
   { id: 'you', label: 'You' },
 ];
 
@@ -108,7 +109,7 @@ function Layer({ active, children }: { active: boolean; children: React.ReactNod
  * -------------------------------------------------------------------------------------- */
 
 function Capsule({ place, onChange }: { place: Place; onChange: (p: Place) => void }) {
-  const [boxes, setBoxes] = useState<Record<Place, { x: number; w: number } | undefined>>({ month: undefined, ledger: undefined, you: undefined });
+  const [boxes, setBoxes] = useState<Record<Place, { x: number; w: number } | undefined>>({ month: undefined, ledger: undefined, ask: undefined, you: undefined });
   const x = useSharedValue(0);
   const w = useSharedValue(0);
   useEffect(() => {
@@ -201,7 +202,7 @@ function Shell() {
   const onRequestLink = useCallback((email: string) => requestMagicLink(email), []);
 
   /* Development only: the simulator has no hands, so the shell can be steered from outside.
-     twinme://dev/place?p=ledger, twinme://dev/sheet?s=questions (or none), twinme://dev/setup?s=bank,
+     twinme://dev/place?p=ask, twinme://dev/sheet?s=phone (or none), twinme://dev/setup?s=bank,
      and twinme://dev/tour, which walks the three places and a sheet for a frame-by-frame recording.
      Compiled out of release builds. */
   useEffect(() => {
@@ -216,11 +217,14 @@ function Shell() {
       else if (m[1] === 'sheet') setSheet((q.s && q.s !== 'none' ? q.s : null) as Sheet);
       else if (m[1] === 'setup') setSetup(q.s as Setup);
       else if (m[1] === 'signout') void logout();
+      else if (m[1] === 'say') DeviceEventEmitter.emit('dev:say', q.t || '');
+      else if (m[1] === 'trace') DeviceEventEmitter.emit('dev:trace');
+      else if (m[1] === 'google') void loginWithGoogle();
       else if (m[1] === 'tour') {
         const beat = Number(q.ms) || 1400;
         const steps: Array<() => void> = [
           () => setPlace('month'), () => setPlace('ledger'), () => setPlace('you'), () => setPlace('month'),
-          () => setSheet('questions'), () => setSheet(null),
+          () => setPlace('ask'), () => setPlace('month'),
         ];
         steps.forEach((step, i) => setTimeout(step, i * beat));
       }
@@ -258,23 +262,24 @@ function Shell() {
       </StepFrame>
     );
   } else if (setup === 'questions') {
-    surface = <QuestionsScreen onDone={() => { void decide(); }} />;
+    surface = <ChatScreen mode="onboarding" onDone={() => { void decide(); }} />;
   } else if (sheet === 'phone') {
     surface = <StepFrame onNext={() => setSheet(null)} nextLabel="Done"><PhoneCaptureScreen /></StepFrame>;
   } else if (sheet === 'bank') {
     surface = <BankScreen onDone={() => { setSheet(null); void decide(); }} onSkip={() => setSheet(null)} />;
-  } else if (sheet === 'questions') {
-    surface = <QuestionsScreen onDone={() => { setSheet(null); void decide(); }} />;
   } else {
     surface = (
       <View style={styles.fill}>
         <Capsule place={place} onChange={setPlace} />
         <View style={styles.fill}>
           <Layer active={place === 'month'}>
-            <MonthScreen questionCount={questionCount} onOpenQuestions={() => setSheet('questions')} onOpenLedger={() => setPlace('ledger')} />
+            <MonthScreen questionCount={questionCount} onOpenQuestions={() => setPlace('ask')} onOpenLedger={() => setPlace('ledger')} />
           </Layer>
           <Layer active={place === 'ledger'}>
             <LedgerScreen />
+          </Layer>
+          <Layer active={place === 'ask'}>
+            <ChatScreen mode="ask" />
           </Layer>
           <Layer active={place === 'you'}>
             <YouScreen
@@ -282,7 +287,7 @@ function Shell() {
               onSignOut={() => { void logout(); }}
               onOpenPhone={() => setSheet('phone')}
               onOpenBank={() => setSheet('bank')}
-              onOpenQuestions={() => setSheet('questions')}
+              onOpenQuestions={() => setPlace('ask')}
             />
           </Layer>
         </View>

@@ -1,3 +1,4 @@
+import { DeviceEventEmitter } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { API_URL, OAUTH_API_URL, STORAGE_KEYS } from '../constants';
 import type { User, MemoryStats, TwinInsight, AndroidUsageData, SoulSignatureProfile, PersonalityScores, PlatformConnection, WikiPage, ProactiveInsight, Goal } from '../types';
@@ -30,6 +31,9 @@ async function fetchWithAuthToken(path: string, token: string | null, options: R
   });
 }
 
+/** Emitted once when a refresh is refused and the stored session has been cleared. */
+export const SESSION_EXPIRED = 'auth:session-expired';
+
 export async function clearStoredSession(): Promise<void> {
   await Promise.all([
     SecureStore.deleteItemAsync(STORAGE_KEYS.AUTH_TOKEN),
@@ -54,7 +58,10 @@ export async function refreshSession(): Promise<{ token: string; user: User } | 
   });
 
   if (res.status === 401 || res.status === 403) {
+    /* The session is over. Every screen would otherwise fail on its own, each with a vague
+       line; one signal lets the shell walk the person back to the front door instead. */
     await clearStoredSession();
+    DeviceEventEmitter.emit(SESSION_EXPIRED);
     return null;
   }
 
