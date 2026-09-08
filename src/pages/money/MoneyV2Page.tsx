@@ -468,19 +468,20 @@ export default function MoneyV2Page() {
           <div className="mv-source">
             <span className="mv-card-kicker">Your phone</span>
             <b>The moment, in seconds.</b>
-            <p>Every card payment your bank announces on your phone can land here as it happens. A key ties the phone to your ledger.</p>
+            <p>Every payment your bank announces on your phone can land here as it happens, which is the only way to see today rather than three days ago. A key ties the phone to your ledger.</p>
             {key ? (
               <div className="mv-key">
                 <code>{key}</code>
-                <small>Shown once. Copy it into the Shortcut.</small>
+                <small>Shown once. Copy it into the macro.</small>
               </div>
             ) : (
               <div className="mv-ctas"><button type="button" className="mv-pill" onClick={makeKey} disabled={busy === 'key'}>Make a key for my phone</button></div>
             )}
             <ol className="mv-steps">
-              <li>Shortcuts → Automation → Transaction → your Santander card → Run immediately.</li>
-              <li>Add “Get contents of URL”: POST to <code>{`${window.location.origin}/api/money/capture`}</code>, JSON body with merchant, amount, card and date from the transaction; header <code>X-TwinMe-Key</code> with the key.</li>
-              <li>Bizum and SMS alerts can be forwarded the same way with the message text as <code>text</code>.</li>
+              <li>Install MacroDroid, or Tasker if you already use it. Both can watch a notification and send it on.</li>
+              <li>New macro. Trigger: Notification received, from the Santander app. Give it the notification permission when it asks.</li>
+              <li>Action: HTTP Request, POST to <code>{`${window.location.origin}/api/money/capture`}</code>, header <code>X-TwinMe-Key</code> with the key, JSON body <code>{'{"text": "[notification]"}'}</code> using the notification text variable.</li>
+              <li>Bizum and SMS alerts work the same way. The bank writes them in Spanish and this reads them: the amount, the shop, the card and whether it went out or came in.</li>
             </ol>
           </div>
         </div>

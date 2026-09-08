@@ -56,14 +56,19 @@ export function merchantKey(raw) {
 function merchantFrom(text) {
   // "... por 12,50€ en MERCADONA el 07/09/2026" | "... en CAFETERIA UNIVERSIDAD" | "... a Juan Pérez" | "... de Ana López"
   const patterns = [
-    /\ben\s+([A-ZÁÉÍÓÚÑ][^.,\n]*?)(?=\s+el\s+\d{1,2}\/|\s+con\s+|\s*[.,:]|\s*$)/,
+    /* "por" and "de" end the name too: an Android notification often puts the shop before
+       the amount ("Compra en EL CORTE INGLES por 116,76 EUR"), where iOS put it after. */
+    /\ben\s+([A-ZÁÉÍÓÚÑ][^.,\n]*?)(?=\s+el\s+\d{1,2}\/|\s+con\s+|\s+por\s+|\s+de\s+\d|\s*[.,:]|\s*$)/,
     /\b(?:a|de)\s+([A-ZÁÉÍÓÚÑ][^.,\n]*?)(?=\s+el\s+\d{1,2}\/|\s*[.,:]|\s*$)/,
   ];
   for (const re of patterns) {
     const m = text.match(re);
     if (!m) continue;
     const s = m[1].trim();
-    if (/^(tu|su|la|el|un|una) /i.test(s) || /^(Bizum|Apple Pay|Google Pay)$/i.test(s)) continue;
+    /* Case matters here. The guard exists to drop "tu tarjeta" and "la compra", and made
+       case-insensitive it also drops EL CORTE INGLES, a real shop whose name begins with an
+       article. Spanish notifications write articles in lower case and shop names in capitals. */
+    if (/^(tu|su|la|el|un|una) /.test(s) || /^(Bizum|Apple Pay|Google Pay)$/i.test(s)) continue;
     return s.slice(0, 80);
   }
   return null;
