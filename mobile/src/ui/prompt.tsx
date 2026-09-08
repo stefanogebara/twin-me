@@ -79,6 +79,22 @@ export function Prompt({ value, onChange, onSubmit, placeholder, busy, disabled,
 }
 
 /* ----------------------------------------------------------------------------------------
+ * PromptButton. The same capsule with nothing to type into: a door to the conversation. It
+ * sits under the places so the one gesture of the app is always one press away.
+ * -------------------------------------------------------------------------------------- */
+
+export function PromptButton({ label, onPress, style }: { label: string; onPress: () => void; style?: StyleProp<ViewStyle> }) {
+  return (
+    <Press onPress={onPress} accessibilityLabel={label} style={[p.capsule, style]}>
+      <Text style={p.placeholder} numberOfLines={1}>{label}</Text>
+      <View style={p.send}>
+        <Text style={p.arrow}>{'\u2191'}</Text>
+      </View>
+    </Press>
+  );
+}
+
+/* ----------------------------------------------------------------------------------------
  * Shimmer.
  * -------------------------------------------------------------------------------------- */
 
@@ -136,6 +152,11 @@ const p = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   sendOff: { backgroundColor: cosmos.color.ruleStrong },
+  placeholder: {
+    flex: 1, paddingVertical: 10,
+    fontFamily: cosmos.font.regular, fontSize: cosmos.size.body, letterSpacing: cosmos.tracking.body,
+    color: cosmos.color.ink3,
+  },
   arrow: { fontFamily: cosmos.font.medium, fontSize: 20, lineHeight: 24, color: cosmos.color.canvas },
   shimmerRow: { flexDirection: 'row', flexWrap: 'wrap' },
   letter: {

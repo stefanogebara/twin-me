@@ -30,6 +30,7 @@ import {
 import { learnMerchants, learnPatterns, predictNext, describeForTwin } from './brain.js';
 import { describeContext } from './context.js';
 import { CATEGORIES } from './places.js';
+import { calendarLines } from './calendar.js';
 
 const log = createLogger('money-chat');
 
@@ -314,6 +315,8 @@ export function contextText(ctx) {
   const said = describeContext(ctx.facts);
   if (said) lines.push(`The person said: ${said.replace(/\u20ac/g, 'EUR')}`);
 
+  lines.push(...calendarLines(ctx.facts, { now: ctx.now }));
+
   if (ctx.questions.length) {
     lines.push('Open questions (id: question): ' + ctx.questions.slice(0, 8).map((q) => `${q.id}: ${q.ask}`).join(' | '));
   }
@@ -342,6 +345,9 @@ export const RULES = [
   'Write amounts exactly as the context does, like 12,50 EUR.',
   'Do not say "always" for an amount that varies; say "usually" or "about".',
   'An answer is a claim: prefer naming the payments behind it.',
+  'The earlier turns are the conversation so far. Do not restate the question, do not repeat a number or a sentence you already said unless asked for it again, and do not explain again what the ledger is or where answers come from.',
+  'Vary your openings; never begin two answers the same way. On a follow-up ("and last month?", "why?", "and Spotify?") answer only what is new.',
+  'When the calendar lines say what a kind of event usually costs, you may say what the days ahead are likely to cost, always as "usually about", never as a promise.',
   'When a figure would show the thing better than words, ask for it by kind. Kinds: months (spent per month), shares (where a month went; add month, and by: "merchant" for places), weekdays (spend by weekday), recurring (what comes back), band (this month so far and likely), history (one merchant over time; add merchant). Ask for at most two, and only when they add something.',
   'Actions are offers the person taps, never things you did: the text must not claim to have changed, marked or recorded anything. Say something like "If that is right, mark it below." and leave the doing to the card.',
   'Propose an action only when the person asks to fix or record something: not_me with transaction_id from the recent payments; recategorise with merchant_key from the places and a category from: ' + CATEGORIES.join(', ') + '; answer with question_id from the open questions and the value they gave.',
@@ -452,6 +458,37 @@ export function assembleReply(parsed, ctx, message = '') {
   };
 }
 
+/* ------------------------------------------------------------------------ repetition */
+
+const sentencesOf = (text) => String(text || '').split(/(?<=[.!?])\s+/).map((s) => s.trim()).filter(Boolean);
+const shapeOf = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+
+/** The last thing the ledger said, from the history the app keeps. */
+export function previousTwinText(history) {
+  const turns = Array.isArray(history) ? history : [];
+  for (let i = turns.length - 1; i >= 0; i -= 1) {
+    const h = turns[i];
+    if (h && (h.role === 'twin' || h.role === 'assistant') && typeof h.text === 'string' && h.text.trim()) return h.text;
+  }
+  return '';
+}
+
+/**
+ * A reply that mostly repeats the previous one is cut down to what is new. Sentences already
+ * said are dropped when they make up more than REPEAT_SHARE of the reply; if nothing is left,
+ * the first sentence stays so the person is not answered with silence.
+ */
+export const REPEAT_SHARE = 0.6;
+export function withoutRepeats(text, history) {
+  const prev = new Set(sentencesOf(previousTwinText(history)).map(shapeOf).filter(Boolean));
+  const mine = sentencesOf(text);
+  if (!prev.size || mine.length === 0) return text;
+  const repeated = mine.filter((s) => prev.has(shapeOf(s)));
+  if (repeated.length / mine.length <= REPEAT_SHARE) return text;
+  const fresh = mine.filter((s) => !prev.has(shapeOf(s)));
+  return (fresh.length ? fresh : [mine[0]]).join(' ');
+}
+
 const EMPTY_LEDGER = 'There is nothing in the ledger yet. Connect a bank or add a statement and ask again.';
 const NO_ANSWER = 'The ledger cannot answer that from what it has.';
 
@@ -487,7 +524,8 @@ export async function answer(userId, message, history = [], { now = new Date() }
     const prose = plainProse(raw);
     return { text: prose ? euroGlyphs(prose) : NO_ANSWER, figures: [], actions: [], receipts: [] };
   }
-  return assembleReply(parsed, ctx, text);
+  const reply = assembleReply(parsed, ctx, text);
+  return { ...reply, text: withoutRepeats(reply.text, history) };
 }
 
 /* ------------------------------------------------------------------------ act */

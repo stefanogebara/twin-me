@@ -29,6 +29,7 @@ import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanima
 import { cosmos } from './src/constants/cosmos';
 import { fade, spring } from './src/ui/motion';
 import { Micro, Pill, Press } from './src/ui/primitives';
+import { PromptButton } from './src/ui/prompt';
 import { useAuth } from './src/hooks/useAuth';
 import { requestMagicLink } from './src/services/api';
 import { moneyApi } from './src/services/moneyApi';
@@ -44,15 +45,14 @@ import LedgerScreen from './src/screens/LedgerScreen';
 import YouScreen from './src/screens/YouScreen';
 
 type Setup = 'checking' | 'bank' | 'phone' | 'questions' | 'done';
-type Place = 'month' | 'ledger' | 'ask' | 'you';
-type Sheet = 'phone' | 'bank' | null;
+type Place = 'month' | 'ledger' | 'you';
+type Sheet = 'phone' | 'bank' | 'ask' | null;
 
 const PHONE_SEEN = 'twinme_money_phone_step_seen';
 const BANK_SKIPPED = 'twinme_money_bank_step_skipped';
 const PLACES: { id: Place; label: string }[] = [
   { id: 'month', label: 'Month' },
   { id: 'ledger', label: 'Ledger' },
-  { id: 'ask', label: 'Ask' },
   { id: 'you', label: 'You' },
 ];
 
@@ -109,7 +109,7 @@ function Layer({ active, children }: { active: boolean; children: React.ReactNod
  * -------------------------------------------------------------------------------------- */
 
 function Capsule({ place, onChange }: { place: Place; onChange: (p: Place) => void }) {
-  const [boxes, setBoxes] = useState<Record<Place, { x: number; w: number } | undefined>>({ month: undefined, ledger: undefined, ask: undefined, you: undefined });
+  const [boxes, setBoxes] = useState<Record<Place, { x: number; w: number } | undefined>>({ month: undefined, ledger: undefined, you: undefined });
   const x = useSharedValue(0);
   const w = useSharedValue(0);
   useEffect(() => {
@@ -202,7 +202,7 @@ function Shell() {
   const onRequestLink = useCallback((email: string) => requestMagicLink(email), []);
 
   /* Development only: the simulator has no hands, so the shell can be steered from outside.
-     twinme://dev/place?p=ask, twinme://dev/sheet?s=phone (or none), twinme://dev/setup?s=bank,
+     twinme://dev/place?p=ledger (p=ask opens the chat), twinme://dev/sheet?s=phone (or none), twinme://dev/setup?s=bank,
      and twinme://dev/tour, which walks the three places and a sheet for a frame-by-frame recording.
      Compiled out of release builds. */
   useEffect(() => {
@@ -213,7 +213,7 @@ function Shell() {
       const m = url.match(/^twinme:\/\/dev\/(\w+)(?:\?(.*))?$/);
       if (!m) return;
       const q = query(m[2]);
-      if (m[1] === 'place') setPlace(q.p as Place);
+      if (m[1] === 'place') { if (q.p === 'ask') setSheet('ask'); else setPlace(q.p as Place); }
       else if (m[1] === 'sheet') setSheet((q.s && q.s !== 'none' ? q.s : null) as Sheet);
       else if (m[1] === 'setup') setSetup(q.s as Setup);
       else if (m[1] === 'signout') void logout();
@@ -224,7 +224,7 @@ function Shell() {
         const beat = Number(q.ms) || 1400;
         const steps: Array<() => void> = [
           () => setPlace('month'), () => setPlace('ledger'), () => setPlace('you'), () => setPlace('month'),
-          () => setPlace('ask'), () => setPlace('month'),
+          () => setSheet('ask'), () => setSheet(null),
         ];
         steps.forEach((step, i) => setTimeout(step, i * beat));
       }
@@ -267,19 +267,20 @@ function Shell() {
     surface = <StepFrame onNext={() => setSheet(null)} nextLabel="Done"><PhoneCaptureScreen /></StepFrame>;
   } else if (sheet === 'bank') {
     surface = <BankScreen onDone={() => { setSheet(null); void decide(); }} onSkip={() => setSheet(null)} />;
+  } else if (sheet === 'ask') {
+    /* The conversation is a page of its own: no capsule, its own header, and it remembers
+       what was said when it closes. */
+    surface = <ChatScreen mode="ask" onClose={() => setSheet(null)} />;
   } else {
     surface = (
       <View style={styles.fill}>
         <Capsule place={place} onChange={setPlace} />
         <View style={styles.fill}>
           <Layer active={place === 'month'}>
-            <MonthScreen questionCount={questionCount} onOpenQuestions={() => setPlace('ask')} onOpenLedger={() => setPlace('ledger')} />
+            <MonthScreen questionCount={questionCount} onOpenQuestions={() => setSheet('ask')} onOpenLedger={() => setPlace('ledger')} />
           </Layer>
           <Layer active={place === 'ledger'}>
             <LedgerScreen />
-          </Layer>
-          <Layer active={place === 'ask'}>
-            <ChatScreen mode="ask" />
           </Layer>
           <Layer active={place === 'you'}>
             <YouScreen
@@ -287,9 +288,13 @@ function Shell() {
               onSignOut={() => { void logout(); }}
               onOpenPhone={() => setSheet('phone')}
               onOpenBank={() => setSheet('bank')}
-              onOpenQuestions={() => setPlace('ask')}
+              onOpenQuestions={() => setSheet('ask')}
             />
           </Layer>
+        </View>
+        {/* The one gesture of the app, under every place: a capsule that opens the conversation. */}
+        <View style={[styles.askBar, { paddingBottom: Platform.OS === 'ios' ? insets.bottom : cosmos.space.md }]}>
+          <PromptButton label="Ask about your money" onPress={() => setSheet('ask')} />
         </View>
       </View>
     );
@@ -330,6 +335,7 @@ export default function App() {
 
 const styles = StyleSheet.create({
   fill: { flex: 1, backgroundColor: cosmos.color.canvas },
+  askBar: { paddingHorizontal: cosmos.space.lg, paddingTop: cosmos.space.sm, backgroundColor: cosmos.color.canvas },
   capsule: {
     flexDirection: 'row', alignSelf: 'center', gap: cosmos.space.lg,
     marginTop: cosmos.space.sm, marginBottom: cosmos.space.xs, position: 'relative',

@@ -18,7 +18,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { DeviceEventEmitter, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { cosmos, dayMonth, euro } from '../constants/cosmos';
-import { Body, Card, Enter, Hairline, Micro, Page, Pill, Press, Row, Small } from '../ui/primitives';
+import { Body, Card, Enter, Hairline, Micro, Page, Pill, Press, Row, Small, Title } from '../ui/primitives';
 import { Figure } from '../ui/figures';
 import { Prompt, Shimmer } from '../ui/prompt';
 import { useReducedMotion } from '../ui/motion';
@@ -26,7 +26,10 @@ import {
   moneyApi, readLedgerStream,
   type ChatAction, type ChatReceipt, type ChatTurn, type LedgerStreamEvent, type MoneyQuestion,
 } from '../services/moneyApi';
-import type { ChatFigure } from '../ui/figures';
+import {
+  lineId, readLines, recallLikely, rememberLikely, setLines as storeLines, useTranscript,
+  type Line, type TraceStep,
+} from './chatStore';
 
 /* ----------------------------------------------------------------------------------------
  * Answers. The same parsing the web and the old questions screen used, kept verbatim so a
@@ -80,32 +83,9 @@ function rowSummary(row: ListRow, columns: string[]): string {
 }
 
 /* ----------------------------------------------------------------------------------------
- * The transcript's grammar. A line is one thing one of the two said.
+ * The transcript's grammar lives in chatStore.ts, so the page can close and reopen without
+ * forgetting. What follows is how a question becomes a line.
  * -------------------------------------------------------------------------------------- */
-
-type TraceStep = { step: string; label: string; state: 'working' | 'done' | 'failed'; detail: string | null; count: number | null };
-
-type Line = {
-  id: string;
-  who: 'twin' | 'you';
-  text: string;
-  /** Quieter sentences under the main one: a question's help, a consequence. */
-  small?: string[];
-  /** The line is waiting for the server; its text is the waiting words. */
-  pending?: boolean;
-  figures?: ChatFigure[];
-  actions?: ChatAction[];
-  receipts?: ChatReceipt[];
-  trace?: TraceStep[];
-  /** The question this line asks, when it asks one. Drives the cards and fields under it. */
-  question?: MoneyQuestion;
-};
-
-let lineSeq = 0;
-/* Ids carry the moment the module loaded: a development refresh resets the counter but keeps
-   the transcript, and two lines with one key take the whole list down. */
-const LINE_EPOCH = Date.now().toString(36);
-function lineId() { lineSeq += 1; return `l${LINE_EPOCH}-${lineSeq}`; }
 
 /** What the twin says when it asks a question: the question, then why it matters. */
 function questionLine(q: MoneyQuestion): Line {
@@ -188,12 +168,16 @@ function Receipts({ receipts }: { receipts: ChatReceipt[] }) {
  * The screen.
  * -------------------------------------------------------------------------------------- */
 
-export default function ChatScreen({ mode, onDone }: { mode: 'onboarding' | 'ask'; onDone?: () => void }) {
+export default function ChatScreen({ mode, onDone, onClose }: { mode: 'onboarding' | 'ask'; onDone?: () => void; onClose?: () => void }) {
   const insets = useSafeAreaInsets();
   const reduced = useReducedMotion();
   const scroller = useRef<ScrollView | null>(null);
 
-  const [lines, setLines] = useState<Line[]>([]);
+  /* The transcript is kept outside the screen (chatStore), so closing the page and coming
+     back finds the conversation where it was, and the greeting is said once. */
+  const lines = useTranscript(mode);
+  const setLines = useCallback((next: Line[] | ((all: Line[]) => Line[])) => storeLines(mode, next), [mode]);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
   const [queue, setQueue] = useState<MoneyQuestion[]>([]);
   const [index, setIndex] = useState(0);
   const [phase, setPhase] = useState<'loading' | 'asking' | 'reading' | 'done' | 'failed'>('loading');
@@ -206,19 +190,68 @@ export default function ChatScreen({ mode, onDone }: { mode: 'onboarding' | 'ask
     const id = lineId();
     setLines((all) => [...all, { ...line, id }]);
     return id;
-  }, []);
+  }, [setLines]);
   const amend = useCallback((id: string, patch: Partial<Line>) => {
     setLines((all) => all.map((l) => (l.id === id ? { ...l, ...patch } : l)));
-  }, []);
+  }, [setLines]);
 
-  /* Opening. Onboarding asks what only the person knows; ask mode opens the floor. */
+  /* Learning with the person: after something they said or did, the month is read again, and
+     if the likely total moved by more than a euro the transcript says so in one quiet line. */
+  const noteForecastMove = useCallback(async () => {
+    try {
+      const f = await moneyApi.forecast();
+      const before = recallLikely();
+      rememberLikely(f.projected_p50);
+      if (before === null || !Number.isFinite(before)) return;
+      const diff = f.projected_p50 - before;
+      if (Math.abs(diff) <= 1) return;
+      say({ who: 'twin', quiet: true, text: `The month now reads ${euro(Math.abs(diff))} ${diff < 0 ? 'lower' : 'higher'}.` });
+    } catch { /* the month page still has the number */ }
+  }, [say]);
+
+  /* Suggestions: questions the ledger can answer for this person, worked out from what the
+     app already has. Nothing is offered that the data cannot back. */
+  useEffect(() => {
+    if (mode !== 'ask') return;
+    let live = true;
+    (async () => {
+      const [rec, months, cats, fc, ledger] = await Promise.allSettled([
+        moneyApi.recurring(), moneyApi.months(), moneyApi.categories(), moneyApi.forecast(), moneyApi.ledger(),
+      ]);
+      if (!live) return;
+      const out: string[] = [];
+      if (fc.status === 'fulfilled') rememberLikely(fc.value.projected_p50);
+      if (rec.status === 'fulfilled' && rec.value.length > 0) out.push('What comes back every month?');
+      if (months.status === 'fulfilled' && months.value.length >= 2) out.push('How does this month compare?');
+      if (cats.status === 'fulfilled' && cats.value.groups.length > 0) out.push('Where did the money go?');
+      if (fc.status === 'fulfilled' && ((fc.value.committed_items?.length ?? 0) + (fc.value.commitment_items?.length ?? 0) + (fc.value.calendar_items?.length ?? 0)) > 0) out.push('What is still to come?');
+      if (ledger.status === 'fulfilled') {
+        const month = new Date().toISOString().slice(0, 7);
+        const seenBefore = new Set(ledger.value.filter((r) => !r.occurred_at.startsWith(month)).map((r) => r.merchant_key));
+        const fresh = ledger.value
+          .filter((r) => r.occurred_at.startsWith(month) && !seenBefore.has(r.merchant_key) && Number(r.amount) < 0)
+          .sort((a, b) => Math.abs(Number(b.amount)) - Math.abs(Number(a.amount)));
+        const first = fresh[0];
+        const name = first ? (first.merchant_name || first.merchant_raw || '').trim() : '';
+        if (name) out.push(`What was ${name}?`);
+      }
+      setSuggestions(out);
+    })();
+    return () => { live = false; };
+  }, [mode]);
+
+  /* Opening. Onboarding asks what only the person knows; ask mode opens the floor, once. */
   useEffect(() => {
     let live = true;
     if (mode === 'ask') {
-      say({ who: 'twin', text: 'Ask about any month, any shop, anything that leaves your account. Answers come from your own payments, with the payments underneath.' });
+      if (readLines('ask').length === 0) {
+        say({ who: 'twin', text: 'Ask about any month, any shop, anything that leaves your account. Answers come from your own payments, with the payments underneath.' });
+      }
       setPhase('asking');
       return () => { live = false; };
     }
+    storeLines('onboarding', []);
+    moneyApi.forecast().then((f) => rememberLikely(f.projected_p50)).catch(() => {});
     moneyApi.questions()
       .then((q) => {
         if (!live) return;
@@ -318,6 +351,7 @@ export default function ChatScreen({ mode, onDone }: { mode: 'onboarding' | 'ask
     try {
       const r = await moneyApi.answerQuestion({ questionId: question.id, kind: question.kind, value, ...(question.subject ? { subject: question.subject } : {}) });
       advance(value, saidFrom(r));
+      void noteForecastMove();
     } catch (e) {
       setNote((e as Error).message || 'That answer did not save. Try it again.');
     } finally {
@@ -343,6 +377,7 @@ export default function ChatScreen({ mode, onDone }: { mode: 'onboarding' | 'ask
         });
       }
       advance(filledRows.map((r) => rowSummary(r, columns)).join(' / '), saidFrom(last));
+      void noteForecastMove();
     } catch (e) {
       setNote((e as Error).message || 'That answer did not save. Try it again.');
     } finally {
@@ -361,7 +396,7 @@ export default function ChatScreen({ mode, onDone }: { mode: 'onboarding' | 'ask
 
   /* Ask mode: a question in words, answered from the ledger. */
   const history = useMemo<ChatTurn[]>(
-    () => lines.filter((l) => !l.pending && !l.trace && !l.question).map((l) => ({ role: l.who === 'you' ? 'user' : 'twin', text: l.text })),
+    () => lines.filter((l) => !l.pending && !l.trace && !l.question && !l.quiet).map((l) => ({ role: l.who === 'you' ? 'user' : 'twin', text: l.text })),
     [lines],
   );
 
@@ -385,8 +420,11 @@ export default function ChatScreen({ mode, onDone }: { mode: 'onboarding' | 'ask
     const pendingId = say({ who: 'twin', text: 'Reading the ledger.', pending: true });
     try {
       const reply = await moneyApi.chat(message, history);
+      const text = reply.text || 'Nothing it can say about that yet.';
+      /* An answer that opens with an amount gets that amount set large above the sentence. */
+      const lead = text.match(/^(\d[\d.,]*)\s?(?:EUR|\u20ac)/);
       amend(pendingId, {
-        pending: false, text: reply.text || 'Nothing it can say about that yet.',
+        pending: false, text, lead: lead ? `${lead[1]} \u20ac` : undefined,
         figures: reply.figures || [], actions: reply.actions || [], receipts: reply.receipts || [],
       });
     } catch {
@@ -396,14 +434,14 @@ export default function ChatScreen({ mode, onDone }: { mode: 'onboarding' | 'ask
     }
   }
 
-  async function act(lineIdOf: string, action: ChatAction) {
+  async function act(lineIdOf: string, index: number, action: ChatAction) {
     if (busy) return;
     setBusy(true);
     try {
       const r = await moneyApi.chatAct(action);
-      /* The card is spent once pressed; the transcript keeps what happened instead. */
-      setLines((all) => all.map((l) => (l.id === lineIdOf ? { ...l, actions: (l.actions || []).filter((a) => a !== action) } : l)));
-      say({ who: 'twin', text: r.said || 'Done.' });
+      /* The card turns into what happened, in its own place, so nothing jumps. */
+      setLines((all) => all.map((l) => (l.id === lineIdOf ? { ...l, acted: { ...(l.acted || {}), [index]: r.said || 'Done.' } } : l)));
+      void noteForecastMove();
     } catch {
       setNote('That could not be done right now.');
     } finally {
@@ -424,6 +462,16 @@ export default function ChatScreen({ mode, onDone }: { mode: 'onboarding' | 'ask
   }
 
   const composerShown = mode === 'ask' || (question !== null && !isList);
+  /* Offers to ask show when the floor is open: nothing pending, and the ledger spoke last. */
+  const lastLine = lines[lines.length - 1];
+  /* A question already asked in this transcript is not offered again, and once the
+     conversation has started the offers thin out to two, so they read as prompts, not a menu. */
+  const asked = useMemo(() => new Set(lines.filter((l) => l.who === 'you').map((l) => l.text.trim().toLowerCase())), [lines]);
+  const offers = useMemo(() => {
+    const fresh = suggestions.filter((q) => !asked.has(q.trim().toLowerCase()));
+    return fresh.slice(0, asked.size === 0 ? 3 : 2);
+  }, [suggestions, asked]);
+  const suggestionsShown = offers.length > 0 && !busy && (!lastLine || (lastLine.who === 'twin' && !lastLine.pending));
   const composerPlaceholder = mode === 'ask' ? 'Ask about your money' : isCards ? 'Or type your own' : 'Your answer';
 
   return (
@@ -437,7 +485,15 @@ export default function ChatScreen({ mode, onDone }: { mode: 'onboarding' | 'ask
             </View>
             <Hairline />
           </>
-        ) : null}
+        ) : (
+          <>
+            <View style={[s.head, s.headAsk]}>
+              <Micro>Ask</Micro>
+              {onClose ? <Pill label="Close" ghost small onPress={onClose} /> : null}
+            </View>
+            <Hairline />
+          </>
+        )}
 
         <ScrollView
           ref={scroller}
@@ -454,8 +510,9 @@ export default function ChatScreen({ mode, onDone }: { mode: 'onboarding' | 'ask
             const isCurrentQuestion = Boolean(l.question) && question !== null && l.question!.id === question.id;
             return (
               <Enter key={l.id} settle style={[s.line, l.who === 'you' && s.lineYou]}>
-                {speakerChanged ? <Micro>{l.who === 'you' ? 'You' : 'The ledger'}</Micro> : null}
-                {l.pending ? <Shimmer text={l.text} /> : <Body muted={l.who === 'you'}>{l.text}</Body>}
+                {speakerChanged && !l.quiet ? <Micro>{l.who === 'you' ? 'You' : 'The ledger'}</Micro> : null}
+                {l.lead ? <Title tabular>{l.lead}</Title> : null}
+                {l.pending ? <Shimmer text={l.text} /> : l.quiet ? <Small quiet>{l.text}</Small> : <Body muted={l.who === 'you'}>{l.text}</Body>}
                 {l.small?.map((t, k) => <Small key={k} quiet>{t}</Small>)}
 
                 {l.question?.receipts && l.question.receipts.length ? (
@@ -474,7 +531,11 @@ export default function ChatScreen({ mode, onDone }: { mode: 'onboarding' | 'ask
                 {l.receipts && l.receipts.length ? <Receipts receipts={l.receipts} /> : null}
                 {l.actions && l.actions.length ? (
                   <View style={s.cards}>
-                    {l.actions.map((a, k) => <Card key={`${a.kind}-${k}`} label={a.label} onPress={busy ? undefined : () => void act(l.id, a)} />)}
+                    {l.actions.map((a, k) => (
+                      l.acted && l.acted[k]
+                        ? <Small key={`${a.kind}-${k}`} quiet>{l.acted[k]}</Small>
+                        : <Card key={`${a.kind}-${k}`} label={a.label} onPress={busy ? undefined : () => void act(l.id, k, a)} />
+                    ))}
                   </View>
                 ) : null}
                 {l.trace ? <Trace steps={l.trace} /> : null}
@@ -516,6 +577,12 @@ export default function ChatScreen({ mode, onDone }: { mode: 'onboarding' | 'ask
             );
           })}
 
+          {mode === 'ask' && suggestionsShown ? (
+            <Enter style={s.cards}>
+              {offers.map((q) => <Card key={q} label={q} onPress={busy ? undefined : () => void ask(q)} />)}
+            </Enter>
+          ) : null}
+
           {note ? <Small>{note}</Small> : null}
 
           {mode === 'onboarding' && (phase === 'done' || phase === 'failed') && onDone ? (
@@ -550,6 +617,7 @@ const s = StyleSheet.create({
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline',
     paddingHorizontal: cosmos.space.lg, paddingBottom: cosmos.space.md,
   },
+  headAsk: { alignItems: 'center', paddingTop: cosmos.space.md },
   /* The transcript grows upward from the composer, the way a conversation does: one line sits
      just above the field, not at the top of an empty page. */
   transcript: { flexGrow: 1, justifyContent: 'flex-end', paddingHorizontal: cosmos.space.lg, paddingTop: cosmos.space.xl, gap: cosmos.space.lg },

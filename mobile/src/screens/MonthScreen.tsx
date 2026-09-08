@@ -127,7 +127,14 @@ export default function MonthScreen({ onOpenQuestions, questionCount, onOpenLedg
 
   const ahead = useMemo(() => {
     if (!forecast) return [] as string[];
-    return [...(forecast.committed_items || []), ...(forecast.commitment_items || [])].map((c) => merchantLabel(c));
+    /* Charges the ledger knows are due, then what the calendar says is coming and what such
+       things have cost before, so the one sentence holds both. */
+    const charges = [...(forecast.committed_items || []), ...(forecast.commitment_items || [])].map((c) => merchantLabel(c));
+    const events = (forecast.calendar_items || []).map((c) => {
+      const amount = Number(c.amount);
+      return amount > 0 ? `${c.title} (about ${euro(amount)})` : c.title;
+    });
+    return [...charges, ...events];
   }, [forecast]);
 
   async function setReadingVerdict(r: MoneyReading, v: 'true' | 'not_me') {
