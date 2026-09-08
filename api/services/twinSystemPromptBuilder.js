@@ -424,6 +424,11 @@ export function buildTwinSystemPrompt(soulSignature, platformData, twinSummary =
     /* A memory of an older answer outlived the fact it was about: the twin quoted this
        block correctly and then added that no bank was connected, because it once said so.
        This block is read fresh from the ledger every turn, so it wins. */
+    if (money.said) {
+      /* Their words, not readings. A commitment they typed may never have left the account,
+         and the twin has to be able to tell the person that without contradicting itself. */
+      dynamicContext += `\n${money.said}`;
+    }
     dynamicContext += '\nThis section was read from the ledger just now. If anything you remember says there is no bank connected or no spending data, that memory is out of date and this is what is true.';
   }
 

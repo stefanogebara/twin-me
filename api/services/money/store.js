@@ -14,6 +14,7 @@ import { tellTwin } from './twinBridge.js';
 import { lookupPlace, providerFor, categoryFromBrand, PROVIDER_NONE } from './places.js';
 import { readUsage, unmeasurable, platformForMerchant } from './usage.js';
 import { learnMerchants, predictNext, learnPatterns, describeForTwin } from './brain.js';
+import { openingQuestions, ledgerQuestions, checkCommitment, describeContext } from './context.js';
 
 const log = createLogger('money-store');
 
@@ -399,6 +400,10 @@ export async function moneyContext(userId, now = new Date()) {
   const segments = monthSegments(transactions, now);
   const here = segments[0];
   const before = segments[1] || null;
+  /* What the person said about their own money, kept apart from what was read, because a
+     typed number and an observed payment must never be quoted with the same certainty. */
+  const said = await contextBlock(userId).catch(() => '');
+
   /* What the ledger has learned about this person, in the twin's own context. Profiles are
      already stored, so this is a read, not a re-learn. */
   const { data: learned } = await supabaseAdmin
@@ -414,6 +419,7 @@ export async function moneyContext(userId, now = new Date()) {
   return {
     month: here?.month || null,
     spent: here?.spent ?? 0,
+    said,
     known: (learned || []).map((p) => ({
       name: p.name, times: p.times, typical: Number(p.typical_amount), fixed: p.amount_is_fixed,
       category: p.category, city: p.city, every_days: p.median_gap_days ? Number(p.median_gap_days) : null,
@@ -759,4 +765,74 @@ export async function predictionAccuracy(userId) {
   if (scored < 5) return { scored, hit_rate: null };
   const hit = (data || []).filter((x) => x.happened).length;
   return { scored, hit_rate: Math.round((hit / scored) * 100) / 100 };
+}
+
+/** What the person has told the system about their own money. */
+export async function listFacts(userId) {
+  const { data } = await supabaseAdmin.from('money_facts').select('*').eq('user_id', userId).order('answered_at');
+  return data || [];
+}
+
+/**
+ * The questions still worth putting to this person: the opening ones they have not answered,
+ * then the ones their own ledger raises, biggest unexplained money first. A question already
+ * skipped is not asked again — a person who declined once declined for a reason.
+ */
+export async function questionsFor(userId, now = new Date()) {
+  const [facts, transactions, asked] = await Promise.all([
+    listFacts(userId),
+    listTransactions(userId, { limit: 5000 }),
+    supabaseAdmin.from('money_questions_asked').select('question_id, skipped').eq('user_id', userId).then((r) => r.data || []),
+  ]);
+  const declined = new Set(asked.filter((a) => a.skipped).map((a) => a.question_id));
+  const keys = [...new Set(transactions.map((t) => t.merchant_key))];
+  const { data: places } = keys.length
+    ? await supabaseAdmin.from('money_places').select('merchant_key, category, category_override').in('merchant_key', keys)
+    : { data: [] };
+  const categories = new Map((places || []).map((x) => [x.merchant_key, x.category_override || x.category || null]));
+  const placeOf = (t) => categories.get(t.merchant_key) || null;
+
+  return {
+    opening: openingQuestions(facts).filter((q) => !declined.has(q.id)),
+    fromLedger: ledgerQuestions({ transactions, facts, placeOf, now }).filter((q) => !declined.has(q.id)),
+    answered: facts.length,
+  };
+}
+
+/** Record an answer, and check it against the ledger where it is checkable. */
+export async function answerQuestion(userId, { questionId, kind, subject, subjectLabel, value, amount, day, share }) {
+  const row = {
+    user_id: userId, kind, subject: subject || null, subject_label: subjectLabel || null,
+    value: value ?? null, amount: amount ?? null, day: day ?? null, share: share ?? null,
+    source: 'asked', question_id: questionId || null, answered_at: new Date().toISOString(),
+  };
+  if (kind === 'commitment' && amount) {
+    const transactions = await listTransactions(userId, { limit: 5000 });
+    const check = checkCommitment(row, transactions);
+    row.check_status = check.status;
+    row.check_note = check.note;
+    row.checked_at = new Date().toISOString();
+  }
+  const { data, error } = await supabaseAdmin.from('money_facts')
+    .upsert(row, { onConflict: 'user_id,kind,subject' }).select().single();
+  if (error) throw new Error(error.message);
+  if (questionId) {
+    await supabaseAdmin.from('money_questions_asked')
+      .upsert({ user_id: userId, question_id: questionId, answered: true, skipped: false }, { onConflict: 'user_id,question_id' });
+  }
+  return data;
+}
+
+/** A question declined is a question answered: it stops being asked. */
+export async function skipQuestion(userId, questionId) {
+  const { error } = await supabaseAdmin.from('money_questions_asked')
+    .upsert({ user_id: userId, question_id: questionId, answered: false, skipped: true }, { onConflict: 'user_id,question_id' });
+  if (error) throw new Error(error.message);
+  return { skipped: questionId };
+}
+
+/** The person's own words about their money, for the twin. */
+export async function contextBlock(userId) {
+  const facts = await listFacts(userId);
+  return describeContext(facts);
 }
