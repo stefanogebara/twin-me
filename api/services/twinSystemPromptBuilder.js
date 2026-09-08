@@ -403,7 +403,28 @@ export function buildTwinSystemPrompt(soulSignature, platformData, twinSummary =
     for (const r of money.readings || []) {
       dynamicContext += `\n- ${r.sentence}${r.detail ? ` ${r.detail}` : ''}`;
     }
-    dynamicContext += '\nThese figures are counted, so use them exactly and never round them into an estimate. If asked about something the ledger does not cover, say what is missing rather than guessing.';
+    if (money.known?.length) {
+      /* These are the merchants seen most, which is not the same list as the subscriptions:
+         given both without saying so, the twin merged them and reported a total that
+         included a merchant the total excluded. */
+      dynamicContext += '\nThe merchants this money goes to most, with the rhythm each one keeps. This is not a list of subscriptions; a charge is only a subscription where a reading above says so:';
+      for (const k of money.known) {
+        const bits = [`${k.times} ${k.times === 1 ? 'time' : 'times'}`, `${k.fixed ? 'always' : 'usually'} ${fmt(k.typical)}`];
+        if (k.every_days) bits.push(`about every ${Math.round(k.every_days)} days`);
+        if (k.category) bits.push(k.category);
+        if (k.city) bits.push(k.city);
+        dynamicContext += `\n- ${k.name}: ${bits.join(', ')}.${k.overdue ? ` Not seen in ${k.days_since} days, past its usual rhythm.` : ''}`;
+      }
+    }
+    if (money.expected?.length) {
+      dynamicContext += '\nExpected next, from those rhythms alone:';
+      for (const e of money.expected) dynamicContext += `\n- ${e.name} around ${e.on}, about ${fmt(e.amount)}.`;
+    }
+    dynamicContext += '\nThese figures are counted, so use them exactly and never round them into an estimate. If asked about something the ledger does not cover, say what is missing rather than guessing. An expected date is a rhythm, not a promise: say it as one.';
+    /* A memory of an older answer outlived the fact it was about: the twin quoted this
+       block correctly and then added that no bank was connected, because it once said so.
+       This block is read fresh from the ledger every turn, so it wins. */
+    dynamicContext += '\nThis section was read from the ledger just now. If anything you remember says there is no bank connected or no spending data, that memory is out of date and this is what is true.';
   }
 
   // === COMPILED KNOWLEDGE BASE (LLM Wiki — pre-compiled, cross-referenced domain pages) ===

@@ -13,6 +13,7 @@ import { readLedger, monthSegments } from './analyst.js';
 import { tellTwin } from './twinBridge.js';
 import { lookupPlace, providerFor, categoryFromBrand, PROVIDER_NONE } from './places.js';
 import { readUsage, unmeasurable, platformForMerchant } from './usage.js';
+import { learnMerchants, predictNext, learnPatterns, describeForTwin } from './brain.js';
 
 const log = createLogger('money-store');
 
@@ -398,9 +399,28 @@ export async function moneyContext(userId, now = new Date()) {
   const segments = monthSegments(transactions, now);
   const here = segments[0];
   const before = segments[1] || null;
+  /* What the ledger has learned about this person, in the twin's own context. Profiles are
+     already stored, so this is a read, not a re-learn. */
+  const { data: learned } = await supabaseAdmin
+    .from('money_merchant_profiles')
+    .select('name, times, typical_amount, amount_is_fixed, usual_weekday, median_gap_days, days_since_last, is_overdue, category, city')
+    .eq('user_id', userId).order('total', { ascending: false }).limit(8);
+  const { data: upcoming } = await supabaseAdmin
+    .from('money_predictions')
+    .select('name, expected_on, typical_amount, confidence')
+    .eq('user_id', userId).is('happened', null).gte('expected_on', now.toISOString().slice(0, 10))
+    .order('expected_on').limit(5);
+
   return {
     month: here?.month || null,
     spent: here?.spent ?? 0,
+    known: (learned || []).map((p) => ({
+      name: p.name, times: p.times, typical: Number(p.typical_amount), fixed: p.amount_is_fixed,
+      category: p.category, city: p.city, every_days: p.median_gap_days ? Number(p.median_gap_days) : null,
+      days_since: p.days_since_last, overdue: p.is_overdue,
+    })),
+    expected: (upcoming || []).filter((p) => Number(p.confidence) >= 0.3)
+      .map((p) => ({ name: p.name, on: p.expected_on, amount: Number(p.typical_amount) })),
     received: here?.received ?? 0,
     days_covered: here?.days_covered ?? 0,
     days_in_month: here?.days_in_month ?? 30,
@@ -648,4 +668,95 @@ export async function subscriptionUsage(userId, now = new Date()) {
     unmeasurable: unmeasurable(withCharges).map((u) => ({ ...u, name: names.get(u.merchant_key) || u.merchant_key })),
     measured: wanted,
   };
+}
+
+/**
+ * What the ledger has learned, remembered.
+ * ========================================
+ * The system learns about a person from their money alone: which places, which prices,
+ * which days, which rhythms, and what is normal for them. This runs the learning engine
+ * over the whole ledger, stores the merchant profiles (derived and disposable — delete
+ * them and the next pull rebuilds them), records dated predictions so they can be scored
+ * later against what actually happened, and returns the block the twin is given.
+ */
+export async function learn(userId, now = new Date()) {
+  const transactions = await listTransactions(userId, { limit: 5000 });
+  if (!transactions.length) return { profiles: [], patterns: [], predictions: [], summary: null };
+
+  const keys = [...new Set(transactions.map((t) => t.merchant_key))];
+  const { data: places } = keys.length
+    ? await supabaseAdmin.from('money_places').select('merchant_key, category, category_override').in('merchant_key', keys)
+    : { data: [] };
+  const categories = new Map((places || []).map((x) => [x.merchant_key, x.category_override || x.category || null]));
+  const categoryOf = (t) => categories.get(t.merchant_key) || CHANNEL_CATEGORY[t.channel] || null;
+
+  const profiles = learnMerchants(transactions, { now, categoryOf });
+  const predictions = predictNext(profiles, { now });
+  const patterns = learnPatterns({ transactions, profiles, categoryOf, now });
+  const summary = describeForTwin({ profiles, patterns, predictions, now });
+
+  if (profiles.length) {
+    const rows = profiles.map((p) => ({
+      user_id: userId, merchant_key: p.merchant_key, name: p.name, city: p.city, category: p.category,
+      channel: p.channel, times: p.times, first_seen: p.first_seen, last_seen: p.last_seen,
+      total: p.total, typical_amount: p.typical_amount, amount_low: p.amount_low, amount_high: p.amount_high,
+      amount_is_fixed: p.amount_is_fixed, weekday_counts: p.weekday_counts, usual_weekday: p.usual_weekday,
+      usual_day_of_month: p.usual_day_of_month, median_gap_days: p.median_gap_days, cadence: p.cadence,
+      days_since_last: p.days_since_last, is_overdue: p.is_overdue, learned_at: now.toISOString(),
+    }));
+    const { error } = await supabaseAdmin.from('money_merchant_profiles').upsert(rows, { onConflict: 'user_id,merchant_key' });
+    if (error) log.warn(`merchant profiles upsert failed: ${error.message}`);
+  }
+
+  if (predictions.length) {
+    /* A prediction already made for the same merchant and date is not made again: the point
+       is to be scored against what happens, and rewriting it would erase the record. */
+    const rows = predictions.map((p) => ({
+      user_id: userId, merchant_key: p.merchant_key, name: p.name,
+      expected_on: p.expected_on, typical_amount: p.typical_amount, confidence: p.confidence,
+    }));
+    const { error } = await supabaseAdmin.from('money_predictions').upsert(rows, { onConflict: 'user_id,merchant_key,expected_on', ignoreDuplicates: true });
+    if (error) log.warn(`predictions upsert failed: ${error.message}`);
+  }
+
+  return { profiles, patterns, predictions, summary };
+}
+
+/**
+ * Did what the ledger expected actually happen? Open predictions whose date has passed are
+ * matched against the transactions around them, within three days and a quarter of the
+ * expected amount. A forecast nobody scores is a forecast nobody should trust.
+ */
+export async function scorePredictions(userId, now = new Date()) {
+  const { data: open } = await supabaseAdmin
+    .from('money_predictions')
+    .select('id, merchant_key, expected_on, typical_amount')
+    .eq('user_id', userId).is('happened', null).lt('expected_on', now.toISOString().slice(0, 10));
+  if (!open?.length) return { scored: 0, hit: 0 };
+
+  const transactions = await listTransactions(userId, { limit: 5000 });
+  let hit = 0;
+  for (const p of open) {
+    const target = new Date(`${p.expected_on}T12:00:00Z`).getTime();
+    const match = transactions.find((t) => t.merchant_key === p.merchant_key
+      && Number(t.amount) < 0
+      && Math.abs(new Date(t.occurred_at).getTime() - target) <= 3 * 86400000
+      && (!p.typical_amount || Math.abs(Math.abs(Number(t.amount)) - Number(p.typical_amount)) <= Number(p.typical_amount) * 0.25));
+    const update = match
+      ? { happened: true, happened_on: match.occurred_at.slice(0, 10), happened_amount: Math.abs(Number(match.amount)), scored_at: now.toISOString() }
+      : { happened: false, scored_at: now.toISOString() };
+    if (match) hit += 1;
+    await supabaseAdmin.from('money_predictions').update(update).eq('id', p.id);
+  }
+  return { scored: open.length, hit };
+}
+
+/** How often the ledger's predictions have been right, once there are enough to say. */
+export async function predictionAccuracy(userId) {
+  const { data } = await supabaseAdmin.from('money_predictions')
+    .select('happened').eq('user_id', userId).not('happened', 'is', null);
+  const scored = (data || []).length;
+  if (scored < 5) return { scored, hit_rate: null };
+  const hit = (data || []).filter((x) => x.happened).length;
+  return { scored, hit_rate: Math.round((hit / scored) * 100) / 100 };
 }
