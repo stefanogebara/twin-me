@@ -48,8 +48,8 @@ export const TRUNCATED_CONFIDENCE = 0.4;
 export const CATEGORIES = Object.freeze([
   'groceries', 'eating out', 'coffee', 'transport', 'taxi', 'fuel', 'health',
   'pharmacy', 'sport', 'education', 'clothing', 'home', 'electronics',
-  'entertainment', 'software', 'travel', 'lodging', 'cash', 'fees', 'transfers',
-  'other',
+  'entertainment', 'software', 'advertising', 'travel', 'lodging', 'cash', 'fees',
+  'transfers', 'bills', 'other',
 ]);
 
 /* ------------------------------------------------------------------ provider */
@@ -541,6 +541,8 @@ const BRANDS = [
   [/^(farmacia|farmacias|pharmacy|dosfarma|promofarma)/i, { category: 'pharmacy', kind: 'pharmacy' }],
   [/^(sanitas|adeslas|dkv|asisa|quiron|vithas|hm hospitales|clinica|dentix|vitaldent)/i, { category: 'health', kind: 'health' }],
   [/^(ie |ie business|torre ie|iese|esade|comillas|icade|uam|ucm|upm|uc3m|urjc|universidad|colegio|coursera|udemy|platzi|duolingo)/i, { category: 'education', kind: 'education' }],
+  [/^(facebk|facebook|meta platforms|meta ads|instagram ads|google ads|adwords|tiktok ads|linkedin ads|x ads|twitter ads|reddit ads)/i, { category: 'advertising', kind: 'online' }],
+  [/^(endesa|iberdrola|naturgy|repsol luz|holaluz|totalenergies|canal de isabel|aqualia|movistar|vodafone|orange|yoigo|masmovil|pepephone|digi|o2 )/i, { category: 'bills', kind: 'utility' }],
   [/^(openrouter|openai|anthropic|elevenlabs|higgsfield|replicate|hugging ?face|midjourney|runway|fal\.|cursor|github|gitlab|vercel|render|fly\.io|railway|heroku|supabase|planetscale|neon|cloudflare|digitalocean|aws|amazon web|azure|google cloud|gcp|twilio|sendgrid|resend|stripe|linear|notion|figma|slack|zoom|adobe|jetbrains|sentry|posthog|datadog|expo|apple developer|namecheap|godaddy|porkbun)/i, { category: 'software', kind: 'online' }],
   [/^(spotify|netflix|hbo|max\b|disney|prime video|movistar|dazn|filmin|youtube|twitch|steam|playstation|xbox|nintendo|audible|kindle)/i, { category: 'entertainment', kind: 'online' }],
   [/^(booking|airbnb|hotel|hostel|nh hoteles|melia|barcelo|riu|paradores|expedia|kiwi\.com|skyscanner|edreams)/i, { category: 'lodging', kind: 'lodging' }],

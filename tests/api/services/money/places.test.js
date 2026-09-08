@@ -480,8 +480,8 @@ describe('CATEGORIES', () => {
     expect(CATEGORIES).toEqual([
       'groceries', 'eating out', 'coffee', 'transport', 'taxi', 'fuel', 'health',
       'pharmacy', 'sport', 'education', 'clothing', 'home', 'electronics',
-      'entertainment', 'software', 'travel', 'lodging', 'cash', 'fees', 'transfers',
-      'other',
+      'entertainment', 'software', 'advertising', 'travel', 'lodging', 'cash', 'fees',
+      'transfers', 'bills', 'other',
     ]);
     expect(Object.isFrozen(CATEGORIES)).toBe(true);
   });
@@ -503,6 +503,14 @@ describe('categoryFromBrand', () => {
   it('reads a bank-truncated brand from its start', () => {
     expect(categoryFromBrand('El Corte Ingl')).toMatchObject({ category: 'clothing' });
     expect(categoryFromBrand('We Taxi Licenci')).toMatchObject({ category: 'taxi' });
+  });
+
+  it('tells an ad platform apart from a tool, because a founder pays both', () => {
+    expect(categoryFromBrand('Facebook')).toMatchObject({ category: 'advertising' });
+    expect(categoryFromBrand('Facebk')).toMatchObject({ category: 'advertising' });
+    expect(categoryFromBrand('Google Ads')).toMatchObject({ category: 'advertising' });
+    expect(categoryFromBrand('Endesa')).toMatchObject({ category: 'bills' });
+    expect(categoryFromBrand('Movistar')).toMatchObject({ category: 'bills' });
   });
 
   it('knows the tools a builder pays for, and the streams they watch', () => {
