@@ -17,13 +17,13 @@ describe('parseNarrative', () => {
     expect(parseNarrative('COMPRA Cabify ES 2636eRmHs0tq, Madrid, TARJETA 5489010523741245 , COMISION 0,00')).toEqual({
       merchant: 'Cabify', channel: 'card', cardLast4: '1245', isRefund: false,
     });
-    expect(parseNarrative('COMPRA PLAYTOMIC.IO 8C575A28, MADRID, TARJETA 5489010523741245 , COMISION 0,00').merchant).toBe('PLAYTOMIC.IO');
+    expect(parseNarrative('COMPRA PLAYTOMIC.IO 8C575A28, MADRID, TARJETA 5489010523741245 , COMISION 0,00').merchant).toBe('Playtomic.io');
     expect(parseNarrative('COMPRA Spotify P4675EFF52, Stockholm, TARJETA 5489010523741245 , COMISION 0,00').merchant).toBe('Spotify');
     expect(parseNarrative('COMPRA 31AUG MRRYNFLV, Barcelona, TARJETA 5489010523741245 , COMISION 0,00').merchant).toBe('Mrrynflv');
   });
 
   it('cuts a reference off a domain and a letter the bank truncated', () => {
-    expect(parseNarrative('COMPRA BOLT.EU/O/2609041118, Tallinn, TARJETA 5489010523741245 , COMISION 0,00').merchant).toBe('BOLT.EU');
+    expect(parseNarrative('COMPRA BOLT.EU/O/2609041118, Tallinn, TARJETA 5489010523741245 , COMISION 0,00').merchant).toBe('Bolt.eu');
     expect(parseNarrative('COMPRA AB Servicios Selecta E, Madrid, TARJETA 5489010523741245 , COMISION 0,00').merchant).toBe('AB Servicios Selecta');
     /* IE is Ireland's country code and also the name of a Madrid business school. */
     expect(parseNarrative('PAGO MOVIL EN TORRE IE, VIEJAS ES, TARJ. :*741245').merchant).toBe('Torre IE');
@@ -31,7 +31,8 @@ describe('parseNarrative', () => {
 
   it('keeps the merchant, not the aggregator, when one prints its own name', () => {
     expect(parseNarrative('COMPRA SQ *SHAKE SHACK, Boston, TARJETA 5489010523741245 , COMISION 0,00').merchant).toBe('Shake Shack');
-    expect(parseNarrative('COMPRA FACEBK *Q42J82JD24, DUBLIN 2, TARJETA 5489010523741245 , COMISION 0,00').merchant).toBe('Facebk');
+    /* FACEBK is Facebook's card descriptor, and nobody says "Facebk". */
+    expect(parseNarrative('COMPRA FACEBK *Q42J82JD24, DUBLIN 2, TARJETA 5489010523741245 , COMISION 0,00').merchant).toBe('Facebook');
   });
 
   it('marks a refund and still names the shop', () => {
@@ -83,10 +84,10 @@ describe('cardFrom', () => {
 });
 
 describe('prettyMerchant', () => {
-  it('leaves acronyms and domains alone', () => {
+  it('keeps an acronym in capitals and reads a domain as a name', () => {
     expect(prettyMerchant('TORRE IE')).toBe('Torre IE');
-    expect(prettyMerchant('VERCEL.COM')).toBe('VERCEL.COM');
-    expect(prettyMerchant('ELEVENLABS.IO')).toBe('ELEVENLABS.IO');
+    expect(prettyMerchant('VERCEL.COM')).toBe('Vercel.com');
+    expect(prettyMerchant('ELEVENLABS.IO')).toBe('Elevenlabs.io');
     expect(prettyMerchant('MERCADONA MADRID')).toBe('Mercadona Madrid');
     expect(prettyMerchant('')).toBe(null);
   });

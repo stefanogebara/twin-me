@@ -349,6 +349,62 @@ export function registerExtendedTools() {
       const limit = Math.min(Math.max(parseInt(String(params?.limit ?? '15'), 10) || 15, 1), 50);
       const minMonthly = Math.max(Number(params?.minMonthly) || 0, 0);
 
+      // Money v2 is the truth when it holds anything: its series come from a reconciled
+      // ledger (bank feed + phone), detected on three occurrences at one rhythm, and its
+      // names are the ones the person reads in the app. The legacy user_transactions path
+      // below still answers for accounts that only ever had the April upload flow.
+      const { data: series } = await supabaseAdmin
+        .from('money_recurring')
+        .select('merchant_key, cadence, typical_amount, occurrences, first_seen, last_seen, next_expected, is_subscription')
+        .eq('user_id', userId)
+        .order('typical_amount', { ascending: false });
+      if (series?.length) {
+        const keys = series.map((r) => r.merchant_key);
+        const { data: charges } = await supabaseAdmin
+          .from('money_transactions')
+          .select('merchant_key, merchant_raw, amount, currency, occurred_at, channel')
+          .eq('user_id', userId)
+          .in('merchant_key', keys)
+          .lt('amount', 0);
+        const byKey = new Map();
+        for (const c of charges || []) {
+          if (!byKey.has(c.merchant_key)) byKey.set(c.merchant_key, []);
+          byKey.get(c.merchant_key).push(c);
+        }
+        const subs = series
+          .map((r) => {
+            const rows = byKey.get(r.merchant_key) || [];
+            const monthlyAvg = Math.abs(Number(r.typical_amount) || 0);
+            return {
+              merchant: rows[0]?.merchant_raw || r.merchant_key,
+              category: null,
+              monthlyAvg: Math.round(monthlyAvg * 100) / 100,
+              currency: rows[0]?.currency || 'EUR',
+              cadence: r.cadence,
+              chargeCount: Number(r.occurrences) || rows.length,
+              firstChargeDate: (r.first_seen || '').slice(0, 10) || null,
+              lastChargeDate: (r.last_seen || '').slice(0, 10) || null,
+              nextExpected: r.next_expected || null,
+              totalSpentToDate: Math.round(rows.reduce((s, c) => s + Math.abs(Number(c.amount) || 0), 0) * 100) / 100,
+              isSubscription: Boolean(r.is_subscription),
+              source: 'ledger',
+            };
+          })
+          .filter((s) => s.monthlyAvg >= minMonthly);
+        const monthly = subs.filter((s) => s.cadence === 'monthly');
+        const totalMonthly = Math.round(monthly.reduce((s, x) => s + x.monthlyAvg, 0) * 100) / 100;
+        const money = new Intl.NumberFormat('es-ES', { style: 'currency', currency: subs[0]?.currency || 'EUR' });
+        return {
+          success: true,
+          count: subs.length,
+          totalMonthly,
+          synthesis: monthly.length
+            ? `${monthly.length} ${monthly.length === 1 ? 'charge comes' : 'charges come'} back every month, ${money.format(totalMonthly)} together: ${monthly.slice(0, 4).map((s) => s.merchant).join(', ')}.`
+            : `${subs.length} recurring ${subs.length === 1 ? 'charge' : 'charges'} in the ledger, none of them monthly.`,
+          subscriptions: subs.slice(0, limit),
+        };
+      }
+
       // Pull all recurring rows + first-charge emotional context. Recurrence
       // is per-merchant in the detector, so we aggregate by merchant_normalized.
       const { data: rows, error } = await supabaseAdmin

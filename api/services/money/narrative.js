@@ -41,6 +41,13 @@ export function cardFrom(text) {
   return m[1].slice(-4);
 }
 
+/** Card descriptors that are a company under a shorthand nobody says out loud. */
+const ALIASES = new Map([
+  ['facebk', 'Facebook'], ['fb', 'Facebook'], ['amzn', 'Amazon'], ['amzn mktp', 'Amazon'],
+  ['googl', 'Google'], ['google play', 'Google Play'], ['uber bv', 'Uber'], ['uber trip', 'Uber'],
+  ['paypal', 'PayPal'], ['glovoapp', 'Glovo'], ['aws', 'Amazon Web Services'], ['openai', 'OpenAI'],
+]);
+
 /** Names that are read as letters, not as a word, and keep their capitals. */
 const ACRONYMS = new Set(['IE', 'IBM', 'BBVA', 'ING', 'KFC', 'SQ', 'EU', 'UK', 'US', 'AB', 'IKEA', 'ONCE', 'ADIF', 'AVE']);
 
@@ -82,7 +89,11 @@ export function prettyMerchant(name) {
   return raw
     .split(' ')
     .map((w) => {
-      if (w.includes('.')) return w.replace(/^([\w-]+(?:\.[\w-]+)+)[/\\].*$/, '$1');  // BOLT.EU/O/2609 → BOLT.EU
+      if (w.includes('.')) {
+        /* A domain is a name, not a shout: BOLT.EU/O/2609041118 reads as Bolt.eu. */
+        const domain = w.replace(/^([\w-]+(?:\.[\w-]+)+)[/\\].*$/, '$1');
+        return /[a-z]/.test(domain) && /[A-Z]/.test(domain) ? domain : domain.charAt(0).toUpperCase() + domain.slice(1).toLowerCase();
+      }
       if (ACRONYMS.has(w.toUpperCase())) return w.toUpperCase();         // IE, BBVA
       if (/[a-z]/.test(w) && /[A-Z]/.test(w)) return w;                  // Cabify, McDonald
       return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
@@ -116,7 +127,7 @@ export function parseNarrative(text) {
     name = stripDatePrefix(name.trim());
     name = throughAggregator(name);
     name = dropReference(name).trim();
-    if (name && !NOISE.test(name)) return { merchant: prettyMerchant(name), channel, cardLast4, isRefund };
+    if (name && !NOISE.test(name)) return { merchant: ALIASES.get(name.toLowerCase()) || prettyMerchant(name), channel, cardLast4, isRefund };
   }
 
   /* The bank charging its own account still deserves a name a person can read. */

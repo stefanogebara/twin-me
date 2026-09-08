@@ -285,7 +285,7 @@ When the user asks for a "morning briefing", "what's my day look like", or simil
  * Build a personalized system prompt based on user's soul signature, platform data, and memory.
  * Returns an array format for Anthropic prompt caching - static base is cached, dynamic context is not.
  */
-export function buildTwinSystemPrompt(soulSignature, platformData, twinSummary = null, proactiveInsights = null, userLocation = null, coreMemoryBlockText = null, departmentProposals = null, wikiPages = null, directives = null, recentDigest = null) {
+export function buildTwinSystemPrompt(soulSignature, platformData, twinSummary = null, proactiveInsights = null, userLocation = null, coreMemoryBlockText = null, departmentProposals = null, wikiPages = null, directives = null, recentDigest = null, money = null) {
   let dynamicContext = '';
 
   // === CORE IDENTITY (pinned blocks — highest attention weight) ===
@@ -388,6 +388,22 @@ export function buildTwinSystemPrompt(soulSignature, platformData, twinSummary =
       ? recentDigest.slice(0, MAX_DIGEST_CHARS) + '\n[...older platform events truncated]'
       : recentDigest;
     dynamicContext += `\n\n${digestText}`;
+  }
+
+  // === MY MONEY (computed from the reconciled ledger, never estimated) ===
+  // Every number here was counted from transactions. Retrieval alone left the twin
+  // saying "I don't have the full picture" while the ledger held three months, so the
+  // month and what the ledger says ride in the prompt itself.
+  if (money && (money.lines > 0)) {
+    const fmt = (n) => new Intl.NumberFormat('es-ES', { style: 'currency', currency: money.currency || 'EUR', maximumFractionDigits: Math.abs(Number(n)) >= 1000 ? 0 : 2 }).format(Math.abs(Number(n) || 0));
+    dynamicContext += '\n\n=== MY MONEY ===';
+    dynamicContext += `\nThis month: ${fmt(money.spent)} spent over ${money.days_covered} of ${money.days_in_month} days, across ${money.lines} lines.`;
+    if (money.received) dynamicContext += ` ${fmt(money.received)} came in.`;
+    if (money.previous_month_spent != null) dynamicContext += `\nLast month, in full: ${fmt(money.previous_month_spent)}.`;
+    for (const r of money.readings || []) {
+      dynamicContext += `\n- ${r.sentence}${r.detail ? ` ${r.detail}` : ''}`;
+    }
+    dynamicContext += '\nThese figures are counted, so use them exactly and never round them into an estimate. If asked about something the ledger does not cover, say what is missing rather than guessing.';
   }
 
   // === COMPILED KNOWLEDGE BASE (LLM Wiki — pre-compiled, cross-referenced domain pages) ===

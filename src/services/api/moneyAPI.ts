@@ -16,6 +16,16 @@ export type MoneyForecast = {
   projected_p10: number; projected_p50: number; projected_p90: number; history_days: number;
   committed_items: { merchant_key: string; merchant_name?: string | null; typical_amount: number | string; next_expected: string }[];
 };
+export type MoneyMonth = {
+  month: string; spent: number; received: number; lines: number; days_covered: number; days_in_month: number; complete: boolean;
+  biggest: { id: string; merchant: string; amount: number } | null;
+};
+export type MoneyReading = {
+  id: string; kind: string; month: string | null; sentence: string; detail: string | null;
+  numbers: Record<string, number | string>; evidence_count: number; verdict: 'true' | 'not_me' | null; computed_at: string;
+  receipts: { id: string; occurred_at: string; amount: number | string; merchant_raw: string | null; merchant_key: string; channel: string | null }[];
+};
+export type MoneyBudget = { used: number; left: number; resets_at: string | null };
 export type MoneyAccount = { id: string; provider: string; name: string | null; iban_mask: string | null; currency: string; consent_expires_at: string | null; last_pulled_at: string | null };
 
 async function json<T>(res: Response): Promise<T> {
@@ -35,6 +45,11 @@ export const moneyAPI = {
   verdict: (id: string, verdict: 'worth_it' | 'not_me' | null) =>
     authFetch(`/money/transactions/${id}/verdict`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ verdict }) }).then((r) => json<MoneyTransaction>(r)),
   recurring: () => authFetch('/money/recurring').then((r) => json<MoneyRecurring[]>(r)),
+  months: () => authFetch('/money/months').then((r) => json<MoneyMonth[]>(r)),
+  readings: (refresh = false) => authFetch(`/money/readings${refresh ? '?refresh=1' : ''}`).then((r) => json<MoneyReading[]>(r)),
+  readingVerdict: (id: string, verdict: 'true' | 'not_me' | null) =>
+    authFetch(`/money/readings/${id}/verdict`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ verdict }) }).then((r) => json<MoneyReading>(r)),
+  budget: () => authFetch('/money/bank/budget').then((r) => json<MoneyBudget>(r)),
   accounts: () => authFetch('/money/bank/accounts').then((r) => json<MoneyAccount[]>(r)),
   connect: (bank = 'Banco Santander', country = 'ES') =>
     authFetch('/money/bank/connect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bank, country }) }).then((r) => json<{ url: string }>(r)),

@@ -124,3 +124,41 @@
   .mv-nav .mv-pill { justify-self: end; }
   .mv-hero { min-height: 70vh; }
 }
+
+/* What the money says: one sentence, the payments under it, a verdict */
+.mv-readings { width: min(760px, 100%); display: grid; gap: 12px; }
+.mv-reading { display: grid; gap: 10px; padding: 26px 28px 22px; border-radius: 20px; background: #fff; box-shadow: 0 14px 40px rgba(0, 0, 0, 0.06); }
+.mv .mv-reading-line { font-size: clamp(19px, 2vw, 24px); line-height: 1.25; letter-spacing: -0.02em; }
+.mv .mv-reading-detail { font-size: 15px; line-height: 1.45; color: var(--ink-2); }
+.mv-reading-receipts { display: grid; gap: 4px; margin-top: 2px; }
+.mv-reading-receipts li { display: grid; grid-template-columns: 62px minmax(0, 1fr) auto; gap: 12px; align-items: baseline; padding: 7px 12px; border-radius: 10px; background: var(--card); font-size: 14px; }
+.mv-reading-receipts span { font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); }
+.mv-reading-receipts em { font-style: normal; font-variant-numeric: tabular-nums; }
+.mv-reading-foot { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; margin-top: 4px; }
+.mv-reading-evidence { font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); }
+
+/* Month by month: a name, a bar, what left and what came in */
+.mv-months { width: min(760px, 100%); display: grid; gap: 2px; }
+.mv-months li { display: grid; grid-template-columns: 8.5rem minmax(60px, 1fr) auto auto 7.5rem; gap: 16px; align-items: center; padding: 13px 4px; border-bottom: 1px solid var(--rule); }
+.mv-month-name { font-size: 16px; letter-spacing: -0.015em; }
+.mv-months li.is-running .mv-month-name::after { content: ' ·'; color: var(--ink-3); }
+.mv-month-bar { height: 6px; border-radius: 999px; background: var(--card); overflow: hidden; }
+.mv-month-bar i { display: block; height: 100%; border-radius: 999px; background: var(--ink); }
+.mv-month-out { font-size: 16px; font-weight: 500; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.mv-month-in { font-size: 14px; color: var(--ink-2); font-variant-numeric: tabular-nums; min-width: 5rem; text-align: right; }
+.mv-month-lines { font-family: var(--mono); font-size: 10px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-3); text-align: right; }
+
+/* The ledger, a month at a time */
+.mv-ledger-group { border-bottom: 1px solid var(--rule); }
+.mv-ledger-group > ol { display: block; }
+.mv-ledger-head { display: flex; justify-content: space-between; gap: 16px; padding: 22px 4px 8px; font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); }
+.mv-ledger-group:first-child .mv-ledger-head { padding-top: 8px; }
+.mv-ledger-group .mv-row:last-child { border-bottom: 0; }
+
+@media (max-width: 640px) {
+  .mv-months li { grid-template-columns: 1fr auto; gap: 6px 12px; }
+  .mv-month-bar, .mv-month-lines { display: none; }
+  .mv-month-in { text-align: left; min-width: 0; }
+  .mv-reading { padding: 22px 20px 18px; }
+  .mv-reading-receipts li { grid-template-columns: 54px minmax(0, 1fr) auto; gap: 8px; }
+}
