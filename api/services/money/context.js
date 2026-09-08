@@ -41,6 +41,15 @@
 const DAY = 86400000;
 const EUR = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', maximumFractionDigits: 2 });
 const euro = (n) => EUR.format(Math.abs(Number(n) || 0));
+/** The 1st, not the 1th. */
+function ordinal(d) {
+  const n = Number(d);
+  if (!n) return '';
+  if (n % 10 === 1 && n !== 11) return `${n}st`;
+  if (n % 10 === 2 && n !== 12) return `${n}nd`;
+  if (n % 10 === 3 && n !== 13) return `${n}rd`;
+  return `${n}th`;
+}
 
 /** Every fact the person can hold about their own money. */
 export const FACT_KINDS = Object.freeze([
@@ -302,7 +311,7 @@ export function checkCommitment(fact, transactions = [], now = new Date()) {
   if (fact.day && !onDay.length) {
     return {
       fact, status: 'different', seen: near.slice(0, 3),
-      note: `Something of about ${euro(amount)} does leave, but not near the ${fact.day}th.`,
+      note: `Something of about ${euro(amount)} does leave, but not near the ${ordinal(fact.day)}.`,
     };
   }
   return { fact, status: 'confirmed', seen: onDay.slice(0, 3), note: null };
@@ -327,11 +336,11 @@ export function describeContext(facts = []) {
 
   const commitments = many('commitment');
   if (commitments.length) {
-    lines.push(`Says these leave every month: ${commitments.map((c) => `${c.subject} ${euro(c.amount)}${c.day ? ` on the ${c.day}th` : ''}`).join(', ')}.`);
+    lines.push(`Says these leave every month: ${commitments.map((c) => `${c.subject} ${euro(c.amount)}${c.day ? ` on the ${ordinal(c.day)}` : ''}`).join(', ')}.`);
   }
   const income = many('income');
   if (income.length) {
-    lines.push(`Says this comes in: ${income.map((c) => `${c.subject} ${euro(c.amount)}${c.day ? ` around the ${c.day}th` : ''}`).join(', ')}.`);
+    lines.push(`Says this comes in: ${income.map((c) => `${c.subject} ${euro(c.amount)}${c.day ? ` around the ${ordinal(c.day)}` : ''}`).join(', ')}.`);
   }
   const shared = many('shared_cost');
   if (shared.length) lines.push(`Splits: ${shared.map((s) => `${s.subject} (${s.value})`).join(', ')}.`);

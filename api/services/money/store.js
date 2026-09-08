@@ -189,11 +189,39 @@ export async function refreshRecurring(userId, now = new Date()) {
 
 export async function forecast(userId, now = new Date()) {
   const since = new Date(now.getTime() - 100 * 86400000).toISOString();
-  const [rows, rec] = await Promise.all([
+  const [rows, rec, facts] = await Promise.all([
     listTransactions(userId, { since, limit: 5000 }),
     supabaseAdmin.from('money_recurring').select('*').eq('user_id', userId).then((r) => r.data || []),
+    listFacts(userId),
   ]);
-  const result = projectMonth({ transactions: rows, recurring: rec, now });
+
+  /* What the person told us, turned into the four things it changes: money already spoken
+     for, money coming in, the share of a split cost that is actually theirs, and which
+     transfers are not spending at all. */
+  const commitments = facts.filter((f) => f.kind === 'commitment' && f.amount);
+  const income = facts.filter((f) => f.kind === 'income' && f.amount);
+  const shares = new Map(facts.filter((f) => f.kind === 'shared_cost' && f.share != null)
+    .map((f) => [String(f.subject || '').toLowerCase(), Number(f.share)]));
+  const roles = new Map(facts.filter((f) => f.kind === 'person' && f.value)
+    .map((f) => [String(f.subject || '').toLowerCase(), f.value]));
+
+  const shareOf = (t) => {
+    const exact = shares.get(t.merchant_key);
+    if (exact != null) return Math.min(Math.max(exact, 0), 1);
+    /* A named split can also be a whole category ("groceries"), which the merchant key
+       will not match; the caller resolves that, and an unmatched payment is wholly theirs. */
+    return 1;
+  };
+  /* Money handed to a flatmate or a parent moved between people; it is not a purchase.
+     A friend paid back is the same. Landlord and work are real spending and stay. */
+  const NOT_SPENDING = new Set(['flatmate', 'family', 'friend', 'partner']);
+  const isSpending = (t) => {
+    if (!['transfer', 'bizum'].includes(t.channel)) return true;
+    const role = roles.get(t.merchant_key);
+    return !(role && NOT_SPENDING.has(role));
+  };
+
+  const result = projectMonth({ transactions: rows, recurring: rec, commitments, income, shareOf, isSpending, now });
   /* What is still to come is named on the hero, so it needs a name and not a key. */
   const names = new Map();
   for (const t of rows) if (t.merchant_raw && !names.has(t.merchant_key)) names.set(t.merchant_key, t.merchant_raw);
@@ -802,7 +830,7 @@ export async function questionsFor(userId, now = new Date()) {
 /** Record an answer, and check it against the ledger where it is checkable. */
 export async function answerQuestion(userId, { questionId, kind, subject, subjectLabel, value, amount, day, share }) {
   const row = {
-    user_id: userId, kind, subject: subject || null, subject_label: subjectLabel || null,
+    user_id: userId, kind, subject: subject || '', subject_label: subjectLabel || null,
     value: value ?? null, amount: amount ?? null, day: day ?? null, share: share ?? null,
     source: 'asked', question_id: questionId || null, answered_at: new Date().toISOString(),
   };

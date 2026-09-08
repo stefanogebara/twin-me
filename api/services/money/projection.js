@@ -45,6 +45,17 @@ export function dailyTotals(transactions, from, to) {
  * @param {number} [p.samples=500]
  * @param {number} [p.seed=42]
  */
+/** A stated commitment and a detected series are the same thing when the money matches. */
+function sameThing(series, commitment) {
+  const a = Math.abs(Number(series.typical_amount) || 0);
+  const b = Math.abs(Number(commitment.amount) || 0);
+  if (!a || !b) return false;
+  const sameAmount = Math.abs(a - b) <= Math.max(2, b * 0.15);
+  const sameName = commitment.subject && series.merchant_key
+    && String(series.merchant_key).includes(String(commitment.subject).toLowerCase().slice(0, 6));
+  return sameAmount || sameName;
+}
+
 export function projectMonth(p) {
   const now = new Date(p.now);
   const year = now.getUTCFullYear(); const month = now.getUTCMonth();
@@ -53,9 +64,18 @@ export function projectMonth(p) {
   const today = new Date(Date.UTC(year, month, now.getUTCDate()));
   const daysLeft = Math.round((monthEnd.getTime() - today.getTime()) / DAY); // days after today
 
-  const spent = p.transactions
+  /* What a payment actually cost this person, which is not always what left the account.
+     A shop split with flatmates is theirs only in part, and money handed to a flatmate or
+     a parent is a transfer between people rather than spending — counting either in full
+     makes every total wrong in a way the person can see and the system cannot explain. */
+  const shareOf = p.shareOf || (() => 1);
+  const isSpending = p.isSpending || (() => true);
+  const mine = (t) => Math.abs(Number(t.amount)) * shareOf(t);
+
+  const spentRows = p.transactions
     .filter((t) => Number(t.amount) < 0 && new Date(t.occurred_at) >= monthStart && new Date(t.occurred_at) <= now)
-    .reduce((s, t) => s + Math.abs(Number(t.amount)), 0);
+    .filter((t) => isSpending(t));
+  const spent = spentRows.reduce((s, t) => s + mine(t), 0);
 
   // Recurring still due: next_expected inside the rest of this month and not already seen this month.
   const seenThisMonth = new Set(p.transactions.filter((t) => new Date(t.occurred_at) >= monthStart && t.is_recurring).map((t) => t.merchant_key));
@@ -67,6 +87,35 @@ export function projectMonth(p) {
 
   const expectedItems = (p.expected || []).filter((e) => new Date(e.date) > today && new Date(e.date) <= monthEnd);
   const expected = expectedItems.reduce((s, e) => s + Number(e.amount), 0);
+
+  /* What the person said leaves every month whatever happens. A commitment the ledger has
+     already detected as recurring is not counted twice; one it has never seen still belongs
+     in the month, because a projection that waits to be surprised by rent is not a
+     projection. `check_status` travels with it so the page can say which is which. */
+  const commitmentItems = (p.commitments || [])
+    .map((c) => {
+      const day = Math.min(Math.max(Number(c.day) || 1, 1), monthEnd.getUTCDate());
+      return { ...c, due: new Date(Date.UTC(year, month, day)) };
+    })
+    .filter((c) => c.due > today && c.due <= monthEnd)
+    .filter((c) => !(p.recurring || []).some((r) => sameThing(r, c)))
+    .filter((c) => !p.transactions.some((t) => Number(t.amount) < 0
+      && new Date(t.occurred_at) >= monthStart
+      && Math.abs(Math.abs(Number(t.amount)) - Math.abs(Number(c.amount))) <= Math.max(2, Math.abs(Number(c.amount)) * 0.15)));
+  const commitmentTotal = commitmentItems.reduce((s, c) => s + Math.abs(Number(c.amount) || 0), 0);
+
+  /* The other side of the month. Without it every reading is a warning, which is both
+     untrue and, for somebody living on transfers from home, unkind. */
+  const incomeItems = (p.income || [])
+    .map((i) => {
+      const day = Math.min(Math.max(Number(i.day) || 1, 1), monthEnd.getUTCDate());
+      return { ...i, due: new Date(Date.UTC(year, month, day)) };
+    })
+    .filter((i) => i.due > today && i.due <= monthEnd);
+  const incomeAhead = incomeItems.reduce((s, i) => s + Math.abs(Number(i.amount) || 0), 0);
+  const receivedSoFar = p.transactions
+    .filter((t) => Number(t.amount) > 0 && new Date(t.occurred_at) >= monthStart && new Date(t.occurred_at) <= now)
+    .reduce((s, t) => s + Number(t.amount), 0);
 
   // Baselines by weekday from the history window ending yesterday.
   const weeks = p.historyWeeks ?? 12;
@@ -93,7 +142,7 @@ export function projectMonth(p) {
     sums.push(sum);
   }
   sums.sort((a, b) => a - b);
-  const fixed = spent + committed + expected;
+  const fixed = spent + committed + expected + commitmentTotal;
   const r2 = (x) => Math.round(x * 100) / 100;
   return {
     month: monthStart.toISOString().slice(0, 10),
@@ -104,6 +153,11 @@ export function projectMonth(p) {
     committed_items: committedItems,
     expected: r2(expected),
     expected_items: expectedItems,
+    commitments: r2(commitmentTotal),
+    commitment_items: commitmentItems.map(({ due, ...c }) => ({ ...c, due_on: due.toISOString().slice(0, 10) })),
+    received: r2(receivedSoFar),
+    income_ahead: r2(incomeAhead),
+    income_items: incomeItems.map(({ due, ...i }) => ({ ...i, due_on: due.toISOString().slice(0, 10) })),
     baseline_rest: r2(baselineRest),
     projected_p10: r2(fixed + (sums.length ? quantile(sums, 0.1) : baselineRest)),
     projected_p50: r2(fixed + (sums.length ? quantile(sums, 0.5) : baselineRest)),

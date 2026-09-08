@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS public.money_facts (
   id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id               UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
   kind                  TEXT NOT NULL,                 -- home_area | study_place | work_place | commitment | income | shared_cost | person | merchant_kind | goal
-  subject               TEXT,                          -- what it is about: a merchant key, a person key, 'rent'
+  subject               TEXT NOT NULL DEFAULT '',      -- what it is about: a merchant key, a person key, 'rent'; empty where it is about the person
   subject_label         TEXT,                          -- how to say it back to them
   value                 TEXT,                          -- the answer, when it is a word
   amount                NUMERIC(12,2),                 -- when it is money
@@ -32,8 +32,10 @@ CREATE TABLE IF NOT EXISTS public.money_facts (
   check_note            TEXT,
   checked_at            TIMESTAMPTZ
 );
+-- Plain, not an expression: PostgREST infers ON CONFLICT only from a plain unique index,
+-- which is why `subject` carries the empty string rather than NULL.
 CREATE UNIQUE INDEX IF NOT EXISTS money_facts_one_per_subject
-  ON public.money_facts (user_id, kind, COALESCE(subject, ''));
+  ON public.money_facts (user_id, kind, subject);
 CREATE INDEX IF NOT EXISTS idx_money_facts_user ON public.money_facts (user_id, kind);
 
 -- Questions already put to the person, so none is asked twice and a skip is remembered.

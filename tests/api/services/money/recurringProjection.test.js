@@ -70,3 +70,78 @@ describe('projectMonth', () => {
     expect(days.map((d) => d.total)).toEqual([5, 0, 0]);
   });
 });
+
+/**
+ * What the person told the system has to change a number, or the questions were a survey.
+ * These four are those numbers.
+ */
+describe('projectMonth: what the person said, made to count', () => {
+  const NOW = new Date('2026-09-08T12:00:00Z');
+  let n = 0;
+  const t = (date, amount, merchant = 'Shop', channel = 'card') => {
+    n += 1;
+    return { id: `c${n}`, occurred_at: `${date}T12:00:00Z`, amount, merchant_raw: merchant, merchant_key: merchant.toLowerCase(), channel, is_recurring: false };
+  };
+
+  it('carries a stated commitment the ledger has never seen, instead of waiting to be surprised by rent', () => {
+    const rows = [t('2026-09-02', -20)];
+    const plain = projectMonth({ transactions: rows, recurring: [], now: NOW });
+    const withRent = projectMonth({
+      transactions: rows, recurring: [], now: NOW,
+      commitments: [{ subject: 'rent', amount: 500, day: 28 }],
+    });
+    expect(withRent.commitments).toBe(500);
+    expect(withRent.commitment_items[0]).toMatchObject({ subject: 'rent', due_on: '2026-09-28' });
+    expect(withRent.projected_p50).toBe(Math.round((plain.projected_p50 + 500) * 100) / 100);
+  });
+
+  it('does not count rent twice when the ledger already detected it', () => {
+    const rows = [t('2026-09-02', -20)];
+    const r = projectMonth({
+      transactions: rows, now: NOW,
+      recurring: [{ merchant_key: 'rentals sl', typical_amount: 500, next_expected: '2026-09-28' }],
+      commitments: [{ subject: 'rent', amount: 500, day: 28 }],
+    });
+    expect(r.commitments).toBe(0);
+    expect(r.committed).toBe(500);
+  });
+
+  it('does not count a commitment already paid this month', () => {
+    const rows = [t('2026-09-01', -500, 'Landlord', 'transfer')];
+    const r = projectMonth({ transactions: rows, recurring: [], now: NOW, commitments: [{ subject: 'rent', amount: 500, day: 28 }] });
+    expect(r.commitments).toBe(0);
+  });
+
+  it('gives the month its other side, so a reading is not always a warning', () => {
+    const rows = [t('2026-09-02', -20), t('2026-09-03', 100, 'Family', 'transfer')];
+    const r = projectMonth({
+      transactions: rows, recurring: [], now: NOW,
+      income: [{ subject: 'family', amount: 100, day: 25 }],
+    });
+    expect(r.received).toBe(100);
+    expect(r.income_ahead).toBe(100);
+    expect(r.income_items[0]).toMatchObject({ subject: 'family', due_on: '2026-09-25' });
+  });
+
+  it('counts only the share of a split cost that is actually theirs', () => {
+    const rows = [t('2026-09-02', -120, 'Simply Alcala')];
+    const whole = projectMonth({ transactions: rows, recurring: [], now: NOW });
+    const shared = projectMonth({
+      transactions: rows, recurring: [], now: NOW,
+      shareOf: (x) => (x.merchant_key === 'simply alcala' ? 1 / 3 : 1),
+    });
+    expect(whole.spent).toBe(120);
+    expect(shared.spent).toBe(40);
+  });
+
+  it('stops treating money handed to a flatmate as spending', () => {
+    const rows = [t('2026-09-02', -250, 'Rafaella Van Der Graaff', 'transfer'), t('2026-09-03', -20)];
+    const all = projectMonth({ transactions: rows, recurring: [], now: NOW });
+    const named = projectMonth({
+      transactions: rows, recurring: [], now: NOW,
+      isSpending: (x) => x.merchant_key !== 'rafaella van der graaff',
+    });
+    expect(all.spent).toBe(270);
+    expect(named.spent).toBe(20);
+  });
+});

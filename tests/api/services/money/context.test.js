@@ -135,7 +135,7 @@ describe('a stated commitment against what actually happened', () => {
     const rows = [tx('2026-08-20', -500, 'Landlord', 'transfer'), tx('2026-07-20', -495, 'Landlord', 'transfer')];
     const r = checkCommitment(rent, rows, NOW);
     expect(r.status).toBe('different');
-    expect(plain(r.note)).toBe('Something of about 500,00 € does leave, but not near the 1th.');
+    expect(plain(r.note)).toBe('Something of about 500,00 € does leave, but not near the 1st.');
   });
 
   it('says so when nothing of that size leaves at all, rather than believing the number', () => {
@@ -160,8 +160,11 @@ describe('what the twin is told about the person', () => {
     expect(block).toContain('their words, not readings');
     expect(block).toContain('Lives in Chamberi.');
     expect(block).toContain('Studies at IE Business School.');
-    expect(plain(block)).toContain('rent 500,00 € on the 1th');
+    expect(plain(block)).toContain('rent 500,00 € on the 1st');
     expect(plain(block)).toContain('Says this comes in: family 100,00 €');
+    /* The 1st, not the 1th: a system that cannot spell a date is not trusted with a number. */
+    expect(block).not.toContain('1th');
+    expect(block).not.toContain('25th around');
     expect(block).toContain('Mauad is family');
     expect(block).not.toMatch(/[\u{1F300}-\u{1FAFF}]/u);
   });
