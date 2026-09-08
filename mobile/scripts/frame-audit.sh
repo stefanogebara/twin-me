@@ -5,6 +5,8 @@
 #
 #   scripts/frame-audit.sh <name> <seconds> [fps]
 #
+# SIM=<udid> picks the device when more than one simulator is booted (default: booted).
+#
 # Frames land in <repo>/.frames/<name>/f-0001.png ... and a contact sheet in <repo>/.frames/<name>.png.
 set -euo pipefail
 name="${1:?name}"
@@ -17,7 +19,7 @@ out="$root/$name"
 mkdir -p "$out"
 video="$out.mp4"
 
-xcrun simctl io booted recordVideo --codec h264 --force "$video" &
+xcrun simctl io "${SIM:-booted}" recordVideo --codec h264 --force "$video" &
 rec=$!
 sleep "$secs"
 kill -INT "$rec" 2>/dev/null || true

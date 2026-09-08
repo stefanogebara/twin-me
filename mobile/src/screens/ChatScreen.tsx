@@ -20,6 +20,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { cosmos, dayMonth, euro } from '../constants/cosmos';
 import { Body, Card, Enter, Hairline, Micro, Page, Pill, Press, Row, Small } from '../ui/primitives';
 import { Figure } from '../ui/figures';
+import { Prompt, Shimmer } from '../ui/prompt';
 import { useReducedMotion } from '../ui/motion';
 import {
   moneyApi, readLedgerStream,
@@ -101,7 +102,10 @@ type Line = {
 };
 
 let lineSeq = 0;
-function lineId() { lineSeq += 1; return `l${lineSeq}`; }
+/* Ids carry the moment the module loaded: a development refresh resets the counter but keeps
+   the transcript, and two lines with one key take the whole list down. */
+const LINE_EPOCH = Date.now().toString(36);
+function lineId() { lineSeq += 1; return `l${LINE_EPOCH}-${lineSeq}`; }
 
 /** What the twin says when it asks a question: the question, then why it matters. */
 function questionLine(q: MoneyQuestion): Line {
@@ -153,7 +157,7 @@ function Trace({ steps }: { steps: TraceStep[] }) {
       {steps.map((st, i) => (
         <Enter key={st.step} index={i} style={s.traceStep}>
           <View style={s.traceHead}>
-            <Micro>{st.label}</Micro>
+            {st.state === 'working' ? <Shimmer text={st.label} style={s.traceLive} /> : <Micro>{st.label}</Micro>}
             <Micro>{st.state === 'working' ? 'working' : st.state === 'failed' ? 'could not' : st.count !== null && st.count !== undefined ? String(st.count) : 'done'}</Micro>
           </View>
           {st.detail ? <Small quiet numberOfLines={2}>{st.detail}</Small> : null}
@@ -443,7 +447,7 @@ export default function ChatScreen({ mode, onDone }: { mode: 'onboarding' | 'ask
           keyboardDismissMode="interactive"
           onContentSizeChange={toEnd}
         >
-          {phase === 'loading' ? <Enter><Small quiet>Reading the ledger.</Small></Enter> : null}
+          {phase === 'loading' ? <Enter><Shimmer text="Reading the ledger." /></Enter> : null}
 
           {lines.map((l, i) => {
             const speakerChanged = i === 0 || lines[i - 1].who !== l.who;
@@ -451,7 +455,7 @@ export default function ChatScreen({ mode, onDone }: { mode: 'onboarding' | 'ask
             return (
               <Enter key={l.id} settle style={[s.line, l.who === 'you' && s.lineYou]}>
                 {speakerChanged ? <Micro>{l.who === 'you' ? 'You' : 'The ledger'}</Micro> : null}
-                {l.pending ? <Small quiet>{l.text}</Small> : <Body muted={l.who === 'you'}>{l.text}</Body>}
+                {l.pending ? <Shimmer text={l.text} /> : <Body muted={l.who === 'you'}>{l.text}</Body>}
                 {l.small?.map((t, k) => <Small key={k} quiet>{t}</Small>)}
 
                 {l.question?.receipts && l.question.receipts.length ? (
@@ -521,24 +525,14 @@ export default function ChatScreen({ mode, onDone }: { mode: 'onboarding' | 'ask
 
         {composerShown ? (
           <View style={[s.composer, { paddingBottom: insets.bottom + cosmos.space.sm }]}>
-            <Hairline />
-            <View style={s.composerLine}>
-              <TextInput
-                style={[s.input, s.say]}
-                value={text}
-                onChangeText={setText}
-                placeholder={composerPlaceholder}
-                placeholderTextColor={cosmos.color.ink3}
-                returnKeyType="send"
-                submitBehavior="submit"
-                onSubmitEditing={submitComposer}
-                onFocus={toEnd}
-                editable={!busy}
-                autoCorrect
-                accessibilityLabel={composerPlaceholder}
-              />
-              <Pill label="Send" ghost onPress={submitComposer} disabled={busy || !text.trim()} />
-            </View>
+            <Prompt
+              value={text}
+              onChange={setText}
+              onSubmit={submitComposer}
+              placeholder={composerPlaceholder}
+              busy={busy}
+              onFocus={toEnd}
+            />
           </View>
         ) : null}
       </KeyboardAvoidingView>
@@ -582,6 +576,7 @@ const s = StyleSheet.create({
   trace: { gap: cosmos.space.sm, paddingTop: cosmos.space.xs },
   traceStep: { gap: 2 },
   traceHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: cosmos.space.md },
-  composer: { paddingHorizontal: cosmos.space.lg, backgroundColor: cosmos.color.canvas },
-  composerLine: { flexDirection: 'row', alignItems: 'center', gap: cosmos.space.sm, paddingTop: cosmos.space.sm },
+  composer: { paddingHorizontal: cosmos.space.lg, paddingTop: cosmos.space.sm, backgroundColor: cosmos.color.canvas },
+  /* The live step in the trace is read in the mono voice, lit while it works. */
+  traceLive: { fontSize: cosmos.size.micro, lineHeight: 14, letterSpacing: cosmos.tracking.mono, textTransform: 'uppercase', color: cosmos.color.ink3 },
 });
