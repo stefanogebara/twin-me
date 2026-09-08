@@ -7,7 +7,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import '../../styles/money-v2.css';
-import { moneyAPI, euro, shortDay, type MoneyAccount, type MoneyForecast, type MoneyRecurring, type MoneySighting, type MoneyTransaction } from '../../services/api/moneyAPI';
+import { moneyAPI, euro, shortDay, type MoneyAccount, type MoneyForecast, type MoneyMonth, type MoneyReading, type MoneyRecurring, type MoneySighting, type MoneyTransaction } from '../../services/api/moneyAPI';
 
 const TILE_SPOTS: [number, number, number][] = [[3, 14, -12], [12, 66, 8], [22, 30, 10], [30, 78, -6], [66, 76, 7], [76, 24, -10], [88, 60, 6], [92, 12, -8]];
 const CADENCE: Record<string, string> = { weekly: 'every week', biweekly: 'every two weeks', monthly: 'every month', quarterly: 'every quarter', yearly: 'every year' };
@@ -33,6 +33,8 @@ export default function MoneyV2Page() {
   const [ledger, setLedger] = useState<MoneyTransaction[]>([]);
   const [recurring, setRecurring] = useState<MoneyRecurring[]>([]);
   const [accounts, setAccounts] = useState<MoneyAccount[]>([]);
+  const [months, setMonths] = useState<MoneyMonth[]>([]);
+  const [readings, setReadings] = useState<MoneyReading[]>([]);
   const [bankReady, setBankReady] = useState(true);
   const [loaded, setLoaded] = useState(false);
   const [open, setOpen] = useState<string | null>(null);
@@ -42,11 +44,15 @@ export default function MoneyV2Page() {
   const [note, setNote] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    const [f, l, r, a] = await Promise.allSettled([moneyAPI.forecast(), moneyAPI.ledger(), moneyAPI.recurring(), moneyAPI.accounts()]);
+    const [f, l, r, a, m, rd] = await Promise.allSettled([
+      moneyAPI.forecast(), moneyAPI.ledger(), moneyAPI.recurring(), moneyAPI.accounts(), moneyAPI.months(), moneyAPI.readings(),
+    ]);
     if (f.status === 'fulfilled') setForecast(f.value);
     if (l.status === 'fulfilled') setLedger(l.value);
     if (r.status === 'fulfilled') setRecurring(r.value);
     if (a.status === 'fulfilled') setAccounts(a.value);
+    if (m.status === 'fulfilled') setMonths(m.value);
+    if (rd.status === 'fulfilled') setReadings(rd.value);
     setLoaded(true);
   }, []);
   useEffect(() => { void load(); }, [load]);
@@ -68,6 +74,27 @@ export default function MoneyV2Page() {
   const inflow = useMemo(() => ledger.filter((t) => Number(t.amount) > 0), [ledger]);
   const subscriptions = recurring.filter((r) => r.is_subscription);
   const bills = recurring.filter((r) => !r.is_subscription);
+
+  /* The ledger is read a month at a time: a running month against finished ones. */
+  const byMonth = useMemo(() => {
+    const groups = new Map<string, MoneyTransaction[]>();
+    for (const t of ledger) {
+      const key = (t.occurred_at || '').slice(0, 7);
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(t);
+    }
+    return [...groups.entries()].map(([key, rows]) => ({
+      key,
+      rows,
+      segment: months.find((m) => m.month.slice(0, 7) === key) || null,
+    }));
+  }, [ledger, months]);
+
+  async function readingVerdict(r: MoneyReading, v: 'true' | 'not_me') {
+    const next = r.verdict === v ? null : v;
+    setReadings((rows) => rows.map((x) => (x.id === r.id ? { ...x, verdict: next } : x)));
+    try { await moneyAPI.readingVerdict(r.id, next); } catch { setReadings((rows) => rows.map((x) => (x.id === r.id ? { ...x, verdict: r.verdict } : x))); }
+  }
 
   async function toggle(id: string) {
     if (open === id) { setOpen(null); return; }
@@ -171,6 +198,56 @@ export default function MoneyV2Page() {
         </section>
       ) : null}
 
+      {/* What the ledger says, with the lines that say it */}
+      {readings.length ? (
+        <section className="mv-section" id="readings">
+          <h2>What the money says.</h2>
+          <p className="mv-quiet">Every line here is counted, not guessed. The payments behind it are underneath.</p>
+          <ul className="mv-readings">
+            {readings.map((r) => (
+              <li key={r.id} className="mv-reading">
+                <p className="mv-reading-line">{r.sentence}</p>
+                {r.detail ? <p className="mv-reading-detail">{r.detail}</p> : null}
+                {r.receipts.length ? (
+                  <ul className="mv-reading-receipts">
+                    {r.receipts.map((t) => (
+                      <li key={t.id}><span>{shortDay(t.occurred_at)}</span> {t.merchant_raw || t.merchant_key} <em>{euro(t.amount)}</em></li>
+                    ))}
+                  </ul>
+                ) : null}
+                <div className="mv-reading-foot">
+                  <span className="mv-reading-evidence">read from {r.evidence_count} {r.evidence_count === 1 ? 'payment' : 'payments'}</span>
+                  <div className="mv-verdicts">
+                    <button type="button" className={`mv-pill mv-pill--sm ${r.verdict === 'true' ? '' : 'mv-pill--ghost'}`} onClick={() => void readingVerdict(r, 'true')}>True</button>
+                    <button type="button" className={`mv-pill mv-pill--sm ${r.verdict === 'not_me' ? '' : 'mv-pill--ghost'}`} onClick={() => void readingVerdict(r, 'not_me')}>Not me</button>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      {/* Month by month */}
+      {months.length > 1 ? (
+        <section className="mv-section" id="months">
+          <h2>Month by month.</h2>
+          <ol className="mv-months">
+            {months.map((m) => (
+              <li key={m.month} className={m.complete ? '' : 'is-running'}>
+                <span className="mv-month-name">{new Date(m.month).toLocaleDateString('en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' })}</span>
+                <span className="mv-month-bar" aria-hidden="true">
+                  <i style={{ width: `${Math.min(100, (m.spent / Math.max(...months.map((x) => x.spent), 1)) * 100)}%` }} />
+                </span>
+                <span className="mv-month-out">{euro(m.spent)}</span>
+                <span className="mv-month-in">{m.received ? `+${euro(m.received)}` : ''}</span>
+                <span className="mv-month-lines">{m.complete ? `${m.lines} lines` : `${m.lines} lines, ${m.days_covered} of ${m.days_in_month} days`}</span>
+              </li>
+            ))}
+          </ol>
+        </section>
+      ) : null}
+
       {/* Ledger */}
       <section className="mv-section" id="ledger">
         <h2>Every euro, with its receipts.</h2>
@@ -178,7 +255,14 @@ export default function MoneyV2Page() {
           <p className="mv-quiet">The ledger fills as the phone and the bank send what they saw.</p>
         ) : (
           <ol className="mv-ledger">
-            {ledger.map((t) => (
+            {byMonth.map((group) => (
+              <li key={group.key} className="mv-ledger-group">
+                <div className="mv-ledger-head">
+                  <span>{new Date(`${group.key}-01T12:00:00Z`).toLocaleDateString('en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' })}</span>
+                  {group.segment ? <span>{euro(group.segment.spent)} out{group.segment.received ? `, ${euro(group.segment.received)} in` : ''}</span> : null}
+                </div>
+                <ol>
+            {group.rows.map((t) => (
               <li key={t.id} className={`mv-row ${open === t.id ? 'is-open' : ''} ${Number(t.amount) > 0 ? 'is-in' : ''}`}>
                 <button type="button" className="mv-row-head" onClick={() => void toggle(t.id)} aria-expanded={open === t.id}>
                   <span className="mv-row-date">{shortDay(t.occurred_at)}</span>
@@ -201,6 +285,9 @@ export default function MoneyV2Page() {
                     ) : null}
                   </div>
                 ) : null}
+              </li>
+            ))}
+                </ol>
               </li>
             ))}
           </ol>

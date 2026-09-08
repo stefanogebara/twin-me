@@ -7,6 +7,10 @@
  * POST /api/money/transactions/:id/verdict { verdict: worth_it | not_me | null }
  * GET  /api/money/recurring                recurring series (recomputed on call)
  * GET  /api/money/forecast                 this month, with a band
+ * GET  /api/money/months                   money in and out per calendar month
+ * GET  /api/money/readings[?refresh=1]     what the ledger says, with its receipts
+ * POST /api/money/readings/:id/verdict     true | not_me | null
+ * GET  /api/money/bank/budget              unattended reads left in the rolling day
  * GET  /api/money/banks?country=ES         Enable Banking coverage (env-gated)
  * POST /api/money/bank/connect { bank? }   start PSD2 authorisation at the bank → { url }
  * GET  /api/money/bank/callback?code&state the bank sends the person back here; accounts are saved
@@ -21,7 +25,7 @@ import crypto from 'node:crypto';
 import { authenticateUser } from '../middleware/auth.js';
 import { createLogger } from '../services/logger.js';
 import { parseCapture, parseStructured } from '../services/money/captureParser.js';
-import { ingestSighting, listTransactions, sightingsFor, refreshRecurring, forecast, setVerdict, userForCaptureKey, saveBankAccounts, listBankAccounts, pullBankFeed } from '../services/money/store.js';
+import { ingestSighting, listTransactions, sightingsFor, refreshRecurring, forecast, setVerdict, userForCaptureKey, saveBankAccounts, listBankAccounts, pullBankFeed, refreshReadings, listReadings, setReadingVerdict, months, feedBudget } from '../services/money/store.js';
 import { isConfigured, listBanks, startAuthorisation, createSession } from '../services/money/feeds/enableBanking.js';
 
 const log = createLogger('MoneyRoute');
@@ -146,8 +150,47 @@ router.get('/bank/accounts', async (req, res) => {
 
 router.post('/bank/pull', async (req, res) => {
   if (!isConfigured()) return res.status(503).json({ success: false, error: 'Bank feed not configured' });
-  try { res.json({ success: true, data: await pullBankFeed(req.user.id, { since: typeof req.body?.since === 'string' ? req.body.since : undefined }) }); }
-  catch (error) { log.error('bank pull failed', { error: error.message }); res.status(502).json({ success: false, error: 'Bank feed unavailable' }); }
+  try {
+    const data = await pullBankFeed(req.user.id, { since: typeof req.body?.since === 'string' ? req.body.since : undefined });
+    /* A read is worth something only once it has been read: recompute what it says. */
+    if (data.some((d) => d.created > 0)) await refreshReadings(req.user.id).catch((e) => log.warn('readings after pull failed', { error: e.message }));
+    res.json({ success: true, data, budget: await feedBudget(req.user.id) });
+  } catch (error) {
+    if (error.code === 'feed_budget_spent') {
+      return res.status(429).json({ success: false, error: error.message, budget: error.budget });
+    }
+    log.error('bank pull failed', { error: error.message });
+    res.status(502).json({ success: false, error: 'Bank feed unavailable' });
+  }
+});
+
+/** How many unattended reads of the consent are left in the rolling day. */
+router.get('/bank/budget', async (req, res) => {
+  try { res.json({ success: true, data: await feedBudget(req.user.id) }); }
+  catch (error) { log.error('budget failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
+});
+
+/** Money in and out, per calendar month. */
+router.get('/months', async (req, res) => {
+  try { res.json({ success: true, data: await months(req.user.id) }); }
+  catch (error) { log.error('months failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
+});
+
+/** What the ledger says, with the lines that say it. `?refresh=1` recomputes first. */
+router.get('/readings', async (req, res) => {
+  try {
+    if (req.query.refresh === '1') await refreshReadings(req.user.id);
+    res.json({ success: true, data: await listReadings(req.user.id) });
+  } catch (error) { log.error('readings failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
+});
+
+router.post('/readings/:id/verdict', async (req, res) => {
+  const verdict = req.body?.verdict;
+  if (verdict !== null && verdict !== 'true' && verdict !== 'not_me') {
+    return res.status(400).json({ success: false, error: 'verdict must be true, not_me or null' });
+  }
+  try { res.json({ success: true, data: await setReadingVerdict(req.user.id, req.params.id, verdict) }); }
+  catch (error) { log.error('reading verdict failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
 });
 
 export default router;

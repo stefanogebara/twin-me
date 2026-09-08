@@ -9,6 +9,7 @@ import { reconcile } from './ledger.js';
 import { detectRecurring } from './recurring.js';
 import { projectMonth } from './projection.js';
 import { fetchTransactions, toSighting } from './feeds/enableBanking.js';
+import { readLedger, monthSegments } from './analyst.js';
 
 const log = createLogger('money-store');
 
@@ -218,8 +219,48 @@ export async function listBankAccounts(userId) {
  * The truth path: pull each account since its last pull (or 90 days) and reconcile every row.
  * PSD2 allows four unattended pulls a day per account; callers schedule accordingly.
  */
-export async function pullBankFeed(userId, { since } = {}) {
+/**
+ * PSD2 allows four unattended reads of a consent per 24 hours; Santander answers
+ * 429 [HUB046] past that, and a consent burned on manual pulls leaves the person
+ * with no reads until the window rolls. Every read is recorded, and the budget is
+ * checked before the bank is asked.
+ */
+export const FEED_BUDGET = 4;
+
+export async function feedBudget(userId, now = new Date()) {
+  const from = new Date(now.getTime() - 24 * 3600000).toISOString();
+  const { data } = await supabaseAdmin
+    .from('money_feed_accesses')
+    .select('at, outcome')
+    .eq('user_id', userId).eq('attended', false)
+    .gte('at', from)
+    .order('at', { ascending: true });
+  const used = (data || []).length;
+  const oldest = data?.[0]?.at || null;
+  return {
+    used,
+    left: Math.max(0, FEED_BUDGET - used),
+    resets_at: oldest ? new Date(new Date(oldest).getTime() + 24 * 3600000).toISOString() : null,
+  };
+}
+
+async function recordAccess(userId, accountId, { attended = false, rowsSeen = null, outcome = 'ok' } = {}) {
+  const { error } = await supabaseAdmin.from('money_feed_accesses').insert({ user_id: userId, account_id: accountId, attended, rows_seen: rowsSeen, outcome });
+  if (error) log.warn(`feed access log failed: ${error.message}`);
+}
+
+export async function pullBankFeed(userId, { since, attended = false } = {}) {
   const accounts = await listBankAccounts(userId);
+  if (!accounts.length) return [];
+  if (!attended) {
+    const budget = await feedBudget(userId);
+    if (budget.left <= 0) {
+      const err = new Error('The bank allows four reads a day and today\'s are used.');
+      err.code = 'feed_budget_spent';
+      err.budget = budget;
+      throw err;
+    }
+  }
   const summary = [];
   for (const acc of accounts) {
     const from = since || (acc.last_pulled_at ? acc.last_pulled_at.slice(0, 10) : new Date(Date.now() - 90 * 86400000).toISOString().slice(0, 10));
@@ -232,7 +273,79 @@ export async function pullBankFeed(userId, { since } = {}) {
       key = page.continuationKey;
     } while (key);
     await supabaseAdmin.from('money_accounts').update({ last_pulled_at: new Date().toISOString() }).eq('id', acc.id);
+    await recordAccess(userId, acc.id, { attended, rowsSeen: seen });
     summary.push({ account: acc.name || acc.iban_mask, seen, created });
   }
   return summary;
+}
+
+/**
+ * What the ledger says today, stored so a sentence can be shown, judged and compared
+ * with the same sentence tomorrow. Findings are recomputed from scratch every time and
+ * upserted on (kind, month), so nothing accumulates and nothing goes stale silently.
+ * A verdict the person already gave is kept.
+ */
+export async function refreshReadings(userId, now = new Date()) {
+  const [transactions, recurring] = await Promise.all([
+    listTransactions(userId, { limit: 5000 }),
+    supabaseAdmin.from('money_recurring').select('*').eq('user_id', userId).then((r) => r.data || []),
+  ]);
+  const names = new Map();
+  for (const t of transactions) if (t.merchant_raw && !names.has(t.merchant_key)) names.set(t.merchant_key, t.merchant_raw);
+  const withNames = recurring.map((r) => ({ ...r, merchant_name: names.get(r.merchant_key) || null }));
+  const { segments, findings } = readLedger({ transactions, recurring: withNames, now });
+  /* A finding with no month (a subscription load, a weekday shape) has month NULL, and
+     Postgres counts NULLs as distinct: an upsert on (kind, month) inserted a fresh copy
+     every run. So the write is an explicit update-or-insert, which also keeps the id and
+     the verdict the person already gave. */
+  const { data: existing } = await supabaseAdmin.from('money_readings').select('id, kind, month').eq('user_id', userId);
+  const keyOf = (kind, month) => `${kind}|${month || ''}`;
+  const byKey = new Map((existing || []).map((r) => [keyOf(r.kind, r.month), r.id]));
+  const seen = new Set();
+  for (const f of findings) {
+    const row = {
+      sentence: f.sentence, detail: f.detail || null, numbers: f.numbers || {},
+      receipt_ids: f.receipts.map((r) => r.id).filter(Boolean), evidence_count: f.evidence_count || 0,
+      computed_at: now.toISOString(),
+    };
+    const key = keyOf(f.kind, f.month);
+    seen.add(key);
+    const id = byKey.get(key);
+    const { error } = id
+      ? await supabaseAdmin.from('money_readings').update(row).eq('id', id)
+      : await supabaseAdmin.from('money_readings').insert({ user_id: userId, kind: f.kind, month: f.month, ...row });
+    if (error) log.warn(`reading write failed (${f.kind}): ${error.message}`);
+  }
+  /* A finding that no longer holds should stop being shown, not linger from last week. */
+  const stale = (existing || []).filter((r) => !seen.has(keyOf(r.kind, r.month))).map((r) => r.id);
+  if (stale.length) await supabaseAdmin.from('money_readings').delete().in('id', stale);
+  return { segments, findings };
+}
+
+/** The stored readings with their receipts resolved, newest computation first. */
+export async function listReadings(userId) {
+  const { data } = await supabaseAdmin.from('money_readings').select('*').eq('user_id', userId).order('computed_at', { ascending: false });
+  const readings = data || [];
+  const ids = [...new Set(readings.flatMap((r) => r.receipt_ids || []))];
+  if (!ids.length) return readings.map((r) => ({ ...r, receipts: [] }));
+  const { data: rows } = await supabaseAdmin
+    .from('money_transactions')
+    .select('id, occurred_at, amount, merchant_raw, merchant_key, channel, verdict')
+    .eq('user_id', userId).in('id', ids);
+  const byId = new Map((rows || []).map((r) => [r.id, r]));
+  return readings.map((r) => ({ ...r, receipts: (r.receipt_ids || []).map((id) => byId.get(id)).filter(Boolean) }));
+}
+
+export async function setReadingVerdict(userId, readingId, verdict) {
+  const { data, error } = await supabaseAdmin.from('money_readings')
+    .update({ verdict, verdict_at: verdict ? new Date().toISOString() : null })
+    .eq('user_id', userId).eq('id', readingId).select().single();
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+/** Money in and out per calendar month, for the page that asks for it per month. */
+export async function months(userId, now = new Date()) {
+  const transactions = await listTransactions(userId, { limit: 5000 });
+  return monthSegments(transactions, now);
 }

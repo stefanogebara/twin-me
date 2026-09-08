@@ -24,7 +24,9 @@ export default defineConfig(({ mode }) => ({
     allowedHosts: true, // Allow all hosts for development
     proxy: {
       '/api': {
-        target: 'http://127.0.0.1:3004',
+        // A worktree runs its own API on its own port; point the dev proxy at it with
+        // VITE_PROXY_TARGET rather than editing this file per checkout.
+        target: process.env.VITE_PROXY_TARGET || 'http://127.0.0.1:3004',
         changeOrigin: true,
         secure: false,
         proxyTimeout: 120000,
