@@ -8,6 +8,9 @@
   min-height: 100vh; background: var(--canvas); color: var(--ink); font-family: var(--sans); font-size: 16px; line-height: 1.5; -webkit-font-smoothing: antialiased; overflow-x: clip;
 }
 .mv h1, .mv h2, .mv p, .mv ul, .mv ol, .mv li, .mv span, .mv small, .mv b, .mv em, .mv a, .mv code, .mv button { color: inherit; margin: 0; }
+/* index.css styles h1/h2/p by element, and an element rule beats inheritance from .mv,
+   so the display type has to name the family here or it renders in Inter. */
+.mv h1, .mv h2, .mv p { font-family: var(--sans); }
 .mv ul, .mv ol { list-style: none; padding: 0; }
 .mv a { text-decoration: none; }
 .mv button { font: inherit; background: none; border: 0; cursor: pointer; }

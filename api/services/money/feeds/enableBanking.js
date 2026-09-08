@@ -53,7 +53,7 @@ export async function listBanks(country = 'ES') {
 }
 
 /** Start authorisation at the bank: returns the URL the user opens. */
-export async function startAuthorisation({ bankName = 'Santander', country = 'ES', state, validUntil }) {
+export async function startAuthorisation({ bankName = 'Banco Santander', country = 'ES', state, validUntil }) {
   const body = {
     access: { valid_until: validUntil || new Date(Date.now() + 180 * 86400000).toISOString() },
     aspsp: { name: bankName, country },

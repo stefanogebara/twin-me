@@ -2,7 +2,7 @@
  * enableBanking.toSighting: a Berlin-Group-shaped feed row becomes a bankfeed sighting.
  */
 import { describe, it, expect } from 'vitest';
-import { toSighting, isConfigured } from '../../../../api/services/money/feeds/enableBanking.js';
+import { toSighting, isConfigured, startAuthorisation } from '../../../../api/services/money/feeds/enableBanking.js';
 
 describe('toSighting', () => {
   it('maps a debit with a creditor name', () => {
@@ -23,5 +23,33 @@ describe('toSighting', () => {
     expect(isConfigured()).toBe(false);
     if (saved[0]) process.env.ENABLE_BANKING_APP_ID = saved[0];
     if (saved[1]) process.env.ENABLE_BANKING_PRIVATE_KEY = saved[1];
+  });
+});
+
+/* Enable Banking rejects any ASPSP name it does not list: 'Santander' answers 422
+   WRONG_ASPSP_PROVIDED, the listed name is 'Banco Santander'. Verified against the
+   production API on 2026-09-08. */
+describe('startAuthorisation', () => {
+  it('asks the bank by its listed name, Banco Santander, by default', async () => {
+    const saved = { fetch: global.fetch, id: process.env.ENABLE_BANKING_APP_ID, key: process.env.ENABLE_BANKING_PRIVATE_KEY, redirect: process.env.ENABLE_BANKING_REDIRECT_URL };
+    const { generateKeyPairSync } = await import('node:crypto');
+    const { privateKey } = generateKeyPairSync('rsa', { modulusLength: 2048, privateKeyEncoding: { type: 'pkcs8', format: 'pem' }, publicKeyEncoding: { type: 'spki', format: 'pem' } });
+    process.env.ENABLE_BANKING_APP_ID = 'test-app';
+    process.env.ENABLE_BANKING_PRIVATE_KEY = privateKey;
+    process.env.ENABLE_BANKING_REDIRECT_URL = 'https://www.twinme.me/api/money/bank/callback';
+    let sent = null;
+    global.fetch = async (url, init) => { sent = { url: String(url), body: JSON.parse(init.body) }; return { ok: true, status: 200, text: async () => JSON.stringify({ url: 'https://tilisy.enablebanking.com/ais/start?sessionid=x', authorization_id: 'a1' }) }; };
+    try {
+      const r = await startAuthorisation({ state: 's1' });
+      expect(sent.body.aspsp).toEqual({ name: 'Banco Santander', country: 'ES' });
+      expect(sent.body.psu_type).toBe('personal');
+      expect(sent.body.redirect_url).toBe('https://www.twinme.me/api/money/bank/callback');
+      expect(r.url).toContain('tilisy.enablebanking.com');
+    } finally {
+      global.fetch = saved.fetch;
+      if (saved.id) process.env.ENABLE_BANKING_APP_ID = saved.id; else delete process.env.ENABLE_BANKING_APP_ID;
+      if (saved.key) process.env.ENABLE_BANKING_PRIVATE_KEY = saved.key; else delete process.env.ENABLE_BANKING_PRIVATE_KEY;
+      if (saved.redirect) process.env.ENABLE_BANKING_REDIRECT_URL = saved.redirect; else delete process.env.ENABLE_BANKING_REDIRECT_URL;
+    }
   });
 });

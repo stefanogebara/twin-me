@@ -130,7 +130,7 @@ function readState(state) {
 router.post('/bank/connect', async (req, res) => {
   if (!isConfigured()) return res.status(503).json({ success: false, error: 'Bank feed not configured' });
   try {
-    const { bank = 'Santander', country = 'ES' } = req.body || {};
+    const { bank = 'Banco Santander', country = 'ES' } = req.body || {};
     const { url, authorizationId } = await startAuthorisation({ bankName: String(bank).slice(0, 80), country: String(country).slice(0, 2).toUpperCase(), state: signState(req.user.id) });
     res.json({ success: true, data: { url, authorizationId } });
   } catch (error) {

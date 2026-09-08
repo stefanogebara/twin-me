@@ -45,6 +45,9 @@ export default function MoneyV2Page() {
   useEffect(() => { void load(); }, [load]);
 
   const empty = loaded && ledger.length === 0;
+  /* One purchase makes p10, p50 and p90 the same euro, and reading the same number three
+     times looks broken rather than honest. Say nothing about the month until the band opens. */
+  const projectable = Boolean(forecast && forecast.projected_p90 - forecast.projected_p10 > 0.5);
   const tiles = useMemo(() => ledger.filter((t) => Number(t.amount) < 0).slice(0, TILE_SPOTS.length), [ledger]);
   const inflow = useMemo(() => ledger.filter((t) => Number(t.amount) > 0), [ledger]);
   const subscriptions = recurring.filter((r) => r.is_subscription);
@@ -122,9 +125,13 @@ export default function MoneyV2Page() {
             <h1>{forecast ? euro(forecast.spent) : '…'} so far.</h1>
             {forecast ? (
               <p className="mv-lede">
-                Likely {euro(forecast.projected_p50)} by the {last}th, between {euro(forecast.projected_p10)} and {euro(forecast.projected_p90)}.
+                {projectable ? (
+                  <>Likely {euro(forecast.projected_p50)} by the {last}th, between {euro(forecast.projected_p10)} and {euro(forecast.projected_p90)}.</>
+                ) : (
+                  <>Too little read to say where the month lands. The projection starts once there are a few days behind it.</>
+                )}
                 {forecast.committed_items.length ? ` ${forecast.committed_items.map((c) => merchantLabel({ merchant_key: c.merchant_key })).join(', ')} ${forecast.committed_items.length === 1 ? 'is' : 'are'} still to come.` : ''}
-                {forecast.history_days < 42 ? ' The band is wide until there are six weeks to read from.' : ''}
+                {projectable && forecast.history_days < 42 ? ' The band is wide until there are six weeks to read from.' : ''}
               </p>
             ) : null}
             <div className="mv-ctas"><a href="#ledger" className="mv-pill">Every euro</a><a href="#recurring" className="mv-pill mv-pill--ghost">What comes back</a></div>

@@ -36,7 +36,7 @@ export const moneyAPI = {
     authFetch(`/money/transactions/${id}/verdict`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ verdict }) }).then((r) => json<MoneyTransaction>(r)),
   recurring: () => authFetch('/money/recurring').then((r) => json<MoneyRecurring[]>(r)),
   accounts: () => authFetch('/money/bank/accounts').then((r) => json<MoneyAccount[]>(r)),
-  connect: (bank = 'Santander', country = 'ES') =>
+  connect: (bank = 'Banco Santander', country = 'ES') =>
     authFetch('/money/bank/connect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bank, country }) }).then((r) => json<{ url: string }>(r)),
   pull: () => authFetch('/money/bank/pull', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).then((r) => json<{ account: string; seen: number; created: number }[]>(r)),
   /** A key for the phone: one of the user's API keys, shown once. */
