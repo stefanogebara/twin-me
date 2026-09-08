@@ -2,7 +2,7 @@
  * enableBanking.toSighting: a Berlin-Group-shaped feed row becomes a bankfeed sighting.
  */
 import { describe, it, expect } from 'vitest';
-import { toSighting, isConfigured } from '../../../../api/services/money/feeds/enableBanking.js';
+import { toSighting, isConfigured, startAuthorisation } from '../../../../api/services/money/feeds/enableBanking.js';
 
 describe('toSighting', () => {
   it('maps a debit with a creditor name', () => {
@@ -17,11 +17,57 @@ describe('toSighting', () => {
     expect(b.channel).toBe('bizum');
     expect(b.source_ref).toContain('2026-09-02|20|BIZUM A JUAN');
   });
+  it('reads a Santander row, which names nobody and writes a sentence instead', () => {
+    const s = toSighting({
+      entry_reference: 'S9',
+      transaction_amount: { amount: '116.76', currency: 'EUR' },
+      credit_debit_indicator: 'DBIT',
+      booking_date: '2026-09-08',
+      value_date: '2026-09-07',
+      remittance_information: ['PAGO MOVIL EN EL CORTE INGLES, MADRID ES, TARJ. :*741245'],
+    }, 'acc-1');
+    expect(s).toMatchObject({
+      merchant_raw: 'El Corte Ingles',
+      merchant_key: 'el corte ingles',
+      channel: 'card',
+      card_last4: '1245',
+      raw_text: 'PAGO MOVIL EN EL CORTE INGLES, MADRID ES, TARJ. :*741245',
+    });
+  });
+
   it('is unconfigured without keys', () => {
     const saved = [process.env.ENABLE_BANKING_APP_ID, process.env.ENABLE_BANKING_PRIVATE_KEY];
     delete process.env.ENABLE_BANKING_APP_ID; delete process.env.ENABLE_BANKING_PRIVATE_KEY;
     expect(isConfigured()).toBe(false);
     if (saved[0]) process.env.ENABLE_BANKING_APP_ID = saved[0];
     if (saved[1]) process.env.ENABLE_BANKING_PRIVATE_KEY = saved[1];
+  });
+});
+
+/* Enable Banking rejects any ASPSP name it does not list: 'Santander' answers 422
+   WRONG_ASPSP_PROVIDED, the listed name is 'Banco Santander'. Verified against the
+   production API on 2026-09-08. */
+describe('startAuthorisation', () => {
+  it('asks the bank by its listed name, Banco Santander, by default', async () => {
+    const saved = { fetch: global.fetch, id: process.env.ENABLE_BANKING_APP_ID, key: process.env.ENABLE_BANKING_PRIVATE_KEY, redirect: process.env.ENABLE_BANKING_REDIRECT_URL };
+    const { generateKeyPairSync } = await import('node:crypto');
+    const { privateKey } = generateKeyPairSync('rsa', { modulusLength: 2048, privateKeyEncoding: { type: 'pkcs8', format: 'pem' }, publicKeyEncoding: { type: 'spki', format: 'pem' } });
+    process.env.ENABLE_BANKING_APP_ID = 'test-app';
+    process.env.ENABLE_BANKING_PRIVATE_KEY = privateKey;
+    process.env.ENABLE_BANKING_REDIRECT_URL = 'https://www.twinme.me/api/money/bank/callback';
+    let sent = null;
+    global.fetch = async (url, init) => { sent = { url: String(url), body: JSON.parse(init.body) }; return { ok: true, status: 200, text: async () => JSON.stringify({ url: 'https://tilisy.enablebanking.com/ais/start?sessionid=x', authorization_id: 'a1' }) }; };
+    try {
+      const r = await startAuthorisation({ state: 's1' });
+      expect(sent.body.aspsp).toEqual({ name: 'Banco Santander', country: 'ES' });
+      expect(sent.body.psu_type).toBe('personal');
+      expect(sent.body.redirect_url).toBe('https://www.twinme.me/api/money/bank/callback');
+      expect(r.url).toContain('tilisy.enablebanking.com');
+    } finally {
+      global.fetch = saved.fetch;
+      if (saved.id) process.env.ENABLE_BANKING_APP_ID = saved.id; else delete process.env.ENABLE_BANKING_APP_ID;
+      if (saved.key) process.env.ENABLE_BANKING_PRIVATE_KEY = saved.key; else delete process.env.ENABLE_BANKING_PRIVATE_KEY;
+      if (saved.redirect) process.env.ENABLE_BANKING_REDIRECT_URL = saved.redirect; else delete process.env.ENABLE_BANKING_REDIRECT_URL;
+    }
   });
 });

@@ -18,6 +18,13 @@ function merchantLabel(t: { merchant_name?: string | null; merchant_raw?: string
   const base = s.length > 2 && s === s.toUpperCase() ? s.toLowerCase() : s;
   return base.charAt(0).toUpperCase() + base.slice(1);
 }
+/** Two names read with an "and"; more than three become a count, so the line stays a sentence. */
+function nameList(names: string[]) {
+  if (names.length <= 1) return names[0] || '';
+  if (names.length === 2) return `${names[0]} and ${names[1]}`;
+  if (names.length === 3) return `${names[0]}, ${names[1]} and ${names[2]}`;
+  return `${names[0]}, ${names[1]} and ${names.length - 2} more`;
+}
 function monthName(iso: string) { return new Date(iso).toLocaleDateString('en-GB', { month: 'long' }); }
 function lastDay(iso: string) { const d = new Date(iso); return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate(); }
 
@@ -44,7 +51,19 @@ export default function MoneyV2Page() {
   }, []);
   useEffect(() => { void load(); }, [load]);
 
+  /* The bank sends the person back here through the callback, which says how it went. */
+  useEffect(() => {
+    const outcome = new URLSearchParams(window.location.search).get('bank');
+    if (!outcome) return;
+    setNote(outcome === 'connected' ? 'Santander is connected. The first read is on its way.' : 'The bank connection did not go through. Try it again.');
+    window.history.replaceState(null, '', window.location.pathname + window.location.hash);
+    if (outcome === 'connected') void moneyAPI.pull().then(() => load()).catch(() => { /* the note already says where we are */ });
+  }, [load]);
+
   const empty = loaded && ledger.length === 0;
+  /* One purchase makes p10, p50 and p90 the same euro, and reading the same number three
+     times looks broken rather than honest. Say nothing about the month until the band opens. */
+  const projectable = Boolean(forecast && forecast.projected_p90 - forecast.projected_p10 > 0.5);
   const tiles = useMemo(() => ledger.filter((t) => Number(t.amount) < 0).slice(0, TILE_SPOTS.length), [ledger]);
   const inflow = useMemo(() => ledger.filter((t) => Number(t.amount) > 0), [ledger]);
   const subscriptions = recurring.filter((r) => r.is_subscription);
@@ -122,9 +141,13 @@ export default function MoneyV2Page() {
             <h1>{forecast ? euro(forecast.spent) : '…'} so far.</h1>
             {forecast ? (
               <p className="mv-lede">
-                Likely {euro(forecast.projected_p50)} by the {last}th, between {euro(forecast.projected_p10)} and {euro(forecast.projected_p90)}.
-                {forecast.committed_items.length ? ` ${forecast.committed_items.map((c) => merchantLabel({ merchant_key: c.merchant_key })).join(', ')} ${forecast.committed_items.length === 1 ? 'is' : 'are'} still to come.` : ''}
-                {forecast.history_days < 42 ? ' The band is wide until there are six weeks to read from.' : ''}
+                {projectable ? (
+                  <>Likely {euro(forecast.projected_p50)} by the {last}th, between {euro(forecast.projected_p10)} and {euro(forecast.projected_p90)}.</>
+                ) : (
+                  <>Too little read to say where the month lands. The projection starts once there are a few days behind it.</>
+                )}
+                {forecast.committed_items.length ? ` ${nameList(forecast.committed_items.map((c) => merchantLabel(c)))} ${forecast.committed_items.length === 1 ? 'is' : 'are'} still to come.` : ''}
+                {projectable && forecast.history_days < 42 ? ' The band is wide until there are six weeks to read from.' : ''}
               </p>
             ) : null}
             <div className="mv-ctas"><a href="#ledger" className="mv-pill">Every euro</a><a href="#recurring" className="mv-pill mv-pill--ghost">What comes back</a></div>
@@ -166,7 +189,7 @@ export default function MoneyV2Page() {
                   <div className="mv-row-body">
                     <ul className="mv-receipts">
                       {(receipts[t.id] || []).map((s) => (
-                        <li key={s.id}><span>{SOURCE[s.source] || s.source} · {shortDay(s.seen_at)}</span><p>{s.raw_text || `${euro(s.amount)} ${s.currency || ''}`}</p></li>
+                        <li key={s.id}><span>{SOURCE[s.source] || s.source} · read {shortDay(s.seen_at)}</span><p>{s.raw_text || `${euro(s.amount)} ${s.currency || ''}`}</p></li>
                       ))}
                       {receipts[t.id] && receipts[t.id].length === 0 ? <li><p>No receipt kept for this one.</p></li> : null}
                     </ul>
@@ -195,7 +218,7 @@ export default function MoneyV2Page() {
             {[...subscriptions, ...bills].map((r) => (
               <div key={r.merchant_key} className="mv-card">
                 <span className="mv-card-kicker">{r.is_subscription ? 'Subscription' : 'Recurring'} · {CADENCE[r.cadence] || r.cadence}</span>
-                <b>{merchantLabel({ merchant_key: r.merchant_key })}</b>
+                <b>{merchantLabel({ merchant_name: r.merchant_name, merchant_key: r.merchant_key })}</b>
                 <em>{euro(r.typical_amount)}</em>
                 <small>
                   {r.next_expected ? `Next around ${shortDay(r.next_expected)}.` : ''}

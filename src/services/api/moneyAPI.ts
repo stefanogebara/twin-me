@@ -10,11 +10,11 @@ export type MoneyTransaction = {
   channel: string | null; card_last4: string | null; is_recurring: boolean; verdict: 'worth_it' | 'not_me' | null;
 };
 export type MoneySighting = { id: string; source: string; seen_at: string; raw_text: string | null; amount: number | string | null; currency: string | null; occurred_at: string | null; parse_confidence: number | string | null };
-export type MoneyRecurring = { merchant_key: string; cadence: string; typical_amount: number | string; occurrences: number; first_seen: string; last_seen: string; next_expected: string | null; is_subscription: boolean; platform?: string | null; uses?: number | null; cost_per_use?: number | null };
+export type MoneyRecurring = { merchant_key: string; merchant_name?: string | null; cadence: string; typical_amount: number | string; occurrences: number; first_seen: string; last_seen: string; next_expected: string | null; is_subscription: boolean; platform?: string | null; uses?: number | null; cost_per_use?: number | null };
 export type MoneyForecast = {
   month: string; as_of: string; days_left: number; spent: number; committed: number; expected: number; baseline_rest: number;
   projected_p10: number; projected_p50: number; projected_p90: number; history_days: number;
-  committed_items: { merchant_key: string; typical_amount: number | string; next_expected: string }[];
+  committed_items: { merchant_key: string; merchant_name?: string | null; typical_amount: number | string; next_expected: string }[];
 };
 export type MoneyAccount = { id: string; provider: string; name: string | null; iban_mask: string | null; currency: string; consent_expires_at: string | null; last_pulled_at: string | null };
 
@@ -36,7 +36,7 @@ export const moneyAPI = {
     authFetch(`/money/transactions/${id}/verdict`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ verdict }) }).then((r) => json<MoneyTransaction>(r)),
   recurring: () => authFetch('/money/recurring').then((r) => json<MoneyRecurring[]>(r)),
   accounts: () => authFetch('/money/bank/accounts').then((r) => json<MoneyAccount[]>(r)),
-  connect: (bank = 'Santander', country = 'ES') =>
+  connect: (bank = 'Banco Santander', country = 'ES') =>
     authFetch('/money/bank/connect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bank, country }) }).then((r) => json<{ url: string }>(r)),
   pull: () => authFetch('/money/bank/pull', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).then((r) => json<{ account: string; seen: number; created: number }[]>(r)),
   /** A key for the phone: one of the user's API keys, shown once. */

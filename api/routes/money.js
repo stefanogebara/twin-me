@@ -130,7 +130,7 @@ function readState(state) {
 router.post('/bank/connect', async (req, res) => {
   if (!isConfigured()) return res.status(503).json({ success: false, error: 'Bank feed not configured' });
   try {
-    const { bank = 'Santander', country = 'ES' } = req.body || {};
+    const { bank = 'Banco Santander', country = 'ES' } = req.body || {};
     const { url, authorizationId } = await startAuthorisation({ bankName: String(bank).slice(0, 80), country: String(country).slice(0, 2).toUpperCase(), state: signState(req.user.id) });
     res.json({ success: true, data: { url, authorizationId } });
   } catch (error) {
@@ -161,9 +161,10 @@ bankCallback.get('/bank/callback', async (req, res) => {
   try {
     const session = await createSession(code);
     await saveBankAccounts(userId, session);
-    res.redirect(302, '/portrait?bank=connected');
+    /* Back to the page the connection was started from, which is the Money surface. */
+    res.redirect(302, '/money?bank=connected');
   } catch (error) {
     log.error('bank callback failed', { error: error.message });
-    res.status(502).send('The bank connection could not be completed. Try again from TwinMe.');
+    res.redirect(302, '/money?bank=failed');
   }
 });
