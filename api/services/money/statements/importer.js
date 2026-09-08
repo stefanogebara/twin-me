@@ -30,7 +30,7 @@ import { parseNarrative } from '../narrative.js';
 /** Lowercase, unaccented, whitespace-collapsed, punctuation-trimmed: the form headers are compared in. */
 function norm(text) {
   return String(text ?? '')
-    .replace(/ /g, ' ')
+    .replace(/ /g, ' ')
     .normalize('NFD').replace(/[̀-ͯ]/g, '')
     .toLowerCase()
     .replace(/[.:]+$/g, '')
@@ -72,7 +72,7 @@ function sniffDelimiter(text) {
  * @returns {string[][]}
  */
 export function parseDelimited(text) {
-  const body = String(text ?? '').replace(/^﻿/, '');
+  const body = String(text ?? '').replace(/^\uFEFF/, '');   // the BOM Excel writes, as an escape rather than the character itself
   if (!body.trim()) return [];
   const rows = parse(body, {
     delimiter: sniffDelimiter(body),
@@ -188,7 +188,7 @@ export function findHeader(rows) {
 export function parseSpanishAmount(text) {
   if (text === null || text === undefined) return null;
   if (typeof text === 'number') return Number.isFinite(text) ? Math.round(text * 100) / 100 : null;
-  let t = String(text).replace(/ /g, ' ').trim();
+  let t = String(text).replace(/ /g, ' ').trim();
   if (!t) return null;
 
   /* Accounting negatives come in brackets; some exports trail the minus sign. */
@@ -242,7 +242,7 @@ function ymd(y, m, d) {
  */
 export function parseSpanishDate(text) {
   if (text === null || text === undefined) return null;
-  const t = String(text).replace(/ /g, ' ').trim();
+  const t = String(text).replace(/ /g, ' ').trim();
   if (!t) return null;
 
   const iso = t.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})(?:[T\s].*)?$/);
@@ -339,7 +339,7 @@ export function toSightings(rows, { accountId = null, defaultCurrency = 'EUR' } 
     if (signed === null) { skipped.push({ index: i, row, reason: 'no_amount' }); continue; }
     if (signed === 0) { skipped.push({ index: i, row, reason: 'zero_amount' }); continue; }
 
-    const concept = cell(row, columns.concept).replace(/ /g, ' ').trim();
+    const concept = cell(row, columns.concept).replace(/ /g, ' ').trim();
     const read = parseNarrative(concept);
     /* When the sentence names nobody — a settlement, an interest line — the sentence
        itself is the best name there is, the way the feed adapter keeps it. */
