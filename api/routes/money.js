@@ -12,6 +12,10 @@
  * GET  /api/money/places                   the places behind the ledger
  * POST /api/money/places/lookup            look up the merchants not yet placed
  * POST /api/money/places/:key/category     a person's correction to a category
+ * GET  /api/money/questions                what the ledger cannot answer and should ask
+ * POST /api/money/questions/answer         an answer, checked against the ledger
+ * POST /api/money/questions/:id/skip       a question declined stops being asked
+ * GET  /api/money/facts                    what the person has said about their money
  * GET  /api/money/usage                    were the subscriptions used, and what cannot be checked
  * GET  /api/money/months                   money in and out per calendar month
  * GET  /api/money/readings[?refresh=1]     what the ledger says, with its receipts
@@ -32,7 +36,7 @@ import multer from 'multer';
 import { authenticateUser } from '../middleware/auth.js';
 import { createLogger } from '../services/logger.js';
 import { parseCapture, parseStructured } from '../services/money/captureParser.js';
-import { ingestSighting, ingestSightings, listTransactions, sightingsFor, refreshRecurring, forecast, setVerdict, userForCaptureKey, saveBankAccounts, listBankAccounts, pullBankFeed, refreshReadings, listReadings, setReadingVerdict, months, feedBudget, categorySpend, listPlaces, setPlaceCategory, enrichPlaces, subscriptionUsage } from '../services/money/store.js';
+import { ingestSighting, ingestSightings, listTransactions, sightingsFor, refreshRecurring, forecast, setVerdict, userForCaptureKey, saveBankAccounts, listBankAccounts, pullBankFeed, refreshReadings, listReadings, setReadingVerdict, months, feedBudget, categorySpend, listPlaces, setPlaceCategory, enrichPlaces, subscriptionUsage, questionsFor, answerQuestion, skipQuestion, listFacts } from '../services/money/store.js';
 import { parseDelimited, parseWorkbook, toSightings } from '../services/money/statements/importer.js';
 import { isConfigured, listBanks, startAuthorisation, createSession } from '../services/money/feeds/enableBanking.js';
 
@@ -251,6 +255,30 @@ router.get('/bank/budget', async (req, res) => {
 router.get('/usage', async (req, res) => {
   try { res.json({ success: true, data: await subscriptionUsage(req.user.id) }); }
   catch (error) { log.error('usage failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
+});
+
+/* The ledger reads rhythm, price and place. It cannot read meaning: who a name on a
+   transfer is, what leaves every month whatever happens, what comes in. Those are asked. */
+router.get('/questions', async (req, res) => {
+  try { res.json({ success: true, data: await questionsFor(req.user.id) }); }
+  catch (error) { log.error('questions failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
+});
+
+router.post('/questions/answer', async (req, res) => {
+  const { questionId, kind, subject, subjectLabel, value, amount, day, share } = req.body || {};
+  if (!kind) return res.status(400).json({ success: false, error: 'kind is required' });
+  try { res.json({ success: true, data: await answerQuestion(req.user.id, { questionId, kind, subject, subjectLabel, value, amount, day, share }) }); }
+  catch (error) { log.error('answer failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
+});
+
+router.post('/questions/:id/skip', async (req, res) => {
+  try { res.json({ success: true, data: await skipQuestion(req.user.id, req.params.id) }); }
+  catch (error) { log.error('skip failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
+});
+
+router.get('/facts', async (req, res) => {
+  try { res.json({ success: true, data: await listFacts(req.user.id) }); }
+  catch (error) { log.error('facts failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
 });
 
 /** Money in and out, per calendar month. */

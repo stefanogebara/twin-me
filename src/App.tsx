@@ -55,6 +55,7 @@ const loadTalkToTwin = () => import("./pages/TalkToTwin");
 const loadTodayPage = () => import("./pages/TodayPage");
 const loadMoneyPage = () => import("./pages/MoneyPage");
 const MoneyV2Page = lazy(() => import("./pages/money/MoneyV2Page"));
+const MoneySetupPage = lazy(() => import("./pages/money/MoneySetupPage"));
 const loadMoneyInsightsPage = () => import("./pages/MoneyInsightsPage");
 
 const Settings = lazy(() => import("./pages/Settings"));
@@ -386,6 +387,16 @@ const App = () => {
               <ProtectedRoute>
                 <ErrorBoundary>
                   <Suspense fallback={null}><MoneyV2Page /></Suspense>
+                </ErrorBoundary>
+              </ProtectedRoute>
+            } />
+
+            {/* The questions the ledger cannot answer for itself: who a name is,
+                what leaves every month, what comes in. Asked once, then per line. */}
+            <Route path="/money/setup" element={
+              <ProtectedRoute>
+                <ErrorBoundary>
+                  <Suspense fallback={null}><MoneySetupPage /></Suspense>
                 </ErrorBoundary>
               </ProtectedRoute>
             } />

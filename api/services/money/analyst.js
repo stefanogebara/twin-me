@@ -200,7 +200,9 @@ export function weekdayShape(transactions, now, weeks = 6, iterations = 600) {
   /* Permutation: keep the daily totals, shuffle which weekday each day was.
      If a weekday label carries no real weight, chance reaches this ratio often. */
   let seed = 20260908;
-  const rand = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
+  /* Math.imul, not `*`: seed * 1103515245 leaves the exact-integer range of a double and
+     the low bits come back zero, which turns a shuffle into a rotation. */
+  const rand = () => { seed = (Math.imul(seed, 1103515245) + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
   let beats = 0;
   for (let i = 0; i < iterations; i += 1) {
     const labels = days.map((d) => d.weekday);

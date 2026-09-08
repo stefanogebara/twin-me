@@ -43,6 +43,28 @@ export type MoneyPlace = {
   merchant_key: string; name: string; city: string | null; kind: string | null; category: string | null;
   lat: number | null; lon: number | null; confidence: number | null; spent: number; looked_up: boolean;
 };
+export type MoneyQuestionReceipt = { id: string; occurred_at: string; amount: number | string; merchant_raw: string | null; merchant_key: string };
+/**
+ * Something the ledger cannot work out for itself. `input` says how it should be answered:
+ * 'text', 'category', 'choice:a,b,c', or 'list:name,amount,day' style, where a list answer
+ * is one fact per row. `why` is shown to the person, because a question that cannot say
+ * what it buys should not be asked.
+ */
+export type MoneyQuestion = {
+  id: string; kind: string; ask: string; help?: string | null; why: string; changes: string;
+  input: string; optional?: boolean; subject?: string | null; receipts?: MoneyQuestionReceipt[];
+};
+export type MoneyQuestions = { opening: MoneyQuestion[]; fromLedger: MoneyQuestion[]; answered: number };
+/** An answer, kept as a claim: `check_status` is the ledger's own verdict on it. */
+export type MoneyFact = {
+  id: string; kind: string; subject: string | null; subject_label: string | null;
+  value: string | null; amount: number | string | null; day: number | null; share: number | null;
+  check_status: string | null; check_note: string | null;
+};
+export type MoneyAnswer = {
+  questionId?: string; kind: string; subject?: string; subjectLabel?: string;
+  value?: string; amount?: number; day?: number; share?: number;
+};
 export type MoneyAccount = { id: string; provider: string; name: string | null; iban_mask: string | null; currency: string; consent_expires_at: string | null; last_pulled_at: string | null };
 
 async function json<T>(res: Response): Promise<T> {
@@ -89,6 +111,13 @@ export const moneyAPI = {
     if (!res.ok || payload?.success === false) throw new Error(payload?.error || 'That statement could not be read.');
     return payload.data as { read: number; created: number; attached: number; skipped: number };
   },
+  questions: () => authFetch('/money/questions').then((r) => json<MoneyQuestions>(r)),
+  /** One row of a list answer is one fact, so a list question sends one of these per row. */
+  answerQuestion: (payload: MoneyAnswer) =>
+    authFetch('/money/questions/answer', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }).then((r) => json<MoneyFact>(r)),
+  skipQuestion: (id: string) =>
+    authFetch(`/money/questions/${encodeURIComponent(id)}/skip`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).then((r) => json<{ skipped: string }>(r)),
+  facts: () => authFetch('/money/facts').then((r) => json<MoneyFact[]>(r)),
   accounts: () => authFetch('/money/bank/accounts').then((r) => json<MoneyAccount[]>(r)),
   connect: (bank = 'Banco Santander', country = 'ES') =>
     authFetch('/money/bank/connect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bank, country }) }).then((r) => json<{ url: string }>(r)),
@@ -102,9 +131,14 @@ export const moneyAPI = {
   },
 };
 
+/**
+ * Always two decimals. Dropping them above a thousand put "1750 €" directly above
+ * "100,00 €" in a column of receipts, and a column that does not line up reads as a
+ * mistake in the number rather than in the formatting.
+ */
 export function euro(n: number | string | null | undefined): string {
   const v = Math.abs(Number(n) || 0);
-  return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', maximumFractionDigits: v >= 1000 ? 0 : 2 }).format(v);
+  return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v);
 }
 export function shortDay(iso: string | null | undefined): string {
   if (!iso) return '';
