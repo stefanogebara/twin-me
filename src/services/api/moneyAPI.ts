@@ -64,6 +64,9 @@ export const moneyAPI = {
   budget: () => authFetch('/money/bank/budget').then((r) => json<MoneyBudget>(r)),
   categories: (month?: string) => authFetch(`/money/categories${month ? `?month=${encodeURIComponent(month)}` : ''}`).then((r) => json<MoneyCategories>(r)),
   places: () => authFetch('/money/places').then((r) => json<MoneyPlace[]>(r)),
+  lookupPlaces: (limit = 12) =>
+    authFetch('/money/places/lookup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ limit }) })
+      .then((r) => json<{ looked: number; placed: number; left: number; provider: string }>(r)),
   /**
    * A statement export, for the months the bank's ninety-day window does not reach.
    * Raw fetch: authFetch always sets a JSON content type, and multipart needs the

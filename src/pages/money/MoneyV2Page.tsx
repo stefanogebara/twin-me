@@ -140,6 +140,23 @@ export default function MoneyV2Page() {
       await load();
     } catch (e) { setNote((e as Error).message); } finally { setBusy(null); }
   }
+  /* The free provider allows one request a second, so the button comes back for the rest
+     rather than holding a request open until it finishes. */
+  async function lookupPlaces() {
+    setBusy('places'); setNote(null);
+    try {
+      let placed = 0;
+      let left = 1;
+      for (let round = 0; round < 6 && left > 0; round += 1) {
+        const r = await moneyAPI.lookupPlaces(12);
+        placed += r.placed;
+        left = r.left;
+        if (r.provider === 'none') break;
+      }
+      setNote(`${placed} more ${placed === 1 ? 'merchant' : 'merchants'} placed${left ? `, ${left} still to go` : ''}.`);
+      await load();
+    } catch { setNote('The place lookup did not answer.'); } finally { setBusy(null); }
+  }
   async function makeKey() {
     setBusy('key'); setNote(null);
     try { setKey(await moneyAPI.createCaptureKey()); } catch (e) { setNote((e as Error).message); } finally { setBusy(null); }
@@ -260,6 +277,13 @@ export default function MoneyV2Page() {
               ? `${euro(categories.read)} of ${euro(categories.total)} is placed so far. The rest is waiting on a lookup.`
               : 'Every payment this month has a kind of place behind it.'}
           </p>
+          {categories.read < categories.total ? (
+            <div className="mv-ctas">
+              <button type="button" className="mv-pill mv-pill--ghost" onClick={() => void lookupPlaces()} disabled={busy === 'places'}>
+                {busy === 'places' ? 'Looking up…' : 'Look up the rest'}
+              </button>
+            </div>
+          ) : null}
           <ol className="mv-cats">
             {categories.groups.map((g) => (
               <li key={g.category} className={g.known ? '' : 'is-unknown'}>

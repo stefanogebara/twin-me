@@ -159,8 +159,12 @@ router.post('/bank/pull', async (req, res) => {
   if (!isConfigured()) return res.status(503).json({ success: false, error: 'Bank feed not configured' });
   try {
     const data = await pullBankFeed(req.user.id, { since: typeof req.body?.since === 'string' ? req.body.since : undefined });
-    /* A read is worth something only once it has been read: recompute what it says. */
-    if (data.some((d) => d.created > 0)) await refreshReadings(req.user.id).catch((e) => log.warn('readings after pull failed', { error: e.message }));
+    /* A read is worth something only once it has been read: place the new merchants, then
+       recompute what it says. The lookup is capped so the request still fits in its minute. */
+    if (data.some((d) => d.created > 0)) {
+      await enrichPlaces(req.user.id, { limit: 8 }).catch((e) => log.warn('places after pull failed', { error: e.message }));
+      await refreshReadings(req.user.id).catch((e) => log.warn('readings after pull failed', { error: e.message }));
+    }
     res.json({ success: true, data, budget: await feedBudget(req.user.id) });
   } catch (error) {
     if (error.code === 'feed_budget_spent') {
