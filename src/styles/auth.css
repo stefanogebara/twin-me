@@ -1,0 +1,60 @@
+/* ==========================================================================
+   The front door, on the web. Paper, ink, one headline, one black pill.
+   Tokens and the pill come from money-v2.css (the page is wrapped in .mv);
+   this file only lays the room out and draws the one field the money
+   stylesheet does not have.
+   ========================================================================== */
+
+.mv.au { min-height: 100dvh; display: grid; }
+/* The column: the room, the controls, the footer. The paper is the whole page; only the words
+   are held to a measure. */
+.au-col {
+  min-height: 100dvh;
+  display: grid;
+  grid-template-rows: 1fr auto auto;
+  width: min(520px, 100% - 48px);
+  margin: 0 auto;
+  padding: clamp(40px, 8vh, 96px) 0 clamp(20px, 4vh, 40px);
+  box-sizing: border-box;
+}
+
+/* The words rest in the room above the controls, centred in what is left, then lifted a
+   little, so the paper around them reads as chosen rather than unfilled. */
+.au-room { display: grid; align-content: center; gap: 22px; padding-bottom: clamp(32px, 6vh, 72px); }
+.au-room h1 { font-size: clamp(44px, 6.4vw, 68px); text-wrap: balance; }
+.au-room .mv-lede { max-width: 34rem; font-size: 19px; line-height: 1.45; color: var(--ink-2); text-wrap: pretty; }
+
+.au-controls { display: grid; gap: 14px; justify-items: start; }
+.au-controls .mv-pill { min-width: 220px; }
+.au-controls .mv-pill:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+
+/* One field, in the body type, a hairline box: the only thing drawn here. */
+.au-form { display: grid; gap: 10px; width: min(360px, 100%); justify-items: start; }
+.au-field {
+  width: 100%; box-sizing: border-box; height: 52px; padding: 0 18px;
+  border: 1px solid rgba(17, 17, 17, 0.16); border-radius: 14px; background: #fff;
+  font: inherit; font-size: 16px; letter-spacing: -0.005em; color: var(--ink);
+}
+.au-field::placeholder { color: var(--ink-3); }
+.au-field:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-color: transparent; }
+.au-field:disabled { opacity: 0.6; }
+
+.au-note { font-size: 15px; line-height: 1.45; color: var(--ink-2); max-width: 34rem; }
+.au-note--error { color: var(--ink); }
+
+.au-foot { padding-top: clamp(28px, 5vh, 56px); font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); }
+
+/* Entrance: a fade and eight pixels of rise, and nothing else. */
+.au-enter { animation: au-enter 0.42s cubic-bezier(0.2, 0.7, 0.2, 1) both; animation-delay: calc(var(--i, 0) * 40ms); }
+@keyframes au-enter { from { opacity: 0; translate: 0 8px; } to { opacity: 1; translate: 0 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .au-enter { animation: none; }
+  .mv.au .mv-pill { transition: none; }
+}
+
+@media (max-width: 640px) {
+  .au-col { width: min(520px, 100% - 40px); padding-top: clamp(56px, 12vh, 96px); }
+  .au-room h1 { font-size: clamp(40px, 11.5vw, 48px); }
+  .au-controls, .au-controls .mv-pill, .au-form { width: 100%; }
+  .au-controls .mv-pill { justify-self: stretch; }
+}
