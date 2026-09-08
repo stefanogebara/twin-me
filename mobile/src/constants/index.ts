@@ -1,5 +1,10 @@
 // TwinMe API base URL — local backend for all calls except OAuth
-export const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://10.0.2.2:3004/api';
+import { Platform } from 'react-native';
+
+// Without EXPO_PUBLIC_API_URL the app talks to a dev server on the host machine. The Android
+// emulator reaches the host as 10.0.2.2; the iOS simulator shares the host's loopback.
+export const API_URL = process.env.EXPO_PUBLIC_API_URL
+  ?? (Platform.OS === 'android' ? 'http://10.0.2.2:3004/api' : 'http://127.0.0.1:3004/api');
 
 // OAuth API URL — always uses production (requires HTTPS for Google OAuth)
 export const OAUTH_API_URL = process.env.EXPO_PUBLIC_OAUTH_API_URL ?? 'https://www.twinme.me/api';

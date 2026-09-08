@@ -128,6 +128,18 @@ export type MoneyCategories = {
   groups: MoneyCategoryGroup[];
 };
 
+/** A payment the ledger raised a question about, in the merchant's own spelling. */
+export type MoneyAccount = {
+  id: string; provider: string; name: string | null; iban_mask: string | null; currency: string;
+  consent_expires_at: string | null; last_pulled_at: string | null;
+};
+export type MoneyQuestionReceipt = {
+  id: string;
+  occurred_at: string;
+  amount: number | string;
+  merchant_raw: string | null;
+};
+
 export type MoneyQuestion = {
   id: string;
   kind: string;
@@ -135,9 +147,36 @@ export type MoneyQuestion = {
   help?: string | null;
   why: string;
   changes: string;
+  /** 'text' | 'category' | 'choice:a,b,c' | 'list:name,amount,day' | 'list:source,amount,day' | 'list:what,share' */
   input: string;
   optional?: boolean;
   subject?: string | null;
+  receipts?: MoneyQuestionReceipt[];
+};
+
+/** One thing the person told the ledger. A list answer makes one of these per row. */
+export type MoneyFact = {
+  id: string;
+  kind: string;
+  subject: string | null;
+  subject_label: string | null;
+  value: string | null;
+  amount: number | string | null;
+  day: number | null;
+  share: number | null;
+  check_status: string | null;
+  check_note: string | null;
+};
+
+export type MoneyAnswer = {
+  questionId?: string;
+  kind: string;
+  subject?: string;
+  subjectLabel?: string;
+  value?: string;
+  amount?: number;
+  day?: number;
+  share?: number;
 };
 
 export type MoneyQuestions = {
@@ -183,6 +222,13 @@ export const moneyApi = {
   categories: (month?: string) =>
     authFetch(`/money/categories${month ? `?month=${encodeURIComponent(month)}` : ''}`).then((r) => json<MoneyCategories>(r)),
   recurring: () => authFetch('/money/recurring').then((r) => json<MoneyRecurring[]>(r)),
+  accounts: () => authFetch('/money/bank/accounts').then((r) => json<MoneyAccount[]>(r)),
   questions: () => authFetch('/money/questions').then((r) => json<MoneyQuestions>(r)),
+  /** One row of a list answer is one fact, so a list question sends one of these per row. */
+  answerQuestion: (payload: MoneyAnswer) =>
+    post('/money/questions/answer', payload).then((r) => json<MoneyFact>(r)),
+  skipQuestion: (id: string) =>
+    post(`/money/questions/${encodeURIComponent(id)}/skip`, {}).then((r) => json<{ skipped: string }>(r)),
+  facts: () => authFetch('/money/facts').then((r) => json<MoneyFact[]>(r)),
   months: () => authFetch('/money/months').then((r) => json<MoneyMonth[]>(r)),
 };

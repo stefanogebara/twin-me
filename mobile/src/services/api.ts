@@ -534,3 +534,21 @@ export async function uploadAndroidUsage(usageData: AndroidUsageData): Promise<{
   const data = await processRes.json();
   return { importId: data.importId, observationsCreated: data.observationsCreated ?? 0 };
 }
+
+/**
+ * The website signs people in by emailing a link; the app does the same. The link opens the
+ * site, which hands the app an auth code through twinme://auth, and useAuth finishes it.
+ * A student has a phone, not a password manager, so this is the front door and a password
+ * is not asked for.
+ */
+export async function requestMagicLink(email: string): Promise<void> {
+  const res = await fetch(`${API_URL}/auth/magic-link/request`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...MOBILE_CLIENT_HEADERS },
+    body: JSON.stringify({ email, client: 'mobile', redirect: '/app' }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || err.message || 'The link could not be sent.');
+  }
+}

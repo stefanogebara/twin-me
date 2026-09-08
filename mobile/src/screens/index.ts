@@ -1,10 +1,8 @@
-export { LoginScreen } from './LoginScreen';
-export { HomeScreen } from './HomeScreen';
-export { TwinChatScreen } from './TwinChatScreen';
-export { SettingsScreen } from './SettingsScreen';
-export { MeScreen } from './MeScreen';
-export { SoulSignatureRevealScreen } from './SoulSignatureRevealScreen';
-export { ConnectPlatformsScreen } from './ConnectPlatformsScreen';
-export { WikiScreen } from './WikiScreen';
-export { InsightsScreen } from './InsightsScreen';
-export { SoulInterviewScreen } from './SoulInterviewScreen';
+/* The money twin's screens, and only those. The soul-portrait era's screens are gone. */
+export { default as FrontDoorScreen } from './FrontDoorScreen';
+export { default as BankScreen } from './BankScreen';
+export { default as PhoneCaptureScreen } from './PhoneCaptureScreen';
+export { default as QuestionsScreen } from './QuestionsScreen';
+export { default as MonthScreen } from './MonthScreen';
+export { default as LedgerScreen } from './LedgerScreen';
+export { default as YouScreen } from './YouScreen';
