@@ -12,6 +12,7 @@
  * GET  /api/money/places                   the places behind the ledger
  * POST /api/money/places/lookup            look up the merchants not yet placed
  * POST /api/money/places/:key/category     a person's correction to a category
+ * GET  /api/money/stream                   the pipeline as it runs, one event per real step
  * GET  /api/money/questions                what the ledger cannot answer and should ask
  * POST /api/money/questions/answer         an answer, checked against the ledger
  * POST /api/money/questions/:id/skip       a question declined stops being asked
@@ -36,7 +37,7 @@ import multer from 'multer';
 import { authenticateUser } from '../middleware/auth.js';
 import { createLogger } from '../services/logger.js';
 import { parseCapture, parseStructured } from '../services/money/captureParser.js';
-import { ingestSighting, ingestSightings, listTransactions, sightingsFor, refreshRecurring, forecast, setVerdict, userForCaptureKey, saveBankAccounts, listBankAccounts, pullBankFeed, refreshReadings, listReadings, setReadingVerdict, months, feedBudget, categorySpend, listPlaces, setPlaceCategory, enrichPlaces, subscriptionUsage, questionsFor, answerQuestion, skipQuestion, listFacts } from '../services/money/store.js';
+import { ingestSighting, ingestSightings, listTransactions, sightingsFor, refreshRecurring, forecast, setVerdict, userForCaptureKey, saveBankAccounts, listBankAccounts, pullBankFeed, refreshReadings, listReadings, setReadingVerdict, months, feedBudget, categorySpend, listPlaces, setPlaceCategory, enrichPlaces, subscriptionUsage, questionsFor, answerQuestion, skipQuestion, listFacts, learn } from '../services/money/store.js';
 import { parseDelimited, parseWorkbook, toSightings } from '../services/money/statements/importer.js';
 import { isConfigured, listBanks, startAuthorisation, createSession } from '../services/money/feeds/enableBanking.js';
 
@@ -255,6 +256,120 @@ router.get('/bank/budget', async (req, res) => {
 router.get('/usage', async (req, res) => {
   try { res.json({ success: true, data: await subscriptionUsage(req.user.id) }); }
   catch (error) { log.error('usage failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
+});
+
+/**
+ * The work, as it happens.
+ * ========================
+ * A person answering questions deserves to see what is being done with the answers, and
+ * this streams the real pipeline: the bank read, the narratives parsed, the places looked
+ * up, the merchants learned, the patterns found. Every step carries the count it actually
+ * produced. Nothing here is staged — a step that did no work says so, and a step that
+ * could not run says why. A progress animation over invented work would be the one lie
+ * this product cannot afford, because its whole claim is that its numbers are counted.
+ */
+router.get('/stream', async (req, res) => {
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache, no-transform',
+    Connection: 'keep-alive',
+    'X-Accel-Buffering': 'no',
+  });
+  const send = (payload) => {
+    if (res.writableEnded) return;
+    res.write(`data: ${JSON.stringify(payload)}\n\n`);
+  };
+  let closed = false;
+  req.on('close', () => { closed = true; });
+
+  const step = async (name, label, run) => {
+    if (closed) return null;
+    const startedAt = Date.now();
+    send({ step: name, label, state: 'working' });
+    try {
+      const result = (await run()) || {};
+      /* Only the four small fields go down the wire. A step that returns rows for the next
+         step's use must not have them serialised into the browser: an early version of this
+         streamed the entire ledger, 59 KB of it, to draw a one-line progress row. */
+      const { detail = null, count = null, done = false } = result;
+      send({ step: name, label, state: 'done', ms: Date.now() - startedAt, detail, count, done });
+      return result;
+    } catch (error) {
+      send({ step: name, label, state: 'failed', detail: 'That step could not run.', ms: Date.now() - startedAt });
+      log.warn(`stream step ${name} failed`, { error: error.message });
+      return null;
+    }
+  };
+
+  try {
+    const userId = req.user.id;
+
+    await step('bank', 'Reading the bank', async () => {
+      const budget = await feedBudget(userId);
+      if (budget.left <= 0) {
+        return { detail: 'Four reads a day is the limit and today is spent. Using what is stored.', count: 0 };
+      }
+      const accounts = await listBankAccounts(userId);
+      if (!accounts.length) return { detail: 'No account connected yet.', count: 0 };
+      /* A read that failed and a bank that was never connected are different things, and
+         saying the wrong one sends somebody to reconnect an account that is already there. */
+      let pulled;
+      try {
+        pulled = await pullBankFeed(userId);
+      } catch (error) {
+        /* The provider's message carries a URL with the account identifier in it. A person
+           reading "what it is doing" needs to know the read failed, not to be shown the
+           plumbing, and an account uid does not belong on a screen. */
+        const why = /429|budget|exceeded/i.test(error.message) ? 'the daily limit is spent'
+          : /fetch failed|network|ENOTFOUND|timeout/i.test(error.message) ? 'it could not be reached'
+            : 'it refused the read';
+        return { detail: `The bank did not answer: ${why}.`, count: 0 };
+      }
+      const seen = pulled.reduce((n, x) => n + x.seen, 0);
+      const created = pulled.reduce((n, x) => n + x.created, 0);
+      return { detail: created ? `${created} new` : 'nothing new', count: seen };
+    });
+
+    const ledger = await step('ledger', 'Reading the payments', async () => {
+      const rows = await listTransactions(userId, { limit: 5000 });
+      const named = rows.filter((t) => t.merchant_raw).length;
+      return { detail: `${named} named by the bank`, count: rows.length, rows };
+    });
+
+    await step('places', 'Working out the places', async () => {
+      const r = await enrichPlaces(userId, { limit: 8 });
+      if (r.provider === 'none') return { detail: 'Place lookups are off.', count: 0 };
+      return { detail: r.left ? `${r.left} still to do` : 'all of them placed', count: r.placed };
+    });
+
+    const learned = await step('learn', 'Learning the rhythms', async () => {
+      const r = await learn(userId);
+      return {
+        detail: r.profiles.length ? `${r.predictions.length} expected next` : 'nothing steady yet',
+        count: r.profiles.length,
+      };
+    });
+
+    await step('patterns', 'Reading what it means', async () => {
+      const r = await refreshReadings(userId);
+      return {
+        detail: r.findings.length ? r.findings[0].sentence : 'nothing it can say yet',
+        count: r.findings.length,
+      };
+    });
+
+    await step('gaps', 'Finding what it cannot explain', async () => {
+      const q = await questionsFor(userId);
+      return { detail: q.fromLedger.length ? q.fromLedger[0].ask : 'nothing left unexplained', count: q.fromLedger.length };
+    });
+
+    send({ step: 'end', label: 'Done', state: 'done', done: true, learned: learned?.count ?? 0, ledger: ledger?.count ?? 0 });
+  } catch (error) {
+    log.error('money stream failed', { error: error.message });
+    send({ step: 'end', label: 'Stopped', state: 'failed', done: true });
+  } finally {
+    if (!res.writableEnded) res.end();
+  }
 });
 
 /* The ledger reads rhythm, price and place. It cannot read meaning: who a name on a
