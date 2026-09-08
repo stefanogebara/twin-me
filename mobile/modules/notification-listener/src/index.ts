@@ -17,6 +17,10 @@ export interface NotificationStatsModuleType extends NativeModule {
   getNotificationStats(): Promise<NotificationEntry[]>;
   clearStats(): void;
   setAuthToken(token: string): void;
+  /** The money capture key. Survives token expiry; see the Kotlin for why that matters. */
+  setCaptureKey(key: string): void;
+  /** Captures held back because the phone could not reach the server. */
+  pendingCaptureCount(): number;
   addListener(eventName: string, listener: (event: PurchaseEvent) => void): EventSubscription;
 }
 
@@ -51,6 +55,23 @@ export const NotificationListenerModule = {
 
   setAuthToken(token: string): void {
     getModule()?.setAuthToken(token);
+  },
+
+  /**
+   * The money capture key. Kept apart from the session token because this service runs for
+   * months without the app being opened: a JWT would expire there quietly and take every
+   * payment with it. Older native builds do not have it, hence the guard.
+   */
+  setCaptureKey(key: string): void {
+    const module = getModule();
+    if (module && typeof module.setCaptureKey === 'function') module.setCaptureKey(key);
+  },
+
+  /** Payments the phone is holding because it could not reach the server. */
+  pendingCaptureCount(): number {
+    const module = getModule();
+    if (!module || typeof module.pendingCaptureCount !== 'function') return 0;
+    return module.pendingCaptureCount();
   },
 
   addPurchaseListener(callback: (event: PurchaseEvent) => void): EventSubscription | null {
