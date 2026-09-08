@@ -281,17 +281,59 @@ function dormantCharge(recurring, transactions, now) {
   };
 }
 
+
+/**
+ * The kind of place that takes the most, when enough of the window has a kind at all.
+ * Categories arrive from money_places (a brand table, then a geocoder), so this finding
+ * refuses to speak until three fifths of the money has been placed: a share computed over
+ * half-read data is a wrong number wearing a percentage sign.
+ */
+export function categoryShape(transactions, categoryOf, now, days = 120) {
+  const from = now.getTime() - days * DAY;
+  const spend = transactions.filter((t) => out(t) && new Date(t.occurred_at).getTime() >= from);
+  if (spend.length < 20) return null;
+  const total = spend.reduce((s, t) => s + abs(t), 0);
+  if (total <= 0) return null;
+
+  const byCategory = new Map();
+  let placed = 0;
+  for (const t of spend) {
+    const category = categoryOf(t);
+    if (!category) continue;
+    placed += abs(t);
+    if (!byCategory.has(category)) byCategory.set(category, { category, spent: 0, rows: [] });
+    const c = byCategory.get(category);
+    c.spent += abs(t);
+    c.rows.push(t);
+  }
+  if (!byCategory.size || placed / total < 0.6) return null;
+
+  const top = [...byCategory.values()].sort((a, b) => b.spent - a.spent)[0];
+  const share = Math.round((top.spent / placed) * 100);
+  if (share < 25) return null;
+  return {
+    kind: 'category_shape',
+    month: null,
+    sentence: `${share}% of what you have spent in ${days} days went to ${top.category}: ${euro(top.spent)}.`,
+    detail: `Read from ${euro(placed)} of ${euro(total)}, which is what has a kind of place behind it so far.`,
+    numbers: { category: top.category, spent: Math.round(top.spent * 100) / 100, share_percent: share, placed: Math.round(placed * 100) / 100, total: Math.round(total * 100) / 100, days },
+    receipts: top.rows.sort((a, b) => abs(b) - abs(a)).slice(0, 4),
+    evidence_count: top.rows.length,
+  };
+}
+
 /**
  * Everything the ledger will say today, strongest first. A finding that cannot meet
  * its evidence rule is absent, not softened: silence is the honest output when there
  * is nothing yet to see.
  */
-export function readLedger({ transactions = [], recurring = [], now = new Date() } = {}) {
+export function readLedger({ transactions = [], recurring = [], categoryOf = null, now = new Date() } = {}) {
   const rows = transactions.filter((t) => t.occurred_at);
   const segments = monthSegments(rows, now);
   const findings = [
     monthPace(rows, now, segments),
     subscriptionLoad(recurring, rows),
+    categoryOf ? categoryShape(rows, categoryOf, now) : null,
     weekdayShape(rows, now),
     smallPayments(rows, segments),
     biggestLine(rows, now),

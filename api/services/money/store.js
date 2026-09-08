@@ -11,6 +11,7 @@ import { projectMonth } from './projection.js';
 import { fetchTransactions, toSighting } from './feeds/enableBanking.js';
 import { readLedger, monthSegments } from './analyst.js';
 import { tellTwin } from './twinBridge.js';
+import { lookupPlace, providerFor, categoryFromBrand, PROVIDER_NONE } from './places.js';
 
 const log = createLogger('money-store');
 
@@ -162,7 +163,25 @@ export async function refreshRecurring(userId, now = new Date()) {
     const keys = series.map((s) => s.merchant_key);
     await supabaseAdmin.from('money_transactions').update({ is_recurring: true }).eq('user_id', userId).in('merchant_key', keys);
   }
-  return series.map((s) => ({ ...s, merchant_name: names.get(s.merchant_key) || null }));
+  /* A card says a charge comes back every month; the person then asks which payments those
+     were, when the next one lands and what it has cost so far. The transactions are already
+     in hand, so the answer costs no query. */
+  const charges = new Map();
+  for (const t of rows) {
+    if (Number(t.amount) >= 0) continue;
+    if (!charges.has(t.merchant_key)) charges.set(t.merchant_key, []);
+    charges.get(t.merchant_key).push({ id: t.id, occurred_at: t.occurred_at, amount: Math.abs(Number(t.amount) || 0), verdict: t.verdict || null });
+  }
+  return series.map((x) => {
+    const paid = (charges.get(x.merchant_key) || []).sort((a, b) => new Date(b.occurred_at) - new Date(a.occurred_at));
+    return {
+      ...x,
+      merchant_name: names.get(x.merchant_key) || null,
+      charges: paid.slice(0, 12),
+      total_paid: Math.round(paid.reduce((sum, c) => sum + c.amount, 0) * 100) / 100,
+      day_of_month: paid.length ? new Date(paid[0].occurred_at).getUTCDate() : null,
+    };
+  });
 }
 
 export async function forecast(userId, now = new Date()) {
@@ -294,7 +313,15 @@ export async function refreshReadings(userId, now = new Date()) {
   const names = new Map();
   for (const t of transactions) if (t.merchant_raw && !names.has(t.merchant_key)) names.set(t.merchant_key, t.merchant_raw);
   const withNames = recurring.map((r) => ({ ...r, merchant_name: names.get(r.merchant_key) || null }));
-  const { segments, findings } = readLedger({ transactions, recurring: withNames, now });
+  /* The kind of place behind each payment, so the analyst can read a shape by kind. A
+     merchant with no place yet has no kind, and the finding refuses to speak on thin data. */
+  const keys = [...new Set(transactions.map((t) => t.merchant_key))];
+  const { data: places } = keys.length
+    ? await supabaseAdmin.from('money_places').select('merchant_key, category, category_override').in('merchant_key', keys)
+    : { data: [] };
+  const categories = new Map((places || []).map((p) => [p.merchant_key, p.category_override || p.category || null]));
+  const categoryOf = (t) => categories.get(t.merchant_key) || CHANNEL_CATEGORY[t.channel] || null;
+  const { segments, findings } = readLedger({ transactions, recurring: withNames, categoryOf, now });
   /* A finding with no month (a subscription load, a weekday shape) has month NULL, and
      Postgres counts NULLs as distinct: an upsert on (kind, month) inserted a fresh copy
      every run. So the write is an explicit update-or-insert, which also keeps the id and
@@ -381,4 +408,184 @@ export async function moneyContext(userId, now = new Date()) {
     currency: transactions[0]?.currency || 'EUR',
     readings: readings.map((r) => ({ kind: r.kind, sentence: r.sentence, detail: r.detail })),
   };
+}
+
+/* Some channels answer the question by themselves. */
+const CHANNEL_CATEGORY = { transfer: 'transfers', bizum: 'transfers', cash: 'cash', fee: 'fees', direct_debit: 'bills' };
+
+/**
+ * Where a month's money went, by kind of place. The kind comes from money_places, one row
+ * per merchant, so this is a join and not a guess; a merchant nobody has looked up yet
+ * counts as "not read yet" rather than being quietly filed under "other" — the difference
+ * between a gap and a category matters when a person is deciding whether to trust the page.
+ */
+export async function categorySpend(userId, { month = null } = {}) {
+  let q = supabaseAdmin.from('money_transactions')
+    .select('id, amount, merchant_key, merchant_raw, occurred_at, channel')
+    .eq('user_id', userId).lt('amount', 0);
+  if (month) {
+    const start = `${String(month).slice(0, 7)}-01`;
+    const end = new Date(Date.UTC(Number(start.slice(0, 4)), Number(start.slice(5, 7)), 1)).toISOString().slice(0, 10);
+    q = q.gte('occurred_at', `${start}T00:00:00Z`).lt('occurred_at', `${end}T00:00:00Z`);
+  }
+  const { data: rows, error } = await q;
+  if (error) throw new Error(error.message);
+  if (!rows?.length) return { month, total: 0, read: 0, groups: [] };
+
+  const keys = [...new Set(rows.map((r) => r.merchant_key))];
+  const { data: places } = await supabaseAdmin
+    .from('money_places')
+    .select('merchant_key, name, kind, category, category_override, city, lat, lon, confidence')
+    .in('merchant_key', keys);
+  const byKey = new Map((places || []).map((p) => [p.merchant_key, p]));
+
+  const groups = new Map();
+  let total = 0;
+  let read = 0;
+  for (const r of rows) {
+    const amount = Math.abs(Number(r.amount) || 0);
+    total += amount;
+    const place = byKey.get(r.merchant_key);
+    /* A merchant that was looked up and not found is still unread, not "other": a miss is
+       recorded so the same question is not asked twice, and it must not pass for an answer. */
+    const place_category = place ? (place.category_override || place.category || null) : null;
+    /* A transfer to a person is a transfer, whatever a places provider thinks: the channel
+       the bank recorded is itself an answer, and a truthful one. */
+    const category = place_category || CHANNEL_CATEGORY[r.channel] || null;
+    if (category) read += amount;
+    const key = category || 'not read yet';
+    if (!groups.has(key)) groups.set(key, { category: key, known: Boolean(category), spent: 0, lines: 0, merchants: new Map() });
+    const g = groups.get(key);
+    g.spent += amount;
+    g.lines += 1;
+    const name = place?.name || r.merchant_raw || r.merchant_key;
+    g.merchants.set(name, (g.merchants.get(name) || 0) + amount);
+  }
+  return {
+    month,
+    total: Math.round(total * 100) / 100,
+    read: Math.round(read * 100) / 100,
+    groups: [...groups.values()]
+      .map((g) => ({
+        category: g.category,
+        known: g.known,
+        spent: Math.round(g.spent * 100) / 100,
+        lines: g.lines,
+        share: total > 0 ? Math.round((g.spent / total) * 100) : 0,
+        merchants: [...g.merchants.entries()].sort((a, b) => b[1] - a[1]).slice(0, 4).map(([name, spent]) => ({ name, spent: Math.round(spent * 100) / 100 })),
+      }))
+      .sort((a, b) => b.spent - a.spent),
+  };
+}
+
+/** The places behind a person's ledger, for a map and for a category correction. */
+export async function listPlaces(userId) {
+  const { data: rows } = await supabaseAdmin.from('money_transactions')
+    .select('merchant_key, merchant_raw, merchant_city, amount').eq('user_id', userId).lt('amount', 0);
+  const keys = [...new Set((rows || []).map((r) => r.merchant_key))];
+  if (!keys.length) return [];
+  const { data: places } = await supabaseAdmin.from('money_places').select('*').in('merchant_key', keys);
+  const byKey = new Map((places || []).map((p) => [p.merchant_key, p]));
+  const spend = new Map();
+  const names = new Map();
+  const cities = new Map();
+  for (const r of rows || []) {
+    spend.set(r.merchant_key, (spend.get(r.merchant_key) || 0) + Math.abs(Number(r.amount) || 0));
+    if (!names.has(r.merchant_key) && r.merchant_raw) names.set(r.merchant_key, r.merchant_raw);
+    if (!cities.has(r.merchant_key) && r.merchant_city) cities.set(r.merchant_key, r.merchant_city);
+  }
+  return keys.map((k) => {
+    const p = byKey.get(k) || null;
+    return {
+      merchant_key: k,
+      name: p?.name || names.get(k) || k,
+      city: p?.city || cities.get(k) || null,
+      kind: p?.kind || null,
+      category: p?.category_override || p?.category || null,
+      lat: p?.lat ?? null,
+      lon: p?.lon ?? null,
+      confidence: p?.confidence ?? null,
+      spent: Math.round((spend.get(k) || 0) * 100) / 100,
+      looked_up: Boolean(p),
+    };
+  }).sort((a, b) => b.spent - a.spent);
+}
+
+/** A person's correction to a category outlives the next lookup. */
+export async function setPlaceCategory(merchantKey, category) {
+  const { data, error } = await supabaseAdmin.from('money_places')
+    .update({ category_override: category, overridden_at: category ? new Date().toISOString() : null })
+    .eq('merchant_key', merchantKey).select().maybeSingle();
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+/**
+ * Look up the merchants nobody has looked up yet, one row per merchant, cached forever.
+ * Capped per run because the free provider allows one request a second and a serverless
+ * request dies at sixty: the caller comes back for the rest. Online brands cost no request
+ * at all, which is most of a builder's ledger.
+ */
+export async function enrichPlaces(userId, { limit = 12 } = {}) {
+  if (providerFor() === PROVIDER_NONE) return { looked: 0, placed: 0, left: 0, provider: PROVIDER_NONE };
+  const { data: rows } = await supabaseAdmin
+    .from('money_transactions')
+    .select('merchant_key, merchant_raw, merchant_city, amount')
+    .eq('user_id', userId).lt('amount', 0);
+  if (!rows?.length) return { looked: 0, placed: 0, left: 0, provider: providerFor() };
+
+  /* Biggest spend first: the merchant worth naming is the one taking the most money. */
+  const spend = new Map();
+  const names = new Map();
+  const cities = new Map();
+  for (const r of rows) {
+    spend.set(r.merchant_key, (spend.get(r.merchant_key) || 0) + Math.abs(Number(r.amount) || 0));
+    if (r.merchant_raw && !names.has(r.merchant_key)) names.set(r.merchant_key, r.merchant_raw);
+    if (r.merchant_city && !cities.has(r.merchant_key)) cities.set(r.merchant_key, r.merchant_city);
+  }
+  const { data: known } = await supabaseAdmin.from('money_places').select('merchant_key');
+  const done = new Set((known || []).map((k) => k.merchant_key));
+  const todo = [...spend.keys()]
+    .filter((k) => !done.has(k))
+    .sort((a, b) => spend.get(b) - spend.get(a));
+
+  let placed = 0;
+  const batch = todo.slice(0, limit);
+  for (const key of batch) {
+    const name = names.get(key) || key;
+    /* What the name settles on its own beats what a geocoder guesses: a provider does not
+       know Cabify is a ride or that OpenRouter is an API bill. Coordinates still come from
+       the provider, so a brand keeps its place on a map. */
+    const brand = categoryFromBrand(name);
+    let place = null;
+    try { place = await lookupPlace({ name, city: cities.get(key) || null, country: 'ES' }); }
+    catch (error) { log.warn(`place lookup failed (${name})`, { error: error.message }); }
+    /* A miss is recorded too, so the next run does not ask the same question again. */
+    /* A weak provider answer is worse than none: "Abada" came back as "Calle de la Abada",
+       a street. Below half confidence the lookup is recorded and its category dropped. */
+    const trusted = place && (place.confidence ?? 0) >= 0.5;
+    const row = place
+      ? {
+        /* The ledger's name stays the name. The provider's label lives in raw. */
+        merchant_key: key, name, kind: (trusted ? place.kind : null) || brand?.kind || null,
+        category: brand?.category || (trusted ? place.category : null) || null,
+        lat: trusted ? (place.lat ?? null) : null, lon: trusted ? (place.lon ?? null) : null,
+        city: place.city || cities.get(key) || null,
+        country: place.country || null, provider: brand ? 'brand' : (place.provider || null),
+        provider_place_id: place.provider_place_id || null,
+        confidence: brand ? Math.max(0.8, place.confidence ?? 0) : (place.confidence ?? null),
+        raw: { provider_name: place.name || null, describe: place.kind || null, body: place.raw || null },
+        looked_up_at: new Date().toISOString(),
+      }
+      : {
+        merchant_key: key, name, kind: brand?.kind || null, category: brand?.category || null,
+        city: cities.get(key) || null,
+        provider: brand ? 'brand' : providerFor(), confidence: brand ? 0.8 : 0,
+        looked_up_at: new Date().toISOString(),
+      };
+    const { error } = await supabaseAdmin.from('money_places').upsert(row, { onConflict: 'merchant_key' });
+    if (error) log.warn(`place cache write failed (${key}): ${error.message}`);
+    else if (place || brand) placed += 1;
+  }
+  return { looked: batch.length, placed, left: Math.max(0, todo.length - batch.length), provider: providerFor() };
 }

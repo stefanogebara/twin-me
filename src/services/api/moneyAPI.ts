@@ -2,7 +2,7 @@
  * Money v2 API client: the ledger, its receipts, what comes back on its own, this month, the sources.
  * Spec: .claude/plans/2026-09-07-money-twin/README.md
  */
-import { authFetch } from './apiBase';
+import { authFetch, getAuthHeaders, API_URL } from './apiBase';
 
 export type MoneyTransaction = {
   id: string; occurred_at: string; posted_at: string | null; amount: number | string; currency: string;
@@ -10,7 +10,13 @@ export type MoneyTransaction = {
   channel: string | null; card_last4: string | null; is_recurring: boolean; verdict: 'worth_it' | 'not_me' | null;
 };
 export type MoneySighting = { id: string; source: string; seen_at: string; raw_text: string | null; amount: number | string | null; currency: string | null; occurred_at: string | null; parse_confidence: number | string | null };
-export type MoneyRecurring = { merchant_key: string; merchant_name?: string | null; cadence: string; typical_amount: number | string; occurrences: number; first_seen: string; last_seen: string; next_expected: string | null; is_subscription: boolean; platform?: string | null; uses?: number | null; cost_per_use?: number | null };
+export type MoneyCharge = { id: string; occurred_at: string; amount: number; verdict: 'worth_it' | 'not_me' | null };
+export type MoneyRecurring = {
+  merchant_key: string; merchant_name?: string | null; cadence: string; typical_amount: number | string; occurrences: number;
+  first_seen: string; last_seen: string; next_expected: string | null; is_subscription: boolean;
+  platform?: string | null; uses?: number | null; cost_per_use?: number | null;
+  charges?: MoneyCharge[]; total_paid?: number; day_of_month?: number | null;
+};
 export type MoneyForecast = {
   month: string; as_of: string; days_left: number; spent: number; committed: number; expected: number; baseline_rest: number;
   projected_p10: number; projected_p50: number; projected_p90: number; history_days: number;
@@ -26,6 +32,12 @@ export type MoneyReading = {
   receipts: { id: string; occurred_at: string; amount: number | string; merchant_raw: string | null; merchant_key: string; channel: string | null }[];
 };
 export type MoneyBudget = { used: number; left: number; resets_at: string | null };
+export type MoneyCategoryGroup = { category: string; known: boolean; spent: number; lines: number; share: number; merchants: { name: string; spent: number }[] };
+export type MoneyCategories = { month: string | null; total: number; read: number; groups: MoneyCategoryGroup[] };
+export type MoneyPlace = {
+  merchant_key: string; name: string; city: string | null; kind: string | null; category: string | null;
+  lat: number | null; lon: number | null; confidence: number | null; spent: number; looked_up: boolean;
+};
 export type MoneyAccount = { id: string; provider: string; name: string | null; iban_mask: string | null; currency: string; consent_expires_at: string | null; last_pulled_at: string | null };
 
 async function json<T>(res: Response): Promise<T> {
@@ -50,6 +62,27 @@ export const moneyAPI = {
   readingVerdict: (id: string, verdict: 'true' | 'not_me' | null) =>
     authFetch(`/money/readings/${id}/verdict`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ verdict }) }).then((r) => json<MoneyReading>(r)),
   budget: () => authFetch('/money/bank/budget').then((r) => json<MoneyBudget>(r)),
+  categories: (month?: string) => authFetch(`/money/categories${month ? `?month=${encodeURIComponent(month)}` : ''}`).then((r) => json<MoneyCategories>(r)),
+  places: () => authFetch('/money/places').then((r) => json<MoneyPlace[]>(r)),
+  lookupPlaces: (limit = 12) =>
+    authFetch('/money/places/lookup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ limit }) })
+      .then((r) => json<{ looked: number; placed: number; left: number; provider: string }>(r)),
+  /**
+   * A statement export, for the months the bank's ninety-day window does not reach.
+   * Raw fetch: authFetch always sets a JSON content type, and multipart needs the
+   * browser to write its own boundary.
+   */
+  importStatement: async (file: File) => {
+    const body = new FormData();
+    body.append('file', file);
+    const auth = getAuthHeaders() as unknown as Record<string, string>;
+    const headers: Record<string, string> = {};
+    if (auth.Authorization) headers.Authorization = auth.Authorization;
+    const res = await fetch(`${API_URL}/money/statement`, { method: 'POST', headers, body, credentials: 'include' });
+    const payload = await res.json().catch(() => ({}));
+    if (!res.ok || payload?.success === false) throw new Error(payload?.error || 'That statement could not be read.');
+    return payload.data as { read: number; created: number; attached: number; skipped: number };
+  },
   accounts: () => authFetch('/money/bank/accounts').then((r) => json<MoneyAccount[]>(r)),
   connect: (bank = 'Banco Santander', country = 'ES') =>
     authFetch('/money/bank/connect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bank, country }) }).then((r) => json<{ url: string }>(r)),
