@@ -7,7 +7,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import '../../styles/money-v2.css';
-import { moneyAPI, euro, shortDay, type MoneyAccount, type MoneyCategories, type MoneyForecast, type MoneyMonth, type MoneyReading, type MoneyRecurring, type MoneySighting, type MoneyTransaction } from '../../services/api/moneyAPI';
+import { moneyAPI, euro, shortDay, type MoneyAccount, type MoneyCategories, type MoneyForecast, type MoneyMonth, type MoneyReading, type MoneyRecurring, type MoneySighting, type MoneyTransaction, type MoneyUsage } from '../../services/api/moneyAPI';
 
 const TILE_SPOTS: [number, number, number][] = [[3, 14, -12], [12, 66, 8], [22, 30, 10], [30, 78, -6], [66, 76, 7], [76, 24, -10], [88, 60, 6], [92, 12, -8]];
 const CADENCE: Record<string, string> = { weekly: 'every week', biweekly: 'every two weeks', monthly: 'every month', quarterly: 'every quarter', yearly: 'every year' };
@@ -43,6 +43,7 @@ export default function MoneyV2Page() {
   const [readings, setReadings] = useState<MoneyReading[]>([]);
   const [openSeries, setOpenSeries] = useState<string | null>(null);
   const [categories, setCategories] = useState<MoneyCategories | null>(null);
+  const [usage, setUsage] = useState<MoneyUsage | null>(null);
   const [bankReady, setBankReady] = useState(true);
   const [loaded, setLoaded] = useState(false);
   const [open, setOpen] = useState<string | null>(null);
@@ -52,8 +53,9 @@ export default function MoneyV2Page() {
   const [note, setNote] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    const [f, l, r, a, m, rd, c] = await Promise.allSettled([
-      moneyAPI.forecast(), moneyAPI.ledger(), moneyAPI.recurring(), moneyAPI.accounts(), moneyAPI.months(), moneyAPI.readings(), moneyAPI.categories(`${new Date().toISOString().slice(0, 7)}-01`),
+    const [f, l, r, a, m, rd, c, u] = await Promise.allSettled([
+      moneyAPI.forecast(), moneyAPI.ledger(), moneyAPI.recurring(), moneyAPI.accounts(), moneyAPI.months(), moneyAPI.readings(),
+      moneyAPI.categories(`${new Date().toISOString().slice(0, 7)}-01`), moneyAPI.usage(),
     ]);
     if (f.status === 'fulfilled') setForecast(f.value);
     if (l.status === 'fulfilled') setLedger(l.value);
@@ -62,6 +64,7 @@ export default function MoneyV2Page() {
     if (m.status === 'fulfilled') setMonths(m.value);
     if (rd.status === 'fulfilled') setReadings(rd.value);
     if (c.status === 'fulfilled') setCategories(c.value);
+    if (u.status === 'fulfilled') setUsage(u.value);
     setLoaded(true);
   }, []);
   useEffect(() => { void load(); }, [load]);
@@ -405,6 +408,26 @@ export default function MoneyV2Page() {
             <p className="mv-quiet">
               {monthlyLoad ? `${euro(monthlyLoad)} of this comes back every month.` : ''} Press one to see every charge it has made.
             </p>
+          ) : null}
+          {usage?.findings.length ? (
+            <ul className="mv-usage">
+              {usage.findings.map((f) => (
+                <li key={f.kind + f.sentence}>
+                  <b>{f.sentence}</b>
+                  {f.detail ? <p>{f.detail}</p> : null}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          {usage?.unmeasurable.length ? (
+            <div className="mv-unseen">
+              <b>{euro(usage.unmeasurable.reduce((sum, x) => sum + Number(x.typical_amount || 0), 0))} a month goes where nothing here can look.</b>
+              <p>
+                Whether a charge was worth it depends on whether it was used, and use can only be read from a
+                connected account. {usage.unmeasurable.map((x) => x.name).join(', ')} {usage.unmeasurable.length === 1 ? 'has' : 'have'} no
+                connection, so this says nothing about {usage.unmeasurable.length === 1 ? 'it' : 'them'} rather than guessing.
+              </p>
+            </div>
           ) : null}
           </>
         )}

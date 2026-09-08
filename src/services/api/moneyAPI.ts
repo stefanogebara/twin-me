@@ -32,6 +32,11 @@ export type MoneyReading = {
   receipts: { id: string; occurred_at: string; amount: number | string; merchant_raw: string | null; merchant_key: string; channel: string | null }[];
 };
 export type MoneyBudget = { used: number; left: number; resets_at: string | null };
+export type MoneyUsage = {
+  findings: { kind: string; sentence: string; detail: string | null; numbers: Record<string, number | string>; evidence_count: number }[];
+  unmeasurable: { merchant_key: string; name: string; typical_amount: number }[];
+  measured: string[];
+};
 export type MoneyCategoryGroup = { category: string; known: boolean; spent: number; lines: number; share: number; merchants: { name: string; spent: number }[] };
 export type MoneyCategories = { month: string | null; total: number; read: number; groups: MoneyCategoryGroup[] };
 export type MoneyPlace = {
@@ -62,6 +67,7 @@ export const moneyAPI = {
   readingVerdict: (id: string, verdict: 'true' | 'not_me' | null) =>
     authFetch(`/money/readings/${id}/verdict`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ verdict }) }).then((r) => json<MoneyReading>(r)),
   budget: () => authFetch('/money/bank/budget').then((r) => json<MoneyBudget>(r)),
+  usage: () => authFetch('/money/usage').then((r) => json<MoneyUsage>(r)),
   categories: (month?: string) => authFetch(`/money/categories${month ? `?month=${encodeURIComponent(month)}` : ''}`).then((r) => json<MoneyCategories>(r)),
   places: () => authFetch('/money/places').then((r) => json<MoneyPlace[]>(r)),
   lookupPlaces: (limit = 12) =>
