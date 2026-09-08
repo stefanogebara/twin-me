@@ -14,7 +14,7 @@ export type MoneyRecurring = { merchant_key: string; merchant_name?: string | nu
 export type MoneyForecast = {
   month: string; as_of: string; days_left: number; spent: number; committed: number; expected: number; baseline_rest: number;
   projected_p10: number; projected_p50: number; projected_p90: number; history_days: number;
-  committed_items: { merchant_key: string; typical_amount: number | string; next_expected: string }[];
+  committed_items: { merchant_key: string; merchant_name?: string | null; typical_amount: number | string; next_expected: string }[];
 };
 export type MoneyAccount = { id: string; provider: string; name: string | null; iban_mask: string | null; currency: string; consent_expires_at: string | null; last_pulled_at: string | null };
 

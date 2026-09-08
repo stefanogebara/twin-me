@@ -170,6 +170,11 @@ export async function forecast(userId, now = new Date()) {
     supabaseAdmin.from('money_recurring').select('*').eq('user_id', userId).then((r) => r.data || []),
   ]);
   const result = projectMonth({ transactions: rows, recurring: rec, now });
+  /* What is still to come is named on the hero, so it needs a name and not a key. */
+  const names = new Map();
+  for (const t of rows) if (t.merchant_raw && !names.has(t.merchant_key)) names.set(t.merchant_key, t.merchant_raw);
+  result.committed_items = (result.committed_items || []).map((c) => ({ ...c, merchant_name: names.get(c.merchant_key) || null }));
+  result.expected_items = (result.expected_items || []).map((c) => ({ ...c, merchant_name: names.get(c.merchant_key) || null }));
   await supabaseAdmin.from('money_forecasts').insert({
     user_id: userId, as_of: result.as_of, month: result.month, spent: result.spent, committed: result.committed,
     projected_p10: result.projected_p10, projected_p50: result.projected_p50, projected_p90: result.projected_p90,

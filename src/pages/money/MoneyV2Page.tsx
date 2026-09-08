@@ -18,6 +18,13 @@ function merchantLabel(t: { merchant_name?: string | null; merchant_raw?: string
   const base = s.length > 2 && s === s.toUpperCase() ? s.toLowerCase() : s;
   return base.charAt(0).toUpperCase() + base.slice(1);
 }
+/** Two names read with an "and"; more than three become a count, so the line stays a sentence. */
+function nameList(names: string[]) {
+  if (names.length <= 1) return names[0] || '';
+  if (names.length === 2) return `${names[0]} and ${names[1]}`;
+  if (names.length === 3) return `${names[0]}, ${names[1]} and ${names[2]}`;
+  return `${names[0]}, ${names[1]} and ${names.length - 2} more`;
+}
 function monthName(iso: string) { return new Date(iso).toLocaleDateString('en-GB', { month: 'long' }); }
 function lastDay(iso: string) { const d = new Date(iso); return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate(); }
 
@@ -139,7 +146,7 @@ export default function MoneyV2Page() {
                 ) : (
                   <>Too little read to say where the month lands. The projection starts once there are a few days behind it.</>
                 )}
-                {forecast.committed_items.length ? ` ${forecast.committed_items.map((c) => merchantLabel({ merchant_key: c.merchant_key })).join(', ')} ${forecast.committed_items.length === 1 ? 'is' : 'are'} still to come.` : ''}
+                {forecast.committed_items.length ? ` ${nameList(forecast.committed_items.map((c) => merchantLabel(c)))} ${forecast.committed_items.length === 1 ? 'is' : 'are'} still to come.` : ''}
                 {projectable && forecast.history_days < 42 ? ' The band is wide until there are six weeks to read from.' : ''}
               </p>
             ) : null}

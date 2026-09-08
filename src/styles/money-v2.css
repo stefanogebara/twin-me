@@ -40,7 +40,9 @@
 .mv-hero h1 { font-size: clamp(56px, 8vw, 116px); }
 .mv-hero .mv-lede { max-width: 38rem; font-size: 19px; line-height: 1.45; color: var(--ink-2); text-wrap: balance; }
 .mv-ctas { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 8px; }
-.mv-tiles { position: absolute; inset: 0; pointer-events: none; }
+/* The tiles are placed by percentage, so the field stops a tile's width short of the
+   right edge and its height short of the bottom; otherwise the last spots hang off screen. */
+.mv-tiles { position: absolute; inset: 0 168px 96px 0; pointer-events: none; }
 .mv-tile { position: absolute; display: grid; gap: 2px; width: 150px; padding: 12px 14px; border-radius: 12px; background: #fff; box-shadow: 0 18px 44px rgba(0, 0, 0, 0.1); transform: rotate(var(--r, 0deg)); animation: mv-float 8s ease-in-out infinite alternate; animation-delay: var(--d, 0s); text-align: left; }
 .mv-tile span { font-family: var(--mono); font-size: 9px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); }
 .mv-tile b { font-weight: 500; font-size: 13px; line-height: 17px; letter-spacing: -0.01em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
