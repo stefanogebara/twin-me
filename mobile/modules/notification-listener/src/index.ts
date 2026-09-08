@@ -57,6 +57,23 @@ export const NotificationListenerModule = {
     getModule()?.setAuthToken(token);
   },
 
+  /**
+   * The money capture key. Kept apart from the session token because this service runs for
+   * months without the app being opened: a JWT would expire there quietly and take every
+   * payment with it. Older native builds do not have it, hence the guard.
+   */
+  setCaptureKey(key: string): void {
+    const module = getModule();
+    if (module && typeof module.setCaptureKey === 'function') module.setCaptureKey(key);
+  },
+
+  /** Payments the phone is holding because it could not reach the server. */
+  pendingCaptureCount(): number {
+    const module = getModule();
+    if (!module || typeof module.pendingCaptureCount !== 'function') return 0;
+    return module.pendingCaptureCount();
+  },
+
   addPurchaseListener(callback: (event: PurchaseEvent) => void): EventSubscription | null {
     return getModule()?.addListener('onPurchaseDetected', callback) ?? null;
   },
