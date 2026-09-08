@@ -189,7 +189,7 @@ export default function MoneyV2Page() {
                   <div className="mv-row-body">
                     <ul className="mv-receipts">
                       {(receipts[t.id] || []).map((s) => (
-                        <li key={s.id}><span>{SOURCE[s.source] || s.source} · {shortDay(s.seen_at)}</span><p>{s.raw_text || `${euro(s.amount)} ${s.currency || ''}`}</p></li>
+                        <li key={s.id}><span>{SOURCE[s.source] || s.source} · read {shortDay(s.seen_at)}</span><p>{s.raw_text || `${euro(s.amount)} ${s.currency || ''}`}</p></li>
                       ))}
                       {receipts[t.id] && receipts[t.id].length === 0 ? <li><p>No receipt kept for this one.</p></li> : null}
                     </ul>
