@@ -10,7 +10,7 @@ export type MoneyTransaction = {
   channel: string | null; card_last4: string | null; is_recurring: boolean; verdict: 'worth_it' | 'not_me' | null;
 };
 export type MoneySighting = { id: string; source: string; seen_at: string; raw_text: string | null; amount: number | string | null; currency: string | null; occurred_at: string | null; parse_confidence: number | string | null };
-export type MoneyRecurring = { merchant_key: string; cadence: string; typical_amount: number | string; occurrences: number; first_seen: string; last_seen: string; next_expected: string | null; is_subscription: boolean; platform?: string | null; uses?: number | null; cost_per_use?: number | null };
+export type MoneyRecurring = { merchant_key: string; merchant_name?: string | null; cadence: string; typical_amount: number | string; occurrences: number; first_seen: string; last_seen: string; next_expected: string | null; is_subscription: boolean; platform?: string | null; uses?: number | null; cost_per_use?: number | null };
 export type MoneyForecast = {
   month: string; as_of: string; days_left: number; spent: number; committed: number; expected: number; baseline_rest: number;
   projected_p10: number; projected_p50: number; projected_p90: number; history_days: number;

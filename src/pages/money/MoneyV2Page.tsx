@@ -211,7 +211,7 @@ export default function MoneyV2Page() {
             {[...subscriptions, ...bills].map((r) => (
               <div key={r.merchant_key} className="mv-card">
                 <span className="mv-card-kicker">{r.is_subscription ? 'Subscription' : 'Recurring'} · {CADENCE[r.cadence] || r.cadence}</span>
-                <b>{merchantLabel({ merchant_key: r.merchant_key })}</b>
+                <b>{merchantLabel({ merchant_name: r.merchant_name, merchant_key: r.merchant_key })}</b>
                 <em>{euro(r.typical_amount)}</em>
                 <small>
                   {r.next_expected ? `Next around ${shortDay(r.next_expected)}.` : ''}

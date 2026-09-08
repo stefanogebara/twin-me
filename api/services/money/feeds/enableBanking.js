@@ -18,6 +18,7 @@
 
 import crypto from 'node:crypto';
 import { merchantKey } from '../captureParser.js';
+import { parseNarrative, channelFrom, cardFrom, prettyMerchant } from '../narrative.js';
 
 const BASE = process.env.ENABLE_BANKING_BASE_URL || 'https://api.enablebanking.com';
 
@@ -94,21 +95,28 @@ export function toSighting(row, accountId) {
   const isCredit = (row.credit_debit_indicator || '').toUpperCase() === 'CRDT';
   const counterparty = isCredit ? row.debtor?.name : row.creditor?.name;
   const remittance = Array.isArray(row.remittance_information) ? row.remittance_information.join(' ') : (row.remittance_information || '');
-  const merchantRaw = counterparty || remittance || null;
+  const narrative = counterparty || remittance || null;
   const date = row.value_date || row.booking_date || row.transaction_date;
+  /* Santander names nobody in the creditor field and writes a sentence in the remittance
+     line instead. The ledger shows the name read out of that sentence; the sentence stays
+     as the receipt. A bank that fills the creditor field properly needs no reading. */
+  const said = [counterparty, remittance].filter(Boolean).join(' ');
+  const read = parseNarrative(narrative);
+  const name = counterparty ? prettyMerchant(counterparty) : (read.merchant || narrative);
   return {
     source: 'bankfeed',
-    source_ref: row.entry_reference || row.transaction_id || `${date}|${amt}|${merchantRaw}`,
+    source_ref: row.entry_reference || row.transaction_id || `${date}|${amt}|${narrative}`,
     account_id: accountId,
     raw_json: row,
+    raw_text: remittance || counterparty || null,
     amount: amt,
     currency: row.transaction_amount?.currency || row.currency || 'EUR',
     direction: isCredit ? 'in' : 'out',
-    merchant_raw: merchantRaw,
-    merchant_key: merchantKey(merchantRaw),
+    merchant_raw: name,
+    merchant_key: merchantKey(name),
     occurred_at: date ? new Date(`${date}T12:00:00Z`).toISOString() : null,
-    card_last4: null,
+    card_last4: cardFrom(said),
     parse_confidence: 1,
-    channel: /bizum/i.test(remittance) ? 'bizum' : (/tarjeta|card/i.test(remittance) ? 'card' : (/recibo|adeudo/i.test(remittance) ? 'direct_debit' : 'transfer')),
+    channel: channelFrom(said),
   };
 }

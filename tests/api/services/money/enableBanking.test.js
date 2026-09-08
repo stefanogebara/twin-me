@@ -17,6 +17,24 @@ describe('toSighting', () => {
     expect(b.channel).toBe('bizum');
     expect(b.source_ref).toContain('2026-09-02|20|BIZUM A JUAN');
   });
+  it('reads a Santander row, which names nobody and writes a sentence instead', () => {
+    const s = toSighting({
+      entry_reference: 'S9',
+      transaction_amount: { amount: '116.76', currency: 'EUR' },
+      credit_debit_indicator: 'DBIT',
+      booking_date: '2026-09-08',
+      value_date: '2026-09-07',
+      remittance_information: ['PAGO MOVIL EN EL CORTE INGLES, MADRID ES, TARJ. :*741245'],
+    }, 'acc-1');
+    expect(s).toMatchObject({
+      merchant_raw: 'El Corte Ingles',
+      merchant_key: 'el corte ingles',
+      channel: 'card',
+      card_last4: '1245',
+      raw_text: 'PAGO MOVIL EN EL CORTE INGLES, MADRID ES, TARJ. :*741245',
+    });
+  });
+
   it('is unconfigured without keys', () => {
     const saved = [process.env.ENABLE_BANKING_APP_ID, process.env.ENABLE_BANKING_PRIVATE_KEY];
     delete process.env.ENABLE_BANKING_APP_ID; delete process.env.ENABLE_BANKING_PRIVATE_KEY;

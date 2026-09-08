@@ -59,6 +59,78 @@ export async function ingestSighting(userId, sighting) {
   return { sighting: saved, transaction, action: decision.action };
 }
 
+/**
+ * Many sightings at once, in a handful of round trips instead of four per row.
+ * One pull of ninety days is hundreds of rows, and one-at-a-time reconciliation
+ * spent longer than a serverless request is allowed to live: the first real pull
+ * wrote its rows and then reported a timeout to the person who asked for it.
+ *
+ * The batch reconciles against the transactions that existed when it started,
+ * plus the ones it creates as it goes, so a purchase seen twice inside the same
+ * batch still folds into one line.
+ */
+export async function ingestSightings(userId, sightings) {
+  if (!sightings?.length) return { seen: 0, created: 0, attached: 0 };
+  const { data: saved, error } = await supabaseAdmin
+    .from('money_sightings')
+    .upsert(sightings.map((s) => ({ user_id: userId, ...s })), { onConflict: 'user_id,source,source_ref', ignoreDuplicates: false })
+    .select();
+  if (error) throw new Error(`sightings insert failed: ${error.message}`);
+
+  const times = saved.map((s) => new Date(s.occurred_at).getTime()).filter(Number.isFinite);
+  if (!times.length) return { seen: saved.length, created: 0, attached: 0 };
+  const { data: existing } = await supabaseAdmin
+    .from('money_transactions')
+    .select('id, amount, merchant_key, merchant_raw, occurred_at, posted_at, card_last4, primary_sighting_id')
+    .eq('user_id', userId)
+    .gte('occurred_at', new Date(Math.min(...times) - 48 * 3600000).toISOString())
+    .lte('occurred_at', new Date(Math.max(...times) + 48 * 3600000).toISOString());
+
+  const pool = [...(existing || [])];
+  const creates = [];                     // { tmp, row, sightingIds: [] }
+  const attaches = [];                    // { id, update, sightingId }
+  for (const s of saved) {
+    if (s.transaction_id) continue;
+    const decision = reconcile(s, pool, null);
+    if (decision.action === 'create') {
+      const tmp = `tmp:${creates.length}`;
+      creates.push({ tmp, row: { user_id: userId, account_id: s.account_id || null, primary_sighting_id: s.id, ...decision.transaction }, sightingIds: [s.id] });
+      pool.push({ id: tmp, ...decision.transaction });
+      continue;
+    }
+    const { id, ...update } = decision.transaction;
+    const pending = creates.find((c) => c.tmp === id);
+    if (pending) { pending.sightingIds.push(s.id); continue; }   // folds into a line this batch just made
+    attaches.push({ id, update, sightingId: s.id });
+  }
+
+  const links = [];                       // { sightingId, transactionId }
+  if (creates.length) {
+    const { data: inserted, error: e2 } = await supabaseAdmin.from('money_transactions').insert(creates.map((c) => c.row)).select('id, primary_sighting_id');
+    if (e2) throw new Error(`transactions insert failed: ${e2.message}`);
+    for (const c of creates) {
+      const row = (inserted || []).find((r) => r.primary_sighting_id === c.sightingIds[0]);
+      if (row) for (const sid of c.sightingIds) links.push({ sightingId: sid, transactionId: row.id });
+    }
+  }
+  for (const a of attaches) {
+    if (Object.keys(a.update).length) {
+      await supabaseAdmin.from('money_transactions').update({ ...a.update, updated_at: new Date().toISOString() }).eq('id', a.id);
+    }
+    links.push({ sightingId: a.sightingId, transactionId: a.id });
+  }
+  /* One statement per transaction id, so the links cost a few calls, not one per row. */
+  const byTransaction = new Map();
+  for (const l of links) {
+    if (!byTransaction.has(l.transactionId)) byTransaction.set(l.transactionId, []);
+    byTransaction.get(l.transactionId).push(l.sightingId);
+  }
+  for (const [transactionId, ids] of byTransaction) {
+    await supabaseAdmin.from('money_sightings').update({ transaction_id: transactionId }).in('id', ids);
+  }
+  return { seen: saved.length, created: creates.length, attached: attaches.length };
+}
+
 export async function listTransactions(userId, { since, limit = 200 } = {}) {
   let q = supabaseAdmin.from('money_transactions').select('*').eq('user_id', userId).order('occurred_at', { ascending: false }).limit(limit);
   if (since) q = q.gte('occurred_at', since);
@@ -79,13 +151,16 @@ export async function refreshRecurring(userId, now = new Date()) {
   const { data: merchants } = await supabaseAdmin.from('money_merchants').select('merchant_key, platform').not('platform', 'is', null);
   const platforms = Object.fromEntries((merchants || []).map((m) => [m.merchant_key, m.platform]));
   const series = detectRecurring(rows, { now, platforms });
+  /* The key is machine spelling ("render com"). A card should carry the name the ledger shows. */
+  const names = new Map();
+  for (const t of rows) if (t.merchant_raw && !names.has(t.merchant_key)) names.set(t.merchant_key, t.merchant_raw);
   if (series.length) {
     const { error } = await supabaseAdmin.from('money_recurring').upsert(series.map((s) => ({ user_id: userId, ...s, platform: undefined, updated_at: now.toISOString() })).map(({ platform, ...s }) => s), { onConflict: 'user_id,merchant_key' });
     if (error) log.warn(`recurring upsert failed: ${error.message}`);
     const keys = series.map((s) => s.merchant_key);
     await supabaseAdmin.from('money_transactions').update({ is_recurring: true }).eq('user_id', userId).in('merchant_key', keys);
   }
-  return series;
+  return series.map((s) => ({ ...s, merchant_name: names.get(s.merchant_key) || null }));
 }
 
 export async function forecast(userId, now = new Date()) {
@@ -146,12 +221,9 @@ export async function pullBankFeed(userId, { since } = {}) {
     let key = null; let seen = 0; let created = 0;
     do {
       const page = await fetchTransactions(acc.provider_account_id, from, key);
-      for (const row of page.rows) {
-        const s = toSighting(row, acc.id);
-        if (!s.occurred_at || !s.amount) continue;
-        const r = await ingestSighting(userId, s);
-        seen += 1; if (r.action === 'create') created += 1;
-      }
+      const batch = page.rows.map((row) => toSighting(row, acc.id)).filter((s) => s.occurred_at && s.amount);
+      const r = await ingestSightings(userId, batch);
+      seen += r.seen; created += r.created;
       key = page.continuationKey;
     } while (key);
     await supabaseAdmin.from('money_accounts').update({ last_pulled_at: new Date().toISOString() }).eq('id', acc.id);
