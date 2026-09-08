@@ -1,0 +1,156 @@
+/* ==========================================================================
+   Money setup as a conversation, in the money-v2 register: the same canvas,
+   ink and pills, a transcript on the left, the ledger's own work on the right.
+   Vars (--ink, --card, --rule, --sans, --mono) come from .mv, which is on the
+   root alongside .mc.
+   ========================================================================== */
+
+/* index.css styles h1/h2/p by element and truncates every button span, so both
+   have to be named again inside this scope or the page renders in Inter with
+   clipped controls. */
+.mc h1, .mc h2, .mc p, .mc li, .mc label, .mc small, .mc span { font-family: var(--sans); }
+.mc input, .mc textarea { font-family: var(--sans); color: var(--ink); }
+.mc button span, .mc label span { white-space: normal; overflow: visible; }
+.mc :focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+.mc { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; }
+.mc .mv-footer { margin-top: 28px; }
+
+/* Two columns: the conversation, and what it is doing while you talk */
+.mc-columns {
+  width: min(1240px, 100% - 40px); margin: 0 auto; padding: 20px 0 0; min-height: 0;
+  display: grid; grid-template-columns: minmax(0, 1fr) 264px; gap: 56px; align-items: stretch;
+}
+.mc-thread { display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 20px; min-height: 0; min-width: 0; }
+/* The transcript grows upward from the composer, the way a conversation does. Anchored to
+   the top instead, the first question sat alone at the ceiling with the composer far below
+   it and a field of empty paper between the two. */
+.mc-scroll { overflow-y: auto; overscroll-behavior: contain; display: grid; align-content: end; gap: 30px; padding: 8px 4px 12px; }
+.mc-end { height: 1px; }
+.mc .mc-quiet-line { font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); }
+
+/* The transcript: it asks, you answered, both stay */
+.mc-turn { display: grid; gap: 12px; }
+.mc-msg { display: grid; gap: 8px; }
+.mc-msg--ask { max-width: 34rem; }
+.mc .mc-kicker { font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); }
+.mc .mc-ask { font-size: clamp(22px, 2.5vw, 31px); font-weight: 500; letter-spacing: -0.04em; line-height: 1.08; text-wrap: balance; }
+.mc .mc-why { font-size: 16px; line-height: 1.45; color: var(--ink-2); }
+.mc .mc-help { font-size: 14px; line-height: 1.5; color: var(--ink-3); }
+.mc-msg--said { justify-self: end; max-width: 26rem; padding: 12px 20px; border-radius: 22px 22px 8px 22px; background: var(--ink); color: #fff; }
+.mc .mc-msg--said p { font-size: 15px; line-height: 1.4; letter-spacing: -0.01em; }
+
+/* The answer affordance, always under the newest question */
+.mc-answer { display: grid; gap: 14px; justify-items: start; max-width: 40rem; }
+.mc-cards { display: flex; flex-wrap: wrap; gap: 8px; }
+.mc .mc-card {
+  padding: 11px 17px; border-radius: 14px; background: #fff; border: 1px solid var(--rule);
+  font-size: 15px; letter-spacing: -0.015em; color: var(--ink);
+  transition: transform 0.18s ease, border-color 0.18s ease;
+}
+.mc .mc-card:hover { transform: translateY(-1px); border-color: rgba(17, 17, 17, 0.4); }
+.mc .mc-card:disabled { opacity: 0.45; cursor: default; transform: none; }
+.mc-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.mc .mc-skip { font-size: 13.5px; color: var(--ink-3); padding: 0; }
+.mc .mc-skip:hover { color: var(--ink); }
+.mc-changes { font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); }
+.mc .mc-note { font-size: 14.5px; line-height: 1.45; color: var(--ink-2); }
+
+/* Repeatable rows, for what leaves every month and what comes in */
+.mc-rows { display: grid; gap: 10px; width: 100%; }
+.mc-row { display: grid; gap: 12px; align-items: end; padding: 16px 18px; border-radius: 18px; background: var(--card); }
+.mc-row--three { grid-template-columns: minmax(0, 1fr) 7.5rem 5rem; }
+.mc-row--share { grid-template-columns: minmax(0, 1fr) 8rem; }
+.mc-field { display: grid; gap: 7px; width: 100%; }
+.mc-label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); }
+.mc .mc-input { width: 100%; height: 44px; padding: 0 14px; border-radius: 12px; border: 1px solid rgba(17, 17, 17, 0.16); background: #fff; font-size: 16px; letter-spacing: -0.015em; }
+.mc .mc-input::placeholder { color: var(--ink-3); }
+.mc .mc-input:focus { border-color: var(--ink); }
+.mc .mc-input--num { font-variant-numeric: tabular-nums; }
+.mc-pct { display: flex; align-items: center; gap: 8px; }
+.mc-pct span { font-family: var(--mono); font-size: 12px; color: var(--ink-3); }
+.mc-quick { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px; }
+.mc .mc-drop { grid-column: 1 / -1; justify-self: end; font-size: 13px; color: var(--ink-3); padding: 0; }
+.mc .mc-drop:hover { color: var(--ink); }
+
+/* What it now knows, at the end */
+.mc-facts { width: 100%; display: grid; gap: 2px; border-top: 1px solid var(--rule); margin-top: 6px; }
+.mc-facts li { display: grid; grid-template-columns: 9rem minmax(0, 1fr) auto; gap: 14px; align-items: baseline; padding: 12px 4px; border-bottom: 1px solid var(--rule); }
+.mc-fact-kind { font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); }
+.mc-fact-what { font-size: 16px; letter-spacing: -0.015em; }
+.mc-fact-amount { font-size: 16px; font-weight: 500; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.mc-fact-note { grid-column: 2 / -1; font-size: 13.5px; line-height: 1.45; color: var(--ink-3); }
+
+/* ------------------------------------------------------------------ composer
+   The one moving thing on the page: three low-saturation blobs drifting behind
+   the box, clipped to its radius, so the ground breathes without competing with
+   the transcript it sits under. */
+.mc-composer { position: relative; padding: 14px; border-radius: 28px; overflow: hidden; isolation: isolate; }
+.mc-mesh { position: absolute; inset: -60% -14% -30%; z-index: 0; filter: blur(44px); opacity: 0.85; pointer-events: none; }
+.mc-blob { position: absolute; display: block; border-radius: 50%; }
+.mc-blob--a { left: -4%; top: 6%; width: 46%; height: 150%; background: radial-gradient(circle at 50% 50%, rgba(206, 178, 140, 0.55), rgba(206, 178, 140, 0) 68%); animation: mc-drift-a 26s ease-in-out infinite alternate; }
+.mc-blob--b { left: 34%; top: -12%; width: 44%; height: 165%; background: radial-gradient(circle at 50% 50%, rgba(150, 172, 204, 0.5), rgba(150, 172, 204, 0) 68%); animation: mc-drift-b 34s ease-in-out infinite alternate; }
+.mc-blob--c { right: -6%; top: 10%; width: 42%; height: 145%; background: radial-gradient(circle at 50% 50%, rgba(198, 164, 164, 0.45), rgba(198, 164, 164, 0) 68%); animation: mc-drift-c 30s ease-in-out infinite alternate; }
+@keyframes mc-drift-a { from { transform: translate3d(0, 0, 0) scale(1); } to { transform: translate3d(14%, -8%, 0) scale(1.14); } }
+@keyframes mc-drift-b { from { transform: translate3d(0, 4%, 0) scale(1.08); } to { transform: translate3d(-12%, -6%, 0) scale(0.94); } }
+@keyframes mc-drift-c { from { transform: translate3d(0, -4%, 0) scale(0.96); } to { transform: translate3d(-16%, 8%, 0) scale(1.12); } }
+
+.mc-composer-inner {
+  position: relative; z-index: 1; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 12px;
+  padding: 10px 10px 10px 20px; border-radius: 20px; background: #fff; border: 1px solid var(--rule);
+}
+.mc .mc-say {
+  width: 100%; max-height: 168px; padding: 12px 0; border: 0; background: none; resize: none; outline: none;
+  font-size: 16.5px; line-height: 1.45; letter-spacing: -0.015em; overflow-y: auto;
+}
+.mc .mc-say::placeholder { color: var(--ink-3); }
+.mc .mc-say:disabled { color: var(--ink-3); cursor: default; }
+.mc .mc-send { width: 40px; height: 40px; border-radius: 999px; background: var(--ink); color: #fff; display: grid; place-items: center; transition: transform 0.18s ease, opacity 0.18s ease; }
+.mc .mc-send:hover { transform: translateY(-1px); }
+.mc .mc-send:disabled { opacity: 0.28; cursor: default; transform: none; }
+.mc-sr { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+/* --------------------------------------------------------------------- trace
+   Real steps only. The one in progress carries the shimmer; the rest go quiet. */
+.mc-trace { position: sticky; top: 20px; align-self: start; display: grid; gap: 12px; align-content: start; }
+.mc .mc-trace-head { font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); }
+.mc .mc-trace-idle { font-size: 14px; line-height: 1.45; color: var(--ink-3); }
+.mc-steps { display: grid; gap: 0; border-top: 1px solid var(--rule); }
+.mc-step { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; align-items: baseline; padding: 12px 0; border-bottom: 1px solid var(--rule); }
+.mc-step-label { font-size: 14.5px; letter-spacing: -0.015em; color: var(--ink-3); }
+.mc-step-detail { grid-column: 1 / -1; font-size: 12.5px; line-height: 1.4; color: var(--ink-3); }
+.mc-step-count { font-family: var(--mono); font-size: 11px; letter-spacing: 0.04em; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.mc-step.is-live .mc-step-count { color: var(--ink); }
+.mc-step.is-live .mc-step-label {
+  color: var(--ink);
+  background-image: linear-gradient(100deg, rgba(17, 17, 17, 0.28) 22%, #111 42%, #111 54%, rgba(17, 17, 17, 0.28) 74%);
+  background-size: 220% 100%;
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+  animation: mc-shimmer 2.6s linear infinite;
+}
+@keyframes mc-shimmer { from { background-position: 190% 0; } to { background-position: -90% 0; } }
+
+@media (max-width: 1040px) {
+  .mc-columns { grid-template-columns: minmax(0, 1fr); gap: 34px; }
+  .mc-thread { grid-template-rows: auto auto; }
+  .mc-scroll { overflow: visible; }
+  .mc-trace { position: static; padding-top: 4px; border-top: 1px solid var(--rule); }
+}
+@media (max-width: 640px) {
+  .mc-columns { width: min(1240px, 100% - 32px); }
+  .mc-msg--said { max-width: 100%; }
+  .mc-row--three { grid-template-columns: 1fr 1fr; }
+  .mc-row--three > :first-child { grid-column: 1 / -1; }
+  .mc-row--share { grid-template-columns: 1fr auto; }
+  .mc-facts li { grid-template-columns: minmax(0, 1fr) auto; }
+  .mc-fact-kind, .mc-fact-note { grid-column: 1 / -1; }
+  .mc-composer { padding: 10px; }
+  .mc-composer-inner { padding-left: 16px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mc-blob { animation: none; }
+  .mc-step.is-live .mc-step-label { animation: none; background-image: none; -webkit-text-fill-color: var(--ink); color: var(--ink); }
+  .mc .mc-card, .mc .mc-send, .mc .mv-pill { transition: none; }
+  .mc .mc-card:hover, .mc .mc-send:hover, .mc .mv-pill:hover { transform: none; }
+}

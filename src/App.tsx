@@ -56,6 +56,7 @@ const loadTodayPage = () => import("./pages/TodayPage");
 const loadMoneyPage = () => import("./pages/MoneyPage");
 const MoneyV2Page = lazy(() => import("./pages/money/MoneyV2Page"));
 const MoneySetupPage = lazy(() => import("./pages/money/MoneySetupPage"));
+const MoneyChatPage = lazy(() => import("./pages/money/MoneyChatPage"));
 const loadMoneyInsightsPage = () => import("./pages/MoneyInsightsPage");
 
 const Settings = lazy(() => import("./pages/Settings"));
@@ -397,6 +398,16 @@ const App = () => {
               <ProtectedRoute>
                 <ErrorBoundary>
                   <Suspense fallback={null}><MoneySetupPage /></Suspense>
+                </ErrorBoundary>
+              </ProtectedRoute>
+            } />
+
+            {/* The same questions as a conversation, with the ledger's own
+                reading running alongside in the trace panel. */}
+            <Route path="/money/chat" element={
+              <ProtectedRoute>
+                <ErrorBoundary>
+                  <Suspense fallback={null}><MoneyChatPage /></Suspense>
                 </ErrorBoundary>
               </ProtectedRoute>
             } />

@@ -317,7 +317,13 @@ router.get('/stream', async (req, res) => {
       try {
         pulled = await pullBankFeed(userId);
       } catch (error) {
-        return { detail: `The bank did not answer: ${String(error.message).slice(0, 60)}`, count: 0 };
+        /* The provider's message carries a URL with the account identifier in it. A person
+           reading "what it is doing" needs to know the read failed, not to be shown the
+           plumbing, and an account uid does not belong on a screen. */
+        const why = /429|budget|exceeded/i.test(error.message) ? 'the daily limit is spent'
+          : /fetch failed|network|ENOTFOUND|timeout/i.test(error.message) ? 'it could not be reached'
+            : 'it refused the read';
+        return { detail: `The bank did not answer: ${why}.`, count: 0 };
       }
       const seen = pulled.reduce((n, x) => n + x.seen, 0);
       const created = pulled.reduce((n, x) => n + x.created, 0);
