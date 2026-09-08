@@ -12,9 +12,9 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View, type PressableProps, type StyleProp, type TextProps, type TextStyle, type ViewStyle } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
+import Animated, { LinearTransition, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 import { cosmos } from '../constants/cosmos';
-import { ENTER_Y, PRESS_SCALE, COUNT_MS, fade, spring, staggerDelay, motionReduced } from './motion';
+import { ENTER_Y, PRESS_SCALE, COUNT_MS, FADE, fade, spring, staggerDelay, motionReduced } from './motion';
 
 /* ----------------------------------------------------------------------------------------
  * Type. One ramp, six sizes, and the mono role for counters and provenance.
@@ -158,7 +158,7 @@ export function Card({ label, selected, onPress }: { label: string; selected?: b
  * Enter. The one way anything appears: a fade and eight points of rise, on the two curves.
  * -------------------------------------------------------------------------------------- */
 
-export function Enter({ index = 0, children, style }: { index?: number; children: React.ReactNode; style?: StyleProp<ViewStyle> }) {
+export function Enter({ index = 0, settle, children, style }: { index?: number; settle?: boolean; children: React.ReactNode; style?: StyleProp<ViewStyle> }) {
   const reduced = motionReduced();
   const opacity = useSharedValue(reduced ? 1 : 0);
   const y = useSharedValue(reduced ? 0 : ENTER_Y);
@@ -167,7 +167,10 @@ export function Enter({ index = 0, children, style }: { index?: number; children
     return () => clearTimeout(t);
   }, [index, opacity, y]);
   const a = useAnimatedStyle(() => ({ opacity: opacity.value, transform: [{ translateY: y.value }] }));
-  return <Animated.View style={[a, style]}>{children}</Animated.View>;
+  /* `settle`: when a sibling arrives or leaves, this one slides to its new place over the fade
+     instead of jumping there in one frame. For lists that grow while they are read. */
+  const layout = settle && !reduced ? LinearTransition.duration(FADE.duration ?? 180) : undefined;
+  return <Animated.View layout={layout} style={[a, style]}>{children}</Animated.View>;
 }
 
 /* ----------------------------------------------------------------------------------------

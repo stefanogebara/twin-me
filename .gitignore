@@ -226,3 +226,6 @@ audit-screenshots/
 # scratch dir for local runs — flake logs, vitest dumps, PR body drafts, stray
 # assets. ~3.7k files, all regenerated locally; nothing here belongs in the repo.
 .cache/
+
+# Simulator frame audits (mobile/scripts/frame-audit.sh)
+.frames/

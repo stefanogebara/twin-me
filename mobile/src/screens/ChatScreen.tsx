@@ -449,7 +449,7 @@ export default function ChatScreen({ mode, onDone }: { mode: 'onboarding' | 'ask
             const speakerChanged = i === 0 || lines[i - 1].who !== l.who;
             const isCurrentQuestion = Boolean(l.question) && question !== null && l.question!.id === question.id;
             return (
-              <Enter key={l.id} style={[s.line, l.who === 'you' && s.lineYou]}>
+              <Enter key={l.id} settle style={[s.line, l.who === 'you' && s.lineYou]}>
                 {speakerChanged ? <Micro>{l.who === 'you' ? 'You' : 'The ledger'}</Micro> : null}
                 {l.pending ? <Small quiet>{l.text}</Small> : <Body muted={l.who === 'you'}>{l.text}</Body>}
                 {l.small?.map((t, k) => <Small key={k} quiet>{t}</Small>)}
