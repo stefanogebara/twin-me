@@ -111,7 +111,7 @@ function Letter({ c, i, n, t, style }: { c: string; i: number; n: number; t: Sha
     const lit = d >= BAND ? 0 : 1 - d / BAND;
     return { opacity: 0.38 + 0.62 * lit * lit };
   });
-  return <Animated.Text style={[p.letter, style, a]}>{c === ' ' ? ' ' : c}</Animated.Text>;
+  return <Animated.Text style={[p.letter, style, a]}>{c === ' ' ? '\u00A0' : c}</Animated.Text>;
 }
 
 /* ----------------------------------------------------------------------------------------
