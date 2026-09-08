@@ -17,10 +17,17 @@
 
 import React, { useCallback, useMemo, useState } from 'react';
 import {
-  View, Text, ScrollView, StyleSheet, RefreshControl, ActivityIndicator,
-  TouchableOpacity, LayoutChangeEvent,
+  View,
+  Text,
+  ScrollView,
+  StyleSheet,
+  RefreshControl,
+  ActivityIndicator,
+  TouchableOpacity,
+  LayoutChangeEvent,
+  Pressable,
 } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { cosmos, euro, dayMonth, monoStyle } from '../constants/cosmos';
 import {
   moneyApi, currentMonthStart,
@@ -161,6 +168,7 @@ function ShareBar({ share, quiet }: { share: number; quiet: boolean }) {
 // -- Screen ------------------------------------------------------------------
 
 export function MoneyScreen({ user: _user }: { user: User }) {
+  const navigation = useNavigation();
   const [forecast, setForecast] = useState<MoneyForecast | null>(null);
   const [ledger, setLedger] = useState<MoneyTransaction[]>([]);
   const [readings, setReadings] = useState<MoneyReading[]>([]);
@@ -292,6 +300,15 @@ export function MoneyScreen({ user: _user }: { user: User }) {
           </Text>
         </View>
       ) : null}
+
+      {/* The phone is the only way to see a payment on the day it happens. */}
+      <Pressable
+        style={styles.questions}
+        onPress={() => navigation.navigate('PhoneCapture' as never)}
+        accessibilityRole="button"
+      >
+        <Text style={styles.questionsText}>Let your phone send payments as they happen</Text>
+      </Pressable>
 
       {/* 1. This month */}
       <View style={styles.hero}>

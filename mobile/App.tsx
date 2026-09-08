@@ -34,6 +34,7 @@ import { WikiScreen } from './src/screens/WikiScreen';
 import { InsightsScreen } from './src/screens/InsightsScreen';
 import { SoulInterviewScreen } from './src/screens/SoulInterviewScreen';
 import { PermissionOnboardingScreen } from './src/screens/PermissionOnboardingScreen';
+import PhoneCaptureScreen from './src/screens/PhoneCaptureScreen';
 import { COLORS, STORAGE_KEYS } from './src/constants';
 import { UsageStatsModule } from './src/native/UsageStatsModule';
 import { NotificationListenerModule } from './src/native/NotificationListenerModule';
@@ -308,6 +309,7 @@ export default function App() {
           <Stack.Screen name="SoulInterview">
             {() => <SoulInterviewScreen user={user!} />}
           </Stack.Screen>
+          <Stack.Screen name="PhoneCapture" component={PhoneCaptureScreen} />
         </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaProvider>
