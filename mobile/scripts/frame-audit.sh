@@ -5,12 +5,15 @@
 #
 #   scripts/frame-audit.sh <name> <seconds> [fps]
 #
-# Frames land in .frames/<name>/f-0001.png ... and a contact sheet in .frames/<name>.png.
+# Frames land in <repo>/.frames/<name>/f-0001.png ... and a contact sheet in <repo>/.frames/<name>.png.
 set -euo pipefail
 name="${1:?name}"
 secs="${2:?seconds}"
 fps="${3:-30}"
-out=".frames/$name"
+# Frames live outside the app folder: Metro treats a new file under mobile/ as a changed asset
+# and refreshes the app in the middle of the recording.
+root="${FRAMES_DIR:-$(cd "$(dirname "$0")/../.." && pwd)/.frames}"
+out="$root/$name"
 mkdir -p "$out"
 video="$out.mp4"
 

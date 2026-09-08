@@ -27,6 +27,8 @@
  * GET  /api/money/bank/callback?code&state the bank sends the person back here; accounts are saved
  * GET  /api/money/bank/accounts            connected accounts and when consent expires
  * POST /api/money/bank/pull                pull the feed now (PSD2: four unattended pulls a day)
+ * POST /api/money/chat { message, history? } a question or a correction, answered with figures and receipts
+ * POST /api/money/chat/act { action }      run an action the person confirmed from a chat reply
  *
  * Spec: .claude/plans/2026-09-07-money-twin/README.md
  */
@@ -40,6 +42,7 @@ import { parseCapture, parseStructured } from '../services/money/captureParser.j
 import { ingestSighting, ingestSightings, listTransactions, sightingsFor, refreshRecurring, forecast, setVerdict, userForCaptureKey, saveBankAccounts, listBankAccounts, pullBankFeed, refreshReadings, listReadings, setReadingVerdict, months, feedBudget, categorySpend, listPlaces, setPlaceCategory, enrichPlaces, subscriptionUsage, questionsFor, answerQuestion, skipQuestion, listFacts, learn } from '../services/money/store.js';
 import { parseDelimited, parseWorkbook, toSightings } from '../services/money/statements/importer.js';
 import { isConfigured, listBanks, startAuthorisation, createSession } from '../services/money/feeds/enableBanking.js';
+import { answer as chatAnswer, act as chatAct } from '../services/money/chat.js';
 
 const log = createLogger('MoneyRoute');
 const router = Router();
@@ -394,6 +397,26 @@ router.post('/questions/:id/skip', async (req, res) => {
 router.get('/facts', async (req, res) => {
   try { res.json({ success: true, data: await listFacts(req.user.id) }); }
   catch (error) { log.error('facts failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
+});
+
+/* The ledger, asked. The numbers are computed; the model only phrases (services/money/chat.js). */
+router.post('/chat', async (req, res) => {
+  const { message, history } = req.body || {};
+  if (typeof message !== 'string' || !message.trim()) return res.status(400).json({ success: false, error: 'message is required' });
+  if (message.length > 2000) return res.status(400).json({ success: false, error: 'message is too long' });
+  try { res.json({ success: true, data: await chatAnswer(req.user.id, message, Array.isArray(history) ? history : []) }); }
+  catch (error) { log.error('chat failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
+});
+
+router.post('/chat/act', async (req, res) => {
+  const { action } = req.body || {};
+  if (!action || typeof action !== 'object' || typeof action.kind !== 'string') return res.status(400).json({ success: false, error: 'action is required' });
+  try { res.json({ success: true, data: await chatAct(req.user.id, action) }); }
+  catch (error) {
+    if (error.status === 400) return res.status(400).json({ success: false, error: error.message });
+    log.error('chat act failed', { error: error.message });
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
 });
 
 /** Money in and out, per calendar month. */

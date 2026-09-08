@@ -17,7 +17,7 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { cosmos, dayMonth, euro } from '../constants/cosmos';
 import {
   moneyApi, currentMonthStart,
@@ -25,6 +25,7 @@ import {
   type ReadingVerdict,
 } from '../services/moneyApi';
 import { Body, Counting, Display, Enter, Hairline, Micro, Page, Pill, Row, Section, Small } from '../ui/primitives';
+import { Band } from '../ui/figures';
 
 const CADENCE: Record<string, string> = {
   weekly: 'every week',
@@ -66,44 +67,6 @@ function lastDay(iso: string): number {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return 30;
   return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate();
-}
-
-/** Where a euro amount falls on the band, 0..1, with the projected p90 near the right edge. */
-function fraction(v: number, f: MoneyForecast): number {
-  const max = Math.max(f.projected_p90, f.spent + f.committed, 1) * 1.08;
-  return Math.max(0, Math.min(1, v / max));
-}
-
-// -- Parts -------------------------------------------------------------------
-
-/**
- * The band says in one stroke what the sentence above it says in words: ink for what has gone,
- * grey from there to where the month is likely to land, and the rest of the track for the room
- * above that. The p10 to p90 spread lives in the sentence; drawing it as a third layer left a
- * hole between spent and the range that read as a glitch, not a fact.
- */
-function Band({ forecast }: { forecast: MoneyForecast }) {
-  const [width, setWidth] = useState(0);
-  const onLayout = (e: LayoutChangeEvent) => setWidth(e.nativeEvent.layout.width);
-  const x = (v: number) => fraction(v, forecast) * width;
-  const likely = Math.max(forecast.projected_p50, forecast.spent + forecast.committed);
-
-  return (
-    <View style={layout.band}>
-      <View style={layout.bandTrack} onLayout={onLayout}>
-        {width > 0 ? (
-          <>
-            <View style={[layout.bandLikely, { width: x(likely) }]} />
-            <View style={[layout.bandSpent, { width: x(forecast.spent) }]} />
-          </>
-        ) : null}
-      </View>
-      <View style={layout.bandLabels}>
-        <Micro>spent {euro(forecast.spent)}</Micro>
-        <Micro>likely {euro(likely)}</Micro>
-      </View>
-    </View>
-  );
 }
 
 /** A proportional bar without percentage strings: two flex children split the track. */
@@ -235,7 +198,9 @@ export default function MonthScreen({ onOpenQuestions, questionCount, onOpenLedg
                   : 'Too little read to say where the month lands. The projection starts once there are a few days behind it.'}
                 {projectable && (forecast.history_days ?? 0) < 42 ? ' The band is wide until there are six weeks to read from.' : ''}
               </Body>
-              <Band forecast={forecast} />
+              <View style={layout.band}>
+                <Band spent={forecast.spent} likely={Math.max(forecast.projected_p50, forecast.spent + forecast.committed)} high={forecast.projected_p90} />
+              </View>
               {otherSide ? <Small quiet style={layout.after}>{otherSide}</Small> : null}
             </>
           ) : (
@@ -399,10 +364,6 @@ const layout = StyleSheet.create({
   tailSection: { marginTop: cosmos.space.lg, paddingTop: cosmos.space.lg },
 
   band: { marginTop: cosmos.space.lg },
-  bandTrack: { height: 6, borderRadius: cosmos.radius.pill, backgroundColor: cosmos.color.card },
-  bandLikely: { position: 'absolute', top: 0, left: 0, height: 6, borderRadius: cosmos.radius.pill, backgroundColor: cosmos.color.rule },
-  bandSpent: { position: 'absolute', top: 0, left: 0, height: 6, borderRadius: cosmos.radius.pill, backgroundColor: cosmos.color.ink },
-  bandLabels: { flexDirection: 'row', justifyContent: 'space-between', marginTop: cosmos.space.md },
 
   shareTrack: { flexDirection: 'row', height: 2, borderRadius: cosmos.radius.pill, backgroundColor: cosmos.color.card, overflow: 'hidden' },
   shareFill: { backgroundColor: cosmos.color.ink },

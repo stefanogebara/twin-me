@@ -9,7 +9,10 @@
  * projections and counts all arrive already worked out by the server, and the screen
  * only ever arranges them.
  */
+import * as SecureStore from 'expo-secure-store';
 import { authFetch } from './api';
+import { API_URL, STORAGE_KEYS } from '../constants';
+import type { ChatFigure } from '../ui/figures';
 
 export type TransactionVerdict = 'worth_it' | 'not_me' | null;
 export type ReadingVerdict = 'true' | 'not_me' | null;
@@ -185,6 +188,61 @@ export type MoneyQuestions = {
   answered: number;
 };
 
+
+/* ----------------------------------------------------------------------------------------
+ * The chat. One question in, one answer out, with the figures and receipts behind it.
+ * -------------------------------------------------------------------------------------- */
+
+export type ChatTurn = { role: 'user' | 'twin'; text: string };
+export type ChatReceipt = { id: string; occurred_at: string; merchant: string; amount: number | string };
+/** Something the twin proposes doing to the ledger; the person taps it, chatAct does it. */
+export type ChatAction = { kind: string; label: string; payload?: Record<string, unknown> };
+export type ChatReply = { text: string; figures?: ChatFigure[]; actions?: ChatAction[]; receipts?: ChatReceipt[] };
+export type ChatActResult = { said: string };
+export type { ChatFigure };
+
+/** One event from GET /money/stream, the pipeline reading the ledger step by step. */
+export type LedgerStreamEvent = {
+  step: string; label: string; state: 'working' | 'done' | 'failed';
+  ms?: number; detail?: string | null; count?: number | null; done?: boolean;
+};
+
+/**
+ * Read the ledger pipeline as it runs. React Native's fetch has no streaming body, so this
+ * is an XMLHttpRequest read on progress: whatever complete "data:" lines have arrived are
+ * parsed and handed on, the rest waits for the next chunk. Returns a function that stops it.
+ */
+export function readLedgerStream(onEvent: (e: LedgerStreamEvent) => void, onEnd: (ok: boolean) => void): () => void {
+  const xhr = new XMLHttpRequest();
+  let seen = 0;
+  let ended = false;
+  const finish = (ok: boolean) => { if (!ended) { ended = true; onEnd(ok); } };
+  const drain = () => {
+    const text = xhr.responseText || '';
+    const cut = text.lastIndexOf('\n\n');
+    if (cut < seen) return;
+    const fresh = text.slice(seen, cut + 2);
+    seen = cut + 2;
+    for (const block of fresh.split('\n\n')) {
+      const line = block.split('\n').find((l) => l.startsWith('data:'));
+      if (!line) continue;
+      try { onEvent(JSON.parse(line.slice(5).trim()) as LedgerStreamEvent); } catch { /* a torn line waits for the next chunk */ }
+    }
+  };
+  xhr.onprogress = drain;
+  xhr.onload = () => { drain(); finish(xhr.status >= 200 && xhr.status < 300); };
+  xhr.onerror = () => finish(false);
+  xhr.onabort = () => finish(false);
+  void SecureStore.getItemAsync(STORAGE_KEYS.AUTH_TOKEN).then((token) => {
+    if (ended) return;
+    xhr.open('GET', `${API_URL}/money/stream`);
+    xhr.setRequestHeader('Accept', 'text/event-stream');
+    if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+    xhr.send();
+  }).catch(() => finish(false));
+  return () => { if (!ended) { ended = true; xhr.abort(); } };
+}
+
 type Envelope<T> = { success?: boolean; error?: string; data?: T };
 
 async function json<T>(res: Response): Promise<T> {
@@ -231,4 +289,9 @@ export const moneyApi = {
     post(`/money/questions/${encodeURIComponent(id)}/skip`, {}).then((r) => json<{ skipped: string }>(r)),
   facts: () => authFetch('/money/facts').then((r) => json<MoneyFact[]>(r)),
   months: () => authFetch('/money/months').then((r) => json<MoneyMonth[]>(r)),
+  /** Ask the ledger something in words. History is the last few turns, newest last. */
+  chat: (message: string, history: ChatTurn[]) =>
+    post('/money/chat', { message, history: history.slice(-10) }).then((r) => json<ChatReply>(r)),
+  /** Do one of the things the twin proposed. */
+  chatAct: (action: ChatAction) => post('/money/chat/act', { action }).then((r) => json<ChatActResult>(r)),
 };
