@@ -112,6 +112,46 @@ export function useAuth() {
     setState({ token, user, isLoading: false });
   }, []);
 
+  /**
+   * A one-time auth code becomes a session. Google sign-in produces one, and so does the
+   * sign-in link the website emails: the server redirects it to twinme://auth?auth_code=...
+   * when the tap happens on a phone. Both end here, so there is one way to finish signing
+   * in rather than two that drift apart.
+   */
+  const finishWithAuthCode = useCallback(async (authCode: string) => {
+    const { token, refreshToken } = await claimAuthCode(authCode);
+    await SecureStore.setItemAsync(STORAGE_KEYS.AUTH_TOKEN, token);
+    if (typeof refreshToken === 'string' && refreshToken.length > 0) {
+      await SecureStore.setItemAsync(STORAGE_KEYS.AUTH_REFRESH_TOKEN, refreshToken);
+    }
+    const user = await verifyToken();
+    if (!user) throw new Error('Failed to verify session after sign-in.');
+    await saveSession(token, user, refreshToken ?? null);
+    const latestToken = await SecureStore.getItemAsync(STORAGE_KEYS.AUTH_TOKEN);
+    setState({ token: latestToken, user, isLoading: false });
+  }, []);
+
+  /* A sign-in link tapped on the phone. Until this existed the app had no way to take one,
+     so a student who signs in by email on the site could not sign in to the app at all. */
+  useEffect(() => {
+    let done = false;
+    const take = (url: string | null) => {
+      if (!url || done) return;
+      const parsed = Linking.parse(url);
+      const authCode = parsed.queryParams?.auth_code;
+      if (parsed.hostname !== 'auth' && parsed.path !== 'auth') return;
+      if (typeof authCode !== 'string' || !authCode) return;
+      done = true;
+      finishWithAuthCode(authCode).catch((err) => {
+        done = false;
+        console.warn('[Auth] Sign-in link could not be used:', err instanceof Error ? err.message : err);
+      });
+    };
+    Linking.getInitialURL().then(take).catch(() => {});
+    const sub = Linking.addEventListener('url', ({ url }) => take(url));
+    return () => sub.remove();
+  }, [finishWithAuthCode]);
+
   const loginWithGoogle = useCallback(async () => {
     const oauthUrl = `${OAUTH_API_URL}/auth/oauth/google?mobile=true`;
 
@@ -132,20 +172,8 @@ export function useAuth() {
       throw new Error('No auth code received from Google sign-in.');
     }
 
-    const { token, refreshToken } = await claimAuthCode(authCode);
-    await SecureStore.setItemAsync(STORAGE_KEYS.AUTH_TOKEN, token);
-    if (typeof refreshToken === 'string' && refreshToken.length > 0) {
-      await SecureStore.setItemAsync(STORAGE_KEYS.AUTH_REFRESH_TOKEN, refreshToken);
-    }
-
-    // Verify to get user object
-    const user = await verifyToken();
-    if (!user) throw new Error('Failed to verify session after Google sign-in.');
-
-    await saveSession(token, user, refreshToken ?? null);
-    const latestToken = await SecureStore.getItemAsync(STORAGE_KEYS.AUTH_TOKEN);
-    setState({ token: latestToken, user, isLoading: false });
-  }, []);
+    await finishWithAuthCode(authCode);
+  }, [finishWithAuthCode]);
 
   const logout = useCallback(async () => {
     try {

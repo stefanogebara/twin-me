@@ -1035,6 +1035,12 @@ router.get('/magic-link/verify', async (req, res) => {
     });
 
     log.info('Magic-link verify success', { email: redactEmail(user.email) });
+    /* A link the phone app asked for goes back to the phone app. The app requests it with
+       redirect=/app; the same one-time code then rides the twinme:// scheme, exactly as the
+       Google callback already does for native clients, and never sits in a web page. */
+    if (redirectParam === '/app') {
+      return res.redirect(`twinme://auth?auth_code=${authCode}&provider=magic_link`);
+    }
     return res.redirect(`${appUrl}/oauth/callback?auth_code=${authCode}&provider=magic_link`);
   } catch (err) {
     log.error('Magic-link verify threw', { error: err?.message });

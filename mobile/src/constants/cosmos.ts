@@ -85,3 +85,10 @@ export function dayMonth(iso: string | null | undefined): string {
   const d = new Date(iso);
   return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 }
+
+/** The same, with the year, for a date that is not in the current one. */
+export function dayMonthYear(iso: string | null | undefined): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+}

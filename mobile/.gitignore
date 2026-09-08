@@ -48,3 +48,8 @@ android/local.properties
 android/app/debug.keystore
 android/app/twinme-release.keystore
 android/app/*.keystore
+
+# Frame audits (scripts/frame-audit.sh): recordings and cut frames, never committed.
+.frames/
+.frames-*.log
+.metro.log

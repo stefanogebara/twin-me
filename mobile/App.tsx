@@ -1,315 +1,340 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, AppState, AppStateStatus, View, Text } from 'react-native';
-import { NavigationContainer, NavigationContainerRef } from '@react-navigation/native';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { createStackNavigator } from '@react-navigation/stack';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+/**
+ * TwinMe, the money twin, on the phone.
+ * =====================================
+ * One product for a university student in Spain, and one vertical surface to hold it. The
+ * old app was five tabs for five ideas; this is a front door, three setup steps a person
+ * passes through once, and then the month, the ledger and themselves, reachable from a
+ * capsule at the top of the page. There is no bottom bar because there is nothing to
+ * choose between: the month is the product, and the other two are where its parts live.
+ *
+ * Every surface change is a fade on the one easing family in src/ui/motion.ts. Nothing
+ * pushes in from the side, because a person reading their money is not travelling
+ * anywhere; the page in front of them is simply becoming the next page.
+ *
+ * What the app decides on the person's behalf it decides from data, not from a flag it
+ * set for itself: no bank account means the bank step, open opening-questions mean the
+ * questions, and otherwise the month. A step skipped is remembered; a step that the data
+ * says is done is never shown again.
+ */
+
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { LayoutChangeEvent, Linking, Platform, StyleSheet, View } from 'react-native';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import * as SecureStore from 'expo-secure-store';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import {
-  InstrumentSerif_400Regular,
-} from '@expo-google-fonts/instrument-serif';
-import {
-  Inter_400Regular,
-  Inter_500Medium,
-  Inter_600SemiBold,
-} from '@expo-google-fonts/inter';
+import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold } from '@expo-google-fonts/inter';
+import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 
+import { cosmos } from './src/constants/cosmos';
+import { fade, spring } from './src/ui/motion';
+import { Micro, Pill, Press } from './src/ui/primitives';
 import { useAuth } from './src/hooks/useAuth';
-import { registerBackgroundSync, runSyncNow } from './src/services/backgroundSync';
+import { requestMagicLink } from './src/services/api';
+import { moneyApi } from './src/services/moneyApi';
 import { ensureCaptureKey } from './src/services/captureKey';
-import { addLocationSample, SAMPLE_INTERVAL_MS } from './src/services/locationClusters';
-import { registerForPushNotifications } from './src/services/pushNotifications';
-import { usePushNotifications } from './src/hooks/usePushNotifications';
-import { usePurchaseDetection } from './src/hooks/usePurchaseDetection';
-import { LoginScreen } from './src/screens/LoginScreen';
-import { HomeScreen } from './src/screens/HomeScreen';
-import { TwinChatScreen } from './src/screens/TwinChatScreen';
-import { MeScreen } from './src/screens/MeScreen';
-import { ConnectPlatformsScreen } from './src/screens/ConnectPlatformsScreen';
-import { MoneyScreen } from './src/screens/MoneyScreen';
-import { WikiScreen } from './src/screens/WikiScreen';
-import { InsightsScreen } from './src/screens/InsightsScreen';
-import { SoulInterviewScreen } from './src/screens/SoulInterviewScreen';
-import { PermissionOnboardingScreen } from './src/screens/PermissionOnboardingScreen';
-import { COLORS, STORAGE_KEYS } from './src/constants';
-import { UsageStatsModule } from './src/native/UsageStatsModule';
-import { NotificationListenerModule } from './src/native/NotificationListenerModule';
 import { NotificationListenerModule as NotifListenerBg } from './modules/notification-listener/src';
 
-const FG_SYNC_KEY = 'twinme_last_fg_sync';
-const FG_SYNC_COOLDOWN_MS = 30 * 60 * 1000; // 30 minutes
+import FrontDoorScreen from './src/screens/FrontDoorScreen';
+import BankScreen from './src/screens/BankScreen';
+import PhoneCaptureScreen from './src/screens/PhoneCaptureScreen';
+import QuestionsScreen from './src/screens/QuestionsScreen';
+import MonthScreen from './src/screens/MonthScreen';
+import LedgerScreen from './src/screens/LedgerScreen';
+import YouScreen from './src/screens/YouScreen';
 
-const Tab = createBottomTabNavigator();
-const Stack = createStackNavigator();
+type Setup = 'checking' | 'bank' | 'phone' | 'questions' | 'done';
+type Place = 'month' | 'ledger' | 'you';
+type Sheet = 'phone' | 'bank' | 'questions' | null;
 
-const TAB_ICONS: Record<string, string> = {
-  Home: '⊙',
-  Chat: '◈',
-  Money: '◊',
-  Me: '⊕',
-  Connect: '⊛',
-};
+const PHONE_SEEN = 'twinme_money_phone_step_seen';
+const BANK_SKIPPED = 'twinme_money_bank_step_skipped';
+const PLACES: { id: Place; label: string }[] = [
+  { id: 'month', label: 'Month' },
+  { id: 'ledger', label: 'Ledger' },
+  { id: 'you', label: 'You' },
+];
 
-function TabIcon({ label, focused }: { label: string; focused: boolean }) {
+/* ----------------------------------------------------------------------------------------
+ * Fade. One surface becomes the next. The outgoing surface leaves the tree only after its
+ * opacity has reached zero, so two surfaces are never both fully visible.
+ * -------------------------------------------------------------------------------------- */
+
+function Fade({ id, children }: { id: string; children: React.ReactNode }) {
+  const [shown, setShown] = useState<{ id: string; node: React.ReactNode }>({ id, node: children });
+  const opacity = useSharedValue(1);
+  const pending = useRef<{ id: string; node: React.ReactNode } | null>(null);
+
+  useEffect(() => {
+    if (id === shown.id) { setShown({ id, node: children }); return; }
+    pending.current = { id, node: children };
+    opacity.value = fade(0);
+    const t = setTimeout(() => {
+      if (pending.current) { setShown(pending.current); pending.current = null; }
+      opacity.value = fade(1);
+    }, 180);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, children]);
+
+  const a = useAnimatedStyle(() => ({ opacity: opacity.value }));
+  return <Animated.View style={[styles.fill, a]}>{shown.node}</Animated.View>;
+}
+
+/* ----------------------------------------------------------------------------------------
+ * Places. The three destinations stay mounted and stacked; the capsule chooses which one is
+ * opaque. Coming back to a place therefore finds it exactly as it was left, scrolled and
+ * loaded, instead of a blank page reading the ledger again.
+ * -------------------------------------------------------------------------------------- */
+
+function Layer({ active, children }: { active: boolean; children: React.ReactNode }) {
+  const opacity = useSharedValue(active ? 1 : 0);
+  useEffect(() => { opacity.value = fade(active ? 1 : 0); }, [active, opacity]);
+  const a = useAnimatedStyle(() => ({ opacity: opacity.value }));
   return (
-    <View style={{ alignItems: 'center', gap: 2 }}>
-      <View
-        style={{
-          width: 5,
-          height: 5,
-          borderRadius: 3,
-          backgroundColor: focused ? COLORS.primary : 'transparent',
-        }}
+    <Animated.View
+      style={[StyleSheet.absoluteFill, a]}
+      pointerEvents={active ? 'auto' : 'none'}
+      accessibilityElementsHidden={!active}
+      importantForAccessibility={active ? 'auto' : 'no-hide-descendants'}
+    >
+      {children}
+    </Animated.View>
+  );
+}
+
+/* ----------------------------------------------------------------------------------------
+ * The capsule. Three words and an underline that moves on the spring.
+ * -------------------------------------------------------------------------------------- */
+
+function Capsule({ place, onChange }: { place: Place; onChange: (p: Place) => void }) {
+  const [boxes, setBoxes] = useState<Record<Place, { x: number; w: number } | undefined>>({ month: undefined, ledger: undefined, you: undefined });
+  const x = useSharedValue(0);
+  const w = useSharedValue(0);
+  useEffect(() => {
+    const b = boxes[place];
+    if (!b) return;
+    x.value = spring(b.x);
+    w.value = w.value === 0 ? b.w : spring(b.w);
+  }, [place, boxes, x, w]);
+  const line = useAnimatedStyle(() => ({ transform: [{ translateX: x.value }], width: w.value }));
+  return (
+    <View style={styles.capsule}>
+      {PLACES.map((p) => (
+        <Press
+          key={p.id}
+          onPress={() => onChange(p.id)}
+          accessibilityLabel={p.label}
+          accessibilityState={{ selected: place === p.id }}
+          onLayout={(e: LayoutChangeEvent) => {
+            const { x: px, width } = e.nativeEvent.layout;
+            setBoxes((all) => (all[p.id]?.x === px && all[p.id]?.w === width ? all : { ...all, [p.id]: { x: px, w: width } }));
+          }}
+        >
+          <CapsuleWord label={p.label} on={place === p.id} />
+        </Press>
+      ))}
+      <Animated.View style={[styles.capsuleLine, line]} />
+    </View>
+  );
+}
+
+/* The word's ink follows the underline instead of snapping a frame ahead of it: two copies of
+   the word, quiet under bright, and the bright one fades on the same fade the app uses for
+   everything else. Same glyphs, same box, so nothing reflows. */
+function CapsuleWord({ label, on }: { label: string; on: boolean }) {
+  const bright = useSharedValue(on ? 1 : 0);
+  useEffect(() => { bright.value = fade(on ? 1 : 0); }, [on, bright]);
+  const a = useAnimatedStyle(() => ({ opacity: bright.value }));
+  return (
+    <View style={styles.capsuleItem}>
+      <Micro>{label}</Micro>
+      <Animated.View style={[StyleSheet.absoluteFill, styles.capsuleItem, a]} pointerEvents="none">
+        <Micro style={styles.capsuleOn}>{label}</Micro>
+      </Animated.View>
+    </View>
+  );
+}
+
+/* ----------------------------------------------------------------------------------------
+ * The app.
+ * -------------------------------------------------------------------------------------- */
+
+function Shell() {
+  const insets = useSafeAreaInsets();
+  const { token, user, isLoading, loginWithGoogle, logout } = useAuth();
+  const [setup, setSetup] = useState<Setup>('checking');
+  const [place, setPlace] = useState<Place>('month');
+  const [sheet, setSheet] = useState<Sheet>(null);
+  const [questionCount, setQuestionCount] = useState(0);
+
+  /* Where a signed-in person should land, decided from what the ledger knows about them. */
+  const decide = useCallback(async () => {
+    try {
+      /* A network that never answers must not hold the paper blank: each read gets a deadline
+         and falls back to what an empty ledger would say. */
+      const within = <T,>(p: Promise<T>, fallback: T) =>
+        Promise.race([p, new Promise<T>((r) => setTimeout(() => r(fallback), 6000))]).catch(() => fallback);
+      const [accounts, questions, bankSkipped, phoneSeen] = await Promise.all([
+        within(moneyApi.accounts(), [] as Awaited<ReturnType<typeof moneyApi.accounts>>),
+        within(moneyApi.questions(), { opening: [], fromLedger: [], answered: 0 } as Awaited<ReturnType<typeof moneyApi.questions>>),
+        SecureStore.getItemAsync(BANK_SKIPPED),
+        SecureStore.getItemAsync(PHONE_SEEN),
+      ]);
+      setQuestionCount(questions.opening.length + questions.fromLedger.length);
+      if (!accounts.length && !bankSkipped) { setSetup('bank'); return; }
+      if (!phoneSeen) { setSetup('phone'); return; }
+      if (questions.opening.length) { setSetup('questions'); return; }
+      setSetup('done');
+    } catch {
+      setSetup('done');
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!token) { setSetup('checking'); return; }
+    NotifListenerBg.setAuthToken(token);
+    ensureCaptureKey().catch(() => {});
+    void decide();
+  }, [token, decide]);
+
+  const onRequestLink = useCallback((email: string) => requestMagicLink(email), []);
+
+  /* Development only: the simulator has no hands, so the shell can be steered from outside.
+     twinme://dev/place?p=ledger, twinme://dev/sheet?s=questions (or none), twinme://dev/setup?s=bank,
+     and twinme://dev/tour, which walks the three places and a sheet for a frame-by-frame recording.
+     Compiled out of release builds. */
+  useEffect(() => {
+    if (!__DEV__) return;
+    const query = (raw: string | undefined) =>
+      Object.fromEntries((raw ?? '').split('&').filter(Boolean).map((kv) => kv.split('=').map(decodeURIComponent) as [string, string]));
+    const steer = (url: string) => {
+      const m = url.match(/^twinme:\/\/dev\/(\w+)(?:\?(.*))?$/);
+      if (!m) return;
+      const q = query(m[2]);
+      if (m[1] === 'place') setPlace(q.p as Place);
+      else if (m[1] === 'sheet') setSheet((q.s && q.s !== 'none' ? q.s : null) as Sheet);
+      else if (m[1] === 'setup') setSetup(q.s as Setup);
+      else if (m[1] === 'signout') void logout();
+      else if (m[1] === 'tour') {
+        const beat = Number(q.ms) || 1400;
+        const steps: Array<() => void> = [
+          () => setPlace('month'), () => setPlace('ledger'), () => setPlace('you'), () => setPlace('month'),
+          () => setSheet('questions'), () => setSheet(null),
+        ];
+        steps.forEach((step, i) => setTimeout(step, i * beat));
+      }
+    };
+    const sub = Linking.addEventListener('url', (e) => steer(e.url));
+    return () => sub.remove();
+  }, []);
+
+  const surfaceId = useMemo(() => {
+    if (!token || !user) return 'door';
+    if (setup !== 'done') return `setup:${setup}`;
+    return sheet ? `sheet:${sheet}` : 'places';
+  }, [token, user, setup, sheet]);
+
+  if (isLoading) {
+    return <View style={styles.fill} />;
+  }
+
+  let surface: React.ReactNode;
+  if (!token || !user) {
+    surface = <FrontDoorScreen onGoogle={loginWithGoogle} onRequestLink={onRequestLink} />;
+  } else if (setup === 'checking') {
+    surface = <View style={styles.fill} />;
+  } else if (setup === 'bank') {
+    surface = (
+      <BankScreen
+        onDone={() => { void decide(); }}
+        onSkip={async () => { await SecureStore.setItemAsync(BANK_SKIPPED, '1'); void decide(); }}
       />
-      <Text style={{ fontSize: 16, color: focused ? COLORS.text : COLORS.textMuted }}>
-        {TAB_ICONS[label] ?? '○'}
-      </Text>
+    );
+  } else if (setup === 'phone') {
+    surface = (
+      <StepFrame onNext={async () => { await SecureStore.setItemAsync(PHONE_SEEN, '1'); void decide(); }}>
+        <PhoneCaptureScreen />
+      </StepFrame>
+    );
+  } else if (setup === 'questions') {
+    surface = <QuestionsScreen onDone={() => { void decide(); }} />;
+  } else if (sheet === 'phone') {
+    surface = <StepFrame onNext={() => setSheet(null)} nextLabel="Done"><PhoneCaptureScreen /></StepFrame>;
+  } else if (sheet === 'bank') {
+    surface = <BankScreen onDone={() => { setSheet(null); void decide(); }} onSkip={() => setSheet(null)} />;
+  } else if (sheet === 'questions') {
+    surface = <QuestionsScreen onDone={() => { setSheet(null); void decide(); }} />;
+  } else {
+    surface = (
+      <View style={styles.fill}>
+        <Capsule place={place} onChange={setPlace} />
+        <View style={styles.fill}>
+          <Layer active={place === 'month'}>
+            <MonthScreen questionCount={questionCount} onOpenQuestions={() => setSheet('questions')} onOpenLedger={() => setPlace('ledger')} />
+          </Layer>
+          <Layer active={place === 'ledger'}>
+            <LedgerScreen />
+          </Layer>
+          <Layer active={place === 'you'}>
+            <YouScreen
+              user={user}
+              onSignOut={() => { void logout(); }}
+              onOpenPhone={() => setSheet('phone')}
+              onOpenBank={() => setSheet('bank')}
+              onOpenQuestions={() => setSheet('questions')}
+            />
+          </Layer>
+        </View>
+      </View>
+    );
+  }
+
+  return (
+    <View style={[styles.fill, { paddingTop: insets.top, paddingBottom: Platform.OS === 'ios' ? 0 : insets.bottom }]}>
+      <Fade id={surfaceId}>{surface}</Fade>
+    </View>
+  );
+}
+
+/** A setup step that is a screen of its own plus one pill to move on. The screen names
+ *  itself in its own header, so the footer says nothing twice: a hairline, then the pill. */
+function StepFrame({ children, onNext, nextLabel = 'Continue' }: { children: React.ReactNode; onNext: () => void; nextLabel?: string }) {
+  return (
+    <View style={styles.fill}>
+      <View style={styles.fill}>{children}</View>
+      <View style={styles.stepFoot}>
+        <Pill label={nextLabel} onPress={onNext} />
+      </View>
     </View>
   );
 }
 
 export default function App() {
-  const [fontsLoaded] = useFonts({
-    InstrumentSerif_400Regular,
-    Inter_400Regular,
-    Inter_500Medium,
-    Inter_600SemiBold,
-  });
-
-  const { token, user, isLoading, login, signup, loginWithGoogle, logout } = useAuth();
-  const navRef = useRef<NavigationContainerRef<Record<string, undefined>>>(null);
-  const appStateRef = useRef<AppStateStatus>(AppState.currentState);
-
-  // Tracks whether we should show the permission onboarding wizard
-  const [showPermissions, setShowPermissions] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    if (token) {
-      registerBackgroundSync().catch(console.error);
-      registerForPushNotifications().catch(err =>
-        console.warn('[Push] Registration failed (non-fatal):', err)
-      );
-      checkPermissionsNeeded();
-      NotifListenerBg.setAuthToken(token);
-      /* And a capture key, which outlives the session token the line above sets. The money
-         listener runs for months in the background; a JWT expiring there would take every
-         payment with it, silently. */
-      ensureCaptureKey().catch(err =>
-        console.warn('[Capture] Key not set (non-fatal):', err)
-      );
-    } else {
-      setShowPermissions(null);
-    }
-  }, [token]);
-
-  // Foreground sync: run a lightweight sync when user returns to app after 30+ min away
-  useEffect(() => {
-    if (!token) return;
-    const subscription = AppState.addEventListener('change', (nextState: AppStateStatus) => {
-      const prev = appStateRef.current;
-      appStateRef.current = nextState;
-      if (prev !== 'active' && nextState === 'active') {
-        SecureStore.getItemAsync(FG_SYNC_KEY)
-          .then(lastStr => {
-            const lastMs = lastStr ? parseInt(lastStr, 10) : 0;
-            if (Date.now() - lastMs >= FG_SYNC_COOLDOWN_MS) {
-              return SecureStore.setItemAsync(FG_SYNC_KEY, String(Date.now()))
-                .then(() => runSyncNow());
-            }
-          })
-          .catch(console.warn);
-      }
-    });
-    return () => subscription.remove();
-  }, [token]);
-
-  // Foreground location sampling — fires every 5 min while app is open
-  useEffect(() => {
-    if (!user) return;
-    const interval = setInterval(addLocationSample, SAMPLE_INTERVAL_MS);
-    return () => clearInterval(interval);
-  }, [user]);
-
-  async function checkPermissionsNeeded() {
-    const alreadyShown = await SecureStore.getItemAsync(STORAGE_KEYS.PERMISSIONS_SHOWN);
-    if (alreadyShown) {
-      setShowPermissions(false);
-      return;
-    }
-    const hasUsage = UsageStatsModule.hasUsagePermission();
-    const hasNotif = NotificationListenerModule.hasNotificationPermission();
-    setShowPermissions(!hasUsage || !hasNotif);
+  const [fontsLoaded] = useFonts({ Inter_400Regular, Inter_500Medium, Inter_600SemiBold });
+  if (!fontsLoaded) {
+    return <View style={styles.fill} />;
   }
-
-  async function handlePermissionsDone() {
-    // Kick off an immediate sync so new permissions take effect right away
-    runSyncNow().catch(console.error);
-    setShowPermissions(false);
-  }
-
-  const handlePushTap = useCallback((data: Record<string, unknown>) => {
-    const type = (data?.notificationType as string) ?? 'insight';
-    const screenMap: Record<string, string> = {
-      insight: 'Home',
-      goal: 'Home',      // no dedicated Goals tab in mobile yet
-      reflection: 'Me',
-      chat: 'Chat',
-      stress_nudge: 'Chat',  // Phase 3.4 — open twin chat pre-seeded with tx context
-    };
-    const screen = screenMap[type] ?? 'Chat';
-
-    // For stress_nudge, pre-seed the input with a contextual opener. The push
-    // payload carries insightId + txId; we stash both on AsyncStorage so
-    // TwinChatScreen can read them on mount and the twin pulls the tx from DB.
-    if (type === 'stress_nudge') {
-      const txId = (data?.txId as string) || '';
-      const insightId = (data?.insightId as string) || '';
-      AsyncStorage.setItem(
-        'pending_nudge_context',
-        JSON.stringify({ txId, insightId, seededAt: Date.now() }),
-      ).catch(() => {/* non-critical */});
-    }
-
-    navRef.current?.navigate(screen as never);
-  }, []);
-
-  usePushNotifications(token ? handlePushTap : undefined);
-  usePurchaseDetection();
-
-  const MainTabs = useCallback(() => (
-    <Tab.Navigator
-      screenOptions={{
-        headerStyle: { backgroundColor: COLORS.background, elevation: 0, shadowOpacity: 0 },
-        headerTitleStyle: { color: COLORS.text, fontFamily: 'InstrumentSerif_400Regular', fontSize: 18, letterSpacing: -0.5 },
-        tabBarStyle: {
-          backgroundColor: COLORS.background,
-          borderTopColor: 'rgba(0,0,0,0.06)',
-          borderTopWidth: 1,
-          height: 60,
-          paddingBottom: 8,
-        },
-        tabBarActiveTintColor: COLORS.text,
-        tabBarInactiveTintColor: COLORS.textMuted,
-        tabBarLabelStyle: { fontSize: 10, fontFamily: 'Inter_400Regular', letterSpacing: 0.5, textTransform: 'uppercase' },
-      }}
-    >
-      <Tab.Screen
-        name="Home"
-        options={{
-          title: 'TwinMe',
-          tabBarLabel: 'Home',
-          tabBarIcon: ({ focused }) => <TabIcon label="Home" focused={focused} />,
-        }}
-      >
-        {() => <HomeScreen user={user!} />}
-      </Tab.Screen>
-
-      <Tab.Screen
-        name="Chat"
-        component={TwinChatScreen}
-        options={{
-          title: 'Your Twin',
-          tabBarLabel: 'Chat',
-          tabBarIcon: ({ focused }) => <TabIcon label="Chat" focused={focused} />,
-        }}
-      />
-
-      <Tab.Screen
-        name="Money"
-        options={{
-          title: 'Money',
-          tabBarLabel: 'Money',
-          tabBarIcon: ({ focused }) => <TabIcon label="Money" focused={focused} />,
-        }}
-      >
-        {() => <MoneyScreen user={user!} />}
-      </Tab.Screen>
-
-      <Tab.Screen
-        name="Me"
-        options={{
-          title: 'Me',
-          tabBarLabel: 'Me',
-          tabBarIcon: ({ focused }) => <TabIcon label="Me" focused={focused} />,
-        }}
-      >
-        {() => <MeScreen user={user!} onLogout={logout} />}
-      </Tab.Screen>
-
-      <Tab.Screen
-        name="Connect"
-        options={{
-          title: 'Connect',
-          tabBarLabel: 'Connect',
-          tabBarIcon: ({ focused }) => <TabIcon label="Connect" focused={focused} />,
-        }}
-      >
-        {() => <ConnectPlatformsScreen user={user!} />}
-      </Tab.Screen>
-    </Tab.Navigator>
-  ), [user, logout]);
-
-  if (isLoading || !fontsLoaded) {
-    return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.background }}>
-        <ActivityIndicator color={COLORS.primary} size="large" />
-        <StatusBar style="dark" />
-      </View>
-    );
-  }
-
-  if (!token || !user) {
-    return (
-      <SafeAreaProvider>
-        <StatusBar style="dark" />
-        <LoginScreen onLogin={login} onSignup={signup} onGoogleLogin={loginWithGoogle} />
-      </SafeAreaProvider>
-    );
-  }
-
-  // showPermissions is null while we're checking — show spinner
-  if (showPermissions === null) {
-    return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.background }}>
-        <ActivityIndicator color={COLORS.primary} size="large" />
-        <StatusBar style="dark" />
-      </View>
-    );
-  }
-
-  // Show onboarding wizard if permissions are missing and haven't been shown yet
-  if (showPermissions) {
-    return (
-      <SafeAreaProvider>
-        <StatusBar style="dark" />
-        <PermissionOnboardingScreen onDone={handlePermissionsDone} />
-      </SafeAreaProvider>
-    );
-  }
-
   return (
     <SafeAreaProvider>
-      <StatusBar style="dark" />
-      <NavigationContainer ref={navRef}>
-        <Stack.Navigator screenOptions={{ headerShown: false, cardStyle: { backgroundColor: COLORS.background } }}>
-          <Stack.Screen name="MainTabs" component={MainTabs} />
-          <Stack.Screen name="ConnectPlatforms">
-            {() => <ConnectPlatformsScreen user={user} />}
-          </Stack.Screen>
-          <Stack.Screen name="Wiki">
-            {() => <WikiScreen />}
-          </Stack.Screen>
-          <Stack.Screen name="Insights">
-            {() => <InsightsScreen user={user!} />}
-          </Stack.Screen>
-          <Stack.Screen name="SoulInterview">
-            {() => <SoulInterviewScreen user={user!} />}
-          </Stack.Screen>
-        </Stack.Navigator>
-      </NavigationContainer>
+      <StatusBar style="dark" backgroundColor={cosmos.color.canvas} />
+      <Shell />
     </SafeAreaProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  fill: { flex: 1, backgroundColor: cosmos.color.canvas },
+  capsule: {
+    flexDirection: 'row', alignSelf: 'center', gap: cosmos.space.lg,
+    marginTop: cosmos.space.sm, marginBottom: cosmos.space.xs, position: 'relative',
+  },
+  capsuleItem: { paddingVertical: 12, paddingHorizontal: 4, minHeight: 44, justifyContent: 'center' },
+  capsuleOn: { color: cosmos.color.ink },
+  capsuleLine: { position: 'absolute', left: 0, bottom: 6, height: StyleSheet.hairlineWidth * 2, backgroundColor: cosmos.color.ink },
+  stepFoot: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end',
+    paddingHorizontal: cosmos.space.lg, paddingVertical: cosmos.space.md,
+    borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: cosmos.color.rule,
+  },
+});
