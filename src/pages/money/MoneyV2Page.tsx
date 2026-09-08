@@ -7,7 +7,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import '../../styles/money-v2.css';
-import { moneyAPI, euro, shortDay, type MoneyAccount, type MoneyForecast, type MoneyMonth, type MoneyReading, type MoneyRecurring, type MoneySighting, type MoneyTransaction } from '../../services/api/moneyAPI';
+import { moneyAPI, euro, shortDay, type MoneyAccount, type MoneyCategories, type MoneyForecast, type MoneyMonth, type MoneyReading, type MoneyRecurring, type MoneySighting, type MoneyTransaction } from '../../services/api/moneyAPI';
 
 const TILE_SPOTS: [number, number, number][] = [[3, 14, -12], [12, 66, 8], [22, 30, 10], [30, 78, -6], [66, 76, 7], [76, 24, -10], [88, 60, 6], [92, 12, -8]];
 const CADENCE: Record<string, string> = { weekly: 'every week', biweekly: 'every two weeks', monthly: 'every month', quarterly: 'every quarter', yearly: 'every year' };
@@ -25,6 +25,12 @@ function nameList(names: string[]) {
   if (names.length === 3) return `${names[0]}, ${names[1]} and ${names[2]}`;
   return `${names[0]}, ${names[1]} and ${names.length - 2} more`;
 }
+function ordinalSuffix(n: number) {
+  if (n % 10 === 1 && n !== 11) return 'st';
+  if (n % 10 === 2 && n !== 12) return 'nd';
+  if (n % 10 === 3 && n !== 13) return 'rd';
+  return 'th';
+}
 function monthName(iso: string) { return new Date(iso).toLocaleDateString('en-GB', { month: 'long' }); }
 function lastDay(iso: string) { const d = new Date(iso); return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate(); }
 
@@ -35,6 +41,8 @@ export default function MoneyV2Page() {
   const [accounts, setAccounts] = useState<MoneyAccount[]>([]);
   const [months, setMonths] = useState<MoneyMonth[]>([]);
   const [readings, setReadings] = useState<MoneyReading[]>([]);
+  const [openSeries, setOpenSeries] = useState<string | null>(null);
+  const [categories, setCategories] = useState<MoneyCategories | null>(null);
   const [bankReady, setBankReady] = useState(true);
   const [loaded, setLoaded] = useState(false);
   const [open, setOpen] = useState<string | null>(null);
@@ -44,8 +52,8 @@ export default function MoneyV2Page() {
   const [note, setNote] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    const [f, l, r, a, m, rd] = await Promise.allSettled([
-      moneyAPI.forecast(), moneyAPI.ledger(), moneyAPI.recurring(), moneyAPI.accounts(), moneyAPI.months(), moneyAPI.readings(),
+    const [f, l, r, a, m, rd, c] = await Promise.allSettled([
+      moneyAPI.forecast(), moneyAPI.ledger(), moneyAPI.recurring(), moneyAPI.accounts(), moneyAPI.months(), moneyAPI.readings(), moneyAPI.categories(),
     ]);
     if (f.status === 'fulfilled') setForecast(f.value);
     if (l.status === 'fulfilled') setLedger(l.value);
@@ -53,6 +61,7 @@ export default function MoneyV2Page() {
     if (a.status === 'fulfilled') setAccounts(a.value);
     if (m.status === 'fulfilled') setMonths(m.value);
     if (rd.status === 'fulfilled') setReadings(rd.value);
+    if (c.status === 'fulfilled') setCategories(c.value);
     setLoaded(true);
   }, []);
   useEffect(() => { void load(); }, [load]);
@@ -72,6 +81,10 @@ export default function MoneyV2Page() {
   const projectable = Boolean(forecast && forecast.projected_p90 - forecast.projected_p10 > 0.5);
   const tiles = useMemo(() => ledger.filter((t) => Number(t.amount) < 0).slice(0, TILE_SPOTS.length), [ledger]);
   const inflow = useMemo(() => ledger.filter((t) => Number(t.amount) > 0), [ledger]);
+  const monthlyLoad = useMemo(
+    () => Math.round(recurring.filter((r) => r.cadence === 'monthly').reduce((s, r) => s + Math.abs(Number(r.typical_amount) || 0), 0) * 100) / 100,
+    [recurring],
+  );
   const subscriptions = recurring.filter((r) => r.is_subscription);
   const bills = recurring.filter((r) => !r.is_subscription);
 
@@ -118,6 +131,15 @@ export default function MoneyV2Page() {
     catch { setNote('The pull did not go through.'); }
     finally { setBusy(null); }
   }
+  async function importStatement(file: File | null) {
+    if (!file) return;
+    setBusy('statement'); setNote(null);
+    try {
+      const r = await moneyAPI.importStatement(file);
+      setNote(`${r.read} rows read, ${r.created} new${r.skipped ? `, ${r.skipped} lines skipped` : ''}.`);
+      await load();
+    } catch (e) { setNote((e as Error).message); } finally { setBusy(null); }
+  }
   async function makeKey() {
     setBusy('key'); setNote(null);
     try { setKey(await moneyAPI.createCaptureKey()); } catch (e) { setNote((e as Error).message); } finally { setBusy(null); }
@@ -132,6 +154,7 @@ export default function MoneyV2Page() {
         <Link to="/portrait" className="mv-mark" aria-label="TwinMe"><i /><i /><i /><i /><i /><i /></Link>
         <nav>
           <a href="#month">This month</a>
+          <a href="#where">Where</a>
           <a href="#ledger">Ledger</a>
           <a href="#recurring">Subscriptions</a>
           <a href="#sources">Sources</a>
@@ -228,6 +251,31 @@ export default function MoneyV2Page() {
         </section>
       ) : null}
 
+      {/* Where it went, by kind of place */}
+      {categories && categories.groups.length ? (
+        <section className="mv-section" id="where">
+          <h2>Where it went.</h2>
+          <p className="mv-quiet">
+            {categories.read < categories.total
+              ? `${euro(categories.read)} of ${euro(categories.total)} is placed so far. The rest is waiting on a lookup.`
+              : 'Every payment this month has a kind of place behind it.'}
+          </p>
+          <ol className="mv-cats">
+            {categories.groups.map((g) => (
+              <li key={g.category} className={g.known ? '' : 'is-unknown'}>
+                <span className="mv-cat-name">{g.category}</span>
+                <span className="mv-cat-bar" aria-hidden="true">
+                  <i style={{ width: `${Math.min(100, (g.spent / Math.max(...categories.groups.map((x) => x.spent), 1)) * 100)}%` }} />
+                </span>
+                <span className="mv-cat-amount">{euro(g.spent)}</span>
+                <span className="mv-cat-share">{g.share}%</span>
+                <span className="mv-cat-who">{g.merchants.map((m) => m.name).slice(0, 3).join(', ')}</span>
+              </li>
+            ))}
+          </ol>
+        </section>
+      ) : null}
+
       {/* Month by month */}
       {months.length > 1 ? (
         <section className="mv-section" id="months">
@@ -301,19 +349,40 @@ export default function MoneyV2Page() {
         {recurring.length === 0 ? (
           <p className="mv-quiet">A charge becomes recurring after it has come back three times at the same rhythm.</p>
         ) : (
+          <>
           <div className="mv-grid">
             {[...subscriptions, ...bills].map((r) => (
-              <div key={r.merchant_key} className="mv-card">
+              <button
+                type="button"
+                key={r.merchant_key}
+                className={`mv-card mv-card--open ${openSeries === r.merchant_key ? 'is-open' : ''}`}
+                onClick={() => setOpenSeries(openSeries === r.merchant_key ? null : r.merchant_key)}
+                aria-expanded={openSeries === r.merchant_key}
+              >
                 <span className="mv-card-kicker">{r.is_subscription ? 'Subscription' : 'Recurring'} · {CADENCE[r.cadence] || r.cadence}</span>
                 <b>{merchantLabel({ merchant_name: r.merchant_name, merchant_key: r.merchant_key })}</b>
                 <em>{euro(r.typical_amount)}</em>
                 <small>
-                  {r.next_expected ? `Next around ${shortDay(r.next_expected)}.` : ''}
+                  {r.next_expected ? `Next around ${shortDay(r.next_expected)}${r.day_of_month ? `, it lands on the ${r.day_of_month}${ordinalSuffix(r.day_of_month)}` : ''}.` : ''}
+                  {typeof r.total_paid === 'number' ? ` ${euro(r.total_paid)} so far, over ${r.occurrences} ${r.occurrences === 1 ? 'charge' : 'charges'}.` : ''}
                   {typeof r.uses === 'number' ? ` Used ${r.uses} time${r.uses === 1 ? '' : 's'} this month${r.cost_per_use ? `, ${euro(r.cost_per_use)} a use` : ''}.` : ''}
                 </small>
-              </div>
+                {openSeries === r.merchant_key && r.charges?.length ? (
+                  <ul className="mv-charges">
+                    {r.charges.map((c) => (
+                      <li key={c.id}><span>{shortDay(c.occurred_at)}</span><em>{euro(c.amount)}</em></li>
+                    ))}
+                  </ul>
+                ) : null}
+              </button>
             ))}
           </div>
+          {recurring.length ? (
+            <p className="mv-quiet">
+              {monthlyLoad ? `${euro(monthlyLoad)} of this comes back every month.` : ''} Press one to see every charge it has made.
+            </p>
+          ) : null}
+          </>
         )}
       </section>
 
@@ -335,6 +404,19 @@ export default function MoneyV2Page() {
               {accounts.length ? <button type="button" className="mv-pill mv-pill--ghost" onClick={pull} disabled={busy === 'pull'}>Read now</button> : null}
             </div>
             {!bankReady ? <p className="mv-quiet">The bank feed is not switched on yet.</p> : null}
+            <div className="mv-upload">
+              <b>Older months</b>
+              <p>The bank only opens the last ninety days. Export a statement from Santander as Excel or CSV and the months before that come in too.</p>
+              <label className="mv-pill mv-pill--ghost mv-pill--file">
+                {busy === 'statement' ? 'Reading…' : 'Add a statement'}
+                <input
+                  type="file"
+                  accept=".xlsx,.xls,.csv,.txt,.tsv"
+                  onChange={(e) => { const f = e.target.files?.[0] || null; e.target.value = ''; void importStatement(f); }}
+                  disabled={busy === 'statement'}
+                />
+              </label>
+            </div>
           </div>
           <div className="mv-source">
             <span className="mv-card-kicker">Your phone</span>

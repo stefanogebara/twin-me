@@ -7,6 +7,10 @@
  * POST /api/money/transactions/:id/verdict { verdict: worth_it | not_me | null }
  * GET  /api/money/recurring                recurring series (recomputed on call)
  * GET  /api/money/forecast                 this month, with a band
+ * POST /api/money/statement                a bank statement (xlsx/csv) becomes sightings
+ * GET  /api/money/categories[?month=]      where a month went, by kind of place
+ * GET  /api/money/places                   the places behind the ledger
+ * POST /api/money/places/:key/category     a person's correction to a category
  * GET  /api/money/months                   money in and out per calendar month
  * GET  /api/money/readings[?refresh=1]     what the ledger says, with its receipts
  * POST /api/money/readings/:id/verdict     true | not_me | null
@@ -22,10 +26,12 @@
 
 import { Router } from 'express';
 import crypto from 'node:crypto';
+import multer from 'multer';
 import { authenticateUser } from '../middleware/auth.js';
 import { createLogger } from '../services/logger.js';
 import { parseCapture, parseStructured } from '../services/money/captureParser.js';
-import { ingestSighting, listTransactions, sightingsFor, refreshRecurring, forecast, setVerdict, userForCaptureKey, saveBankAccounts, listBankAccounts, pullBankFeed, refreshReadings, listReadings, setReadingVerdict, months, feedBudget } from '../services/money/store.js';
+import { ingestSighting, ingestSightings, listTransactions, sightingsFor, refreshRecurring, forecast, setVerdict, userForCaptureKey, saveBankAccounts, listBankAccounts, pullBankFeed, refreshReadings, listReadings, setReadingVerdict, months, feedBudget, categorySpend, listPlaces, setPlaceCategory } from '../services/money/store.js';
+import { parseDelimited, parseWorkbook, toSightings } from '../services/money/statements/importer.js';
 import { isConfigured, listBanks, startAuthorisation, createSession } from '../services/money/feeds/enableBanking.js';
 
 const log = createLogger('MoneyRoute');
@@ -162,6 +168,64 @@ router.post('/bank/pull', async (req, res) => {
     log.error('bank pull failed', { error: error.message });
     res.status(502).json({ success: false, error: 'Bank feed unavailable' });
   }
+});
+
+/* A statement is how the months before the bank's ninety-day window get in. The file is
+   parsed in memory and discarded; only the rows it names reach the database. */
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 12 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const ok = /\.(xlsx|xls|csv|txt|tsv)$/i.test(file.originalname || '');
+    cb(ok ? null : new Error('Upload a statement exported as Excel or CSV.'), ok);
+  },
+});
+
+router.post('/statement', upload.single('file'), async (req, res) => {
+  if (!req.file?.buffer?.length) return res.status(400).json({ success: false, error: 'No file received' });
+  try {
+    const name = req.file.originalname || '';
+    const rows = /\.(xlsx|xls)$/i.test(name)
+      ? parseWorkbook(req.file.buffer)
+      : parseDelimited(req.file.buffer.toString('utf8'));
+    const { sightings, skipped, header } = toSightings(rows, {});
+    if (!sightings.length) {
+      return res.status(422).json({
+        success: false,
+        error: header ? 'No rows in that file could be read as payments.' : 'That file has no statement header this reads yet.',
+        data: { skipped: skipped.length },
+      });
+    }
+    const result = await ingestSightings(req.user.id, sightings);
+    await refreshRecurring(req.user.id).catch((e) => log.warn('recurring after statement failed', { error: e.message }));
+    await refreshReadings(req.user.id).catch((e) => log.warn('readings after statement failed', { error: e.message }));
+    log.info('statement imported', { userId: req.user.id, rows: sightings.length, created: result.created });
+    res.json({ success: true, data: { read: sightings.length, created: result.created, attached: result.attached, skipped: skipped.length } });
+  } catch (error) {
+    log.error('statement import failed', { error: error.message });
+    res.status(500).json({ success: false, error: 'That statement could not be read.' });
+  }
+});
+
+/** Where a month went, by kind of place. */
+router.get('/categories', async (req, res) => {
+  try { res.json({ success: true, data: await categorySpend(req.user.id, { month: typeof req.query.month === 'string' ? req.query.month : null }) }); }
+  catch (error) { log.error('categories failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
+});
+
+/** The places behind the ledger, with what each has taken. */
+router.get('/places', async (req, res) => {
+  try { res.json({ success: true, data: await listPlaces(req.user.id) }); }
+  catch (error) { log.error('places failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
+});
+
+router.post('/places/:merchantKey/category', async (req, res) => {
+  const category = req.body?.category ?? null;
+  if (category !== null && (typeof category !== 'string' || category.length > 40)) {
+    return res.status(400).json({ success: false, error: 'category must be a short word or null' });
+  }
+  try { res.json({ success: true, data: await setPlaceCategory(req.params.merchantKey, category) }); }
+  catch (error) { log.error('place category failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
 });
 
 /** How many unattended reads of the consent are left in the rolling day. */

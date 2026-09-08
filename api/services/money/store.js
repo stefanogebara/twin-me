@@ -162,7 +162,25 @@ export async function refreshRecurring(userId, now = new Date()) {
     const keys = series.map((s) => s.merchant_key);
     await supabaseAdmin.from('money_transactions').update({ is_recurring: true }).eq('user_id', userId).in('merchant_key', keys);
   }
-  return series.map((s) => ({ ...s, merchant_name: names.get(s.merchant_key) || null }));
+  /* A card says a charge comes back every month; the person then asks which payments those
+     were, when the next one lands and what it has cost so far. The transactions are already
+     in hand, so the answer costs no query. */
+  const charges = new Map();
+  for (const t of rows) {
+    if (Number(t.amount) >= 0) continue;
+    if (!charges.has(t.merchant_key)) charges.set(t.merchant_key, []);
+    charges.get(t.merchant_key).push({ id: t.id, occurred_at: t.occurred_at, amount: Math.abs(Number(t.amount) || 0), verdict: t.verdict || null });
+  }
+  return series.map((x) => {
+    const paid = (charges.get(x.merchant_key) || []).sort((a, b) => new Date(b.occurred_at) - new Date(a.occurred_at));
+    return {
+      ...x,
+      merchant_name: names.get(x.merchant_key) || null,
+      charges: paid.slice(0, 12),
+      total_paid: Math.round(paid.reduce((sum, c) => sum + c.amount, 0) * 100) / 100,
+      day_of_month: paid.length ? new Date(paid[0].occurred_at).getUTCDate() : null,
+    };
+  });
 }
 
 export async function forecast(userId, now = new Date()) {
@@ -381,4 +399,106 @@ export async function moneyContext(userId, now = new Date()) {
     currency: transactions[0]?.currency || 'EUR',
     readings: readings.map((r) => ({ kind: r.kind, sentence: r.sentence, detail: r.detail })),
   };
+}
+
+/**
+ * Where a month's money went, by kind of place. The kind comes from money_places, one row
+ * per merchant, so this is a join and not a guess; a merchant nobody has looked up yet
+ * counts as "not read yet" rather than being quietly filed under "other" — the difference
+ * between a gap and a category matters when a person is deciding whether to trust the page.
+ */
+export async function categorySpend(userId, { month = null } = {}) {
+  let q = supabaseAdmin.from('money_transactions')
+    .select('id, amount, merchant_key, merchant_raw, occurred_at')
+    .eq('user_id', userId).lt('amount', 0);
+  if (month) {
+    const start = `${String(month).slice(0, 7)}-01`;
+    const end = new Date(Date.UTC(Number(start.slice(0, 4)), Number(start.slice(5, 7)), 1)).toISOString().slice(0, 10);
+    q = q.gte('occurred_at', `${start}T00:00:00Z`).lt('occurred_at', `${end}T00:00:00Z`);
+  }
+  const { data: rows, error } = await q;
+  if (error) throw new Error(error.message);
+  if (!rows?.length) return { month, total: 0, read: 0, groups: [] };
+
+  const keys = [...new Set(rows.map((r) => r.merchant_key))];
+  const { data: places } = await supabaseAdmin
+    .from('money_places')
+    .select('merchant_key, name, kind, category, category_override, city, lat, lon, confidence')
+    .in('merchant_key', keys);
+  const byKey = new Map((places || []).map((p) => [p.merchant_key, p]));
+
+  const groups = new Map();
+  let total = 0;
+  let read = 0;
+  for (const r of rows) {
+    const amount = Math.abs(Number(r.amount) || 0);
+    total += amount;
+    const place = byKey.get(r.merchant_key);
+    const category = place ? (place.category_override || place.category || 'other') : null;
+    if (category) read += amount;
+    const key = category || 'not read yet';
+    if (!groups.has(key)) groups.set(key, { category: key, known: Boolean(category), spent: 0, lines: 0, merchants: new Map() });
+    const g = groups.get(key);
+    g.spent += amount;
+    g.lines += 1;
+    const name = place?.name || r.merchant_raw || r.merchant_key;
+    g.merchants.set(name, (g.merchants.get(name) || 0) + amount);
+  }
+  return {
+    month,
+    total: Math.round(total * 100) / 100,
+    read: Math.round(read * 100) / 100,
+    groups: [...groups.values()]
+      .map((g) => ({
+        category: g.category,
+        known: g.known,
+        spent: Math.round(g.spent * 100) / 100,
+        lines: g.lines,
+        share: total > 0 ? Math.round((g.spent / total) * 100) : 0,
+        merchants: [...g.merchants.entries()].sort((a, b) => b[1] - a[1]).slice(0, 4).map(([name, spent]) => ({ name, spent: Math.round(spent * 100) / 100 })),
+      }))
+      .sort((a, b) => b.spent - a.spent),
+  };
+}
+
+/** The places behind a person's ledger, for a map and for a category correction. */
+export async function listPlaces(userId) {
+  const { data: rows } = await supabaseAdmin.from('money_transactions')
+    .select('merchant_key, merchant_raw, merchant_city, amount').eq('user_id', userId).lt('amount', 0);
+  const keys = [...new Set((rows || []).map((r) => r.merchant_key))];
+  if (!keys.length) return [];
+  const { data: places } = await supabaseAdmin.from('money_places').select('*').in('merchant_key', keys);
+  const byKey = new Map((places || []).map((p) => [p.merchant_key, p]));
+  const spend = new Map();
+  const names = new Map();
+  const cities = new Map();
+  for (const r of rows || []) {
+    spend.set(r.merchant_key, (spend.get(r.merchant_key) || 0) + Math.abs(Number(r.amount) || 0));
+    if (!names.has(r.merchant_key) && r.merchant_raw) names.set(r.merchant_key, r.merchant_raw);
+    if (!cities.has(r.merchant_key) && r.merchant_city) cities.set(r.merchant_key, r.merchant_city);
+  }
+  return keys.map((k) => {
+    const p = byKey.get(k) || null;
+    return {
+      merchant_key: k,
+      name: p?.name || names.get(k) || k,
+      city: p?.city || cities.get(k) || null,
+      kind: p?.kind || null,
+      category: p?.category_override || p?.category || null,
+      lat: p?.lat ?? null,
+      lon: p?.lon ?? null,
+      confidence: p?.confidence ?? null,
+      spent: Math.round((spend.get(k) || 0) * 100) / 100,
+      looked_up: Boolean(p),
+    };
+  }).sort((a, b) => b.spent - a.spent);
+}
+
+/** A person's correction to a category outlives the next lookup. */
+export async function setPlaceCategory(merchantKey, category) {
+  const { data, error } = await supabaseAdmin.from('money_places')
+    .update({ category_override: category, overridden_at: category ? new Date().toISOString() : null })
+    .eq('merchant_key', merchantKey).select().maybeSingle();
+  if (error) throw new Error(error.message);
+  return data;
 }

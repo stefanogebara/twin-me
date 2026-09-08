@@ -101,6 +101,37 @@ export function prettyMerchant(name) {
     .join(' ');
 }
 
+/** Country codes the bank glues to the end of a city, sometimes without a space. */
+const COUNTRY = /(?:\s|^)(ES|PT|FR|IT|DE|IE|UK|GB|US|NL|BE|AT|SE|DK|NO|FI|PL|CH|EE|LT|LV)$/i;
+
+/**
+ * The city the bank printed, when it printed one. Santander writes a card purchase as
+ * "<what> , <where> <country>, TARJ. …", so the middle segment is the town: MADRID ES,
+ * Alcobendas, PARQUE RETIROES (the country glued onto a truncated name). A transfer or a
+ * Bizum names a person and no place, and gets null.
+ */
+export function cityFrom(text) {
+  const t = String(text || '').replace(/\s{2,}/g, ' ').trim();
+  if (!t) return null;
+  const parts = t.split(',').map((x) => x.trim()).filter(Boolean);
+  if (parts.length < 3) return null;                       // no <what>, <where>, <card> shape
+  if (!/tarj|tarjeta/i.test(parts[parts.length - 1]) && !/tarj|tarjeta/i.test(t)) return null;
+  /* Some merchants print their legal form after a comma ("VERCEL, INC., COVINA"), so the
+     town is not always the second segment. Walk the middle segments and take the first one
+     that could be a place. */
+  const LEGAL = /^(inc|inc\.|llc|ltd|ltd\.|corp|corp\.|co|co\.|s\.?a\.?|s\.?l\.?u?\.?|bv|b\.v\.|gmbh|oy|plc)$/i;
+  for (const segment of parts.slice(1, -1)) {
+    if (/tarj|tarjeta|comision|comisión|concepto/i.test(segment)) continue;
+    if (LEGAL.test(segment)) continue;
+    let where = segment.replace(COUNTRY, '').trim();       // MADRID ES → MADRID
+    where = where.replace(/(ES|PT|IE|UK|US)$/i, (m) => (where.length - m.length >= 4 ? '' : m)).trim();
+    where = where.replace(/\s+\d+$/, '').trim();           // DUBLIN 2 → DUBLIN
+    if (!where || where.length > 30 || /^\d+$/.test(where)) continue;
+    return prettyMerchant(where);
+  }
+  return null;
+}
+
 /**
  * The merchant or person, the channel and the card, read out of one Santander narrative.
  * Returns { merchant, channel, cardLast4, isRefund }. `merchant` is null when the sentence

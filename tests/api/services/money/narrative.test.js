@@ -3,7 +3,7 @@
  * Names of people and reference codes are invented; the sentence structure is not.
  */
 import { describe, it, expect } from 'vitest';
-import { parseNarrative, channelFrom, cardFrom, prettyMerchant } from '../../../../api/services/money/narrative.js';
+import { parseNarrative, channelFrom, cardFrom, prettyMerchant, cityFrom } from '../../../../api/services/money/narrative.js';
 
 describe('parseNarrative', () => {
   it('reads a mobile-wallet payment as a shop on a card', () => {
@@ -90,5 +90,25 @@ describe('prettyMerchant', () => {
     expect(prettyMerchant('ELEVENLABS.IO')).toBe('Elevenlabs.io');
     expect(prettyMerchant('MERCADONA MADRID')).toBe('Mercadona Madrid');
     expect(prettyMerchant('')).toBe(null);
+  });
+});
+
+describe('cityFrom', () => {
+  it('reads the town out of a card purchase, country code and all', () => {
+    expect(cityFrom('PAGO MOVIL EN EL CORTE INGLES, MADRID ES, TARJ. :*741245')).toBe('Madrid');
+    expect(cityFrom('COMPRA Cabify ES 2636eRmHs0tq, Madrid, TARJETA 5489010523741245 , COMISION 0,00')).toBe('Madrid');
+    expect(cityFrom('PAGO MOVIL EN EXPVILLANUEVA, ALCOBENDAS ES, TARJ. :*741245')).toBe('Alcobendas');
+    /* The bank truncates the town and glues the country to it. */
+    expect(cityFrom('PAGO MOVIL EN SIMPLY ALCALA, PARQUE RETIROES, TARJ. :*741245')).toBe('Parque Retiro');
+    expect(cityFrom('COMPRA FACEBK *Q42J82JD24, DUBLIN 2, TARJETA 5489010523741245 , COMISION 0,00')).toBe('Dublin');
+    /* Some merchants print a legal form where the town would be. */
+    expect(cityFrom('COMPRA VERCEL, INC., COVINA, TARJETA 5489010523741245 , COMISION 0,00')).toBe('Covina');
+  });
+
+  it('names no place where the bank named a person', () => {
+    expect(cityFrom('BIZUM A FAVOR DE JUANA PEREZ MARTIN CONCEPTO: Sin concepto')).toBe(null);
+    expect(cityFrom('TRANSFERENCIA INMEDIATA A FAVOR DE Marta Ruiz Vidal')).toBe(null);
+    expect(cityFrom('LIQUIDACION DEL CONTRATO 0018909 300')).toBe(null);
+    expect(cityFrom('')).toBe(null);
   });
 });
