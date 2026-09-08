@@ -14,9 +14,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Platform, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import Constants from 'expo-constants';
+import * as WebBrowser from 'expo-web-browser';
 import { cosmos, dayMonth, dayMonthYear, euro } from '../constants/cosmos';
 import { Enter, Micro, Page, Pill, Row, Section, Small, Title } from '../ui/primitives';
-import { moneyApi, type MoneyAccount, type MoneyFact } from '../services/moneyApi';
+import { moneyApi, type MoneyAccount, type MoneyCalendar, type MoneyFact } from '../services/moneyApi';
 import type { User } from '../types';
 
 
@@ -63,20 +64,36 @@ type Props = {
 export default function YouScreen({ user, onSignOut, onOpenPhone, onOpenBank, onOpenQuestions }: Props) {
   const [accounts, setAccounts] = useState<MoneyAccount[]>([]);
   const [facts, setFacts] = useState<MoneyFact[]>([]);
+  /* null until read; a server without the calendar lens reads as not connected. */
+  const [calendar, setCalendar] = useState<MoneyCalendar | null>(null);
+  const [connecting, setConnecting] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [failed, setFailed] = useState(false);
 
   const load = useCallback(async () => {
-    const [a, f] = await Promise.allSettled([moneyApi.accounts(), moneyApi.facts()]);
+    const [a, f, c] = await Promise.allSettled([moneyApi.accounts(), moneyApi.facts(), moneyApi.calendar()]);
     if (a.status === 'fulfilled') setAccounts(a.value);
     if (f.status === 'fulfilled') setFacts(f.value);
+    setCalendar(c.status === 'fulfilled' ? c.value : { connected: false, ahead: [] });
     setFailed(a.status === 'rejected' && f.status === 'rejected');
     setLoaded(true);
     setRefreshing(false);
   }, []);
 
   useEffect(() => { void load(); }, [load]);
+
+  /* Connecting the calendar: the same door as the bank, a browser session that comes back
+     to the app when it is done, then the row is read again. */
+  const connectCalendar = useCallback(async () => {
+    if (connecting) return;
+    setConnecting(true);
+    try {
+      const { url } = await moneyApi.calendarConnect();
+      if (url) await WebBrowser.openAuthSessionAsync(url, 'twinme://calendar');
+    } catch { /* the row keeps saying not connected */ }
+    finally { setConnecting(false); void load(); }
+  }, [connecting, load]);
 
   const name = firstName(user);
 
@@ -120,6 +137,15 @@ export default function YouScreen({ user, onSignOut, onOpenPhone, onOpenBank, on
                   ))
                 )}
                 <Row label="Your phone" sub={PHONE_SUB} onPress={onOpenPhone} />
+                {calendar ? (
+                  <Row
+                    label="Your calendar"
+                    sub={calendar.connected
+                      ? (calendar.routine || 'Connected')
+                      : connecting ? 'Opening' : 'Learn your week\'s routine and what it usually costs'}
+                    onPress={calendar.connected ? undefined : () => void connectCalendar()}
+                  />
+                ) : null}
               </Section>
             </Enter>
 

@@ -43,6 +43,10 @@ import { ingestSighting, ingestSightings, listTransactions, sightingsFor, refres
 import { parseDelimited, parseWorkbook, toSightings } from '../services/money/statements/importer.js';
 import { isConfigured, listBanks, startAuthorisation, createSession } from '../services/money/feeds/enableBanking.js';
 import { answer as chatAnswer, act as chatAct } from '../services/money/chat.js';
+import { ahead as calendarAhead, learnEventSpend } from '../services/money/calendar.js';
+import { encryptState } from '../services/encryption.js';
+import { getAppUrl } from '../utils/oauthUtils.js';
+import { getGoogleWorkspaceScopes } from '../config/googleWorkspaceScopes.js';
 
 const log = createLogger('MoneyRoute');
 const router = Router();
@@ -420,6 +424,48 @@ router.post('/chat/act', async (req, res) => {
 });
 
 /** Money in and out, per calendar month. */
+/* The calendar lens: the week ahead with what its kinds of day tend to cost, and the kinds
+   the ledger has learned. One request to Google per read; learning rides on the same events
+   when the last pass is older than twelve hours. */
+router.get('/calendar', async (req, res) => {
+  try {
+    const days = Math.min(Math.max(parseInt(req.query.days, 10) || 7, 1), 31);
+    res.json({ success: true, data: await calendarAhead(req.user.id, days) });
+  } catch (error) {
+    log.error('calendar read failed', { error: error.message });
+    res.status(502).json({ success: false, error: 'The calendar could not be read right now.' });
+  }
+});
+
+/* Where to send the person to connect Google Calendar. The state carries a path back to the
+   money page, which the OAuth callback honours for paths on this site. */
+router.get('/calendar/connect', async (req, res) => {
+  try {
+    if (!process.env.GOOGLE_CLIENT_ID) return res.status(503).json({ success: false, error: 'Calendar connection not configured' });
+    const redirectUri = `${getAppUrl(req)}/oauth/callback`;
+    const state = encryptState({ provider: 'google_calendar', userId: req.user.id, timestamp: Date.now(), returnUrl: '/money?calendar=connected' }, 'connector');
+    const url = 'https://accounts.google.com/o/oauth2/v2/auth?'
+      + `client_id=${encodeURIComponent(process.env.GOOGLE_CLIENT_ID)}&`
+      + `redirect_uri=${encodeURIComponent(redirectUri)}&`
+      + `scope=${encodeURIComponent(getGoogleWorkspaceScopes().join(' '))}&`
+      + 'response_type=code&access_type=offline&prompt=consent&'
+      + `state=${state}`;
+    res.json({ success: true, data: { url } });
+  } catch (error) {
+    log.error('calendar connect failed', { error: error.message });
+    res.status(500).json({ success: false, error: 'Could not start the calendar connection' });
+  }
+});
+
+router.post('/calendar/learn', async (req, res) => {
+  try {
+    res.json({ success: true, data: await learnEventSpend(req.user.id) });
+  } catch (error) {
+    log.error('calendar learn failed', { error: error.message });
+    res.status(502).json({ success: false, error: 'The calendar could not be read right now.' });
+  }
+});
+
 router.get('/months', async (req, res) => {
   try { res.json({ success: true, data: await months(req.user.id) }); }
   catch (error) { log.error('months failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }

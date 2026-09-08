@@ -68,7 +68,7 @@ router.get('/callback', async (req, res) => {
       return res.redirect(`${appUrl}/soul-signature?error=invalid_state`);
     }
 
-    const { provider, userId, timestamp } = stateData;
+    const { provider, userId, timestamp, returnUrl } = stateData;
 
     // Verify the userId from state actually exists in our users table
     // (prevents crafted state tokens from creating dangling platform_connections)
@@ -117,8 +117,12 @@ router.get('/callback', async (req, res) => {
     // Fire-and-forget: enrich profile from Google People API (Gaia ID, Maps, YouTube)
     enrichGoogleProfileInBackground(userId, provider, tokens.access_token);
 
-    // Redirect back to Soul Signature Dashboard with success
-    res.redirect(`${appUrl}/soul-signature?connected=${provider}`);
+    /* A connector started from a product page comes back to it. Only a path on this site
+       is honoured, so a crafted state cannot send the person elsewhere. */
+    const back = typeof returnUrl === 'string' && /^\/[A-Za-z0-9/_\-?=&.%]*$/.test(returnUrl) && !returnUrl.startsWith('//')
+      ? `${appUrl}${returnUrl}${returnUrl.includes('?') ? '&' : '?'}connected=${provider}`
+      : `${appUrl}/soul-signature?connected=${provider}`;
+    res.redirect(back);
 
   } catch (error) {
     log.error('OAuth callback error:', error);

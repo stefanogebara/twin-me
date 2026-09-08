@@ -81,6 +81,30 @@ export type MoneyForecast = {
   income_ahead?: number;
   committed_items?: MoneyCommitment[];
   commitment_items?: MoneyCommitment[];
+  /** What the calendar says is coming this month and what such things have cost before. */
+  calendar_items?: MoneyCalendarItem[];
+};
+
+/** One upcoming calendar event the ledger can put a likely cost on. */
+export type MoneyCalendarItem = {
+  id?: string;
+  title: string;
+  start?: string;
+  end?: string;
+  location?: string | null;
+  amount?: number | string | null;
+  low?: number | null;
+  high?: number | null;
+  basis?: string | null;
+};
+
+/** GET /money/calendar: whether a calendar is connected and what the week ahead looks like. */
+export type MoneyCalendar = {
+  connected: boolean;
+  ahead: MoneyCalendarItem[];
+  free_days?: number | null;
+  routine?: string | null;
+  total_expected?: number | null;
 };
 
 export type MoneyMonth = {
@@ -294,4 +318,8 @@ export const moneyApi = {
     post('/money/chat', { message, history: history.slice(-10) }).then((r) => json<ChatReply>(r)),
   /** Do one of the things the twin proposed. */
   chatAct: (action: ChatAction) => post('/money/chat/act', { action }).then((r) => json<ChatActResult>(r)),
+  /** The calendar lens: connected or not, and the week ahead with what it usually costs. */
+  calendar: () => authFetch('/money/calendar').then((r) => json<MoneyCalendar>(r)),
+  /** Where to send the person to connect their calendar. */
+  calendarConnect: () => authFetch('/money/calendar/connect').then((r) => json<{ url: string }>(r)),
 };

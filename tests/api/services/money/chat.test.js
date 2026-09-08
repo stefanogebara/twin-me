@@ -326,3 +326,35 @@ describe('act', () => {
     expect(store.setVerdict).not.toHaveBeenCalled();
   });
 });
+
+describe('the ledger does not repeat itself', () => {
+  it('has rules against restating and re-explaining', () => {
+    expect(RULES).toMatch(/Do not restate the question/);
+    expect(RULES).toMatch(/Vary your openings/);
+    expect(RULES).toMatch(/answer only what is new/);
+  });
+  it('drops sentences already said when they are most of the reply', async () => {
+    const { withoutRepeats } = await import('../../../../api/services/money/chat.js');
+    const history = [
+      { role: 'user', text: 'Which subscriptions do I have?' },
+      { role: 'twin', text: 'Five charges come back every month. Spotify is 11,99 EUR. Higgsfield is 53,96 EUR.' },
+    ];
+    const again = 'Five charges come back every month. Spotify is 11,99 EUR. Fly.io is 18,63 EUR.';
+    expect(withoutRepeats(again, history)).toBe('Fly.io is 18,63 EUR.');
+  });
+  it('keeps a reply that mostly says something new', async () => {
+    const { withoutRepeats } = await import('../../../../api/services/money/chat.js');
+    const history = [{ role: 'twin', text: 'Spotify is 11,99 EUR.' }];
+    const text = 'Spotify is 11,99 EUR. It came on the 4th. Next is around the 4th of October.';
+    expect(withoutRepeats(text, history)).toBe(text);
+  });
+  it('keeps one sentence rather than answering with nothing', async () => {
+    const { withoutRepeats } = await import('../../../../api/services/money/chat.js');
+    const history = [{ role: 'twin', text: 'Spotify is 11,99 EUR. Render is 6,09 EUR.' }];
+    expect(withoutRepeats('Spotify is 11,99 EUR. Render is 6,09 EUR.', history)).toBe('Spotify is 11,99 EUR.');
+  });
+  it('leaves the reply alone when the ledger has not spoken before', async () => {
+    const { withoutRepeats } = await import('../../../../api/services/money/chat.js');
+    expect(withoutRepeats('Spotify is 11,99 EUR.', [{ role: 'user', text: 'hi' }])).toBe('Spotify is 11,99 EUR.');
+  });
+});

@@ -23,7 +23,12 @@ export type FigurePoint = { label: string; value: number; current?: boolean };
 export type FigureShare = { label: string; value: number; share: number };
 export type FigureRecurring = { label: string; amount: number; cadence: string; next?: string | null };
 
+export type FigureDay = { label: string; value: number; today?: boolean };
+export type FigureAhead = { label: string; day: string; amount: number; basis?: string | null };
+
 export type ChatFigure =
+  | { kind: 'week'; title?: string; days: FigureDay[] }
+  | { kind: 'ahead'; title?: string; items: FigureAhead[] }
   | { kind: 'months'; title?: string; points: FigurePoint[] }
   | { kind: 'weekdays'; title?: string; points: FigurePoint[] }
   | { kind: 'history'; title?: string; points: FigurePoint[] }
@@ -130,6 +135,23 @@ export function Figure({ figure }: { figure: ChatFigure }) {
   const title = figure.title;
   let body: React.ReactNode = null;
   switch (figure.kind) {
+    case 'week':
+      /* Seven days, today in ink. The same bars as the months, with the day letter under them. */
+      body = figure.days.length ? <Bars points={figure.days.map((d) => ({ label: d.label, value: d.value, current: d.today }))} /> : null;
+      break;
+    case 'ahead':
+      body = figure.items.length ? (
+        <View>
+          <Hairline />
+          {figure.items.map((it, i) => (
+            <View key={`${it.label}-${i}`}>
+              <Row lead={it.day} label={it.label} sub={it.basis || undefined} trail={euro(it.amount)} />
+              <Hairline />
+            </View>
+          ))}
+        </View>
+      ) : null;
+      break;
     case 'months':
     case 'weekdays':
       body = figure.points.length ? <Bars points={figure.points} /> : null;
@@ -161,7 +183,7 @@ export function Figure({ figure }: { figure: ChatFigure }) {
       body = <Band spent={figure.spent} likely={figure.likely} high={figure.high} />;
       break;
   }
-  if (!body) return <Small quiet>Nothing to draw for that yet.</Small>;
+  if (!body) return null;
   return (
     <View style={s.figure} accessibilityRole="image">
       {title ? <Micro>{title}</Micro> : null}

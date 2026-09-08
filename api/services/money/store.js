@@ -15,6 +15,7 @@ import { lookupPlace, providerFor, categoryFromBrand, PROVIDER_NONE } from './pl
 import { readUsage, unmeasurable, platformForMerchant } from './usage.js';
 import { learnMerchants, predictNext, learnPatterns, describeForTwin } from './brain.js';
 import { openingQuestions, ledgerQuestions, checkCommitment, describeContext } from './context.js';
+import { calendarForecast, calendarFromFacts } from './calendar.js';
 
 const log = createLogger('money-store');
 
@@ -227,6 +228,9 @@ export async function forecast(userId, now = new Date()) {
   for (const t of rows) if (t.merchant_raw && !names.has(t.merchant_key)) names.set(t.merchant_key, t.merchant_raw);
   result.committed_items = (result.committed_items || []).map((c) => ({ ...c, merchant_name: names.get(c.merchant_key) || null }));
   result.expected_items = (result.expected_items || []).map((c) => ({ ...c, merchant_name: names.get(c.merchant_key) || null }));
+  /* What the calendar adds: events before month end whose kind has a learned cost. Read from
+     the snapshot kept at the last calendar read, so this costs no request to Google. */
+  Object.assign(result, calendarForecast(facts, { now }));
   await supabaseAdmin.from('money_forecasts').insert({
     user_id: userId, as_of: result.as_of, month: result.month, spent: result.spent, committed: result.committed,
     projected_p10: result.projected_p10, projected_p50: result.projected_p50, projected_p90: result.projected_p90,
@@ -263,7 +267,15 @@ export async function saveBankAccounts(userId, { sessionId, validUntil, accounts
 
 export async function listBankAccounts(userId) {
   const { data } = await supabaseAdmin.from('money_accounts').select('id, provider, provider_account_id, name, iban_mask, currency, consent_expires_at, last_pulled_at').eq('user_id', userId).eq('provider', 'enablebanking');
-  return data || [];
+  /* A reconnect gives the same account a new provider id. One account is one row to the
+     person: the most recently read row per IBAN speaks for all of them. */
+  const byIban = new Map();
+  for (const row of data || []) {
+    const key = row.iban_mask || row.provider_account_id || row.id;
+    const seen = byIban.get(key);
+    if (!seen || String(row.last_pulled_at || '') > String(seen.last_pulled_at || '')) byIban.set(key, row);
+  }
+  return [...byIban.values()];
 }
 
 /**
@@ -430,7 +442,17 @@ export async function moneyContext(userId, now = new Date()) {
   const before = segments[1] || null;
   /* What the person said about their own money, kept apart from what was read, because a
      typed number and an observed payment must never be quoted with the same certainty. */
-  const said = await contextBlock(userId).catch(() => '');
+  const facts = await listFacts(userId).catch(() => []);
+  const said = describeContext(facts);
+  /* The calendar, as last read: the days ahead with what they tend to cost, and the kinds of
+     event the ledger has learned. Kept short; this rides in a prompt. */
+  const cal = calendarFromFacts(facts, { now });
+  const calendar = cal.connected ? {
+    ahead: cal.snapshot.filter((i) => new Date(i.start).getTime() < now.getTime() + 7 * 86400000).slice(0, 7)
+      .map((i) => ({ label: i.label || i.title, on: i.start, all_day: i.all_day, expected: i.expected ? { amount: i.expected.amount, low: i.expected.low, high: i.expected.high, basis: i.expected.basis } : null })),
+    learned: cal.learned.slice(0, 8).map((s) => ({ label: s.label, times: s.occurrences, paid: s.paid, usually: s.median, categories: s.categories || [] })),
+    routine: cal.routine,
+  } : null;
 
   /* What the ledger has learned about this person, in the twin's own context. Profiles are
      already stored, so this is a read, not a re-learn. */
@@ -448,6 +470,7 @@ export async function moneyContext(userId, now = new Date()) {
     month: here?.month || null,
     spent: here?.spent ?? 0,
     said,
+    calendar,
     known: (learned || []).map((p) => ({
       name: p.name, times: p.times, typical: Number(p.typical_amount), fixed: p.amount_is_fixed,
       category: p.category, city: p.city, every_days: p.median_gap_days ? Number(p.median_gap_days) : null,
@@ -796,9 +819,14 @@ export async function predictionAccuracy(userId) {
 }
 
 /** What the person has told the system about their own money. */
-export async function listFacts(userId) {
+/* Rows the calendar lens keeps for itself. They are working memory, not things the person
+   said, and they never appear where facts are shown or phrased. */
+export const INTERNAL_FACT_KINDS = Object.freeze(['event_spend', 'event_spend_meta']);
+
+export async function listFacts(userId, { includeInternal = false } = {}) {
   const { data } = await supabaseAdmin.from('money_facts').select('*').eq('user_id', userId).order('answered_at');
-  return data || [];
+  const rows = data || [];
+  return includeInternal ? rows : rows.filter((f) => !INTERNAL_FACT_KINDS.includes(f.kind));
 }
 
 /**
