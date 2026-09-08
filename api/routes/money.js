@@ -12,6 +12,7 @@
  * GET  /api/money/places                   the places behind the ledger
  * POST /api/money/places/lookup            look up the merchants not yet placed
  * POST /api/money/places/:key/category     a person's correction to a category
+ * GET  /api/money/usage                    were the subscriptions used, and what cannot be checked
  * GET  /api/money/months                   money in and out per calendar month
  * GET  /api/money/readings[?refresh=1]     what the ledger says, with its receipts
  * POST /api/money/readings/:id/verdict     true | not_me | null
@@ -31,7 +32,7 @@ import multer from 'multer';
 import { authenticateUser } from '../middleware/auth.js';
 import { createLogger } from '../services/logger.js';
 import { parseCapture, parseStructured } from '../services/money/captureParser.js';
-import { ingestSighting, ingestSightings, listTransactions, sightingsFor, refreshRecurring, forecast, setVerdict, userForCaptureKey, saveBankAccounts, listBankAccounts, pullBankFeed, refreshReadings, listReadings, setReadingVerdict, months, feedBudget, categorySpend, listPlaces, setPlaceCategory, enrichPlaces } from '../services/money/store.js';
+import { ingestSighting, ingestSightings, listTransactions, sightingsFor, refreshRecurring, forecast, setVerdict, userForCaptureKey, saveBankAccounts, listBankAccounts, pullBankFeed, refreshReadings, listReadings, setReadingVerdict, months, feedBudget, categorySpend, listPlaces, setPlaceCategory, enrichPlaces, subscriptionUsage } from '../services/money/store.js';
 import { parseDelimited, parseWorkbook, toSightings } from '../services/money/statements/importer.js';
 import { isConfigured, listBanks, startAuthorisation, createSession } from '../services/money/feeds/enableBanking.js';
 
@@ -244,6 +245,12 @@ router.post('/places/:merchantKey/category', async (req, res) => {
 router.get('/bank/budget', async (req, res) => {
   try { res.json({ success: true, data: await feedBudget(req.user.id) }); }
   catch (error) { log.error('budget failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
+});
+
+/** Whether the subscriptions were used, and which of them nothing here can check. */
+router.get('/usage', async (req, res) => {
+  try { res.json({ success: true, data: await subscriptionUsage(req.user.id) }); }
+  catch (error) { log.error('usage failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
 });
 
 /** Money in and out, per calendar month. */

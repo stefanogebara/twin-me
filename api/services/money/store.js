@@ -12,6 +12,7 @@ import { fetchTransactions, toSighting } from './feeds/enableBanking.js';
 import { readLedger, monthSegments } from './analyst.js';
 import { tellTwin } from './twinBridge.js';
 import { lookupPlace, providerFor, categoryFromBrand, PROVIDER_NONE } from './places.js';
+import { readUsage, unmeasurable, platformForMerchant } from './usage.js';
 
 const log = createLogger('money-store');
 
@@ -588,4 +589,63 @@ export async function enrichPlaces(userId, { limit = 12 } = {}) {
     else if (place || brand) placed += 1;
   }
   return { looked: batch.length, placed, left: Math.max(0, todo.length - batch.length), provider: providerFor() };
+}
+
+/**
+ * Whether the subscriptions were used, and what that costs per use.
+ * ================================================================
+ * The activity lives where every other platform signal lives: platform_data rows in the
+ * memory stream. Only the platforms TwinMe actually connects can answer, and for this
+ * ledger that is Spotify alone — Higgsfield, ElevenLabs, Fly.io and Render have no
+ * connector, so the honest answer about them is that nobody here can see it. That gap is
+ * returned as `unmeasurable` rather than hidden, because a page that quietly drops what it
+ * cannot check is a page that cannot be trusted about what it can.
+ */
+export async function subscriptionUsage(userId, now = new Date()) {
+  const [series, transactions] = await Promise.all([
+    supabaseAdmin.from('money_recurring').select('*').eq('user_id', userId).then((r) => r.data || []),
+    listTransactions(userId, { limit: 5000 }),
+  ]);
+  if (!series.length) return { findings: [], unmeasurable: [], measured: [] };
+
+  const names = new Map();
+  const charges = new Map();
+  for (const t of transactions) {
+    if (t.merchant_raw && !names.has(t.merchant_key)) names.set(t.merchant_key, t.merchant_raw);
+    if (Number(t.amount) >= 0) continue;
+    if (!charges.has(t.merchant_key)) charges.set(t.merchant_key, []);
+    charges.get(t.merchant_key).push({ id: t.id, occurred_at: t.occurred_at, amount: Math.abs(Number(t.amount) || 0) });
+  }
+  const withCharges = series.map((r) => ({
+    ...r,
+    merchant_name: names.get(r.merchant_key) || null,
+    charges: (charges.get(r.merchant_key) || []).sort((a, b) => new Date(b.occurred_at) - new Date(a.occurred_at)),
+  }));
+
+  /* Only fetch activity for platforms a subscription actually points at. */
+  const wanted = [...new Set(withCharges.map((r) => platformForMerchant(r.merchant_name || r.merchant_key)).filter(Boolean))];
+  const eventsByPlatform = {};
+  if (wanted.length) {
+    const since = new Date(now.getTime() - 120 * 86400000).toISOString();
+    const { data: rows } = await supabaseAdmin
+      .from('user_memories')
+      .select('created_at, metadata')
+      .eq('user_id', userId).eq('memory_type', 'platform_data')
+      .gte('created_at', since)
+      .order('created_at', { ascending: false })
+      .limit(2000);
+    for (const platform of wanted) eventsByPlatform[platform] = [];
+    for (const row of rows || []) {
+      const platform = row.metadata?.platform || row.metadata?.source || null;
+      if (!platform || !eventsByPlatform[platform]) continue;
+      eventsByPlatform[platform].push({ at: row.created_at, kind: row.metadata?.kind || 'activity' });
+    }
+  }
+
+  const findings = readUsage({ recurring: withCharges, eventsByPlatform, now });
+  return {
+    findings,
+    unmeasurable: unmeasurable(withCharges).map((u) => ({ ...u, name: names.get(u.merchant_key) || u.merchant_key })),
+    measured: wanted,
+  };
 }
