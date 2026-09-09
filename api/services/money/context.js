@@ -39,6 +39,8 @@
  */
 
 const DAY = 86400000;
+/** Below this a monthly charge is a subscription, not a roof. */
+export const RENT_FLOOR = 200;
 const EUR = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', maximumFractionDigits: 2 });
 const euro = (n) => EUR.format(Math.abs(Number(n) || 0));
 /** The 1st, not the 1th. */
@@ -54,6 +56,7 @@ function ordinal(d) {
 /** Every fact the person can hold about their own money. */
 export const FACT_KINDS = Object.freeze([
   'home_area',        // the district or town they live in, never an address
+  'home_point',       // where that is on a map, for the ledger's own use; never shown as a fact
   'study_place',      // campus or school, by name
   'work_place',       // employer or office, by name
   'commitment',       // something that leaves every month whatever happens
@@ -102,16 +105,6 @@ export const OPENING_QUESTIONS = Object.freeze([
     changes: 'which payments count as work',
     input: 'text',
     optional: true,
-  },
-  {
-    id: 'commitments',
-    kind: 'commitment',
-    ask: 'What leaves every month whatever happens?',
-    help: 'Rent, a phone bill, a transport pass, tuition. Name it, what it costs, and roughly which day.',
-    why: 'The month can then be projected with what is already spoken for, instead of finding out later.',
-    changes: 'what the month is expected to end at',
-    input: 'list:name,amount,day',
-    optional: false,
   },
   {
     id: 'income',
@@ -283,6 +276,39 @@ export function ledgerQuestions({ transactions = [], facts = [], placeOf = () =>
       input: 'choice:cancelled,still active,not sure',
       receipts: sorted.slice(-2).reverse(),
       weight: Math.abs(Number(sorted[sorted.length - 1].amount) || 0) * 3,
+    });
+  }
+
+  /* Rent is not asked for up front any more: a fixed cost that big announces itself. Something
+     over 200 EUR leaving on the same day of the month, month after month, is asked about once,
+     with the payments attached, and the answer becomes the commitment the projection carries. */
+  const committed = new Set(facts.filter((f) => f.kind === 'commitment').map((f) => f.subject));
+  for (const [key, list] of byMerchant) {
+    if (committed.has(key) || known.has(key)) continue;
+    const big = list.filter((t) => abs(t) >= RENT_FLOOR);
+    if (big.length < 2) continue;
+    const months = new Set(big.map((t) => t.occurred_at.slice(0, 7)));
+    if (months.size < 2) continue;
+    const days = big.map((t) => new Date(t.occurred_at).getUTCDate()).sort((a, b) => a - b);
+    const day = days[Math.floor(days.length / 2)];
+    if (!days.every((d) => Math.abs(d - day) <= 3)) continue;
+    const amounts = big.map(abs).sort((a, b) => a - b);
+    const amount = amounts[Math.floor(amounts.length / 2)];
+    const sorted = [...big].sort((a, b) => new Date(b.occurred_at) - new Date(a.occurred_at));
+    questions.push({
+      id: `rent:${key}`,
+      kind: 'commitment',
+      subject: key,
+      subjectLabel: nameOf(sorted[0]),
+      ask: `${nameOf(sorted[0])} takes about ${euro(amount)} around the ${ordinal(day)}, ${months.size} months running. Is this your rent?`,
+      help: 'Rent or another fixed cost is money the month has already spoken for.',
+      why: 'The month can then be projected with what is already spoken for, instead of finding out later.',
+      changes: 'what the month is expected to end at',
+      input: 'choice:rent,another fixed cost,not fixed',
+      receipts: sorted.slice(0, 3),
+      amount,
+      day,
+      weight: amount * 2,
     });
   }
 

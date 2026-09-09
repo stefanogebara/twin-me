@@ -16,8 +16,9 @@
  * recorded rather than hidden, because somebody will otherwise spend an afternoon wondering
  * why the phone looks a half-step off the site.
  *
- * No photograph, no glass, no gradient behind text. The money surface earns its calm by
- * having almost nothing on it.
+ * No photograph, no gradient behind text. Glass is allowed in one role only: the floating
+ * chrome (the capsule and the door) that content scrolls beneath, the way the system's own
+ * bars are made. The money surface earns its calm by having almost nothing on it.
  */
 
 export const cosmos = {
@@ -33,24 +34,45 @@ export const cosmos = {
     /* Money out is ink; money in is quieter, because an arrival is not an alarm. */
     inflow: '#55534f',
   },
-  /* One scale, and nothing off it. */
+  /* One scale, and nothing off it. The sizes are Apple's text styles (Large Title, Title 1,
+     Title 2, Body, Subheadline, Caption 2) so the app sits on the same rhythm as the system
+     around it; the line heights are Apple's too. Tracking stays Inter's, set tight. */
   size: {
-    display: 44,
-    title: 27,
-    heading: 20,
-    body: 16,
-    small: 14,
+    display: 34,
+    title: 28,
+    heading: 22,
+    body: 17,
+    small: 15,
     micro: 11,
   },
+  line: {
+    display: 41,
+    title: 34,
+    heading: 28,
+    body: 22,
+    small: 20,
+    micro: 13,
+  },
   tracking: {
-    display: -1.6,
-    title: -0.8,
+    display: -0.8,
+    title: -0.6,
     heading: -0.4,
     body: -0.2,
     mono: 0.6,
   },
-  space: { xs: 4, sm: 8, md: 14, lg: 22, xl: 34, xxl: 52 },
-  radius: { pill: 999, panel: 24, card: 18, field: 14 },
+  /* The 8-point grid. lg is the layout margin Apple uses on phones of this width. */
+  space: { xs: 4, sm: 8, md: 16, lg: 20, xl: 32, xxl: 48 },
+  /* The floating chrome: a glass capsule at the top, a glass door at the bottom. Content
+     scrolls beneath both, so every scrolling screen leaves this much room at each end. */
+  chrome: { capsule: 52, door: 76 },
+  glass: {
+    /* Enough paper in the wash that type on the glass stays fully legible, and an ink edge
+       so the capsule reads as an object on paper, not as a smudge. */
+    fill: 'rgba(251, 250, 248, 0.72)',
+    edge: 'rgba(255, 255, 255, 0.9)',
+    shade: 'rgba(17, 17, 17, 0.16)',
+  },
+  radius: { pill: 999, panel: 28, card: 20, field: 14 },
   font: {
     /* Inter, standing in for Geist. See the note at the top of this file. */
     regular: 'Inter_400Regular',

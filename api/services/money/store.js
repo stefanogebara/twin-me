@@ -821,7 +821,7 @@ export async function predictionAccuracy(userId) {
 /** What the person has told the system about their own money. */
 /* Rows the calendar lens keeps for itself. They are working memory, not things the person
    said, and they never appear where facts are shown or phrased. */
-export const INTERNAL_FACT_KINDS = Object.freeze(['event_spend', 'event_spend_meta']);
+export const INTERNAL_FACT_KINDS = Object.freeze(['event_spend', 'event_spend_meta', 'home_point']);
 
 export async function listFacts(userId, { includeInternal = false } = {}) {
   const { data } = await supabaseAdmin.from('money_facts').select('*').eq('user_id', userId).order('answered_at');
@@ -857,6 +857,23 @@ export async function questionsFor(userId, now = new Date()) {
 
 /** Record an answer, and check it against the ledger where it is checkable. */
 export async function answerQuestion(userId, { questionId, kind, subject, subjectLabel, value, amount, day, share }) {
+  /* The rent question is a choice, and a choice carries no amount. "Not fixed" is a decline
+     that should not be asked again; the other two answers take their amount and day from
+     the ledger lines that raised the question. */
+  if (kind === 'commitment' && String(questionId || '').startsWith('rent:')) {
+    if (String(value || '').toLowerCase() === 'not fixed') return skipQuestion(userId, questionId);
+    if (!amount && subject) {
+      const rows = (await listTransactions(userId, { limit: 5000 }))
+        .filter((t) => t.merchant_key === subject && Number(t.amount) < 0 && Math.abs(Number(t.amount)) >= 200);
+      if (rows.length) {
+        const amounts = rows.map((t) => Math.abs(Number(t.amount))).sort((a, b) => a - b);
+        const days = rows.map((t) => new Date(t.occurred_at).getUTCDate()).sort((a, b) => a - b);
+        amount = amounts[Math.floor(amounts.length / 2)];
+        day = day || days[Math.floor(days.length / 2)];
+      }
+    }
+    value = String(value || '').toLowerCase() === 'rent' ? 'rent' : (value || 'fixed cost');
+  }
   const row = {
     user_id: userId, kind, subject: subject || '', subject_label: subjectLabel || null,
     value: value ?? null, amount: amount ?? null, day: day ?? null, share: share ?? null,

@@ -18,18 +18,19 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { DeviceEventEmitter, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { cosmos, dayMonth, euro } from '../constants/cosmos';
-import { Body, Card, Enter, Hairline, Micro, Page, Pill, Press, Row, Small, Title } from '../ui/primitives';
-import { Figure } from '../ui/figures';
+import { Body, Card, Enter, Hairline, Heading, Micro, Page, Pill, Press, Row, Small, Title } from '../ui/primitives';
+import { Figure, HomeMap } from '../ui/figures';
 import { Prompt, Shimmer } from '../ui/prompt';
 import { useReducedMotion } from '../ui/motion';
 import {
   moneyApi, readLedgerStream,
-  type ChatAction, type ChatReceipt, type ChatTurn, type LedgerStreamEvent, type MoneyQuestion,
+  type ChatAction, type ChatReceipt, type ChatTurn, type HomePlace, type HomeSaved, type LedgerStreamEvent, type MoneyQuestion,
 } from '../services/moneyApi';
 import {
   lineId, readLines, recallLikely, rememberLikely, setLines as storeLines, useTranscript,
-  type Line, type TraceStep,
+  type HomeSpot, type Line, type TraceStep,
 } from './chatStore';
+import { PACE, beatFor, beatText, chapterFor, pause } from './pace';
 
 /* ----------------------------------------------------------------------------------------
  * Answers. The same parsing the web and the old questions screen used, kept verbatim so a
@@ -87,14 +88,26 @@ function rowSummary(row: ListRow, columns: string[]): string {
  * forgetting. What follows is how a question becomes a line.
  * -------------------------------------------------------------------------------------- */
 
-/** What the twin says when it asks a question: the question, then why it matters. */
-function questionLine(q: MoneyQuestion): Line {
+/** What the twin says when it asks a question: a chapter word, the question as a heading,
+ *  why it matters as the sentence, and the quieter help and consequence under it. */
+function questionLine(q: MoneyQuestion): Omit<Line, 'id'> {
   return {
-    id: lineId(), who: 'twin', text: `${q.ask} ${q.why}`,
+    who: 'twin', chapter: chapterFor(q.kind), heading: q.ask, text: q.why,
     small: [q.help || '', `This changes ${q.changes}.`].filter(Boolean),
     question: q,
   };
 }
+
+/** The rent question is not asked: what leaves every month is read from the ledger and
+ *  confirmed later, when the ledger has a receipt to show. */
+function askable(q: MoneyQuestion): boolean { return q.kind !== 'commitment'; }
+
+/** How the home question is being answered right now. */
+type HomeStage =
+  | { stage: 'off' }
+  | { stage: 'guess' }
+  | { stage: 'search'; results: HomePlace[]; searching: boolean }
+  | { stage: 'picked'; spot: HomeSaved };
 
 /* ----------------------------------------------------------------------------------------
  * Small parts.
@@ -185,6 +198,11 @@ export default function ChatScreen({ mode, onDone, onClose }: { mode: 'onboardin
   const [rows, setRows] = useState<ListRow[]>([]);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
+  const [home, setHome] = useState<HomeStage>({ stage: 'off' });
+  const queueRef = useRef<MoneyQuestion[]>([]);
+  const indexRef = useRef(0);
+  const reducedRef = useRef(reduced);
+  reducedRef.current = reduced;
 
   const say = useCallback((line: Omit<Line, 'id'>) => {
     const id = lineId();
@@ -194,6 +212,16 @@ export default function ChatScreen({ mode, onDone, onClose }: { mode: 'onboardin
   const amend = useCallback((id: string, patch: Partial<Line>) => {
     setLines((all) => all.map((l) => (l.id === id ? { ...l, ...patch } : l)));
   }, [setLines]);
+
+  /* The ledger never speaks at once. A thinking line shimmers for as long as the sentence
+     deserves, then becomes the sentence. The person's own words use `say` and never wait. */
+  const speak = useCallback(async (line: Omit<Line, 'id'>, thinking = 'Reading.') => {
+    const ms = beatFor(line.heading || line.text, reducedRef.current);
+    if (ms === 0) { say(line); return; }
+    const id = say({ who: 'twin', text: thinking, pending: true });
+    await pause(ms, reducedRef.current);
+    amend(id, { ...line, pending: false });
+  }, [say, amend]);
 
   /* Learning with the person: after something they said or did, the month is read again, and
      if the likely total moved by more than a euro the transcript says so in one quiet line. */
@@ -252,26 +280,35 @@ export default function ChatScreen({ mode, onDone, onClose }: { mode: 'onboardin
     }
     storeLines('onboarding', []);
     moneyApi.forecast().then((f) => rememberLikely(f.projected_p50)).catch(() => {});
-    moneyApi.questions()
-      .then((q) => {
+    (async () => {
+      try {
+        const q = await moneyApi.questions();
         if (!live) return;
-        setQueue(q.opening);
-        if (q.opening.length === 0) {
-          say({ who: 'twin', text: 'Nothing it cannot explain on its own. It will read your bank now.' });
-          setPhase('reading');
-        } else {
-          say({ who: 'twin', text: `Before the first reading, ${q.opening.length} ${q.opening.length === 1 ? 'thing' : 'things'} only you know. Each one changes what the numbers mean.` });
-          setLines((all) => [...all, questionLine(q.opening[0])]);
-          setPhase('asking');
+        const opening = q.opening.filter(askable);
+        setQueue(opening); queueRef.current = opening; indexRef.current = 0; setIndex(0);
+        await pause(PACE.first, reducedRef.current);
+        if (!live) return;
+        if (opening.length === 0) {
+          await speak({ who: 'twin', text: 'Nothing it cannot explain on its own. It will read your bank now.' });
+          if (live) setPhase('reading');
+          return;
         }
-      })
-      .catch(() => {
+        await speak({ who: 'twin', text: `Before the first reading, ${opening.length} ${opening.length === 1 ? 'thing' : 'things'} only you know. Each one changes what the numbers mean.` });
         if (!live) return;
-        say({ who: 'twin', text: 'The questions did not load. Nothing was lost; come back to this in a moment.' });
-        setPhase('failed');
-      });
+        await pause(PACE.next, reducedRef.current);
+        if (!live) return;
+        await present(opening[0]);
+        if (live) setPhase('asking');
+      } catch {
+        if (!live) return;
+        await speak({ who: 'twin', text: 'The questions did not load. Nothing was lost; come back to this in a moment.' });
+        if (live) setPhase('failed');
+      }
+    })();
     return () => { live = false; };
-  }, [mode, say]);
+    // present is stable for the life of the screen; listing it would restart the opening.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, say, speak]);
 
   const question = mode === 'onboarding' && phase === 'asking' ? queue[index] || null : null;
 
@@ -323,15 +360,57 @@ export default function ChatScreen({ mode, onDone, onClose }: { mode: 'onboardin
   const isCards = Boolean(question) && (question!.input === 'category' || question!.input.startsWith('choice:'));
   const filledRows = rows.filter((r) => r.label.trim());
 
-  /* After an answer: keep what was said, then either the next question or the reading. */
-  function advance(summary: string, saidBack?: string | null) {
+  /* Putting a question. The home question is not asked in words when the ledger can point
+     at a map instead: it looks at where the person shops, shows the neighbourhood, and asks
+     only whether that is right. Everything else arrives as a chapter, a heading and a why. */
+  async function present(q: MoneyQuestion) {
+    setHome({ stage: 'off' });
+    if (q.kind === 'home_area') {
+      try {
+        const h = await moneyApi.home();
+        const spot = h.guess;
+        if (spot) {
+          await speak({
+            who: 'twin', chapter: chapterFor(q.kind), heading: q.ask,
+            text: `From where you shop, home looks like ${spot.district}.`,
+            small: [q.help || '', `This changes ${q.changes}.`].filter(Boolean),
+            question: q,
+            home: { lat: spot.lat, lng: spot.lng, district: spot.district, city: spot.city, basis: spot.basis, open: true },
+          }, beatText(q.kind));
+          setHome({ stage: 'guess' });
+          return;
+        }
+        await speak({ ...questionLine(q), text: 'Search for the district or town, and it will show you the map.' }, beatText(q.kind));
+        setHome({ stage: 'search', results: [], searching: false });
+        return;
+      } catch {
+        /* No map service reachable: the question is asked in words, as before. */
+      }
+    }
+    await speak(questionLine(q), beatText(q.kind));
+  }
+
+  /* After an answer: the person's words at once, then a beat, what was said back, a beat,
+     and the next question, or the reading when the questions are done. */
+  async function advance(summary: string, saidBack?: string | null) {
     say({ who: 'you', text: summary });
-    if (saidBack) say({ who: 'twin', text: saidBack });
-    const nextIndex = index + 1;
+    setLines((all) => all.map((l) => (l.home?.open ? { ...l, home: { ...l.home, open: false } } : l)));
+    setHome({ stage: 'off' });
+    if (saidBack) {
+      await pause(PACE.saidBack, reducedRef.current);
+      await speak({ who: 'twin', text: saidBack });
+    }
+    const nextIndex = indexRef.current + 1;
+    indexRef.current = nextIndex;
     setIndex(nextIndex);
-    const next = queue[nextIndex];
-    if (next) setLines((all) => [...all, questionLine(next)]);
-    else setPhase('reading');
+    const next = queueRef.current[nextIndex];
+    if (next) {
+      await pause(PACE.next, reducedRef.current);
+      await present(next);
+    } else {
+      await pause(PACE.next, reducedRef.current);
+      setPhase('reading');
+    }
   }
 
   /** Whatever the answer route hands back that reads as a sentence, or nothing. */
@@ -350,7 +429,7 @@ export default function ChatScreen({ mode, onDone, onClose }: { mode: 'onboardin
     setNote(null);
     try {
       const r = await moneyApi.answerQuestion({ questionId: question.id, kind: question.kind, value, ...(question.subject ? { subject: question.subject } : {}) });
-      advance(value, saidFrom(r));
+      await advance(value, saidFrom(r));
       void noteForecastMove();
     } catch (e) {
       setNote((e as Error).message || 'That answer did not save. Try it again.');
@@ -376,7 +455,7 @@ export default function ChatScreen({ mode, onDone, onClose }: { mode: 'onboardin
           ...(amount === undefined ? {} : { amount }), ...(day === undefined ? {} : { day }), ...(share === undefined ? {} : { share }),
         });
       }
-      advance(filledRows.map((r) => rowSummary(r, columns)).join(' / '), saidFrom(last));
+      await advance(filledRows.map((r) => rowSummary(r, columns)).join(' / '), saidFrom(last));
       void noteForecastMove();
     } catch (e) {
       setNote((e as Error).message || 'That answer did not save. Try it again.');
@@ -389,7 +468,7 @@ export default function ChatScreen({ mode, onDone, onClose }: { mode: 'onboardin
     if (!question || busy) return;
     setBusy(true);
     setNote(null);
-    try { await moneyApi.skipQuestion(question.id); advance('Skipped this one.'); }
+    try { await moneyApi.skipQuestion(question.id); await advance('Skipped this one.'); }
     catch { setNote('That did not go through. Try it again.'); }
     finally { setBusy(false); }
   }
@@ -406,11 +485,21 @@ export default function ChatScreen({ mode, onDone, onClose }: { mode: 'onboardin
   useEffect(() => {
     if (!__DEV__) return;
     const sub = DeviceEventEmitter.addListener('dev:say', (text: string) => { askRef.current(text); });
+    const press = DeviceEventEmitter.addListener('dev:press', (label: string) => { pressRef.current(label); });
     const trace = DeviceEventEmitter.addListener('dev:trace', () => { setPhase('reading'); });
-    return () => { sub.remove(); trace.remove(); };
+    return () => { sub.remove(); press.remove(); trace.remove(); };
   }, []);
 
-  askRef.current = (m: string) => { if (mode === 'ask') void ask(m); else void sendValue(m); };
+  askRef.current = (m: string) => { if (mode === 'ask') void ask(m); else if (homeSearching) searchHome(m); else void sendValue(m); };
+  /* Development only: press a card by its label, or Enter for the composer. */
+  const pressRef = useRef<(label: string) => void>(() => {});
+  pressRef.current = (label: string) => {
+    if (label === 'Enter') { submitComposer(); return; }
+    const open = [...lines].reverse().find((l) => l.home?.open);
+    if (label === 'Yes, that is home' && open?.home) { void confirmHome({ district: open.home.district, city: open.home.city ?? null, lat: open.home.lat, lng: open.home.lng }); return; }
+    if (label === 'Somewhere else') { searchHomeInstead(); return; }
+    void sendValue(label);
+  };
 
   async function ask(message: string) {
     if (busy) return;
@@ -449,11 +538,62 @@ export default function ChatScreen({ mode, onDone, onClose }: { mode: 'onboardin
     }
   }
 
+  /* Home on the map: yes saves the spot; somewhere else opens the search; a picked result is
+     shown on its own map and waits for its yes. */
+  async function confirmHome(spot: HomeSaved) {
+    if (!question || busy) return;
+    setBusy(true);
+    setNote(null);
+    try {
+      const r = await moneyApi.saveHome(spot);
+      await advance(spot.district, saidFrom(r) || `Home is ${spot.district}. Shops near it now count as near home.`);
+      void noteForecastMove();
+    } catch (e) {
+      setNote((e as Error).message || 'That did not save. Try it again.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function searchHomeInstead() {
+    setLines((all) => all.map((l) => (l.home?.open ? { ...l, home: { ...l.home, open: false } } : l)));
+    setHome({ stage: 'search', results: [], searching: false });
+    setText('');
+  }
+
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (searchTimer.current) clearTimeout(searchTimer.current); }, []);
+  function searchHome(q: string) {
+    setText(q);
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    const term = q.trim();
+    if (term.length < 3) { setHome((h) => (h.stage === 'search' ? { ...h, results: [], searching: false } : h)); return; }
+    setHome((h) => (h.stage === 'search' ? { ...h, searching: true } : h));
+    searchTimer.current = setTimeout(async () => {
+      try {
+        const { results } = await moneyApi.homeSearch(term);
+        setHome((h) => (h.stage === 'search' ? { stage: 'search', results: results.slice(0, 6), searching: false } : h));
+      } catch {
+        setHome((h) => (h.stage === 'search' ? { ...h, results: [], searching: false } : h));
+      }
+    }, 300);
+  }
+
+  async function pickHome(place: HomePlace) {
+    const spot: HomeSaved = { district: place.label, city: place.secondary || null, lat: place.lat, lng: place.lng };
+    setHome({ stage: 'picked', spot });
+    setText('');
+    await speak({ who: 'twin', text: 'Is this it?', home: { ...spot, open: true } }, 'Finding it on the map.');
+  }
+
+  const homeSearching = mode === 'onboarding' && question?.kind === 'home_area' && home.stage === 'search';
+
   function submitComposer() {
     const value = text.trim();
     if (!value || busy) return;
     setText('');
     if (mode === 'ask') { void ask(value); return; }
+    if (homeSearching) { if (home.stage === 'search' && home.results[0]) void pickHome(home.results[0]); return; }
     if (question && !isList) void sendValue(value);
   }
 
@@ -461,7 +601,7 @@ export default function ChatScreen({ mode, onDone, onClose }: { mode: 'onboardin
     setRows((all) => all.map((r) => (r.key === key ? { ...r, ...patch } : r)));
   }
 
-  const composerShown = mode === 'ask' || (question !== null && !isList);
+  const composerShown = mode === 'ask' || (question !== null && !isList && home.stage !== 'guess' && home.stage !== 'picked');
   /* Offers to ask show when the floor is open: nothing pending, and the ledger spoke last. */
   const lastLine = lines[lines.length - 1];
   /* A question already asked in this transcript is not offered again, and once the
@@ -472,7 +612,7 @@ export default function ChatScreen({ mode, onDone, onClose }: { mode: 'onboardin
     return fresh.slice(0, asked.size === 0 ? 3 : 2);
   }, [suggestions, asked]);
   const suggestionsShown = offers.length > 0 && !busy && (!lastLine || (lastLine.who === 'twin' && !lastLine.pending));
-  const composerPlaceholder = mode === 'ask' ? 'Ask about your money' : isCards ? 'Or type your own' : 'Your answer';
+  const composerPlaceholder = mode === 'ask' ? 'Ask about your money' : homeSearching ? 'Search a district or town' : isCards ? 'Or type your own' : 'Your answer';
 
   return (
     <Page>
@@ -510,10 +650,18 @@ export default function ChatScreen({ mode, onDone, onClose }: { mode: 'onboardin
             const isCurrentQuestion = Boolean(l.question) && question !== null && l.question!.id === question.id;
             return (
               <Enter key={l.id} settle style={[s.line, l.who === 'you' && s.lineYou]}>
-                {speakerChanged && !l.quiet ? <Micro>{l.who === 'you' ? 'You' : 'The ledger'}</Micro> : null}
+                {l.chapter && !l.pending ? <Micro>{l.chapter}</Micro> : speakerChanged && !l.quiet ? <Micro>{l.who === 'you' ? 'You' : 'The ledger'}</Micro> : null}
                 {l.lead ? <Title tabular>{l.lead}</Title> : null}
+                {l.heading && !l.pending ? <Heading accessibilityRole="header">{l.heading}</Heading> : null}
                 {l.pending ? <Shimmer text={l.text} /> : l.quiet ? <Small quiet>{l.text}</Small> : <Body muted={l.who === 'you'}>{l.text}</Body>}
                 {l.small?.map((t, k) => <Small key={k} quiet>{t}</Small>)}
+                {l.home && !l.pending ? <HomeMap lat={l.home.lat} lng={l.home.lng} district={l.home.district} basis={l.home.basis} /> : null}
+                {l.home?.open && question?.kind === 'home_area' ? (
+                  <View style={s.cards} accessibilityRole="radiogroup" accessibilityLabel="Is this home">
+                    <Card label="Yes, that is home" onPress={busy ? undefined : () => void confirmHome({ district: l.home!.district, city: l.home!.city ?? null, lat: l.home!.lat, lng: l.home!.lng })} />
+                    {home.stage === 'guess' ? <Card label="Somewhere else" onPress={busy ? undefined : searchHomeInstead} /> : null}
+                  </View>
+                ) : null}
 
                 {l.question?.receipts && l.question.receipts.length ? (
                   <View style={s.receipts} accessibilityLabel="The payments behind this question">
@@ -540,7 +688,20 @@ export default function ChatScreen({ mode, onDone, onClose }: { mode: 'onboardin
                 ) : null}
                 {l.trace ? <Trace steps={l.trace} /> : null}
 
-                {isCurrentQuestion && question ? (
+                {isCurrentQuestion && question && home.stage === 'search' ? (
+                  <View style={s.answer}>
+                    {home.searching ? <Shimmer text="Searching." /> : null}
+                    {home.results.map((r, k) => (
+                      <Enter key={r.id} index={k}>
+                        <Row label={r.label} sub={r.secondary || undefined} onPress={busy ? undefined : () => void pickHome(r)} />
+                        <Hairline />
+                      </Enter>
+                    ))}
+                    {question.optional ? <QuietAction label="Skip this" onPress={() => void skip()} disabled={busy} /> : null}
+                  </View>
+                ) : null}
+
+                {isCurrentQuestion && question && home.stage === 'off' ? (
                   <View style={s.answer}>
                     {isCards ? (
                       <View style={s.cards} accessibilityRole="radiogroup" accessibilityLabel={question.input === 'category' ? 'Pick the kind of place' : 'Pick one'}>
@@ -594,7 +755,7 @@ export default function ChatScreen({ mode, onDone, onClose }: { mode: 'onboardin
           <View style={[s.composer, { paddingBottom: insets.bottom + cosmos.space.sm }]}>
             <Prompt
               value={text}
-              onChange={setText}
+              onChange={homeSearching ? searchHome : setText}
               onSubmit={submitComposer}
               placeholder={composerPlaceholder}
               busy={busy}

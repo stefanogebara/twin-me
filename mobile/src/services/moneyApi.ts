@@ -223,6 +223,18 @@ export type ChatReceipt = { id: string; occurred_at: string; merchant: string; a
 export type ChatAction = { kind: string; label: string; payload?: Record<string, unknown> };
 export type ChatReply = { text: string; figures?: ChatFigure[]; actions?: ChatAction[]; receipts?: ChatReceipt[] };
 export type ChatActResult = { said: string };
+
+/** Where the ledger thinks the person lives, read from where they shop, and what they confirmed. */
+export type HomeGuess = {
+  lat: number; lng: number; district: string; city?: string | null;
+  confidence: 'good' | 'weak'; basis?: string | null;
+};
+export type HomeSaved = { district: string; city?: string | null; lat: number; lng: number };
+export type MoneyHome = { guess: HomeGuess | null; saved: HomeSaved | null };
+/** One place a search for a district or town returned. */
+export type HomePlace = { id: string; label: string; secondary?: string | null; lat: number; lng: number };
+/** What React Native's Image needs to fetch a picture that sits behind the session. */
+export type ImageSource = { uri: string; headers?: Record<string, string> };
 export type { ChatFigure };
 
 /** One event from GET /money/stream, the pipeline reading the ledger step by step. */
@@ -322,4 +334,18 @@ export const moneyApi = {
   calendar: () => authFetch('/money/calendar').then((r) => json<MoneyCalendar>(r)),
   /** Where to send the person to connect their calendar. */
   calendarConnect: () => authFetch('/money/calendar/connect').then((r) => json<{ url: string }>(r)),
+  /** Home: the ledger's guess from where the person shops, and what they have confirmed. */
+  home: () => authFetch('/money/home').then((r) => json<MoneyHome>(r)),
+  /** Districts and towns matching a few typed letters. */
+  homeSearch: (q: string) =>
+    authFetch(`/money/home/search?q=${encodeURIComponent(q)}`).then((r) => json<{ results: HomePlace[] }>(r)),
+  /** The person confirms where home is. */
+  saveHome: (spot: HomeSaved) => post('/money/home', spot).then((r) => json<{ said?: string | null }>(r)),
+  /** The map picture for a spot. The route answers PNG bytes behind the session, so the
+      Image is handed the token in its headers rather than a public URL. */
+  homeMapSource: async (lat: number, lng: number, zoom = 14): Promise<ImageSource> => {
+    const token = await SecureStore.getItemAsync(STORAGE_KEYS.AUTH_TOKEN);
+    const uri = `${API_URL}/money/home/map?lat=${encodeURIComponent(String(lat))}&lng=${encodeURIComponent(String(lng))}&zoom=${zoom}`;
+    return token ? { uri, headers: { Authorization: `Bearer ${token}` } } : { uri };
+  },
 };

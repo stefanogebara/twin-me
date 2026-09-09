@@ -10,10 +10,11 @@
  * The server computes every value. A figure lays them out and says nothing of its own.
  */
 
-import React, { useState } from 'react';
-import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { Image, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import { cosmos, dayMonth, euro } from '../constants/cosmos';
 import { Body, Hairline, Micro, Row, Small } from './primitives';
+import { moneyApi, type ImageSource } from '../services/moneyApi';
 
 /* ----------------------------------------------------------------------------------------
  * The shapes a figure can arrive in. Mirrors what POST /money/chat returns.
@@ -100,7 +101,7 @@ export function Bars({ points, compact }: { points: FigurePoint[]; compact?: boo
 function shortEuro(v: number): string {
   if (Math.abs(v) >= 10000) return `${(v / 1000).toFixed(0)}k`;
   if (Math.abs(v) >= 1000) return `${(v / 1000).toFixed(1).replace('.', ',')}k`;
-  return euro(v).replace(/\s?€$/, '');
+  return euro(v).replace(/\s?\u20AC$/, '');
 }
 
 /* ----------------------------------------------------------------------------------------
@@ -193,6 +194,37 @@ export function Figure({ figure }: { figure: ChatFigure }) {
 }
 
 /* ----------------------------------------------------------------------------------------
+ * A place on a map. The only picture in the app, and it is the person's own neighbourhood:
+ * the server draws it in the same greys as the rest of the page and hands it over behind
+ * the session, so the Image carries the token rather than a public address.
+ * -------------------------------------------------------------------------------------- */
+
+export function HomeMap({ lat, lng, district, basis }: { lat: number; lng: number; district: string; basis?: string | null }) {
+  const [source, setSource] = useState<ImageSource | null>(null);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    let live = true;
+    setFailed(false);
+    moneyApi.homeMapSource(lat, lng, 14).then((src) => { if (live) setSource(src); }).catch(() => { if (live) setFailed(true); });
+    return () => { live = false; };
+  }, [lat, lng]);
+  return (
+    <View style={s.map} accessibilityLabel={`A map around ${district}`}>
+      {/* No frame without a map in it: an empty grey block reads as something broken. */}
+      {source && !failed ? (
+        <View style={s.mapFrame}>
+          <Image source={source} style={s.mapImage} resizeMode="cover" onError={() => setFailed(true)} accessibilityIgnoresInvertColors />
+        </View>
+      ) : null}
+      <View style={s.mapCaption}>
+        <Body>{district}</Body>
+        {basis ? <Small quiet>{basis}</Small> : null}
+      </View>
+    </View>
+  );
+}
+
+/* ----------------------------------------------------------------------------------------
  * Styles.
  * -------------------------------------------------------------------------------------- */
 
@@ -220,4 +252,12 @@ const s = StyleSheet.create({
   shareLabel: { flex: 1 },
   shareTrack: { height: 4, borderRadius: cosmos.radius.pill, backgroundColor: cosmos.color.card, overflow: 'hidden' },
   shareBar: { height: 4, borderRadius: cosmos.radius.pill, backgroundColor: cosmos.color.ink },
+
+  map: { gap: cosmos.space.sm, paddingVertical: cosmos.space.sm },
+  mapFrame: {
+    width: '100%', aspectRatio: 2, borderRadius: cosmos.radius.card, overflow: 'hidden',
+    borderWidth: StyleSheet.hairlineWidth, borderColor: cosmos.color.ruleStrong, backgroundColor: cosmos.color.card,
+  },
+  mapImage: { width: '100%', height: '100%' },
+  mapCaption: { gap: 2 },
 });
