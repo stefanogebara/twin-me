@@ -16,6 +16,7 @@ import {
 import { Link, useNavigate } from 'react-router-dom';
 import { presenceAPI } from '@/services/api/presenceAPI';
 import '@/styles/presence-cosmos.css';
+import '@/styles/presence-onboarding.css';
 
 /**
  * /presence/onboarding — seven steps on the Cosmos system.
@@ -543,432 +544,515 @@ export function PresenceOnboardingExperience({ persistDraft = false, onExit }: P
   const setBoundary = (index: number, value: string) =>
     patch({ boundaries: boundaries.map((b, i) => (i === index ? value : b)) });
 
-  return (
-    <main className="presence-cosmos pc-ob" id="main-content">
-      <div className="pc-ob-progress" aria-hidden="true"><span style={{ width: `${progress}%` }} /></div>
+  // The plate's photograph. One image per relationship so the artifact feels
+  // like it belongs to this person rather than to a template. These are the
+  // same tiles the landing scatters across its hero.
+  const plateImage =
+    relationship === 'grandfather' || relationship === 'father'
+      ? '/images/presence/cosmos-04-armchair.jpg'
+      : relationship === 'friend'
+        ? '/images/presence/cosmos-03-garden.jpg'
+        : relationship === 'aunt'
+          ? '/images/presence/cosmos-07-doorway.jpg'
+          : '/images/presence/cosmos-06-portrait.jpg';
 
-      <header className="pc-ob-nav">
-        <Link className="pc-brand" to="/presence" aria-label="Presence home"><Mark /></Link>
-        <nav className="pc-ob-steps" aria-label="Onboarding steps">
+  const voiceReady = recordingState === 'cloned' || recordingState === 'queued';
+  const namedPeople = people.filter((p) => p.name.trim()).length;
+  const keptStories = ANCHORS.filter((a) => anchors[a.key]?.trim()).length;
+
+  // The accreting record. Order is the order it fills in, so the plate reads
+  // as a thing being written rather than a form mirror.
+  const plateFacts: Array<{ k: string; v: string; empty: string }> = [
+    { k: 'Calls you', v: callerName.trim(), empty: 'not yet' },
+    { k: 'Together', v: tone, empty: 'not chosen' },
+    { k: 'Voice', v: voiceReady ? 'Yours' : consent ? 'Consented' : '', empty: 'not recorded' },
+    { k: 'Her people', v: namedPeople ? `${namedPeople} named` : '', empty: 'none yet' },
+    { k: 'Her stories', v: keptStories ? `${keptStories} kept` : '', empty: 'none yet' },
+  ];
+
+  return (
+    <main className="presence-cosmos obx" id="main-content">
+      <div className="obx-progress" aria-hidden="true">
+        <i style={{ transform: `scaleX(${(stepIndex + 1) / STEPS.length})` }} />
+      </div>
+
+      <header className="obx-nav">
+        <Link className="obx-nav-brand" to="/presence" aria-label="Presence home"><Mark /></Link>
+
+        {/* A route with stations, not a row of labels. The station names live
+            in the eyebrow, so the rail can stay quiet and geometric. */}
+        <nav className="obx-rail" aria-label="Onboarding steps">
           {STEPS.map((s, index) => (
-            <button
-              key={s.id}
-              className={index === stepIndex ? 'is-current' : index < stepIndex ? 'is-done' : ''}
-              onClick={() => index < stepIndex && goTo(index)}
-              disabled={index > stepIndex}
-              aria-current={index === stepIndex ? 'step' : undefined}
-            >
-              {s.short}
-            </button>
+            <span key={s.id} style={{ display: 'inline-flex', alignItems: 'center' }}>
+              {index > 0 && <span className={`link ${index <= stepIndex ? 'is-done' : ''}`} aria-hidden="true" />}
+              <button
+                className={index === stepIndex ? 'is-current' : index < stepIndex ? 'is-done' : ''}
+                data-nav={index < stepIndex ? 'true' : 'false'}
+                onClick={() => index < stepIndex && goTo(index)}
+                disabled={index > stepIndex}
+                aria-current={index === stepIndex ? 'step' : undefined}
+                title={s.short}
+              >
+                <span className="dot" />
+                <span className="sr-only">{s.short}</span>
+              </button>
+            </span>
           ))}
         </nav>
-        <button className="pc-ob-exit" onClick={onExit ?? (() => window.history.back())}>
+
+        <button className="obx-exit" onClick={onExit ?? (() => window.history.back())}>
           {persistDraft ? 'Save and exit' : 'Exit preview'}
         </button>
       </header>
 
-      <section className="pc-ob-stage" aria-live="polite">
-        <p className="pc-ob-eyebrow">{step.eyebrow}</p>
+      <div className="obx-frame">
+        {/* ---------------------------------------------------- the plate -- */}
+        <aside className="obx-plate" aria-label="What you are building">
+          <div className="obx-plate-figure">
+            <img src={plateImage} alt="" aria-hidden="true" />
+          </div>
 
-        {step.id === 'start' && (
-          <>
-            <h1>A little of your voice carries a lot of love.</h1>
-            <p className="pc-ob-sub">
-              Create a clearly identified AI presence that listens without rushing, keeps your
-              relationship's language, and brings the important parts back to you.
+          <div>
+            <h2 className="obx-plate-name">
+              {caredForName.trim()
+                ? caredForName.trim()
+                : <span className="placeholder">Her name</span>}
+            </h2>
+            <p className="obx-plate-rel">
+              {relationship ? `Your ${relationship}` : 'Someone you love'}
             </p>
-            <div className="pc-ob-body">
-              <div className="pc-ob-grid">
-                <div className="pc-ob-card">
-                  <p className="pc-ob-tag">Time</p>
-                  <p><strong>About ten minutes</strong> to a first version. Two of them are your voice.</p>
-                </div>
-                <div className="pc-ob-card">
-                  <p className="pc-ob-tag">Honesty</p>
-                  <p><strong>Always identified as AI.</strong> It never pretends a sentence came from you.</p>
-                </div>
-              </div>
-              <div className="pc-ob-card pc-ob-consent" style={{ alignItems: 'center' }}>
-                <ShieldCheck size={20} />
-                <p><strong>You stay in control.</strong> Visits, money and medicine always need a real person. You can pause or delete the Presence at any time.</p>
-              </div>
-            </div>
-          </>
-        )}
+          </div>
 
-        {step.id === 'bond' && (
-          <>
-            <h1>Who are you showing up for?</h1>
-            <p className="pc-ob-sub">We start with the relationship, not a personality quiz.</p>
-            <div className="pc-ob-body">
-              <div className="pc-ob-card">
-                <div className="pc-ob-grid">
-                  <label className="pc-ob-field">
-                    <span>The person you care for</span>
-                    <input value={caredForName} placeholder="Sofia" onChange={(event) => patch({ caredForName: event.target.value })} />
-                  </label>
-                  <label className="pc-ob-field">
-                    <span>Your relationship</span>
-                    <span className="pc-ob-select-wrap">
-                      <select value={relationship} onChange={(event) => patch({ relationship: event.target.value })}>
-                        <option value="grandmother">Grandmother</option>
-                        <option value="grandfather">Grandfather</option>
-                        <option value="mother">Mother</option>
-                        <option value="father">Father</option>
-                        <option value="aunt">Aunt or uncle</option>
-                        <option value="friend">Friend</option>
-                      </select>
-                      <ChevronDown size={16} />
-                    </span>
-                  </label>
-                  <label className="pc-ob-field" style={{ gridColumn: '1 / -1' }}>
-                    <span>What does she call you?</span>
-                    <input value={callerName} placeholder="Ana" onChange={(event) => patch({ callerName: event.target.value })} />
-                    <small>The exact name the Presence will use aloud.</small>
-                  </label>
-                </div>
+          <dl className="obx-facts">
+            {plateFacts.map((f) => (
+              <div className="obx-fact" key={f.k}>
+                <dt>{f.k}</dt>
+                <dd className={f.v ? '' : 'is-empty'}>{f.v || f.empty}</dd>
               </div>
-              <div className="pc-ob-card">
-                <label className="pc-ob-field">
-                  <span>How are you together?</span>
-                  <small>Choose what feels true, not ideal.</small>
-                </label>
-                <div className="pc-ob-chips" style={{ marginTop: 12 }}>
-                  {TONES.map((option) => (
-                    <button key={option} className={`pc-ob-chip ${tone === option ? 'is-selected' : ''}`} onClick={() => patch({ tone: option })}>
-                      {option}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </>
-        )}
+            ))}
+          </dl>
 
-        {step.id === 'about' && (
-          <>
-            <h1>Tell me about {displayName} like you would to a friend.</h1>
-            <p className="pc-ob-sub">
-              Who is around her, what she loves talking about, what to never bring up. Two minutes,
-              in your own words. You check everything on the next screen.
-            </p>
-            <div className="pc-ob-body">
-              {aboutRec === 'done' && aboutCounts ? (
-                <div className="pc-ob-card" style={{ display: 'grid', gap: 12 }}>
-                  <p className="pc-ob-tag">Understood from what you said</p>
-                  <div className="pc-ob-learned" style={{ marginTop: 0 }}>
-                    <span><Check size={14} /> {aboutCounts.people} {aboutCounts.people === 1 ? 'person' : 'people'}</span>
-                    <span><Check size={14} /> {aboutCounts.anchors} {aboutCounts.anchors === 1 ? 'story' : 'stories'}</span>
-                    <span><Check size={14} /> {aboutCounts.boundaries} {aboutCounts.boundaries === 1 ? 'boundary' : 'boundaries'}</span>
-                    <span><Check size={14} /> {aboutCounts.facts} facts about her life</span>
+          <p className={`obx-plate-foot ${voiceReady ? 'is-live' : ''}`}>
+            <span className="tick" aria-hidden="true" />
+            {voiceReady ? 'Ready to call' : 'Draft, saved as you go'}
+          </p>
+        </aside>
+
+        {/* ---------------------------------------------------- the spine -- */}
+        <section className="obx-spine" aria-live="polite">
+          <div className="obx-step" key={step.id}>
+            <p className="obx-eyebrow">{step.eyebrow}</p>
+
+            {step.id === 'start' && (
+              <>
+                <h1>A little of your <em>voice</em> carries a lot of love.</h1>
+                <p className="obx-sub">
+                  Create a clearly identified AI presence that listens without rushing, keeps your
+                  relationship's language, and brings the important parts back to you.
+                </p>
+                <div className="obx-body">
+                  <div className="obx-two">
+                    <div className="obx-card">
+                      <p className="obx-tag">Time</p>
+                      <p className="obx-note">
+                        <strong>About ten minutes</strong> to a
+                        first version. Two of them are your voice.
+                      </p>
+                    </div>
+                    <div className="obx-card">
+                      <p className="obx-tag">Honesty</p>
+                      <p className="obx-note">
+                        <strong>Always identified as AI.</strong> It
+                        never pretends a sentence came from you.
+                      </p>
+                    </div>
                   </div>
-                  <p className="pc-ob-hint">Continue to check and correct it.</p>
-                  <button className="pc-btn pc-btn--ghost" style={{ justifySelf: 'start' }} onClick={() => { setAboutRec('idle'); aboutBlobRef.current = null; }}>
-                    Record or write again
-                  </button>
+                  <div className="obx-card obx-card--quiet" style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 14, alignItems: 'start' }}>
+                    <ShieldCheck size={17} style={{ color: 'var(--c-ink-3)', marginTop: 1 }} aria-hidden="true" />
+                    <p className="obx-note obx-note--flush">
+                      <strong>You stay in control.</strong> Visits,
+                      money and medicine always need a real person. You can pause or delete the Presence at any time.
+                    </p>
+                  </div>
                 </div>
-              ) : (
-                <>
-                  <div className="pc-ob-card pc-ob-recorder">
-                    <div className="pc-ob-recorder-head">
-                      <span>Voice note</span>
-                      <span className={aboutRec === 'recording' ? 'is-recording' : ''}>
-                        {aboutRec === 'recording' ? formatTime(aboutSeconds) : 'Around two minutes'}
+              </>
+            )}
+
+            {step.id === 'bond' && (
+              <>
+                <h1>Who are you <em>showing</em> up for?</h1>
+                <p className="obx-sub">We start with the relationship, not a personality quiz.</p>
+                <div className="obx-body">
+                  <div className="obx-card">
+                    <div className="obx-two">
+                      <label className="obx-field">
+                        <span className="lab">The person you care for</span>
+                        <input className="obx-input" value={caredForName} placeholder="Sofia" onChange={(event) => patch({ caredForName: event.target.value })} />
+                      </label>
+                      <label className="obx-field">
+                        <span className="lab">Your relationship</span>
+                        <span className="obx-select-wrap">
+                          <select className="obx-select" value={relationship} onChange={(event) => patch({ relationship: event.target.value })}>
+                            <option value="grandmother">Grandmother</option>
+                            <option value="grandfather">Grandfather</option>
+                            <option value="mother">Mother</option>
+                            <option value="father">Father</option>
+                            <option value="aunt">Aunt or uncle</option>
+                            <option value="friend">Friend</option>
+                          </select>
+                          <ChevronDown size={16} />
+                        </span>
+                      </label>
+                    </div>
+                    <label className="obx-field" style={{ marginTop: 16 }}>
+                      <span className="lab">What does she call you?</span>
+                      <input className="obx-input" value={callerName} placeholder="Ana" onChange={(event) => patch({ callerName: event.target.value })} />
+                      <span className="help">The exact name the Presence will use aloud.</span>
+                    </label>
+                  </div>
+                  <div className="obx-card">
+                    <span className="lab">How are you together?</span>
+                    <p className="help" style={{ margin: '4px 0 14px' }}>Choose what feels true, not ideal.</p>
+                    <div className="obx-chips">
+                      {TONES.map((option) => (
+                        <button key={option} className={`obx-chip ${tone === option ? 'is-selected' : ''}`} onClick={() => patch({ tone: option })}>
+                          {option}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {step.id === 'about' && (
+              <>
+                <h1>Tell me about {displayName} like you'd tell a <em>friend</em>.</h1>
+                <p className="obx-sub">
+                  Who is around her, what she loves talking about, what to never bring up. Two minutes,
+                  in your own words. You check everything on the next screen.
+                </p>
+                <div className="obx-body">
+                  {aboutRec === 'done' && aboutCounts ? (
+                    <div className="obx-card" style={{ display: 'grid', gap: 14 }}>
+                      <p className="obx-tag">Understood from what you said</p>
+                      <div className="obx-learned">
+                        <span className="pill"><Check size={13} /> {aboutCounts.people} {aboutCounts.people === 1 ? 'person' : 'people'}</span>
+                        <span className="pill"><Check size={13} /> {aboutCounts.anchors} {aboutCounts.anchors === 1 ? 'story' : 'stories'}</span>
+                        <span className="pill"><Check size={13} /> {aboutCounts.boundaries} {aboutCounts.boundaries === 1 ? 'boundary' : 'boundaries'}</span>
+                        <span className="pill"><Check size={13} /> {aboutCounts.facts} facts</span>
+                      </div>
+                      <p className="obx-hint">Continue to check and correct it.</p>
+                      <button className="pc-btn pc-btn--ghost" style={{ justifySelf: 'start' }} onClick={() => { setAboutRec('idle'); aboutBlobRef.current = null; }}>
+                        Record or write again
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="obx-card">
+                        <div className="obx-rec-head">
+                          <span>Voice note</span>
+                          <span className={aboutRec === 'recording' ? 'is-recording' : ''}>
+                            {aboutRec === 'recording' ? formatTime(aboutSeconds) : 'Around two minutes'}
+                          </span>
+                        </div>
+                        <blockquote className="obx-prompt">
+                          Who is she? Who is around her? What does she love talking about? What should I never bring up?
+                        </blockquote>
+                        <Waveform active={aboutRec === 'recording'} />
+                        <div className="obx-actions">
+                          {aboutRec === 'idle' && (
+                            <button className="pc-btn pc-btn--primary" onClick={startAboutRecording}><Mic size={16} /> Start recording</button>
+                          )}
+                          {aboutRec === 'recording' && (
+                            <button className="pc-btn pc-btn--primary" onClick={stopAboutRecording}><Square size={14} fill="currentColor" /> Stop</button>
+                          )}
+                          {aboutRec === 'ready' && (
+                            <>
+                              <button className="pc-btn pc-btn--ghost" onClick={startAboutRecording}>Record again</button>
+                              <button className="pc-btn pc-btn--primary" onClick={() => aboutBlobRef.current && analyzeAbout({ audio: aboutBlobRef.current })}>
+                                Use this recording <ArrowRight size={15} />
+                              </button>
+                            </>
+                          )}
+                          {aboutRec === 'processing' && (
+                            <span className="obx-hint" style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                              <AudioLines size={16} /> Listening and taking notes…
+                            </span>
+                          )}
+                        </div>
+                        {aboutError && <p className="obx-error" role="alert">{aboutError}</p>}
+                      </div>
+                      <div className="obx-card">
+                        <label className="obx-field">
+                          <span className="lab">Or write it</span>
+                          <textarea
+                            className="obx-textarea"
+                            value={draft.aboutText}
+                            placeholder="Sofia lives alone in Santos since my grandfather passed. Her daughter Rê has lunch with her on Sundays. She loves talking about the beach house in Ubatuba and her mother's kibbeh. Never bring up the sale of the house."
+                            onChange={(event) => patch({ aboutText: event.target.value })}
+                          />
+                        </label>
+                        <button
+                          className="pc-btn pc-btn--ghost"
+                          style={{ marginTop: 14 }}
+                          disabled={!draft.aboutText.trim() || aboutRec === 'processing'}
+                          onClick={() => analyzeAbout({ text: draft.aboutText.trim() })}
+                        >
+                          Use what I wrote <ArrowRight size={15} />
+                        </button>
+                      </div>
+                    </>
+                  )}
+                  <p className="obx-hint">
+                    You can skip this and fill the next screen by hand — the first conversation will just know less.
+                  </p>
+                </div>
+              </>
+            )}
+
+            {step.id === 'review' && (
+              <>
+                <h1>{understood ? <>Here is what I <em>understood</em>.</> : <>Who is <em>around</em> {displayName}.</>}</h1>
+                <p className="obx-sub">
+                  {understood
+                    ? 'Correct anything that is off and add what is missing. This is the map the Presence checks before it speaks.'
+                    : 'Fill in what matters most. This is the map the Presence checks before it ever mentions a person.'}
+                </p>
+                <div className="obx-body">
+                  <div className="obx-card" style={{ display: 'grid', gap: 16 }}>
+                    <p className="obx-tag">Her people</p>
+                    {people.map((person, index) => (
+                      <div className="obx-person" key={index}>
+                        <label className="obx-field">
+                          <span className="lab">Name</span>
+                          <input className="obx-input" value={person.name} placeholder={index === 0 ? 'Ana' : 'Pedro'} onChange={(e) => setPerson(index, 'name', e.target.value)} />
+                        </label>
+                        <label className="obx-field">
+                          <span className="lab">Relation to her</span>
+                          <input className="obx-input" value={person.relation} placeholder={index === 0 ? 'Daughter' : 'Grandson'} onChange={(e) => setPerson(index, 'relation', e.target.value)} />
+                        </label>
+                        <label className="obx-field">
+                          <span className="lab">She calls them</span>
+                          <input className="obx-input" value={person.calledBy} placeholder={index === 0 ? 'Aninha' : 'Pedrinho'} onChange={(e) => setPerson(index, 'calledBy', e.target.value)} />
+                        </label>
+                        <button className="obx-round obx-person-remove" onClick={() => patch({ people: people.filter((_, i) => i !== index) })} disabled={people.length <= 1} aria-label={`Remove person ${index + 1}`}>
+                          <X size={15} />
+                        </button>
+                      </div>
+                    ))}
+                    {people.length < 8 && (
+                      <button className="pc-btn pc-btn--ghost" style={{ justifySelf: 'start' }} onClick={() => patch({ people: [...people, { name: '', relation: '', calledBy: '' }] })}>
+                        <Plus size={15} /> Add a person
+                      </button>
+                    )}
+                    <p className="obx-hint">If someone has passed away, write it in the relation — “husband (deceased)” — so they are only ever spoken of with care.</p>
+                  </div>
+
+                  <div className="obx-card" style={{ display: 'grid', gap: 16 }}>
+                    <p className="obx-tag">Her stories</p>
+                    {ANCHORS.map((anchor) => (
+                      <label className="obx-field" key={anchor.key}>
+                        <span className="lab">{anchor.label}</span>
+                        <input className="obx-input" value={anchors[anchor.key]} placeholder={anchor.placeholder} onChange={(event) => patch({ anchors: { ...anchors, [anchor.key]: event.target.value } })} />
+                      </label>
+                    ))}
+                  </div>
+
+                  <div className="obx-card" style={{ display: 'grid', gap: 12 }}>
+                    <p className="obx-tag">Never bring up</p>
+                    <p className="obx-hint">Visits, money and medicine are always protected. Add anything that is hers alone.</p>
+                    {boundaries.map((boundary, index) => (
+                      <div className="obx-person obx-person--one" key={index}>
+                        <label className="obx-field">
+                          <span className="sr-only">Boundary {index + 1}</span>
+                          <input className="obx-input" value={boundary} placeholder="The sale of the beach house" onChange={(e) => setBoundary(index, e.target.value)} />
+                        </label>
+                        <button className="obx-round obx-person-remove" onClick={() => patch({ boundaries: boundaries.filter((_, i) => i !== index) })} disabled={boundaries.length <= 1} aria-label={`Remove boundary ${index + 1}`}>
+                          <X size={15} />
+                        </button>
+                      </div>
+                    ))}
+                    {boundaries.length < 6 && (
+                      <button className="pc-btn pc-btn--ghost" style={{ justifySelf: 'start' }} onClick={() => patch({ boundaries: [...boundaries, ''] })}>
+                        <Plus size={15} /> Add a boundary
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
+
+            {step.id === 'voice' && (
+              <>
+                <h1>Give it a voice she <em>knows</em>.</h1>
+                <p className="obx-sub">Consent comes first. Then two useful minutes of your own voice.</p>
+                <div className="obx-body">
+                  <label className="obx-card obx-consent">
+                    <input type="checkbox" checked={consent} onChange={(event) => patch({ consent: event.target.checked })} />
+                    <p>
+                      <strong>I am recording my own voice</strong> and consent to a clearly identified AI version of it
+                      speaking with {displayName}. I can revoke this at any time, which deletes the voice.
+                    </p>
+                  </label>
+
+                  <div className="obx-card" style={consent ? undefined : { opacity: 0.42, pointerEvents: 'none' }} aria-disabled={!consent}>
+                    <div className="obx-rec-head">
+                      <span>Sample {promptIndex + 1} of {VOICE_PROMPTS.length}</span>
+                      <span className={recordingState === 'recording' ? 'is-recording' : ''}>
+                        {recordingState === 'recording' ? formatTime(recordingSeconds) : 'Quiet room recommended'}
                       </span>
                     </div>
-                    <blockquote>“Who is she? Who is around her? What does she love talking about? What should I never bring up?”</blockquote>
-                    <Waveform active={aboutRec === 'recording'} />
-                    <div className="pc-ob-recorder-actions">
-                      {aboutRec === 'idle' && (
-                        <button className="pc-btn pc-btn--primary" onClick={startAboutRecording}><Mic size={17} /> Start recording</button>
+                    <blockquote className="obx-prompt">{VOICE_PROMPTS[promptIndex]}</blockquote>
+                    <Waveform active={recordingState === 'recording'} />
+                    <div className="obx-actions">
+                      {recordingState === 'idle' && (
+                        <button className="pc-btn pc-btn--primary" onClick={startRecording}><Mic size={16} /> Start recording</button>
                       )}
-                      {aboutRec === 'recording' && (
-                        <button className="pc-btn pc-btn--primary" onClick={stopAboutRecording}><Square size={15} fill="currentColor" /> Stop</button>
+                      {recordingState === 'recording' && (
+                        <button className="pc-btn pc-btn--primary" onClick={stopRecording}><Square size={14} fill="currentColor" /> Stop</button>
                       )}
-                      {aboutRec === 'ready' && (
+                      {recordingState === 'ready' && (
                         <>
-                          <button className="pc-btn pc-btn--ghost" onClick={startAboutRecording}>Record again</button>
-                          <button className="pc-btn pc-btn--primary" onClick={() => aboutBlobRef.current && analyzeAbout({ audio: aboutBlobRef.current })}>
-                            Use this recording <ArrowRight size={15} />
+                          <button className="obx-round" onClick={togglePlayback} aria-label={isPlaying ? 'Pause sample' : 'Play sample'}>
+                            {isPlaying ? <Pause size={16} /> : <Play size={16} fill="currentColor" />}
                           </button>
+                          <button className="pc-btn pc-btn--ghost" onClick={startRecording}>Record again</button>
+                          <button className="pc-btn pc-btn--primary" onClick={queueVoiceBuild}>Use this sample</button>
                         </>
                       )}
-                      {aboutRec === 'processing' && (
-                        <span className="pc-ob-hint" style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                          <AudioLines size={17} /> Listening and taking notes…
+                      {recordingState === 'processing' && (
+                        <span className="obx-hint" style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                          <AudioLines size={16} /> Building your voice…
                         </span>
                       )}
+                      {recordingState === 'queued' && (
+                        <>
+                          <span className="obx-hint" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: 'var(--c-ink)' }}>
+                            <Check size={15} /> Sample saved. Your voice build is queued — we tell you when it is ready.
+                          </span>
+                          <button className="pc-btn pc-btn--ghost" onClick={recordAnotherSample}>Record another sample</button>
+                        </>
+                      )}
+                      {recordingState === 'cloned' && (
+                        <>
+                          <span className="obx-hint" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: 'var(--c-ink)' }}>
+                            <Check size={15} /> {voiceNote || 'Your voice is ready. Her calls use it from now on.'}
+                          </span>
+                          <button className="pc-btn pc-btn--ghost" onClick={recordAnotherSample}>Add another sample</button>
+                        </>
+                      )}
+                      {recordingState === 'failed' && (
+                        <>
+                          <span className="obx-hint" style={{ color: 'var(--c-ink)' }}>{voiceNote || 'Something went wrong with the sample.'}</span>
+                          <button className="pc-btn pc-btn--ghost" onClick={recordAnotherSample}>Try again</button>
+                        </>
+                      )}
                     </div>
-                    {aboutError && <p className="pc-ob-error" role="alert">{aboutError}</p>}
+                    {audioUrl && <audio ref={audioRef} src={audioUrl} onEnded={() => setIsPlaying(false)} className="sr-only" />}
+                    {micError && <p className="obx-error" role="alert">{micError}</p>}
+                    <div className="obx-dots">
+                      {VOICE_PROMPTS.map((_, index) => (
+                        <button key={index} className={index === promptIndex ? 'is-current' : ''} onClick={() => setPromptIndex(index)} aria-label={`Voice prompt ${index + 1}`} />
+                      ))}
+                    </div>
                   </div>
-                  <div className="pc-ob-card">
-                    <label className="pc-ob-field">
-                      <span>Or write it</span>
-                      <textarea
-                        className="pc-ob-textarea"
-                        value={draft.aboutText}
-                        placeholder="Sofia lives alone in Santos since my grandfather passed. Her daughter Rê has lunch with her on Sundays. She loves talking about the beach house in Ubatuba and her mother's kibbeh. Never bring up the sale of the house."
-                        onChange={(event) => patch({ aboutText: event.target.value })}
-                      />
-                    </label>
-                    <button
-                      className="pc-btn pc-btn--ghost"
-                      style={{ justifySelf: 'start', marginTop: 12 }}
-                      disabled={!draft.aboutText.trim() || aboutRec === 'processing'}
-                      onClick={() => analyzeAbout({ text: draft.aboutText.trim() })}
-                    >
-                      Use what I wrote <ArrowRight size={15} />
-                    </button>
-                  </div>
-                </>
-              )}
-              <p className="pc-ob-hint" style={{ textAlign: 'center' }}>
-                You can skip this and fill the next screen by hand — the first conversation will just know less.
-              </p>
-            </div>
-          </>
-        )}
-
-        {step.id === 'review' && (
-          <>
-            <h1>{understood ? 'Here is what I understood.' : `Who is around ${displayName}, and what she loves.`}</h1>
-            <p className="pc-ob-sub">
-              {understood
-                ? 'Correct anything that is off and add what is missing. This is the map the Presence checks before it speaks.'
-                : 'Fill in what matters most. This is the map the Presence checks before it ever mentions a person.'}
-            </p>
-            <div className="pc-ob-body">
-              <div className="pc-ob-card" style={{ display: 'grid', gap: 16 }}>
-                <p className="pc-ob-tag">Her people</p>
-                {people.map((person, index) => (
-                  <div className="pc-ob-person-row" key={index}>
-                    <label className="pc-ob-field">
-                      <span>Name</span>
-                      <input value={person.name} placeholder={index === 0 ? 'Ana' : 'Pedro'} onChange={(e) => setPerson(index, 'name', e.target.value)} />
-                    </label>
-                    <label className="pc-ob-field">
-                      <span>Relation to her</span>
-                      <input value={person.relation} placeholder={index === 0 ? 'Daughter' : 'Grandson'} onChange={(e) => setPerson(index, 'relation', e.target.value)} />
-                    </label>
-                    <label className="pc-ob-field">
-                      <span>She calls them</span>
-                      <input value={person.calledBy} placeholder={index === 0 ? 'Aninha' : 'Pedrinho'} onChange={(e) => setPerson(index, 'calledBy', e.target.value)} />
-                    </label>
-                    <button className="pc-ob-person-remove" onClick={() => patch({ people: people.filter((_, i) => i !== index) })} disabled={people.length <= 1} aria-label={`Remove person ${index + 1}`}>
-                      <X size={16} />
-                    </button>
-                  </div>
-                ))}
-                {people.length < 8 && (
-                  <button className="pc-btn pc-btn--ghost" style={{ justifySelf: 'start' }} onClick={() => patch({ people: [...people, { name: '', relation: '', calledBy: '' }] })}>
-                    <Plus size={16} /> Add a person
-                  </button>
-                )}
-                <p className="pc-ob-hint">If someone has passed away, write it in the relation — “husband (deceased)” — so they are only ever spoken of with care.</p>
-              </div>
-
-              <div className="pc-ob-card" style={{ display: 'grid', gap: 16 }}>
-                <p className="pc-ob-tag">Her stories</p>
-                {ANCHORS.map((anchor) => (
-                  <label className="pc-ob-field" key={anchor.key}>
-                    <span>{anchor.label}</span>
-                    <input value={anchors[anchor.key]} placeholder={anchor.placeholder} onChange={(event) => patch({ anchors: { ...anchors, [anchor.key]: event.target.value } })} />
-                  </label>
-                ))}
-              </div>
-
-              <div className="pc-ob-card" style={{ display: 'grid', gap: 12 }}>
-                <p className="pc-ob-tag">Never bring up</p>
-                <p className="pc-ob-hint">Visits, money and medicine are always protected. Add anything that is hers alone.</p>
-                {boundaries.map((boundary, index) => (
-                  <div className="pc-ob-person-row" key={index} style={{ gridTemplateColumns: '1fr auto' }}>
-                    <label className="pc-ob-field">
-                      <span className="sr-only">Boundary {index + 1}</span>
-                      <input value={boundary} placeholder="The sale of the beach house" onChange={(e) => setBoundary(index, e.target.value)} />
-                    </label>
-                    <button className="pc-ob-person-remove" onClick={() => patch({ boundaries: boundaries.filter((_, i) => i !== index) })} disabled={boundaries.length <= 1} aria-label={`Remove boundary ${index + 1}`}>
-                      <X size={16} />
-                    </button>
-                  </div>
-                ))}
-                {boundaries.length < 6 && (
-                  <button className="pc-btn pc-btn--ghost" style={{ justifySelf: 'start' }} onClick={() => patch({ boundaries: [...boundaries, ''] })}>
-                    <Plus size={16} /> Add a boundary
-                  </button>
-                )}
-              </div>
-            </div>
-          </>
-        )}
-
-        {step.id === 'voice' && (
-          <>
-            <h1>Give it a voice she knows.</h1>
-            <p className="pc-ob-sub">Consent comes first. Then two useful minutes of your own voice.</p>
-            <div className="pc-ob-body">
-              <label className="pc-ob-card pc-ob-consent">
-                <input type="checkbox" checked={consent} onChange={(event) => patch({ consent: event.target.checked })} />
-                <p>
-                  <strong>I am recording my own voice</strong> and consent to a clearly identified AI version of it
-                  speaking with {displayName}. I can revoke this at any time, which deletes the voice.
-                </p>
-              </label>
-
-              <div className="pc-ob-card pc-ob-recorder" style={consent ? undefined : { opacity: 0.45, pointerEvents: 'none' }} aria-disabled={!consent}>
-                <div className="pc-ob-recorder-head">
-                  <span>Sample {promptIndex + 1} of {VOICE_PROMPTS.length}</span>
-                  <span className={recordingState === 'recording' ? 'is-recording' : ''}>
-                    {recordingState === 'recording' ? formatTime(recordingSeconds) : 'Quiet room recommended'}
-                  </span>
                 </div>
-                <blockquote>{VOICE_PROMPTS[promptIndex]}</blockquote>
-                <Waveform active={recordingState === 'recording'} />
-                <div className="pc-ob-recorder-actions">
-                  {recordingState === 'idle' && (
-                    <button className="pc-btn pc-btn--primary" onClick={startRecording}><Mic size={17} /> Start recording</button>
-                  )}
-                  {recordingState === 'recording' && (
-                    <button className="pc-btn pc-btn--primary" onClick={stopRecording}><Square size={15} fill="currentColor" /> Stop</button>
-                  )}
-                  {recordingState === 'ready' && (
-                    <>
-                      <button className="pc-ob-round" onClick={togglePlayback} aria-label={isPlaying ? 'Pause sample' : 'Play sample'}>
-                        {isPlaying ? <Pause size={17} /> : <Play size={17} fill="currentColor" />}
+              </>
+            )}
+
+            {step.id === 'style' && (
+              <>
+                <h1>Two things a voice note <em>rarely</em> says.</h1>
+                <p className="obx-sub">How you actually are together, and the words that are only yours.</p>
+                <div className="obx-body">
+                  <div className="obx-card">
+                    <div className="obx-meta">
+                      <span>{QUESTIONS[questionIndex].label}</span>
+                      <span>{questionIndex + 1} / {QUESTIONS.length}</span>
+                    </div>
+                    <h2 className="obx-question">{QUESTIONS[questionIndex].prompt}</h2>
+                    <textarea
+                      className="obx-textarea"
+                      value={answers[questionIndex]}
+                      placeholder={QUESTIONS[questionIndex].placeholder}
+                      onChange={(event) => {
+                        const next = [...answers];
+                        next[questionIndex] = event.target.value;
+                        patch({ answers: next });
+                      }}
+                      aria-label="Your answer"
+                    />
+                    <div className="obx-actions" style={{ justifyContent: 'space-between' }}>
+                      <span className="obx-hint">Answers save automatically.</span>
+                      <button className="pc-btn pc-btn--ghost" onClick={() => setQuestionIndex((index) => (index + 1) % QUESTIONS.length)}>
+                        {questionIndex === QUESTIONS.length - 1 ? 'Back to the first' : 'Next question'} <ArrowRight size={15} />
                       </button>
-                      <button className="pc-btn pc-btn--ghost" onClick={startRecording}>Record again</button>
-                      <button className="pc-btn pc-btn--primary" onClick={queueVoiceBuild}>Use this sample</button>
-                    </>
-                  )}
-                  {recordingState === 'processing' && (
-                    <span className="pc-ob-hint" style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                      <AudioLines size={17} /> Building your voice…
-                    </span>
-                  )}
-                  {recordingState === 'queued' && (
-                    <>
-                      <span className="pc-ob-hint" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: 'var(--c-ink)' }}>
-                        <Check size={16} /> Sample saved. Your voice build is queued — we tell you when it is ready.
-                      </span>
-                      <button className="pc-btn pc-btn--ghost" onClick={recordAnotherSample}>Record another sample</button>
-                    </>
-                  )}
-                  {recordingState === 'cloned' && (
-                    <>
-                      <span className="pc-ob-hint" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: 'var(--c-ink)' }}>
-                        <Check size={16} /> {voiceNote || 'Your voice is ready. Her calls use it from now on.'}
-                      </span>
-                      <button className="pc-btn pc-btn--ghost" onClick={recordAnotherSample}>Add another sample (improves the voice)</button>
-                    </>
-                  )}
-                  {recordingState === 'failed' && (
-                    <>
-                      <span className="pc-ob-hint" style={{ color: 'var(--c-ink)' }}>{voiceNote || 'Something went wrong with the sample.'}</span>
-                      <button className="pc-btn pc-btn--ghost" onClick={recordAnotherSample}>Try again</button>
-                    </>
-                  )}
+                    </div>
+                  </div>
+                  <div className="obx-learned">
+                    <span className="t">Learned so far</span>
+                    {answers.map((answer, index) => (answer.trim() ? <span className="pill" key={index}><Check size={13} /> {QUESTIONS[index].label}</span> : null))}
+                    {answeredCount === 0 && <span className="obx-hint">Nothing yet — one honest answer is enough to start.</span>}
+                  </div>
                 </div>
-                {audioUrl && <audio ref={audioRef} src={audioUrl} onEnded={() => setIsPlaying(false)} className="sr-only" />}
-                {micError && <p className="pc-ob-error" role="alert">{micError}</p>}
-                <div className="pc-ob-dots">
-                  {VOICE_PROMPTS.map((_, index) => (
-                    <button key={index} className={index === promptIndex ? 'is-current' : ''} onClick={() => setPromptIndex(index)} aria-label={`Voice prompt ${index + 1}`} />
-                  ))}
-                </div>
-              </div>
-            </div>
-          </>
-        )}
+              </>
+            )}
 
-        {step.id === 'style' && (
-          <>
-            <h1>Two things a voice note rarely says.</h1>
-            <p className="pc-ob-sub">How you actually are together, and the words that are only yours.</p>
-            <div className="pc-ob-body">
-              <div className="pc-ob-card">
-                <div className="pc-ob-meta">
-                  <span>{QUESTIONS[questionIndex].label}</span>
-                  <span>{questionIndex + 1} / {QUESTIONS.length}</span>
+            {step.id === 'relay' && (
+              <>
+                <h1>Forty minutes become one <em>meaningful</em> minute.</h1>
+                <p className="obx-sub">
+                  This is how a conversation with {displayName} comes back to you. The AI never pretends a generated sentence came from family.
+                </p>
+                <div className="obx-body">
+                  <div className="obx-relay">
+                    <article className="obx-card">
+                      <p className="obx-tag">For {displayName}</p>
+                      <h3>{anchors.dish.trim() ? `“Tell me about ${decap(anchors.dish.trim())}. Who taught you?”` : '“And who taught you to make the cake that way?”'}</h3>
+                      <p>{callerName.trim() ? `${callerName.trim()}'s` : 'Your'} AI presence, listening patiently. Identified as AI on every call.</p>
+                    </article>
+                    <article className="obx-card">
+                      <p className="obx-tag">For you</p>
+                      <h3>A good, story-filled afternoon.</h3>
+                      <ul>
+                        <li>She bought ingredients for a chocolate cake.</li>
+                        <li>A new detail about {anchors.place.trim() ? decap(anchors.place.trim()) : 'the family beach trip'}.</li>
+                        <li><strong>She wants to know whether you can visit Sunday.</strong></li>
+                      </ul>
+                    </article>
+                  </div>
+                  <div className="obx-card">
+                    <label className="obx-field">
+                      <span className="lab">Send a first note into her next conversation</span>
+                      <textarea className="obx-textarea" style={{ minHeight: 88 }} value={firstNote} placeholder="Ask who taught her to swim." onChange={(event) => patch({ firstNote: event.target.value })} />
+                      <span className="help">Notes are read aloud as coming from you, never rewritten.</span>
+                    </label>
+                  </div>
                 </div>
-                <h2 className="pc-ob-question">{QUESTIONS[questionIndex].prompt}</h2>
-                <textarea
-                  className="pc-ob-textarea"
-                  value={answers[questionIndex]}
-                  placeholder={QUESTIONS[questionIndex].placeholder}
-                  onChange={(event) => {
-                    const next = [...answers];
-                    next[questionIndex] = event.target.value;
-                    patch({ answers: next });
-                  }}
-                  aria-label="Your answer"
-                />
-                <div className="pc-ob-recorder-actions" style={{ marginTop: 14, justifyContent: 'space-between' }}>
-                  <span className="pc-ob-hint">Answers save automatically.</span>
-                  <button className="pc-btn pc-btn--ghost" onClick={() => setQuestionIndex((index) => (index + 1) % QUESTIONS.length)}>
-                    {questionIndex === QUESTIONS.length - 1 ? 'Back to the first' : 'Next question'} <ArrowRight size={15} />
-                  </button>
-                </div>
-              </div>
-              <div className="pc-ob-learned">
-                Learned so far
-                {answers.map((answer, index) => (answer.trim() ? <span key={index}><Check size={14} /> {QUESTIONS[index].label}</span> : null))}
-                {answeredCount === 0 && <span>Nothing yet — one honest answer is enough to start.</span>}
-              </div>
-            </div>
-          </>
-        )}
+              </>
+            )}
+          </div>
 
-        {step.id === 'relay' && (
-          <>
-            <h1>Forty minutes become one meaningful minute.</h1>
-            <p className="pc-ob-sub">
-              This is how a conversation with {displayName} comes back to you. The AI never pretends a generated sentence came from family.
-            </p>
-            <div className="pc-ob-body">
-              <div className="pc-ob-relay">
-                <article className="pc-ob-card">
-                  <p className="pc-ob-tag">For {displayName}</p>
-                  <h3>{anchors.dish.trim() ? `“Tell me about ${decap(anchors.dish.trim())}. Who taught you?”` : '“And who taught you to make the cake that way?”'}</h3>
-                  <p>{callerName.trim() ? `${callerName.trim()}'s` : 'Your'} AI presence, listening patiently. Identified as AI on every call.</p>
-                </article>
-                <article className="pc-ob-card">
-                  <p className="pc-ob-tag">For you</p>
-                  <h3>A good, story-filled afternoon.</h3>
-                  <ul>
-                    <li>She bought ingredients for a chocolate cake.</li>
-                    <li>A new detail about {anchors.place.trim() ? decap(anchors.place.trim()) : 'the family beach trip'}.</li>
-                    <li><strong>She wants to know whether you can visit Sunday.</strong></li>
-                  </ul>
-                </article>
-              </div>
-              <div className="pc-ob-card">
-                <label className="pc-ob-field">
-                  <span>Send a first note into her next conversation</span>
-                  <textarea className="pc-ob-textarea" style={{ minHeight: 88 }} value={firstNote} placeholder="Ask who taught her to swim." onChange={(event) => patch({ firstNote: event.target.value })} />
-                  <small>Notes are read aloud as coming from you, never rewritten.</small>
-                </label>
-              </div>
-            </div>
-          </>
-        )}
-
-        <footer className="pc-ob-footer">
-          <button className="pc-btn pc-btn--ghost" onClick={() => goTo(stepIndex - 1)} disabled={stepIndex === 0}>
-            <ArrowLeft size={16} /> Back
-          </button>
-          <span className="pc-ob-footer-hint">
-            {step.id === 'voice' ? 'You can improve the voice later without redoing onboarding.' : 'Progress saves automatically.'}
-          </span>
-          {stepIndex < STEPS.length - 1 ? (
-            <button className="pc-btn pc-btn--primary" onClick={() => continueFrom(stepIndex)} disabled={!canContinue}>
-              {stepIndex === 0 ? 'Create a first Presence' : 'Continue'} <ArrowRight size={16} />
+          <footer className="obx-footer">
+            <button className="pc-btn pc-btn--ghost" onClick={() => goTo(stepIndex - 1)} disabled={stepIndex === 0}>
+              <ArrowLeft size={15} /> Back
             </button>
-          ) : (
-            <button className="pc-btn pc-btn--primary" onClick={finishSetup}>
-              Finish setup <Check size={16} />
-            </button>
-          )}
-        </footer>
-      </section>
+            <span className="obx-footer-hint">
+              {step.id === 'voice' ? 'You can improve the voice later without redoing onboarding.' : 'Progress saves automatically.'}
+            </span>
+            {stepIndex < STEPS.length - 1 ? (
+              <button className="pc-btn pc-btn--primary" onClick={() => continueFrom(stepIndex)} disabled={!canContinue}>
+                {stepIndex === 0 ? 'Create a first Presence' : 'Continue'} <ArrowRight size={15} />
+              </button>
+            ) : (
+              <button className="pc-btn pc-btn--primary" onClick={finishSetup}>
+                Finish setup <Check size={15} />
+              </button>
+            )}
+          </footer>
+        </section>
+      </div>
     </main>
   );
 }
