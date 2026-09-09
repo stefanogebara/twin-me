@@ -51,11 +51,21 @@ export function useAuth() {
   // On mount: load cached session immediately, then verify in background
   useEffect(() => {
     (async () => {
-      const [token, refreshToken, cachedUserJson] = await Promise.all([
-        SecureStore.getItemAsync(STORAGE_KEYS.AUTH_TOKEN),
-        SecureStore.getItemAsync(STORAGE_KEYS.AUTH_REFRESH_TOKEN),
-        SecureStore.getItemAsync(STORAGE_KEYS.USER),
-      ]);
+      /* A keychain that cannot be read (a rebuilt binary with different entitlements, a
+         locked device) must not leave the app on blank paper forever: it means signed out. */
+      let stored: [string | null, string | null, string | null];
+      try {
+        stored = await Promise.all([
+          SecureStore.getItemAsync(STORAGE_KEYS.AUTH_TOKEN),
+          SecureStore.getItemAsync(STORAGE_KEYS.AUTH_REFRESH_TOKEN),
+          SecureStore.getItemAsync(STORAGE_KEYS.USER),
+        ]);
+      } catch (err) {
+        if (__DEV__) console.warn('[Auth] stored session unreadable', String(err));
+        setState({ token: null, user: null, isLoading: false });
+        return;
+      }
+      const [token, refreshToken, cachedUserJson] = stored;
 
       if (!token && !refreshToken) {
         setState({ token: null, user: null, isLoading: false });

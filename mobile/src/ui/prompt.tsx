@@ -20,7 +20,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { cosmos } from '../constants/cosmos';
 import { motionReduced, spring } from './motion';
-import { Press } from './primitives';
+import { Glass, Press } from './primitives';
 
 /* ----------------------------------------------------------------------------------------
  * Prompt.
@@ -49,7 +49,8 @@ export function Prompt({ value, onChange, onSubmit, placeholder, busy, disabled,
   }));
   const canSend = !busy && !disabled && value.trim().length > 0;
   return (
-    <Animated.View style={[p.capsule, recede, style]}>
+    <Animated.View style={[recede, style]}>
+    <Glass style={p.capsule}>
       <TextInput
         style={p.field}
         value={value}
@@ -74,6 +75,7 @@ export function Prompt({ value, onChange, onSubmit, placeholder, busy, disabled,
       >
         <Text style={p.arrow}>{'\u2191'}</Text>
       </Press>
+    </Glass>
     </Animated.View>
   );
 }
@@ -85,11 +87,13 @@ export function Prompt({ value, onChange, onSubmit, placeholder, busy, disabled,
 
 export function PromptButton({ label, onPress, style }: { label: string; onPress: () => void; style?: StyleProp<ViewStyle> }) {
   return (
-    <Press onPress={onPress} accessibilityLabel={label} style={[p.capsule, style]}>
-      <Text style={p.placeholder} numberOfLines={1}>{label}</Text>
-      <View style={p.send}>
-        <Text style={p.arrow}>{'\u2191'}</Text>
-      </View>
+    <Press onPress={onPress} accessibilityLabel={label} style={style}>
+      <Glass style={p.capsule}>
+        <Text style={p.placeholder} numberOfLines={1}>{label}</Text>
+        <View style={p.send}>
+          <Text style={p.arrow}>{'\u2191'}</Text>
+        </View>
+      </Glass>
     </Press>
   );
 }
@@ -138,8 +142,6 @@ const p = StyleSheet.create({
   capsule: {
     flexDirection: 'row', alignItems: 'center', gap: cosmos.space.sm,
     minHeight: 56, borderRadius: cosmos.radius.pill,
-    borderWidth: StyleSheet.hairlineWidth, borderColor: cosmos.color.ruleStrong,
-    backgroundColor: cosmos.color.canvas,
     paddingLeft: cosmos.space.md + 4, paddingRight: 6, paddingVertical: 6,
   },
   field: {

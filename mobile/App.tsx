@@ -28,7 +28,7 @@ import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanima
 
 import { cosmos } from './src/constants/cosmos';
 import { fade, spring } from './src/ui/motion';
-import { Micro, Pill, Press } from './src/ui/primitives';
+import { Glass, Micro, Pill, Press } from './src/ui/primitives';
 import { PromptButton } from './src/ui/prompt';
 import { useAuth } from './src/hooks/useAuth';
 import { requestMagicLink } from './src/services/api';
@@ -120,7 +120,8 @@ function Capsule({ place, onChange }: { place: Place; onChange: (p: Place) => vo
   }, [place, boxes, x, w]);
   const line = useAnimatedStyle(() => ({ transform: [{ translateX: x.value }], width: w.value }));
   return (
-    <View style={styles.capsule}>
+    <View style={styles.capsuleRow} pointerEvents="box-none">
+    <Glass style={styles.capsule}>
       {PLACES.map((p) => (
         <Press
           key={p.id}
@@ -136,6 +137,7 @@ function Capsule({ place, onChange }: { place: Place; onChange: (p: Place) => vo
         </Press>
       ))}
       <Animated.View style={[styles.capsuleLine, line]} />
+    </Glass>
     </View>
   );
 }
@@ -219,6 +221,7 @@ function Shell() {
       else if (m[1] === 'signout') void logout();
       else if (m[1] === 'say') DeviceEventEmitter.emit('dev:say', q.t || '');
       else if (m[1] === 'trace') DeviceEventEmitter.emit('dev:trace');
+      else if (m[1] === 'press') DeviceEventEmitter.emit('dev:press', q.l || '');
       else if (m[1] === 'google') void loginWithGoogle();
       else if (m[1] === 'tour') {
         const beat = Number(q.ms) || 1400;
@@ -274,7 +277,6 @@ function Shell() {
   } else {
     surface = (
       <View style={styles.fill}>
-        <Capsule place={place} onChange={setPlace} />
         <View style={styles.fill}>
           <Layer active={place === 'month'}>
             <MonthScreen questionCount={questionCount} onOpenQuestions={() => setSheet('ask')} onOpenLedger={() => setPlace('ledger')} />
@@ -292,8 +294,10 @@ function Shell() {
             />
           </Layer>
         </View>
-        {/* The one gesture of the app, under every place: a capsule that opens the conversation. */}
-        <View style={[styles.askBar, { paddingBottom: Platform.OS === 'ios' ? insets.bottom : cosmos.space.md }]}>
+        {/* The chrome floats: content scrolls beneath the capsule and the door, and both are
+            glass, so what is beneath shows through the way it does under the system's bars. */}
+        <Capsule place={place} onChange={setPlace} />
+        <View style={[styles.askBar, { paddingBottom: Platform.OS === 'ios' ? insets.bottom : cosmos.space.md }]} pointerEvents="box-none">
           <PromptButton label="Ask about your money" onPress={() => setSheet('ask')} />
         </View>
       </View>
@@ -335,14 +339,15 @@ export default function App() {
 
 const styles = StyleSheet.create({
   fill: { flex: 1, backgroundColor: cosmos.color.canvas },
-  askBar: { paddingHorizontal: cosmos.space.lg, paddingTop: cosmos.space.sm, backgroundColor: cosmos.color.canvas },
+  askBar: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: cosmos.space.lg },
+  capsuleRow: { position: 'absolute', top: cosmos.space.sm, left: 0, right: 0, alignItems: 'center' },
   capsule: {
-    flexDirection: 'row', alignSelf: 'center', gap: cosmos.space.lg,
-    marginTop: cosmos.space.sm, marginBottom: cosmos.space.xs, position: 'relative',
+    flexDirection: 'row', alignItems: 'center', gap: cosmos.space.md,
+    paddingHorizontal: cosmos.space.md, height: cosmos.chrome.capsule - cosmos.space.sm, position: 'relative',
   },
   capsuleItem: { paddingVertical: 12, paddingHorizontal: 4, minHeight: 44, justifyContent: 'center' },
   capsuleOn: { color: cosmos.color.ink },
-  capsuleLine: { position: 'absolute', left: 0, bottom: 6, height: StyleSheet.hairlineWidth * 2, backgroundColor: cosmos.color.ink },
+  capsuleLine: { position: 'absolute', left: 0, bottom: 8, height: StyleSheet.hairlineWidth * 2, backgroundColor: cosmos.color.ink },
   stepFoot: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end',
     paddingHorizontal: cosmos.space.lg, paddingVertical: cosmos.space.md,

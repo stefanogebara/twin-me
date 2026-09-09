@@ -44,6 +44,7 @@ import { parseDelimited, parseWorkbook, toSightings } from '../services/money/st
 import { isConfigured, listBanks, startAuthorisation, createSession } from '../services/money/feeds/enableBanking.js';
 import { answer as chatAnswer, act as chatAct } from '../services/money/chat.js';
 import { ahead as calendarAhead, learnEventSpend } from '../services/money/calendar.js';
+import { guessHome, savedHome, searchAreas, staticMap, saveHome } from '../services/money/home.js';
 import { encryptState } from '../services/encryption.js';
 import { getAppUrl } from '../utils/oauthUtils.js';
 import { getGoogleWorkspaceScopes } from '../config/googleWorkspaceScopes.js';
@@ -463,6 +464,62 @@ router.post('/calendar/learn', async (req, res) => {
   } catch (error) {
     log.error('calendar learn failed', { error: error.message });
     res.status(502).json({ success: false, error: 'The calendar could not be read right now.' });
+  }
+});
+
+/* Where the person lives: the ledger's guess and what they have confirmed. The guess costs one
+   geocoding call per fresh point; the map is proxied so the key never reaches a phone. */
+router.get('/home', async (req, res) => {
+  try {
+    const [guess, saved] = await Promise.all([
+      guessHome(req.user.id).catch((e) => { log.warn('home guess failed', { error: e.message }); return null; }),
+      savedHome(req.user.id).catch(() => null),
+    ]);
+    res.json({ success: true, data: { guess, saved } });
+  } catch (error) {
+    log.error('home read failed', { error: error.message });
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+router.get('/home/search', async (req, res) => {
+  try {
+    const q = String(req.query.q || '').slice(0, 80);
+    res.json({ success: true, data: { results: await searchAreas(q) } });
+  } catch (error) {
+    log.error('home search failed', { error: error.message });
+    res.status(502).json({ success: false, error: 'The map could not be searched right now.' });
+  }
+});
+
+router.get('/home/map', async (req, res) => {
+  const lat = Number(req.query.lat);
+  const lng = Number(req.query.lng);
+  const zoom = Math.min(Math.max(parseInt(req.query.zoom, 10) || 14, 10), 17);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) {
+    return res.status(400).json({ success: false, error: 'lat and lng are required' });
+  }
+  try {
+    const image = await staticMap({ lat, lng, zoom });
+    if (!image) return res.status(502).json({ success: false, error: 'The map could not be drawn right now.' });
+    res.set('Content-Type', image.contentType);
+    res.set('Cache-Control', 'private, max-age=86400');
+    res.send(image.buffer);
+  } catch (error) {
+    log.error('home map failed', { error: error.message });
+    res.status(502).json({ success: false, error: 'The map could not be drawn right now.' });
+  }
+});
+
+router.post('/home', async (req, res) => {
+  const { district, city, lat, lng, source } = req.body || {};
+  if (!district && !city) return res.status(400).json({ success: false, error: 'district or city is required' });
+  try {
+    const out = await saveHome(req.user.id, { district, city, lat, lng, source: source === 'guess' ? 'guess' : 'confirmed' });
+    res.json({ success: true, data: { said: out.said, value: out.value } });
+  } catch (error) {
+    log.error('home save failed', { error: error.message });
+    res.status(500).json({ success: false, error: 'Internal server error' });
   }
 });
 

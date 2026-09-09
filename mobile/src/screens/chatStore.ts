@@ -34,6 +34,19 @@ export type Line = {
   trace?: TraceStep[];
   /** The question this line asks, when it asks one. Drives the cards and fields under it. */
   question?: MoneyQuestion;
+  /** One or two words above a question naming its chapter: Home, Studies, Money in. */
+  chapter?: string;
+  /** The question itself, set as a heading above `text` (which then carries the why). */
+  heading?: string;
+  /** A place on a map: where the ledger thinks home is, or a place the person searched. */
+  home?: HomeSpot;
+};
+
+/** A spot the home question shows on a map, and whether it is still waiting to be confirmed. */
+export type HomeSpot = {
+  lat: number; lng: number; district: string; city?: string | null; basis?: string | null;
+  /** Still open to a yes or a no. Once answered the map stays, the cards go. */
+  open: boolean;
 };
 
 export type ChatMode = 'onboarding' | 'ask';

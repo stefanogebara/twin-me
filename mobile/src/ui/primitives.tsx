@@ -13,6 +13,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View, type PressableProps, type StyleProp, type TextProps, type TextStyle, type ViewStyle } from 'react-native';
 import Animated, { LinearTransition, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
+import { BlurView } from 'expo-blur';
 import { cosmos } from '../constants/cosmos';
 import { ENTER_Y, PRESS_SCALE, COUNT_MS, FADE, fade, spring, staggerDelay, motionReduced } from './motion';
 
@@ -22,27 +23,27 @@ import { ENTER_Y, PRESS_SCALE, COUNT_MS, FADE, fade, spring, staggerDelay, motio
 
 const ramp = StyleSheet.create({
   display: {
-    fontFamily: cosmos.font.medium, fontSize: cosmos.size.display, lineHeight: 48,
+    fontFamily: cosmos.font.medium, fontSize: cosmos.size.display, lineHeight: cosmos.line.display,
     letterSpacing: cosmos.tracking.display, color: cosmos.color.ink,
   },
   title: {
-    fontFamily: cosmos.font.medium, fontSize: cosmos.size.title, lineHeight: 31,
+    fontFamily: cosmos.font.medium, fontSize: cosmos.size.title, lineHeight: cosmos.line.title,
     letterSpacing: cosmos.tracking.title, color: cosmos.color.ink,
   },
   heading: {
-    fontFamily: cosmos.font.medium, fontSize: cosmos.size.heading, lineHeight: 25,
+    fontFamily: cosmos.font.medium, fontSize: cosmos.size.heading, lineHeight: cosmos.line.heading,
     letterSpacing: cosmos.tracking.heading, color: cosmos.color.ink,
   },
   body: {
-    fontFamily: cosmos.font.regular, fontSize: cosmos.size.body, lineHeight: 23,
+    fontFamily: cosmos.font.regular, fontSize: cosmos.size.body, lineHeight: cosmos.line.body,
     letterSpacing: cosmos.tracking.body, color: cosmos.color.ink,
   },
   small: {
-    fontFamily: cosmos.font.regular, fontSize: cosmos.size.small, lineHeight: 20,
+    fontFamily: cosmos.font.regular, fontSize: cosmos.size.small, lineHeight: cosmos.line.small,
     letterSpacing: cosmos.tracking.body, color: cosmos.color.ink2,
   },
   micro: {
-    fontFamily: cosmos.font.regular, fontSize: cosmos.size.micro, lineHeight: 14,
+    fontFamily: cosmos.font.regular, fontSize: cosmos.size.micro, lineHeight: cosmos.line.micro,
     letterSpacing: cosmos.tracking.mono, textTransform: 'uppercase', color: cosmos.color.ink3,
   },
 });
@@ -104,6 +105,26 @@ export function Row({ lead, label, sub, trail, quiet, onPress, disabled }: {
   );
   if (!onPress) return inner;
   return <Press onPress={onPress} disabled={disabled}>{inner}</Press>;
+}
+
+/* ----------------------------------------------------------------------------------------
+ * Glass. The one material besides paper: for chrome that floats over content, the way the
+ * system's own bars do. A blur of what is beneath, a wash of paper over it, a bright hairline
+ * along the edge. Never for content, never for a card; only for the capsule and the door.
+ * -------------------------------------------------------------------------------------- */
+
+export function Glass({ children, style, radius = cosmos.radius.pill }: { children: React.ReactNode; style?: StyleProp<ViewStyle>; radius?: number }) {
+  return (
+    <View style={[{ borderRadius: radius, overflow: 'hidden' }, style]}>
+      <BlurView intensity={60} tint="light" style={StyleSheet.absoluteFill} />
+      <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: cosmos.glass.fill, borderRadius: radius }]} />
+      {/* Two rings: an ink hairline for the edge, a bright hairline just inside it for the light
+          the material catches. Together they are what makes glass read as glass on paper. */}
+      <View pointerEvents="none" style={[StyleSheet.absoluteFill, { borderRadius: radius, borderWidth: 1, borderColor: cosmos.glass.shade }]} />
+      <View pointerEvents="none" style={[StyleSheet.absoluteFill, { borderRadius: radius, borderWidth: 1, borderColor: cosmos.glass.edge, margin: 1 }]} />
+      {children}
+    </View>
+  );
 }
 
 /* ----------------------------------------------------------------------------------------
@@ -211,7 +232,7 @@ export function Counting({ value, format, style }: { value: number; format: (n: 
 const s = StyleSheet.create({
   section: { gap: cosmos.space.md, paddingTop: cosmos.space.lg, marginTop: cosmos.space.lg },
   sectionHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', paddingTop: cosmos.space.md },
-  row: { flexDirection: 'row', alignItems: 'baseline', gap: cosmos.space.md, paddingVertical: 13 },
+  row: { flexDirection: 'row', alignItems: 'baseline', gap: cosmos.space.md, paddingVertical: 12, minHeight: 44 },
   rowLead: { width: 58 },
   rowMid: { flex: 1, gap: 2 },
   rowTrail: { textAlign: 'right' },

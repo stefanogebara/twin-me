@@ -42,7 +42,40 @@ describe('the opening questions', () => {
     const asked = openingQuestions([{ kind: 'home_area', value: 'Chamberi' }, { kind: 'income', subject: 'family' }]);
     expect(asked.map((q) => q.kind)).not.toContain('home_area');
     expect(asked.map((q) => q.kind)).not.toContain('income');
-    expect(asked.map((q) => q.kind)).toContain('commitment');
+    expect(asked.map((q) => q.kind)).toContain('goal');
+  });
+
+  it('does not ask about rent up front: a fixed cost that big announces itself in the ledger', () => {
+    expect(OPENING_QUESTIONS.map((q) => q.kind)).not.toContain('commitment');
+  });
+});
+
+describe('rent raised by the ledger', () => {
+  const rent = [
+    tx('2026-06-01', -650, 'Inmobiliaria Sol', 'transfer'),
+    tx('2026-07-01', -650, 'Inmobiliaria Sol', 'transfer'),
+    tx('2026-08-02', -650, 'Inmobiliaria Sol', 'transfer'),
+  ];
+
+  it('asks once about a big charge that lands on the same day every month, with the payments attached', () => {
+    const qs = ledgerQuestions({ transactions: rent, now: NOW });
+    const q = qs.find((x) => x.id === 'rent:inmobiliaria sol');
+    expect(q).toBeDefined();
+    expect(q.kind).toBe('commitment');
+    expect(plain(q.ask)).toBe('Inmobiliaria Sol takes about 650,00 € around the 1st, 3 months running. Is this your rent?');
+    expect(q.input).toBe('choice:rent,another fixed cost,not fixed');
+    expect(q.receipts).toHaveLength(3);
+    expect(q.amount).toBe(650);
+    expect(q.day).toBe(1);
+  });
+
+  it('stays quiet below the floor, when the day wanders, or once it is a known commitment', () => {
+    const small = rent.map((t) => ({ ...t, amount: -120 }));
+    expect(ledgerQuestions({ transactions: small, now: NOW }).some((q) => q.id.startsWith('rent:'))).toBe(false);
+    const wandering = [tx('2026-06-01', -650, 'Casa', 'transfer'), tx('2026-07-19', -650, 'Casa', 'transfer')];
+    expect(ledgerQuestions({ transactions: wandering, now: NOW }).some((q) => q.id.startsWith('rent:'))).toBe(false);
+    const facts = [{ kind: 'commitment', subject: 'inmobiliaria sol', amount: 650 }];
+    expect(ledgerQuestions({ transactions: rent, facts, now: NOW }).some((q) => q.id.startsWith('rent:'))).toBe(false);
   });
 });
 
