@@ -544,9 +544,11 @@ export function PresenceOnboardingExperience({ persistDraft = false, onExit }: P
   const setBoundary = (index: number, value: string) =>
     patch({ boundaries: boundaries.map((b, i) => (i === index ? value : b)) });
 
-  // The plate's photograph. One image per relationship so the artifact feels
-  // like it belongs to this person rather than to a template. These are the
-  // same tiles the landing scatters across its hero.
+  // The plate's photograph. Deliberately NOT a face: a portrait sitting
+  // directly under the name reads as a photo OF her, and it is a stock still
+  // of someone she is not. These are her world — an album, an armchair, a
+  // garden, a doorway — so the plate can carry warmth without implying we
+  // have a picture we do not have. Same tiles the landing scatters.
   const plateImage =
     relationship === 'grandfather' || relationship === 'father'
       ? '/images/presence/cosmos-04-armchair.jpg'
@@ -554,7 +556,7 @@ export function PresenceOnboardingExperience({ persistDraft = false, onExit }: P
         ? '/images/presence/cosmos-03-garden.jpg'
         : relationship === 'aunt'
           ? '/images/presence/cosmos-07-doorway.jpg'
-          : '/images/presence/cosmos-06-portrait.jpg';
+          : '/images/presence/cosmos-01-album.jpg';
 
   const voiceReady = recordingState === 'cloned' || recordingState === 'queued';
   const namedPeople = people.filter((p) => p.name.trim()).length;
