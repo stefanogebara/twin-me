@@ -64,7 +64,10 @@ export const cosmos = {
   space: { xs: 4, sm: 8, md: 16, lg: 20, xl: 32, xxl: 48 },
   /* The floating chrome: a glass capsule at the top, a glass door at the bottom. Content
      scrolls beneath both, so every scrolling screen leaves this much room at each end. */
-  chrome: { capsule: 52, door: 76 },
+  /* The door is a 56-point capsule over the home indicator, so a screen leaves rather more
+     than that below its last line: content should pass under glass while scrolling and come
+     to rest clear of it. */
+  chrome: { capsule: 52, door: 96 },
   glass: {
     /* Enough paper in the wash that type on the glass stays fully legible, and an ink edge
        so the capsule reads as an object on paper, not as a smudge. */
