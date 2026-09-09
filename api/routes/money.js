@@ -44,6 +44,7 @@ import { parseDelimited, parseWorkbook, toSightings } from '../services/money/st
 import { isConfigured, listBanks, startAuthorisation, createSession } from '../services/money/feeds/enableBanking.js';
 import { answer as chatAnswer, act as chatAct } from '../services/money/chat.js';
 import { ahead as calendarAhead, learnEventSpend } from '../services/money/calendar.js';
+import { todayAllowance } from '../services/money/allowance.js';
 import { guessHome, savedHome, searchAreas, staticMap, saveHome } from '../services/money/home.js';
 import { encryptState } from '../services/encryption.js';
 import { getAppUrl } from '../utils/oauthUtils.js';
@@ -521,6 +522,13 @@ router.post('/home', async (req, res) => {
     log.error('home save failed', { error: error.message });
     res.status(500).json({ success: false, error: 'Internal server error' });
   }
+});
+
+/* The one number a person opens the app for: what today can carry. Deterministic, three
+   reads of the ledger, no model. It answers null with a reason rather than guessing. */
+router.get('/today', async (req, res) => {
+  try { res.json({ success: true, data: await todayAllowance(req.user.id) }); }
+  catch (error) { log.error('today failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
 });
 
 router.get('/months', async (req, res) => {

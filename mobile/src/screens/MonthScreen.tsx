@@ -21,10 +21,10 @@ import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { cosmos, dayMonth, euro } from '../constants/cosmos';
 import {
   moneyApi, currentMonthStart,
-  type MoneyCategories, type MoneyForecast, type MoneyReading, type MoneyRecurring,
+  type MoneyCategories, type MoneyForecast, type MoneyReading, type MoneyRecurring, type MoneyToday,
   type ReadingVerdict,
 } from '../services/moneyApi';
-import { Body, Counting, Display, Enter, Hairline, Micro, Page, Pill, Row, Section, Small } from '../ui/primitives';
+import { Body, Counting, Display, Enter, Hairline, Micro, Page, Pill, Row, Section, Small, Title } from '../ui/primitives';
 import { Band } from '../ui/figures';
 
 const CADENCE: Record<string, string> = {
@@ -93,6 +93,7 @@ export default function MonthScreen({ onOpenQuestions, questionCount, onOpenLedg
   const [categories, setCategories] = useState<MoneyCategories | null>(null);
   const [recurring, setRecurring] = useState<MoneyRecurring[]>([]);
 
+  const [today, setToday] = useState<MoneyToday | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [unreachable, setUnreachable] = useState(false);
@@ -101,13 +102,15 @@ export default function MonthScreen({ onOpenQuestions, questionCount, onOpenLedg
   const loadAll = useCallback(async () => {
     /* One failing endpoint must not take the screen down with it, so each is settled on
        its own. Only a clean sweep of failures is worth telling the person about. */
-    const [f, l, rd, c, rc] = await Promise.allSettled([
+    const [f, l, rd, c, rc, td] = await Promise.allSettled([
       moneyApi.forecast(),
       moneyApi.ledger(),
       moneyApi.readings(),
       moneyApi.categories(currentMonthStart()),
       moneyApi.recurring(),
+      moneyApi.today(),
     ]);
+    if (td.status === 'fulfilled') setToday(td.value);
     if (f.status === 'fulfilled') setForecast(f.value);
     if (l.status === 'fulfilled') setLedgerLines(l.value.length);
     if (rd.status === 'fulfilled') setReadings(rd.value);
@@ -209,6 +212,25 @@ export default function MonthScreen({ onOpenQuestions, questionCount, onOpenLedg
                 <Band spent={forecast.spent} likely={Math.max(forecast.projected_p50, forecast.spent + forecast.committed)} high={forecast.projected_p90} />
               </View>
               {otherSide ? <Small quiet style={layout.after}>{otherSide}</Small> : null}
+
+              {/* The one number a person opens the app for. It sits under the month rather than
+                  over it: the month is what happened, this is what today can carry. */}
+              {today ? (
+                <View style={layout.today}>
+                  <Hairline />
+                  <Micro style={layout.after}>Safe to spend today</Micro>
+                  {today.amount === null ? (
+                    <Small quiet style={layout.afterSmall}>{today.why}</Small>
+                  ) : (
+                    <>
+                      <Title tabular style={layout.afterSmall}>
+                        {today.over ? 'Nothing.' : euro(today.amount)}
+                      </Title>
+                      {today.sentence ? <Small quiet style={layout.afterSmall}>{today.sentence}</Small> : null}
+                    </>
+                  )}
+                </View>
+              ) : null}
             </>
           ) : (
             <Display style={layout.after}>...</Display>
@@ -381,6 +403,7 @@ const layout = StyleSheet.create({
   afterSmall: { marginTop: cosmos.space.sm },
   afterLarge: { marginTop: cosmos.space.lg },
   block: { gap: 0, paddingTop: cosmos.space.sm },
+  today: { marginTop: cosmos.space.lg },
   shrink: { flexShrink: 1 },
   foot: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: cosmos.space.sm, marginTop: cosmos.space.sm },
   pills: { flexDirection: 'row', gap: cosmos.space.sm },

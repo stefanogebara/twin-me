@@ -31,6 +31,7 @@ import { learnMerchants, learnPatterns, predictNext, describeForTwin } from './b
 import { describeContext } from './context.js';
 import { CATEGORIES } from './places.js';
 import { calendarLines } from './calendar.js';
+import { safeToSpend, allowanceLine } from './allowance.js';
 
 const log = createLogger('money-chat');
 
@@ -318,6 +319,10 @@ export function contextText(ctx) {
   if (said) lines.push(`The person said: ${said.replace(/\u20ac/g, 'EUR')}`);
 
   lines.push(...calendarLines(ctx.facts, { now: ctx.now }));
+  /* What today can carry, worked out from what is already here: no extra query, and the twin
+     answers "can I afford tonight?" with the same number the month page shows. */
+  const todayLine = allowanceLine(safeToSpend({ cast: ctx.forecast, segments: ctx.segments, facts: ctx.facts, now: ctx.now }));
+  if (todayLine) lines.push(todayLine);
 
   if (ctx.questions.length) {
     lines.push('Open questions (id: question): ' + ctx.questions.slice(0, 8).map((q) => `${q.id}: ${q.ask}`).join(' | '));

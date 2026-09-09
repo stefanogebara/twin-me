@@ -304,6 +304,20 @@ export function currentMonthStart(): string {
   return `${new Date().toISOString().slice(0, 7)}-01`;
 }
 
+
+/** What today can carry, and the words for how it was worked out. */
+export type MoneyToday = {
+  amount: number | null;
+  basis: 'income' | 'typical' | null;
+  budget: number | null;
+  free: number | null;
+  over: boolean;
+  days_left: number | null;
+  today_events: { title: string; amount: number }[];
+  sentence: string | null;
+  why: string | null;
+};
+
 export const moneyApi = {
   forecast: () => authFetch('/money/forecast').then((r) => json<MoneyForecast>(r)),
   ledger: (since?: string) =>
@@ -343,6 +357,7 @@ export const moneyApi = {
   saveHome: (spot: HomeSaved) => post('/money/home', spot).then((r) => json<{ said?: string | null }>(r)),
   /** The map picture for a spot. The route answers PNG bytes behind the session, so the
       Image is handed the token in its headers rather than a public URL. */
+  today: () => authFetch('/money/today').then((r) => json<MoneyToday>(r)),
   homeMapSource: async (lat: number, lng: number, zoom = 14): Promise<ImageSource> => {
     const token = await SecureStore.getItemAsync(STORAGE_KEYS.AUTH_TOKEN);
     const uri = `${API_URL}/money/home/map?lat=${encodeURIComponent(String(lat))}&lng=${encodeURIComponent(String(lng))}&zoom=${zoom}`;
