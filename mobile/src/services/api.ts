@@ -42,7 +42,19 @@ export async function clearStoredSession(): Promise<void> {
   ]);
 }
 
-export async function refreshSession(): Promise<{ token: string; user: User } | null> {
+/* One refresh at a time. Refresh tokens rotate, so two screens refreshing together would race:
+   the second call arrives with a token the first has already spent, the server refuses it, and
+   a live session would be ended for nothing. Every caller during a refresh shares the one. */
+let refreshInFlight: Promise<{ token: string; user: User } | null> | null = null;
+
+export function refreshSession(): Promise<{ token: string; user: User } | null> {
+  if (!refreshInFlight) {
+    refreshInFlight = refreshOnce().finally(() => { refreshInFlight = null; });
+  }
+  return refreshInFlight;
+}
+
+async function refreshOnce(): Promise<{ token: string; user: User } | null> {
   const refreshToken = await SecureStore.getItemAsync(STORAGE_KEYS.AUTH_REFRESH_TOKEN);
   if (!refreshToken) {
     return null;
@@ -58,8 +70,18 @@ export async function refreshSession(): Promise<{ token: string; user: User } | 
   });
 
   if (res.status === 401 || res.status === 403) {
-    /* The session is over. Every screen would otherwise fail on its own, each with a vague
-       line; one signal lets the shell walk the person back to the front door instead. */
+    /* Refused. If the stored refresh token is no longer the one we sent, another refresh won
+       in the meantime and the session is fine: hand back what it stored. Otherwise the session
+       is over, and one signal lets the shell walk the person back to the front door instead of
+       every screen failing on its own with a vague line. */
+    const [nowToken, nowRefresh, userJson] = await Promise.all([
+      SecureStore.getItemAsync(STORAGE_KEYS.AUTH_TOKEN),
+      SecureStore.getItemAsync(STORAGE_KEYS.AUTH_REFRESH_TOKEN),
+      SecureStore.getItemAsync(STORAGE_KEYS.USER),
+    ]);
+    if (nowRefresh && nowRefresh !== refreshToken && nowToken && userJson) {
+      return { token: nowToken, user: JSON.parse(userJson) as User };
+    }
     await clearStoredSession();
     DeviceEventEmitter.emit(SESSION_EXPIRED);
     return null;
