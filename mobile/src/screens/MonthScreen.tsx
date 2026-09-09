@@ -240,6 +240,15 @@ export default function MonthScreen({ onOpenQuestions, questionCount, onOpenLedg
                   <Small quiet>Every line here is counted, not guessed. The payments behind it are underneath.</Small>
                   {readings.map((r, i) => (
                     <Enter key={r.id} index={i} style={layout.block}>
+                      {r.verdict === 'not_me' ? (
+                        /* Rejected: the reading folds away to one line, with a way back for a
+                           mis-tap. It is gone from the next reading of the ledger. */
+                        <View style={layout.foot}>
+                          <Small quiet style={layout.shrink}>Not yours. It will not come back.</Small>
+                          <Pill small ghost label="Undo" onPress={() => void setReadingVerdict(r, 'not_me')} />
+                        </View>
+                      ) : (
+                      <>
                       <Body>{r.sentence}</Body>
                       {r.detail ? <Small quiet style={layout.afterSmall}>{r.detail}</Small> : null}
                       {r.receipts.map((t) => (
@@ -255,11 +264,19 @@ export default function MonthScreen({ onOpenQuestions, questionCount, onOpenLedg
                         <Micro style={layout.shrink}>
                           read from {r.evidence_count} {r.evidence_count === 1 ? 'payment' : 'payments'}
                         </Micro>
-                        <View style={layout.pills}>
-                          <Pill small ghost={r.verdict !== 'true'} label="True" onPress={() => void setReadingVerdict(r, 'true')} />
-                          <Pill small ghost={r.verdict !== 'not_me'} label="Not me" onPress={() => void setReadingVerdict(r, 'not_me')} />
-                        </View>
+                        {/* Answered is answered: a question that keeps asking after it has been
+                            answered reads as a control that did nothing. */}
+                        {r.verdict === 'true' ? (
+                          <Micro>Confirmed</Micro>
+                        ) : (
+                          <View style={layout.pills}>
+                            <Pill small ghost label="True" onPress={() => void setReadingVerdict(r, 'true')} />
+                            <Pill small ghost label="Not me" onPress={() => void setReadingVerdict(r, 'not_me')} />
+                          </View>
+                        )}
                       </View>
+                      </>
+                      )}
                     </Enter>
                   ))}
                 </>

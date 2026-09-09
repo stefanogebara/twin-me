@@ -397,9 +397,12 @@ export async function refreshReadings(userId, now = new Date()) {
 }
 
 /** The stored readings with their receipts resolved, newest computation first. */
-export async function listReadings(userId) {
+export async function listReadings(userId, { includeRejected = false } = {}) {
   const { data } = await supabaseAdmin.from('money_readings').select('*').eq('user_id', userId).order('computed_at', { ascending: false });
-  const readings = data || [];
+  /* A reading the person marked as not theirs is not shown again and is never cited: saying
+     "not me" has to mean something, or it is a poll rather than a control. The row is kept,
+     so the same finding stays quiet when it is recomputed tomorrow. */
+  const readings = (data || []).filter((r) => includeRejected || r.verdict !== 'not_me');
   const ids = [...new Set(readings.flatMap((r) => r.receipt_ids || []))];
   if (!ids.length) return readings.map((r) => ({ ...r, receipts: [] }));
   const { data: rows } = await supabaseAdmin
