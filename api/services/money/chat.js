@@ -310,7 +310,9 @@ export function contextText(ctx) {
   const learned = describeForTwin({ profiles: ctx.profiles, patterns: ctx.patterns, predictions: ctx.predictions, now: ctx.now });
   if (learned) lines.push(...learned.split('\n').slice(1));
 
-  for (const r of ctx.readings.slice(0, 4)) if (r?.sentence) lines.push(`Reading: ${r.sentence}${r.detail ? ` ${r.detail}` : ''}`.replace(/\u20ac/g, 'EUR'));
+  /* A reading the person confirmed is worth more than one they have not judged, and one they
+     rejected never reaches here at all. */
+  for (const r of ctx.readings.slice(0, 4)) if (r?.sentence) lines.push(`Reading${r.verdict === 'true' ? ' (they confirmed this)' : ''}: ${r.sentence}${r.detail ? ` ${r.detail}` : ''}`.replace(/\u20ac/g, 'EUR'));
 
   const said = describeContext(ctx.facts);
   if (said) lines.push(`The person said: ${said.replace(/\u20ac/g, 'EUR')}`);
