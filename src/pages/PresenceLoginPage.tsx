@@ -57,13 +57,13 @@ export default function PresenceLoginPage() {
 
   return (
     <main className="presence-cosmos" id="main-content">
-      <div className="pc-auth">
+      <div className="pc-auth" style={{ ["--auth-still" as string]: "url('/images/presence/cosmos-02-window.jpg')" } as React.CSSProperties}>
         <section className="pc-auth-left">
           <Link className="pc-auth-back" to="/presence"><ArrowLeft size={15} /> Presence</Link>
           <Mark />
 
           <div className="pc-auth-card">
-            <h1>Welcome back.</h1>
+            <h1>Welcome <em>back</em>.</h1>
             <p className="pc-auth-sub">
               Sign in or <Link to="/presence/onboarding">create a Presence</Link>
             </p>
@@ -92,9 +92,6 @@ export default function PresenceLoginPage() {
         </section>
 
         <aside className="pc-auth-panel" aria-hidden="true">
-          <img src="/images/presence/cosmos-01-album.jpg" alt="" style={{ top: '-4%', width: 220, height: 290, transform: 'translateX(-50%) rotate(-2deg)' }} />
-          <img src="/images/presence/cosmos-film-poster.jpg" alt="" style={{ top: '30%', width: 360, height: 240, transform: 'translateX(-50%) rotate(1.5deg)' }} />
-          <img src="/images/presence/cosmos-03-garden.jpg" alt="" style={{ top: '64%', width: 200, height: 270, transform: 'translateX(-50%) rotate(-3deg)' }} />
           <p className="pc-auth-caption">
             <strong>Sofia tells the story of the train to Petrópolis.</strong>
             Heard patiently, kept for her family.

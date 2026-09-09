@@ -1452,6 +1452,44 @@ button.pc-search-icons {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   min-height: 100dvh;
+  position: relative;
+  isolation: isolate;
+}
+
+/* Law 1: one photograph carries the page. This used to be two columns meeting
+   at a hard vertical seam — paper #f7f5f3 on the left, flat #ffffff on the
+   right — with three shadowed polaroids arranged on the white. That is a
+   banner, not a ground, and Cosmos forbids the shadows besides.
+   The still now runs behind the WHOLE page. Each surface sets its own via
+   --auth-still, so Presence keeps its register and TwinMe keeps its own. */
+.pc-auth::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  background-image: var(--auth-still);
+  background-size: cover;
+  background-position: 50% 42%;
+  filter: saturate(0.78);
+}
+
+/* The veil ramps HORIZONTALLY: near-opaque under the form so it stays
+   legible, thinning to the right so the room breathes. A gradient, so there
+   is no edge anywhere for the eye to catch. */
+.pc-auth::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    linear-gradient(
+      to right,
+      var(--c-paper) 0%,
+      rgba(247, 245, 243, 0.97) 26%,
+      rgba(247, 245, 243, 0.82) 44%,
+      rgba(247, 245, 243, 0.44) 66%,
+      rgba(247, 245, 243, 0.26) 100%
+    );
 }
 
 .pc-auth-left {
@@ -1491,20 +1529,31 @@ button.pc-search-icons {
 }
 
 .pc-auth-card {
-  width: min(344px, 100%);
+  width: min(380px, 100%);
   margin: auto 0;
   display: flex;
   flex-direction: column;
   align-items: stretch;
   text-align: center;
+  /* Law 2 + 5: a frosted panel floating in the photograph, 26px. */
+  padding: 34px 30px 30px;
+  border-radius: 26px;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.66);
+  backdrop-filter: blur(30px) saturate(1.3);
+  -webkit-backdrop-filter: blur(30px) saturate(1.3);
 }
 
+/* Law 3: the line you read is serif. It was Geist 20px/500 — interface type
+   doing a headline's job. Law 4 puts one italic word on it, in the markup. */
 .pc-auth-card h1 {
-  font-size: 20px;
-  font-weight: 500;
-  letter-spacing: -0.02em;
-  line-height: 1.15;
+  font-family: 'Instrument Serif', Georgia, serif;
+  font-size: 34px;
+  font-weight: 400;
+  letter-spacing: -0.018em;
+  line-height: 1.06;
 }
+.pc-auth-card h1 em { font-style: italic; }
 
 .presence-cosmos .pc-auth-sub {
   margin-top: 6px;
@@ -1615,28 +1664,47 @@ button.pc-search-icons {
   user-select: none;
 }
 
-/* Right panel: paper-white room with a loose stack of polaroids and a caption. */
+/* The right column is no longer a surface — it is simply where the room shows
+   through. The polaroid stack is gone: law 1 asks for ONE photograph as the
+   ground, and three rotated cards with drop shadows is the opposite of that
+   (Cosmos: hairlines, not shadows). */
 .pc-auth-panel {
   position: relative;
-  background: var(--c-white);
+  background: transparent;
   overflow: hidden;
 }
 
-.pc-auth-panel img {
-  position: absolute;
-  left: 50%;
-  object-fit: cover;
-  border-radius: 12px;
-  box-shadow: 0 16px 44px rgba(13, 13, 13, 0.14);
-}
+.pc-auth-panel img { display: none; }
 
-.pc-auth-caption {
+/* Scoped `.presence-cosmos .pc-auth-caption` deliberately: a bare
+   .pc-auth-caption is (0,1,0) and loses to `.presence-cosmos p` at (0,1,1),
+   which is the specificity trap CLAUDE.md documents. The unscoped version of
+   this rule silently rendered at full ink.
+
+   The caption rides its own frosted chip rather than sitting on the bare
+   photograph. Measured on the TwinMe blue-hour still, ink on the open image
+   came to 4.13:1 — under AA — and any page can swap its --auth-still for a
+   darker one at any time. A chip is legible over ANY photograph, so this
+   cannot regress when someone changes the picture. */
+.presence-cosmos .pc-auth-caption {
   position: absolute;
-  left: 24px;
-  bottom: 20px;
-  font-size: 13px;
-  line-height: 1.45;
-  color: var(--c-ink-2);
+  left: 26px;
+  bottom: 26px;
+  max-width: 33ch;
+  margin: 0;
+  padding: 16px 18px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  /* 0.86 + #5e5a57 is solved, not chosen: over the worst photograph possible
+     (pure black) the chip's backdrop lands at 219 and this ink measures
+     4.93:1. At the shared --c-ink-2 it would be 3.86:1, and at 0.72 opacity
+     even the darker ink fails. This holds whatever still a page sets. */
+  background: rgba(255, 255, 255, 0.86);
+  backdrop-filter: blur(26px) saturate(1.25);
+  -webkit-backdrop-filter: blur(26px) saturate(1.25);
+  font-size: 14px;
+  line-height: 1.5;
+  color: #5e5a57;
 }
 
 .pc-auth-caption strong {

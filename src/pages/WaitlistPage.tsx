@@ -76,7 +76,7 @@ const WaitlistPage = () => {
 
   return (
     <main className="presence-cosmos" id="main-content">
-      <div className="pc-auth">
+      <div className="pc-auth" style={{ ["--auth-still" as string]: "url('/images/twinme/cosmos-08-window.jpg')" } as React.CSSProperties}>
         <section className="pc-auth-left">
           <Link className="pc-auth-back" to="/"><ArrowLeft size={15} /> TwinMe</Link>
           <Mark />
@@ -84,12 +84,12 @@ const WaitlistPage = () => {
           <div className="pc-auth-card">
             {submitted ? (
               <>
-                <h1>You’re on the list.</h1>
+                <h1>You’re <em>on</em> the list.</h1>
                 <p className="pc-auth-sub">We’ll write when your place opens. Nothing else lands in your inbox until then.</p>
               </>
             ) : (
               <>
-                <h1>Worth the wait.</h1>
+                <h1><em>Worth</em> the wait.</h1>
                 <p className="pc-auth-sub">TwinMe is in private beta. Leave your email and you’ll be among the first to meet your twin.</p>
 
                 <form className="pc-auth-magic" onSubmit={handleSubmit}>
@@ -123,9 +123,6 @@ const WaitlistPage = () => {
         </section>
 
         <aside className="pc-auth-panel" aria-hidden="true">
-          <img src="/images/twinme/cosmos-05-kitchen.jpg" alt="" style={{ top: '-4%', width: 220, height: 290, transform: 'translateX(-50%) rotate(-2deg)' }} />
-          <img src="/images/twinme/cosmos-03-calendar.jpg" alt="" style={{ top: '30%', width: 360, height: 240, transform: 'translateX(-50%) rotate(1.5deg)' }} />
-          <img src="/images/twinme/cosmos-01-desk.jpg" alt="" style={{ top: '64%', width: 200, height: 270, transform: 'translateX(-50%) rotate(-3deg)' }} />
           <p className="pc-auth-caption">
             <strong>Your best work happens after 22:00, and your calendar says nothing about it.</strong>
             Read from commits and a calendar. Timestamped, sourced, yours.

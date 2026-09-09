@@ -335,7 +335,7 @@ const CustomAuth = () => {
 
   return (
     <main className="presence-cosmos" id="main-content">
-      <div className="pc-auth">
+      <div className="pc-auth" style={{ ["--auth-still" as string]: "url('/images/twinme/cosmos-07-room.jpg')" } as React.CSSProperties}>
         <section className="pc-auth-left">
           <Link className="pc-auth-back" to="/"><ArrowLeft size={15} /> TwinMe</Link>
           <Mark />
@@ -345,7 +345,7 @@ const CustomAuth = () => {
                 greet them with "Sign in". Three states: arriving from the landing
                 reveal, returning, or new. */}
             <h1>
-              {reveal ? 'Keep your reading.' : isReturning ? 'Welcome back.' : 'Create your twin.'}
+              {reveal ? <>Keep your <em>reading</em>.</> : isReturning ? <>Welcome <em>back</em>.</> : <><em>Create</em> your twin.</>}
             </h1>
             <p className="pc-auth-sub">
               {reveal
@@ -460,9 +460,6 @@ const CustomAuth = () => {
         </section>
 
         <aside className="pc-auth-panel" aria-hidden="true">
-          <img src="/images/twinme/cosmos-02-records.jpg" alt="" style={{ top: '-4%', width: 220, height: 290, transform: 'translateX(-50%) rotate(-2deg)' }} />
-          <img src="/images/twinme/cosmos-07-room.jpg" alt="" style={{ top: '30%', width: 360, height: 240, transform: 'translateX(-50%) rotate(1.5deg)' }} />
-          <img src="/images/twinme/cosmos-04-run.jpg" alt="" style={{ top: '64%', width: 200, height: 270, transform: 'translateX(-50%) rotate(-3deg)' }} />
           <p className="pc-auth-caption">
             <strong>Every Tuesday ends in back-to-back calls, and every Tuesday night the music turns ambient.</strong>
             Read from a calendar and a listening history. Cited, not guessed.
