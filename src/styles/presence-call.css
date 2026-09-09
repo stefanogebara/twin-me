@@ -1,0 +1,259 @@
+/* ============================================================================
+   PRESENCE CALL — her screen
+   ============================================================================
+   /call/:token is the one Presence surface that is not made for the family.
+   It is read by an elderly person, possibly with reduced vision, holding a
+   phone or a tablet, in Portuguese. Where the Cosmos laws and legibility
+   disagree here, legibility wins — and each bend is stated rather than hidden.
+
+   Bent, deliberately:
+
+   - Law 1 (one photograph carries the page) does not apply. A still behind
+     84px type costs contrast and buys nothing for someone who is already in
+     the room the photograph is of. Her screen is paper.
+   - Nothing on this page uses --c-ink-3. On paper it measures 2.67:1, which
+     fails AA outright; it was painting the day of each conversation ("Ontem")
+     and the heading over her own memories. Small text here aims past the 4.5
+     floor rather than at it.
+
+   Kept, and made true:
+
+   - Law 3: what she READS is serif. The greeting and her own recaps are
+     Instrument Serif. Anything she can press stays sans.
+   - Law 5: 16px on controls, 20-24px on panels.
+
+   Replaced:
+
+   - The orb. It was five pastel radial gradients, a rotating conic sheen and
+     a 60px coloured glow — the single largest object on the screen and the
+     most literal "generic AI assistant" cliché in the product. It is now ink
+     on paper: a ring whose weight follows the voice. The motion is still
+     driven by real audio (getInputVolume/getOutputVolume at 80ms), so it
+     means something; only the decoration is gone.
+   - The transcript's frosted glass. Blur behind text is a legibility cost
+     with no reader on this page who benefits from it.
+   - Every 0.5px border. At dpr 1 it is a coin flip whether it paints at all.
+
+   Every class here is used ONLY by PresenceCallPage (verified across src/),
+   so these are scoped overrides rather than a new namespace: .presence-cosmos.cal
+   is (0,2,0) plus the class, which beats the base sheet's (0,1,0)-(0,1,1).
+   presence-cosmos.css is untouched.
+   ========================================================================= */
+
+.presence-cosmos.cal {
+  --cal-display: clamp(48px, 6.4vw, 76px);
+  --cal-read:    clamp(21px, 2.1vw, 25px);  /* serif, what she reads */
+  --cal-lead:    20px;
+  --cal-body:    17px;
+  --cal-label:   13px;
+
+  --cal-r-panel: 24px;
+  --cal-r-ctl:   16px;
+
+  --cal-line: rgba(13, 13, 13, 0.12);
+  --cal-serif: 'Instrument Serif', Georgia, serif;
+
+  background: var(--c-paper);
+}
+
+/* ------------------------------------------------------------------ shell -- */
+
+.presence-cosmos.cal .pc-call-brand {
+  font-size: var(--cal-body);
+  color: var(--c-ink-2);
+}
+
+/* -------------------------------------------------------------------- orb -- */
+/* Ink on paper. A thin fixed ring says where the presence lives; inside it a
+   soft-edged cloud is the presence itself, and the cloud is what moves. The
+   scale of the whole thing is still driven by real audio (the page writes
+   --orb from getInputVolume/getOutputVolume every 80ms), so the motion means
+   something; only the decoration is gone.
+
+   The gradients are written out per state rather than composed with
+   calc() inside an alpha channel. That composition is valid CSS and would
+   also fail silently if it were not — and a silent no-op is exactly the class
+   of bug this work keeps finding. */
+
+.presence-cosmos.cal .pc-orb {
+  background: none;
+  box-shadow: none;
+  border: 1px solid rgba(13, 13, 13, 0.16);
+  transition: transform 90ms linear;
+}
+
+.presence-cosmos.cal .pc-orb::before {
+  inset: 0;
+  /* the conic sheen and its 18px blur are the thing being removed */
+  filter: none;
+  background: radial-gradient(circle at 50% 50%,
+    rgba(13, 13, 13, 0.12) 0%,
+    rgba(13, 13, 13, 0.105) 38%,
+    rgba(13, 13, 13, 0.03) 64%,
+    rgba(13, 13, 13, 0) 78%);
+  transform: scale(0.9);
+  animation: cal-breath 6.5s ease-in-out infinite;
+  transition: transform 0.34s cubic-bezier(0.32, 0.72, 0, 1), background 0.34s ease;
+  z-index: 0;
+}
+
+/* She is talking: it draws in and attends. */
+.presence-cosmos.cal .pc-orb.is-listening::before {
+  background: radial-gradient(circle at 50% 50%,
+    rgba(13, 13, 13, 0.09) 0%,
+    rgba(13, 13, 13, 0.08) 38%,
+    rgba(13, 13, 13, 0.024) 64%,
+    rgba(13, 13, 13, 0) 78%);
+  transform: scale(0.72);
+  animation: none;
+}
+
+/* It is talking back: it fills. */
+.presence-cosmos.cal .pc-orb.is-speaking::before {
+  background: radial-gradient(circle at 50% 50%,
+    rgba(13, 13, 13, 0.17) 0%,
+    rgba(13, 13, 13, 0.15) 38%,
+    rgba(13, 13, 13, 0.045) 64%,
+    rgba(13, 13, 13, 0) 78%);
+  transform: scale(1.02);
+  animation: none;
+}
+
+/* Idle has to move or it reads as broken — but barely, and slowly. */
+@keyframes cal-breath {
+  0%, 100% { transform: scale(0.9); }
+  50%      { transform: scale(0.955); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .presence-cosmos.cal .pc-orb::before { animation: none; transition: none; }
+}
+
+/* ------------------------------------------------------------------ words -- */
+/* Law 3: the greeting is read, so it is serif. 300 weight is also gone —
+   hairline type is the wrong answer for the reader this page has. */
+
+.presence-cosmos.cal .pc-call-stage h1 {
+  font-family: var(--cal-serif);
+  font-weight: 400;
+  font-size: var(--cal-display);
+  line-height: 1.02;
+  letter-spacing: -0.02em;
+  color: var(--c-ink);
+}
+
+.presence-cosmos.cal .pc-call-stage .pc-call-sub {
+  font-size: var(--cal-read);
+  line-height: 1.35;
+  color: var(--c-ink-2);
+}
+
+.presence-cosmos.cal .pc-call-stage .pc-call-status {
+  font-size: var(--cal-lead);
+  color: var(--c-ink-2);
+}
+
+/* --------------------------------------------------------------- controls -- */
+
+.presence-cosmos.cal .pc-call-cta {
+  border-radius: var(--cal-r-ctl);
+  font-size: var(--cal-lead);
+}
+
+.presence-cosmos.cal .pc-call-cta--ghost {
+  border: 1px solid var(--cal-line);
+}
+
+/* ---------------------------------------------------------------- panels -- */
+
+.presence-cosmos.cal .pc-call-explain,
+.presence-cosmos.cal .pc-home-note,
+.presence-cosmos.cal .pc-home-recaps {
+  border-radius: var(--cal-r-panel);
+  border: 1px solid var(--cal-line);
+  background: #fff;
+}
+
+.presence-cosmos.cal .pc-call-explain {
+  font-size: var(--cal-body);
+  line-height: 1.5;
+  color: var(--c-ink);
+}
+
+.presence-cosmos.cal .pc-home-note p { font-size: var(--cal-lead); }
+.presence-cosmos.cal .pc-home-note small {
+  font-size: var(--cal-body);
+  color: var(--c-ink-2);
+}
+
+/* Her own conversations, in her words — the most read thing on the page. */
+.presence-cosmos.cal .pc-home-recaps h2 {
+  font-size: var(--cal-label);
+  letter-spacing: 0.1em;
+  /* was --c-ink-3 at 2.67:1 on paper */
+  color: var(--c-ink-2);
+}
+
+.presence-cosmos.cal .pc-home-recap {
+  border-top: 1px solid var(--cal-line);
+}
+
+.presence-cosmos.cal .pc-home-recap span {
+  font-size: var(--cal-body);
+  /* was --c-ink-3: this is the day her conversation happened, and it was the
+     least readable text on a screen made for someone with poor vision */
+  color: var(--c-ink-2);
+}
+
+.presence-cosmos.cal .pc-home-recap p {
+  font-family: var(--cal-serif);
+  font-weight: 400;
+  font-size: var(--cal-read);
+  line-height: 1.3;
+  letter-spacing: -0.005em;
+  color: var(--c-ink);
+}
+
+/* ------------------------------------------------------------ transcript -- */
+/* Paper, not glass. */
+
+.presence-cosmos.cal .pc-call-stage .pc-transcript {
+  border-radius: var(--cal-r-panel);
+  border: 1px solid var(--cal-line);
+  background: #fff;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none;
+}
+
+.presence-cosmos.cal .pc-transcript-row + .pc-transcript-row {
+  border-top: 1px solid var(--cal-line);
+}
+
+.presence-cosmos.cal .pc-transcript-row span {
+  font-size: var(--cal-label);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--c-ink-2);
+}
+
+.presence-cosmos.cal .pc-transcript-row p {
+  font-size: var(--cal-lead);
+  line-height: 1.4;
+  color: var(--c-ink);
+}
+/* What she said is hers; it is not the muted half of the exchange. */
+.presence-cosmos.cal .pc-transcript-row.is-user p { color: var(--c-ink); }
+
+/* ---------------------------------------------------------------- footer -- */
+
+.presence-cosmos.cal .pc-call-footer {
+  font-size: var(--cal-body);
+  line-height: 1.45;
+  color: var(--c-ink-2);
+}
+
+.presence-cosmos.cal .pc-call-error {
+  font-size: var(--cal-read);
+  line-height: 1.35;
+}

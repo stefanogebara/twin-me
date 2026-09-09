@@ -10,6 +10,7 @@ import {
   type PresenceCallHome,
 } from '@/services/api/presenceAPI';
 import '@/styles/presence-cosmos.css';
+import '@/styles/presence-call.css';
 
 /**
  * /call/:token — her side of Presence: a home, not just a button.
@@ -17,7 +18,7 @@ import '@/styles/presence-cosmos.css';
  * Two modes on one URL, because she should never have to navigate:
  *   HOME  — greeting, the talk button, whether a note is waiting (and from whom),
  *           and her own past conversations in her words.
- *   CALL  — orb reacting to audio + live transcript in the glass panel.
+ *   CALL  — orb reacting to audio + live transcript on a paper panel.
  *
  * Privacy line: her home renders only what is hers. The family's digest — summaries,
  * "needs you" items, care signals — is never fetched here (see the /home endpoint).
@@ -268,7 +269,7 @@ export default function PresenceCallPage() {
   );
 
   return (
-    <main className="presence-cosmos pc-call" id="main-content">
+    <main className="presence-cosmos cal pc-call" id="main-content">
       <div className="pc-call-brand"><Mark /> Presença</div>
 
       <section className={`pc-call-stage ${state === 'live' ? 'is-live' : ''}`} aria-live="polite">
