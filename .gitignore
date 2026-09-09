@@ -129,7 +129,13 @@ import-spotify.mjs
 # Mobile build artifacts
 mobile/modules/*/android/build/
 mobile/.expo/
-mobile/android/
+# mobile/android/ is committed on purpose: EAS needs the native project to build, and a
+# gitignored directory never reaches the build server. Only its outputs are ignored.
+mobile/android/.gradle/
+mobile/android/build/
+mobile/android/app/build/
+mobile/android/.cxx/
+mobile/android/local.properties
 mobile/ios/
 mobile/app.json.bak
 
