@@ -571,7 +571,6 @@ export default function MoneyChatPage() {
           </div>
 
           <div className="mc-composer">
-            <div className="mc-mesh" aria-hidden="true"><i className="mc-blob mc-blob--a" /><i className="mc-blob mc-blob--b" /><i className="mc-blob mc-blob--c" /></div>
             <form
               className="mc-composer-inner"
               onSubmit={(e) => { e.preventDefault(); submitComposer(); }}

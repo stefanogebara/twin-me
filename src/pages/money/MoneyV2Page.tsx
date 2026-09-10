@@ -1,6 +1,7 @@
 /**
- * Money, in the cosmos.so register: a white canvas, one statement per screen, the product as tiles.
- * This month with a band; every euro with its receipts and a verdict; what comes back on its own;
+ * Money, in the Instinct register: a white page, warm panels, one ink at three strengths,
+ * hairlines and no decoration. This month with a band; every euro with its receipts and a
+ * verdict; what comes back on its own;
  * the two sources (Santander through Enable Banking, and the phone).
  * Spec: .claude/plans/2026-09-07-money-twin/README.md
  */
@@ -9,7 +10,6 @@ import { Link } from 'react-router-dom';
 import '../../styles/money-v2.css';
 import { moneyAPI, euro, shortDay, type MoneyAccount, type MoneyCategories, type MoneyForecast, type MoneyMonth, type MoneyReading, type MoneyRecurring, type MoneySighting, type MoneyTransaction, type MoneyUsage } from '../../services/api/moneyAPI';
 
-const TILE_SPOTS: [number, number, number][] = [[3, 14, -12], [12, 66, 8], [22, 30, 10], [30, 78, -6], [66, 76, 7], [76, 24, -10], [88, 60, 6], [92, 12, -8]];
 const CADENCE: Record<string, string> = { weekly: 'every week', biweekly: 'every two weeks', monthly: 'every month', quarterly: 'every quarter', yearly: 'every year' };
 const SOURCE: Record<string, string> = { phone: 'Your phone', bizum: 'Bizum', bankfeed: 'Santander', gmail: 'Gmail', statement: 'Statement' };
 
@@ -82,7 +82,6 @@ export default function MoneyV2Page() {
   /* One purchase makes p10, p50 and p90 the same euro, and reading the same number three
      times looks broken rather than honest. Say nothing about the month until the band opens. */
   const projectable = Boolean(forecast && forecast.projected_p90 - forecast.projected_p10 > 0.5);
-  const tiles = useMemo(() => ledger.filter((t) => Number(t.amount) < 0).slice(0, TILE_SPOTS.length), [ledger]);
   const inflow = useMemo(() => ledger.filter((t) => Number(t.amount) > 0), [ledger]);
   const monthlyLoad = useMemo(
     () => Math.round(recurring.filter((r) => r.cadence === 'monthly').reduce((s, r) => s + Math.abs(Number(r.typical_amount) || 0), 0) * 100) / 100,
@@ -182,20 +181,8 @@ export default function MoneyV2Page() {
         <Link to="/portrait" className="mv-pill mv-pill--ghost">Portrait</Link>
       </header>
 
-      {/* This month: one number, one line, the receipts as tiles around it */}
+      {/* This month: one figure, one sentence about it */}
       <section className="mv-hero" id="month">
-        <div className="mv-tiles" aria-hidden="true">
-          {tiles.map((t, i) => {
-            const [x, y, r] = TILE_SPOTS[i];
-            return (
-              <div key={t.id} className="mv-tile" style={{ left: `${x}%`, top: `${y}%`, '--r': `${r}deg`, '--d': `${(i % 4) * -1.6}s` } as React.CSSProperties}>
-                <span>{SOURCE[t.channel === 'bizum' ? 'bizum' : 'bankfeed'] && t.channel ? t.channel : ''} {shortDay(t.occurred_at)}</span>
-                <b>{merchantLabel(t)}</b>
-                <em>{euro(t.amount)}</em>
-              </div>
-            );
-          })}
-        </div>
         <p className="mv-kicker">{monthLabel}</p>
         {empty ? (
           <>
@@ -228,15 +215,15 @@ export default function MoneyV2Page() {
       {/* The band, as a line */}
       {forecast && !empty ? (
         <section className="mv-band">
+          {/* Ink for what has gone, grey to where the month lands. The spread stays in the
+              sentence above: drawn as a third layer it left a hole that read as a fault. */}
           <div className="mv-band-track">
-            <div className="mv-band-range" style={{ left: `${pct(forecast.projected_p10, forecast)}%`, width: `${pct(forecast.projected_p90, forecast) - pct(forecast.projected_p10, forecast)}%` }} />
+            <div className="mv-band-likely" style={{ width: `${pct(Math.max(forecast.projected_p50, forecast.spent + forecast.committed), forecast)}%` }} />
             <div className="mv-band-spent" style={{ width: `${pct(forecast.spent, forecast)}%` }} />
-            <i className="mv-band-mark" style={{ left: `${pct(forecast.projected_p50, forecast)}%` }} />
           </div>
           <div className="mv-band-labels">
-            <span>spent {euro(forecast.spent)}</span>
-            <span>committed {euro(forecast.committed)}</span>
-            <span>{forecast.days_left} days left</span>
+            <span>Spent {euro(forecast.spent)}</span>
+            <span>Likely {euro(Math.max(forecast.projected_p50, forecast.spent + forecast.committed))}</span>
           </div>
         </section>
       ) : null}
