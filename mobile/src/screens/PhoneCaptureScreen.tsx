@@ -22,7 +22,7 @@
 import { useEffect, useState } from 'react';
 import { View, ScrollView, StyleSheet, Platform, Linking, ActivityIndicator } from 'react-native';
 import { cosmos } from '../constants/cosmos';
-import { Body, Enter, Micro, Page, Pill, Section, Small, Title } from '../ui/primitives';
+import { Body, Enter, Label, Micro, Page, Pill, Section, Small, Title } from '../ui/primitives';
 import { NotificationListenerModule } from '../native/NotificationListenerModule';
 import { ensureCaptureKey, pendingCaptures } from '../services/captureKey';
 import { API_URL } from '../constants';
@@ -90,7 +90,7 @@ export default function PhoneCaptureScreen() {
     <Page>
       <ScrollView contentContainerStyle={s.content}>
         <Enter index={0} style={s.head}>
-          <Micro>Your phone</Micro>
+          <Micro quiet>Your phone</Micro>
           <Title>Seeing a payment{'\n'}the moment it happens.</Title>
           <Body muted>
             The bank posts a payment one to three days after you make it. Your phone knows straight
@@ -135,9 +135,9 @@ export default function PhoneCaptureScreen() {
 
         <Enter index={2}>
           <Section title={isAndroid ? 'What it sends with' : 'The address and the key'}>
-            <Micro>Address</Micro>
+            <Label>Address</Label>
             <Body selectable tabular style={s.code}>{CAPTURE_URL}</Body>
-            <Micro style={s.fieldLabel}>Key</Micro>
+            <Label style={s.fieldLabel}>Key</Label>
             {minting ? (
               <ActivityIndicator color={cosmos.color.ink3} style={s.spinner} />
             ) : key ? (
@@ -148,7 +148,7 @@ export default function PhoneCaptureScreen() {
                 and open it again.
               </Small>
             )}
-            <Small quiet>
+            <Small>
               The key is shown here and nowhere else. It only lets a payment be added to your ledger,
               nothing else, and you can revoke it without changing your password.
             </Small>
@@ -156,7 +156,7 @@ export default function PhoneCaptureScreen() {
         </Enter>
 
         <Enter index={3}>
-          <Small quiet style={s.close}>
+          <Small style={s.close}>
             Amounts and names of shops, never the contents of a message. Remove this and everything
             read through it goes with it.
           </Small>
@@ -178,7 +178,7 @@ const s = StyleSheet.create({
   /* The one tinted surface on the screen, so an address and a key read as things to copy. */
   code: {
     fontSize: cosmos.size.small, lineHeight: 20,
-    backgroundColor: cosmos.color.card, borderRadius: cosmos.radius.field, padding: cosmos.space.md,
+    backgroundColor: cosmos.color.panel, borderRadius: cosmos.radius.field, padding: cosmos.space.md,
   },
   spinner: { alignSelf: 'flex-start', marginVertical: cosmos.space.sm },
   close: { marginTop: cosmos.space.xl },

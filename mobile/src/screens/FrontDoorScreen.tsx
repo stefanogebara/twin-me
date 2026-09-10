@@ -125,7 +125,7 @@ export default function FrontDoorScreen({ onGoogle, onRequestLink }: FrontDoorSc
           </View>
 
           <Enter index={5} style={s.footer}>
-            <Micro>Private beta. No card details are ever stored.</Micro>
+            <Micro quiet>Private beta. No card details are ever stored.</Micro>
           </Enter>
         </View>
       </KeyboardAvoidingView>

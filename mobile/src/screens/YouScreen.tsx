@@ -15,8 +15,9 @@ import { useCallback, useEffect, useState } from 'react';
 import { Platform, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import Constants from 'expo-constants';
 import * as WebBrowser from 'expo-web-browser';
-import { cosmos, dayMonth, dayMonthYear, euro } from '../constants/cosmos';
-import { Enter, Micro, Page, Pill, Row, Section, Small, Title } from '../ui/primitives';
+import { cosmos, dayMonth, euro, monthYear } from '../constants/cosmos';
+import { Enter, List, Micro, Page, Panel, Pill, Row, Section, Small, Title } from '../ui/primitives';
+import { CalendarGlyph, CardGlyph, PhoneGlyph } from '../ui/glyphs';
 import { moneyApi, type MoneyAccount, type MoneyCalendar, type MoneyFact } from '../services/moneyApi';
 import type { User } from '../types';
 
@@ -49,7 +50,7 @@ function firstName(user: User): string | null {
   return full.split(/\s+/)[0] || null;
 }
 
-const PHONE_SUB = Platform.OS === 'android' ? 'One switch' : 'A Shortcut, taught in four steps';
+const PHONE_SUB = Platform.OS === 'android' ? 'One switch to turn on' : 'A Shortcut, in four steps';
 
 const version: string | null = Constants.expoConfig?.version || Constants.nativeAppVersion || null;
 
@@ -97,6 +98,10 @@ export default function YouScreen({ user, onSignOut, onOpenPhone, onOpenBank, on
 
   const name = firstName(user);
 
+  /* The lens writes a sentence; the row has room for its first clause. Trimming here rather
+     than letting the row ellipsize means the line always ends on a word. */
+  const routine = calendar?.routine ? calendar.routine.split(/,|\./)[0].trim() : null;
+
   return (
     <Page>
       <ScrollView
@@ -118,34 +123,43 @@ export default function YouScreen({ user, onSignOut, onOpenPhone, onOpenBank, on
         <>
             <Enter index={1}>
               <Section title="Sources">
-                {accounts.length === 0 ? (
-                  loaded ? <Row label="No bank yet" sub="Connect one to read the month" onPress={onOpenBank} /> : <Row label=" " quiet />
-                ) : (
-                  accounts.map((a) => (
-                    /* The bank's own name for the account is the holder's name in capitals, which is
-                       nobody's idea of a label. The only bank the app connects today is Santander, so the
-                       row says so, and the account is told apart by its last four digits. */
+                {/* One panel, one axis: every source begins at the same square, whatever it is. */}
+                <Panel>
+                  {accounts.length === 0 ? (
+                    loaded
+                      ? <Row inset glyph={<CardGlyph />} label="No bank yet" sub="Connect one to read the month" onPress={onOpenBank} />
+                      : <Row inset glyph={<CardGlyph />} label="Bank" sub=" " />
+                  ) : (
+                    accounts.map((a) => (
+                      /* The bank's own name for the account is the holder's name in capitals, which is
+                         nobody's idea of a label. The only bank the app connects today is Santander, so the
+                         row says so, and the account is told apart by its last four digits. */
+                      <Row
+                        key={a.id}
+                        inset
+                        glyph={<CardGlyph />}
+                        label={a.provider === 'enablebanking' ? 'Santander' : (a.name || 'Bank account')}
+                        sub={[
+                          a.iban_mask ? `Ending ${a.iban_mask.slice(-4)}` : '',
+                          a.consent_expires_at ? `until ${monthYear(a.consent_expires_at)}` : '',
+                        ].filter(Boolean).join(', ')}
+                        onPress={onOpenBank}
+                      />
+                    ))
+                  )}
+                  <Row inset glyph={<PhoneGlyph />} label="This phone" sub={PHONE_SUB} onPress={onOpenPhone} />
+                  {calendar ? (
                     <Row
-                      key={a.id}
-                      label={a.provider === 'enablebanking' ? 'Santander' : (a.name || 'Bank account')}
-                      sub={[
-                        a.iban_mask ? `Ending ${a.iban_mask.slice(-4)}` : '',
-                        a.consent_expires_at ? `read until ${dayMonthYear(a.consent_expires_at)}` : '',
-                      ].filter(Boolean).join(', ')}
-                      onPress={onOpenBank}
+                      inset
+                      glyph={<CalendarGlyph />}
+                      label="Your calendar"
+                      sub={calendar.connected
+                        ? (routine || 'Connected')
+                        : connecting ? 'Opening' : 'Learn what your week costs'}
+                      onPress={calendar.connected ? undefined : () => void connectCalendar()}
                     />
-                  ))
-                )}
-                <Row label="Your phone" sub={PHONE_SUB} onPress={onOpenPhone} />
-                {calendar ? (
-                  <Row
-                    label="Your calendar"
-                    sub={calendar.connected
-                      ? (calendar.routine || 'Connected')
-                      : connecting ? 'Opening' : 'Learn your week\'s routine and what it usually costs'}
-                    onPress={calendar.connected ? undefined : () => void connectCalendar()}
-                  />
-                ) : null}
+                  ) : null}
+                </Panel>
               </Section>
             </Enter>
 
@@ -153,11 +167,12 @@ export default function YouScreen({ user, onSignOut, onOpenPhone, onOpenBank, on
               <Section title="What it knows about you" aside={facts.length ? String(facts.length) : undefined}>
                 {facts.length === 0 ? (
                   !loaded ? null : <View style={s.empty}>
-                    <Small quiet>Nothing yet. The questions are where this fills.</Small>
+                    <Small>Nothing yet. The questions are where this fills.</Small>
                     <Pill small ghost label="Answer them" onPress={onOpenQuestions} />
                   </View>
                 ) : (
-                  facts.map((f) => (
+                  <List>
+                    {facts.map((f) => (
                     <Row
                       key={f.id}
                       lead={kindWord(f.kind)}
@@ -165,9 +180,10 @@ export default function YouScreen({ user, onSignOut, onOpenPhone, onOpenBank, on
                       trail={f.amount !== null && f.amount !== undefined ? euro(f.amount) : undefined}
                       sub={f.check_note || undefined}
                     />
-                  ))
+                    ))}
+                  </List>
                 )}
-                {failed ? <Small quiet>The ledger could not be reached. Pull down to try again.</Small> : null}
+                {failed ? <Small>The ledger could not be reached. Pull down to try again.</Small> : null}
               </Section>
             </Enter>
 

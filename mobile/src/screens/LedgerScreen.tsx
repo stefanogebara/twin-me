@@ -18,7 +18,7 @@ import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { cosmos, dayMonth, euro } from '../constants/cosmos';
 import { authFetch } from '../services/api';
 import { moneyApi, type MoneyMonth, type MoneyTransaction, type TransactionVerdict } from '../services/moneyApi';
-import { Body, Display, Enter, Micro, Page, Pill, Row, Small, Title } from '../ui/primitives';
+import { Body, Display, Enter, Heading, Label, List, Micro, Page, Pill, Row, Small } from '../ui/primitives';
 
 /** One receipt behind a transaction: who saw it, when, and the text they saw. */
 type MoneySighting = {
@@ -135,8 +135,8 @@ export default function LedgerScreen() {
   if (loading) {
     return (
       <Page style={layout.content}>
-        <Title>Every euro, with its receipts.</Title>
-        <Small quiet style={layout.after}>Reading the ledger.</Small>
+        <Heading>Every euro, with its receipts.</Heading>
+        <Small style={layout.after}>Reading the ledger.</Small>
       </Page>
     );
   }
@@ -154,7 +154,7 @@ export default function LedgerScreen() {
         }
       >
         <Enter index={0}>
-          <Title>Every euro, with its receipts.</Title>
+          <Heading>Every euro, with its receipts.</Heading>
         </Enter>
 
         {unreachable ? (
@@ -174,14 +174,15 @@ export default function LedgerScreen() {
             <View key={group.key} style={layout.group}>
               <Enter index={gi}>
                 <View style={layout.groupHead}>
-                  <Micro>{monthAndYear(group.key)}</Micro>
+                  <Label>{monthAndYear(group.key)}</Label>
                   {group.segment ? (
-                    <Micro>
+                    <Micro quiet tabular>
                       {euro(group.segment.spent)} out{group.segment.received ? `, ${euro(group.segment.received)} in` : ''}
                     </Micro>
                   ) : null}
                 </View>
               </Enter>
+              <List>
               {group.rows.map((t, i) => {
                 const inflow = Number(t.amount) > 0;
                 const open = openRow === t.id;
@@ -200,9 +201,9 @@ export default function LedgerScreen() {
                     {open && !inflow ? (
                       <View style={layout.indent}>
                         {seen === undefined ? (
-                          <Small quiet>Reading the receipts.</Small>
+                          <Small>Reading the receipts.</Small>
                         ) : seen.length === 0 ? (
-                          <Small quiet>No receipt kept for this one.</Small>
+                          <Small>No receipt kept for this one.</Small>
                         ) : (
                           seen.map((s) => (
                             <View key={s.id} style={layout.receipt}>
@@ -222,6 +223,7 @@ export default function LedgerScreen() {
                   </Enter>
                 );
               })}
+              </List>
             </View>
           ))
         )}
