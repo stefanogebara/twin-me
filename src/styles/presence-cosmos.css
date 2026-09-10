@@ -1576,6 +1576,16 @@ button.pc-search-icons {
 }
 .pc-auth-card h1 em { font-style: italic; }
 
+/* Phones: the paper wash behind the card fades left to right, which on a wide
+   screen leaves the card in solid paper. At 767px and down the card spans the
+   screen, so its right half sits over the thin end of the wash and the room
+   shows through: the invite hint and the legal line measured 3.5:1 and 3.67:1
+   on rgb(201,207,211). Backed out of those grounds, the card needs ~88% white
+   for --c-ink-3 to clear AA with margin. The room stays visible around it. */
+@media (max-width: 767px) {
+  .pc-auth-card { background: rgba(255, 255, 255, 0.88); }
+}
+
 .presence-cosmos .pc-auth-sub {
   margin-top: 6px;
   font-size: 15px;

@@ -424,6 +424,28 @@ for (const route of ROUTES) {
         const leakDiag = () => `${[...document.querySelectorAll('style')].filter(t => t.textContent.includes('rgb(1,2,3)')).length} sentinel tag(s) still in the page; ` +
           `${TOKEN} resolves to ${picked[0] ? getComputedStyle(picked[0].el).getPropertyValue(TOKEN).trim() : '(no runs)'}`;
         const out = [];
+        /* Occlusion: text covered by something opaque (the film card a sticky
+           hero scrolls under, a sheet, a modal) cannot be seen, so it is not a
+           contrast failure. It was reported at exactly 1.00:1 — the ink measured
+           against the colour of whatever sits on top of it. Hit-test three points
+           on each line box with everything made hittable, so a decorative layer
+           that ignores the pointer cannot hide a real cover. */
+        const hitAll = document.createElement('style');
+        hitAll.textContent = '*, *::before, *::after { pointer-events: auto !important; }';
+        document.head.appendChild(hitAll);
+        const covered = p => {
+          if (p.kind !== 'text') return false;
+          let pts = 0, hidden = 0;
+          for (const bx of p.boxes) {
+            if (bx.top < 0 || bx.bottom > innerHeight) continue;
+            for (const fx of [0.15, 0.5, 0.85]) {
+              const hit = document.elementFromPoint(bx.left + bx.width * fx, bx.top + bx.height / 2);
+              pts++;
+              if (hit && hit !== p.el && !p.el.contains(hit) && !hit.contains(p.el)) hidden++;
+            }
+          }
+          return pts > 0 && hidden === pts;
+        };
         for (const p of picked) {
           const sel = (p.el.className || p.el.tagName).toString().split(' ').slice(0, 2).join('.').slice(0, 34);
           const text = p.text.replace(/\s+/g, ' ').slice(0, 40);
@@ -457,6 +479,7 @@ for (const route of ROUTES) {
             meanGround: `rgb(${mean.join(',')})`,
             sentinelLeak: inkStr.replace(/\s/g, '') === SENTINEL.replace(/\s/g, ''),
             leakDiag: inkStr.replace(/\s/g, '') === SENTINEL.replace(/\s/g, '') ? leakDiag() : undefined,
+            occluded: covered(p),
             ariaHidden: !!p.el.closest('[aria-hidden="true"]'),
             inactive: !!p.el.closest('[disabled], [aria-disabled="true"]'),
             text,
@@ -465,6 +488,7 @@ for (const route of ROUTES) {
         if (sentinelTag) document.head.appendChild(sentinelTag);
         getComputedStyle(document.documentElement).color;   // settle the restore while transitions are still off
         still.remove();
+        hitAll.remove();
         cv.width = cv.height = 0;   // release the raster before the next band
         return out;
       }, { b64: shot, SENTINEL, ALL, TOKEN });

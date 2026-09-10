@@ -602,6 +602,11 @@
   margin: 0; font-size: var(--ob-body);
   color: var(--c-ink-3); text-align: center;
 }
+/* Phones: the footer hint leaves its panel and sits on the room, where
+   --c-ink-3 measured 3.52:1 on rgb(207,207,202). The on-room ink is 5.15:1. */
+@media (max-width: 767px) {
+  .presence-cosmos .obx-footer-hint { color: var(--ob-ink-on-room); }
+}
 
 /* -------------------------------------------------------------- motion -- */
 /* One coordinated change: the spine arrives, the plate holds. Moving the
