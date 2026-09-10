@@ -19,9 +19,13 @@
  *   Figure:  months | shares | weekdays | recurring | band | history  (see FIGURE_KINDS)
  *   Action:  not_me { transaction_id } | recategorise { merchant_key, category } | answer { question_id, value }
  *   Receipt: { id, occurred_at, merchant, amount }
+ *
+ * The same answer can be streamed (see answerStream): the prose arrives a sentence at a
+ * time while the model is still writing, and the figures, actions and receipts follow once
+ * the text is complete, because they are computed here from the ledger and never streamed.
  */
 
-import { complete, TIER_CHAT } from '../llmGateway.js';
+import { complete, stream as streamComplete, TIER_CHAT } from '../llmGateway.js';
 import { createLogger } from '../logger.js';
 import {
   listTransactions, months, forecast, categorySpend, refreshRecurring, listReadings, listFacts,
@@ -533,6 +537,288 @@ export async function answer(userId, message, history = [], { now = new Date() }
   }
   const reply = assembleReply(parsed, ctx, text);
   return { ...reply, text: withoutRepeats(reply.text, history) };
+}
+
+/* ------------------------------------------------------------------ streaming */
+
+/**
+ * The model is asked for one JSON object, so its output cannot simply be forwarded as it
+ * arrives: the wrapper, the key names and the escapes would all reach the screen. This walks
+ * the arriving characters and hands back the `text` field alone, unescaped, as it is
+ * revealed. A chunk that stops in the middle of an escape is held until the rest lands.
+ *
+ * It does not always obey. Asked a question with a few turns behind it, the model often
+ * answers in plain prose, and the finished answer then comes from `plainProse` rather than
+ * from the object. So the first character decides: an opening brace, or a fence that is
+ * about to hold one, means the object is coming and only its `text` is revealed; anything
+ * else is prose, revealed as it is written and cleaned the way `plainProse` cleans it, so
+ * that what grows on the screen is what the finished answer would have said.
+ */
+const UNESCAPE = Object.freeze({ '"': '"', '\\': '\\', '/': '/', n: '\n', r: '\r', t: '\t', b: '\b', f: '\f' });
+
+const PROSE_MARKS = /[*_`#>]/;
+
+export function textStreamer() {
+  let state = 'start';
+  let hunt = '';
+  let esc = '';
+  /* Prose arrives with whatever spacing the model felt like; the finished answer has none of
+     it, so a run of space is one space and a leading one is nothing. */
+  let spaced = true;
+
+  return {
+    /** The plain text this chunk revealed, which is usually an empty string. */
+    push(chunk) {
+      let revealed = '';
+      for (const ch of String(chunk == null ? '' : chunk)) {
+        if (state === 'closed') break;
+        if (state === 'start') {
+          if (/\s/.test(ch)) continue;
+          state = ch === '{' || ch === '`' ? 'seek' : 'prose';
+          if (state === 'seek') continue;
+        }
+        if (state === 'prose') {
+          if (PROSE_MARKS.test(ch)) continue;
+          if (/\s/.test(ch)) { if (!spaced) { revealed += ' '; spaced = true; } continue; }
+          revealed += ch;
+          spaced = false;
+          continue;
+        }
+        if (state === 'seek') {
+          hunt = (hunt + ch).slice(-6);
+          if (hunt === '"text"') state = 'open';
+          continue;
+        }
+        if (state === 'open') {
+          /* Between the key and its opening quote there is a colon and perhaps a space. */
+          if (ch === '"') state = 'inside';
+          continue;
+        }
+        if (esc) {
+          esc += ch;
+          if (esc[1] === 'u') {
+            if (esc.length === 6) {
+              const code = Number.parseInt(esc.slice(2), 16);
+              revealed += Number.isFinite(code) ? String.fromCharCode(code) : '';
+              esc = '';
+            }
+            continue;
+          }
+          revealed += UNESCAPE[esc[1]] === undefined ? esc[1] : UNESCAPE[esc[1]];
+          esc = '';
+          continue;
+        }
+        if (ch === '\\') { esc = '\\'; continue; }
+        if (ch === '"') { state = 'closed'; continue; }
+        revealed += ch;
+      }
+      return revealed;
+    },
+    get started() { return state === 'inside' || state === 'prose' || state === 'closed'; },
+    get done() { return state === 'closed'; },
+  };
+}
+
+/**
+ * The sentences a buffer has finished, and what is left mid-sentence. Prose is streamed a
+ * sentence at a time rather than a word at a time for one reason: a sentence the person has
+ * already been told is dropped, and a word already on the screen cannot be taken back.
+ */
+/**
+ * How much of a growing answer is safe to show. The last two words are held back, because
+ * "422,20 EUR" becomes "422,20 EUR" with a euro sign only once both words have arrived, and
+ * a number already on the screen cannot be rewritten. Everything before that is settled.
+ */
+export function settledEnd(text) {
+  const gaps = [...String(text || '').matchAll(/\s+/g)];
+  if (gaps.length < 2) return 0;
+  const gap = gaps[gaps.length - 2];
+  return gap.index + gap[0].length;
+}
+
+export function completeSentences(buffer) {
+  const ready = [];
+  let rest = String(buffer || '');
+  const boundary = /([.!?])\s+/;
+  let m = boundary.exec(rest);
+  while (m) {
+    ready.push(rest.slice(0, m.index + 1).trim());
+    rest = rest.slice(m.index + m[0].length);
+    m = boundary.exec(rest);
+  }
+  return [ready.filter(Boolean), rest];
+}
+
+const STREAM_UNREADABLE = 'That could not be read right now.';
+
+/** What the person actually read, rebuilt from the pieces that were sent. */
+const asShown = (pieces) => pieces.join('').replace(/\s+/g, ' ').trim();
+
+/**
+ * Answer one message, in pieces, as the model writes it. The events are, in order:
+ *   { phase: 'reading' }                                   at once, before any work
+ *   { phase: 'text', delta }                               one per sentence, as they land
+ *   { phase: 'figures', figures }                          once, after the text is complete
+ *   { phase: 'actions', actions, receipts }                 once
+ *   { phase: 'done' }                                      last
+ *   { phase: 'failed', detail }                            instead of done, on any error
+ *
+ * Only those fields ever go to the caller. The deterministic half is unchanged: the model
+ * still only phrases, and the figures, actions and receipts are computed here from the
+ * ledger after the prose is finished, which is why they cannot be streamed.
+ *
+ * The repetition guard runs per sentence here, where the non-streaming answer runs it over
+ * the whole reply: a sentence already said is dropped as it completes, and if that would
+ * leave nothing the whole guarded reply is sent instead, so nobody is answered with silence.
+ */
+export async function answerStream(userId, message, history = [], { now = new Date(), onEvent = () => {} } = {}) {
+  const send = (event) => { try { onEvent(event); } catch { /* the transport is not this function's problem */ } };
+  send({ phase: 'reading' });
+
+  const asked = String(message || '').trim();
+  const whole = (text) => { if (text) send({ phase: 'text', delta: text }); };
+  const closeWith = (reply) => {
+    send({ phase: 'figures', figures: reply.figures || [] });
+    send({ phase: 'actions', actions: reply.actions || [], receipts: reply.receipts || [] });
+    send({ phase: 'done' });
+    return reply;
+  };
+
+  if (!asked) return closeWith({ text: (whole(NO_ANSWER), NO_ANSWER), figures: [], actions: [], receipts: [] });
+
+  let ctx;
+  try {
+    ctx = await gather(userId, now);
+  } catch (error) {
+    log.warn(`chat stream could not gather: ${error.message}`);
+    send({ phase: 'failed', detail: 'The ledger could not be read just now.' });
+    return null;
+  }
+
+  if (!ctx.transactions.length) {
+    whole(EMPTY_LEDGER);
+    return closeWith({ text: EMPTY_LEDGER, figures: [], actions: [], receipts: [] });
+  }
+
+  const quick = shortCircuit(asked, ctx);
+  if (quick) {
+    whole(quick.text);
+    return closeWith(quick);
+  }
+
+  const system = `${RULES}\n\nWhat the ledger knows:\n${contextText(ctx)}`;
+  const turns = (Array.isArray(history) ? history : []).slice(-MAX_HISTORY_TURNS)
+    .filter((h) => h && typeof h.text === 'string' && h.text.trim())
+    .map((h) => ({ role: h.role === 'twin' ? 'assistant' : 'user', content: h.text.trim() }));
+  const messages = [...turns, { role: 'user', content: asked }];
+
+  const reader = textStreamer();
+  const said = new Set(sentencesOf(previousTwinText(history)).map(shapeOf).filter(Boolean));
+  /* Exactly what went on the wire, in order, so the answer this returns reads as the screen
+     reads it. */
+  const shown = [];
+  /* The sentence being written, and how much of it has already gone out. */
+  let pending = '';
+  let released = 0;
+
+  /**
+   * Could what is being written still turn out to be a sentence the person was already told?
+   * Only such a sentence can be dropped, and a word on the screen cannot be taken back, so
+   * this is what decides between words as they come and waiting for the full stop. Most
+   * answers part company with the previous turn in their first few words, and from then on
+   * they flow.
+   */
+  const couldRepeat = (partial) => {
+    const shape = shapeOf(euroGlyphs(partial));
+    if (!shape) return said.size > 0;
+    for (const s of said) if (s.startsWith(shape)) return true;
+    return false;
+  };
+
+  /** `joined` continues the sentence already on the screen; anything else starts one. */
+  const put = (piece, joined) => {
+    if (!piece) return;
+    const delta = joined || !shown.length ? piece : ` ${piece}`;
+    send({ phase: 'text', delta });
+    shown.push(delta);
+  };
+
+  const emit = (revealed, { final = false } = {}) => {
+    pending += revealed;
+    const [ready, rest] = completeSentences(pending);
+    for (const sentence of ready) {
+      /* Compared after the currency is written the way the finished answer writes it: the
+         previous turn holds euro signs, and "116,76 EUR" would not have matched them. */
+      const full = euroGlyphs(sentence);
+      if (released > 0) put(full.slice(released), true);
+      else if (!said.has(shapeOf(full))) put(full, false);
+      released = 0;
+    }
+    pending = rest;
+
+    if (final) {
+      const converted = euroGlyphs(pending);
+      const tail = converted.slice(released).replace(/\s+$/, '');
+      if (tail.trim()) {
+        if (released > 0) put(tail, true);
+        else if (!said.has(shapeOf(converted.trim()))) put(tail.trim(), false);
+      }
+      pending = '';
+      released = 0;
+      return;
+    }
+
+    if (couldRepeat(pending)) return;
+    const converted = euroGlyphs(pending);
+    /* The last two words are held back: an amount written "422,20 EUR" is rewritten with a
+       euro sign once both of its words have arrived, and a number already on the screen
+       cannot be rewritten. */
+    const settled = settledEnd(converted);
+    if (settled <= released) return;
+    put(converted.slice(released, settled), released > 0);
+    released = settled;
+  };
+
+  let raw = '';
+  try {
+    const result = await streamComplete({
+      tier: TIER_CHAT, system, messages, maxTokens: 600, temperature: 0.3, userId,
+      serviceName: 'money-chat-stream',
+      onChunk: (delta) => {
+        const revealed = reader.push(delta);
+        if (revealed) emit(revealed);
+      },
+    });
+    raw = result?.content || '';
+  } catch (error) {
+    log.warn(`chat stream failed: ${error.message}`);
+    /* Nothing reached the person: say so once. Prose already on the screen is kept, and the
+       answer closes without figures rather than pretending the sentence never happened. */
+    if (!shown.length) {
+      send({ phase: 'failed', detail: STREAM_UNREADABLE });
+      return null;
+    }
+    emit('', { final: true });
+    return closeWith({ text: asShown(shown), figures: [], actions: [], receipts: [] });
+  }
+
+  emit('', { final: true });
+
+  const parsed = parseReply(raw);
+  if (!parsed) {
+    const prose = plainProse(raw);
+    const text = prose ? euroGlyphs(prose) : NO_ANSWER;
+    if (!shown.length) whole(text);
+    return closeWith({ text: shown.length ? asShown(shown) : text, figures: [], actions: [], receipts: [] });
+  }
+
+  const reply = assembleReply(parsed, ctx, asked);
+  /* A gateway that cannot stream, or a whole object that arrived in one piece before the
+     reader saw a boundary, leaves nothing shown: the guarded reply then goes as one event,
+     and the app cannot tell the difference except in timing. */
+  const guarded = withoutRepeats(reply.text, history);
+  if (!shown.length) whole(guarded);
+  return closeWith({ ...reply, text: shown.length ? asShown(shown) : guarded });
 }
 
 /* ------------------------------------------------------------------------ act */
