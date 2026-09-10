@@ -174,7 +174,7 @@ export interface PresenceAboutResult {
   transcript: string;
   extracted: {
     people: Array<{ name: string; relation: string; called_by: string }>;
-    anchors: Array<{ label: string; value: string }>;
+    anchors: Array<{ kind: 'place' | 'dish' | 'person' | 'other'; value: string }>;
     boundaries: string[];
     facts: Array<{ question: string; answer: string }>;
     tone_hint: string;

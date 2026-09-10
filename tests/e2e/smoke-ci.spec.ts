@@ -67,9 +67,12 @@ test.describe('CI smoke: frontend boots and renders', () => {
     await page.goto('/');
     await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
 
-    // Hero copy is present -> the app mounted and rendered, not a blank shell.
-    const bodyText = (await page.textContent('body')) ?? '';
-    expect(bodyText.toLowerCase()).toContain('soul signature');
+    // A hero headline with text is present -> the app mounted and rendered, not a
+    // blank shell. Found by role, not by copy: rewriting the front door's words is
+    // not a boot failure.
+    const hero = page.getByRole('heading', { level: 1 }).first();
+    await expect(hero).toBeVisible({ timeout: 10000 });
+    expect(((await hero.textContent()) ?? '').trim().length).toBeGreaterThan(0);
 
     // A primary CTA into the product exists.
     const cta = page
