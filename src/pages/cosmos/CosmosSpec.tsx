@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Play, Search } from 'lucide-react';
 import '../../styles/presence-cosmos.css';
@@ -12,27 +12,29 @@ import '../../styles/presence-cosmos.css';
  * then adopted for TwinMe's front door. Geist stands in for Cosmos's licensed Oracle.
  */
 
+/* Surfaces and inks name the TOKEN, not a hex. <Swatch> paints the chip with
+   var(token) and prints the value it reads back from the stylesheet, so this
+   page cannot disagree with presence-cosmos.css. It used to hold hand copies,
+   and after the ink ramp was re-spaced the design system's own reference page
+   was the last place still showing the old values. A token that goes missing
+   now prints "missing" instead of a stale hex. */
 const SURFACES = [
-  ['Paper', '#f7f5f3', 'the canvas, never pure white'],
-  ['White', '#ffffff', 'floating cards, the auth panel'],
-  ['Search', '#fbfaf9', 'the search pill'],
-  ['Olive', '#a6a698', 'the strip, the only colored surface'],
-  ['Hover', '#e8e6e4', 'secondary hover'],
+  ['Paper', '--c-paper', 'the canvas, never pure white'],
+  ['White', '--c-white', 'floating cards, the auth panel'],
+  ['Search', '--c-search', 'the search pill'],
+  ['Olive', '--c-olive', 'the strip, the only colored surface'],
+  ['Hover', '--c-hover-secondary', 'secondary hover'],
 ] as const;
 
-/* These are COPIES of the tokens in presence-cosmos.css, so the spec page can
-   print a hex next to each swatch. They drift silently — this list still said
-   Ink 2 #6e6a69 / Ink 3 #9a9796 after the ramp was re-spaced, which made the
-   design system's own reference page the last place still describing the old
-   values. If you change an ink, change it here too, and re-run
-   scripts/audit-cosmos-ink.mjs. */
 const INKS = [
-  ['Ink', '#0d0d0d', 'headings, actions, body'],
-  ['Ink 2', '#534f4e', 'ledes, secondary, body'],
-  ['Ink 3', '#6c6867', 'labels, empty states, tags, icons'],
-  ['Ink 4', '#d0cdcd', 'rules and fills only, never text'],
-  ['Border', 'rgba(13,13,13,.12)', 'the 0.5px hairline'],
+  ['Ink', '--c-ink', 'headings, actions, body'],
+  ['Ink 2', '--c-ink-2', 'ledes, secondary, body'],
+  ['Ink 3', '--c-ink-3', 'labels, empty states, tags, icons'],
+  ['Ink 4', '--c-ink-4', 'rules and fills only, never text'],
+  ['Border', '--c-border', 'the 0.5px hairline'],
 ] as const;
+
+/* Signatures stay literal: presence-cosmos.css defines no tokens for them. */
 
 const SIGNATURES = [
   ['Ember', '#dd8f4c', 'Motivation'],
@@ -67,12 +69,19 @@ function Wave() {
   return <span className="pc-wave" aria-hidden="true"><i /><i /><i /><i /><i /></span>;
 }
 
-function Swatch({ name, value, role }: { name: string; value: string; role: string }) {
+/** Pass `token` for a stylesheet token (read back live) or `value` for a literal. */
+function Swatch({ name, token, value, role }: { name: string; token?: string; value?: string; role: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [resolved, setResolved] = useState(value ?? '');
+  useLayoutEffect(() => {
+    if (!token || !ref.current) return;
+    setResolved(getComputedStyle(ref.current).getPropertyValue(token).trim() || 'missing');
+  }, [token]);
   return (
-    <div className="pc-spec-swatch">
-      <div className="pc-spec-chip" style={{ background: value }} />
+    <div className="pc-spec-swatch" ref={ref}>
+      <div className="pc-spec-chip" style={{ background: token ? `var(${token})` : value }} />
       <strong>{name}</strong>
-      <code>{value}</code>
+      <code title={token}>{resolved}</code>
       <span>{role}</span>
     </div>
   );
@@ -122,10 +131,10 @@ export default function CosmosSpec() {
 
       <Section id="surfaces" n="02" title="Surfaces and ink." note="Five surfaces, four inks, one hairline. There is no accent color.">
         <div className="pc-spec-swatches">
-          {SURFACES.map(([name, hex, role]) => <Swatch key={name} name={name} value={hex} role={role} />)}
+          {SURFACES.map(([name, token, role]) => <Swatch key={name} name={name} token={token} role={role} />)}
         </div>
         <div className="pc-spec-swatches" style={{ marginTop: 16 }}>
-          {INKS.map(([name, hex, role]) => <Swatch key={name} name={name} value={hex} role={role} />)}
+          {INKS.map(([name, token, role]) => <Swatch key={name} name={name} token={token} role={role} />)}
         </div>
       </Section>
 

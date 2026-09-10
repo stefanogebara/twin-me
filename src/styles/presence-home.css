@@ -54,13 +54,17 @@
   --dsh-line: rgba(13, 13, 13, 0.09);
   --dsh-line-firm: rgba(13, 13, 13, 0.16);
 
-  /* Secondary text sitting on the PHOTOGRAPH rather than on a panel needs its
-     own ink — measured, not guessed. See presence-onboarding.css for the
-     method. That page has since moved its own on-room ink to #544f4c, because
-     its 12px mono eyebrow sits over a busier part of the still; this page keeps
-     #5e5a57, whose heavier veil gives it margin at the sizes it is used at
-     here. The two are no longer the same value on purpose — if this page ever
-     puts 11-12px on the room, measure it before assuming this one reaches. */
+  /* Text sitting on the PHOTOGRAPH rather than on a panel needs its own ink —
+     measured, not guessed (method in presence-onboarding.css). Onboarding
+     moved its on-room ink to #544f4c for a 12px eyebrow over a busier part of
+     the still; this page keeps #5e5a57, because its heavier veil gives it
+     margin even at 11px. Measured 2026-09-10 under the glyphs, 5th percentile
+     / darkest pixel:
+       "Family relay"       11px   5.59 / 5.54
+       "Edit setup"         15px   5.62
+       "Opening the room"   11px   5.09 / 4.56   (.dsh-loading, loading state)
+     If new text goes on the room, re-run scripts/audit-cosmos-ink.mjs with
+     TOKEN=--dsh-ink-on-room before assuming this value reaches it. */
   --dsh-ink-on-room: #5e5a57;
 
   /* The --c-ink-3 override that used to live here is gone: the shared token in

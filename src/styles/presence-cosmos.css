@@ -3470,6 +3470,22 @@ button.pc-search-icons {
 }
 
 .pc-demo-stage {
+  /* The stage is a photograph with the demo on glass over it, so like
+     onboarding's room it gets its own inks. Measured under the glyphs with the
+     photo decoded (the first audit sampled before it had, and read the whole
+     stage as near-white):
+       - the rows are 60% white on the 62% glass and go as dark as
+         rgb(227,224,221). The shared ink-3 reaches only 4.19:1 there;
+         #605c5b is 5.02:1.
+       - the head's caption ("Scripted demo, real interface", 13px) sits on the
+         bare glass, rgb(191,183,175). The shared ink-2 reaches only 4.09:1
+         there (the old #6e6a69 was 2.69); #4a4644 is 4.71:1.
+     The stage's own ladder is then 3.6 / 30.0 / 39.4 L*, so the caption still
+     reads a step above the meta lines. Scoped to the stage, which only the
+     Cosmos demo uses; the Portrait's glass is not inside one and keeps its own
+     cine inks. */
+  --c-ink-2: #4a4644;
+  --c-ink-3: #605c5b;
   position: relative;
   width: 100%;
   max-width: 1168px;
