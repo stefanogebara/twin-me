@@ -45,15 +45,32 @@ export async function enrichAndSaveProfile({ userId, email, fullName = null }) {
     return { userId, enriched: false, reason: 'missing_user' };
   }
 
+  const data = await runEnrichment({ userId, email, fullName });
+  if (!data) return { userId, enriched: false, reason: 'no_data' };
+
+  await persistEnrichment({ userId, email, data });
+  return { userId, enriched: true, source: data.source || 'unknown' };
+}
+
+/**
+ * The paid half: external lookups plus two LLM passes. Measured 19.3s in
+ * production; longer for people with a bigger public footprint.
+ *
+ * Unwraps the { success, data } envelope — see the note above.
+ */
+export async function runEnrichment({ userId, email, fullName = null }) {
   const result = await profileEnrichmentService.enrichFromEmail(email, fullName);
   const data = result?.data;
   if (!data) {
     log.warn('Enrichment returned no data', { userId });
-    return { userId, enriched: false, reason: 'no_data' };
+    return null;
   }
+  return data;
+}
 
-  await profileEnrichmentService.saveEnrichment(userId, email, data);
-  return { userId, enriched: true, source: data.source || 'unknown' };
+/** The free half: one upsert into enriched_profiles. */
+export async function persistEnrichment({ userId, email, data }) {
+  return profileEnrichmentService.saveEnrichment(userId, email, data);
 }
 
 export const profileEnrichmentFunction = inngest.createFunction(
@@ -63,11 +80,12 @@ export const profileEnrichmentFunction = inngest.createFunction(
     // One retry: enrichment spends real money at PDL/Brave, and a permanently
     // missing profile is recoverable by hand from /api/enrichment/search.
     retries: 1,
-    // Global limit 5 is the Inngest PLAN CAP — exceeding it on ANY function
-    // rejects the whole app sync and silently unregisters everything (live
-    // 2026-06-20 -> 2026-07-13). 3 leaves headroom for the other functions'
-    // share of the same plan. 1-per-user prevents a double-enqueue from
-    // paying the external APIs twice concurrently.
+    // 5 is the Inngest plan cap; staying under it is a real constraint
+    // (tests/goals/inngest-plan-limits.goal.test.js guards it). It was NOT
+    // the cause of the 2026-06 ingestion outage, despite the comments that
+    // said so — see that test for the correction. 3 leaves headroom for the
+    // other functions' share of the same plan. 1-per-user prevents a
+    // double-enqueue from paying the external APIs twice concurrently.
     concurrency: [{ limit: 3 }, { limit: 1, key: 'event.data.userId' }],
     triggers: [{ event: EVENTS.ENRICH_PROFILE }],
   },
@@ -75,8 +93,22 @@ export const profileEnrichmentFunction = inngest.createFunction(
     const { userId, email, fullName } = event.data || {};
     if (!userId || !email) return { skipped: true, reason: 'missing_user' };
 
-    return step.run('enrich-and-save', () =>
-      enrichAndSaveProfile({ userId, email, fullName })
+    // Two steps, not one. Inngest runs each step in its OWN request, so this
+    // buys two things:
+    //
+    //   1. The DB upsert stops riding on the enrichment's time budget. A step
+    //      gets 58s (api/config/requestTimeouts.js); enrichment measured 19.3s
+    //      but grows with the person's public footprint, and the save used to
+    //      need whatever was left over.
+    //   2. A failed save retries the SAVE. Before, one retry re-ran the whole
+    //      paid pipeline — Brave, PDL and two LLM calls — to redo a DB write.
+    //      Inngest memoizes step 1's result, so the retry is free.
+    const data = await step.run('enrich', () =>
+      runEnrichment({ userId, email, fullName })
     );
+    if (!data) return { userId, enriched: false, reason: 'no_data' };
+
+    await step.run('save', () => persistEnrichment({ userId, email, data }));
+    return { userId, enriched: true, source: data.source || 'unknown' };
   }
 );

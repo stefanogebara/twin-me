@@ -172,9 +172,12 @@ export default async function handler(req, res) {
       await inngest.send(eligibleUserIds.map(userId => ({ name: EVENTS.INGEST_USER_OBSERVATIONS, data: { userId } })));
 
       // Outcome verification: a successful send says NOTHING about consumption.
-      // Live incident 2026-06-23 -> 2026-07-13: the app sync was rejected (plan
-      // cap), every fan-out "succeeded", zero functions ran, ingestion was dead
-      // for three weeks. If eligible users haven't been POLLED within
+      // Live incident 2026-06-23 -> 2026-07-13: every fan-out "succeeded" and
+      // zero functions ran. Blamed on a rejected app sync (plan cap) at the
+      // time; the actual cause was the v3/v4 createFunction signature, so NO
+      // function could be triggered at all until PR #270 (2026-08-26). This
+      // fallback is the only reason ingestion kept working for those months.
+      // If eligible users haven't been POLLED within
       // STARVATION_STALE_MINUTES, run the bounded inline path for the most
       // starved (the old pre-fanout budget: 3 users/run) - self-healing against
       // ANY consumer failure. The check itself failing must not break the cron.
