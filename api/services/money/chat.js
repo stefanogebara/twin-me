@@ -542,17 +542,29 @@ export async function answer(userId, message, history = [], { now = new Date() }
 /* ------------------------------------------------------------------ streaming */
 
 /**
- * The model answers with one JSON object, so its output cannot simply be forwarded as it
+ * The model is asked for one JSON object, so its output cannot simply be forwarded as it
  * arrives: the wrapper, the key names and the escapes would all reach the screen. This walks
  * the arriving characters and hands back the `text` field alone, unescaped, as it is
  * revealed. A chunk that stops in the middle of an escape is held until the rest lands.
+ *
+ * It does not always obey. Asked a question with a few turns behind it, the model often
+ * answers in plain prose, and the finished answer then comes from `plainProse` rather than
+ * from the object. So the first character decides: an opening brace, or a fence that is
+ * about to hold one, means the object is coming and only its `text` is revealed; anything
+ * else is prose, revealed as it is written and cleaned the way `plainProse` cleans it, so
+ * that what grows on the screen is what the finished answer would have said.
  */
 const UNESCAPE = Object.freeze({ '"': '"', '\\': '\\', '/': '/', n: '\n', r: '\r', t: '\t', b: '\b', f: '\f' });
 
+const PROSE_MARKS = /[*_`#>]/;
+
 export function textStreamer() {
-  let state = 'seek';
+  let state = 'start';
   let hunt = '';
   let esc = '';
+  /* Prose arrives with whatever spacing the model felt like; the finished answer has none of
+     it, so a run of space is one space and a leading one is nothing. */
+  let spaced = true;
 
   return {
     /** The plain text this chunk revealed, which is usually an empty string. */
@@ -560,6 +572,18 @@ export function textStreamer() {
       let revealed = '';
       for (const ch of String(chunk == null ? '' : chunk)) {
         if (state === 'closed') break;
+        if (state === 'start') {
+          if (/\s/.test(ch)) continue;
+          state = ch === '{' || ch === '`' ? 'seek' : 'prose';
+          if (state === 'seek') continue;
+        }
+        if (state === 'prose') {
+          if (PROSE_MARKS.test(ch)) continue;
+          if (/\s/.test(ch)) { if (!spaced) { revealed += ' '; spaced = true; } continue; }
+          revealed += ch;
+          spaced = false;
+          continue;
+        }
         if (state === 'seek') {
           hunt = (hunt + ch).slice(-6);
           if (hunt === '"text"') state = 'open';
@@ -590,7 +614,7 @@ export function textStreamer() {
       }
       return revealed;
     },
-    get started() { return state === 'inside' || state === 'closed'; },
+    get started() { return state === 'inside' || state === 'prose' || state === 'closed'; },
     get done() { return state === 'closed'; },
   };
 }
@@ -723,8 +747,11 @@ export async function answerStream(userId, message, history = [], { now = new Da
          previous turn holds euro signs, and "116,76 EUR" would not have matched them. */
       const piece = euroGlyphs(sentence);
       if (said.has(shapeOf(piece))) continue;
-      send({ phase: 'text', delta: shown.length ? ` ${piece}` : piece });
-      shown.push(piece);
+      /* What is kept is exactly what was sent, separator and all, so the answer this
+         function returns reads the way the screen reads. */
+      const delta = shown.length ? ` ${piece}` : piece;
+      send({ phase: 'text', delta });
+      shown.push(delta);
     }
   };
 

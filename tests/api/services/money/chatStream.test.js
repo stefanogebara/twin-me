@@ -92,11 +92,26 @@ describe('reading the text field out of a JSON object as it arrives', () => {
     expect(seen).toBe('He said "yes", then €12.');
   });
 
-  it('reveals nothing at all when the model did not answer with an object', () => {
+  it('reveals plain prose as it is written, because the model often answers that way', () => {
     const r = textStreamer();
-    const seen = r.push('Clothing was the biggest, at 116,76 EUR.');
-    expect(seen).toBe('');
-    expect(r.started).toBe(false);
+    let seen = '';
+    for (const piece of ['Clothing was ', 'the biggest, at 116,76 EUR.']) seen += r.push(piece);
+    expect(seen).toBe('Clothing was the biggest, at 116,76 EUR.');
+    expect(r.started).toBe(true);
+  });
+
+  it('cleans prose the way the finished answer cleans it', () => {
+    const r = textStreamer();
+    let seen = '';
+    for (const piece of ['  **Clothing**', ' was\n\n  bigg', 'est.']) seen += r.push(piece);
+    expect(seen).toBe('Clothing was biggest.');
+  });
+
+  it('keeps a fenced object to itself, and reveals only its text', () => {
+    const r = textStreamer();
+    let seen = '';
+    for (const piece of ['```json\n{"text":"Clothing ', 'took 116,76 EUR."}\n```']) seen += r.push(piece);
+    expect(seen).toBe('Clothing took 116,76 EUR.');
   });
 
   it('separates finished sentences from the one still being written', () => {
@@ -205,6 +220,21 @@ describe('the streamed answer', () => {
     await answerStream('u1', 'what was biggest?', [], { now: NOW, onEvent });
     expect(textOf(events)).toBe('Clothing was the biggest, at 116,76 €.');
     expect(phases(events).at(-1)).toBe('done');
+  });
+
+  it('grows a plain prose answer on the screen instead of holding it to the end', async () => {
+    /* The model drops the object as soon as there are a few turns behind the question, and
+       an answer that only appears when it is finished is the whole thing this route exists
+       to stop. */
+    streamCall.mockImplementation(streamsIn([
+      'Your taxis came to 58,65 EUR. ', 'Cabify took 24,65 EUR. ', 'Bolt took 16,60 EUR.',
+    ]));
+    const { events, onEvent } = recorder();
+    const history = [{ role: 'twin', text: 'Nothing to do with this.' }];
+    const reply = await answerStream('u1', 'and the taxis?', history, { now: NOW, onEvent });
+    expect(events.filter((e) => e.phase === 'text').length).toBeGreaterThan(1);
+    expect(textOf(events)).toBe('Your taxis came to 58,65 €. Cabify took 24,65 €. Bolt took 16,60 €.');
+    expect(reply.text).toBe(textOf(events));
   });
 
   it('fails in one plain sentence when the model could not be reached, and says nothing of why', async () => {
