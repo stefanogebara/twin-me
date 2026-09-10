@@ -13,6 +13,7 @@
  * POST /api/money/places/lookup            look up the merchants not yet placed
  * POST /api/money/places/:key/category     a person's correction to a category
  * GET  /api/money/stream                   the pipeline as it runs, one event per real step
+ * POST /api/money/chat/stream              one answer as it is written, a sentence at a time
  * GET  /api/money/questions                what the ledger cannot answer and should ask
  * POST /api/money/questions/answer         an answer, checked against the ledger
  * POST /api/money/questions/:id/skip       a question declined stops being asked
@@ -42,7 +43,7 @@ import { parseCapture, parseStructured } from '../services/money/captureParser.j
 import { ingestSighting, ingestSightings, listTransactions, sightingsFor, refreshRecurring, forecast, setVerdict, userForCaptureKey, saveBankAccounts, listBankAccounts, pullBankFeed, refreshReadings, listReadings, setReadingVerdict, months, feedBudget, categorySpend, listPlaces, setPlaceCategory, enrichPlaces, subscriptionUsage, questionsFor, answerQuestion, skipQuestion, listFacts, learn } from '../services/money/store.js';
 import { parseDelimited, parseWorkbook, toSightings } from '../services/money/statements/importer.js';
 import { isConfigured, listBanks, startAuthorisation, createSession } from '../services/money/feeds/enableBanking.js';
-import { answer as chatAnswer, act as chatAct } from '../services/money/chat.js';
+import { answer as chatAnswer, answerStream as chatAnswerStream, act as chatAct } from '../services/money/chat.js';
 import { ahead as calendarAhead, learnEventSpend } from '../services/money/calendar.js';
 import { todayAllowance } from '../services/money/allowance.js';
 import { guessHome, savedHome, searchAreas, staticMap, saveHome } from '../services/money/home.js';
@@ -412,6 +413,45 @@ router.post('/chat', async (req, res) => {
   if (message.length > 2000) return res.status(400).json({ success: false, error: 'message is too long' });
   try { res.json({ success: true, data: await chatAnswer(req.user.id, message, Array.isArray(history) ? history : []) }); }
   catch (error) { log.error('chat failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
+});
+
+/**
+ * The same answer, as it is written.
+ * ==================================
+ * Five to twelve seconds is a long time to watch one shimmering line. The prose arrives a
+ * sentence at a time while the model is still writing; the figures and receipts follow at
+ * the end, because they are computed from the ledger and were never the model's to give.
+ * Exactly six fields ever go down this wire. The plain /chat endpoint is unchanged and the
+ * app falls back to it, so a stream that breaks costs a person nothing but the liveliness.
+ */
+router.post('/chat/stream', async (req, res) => {
+  const { message, history } = req.body || {};
+  if (typeof message !== 'string' || !message.trim()) return res.status(400).json({ success: false, error: 'message is required' });
+  if (message.length > 2000) return res.status(400).json({ success: false, error: 'message is too long' });
+
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache, no-transform',
+    Connection: 'keep-alive',
+    'X-Accel-Buffering': 'no',
+  });
+  let closed = false;
+  req.on('close', () => { closed = true; });
+  const send = (payload) => {
+    if (closed || res.writableEnded) return;
+    res.write(`data: ${JSON.stringify(payload)}\n\n`);
+  };
+
+  try {
+    await chatAnswerStream(req.user.id, message, Array.isArray(history) ? history : [], { onEvent: send });
+  } catch (error) {
+    /* The service reports its own failures as a phase; this is the belt for anything it
+       could not catch, and it says nothing about the provider or the account. */
+    log.error('chat stream failed', { error: error.message });
+    send({ phase: 'failed', detail: 'That could not be read right now.' });
+  } finally {
+    if (!res.writableEnded) res.end();
+  }
 });
 
 router.post('/chat/act', async (req, res) => {
