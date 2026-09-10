@@ -210,7 +210,7 @@ export default function CosmosSpec() {
         </div>
       </Section>
 
-      <Section id="glass" n="07" title="Glass, on media only." note="Dark glass at 20% black and blur 30 sits on photographs. The big glass holds a live readout. White cards float at 16px with a whisper shadow.">
+      <Section id="glass" n="07" title="Glass, on media only." note="Dark glass at 20% black and blur 30 sits on photographs; over pale ones it goes to 40%. The big glass holds a live readout. White cards float at 16px with a whisper shadow.">
         <div className="pc-spec-media">
           <img src="/images/twinme/cosmos-04-run.jpg" alt="" loading="lazy" />
           <span className="pc-glass"><Wave /> loops the same three songs before a deadline</span>

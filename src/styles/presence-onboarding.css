@@ -148,7 +148,9 @@
 .presence-cosmos .obx-rail { justify-self: center; display: flex; align-items: center; }
 .presence-cosmos .obx-rail button {
   appearance: none; border: 0; background: none;
-  padding: 10px 4px; cursor: default;
+  /* 24px wide, the WCAG 2.5.8 target size; the links below give back the 9px
+     so the dots keep their spacing. */
+  padding: 10px 8.5px; cursor: default;
   display: inline-flex; align-items: center;
 }
 .presence-cosmos .obx-rail button[data-nav='true'] { cursor: pointer; }
@@ -158,7 +160,7 @@
   transition: background 0.3s var(--ob-ease-ui), transform 0.3s var(--ob-ease-ui);
 }
 .presence-cosmos .obx-rail .link {
-  width: clamp(14px, 2.2vw, 28px); height: 1px;
+  width: clamp(5px, calc(2.2vw - 9px), 19px); height: 1px;
   background: rgba(13, 13, 13, 0.14);
   transition: background 0.4s var(--ob-ease);
 }

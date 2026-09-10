@@ -145,6 +145,10 @@
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
   pointer-events: none;
+  /* Paper behind the controls. Over the pinned hero it is paper on paper and
+     invisible; once the film card scrolls under the header, the dark ink of
+     "Log in" and "Menu" would otherwise sit on the dark video (measured 1.1-1.97). */
+  background: linear-gradient(color-mix(in srgb, var(--c-paper) 90%, transparent) 58%, transparent);
 }
 
 /* Legibility band while the film card slides underneath: a soft blur that fades out. */
@@ -657,12 +661,16 @@ button.pc-search-icons {
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 22px;
+  bottom: 0;
+  /* The caption carries its own scrim: on the phone crop the poster behind it
+     is bright wall, and white type measured 3.13 there. */
+  padding: 56px 16px 22px;
+  background: linear-gradient(rgba(10, 12, 18, 0), rgba(10, 12, 18, 0.46));
   text-align: center;
   font-size: 15px;
   font-weight: 500;
   letter-spacing: -0.02em;
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--c-white);
   text-shadow: 0 1px 14px rgba(0, 0, 0, 0.45);
   pointer-events: none;
 }
@@ -786,6 +794,9 @@ button.pc-search-icons {
   top: 50%;
   transform: translate(-50%, -50%);
   z-index: 2;
+  /* Over the pale album and window photos the 20% recipe left the cycling note
+     at 3.6-4.1; this placement needs the darker glass. */
+  background: rgba(0, 0, 0, 0.4);
 }
 
 /* The chip text cycles through a few notes; each swap is a short crossfade. */
@@ -1274,7 +1285,11 @@ button.pc-search-icons {
   .pc-tile:nth-child(3) { right: 5% !important; top: 13% !important; width: 92px !important; height: 92px !important; }
   /* All three stay in the band above the headline: anything lower sits under the
      hero's opaque bottom scrim and disappears. */
-  .pc-tile:nth-child(5) { left: 41% !important; right: auto !important; top: 22% !important; bottom: auto !important; width: 66px !important; height: 66px !important; }
+  /* The centre tile sits directly above the kicker, which rides the vertically
+     centred copy (measured: kicker top = 0.46 x hero height - 108px). A plain
+     percentage top fell onto "PRESENCE" below ~745px, i.e. Safari with its
+     toolbars showing; this tracks the kicker and keeps an 18px gap. */
+  .pc-tile:nth-child(5) { left: 41% !important; right: auto !important; top: calc(46% - 196px) !important; bottom: auto !important; width: 66px !important; height: 66px !important; }
 
   .pc-hero h1 {
     max-width: 12ch;
@@ -1349,6 +1364,14 @@ button.pc-search-icons {
 
   .pc-footer-links:last-child {
     justify-self: center;
+  }
+}
+
+/* Below 640px of height there is no room above the kicker for the centre tile
+   without running it under the header. */
+@media (max-width: 960px) and (max-height: 639px) {
+  .pc-tile:nth-child(5) {
+    display: none;
   }
 }
 
@@ -3363,6 +3386,14 @@ button.pc-search-icons {
   position: absolute;
   left: 24px;
   top: 24px;
+  /* The specimen's note is longer than a phone-width card: wrap inside the
+     photograph instead of running past the clipped edge. One line stays a pill. */
+  max-width: calc(100% - 48px);
+  height: auto;
+  min-height: 54px;
+  padding-block: 12px;
+  border-radius: 27px;
+  white-space: normal;
 }
 
 .pc-spec-media > .pc-glass--big {
