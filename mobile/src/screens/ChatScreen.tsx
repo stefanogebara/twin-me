@@ -358,11 +358,23 @@ export default function ChatScreen({ mode, onDone, onClose }: { mode: 'onboardin
   /* The transcript grows from the bottom: whatever is newest sits where the eye is. */
   const toEnd = useCallback(() => { scroller.current?.scrollToEnd({ animated: !reduced }); }, [reduced]);
   /* An answer that grows must not drag the page down under somebody who scrolled up to read
-     what was said earlier. The transcript follows the text only while they are at the foot. */
+     what was said earlier. The transcript follows the text only while they are at the foot.
+     Only a hand moves that flag: a scroll of our own passes through every position on its
+     way down, and reading one of those as "they have left the foot" would stop the page
+     following its own answer after the first line. */
   const atFoot = useRef(true);
-  const onScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
+  const dragging = useRef(false);
+  const measureFoot = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const { layoutMeasurement, contentOffset, contentSize } = e.nativeEvent;
     atFoot.current = contentSize.height - (contentOffset.y + layoutMeasurement.height) < 48;
+  };
+  const onScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    if (dragging.current) measureFoot(e);
+  }, []);
+  const onDragStart = useCallback(() => { dragging.current = true; }, []);
+  const onScrollSettled = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    measureFoot(e);
+    dragging.current = false;
   }, []);
   const keepAtFoot = useCallback(() => { if (atFoot.current) toEnd(); }, [toEnd]);
 
@@ -697,6 +709,9 @@ export default function ChatScreen({ mode, onDone, onClose }: { mode: 'onboardin
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="interactive"
           onScroll={onScroll}
+          onScrollBeginDrag={onDragStart}
+          onScrollEndDrag={onScrollSettled}
+          onMomentumScrollEnd={onScrollSettled}
           scrollEventThrottle={16}
           onContentSizeChange={keepAtFoot}
         >
