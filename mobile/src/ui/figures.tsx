@@ -59,8 +59,8 @@ export function Band({ spent, likely, high }: { spent: number; likely: number; h
         ) : null}
       </View>
       <View style={s.between}>
-        <Micro>spent {euro(spent)}</Micro>
-        <Micro>likely {euro(likely)}</Micro>
+        <Micro tabular>Spent {euro(spent)}</Micro>
+        <Micro tabular>Likely {euro(likely)}</Micro>
       </View>
     </View>
   );
@@ -232,7 +232,7 @@ const s = StyleSheet.create({
   figure: { gap: cosmos.space.md, paddingVertical: cosmos.space.sm },
 
   band: { gap: cosmos.space.md },
-  bandTrack: { height: 6, borderRadius: cosmos.radius.pill, backgroundColor: cosmos.color.card },
+  bandTrack: { height: 6, borderRadius: cosmos.radius.pill, backgroundColor: cosmos.color.panelDeep },
   bandLikely: { position: 'absolute', top: 0, left: 0, height: 6, borderRadius: cosmos.radius.pill, backgroundColor: cosmos.color.rule },
   bandSpent: { position: 'absolute', top: 0, left: 0, height: 6, borderRadius: cosmos.radius.pill, backgroundColor: cosmos.color.ink },
   between: { flexDirection: 'row', justifyContent: 'space-between' },
@@ -250,13 +250,13 @@ const s = StyleSheet.create({
   shareRow: { gap: cosmos.space.xs },
   shareLine: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: cosmos.space.md },
   shareLabel: { flex: 1 },
-  shareTrack: { height: 4, borderRadius: cosmos.radius.pill, backgroundColor: cosmos.color.card, overflow: 'hidden' },
+  shareTrack: { height: 4, borderRadius: cosmos.radius.pill, backgroundColor: cosmos.color.panelDeep, overflow: 'hidden' },
   shareBar: { height: 4, borderRadius: cosmos.radius.pill, backgroundColor: cosmos.color.ink },
 
   map: { gap: cosmos.space.sm, paddingVertical: cosmos.space.sm },
   mapFrame: {
     width: '100%', aspectRatio: 2, borderRadius: cosmos.radius.card, overflow: 'hidden',
-    borderWidth: StyleSheet.hairlineWidth, borderColor: cosmos.color.ruleStrong, backgroundColor: cosmos.color.card,
+    borderWidth: StyleSheet.hairlineWidth, borderColor: cosmos.color.rule, backgroundColor: cosmos.color.panel,
   },
   mapImage: { width: '100%', height: '100%' },
   mapCaption: { gap: 2 },

@@ -167,7 +167,7 @@ export default function MonthScreen({ onOpenQuestions, questionCount, onOpenLedg
     return (
       <Page style={layout.content}>
         <Micro>{label}</Micro>
-        <Small quiet style={layout.after}>Reading the ledger.</Small>
+        <Small style={layout.after}>Reading the ledger.</Small>
       </Page>
     );
   }
@@ -211,7 +211,7 @@ export default function MonthScreen({ onOpenQuestions, questionCount, onOpenLedg
               <View style={layout.band}>
                 <Band spent={forecast.spent} likely={Math.max(forecast.projected_p50, forecast.spent + forecast.committed)} high={forecast.projected_p90} />
               </View>
-              {otherSide ? <Small quiet style={layout.after}>{otherSide}</Small> : null}
+              {otherSide ? <Small style={layout.after}>{otherSide}</Small> : null}
 
               {/* The one number a person opens the app for. It sits under the month rather than
                   over it: the month is what happened, this is what today can carry. */}
@@ -220,13 +220,13 @@ export default function MonthScreen({ onOpenQuestions, questionCount, onOpenLedg
                   <Hairline />
                   <Micro style={layout.after}>Safe to spend today</Micro>
                   {today.amount === null ? (
-                    <Small quiet style={layout.afterSmall}>{today.why}</Small>
+                    <Small style={layout.afterSmall}>{today.why}</Small>
                   ) : (
                     <>
                       <Title tabular style={layout.afterSmall}>
                         {today.over ? 'Nothing.' : euro(today.amount)}
                       </Title>
-                      {today.sentence ? <Small quiet style={layout.afterSmall}>{today.sentence}</Small> : null}
+                      {today.sentence ? <Small style={layout.afterSmall}>{today.sentence}</Small> : null}
                     </>
                   )}
                 </View>
@@ -254,25 +254,25 @@ export default function MonthScreen({ onOpenQuestions, questionCount, onOpenLedg
         {empty || unreachable ? null : (
           <>
             {/* What the money says */}
-            <Section title="What the money says.">
+            <Section title="What the money says">
               {readings.length === 0 ? (
-                <Small quiet>A reading appears once there are enough payments behind it to count one.</Small>
+                <Small>A reading appears once there are enough payments behind it to count one.</Small>
               ) : (
                 <>
-                  <Small quiet>Every line here is counted, not guessed. The payments behind it are underneath.</Small>
+                  <Small>Every line here is counted, not guessed. The payments behind it are underneath.</Small>
                   {readings.map((r, i) => (
                     <Enter key={r.id} index={i} style={layout.block}>
                       {r.verdict === 'not_me' ? (
                         /* Rejected: the reading folds away to one line, with a way back for a
                            mis-tap. It is gone from the next reading of the ledger. */
                         <View style={layout.foot}>
-                          <Small quiet style={layout.shrink}>Not yours. It will not come back.</Small>
+                          <Small style={layout.shrink}>Not yours. It will not come back.</Small>
                           <Pill small ghost label="Undo" onPress={() => void setReadingVerdict(r, 'not_me')} />
                         </View>
                       ) : (
                       <>
                       <Body>{r.sentence}</Body>
-                      {r.detail ? <Small quiet style={layout.afterSmall}>{r.detail}</Small> : null}
+                      {r.detail ? <Small style={layout.afterSmall}>{r.detail}</Small> : null}
                       {r.receipts.map((t) => (
                         <Row
                           key={t.id}
@@ -306,12 +306,12 @@ export default function MonthScreen({ onOpenQuestions, questionCount, onOpenLedg
             </Section>
 
             {/* Where it went */}
-            <Section title="Where it went this month.">
+            <Section title="Where it went">
               {!categories || categories.groups.length === 0 ? (
-                <Small quiet>Nothing is placed this month yet. A payment joins a row here once its shop has a kind of place behind it.</Small>
+                <Small>Nothing is placed this month yet. A payment joins a row here once its shop has a kind of place behind it.</Small>
               ) : (
                 <>
-                  <Small quiet>
+                  <Small>
                     {categories.read < categories.total
                       ? `${euro(categories.read)} of ${euro(categories.total)} is placed so far. The rest is waiting on a lookup.`
                       : 'Every payment this month has a kind of place behind it.'}
@@ -322,7 +322,7 @@ export default function MonthScreen({ onOpenQuestions, questionCount, onOpenLedg
                         label={g.category}
                         trail={euro(g.spent)}
                         quiet={!g.known}
-                        sub={g.known ? (g.merchants.slice(0, 3).map((m) => m.name).join(', ') || undefined) : 'not read yet'}
+                        sub={g.known ? (g.merchants.slice(0, 2).map((m) => m.name).join(', ') || undefined) : 'not read yet'}
                       />
                       <ShareBar share={g.share} quiet={!g.known} />
                     </Enter>
@@ -332,22 +332,21 @@ export default function MonthScreen({ onOpenQuestions, questionCount, onOpenLedg
             </Section>
 
             {/* What comes back */}
-            <Section title="What comes back on its own.">
+            <Section title="What comes back">
               {recurring.length === 0 ? (
-                <Small quiet>A charge becomes recurring after it has come back three times at the same rhythm.</Small>
+                <Small>A charge becomes recurring after it has come back three times at the same rhythm.</Small>
               ) : (
                 <>
-                  <Small quiet>Press one to see every charge it has made.</Small>
+                  <Small>Press one to see every charge it has made.</Small>
                   {recurring.map((r, i) => {
                     const open = openSeries === r.merchant_key;
+                    /* One line, and it has to fit at 372 points: the cadence and the next date.
+                       What it has taken in total is in the charges underneath, where a person
+                       who cares enough to open the series will find it. */
                     const meta = [
                       CADENCE[r.cadence] || r.cadence,
                       r.next_expected ? `next around ${dayMonth(r.next_expected)}` : '',
-                      r.day_of_month ? `on the ${r.day_of_month}${ordinalSuffix(r.day_of_month)}` : '',
-                    ].filter(Boolean).join(', ')
-                      + (typeof r.total_paid === 'number'
-                        ? `. ${euro(r.total_paid)} so far, over ${r.occurrences} ${r.occurrences === 1 ? 'charge' : 'charges'}.`
-                        : '.');
+                    ].filter(Boolean).join(', ');
                     return (
                       <Enter key={r.merchant_key} index={i}>
                         <Row
@@ -370,7 +369,7 @@ export default function MonthScreen({ onOpenQuestions, questionCount, onOpenLedg
                                 />
                               ))
                             ) : (
-                              <Small quiet>No charge is kept for this one yet.</Small>
+                              <Small>No charge is kept for this one yet.</Small>
                             )}
                           </View>
                         ) : null}
@@ -384,7 +383,7 @@ export default function MonthScreen({ onOpenQuestions, questionCount, onOpenLedg
             {/* Every euro. One row; the shell takes it to the Ledger. */}
             <View style={layout.tailSection}>
               <Hairline />
-              <Row label="Every euro" sub="The ledger, a month at a time, with its receipts." onPress={onOpenLedger} disabled={!onOpenLedger} />
+              <Row label="Every euro" sub="A month at a time, with receipts" onPress={onOpenLedger} disabled={!onOpenLedger} />
             </View>
           </>
         )}
@@ -412,7 +411,7 @@ const layout = StyleSheet.create({
 
   band: { marginTop: cosmos.space.lg },
 
-  shareTrack: { flexDirection: 'row', height: 2, borderRadius: cosmos.radius.pill, backgroundColor: cosmos.color.card, overflow: 'hidden' },
+  shareTrack: { flexDirection: 'row', height: 2, borderRadius: cosmos.radius.pill, backgroundColor: cosmos.color.panelDeep, overflow: 'hidden' },
   shareFill: { backgroundColor: cosmos.color.ink },
   shareFillQuiet: { backgroundColor: cosmos.color.rule },
 });

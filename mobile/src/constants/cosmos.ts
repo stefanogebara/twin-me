@@ -1,100 +1,102 @@
 /**
- * Cosmos, on the phone.
- * =====================
- * TwinMe is being rebuilt around one product, the money twin, and this is that product's
- * register carried onto the phone. It is the same contract as `src/styles/money-v2.css` on
- * the web, and where the two disagree the web is right: a person who opens the app after
- * using the site must not feel they have arrived somewhere else.
+ * The register, on the phone.
+ * ===========================
+ * TwinMe is one product now, the money twin, and this is its register. The values are not
+ * invented: they were measured out of app.instinct.co, whose calm Stefano chose as the
+ * target, by reading their stylesheet and their font binaries rather than guessing from a
+ * screenshot. Where a number here looks oddly specific, that is why.
  *
- * The register: a paper canvas, ink that is nearly black, one card tone, hairlines instead
- * of shadows, generous rounding, a black pill for the one thing worth pressing. Display
- * type set tight with negative tracking. Monospace only for counters, dates and provenance,
- * so mono still means a machine wrote it.
+ * The register in one paragraph. A white page. One ink, nearly black, and every quieter
+ * voice is that same ink at less opacity rather than a second grey, which is what keeps a
+ * screen from drifting into four kinds of grey. Hairlines instead of shadows. Cards are
+ * white with a hairline around them and hairlines between their rows. Weight 500 is the
+ * ceiling: there is no bold in this app, so emphasis has to come from size and space.
  *
- * One honest deviation. The web sets Geist, which is not published for Expo; Inter is, it
- * is already installed here, and set tight it is the closest thing available. This is
- * recorded rather than hidden, because somebody will otherwise spend an afternoon wondering
- * why the phone looks a half-step off the site.
+ * Two honest deviations, recorded rather than hidden. Their interface face is GT America,
+ * which is licensed; the web uses Geist, its closest free relative; and Geist is not
+ * published for Expo, so the phone sets Inter, which is a half-step wider. And their
+ * display face, Season Mix, is not used here at all: Stefano looked at a serif prototype
+ * and asked for it gone, so figures and headings are the same sans as everything else.
  *
- * No photograph, no gradient behind text. Glass is allowed in one role only: the floating
- * chrome (the capsule and the door) that content scrolls beneath, the way the system's own
- * bars are made. The money surface earns its calm by having almost nothing on it.
+ * No photograph, no gradient behind text, no colour of any kind. Glass is allowed in one
+ * role only: the floating chrome, the capsule and the door, that content scrolls beneath
+ * the way the system's own bars work.
  */
 
 export const cosmos = {
   color: {
-    canvas: '#fbfaf8',
-    ink: '#111111',
-    ink2: '#55534f',
-    ink3: '#8a8783',
-    card: '#f2f0eb',
+    /* The page. Instinct's ground is white, and their warm off-whites are for panels. */
+    canvas: '#ffffff',
+    /* A panel: a figure's ground, a recessed area. */
+    panel: '#faf9f7',
+    /* Deeper still, for the unfilled part of a track behind a bar. */
+    panelDeep: '#f6f5f3',
+    ink: '#101113',
+    /* Secondary text, and quiet text: the same ink, further back. Never a new grey. */
+    ink2: 'rgba(16, 17, 19, 0.6)',
+    ink3: 'rgba(16, 17, 19, 0.38)',
     white: '#ffffff',
-    rule: 'rgba(17, 17, 17, 0.10)',
-    ruleStrong: 'rgba(17, 17, 17, 0.20)',
+    rule: '#e5e7eb',
+    /* Only where a hairline has to hold an edge on its own: a field, a ghost button. */
+    ruleStrong: 'rgba(16, 17, 19, 0.2)',
+    /* A press is the ink laid over what is beneath, never a tint. */
+    press: 'rgba(16, 17, 19, 0.1)',
+    hover: 'rgba(16, 17, 19, 0.05)',
     /* Money out is ink; money in is quieter, because an arrival is not an alarm. */
-    inflow: '#55534f',
+    inflow: 'rgba(16, 17, 19, 0.6)',
   },
-  /* One scale, and nothing off it. The sizes are Apple's text styles (Large Title, Title 1,
-     Title 2, Body, Subheadline, Caption 2) so the app sits on the same rhythm as the system
-     around it; the line heights are Apple's too. Tracking stays Inter's, set tight. */
+  /* One ramp. The four smaller sizes are Instinct's, measured off their pages: body 16 on
+     24, secondary 15, fine print 14, all tracked at -0.011em. The two figures above them
+     are ours, because they show money and nothing on their site does. */
   size: {
-    display: 34,
-    title: 28,
+    display: 40,
+    title: 34,
     heading: 22,
-    body: 17,
+    label: 15,
+    body: 16,
     small: 15,
-    micro: 11,
+    micro: 14,
   },
   line: {
-    display: 41,
-    title: 34,
+    display: 44,
+    title: 38,
     heading: 28,
-    body: 22,
-    small: 20,
-    micro: 13,
+    label: 22,
+    body: 24,
+    small: 24,
+    micro: 23,
   },
+  /* Tracking is in points here, not ems: -0.011em of body, -0.022em of a heading. */
   tracking: {
-    display: -0.8,
-    title: -0.6,
-    heading: -0.4,
-    body: -0.2,
-    mono: 0.6,
+    display: -0.9,
+    title: -0.75,
+    heading: -0.48,
+    label: -0.17,
+    body: -0.18,
+    small: -0.17,
+    micro: -0.15,
   },
-  /* The 8-point grid. lg is the layout margin Apple uses on phones of this width. */
-  space: { xs: 4, sm: 8, md: 16, lg: 20, xl: 32, xxl: 48 },
+  /* md is the air inside a card, lg the page margin, xl the drop under a section label,
+     xxl the gap between one section and the next. */
+  space: { xs: 4, sm: 8, md: 14, lg: 20, xl: 24, xxl: 40 },
   /* The floating chrome: a glass capsule at the top, a glass door at the bottom. Content
-     scrolls beneath both, so every scrolling screen leaves this much room at each end. */
-  /* The door is a 56-point capsule over the home indicator, so a screen leaves rather more
-     than that below its last line: content should pass under glass while scrolling and come
-     to rest clear of it. */
+     scrolls beneath both, and comes to rest clear of them, so every scrolling screen leaves
+     this much room at each end. */
   chrome: { capsule: 52, door: 96 },
   glass: {
-    /* Enough paper in the wash that type on the glass stays fully legible, and an ink edge
-       so the capsule reads as an object on paper, not as a smudge. */
-    fill: 'rgba(251, 250, 248, 0.72)',
-    edge: 'rgba(255, 255, 255, 0.9)',
-    shade: 'rgba(17, 17, 17, 0.16)',
+    /* Enough white in the wash that type on the glass stays legible over a moving list. */
+    fill: 'rgba(255, 255, 255, 0.72)',
+    edge: '#e5e7eb',
   },
-  radius: { pill: 999, panel: 28, card: 20, field: 14 },
+  radius: { pill: 999, card: 16, button: 12, field: 4 },
   font: {
-    /* Inter, standing in for Geist. See the note at the top of this file. */
+    /* Inter, standing in for Geist. See the note at the top of this file. There is no
+       semibold on purpose: weight 500 is the ceiling, and a token nobody can reach for is
+       a rule that cannot be broken by accident. */
     regular: 'Inter_400Regular',
     medium: 'Inter_500Medium',
-    semibold: 'Inter_600SemiBold',
-    /* No monospace is installed, so counters use the platform's own, which is a real
-       monospace on both and keeps digits in line. */
-    mono: undefined as string | undefined,
   },
 } as const;
-
-/** A counter, a date, a piece of provenance. Never a sentence. */
-export const monoStyle = {
-  fontVariant: ['tabular-nums'] as const,
-  letterSpacing: cosmos.tracking.mono,
-  fontSize: cosmos.size.micro,
-  textTransform: 'uppercase' as const,
-  color: cosmos.color.ink3,
-};
 
 /** Euros, in the Spanish way, always two decimals so a column of them lines up. */
 export function euro(n: number | string | null | undefined): string {
@@ -116,4 +118,11 @@ export function dayMonthYear(iso: string | null | undefined): string {
   if (!iso) return '';
   const d = new Date(iso);
   return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+
+/** March 2027: a consent's end, where the day would be noise. */
+export function monthYear(iso: string | null | undefined): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
 }

@@ -18,21 +18,30 @@ import { cosmos } from '../constants/cosmos';
 import { ENTER_Y, PRESS_SCALE, COUNT_MS, FADE, fade, spring, staggerDelay, motionReduced } from './motion';
 
 /* ----------------------------------------------------------------------------------------
- * Type. One ramp, six sizes, and the mono role for counters and provenance.
+ * Type. One ramp. Figures are set at weight 400, because a number is large enough to carry
+ * itself; only a label or a row's title is set at 500, and 500 is the ceiling.
+ *
+ * There is no uppercase role. Instinct has none, and a tracked capital label is the single
+ * loudest thing a quiet screen can contain; the small sizes are sentence case, which is why
+ * `Micro` is now fine print rather than a caption in capitals.
  * -------------------------------------------------------------------------------------- */
 
 const ramp = StyleSheet.create({
   display: {
-    fontFamily: cosmos.font.medium, fontSize: cosmos.size.display, lineHeight: cosmos.line.display,
+    fontFamily: cosmos.font.regular, fontSize: cosmos.size.display, lineHeight: cosmos.line.display,
     letterSpacing: cosmos.tracking.display, color: cosmos.color.ink,
   },
   title: {
-    fontFamily: cosmos.font.medium, fontSize: cosmos.size.title, lineHeight: cosmos.line.title,
+    fontFamily: cosmos.font.regular, fontSize: cosmos.size.title, lineHeight: cosmos.line.title,
     letterSpacing: cosmos.tracking.title, color: cosmos.color.ink,
   },
   heading: {
     fontFamily: cosmos.font.medium, fontSize: cosmos.size.heading, lineHeight: cosmos.line.heading,
     letterSpacing: cosmos.tracking.heading, color: cosmos.color.ink,
+  },
+  label: {
+    fontFamily: cosmos.font.medium, fontSize: cosmos.size.label, lineHeight: cosmos.line.label,
+    letterSpacing: cosmos.tracking.label, color: cosmos.color.ink,
   },
   body: {
     fontFamily: cosmos.font.regular, fontSize: cosmos.size.body, lineHeight: cosmos.line.body,
@@ -40,11 +49,11 @@ const ramp = StyleSheet.create({
   },
   small: {
     fontFamily: cosmos.font.regular, fontSize: cosmos.size.small, lineHeight: cosmos.line.small,
-    letterSpacing: cosmos.tracking.body, color: cosmos.color.ink2,
+    letterSpacing: cosmos.tracking.small, color: cosmos.color.ink2,
   },
   micro: {
     fontFamily: cosmos.font.regular, fontSize: cosmos.size.micro, lineHeight: cosmos.line.micro,
-    letterSpacing: cosmos.tracking.mono, textTransform: 'uppercase', color: cosmos.color.ink3,
+    letterSpacing: cosmos.tracking.micro, color: cosmos.color.ink2,
   },
 });
 
@@ -56,10 +65,12 @@ const digits = (p: T): TextStyle | undefined => (p.tabular ? { fontVariant: ['ta
 export const Display = (p: T) => <Text {...p} style={[ramp.display, tone(p), digits(p), p.style]} />;
 export const Title = (p: T) => <Text {...p} style={[ramp.title, tone(p), digits(p), p.style]} />;
 export const Heading = (p: T) => <Text {...p} style={[ramp.heading, tone(p), digits(p), p.style]} />;
+/** The name of a section, or the title of a row. Sentence case, weight 500, ink. */
+export const Label = (p: T) => <Text {...p} style={[ramp.label, tone(p), digits(p), p.style]} />;
 export const Body = (p: T) => <Text {...p} style={[ramp.body, tone(p), digits(p), p.style]} />;
 export const Small = (p: T) => <Text {...p} style={[ramp.small, tone(p), digits(p), p.style]} />;
-/** A counter, a date, a piece of provenance. Never a sentence. */
-export const Micro = (p: T) => <Text {...p} style={[ramp.micro, digits({ ...p, tabular: true }), p.style]} />;
+/** Fine print: a date, a count, a piece of provenance. Sentence case, and set back. */
+export const Micro = (p: T) => <Text {...p} style={[ramp.micro, tone(p), digits(p), p.style]} />;
 
 /* ----------------------------------------------------------------------------------------
  * Structure.
@@ -70,41 +81,107 @@ export const Hairline = ({ style }: { style?: StyleProp<ViewStyle> }) => (
   <View style={[{ height: StyleSheet.hairlineWidth, backgroundColor: cosmos.color.rule }, style]} />
 );
 
-/** A page: paper, side padding, and the rhythm between sections. */
+/** A page: white, and the rhythm between sections. */
 export const Page = ({ children, style }: { children: React.ReactNode; style?: StyleProp<ViewStyle> }) => (
   <View style={[{ flex: 1, backgroundColor: cosmos.color.canvas }, style]}>{children}</View>
 );
 
-/** A section: a hairline above, a heading, generous space, and its content. */
+/**
+ * A section: its name, then its content. Sections are told apart by the space above them,
+ * not by a rule across the page, which is how their pages read as calm rather than ruled.
+ */
 export function Section({ title, aside, children }: { title: string; aside?: string; children: React.ReactNode }) {
   return (
     <View style={s.section}>
-      <Hairline />
       <View style={s.sectionHead}>
-        <Heading>{title}</Heading>
-        {aside ? <Micro>{aside}</Micro> : null}
+        <Label>{title}</Label>
+        {aside ? <Micro quiet>{aside}</Micro> : null}
       </View>
       {children}
     </View>
   );
 }
 
-/** A row in a list: date or label on the left in mono, the name, and a tabular amount. */
-export function Row({ lead, label, sub, trail, quiet, onPress, disabled }: {
-  lead?: string; label: string; sub?: string; trail?: string; quiet?: boolean; onPress?: () => void; disabled?: boolean;
+/**
+ * A panel: white, a hairline around it, and hairlines between the rows inside it. This is
+ * the only box in the app. Anything that is a list of related things goes in one.
+ */
+export function Panel({ children, style }: { children: React.ReactNode; style?: StyleProp<ViewStyle> }) {
+  return (
+    <View style={[s.panel, style]}>
+      <List>{children}</List>
+    </View>
+  );
+}
+
+/**
+ * A list: rows against the page, parted by hairlines and nothing else. A list is not a
+ * panel: ninety ledger rows in a box would be a box, so the long ones are bare and only a
+ * short set of related things earns a border around it.
+ */
+export function List({ children, style }: { children: React.ReactNode; style?: StyleProp<ViewStyle> }) {
+  const rows = React.Children.toArray(children).filter(Boolean);
+  return (
+    <View style={style}>
+      {rows.map((child, i) => (
+        <View key={i}>
+          {i > 0 ? <Hairline /> : null}
+          {child}
+        </View>
+      ))}
+    </View>
+  );
+}
+
+/**
+ * A row. Two shapes, one component.
+ *
+ * A thing you can open is a glyph, a title, one line saying what it is, and a chevron. It
+ * never carries a button: on a 390 point screen a button on the right takes the width the
+ * sentence needs, and the sentence is what the person is reading. That is the single change
+ * that stopped every description in this app from ending in an ellipsis.
+ *
+ * A thing you are just reading is a date, a name and an amount.
+ */
+export function Row({ lead, glyph, label, sub, trail, quiet, onPress, disabled, inset }: {
+  lead?: string;
+  glyph?: React.ReactNode;
+  label: string;
+  sub?: string;
+  trail?: string;
+  quiet?: boolean;
+  onPress?: () => void;
+  disabled?: boolean;
+  /** Inside a panel the row carries the panel's air; on open page it carries its own. */
+  inset?: boolean;
 }) {
+  const titled = Boolean(sub || glyph);
   const inner = (
-    <View style={s.row}>
-      {lead ? <Micro style={s.rowLead}>{lead}</Micro> : null}
+    <View style={[s.row, inset && s.rowInset, titled && s.rowTitled]}>
+      {lead ? <Micro quiet tabular style={s.rowLead}>{lead}</Micro> : null}
+      {glyph ? <View style={s.rowGlyph}>{glyph}</View> : null}
       <View style={s.rowMid}>
-        <Body muted={quiet} numberOfLines={1}>{label}</Body>
-        {sub ? <Small quiet>{sub}</Small> : null}
+        {titled
+          ? <Label numberOfLines={1}>{label}</Label>
+          : <Body muted={quiet} numberOfLines={1} style={s.rowName}>{label}</Body>}
+        {sub ? <Micro numberOfLines={1}>{sub}</Micro> : null}
       </View>
-      {trail ? <Body muted={quiet} tabular style={s.rowTrail}>{trail}</Body> : null}
+      {trail ? <Body muted={quiet} tabular numberOfLines={1} style={s.rowTrail}>{trail}</Body> : null}
+      {!trail && onPress ? <Chevron /> : null}
     </View>
   );
   if (!onPress) return inner;
   return <Press onPress={onPress} disabled={disabled}>{inner}</Press>;
+}
+
+/** The one affordance that says a row opens something. Drawn, so it needs no icon font. */
+export function Chevron() {
+  return (
+    <View style={s.chevron}>
+      <View style={s.chevronTop} />
+      <View style={s.chevronBottom} />
+    </View>
+  );
 }
 
 /* ----------------------------------------------------------------------------------------
@@ -118,10 +195,9 @@ export function Glass({ children, style, radius = cosmos.radius.pill }: { childr
     <View style={[{ borderRadius: radius, overflow: 'hidden' }, style]}>
       <BlurView intensity={60} tint="light" style={StyleSheet.absoluteFill} />
       <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: cosmos.glass.fill, borderRadius: radius }]} />
-      {/* Two rings: an ink hairline for the edge, a bright hairline just inside it for the light
-          the material catches. Together they are what makes glass read as glass on paper. */}
-      <View pointerEvents="none" style={[StyleSheet.absoluteFill, { borderRadius: radius, borderWidth: 1, borderColor: cosmos.glass.shade }]} />
-      <View pointerEvents="none" style={[StyleSheet.absoluteFill, { borderRadius: radius, borderWidth: 1, borderColor: cosmos.glass.edge, margin: 1 }]} />
+      {/* One hairline, the same one every other edge in the app uses. On a white page a
+          second brighter ring has nothing to catch, and reads as a seam. */}
+      <View pointerEvents="none" style={[StyleSheet.absoluteFill, { borderRadius: radius, borderWidth: 1, borderColor: cosmos.glass.edge }]} />
       {children}
     </View>
   );
@@ -230,27 +306,52 @@ export function Counting({ value, format, style }: { value: number; format: (n: 
  * -------------------------------------------------------------------------------------- */
 
 const s = StyleSheet.create({
-  section: { gap: cosmos.space.md, paddingTop: cosmos.space.lg, marginTop: cosmos.space.lg },
-  sectionHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', paddingTop: cosmos.space.md },
-  row: { flexDirection: 'row', alignItems: 'baseline', gap: cosmos.space.md, paddingVertical: 12, minHeight: 44 },
-  rowLead: { width: 58 },
-  rowMid: { flex: 1, gap: 2 },
-  rowTrail: { textAlign: 'right' },
-  pill: {
-    alignSelf: 'flex-start', backgroundColor: cosmos.color.ink, borderRadius: cosmos.radius.pill,
-    paddingVertical: 14, paddingHorizontal: 22, minHeight: 48, justifyContent: 'center',
+  section: { gap: cosmos.space.md, marginTop: cosmos.space.xxl },
+  sectionHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
+
+  panel: {
+    borderWidth: 1, borderColor: cosmos.color.rule, borderRadius: cosmos.radius.card,
+    backgroundColor: cosmos.color.white, overflow: 'hidden',
   },
-  pillGhost: { backgroundColor: 'transparent', borderWidth: 1, borderColor: cosmos.color.ruleStrong },
+
+  row: { flexDirection: 'row', alignItems: 'center', gap: cosmos.space.md, paddingVertical: 12, minHeight: 48 },
+  /* A row inside a panel wears the panel's air; on the open page it wears its own. */
+  rowInset: { paddingHorizontal: cosmos.space.md },
+  /* A titled row stacks two lines, so it is measured from the top rather than the middle. */
+  rowTitled: { alignItems: 'center' },
+  rowLead: { width: 52 },
+  rowGlyph: { width: 28, height: 28, alignItems: 'center', justifyContent: 'center' },
+  rowMid: { flex: 1, minWidth: 0, gap: 1 },
+  rowName: { fontSize: cosmos.size.label, lineHeight: cosmos.line.label },
+  rowTrail: { textAlign: 'right', fontSize: cosmos.size.label, lineHeight: cosmos.line.label },
+
+  chevron: { width: 20, height: 20, alignItems: 'center', justifyContent: 'center' },
+  chevronTop: {
+    position: 'absolute', width: 8, height: 1.4, borderRadius: 1, backgroundColor: cosmos.color.ink3,
+    transform: [{ translateY: -2.4 }, { rotate: '45deg' }],
+  },
+  chevronBottom: {
+    position: 'absolute', width: 8, height: 1.4, borderRadius: 1, backgroundColor: cosmos.color.ink3,
+    transform: [{ translateY: 2.4 }, { rotate: '-45deg' }],
+  },
+
+  pill: {
+    alignSelf: 'flex-start', backgroundColor: cosmos.color.ink, borderRadius: cosmos.radius.button,
+    paddingVertical: 13, paddingHorizontal: 20, minHeight: 48, justifyContent: 'center',
+  },
+  pillGhost: { backgroundColor: cosmos.color.white, borderWidth: 1, borderColor: cosmos.color.rule },
   pillSmall: { paddingVertical: 9, paddingHorizontal: 14, minHeight: 36 },
   pillOff: { opacity: 0.45 },
-  pillText: { fontFamily: cosmos.font.medium, fontSize: 15, letterSpacing: -0.1, color: cosmos.color.canvas },
+  pillText: { fontFamily: cosmos.font.medium, fontSize: 15, lineHeight: 22, letterSpacing: cosmos.tracking.label, color: cosmos.color.white },
   pillTextGhost: { color: cosmos.color.ink },
-  pillTextSmall: { fontSize: 13 },
+  pillTextSmall: { fontSize: 14 },
+
+  /* A word you can choose. Still a pill, because it is a word and not a button. */
   card: {
-    borderRadius: cosmos.radius.pill, borderWidth: 1, borderColor: cosmos.color.ruleStrong,
-    paddingVertical: 12, paddingHorizontal: 18, backgroundColor: cosmos.color.canvas,
+    borderRadius: cosmos.radius.pill, borderWidth: 1, borderColor: cosmos.color.rule,
+    paddingVertical: 10, paddingHorizontal: 16, backgroundColor: cosmos.color.white,
   },
   cardOn: { backgroundColor: cosmos.color.ink, borderColor: cosmos.color.ink },
-  cardText: { fontFamily: cosmos.font.medium, fontSize: 15, letterSpacing: -0.1, color: cosmos.color.ink },
-  cardTextOn: { color: cosmos.color.canvas },
+  cardText: { fontFamily: cosmos.font.medium, fontSize: 15, lineHeight: 22, letterSpacing: cosmos.tracking.label, color: cosmos.color.ink },
+  cardTextOn: { color: cosmos.color.white },
 });

@@ -18,7 +18,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { DeviceEventEmitter, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { cosmos, dayMonth, euro } from '../constants/cosmos';
-import { Body, Card, Enter, Hairline, Heading, Micro, Page, Pill, Press, Row, Small, Title } from '../ui/primitives';
+import { Body, Card, Enter, Hairline, Heading, Label, Micro, Page, Pill, Press, Row, Small, Title } from '../ui/primitives';
 import { Figure, HomeMap } from '../ui/figures';
 import { Prompt, Shimmer } from '../ui/prompt';
 import { useReducedMotion } from '../ui/motion';
@@ -138,7 +138,7 @@ function Field({ label, value, placeholder, onChange, numeric, decimal, flex }: 
 function QuietAction({ label, onPress, disabled }: { label: string; onPress: () => void; disabled?: boolean }) {
   return (
     <Press onPress={onPress} disabled={disabled} accessibilityLabel={label} style={s.quiet}>
-      <Small quiet>{label}</Small>
+      <Small>{label}</Small>
     </Press>
   );
 }
@@ -151,9 +151,9 @@ function Trace({ steps }: { steps: TraceStep[] }) {
         <Enter key={st.step} index={i} style={s.traceStep}>
           <View style={s.traceHead}>
             {st.state === 'working' ? <Shimmer text={st.label} style={s.traceLive} /> : <Micro>{st.label}</Micro>}
-            <Micro>{st.state === 'working' ? 'working' : st.state === 'failed' ? 'could not' : st.count !== null && st.count !== undefined ? String(st.count) : 'done'}</Micro>
+            <Micro quiet tabular>{st.state === 'working' ? 'working' : st.state === 'failed' ? 'could not' : st.count !== null && st.count !== undefined ? String(st.count) : 'done'}</Micro>
           </View>
-          {st.detail ? <Small quiet numberOfLines={2}>{st.detail}</Small> : null}
+          {st.detail ? <Small numberOfLines={2}>{st.detail}</Small> : null}
         </Enter>
       ))}
     </View>
@@ -620,15 +620,15 @@ export default function ChatScreen({ mode, onDone, onClose }: { mode: 'onboardin
         {mode === 'onboarding' ? (
           <>
             <View style={[s.head, { paddingTop: insets.top + cosmos.space.md }]}>
-              <Micro>{phase === 'done' ? 'Done' : phase === 'reading' ? 'Reading' : 'What only you know'}</Micro>
-              {question ? <Micro>{`${index + 1} of ${queue.length}`}</Micro> : null}
+              <Label>{phase === 'done' ? 'Done' : phase === 'reading' ? 'Reading' : 'What only you know'}</Label>
+              {question ? <Micro quiet tabular>{`${index + 1} of ${queue.length}`}</Micro> : null}
             </View>
             <Hairline />
           </>
         ) : (
           <>
             <View style={[s.head, s.headAsk]}>
-              <Micro>Ask</Micro>
+              <Label>Ask</Label>
               {onClose ? <Pill label="Close" ghost small onPress={onClose} /> : null}
             </View>
             <Hairline />
@@ -650,10 +650,10 @@ export default function ChatScreen({ mode, onDone, onClose }: { mode: 'onboardin
             const isCurrentQuestion = Boolean(l.question) && question !== null && l.question!.id === question.id;
             return (
               <Enter key={l.id} settle style={[s.line, l.who === 'you' && s.lineYou]}>
-                {l.chapter && !l.pending ? <Micro>{l.chapter}</Micro> : speakerChanged && !l.quiet ? <Micro>{l.who === 'you' ? 'You' : 'The ledger'}</Micro> : null}
+                {l.chapter && !l.pending ? <Micro quiet>{l.chapter}</Micro> : speakerChanged && !l.quiet ? <Micro quiet>{l.who === 'you' ? 'You' : 'The ledger'}</Micro> : null}
                 {l.lead ? <Title tabular>{l.lead}</Title> : null}
                 {l.heading && !l.pending ? <Heading accessibilityRole="header">{l.heading}</Heading> : null}
-                {l.pending ? <Shimmer text={l.text} /> : l.quiet ? <Small quiet>{l.text}</Small> : <Body muted={l.who === 'you'}>{l.text}</Body>}
+                {l.pending ? <Shimmer text={l.text} /> : l.quiet ? <Small>{l.text}</Small> : <Body muted={l.who === 'you'}>{l.text}</Body>}
                 {l.small?.map((t, k) => <Small key={k} quiet>{t}</Small>)}
                 {l.home && !l.pending ? <HomeMap lat={l.home.lat} lng={l.home.lng} district={l.home.district} basis={l.home.basis} /> : null}
                 {l.home?.open && question?.kind === 'home_area' ? (
@@ -806,6 +806,6 @@ const s = StyleSheet.create({
   traceStep: { gap: 2 },
   traceHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: cosmos.space.md },
   composer: { paddingHorizontal: cosmos.space.lg, paddingTop: cosmos.space.sm, backgroundColor: cosmos.color.canvas },
-  /* The live step in the trace is read in the mono voice, lit while it works. */
-  traceLive: { fontSize: cosmos.size.micro, lineHeight: 14, letterSpacing: cosmos.tracking.mono, textTransform: 'uppercase', color: cosmos.color.ink3 },
+  /* The live step in the trace: the same fine print as the rest, lit while it works. */
+  traceLive: { fontSize: cosmos.size.micro, lineHeight: cosmos.line.micro, letterSpacing: cosmos.tracking.micro, color: cosmos.color.ink2 },
 });

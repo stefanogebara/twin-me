@@ -23,7 +23,7 @@ import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-cont
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import * as SecureStore from 'expo-secure-store';
-import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold } from '@expo-google-fonts/inter';
+import { Inter_400Regular, Inter_500Medium } from '@expo-google-fonts/inter';
 import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 
 import { cosmos } from './src/constants/cosmos';
@@ -151,7 +151,7 @@ function CapsuleWord({ label, on }: { label: string; on: boolean }) {
   const a = useAnimatedStyle(() => ({ opacity: bright.value }));
   return (
     <View style={styles.capsuleItem}>
-      <Micro>{label}</Micro>
+      <Micro quiet>{label}</Micro>
       <Animated.View style={[StyleSheet.absoluteFill, styles.capsuleItem, a]} pointerEvents="none">
         <Micro style={styles.capsuleOn}>{label}</Micro>
       </Animated.View>
@@ -325,7 +325,9 @@ function StepFrame({ children, onNext, nextLabel = 'Continue' }: { children: Rea
 }
 
 export default function App() {
-  const [fontsLoaded] = useFonts({ Inter_400Regular, Inter_500Medium, Inter_600SemiBold });
+  /* Two weights, because 500 is the ceiling: a font nobody can reach for is a rule
+     that cannot be broken by accident, and it is one less file to fetch at launch. */
+  const [fontsLoaded] = useFonts({ Inter_400Regular, Inter_500Medium });
   if (!fontsLoaded) {
     return <View style={styles.fill} />;
   }
@@ -346,7 +348,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: cosmos.space.md, height: cosmos.chrome.capsule - cosmos.space.sm, position: 'relative',
   },
   capsuleItem: { paddingVertical: 12, paddingHorizontal: 4, minHeight: 44, justifyContent: 'center' },
-  capsuleOn: { color: cosmos.color.ink },
+  capsuleOn: { color: cosmos.color.ink, fontFamily: cosmos.font.medium },
   capsuleLine: { position: 'absolute', left: 0, bottom: 8, height: StyleSheet.hairlineWidth * 2, backgroundColor: cosmos.color.ink },
   stepFoot: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end',
