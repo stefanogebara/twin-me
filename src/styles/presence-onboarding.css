@@ -53,13 +53,20 @@
   --ob-line: rgba(13, 13, 13, 0.09);
   --ob-line-firm: rgba(13, 13, 13, 0.16);
 
-  /* Secondary text that sits on the PHOTOGRAPH rather than on a panel needs
-     its own ink. Sampling the still under the lead and compositing it through
-     the veil, the shared --c-ink-2 (#6e6a69) lands at 3.91:1 — below the AA
-     floor. It looks fine, which is exactly why it would have shipped. #5e5a57
-     measures 4.99:1 against the lightest pixel in that band. The shared token
-     is deliberately NOT changed: it is correct everywhere it sits on paper. */
-  --ob-ink-on-room: #5e5a57;
+  /* Text that sits on the PHOTOGRAPH rather than on a panel needs its own ink:
+     the room is far darker than any panel, so the shared ramp — which is spaced
+     against paper and panel grounds — cannot reach here. (The original note
+     said the shared token was "deliberately NOT changed" because it was correct
+     on paper. It was not: --c-ink-3 failed AA on paper too, and both shared
+     inks have since been re-spaced. This token is still needed, for the
+     photograph, not for the shared ramp being wrong.)
+
+     Measured under the glyphs on this page's still: #5e5a57 carried .obx-sub
+     (18px) at 5.13:1 on its darkest pixel, but .obx-eyebrow is 12px mono over a
+     busier part of the room — darkest ground rgb(203,202,197) — where #5e5a57
+     reached only 4.16. #544f4c clears both: eyebrow 5.49/4.92, sub 6.24/6.07
+     (5th-percentile / darkest pixel). */
+  --ob-ink-on-room: #544f4c;
 
   --ob-serif: 'Instrument Serif', Georgia, serif;
   --ob-mono: 'Geist Mono', ui-monospace, 'SF Mono', Menlo, monospace;
@@ -297,13 +304,18 @@
 
 .presence-cosmos .obx-spine { min-width: 0; padding-top: 4px; }
 
+/* On the room, not on a panel — so it takes the on-room ink, like its sibling
+   .obx-sub, not the shared --c-ink-3. --c-ink-3 is spaced against panel and
+   paper grounds; over the photograph it measured 3.35:1 even after the ramp was
+   re-spaced, and no value of that token could rescue it without going darker
+   than text on paper needs to be. */
 .presence-cosmos .obx-eyebrow {
   margin: 0 0 var(--ob-s3);
   font-family: var(--ob-mono);
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.13em;
-  color: var(--c-ink-3);
+  color: var(--ob-ink-on-room);
 }
 
 /* Law 3 + 4: the headline is read, so serif; one italic word per display

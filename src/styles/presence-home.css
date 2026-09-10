@@ -56,17 +56,22 @@
 
   /* Secondary text sitting on the PHOTOGRAPH rather than on a panel needs its
      own ink — measured, not guessed. See presence-onboarding.css for the
-     method; this page keeps a heavier veil, so the same value has margin. */
+     method. That page has since moved its own on-room ink to #544f4c, because
+     its 12px mono eyebrow sits over a busier part of the still; this page keeps
+     #5e5a57, whose heavier veil gives it margin at the sizes it is used at
+     here. The two are no longer the same value on purpose — if this page ever
+     puts 11-12px on the room, measure it before assuming this one reaches. */
   --dsh-ink-on-room: #5e5a57;
 
-  /* The shared muted ink is not readable. Measured on this page's frosted
-     panels, --c-ink-3 (#9a9796) lands at 2.81:1, and on bare paper it is
-     2.87:1 — it fails AA everywhere in the app that it paints text, not just
-     here. #757170 measures 4.67:1 on the same ground and still reads as a
-     third step below --c-ink-2. Overridden inside .dsh only: correcting the
-     shared token would silently restyle five other surfaces, which is a
-     separate change with its own review. */
-  --c-ink-3: #757170;
+  /* The --c-ink-3 override that used to live here is gone: the shared token in
+     presence-cosmos.css was re-spaced (#9a9796 -> #6c6867) and now clears AA on
+     this page's panels on its own. Two corrections to what that override
+     claimed, both from measuring the rendered raster rather than the recipe:
+     #9a9796 is 2.67:1 on paper (not 2.87), and #757170 was never 4.67:1 on
+     these panels — the ground under .dsh-plate-eyebrow is rgb(235,235,233), not
+     the near-white the panel recipe suggests, so #757170 landed at 4.01–4.36
+     and still failed AA on this very screen. The shared value measures 4.57:1
+     on that same ground. */
 
   --dsh-serif: 'Instrument Serif', Georgia, serif;
   --dsh-mono: 'Geist Mono', ui-monospace, 'SF Mono', Menlo, monospace;

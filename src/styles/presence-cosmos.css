@@ -31,8 +31,29 @@
   --c-white: #ffffff;
   --c-search: #fbfaf9;
   --c-ink: #0d0d0d;
-  --c-ink-2: #6e6a69;
-  --c-ink-3: #9a9796;
+  /* The ink ramp is spaced by measurement, not by eye. Every value below is
+     the lightest one that clears its WCAG floor on the DARKEST ground it
+     actually sits on across all nine Cosmos surfaces — paper, white cards, and
+     the frosted panels over the room, sampled from the rendered raster by
+     scripts/audit-cosmos-ink.mjs. Re-run that script before touching them.
+
+     The old ramp (ink-2 #6e6a69, ink-3 #9a9796) could not hold: ink-3 measured
+     2.67:1 on paper and failed AA on all 112 of its live runs — including the
+     seven icon uses at the 3:1 non-text floor — and ink-2 sat at only 4.92:1,
+     which left no contrast room beneath it for a compliant third step. Any
+     ink-3 dark enough to read landed on top of ink-2, so the fix had to
+     re-space the pair, not just darken ink-3. #757170 (the scoped stand-in
+     that used to live in presence-home.css) is NOT sufficient either — it
+     still failed 38 of those runs.
+
+     value    L*     on paper   role
+     ink      3.6    17.87:1    display, primary action
+     ink-2    33.9    7.44:1    body and secondary text
+     ink-3    44.3    5.06:1    labels, empty states, timestamps, tags, icons
+     ink-4    82.6    1.45:1    RULES AND FILLS ONLY — never text
+     steps: 30.3 L* then 10.4 L*, so the three read as three. */
+  --c-ink-2: #534f4e;
+  --c-ink-3: #6c6867;
   --c-ink-4: #d0cdcd;
   --c-border: rgba(13, 13, 13, 0.12);
   --c-hover-primary: #232323;

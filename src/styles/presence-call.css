@@ -11,10 +11,14 @@
    - Law 1 (one photograph carries the page) does not apply. A still behind
      84px type costs contrast and buys nothing for someone who is already in
      the room the photograph is of. Her screen is paper.
-   - Nothing on this page uses --c-ink-3. On paper it measures 2.67:1, which
-     fails AA outright; it was painting the day of each conversation ("Ontem")
-     and the heading over her own memories. Small text here aims past the 4.5
-     floor rather than at it.
+   - Nothing on this page uses --c-ink-3. When this screen was built the token
+     was #9a9796 and measured 2.67:1 on paper, failing AA outright; it was
+     painting the day of each conversation ("Ontem") and the heading over her
+     own memories. The shared token has since been re-spaced to #6c6867
+     (5.06:1), so the two "was --c-ink-3" notes below are history, not a
+     description of what that token does today. The choice stands anyway: this
+     screen is read by someone with poor vision, so small text aims past the
+     4.5 floor rather than at it, and --c-ink-2 (now 7.44:1) is where it aims.
 
    Kept, and made true:
 

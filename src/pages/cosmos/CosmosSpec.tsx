@@ -20,11 +20,17 @@ const SURFACES = [
   ['Hover', '#e8e6e4', 'secondary hover'],
 ] as const;
 
+/* These are COPIES of the tokens in presence-cosmos.css, so the spec page can
+   print a hex next to each swatch. They drift silently — this list still said
+   Ink 2 #6e6a69 / Ink 3 #9a9796 after the ramp was re-spaced, which made the
+   design system's own reference page the last place still describing the old
+   values. If you change an ink, change it here too, and re-run
+   scripts/audit-cosmos-ink.mjs. */
 const INKS = [
   ['Ink', '#0d0d0d', 'headings, actions, body'],
-  ['Ink 2', '#6e6a69', 'ledes, secondary'],
-  ['Ink 3', '#9a9796', 'placeholders, legal'],
-  ['Ink 4', '#d0cdcd', 'disabled'],
+  ['Ink 2', '#534f4e', 'ledes, secondary, body'],
+  ['Ink 3', '#6c6867', 'labels, empty states, tags, icons'],
+  ['Ink 4', '#d0cdcd', 'rules and fills only, never text'],
   ['Border', 'rgba(13,13,13,.12)', 'the 0.5px hairline'],
 ] as const;
 

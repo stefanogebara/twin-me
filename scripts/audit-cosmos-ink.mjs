@@ -1,0 +1,368 @@
+/**
+ * Cosmos ink audit — is a colour token readable everywhere it actually paints?
+ *
+ * Sibling of scripts/audit-presence-home.mjs, which measures ONE screen. This
+ * one takes a token and walks every surface that loads presence-cosmos.css,
+ * because a shared token's problem is never confined to the screen you noticed
+ * it on: --c-ink-3 was patched locally in presence-home.css at 2.8:1 while the
+ * same token was painting 112 runs across nine other surfaces at 2.67:1.
+ *
+ * Two things it does differently from the home script, both because twelve
+ * surfaces have twelve different grounds:
+ *
+ *  1. Runs are attributed to the token by SENTINEL. The token is redefined as
+ *     rgb(1,2,3) on .presence-cosmos, so anything still computing to that
+ *     colour is painted by the shared token, and anything sitting under a local
+ *     override (.dsh, .pc-pt-cine, .pc-pt-glasscard) drops out on its own.
+ *     No grepping, no guessing which selector inherits from where.
+ *
+ *  2. The ground under a run is SAMPLED FROM THE RENDERED RASTER, not modelled.
+ *     The home script reproduces its own page's composite in JS — paper, still,
+ *     saturate, veil ramp — which is exact but only for the one page whose
+ *     parameters are hardcoded. Here the page is screenshot once with every
+ *     glyph made transparent and the PNG handed back into the page, so the
+ *     photograph, the veil, panel alpha and backdrop-filter blur are already
+ *     baked in. That also removes the home script's blurred-panel/plain-element
+ *     split: with blur already applied, the darkest pixel is the true worst case
+ *     everywhere.
+ *
+ * Ground is read under the GLYPH LINE BOXES (Range rects over the direct text
+ * nodes), not the element box — .obx-plate-foot holds a 5px status dot whose
+ * own fill would otherwise be reported as the ground behind the type. Both the
+ * darkest pixel and the 5th percentile are reported: a hairline crossing a line
+ * box should not condemn a run, and the gap between the two numbers is where
+ * judgement belongs.
+ *
+ * WCAG floors: 4.5:1 for text under 24px (or under 18.66px bold), 3:1 for
+ * larger text and for icons and control borders (1.4.11).
+ *
+ * Sign-in: the gated routes need a session. Same recipe as the home script and
+ * .claude/plans/2026-09-03-nocturne-state-verification/README.md —
+ *
+ *   RESEND_API_KEY= NODE_ENV=development PORT=3097 APP_URL=http://127.0.0.1:8092 \
+ *     node api/server.js > /tmp/api.log 2>&1 &
+ *   VITE_API_URL=http://127.0.0.1:3097/api VITE_APP_URL=http://127.0.0.1:8092 \
+ *     npx vite --port 8092 --strictPort &
+ *   curl -s -X POST http://127.0.0.1:3097/api/auth/magic-link/request \
+ *     -H 'Content-Type: application/json' -d '{"email":"<owner email>"}'
+ *   grep -oE "verify\?token=[A-Za-z0-9]+" /tmp/api.log | tail -1
+ *
+ * Open the verify URL on the API origin (:3097): vite's /api proxy is hardcoded
+ * to :3004 and would burn the single-use token against the wrong server. The
+ * first request after boot times out on a cold Supabase connection — call it
+ * twice. Pass `none` instead of a URL for a signed-out pass over public routes.
+ *
+ * Usage:
+ *   node scripts/audit-cosmos-ink.mjs <verifyUrl|none> <origin> [outDir]
+ * Env:
+ *   TOKEN=--c-ink-3          the custom property to audit
+ *   ROUTES=/a,/b             override the route list
+ *   PLAYWRIGHT_MODULE=...    a different playwright install, when the repo's
+ *                            pinned version has no browser build downloaded
+ */
+const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
+import { mkdirSync, writeFileSync } from 'fs';
+import { join } from 'path';
+
+const VERIFY = process.argv[2];
+const ORIGIN = process.argv[3];
+const OUT = process.argv[4] || '/tmp/cosmos-ink-audit';
+const TOKEN = process.env.TOKEN || '--c-ink-3';
+if (!VERIFY || !ORIGIN) {
+  console.error('usage: node scripts/audit-cosmos-ink.mjs <verifyUrl|none> <origin> [outDir]');
+  process.exit(1);
+}
+mkdirSync(OUT, { recursive: true });
+
+/* Public routes first so a signed-out pass covers something; /auth and
+   /waitlist only render their Cosmos frame when signed OUT, and /portrait,
+   /presence/home and /presence/onboarding only when signed IN. Run it both
+   ways to cover all of them. */
+const ROUTES = (process.env.ROUTES || [
+  '/presence', '/presence/login', '/auth', '/waitlist',
+  '/cosmos/system', '/cosmos/demos', '/cosmos/landing',
+  '/portrait', '/demo', '/presence/home', '/presence/onboarding',
+].join(',')).split(',');
+
+const SENTINEL = 'rgb(1, 2, 3)';
+const SENTINEL_CSS = `.presence-cosmos { ${TOKEN}: rgb(1,2,3) !important; }`;
+/* text-fill-color as well as color, because -webkit-text-fill-color wins over
+   color; .pc-shimmer paints its glyphs with a background gradient through
+   background-clip:text, so its gradient has to go too. */
+const ERASE_CSS = `
+  *, *::before, *::after {
+    color: transparent !important;
+    -webkit-text-fill-color: transparent !important;
+    text-shadow: none !important;
+    text-decoration-color: transparent !important;
+    caret-color: transparent !important;
+  }
+  svg { visibility: hidden !important; }
+  .pc-shimmer { background-image: none !important; }
+`;
+
+const browser = await chromium.launch();
+const ctx = await browser.newContext({
+  viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2,
+  colorScheme: 'light', reducedMotion: 'reduce',
+});
+let firstPage = await ctx.newPage();
+let page = firstPage;
+const consoleErrors = [];
+page.on('console', m => { if (m.type() === 'error') consoleErrors.push(m.text().slice(0, 160)); });
+
+if (VERIFY !== 'none') {
+  await page.goto(VERIFY, { waitUntil: 'commit', timeout: 60000 });
+  await page.waitForTimeout(8000);
+  console.log('signed in, landed at', page.url());
+} else {
+  console.log('signed-out pass');
+}
+
+const results = [];
+const routeReports = [];
+
+/* One page per route, closed afterwards. Decoding a viewport raster per band
+   leaves enough behind that a walk of seven or more routes reliably took the
+   renderer down partway through — and a dead browser reports the remaining
+   routes as zero runs, which reads exactly like a pass. Recycling the page
+   bounds it. If the browser dies anyway the route is recorded as an error, so
+   a crashed walk can never be mistaken for a clean one. */
+for (const route of ROUTES) {
+  if (page !== firstPage || routeReports.length) {
+    try { await page.close(); } catch {}
+    page = await ctx.newPage();
+    page.on('console', m => { if (m.type() === 'error') consoleErrors.push(m.text().slice(0, 160)); });
+  }
+  try {
+    await page.goto(ORIGIN + route, { waitUntil: 'domcontentloaded', timeout: 45000 });
+  } catch (e) { routeReports.push({ route, error: 'nav: ' + String(e).slice(0, 90) }); continue; }
+  await page.waitForTimeout(3500);
+
+  /* A hard navigation drops the in-memory access token. The refresh cookie
+     re-hydrates it, but not before the route guard runs, and a guard that is
+     still deciding renders NOTHING — so a fixed sleep reports zero runs on a
+     gated route, which reads like a pass. Wait for the root to actually
+     appear, and reload once in case the guard bounced to the login wall. */
+  let rooted = false;
+  for (let tries = 0; tries < 3 && !rooted; tries++) {
+    try {
+      await page.waitForSelector('.presence-cosmos', { timeout: 12000 });
+      rooted = true;
+    } catch {
+      await page.waitForTimeout(2000);
+      await page.goto(ORIGIN + route, { waitUntil: 'domcontentloaded', timeout: 45000 });
+      await page.waitForTimeout(2500);
+    }
+  }
+  const landed = new URL(page.url()).pathname;
+  if (landed !== route) routeReports.push({ route, note: `redirected to ${landed}` });
+  if (!rooted) {
+    routeReports.push({ route, error: `no .presence-cosmos root (at ${landed})` });
+    continue;
+  }
+  /* WAIT FOR THE GROUND TO SETTLE, and prove it settled rather than assuming.
+     The room is a CSS background-image: until it decodes, the ground under
+     every run is near-paper, and an audit that measures too early reports a
+     ground ~45/255 lighter than the real one and passes ink that fails. Fonts
+     matter too — a fallback face has different line boxes. So: wait for fonts
+     and for every background-image on the page to decode, then sample a
+     reference strip twice and require it to stop moving. */
+  await page.evaluate(async () => {
+    await document.fonts.ready;
+    const urls = new Set();
+    for (const el of document.querySelectorAll('*')) {
+      const bg = getComputedStyle(el).backgroundImage;
+      for (const m of bg.matchAll(/url\(["']?(.*?)["']?\)/g)) urls.add(m[1]);
+    }
+    await Promise.all([...urls].map(u => new Promise(res => {
+      const i = new Image(); i.onload = i.onerror = res; i.src = u;
+    })));
+    await Promise.all([...document.images].map(i => i.complete ? null : i.decode().catch(() => {})));
+  });
+  /* Then prove it settled, by pixels rather than by a timer: grab the viewport
+     twice and require the mean to stop moving. A background still decoding, or
+     a panel still fading in, shows up here as drift. The WHOLE viewport, not a
+     strip: the panels fade in over their own part of the page, and a strip that
+     misses them settles while a plate is still half transparent — which reads
+     the room THROUGH the panel and reports a ground ~45/255 too dark. */
+  const strip = { x: 0, y: 0, width: 1440, height: 900 };
+  const meanOf = async () => {
+    /* scale:'css' halves each axis: this only needs a mean, and a full
+       device-pixel capture here made the settle loop cost more than the
+       measurement it guards. */
+    const buf = await page.screenshot({ clip: strip, type: 'png', scale: 'css' });
+    return page.evaluate(async b64 => {
+      const img = new Image(); img.src = 'data:image/png;base64,' + b64; await img.decode();
+      const cv = document.createElement('canvas'); cv.width = img.naturalWidth; cv.height = img.naturalHeight;
+      const cx = cv.getContext('2d', { willReadFrequently: true }); cx.drawImage(img, 0, 0);
+      const d = cx.getImageData(0, 0, cv.width, cv.height).data;
+      let t = 0, n = 0;
+      for (let i = 0; i < d.length; i += 4 * 7) { t += d[i] + d[i + 1] + d[i + 2]; n += 3; }
+      cv.width = cv.height = 0;
+      return t / n;
+    }, buf.toString('base64'));
+  };
+  let prev = await meanOf(), settled = false;
+  for (let i = 0; i < 12 && !settled; i++) {
+    await page.waitForTimeout(1000);
+    const now = await meanOf();
+    if (Math.abs(now - prev) < 0.4) settled = true;
+    prev = now;
+  }
+  if (!settled) routeReports.push({ route, note: 'ground never settled — treat this route as suspect' });
+
+  await page.addStyleTag({ content: SENTINEL_CSS });
+  await page.waitForTimeout(250);
+
+  const pageH = await page.evaluate(() => document.documentElement.scrollHeight);
+  const VH = 900;
+  let found = 0;
+  /* Viewport-sized bands rather than one fullPage screenshot: the room is
+     position:fixed, and Chromium repositions fixed elements in a fullPage
+     capture, which would corrupt every ground under it. */
+  for (let y = 0; y < Math.min(pageH, VH * 8); y += VH) {
+    await page.evaluate(sy => window.scrollTo(0, sy), y);
+    await page.waitForTimeout(700);
+
+    const eraser = await page.addStyleTag({ content: ERASE_CSS });
+    await page.waitForTimeout(350);
+    /* scale:'css' rather than the context's deviceScaleFactor 2. A 2880x1800
+       capture is a 20MB ImageData once decoded in the page, and doing that once
+       per band killed the renderer partway through a multi-route walk — a dead
+       browser looks exactly like a route with no runs. CSS pixels are plenty:
+       the glyphs are erased, so this samples flat ground, not type edges. */
+    const shot = (await page.screenshot({ type: 'png', scale: 'css' })).toString('base64');
+    await page.evaluate(el => el.remove(), eraser);
+    await page.waitForTimeout(200);
+
+    const runs = await page.evaluate(async ({ b64, SENTINEL }) => {
+      const img = new Image();
+      img.src = 'data:image/png;base64,' + b64;
+      await img.decode();
+      const cv = document.createElement('canvas');
+      cv.width = img.naturalWidth; cv.height = img.naturalHeight;
+      const cx = cv.getContext('2d', { willReadFrequently: true });
+      cx.drawImage(img, 0, 0);
+      const data = cx.getImageData(0, 0, cv.width, cv.height).data;
+      const SX = cv.width / innerWidth, SY = cv.height / innerHeight;
+
+      const srgb = c => { c /= 255; return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); };
+      const lum = ([r, g, b]) => 0.2126 * srgb(r) + 0.7152 * srgb(g) + 0.0722 * srgb(b);
+
+      const groundIn = r => {
+        const x0 = Math.max(0, Math.floor(r.left * SX)), x1 = Math.min(cv.width, Math.ceil(r.right * SX));
+        const y0 = Math.max(0, Math.floor(r.top * SY)), y1 = Math.min(cv.height, Math.ceil(r.bottom * SY));
+        const all = [];
+        let sum = [0, 0, 0], n = 0;
+        for (let y = y0; y < y1; y += 2) for (let x = x0; x < x1; x += 2) {
+          const i = (y * cv.width + x) * 4;
+          const px = [data[i], data[i + 1], data[i + 2]];
+          sum = [sum[0] + px[0], sum[1] + px[1], sum[2] + px[2]]; n++;
+          all.push([lum(px), px]);
+        }
+        if (!n) return null;
+        all.sort((a, b) => a[0] - b[0]);
+        const p05 = all[Math.floor(all.length * 0.05)];
+        return {
+          worst: all[0][1], worstL: all[0][0],
+          p05: p05[1], p05L: p05[0],
+          mean: sum.map(v => Math.round(v / n)),
+        };
+      };
+
+      const out = [];
+      for (const el of document.querySelectorAll('.presence-cosmos *')) {
+        const st = getComputedStyle(el);
+        const isTextInk = st.color === SENTINEL;
+        const isBorder = [st.borderTopColor, st.borderRightColor, st.borderBottomColor, st.borderLeftColor].includes(SENTINEL);
+        const isBg = st.backgroundColor === SENTINEL;
+        if (!isTextInk && !isBorder && !isBg) continue;
+        if (st.visibility === 'hidden' || st.opacity === '0') continue;
+        if (el.classList.contains('sr-only') || el.closest('.sr-only')) continue;
+        const r = el.getBoundingClientRect();
+        if (r.width < 2 || r.height < 2) continue;
+        if (r.top < 0 || r.bottom > innerHeight) continue;   // covered by another band
+
+        const text = [...el.childNodes].filter(n => n.nodeType === 3).map(n => n.textContent).join('').trim();
+        const isSvg = el.tagName.toLowerCase() === 'svg' || el.closest('svg');
+        let kind;
+        if (isBg && !text) kind = 'bg';
+        else if (isBorder && !text) kind = 'border';
+        else if (isSvg) kind = 'icon';
+        else if (!text) continue;                            // inherits it, paints no glyph
+        else kind = 'text';
+
+        /* Glyph line boxes, not the element box: a sibling dot or rule inside
+           the element is foreground, not ground. */
+        let boxes = [r];
+        if (kind === 'text') {
+          boxes = [];
+          for (const n of el.childNodes) {
+            if (n.nodeType !== 3 || !n.textContent.trim()) continue;
+            const rg = document.createRange(); rg.selectNodeContents(n);
+            for (const b of rg.getClientRects()) if (b.width > 1 && b.height > 1) boxes.push(b);
+          }
+          if (!boxes.length) boxes = [r];
+        }
+        let g = null;
+        for (const b of boxes) {
+          if (b.top < 0 || b.bottom > innerHeight) continue;
+          const gi = groundIn(b);
+          if (gi && (!g || gi.p05L < g.p05L)) g = gi;
+        }
+        if (!g) continue;
+
+        const size = parseFloat(st.fontSize);
+        const bold = Number(st.fontWeight) >= 700;
+        const floor = kind === 'text'
+          ? (size >= 24 || (bold && size >= 18.66) ? 3 : 4.5)
+          : (kind === 'bg' ? 0 : 3);
+        out.push({
+          sel: (el.className || el.tagName).toString().split(' ').slice(0, 2).join('.').slice(0, 34),
+          kind, size: Math.round(size), weight: st.fontWeight, floor,
+          worstGround: `rgb(${g.worst.join(',')})`, worstL: g.worstL,
+          p05Ground: `rgb(${g.p05.join(',')})`, p05L: g.p05L,
+          meanGround: `rgb(${g.mean.join(',')})`,
+          text: text.replace(/\s+/g, ' ').slice(0, 40),
+        });
+      }
+      cv.width = cv.height = 0;   // release the raster before the next band
+      return out;
+    }, { b64: shot, SENTINEL });
+
+    for (const r of runs) { r.route = route; r.scrollY = y; results.push(r); found++; }
+  }
+  routeReports.push({ route, runs: found, height: pageH });
+  console.log(`  ${route.padEnd(22)} ${found} runs`);
+}
+
+/* The token's real value, read back after the sentinel is gone, so the report
+   scores what ships rather than what the sentinel painted. */
+await page.goto(ORIGIN + '/cosmos/system', { waitUntil: 'domcontentloaded' });
+await page.waitForTimeout(2000);
+const inkStr = await page.evaluate(t => getComputedStyle(document.querySelector('.presence-cosmos')).getPropertyValue(t).trim(), TOKEN);
+const hex = h => { h = h.replace('#', ''); if (h.length === 3) h = [...h].map(c => c + c).join(''); return [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16)); };
+const srgb = c => { c /= 255; return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); };
+const lum = ([r, g, b]) => 0.2126 * srgb(r) + 0.7152 * srgb(g) + 0.0722 * srgb(b);
+const rat = (a, b) => (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+const inkL = lum(hex(inkStr.startsWith('#') ? inkStr : '#000000'));
+
+const scored = results.filter(r => r.kind !== 'bg').map(r => ({
+  ...r, ratioP05: Math.round(rat(inkL, r.p05L) * 100) / 100, ratioMin: Math.round(rat(inkL, r.worstL) * 100) / 100,
+}));
+const fails = scored.filter(r => r.ratioP05 < r.floor);
+const tight = scored.filter(r => r.ratioP05 >= r.floor && r.ratioMin < r.floor);
+
+writeFileSync(join(OUT, 'report.json'), JSON.stringify({ token: TOKEN, value: inkStr, routeReports, results: scored, consoleErrors: [...new Set(consoleErrors)] }, null, 1));
+console.log(`\n${TOKEN} = ${inkStr}: ${scored.length} runs measured, ${fails.length} below their WCAG floor`);
+for (const c of fails.sort((a, b) => a.ratioP05 - b.ratioP05))
+  console.log(`  FAIL ${c.ratioP05.toFixed(2)} (needs ${c.floor})  ${c.route} ${c.sel} ${c.size}px ${c.kind}  on ${c.p05Ground}  "${c.text}"`);
+if (tight.length) {
+  console.log(`\n${tight.length} pass on the 5th-percentile ground but not on their single darkest pixel:`);
+  for (const c of tight) console.log(`  ${c.ratioP05.toFixed(2)} / ${c.ratioMin.toFixed(2)}  ${c.route} ${c.sel} ${c.size}px  "${c.text}"`);
+}
+const worst = scored.slice().sort((a, b) => a.ratioP05 - b.ratioP05)[0];
+if (worst) console.log(`\ntightest run overall: ${worst.ratioP05} (floor ${worst.floor})  ${worst.route} ${worst.sel}`);
+console.log('console errors:', consoleErrors.length);
+await browser.close();
