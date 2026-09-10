@@ -15,7 +15,7 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { DeviceEventEmitter, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { DeviceEventEmitter, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { cosmos, dayMonth, euro } from '../constants/cosmos';
 import { Body, Card, Enter, Hairline, Heading, Label, Micro, Page, Pill, Press, Row, Small, Title } from '../ui/primitives';
@@ -23,7 +23,7 @@ import { Figure, HomeMap } from '../ui/figures';
 import { Prompt, Shimmer } from '../ui/prompt';
 import { useReducedMotion } from '../ui/motion';
 import {
-  moneyApi, readLedgerStream,
+  moneyApi, readLedgerStream, chatStream,
   type ChatAction, type ChatReceipt, type ChatTurn, type HomePlace, type HomeSaved, type LedgerStreamEvent, type MoneyQuestion,
 } from '../services/moneyApi';
 import {
@@ -185,6 +185,10 @@ export default function ChatScreen({ mode, onDone, onClose }: { mode: 'onboardin
   const insets = useSafeAreaInsets();
   const reduced = useReducedMotion();
   const scroller = useRef<ScrollView | null>(null);
+  /* A stream in flight when the page closes is stopped, so it cannot write into a
+     transcript nobody is looking at. */
+  const streamStop = useRef<(() => void) | null>(null);
+  useEffect(() => () => { streamStop.current?.(); streamStop.current = null; }, []);
 
   /* The transcript is kept outside the screen (chatStore), so closing the page and coming
      back finds the conversation where it was, and the greeting is said once. */
@@ -353,6 +357,14 @@ export default function ChatScreen({ mode, onDone, onClose }: { mode: 'onboardin
 
   /* The transcript grows from the bottom: whatever is newest sits where the eye is. */
   const toEnd = useCallback(() => { scroller.current?.scrollToEnd({ animated: !reduced }); }, [reduced]);
+  /* An answer that grows must not drag the page down under somebody who scrolled up to read
+     what was said earlier. The transcript follows the text only while they are at the foot. */
+  const atFoot = useRef(true);
+  const onScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const { layoutMeasurement, contentOffset, contentSize } = e.nativeEvent;
+    atFoot.current = contentSize.height - (contentOffset.y + layoutMeasurement.height) < 48;
+  }, []);
+  const keepAtFoot = useCallback(() => { if (atFoot.current) toEnd(); }, [toEnd]);
 
   const columns = useMemo(() => (question && question.input.startsWith('list:') ? listColumns(question.input) : []), [question]);
   const options = useMemo(() => (question && question.input.startsWith('choice:') ? choiceOptions(question.input) : []), [question]);
@@ -501,26 +513,69 @@ export default function ChatScreen({ mode, onDone, onClose }: { mode: 'onboardin
     void sendValue(label);
   };
 
+  /** An answer that opens with an amount gets that amount set large above the sentence. */
+  const leadOf = (text: string) => {
+    const m = text.match(/^(\d[\d.,]*)\s?(?:EUR|\u20ac)/);
+    return m ? `${m[1]} \u20ac` : undefined;
+  };
+
+  /**
+   * Ask, and let the answer arrive as it is written. The shimmering line is the whole wait
+   * only until the first sentence lands; after that it is the answer, growing. A stream that
+   * never started, or broke before it said anything, is replaced by the plain endpoint
+   * without a word about it: the person asked a question, not for a transport.
+   */
   async function ask(message: string) {
     if (busy) return;
     setBusy(true);
     setNote(null);
     say({ who: 'you', text: message });
     const pendingId = say({ who: 'twin', text: 'Reading the ledger.', pending: true });
-    try {
-      const reply = await moneyApi.chat(message, history);
-      const text = reply.text || 'Nothing it can say about that yet.';
-      /* An answer that opens with an amount gets that amount set large above the sentence. */
-      const lead = text.match(/^(\d[\d.,]*)\s?(?:EUR|\u20ac)/);
-      amend(pendingId, {
-        pending: false, text, lead: lead ? `${lead[1]} \u20ac` : undefined,
-        figures: reply.figures || [], actions: reply.actions || [], receipts: reply.receipts || [],
+    /* The turns as they were before this question, which is what the server expects. */
+    const turns = history;
+
+    const plainly = async () => {
+      try {
+        const reply = await moneyApi.chat(message, turns);
+        const text = reply.text || 'Nothing it can say about that yet.';
+        amend(pendingId, {
+          pending: false, text, lead: leadOf(text),
+          figures: reply.figures || [], actions: reply.actions || [], receipts: reply.receipts || [],
+        });
+      } catch {
+        amend(pendingId, { pending: false, text: 'That could not be read right now. Ask again in a moment.' });
+      }
+    };
+
+    await new Promise<void>((resolve) => {
+      let grown = '';
+      let finished = false;
+      let settled = false;
+      const done = () => { if (!settled) { settled = true; resolve(); } };
+      streamStop.current = chatStream(message, turns, {
+        onEvent: (e) => {
+          if (e.phase === 'text') {
+            grown += e.delta || '';
+            amend(pendingId, { pending: false, text: grown, lead: leadOf(grown) });
+          } else if (e.phase === 'figures') {
+            amend(pendingId, { figures: e.figures || [] });
+          } else if (e.phase === 'actions') {
+            amend(pendingId, { actions: e.actions || [], receipts: e.receipts || [] });
+          } else if (e.phase === 'done') {
+            finished = true;
+          }
+        },
+        onEnd: (ok) => {
+          streamStop.current = null;
+          /* Prose on the screen stays on the screen, finished or not. Only an answer that
+             never began is asked for again the plain way. */
+          if (grown.trim() && (finished || ok)) { done(); return; }
+          if (grown.trim()) { done(); return; }
+          void plainly().then(done);
+        },
       });
-    } catch {
-      amend(pendingId, { pending: false, text: 'That could not be read right now. Ask again in a moment.' });
-    } finally {
-      setBusy(false);
-    }
+    });
+    setBusy(false);
   }
 
   async function act(lineIdOf: string, index: number, action: ChatAction) {
@@ -641,7 +696,9 @@ export default function ChatScreen({ mode, onDone, onClose }: { mode: 'onboardin
           contentContainerStyle={[s.transcript, { paddingBottom: (composerShown ? 0 : insets.bottom) + cosmos.space.xl }]}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="interactive"
-          onContentSizeChange={toEnd}
+          onScroll={onScroll}
+          scrollEventThrottle={16}
+          onContentSizeChange={keepAtFoot}
         >
           {phase === 'loading' ? <Enter><Shimmer text="Reading the ledger." /></Enter> : null}
 

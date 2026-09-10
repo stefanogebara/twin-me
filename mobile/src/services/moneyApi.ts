@@ -248,7 +248,17 @@ export type LedgerStreamEvent = {
  * is an XMLHttpRequest read on progress: whatever complete "data:" lines have arrived are
  * parsed and handed on, the rest waits for the next chunk. Returns a function that stops it.
  */
-export function readLedgerStream(onEvent: (e: LedgerStreamEvent) => void, onEnd: (ok: boolean) => void): () => void {
+/**
+ * One Server-Sent Events reader, for every money stream. React Native's fetch cannot stream
+ * a body, so this reads the response as it grows: complete "data:" blocks are parsed and
+ * handed on, and a line torn across two chunks waits for the rest of itself. `open` is
+ * handed the request with the session token, so a GET and a POST stream share this parser.
+ */
+function readSse<T>(
+  open: (xhr: XMLHttpRequest, token: string | null) => void,
+  onEvent: (e: T) => void,
+  onEnd: (ok: boolean) => void,
+): () => void {
   const xhr = new XMLHttpRequest();
   let seen = 0;
   let ended = false;
@@ -262,7 +272,7 @@ export function readLedgerStream(onEvent: (e: LedgerStreamEvent) => void, onEnd:
     for (const block of fresh.split('\n\n')) {
       const line = block.split('\n').find((l) => l.startsWith('data:'));
       if (!line) continue;
-      try { onEvent(JSON.parse(line.slice(5).trim()) as LedgerStreamEvent); } catch { /* a torn line waits for the next chunk */ }
+      try { onEvent(JSON.parse(line.slice(5).trim()) as T); } catch { /* a torn line waits for the next chunk */ }
     }
   };
   xhr.onprogress = drain;
@@ -271,12 +281,46 @@ export function readLedgerStream(onEvent: (e: LedgerStreamEvent) => void, onEnd:
   xhr.onabort = () => finish(false);
   void SecureStore.getItemAsync(STORAGE_KEYS.AUTH_TOKEN).then((token) => {
     if (ended) return;
+    open(xhr, token);
+  }).catch(() => finish(false));
+  return () => { if (!ended) { ended = true; xhr.abort(); } };
+}
+
+export function readLedgerStream(onEvent: (e: LedgerStreamEvent) => void, onEnd: (ok: boolean) => void): () => void {
+  return readSse<LedgerStreamEvent>((xhr, token) => {
     xhr.open('GET', `${API_URL}/money/stream`);
     xhr.setRequestHeader('Accept', 'text/event-stream');
     if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
     xhr.send();
-  }).catch(() => finish(false));
-  return () => { if (!ended) { ended = true; xhr.abort(); } };
+  }, onEvent, onEnd);
+}
+
+/** One answer, in the pieces the server sends. The phases arrive in this order. */
+export type ChatStreamEvent =
+  | { phase: 'reading' }
+  | { phase: 'text'; delta: string }
+  | { phase: 'figures'; figures?: ChatFigure[] }
+  | { phase: 'actions'; actions?: ChatAction[]; receipts?: ChatReceipt[] }
+  | { phase: 'done' }
+  | { phase: 'failed'; detail?: string };
+
+/**
+ * Ask, and take the answer as it is written. `onEnd(false)` means the stream did not reach
+ * its `done`, and the caller should ask the plain endpoint instead: a person waiting for an
+ * answer should never pay for the fact that the fast path broke. Returns a stop function.
+ */
+export function chatStream(
+  message: string,
+  history: ChatTurn[],
+  handlers: { onEvent: (e: ChatStreamEvent) => void; onEnd: (ok: boolean) => void },
+): () => void {
+  return readSse<ChatStreamEvent>((xhr, token) => {
+    xhr.open('POST', `${API_URL}/money/chat/stream`);
+    xhr.setRequestHeader('Accept', 'text/event-stream');
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+    xhr.send(JSON.stringify({ message, history: history.slice(-10) }));
+  }, handlers.onEvent, handlers.onEnd);
 }
 
 type Envelope<T> = { success?: boolean; error?: string; data?: T };
