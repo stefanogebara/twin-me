@@ -154,6 +154,11 @@ mobile/app.json.bak
 !src/**/*.png
 !src/**/*.jpeg
 !desktop/**/*.png
+# The phone app's images are product assets, not design exploration: its icon, its splash and
+# the native resources generated from them. A build server honours these rules when it packs
+# the project, so a png ignored here simply does not exist when the app is compiled.
+!mobile/**/*.png
+!mobile/**/*.jpeg
 
 # Test screenshots directories
 test-screenshots/

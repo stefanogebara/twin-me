@@ -23,11 +23,6 @@ const config = {
   backgroundColor: PAPER,
   newArchEnabled: true,
   scheme: 'twinme',
-  splash: {
-    image: './assets/splash-icon.png',
-    resizeMode: 'contain',
-    backgroundColor: PAPER,
-  },
   ios: {
     supportsTablet: false,
     bundleIdentifier: 'com.twinme.app',
@@ -51,6 +46,14 @@ const config = {
       'android.permission.FOREGROUND_SERVICE',
       'android.permission.WAKE_LOCK',
     ],
+    /* The template adds these; the product uses none of them, and a permission nobody uses is
+       a question the person should never be asked. */
+    blockedPermissions: [
+      'android.permission.SYSTEM_ALERT_WINDOW',
+      'android.permission.VIBRATE',
+      'android.permission.READ_EXTERNAL_STORAGE',
+      'android.permission.WRITE_EXTERNAL_STORAGE',
+    ],
   },
   web: {
     favicon: './assets/favicon.png',
@@ -58,6 +61,18 @@ const config = {
   plugins: [
     'expo-secure-store',
     'expo-font',
+    'expo-system-ui',
+    /* The splash is the app's own mark on paper: the same ink pill the icon carries, small,
+       centred, on the canvas every screen uses. The plugin owns the native resources for it. */
+    [
+      'expo-splash-screen',
+      {
+        image: './assets/splash-icon.png',
+        imageWidth: 180,
+        resizeMode: 'contain',
+        backgroundColor: PAPER,
+      },
+    ],
     // Android only: the plugin declares the listener service in the manifest.
     ...(IS_ANDROID ? ['./modules/notification-listener/plugin/index.js'] : []),
   ],

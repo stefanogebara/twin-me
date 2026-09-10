@@ -22,8 +22,3 @@ allprojects {
 
 apply plugin: "expo-root-project"
 apply plugin: "com.facebook.react.rootproject"
-
-// Health Connect requires minSdk 26
-ext {
-  minSdkVersion = 26
-}
