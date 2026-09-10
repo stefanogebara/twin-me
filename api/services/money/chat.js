@@ -600,6 +600,18 @@ export function textStreamer() {
  * sentence at a time rather than a word at a time for one reason: a sentence the person has
  * already been told is dropped, and a word already on the screen cannot be taken back.
  */
+/**
+ * How much of a growing answer is safe to show. The last two words are held back, because
+ * "422,20 EUR" becomes "422,20 EUR" with a euro sign only once both words have arrived, and
+ * a number already on the screen cannot be rewritten. Everything before that is settled.
+ */
+export function settledEnd(text) {
+  const gaps = [...String(text || '').matchAll(/\s+/g)];
+  if (gaps.length < 2) return 0;
+  const gap = gaps[gaps.length - 2];
+  return gap.index + gap[0].length;
+}
+
 export function completeSentences(buffer) {
   const ready = [];
   let rest = String(buffer || '');
@@ -614,6 +626,9 @@ export function completeSentences(buffer) {
 }
 
 const STREAM_UNREADABLE = 'That could not be read right now.';
+
+/** What the person actually read, rebuilt from the pieces that were sent. */
+const asShown = (pieces) => pieces.join('').replace(/\s+/g, ' ').trim();
 
 /**
  * Answer one message, in pieces, as the model writes it. The events are, in order:
@@ -677,9 +692,29 @@ export async function answerStream(userId, message, history = [], { now = new Da
   const said = new Set(sentencesOf(previousTwinText(history)).map(shapeOf).filter(Boolean));
   const shown = [];
   let buffer = '';
+  let written = 0;
+
+  /* With nothing said before this, no sentence can be a repeat, so the words go out as they
+     come and the first of them lands about a second sooner. Once there is a previous turn to
+     repeat, prose waits for its sentence to finish, because a sentence that has to be dropped
+     must never have been shown. */
+  const wordByWord = said.size === 0;
 
   const emit = (revealed, { final = false } = {}) => {
     buffer += revealed;
+    if (wordByWord) {
+      const converted = euroGlyphs(buffer);
+      const end = final ? converted.length : settledEnd(converted);
+      if (end <= written) return;
+      /* The last flush does not trail a space into the transcript. */
+      const delta = final ? converted.slice(written, end).replace(/\s+$/, '') : converted.slice(written, end);
+      written = end;
+      if (delta.trim()) {
+        send({ phase: 'text', delta });
+        shown.push(delta);
+      }
+      return;
+    }
     const [ready, rest] = completeSentences(buffer);
     const tail = final && rest.trim() ? [rest.trim()] : [];
     buffer = final ? '' : rest;
@@ -713,7 +748,7 @@ export async function answerStream(userId, message, history = [], { now = new Da
       return null;
     }
     emit('', { final: true });
-    return closeWith({ text: shown.join(' '), figures: [], actions: [], receipts: [] });
+    return closeWith({ text: asShown(shown), figures: [], actions: [], receipts: [] });
   }
 
   emit('', { final: true });
@@ -723,7 +758,7 @@ export async function answerStream(userId, message, history = [], { now = new Da
     const prose = plainProse(raw);
     const text = prose ? euroGlyphs(prose) : NO_ANSWER;
     if (!shown.length) whole(text);
-    return closeWith({ text: shown.length ? shown.join(' ') : text, figures: [], actions: [], receipts: [] });
+    return closeWith({ text: shown.length ? asShown(shown) : text, figures: [], actions: [], receipts: [] });
   }
 
   const reply = assembleReply(parsed, ctx, asked);
@@ -732,7 +767,7 @@ export async function answerStream(userId, message, history = [], { now = new Da
      and the app cannot tell the difference except in timing. */
   const guarded = withoutRepeats(reply.text, history);
   if (!shown.length) whole(guarded);
-  return closeWith({ ...reply, text: shown.length ? shown.join(' ') : guarded });
+  return closeWith({ ...reply, text: shown.length ? asShown(shown) : guarded });
 }
 
 /* ------------------------------------------------------------------------ act */

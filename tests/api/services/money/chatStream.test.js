@@ -127,15 +127,35 @@ describe('the streamed answer', () => {
     expect(events.find((e) => e.phase === 'figures').figures[0].kind).toBe('shares');
   });
 
-  it('sends the prose a sentence at a time as it is written', async () => {
+  it('sends the words as they come when nothing said before could be repeated', async () => {
     streamCall.mockImplementation(streamsIn([
       '{"text":"Clothing took 116,76 EUR. ', 'Groceries were next.","figures":[],"actions":[]}',
     ]));
     const { events, onEvent } = recorder();
     await answerStream('u1', 'what was biggest?', [], { now: NOW, onEvent });
+    expect(events.filter((e) => e.phase === 'text').length).toBeGreaterThan(1);
+    expect(textOf(events)).toBe('Clothing took 116,76 €. Groceries were next.');
+  });
+
+  it('waits for the whole sentence once there is a turn it could repeat', async () => {
+    streamCall.mockImplementation(streamsIn([
+      '{"text":"Clothing took 116,76 EUR. ', 'Groceries were next.","figures":[],"actions":[]}',
+    ]));
+    const { events, onEvent } = recorder();
+    const history = [{ role: 'twin', text: 'Nothing to do with this.' }];
+    await answerStream('u1', 'what was biggest?', history, { now: NOW, onEvent });
     const deltas = events.filter((e) => e.phase === 'text');
     expect(deltas.length).toBe(2);
+    expect(deltas[0].delta).toBe('Clothing took 116,76 €.');
     expect(textOf(events)).toBe('Clothing took 116,76 €. Groceries were next.');
+  });
+
+  it('never shows a number before the euro sign that follows it has arrived', async () => {
+    streamCall.mockImplementation(streamsIn(['{"text":"You spent 422,20 ', 'EUR', ' so far.","figures":[],"actions":[]}']));
+    const { events, onEvent } = recorder();
+    await answerStream('u1', 'how much?', [], { now: NOW, onEvent });
+    for (const e of events.filter((x) => x.phase === 'text')) expect(e.delta).not.toMatch(/EUR/);
+    expect(textOf(events)).toBe('You spent 422,20 € so far.');
   });
 
   it('writes amounts with the euro sign, as the finished answer does', async () => {
