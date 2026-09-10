@@ -80,6 +80,11 @@ export async function getDepartmentBudget(userId, department) {
 
     if (insertError) {
       log.error('Failed to create default budget', { userId, department, error: insertError });
+      // Cache the in-memory default anyway: without this, a persistent
+      // insert failure (e.g. schema drift on department_budgets) retried on
+      // EVERY request for every department. One attempt per TTL window is
+      // enough — the next cache expiry picks up a fixed schema.
+      await cacheSet(cacheKey, defaultRecord, BUDGET_CACHE_TTL_S);
       return defaultRecord;
     }
 
