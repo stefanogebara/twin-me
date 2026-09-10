@@ -414,7 +414,47 @@ Recent memories are dominated by reflections (~90 of last 100). Platform data ob
 - `/design-review` - Design review with browser testing
 
 ---
-## Design System (Nocturne — active since 2026-09-01)
+## Design System (the Instinct register — active for the money product since 2026-09-10)
+
+> The money product is what TwinMe sells: the phone app, the money pages and the
+> sign-in page. They all run this register, measured from app.instinct.co's own
+> stylesheet and font binaries rather than eyeballed. Nocturne, documented below,
+> now governs only the older soul-signature surfaces, which the platform review
+> recommends parking. Do not mix the two on one screen.
+> Source of truth: `src/styles/money-v2.css` on the web and
+> `mobile/src/constants/cosmos.ts` on the phone.
+
+### One sans, no display serif
+Geist on the web, Inter on the phone (Geist is not published for Expo). Stefano
+rejected a display serif outright, so there is no second family anywhere.
+
+### The measured values
+- Page `#ffffff`. Panels `#faf9f7`, and `#f6f5f3` behind a track.
+- Ink `#101113`. Secondary text is that same ink at 60 percent, quiet at 38.
+  Never a second grey.
+- Hairlines `#e5e7eb`. Hover is the ink at 5 percent, pressed at 10.
+- Body 16 on 24 at tracking -0.011em. Secondary 15 on 24.4. Fine print 14 on
+  22.75. Headings 32 on 36.8 at -0.022em. Figures large, weight 400, tabular.
+- Card radius 16, button 12, field 4. The prompt stays a pill.
+- **Weight 500 is the ceiling.** Nothing on a screen is bolder.
+
+### Rules that are not tokens
+1. **No uppercase tracked labels.** Section labels are sentence case at 15/500.
+2. **One line, one grey line, one action.** No row carries two verbs.
+3. **Never a button inside a row.** On a 372pt phone it steals the width and the
+   description truncates; use a chevron and put the action on the destination.
+4. **The grey line must fit on one line.** Shorten the copy rather than clip it.
+   Their calm comes from short copy as much as from colour.
+5. **Colour appears only in a brand mark.** The interface is black, white, grey.
+6. Marks share one optical square, 28pt, on a single left axis.
+7. About 40 between sections, 14 inside a card, 20 page margin.
+
+### Regression tells
+A shadow under a card, a rotated receipt, an uppercase tracked label, a pill
+button inside a row, a gradient, or any weight above 500 means someone built on
+the old system.
+
+## Nocturne (soul-signature surfaces only — since 2026-09-01)
 
 > Nocturne replaced Claura in the flip of 2026-09-01. Claura's files still load
 > underneath the bridge for unported edge values; do not build anything new on
