@@ -714,45 +714,69 @@ export async function answerStream(userId, message, history = [], { now = new Da
 
   const reader = textStreamer();
   const said = new Set(sentencesOf(previousTwinText(history)).map(shapeOf).filter(Boolean));
+  /* Exactly what went on the wire, in order, so the answer this returns reads as the screen
+     reads it. */
   const shown = [];
-  let buffer = '';
-  let written = 0;
+  /* The sentence being written, and how much of it has already gone out. */
+  let pending = '';
+  let released = 0;
 
-  /* With nothing said before this, no sentence can be a repeat, so the words go out as they
-     come and the first of them lands about a second sooner. Once there is a previous turn to
-     repeat, prose waits for its sentence to finish, because a sentence that has to be dropped
-     must never have been shown. */
-  const wordByWord = said.size === 0;
+  /**
+   * Could what is being written still turn out to be a sentence the person was already told?
+   * Only such a sentence can be dropped, and a word on the screen cannot be taken back, so
+   * this is what decides between words as they come and waiting for the full stop. Most
+   * answers part company with the previous turn in their first few words, and from then on
+   * they flow.
+   */
+  const couldRepeat = (partial) => {
+    const shape = shapeOf(euroGlyphs(partial));
+    if (!shape) return said.size > 0;
+    for (const s of said) if (s.startsWith(shape)) return true;
+    return false;
+  };
+
+  /** `joined` continues the sentence already on the screen; anything else starts one. */
+  const put = (piece, joined) => {
+    if (!piece) return;
+    const delta = joined || !shown.length ? piece : ` ${piece}`;
+    send({ phase: 'text', delta });
+    shown.push(delta);
+  };
 
   const emit = (revealed, { final = false } = {}) => {
-    buffer += revealed;
-    if (wordByWord) {
-      const converted = euroGlyphs(buffer);
-      const end = final ? converted.length : settledEnd(converted);
-      if (end <= written) return;
-      /* The last flush does not trail a space into the transcript. */
-      const delta = final ? converted.slice(written, end).replace(/\s+$/, '') : converted.slice(written, end);
-      written = end;
-      if (delta.trim()) {
-        send({ phase: 'text', delta });
-        shown.push(delta);
-      }
-      return;
-    }
-    const [ready, rest] = completeSentences(buffer);
-    const tail = final && rest.trim() ? [rest.trim()] : [];
-    buffer = final ? '' : rest;
-    for (const sentence of [...ready, ...tail]) {
+    pending += revealed;
+    const [ready, rest] = completeSentences(pending);
+    for (const sentence of ready) {
       /* Compared after the currency is written the way the finished answer writes it: the
          previous turn holds euro signs, and "116,76 EUR" would not have matched them. */
-      const piece = euroGlyphs(sentence);
-      if (said.has(shapeOf(piece))) continue;
-      /* What is kept is exactly what was sent, separator and all, so the answer this
-         function returns reads the way the screen reads. */
-      const delta = shown.length ? ` ${piece}` : piece;
-      send({ phase: 'text', delta });
-      shown.push(delta);
+      const full = euroGlyphs(sentence);
+      if (released > 0) put(full.slice(released), true);
+      else if (!said.has(shapeOf(full))) put(full, false);
+      released = 0;
     }
+    pending = rest;
+
+    if (final) {
+      const converted = euroGlyphs(pending);
+      const tail = converted.slice(released).replace(/\s+$/, '');
+      if (tail.trim()) {
+        if (released > 0) put(tail, true);
+        else if (!said.has(shapeOf(converted.trim()))) put(tail.trim(), false);
+      }
+      pending = '';
+      released = 0;
+      return;
+    }
+
+    if (couldRepeat(pending)) return;
+    const converted = euroGlyphs(pending);
+    /* The last two words are held back: an amount written "422,20 EUR" is rewritten with a
+       euro sign once both of its words have arrived, and a number already on the screen
+       cannot be rewritten. */
+    const settled = settledEnd(converted);
+    if (settled <= released) return;
+    put(converted.slice(released, settled), released > 0);
+    released = settled;
   };
 
   let raw = '';

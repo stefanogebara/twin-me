@@ -152,17 +152,28 @@ describe('the streamed answer', () => {
     expect(textOf(events)).toBe('Clothing took 116,76 €. Groceries were next.');
   });
 
-  it('waits for the whole sentence once there is a turn it could repeat', async () => {
+  it('holds the words back while they could still finish as a sentence already said', async () => {
+    /* A sentence that repeats the last turn is dropped, and a word on the screen cannot be
+       taken back, so nothing of it may be shown while it could still turn out to be that
+       sentence. */
     streamCall.mockImplementation(streamsIn([
-      '{"text":"Clothing took 116,76 EUR. ', 'Groceries were next.","figures":[],"actions":[]}',
+      '{"text":"Clothing took ', '116,76 EUR. ', 'Groceries were next.","figures":[],"actions":[]}',
     ]));
     const { events, onEvent } = recorder();
-    const history = [{ role: 'twin', text: 'Nothing to do with this.' }];
-    await answerStream('u1', 'what was biggest?', history, { now: NOW, onEvent });
-    const deltas = events.filter((e) => e.phase === 'text');
-    expect(deltas.length).toBe(2);
-    expect(deltas[0].delta).toBe('Clothing took 116,76 €.');
-    expect(textOf(events)).toBe('Clothing took 116,76 €. Groceries were next.');
+    const history = [{ role: 'twin', text: 'Clothing took 116,76 €.' }];
+    await answerStream('u1', 'and now?', history, { now: NOW, onEvent });
+    expect(textOf(events)).toBe('Groceries were next.');
+  });
+
+  it('lets the words flow the moment the answer parts company with the last turn', async () => {
+    streamCall.mockImplementation(streamsIn([
+      '{"text":"Clothing took ', '48,88 EUR at Simply ', 'Alcala this time.","figures":[],"actions":[]}',
+    ]));
+    const { events, onEvent } = recorder();
+    const history = [{ role: 'twin', text: 'Clothing took 116,76 €.' }];
+    await answerStream('u1', 'and in August?', history, { now: NOW, onEvent });
+    expect(events.filter((e) => e.phase === 'text').length).toBeGreaterThan(1);
+    expect(textOf(events)).toBe('Clothing took 48,88 € at Simply Alcala this time.');
   });
 
   it('never shows a number before the euro sign that follows it has arrived', async () => {
