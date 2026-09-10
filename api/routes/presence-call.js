@@ -8,10 +8,19 @@
  *
  *   GET  /api/presence-call/:token           call config: agent id + compiled brief
  *   POST /api/presence-call/:token/complete  store transcript, deliver notes, summarize
+ *
+ * All table access goes through api/services/presenceStore.js.
  */
 
 import express from 'express';
-import { supabaseAdmin } from '../services/database.js';
+import {
+  findPresenceByCallToken,
+  getElderHome,
+  createConversation,
+  markQueuedNotesDelivered,
+  saveConversationSummary,
+  addFacts,
+} from '../services/presenceStore.js';
 import { compileCallBrief } from '../services/presenceCallBrief.js';
 import { createLogger } from '../services/logger.js';
 
@@ -28,12 +37,7 @@ async function loadByToken(req, res) {
     res.status(404).json({ success: false, error: 'Call link not found' });
     return null;
   }
-  const { data, error } = await supabaseAdmin
-    .from('presences')
-    .select('*')
-    .eq('call_token', token)
-    .neq('status', 'deleted')
-    .maybeSingle();
+  const { data, error } = await findPresenceByCallToken(token);
   if (error) {
     log.error('Token lookup failed', { error: error.message });
     res.status(500).json({ success: false, error: 'Lookup failed' });
@@ -90,16 +94,7 @@ router.get('/:token/home', async (req, res) => {
     const presence = await loadByToken(req, res);
     if (!presence) return;
 
-    const [notesRes, convRes] = await Promise.all([
-      supabaseAdmin.from('presence_notes')
-        .select('id, created_at')
-        .eq('presence_id', presence.id).eq('status', 'queued')
-        .order('created_at', { ascending: false }).limit(5),
-      supabaseAdmin.from('presence_conversations')
-        .select('id, started_at, her_recap, turn_count')
-        .eq('presence_id', presence.id).eq('status', 'summarized')
-        .order('started_at', { ascending: false }).limit(4),
-    ]);
+    const { notes: notesRes, conversations: convRes } = await getElderHome(presence.id);
 
     res.json({
       success: true,
@@ -134,25 +129,17 @@ router.post('/:token/complete', async (req, res) => {
 
     const durationSeconds = Math.min(Math.max(parseInt(req.body?.duration_seconds, 10) || 0, 0), 4 * 3600);
 
-    const { data: conversation, error } = await supabaseAdmin
-      .from('presence_conversations')
-      .insert({
-        presence_id: presence.id,
-        ended_at: new Date().toISOString(),
-        transcript,
-        turn_count: transcript.length,
-        duration_seconds: durationSeconds,
-      })
-      .select('id')
-      .single();
+    const { data: conversation, error } = await createConversation({
+      presence_id: presence.id,
+      ended_at: new Date().toISOString(),
+      transcript,
+      turn_count: transcript.length,
+      duration_seconds: durationSeconds,
+    });
     if (error) throw error;
 
     // Queued notes were woven into this call's brief — mark them delivered.
-    await supabaseAdmin
-      .from('presence_notes')
-      .update({ status: 'delivered', delivered_at: new Date().toISOString() })
-      .eq('presence_id', presence.id)
-      .eq('status', 'queued');
+    await markQueuedNotesDelivered(presence.id);
 
     // Summarize in the background; the elder page never waits on an LLM.
     summarizeConversation(conversation.id, presence, transcript).catch((err) =>
@@ -172,9 +159,10 @@ router.post('/:token/complete', async (req, res) => {
  */
 async function summarizeConversation(conversationId, presence, transcript) {
   if (transcript.length === 0) {
-    await supabaseAdmin.from('presence_conversations')
-      .update({ status: 'summarized', summary: 'A call was opened but no conversation was captured.' })
-      .eq('id', conversationId);
+    await saveConversationSummary(
+      conversationId,
+      { status: 'summarized', summary: 'A call was opened but no conversation was captured.' },
+    );
     return;
   }
 
@@ -190,7 +178,7 @@ async function summarizeConversation(conversationId, presence, transcript) {
     tier: TIER_ANALYSIS,
     serviceName: 'presence-call-summary',
     userId: presence.owner_user_id,
-    system: `You process a voice conversation between an older adult and her family's AI presence. Reply with STRICT JSON only: {"summary": "2-3 warm, specific sentences in English about how she was and what she shared", "her_recap": "ONE short warm sentence addressed to HER, in the same language she spoke, naming what you talked about — e.g. \"Falamos do seu passeio e do kebab em Madri.\" Never mention worries, health, or anything you are reporting to her family.", "needs_family": ["each item that needs a real person; empty array if none"], "learned_facts": [{"question": "short topic label", "answer": "one specific autobiographical fact SHE stated about her own life, worth remembering for future conversations"}], "unknown_people": ["names of people she mentioned whose relationship to her is unclear from the conversation"]}.
+    system: `You process a voice conversation between an older adult and her family's AI presence. Reply with STRICT JSON only: {"summary": "2-3 warm, specific sentences in English about how she was and what she shared", "her_recap": "ONE short warm sentence addressed to HER, in the same language she spoke, naming what you talked about — e.g. "Falamos do seu passeio e do kebab em Madri." Never mention worries, health, or anything you are reporting to her family.", "needs_family": ["each item that needs a real person; empty array if none"], "learned_facts": [{"question": "short topic label", "answer": "one specific autobiographical fact SHE stated about her own life, worth remembering for future conversations"}], "unknown_people": ["names of people she mentioned whose relationship to her is unclear from the conversation"]}.
 
 needs_family must include, in plain family-facing language:
 - any request, question or practical need she raised;
@@ -222,10 +210,10 @@ Max 6 learned_facts, max 3 unknown_people. Never invent content not in the trans
     summary = 'Conversation recorded. Summary unavailable this time.';
   }
 
-  await supabaseAdmin
-    .from('presence_conversations')
-    .update({ summary, her_recap: herRecap, needs_family: needsFamily, status: 'summarized' })
-    .eq('id', conversationId);
+  await saveConversationSummary(
+    conversationId,
+    { summary, her_recap: herRecap, needs_family: needsFamily, status: 'summarized' },
+  );
 
   // Learning loop (context architecture §3): what she said about her own life enters
   // the biography store as PROVISIONAL (30-day TTL, write gate) so the next call brief
@@ -252,7 +240,7 @@ Max 6 learned_facts, max 3 unknown_people. Never invent content not in the trans
       expires_at: thirtyDays,
     })));
   if (factRows.length > 0) {
-    const { error: factError } = await supabaseAdmin.from('presence_facts').insert(factRows);
+    const { error: factError } = await addFacts(factRows);
     if (factError) log.error('Learned-fact insert failed', { error: factError.message });
   }
 

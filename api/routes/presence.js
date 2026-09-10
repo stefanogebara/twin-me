@@ -19,6 +19,7 @@
  *                                          'queued' requires an own_voice consent row)
  *
  * Uses public.users.id (req.user.id), NOT auth.users.id — CLAUDE.md convention.
+ * All table access goes through api/services/presenceStore.js.
  */
 
 import express from 'express';
@@ -27,7 +28,41 @@ import path from 'path';
 import multer from 'multer';
 import { authenticateUser } from '../middleware/auth.js';
 import { voiceService } from '../services/voiceService.js';
-import { supabaseAdmin } from '../services/database.js';
+import {
+  findLivePresenceById,
+  getLatestPresenceForOwner,
+  createPresence,
+  updatePresence,
+  setCallToken,
+  setPresenceTone,
+  getReadinessSources,
+  getResumeDetails,
+  getOverview,
+  listActivePeople,
+  softDeleteActivePeople,
+  insertPeople,
+  addPeople,
+  enrichPerson,
+  findActiveFact,
+  updateFactAnswer,
+  createFact,
+  addFacts,
+  supersedeFamilyIntroduction,
+  findOpenAsk,
+  dismissFact,
+  supersedeFact,
+  queueNote,
+  getConversationTranscript,
+  recordConsent,
+  appendConsent,
+  getLatestVoiceConsent,
+  getLatestVoiceConsentKind,
+  getVoiceState,
+  getClonedVoiceId,
+  recordVoiceStatus,
+  recordVoiceSample,
+  recordVoiceRevoked,
+} from '../services/presenceStore.js';
 import { createLogger } from '../services/logger.js';
 import { deriveReadiness } from '../services/presenceReadiness.js';
 
@@ -60,17 +95,7 @@ const aboutUpload = multer({
 // call link enforces. Thresholds are deliberately low (a widow with one child must
 // not be blocked) — the mirror does the persuading, not the gate.
 async function computeReadiness(presence) {
-  const [people, facts, notes, conversations, voice] = await Promise.all([
-    supabaseAdmin.from('presence_people').select('id', { count: 'exact', head: true })
-      .eq('presence_id', presence.id).eq('status', 'active'),
-    supabaseAdmin.from('presence_facts').select('kind, confidence')
-      .eq('presence_id', presence.id).eq('status', 'active'),
-    supabaseAdmin.from('presence_notes').select('id', { count: 'exact', head: true })
-      .eq('presence_id', presence.id).eq('status', 'queued'),
-    supabaseAdmin.from('presence_conversations').select('id', { count: 'exact', head: true })
-      .eq('presence_id', presence.id),
-    supabaseAdmin.from('presence_voice').select('status').eq('presence_id', presence.id).maybeSingle(),
-  ]);
+  const { people, facts, notes, conversations, voice } = await getReadinessSources(presence.id);
   const kinds = (facts.data || []);
   const count = (kind) => kinds.filter((f) => f.kind === kind && f.confidence !== 'ask').length;
   const counts = {
@@ -93,12 +118,7 @@ async function loadOwned(req, res) {
     res.status(400).json({ success: false, error: 'Invalid presence id' });
     return null;
   }
-  const { data, error } = await supabaseAdmin
-    .from('presences')
-    .select('id, owner_user_id, status, cared_for_name, caller_name, tone')
-    .eq('id', id)
-    .neq('status', 'deleted')
-    .maybeSingle();
+  const { data, error } = await findLivePresenceById(id);
   if (error) {
     log.error('Presence lookup failed', { error: error.message });
     res.status(500).json({ success: false, error: 'Lookup failed' });
@@ -135,25 +155,11 @@ function findSamePerson(people, candidateName) {
 // ====================================================================
 router.get('/mine', authenticateUser, async (req, res) => {
   try {
-    const { data: presence, error } = await supabaseAdmin
-      .from('presences')
-      .select('*')
-      .eq('owner_user_id', req.user.id)
-      .neq('status', 'deleted')
-      .order('updated_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    const { data: presence, error } = await getLatestPresenceForOwner(req.user.id);
     if (error) throw error;
     if (!presence) return res.json({ success: true, presence: null });
 
-    const [people, voice, facts] = await Promise.all([
-      supabaseAdmin.from('presence_people').select('id, name, relation, called_by')
-        .eq('presence_id', presence.id).eq('status', 'active').order('created_at'),
-      supabaseAdmin.from('presence_voice').select('status, sample_count, sample_seconds')
-        .eq('presence_id', presence.id).maybeSingle(),
-      supabaseAdmin.from('presence_facts').select('id, kind, question, answer')
-        .eq('presence_id', presence.id).eq('status', 'active').order('created_at'),
-    ]);
+    const { people, voice, facts } = await getResumeDetails(presence.id);
 
     res.json({
       success: true,
@@ -174,17 +180,13 @@ router.get('/mine', authenticateUser, async (req, res) => {
 router.post('/', authenticateUser, async (req, res) => {
   try {
     const body = req.body || {};
-    const { data, error } = await supabaseAdmin
-      .from('presences')
-      .insert({
-        owner_user_id: req.user.id,
-        cared_for_name: clip(body.cared_for_name, 120),
-        relationship: clip(body.relationship || 'grandmother', 40),
-        caller_name: clip(body.caller_name, 120),
-        tone: clip(body.tone, 80),
-      })
-      .select()
-      .single();
+    const { data, error } = await createPresence({
+      owner_user_id: req.user.id,
+      cared_for_name: clip(body.cared_for_name, 120),
+      relationship: clip(body.relationship || 'grandmother', 40),
+      caller_name: clip(body.caller_name, 120),
+      tone: clip(body.tone, 80),
+    });
     if (error) throw error;
     res.status(201).json({ success: true, presence: data });
   } catch (err) {
@@ -218,8 +220,7 @@ router.patch('/:id', authenticateUser, async (req, res) => {
     }
     patch.updated_at = new Date().toISOString();
 
-    const { data, error } = await supabaseAdmin
-      .from('presences').update(patch).eq('id', owned.id).select().single();
+    const { data, error } = await updatePresence(owned.id, patch);
     if (error) throw error;
     res.json({ success: true, presence: data });
   } catch (err) {
@@ -240,11 +241,9 @@ router.post('/:id/consent', authenticateUser, async (req, res) => {
     if (!VALID_CONSENT_KINDS.has(kind) || !textVersion) {
       return res.status(400).json({ success: false, error: 'kind and text_version are required' });
     }
-    const { data, error } = await supabaseAdmin
-      .from('presence_consents')
-      .insert({ presence_id: owned.id, user_id: req.user.id, kind, text_version: clip(textVersion, 2000) })
-      .select('id, kind, accepted_at')
-      .single();
+    const { data, error } = await recordConsent(
+      { presence_id: owned.id, user_id: req.user.id, kind, text_version: clip(textVersion, 2000) },
+    );
     if (error) throw error;
     res.status(201).json({ success: true, consent: data });
   } catch (err) {
@@ -275,17 +274,12 @@ router.put('/:id/people', authenticateUser, async (req, res) => {
       .slice(0, MAX_PEOPLE);
 
     // Replace-all sync: soft-delete the current map, insert the new one.
-    const { error: clearError } = await supabaseAdmin
-      .from('presence_people')
-      .update({ status: 'deleted', updated_at: new Date().toISOString() })
-      .eq('presence_id', owned.id)
-      .eq('status', 'active');
+    const { error: clearError } = await softDeleteActivePeople(owned.id);
     if (clearError) throw clearError;
 
     let people = [];
     if (rows.length > 0) {
-      const { data, error } = await supabaseAdmin
-        .from('presence_people').insert(rows).select('id, name, relation, called_by');
+      const { data, error } = await insertPeople(rows);
       if (error) throw error;
       people = data;
     }
@@ -310,32 +304,21 @@ router.post('/:id/facts', authenticateUser, async (req, res) => {
     }
     const source = req.body?.source === 'family_app' ? 'family_app' : 'family_onboarding';
 
-    const { data: existing, error: findError } = await supabaseAdmin
-      .from('presence_facts')
-      .select('id')
-      .eq('presence_id', owned.id)
-      .eq('kind', kind)
-      .eq('question', clip(question, 1000))
-      .eq('status', 'active')
-      .maybeSingle();
+    const { data: existing, error: findError } = await findActiveFact(owned.id, kind, clip(question, 1000));
     if (findError) throw findError;
 
     let fact;
     if (existing) {
-      const { data, error } = await supabaseAdmin
-        .from('presence_facts')
-        .update({ answer: clip(answer, 4000), source, updated_at: new Date().toISOString() })
-        .eq('id', existing.id)
-        .select('id, kind, question, answer')
-        .single();
+      const { data, error } = await updateFactAnswer(
+        existing.id,
+        { answer: clip(answer, 4000), source, updated_at: new Date().toISOString() },
+      );
       if (error) throw error;
       fact = data;
     } else {
-      const { data, error } = await supabaseAdmin
-        .from('presence_facts')
-        .insert({ presence_id: owned.id, kind, question: clip(question, 1000), answer: clip(answer, 4000), source })
-        .select('id, kind, question, answer')
-        .single();
+      const { data, error } = await createFact(
+        { presence_id: owned.id, kind, question: clip(question, 1000), answer: clip(answer, 4000), source },
+      );
       if (error) throw error;
       fact = data;
     }
@@ -357,11 +340,7 @@ router.post('/:id/notes', authenticateUser, async (req, res) => {
     const body = String(req.body?.body || '').trim();
     if (!body) return res.status(400).json({ success: false, error: 'body is required' });
 
-    const { data, error } = await supabaseAdmin
-      .from('presence_notes')
-      .insert({ presence_id: owned.id, author_user_id: req.user.id, body: clip(body, 2000) })
-      .select('id, body, status, created_at')
-      .single();
+    const { data, error } = await queueNote({ presence_id: owned.id, author_user_id: req.user.id, body: clip(body, 2000) });
     if (error) throw error;
     res.status(201).json({ success: true, note: data });
   } catch (err) {
@@ -386,13 +365,7 @@ router.post('/:id/voice-status', authenticateUser, async (req, res) => {
     // Consent gate: nothing enters the build queue without an own_voice consent
     // row that hasn't been revoked afterwards.
     if (status === 'queued') {
-      const { data: consents, error: consentError } = await supabaseAdmin
-        .from('presence_consents')
-        .select('kind, accepted_at')
-        .eq('presence_id', owned.id)
-        .in('kind', ['own_voice', 'own_voice_revoked'])
-        .order('accepted_at', { ascending: false })
-        .limit(1);
+      const { data: consents, error: consentError } = await getLatestVoiceConsent(owned.id);
       if (consentError) throw consentError;
       if (!consents?.length || consents[0].kind !== 'own_voice') {
         return res.status(409).json({ success: false, error: 'Voice consent is required before queueing a build' });
@@ -402,20 +375,13 @@ router.post('/:id/voice-status', authenticateUser, async (req, res) => {
     const sampleCount = Math.min(Math.max(parseInt(req.body?.sample_count, 10) || 0, 0), 20);
     const sampleSeconds = Math.min(Math.max(parseInt(req.body?.sample_seconds, 10) || 0, 0), 3600);
 
-    const { data, error } = await supabaseAdmin
-      .from('presence_voice')
-      .upsert(
-        {
-          presence_id: owned.id,
-          status,
-          sample_count: sampleCount,
-          sample_seconds: sampleSeconds,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: 'presence_id' },
-      )
-      .select('status, sample_count, sample_seconds')
-      .single();
+    const { data, error } = await recordVoiceStatus({
+      presence_id: owned.id,
+      status,
+      sample_count: sampleCount,
+      sample_seconds: sampleSeconds,
+      updated_at: new Date().toISOString(),
+    });
     if (error) throw error;
     res.json({ success: true, voice: data });
   } catch (err) {
@@ -444,10 +410,7 @@ router.post('/:id/call-link', authenticateUser, async (req, res) => {
 
     const { randomBytes } = await import('crypto');
     const token = randomBytes(24).toString('base64url');
-    const { error } = await supabaseAdmin
-      .from('presences')
-      .update({ call_token: token, call_token_created_at: new Date().toISOString(), updated_at: new Date().toISOString() })
-      .eq('id', owned.id);
+    const { error } = await setCallToken(owned.id, token);
     if (error) throw error;
 
     res.status(201).json({ success: true, call_path: `/call/${token}` });
@@ -465,20 +428,7 @@ router.get('/:id/overview', authenticateUser, async (req, res) => {
     const owned = await loadOwned(req, res);
     if (!owned) return;
 
-    const [presence, people, voice, facts, notes, conversations] = await Promise.all([
-      supabaseAdmin.from('presences').select('*').eq('id', owned.id).single(),
-      supabaseAdmin.from('presence_people').select('id, name, relation, called_by')
-        .eq('presence_id', owned.id).eq('status', 'active').order('created_at'),
-      supabaseAdmin.from('presence_voice').select('status, sample_count, sample_seconds')
-        .eq('presence_id', owned.id).maybeSingle(),
-      supabaseAdmin.from('presence_facts').select('id, kind, question, answer, confidence, source')
-        .eq('presence_id', owned.id).eq('status', 'active').order('created_at'),
-      supabaseAdmin.from('presence_notes').select('id, body, status, created_at, delivered_at')
-        .eq('presence_id', owned.id).order('created_at', { ascending: false }).limit(20),
-      supabaseAdmin.from('presence_conversations')
-        .select('id, started_at, ended_at, turn_count, duration_seconds, summary, needs_family, status')
-        .eq('presence_id', owned.id).order('started_at', { ascending: false }).limit(10),
-    ]);
+    const { presence, people, voice, facts, notes, conversations } = await getOverview(owned.id);
 
     res.json({
       success: true,
@@ -571,8 +521,7 @@ router.post('/:id/about', authenticateUser, aboutUpload.single('audio'), async (
     }
 
     // Persist: merge people by name (case-insensitive), upsert facts, keep the raw note.
-    const { data: existingPeople } = await supabaseAdmin
-      .from('presence_people').select('id, name, relation, called_by').eq('presence_id', owned.id).eq('status', 'active');
+    const { data: existingPeople } = await listActivePeople(owned.id);
     const knownList = existingPeople || [];
     const newPeople = [];
     for (const person of extracted.people) {
@@ -583,7 +532,7 @@ router.post('/:id/about', authenticateUser, aboutUpload.single('audio'), async (
         if (!match.relation && person.relation) patch.relation = person.relation;
         if (!match.called_by && person.called_by) patch.called_by = person.called_by;
         if (Object.keys(patch).length) {
-          await supabaseAdmin.from('presence_people').update({ ...patch, updated_at: new Date().toISOString() }).eq('id', match.id);
+          await enrichPerson(match.id, patch);
         }
       } else if (knownList.length + newPeople.length < MAX_PEOPLE) {
         newPeople.push(person);
@@ -591,7 +540,7 @@ router.post('/:id/about', authenticateUser, aboutUpload.single('audio'), async (
       }
     }
     if (newPeople.length > 0) {
-      await supabaseAdmin.from('presence_people').insert(newPeople.map((p) => ({ presence_id: owned.id, ...p })));
+      await addPeople(newPeople.map((p) => ({ presence_id: owned.id, ...p })));
     }
 
     const factRows = [
@@ -601,15 +550,14 @@ router.post('/:id/about', authenticateUser, aboutUpload.single('audio'), async (
       ...extracted.facts.map((f) => ({ kind: 'biography', question: f.question, answer: f.answer })),
     ];
     // Replace any previous introduction so re-recording does not duplicate.
-    await supabaseAdmin.from('presence_facts')
-      .update({ status: 'superseded', updated_at: new Date().toISOString() })
-      .eq('presence_id', owned.id).eq('kind', 'biography').eq('question', 'Family introduction').eq('status', 'active');
-    const { error: factError } = await supabaseAdmin.from('presence_facts')
-      .insert(factRows.map((r) => ({ presence_id: owned.id, source: 'family_onboarding', confidence: 'committed', ...r })));
+    await supersedeFamilyIntroduction(owned.id);
+    const { error: factError } = await addFacts(
+      factRows.map((r) => ({ presence_id: owned.id, source: 'family_onboarding', confidence: 'committed', ...r })),
+    );
     if (factError) throw factError;
 
     if (extracted.tone_hint && !owned.tone) {
-      await supabaseAdmin.from('presences').update({ tone: extracted.tone_hint, updated_at: new Date().toISOString() }).eq('id', owned.id);
+      await setPresenceTone(owned.id, extracted.tone_hint);
     }
 
     res.status(201).json({
@@ -640,18 +588,13 @@ router.post('/:id/voice-samples', authenticateUser, aboutUpload.single('audio'),
     if (!owned) return;
     if (!filePath) return res.status(400).json({ success: false, error: 'An audio sample is required' });
 
-    const { data: consents } = await supabaseAdmin
-      .from('presence_consents').select('kind')
-      .eq('presence_id', owned.id).in('kind', ['own_voice', 'own_voice_revoked'])
-      .order('accepted_at', { ascending: false }).limit(1);
+    const { data: consents } = await getLatestVoiceConsentKind(owned.id);
     if (!consents?.length || consents[0].kind !== 'own_voice') {
       return res.status(409).json({ success: false, error: 'Voice consent is required first' });
     }
 
     const seconds = Math.min(Math.max(parseInt(req.body?.sample_seconds, 10) || 0, 0), 600);
-    const { data: current } = await supabaseAdmin.from('presence_voice')
-      .select('status, sample_count, sample_seconds, elevenlabs_voice_id')
-      .eq('presence_id', owned.id).maybeSingle();
+    const { data: current } = await getVoiceState(owned.id);
     const sampleCount = (current?.sample_count || 0) + 1;
     const sampleSeconds = (current?.sample_seconds || 0) + seconds;
 
@@ -679,7 +622,7 @@ router.post('/:id/voice-samples', authenticateUser, aboutUpload.single('audio'),
       }
     }
 
-    const { data, error } = await supabaseAdmin.from('presence_voice').upsert({
+    const { data, error } = await recordVoiceSample({
       presence_id: owned.id,
       status,
       sample_count: sampleCount,
@@ -687,7 +630,7 @@ router.post('/:id/voice-samples', authenticateUser, aboutUpload.single('audio'),
       elevenlabs_voice_id: voiceId,
       note: note.slice(0, 1000),
       updated_at: new Date().toISOString(),
-    }, { onConflict: 'presence_id' }).select('status, sample_count, sample_seconds, note').single();
+    });
     if (error) throw error;
 
     res.status(201).json({ success: true, voice: data, clone_enabled: cloneEnabled });
@@ -707,21 +650,20 @@ router.post('/:id/voice-revoke', authenticateUser, async (req, res) => {
     const owned = await loadOwned(req, res);
     if (!owned) return;
 
-    const { data: current } = await supabaseAdmin.from('presence_voice')
-      .select('elevenlabs_voice_id').eq('presence_id', owned.id).maybeSingle();
+    const { data: current } = await getClonedVoiceId(owned.id);
     if (current?.elevenlabs_voice_id && voiceService.isEnabled()) {
       const deleted = await voiceService.deleteVoice(current.elevenlabs_voice_id);
       if (!deleted.success) log.warn('ElevenLabs voice delete failed on revoke', { error: deleted.error });
     }
 
-    await supabaseAdmin.from('presence_consents').insert({
+    await appendConsent({
       presence_id: owned.id, user_id: req.user.id, kind: 'own_voice_revoked',
       text_version: 'Consent withdrawn by the owner; cloned voice deleted.',
     });
-    const { data, error } = await supabaseAdmin.from('presence_voice').upsert({
+    const { data, error } = await recordVoiceRevoked({
       presence_id: owned.id, status: 'revoked', elevenlabs_voice_id: null,
       note: 'Voice removed at your request.', updated_at: new Date().toISOString(),
-    }, { onConflict: 'presence_id' }).select('status').single();
+    });
     if (error) throw error;
 
     res.json({ success: true, voice: data });
@@ -741,16 +683,12 @@ router.post('/:id/asks/:factId', authenticateUser, async (req, res) => {
     const { factId } = req.params;
     if (!UUID_RE.test(factId)) return res.status(400).json({ success: false, error: 'Invalid ask id' });
 
-    const { data: ask } = await supabaseAdmin.from('presence_facts')
-      .select('id, question')
-      .eq('id', factId).eq('presence_id', owned.id).eq('confidence', 'ask').eq('status', 'active')
-      .maybeSingle();
+    const { data: ask } = await findOpenAsk(owned.id, factId);
     if (!ask) return res.status(404).json({ success: false, error: 'Ask not found' });
 
     const action = req.body?.action === 'dismiss' ? 'dismiss' : 'add';
     if (action === 'dismiss') {
-      await supabaseAdmin.from('presence_facts')
-        .update({ status: 'deleted', updated_at: new Date().toISOString() }).eq('id', ask.id);
+      await dismissFact(ask.id);
       return res.json({ success: true, dismissed: true });
     }
 
@@ -760,20 +698,16 @@ router.post('/:id/asks/:factId', authenticateUser, async (req, res) => {
     const calledBy = clip(req.body?.called_by, 120).trim();
     if (!name) return res.status(400).json({ success: false, error: 'name is required' });
 
-    const { data: allPeople } = await supabaseAdmin.from('presence_people')
-      .select('id, name, relation, called_by').eq('presence_id', owned.id).eq('status', 'active');
+    const { data: allPeople } = await listActivePeople(owned.id);
     const existing = findSamePerson(allPeople || [], name);
     if (!existing) {
-      await supabaseAdmin.from('presence_people').insert({ presence_id: owned.id, name, relation, called_by: calledBy });
+      await addPeople({ presence_id: owned.id, name, relation, called_by: calledBy });
     } else if (relation || calledBy) {
-      await supabaseAdmin.from('presence_people')
-        .update({ ...(relation ? { relation } : {}), ...(calledBy ? { called_by: calledBy } : {}), updated_at: new Date().toISOString() })
-        .eq('id', existing.id);
+      await enrichPerson(existing.id, { ...(relation ? { relation } : {}), ...(calledBy ? { called_by: calledBy } : {}) });
     }
-    await supabaseAdmin.from('presence_facts')
-      .update({ status: 'superseded', updated_at: new Date().toISOString() }).eq('id', ask.id);
+    await supersedeFact(ask.id);
     if (relation) {
-      await supabaseAdmin.from('presence_facts').insert({
+      await addFacts({
         presence_id: owned.id, kind: 'biography', question: `Who ${name} is`,
         answer: `${name} is her ${relation}${calledBy ? ` — she calls them "${calledBy}"` : ''}.`,
         source: 'family_app', confidence: 'committed',
@@ -798,11 +732,7 @@ router.get('/:id/conversations/:conversationId', authenticateUser, async (req, r
     const { conversationId } = req.params;
     if (!UUID_RE.test(conversationId)) return res.status(400).json({ success: false, error: 'Invalid conversation id' });
 
-    const { data, error } = await supabaseAdmin
-      .from('presence_conversations')
-      .select('id, started_at, duration_seconds, turn_count, transcript, summary, needs_family')
-      .eq('id', conversationId).eq('presence_id', owned.id)
-      .maybeSingle();
+    const { data, error } = await getConversationTranscript(owned.id, conversationId);
     if (error) throw error;
     if (!data) return res.status(404).json({ success: false, error: 'Conversation not found' });
 
