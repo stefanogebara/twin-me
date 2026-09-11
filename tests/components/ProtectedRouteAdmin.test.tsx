@@ -52,10 +52,10 @@ beforeEach(() => {
 });
 
 describe('ProtectedRoute requireAdmin', () => {
-  it('redirects an authenticated non-admin to /today and hides the shell', () => {
+  it('redirects an authenticated non-admin to /money and hides the shell', () => {
     mockAuth = { isSignedIn: true, isLoaded: true, isAdmin: false, needsOnboarding: false };
     const html = renderGate(true);
-    expect(html).toContain('data-redirect="/today"');
+    expect(html).toContain('data-redirect="/money"');
     expect(html).not.toContain(SHELL);
   });
 
