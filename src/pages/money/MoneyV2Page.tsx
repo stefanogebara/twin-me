@@ -53,6 +53,12 @@ export default function MoneyV2Page() {
   const [busy, setBusy] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
 
+  /* Two ways to learn the connection has ended, and the page must not depend on the luckier
+     one. The refresh call says so when it is the call that hits the dead session; the accounts
+     row says so from the last recorded read, which survives a day when the read budget is
+     already spent and no call is made at all. */
+  const reconnect = needsReconnect || accounts.some((a) => a.needs_reconnect);
+
   const load = useCallback(async () => {
     const [f, l, r, a, m, rd, c, u] = await Promise.allSettled([
       moneyAPI.forecast(), moneyAPI.ledger(), moneyAPI.recurring(), moneyAPI.accounts(), moneyAPI.months(), moneyAPI.readings(),
@@ -225,7 +231,7 @@ export default function MoneyV2Page() {
             ) : null}
             {/* A month that stopped moving must say why. The bank ends its session on its own
                 schedule, and nothing can be read until it is authorised again. */}
-            {needsReconnect ? (
+            {reconnect ? (
               <p className="mv-lede">The bank connection has ended, so nothing new has come in. Reconnect it under Sources to start reading again.</p>
             ) : null}
             <div className="mv-ctas"><a href="#ledger" className="mv-pill">Every euro</a><a href="#recurring" className="mv-pill mv-pill--ghost">What comes back</a></div>

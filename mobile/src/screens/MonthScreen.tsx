@@ -103,15 +103,20 @@ export default function MonthScreen({ onOpenQuestions, questionCount, onOpenLedg
   const loadAll = useCallback(async () => {
     /* One failing endpoint must not take the screen down with it, so each is settled on
        its own. Only a clean sweep of failures is worth telling the person about. */
-    const [f, l, rd, c, rc, td] = await Promise.allSettled([
+    const [f, l, rd, c, rc, td, ac] = await Promise.allSettled([
       moneyApi.forecast(),
       moneyApi.ledger(),
       moneyApi.readings(),
       moneyApi.categories(currentMonthStart()),
       moneyApi.recurring(),
       moneyApi.today(),
+      moneyApi.accounts(),
     ]);
     if (td.status === 'fulfilled') setToday(td.value);
+    /* The refresh call only learns the session has ended when it is the call that hits it;
+       once the day's read budget is spent no call is made at all. The account row carries the
+       last recorded outcome, so the month still says why it stopped moving. */
+    if (ac.status === 'fulfilled' && ac.value.some((a) => a.needs_reconnect)) setNeedsReconnect(true);
     if (f.status === 'fulfilled') setForecast(f.value);
     if (l.status === 'fulfilled') setLedgerLines(l.value.length);
     if (rd.status === 'fulfilled') setReadings(rd.value);

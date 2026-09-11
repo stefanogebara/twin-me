@@ -153,7 +153,7 @@ const OAuthCallback = () => {
             const isRelativePath = (path: string) => path.startsWith('/') && !path.startsWith('//');
             const redirectPath = (claimData.redirectAfterAuth && isRelativePath(claimData.redirectAfterAuth))
               ? claimData.redirectAfterAuth
-              : '/today';
+              : '/money';
             setTimeout(() => { window.location.href = redirectPath; }, 1500);
             return;
           }
@@ -422,7 +422,7 @@ const OAuthCallback = () => {
               setStatus('success');
 
               // Determine redirect based on URL param, response data, state, user type, or default
-              let redirectPath = '/today';  // Default
+              let redirectPath = '/money';  // Default
 
               // First check URL param (from backend redirect)
               // Only allow relative paths to prevent open redirect attacks
@@ -522,7 +522,7 @@ const OAuthCallback = () => {
               setStatus('success');
 
               // Determine redirect based on whether user is new or existing
-              const redirectPath = data.isNewUser ? '/soul-reveal' : '/today';
+              const redirectPath = '/money';
               const welcomeMessage = data.isNewUser
                 ? 'Welcome! Let\'s set up your Soul Signature'
                 : 'Welcome back!';

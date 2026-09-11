@@ -516,6 +516,17 @@ export async function moneyContext(userId, now = new Date()) {
 const CHANNEL_CATEGORY = { transfer: 'transfers', bizum: 'transfers', cash: 'cash', fee: 'fees', direct_debit: 'bills' };
 
 /**
+ * The one place a payment is given its kind. A person's correction beats the lookup, the
+ * lookup beats the channel, and a payment nothing can speak for stays unplaced rather than
+ * being filed under "other". Every surface that groups spending must call this: the month
+ * page and the chat once disagreed about the same euros because each had its own version.
+ */
+export function categoryOfPayment(place, channel) {
+  const fromPlace = place ? (place.category_override || place.category || null) : null;
+  return fromPlace || CHANNEL_CATEGORY[channel] || null;
+}
+
+/**
  * Where a month's money went, by kind of place. The kind comes from money_places, one row
  * per merchant, so this is a join and not a guess; a merchant nobody has looked up yet
  * counts as "not read yet" rather than being quietly filed under "other" — the difference
@@ -550,10 +561,9 @@ export async function categorySpend(userId, { month = null } = {}) {
     const place = byKey.get(r.merchant_key);
     /* A merchant that was looked up and not found is still unread, not "other": a miss is
        recorded so the same question is not asked twice, and it must not pass for an answer. */
-    const place_category = place ? (place.category_override || place.category || null) : null;
     /* A transfer to a person is a transfer, whatever a places provider thinks: the channel
        the bank recorded is itself an answer, and a truthful one. */
-    const category = place_category || CHANNEL_CATEGORY[r.channel] || null;
+    const category = categoryOfPayment(place, r.channel);
     if (category) read += amount;
     const key = category || 'not read yet';
     if (!groups.has(key)) groups.set(key, { category: key, known: Boolean(category), spent: 0, lines: 0, merchants: new Map() });

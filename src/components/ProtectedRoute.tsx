@@ -69,7 +69,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     // before any admin shell renders. Checked ahead of the onboarding gate so
     // a non-admin never lingers on an admin path.
     if (requireAdmin && !isAdmin) {
-      return <Navigate to="/today" replace />;
+      return <Navigate to="/money" replace />;
     }
     // Gate new users to cinematic onboarding (skip if already on /onboarding).
     // Also allow /soul-reveal so the desktop "look you up" research reveal can
@@ -79,7 +79,11 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     // /onboarding/wow is its second act (reached after the flow clears the
     // gate, but allow-listed so a mid-wow refresh with a lagging server
     // completion write doesn't yank the user back to the start).
-    if (needsOnboarding && location.pathname !== '/soul-reveal' && location.pathname !== '/onboarding/wow') {
+    // The money product is its own front door: it carries its own onboarding
+    // (sources, then the questions it cannot work out on its own), so the
+    // soul-signature gate must not pull a new person out of it.
+    const inMoney = location.pathname === '/money' || location.pathname.startsWith('/money/');
+    if (needsOnboarding && !inMoney && location.pathname !== '/soul-reveal' && location.pathname !== '/onboarding/wow') {
       return <Navigate to="/soul-reveal" replace />;
     }
     return <>{children}</>;

@@ -13,7 +13,13 @@ const store = {
   listReadings: vi.fn(), listFacts: vi.fn(), questionsFor: vi.fn(), listPlaces: vi.fn(),
   setVerdict: vi.fn(), setPlaceCategory: vi.fn(), answerQuestion: vi.fn(),
 };
-vi.mock('../../../../api/services/money/store.js', () => store);
+/* One kind for a payment, and the real resolver decides it: the month page and the chat
+   disagreed about the same euros while each had its own copy, so the mock must not hold a
+   second one. Everything else the chat reads from the store is still stubbed. */
+vi.mock('../../../../api/services/money/store.js', async (importOriginal) => {
+  const { categoryOfPayment } = await importOriginal();
+  return { ...store, categoryOfPayment };
+});
 
 const {
   assemble, buildFigure, validateAction, receiptsFor, parseReply, shortCircuit, assembleReply, contextText, euroGlyphs, answer, act, FIGURE_KINDS, RULES, asksWhereItWent,
@@ -103,6 +109,20 @@ describe('buildFigure', () => {
     expect(figure.items.find((i) => i.label === 'not read yet').value).toBe(9.5);
     expect(figure.items.every((i) => i.share > 0 && i.share <= 1)).toBe(true);
     expect(rows.map((r) => r.id)).toContain('t1');
+  });
+
+  /* The regression this pins: a transfer has no place behind it, and reading the place alone
+     filed every one of them under "not read yet" in the chat while the month page listed them
+     as transfers. Two surfaces, the same euros, two answers. */
+  it('shares give a transfer the kind its channel already names, as the month page does', () => {
+    const sent = t('t9', '2026-09-06T10:00:00Z', -53.25, 'rafaella van der graaff', 'Rafaella Van Der Graaff', { channel: 'transfer' });
+    const withTransfer = assemble({
+      transactions: [...transactions, sent], segments, forecast: cast, recurring,
+      readings: [], facts: [], questions, places, categories, now: NOW,
+    });
+    const { figure } = buildFigure({ kind: 'shares', month: '2026-09' }, withTransfer);
+    expect(figure.items.find((i) => i.label === 'transfers').value).toBe(53.25);
+    expect(figure.items.find((i) => i.label === 'not read yet').value).toBe(9.5);
   });
 
   it('shares by merchant name the places, not the keys', () => {

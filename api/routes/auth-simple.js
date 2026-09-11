@@ -895,9 +895,12 @@ router.post('/magic-link/request', authLimiter, async (req, res) => {
 router.get('/magic-link/verify', async (req, res) => {
   const appUrl = resolveAppUrl(req);
   const rawToken = typeof req.query?.token === 'string' ? req.query.token : '';
+  /* Where a signin link lands when it does not say. The money product is the front door
+     now, so a person who asked for a link and pressed it arrives at their month, not at the
+     old soul-signature dashboard. A link that names its own destination still wins. */
   const redirectParam = typeof req.query?.redirect === 'string' && req.query.redirect.startsWith('/') && !req.query.redirect.startsWith('//')
     ? req.query.redirect
-    : '/dashboard';
+    : '/money';
 
   if (!rawToken || rawToken.length !== 64) {
     return res.redirect(`${appUrl}/auth?error=${encodeURIComponent('Invalid signin link')}`);
