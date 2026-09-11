@@ -16,10 +16,9 @@
 
 import express from 'express';
 import { verifyCronSecret } from '../middleware/verifyCronSecret.js';
-import { supabaseAdmin } from '../services/database.js';
 import { logCronExecution, wasRecentlyRun } from '../services/cronLogger.js';
 import { createLogger } from '../services/logger.js';
-import { pullBankFeed, enrichPlaces, refreshReadings } from '../services/money/store.js';
+import { pullBankFeed, enrichPlaces, refreshReadings, bankFeedUserIds } from '../services/money/store.js';
 import { isConfigured } from '../services/money/feeds/enableBanking.js';
 
 const log = createLogger('CronMoneyPull');
@@ -42,11 +41,7 @@ router.all('/', async (req, res) => {
       return res.json({ success: true, read: 0, reason: 'cooldown' });
     }
 
-    const { data: accounts } = await supabaseAdmin
-      .from('money_accounts')
-      .select('user_id')
-      .eq('provider', 'enablebanking');
-    const userIds = [...new Set((accounts || []).map((a) => a.user_id))];
+    const userIds = await bankFeedUserIds();
 
     let read = 0;
     let created = 0;

@@ -265,6 +265,20 @@ export async function saveBankAccounts(userId, { sessionId, validUntil, accounts
   return data || [];
 }
 
+/**
+ * Everyone with a bank the schedule can read. The cron asks for this rather than reaching
+ * into the table itself: a route that queries the database directly is a route that can
+ * drift from the rules the store keeps around these rows.
+ */
+export async function bankFeedUserIds() {
+  const { data, error } = await supabaseAdmin
+    .from('money_accounts')
+    .select('user_id')
+    .eq('provider', 'enablebanking');
+  if (error) throw new Error(`bank accounts read failed: ${error.message}`);
+  return [...new Set((data || []).map((a) => a.user_id))];
+}
+
 /** Whether the last read of this person's bank failed because the connection had ended. */
 export async function bankNeedsReconnect(userId) {
   const { data } = await supabaseAdmin
