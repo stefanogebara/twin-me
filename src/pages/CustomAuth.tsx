@@ -410,7 +410,7 @@ const CustomAuth = () => {
             ) : null}
 
             <div className="pc-auth-actions">
-              <button className="pc-auth-google" onClick={handleGoogleSignIn} disabled={loading}>
+              <button className="pc-auth-google pc-btn--cta" onClick={handleGoogleSignIn} disabled={loading}>
                 {loading ? <Loader2 className="pc-spin" size={18} /> : <span className="pc-auth-g">G</span>}
                 {loading ? 'Connecting' : 'Continue with Google'}
               </button>

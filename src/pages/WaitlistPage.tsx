@@ -104,7 +104,7 @@ const WaitlistPage = () => {
                       onChange={(e) => { setEmail(e.target.value); setError(''); }}
                     />
                   </label>
-                  <button type="submit" className="pc-auth-google" disabled={loading}>
+                  <button type="submit" className="pc-auth-google pc-btn--cta" disabled={loading}>
                     {loading ? <Loader2 className="pc-spin" size={18} /> : null}
                     {loading ? 'Joining' : 'Join the waitlist'}
                   </button>

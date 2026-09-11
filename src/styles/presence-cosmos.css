@@ -26,16 +26,21 @@
 
 .presence-cosmos {
   /* ===== Tokens ===== */
-  --c-paper: #f7f5f3; /* Linen Canvas — spec root, never pure white */
-  --c-canvas: #f7f5f3;
+  /* The register (2026-09-11): Instinct's signed-in app, measured — a warm
+     page, a warm near-black ink, rows under a 1px ink rule. Headings stay
+     Cosmos. Spec: .claude/plans/2026-09-11-instinct-register/README.md.
+     Was: paper #f7f5f3 (Linen Canvas), ink #0d0d0d, ink-2 #534f4e. */
+  --c-paper: #fbfaf9; /* the page: every screen's ground, never pure white */
+  --c-canvas: #fbfaf9;
   --c-white: #ffffff;
   --c-search: #fbfaf9;
-  --c-ink: #0d0d0d;
-  /* The ink ramp is spaced by measurement, not by eye. Every value below is
-     the lightest one that clears its WCAG floor on the DARKEST ground it
-     actually sits on across all nine Cosmos surfaces — paper, white cards, and
-     the frosted panels over the room, sampled from the rendered raster by
-     scripts/audit-cosmos-ink.mjs. Re-run that script before touching them.
+  --c-ink: #251f21;
+  /* The ink ramp is spaced by measurement, not by eye. ink-2 and ink-3 are
+     the register's AA-safe greys; each was checked against the DARKEST ground
+     it actually sits on — page, white, the warm field box, and on the marketing
+     surfaces the frosted panels over the room, sampled from the rendered
+     raster by scripts/audit-cosmos-ink.mjs. Re-run that script before touching
+     them.
 
      The old ramp (ink-2 #6e6a69, ink-3 #9a9796) could not hold: ink-3 measured
      2.67:1 on paper and failed AA on all 112 of its live runs — including the
@@ -46,21 +51,44 @@
      that used to live in presence-home.css) is NOT sufficient either — it
      still failed 38 of those runs.
 
-     value    L*     on paper   role
-     ink      3.6    17.87:1    display, primary action
-     ink-2    33.9    7.44:1    body and secondary text
-     ink-3    44.3    5.06:1    labels, empty states, timestamps, tags, icons
-     ink-4    82.6    1.45:1    RULES AND FILLS ONLY — never text
-     steps: 30.3 L* then 10.4 L*, so the three read as three. */
-  --c-ink-2: #534f4e;
+     value    L*     page      white     field     role
+     ink      12.5   15.54:1   16.20:1   14.19:1   text, every list's rule, primary fill
+     ink-2    35.5    7.33:1    7.64:1    6.69:1   the one grey line under a title
+     ink-3    44.3    5.28:1    5.51:1    4.83:1   quiet: empty states, names, times, placeholders
+     ink-4    82.6    1.52:1                       RULES AND FILLS ONLY — never text
+     steps: 23.0 L* then 8.8 L*, so the three read as three.
+     Instinct's own quiet grey #969394 is 2.92:1 on the page: --c-quiet, for
+     disabled and decorative marks only, never text. */
+  --c-ink-2: #585254;
   --c-ink-3: #6c6867;
   --c-ink-4: #d0cdcd;
-  --c-border: rgba(13, 13, 13, 0.12);
-  --c-hover-primary: #232323;
-  --c-hover-secondary: #e8e6e4;
+  --c-quiet: #969394;
+  --c-hairline: #eae9ea;  /* between rows; the secondary button's border */
+  --c-field: #f4efec;     /* the input box: no border, a warm fill */
+  /* State. Instinct's red #ed313e is 4.11:1 on white and 3.94 on the page, and
+     its green #73a89a 2.69 / 2.58: both fail as 13px text, so they are borders
+     and icons only. Text takes the darkened values:
+       --c-danger  #c81f2c   5.69:1 on white, 5.46:1 on the page
+       --c-live    #2f7d5b   4.99:1 on white, 4.79:1 on the page */
+  --c-danger: #c81f2c;
+  --c-danger-line: #f5aaae;
+  --c-live: #2f7d5b;
+  --c-live-mark: #73a89a;
+  --c-border: rgba(37, 31, 33, 0.12);
+  --c-hover-primary: #3b3436;   /* page-colour text on it: 11.64:1 */
+  --c-hover-secondary: #f1efed;
   --c-olive: #a6a698;
   --c-on-media: rgba(255, 255, 255, 0.7);
   --c-font: 'Geist', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  /* Type, the register's app text: 13px Geist everywhere, weight for
+     hierarchy. 350 needs Geist's variable range (index.html loads 100..900).
+     The root stays 16px so the marketing pages keep their sizes; an app
+     screen opts in with .pc-app. */
+  --c-text: 13px;
+  --c-lh-title: 20px;
+  --c-lh-text: 19.5px;
+  --c-track: -0.176px;
+  --c-w-line: 350;
   --c-ease-out: cubic-bezier(0.32, 0.72, 0, 1);
   --c-ease-ui: cubic-bezier(0.22, 1, 0.36, 1);
   --c-header-h: 56px;
@@ -400,21 +428,24 @@ button.pc-search-icons {
 }
 
 /* ============================================================
-   Buttons — pills only
-   ============================================================ */
+   Buttons — the register: 32 tall, 4px corners, 13px
+   ============================================================
+   Measured off Instinct's signed-in app (not its login page, whose 48/12
+   buttons were the source of the old 52/16). One primary per screen.
+   A page's local height override (.pc-auth-row, .pc-auth-magic, the
+   Portrait's verdicts) still wins; those pages are ported separately. */
 
 .pc-btn {
-  height: 52px;
-  padding: 0 24px;
+  height: 32px;
+  padding: 0 16px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  /* Spec: 16px is the signature radius for buttons — squared pills, not round ones. */
-  border-radius: 16px;
-  font-size: 16px;
-  font-weight: 500;
-  letter-spacing: -0.02em;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: -0.176px;
   white-space: nowrap;
   user-select: none;
   transition: background 0.2s, color 0.2s, transform 0.25s var(--c-ease-ui), border-color 0.2s;
@@ -429,36 +460,593 @@ button.pc-search-icons {
   pointer-events: none;
 }
 
+/* The base sheet rounds every :focus-visible to 999px, which would turn a
+   focused 4px button into a pill. */
+.presence-cosmos .pc-btn:focus-visible {
+  border-radius: 4px;
+}
+
+/* Primary: ink fill, page-colour text. */
 .pc-btn--primary {
   background: var(--c-ink);
-  color: var(--c-white) !important;
-  border: 0.5px solid transparent;
+  color: var(--c-paper) !important;
+  border: 1px solid transparent;
+  font-weight: 500;
 }
 
 .pc-btn--primary:hover {
   background: var(--c-hover-primary);
 }
 
-.pc-btn--ghost {
-  background: transparent;
+/* Secondary: white fill, hairline border, ink text. --ghost is the older
+   name for the same button; both are kept so no page has to change. */
+.pc-btn--ghost,
+.pc-btn--secondary {
+  background: var(--c-white);
   color: var(--c-ink) !important;
-  border: 0.5px solid var(--c-border);
+  border: 1px solid var(--c-hairline);
 }
 
-.pc-btn--ghost:hover {
+.pc-btn--ghost:hover,
+.pc-btn--secondary:hover {
   background: var(--c-hover-secondary);
 }
 
+/* Danger: white fill, a soft red line, and red text dark enough to read
+   (--c-danger, 5.69:1 on white; the line colour alone would be 1.9:1). */
+.pc-btn--danger {
+  background: var(--c-white);
+  color: var(--c-danger) !important;
+  border: 1px solid var(--c-danger-line);
+}
+
+.pc-btn--danger:hover {
+  background: #fdf3f3;
+}
+
 .pc-btn--canvas {
-  height: 56px;
-  padding: 0 24px;
   background: var(--c-canvas);
   color: var(--c-ink) !important;
-  border: 0.5px solid var(--c-border);
+  border: 1px solid var(--c-hairline);
 }
 
 .pc-btn--canvas:hover {
   background: var(--c-hover-secondary);
+}
+
+/* The one exception: the main call to action of a marketing or sign-in page
+   ("Create a Presence", "Continue with Google") is Instinct's own sign-in
+   button — 48 tall, 12px corners, 15px weight 500, ink fill. One per page;
+   everything else on that page is 32/4. Scoped to (0,2,0) so it also wins
+   over a page's own button class (.pc-auth-google). */
+.presence-cosmos .pc-btn--cta {
+  height: 48px;
+  padding: 0 24px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  background: var(--c-ink);
+  color: var(--c-paper) !important;
+  border: 1px solid transparent;
+}
+
+.presence-cosmos .pc-btn--cta:hover {
+  background: var(--c-hover-primary);
+}
+
+.presence-cosmos .pc-btn--cta:focus-visible {
+  border-radius: 12px;
+}
+
+/* ============================================================
+   App primitives — the register's rows, not cards (2026-09-11)
+   ============================================================
+   For signed-in app screens (home, onboarding, settings, portrait, money,
+   chat, setup). Marketing keeps its photography and is not built from these.
+
+     <main class="presence-cosmos pc-app">        flat page, 13px text
+       .pc-shell > .pc-side + .pc-col            200px links, 80px, 820px
+       .pc-apphead  h1 + .pc-apphead-line        page title + one grey line
+       .pc-appsection                            72px apart (56 on phones)
+         .pc-sechead  .pc-sechead-title / -line / -add
+         ul.pc-list                              1px ink rule on top
+           li.pc-row   .pc-row-icon  .pc-row-text (.pc-row-title, .pc-row-line)  .pc-row-action
+           li.pc-subrow                          indented 50px
+         p.pc-empty                              one quiet line under the rule
+       .pc-field  .pc-field-label + input.pc-input + .pc-field-hint
+       button.pc-switch[role=switch][aria-checked]
+
+   Every rule is scoped `.presence-cosmos .pc-*`: the base sheet colours p,
+   h1, h2 and h3 by element at (0,1,1), which beats a bare class. */
+
+.presence-cosmos.pc-app {
+  font-size: var(--c-text);
+  line-height: var(--c-lh-text);
+  letter-spacing: var(--c-track);
+  font-variant-numeric: tabular-nums;
+}
+
+/* index.css truncates EVERY `button span` and `a span` with an ellipsis; a
+   row's grey line inside a link, or a wrapping label, would be clipped to one
+   line. :not(.sr-only) keeps visually hidden text clipped. */
+.presence-cosmos.pc-app button span:not(.sr-only),
+.presence-cosmos.pc-app a span:not(.sr-only) {
+  max-width: none;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+}
+
+/* ---- shell: 200px sidebar, 80px, the 820px column ---- */
+
+.presence-cosmos .pc-shell {
+  width: 100%;
+  max-width: calc(200px + 80px + 820px + 80px);
+  margin: 0 auto;
+  padding: 48px 40px 120px;
+  display: grid;
+  grid-template-columns: 200px minmax(0, 820px);
+  column-gap: 80px;
+  align-items: start;
+}
+
+.presence-cosmos .pc-side {
+  position: sticky;
+  top: 48px;
+  display: grid;
+  gap: 32px;
+  align-content: start;
+}
+
+.presence-cosmos .pc-side-brand {
+  display: inline-flex;
+  width: fit-content;
+  color: var(--c-ink);
+}
+
+.presence-cosmos .pc-side-nav {
+  display: grid;
+  justify-items: start;
+}
+
+/* Plain text links. The current one is underlined; there is no fill. */
+.presence-cosmos .pc-side-link {
+  display: block;
+  padding: 6px 0;
+  font-size: var(--c-text);
+  line-height: var(--c-lh-title);
+  color: var(--c-ink-2);
+  text-align: left;
+  transition: color 0.2s;
+}
+
+.presence-cosmos .pc-side-link:hover {
+  color: var(--c-ink);
+}
+
+.presence-cosmos .pc-side-link[aria-current] {
+  color: var(--c-ink);
+  font-weight: 500;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+}
+
+.presence-cosmos .pc-side-link:disabled {
+  color: var(--c-quiet);
+  cursor: default;
+}
+
+.presence-cosmos .pc-side-link:focus-visible {
+  border-radius: 4px;
+}
+
+/* Quiet text in the sidebar (a record, a status). */
+.presence-cosmos .pc-side-note {
+  margin: 0;
+  font-size: var(--c-text);
+  line-height: var(--c-lh-text);
+  font-weight: var(--c-w-line);
+  color: var(--c-ink-3);
+}
+
+.presence-cosmos .pc-col {
+  min-width: 0;
+}
+
+/* Phones: the brand and a menu button; the sidebar opens under them. */
+.presence-cosmos .pc-topbar {
+  display: none;
+}
+
+/* ---- the page title ---- */
+
+.presence-cosmos .pc-apphead {
+  margin-bottom: 72px;
+}
+
+.presence-cosmos .pc-apphead-title {
+  margin: 0;
+  font-size: clamp(32px, 2.8vw, 40px);
+  font-weight: 300;
+  line-height: 1;
+  letter-spacing: -0.05em;
+  text-wrap: balance;
+  color: var(--c-ink);
+}
+
+.presence-cosmos .pc-apphead-line {
+  margin: 8px 0 0;
+  font-size: var(--c-text);
+  line-height: var(--c-lh-text);
+  font-weight: var(--c-w-line);
+  color: var(--c-ink-2);
+}
+
+/* ---- sections: heading, one grey line, then the list ---- */
+
+/* Not .pc-section: that name is the marketing pages' centred section. */
+.presence-cosmos .pc-appsection + .pc-appsection {
+  margin-top: 72px;
+}
+
+.presence-cosmos .pc-sechead {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 16px;
+  margin-bottom: 24px;
+}
+
+.presence-cosmos .pc-sechead-title {
+  grid-column: 1;
+  margin: 0;
+  font-size: clamp(28px, 3.2vw, 38px);
+  font-weight: 400;
+  line-height: 1.08;
+  letter-spacing: -0.04em;
+  text-wrap: balance;
+  color: var(--c-ink);
+}
+
+.presence-cosmos .pc-sechead-line {
+  grid-column: 1;
+  margin: 4px 0 0;
+  font-size: var(--c-text);
+  line-height: var(--c-lh-text);
+  font-weight: var(--c-w-line);
+  color: var(--c-ink-2);
+}
+
+/* The section's one action (add): a 16px "+" at the right end of the
+   heading line. 24x24 target (WCAG 2.5.8). */
+.presence-cosmos .pc-sechead-add {
+  grid-column: 2;
+  grid-row: 1;
+  align-self: center;
+}
+
+.presence-cosmos .pc-iconbtn {
+  width: 24px;
+  height: 24px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 4px;
+  color: var(--c-ink);
+  transition: background 0.2s;
+}
+
+.presence-cosmos .pc-iconbtn:hover {
+  background: var(--c-hover-secondary);
+}
+
+.presence-cosmos .pc-iconbtn:focus-visible {
+  border-radius: 4px;
+}
+
+.presence-cosmos .pc-iconbtn:disabled {
+  color: var(--c-quiet);
+  background: none;
+  cursor: default;
+}
+
+.presence-cosmos .pc-iconbtn svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* ---- the list and its rows ---- */
+
+.presence-cosmos .pc-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--c-ink);
+}
+
+/* [32px icon] [title + one grey line] [one action]. The action is a chevron,
+   one 32px button or a menu — never two, never one that squeezes the line. */
+.presence-cosmos .pc-row {
+  min-height: 80px;
+  padding: 20px 12px;
+  border-bottom: 1px solid var(--c-hairline);
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) auto;
+  column-gap: 16px;
+  align-items: center;
+}
+
+.presence-cosmos .pc-row--plain {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.presence-cosmos .pc-row-icon {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: var(--c-field);
+  color: var(--c-ink-2);
+}
+
+.presence-cosmos .pc-row-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.presence-cosmos .pc-row-text {
+  min-width: 0;
+  display: grid;
+}
+
+.presence-cosmos .pc-row-title {
+  margin: 0;
+  font-size: var(--c-text);
+  line-height: var(--c-lh-title);
+  font-weight: 500;
+  color: var(--c-ink);
+  overflow-wrap: anywhere;
+}
+
+.presence-cosmos .pc-row-line {
+  margin: 0;
+  font-size: var(--c-text);
+  line-height: var(--c-lh-text);
+  font-weight: var(--c-w-line);
+  color: var(--c-ink-2);
+  overflow-wrap: anywhere;
+}
+
+/* One line, cut with an ellipsis: for data (a summary, a note) whose full
+   text lives one click further in. */
+.presence-cosmos .pc-row-line--clip {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.presence-cosmos .pc-row-action {
+  justify-self: end;
+  display: inline-flex;
+  align-items: center;
+}
+
+.presence-cosmos .pc-chevron {
+  width: 16px;
+  height: 16px;
+  color: var(--c-ink-2);
+}
+
+/* A whole row that is one link or button. */
+.presence-cosmos .pc-row--link {
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.presence-cosmos .pc-row--link:hover {
+  background: var(--c-hover-secondary);
+}
+
+.presence-cosmos .pc-row--link:focus-visible {
+  border-radius: 4px;
+  outline-offset: -2px;
+}
+
+/* An account under a service, a detail under a row. */
+.presence-cosmos .pc-subrow {
+  min-height: 57px;
+  padding: 12px 12px 12px 50px;
+  border-bottom: 1px solid var(--c-hairline);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 16px;
+  align-items: center;
+}
+
+/* One quiet line, about 30px under the rule. */
+.presence-cosmos .pc-empty {
+  margin: 0;
+  padding: 28px 12px 0;
+  font-size: var(--c-text);
+  line-height: var(--c-lh-text);
+  font-weight: var(--c-w-line);
+  color: var(--c-ink-3);
+}
+
+/* ---- field: no border, a warm box ---- */
+
+.presence-cosmos .pc-field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.presence-cosmos .pc-field-label {
+  font-size: var(--c-text);
+  line-height: var(--c-lh-title);
+  font-weight: 500;
+  color: var(--c-ink);
+}
+
+.presence-cosmos .pc-field-hint {
+  font-size: var(--c-text);
+  line-height: var(--c-lh-text);
+  font-weight: var(--c-w-line);
+  color: var(--c-ink-2);
+}
+
+.presence-cosmos .pc-input {
+  width: 100%;
+  height: 44px;
+  padding: 11px 14px;
+  border: 0;
+  border-radius: 4px;
+  background: var(--c-field);
+  color: var(--c-ink);
+  font: inherit;
+  font-size: var(--c-text);
+  line-height: var(--c-lh-text);
+  letter-spacing: var(--c-track);
+  appearance: none;
+}
+
+textarea.pc-input {
+  height: auto;
+  min-height: 88px;
+  resize: vertical;
+}
+
+select.pc-input {
+  padding-right: 36px;
+  cursor: pointer;
+}
+
+/* ink-3 on the field box is 4.83:1 */
+.presence-cosmos .pc-input::placeholder {
+  color: var(--c-ink-3);
+  opacity: 1;
+}
+
+.presence-cosmos .pc-input:focus-visible {
+  outline: 1px solid var(--c-ink);
+  outline-offset: 0;
+  border-radius: 4px;
+}
+
+/* A select's chevron, drawn over the box. */
+.presence-cosmos .pc-select {
+  position: relative;
+  display: block;
+}
+
+.presence-cosmos .pc-select svg {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  width: 16px;
+  height: 16px;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: var(--c-ink-2);
+}
+
+/* ---- switch: a 44x26 pill, ink when on, a 20px page-colour knob ---- */
+/* Off is #8f8b8c: 3.23:1 against the page, and the knob 3.23:1 on it, so
+   the control clears the 3:1 non-text floor when it is off too. */
+
+.presence-cosmos .pc-switch {
+  position: relative;
+  flex: none;
+  width: 44px;
+  height: 26px;
+  border-radius: 9999px;
+  background: #8f8b8c;
+  transition: background 0.2s;
+}
+
+.presence-cosmos .pc-switch::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--c-paper);
+  transition: transform 0.2s var(--c-ease-ui);
+}
+
+.presence-cosmos .pc-switch[aria-checked='true'] {
+  background: var(--c-ink);
+}
+
+.presence-cosmos .pc-switch[aria-checked='true']::after {
+  transform: translateX(18px);
+}
+
+.presence-cosmos .pc-switch:focus-visible {
+  border-radius: 9999px;
+}
+
+.presence-cosmos .pc-switch:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+@media (max-width: 767px) {
+  .presence-cosmos .pc-shell {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 12px 24px 96px;
+  }
+
+  .presence-cosmos .pc-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    min-height: 56px;
+  }
+
+  /* Behind the menu button: the sidebar opens as a list under the top bar. */
+  .presence-cosmos .pc-side {
+    position: static;
+    display: none;
+    gap: 16px;
+    padding: 8px 0 24px;
+    border-bottom: 1px solid var(--c-hairline);
+  }
+
+  .presence-cosmos .pc-side.is-open {
+    display: grid;
+  }
+
+  .presence-cosmos .pc-side .pc-side-brand {
+    display: none;
+  }
+
+  .presence-cosmos .pc-apphead {
+    margin: 24px 0 56px;
+  }
+
+  .presence-cosmos .pc-appsection + .pc-appsection {
+    margin-top: 56px;
+  }
+
+  /* iOS Safari zooms the whole page when an input under 16px takes focus
+     (index.html does not cap the scale), so phone fields stay at 16. */
+  .presence-cosmos .pc-input {
+    font-size: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .presence-cosmos .pc-switch,
+  .presence-cosmos .pc-switch::after {
+    transition: none;
+  }
 }
 
 /* ============================================================

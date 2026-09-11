@@ -96,6 +96,7 @@ const onboarding = tokens(read('presence-onboarding.css'), '.presence-cosmos.obx
 const home = tokens(read('presence-home.css'), '.presence-cosmos.dsh');
 const paper = parseColor(shared['--c-paper']).rgb;
 const white = parseColor(shared['--c-white']).rgb;
+const field = parseColor(shared['--c-field']).rgb;
 
 const expectAA = (name: string, ink: string, ground: RGB, where: string) => {
   const ratio = contrast(ink, ground);
@@ -104,7 +105,7 @@ const expectAA = (name: string, ink: string, ground: RGB, where: string) => {
 
 describe('cosmos shared ink ramp', () => {
   it('reads the tokens it guards', () => {
-    for (const t of ['--c-paper', '--c-white', '--c-ink', '--c-ink-2', '--c-ink-3', '--c-ink-4']) expect(shared[t], t).toBeTruthy();
+    for (const t of ['--c-paper', '--c-white', '--c-field', '--c-ink', '--c-ink-2', '--c-ink-3', '--c-ink-4']) expect(shared[t], t).toBeTruthy();
   });
 
   it('ink-2 and ink-3 clear AA on paper and on white cards', () => {
@@ -116,6 +117,18 @@ describe('cosmos shared ink ramp', () => {
 
   it('ink-3 clears AA on the frosted plate, its tightest measured ground', () => {
     expectAA('--c-ink-3', shared['--c-ink-3'], GROUND.plate, 'the home plate');
+  });
+
+  it('ink-2 and ink-3 clear AA on the field box, the app screens\' tightest ground', () => {
+    expectAA('--c-ink-2', shared['--c-ink-2'], field, 'the field box');
+    expectAA('--c-ink-3', shared['--c-ink-3'], field, 'the field box (placeholders)');
+  });
+
+  it('danger and live state text clear AA on white and on the page', () => {
+    for (const t of ['--c-danger', '--c-live']) {
+      expectAA(t, shared[t], white, 'white');
+      expectAA(t, shared[t], paper, 'the page');
+    }
   });
 
   it('ink, ink-2 and ink-3 read as three steps, not two', () => {

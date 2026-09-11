@@ -213,7 +213,7 @@ export default function PresenceLandingPage() {
           <p className="pc-kicker">Presence</p>
           <h1 id="pc-hero-title">More time to talk. Less distance between you.</h1>
           <div className="pc-hero-actions">
-            <Link className="pc-btn pc-btn--primary" to="/presence/onboarding">Create a Presence</Link>
+            <Link className="pc-btn pc-btn--primary pc-btn--cta" to="/presence/onboarding">Create a Presence</Link>
             <a className="pc-btn pc-btn--ghost" href="#how">How it works</a>
           </div>
         </div>

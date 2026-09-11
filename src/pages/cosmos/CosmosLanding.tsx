@@ -220,7 +220,7 @@ export default function CosmosLanding() {
           {phase !== 'revealed' && (
             <>
               <div className="pc-hero-actions">
-                <Link className="pc-btn pc-btn--primary" to="/auth">Get your signature</Link>
+                <Link className="pc-btn pc-btn--primary pc-btn--cta" to="/auth">Get your signature</Link>
                 <a className="pc-btn pc-btn--ghost" href="#how">How it works</a>
               </div>
               <p className="pc-cta-trust" aria-live="polite" style={{ marginTop: 22 }}>
