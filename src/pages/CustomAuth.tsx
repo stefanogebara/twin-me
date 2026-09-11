@@ -157,16 +157,16 @@ const CustomAuth = () => {
         <h1 className="au-enter" style={{ '--i': 0 } as React.CSSProperties}>
           Your money,<br />read to you.
         </h1>
-        <p className="mv-lede au-enter" style={{ '--i': 1 } as React.CSSProperties}>
-          For students in Spain. It reads your bank account and says, in plain words, what the
-          month is doing. Nothing can be moved, only read.
+        <p className="mv-sub au-enter" style={{ '--i': 1 } as React.CSSProperties}>
+          For students in Spain. It reads your bank and says what the month is doing. It can
+          never move money.
         </p>
       </section>
 
       <section className="au-controls" aria-label="Sign in">
         <button
           type="button"
-          className="mv-pill au-enter"
+          className="mv-pill mv-pill--lg au-enter"
           style={{ '--i': 2 } as React.CSSProperties}
           onClick={() => void google()}
           disabled={busy !== null}
@@ -176,12 +176,12 @@ const CustomAuth = () => {
 
         {sentTo ? (
           <p className="au-note au-enter" role="status" style={{ '--i': 3 } as React.CSSProperties}>
-            A sign-in link is on its way to {sentTo}. Open it on this device and you are in.
+            A sign-in link is on its way to {sentTo}. Open it on this device.
           </p>
         ) : (
           <form className="au-form au-enter" style={{ '--i': 3 } as React.CSSProperties} onSubmit={(e) => void requestLink(e)}>
             <input
-              className="au-field"
+              className="mv-field"
               type="email"
               name="email"
               value={email}
