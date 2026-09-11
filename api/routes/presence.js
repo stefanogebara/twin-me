@@ -39,13 +39,10 @@ import {
   getResumeDetails,
   getOverview,
   listActivePeople,
-  softDeleteActivePeople,
-  insertPeople,
+  replaceActivePeople,
   addPeople,
   enrichPerson,
-  findActiveFact,
-  updateFactAnswer,
-  createFact,
+  saveFact,
   addFacts,
   supersedeFamilyIntroduction,
   findOpenAsk,
@@ -95,7 +92,8 @@ const aboutUpload = multer({
 // call link enforces. Thresholds are deliberately low (a widow with one child must
 // not be blocked) — the mirror does the persuading, not the gate.
 async function computeReadiness(presence) {
-  const { people, facts, notes, conversations, voice } = await getReadinessSources(presence.id);
+  const { people, facts, notes, conversations, voice, error } = await getReadinessSources(presence.id);
+  if (error) throw error;
   const kinds = (facts.data || []);
   const count = (kind) => kinds.filter((f) => f.kind === kind && f.confidence !== 'ask').length;
   const counts = {
@@ -159,7 +157,8 @@ router.get('/mine', authenticateUser, async (req, res) => {
     if (error) throw error;
     if (!presence) return res.json({ success: true, presence: null });
 
-    const { people, voice, facts } = await getResumeDetails(presence.id);
+    const { people, voice, facts, error: detailsError } = await getResumeDetails(presence.id);
+    if (detailsError) throw detailsError;
 
     res.json({
       success: true,
@@ -265,7 +264,6 @@ router.put('/:id/people', authenticateUser, async (req, res) => {
 
     const rows = incoming
       .map((p) => ({
-        presence_id: owned.id,
         name: clip(p?.name, 120).trim(),
         relation: clip(p?.relation, 80).trim(),
         called_by: clip(p?.called_by, 120).trim(),
@@ -273,17 +271,10 @@ router.put('/:id/people', authenticateUser, async (req, res) => {
       .filter((p) => p.name.length > 0)
       .slice(0, MAX_PEOPLE);
 
-    // Replace-all sync: soft-delete the current map, insert the new one.
-    const { error: clearError } = await softDeleteActivePeople(owned.id);
-    if (clearError) throw clearError;
-
-    let people = [];
-    if (rows.length > 0) {
-      const { data, error } = await insertPeople(rows);
-      if (error) throw error;
-      people = data;
-    }
-    res.json({ success: true, people });
+    // Replace-all sync in one transaction: the old map is retired only if the new one saves.
+    const { data: people, error } = await replaceActivePeople(owned.id, rows);
+    if (error) throw error;
+    res.json({ success: true, people: people || [] });
   } catch (err) {
     log.error('PUT people failed', { error: err.message });
     res.status(500).json({ success: false, error: 'Failed to save family map' });
@@ -304,24 +295,10 @@ router.post('/:id/facts', authenticateUser, async (req, res) => {
     }
     const source = req.body?.source === 'family_app' ? 'family_app' : 'family_onboarding';
 
-    const { data: existing, error: findError } = await findActiveFact(owned.id, kind, clip(question, 1000));
-    if (findError) throw findError;
-
-    let fact;
-    if (existing) {
-      const { data, error } = await updateFactAnswer(
-        existing.id,
-        { answer: clip(answer, 4000), source, updated_at: new Date().toISOString() },
-      );
-      if (error) throw error;
-      fact = data;
-    } else {
-      const { data, error } = await createFact(
-        { presence_id: owned.id, kind, question: clip(question, 1000), answer: clip(answer, 4000), source },
-      );
-      if (error) throw error;
-      fact = data;
-    }
+    const { data: fact, error } = await saveFact(owned.id, {
+      kind, question: clip(question, 1000), answer: clip(answer, 4000), source,
+    });
+    if (error) throw error;
     res.status(201).json({ success: true, fact });
   } catch (err) {
     log.error('POST facts failed', { error: err.message });
@@ -428,7 +405,8 @@ router.get('/:id/overview', authenticateUser, async (req, res) => {
     const owned = await loadOwned(req, res);
     if (!owned) return;
 
-    const { presence, people, voice, facts, notes, conversations } = await getOverview(owned.id);
+    const { presence, people, voice, facts, notes, conversations, error } = await getOverview(owned.id);
+    if (error) throw error;
 
     res.json({
       success: true,
@@ -521,7 +499,9 @@ router.post('/:id/about', authenticateUser, aboutUpload.single('audio'), async (
     }
 
     // Persist: merge people by name (case-insensitive), upsert facts, keep the raw note.
-    const { data: existingPeople } = await listActivePeople(owned.id);
+    // People are written before facts: if one fails, nothing else is saved and a retry is clean.
+    const { data: existingPeople, error: peopleError } = await listActivePeople(owned.id);
+    if (peopleError) throw peopleError;
     const knownList = existingPeople || [];
     const newPeople = [];
     for (const person of extracted.people) {
@@ -532,7 +512,8 @@ router.post('/:id/about', authenticateUser, aboutUpload.single('audio'), async (
         if (!match.relation && person.relation) patch.relation = person.relation;
         if (!match.called_by && person.called_by) patch.called_by = person.called_by;
         if (Object.keys(patch).length) {
-          await enrichPerson(match.id, patch);
+          const { error: enrichError } = await enrichPerson(match.id, patch);
+          if (enrichError) throw enrichError;
         }
       } else if (knownList.length + newPeople.length < MAX_PEOPLE) {
         newPeople.push(person);
@@ -540,7 +521,8 @@ router.post('/:id/about', authenticateUser, aboutUpload.single('audio'), async (
       }
     }
     if (newPeople.length > 0) {
-      await addPeople(newPeople.map((p) => ({ presence_id: owned.id, ...p })));
+      const { error: addError } = await addPeople(newPeople.map((p) => ({ presence_id: owned.id, ...p })));
+      if (addError) throw addError;
     }
 
     const factRows = [
@@ -549,15 +531,20 @@ router.post('/:id/about', authenticateUser, aboutUpload.single('audio'), async (
       ...extracted.boundaries.map((b) => ({ kind: 'boundary', question: 'From the family', answer: b })),
       ...extracted.facts.map((f) => ({ kind: 'biography', question: f.question, answer: f.answer })),
     ];
-    // Replace any previous introduction so re-recording does not duplicate.
-    await supersedeFamilyIntroduction(owned.id);
-    const { error: factError } = await addFacts(
+    const { data: savedFacts, error: factError } = await addFacts(
       factRows.map((r) => ({ presence_id: owned.id, source: 'family_onboarding', confidence: 'committed', ...r })),
     );
     if (factError) throw factError;
 
+    // Only now retire the introductions written before this one, so a failed insert
+    // never leaves her without one. The facts are saved, so these last two writes
+    // are logged rather than failed: a retry would store every fact twice.
+    const { error: introError } = await supersedeFamilyIntroduction(owned.id, savedFacts[0].created_at);
+    if (introError) log.error('Older family introduction not retired', { error: introError.message });
+
     if (extracted.tone_hint && !owned.tone) {
-      await setPresenceTone(owned.id, extracted.tone_hint);
+      const { error: toneError } = await setPresenceTone(owned.id, extracted.tone_hint);
+      if (toneError) log.error('Tone hint not saved', { error: toneError.message });
     }
 
     res.status(201).json({
@@ -588,15 +575,17 @@ router.post('/:id/voice-samples', authenticateUser, aboutUpload.single('audio'),
     if (!owned) return;
     if (!filePath) return res.status(400).json({ success: false, error: 'An audio sample is required' });
 
-    const { data: consents } = await getLatestVoiceConsentKind(owned.id);
+    const { data: consents, error: consentError } = await getLatestVoiceConsentKind(owned.id);
+    if (consentError) throw consentError;
     if (!consents?.length || consents[0].kind !== 'own_voice') {
       return res.status(409).json({ success: false, error: 'Voice consent is required first' });
     }
 
     const seconds = Math.min(Math.max(parseInt(req.body?.sample_seconds, 10) || 0, 0), 600);
-    const { data: current } = await getVoiceState(owned.id);
-    const sampleCount = (current?.sample_count || 0) + 1;
-    const sampleSeconds = (current?.sample_seconds || 0) + seconds;
+    // A failed read must not look like "no voice yet": that would clone a second voice.
+    const { data: current, error: voiceError } = await getVoiceState(owned.id);
+    if (voiceError) throw voiceError;
+    let sampleTaken = true;
 
     const cloneEnabled = process.env.PRESENCE_VOICE_CLONE_ENABLED === 'true' && voiceService.isEnabled();
     let status = 'queued';
@@ -607,7 +596,11 @@ router.post('/:id/voice-samples', authenticateUser, aboutUpload.single('audio'),
       const voiceName = `Presence · ${owned.caller_name?.trim() || 'family'} → ${owned.cared_for_name?.trim() || 'her'}`;
       if (voiceId && current?.status === 'ready') {
         const added = await voiceService.addSamplesToVoice(voiceId, filePath, voiceName);
-        status = added.success ? 'ready' : 'ready';
+        // A rejected sample leaves the cloned voice unchanged and still on her calls, so
+        // it stays 'ready' ('failed' would drop it from the call brief and make the next
+        // upload clone a new voice, orphaning this one); the sample is just not counted.
+        status = 'ready';
+        sampleTaken = added.success;
         note = added.success ? 'Sample added to your voice.' : `Kept existing voice; new sample not added (${String(added.error).slice(0, 120)})`;
       } else {
         const cloned = await voiceService.cloneVoice(filePath, voiceName, `Presence voice, consent recorded. Presence ${owned.id}`);
@@ -625,8 +618,8 @@ router.post('/:id/voice-samples', authenticateUser, aboutUpload.single('audio'),
     const { data, error } = await recordVoiceSample({
       presence_id: owned.id,
       status,
-      sample_count: sampleCount,
-      sample_seconds: sampleSeconds,
+      sample_count: (current?.sample_count || 0) + (sampleTaken ? 1 : 0),
+      sample_seconds: (current?.sample_seconds || 0) + (sampleTaken ? seconds : 0),
       elevenlabs_voice_id: voiceId,
       note: note.slice(0, 1000),
       updated_at: new Date().toISOString(),
@@ -650,16 +643,22 @@ router.post('/:id/voice-revoke', authenticateUser, async (req, res) => {
     const owned = await loadOwned(req, res);
     if (!owned) return;
 
-    const { data: current } = await getClonedVoiceId(owned.id);
+    const { data: current, error: voiceError } = await getClonedVoiceId(owned.id);
+    if (voiceError) throw voiceError;
+
+    // The revocation record is what the voice consent gates read, so it is written
+    // before anything is deleted: if it cannot be stored, nothing has changed yet.
+    const { error: consentError } = await appendConsent({
+      presence_id: owned.id, user_id: req.user.id, kind: 'own_voice_revoked',
+      text_version: 'Consent withdrawn by the owner; cloned voice deleted.',
+    });
+    if (consentError) throw consentError;
+
     if (current?.elevenlabs_voice_id && voiceService.isEnabled()) {
       const deleted = await voiceService.deleteVoice(current.elevenlabs_voice_id);
       if (!deleted.success) log.warn('ElevenLabs voice delete failed on revoke', { error: deleted.error });
     }
 
-    await appendConsent({
-      presence_id: owned.id, user_id: req.user.id, kind: 'own_voice_revoked',
-      text_version: 'Consent withdrawn by the owner; cloned voice deleted.',
-    });
     const { data, error } = await recordVoiceRevoked({
       presence_id: owned.id, status: 'revoked', elevenlabs_voice_id: null,
       note: 'Voice removed at your request.', updated_at: new Date().toISOString(),
@@ -683,12 +682,14 @@ router.post('/:id/asks/:factId', authenticateUser, async (req, res) => {
     const { factId } = req.params;
     if (!UUID_RE.test(factId)) return res.status(400).json({ success: false, error: 'Invalid ask id' });
 
-    const { data: ask } = await findOpenAsk(owned.id, factId);
+    const { data: ask, error: askError } = await findOpenAsk(owned.id, factId);
+    if (askError) throw askError;
     if (!ask) return res.status(404).json({ success: false, error: 'Ask not found' });
 
     const action = req.body?.action === 'dismiss' ? 'dismiss' : 'add';
     if (action === 'dismiss') {
-      await dismissFact(ask.id);
+      const { error: dismissError } = await dismissFact(ask.id);
+      if (dismissError) throw dismissError;
       return res.json({ success: true, dismissed: true });
     }
 
@@ -698,21 +699,31 @@ router.post('/:id/asks/:factId', authenticateUser, async (req, res) => {
     const calledBy = clip(req.body?.called_by, 120).trim();
     if (!name) return res.status(400).json({ success: false, error: 'name is required' });
 
-    const { data: allPeople } = await listActivePeople(owned.id);
+    // The card is closed last: if any write fails it stays open, and answering it again
+    // finds the person already saved instead of adding them twice.
+    const { data: allPeople, error: peopleError } = await listActivePeople(owned.id);
+    if (peopleError) throw peopleError;
     const existing = findSamePerson(allPeople || [], name);
     if (!existing) {
-      await addPeople({ presence_id: owned.id, name, relation, called_by: calledBy });
+      const { error: addError } = await addPeople({ presence_id: owned.id, name, relation, called_by: calledBy });
+      if (addError) throw addError;
     } else if (relation || calledBy) {
-      await enrichPerson(existing.id, { ...(relation ? { relation } : {}), ...(calledBy ? { called_by: calledBy } : {}) });
+      const { error: enrichError } = await enrichPerson(
+        existing.id,
+        { ...(relation ? { relation } : {}), ...(calledBy ? { called_by: calledBy } : {}) },
+      );
+      if (enrichError) throw enrichError;
     }
-    await supersedeFact(ask.id);
     if (relation) {
-      await addFacts({
+      const { error: factError } = await addFacts({
         presence_id: owned.id, kind: 'biography', question: `Who ${name} is`,
         answer: `${name} is her ${relation}${calledBy ? ` — she calls them "${calledBy}"` : ''}.`,
         source: 'family_app', confidence: 'committed',
       });
+      if (factError) throw factError;
     }
+    const { error: closeError } = await supersedeFact(ask.id);
+    if (closeError) throw closeError;
     res.json({ success: true, person: { name, relation, called_by: calledBy } });
   } catch (err) {
     log.error('POST asks failed', { error: err.message });

@@ -8,7 +8,10 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-/** One entry per supabaseAdmin.from(table): the table and every builder call in order. */
+/**
+ * One entry per supabaseAdmin.from(table) or .rpc(fn, args): the table (or
+ * `rpc:<fn>`) and every builder call in order.
+ */
 const calls = [];
 /** Canned response for an awaited chain; tests override per case. */
 let respond = () => ({ data: null, error: null });
@@ -17,8 +20,8 @@ let respond = () => ({ data: null, error: null });
  * Chainable Supabase recorder: every builder method records itself and returns
  * the chain; awaiting the chain resolves respond(entry).
  */
-function makeChain(table) {
-  const entry = { table, ops: [] };
+function makeChain(table, ops = []) {
+  const entry = { table, ops };
   calls.push(entry);
   const chain = new Proxy(
     {},
@@ -39,7 +42,10 @@ function makeChain(table) {
 }
 
 vi.mock('../../api/services/database.js', () => ({
-  supabaseAdmin: { from: (table) => makeChain(table) },
+  supabaseAdmin: {
+    from: (table) => makeChain(table),
+    rpc: (fn, args) => makeChain(`rpc:${fn}`, [['rpc', fn, args]]),
+  },
 }));
 
 const store = await import('../../api/services/presenceStore.js');
@@ -163,7 +169,81 @@ describe('presenceStore', () => {
         ['order', 'started_at', { ascending: false }],
         ['limit', 10],
       ]);
-      expect(Object.keys(result)).toEqual(['presence', 'people', 'voice', 'facts', 'notes', 'conversations']);
+      expect(Object.keys(result)).toEqual(['presence', 'people', 'voice', 'facts', 'notes', 'conversations', 'error']);
+    });
+  });
+
+  describe('parallel reads report the first failed query as `error`', () => {
+    const reads = [
+      ['getReadinessSources', 'presence_facts'],
+      ['getResumeDetails', 'presence_voice'],
+      ['getOverview', 'presences'],
+      ['getElderHome', 'presence_conversations'],
+    ];
+
+    it.each(reads)('%s sets error when its %s query fails', async (read, failingTable) => {
+      const error = { message: 'canceling statement due to statement timeout' };
+      respond = (entry) => (entry.table === failingTable ? { data: null, error } : { data: [], error: null });
+
+      const result = await store[read](PRESENCE_ID);
+
+      expect(result.error).toBe(error);
+    });
+
+    it.each(reads)('%s leaves error null when every query succeeds', async (read) => {
+      const result = await store[read](PRESENCE_ID);
+
+      expect(result.error).toBeNull();
+    });
+  });
+
+  describe('replaceActivePeople (presence_replace_people, one transaction)', () => {
+    it('sends the whole new map to the RPC and touches no table directly', async () => {
+      const people = [{ name: 'Teresa', relation: 'sister', called_by: 'Tete' }];
+      const saved = [{ id: 'p-1', ...people[0] }];
+      respond = () => ({ data: saved, error: null });
+
+      const result = await store.replaceActivePeople(PRESENCE_ID, people);
+
+      expect(calls).toEqual([
+        { table: 'rpc:presence_replace_people', ops: [['rpc', 'presence_replace_people', { p_presence_id: PRESENCE_ID, p_people: people }]] },
+      ]);
+      expect(result).toEqual({ data: saved, error: null });
+    });
+
+    it('passes a failed replacement through', async () => {
+      const error = { message: 'new row violates check constraint' };
+      respond = () => ({ data: null, error });
+
+      await expect(store.replaceActivePeople(PRESENCE_ID, [])).resolves.toEqual({ data: null, error });
+    });
+  });
+
+  describe('saveFact (presence_save_fact, serialized per kind and question)', () => {
+    it('saves through the RPC and returns the single fact row', async () => {
+      const fact = { id: 'f-1', kind: 'anchor', question: 'A place that matters to her', answer: 'Ubatuba' };
+      respond = () => ({ data: fact, error: null });
+
+      const result = await store.saveFact(PRESENCE_ID, {
+        kind: 'anchor', question: 'A place that matters to her', answer: 'Ubatuba', source: 'family_onboarding',
+      });
+
+      expect(calls).toEqual([
+        {
+          table: 'rpc:presence_save_fact',
+          ops: [
+            ['rpc', 'presence_save_fact', {
+              p_presence_id: PRESENCE_ID,
+              p_kind: 'anchor',
+              p_question: 'A place that matters to her',
+              p_answer: 'Ubatuba',
+              p_source: 'family_onboarding',
+            }],
+            ['single'],
+          ],
+        },
+      ]);
+      expect(result).toEqual({ data: fact, error: null });
     });
   });
 
@@ -184,16 +264,40 @@ describe('presenceStore', () => {
       expect(result).toEqual({ data: saved, error: null });
     });
 
-    it('addFacts inserts without asking for the rows back and surfaces the error', async () => {
+    it('addFacts inserts and returns only each row\'s created_at', async () => {
       const rows = [{ presence_id: PRESENCE_ID, kind: 'biography', question: 'q', answer: 'a' }];
-      const error = { message: 'violates check constraint' };
-      respond = () => ({ data: null, error });
+      respond = () => ({ data: [{ created_at: '2026-09-11T10:00:00.000001+00:00' }], error: null });
 
       const result = await store.addFacts(rows);
 
       expect(calls[0].table).toBe('presence_facts');
-      expect(calls[0].ops).toEqual([['insert', rows]]);
+      expect(calls[0].ops).toEqual([['insert', rows], ['select', 'created_at']]);
+      expect(result.data).toEqual([{ created_at: '2026-09-11T10:00:00.000001+00:00' }]);
+    });
+
+    it('addFacts surfaces the insert error', async () => {
+      const error = { message: 'violates check constraint' };
+      respond = () => ({ data: null, error });
+
+      const result = await store.addFacts([]);
+
       expect(result.error).toBe(error);
+    });
+  });
+
+  describe('supersedeFamilyIntroduction', () => {
+    it('retires only active introductions written before the given time', async () => {
+      await store.supersedeFamilyIntroduction(PRESENCE_ID, '2026-09-11T10:00:00.000001+00:00');
+
+      expect(calls[0].table).toBe('presence_facts');
+      expect(calls[0].ops).toEqual([
+        ['update', { status: 'superseded', updated_at: expect.any(String) }],
+        ['eq', 'presence_id', PRESENCE_ID],
+        ['eq', 'kind', 'biography'],
+        ['eq', 'question', 'Family introduction'],
+        ['eq', 'status', 'active'],
+        ['lt', 'created_at', '2026-09-11T10:00:00.000001+00:00'],
+      ]);
     });
   });
 
@@ -212,21 +316,6 @@ describe('presenceStore', () => {
         ['single'],
       ]);
       expect(result.data).toEqual({ id: PRESENCE_ID, ...patch });
-    });
-
-    it('softDeleteActivePeople marks only the active map deleted and passes the error through', async () => {
-      const error = { message: 'timeout' };
-      respond = () => ({ data: null, error });
-
-      const result = await store.softDeleteActivePeople(PRESENCE_ID);
-
-      expect(calls[0].table).toBe('presence_people');
-      expect(calls[0].ops).toEqual([
-        ['update', { status: 'deleted', updated_at: expect.any(String) }],
-        ['eq', 'presence_id', PRESENCE_ID],
-        ['eq', 'status', 'active'],
-      ]);
-      expect(result.error).toBe(error);
     });
 
     it('markQueuedNotesDelivered stamps delivered_at on queued notes only', async () => {

@@ -94,7 +94,8 @@ router.get('/:token/home', async (req, res) => {
     const presence = await loadByToken(req, res);
     if (!presence) return;
 
-    const { notes: notesRes, conversations: convRes } = await getElderHome(presence.id);
+    const { notes: notesRes, conversations: convRes, error } = await getElderHome(presence.id);
+    if (error) throw error;
 
     res.json({
       success: true,
@@ -138,8 +139,11 @@ router.post('/:token/complete', async (req, res) => {
     });
     if (error) throw error;
 
-    // Queued notes were woven into this call's brief — mark them delivered.
-    await markQueuedNotesDelivered(presence.id);
+    // Queued notes were woven into this call's brief — mark them delivered. The call is
+    // stored already, so a failure is logged, not sent to her page (a retry would store
+    // the call twice); the notes stay queued and are carried into her next call again.
+    const { error: notesError } = await markQueuedNotesDelivered(presence.id);
+    if (notesError) log.error('Queued notes not marked delivered', { error: notesError.message });
 
     // Summarize in the background; the elder page never waits on an LLM.
     summarizeConversation(conversation.id, presence, transcript).catch((err) =>
@@ -159,10 +163,11 @@ router.post('/:token/complete', async (req, res) => {
  */
 async function summarizeConversation(conversationId, presence, transcript) {
   if (transcript.length === 0) {
-    await saveConversationSummary(
+    const { error } = await saveConversationSummary(
       conversationId,
       { status: 'summarized', summary: 'A call was opened but no conversation was captured.' },
     );
+    if (error) log.error('Conversation summary not saved', { conversationId, error: error.message });
     return;
   }
 
@@ -210,10 +215,12 @@ Max 6 learned_facts, max 3 unknown_people. Never invent content not in the trans
     summary = 'Conversation recorded. Summary unavailable this time.';
   }
 
-  await saveConversationSummary(
+  const { error: summaryError } = await saveConversationSummary(
     conversationId,
     { summary, her_recap: herRecap, needs_family: needsFamily, status: 'summarized' },
   );
+  // Logged, not thrown: what she said about her own life is still worth keeping below.
+  if (summaryError) log.error('Conversation summary not saved', { conversationId, error: summaryError.message });
 
   // Learning loop (context architecture §3): what she said about her own life enters
   // the biography store as PROVISIONAL (30-day TTL, write gate) so the next call brief
