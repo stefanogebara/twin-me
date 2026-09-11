@@ -7,6 +7,7 @@
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import '../../styles/money-v2.css';
 import { moneyAPI, euro, shortDay, type MoneyAccount, type MoneyCategories, type MoneyForecast, type MoneyMonth, type MoneyReading, type MoneyRecurring, type MoneySighting, type MoneyTransaction, type MoneyUsage } from '../../services/api/moneyAPI';
 
@@ -35,6 +36,9 @@ function monthName(iso: string) { return new Date(iso).toLocaleDateString('en-GB
 function lastDay(iso: string) { const d = new Date(iso); return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate(); }
 
 export default function MoneyV2Page() {
+  /* The tab said "Discover Your Soul Signature" over a page of euros, which is the front
+     door's old promise showing through the new product. */
+  useDocumentTitle('Money');
   const [forecast, setForecast] = useState<MoneyForecast | null>(null);
   const [ledger, setLedger] = useState<MoneyTransaction[]>([]);
   const [recurring, setRecurring] = useState<MoneyRecurring[]>([]);
