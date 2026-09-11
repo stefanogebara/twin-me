@@ -24,7 +24,7 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /** Only same-origin relative paths may be redirected to, so ?redirect= cannot leave the site. */
 function safeRedirect(raw: string | null): string {
-  return raw && raw.startsWith('/') && !raw.startsWith('//') ? raw : '/today';
+  return raw && raw.startsWith('/') && !raw.startsWith('//') ? raw : '/money';
 }
 
 const CustomAuth = () => {

@@ -65,7 +65,7 @@ export type MoneyAnswer = {
   questionId?: string; kind: string; subject?: string; subjectLabel?: string;
   value?: string; amount?: number; day?: number; share?: number;
 };
-export type MoneyAccount = { id: string; provider: string; name: string | null; iban_mask: string | null; currency: string; consent_expires_at: string | null; last_pulled_at: string | null };
+export type MoneyAccount = { id: string; provider: string; name: string | null; iban_mask: string | null; currency: string; consent_expires_at: string | null; last_pulled_at: string | null; needs_reconnect?: boolean };
 
 async function json<T>(res: Response): Promise<T> {
   const body = await res.json().catch(() => ({}));
@@ -121,6 +121,8 @@ export const moneyAPI = {
   accounts: () => authFetch('/money/bank/accounts').then((r) => json<MoneyAccount[]>(r)),
   connect: (bank = 'Banco Santander', country = 'ES') =>
     authFetch('/money/bank/connect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bank, country }) }).then((r) => json<{ url: string }>(r)),
+  /** Opening the page spends the read the schedule leaves for it, but only when one is due. */
+  refreshIfStale: () => authFetch('/money/bank/refresh-if-stale', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).then((r) => json<{ pulled: boolean; created?: number; reason?: string; needs_reconnect?: boolean }>(r)),
   pull: () => authFetch('/money/bank/pull', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).then((r) => json<{ account: string; seen: number; created: number }[]>(r)),
   /** A key for the phone: one of the user's API keys, shown once. */
   createCaptureKey: async () => {

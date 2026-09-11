@@ -265,6 +265,18 @@ export async function saveBankAccounts(userId, { sessionId, validUntil, accounts
   return data || [];
 }
 
+/** Whether the last read of this person's bank failed because the connection had ended. */
+export async function bankNeedsReconnect(userId) {
+  const { data } = await supabaseAdmin
+    .from('money_feed_accesses')
+    .select('outcome, at')
+    .eq('user_id', userId)
+    .order('at', { ascending: false })
+    .limit(1);
+  const last = (data || [])[0];
+  return Boolean(last && last.outcome === 'session_expired');
+}
+
 export async function listBankAccounts(userId) {
   const { data } = await supabaseAdmin.from('money_accounts').select('id, provider, provider_account_id, name, iban_mask, currency, consent_expires_at, last_pulled_at').eq('user_id', userId).eq('provider', 'enablebanking');
   /* A reconnect gives the same account a new provider id. One account is one row to the
@@ -328,13 +340,22 @@ export async function pullBankFeed(userId, { since, attended = false } = {}) {
   for (const acc of accounts) {
     const from = since || (acc.last_pulled_at ? acc.last_pulled_at.slice(0, 10) : new Date(Date.now() - 90 * 86400000).toISOString().slice(0, 10));
     let key = null; let seen = 0; let created = 0;
-    do {
-      const page = await fetchTransactions(acc.provider_account_id, from, key);
-      const batch = page.rows.map((row) => toSighting(row, acc.id)).filter((s) => s.occurred_at && s.amount);
-      const r = await ingestSightings(userId, batch);
-      seen += r.seen; created += r.created;
-      key = page.continuationKey;
-    } while (key);
+    try {
+      do {
+        const page = await fetchTransactions(acc.provider_account_id, from, key);
+        const batch = page.rows.map((row) => toSighting(row, acc.id)).filter((s) => s.occurred_at && s.amount);
+        const r = await ingestSightings(userId, batch);
+        seen += r.seen; created += r.created;
+        key = page.continuationKey;
+      } while (key);
+    } catch (error) {
+      /* A dead session is recorded so the product can say what is wrong, and the read is not
+         counted as a successful one. The caller decides what to tell the person. */
+      if (error.code === 'bank_session_expired') {
+        await recordAccess(userId, acc.id, { attended, rowsSeen: 0, outcome: 'session_expired' });
+      }
+      throw error;
+    }
     await supabaseAdmin.from('money_accounts').update({ last_pulled_at: new Date().toISOString() }).eq('id', acc.id);
     await recordAccess(userId, acc.id, { attended, rowsSeen: seen });
     summary.push({ account: acc.name || acc.iban_mask, seen, created });

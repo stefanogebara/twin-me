@@ -42,6 +42,7 @@ export default function MoneyV2Page() {
   const [months, setMonths] = useState<MoneyMonth[]>([]);
   const [readings, setReadings] = useState<MoneyReading[]>([]);
   const [openSeries, setOpenSeries] = useState<string | null>(null);
+  const [needsReconnect, setNeedsReconnect] = useState(false);
   const [categories, setCategories] = useState<MoneyCategories | null>(null);
   const [usage, setUsage] = useState<MoneyUsage | null>(null);
   const [bankReady, setBankReady] = useState(true);
@@ -68,6 +69,21 @@ export default function MoneyV2Page() {
     setLoaded(true);
   }, []);
   useEffect(() => { void load(); }, [load]);
+
+  /* The month should not be days old because nobody pressed anything. On open, ask the server
+     whether a read is due; it spends one only when the last is old and the budget allows, and
+     the page reloads only if that read brought something. */
+  useEffect(() => {
+    let live = true;
+    moneyAPI.refreshIfStale()
+      .then((r) => {
+        if (!live) return;
+        if (r.needs_reconnect) setNeedsReconnect(true);
+        if (r.pulled && (r.created ?? 0) > 0) void load();
+      })
+      .catch(() => {});
+    return () => { live = false; };
+  }, [load]);
 
   /* The bank sends the person back here through the callback, which says how it went. */
   useEffect(() => {
@@ -206,6 +222,11 @@ export default function MoneyV2Page() {
                 {forecast.committed_items.length ? ` ${nameList(forecast.committed_items.map((c) => merchantLabel(c)))} ${forecast.committed_items.length === 1 ? 'is' : 'are'} still to come.` : ''}
                 {projectable && forecast.history_days < 42 ? ' The band is wide until there are six weeks to read from.' : ''}
               </p>
+            ) : null}
+            {/* A month that stopped moving must say why. The bank ends its session on its own
+                schedule, and nothing can be read until it is authorised again. */}
+            {needsReconnect ? (
+              <p className="mv-lede">The bank connection has ended, so nothing new has come in. Reconnect it under Sources to start reading again.</p>
             ) : null}
             <div className="mv-ctas"><a href="#ledger" className="mv-pill">Every euro</a><a href="#recurring" className="mv-pill mv-pill--ghost">What comes back</a></div>
           </>

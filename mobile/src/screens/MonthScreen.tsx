@@ -94,6 +94,7 @@ export default function MonthScreen({ onOpenQuestions, questionCount, onOpenLedg
   const [recurring, setRecurring] = useState<MoneyRecurring[]>([]);
 
   const [today, setToday] = useState<MoneyToday | null>(null);
+  const [needsReconnect, setNeedsReconnect] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [unreachable, setUnreachable] = useState(false);
@@ -122,6 +123,21 @@ export default function MonthScreen({ onOpenQuestions, questionCount, onOpenLedg
   }, []);
 
   useEffect(() => { void loadAll(); }, [loadAll]);
+
+  /* The month should not be three days old because nobody pressed anything. On open, ask the
+     server whether a read is due; it spends one only if the last is old and the budget allows,
+     and we read the ledger again only when it actually brought something. */
+  useEffect(() => {
+    let live = true;
+    moneyApi.refreshIfStale()
+      .then((r) => {
+        if (!live) return;
+        if (r.needs_reconnect) setNeedsReconnect(true);
+        if (r.pulled && (r.created ?? 0) > 0) void loadAll();
+      })
+      .catch(() => {});
+    return () => { live = false; };
+  }, [loadAll]);
 
   const empty = !loading && (ledgerLines ?? 0) === 0;
   /* One purchase makes p10, p50 and p90 the same euro, and reading the same number three
@@ -236,6 +252,14 @@ export default function MonthScreen({ onOpenQuestions, questionCount, onOpenLedg
             <Display style={layout.after}>...</Display>
           )}
         </Enter>
+
+        {/* A month that stopped moving must say why. The bank ends its session on its own
+            schedule, and until it is authorised again nothing can be read. */}
+        {needsReconnect ? (
+          <Enter index={1} style={layout.afterLarge}>
+            <Small>The bank connection has ended, so nothing new has come in. Reconnect it on the You page to start reading again.</Small>
+          </Enter>
+        ) : null}
 
         {/* Something the ledger cannot work out for itself. */}
         {questionCount > 0 ? (

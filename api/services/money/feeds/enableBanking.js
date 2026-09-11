@@ -77,11 +77,29 @@ export async function createSession(code) {
 }
 
 /** One page of transactions for an account since a date (YYYY-MM-DD). */
+/* The bank ends a session on its own schedule, and after that every read answers 404 with
+   SESSION_DOES_NOT_EXIST or ACCOUNT_DOES_NOT_EXIST. That is not a server fault and must not
+   read as one: it means the person has to authorise the bank again, and the product has to
+   say so rather than keep showing a month that stopped moving. */
+export function isSessionGone(error) {
+  const m = String(error?.message || '');
+  return /SESSION_DOES_NOT_EXIST|ACCOUNT_DOES_NOT_EXIST/.test(m);
+}
+
 export async function fetchTransactions(accountUid, dateFrom, continuationKey = null) {
   const qs = new URLSearchParams({ date_from: dateFrom });
   if (continuationKey) qs.set('continuation_key', continuationKey);
-  const j = await api(`/accounts/${encodeURIComponent(accountUid)}/transactions?${qs}`);
-  return { rows: j.transactions || [], continuationKey: j.continuation_key || null };
+  try {
+    const j = await api(`/accounts/${encodeURIComponent(accountUid)}/transactions?${qs}`);
+    return { rows: j.transactions || [], continuationKey: j.continuation_key || null };
+  } catch (error) {
+    if (isSessionGone(error)) {
+      const err = new Error('The bank connection has ended. It needs to be authorised again.');
+      err.code = 'bank_session_expired';
+      throw err;
+    }
+    throw error;
+  }
 }
 
 /**
