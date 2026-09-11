@@ -244,6 +244,14 @@ class VoiceService {
         message: 'Voice deleted successfully'
       };
     } catch (error) {
+      // 404: ElevenLabs no longer has the voice, which is what a delete asks for
+      // (e.g. an earlier delete landed but its response timed out).
+      if (error.response?.status === 404) {
+        return {
+          success: true,
+          message: 'Voice was already deleted'
+        };
+      }
       log.error('Voice deletion failed:', error);
       return {
         success: false,

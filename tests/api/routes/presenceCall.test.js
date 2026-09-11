@@ -4,7 +4,7 @@
  * the elder page must not see an error (a retry would store the call twice),
  * so the writes that follow it are logged when they fail rather than lost.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import express from 'express';
 import request from 'supertest';
 
@@ -14,7 +14,7 @@ const PRESENCE = { id: '11111111-1111-4111-8111-111111111111', owner_user_id: 'u
 const ok = (data) => ({ data, error: null });
 const fail = (message) => ({ data: null, error: { message } });
 
-const { store, log, llm } = vi.hoisted(() => ({
+const { store, log, llm, brief } = vi.hoisted(() => ({
   store: {
     findPresenceByCallToken: vi.fn(),
     getElderHome: vi.fn(),
@@ -25,12 +25,13 @@ const { store, log, llm } = vi.hoisted(() => ({
   },
   log: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
   llm: { complete: vi.fn() },
+  brief: { compileCallBrief: vi.fn() },
 }));
 
 vi.mock('../../../api/services/presenceStore.js', () => store);
 vi.mock('../../../api/services/logger.js', () => ({ createLogger: () => log }));
 vi.mock('../../../api/services/llmGateway.js', () => ({ complete: llm.complete, TIER_ANALYSIS: 'analysis' }));
-vi.mock('../../../api/services/presenceCallBrief.js', () => ({ compileCallBrief: vi.fn() }));
+vi.mock('../../../api/services/presenceCallBrief.js', () => brief);
 
 const callRoutes = (await import('../../../api/routes/presence-call.js')).default;
 
@@ -58,6 +59,24 @@ beforeEach(() => {
       learned_facts: [{ question: 'Summers', answer: 'She spent every summer in Ubatuba.' }],
       unknown_people: [],
     }),
+  });
+});
+
+describe('GET /:token', () => {
+  afterEach(() => {
+    delete process.env.ELEVENLABS_PRESENCE_AGENT_ID;
+  });
+
+  // compileCallBrief rejects when the family map, facts or notes cannot be read.
+  it('answers 500, and starts no call, when the brief cannot be compiled', async () => {
+    process.env.ELEVENLABS_PRESENCE_AGENT_ID = 'agent-1';
+    brief.compileCallBrief.mockRejectedValueOnce({ message: 'statement timeout' });
+
+    const res = await request(createApp()).get(`/api/presence-call/${TOKEN}`);
+
+    expect(res.status).toBe(500);
+    expect(res.body.call).toBeUndefined();
+    expect(log.error).toHaveBeenCalledWith(expect.any(String), loggedError('statement timeout'));
   });
 });
 

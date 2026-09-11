@@ -1,7 +1,7 @@
 /**
  * Presence store: the only Presence file that talks to Supabase for the
- * family routes (api/routes/presence.js) and the elder call routes
- * (api/routes/presence-call.js).
+ * family routes (api/routes/presence.js), the elder call routes
+ * (api/routes/presence-call.js) and the call brief (api/services/presenceCallBrief.js).
  *
  * Every function resolves to the raw Supabase response ({ data, error, count })
  * and never throws on a query error; the routes branch on `error`. The parallel
@@ -157,6 +157,36 @@ export async function getElderHome(presenceId) {
       .order('started_at', { ascending: false }).limit(4),
   ]);
   return { notes, conversations, error: firstError(notes, conversations) };
+}
+
+/**
+ * What her call brief is compiled from: the family map, the active facts that have
+ * not expired, up to five queued notes, the voice, and the last three summaries.
+ */
+export async function getCallBriefSources(presenceId) {
+  const [people, facts, notes, voice, conversations] = await Promise.all([
+    supabaseAdmin.from('presence_people')
+      .select('name, relation, called_by')
+      .eq('presence_id', presenceId).eq('status', 'active').order('created_at'),
+    supabaseAdmin.from('presence_facts')
+      .select('kind, question, answer, confidence, expires_at')
+      .eq('presence_id', presenceId).eq('status', 'active')
+      .or('expires_at.is.null,expires_at.gt.' + new Date().toISOString())
+      .order('created_at'),
+    supabaseAdmin.from('presence_notes')
+      .select('id, body')
+      .eq('presence_id', presenceId).eq('status', 'queued')
+      .order('created_at').limit(5),
+    supabaseAdmin.from('presence_voice')
+      .select('status, elevenlabs_voice_id')
+      .eq('presence_id', presenceId).maybeSingle(),
+    supabaseAdmin.from('presence_conversations')
+      .select('started_at, summary')
+      .eq('presence_id', presenceId).eq('status', 'summarized')
+      .neq('summary', '')
+      .order('started_at', { ascending: false }).limit(3),
+  ]);
+  return { people, facts, notes, voice, conversations, error: firstError(people, facts, notes, voice, conversations) };
 }
 
 // ====================================================================

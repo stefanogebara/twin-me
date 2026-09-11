@@ -73,6 +73,9 @@ const VALID_CONSENT_KINDS = new Set(['own_voice', 'own_voice_revoked', 'ai_discl
 const VALID_FACT_KINDS = new Set(['tone', 'language', 'boundary', 'anchor', 'biography', 'care_signal']);
 const VALID_VOICE_STATUSES = new Set(['samples_recorded', 'queued']);
 const MAX_PEOPLE = 8;
+// presence_voice CHECK (sample_count BETWEEN 0 AND 20) and CHECK (sample_seconds BETWEEN 0 AND 3600).
+const MAX_VOICE_SAMPLES = 20;
+const MAX_VOICE_SECONDS = 3600;
 
 // "Tell me about her" voice notes: disk-staged, transcribed, then deleted.
 const aboutUploadDir = './uploads/voice';
@@ -146,6 +149,21 @@ function findSamePerson(people, candidateName) {
     // e.g. "tia rê" ⊇ "rê", "dona lurdes" ⊇ "lurdes" — shared last word or full containment as words
     return pw.every((w) => cw.includes(w)) || cw.every((w) => pw.includes(w));
   }) || null;
+}
+
+/**
+ * Delete a cloned voice at ElevenLabs. Resolves false, and logs, when that did not
+ * happen (the voice service is not configured, or the call failed); the caller then
+ * keeps the id, because a voice whose id is dropped can never be deleted.
+ */
+async function deleteClonedVoice(presenceId, voiceId) {
+  if (!voiceService.isEnabled()) {
+    log.error('Cloned voice not deleted: voice service not configured', { presenceId });
+    return false;
+  }
+  const deleted = await voiceService.deleteVoice(voiceId);
+  if (!deleted.success) log.error('Cloned voice not deleted at ElevenLabs', { presenceId, error: deleted.error });
+  return deleted.success;
 }
 
 // ====================================================================
@@ -349,8 +367,8 @@ router.post('/:id/voice-status', authenticateUser, async (req, res) => {
       }
     }
 
-    const sampleCount = Math.min(Math.max(parseInt(req.body?.sample_count, 10) || 0, 0), 20);
-    const sampleSeconds = Math.min(Math.max(parseInt(req.body?.sample_seconds, 10) || 0, 0), 3600);
+    const sampleCount = Math.min(Math.max(parseInt(req.body?.sample_count, 10) || 0, 0), MAX_VOICE_SAMPLES);
+    const sampleSeconds = Math.min(Math.max(parseInt(req.body?.sample_seconds, 10) || 0, 0), MAX_VOICE_SECONDS);
 
     const { data, error } = await recordVoiceStatus({
       presence_id: owned.id,
@@ -603,6 +621,15 @@ router.post('/:id/voice-samples', authenticateUser, aboutUpload.single('audio'),
         sampleTaken = added.success;
         note = added.success ? 'Sample added to your voice.' : `Kept existing voice; new sample not added (${String(added.error).slice(0, 120)})`;
       } else {
+        // An id still here belongs to a voice that is not on her calls (most often a
+        // revoke whose delete did not finish). Cloning would overwrite it and orphan
+        // that voice at ElevenLabs, so it is deleted first, or the sample waits.
+        if (voiceId) {
+          if (!(await deleteClonedVoice(owned.id, voiceId))) {
+            return res.status(502).json({ success: false, error: 'Your earlier voice is still being removed. Try again in a few minutes.' });
+          }
+          voiceId = null;
+        }
         const cloned = await voiceService.cloneVoice(filePath, voiceName, `Presence voice, consent recorded. Presence ${owned.id}`);
         if (cloned.success) {
           voiceId = cloned.voiceId;
@@ -618,8 +645,8 @@ router.post('/:id/voice-samples', authenticateUser, aboutUpload.single('audio'),
     const { data, error } = await recordVoiceSample({
       presence_id: owned.id,
       status,
-      sample_count: (current?.sample_count || 0) + (sampleTaken ? 1 : 0),
-      sample_seconds: (current?.sample_seconds || 0) + (sampleTaken ? seconds : 0),
+      sample_count: Math.min((current?.sample_count || 0) + (sampleTaken ? 1 : 0), MAX_VOICE_SAMPLES),
+      sample_seconds: Math.min((current?.sample_seconds || 0) + (sampleTaken ? seconds : 0), MAX_VOICE_SECONDS),
       elevenlabs_voice_id: voiceId,
       note: note.slice(0, 1000),
       updated_at: new Date().toISOString(),
@@ -654,14 +681,20 @@ router.post('/:id/voice-revoke', authenticateUser, async (req, res) => {
     });
     if (consentError) throw consentError;
 
-    if (current?.elevenlabs_voice_id && voiceService.isEnabled()) {
-      const deleted = await voiceService.deleteVoice(current.elevenlabs_voice_id);
-      if (!deleted.success) log.warn('ElevenLabs voice delete failed on revoke', { error: deleted.error });
-    }
+    // 'revoked' takes the voice off her calls either way (the brief only uses a 'ready'
+    // one). The id is dropped only once the voice is gone at ElevenLabs; a kept id is
+    // deleted by the next revoke, or before the next clone replaces it.
+    const voiceId = current?.elevenlabs_voice_id || null;
+    const deleted = voiceId ? await deleteClonedVoice(owned.id, voiceId) : true;
 
     const { data, error } = await recordVoiceRevoked({
-      presence_id: owned.id, status: 'revoked', elevenlabs_voice_id: null,
-      note: 'Voice removed at your request.', updated_at: new Date().toISOString(),
+      presence_id: owned.id,
+      status: 'revoked',
+      elevenlabs_voice_id: deleted ? null : voiceId,
+      note: deleted
+        ? 'Voice removed at your request.'
+        : 'Voice taken off her calls at your request. Deleting it at the voice provider has not finished yet.',
+      updated_at: new Date().toISOString(),
     });
     if (error) throw error;
 
