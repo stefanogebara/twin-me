@@ -1,597 +1,85 @@
 /* ============================================================================
-   PRESENCE HOME — the same room, seen again
+   PRESENCE HOME — the family's page, in the register
    ============================================================================
-   /presence/home is the screen the family returns to. Same Cosmos law as the
-   onboarding (src/styles/presence-onboarding.css), same shape language, same
-   room — deliberately the SAME still, cropped lower onto the table where the
-   cup and the phone are, because this is one house and the product should not
-   change address between screens.
+   /presence/home is an app screen, so it is built from the register's
+   primitives in presence-cosmos.css (.pc-app, .pc-shell, .pc-apphead,
+   .pc-appsection, .pc-list, .pc-row, .pc-subrow, .pc-field, .pc-empty; spec in
+   .claude/plans/2026-09-11-instinct-register/README.md): the flat #fbfaf9
+   page, a 200px sidebar of plain links (a menu on phones), and every former
+   card a section of rows under a 1px ink rule.
 
-   Two deliberate readings of the law, stated rather than hidden:
+   What went on 2026-09-11, and why:
+     - the room photograph and its paper veil: app screens have no
+       photography, and text no longer needs an on-room ink (--dsh-ink-on-room
+       is gone with the room it was measured on)
+     - the frosted plate and cards, their blur and radii: rows, not cards
+     - the Instrument Serif heads and the mono uppercase labels: headings are
+       Geist (Cosmos), labels are sentence case
+     - the plate's fact ledger became the title's one grey line; the call link
+       is the first section and still the page's one primary action
 
-   - Law 6 says one conversion per page. That is a landing-page law and this is
-     a dashboard with four real jobs. What survives of it: exactly one action
-     on this page is dark (the call link, on the plate). Everything else —
-     queue a note, answer an ask, remove a voice — is a ghost control. The page
-     has one thing it wants you to do; the rest is work you came here to do.
-   - There is no display size here. The largest type is her name at ~34px on
-     the plate. Home is a reading surface, not a title page, and a 52px serif
-     slogan over a list of conversations would be decoration.
-
-   Namespace is dsh-* for the same reason the onboarding is obx-*: PresenceHome
-   currently borrows eleven pc-ob-* classes that WaitlistPage, CustomAuth and
-   CosmosSpec also use. Restyling those to fix this screen restyles four other
-   pages silently. Buttons reuse .pc-btn.
-
-   Every rule is scoped `.presence-cosmos .dsh-*`: the base sheet colours p, h1,
-   h2 and h3 by element at specificity (0,1,1), which beats a bare `.dsh-sub`.
-
-   What this replaces, on the old screen:
-     - a 2-column grid of nine equal-weight cards, urgency-blind: "Voice" and
-       "She mentioned someone I don't know" carried the same visual weight
-     - fourteen inline style objects doing layout the stylesheet should own
-     - one radius (16px) on every surface, no shape hierarchy
-     - no photograph, on a product whose every other screen is carried by one
+   What is left here is only what the primitives do not cover: text that must
+   be read in full under a row, the two forms that live inside a list, and the
+   transcript. Every rule is scoped `.presence-cosmos .dsh-*` because the base
+   sheet colours p by element at (0,1,1), which beats a bare class.
    ========================================================================= */
 
-.presence-cosmos.dsh {
-  --dsh-name:  clamp(30px, 2.6vw, 38px);
-  --dsh-read:  21px;   /* serif — section heads and what she said */
-  --dsh-lead:  18px;   /* sans — the sentence under a head */
-  --dsh-body:  15px;
-  --dsh-micro: 11px;   /* mono — provenance only */
-  /* 16px on form controls is the one exception: below it, iOS Safari zooms
-     the viewport on focus. */
-
-  --dsh-r-panel: 26px;
-  --dsh-r-card:  20px;
-  --dsh-r-ctl:   16px;
-
-  --dsh-s1: 6px;  --dsh-s2: 10px; --dsh-s3: 16px;
-  --dsh-s4: 24px; --dsh-s5: 38px; --dsh-s6: 64px;
-
-  /* 1px at low alpha, not 0.5px: identical at dpr 1 and dpr 2. */
-  --dsh-line: rgba(13, 13, 13, 0.09);
-  --dsh-line-firm: rgba(13, 13, 13, 0.16);
-
-  /* Text sitting on the PHOTOGRAPH rather than on a panel needs its own ink —
-     measured, not guessed (method in presence-onboarding.css). Onboarding
-     moved its on-room ink to #544f4c for a 12px eyebrow over a busier part of
-     the still; this page keeps #5e5a57, because its heavier veil gives it
-     margin even at 11px. Measured 2026-09-10 under the glyphs, 5th percentile
-     / darkest pixel:
-       "Family relay"       11px   5.59 / 5.54
-       "Edit setup"         15px   5.62
-       "Opening the room"   11px   5.09 / 4.56   (.dsh-loading, loading state)
-     If new text goes on the room, re-run scripts/audit-cosmos-ink.mjs with
-     TOKEN=--dsh-ink-on-room before assuming this value reaches it. */
-  --dsh-ink-on-room: #5e5a57;
-
-  /* The --c-ink-3 override that used to live here is gone: the shared token in
-     presence-cosmos.css was re-spaced (#9a9796 -> #6c6867) and now clears AA on
-     this page's panels on its own. Two corrections to what that override
-     claimed, both from measuring the rendered raster rather than the recipe:
-     #9a9796 is 2.67:1 on paper (not 2.87), and #757170 was never 4.67:1 on
-     these panels — the ground under .dsh-plate-eyebrow is rgb(235,235,233), not
-     the near-white the panel recipe suggests, so #757170 landed at 4.01–4.36
-     and still failed AA on this very screen. The shared value measures 4.57:1
-     on that same ground. */
-
-  --dsh-serif: 'Instrument Serif', Georgia, serif;
-  --dsh-mono: 'Geist Mono', ui-monospace, 'SF Mono', Menlo, monospace;
-  --dsh-ease: cubic-bezier(0.32, 0.72, 0, 1);
-  --dsh-ease-ui: cubic-bezier(0.22, 1, 0.36, 1);
-
-  position: relative;
-  min-height: 100dvh;
-  display: flex;
-  flex-direction: column;
-  background: var(--c-paper);
-  color: var(--c-ink);
-  isolation: isolate;
-}
-
-/* -------------------------------------------------------------- the room -- */
-
-.presence-cosmos.dsh::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  z-index: -2;
-  background-image: url('/images/presence/cosmos-02-window.jpg');
-  background-size: cover;
-  /* Cropped onto the sill and the table below it — the onboarding takes the
-     window higher. Same room, a different thing looked at.
-     Measured, not guessed: at opacity 0.42 under the first veil the still
-     read as a flat grey field at 1440x900, which is the generic gradient this
-     page exists to get rid of. */
-  background-position: 50% 44%;
-  filter: saturate(0.74);
-  opacity: 0.62;
-}
-
-.presence-cosmos.dsh::after {
-  content: '';
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  /* No hard seam, and it never reaches full paper: the ramp gains weight as
-     the eye travels into the ledger but the room is still there at the foot of
-     the page, so a short dashboard does not end in a band of blank paper. */
-  background:
-    linear-gradient(
-      to bottom,
-      rgba(247, 245, 243, 0.32) 0%,
-      rgba(247, 245, 243, 0.62) 30%,
-      rgba(247, 245, 243, 0.85) 62%,
-      rgba(247, 245, 243, 0.93) 100%
-    );
-}
-
-/* --------------------------------------------------------------- chrome -- */
-
-.presence-cosmos .dsh-nav {
-  position: relative;
-  z-index: 2;
-  width: 100%;
-  max-width: 1160px;
-  margin: 0 auto;
-  padding: clamp(16px, 2.4vh, 26px) clamp(20px, 3vw, 40px) 0;
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: center;
-  gap: var(--dsh-s3);
-}
-
-.presence-cosmos .dsh-nav-brand {
-  justify-self: start;
-  display: inline-flex;
-  color: var(--c-ink);
-}
-
-.presence-cosmos .dsh-nav-here {
-  justify-self: center;
+/* A line under a row that is read in full, not skimmed: something a person
+   has to do, the whole summary, one turn of the conversation. It is the
+   content, so it is ink at 400, not the grey line. */
+.presence-cosmos .dsh-detail {
   margin: 0;
-  font-family: var(--dsh-mono);
-  font-size: var(--dsh-micro);
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
-  color: var(--dsh-ink-on-room);
-}
-
-.presence-cosmos .dsh-exit {
-  justify-self: end;
-  height: 34px;
-  padding: 0 15px;
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  border-radius: 999px;
-  border: 1px solid var(--dsh-line-firm);
-  /* Measured: at 0.5 white over the room this chip's label ran 3.60:1 with the
-     shared --c-ink-2. It read fine, which is why it would have shipped. 0.72
-     white with the on-room ink measures 5.5:1 against the darkest pixel the
-     chip can sit on. */
-  background: rgba(255, 255, 255, 0.72);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  font-size: var(--dsh-body);
-  color: var(--dsh-ink-on-room);
-  transition: color 0.2s, border-color 0.2s;
-}
-.presence-cosmos .dsh-exit:hover { color: var(--c-ink); border-color: var(--c-ink); }
-.presence-cosmos .dsh-exit:focus-visible { outline: 2px solid var(--c-ink); outline-offset: 2px; }
-
-/* ---------------------------------------------------------------- frame -- */
-
-.presence-cosmos .dsh-frame {
-  flex: 1;
-  width: 100%;
-  max-width: 1160px;
-  margin: 0 auto;
-  padding: clamp(20px, 3.4vh, 40px) clamp(20px, 3vw, 40px) var(--dsh-s6);
-  display: grid;
-  /* Same proportion as the onboarding's plate/spine. The page keeps its
-     skeleton when you cross from setup into the relay. */
-  grid-template-columns: minmax(296px, 0.62fr) 1fr;
-  gap: clamp(26px, 3.6vw, 56px);
-  align-items: start;
-}
-
-/* ---------------------------------------------------------------- plate -- */
-/* The same object the onboarding was building, now finished and in use. It
-   holds her name, what she has, and the single dark action on the page. */
-
-.presence-cosmos .dsh-plate {
-  position: sticky;
-  top: 16px;
-  padding: var(--dsh-s4);
-  border-radius: var(--dsh-r-panel);
-  border: 1px solid rgba(255, 255, 255, 0.6);
-  background: rgba(255, 255, 255, 0.64);
-  backdrop-filter: blur(30px) saturate(1.3);
-  -webkit-backdrop-filter: blur(30px) saturate(1.3);
-  display: grid;
-  gap: var(--dsh-s4);
-}
-
-.presence-cosmos .dsh-plate-eyebrow {
-  margin: 0 0 var(--dsh-s2);
-  font-family: var(--dsh-mono);
-  font-size: var(--dsh-micro);
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: var(--c-ink-3);
-}
-
-/* Law 3: her name is read, so it is serif. */
-.presence-cosmos .dsh-plate-name {
-  margin: 0;
-  font-family: var(--dsh-serif);
+  font-size: var(--c-text);
+  line-height: var(--c-lh-text);
   font-weight: 400;
-  font-size: var(--dsh-name);
-  line-height: 1.04;
-  letter-spacing: -0.018em;
   color: var(--c-ink);
-}
-
-.presence-cosmos .dsh-facts { display: grid; gap: 0; margin: 0; }
-.presence-cosmos .dsh-fact {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: baseline;
-  gap: var(--dsh-s3);
-  padding: 11px 0;
-  border-top: 1px solid var(--dsh-line);
-}
-.presence-cosmos .dsh-fact:first-child { border-top: 0; }
-.presence-cosmos .dsh-fact dt {
-  font-family: var(--dsh-mono);
-  font-size: var(--dsh-micro);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--c-ink-3);
-}
-.presence-cosmos .dsh-fact dd {
-  margin: 0;
-  font-size: var(--dsh-body);
-  text-align: right;
-  color: var(--c-ink);
-}
-.presence-cosmos .dsh-fact dd.is-empty { color: var(--c-ink-3); }
-
-/* ------------------------------------------------------------- the link -- */
-/* The page's one conversion. It lives on the plate because the link IS the
-   Presence: everything else here is reading what came back through it. */
-
-.presence-cosmos .dsh-link { display: grid; gap: var(--dsh-s2); }
-
-.presence-cosmos .dsh-link-url {
-  display: block;
-  padding: 12px 14px;
-  border-radius: var(--dsh-r-ctl);
-  border: 1px solid var(--dsh-line);
-  background: rgba(255, 255, 255, 0.6);
-  font-family: var(--dsh-mono);
-  font-size: 12px;
-  line-height: 1.4;
-  color: var(--c-ink-2);
-  /* The token is long and must not clip: a truncated URL is a URL you cannot
-     read back to someone over the phone, which is exactly how it gets used. */
   overflow-wrap: anywhere;
 }
 
-.presence-cosmos .dsh-link-row { display: flex; gap: var(--dsh-s2); flex-wrap: wrap; }
-.presence-cosmos .dsh-link-row .pc-btn { flex: 1 1 auto; }
-
-.presence-cosmos .dsh-note {
-  margin: 0;
-  font-size: var(--dsh-body);
-  line-height: 1.5;
-  color: var(--c-ink-2);
-}
-
-.presence-cosmos .dsh-plate-foot {
-  margin: 0;
-  padding-top: var(--dsh-s3);
-  border-top: 1px solid var(--dsh-line);
-  font-family: var(--dsh-mono);
-  font-size: var(--dsh-micro);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--c-ink-3);
-  display: flex; align-items: center; gap: 8px;
-}
-.presence-cosmos .dsh-plate-foot .tick {
-  width: 5px; height: 5px; border-radius: 50%;
-  background: var(--c-ink-3);
-  flex: none;
-}
-.presence-cosmos .dsh-plate-foot.is-live .tick { background: #2f7d5b; }
-
-/* ---------------------------------------------------------------- spine -- */
-/* One left edge, and one vertical order: what needs a person, then what came
-   back, then what you can say, then the settings you rarely touch. */
-
-.presence-cosmos .dsh-spine {
-  min-width: 0;
+/* In the transcript the Presence's turns step back a shade; hers stay ink. */
+.presence-cosmos .dsh-turn {
   display: grid;
-  gap: var(--dsh-s5);
-  padding-top: 2px;
+  gap: 2px;
 }
 
-.presence-cosmos .dsh-sec { display: grid; gap: var(--dsh-s3); }
-
-.presence-cosmos .dsh-h {
-  margin: 0;
-  font-family: var(--dsh-serif);
-  font-weight: 400;
-  font-size: var(--dsh-read);
-  line-height: 1.18;
-  letter-spacing: -0.01em;
-  color: var(--c-ink);
-}
-.presence-cosmos .dsh-h em { font-style: italic; }
-
-/* Deliberately inside a panel, never on the room. Measured at the top of the
-   page, 15px on-room ink over the darkest pixel the still can put under a
-   520px-wide line was 3.42:1. The serif heads stay on the photograph because
-   they are near-black (8.85:1); everything that has to be READ sits on a
-   panel, which is Law 2 doing its actual job rather than being decorative. */
-.presence-cosmos .dsh-card > .dsh-sub {
-  margin: 0;
-  max-width: 52ch;
-  font-size: var(--dsh-body);
-  line-height: 1.55;
-  color: var(--c-ink-2);
-}
-
-.presence-cosmos .dsh-card {
-  padding: var(--dsh-s4);
-  border-radius: var(--dsh-r-card);
-  border: 1px solid rgba(255, 255, 255, 0.55);
-  background: rgba(255, 255, 255, 0.68);
-  backdrop-filter: blur(26px) saturate(1.25);
-  -webkit-backdrop-filter: blur(26px) saturate(1.25);
-  display: grid;
-  gap: var(--dsh-s3);
-}
-.presence-cosmos .dsh-card--quiet {
-  background: rgba(255, 255, 255, 0.36);
-  border-color: rgba(13, 13, 13, 0.08);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-}
-/* The one panel that raises its voice: something a real person has to answer.
-   A left rule, not a colour wash — chroma is not this system's alarm. */
-.presence-cosmos .dsh-card--asks {
-  border-left: 2px solid var(--c-ink);
-  border-radius: 6px var(--dsh-r-card) var(--dsh-r-card) 6px;
-}
-
-.presence-cosmos .dsh-two { display: grid; grid-template-columns: 1fr 1fr; gap: var(--dsh-s3); }
-
-/* ----------------------------------------------------------------- asks -- */
-
-.presence-cosmos .dsh-ask {
-  display: grid;
-  gap: var(--dsh-s3);
-  padding-top: var(--dsh-s3);
-  border-top: 1px solid var(--dsh-line);
-}
-.presence-cosmos .dsh-ask:first-of-type { border-top: 0; padding-top: 0; }
-
-/* What she actually said is read, so it is serif. */
-.presence-cosmos .dsh-ask-q {
-  margin: 0;
-  font-family: var(--dsh-serif);
-  font-weight: 400;
-  font-size: var(--dsh-read);
-  line-height: 1.2;
-  color: var(--c-ink);
-}
-
-.presence-cosmos .dsh-field { display: grid; gap: var(--dsh-s2); }
-.presence-cosmos .dsh-field .lab {
-  font-size: var(--dsh-body);
+.presence-cosmos .dsh-who {
+  font-size: var(--c-text);
+  line-height: var(--c-lh-title);
   font-weight: 500;
   color: var(--c-ink);
 }
 
-.presence-cosmos .dsh-input,
-.presence-cosmos .dsh-textarea {
-  width: 100%;
-  padding: 13px 15px;
-  border-radius: var(--dsh-r-ctl);
-  border: 1px solid var(--dsh-line-firm);
-  background: rgba(255, 255, 255, 0.72);
-  font-family: inherit;
-  font-size: 16px;
-  color: var(--c-ink);
-  transition: border-color 0.2s, background 0.2s;
-}
-.presence-cosmos .dsh-textarea {
-  min-height: 96px;
-  line-height: 1.5;
-  resize: vertical;
-}
-.presence-cosmos .dsh-input::placeholder,
-.presence-cosmos .dsh-textarea::placeholder { color: var(--c-ink-3); }
-.presence-cosmos .dsh-input:focus-visible,
-.presence-cosmos .dsh-textarea:focus-visible {
-  outline: none;
-  border-color: var(--c-ink);
-  background: #fff;
-}
-
-.presence-cosmos .dsh-actions { display: flex; flex-wrap: wrap; gap: var(--dsh-s2); align-items: center; }
-
-/* --------------------------------------------------------- needs a person -- */
-
-.presence-cosmos .dsh-needs { display: grid; gap: var(--dsh-s2); margin: 0; padding: 0; list-style: none; }
-.presence-cosmos .dsh-need {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 10px;
-  align-items: start;
-  font-size: var(--dsh-lead);
-  line-height: 1.45;
-  color: var(--c-ink);
-}
-.presence-cosmos .dsh-need svg { margin-top: 5px; color: var(--c-ink-3); }
-/* On the plate the same list is body copy, not a lead — it sits under a mono
-   status line, not under a serif head. */
-.presence-cosmos .dsh-plate .dsh-need { font-size: var(--dsh-body); }
-.presence-cosmos .dsh-plate .dsh-need svg { margin-top: 3px; }
-
-/* -------------------------------------------------------- conversations -- */
-
-.presence-cosmos .dsh-conv {
-  display: grid;
-  gap: var(--dsh-s2);
-  padding-top: var(--dsh-s4);
-  border-top: 1px solid var(--dsh-line);
-}
-.presence-cosmos .dsh-conv:first-of-type { border-top: 0; padding-top: 0; }
-
-.presence-cosmos .dsh-conv-meta {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  font-family: var(--dsh-mono);
-  font-size: var(--dsh-micro);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--c-ink-3);
-}
-.presence-cosmos .dsh-conv-meta .sep { opacity: 0.5; }
-
-/* The summary is the reading matter of this whole screen. */
-.presence-cosmos .dsh-conv-sum {
-  margin: 0;
-  font-family: var(--dsh-serif);
-  font-weight: 400;
-  font-size: var(--dsh-read);
-  line-height: 1.32;
-  letter-spacing: -0.005em;
-  color: var(--c-ink);
-}
-
-.presence-cosmos .dsh-conv-toggle {
-  justify-self: start;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: var(--dsh-s1);
-  font-size: var(--dsh-body);
+.presence-cosmos .dsh-turn.is-ai .dsh-detail {
   color: var(--c-ink-2);
-  transition: color 0.2s;
 }
-.presence-cosmos .dsh-conv-toggle:hover { color: var(--c-ink); }
-.presence-cosmos .dsh-conv-toggle:focus-visible { outline: 2px solid var(--c-ink); outline-offset: 3px; border-radius: 6px; }
 
-.presence-cosmos .dsh-transcript {
+/* The note composer and the ask form: one full-width row inside the list. */
+.presence-cosmos .dsh-form {
+  grid-template-columns: minmax(0, 1fr);
+  row-gap: 12px;
+}
+
+.presence-cosmos .dsh-form-fields {
   display: grid;
-  gap: var(--dsh-s3);
-  margin-top: var(--dsh-s2);
-  padding: var(--dsh-s4);
-  border-radius: var(--dsh-r-card);
-  border: 1px solid var(--dsh-line);
-  background: rgba(255, 255, 255, 0.44);
-}
-.presence-cosmos .dsh-turn { display: grid; gap: 4px; }
-.presence-cosmos .dsh-turn .who {
-  font-family: var(--dsh-mono);
-  font-size: var(--dsh-micro);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--c-ink-3);
-}
-.presence-cosmos .dsh-turn p {
-  margin: 0;
-  font-size: var(--dsh-lead);
-  line-height: 1.5;
-  color: var(--c-ink);
-}
-.presence-cosmos .dsh-turn.is-ai p { color: var(--c-ink-2); }
-
-/* ---------------------------------------------------------------- rows -- */
-
-.presence-cosmos .dsh-rows { display: grid; margin: 0; padding: 0; list-style: none; }
-.presence-cosmos .dsh-row {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: var(--dsh-s3);
-  align-items: baseline;
-  padding: 11px 0;
-  border-top: 1px solid var(--dsh-line);
-  font-size: var(--dsh-body);
-  color: var(--c-ink);
-}
-.presence-cosmos .dsh-row:first-child { border-top: 0; }
-.presence-cosmos .dsh-row.is-done { color: var(--c-ink-3); }
-
-.presence-cosmos .dsh-tag {
-  font-family: var(--dsh-mono);
-  font-size: var(--dsh-micro);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--c-ink-3);
-  white-space: nowrap;
-}
-/* A person's name is content, not a label. The mono uppercase rule turned
-   "Aninha" — what she actually calls her daughter — into ANINHA, which is the
-   system shouting a pet name. Mono stays (it is still the provenance column);
-   the shouting does not. */
-.presence-cosmos .dsh-tag--name {
-  text-transform: none;
-  letter-spacing: 0.01em;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
 }
 
-/* --------------------------------------------------------------- states -- */
-
-.presence-cosmos .dsh-empty {
-  margin: 0;
-  font-size: var(--dsh-body);
-  line-height: 1.55;
-  color: var(--c-ink-3);
+.presence-cosmos .dsh-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
-.presence-cosmos .dsh-loading {
-  min-height: 60dvh;
-  display: grid;
-  place-items: center;
-  font-family: var(--dsh-mono);
-  font-size: var(--dsh-micro);
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
-  color: var(--dsh-ink-on-room);
+/* A row's icon slot carrying state: green as a mark only, never as text
+   (--c-live-mark is 2.58:1 on the page; the words beside it say "Ready"). */
+.presence-cosmos .dsh-live {
+  color: var(--c-live);
 }
 
-/* index.css:752 truncates EVERY `button span` with an ellipsis and
-   white-space: nowrap; without this override any wrapping button label is
-   silently clipped to one line. :not(.sr-only) is load-bearing — the classic
-   sr-only clip needs overflow: hidden to hold, and without the exclusion this
-   would put visually hidden text one engine quirk away from rendering. */
-.presence-cosmos .dsh-frame button span:not(.sr-only),
-.presence-cosmos .dsh-nav button span:not(.sr-only) {
-  max-width: none;
-  overflow: visible;
-  text-overflow: clip;
-  white-space: normal;
-}
-
-/* ------------------------------------------------------------ responsive -- */
-
-@media (max-width: 940px) {
-  .presence-cosmos .dsh-frame { grid-template-columns: 1fr; }
-  .presence-cosmos .dsh-plate { position: static; }
-  /* Stacked, the pair is no longer a pair: it is two more sections in the
-     spine, so it has to take the spine's rhythm or the last two heads sit
-     twice as close together as every other one. */
-  .presence-cosmos .dsh-two { grid-template-columns: 1fr; gap: var(--dsh-s5); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .presence-cosmos.dsh * { animation: none !important; transition-duration: 0.01ms !important; }
+@media (max-width: 767px) {
+  .presence-cosmos .dsh-form-fields {
+    grid-template-columns: 1fr;
+  }
 }

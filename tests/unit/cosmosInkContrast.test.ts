@@ -78,13 +78,16 @@ const lstar = (v: string) => { const y = luminance(parseColor(v).rgb); return y 
 
 /** The darkest grounds the inks sit on: 5th percentile of the pixels under the
     glyphs, page fully rendered — the audit's pass criterion. Measured with
-    scripts/audit-cosmos-ink.mjs on 2026-09-10. */
+    scripts/audit-cosmos-ink.mjs on 2026-09-10.
+
+    2026-09-11, the register: /presence/home became a flat app screen, so two
+    grounds went with the room they were measured on — the home plate
+    (235,235,233) and the home room (221,223,218). Its tightest ground is now
+    the warm field box, a flat fill read straight from --c-field below. */
 const GROUND: Record<string, RGB> = {
-  plate: [235, 235, 233],      // /presence/home, frosted plate under .dsh-plate-eyebrow — tightest shared-ink ground
   stageRows: [227, 224, 221],  // demo rows over the photograph (/cosmos/demos, /cosmos/landing)
   stageGlass: [191, 183, 175], // the demo head's caption, bare glass over the photograph
   onboardingRoom: [214, 213, 207], // /presence/onboarding, the room behind .obx-eyebrow
-  homeRoom: [221, 223, 218],   // /presence/home loading state, behind .dsh-loading
 };
 const AA = 4.5;
 const STEP = 5; // L* between two inks that should read as different steps
@@ -93,7 +96,6 @@ const cosmos = read('presence-cosmos.css');
 const shared = tokens(cosmos, '.presence-cosmos');
 const stage = tokens(cosmos, '.pc-demo-stage');
 const onboarding = tokens(read('presence-onboarding.css'), '.presence-cosmos.obx');
-const home = tokens(read('presence-home.css'), '.presence-cosmos.dsh');
 const paper = parseColor(shared['--c-paper']).rgb;
 const white = parseColor(shared['--c-white']).rgb;
 const field = parseColor(shared['--c-field']).rgb;
@@ -113,10 +115,6 @@ describe('cosmos shared ink ramp', () => {
       expectAA(t, shared[t], paper, 'paper');
       expectAA(t, shared[t], white, 'white');
     }
-  });
-
-  it('ink-3 clears AA on the frosted plate, its tightest measured ground', () => {
-    expectAA('--c-ink-3', shared['--c-ink-3'], GROUND.plate, 'the home plate');
   });
 
   it('ink-2 and ink-3 clear AA on the field box, the app screens\' tightest ground', () => {
@@ -164,9 +162,22 @@ describe('cosmos demo stage (glass over a photograph)', () => {
 });
 
 describe('ink on the room (text straight on the photograph)', () => {
-  it('onboarding and home on-room inks clear AA on their rooms', () => {
+  it('the onboarding on-room ink clears AA on its room', () => {
     expectAA('--ob-ink-on-room', onboarding['--ob-ink-on-room'], GROUND.onboardingRoom, 'the onboarding room');
-    expectAA('--dsh-ink-on-room', home['--dsh-ink-on-room'], GROUND.homeRoom, 'the home room');
+  });
+});
+
+/* --dsh-ink-on-room was retired with the home room on 2026-09-11. What keeps
+   that ground true now is that the page paints no photograph and no glass:
+   if one comes back, its text needs an audited ink again, and this fails first. */
+describe('app screens are flat (home)', () => {
+  it('paint no photograph, glass or shadow', () => {
+    for (const f of ['presence-home.css']) {
+      const css = read(f);
+      expect(css, `${f} paints an image`).not.toMatch(/url\(/);
+      expect(css, `${f} uses glass`).not.toMatch(/backdrop-filter/);
+      expect(css, `${f} casts a shadow`).not.toMatch(/box-shadow\s*:\s*(?!none)/);
+    }
   });
 });
 
