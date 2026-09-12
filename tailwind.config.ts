@@ -15,21 +15,21 @@ export default {
     },
     extend: {
       fontFamily: {
-        // Nocturne's three voices, reached through the tokens rather than
-        // repeated here. This block used to hard-code the Claura stacks, and
-        // because Tailwind emits a LITERAL font stack for font-heading /
-        // font-sans / font-mono, no CSS variable could reach them: the flip
-        // and the bridge both went straight past. 162 uses of font-heading
-        // across 80 files were still rendering Instrument Serif, and every
-        // font-sans/body/ui was still leading with Geist.
+        // The voices, reached through the tokens rather than repeated here.
+        // This block used to hard-code the Claura stacks, and because Tailwind
+        // emits a LITERAL font stack for font-heading / font-sans / font-mono,
+        // no CSS variable could reach them: the Nocturne flip and the bridge
+        // both went straight past. 162 uses of font-heading across 80 files
+        // were still rendering Instrument Serif.
         // Keep these pointing at the vars so the token layer stays the single
-        // source of truth — nocturne.css defines them on :root.
-        'heading': 'var(--n-serif)',   // Fraunces 300
-        'serif': 'var(--n-serif)',
-        'body': 'var(--n-sans)',       // Inter
+        // source of truth: nocturne.css defines them on :root, and since the
+        // register (2026-09-12) all of them resolve to Geist in register.css.
+        'heading': 'var(--n-serif)',   // Geist: never a serif, whatever the name says
+        'serif': 'var(--n-serif)',     // Geist
+        'body': 'var(--n-sans)',       // Geist
         'ui': 'var(--n-sans)',
         'sans': 'var(--n-sans)',
-        'mono': 'var(--n-mono)',       // Roboto Mono
+        'mono': 'var(--n-mono)',       // Geist Mono, for a value to copy
       },
       colors: {
         // Semantic tokens from CSS variables (no hsl wrapper — vars contain hex/rgba)

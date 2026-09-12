@@ -10,38 +10,40 @@
    primitives from here. Spec: .claude/plans/2026-09-11-instinct-register/
    ========================================================================== */
 .mv {
-  /* Grounds. --canvas and --panel survive as the old names for the page and
+  /* Every value the register shares with money is read from register.css, the
+     app-wide source of truth since 2026-09-12; measured ratios live there.
+     Grounds. --canvas and --panel survive as the old names for the page and
      the warm field, so nothing that still reads them breaks. */
-  --page: #fbfaf9;
+  --page: var(--rg-page);
   --canvas: var(--page);
-  --white: #ffffff;
-  --field: #f4efec;
+  --white: var(--rg-white);
+  --field: var(--rg-field);
   --panel: var(--field);
-  /* Ink at three strengths. On the page: ink 15.5:1, ink-2 7.3:1, ink-3 5.3:1
-     (4.8:1 on a field). --quiet is Instinct's own grey at 2.9:1, which fails AA
-     as text: it marks disabled and decorative things only. */
-  --ink: #251f21;
-  --ink-2: #585254;
-  --ink-3: #6c6867;
-  --quiet: #969394;
-  --rule: #eae9ea;
+  /* Ink at three strengths. --quiet is Instinct's own grey at 2.9:1, which fails
+     AA as text: it marks disabled and decorative things only. */
+  --ink: var(--rg-ink);
+  --ink-2: var(--rg-ink-2);
+  --ink-3: var(--rg-ink-3);
+  --quiet: var(--rg-quiet);
+  --rule: var(--rg-rule);
+  /* Money's own hover, a shade lighter than the register's 5%: kept so these
+     pages do not change. */
   --hover: rgba(37, 31, 33, 0.04);
-  /* State. Instinct's red (#ed313e, 3.9:1) and green (#73a89a, 2.6:1) fail as
-     13px text, so they stay lines; the text versions are darkened until they
-     pass: danger 5.5:1 and ok 5.1:1 on the page, 5.0:1 and 4.7:1 on a field. */
-  --danger-line: #f5aaae;
-  --danger: #c42533;
-  --ok-line: #73a89a;
-  --ok: #3d7566;
-  --sans: 'Geist', 'Inter Tight', 'Inter', system-ui, sans-serif;
+  /* State. Instinct's red and green fail as 13px text, so they stay lines; the
+     text versions are darkened until they pass. */
+  --danger-line: var(--rg-danger-line);
+  --danger: var(--rg-danger);
+  --ok-line: var(--rg-ok-line);
+  --ok: var(--rg-ok);
+  --sans: var(--rg-sans);
   /* Monospace survives for one job: a capture key, which is a string to copy
      rather than a label to read. */
-  --mono: 'Geist Mono', 'DM Mono', ui-monospace, monospace;
-  --track: -0.176px;
-  --col: 820px;
-  --side: 200px;
-  --gutter: 24px;
-  --section: 72px;
+  --mono: var(--rg-mono);
+  --track: var(--rg-track);
+  --col: var(--rg-col);
+  --side: var(--rg-side);
+  --gutter: var(--rg-gutter);
+  --section: var(--rg-section);
 
   min-height: 100vh; background: var(--page); color: var(--ink); font-family: var(--sans);
   font-size: 13px; line-height: 19.5px; font-weight: 400; letter-spacing: var(--track);

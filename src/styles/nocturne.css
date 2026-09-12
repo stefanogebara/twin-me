@@ -1,102 +1,79 @@
 /* ============================================================================
-   NOCTURNE — TwinMe design system
+   NOCTURNE, RETIRED 2026-09-12. The names live on; the values are the register.
    ============================================================================
-   A midnight gallery of the self.
+   Nocturne (2026-09-01, the midnight gallery: obsidian, Fraunces, uppercase
+   mono) was retired on 2026-09-12 for the register: Instinct's signed-in app
+   with the Cosmos headings. See src/styles/register.css, the one source of
+   truth, and the living spec at /system.
 
-   Primary reference: Origin Financial (useorigin.com) — Refero extraction
-   2026-07-03 + live Playwright audit 2026-09-01. Adapted, not cloned: Origin
-   colors its finance modules; Nocturne colors TwinMe's five soul domains.
-
-   The three voices
-     Serif  (Fraunces 300)     — emotive statements. Display only. Never bold.
-     Sans   (Inter 400/500)    — the interface. Body, controls, captions.
-     Mono   (Roboto Mono, UPPERCASE) — data, labels, badges, buttons, legal.
-
-   Laws (from the reference lock — breaking one breaks the system)
-     1. Elevation is a color step, never a shadow.
-     2. White-on-black is the only primary action.
-     3. Chromatic color exists only as full-bleed signature tiles and data
-        strokes — never as text under 18px, never as borders or washes.
-     4. The italic marks one word per display line: the verb of self-knowledge.
-     5. Anything smaller than 13px speaks mono, uppercase, tracked.
+   This file keeps every --n-* name and every .n-* class so nothing that reads
+   them breaks, and resolves each to the register. Several names now describe
+   the old world rather than the new one; where a name lies, the line says so.
+   Build new surfaces on --rg-* tokens, not on these names.
    ========================================================================== */
 
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..400;1,9..144,300..400&family=Roboto+Mono:wght@400;500&family=Inter:wght@400;500&display=swap');
+@import './register.css';
 
 :root {
-  /* ---- Canvas & surfaces (flat elevation ladder) ---- */
-  --n-obsidian: #0f1011;      /* page canvas */
-  --n-abyss: #090a0b;         /* alternating full-bleed bands */
-  --n-graphite: #1c1d1f;      /* elevated card */
-  --n-steel: #2c2d2f;         /* hover / pressed */
-  --n-silver: #cacaca;        /* inverted light card — max 1-2 per page */
+  /* ---- Surfaces ---- */
+  --n-obsidian: var(--rg-page);     /* the page, and light now */
+  --n-abyss: var(--rg-field);       /* a recessed band: the warm field now */
+  --n-graphite: var(--rg-white);    /* a card: white with a hairline, until it becomes rows */
+  --n-steel: var(--rg-hover);       /* hover / pressed: ink at 5% */
+  --n-silver: var(--rg-ink);        /* the "inverted" card is ink now, not silver */
 
   /* ---- Ink ---- */
-  --n-pure: #ffffff;          /* primary action fill; display on photos */
-  --n-cloud: #fafafa;         /* display + heading ink (never pure on type) */
-  --n-ash: #9f9fa0;           /* body, descriptions — never full white */
-  --n-fog: #6a6b6b;           /* muted, disabled, annotations */
-  --n-void: #000000;          /* ink on light fills */
+  --n-pure: var(--rg-ink);          /* the primary fill: ink now, not white */
+  --n-cloud: var(--rg-ink);         /* titles and headings: ink */
+  --n-ash: var(--rg-ink-2);         /* the grey line, 7.3:1 */
+  --n-fog: var(--rg-ink-3);         /* quiet text, 5.3:1 */
+  --n-void: var(--rg-page);         /* text on the primary fill: the page colour, not black */
 
   /* ---- Hairlines ---- */
-  --n-line: rgba(255, 255, 255, 0.08);
-  --n-line-strong: rgba(255, 255, 255, 0.14);
+  --n-line: var(--rg-rule);
+  --n-line-strong: var(--rg-quiet); /* a hovered hairline; never text */
 
-  /* ---- The five signatures (tile + data roles ONLY) ----
-     Origin's category chroma, translated to the reflection engine's five
-     experts. ember + verdigris are TwinMe-native (ember carries the Claura
-     amber heritage); iris, orchid, periwinkle borrowed from the reference. */
-  --n-ember: #dd8f4c;         /* motivation & drive */
-  --n-iris: #847dff;          /* personality & emotion */
-  --n-verdigris: #55a08e;     /* cultural identity */
-  --n-orchid: #dd90d8;        /* social dynamics */
-  --n-periwinkle: #90b8f0;    /* lifestyle & rhythms */
+  /* ---- The five signatures and the data signal (tile + data roles only),
+     re-tuned for the page in register.css ---- */
+  --n-ember: var(--rg-ember);
+  --n-iris: var(--rg-iris);
+  --n-verdigris: var(--rg-verdigris);
+  --n-orchid: var(--rg-orchid);
+  --n-periwinkle: var(--rg-periwinkle);
+  --n-signal: var(--rg-signal);
 
-  /* ---- Data signal (charts/sparklines only — never fills, never text) ---- */
-  --n-signal: #00b3dd;
+  /* ---- Danger. Still two names, but on the page one red does both jobs:
+     #c42533 is 5.5:1 as text and a clear stroke. The pink danger LINE is its
+     own token, --rg-danger-line. Do not collapse the names; a dark ground
+     would need them apart again. ---- */
+  --n-danger: var(--rg-danger);     /* strokes, fills, icons */
+  --n-danger-ink: var(--rg-danger); /* any error TEXT */
 
-  /* ---- Danger ----
-     Not a signature. The five above are identity colours; an error is a
-     function, and a red error affordance is worth more to a user than palette
-     purity. Kept out of the signature set so it can never be mistaken for
-     one, and so Law 3 keeps meaning what it says.
+  /* ---- Channel triplets: rgb(var(--n-ember-rgb) / 0.7). var() does NOT
+     resolve in SVG presentation attributes or a canvas context. ---- */
+  --n-ember-rgb: var(--rg-ember-rgb);
+  --n-iris-rgb: var(--rg-iris-rgb);
+  --n-verdigris-rgb: var(--rg-verdigris-rgb);
+  --n-orchid-rgb: var(--rg-orchid-rgb);
+  --n-periwinkle-rgb: var(--rg-periwinkle-rgb);
+  --n-danger-rgb: var(--rg-danger-rgb);
 
-     TWO values, because one cannot do both jobs on this canvas. Measured on
-     obsidian #0f1011: #dc2626 is 3.94:1 — fine for a border, an icon or a
-     fill (AA non-text is 3:1), and BELOW the 4.5:1 AA floor for body text.
-     Error copy uses --n-danger-ink at 6.89:1 instead. Do not collapse them. */
-  --n-danger: #dc2626;      /* strokes, fills, borders, icons */
-  --n-danger-ink: #f87171;  /* any error TEXT — 6.89:1 on obsidian */
+  /* ---- Voices. Never a serif: --n-serif is Geist now, like --n-sans.
+     --n-mono is Geist Mono, for a value to copy and nothing else. ---- */
+  --n-serif: var(--rg-sans);
+  --n-sans: var(--rg-sans);
+  --n-mono: var(--rg-mono);
 
-  /* ---- Channel triplets ----
-     A signature at partial alpha used to mean pasting rgba(232,160,80,0.7)
-     into a component, which is how ~50 hard-coded Claura ambers and Tailwind
-     greens survived the flip: a token can express the hue but not the fade,
-     so people reached for a literal. These let a call site keep its alpha and
-     still name the colour: rgb(var(--n-ember-rgb) / 0.7).
-     NOTE: `var()` does NOT resolve inside SVG presentation attributes or a
-     canvas ctx.font/fillStyle — those need a literal. */
-  --n-ember-rgb: 221 143 76;
-  --n-iris-rgb: 132 125 255;
-  --n-verdigris-rgb: 85 160 142;
-  --n-orchid-rgb: 221 144 216;
-  --n-periwinkle-rgb: 144 184 240;
-  --n-danger-rgb: 220 38 38;
-
-  /* ---- Voices ---- */
-  --n-serif: 'Fraunces', Georgia, 'Times New Roman', serif;
-  --n-sans: 'Inter', 'Geist', system-ui, -apple-system, sans-serif;
-  --n-mono: 'Roboto Mono', ui-monospace, 'SF Mono', Menlo, monospace;
-
-  /* ---- Type scale ---- */
-  --n-display: clamp(56px, 8vw, 96px);     /* lh .9  serif 300 */
-  --n-display-sm: clamp(44px, 6.4vw, 80px);/* lh 1   serif 300 */
-  --n-heading: clamp(30px, 3.4vw, 38px);   /* lh .95 serif 300 */
-  --n-subhead: 18px;                       /* lh 1.5 sans 500 (lead line) */
-  --n-body: 16px;                          /* lh 1.5 sans 400 */
-  --n-body-sm: 14px;                       /* lh 1.65 sans 400 */
-  --n-label: 12px;                         /* mono 500 upper +0.02em */
-  --n-micro: 11px;                         /* mono 400 upper +0.18em */
+  /* ---- Type scale. Every interface size is 13px; weight makes the hierarchy.
+     The display sizes are the Cosmos headings. ---- */
+  --n-display: var(--rg-title-marketing);   /* Geist 300, marketing hero */
+  --n-display-sm: var(--rg-title);          /* Geist 300, an app screen's title */
+  --n-heading: var(--rg-section-title);     /* Geist 400, a section */
+  --n-subhead: var(--rg-text);
+  --n-body: var(--rg-text);
+  --n-body-sm: var(--rg-text);
+  --n-label: var(--rg-text);
+  --n-micro: var(--rg-text);
 
   /* ---- Space (4px base) ---- */
   --n-s1: 4px;  --n-s2: 8px;  --n-s3: 12px; --n-s4: 16px; --n-s5: 20px;
@@ -104,165 +81,189 @@
   --n-s25: 100px; --n-s30: 120px; --n-s35: 140px;
 
   /* ---- Shape ---- */
-  --n-r-control: 8px;         /* buttons, inputs, nav chips */
-  --n-r-card: 16px;           /* standard cards, stat blocks */
-  --n-r-tile: 24px;           /* signature tiles, feature panels (live-audited) */
-  --n-r-pill: 9999px;         /* chips, prompt input, avatars only */
+  --n-r-control: var(--rg-radius);     /* 4px: buttons, fields */
+  --n-r-card: var(--rg-radius-icon);   /* 8px, and only until cards become rows */
+  --n-r-tile: var(--rg-radius-icon);   /* 8px */
+  --n-r-pill: 9999px;                  /* the switch, avatars */
 
   /* ---- Layout ---- */
-  --n-content: 1200px;
-  --n-section: 120px;
-  --n-card-pad: 32px;
+  --n-content: var(--rg-col);          /* 820px */
+  --n-section: var(--rg-section);      /* 72px */
+  --n-card-pad: 20px;
 
-  /* ---- Motion ---- */
-  --n-quick: 0.2s ease;                                   /* states */
-  --n-reveal: 2.5s cubic-bezier(0.455, 0.03, 0.515, 0.955); /* atmosphere */
+  /* ---- Motion: states 0.2s; entrances a fade and a few pixels, never a bounce ---- */
+  --n-quick: var(--rg-quick);
+  --n-reveal: 0.42s cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 
 /* ============================================================================
-   VOICE PRIMITIVES
+   VOICE PRIMITIVES: the Cosmos headings, then 13px with weight for hierarchy
    ========================================================================== */
 
 .n-display,
-.n-display-sm,
-.n-heading {
+.n-display-sm {
   font-family: var(--n-serif);
   font-weight: 300;
-  font-variation-settings: 'opsz' 144, 'SOFT' 0, 'WONK' 0;
+  line-height: 1;
+  letter-spacing: var(--rg-title-track);
   color: var(--n-cloud);
-  letter-spacing: -0.01em;
   text-wrap: balance;
   margin: 0;
 }
-.n-display     { font-size: var(--n-display);    line-height: 0.9; }
-.n-display-sm  { font-size: var(--n-display-sm); line-height: 1;   }
-.n-heading     { font-size: var(--n-heading);    line-height: 0.95; }
+.n-display     { font-size: var(--n-display); }
+.n-display-sm  { font-size: var(--n-display-sm); }
+.n-heading {
+  font-family: var(--n-serif);
+  font-weight: 400;
+  font-size: var(--n-heading);
+  line-height: 1.08;
+  letter-spacing: var(--rg-section-track);
+  color: var(--n-cloud);
+  text-wrap: balance;
+  margin: 0;
+}
 
-/* Law 4 — the italic verb. One word per display line, no color shift. */
+/* Nocturne's italic verb retires with the serif. Geist has no true italic, and
+   a slanted sans is a fake one, so an <em> in a heading reads upright. */
 .n-display em, .n-display-sm em, .n-heading em {
-  font-style: italic;
-  font-weight: 300;
+  font-style: normal;
+  font-weight: inherit;
   color: inherit;
 }
 
-.n-lead {  /* bold one-liner directly under a display — reference rhythm */
+/* The one-liner under a title: a row title's voice, 13 / 20 at 500. */
+.n-lead {
   font-family: var(--n-sans);
-  font-size: var(--n-subhead);
-  font-weight: 500;
-  line-height: 1.5;
+  font-size: var(--rg-text);
+  font-weight: var(--rg-weight-title);
+  line-height: var(--rg-line-title);
+  letter-spacing: var(--rg-track);
   color: var(--n-cloud);
   margin: 0;
 }
 
+/* The grey line: 13 / 19.5 at 350. */
 .n-body {
   font-family: var(--n-sans);
-  font-size: var(--n-body);
-  font-weight: 400;
-  line-height: 1.5;
+  font-size: var(--rg-text);
+  font-weight: var(--rg-weight-line);
+  line-height: var(--rg-line);
+  letter-spacing: var(--rg-track);
   color: var(--n-ash);
   margin: 0;
 }
-.n-body-sm { font-size: var(--n-body-sm); line-height: 1.65; }
+.n-body-sm { font-size: var(--rg-text); line-height: var(--rg-line); }
 
-/* Law 5 — the mono voice */
+/* Labels are sentence case, never uppercase tracked mono. */
 .n-label {
-  font-family: var(--n-mono);
-  font-size: var(--n-label);
-  font-weight: 500;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
+  font-family: var(--n-sans);
+  font-size: var(--rg-text);
+  font-weight: var(--rg-weight-title);
+  line-height: var(--rg-line-title);
+  letter-spacing: var(--rg-track);
+  text-transform: none;
   color: var(--n-cloud);
 }
 .n-micro {
-  font-family: var(--n-mono);
-  font-size: var(--n-micro);
-  font-weight: 400;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
+  font-family: var(--n-sans);
+  font-size: var(--rg-text);
+  font-weight: var(--rg-weight-line);
+  line-height: var(--rg-line);
+  letter-spacing: var(--rg-track);
+  text-transform: none;
   color: var(--n-fog);
-  line-height: 1.6;
 }
 
 /* ============================================================================
-   CONTROLS — Law 2: white-on-black is the only primary action
+   CONTROLS: 32 tall, a 4 corner, 13px. Ink with page-colour text is the one
+   primary; the secondary is white with a hairline.
    ========================================================================== */
 
 .n-btn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: var(--n-s2);
-  font-family: var(--n-mono);
-  font-size: var(--n-label);
-  font-weight: 500;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-  border: none;
+  box-sizing: border-box;
+  height: var(--rg-button);
+  padding: 0 16px;
+  font-family: var(--n-sans);
+  font-size: var(--rg-text);
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: var(--rg-track);
+  text-transform: none;
+  white-space: nowrap;
+  border: 1px solid transparent;
   border-radius: var(--n-r-control);
-  padding: 12px 18px;
   cursor: pointer;
   text-decoration: none;
-  transition: background-color var(--n-quick), color var(--n-quick), opacity var(--n-quick);
+  transition: background-color var(--n-quick), border-color var(--n-quick), color var(--n-quick), opacity var(--n-quick);
 }
-.n-btn--primary { background: var(--n-pure); color: var(--n-void); }
-.n-btn--primary:hover { background: var(--n-cloud); }
+.n-btn--primary { background: var(--n-pure); border-color: var(--n-pure); color: var(--n-void); font-weight: var(--rg-weight-title); }
+.n-btn--primary:hover { opacity: 0.86; }
 .n-btn--primary .n-btn__arrow { transition: transform var(--n-quick); }
 .n-btn--primary:hover .n-btn__arrow { transform: translateX(2px); }
 
-/* Ghost: borderless white-10% fill (live-audited — the extraction's 1px
-   border does not exist on the real site) */
-.n-btn--ghost { background: rgba(255, 255, 255, 0.1); color: var(--n-cloud); }
-.n-btn--ghost:hover { background: rgba(255, 255, 255, 0.16); }
+/* Ghost is the register's secondary: white, a hairline, ink text. It paints its
+   own ground, so it reads the register directly rather than the scoped names. */
+.n-btn--ghost { background: var(--rg-white); border-color: var(--rg-rule); color: var(--rg-ink); }
+.n-btn--ghost:hover { border-color: var(--rg-quiet); }
 
 .n-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 .n-btn:focus-visible,
 .n-input:focus-visible,
-.n-prompt input:focus-visible {
-  outline: 2px solid rgba(255, 255, 255, 0.6);
+.n-prompt:focus-within {
+  outline: 2px solid var(--rg-ink);
   outline-offset: 2px;
 }
 
-/* Eyebrow badge — promo/eyebrow line above displays */
+/* A badge is a label on the field: 13px 500, sentence case, a 4 corner. */
 .n-badge {
   display: inline-flex;
   align-items: center;
-  gap: var(--n-s2);
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: var(--n-r-pill);
-  padding: 6px 16px;
-  font-family: var(--n-mono);
-  font-size: var(--n-micro);
-  font-weight: 500;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--n-cloud);
-}
-
-/* Text input */
-.n-input {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid var(--n-line);
+  gap: 6px;
+  background: var(--rg-field);
+  border: 0;
   border-radius: var(--n-r-control);
-  padding: 12px 16px;
+  padding: 2px 8px;
   font-family: var(--n-sans);
-  font-size: var(--n-body);
-  color: var(--n-cloud);
-  transition: border-color var(--n-quick);
+  font-size: var(--rg-text);
+  font-weight: var(--rg-weight-title);
+  line-height: var(--rg-line-title);
+  letter-spacing: var(--rg-track);
+  text-transform: none;
+  color: var(--rg-ink);
 }
-.n-input::placeholder { color: var(--n-fog); }
-.n-input:hover { border-color: var(--n-line-strong); }
 
-/* The prompt — Origin's signature ask-anything pill, TwinMe's scan input.
-   Frosted pill floating on atmosphere; circular submit inside. */
+/* A field has no border: a warm box, 44 tall, a 4 corner. */
+.n-input {
+  box-sizing: border-box;
+  height: var(--rg-field-height);
+  background: var(--rg-field);
+  border: 0;
+  border-radius: var(--n-r-control);
+  padding: 11px 14px;
+  font-family: var(--n-sans);
+  font-size: var(--rg-text);
+  line-height: var(--rg-line);
+  letter-spacing: var(--rg-track);
+  color: var(--rg-ink);
+}
+.n-input::placeholder { color: var(--rg-ink-3); opacity: 1; }
+
+/* The prompt: the field holding an ink submit. No frost, no pill. It paints its
+   own ground, so it reads the register directly and stays legible wherever it
+   sits, the landing's photograph included. */
 .n-prompt {
   display: flex;
   align-items: center;
-  gap: var(--n-s3);
-  background: rgba(255, 255, 255, 0.14);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border-radius: var(--n-r-pill);
-  padding: 10px 10px 10px 28px;
+  gap: var(--n-s2);
+  box-sizing: border-box;
+  min-height: var(--rg-field-height);
+  background: var(--rg-field);
+  border-radius: var(--n-r-control);
+  padding: 6px 6px 6px 14px;
 }
 .n-prompt input {
   flex: 1;
@@ -271,56 +272,55 @@
   border: none;
   outline: none;
   font-family: var(--n-sans);
-  font-size: var(--n-body);
-  color: var(--n-pure);
+  font-size: var(--rg-text);
+  letter-spacing: var(--rg-track);
+  color: var(--rg-ink);
 }
-.n-prompt input::placeholder { color: rgba(255, 255, 255, 0.65); }
+.n-prompt input::placeholder { color: var(--rg-ink-3); opacity: 1; }
 .n-prompt button {
-  width: 44px;
-  height: 44px;
+  width: var(--rg-button);
+  height: var(--rg-button);
   flex-shrink: 0;
   display: grid;
   place-items: center;
   border: none;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.25);
-  color: var(--n-pure);
+  border-radius: var(--n-r-control);
+  background: var(--rg-ink);
+  color: var(--rg-page);
   cursor: pointer;
-  transition: background-color var(--n-quick);
+  transition: opacity var(--n-quick);
 }
-.n-prompt button:hover:not(:disabled) { background: rgba(255, 255, 255, 0.4); }
-.n-prompt button:disabled { opacity: 0.5; cursor: not-allowed; }
+.n-prompt button:hover:not(:disabled) { opacity: 0.86; }
+.n-prompt button:disabled { opacity: 0.4; cursor: not-allowed; }
 
 /* ============================================================================
-   SURFACES — Law 1: elevation is a color step, never a shadow
+   SURFACES. The register has no cards: a section is a heading, a grey line and
+   rows under a 1px ink rule. Until a page is converted, a card is white with a
+   hairline, never a shadow.
    ========================================================================== */
 
 .n-card {
   background: var(--n-graphite);
+  border: 1px solid var(--n-line);
   border-radius: var(--n-r-card);
   padding: var(--n-card-pad);
 }
 .n-card--interactive { transition: background-color var(--n-quick); cursor: pointer; }
 .n-card--interactive:hover { background: var(--n-steel); }
 
-/* Inverted silver card — breaks the dark rhythm. Max 1-2 per page. */
-.n-card--inverted { background: var(--n-silver); border-radius: var(--n-r-tile); }
+/* The inverted card is ink with page-colour text. Max one per page. */
+.n-card--inverted { background: var(--n-silver); color: var(--n-void); border-radius: var(--n-r-tile); }
 .n-card--inverted .n-heading,
 .n-card--inverted .n-lead { color: var(--n-void); }
-.n-card--inverted .n-body { color: #3a3a3c; }
-.n-card--inverted .n-micro { color: #6a6b6b; }
+.n-card--inverted .n-body { color: rgb(var(--rg-page-rgb) / 0.8); }
+.n-card--inverted .n-micro { color: rgb(var(--rg-page-rgb) / 0.7); }
 
 .n-hairline { border: none; border-top: 1px solid var(--n-line); margin: 0; }
 
 /* ============================================================================
-   SIGNATURE TILES — Law 3's only chromatic surface.
-   Duotone-tinted texture photography, caption pinned inside the tile.
-   One tile per soul domain; hue is the category identity (no icons needed).
+   SIGNATURE TILES: the five domains' only chromatic surface.
    ========================================================================== */
 
-/* Flat chromatic panels — the reference's canon: "color is the only
-   differentiator between categories". No photography, no gradients, no
-   icons. Ink flips per tile luminance so contrast holds. */
 .n-tile {
   position: relative;
   border-radius: var(--n-r-tile);
@@ -332,9 +332,10 @@
   padding: var(--n-card-pad);
   isolation: isolate;
 }
-/* Generated Nocturne plate under the tile's hue. The wash keeps color as the
-   category identity (the reference's rule) while the plate supplies the
-   texture the flat panels were missing. */
+/* A marketing tile keeps its photograph (the register keeps photography on
+   marketing pages): the plate, a wash of the tile's hue, and a dark scrim that
+   buys the white caption its contrast. Measured against the brightest plates
+   on the Nocturne flip; the scrim is unchanged, so it holds. */
 .n-tile__plate {
   position: absolute;
   inset: 0;
@@ -352,48 +353,35 @@
 .n-tile__scrim {
   position: absolute;
   inset: 0;
-  /* Two-part scrim. The linear pass buys the caption its contrast; the flat
-     pass keeps the mid-tile highlights from blowing out under the glyph.
-     Measured against the brightest plates (orchid silk, periwinkle swell) —
-     caption ink clears 4.5:1 on all five. */
   background:
     linear-gradient(to top, rgba(9, 10, 11, 0.95) 0%, rgba(9, 10, 11, 0.82) 34%, rgba(9, 10, 11, 0.42) 62%, rgba(9, 10, 11, 0.22) 100%),
     rgba(9, 10, 11, 0.22);
   z-index: -1;
 }
-/* With a plate + scrim behind, every tile reads on white ink. */
+/* White on the scrim, written out: --n-pure is ink now and would vanish here. */
 .n-tile--plated,
-.n-tile--plated .n-lead { color: var(--n-pure); }
-.n-tile--plated .n-micro { color: rgba(255, 255, 255, 0.7); }
-.n-tile--plated .n-body-sm { color: rgba(255, 255, 255, 0.78); }
-.n-tile--plated .n-tile__glyph { opacity: 0.22; color: var(--n-pure); }
-.n-tile__glyph {  /* oversized serif initial — the tile's only ornament */
+.n-tile--plated .n-lead { color: var(--rg-white); }
+.n-tile--plated .n-micro { color: rgb(255 255 255 / 0.7); }
+.n-tile--plated .n-body-sm { color: rgb(255 255 255 / 0.78); }
+.n-tile--plated .n-tile__glyph { opacity: 0.22; color: var(--rg-white); }
+.n-tile__glyph {  /* the tile's one ornament, an oversized initial */
   font-family: var(--n-serif);
   font-weight: 300;
-  font-style: italic;
-  font-variation-settings: 'opsz' 144;
   font-size: 120px;
   line-height: 0.8;
+  letter-spacing: var(--rg-title-track);
   opacity: 0.34;
   user-select: none;
 }
-.n-tile__caption { display: flex; flex-direction: column; gap: var(--n-s2); }
+.n-tile__caption { display: flex; flex-direction: column; gap: var(--n-s1); }
 
-/* dark-ink tiles (light hues) */
-.n-tile--periwinkle, .n-tile--orchid, .n-tile--ember {
-  color: var(--n-void);
-}
-.n-tile--periwinkle .n-micro, .n-tile--orchid .n-micro, .n-tile--ember .n-micro { color: rgba(0, 0, 0, 0.55); }
-.n-tile--periwinkle .n-lead,  .n-tile--orchid .n-lead,  .n-tile--ember .n-lead  { color: var(--n-void); }
-.n-tile--periwinkle .n-body-sm, .n-tile--orchid .n-body-sm, .n-tile--ember .n-body-sm { color: rgba(0, 0, 0, 0.64); }
-
-/* white-ink tiles (deep hues) */
-.n-tile--iris, .n-tile--verdigris {
-  color: var(--n-pure);
-}
-.n-tile--iris .n-micro, .n-tile--verdigris .n-micro { color: rgba(255, 255, 255, 0.66); }
-.n-tile--iris .n-lead,  .n-tile--verdigris .n-lead  { color: var(--n-pure); }
-.n-tile--iris .n-body-sm, .n-tile--verdigris .n-body-sm { color: rgba(255, 255, 255, 0.76); }
+/* A flat tile is its hue with ink on it: 4.7:1 on every one of the five, where
+   white is 3.4. A fade of ink fails, so the lines under the title keep full ink
+   and step down in weight instead. */
+.n-tile--ember, .n-tile--iris, .n-tile--verdigris, .n-tile--orchid, .n-tile--periwinkle { color: var(--rg-ink); }
+.n-tile:not(.n-tile--plated) .n-lead { color: var(--rg-ink); }
+.n-tile:not(.n-tile--plated) .n-micro,
+.n-tile:not(.n-tile--plated) .n-body-sm { color: var(--rg-ink); font-weight: var(--rg-weight-line); }
 
 .n-tile--ember      { background: var(--n-ember); }
 .n-tile--iris       { background: var(--n-iris); }
@@ -402,85 +390,95 @@
 .n-tile--periwinkle { background: var(--n-periwinkle); }
 
 /* ============================================================================
-   SECTION RHYTHM — the reference's stanza, verified live:
-   number/eyebrow → display → bold lead → ash body → mono ghost → cards
+   SECTION RHYTHM: a heading, one grey line 4px under it, then the list 24px
+   further down. Sections sit 72px apart.
    ========================================================================== */
 
 .n-section {
   max-width: var(--n-content);
   margin: 0 auto;
-  padding: var(--n-section) var(--n-s6);
+  padding: var(--n-section) var(--rg-gutter);
 }
 .n-stanza {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  text-align: center;
-  gap: var(--n-s5);
-  margin-bottom: var(--n-s15);
+  align-items: flex-start;
+  text-align: left;
+  gap: var(--rg-title-to-line);
+  margin-bottom: var(--rg-line-to-rule);
 }
-.n-stanza .n-lead { margin-top: var(--n-s2); }
-.n-stanza .n-body { max-width: 520px; }
+.n-stanza .n-btn { margin-top: var(--n-s3); }
+.n-stanza .n-body { max-width: 60ch; }
 
-.n-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
-.n-grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+.n-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--n-s4); }
+.n-grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--n-s4); }
 @media (max-width: 900px) {
   .n-grid-3, .n-grid-2 { grid-template-columns: 1fr; }
 }
+@media (max-width: 767px) {
+  .n-section { padding: var(--rg-section-phone) var(--rg-gutter); }
+}
 
 /* ============================================================================
-   NAV — sticky frosted bar (the system's only glass besides the prompt)
+   NAV: plain text links on the page, the current one underlined. No bar of
+   glass, no fills.
    ========================================================================== */
 
 .n-nav {
-  position: fixed;
-  top: var(--n-s6);
-  left: 50%;
-  transform: translateX(-50%);
-  width: min(calc(100% - 48px), var(--n-content));
+  position: sticky;
+  top: 0;
   z-index: 50;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--n-s4);
-  padding: var(--n-s3) var(--n-s4);
-  border-radius: var(--n-r-card);
-  background: rgba(15, 16, 17, 0.55);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
+  min-height: 56px;
+  padding: var(--n-s3) var(--rg-gutter);
+  background: var(--rg-page);
+  border-bottom: 1px solid var(--rg-rule);
 }
-.n-nav__links { display: flex; align-items: center; gap: var(--n-s2); }
+.n-nav__links { display: flex; align-items: center; gap: var(--n-s5); }
 .n-nav__link {
-  font-family: var(--n-mono);
-  font-size: var(--n-label);
-  font-weight: 500;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-  color: var(--n-cloud);
-  background: rgba(255, 255, 255, 0.1);
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--rg-button);
+  font-family: var(--n-sans);
+  font-size: var(--rg-text);
+  font-weight: 400;
+  letter-spacing: var(--rg-track);
+  text-transform: none;
+  color: var(--rg-ink-2);
+  background: none;
   border: none;
-  border-radius: var(--n-r-control);
-  padding: 9px 12px;
+  padding: 0;
   cursor: pointer;
   text-decoration: none;
-  transition: background-color var(--n-quick);
+  transition: color var(--n-quick);
 }
-.n-nav__link:hover { background: rgba(255, 255, 255, 0.16); }
-.n-nav__link--quiet { background: none; }
-.n-nav__link--quiet:hover { background: rgba(255, 255, 255, 0.08); }
+.n-nav__link:hover { color: var(--rg-ink); }
+.n-nav__link[aria-current="page"] { color: var(--rg-ink); font-weight: var(--rg-weight-title); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 4px; }
 @media (max-width: 720px) {
-  /* Mobile nav: logo + primary action only. Section links live in the page. */
+  /* Phone: the wordmark and the primary action. Section links live in the page. */
   .n-nav__links--sections, .n-nav__link--quiet { display: none; }
 }
 
 /* ============================================================================
-   ATMOSPHERE — hero photography band (the system's one image-led moment)
+   ATMOSPHERE: the landing's photographic hero. The register keeps photography
+   and the film on marketing pages, so the plate and the clip stay; the
+   code-built starfield and the horizon fade are decoration and go. Text on the
+   photograph keeps white ink: the names are re-scoped here, so everything in
+   the hero that reads --n-cloud / --n-pure / --n-ash stays readable. Controls
+   that paint their own ground (the prompt, a badge, a ghost button) read the
+   register directly and are unaffected.
    ========================================================================== */
 
-/* Built from scratch — no photography, no legacy assets. The reference's own
-   Sky Atmosphere gradient (documented token), turned to night: obsidian sky
-   falling to a deep-blue horizon, with a code-native starfield. */
 .n-atmosphere {
+  --n-cloud: var(--rg-white);
+  --n-ash: rgb(255 255 255 / 0.8);
+  --n-fog: rgb(255 255 255 / 0.7);
+  /* On the dark plate the primary inverts: white fill, ink text. */
+  --n-pure: var(--rg-white);
+  --n-void: var(--rg-ink);
   position: relative;
   min-height: 100svh;
   display: flex;
@@ -488,21 +486,14 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  /* The generated nocturnal plate rides ON the built gradient, so the section
-     still resolves to the right darkness if the image is slow or absent. */
-  background-image: var(--n-plate, none), linear-gradient(
-    to bottom,
-    var(--n-abyss) 0%,
-    #0e1219 34%,
-    #14203a 62%,
-    #1d3a66 86%,
-    #274a80 100%
-  );
+  /* The plate rides on a dark built gradient, so the white ink holds if the
+     image is slow or absent. */
+  background-image: var(--n-plate, none), linear-gradient(to bottom, #090a0b 0%, #0e1219 34%, #14203a 62%, #1d3a66 86%, #274a80 100%);
   background-size: cover, auto;
   background-position: center, center;
 }
-/* Motion plate: the video rides over the still, which stays as the poster and
-   the fallback. Decorative only — muted, loops, and honours reduced-motion. */
+/* The film rides over the still, which stays as the poster and the fallback.
+   Muted, loops, and honours reduced motion. */
 .n-atmosphere__motion {
   position: absolute;
   inset: 0;
@@ -517,45 +508,15 @@
 @media (prefers-reduced-motion: reduce) {
   .n-atmosphere__motion { display: none; }
 }
-
-.n-atmosphere::before {  /* starfield: two drifting layers of gradient stars */
-  content: '';
-  position: absolute;
-  inset: -10% 0 30% 0;
-  background-image:
-    radial-gradient(1px 1px at 12% 18%, rgba(255,255,255,0.9), transparent 55%),
-    radial-gradient(1px 1px at 34% 62%, rgba(255,255,255,0.55), transparent 55%),
-    radial-gradient(1.5px 1.5px at 52% 30%, rgba(255,255,255,0.8), transparent 55%),
-    radial-gradient(1px 1px at 67% 74%, rgba(255,255,255,0.45), transparent 55%),
-    radial-gradient(1px 1px at 78% 12%, rgba(255,255,255,0.7), transparent 55%),
-    radial-gradient(1.5px 1.5px at 89% 48%, rgba(255,255,255,0.6), transparent 55%),
-    radial-gradient(1px 1px at 22% 84%, rgba(255,255,255,0.35), transparent 55%),
-    radial-gradient(1px 1px at 44% 8%, rgba(255,255,255,0.5), transparent 55%),
-    radial-gradient(1px 1px at 94% 82%, rgba(255,255,255,0.4), transparent 55%),
-    radial-gradient(1.5px 1.5px at 6% 52%, rgba(255,255,255,0.65), transparent 55%);
-  background-size: 520px 420px;
-  opacity: 0.8;
-  pointer-events: none;
-  z-index: 1;
-}
-.n-atmosphere::after {  /* horizon bleeding into the obsidian gallery */
-  content: '';
-  position: absolute;
-  inset: auto 0 0 0;
-  height: 34%;
-  background: linear-gradient(to bottom, transparent, var(--n-obsidian));
-  pointer-events: none;
-  z-index: 1;
-}
 .n-atmosphere > *:not(.n-atmosphere__motion) { position: relative; z-index: 2; }
 
 @keyframes n-rise {
-  from { opacity: 0; transform: translateY(14px); }
+  from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 .n-rise { animation: n-rise var(--n-reveal) both; }
-.n-rise--2 { animation-delay: 0.15s; }
-.n-rise--3 { animation-delay: 0.3s; }
+.n-rise--2 { animation-delay: 0.08s; }
+.n-rise--3 { animation-delay: 0.16s; }
 
 @media (prefers-reduced-motion: reduce) {
   .n-rise, .n-rise--2, .n-rise--3 { animation: none; }
@@ -563,8 +524,8 @@
 }
 
 /* ============================================================================
-   DISCLOSURE — the FAQ row. A mono +/- carries the affordance, since the
-   native marker is removed; nothing else signals that the row expands.
+   DISCLOSURE: the FAQ row, under a hairline. A +/- carries the affordance,
+   since the native marker is removed.
    ========================================================================== */
 
 .n-disclosure {
@@ -582,33 +543,31 @@
 .n-disclosure > summary::-webkit-details-marker { display: none; }
 .n-disclosure > summary::after {
   content: '+';
-  font-family: var(--n-mono);
-  font-size: var(--n-label);
+  font-family: var(--n-sans);
+  font-size: var(--rg-text);
   color: var(--n-fog);
   transition: color var(--n-quick);
 }
-.n-disclosure[open] > summary::after { content: '−'; color: var(--n-cloud); }
+.n-disclosure[open] > summary::after { content: '\2212'; color: var(--n-cloud); }
 .n-disclosure > summary:hover::after { color: var(--n-cloud); }
 .n-disclosure > summary:focus-visible {
-  outline: 2px solid rgba(255, 255, 255, 0.6);
+  outline: 2px solid var(--rg-ink);
   outline-offset: 4px;
 }
 
 /* ============================================================================
-   READING STRIP — Nocturne's own move (no Origin equivalent):
-   the twin's observation as a mono data annotation over a serif statement.
-   Data becomes portrait — the product thesis in one component.
+   READING: a quiet source line over an observation. Nocturne set it as mono
+   over italic serif; the register sets it as a quiet 13px line over Geist.
    ========================================================================== */
 
-.n-reading { display: flex; flex-direction: column; gap: var(--n-s3); }
+.n-reading { display: flex; flex-direction: column; gap: var(--n-s1); }
 .n-reading .n-micro { color: var(--n-fog); }
 .n-reading__statement {
   font-family: var(--n-serif);
-  font-weight: 300;
-  font-style: italic;
-  font-variation-settings: 'opsz' 60;
-  font-size: clamp(22px, 2.6vw, 30px);
+  font-weight: 400;
+  font-size: clamp(20px, 2.2vw, 26px);
   line-height: 1.25;
+  letter-spacing: -0.03em;
   color: var(--n-cloud);
   margin: 0;
   text-wrap: balance;
