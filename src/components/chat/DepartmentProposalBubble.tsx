@@ -51,53 +51,34 @@ export function DepartmentProposalBubble({
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: isDimmed ? 0.5 : 1, y: 0 }}
       transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
-      className="rounded-[20px] px-4 py-3 my-2 max-w-[420px]"
+      className="px-4 py-3 my-2 max-w-[420px]"
       style={{
-        backgroundColor: 'var(--surface)',
-        backdropFilter: 'blur(42px)',
-        WebkitBackdropFilter: 'blur(42px)',
-        border: '1px solid var(--glass-surface-border)',
+        // The register: white, a hairline, a 4 corner; the department colour
+        // is the left mark and the dot, never the label's text colour.
+        backgroundColor: 'var(--rg-white)',
+        border: '1px solid var(--rg-rule)',
         borderLeft: `2px solid ${proposal.departmentColor}`,
-        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)',
+        borderRadius: 'var(--rg-radius)',
       }}
     >
-      {/* Department label pill */}
-      <div className="flex items-center gap-1.5 mb-2">
+      {/* Department */}
+      <div className="flex items-center gap-1.5 mb-1">
         <div
+          aria-hidden="true"
           className="w-[6px] h-[6px] rounded-full flex-shrink-0"
           style={{ backgroundColor: proposal.departmentColor }}
         />
-        <span
-          className="text-[10px] font-medium uppercase tracking-[0.08em]"
-          style={{
-            color: proposal.departmentColor,
-            fontFamily: 'var(--font-ui)',
-          }}
-        >
-          {proposal.department}
-        </span>
+        <span className="rg-row-title">{proposal.department}</span>
       </div>
 
       {/* Description */}
-      <p
-        className="text-[13px] leading-relaxed mb-2"
-        style={{
-          color: '#D1D5DB',
-          fontFamily: 'var(--font-ui)',
-        }}
-      >
+      <p className="rg-row-line" style={{ marginBottom: 8 }}>
         {proposal.description}
       </p>
 
       {/* Cost estimate */}
       {proposal.estimatedCost > 0 && (
-        <p
-          className="text-[10px] mb-3"
-          style={{
-            color: 'var(--text-muted)',
-            fontFamily: 'var(--font-ui)',
-          }}
-        >
+        <p className="text-[13px] mb-3" style={{ color: 'var(--rg-ink-3)', fontVariantNumeric: 'tabular-nums' }}>
           {formatCost(proposal.estimatedCost)}
         </p>
       )}
@@ -106,25 +87,10 @@ export function DepartmentProposalBubble({
       <div className="flex items-center gap-2">
         {status === 'pending' && (
           <>
-            <button
-              onClick={() => onApprove(proposal.id)}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-[100px] text-[11px] font-medium transition-all duration-150 ease-out hover:opacity-90 active:scale-[0.97]"
-              style={{
-                background: 'var(--claura-bone)',
-                color: 'var(--claura-bone-ink)',
-                fontFamily: 'var(--font-ui)',
-              }}
-            >
+            <button type="button" onClick={() => onApprove(proposal.id)} className="n-btn n-btn--ghost" style={{ fontWeight: 500 }}>
               Approve
             </button>
-            <button
-              onClick={() => onReject(proposal.id)}
-              className="text-[11px] font-medium transition-opacity duration-150 hover:opacity-60"
-              style={{
-                color: 'var(--text-muted)',
-                fontFamily: 'var(--font-ui)',
-              }}
-            >
+            <button type="button" onClick={() => onReject(proposal.id)} className="n-btn n-btn--ghost">
               Dismiss
             </button>
           </>

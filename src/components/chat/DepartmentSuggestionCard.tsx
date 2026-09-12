@@ -11,14 +11,16 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Check, Loader2 } from 'lucide-react';
 
+// Department marks (the left line and the dot), in the register's values
+// from src/styles/register.css: each clears 3:1 as a mark on white. Never text.
 const DEPARTMENT_COLORS: Record<string, string> = {
-  communications: '#14B8A6',
-  scheduling: '#8B5CF6',
-  health: '#EF4444',
-  content: '#F59E0B',
-  finance: '#10B981',
-  research: '#6366F1',
-  social: '#EC4899',
+  communications: '#4c9786', // verdigris
+  scheduling: '#8179fb',     // iris
+  health: '#c42533',         // danger
+  content: '#c47833',        // ember
+  finance: '#3d7566',        // ok
+  research: '#668cc2',       // periwinkle
+  social: '#ba70b6',         // orchid
 };
 
 export interface DepartmentSuggestion {
@@ -38,7 +40,7 @@ interface DepartmentSuggestionCardProps {
 export function DepartmentSuggestionCard({ suggestion, onApprove }: DepartmentSuggestionCardProps) {
   const [state, setState] = useState<SuggestionState>('idle');
 
-  const color = DEPARTMENT_COLORS[suggestion.department] || '#6366F1';
+  const color = DEPARTMENT_COLORS[suggestion.department] || '#8179fb';
   const displayName = suggestion.department.charAt(0).toUpperCase() + suggestion.department.slice(1);
 
   const handleApprove = async () => {
@@ -58,38 +60,27 @@ export function DepartmentSuggestionCard({ suggestion, onApprove }: DepartmentSu
       initial={{ opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25, ease: [0.25, 0.46, 0.45, 0.94] }}
-      className="rounded-[16px] px-3.5 py-2.5 my-2 max-w-[400px] flex items-center gap-3"
+      className="px-3.5 py-2.5 my-2 max-w-[400px] flex items-center gap-3"
       style={{
-        backgroundColor: 'var(--surface)',
-        border: '1px solid var(--border-glass)',
+        // The register: white, a hairline, a 4 corner; the department colour
+        // is the left mark and the dot, never the label's text colour.
+        backgroundColor: 'var(--rg-white)',
+        border: '1px solid var(--rg-rule)',
         borderLeft: `2px solid ${color}`,
+        borderRadius: 'var(--rg-radius)',
       }}
     >
       {/* Department dot + label + action */}
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1.5 mb-0.5">
+        <div className="flex items-center gap-1.5">
           <div
-            className="w-[5px] h-[5px] rounded-full flex-shrink-0"
+            aria-hidden="true"
+            className="w-[6px] h-[6px] rounded-full flex-shrink-0"
             style={{ backgroundColor: color }}
           />
-          <span
-            className="text-[10px] font-medium uppercase tracking-[0.06em]"
-            style={{
-              color,
-              fontFamily: 'var(--font-ui)',
-            }}
-          >
-            {displayName}
-          </span>
+          <span className="rg-row-title">{displayName}</span>
         </div>
-        <p
-          className="text-[12px] leading-snug truncate"
-          style={{
-            color: '#D1D5DB',
-            fontFamily: 'var(--font-ui)',
-          }}
-          title={suggestion.action}
-        >
+        <p className="rg-row-line rg-row-line--clip" title={suggestion.action}>
           {suggestion.action}
         </p>
       </div>
@@ -97,15 +88,7 @@ export function DepartmentSuggestionCard({ suggestion, onApprove }: DepartmentSu
       {/* Approve button / status */}
       <div className="flex-shrink-0">
         {state === 'idle' && (
-          <button
-            onClick={handleApprove}
-            className="px-2.5 py-1 rounded-[100px] text-[11px] font-medium transition-all duration-150 ease-out hover:opacity-90 active:scale-[0.97]"
-            style={{
-              background: 'var(--claura-bone)',
-              color: 'var(--claura-bone-ink)',
-              fontFamily: 'var(--font-ui)',
-            }}
-          >
+          <button type="button" onClick={handleApprove} className="n-btn n-btn--ghost" style={{ fontWeight: 500 }}>
             Approve
           </button>
         )}
@@ -131,8 +114,8 @@ export function DepartmentSuggestionCard({ suggestion, onApprove }: DepartmentSu
 
         {state === 'error' && (
           <span
-            className="text-[10px] font-medium"
-            style={{ color: 'rgba(239,68,68,0.7)', fontFamily: 'var(--font-ui)' }}
+            className="text-[13px] font-medium"
+            style={{ color: 'var(--rg-danger)' }}
           >
             Failed
           </span>

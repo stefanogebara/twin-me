@@ -96,29 +96,14 @@ export const ChatEmptyState = ({
   );
 
   return (
-    <div className="h-full flex flex-col items-center justify-center px-4 sm:px-6 min-h-[40vh] sm:min-h-[60vh]">
-      {/* Date line */}
-      <span
-        className="text-center mb-2"
-        style={{
-          fontSize: '13px',
-          color: 'var(--text-secondary)',
-          fontFamily: 'var(--font-ui)',
-        }}
-      >
+    <div className="h-full flex flex-col items-center justify-center px-4 sm:px-6 min-h-[40vh] sm:min-h-[60vh] text-center">
+      {/* Date line: the grey line, above the greeting */}
+      <span style={{ color: 'var(--rg-ink-2)', fontWeight: 350, marginBottom: 8 }}>
         {dateStr}
       </span>
 
-      {/* Time-aware greeting */}
-      <h2
-        className="text-center mb-2 text-[24px] sm:text-[32px]"
-        style={{
-          fontStyle: 'italic',
-          fontWeight: 300,
-          color: 'var(--foreground)',
-          letterSpacing: '-0.02em',
-        }}
-      >
+      {/* Time-aware greeting: the Cosmos page title, upright (Geist has no italic) */}
+      <h2 className="rg-apphead-title" style={{ marginBottom: 8 }}>
         {platformCount > 0
           ? greeting
           : "Let me get to know you first"
@@ -129,103 +114,69 @@ export const ChatEmptyState = ({
           platform/insight tallies changed nothing about what the user types
           (the reconnect chip below is the one count that does). */}
       {platformCount > 0 && (
-        <p
-          className="text-center mb-8 max-w-sm"
-          style={{
-            fontSize: '15px',
-            color: 'var(--text-secondary)',
-            fontWeight: 300,
-            fontFamily: 'var(--font-ui)',
-          }}
-        >
+        <p className="max-w-sm" style={{ margin: '0 0 32px', color: 'var(--rg-ink-2)', fontWeight: 350 }}>
           {twinName
-            ? `${twinName} here. Ask me anything — I know more than you think.`
-            : 'Ask me anything — I know more than you think.'}
+            ? `${twinName} here. Ask me anything. I know more than you think.`
+            : 'Ask me anything. I know more than you think.'}
         </p>
       )}
 
       {/* audit-2026-05-15 H1: surface expired/stale platforms instead of
           silently counting them as connected. Without this, users see
-          "11 platforms connected" while 4 have been silent for 16+ days. */}
+          "11 platforms connected" while 4 have been silent for 16+ days.
+          The register: an ink text link (the amber #d97706 is 3.2:1 on the page). */}
       {needsReconnect > 0 && (
         <button
+          type="button"
           onClick={() => navigate('/connect')}
-          className="text-center mb-6 text-[12px] transition-opacity hover:opacity-80"
-          // audit-2026-07-03 H5: was rgb(var(--n-ember-rgb) / 0.7) = 3.43:1, the primary
-          // recovery action for a degraded twin. Solid #d97706 = 5.84:1 on the
-          // #13121a base, clearing AA for this actionable amber link.
-          style={{ color: '#d97706' }}
+          className="transition-opacity hover:opacity-70"
+          style={{
+            marginBottom: 24,
+            background: 'none',
+            border: 0,
+            padding: '4px 0',
+            font: 'inherit',
+            color: 'var(--rg-ink)',
+            textDecoration: 'underline',
+            textUnderlineOffset: '3px',
+            cursor: 'pointer',
+          }}
         >
-          {needsReconnect} platform{needsReconnect > 1 ? 's need' : ' needs'} reconnection →
+          {needsReconnect} platform{needsReconnect > 1 ? 's need' : ' needs'} reconnecting
         </button>
       )}
 
       {/* Subtitle for no platforms */}
       {platformCount === 0 && (
-        <p
-          className="text-center text-sm mb-8 max-w-sm"
-          style={{ color: 'var(--text-secondary)' }}
-        >
+        <p className="max-w-sm" style={{ margin: '0 0 32px', color: 'var(--rg-ink-2)', fontWeight: 350 }}>
           Connect a platform and I'll start picking up on the things that make you you.
         </p>
       )}
 
-      {/* Story Chapters chip — shown when user has few memories */}
+      {/* Story Chapters chip — shown when user has few memories. data-testid
+          kept so Playwright audits find chips deterministically. */}
       {showInterviewChip && onStartInterview && (
         <div className="flex justify-center mb-4">
-          <button
-            onClick={onStartInterview}
-            // audit-2026-05-15 H9: suggestion chips use rounded-[46px] per
-            // CLAUDE.md Rule 5 — not rounded-full. data-testid added so
-            // Playwright audits can find chips deterministically (Agent 2's
-            // heuristic scan caught "Sign Out" as a chip otherwise).
-            className="px-4 py-2.5 rounded-[46px] text-[13px] font-medium transition-all duration-150 active:scale-[0.97]"
-            data-testid="suggestion-chip"
-            style={{
-              color: 'var(--foreground)',
-              background: 'var(--surface)',
-              border: '1px solid var(--glass-surface-border)',
-              fontFamily: 'var(--font-ui)',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'var(--surface-solid)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'var(--surface)';
-            }}
-          >
-            Tell me your story — a few minutes at a time
+          <button type="button" onClick={onStartInterview} className="n-btn n-btn--ghost" data-testid="suggestion-chip">
+            Tell me your story, a few minutes at a time
           </button>
         </div>
       )}
 
-      {/* Suggestion pills — only shown when no briefing card (avoid double CTA) */}
+      {/* Suggestions: the register's 32px secondary buttons, not pills. */}
       {/* audit-2026-06-10: gate on canonical platformCount (platformsSummary.active)
           so chips and the connect CTA agree with the greeting above, rather than
           the stale local connectedPlatforms.length. */}
       {platformCount > 0 && (
-        <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-2.5">
+        <div className="flex flex-wrap items-center justify-center gap-2">
           {chips.slice(0, 3).map((chip, idx) => (
             <button
+              type="button"
               key={`chip-${chip.slice(0, 20)}-${idx}`}
               onClick={() => onQuickAction(chip)}
-              // audit-2026-05-15 H9: rounded-[46px] per CLAUDE.md Rule 5.
-              // data-testid for deterministic test selection.
-              className="px-3 sm:px-4 py-2 rounded-[46px] text-[12px] sm:text-[13px] transition-colors duration-150 active:scale-[0.97]"
+              className="n-btn n-btn--ghost"
+              style={{ maxWidth: '100%', whiteSpace: 'normal', height: 'auto', minHeight: 'var(--rg-button)', padding: '6px 16px', lineHeight: 'var(--rg-line)' }}
               data-testid="suggestion-chip"
-              style={{
-                // audit-2026-07-03 H1: chip label was 3.83:1; token = 7.37:1.
-                color: 'var(--text-secondary)',
-                background: 'transparent',
-                border: '1px solid var(--border-glass)',
-                fontFamily: 'var(--font-ui)',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'var(--surface)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'transparent';
-              }}
             >
               {chip}
             </button>
@@ -235,15 +186,7 @@ export const ChatEmptyState = ({
 
       {/* Connect CTA for no-platform users */}
       {platformCount === 0 && (
-        <button
-          onClick={() => navigate('/get-started')}
-          className="mt-4 px-5 py-2 rounded-[100px] text-sm font-medium hover:bg-[rgba(193,126,44,0.08)] transition-all duration-150 ease-out active:scale-[0.97]"
-          style={{
-            border: '1px solid var(--accent-amber)',
-            color: 'var(--accent-amber)',
-            background: 'transparent',
-          }}
-        >
+        <button type="button" onClick={() => navigate('/get-started')} className="n-btn n-btn--ghost" style={{ marginTop: 16 }}>
           Connect platforms
         </button>
       )}
