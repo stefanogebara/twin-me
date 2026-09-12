@@ -23,12 +23,14 @@ interface ChatInputAreaProps {
   ghostSuggestion?: string;
 }
 
+// Short enough to stay on one line in a phone's composer (16px there, so iOS
+// does not zoom on focus): the longer versions wrapped and were cut off.
 const getSmartPlaceholder = (): string => {
   const hour = new Date().getHours();
-  if (hour < 12) return "Good morning — ask about your day ahead...";
-  if (hour < 17) return "How's the day going? Ask me anything...";
-  if (hour < 21) return "Evening check-in — what's on your mind?";
-  return "Late night thoughts? I'm here...";
+  if (hour < 12) return "Ask about your day ahead";
+  if (hour < 17) return "How's the day going?";
+  if (hour < 21) return "What's on your mind tonight?";
+  return "Late night thoughts? I'm here";
 };
 
 export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>(
@@ -48,11 +50,17 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
 
     return (
       <div className="px-3 sm:px-6 pb-6 pt-2 max-w-3xl mx-auto w-full">
+        {/* The register's composer: the warm field (no border, a 4 corner)
+            holding one ink send button. Focus draws the ink outline. */}
         <div
-          className="flex items-center gap-3 rounded-[20px] px-5 py-3 transition-colors duration-200"
+          className="flex items-center gap-3"
           style={{
-            background: 'var(--surface)',
-            border: `1px solid ${isFocused ? 'var(--glass-surface-border)' : 'var(--border-glass)'}`,
+            background: 'var(--rg-field)',
+            borderRadius: 'var(--rg-radius)',
+            minHeight: 'var(--rg-field-height)',
+            padding: '6px 6px 6px 14px',
+            outline: isFocused ? '2px solid var(--rg-ink)' : 'none',
+            outlineOffset: 0,
             opacity: limitReached ? 0.4 : 1,
             pointerEvents: limitReached ? 'none' : 'auto',
           }}
@@ -80,26 +88,27 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
               disabled={isDisabled || limitReached}
               rows={1}
               aria-label="Message your twin"
-              className="w-full resize-none focus:outline-none disabled:opacity-50 text-[14px] bg-transparent placeholder:text-[var(--text-secondary)]"
+              className="w-full resize-none focus:outline-none disabled:opacity-50 bg-transparent placeholder:text-[var(--rg-ink-3)]"
               style={{
-                color: 'var(--foreground)',
+                color: 'var(--rg-ink)',
+                fontFamily: 'var(--rg-sans)',
+                fontSize: 'var(--rg-text)',
+                lineHeight: 'var(--rg-line)',
+                letterSpacing: 'var(--rg-track)',
                 minHeight: '24px',
                 maxHeight: '120px',
-                caretColor: 'var(--accent-vibrant)',
-                fontFamily: 'Inter, sans-serif',
+                caretColor: 'var(--rg-ink)',
               }}
             />
             {ghostSuggestion && !inputMessage && (
               <div className="absolute inset-0 flex items-center pointer-events-none overflow-hidden">
-                <span className="text-[13px] truncate opacity-20" style={{ color: '#D1D5DB' }}>
+                {/* The suggestion stands in for the placeholder, in the placeholder's quiet ink. */}
+                <span className="truncate" style={{ color: 'var(--rg-ink-3)', fontWeight: 350 }}>
                   {ghostSuggestion}
                 </span>
                 <span
-                  className="ml-2 px-1.5 py-0.5 rounded text-[10px] font-medium flex-shrink-0 hidden sm:inline"
-                  style={{
-                    color: 'var(--text-muted)',
-                    border: '1px solid var(--border-glass)',
-                  }}
+                  className="ml-2 px-1.5 rounded flex-shrink-0 hidden sm:inline"
+                  style={{ color: 'var(--rg-ink-2)', border: '1px solid var(--rg-rule)', background: 'var(--rg-white)' }}
                 >
                   Tab
                 </span>
@@ -110,11 +119,10 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
           <div className="flex items-center gap-2 flex-shrink-0">
             {chatUsage && typeof chatUsage.limit === 'number' && typeof chatUsage.remaining === 'number' && (
               <span
-                className="text-xs whitespace-nowrap"
+                className="whitespace-nowrap"
                 style={{
-                  color: chatUsage.remaining <= 5
-                    ? '#ef4444'
-                    : 'var(--text-muted)',
+                  fontVariantNumeric: 'tabular-nums',
+                  color: chatUsage.remaining <= 5 ? 'var(--rg-danger)' : 'var(--rg-ink-3)',
                 }}
                 title={`${chatUsage.remaining} of ${chatUsage.limit} messages remaining this month`}
               >
@@ -122,23 +130,19 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
               </span>
             )}
 
-            {/* Circular send button — Rule 2.10: 150ms hover/press */}
+            {/* The screen's one ink primary: 32 square, a 4 corner. */}
             <button
               onClick={onSend}
               disabled={!hasText || isDisabled || isTyping || limitReached}
               aria-label={isTyping ? 'Twin is responding...' : 'Send message'}
-              className="flex items-center justify-center transition-all duration-150 ease-out hover:brightness-110 active:scale-95"
+              className="flex items-center justify-center transition-opacity duration-200 hover:opacity-[0.86] disabled:opacity-40"
               style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: '100px',
-                padding: '8px',
-                background: hasText && !isDisabled && !limitReached
-                  ? 'var(--claura-bone)'
-                  : 'var(--surface-solid)',
-                color: hasText && !isDisabled && !limitReached
-                  ? 'var(--claura-bone-ink)'
-                  : 'var(--text-muted)',
+                width: 'var(--rg-button)',
+                height: 'var(--rg-button)',
+                borderRadius: 'var(--rg-radius)',
+                border: 0,
+                background: 'var(--rg-ink)',
+                color: 'var(--rg-page)',
                 cursor: (!hasText || isDisabled || limitReached) ? 'not-allowed' : 'pointer',
                 flexShrink: 0,
               }}

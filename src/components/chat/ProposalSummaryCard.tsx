@@ -39,14 +39,12 @@ export function ProposalSummaryCard({
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] }}
-      className="rounded-[20px] px-5 py-4 my-2 w-full max-w-[520px]"
+      className="px-4 py-3 my-2 w-full max-w-[520px]"
       style={{
-        backgroundColor: 'var(--surface)',
-        backdropFilter: 'blur(42px)',
-        WebkitBackdropFilter: 'blur(42px)',
-        border: '1px solid var(--glass-surface-border)',
-        boxShadow:
-          '0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.04)',
+        // The register: white, a hairline, a 4 corner. No glass, no shadow.
+        backgroundColor: 'var(--rg-white)',
+        border: '1px solid var(--rg-rule)',
+        borderRadius: 'var(--rg-radius)',
       }}
     >
       {/* Header */}
@@ -80,24 +78,8 @@ export function ProposalSummaryCard({
               style={{ backgroundColor: proposal.departmentColor }}
             />
             <div className="flex-1 min-w-0">
-              <span
-                className="text-[10px] font-medium uppercase tracking-[0.06em] block mb-0.5"
-                style={{
-                  color: proposal.departmentColor,
-                  fontFamily: 'var(--font-ui)',
-                }}
-              >
-                {proposal.department}
-              </span>
-              <p
-                className="text-[13px] leading-snug"
-                style={{
-                  color: 'var(--text-secondary)',
-                  fontFamily: 'var(--font-ui)',
-                }}
-              >
-                {proposal.description}
-              </p>
+              <span className="rg-row-title block">{proposal.department}</span>
+              <p className="rg-row-line">{proposal.description}</p>
             </div>
 
             {/* Per-item approve/reject icons */}
@@ -128,27 +110,12 @@ export function ProposalSummaryCard({
         className="flex items-center gap-3 mt-3 pt-3"
         style={{ borderTop: '1px solid var(--border-glass)' }}
       >
-        <button
-          onClick={onApproveAll}
-          className="flex items-center gap-1 px-3 py-1.5 rounded-[100px] text-[11px] font-medium transition-all duration-150 ease-out hover:opacity-90 active:scale-[0.97]"
-          style={{
-            background: 'var(--claura-bone)',
-            color: 'var(--claura-bone-ink)',
-            fontFamily: 'var(--font-ui)',
-          }}
-        >
-          Approve All
+        <button type="button" onClick={onApproveAll} className="n-btn n-btn--ghost" style={{ fontWeight: 500 }}>
+          Approve all
         </button>
         {onReviewInDepartments && (
-          <button
-            onClick={onReviewInDepartments}
-            className="text-[11px] font-medium transition-opacity duration-150 hover:opacity-60"
-            style={{
-              color: 'var(--text-muted)',
-              fontFamily: 'var(--font-ui)',
-            }}
-          >
-            Review in Departments
+          <button type="button" onClick={onReviewInDepartments} className="n-btn n-btn--ghost">
+            Review in departments
           </button>
         )}
       </div>

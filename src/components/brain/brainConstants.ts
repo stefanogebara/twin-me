@@ -42,26 +42,32 @@ export const EXPERT_FILTERS = [
   { key: 'motivation_analyst', label: 'Motivation' },
 ] as const;
 
+/* Colours are MARKS only (a dot, a bar segment), never text: the register's
+   signature values from src/styles/register.css, each 3:1 or better as a mark
+   on the page. Written as hex because the composition bar and chart read them
+   outside CSS custom properties. Types and experts keep the reflection
+   experts' own hues: personality iris, lifestyle periwinkle, cultural
+   verdigris, social orchid, motivation ember. */
 export const TYPE_FILTERS = [
-  { key: null, label: 'All Types', color: 'var(--text-secondary)' },
-  { key: 'reflection', label: 'Reflections', color: '#C9B99A' },
-  { key: 'platform_data', label: 'Platform Data', color: '#2dd4bf' },
-  { key: 'fact', label: 'Facts', color: '#5d5cae' },
-  { key: 'conversation', label: 'Conversations', color: '#60a5fa' },
+  { key: null, label: 'All types', color: '#585254' },
+  { key: 'reflection', label: 'Reflections', color: '#8179fb' },
+  { key: 'platform_data', label: 'Platform data', color: '#4c9786' },
+  { key: 'fact', label: 'Facts', color: '#c47833' },
+  { key: 'conversation', label: 'Conversations', color: '#668cc2' },
 ] as const;
 
 export const SORT_OPTIONS = [
   { key: 'newest', label: 'Newest' },
-  { key: 'importance', label: 'Most Important' },
-  { key: 'accessed', label: 'Most Accessed' },
+  { key: 'importance', label: 'Most important' },
+  { key: 'accessed', label: 'Most used' },
 ] as const;
 
 export const EXPERT_COLORS: Record<string, string> = {
-  personality_psychologist: '#a78bfa',
-  lifestyle_analyst: '#34d399',
-  cultural_identity: '#fbbf24',
-  social_dynamics: '#60a5fa',
-  motivation_analyst: '#fb923c',
+  personality_psychologist: '#8179fb',
+  lifestyle_analyst: '#668cc2',
+  cultural_identity: '#4c9786',
+  social_dynamics: '#ba70b6',
+  motivation_analyst: '#c47833',
 };
 
 export const EXPERT_LABELS: Record<string, string> = {
@@ -73,11 +79,11 @@ export const EXPERT_LABELS: Record<string, string> = {
 };
 
 export const TYPE_COLORS: Record<string, string> = {
-  reflection: '#C9B99A',
-  platform_data: '#2dd4bf',
-  fact: '#5d5cae',
-  conversation: '#60a5fa',
-  observation: '#6B7280',
+  reflection: '#8179fb',
+  platform_data: '#4c9786',
+  fact: '#c47833',
+  conversation: '#668cc2',
+  observation: '#8c8889',
 };
 
 export const TYPE_LABELS: Record<string, string> = {

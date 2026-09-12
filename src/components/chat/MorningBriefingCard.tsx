@@ -1,15 +1,18 @@
 /**
- * MorningBriefingCard — Dimension.dev-inspired daily briefing
+ * MorningBriefingCard — the daily briefing on /today.
  *
- * Structured card: location/time header, greeting, schedule summary,
- * health/music sections, actionable suggestion. Dark glass aesthetic.
+ * In the register (2026-09-12) it is no longer a card: the greeting is the
+ * page title with the day's summary as its grey line, and the briefing is a
+ * section of rows (schedule, recovery, listening, patterns, a suggestion)
+ * under the list's ink rule. No gradient, no shadow, no italic.
  */
 
 import React, { useEffect, useRef } from 'react';
-import { Calendar, Moon, Music, Sparkles, ArrowRight, RefreshCw } from 'lucide-react';
+import { Calendar, Moon, Music, Sparkles, Lightbulb, MessageCircle, RefreshCw } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { authFetch } from '@/services/api/apiBase';
 import { useAnalytics } from '@/contexts/AnalyticsContext';
+import { PageHead, Section, List, Row, SubRow } from '@/components/register';
 
 interface BriefingData {
   greeting: string;
@@ -33,22 +36,33 @@ function getLocationTime(): { location: string; time: string; label: string } {
   const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
   const label = hour < 12 ? 'MORNING BRIEFING' : hour < 17 ? 'AFTERNOON BRIEFING' : 'EVENING BRIEFING';
 
-  // Try to get timezone city name
+  // Try to get timezone city name (as written, not uppercased: it is a grey line now)
   const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  const city = tz?.split('/').pop()?.replace(/_/g, ' ')?.toUpperCase() || '';
+  const city = tz?.split('/').pop()?.replace(/_/g, ' ') || '';
 
   return { location: city, time: timeStr, label };
 }
 
+// The briefing's lines arrive from the model as sentence fragments, often
+// lowercase ("yesterday was for recovery..."); a grey line starts with a capital.
+const cap = (s: string | null | undefined): string => (s ? s.charAt(0).toUpperCase() + s.slice(1) : '');
+
+// The part-of-day label becomes the section's title, in sentence case.
+const PART_OF_DAY_TITLE: Record<string, string> = {
+  'MORNING BRIEFING': 'This morning',
+  'AFTERNOON BRIEFING': 'This afternoon',
+  'EVENING BRIEFING': 'This evening',
+};
+
 // Skeleton block — visible structure during load so the user reads
 // "briefing is coming, here's its shape" instead of spinner anxiety.
 const SkeletonLine: React.FC<{ width: string; height?: number }> = ({ width, height = 12 }) => (
-  <div
-    className="rounded-md animate-pulse"
+  <span
+    className="block rounded-[4px] animate-pulse"
     style={{
       width,
       height,
-      backgroundColor: 'var(--surface)',
+      backgroundColor: 'var(--rg-field)',
     }}
   />
 );
@@ -100,59 +114,32 @@ const MorningBriefingCard: React.FC<MorningBriefingCardProps> = ({ onAskTwin }) 
     }
   }, [briefing, label, trackFunnel]);
 
-  // Loading state — render full structural skeleton (header, greeting,
-  // schedule, recovery, music, suggestion) so the user sees the briefing's
-  // shape immediately, not just a spinner.
+  // The briefing's heading line: "Madrid, 05:10" under a part-of-day section
+  // title. Was a tracked-caps eyebrow (MADRID — 05:10 — MORNING BRIEFING).
+  const whereWhen = location ? `${location}, ${time}` : time;
+  const sectionTitle = PART_OF_DAY_TITLE[label] ?? 'Your briefing';
+
+  // Loading state — the briefing's shape (title, grey line, four rows) with
+  // field-coloured bars, so the user reads "a briefing is coming". A fragment,
+  // not a wrapper: the kit spaces sections as adjacent siblings, so a wrapping
+  // div would glue the inbox section to this one.
   if (isLoading) {
     return (
-      <div
-        className="rounded-[24px] overflow-hidden relative"
-        style={{
-          backgroundColor: 'var(--surface)',
-          backgroundImage:
-            'radial-gradient(ellipse 80% 60% at 0% 0%, rgba(210,145,55,0.10) 0%, transparent 60%), radial-gradient(ellipse 60% 50% at 100% 100%, rgba(93,92,174,0.08) 0%, transparent 60%)',
-          border: '1px solid var(--glass-surface-border)',
-          backdropFilter: 'blur(42px)',
-          WebkitBackdropFilter: 'blur(42px)',
-        }}
-      >
-        <div className="px-7 pt-6 pb-3 flex items-center justify-between">
-          <span
-            className="text-[11px] tracking-[0.12em] uppercase"
-            style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-ui)' }}
-          >
-            {location}{location ? ' — ' : ''}{time}{' — '}{label}
-          </span>
-        </div>
-        <div className="px-7">
-          <div className="flex items-center gap-2">
-            <div className="flex-1" style={{ borderTop: '1px solid var(--border-glass)' }} />
-            <div className="flex gap-1">
-              <div className="w-1 h-1 rounded-full" style={{ backgroundColor: 'var(--surface-solid)' }} />
-              <div className="w-1 h-1 rounded-full" style={{ backgroundColor: 'var(--surface-solid)' }} />
-              <div className="w-1 h-1 rounded-full" style={{ backgroundColor: 'var(--surface-solid)' }} />
-            </div>
-            <div className="flex-1" style={{ borderTop: '1px solid var(--border-glass)' }} />
-          </div>
-        </div>
-        <div className="px-7 pt-5 pb-2">
-          <SkeletonLine width="55%" height={32} />
-          <div className="mt-3">
-            <SkeletonLine width="90%" />
-          </div>
-        </div>
-        <div className="px-7 pb-7 pt-4 space-y-5" aria-busy="true" aria-label="Loading your briefing">
-          {[Calendar, Moon, Music, Sparkles].map((Icon, i) => (
-            <div key={i} className="flex items-start gap-3">
-              <Icon className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
-              <div className="flex-1 space-y-2">
-                <SkeletonLine width="22%" height={10} />
-                <SkeletonLine width={i === 3 ? '75%' : '60%'} />
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+      <>
+        <PageHead title={<SkeletonLine width="55%" height={32} />} line={<SkeletonLine width="80%" />} />
+        <Section title={sectionTitle} line={whereWhen}>
+          <ul className="rg-list" aria-busy="true" aria-label="Loading your briefing">
+            {[Calendar, Moon, Music, Sparkles].map((Icon, i) => (
+              <Row
+                key={i}
+                icon={<Icon aria-hidden="true" />}
+                title={<SkeletonLine width="22%" />}
+                line={<span style={{ display: 'block', marginTop: 6 }}><SkeletonLine width={i === 3 ? '75%' : '60%'} /></span>}
+              />
+            ))}
+          </ul>
+        </Section>
+      </>
     );
   }
 
@@ -165,44 +152,24 @@ const MorningBriefingCard: React.FC<MorningBriefingCardProps> = ({ onAskTwin }) 
     ? 'Your briefing is taking longer than usual.'
     : "Couldn't load your briefing.";
 
-  // Error / empty state — render a degraded card with a retry instead of
-  // silently evaporating the dashboard's dominant hero (audit-2026-06-10).
+  const refreshButton = (
+    <button type="button" className="rg-iconbtn" onClick={fetchBriefing} aria-label="Refresh briefing">
+      <RefreshCw aria-hidden="true" />
+    </button>
+  );
+
+  // Error / empty state — a title and one row with a retry instead of
+  // silently evaporating the page's dominant hero (audit-2026-06-10).
   if (isError || !briefing) {
     return (
-      <div
-        className="rounded-[24px] overflow-hidden relative"
-        style={{
-          backgroundColor: 'var(--surface)',
-          backgroundImage:
-            'radial-gradient(ellipse 80% 60% at 0% 0%, rgba(210,145,55,0.10) 0%, transparent 60%), radial-gradient(ellipse 60% 50% at 100% 100%, rgba(93,92,174,0.08) 0%, transparent 60%)',
-          border: '1px solid var(--glass-surface-border)',
-          backdropFilter: 'blur(42px)',
-          WebkitBackdropFilter: 'blur(42px)',
-        }}
-      >
-        <div className="px-7 py-8 flex flex-col items-start gap-3">
-          <span
-            className="text-[11px] tracking-[0.12em] uppercase"
-            style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-ui)' }}
-          >
-            {location}{location ? ' — ' : ''}{time}{' — '}{label}
-          </span>
-          <p
-            className="text-[16px] leading-relaxed"
-            style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-ui)' }}
-          >
-            {errorMessage}
-          </p>
-          <button
-            onClick={fetchBriefing}
-            className="flex items-center gap-1.5 text-[12px] font-medium transition-opacity hover:opacity-70"
-            style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-ui)' }}
-          >
-            <RefreshCw className="w-3 h-3" />
-            Try again
-          </button>
-        </div>
-      </div>
+      <>
+        <PageHead title="Today" line={errorMessage} action={refreshButton} />
+        <Section title={sectionTitle} line={whereWhen}>
+          <List>
+            <Row icon={<RefreshCw aria-hidden="true" />} title="Try again" onClick={fetchBriefing} />
+          </List>
+        </Section>
+      </>
     );
   }
 
@@ -210,171 +177,44 @@ const MorningBriefingCard: React.FC<MorningBriefingCardProps> = ({ onAskTwin }) 
   const hasRest = !!briefing.rest;
   const hasMusic = !!briefing.music;
   const hasInsights = (briefing.patterns?.length ?? 0) > 0 || (briefing.insights?.length ?? 0) > 0;
+  const patternItems = ((briefing.patterns?.length ?? 0) > 0 ? briefing.patterns : briefing.insights ?? []).slice(0, 2);
 
   return (
-    <div
-      className="rounded-[24px] overflow-hidden relative"
-      style={{
-        backgroundColor: 'var(--surface)',
-        backgroundImage:
-          'radial-gradient(ellipse 80% 60% at 0% 0%, rgba(210,145,55,0.10) 0%, transparent 60%), radial-gradient(ellipse 60% 50% at 100% 100%, rgba(93,92,174,0.08) 0%, transparent 60%)',
-        border: '1px solid var(--glass-surface-border)',
-        backdropFilter: 'blur(42px)',
-        WebkitBackdropFilter: 'blur(42px)',
-        boxShadow: '0 8px 24px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.08)',
-      }}
-    >
-      {/* Header — location + time */}
-      <div className="px-7 pt-6 pb-3 flex items-center justify-between">
-        <span
-          className="text-[11px] tracking-[0.12em] uppercase"
-          style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-ui)' }}
-        >
-          {location}{location ? ' \u2014 ' : ''}{time}{' \u2014 '}{label}
-        </span>
-        <button
-          onClick={fetchBriefing}
-          className="p-1 rounded-md transition-opacity hover:opacity-60"
-          style={{ color: 'var(--text-muted)' }}
-          aria-label="Refresh briefing"
-        >
-          <RefreshCw className="w-3 h-3" />
-        </button>
-      </div>
+    <>
+      {/* The greeting is the page title: upright Cosmos, never italic. */}
+      <PageHead title={`${briefing.greeting}.`} line={cap(briefing.schedule_summary)} action={refreshButton} />
 
-      {/* Divider with dots */}
-      <div className="px-7">
-        <div className="flex items-center gap-2">
-          <div className="flex-1" style={{ borderTop: '1px solid var(--border-glass)' }} />
-          <div className="flex gap-1">
-            <div className="w-1 h-1 rounded-full" style={{ backgroundColor: 'var(--surface-solid)' }} />
-            <div className="w-1 h-1 rounded-full" style={{ backgroundColor: 'var(--surface-solid)' }} />
-            <div className="w-1 h-1 rounded-full" style={{ backgroundColor: 'var(--surface-solid)' }} />
-          </div>
-          <div className="flex-1" style={{ borderTop: '1px solid var(--border-glass)' }} />
-        </div>
-      </div>
-
-      {/* Greeting */}
-      <div className="px-7 pt-5 pb-2">
-        <h2
-          className="text-[32px] sm:text-[36px] mb-2.5 leading-[1.1]"
-          style={{
-            fontFamily: "var(--font-heading)",
-            fontStyle: 'italic',
-            fontWeight: 400,
-            color: 'var(--foreground)',
-            letterSpacing: '-0.03em',
-          }}
-        >
-          {briefing.greeting}.
-        </h2>
-        <p
-          className="text-[16px] sm:text-[17px] leading-relaxed"
-          style={{ color: 'var(--foreground)', fontFamily: 'var(--font-ui)' }}
-        >
-          {briefing.schedule_summary}
-        </p>
-      </div>
-
-      {/* Sections */}
-      <div className="px-7 pb-7 pt-4 space-y-4">
-        {/* Schedule */}
-        {hasSchedule && briefing.schedule.length > 0 && (
-          <div className="flex items-start gap-3">
-            <Calendar className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
-            <div className="flex-1 min-w-0">
-              <span className="text-[11px] tracking-[0.06em] uppercase block mb-1" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-ui)' }}>
-                Schedule
-              </span>
-              <div className="space-y-1">
-                {(briefing.schedule ?? []).slice(0, 3).map((event, i) => (
-                  <p key={i} className="text-[15px] truncate" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-ui)' }}>
-                    {event}
-                  </p>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Rest / Recovery */}
-        {hasRest && (
-          <div className="flex items-start gap-3">
-            <Moon className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
-            <div className="flex-1 min-w-0">
-              <span className="text-[11px] tracking-[0.06em] uppercase block mb-1" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-ui)' }}>
-                Recovery
-              </span>
-              <p className="text-[15px]" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-ui)' }}>
-                {briefing.rest}
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Music */}
-        {hasMusic && (
-          <div className="flex items-start gap-3">
-            <Music className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
-            <div className="flex-1 min-w-0">
-              <span className="text-[11px] tracking-[0.06em] uppercase block mb-1" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-ui)' }}>
-                Listening
-              </span>
-              <p className="text-[15px]" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-ui)' }}>
-                {briefing.music}
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Insights / Patterns */}
-        {hasInsights && (
-          <div className="flex items-start gap-3">
-            <Sparkles className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
-            <div className="flex-1 min-w-0">
-              <span className="text-[11px] tracking-[0.06em] uppercase block mb-1" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-ui)' }}>
-                Patterns
-              </span>
-              <div className="space-y-1">
-                {((briefing.patterns?.length ?? 0) > 0 ? briefing.patterns : briefing.insights ?? []).slice(0, 2).map((item, i) => (
-                  <p key={i} className="text-[15px]" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-ui)' }}>
-                    {item}
-                  </p>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Suggestion / CTA */}
-        {briefing.suggestion && (
-          <div
-            className="mt-3 pt-3"
-            style={{ borderTop: '1px solid var(--border-glass)' }}
-          >
-            <p
-              className="text-[15px] leading-relaxed"
-              style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-ui)', fontStyle: 'italic' }}
-            >
-              {briefing.suggestion}
-            </p>
-          </div>
-        )}
-
-        {/* Action button */}
-        {onAskTwin && (
-          <button
-            onClick={() => onAskTwin('Tell me more about my day')}
-            className="flex items-center gap-1.5 text-[12px] font-medium mt-2 transition-opacity hover:opacity-70"
-            style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-ui)' }}
-          >
-            Dive deeper with your twin
-            <ArrowRight className="w-3 h-3" />
-          </button>
-        )}
-      </div>
-    </div>
+      <Section title={sectionTitle} line={whereWhen}>
+        <List>
+          {hasSchedule && briefing.schedule.length > 0 && (
+            <Row
+              icon={<Calendar aria-hidden="true" />}
+              title="Schedule"
+              line={(briefing.schedule ?? []).slice(0, 3).join(' · ')}
+              clip
+            />
+          )}
+          {hasRest && <Row icon={<Moon aria-hidden="true" />} title="Recovery" line={cap(briefing.rest)} />}
+          {hasMusic && <Row icon={<Music aria-hidden="true" />} title="Listening" line={cap(briefing.music)} />}
+          {hasInsights && (
+            <Row icon={<Sparkles aria-hidden="true" />} title="Patterns" line={cap(patternItems[0])} />
+          )}
+          {hasInsights && patternItems[1] && (
+            <SubRow><span className="rg-row-line">{cap(patternItems[1])}</span></SubRow>
+          )}
+          {briefing.suggestion && (
+            <Row icon={<Lightbulb aria-hidden="true" />} title="Something to try" line={cap(briefing.suggestion)} />
+          )}
+          {onAskTwin && (
+            <Row
+              icon={<MessageCircle aria-hidden="true" />}
+              title="Dive deeper with your twin"
+              onClick={() => onAskTwin('Tell me more about my day')}
+            />
+          )}
+        </List>
+      </Section>
+    </>
   );
 };
 

@@ -1,11 +1,12 @@
 /**
  * PendingProposalsBadge
  *
- * Small floating pill badge near the chat input showing the count of
- * pending department proposals. Click opens a popover with the list
- * and approve/dismiss buttons for each.
+ * A text link above the chat input showing the count of pending
+ * department proposals. Click opens a menu with the list and
+ * approve/dismiss buttons for each.
  *
- * Design: glass surface, rounded-[20px], backdrop-blur per Claura spec.
+ * Design: the register. An ink underlined link (it was a glass pill with a
+ * pulsing dot); the menu is white with a hairline and a 4px corner.
  */
 
 import { useState, useEffect, useCallback } from 'react';
@@ -105,137 +106,99 @@ export function PendingProposalsBadge({
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 8, scale: 0.96 }}
               transition={{ duration: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
-              className="absolute bottom-full mb-2 left-0 right-0 z-50 rounded-[20px] px-4 py-3 max-h-[280px] overflow-y-auto"
+              className="absolute bottom-full mb-2 left-0 right-0 z-50 max-h-[320px] overflow-y-auto"
               style={{
-                backgroundColor: 'rgba(30,28,36,0.95)',
-                backdropFilter: 'blur(42px)',
-                WebkitBackdropFilter: 'blur(42px)',
-                border: '1px solid var(--glass-surface-border)',
-                boxShadow: '0 -4px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.04)',
+                // A menu in the register: white, a hairline, a 4 corner, no shadow or glass.
+                background: 'var(--rg-white)',
+                border: '1px solid var(--rg-rule)',
+                borderRadius: 'var(--rg-radius)',
+                padding: '12px 12px 0',
               }}
             >
-              <h4
-                className="text-[12px] font-medium mb-2 uppercase tracking-[0.06em]"
-                style={{
-                  color: 'var(--text-secondary)',
-                  fontFamily: 'var(--font-ui)',
-                }}
-              >
-                Pending proposals
+              <h4 className="rg-row-title" style={{ margin: '0 0 8px' }}>
+                Waiting for your approval
               </h4>
 
-              <div className="space-y-0">
-                {proposals.map((proposal, index) => {
+              <ul className="rg-list" style={{ margin: 0 }}>
+                {proposals.map((proposal) => {
                   const isLoading = loadingIds.has(proposal.id);
                   return (
-                    <div
+                    <li
                       key={proposal.id}
-                      className="flex items-start gap-2.5 py-2.5"
+                      className="flex items-start gap-3"
                       style={{
-                        borderBottom:
-                          index < proposals.length - 1
-                            ? '1px solid var(--border-glass)'
-                            : undefined,
+                        padding: '12px 0',
+                        borderBottom: '1px solid var(--rg-rule)',
                         opacity: isLoading ? 0.5 : 1,
                         pointerEvents: isLoading ? 'none' : 'auto',
                       }}
                     >
-                      {/* Department dot + text */}
-                      <div
-                        className="w-[6px] h-[6px] rounded-full mt-1.5 flex-shrink-0"
-                        style={{ backgroundColor: proposal.departmentColor }}
+                      {/* The department's colour is a mark, never the text. */}
+                      <span
+                        aria-hidden="true"
+                        className="w-2 h-2 rounded-full flex-shrink-0"
+                        style={{ backgroundColor: proposal.departmentColor, marginTop: 6 }}
                       />
-                      <div className="flex-1 min-w-0">
-                        <span
-                          className="text-[10px] font-medium uppercase tracking-[0.06em] block mb-0.5"
-                          style={{
-                            color: proposal.departmentColor,
-                            fontFamily: 'var(--font-ui)',
-                          }}
-                        >
-                          {proposal.department}
-                        </span>
-                        <p
-                          className="text-[12px] leading-snug"
-                          style={{
-                            color: 'var(--text-secondary)',
-                            fontFamily: 'var(--font-ui)',
-                          }}
-                        >
-                          {proposal.description}
-                        </p>
-                      </div>
+                      <span className="rg-row-text flex-1">
+                        <span className="rg-row-title">{proposal.department}</span>
+                        <span className="rg-row-line">{proposal.description}</span>
+                      </span>
 
-                      {/* Approve / Reject buttons */}
-                      <div className="flex items-center gap-1 flex-shrink-0 mt-0.5">
+                      {/* Approve / Reject: 24px icon buttons */}
+                      <span className="flex items-center gap-1 flex-shrink-0">
                         <button
+                          type="button"
+                          className="rg-iconbtn"
                           onClick={() => handleApprove(proposal.id)}
-                          className="p-1 rounded-md transition-all duration-150 hover:scale-110"
-                          style={{ color: 'var(--text-muted)' }}
                           aria-label={`Approve ${proposal.department} proposal`}
                           title="Approve"
                         >
-                          <Check className="w-3.5 h-3.5" />
+                          <Check aria-hidden="true" />
                         </button>
                         <button
+                          type="button"
+                          className="rg-iconbtn"
                           onClick={() => handleReject(proposal.id)}
-                          className="p-1 rounded-md transition-all duration-150 hover:scale-110"
-                          style={{ color: 'var(--text-muted)' }}
                           aria-label={`Dismiss ${proposal.department} proposal`}
                           title="Dismiss"
                         >
-                          <X className="w-3.5 h-3.5" />
+                          <X aria-hidden="true" />
                         </button>
-                      </div>
-                    </div>
+                      </span>
+                    </li>
                   );
                 })}
-              </div>
+              </ul>
             </motion.div>
           </>
         )}
       </AnimatePresence>
 
-      {/* Badge pill */}
+      {/* A text link, not a pill: ink, underlined, nothing pulses. */}
       <button
+        type="button"
         onClick={() => setIsOpen(prev => !prev)}
-        className="flex items-center gap-1.5 px-3 py-1.5 rounded-[20px] transition-all duration-150 hover:opacity-80"
+        className="inline-flex items-center gap-1.5 transition-opacity duration-200 hover:opacity-70"
         style={{
-          backgroundColor: 'var(--surface)',
-          backdropFilter: 'blur(42px)',
-          WebkitBackdropFilter: 'blur(42px)',
-          border: '1px solid var(--glass-surface-border)',
-          fontFamily: 'var(--font-ui)',
+          background: 'none',
+          border: 0,
+          padding: '4px 0',
+          minHeight: 24,
+          font: 'inherit',
+          color: 'var(--rg-ink)',
+          textDecoration: 'underline',
+          textUnderlineOffset: '3px',
+          cursor: 'pointer',
         }}
+        aria-expanded={isOpen}
         aria-label={`${proposals.length} pending proposal${proposals.length !== 1 ? 's' : ''}`}
       >
-        {/* Pulsing dot */}
-        <div
-          className="w-[6px] h-[6px] rounded-full flex-shrink-0"
-          style={{
-            background: 'var(--claura-bone)',
-            animation: 'proposal-badge-pulse 2s ease-in-out infinite',
-          }}
-        />
-        <span
-          className="text-[11px] font-medium"
-          style={{ color: 'var(--text-secondary)' }}
-        >
-          {proposals.length} proposal{proposals.length !== 1 ? 's' : ''}
-        </span>
+        {proposals.length} proposal{proposals.length !== 1 ? 's' : ''} waiting for you
         <ChevronUp
-          className="w-3 h-3 transition-transform duration-200"
-          style={{
-            color: 'var(--text-muted)',
-            transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-          }}
+          aria-hidden="true"
+          className="w-4 h-4 transition-transform duration-200"
+          style={{ color: 'var(--rg-ink-2)', transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}
         />
-        <style>{`
-          @keyframes proposal-badge-pulse {
-            0%, 100% { opacity: 0.6; }
-            50% { opacity: 1; }
-          }
-        `}</style>
       </button>
     </div>
   );

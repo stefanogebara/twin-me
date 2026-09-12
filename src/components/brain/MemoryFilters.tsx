@@ -14,6 +14,12 @@ interface MemoryFiltersProps {
   onSortChange: (key: 'newest' | 'importance' | 'accessed') => void;
 }
 
+/* The register's choices: 32 tall, a 4 corner, 13px ink on white with a
+   hairline. A pressed choice is the field with an ink line (state, not a second
+   primary). Was rounded-full pills in #86807b at 11-12px (3.74:1). */
+const choice = (pressed: boolean): React.CSSProperties =>
+  pressed ? { background: 'var(--rg-field)', borderColor: 'var(--rg-ink)', fontWeight: 500 } : {};
+
 const MemoryFilters: React.FC<MemoryFiltersProps> = ({
   activeExpert,
   activeType,
@@ -23,21 +29,19 @@ const MemoryFilters: React.FC<MemoryFiltersProps> = ({
   onSortChange,
 }) => {
   return (
-    <div className="mb-8 space-y-3">
+    <div className="space-y-2" style={{ marginBottom: 'var(--rg-section)' }}>
       {/* Row 1: Expert domains */}
-      <div className="flex flex-wrap gap-1.5">
+      <div className="flex flex-wrap gap-2" role="group" aria-label="Part of your life">
         {EXPERT_FILTERS.map(({ key, label }) => {
           const isActive = activeExpert === key;
           return (
             <button
               key={label}
+              type="button"
               onClick={() => onExpertChange(key)}
-              className="rounded-full px-3 py-1.5 text-xs font-medium cursor-pointer transition-all min-h-[44px]"
-              style={{
-                background: isActive ? 'rgba(232,224,212,0.12)' : 'transparent',
-                color: isActive ? 'var(--accent-vibrant)' : '#86807b',
-                border: 'none',
-              }}
+              className="n-btn n-btn--ghost"
+              style={choice(isActive)}
+              aria-pressed={isActive}
             >
               {label}
             </button>
@@ -45,54 +49,49 @@ const MemoryFilters: React.FC<MemoryFiltersProps> = ({
         })}
       </div>
 
-      {/* Row 2: Memory types + Sort (right-aligned) */}
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <div className="flex flex-wrap gap-1.5">
-          {TYPE_FILTERS.map(({ key, label, color }) => {
-            const isActive = activeType === key;
-            return (
-              <button
-                key={label}
-                onClick={() => onTypeChange(key)}
-                className="rounded-full px-3 py-1.5 text-[11px] font-medium cursor-pointer transition-all inline-flex items-center gap-1.5 min-h-[44px]"
-                style={{
-                  background: isActive ? 'rgba(232,224,212,0.12)' : 'transparent',
-                  color: isActive ? 'var(--accent-vibrant)' : '#86807b',
-                  border: 'none',
-                }}
-              >
-                {key && (
-                  <span
-                    className="inline-block flex-shrink-0 rounded-full"
-                    style={{ width: '6px', height: '6px', backgroundColor: color }}
-                  />
-                )}
-                {label}
-              </button>
-            );
-          })}
-        </div>
+      {/* Row 2: Memory types, each with its colour as a dot */}
+      <div className="flex flex-wrap gap-2" role="group" aria-label="Kind of memory">
+        {TYPE_FILTERS.map(({ key, label, color }) => {
+          const isActive = activeType === key;
+          return (
+            <button
+              key={label}
+              type="button"
+              onClick={() => onTypeChange(key)}
+              className="n-btn n-btn--ghost"
+              style={choice(isActive)}
+              aria-pressed={isActive}
+            >
+              {key && (
+                <span
+                  aria-hidden="true"
+                  className="inline-block flex-shrink-0 rounded-full"
+                  style={{ width: '8px', height: '8px', backgroundColor: color }}
+                />
+              )}
+              {label}
+            </button>
+          );
+        })}
+      </div>
 
-        {/* Sort buttons */}
-        <div className="flex gap-1">
-          {SORT_OPTIONS.map(({ key, label }) => {
-            const isActive = sort === key;
-            return (
-              <button
-                key={key}
-                onClick={() => onSortChange(key as 'newest' | 'importance' | 'accessed')}
-                className="px-2 py-1 text-[11px] font-medium transition-colors"
-                style={{
-                  color: isActive ? 'var(--accent-vibrant)' : '#86807b',
-                  background: 'transparent',
-                  border: 'none',
-                }}
-              >
-                {label}
-              </button>
-            );
-          })}
-        </div>
+      {/* Row 3: Sort */}
+      <div className="flex flex-wrap gap-2" role="group" aria-label="Sort">
+        {SORT_OPTIONS.map(({ key, label }) => {
+          const isActive = sort === key;
+          return (
+            <button
+              key={key}
+              type="button"
+              onClick={() => onSortChange(key as 'newest' | 'importance' | 'accessed')}
+              className="n-btn n-btn--ghost"
+              style={choice(isActive)}
+              aria-pressed={isActive}
+            >
+              {label}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
