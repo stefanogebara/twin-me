@@ -60,7 +60,7 @@ const ScoreButton = ({ value, current, label, onClick }: { value: number; curren
   <button
     type="button"
     onClick={onClick}
-    className="ri-choice"
+    className="n-btn n-btn--ghost rg-choice rg-choice--num"
     aria-pressed={current === value}
     aria-label={`${label} ${value}`}
   >
@@ -385,7 +385,7 @@ export default function EvalDashboard() {
                 onChange={e => setNotes(e.target.value)}
                 placeholder="Optional notes about this eval run..."
                 rows={2}
-                className="ri-input"
+                className="rg-input"
               />
             </div>
             <div className="ri-actions">
@@ -414,7 +414,7 @@ export default function EvalDashboard() {
                 title={new Date(run.run_at).toLocaleString('en-US')}
                 line={run.notes || undefined}
                 action={
-                  <span className="ri-figures" style={{ fontWeight: 500 }}>
+                  <span className="rg-figures" style={{ fontWeight: 500 }}>
                     {run.total_score !== null ? `${run.total_score.toFixed(1)}%` : '—'}
                   </span>
                 }

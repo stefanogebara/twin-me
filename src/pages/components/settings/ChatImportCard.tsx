@@ -207,7 +207,7 @@ export default function ChatImportCard(_props: ChatImportCardProps) {
 
       {/* Which app the chats come from: 32/4 choices, and the progress */}
       <div className="rs-inline" style={{ justifyContent: 'space-between' }}>
-        <div className="rs-choices" role="group" aria-label="Chat app">
+        <div className="rg-choices" role="group" aria-label="Chat app">
           {(['whatsapp_chat', 'telegram_chat'] as Platform[]).map((p) => {
             const c = PLATFORM_CONFIG[p];
             return (
@@ -216,7 +216,7 @@ export default function ChatImportCard(_props: ChatImportCardProps) {
                 type="button"
                 aria-pressed={platform === p}
                 onClick={() => { setPlatform(p); setPendingTelegramContext(null); }}
-                className="n-btn n-btn--ghost rs-choice"
+                className="n-btn n-btn--ghost rg-choice"
               >
                 <c.icon className="w-4 h-4" aria-hidden="true" />
                 {c.label}

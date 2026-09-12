@@ -116,12 +116,12 @@ export const Rows = ({ items, label }: { items: { title: string; line: string }[
 
 /** The five signatures as data: a row each, its score, and a thin bar in its hue. */
 export const LayerBars = ({ layers }: { layers: { label: string; value: number; tint: string }[] }) => (
-  <ul className="rg-list pb-figures" aria-label="Example signature scores">
+  <ul className="rg-list rg-figures" aria-label="Example signature scores">
     {layers.map((layer) => (
       <li key={layer.label} className="rg-row rg-row--plain">
         <span className="rg-row-text">
           <span className="rg-row-title">{layer.label}</span>
-          <span className="fd-bar" aria-hidden="true">
+          <span className="rg-bar" aria-hidden="true">
             <i style={{ width: `${layer.value}%`, background: `var(--rg-${layer.tint})` }} />
           </span>
         </span>

@@ -22,7 +22,7 @@ const OverviewSection: React.FC<OverviewSectionProps> = ({
   currentGlobal,
 }) => (
   <Section title="Overview">
-    <List label="Overview" className="rs-compact">
+    <List label="Overview" className="rg-compact">
       <Row title="Areas on" action={<span className="rs-figure">{activeClusters} of {totalClusters}</span>} />
       <Row title="Average shared" action={<span className="rs-figure">{averagePrivacy}</span>} />
       <Row title="Overall level" action={<span className="rs-figure">{currentGlobal}%</span>} />

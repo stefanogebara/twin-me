@@ -188,7 +188,7 @@ const PortfolioPage: React.FC = () => {
           const who = portfolio.first_name || 'its human';
           return (
             <Section title="How close the twin is">
-              <List label="Twin accuracy" className="pb-figures">
+              <List label="Twin accuracy" className="rg-figures">
                 <Row
                   title={`${Math.round(shown * 100)}% the same answer as ${who}`}
                   line={isNormalized

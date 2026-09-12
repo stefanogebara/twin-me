@@ -295,7 +295,7 @@ export function PresenceExperience({ persistDraft = false, onExit }: PresenceExp
                   title="A little of your voice can carry a lot of love."
                   line="A clearly named AI presence that listens without rushing and brings the important parts back to you."
                 />
-                <List label="What it takes" className="po-compact">
+                <List label="What it takes" className="rg-compact">
                   <Row icon={<Clock3 />} title="12 minutes" line="to a first version" />
                   <Row icon={<Mic />} title="2 minutes of voice" line="to begin" />
                   <Row icon={<ShieldCheck />} title="Your words" line="stay attributable to you" />
@@ -327,11 +327,11 @@ export function PresenceExperience({ persistDraft = false, onExit }: PresenceExp
                 <div className="po-form">
                   <label className="po-field">
                     <span className="po-label">The person you care for</span>
-                    <input className="po-input" value={caredForName} onChange={(event) => setDraft((current) => ({ ...current, caredForName: event.target.value }))} aria-label="The person you care for" />
+                    <input className="rg-input" value={caredForName} onChange={(event) => setDraft((current) => ({ ...current, caredForName: event.target.value }))} aria-label="The person you care for" />
                   </label>
                   <label className="po-field">
                     <span className="po-label">Your relationship</span>
-                    <select className="po-input" value={relationship} onChange={(event) => setDraft((current) => ({ ...current, relationship: event.target.value }))} aria-label="Your relationship">
+                    <select className="rg-input" value={relationship} onChange={(event) => setDraft((current) => ({ ...current, relationship: event.target.value }))} aria-label="Your relationship">
                       <option value="grandmother">Grandmother</option>
                       <option value="grandfather">Grandfather</option>
                       <option value="parent">Parent</option>
@@ -340,19 +340,19 @@ export function PresenceExperience({ persistDraft = false, onExit }: PresenceExp
                   </label>
                   <label className="po-field po-field--wide">
                     <span className="po-label">What does she call you?</span>
-                    <input className="po-input" value={callerName} onChange={(event) => setDraft((current) => ({ ...current, callerName: event.target.value }))} aria-label="What does she call you" />
+                    <input className="rg-input" value={callerName} onChange={(event) => setDraft((current) => ({ ...current, callerName: event.target.value }))} aria-label="What does she call you" />
                     <span className="po-hint">The exact name the Presence will use aloud.</span>
                   </label>
                 </div>
                 <fieldset className="po-field po-gap">
                   <legend className="po-label">How are you together?</legend>
                   <p className="po-hint">Choose what feels true, not ideal.</p>
-                  <div className="po-choices">
+                  <div className="rg-choices">
                     {TONES.map((option) => (
                       <button
                         key={option}
                         type="button"
-                        className="po-choice"
+                        className="n-btn n-btn--ghost rg-choice"
                         aria-pressed={tone === option}
                         onClick={() => setDraft((current) => ({ ...current, tone: option }))}
                       >
@@ -386,7 +386,7 @@ export function PresenceExperience({ persistDraft = false, onExit }: PresenceExp
                         <button type="button" className="n-btn n-btn--ghost" onClick={startRecording}><Mic size={16} aria-hidden="true" /> Start recording</button>
                       )}
                       {recordingState === 'recording' && (
-                        <button type="button" className="n-btn po-danger" onClick={stopRecording}><Square size={14} fill="currentColor" aria-hidden="true" /> Stop</button>
+                        <button type="button" className="n-btn rg-danger" onClick={stopRecording}><Square size={14} fill="currentColor" aria-hidden="true" /> Stop</button>
                       )}
                       {recordingState === 'ready' && (
                         <>
@@ -422,7 +422,7 @@ export function PresenceExperience({ persistDraft = false, onExit }: PresenceExp
                   </section>
 
                   <section aria-label="Voice quality">
-                    <ul className="rg-list po-compact pb-figures">
+                    <ul className="rg-list rg-compact rg-figures">
                       <li className="rg-row rg-row--plain">
                         <span className="rg-row-text"><span className="rg-row-title">First-pass fidelity</span></span>
                         <span className="rg-row-action">{recordingState === 'complete' ? '82' : '—'} / 100</span>
@@ -431,7 +431,7 @@ export function PresenceExperience({ persistDraft = false, onExit }: PresenceExp
                         <li key={label} className="rg-row rg-row--plain">
                           <span className="rg-row-text">
                             <span className="rg-row-title">{label}</span>
-                            <span className="po-bar" aria-hidden="true"><i style={{ width: `${score}%` }} /></span>
+                            <span className="rg-bar" aria-hidden="true"><i style={{ width: `${score}%` }} /></span>
                           </span>
                           <span className="rg-row-action">{score}</span>
                         </li>
@@ -462,7 +462,7 @@ export function PresenceExperience({ persistDraft = false, onExit }: PresenceExp
                     <span>{interviewIndex + 1} / {INTERVIEW_CARDS.length}</span>
                   </p>
                   <h2 className="po-question">{INTERVIEW_CARDS[interviewIndex].prompt}</h2>
-                  <textarea className="po-input po-area" defaultValue={INTERVIEW_CARDS[interviewIndex].answer} aria-label="Interview response" />
+                  <textarea className="rg-input rg-input--tall" defaultValue={INTERVIEW_CARDS[interviewIndex].answer} aria-label="Interview response" />
                   <div className="po-interview-controls">
                     <button type="button" className="n-btn n-btn--ghost po-icon" aria-label="Answer by voice"><Mic size={16} aria-hidden="true" /></button>
                     <span className="po-hint">Speak or type. Natural answers teach tone better than polished ones.</span>
@@ -476,7 +476,7 @@ export function PresenceExperience({ persistDraft = false, onExit }: PresenceExp
                   </div>
                 </section>
                 <Section title="Already learned" className="po-gap">
-                  <List label="Already learned" className="po-compact">
+                  <List label="Already learned" className="rg-compact">
                     <Row icon={<Check />} title="Gentle humor" />
                     <Row icon={<Check />} title="“Nunu” is private language" />
                     <Row icon={<Check />} title="Visits require approval" />
@@ -505,7 +505,7 @@ export function PresenceExperience({ persistDraft = false, onExit }: PresenceExp
                   <section className="po-block" aria-label="For you">
                     <p className="po-meta"><span>For you</span><span>Today</span></p>
                     <h2 className="po-question">{caredForName} had a good, story-filled afternoon.</h2>
-                    <ul className="rg-list po-compact">
+                    <ul className="rg-list rg-compact">
                       <li className="rg-row rg-row--plain"><span className="rg-row-text"><span className="rg-row-line">She bought ingredients for a chocolate cake.</span></span><span /></li>
                       <li className="rg-row rg-row--plain"><span className="rg-row-text"><span className="rg-row-line">She told a new detail about the family’s beach trip.</span></span><span /></li>
                       <li className="rg-row rg-row--plain"><span className="rg-row-text"><span className="rg-row-title">She wants to know whether you can visit Sunday.</span></span><span /></li>

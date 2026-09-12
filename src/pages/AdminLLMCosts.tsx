@@ -260,7 +260,7 @@ function DailyTrendChart({ daily }: { daily: DailyEntry[] }) {
             })}
           </div>
           {/* X-axis labels (first, middle, last) */}
-          <div className="flex justify-between ri-q ri-figures" style={{ margin: '8px 0 12px' }}>
+          <div className="flex justify-between ri-q rg-figures" style={{ margin: '8px 0 12px' }}>
             <span>{sorted[0]?.day.slice(5)}</span>
             {sorted.length > 2 && <span>{sorted[Math.floor(sorted.length / 2)]?.day.slice(5)}</span>}
             <span>{sorted[sorted.length - 1]?.day.slice(5)}</span>
@@ -513,7 +513,7 @@ const AdminLLMCosts: React.FC = () => {
               key={days}
               type="button"
               onClick={() => setSelectedPeriod(days)}
-              className="ri-choice"
+              className="n-btn n-btn--ghost rg-choice rg-choice--num"
               aria-pressed={selectedPeriod === days}
             >
               {label}
@@ -539,7 +539,7 @@ const AdminLLMCosts: React.FC = () => {
 
       {/* Summary */}
       <Section title="Spend" line={`Over ${summary?.period_days || selectedPeriod} days.`}>
-        <List className="ri-compact ri-stats">
+        <List className="rg-compact ri-stats">
           <Row title={formatCost(summary?.total_cost_usd || 0)} line="Total spend" />
           <Row title={`$${(summary?.monthly_projection_usd || 0).toFixed(2)}`} line="Monthly projection at this rate" />
           <Row title={`$${avgCostPerUserPerMonth.toFixed(2)}`} line={`Per user per month, ${realUserCount} users`} />
@@ -713,7 +713,7 @@ const AdminLLMCosts: React.FC = () => {
       {/* Tier breakdown */}
       {summary && Object.keys(summary.by_tier).length > 0 && (
         <Section title="By tier">
-          <List className="ri-compact ri-stats">
+          <List className="rg-compact ri-stats">
             {Object.entries(summary.by_tier).map(([tier, data]) => (
               <Row
                 key={tier}

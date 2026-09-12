@@ -22,13 +22,7 @@
 
 /* ---- buttons ---- */
 
-/* The danger button: white, the pink danger line, danger text (5.7:1 on white). */
-.n-btn.rs-danger { background: var(--rg-white); border-color: var(--rg-danger-line); color: var(--rg-danger); }
-.n-btn.rs-danger:hover { border-color: var(--rg-danger); }
-
-/* A 32/4 choice: the secondary button; pressed is the field with an ink line. */
-.rs-choices { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-.n-btn.rs-choice[aria-pressed='true'] { background: var(--rg-field); border-color: var(--rg-ink); font-weight: var(--rg-weight-title); }
+/* The danger button and the choice are the kit's .rg-danger and .rg-choice. */
 
 /* A text button inside a line: underlined ink. */
 .rs-link {
@@ -60,9 +54,6 @@
 .rs-mark { display: inline-block; flex: none; width: 8px; height: 8px; border-radius: 2px; }
 
 /* ---- rows ---- */
-
-/* Compact rows, about 57 tall: short items such as rules and figures. */
-.rs-compact .rg-row { min-height: var(--rg-row-sub); padding: 12px; }
 
 /* What a row opens to: fields, steps and quiet lines, indented to the text,
    never another card. Sits in the list as its own item. */
@@ -100,10 +91,6 @@
 .rs-drop:hover { outline: 1px solid var(--rg-quiet); outline-offset: -1px; }
 .rs-drop.is-over { outline: 1px solid var(--rg-ink); outline-offset: -1px; }
 .rs-drop:focus-visible { outline: 2px solid var(--rg-ink); outline-offset: 2px; }
-
-/* A thin bar under a row's title (the soul score): ink on the hairline. */
-.rs-bar { display: block; height: 2px; margin-top: 8px; background: var(--rg-rule); }
-.rs-bar > i { display: block; height: 100%; background: var(--rg-ink); }
 
 /* ---- the settings frame: a sub-nav of plain links beside the column ---- */
 

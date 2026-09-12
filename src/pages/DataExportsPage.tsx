@@ -131,7 +131,7 @@ const PlatformCard = ({
         title={config.label}
         line={line}
         action={isParsed ? (
-          <button type="button" onClick={onDelete} className="n-btn rs-danger" title="Remove this export">
+          <button type="button" onClick={onDelete} className="n-btn rg-danger" title="Remove this export">
             <Trash2 className="w-4 h-4" aria-hidden="true" />
             Remove
           </button>

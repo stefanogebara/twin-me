@@ -28,6 +28,3 @@
   font-weight: 500;
   letter-spacing: -0.011em;
 }
-
-/* Tabular figures for prices, scores and times in a row. */
-.pb-figures { font-variant-numeric: tabular-nums; }

@@ -85,7 +85,7 @@ const PortfolioRadar: React.FC<PortfolioRadarProps> = ({ personality, platformCo
           ))}
         </svg>
 
-        <List label="Personality scores" className="sh-compact pb-figures">
+        <List label="Personality scores" className="rg-compact rg-figures">
           {LABELS.map((label, i) => (
             <Row key={label} title={label} action={<span>{Math.round(scores[i])}</span>} />
           ))}

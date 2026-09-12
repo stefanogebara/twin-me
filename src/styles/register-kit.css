@@ -224,6 +224,48 @@
   align-items: center;
 }
 
+/* ---- shapes more than one page needed, so they live here once ---- */
+
+/* Compact rows, about 57 tall: a list of many short items. Put on the list. */
+.rg-compact .rg-row { min-height: var(--rg-row-sub); padding: 12px; }
+
+/* The danger button: white, the pink danger line, danger text. Never a red fill. */
+.n-btn.rg-danger { background: var(--rg-white); border-color: var(--rg-danger-line); color: var(--rg-danger); }
+.n-btn.rg-danger:hover { border-color: var(--rg-danger); }
+
+/* A choice is the secondary button (.n-btn.n-btn--ghost) that stays pressed:
+   pressed is the warm field with an ink line. --num is a choice that is a
+   figure (a day, a month, a span), so the digits line up. */
+.rg-choices { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.n-btn.rg-choice[aria-pressed='true'] { background: var(--rg-field); border-color: var(--rg-ink); font-weight: var(--rg-weight-title); }
+.n-btn.rg-choice--num { min-width: 32px; padding: 0 12px; font-variant-numeric: tabular-nums; }
+
+/* A field: no border, the warm field, 44 tall, a 4 corner. */
+.rg-input {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  height: var(--rg-field-height);
+  padding: 11px 14px;
+  border: 0;
+  border-radius: var(--rg-radius);
+  background: var(--rg-field);
+  font: inherit;
+  color: var(--rg-ink);
+}
+
+.rg-input::placeholder { color: var(--rg-ink-3); }
+.rg-input:focus-visible { outline: 2px solid var(--rg-ink); outline-offset: 0; }
+textarea.rg-input { height: auto; min-height: 88px; resize: vertical; }
+textarea.rg-input--tall { min-height: 104px; }
+
+/* A thin bar under a row's title: ink on the hairline. The <i> is the value. */
+.rg-bar { display: block; height: 2px; margin-top: 8px; background: var(--rg-rule); }
+.rg-bar > i { display: block; height: 100%; background: var(--rg-ink); }
+
+/* Figures that line up down a column. */
+.rg-figures { font-variant-numeric: tabular-nums; }
+
 /* One quiet line, about 30px under the rule. */
 .rg-empty {
   margin: 0;

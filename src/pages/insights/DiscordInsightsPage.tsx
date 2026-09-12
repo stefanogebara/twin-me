@@ -139,7 +139,7 @@ const DiscordInsightsPage: React.FC = () => {
       {/* Your servers */}
       {insights?.discordServers && insights.discordServers.length > 0 && (
         <Section title="Your servers" line={`${serverCount} ${serverCount === 1 ? 'server' : 'servers'}`}>
-          <List className="ri-compact">
+          <List className="rg-compact">
             {insights.discordServers.map((server, i) => (
               <Row key={i} title={server.name} line={capitalize(server.category)} />
             ))}
@@ -150,7 +150,7 @@ const DiscordInsightsPage: React.FC = () => {
       {/* What the servers are about, a bar each by share */}
       {insights?.discordCategoryBreakdown && insights.discordCategoryBreakdown.length > 0 && (
         <Section title="What they are about">
-          <List className="ri-compact">
+          <List className="rg-compact">
             {insights.discordCategoryBreakdown.map((item, i) => (
               <BarRow
                 key={i}

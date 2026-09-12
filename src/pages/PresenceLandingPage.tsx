@@ -70,12 +70,12 @@ export default function PresenceLandingPage() {
             <div className="pm-device-foot">
               <Mic size={16} aria-hidden="true" />
               <span>Conversation in progress</span>
-              <span className="pb-figures" style={{ marginLeft: 'auto' }}>24:08</span>
+              <span className="rg-figures" style={{ marginLeft: 'auto' }}>24:08</span>
             </div>
           </section>
 
           <section className="pm-device" aria-label="Family summary interface">
-            <div className="pm-device-bar"><span>Presence with Sofia</span><span className="pb-figures">24 min</span></div>
+            <div className="pm-device-bar"><span>Presence with Sofia</span><span className="rg-figures">24 min</span></div>
             <p className="pm-device-state">What she shared</p>
             <p className="pm-device-title">A bright morning and a story from Ubatuba.</p>
             <p className="pm-device-line">She remembered learning to swim with her older sister.</p>
@@ -94,7 +94,7 @@ export default function PresenceLandingPage() {
 
       <div className="pm-section pb-marketing" id="how-it-works">
         <Section title="A long conversation becomes one clear update." line="She talks as long as she likes. You get what needs you.">
-          <List label="The family relay" className="pb-figures">
+          <List label="The family relay" className="rg-figures">
             <Row title="40:16 of her time" line="“I opened the old album and I still remember every face.”" />
             <Row title="00:45 of yours" line="She wants your help naming two people in the album." />
           </List>

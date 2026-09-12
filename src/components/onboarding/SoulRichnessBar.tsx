@@ -50,7 +50,7 @@ const SoulRichnessBar: React.FC = () => {
         line={
           <>
             {isLoading ? 'Checking your connections' : label(score)}
-            <span className="rs-bar" aria-hidden="true"><i style={{ width: `${isLoading ? 0 : score}%` }} /></span>
+            <span className="rg-bar" aria-hidden="true"><i style={{ width: `${isLoading ? 0 : score}%` }} /></span>
           </>
         }
         action={<span className="rs-figure">{isLoading ? '—' : `${score}%`}</span>}

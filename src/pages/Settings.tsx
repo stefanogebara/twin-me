@@ -584,7 +584,7 @@ const Settings = () => {
                 line="Your twin and all your data, for good"
                 className={showDeleteConfirm ? 'rs-row-has-body' : undefined}
                 action={!showDeleteConfirm ? (
-                  <button type="button" onClick={() => setShowDeleteConfirm(true)} className="n-btn rs-danger">
+                  <button type="button" onClick={() => setShowDeleteConfirm(true)} className="n-btn rg-danger">
                     Delete everything
                   </button>
                 ) : (
@@ -612,7 +612,7 @@ const Settings = () => {
                       type="button"
                       onClick={handleDeleteAccount}
                       disabled={deleteConfirmText !== 'DELETE' || deleting}
-                      className="n-btn rs-danger"
+                      className="n-btn rg-danger"
                     >
                       {deleting ? 'Deleting' : 'Confirm'}
                     </button>

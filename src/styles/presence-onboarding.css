@@ -76,7 +76,6 @@
 .po .rg-apphead { margin-bottom: 40px; }
 .po-duration { font-weight: var(--rg-weight-line); color: var(--rg-ink-3); white-space: nowrap; }
 .po-gap { margin-top: 56px; }
-.po-compact .rg-row { min-height: var(--rg-row-sub); padding: 12px; }
 
 /* ---- words ---- */
 .po-label { display: block; font-weight: var(--rg-weight-title); color: var(--rg-ink); }
@@ -90,46 +89,15 @@
 .po-ok { display: inline-flex; align-items: center; gap: 8px; margin: 0; color: var(--rg-ok); }
 .po-status { display: inline-flex; align-items: center; gap: 8px; margin: 0; color: var(--rg-ink-2); }
 
-/* ---- fields and choices ---- */
+/* ---- fields and choices (the field and the choice are the kit's) ---- */
 .po-form { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px 16px; }
 .po-field { display: grid; gap: 8px; min-width: 0; margin: 0; padding: 0; border: 0; }
 .po-field > legend { padding: 0; margin-bottom: 8px; }
 .po-field--wide { grid-column: 1 / -1; }
 .po-field.po-gap { margin-top: 56px; }
-.po-input {
-  display: block;
-  width: 100%;
-  box-sizing: border-box;
-  height: var(--rg-field-height);
-  padding: 11px 14px;
-  border: 0;
-  border-radius: var(--rg-radius);
-  background: var(--rg-field);
-  font: inherit;
-  color: var(--rg-ink);
-}
-.po-input:focus-visible { outline: 2px solid var(--rg-ink); outline-offset: 0; }
-.po-area { height: auto; min-height: 104px; resize: vertical; }
-.po-choices { display: flex; flex-wrap: wrap; gap: 8px; }
-.po-choice {
-  display: inline-flex;
-  align-items: center;
-  height: var(--rg-button);
-  padding: 0 16px;
-  border: 1px solid var(--rg-rule);
-  border-radius: var(--rg-radius);
-  background: var(--rg-white);
-  font: inherit;
-  color: var(--rg-ink);
-  cursor: pointer;
-  transition: border-color var(--rg-quick), background-color var(--rg-quick);
-}
-.po-choice:hover { border-color: var(--rg-quiet); }
-.po-choice[aria-pressed='true'] { background: var(--rg-field); border-color: var(--rg-ink); font-weight: var(--rg-weight-title); }
 
 /* ---- buttons the kit has no class for ---- */
 .n-btn.po-icon { width: var(--rg-button); padding: 0; }
-.n-btn.po-danger { background: var(--rg-white); border-color: var(--rg-danger-line); color: var(--rg-danger); }
 
 /* ---- the voice step ---- */
 .po-voice { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 40px; align-items: start; }
@@ -145,8 +113,6 @@
 .po-dots button { position: relative; width: 24px; height: 24px; padding: 0; border: 0; background: none; cursor: pointer; }
 .po-dots button::after { content: ''; position: absolute; inset: 9px; border-radius: 50%; background: var(--rg-quiet); }
 .po-dots button.is-current::after { background: var(--rg-ink); }
-.po-bar { display: block; height: 2px; margin-top: 8px; background: var(--rg-rule); }
-.po-bar > i { display: block; height: 100%; background: var(--rg-ink); }
 .po-consent { display: flex; align-items: flex-start; gap: 10px; margin-top: 16px; font-weight: var(--rg-weight-line); color: var(--rg-ink-2); cursor: pointer; }
 .po-consent input { flex: none; width: 16px; height: 16px; margin: 2px 0 0; accent-color: var(--rg-ink); }
 
@@ -193,6 +159,5 @@
   .po-step,
   .po-wave.is-active > span { animation: none; }
   .po-track > span,
-  .po-steps button,
-  .po-choice { transition: none; }
+  .po-steps button { transition: none; }
 }

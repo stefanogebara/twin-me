@@ -161,7 +161,7 @@ export default function VoiceSetupPage() {
       <button type="button" onClick={cancelLink} className="n-btn n-btn--ghost">Cancel</button>
     )
     : state.status === 'linked' ? (
-      <button type="button" onClick={unlink} className={`n-btn n-btn--ghost${confirmingUnlink ? ' rs-danger' : ''}`}>
+      <button type="button" onClick={unlink} className={`n-btn n-btn--ghost${confirmingUnlink ? ' rg-danger' : ''}`}>
         {confirmingUnlink ? 'Tap again to unlink' : 'Unlink'}
       </button>
     )

@@ -51,7 +51,7 @@ const ContextualTwinsSection: React.FC<ContextualTwinsSectionProps> = ({
       ? `Your twin is showing your ${activeTwinName} side. Choose it again to stop.`
       : 'Which side of you your twin shows.'}
   >
-    <List label="Contextual twins" className="rs-compact">
+    <List label="Contextual twins" className="rg-compact">
       {twins.length === 0 ? (
         <li><Empty>No contextual twins yet.</Empty></li>
       ) : (
@@ -69,7 +69,7 @@ const ContextualTwinsSection: React.FC<ContextualTwinsSectionProps> = ({
                   onClick={() => onActivateTwin(twin.id)}
                   aria-pressed={twin.isActive}
                   aria-label={`Use the ${twin.name} twin`}
-                  className="n-btn n-btn--ghost rs-choice"
+                  className="n-btn n-btn--ghost rg-choice"
                 >
                   Use
                 </button>

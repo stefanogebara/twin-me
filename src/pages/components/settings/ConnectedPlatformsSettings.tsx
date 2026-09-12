@@ -92,7 +92,7 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
       type="button"
       onClick={() => requestDisconnect(id)}
       disabled={disconnectingService === id}
-      className={`n-btn n-btn--ghost${confirmingId === id ? ' rs-danger' : ''}`}
+      className={`n-btn n-btn--ghost${confirmingId === id ? ' rg-danger' : ''}`}
     >
       {disconnectingService === id ? 'Disconnecting' : confirmingId === id ? 'Confirm' : 'Disconnect'}
     </button>

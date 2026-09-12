@@ -215,19 +215,19 @@ function CreateCodeForm({ onCreated }: { onCreated: () => void }) {
         <div className="ri-form">
           <div className="ri-field">
             <label className="ri-label" htmlFor="invite-name">Who it is for</label>
-            <input id="invite-name" type="text" value={name} onChange={e => setName(e.target.value)} placeholder="John Doe" className="ri-input" />
+            <input id="invite-name" type="text" value={name} onChange={e => setName(e.target.value)} placeholder="John Doe" className="rg-input" />
           </div>
           <div className="ri-field">
             <label className="ri-label" htmlFor="invite-email">Email</label>
-            <input id="invite-email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="john@example.com" className="ri-input" />
+            <input id="invite-email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="john@example.com" className="rg-input" />
           </div>
           <div className="ri-field">
             <label className="ri-label" htmlFor="invite-uses">Uses</label>
-            <input id="invite-uses" type="number" min="1" value={maxUses} onChange={e => setMaxUses(e.target.value)} className="ri-input" />
+            <input id="invite-uses" type="number" min="1" value={maxUses} onChange={e => setMaxUses(e.target.value)} className="rg-input" />
           </div>
           <div className="ri-field">
             <label className="ri-label" htmlFor="invite-days">Expires in (days)</label>
-            <input id="invite-days" type="number" min="1" value={expiresInDays} onChange={e => setExpiresInDays(e.target.value)} className="ri-input" />
+            <input id="invite-days" type="number" min="1" value={expiresInDays} onChange={e => setExpiresInDays(e.target.value)} className="rg-input" />
           </div>
         </div>
 
@@ -371,7 +371,7 @@ function AdminBetaDashboard() {
 
       {/* 1. Summary */}
       <Section title="Overview">
-        <List className="ri-compact ri-stats">
+        <List className="rg-compact ri-stats">
           <Metric label="Codes" value={totalCodes} />
           <Metric label="Used" value={usedCodes} />
           <Metric label="Available" value={unusedCodes} />
