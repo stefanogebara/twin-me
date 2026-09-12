@@ -26,7 +26,6 @@ const NAV: MoneyNavLink[] = [
   { to: '#sources', label: 'Sources', sub: true },
   { to: '/money/setup', label: 'Questions' },
   { to: '/money/chat', label: 'Ask' },
-  { to: '/portrait', label: 'Portrait' },
 ];
 
 function merchantLabel(t: { merchant_name?: string | null; merchant_raw?: string | null; merchant_key: string }) {

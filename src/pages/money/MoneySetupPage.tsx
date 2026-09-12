@@ -38,7 +38,6 @@ const NAV: MoneyNavLink[] = [
   { to: '/money', label: 'This month' },
   { to: '/money/setup', label: 'Questions', current: true },
   { to: '/money/chat', label: 'Ask' },
-  { to: '/portrait', label: 'Portrait' },
 ];
 
 type ListRow = { key: string; label: string; amount: string; day: string; share: string };
