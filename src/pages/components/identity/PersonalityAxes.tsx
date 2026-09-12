@@ -6,13 +6,17 @@
  *
  * Each axis is a behavioral pattern discovered from actual data — more
  * authentic than survey-based personality scores.
+ *
+ * In the register: a section of rows under the ink rule, each axis a row with
+ * its colour as a mark, its description and evidence behind a press. No
+ * white-alpha fills (they were white labels on a white page).
  */
 
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Brain, ChevronRight, Loader2 } from 'lucide-react';
 import { authFetch } from '@/services/api/apiBase';
+import { Section, List, Empty } from '@/components/register';
+import ExpandRow from './ExpandRow';
 
 interface PersonalityAxis {
   axis_index: number;
@@ -32,12 +36,21 @@ async function fetchAxes(): Promise<PersonalityAxis[]> {
 
 interface PersonalityAxesProps {
   className?: string;
+  /** Kept for callers; the register has no staggered reveal. */
   delay?: number;
 }
 
 const VISIBLE_DEFAULT = 5;
 
-const PersonalityAxes: React.FC<PersonalityAxesProps> = ({ className = '', delay = 0.38 }) => {
+// Marks only, in the register's signature values (register.css): each clears
+// 3:1 on the page. A mark is a dot; the label beside it is ink.
+const AXIS_MARKS = ['#8179fb', '#668cc2', '#c47833', '#4c9786', '#ba70b6'];
+
+const Dot: React.FC<{ color: string }> = ({ color }) => (
+  <span style={{ width: 8, height: 8, borderRadius: 9999, background: color, display: 'block' }} />
+);
+
+const PersonalityAxes: React.FC<PersonalityAxesProps> = ({ className = '' }) => {
   const [expandedAxis, setExpandedAxis] = React.useState<number | null>(null);
   const [showAll, setShowAll] = useState(false);
 
@@ -50,168 +63,58 @@ const PersonalityAxes: React.FC<PersonalityAxesProps> = ({ className = '', delay
 
   if (isLoading) {
     return (
-      <div className={`mb-20 ${className}`}>
-        <div className="flex items-center gap-2 mb-4">
-          <Loader2 className="w-3 h-3 animate-spin" style={{ color: 'var(--text-muted)' }} />
-          <span className="text-xs" style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
-            Analyzing personality dimensions...
-          </span>
-        </div>
-      </div>
+      <Section title="Personality dimensions" className={className}>
+        <List><li><Empty>Finding the patterns in your data.</Empty></li></List>
+      </Section>
     );
   }
 
   if (axes.length === 0) return null;
 
-  // Color palette — muted, sophisticated
-  const axisColors = [
-    'rgba(199,146,234,0.7)', // lavender
-    'rgba(130,170,255,0.7)', // periwinkle
-    'rgba(255,183,130,0.7)', // peach
-    'rgba(120,200,170,0.7)', // sage
-    'rgba(255,140,160,0.7)', // rose
-    'rgba(170,200,130,0.7)', // moss
-    'rgba(200,160,120,0.7)', // copper
-    'rgba(140,180,220,0.7)', // steel blue
-    'rgba(220,170,200,0.7)', // mauve
-    'rgba(180,220,160,0.7)', // lime
-  ];
-
   return (
-    <motion.div
-      className={`mb-20 ${className}`}
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay }}
+    <Section
+      title="Personality dimensions"
+      line={`${axes.length} patterns found in your data.`}
+      className={className}
     >
-      {/* Section label */}
-      <div className="flex items-center gap-2 mb-4">
-        <Brain className="w-3 h-3" style={{ color: 'var(--text-muted)' }} />
-        <span
-          className="text-[11px] uppercase tracking-[0.12em] font-medium"
-          style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
-        >
-          Personality Dimensions
-        </span>
-      </div>
-
-      {/* Subtitle */}
-      <p
-        className="text-sm mb-5"
-        style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
-      >
-        {axes.length} behavioral patterns discovered from your data
-      </p>
-
-      {/* Axes list — top 5 prominent, rest collapsed */}
-      <div className="space-y-1.5">
+      <List>
         {axes.slice(0, showAll ? axes.length : VISIBLE_DEFAULT).map((axis, idx) => {
           const isExpanded = expandedAxis === axis.axis_index;
           const isTop = idx < VISIBLE_DEFAULT;
-          const color = axisColors[idx % axisColors.length];
-
+          const hasMore = !!axis.description || (axis.top_memory_contents?.length ?? 0) > 0;
           return (
-            <motion.div
+            <ExpandRow
               key={axis.axis_index}
-              layout
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.2, delay: idx * 0.03 }}
-              className="cursor-pointer"
-              role="button"
-              tabIndex={0}
-              aria-expanded={isExpanded}
-              onClick={() => setExpandedAxis(isExpanded ? null : axis.axis_index)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  setExpandedAxis(isExpanded ? null : axis.axis_index);
-                }
-              }}
-            >
-              <div
-                className="px-4 py-3 rounded-[16px] transition-all duration-150"
-                style={{
-                  background: isExpanded
-                    ? 'rgba(255,255,255,0.07)'
-                    : isTop
-                      ? 'rgba(255,255,255,0.06)'
-                      : 'rgba(255,255,255,0.025)',
-                  border: `1px solid ${isExpanded ? 'rgba(255,255,255,0.12)' : isTop ? 'rgba(255,255,255,0.09)' : 'rgba(255,255,255,0.05)'}`,
-                  borderLeft: isTop ? `2px solid ${color}` : '1px solid rgba(255,255,255,0.05)',
-                  opacity: isTop ? 1 : 0.75,
-                }}
-              >
-                <div className="flex items-center gap-2.5">
-                  <div
-                    className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                    style={{ backgroundColor: isTop ? color : 'rgba(255,255,255,0.18)' }}
-                  />
-                  <span
-                    className="text-[13px] flex-1 leading-snug"
-                    style={{
-                      color: isTop ? 'var(--rg-ink)' : 'var(--text-secondary)',
-                      fontFamily: "'Inter', sans-serif",
-                      fontWeight: isTop ? 500 : 400,
-                    }}
-                  >
-                    {axis.label}
-                  </span>
-                  <ChevronRight
-                    className="w-3 h-3 transition-transform duration-200 flex-shrink-0"
-                    style={{
-                      color: 'var(--text-muted)',
-                      transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
-                    }}
-                  />
-                </div>
-
-                <AnimatePresence>
-                  {isExpanded && axis.description && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                      transition={{ duration: 0.2 }}
-                      className="mt-2 ml-4"
-                    >
-                      <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
-                        {axis.description}
-                      </p>
-                      {axis.top_memory_contents && axis.top_memory_contents.length > 0 && (
-                        <div className="mt-2 space-y-1">
-                          <span className="text-[10px] uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>Evidence</span>
-                          {axis.top_memory_contents.slice(0, 2).map((mem, midx) => (
-                            <p
-                              key={midx}
-                              className="text-[11px] pl-2 leading-relaxed"
-                              style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif", borderLeft: `2px solid ${color}` }}
-                            >
-                              {mem.length > 120 ? mem.slice(0, 120) + '...' : mem}
-                            </p>
-                          ))}
-                        </div>
-                      )}
-                    </motion.div>
+              icon={<Dot color={isTop ? AXIS_MARKS[idx % AXIS_MARKS.length] : '#969394'} />}
+              title={axis.label}
+              open={isExpanded}
+              onToggle={() => setExpandedAxis(isExpanded ? null : axis.axis_index)}
+              more={hasMore ? (
+                <>
+                  {axis.description && <p style={{ margin: 0 }}>{axis.description}</p>}
+                  {axis.top_memory_contents && axis.top_memory_contents.length > 0 && (
+                    <ul style={{ margin: '8px 0 0', padding: 0, listStyle: 'none' }} aria-label="Evidence">
+                      {axis.top_memory_contents.slice(0, 2).map((mem, midx) => (
+                        <li key={midx} style={{ paddingLeft: 10, marginTop: 4, borderLeft: '2px solid var(--rg-rule)' }}>
+                          {mem.length > 120 ? mem.slice(0, 120) + '...' : mem}
+                        </li>
+                      ))}
+                    </ul>
                   )}
-                </AnimatePresence>
-              </div>
-            </motion.div>
+                </>
+              ) : null}
+            />
           );
         })}
-      </div>
+      </List>
 
       {/* Show more / less toggle */}
       {axes.length > VISIBLE_DEFAULT && (
-        <button
-          onClick={() => setShowAll(s => !s)}
-          className="mt-3 w-full text-xs py-2 rounded-[12px] transition-all duration-150 hover:bg-[var(--surface)]"
-          style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
-        >
-          {showAll ? 'Show fewer' : `+${axes.length - VISIBLE_DEFAULT} more patterns`}
+        <button type="button" className="n-btn n-btn--ghost" style={{ marginTop: 16 }} onClick={() => setShowAll(s => !s)}>
+          {showAll ? 'Show fewer' : `Show ${axes.length - VISIBLE_DEFAULT} more`}
         </button>
       )}
-    </motion.div>
+    </Section>
   );
 };
 

@@ -5,11 +5,13 @@
  * Pulls from twin_summaries (via /twin/identity) or soul-signature/profile.
  *
  * Example: "Someone who finds most meaning in ideas that arrive sideways, usually at night."
+ *
+ * In the register it is one upright Geist sentence under the list rule's
+ * rhythm: no card, no left bar, no italic (Geist has no true italic).
  */
 
 import React from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { motion } from 'framer-motion';
 import { authFetch } from '@/services/api/apiBase';
 
 function extractQuote(text: string): string | null {
@@ -55,38 +57,23 @@ const IdentityQuote: React.FC<{ className?: string }> = ({ className = '' }) => 
   if (!quote) return null;
 
   return (
-    <motion.div
-      className={`mb-5 ${className}`}
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.8, delay: 0.2 }}
-    >
-      <div
-        className="rounded-[20px] px-5 py-4 transition-all duration-300 hover:-translate-y-0.5"
+    <section className={`rg-section ${className}`}>
+      <blockquote
         style={{
-          background: 'var(--surface)',
-          backdropFilter: 'blur(42px)',
-          WebkitBackdropFilter: 'blur(42px)',
-          border: '1px solid var(--glass-surface-border)',
-          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), 0 4px 16px rgba(0,0,0,0.15)',
+          margin: 0,
+          maxWidth: '36ch',
+          fontFamily: 'var(--rg-sans)',
+          fontSize: 'clamp(20px, 2.2vw, 24px)',
+          fontWeight: 300,
+          lineHeight: 1.25,
+          letterSpacing: '-0.02em',
+          textWrap: 'balance',
+          color: 'var(--rg-ink)',
         }}
       >
-        <div className="pl-4" style={{ borderLeft: '2px solid rgba(255,255,255,0.18)' }}>
-          <p
-            className="text-lg leading-relaxed"
-            style={{
-              fontFamily: "var(--font-heading)",
-              fontStyle: 'italic',
-              color: 'var(--text-secondary)',
-              maxWidth: '520px',
-              letterSpacing: '-0.01em',
-            }}
-          >
-            &ldquo;{quote}&rdquo;
-          </p>
-        </div>
-      </div>
-    </motion.div>
+        &ldquo;{quote}&rdquo;
+      </blockquote>
+    </section>
   );
 };
 
