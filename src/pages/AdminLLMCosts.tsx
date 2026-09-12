@@ -1,21 +1,16 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import {
-  DollarSign,
-  Zap,
-  Clock,
-  RefreshCw,
-  ChevronDown,
-  ChevronUp,
-  ArrowUpDown,
-  TrendingUp,
-  Users,
-  BarChart3,
-  Cpu,
-  Layers,
-  LayoutGrid,
-} from 'lucide-react';
+import { RefreshCw, ChevronDown, ChevronUp, ArrowUpDown } from 'lucide-react';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { API_URL, getAccessToken } from '@/services/api/apiBase';
+import { Page, PageHead, Section, List, Row } from '@/components/register';
+import '@/styles/register-insights.css';
+
+/**
+ * Admin: LLM cost monitor. In the register: figures are rows, the daily
+ * spend is one chart in a list item, and every breakdown is a table under a
+ * section heading on the list's ink rule. Tiers and departments are
+ * signature marks (a swatch, a bar), never coloured text.
+ */
 
 // ========================================================================
 // Types
@@ -115,59 +110,45 @@ type SortKey = 'created_at' | 'cost_usd' | 'latency_ms' | 'tier' | 'model' | 'se
 // ========================================================================
 
 const PERIOD_OPTIONS: PeriodOption[] = [
-  { label: '7d', days: 7 },
-  { label: '30d', days: 30 },
-  { label: '90d', days: 90 },
+  { label: '7 days', days: 7 },
+  { label: '30 days', days: 30 },
+  { label: '90 days', days: 90 },
   { label: 'All', days: 365 },
 ];
 
-// CLAUDE.md: NEVER navy blue. Use warm-amber for the primary "chat" tier
-// (matches the dominant orb color on the dark gradient).
-const TIER_COLORS: Record<string, string> = {
-  chat: 'bg-[rgba(193,126,44,0.20)] text-[var(--accent-amber)] border-[rgba(193,126,44,0.30)]',
-  analysis: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-  extraction: 'bg-green-500/20 text-[var(--n-verdigris)] border-green-500/30',
+/* Each tier and department is a signature hue (register.css, 3.3:1 on the
+   page): a swatch or a bar, never text. */
+const TIER_HUES: Record<string, string> = {
+  chat: 'var(--rg-iris)',
+  analysis: 'var(--rg-ember)',
+  extraction: 'var(--rg-verdigris)',
 };
 
-const TIER_DOT_COLORS: Record<string, string> = {
-  chat: 'bg-[var(--accent-amber)]',
-  analysis: 'bg-yellow-400',
-  extraction: 'bg-green-400',
+const DEPT_HUES: Record<string, string> = {
+  memory: 'var(--rg-iris)',
+  wellbeing: 'var(--rg-periwinkle)',
+  growth: 'var(--rg-ember)',
+  schedule: 'var(--rg-signal)',
+  social: 'var(--rg-orchid)',
+  privacy: 'var(--rg-mark)',
+  creativity: 'var(--rg-verdigris)',
 };
-
-const TIER_BAR_COLORS: Record<string, string> = {
-  chat: '#c17e2c', // --accent-amber
-  analysis: '#EAB308',
-  extraction: 'var(--n-verdigris)',
-};
-
-const DEPT_COLORS: Record<string, string> = {
-  memory: '#8B5CF6',
-  wellbeing: '#EC4899',
-  growth: '#10B981',
-  schedule: '#3B82F6',
-  social: '#F59E0B',
-  privacy: '#14B8A6',
-  creativity: '#F97316',
-};
-
-const CARD_STYLE = {
-  border: '1px solid var(--border-glass)',
-  backgroundColor: 'rgba(255,255,255,0.02)',
-} as const;
-
-const TABLE_BORDER = '1px solid var(--border-glass)';
 
 // ========================================================================
 // Helpers
 // ========================================================================
 
+const capitalize = (s: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
+
+function Swatch({ color }: { color: string }) {
+  return <span className="ri-swatch" style={{ background: color }} aria-hidden="true" />;
+}
+
 function tierBadge(tier: string) {
-  const cls = TIER_COLORS[tier] || 'bg-gray-700/20 text-gray-400 border-gray-500/30';
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium border ${cls}`}>
-      <span className={`w-1.5 h-1.5 rounded-full ${TIER_DOT_COLORS[tier] || 'bg-gray-400'}`} />
-      {tier}
+    <span className="inline-flex items-center gap-1.5">
+      <Swatch color={TIER_HUES[tier] || 'var(--rg-mark)'} />
+      {capitalize(tier)}
     </span>
   );
 }
@@ -209,20 +190,17 @@ function shortModel(model: string): string {
 // Sub-components
 // ========================================================================
 
-/** Horizontal percentage bar */
+/** A thin data bar in a table cell: a signature fill on the field track. */
 function PercentBar({ value, total, color }: { value: number; total: number; color: string }) {
   const pct = total > 0 ? (value / total) * 100 : 0;
   return (
-    <div className="w-full h-2 rounded-full overflow-hidden" style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}>
-      <div
-        className="h-full rounded-full transition-all duration-500"
-        style={{ width: `${Math.max(pct, 0.5)}%`, backgroundColor: color }}
-      />
-    </div>
+    <span className="ri-bar" style={{ width: 96, marginTop: 7 }} aria-hidden="true">
+      <i className="transition-all duration-500" style={{ width: `${Math.min(100, Math.max(pct, 0.5))}%`, background: color }} />
+    </span>
   );
 }
 
-/** Daily cost trend with CSS bar chart */
+/** Daily cost trend: one stacked bar a day, a tier per signature mark. */
 function DailyTrendChart({ daily }: { daily: DailyEntry[] }) {
   if (daily.length === 0) return null;
 
@@ -234,108 +212,71 @@ function DailyTrendChart({ daily }: { daily: DailyEntry[] }) {
   const maxCost = Math.max(...sorted.map(d => d.cost_usd), 0.001);
 
   return (
-    <div className="mb-10">
-      <div className="flex items-center gap-2 mb-4">
-        <BarChart3 className="w-4 h-4" style={{ color: 'var(--n-verdigris)' }} />
-        <span className="text-[11px] font-medium tracking-widest uppercase" style={{ color: 'var(--n-verdigris)' }}>
-          Daily Spend Trend
-        </span>
-      </div>
-      <div className="rounded-lg p-5" style={CARD_STYLE}>
-        {/* Bar chart */}
-        <div className="flex items-end gap-[3px]" style={{ height: '140px' }}>
-          {sorted.map((entry) => {
-            const height = maxCost > 0 ? (entry.cost_usd / maxCost) * 100 : 0;
-            // Stack tiers
-            const chatCost = entry.by_tier?.chat?.cost_usd || 0;
-            const analysisCost = entry.by_tier?.analysis?.cost_usd || 0;
-            const extractionCost = entry.by_tier?.extraction?.cost_usd || 0;
-            const totalDayCost = entry.cost_usd || 0.001;
+    <Section title="Daily spend" line="Stacked by tier.">
+      <List>
+        <li className="ri-block">
+          {/* Bar chart */}
+          <div className="flex items-end gap-[3px]" style={{ height: '140px' }}>
+            {sorted.map((entry) => {
+              const height = maxCost > 0 ? (entry.cost_usd / maxCost) * 100 : 0;
+              // Stack tiers
+              const chatCost = entry.by_tier?.chat?.cost_usd || 0;
+              const analysisCost = entry.by_tier?.analysis?.cost_usd || 0;
+              const extractionCost = entry.by_tier?.extraction?.cost_usd || 0;
+              const totalDayCost = entry.cost_usd || 0.001;
 
-            return (
-              <div
-                key={entry.day}
-                className="flex-1 flex flex-col justify-end group relative"
-                style={{ minWidth: '6px', height: '100%' }}
-              >
-                {/* Tooltip */}
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-10">
-                  <div
-                    className="rounded-lg px-3 py-2 text-xs whitespace-nowrap"
-                    style={{
-                      backgroundColor: 'rgba(30,28,36,0.95)',
-                      border: '1px solid rgba(255,255,255,0.1)',
-                      color: 'var(--foreground)',
-                    }}
-                  >
-                    <div className="font-mono font-semibold">{entry.day}</div>
-                    <div style={{ color: 'rgba(255,255,255,0.5)' }}>
-                      {formatCost(entry.cost_usd)} / {entry.calls} calls
+              return (
+                <div
+                  key={entry.day}
+                  className="flex-1 flex flex-col justify-end group relative"
+                  style={{ minWidth: '6px', height: '100%' }}
+                >
+                  {/* Tooltip */}
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-10">
+                    <div className="ri-tip">
+                      <div style={{ fontWeight: 500 }}>{entry.day}</div>
+                      <div className="ri-q">
+                        {formatCost(entry.cost_usd)} / {entry.calls} calls
+                      </div>
                     </div>
                   </div>
+                  {/* Stacked bar: a 1px page gap between tiers keeps the marks apart */}
+                  <div
+                    className="w-full flex flex-col gap-px overflow-hidden transition-all duration-300"
+                    style={{ height: `${Math.max(height, 1)}%`, borderRadius: '2px 2px 0 0' }}
+                  >
+                    {chatCost > 0 && (
+                      <div style={{ flexGrow: chatCost / totalDayCost, background: TIER_HUES.chat }} />
+                    )}
+                    {analysisCost > 0 && (
+                      <div style={{ flexGrow: analysisCost / totalDayCost, background: TIER_HUES.analysis }} />
+                    )}
+                    {extractionCost > 0 && (
+                      <div style={{ flexGrow: extractionCost / totalDayCost, background: TIER_HUES.extraction }} />
+                    )}
+                  </div>
                 </div>
-                {/* Stacked bar */}
-                <div
-                  className="w-full rounded-t-[2px] overflow-hidden transition-all duration-300"
-                  style={{ height: `${Math.max(height, 1)}%` }}
-                >
-                  {extractionCost > 0 && (
-                    <div
-                      style={{
-                        height: `${(extractionCost / totalDayCost) * 100}%`,
-                        backgroundColor: TIER_BAR_COLORS.extraction,
-                        opacity: 0.7,
-                      }}
-                    />
-                  )}
-                  {analysisCost > 0 && (
-                    <div
-                      style={{
-                        height: `${(analysisCost / totalDayCost) * 100}%`,
-                        backgroundColor: TIER_BAR_COLORS.analysis,
-                        opacity: 0.7,
-                      }}
-                    />
-                  )}
-                  {chatCost > 0 && (
-                    <div
-                      style={{
-                        height: `${(chatCost / totalDayCost) * 100}%`,
-                        backgroundColor: TIER_BAR_COLORS.chat,
-                        opacity: 0.7,
-                      }}
-                    />
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-        {/* X-axis labels (show first, middle, last) */}
-        <div className="flex justify-between mt-2">
-          <span className="text-[10px] font-mono" style={{ color: 'rgba(255,255,255,0.25)' }}>
-            {sorted[0]?.day.slice(5)}
-          </span>
-          {sorted.length > 2 && (
-            <span className="text-[10px] font-mono" style={{ color: 'rgba(255,255,255,0.25)' }}>
-              {sorted[Math.floor(sorted.length / 2)]?.day.slice(5)}
-            </span>
-          )}
-          <span className="text-[10px] font-mono" style={{ color: 'rgba(255,255,255,0.25)' }}>
-            {sorted[sorted.length - 1]?.day.slice(5)}
-          </span>
-        </div>
-        {/* Legend */}
-        <div className="flex items-center gap-4 mt-3">
-          {Object.entries(TIER_BAR_COLORS).map(([tier, color]) => (
-            <div key={tier} className="flex items-center gap-1.5">
-              <div className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: color, opacity: 0.7 }} />
-              <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.35)' }}>{tier}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
+              );
+            })}
+          </div>
+          {/* X-axis labels (first, middle, last) */}
+          <div className="flex justify-between ri-q ri-figures" style={{ margin: '8px 0 12px' }}>
+            <span>{sorted[0]?.day.slice(5)}</span>
+            {sorted.length > 2 && <span>{sorted[Math.floor(sorted.length / 2)]?.day.slice(5)}</span>}
+            <span>{sorted[sorted.length - 1]?.day.slice(5)}</span>
+          </div>
+          {/* Legend */}
+          <ul className="ri-legend">
+            {Object.entries(TIER_HUES).map(([tier, color]) => (
+              <li key={tier}>
+                <Swatch color={color} />
+                {capitalize(tier)}
+              </li>
+            ))}
+          </ul>
+        </li>
+      </List>
+    </Section>
   );
 }
 
@@ -501,496 +442,335 @@ const AdminLLMCosts: React.FC = () => {
     }
   };
 
-  const SortButton: React.FC<{ label: string; field: SortKey }> = ({ label, field }) => (
-    <button
-      onClick={() => handleSort(field)}
-      className="flex items-center gap-1 hover:opacity-80 transition-opacity"
-    >
-      {label}
-      {sortKey === field ? (
-        sortAsc ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
-      ) : (
-        <ArrowUpDown className="w-3 h-3 opacity-40" />
-      )}
-    </button>
+  const SortHeader: React.FC<{ label: string; field: SortKey }> = ({ label, field }) => (
+    <th aria-sort={sortKey === field ? (sortAsc ? 'ascending' : 'descending') : undefined}>
+      <button type="button" onClick={() => handleSort(field)} className="ri-sort">
+        {label}
+        {sortKey === field ? (
+          sortAsc ? <ChevronUp aria-hidden="true" /> : <ChevronDown aria-hidden="true" />
+        ) : (
+          <ArrowUpDown aria-hidden="true" />
+        )}
+      </button>
+    </th>
   );
+
+  const refreshNow = () => { setLoading(true); fetchData(selectedPeriod); };
 
   // ---- Render states ----
 
   if (loading) {
     return (
-      <div className="max-w-[1060px] mx-auto px-6 py-16">
-        <div className="flex items-center justify-center py-20">
-          <RefreshCw className="w-5 h-5 animate-spin" style={{ color: 'rgba(255,255,255,0.2)' }} />
-        </div>
-      </div>
+      <Page>
+        <PageHead title="LLM costs" />
+        <p className="rg-empty flex items-center gap-2" role="status">
+          <RefreshCw className="w-4 h-4 animate-spin" aria-hidden="true" />
+          Loading
+        </p>
+      </Page>
     );
   }
 
   if (error) {
     return (
-      <div className="max-w-[1060px] mx-auto px-6 py-16">
-        <h1
-          className="mb-6"
-          style={{
-            fontSize: '28px',
-            fontWeight: 600,
-            color: 'var(--foreground)',
-            letterSpacing: '-0.02em',
-          }}
-        >
-          LLM Cost Monitor
-        </h1>
-        <div className="p-5 rounded-lg text-center" style={CARD_STYLE}>
-          <p className="text-sm mb-4" style={{ color: '#fca5a5' }}>{error}</p>
-          <button
-            onClick={() => { setLoading(true); fetchData(selectedPeriod); }}
-            className="px-4 py-2 rounded-lg text-sm transition-opacity hover:opacity-70"
-            style={{ border: '1px solid var(--border)', color: 'rgba(255,255,255,0.5)' }}
-          >
-            Retry
-          </button>
-        </div>
-      </div>
+      <Page>
+        <PageHead title="LLM costs" />
+        <List className="pb-stack">
+          <Row
+            title={<span className="ri-danger">{error}</span>}
+            action={
+              <button type="button" onClick={refreshNow} className="n-btn n-btn--ghost">
+                Retry
+              </button>
+            }
+          />
+        </List>
+      </Page>
     );
   }
 
-  return (
-    <div className="max-w-[1060px] mx-auto px-6 py-16">
-      {/* ================================================================ */}
-      {/* Header                                                          */}
-      {/* ================================================================ */}
-      <h1
-        className="mb-2"
-        style={{
-          fontFamily: 'var(--font-ui)',
-          fontSize: '28px',
-          fontWeight: 600,
-          color: 'var(--foreground)',
-          letterSpacing: '-0.02em',
-        }}
-      >
-        LLM Cost Monitor
-      </h1>
-      <p className="text-sm mb-6" style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', sans-serif" }}>
-        AI spending analytics across all services and users
-      </p>
+  const realUserCount = userCosts?.users.filter(u => u.user_id !== 'system').length || 0;
+  const totalBudget = deptBudgets.reduce((s, d) => s + d.monthly_budget_usd, 0);
+  const totalSpent = deptBudgets.reduce((s, d) => s + d.spent_this_month_usd, 0);
 
-      {/* Controls */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
-        {/* Period selector */}
-        <div className="flex items-center gap-1 rounded-full p-0.5" style={{ border: '1px solid var(--border-glass)' }}>
+  return (
+    <Page>
+      <PageHead
+        title="LLM costs"
+        line="AI spend across services and users"
+        action={
+          <button type="button" onClick={refreshNow} className="rg-iconbtn" title="Refresh now" aria-label="Refresh now">
+            <RefreshCw aria-hidden="true" />
+          </button>
+        }
+      />
+
+      {/* Controls: the period, when it last updated, auto refresh */}
+      <div className="ri-toolbar">
+        <div className="ri-actions" role="group" aria-label="Period">
           {PERIOD_OPTIONS.map(({ label, days }) => (
             <button
               key={days}
+              type="button"
               onClick={() => setSelectedPeriod(days)}
-              className="px-3.5 py-1.5 rounded-full text-xs font-medium transition-all"
-              style={{
-                backgroundColor: selectedPeriod === days ? 'rgba(255,255,255,0.1)' : 'transparent',
-                color: selectedPeriod === days ? 'var(--foreground)' : 'rgba(255,255,255,0.35)',
-              }}
+              className="ri-choice"
+              aria-pressed={selectedPeriod === days}
             >
               {label}
             </button>
           ))}
         </div>
 
-        <div className="flex items-center gap-3">
-          <p className="text-[11px]" style={{ color: 'rgba(255,255,255,0.25)' }}>
-            Updated {lastRefresh.toLocaleTimeString()}
-          </p>
-          <label className="flex items-center gap-2 cursor-pointer">
-            <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.3)' }}>Auto</span>
+        <div className="ri-actions" style={{ gap: 12 }}>
+          <span className="ri-q">Updated {lastRefresh.toLocaleTimeString()}</span>
+          <span className="inline-flex items-center gap-2">
+            <span id="llm-auto-label">Auto refresh</span>
             <button
+              type="button"
+              role="switch"
+              aria-checked={autoRefresh}
+              aria-labelledby="llm-auto-label"
               onClick={() => setAutoRefresh(!autoRefresh)}
-              className={`w-9 h-5 rounded-full transition-colors relative ${autoRefresh ? 'bg-green-500' : 'bg-gray-600'}`}
-            >
-              <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${autoRefresh ? 'translate-x-4' : 'translate-x-0.5'}`} />
-            </button>
-          </label>
-          <button
-            onClick={() => { setLoading(true); fetchData(selectedPeriod); }}
-            className="p-1.5 rounded-lg transition-opacity hover:opacity-60"
-            style={{ color: 'rgba(255,255,255,0.25)' }}
-            title="Refresh now"
-          >
-            <RefreshCw className="w-3.5 h-3.5" />
-          </button>
+              className="ri-switch"
+            />
+          </span>
         </div>
       </div>
 
-      <div style={{ borderTop: '1px solid var(--border-glass)' }} className="mb-8" />
+      {/* Summary */}
+      <Section title="Spend" line={`Over ${summary?.period_days || selectedPeriod} days.`}>
+        <List className="ri-compact ri-stats">
+          <Row title={formatCost(summary?.total_cost_usd || 0)} line="Total spend" />
+          <Row title={`$${(summary?.monthly_projection_usd || 0).toFixed(2)}`} line="Monthly projection at this rate" />
+          <Row title={`$${avgCostPerUserPerMonth.toFixed(2)}`} line={`Per user per month, ${realUserCount} users`} />
+          <Row title={`${(summary?.cache_hit_rate || 0).toFixed(1)}%`} line="Cache hit rate" />
+          <Row title={formatCost(summary?.daily_average_usd || 0)} line="Daily average" />
+          <Row title={avgLatency > 0 ? `${Math.round(avgLatency)}ms` : '--'} line="Average latency" />
+          <Row title={formatNumber(summary?.total_calls || 0)} line="Calls" />
+        </List>
+      </Section>
 
-      {/* ================================================================ */}
-      {/* Summary Cards                                                   */}
-      {/* ================================================================ */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
-        {[
-          {
-            icon: DollarSign,
-            color: 'var(--n-verdigris)',
-            label: 'Total Spend',
-            value: formatCost(summary?.total_cost_usd || 0),
-            sub: `${summary?.period_days || selectedPeriod}-day period`,
-          },
-          {
-            icon: TrendingUp,
-            color: '#EF4444',
-            label: 'Monthly Projection',
-            value: `$${(summary?.monthly_projection_usd || 0).toFixed(2)}`,
-            sub: 'At current rate',
-          },
-          {
-            icon: Users,
-            color: '#8B5CF6',
-            label: 'Avg / User / Mo',
-            value: `$${avgCostPerUserPerMonth.toFixed(2)}`,
-            sub: `${userCosts?.users.filter(u => u.user_id !== 'system').length || 0} users`,
-          },
-          {
-            icon: Zap,
-            color: '#06B6D4',
-            label: 'Cache Hit Rate',
-            value: `${(summary?.cache_hit_rate || 0).toFixed(1)}%`,
-            sub: `${formatNumber(summary?.total_calls || 0)} total calls`,
-          },
-        ].map(({ icon: Icon, color, label, value, sub }) => (
-          <div key={label} className="p-5 rounded-lg" style={CARD_STYLE}>
-            <div className="flex items-center gap-2.5 mb-3">
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: `${color}15` }}>
-                <Icon className="w-4 h-4" style={{ color }} />
-              </div>
-              <span className="text-[11px] uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.35)' }}>{label}</span>
-            </div>
-            <p className="text-2xl font-semibold" style={{ color: 'var(--foreground)' }}>{value}</p>
-            <p className="text-[11px] mt-1" style={{ color: 'rgba(255,255,255,0.3)' }}>{sub}</p>
-          </div>
-        ))}
-      </div>
+      {/* Daily trend */}
+      {daily && daily.daily.length > 0 && <DailyTrendChart daily={daily.daily} />}
 
-      {/* Secondary stats */}
-      <div className="grid grid-cols-3 gap-4 mb-10">
-        {[
-          { label: 'Daily Avg', value: formatCost(summary?.daily_average_usd || 0) },
-          { label: 'Avg Latency', value: avgLatency > 0 ? `${Math.round(avgLatency)}ms` : '--' },
-          { label: 'Total Calls', value: formatNumber(summary?.total_calls || 0) },
-        ].map(({ label, value }) => (
-          <div key={label} className="p-4 rounded-lg text-center" style={CARD_STYLE}>
-            <p className="text-[11px] uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.35)' }}>{label}</p>
-            <p className="text-lg font-semibold" style={{ color: 'var(--foreground)' }}>{value}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* ================================================================ */}
-      {/* Daily Trend Chart                                               */}
-      {/* ================================================================ */}
-      {daily && daily.daily.length > 0 && (
-        <DailyTrendChart daily={daily.daily} />
-      )}
-
-      {/* ================================================================ */}
-      {/* Cost by Service                                                 */}
-      {/* ================================================================ */}
+      {/* Cost by service */}
       {costByService.length > 0 && (
-        <div className="mb-10">
-          <div className="flex items-center gap-2 mb-4">
-            <Layers className="w-4 h-4" style={{ color: 'var(--n-verdigris)' }} />
-            <span className="text-[11px] font-medium tracking-widest uppercase" style={{ color: 'var(--n-verdigris)' }}>
-              Cost by Service
-            </span>
-          </div>
-          <div className="rounded-lg overflow-hidden" style={CARD_STYLE}>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr style={{ borderBottom: TABLE_BORDER }}>
-                    {['Service', 'Calls', 'Input Tokens', 'Output Tokens', 'Cost', '%', ''].map(h => (
-                      <th key={h} className="px-4 py-3 text-left text-[11px] uppercase tracking-wider font-medium" style={{ color: 'rgba(255,255,255,0.35)' }}>{h}</th>
-                    ))}
+        <Section title="By service">
+          <div className="ri-table-wrap">
+            <table className="ri-table">
+              <thead>
+                <tr>
+                  <th>Service</th>
+                  <th>Calls</th>
+                  <th>Input tokens</th>
+                  <th>Output tokens</th>
+                  <th>Cost</th>
+                  <th>Share</th>
+                  <th aria-hidden="true" />
+                </tr>
+              </thead>
+              <tbody>
+                {costByService.map((row) => (
+                  <tr key={row.service}>
+                    <td className="ri-strong">{row.service}</td>
+                    <td>{formatNumber(row.calls)}</td>
+                    <td>{formatNumber(row.inputTokens)}</td>
+                    <td>{formatNumber(row.outputTokens)}</td>
+                    <td className="ri-strong">{formatCost(row.cost)}</td>
+                    <td>{formatPercent(row.cost, totalServiceCost)}</td>
+                    <td><PercentBar value={row.cost} total={totalServiceCost} color="var(--rg-signal)" /></td>
                   </tr>
-                </thead>
-                <tbody>
-                  {costByService.map((row, i) => (
-                    <tr key={row.service} style={{ borderBottom: i < costByService.length - 1 ? TABLE_BORDER : undefined }}>
-                      <td className="px-4 py-3 text-xs font-medium" style={{ color: 'var(--foreground)' }}>{row.service}</td>
-                      <td className="px-4 py-3 text-xs" style={{ color: 'var(--foreground)' }}>{formatNumber(row.calls)}</td>
-                      <td className="px-4 py-3 font-mono text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>{formatNumber(row.inputTokens)}</td>
-                      <td className="px-4 py-3 font-mono text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>{formatNumber(row.outputTokens)}</td>
-                      <td className="px-4 py-3 font-mono text-xs font-semibold" style={{ color: 'var(--foreground)' }}>{formatCost(row.cost)}</td>
-                      <td className="px-4 py-3 text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>{formatPercent(row.cost, totalServiceCost)}</td>
-                      <td className="px-4 py-3 w-24">
-                        <PercentBar value={row.cost} total={totalServiceCost} color="var(--n-verdigris)" />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                ))}
+              </tbody>
+            </table>
           </div>
-        </div>
+        </Section>
       )}
 
-      {/* ================================================================ */}
-      {/* Cost by Model                                                   */}
-      {/* ================================================================ */}
+      {/* Cost by model */}
       {costByModel.length > 0 && (
-        <div className="mb-10">
-          <div className="flex items-center gap-2 mb-4">
-            <Cpu className="w-4 h-4" style={{ color: 'var(--n-verdigris)' }} />
-            <span className="text-[11px] font-medium tracking-widest uppercase" style={{ color: 'var(--n-verdigris)' }}>
-              Cost by Model
-            </span>
-          </div>
-          <div className="rounded-lg overflow-hidden" style={CARD_STYLE}>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr style={{ borderBottom: TABLE_BORDER }}>
-                    {['Model', 'Calls', 'Input Tokens', 'Output Tokens', 'Cost', '%', ''].map(h => (
-                      <th key={h} className="px-4 py-3 text-left text-[11px] uppercase tracking-wider font-medium" style={{ color: 'rgba(255,255,255,0.35)' }}>{h}</th>
-                    ))}
+        <Section title="By model">
+          <div className="ri-table-wrap">
+            <table className="ri-table">
+              <thead>
+                <tr>
+                  <th>Model</th>
+                  <th>Calls</th>
+                  <th>Input tokens</th>
+                  <th>Output tokens</th>
+                  <th>Cost</th>
+                  <th>Share</th>
+                  <th aria-hidden="true" />
+                </tr>
+              </thead>
+              <tbody>
+                {costByModel.map((row) => (
+                  <tr key={row.model}>
+                    <td className="ri-strong">{shortModel(row.model)}</td>
+                    <td>{formatNumber(row.calls)}</td>
+                    <td>{formatNumber(row.inputTokens)}</td>
+                    <td>{formatNumber(row.outputTokens)}</td>
+                    <td className="ri-strong">{formatCost(row.cost)}</td>
+                    <td>{formatPercent(row.cost, totalModelCost)}</td>
+                    <td><PercentBar value={row.cost} total={totalModelCost} color="var(--rg-signal)" /></td>
                   </tr>
-                </thead>
-                <tbody>
-                  {costByModel.map((row, i) => (
-                    <tr key={row.model} style={{ borderBottom: i < costByModel.length - 1 ? TABLE_BORDER : undefined }}>
-                      <td className="px-4 py-3 font-mono text-xs" style={{ color: 'var(--foreground)' }}>{shortModel(row.model)}</td>
-                      <td className="px-4 py-3 text-xs" style={{ color: 'var(--foreground)' }}>{formatNumber(row.calls)}</td>
-                      <td className="px-4 py-3 font-mono text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>{formatNumber(row.inputTokens)}</td>
-                      <td className="px-4 py-3 font-mono text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>{formatNumber(row.outputTokens)}</td>
-                      <td className="px-4 py-3 font-mono text-xs font-semibold" style={{ color: 'var(--foreground)' }}>{formatCost(row.cost)}</td>
-                      <td className="px-4 py-3 text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>{formatPercent(row.cost, totalModelCost)}</td>
-                      <td className="px-4 py-3 w-24">
-                        <PercentBar value={row.cost} total={totalModelCost} color="#8B5CF6" />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                ))}
+              </tbody>
+            </table>
           </div>
-        </div>
+        </Section>
       )}
 
-      {/* ================================================================ */}
-      {/* Top Users by Cost                                               */}
-      {/* ================================================================ */}
+      {/* Top users by cost */}
       {userCosts && userCosts.users.length > 0 && (
-        <div className="mb-10">
-          <div className="flex items-center gap-2 mb-4">
-            <Users className="w-4 h-4" style={{ color: 'var(--n-verdigris)' }} />
-            <span className="text-[11px] font-medium tracking-widest uppercase" style={{ color: 'var(--n-verdigris)' }}>Top Users by Cost</span>
-          </div>
-          <div className="rounded-lg overflow-hidden" style={CARD_STYLE}>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr style={{ borderBottom: TABLE_BORDER }}>
-                    {['User', 'Calls', 'Tokens', 'Chat', 'Analysis', 'Extraction', 'Avg/Call', 'Total'].map(h => (
-                      <th key={h} className="px-4 py-3 text-left text-[11px] uppercase tracking-wider font-medium" style={{ color: 'rgba(255,255,255,0.35)' }}>{h}</th>
-                    ))}
+        <Section title="Top users by cost">
+          <div className="ri-table-wrap">
+            <table className="ri-table">
+              <thead>
+                <tr>
+                  <th>User</th>
+                  <th>Calls</th>
+                  <th>Tokens</th>
+                  <th>Chat</th>
+                  <th>Analysis</th>
+                  <th>Extraction</th>
+                  <th>Per call</th>
+                  <th>Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {userCosts.users.map((user) => (
+                  <tr key={user.user_id}>
+                    <td className="ri-strong">{user.email}</td>
+                    <td>{formatNumber(user.call_count)}</td>
+                    <td>{formatNumber(user.total_tokens)}</td>
+                    <td>{user.by_tier.chat ? formatCost(user.by_tier.chat.cost_usd) : '--'}</td>
+                    <td>{user.by_tier.analysis ? formatCost(user.by_tier.analysis.cost_usd) : '--'}</td>
+                    <td>{user.by_tier.extraction ? formatCost(user.by_tier.extraction.cost_usd) : '--'}</td>
+                    <td>{user.call_count > 0 ? formatCost(user.total_cost_usd / user.call_count) : '--'}</td>
+                    <td className="ri-strong">{formatCost(user.total_cost_usd)}</td>
                   </tr>
-                </thead>
-                <tbody>
-                  {userCosts.users.map((user, i) => (
-                    <tr key={user.user_id} style={{ borderBottom: i < userCosts.users.length - 1 ? TABLE_BORDER : undefined }}>
-                      <td className="px-4 py-3 text-xs" style={{ color: 'var(--foreground)' }}>{user.email}</td>
-                      <td className="px-4 py-3 text-xs" style={{ color: 'var(--foreground)' }}>{formatNumber(user.call_count)}</td>
-                      <td className="px-4 py-3 font-mono text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>{formatNumber(user.total_tokens)}</td>
-                      <td className="px-4 py-3 font-mono text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                        {user.by_tier.chat ? formatCost(user.by_tier.chat.cost_usd) : '--'}
-                      </td>
-                      <td className="px-4 py-3 font-mono text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                        {user.by_tier.analysis ? formatCost(user.by_tier.analysis.cost_usd) : '--'}
-                      </td>
-                      <td className="px-4 py-3 font-mono text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                        {user.by_tier.extraction ? formatCost(user.by_tier.extraction.cost_usd) : '--'}
-                      </td>
-                      <td className="px-4 py-3 font-mono text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                        {user.call_count > 0 ? formatCost(user.total_cost_usd / user.call_count) : '--'}
-                      </td>
-                      <td className="px-4 py-3 font-mono text-xs font-semibold" style={{ color: 'var(--foreground)' }}>
-                        {formatCost(user.total_cost_usd)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                ))}
+              </tbody>
+            </table>
           </div>
-        </div>
+        </Section>
       )}
 
-      {/* ================================================================ */}
-      {/* Department Spending                                             */}
-      {/* ================================================================ */}
+      {/* Department spending */}
       {deptBudgets.length > 0 && (
-        <div className="mb-10">
-          <div className="flex items-center gap-2 mb-4">
-            <LayoutGrid className="w-4 h-4" style={{ color: 'var(--n-verdigris)' }} />
-            <span className="text-[11px] font-medium tracking-widest uppercase" style={{ color: 'var(--n-verdigris)' }}>
-              Department Spending
-            </span>
-          </div>
-          <div className="rounded-lg overflow-hidden" style={CARD_STYLE}>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr style={{ borderBottom: TABLE_BORDER }}>
-                    {['Department', 'Budget', 'Spent', 'Remaining', '% Used', ''].map(h => (
-                      <th key={h} className="px-4 py-3 text-left text-[11px] uppercase tracking-wider font-medium" style={{ color: 'rgba(255,255,255,0.35)' }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {deptBudgets.map((dept, i) => {
-                    const pctUsed = dept.monthly_budget_usd > 0
-                      ? (dept.spent_this_month_usd / dept.monthly_budget_usd) * 100
-                      : 0;
-                    const barColor = DEPT_COLORS[dept.department] || '#6B7280';
+        <Section title="Departments" line="This month against each budget.">
+          <div className="ri-table-wrap">
+            <table className="ri-table">
+              <thead>
+                <tr>
+                  <th>Department</th>
+                  <th>Budget</th>
+                  <th>Spent</th>
+                  <th>Remaining</th>
+                  <th>Used</th>
+                  <th aria-hidden="true" />
+                </tr>
+              </thead>
+              <tbody>
+                {deptBudgets.map((dept) => {
+                  const pctUsed = dept.monthly_budget_usd > 0
+                    ? (dept.spent_this_month_usd / dept.monthly_budget_usd) * 100
+                    : 0;
+                  const barColor = DEPT_HUES[dept.department] || 'var(--rg-mark)';
 
-                    return (
-                      <tr key={dept.department} style={{ borderBottom: i < deptBudgets.length - 1 ? TABLE_BORDER : undefined }}>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: barColor }} />
-                            <span className="text-xs font-medium capitalize" style={{ color: 'var(--foreground)' }}>{dept.department}</span>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 font-mono text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>{formatCost(dept.monthly_budget_usd)}</td>
-                        <td className="px-4 py-3 font-mono text-xs font-semibold" style={{ color: 'var(--foreground)' }}>{formatCost(dept.spent_this_month_usd)}</td>
-                        <td className="px-4 py-3 font-mono text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>{formatCost(dept.remaining_usd)}</td>
-                        <td className="px-4 py-3 text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>{pctUsed.toFixed(1)}%</td>
-                        <td className="px-4 py-3 w-24">
-                          <PercentBar value={dept.spent_this_month_usd} total={dept.monthly_budget_usd} color={barColor} />
-                        </td>
-                      </tr>
-                    );
-                  })}
-                  {/* Total row */}
-                  <tr style={{ borderTop: TABLE_BORDER }}>
-                    <td className="px-4 py-3 text-xs font-semibold" style={{ color: 'var(--foreground)' }}>Total</td>
-                    <td className="px-4 py-3 font-mono text-xs font-semibold" style={{ color: 'var(--foreground)' }}>
-                      {formatCost(deptBudgets.reduce((s, d) => s + d.monthly_budget_usd, 0))}
-                    </td>
-                    <td className="px-4 py-3 font-mono text-xs font-semibold" style={{ color: 'var(--foreground)' }}>
-                      {formatCost(deptBudgets.reduce((s, d) => s + d.spent_this_month_usd, 0))}
-                    </td>
-                    <td className="px-4 py-3 font-mono text-xs font-semibold" style={{ color: 'var(--foreground)' }}>
-                      {formatCost(deptBudgets.reduce((s, d) => s + d.remaining_usd, 0))}
-                    </td>
-                    <td className="px-4 py-3 text-xs font-semibold" style={{ color: 'var(--foreground)' }}>
-                      {(() => {
-                        const totalBudget = deptBudgets.reduce((s, d) => s + d.monthly_budget_usd, 0);
-                        const totalSpent = deptBudgets.reduce((s, d) => s + d.spent_this_month_usd, 0);
-                        return totalBudget > 0 ? `${((totalSpent / totalBudget) * 100).toFixed(1)}%` : '0%';
-                      })()}
-                    </td>
-                    <td className="px-4 py-3 w-24">
-                      <PercentBar
-                        value={deptBudgets.reduce((s, d) => s + d.spent_this_month_usd, 0)}
-                        total={deptBudgets.reduce((s, d) => s + d.monthly_budget_usd, 0)}
-                        color="var(--n-verdigris)"
-                      />
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ================================================================ */}
-      {/* Tier Breakdown                                                  */}
-      {/* ================================================================ */}
-      {summary && Object.keys(summary.by_tier).length > 0 && (
-        <div className="mb-10">
-          <div className="flex items-center gap-2 mb-4">
-            <BarChart3 className="w-4 h-4" style={{ color: 'var(--n-verdigris)' }} />
-            <span className="text-[11px] font-medium tracking-widest uppercase" style={{ color: 'var(--n-verdigris)' }}>By Tier</span>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {Object.entries(summary.by_tier).map(([tier, data]) => (
-              <div key={tier} className="p-4 rounded-lg" style={CARD_STYLE}>
-                <div className="mb-2">{tierBadge(tier)}</div>
-                <p className="text-xl font-semibold mb-1" style={{ color: 'var(--foreground)' }}>{formatCost(data.cost_usd)}</p>
-                <p className="text-[11px]" style={{ color: 'rgba(255,255,255,0.35)' }}>
-                  {formatNumber(data.calls)} calls
-                  {summary.total_cost_usd > 0 && (
-                    <span> / {formatPercent(data.cost_usd, summary.total_cost_usd)} of total</span>
-                  )}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* ================================================================ */}
-      {/* Recent Calls (Realtime Log)                                     */}
-      {/* ================================================================ */}
-      {realtime && (
-        <div className="mb-10">
-          <div className="flex items-center gap-2 mb-4">
-            <Clock className="w-4 h-4" style={{ color: 'var(--n-verdigris)' }} />
-            <span className="text-[11px] font-medium tracking-widest uppercase" style={{ color: 'var(--n-verdigris)' }}>Recent Calls</span>
-            <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.3)' }}>({realtime.count})</span>
-          </div>
-          <div className="rounded-lg overflow-hidden" style={CARD_STYLE}>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr style={{ borderBottom: TABLE_BORDER }}>
-                    <th className="px-4 py-3 text-left text-[11px] uppercase tracking-wider font-medium" style={{ color: 'rgba(255,255,255,0.35)' }}><SortButton label="Time" field="created_at" /></th>
-                    <th className="px-4 py-3 text-left text-[11px] uppercase tracking-wider font-medium" style={{ color: 'rgba(255,255,255,0.35)' }}><SortButton label="Tier" field="tier" /></th>
-                    <th className="px-4 py-3 text-left text-[11px] uppercase tracking-wider font-medium" style={{ color: 'rgba(255,255,255,0.35)' }}><SortButton label="Service" field="service_name" /></th>
-                    <th className="px-4 py-3 text-left text-[11px] uppercase tracking-wider font-medium" style={{ color: 'rgba(255,255,255,0.35)' }}><SortButton label="Model" field="model" /></th>
-                    <th className="px-4 py-3 text-left text-[11px] uppercase tracking-wider font-medium" style={{ color: 'rgba(255,255,255,0.35)' }}>Tokens</th>
-                    <th className="px-4 py-3 text-left text-[11px] uppercase tracking-wider font-medium" style={{ color: 'rgba(255,255,255,0.35)' }}><SortButton label="Cost" field="cost_usd" /></th>
-                    <th className="px-4 py-3 text-left text-[11px] uppercase tracking-wider font-medium" style={{ color: 'rgba(255,255,255,0.35)' }}><SortButton label="Latency" field="latency_ms" /></th>
-                    <th className="px-4 py-3 text-left text-[11px] uppercase tracking-wider font-medium" style={{ color: 'rgba(255,255,255,0.35)' }}>Cache</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sortedCalls.length === 0 ? (
-                    <tr>
-                      <td colSpan={8} className="px-4 py-8 text-center text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
-                        No recent calls
+                  return (
+                    <tr key={dept.department}>
+                      <td className="ri-strong">
+                        <span className="inline-flex items-center gap-2">
+                          <Swatch color={barColor} />
+                          {capitalize(dept.department)}
+                        </span>
                       </td>
+                      <td>{formatCost(dept.monthly_budget_usd)}</td>
+                      <td className="ri-strong">{formatCost(dept.spent_this_month_usd)}</td>
+                      <td>{formatCost(dept.remaining_usd)}</td>
+                      <td>{pctUsed.toFixed(1)}%</td>
+                      <td><PercentBar value={dept.spent_this_month_usd} total={dept.monthly_budget_usd} color={barColor} /></td>
                     </tr>
-                  ) : (
-                    sortedCalls.map((call, i) => (
-                      <tr key={call.id} style={{ borderBottom: i < sortedCalls.length - 1 ? TABLE_BORDER : undefined }}>
-                        <td className="px-4 py-2.5 font-mono text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>{formatTimestamp(call.created_at)}</td>
-                        <td className="px-4 py-2.5">{tierBadge(call.tier)}</td>
-                        <td className="px-4 py-2.5 text-xs" style={{ color: 'var(--foreground)' }}>{call.service_name}</td>
-                        <td className="px-4 py-2.5 font-mono text-xs" style={{ color: 'var(--foreground)' }}>{shortModel(call.model)}</td>
-                        <td className="px-4 py-2.5 font-mono text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                          {formatNumber(call.input_tokens)}/{formatNumber(call.output_tokens)}
-                          {call.cached_tokens > 0 && (
-                            <span style={{ color: 'var(--n-verdigris)' }}> ({formatNumber(call.cached_tokens)}c)</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-2.5 font-mono text-xs" style={{ color: 'var(--foreground)' }}>{formatCost(call.cost_usd)}</td>
-                        <td className="px-4 py-2.5 font-mono text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>{call.latency_ms ? `${call.latency_ms}ms` : '--'}</td>
-                        <td className="px-4 py-2.5">
-                          {call.cache_hit
-                            ? <span className="text-[var(--n-verdigris)] text-xs">HIT</span>
-                            : <span className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>MISS</span>
-                          }
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+                  );
+                })}
+                {/* Total row */}
+                <tr>
+                  <td className="ri-strong">Total</td>
+                  <td className="ri-strong">{formatCost(totalBudget)}</td>
+                  <td className="ri-strong">{formatCost(totalSpent)}</td>
+                  <td className="ri-strong">{formatCost(deptBudgets.reduce((s, d) => s + d.remaining_usd, 0))}</td>
+                  <td className="ri-strong">{totalBudget > 0 ? `${((totalSpent / totalBudget) * 100).toFixed(1)}%` : '0%'}</td>
+                  <td><PercentBar value={totalSpent} total={totalBudget} color="var(--rg-ink)" /></td>
+                </tr>
+              </tbody>
+            </table>
           </div>
-        </div>
+        </Section>
       )}
-    </div>
+
+      {/* Tier breakdown */}
+      {summary && Object.keys(summary.by_tier).length > 0 && (
+        <Section title="By tier">
+          <List className="ri-compact ri-stats">
+            {Object.entries(summary.by_tier).map(([tier, data]) => (
+              <Row
+                key={tier}
+                icon={<Swatch color={TIER_HUES[tier] || 'var(--rg-mark)'} />}
+                title={`${capitalize(tier)}: ${formatCost(data.cost_usd)}`}
+                line={`${formatNumber(data.calls)} calls${summary.total_cost_usd > 0 ? `, ${formatPercent(data.cost_usd, summary.total_cost_usd)} of total` : ''}`}
+              />
+            ))}
+          </List>
+        </Section>
+      )}
+
+      {/* Recent calls */}
+      {realtime && (
+        <Section title="Recent calls" line={`The last ${realtime.count}.`}>
+          <div className="ri-table-wrap">
+            <table className="ri-table">
+              <thead>
+                <tr>
+                  <SortHeader label="Time" field="created_at" />
+                  <SortHeader label="Tier" field="tier" />
+                  <SortHeader label="Service" field="service_name" />
+                  <SortHeader label="Model" field="model" />
+                  <th>Tokens</th>
+                  <SortHeader label="Cost" field="cost_usd" />
+                  <SortHeader label="Latency" field="latency_ms" />
+                  <th>Cache</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sortedCalls.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="ri-q">No recent calls</td>
+                  </tr>
+                ) : (
+                  sortedCalls.map((call) => (
+                    <tr key={call.id}>
+                      <td>{formatTimestamp(call.created_at)}</td>
+                      <td>{tierBadge(call.tier)}</td>
+                      <td className="ri-strong">{call.service_name}</td>
+                      <td>{shortModel(call.model)}</td>
+                      <td>
+                        {formatNumber(call.input_tokens)}/{formatNumber(call.output_tokens)}
+                        {call.cached_tokens > 0 && <span className="ri-q"> ({formatNumber(call.cached_tokens)} cached)</span>}
+                      </td>
+                      <td className="ri-strong">{formatCost(call.cost_usd)}</td>
+                      <td>{call.latency_ms ? `${call.latency_ms}ms` : '--'}</td>
+                      <td>{call.cache_hit ? <span className="ri-ok">Hit</span> : <span className="ri-q">Miss</span>}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </Section>
+      )}
+    </Page>
   );
 };
 
