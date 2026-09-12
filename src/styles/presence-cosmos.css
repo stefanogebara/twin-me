@@ -3667,146 +3667,68 @@ select.pc-input {
 }
 
 /* ============================================================
-   System — /cosmos/system
-   The living contract, rendered from this stylesheet.
+   System — /cosmos/system (the register, 2026-09-12)
+   The contract page is an app screen built from what it documents:
+   .pc-app, the shell, sections of rows. Only the specimens need rules.
+   Was: "Cosmos" — six laws, swatch cards, 52/16 controls, glass on
+   media as a general tool, polaroids and the film as components.
    ============================================================ */
 
-.pc-spec {
-  padding: 96px var(--c-pad-x) 120px;
+/* A specimen: the thing itself, then its spec as one grey line. */
+.presence-cosmos .pc-spec-specimen {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  padding: 24px 12px;
+  border-bottom: 1px solid var(--c-hairline);
 }
 
-.pc-spec-head,
-.pc-spec-section,
-.pc-spec-foot {
-  max-width: 960px;
-  margin: 0 auto;
-}
-
-.pc-spec-head {
-  margin-bottom: 120px;
-}
-
-.pc-spec-head .pc-lede {
-  margin-top: 20px;
-  text-align: left;
-}
-
-.pc-spec-section {
-  margin-bottom: 120px;
-}
-
-.pc-spec-section .pc-h2 {
-  text-align: left;
-  margin-top: 8px;
-}
-
-.presence-cosmos .pc-spec-n {
-  font-size: 13px;
-  font-weight: 500;
-  letter-spacing: 0;
-  color: var(--c-ink-3);
-}
-
-.presence-cosmos .pc-spec-note {
-  max-width: 560px;
-  margin: 12px 0 32px;
-  font-size: 15px;
-  line-height: 1.5;
-  color: var(--c-ink-2);
-}
-
+/* The marketing hero heading outside a hero (.pc-hero h1 is scoped to one). */
 .presence-cosmos .pc-spec-display {
-  font-size: clamp(48px, 5.2vw, 74px);
+  margin: 0;
+  font-size: clamp(46px, 6.3vw, 74px);
   font-weight: 300;
   line-height: 1;
   letter-spacing: -0.05em;
+  text-wrap: balance;
   color: var(--c-ink);
-  margin: 12px 0 0;
 }
 
-.pc-spec-row {
+/* A token's chip is the row icon painted with the token itself; the hairline
+   lets the page and white chips show against the page. */
+.presence-cosmos .pc-spec-chip {
+  border: 1px solid var(--c-hairline);
+}
+
+.presence-cosmos .pc-spec-token {
+  font-weight: 350;
+  color: var(--c-ink-3);
+}
+
+/* Controls side by side, as one specimen. */
+.presence-cosmos .pc-spec-controls {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 12px;
-  margin-top: 24px;
 }
 
-.pc-spec-laws {
-  list-style: decimal;
-  margin: 0;
-  padding-left: 22px;
+.presence-cosmos .pc-spec-fields {
   display: grid;
-  gap: 12px;
-  max-width: 640px;
-  font-size: 16px;
-  line-height: 1.5;
-  color: var(--c-ink);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px 24px;
+  padding: 24px 12px;
+  border-bottom: 1px solid var(--c-hairline);
 }
 
-.pc-spec-swatches {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 12px;
-}
-
-.pc-spec-swatch {
-  display: grid;
-  gap: 2px;
-  padding: 10px;
-  border-radius: 16px;
-  background: var(--c-white);
-  border: 0.5px solid var(--c-border);
-  font-size: 13px;
-  color: var(--c-ink-2);
-}
-
-.pc-spec-swatch strong {
-  margin-top: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--c-ink);
-}
-
-.pc-spec-swatch code {
-  font: inherit;
-  font-size: 13px;
-  color: var(--c-ink-3);
-}
-
-.pc-spec-chip {
-  height: 72px;
-  border-radius: 10px;
-  border: 0.5px solid var(--c-border);
-}
-
-.pc-spec-type {
-  display: grid;
-  gap: 40px;
-}
-
-.pc-spec-type .pc-h2,
-.pc-spec-type .pc-lede {
-  text-align: left;
-  margin-top: 10px;
-}
-
-.presence-cosmos .pc-spec-type p + p {
-  margin-top: 10px;
-}
-
+/* The one marketing recipe shown live: glass, only over a photograph. */
 .pc-spec-media {
   position: relative;
-  width: min(560px, 100%);
+  width: min(420px, calc(100% - 24px));
   aspect-ratio: 4 / 3;
-  border-radius: 16px;
+  margin: 24px 12px;
+  border-radius: 12px;
   overflow: hidden;
-  margin-bottom: 24px;
-}
-
-.pc-spec-media--tall {
-  width: min(360px, 100%);
-  aspect-ratio: 4 / 5;
 }
 
 .pc-spec-media img {
@@ -3818,98 +3740,20 @@ select.pc-input {
 
 .pc-spec-media > .pc-glass {
   position: absolute;
-  left: 24px;
-  top: 24px;
-  /* The specimen's note is longer than a phone-width card: wrap inside the
-     photograph instead of running past the clipped edge. One line stays a pill. */
-  max-width: calc(100% - 48px);
-  height: auto;
-  min-height: 54px;
-  padding-block: 12px;
-  border-radius: 27px;
-  white-space: normal;
-}
-
-.pc-spec-media > .pc-glass--big {
-  top: auto;
-  bottom: 24px;
-}
-
-.pc-spec-media > .pc-float {
-  position: absolute;
   left: 16px;
-  right: 16px;
   bottom: 16px;
+  max-width: calc(100% - 32px);
+  height: auto;
+  min-height: 40px;
+  padding-block: 10px;
+  border-radius: 20px;
+  white-space: normal;
+  background: rgba(0, 0, 0, 0.4);
 }
 
-.pc-spec-polaroids {
-  display: flex;
-  gap: 24px;
-  padding: 12px 0 16px;
-}
-
-.pc-spec-polaroids img {
-  width: 160px;
-  height: 200px;
-  object-fit: cover;
-  border-radius: 12px;
-  box-shadow: 0 16px 44px rgba(13, 13, 13, 0.14);
-}
-
-.pc-spec-film {
-  position: relative;
-  width: min(640px, 100%);
-  aspect-ratio: 4 / 3;
-  margin-top: 32px;
-  border-radius: 16px;
-  overflow: hidden;
-}
-
-.pc-spec-film img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-  filter: brightness(0.82);
-}
-
-.pc-spec-motion {
-  display: grid;
-  grid-template-columns: 120px minmax(0, 1fr);
-  gap: 12px 24px;
-  margin: 0;
-  max-width: 720px;
-  font-size: 15px;
-  line-height: 1.5;
-}
-
-.pc-spec-motion dt {
-  font-weight: 500;
-  color: var(--c-ink);
-}
-
-.pc-spec-motion dd {
-  margin: 0;
-  color: var(--c-ink-2);
-}
-
-.pc-spec-foot {
-  padding-top: 40px;
-  border-top: 0.5px solid var(--c-border);
-}
-
-@media (max-width: 640px) {
-  .pc-spec {
-    padding: 64px 20px 96px;
-  }
-
-  .pc-spec-motion {
+@media (max-width: 767px) {
+  .presence-cosmos .pc-spec-fields {
     grid-template-columns: 1fr;
-    gap: 4px 0;
-  }
-
-  .pc-spec-motion dd {
-    margin-bottom: 12px;
   }
 }
 

@@ -1,57 +1,147 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Play, Search } from 'lucide-react';
+import { ChevronDown, ChevronRight, Mail, Music2, Plus } from 'lucide-react';
 import '../../styles/presence-cosmos.css';
 
 /**
- * /cosmos/system — the living reference for the Cosmos design language, rendered from
- * the same stylesheet the product uses (presence-cosmos.css). Every token and component
- * here is the real class; if a surface disagrees with this page, the surface is wrong.
+ * /cosmos/system — the living contract of the register (2026-09-12): Instinct's
+ * signed-in app, measured, with the headings kept Cosmos. Spec:
+ * .claude/plans/2026-09-11-instinct-register/README.md.
  *
- * Origin: cosmos.so, measured first-hand on 2026-09-02, first applied to /presence and
- * then adopted for TwinMe's front door. Geist stands in for Cosmos's licensed Oracle.
+ * The page is built from the primitives it documents (.pc-app, the shell, sections of
+ * rows) and every token is read back live from presence-cosmos.css, so it cannot
+ * disagree with the stylesheet. If a surface disagrees with this page, the surface is
+ * wrong.
+ *
+ * Was (2026-09-02): "Cosmos" — six laws, 52/16 controls, a 16px body, swatch cards,
+ * glass on media as a general tool, polaroids and the film as components. Those are
+ * retired, except where the marketing pages still use them; the last section says where.
  */
 
-/* Surfaces and inks name the TOKEN, not a hex. <Swatch> paints the chip with
-   var(token) and prints the value it reads back from the stylesheet, so this
-   page cannot disagree with presence-cosmos.css. It used to hold hand copies,
-   and after the ink ramp was re-spaced the design system's own reference page
-   was the last place still showing the old values. A token that goes missing
-   now prints "missing" instead of a stale hex. */
-const SURFACES = [
-  ['Paper', '--c-paper', 'the canvas, never pure white'],
-  ['White', '--c-white', 'floating cards, the auth panel'],
-  ['Search', '--c-search', 'the search pill'],
-  ['Olive', '--c-olive', 'the strip, the only colored surface'],
-  ['Hover', '--c-hover-secondary', 'secondary hover'],
-] as const;
-
-const INKS = [
-  ['Ink', '--c-ink', 'headings, actions, body'],
-  ['Ink 2', '--c-ink-2', 'ledes, secondary, body'],
-  ['Ink 3', '--c-ink-3', 'labels, empty states, tags, icons'],
+/* Each token names the custom property, never a hex: <TokenRow> paints its chip with
+   var(token) and prints the value (and its contrast on the page) it reads back from
+   the stylesheet. A token that goes missing prints "missing". */
+const TOKENS = [
+  ['Page', '--c-paper', "every screen's ground"],
+  ['White', '--c-white', 'the secondary button'],
+  ['Ink', '--c-ink', 'text, every list rule, the primary fill'],
+  ['Ink 2', '--c-ink-2', 'the one grey line under a title'],
+  ['Ink 3', '--c-ink-3', 'quiet: empty states, names, times'],
+  ['Quiet', '--c-quiet', 'disabled and decorative marks, never text'],
   ['Ink 4', '--c-ink-4', 'rules and fills only, never text'],
-  ['Border', '--c-border', 'the 0.5px hairline'],
+  ['Hairline', '--c-hairline', 'between rows, the secondary border'],
+  ['Field', '--c-field', 'the input box'],
+  ['Hover', '--c-hover-secondary', 'hover on white and on rows'],
+  ['Danger', '--c-danger', 'danger text'],
+  ['Danger line', '--c-danger-line', 'the danger button border, never text'],
+  ['Live', '--c-live', 'live state text'],
+  ['Live mark', '--c-live-mark', 'live icons and borders, never text'],
 ] as const;
 
-/* Signatures stay literal: presence-cosmos.css defines no tokens for them. */
-
-const SIGNATURES = [
-  ['Ember', '#dd8f4c', 'Motivation'],
-  ['Iris', '#847dff', 'Personality'],
-  ['Verdigris', '#55a08e', 'Cultural'],
-  ['Orchid', '#dd90d8', 'Social'],
-  ['Periwinkle', '#90b8f0', 'Lifestyle'],
+const SECTIONS = [
+  ['tokens', 'Tokens'],
+  ['type', 'Type'],
+  ['rows', 'Rows'],
+  ['controls', 'Controls'],
+  ['spacing', 'Spacing'],
+  ['copy', 'Copy'],
+  ['marketing', 'Marketing'],
 ] as const;
 
-const LAWS = [
-  'Imagery carries all the color. The interface is paper and ink.',
-  'One family, one weight for display. Display is light, never bold.',
-  'Everything centered, sentence case, period-ended.',
-  '16px is the radius. Photos 12, pills only for the nav, the search, glass chips and the giant CTA.',
-  'Borders are 0.5px. Shadows are whispers. Nothing bounces, nothing loops.',
-  'Glass only on media. Never on the canvas.',
+const SPACING = [
+  ['Column', '820px at most. Phones: 24px side gutters.'],
+  ['Sidebar', '200px of plain links, 80px left of the column.'],
+  ['Sections', '72px apart, 56 on phones. Marketing doubles it.'],
+  ['Heading', '4px to its grey line, then 24px to the list rule.'],
+  ['Row', 'At least 80 tall, padding 20 by 12, 16 between parts.'],
+  ['Sub-row', 'Indented 50px, about 57 tall.'],
+  ['Targets', 'At least 24 by 24. A 32px button already passes.'],
 ] as const;
+
+const COPY = [
+  ['One grey line', 'Per row, about 60 characters. Never a paragraph.'],
+  ['Under 150 words a screen', 'A sign-in under 50. Count main before and after.'],
+  ['Sentence case', 'No uppercase tracked labels, anywhere.'],
+  ['Plain words', 'As a person would say them. No jargon.'],
+  ['Say it once', 'Cut repetition and second explanations.'],
+] as const;
+
+const MARKETING = [
+  ['Photography and the film', 'They stay: they are the product’s identity.'],
+  ['Marketing headings', 'The hero and section sizes above. Body stays 13.'],
+  ['One call to action', '48 tall, 12px corners. Everything else is 32 by 4.'],
+  ['Glass only over a photograph', 'Where it keeps text readable. It must pass AA.'],
+  ['Motion', '0.2s for state, 0.72s for what moves in space.'],
+] as const;
+
+type RGB = [number, number, number];
+const hex = (v: string): RGB | null => {
+  const m = /^#([0-9a-f]{6})$/i.exec(v.trim());
+  return m ? ([0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)) as RGB) : null;
+};
+const lum = (c: RGB) => {
+  const f = (x: number) => { x /= 255; return x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4); };
+  return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]);
+};
+const contrast = (a: RGB, b: RGB) => {
+  const x = lum(a), y = lum(b);
+  return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05);
+};
+
+function TokenRow({ name, token, role }: { name: string; token: string; role: string }) {
+  const ref = useRef<HTMLLIElement>(null);
+  const [value, setValue] = useState('');
+  const [page, setPage] = useState('');
+  useLayoutEffect(() => {
+    if (!ref.current) return;
+    const cs = getComputedStyle(ref.current);
+    setValue(cs.getPropertyValue(token).trim() || 'missing');
+    setPage(cs.getPropertyValue('--c-paper').trim());
+  }, [token]);
+  const a = hex(value), p = hex(page);
+  const ratio = token !== '--c-paper' && a && p ? `${contrast(a, p).toFixed(2)}:1` : null;
+  return (
+    <li className="pc-row" ref={ref}>
+      <span className="pc-row-icon pc-spec-chip" style={{ background: `var(${token})` }} aria-hidden="true" />
+      <div className="pc-row-text">
+        <p className="pc-row-title">{name} <span className="pc-spec-token">{token}</span></p>
+        <p className="pc-row-line">{[value, ratio, role].filter(Boolean).join(' · ')}</p>
+      </div>
+      <span />
+    </li>
+  );
+}
+
+function PlainRow({ title, line }: { title: string; line: string }) {
+  return (
+    <li className="pc-row pc-row--plain">
+      <div className="pc-row-text">
+        <p className="pc-row-title">{title}</p>
+        <p className="pc-row-line">{line}</p>
+      </div>
+      <span />
+    </li>
+  );
+}
+
+function Head({ title, line, children }: { title: string; line: string; children?: React.ReactNode }) {
+  return (
+    <div className="pc-sechead">
+      <h2 className="pc-sechead-title">{title}</h2>
+      <p className="pc-sechead-line">{line}</p>
+      {children}
+    </div>
+  );
+}
+
+function Mark() {
+  return (
+    <svg className="pc-mark" viewBox="0 0 28 28" fill="currentColor" aria-hidden="true">
+      <circle cx="5" cy="5" r="2.7" /><circle cx="14" cy="5" r="2.7" /><circle cx="23" cy="5" r="2.7" /><circle cx="23" cy="14" r="2.7" />
+      <circle cx="23" cy="23" r="2.7" /><circle cx="14" cy="23" r="2.7" /><circle cx="5" cy="23" r="2.7" /><circle cx="5" cy="14" r="2.7" />
+    </svg>
+  );
+}
 
 function SignatureDots() {
   return (
@@ -69,197 +159,221 @@ function Wave() {
   return <span className="pc-wave" aria-hidden="true"><i /><i /><i /><i /><i /></span>;
 }
 
-/** Pass `token` for a stylesheet token (read back live) or `value` for a literal. */
-function Swatch({ name, token, value, role }: { name: string; token?: string; value?: string; role: string }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [resolved, setResolved] = useState(value ?? '');
-  useLayoutEffect(() => {
-    if (!token || !ref.current) return;
-    setResolved(getComputedStyle(ref.current).getPropertyValue(token).trim() || 'missing');
-  }, [token]);
-  return (
-    <div className="pc-spec-swatch" ref={ref}>
-      <div className="pc-spec-chip" style={{ background: token ? `var(${token})` : value }} />
-      <strong>{name}</strong>
-      <code title={token}>{resolved}</code>
-      <span>{role}</span>
-    </div>
-  );
-}
-
-function Section({ id, n, title, note, children }: { id: string; n: string; title: string; note: string; children: React.ReactNode }) {
-  return (
-    <section className="pc-spec-section" id={id}>
-      <p className="pc-spec-n">{n}</p>
-      <h2 className="pc-h2 pc-h2--sm">{title}</h2>
-      <p className="pc-spec-note">{note}</p>
-      {children}
-    </section>
-  );
-}
-
 export default function CosmosSpec() {
-  const [segment, setSegment] = useState(0);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [current, setCurrent] = useState<string>('tokens');
+  const [weekly, setWeekly] = useState(true);
 
   useEffect(() => {
     const previousTitle = document.title;
-    document.title = 'Cosmos · TwinMe design system';
+    document.title = 'The register · TwinMe design system';
     return () => { document.title = previousTitle; };
   }, []);
 
   return (
-    <main className="presence-cosmos pc-spec" id="main-content">
-      <header className="pc-spec-head">
-        <p className="pc-spec-n">TwinMe design system · Cosmos · 2026-09</p>
-        <h1 className="pc-spec-display">Cosmos.</h1>
-        <p className="pc-lede">Paper, ink, and photographs. The interface stays out of the way.</p>
-        <p className="pc-spec-note">
-          Lifted from cosmos.so by measurement and adapted for two products: Presence and TwinMe share
-          this stylesheet, prefix and rules. Source of truth: presence-cosmos.css.
-        </p>
-        <div className="pc-spec-row">
-          <Link className="pc-btn pc-btn--primary" to="/">The front door</Link>
-          <Link className="pc-btn pc-btn--ghost" to="/presence">Presence</Link>
+    <main className="presence-cosmos pc-app" id="main-content">
+      <div className="pc-shell">
+        <div className="pc-topbar">
+          <Link className="pc-side-brand" to="/" aria-label="TwinMe"><Mark /></Link>
+          <button className="pc-btn pc-btn--secondary" onClick={() => setMenuOpen((open) => !open)} aria-expanded={menuOpen} aria-controls="spec-nav">
+            Menu
+          </button>
         </div>
-      </header>
 
-      <Section id="laws" n="01" title="The six laws." note="Break one and it stops being Cosmos.">
-        <ol className="pc-spec-laws">
-          {LAWS.map((law) => <li key={law}>{law}</li>)}
-        </ol>
-      </Section>
+        <aside className={`pc-side${menuOpen ? ' is-open' : ''}`} id="spec-nav">
+          <Link className="pc-side-brand" to="/" aria-label="TwinMe"><Mark /></Link>
+          <nav className="pc-side-nav" aria-label="The register">
+            {SECTIONS.map(([id, label]) => (
+              <a
+                key={id}
+                className="pc-side-link"
+                href={`#${id}`}
+                aria-current={current === id ? 'true' : undefined}
+                onClick={() => { setCurrent(id); setMenuOpen(false); }}
+              >
+                {label}
+              </a>
+            ))}
+          </nav>
+          <nav className="pc-side-nav" aria-label="Pages">
+            <Link className="pc-side-link" to="/">The front door</Link>
+            <Link className="pc-side-link" to="/presence">Presence</Link>
+          </nav>
+        </aside>
 
-      <Section id="surfaces" n="02" title="Surfaces and ink." note="Five surfaces, four inks, one hairline. There is no accent color.">
-        <div className="pc-spec-swatches">
-          {SURFACES.map(([name, token, role]) => <Swatch key={name} name={name} token={token} role={role} />)}
-        </div>
-        <div className="pc-spec-swatches" style={{ marginTop: 16 }}>
-          {INKS.map(([name, token, role]) => <Swatch key={name} name={name} token={token} role={role} />)}
-        </div>
-      </Section>
+        <div className="pc-col">
+          <header className="pc-apphead">
+            <h1 className="pc-apphead-title">The register.</h1>
+            <p className="pc-apphead-line">Instinct’s app, with Cosmos headings. Read live from presence-cosmos.css.</p>
+          </header>
 
-      <Section id="signatures" n="03" title="The five signatures." note="One hue per reflection expert. They appear as dots, data strokes and chart fills only. Never text, never borders, never washes.">
-        <div className="pc-spec-swatches">
-          {SIGNATURES.map(([name, hex, role]) => <Swatch key={name} name={name} value={hex} role={role} />)}
-        </div>
-        <div className="pc-spec-row" style={{ marginTop: 24, alignItems: 'center', gap: 16 }}>
-          <SignatureDots />
-          <span className="pc-spec-note" style={{ margin: 0 }}>The dots in the search pill are the only place all five sit together.</span>
-        </div>
-      </Section>
+          <section className="pc-appsection" id="tokens">
+            <Head title="Tokens" line="A warm page, a warm ink, two greys that pass AA." />
+            <ul className="pc-list">
+              {TOKENS.map(([name, token, role]) => <TokenRow key={token} name={name} token={token} role={role} />)}
+            </ul>
+          </section>
 
-      <Section id="type" n="04" title="Typography." note="Geist for everything, light for display. Tracking tightens as size grows. Sizes below 14px do not exist.">
-        <div className="pc-spec-type">
-          <div>
-            <p className="pc-spec-n">display · 74 / 1 · weight 300 · tracking -0.05em</p>
-            <p className="pc-spec-display">Know yourself.</p>
-          </div>
-          <div>
-            <p className="pc-spec-n">h2 · 66 / 1 · weight 400 · tracking -0.04em</p>
-            <p className="pc-h2">Read the way you live.</p>
-          </div>
-          <div>
-            <p className="pc-spec-n">h2 small · 38 / 1.05</p>
-            <p className="pc-h2 pc-h2--sm">Observations, timestamped and sourced.</p>
-          </div>
-          <div>
-            <p className="pc-spec-n">lede · 26 / 1.3 · ink 2</p>
-            <p className="pc-lede">Your music, your hours, your work, your people. Connected, measured, yours.</p>
-          </div>
-          <div>
-            <p className="pc-spec-n">body · 16 / 1.5 · tracking -0.02em</p>
-            <p style={{ maxWidth: 560 }}>It reads what you actually do, the music, the hours, the work, the people, and builds a portrait no questionnaire could.</p>
-          </div>
-          <div>
-            <p className="pc-spec-n">small · 14 and 13 · ink 2 and ink 3</p>
-            <p style={{ fontSize: 14, color: 'var(--c-ink-2)' }}>Saved reading · Tuesday</p>
-            <p style={{ fontSize: 13, color: 'var(--c-ink-3)' }}>By continuing you agree to the Terms and the Privacy Policy.</p>
-          </div>
-        </div>
-      </Section>
+          <section className="pc-appsection" id="type">
+            <Head title="Type" line="Geist throughout. Weight makes the hierarchy, not size." />
+            <ul className="pc-list">
+              <li className="pc-spec-specimen">
+                <p className="pc-spec-display">Know yourself.</p>
+                <p className="pc-row-line">Hero, marketing · 300 · 46 to 74px · line 1.0 · −0.05em</p>
+              </li>
+              <li className="pc-spec-specimen">
+                <p className="pc-apphead-title">Create your twin.</p>
+                <p className="pc-row-line">Page title, app and sign-in · 300 · 32 to 40px · −0.05em</p>
+              </li>
+              <li className="pc-spec-specimen">
+                <p className="pc-h2">Read the way you live.</p>
+                <p className="pc-row-line">Section, marketing · 400 · 38 to 66px · line 1.08 · −0.04em</p>
+              </li>
+              <li className="pc-spec-specimen">
+                <p className="pc-sechead-title">Her link</p>
+                <p className="pc-row-line">Section, app · 400 · 28 to 38px · line 1.08 · −0.04em</p>
+              </li>
+              <li className="pc-spec-specimen">
+                <p className="pc-row-title">Make a new link</p>
+                <p className="pc-row-line">Row title · 13/20 · 500 · ink</p>
+              </li>
+              <li className="pc-spec-specimen">
+                <p className="pc-row-line">The old one stops working.</p>
+                <p className="pc-row-line">Grey line · 13/19.5 · 350 · ink 2</p>
+              </li>
+              <li className="pc-spec-specimen">
+                <p className="pc-side-note">No calls yet.</p>
+                <p className="pc-row-line">Quiet · 13/19.5 · 350 · ink 3</p>
+              </li>
+              <li className="pc-spec-specimen">
+                <p>It reads what you do, and builds a portrait no questionnaire could.</p>
+                <p className="pc-row-line">Prose, only where a paragraph is unavoidable · 13/19.5 · 400</p>
+              </li>
+            </ul>
+          </section>
 
-      <Section id="controls" n="05" title="Controls." note="Black primary and 0.5px ghost as a matched pair at 52px and 16px radius. Canvas for the quiet third option. The giant pill closes a page.">
-        <div className="pc-spec-row">
-          <button className="pc-btn pc-btn--primary">Get your signature</button>
-          <button className="pc-btn pc-btn--ghost">How it works</button>
-          <button className="pc-btn pc-btn--canvas">Log in <ArrowRight size={16} /></button>
-          <button className="pc-btn pc-btn--primary" disabled>Disabled</button>
-        </div>
-        <div className="pc-spec-row" style={{ marginTop: 24 }}>
-          <button className="pc-auth-google"><span className="pc-auth-g">G</span> Continue with Google</button>
-        </div>
-        <div className="pc-spec-row" style={{ marginTop: 24 }}>
-          <button className="pc-cta-giant">Meet yourself</button>
-        </div>
-      </Section>
+          <section className="pc-appsection" id="rows">
+            <Head title="Rows, not cards" line="A heading, one grey line, then a list under a 1px ink rule.">
+              <button type="button" className="pc-iconbtn pc-sechead-add" aria-label="Add, the section's one action"><Plus /></button>
+            </Head>
+            <ul className="pc-list">
+              <li>
+                <a className="pc-row pc-row--link" href="#rows">
+                  <span className="pc-row-icon" aria-hidden="true"><Music2 /></span>
+                  <span className="pc-row-text">
+                    <span className="pc-row-title">Spotify</span>
+                    <span className="pc-row-line">A row that is one link ends in a chevron.</span>
+                  </span>
+                  <ChevronRight className="pc-chevron" aria-hidden="true" />
+                </a>
+              </li>
+              <li className="pc-row">
+                <span className="pc-row-icon" aria-hidden="true"><Mail /></span>
+                <div className="pc-row-text">
+                  <p className="pc-row-title">Gmail</p>
+                  <p className="pc-row-line">Or one 32px button. Never two.</p>
+                </div>
+                <div className="pc-row-action"><button type="button" className="pc-btn pc-btn--secondary">Manage</button></div>
+              </li>
+              <li className="pc-subrow">
+                <div className="pc-row-text">
+                  <p className="pc-row-title">you@example.com</p>
+                  <p className="pc-row-line">A sub-row: an account under its service.</p>
+                </div>
+              </li>
+            </ul>
+          </section>
 
-      <Section id="search" n="06" title="The search pill." note="A near-white inset-lit pill with a shimmer placeholder, the five dots on the right. On TwinMe the field is the email and the submit is the reading.">
-        <form className="pc-search" onSubmit={(e) => e.preventDefault()} style={{ maxWidth: 560 }}>
-          <Search size={18} aria-hidden="true" />
-          <label className="pc-search-field">
-            <input className="pc-search-input" type="email" placeholder="Your email. Watch it read your public footprint" aria-label="Email" />
-          </label>
-          <button type="submit" className="pc-search-icons" aria-label="Read my footprint"><Wave /><SignatureDots /></button>
-        </form>
-        <div className="pc-spec-row" style={{ marginTop: 24 }}>
-          <label className="pc-ob-field" style={{ width: 320 }}>
-            <span>Field</span>
-            <input placeholder="you@example.com" aria-label="Field example" />
-            <small>56px, 16px radius, 0.5px border, ink on focus.</small>
-          </label>
-        </div>
-      </Section>
+          <section className="pc-appsection" id="empty">
+            <Head title="Notes" line="An empty list keeps its rule and says so once." />
+            <ul className="pc-list" />
+            <p className="pc-empty">No notes yet.</p>
+          </section>
 
-      <Section id="glass" n="07" title="Glass, on media only." note="Dark glass at 20% black and blur 30 sits on photographs; over pale ones it goes to 40%. The big glass holds a live readout. White cards float at 16px with a whisper shadow.">
-        <div className="pc-spec-media">
-          <img src="/images/twinme/cosmos-04-run.jpg" alt="" loading="lazy" />
-          <span className="pc-glass"><Wave /> loops the same three songs before a deadline</span>
-          <span className="pc-glass pc-glass--big"><Wave /> 05:52</span>
-        </div>
-        <div className="pc-spec-media pc-spec-media--tall">
-          <img src="/images/twinme/cosmos-06-portrait.jpg" alt="" loading="lazy" />
-          <div className="pc-float">
-            <p className="pc-float-label">Your twin</p>
-            <p className="pc-float-sub">Answers as you, and cites what it read</p>
-            <div className="pc-segment" role="tablist" aria-label="Example segment">
-              {['Cited', 'Measured', 'Yours'].map((label, i) => (
-                <span key={label} role="tab" aria-selected={segment === i} className={segment === i ? 'is-active' : ''} onClick={() => setSegment(i)}>{label}</span>
-              ))}
+          <section className="pc-appsection" id="controls">
+            <Head title="Controls" line="32 tall, 4px corners, 13px. One primary a screen." />
+            <div className="pc-list">
+              <div className="pc-spec-specimen">
+                <div className="pc-spec-controls">
+                  <button type="button" className="pc-btn pc-btn--primary">Save</button>
+                  <button type="button" className="pc-btn pc-btn--secondary">Cancel</button>
+                  <button type="button" className="pc-btn pc-btn--danger">Remove the voice</button>
+                  <button type="button" className="pc-btn pc-btn--primary" disabled>Disabled</button>
+                  <button type="button" className="pc-iconbtn" aria-label="Add"><Plus /></button>
+                </div>
+                <p className="pc-row-line">Primary, secondary, danger, disabled, and the 24px icon button.</p>
+              </div>
+              <div className="pc-spec-specimen">
+                <div className="pc-spec-controls">
+                  <button type="button" className="pc-btn pc-btn--cta">Continue with Google</button>
+                  <a className="pc-textlink" href="#controls">How it works <ChevronRight className="pc-chevron" aria-hidden="true" /></a>
+                </div>
+                <p className="pc-row-line">A marketing or sign-in page’s one call to action: 48 tall, 12px corners.</p>
+              </div>
+              <div className="pc-spec-fields">
+                <label className="pc-field">
+                  <span className="pc-field-label">Email</span>
+                  <input className="pc-input" type="email" placeholder="you@example.com" />
+                  <span className="pc-field-hint">No border, a warm box, 44 tall.</span>
+                </label>
+                <label className="pc-field">
+                  <span className="pc-field-label">Tone</span>
+                  <span className="pc-select">
+                    <select className="pc-input" defaultValue="warm">
+                      <option value="warm">Warm</option>
+                      <option value="plain">Plain</option>
+                    </select>
+                    <ChevronDown aria-hidden="true" />
+                  </span>
+                  <span className="pc-field-hint">A select is the same box.</span>
+                </label>
+              </div>
+              <div className="pc-row pc-row--plain">
+                <div className="pc-row-text">
+                  <p className="pc-row-title">Weekly summary</p>
+                  <p className="pc-row-line">A switch: 44 by 26, ink when on.</p>
+                </div>
+                <div className="pc-row-action">
+                  <button type="button" role="switch" aria-checked={weekly} aria-label="Weekly summary" className="pc-switch" onClick={() => setWeekly((on) => !on)} />
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-      </Section>
+          </section>
 
-      <Section id="cards" n="08" title="Polaroids, notes and the film." note="Photos at 12px, loosely rotated, with a whisper shadow. A note is a white card with a reading and its source line. The film card is 4:3 with a split title and a caption on a scrim.">
-        <div className="pc-spec-row" style={{ alignItems: 'flex-start' }}>
-          <div className="pc-spec-polaroids">
-            <img src="/images/twinme/cosmos-02-records.jpg" alt="" loading="lazy" style={{ transform: 'rotate(-4deg)' }} />
-            <img src="/images/twinme/cosmos-05-kitchen.jpg" alt="" loading="lazy" style={{ transform: 'rotate(3deg)' }} />
-          </div>
-          <article className="pc-note" style={{ width: 300 }}>
-            <p>Every Tuesday ends in back-to-back calls, and every Tuesday night your music turns ambient.</p>
-            <span>Google Calendar and Spotify · 14 Tuesdays</span>
-          </article>
-        </div>
-        <div className="pc-spec-film">
-          <img src="/images/twinme/cosmos-07-room.jpg" alt="" loading="lazy" />
-          <div className="pc-film-title" aria-hidden="true"><span><Play fill="currentColor" strokeWidth={0} /> Watch</span><span>the film</span></div>
-          <p className="pc-film-caption">with Marina, 31</p>
-        </div>
-      </Section>
+          <section className="pc-appsection" id="spacing">
+            <Head title="Spacing" line="Measured off Instinct at 1512 and 402 wide." />
+            <ul className="pc-list">
+              {SPACING.map(([title, line]) => <PlainRow key={title} title={title} line={line} />)}
+            </ul>
+          </section>
 
-      <Section id="motion" n="09" title="Motion." note="Two eases and nothing else. Reduced motion turns every reveal into a cut.">
-        <dl className="pc-spec-motion">
-          <dt>Space</dt><dd>transform 0.72s cubic-bezier(.32,.72,0,1). Tiles, the film card, anything that moves on the canvas.</dd>
-          <dt>Interface</dt><dd>0.25s cubic-bezier(.22,1,.36,1). Buttons, hover, segment changes.</dd>
-          <dt>Reveal</dt><dd>opacity and 24px rise, staggered 80ms per sibling through the --d custom property.</dd>
-          <dt>Marquee</dt><dd>Linear, edge-faded, pauses on hover. The one permitted loop, because it is content.</dd>
-        </dl>
-      </Section>
+          <section className="pc-appsection" id="copy">
+            <Head title="Copy" line="Very little text, and every word earns its place." />
+            <ul className="pc-list">
+              {COPY.map(([title, line]) => <PlainRow key={title} title={title} line={line} />)}
+            </ul>
+          </section>
 
-      <footer className="pc-spec-foot">
-        <p className="pc-spec-note">Rendered from presence-cosmos.css. Nocturne, the previous system, is retired for marketing surfaces and stays browsable at /nocturne/system.</p>
-      </footer>
+          <section className="pc-appsection" id="marketing">
+            <Head title="Marketing" line="Where the front door, Presence and TwinMe’s landing differ." />
+            <ul className="pc-list">
+              {MARKETING.map(([title, line]) => <PlainRow key={title} title={title} line={line} />)}
+              <li className="pc-row">
+                <span className="pc-row-icon" aria-hidden="true"><SignatureDots /></span>
+                <div className="pc-row-text">
+                  <p className="pc-row-title">Signature hues</p>
+                  <p className="pc-row-line">Data only: the five dots and the demo’s bars.</p>
+                </div>
+                <span />
+              </li>
+            </ul>
+            <div className="pc-spec-media">
+              <img src="/images/twinme/cosmos-04-run.jpg" alt="" loading="lazy" />
+              <span className="pc-glass"><Wave /> loops the same three songs before a deadline</span>
+            </div>
+          </section>
+        </div>
+      </div>
     </main>
   );
 }
