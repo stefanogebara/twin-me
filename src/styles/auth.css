@@ -27,6 +27,17 @@
 .au-controls .mv-pill { width: 100%; }
 .au-form { display: grid; gap: 8px; width: 100%; }
 
+/* The longer sign-up forms (/beta) keep the same frame: a label over each field,
+   8 apart, fields 20 apart, and 32/4 choices that wrap. A pressed choice is
+   money-v2's own: the field fill and an ink line. */
+.au-form--long { gap: 20px; }
+.au-field { display: grid; gap: 8px; min-width: 0; margin: 0; padding: 0; border: 0; }
+.au-field > legend { padding: 0; margin-bottom: 8px; }
+.au-choices { display: flex; flex-wrap: wrap; gap: 8px; }
+.mv .mv-field--area { height: auto; min-height: 88px; resize: vertical; }
+/* An invite code is a value to copy, the one job monospace keeps. */
+.mv .au-code { font-family: var(--mono); letter-spacing: 0.04em; }
+
 .mv .au-note { color: var(--ink-2); font-weight: 350; }
 .mv .au-note--error { color: var(--danger); }
 .mv .au-foot { color: var(--ink-3); font-weight: 350; }
