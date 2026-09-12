@@ -3,10 +3,13 @@ import { Share2, Check } from 'lucide-react';
 
 interface PortfolioFooterProps {
   updatedAt: string | null;
+  /** Kept for callers; the register's primary is ink. */
   colorScheme: { primary: string; secondary: string; accent: string };
 }
 
-const PortfolioFooter: React.FC<PortfolioFooterProps> = ({ updatedAt, colorScheme }) => {
+/** The close: the one primary (discover your own), a share button, and a quiet
+ *  line with the date. */
+const PortfolioFooter: React.FC<PortfolioFooterProps> = ({ updatedAt }) => {
   const [copied, setCopied] = useState(false);
   const [shareFailed, setShareFailed] = useState<string | null>(null);
 
@@ -41,66 +44,23 @@ const PortfolioFooter: React.FC<PortfolioFooterProps> = ({ updatedAt, colorSchem
   }, []);
 
   return (
-    <footer className="py-16 px-6 flex flex-col items-center gap-6">
-      <div className="flex flex-col items-center gap-6">
-        {/* Powered by */}
-        <p
-          className="text-xs opacity-30"
-          style={{ fontFamily: 'var(--font-ui)', color: '#E8D5B7' }}
-        >
-          Powered by TwinMe
-        </p>
-
-        {/* CTA + Share row */}
-        <div className="flex items-center gap-3">
-          <a
-            href="/"
-            className="text-sm px-6 py-3 rounded-xl inline-block transition-all hover:scale-[1.02] active:scale-[0.98]"
-            style={{
-              background: `linear-gradient(135deg, ${colorScheme.accent} 0%, ${colorScheme.primary} 100%)`,
-              color: '#0C0C0C',
-              fontFamily: 'var(--font-ui)',
-              fontWeight: 500,
-              textDecoration: 'none',
-            }}
-          >
-            Discover Your Soul Signature
-          </a>
-
-          <button
-            onClick={handleShare}
-            className="w-10 h-10 rounded-xl flex items-center justify-center transition-all hover:scale-[1.05] active:scale-[0.95]"
-            style={{
-              backgroundColor: 'rgba(232, 213, 183, 0.08)',
-              border: '1px solid rgba(232, 213, 183, 0.15)',
-              color: '#E8D5B7',
-            }}
-            aria-label="Share"
-          >
-            {copied ? <Check className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}
-          </button>
-        </div>
-
-        {/* Manual copy fallback when navigator.share + clipboard both fail */}
-        {shareFailed && (
-          <p
-            className="text-xs text-center break-all max-w-xs opacity-50"
-            style={{ fontFamily: 'var(--font-ui)', color: '#E8D5B7' }}
-          >
-            Copy this link: {shareFailed}
-          </p>
-        )}
-
-        {/* Updated date */}
-        {updatedDate && (
-          <p
-            className="text-xs opacity-25"
-            style={{ fontFamily: 'var(--font-ui)', color: '#E8D5B7' }}
-          >
-            Updated {updatedDate}
-          </p>
-        )}
+    <footer className="sh-foot">
+      <div className="sh-foot-actions">
+        <a href="/" className="n-btn n-btn--primary">Discover your soul signature</a>
+        <button type="button" onClick={handleShare} className="n-btn n-btn--ghost" aria-label="Share">
+          {copied ? <Check className="w-4 h-4" aria-hidden="true" /> : <Share2 className="w-4 h-4" aria-hidden="true" />}
+          {copied ? 'Link copied' : 'Share'}
+        </button>
       </div>
+
+      {/* Manual copy fallback when navigator.share + clipboard both fail */}
+      {shareFailed && (
+        <p className="sh-note" style={{ paddingTop: 0, overflowWrap: 'anywhere' }}>Copy this link: {shareFailed}</p>
+      )}
+
+      <p className="sh-note" style={{ paddingTop: 0 }}>
+        Made with TwinMe{updatedDate ? `. Updated ${updatedDate}.` : '.'}
+      </p>
     </footer>
   );
 };

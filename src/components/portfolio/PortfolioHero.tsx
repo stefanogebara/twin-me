@@ -1,18 +1,7 @@
 import React from 'react';
 import { Sparkles } from 'lucide-react';
 import { getPlatformLogo } from '../PlatformLogos';
-
-const PLATFORM_COLORS: Record<string, string> = {
-  spotify: '#1DB954',
-  youtube: '#FF0000',
-  calendar: '#4285F4',
-  'google calendar': '#4285F4',
-  'google-calendar': '#4285F4',
-  google_calendar: '#4285F4',
-  github: '#FFFFFF',
-  discord: '#5865F2',
-  gmail: '#EA4335',
-};
+import { PageHead } from '@/components/register';
 
 interface PortfolioHeroProps {
   firstName: string | null;
@@ -20,16 +9,19 @@ interface PortfolioHeroProps {
   archetypeName: string;
   archetypeSubtitle: string;
   platforms: Array<{ name: string }>;
+  /** The portrait's own colours. Kept for callers; the register sets this page
+   *  in ink, because the default cream failed as text on the page. */
   colorScheme: { primary: string; secondary: string; accent: string };
 }
 
+/** The share page's head: the wordmark, whose portrait it is, the archetype as
+ *  the title with its line, and the connected platforms as brand icons. */
 const PortfolioHero: React.FC<PortfolioHeroProps> = ({
   firstName,
   avatarUrl,
   archetypeName,
   archetypeSubtitle,
   platforms,
-  colorScheme,
 }) => {
   // Only render http(s) avatar URLs — the value comes from the public
   // portfolio API, so guard against non-web schemes before putting it in
@@ -37,97 +29,43 @@ const PortfolioHero: React.FC<PortfolioHeroProps> = ({
   const safeAvatarUrl = avatarUrl && /^https?:\/\//i.test(avatarUrl) ? avatarUrl : null;
 
   return (
-    <section
-      className="relative min-h-[80vh] flex flex-col items-center justify-center px-6 py-16 overflow-hidden"
-      style={{
-        background: `radial-gradient(ellipse at 50% 30%, ${colorScheme.primary}12 0%, ${colorScheme.secondary}08 50%, transparent 80%)`,
-      }}
-    >
-      {/* Wordmark */}
-      <a
-        href="/"
-        className="absolute top-6 left-6 text-lg tracking-tight transition-opacity hover:opacity-70"
-        style={{ fontFamily: "var(--font-heading)", color: '#E8D5B7', textDecoration: 'none' }}
-      >
-        TwinMe
-      </a>
+    <>
+      <div className="sh-top">
+        <a href="/" className="sh-mark">TwinMe</a>
+      </div>
 
-      {/* Avatar */}
-      <div className="mb-6">
+      <div className="sh-who">
         {safeAvatarUrl ? (
           <img
             src={safeAvatarUrl}
             alt={firstName ? `${firstName}'s avatar` : 'Portfolio avatar'}
-            className="w-24 h-24 rounded-full object-cover"
-            style={{ border: `2px solid ${colorScheme.accent}` }}
+            className="sh-avatar"
           />
         ) : (
-          <div
-            className="w-24 h-24 rounded-full flex items-center justify-center"
-            style={{ backgroundColor: `${colorScheme.primary}15`, border: `2px solid ${colorScheme.accent}40` }}
-          >
-            <Sparkles className="w-10 h-10" style={{ color: colorScheme.primary }} />
-          </div>
+          <span className="sh-avatar" aria-hidden="true">
+            <Sparkles className="w-4 h-4" />
+          </span>
+        )}
+        <span className="sh-who-label">
+          {firstName ? `${firstName}'s soul signature` : 'A soul signature'}
+        </span>
+
+        {platforms.length > 0 && (
+          <ul className="sh-platforms" aria-label="Connected platforms">
+            {platforms.map((p) => {
+              const Logo = getPlatformLogo(p.name);
+              return (
+                <li key={p.name} className="rg-row-icon" title={p.name}>
+                  {Logo && <Logo className="w-4 h-4" />}
+                </li>
+              );
+            })}
+          </ul>
         )}
       </div>
 
-      {/* Pre-header */}
-      <p
-        className="text-sm uppercase tracking-wider mb-4 opacity-50"
-        style={{ fontFamily: 'var(--font-ui)', color: '#E8D5B7', fontSize: '14px' }}
-      >
-        {firstName ? `${firstName}'s Soul Signature` : 'A Soul Signature'}
-      </p>
-
-      {/* Archetype name */}
-      <h1
-        className="text-4xl md:text-5xl text-center mb-3"
-        style={{
-          fontFamily: "var(--font-heading)",
-          color: '#E8D5B7',
-          fontWeight: 400,
-        }}
-      >
-        {archetypeName}
-      </h1>
-
-      {/* Subtitle */}
-      {archetypeSubtitle && (
-        <p
-          className="text-lg text-center italic mb-8 opacity-70"
-          style={{ fontFamily: "Georgia, serif", color: '#E8D5B7', fontSize: '18px' }}
-        >
-          &ldquo;{archetypeSubtitle}&rdquo;
-        </p>
-      )}
-
-      {/* Gradient divider */}
-      <div
-        className="h-px w-24 mb-8"
-        style={{
-          background: `linear-gradient(90deg, transparent, ${colorScheme.primary}, transparent)`,
-        }}
-      />
-
-      {/* Platform icons */}
-      {platforms.length > 0 && (
-        <div className="flex items-center gap-3">
-          {platforms.map((p) => {
-            const Logo = getPlatformLogo(p.name);
-            const brandColor = PLATFORM_COLORS[p.name.toLowerCase()] || '#E8D5B7';
-            return (
-              <div
-                key={p.name}
-                className="w-8 h-8 rounded-full flex items-center justify-center"
-                style={{ backgroundColor: `${brandColor}18`, border: `1px solid ${brandColor}30` }}
-              >
-                {Logo && <Logo className="w-4 h-4" />}
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </section>
+      <PageHead title={archetypeName} line={archetypeSubtitle || undefined} />
+    </>
   );
 };
 
