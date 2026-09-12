@@ -1,4 +1,4 @@
-import { ArrowRight, ChevronDown, Play, Search } from 'lucide-react';
+import { Bot, ChevronDown, ChevronRight, HandHeart, Play, Search, UserCheck } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import '@/styles/presence-cosmos.css';
@@ -10,8 +10,13 @@ export const PRESENCE_PENDING_NOTE_KEY = 'presence-pending-note';
  * /presence — landing page in the Cosmos design language (see presence-cosmos.css for
  * where each recipe came from). Built from scratch rather than restyled: the page
  * structure follows cosmos.so — pinned hero, film card, centered statements with one
- * large visual each, a giant pill CTA, a clipped wordmark — with Presence's product
- * content and imagery in place of theirs.
+ * large visual each, a clipped wordmark — with Presence's product content and imagery
+ * in place of theirs.
+ *
+ * 2026-09-12, the register: the body is 13px Geist with weight for hierarchy, the
+ * controls are 32/4 with one 48/12 call to action, and a section is a heading, one
+ * grey line, then its visual. Text lists are rows under a 1px ink rule. The
+ * photography, the film, the collage and the strip stay.
  *
  * Media under /images/presence/cosmos-* and /video/presence/ was generated for this
  * page (Higgsfield Soul 2.0 stills, Seedance 2.5 film) to a single brief: 35mm,
@@ -31,13 +36,21 @@ const SEARCH_HINTS = [
   "Try 'tell her the baby said her name'",
 ];
 
+/* Five, not four: the marquee loops at -50%, so half the track has to be wider
+   than a 1440 screen or a gap shows at the seam. */
 const FAMILY_NOTES = [
-  { text: 'Ask who taught her to swim. She started the story on Sunday and never finished it.', who: 'Ana, for her mother' },
+  { text: 'Ask who taught her to swim. She never finished the story.', who: 'Ana, for her mother' },
   { text: 'Tell her the baby said “vovó” this morning. Twice.', who: 'Pedro, for his grandmother' },
-  { text: 'The plumber comes Thursday at ten. She does not need to call anyone.', who: 'Luísa, for her father' },
-  { text: 'Ask about the window seat on the train to Petrópolis. I want the whole version.', who: 'Marina, for her mother' },
-  { text: 'If she brings up the pharmacy again, tell her Rafa already went.', who: 'Rafael, for his aunt' },
-  { text: 'She said she was cold on Monday. Ask if the heater is working.', who: 'Ana, for her mother' },
+  { text: 'The plumber comes Thursday at ten.', who: 'Luísa, for her father' },
+  { text: 'Ask about the window seat on the train to Petrópolis.', who: 'Marina, for her mother' },
+  { text: 'If she asks about the pharmacy, Rafa already went.', who: 'Rafael, for his aunt' },
+];
+
+/** Who is speaking, as rows: each promise the Presence keeps, once. */
+const PROMISES = [
+  { icon: Bot, title: 'Always says it is an AI', line: 'On every call.' },
+  { icon: UserCheck, title: 'The family approves the voice', line: 'Every call names who did.' },
+  { icon: HandHeart, title: 'Visits, money and medicine', line: 'Always go to a person.' },
 ];
 
 /** Dot cluster mark — 3x3 grid with the center removed, per the spec; 8 dots reading
@@ -158,7 +171,7 @@ export default function PresenceLandingPage() {
   };
 
   return (
-    <main ref={rootRef} className="presence-cosmos" id="main-content">
+    <main ref={rootRef} className="presence-cosmos pc-app" id="main-content">
       <header className="pc-nav" aria-label="Presence navigation">
         <div className="pc-nav-left">
           <Link className="pc-brand" to="/presence" aria-label="Presence home">
@@ -170,7 +183,7 @@ export default function PresenceLandingPage() {
         </div>
 
         <form className={`pc-search ${note ? 'has-value' : ''}`} onSubmit={sendNote} aria-label="Send a note into tomorrow's conversation">
-          <Search size={18} strokeWidth={1.8} aria-hidden="true" />
+          <Search size={16} strokeWidth={1.8} aria-hidden="true" />
           <span className="pc-search-field">
             <input
               className="pc-search-input"
@@ -192,7 +205,7 @@ export default function PresenceLandingPage() {
 
         <div className="pc-nav-right">
           <Link className="pc-nav-login" to="/presence/login">Log in</Link>
-          <Link className="pc-btn pc-btn--primary" to="/presence/onboarding">Sign up</Link>
+          <Link className="pc-btn pc-btn--secondary" to="/presence/onboarding">Sign up</Link>
         </div>
       </header>
 
@@ -213,12 +226,12 @@ export default function PresenceLandingPage() {
           <p className="pc-kicker">Presence</p>
           <h1 id="pc-hero-title">More time to talk. Less distance between you.</h1>
           <div className="pc-hero-actions">
-            <Link className="pc-btn pc-btn--primary" to="/presence/onboarding">Create a Presence</Link>
-            <a className="pc-btn pc-btn--ghost" href="#how">How it works</a>
+            <Link className="pc-btn pc-btn--cta" to="/presence/onboarding">Create a Presence</Link>
+            <a className="pc-textlink" href="#how">How it works <ChevronRight className="pc-chevron" aria-hidden="true" /></a>
           </div>
         </div>
         <a className="pc-hero-film-link" href="#film">
-          <Play size={14} fill="currentColor" strokeWidth={0} />
+          <Play size={12} fill="currentColor" strokeWidth={0} />
           Watch the film, with Sofia, 82
           <ChevronDown size={14} />
         </a>
@@ -262,6 +275,7 @@ export default function PresenceLandingPage() {
       <div className="pc-body">
       <section className="pc-section" id="how" aria-labelledby="pc-world-title">
         <h2 className="pc-h2 pc-reveal" id="pc-world-title">Every conversation opens a family update.</h2>
+        <p className="pc-section-line pc-reveal">She talks as long as she likes. You get one short note.</p>
         <div className="pc-strip pc-reveal" style={{ '--d': '0.1s' } as React.CSSProperties} aria-label="Photographs from a conversation, and the note it produced">
           <img className="pc-strip-a" src="/images/presence/cosmos-01-album.jpg" alt="Hands turning the pages of an old photo album" loading="lazy" />
           <img className="pc-strip-b" src="/images/presence/cosmos-02-window.jpg" alt="A kitchen window with herbs on the sill and a phone on the table" loading="lazy" />
@@ -271,10 +285,6 @@ export default function PresenceLandingPage() {
             <span className={`pc-cycle ${chip.out ? 'is-out' : ''}`}>{chip.text}</span>
           </div>
         </div>
-      </section>
-
-      <section className="pc-section pc-section--lede" aria-label="Summary">
-        <p className="pc-lede pc-reveal">She talks for as long as she likes. You get one short note.</p>
       </section>
 
       <section className="pc-section" aria-labelledby="pc-think-title">
@@ -289,7 +299,7 @@ export default function PresenceLandingPage() {
           <article className="pc-card pc-reveal" style={{ '--d': '0.12s' } as React.CSSProperties}>
             <img src="/images/presence/cosmos-05-daughter.jpg" alt="Ana reading a summary on her phone at night" loading="lazy" />
             <div className="pc-float">
-              <p className="pc-float-label">Saved memory · 18:42</p>
+              <p className="pc-float-label">Saved memory, 18:42</p>
               <blockquote>“Your mother always saved the window seat for me on the train to Petrópolis.”</blockquote>
             </div>
           </article>
@@ -298,7 +308,7 @@ export default function PresenceLandingPage() {
             <img src="/images/presence/cosmos-06-portrait.jpg" alt="A quiet portrait of Sofia" loading="lazy" />
             <div className="pc-float pc-float--center">
               <p className="pc-float-label">AI voice</p>
-              <p className="pc-float-sub">Identified as AI to Sofia on every call</p>
+              <p className="pc-float-sub">Named as AI to Sofia on every call</p>
               <div className="pc-segment" aria-hidden="true">
                 <span className="is-active">Approved</span>
                 <span>Identified</span>
@@ -309,9 +319,9 @@ export default function PresenceLandingPage() {
         </div>
 
         <div className="pc-trio-captions pc-reveal" style={{ '--d': '0.15s' } as React.CSSProperties}>
-          <p>In her time.</p>
-          <p>In your time.</p>
-          <p>And never pretending.</p>
+          <p>In her time</p>
+          <p>In your time</p>
+          <p>Never pretending</p>
         </div>
       </section>
 
@@ -324,9 +334,18 @@ export default function PresenceLandingPage() {
               Voice approved by <span className="pc-glass">Ana</span>
             </figcaption>
           </figure>
-          <p className="pc-lede pc-reveal" style={{ '--d': '0.16s' } as React.CSSProperties}>
-            Presence introduces itself on every call, surfacing who approved the voice, what was said, and what still needs you.
-          </p>
+          <ul className="pc-list pc-know-list pc-reveal" style={{ '--d': '0.16s' } as React.CSSProperties}>
+            {PROMISES.map(({ icon: Icon, title, line }) => (
+              <li className="pc-row" key={title}>
+                <span className="pc-row-icon" aria-hidden="true"><Icon /></span>
+                <div className="pc-row-text">
+                  <p className="pc-row-title">{title}</p>
+                  <p className="pc-row-line">{line}</p>
+                </div>
+                <span />
+              </li>
+            ))}
+          </ul>
         </div>
       </section>
 
@@ -345,16 +364,11 @@ export default function PresenceLandingPage() {
       </section>
 
       <section className="pc-section pc-cta" aria-labelledby="pc-cta-title">
-        <p className="pc-reveal" id="pc-cta-title">Start tonight.</p>
-        <Link className="pc-cta-giant pc-reveal" style={{ '--d': '0.08s' } as React.CSSProperties} to="/presence/onboarding">
-          Create a Presence
-        </Link>
-        <Link className="pc-btn pc-btn--canvas pc-reveal" style={{ '--d': '0.16s' } as React.CSSProperties} to="/presence/login">
-          Log in <ArrowRight size={16} />
-        </Link>
-        <p className="pc-cta-trust pc-reveal" style={{ '--d': '0.22s' } as React.CSSProperties}>
-          Always identified as AI. The family approves the voice. Visits, money and medicine always need a person.
-        </p>
+        <h2 className="pc-h2 pc-reveal" id="pc-cta-title">Start tonight.</h2>
+        <div className="pc-cta-actions pc-reveal" style={{ '--d': '0.08s' } as React.CSSProperties}>
+          <Link className="pc-btn pc-btn--cta" to="/presence/onboarding">Create a Presence</Link>
+          <Link className="pc-textlink" to="/presence/login">Log in <ChevronRight className="pc-chevron" aria-hidden="true" /></Link>
+        </div>
       </section>
 
       <footer className="pc-footer">

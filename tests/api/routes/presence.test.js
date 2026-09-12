@@ -302,6 +302,60 @@ describe('POST /:id/voice-samples', () => {
       status: 'ready', elevenlabs_voice_id: 'voice-1', sample_count: 3, sample_seconds: 52,
     }));
   });
+
+  // presence_voice: CHECK (sample_count BETWEEN 0 AND 20), CHECK (sample_seconds BETWEEN 0 AND 3600).
+  it('stops counting at 20 samples, the most presence_voice holds', async () => {
+    store.getVoiceState.mockResolvedValue(ok({ status: 'queued', sample_count: 20, sample_seconds: 400, elevenlabs_voice_id: null }));
+
+    const res = await upload();
+
+    expect(res.status).toBe(201);
+    expect(store.recordVoiceSample).toHaveBeenCalledWith(expect.objectContaining({ sample_count: 20, sample_seconds: 412 }));
+  });
+
+  it('stops adding seconds at 3600, the most presence_voice holds', async () => {
+    store.getVoiceState.mockResolvedValue(ok({ status: 'queued', sample_count: 5, sample_seconds: 3595, elevenlabs_voice_id: null }));
+
+    const res = await upload();
+
+    expect(res.status).toBe(201);
+    expect(store.recordVoiceSample).toHaveBeenCalledWith(expect.objectContaining({ sample_count: 6, sample_seconds: 3600 }));
+  });
+
+  it('deletes a revoked voice still at ElevenLabs before cloning a new one', async () => {
+    process.env.PRESENCE_VOICE_CLONE_ENABLED = 'true';
+    store.getVoiceState.mockResolvedValue(ok({ status: 'revoked', sample_count: 0, sample_seconds: 0, elevenlabs_voice_id: 'voice-old' }));
+    voiceService.cloneVoice.mockResolvedValue({ success: true, voiceId: 'voice-new' });
+
+    const res = await upload();
+
+    expect(res.status).toBe(201);
+    expect(voiceService.deleteVoice).toHaveBeenCalledWith('voice-old');
+    expect(voiceService.deleteVoice.mock.invocationCallOrder[0])
+      .toBeLessThan(voiceService.cloneVoice.mock.invocationCallOrder[0]);
+    expect(store.recordVoiceSample).toHaveBeenCalledWith(expect.objectContaining({ status: 'ready', elevenlabs_voice_id: 'voice-new' }));
+  });
+
+  it('answers 502, and clones nothing, when the revoked voice cannot be deleted first', async () => {
+    process.env.PRESENCE_VOICE_CLONE_ENABLED = 'true';
+    store.getVoiceState.mockResolvedValue(ok({ status: 'revoked', sample_count: 0, sample_seconds: 0, elevenlabs_voice_id: 'voice-old' }));
+    voiceService.deleteVoice.mockResolvedValue({ success: false, error: 'timeout' });
+
+    const res = await upload();
+
+    expect(res.status).toBe(502);
+    expect(voiceService.cloneVoice).not.toHaveBeenCalled();
+    expect(store.recordVoiceSample).not.toHaveBeenCalled();
+  });
+
+  it('carries an undeleted voice id forward when the sample is only queued', async () => {
+    store.getVoiceState.mockResolvedValue(ok({ status: 'revoked', sample_count: 0, sample_seconds: 0, elevenlabs_voice_id: 'voice-old' }));
+
+    const res = await upload();
+
+    expect(res.status).toBe(201);
+    expect(store.recordVoiceSample).toHaveBeenCalledWith(expect.objectContaining({ status: 'queued', elevenlabs_voice_id: 'voice-old' }));
+  });
 });
 
 describe('POST /:id/voice-revoke — the withdrawal is recorded before it is acted on', () => {
@@ -340,6 +394,32 @@ describe('POST /:id/voice-revoke — the withdrawal is recorded before it is act
     const order = [store.appendConsent, voiceService.deleteVoice, store.recordVoiceRevoked]
       .map((fn) => fn.mock.invocationCallOrder[0]);
     expect(order).toEqual([...order].sort((a, b) => a - b));
+    expect(store.recordVoiceRevoked).toHaveBeenCalledWith(expect.objectContaining({ elevenlabs_voice_id: null }));
+  });
+
+  // A voice whose id is dropped can never be deleted at ElevenLabs. The id stays
+  // until a delete succeeds: the next revoke, or the next clone, tries again.
+  it('keeps the voice id, marked revoked, when ElevenLabs does not delete it', async () => {
+    store.getClonedVoiceId.mockResolvedValue(ok({ elevenlabs_voice_id: 'voice-1' }));
+    voiceService.deleteVoice.mockResolvedValue({ success: false, error: 'timeout' });
+    store.recordVoiceRevoked.mockResolvedValue(ok({ status: 'revoked' }));
+
+    const res = await api('post', `/${PRESENCE_ID}/voice-revoke`);
+
+    expect(res.status).toBe(200);
+    expect(store.recordVoiceRevoked).toHaveBeenCalledWith(expect.objectContaining({ status: 'revoked', elevenlabs_voice_id: 'voice-1' }));
+    expect(log.error).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ presenceId: PRESENCE_ID, error: 'timeout' }));
+  });
+
+  it('keeps the voice id, marked revoked, when the voice service is not configured', async () => {
+    store.getClonedVoiceId.mockResolvedValue(ok({ elevenlabs_voice_id: 'voice-1' }));
+    voiceService.isEnabled.mockReturnValue(false);
+
+    const res = await api('post', `/${PRESENCE_ID}/voice-revoke`);
+
+    expect(res.status).toBe(200);
+    expect(voiceService.deleteVoice).not.toHaveBeenCalled();
+    expect(store.recordVoiceRevoked).toHaveBeenCalledWith(expect.objectContaining({ status: 'revoked', elevenlabs_voice_id: 'voice-1' }));
   });
 });
 

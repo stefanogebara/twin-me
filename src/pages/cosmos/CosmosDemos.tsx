@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowUp, Check } from 'lucide-react';
+import { ArrowUp } from 'lucide-react';
 import '../../styles/presence-cosmos.css';
 
 /**
@@ -9,9 +9,13 @@ import '../../styles/presence-cosmos.css';
  * Pattern: Littlebird's hero embed (a scripted HTML replica of the real interface, three
  * auto-cycling scenes with a progress fill, clickable, paused when hidden, static end
  * state under reduced motion) crossed with Delphi's visible sources. No video, no device
- * bezel: a liquid-glass panel on a photograph, the same glass recipe as the Presence
- * transcript, showing what the product actually does in the order it does it:
- * a source arrives, a reading forms, the twin uses it.
+ * bezel: a glass panel on a photograph showing what the product actually does in the
+ * order it does it: a source arrives, a reading forms, the twin uses it.
+ *
+ * 2026-09-12, the register: inside the glass the interface is what the app now is —
+ * rows under a 1px ink rule, sentence-case labels, a warm field — and the scene tabs
+ * are three rows of text, not three cards. The Portrait reuses the base .pc-demo-*
+ * classes, so the register is scoped to .pc-demos in the stylesheet.
  *
  * Everything below is scripted with the landing's own sample readings and says so on the
  * panel. Route: /cosmos/demos (dev only). The section export is what would land on /.
@@ -20,16 +24,16 @@ import '../../styles/presence-cosmos.css';
 type Scene = { id: string; label: string; caption: string; duration: number };
 
 const SCENES: Scene[] = [
-  { id: 'reading', label: 'A reading forms', caption: 'Observations arrive with a timestamp. A reading is written only when they repeat.', duration: 9000 },
-  { id: 'twin', label: 'Ask your twin', caption: 'It answers as you, in your words, and shows what it read to say so.', duration: 9500 },
-  { id: 'signature', label: 'Your signature', caption: 'Five signatures, each measured from named sources. Nothing from a quiz.', duration: 8000 },
+  { id: 'reading', label: 'A reading forms', caption: 'Written only when something repeats.', duration: 9000 },
+  { id: 'twin', label: 'Ask your twin', caption: 'It answers as you, and shows what it read.', duration: 9500 },
+  { id: 'signature', label: 'Your signature', caption: 'Five signatures, each from named sources.', duration: 8000 },
 ];
 
 const OBSERVATIONS = [
-  { at: 400, src: 'Spotify', when: 'Thu 23:41', text: 'Nightcall, repeat x4' },
-  { at: 1500, src: 'Spotify', when: 'Thu 23:58', text: 'Nightcall, repeat x5' },
+  { at: 400, src: 'Spotify', when: 'Thu 23:41', text: 'Nightcall, on repeat four times' },
+  { at: 1500, src: 'Spotify', when: 'Thu 23:58', text: 'Nightcall, a fifth time' },
   { at: 2600, src: 'Calendar', when: 'Fri 09:00', text: 'Deadline: portfolio review' },
-  { at: 3700, src: 'Spotify', when: 'Sun 22:12', text: 'Nightcall, repeat x3' },
+  { at: 3700, src: 'Spotify', when: 'Sun 22:12', text: 'Nightcall, three times' },
 ];
 const READING = 'You loop the same three songs when a deadline is close. Focus, for you, sounds like ritual.';
 const READING_AT = 5000;
@@ -93,8 +97,8 @@ function SceneReading({ t }: { t: number }) {
       <div className="pc-demo-log" aria-label="Observations">
         {OBSERVATIONS.map((o) => (
           <div key={o.at} className={`pc-demo-row ${t >= o.at ? 'is-in' : ''}`}>
-            <span>{o.src} · {o.when}</span>
             <p>{o.text}</p>
+            <span>{o.src}, {o.when}</span>
           </div>
         ))}
       </div>
@@ -102,8 +106,8 @@ function SceneReading({ t }: { t: number }) {
         <span>{done ? 'Saved reading' : 'Writing a reading'}{!done && t >= READING_AT ? <Wave /> : null}</span>
         <p>{reading}{!done && t >= READING_AT ? <i className="pc-demo-caret" /> : null}</p>
         <div className={`pc-demo-chips ${done ? 'is-in' : ''}`}>
-          <b>Spotify · 3 nights</b>
-          <b>Calendar · 1 deadline</b>
+          <b>Spotify, three nights</b>
+          <b>Calendar, one deadline</b>
         </div>
       </div>
     </div>
@@ -125,9 +129,9 @@ function SceneTwin({ t }: { t: number }) {
         <span>Your twin{!done && t >= ANSWER_AT - 600 ? <Wave /> : null}</span>
         <p>{a}{!done && t >= ANSWER_AT ? <i className="pc-demo-caret" /> : null}</p>
         <div className={`pc-demo-chips ${done ? 'is-in' : ''}`}>
-          <b>Spotify · Thu 23:41</b>
-          <b>Calendar · Fri 09:00</b>
-          <b>Gmail · reply latency</b>
+          <b>Spotify, Thu 23:41</b>
+          <b>Calendar, Fri 09:00</b>
+          <b>Gmail, how fast you reply</b>
         </div>
       </div>
     </div>
@@ -151,7 +155,7 @@ function SceneSignature({ t }: { t: number }) {
         })}
       </div>
       <div className={`pc-demo-chips ${t >= 4200 ? 'is-in' : ''}`}>
-        <b><Check size={13} /> Read from 6 sources</b>
+        <b>Read from 6 sources</b>
         <b>Nothing self-reported</b>
       </div>
     </div>
@@ -192,7 +196,7 @@ export function CosmosDemosSection() {
   return (
     <section className="pc-section pc-demos" aria-labelledby="pc-demos-title">
       <h2 className="pc-h2 pc-reveal is-in" id="pc-demos-title">Watch it read.</h2>
-      <p className="pc-lede pc-section--lede pc-reveal is-in" style={{ marginTop: 20 }}>The interface, doing what it does, in the order it does it.</p>
+      <p className="pc-section-line pc-reveal is-in">The real interface, scripted.</p>
 
       <div className="pc-demo-stage" ref={stageRef}>
         <img src="/images/twinme/cosmos-07-room.jpg" alt="" aria-hidden="true" />
@@ -226,7 +230,7 @@ export function CosmosDemosSection() {
       </div>
 
       <p className="pc-demo-note">
-        Scripted from the sample readings on this page. Your own reading starts from your email in the search bar, or after one connected account.
+        Scripted from sample readings. Yours starts from your email, or one connected account.
       </p>
     </section>
   );
@@ -239,11 +243,11 @@ export default function CosmosDemosPage() {
     return () => { document.title = previousTitle; };
   }, []);
   return (
-    <main className="presence-cosmos pc-demos-page" id="main-content">
+    <main className="presence-cosmos pc-app pc-demos-page" id="main-content">
       <header className="pc-demo-proto-head">
-        <p className="pc-spec-n">Prototype · 2026-09-03 · for discussion</p>
-        <p>A demos section for the front door, between "Read the way you live." and "Know what you're made of." Three scenes, auto-cycling, click to hold. Plan: .claude/plans/2026-09-03-live-demos.</p>
-        <Link className="pc-btn pc-btn--ghost" to="/">The front door</Link>
+        <h1 className="pc-apphead-title">Live demos</h1>
+        <p className="pc-apphead-line">A prototype for the front door, 2026-09-03. Three scenes cycle; click one to hold it.</p>
+        <Link className="pc-btn pc-btn--secondary" to="/">The front door</Link>
       </header>
       <CosmosDemosSection />
     </main>

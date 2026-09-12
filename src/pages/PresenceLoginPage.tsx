@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react';
-import { ArrowLeft, Loader2, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import '@/styles/presence-cosmos.css';
 
 /**
- * /presence/login — Cosmos auth layout (see the Auth section of presence-cosmos.css):
- * a narrow centered column on linen — mark, small heading, one action, wordmark as the
- * floor — beside a paper-white panel holding a loose stack of polaroids with a curator
- * caption, the way cosmos.so/start frames a featured board next to the form.
+ * /presence/login — the sign-in frame (see the Auth section of presence-cosmos.css),
+ * in the register since 2026-09-12: a flat page with the mark, a title, one grey line
+ * and one 48/12 call to action in a 360px column; on wide screens the photograph is the
+ * right half, its caption on a frosted chip.
  *
  * Auth itself is unchanged: Google OAuth through AuthContext, landing on /presence/onboarding.
  */
@@ -56,21 +56,21 @@ export default function PresenceLoginPage() {
   }
 
   return (
-    <main className="presence-cosmos" id="main-content">
+    <main className="presence-cosmos pc-app" id="main-content">
       <div className="pc-auth" style={{ ["--auth-still" as string]: "url('/images/presence/cosmos-02-window.jpg')" } as React.CSSProperties}>
         <section className="pc-auth-left">
-          <Link className="pc-auth-back" to="/presence"><ArrowLeft size={15} /> Presence</Link>
-          <Mark />
+          <Link className="pc-auth-back" to="/presence"><ArrowLeft size={14} /> Presence</Link>
 
           <div className="pc-auth-card">
-            <h1>Welcome <em>back</em>.</h1>
-            <p className="pc-auth-sub">
-              Sign in or <Link to="/presence/onboarding">create a Presence</Link>
+            <Mark />
+            <h1 className="pc-apphead-title">Welcome back.</h1>
+            <p className="pc-apphead-line">
+              Sign in, or <Link to="/presence/onboarding">create a Presence</Link>.
             </p>
 
             <div className="pc-auth-actions">
-              <button className="pc-auth-google" onClick={continueWithGoogle} disabled={loading}>
-                {loading ? <Loader2 className="pc-spin" size={18} /> : <span className="pc-auth-g">G</span>}
+              <button className="pc-btn pc-btn--cta pc-auth-google" onClick={continueWithGoogle} disabled={loading}>
+                {loading ? <Loader2 className="pc-spin" size={16} /> : <span className="pc-auth-g" aria-hidden="true" />}
                 Continue with Google
               </button>
             </div>
@@ -78,17 +78,10 @@ export default function PresenceLoginPage() {
             {error ? <p className="pc-auth-error" role="alert">{error}</p> : null}
 
             <p className="pc-auth-legal">
-              By continuing, you agree to TwinMe’s <Link to="/terms">Terms</Link> and{' '}
+              By continuing you accept TwinMe’s <Link to="/terms">Terms</Link> and{' '}
               <Link to="/privacy">Privacy Policy</Link>.
             </p>
-
-            <p className="pc-auth-trust">
-              <ShieldCheck size={16} />
-              One verified account owns the voice, the consent record, and the family relay.
-            </p>
           </div>
-
-          <div className="pc-auth-wordmark" aria-hidden="true">PRESENCE</div>
         </section>
 
         <aside className="pc-auth-panel" aria-hidden="true">

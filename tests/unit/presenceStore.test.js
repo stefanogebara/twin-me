@@ -173,12 +173,63 @@ describe('presenceStore', () => {
     });
   });
 
+  describe('getCallBriefSources (Promise.all read for the elder call brief)', () => {
+    it('reads the five brief sources in parallel with the filters the brief needs', async () => {
+      const pending = store.getCallBriefSources(PRESENCE_ID);
+      expect(calls.map((c) => c.table)).toEqual([
+        'presence_people',
+        'presence_facts',
+        'presence_notes',
+        'presence_voice',
+        'presence_conversations',
+      ]);
+      const result = await pending;
+
+      const [people, facts, notes, voice, conversations] = calls;
+      expect(people.ops).toEqual([
+        ['select', 'name, relation, called_by'],
+        ['eq', 'presence_id', PRESENCE_ID],
+        ['eq', 'status', 'active'],
+        ['order', 'created_at'],
+      ]);
+      expect(facts.ops).toEqual([
+        ['select', 'kind, question, answer, confidence, expires_at'],
+        ['eq', 'presence_id', PRESENCE_ID],
+        ['eq', 'status', 'active'],
+        ['or', expect.stringMatching(/^expires_at\.is\.null,expires_at\.gt\.\d{4}-\d{2}-\d{2}T/)],
+        ['order', 'created_at'],
+      ]);
+      expect(notes.ops).toEqual([
+        ['select', 'id, body'],
+        ['eq', 'presence_id', PRESENCE_ID],
+        ['eq', 'status', 'queued'],
+        ['order', 'created_at'],
+        ['limit', 5],
+      ]);
+      expect(voice.ops).toEqual([
+        ['select', 'status, elevenlabs_voice_id'],
+        ['eq', 'presence_id', PRESENCE_ID],
+        ['maybeSingle'],
+      ]);
+      expect(conversations.ops).toEqual([
+        ['select', 'started_at, summary'],
+        ['eq', 'presence_id', PRESENCE_ID],
+        ['eq', 'status', 'summarized'],
+        ['neq', 'summary', ''],
+        ['order', 'started_at', { ascending: false }],
+        ['limit', 3],
+      ]);
+      expect(Object.keys(result)).toEqual(['people', 'facts', 'notes', 'voice', 'conversations', 'error']);
+    });
+  });
+
   describe('parallel reads report the first failed query as `error`', () => {
     const reads = [
       ['getReadinessSources', 'presence_facts'],
       ['getResumeDetails', 'presence_voice'],
       ['getOverview', 'presences'],
       ['getElderHome', 'presence_conversations'],
+      ['getCallBriefSources', 'presence_notes'],
     ];
 
     it.each(reads)('%s sets error when its %s query fails', async (read, failingTable) => {

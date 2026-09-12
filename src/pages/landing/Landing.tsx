@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { ChevronRight } from 'lucide-react';
 import { DEMO_PORTRAIT, DOMAIN_LABEL, SOURCE_LABEL, type Domain, type Evidence, type Reading } from '../../data/demoPortrait';
 import '../../styles/landing.css';
 
@@ -14,6 +15,10 @@ import '../../styles/landing.css';
  * the sources as a sentence; the privacy statement in words; one action at the end. One
  * axis, left, from the nav to the footer. Everything shown is the public export, so every
  * receipt and every line is real.
+ *
+ * 2026-09-12, the register: Geist headings where the serif was, a 13px body, sentence-
+ * case labels, receipts and citations as rows under a 1px ink rule (three receipts a
+ * line, with the count of all of them), one 48/12 call to action.
  */
 
 const START = '/auth';
@@ -180,11 +185,12 @@ function allReceipts(evidence: Evidence[]) {
 }
 
 function Receipts({ evidence, sources, label }: { evidence: Evidence[]; sources: string[]; label?: string }) {
-  const rows = allReceipts(evidence);
+  const all = allReceipts(evidence);
+  const rows = spread(all, 3);
   return (
     <div aria-label={label ?? 'Read from'}>
       <ReceiptRows rows={rows} />
-      <span className="ld-meta ld-mono">{provenance(rows.length, sources)}</span>
+      <span className="ld-meta">{provenance(all.length, sources, rows.length)}</span>
     </div>
   );
 }
@@ -271,12 +277,11 @@ export default function Landing() {
             <h1 className="ld-v1"><Line domain="motivation" /></h1>
             <div className="ld-row">
               <div>
-                <p className="ld-lead ld-dek">A portrait of you, read from your days. This one is {DEMO_PORTRAIT.owner}&rsquo;s, from {readSources} sources since {sinceMonth}. Every line shows its evidence, below.</p>
-                <p className="ld-cta"><Link to={DEMO} className="ld-link">See the whole portrait</Link></p>
+                <p className="ld-lead ld-dek">A portrait read from your days. This one is {DEMO_PORTRAIT.owner}&rsquo;s, from {readSources} sources since {sinceMonth}.</p>
+                <p className="ld-cta"><Link to={DEMO} className="ld-textlink">See the whole portrait <ChevronRight className="ld-chev" aria-hidden="true" /></Link></p>
               </div>
-              <div className="ld-glass" aria-label="Read from">
-                <ReceiptRows rows={allReceipts(first.evidence)} />
-                <span className="ld-meta ld-mono">{provenance(allReceipts(first.evidence).length, first.sources)}</span>
+              <div className="ld-glass">
+                <Receipts evidence={first.evidence} sources={first.sources} />
               </div>
             </div>
           </div>
@@ -294,27 +299,27 @@ export default function Landing() {
             <div>
               <p className="ld-label">Asked</p>
               <p className="ld-q">{ask.q}</p>
-              <p className="ld-voice ld-v2"><q>{tidy(ask.a)}</q></p>
+              <p className="ld-voice"><q>{tidy(ask.a)}</q></p>
             </div>
-            <div className="ld-cites" aria-label="What it cites">
+            <ul className="ld-list" aria-label="What it cites">
               {askCited.map((r) => (
-                <div key={r.id} className="ld-cite">
-                  {tidy(r.text)}
-                  <span className="ld-mono">{PART[r.domain]} · {[...new Set(r.evidence.map((e) => sourceName(e.source)))].join(', ')}</span>
-                </div>
+                <li key={r.id} className="ld-item">
+                  <b>{tidy(r.text)}</b>
+                  <span>{PART[r.domain]} · {[...new Set(r.evidence.map((e) => sourceName(e.source)))].join(', ')}</span>
+                </li>
               ))}
-            </div>
+            </ul>
           </Rise>
 
           <Rise as="section" className="ld-entry ld-sources ld-row">
             <div>
-              <p className="ld-label">Reads from</p>
-              <p className="ld-lead ld-names">{sourcesSentence}.</p>
+              <p className="ld-label">Sources</p>
             </div>
-            <div>
-              <p className="ld-label">Never read</p>
-              <p className="ld-lead ld-privacy">Messages, photos and location. Delete a source, and everything read from it goes with it.</p>
-            </div>
+            <ul className="ld-list">
+              <li className="ld-item"><b>Reads from</b><span>{sourcesSentence}.</span></li>
+              <li className="ld-item"><b>Never reads</b><span>Messages, photos and location.</span></li>
+              <li className="ld-item"><b>Delete a source</b><span>Everything read from it goes with it.</span></li>
+            </ul>
           </Rise>
         </div>
 
@@ -322,7 +327,7 @@ export default function Landing() {
         <Rise as="section" className="ld-close ld-col">
           <h2 className="ld-v0">See what your days&nbsp;say.</h2>
           <div className="ld-cta">
-            <Link to={START} className="ld-pill">Read my portrait</Link>
+            <Link to={START} className="ld-btn">Read my portrait</Link>
           </div>
         </Rise>
 

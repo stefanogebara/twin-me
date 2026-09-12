@@ -236,34 +236,39 @@ export default function PresenceCallPage() {
 
   const explainCard = explain ? (
     <div className="pc-call-explain" role="note">
-      <strong>Quem está falando com você?</strong> Uma presença de inteligência artificial que {caller} criou,
-      com carinho, para conversar com você quando quiser. Ela sempre diz que é IA. Ela nunca promete visitas,
-      não fala de dinheiro nem de remédios, e nunca fala em nome de {caller} — só passa recados que {caller} mesmo escreveu.
+      <strong>Quem está falando com você?</strong> Uma inteligência artificial que {caller} criou para conversar
+      com você. Ela sempre diz que é IA. Não promete visitas, não fala de dinheiro nem de remédios, e só passa
+      recados que {caller} mesmo escreveu.
     </div>
   ) : null;
 
+  /* Rows under an ink rule, not boxes: the register, at her sizes. */
   const homeBlocks = (
     <div className="pc-call-home">
       {waiting > 0 && (
-        <div className="pc-home-note">
-          <span className="pc-home-note-dot" aria-hidden="true" />
-          <p>
-            {caller} deixou {waiting === 1 ? 'um recado' : `${waiting} recados`} para você.
-            <small>{waiting === 1 ? 'Ele aparece' : 'Eles aparecem'} na nossa próxima conversa.</small>
-          </p>
-        </div>
+        <ul className="pc-list">
+          <li className="pc-home-note">
+            <span className="pc-home-note-dot" aria-hidden="true" />
+            <p>
+              {caller} deixou {waiting === 1 ? 'um recado' : `${waiting} recados`} para você.
+              <small>{waiting === 1 ? 'Ele aparece' : 'Eles aparecem'} na nossa próxima conversa.</small>
+            </p>
+          </li>
+        </ul>
       )}
 
       {recaps.length > 0 && (
-        <div className="pc-home-recaps">
+        <section className="pc-home-recaps">
           <h2>Nossas conversas</h2>
-          {recaps.map((c) => (
-            <div className="pc-home-recap" key={c.id}>
-              <span>{whenLabel(c.started_at)}</span>
-              <p>{c.recap}</p>
-            </div>
-          ))}
-        </div>
+          <ul className="pc-list">
+            {recaps.map((c) => (
+              <li className="pc-home-recap" key={c.id}>
+                <span>{whenLabel(c.started_at)}</span>
+                <p>{c.recap}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
     </div>
   );
@@ -286,7 +291,7 @@ export default function PresenceCallPage() {
           <>
             <div className="pc-orb" aria-hidden="true" />
             <h1>{name ? `Oi, ${name}.` : 'Oi.'}</h1>
-            <p className="pc-call-sub">A presença de {caller} está aqui para conversar com você. Sem pressa nenhuma.</p>
+            <p className="pc-call-sub">A presença de {caller} está aqui para conversar. Sem pressa.</p>
             <div className="pc-call-actions">
               <button className="pc-call-cta" onClick={startCall} disabled={state === 'connecting'}>
                 {state === 'connecting' ? 'Conectando…' : 'Começar a conversa'}
@@ -326,7 +331,7 @@ export default function PresenceCallPage() {
           <>
             <div className="pc-orb" aria-hidden="true" />
             <h1>Que conversa boa.</h1>
-            <p className="pc-call-sub">{caller} vai receber um resumo com carinho. Volte quando quiser.</p>
+            <p className="pc-call-sub">{caller} vai receber um resumo. Volte quando quiser.</p>
             <div className="pc-call-actions">
               <button className="pc-call-cta" onClick={backHome}>Voltar ao início</button>
             </div>
@@ -345,7 +350,7 @@ export default function PresenceCallPage() {
 
       <p className="pc-call-footer">
         <ShieldCheck size={16} />
-        Uma presença de inteligência artificial criada por {caller}. Sempre se identifica como IA e nunca fala em nome da família.
+        Uma inteligência artificial criada por {caller}. Sempre diz que é IA.
       </p>
     </main>
   );
