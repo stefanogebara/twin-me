@@ -2097,53 +2097,23 @@ select.pc-input {
 
 
 /* ============================================================
-   Auth — /presence/login
-   Cosmos /start pattern: a narrow centered column on linen, a
-   white collage panel beside it, the wordmark as the floor.
+   Auth — /presence/login, /auth, /waitlist (the register, 2026-09-12)
+   A flat page. The form is a 360px column on the page colour, left
+   aligned: the mark, a title, one grey line, fields in the warm box,
+   one 48/12 call to action, everything else 32/4. No card, no glass,
+   no veil. From 901px the photograph keeps the right half as a photo
+   card (12px in, 12px corners) with its caption on a frosted chip:
+   that glass keeps text readable over a photograph, so it stays.
+   Phones get the flat page alone.
+   Was: the still behind the whole page under a paper veil, a frosted
+   26px card, an Instrument Serif title with an italic word, 56/16
+   controls, and an uppercase wordmark as the floor.
    ============================================================ */
 
 .pc-auth {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   min-height: 100dvh;
-  position: relative;
-  isolation: isolate;
-}
-
-/* Law 1: one photograph carries the page. This used to be two columns meeting
-   at a hard vertical seam — paper #f7f5f3 on the left, flat #ffffff on the
-   right — with three shadowed polaroids arranged on the white. That is a
-   banner, not a ground, and Cosmos forbids the shadows besides.
-   The still now runs behind the WHOLE page. Each surface sets its own via
-   --auth-still, so Presence keeps its register and TwinMe keeps its own. */
-.pc-auth::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  z-index: -2;
-  background-image: var(--auth-still);
-  background-size: cover;
-  background-position: 50% 42%;
-  filter: saturate(0.78);
-}
-
-/* The veil ramps HORIZONTALLY: near-opaque under the form so it stays
-   legible, thinning to the right so the room breathes. A gradient, so there
-   is no edge anywhere for the eye to catch. */
-.pc-auth::after {
-  content: '';
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  background:
-    linear-gradient(
-      to right,
-      var(--c-paper) 0%,
-      rgba(247, 245, 243, 0.97) 26%,
-      rgba(247, 245, 243, 0.82) 44%,
-      rgba(247, 245, 243, 0.44) 66%,
-      rgba(247, 245, 243, 0.26) 100%
-    );
 }
 
 .pc-auth-left {
@@ -2151,20 +2121,20 @@ select.pc-input {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 40px 24px 32px;
+  padding: 88px 24px 56px;
 }
 
 .pc-auth-back {
   position: absolute;
-  top: 28px;
-  left: 28px;
+  top: 24px;
+  left: 24px;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  height: 40px;
-  padding: 0 12px;
-  border-radius: 16px;
-  font-size: 15px;
+  gap: 6px;
+  height: 32px;
+  padding: 0 8px;
+  border-radius: 4px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--c-ink-2);
   transition: color 0.2s, background 0.2s;
@@ -2175,199 +2145,188 @@ select.pc-input {
   background: var(--c-hover-secondary);
 }
 
-.pc-auth-left > .pc-mark {
-  width: 32px;
-  height: 32px;
-  margin-top: 16px;
-  color: var(--c-ink);
+.presence-cosmos .pc-auth-back:focus-visible {
+  border-radius: 4px;
 }
 
 .pc-auth-card {
-  width: min(380px, 100%);
+  width: min(360px, 100%);
   margin: auto 0;
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  text-align: center;
-  /* Law 2 + 5: a frosted panel floating in the photograph, 26px. */
-  padding: 34px 30px 30px;
-  border-radius: 26px;
-  border: 1px solid rgba(255, 255, 255, 0.6);
-  background: rgba(255, 255, 255, 0.66);
-  backdrop-filter: blur(30px) saturate(1.3);
-  -webkit-backdrop-filter: blur(30px) saturate(1.3);
+  text-align: left;
 }
 
-/* Law 3: the line you read is serif. It was Geist 20px/500 — interface type
-   doing a headline's job. Law 4 puts one italic word on it, in the markup. */
-.pc-auth-card h1 {
-  font-family: 'Instrument Serif', Georgia, serif;
-  font-size: 34px;
-  font-weight: 400;
-  letter-spacing: -0.018em;
-  line-height: 1.06;
-}
-.pc-auth-card h1 em { font-style: italic; }
-
-/* Phones: the paper wash behind the card fades left to right, which on a wide
-   screen leaves the card in solid paper. At 767px and down the card spans the
-   screen, so its right half sits over the thin end of the wash and the room
-   shows through: the invite hint and the legal line measured 3.5:1 and 3.67:1
-   on rgb(201,207,211). Backed out of those grounds, the card needs ~88% white
-   for --c-ink-3 to clear AA with margin. The room stays visible around it. */
-@media (max-width: 767px) {
-  .pc-auth-card { background: rgba(255, 255, 255, 0.88); }
+.pc-auth-card > .pc-mark {
+  width: 32px;
+  height: 32px;
+  margin-bottom: 32px;
+  color: var(--c-ink);
 }
 
-.presence-cosmos .pc-auth-sub {
-  margin-top: 6px;
-  font-size: 15px;
-  color: var(--c-ink-2);
-}
-
-.pc-auth-sub a {
+/* A link inside a line of text: ink, weight 500, underlined. The legal
+   line's Terms and Privacy are buttons that open the modal. */
+.presence-cosmos .pc-auth-card p a,
+.presence-cosmos .pc-auth-legal button {
   color: var(--c-ink);
   font-weight: 500;
-}
-
-.pc-auth-sub a:hover {
   text-decoration: underline;
+  text-decoration-thickness: 1px;
   text-underline-offset: 3px;
 }
 
-.pc-auth-actions {
-  margin-top: 28px;
+.presence-cosmos .pc-auth-legal button:focus-visible {
+  border-radius: 4px;
+}
+
+/* The continuity row (what the landing already read), the invite field and
+   the sent state each open 32px under what comes before. */
+.presence-cosmos .pc-auth-block {
+  margin-top: 32px;
+}
+
+/* A field and its one button on one line. The input shrinks, never the
+   button: on a phone the invite field ran under Verify, because the old
+   field's input kept its intrinsic width inside a zero-minimum column. */
+.pc-auth-row {
   display: grid;
-  gap: 10px;
-}
-
-.pc-auth-google {
-  height: 56px;
-  display: inline-flex;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: center;
-  gap: 10px;
-  border-radius: 16px;
-  background: var(--c-ink);
-  color: var(--c-white) !important;
-  font-size: 16px;
+  gap: 8px;
+}
+
+.presence-cosmos .pc-auth-row .pc-input {
+  min-width: 0;
+}
+
+.presence-cosmos .pc-auth-note {
+  margin-top: 24px;
+  font-size: 13px;
+  line-height: 19.5px;
+  font-weight: 350;
+  color: var(--c-ink-2);
+}
+
+.pc-auth-note strong {
   font-weight: 500;
-  letter-spacing: -0.02em;
-  transition: background 0.2s, transform 0.25s var(--c-ease-ui);
+  color: var(--c-ink);
 }
 
-.pc-auth-google:hover {
-  background: var(--c-hover-primary);
+.pc-auth-actions {
+  margin-top: 32px;
+  display: grid;
 }
 
-.pc-auth-google:active {
-  transform: scale(0.985);
+/* The call to action spans the column; its shape is .pc-btn--cta's. */
+.presence-cosmos .pc-auth-google {
+  width: 100%;
+  gap: 10px;
 }
 
-.pc-auth-google:disabled {
-  opacity: 0.6;
-  cursor: wait;
+/* Google's "G", drawn by CSS: it is a mark, not a word to read or count. */
+.pc-auth-g::before {
+  content: 'G';
 }
 
 .pc-auth-g {
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
   flex: none;
   display: grid;
   place-items: center;
   border-radius: 50%;
-  background: var(--c-white);
+  background: var(--c-paper);
   color: var(--c-ink);
   font-size: 12px;
   font-weight: 500;
 }
 
+/* --c-danger: 5.46:1 on the page. It was full ink, so an error read as body. */
 .presence-cosmos .pc-auth-error {
   margin-top: 12px;
-  font-size: 14px;
-  color: var(--c-ink);
+  font-size: 13px;
+  line-height: 19.5px;
+  color: var(--c-danger);
+}
+
+.pc-auth-or {
+  position: relative;
+  margin: 28px 0;
+  height: 1px;
+  background: var(--c-hairline);
+}
+
+.pc-auth-or span {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  padding: 0 12px;
+  background: var(--c-paper);
+  font-size: 13px;
+  line-height: 19.5px;
+  font-weight: 350;
+  color: var(--c-ink-3);
+}
+
+/* The waitlist's field over its call to action, stacked. */
+.pc-auth-magic {
+  display: grid;
+  gap: 12px;
+  margin-top: 32px;
 }
 
 .presence-cosmos .pc-auth-legal {
-  margin-top: 16px;
-  font-size: 14px;
-  line-height: 1.45;
+  margin-top: 32px;
+  font-size: 13px;
+  line-height: 19.5px;
+  font-weight: 350;
   color: var(--c-ink-3);
-  text-wrap: balance;
 }
 
-.pc-auth-legal a {
-  color: var(--c-ink-2);
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
-.presence-cosmos .pc-auth-trust {
-  margin-top: 40px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  font-size: 14px;
-  line-height: 1.45;
-  color: var(--c-ink-2);
-  text-wrap: balance;
-}
-
-.pc-auth-trust svg {
-  flex: none;
-}
-
-.pc-auth-wordmark {
-  margin-top: auto;
-  padding-top: 40px;
-  font-size: 22px;
-  font-weight: 500;
-  letter-spacing: -0.02em;
-  color: var(--c-ink);
-  user-select: none;
-}
-
-/* The right column is no longer a surface — it is simply where the room shows
-   through. The polaroid stack is gone: law 1 asks for ONE photograph as the
-   ground, and three rotated cards with drop shadows is the opposite of that
-   (Cosmos: hairlines, not shadows). */
+/* The photograph, as the right half: a photo card 12px in from the edges. */
 .pc-auth-panel {
-  position: relative;
-  background: transparent;
-  overflow: hidden;
+  position: sticky;
+  top: 0;
+  height: 100dvh;
 }
 
-.pc-auth-panel img { display: none; }
+.pc-auth-panel::before {
+  content: '';
+  position: absolute;
+  inset: 12px 12px 12px 0;
+  border-radius: 12px;
+  background-image: var(--auth-still);
+  background-size: cover;
+  background-position: 50% 42%;
+  filter: saturate(0.78);
+}
 
 /* Scoped `.presence-cosmos .pc-auth-caption` deliberately: a bare
-   .pc-auth-caption is (0,1,0) and loses to `.presence-cosmos p` at (0,1,1),
-   which is the specificity trap CLAUDE.md documents. The unscoped version of
-   this rule silently rendered at full ink.
+   .pc-auth-caption is (0,1,0) and loses to `.presence-cosmos p` at (0,1,1).
 
    The caption rides its own frosted chip rather than sitting on the bare
-   photograph. Measured on the TwinMe blue-hour still, ink on the open image
-   came to 4.13:1 — under AA — and any page can swap its --auth-still for a
-   darker one at any time. A chip is legible over ANY photograph, so this
-   cannot regress when someone changes the picture. */
+   photograph: measured on the TwinMe blue-hour still, ink on the open image
+   came to 4.13:1, and any page can swap its --auth-still for a darker one.
+   0.86 white + #5e5a57 is solved, not chosen: over the worst photograph
+   possible (pure black) the chip's backdrop lands at 219 and this ink
+   measures 4.93:1. This holds whatever still a page sets. */
 .presence-cosmos .pc-auth-caption {
   position: absolute;
-  left: 26px;
-  bottom: 26px;
-  max-width: 33ch;
+  left: 28px;
+  bottom: 28px;
+  max-width: 34ch;
   margin: 0;
-  padding: 16px 18px;
-  border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.55);
-  /* 0.86 + #5e5a57 is solved, not chosen: over the worst photograph possible
-     (pure black) the chip's backdrop lands at 219 and this ink measures
-     4.93:1. At the shared --c-ink-2 it would be 3.86:1, and at 0.72 opacity
-     even the darker ink fails. This holds whatever still a page sets. */
+  padding: 12px 14px;
+  border-radius: 8px;
   background: rgba(255, 255, 255, 0.86);
   backdrop-filter: blur(26px) saturate(1.25);
   -webkit-backdrop-filter: blur(26px) saturate(1.25);
-  font-size: 14px;
-  line-height: 1.5;
+  font-size: 13px;
+  line-height: 19.5px;
+  font-weight: 350;
+  letter-spacing: -0.176px;
   color: #5e5a57;
 }
 
@@ -2384,6 +2343,17 @@ select.pc-input {
 
   .pc-auth-panel {
     display: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .pc-auth-left {
+    padding: 72px 24px 48px;
+  }
+
+  .pc-auth-back {
+    top: 16px;
+    left: 16px;
   }
 }
 
@@ -3643,143 +3613,10 @@ select.pc-input {
 }
 
 /* ============================================================
-   Auth — TwinMe additions (/auth, /waitlist), 2026-09-02
-   The same column as /presence/login, plus the invite gate, the
-   magic-link fallback, the reveal continuity card and the legal
-   modal. Fields reuse .pc-ob-field; buttons reuse .pc-btn.
+   Auth — the legal modal (/auth)
+   A plain scrim and a white sheet: no blur, 12px corners, a hairline
+   under the head, 13px throughout.
    ============================================================ */
-
-.pc-auth-reveal {
-  margin-top: 24px;
-  padding: 16px 18px;
-  border-radius: 16px;
-  background: var(--c-white);
-  border: 0.5px solid var(--c-border);
-  text-align: left;
-}
-
-.pc-auth-reveal > span {
-  display: block;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--c-ink-3);
-}
-
-.pc-auth-reveal p {
-  margin-top: 6px;
-  font-size: 15px;
-  line-height: 1.45;
-  color: var(--c-ink);
-}
-
-.pc-auth-gate {
-  margin-top: 24px;
-  display: grid;
-  gap: 10px;
-  text-align: left;
-}
-
-.pc-auth-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 8px;
-}
-
-.pc-auth-row .pc-btn {
-  height: 56px;
-}
-
-.presence-cosmos .pc-auth-note {
-  font-size: 14px;
-  line-height: 1.45;
-  color: var(--c-ink-2);
-}
-
-.pc-auth-note a {
-  color: var(--c-ink);
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
-.pc-auth-note strong {
-  font-weight: 500;
-  color: var(--c-ink);
-}
-
-.presence-cosmos .pc-auth-note--hint {
-  margin-top: 16px;
-}
-
-.pc-auth-actions .pc-auth-note {
-  text-align: center;
-  color: var(--c-ink-3);
-}
-
-.presence-cosmos .pc-auth-granted {
-  margin-top: 20px;
-  font-size: 14px;
-  color: var(--c-ink-2);
-}
-
-.pc-auth-granted strong {
-  font-weight: 500;
-  color: var(--c-ink);
-  letter-spacing: 0.04em;
-}
-
-.pc-auth-or {
-  position: relative;
-  margin: 20px 0;
-  height: 1px;
-  background: var(--c-border);
-}
-
-.pc-auth-or span {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  padding: 0 12px;
-  background: var(--c-paper);
-  font-size: 13px;
-  color: var(--c-ink-3);
-}
-
-.pc-auth-magic {
-  display: grid;
-  gap: 8px;
-  margin-top: 24px;
-}
-
-.pc-auth-or + .pc-auth-magic {
-  margin-top: 0;
-}
-
-.pc-auth-magic .pc-btn {
-  height: 56px;
-}
-
-.pc-auth-sent {
-  padding: 16px 18px;
-  border-radius: 16px;
-  background: var(--c-white);
-  border: 0.5px solid var(--c-border);
-  font-size: 14px;
-  line-height: 1.45;
-  color: var(--c-ink-2);
-}
-
-.pc-auth-sent strong {
-  display: block;
-  font-weight: 500;
-  color: var(--c-ink);
-}
-
-.pc-auth-legal button {
-  color: var(--c-ink-2);
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
 
 .pc-modal {
   position: fixed;
@@ -3788,9 +3625,7 @@ select.pc-input {
   display: grid;
   place-items: center;
   padding: 24px;
-  background: rgba(13, 13, 13, 0.4);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: rgba(37, 31, 33, 0.4);
 }
 
 .pc-modal-card {
@@ -3798,7 +3633,7 @@ select.pc-input {
   max-height: 80dvh;
   display: flex;
   flex-direction: column;
-  border-radius: 16px;
+  border-radius: 12px;
   background: var(--c-white);
   overflow: hidden;
 }
@@ -3807,38 +3642,27 @@ select.pc-input {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 18px 24px;
-  border-bottom: 0.5px solid var(--c-border);
+  gap: 16px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--c-hairline);
 }
 
-.pc-modal-head h2 {
-  font-size: 20px;
+.presence-cosmos .pc-modal-head h2 {
+  font-size: 13px;
+  line-height: 20px;
   font-weight: 500;
-  letter-spacing: -0.02em;
-}
-
-.pc-modal-close {
-  display: grid;
-  place-items: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 999px;
-  color: var(--c-ink-2);
-  transition: background 0.2s;
-}
-
-.pc-modal-close:hover {
-  background: var(--c-hover-secondary);
+  letter-spacing: -0.176px;
 }
 
 .pc-modal-body {
   margin: 0;
-  padding: 20px 24px 28px;
+  padding: 16px 20px 24px;
   overflow-y: auto;
   white-space: pre-wrap;
   font: inherit;
-  font-size: 14px;
-  line-height: 1.55;
+  font-size: 13px;
+  line-height: 19.5px;
+  letter-spacing: -0.176px;
   color: var(--c-ink-2);
 }
 

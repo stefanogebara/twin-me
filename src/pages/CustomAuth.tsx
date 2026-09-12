@@ -1,15 +1,16 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Loader2, ShieldCheck, X } from 'lucide-react';
+import { ArrowLeft, Loader2, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useAnalytics } from '../contexts/AnalyticsContext';
 import { API_URL } from '@/services/api/apiBase';
 import '@/styles/presence-cosmos.css';
 
 /**
- * /auth — the Cosmos auth layout shared with /presence/login (Auth section of
- * presence-cosmos.css): a narrow centered column on linen beside a paper-white panel of
- * polaroids, the wordmark as the floor.
+ * /auth — the sign-in frame shared with /presence/login and /waitlist (Auth section of
+ * presence-cosmos.css), in the register since 2026-09-12: a flat page, a 360px column
+ * with the mark, a title, one grey line, the warm field box, one 48/12 call to action
+ * and 32/4 for everything else; on wide screens the photograph is the right half.
  *
  * The logic is unchanged from the Nocturne version: signed-in redirect honoring a safe
  * ?redirect=, the landing-reveal continuity card, the private-beta invite gate with its
@@ -331,36 +332,36 @@ const CustomAuth = () => {
   };
 
   const emailHint = searchParams.get('email');
-  const gateOpen = inviteValid || isReturning;
 
   return (
-    <main className="presence-cosmos" id="main-content">
+    <main className="presence-cosmos pc-app" id="main-content">
       <div className="pc-auth" style={{ ["--auth-still" as string]: "url('/images/twinme/cosmos-07-room.jpg')" } as React.CSSProperties}>
         <section className="pc-auth-left">
-          <Link className="pc-auth-back" to="/"><ArrowLeft size={15} /> TwinMe</Link>
-          <Mark />
+          <Link className="pc-auth-back" to="/"><ArrowLeft size={14} /> TwinMe</Link>
 
           <div className="pc-auth-card">
+            <Mark />
             {/* The page is a signup for most people who reach it, so it must not
                 greet them with "Sign in". Three states: arriving from the landing
                 reveal, returning, or new. */}
-            <h1>
-              {reveal ? <>Keep your <em>reading</em>.</> : isReturning ? <>Welcome <em>back</em>.</> : <><em>Create</em> your twin.</>}
+            <h1 className="pc-apphead-title">
+              {reveal ? 'Keep your reading.' : isReturning ? 'Welcome back.' : 'Create your twin.'}
             </h1>
-            <p className="pc-auth-sub">
-              {reveal
-                ? 'One account, and it keeps learning.'
-                : isReturning
-                  ? 'Sign in to your soul signature.'
-                  : <>Your data stays yours, and you can delete it anytime. Or <Link to="/">read how it works</Link>.</>}
+            <p className="pc-apphead-line">
+              {reveal ? 'One account, and it keeps learning.' : isReturning ? 'Sign in to your twin.' : 'Your data stays yours.'}
             </p>
 
-            {/* Continuity card: what the landing already found about them. */}
+            {/* Continuity row: what the landing already found about them. */}
             {reveal ? (
-              <div className="pc-auth-reveal">
-                <span>{reveal.name ? `Your first reading, ${reveal.name.split(' ')[0]}` : 'Your first reading'}</span>
-                {reveal.line ? <p>{reveal.line}</p> : null}
-              </div>
+              <ul className="pc-list pc-auth-block">
+                <li className="pc-row pc-row--plain">
+                  <div className="pc-row-text">
+                    <p className="pc-row-title">{reveal.name ? `Your first reading, ${reveal.name.split(' ')[0]}` : 'Your first reading'}</p>
+                    {reveal.line ? <p className="pc-row-line">{reveal.line}</p> : null}
+                  </div>
+                  <span />
+                </li>
+              </ul>
             ) : null}
 
             {/* Beta invite gate. When inviteValid is true but a top-level error is
@@ -369,52 +370,47 @@ const CustomAuth = () => {
                 inviteValid stays true so the code is not asked for again. */}
             {inviteValid ? (
               error ? null : (
-                <p className="pc-auth-granted">
+                <p className="pc-auth-note">
                   {inviteCode ? <>Invite code <strong>{inviteCode}</strong></> : 'Access granted'}
                 </p>
               )
             ) : isReturning ? null : (
-              <div className="pc-auth-gate">
-                <p className="pc-auth-note">TwinMe is in private beta. Enter your invite code to claim a place.</p>
+              <div className="pc-field pc-auth-block">
+                <label className="pc-field-label" htmlFor="pc-auth-invite">Invite code</label>
                 <div className="pc-auth-row">
-                  <label className="pc-ob-field">
-                    <input
-                      type="text"
-                      value={inviteCode}
-                      aria-label="Invite code"
-                      placeholder="Invite code"
-                      autoCapitalize="characters"
-                      onChange={(e) => { setInviteCode(e.target.value); setError(''); setInviteValid(false); }}
-                      onKeyDown={(e) => { if (e.key === 'Enter') validateCode(inviteCode); }}
-                    />
-                  </label>
+                  <input
+                    id="pc-auth-invite"
+                    className="pc-input"
+                    type="text"
+                    value={inviteCode}
+                    autoCapitalize="characters"
+                    onChange={(e) => { setInviteCode(e.target.value); setError(''); setInviteValid(false); }}
+                    onKeyDown={(e) => { if (e.key === 'Enter') validateCode(inviteCode); }}
+                  />
                   <button
                     type="button"
-                    className="pc-btn pc-btn--ghost"
+                    className="pc-btn pc-btn--secondary"
                     onClick={() => validateCode(inviteCode)}
                     disabled={validating || inviteCode.trim().length < 4}
                   >
-                    {validating ? <Loader2 className="pc-spin" size={18} /> : 'Verify'}
+                    {validating ? <Loader2 className="pc-spin" size={16} /> : 'Verify'}
                   </button>
                 </div>
-                <p className="pc-auth-note">
-                  No code? <Link to="/waitlist">Join the waitlist</Link>
-                </p>
+                <p className="pc-field-hint">Needed if you are new. No code? <Link to="/waitlist">Join the waitlist</Link></p>
               </div>
             )}
 
             {emailHint ? (
-              <p className="pc-auth-note pc-auth-note--hint">
+              <p className="pc-auth-note">
                 Signing up as <strong>{emailHint}</strong>
               </p>
             ) : null}
 
             <div className="pc-auth-actions">
-              <button className="pc-auth-google pc-btn--cta" onClick={handleGoogleSignIn} disabled={loading}>
-                {loading ? <Loader2 className="pc-spin" size={18} /> : <span className="pc-auth-g">G</span>}
+              <button className="pc-btn pc-btn--cta pc-auth-google" onClick={handleGoogleSignIn} disabled={loading}>
+                {loading ? <Loader2 className="pc-spin" size={16} /> : <span className="pc-auth-g" aria-hidden="true" />}
                 {loading ? 'Connecting' : 'Continue with Google'}
               </button>
-              {!gateOpen ? <p className="pc-auth-note">New here? Add your invite code above first.</p> : null}
             </div>
 
             {error ? <p className="pc-auth-error" role="alert">{error}</p> : null}
@@ -422,47 +418,44 @@ const CustomAuth = () => {
             <div className="pc-auth-or" aria-hidden="true"><span>or</span></div>
 
             {magicLinkSent ? (
-              <div className="pc-auth-sent" role="status">
-                <strong>Check your email for a sign-in link.</strong>
-                It works once and expires in 15 minutes.
-              </div>
+              <ul className="pc-list" role="status">
+                <li className="pc-row pc-row--plain">
+                  <div className="pc-row-text">
+                    <p className="pc-row-title">Check your email</p>
+                    <p className="pc-row-line">The sign-in link works once, for 15 minutes.</p>
+                  </div>
+                  <span />
+                </li>
+              </ul>
             ) : (
-              <form className="pc-auth-magic" onSubmit={handleMagicLinkRequest}>
-                <label className="pc-ob-field">
-                  <input
-                    type="email"
-                    autoComplete="email"
-                    aria-label="Email address"
-                    value={email}
-                    placeholder="you@example.com"
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
-                </label>
-                <button type="submit" className="pc-btn pc-btn--ghost" disabled={magicLinkLoading || !email.trim()}>
-                  {magicLinkLoading ? <Loader2 className="pc-spin" size={18} /> : 'Email me a sign-in link'}
+              <form className="pc-auth-row" onSubmit={handleMagicLinkRequest}>
+                <input
+                  className="pc-input"
+                  type="email"
+                  autoComplete="email"
+                  aria-label="Email address"
+                  value={email}
+                  placeholder="you@example.com"
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+                <button type="submit" className="pc-btn pc-btn--secondary" disabled={magicLinkLoading || !email.trim()}>
+                  {magicLinkLoading ? <Loader2 className="pc-spin" size={16} /> : 'Email me a link'}
                 </button>
               </form>
             )}
 
             <p className="pc-auth-legal">
-              By continuing, you agree to TwinMe’s{' '}
+              By continuing you accept the{' '}
               <button type="button" onClick={() => setActiveModal('terms')}>Terms</button> and{' '}
               <button type="button" onClick={() => setActiveModal('privacy')}>Privacy Policy</button>.
             </p>
-
-            <p className="pc-auth-trust">
-              <ShieldCheck size={16} />
-              Read-only. It can never post or delete, your data never trains a model, and you can delete everything in one click.
-            </p>
           </div>
-
-          <div className="pc-auth-wordmark" aria-hidden="true">TWINME</div>
         </section>
 
         <aside className="pc-auth-panel" aria-hidden="true">
           <p className="pc-auth-caption">
-            <strong>Every Tuesday ends in back-to-back calls, and every Tuesday night the music turns ambient.</strong>
-            Read from a calendar and a listening history. Cited, not guessed.
+            <strong>Tuesday nights, the music turns ambient.</strong>
+            From a calendar and Spotify.
           </p>
         </aside>
       </div>
@@ -472,7 +465,7 @@ const CustomAuth = () => {
           <div className="pc-modal-card" onClick={(e) => e.stopPropagation()}>
             <div className="pc-modal-head">
               <h2 id="pc-modal-title">{LEGAL[activeModal].title}</h2>
-              <button type="button" className="pc-modal-close" onClick={() => setActiveModal(null)} aria-label="Close"><X size={16} /></button>
+              <button type="button" className="pc-iconbtn" onClick={() => setActiveModal(null)} aria-label="Close"><X /></button>
             </div>
             <pre className="pc-modal-body">{LEGAL[activeModal].content}</pre>
           </div>

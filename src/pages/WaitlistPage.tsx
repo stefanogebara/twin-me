@@ -6,8 +6,10 @@ import { API_URL } from '@/services/api/apiBase';
 import '@/styles/presence-cosmos.css';
 
 /**
- * /waitlist — the same Cosmos auth frame as /auth (Auth section of presence-cosmos.css),
- * with one field and one action. The API call and the funnel event are unchanged.
+ * /waitlist — the same sign-in frame as /auth (Auth section of presence-cosmos.css):
+ * a flat page, one field in the warm box and one 48/12 call to action, the
+ * photograph as the right half on wide screens. The API call and the funnel event
+ * are unchanged.
  */
 
 function Mark() {
@@ -75,37 +77,36 @@ const WaitlistPage = () => {
   };
 
   return (
-    <main className="presence-cosmos" id="main-content">
+    <main className="presence-cosmos pc-app" id="main-content">
       <div className="pc-auth" style={{ ["--auth-still" as string]: "url('/images/twinme/cosmos-08-window.jpg')" } as React.CSSProperties}>
         <section className="pc-auth-left">
-          <Link className="pc-auth-back" to="/"><ArrowLeft size={15} /> TwinMe</Link>
-          <Mark />
+          <Link className="pc-auth-back" to="/"><ArrowLeft size={14} /> TwinMe</Link>
 
           <div className="pc-auth-card">
+            <Mark />
             {submitted ? (
               <>
-                <h1>You’re <em>on</em> the list.</h1>
-                <p className="pc-auth-sub">We’ll write when your place opens. Nothing else lands in your inbox until then.</p>
+                <h1 className="pc-apphead-title">You’re on the list.</h1>
+                <p className="pc-apphead-line">We’ll write when your place opens.</p>
               </>
             ) : (
               <>
-                <h1><em>Worth</em> the wait.</h1>
-                <p className="pc-auth-sub">TwinMe is in private beta. Leave your email and you’ll be among the first to meet your twin.</p>
+                <h1 className="pc-apphead-title">Worth the wait.</h1>
+                <p className="pc-apphead-line">TwinMe is in private beta. Leave your email.</p>
 
                 <form className="pc-auth-magic" onSubmit={handleSubmit}>
-                  <label className="pc-ob-field">
-                    <input
-                      type="email"
-                      autoComplete="email"
-                      aria-label="Email address"
-                      value={email}
-                      placeholder="you@example.com"
-                      disabled={loading}
-                      onChange={(e) => { setEmail(e.target.value); setError(''); }}
-                    />
-                  </label>
-                  <button type="submit" className="pc-auth-google pc-btn--cta" disabled={loading}>
-                    {loading ? <Loader2 className="pc-spin" size={18} /> : null}
+                  <input
+                    className="pc-input"
+                    type="email"
+                    autoComplete="email"
+                    aria-label="Email address"
+                    value={email}
+                    placeholder="you@example.com"
+                    disabled={loading}
+                    onChange={(e) => { setEmail(e.target.value); setError(''); }}
+                  />
+                  <button type="submit" className="pc-btn pc-btn--cta pc-auth-google" disabled={loading}>
+                    {loading ? <Loader2 className="pc-spin" size={16} /> : null}
                     {loading ? 'Joining' : 'Join the waitlist'}
                   </button>
                 </form>
@@ -118,14 +119,12 @@ const WaitlistPage = () => {
               Have an invite code? <Link to="/auth">Sign in</Link>
             </p>
           </div>
-
-          <div className="pc-auth-wordmark" aria-hidden="true">TWINME</div>
         </section>
 
         <aside className="pc-auth-panel" aria-hidden="true">
           <p className="pc-auth-caption">
-            <strong>Your best work happens after 22:00, and your calendar says nothing about it.</strong>
-            Read from commits and a calendar. Timestamped, sourced, yours.
+            <strong>Your best work happens late, and your calendar never shows it.</strong>
+            From GitHub and a calendar.
           </p>
         </aside>
       </div>
