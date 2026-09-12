@@ -64,6 +64,8 @@
  *   CLICK=<selector>         click a tab or control first, to measure that state
  *   VIEWPORT=1280x800        another screen shape (default 1440x900)
  *   MAX_BANDS=16             how many viewport bands a long page may run to (default 8)
+ *   ROOT=.ld                 the page's root element (default .presence-cosmos;
+ *                            the front door, /, is .ld)
  *   PLAYWRIGHT_MODULE=...    a different playwright install, when the repo's
  *                            pinned version has no browser build downloaded
  */
@@ -99,6 +101,9 @@ const BAND_TO = Number(process.env.BAND_TO ?? 99);
 /* MAX_BANDS: how many viewport bands a page may run to. A phone-width page
    stacks its sections and runs far past eight screens. */
 const MAX_BANDS = Number(process.env.MAX_BANDS ?? 8);
+/* ROOT: the element every judged run lives under, and the one a route must
+   render before it is measured. The front door (/) is .ld, not .presence-cosmos. */
+const ROOT = process.env.ROOT || '.presence-cosmos';
 if (!VERIFY || !ORIGIN) {
   console.error('usage: node scripts/audit-cosmos-ink.mjs <verifyUrl|none> <origin> [outDir]');
   process.exit(1);
@@ -178,7 +183,7 @@ for (const route of ROUTES) {
   let rooted = false;
   for (let tries = 0; tries < 3 && !rooted; tries++) {
     try {
-      await page.waitForSelector('.presence-cosmos', { timeout: 12000 });
+      await page.waitForSelector(ROOT, { timeout: 12000 });
       rooted = true;
     } catch {
       await page.waitForTimeout(2000);
@@ -189,7 +194,7 @@ for (const route of ROUTES) {
   const landed = new URL(page.url()).pathname;
   if (landed !== route) routeReports.push({ route, note: `redirected to ${landed}` });
   if (!rooted) {
-    routeReports.push({ route, error: `no .presence-cosmos root (at ${landed})` });
+    routeReports.push({ route, error: `no ${ROOT} root (at ${landed})` });
     continue;
   }
   if (WAIT_FOR) {
@@ -269,7 +274,7 @@ for (const route of ROUTES) {
       if (!/context was destroyed|navigat|Target closed/i.test(String(e))) throw e;
       routeReports.push({ route, note: 'page reloaded while settling — retried' });
       await page.waitForLoadState('load').catch(() => {});
-      await page.waitForSelector('.presence-cosmos', { timeout: 15000 }).catch(() => {});
+      await page.waitForSelector(ROOT, { timeout: 15000 }).catch(() => {});
     }
   }
   if (!settledOk) routeReports.push({ route, note: 'ground never settled — treat this route as suspect' });
@@ -324,7 +329,7 @@ for (const route of ROUTES) {
       await page.evaluate(el => el.remove(), eraser);
       await page.waitForTimeout(200);
 
-      const runs = await page.evaluate(async ({ b64, SENTINEL, ALL, TOKEN }) => {
+      const runs = await page.evaluate(async ({ b64, SENTINEL, ALL, TOKEN, ROOT }) => {
         const img = new Image();
         img.src = 'data:image/png;base64,' + b64;
         await img.decode();
@@ -356,7 +361,7 @@ for (const route of ROUTES) {
         /* Pass 1 — which runs to judge: the ones the token paints (found by the
            sentinel), or with ALL every run that has text of its own. */
         const picked = [];
-        for (const el of document.querySelectorAll('.presence-cosmos *')) {
+        for (const el of document.querySelectorAll(ROOT + ' *')) {
           const st = getComputedStyle(el);
           const text = [...el.childNodes].filter(n => n.nodeType === 3).map(n => n.textContent).join('').trim();
           let kind = null, side = null;
@@ -491,7 +496,7 @@ for (const route of ROUTES) {
         hitAll.remove();
         cv.width = cv.height = 0;   // release the raster before the next band
         return out;
-      }, { b64: shot, SENTINEL, ALL, TOKEN });
+      }, { b64: shot, SENTINEL, ALL, TOKEN, ROOT });
 
       if (runs.some(r => r.sentinelLeak)) {
         routeReports.push({ route, error: `ink read while the sentinel was still applied (${runs.find(r => r.sentinelLeak).leakDiag}) — scores would be against rgb(1,2,3)` });

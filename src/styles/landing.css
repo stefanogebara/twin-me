@@ -3,27 +3,38 @@
    Namespace: .ld. Lock: .claude/plans/2026-09-05-landing-from-scratch/README.md
    The room at blue hour is fixed behind everything. The first line of the
    portrait is set in it. The document lifts onto one frosted panel: the
-   ledger is its spine, every receipt listed under the line it proves; the
-   twin's answer and the sources follow. The ending is on the room, louder
-   than the opening. The serif is what the twin says; the sans is the
-   interface. Integer line-heights only.
+   ledger is its spine, receipts listed under the line they prove; the twin's
+   answer and the sources follow. The ending is on the room, louder than the
+   opening. Integer line-heights only.
+
+   2026-09-12, the register: the headings are the Cosmos heading in Geist at
+   the sizes the serif had (300 at -0.05em for the display lines, 400 at
+   -0.04em for the smaller ones; Instrument Serif is gone), the body is 13px
+   with weight for hierarchy, labels are sentence case, lists are rows under a
+   1px ink rule, the call to action is 48/12, and the colours are the
+   register's tokens. The room stays; the two panels over it stay because they
+   keep the text readable on the photograph.
    ========================================================================== */
 
 .ld {
-  --ink: #0a0a0a;
-  --grey: #6f6f6f;
-  --grey-2: #a3a3a3;
-  --line: rgba(0, 0, 0, 0.1);
+  /* The register's tokens (presence-cosmos.css), under the names this sheet
+     already used. */
+  --ink: #251f21;      /* --c-ink */
+  --grey: #585254;     /* --c-ink-2: the grey line, 7.33:1 on the page */
+  --grey-3: #6c6867;   /* --c-ink-3: quiet, 5.28:1 on the page */
+  --page: #fbfaf9;     /* --c-paper */
+  --hairline: #eae9ea; /* --c-hairline */
   --col: min(1240px, calc(100% - 48px));
-  --serif: 'Instrument Serif', Georgia, 'Times New Roman', serif;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
   position: relative;
   background: #0b0d12;
   color: #fff;
   font-family: 'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  font-size: 16px;
-  line-height: 24px;
+  font-size: 13px;
+  line-height: 19.5px;
   font-weight: 400;
+  letter-spacing: -0.176px;
+  font-variant-numeric: tabular-nums;
   -webkit-font-smoothing: antialiased;
   min-height: 100vh;
   overflow-x: hidden;
@@ -34,9 +45,13 @@
 :where(.ld) :where(p, h1, h2, h3, ul) { margin: 0; }
 :where(.ld) ul { padding: 0; list-style: none; }
 :where(.ld) :where(h1, h2, h3, p, small, em, b, span, a, li, i, q) { color: inherit; font-family: inherit; font-weight: inherit; letter-spacing: inherit; }
+/* The global sheet colours every p at (0,0,1), which beats the :where reset
+   above: the hero's label and link measured rgb(168,162,158), 2.33:1 on the
+   room. (0,1,1) here; every two-class colour below still wins. */
+.ld p { color: inherit; }
 .ld a { color: inherit; text-decoration: none; }
 .ld button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
-.ld :focus-visible { outline: 2px solid currentColor; outline-offset: 3px; border-radius: 999px; }
+.ld :focus-visible { outline: 2px solid currentColor; outline-offset: 3px; border-radius: 4px; }
 .ld img { display: block; }
 
 /* The ground behind the sheet matches the room, or the reveal shows a white frame on a dark page. */
@@ -55,27 +70,37 @@ html:has(main.ld), body:has(main.ld), #root:has(main.ld) { background: #0b0d12; 
 .ld > :not(.ld-ground) { position: relative; z-index: 1; }
 
 .ld .ld-col { width: var(--col); margin: 0 auto; }
-.ld .ld-mono { font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; line-height: 20px; letter-spacing: 0.02em; font-weight: 400; }
-.ld .ld-label { font-size: 12px; line-height: 16px; letter-spacing: 0.14em; text-transform: uppercase; font-weight: 500; opacity: 0.72; }
-/* The twin's voice: one serif, three sizes. Body and the close a step apart from the opening. */
-.ld .ld-v1 { color: inherit; font-family: var(--serif); font-size: 96px; line-height: 100px; font-weight: 400; letter-spacing: -0.015em; }
-.ld .ld-v2 { color: inherit; font-family: var(--serif); font-size: 48px; line-height: 54px; font-weight: 400; letter-spacing: -0.01em; }
-.ld .ld-v0 { color: inherit; font-family: var(--serif); font-size: 96px; line-height: 100px; font-weight: 400; letter-spacing: -0.015em; }
-.ld .ld-lead { font-size: 20px; line-height: 28px; font-weight: 400; letter-spacing: -0.012em; text-wrap: pretty; }
+/* A label is a row title: sentence case, 13px, weight 500. It was 12px
+   uppercase, tracked 0.14em, at 72% opacity. */
+.ld .ld-label { font-size: 13px; line-height: 20px; font-weight: 500; }
+/* The twin's voice, now the Cosmos heading. Display lines 300 at -0.05em on a
+   line-height of 1.0; the smaller heading 400 at -0.04em. The serif's sizes: 96px
+   from 1433px up, fluid below it, because Geist sets the same line ~24% wider and
+   "Then everything ships at once." would otherwise wrap on a tablet. */
+.ld .ld-v1,
+.ld .ld-v0 { color: inherit; font-size: clamp(48px, 6.7vw, 96px); line-height: 1; font-weight: 300; letter-spacing: -0.05em; }
+.ld .ld-v2 { color: inherit; font-size: 48px; line-height: 52px; font-weight: 400; letter-spacing: -0.04em; }
+.ld .ld-lead { font-size: 13px; line-height: 20px; font-weight: 400; text-wrap: pretty; }
 .ld .ld-br { display: block; }
-.ld .ld-link { color: inherit; text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 1px; }
-.ld .ld-link:hover { opacity: 0.7; }
-.ld .ld-link .ld-arrow { display: inline-block; text-decoration: none; margin-left: 0.2em; }
 
-/* The one pill: white on the room. */
-.ld .ld-pill { display: inline-flex; align-items: center; justify-content: center; height: 52px; padding: 0 24px; border-radius: 999px; font-size: 16px; line-height: 20px; font-weight: 500; white-space: nowrap; background: #fff; color: var(--ink); transition: transform 180ms var(--ease), background-color 180ms ease; }
-.ld .ld-pill:hover { background: #f0efed; }
-.ld .ld-pill:active { transform: scale(0.97); }
+/* The second way in: text and a chevron, not a second button. */
+.ld .ld-textlink { display: inline-flex; align-items: center; gap: 2px; min-height: 32px; font-size: 13px; line-height: 20px; font-weight: 500; color: inherit; }
+.ld .ld-textlink:hover { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 4px; }
+.ld .ld-chev { width: 16px; height: 16px; flex: none; transition: transform 250ms var(--ease); }
+.ld .ld-textlink:hover .ld-chev { transform: translateX(2px); }
 
-/* The entrance: one grey line on white, cycling what it reads, then the page lifts in. */
-.ld-pre { font-family: 'Geist', system-ui, -apple-system, sans-serif; color: #6f6f6f; position: fixed; inset: 0; z-index: 50; background: #fff; display: grid; place-items: center; transition: opacity 520ms var(--ease); }
+/* The one call to action: the register's sign-in button, 48 tall, 12px
+   corners, 15px 500. On the room it is the page colour with ink text: an ink
+   fill would sink into the dark photograph. */
+.ld .ld-btn { display: inline-flex; align-items: center; justify-content: center; height: 48px; padding: 0 24px; border-radius: 12px; font-size: 15px; line-height: 20px; font-weight: 500; letter-spacing: -0.02em; white-space: nowrap; background: var(--page); color: var(--ink); transition: transform 180ms var(--ease), background-color 180ms ease; }
+.ld .ld-btn:hover { background: #f1efed; }
+.ld .ld-btn:active { transform: scale(0.98); }
+.ld .ld-btn:focus-visible { border-radius: 12px; }
+
+/* The entrance: one grey line on the page, cycling what it reads, then the page lifts in. */
+.ld-pre { font-family: 'Geist', system-ui, -apple-system, sans-serif; color: #585254; position: fixed; inset: 0; z-index: 50; background: #fbfaf9; display: grid; place-items: center; transition: opacity 520ms var(--ease); }
 .ld-pre.is-done { opacity: 0; pointer-events: none; }
-.ld-pre p { font-size: 34px; line-height: 40px; font-weight: 300; letter-spacing: -0.02em; color: #6f6f6f; font-family: 'Geist', system-ui, -apple-system, sans-serif; margin: 0; animation: ld-word 340ms var(--ease) both; }
+.ld-pre p { font-size: 34px; line-height: 40px; font-weight: 300; letter-spacing: -0.04em; color: #585254; font-family: 'Geist', system-ui, -apple-system, sans-serif; margin: 0; animation: ld-word 340ms var(--ease) both; }
 @keyframes ld-word { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 .ld-sheet { transform-origin: 50% 36%; }
 .ld-sheet.is-entering { animation: ld-sheet 980ms var(--ease) both; }
@@ -87,60 +112,78 @@ html:has(main.ld), body:has(main.ld), #root:has(main.ld) { background: #0b0d12; 
 /* Navigation: no band. White text that stays readable over the room and over the paper. */
 .ld-nav { position: fixed; top: 0; left: 0; right: 0; z-index: 40; height: 64px; mix-blend-mode: difference; color: #fff; }
 .ld-nav .ld-col { height: 100%; display: flex; align-items: center; justify-content: space-between; }
-.ld-brand { font-size: 15px; line-height: 20px; font-weight: 500; }
-.ld-nav-right { display: flex; align-items: center; gap: 22px; font-size: 15px; line-height: 20px; }
+.ld-brand { font-size: 13px; line-height: 20px; font-weight: 500; }
+.ld-nav-right { display: flex; align-items: center; gap: 22px; font-size: 13px; line-height: 20px; font-weight: 500; }
 .ld-nav-right a { opacity: 0.8; transition: opacity 160ms ease; }
 .ld-nav-right a:hover { opacity: 1; }
 
 /* The first screen: the first line of the portrait, set in the room. */
 .ld-stage { position: relative; min-height: clamp(640px, 100vh, 900px); display: flex; align-items: flex-end; padding: 120px 0 96px; }
-.ld-stage h1 { margin-top: 14px; text-shadow: 0 1px 24px rgba(0, 0, 0, 0.35), 0 0 2px rgba(0, 0, 0, 0.4); }
-.ld-stage .ld-label { text-shadow: 0 0 12px rgba(0, 0, 0, 0.6), 0 0 2px rgba(0, 0, 0, 0.6); opacity: 0.86; }
+.ld-stage h1 { margin-top: 12px; text-shadow: 0 1px 24px rgba(0, 0, 0, 0.35), 0 0 2px rgba(0, 0, 0, 0.4); }
+/* The room is fixed and cropped differently at every screen shape, so the backing
+   belongs to the text: a soft pool that reaches transparent at its own edge. Without
+   it the thin white lines measured 2.4:1 where the lamp sits behind them. */
+.ld-stage h1, .ld-close h2 { position: relative; isolation: isolate; }
+.ld-stage h1::before,
+.ld-close h2::before { content: ''; position: absolute; inset: -34% -10%; z-index: -1; pointer-events: none; background: radial-gradient(closest-side, rgba(8, 10, 14, 0.56), rgba(8, 10, 14, 0.42) 55%, transparent); }
+/* White, not grey: a grey label on the room measured 2.3:1 on phones. */
+.ld-stage .ld-label { color: rgba(255, 255, 255, 0.9); text-shadow: 0 0 12px rgba(0, 0, 0, 0.6), 0 0 2px rgba(0, 0, 0, 0.6); }
 .ld-stage .ld-row { margin-top: 28px; align-items: end; }
-.ld-stage .ld-dek { color: rgba(255, 255, 255, 0.88); max-width: 40ch; }
-.ld-stage .ld-cta { margin-top: 18px; font-size: 17px; line-height: 24px; }
-.ld-glass { color: var(--ink); background: rgba(247, 245, 243, 0.96); border: 1px solid rgba(255, 255, 255, 0.5); border-radius: 18px; padding: 6px 20px 14px; }
-.ld-glass .ld-receipt { font-size: 15px; line-height: 22px; padding: 7px 0; border-bottom: 1px solid rgba(0, 0, 0, 0.07); grid-template-columns: 56px 1fr; }
-.ld-glass .ld-meta { margin-top: 12px; }
+.ld-stage .ld-dek { color: rgba(255, 255, 255, 0.9); max-width: 44ch; text-shadow: 0 0 12px rgba(0, 0, 0, 0.5), 0 0 2px rgba(0, 0, 0, 0.5); }
+.ld-stage .ld-cta { margin-top: 12px; text-shadow: 0 0 12px rgba(0, 0, 0, 0.5); }
+/* On a wide screen the heading sits high and the dek and the receipts pin to the
+   foot. Bottom-aligning all of it, with three receipts instead of eleven, brought
+   the second line down onto the lamp: 2.38:1 at 1440x900. Up here it is on the
+   wall and the window. Phones keep the whole block at the foot. */
+@media (min-width: 721px) {
+  .ld-stage { align-items: stretch; padding-top: 168px; }
+  .ld-stage > .ld-col { display: flex; flex-direction: column; }
+  .ld-stage .ld-row { margin-top: auto; padding-top: 28px; }
+}
+/* Near-opaque page colour over the room: it holds the receipts' text, so it stays. */
+.ld-glass { color: var(--ink); background: rgba(251, 250, 249, 0.96); border-radius: 12px; padding: 16px 20px; }
 
-/* The document, lifted onto one frosted panel over the room. */
-.ld-paper { width: calc(var(--col) + 80px); margin: 48px auto 0; color: var(--ink); background: rgba(247, 245, 243, 0.96); border: 1px solid rgba(255, 255, 255, 0.5); border-radius: 28px; padding: 24px 40px 8px; }
-.ld-paper .ld-label { color: var(--grey); opacity: 1; }
-.ld-paper .ld-lead { color: var(--ink); }
-.ld-paper .ld-lead--grey { color: var(--grey); }
+/* The document, lifted onto one near-opaque panel over the room. */
+.ld-paper { width: calc(var(--col) + 80px); margin: 48px auto 0; color: var(--ink); background: rgba(251, 250, 249, 0.96); border-radius: 16px; padding: 24px 40px 8px; }
+.ld-paper .ld-label { color: var(--grey); }
 
-/* The grid every entry sits on: the line on the left five columns, its receipts on the right seven. */
+/* The grid every entry sits on: the line on the left, its receipts on the right. */
 .ld-row { display: grid; grid-template-columns: 1fr 1fr; column-gap: 48px; row-gap: 0; align-items: start; }
-.ld-entry { padding: 40px 0 44px; border-top: 1px solid rgba(0, 0, 0, 0.2); opacity: 0; transform: translateY(14px); transition: opacity 800ms var(--ease), transform 800ms var(--ease); }
+.ld-entry { padding: 40px 0; border-top: 1px solid var(--hairline); opacity: 0; transform: translateY(14px); transition: opacity 800ms var(--ease), transform 800ms var(--ease); }
 .ld-entry.is-in { opacity: 1; transform: none; }
 .ld-entry:first-child { border-top: 0; padding-top: 24px; }
 .ld-entry .ld-label { display: block; }
-.ld-entry p.ld-v2 { margin-top: 10px; max-width: 22ch; text-wrap: balance; }
-.ld-entry .ld-meta { margin-top: 14px; }
-.ld-entry .ld-above { margin-top: 10px; color: var(--grey); max-width: 30ch; }
-/* The spine: every receipt, tabular, dated, in the order it happened. */
-.ld-receipts { display: flex; flex-direction: column; gap: 0; }
-.ld-receipt { color: var(--ink); display: grid; grid-template-columns: 56px 1fr; gap: 16px; align-items: baseline; font-size: 15px; line-height: 22px; padding: 7px 0; border-bottom: 1px solid rgba(0, 0, 0, 0.07); }
-.ld-receipt b { font-family: 'Geist Mono', ui-monospace, monospace; font-weight: 400; color: var(--grey); font-size: 12px; line-height: 16px; letter-spacing: 0.04em; text-transform: uppercase; font-variant-numeric: tabular-nums; }
+.ld-entry p.ld-v2 { margin-top: 8px; max-width: 22ch; text-wrap: balance; }
+
+/* Receipts are sub-rows under the line they prove: a 1px ink rule on top, a
+   hairline between, the day in the quiet grey. Three per line, and the count
+   of all of them under the list. */
+.ld-receipts { display: flex; flex-direction: column; border-top: 1px solid var(--ink); }
+.ld-receipt { color: var(--ink); display: grid; grid-template-columns: 56px 1fr; gap: 16px; align-items: baseline; font-size: 13px; line-height: 20px; padding: 12px 0; border-bottom: 1px solid var(--hairline); }
+.ld-receipt b { font-weight: 350; color: var(--grey-3); }
 .ld-receipt b:empty::after { content: ''; }
-.ld-meta { display: block; color: var(--grey); }
+.ld-meta { display: block; margin-top: 12px; font-weight: 350; color: var(--grey); }
 
-/* The twin's answer: what was asked, the answer in its voice, the readings it cites as the spine. */
-.ld-ask .ld-q { color: var(--ink); font-family: var(--serif); font-size: 40px; line-height: 46px; letter-spacing: -0.01em; margin-top: 10px; }
-.ld-ask .ld-voice { margin-top: 16px; max-width: 30ch; text-wrap: balance; text-indent: -0.38em; hyphens: manual; font-size: 32px; line-height: 38px; color: var(--grey); }
-.ld-cites { display: flex; flex-direction: column; }
-.ld-cite { font-size: 15px; line-height: 22px; color: var(--ink); padding: 10px 0; border-bottom: 1px solid rgba(0, 0, 0, 0.07); }
-.ld-cite .ld-mono { display: block; margin-top: 2px; color: var(--grey); }
+/* The twin's answer: what was asked, the answer in its voice, the readings it cites as rows. */
+.ld-ask .ld-q { color: var(--ink); font-size: 40px; line-height: 44px; font-weight: 400; letter-spacing: -0.04em; margin-top: 8px; }
+.ld-ask .ld-voice { margin-top: 16px; max-width: 30ch; text-wrap: balance; text-indent: -0.3em; hyphens: manual; font-size: 32px; line-height: 36px; font-weight: 400; letter-spacing: -0.04em; color: var(--grey); }
 
-/* Sources as a sentence; what is never read, with the weight. */
-.ld-sources .ld-names { margin-top: 12px; max-width: 34ch; color: var(--ink); }
-.ld-sources .ld-privacy { margin-top: 12px; max-width: 34ch; color: var(--ink); }
+/* Rows: a 1px ink rule on top, a hairline between, a title and one grey line. */
+.ld-list { border-top: 1px solid var(--ink); }
+.ld-item { padding: 16px 0; border-bottom: 1px solid var(--hairline); }
+.ld-item b { display: block; font-weight: 500; line-height: 20px; color: var(--ink); }
+.ld-item span { display: block; font-weight: 350; color: var(--grey); }
 .ld-sources { padding-bottom: 40px; }
 
 /* The ending, on the room, louder than the opening. */
 .ld-close { padding: 160px 0 120px; }
-.ld-close h2 { max-width: 12ch; text-shadow: 0 1px 24px rgba(0, 0, 0, 0.3); }
-.ld-close .ld-cta { display: flex; align-items: center; gap: 20px; margin-top: 48px; }
+.ld-close h2 { position: relative; max-width: 12ch; text-shadow: 0 1px 24px rgba(0, 0, 0, 0.3); }
+/* The close scrolls over the fixed room and crosses the lamp on the way: bare,
+   the 96px line measured 2.85:1 there. A blurred dark pool the size of the
+   heading keeps it over 3:1 wherever the lamp lands; it is a scrim for the
+   text, like the film caption's, not decoration. */
+.ld-close h2::before { content: ''; position: absolute; inset: -16px -40px; z-index: -1; background: rgba(0, 0, 0, 0.32); filter: blur(32px); pointer-events: none; }
+.ld-close .ld-cta { display: flex; align-items: center; gap: 20px; margin-top: 40px; }
 
 .ld-footer { display: flex; justify-content: space-between; align-items: center; padding: 20px 0 28px; border-top: 1px solid rgba(255, 255, 255, 0.18); font-size: 13px; line-height: 20px; color: rgba(255, 255, 255, 0.66); }
 .ld-footer nav { display: flex; gap: 20px; }
@@ -156,29 +199,28 @@ html:has(main.ld), body:has(main.ld), #root:has(main.ld) { background: #0b0d12; 
   .ld-pre { display: none; }
   .ld-sheet.is-entering { animation: none; }
   .ld-rise, .ld-entry { opacity: 1; transform: none; transition: none; }
-  .ld .ld-pill, .ld-nav-right a { transition: none; }
+  .ld .ld-btn, .ld .ld-chev, .ld-nav-right a { transition: none; }
 }
 
 @media (max-width: 720px) {
-  .ld { --col: calc(100% - 40px); }
+  .ld { --col: calc(100% - 48px); }
   .ld .ld-br { display: inline; }
   .ld .ld-br::before { content: ' '; }
-  .ld .ld-v1 { font-size: 48px; line-height: 52px; }
-  .ld .ld-v2 { font-size: 34px; line-height: 40px; }
-  .ld .ld-v0 { font-size: 48px; line-height: 52px; }
-  .ld .ld-lead { font-size: 18px; line-height: 26px; }
+  .ld .ld-v1,
+  .ld .ld-v0 { font-size: 48px; line-height: 48px; }
+  .ld .ld-v2 { font-size: 34px; line-height: 38px; }
   .ld-nav { height: 60px; }
   .ld-stage { min-height: clamp(560px, 100vh, 820px); padding: 96px 0 40px; }
   .ld-stage h1 { text-wrap: balance; }
 
   .ld-row { grid-template-columns: 1fr; row-gap: 20px; }
-  .ld-paper { width: 100%; padding: 8px 20px 4px; border-radius: 22px; }
+  .ld-paper { width: 100%; padding: 8px 24px 4px; border-radius: 16px; }
   .ld-ground::after { background: linear-gradient(to top, rgba(0, 0, 0, 0.62) 0%, rgba(0, 0, 0, 0.36) 45%, rgba(0, 0, 0, 0.3) 100%); }
   .ld-stage .ld-glass { display: none; }
   .ld-phone-only { display: block; }
   .ld-entry { padding: 28px 0 30px; }
   .ld-entry:first-child { padding-top: 20px; }
-  .ld-receipt { font-size: 14px; line-height: 20px; grid-template-columns: 1fr; gap: 2px; padding: 8px 0; }
+  .ld-receipt { grid-template-columns: 1fr; gap: 0; padding: 10px 0; }
   .ld-receipt b:empty { display: none; }
   .ld-close { padding: 96px 0 48px; }
   .ld-close .ld-cta { flex-wrap: wrap; gap: 14px 20px; }
