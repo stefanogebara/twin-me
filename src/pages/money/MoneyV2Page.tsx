@@ -108,7 +108,6 @@ export default function MoneyV2Page() {
   /* One purchase makes p10, p50 and p90 the same euro, and reading the same number three
      times looks broken rather than honest. Say nothing about the month until the band opens. */
   const projectable = Boolean(forecast && forecast.projected_p90 - forecast.projected_p10 > 0.5);
-  const inflow = useMemo(() => ledger.filter((t) => Number(t.amount) > 0), [ledger]);
   const monthlyLoad = useMemo(
     () => Math.round(recurring.filter((r) => r.cadence === 'monthly').reduce((s, r) => s + Math.abs(Number(r.typical_amount) || 0), 0) * 100) / 100,
     [recurring],
@@ -130,12 +129,6 @@ export default function MoneyV2Page() {
       segment: months.find((m) => m.month.slice(0, 7) === key) || null,
     }));
   }, [ledger, months]);
-
-  async function readingVerdict(r: MoneyReading, v: 'true' | 'not_me') {
-    const next = r.verdict === v ? null : v;
-    setReadings((rows) => rows.map((x) => (x.id === r.id ? { ...x, verdict: next } : x)));
-    try { await moneyAPI.readingVerdict(r.id, next); } catch { setReadings((rows) => rows.map((x) => (x.id === r.id ? { ...x, verdict: r.verdict } : x))); }
-  }
 
   async function toggle(id: string) {
     if (open === id) { setOpen(null); return; }
@@ -263,7 +256,6 @@ export default function MoneyV2Page() {
       {readings.length ? (
         <section className="mv-section" id="readings">
           <h2>What the money says.</h2>
-          <p className="mv-quiet">Every line here is counted, not guessed. The payments behind it are underneath.</p>
           <ul className="mv-readings">
             {readings.map((r) => (
               <li key={r.id} className="mv-reading">
@@ -278,10 +270,6 @@ export default function MoneyV2Page() {
                 ) : null}
                 <div className="mv-reading-foot">
                   <span className="mv-reading-evidence">read from {r.evidence_count} {r.evidence_count === 1 ? 'payment' : 'payments'}</span>
-                  <div className="mv-verdicts">
-                    <button type="button" className={`mv-pill mv-pill--sm ${r.verdict === 'true' ? '' : 'mv-pill--ghost'}`} onClick={() => void readingVerdict(r, 'true')}>True</button>
-                    <button type="button" className={`mv-pill mv-pill--sm ${r.verdict === 'not_me' ? '' : 'mv-pill--ghost'}`} onClick={() => void readingVerdict(r, 'not_me')}>Not me</button>
-                  </div>
                 </div>
               </li>
             ))}
@@ -293,11 +281,9 @@ export default function MoneyV2Page() {
       {categories && categories.groups.length ? (
         <section className="mv-section" id="where">
           <h2>Where it went this month.</h2>
-          <p className="mv-quiet">
-            {categories.read < categories.total
-              ? `${euro(categories.read)} of ${euro(categories.total)} is placed so far. The rest is waiting on a lookup.`
-              : 'Every payment this month has a kind of place behind it.'}
-          </p>
+          {categories.read < categories.total ? (
+            <p className="mv-quiet">{`${euro(categories.read)} of ${euro(categories.total)} is placed so far. The rest is waiting on a lookup.`}</p>
+          ) : null}
           {categories.read < categories.total ? (
             <div className="mv-ctas">
               <button type="button" className="mv-pill mv-pill--ghost" onClick={() => void lookupPlaces()} disabled={busy === 'places'}>
@@ -385,7 +371,6 @@ export default function MoneyV2Page() {
             ))}
           </ol>
         )}
-        {inflow.length ? <p className="mv-quiet">{inflow.length} inflow{inflow.length === 1 ? '' : 's'} in the list, marked with a plus.</p> : null}
       </section>
 
       {/* Recurring */}
@@ -422,10 +407,8 @@ export default function MoneyV2Page() {
               </button>
             ))}
           </div>
-          {recurring.length ? (
-            <p className="mv-quiet">
-              {monthlyLoad ? `${euro(monthlyLoad)} of this comes back every month.` : ''} Press one to see every charge it has made.
-            </p>
+          {monthlyLoad ? (
+            <p className="mv-quiet">{`${euro(monthlyLoad)} of this comes back every month.`}</p>
           ) : null}
           {usage?.findings.length ? (
             <ul className="mv-usage">

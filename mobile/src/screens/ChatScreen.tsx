@@ -692,20 +692,24 @@ export default function ChatScreen({ mode, onDone, onClose }: { mode: 'onboardin
             </View>
             <Hairline />
           </>
-        ) : (
+        ) : onClose ? (
           <>
             <View style={[s.head, s.headAsk]}>
               <Label>Ask</Label>
-              {onClose ? <Pill label="Close" ghost small onPress={onClose} /> : null}
+              <Pill label="Close" ghost small onPress={onClose} />
             </View>
             <Hairline />
           </>
-        )}
+        ) : null}
 
         <ScrollView
           ref={scroller}
           style={s.fill}
-          contentContainerStyle={[s.transcript, { paddingBottom: (composerShown ? 0 : insets.bottom) + cosmos.space.xl }]}
+          contentContainerStyle={[
+            s.transcript,
+            { paddingBottom: (composerShown ? 0 : insets.bottom) + cosmos.space.xl },
+            mode === 'ask' && !onClose ? { paddingTop: cosmos.chrome.capsule + cosmos.space.lg } : null,
+          ]}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="interactive"
           onScroll={onScroll}
