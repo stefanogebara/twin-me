@@ -1,10 +1,12 @@
 import React from 'react';
-import { AlertCircle, RefreshCw } from 'lucide-react';
+import { InsightsError } from './InsightsKit';
 
 interface InsightsGenerationErrorProps {
   message: string;
   onRetry: () => void;
   retrying?: boolean;
+  /** The page's title, so the error keeps the page it belongs to. */
+  title?: string;
 }
 
 /**
@@ -16,27 +18,7 @@ export const InsightsGenerationError: React.FC<InsightsGenerationErrorProps> = (
   message,
   onRetry,
   retrying = false,
+  title = 'Insights',
 }) => {
-  return (
-    <div className="max-w-[680px] mx-auto px-4 sm:px-6 py-10 sm:py-16">
-      <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
-        <AlertCircle className="w-12 h-12" style={{ color: 'var(--text-secondary)' }} />
-        <p
-          className="text-sm text-center"
-          style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
-        >
-          {message}
-        </p>
-        <button
-          onClick={onRetry}
-          disabled={retrying}
-          className="flex items-center gap-2 px-4 py-2 rounded-[100px] text-sm font-medium disabled:opacity-50"
-          style={{ background: 'var(--claura-bone)', color: 'var(--claura-bone-ink)' }}
-        >
-          <RefreshCw className={`w-4 h-4 ${retrying ? 'animate-spin' : ''}`} />
-          Try again
-        </button>
-      </div>
-    </div>
-  );
+  return <InsightsError title={title} message={message} actionLabel="Try again" onAction={onRetry} busy={retrying} />;
 };
