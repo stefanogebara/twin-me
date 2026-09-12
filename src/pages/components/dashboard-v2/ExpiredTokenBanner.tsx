@@ -1,12 +1,13 @@
 /**
  * ExpiredTokenBanner — Shows when platform tokens need reconnection.
- * Displays a compact glass card with the expired platforms and a reconnect CTA.
+ * One row of the page kit: the expired platforms and a reconnect action.
  */
 
 import { useNavigate, useLocation } from 'react-router-dom';
 import { AlertTriangle } from 'lucide-react';
 import { usePlatformsSummary } from '@/hooks/usePlatformsSummary';
 import { RETIRED_PLATFORMS } from '@/lib/retiredPlatforms';
+import { List, Row } from '@/components/register';
 
 const PLATFORM_NAMES: Record<string, string> = {
   spotify: 'Spotify',
@@ -42,30 +43,19 @@ export function ExpiredTokenBanner(_props: { userId?: string } = {}) {
     : `${expired.slice(0, -1).join(', ')}, and ${expired[expired.length - 1]}`;
 
   return (
-    <div
-      className="flex items-center gap-3 mb-6 px-4 py-3 rounded-[16px]"
-      style={{
-        backgroundColor: 'rgba(251,191,36,0.06)',
-        border: '1px solid rgba(251,191,36,0.15)',
-      }}
-    >
-      <AlertTriangle className="w-4 h-4 flex-shrink-0" style={{ color: '#FBBF24' }} />
-      <p className="flex-1 text-sm" style={{ color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}>
-        {names} {expired.length === 1 ? 'needs' : 'need'} reconnecting to keep your twin up to date.
-      </p>
-      {!onConnectPage && (
-        <button
-          onClick={() => navigate('/connect')}
-          className="text-xs font-medium px-3 py-1.5 rounded-full flex-shrink-0 transition-opacity hover:opacity-80"
-          style={{
-            backgroundColor: 'rgba(251,191,36,0.15)',
-            color: '#FBBF24',
-            fontFamily: "'Inter', sans-serif",
-          }}
-        >
-          Reconnect
-        </button>
-      )}
+    <div style={{ marginBottom: 'var(--rg-section-phone)' }}>
+      <List label="Needs reconnecting">
+        <Row
+          icon={<AlertTriangle />}
+          title={`${names} ${expired.length === 1 ? 'needs' : 'need'} reconnecting`}
+          line="To keep your twin up to date"
+          action={!onConnectPage ? (
+            <button type="button" onClick={() => navigate('/connect')} className="n-btn n-btn--ghost">
+              Reconnect
+            </button>
+          ) : undefined}
+        />
+      </List>
     </div>
   );
 }

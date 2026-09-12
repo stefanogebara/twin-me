@@ -42,6 +42,12 @@ const navItems: NavItem[] = [
   { id: 'settings',     label: 'Settings',        icon: Settings,      path: '/settings' },
 ];
 
+/**
+ * The signed-in sidebar, in the register (2026-09-12): a 200px column of plain
+ * text links on the page, a hairline on its right. The current link is ink and
+ * underlined; nothing is filled. Every line is 13px, and weight marks the current
+ * one. Collapsed (desktop only) it keeps just the icons, the current one in ink.
+ */
 export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
   isOpen,
   onClose
@@ -96,12 +102,17 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
     navigate('/');
   };
 
+  const rowClass = cn(
+    'group w-full flex items-center min-h-8 rounded-[var(--rg-radius)] transition-colors duration-150 ease-out',
+    isCollapsed ? 'justify-center px-0 py-1.5 hover:bg-[var(--rg-hover)]' : 'gap-3 px-3 py-1.5'
+  );
+
   return (
     <>
       {/* Overlay for mobile */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black/20 z-40 lg:hidden"
+          className="fixed inset-0 bg-[rgb(var(--rg-ink-rgb)_/_0.32)] z-40 lg:hidden"
           onClick={onClose}
           role="button"
           tabIndex={0}
@@ -110,22 +121,19 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
         />
       )}
 
-      {/* Flat sidebar — desktop: expandable/collapsible, mobile: overlay */}
+      {/* Desktop: expandable/collapsible. Mobile: an overlay behind the menu button. */}
       <div
         className={cn(
           "fixed top-0 left-0 bottom-0 z-40 transition-[width,transform] duration-200 ease-out",
-          // Mobile: always full-width overlay, slide in/out
           isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
-          // Mobile: always 240px. Desktop: respect collapsed preference
-          isCollapsedPref ? "w-[240px] lg:w-[64px]" : "w-[240px]",
+          isCollapsedPref ? "w-[200px] lg:w-[64px]" : "w-[200px]",
         )}
       >
-        {/* Flat sidebar — straight edges, no pill */}
         <div
           className="flex flex-col h-full overflow-hidden"
           style={{
-            background: 'var(--sidebar)',
-            borderRight: '1px solid var(--sidebar-border)',
+            background: 'var(--rg-page)',
+            borderRight: '1px solid var(--rg-rule)',
           }}
         >
           <style>
@@ -141,50 +149,36 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
               type="button"
               onClick={onClose}
               aria-label="Close navigation menu"
-              className="absolute top-4 right-4 p-2 hover:bg-[var(--sidebar-accent)] rounded-lg transition-colors lg:hidden"
+              className="absolute top-4 right-3 inline-grid place-items-center w-8 h-8 rounded-[var(--rg-radius)] hover:bg-[var(--rg-hover)] transition-colors lg:hidden"
             >
-              <X className="w-5 h-5" style={{ color: 'var(--foreground)' }} aria-hidden="true" />
+              <X className="w-4 h-4 text-[var(--rg-ink)]" aria-hidden="true" />
             </button>
 
-            {/* Logo */}
+            {/* Wordmark */}
             <div className={cn(
-              "flex items-center border-b border-[var(--sidebar-border)]",
-              isCollapsed ? "justify-center p-3 pb-3" : "justify-center p-5 pb-4"
+              "flex items-center",
+              isCollapsed ? "justify-center p-3" : "justify-start px-4 pt-6 pb-5"
             )}>
               <button
                 type="button"
                 onClick={() => handleNavigate('/today')}
-                className="hover:opacity-80 transition-all duration-200 flex items-center gap-2.5"
+                className="hover:opacity-80 transition-opacity duration-200 flex items-center gap-2"
                 aria-label="Go to dashboard"
                 title="Twin Me"
               >
                 <img
                   src="/images/backgrounds/flower-hero.png"
-                  alt="Twin Me"
-                  className="object-contain drop-shadow-sm flex-shrink-0"
-                  style={{ width: 32, height: 32 }}
+                  alt=""
+                  className="object-contain flex-shrink-0"
+                  style={{ width: 24, height: 24 }}
                 />
                 {!isCollapsed && (
                   <>
-                    <span
-                      className="text-2xl"
-                      style={{
-                        fontWeight: 500,
-                        letterSpacing: '-0.02em',
-                        color: 'var(--foreground)'
-                      }}
-                    >
+                    <span className="text-[15px] font-medium tracking-[-0.02em] text-[var(--rg-ink)]">
                       Twin Me
                     </span>
-                    <span
-                      className="text-[10px] font-medium tracking-wide px-1.5 py-0.5 rounded-full self-start mt-1"
-                      style={{
-                        backgroundColor: 'var(--sidebar-accent)',
-                        color: 'var(--text-secondary)',
-                        fontFamily: "'Inter', sans-serif",
-                      }}
-                    >
-                      BETA
+                    <span className="text-[13px] font-[350] text-[var(--rg-ink-3)]">
+                      Beta
                     </span>
                   </>
                 )}
@@ -192,7 +186,7 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
             </div>
 
             {/* Nav Items */}
-            <nav className={cn("space-y-1 flex-1", isCollapsed ? "p-2" : "p-3")} role="navigation" aria-label="Main navigation">
+            <nav className={cn("flex-1 flex flex-col", isCollapsed ? "px-2 gap-1" : "px-1 gap-0.5")} role="navigation" aria-label="Main navigation">
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const active = isActive(item.path);
@@ -211,36 +205,22 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
                         : `Navigate to ${item.label}`
                     }
                     aria-current={active ? 'page' : undefined}
-                    className={cn(
-                      // audit-2026-05-15 C4: nav items must be FLAT (straight
-                      // edges) per CLAUDE.md design rule. rounded-md (6px)
-                      // preserves a soft corner without the pill shape that
-                      // violated the design system on every route.
-                      "w-full flex items-center transition-all duration-150 ease-out active:scale-[0.97]",
-                      isCollapsed ? "justify-center px-0 py-2.5" : "gap-3 px-4 py-2.5",
-                      active
-                        ? "rounded-md font-medium"
-                        : "rounded-md hover:bg-[var(--sidebar-accent)]"
-                    )}
-                    style={active ? {
-                      background: 'var(--accent-vibrant-glow)',
-                    } : {
-                      background: 'transparent',
-                    }}
+                    className={rowClass}
                     title={item.label}
                   >
                     <div className="relative flex-shrink-0">
                       <Icon
-                        className="w-5 h-5"
-                        style={{ color: active ? 'var(--accent-vibrant)' : 'var(--text-secondary)' }}
+                        className={cn(
+                          'w-4 h-4',
+                          active ? 'text-[var(--rg-ink)]' : 'text-[var(--rg-ink-2)] group-hover:text-[var(--rg-ink)]'
+                        )}
                         aria-hidden="true"
                       />
-                      {/* Collapsed sidebar: tiny dot indicator on the icon when there's a count.
-                          The full numeric badge below only renders when expanded. */}
+                      {/* Collapsed sidebar: a dot on the icon when there's a count.
+                          The full number below only renders when expanded. */}
                       {badgeCount > 0 && isCollapsed && (
                         <span
-                          className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full"
-                          style={{ background: 'var(--accent-vibrant)' }}
+                          className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-[var(--rg-ink)]"
                           aria-hidden="true"
                         />
                       )}
@@ -248,23 +228,19 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
                     {!isCollapsed && (
                       <>
                         <span
-                          className="text-sm truncate flex-1 text-left"
-                          style={{
-                            fontFamily: 'var(--font-ui)',
-                            fontWeight: active ? 500 : 400,
-                            color: active ? 'var(--foreground)' : 'var(--text-secondary)',
-                          }}
+                          className={cn(
+                            'text-[13px] leading-5 truncate flex-1 text-left',
+                            active
+                              ? 'font-medium text-[var(--rg-ink)] underline decoration-1 underline-offset-4'
+                              : 'font-normal text-[var(--rg-ink-2)] group-hover:text-[var(--rg-ink)]'
+                          )}
                         >
                           {item.label}
                         </span>
                         {badgeCount > 0 && (
                           <span
-                            className="ml-auto inline-flex items-center justify-center min-w-[20px] h-[20px] px-1.5 text-[11px] font-medium rounded-full"
-                            style={{
-                              background: 'var(--accent-vibrant)',
-                              color: '#110f0f',
-                              lineHeight: 1,
-                            }}
+                            className="ml-auto inline-flex items-center justify-center min-w-[20px] h-[20px] px-1.5 text-[13px] font-medium rounded-full bg-[var(--rg-ink)] text-[var(--rg-page)]"
+                            style={{ lineHeight: 1 }}
                             aria-hidden="true"
                           >
                             {badgeCount > 99 ? '99+' : badgeCount}
@@ -277,68 +253,41 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
               })}
             </nav>
 
-            {/* Sign Out + User at Bottom */}
-            <div className={cn("border-t border-[var(--sidebar-border)] space-y-1", isCollapsed ? "p-2" : "p-3")}>
-              {/* Sign Out button */}
+            {/* Sign out, the account, and the collapse toggle */}
+            <div className={cn("border-t border-[var(--rg-rule)] flex flex-col gap-0.5", isCollapsed ? "p-2" : "px-1 py-3")}>
               <button
                 type="button"
                 onClick={handleSignOut}
-                className={cn(
-                  // audit-2026-05-15 C4: rounded-md keeps sidebar FLAT.
-                  "w-full flex items-center rounded-md opacity-70 hover:opacity-100 hover:bg-[var(--sidebar-accent)] transition-all duration-150 ease-out active:scale-[0.97]",
-                  isCollapsed ? "justify-center px-0 py-2.5" : "gap-3 px-4 py-2.5"
-                )}
+                className={rowClass}
                 aria-label="Sign out"
-                title="Sign Out"
+                title="Sign out"
               >
-                <LogOut className="w-5 h-5 flex-shrink-0" style={{ color: 'var(--text-secondary)' }} aria-hidden="true" />
+                <LogOut className="w-4 h-4 flex-shrink-0 text-[var(--rg-ink-2)] group-hover:text-[var(--rg-ink)]" aria-hidden="true" />
                 {!isCollapsed && (
-                  <span
-                    className="text-sm"
-                    style={{
-                      fontFamily: 'var(--font-ui)',
-                      fontWeight: 400,
-                      color: 'var(--text-secondary)',
-                    }}
-                  >
-                    Sign Out
+                  <span className="text-[13px] leading-5 text-[var(--rg-ink-2)] group-hover:text-[var(--rg-ink)]">
+                    Sign out
                   </span>
                 )}
               </button>
 
-              {/* User profile */}
+              {/* The account. The avatar is a circle because it is an avatar. */}
               <button
                 type="button"
                 onClick={() => handleNavigate('/settings')}
-                className={cn(
-                  // audit-2026-05-15 C4: rounded-md keeps sidebar FLAT. The
-                  // user avatar inside (w-8 h-8 rounded-full) is still a
-                  // circle because that's an avatar treatment, not a nav pill.
-                  "w-full flex items-center rounded-md hover:bg-[var(--sidebar-accent)] transition-colors",
-                  isCollapsed ? "justify-center px-0 py-2.5" : "gap-3 px-4 py-2.5"
-                )}
+                className={cn(rowClass, !isCollapsed && 'py-2')}
                 aria-label={`Open settings for ${user?.firstName || user?.email || 'user'}`}
                 title={user?.firstName || user?.email || 'Settings'}
               >
-                <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
-                  style={{
-                    backgroundColor: 'var(--surface-solid)',
-                    color: 'var(--foreground)',
-                  }}
-                >
+                <div className="w-7 h-7 rounded-full flex items-center justify-center text-[13px] font-medium flex-shrink-0 bg-[var(--rg-field)] text-[var(--rg-ink)]">
                   {user?.firstName?.charAt(0) || user?.email?.charAt(0) || 'U'}
                 </div>
                 {!isCollapsed && (
                   <div className="flex-1 text-left min-w-0">
-                    <div
-                      className="text-sm font-medium truncate"
-                      style={{ color: 'var(--foreground)' }}
-                    >
+                    <div className="text-[13px] leading-5 font-medium truncate text-[var(--rg-ink)]">
                       {user?.firstName || 'User'}
                     </div>
                     <div
-                      className="text-xs truncate"
-                      style={{ color: 'var(--text-secondary)' }}
+                      className="text-[13px] leading-[19.5px] font-[350] truncate text-[var(--rg-ink-3)]"
                       title={user?.email}
                     >
                       {user?.email}
@@ -358,15 +307,15 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
               <button
                 type="button"
                 onClick={toggleCollapse}
-                className="hidden lg:flex w-full items-center justify-center py-2 rounded-md hover:bg-[var(--sidebar-accent)] transition-all duration-150 ease-out"
+                className="hidden lg:flex w-full min-h-8 items-center justify-center rounded-[var(--rg-radius)] hover:bg-[var(--rg-hover)] transition-colors duration-150 ease-out"
                 aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
                 aria-expanded={!isCollapsed}
                 data-testid="sidebar-collapse-toggle"
                 title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
               >
                 {isCollapsed
-                  ? <ChevronsRight className="w-4 h-4" style={{ color: 'var(--text-muted)' }} aria-hidden="true" />
-                  : <ChevronsLeft className="w-4 h-4" style={{ color: 'var(--text-muted)' }} aria-hidden="true" />
+                  ? <ChevronsRight className="w-4 h-4 text-[var(--rg-ink-2)]" aria-hidden="true" />
+                  : <ChevronsLeft className="w-4 h-4 text-[var(--rg-ink-2)]" aria-hidden="true" />
                 }
               </button>
             </div>

@@ -5,13 +5,14 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useAnalytics } from '@/contexts/AnalyticsContext';
 import { API_URL, getAccessToken, authFetch } from '@/services/api/apiBase';
 import { enrichmentService, QuickEnrichmentData, EnrichmentData, PersonalizedQuestion, OnboardingBriefing } from '@/services/enrichmentService';
-import ParticleField from './components/ParticleField';
 import PlatformConnectStep from './components/PlatformConnectStep';
 import DeepInterview from './components/DeepInterview';
 import HatchingPhase from './components/HatchingPhase';
 import RevealPhase from './components/RevealPhase';
 import DeepeningPhase from './components/DeepeningPhase';
 import OnboardingExplainer from './components/OnboardingExplainer';
+import '@/styles/register-public.css';
+import '@/styles/register-settings.css';
 
 
 // Infer name from email
@@ -644,28 +645,20 @@ const NewDiscoverFlow: React.FC = () => {
     || inferNameFromEmail(user.email);
 
   return (
-    <div className={`relative ${phase === 'deep-interview' ? 'h-dvh flex flex-col overflow-hidden' : 'min-h-screen overflow-hidden'}`}>
+    <div className={`rs relative ${phase === 'deep-interview' ? 'h-dvh flex flex-col overflow-hidden' : 'min-h-screen overflow-hidden'}`}>
       <style>{`
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
 
-      <ParticleField />
+      {/* The drifting particle canvas is gone: the register's ground is the
+          flat page, and a loop that never stops is decoration. */}
 
-      {/* Header */}
+      {/* Header: the wordmark, and Skip as a secondary button (no tracked caps) */}
       <div className="relative z-10 flex justify-between items-center px-6 md:px-8 py-5">
-        <div
-          className="text-xl tracking-tight"
-          style={{ fontFamily: 'var(--font-heading)', color: 'var(--text-primary)' }}
-        >
-          Twin Me
-        </div>
+        <div className="rs-strong">Twin Me</div>
         {phase !== 'complete' && (
-          <button
-            onClick={handleSkipExit}
-            className="text-sm tracking-wide uppercase opacity-40 hover:opacity-80 transition-opacity"
-            style={{ fontFamily: 'var(--font-body)', color: 'var(--text-primary)', letterSpacing: '0.1em' }}
-          >
+          <button type="button" onClick={handleSkipExit} className="n-btn n-btn--ghost">
             Skip
           </button>
         )}

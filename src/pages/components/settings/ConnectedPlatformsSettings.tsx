@@ -1,22 +1,18 @@
 import React, { useState } from 'react';
-import {
-  CheckCircle,
-  XCircle,
-  Loader2,
-  RefreshCw,
-  AlertCircle,
-} from 'lucide-react';
-import { PlatformLogo } from '@/components/PlatformLogos';
+import { Loader2, AlertCircle, Link2 } from 'lucide-react';
+import { PlatformLogo, getPlatformLogo } from '@/components/PlatformLogos';
 import GoogleWorkspaceConnect from './GoogleWorkspaceConnect';
 import { byPlatform, type PlatformsSummary } from '@/hooks/usePlatformsSummary';
 import { RETIRED_PLATFORMS } from '@/lib/retiredPlatforms';
 import { PLATFORM_DISPLAY_NAMES } from '@/lib/platformNames';
+import { List, Row } from '@/components/register';
 
 interface ConnectedPlatformsSettingsProps {
   summary: PlatformsSummary | undefined;
   isLoading: boolean;
   error: string | null;
   disconnectingService: string | null;
+  /** The refresh lives in the section heading's action (Settings owns it). */
   refetch: () => void;
   navigate: (path: string) => void;
   handleDisconnectService: (provider: string) => void;
@@ -33,10 +29,10 @@ interface ConnectorConfig {
 // replan-2026-06-10 Track C: LinkedIn/Reddit/Twitch removed (OAuth stacks
 // retired — existing connections render in the retired section below).
 const connectorConfig: ConnectorConfig[] = [
-  { id: 'spotify', name: 'Spotify', description: 'Music preferences and listening patterns', isOAuth: true },
-  { id: 'youtube', name: 'YouTube', description: 'Content preferences and watch history', isOAuth: true },
-  { id: 'github', name: 'GitHub', description: 'Coding activity and open source contributions', isOAuth: true },
-  { id: 'whoop', name: 'Whoop', description: 'Recovery, strain, sleep, and HRV patterns', isOAuth: true },
+  { id: 'spotify', name: 'Spotify', description: 'What you listen to, and when', isOAuth: true },
+  { id: 'youtube', name: 'YouTube', description: 'What you watch', isOAuth: true },
+  { id: 'github', name: 'GitHub', description: 'What you build, and when', isOAuth: true },
+  { id: 'whoop', name: 'Whoop', description: 'Sleep, recovery and strain', isOAuth: true },
 ];
 
 // Demoted platforms (Discord, Outlook) shown ONLY when the user already has
@@ -45,8 +41,8 @@ const connectorConfig: ConnectorConfig[] = [
 // /get-started, where their tiles no longer exist — the settings-dead-connect
 // bug class from audit-2026-06-10). replan-2026-06-10 Track C demote.
 const connectedOnlyConfig: ConnectorConfig[] = [
-  { id: 'discord', name: 'Discord', description: 'Community activity and communication style', isOAuth: true },
-  { id: 'microsoft_outlook', name: 'Outlook', description: 'Email patterns and calendar events', isOAuth: true },
+  { id: 'discord', name: 'Discord', description: 'Your communities and how you talk', isOAuth: true },
+  { id: 'microsoft_outlook', name: 'Outlook', description: 'Email and calendar', isOAuth: true },
 ];
 
 const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
@@ -54,7 +50,6 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
   isLoading,
   error,
   disconnectingService,
-  refetch,
   navigate,
   handleDisconnectService,
 }) => {
@@ -63,7 +58,7 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
   // Inline two-step confirm for destructive disconnects (replaces native
   // window.confirm, which is unstyleable and inconsistent with the rest of
   // Settings — audit-2026-06-10). First click arms the row; a second click
-  // (or the 'Confirm?' label) actually disconnects. Clicking elsewhere or
+  // (or the 'Confirm' label) actually disconnects. Clicking elsewhere or
   // arming a different row resets the previous one.
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
 
@@ -88,40 +83,40 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
     .filter((p) => RETIRED_PLATFORMS.has(p))
     .sort();
 
-  return (
-    <div>
-      {/* Google Workspace — bundled connect card */}
-      <GoogleWorkspaceConnect
-        summary={summary}
-        navigate={navigate}
-      />
+  // A platform without a logo (Outlook) gets a plain link glyph, not an empty square.
+  const logo = (id: string) =>
+    getPlatformLogo(id) ? <PlatformLogo platform={id} size={16} /> : <Link2 />;
 
-      {/* Refresh button — right-aligned, subtle */}
-      <div className="flex justify-end mb-3">
-        <button
-          onClick={() => refetch()}
-          className="p-1.5 rounded-lg transition-opacity hover:opacity-60"
-          style={{ color: 'var(--text-secondary)' }}
-          aria-label="Refresh platform connection status"
-          title="Refresh status"
-        >
-          <RefreshCw className="w-3.5 h-3.5" aria-hidden="true" />
-        </button>
-      </div>
+  const disconnectButton = (id: string) => (
+    <button
+      type="button"
+      onClick={() => requestDisconnect(id)}
+      disabled={disconnectingService === id}
+      className={`n-btn n-btn--ghost${confirmingId === id ? ' rg-danger' : ''}`}
+    >
+      {disconnectingService === id ? 'Disconnecting' : confirmingId === id ? 'Confirm' : 'Disconnect'}
+    </button>
+  );
+
+  return (
+    <List label="Connected platforms" className="pb-stack">
+      {/* Google Workspace — one row for the bundled connection */}
+      <GoogleWorkspaceConnect summary={summary} navigate={navigate} />
 
       {error && (
-        <div className="flex items-center gap-2 mb-4 text-sm" style={{ color: '#ef4444' }}>
-          <AlertCircle className="w-4 h-4" />
+        <li className="rs-note rs-bad" role="alert">
+          <AlertCircle aria-hidden="true" />
           {error}
-        </div>
+        </li>
       )}
 
       {isLoading ? (
-        <div className="flex items-center justify-center py-6">
-          <Loader2 className="w-4 h-4 animate-spin" style={{ color: 'var(--text-secondary)' }} />
-        </div>
+        <li className="rs-note">
+          <Loader2 className="animate-spin" aria-hidden="true" />
+          Checking your platforms
+        </li>
       ) : (
-        <div className="space-y-0">
+        <>
           {visibleConnectors.map((connector) => {
             // Batch-3 convention: a breakdown entry = connected; only
             // state==='expired' (genuine auth failure) demands a reconnect.
@@ -131,112 +126,43 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
             const isActiveConnection = !!entry && !isExpired;
 
             return (
-              <div
+              <Row
                 key={connector.id}
-                className="flex items-center justify-between gap-3 py-3"
-                style={{ borderBottom: '1px solid var(--border-glass)' }}
-              >
-                <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <PlatformLogo platform={connector.id} size={18} />
-                  <div className="min-w-0">
-                    <span className="text-sm" style={{ color: 'var(--foreground)' }}>
-                      {connector.name}
-                    </span>
-                    <p className="text-[11px] truncate" style={{ color: 'var(--text-secondary)' }}>
-                      {connector.description}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  {isActiveConnection ? (
-                    <>
-                      <CheckCircle className="w-3.5 h-3.5" style={{ color: '#10B981' }} />
-                      {connector.isOAuth && (
-                        <button
-                          onClick={() => requestDisconnect(connector.id)}
-                          disabled={disconnectingService === connector.id}
-                          className="text-[11px] min-h-[44px] px-2 transition-opacity hover:opacity-60"
-                          style={{
-                            color:
-                              confirmingId === connector.id
-                                ? '#ef4444'
-                                : 'rgba(255, 255, 255, 0.55)',
-                          }}
-                        >
-                          {disconnectingService === connector.id
-                            ? '...'
-                            : confirmingId === connector.id
-                            ? 'Confirm?'
-                            : 'Disconnect'}
-                        </button>
-                      )}
-                    </>
-                  ) : isExpired ? (
-                    <>
-                      <AlertCircle className="w-3.5 h-3.5" style={{ color: '#C9B99A' }} />
-                      <button
-                        onClick={() => navigate('/get-started')}
-                        className="text-[11px] min-h-[44px] px-2"
-                        style={{ color: '#C9B99A' }}
-                      >
-                        Reconnect
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <XCircle className="w-3.5 h-3.5" style={{ color: 'var(--text-secondary)' }} />
-                      <button
-                        onClick={() => navigate('/get-started')}
-                        className="text-[11px]"
-                        style={{ color: 'var(--n-verdigris)' }}
-                      >
-                        Connect
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
+                icon={logo(connector.id)}
+                title={connector.name}
+                line={isActiveConnection
+                  ? <span className="rs-ok">Connected</span>
+                  : isExpired
+                    ? <span className="rs-strong">Needs reconnecting</span>
+                    : connector.description}
+                action={isActiveConnection ? (
+                  connector.isOAuth ? disconnectButton(connector.id) : undefined
+                ) : isExpired ? (
+                  <button type="button" onClick={() => navigate('/get-started')} className="n-btn n-btn--ghost">
+                    Reconnect
+                  </button>
+                ) : (
+                  <button type="button" onClick={() => navigate('/get-started')} className="n-btn n-btn--ghost">
+                    Connect
+                  </button>
+                )}
+              />
             );
           })}
 
           {retiredConnected.map((platform) => (
-            <div
+            <Row
               key={platform}
-              className="flex items-center justify-between gap-3 py-3"
-              style={{ borderBottom: '1px solid var(--border-glass)' }}
-            >
-              <div className="flex items-center gap-3 min-w-0 flex-1" style={{ opacity: 0.55 }}>
-                <PlatformLogo platform={platform} size={18} />
-                <div className="min-w-0">
-                  <span className="text-sm" style={{ color: 'var(--foreground)' }}>
-                    {PLATFORM_DISPLAY_NAMES[platform] ||
-                      platform.replace(/_/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase())}
-                  </span>
-                  <p className="text-[11px] truncate" style={{ color: 'var(--text-secondary)' }}>
-                    No longer supported — your past data stays in your twin
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => requestDisconnect(platform)}
-                disabled={disconnectingService === platform}
-                className="text-[11px] min-h-[44px] px-2 transition-opacity hover:opacity-60 flex-shrink-0"
-                style={{
-                  color:
-                    confirmingId === platform ? '#ef4444' : 'rgba(255, 255, 255, 0.55)',
-                }}
-              >
-                {disconnectingService === platform
-                  ? '...'
-                  : confirmingId === platform
-                  ? 'Confirm?'
-                  : 'Disconnect'}
-              </button>
-            </div>
+              icon={logo(platform)}
+              title={PLATFORM_DISPLAY_NAMES[platform] ||
+                platform.replace(/_/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase())}
+              line="No longer supported. Past data stays."
+              action={disconnectButton(platform)}
+            />
           ))}
-        </div>
+        </>
       )}
-    </div>
+    </List>
   );
 };
 

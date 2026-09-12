@@ -9,7 +9,8 @@ interface SidebarLayoutProps {
   children: ReactNode;
 }
 
-const SIDEBAR_WIDTH_EXPANDED = 240;
+// The register's sidebar is 200px of plain text links (CollapsibleSidebar).
+const SIDEBAR_WIDTH_EXPANDED = 200;
 const SIDEBAR_WIDTH_COLLAPSED = 64;
 
 export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
@@ -36,29 +37,28 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
     <div
       className="flex min-h-screen w-full overflow-x-hidden"
     >
-      {/* Mobile Menu Button - Only visible on small screens */}
+      {/* The menu button, phones only: the page colour with a hairline, a 4px
+          corner. No glass, no shadow. */}
       <button
         type="button"
         onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="fixed top-4 left-4 z-50 p-3 rounded-2xl lg:hidden transition-all duration-150 ease-out active:scale-95"
+        className="fixed top-4 left-4 z-50 inline-grid place-items-center w-10 h-10 lg:hidden transition-colors duration-150 ease-out hover:bg-[var(--rg-field)]"
         style={{
-          backgroundColor: 'var(--input)',
-          backdropFilter: 'blur(20px) saturate(180%)',
-          WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-          border: '1px solid var(--surface-solid)',
-          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.30)',
+          backgroundColor: 'var(--rg-page)',
+          border: '1px solid var(--rg-rule)',
+          borderRadius: 'var(--rg-radius)',
         }}
         aria-label={sidebarOpen ? "Close navigation menu" : "Open navigation menu"}
         aria-expanded={sidebarOpen}
       >
         <Menu
-          className="w-5 h-5"
-          style={{ color: 'var(--foreground)' }}
+          className="w-4 h-4"
+          style={{ color: 'var(--rg-ink)' }}
           aria-hidden="true"
         />
       </button>
 
-      {/* Flat sidebar — straight edges, no rounded pill (CLAUDE.md preference) */}
+      {/* The sidebar: plain text links on the page */}
       <CollapsibleSidebar
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}

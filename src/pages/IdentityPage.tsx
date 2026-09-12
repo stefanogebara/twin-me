@@ -2,14 +2,20 @@
  * IdentityPage — "Your Soul Signature"
  * ======================================
  * 5-Layer Soul Signature: Values, Rhythms, Taste, Connections, Growth Edges.
- * Archetype hero (from OCEAN) + trait badges + layered soul portrait + ask twin + footer.
+ * Archetype (from OCEAN) + traits + the layered portrait + ask twin.
+ *
+ * In the register (2026-09-12): one 820px column built from the page kit.
+ * The archetype is the page title, every layer is a section of rows under an
+ * ink rule, and a reading longer than a line waits behind a press (ExpandRow).
+ * What used to be a right-hand column of glass cards (ContextSidebar) closes
+ * the column as its last sections. No cards, shadows, tracked caps or italic.
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Share2, Sparkles, ArrowRight, Fingerprint, AlertCircle, ChevronLeft, Loader2 } from 'lucide-react';
+import { Share2, Sparkles, Fingerprint, ChevronLeft, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { authFetch } from '@/services/api/apiBase';
@@ -22,8 +28,9 @@ import PersonalityAxes from './components/identity/PersonalityAxes';
 import IdentityQuote from './components/identity/IdentityQuote';
 import TemporalComparison from './components/identity/TemporalComparison';
 import IdentityNarrativeCard from './components/identity/IdentityNarrativeCard';
-import SplitPanelLayout from '@/layouts/SplitPanelLayout';
 import ContextSidebar from './components/identity/ContextSidebar';
+import ExpandRow from './components/identity/ExpandRow';
+import { Page, PageHead, Section, List, Row, SubRow, Empty } from '@/components/register';
 
 // ── Types for 5-Layer Soul Signature ────────────────────────────────────
 
@@ -135,7 +142,7 @@ function splitFirstSentence(raw: string): { first: string; rest: string } {
   return { first, rest };
 }
 
-// ── Suggestion pills ─────────────────────────────────────────────────────
+// ── Suggestions ──────────────────────────────────────────────────────────
 
 const SUGGESTION_PILLS = [
   'How have I changed this month?',
@@ -148,22 +155,27 @@ const SUGGESTION_PILLS = [
 
 function formatChronotype(raw: string): string {
   const labels: Record<string, string> = {
-    night_owl: 'Night Owl',
-    early_bird: 'Early Bird',
-    afternoon_peak: 'Afternoon Peak',
-    even_keel: 'Even Keel',
+    night_owl: 'Night owl',
+    early_bird: 'Early bird',
+    afternoon_peak: 'Afternoon peak',
+    even_keel: 'Even keel',
   };
-  return labels[raw] ?? raw.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  return labels[raw] ?? raw.replace(/_/g, ' ').replace(/^\w/, c => c.toUpperCase());
 }
 
 function formatConnectionStyle(raw: string): string {
   const labels: Record<string, string> = {
-    deep_connector: 'Deep Connector',
-    social_butterfly: 'Social Butterfly',
-    selective_engager: 'Selective Engager',
-    bridge_builder: 'Bridge Builder',
+    deep_connector: 'Deep connector',
+    social_butterfly: 'Social butterfly',
+    selective_engager: 'Selective engager',
+    bridge_builder: 'Bridge builder',
   };
-  return labels[raw] ?? raw.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  return labels[raw] ?? raw.replace(/_/g, ' ').replace(/^\w/, c => c.toUpperCase());
+}
+
+function sentenceCase(raw: string): string {
+  const s = raw.replace(/_/g, ' ').trim().toLowerCase();
+  return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
 function timeAgo(dateStr: string): string {
@@ -177,48 +189,45 @@ function timeAgo(dateStr: string): string {
   return `${weeks}w ago`;
 }
 
-function growthTypeBadgeStyle(type: string): React.CSSProperties {
+// A shift's kind as a mark (a dot in the row's icon square), in register.css's
+// values. Once pastel text on pastel fills; the kind now reads from the dot.
+function growthTypeMark(type: string): string {
   switch (type) {
-    case 'exploration':
-      return { background: 'rgba(93,92,174,0.15)', color: 'rgba(162,161,220,0.85)' };
-    case 'growth':
-      return { background: 'rgba(74,222,128,0.12)', color: 'rgba(74,222,128,0.85)' };
-    case 'stress_response':
-      return { background: 'rgba(251,191,36,0.12)', color: 'rgba(251,191,36,0.85)' };
-    default:
-      return { background: 'var(--surface)', color: 'var(--text-secondary)' };
+    case 'exploration': return 'var(--rg-iris)';
+    case 'growth': return 'var(--rg-ok-line)';
+    case 'stress_response': return 'var(--rg-ember)';
+    default: return 'var(--rg-mark)';
   }
 }
 
-// ── Section label ────────────────────────────────────────────────────────
-
-const SectionLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <h2
-    className="text-[11px] font-medium tracking-[0.12em] uppercase mb-4"
-    style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
-  >
-    {children}
-  </h2>
+const Dot: React.FC<{ color: string }> = ({ color }) => (
+  <span style={{ width: 8, height: 8, borderRadius: 9999, background: color, display: 'block' }} />
 );
 
-// ── Fade-in wrapper ─────────────────────────────────────────────────────
+// The rhythm bar: the four parts of the day as signature marks (register.css).
+const RHYTHM_PARTS = [
+  { key: 'morning', label: 'morning', color: 'var(--rg-ember)' },
+  { key: 'afternoon', label: 'afternoon', color: 'var(--rg-periwinkle)' },
+  { key: 'evening', label: 'evening', color: 'var(--rg-orchid)' },
+  { key: 'night', label: 'night', color: 'var(--rg-iris)' },
+] as const;
 
-const FadeInSection: React.FC<{ children: React.ReactNode; delay?: number; className?: string }> = ({
-  children,
-  delay = 0,
-  className = '',
-}) => (
-  <motion.section
-    className={className}
-    initial={{ opacity: 0, y: 16 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.5, delay, ease: 'easeOut' }}
-  >
-    {children}
-  </motion.section>
-);
+/** An inline text action: ink, underlined, no box. */
+const textLink: React.CSSProperties = {
+  background: 'none',
+  border: 0,
+  padding: 0,
+  font: 'inherit',
+  color: 'var(--rg-ink)',
+  textDecoration: 'underline',
+  textUnderlineOffset: '3px',
+  cursor: 'pointer',
+};
 
 // ── First-time reveal overlay ────────────────────────────────────────────
+// Kept, in the register: the page colour, the archetype as an upright Cosmos
+// title in ink, the tagline as the grey line, one ink primary. (It was an
+// italic serif title; the flip already moved its ground off #0a0909.)
 
 const REVEAL_KEY = 'soul_sig_revealed_v2';
 
@@ -232,39 +241,32 @@ const RevealOverlay: React.FC<{ archetypeName: string; tagline: string; onDismis
   return (
     <motion.div
       className="fixed inset-0 z-50 flex flex-col items-center justify-center px-6"
-      style={{ background: '#0a0909' }}
+      style={{ background: 'var(--rg-page)' }}
       initial={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.6, ease: 'easeInOut' }}
     >
-      {/* The breathing orb that used to sit behind the archetype is gone.
-          Nocturne has no orbs and nothing loops (Law 1: elevation is a colour
-          step, never a glow) — and the reveal is stronger for it: the name
-          arrives on flat obsidian with nothing competing for the eye. */}
-
       <motion.h1
         aria-label={archetypeName}
         className="relative z-10 text-center"
         style={{
-          fontFamily: "var(--font-heading)",
-          fontStyle: 'italic',
-          fontSize: 'clamp(40px, 8vw, 64px)',
-          fontWeight: 400,
-          color: 'var(--foreground)',
-          letterSpacing: '-0.02em',
-          lineHeight: 1.15,
+          margin: 0,
+          fontFamily: 'var(--rg-sans)',
+          fontSize: 'var(--rg-title-marketing)',
+          fontWeight: 300,
+          lineHeight: 1,
+          letterSpacing: 'var(--rg-title-track)',
+          textWrap: 'balance',
+          color: 'var(--rg-ink)',
         }}
       >
-        {/* audit-2026-05-15 H10: shortened the reveal timeline. Previously
-            the first word didn't appear until t=2s, and the Explore button
-            at t=5s — Agent 3 flagged the 2-4s empty-black-screen period
-            as reading like a broken page. Cascade now starts at 0.4s and
-            wraps in ~2s total, preserving the cinematic feel while
-            killing the "is this stuck?" perception. */}
+        {/* audit-2026-05-15 H10: shortened the reveal timeline so the page
+            never reads as stuck: the cascade starts at 0.4s, done in ~2s. */}
         {words.map((word, i) => (
           <motion.span
             key={i}
-            className="inline-block mr-[0.3em]"
+            aria-hidden="true"
+            className="inline-block mr-[0.25em]"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 + i * 0.25, duration: 0.5, ease: 'easeOut' }}
@@ -275,8 +277,8 @@ const RevealOverlay: React.FC<{ archetypeName: string; tagline: string; onDismis
       </motion.h1>
 
       <motion.p
-        className="relative z-10 text-center mt-4 text-sm"
-        style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif", maxWidth: 400 }}
+        className="relative z-10 text-center"
+        style={{ margin: '12px 0 0', color: 'var(--rg-ink-2)', fontWeight: 350, maxWidth: 400 }}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1.5, duration: 0.6 }}
@@ -285,13 +287,15 @@ const RevealOverlay: React.FC<{ archetypeName: string; tagline: string; onDismis
       </motion.p>
 
       <motion.button
-        className="n-btn n-btn--primary relative z-10 mt-10"
+        type="button"
+        className="n-btn n-btn--primary relative z-10"
+        style={{ marginTop: 32 }}
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 2.2, duration: 0.5 }}
         onClick={onDismiss}
       >
-        <Sparkles className="w-4 h-4" />
+        <Sparkles className="w-4 h-4" aria-hidden="true" />
         Explore
       </motion.button>
     </motion.div>
@@ -435,31 +439,29 @@ const IdentityPage: React.FC = () => {
   if (identityError || soulError) {
     const errorMsg = (identityError as Error)?.message || (soulError as Error)?.message || 'Could not load your soul signature.';
     return (
-      <div className="max-w-2xl mx-auto px-6 py-16">
-        <div
-          className="flex flex-col items-start gap-3 px-5 py-4 rounded-[20px]"
-          style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}
-        >
-          <div className="flex items-center gap-3">
-            <AlertCircle className="w-5 h-5 flex-shrink-0" style={{ color: '#EF4444' }} />
-            <span className="text-sm font-medium" style={{ color: '#EF4444' }}>
-              {errorMsg}
-            </span>
-          </div>
+      <Page>
+        <PageHead title="Your soul signature" />
+        <Section>
+          <List>
+            <li>
+              <p role="alert" className="rg-empty" style={{ color: 'var(--rg-danger)' }}>{errorMsg}</p>
+            </li>
+          </List>
           <button
+            type="button"
+            className="n-btn n-btn--ghost"
+            style={{ marginTop: 16 }}
             onClick={() => {
               // audit-2026-06-10: retry must refetch the query that actually
               // failed — refetching identity alone left soulError in place.
               if (identityError) refetchIdentity();
               if (soulError) refetchSoul();
             }}
-            className="text-sm font-medium px-4 py-2 rounded-[100px] transition-all duration-150 ease-out hover:opacity-80 active:scale-[0.97]"
-            style={{ backgroundColor: 'var(--n-steel)', color: 'var(--foreground)' }}
           >
             Try again
           </button>
-        </div>
-      </div>
+        </Section>
+      </Page>
     );
   }
 
@@ -521,7 +523,7 @@ const IdentityPage: React.FC = () => {
       insightLink: InsightLinkSpec | null;
     }[];
 
-  // ── Insight-page discovery pills (shown when user has connected platforms) ──
+  // ── Insight-page discovery (shown when user has connected platforms) ──
   const availableInsightPages: InsightLinkSpec[] = (() => {
     const lowered = connectedProviders.map((p) => p.toLowerCase());
     const seen = new Set<string>();
@@ -558,7 +560,7 @@ const IdentityPage: React.FC = () => {
     );
   };
 
-  // ── Suggestion pill click ──────────────────────────────────────────────
+  // ── Suggestion click ───────────────────────────────────────────────────
 
   const handleSuggestion = (message: string) => {
     // Use a query param rather than navigate(state) to work around a pre-existing
@@ -571,9 +573,9 @@ const IdentityPage: React.FC = () => {
 
   const getGreeting = (): string => {
     const hour = new Date().getHours();
-    if (hour < 12) return 'Good Morning';
-    if (hour < 17) return 'Good Afternoon';
-    return 'Good Evening';
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
   };
 
   const firstName = user?.firstName ?? user?.name?.split(' ')[0] ?? user?.email?.split('@')[0] ?? '';
@@ -584,600 +586,17 @@ const IdentityPage: React.FC = () => {
     day: 'numeric',
   });
 
-  // ── Glass card wrapper ──────────────────────────────────────────────
+  const taste = layers?.taste?.statement ? layers.taste : null;
+  // audit-2026-06-10: gate on real content. The backend returns a truthy
+  // placeholder (style 'unknown', empty/insufficient summary, _partial)
+  // when connection patterns couldn't be generated.
+  const connections = layers?.connections?.summary && layers.connections.style !== 'unknown' ? layers.connections : null;
+  const connectionsSplit = connections ? splitFirstSentence(connections.summary) : null;
 
-  const glassCard = (children: React.ReactNode, className = '', variant: 'default' | 'anchor' = 'default') => (
-    <div
-      className={`rounded-[20px] px-5 py-4 transition-all duration-300 hover:-translate-y-0.5 ${className}`}
-      style={{
-        background: variant === 'anchor' ? 'var(--glass-surface-bg)' : 'var(--surface)',
-        backdropFilter: 'blur(42px)',
-        WebkitBackdropFilter: 'blur(42px)',
-        border: variant === 'anchor' ? '1px solid var(--glass-surface-border)' : '1px solid var(--border-glass)',
-        boxShadow: variant === 'anchor'
-          ? 'inset 0 1px 0 rgba(255,255,255,0.08), 0 6px 24px rgba(0,0,0,0.20)'
-          : 'inset 0 1px 0 rgba(255,255,255,0.06), 0 4px 16px rgba(0,0,0,0.15)',
-      }}
-    >
-      {children}
-    </div>
-  );
-
-  const heroCard = (children: React.ReactNode) => (
-    <div
-      className="rounded-[20px] px-5 py-5"
-      style={{
-        background: 'var(--surface)',
-        backdropFilter: 'blur(42px)',
-        WebkitBackdropFilter: 'blur(42px)',
-        border: '1px solid var(--glass-surface-border)',
-        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.10), 0 8px 32px rgba(0,0,0,0.25)',
-      }}
-    >
-      {children}
-    </div>
-  );
-
-  // ── Main panel content ─────────────────────────────────────────────
-
-  const mainContent = (
-    <div className="space-y-5">
-      {/* ── Top row: back button (mobile) + greeting + date — single row to save vertical space ── */}
-      <div
-        className="flex items-center justify-between px-1 text-[12px]"
-        style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
-      >
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => navigate(-1)}
-            className="lg:hidden flex items-center gap-1 transition-opacity hover:opacity-70 active:scale-95"
-            aria-label="Go back"
-          >
-            <ChevronLeft className="w-4 h-4" aria-hidden="true" />
-          </button>
-          <span>{getGreeting()}, {firstName}</span>
-        </div>
-        <span>{formattedDate}</span>
-      </div>
-
-      {/* ── Hero card: archetype is the sole focal point above the fold ── */}
-      {heroCard(
-        <>
-          {archetypeResult ? (
-            <>
-              <section className="relative pl-5" style={{ borderLeft: '3px solid rgba(255,255,255,0.20)' }}>
-                {/* Single-archetype headline — promoted from h2 to h1 so the hero has one dominant voice */}
-                <h1
-                  style={{
-                    fontFamily: "var(--font-heading)",
-                    fontStyle: 'italic',
-                    fontSize: 'clamp(36px, 6.5vw, 56px)',
-                    fontWeight: 400,
-                    color: 'var(--foreground)',
-                    letterSpacing: '-0.02em',
-                    lineHeight: 1.1,
-                  }}
-                >
-                  {formatArchetypeName(archetypeResult.archetype.name)}
-                </h1>
-                <p
-                  className="mt-3 text-[15px] leading-relaxed"
-                  style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif", maxWidth: '42ch' }}
-                >
-                  {archetypeResult.archetype.tagline}
-                </p>
-                <div className="mt-2.5 flex items-center gap-2">
-                  <span
-                    className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium"
-                    style={driftIsStable
-                      ? { background: 'rgba(74,222,128,0.10)', color: 'rgba(74,222,128,0.75)' }
-                      : { background: 'var(--surface)', color: 'var(--text-secondary)' }
-                    }
-                  >
-                    <span
-                      className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                      style={{ background: driftIsStable ? 'rgba(74,222,128,0.8)' : 'var(--text-secondary)' }}
-                    />
-                    {driftIsStable ? 'Stable signal' : `${driftShiftCount} shift${driftShiftCount !== 1 ? 's' : ''} detected`}
-                  </span>
-                  {/* Fidelity badge — measured twin accuracy from the test-retest
-                      battery (Phase 2 headline metric). With a score: show it.
-                      Without: invite the test — /fidelity was an orphan page
-                      reachable only from the end of a Story chapter. */}
-                  {latestFidelity ? (
-                    <button
-                      onClick={() => navigate('/fidelity')}
-                      className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium transition-opacity hover:opacity-80"
-                      style={{ background: 'var(--surface)', color: 'var(--foreground)' }}
-                      aria-label="View twin fidelity results"
-                    >
-                      Twin knows you {Math.round(latestFidelity.twin_accuracy! * 100)}%
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => navigate('/fidelity')}
-                      className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium transition-opacity hover:opacity-80"
-                      style={{ background: 'var(--surface)', color: 'var(--text-secondary)' }}
-                      aria-label="Test how well your twin knows you"
-                    >
-                      Test your twin
-                    </button>
-                  )}
-                </div>
-                {generatedAt && (
-                  <p
-                    className="mt-2 text-[10px] uppercase tracking-[0.12em]"
-                    style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
-                  >
-                    Updated {timeAgo(generatedAt)}
-                  </p>
-                )}
-              </section>
-
-              {/* Pre-filled primary CTA + Share CTA — Share is promoted into the above-the-fold
-                  hero because "Here's what my AI twin knows about me" is the platform's strongest
-                  viral hook. Previously it was a tiny low-contrast link buried ~1400px down. */}
-              <div className="mt-6 pl-5 flex flex-wrap items-center gap-2.5">
-                <button
-                  onClick={() =>
-                    handleSuggestion(
-                      `Tell me what "${formatArchetypeName(archetypeResult.archetype.name)}" actually means about how I live — the real evidence from my data, not a generic description.`
-                    )
-                  }
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-[100px] text-sm font-medium transition-all duration-150 hover:opacity-85 active:scale-[0.97]"
-                  style={{
-                    background: 'var(--surface)',
-                    border: '1px solid var(--glass-surface-border)',
-                    color: 'var(--foreground)',
-                    fontFamily: "'Inter', sans-serif",
-                  }}
-                >
-                  Ask your twin why this fits
-                  <ArrowRight className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
-                </button>
-                {user && (
-                  <button
-                    onClick={handleShare}
-                    aria-label="Share your soul signature"
-                    className="n-btn n-btn--primary"
-                  >
-                    <Share2 className="w-4 h-4" />
-                    Share your signature
-                  </button>
-                )}
-              </div>
-            </>
-          ) : (
-            // Fallback hero for users whose archetype hasn't been computed yet (pre-onboarding or <20 memories).
-            // Intentionally simple — the still-learning card below carries the CTA to connect platforms.
-            <div>
-              <h1
-                style={{
-                  fontFamily: "var(--font-heading)",
-                  fontStyle: 'italic',
-                  fontSize: 'clamp(32px, 6vw, 48px)',
-                  fontWeight: 400,
-                  color: 'var(--foreground)',
-                  letterSpacing: '-0.02em',
-                  lineHeight: 1.15,
-                }}
-              >
-                Your signal is coming together
-              </h1>
-              <p
-                className="mt-3 text-[15px] leading-relaxed"
-                style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif", maxWidth: '42ch' }}
-              >
-                A few more observations from your connected platforms and your archetype will take shape.
-              </p>
-            </div>
-          )}
-
-          {traitBadges.length > 0 && (
-            <div className="flex flex-wrap gap-2 mt-6">
-              {traitBadges.map((badge) => (
-                <span
-                  key={badge}
-                  className="px-3 py-1.5 rounded-full text-xs font-medium"
-                  style={{
-                    background: 'var(--surface)',
-                    border: '1px solid var(--border-glass)',
-                    color: 'var(--text-secondary)',
-                    fontFamily: "'Inter', sans-serif",
-                  }}
-                >
-                  {badge}
-                </span>
-              ))}
-            </div>
-          )}
-        </>
-      )}
-
-      {/* ── Your soul, in your own words (askjo SOUL.md analog) ─────── */}
-      {/* User-editable narrative override. Renders nothing if no soul */}
-      {/* signature has been generated yet. */}
-      <IdentityNarrativeCard />
-
-      {/* ── Temporal Comparison ("You then vs you now") ─────────────── */}
-      {/* Renders nothing unless the backend has 8+ memories in each window. */}
-      <TemporalComparison />
-
-      {/* ── Still Learning State ───────────────────────────────────── */}
-      {showStillLearning && (
-        <FadeInSection delay={0.2}>
-          {glassCard(
-            <div className="text-center">
-              <p
-                className="text-sm mb-3"
-                style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
-              >
-                Your twin is still learning your patterns. Connect more platforms to unlock your full soul signature.
-              </p>
-              <button
-                onClick={() => navigate('/get-started')}
-                className="px-4 py-2 rounded-[100px] text-sm font-medium transition-all duration-150 hover:opacity-80 active:scale-[0.97]"
-                style={{ border: '1px solid var(--border)', color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}
-              >
-                Connect platforms
-              </button>
-            </div>
-          )}
-        </FadeInSection>
-      )}
-
-      {/* ── Identity Quote ─────────────────────────────────────────── */}
-      <IdentityQuote />
-
-      {/* ── Expert lenses (expand/collapse) ────────────────────────── */}
-      {expertLensEntries.length > 0 && (
-        <FadeInSection delay={0.12}>
-          {glassCard(
-            <>
-              <SectionLabel>What your experts see</SectionLabel>
-              <div className="space-y-3.5">
-                {expertLensEntries.map(({ key, label, preview, rest, insightLink }) => {
-                  const isExpanded = expandedLens === key;
-                  const hasMore = rest.length > 0;
-                  return (
-                    <div key={key} className="flex items-start gap-3">
-                      <span
-                        className="text-[10px] font-medium uppercase tracking-wider flex-shrink-0 pt-0.5 w-[68px] text-right"
-                        style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
-                      >
-                        {label}
-                      </span>
-                      <div className="flex-1 min-w-0">
-                        <p
-                          style={{
-                            fontFamily: "var(--font-heading)",
-                            fontStyle: 'italic',
-                            fontSize: '14px',
-                            color: 'var(--foreground)',
-                            lineHeight: 1.55,
-                          }}
-                        >
-                          {preview}
-                          {!hasMore && '.'}
-                        </p>
-                        <AnimatePresence initial={false}>
-                          {isExpanded && hasMore && (
-                            <motion.div
-                              initial={{ opacity: 0, height: 0, marginTop: 0 }}
-                              animate={{ opacity: 1, height: 'auto', marginTop: 6 }}
-                              exit={{ opacity: 0, height: 0, marginTop: 0 }}
-                              transition={{ duration: 0.22, ease: 'easeOut' }}
-                              style={{ overflow: 'hidden' }}
-                            >
-                              <p
-                                style={{
-                                  fontFamily: "var(--font-heading)",
-                                  fontStyle: 'italic',
-                                  fontSize: '14px',
-                                  color: 'var(--text-secondary)',
-                                  lineHeight: 1.55,
-                                }}
-                              >
-                                {rest}
-                              </p>
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-
-                        <div className="flex items-center gap-3 mt-1.5">
-                          {hasMore && (
-                            <button
-                              type="button"
-                              onClick={() => setExpandedLens(isExpanded ? null : key)}
-                              className="text-[11px] transition-opacity duration-150 hover:opacity-70"
-                              style={{
-                                color: 'var(--text-secondary)',
-                                fontFamily: "'Inter', sans-serif",
-                                background: 'transparent',
-                                padding: 0,
-                              }}
-                            >
-                              {isExpanded ? 'Show less' : 'Show full analysis'}
-                            </button>
-                          )}
-                          {insightLink && (
-                            <button
-                              type="button"
-                              onClick={() => navigate(insightLink.route)}
-                              className="text-[12px] inline-flex items-center gap-1 transition-opacity duration-150 hover:opacity-70"
-                              style={{
-                                color: 'var(--accent-vibrant)',
-                                fontFamily: "'Inter', sans-serif",
-                                background: 'transparent',
-                                padding: 0,
-                              }}
-                            >
-                              Deep dive: {insightLink.label} insights
-                              <ArrowRight className="w-3 h-3" />
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </>
-          )}
-        </FadeInSection>
-      )}
-
-      {/* ── Values ─────────────────────────────────────────────────── */}
-      {layers?.values?.values && layers.values.values.length > 0 && (
-        <FadeInSection delay={0.15}>
-          {glassCard(
-            <>
-              <SectionLabel>Your Values</SectionLabel>
-              {layers.values.values.map((value, idx) => (
-                <div
-                  key={value.name}
-                  className="py-3"
-                  style={{
-                    borderBottom: idx < layers.values.values.length - 1
-                      ? '1px solid rgba(255,255,255,0.06)'
-                      : 'none',
-                  }}
-                >
-                  <h3 className="text-sm font-medium mb-1" style={{ color: '#E8E0D4', fontFamily: "'Inter', sans-serif" }}>
-                    {value.name}
-                  </h3>
-                  <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
-                    {value.evidence}
-                  </p>
-                </div>
-              ))}
-            </>,
-            '',
-            'anchor'
-          )}
-        </FadeInSection>
-      )}
-
-      {/* ── Rhythms + Taste (side by side on desktop) ──────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-        {layers?.rhythms && (
-          <FadeInSection delay={0.2}>
-            {glassCard(
-              <>
-                <SectionLabel>Your Rhythms</SectionLabel>
-                <span
-                  className="inline-block px-3 py-1.5 rounded-full text-xs font-medium mb-3"
-                  style={{ background: 'var(--surface)', color: '#E8E0D4', fontFamily: "'Inter', sans-serif" }}
-                >
-                  {formatChronotype(layers.rhythms.chronotype)}
-                </span>
-                {layers.rhythms.peakHours && (
-                  <p className="text-xs mb-3" style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
-                    Peak hours: {layers.rhythms.peakHours}
-                  </p>
-                )}
-                <p className="text-sm leading-relaxed mb-4" style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
-                  {layers.rhythms.summary}
-                </p>
-                {layers.rhythms.distribution && (
-                  <div>
-                    <p className="text-[10px] uppercase tracking-[0.12em] mb-1.5" style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
-                      Time of day activity
-                    </p>
-                    <div className="flex rounded-[6px] overflow-hidden h-4 mb-2 gap-px" style={{ background: 'var(--surface)' }}>
-                      <div style={{ width: `${layers.rhythms.distribution.morning * 100}%`, backgroundColor: 'rgba(251,191,36,0.90)', minWidth: layers.rhythms.distribution.morning > 0.01 ? 2 : 0 }} />
-                      <div style={{ width: `${layers.rhythms.distribution.afternoon * 100}%`, backgroundColor: 'rgba(130,170,255,0.90)', minWidth: layers.rhythms.distribution.afternoon > 0.01 ? 2 : 0 }} />
-                      <div style={{ width: `${layers.rhythms.distribution.evening * 100}%`, backgroundColor: 'rgba(255,140,60,0.90)', minWidth: layers.rhythms.distribution.evening > 0.01 ? 2 : 0 }} />
-                      <div style={{ width: `${layers.rhythms.distribution.night * 100}%`, backgroundColor: 'rgba(130,120,220,0.90)', minWidth: layers.rhythms.distribution.night > 0.01 ? 2 : 0 }} />
-                    </div>
-                    <div className="flex justify-between text-[10px]" style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
-                      <span>{Math.round(layers.rhythms.distribution.morning * 100)}% Morning</span>
-                      <span>{Math.round(layers.rhythms.distribution.afternoon * 100)}% Afternoon</span>
-                      <span>{Math.round(layers.rhythms.distribution.evening * 100)}% Evening</span>
-                      <span>{Math.round(layers.rhythms.distribution.night * 100)}% Night</span>
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-          </FadeInSection>
-        )}
-
-        {/* audit-2026-06-10: gate on real content, not object truthiness. The
-            backend returns a truthy placeholder { statement: '', _partial: true }
-            when the taste layer couldn't be generated. */}
-        {layers?.taste?.statement && (
-          <FadeInSection delay={0.25}>
-            {glassCard(
-              <>
-                <SectionLabel>Your Taste</SectionLabel>
-                <p
-                  className="text-[14px] leading-relaxed mb-4"
-                  style={{ color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}
-                >
-                  {layers.taste.statement}
-                </p>
-                {layers.taste.topSignals && layers.taste.topSignals.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {layers.taste.topSignals.map((signal) => (
-                      <span
-                        key={signal}
-                        className="px-2.5 py-1 rounded-full text-[11px] font-medium"
-                        style={{ background: 'var(--surface)', color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
-                      >
-                        {signal}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </>
-            )}
-          </FadeInSection>
-        )}
-      </div>
-
-      {/* ── Connections + Growth (side by side) ─────────────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-        {/* audit-2026-06-10: gate on real content. The backend returns a truthy
-            placeholder (style 'unknown', empty/insufficient summary, _partial)
-            when connection patterns couldn't be generated. */}
-        {layers?.connections?.summary && layers.connections.style !== 'unknown' && (
-          <FadeInSection delay={0.3}>
-            {glassCard(
-              <>
-                <SectionLabel>How You Connect</SectionLabel>
-                <span
-                  className="inline-block px-3 py-1.5 rounded-full text-xs font-medium mb-3"
-                  style={{ background: 'var(--surface)', color: '#E8E0D4', fontFamily: "'Inter', sans-serif" }}
-                >
-                  {formatConnectionStyle(layers.connections.style)}
-                </span>
-                <p className="text-sm leading-relaxed mb-3" style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
-                  {layers.connections.summary}
-                </p>
-                {layers.connections.patterns && layers.connections.patterns.length > 0 && (
-                  <ul className="space-y-1.5">
-                    {layers.connections.patterns.map((pattern) => (
-                      <li key={pattern} className="flex items-start gap-2 text-sm" style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
-                        <span className="mt-[7px] w-1 h-1 rounded-full flex-shrink-0" style={{ background: 'rgba(232,224,212,0.4)' }} />
-                        {pattern}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </>
-            )}
-          </FadeInSection>
-        )}
-
-        {/* audit-2026-06-10: gate on hasLayers like the sibling cards. Without
-            layers, growthEdges is absent so driftIsStable defaults true (line
-            ~547) and this would assert "patterns have been stable recently"
-            for users who have no soul-signature data at all. */}
-        {hasLayers && (
-          <FadeInSection delay={0.35}>
-            {glassCard(
-              <>
-                <SectionLabel>What's Changing</SectionLabel>
-                {driftIsStable ? (
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: 'rgba(74,222,128,0.6)' }} />
-                    <p className="text-sm" style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
-                      Consistent — your patterns have been stable recently
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {growthEdges!.shifts.map((shift) => (
-                      <div key={shift.domain} className="flex items-start gap-3">
-                        <span className="px-2 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider flex-shrink-0 mt-0.5" style={growthTypeBadgeStyle(shift.type)}>
-                          {shift.domain}
-                        </span>
-                        <p className="text-sm" style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
-                          {shift.description}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </>
-            )}
-          </FadeInSection>
-        )}
-      </div>
-
-      {/* ── ICA Personality Axes ────────────────────────────────────── */}
-      <PersonalityAxes />
-
-      {/* ── Ask Twin + Footer ──────────────────────────────────────── */}
-      {glassCard(
-        <>
-          {availableInsightPages.length > 0 && (
-            <div className="mb-5">
-              <SectionLabel>Deep dives</SectionLabel>
-              <div className="flex flex-wrap gap-2">
-                {availableInsightPages.map(({ platform, route, label }) => (
-                  <button
-                    key={platform}
-                    onClick={() => navigate(route)}
-                    className="px-3 py-2 rounded-[46px] text-xs font-medium transition-all duration-150 hover:opacity-70 active:scale-[0.97] inline-flex items-center gap-1.5"
-                    style={{
-                      background: 'var(--surface)',
-                      color: 'var(--accent-vibrant)',
-                      border: '1px solid var(--glass-surface-border)',
-                      fontFamily: "'Inter', sans-serif",
-                    }}
-                  >
-                    {label} insights
-                    <ArrowRight className="w-3 h-3" />
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-          <SectionLabel>Ask your twin about you</SectionLabel>
-          <div className="flex flex-wrap gap-2 mb-6">
-            {SUGGESTION_PILLS.map((pill) => (
-              <button
-                key={pill}
-                onClick={() => handleSuggestion(pill)}
-                className="px-3 py-2 rounded-[46px] text-xs font-medium transition-all duration-150 hover:opacity-70 active:scale-[0.97] flex items-center gap-1.5"
-                style={{ background: 'var(--surface)', color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
-              >
-                {pill}
-                <ArrowRight className="w-3 h-3" style={{ color: 'var(--text-muted)' }} />
-              </button>
-            ))}
-          </div>
-          <div className="flex items-center justify-between pt-4" style={{ borderTop: '1px solid var(--border-glass)' }}>
-            {user && (
-              <button
-                onClick={handleShare}
-                aria-label="Share your soul signature"
-                className="flex items-center gap-1.5 text-[12px] transition-all duration-150 ease-out hover:opacity-60 active:scale-[0.97] min-h-[44px]"
-                style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
-              >
-                <Share2 className="w-3.5 h-3.5" />
-                Share
-              </button>
-            )}
-            <button
-              onClick={() => navigate('/get-started')}
-              className="flex items-center gap-1.5 text-[12px] transition-all duration-150 ease-out hover:opacity-60 active:scale-[0.97]"
-              style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
-            >
-              Connect more platforms
-              <ArrowRight className="w-3 h-3" />
-            </button>
-          </div>
-        </>
-      )}
-    </div>
-  );
+  // ── The page ─────────────────────────────────────────────────────────
 
   return (
     <>
-      {/* Claura zoned photography — bubble-reader by night, train-field by day (/preview/you). */}
       {/* First-time reveal overlay */}
       <AnimatePresence>
         {showReveal && archetypeResult && (
@@ -1189,86 +608,280 @@ const IdentityPage: React.FC = () => {
         )}
       </AnimatePresence>
 
-      <SplitPanelLayout
-        main={mainContent}
-        sidebar={<ContextSidebar />}
-      />
+      <Page>
+        {/* Greeting and date: one quiet line over the title (back on phones). */}
+        <div className="flex items-center gap-2" style={{ marginBottom: 16, color: 'var(--rg-ink-2)', fontWeight: 350 }}>
+          <button type="button" onClick={() => navigate(-1)} className="rg-iconbtn lg:hidden" aria-label="Go back">
+            <ChevronLeft aria-hidden="true" />
+          </button>
+          <span>{getGreeting()}, {firstName}. {formattedDate}.</span>
+        </div>
 
-      {/* ── Global keyframes ────────────────────────────────────────────── */}
-      <style>{`
-      `}</style>
+        {archetypeResult ? (
+          <PageHead
+            title={formatArchetypeName(archetypeResult.archetype.name)}
+            line={archetypeResult.archetype.tagline}
+            // Share is the page's one ink primary: "here's what my twin knows
+            // about me" is the product's strongest hook.
+            action={user ? (
+              <button type="button" onClick={handleShare} aria-label="Share your soul signature" className="n-btn n-btn--primary">
+                <Share2 className="w-4 h-4" aria-hidden="true" />
+                Share
+              </button>
+            ) : undefined}
+          />
+        ) : (
+          // Fallback for users whose archetype hasn't been computed yet
+          // (pre-onboarding or <20 memories).
+          <PageHead
+            title="Your signal is coming together"
+            line="A few more observations from your connected platforms and your archetype will take shape."
+          />
+        )}
+
+        {(archetypeResult || traitBadges.length > 0) && (
+          <Section>
+            <List>
+              {archetypeResult && (
+                <Row
+                  // Fidelity: measured twin accuracy from the test-retest
+                  // battery (the Phase 2 headline metric), or an invitation.
+                  title={latestFidelity
+                    ? `Your twin knows you ${Math.round(latestFidelity.twin_accuracy! * 100)}%`
+                    : 'Test your twin'}
+                  line={latestFidelity ? 'From your last check.' : 'Twenty-five quick questions, about three minutes.'}
+                  to="/fidelity"
+                />
+              )}
+              {archetypeResult && (
+                <Row
+                  title={driftIsStable ? 'Stable signal' : `${driftShiftCount} shift${driftShiftCount !== 1 ? 's' : ''} detected`}
+                  line={generatedAt ? `Updated ${timeAgo(generatedAt)}` : undefined}
+                />
+              )}
+              {traitBadges.length > 0 && <Row title="Traits" line={traitBadges.join(' · ')} />}
+              {archetypeResult && (
+                <Row
+                  title="Ask your twin why this fits"
+                  line="The real evidence from your data."
+                  onClick={() =>
+                    handleSuggestion(
+                      `Tell me what "${formatArchetypeName(archetypeResult.archetype.name)}" actually means about how I live — the real evidence from my data, not a generic description.`
+                    )
+                  }
+                />
+              )}
+            </List>
+          </Section>
+        )}
+
+        {/* Your soul, in your own words (askjo SOUL.md analog). Renders nothing
+            if no soul signature has been generated yet. */}
+        <IdentityNarrativeCard />
+
+        {/* "You then vs you now". Renders nothing unless the backend has 8+
+            memories in each window. */}
+        <TemporalComparison />
+
+        {showStillLearning && (
+          <Section title="Still learning" line="Connect more platforms to unlock your full soul signature.">
+            <List>
+              <Row title="Connect platforms" to="/get-started" />
+            </List>
+          </Section>
+        )}
+
+        <IdentityQuote />
+
+        {/* Expert lenses: the first sentence each, the rest behind a press. */}
+        {expertLensEntries.length > 0 && (
+          <Section title="What your twin sees">
+            <List>
+              {expertLensEntries.map(({ key, label, preview, rest, insightLink }) => {
+                const isExpanded = expandedLens === key;
+                const hasMore = rest.length > 0;
+                return (
+                  <ExpandRow
+                    key={key}
+                    title={label}
+                    line={`${preview}${hasMore ? '' : '.'}`}
+                    open={isExpanded}
+                    onToggle={() => setExpandedLens(isExpanded ? null : key)}
+                    more={hasMore || insightLink ? (
+                      <>
+                        {hasMore && <p style={{ margin: 0 }}>{rest}</p>}
+                        {insightLink && (
+                          <button
+                            type="button"
+                            style={{ ...textLink, marginTop: hasMore ? 8 : 0 }}
+                            onClick={() => navigate(insightLink.route)}
+                          >
+                            See your {insightLink.label} insights
+                          </button>
+                        )}
+                      </>
+                    ) : null}
+                  />
+                );
+              })}
+            </List>
+          </Section>
+        )}
+
+        {/* Values */}
+        {layers?.values?.values && layers.values.values.length > 0 && (
+          <Section title="Your values">
+            <List>
+              {layers.values.values.map((value) => (
+                <Row key={value.name} title={value.name} line={value.evidence} />
+              ))}
+            </List>
+          </Section>
+        )}
+
+        {/* Rhythms: the chronotype row, then the day as four signature marks. */}
+        {layers?.rhythms && (
+          <Section
+            title="Your rhythms"
+            line={layers.rhythms.peakHours ? `Peak hours: ${layers.rhythms.peakHours}` : undefined}
+          >
+            <List>
+              <Row title={formatChronotype(layers.rhythms.chronotype)} line={layers.rhythms.summary} />
+              {layers.rhythms.distribution && (
+                <li style={{ padding: '20px 12px', borderBottom: '1px solid var(--rg-rule)' }}>
+                  <span className="rg-row-title">Time of day</span>
+                  <div
+                    className="flex overflow-hidden"
+                    style={{ height: 8, gap: 2, margin: '10px 0', borderRadius: 2 }}
+                    aria-hidden="true"
+                  >
+                    {RHYTHM_PARTS.map(({ key, color }) => {
+                      const share = layers.rhythms.distribution[key];
+                      return (
+                        <div
+                          key={key}
+                          style={{ width: `${share * 100}%`, background: color, minWidth: share > 0.01 ? 2 : 0 }}
+                        />
+                      );
+                    })}
+                  </div>
+                  <ul className="flex flex-wrap" style={{ margin: 0, padding: 0, listStyle: 'none', columnGap: 16, rowGap: 4, color: 'var(--rg-ink-2)', fontWeight: 350, fontVariantNumeric: 'tabular-nums' }}>
+                    {RHYTHM_PARTS.map(({ key, label, color }) => (
+                      <li key={key} className="inline-flex items-center gap-1.5">
+                        <span aria-hidden="true" style={{ width: 8, height: 8, borderRadius: 2, background: color }} />
+                        {Math.round(layers.rhythms.distribution[key] * 100)}% {label}
+                      </li>
+                    ))}
+                  </ul>
+                </li>
+              )}
+            </List>
+          </Section>
+        )}
+
+        {/* audit-2026-06-10: gate on real content, not object truthiness. The
+            backend returns a truthy placeholder { statement: '', _partial: true }
+            when the taste layer couldn't be generated. */}
+        {taste && (
+          <Section title="Your taste" line={taste.statement}>
+            {taste.topSignals && taste.topSignals.length > 0 && (
+              <List>
+                <Row title="What stands out" line={taste.topSignals.join(' · ')} />
+              </List>
+            )}
+          </Section>
+        )}
+
+        {connections && connectionsSplit && (
+          <Section title="How you connect">
+            <List>
+              <ExpandRow
+                title={formatConnectionStyle(connections.style)}
+                line={`${connectionsSplit.first}.`}
+                more={connectionsSplit.rest || null}
+              />
+              {connections.patterns?.map((pattern) => (
+                <SubRow key={pattern}><span className="rg-row-line">{pattern}</span></SubRow>
+              ))}
+            </List>
+          </Section>
+        )}
+
+        {/* audit-2026-06-10: gate on hasLayers. Without layers, growthEdges is
+            absent so driftIsStable defaults true and this would assert "stable"
+            for users who have no soul-signature data at all. */}
+        {hasLayers && (
+          <Section title="What's changing">
+            <List>
+              {driftIsStable ? (
+                <Row icon={<Dot color="var(--rg-ok-line)" />} title="Consistent" line="Your patterns have been stable recently." />
+              ) : (
+                growthEdges!.shifts.map((shift) => (
+                  <Row
+                    key={shift.domain}
+                    icon={<Dot color={growthTypeMark(shift.type)} />}
+                    title={sentenceCase(shift.domain)}
+                    line={shift.description}
+                  />
+                ))
+              )}
+            </List>
+          </Section>
+        )}
+
+        {/* ICA personality axes */}
+        <PersonalityAxes />
+
+        <Section title="Ask your twin">
+          <List>
+            {SUGGESTION_PILLS.map((pill) => (
+              <Row key={pill} title={pill} onClick={() => handleSuggestion(pill)} />
+            ))}
+          </List>
+        </Section>
+
+        <Section title="Go deeper">
+          <List>
+            {availableInsightPages.map(({ platform, route, label }) => (
+              <Row key={platform} title={`${label} insights`} to={route} />
+            ))}
+            <Row title="Connect more platforms" to="/get-started" />
+          </List>
+        </Section>
+
+        {/* Soul score and "Your twin": the old right-hand column, now the
+            column's closing sections. */}
+        <ContextSidebar />
+      </Page>
     </>
   );
 };
 
 // ── Loading skeleton ─────────────────────────────────────────────────────
 
-const LoadingSkeleton: React.FC = () => (
-  <div
-    className="min-h-screen w-full"
+const Bar: React.FC<{ width: string; height?: number }> = ({ width, height = 12 }) => (
+  <span className="block rounded-[4px] animate-pulse" style={{ width, height, background: 'var(--rg-field)' }} />
+);
 
-  >
-    <div className="hidden lg:grid lg:grid-cols-[minmax(0,1fr)_420px] gap-8 max-w-[1320px] mx-auto px-6 py-10">
-      {/* Main panel skeleton */}
-      <div
-        className="rounded-[24px] px-8 py-10 animate-pulse"
-        style={{
-          background: 'var(--surface)',
-          backdropFilter: 'blur(42px)',
-          border: '1px solid var(--border-glass)',
-        }}
-      >
-        <div className="h-10 w-72 rounded mb-2" style={{ background: 'var(--surface)' }} />
-        <div className="h-4 w-40 rounded mb-12" style={{ background: 'var(--surface)' }} />
-        <div className="h-12 w-64 rounded mb-3" style={{ background: 'var(--surface)' }} />
-        <div className="h-4 w-80 rounded mb-4" style={{ background: 'var(--surface)' }} />
-        <div className="flex flex-wrap gap-2 mb-12">
+const LoadingSkeleton: React.FC = () => (
+  <Page>
+    <div aria-busy="true" aria-label="Loading your soul signature">
+      <PageHead title={<Bar width="60%" height={36} />} line={<span style={{ display: 'block', marginTop: 8 }}><Bar width="40%" /></span>} />
+      <Section>
+        <List>
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-7 w-24 rounded-full" style={{ background: 'var(--surface)' }} />
+            <li key={i} className="rg-row rg-row--plain">
+              <span className="rg-row-text" style={{ gap: 8 }}>
+                <Bar width="30%" />
+                <Bar width={`${50 + i * 8}%`} />
+              </span>
+              <span />
+            </li>
           ))}
-        </div>
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="mb-10">
-            <div className="h-3 w-24 rounded mb-4" style={{ background: 'var(--surface)' }} />
-            <div className="h-4 w-full rounded mb-2" style={{ background: 'var(--surface)' }} />
-            <div className="h-4 w-3/4 rounded" style={{ background: 'var(--surface)' }} />
-          </div>
-        ))}
-      </div>
-      {/* Sidebar skeleton */}
-      <div
-        className="rounded-[24px] px-5 py-6 animate-pulse"
-        style={{
-          background: 'var(--surface)',
-          backdropFilter: 'blur(42px)',
-          border: '1px solid var(--border-glass)',
-        }}
-      >
-        <div className="w-28 h-28 rounded-full mx-auto mb-6" style={{ background: 'var(--surface)' }} />
-        <div className="grid grid-cols-2 gap-3 mb-6">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="h-16 rounded-[12px]" style={{ background: 'var(--surface)' }} />
-          ))}
-        </div>
-        <div className="h-10 w-full rounded-full" style={{ background: 'var(--surface)' }} />
-      </div>
+        </List>
+      </Section>
     </div>
-    {/* Mobile fallback */}
-    <div className="lg:hidden max-w-[680px] mx-auto px-5 py-8 animate-pulse space-y-5">
-      <div className="h-48 w-full rounded-[20px]" style={{ background: 'var(--surface)' }} />
-      <div className="h-28 w-full rounded-[20px]" style={{ background: 'var(--surface)' }} />
-      <div className="grid grid-cols-2 gap-5">
-        <div className="h-32 rounded-[20px]" style={{ background: 'var(--surface)' }} />
-        <div className="h-32 rounded-[20px]" style={{ background: 'var(--surface)' }} />
-      </div>
-      <div className="grid grid-cols-2 gap-5">
-        <div className="h-32 rounded-[20px]" style={{ background: 'var(--surface)' }} />
-        <div className="h-32 rounded-[20px]" style={{ background: 'var(--surface)' }} />
-      </div>
-      <div className="h-44 w-full rounded-[20px]" style={{ background: 'var(--surface)' }} />
-      <div className="h-20 w-full rounded-[20px]" style={{ background: 'var(--surface)' }} />
-    </div>
-  </div>
+  </Page>
 );
 
 // ── Generating state ─────────────────────────────────────────────────────
@@ -1276,23 +889,13 @@ const LoadingSkeleton: React.FC = () => (
 // The query above polls every retryAfter seconds, so this resolves on its own.
 
 const GeneratingState: React.FC<{ message?: string }> = ({ message }) => (
-  <div className="max-w-xl mx-auto px-6 py-20 text-center">
-    <Loader2 className="w-8 h-8 mx-auto mb-4 animate-spin" style={{ color: 'var(--text-muted)' }} />
-    <h2
-      className="text-xl mb-3"
-      style={{
-        fontFamily: "var(--font-heading)",
-        fontStyle: 'italic',
-        color: 'var(--foreground)',
-        opacity: 0.8,
-      }}
-    >
-      Reading your signals
-    </h2>
-    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-      {message || 'Your soul signature is being generated. This usually takes under a minute.'}
-    </p>
-  </div>
+  <Page>
+    <PageHead
+      title="Reading your signals"
+      line={message || 'Your soul signature is being generated. This usually takes under a minute.'}
+      action={<Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--rg-ink-3)' }} aria-label="Generating" />}
+    />
+  </Page>
 );
 
 // ── Empty state ──────────────────────────────────────────────────────────
@@ -1301,41 +904,21 @@ const EmptyState: React.FC<{ message?: string }> = ({ message }) => {
   const navigate = useNavigate();
 
   return (
-    <div className="max-w-xl mx-auto px-6 py-20 text-center">
-      <Fingerprint className="w-8 h-8 mx-auto mb-4" style={{ color: 'var(--text-muted)' }} />
-      <h2
-        className="text-xl mb-3"
-        style={{
-          fontFamily: "var(--font-heading)",
-          fontStyle: 'italic',
-          color: 'var(--foreground)',
-          opacity: 0.8,
-        }}
-      >
-        I'm still figuring you out
-      </h2>
-      <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>
-        {/* audit-2026-06-10: prefer the backend's precise reason (e.g. "N
-            memories found, minimum 10 required") over the generic claim. */}
-        {message || "Connect Spotify, Calendar, or YouTube and I'll build a real picture of you. Usually takes a couple of days."}
-      </p>
-      <div className="flex flex-col sm:flex-row gap-3 justify-center">
-        <button
-          onClick={() => navigate('/get-started')}
-          className="px-5 py-2 rounded-[100px] text-sm font-medium transition-all duration-150 hover:opacity-80 active:scale-[0.97]"
-          style={{ border: '1px solid var(--border)', color: 'var(--foreground)' }}
-        >
-          Connect platforms
-        </button>
-        <button
-          onClick={() => navigate('/story')}
-          className="px-5 py-2 rounded-[100px] text-sm font-medium transition-all duration-150 hover:opacity-80 active:scale-[0.97]"
-          style={{ border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
-        >
-          Complete your interview
-        </button>
-      </div>
-    </div>
+    <Page>
+      <PageHead
+        title="I'm still figuring you out"
+        // audit-2026-06-10: prefer the backend's precise reason (e.g. "N
+        // memories found, minimum 10 required") over the generic claim.
+        line={message || "Connect Spotify, Calendar, or YouTube and I'll build a real picture of you. Usually takes a couple of days."}
+      />
+      <Section>
+        <List>
+          <Row icon={<Fingerprint aria-hidden="true" />} title="Connect platforms" onClick={() => navigate('/get-started')} />
+          <Row icon={<Sparkles aria-hidden="true" />} title="Complete your interview" onClick={() => navigate('/story')} />
+        </List>
+        <Empty>Either one gives your twin something to learn from.</Empty>
+      </Section>
+    </Page>
   );
 };
 

@@ -16,23 +16,33 @@ interface Props {
   snapshots: Snapshot[];
 }
 
+/* Chart colours are SVG presentation attributes, which do not resolve var(),
+   so they are register.css's hex values written out: iris and verdigris for
+   the two series (marks only), the hairline for the grid, quiet ink for ticks. */
+const CONFIDENCE = '#8179fb';
+const NODES = '#4c9786';
+const GRID = '#eae9ea';
+const TICK = '#6c6867';
+
 function formatDate(dateStr: string): string {
   const d = new Date(dateStr);
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
+const Swatch: React.FC<{ color: string }> = ({ color }) => (
+  <span aria-hidden="true" className="inline-block w-3 h-0.5 rounded" style={{ background: color }} />
+);
+
 const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: Array<{ value: number }>; label?: string }) => {
   if (!active || !payload?.length) return null;
   return (
-    <div className="rounded-xl px-3 py-2 text-xs shadow-lg"
-      style={{ backgroundColor: 'rgba(10,15,10,0.9)', border: '1px solid var(--glass-surface-border)', borderRadius: '8px', color: 'var(--foreground)' }}>
+    <div
+      className="px-3 py-2"
+      style={{ backgroundColor: 'var(--rg-white)', border: '1px solid var(--rg-rule)', borderRadius: 'var(--rg-radius)', color: 'var(--rg-ink)', fontSize: 'var(--rg-text)', fontVariantNumeric: 'tabular-nums' }}
+    >
       <p className="font-medium mb-1">{label}</p>
-      <p style={{ color: '#8b5cf6' }}>
-        Confidence: {((payload[0]?.value ?? 0) * 100).toFixed(0)}%
-      </p>
-      <p style={{ color: '#10b981' }}>
-        Knowledge nodes: {payload[1]?.value}
-      </p>
+      <p className="flex items-center gap-1.5"><Swatch color={CONFIDENCE} />Confidence: {((payload[0]?.value ?? 0) * 100).toFixed(0)}%</p>
+      <p className="flex items-center gap-1.5"><Swatch color={NODES} />Knowledge nodes: {payload[1]?.value}</p>
     </div>
   );
 };
@@ -49,10 +59,7 @@ export const SoulEvolutionTimeline: React.FC<Props> = ({ snapshots }) => {
 
   if (data.length < 2) {
     return (
-      <div className="flex items-center justify-center py-8 text-sm"
-        style={{ color: 'var(--text-secondary)' }}>
-        Collect more data over time to see your soul signature evolve.
-      </div>
+      <p className="rg-empty">Collect more data over time to see your soul signature evolve.</p>
     );
   }
 
@@ -62,25 +69,25 @@ export const SoulEvolutionTimeline: React.FC<Props> = ({ snapshots }) => {
         <AreaChart data={data} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
           <defs>
             <linearGradient id="confGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.15} />
-              <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
+              <stop offset="5%" stopColor={CONFIDENCE} stopOpacity={0.15} />
+              <stop offset="95%" stopColor={CONFIDENCE} stopOpacity={0} />
             </linearGradient>
             <linearGradient id="nodeGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#10b981" stopOpacity={0.12} />
-              <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+              <stop offset="5%" stopColor={NODES} stopOpacity={0.12} />
+              <stop offset="95%" stopColor={NODES} stopOpacity={0} />
             </linearGradient>
           </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="var(--border-glass)" />
+          <CartesianGrid strokeDasharray="3 3" stroke={GRID} />
           <XAxis
             dataKey="date"
-            tick={{ fontSize: 11, fill: 'rgba(255,255,255,0.3)' }}
+            tick={{ fontSize: 13, fill: TICK }}
             axisLine={false}
             tickLine={false}
           />
           <YAxis
             yAxisId="conf"
             domain={[0, 1]}
-            tick={{ fontSize: 11, fill: 'rgba(255,255,255,0.3)' }}
+            tick={{ fontSize: 13, fill: TICK }}
             axisLine={false}
             tickLine={false}
             tickFormatter={(v: number) => `${(v * 100).toFixed(0)}%`}
@@ -88,7 +95,7 @@ export const SoulEvolutionTimeline: React.FC<Props> = ({ snapshots }) => {
           <YAxis
             yAxisId="nodes"
             orientation="right"
-            tick={{ fontSize: 11, fill: 'rgba(255,255,255,0.3)' }}
+            tick={{ fontSize: 13, fill: TICK }}
             axisLine={false}
             tickLine={false}
           />
@@ -97,31 +104,25 @@ export const SoulEvolutionTimeline: React.FC<Props> = ({ snapshots }) => {
             yAxisId="conf"
             type="monotone"
             dataKey="confidence"
-            stroke="#8b5cf6"
+            stroke={CONFIDENCE}
             strokeWidth={2}
             fill="url(#confGrad)"
-            dot={{ r: 3, fill: '#8b5cf6' }}
+            dot={{ r: 3, fill: CONFIDENCE }}
           />
           <Area
             yAxisId="nodes"
             type="monotone"
             dataKey="nodes"
-            stroke="#10b981"
+            stroke={NODES}
             strokeWidth={2}
             fill="url(#nodeGrad)"
-            dot={{ r: 3, fill: '#10b981' }}
+            dot={{ r: 3, fill: NODES }}
           />
         </AreaChart>
       </ResponsiveContainer>
-      <div className="flex items-center gap-4 mt-2 justify-center">
-        <div className="flex items-center gap-1.5">
-          <div className="w-3 h-0.5 rounded" style={{ background: '#8b5cf6' }} />
-          <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>Confidence</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <div className="w-3 h-0.5 rounded" style={{ background: '#10b981' }} />
-          <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>Knowledge nodes</span>
-        </div>
+      <div className="flex items-center gap-4 mt-2 justify-center" style={{ color: 'var(--rg-ink-2)', fontWeight: 350 }}>
+        <span className="flex items-center gap-1.5"><Swatch color={CONFIDENCE} />Confidence</span>
+        <span className="flex items-center gap-1.5"><Swatch color={NODES} />Knowledge nodes</span>
       </div>
     </div>
   );

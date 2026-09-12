@@ -1,54 +1,56 @@
 /* ============================================================================
-   NOCTURNE BRIDGE — system-wide adoption layer (2026-09-01)
+   THE BRIDGE: system-wide adoption layer
    ============================================================================
-   Every page that speaks semantic tokens or Claura utility classes wakes up
-   inside Nocturne without being edited. This is the adoption strategy: flip
-   the foundation, then polish surfaces page by page against /nocturne/system.
+   Every page that speaks semantic tokens or Claura utility classes renders in
+   the current design system without being edited. Since 2026-09-12 that is
+   the register (src/styles/register.css): Nocturne was retired that day, and
+   this file and nocturne.css now resolve every name to the register's values.
+   The names stay so no page has to change. Polish a surface against /system.
 
    The token block below is :root:root, and that doubling is load-bearing.
    This file is @imported at the top of index.css, but Tailwind v3 HOISTS the
    `@layer base { :root { ... } }` blocks further down that file up into the
-   `@tailwind base` position — which lands after this import. Equal
-   specificity, later wins, so for the first days of the flip the bridge lost
-   43 of its 50 tokens and every legacy page was still rendering Claura:
-   #13121a charcoal instead of obsidian, Instrument Serif instead of Fraunces,
-   translucent glass instead of flat graphite. It looked like the flip had
-   worked because the pages built directly on n-* primitives don't use the
-   bridge at all. :root:root outranks :root on specificity, which no hoisting
-   can reorder.
+   `@tailwind base` position, which lands after this import. Equal
+   specificity, later wins, so for the first days of the Nocturne flip the
+   bridge lost 43 of its 50 tokens and every legacy page was still rendering
+   Claura: #13121a charcoal instead of obsidian, Instrument Serif instead of
+   Fraunces, translucent glass instead of flat graphite. It looked like the
+   flip had worked because the pages built directly on n-* primitives don't
+   use the bridge at all. :root:root outranks :root on specificity, which no
+   hoisting can reorder. tests/frontend/bridgePrecedence.test.ts pins it.
 
-   Claura is retired by this file, not deleted — claura.css still loads for
-   any value the bridge does not override, and reverting the flip is removing
-   one import.
+   Claura is retired by this file, not deleted: claura.css still loads for any
+   value the bridge does not override.
    ========================================================================== */
 
 @import './nocturne.css';
 
 :root:root, :root:root[data-theme='light'] {
-  /* Nocturne is single-appearance by design (the reference is a nocturnal
-     gallery). The light theme maps to the same world until a lit variant is
-     designed deliberately. */
+  /* The register is a single light appearance. The app still stamps
+     data-theme="dark" (ThemeContext's default), so both selectors map to the
+     same world, and color-scheme tells native controls and scrollbars. */
+  color-scheme: light;
 
-  /* ---- Canvas & surfaces: flat elevation, no glass ---- */
-  --background: var(--n-obsidian);
-  --surface: var(--n-graphite);
-  --surface-solid: var(--n-steel);
-  --card: var(--n-graphite);
+  /* ---- Grounds ---- */
+  --background: var(--n-obsidian);        /* the page */
+  --surface: var(--n-graphite);           /* white */
+  --surface-solid: var(--n-steel);        /* the hover wash, ink at 5% */
+  --card: var(--n-graphite);              /* white with a hairline, until the page becomes rows */
   --card-foreground: var(--n-cloud);
-  --popover: #191a1c;
+  --popover: var(--rg-white);
   --popover-foreground: var(--n-cloud);
-  --muted: var(--n-abyss);
-  --muted-foreground: var(--n-ash);
-  --accent: var(--n-steel);
+  --muted: var(--n-abyss);                /* the field */
+  --muted-foreground: var(--n-ash);       /* the grey line */
+  --accent: var(--n-steel);               /* the hover and focus wash */
   --accent-foreground: var(--n-cloud);
-  --secondary: rgba(255, 255, 255, 0.1);
+  --secondary: var(--rg-field);           /* a pressed choice, a chip */
   --secondary-foreground: var(--n-cloud);
 
-  /* ---- Ink ---- */
+  /* ---- Ink: ink, the grey line, quiet ---- */
   --foreground: var(--n-cloud);
   --text-primary: var(--n-cloud);
   --text-secondary: var(--n-ash);
-  --text-muted: var(--n-ash);
+  --text-muted: var(--n-fog);
   --text-placeholder: var(--n-fog);
   --text-narrative: var(--n-cloud);
   --text-narrative-secondary: var(--n-ash);
@@ -59,52 +61,59 @@
   --border-glass: var(--n-line);
   --glass-surface-bg: var(--n-graphite);
   --glass-surface-border: var(--n-line);
-  /* Referenced by BackButton and StandardButton's ghost variant as a hover
-     wash, but defined in no stylesheet on either side of the flip — so those
-     hover states silently did nothing. Matches .n-btn--ghost's rest state. */
-  --glass-surface-bg-subtle: rgba(255, 255, 255, 0.1);
-  --input: rgba(255, 255, 255, 0.06);
-  --ring: rgba(255, 255, 255, 0.6);
+  /* A hover wash for BackButton and StandardButton's ghost. */
+  --glass-surface-bg-subtle: var(--n-steel);
+  /* The field has no border. shadcn reads --input both as a border colour and
+     as the switch's off fill, and the components set their own now. */
+  --input: var(--rg-field);
+  --ring: var(--rg-ink);
+  /* rounded-lg / -md / -sm: 8 / 6 / 4. Controls take 4, a card 8. */
+  --radius: 8px;
 
-  /* ---- Actions: Law 2 — white on black, nothing else ---- */
+  /* ---- Actions: ink fill, page-colour text. One per screen. ---- */
   --primary: var(--n-pure);
   --primary-foreground: var(--n-void);
   --accent-vibrant: var(--n-pure);
-  --accent-vibrant-glow: rgba(255, 255, 255, 0.1);
-  --claura-bone: var(--n-pure);          /* bone gradient collapses to Pure */
+  --accent-vibrant-hover: var(--rg-ink-2);
+  --accent-vibrant-glow: var(--n-steel);
+  --claura-bone: var(--n-pure);            /* the bone gradient collapses to ink */
   --claura-bone-ink: var(--n-void);
   --claura-text: var(--n-cloud);
+  --claura-text-2: var(--n-ash);
+  --claura-text-3: var(--n-fog);
   --claura-narr: var(--n-ash);
   --claura-card: var(--n-graphite);
   --claura-card-border: var(--n-line);
+  --claura-r-card: var(--rg-radius-icon);
+  --claura-r-btn: var(--rg-radius);
 
-  /* ---- Danger: shadcn and the legacy pages both reach for this ---- */
+  /* ---- Danger. The register's red passes as text and as a fill's ground for
+     white (5.7:1); a danger BUTTON is still white with the pink line. ---- */
   --destructive: var(--n-danger);
-  --destructive-foreground: var(--n-cloud);
-  /* This one paints TEXT (button.tsx's destructive variant), so it takes the
-     ink value — --n-danger itself is 3.94:1 on obsidian and fails AA. */
+  --destructive-foreground: var(--rg-white);
   --claura-danger-ink: var(--n-danger-ink);
 
-  /* ---- Legacy accents: ember carries the amber heritage; purple retires ---- */
+  /* ---- Legacy accents: ember carries the amber heritage ---- */
   --accent-amber: var(--n-ember);
   --accent-purple: var(--n-iris);
 
-  /* ---- Voices ---- */
+  /* ---- Voices: Geist everywhere, never a serif ---- */
   --font-heading: var(--n-serif);
   --font-accent: var(--n-serif);
   --font-serif: var(--n-serif);
   --font-body: var(--n-sans);
   --font-ui: var(--n-sans);
   --font-sans: var(--n-sans);
+  --font-mono: var(--n-mono);
 
-  /* ---- Sidebar ---- */
-  --sidebar: var(--n-abyss);
+  /* ---- Sidebar: plain text links on the page ---- */
+  --sidebar: var(--n-obsidian);
   --sidebar-foreground: var(--n-ash);
-  --sidebar-accent: rgba(255, 255, 255, 0.06);
+  --sidebar-accent: var(--n-steel);
   --sidebar-border: var(--n-line);
 }
 
-/* ---- Glass retires: Claura's cards become flat graphite steps ---- */
+/* ---- Glass retires: Claura's cards become white with a hairline ---- */
 .claura-glass,
 [data-theme='light'] .claura-glass {
   background: var(--n-graphite);
@@ -120,32 +129,38 @@
   -webkit-backdrop-filter: none !important;
 }
 
-/* ---- Claura buttons speak Nocturne ---- */
+/* ---- Claura buttons are the register's: 32 tall, a 4 corner, 13px ---- */
 .claura-btn-primary,
-[data-theme='light'] .claura-btn-primary {
-  background: var(--n-pure);
-  color: var(--n-void);
-  border-radius: var(--n-r-control);
-  box-shadow: none;
-  font-family: var(--n-mono);
-  font-size: var(--n-label);
-  font-weight: 500;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-}
-.claura-btn-primary:hover { transform: none; filter: none; background: var(--n-cloud); }
 .claura-btn-glass,
+[data-theme='light'] .claura-btn-primary,
 [data-theme='light'] .claura-btn-glass {
-  background: rgba(255, 255, 255, 0.1);
-  border: none;
-  color: var(--n-cloud);
-  border-radius: var(--n-r-control);
+  box-sizing: border-box;
+  min-height: var(--rg-button);
+  padding: 0 16px;
+  justify-content: center;
+  border-radius: var(--rg-radius);
+  box-shadow: none;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
-  font-family: var(--n-mono);
-  font-size: var(--n-label);
-  font-weight: 500;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
+  font-family: var(--n-sans);
+  font-size: var(--rg-text);
+  letter-spacing: var(--rg-track);
+  text-transform: none;
+  transition: opacity var(--rg-quick), border-color var(--rg-quick);
 }
-.claura-btn-glass:hover { background: rgba(255, 255, 255, 0.16); }
+.claura-btn-primary,
+[data-theme='light'] .claura-btn-primary {
+  background: var(--rg-ink);
+  border: 1px solid var(--rg-ink);
+  color: var(--rg-page);
+  font-weight: 500;
+}
+.claura-btn-primary:hover { transform: none; filter: none; opacity: 0.86; }
+.claura-btn-glass,
+[data-theme='light'] .claura-btn-glass {
+  background: var(--rg-white);
+  border: 1px solid var(--rg-rule);
+  color: var(--rg-ink);
+  font-weight: 400;
+}
+.claura-btn-glass:hover { border-color: var(--rg-quiet); }

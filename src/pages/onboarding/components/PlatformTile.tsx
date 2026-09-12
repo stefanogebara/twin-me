@@ -1,12 +1,12 @@
 /**
- * PlatformTile — Dimension.dev-inspired integration tile
- *
- * Clean minimal card: large icon (brand-tinted bg) + name/description + pill action button
- * States: disconnected ("Connect"), connected (checkmark + "Manage"), syncing (spinner)
+ * PlatformTile — one platform as a row of the page kit: a 32px brand icon, the
+ * name, one grey line, one action. Render it inside a List.
+ * States: disconnected ("Connect"), connected ("Manage" menu), syncing, soon.
  */
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Check, Loader2, AlertTriangle, LogOut, RefreshCw } from 'lucide-react';
+import { Loader2, LogOut, RefreshCw } from 'lucide-react';
+import { Row } from '@/components/register';
 
 interface PlatformTileProps {
   name: string;
@@ -17,14 +17,14 @@ interface PlatformTileProps {
   syncing?: boolean;
   comingSoon?: boolean;
   color?: string;
-  /** Optional personalized one-liner shown above the generic description. */
+  /** Optional personalized one-liner shown in place of the generic description. */
   pitchHook?: string | null;
-  /** Static inline caveat shown beneath description (e.g. account requirements). */
+  /** Static inline caveat shown after the description (e.g. account requirements). */
   note?: string | null;
   /**
    * audit-2026-05-12 H6: connected platforms that need a nudge but aren't
    * full-blown expired. e.g. last_sync > 7 days, or last_sync_status='partial'.
-   * Renders a small inline "needs attention" badge — does NOT change the
+   * Shown as "Needs attention" in the row's line — does NOT change the
    * connect/reconnect button. Pass `null` or omit for healthy platforms.
    */
   attention?: string | null;
@@ -61,195 +61,65 @@ export const PlatformTile: React.FC<PlatformTileProps> = ({
     return () => document.removeEventListener('mousedown', handler);
   }, [showMenu]);
 
-  return (
-    // Stacking context fix (audit 2026-05-22): every tile sets
-    // backdrop-filter, which creates its OWN stacking context. The
-    // Manage dropdown inside used z-50 but that only competes WITHIN
-    // the tile's own context — adjacent tiles below in the DOM created
-    // sibling stacking contexts that won by document order, covering
-    // the dropdown so the user couldn't see Disconnect. Setting
-    // `position: relative` + a higher z-index on the WRAPPER when the
-    // menu is open lifts the entire tile above its siblings, so the
-    // dropdown renders cleanly without needing a portal.
-    <div
-      className={`flex items-center gap-4 px-5 py-4 rounded-[20px] transition-colors duration-150 relative ${showMenu ? 'z-50' : ''}`}
-      style={{
-        background: needsReconnect ? 'rgba(251,191,36,0.04)' : connected ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.03)',
-        backdropFilter: 'blur(42px)',
-        WebkitBackdropFilter: 'blur(42px)',
-        border: `1px solid ${needsReconnect ? 'rgba(251,191,36,0.18)' : connected ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.06)'}`,
-        boxShadow: '0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.06)',
-      }}
-    >
-      {/* Icon — brand-tinted background */}
-      <div
-        className="flex-shrink-0 w-11 h-11 rounded-xl flex items-center justify-center"
-        style={{
-          backgroundColor: color ? `${color}15` : 'rgba(255,255,255,0.06)',
-          color: connected ? (color || '#F5F5F4') : (color ? `${color}cc` : 'rgba(255,255,255,0.55)'),
-        }}
+  // State in the line: ok text for connected (5.1:1), ink at 500 for the
+  // warnings (the old amber chip was 1.44:1).
+  const line = needsReconnect
+    ? <span className="rs-strong">Needs reconnecting</span>
+    : connected && attention
+      ? <><span className="rs-strong">Needs attention</span> · {attention}</>
+      : connected
+        ? <span className="rs-ok">Connected</span>
+        : <>{pitchHook || description}{note ? ` · ${note}` : ''}</>;
+
+  const action = comingSoon ? (
+    <span className="rs-quiet">Soon</span>
+  ) : syncing ? (
+    <span className="rs-quiet" style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+      <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+      Syncing
+    </span>
+  ) : needsReconnect ? (
+    <button type="button" onClick={onConnect} className="n-btn n-btn--ghost">Reconnect</button>
+  ) : connected ? (
+    <div ref={menuRef} style={{ position: 'relative' }}>
+      <button
+        type="button"
+        onClick={() => setShowMenu(v => !v)}
+        aria-expanded={showMenu}
+        aria-haspopup="menu"
+        className="n-btn n-btn--ghost"
       >
-        {icon}
-      </div>
-
-      {/* Name + Description */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <span
-            className="text-[14px] font-medium truncate"
-            style={{ color: 'var(--foreground)', fontFamily: 'var(--font-ui)' }}
-          >
-            {name}
-          </span>
-          {connected && !needsReconnect && (
-            <Check
-              className="w-3.5 h-3.5 flex-shrink-0"
-              style={{ color: '#10b981' }}
-              strokeWidth={2.5}
-            />
+        Manage
+      </button>
+      {showMenu && (
+        <div className="rs-menu" role="menu">
+          {attention && (
+            <button type="button" role="menuitem" onClick={() => { setShowMenu(false); onConnect(); }}>
+              <RefreshCw aria-hidden="true" />
+              Reconnect
+            </button>
           )}
-          {needsReconnect && (
-            <AlertTriangle
-              className="w-3.5 h-3.5 flex-shrink-0"
-              style={{ color: '#FBBF24' }}
-            />
-          )}
-          {!needsReconnect && attention && (
-            <span
-              className="text-[10px] font-medium px-1.5 py-0.5 rounded-full flex-shrink-0"
-              style={{
-                background: 'rgba(251,191,36,0.10)',
-                color: 'rgba(251,191,36,0.85)',
-                border: '1px solid rgba(251,191,36,0.18)',
-                fontFamily: 'var(--font-ui)',
-                letterSpacing: 0,
-              }}
-              title={attention}
-            >
-              Needs attention
-            </span>
-          )}
-        </div>
-        {pitchHook && !connected && (
-          <span
-            className="text-[12px] leading-relaxed block mt-0.5"
-            style={{ color: 'var(--accent-vibrant, #c17e2c)', fontFamily: 'var(--font-ui)' }}
-          >
-            {pitchHook}
-          </span>
-        )}
-        <span
-          className="text-[12px] leading-relaxed line-clamp-2 block mt-0.5"
-          style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-ui)' }}
-        >
-          {description}
-        </span>
-        {note && (
-          <span
-            className="text-[11px] leading-relaxed block mt-1"
-            style={{ color: 'rgba(251,191,36,0.70)', fontFamily: 'var(--font-ui)' }}
-            title={note}
-          >
-            {note}
-          </span>
-        )}
-      </div>
-
-      {/* Action Button — pill shape */}
-      {comingSoon ? (
-        <span
-          className="text-[12px] px-4 py-1.5 rounded-full flex-shrink-0"
-          style={{
-            backgroundColor: 'var(--surface)',
-            color: 'var(--text-secondary)',
-            fontFamily: 'var(--font-ui)',
-          }}
-        >
-          Soon
-        </span>
-      ) : syncing ? (
-        <div
-          className="flex items-center gap-1.5 px-4 py-1.5 rounded-full flex-shrink-0"
-          style={{
-            backgroundColor: 'var(--surface)',
-            color: 'var(--text-secondary)',
-          }}
-        >
-          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-          <span className="text-[12px]" style={{ fontFamily: 'var(--font-ui)' }}>Syncing</span>
-        </div>
-      ) : needsReconnect ? (
-        <button
-          onClick={onConnect}
-          className="text-[12px] font-medium px-4 py-1.5 rounded-full flex-shrink-0 transition-all duration-150 hover:opacity-90"
-          style={{
-            backgroundColor: 'rgba(251,191,36,0.15)',
-            color: '#FBBF24',
-            fontFamily: 'var(--font-ui)',
-            border: '1px solid rgba(251,191,36,0.25)',
-          }}
-        >
-          Reconnect
-        </button>
-      ) : connected ? (
-        <div ref={menuRef} className="relative flex-shrink-0">
-          <button
-            onClick={() => setShowMenu(v => !v)}
-            className="text-[12px] px-4 py-1.5 rounded-full transition-all duration-150 hover:bg-[var(--surface-solid)]"
-            style={{
-              backgroundColor: 'var(--surface)',
-              color: 'var(--text-secondary)',
-              fontFamily: 'var(--font-ui)',
-              border: '1px solid var(--border-glass)',
-            }}
-          >
-            Manage
+          <button type="button" role="menuitem" className="rs-bad" onClick={() => { setShowMenu(false); onManage?.(); }}>
+            <LogOut aria-hidden="true" />
+            Disconnect
           </button>
-          {showMenu && (
-            <div
-              className="absolute right-0 top-full mt-1.5 w-40 rounded-[12px] py-1 z-50"
-              style={{
-                background: 'rgba(28,26,35,0.95)',
-                backdropFilter: 'blur(24px)',
-                border: '1px solid var(--glass-surface-border)',
-                boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
-              }}
-            >
-              {attention && (
-                <button
-                  onClick={() => { setShowMenu(false); onConnect(); }}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-[12px] transition-colors hover:bg-[rgba(251,191,36,0.10)]"
-                  style={{ color: '#FBBF24', fontFamily: 'var(--font-ui)' }}
-                >
-                  <RefreshCw className="w-3.5 h-3.5" />
-                  Reconnect
-                </button>
-              )}
-              <button
-                onClick={() => { setShowMenu(false); onManage?.(); }}
-                className="w-full flex items-center gap-2 px-3 py-2 text-[12px] transition-colors hover:bg-[rgb(var(--n-danger-rgb)_/_0.08)]"
-                style={{ color: 'rgb(var(--n-danger-rgb) / 0.85)', fontFamily: 'var(--font-ui)' }}
-              >
-                <LogOut className="w-3.5 h-3.5" />
-                Disconnect
-              </button>
-            </div>
-          )}
         </div>
-      ) : (
-        <button
-          onClick={onConnect}
-          className="text-[12px] font-medium px-4 py-1.5 rounded-full flex-shrink-0 transition-all duration-150 hover:opacity-90"
-          style={{
-            background: 'var(--claura-bone)',
-            color: 'var(--claura-bone-ink)',
-            fontFamily: 'var(--font-ui)',
-          }}
-        >
-          Connect
-        </button>
       )}
     </div>
+  ) : (
+    <button type="button" onClick={onConnect} className="n-btn n-btn--ghost">Connect</button>
+  );
+
+  return (
+    <Row
+      // The brand colour lives in the icon square only.
+      icon={<span style={{ display: 'grid', placeItems: 'center', color: color || 'var(--rg-ink-2)' }}>{icon}</span>}
+      title={name}
+      line={line}
+      action={action}
+      // A row whose menu is open sits above the rows under it.
+      className={showMenu ? 'rs-menu-open' : undefined}
+    />
   );
 };
 

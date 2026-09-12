@@ -19,7 +19,7 @@ export const TopArtistsCard: React.FC<TopArtistsCardProps> = ({ artists, classNa
           <Music2 className="w-5 h-5 text-[#1DB954]" />
         </div>
         <div>
-          <h3 className="text-lg font-medium" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>
+          <h3 className="text-lg font-medium" style={{ fontFamily: 'var(--font-ui)', color: 'var(--foreground)' }}>
             Top Artists
           </h3>
           <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
@@ -36,11 +36,11 @@ export const TopArtistsCard: React.FC<TopArtistsCardProps> = ({ artists, classNa
           >
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2 flex-1 min-w-0">
-                <span className="text-sm font-medium flex-shrink-0" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--text-muted)' }}>
+                <span className="text-sm font-medium flex-shrink-0" style={{ fontFamily: 'var(--font-ui)', color: 'var(--text-muted)' }}>
                   {index + 1}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium truncate" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>
+                  <p className="text-sm font-medium truncate" style={{ fontFamily: 'var(--font-ui)', color: 'var(--foreground)' }}>
                     {artist.name}
                   </p>
                   <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>

@@ -1,5 +1,4 @@
 import React from 'react';
-import { Brain } from 'lucide-react';
 
 interface TwinReadinessScoreProps {
   score: number;
@@ -8,15 +7,21 @@ interface TwinReadinessScoreProps {
   compact?: boolean;
 }
 
-const getScoreColor = (score: number) =>
-  score < 30 ? 'rgba(255,255,255,0.50)' : score < 60 ? 'rgba(255,255,255,0.65)' : '#10b981';
+/* In the register: the score is ink, the bar is a mark on the field. A
+   well-known twin fills in the ok state line (#3d7566, 5.1:1 on the page);
+   below that the bar is the mark grey (3.4:1). */
+const barColor = (score: number) => (score >= 60 ? 'var(--rg-ok)' : 'var(--rg-mark)');
 
-const getBarGradient = (score: number) =>
-  score < 30
-    ? 'linear-gradient(90deg, rgba(255,255,255,0.25), rgba(255,255,255,0.35))'
-    : score < 60
-    ? 'linear-gradient(90deg, rgba(255,255,255,0.35), rgba(255,255,255,0.50))'
-    : 'linear-gradient(90deg, rgba(16,185,129,0.6), rgba(16,185,129,0.9))';
+function Bar({ score }: { score: number }) {
+  return (
+    <div style={{ height: 6, borderRadius: 3, overflow: 'hidden', background: 'var(--rg-field)' }} aria-hidden="true">
+      <div
+        className="h-full transition-all duration-1000 ease-out"
+        style={{ width: `${score}%`, borderRadius: 3, background: barColor(score) }}
+      />
+    </div>
+  );
+}
 
 export function TwinReadinessScore({
   score,
@@ -24,66 +29,29 @@ export function TwinReadinessScore({
   breakdown,
   compact = false,
 }: TwinReadinessScoreProps) {
-  const scoreColor = getScoreColor(score);
-  const barGradient = getBarGradient(score);
-  const font = 'var(--font-ui)';
-
   if (compact) {
     return (
-      <div className="flex items-center gap-3">
-        <Brain className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
-        <div className="flex-1 min-w-0">
-          <div className="flex justify-between items-center mb-1">
-            <span className="text-xs" style={{ color: 'var(--text-muted)', fontFamily: font }}>Twin Understanding</span>
-            <span className="text-xs font-medium" style={{ color: scoreColor, fontFamily: font }}>{score}%</span>
-          </div>
-          <div className="h-[2px] rounded-full overflow-hidden" style={{ backgroundColor: 'var(--surface)' }}>
-            <div
-              className="h-full rounded-full transition-all duration-1000 ease-out"
-              style={{ width: `${score}%`, background: barGradient }}
-            />
-          </div>
+      <div style={{ fontVariantNumeric: 'tabular-nums' }}>
+        <div className="flex justify-between items-center" style={{ marginBottom: 6 }}>
+          <span style={{ color: 'var(--rg-ink-2)', fontWeight: 350 }}>Twin understanding</span>
+          <span style={{ color: 'var(--rg-ink)', fontWeight: 500 }}>{score}%</span>
         </div>
+        <Bar score={score} />
       </div>
     );
   }
 
   return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Brain className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
-          <span className="text-sm font-medium" style={{ color: 'var(--foreground)', fontFamily: font }}>
-            Twin Understanding
-          </span>
-        </div>
-        <div className="text-right">
-          <span className="text-xl font-medium" style={{ color: scoreColor, fontFamily: font }}>{score}%</span>
-          <p className="text-xs" style={{ color: 'var(--text-muted)', fontFamily: font }}>{label}</p>
-        </div>
+    <div style={{ fontVariantNumeric: 'tabular-nums' }}>
+      <div className="flex items-baseline justify-between" style={{ gap: 16 }}>
+        <span style={{ color: 'var(--rg-ink)', fontWeight: 500 }}>Twin understanding</span>
+        <span style={{ color: 'var(--rg-ink)', fontWeight: 500 }}>{score}%</span>
       </div>
-      <div className="h-[3px] rounded-full overflow-hidden" style={{ backgroundColor: 'var(--surface)' }}>
-        <div
-          className="h-full rounded-full transition-all duration-1000 ease-out"
-          style={{ width: `${score}%`, background: barGradient }}
-        />
-      </div>
-      {breakdown && (
-        <div className="grid grid-cols-3 gap-1 pt-1">
-          {(
-            [
-              { key: 'volume', label: 'Volume' },
-              { key: 'diversity', label: 'Diversity' },
-              { key: 'reflection', label: 'Depth' },
-            ] as const
-          ).map(({ key, label: subLabel }) => (
-            <div key={key} className="text-center">
-              <div className="text-xs" style={{ color: 'var(--text-muted)', fontFamily: font }}>{subLabel}</div>
-              <div className="text-xs font-medium" style={{ color: 'var(--text-secondary)', fontFamily: font }}>{breakdown[key]}%</div>
-            </div>
-          ))}
-        </div>
-      )}
+      <p style={{ margin: '0 0 12px', color: 'var(--rg-ink-2)', fontWeight: 350 }}>
+        {label}
+        {breakdown ? ` · volume ${breakdown.volume}%, diversity ${breakdown.diversity}%, depth ${breakdown.reflection}%` : null}
+      </p>
+      <Bar score={score} />
     </div>
   );
 }

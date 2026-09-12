@@ -2,6 +2,9 @@
  * StressSpendTimeline — the visual proof of "WHY you spend, not just WHAT".
  * Dual-axis chart: daily spend (bars) overlaid with average stress score (line).
  * Spikes that coincide = stress-driven purchases.
+ *
+ * In the register: ink words, the ember signature only as the stress stroke and
+ * its marks, no tinted banner, a white tooltip with a hairline.
  */
 
 import React, { useMemo } from 'react';
@@ -64,20 +67,22 @@ function CustomTooltip({ active, payload, label, currency }: CustomTooltipProps)
 
   return (
     <div style={{
-      background: 'var(--card)',
-      border: '1px solid var(--glass-surface-border)',
-      borderRadius: 12,
-      padding: '10px 14px',
-      fontFamily: 'var(--font-ui)',
+      background: 'var(--rg-white)',
+      border: '1px solid var(--rg-rule)',
+      borderRadius: 4,
+      padding: '10px 12px',
+      fontFamily: 'var(--rg-sans)',
       fontSize: 13,
+      lineHeight: '19.5px',
+      color: 'var(--rg-ink)',
+      fontVariantNumeric: 'tabular-nums',
     }}>
-      <div style={{ color: 'var(--text-secondary)', marginBottom: 6, fontSize: 11 }}>{formatDay(label)}</div>
-      <div style={{ color: 'var(--foreground)', marginBottom: 4 }}>
-        {formatSpend(spend, currency)} spent
-      </div>
+      <div style={{ color: 'var(--rg-ink-2)' }}>{formatDay(label)}</div>
+      <div style={{ fontWeight: 500 }}>{formatSpend(spend, currency)} spent</div>
       {stress !== null && (
-        <div style={{ color: stress >= STRESS_THRESHOLD * 100 ? 'rgb(var(--n-ember-rgb) / 0.95)' : 'rgb(var(--n-verdigris-rgb) / 0.85)' }}>
-          stress {Math.round(stress)}%
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span className="rs-key" style={{ background: SVG_STROKE }} aria-hidden="true" />
+          Stress {Math.round(stress)}%{stress >= STRESS_THRESHOLD * 100 ? ', high' : ''}
         </div>
       )}
     </div>
@@ -86,15 +91,15 @@ function CustomTooltip({ active, payload, label, currency }: CustomTooltipProps)
 
 // Recharts writes these to SVG presentation attributes, where var() does NOT
 // resolve — the same rule that silently broke the share card's canvas fonts.
-// So the chart keeps literal values. They are the Nocturne tokens spelled out:
-// --n-ember #dd8f4c = 221 143 76, --n-verdigris #55a08e = 85 160 142. If the
-// palette moves, these move with it (tests/frontend/retiredPalette.test.ts
-// does not cover them precisely because they cannot be tokens).
-const EMBER_RGB = '221, 143, 76';
-const SVG_STROKE = `rgba(${EMBER_RGB}, 0.85)`;
-const SVG_STROKE_FAINT = `rgba(${EMBER_RGB}, 0.3)`;
-const SVG_TICK = `rgba(${EMBER_RGB}, 0.6)`;
-const SVG_DOT = `rgba(${EMBER_RGB}, 0.95)`;
+// So the chart keeps literal values: register.css's hex written out.
+// --rg-ember #c47833 = 196 120 51 (the stress stroke, 3.3:1 on the page),
+// --rg-ink-3 #6c6867 (axis words, 5.3:1). If the palette moves, these move
+// with it.
+const EMBER_RGB = '196, 120, 51';
+const SVG_STROKE = `rgb(${EMBER_RGB})`;
+const SVG_STROKE_FAINT = `rgba(${EMBER_RGB}, 0.5)`;
+const SVG_TICK = '#6c6867';
+const SVG_DOT = `rgb(${EMBER_RGB})`;
 
 export function StressSpendTimeline({ days, currency = 'BRL', windowDays = 30 }: Props) {
   const chartData = useMemo(() =>
@@ -110,17 +115,7 @@ export function StressSpendTimeline({ days, currency = 'BRL', windowDays = 30 }:
   const maxSpend = useMemo(() => Math.max(...days.map((d) => d.spend), 1), [days]);
 
   if (days.length === 0) {
-    return (
-      <div style={{
-        padding: '40px 24px',
-        textAlign: 'center',
-        color: 'var(--text-secondary)',
-        fontFamily: 'var(--font-ui)',
-        fontSize: 14,
-      }}>
-        Not enough data to draw the timeline chart yet.
-      </div>
-    );
+    return <p className="rs-quiet">Not enough data to draw the chart yet.</p>;
   }
 
   // Count days where both stress and spend are elevated
@@ -129,29 +124,22 @@ export function StressSpendTimeline({ days, currency = 'BRL', windowDays = 30 }:
   ).length;
 
   return (
-    <div style={{ fontFamily: 'var(--font-ui)' }}>
+    <div style={{ fontFamily: 'var(--rg-sans)' }}>
       {correlatedDays > 0 && (
-        <div style={{
-          marginBottom: 16,
-          padding: '10px 14px',
-          background: 'rgb(var(--n-ember-rgb) / 0.1)',
-          border: '1px solid rgb(var(--n-ember-rgb) / 0.2)',
-          borderRadius: 10,
-          fontSize: 13,
-          color: 'rgb(var(--n-ember-rgb) / 0.95)',
-        }}>
-          {correlatedDays} {correlatedDays === 1 ? 'day' : 'days'} where high stress and high spending coincided in the last {windowDays} days.
-        </div>
+        <p style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 16px', color: 'var(--rg-ink)', fontWeight: 500 }}>
+          <span className="rs-mark" style={{ background: 'var(--rg-ember)' }} aria-hidden="true" />
+          {correlatedDays} {correlatedDays === 1 ? 'day' : 'days'} in the last {windowDays} with high stress and high spending.
+        </p>
       )}
 
       <ResponsiveContainer width="100%" height={220}>
-        <ComposedChart data={chartData} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
+        <ComposedChart data={chartData} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#eae9ea" vertical={false} />
 
           <XAxis
             dataKey="date"
             tickFormatter={formatDay}
-            tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 11 }}
+            tick={{ fill: SVG_TICK, fontSize: 12 }}
             axisLine={false}
             tickLine={false}
             interval={Math.floor(chartData.length / 5)}
@@ -163,10 +151,10 @@ export function StressSpendTimeline({ days, currency = 'BRL', windowDays = 30 }:
             orientation="left"
             domain={[0, 100]}
             tickFormatter={(v: number) => `${v}%`}
-            tick={{ fill: SVG_TICK, fontSize: 11 }}
+            tick={{ fill: SVG_TICK, fontSize: 12 }}
             axisLine={false}
             tickLine={false}
-            width={36}
+            width={40}
           />
 
           {/* Right Y: spend */}
@@ -174,10 +162,10 @@ export function StressSpendTimeline({ days, currency = 'BRL', windowDays = 30 }:
             yAxisId="spend"
             orientation="right"
             tickFormatter={(v: number) => formatSpend(v, currency)}
-            tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 11 }}
+            tick={{ fill: SVG_TICK, fontSize: 12 }}
             axisLine={false}
             tickLine={false}
-            width={64}
+            width={56}
           />
 
           <Tooltip content={<CustomTooltip currency={currency} />} />
@@ -195,7 +183,7 @@ export function StressSpendTimeline({ days, currency = 'BRL', windowDays = 30 }:
             yAxisId="spend"
             dataKey="spend"
             className="stress-spend-bar"
-            radius={[3, 3, 0, 0]}
+            radius={[2, 2, 0, 0]}
             maxBarSize={28}
           />
 
@@ -212,20 +200,20 @@ export function StressSpendTimeline({ days, currency = 'BRL', windowDays = 30 }:
         </ComposedChart>
       </ResponsiveContainer>
 
-      <div style={{ display: 'flex', gap: 20, marginTop: 12, fontSize: 11, color: 'var(--text-secondary)' }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ width: 12, height: 12, borderRadius: 2, background: 'var(--text-muted)', display: 'inline-block' }} />
+      <ul className="rs-legend">
+        <li>
+          <span className="rs-key" style={{ height: 10, width: 10, borderRadius: 2, background: 'var(--text-muted)' }} aria-hidden="true" />
           Daily spending
-        </span>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ width: 16, height: 2, background: 'rgb(var(--n-ember-rgb) / 0.85)', display: 'inline-block', borderRadius: 1 }} />
-          Stress level
-        </span>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ width: 16, height: 0, borderTop: '1px dashed rgb(var(--n-ember-rgb) / 0.8)', display: 'inline-block' }} />
-          Stress threshold (60%)
-        </span>
-      </div>
+        </li>
+        <li>
+          <span className="rs-key" style={{ background: 'var(--rg-ember)' }} aria-hidden="true" />
+          Stress
+        </li>
+        <li>
+          <span className="rs-key" style={{ height: 0, borderTop: '2px dashed var(--rg-ember)' }} aria-hidden="true" />
+          High stress, from 60%
+        </li>
+      </ul>
     </div>
   );
 }

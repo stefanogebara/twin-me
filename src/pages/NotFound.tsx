@@ -2,9 +2,9 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { Home, ArrowLeft } from "lucide-react";
 
-// Nocturne 404. The numeral is the only ornament — a serif ghost at 8% on
-// obsidian, no photography behind it (the saturn-window/soul-waves pair
-// retired with the flip).
+// The 404, in the register. The numeral is the only ornament: a Geist ghost at
+// 8% on the page, aria-hidden. The title is the upright Cosmos heading; the
+// buttons are the register's 32/4 primary and secondary.
 const NotFound = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -14,7 +14,7 @@ const NotFound = () => {
   }, [location.pathname]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-6">
+    <main id="main-content" className="min-h-screen flex items-center justify-center px-6">
       <div className="text-center max-w-md mx-auto">
         <p
           aria-hidden
@@ -29,16 +29,14 @@ const NotFound = () => {
           404
         </p>
 
-        {/* Law 4: the italic marks the verb, not the line. */}
-        <h1 className="n-heading mb-3" style={{ fontSize: '32px', marginTop: '-8px' }}>
-          This page went <em>missing</em>
+        <h1 className="n-heading mb-3" style={{ marginTop: '-8px' }}>
+          This page went missing.
         </h1>
 
-        <p className="n-body mb-10" style={{ color: 'var(--n-ash)' }}>
+        <p className="n-body mb-10">
           The page you're looking for doesn't exist, or has moved since it was linked.
         </p>
 
-        {/* Law 2: one white primary, one ghost. No shadow, no lift, no blur. */}
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <button onClick={() => navigate('/')} className="n-btn n-btn--primary">
             <Home className="w-4 h-4" aria-hidden />
@@ -50,11 +48,11 @@ const NotFound = () => {
           </button>
         </div>
 
-        <p className="n-micro mt-12" style={{ color: 'var(--n-fog)' }}>
-          LOST? HEAD HOME TO FIND YOUR SOUL SIGNATURE.
+        <p className="n-micro mt-12">
+          Lost? Head home to find your soul signature.
         </p>
       </div>
-    </div>
+    </main>
   );
 };
 

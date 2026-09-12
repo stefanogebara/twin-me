@@ -1,11 +1,19 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Check, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getAccessToken, API_URL } from '@/services/api/apiBase';
 import { safeRedirect } from '@/lib/safeRedirect';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useSubscription } from '@/hooks/useSubscription';
+import { Page, PageHead, List, Row } from '@/components/register';
+import '@/styles/register-public.css';
+
+/**
+ * /pricing, in the register's page kit: a title and one grey line, then one row
+ * per plan under the list's ink rule. Each row is the plan and its price, one
+ * grey line of what it holds, and one action. The billing logic is unchanged.
+ */
 
 const PLANS = [
   {
@@ -13,13 +21,7 @@ const PLANS = [
     name: 'Free',
     price: '$0',
     period: '',
-    description: 'Get to know your twin',
-    features: [
-      '100 chat messages / month',
-      '2 platform connections',
-      'Basic soul signature',
-      '7-day memory window',
-    ],
+    summary: '100 messages a month, 2 connections, 7 days of memory',
     cta: 'Free plan',
     highlight: false,
   },
@@ -27,16 +29,8 @@ const PLANS = [
     id: 'plus',
     name: 'Plus',
     price: '$20',
-    period: '/ month',
-    description: 'Go deeper into who you are',
-    features: [
-      '1,500 chat messages / month',
-      '5 platform connections',
-      'Full soul signature',
-      '90-day memory window',
-      'Morning briefings',
-      'Proactive insights',
-    ],
+    period: 'a month',
+    summary: '1,500 messages, 5 connections, 90 days, morning briefings',
     cta: 'Upgrade to Plus',
     highlight: true,
   },
@@ -44,18 +38,12 @@ const PLANS = [
     id: 'pro',
     name: 'Pro',
     price: '$100',
-    period: '/ month',
-    description: 'The complete soul signature experience',
+    period: 'a month',
     // audit-2026-06-10 follow-up: 'WhatsApp twin access' and 'Twin goals +
     // auto-tracking' removed — neither is plan-gated anywhere (no whatsapp/goals
     // keys in subscriptionService PLAN_LIMITS, no requirePlan on those routes),
     // so a paid tier must not claim them as exclusives.
-    features: [
-      'Unlimited messages',
-      'All platform connections',
-      'Advanced personality oracle',
-      'Priority support',
-    ],
+    summary: 'Unlimited messages, every connection, priority support',
     cta: 'Upgrade to Pro',
     highlight: false,
   },
@@ -107,172 +95,50 @@ const PricingPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen px-4 py-12 flex flex-col items-center" style={{ background: 'transparent' }}>
-      <div className="w-full max-w-4xl">
-        <div className="mb-10 text-center">
-          <h1
-            className="mb-3"
-            style={{
-              fontFamily: "var(--font-heading)",
-              fontSize: '40px',
-              fontWeight: 400,
-              letterSpacing: '-0.8px',
-              color: 'var(--foreground)',
-            }}
-          >
-            Choose your depth
-          </h1>
-          <p style={{ fontSize: '15px', color: 'var(--text-secondary)' }}>
-            Your twin grows with you. Start free, upgrade when you're ready.
-          </p>
-        </div>
+    <Page>
+      <PageHead title="Plans" line="Start free. Upgrade when you are ready." />
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {PLANS.map((plan) => {
-            const isCurrent = !planLoading && plan.id === currentPlanId;
-            // While the subscription is loading every CTA is disabled so a
-            // subscriber cannot open a checkout based on stale plan state.
-            const ctaDisabled = planLoading || isCurrent || plan.id === 'free';
-            const ctaLabel = isCurrent
-              ? 'Current plan'
-              : plan.id !== 'free' && onPaidPlan
-                ? 'Change plan'
-                : plan.cta;
-            return (
-            <div
-              key={plan.id}
-              style={{
-                background: plan.highlight
-                  ? 'rgba(196,162,101,0.08)'
-                  : 'rgba(255,255,255,0.06)',
-                border: plan.highlight
-                  ? '1px solid rgba(196,162,101,0.25)'
-                  : '1px solid rgba(255,255,255,0.10)',
-                borderRadius: '20px',
-                padding: '28px 24px',
-                backdropFilter: 'blur(42px)',
-                WebkitBackdropFilter: 'blur(42px)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '20px',
-                position: 'relative',
-              }}
+      <List label="Plans" className="pb-stack rg-figures">
+        {PLANS.map((plan) => {
+          const isCurrent = !planLoading && plan.id === currentPlanId;
+          // While the subscription is loading every CTA is disabled so a
+          // subscriber cannot open a checkout based on stale plan state.
+          const ctaDisabled = planLoading || isCurrent || plan.id === 'free';
+          const ctaLabel = plan.id !== 'free' && onPaidPlan ? 'Change plan' : plan.cta;
+          // One action per plan: the current one says so in quiet text, the
+          // highlighted plan is the screen's one primary, the rest secondary.
+          const action = isCurrent ? (
+            <span className="rg-row-line" style={{ color: 'var(--rg-ink-3)' }}>Current plan</span>
+          ) : (
+            <button
+              type="button"
+              className={`n-btn ${plan.highlight && !ctaDisabled ? 'n-btn--primary' : 'n-btn--ghost'}`}
+              disabled={ctaDisabled || loading === plan.id}
+              onClick={() => { if (!ctaDisabled) handleUpgrade(plan.id); }}
             >
-              {plan.highlight && (
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: '-11px',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    background: 'rgba(196,162,101,0.9)',
-                    color: 'var(--claura-bone-ink)',
-                    fontSize: '11px',
-                    fontWeight: 600,
-                    padding: '3px 12px',
-                    borderRadius: '100px',
-                    letterSpacing: '0.04em',
-                    textTransform: 'uppercase',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  Most popular
-                </div>
-              )}
+              {loading === plan.id && <Loader2 size={14} className="animate-spin" aria-hidden="true" />}
+              {loading === plan.id
+                ? (onPaidPlan ? 'Opening billing portal...' : 'Opening checkout...')
+                : ctaLabel}
+            </button>
+          );
+          return (
+            <Row
+              key={plan.id}
+              title={`${plan.name}, ${plan.price}${plan.period ? ` ${plan.period}` : ''}`}
+              line={plan.summary}
+              action={action}
+            />
+          );
+        })}
+      </List>
 
-              <div>
-                <p style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 500, marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                  {plan.name}
-                </p>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-                  <span style={{ fontSize: '36px', fontWeight: 600, color: 'var(--foreground)', letterSpacing: '-1px' }}>
-                    {plan.price}
-                  </span>
-                  {plan.period && (
-                    <span style={{ fontSize: '14px', color: 'var(--text-muted)' }}>
-                      {plan.period}
-                    </span>
-                  )}
-                </div>
-                <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '6px' }}>
-                  {plan.description}
-                </p>
-              </div>
-
-              <ul style={{ display: 'flex', flexDirection: 'column', gap: '10px', flex: 1 }}>
-                {plan.features.map((feature) => (
-                  <li key={feature} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
-                    <Check
-                      size={14}
-                      style={{
-                        color: plan.highlight ? '#C4A265' : 'rgba(245,245,244,0.4)',
-                        marginTop: '2px',
-                        flexShrink: 0,
-                      }}
-                    />
-                    <span style={{ fontSize: '13px', color: 'var(--foreground)' }}>
-                      {feature}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-
-              <button
-                disabled={ctaDisabled || loading === plan.id}
-                onClick={() => { if (!ctaDisabled) handleUpgrade(plan.id); }}
-                style={{
-                  width: '100%',
-                  padding: '10px 0',
-                  borderRadius: '100px',
-                  fontSize: '14px',
-                  fontWeight: 500,
-                  cursor: ctaDisabled ? 'default' : 'pointer',
-                  transition: 'opacity 0.15s',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '6px',
-                  ...(ctaDisabled
-                    ? {
-                        background: 'transparent',
-                        border: '1px solid var(--border-glass)',
-                        color: 'var(--text-muted)',
-                      }
-                    : plan.highlight
-                    ? {
-                        background: 'var(--claura-bone)',
-                        border: 'none',
-                        color: 'var(--claura-bone-ink)',
-                      }
-                    : {
-                        background: 'rgba(196,162,101,0.15)',
-                        border: '1px solid rgba(196,162,101,0.25)',
-                        color: '#C4A265',
-                      }),
-                }}
-              >
-                {loading === plan.id && <Loader2 size={14} className="animate-spin" />}
-                {loading === plan.id
-                  ? (onPaidPlan ? 'Opening billing portal...' : 'Opening checkout...')
-                  : ctaLabel}
-              </button>
-            </div>
-            );
-          })}
-        </div>
-
-        <div className="text-center mt-8">
-          <button
-            type="button"
-            className="cursor-pointer hover:opacity-80 bg-transparent border-0 p-0"
-            style={{ fontSize: '13px', color: 'var(--text-muted)' }}
-            onClick={() => navigate('/settings')}
-          >
-            Back to settings
-          </button>
-        </div>
+      <div style={{ marginTop: 32 }}>
+        <button type="button" className="n-btn n-btn--ghost" onClick={() => navigate('/settings')}>
+          Back to settings
+        </button>
       </div>
-    </div>
+    </Page>
   );
 };
 

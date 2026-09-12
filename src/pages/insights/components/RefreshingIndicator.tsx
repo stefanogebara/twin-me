@@ -14,11 +14,11 @@ import { RefreshCw } from 'lucide-react';
 export const RefreshingIndicator: React.FC<{ visible: boolean }> = ({ visible }) => {
   return (
     <div
-      className="flex items-center gap-2 text-xs"
+      className="flex items-center gap-2"
       style={{
-        color: 'var(--text-muted)',
-        fontFamily: "'Inter', sans-serif",
-        marginBottom: visible ? '1.5rem' : 0,
+        color: 'var(--rg-ink-3)',
+        fontWeight: 'var(--rg-weight-line)' as React.CSSProperties['fontWeight'],
+        marginBottom: visible ? 24 : 0,
         height: visible ? 'auto' : 0,
         overflow: 'hidden',
         opacity: visible ? 1 : 0,
@@ -28,7 +28,7 @@ export const RefreshingIndicator: React.FC<{ visible: boolean }> = ({ visible })
     >
       {visible && (
         <>
-          <RefreshCw className="w-3 h-3 animate-spin" />
+          <RefreshCw className="w-3 h-3 animate-spin" aria-hidden="true" />
           <span>Refreshing...</span>
         </>
       )}

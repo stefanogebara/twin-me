@@ -2,7 +2,8 @@
  * Privacy Spectrum Dashboard
  *
  * Control what your twin knows and shares. Manage contextual twins,
- * global privacy level, and per-cluster revelation settings.
+ * global privacy level, and per-cluster revelation settings, in the page kit:
+ * sections of rows, ink text, and each life area's colour kept to a small mark.
  */
 
 import React, { useState, useCallback, useEffect } from 'react';
@@ -17,28 +18,25 @@ import {
   useAudiencePresets,
 } from '@/hooks/usePrivacySettings';
 import {
-  Shield,
   Eye,
   EyeOff,
   Loader2,
   ChevronDown,
   ChevronUp,
 } from 'lucide-react';
+import { Page, PageHead, Section, List, Empty } from '@/components/register';
+import '@/styles/register-settings.css';
 
 import ContextualTwinsSection from './components/privacy/ContextualTwinsSection';
 import GlobalPrivacySection from './components/privacy/GlobalPrivacySection';
 import OverviewSection from './components/privacy/OverviewSection';
 
-// --- Design tokens ---
-const TEXT_PRIMARY = 'var(--foreground)';
-const TEXT_SECONDARY = 'var(--text-narrative-muted)';
-const BORDER_COLOR = 'var(--border-glass)';
-const CARD_BG = 'var(--glass-surface-bg)';
-
+// Each life area's colour, as a mark beside its ink label: the register's
+// signatures (register.css), never a text colour (none reaches 4.5:1).
 const CATEGORY_COLORS = {
-  personal: '#f472b6',
-  professional: '#60a5fa',
-  creative: '#a78bfa',
+  personal: 'var(--rg-orchid)',
+  professional: 'var(--rg-periwinkle)',
+  creative: 'var(--rg-iris)',
 } as const;
 
 // --- Cluster Row ---
@@ -62,7 +60,6 @@ const ClusterRow: React.FC<ClusterRowProps> = ({ cluster, onPrivacyChange, onTog
   useEffect(() => {
     setLocalLevel(cluster.privacyLevel);
   }, [cluster.privacyLevel]);
-  const color = CATEGORY_COLORS[cluster.category as keyof typeof CATEGORY_COLORS] ?? 'var(--text-narrative-muted)';
 
   const handleSliderChange = useCallback(
     (values: number[]) => {
@@ -79,82 +76,35 @@ const ClusterRow: React.FC<ClusterRowProps> = ({ cluster, onPrivacyChange, onTog
   );
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 12,
-        padding: '10px 0',
-        borderBottom: `1px solid ${BORDER_COLOR}`,
-        opacity: cluster.isEnabled ? 1 : 0.45,
-      }}
-    >
-      {/* Toggle */}
+    <li className={`rs-cluster${cluster.isEnabled ? '' : ' is-off'}`}>
+      {/* Toggle: pressed while the area is on */}
       <button
+        type="button"
         onClick={() => onToggle(cluster.clusterId, !cluster.isEnabled)}
-        style={{
-          flexShrink: 0,
-          width: 32,
-          height: 32,
-          borderRadius: 8,
-          border: `1.5px solid ${cluster.isEnabled ? color : BORDER_COLOR}`,
-          background: cluster.isEnabled ? `${color}18` : 'transparent',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: cluster.isEnabled ? color : TEXT_SECONDARY,
-          transition: 'all 0.2s',
-        }}
-        title={cluster.isEnabled ? 'Disable cluster' : 'Enable cluster'}
+        aria-pressed={cluster.isEnabled}
+        aria-label={`${cluster.name}: ${cluster.isEnabled ? 'on' : 'off'}`}
+        title={cluster.isEnabled ? 'Turn off' : 'Turn on'}
+        className="rs-toggle"
       >
-        {cluster.isEnabled ? <Eye size={14} /> : <EyeOff size={14} />}
+        {cluster.isEnabled ? <Eye aria-hidden="true" /> : <EyeOff aria-hidden="true" />}
       </button>
 
-      {/* Name */}
-      <span
-        style={{
-          flex: '0 0 160px',
-          fontSize: 13,
-          fontWeight: 500,
-          color: TEXT_PRIMARY,
-          whiteSpace: 'nowrap',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-        }}
-      >
-        {cluster.name}
-      </span>
+      <span className="rs-cluster-name">{cluster.name}</span>
 
-      {/* Slider */}
-      <div style={{ flex: 1 }}>
-        <Slider
-          value={[localLevel]}
-          min={0}
-          max={100}
-          step={5}
-          disabled={!cluster.isEnabled}
-          onValueChange={handleSliderChange}
-          onValueCommit={handleSliderCommit}
-          style={{ '--slider-color': color } as React.CSSProperties}
-          aria-label={`${cluster.name} privacy level`}
-        />
-      </div>
+      <Slider
+        value={[localLevel]}
+        min={0}
+        max={100}
+        step={5}
+        disabled={!cluster.isEnabled}
+        onValueChange={handleSliderChange}
+        onValueCommit={handleSliderCommit}
+        className="rs-slider"
+        aria-label={`${cluster.name} privacy level`}
+      />
 
-      {/* Level badge */}
-      <span
-        style={{
-          flexShrink: 0,
-          width: 36,
-          textAlign: 'right',
-          fontSize: 12,
-          fontWeight: 600,
-          color: cluster.isEnabled ? color : TEXT_SECONDARY,
-        }}
-      >
-        {localLevel}%
-      </span>
-    </div>
+      <span className="rs-figure">{localLevel}%</span>
+    </li>
   );
 };
 
@@ -174,65 +124,36 @@ interface CategorySectionProps {
 
 const CategorySection: React.FC<CategorySectionProps> = ({ category, clusters, onPrivacyChange, onToggle }) => {
   const [collapsed, setCollapsed] = useState(false);
-  const color = CATEGORY_COLORS[category as keyof typeof CATEGORY_COLORS] ?? 'var(--text-narrative-muted)';
+  const color = CATEGORY_COLORS[category as keyof typeof CATEGORY_COLORS] ?? 'var(--rg-mark)';
   const label = category.charAt(0).toUpperCase() + category.slice(1);
 
   return (
-    <div style={{ marginBottom: 16 }}>
-      <button
-        onClick={() => setCollapsed(v => !v)}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          background: 'none',
-          border: 'none',
-          cursor: 'pointer',
-          padding: '8px 0',
-          width: '100%',
-        }}
-      >
-        <span
-          style={{
-            width: 8,
-            height: 8,
-            borderRadius: '50%',
-            background: color,
-            flexShrink: 0,
-          }}
-        />
-        <span
-          style={{
-            fontSize: 12,
-            fontWeight: 700,
-            letterSpacing: '0.06em',
-            textTransform: 'uppercase',
-            color: color,
-          }}
+    <>
+      <li>
+        <button
+          type="button"
+          onClick={() => setCollapsed(v => !v)}
+          aria-expanded={!collapsed}
+          className="rs-group"
         >
-          {label}
-        </span>
-        <span style={{ fontSize: 11, color: TEXT_SECONDARY, marginLeft: 4 }}>
-          ({clusters.filter(c => c.isEnabled).length}/{clusters.length})
-        </span>
-        <span style={{ marginLeft: 'auto', color: TEXT_SECONDARY }}>
-          {collapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
-        </span>
-      </button>
+          <span className="rs-mark" style={{ background: color }} aria-hidden="true" />
+          <span className="rs-strong">{label}</span>
+          <span className="rs-quiet">
+            {clusters.filter(c => c.isEnabled).length} of {clusters.length} on
+          </span>
+          {collapsed ? <ChevronDown className="rs-chev" aria-hidden="true" /> : <ChevronUp className="rs-chev" aria-hidden="true" />}
+        </button>
+      </li>
 
-      {!collapsed && (
-        <div style={{ paddingLeft: 16 }}>
-          {clusters.map(cluster => (
-            <ClusterRow
-              key={cluster.clusterId}
-              cluster={cluster}
-              onPrivacyChange={onPrivacyChange}
-              onToggle={onToggle}
-            />
-          ))}
-        </div>
-      )}
-    </div>
+      {!collapsed && clusters.map(cluster => (
+        <ClusterRow
+          key={cluster.clusterId}
+          cluster={cluster}
+          onPrivacyChange={onPrivacyChange}
+          onToggle={onToggle}
+        />
+      ))}
+    </>
   );
 };
 
@@ -349,45 +270,18 @@ const PrivacySpectrumDashboard: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div
-        style={{
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: TEXT_SECONDARY,
-        }}
-      >
-        <Loader2 size={28} style={{ animation: 'spin 1s linear infinite' }} />
-      </div>
+      <Page className="rs">
+        <p className="rs-quiet" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+          Loading your privacy settings
+        </p>
+      </Page>
     );
   }
 
   return (
-    <div
-      className="max-w-[900px] mx-auto px-4 sm:px-6 py-10 sm:py-16"
-      style={{ fontFamily: 'inherit' }}
-    >
-      {/* Header */}
-      <div style={{ marginBottom: 32 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-          <Shield size={20} color="#8B5CF6" />
-          <h1
-            style={{
-              fontSize: 24,
-              fontWeight: 700,
-              color: TEXT_PRIMARY,
-              margin: 0,
-              fontFamily: "var(--font-heading)",
-            }}
-          >
-            Privacy Spectrum
-          </h1>
-        </div>
-        <p style={{ fontSize: 14, color: TEXT_SECONDARY, margin: 0 }}>
-          Control what your twin knows and shares
-        </p>
-      </div>
+    <Page className="rs">
+      <PageHead title="Privacy spectrum" line="What your twin knows, and what it shares." />
 
       {/* --- Contextual Twins --- */}
       <ContextualTwinsSection
@@ -408,72 +302,52 @@ const PrivacySpectrumDashboard: React.FC = () => {
       />
 
       {/* --- Life Clusters --- */}
-      <section
-        style={{
-          background: CARD_BG,
-          borderRadius: 20,
-          border: '1px solid var(--glass-surface-border)',
-          padding: '20px 24px',
-          marginBottom: 20,
-        }}
-      >
-        <h2 style={{ fontSize: 15, fontWeight: 700, color: TEXT_PRIMARY, margin: '0 0 4px' }}>
-          Life Clusters
-        </h2>
-        <p style={{ fontSize: 12, color: TEXT_SECONDARY, margin: '0 0 16px' }}>
-          Fine-tune privacy for each area of your life
-        </p>
-
-        {clusters.length === 0 ? (
-          // Load has settled by here (the page-level isLoading gate already
-          // covers clustersLoading), so zero clusters means a fetch error or a
-          // genuinely empty result — never "still loading" (audit-2026-06-10).
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-start' }}>
-            <p style={{ fontSize: 13, color: TEXT_SECONDARY, margin: 0 }}>
-              {clustersError
-                ? "Couldn't load your life clusters."
-                : 'No life clusters yet — they appear as your twin learns about you.'}
-            </p>
-            {clustersError && (
-              <button
-                onClick={() => refetchClusters()}
-                style={{
-                  fontSize: 12,
-                  fontWeight: 600,
-                  color: TEXT_PRIMARY,
-                  background: CARD_BG,
-                  border: '1px solid var(--glass-surface-border)',
-                  borderRadius: 100,
-                  padding: '6px 14px',
-                  cursor: 'pointer',
-                }}
-              >
-                Try again
-              </button>
-            )}
-          </div>
-        ) : (
-          ['personal', 'professional', 'creative'].map(category => {
-            const categoryClusters = clustersByCategory[category] ?? [];
-            if (categoryClusters.length === 0) return null;
-            return (
-              <CategorySection
-                key={category}
-                category={category}
-                clusters={categoryClusters as Array<{
-                  clusterId: string;
-                  name: string;
-                  category: string;
-                  privacyLevel: number;
-                  isEnabled: boolean;
-                }>}
-                onPrivacyChange={handleClusterPrivacy}
-                onToggle={handleClusterToggle}
-              />
-            );
-          })
-        )}
-      </section>
+      <Section title="Areas of your life" line="Set each one on its own.">
+        <List label="Areas of your life">
+          {clusters.length === 0 ? (
+            // Load has settled by here (the page-level isLoading gate already
+            // covers clustersLoading), so zero clusters means a fetch error or a
+            // genuinely empty result — never "still loading" (audit-2026-06-10).
+            <li>
+              <Empty>
+                {clustersError
+                  ? "Couldn't load your life areas."
+                  : 'No life areas yet. They appear as your twin learns about you.'}
+              </Empty>
+              {clustersError && (
+                <button
+                  type="button"
+                  onClick={() => refetchClusters()}
+                  className="n-btn n-btn--ghost"
+                  style={{ margin: '12px 0 0 12px' }}
+                >
+                  Try again
+                </button>
+              )}
+            </li>
+          ) : (
+            ['personal', 'professional', 'creative'].map(category => {
+              const categoryClusters = clustersByCategory[category] ?? [];
+              if (categoryClusters.length === 0) return null;
+              return (
+                <CategorySection
+                  key={category}
+                  category={category}
+                  clusters={categoryClusters as Array<{
+                    clusterId: string;
+                    name: string;
+                    category: string;
+                    privacyLevel: number;
+                    isEnabled: boolean;
+                  }>}
+                  onPrivacyChange={handleClusterPrivacy}
+                  onToggle={handleClusterToggle}
+                />
+              );
+            })
+          )}
+        </List>
+      </Section>
 
       {/* --- Statistics --- */}
       <OverviewSection
@@ -482,7 +356,7 @@ const PrivacySpectrumDashboard: React.FC = () => {
         averagePrivacy={averagePrivacy}
         currentGlobal={currentGlobal}
       />
-    </div>
+    </Page>
   );
 };
 

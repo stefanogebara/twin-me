@@ -1,15 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { Sparkles, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import PortfolioHero from '../components/portfolio/PortfolioHero';
 import PortfolioRadar from '../components/portfolio/PortfolioRadar';
 import PortfolioTraits from '../components/portfolio/PortfolioTraits';
 import PortfolioNarrative from '../components/portfolio/PortfolioNarrative';
 import PortfolioPlatforms from '../components/portfolio/PortfolioPlatforms';
 import PortfolioFooter from '../components/portfolio/PortfolioFooter';
-
+import { Page, PageHead, Section, List, Row } from '@/components/register';
+import '@/styles/register-public.css';
+import '@/styles/share.css';
 
 import { API_URL } from '@/services/api/apiBase';
+
+/**
+ * The public share page (/s/:userId, /p/:userId), in the register's page kit
+ * (src/styles/share.css): the archetype as the title, then sections of rows.
+ * The data, the fetch and its three outcomes (found, not found, failed) are
+ * unchanged.
+ */
+
 const DEFAULT_COLOR_SCHEME = {
   primary: '#E8D5B7',
   secondary: '#D4C4A8',
@@ -104,61 +114,31 @@ const PortfolioPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin" style={{ color: '#E8D5B7' }} />
-      </div>
+      <main id="main-content" className="sh sh--center">
+        <Loader2 className="w-6 h-6 animate-spin" style={{ color: 'var(--rg-ink-3)' }} aria-label="Loading" />
+      </main>
     );
   }
 
   if (notFound || loadFailed || !portfolio) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center px-6">
-        <div className="text-center max-w-sm">
-          <Sparkles className="w-10 h-10 mx-auto mb-4" style={{ color: 'rgba(232, 213, 183, 0.3)' }} />
-          <h1
-            className="text-xl mb-2"
-            style={{ fontFamily: "var(--font-heading)", color: '#E8D5B7' }}
-          >
-            {loadFailed ? 'Could Not Load Portfolio' : 'Portfolio Not Found'}
-          </h1>
-          <p
-            className="text-sm opacity-50 mb-6"
-            style={{ fontFamily: "'Inter', sans-serif", color: '#E8D5B7' }}
-          >
-            {loadFailed
+      <main id="main-content" className="sh">
+        <Page>
+          <PageHead
+            title={loadFailed ? 'This portrait did not load.' : 'Portrait not found.'}
+            line={loadFailed
               ? 'Something went wrong reaching the server. Check your connection and try again.'
               : "This soul signature is private or doesn't exist yet."}
-          </p>
+          />
           {loadFailed ? (
-            <button
-              onClick={() => window.location.reload()}
-              className="text-sm px-6 py-3 rounded-xl inline-block transition-all hover:scale-[1.01] cursor-pointer border-0"
-              style={{
-                background: 'linear-gradient(135deg, #E8D5B7 0%, #D4C4A8 100%)',
-                color: '#0C0C0C',
-                fontFamily: "'Inter', sans-serif",
-                fontWeight: 500,
-              }}
-            >
-              Try Again
+            <button type="button" onClick={() => window.location.reload()} className="n-btn n-btn--primary">
+              Try again
             </button>
           ) : (
-            <a
-              href="/"
-              className="text-sm px-6 py-3 rounded-xl inline-block transition-all hover:scale-[1.01]"
-              style={{
-                background: 'linear-gradient(135deg, #E8D5B7 0%, #D4C4A8 100%)',
-                color: '#0C0C0C',
-                fontFamily: "'Inter', sans-serif",
-                fontWeight: 500,
-                textDecoration: 'none',
-              }}
-            >
-              Discover Your Soul Signature
-            </a>
+            <a href="/" className="n-btn n-btn--primary">Discover your soul signature</a>
           )}
-        </div>
-      </div>
+        </Page>
+      </main>
     );
   }
 
@@ -169,112 +149,97 @@ const PortfolioPage: React.FC = () => {
   };
 
   return (
-    <div
-      className="min-h-screen max-w-[900px] mx-auto px-6 py-16"
+    <main
+      id="main-content"
+      className="sh"
       style={{
         '--portfolio-primary': colorScheme.primary,
         '--portfolio-secondary': colorScheme.secondary,
         '--portfolio-accent': colorScheme.accent,
       } as React.CSSProperties}
     >
-      {/* Section 1: Hero */}
-      <PortfolioHero
-        firstName={portfolio.first_name}
-        avatarUrl={portfolio.avatar_url}
-        archetypeName={portfolio.archetype_name}
-        archetypeSubtitle={portfolio.archetype_subtitle}
-        platforms={portfolio.platforms}
-        colorScheme={colorScheme}
-      />
-
-      {/* Fidelity, stated honestly (2026-08-25).
-          This block is served to anyone with the URL, with no auth. It used
-          to print the RAW accuracy at 40px under "measured by a blind
-          test-retest battery" — a clinical-sounding caption over a single
-          session of self-report items, with the honest denominator
-          (normalized_fidelity) computed and thrown away.
-          It now leads with the normalized number where one exists, names the
-          denominator, and carries its n and date. Falls back to raw only when
-          the ceiling is unmeasurable, and says so. */}
-      {portfolio.fidelity && (() => {
-        const f = portfolio.fidelity;
-        const isNormalized = typeof f.normalized === 'number' && f.normalized > 0;
-        const shown = isNormalized ? f.normalized! : f.accuracy;
-        const measuredOn = new Date(f.measured_at).toLocaleDateString(undefined, {
-          year: 'numeric', month: 'short', day: 'numeric',
-        });
-        const who = portfolio.first_name || 'its human';
-        return (
-          <div
-            className="mt-8 rounded-[20px] px-6 py-5 text-center"
-            style={{
-              background: 'var(--glass-surface-bg)',
-              border: '1px solid var(--glass-surface-border)',
-            }}
-          >
-            <div
-              className="text-[40px] leading-none"
-              style={{ fontFamily: 'var(--font-heading)', color: colorScheme.accent }}
-            >
-              {Math.round(shown * 100)}%
-            </div>
-            <div className="mt-2 text-sm" style={{ color: 'var(--text-narrative-secondary)' }}>
-              {isNormalized ? (
-                <>
-                  how often this twin picked the same answer as {who}, measured
-                  against how often {who} agrees with themselves
-                </>
-              ) : (
-                <>how often this twin picked the same answer as {who}</>
-              )}
-            </div>
-            <div
-              className="mt-3 text-[11px] leading-relaxed"
-              style={{ color: 'var(--text-narrative-muted)' }}
-            >
-              {f.items ? `${f.items} self-report items` : 'Self-report items'}
-              {' · '}one session{f.wave ? `, wave ${f.wave}` : ''}
-              {' · '}{measuredOn}
-              {isNormalized && typeof f.self_consistency === 'number'
-                ? ` · self-consistency ${Math.round(f.self_consistency * 100)}%`
-                : ''}
-              <br />
-              Not a clinical measure.
-            </div>
-          </div>
-        );
-      })()}
-
-      {/* Section 2: Personality Radar (only if personality data exists) */}
-      {portfolio.personality && (
-        <PortfolioRadar
-          personality={portfolio.personality}
-          platformCount={portfolio.platforms.length}
+      <Page>
+        {/* Section 1: Hero */}
+        <PortfolioHero
+          firstName={portfolio.first_name}
+          avatarUrl={portfolio.avatar_url}
+          archetypeName={portfolio.archetype_name}
+          archetypeSubtitle={portfolio.archetype_subtitle}
+          platforms={portfolio.platforms}
           colorScheme={colorScheme}
         />
-      )}
 
-      {/* Section 3: Defining Traits */}
-      <PortfolioTraits
-        traits={portfolio.defining_traits}
-        colorScheme={colorScheme}
-      />
+        {/* Fidelity, stated honestly (2026-08-25).
+            This block is served to anyone with the URL, with no auth. It used
+            to print the RAW accuracy at 40px under "measured by a blind
+            test-retest battery" — a clinical-sounding caption over a single
+            session of self-report items, with the honest denominator
+            (normalized_fidelity) computed and thrown away.
+            It now leads with the normalized number where one exists, names the
+            denominator, and carries its n and date. Falls back to raw only when
+            the ceiling is unmeasurable, and says so. */}
+        {portfolio.fidelity && (() => {
+          const f = portfolio.fidelity;
+          const isNormalized = typeof f.normalized === 'number' && f.normalized > 0;
+          const shown = isNormalized ? f.normalized! : f.accuracy;
+          const measuredOn = new Date(f.measured_at).toLocaleDateString(undefined, {
+            year: 'numeric', month: 'short', day: 'numeric',
+          });
+          const who = portfolio.first_name || 'its human';
+          return (
+            <Section title="How close the twin is">
+              <List label="Twin accuracy" className="rg-figures">
+                <Row
+                  title={`${Math.round(shown * 100)}% the same answer as ${who}`}
+                  line={isNormalized
+                    ? `Measured against how often ${who} agrees with themselves`
+                    : 'Raw agreement; self-agreement was not measured'}
+                />
+              </List>
+              <p className="sh-note">
+                {f.items ? `${f.items} self-report items` : 'Self-report items'}
+                {', one session'}{f.wave ? `, wave ${f.wave}` : ''}
+                {`, ${measuredOn}`}
+                {isNormalized && typeof f.self_consistency === 'number'
+                  ? `, self-consistency ${Math.round(f.self_consistency * 100)}%`
+                  : ''}
+                {'. Not a clinical measure.'}
+              </p>
+            </Section>
+          );
+        })()}
 
-      {/* Section 4: Narrative */}
-      <PortfolioNarrative
-        narrative={portfolio.narrative}
-        colorScheme={colorScheme}
-      />
+        {/* Section 2: Personality Radar (only if personality data exists) */}
+        {portfolio.personality && (
+          <PortfolioRadar
+            personality={portfolio.personality}
+            platformCount={portfolio.platforms.length}
+            colorScheme={colorScheme}
+          />
+        )}
 
-      {/* Section 5: Platform Highlights */}
-      <PortfolioPlatforms platforms={portfolio.platforms} />
+        {/* Section 3: Defining Traits */}
+        <PortfolioTraits
+          traits={portfolio.defining_traits}
+          colorScheme={colorScheme}
+        />
 
-      {/* Section 6: Footer / CTA */}
-      <PortfolioFooter
-        updatedAt={portfolio.updated_at}
-        colorScheme={colorScheme}
-      />
-    </div>
+        {/* Section 4: Narrative */}
+        <PortfolioNarrative
+          narrative={portfolio.narrative}
+          colorScheme={colorScheme}
+        />
+
+        {/* Section 5: Platform Highlights */}
+        <PortfolioPlatforms platforms={portfolio.platforms} />
+
+        {/* Section 6: Footer / CTA */}
+        <PortfolioFooter
+          updatedAt={portfolio.updated_at}
+          colorScheme={colorScheme}
+        />
+      </Page>
+    </main>
   );
 };
 

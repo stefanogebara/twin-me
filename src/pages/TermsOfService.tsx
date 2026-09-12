@@ -1,7 +1,14 @@
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { useLenis } from "../hooks/useLenis";
+import { PageHead } from "@/components/register";
+import "../styles/legal.css";
 
+/**
+ * /terms, in the register (src/styles/legal.css): the kit's column and title,
+ * each numbered section on the section heading. The terms themselves are
+ * unchanged.
+ */
 const TermsOfService = () => {
   const navigate = useNavigate();
   useLenis();
@@ -9,38 +16,32 @@ const TermsOfService = () => {
   return (
     // Standalone page (no SidebarLayout), so it must provide the
     // #main-content landmark the App.tsx skip-link targets (audit-2026-07-03)
-    <main id="main-content" className="min-h-screen" style={{ color: 'var(--foreground)' }}>
-      <div className="max-w-3xl mx-auto px-6 py-12">
+    <main id="main-content" className="lg">
+      <div className="rg-page">
         <button
           type="button"
           aria-label="Go back to previous page"
           onClick={() => navigate(-1)}
-          className="mb-8 text-sm flex items-center gap-2 transition-opacity hover:opacity-70"
-          style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
+          className="n-btn n-btn--ghost lg-back"
         >
           <ArrowLeft className="w-4 h-4" aria-hidden="true" />
           Back
         </button>
 
-        <h1 className="text-3xl mb-2" style={{ fontFamily: "var(--font-heading)", fontWeight: 400 }}>
-          Terms of Service
-        </h1>
-        <p className="text-sm mb-10" style={{ color: 'var(--text-secondary)' }}>
-          Last updated: March 7, 2026
-        </p>
+        <PageHead title="Terms of service" line="Last updated: March 7, 2026" />
 
-        <div className="space-y-8 text-sm leading-relaxed" style={{ fontFamily: "'Inter', sans-serif" }}>
+        <div className="lg-doc">
           <section>
-            <h2 className="text-lg mb-3" style={{ fontFamily: "var(--font-heading)", fontWeight: 400 }}>1. Acceptance of Terms</h2>
-            <p style={{ color: 'var(--foreground)' }}>
+            <h2>1. Acceptance of terms</h2>
+            <p>
               By accessing or using Twin Me ("the Service"), you agree to be bound by these Terms of
               Service. If you do not agree to these terms, please do not use the Service.
             </p>
           </section>
 
           <section>
-            <h2 className="text-lg mb-3" style={{ fontFamily: "var(--font-heading)", fontWeight: 400 }}>2. Description of Service</h2>
-            <p style={{ color: 'var(--foreground)' }}>
+            <h2>2. Description of service</h2>
+            <p>
               Twin Me is a personality discovery platform that creates a digital twin from patterns in
               your digital life. The Service analyzes data from connected platforms to generate
               personality insights, power an AI twin, and help you understand yourself better.
@@ -48,8 +49,8 @@ const TermsOfService = () => {
           </section>
 
           <section>
-            <h2 className="text-lg mb-3" style={{ fontFamily: "var(--font-heading)", fontWeight: 400 }}>3. Account Registration</h2>
-            <p style={{ color: 'var(--foreground)' }}>
+            <h2>3. Account registration</h2>
+            <p>
               To use the Service, you must create an account using Google OAuth. You are responsible
               for maintaining the security of your account and for all activities that occur under
               your account. You must be at least 13 years old to use the Service.
@@ -57,23 +58,23 @@ const TermsOfService = () => {
           </section>
 
           <section>
-            <h2 className="text-lg mb-3" style={{ fontFamily: "var(--font-heading)", fontWeight: 400 }}>4. User Data & Platform Connections</h2>
-            <p className="mb-3" style={{ color: 'var(--foreground)' }}>
+            <h2>4. User data and platform connections</h2>
+            <p>
               When you connect third-party platforms (such as Spotify, Google Calendar, YouTube, or
               others), you authorize Twin Me to access the data specified during the OAuth flow. You
               may disconnect any platform at any time through Settings, which revokes our access to
               that platform's data.
             </p>
-            <p style={{ color: 'var(--foreground)' }}>
+            <p>
               Your use of connected platforms remains subject to those platforms' own terms of service
               and privacy policies.
             </p>
           </section>
 
           <section>
-            <h2 className="text-lg mb-3" style={{ fontFamily: "var(--font-heading)", fontWeight: 400 }}>5. Acceptable Use</h2>
-            <p className="mb-3" style={{ color: 'var(--foreground)' }}>You agree not to:</p>
-            <ul className="list-disc list-inside space-y-1 ml-2" style={{ color: 'var(--foreground)' }}>
+            <h2>5. Acceptable use</h2>
+            <p>You agree not to:</p>
+            <ul>
               <li>Use the Service for any unlawful purpose</li>
               <li>Attempt to gain unauthorized access to any part of the Service</li>
               <li>Interfere with or disrupt the Service or its infrastructure</li>
@@ -84,8 +85,8 @@ const TermsOfService = () => {
           </section>
 
           <section>
-            <h2 className="text-lg mb-3" style={{ fontFamily: "var(--font-heading)", fontWeight: 400 }}>6. AI-Generated Content</h2>
-            <p style={{ color: 'var(--foreground)' }}>
+            <h2>6. AI-generated content</h2>
+            <p>
               The digital twin and personality insights are generated by AI models. While we strive
               for accuracy, AI-generated content may not always be correct or complete. The Service
               is intended for personal discovery and entertainment purposes. You should not rely on
@@ -94,8 +95,8 @@ const TermsOfService = () => {
           </section>
 
           <section>
-            <h2 className="text-lg mb-3" style={{ fontFamily: "var(--font-heading)", fontWeight: 400 }}>7. Intellectual Property</h2>
-            <p style={{ color: 'var(--foreground)' }}>
+            <h2>7. Intellectual property</h2>
+            <p>
               The Service, including its design, features, and underlying technology, is owned by
               Twin Me. You retain ownership of any personal data you provide. By using the Service,
               you grant us a limited license to process your data solely for the purpose of
@@ -104,19 +105,17 @@ const TermsOfService = () => {
           </section>
 
           <section>
-            <h2 className="text-lg mb-3" style={{ fontFamily: "var(--font-heading)", fontWeight: 400 }}>8. Privacy</h2>
-            <p style={{ color: 'var(--foreground)' }}>
+            <h2>8. Privacy</h2>
+            <p>
               Your privacy is important to us. Please review our{" "}
-              <a href="/privacy-policy" className="underline hover:opacity-70 transition-opacity">
-                Privacy Policy
-              </a>{" "}
+              <a href="/privacy-policy">Privacy Policy</a>{" "}
               to understand how we collect, use, and protect your data.
             </p>
           </section>
 
           <section>
-            <h2 className="text-lg mb-3" style={{ fontFamily: "var(--font-heading)", fontWeight: 400 }}>9. Account Termination</h2>
-            <p style={{ color: 'var(--foreground)' }}>
+            <h2>9. Account termination</h2>
+            <p>
               You may delete your account at any time through Settings. Upon deletion, all your
               personal data will be permanently and immediately removed. We reserve the right to
               suspend or terminate accounts that violate these terms.
@@ -124,8 +123,8 @@ const TermsOfService = () => {
           </section>
 
           <section>
-            <h2 className="text-lg mb-3" style={{ fontFamily: "var(--font-heading)", fontWeight: 400 }}>10. Disclaimers</h2>
-            <p style={{ color: 'var(--foreground)' }}>
+            <h2>10. Disclaimers</h2>
+            <p>
               The Service is provided "as is" and "as available" without warranties of any kind,
               either express or implied. We do not guarantee that the Service will be uninterrupted,
               error-free, or that AI-generated content will be accurate or suitable for any
@@ -134,8 +133,8 @@ const TermsOfService = () => {
           </section>
 
           <section>
-            <h2 className="text-lg mb-3" style={{ fontFamily: "var(--font-heading)", fontWeight: 400 }}>11. Limitation of Liability</h2>
-            <p style={{ color: 'var(--foreground)' }}>
+            <h2>11. Limitation of liability</h2>
+            <p>
               To the maximum extent permitted by law, Twin Me shall not be liable for any indirect,
               incidental, special, consequential, or punitive damages arising from your use of or
               inability to use the Service.
@@ -143,8 +142,8 @@ const TermsOfService = () => {
           </section>
 
           <section>
-            <h2 className="text-lg mb-3" style={{ fontFamily: "var(--font-heading)", fontWeight: 400 }}>12. Changes to Terms</h2>
-            <p style={{ color: 'var(--foreground)' }}>
+            <h2>12. Changes to terms</h2>
+            <p>
               We may update these Terms of Service from time to time. We will notify users of
               significant changes through the application. Continued use of the Service after
               changes constitutes acceptance of the updated terms.
@@ -152,13 +151,11 @@ const TermsOfService = () => {
           </section>
 
           <section>
-            <h2 className="text-lg mb-3" style={{ fontFamily: "var(--font-heading)", fontWeight: 400 }}>13. Contact</h2>
-            <p style={{ color: 'var(--foreground)' }}>
+            <h2>13. Contact</h2>
+            <p>
               If you have questions about these Terms of Service, please contact us through the
               Settings page in the application, or email us at{" "}
-              <a href="mailto:support@twinme.me" className="underline hover:opacity-70 transition-opacity">
-                support@twinme.me
-              </a>.
+              <a href="mailto:support@twinme.me">support@twinme.me</a>.
             </p>
           </section>
         </div>

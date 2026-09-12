@@ -42,7 +42,7 @@ function walk(dir: string, out: string[] = []): string[] {
  * money-v2.css is the token layer of the Money surface's own register (cosmos.so, 2026-09-07):
  * it declares its faces once on `.mv` and every rule below references the variables.
  */
-const TOKEN_FILES = /styles[\\/](nocturne|nocturne-bridge|claura|money-v2)\.css$|index\.css$/;
+const TOKEN_FILES = /styles[\\/](register|nocturne|nocturne-bridge|claura|money-v2)\.css$|index\.css$/;
 
 const files = walk(SRC).filter((f) => !TOKEN_FILES.test(f));
 
@@ -59,7 +59,7 @@ describe('retired values stay retired', () => {
     const offenders = files.filter((f) => /['"]Geist['"]/.test(readFileSync(f, 'utf8')));
     expect(
       offenders.map((f) => f.slice(SRC.length + 1)),
-      "Use var(--font-ui). Geist is loaded but is not a Nocturne voice — Inter is.",
+      "Use var(--font-ui). Geist IS the voice since the register (2026-09-12), but a pasted stack drifts: reach it through the token.",
     ).toEqual([]);
   });
 

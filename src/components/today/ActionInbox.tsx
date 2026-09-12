@@ -12,10 +12,23 @@ import { Send, Pencil, X, Loader2, Inbox, Mail, MessageSquare } from 'lucide-rea
 import { actionsAPI, type TwinAction } from '@/services/api/actionsAPI';
 import { isAbortError } from '@/services/api/apiBase';
 import { useAnalytics } from '@/contexts/AnalyticsContext';
+import { Section, List, Row, Empty } from '@/components/register';
 
 const QUERY_KEY = ['twin-actions', 'pending'] as const;
 
-const glass = 'bg-[var(--surface)] border border-[var(--glass-surface-border)] rounded-[20px] backdrop-blur-[42px]';
+/* The register: the inbox is a section, each draft an item under the list's
+   ink rule (no glass cards). A draft holds a paragraph and three buttons, so it
+   is an item with the row's padding and hairline rather than a one-line Row. */
+const item: React.CSSProperties = {
+  padding: '20px 12px',
+  borderBottom: '1px solid var(--rg-rule)',
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 12,
+};
+
+const inboxLine = (count: number | null) =>
+  count !== null && count > 0 ? `${count} draft${count === 1 ? '' : 's'} to send, edit or reject.` : undefined;
 
 const ActionInbox: React.FC = () => {
   const { data, isLoading, isError, error, refetch } = useQuery<TwinAction[]>({
@@ -45,57 +58,47 @@ const ActionInbox: React.FC = () => {
 
   if (isLoading) {
     return (
-      <section aria-busy="true" className="flex flex-col gap-3">
-        <InboxHeading count={null} />
-        {[0, 1].map((i) => (
-          <div key={i} className={`${glass} px-5 py-5 animate-pulse`} style={{ height: 148 }} />
-        ))}
-      </section>
+      <Section title="Waiting on you">
+        <List>
+          {[0, 1].map((i) => (
+            <li key={i} aria-busy="true" style={item}>
+              <span className="block rounded-[4px] animate-pulse" style={{ height: 12, width: '30%', background: 'var(--rg-field)' }} />
+              <span className="block rounded-[4px] animate-pulse" style={{ height: 12, width: '80%', background: 'var(--rg-field)' }} />
+            </li>
+          ))}
+        </List>
+      </Section>
     );
   }
 
   if (isError && !isAbortError(error)) {
     return (
-      <section className={`${glass} px-5 py-6 text-center`}>
-        <p className="text-[#A8A29E] text-sm">Couldn't load your inbox.</p>
-        <button
-          onClick={() => refetch()}
-          className="mt-3 text-[var(--foreground)] text-sm underline underline-offset-4 hover:opacity-80"
-        >
-          Try again
-        </button>
-      </section>
+      <Section title="Waiting on you">
+        <List>
+          <Row icon={<Inbox aria-hidden />} title="Couldn't load your inbox" line="Try again in a moment." onClick={() => refetch()} />
+        </List>
+      </Section>
     );
   }
 
   const actions = data ?? [];
 
   return (
-    <section className="flex flex-col gap-3">
-      <InboxHeading count={actions.length} />
-      {actions.length === 0 ? (
-        <div className={`${glass} px-5 py-8 flex flex-col items-center text-center gap-2`}>
-          <Inbox size={22} className="text-[#57534E]" aria-hidden />
-          <p className="text-[#A8A29E] text-sm">Inbox zero. Your twin has nothing waiting on you.</p>
-        </div>
-      ) : (
-        actions.map((action) => <ActionCard key={action.id} action={action} />)
-      )}
-    </section>
+    <Section title="Waiting on you" line={inboxLine(actions.length)}>
+      <List>
+        {actions.length === 0 ? (
+          // Was #A8A29E (2.52:1); the register's quiet ink is 5.3:1.
+          <li><Empty>Inbox zero. Your twin has nothing waiting on you.</Empty></li>
+        ) : (
+          actions.map((action) => <ActionCard key={action.id} action={action} />)
+        )}
+      </List>
+    </Section>
   );
 };
 
-const InboxHeading: React.FC<{ count: number | null }> = ({ count }) => (
-  <div className="flex items-baseline justify-between px-1">
-    <h2 className="text-[var(--foreground)] text-[15px] font-medium tracking-tight">Waiting on you</h2>
-    {count !== null && count > 0 && (
-      <span className="text-[#9C9590] text-xs tabular-nums">{count} draft{count === 1 ? '' : 's'}</span>
-    )}
-  </div>
-);
-
 const channelIcon = (channel: string) =>
-  channel === 'whatsapp' ? <MessageSquare size={13} aria-hidden /> : <Mail size={13} aria-hidden />;
+  channel === 'whatsapp' ? <MessageSquare size={16} aria-hidden /> : <Mail size={16} aria-hidden />;
 
 type Mode = 'view' | 'editing' | 'rejecting';
 
@@ -128,10 +131,10 @@ const ActionCard: React.FC<{ action: TwinAction }> = ({ action }) => {
   const failed = sendM.isError || editM.isError || rejectM.isError;
 
   return (
-    <article className={`${glass} px-5 py-4 flex flex-col gap-3`}>
-      <header className="flex items-center gap-2 text-[#9C9590] text-xs">
-        {channelIcon(action.channel)}
-        <span className="tracking-tight">Reply to {action.recipient || 'a contact'}</span>
+    <li style={item}>
+      <header className="flex items-center gap-4">
+        <span className="rg-row-icon" aria-hidden="true">{channelIcon(action.channel)}</span>
+        <span className="rg-row-title">Reply to {action.recipient || 'a contact'}</span>
       </header>
 
       {mode === 'editing' ? (
@@ -141,20 +144,19 @@ const ActionCard: React.FC<{ action: TwinAction }> = ({ action }) => {
           rows={5}
           autoFocus
           aria-label="Edit the reply"
-          className="w-full resize-y rounded-[12px] bg-[var(--surface)] border border-[var(--border-glass)] px-3 py-2.5 text-[var(--foreground)] text-[14.5px] leading-relaxed focus:outline-none focus:ring-2 focus:ring-[rgba(255,255,255,0.25)]"
+          className="n-input w-full resize-y focus-visible:outline-2 focus-visible:outline-[var(--rg-ink)]"
+          style={{ height: 'auto' }}
         />
       ) : (
-        <p className="text-[var(--foreground)] text-[14.5px] leading-relaxed whitespace-pre-wrap">{action.draft_text}</p>
+        <p className="whitespace-pre-wrap" style={{ margin: 0, color: 'var(--rg-ink)' }}>{action.draft_text}</p>
       )}
 
       {mode === 'view' && action.why_signals?.length > 0 && (
+        // Why the twin wrote it this way: badges on the field, sentence case.
         <div className="flex flex-wrap gap-1.5">
           {action.why_signals.map((w, i) => (
-            <span
-              key={i}
-              className="inline-flex items-center rounded-[46px] bg-[var(--surface)] border border-[var(--glass-surface-border)] px-2.5 py-1 text-[11px] text-[#A8A29E]"
-            >
-              <span className="text-[#c17e2c] mr-1.5 uppercase tracking-wide text-[9px]">{w.kind}</span>
+            <span key={i} className="n-badge" style={{ fontWeight: 350, color: 'var(--rg-ink-2)' }}>
+              <span style={{ fontWeight: 500, color: 'var(--rg-ink)' }}>{w.kind}</span>
               {w.note}
             </span>
           ))}
@@ -168,11 +170,11 @@ const ActionCard: React.FC<{ action: TwinAction }> = ({ action }) => {
           autoFocus
           placeholder="What was off? (e.g. too formal)"
           aria-label="Reason for rejecting"
-          className="w-full rounded-[6px] bg-[var(--surface)] border border-[var(--border-glass)] px-3 py-2.5 text-[var(--foreground)] text-sm placeholder:text-[var(--text-secondary)] focus:outline-none focus:ring-2 focus:ring-[rgba(255,255,255,0.25)]"
+          className="n-input w-full focus-visible:outline-2 focus-visible:outline-[var(--rg-ink)]"
         />
       )}
 
-      <div className="flex items-center gap-2 pt-0.5">
+      <div className="flex flex-wrap items-center gap-2">
         {mode === 'view' && (
           <>
             <PrimaryButton busy={sendM.isPending} onClick={() => sendM.mutate()} disabled={busy}>
@@ -211,20 +213,19 @@ const ActionCard: React.FC<{ action: TwinAction }> = ({ action }) => {
       </div>
 
       {failed && (
-        <p role="alert" className="text-[#dc6b6b] text-xs">Something went wrong — please try again.</p>
+        <p role="alert" style={{ margin: 0, color: 'var(--rg-danger)' }}>That did not go through. Try again.</p>
       )}
-    </article>
+    </li>
   );
 };
 
+/* A draft's deciding button. The composer's send is the screen's one ink
+   primary and several drafts can be waiting, so a draft's buttons are the
+   register's secondary (white, a hairline, ink): 32 tall, a 4 corner. */
 const PrimaryButton: React.FC<React.PropsWithChildren<{ onClick: () => void; disabled?: boolean; busy?: boolean }>> = ({
   onClick, disabled, busy, children,
 }) => (
-  <button
-    onClick={onClick}
-    disabled={disabled}
-    className="inline-flex items-center gap-1.5 bg-[image:var(--claura-bone)] text-[var(--claura-bone-ink)] rounded-[12px] px-3.5 py-2 text-[13px] font-medium disabled:opacity-50 hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-[rgba(255,255,255,0.4)] transition-opacity"
-  >
+  <button type="button" onClick={onClick} disabled={disabled} className="n-btn n-btn--ghost" style={{ fontWeight: 500 }}>
     {busy ? <Loader2 size={14} className="animate-spin" aria-hidden /> : children}
   </button>
 );
@@ -232,11 +233,7 @@ const PrimaryButton: React.FC<React.PropsWithChildren<{ onClick: () => void; dis
 const GhostButton: React.FC<React.PropsWithChildren<{ onClick: () => void; disabled?: boolean }>> = ({
   onClick, disabled, children,
 }) => (
-  <button
-    onClick={onClick}
-    disabled={disabled}
-    className="inline-flex items-center gap-1.5 rounded-[6px] px-2.5 py-1.5 text-[13px] font-medium text-[#A8A29E] hover:text-[var(--foreground)] disabled:opacity-40 focus:outline-none focus:ring-2 focus:ring-[rgba(255,255,255,0.25)] transition-colors"
-  >
+  <button type="button" onClick={onClick} disabled={disabled} className="n-btn n-btn--ghost">
     {children}
   </button>
 );

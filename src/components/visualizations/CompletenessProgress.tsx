@@ -140,7 +140,7 @@ export function CompletenessProgress({ completeness, breakdown, className = '' }
           {/* Center percentage */}
           <div className="absolute inset-0 flex flex-col items-center justify-center">
             <div className="text-center">
-              <div className="text-5xl font-bold text-foreground" style={{ fontFamily: "'Inter', sans-serif" }}>
+              <div className="text-5xl font-bold text-foreground" style={{ fontFamily: 'var(--font-ui)' }}>
                 {animatedValue}%
               </div>
               <div className="text-sm text-muted-foreground mt-1">Complete</div>

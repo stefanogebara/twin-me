@@ -25,6 +25,12 @@ const MORE_NAV: NavItem[] = [
   { id: 'settings', label: 'Settings',   icon: Settings, path: '/settings' },
 ];
 
+/**
+ * The phone's tab bar, in the register (2026-09-12): flush to the bottom on the
+ * page colour under a hairline. No floating glass pill, no shadow, no blur. The
+ * current tab is ink at 500; the rest are the grey line (7.3:1), never faded
+ * with opacity, which took them under AA.
+ */
 export const BottomNav: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -43,13 +49,19 @@ export const BottomNav: React.FC = () => {
     navigate(path);
   };
 
+  const tabClass = (on: boolean) => cn(
+    'relative flex flex-1 flex-col items-center justify-center gap-1 py-2.5 transition-colors duration-150 ease-out',
+    on ? 'text-[var(--rg-ink)]' : 'text-[var(--rg-ink-2)] hover:text-[var(--rg-ink)]'
+  );
+  const labelClass = (on: boolean) => cn('text-[13px] leading-none', on ? 'font-medium' : 'font-normal');
+
   return (
     <>
       {/* Backdrop */}
       {drawerOpen && (
         <div
           className="fixed inset-0 z-40 lg:hidden"
-          style={{ background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)' }}
+          style={{ background: 'rgb(var(--rg-ink-rgb) / 0.32)' }}
           onClick={() => setDrawerOpen(false)}
         />
       )}
@@ -66,19 +78,16 @@ export const BottomNav: React.FC = () => {
         className="fixed left-3 right-3 z-50 flex flex-row gap-1 lg:hidden"
         aria-hidden={!drawerOpen}
         style={{
-          bottom: drawerOpen ? '76px' : '-200px',
+          bottom: drawerOpen ? '72px' : '-200px',
           visibility: drawerOpen ? 'visible' : 'hidden',
           pointerEvents: drawerOpen ? 'auto' : 'none',
           transition: drawerOpen
             ? 'bottom 0.25s cubic-bezier(0.32,0.72,0,1), visibility 0s'
             : 'bottom 0.25s cubic-bezier(0.32,0.72,0,1), visibility 0s linear 0.25s',
-          background: 'var(--popover)',
-          backdropFilter: 'blur(42px)',
-          WebkitBackdropFilter: 'blur(42px)',
-          border: '1px solid var(--glass-surface-border)',
-          borderRadius: '20px',
-          padding: '12px 8px',
-          boxShadow: '0 -4px 24px rgba(0,0,0,0.3)',
+          background: 'var(--rg-white)',
+          border: '1px solid var(--rg-rule)',
+          borderRadius: 'var(--rg-radius-icon)',
+          padding: '8px',
         }}
       >
         {MORE_NAV.map((item) => {
@@ -90,27 +99,17 @@ export const BottomNav: React.FC = () => {
               key={item.id}
               onClick={() => handleNav(item.path)}
               aria-label={`Navigate to ${item.label}`}
-              className="relative flex flex-1 flex-col items-center justify-center gap-1 py-3 rounded-2xl transition-all duration-150 active:scale-95"
-              style={{ backgroundColor: active ? 'var(--surface-solid)' : 'transparent' }}
+              className={cn(tabClass(active), 'rounded-[var(--rg-radius)] hover:bg-[var(--rg-hover)]')}
             >
-              <Icon
-                className="w-5 h-5"
-                style={{ color: active ? 'var(--foreground)' : 'var(--sidebar-foreground)' }}
-              />
-              <span
-                className="text-[10px] font-semibold leading-none"
-                style={{ color: active ? 'var(--foreground)' : 'var(--sidebar-foreground)' }}
-              >
-                {item.label}
-              </span>
+              <Icon className="w-5 h-5" aria-hidden="true" />
+              <span className={labelClass(active)}>{item.label}</span>
             </button>
           );
         })}
         <button
           type="button"
           onClick={() => setDrawerOpen(false)}
-          className="flex flex-col items-center justify-center gap-1 py-3 px-3 rounded-2xl transition-all duration-150 active:scale-95"
-          style={{ color: 'rgba(245,245,244,0.5)' }}
+          className="flex flex-col items-center justify-center px-3 rounded-[var(--rg-radius)] text-[var(--rg-ink-2)] hover:bg-[var(--rg-hover)] hover:text-[var(--rg-ink)]"
           aria-label="Close more menu"
         >
           <X className="w-4 h-4" />
@@ -119,16 +118,12 @@ export const BottomNav: React.FC = () => {
 
       {/* Bottom tab bar */}
       <nav
-        className="fixed bottom-3 left-3 right-3 z-50 flex lg:hidden"
+        className="fixed bottom-0 left-0 right-0 z-50 flex lg:hidden"
         aria-label="Bottom navigation"
         style={{
-          backgroundColor: 'var(--glass-surface-bg)',
-          backdropFilter: 'blur(42px)',
-          WebkitBackdropFilter: 'blur(42px)',
-          border: '1px solid var(--glass-surface-border)',
-          borderRadius: '32px',
+          backgroundColor: 'var(--rg-page)',
+          borderTop: '1px solid var(--rg-rule)',
           paddingBottom: 'env(safe-area-inset-bottom)',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
         }}
       >
         {PRIMARY_NAV.map((item) => {
@@ -141,23 +136,10 @@ export const BottomNav: React.FC = () => {
               onClick={() => handleNav(item.path)}
               aria-label={`Navigate to ${item.label}`}
               aria-current={active ? 'page' : undefined}
-              className={cn(
-                'relative flex flex-1 flex-col items-center justify-center gap-1 py-3 mx-1 rounded-2xl transition-all duration-150 ease-out active:scale-95',
-                active ? 'opacity-100' : 'opacity-50 hover:opacity-75'
-              )}
-              style={{ backgroundColor: active ? 'var(--surface-solid)' : 'transparent' }}
+              className={tabClass(active)}
             >
-              <Icon
-                className={cn('w-5 h-5 transition-transform duration-150 ease-out', active && 'scale-110')}
-                style={{ color: active ? 'var(--foreground)' : 'var(--sidebar-foreground)' }}
-                aria-hidden="true"
-              />
-              <span
-                className="text-[10px] font-semibold leading-none"
-                style={{ color: active ? 'var(--foreground)' : 'var(--sidebar-foreground)' }}
-              >
-                {item.label}
-              </span>
+              <Icon className="w-5 h-5" aria-hidden="true" />
+              <span className={labelClass(active)}>{item.label}</span>
             </button>
           );
         })}
@@ -168,23 +150,10 @@ export const BottomNav: React.FC = () => {
           onClick={() => setDrawerOpen(prev => !prev)}
           aria-label="More navigation options"
           aria-expanded={drawerOpen}
-          className={cn(
-            'relative flex flex-1 flex-col items-center justify-center gap-1 py-3 mx-1 rounded-2xl transition-all duration-150 ease-out active:scale-95',
-            (drawerOpen || isMoreActive) ? 'opacity-100' : 'opacity-50 hover:opacity-75'
-          )}
-          style={{ backgroundColor: (drawerOpen || isMoreActive) ? 'var(--surface-solid)' : 'transparent' }}
+          className={tabClass(drawerOpen || isMoreActive)}
         >
-          <MoreHorizontal
-            className={cn('w-5 h-5 transition-transform duration-150 ease-out', (drawerOpen || isMoreActive) && 'scale-110')}
-            style={{ color: (drawerOpen || isMoreActive) ? 'var(--foreground)' : 'var(--sidebar-foreground)' }}
-            aria-hidden="true"
-          />
-          <span
-            className="text-[10px] font-semibold leading-none"
-            style={{ color: (drawerOpen || isMoreActive) ? 'var(--foreground)' : 'var(--sidebar-foreground)' }}
-          >
-            More
-          </span>
+          <MoreHorizontal className="w-5 h-5" aria-hidden="true" />
+          <span className={labelClass(drawerOpen || isMoreActive)}>More</span>
         </button>
       </nav>
     </>

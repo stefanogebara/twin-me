@@ -15,11 +15,17 @@
  *   pending   → QR code shown, polling for status flip
  *   linked    → "Connected to +X" with unlink button
  *   error     → message + retry
+ *
+ * In the register: one row for the connection (no card), and what it opens to.
  */
 
 import { useEffect, useState, useCallback } from 'react';
+import { MessageCircle, Loader2 } from 'lucide-react';
 import { authFetch } from '@/services/api/apiBase';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { Page, PageHead, List, Row } from '@/components/register';
+import '@/styles/register-public.css';
+import '@/styles/register-settings.css';
 
 type Status = 'loading' | 'none' | 'pending' | 'linked' | 'error';
 
@@ -112,7 +118,7 @@ export default function VoiceSetupPage() {
   async function unlink() {
     // Two-tap confirm (same idiom as IdentityNarrativeCard's revert) instead
     // of the browser confirm() dialog, which is unstyled, thread-blocking,
-    // and inconsistent with the dark design system (audit-2026-07-03).
+    // and inconsistent with the design system (audit-2026-07-03).
     if (!confirmingUnlink) {
       setConfirmingUnlink(true);
       window.setTimeout(() => setConfirmingUnlink(false), 4000);
@@ -134,158 +140,81 @@ export default function VoiceSetupPage() {
     }
   }
 
+  const linkedName = state.displayName || state.phoneNumber || 'WhatsApp';
+
+  const line =
+    state.status === 'loading' ? 'Checking your connection'
+    : state.status === 'none' ? 'Not connected. One scan with your phone.'
+    : state.status === 'pending' ? 'Scan the code with your phone'
+    : state.status === 'linked'
+      ? <><span className="rs-ok">Connected</span> · {linkedName}{state.linkedAt ? `, since ${new Date(state.linkedAt).toLocaleDateString()}` : ''}</>
+    : <span className="rs-bad">{state.errorMessage || 'Something went wrong.'}</span>;
+
+  const action =
+    state.status === 'loading' ? <Loader2 className="w-4 h-4 animate-spin" style={{ color: 'var(--rg-ink-2)' }} aria-label="Loading" />
+    : state.status === 'none' ? (
+      <button type="button" onClick={startLink} disabled={starting} className="n-btn n-btn--primary">
+        {starting ? 'Making a code' : 'Link WhatsApp'}
+      </button>
+    )
+    : state.status === 'pending' ? (
+      <button type="button" onClick={cancelLink} className="n-btn n-btn--ghost">Cancel</button>
+    )
+    : state.status === 'linked' ? (
+      <button type="button" onClick={unlink} className={`n-btn n-btn--ghost${confirmingUnlink ? ' rg-danger' : ''}`}>
+        {confirmingUnlink ? 'Tap again to unlink' : 'Unlink'}
+      </button>
+    )
+    : <button type="button" onClick={fetchStatus} className="n-btn n-btn--ghost">Retry</button>;
+
   return (
-    <div className="max-w-2xl mx-auto px-4 sm:px-6 py-10">
-      {/* Claura zoned photography — saturn-window by night, soul-waves by day (/preview/voice). */}
-      <header className="mb-8">
-        <h1
-          className="text-[36px] mb-2"
-          style={{
-            fontFamily: "var(--font-heading)",
-            fontStyle: 'italic',
-            letterSpacing: '-0.02em',
-            color: 'var(--foreground)',
-          }}
-        >
-          Voice bridge
-        </h1>
-        <p className="text-[15px]" style={{ color: 'var(--text-secondary)' }}>
-          Talk to your twin from WhatsApp. Voice messages get transcribed and routed
-          to the same brain as the web chat — the twin replies in text.
-        </p>
-      </header>
+    <Page className="rs">
+      <PageHead title="Voice bridge" line="Talk to your twin from WhatsApp. It replies in text." />
 
-      <section
-        className="rounded-[20px] px-6 py-5 mb-5"
-        style={{
-          background: 'var(--surface)',
-          border: '1px solid var(--glass-surface-border)',
-          backdropFilter: 'blur(42px)',
-          WebkitBackdropFilter: 'blur(42px)',
-        }}
-      >
-        {state.status === 'loading' && (
-          <div className="text-[13px]" style={{ color: 'var(--text-muted)' }}>
-            Checking your bridge status…
-          </div>
-        )}
-
-        {state.status === 'none' && (
-          <div className="flex flex-col items-start gap-4">
-            <div>
-              <p className="text-[15px] mb-1" style={{ color: 'var(--foreground)' }}>
-                Not connected yet
-              </p>
-              <p className="text-[13px]" style={{ color: 'var(--text-muted)' }}>
-                One scan with your phone's WhatsApp and you're done.
-              </p>
-            </div>
-            <button
-              onClick={startLink}
-              disabled={starting}
-              className="px-5 py-2 rounded-[100px] text-[14px] font-medium transition-all duration-150 active:scale-[0.97] disabled:opacity-50"
-              style={{ background: 'var(--claura-bone)', color: 'var(--claura-bone-ink)' }}
-            >
-              {starting ? 'Generating QR…' : 'Link WhatsApp'}
-            </button>
-          </div>
-        )}
+      <List label="Voice bridge" className="pb-stack">
+        <Row
+          icon={<MessageCircle />}
+          title="WhatsApp"
+          line={line}
+          action={action}
+          className={state.status === 'pending' || state.status === 'linked' ? 'rs-row-has-body' : undefined}
+        />
 
         {state.status === 'pending' && (
-          <div className="flex flex-col items-center text-center">
+          <li className="rs-body">
             {state.qrCode ? (
-              <div
-                className="p-4 rounded-[12px] mb-4"
-                style={{ background: '#fff' }}
-              >
+              // The QR keeps a white ground so any phone camera can read it.
+              <div style={{ justifySelf: 'start', padding: 12, background: 'var(--rg-white)', border: '1px solid var(--rg-rule)', borderRadius: 4 }}>
                 {/* The bridge returns a data URL (image/png base64) or text */}
                 {state.qrCode.startsWith('data:image') ? (
                   <img src={state.qrCode} alt="WhatsApp link QR" className="w-56 h-56" />
                 ) : (
-                  <pre className="text-[10px] leading-tight" style={{ color: '#000' }}>
+                  <pre className="text-[10px] leading-tight" style={{ color: 'var(--rg-ink)', margin: 0 }}>
                     {state.qrCode}
                   </pre>
                 )}
               </div>
             ) : (
-              <div className="w-56 h-56 mb-4 rounded-[12px] animate-pulse" style={{ background: 'var(--surface)' }} />
+              <div className="w-56 h-56 animate-pulse" style={{ background: 'var(--rg-field)', borderRadius: 4 }} />
             )}
-            <ol
-              className="text-[13px] text-left list-decimal pl-5 mb-4 space-y-1 max-w-md"
-              style={{ color: 'var(--text-secondary)' }}
-            >
+            <ol className="rs-steps">
               <li>Open WhatsApp on your phone</li>
-              <li>Tap Settings → Linked Devices → Link a Device</li>
-              <li>Scan this QR code with your phone's camera</li>
+              <li>Tap Settings, then Linked devices, then Link a device</li>
+              <li>Scan this code</li>
             </ol>
-            <button
-              onClick={cancelLink}
-              className="text-[12px] underline"
-              style={{ color: 'var(--text-muted)' }}
-            >
-              Cancel
-            </button>
-          </div>
+          </li>
         )}
 
         {state.status === 'linked' && (
-          <div className="flex flex-col items-start gap-4">
-            <div className="flex items-center gap-3">
-              <span
-                className="w-2 h-2 rounded-full inline-block"
-                style={{ background: 'var(--n-verdigris)' }}
-                aria-hidden="true"
-              />
-              <p className="text-[15px]" style={{ color: 'var(--foreground)' }}>
-                Connected to <strong>{state.displayName || state.phoneNumber || 'WhatsApp'}</strong>
-              </p>
-            </div>
-            {state.linkedAt && (
-              <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>
-                Linked {new Date(state.linkedAt).toLocaleString()}
-              </p>
-            )}
-            <p className="text-[13px] mt-2 max-w-md" style={{ color: 'var(--text-secondary)' }}>
-              Send yourself a voice note on WhatsApp and your twin will reply.
-            </p>
-            <button
-              onClick={unlink}
-              className="text-[13px] underline mt-2"
-              style={{ color: confirmingUnlink ? 'var(--destructive)' : 'rgba(255,255,255,0.4)' }}
-            >
-              {confirmingUnlink ? 'Tap again to unlink — you can re-link any time' : 'Unlink'}
-            </button>
-          </div>
+          <li className="rs-body">
+            <p className="rs-quiet" style={{ color: 'var(--rg-ink-2)' }}>Send yourself a voice note on WhatsApp and your twin will reply.</p>
+          </li>
         )}
+      </List>
 
-        {state.status === 'error' && (
-          <div className="flex flex-col items-start gap-3">
-            <p className="text-[14px]" style={{ color: 'rgb(var(--n-ember-rgb) / 0.9)' }}>
-              {state.errorMessage || 'Something went wrong.'}
-            </p>
-            <button
-              onClick={fetchStatus}
-              className="text-[13px] underline"
-              style={{ color: 'var(--text-secondary)' }}
-            >
-              Retry
-            </button>
-          </div>
-        )}
-      </section>
-
-      <section className="text-[12px] space-y-2" style={{ color: 'var(--text-muted)' }}>
-        <p>
-          <strong>Privacy:</strong> the bridge holds your WhatsApp Web session keys (the same
-          ones your browser's WhatsApp Web uses). Voice audio is transcribed via Whisper and
-          stored as text only — the raw audio is discarded after transcription.
-        </p>
-        <p>
-          <strong>How it works:</strong> the bridge runs as a long-lived Go service on Fly.io.
-          WhatsApp Web sessions need a persistent connection, which is why this lives outside
-          our serverless API.
-        </p>
-      </section>
-    </div>
+      <p className="rs-quiet" style={{ marginTop: 24 }}>
+        The bridge keeps your WhatsApp Web session. Voice notes become text, and the audio is deleted.
+      </p>
+    </Page>
   );
 }

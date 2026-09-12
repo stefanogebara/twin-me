@@ -1,0 +1,50 @@
+/* ==========================================================================
+   The public share page (/s/:userId, /p/:userId) in the register. It had
+   been painted in a cream (#E8D5B7) for a dark ground, so on the page it had
+   all but vanished. It is the page kit now (Page, PageHead, Section, List,
+   Row): the archetype as the title, its line under it, then sections of rows.
+   Colour stays in the brand icons and in the radar's one data stroke.
+   ========================================================================== */
+
+.sh { min-height: 100vh; background: var(--rg-page); color: var(--rg-ink); }
+.sh--center { display: grid; place-items: center; }
+
+.sh-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 48px; }
+.sh-mark { font-weight: var(--rg-weight-title); color: var(--rg-ink); text-decoration: none; }
+.sh-mark:hover { color: var(--rg-ink-2); }
+
+.sh-who { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+.sh-avatar {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--rg-field);
+  color: var(--rg-ink-2);
+}
+.sh-who-label { font-weight: var(--rg-weight-title); color: var(--rg-ink); }
+.sh-platforms { display: flex; gap: 8px; margin: 0 0 0 auto; padding: 0; list-style: none; }
+
+/* A footnote under a list: one quiet line. */
+.sh-note { margin: 0; padding: 20px 12px 0; font-weight: var(--rg-weight-line); color: var(--rg-ink-3); }
+
+/* The narrative is the one paragraph the page holds, under the list's ink rule. */
+.sh-prose { padding: 20px 12px; border-top: 1px solid var(--rg-ink); border-bottom: 1px solid var(--rg-rule); }
+.sh-prose p { margin: 0; max-width: 64ch; font-weight: var(--rg-weight-prose); color: var(--rg-ink); }
+
+/* The radar beside its scores; the scores are rows, so the chart carries no text. */
+.sh-radar { display: grid; grid-template-columns: minmax(0, 240px) minmax(0, 1fr); gap: 40px; align-items: center; }
+.sh-radar svg { display: block; width: 100%; height: auto; }
+
+.sh-foot { display: grid; gap: 12px; margin-top: var(--rg-section); }
+.sh-foot-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+
+@media (max-width: 767px) {
+  .sh-top { margin-bottom: 32px; }
+  .sh-radar { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+  .sh-radar svg { max-width: 220px; justify-self: center; }
+  .sh-foot { margin-top: var(--rg-section-phone); }
+}

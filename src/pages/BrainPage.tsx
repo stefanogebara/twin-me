@@ -2,8 +2,11 @@
  * Memory Explorer
  *
  * A filterable, paginated view of the user's memory stream.
- * Dashboard-style layout: featured memory card, compact feed rows,
- * smart filters, composition bar, and collapsible data sources section.
+ *
+ * In the register (2026-09-12): an upright page title with the count as its
+ * grey line, the composition as one bar of kind-coloured marks, a field for
+ * search, 32px choices for filters (a pressed choice is the field with an ink
+ * line), and the memories as sections of rows under an ink rule.
  */
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
@@ -18,6 +21,7 @@ import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import MemoryFilters from '@/components/brain/MemoryFilters';
 import FeaturedMemory from '@/components/brain/FeaturedMemory';
 import MemoryFeed from '@/components/brain/MemoryFeed';
+import { Page, PageHead, Section, Empty } from '@/components/register';
 import {
   Memory,
   Composition,
@@ -26,6 +30,20 @@ import {
   TYPE_LABELS,
   PAGE_SIZE,
 } from '@/components/brain/brainConstants';
+
+/** An inline text action: ink, underlined, no box. */
+const textLink: React.CSSProperties = {
+  background: 'none',
+  border: 0,
+  padding: 0,
+  font: 'inherit',
+  color: 'var(--rg-ink)',
+  textDecoration: 'underline',
+  textUnderlineOffset: '3px',
+  cursor: 'pointer',
+};
+
+const COMPOSITION_ORDER = ['reflection', 'platform_data', 'fact', 'conversation', 'observation'] as const;
 
 /* ------------------------------------------------------------------ */
 /*  Component                                                          */
@@ -190,44 +208,31 @@ const BrainPage: React.FC = () => {
 
   if (!isLoaded) {
     return (
-      <div className="max-w-[720px] mx-auto px-4 sm:px-6 py-10 sm:py-16">
+      <Page>
         <div className="flex items-center justify-center h-64">
           <div
+            aria-label="Loading"
             className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin"
-            style={{ color: 'var(--text-secondary)' }}
+            style={{ color: 'var(--rg-ink-3)' }}
           />
         </div>
-      </div>
+      </Page>
     );
   }
 
   if (!isSignedIn) {
     return (
-      <div className="max-w-[720px] mx-auto px-4 sm:px-6 py-10 sm:py-16">
-        <h1
-          className="mb-2"
-          style={{
-            fontFamily: "var(--font-heading)",
-            fontStyle: 'italic',
-            fontSize: '32px',
-            fontWeight: 400,
-            color: 'var(--foreground)',
-            letterSpacing: '-0.02em',
-          }}
-        >
-          Your Memories
-        </h1>
-        <p className="text-sm mb-8" style={{ color: 'var(--text-muted)', fontFamily: "'Inter', sans-serif" }}>
-          Sign in to explore the memories shaping your twin.
-        </p>
-        <button
-          onClick={() => navigate('/auth')}
-          className="px-5 py-2.5 rounded-full text-sm font-medium transition-opacity hover:opacity-90"
-          style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--glass-surface-border)', color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}
-        >
-          Sign In to Explore
-        </button>
-      </div>
+      <Page>
+        <PageHead
+          title="Your memories"
+          line="Sign in to explore the memories shaping your twin."
+          action={
+            <button type="button" onClick={() => navigate('/auth')} className="n-btn n-btn--primary">
+              Sign in
+            </button>
+          }
+        />
+      </Page>
     );
   }
 
@@ -235,91 +240,67 @@ const BrainPage: React.FC = () => {
   /*  Main render                                                      */
   /* ---------------------------------------------------------------- */
 
+  const presentTypes = composition ? COMPOSITION_ORDER.filter(type => (composition[type] || 0) > 0) : [];
+
   return (
-    <div className="max-w-[720px] mx-auto px-4 sm:px-6 py-10 sm:py-16" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <Page>
+      {/* ===== Page title: the count is its grey line ===== */}
+      <header className="rg-apphead" style={{ marginBottom: 24 }}>
+        <h1 className="rg-apphead-title">Your memories</h1>
+        <p className="rg-apphead-line" style={{ fontVariantNumeric: 'tabular-nums' }}>
+          {compositionTotal > 0
+            ? `${compositionTotal.toLocaleString('en-US')} memories, and what kind they are.`
+            : ' '}
+        </p>
+      </header>
 
-
-      {/* ===== Section 1: Page Header ===== */}
-      <div className="mb-6">
-        <div className="flex items-baseline justify-between mb-3">
-          <h1
-            style={{
-              fontFamily: "var(--font-heading)",
-              fontStyle: 'italic',
-              fontSize: '32px',
-              fontWeight: 400,
-              color: 'var(--foreground)',
-              letterSpacing: '-0.02em',
-              margin: 0,
-              lineHeight: 1.2,
-            }}
+      {/* Composition: one bar of kind-coloured marks, and a legend in ink */}
+      {composition && compositionTotal > 0 && (
+        <div style={{ marginBottom: 32 }}>
+          <div className="flex w-full overflow-hidden" style={{ height: 8, gap: 2, borderRadius: 2 }} aria-hidden="true">
+            {presentTypes.map(type => {
+              const pct = ((composition[type] || 0) / compositionTotal) * 100;
+              return (
+                <div
+                  key={type}
+                  style={{
+                    width: `${pct}%`,
+                    backgroundColor: TYPE_COLORS[type] || '#8c8889',
+                    minWidth: pct > 0 ? '2px' : 0,
+                  }}
+                />
+              );
+            })}
+          </div>
+          <ul
+            className="flex flex-wrap"
+            style={{ margin: '10px 0 0', padding: 0, listStyle: 'none', columnGap: 16, rowGap: 4, color: 'var(--rg-ink-2)', fontWeight: 350, fontVariantNumeric: 'tabular-nums' }}
           >
-            Your Memories
-          </h1>
-          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-            {compositionTotal > 0
-              ? `${compositionTotal.toLocaleString('en-US')} memories`
-              : '\u00A0'}
-          </span>
+            {presentTypes.map(type => (
+              <li key={type} className="inline-flex items-center gap-1.5">
+                <span aria-hidden="true" style={{ width: 8, height: 8, borderRadius: 2, background: TYPE_COLORS[type] || '#8c8889' }} />
+                {Math.round(((composition[type] || 0) / compositionTotal) * 100)}% {TYPE_LABELS[type]}
+              </li>
+            ))}
+          </ul>
         </div>
+      )}
 
-        {/* Composition bar */}
-        {composition && compositionTotal > 0 && (
-          <>
-            <div
-              className="flex w-full overflow-hidden mb-2"
-              style={{ height: '4px', borderRadius: '2px', background: 'var(--surface)' }}
-            >
-              {(['reflection', 'platform_data', 'fact', 'conversation', 'observation'] as const).map(type => {
-                const count = composition[type] || 0;
-                if (count === 0) return null;
-                const pct = (count / compositionTotal) * 100;
-                return (
-                  <div
-                    key={type}
-                    style={{
-                      width: `${pct}%`,
-                      backgroundColor: TYPE_COLORS[type] || '#6B7280',
-                      minWidth: pct > 0 ? '2px' : 0,
-                    }}
-                  />
-                );
-              })}
-            </div>
-            <p className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
-              {(['reflection', 'platform_data', 'fact', 'conversation', 'observation'] as const)
-                .filter(type => (composition[type] || 0) > 0)
-                .map(type => {
-                  const count = composition[type] || 0;
-                  const pct = Math.round((count / compositionTotal) * 100);
-                  return `${pct}% ${TYPE_LABELS[type]}`;
-                })
-                .join(' \u00B7 ')}
-            </p>
-          </>
-        )}
-      </div>
-
-      {/* ===== Search ===== */}
-      <div className="relative mb-4">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none" style={{ color: 'var(--text-secondary)' }} />
+      {/* ===== Search: the field, no border ===== */}
+      <div className="relative" style={{ marginBottom: 16 }}>
+        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style={{ color: 'var(--rg-ink-2)' }} aria-hidden="true" />
         <input
           type="search"
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
-          placeholder="Search memories…"
+          placeholder="Search memories"
           aria-label="Search memories"
-          className="w-full pl-8 pr-3 py-2 text-sm rounded-[8px] outline-none transition-colors"
-          style={{
-            background: 'var(--surface)',
-            border: '1px solid var(--border-glass)',
-            color: 'var(--foreground)',
-            fontFamily: "'Inter', sans-serif",
-          }}
+          className="n-input w-full focus-visible:outline-2 focus-visible:outline-[var(--rg-ink)]"
+          style={{ paddingLeft: 38 }}
         />
       </div>
 
-      {/* ===== Section 2: Filter Chips ===== */}
+      {/* ===== Filters ===== */}
       <MemoryFilters
         activeExpert={activeExpert}
         activeType={activeType}
@@ -329,67 +310,62 @@ const BrainPage: React.FC = () => {
         onSortChange={setSort}
       />
 
-      {/* ===== Loading / Empty ===== */}
+      {/* ===== Loading / Error / Empty / Memories ===== */}
       {loading ? (
-        <div className="space-y-3">
-          {[1, 2, 3, 4, 5].map(i => (
-            <div
-              key={i}
-              className="px-4 py-3 rounded-[12px] animate-pulse"
-              style={{ background: 'var(--surface)', border: '1px solid var(--border-glass)' }}
-            >
-              <div className="flex items-start gap-3">
-                <div className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0" style={{ background: 'var(--surface-solid)' }} />
-                <div className="flex-1 space-y-2">
-                  <div className="h-3 rounded" style={{ background: 'var(--surface)', width: `${60 + (i * 7) % 30}%` }} />
-                  <div className="h-3 rounded w-2/5" style={{ background: 'var(--surface)' }} />
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+        <Section title="Memories">
+          <ul className="rg-list" aria-busy="true">
+            {[1, 2, 3, 4, 5].map(i => (
+              <li key={i} className="rg-row rg-row--plain">
+                <span className="rg-row-text" style={{ gap: 8 }}>
+                  <span className="block rounded-[4px] animate-pulse" style={{ height: 12, width: `${60 + (i * 7) % 30}%`, background: 'var(--rg-field)' }} />
+                  <span className="block rounded-[4px] animate-pulse" style={{ height: 12, width: '40%', background: 'var(--rg-field)' }} />
+                </span>
+                <span />
+              </li>
+            ))}
+          </ul>
+        </Section>
       ) : loadError ? (
-        <div className="py-16 text-center">
-          <p className="text-sm mb-1" style={{ color: 'var(--text-secondary)' }}>
-            Couldn't load your memories
-          </p>
-          <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-            Something went wrong. Your memories are safe — try again in a moment.
-          </p>
-          <button
-            onClick={() => fetchMemories({ expert: activeExpert, type: activeType, sort, offset: 0, search: searchQuery })}
-            className="mt-4 px-5 py-2 rounded-full text-sm font-medium transition-opacity hover:opacity-90"
-            style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--glass-surface-border)', color: 'var(--foreground)' }}
-          >
-            Try Again
-          </button>
-        </div>
+        <Section title="Memories">
+          <ul className="rg-list">
+            <li>
+              <Empty>
+                Couldn't load your memories. They are safe; try again in a moment.{' '}
+                <button
+                  type="button"
+                  style={textLink}
+                  onClick={() => fetchMemories({ expert: activeExpert, type: activeType, sort, offset: 0, search: searchQuery })}
+                >
+                  Try again
+                </button>
+              </Empty>
+            </li>
+          </ul>
+        </Section>
       ) : memories.length === 0 ? (
-        <div className="py-16 text-center">
-          <p className="text-sm mb-1" style={{ color: 'var(--text-secondary)' }}>
-            No memories found
-          </p>
-          <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-            {activeExpert || activeType
-              ? 'Try adjusting your filters.'
-              : 'Connect platforms to start building memories.'}
-          </p>
-          {!activeExpert && !activeType && (
-            <button
-              onClick={() => navigate('/get-started')}
-              className="mt-4 px-5 py-2 rounded-full text-sm font-medium transition-opacity hover:opacity-90"
-              style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--glass-surface-border)', color: 'var(--foreground)' }}
-            >
-              Connect Platforms
-            </button>
-          )}
-        </div>
+        <Section title="Memories">
+          <ul className="rg-list">
+            <li>
+              <Empty>
+                {activeExpert || activeType
+                  ? 'No memories match these filters.'
+                  : 'No memories yet. Connect platforms to start building them.'}
+                {!activeExpert && !activeType && (
+                  <>
+                    {' '}
+                    <button type="button" style={textLink} onClick={() => navigate('/get-started')}>
+                      Connect platforms
+                    </button>
+                  </>
+                )}
+              </Empty>
+            </li>
+          </ul>
+        </Section>
       ) : (
         <>
-          {/* ===== Section 3: Featured Memory ===== */}
           {featuredMemory && <FeaturedMemory memory={featuredMemory} />}
 
-          {/* ===== Section 4: Memory Feed ===== */}
           <MemoryFeed
             memories={feedMemories}
             hasFeatured={!!featuredMemory}
@@ -402,81 +378,58 @@ const BrainPage: React.FC = () => {
         </>
       )}
 
-      {/* ===== Collapsible "More" section ===== */}
-      <div className="mt-12" style={{ borderTop: '1px solid var(--border-glass)' }}>
-        <button
-          onClick={() => setShowMore(prev => !prev)}
-          className="w-full flex items-center justify-between py-4 transition-opacity hover:opacity-70"
-          style={{ color: 'var(--text-muted)', background: 'transparent', border: 'none' }}
-        >
-          <span className="text-xs font-medium">Show data sources & timeline</span>
-          <ChevronDown
-            className="w-4 h-4 transition-transform duration-200"
-            style={{ transform: showMore ? 'rotate(180deg)' : 'rotate(0deg)' }}
-          />
-        </button>
+      {/* ===== Data sources and timeline, behind one row ===== */}
+      <ul className="rg-list" style={{ marginTop: 'var(--rg-section)' }}>
+        <li>
+          <button
+            type="button"
+            onClick={() => setShowMore(prev => !prev)}
+            className="rg-row rg-row--link rg-row--plain"
+            aria-expanded={showMore}
+          >
+            <span className="rg-row-text">
+              <span className="rg-row-title">Data sources and timeline</span>
+              <span className="rg-row-line">Upload your data, and see how your twin has grown.</span>
+            </span>
+            <span className="rg-row-action">
+              <ChevronDown
+                className="rg-chevron"
+                aria-hidden="true"
+                style={{ transform: showMore ? 'rotate(180deg)' : 'none', transition: 'transform var(--rg-quick)' }}
+              />
+            </span>
+          </button>
+        </li>
+      </ul>
 
-        {showMore && (
-          <div className="pb-8 space-y-10">
-            {user?.id && (
-              <section>
-                <span
-                  className="block mb-4"
-                  style={{
-                    fontSize: '11px',
-                    fontWeight: 500,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.15em',
-                    color: 'var(--text-muted)',
-                  }}
-                >
-                  Upload Your Data
-                </span>
-                <DataUploadPanel userId={user.id} />
-              </section>
-            )}
+      {showMore && (
+        <div style={{ marginTop: 'var(--rg-section)' }}>
+          {user?.id && (
+            <Section title="Upload your data">
+              <DataUploadPanel userId={user.id} />
+            </Section>
+          )}
 
-            {snapshotsError && snapshots.length === 0 && (
-              <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                Couldn't load your soul signature timeline.{' '}
-                <button
-                  onClick={fetchSnapshots}
-                  className="underline transition-opacity hover:opacity-70"
-                  style={{ color: 'var(--foreground)', background: 'transparent', border: 'none', padding: 0, font: 'inherit', cursor: 'pointer' }}
-                >
-                  Retry
-                </button>
-              </p>
-            )}
+          {snapshotsError && snapshots.length === 0 && (
+            <p className="rg-empty" style={{ padding: '24px 0 0' }}>
+              Couldn't load your soul signature timeline.{' '}
+              <button type="button" onClick={fetchSnapshots} style={textLink}>
+                Retry
+              </button>
+            </p>
+          )}
 
-            {snapshots.length >= 2 && (
-              <section>
-                <div className="flex items-center justify-between mb-2">
-                  <span
-                    style={{
-                      fontSize: '11px',
-                      fontWeight: 500,
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.15em',
-                      color: 'var(--text-muted)',
-                    }}
-                  >
-                    Soul Signature Evolution
-                  </span>
-                  <span className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
-                    {snapshots.length} snapshots
-                  </span>
-                </div>
-                <p className="text-xs mb-4" style={{ color: 'var(--text-secondary)' }}>
-                  How your twin's understanding of you has grown over time.
-                </p>
-                <SoulEvolutionTimeline snapshots={snapshots} />
-              </section>
-            )}
-          </div>
-        )}
-      </div>
-    </div>
+          {snapshots.length >= 2 && (
+            <Section
+              title="How your twin has grown"
+              line={`How its understanding of you has changed, over ${snapshots.length} snapshots.`}
+            >
+              <SoulEvolutionTimeline snapshots={snapshots} />
+            </Section>
+          )}
+        </div>
+      )}
+    </Page>
   );
 };
 

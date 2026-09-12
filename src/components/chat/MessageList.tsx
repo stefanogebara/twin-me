@@ -37,11 +37,11 @@ function getErrorMessage(errorType?: ChatErrorType): string {
 function getErrorIcon(errorType?: ChatErrorType) {
   switch (errorType) {
     case 'timeout':
-      return <Clock className="w-4 h-4 flex-shrink-0" style={{ color: 'rgba(239,68,68,0.8)' }} />;
+      return <Clock className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--rg-danger)' }} />;
     case 'network':
-      return <WifiOff className="w-4 h-4 flex-shrink-0" style={{ color: 'rgba(239,68,68,0.8)' }} />;
+      return <WifiOff className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--rg-danger)' }} />;
     default:
-      return <AlertCircle className="w-4 h-4 flex-shrink-0" style={{ color: 'rgba(239,68,68,0.8)' }} />;
+      return <AlertCircle className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--rg-danger)' }} />;
   }
 }
 
@@ -150,11 +150,13 @@ const AssistantMessageBody = memo(function AssistantMessageBody({
   return (
     <>
       <div
-        className="prose prose-invert max-w-none [&>p]:mb-5 [&>p:first-child]:mt-0 [&>p:last-child]:mb-0 [&>h3]:mt-6 [&>h3]:mb-2 [&>hr]:my-5 [&>ul]:mb-5 [&>ol]:mb-5"
+        className="max-w-none [&>p]:mb-5 [&>p:first-child]:mt-0 [&>p:last-child]:mb-0 [&>h3]:mt-6 [&>h3]:mb-2 [&>hr]:my-5 [&>ul]:mb-5 [&>ol]:mb-5"
         style={{
-          fontSize: '14px',
-          color: '#D1D5DB',
-          lineHeight: '24px',
+          // The register: the twin speaks in ink on the page. #D1D5DB was the
+          // dark theme's grey and read 1.4:1 once the page went light.
+          fontSize: 'var(--rg-text)',
+          color: 'var(--rg-ink)',
+          lineHeight: '21px',
         }}
       >
         <ReactMarkdown remarkPlugins={REMARK_PLUGINS}>
@@ -206,7 +208,8 @@ export const MessageList = memo(forwardRef<HTMLDivElement, MessageListProps>(
                       className="whitespace-pre-wrap text-right"
                       style={{
                         fontSize: '13px',
-                        color: message.failed ? '#EF4444' : '#EDEDED',
+                        // The register: ink on the page. #EDEDED was near-white and vanished once the page went light.
+                        color: message.failed ? 'var(--rg-danger)' : 'var(--rg-ink)',
                         opacity: message.failed ? 0.8 : 1,
                         lineHeight: 1.7,
                       }}
@@ -216,17 +219,17 @@ export const MessageList = memo(forwardRef<HTMLDivElement, MessageListProps>(
 
                     {message.failed && (
                       <div
-                        className="mt-3 rounded-xl px-4 py-3"
+                        className="mt-3 rounded-[4px] px-4 py-3"
                         style={{
-                          backgroundColor: 'rgba(239,68,68,0.08)',
-                          border: '1px solid rgba(239,68,68,0.15)',
+                          backgroundColor: 'var(--rg-white)',
+                          border: '1px solid var(--rg-danger-line)',
                         }}
                       >
                         <div className="flex items-start gap-2.5">
                           {getErrorIcon(message.errorType)}
                           <p
                             className="text-[13px] leading-relaxed"
-                            style={{ color: 'rgba(239,68,68,0.8)' }}
+                            style={{ color: 'var(--rg-danger)' }}
                           >
                             {getErrorMessage(message.errorType)}
                           </p>
@@ -235,13 +238,14 @@ export const MessageList = memo(forwardRef<HTMLDivElement, MessageListProps>(
                           <div className="mt-2.5 flex justify-end">
                             <button
                               onClick={() => onRetry(message.content, message.id)}
-                              className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-medium transition-colors"
+                              className="flex items-center gap-1.5 rounded-[4px] px-4 h-8 text-[13px] transition-colors"
                               style={{
-                                backgroundColor: 'rgba(239,68,68,0.1)',
-                                color: 'rgba(239,68,68,0.9)',
+                                backgroundColor: 'var(--rg-white)',
+                                border: '1px solid var(--rg-danger-line)',
+                                color: 'var(--rg-danger)',
                               }}
-                              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(239,68,68,0.15)'; }}
-                              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'rgba(239,68,68,0.1)'; }}
+                              onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--rg-danger)'; }}
+                              onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--rg-danger-line)'; }}
                             >
                               <RotateCcw className="w-3 h-3" />
                               Try again
@@ -252,7 +256,7 @@ export const MessageList = memo(forwardRef<HTMLDivElement, MessageListProps>(
                     )}
                   </div>
                   <div
-                    className="text-[11px] mt-1.5 text-right pr-1"
+                    className="text-[13px] mt-1.5 text-right pr-1"
                     style={{ color: 'var(--text-muted)' }}
                   >
                     {formatRelativeTime(message.timestamp)}
@@ -312,17 +316,17 @@ export const MessageList = memo(forwardRef<HTMLDivElement, MessageListProps>(
 
                     {message.failed && (
                       <div
-                        className="mt-3 rounded-xl px-4 py-3"
+                        className="mt-3 rounded-[4px] px-4 py-3"
                         style={{
-                          backgroundColor: 'rgba(239,68,68,0.08)',
-                          border: '1px solid rgba(239,68,68,0.15)',
+                          backgroundColor: 'var(--rg-white)',
+                          border: '1px solid var(--rg-danger-line)',
                         }}
                       >
                         <div className="flex items-start gap-2.5">
                           {getErrorIcon(message.errorType)}
                           <p
                             className="text-[13px] leading-relaxed"
-                            style={{ color: 'rgba(239,68,68,0.8)' }}
+                            style={{ color: 'var(--rg-danger)' }}
                           >
                             {getErrorMessage(message.errorType)}
                           </p>
@@ -341,13 +345,14 @@ export const MessageList = memo(forwardRef<HTMLDivElement, MessageListProps>(
                                   .find(m => m.role === 'user');
                                 onRetry(prevUserMsg?.content ?? '', message.id);
                               }}
-                              className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-medium transition-colors"
+                              className="flex items-center gap-1.5 rounded-[4px] px-4 h-8 text-[13px] transition-colors"
                               style={{
-                                backgroundColor: 'rgba(239,68,68,0.1)',
-                                color: 'rgba(239,68,68,0.9)',
+                                backgroundColor: 'var(--rg-white)',
+                                border: '1px solid var(--rg-danger-line)',
+                                color: 'var(--rg-danger)',
                               }}
-                              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(239,68,68,0.15)'; }}
-                              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'rgba(239,68,68,0.1)'; }}
+                              onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--rg-danger)'; }}
+                              onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--rg-danger-line)'; }}
                             >
                               <RotateCcw className="w-3 h-3" />
                               Try again
@@ -368,8 +373,8 @@ export const MessageList = memo(forwardRef<HTMLDivElement, MessageListProps>(
                             real source that fed this response). */}
                         {message.contextUsed?.platformData && message.contextUsed.platformData.length > 0 && (
                           <span
-                            className="text-[10px] px-1.5 py-0.5 rounded-full"
-                            style={{ color: 'var(--text-muted)', opacity: 0.6 }}
+                            className="text-[13px]"
+                            style={{ color: 'var(--rg-ink-3)', fontWeight: 350 }}
                             title="Live platform data used for this answer"
                           >
                             from your {message.contextUsed.platformData
@@ -380,8 +385,8 @@ export const MessageList = memo(forwardRef<HTMLDivElement, MessageListProps>(
                         )}
                         {message.contextUsed?.memoryStream && message.contextUsed.memoryStream.total > 0 && (
                           <span
-                            className="text-[10px] px-1.5 py-0.5 rounded-full"
-                            style={{ color: 'var(--text-muted)', opacity: 0.6 }}
+                            className="text-[13px]"
+                            style={{ color: 'var(--rg-ink-3)', fontWeight: 350 }}
                             title={`${message.contextUsed.memoryStream.reflections} reflections, ${message.contextUsed.memoryStream.facts} facts`}
                           >
                             {message.contextUsed.memoryStream.total} memories
@@ -389,8 +394,8 @@ export const MessageList = memo(forwardRef<HTMLDivElement, MessageListProps>(
                         )}
                         {message.contextUsed?.proactiveInsights && message.contextUsed.proactiveInsights.length > 0 && (
                           <span
-                            className="text-[10px] px-1.5 py-0.5 rounded-full"
-                            style={{ color: 'var(--text-muted)', opacity: 0.6 }}
+                            className="text-[13px]"
+                            style={{ color: 'var(--rg-ink-3)', fontWeight: 350 }}
                             title={message.contextUsed.proactiveInsights.map(i => i.insight).join('\n')}
                           >
                             {message.contextUsed.proactiveInsights.length} insight{message.contextUsed.proactiveInsights.length > 1 ? 's' : ''}
@@ -398,8 +403,8 @@ export const MessageList = memo(forwardRef<HTMLDivElement, MessageListProps>(
                         )}
                         {message.contextUsed?.evidenceConfidence?.level === 'low' && (
                           <span
-                            className="text-[10px] px-1.5 py-0.5 rounded-full"
-                            style={{ color: 'var(--text-muted)', opacity: 0.6, border: '1px solid var(--border-glass)' }}
+                            className="text-[13px]"
+                            style={{ color: 'var(--rg-ink-3)', fontWeight: 350 }}
                             title="The twin had thin evidence for this answer — treat it as a guess"
                           >
                             thin evidence
@@ -415,7 +420,7 @@ export const MessageList = memo(forwardRef<HTMLDivElement, MessageListProps>(
                                 markCopied(message.id);
                               }}
                               className="p-1 rounded-md transition-all hover:scale-110"
-                              style={{ color: copied[message.id] ? 'rgb(var(--n-verdigris-rgb) / 0.7)' : 'var(--text-muted)' }}
+                              style={{ color: copied[message.id] ? 'var(--rg-ink)' : 'var(--text-muted)' }}
                               aria-label="Copy message"
                               title={copied[message.id] ? 'Copied!' : 'Copy'}
                             >
@@ -425,8 +430,8 @@ export const MessageList = memo(forwardRef<HTMLDivElement, MessageListProps>(
                             </button>
                             {onRate && (rated[message.id] != null ? (
                               <span
-                                className="text-[11px] px-2 py-0.5 rounded-full"
-                                style={{ color: 'var(--text-muted)', border: '1px solid var(--border-glass)' }}
+                                className="text-[13px] px-1"
+                                style={{ color: 'var(--rg-ink-3)' }}
                               >
                                 {rated[message.id] === 1 ? 'Thanks!' : 'Noted'}
                               </span>
@@ -472,7 +477,7 @@ export const MessageList = memo(forwardRef<HTMLDivElement, MessageListProps>(
                     )}
 
                     <div
-                      className="text-[11px] mt-1.5 text-left"
+                      className="text-[13px] mt-1.5 text-left"
                       style={{ color: 'var(--text-muted)' }}
                     >
                       {formatRelativeTime(message.timestamp)}

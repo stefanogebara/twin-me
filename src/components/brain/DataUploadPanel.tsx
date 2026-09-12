@@ -404,7 +404,7 @@ export function DataUploadPanel({ userId, onImportComplete }: DataUploadPanelPro
           </p>
           <button
             onClick={() => setStep('selecting')}
-            className="flex-shrink-0 ml-4 flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white"
+            className="flex-shrink-0 ml-4 flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-[var(--rg-ink)]"
             style={{ background: 'var(--surface)', border: '1px solid var(--glass-surface-border)' }}
           >
             <Upload size={14} />

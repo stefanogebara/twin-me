@@ -1,31 +1,23 @@
 /**
- * ContextSidebar — Right panel for split-panel identity layout
- * =============================================================
- * Individual glass cards stacked on the gradient, not one big container.
- * Card 1: Soul Score ring + contributor grid
- * Card 2: Tabbed content (Soul / Insights / Activity)
- * Card 3: Chat CTA
+ * ContextSidebar — identity's closing sections
+ * =============================================
+ * Once a right-hand column of glass cards; in the register /identity is one
+ * 820px column, so these are its last sections:
+ *   Soul score (the ring and the six contributors, as rows)
+ *   Your twin  (Soul / Insights / Activity choices over rows, and the chat link)
  */
 
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { MessageCircle, ArrowRight, Clock, Zap, Loader2, AlertCircle } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Clock, Zap } from 'lucide-react';
 import { authFetch } from '@/services/api/apiBase';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePlatformsSummary } from '@/hooks/usePlatformsSummary';
+import { Section, List, Row, Empty } from '@/components/register';
 import SoulScore from './SoulScore';
 import InsightCards from './InsightCards';
 import SidebarTabs, { type SidebarTab } from './SidebarTabs';
-
-const glassStyle: React.CSSProperties = {
-  background: 'var(--surface)',
-  backdropFilter: 'blur(42px)',
-  WebkitBackdropFilter: 'blur(42px)',
-  border: '1px solid var(--glass-surface-border)',
-  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), 0 4px 16px rgba(0,0,0,0.15)',
-};
 
 interface ContextSidebarProps {
   className?: string;
@@ -35,9 +27,20 @@ interface SoulLayersLite {
   rhythms?: { chronotype?: string };
 }
 
+/** An inline text action: ink, underlined, no box. */
+const textLink: React.CSSProperties = {
+  background: 'none',
+  border: 0,
+  padding: 0,
+  font: 'inherit',
+  color: 'var(--rg-ink)',
+  textDecoration: 'underline',
+  textUnderlineOffset: '3px',
+  cursor: 'pointer',
+};
+
 const ContextSidebar: React.FC<ContextSidebarProps> = ({ className = '' }) => {
   const [activeTab, setActiveTab] = useState<SidebarTab>('soul');
-  const navigate = useNavigate();
   const { user } = useAuth();
 
   // batch3 state-unification: canonical /platforms/summary hook. Display
@@ -137,147 +140,68 @@ const ContextSidebar: React.FC<ContextSidebarProps> = ({ className = '' }) => {
   });
 
   return (
-    <div className={`space-y-4 ${className}`}>
-      {/* ── Card 1: Soul Score ────────────────────────────────── */}
-      <div
-        className="rounded-[20px] px-5 py-5 transition-all duration-300 hover:-translate-y-0.5"
-        style={glassStyle}
-      >
-        <SoulScore compact />
-      </div>
+    <>
+      <SoulScore compact className={className} />
 
-      {/* ── Card 2: Tabbed Content ────────────────────────────── */}
-      <div
-        className="rounded-[20px] px-5 py-5 transition-all duration-300 hover:-translate-y-0.5"
-        style={glassStyle}
+      <Section
+        title="Your twin"
+        action={<Link to="/talk-to-twin" className="n-btn n-btn--ghost">Chat with your twin</Link>}
       >
         <SidebarTabs activeTab={activeTab} onTabChange={setActiveTab} />
 
-        <div className="mt-4 min-h-[120px]">
-          {activeTab === 'soul' && (
-            <motion.div
-              key="soul"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.25 }}
-            >
-              <p
-                className="text-xs text-center py-3"
-                style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
-              >
-                {activeCount >= 3
-                  ? `Your twin is learning from ${activeCount} active source${activeCount !== 1 ? 's' : ''}`
-                  : 'Connect more platforms to deepen your soul signature'}
-              </p>
-            </motion.div>
-          )}
+        {activeTab === 'soul' && (
+          <List>
+            <Row
+              title={activeCount >= 3
+                ? `Learning from ${activeCount} active source${activeCount !== 1 ? 's' : ''}`
+                : 'Connect more platforms to deepen your soul signature'}
+            />
+          </List>
+        )}
 
-          {activeTab === 'insights' && (
-            <motion.div
-              key="insights"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.25 }}
-            >
-              {insightsLoading ? (
-                <div className="flex items-center justify-center gap-2 py-6">
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" style={{ color: 'var(--text-muted)' }} />
-                  <span className="text-xs" style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
-                    Loading your insights...
-                  </span>
-                </div>
-              ) : insightsFailed ? (
-                <div className="flex flex-col items-center gap-2.5 py-5">
-                  <div className="flex items-center gap-2">
-                    <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'rgba(239,68,68,0.7)' }} />
-                    <span className="text-xs" style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
-                      Could not load your insight stats
-                    </span>
-                  </div>
-                  <button
-                    onClick={retryInsights}
-                    className="text-xs px-3 py-1.5 rounded-[100px] transition-all duration-150 hover:opacity-80 active:scale-[0.97]"
-                    style={{ background: 'var(--surface)', color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}
-                  >
-                    Try again
-                  </button>
-                </div>
-              ) : (
-                <InsightCards
-                  axes={axes}
-                  memoryCount={memorySummary.total}
-                  platformCount={activeCount}
-                  fidelityScore={fidelity?.fidelity_score ?? null}
-                  joinedAt={joinedAt}
-                  chronotype={chronotype}
-                  className="[&>div]:flex-col [&>div]:overflow-visible [&>div]:gap-3"
+        {activeTab === 'insights' && (
+          insightsLoading ? (
+            <List><li><Empty>Loading your insights.</Empty></li></List>
+          ) : insightsFailed ? (
+            <List>
+              <li>
+                <Empty>
+                  Could not load your insight stats.{' '}
+                  <button type="button" style={textLink} onClick={retryInsights}>Try again</button>
+                </Empty>
+              </li>
+            </List>
+          ) : (
+            <InsightCards
+              axes={axes}
+              memoryCount={memorySummary.total}
+              platformCount={activeCount}
+              fidelityScore={fidelity?.fidelity_score ?? null}
+              joinedAt={joinedAt}
+              chronotype={chronotype}
+            />
+          )
+        )}
+
+        {activeTab === 'activity' && (
+          <List label="Recent activity">
+            {activityData?.memories && activityData.memories.length > 0 ? (
+              activityData.memories.slice(0, 6).map((mem, i) => (
+                <Row
+                  key={i}
+                  icon={mem.memory_type === 'reflection' ? <Zap aria-hidden="true" /> : <Clock aria-hidden="true" />}
+                  title={new Date(mem.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  line={mem.content}
+                  clip
                 />
-              )}
-            </motion.div>
-          )}
-
-          {activeTab === 'activity' && (
-            <motion.div
-              key="activity"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.25 }}
-              className="space-y-2"
-            >
-              <h3
-                className="text-[11px] font-medium tracking-[0.12em] uppercase"
-                style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
-              >
-                Recent Activity
-              </h3>
-              {activityData?.memories && activityData.memories.length > 0 ? (
-                activityData.memories.slice(0, 6).map((mem, i) => (
-                  <div
-                    key={i}
-                    className="flex items-start gap-2.5 px-3 py-2 rounded-[12px] transition-all duration-150 hover:bg-[var(--surface)]"
-                  >
-                    <div className="mt-0.5">
-                      {mem.memory_type === 'reflection' ? (
-                        <Zap className="w-3.5 h-3.5" style={{ color: 'var(--text-secondary)' }} />
-                      ) : (
-                        <Clock className="w-3.5 h-3.5" style={{ color: 'var(--text-muted)' }} />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs leading-relaxed line-clamp-2" style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
-                        {mem.content}
-                      </p>
-                      <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
-                        {new Date(mem.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                      </p>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <p className="text-xs text-center py-4" style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
-                  Activity will appear as your twin learns more about you
-                </p>
-              )}
-            </motion.div>
-          )}
-        </div>
-      </div>
-
-      {/* ── Card 3: Chat CTA ──────────────────────────────────── */}
-      <button
-        onClick={() => navigate('/talk-to-twin')}
-        className="flex items-center justify-center gap-2 w-full px-4 py-3 rounded-[100px] text-sm font-medium transition-all duration-150 hover:opacity-85 active:scale-[0.98]"
-        style={{
-          background: 'var(--accent-vibrant)',
-          color: '#0a0909',
-          fontFamily: "'Inter', sans-serif",
-        }}
-      >
-        <MessageCircle className="w-4 h-4" />
-        Chat with your Twin
-        <ArrowRight className="w-3.5 h-3.5" />
-      </button>
-    </div>
+              ))
+            ) : (
+              <li><Empty>Activity will appear as your twin learns more about you.</Empty></li>
+            )}
+          </List>
+        )}
+      </Section>
+    </>
   );
 };
 

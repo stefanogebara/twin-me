@@ -779,7 +779,7 @@ const TalkToTwin = () => {
           />
           <div
             className="absolute left-0 top-0 bottom-0 z-30 w-64 sm:w-72 max-w-[85vw] border-r flex flex-col"
-            style={{ background: 'var(--card)', borderColor: 'rgba(255,255,255,0.10)', backdropFilter: 'blur(42px)', WebkitBackdropFilter: 'blur(42px)' }}
+            style={{ background: 'var(--rg-page)', borderColor: 'var(--rg-rule)' }}
           >
             <ConversationList
               activeConversationId={conversationId}

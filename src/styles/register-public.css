@@ -1,0 +1,30 @@
+/* ==========================================================================
+   What the public pages need that the page kit (register-kit.css) does not
+   carry yet. Built from register.css tokens only; each rule names the gap it
+   fills so it can move into the kit and leave here.
+   ========================================================================== */
+
+/* A row whose action would squeeze its grey line on a phone: the action drops
+   under the text instead (the register: "never a button that squeezes the
+   grey line"). Put .pb-stack on the list. */
+@media (max-width: 560px) {
+  .pb-stack .rg-row { grid-template-columns: minmax(0, 1fr); row-gap: 12px; }
+  .pb-stack .rg-row:not(.rg-row--plain) { grid-template-columns: 32px minmax(0, 1fr); }
+  .pb-stack .rg-row:not(.rg-row--plain) .rg-row-action { grid-column: 2; }
+  .pb-stack .rg-row-action { justify-self: start; }
+  .pb-stack .rg-row > span:empty { display: none; }
+}
+
+/* A marketing page's section heading: the large Cosmos size. */
+.pb-marketing .rg-sechead-title { font-size: var(--rg-section-title-marketing); }
+
+/* The one main call to action of a marketing or sign-in page, outside money's
+   .mv: 48 tall, a 12 corner, 15px at 500. Add to an .n-btn. */
+.n-btn.pb-cta {
+  height: var(--rg-cta);
+  padding: 0 22px;
+  border-radius: var(--rg-radius-cta);
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: -0.011em;
+}

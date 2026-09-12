@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
-import { Bot, Zap, Brain, Heart, Music, AlertTriangle } from 'lucide-react';
+import { Bot, Zap, Brain, Heart, Music } from 'lucide-react';
 import { API_URL, getAccessToken } from '@/services/api/apiBase';
+import { List, Row, Empty } from '@/components/register';
 
 
 const getAuthHeaders = () => {
@@ -11,26 +11,22 @@ const getAuthHeaders = () => {
   return headers;
 };
 
-// Autonomy level labels and colors
-// audit-2026-07-03 H5: the current-level badge renders dark text on this
-// translucent fill. The two lowest fills (Suggest 0.4, Draft 0.5) left the
-// badge below AA (Suggest 3.24:1). Raised to 0.6 so dark #1b1818 text reaches
-// 5.42:1; the badge text color below is now dark for ALL levels so no level
-// falls back to low-contrast white-on-pale.
+// Autonomy levels, 0-4. The register shows them as one select per skill: the
+// old five-dot track with 9px tracked caps under it (OBS, SUG...) failed AA.
 const AUTONOMY_LEVELS = [
-  { label: 'Observe', short: 'OBS', color: 'var(--text-secondary)' },
-  { label: 'Suggest', short: 'SUG', color: 'rgba(232,224,212,0.6)' },
-  { label: 'Draft', short: 'DFT', color: 'rgba(232,224,212,0.6)' },
-  { label: 'Act & Notify', short: 'ACT', color: 'rgba(232,224,212,0.7)' },
-  { label: 'Autonomous', short: 'AUTO', color: 'rgba(232,224,212,0.9)' },
+  { label: 'Observe' },
+  { label: 'Suggest' },
+  { label: 'Draft' },
+  { label: 'Act, then tell me' },
+  { label: 'Act on its own' },
 ] as const;
 
-// Category icons
+// Category icons: the icon square names the category, so no label is needed.
 const CATEGORY_ICONS: Record<string, React.ReactNode> = {
-  daily_rituals: <Zap className="w-3.5 h-3.5" />,
-  self_discovery: <Brain className="w-3.5 h-3.5" />,
-  social_intelligence: <Heart className="w-3.5 h-3.5" />,
-  content_curation: <Music className="w-3.5 h-3.5" />,
+  daily_rituals: <Zap />,
+  self_discovery: <Brain />,
+  social_intelligence: <Heart />,
+  content_curation: <Music />,
 };
 
 interface SkillSetting {
@@ -103,30 +99,18 @@ const AutonomySettings: React.FC = () => {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center gap-2 py-6 justify-center">
-        <div
-          className="w-4 h-4 rounded-full animate-pulse"
-          style={{ background: 'var(--glass-surface-border)' }}
-        />
-        <span className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>
-          Loading skills...
-        </span>
-      </div>
-    );
+    return <List label="Skills"><li><Empty>Loading skills</Empty></li></List>;
   }
 
   if (skills.length === 0) {
     return (
-      <div className="py-4">
-        <p className="text-[13px]" style={{ color: 'var(--text-secondary)', fontFamily: 'Inter, sans-serif' }}>
-          Agentic skills unlock as your twin builds a picture of your routines. Check back once you have a few days of platform data.
-        </p>
-      </div>
+      <List label="Skills">
+        <li><Empty>Skills unlock once your twin has a few days of your data.</Empty></li>
+      </List>
     );
   }
 
-  // Group by category
+  // Grouped by category, as before: the rows keep their category's order.
   const byCategory = skills.reduce<Record<string, SkillSetting[]>>((acc, skill) => {
     const cat = skill.category || 'other';
     if (!acc[cat]) acc[cat] = [];
@@ -134,175 +118,36 @@ const AutonomySettings: React.FC = () => {
     return acc;
   }, {});
 
-  const categoryLabels: Record<string, string> = {
-    daily_rituals: 'Daily Rituals',
-    self_discovery: 'Self Discovery',
-    social_intelligence: 'Social Intelligence',
-    content_curation: 'Content Curation',
-  };
-
   return (
-    <div>
-      {/* Explainer */}
-      <div
-        className="flex items-start gap-3 mb-5 p-3 rounded-xl"
-        style={{ background: 'var(--surface)', border: '1px solid var(--border-glass)' }}
-      >
-        <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" style={{ color: 'var(--accent-vibrant)' }} />
-        <p className="text-[12px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-          Fine-grained skill controls. To adjust how your twin acts day to day, just <Link to="/talk-to-twin" className="underline" style={{ color: 'var(--accent-vibrant)' }}>talk to your twin</Link>.
-        </p>
-      </div>
-
-      {Object.entries(byCategory).map(([category, categorySkills]) => (
-        <div key={category} className="mb-4 last:mb-0">
-          {/* Category header */}
-          <div className="flex items-center gap-2 mb-2">
-            <span style={{ color: 'var(--text-secondary)' }}>
-              {CATEGORY_ICONS[category] || <Bot className="w-3.5 h-3.5" />}
-            </span>
-            <span
-              className="text-[11px] font-medium uppercase tracking-wider"
-              style={{ color: 'var(--text-secondary)' }}
-            >
-              {categoryLabels[category] || category}
-            </span>
-          </div>
-
-          {/* Skills in category */}
-          {categorySkills.map((skill) => (
-            <SkillRow
+    <List label="Skills" className="pb-stack">
+      {Object.entries(byCategory).flatMap(([category, categorySkills]) =>
+        categorySkills.map((skill) => {
+          const level = skill.effective_autonomy_level;
+          const name = skill.display_name || skill.name;
+          return (
+            <Row
               key={skill.id}
-              skill={skill}
-              isUpdating={updating === skill.id}
-              onLevelChange={handleLevelChange}
-            />
-          ))}
-        </div>
-      ))}
-    </div>
-  );
-};
-
-// ── Individual skill row with autonomy slider ───────────────────────────
-
-interface SkillRowProps {
-  skill: SkillSetting;
-  isUpdating: boolean;
-  onLevelChange: (skillId: string, level: number) => void;
-}
-
-const SkillRow: React.FC<SkillRowProps> = ({ skill, isUpdating, onLevelChange }) => {
-  const level = skill.effective_autonomy_level;
-  const levelInfo = AUTONOMY_LEVELS[level] || AUTONOMY_LEVELS[1];
-
-  return (
-    <div
-      className="py-3"
-      style={{ borderBottom: '1px solid var(--border-glass)' }}
-    >
-      {/* Skill info row */}
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex-1 min-w-0">
-          <span className="text-sm block" style={{ color: 'var(--foreground)' }}>
-            {skill.display_name || skill.name}
-          </span>
-          <p
-            className="text-[11px] mt-0.5 truncate"
-            style={{ color: 'var(--text-secondary)' }}
-          >
-            {skill.description}
-          </p>
-        </div>
-
-        {/* Current level badge */}
-        <span
-          className="text-[10px] font-medium uppercase tracking-wider px-2 py-0.5 rounded-full shrink-0 ml-3 transition-colors"
-          style={{
-            background: levelInfo.color,
-            // audit-2026-07-03 H5: dark text on every level. The pale streak
-            // fill needs dark text for AA (>=4.73:1); white-on-pale was 3.24:1.
-            color: '#1b1818',
-            opacity: isUpdating ? 0.5 : 1,
-          }}
-        >
-          {levelInfo.label}
-        </span>
-      </div>
-
-      {/* Slider track */}
-      <div className="flex items-center gap-2">
-        <div
-          className="flex-1 relative h-6 flex items-center cursor-pointer"
-        >
-          {/* Track background */}
-          <div
-            className="absolute inset-x-0 h-1 rounded-full"
-            style={{ background: 'var(--input)', top: '50%', transform: 'translateY(-50%)' }}
-          />
-
-          {/* Filled track */}
-          <div
-            className="absolute h-1 rounded-full transition-all duration-200"
-            style={{
-              background: `linear-gradient(90deg, rgba(255,172,64,0.3), ${levelInfo.color})`,
-              width: `${(level / 4) * 100}%`,
-              top: '50%',
-              transform: 'translateY(-50%)',
-            }}
-          />
-
-          {/* Dot stops */}
-          {AUTONOMY_LEVELS.map((_, i) => (
-            <button
-              key={i}
-              onClick={() => onLevelChange(skill.id, i)}
-              disabled={isUpdating}
-              className="absolute w-3 h-3 rounded-full transition-all duration-200 hover:scale-125 disabled:cursor-not-allowed"
-              style={{
-                left: `calc(${(i / 4) * 100}% - 6px)`,
-                background: i <= level
-                  ? AUTONOMY_LEVELS[i].color
-                  : 'rgba(255,255,255,0.12)',
-                border: i === level
-                  ? '2px solid var(--accent-vibrant)'
-                  : '1px solid var(--glass-surface-border)',
-                boxShadow: i === level ? '0 0 6px rgba(232,224,212,0.3)' : 'none',
-              }}
-              aria-label={`Set autonomy to ${AUTONOMY_LEVELS[i].label}`}
-              title={AUTONOMY_LEVELS[i].label}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* Level labels below track */}
-      <div className="flex justify-between mt-1 px-0.5">
-        {AUTONOMY_LEVELS.map((lvl, i) => (
-          <span
-            key={i}
-            role="button"
-            tabIndex={isUpdating ? -1 : 0}
-            className="text-[9px] cursor-pointer transition-colors"
-            style={{
-              color: i === level ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.55)',
-              width: i === 0 ? 'auto' : i === 4 ? 'auto' : '20%',
-              textAlign: i === 0 ? 'left' : i === 4 ? 'right' : 'center',
-            }}
-            aria-label={`Set autonomy to ${lvl.label}`}
-            onClick={() => !isUpdating && onLevelChange(skill.id, i)}
-            onKeyDown={(e) => {
-              if ((e.key === 'Enter' || e.key === ' ') && !isUpdating) {
-                e.preventDefault();
-                onLevelChange(skill.id, i);
+              icon={CATEGORY_ICONS[category] || <Bot />}
+              title={name}
+              line={skill.description}
+              action={
+                <select
+                  className="rs-select"
+                  value={level}
+                  disabled={updating === skill.id}
+                  onChange={(e) => handleLevelChange(skill.id, Number(e.target.value))}
+                  aria-label={`How much ${name} may do`}
+                >
+                  {AUTONOMY_LEVELS.map((lvl, i) => (
+                    <option key={i} value={i}>{lvl.label}</option>
+                  ))}
+                </select>
               }
-            }}
-          >
-            {lvl.short}
-          </span>
-        ))}
-      </div>
-    </div>
+            />
+          );
+        })
+      )}
+    </List>
   );
 };
 

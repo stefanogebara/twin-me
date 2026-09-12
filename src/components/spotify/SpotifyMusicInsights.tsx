@@ -29,7 +29,7 @@ export const SpotifyMusicInsights: React.FC<SpotifyMusicInsightsProps> = ({
           <div className="w-16 h-16 rounded-full bg-[#1DB954]/10 flex items-center justify-center mb-4">
             <Loader2 className="w-8 h-8 text-[#1DB954] animate-spin" />
           </div>
-          <h3 className="text-lg font-medium mb-2" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>
+          <h3 className="text-lg font-medium mb-2" style={{ fontFamily: 'var(--font-ui)', color: 'var(--foreground)' }}>
             Analyzing Your Musical Soul
           </h3>
           <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
@@ -48,7 +48,7 @@ export const SpotifyMusicInsights: React.FC<SpotifyMusicInsightsProps> = ({
           <div className="w-16 h-16 rounded-full bg-red-900/20 flex items-center justify-center mb-4">
             <AlertCircle className="w-8 h-8 text-[var(--n-danger-ink)]" />
           </div>
-          <h3 className="text-lg font-medium mb-2" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>
+          <h3 className="text-lg font-medium mb-2" style={{ fontFamily: 'var(--font-ui)', color: 'var(--foreground)' }}>
             Unable to Load Spotify Insights
           </h3>
           <p className="text-sm mb-6 max-w-md" style={{ color: 'var(--text-muted)' }}>
@@ -74,7 +74,7 @@ export const SpotifyMusicInsights: React.FC<SpotifyMusicInsightsProps> = ({
           <div className="w-16 h-16 rounded-full bg-[#1DB954]/10 flex items-center justify-center mb-4">
             <Music className="w-8 h-8 text-[#1DB954]" />
           </div>
-          <h3 className="text-lg font-medium mb-2" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>
+          <h3 className="text-lg font-medium mb-2" style={{ fontFamily: 'var(--font-ui)', color: 'var(--foreground)' }}>
             No Spotify Data Yet
           </h3>
           <p className="text-sm mb-6 max-w-md" style={{ color: 'var(--text-muted)' }}>
@@ -108,10 +108,10 @@ export const SpotifyMusicInsights: React.FC<SpotifyMusicInsightsProps> = ({
               <Music className="w-7 h-7 text-white" />
             </div>
             <div>
-              <h2 className="text-2xl font-medium mb-2" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>
+              <h2 className="text-2xl font-medium mb-2" style={{ fontFamily: 'var(--font-ui)', color: 'var(--foreground)' }}>
                 Musical Soul Signature
               </h2>
-              <p className="text-base mb-3" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--text-muted)' }}>
+              <p className="text-base mb-3" style={{ fontFamily: 'var(--font-ui)', color: 'var(--text-muted)' }}>
                 Your authentic listening personality from Spotify
               </p>
               <div className="flex items-center gap-4 text-xs" style={{ color: 'var(--text-muted)' }}>
@@ -142,7 +142,7 @@ export const SpotifyMusicInsights: React.FC<SpotifyMusicInsightsProps> = ({
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-2 text-xs text-[#1DB954] hover:text-[#1ed760] transition-colors"
-            style={{ fontFamily: "'Inter', sans-serif" }}
+            style={{ fontFamily: 'var(--font-ui)' }}
           >
             View on Spotify
             <ExternalLink className="w-3.5 h-3.5" />

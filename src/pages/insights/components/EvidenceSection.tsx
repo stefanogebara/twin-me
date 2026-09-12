@@ -1,19 +1,14 @@
 /**
  * EvidenceSection Component
  *
- * Collapsible "How I noticed this" section that shows the evidence
- * and reasoning behind the twin's observations.
- *
- * Hidden by default - user can expand to see data points.
+ * "How I noticed this": one row under the reflection that opens into a
+ * sub-row per piece of evidence and its data points. Closed by default.
+ * Renders list items, so it goes inside TwinReflection's list.
  */
 
 import React, { useState } from 'react';
-import { ChevronRight, ChevronDown, Eye, Plane, Activity, Calendar } from 'lucide-react';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
+import { ChevronRight, ChevronDown } from 'lucide-react';
+import { SubRow } from '@/components/register';
 
 interface EvidenceItem {
   id: string;
@@ -38,182 +33,70 @@ interface EvidenceSectionProps {
   className?: string;
 }
 
+const CONFIDENCE_LABEL: Record<string, string> = {
+  high: 'High confidence',
+  medium: 'Medium',
+  low: 'Emerging',
+};
+
 export const EvidenceSection: React.FC<EvidenceSectionProps> = ({
   evidence,
   crossPlatformContext,
-  className = ''
 }) => {
   const [isOpen, setIsOpen] = useState(false);
-
-  const colors = {
-    text: 'var(--foreground)',
-    textMuted: 'rgba(255, 255, 255, 0.55)',
-    textSecondary: 'rgba(255, 255, 255, 0.55)',
-    border: 'var(--border-glass)',
-    bgSubtle: 'rgba(255,255,255,0.04)',
-    confidenceHigh: 'var(--n-verdigris)',
-    confidenceMedium: '#C9B99A',
-    confidenceLow: '#64748b'
-  };
 
   // Don't render if no evidence
   if (!evidence || evidence.length === 0) {
     return null;
   }
 
-  const getConfidenceColor = (confidence: string) => {
-    switch (confidence) {
-      case 'high': return colors.confidenceHigh;
-      case 'medium': return colors.confidenceMedium;
-      default: return colors.confidenceLow;
-    }
-  };
+  const life = crossPlatformContext?.lifeContext;
+  const context = [
+    life?.isOnVacation
+      ? `${life.vacationTitle || 'On vacation'}${life.daysRemaining ? ` (${life.daysRemaining}d left)` : ''}`
+      : null,
+    crossPlatformContext?.recovery ? `Recovery ${crossPlatformContext.recovery}%` : null,
+    crossPlatformContext?.calendarDensity ? `${crossPlatformContext.calendarDensity} schedule` : null,
+  ].filter(Boolean);
 
-  const hasLifeContext = crossPlatformContext?.lifeContext?.isOnVacation ||
-    crossPlatformContext?.recovery ||
-    crossPlatformContext?.calendarDensity;
+  const Chevron = isOpen ? ChevronDown : ChevronRight;
 
   return (
-    <Collapsible open={isOpen} onOpenChange={setIsOpen} className={className}>
-      <CollapsibleTrigger
-        className="flex items-center gap-2 text-sm transition-colors hover:opacity-80 w-full justify-start py-2"
-        style={{ color: colors.textMuted }}
-      >
-        {isOpen ? (
-          <ChevronDown className="h-4 w-4 transition-transform" />
-        ) : (
-          <ChevronRight className="h-4 w-4 transition-transform" />
-        )}
-        <Eye className="h-4 w-4" />
-        <span>How I noticed this</span>
-      </CollapsibleTrigger>
-
-      <CollapsibleContent className="mt-3">
-        <div
-          className="rounded-[20px] p-4 space-y-4"
-          style={{
-            backgroundColor: colors.bgSubtle,
-            border: `1px solid ${colors.border}`,
-            backdropFilter: 'blur(42px)',
-            WebkitBackdropFilter: 'blur(42px)'
-          }}
+    <>
+      <li>
+        <button
+          type="button"
+          className="rg-row rg-row--plain rg-row--link"
+          aria-expanded={isOpen}
+          onClick={() => setIsOpen(open => !open)}
         >
-          {/* Cross-Platform Context Badges */}
-          {hasLifeContext && (
-            <div className="flex flex-wrap gap-2 pb-3 border-b" style={{ borderColor: colors.border }}>
-              {crossPlatformContext?.lifeContext?.isOnVacation && (
-                <span
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
-                  style={{
-                    backgroundColor: 'rgba(201, 185, 154, 0.1)',
-                    color: '#C9B99A'
-                  }}
-                >
-                  <Plane className="h-3 w-3" />
-                  {crossPlatformContext.lifeContext.vacationTitle || 'On Vacation'}
-                  {crossPlatformContext.lifeContext.daysRemaining && (
-                    <span className="opacity-75">({crossPlatformContext.lifeContext.daysRemaining}d left)</span>
-                  )}
-                </span>
-              )}
-
-              {/* CLAUDE.md: NEVER navy blue. Recovery uses green (health signal),
-                  calendar uses warm-amber (matches the gradient palette). */}
-              {crossPlatformContext?.recovery && (
-                <span
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
-                  style={{
-                    backgroundColor: 'rgb(var(--n-verdigris-rgb) / 0.10)',
-                    color: 'var(--n-verdigris)'
-                  }}
-                >
-                  <Activity className="h-3 w-3" />
-                  Recovery {crossPlatformContext.recovery}%
-                </span>
-              )}
-
-              {crossPlatformContext?.calendarDensity && (
-                <span
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
-                  style={{
-                    backgroundColor: 'rgba(193, 126, 44, 0.12)',
-                    color: 'var(--accent-amber)'
-                  }}
-                >
-                  <Calendar className="h-3 w-3" />
-                  {crossPlatformContext.calendarDensity} schedule
-                </span>
-              )}
-            </div>
-          )}
-
-          {/* Evidence Items */}
-          <div className="space-y-4">
-            {evidence.map((item, index) => (
-              <div key={item.id || index}>
-                {/* Observation */}
-                <div className="flex items-start gap-2">
-                  <div
-                    className="w-1.5 h-1.5 rounded-full mt-2 flex-shrink-0"
-                    style={{ backgroundColor: getConfidenceColor(item.confidence) }}
-                  />
-                  <p
-                    className="text-sm font-medium"
-                    style={{ color: colors.text }}
-                  >
-                    {item.observation}
-                  </p>
-                </div>
-
-                {/* Data Points */}
-                {item.dataPoints && item.dataPoints.length > 0 && (
-                  <ul className="mt-2 ml-3.5 space-y-1">
-                    {item.dataPoints.map((dp, dpIndex) => (
-                      <li
-                        key={dpIndex}
-                        className="text-xs flex items-start gap-2"
-                        style={{ color: colors.textSecondary }}
-                      >
-                        <span className="opacity-50">-</span>
-                        {dp}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            ))}
-          </div>
-
-          {/* Confidence Legend */}
-          <div
-            className="flex items-center gap-4 pt-3 border-t text-xs"
-            style={{ borderColor: colors.border, color: colors.textMuted }}
-          >
-            <span className="flex items-center gap-1.5">
-              <span
-                className="w-2 h-2 rounded-full"
-                style={{ backgroundColor: colors.confidenceHigh }}
-              />
-              High confidence
+          <span className="rg-row-text">
+            <span className="rg-row-title">How I noticed this</span>
+            <span className="rg-row-line">
+              {evidence.length} {evidence.length === 1 ? 'signal' : 'signals'}
             </span>
-            <span className="flex items-center gap-1.5">
-              <span
-                className="w-2 h-2 rounded-full"
-                style={{ backgroundColor: colors.confidenceMedium }}
-              />
-              Medium
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span
-                className="w-2 h-2 rounded-full"
-                style={{ backgroundColor: colors.confidenceLow }}
-              />
-              Emerging pattern
-            </span>
-          </div>
-        </div>
-      </CollapsibleContent>
-    </Collapsible>
+          </span>
+          <span className="rg-row-action">
+            <Chevron className="rg-chevron" aria-hidden="true" />
+          </span>
+        </button>
+      </li>
+      {/* Cross-platform context: what else was going on, one line */}
+      {isOpen && context.length > 0 && (
+        <SubRow>
+          <span className="rg-row-line">{context.join(' · ')}</span>
+        </SubRow>
+      )}
+      {isOpen &&
+        evidence.map((item, index) => (
+          <SubRow key={item.id || index} action={<span className="ri-end">{CONFIDENCE_LABEL[item.confidence] ?? CONFIDENCE_LABEL.low}</span>}>
+            <span className="rg-row-title">{item.observation}</span>
+            {item.dataPoints && item.dataPoints.length > 0 ? (
+              <span className="rg-row-line">{item.dataPoints.join(' · ')}</span>
+            ) : null}
+          </SubRow>
+        ))}
+    </>
   );
 };
 

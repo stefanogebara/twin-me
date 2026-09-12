@@ -1,9 +1,12 @@
 /**
  * TemporalComparison — "You then vs you now"
  * ============================================
- * Two-column glass card showing a contrast between the user ~60 days ago
- * (THEN) and the user today (NOW), generated from the memory stream by
+ * A contrast between the user ~60 days ago (THEN) and the user today (NOW),
+ * generated from the memory stream by
  * api/services/temporalComparisonService.js.
+ *
+ * In the register: a section of two rows, each showing its first sentence
+ * with the rest behind a press. No card, no tracked caps, no italic.
  *
  * Renders NOTHING when the backend reports `available: false` — we never
  * want to show an empty/placeholder state here.
@@ -11,8 +14,9 @@
 
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { motion } from 'framer-motion';
 import { authFetch } from '@/services/api/apiBase';
+import { Section, List } from '@/components/register';
+import ExpandRow from './ExpandRow';
 
 interface TemporalComparisonResponse {
   available: boolean;
@@ -28,6 +32,13 @@ async function fetchTemporalComparison(): Promise<TemporalComparisonResponse> {
   return res.json();
 }
 
+/** The first sentence as the row's grey line, the rest behind the press. */
+function firstSentence(text: string): { first: string; rest: string } {
+  const idx = text.search(/[.!?]\s/);
+  if (idx === -1) return { first: text, rest: '' };
+  return { first: text.slice(0, idx + 1), rest: text.slice(idx + 2).trim() };
+}
+
 const TemporalComparison: React.FC = () => {
   const { data } = useQuery<TemporalComparisonResponse>({
     queryKey: ['identity-temporal-comparison'],
@@ -40,84 +51,16 @@ const TemporalComparison: React.FC = () => {
     return null;
   }
 
+  const then = firstSentence(data.then);
+  const now = firstSentence(data.now);
+
   return (
-    <motion.section
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay: 0.08, ease: 'easeOut' }}
-    >
-      <h2
-        className="mb-4"
-        style={{
-          fontFamily: "var(--font-heading)",
-          fontStyle: 'italic',
-          fontSize: 'clamp(22px, 3vw, 28px)',
-          fontWeight: 400,
-          color: 'var(--foreground)',
-          letterSpacing: '-0.02em',
-          lineHeight: 1.15,
-        }}
-      >
-        How you've changed
-      </h2>
-
-      <div
-        className="rounded-[20px] px-5 py-5"
-        style={{
-          background: 'var(--surface)',
-          backdropFilter: 'blur(42px)',
-          WebkitBackdropFilter: 'blur(42px)',
-          border: '1px solid var(--glass-surface-border)',
-          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06), 0 4px 16px rgba(0,0,0,0.15)',
-        }}
-      >
-        <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_1fr] gap-5 sm:gap-4 items-stretch">
-          {/* THEN */}
-          <div className="flex flex-col gap-2">
-            <span
-              className="text-[10px] font-medium uppercase tracking-[0.16em]"
-              style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
-            >
-              Then
-            </span>
-            <p
-              className="text-[14.5px] leading-relaxed"
-              style={{ color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}
-            >
-              {data.then}
-            </p>
-          </div>
-
-          {/* Arrow — desktop only */}
-          <div
-            className="hidden sm:flex items-center justify-center px-2"
-            aria-hidden="true"
-            style={{ color: 'var(--text-muted)' }}
-          >
-            <span className="text-xl select-none">→</span>
-          </div>
-
-          {/* NOW — left border accent */}
-          <div
-            className="flex flex-col gap-2 pl-4 sm:pl-5"
-            style={{ borderLeft: '3px solid var(--accent-vibrant)' }}
-          >
-            <span
-              className="text-[10px] font-medium uppercase tracking-[0.16em]"
-              style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
-            >
-              Now
-            </span>
-            <p
-              className="text-[14.5px] leading-relaxed"
-              style={{ color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}
-            >
-              {data.now}
-            </p>
-          </div>
-        </div>
-      </div>
-    </motion.section>
+    <Section title="How you've changed">
+      <List>
+        <ExpandRow title="Two months ago" line={then.first} more={then.rest || null} />
+        <ExpandRow title="Now" line={now.first} more={now.rest || null} />
+      </List>
+    </Section>
   );
 };
 

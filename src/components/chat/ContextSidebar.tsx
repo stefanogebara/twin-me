@@ -26,6 +26,11 @@ interface ContextSidebarProps {
   isLoadingContext: boolean;
 }
 
+/**
+ * The chat's context panel, in the register: the page colour behind a
+ * hairline, sentence-case labels as row titles, and a platform's colour kept
+ * to its icon (verdigris was the label colour, 3.4:1 as 11px text).
+ */
 export const ContextSidebar = ({
   showContext,
   onClose,
@@ -43,112 +48,72 @@ export const ContextSidebar = ({
         !showContext && "md:hidden"
       )}
       style={{
-        background: 'var(--glass-surface-bg)',
-        backdropFilter: 'blur(42px)',
-        WebkitBackdropFilter: 'blur(42px)',
-        borderLeft: '1px solid var(--glass-surface-border)',
+        background: 'var(--rg-page)',
+        borderLeft: '1px solid var(--rg-rule)',
       }}
     >
       <div className="p-5">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
-          <span
-            className="text-[11px] font-medium tracking-widest uppercase"
-            style={{ color: 'var(--n-verdigris)' }}
-          >
-            Context
-          </span>
-          <button
-            onClick={onClose}
-            className="p-1 rounded hover:opacity-70 transition-opacity"
-            style={{ color: 'var(--text-muted)' }}
-            aria-label="Close context panel"
-          >
-            <X className="w-3.5 h-3.5" aria-hidden="true" />
+          <span className="rg-row-title">Context</span>
+          <button type="button" onClick={onClose} className="rg-iconbtn" aria-label="Close context panel">
+            <X aria-hidden="true" />
           </button>
         </div>
 
         {/* Data Sources */}
         <div className="mb-6">
-          <h3
-            className="text-[11px] font-medium tracking-widest uppercase mb-3"
-            style={{ color: 'var(--text-muted)' }}
-          >
-            Sources
-          </h3>
-          <div className="space-y-2">
+          <h3 className="rg-row-title" style={{ marginBottom: 8 }}>Sources</h3>
+          <ul className="rg-list">
             {platforms.map((platform) => (
-              <div
+              <li
                 key={platform.key}
-                className="flex items-center justify-between py-1.5"
+                className="flex items-center justify-between"
+                style={{ padding: '8px 0', borderBottom: '1px solid var(--rg-rule)' }}
               >
                 <div className="flex items-center gap-2">
-                  <span style={{ color: platform.connected ? platform.color : 'var(--text-muted)' }}>
+                  <span aria-hidden="true" style={{ color: platform.connected ? platform.color : 'var(--rg-quiet)' }}>
                     {platform.icon}
                   </span>
-                  <span
-                    className="text-[13px]"
-                    style={{ color: platform.connected ? 'var(--foreground)' : 'var(--text-muted)' }}
-                  >
+                  <span style={{ color: platform.connected ? 'var(--rg-ink)' : 'var(--rg-ink-3)' }}>
                     {platform.name}
                   </span>
                 </div>
                 {platform.connected ? (
-                  <div
-                    className="w-1.5 h-1.5 rounded-full"
-                    style={{ backgroundColor: platform.color }}
-                  />
+                  <span style={{ color: 'var(--rg-ink-3)', fontWeight: 350 }}>On</span>
                 ) : (
                   <button
+                    type="button"
                     onClick={() => navigate('/get-started')}
-                    className="text-[11px] transition-opacity hover:opacity-70"
-                    style={{ color: 'var(--n-verdigris)' }}
+                    className="transition-opacity hover:opacity-70"
+                    style={{ background: 'none', border: 0, padding: 0, font: 'inherit', color: 'var(--rg-ink)', textDecoration: 'underline', textUnderlineOffset: '3px', cursor: 'pointer' }}
                   >
                     Connect
                   </button>
                 )}
-              </div>
+              </li>
             ))}
-          </div>
+          </ul>
         </div>
-
-        <div className="mb-6" style={{ borderTop: '1px solid var(--border-glass)' }} />
 
         {/* Active Context */}
         <div className="mb-6">
-          <h3
-            className="text-[11px] font-medium tracking-widest uppercase mb-3"
-            style={{ color: 'var(--text-muted)' }}
-          >
-            Active Context
-          </h3>
+          <h3 className="rg-row-title" style={{ marginBottom: 8 }}>In this conversation</h3>
           {isLoadingContext ? (
             <div className="flex items-center justify-center py-4">
-              <Loader2 className="w-4 h-4 animate-spin" style={{ color: 'var(--n-verdigris)' }} />
+              <Loader2 className="w-4 h-4 animate-spin" style={{ color: 'var(--rg-ink-3)' }} aria-label="Loading context" />
             </div>
           ) : contextItems.filter(i => i.type !== 'platform').length > 0 ? (
-            <div className="space-y-3">
+            <ul className="rg-list">
               {contextItems.filter(i => i.type !== 'platform').map((item, idx) => (
-                <div key={idx}>
-                  <span
-                    className="text-[11px] font-medium tracking-wider uppercase"
-                    style={{ color: 'var(--text-muted)' }}
-                  >
-                    {item.label}
-                  </span>
-                  <p
-                    className="text-[13px] leading-relaxed mt-0.5"
-                    style={{ color: 'var(--text-secondary)' }}
-                  >
-                    {item.value}
-                  </p>
-                </div>
+                <li key={idx} className="rg-row-text" style={{ padding: '10px 0', borderBottom: '1px solid var(--rg-rule)' }}>
+                  <span className="rg-row-title">{item.label}</span>
+                  <span className="rg-row-line">{item.value}</span>
+                </li>
               ))}
-            </div>
+            </ul>
           ) : (
-            <p className="text-[13px]" style={{ color: 'var(--text-muted)' }}>
-              Context loads when you chat
-            </p>
+            <p className="rg-empty" style={{ padding: 0 }}>Context loads when you chat</p>
           )}
         </div>
         {/* replan-2026-06-10 chat declutter: Platforms/Messages stats block

@@ -83,7 +83,7 @@ export const DataTransparencyPanel: React.FC<DataTransparencyPanelProps> = ({
           <h3 className="text-2xl font-medium text-[var(--foreground)] mb-2">
             Data Transparency
           </h3>
-          <p className="text-sm text-muted-foreground leading-relaxed" style={{ fontFamily: "'Inter', sans-serif" }}>
+          <p className="text-sm text-muted-foreground leading-relaxed" style={{ fontFamily: 'var(--font-ui)' }}>
             Complete visibility into what we've collected about you
           </p>
         </div>
@@ -92,7 +92,7 @@ export const DataTransparencyPanel: React.FC<DataTransparencyPanelProps> = ({
           <button
             onClick={onExportData}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm shadow-md hover:shadow-lg transition-all duration-200"
-            style={{ backgroundColor: 'var(--n-verdigris)', color: '#0a0f0a', fontFamily: "'Inter', sans-serif" }}
+            style={{ backgroundColor: 'var(--n-verdigris)', color: '#0a0f0a', fontFamily: 'var(--font-ui)' }}
           >
             <Download className="w-4 h-4" />
             Export All Data
@@ -105,14 +105,14 @@ export const DataTransparencyPanel: React.FC<DataTransparencyPanelProps> = ({
         <div className="rounded-lg p-5" style={darkCardStyle}>
           <div className="flex items-center gap-3 mb-2">
             <Database className="w-5 h-5" style={{ color: 'var(--text-muted)' }} />
-            <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--text-muted)', fontFamily: "'Inter', sans-serif" }}>
+            <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>
               Connected
             </span>
           </div>
-          <p className="text-3xl font-bold" style={{ color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}>
+          <p className="text-3xl font-bold" style={{ color: 'var(--foreground)', fontFamily: 'var(--font-ui)' }}>
             {connectedSources.length}
           </p>
-          <p className="text-xs mt-1" style={{ color: 'var(--text-muted)', fontFamily: "'Inter', sans-serif" }}>
+          <p className="text-xs mt-1" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>
             platforms synced
           </p>
         </div>
@@ -120,14 +120,14 @@ export const DataTransparencyPanel: React.FC<DataTransparencyPanelProps> = ({
         <div className="rounded-lg p-5" style={darkCardStyle}>
           <div className="flex items-center gap-3 mb-2">
             <Sparkles className="w-5 h-5" style={{ color: 'var(--text-muted)' }} />
-            <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--text-muted)', fontFamily: "'Inter', sans-serif" }}>
+            <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>
               Data Points
             </span>
           </div>
-          <p className="text-3xl font-bold" style={{ color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}>
+          <p className="text-3xl font-bold" style={{ color: 'var(--foreground)', fontFamily: 'var(--font-ui)' }}>
             {totalDataPoints.toLocaleString('en-US')}
           </p>
-          <p className="text-xs mt-1" style={{ color: 'var(--text-muted)', fontFamily: "'Inter', sans-serif" }}>
+          <p className="text-xs mt-1" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>
             moments captured
           </p>
         </div>
@@ -135,14 +135,14 @@ export const DataTransparencyPanel: React.FC<DataTransparencyPanelProps> = ({
         <div className="rounded-lg p-5" style={darkCardStyle}>
           <div className="flex items-center gap-3 mb-2">
             <TrendingUp className="w-5 h-5" style={{ color: 'var(--text-muted)' }} />
-            <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--text-muted)', fontFamily: "'Inter', sans-serif" }}>
+            <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>
               Quality
             </span>
           </div>
-          <p className="text-3xl font-bold" style={{ color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}>
+          <p className="text-3xl font-bold" style={{ color: 'var(--foreground)', fontFamily: 'var(--font-ui)' }}>
             {totalQuality}%
           </p>
-          <p className="text-xs mt-1" style={{ color: 'var(--text-muted)', fontFamily: "'Inter', sans-serif" }}>
+          <p className="text-xs mt-1" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>
             {getQualityLabel(totalQuality).toLowerCase()}
           </p>
         </div>
@@ -150,14 +150,14 @@ export const DataTransparencyPanel: React.FC<DataTransparencyPanelProps> = ({
         <div className="rounded-lg p-5" style={darkCardStyle}>
           <div className="flex items-center gap-3 mb-2">
             <HardDrive className="w-5 h-5" style={{ color: 'var(--text-muted)' }} />
-            <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--text-muted)', fontFamily: "'Inter', sans-serif" }}>
+            <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>
               Storage
             </span>
           </div>
-          <p className="text-3xl font-bold" style={{ color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}>
+          <p className="text-3xl font-bold" style={{ color: 'var(--foreground)', fontFamily: 'var(--font-ui)' }}>
             {totalSize}
           </p>
-          <p className="text-xs mt-1" style={{ color: 'var(--text-muted)', fontFamily: "'Inter', sans-serif" }}>
+          <p className="text-xs mt-1" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>
             total data size
           </p>
         </div>
@@ -165,7 +165,7 @@ export const DataTransparencyPanel: React.FC<DataTransparencyPanelProps> = ({
 
       {/* Data Sources List */}
       <div className="space-y-3">
-        <h4 className="text-lg font-medium text-[var(--foreground)] mb-4" style={{ fontFamily: "'Inter', sans-serif" }}>
+        <h4 className="text-lg font-medium text-[var(--foreground)] mb-4" style={{ fontFamily: 'var(--font-ui)' }}>
           Connected Data Sources
         </h4>
 
@@ -175,7 +175,7 @@ export const DataTransparencyPanel: React.FC<DataTransparencyPanelProps> = ({
             style={{ backgroundColor: 'var(--surface)' }}
           >
             <Database className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-            <p className="text-muted-foreground" style={{ fontFamily: "'Inter', sans-serif" }}>
+            <p className="text-muted-foreground" style={{ fontFamily: 'var(--font-ui)' }}>
               No data sources connected yet. Connect platforms to start building your soul signature.
             </p>
           </div>
@@ -199,7 +199,7 @@ export const DataTransparencyPanel: React.FC<DataTransparencyPanelProps> = ({
 
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <h5 className="text-base font-medium text-[var(--foreground)] capitalize" style={{ fontFamily: "'Inter', sans-serif" }}>
+                          <h5 className="text-base font-medium text-[var(--foreground)] capitalize" style={{ fontFamily: 'var(--font-ui)' }}>
                             {source.platform}
                           </h5>
                           <CheckCircle className="w-4 h-4 text-green-500" />
@@ -231,7 +231,7 @@ export const DataTransparencyPanel: React.FC<DataTransparencyPanelProps> = ({
                         }}
                       >
                         <TrendingUp className={`w-3.5 h-3.5 ${getQualityColor(source.quality)}`} />
-                        <span className={`text-sm font-medium ${getQualityColor(source.quality)}`} style={{ fontFamily: "'Inter', sans-serif" }}>
+                        <span className={`text-sm font-medium ${getQualityColor(source.quality)}`} style={{ fontFamily: 'var(--font-ui)' }}>
                           {source.quality}%
                         </span>
                       </div>
@@ -257,7 +257,7 @@ export const DataTransparencyPanel: React.FC<DataTransparencyPanelProps> = ({
                     <div className="pt-4 border-t border-white/10 space-y-4">
                       {/* Categories */}
                       <div>
-                        <p className="text-xs font-medium text-muted-foreground mb-2" style={{ fontFamily: "'Inter', sans-serif" }}>
+                        <p className="text-xs font-medium text-muted-foreground mb-2" style={{ fontFamily: 'var(--font-ui)' }}>
                           Data Categories
                         </p>
                         <div className="flex flex-wrap gap-2">
@@ -265,7 +265,7 @@ export const DataTransparencyPanel: React.FC<DataTransparencyPanelProps> = ({
                             <span
                               key={category}
                               className="px-2.5 py-1 rounded-lg bg-[var(--surface)] text-muted-foreground text-xs font-medium"
-                              style={{ fontFamily: "'Inter', sans-serif" }}
+                              style={{ fontFamily: 'var(--font-ui)' }}
                             >
                               {category}
                             </span>
@@ -279,7 +279,7 @@ export const DataTransparencyPanel: React.FC<DataTransparencyPanelProps> = ({
                           <button
                             onClick={() => onViewRawData(source.platform)}
                             className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[var(--surface)] hover:bg-[var(--surface-solid)] text-muted-foreground font-medium text-sm transition-colors"
-                            style={{ fontFamily: "'Inter', sans-serif" }}
+                            style={{ fontFamily: 'var(--font-ui)' }}
                           >
                             <Eye className="w-4 h-4" />
                             View Raw Data
@@ -290,7 +290,7 @@ export const DataTransparencyPanel: React.FC<DataTransparencyPanelProps> = ({
                           <button
                             onClick={() => setShowDeleteConfirm(source.platform)}
                             className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-900/20 hover:bg-red-900/20 text-red-700 font-medium text-sm transition-colors"
-                            style={{ fontFamily: "'Inter', sans-serif" }}
+                            style={{ fontFamily: 'var(--font-ui)' }}
                           >
                             <Trash2 className="w-4 h-4" />
                             Delete Data
@@ -299,20 +299,20 @@ export const DataTransparencyPanel: React.FC<DataTransparencyPanelProps> = ({
 
                         {showingDeleteConfirm && (
                           <div className="flex items-center gap-2">
-                            <p className="text-sm text-red-700 font-medium" style={{ fontFamily: "'Inter', sans-serif" }}>
+                            <p className="text-sm text-red-700 font-medium" style={{ fontFamily: 'var(--font-ui)' }}>
                               Are you sure?
                             </p>
                             <button
                               onClick={() => handleDeleteConfirm(source.platform)}
                               className="px-3 py-1.5 rounded-lg bg-[var(--n-danger)] text-white font-medium text-sm hover:bg-red-700 transition-colors"
-                              style={{ fontFamily: "'Inter', sans-serif" }}
+                              style={{ fontFamily: 'var(--font-ui)' }}
                             >
                               Yes, Delete
                             </button>
                             <button
                               onClick={() => setShowDeleteConfirm(null)}
                               className="px-3 py-1.5 rounded-lg bg-[var(--surface-solid)] text-muted-foreground font-medium text-sm hover:bg-[var(--surface-solid)] transition-colors"
-                              style={{ fontFamily: "'Inter', sans-serif" }}
+                              style={{ fontFamily: 'var(--font-ui)' }}
                             >
                               Cancel
                             </button>
@@ -337,10 +337,10 @@ export const DataTransparencyPanel: React.FC<DataTransparencyPanelProps> = ({
         <div className="flex items-start gap-3">
           <Shield className="w-5 h-5 mt-0.5" style={{ color: 'var(--accent-vibrant)' }} />
           <div>
-            <h5 className="text-sm font-medium mb-1" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--text-primary)' }}>
+            <h5 className="text-sm font-medium mb-1" style={{ fontFamily: 'var(--font-ui)', color: 'var(--text-primary)' }}>
               Your Data, Your Control
             </h5>
-            <p className="text-sm leading-relaxed" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--text-secondary)' }}>
+            <p className="text-sm leading-relaxed" style={{ fontFamily: 'var(--font-ui)', color: 'var(--text-secondary)' }}>
               All data is encrypted and stored securely. You can export or delete your data at any time.
               We never share your personal data with third parties without your explicit consent.
             </p>

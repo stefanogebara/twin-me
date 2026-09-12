@@ -4,27 +4,32 @@ import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "@/lib/utils";
 
+// The register's buttons (2026-09-12): 32 tall, padding 0 16, a 4px corner, 13px.
+// Primary is ink with page-colour text, once a screen. The secondary is white with
+// a hairline. Danger is white with the pink line and red text, never a red fill.
+// size="lg" is the one exception: the main call to action of a marketing or
+// sign-in page, at 48 tall with a 12px corner and 15px 500.
+// `liquid` and `cartoon` are legacy names kept for their callers; they read as the
+// secondary and the primary.
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-semibold ring-offset-background transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap border rounded-[var(--rg-radius)] text-[13px] font-normal leading-none tracking-[-0.176px] ring-offset-background transition-[opacity,background-color,border-color,color] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-40 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
-        // Claura: the bone button — warm gradient rounded-rect, never a stark white pill.
-        // Pills (100px) are reserved for chips, nav items and avatars.
-        default: "bg-[image:var(--claura-bone)] text-[var(--claura-bone-ink)] hover:shadow-lg hover:-translate-y-0.5 hover:brightness-105 rounded-[var(--claura-r-btn)]",
-        destructive: "bg-[rgb(var(--n-danger-rgb)_/_0.10)] text-[var(--claura-danger-ink)] border border-[rgb(var(--n-danger-rgb)_/_0.35)] hover:bg-[rgb(var(--n-danger-rgb)_/_0.16)] hover:-translate-y-0.5 rounded-[10px]",
-        outline: "border border-[var(--glass-surface-border)] bg-[var(--glass-surface-bg)] backdrop-blur-[42px] hover:bg-[var(--surface-solid)] text-foreground rounded-[var(--claura-r-btn)] transition-all duration-200",
-        secondary: "bg-[var(--surface)] text-secondary-foreground hover:bg-[var(--surface-solid)] rounded-[var(--claura-r-btn)]",
-        ghost: "hover:bg-[var(--surface)] hover:text-accent-foreground rounded-[var(--claura-r-btn)]",
-        link: "text-primary underline-offset-4 hover:underline",
-        liquid: "bg-[var(--glass-surface-bg)] border border-[var(--glass-surface-border)] text-foreground hover:bg-[var(--surface-solid)] backdrop-blur-[42px] hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 rounded-[var(--claura-r-btn)]",
-        cartoon: "bg-gradient-to-br from-accent to-yellow-400 text-accent-foreground hover:shadow-xl hover:-translate-y-1 rounded-[var(--claura-r-btn)] border-2 border-yellow-300/40 font-bold",
+        default: "border-[var(--rg-ink)] bg-[var(--rg-ink)] text-[var(--rg-page)] font-medium hover:opacity-[0.86]",
+        destructive: "border-[var(--rg-danger-line)] bg-[var(--rg-white)] text-[var(--rg-danger)] hover:border-[var(--rg-danger)]",
+        outline: "border-[var(--rg-rule)] bg-[var(--rg-white)] text-[var(--rg-ink)] hover:border-[var(--rg-quiet)]",
+        secondary: "border-[var(--rg-rule)] bg-[var(--rg-white)] text-[var(--rg-ink)] hover:border-[var(--rg-quiet)]",
+        ghost: "border-transparent bg-transparent text-[var(--rg-ink)] hover:bg-[var(--rg-hover)]",
+        link: "border-transparent bg-transparent text-[var(--rg-ink)] underline-offset-4 hover:underline",
+        liquid: "border-[var(--rg-rule)] bg-[var(--rg-white)] text-[var(--rg-ink)] hover:border-[var(--rg-quiet)]",
+        cartoon: "border-[var(--rg-ink)] bg-[var(--rg-ink)] text-[var(--rg-page)] font-medium hover:opacity-[0.86]",
       },
       size: {
-        default: "h-12 px-6 py-3",
-        sm: "h-10 px-4 py-2",
-        lg: "h-14 px-10 py-4 text-base",
-        icon: "h-12 w-12 rounded-[var(--claura-r-btn)]",
+        default: "h-8 px-4",
+        sm: "h-8 px-3",
+        lg: "h-12 px-[22px] rounded-[var(--rg-radius-cta)] text-[15px] font-medium tracking-[-0.011em]",
+        icon: "h-8 w-8",
       },
     },
     defaultVariants: {

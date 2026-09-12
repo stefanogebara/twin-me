@@ -139,6 +139,11 @@ export const TokenExpiryBanner: React.FC<TokenExpiryBannerProps> = ({
   const platformName = PLATFORM_DISPLAY_NAMES[urgentNotification.platform]
     || urgentNotification.platform.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 
+  // A row on the page under a hairline, in the register: colour only in state.
+  // The icon carries the state (danger red, or ember for "expiring"); the title
+  // is danger text only when it has expired (5.5:1), ink otherwise. Reconnect is
+  // the danger control (white, pink line, red text) when expired, the secondary
+  // when not. Never a red fill.
   return (
     <div
       className={cn(
@@ -146,63 +151,58 @@ export const TokenExpiryBanner: React.FC<TokenExpiryBannerProps> = ({
         className
       )}
       style={{
-        backgroundColor: isExpired
-          ? 'rgba(239, 68, 68, 0.08)'
-          : 'rgba(201, 185, 154, 0.08)',
-        borderBottom: isExpired
-          ? '1px solid rgba(239, 68, 68, 0.2)'
-          : '1px solid rgba(201, 185, 154, 0.2)',
+        backgroundColor: 'var(--rg-page)',
+        borderBottom: '1px solid var(--rg-rule)',
       }}
     >
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 min-w-0">
         <div
-          className="p-2 rounded-full"
-          style={{
-            backgroundColor: isExpired
-              ? 'rgba(239, 68, 68, 0.12)'
-              : 'rgba(201, 185, 154, 0.12)',
-          }}
+          className="w-8 h-8 flex-shrink-0 grid place-items-center"
+          style={{ backgroundColor: 'var(--rg-field)', borderRadius: 'var(--rg-radius-icon)' }}
         >
           {isExpired ? (
-            <AlertTriangle className="w-4 h-4 text-[var(--n-danger-ink)]" />
+            <AlertTriangle className="w-4 h-4 text-[var(--rg-danger)]" aria-hidden="true" />
           ) : (
-            <Bell className="w-4 h-4 text-amber-500" />
+            <Bell className="w-4 h-4 text-[var(--rg-ember)]" aria-hidden="true" />
           )}
         </div>
 
-        <div>
+        <div className="min-w-0">
           <p
-            className="font-medium text-sm"
-            style={{ color: isExpired ? '#dc2626' : '#C9B99A' }}
+            className="font-medium text-[13px] leading-5"
+            style={{ color: isExpired ? 'var(--rg-danger)' : 'var(--rg-ink)' }}
           >
             {isExpired
               ? `${platformName} connection expired`
               : `${platformName} connection expiring soon`}
           </p>
-          <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+          <p className="text-[13px] font-[350] truncate" style={{ color: 'var(--rg-ink-2)' }}>
             {urgentNotification.message}
           </p>
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-shrink-0">
         <button
           onClick={() => handleReconnect(urgentNotification.platform)}
-          className="h-8 px-3 text-xs rounded-lg flex items-center gap-1.5 font-medium transition-opacity hover:opacity-90"
+          className="h-8 px-4 text-[13px] flex items-center gap-1.5 transition-colors"
           style={{
-            backgroundColor: isExpired ? '#dc2626' : '#C9B99A',
-            color: 'var(--foreground)',
+            backgroundColor: 'var(--rg-white)',
+            border: `1px solid ${isExpired ? 'var(--rg-danger-line)' : 'var(--rg-rule)'}`,
+            borderRadius: 'var(--rg-radius)',
+            color: isExpired ? 'var(--rg-danger)' : 'var(--rg-ink)',
           }}
         >
-          <RefreshCw className="w-3 h-3" />
+          <RefreshCw className="w-3.5 h-3.5" aria-hidden="true" />
           Reconnect
         </button>
 
         <button
           onClick={() => handleDismiss(urgentNotification.id)}
-          className="h-8 w-8 p-0 flex items-center justify-center rounded-lg hover:bg-black/5 transition-colors"
+          className="h-8 w-8 p-0 flex items-center justify-center hover:bg-[var(--rg-hover)] transition-colors"
           title="Dismiss"
-          style={{ color: 'var(--text-secondary)' }}
+          aria-label="Dismiss"
+          style={{ color: 'var(--rg-ink-2)', borderRadius: 'var(--rg-radius)' }}
         >
           <X className="w-4 h-4" />
         </button>
@@ -210,7 +210,7 @@ export const TokenExpiryBanner: React.FC<TokenExpiryBannerProps> = ({
 
       {visibleNotifications.length > 1 && (
         <div className="absolute right-16 top-1/2 -translate-y-1/2">
-          <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+          <span className="text-[13px] font-[350]" style={{ color: 'var(--rg-ink-3)' }}>
             +{visibleNotifications.length - 1} more
           </span>
         </div>

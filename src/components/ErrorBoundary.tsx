@@ -75,17 +75,17 @@ class ErrorBoundary extends Component<Props, State> {
           <div
             className="max-w-md w-full text-center p-8"
             style={{
-              background: 'var(--glass-surface-bg)',
-              borderRadius: '2rem',
-              border: '1px solid var(--glass-surface-border)',
-              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.18), inset 0 1px 0 var(--border)',
+              // The register: white with a hairline, an 8px corner, no shadow.
+              background: 'var(--rg-white)',
+              borderRadius: 'var(--rg-radius-icon)',
+              border: '1px solid var(--rg-rule)',
             }}
           >
             <div
-              className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6"
-              style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)' }}
+              className="w-8 h-8 flex items-center justify-center mx-auto mb-4"
+              style={{ backgroundColor: 'var(--rg-field)', borderRadius: 'var(--rg-radius-icon)' }}
             >
-              <AlertTriangle className="w-8 h-8 text-[var(--n-danger-ink)]" />
+              <AlertTriangle className="w-4 h-4 text-[var(--rg-danger)]" aria-hidden="true" />
             </div>
 
             <h2

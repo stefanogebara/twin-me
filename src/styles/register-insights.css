@@ -1,0 +1,205 @@
+/* ==========================================================================
+   What the insights and admin pages need that the page kit (register-kit.css)
+   does not carry yet. Built from register.css tokens only; each rule names the
+   gap it fills so it can move into the kit and leave here. Siblings of
+   register-public.css, register-settings.css, share.css, front-door.css and
+   presence-onboarding.css. The shapes they all wanted (the compact row, the
+   choice, the field, the thin bar, tabular figures) now live in the kit.
+   ========================================================================== */
+
+/* The back control above a page title: PageHead has no leading slot. */
+.ri-back { margin: 0 0 16px -4px; }
+
+/* Quiet text at a row's end: a time, a count, a share. */
+.ri-end {
+  color: var(--rg-ink-3);
+  font-weight: var(--rg-weight-line);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Two-up rows on a wide screen, for a page of figures (an admin overview). */
+@media (min-width: 768px) {
+  .ri-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 24px; }
+}
+
+/* A list item that holds a chart or a paragraph instead of a row. */
+.ri-block { padding: 20px 12px; border-bottom: 1px solid var(--rg-rule); }
+.ri-block > .rg-row-title { display: block; margin-bottom: 12px; }
+.ri-prose { margin: 0; max-width: 64ch; font-weight: var(--rg-weight-prose); color: var(--rg-ink); }
+
+/* A thin data bar under a row title (the kit's .rg-bar, thicker so the fill
+   reads). Every
+   fill is a signature hue: 3.3:1 on the page, 3.0:1 on the field track. */
+.ri-bar {
+  display: block;
+  height: 6px;
+  margin-top: 8px;
+  border-radius: 3px;
+  background: var(--rg-field);
+  overflow: hidden;
+}
+.ri-bar > i { display: block; height: 100%; border-radius: 3px; background: var(--rg-signal); }
+
+/* Parts of a whole: one bar of signature marks, then its legend in grey ink.
+   The colour is never the only label: the legend names every part. */
+.ri-mix { display: flex; height: 8px; gap: 2px; margin: 0 0 12px; border-radius: 2px; overflow: hidden; }
+.ri-mix > i { display: block; flex-basis: 0; min-width: 2px; }
+.ri-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--rg-ink-2);
+  font-weight: var(--rg-weight-line);
+  font-variant-numeric: tabular-nums;
+}
+.ri-legend > li { display: inline-flex; align-items: center; gap: 6px; }
+.ri-swatch { display: inline-block; flex: none; width: 8px; height: 8px; border-radius: 2px; }
+
+/* State and quiet text (register.css darkened the state inks until they pass). */
+.ri-ok { color: var(--rg-ok); }
+.ri-danger { color: var(--rg-danger); }
+.ri-q { color: var(--rg-ink-3); font-weight: var(--rg-weight-line); }
+
+/* ---- a day on a line: the axis, then the day's events as signature marks ---- */
+.ri-axis { position: relative; height: 20px; margin-bottom: 8px; color: var(--rg-ink-3); font-weight: var(--rg-weight-line); }
+.ri-axis > span { position: absolute; top: 0; white-space: nowrap; }
+.ri-track { position: relative; height: 40px; border-radius: var(--rg-radius); background: var(--rg-field); overflow: hidden; }
+/* Ink on every signature hue is 4.7:1, so an event keeps its name inside. */
+.ri-slot {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  padding: 0 8px;
+  border-radius: var(--rg-radius);
+  overflow: hidden;
+  color: var(--rg-ink);
+  font-weight: var(--rg-weight-title);
+  line-height: 40px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+/* On a phone an hour is ~20px wide and a name would cut to one letter: the
+   marks stay, the names are in the list below and in each mark's title. */
+@media (max-width: 560px) {
+  .ri-slot { color: transparent; }
+}
+
+/* ---- the week as a grid: each cell fills from the bottom as it gets busier ---- */
+.ri-heat {
+  display: grid;
+  grid-template-columns: 40px repeat(5, minmax(0, 1fr));
+  gap: 4px;
+  align-items: center;
+  color: var(--rg-ink-3);
+  font-weight: var(--rg-weight-line);
+  font-variant-numeric: tabular-nums;
+}
+.ri-heat > .ri-heat-head { text-align: center; }
+.ri-cell { display: flex; align-items: flex-end; height: 24px; border-radius: var(--rg-radius); background: var(--rg-field); overflow: hidden; }
+.ri-cell > i { display: block; width: 100%; border-radius: 2px; background: var(--rg-periwinkle); }
+.ri-heat-key { display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-top: 12px; color: var(--rg-ink-3); font-weight: var(--rg-weight-line); }
+.ri-heat-key .ri-cell { width: 16px; height: 16px; }
+
+/* ---- tables, for the admin pages: under the list's 1px ink rule, rows split by hairlines ---- */
+.ri-table-wrap { overflow-x: auto; border-top: 1px solid var(--rg-ink); }
+.ri-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.ri-table th,
+.ri-table td {
+  padding: 12px;
+  border-bottom: 1px solid var(--rg-rule);
+  text-align: left;
+  vertical-align: top;
+  white-space: nowrap;
+}
+.ri-table th { font-weight: var(--rg-weight-title); color: var(--rg-ink); }
+.ri-table td { font-weight: var(--rg-weight-prose); color: var(--rg-ink-2); }
+.ri-table td.ri-strong { font-weight: var(--rg-weight-title); color: var(--rg-ink); }
+.ri-table .ri-wrap { min-width: 220px; white-space: normal; }
+.ri-table .ri-sub { display: block; color: var(--rg-ink-3); font-weight: var(--rg-weight-line); }
+.ri-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.ri-sort svg { width: 12px; height: 12px; color: var(--rg-ink-2); }
+
+/* ---- controls the kit has no class for ---- */
+.ri-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: var(--rg-section-phone); }
+.ri-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+
+/* The switch: a 44x26 pill, ink when on, a 20px page-colour knob. Off is the
+   register's mark grey, 3.4:1 on the page. */
+.ri-switch {
+  position: relative;
+  flex: none;
+  width: var(--rg-switch-w);
+  height: var(--rg-switch-h);
+  padding: 0;
+  border: 0;
+  border-radius: 9999px;
+  background: var(--rg-mark);
+  cursor: pointer;
+  transition: background-color var(--rg-quick);
+}
+.ri-switch::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--rg-page);
+  transition: transform var(--rg-quick);
+}
+.ri-switch[aria-checked='true'] { background: var(--rg-ink); }
+.ri-switch[aria-checked='true']::after { transform: translateX(18px); }
+.ri-switch:disabled { opacity: 0.4; cursor: default; }
+.ri-switch:focus-visible { outline: 2px solid var(--rg-ink); outline-offset: 2px; }
+
+/* A block that is not a list (a form) still starts on the list's ink rule. */
+.ri-ruled { border-top: 1px solid var(--rg-ink); }
+.ri-ruled > .ri-actions { padding: 20px 12px; border-bottom: 1px solid var(--rg-rule); }
+
+/* A form's fields are the kit's .rg-input, two up on a wide screen. */
+.ri-form { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px 16px; padding: 20px 12px; border-bottom: 1px solid var(--rg-rule); }
+@media (min-width: 640px) { .ri-form { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.ri-field { display: grid; gap: 8px; min-width: 0; }
+.ri-label { font-weight: var(--rg-weight-title); color: var(--rg-ink); }
+
+/* A value to copy: the one job monospace keeps. */
+.ri-code {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: var(--rg-radius);
+  background: var(--rg-field);
+  font-family: var(--rg-mono);
+  font-size: var(--rg-text);
+  color: var(--rg-ink);
+  cursor: pointer;
+}
+.ri-code svg { width: 12px; height: 12px; color: var(--rg-ink-2); }
+
+/* A chart's hover note: white on a hairline, no shadow. */
+.ri-tip {
+  padding: 8px 12px;
+  border: 1px solid var(--rg-rule);
+  border-radius: var(--rg-radius);
+  background: var(--rg-white);
+  color: var(--rg-ink);
+  white-space: nowrap;
+}

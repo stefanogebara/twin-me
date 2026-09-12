@@ -17,6 +17,7 @@ const isValidLinkedInUrl = (url: string): boolean => {
   return /^https?:\/\/(www\.)?linkedin\.com\/in\/[\w-]+\/?$/i.test(url.trim());
 };
 
+/** "Not me": two borderless fields (the register's field), one search, a skip. */
 const CorrectionForm: React.FC<CorrectionFormProps> = ({
   name,
   linkedIn,
@@ -28,8 +29,8 @@ const CorrectionForm: React.FC<CorrectionFormProps> = ({
   retryCount,
 }) => {
   const message = retryCount === 0
-    ? 'No problem. Your LinkedIn URL is the fastest way to find the right you.'
-    : 'Still not right? Make sure the LinkedIn URL is correct.';
+    ? 'No problem. Your LinkedIn link is the fastest way to find the right you.'
+    : 'Still not right? Check the LinkedIn link.';
 
   const linkedInValid = isValidLinkedInUrl(linkedIn);
   const canSubmit = !isRetrying && name.trim().length > 0 && linkedInValid;
@@ -41,120 +42,60 @@ const CorrectionForm: React.FC<CorrectionFormProps> = ({
   };
 
   return (
-    <div
-      className="w-full max-w-sm mt-6"
-    >
-      <p
-        className="text-sm text-center mb-6"
-        style={{
-          color: 'var(--text-secondary)',
-          fontFamily: "'Inter', sans-serif",
-        }}
-      >
-        {message}
-      </p>
+    <div className="w-full max-w-sm mt-6" style={{ display: 'grid', gap: 20, textAlign: 'left' }}>
+      <p className="rs-flow-line" style={{ textAlign: 'center' }}>{message}</p>
 
       {/* LinkedIn URL (primary — strongest disambiguation signal) */}
-      <div className="mb-4">
-        <label
-          className="block text-xs uppercase tracking-widest mb-2"
-          style={{
-            color: 'var(--text-muted)',
-            fontFamily: "'Inter', sans-serif",
-            letterSpacing: '0.1em',
-          }}
-        >
-          LinkedIn URL
-        </label>
+      <div style={{ display: 'grid', gap: 8 }}>
+        <label htmlFor="correction-linkedin">Your LinkedIn link</label>
         <input
+          id="correction-linkedin"
           type="url"
           value={linkedIn}
           onChange={(e) => onLinkedInChange(e.target.value)}
           onKeyDown={handleKeyDown}
-          className="w-full px-4 py-3 rounded-xl text-sm outline-none transition-colors"
-          style={{
-            backgroundColor: 'rgba(255,255,255,0.06)',
-            border: `1px solid ${linkedIn && !linkedInValid ? 'rgba(239, 68, 68, 0.5)' : 'rgba(255,255,255,0.14)'}`,
-            color: 'var(--text-primary)',
-            fontFamily: "'Inter', sans-serif",
-          }}
+          aria-invalid={!!linkedIn && !linkedInValid}
+          className="n-input"
+          style={{ width: '100%' }}
           placeholder="https://linkedin.com/in/yourprofile"
         />
-        {linkedIn && !linkedInValid && (
-          <p
-            className="text-xs mt-1.5"
-            style={{ color: 'rgba(239, 68, 68, 0.7)', fontFamily: "'Inter', sans-serif" }}
-          >
-            Enter a valid LinkedIn profile URL
-          </p>
-        )}
-        <p
-          className="text-xs mt-1.5"
-          style={{ color: 'rgba(255,255,255,0.22)', fontFamily: "'Inter', sans-serif" }}
-        >
-          Paste your full LinkedIn profile URL
-        </p>
+        {linkedIn && !linkedInValid
+          ? <p className="rs-bad" style={{ margin: 0 }}>Enter a LinkedIn profile link</p>
+          : <p className="rs-quiet">The full link to your profile</p>}
       </div>
 
       {/* Full Name */}
-      <div className="mb-6">
-        <label
-          className="block text-xs uppercase tracking-widest mb-2"
-          style={{
-            color: 'var(--text-muted)',
-            fontFamily: "'Inter', sans-serif",
-            letterSpacing: '0.1em',
-          }}
-        >
-          Full Name
-        </label>
+      <div style={{ display: 'grid', gap: 8 }}>
+        <label htmlFor="correction-name">Your full name</label>
         <input
+          id="correction-name"
           type="text"
           value={name}
           onChange={(e) => onNameChange(e.target.value)}
           onKeyDown={handleKeyDown}
-          className="w-full px-4 py-3 rounded-xl text-sm outline-none transition-colors"
-          style={{
-            backgroundColor: 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(255,255,255,0.14)',
-            color: 'var(--text-primary)',
-            fontFamily: "'Inter', sans-serif",
-          }}
+          className="n-input"
+          style={{ width: '100%' }}
           placeholder="Your full name"
         />
       </div>
 
       {/* Buttons */}
-      <div className="flex flex-col gap-3">
+      <div style={{ display: 'grid', gap: 12, justifyItems: 'center' }}>
         <button
+          type="button"
           onClick={onSearchAgain}
           disabled={!canSubmit}
-          className="w-full px-6 py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2 transition-all duration-200 hover:scale-[1.01] disabled:opacity-40 disabled:cursor-not-allowed"
-          style={{
-            background: 'var(--claura-bone)',
-            color: 'var(--claura-bone-ink)',
-            fontFamily: "'Inter', sans-serif",
-          }}
+          className="n-btn n-btn--primary pb-cta"
         >
           {isRetrying ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
+            <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
           ) : (
-            <Search className="w-4 h-4" />
+            <Search className="w-4 h-4" aria-hidden="true" />
           )}
-          {isRetrying ? 'Searching...' : 'Search again'}
+          {isRetrying ? 'Searching' : 'Search again'}
         </button>
 
-        <button
-          onClick={onSkip}
-          disabled={isRetrying}
-          className="w-full px-6 py-3 rounded-xl text-sm transition-opacity hover:opacity-80 disabled:opacity-30"
-          style={{
-            color: 'var(--text-muted)',
-            fontFamily: "'Inter', sans-serif",
-            background: 'transparent',
-            border: 'none',
-          }}
-        >
+        <button type="button" onClick={onSkip} disabled={isRetrying} className="rs-link">
           Skip this step
         </button>
       </div>

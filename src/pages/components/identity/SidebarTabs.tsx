@@ -1,8 +1,9 @@
 /**
- * SidebarTabs — Icon tab switcher for context sidebar
- * ====================================================
- * Three tabs: Soul (default), Insights, Activity.
- * Dimension.dev-style icon pills with active state.
+ * SidebarTabs — the switcher for identity's "Your twin" section
+ * =============================================================
+ * Three choices: Soul (default), Insights, Activity. In the register they
+ * are 32px choices with a 4 corner: white with a hairline, and a pressed
+ * choice is the field with an ink line.
  */
 
 import React from 'react';
@@ -22,29 +23,20 @@ const TABS: { id: SidebarTab; icon: React.ElementType; label: string }[] = [
 ];
 
 const SidebarTabs: React.FC<SidebarTabsProps> = ({ activeTab, onTabChange }) => (
-  <div
-    className="flex items-center gap-1 p-1 rounded-full mx-auto w-fit"
-    style={{
-      background: 'var(--surface)',
-      border: '1px solid var(--glass-surface-border)',
-    }}
-  >
+  <div className="flex flex-wrap items-center gap-2" style={{ marginBottom: 16 }}>
     {TABS.map(({ id, icon: Icon, label }) => {
       const isActive = activeTab === id;
       return (
         <button
           key={id}
+          type="button"
           onClick={() => onTabChange(id)}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200"
-          style={{
-            background: isActive ? 'rgba(255,255,255,0.10)' : 'transparent',
-            color: isActive ? 'var(--foreground)' : 'var(--text-secondary)',
-          }}
-          aria-label={label}
+          className="n-btn n-btn--ghost"
+          style={isActive ? { background: 'var(--rg-field)', borderColor: 'var(--rg-ink)', fontWeight: 500 } : undefined}
           aria-pressed={isActive}
         >
-          <Icon className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">{label}</span>
+          <Icon className="w-4 h-4" aria-hidden="true" />
+          {label}
         </button>
       );
     })}

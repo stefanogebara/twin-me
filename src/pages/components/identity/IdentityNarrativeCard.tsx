@@ -2,25 +2,29 @@
  * IdentityNarrativeCard — user-editable persona override.
  *
  * audit-2026-05-27 task #11: askjo's SOUL.md analog. The system writes a
- * narrative for the user based on extracted memories; this card lets the
+ * narrative for the user based on extracted memories; this section lets the
  * user replace it with their own words. When user_narrative is set, the
  * twin's system prompt swaps it in transparently (twinContextBuilder.js).
  *
  * Three states:
- *   - viewing  : read-only render of active_narrative + source badge
- *   - editing  : textarea pre-filled with current text, Save + Cancel + Clear
+ *   - viewing  : the narrative's first sentence, the rest behind "Read all"
+ *   - editing  : textarea pre-filled with current text, Save + Cancel
  *   - saving   : disabled controls + spinner
  *
- * Source badge:
- *   - 'user'   → "Your words" + last edited timestamp
- *   - 'system' → "Auto-generated" + hint that user can override
+ * Source line:
+ *   - 'user'   → "Your words, edited 3d ago"
+ *   - 'system' → "Written by your twin. You can write your own."
+ *
+ * In the register it is a section (a heading, one grey line, the section's
+ * one action) over the narrative: no card, no badge pill, no shadow.
  */
 
 import React, { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Pencil, Save, X, Trash2, Sparkles } from 'lucide-react';
+import { Pencil, Trash2 } from 'lucide-react';
 import { authFetch } from '@/services/api/apiBase';
+import { Section, Empty } from '@/components/register';
 
 interface NarrativeData {
   archetype_name: string | null;
@@ -49,6 +53,25 @@ function relativeTime(iso: string | null): string {
   return new Date(iso).toLocaleDateString();
 }
 
+/** The first sentence shows; the rest waits behind "Read all". */
+function splitLead(text: string): { lead: string; rest: string } {
+  const idx = text.search(/[.!?]\s/);
+  if (idx === -1) return { lead: text, rest: '' };
+  return { lead: text.slice(0, idx + 1), rest: text.slice(idx + 2).trim() };
+}
+
+/** An inline text action: ink, underlined, no box. */
+const textLink: React.CSSProperties = {
+  background: 'none',
+  border: 0,
+  padding: 0,
+  font: 'inherit',
+  color: 'var(--rg-ink)',
+  textDecoration: 'underline',
+  textUnderlineOffset: '3px',
+  cursor: 'pointer',
+};
+
 const IdentityNarrativeCard: React.FC = () => {
   const queryClient = useQueryClient();
 
@@ -65,6 +88,7 @@ const IdentityNarrativeCard: React.FC = () => {
   const narrative = data?.data;
   const [mode, setMode] = useState<'view' | 'edit' | 'saving'>('view');
   const [draft, setDraft] = useState<string>('');
+  const [readAll, setReadAll] = useState(false);
   // Two-tap confirm before the destructive "Revert to auto" wipes the user's
   // hand-written narrative (audit-2026-06-10: was a zero-confirmation delete).
   const [confirmingClear, setConfirmingClear] = useState(false);
@@ -128,176 +152,133 @@ const IdentityNarrativeCard: React.FC = () => {
   // ── Loading / empty / error states ─────────────────────────────
   if (isLoading) {
     return (
-      <div className="rounded-[20px] border border-[var(--glass-surface-border)] bg-[var(--surface)] backdrop-blur-[42px] px-5 py-4 animate-pulse">
-        <div className="h-4 w-32 bg-[var(--surface)] rounded mb-3" />
-        <div className="h-3 w-full bg-[var(--surface)] rounded mb-2" />
-        <div className="h-3 w-3/4 bg-[var(--surface)] rounded" />
-      </div>
+      <Section title="In your own words">
+        <div aria-busy="true" className="space-y-2">
+          <span className="block rounded-[4px] animate-pulse" style={{ height: 12, width: '100%', background: 'var(--rg-field)' }} />
+          <span className="block rounded-[4px] animate-pulse" style={{ height: 12, width: '75%', background: 'var(--rg-field)' }} />
+        </div>
+      </Section>
     );
   }
 
-  // Fetch failure: show a quiet retry card instead of vanishing — a silent
+  // Fetch failure: show a quiet retry instead of vanishing — a silent
   // null made "my narrative disappeared" undebuggable (audit-2026-07-03).
   if (isError) {
     return (
-      <div className="rounded-[20px] border border-[var(--glass-surface-border)] bg-[var(--surface)] backdrop-blur-[42px] px-5 py-4">
-        <p className="text-sm" style={{ color: '#A8A29E' }}>
-          Could not load your narrative.
-        </p>
-        <button
-          onClick={() => refetch()}
-          className="mt-2 text-sm underline transition-opacity hover:opacity-70"
-          style={{ color: '#9C9590' }}
-        >
-          Try again
-        </button>
-      </div>
+      <Section title="In your own words">
+        <Empty>
+          Could not load your narrative.{' '}
+          <button type="button" style={textLink} onClick={() => refetch()}>Try again</button>
+        </Empty>
+      </Section>
     );
   }
 
   if (!narrative) return null;
 
   if (narrative.active_source === 'none' || !narrative.active_narrative) {
-    // No soul signature yet — nothing to override. Don't show the card.
+    // No soul signature yet — nothing to override. Don't show the section.
     return null;
   }
 
   const isUserAuthored = narrative.active_source === 'user';
   const remaining = MAX_CHARS - draft.length;
+  const { lead, rest } = splitLead(narrative.active_narrative);
 
   // ── Render ──────────────────────────────────────────────────────
   return (
-    <div className="rounded-[20px] border border-[var(--glass-surface-border)] bg-[var(--surface)] backdrop-blur-[42px] px-5 py-4 shadow-[0_4px_4px_rgba(0,0,0,0.12),inset_0_1px_0_rgba(255,255,255,0.06)]">
-      {/* Header: badge + edit button */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <Sparkles className="w-4 h-4" style={{ color: 'var(--accent-vibrant)' }} />
-          <h3
-            className="text-[18px]"
-            style={{ fontFamily: "var(--font-heading)", fontWeight: 400, letterSpacing: '-0.36px' }}
-          >
-            Your soul, in your own words
-          </h3>
-        </div>
-        <div className="flex items-center gap-2">
-          {isUserAuthored ? (
-            <span
-              className="text-[11px] px-2 py-0.5 rounded-full"
-              style={{
-                backgroundColor: 'var(--accent-vibrant-glow)',
-                color: 'var(--accent-vibrant)',
-              }}
-              title={`Edited ${relativeTime(narrative.user_narrative_updated_at)}`}
-            >
-              Your words · {relativeTime(narrative.user_narrative_updated_at)}
-            </span>
-          ) : (
-            <span
-              className="text-[11px] px-2 py-0.5 rounded-full"
-              style={{
-                backgroundColor: 'var(--surface)',
-                color: 'var(--text-muted)',
-              }}
-            >
-              Auto-generated
-            </span>
-          )}
-        </div>
-      </div>
-
-      {/* Body: read-only OR editable */}
-      {mode === 'view' && (
-        <>
-          <p
-            className="text-[14.5px] leading-relaxed whitespace-pre-wrap"
-            style={{ color: 'var(--text-narrative)' }}
-          >
-            {narrative.active_narrative}
-          </p>
-          <div className="flex items-center justify-end gap-2 mt-3">
-            {isUserAuthored && (
-              <button
-                onClick={() => {
-                  if (confirmingClear) {
-                    handleClear();
-                  } else {
-                    setConfirmingClear(true);
-                  }
-                }}
-                onBlur={() => setConfirmingClear(false)}
-                className="text-[12px] flex items-center gap-1 px-2 py-1 rounded-[6px] hover:bg-[var(--surface)] transition"
-                style={{ color: confirmingClear ? 'var(--destructive)' : 'var(--text-muted)' }}
-              >
-                <Trash2 className="w-3 h-3" />
-                {confirmingClear ? 'Click again to confirm' : 'Revert to auto'}
-              </button>
-            )}
-            <button
-              onClick={() => { setConfirmingClear(false); setMode('edit'); }}
-              className="text-[12px] flex items-center gap-1 px-2 py-1 rounded-[6px] hover:bg-[var(--surface)] transition"
-              style={{ color: 'var(--foreground)' }}
-            >
-              <Pencil className="w-3 h-3" />
-              {isUserAuthored ? 'Edit' : 'Write your own'}
-            </button>
-          </div>
-        </>
-      )}
-
-      {(mode === 'edit' || mode === 'saving') && (
-        <>
-          <textarea
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            disabled={mode === 'saving'}
-            rows={10}
-            maxLength={MAX_CHARS}
-            className="w-full rounded-[6px] px-3 py-2.5 text-[14.5px] leading-relaxed resize-y focus:outline-none focus:ring-1 focus:ring-[rgba(255,255,255,0.25)]"
-            style={{
-              backgroundColor: 'var(--surface)',
-              border: '1px solid var(--border-glass)',
-              color: 'var(--text-narrative)',
-              fontFamily: 'Geist, Inter, system-ui, sans-serif',
-            }}
-            placeholder="Write the version of you that the twin should believe — the one that overrides what the system inferred from your data."
-          />
-          <div className="flex items-center justify-between mt-3">
-            <span
-              className="text-[11px]"
-              style={{
-                color: remaining < 100 ? 'var(--destructive)' : 'var(--text-muted)',
-              }}
-            >
-              {remaining} chars left
-            </span>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => { setMode('view'); setDraft(narrative.active_narrative || ''); }}
-                disabled={mode === 'saving'}
-                className="text-[12px] flex items-center gap-1 px-2 py-1 rounded-[6px] hover:bg-[var(--surface)] disabled:opacity-50 transition"
-                style={{ color: 'var(--text-muted)' }}
-              >
-                <X className="w-3 h-3" />
-                Cancel
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={mode === 'saving' || draft.length > MAX_CHARS}
-                className="text-[12px] flex items-center gap-1 px-3 py-1.5 rounded-[100px] disabled:opacity-50 transition"
-                style={{
-                  backgroundColor: 'var(--primary)',
-                  color: 'var(--primary-foreground)',
-                  fontWeight: 500,
-                }}
-              >
-                <Save className="w-3 h-3" />
-                {mode === 'saving' ? 'Saving…' : 'Save'}
-              </button>
+    <Section
+      title="In your own words"
+      line={isUserAuthored
+        ? `Your words, edited ${relativeTime(narrative.user_narrative_updated_at)}.`
+        : 'Written by your twin. You can write your own.'}
+      action={mode === 'view' ? (
+        <button
+          type="button"
+          className="n-btn n-btn--ghost"
+          onClick={() => { setConfirmingClear(false); setMode('edit'); }}
+        >
+          <Pencil className="w-4 h-4" aria-hidden="true" />
+          {isUserAuthored ? 'Edit' : 'Write your own'}
+        </button>
+      ) : undefined}
+    >
+      {/* Body: read-only OR editable, under the list's ink rule */}
+      <div style={{ borderTop: '1px solid var(--rg-ink)', padding: '20px 12px 0' }}>
+        {mode === 'view' && (
+          <>
+            <p className="whitespace-pre-wrap" style={{ margin: 0, color: 'var(--rg-ink)', maxWidth: '68ch' }}>
+              {readAll || !rest ? narrative.active_narrative : lead}
+            </p>
+            <div className="flex flex-wrap items-center gap-4" style={{ marginTop: 12 }}>
+              {rest && (
+                <button type="button" style={textLink} aria-expanded={readAll} onClick={() => setReadAll(r => !r)}>
+                  {readAll ? 'Show less' : 'Read all'}
+                </button>
+              )}
+              {isUserAuthored && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (confirmingClear) {
+                      handleClear();
+                    } else {
+                      setConfirmingClear(true);
+                    }
+                  }}
+                  onBlur={() => setConfirmingClear(false)}
+                  className="inline-flex items-center gap-1"
+                  style={{ ...textLink, color: confirmingClear ? 'var(--rg-danger)' : 'var(--rg-ink-2)' }}
+                >
+                  <Trash2 className="w-4 h-4" aria-hidden="true" />
+                  {confirmingClear ? 'Press again to confirm' : 'Revert to your twin\'s version'}
+                </button>
+              )}
             </div>
-          </div>
-        </>
-      )}
-    </div>
+          </>
+        )}
+
+        {(mode === 'edit' || mode === 'saving') && (
+          <>
+            <textarea
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              disabled={mode === 'saving'}
+              rows={10}
+              maxLength={MAX_CHARS}
+              aria-label="Your soul, in your own words"
+              className="n-input w-full resize-y focus-visible:outline-2 focus-visible:outline-[var(--rg-ink)]"
+              style={{ height: 'auto' }}
+              placeholder="Write the version of you that the twin should believe."
+            />
+            <div className="flex flex-wrap items-center justify-between gap-2" style={{ marginTop: 12 }}>
+              <span style={{ color: remaining < 100 ? 'var(--rg-danger)' : 'var(--rg-ink-3)', fontVariantNumeric: 'tabular-nums' }}>
+                {remaining} characters left
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => { setMode('view'); setDraft(narrative.active_narrative || ''); }}
+                  disabled={mode === 'saving'}
+                  className="n-btn n-btn--ghost"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  disabled={mode === 'saving' || draft.length > MAX_CHARS}
+                  className="n-btn n-btn--ghost"
+                  style={{ fontWeight: 500 }}
+                >
+                  {mode === 'saving' ? 'Saving…' : 'Save'}
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </Section>
   );
 };
 

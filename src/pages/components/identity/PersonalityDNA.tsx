@@ -41,7 +41,8 @@ const TRAITS: readonly TraitDef[] = [
   { key: 'neuroticism', leftLabel: 'Calm Waters', rightLabel: 'Deep Feeler' },
 ] as const;
 
-const ACCENT_COLOR = 'rgba(199,146,234,0.8)'; // lavender
+// Iris from register.css: a mark, never text.
+const ACCENT_COLOR = '#8179fb';
 
 // ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -79,8 +80,8 @@ const TraitSlider: React.FC<TraitSliderProps> = ({ trait, score, index, delay })
     <div className="mb-5 last:mb-0">
       {/* Trait name */}
       <p
-        className="text-xs font-medium mb-2 uppercase tracking-[0.08em]"
-        style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
+        className="text-[13px] font-medium mb-2"
+        style={{ color: 'var(--rg-ink)', fontFamily: 'var(--rg-sans)' }}
       >
         {formatTraitName(trait.key)}
       </p>
@@ -88,25 +89,25 @@ const TraitSlider: React.FC<TraitSliderProps> = ({ trait, score, index, delay })
       {/* Labels row */}
       <div className="flex items-center justify-between mb-1.5">
         <span
-          className="text-[11px]"
-          style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
+          className="text-[13px]"
+          style={{ color: 'var(--rg-ink-2)', fontFamily: 'var(--rg-sans)' }}
         >
           {trait.leftLabel}
         </span>
         <span
-          className="text-[11px]"
-          style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
+          className="text-[13px]"
+          style={{ color: 'var(--rg-ink-2)', fontFamily: 'var(--rg-sans)' }}
         >
           {trait.rightLabel}
         </span>
       </div>
 
       {/* Slider track */}
-      <div className="relative h-1.5 rounded-full" style={{ background: 'var(--surface)' }}>
+      <div className="relative h-1.5 rounded-full" style={{ background: 'var(--rg-rule)' }}>
         {/* Center marker */}
         <div
           className="absolute top-0 bottom-0 w-px"
-          style={{ left: '50%', background: 'var(--surface)' }}
+          style={{ left: '50%', background: 'var(--rg-quiet)' }}
         />
 
         {/* Animated dot */}
@@ -116,7 +117,6 @@ const TraitSlider: React.FC<TraitSliderProps> = ({ trait, score, index, delay })
             backgroundColor: ACCENT_COLOR,
             marginLeft: '-6px',
             marginTop: '-6px',
-            boxShadow: `0 0 8px ${ACCENT_COLOR}`,
           }}
           initial={{ left: '50%' }}
           animate={{ left: `${percentage}%` }}
@@ -135,16 +135,9 @@ const TraitSlider: React.FC<TraitSliderProps> = ({ trait, score, index, delay })
 
 const EmptyState: React.FC = () => (
   <div
-    className="rounded-[16px] px-5 py-6 text-center"
-    style={{
-      background: 'var(--surface)',
-      border: '1px solid var(--border-glass)',
-    }}
+    style={{ borderTop: '1px solid var(--rg-ink)' }}
   >
-    <p
-      className="text-sm"
-      style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
-    >
+    <p className="rg-empty">
       Chat more to discover your personality DNA
     </p>
   </div>
@@ -168,28 +161,14 @@ const PersonalityDNA: React.FC<PersonalityDNAProps> = ({
     >
       {/* Section label */}
       <div className="flex items-center gap-2 mb-4">
-        <Brain className="w-3 h-3" style={{ color: 'var(--text-muted)' }} />
-        <span
-          className="text-[11px] uppercase tracking-[0.12em] font-medium"
-          style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
-        >
-          Personality DNA
-        </span>
+        <Brain className="w-4 h-4" style={{ color: 'var(--rg-ink-2)' }} aria-hidden="true" />
+        <span className="rg-row-title">Personality DNA</span>
       </div>
 
       {!hasData ? (
         <EmptyState />
       ) : (
-        <div
-          className="rounded-[20px] px-5 py-4"
-          style={{
-            background: 'var(--surface)',
-            border: '1px solid var(--border-glass)',
-            backdropFilter: 'blur(42px)',
-            WebkitBackdropFilter: 'blur(42px)',
-            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), 0 4px 12px rgba(0,0,0,0.12)',
-          }}
-        >
+        <div style={{ borderTop: '1px solid var(--rg-ink)', padding: '20px 12px 0' }}>
           {TRAITS.map((trait, index) => (
             <TraitSlider
               key={trait.key}

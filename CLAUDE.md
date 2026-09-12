@@ -3,7 +3,7 @@
 ## User Preferences (MUST FOLLOW)
 
 - **NO EMOJIS** — The user dislikes emojis. Never use them in UI text, twin responses, insight text, or any user-facing content. Use plain text only.
-- **Design**: Nocturne (since 2026-09-01) — the midnight gallery of the self. Flat obsidian #0f1011 canvas, zero photography/orbs/glass, Fraunces 300 display with the italic verb, Inter UI, Roboto Mono uppercase for everything small, white-on-black as the only primary action, chroma confined to the five signature tiles. Single appearance (dark by design). Contract: /nocturne/system + src/styles/nocturne.css. Full section below.
+- **Design**: the register (since 2026-09-12, every page) — Instinct's signed-in app with the Cosmos headings. Warm page #fbfaf9, one warm ink #251f21 at AA-safe strengths (#585254, #6c6867), #eae9ea hairlines, the warm field #f4efec, 13px Geist with weight for hierarchy, Cosmos headings (Geist 300 / 400, never a serif), rows under a 1px ink rule instead of cards, 32px/4px buttons with one ink primary, no uppercase tracked labels, very little text. Contract: /system + src/styles/register.css. Full section below.
 
 ## Vercel Cost Rules (CRITICAL — $375 bill incident March 2026)
 
@@ -414,112 +414,111 @@ Recent memories are dominated by reflections (~90 of last 100). Platform data ob
 - `/design-review` - Design review with browser testing
 
 ---
-## Design System (the Instinct register — active for the money product since 2026-09-10)
+## Design System (the register — every page since 2026-09-12)
 
-> The money product is what TwinMe sells: the phone app, the money pages and the
-> sign-in page. They all run this register, measured from app.instinct.co's own
-> stylesheet and font binaries rather than eyeballed. Nocturne, documented below,
-> now governs only the older soul-signature surfaces, which the platform review
-> recommends parking. Do not mix the two on one screen.
-> Source of truth: `src/styles/money-v2.css` on the web and
-> `mobile/src/constants/cosmos.ts` on the phone.
+> The register is Instinct's signed-in app (app.instinct.co, measured signed in
+> on 2026-09-11) with the Cosmos headings kept. It shipped on the money pages and
+> sign-in in #306 and became every page's foundation on 2026-09-12.
+> **Nocturne was retired on 2026-09-12:** `nocturne.css` keeps its `--n-*`
+> names and `.n-*` classes, and `nocturne-bridge.css` keeps the semantic
+> tokens (`--background`, `--primary`, `--muted-foreground`...), but both now
+> resolve to the register, so every page follows without being edited.
+> Source of truth: `src/styles/register.css` (`--rg-*`). Living spec: `/system`
+> (also `/nocturne/system`; both dev-only routes), which reads its tokens live.
+> Reference implementation: `src/styles/money-v2.css` + `src/pages/money/*`.
+> Spec: `.claude/plans/2026-09-11-instinct-register/`.
 
-### One sans, no display serif
-Geist on the web, Inter on the phone (Geist is not published for Expo). Stefano
-rejected a display serif outright, so there is no second family anywhere.
+### Tokens
+- **Grounds:** page `#fbfaf9` (every screen) · white `#ffffff` (a secondary
+  button, a card until it becomes rows) · field `#f4efec` (an input, a pressed
+  choice).
+- **Ink, one warm ink at three strengths:** ink `#251f21` (text, the rule on top
+  of every list, the primary fill) · ink-2 `#585254` (the one grey line under a
+  title, 7.3:1 on the page) · ink-3 `#6c6867` (quiet: empty states, names,
+  timestamps, 5.3:1).
+- **Lines:** hairline `#eae9ea` between rows; hover is ink at 5%.
+- **Never text:** `--rg-quiet` `#969394` (2.9:1, disabled and decorative only) and
+  `--rg-mark` `#8c8889` (the switch's off track, 3.4:1).
+- **State:** danger text `#c42533` (5.5:1), its line `#f5aaae`; ok text
+  `#3d7566` (5.1:1), its line `#73a89a`. Instinct's own red and green fail as
+  text, so they stay lines.
+- **The five signatures** (domain and data colour only: tiles, strokes, brand
+  icons), re-tuned for the light page to clear 3:1 as a stroke: ember `#c47833`
+  motivation · iris `#8179fb` personality · verdigris `#4c9786` cultural ·
+  orchid `#ba70b6` social · periwinkle `#668cc2` lifestyle · signal `#0096ba`
+  for chart strokes. Text on a tile is ink (4.7:1); a signature is never text.
+  Each has an `-rgb` triplet: `rgb(var(--rg-ember-rgb) / 0.2)`.
 
-### The measured values
-- Page `#ffffff`. Panels `#faf9f7`, and `#f6f5f3` behind a track.
-- Ink `#101113`. Secondary text is that same ink at 60 percent, quiet at 38.
-  Never a second grey.
-- Hairlines `#e5e7eb`. Hover is the ink at 5 percent, pressed at 10.
-- Body 16 on 24 at tracking -0.011em. Secondary 15 on 24.4. Fine print 14 on
-  22.75. Headings 32 on 36.8 at -0.022em. Figures large, weight 400, tabular.
-- Card radius 16, button 12, field 4. The prompt stays a pill.
-- **Weight 500 is the ceiling.** Nothing on a screen is bolder.
+### Type
+Everything is Geist (variable range, loaded in `index.html`); Geist Mono only for
+a value to copy. **Never a serif**: `--n-serif` and `font-heading` resolve to Geist.
+- **Page title:** Geist 300, line-height 1.0, letter-spacing −0.05em, balanced.
+  App screens 32–40px; marketing `clamp(46px, 6.3vw, 74px)`.
+- **Section heading:** Geist 400, line-height 1.08, −0.04em, balanced. App
+  `clamp(28px, 3.2vw, 38px)`; marketing `clamp(38px, 5.5vw, 66px)`.
+- **Everything else is 13px**, and weight makes the hierarchy: row title 13/20
+  at 500 ink · grey line 13/19.5 at 350 ink-2 · quiet 13/19.5 at 350 ink-3 ·
+  prose 13/19.5 at 400. Tracking −0.176px; tabular figures.
+- **No uppercase tracked labels, anywhere.** Labels are sentence case.
 
-### Rules that are not tokens
-1. **No uppercase tracked labels.** Section labels are sentence case at 15/500.
-2. **One line, one grey line, one action.** No row carries two verbs.
-3. **Never a button inside a row.** On a 372pt phone it steals the width and the
-   description truncates; use a chevron and put the action on the destination.
-4. **The grey line must fit on one line.** Shorten the copy rather than clip it.
-   Their calm comes from short copy as much as from colour.
-5. **Colour appears only in a brand mark.** The interface is black, white, grey.
-6. Marks share one optical square, 28pt, on a single left axis.
-7. About 40 between sections, 14 inside a card, 20 page margin.
+### Layout: rows, not cards
+- Content column 820px; a 200px sidebar of plain text links 80px to its left,
+  the current link underlined, nothing filled. Phone (≤ 767px): 24px gutters,
+  navigation behind a menu button, every other size unchanged.
+- Sections 72px apart (56 on a phone). A section is a heading, one grey line 4px
+  under it, then a list under a **1px ink rule** 24px further down.
+- **No cards, panels, glass, gradients or shadows on app screens.** A row is
+  `[32px icon] [title + one grey line] [one action]`, min-height 80, padding
+  20/12, a hairline under it; the action is a chevron, a 32px button or a "…"
+  menu, never two. A sub-row is indented 50px. An empty state is one quiet line.
+- Until a page is converted, a card is white with a hairline and an 8px corner.
 
-### Regression tells
-A shadow under a card, a rotated receipt, an uppercase tracked label, a pill
-button inside a row, a gradient, or any weight above 500 means someone built on
-the old system.
+### Controls
+- **Button:** 32 tall, padding 0 16, 4px corner, 13px. Primary: ink fill,
+  page-colour text, **one per screen**. Secondary: white, hairline, ink text.
+  Danger: white, `#f5aaae` line, danger text, never a red fill.
+- **The one exception:** the main call to action of a marketing or sign-in page
+  is 48 tall, 12px corner, 15px 500, ink fill (`<Button size="lg">`).
+- **Field:** no border, the warm field, 44 tall, 4px corner, padding 11/14, 13px.
+- **Switch:** a 44×26 pill, ink when on, a 20px page-colour knob.
+- Targets at least 24×24. The shared shadcn primitives in `src/components/ui/`
+  (button, input, textarea, select, switch, tabs, dialog, sheet, drawer,
+  alert-dialog, toasts, card) already speak the register: use them.
 
-## Nocturne (soul-signature surfaces only — since 2026-09-01)
+### Copy
+One grey line per row, about 60 characters at most, never a paragraph in a row.
+A screen stays under about 150 words, a sign-in under 50 (count `innerText` of
+`main`). Sentence case, plain words as a person would say them: no jargon.
 
-> Nocturne replaced Claura in the flip of 2026-09-01. Claura's files still load
-> underneath the bridge for unported edge values; do not build anything new on
-> them. The living contract is the /nocturne/system route — if a surface
-> disagrees with that page, the surface is wrong.
-> Source of truth: `src/styles/nocturne.css` (tokens + primitives, documented)
-> and `src/styles/nocturne-bridge.css` (semantic-token adoption layer).
-> Reference: Origin Financial (useorigin.com) — Refero extraction + live audit,
-> adapted. Decision ledger in PR #274.
-
-### The five laws
-1. Elevation is a color step, never a shadow.
-2. White-on-black is the only primary action.
-3. Chromatic color exists only as signature tiles and data strokes — never
-   text under 18px, never borders, never washes.
-4. The italic marks one word per display line: the verb of self-knowledge.
-5. Anything smaller than 13px speaks mono, uppercase, tracked.
-
-### Three voices
-- **Fraunces 300** (`--n-serif`) — display/headings only, never bolder, true
-  italics. Sizes 96/80/38 at line-height 0.9-1.0.
-- **Inter 400/500** (`--n-sans`) — all interface text.
-- **Roboto Mono 400/500 UPPERCASE** (`--n-mono`) — labels, badges, buttons,
-  data readouts, legal. Tracking 0.02em (12px) to 0.18em (11px micro).
-
-### Surfaces (flat elevation ladder)
-`#0f1011` obsidian canvas → `#090a0b` abyss bands → `#1c1d1f` graphite cards →
-`#2c2d2f` steel hover → `#cacaca` silver inverted (max 1-2 per page).
-Hairlines `rgba(255,255,255,.08)`. Zero glass, zero orbs, zero photography —
-every background is built in code.
-
-### Ink
-Pure `#ffffff` (actions; display on dark media) · Cloud `#fafafa` (headings) ·
-Ash `#9f9fa0` (body — never full white) · Fog `#6a6b6b` (muted).
-
-### The five signatures (tile + data roles ONLY)
-ember `#dd8f4c` motivation · iris `#847dff` personality · verdigris `#55a08e`
-cultural · orchid `#dd90d8` social · periwinkle `#90b8f0` lifestyle.
-Data signal `#00b3dd` for chart strokes only.
-
-### Shape & motion
-Controls 8px · cards 16px · tiles/feature panels 24px · pills 9999px (chips,
-prompt, avatars only). States 0.2s ease; atmospheric reveals 2.5s
-cubic-bezier(.455,.03,.515,.955); nothing bounces, nothing loops.
-
-### Components (see /nocturne/system for rendered spec)
-`.n-btn--primary` (white/black mono) · `.n-btn--ghost` (borderless white-10%) ·
-`.n-badge` · `.n-prompt` (frosted pill + circular submit) · `.n-card` /
-`.n-card--inverted` · `.n-tile--{ember|iris|verdigris|orchid|periwinkle}` ·
-`.n-reading` (mono source line over italic serif observation — the system's
-signature move) · `.n-stanza` section rhythm · `.n-nav` · `.n-atmosphere`.
+### Must hold (AA)
+- Text at least 4.5:1, or 3:1 at 24px and above; strokes, icons and control
+  boundaries at least 3:1. `tests/unit/registerContrast.test.ts` re-measures the
+  tokens from `register.css`; `scripts/audit-cosmos-ink.mjs` (`ALL=1`, root
+  `#root` by default) measures rendered pages at 402×874 and 1440×900.
+- Marketing pages keep their photography and film. Text on a photograph keeps
+  an audited white ink (see `.n-atmosphere`), and must still pass AA.
 
 ### Rules for AI code generation
-1. New surfaces use `n-*` primitives directly; legacy surfaces inherit through
-   the bridge until ported — never add new `claura-*` usage.
+1. Build new surfaces on `--rg-*` tokens and the `.mv` / shadcn primitives. The
+   `--n-*`, `n-*` and `claura-*` names still resolve, but never add new uses.
+   The shapes more than one page needed live once in `register-kit.css`:
+   `.rg-compact` (57px rows), `.rg-choice` / `.rg-choices` (on
+   `.n-btn.n-btn--ghost`, `--num` for figures), `.rg-input`, `.rg-bar`,
+   `.rg-danger`, `.rg-figures`. Use them; never re-cut one in a page sheet.
 2. NO EMOJIS in user-facing UI (unchanged, permanent).
-3. Never bold the serif; never color body text with signature hues; never add
-   shadows or glassmorphism.
-4. Buttons and labels speak mono uppercase. Prose speaks Inter. Emotion speaks
-   Fraunces 300.
-5. Single appearance: Nocturne is dark by design (the reference is a nocturnal
-   gallery). A light variant must be designed deliberately, not toggled.
-6. The DayNight photo backgrounds, ambient orbs, and all legacy background
-   imagery are retired — the canvas is flat obsidian, painted by
-   ClassicBackground.
+3. Never a serif, never bolder than 500, never a signature hue as text, never a
+   shadow, glass or gradient on an app screen.
+4. SVG presentation attributes and canvas do not resolve `var()`: write the
+   register's hex there, with a comment naming the token.
+5. Single appearance: the register is light by design. `data-theme` is still
+   stamped `dark` by ThemeContext; the bridge maps both to the same light world.
+6. `:root:root` in the bridge is load-bearing (Tailwind hoists `:root` blocks
+   past it); `tests/frontend/bridgePrecedence.test.ts` pins it.
+
+### Regression tells
+A shadow under a card, glass, a gradient, an uppercase tracked label, a serif,
+white text on the page, a filled nav item, two primaries on a screen, or a
+signature colour used as text means someone built on a retired system.
 
 ## Inteligência de mercado e técnica
 

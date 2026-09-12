@@ -6,17 +6,18 @@
  *
  *   1. Subscriptions audit with first-charge emotional context — the
  *      "I signed up for this gym on a low-recovery Sunday, never used it"
- *      insight ChatGPT Personal Finance cannot say
+ *      insight a plain spending tracker cannot say
  *   2. Stress-spend timeline — daily outflow overlaid with the stress
  *      signal that drove it
  *
- * Designed as a polished read-only surface. Action / detail flows still
- * live on /money. From /money you can click "See your insights" to land
- * here; from here a back link returns to the control surface.
+ * Designed as a read-only surface in the register, as src/pages/money/* are:
+ * a page title, sections of rows under the ink rule, empty states as one quiet
+ * line. Action / detail flows still live on /money. From /money you can click
+ * "See your insights" to land here; from here a back link returns.
  */
 
 import React, { useEffect, useState } from 'react';
-import { ArrowLeft, AlertCircle, Loader2, Repeat, TrendingUp } from 'lucide-react';
+import { ArrowLeft, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import {
@@ -26,6 +27,9 @@ import {
   type TimelineDay,
 } from '@/services/api/transactionsAPI';
 import { StressSpendTimeline } from './components/money/StressSpendTimeline';
+import { Page, PageHead, Section, List, Row, Empty } from '@/components/register';
+import '@/styles/register-public.css';
+import '@/styles/register-settings.css';
 
 function fmtCurrency(amount: number, currency: string): string {
   try {
@@ -101,158 +105,100 @@ const MoneyInsightsPage: React.FC = () => {
     return () => { cancelled = true; };
   }, []);
 
+  const moneyLink = (
+    <button type="button" onClick={() => navigate('/money')} className="rs-link">Money</button>
+  );
+
   return (
-    <div className="min-h-full px-4 sm:px-6 lg:px-10 py-6 lg:py-10 max-w-6xl mx-auto">
-      {/* Hero */}
+    <Page className="rs">
       <button
+        type="button"
         onClick={() => navigate('/money')}
-        className="inline-flex items-center gap-2 text-[var(--text-narrative-muted)] hover:text-[var(--text-narrative-secondary)] text-sm mb-6 transition-colors"
+        className="n-btn n-btn--ghost"
+        style={{ marginBottom: 40 }}
       >
-        <ArrowLeft className="h-4 w-4" />
+        <ArrowLeft className="w-4 h-4" aria-hidden="true" />
         Back to Money
       </button>
 
-      <header className="mb-10">
-        <h1 className="text-heading text-[40px] sm:text-[48px] leading-[1.05] tracking-[-0.96px] text-[var(--text-narrative)]">
-          Your money, with context.
-        </h1>
-        <p className="mt-4 max-w-2xl text-[var(--text-narrative-secondary)] text-[15.5px] leading-[1.55]">
-          ChatGPT shows you what you spent. Your twin shows you why — joining every
-          charge with the recovery, stress, and mood you carried into that decision.
-        </p>
-      </header>
+      <PageHead
+        title="Your money, with context."
+        line="Every charge next to how you were doing that day."
+      />
 
       {/* Subscriptions audit with first-charge emotional context. */}
       <Section
-        icon={<Repeat className="h-4 w-4" />}
-        eyebrow="Recurring charges"
-        title="What you're paying for, every month"
-        subtitle={subsSynthesis || 'Detected from your transaction history. Each subscription is tagged with the emotional state on the day you first signed up.'}
+        title="What you pay every month"
+        line={subs.length > 0 && subsSynthesis
+          ? subsSynthesis
+          : 'From your statements, with how you were doing when each began.'}
       >
-        {loading && subs.length === 0 ? (
-          <SkeletonRow />
-        ) : subs.length === 0 ? (
-          <EmptyHint>
-            No recurring charges detected yet. Upload a statement or link WhatsApp on
-            <button onClick={() => navigate('/money')} className="text-[var(--accent-vibrant)] hover:underline ml-1">Money</button> to start tracking.
-          </EmptyHint>
+        <List label="Monthly charges" className="rg-figures">
+          {loading && subs.length === 0 ? (
+            <li><Empty>Loading</Empty></li>
+          ) : subs.length === 0 ? (
+            <li><Empty>No monthly charges yet. Add a statement on {moneyLink}.</Empty></li>
+          ) : (
+            <>
+              {/* Coaching callout removed (2026-05-22): the "Worth flagging the
+                  next time you feel the urge to subscribe to something at
+                  midnight" line was a value judgment the surface shouldn't make
+                  on the user's behalf — signing up to Cursor under deadline
+                  pressure is leverage, not impulse. The neutral count is now
+                  carried by the synthesis line above (subsSynthesis). */}
+              {subs.map(s => {
+                const dateStr = fmtDate(s.firstChargeDate);
+                const parts: string[] = [`${s.chargeCount} charges`];
+                if (dateStr) parts.push(`first on ${dateStr}`);
+                if (s.firstChargeContext) parts.push(s.firstChargeContext);
+                return (
+                  <Row
+                    key={`${s.merchant}-${s.firstChargeDate}`}
+                    title={s.merchant}
+                    line={parts.join(' · ')}
+                    clip
+                    action={
+                      <span>
+                        <span className="rs-figure">{fmtCurrency(s.monthlyAvg, s.currency)}</span>
+                        <span className="rs-quiet"> a month</span>
+                      </span>
+                    }
+                  />
+                );
+              })}
+              <li className="rg-row rg-row--plain" style={{ minHeight: 'var(--rg-row-sub)', padding: 12 }}>
+                <span className="rg-row-text"><span className="rg-row-title">In total</span></span>
+                <span className="rg-row-action">
+                  <span className="rs-figure">{fmtCurrency(subsTotalMonthly, subsCurrency)}</span>
+                  <span className="rs-quiet">a month</span>
+                </span>
+              </li>
+            </>
+          )}
+        </List>
+      </Section>
+
+      {/* Stress-spend timeline: under the ink rule, no box. */}
+      <Section title="When stress drives spending" line="What you spent each day, and how stressed you were.">
+        {timeline.length === 0 && !loading ? (
+          <List label="Daily pattern">
+            <li><Empty>No spending history yet. Add a statement on {moneyLink} to see the pattern.</Empty></li>
+          </List>
         ) : (
-          <>
-            {/* Coaching callout removed (2026-05-22): the "Worth flagging the
-                next time you feel the urge to subscribe to something at
-                midnight" line was a value judgment the surface shouldn't make
-                on the user's behalf — signing up to Cursor under deadline
-                pressure is leverage, not impulse. The neutral count is now
-                carried by the synthesis line above (subsSynthesis). */}
-            <ul className="space-y-2">
-              {subs.map(s => (
-                <li
-                  key={`${s.merchant}-${s.firstChargeDate}`}
-                  className="rounded-[14px] border border-[var(--glass-surface-border)] bg-[var(--glass-surface-bg)] backdrop-blur-[42px] px-4 py-3 flex items-start justify-between gap-4"
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-[var(--text-narrative)] text-[14px] font-medium truncate">
-                        {s.merchant}
-                      </span>
-                      <span className="text-[11px] text-[var(--text-narrative-muted)]">
-                        {s.chargeCount} charges
-                      </span>
-                    </div>
-                    {(() => {
-                      const dateStr = fmtDate(s.firstChargeDate);
-                      const parts: string[] = [];
-                      if (dateStr) parts.push(`First charge ${dateStr}`);
-                      if (s.firstChargeContext) parts.push(s.firstChargeContext);
-                      return parts.length ? (
-                        <p className="mt-1 text-[12.5px] text-[var(--text-narrative-muted)] truncate">
-                          {parts.join(' · ')}
-                        </p>
-                      ) : null;
-                    })()}
-                  </div>
-                  <div className="text-right shrink-0">
-                    <div className="text-[var(--text-narrative)] text-[14px] tabular-nums">
-                      {fmtCurrency(s.monthlyAvg, s.currency)}
-                    </div>
-                    <div className="text-[11px] text-[var(--text-narrative-muted)]">per month</div>
-                  </div>
-                </li>
-              ))}
-            </ul>
-            <div className="mt-4 text-[12.5px] text-[var(--text-narrative-muted)]">
-              Total monthly: <span className="text-[var(--text-narrative-secondary)] tabular-nums">{fmtCurrency(subsTotalMonthly, subsCurrency)}</span>
-            </div>
-          </>
+          <div className="rs-chart">
+            <StressSpendTimeline days={timeline} currency={subsCurrency} />
+          </div>
         )}
       </Section>
 
-      {/* Stress-spend timeline. */}
-      <Section
-        icon={<TrendingUp className="h-4 w-4" />}
-        eyebrow="Daily pattern"
-        title="When stress drives spending"
-        subtitle="Daily outflow overlaid with the average computed stress score across all your transactions that day."
-      >
-        <div className="rounded-[20px] border border-[var(--glass-surface-border)] bg-[var(--glass-surface-bg)] backdrop-blur-[42px] p-4">
-          {timeline.length === 0 && !loading ? (
-            <EmptyHint>
-              No spending history yet. Upload a statement or link WhatsApp on
-              <button onClick={() => navigate('/money')} className="text-[var(--accent-vibrant)] hover:underline ml-1">Money</button> to see the daily pattern.
-            </EmptyHint>
-          ) : (
-            <StressSpendTimeline days={timeline} currency={subsCurrency} />
-          )}
-        </div>
-      </Section>
-
       {error ? (
-        <div className="mt-8 rounded-[14px] border border-[rgb(var(--n-danger-rgb)_/_0.3)] bg-[rgb(var(--n-danger-rgb)_/_0.05)] px-4 py-3 flex items-start gap-3">
-          <AlertCircle className="h-4 w-4 text-[var(--n-danger-ink)] mt-0.5 shrink-0" />
-          <p className="text-[13.5px] text-[var(--text-narrative-secondary)]">{error}</p>
-        </div>
+        <p className="rs-bad" role="alert" style={{ display: 'flex', alignItems: 'flex-start', gap: 8, margin: 'var(--rg-section-phone) 0 0' }}>
+          <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" aria-hidden="true" />
+          {error}
+        </p>
       ) : null}
-    </div>
+    </Page>
   );
 };
-
-interface SectionProps {
-  icon: React.ReactNode;
-  eyebrow: string;
-  title: string;
-  subtitle?: string;
-  children: React.ReactNode;
-}
-
-const Section: React.FC<SectionProps> = ({ icon, eyebrow, title, subtitle, children }) => (
-  <section className="mb-12">
-    <div className="mb-4 flex items-center gap-2 text-[var(--text-narrative-muted)]">
-      {icon}
-      <span className="text-[11px] uppercase tracking-[0.08em]">{eyebrow}</span>
-    </div>
-    <h2 className="text-heading text-[24px] sm:text-[28px] leading-[1.15] tracking-[-0.56px] text-[var(--text-narrative)] mb-2">
-      {title}
-    </h2>
-    {subtitle ? (
-      <p className="text-[var(--text-narrative-secondary)] text-[14px] leading-[1.55] mb-5 max-w-3xl">
-        {subtitle}
-      </p>
-    ) : null}
-    {children}
-  </section>
-);
-
-const SkeletonRow: React.FC = () => (
-  <div className="flex items-center gap-3 text-[var(--text-narrative-muted)] text-[13px]">
-    <Loader2 className="h-4 w-4 animate-spin" />
-    Loading…
-  </div>
-);
-
-const EmptyHint: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div className="rounded-[14px] border border-dashed border-[var(--glass-surface-border)] px-4 py-5 text-[13.5px] text-[var(--text-narrative-muted)] leading-[1.55]">
-    {children}
-  </div>
-);
 
 export default MoneyInsightsPage;

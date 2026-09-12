@@ -77,11 +77,11 @@ export const CardHeader: React.FC<CardHeaderProps> = ({
           </div>
         )}
         <div>
-          <h3 className="text-lg font-medium" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>
+          <h3 className="text-lg font-medium" style={{ fontFamily: 'var(--font-ui)', color: 'var(--foreground)' }}>
             {title}
           </h3>
           {subtitle && (
-            <p className="text-sm mt-1" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--text-muted, #86807b)' }}>
+            <p className="text-sm mt-1" style={{ fontFamily: 'var(--font-ui)', color: 'var(--text-muted, #86807b)' }}>
               {subtitle}
             </p>
           )}
@@ -103,7 +103,7 @@ export const CardContent: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({
   return (
     <div
       className={cn(className)}
-      style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}
+      style={{ fontFamily: 'var(--font-ui)', color: 'var(--foreground)' }}
       {...props}
     >
       {children}

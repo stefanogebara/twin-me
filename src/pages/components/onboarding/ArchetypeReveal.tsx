@@ -1,11 +1,13 @@
 /**
- * ArchetypeReveal — Step 2: Shows archetype loading state or the revealed
- * soul archetype with traits and CTA to enter the twin.
+ * ArchetypeReveal — Step 2: the archetype loading state, or the revealed
+ * soul archetype with its traits and the call to enter the twin. A section of
+ * the page kit: an upright Cosmos heading, one grey line, then the reading.
  */
 
 import React from 'react';
 import { Loader2, ArrowRight } from 'lucide-react';
 import { RevealedArchetype } from './onboardingTypes';
+import { Section } from '@/components/register';
 
 interface ArchetypeRevealProps {
   revealedArchetype: RevealedArchetype | null;
@@ -15,100 +17,45 @@ interface ArchetypeRevealProps {
 export const ArchetypeReveal: React.FC<ArchetypeRevealProps> = ({
   revealedArchetype,
   onEnterTwin,
-}) => (
-  <div className="flex flex-col items-center justify-center py-16">
-    {!revealedArchetype ? (
-      <div className="flex flex-col items-center gap-6">
-        <Loader2 className="w-6 h-6 animate-spin" style={{ color: 'var(--n-verdigris)' }} />
-        <div className="text-center">
-          <h2
-            className="text-xl mb-2"
-            style={{
-              fontFamily: "var(--font-heading)",
-              fontWeight: 400,
-              color: 'var(--foreground)',
-            }}
-          >
-            Discovering your archetype...
-          </h2>
-          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-            Weaving your digital footprint into a soul signature
-          </p>
-        </div>
-      </div>
-    ) : (
-      <div className="w-full max-w-lg text-center">
-        <span
-          className="text-[11px] font-medium tracking-widest uppercase block mb-4"
-          style={{ color: 'var(--n-verdigris)', fontFamily: 'Inter, sans-serif' }}
-        >
-          Your Soul Archetype
-        </span>
+}) => {
+  if (!revealedArchetype) {
+    return (
+      <Section
+        title="Finding your archetype"
+        line={
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+            <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+            Reading your platforms into a soul signature
+          </span>
+        }
+      >
+        <span />
+      </Section>
+    );
+  }
 
-        <h2
-          className="text-3xl mb-3"
-          style={{
-            fontFamily: "var(--font-heading)",
-            fontStyle: 'italic',
-            fontWeight: 400,
-            letterSpacing: '-0.02em',
-            color: 'var(--foreground)',
-          }}
-        >
-          {revealedArchetype.archetype_name}
-        </h2>
+  const traits = Array.isArray(revealedArchetype.core_traits)
+    ? revealedArchetype.core_traits
+        .slice(0, 5)
+        .map((trait) => (typeof trait === 'string' ? trait : (trait as { trait?: string })?.trait ?? ''))
+        .filter(Boolean)
+    : [];
 
-        {revealedArchetype.signature_quote && (
-          <p className="text-sm italic mb-6" style={{ color: 'var(--text-secondary)' }}>
-            {revealedArchetype.signature_quote}
-          </p>
-        )}
-
-        {Array.isArray(revealedArchetype.core_traits) && revealedArchetype.core_traits.length > 0 && (
-          <div className="flex flex-wrap gap-2 justify-center mb-6">
-            {revealedArchetype.core_traits.slice(0, 5).map((trait, i) => {
-              const label = typeof trait === 'string' ? trait : (trait as { trait?: string })?.trait ?? '';
-              if (!label) return null;
-              return (
-                <span
-                  key={i}
-                  className="px-3 py-1 rounded-full text-xs"
-                  style={{
-                    border: '1px solid var(--border)',
-                    color: 'var(--text-secondary)',
-                  }}
-                >
-                  {label}
-                </span>
-              );
-            })}
-          </div>
-        )}
-
+  return (
+    <Section title={revealedArchetype.archetype_name} line={revealedArchetype.signature_quote || undefined}>
+      <div style={{ display: 'grid', gap: 12, paddingTop: 20, borderTop: '1px solid var(--rg-ink)' }}>
+        {traits.length > 0 && <p className="rs-strong" style={{ margin: 0 }}>{traits.join(' · ')}</p>}
         {revealedArchetype.first_impression && (
-          <p
-            className="text-sm leading-relaxed mb-8"
-            style={{ color: 'var(--text-secondary)' }}
-          >
-            {revealedArchetype.first_impression}
-          </p>
+          <p className="rs-prose">{revealedArchetype.first_impression}</p>
         )}
+      </div>
 
-        <div className="my-8" style={{ borderTop: '1px solid var(--border-glass)' }} />
-
-        <button
-          onClick={onEnterTwin}
-          className="inline-flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-medium transition-opacity hover:opacity-90"
-          style={{
-            backgroundColor: 'var(--n-verdigris)',
-            color: '#0a0f0a',
-            fontFamily: "'Inter', sans-serif",
-          }}
-        >
+      <div className="rs-cta">
+        <button type="button" onClick={onEnterTwin} className="n-btn n-btn--primary pb-cta">
           View your Soul Signature
-          <ArrowRight className="w-4 h-4" />
+          <ArrowRight className="w-4 h-4" aria-hidden="true" />
         </button>
       </div>
-    )}
-  </div>
-);
+    </Section>
+  );
+};

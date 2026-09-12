@@ -1,13 +1,19 @@
 import { useMemo, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
-import { ArrowRight, Check, X, Download, Sparkles } from 'lucide-react';
+import { ArrowRight, Check, X, Download } from 'lucide-react';
 import type { QuickEnrichmentData } from '../../services/enrichmentService';
 import { downloadShareCard } from './shareCard';
+import '../../styles/front-door.css';
 
 /**
  * RevealStory — the enrichment reading as a card story (Wrapped grammar):
  * one insight per card, a beat of withholding before each line, then the
  * identity gate, then a named, saveable "first glimpse" card.
+ *
+ * In the register (the .rv block of src/styles/front-door.css): the glass cards
+ * are a plain panel on the page colour, labels are sentence case, and the
+ * buttons are 32/4. It is shown over the hero's photograph, so the panel paints
+ * its own ground and every line on it is ink.
  */
 
 type StoryStep = { kind: 'beat'; index: number } | { kind: 'confirm' } | { kind: 'final' };
@@ -96,31 +102,19 @@ const RevealStory = ({ data, onCreateTwin, onNotMe, trackFunnel }: RevealStoryPr
   const stepKey = step.kind === 'beat' ? `beat-${step.index}` : step.kind;
 
   return (
-    <div className="w-full max-w-[600px] text-left">
+    <div className="rv">
       {/* Progress dots */}
-      <div className="flex items-center justify-center gap-2 mb-5" aria-hidden="true">
+      <div className="rv-dots" aria-hidden="true">
         {beats.map((_, i) => (
-          <div
+          <i
             key={i}
-            className="rounded-full transition-all duration-300"
-            style={{
-              width: step.kind === 'beat' && step.index === i ? 20 : 6,
-              height: 6,
-              background:
-                step.kind !== 'beat' || step.index >= i
-                  ? 'rgba(245,245,244,0.7)'
-                  : 'rgba(255,255,255,0.18)',
-            }}
+            className={
+              step.kind === 'beat' && step.index === i ? 'is-current'
+                : step.kind !== 'beat' || step.index >= i ? 'is-on' : ''
+            }
           />
         ))}
-        <div
-          className="rounded-full transition-all duration-300"
-          style={{
-            width: step.kind !== 'beat' ? 20 : 6,
-            height: 6,
-            background: step.kind !== 'beat' ? 'rgba(245,245,244,0.7)' : 'rgba(255,255,255,0.18)',
-          }}
-        />
+        <i className={step.kind !== 'beat' ? 'is-current' : ''} />
       </div>
 
       {/* Keyed remount per step gives the entrance animation; no exit
@@ -134,52 +128,40 @@ const RevealStory = ({ data, onCreateTwin, onNotMe, trackFunnel }: RevealStoryPr
         >
           {/* ── Beat cards ── */}
           {step.kind === 'beat' && (
-            <button
-              type="button"
-              onClick={advance}
-              className="claura-glass claura-glass--refract w-full text-left px-7 py-8 md:px-9 md:py-10 cursor-pointer group"
-            >
-              <p className="font-sans text-[11px] font-medium tracking-[0.15em] uppercase text-[var(--text-muted)] mb-5 flex items-center gap-2">
-                <Sparkles className="w-3.5 h-3.5" />
-                {firstName ? `Your first reading, ${firstName}` : 'Your first reading'}
-                <span className="ml-auto normal-case tracking-normal">
-                  {step.index + 1} of {beats.length}
-                </span>
+            <button type="button" onClick={advance} className="rv-panel">
+              <p className="rv-meta">
+                <span>{firstName ? `Your first reading, ${firstName}` : 'Your first reading'}</span>
+                <span>{step.index + 1} of {beats.length}</span>
               </p>
 
               <motion.p
                 initial={reducedMotion ? false : { opacity: 0, filter: 'blur(6px)' }}
                 animate={{ opacity: 1, filter: 'blur(0px)' }}
                 transition={{ delay: reducedMotion ? 0 : 0.45, duration: 0.5 }}
-                className="font-heading text-[22px] md:text-[26px] leading-[1.45] tracking-[-0.01em]"
-                style={{ color: 'var(--text-narrative)' }}
+                className="rv-beat"
               >
                 {beats[step.index]}
               </motion.p>
 
-              <p className="font-sans text-[12px] font-medium text-[var(--text-muted)] mt-7 flex items-center gap-1.5 group-hover:text-[var(--text-secondary)] transition-colors">
-                Continue <ArrowRight className="w-3.5 h-3.5" />
+              <p className="rv-more">
+                Continue <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
               </p>
             </button>
           )}
 
           {/* ── Identity gate ── */}
           {step.kind === 'confirm' && (
-            <div className="claura-glass px-7 py-8 md:px-9 md:py-10 text-center">
-              <p className="font-heading text-[24px] md:text-[28px] tracking-[-0.02em] text-[var(--text-primary)] mb-2">
-                Is this you?
-              </p>
+            <div className="rv-panel rv-panel--center">
+              <p className="rv-question">Is this you?</p>
               {sources.length > 0 && (
-                <p className="font-sans text-[13px] font-medium text-[var(--text-muted)] mb-6">
-                  Read from {sources.slice(0, 4).join(', ')}
-                </p>
+                <p className="rv-line">Read from {sources.slice(0, 4).join(', ')}</p>
               )}
-              <div className="flex items-center justify-center gap-3">
-                <button onClick={() => handleConfirm(true)} className="claura-btn-primary" style={{ padding: '11px 20px' }}>
-                  <Check className="w-4 h-4" /> Yes, that's me
+              <div className="rv-actions">
+                <button type="button" onClick={() => handleConfirm(true)} className="n-btn n-btn--primary">
+                  <Check className="w-4 h-4" aria-hidden="true" /> Yes, that's me
                 </button>
-                <button onClick={() => handleConfirm(false)} className="claura-btn-glass" style={{ padding: '11px 20px' }}>
-                  <X className="w-4 h-4" /> Not me
+                <button type="button" onClick={() => handleConfirm(false)} className="n-btn n-btn--ghost">
+                  <X className="w-4 h-4" aria-hidden="true" /> Not me
                 </button>
               </div>
             </div>
@@ -187,49 +169,22 @@ const RevealStory = ({ data, onCreateTwin, onNotMe, trackFunnel }: RevealStoryPr
 
           {/* ── Final card ── */}
           {step.kind === 'final' && (
-            <div>
-              <div className="claura-glass claura-glass--refract px-7 py-8 md:px-9 md:py-10">
-                <p className="font-sans text-[11px] font-medium tracking-[0.15em] uppercase text-[var(--text-muted)] mb-4">
-                  Soul Signature — first glimpse
-                </p>
-                {data.discovered_name && (
-                  <p className="font-heading text-[30px] md:text-[36px] tracking-[-0.02em] text-[var(--text-primary)] mb-4">
-                    {data.discovered_name}
-                  </p>
-                )}
-                <p
-                  className="font-heading text-[19px] md:text-[21px] leading-[1.5] tracking-[-0.01em] mb-5"
-                  style={{ color: 'var(--text-narrative)' }}
-                >
-                  {beats[0]}
-                </p>
-                {sources.length > 0 && (
-                  <div className="flex flex-wrap gap-2 pt-4 border-t border-[var(--border-glass)]">
-                    {sources.map((s) => (
-                      <span
-                        key={s}
-                        className="font-sans text-[12px] font-medium text-[var(--text-secondary)] bg-[rgba(255,255,255,0.06)] border border-[rgba(255,255,255,0.10)] rounded-[46px] px-3 py-1.5"
-                      >
-                        {s}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div className="flex flex-col items-center mt-6 gap-3">
-                <p className="font-sans text-sm font-medium text-[var(--text-secondary)] max-w-[440px] text-center">
-                  This is only your public surface. Connect what you actually use — Spotify,
-                  YouTube, Calendar — and meet the twin that knows the rest.
-                </p>
-                <div className="flex items-center gap-3">
-                  <button onClick={onCreateTwin} className="claura-btn-primary" style={{ padding: '13px 24px' }}>
-                    Create your twin <ArrowRight className="w-4 h-4" />
-                  </button>
-                  <button onClick={handleSave} disabled={saving} className="claura-btn-glass disabled:opacity-60" style={{ padding: '13px 20px' }}>
-                    <Download className="w-4 h-4" /> {saving ? 'Rendering...' : 'Save your card'}
-                  </button>
-                </div>
+            <div className="rv-panel">
+              <p className="rv-meta"><span>Your soul signature, a first glimpse</span></p>
+              {data.discovered_name && <p className="rv-name">{data.discovered_name}</p>}
+              <p className="rv-beat">{beats[0]}</p>
+              {sources.length > 0 && <p className="rv-line">{sources.join(', ')}</p>}
+              <div className="rv-rule" />
+              <p className="rv-line">
+                This is only your public side. Connect Spotify, YouTube or Calendar and your twin learns the rest.
+              </p>
+              <div className="rv-actions">
+                <button type="button" onClick={onCreateTwin} className="n-btn n-btn--primary">
+                  Create your twin <ArrowRight className="w-4 h-4" aria-hidden="true" />
+                </button>
+                <button type="button" onClick={handleSave} disabled={saving} className="n-btn n-btn--ghost">
+                  <Download className="w-4 h-4" aria-hidden="true" /> {saving ? 'Rendering...' : 'Save your card'}
+                </button>
               </div>
             </div>
           )}

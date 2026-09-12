@@ -1,9 +1,9 @@
 /**
  * ChatImportCard
  * ==============
- * Guided multi-context voice import flow.
- * Walks the user through importing chats for 4 relationship contexts so the
- * twin learns how they write in different registers:
+ * Guided multi-context voice import flow, in the page kit (no card): a choice
+ * of app, then one row per relationship, so the twin learns how the user
+ * writes in different registers:
  *   - Close friend  (casual, unfiltered)
  *   - Family        (intimate, personal)
  *   - Work          (formal, professional)
@@ -16,11 +16,12 @@
 import React, { useRef, useCallback } from 'react';
 import { useState } from 'react';
 import {
-  MessageCircle, Send, Upload, CheckCircle, Loader2,
-  AlertCircle, ChevronDown, ChevronUp, HelpCircle,
-  UserRound, Home, Briefcase, Heart, RotateCcw,
+  MessageCircle, Send, CheckCircle, Loader2,
+  AlertCircle, ChevronDown, ChevronUp,
+  UserRound, Home, Briefcase, Heart,
 } from 'lucide-react';
 import { importsAPI, type ChatImportResult, type ChatContext } from '@/services/api/importsAPI';
+import { List, Row } from '@/components/register';
 
 type Platform = 'whatsapp_chat' | 'telegram_chat';
 type ContextStatus = 'pending' | 'uploading' | 'done' | 'skipped' | 'error';
@@ -45,30 +46,10 @@ interface ContextDef {
 }
 
 const CONTEXT_DEFS: ContextDef[] = [
-  {
-    id: 'close_friend',
-    label: 'Close friend',
-    description: 'Casual, unfiltered — how you really talk when comfortable.',
-    icon: UserRound,
-  },
-  {
-    id: 'family',
-    label: 'Family',
-    description: 'Intimate and personal — how you write to people who know you deeply.',
-    icon: Home,
-  },
-  {
-    id: 'professional',
-    label: 'Work or professional',
-    description: 'Your formal register — how you write to a manager or business partner.',
-    icon: Briefcase,
-  },
-  {
-    id: 'romantic_partner',
-    label: 'Romantic partner',
-    description: 'Your most personal voice. Skip if you prefer to keep this private.',
-    icon: Heart,
-  },
+  { id: 'close_friend', label: 'Close friend', description: 'Casual and unfiltered', icon: UserRound },
+  { id: 'family', label: 'Family', description: 'People who know you well', icon: Home },
+  { id: 'professional', label: 'Work', description: 'A manager or a client', icon: Briefcase },
+  { id: 'romantic_partner', label: 'Partner', description: 'Your most personal voice', icon: Heart },
 ];
 
 const INITIAL_CONTEXTS: Record<ChatContext, ContextState> = {
@@ -81,45 +62,37 @@ const INITIAL_CONTEXTS: Record<ChatContext, ContextState> = {
 const PLATFORM_CONFIG = {
   whatsapp_chat: {
     label: 'WhatsApp',
-    color: '#25D366',
     icon: MessageCircle,
     accept: '.txt,.zip',
     guideTitle: 'How to export from WhatsApp',
     guideSteps: [
-      'Open WhatsApp on your phone.',
-      'Open the chat you want to import.',
-      'Tap the three dots (...) at the top right.',
-      'Tap "More" then "Export chat".',
-      'Choose "Without Media".',
-      'Share or save the .txt file, then upload it here.',
+      'Open the chat on your phone.',
+      'Tap the three dots, then More, then Export chat.',
+      'Choose Without media, and save the .txt file.',
     ],
-    guideNote: 'You can export multiple chats and upload them one by one. Each import adds to the twin\'s memory.',
+    guideNote: 'Upload chats one at a time. Each one adds to what your twin knows.',
   },
   telegram_chat: {
     label: 'Telegram',
-    color: '#2AABEE',
     icon: Send,
     accept: '.json',
     guideTitle: 'How to export from Telegram',
     guideSteps: [
-      'Open Telegram Desktop (the desktop app, not web or mobile).',
-      'Open the chat you want to export.',
-      'Click the three dots (...) at the top right of the chat.',
-      'Click "Export chat history".',
-      'Under Format, select JSON.',
-      'Uncheck photos, videos, and files to keep the file small.',
-      'Click Export — this saves a folder with result.json inside.',
-      'Upload the result.json file here.',
+      'Open the chat in Telegram Desktop (the phone app cannot export).',
+      'Click the three dots, then Export chat history.',
+      'Choose JSON, untick photos, videos and files, and export.',
+      'Upload the result.json file from the folder it saves.',
     ],
-    guideNote: 'You must use Telegram Desktop — the phone app cannot export to JSON.',
+    guideNote: 'Only Telegram Desktop can export to JSON.',
   },
 };
 
 interface ChatImportCardProps {
+  /** Kept for callers that still pass it; the register has no card to style. */
   cardStyle?: string;
 }
 
-export default function ChatImportCard({ cardStyle }: ChatImportCardProps) {
+export default function ChatImportCard(_props: ChatImportCardProps) {
   const fileRef = useRef<HTMLInputElement>(null);
   // Use a ref for the in-flight context to avoid stale closures when file dialog cancels
   const activeContextRef = useRef<ChatContext | null>(null);
@@ -150,7 +123,7 @@ export default function ChatImportCard({ cardStyle }: ChatImportCardProps) {
     if (file.size > MAX_UPLOAD_BYTES) {
       updateContext(contextId, {
         status: 'error',
-        error: `File is too large (max ${MAX_UPLOAD_BYTES / (1024 * 1024)} MB). Re-export without photos, videos, and files.`,
+        error: `File is too large (max ${MAX_UPLOAD_BYTES / (1024 * 1024)} MB). Export again without media.`,
       });
       activeContextRef.current = null;
       return;
@@ -221,15 +194,8 @@ export default function ChatImportCard({ cardStyle }: ChatImportCardProps) {
     updateContext(id, { status: 'pending', error: undefined });
   };
 
-  const sectionClass = cardStyle ? `p-5 ${cardStyle}` : 'p-5 rounded-[16px]';
-  const sectionStyle = cardStyle ? {} : {
-    background: 'var(--glass-surface-bg)',
-    backdropFilter: 'blur(42px)',
-    border: '1px solid var(--glass-surface-border)',
-  };
-
   return (
-    <section className={sectionClass} style={sectionStyle}>
+    <div style={{ display: 'grid', gap: 24 }}>
       {/* Hidden file input — shared across all contexts */}
       <input
         ref={fileRef}
@@ -239,96 +205,45 @@ export default function ChatImportCard({ cardStyle }: ChatImportCardProps) {
         className="hidden"
       />
 
-      {/* Header */}
-      <div className="flex items-center justify-between gap-3 mb-2">
-        <div className="flex items-center gap-3">
-          <cfg.icon className="w-4 h-4 flex-shrink-0" style={{ color: cfg.color }} />
-          <h2 className="text-[11px] font-medium tracking-widest uppercase" style={{ color: cfg.color }}>
-            Chat Voice Import
-          </h2>
+      {/* Which app the chats come from: 32/4 choices, and the progress */}
+      <div className="rs-inline" style={{ justifyContent: 'space-between' }}>
+        <div className="rg-choices" role="group" aria-label="Chat app">
+          {(['whatsapp_chat', 'telegram_chat'] as Platform[]).map((p) => {
+            const c = PLATFORM_CONFIG[p];
+            return (
+              <button
+                key={p}
+                type="button"
+                aria-pressed={platform === p}
+                onClick={() => { setPlatform(p); setPendingTelegramContext(null); }}
+                className="n-btn n-btn--ghost rg-choice"
+              >
+                <c.icon className="w-4 h-4" aria-hidden="true" />
+                {c.label}
+              </button>
+            );
+          })}
         </div>
-        {/* Progress badge */}
-        <span
-          className="text-[10px] px-2 py-0.5 rounded-full flex-shrink-0"
-          style={{
-            background: completedCount > 0 ? `${cfg.color}15` : 'rgba(255,255,255,0.05)',
-            color: completedCount > 0 ? cfg.color : 'var(--text-muted)',
-            border: `1px solid ${completedCount > 0 ? `${cfg.color}30` : 'rgba(255,255,255,0.08)'}`,
-          }}
-        >
-          {completedCount} of {totalCount} voice contexts captured
-        </span>
-      </div>
-
-      <p className="text-[12px] mb-4 leading-relaxed" style={{ color: 'var(--text-muted)' }}>
-        Your voice changes depending on who you are talking to. Import a chat for each relationship type so the twin captures all of your registers — not just one.
-        Each context is stored separately, so your casual voice does not bleed into your professional one.
-      </p>
-
-      {/* Completion banner */}
-      {allSettled && completedCount > 0 && (
-        <div
-          className="mb-4 p-3 rounded-[12px]"
-          style={{ background: `${cfg.color}08`, border: `1px solid ${cfg.color}20` }}
-        >
-          <p className="text-[12px] font-medium" style={{ color: cfg.color }}>
-            Voice capture complete
-          </p>
-          <p className="text-[11px] mt-0.5 leading-relaxed" style={{ color: 'var(--text-muted)' }}>
-            The twin now has {completedCount} voice {completedCount === 1 ? 'register' : 'registers'} to draw from.
-            You can add more chats to any context at any time — each import compounds.
-          </p>
-        </div>
-      )}
-
-      {/* Platform toggle */}
-      <div className="flex gap-2 mb-4">
-        {(['whatsapp_chat', 'telegram_chat'] as Platform[]).map((p) => {
-          const c = PLATFORM_CONFIG[p];
-          const active = platform === p;
-          return (
-            <button
-              key={p}
-              onClick={() => { setPlatform(p); setPendingTelegramContext(null); }}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium transition-all"
-              style={{
-                background: active ? `${c.color}18` : 'transparent',
-                border: `1px solid ${active ? c.color : 'var(--glass-surface-border)'}`,
-                color: active ? c.color : 'var(--text-muted)',
-              }}
-            >
-              <c.icon className="w-3 h-3" />
-              {c.label}
-            </button>
-          );
-        })}
+        <p className="rs-quiet">{completedCount} of {totalCount} voices</p>
       </div>
 
       {/* Telegram name — shown once as a persistent field when Telegram is selected */}
       {platform === 'telegram_chat' && (
-        <div className="mb-4">
-          <label className="text-[11px] block mb-1.5" style={{ color: 'var(--text-muted)' }}>
-            Your display name in the Telegram export{' '}
-            <span style={{ color: 'var(--text-secondary)' }}>(required once)</span>
-          </label>
+        <div style={{ display: 'grid', gap: 8 }}>
+          <label htmlFor="tg-name">Your name in the Telegram export</label>
           <input
+            id="tg-name"
             type="text"
             value={telegramName}
             onChange={e => setTelegramName(e.target.value)}
-            placeholder="Exactly as it appears in the chat, e.g. Stefano"
-            className="w-full px-3 py-2 text-[12px] rounded-lg"
-            style={{
-              backgroundColor: 'var(--surface)',
-              border: '1px solid var(--glass-surface-border)',
-              color: 'var(--foreground)',
-              outline: 'none',
-            }}
+            placeholder="Exactly as it appears in the chat"
+            className="n-input"
           />
         </div>
       )}
 
-      {/* Context rows */}
-      <div className="space-y-2 mb-4">
+      {/* One row per relationship */}
+      <List label="Voices" className="pb-stack">
         {CONTEXT_DEFS.map((def) => {
           const ctx = contexts[def.id];
           const Icon = def.icon;
@@ -337,231 +252,113 @@ export default function ChatImportCard({ cardStyle }: ChatImportCardProps) {
           const isError = ctx.status === 'error';
           const isSkipped = ctx.status === 'skipped';
 
+          const line = isDone && ctx.result
+            ? <><span className="rs-ok">Imported</span> · {ctx.result.memoriesStored} conversations, {ctx.result.parseStats?.owner_sent ?? ctx.result.processStats?.my_messages ?? 0} of your messages</>
+            : isError
+              ? <span className="rs-bad">{ctx.error}</span>
+              : isSkipped
+                ? 'Skipped'
+                : isUploading
+                  ? 'Reading your messages'
+                  : <>{def.description}{' '}<button type="button" className="rs-link" onClick={() => skipContext(def.id)}>Skip</button></>;
+
+          const action = ctx.status === 'pending' ? (
+            <button type="button" onClick={() => openFilePicker(def.id)} className="n-btn n-btn--ghost">Import</button>
+          ) : isDone ? (
+            <button type="button" onClick={() => openFilePicker(def.id)} className="n-btn n-btn--ghost" title="Import another chat for this voice">
+              {ctx.importCount > 1 ? `Import more (${ctx.importCount})` : 'Import more'}
+            </button>
+          ) : isError ? (
+            <button type="button" onClick={() => retryContext(def.id)} className="n-btn n-btn--ghost">Retry</button>
+          ) : isSkipped ? (
+            <button type="button" onClick={() => retryContext(def.id)} className="n-btn n-btn--ghost">Import</button>
+          ) : (
+            <Loader2 className="w-4 h-4 animate-spin" style={{ color: 'var(--rg-ink-2)' }} aria-label="Importing" />
+          );
+
           return (
-            <div
+            <Row
               key={def.id}
-              className="flex items-center gap-3 p-3 rounded-[12px] transition-all"
-              style={{
-                background: isDone ? `${cfg.color}08` : 'rgba(255,255,255,0.03)',
-                border: `1px solid ${isDone ? `${cfg.color}20` : isError ? 'rgba(239,68,68,0.15)' : 'rgba(255,255,255,0.06)'}`,
-                opacity: isSkipped ? 0.4 : 1,
-              }}
-            >
-              {/* Icon */}
-              <div
-                className="flex-shrink-0 w-8 h-8 rounded-[8px] flex items-center justify-center"
-                style={{
-                  background: isDone ? `${cfg.color}15` : 'rgba(255,255,255,0.05)',
-                }}
-              >
-                {isDone
-                  ? <CheckCircle className="w-4 h-4" style={{ color: cfg.color }} />
-                  : isUploading
-                  ? <Loader2 className="w-4 h-4 animate-spin" style={{ color: cfg.color }} />
-                  : isError
-                  ? <AlertCircle className="w-4 h-4 text-[var(--n-danger-ink)]" />
-                  : <Icon className="w-4 h-4" style={{ color: isDone ? cfg.color : 'var(--text-muted)' }} />
-                }
-              </div>
-
-              {/* Label + description */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-[13px] font-medium" style={{ color: 'var(--foreground)' }}>
-                    {def.label}
-                  </span>
-                </div>
-                <p className="text-[11px] mt-0.5 leading-snug" style={{ color: 'var(--text-muted)' }}>
-                  {isDone && ctx.result
-                    ? `${ctx.result.memoriesStored} conversations · ${ctx.result.parseStats?.owner_sent ?? ctx.result.processStats?.my_messages ?? 0} of your messages`
-                    : isError
-                    ? ctx.error
-                    : isSkipped
-                    ? 'Skipped'
-                    : isUploading
-                    ? 'Analyzing your voice...'
-                    : def.description
-                  }
-                </p>
-              </div>
-
-              {/* Action */}
-              <div className="flex-shrink-0 flex items-center gap-2">
-                {ctx.status === 'pending' && (
-                  <>
-                    <button
-                      onClick={() => openFilePicker(def.id)}
-                      className="text-[11px] px-3 py-1.5 rounded-full transition-opacity hover:opacity-80"
-                      style={{
-                        background: `${cfg.color}18`,
-                        border: `1px solid ${cfg.color}30`,
-                        color: cfg.color,
-                      }}
-                    >
-                      Import
-                    </button>
-                    <button
-                      onClick={() => skipContext(def.id)}
-                      className="text-[11px] transition-opacity hover:opacity-60"
-                      style={{ color: 'var(--text-secondary)' }}
-                    >
-                      Skip
-                    </button>
-                  </>
-                )}
-                {isDone && (
-                  <button
-                    onClick={() => openFilePicker(def.id)}
-                    className="flex items-center gap-1 text-[10px] transition-opacity hover:opacity-60"
-                    style={{ color: 'var(--text-secondary)' }}
-                    title="Import another chat for this context"
-                  >
-                    <RotateCcw className="w-3 h-3" />
-                    {ctx.importCount > 1 ? `${ctx.importCount}x` : 'Re-import'}
-                  </button>
-                )}
-                {isError && (
-                  <button
-                    onClick={() => retryContext(def.id)}
-                    className="text-[11px] px-2 py-1 rounded transition-opacity hover:opacity-80"
-                    style={{ color: 'rgba(255,100,100,0.8)', background: 'rgba(239,68,68,0.08)' }}
-                  >
-                    Retry
-                  </button>
-                )}
-                {isSkipped && (
-                  <button
-                    onClick={() => retryContext(def.id)}
-                    className="text-[11px] px-2.5 py-1 rounded-full transition-opacity hover:opacity-80"
-                    style={{
-                      background: 'var(--surface)',
-                      border: '1px solid var(--glass-surface-border)',
-                      color: 'var(--text-secondary)',
-                    }}
-                  >
-                    Import
-                  </button>
-                )}
-              </div>
-            </div>
+              icon={isDone
+                ? <CheckCircle style={{ color: 'var(--rg-ok)' }} />
+                : isError
+                  ? <AlertCircle style={{ color: 'var(--rg-danger)' }} />
+                  : <Icon />}
+              title={def.label}
+              line={line}
+              action={action}
+            />
           );
         })}
-      </div>
 
-      {/* Telegram name prompt — inline before file dialog when name missing */}
-      {pendingTelegramContext && (
-        <div
-          className="mb-4 p-3 rounded-[12px] space-y-2"
-          style={{ background: 'rgba(42,171,238,0.06)', border: '1px solid rgba(42,171,238,0.15)' }}
-        >
-          <p className="text-[12px]" style={{ color: 'rgba(42,171,238,0.9)' }}>
-            Enter your display name as it appears in the Telegram export before importing:
-          </p>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={telegramName}
-              onChange={e => setTelegramName(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && confirmTelegramName()}
-              placeholder="e.g. Stefano"
-              autoFocus
-              className="flex-1 px-3 py-1.5 text-[12px] rounded-lg"
-              style={{
-                backgroundColor: 'var(--surface)',
-                border: '1px solid rgba(42,171,238,0.3)',
-                color: 'var(--foreground)',
-                outline: 'none',
-              }}
-            />
-            <button
-              onClick={confirmTelegramName}
-              disabled={!telegramName.trim()}
-              className="px-3 py-1.5 text-[12px] rounded-lg font-medium disabled:opacity-40 transition-opacity hover:opacity-80"
-              style={{ background: 'rgba(42,171,238,0.2)', color: 'rgba(42,171,238,0.9)' }}
-            >
-              Continue
+        {/* Completion: one quiet line, no banner */}
+        {allSettled && completedCount > 0 && (
+          <li className="rs-note">
+            Your twin now has {completedCount} {completedCount === 1 ? 'voice' : 'voices'}. Add more chats any time.
+          </li>
+        )}
+
+        {/* Telegram name prompt — inline before file dialog when name missing */}
+        {pendingTelegramContext && (
+          <li className="rs-body rs-body--plain" style={{ paddingTop: 16 }}>
+            <label htmlFor="tg-name-prompt">Your name as it appears in the Telegram export</label>
+            <div className="rs-inline">
+              <input
+                id="tg-name-prompt"
+                type="text"
+                value={telegramName}
+                onChange={e => setTelegramName(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && confirmTelegramName()}
+                placeholder="For example, Alex"
+                autoFocus
+                className="n-input"
+              />
+              <button type="button" onClick={confirmTelegramName} disabled={!telegramName.trim()} className="n-btn n-btn--ghost">
+                Continue
+              </button>
+              <button type="button" onClick={() => setPendingTelegramContext(null)} className="rs-link">
+                Cancel
+              </button>
+            </div>
+          </li>
+        )}
+      </List>
+
+      <div style={{ display: 'grid', gap: 12, justifyItems: 'start' }}>
+        {/* WhatsApp advanced: owner name override */}
+        {platform === 'whatsapp_chat' && (
+          <>
+            <button type="button" onClick={() => setShowAdvanced(v => !v)} className="rs-link" aria-expanded={showAdvanced}>
+              Your name in the chat
+              {showAdvanced ? <ChevronUp className="inline w-4 h-4 ml-1" aria-hidden="true" /> : <ChevronDown className="inline w-4 h-4 ml-1" aria-hidden="true" />}
             </button>
-            <button
-              onClick={() => setPendingTelegramContext(null)}
-              className="text-[11px] px-2 transition-opacity hover:opacity-60"
-              style={{ color: 'var(--text-secondary)' }}
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
+            {showAdvanced && (
+              <input
+                type="text"
+                value={ownerName}
+                onChange={e => setOwnerName(e.target.value)}
+                placeholder="Leave blank to find it automatically"
+                aria-label="Your name in the chat"
+                className="n-input"
+              />
+            )}
+          </>
+        )}
 
-      {/* WhatsApp advanced: owner name override */}
-      {platform === 'whatsapp_chat' && (
-        <div className="mb-3">
-          <button
-            onClick={() => setShowAdvanced(v => !v)}
-            className="flex items-center gap-1 text-[11px]"
-            style={{ color: 'var(--text-muted)' }}
-          >
-            {showAdvanced ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-            Your name in the chat (optional — auto-detected)
-          </button>
-          {showAdvanced && (
-            <input
-              type="text"
-              value={ownerName}
-              onChange={e => setOwnerName(e.target.value)}
-              placeholder="e.g. Stefano — leave blank to auto-detect"
-              className="mt-2 w-full px-3 py-2 text-[12px] rounded-lg"
-              style={{
-                backgroundColor: 'var(--surface)',
-                border: '1px solid var(--glass-surface-border)',
-                color: 'var(--foreground)',
-                outline: 'none',
-              }}
-            />
-          )}
-        </div>
-      )}
-
-      {/* Export guide */}
-      <div>
-        <button
-          onClick={() => setShowGuide(v => !v)}
-          className="flex items-center gap-1.5 text-[11px] transition-opacity hover:opacity-80"
-          style={{ color: 'var(--text-secondary)' }}
-        >
-          <HelpCircle className="w-3 h-3" />
-          {showGuide ? 'Hide guide' : `How to export from ${cfg.label}`}
-          {showGuide ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+        {/* Export guide */}
+        <button type="button" onClick={() => setShowGuide(v => !v)} className="rs-link" aria-expanded={showGuide}>
+          {showGuide ? 'Hide the steps' : cfg.guideTitle}
+          {showGuide ? <ChevronUp className="inline w-4 h-4 ml-1" aria-hidden="true" /> : <ChevronDown className="inline w-4 h-4 ml-1" aria-hidden="true" />}
         </button>
-
         {showGuide && (
-          <div
-            className="mt-3 p-4 rounded-[12px] space-y-3"
-            style={{ background: 'var(--surface)', border: '1px solid var(--border-glass)' }}
-          >
-            <p className="text-[11px] font-medium uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>
-              {cfg.guideTitle}
-            </p>
-            <ol className="space-y-2">
-              {cfg.guideSteps.map((step, i) => (
-                <li key={i} className="flex items-start gap-2.5">
-                  <span
-                    className="flex-shrink-0 w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-semibold mt-0.5"
-                    style={{ background: `${cfg.color}20`, color: cfg.color }}
-                  >
-                    {i + 1}
-                  </span>
-                  <span className="text-[12px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-                    {step}
-                  </span>
-                </li>
-              ))}
+          <div style={{ display: 'grid', gap: 8 }}>
+            <ol className="rs-steps">
+              {cfg.guideSteps.map((step, i) => <li key={i}>{step}</li>)}
             </ol>
-            <p className="text-[11px] leading-relaxed pt-1" style={{ color: 'var(--text-secondary)', borderTop: '1px solid var(--border-glass)' }}>
-              {cfg.guideNote}
-            </p>
+            <p className="rs-quiet">{cfg.guideNote}</p>
           </div>
         )}
       </div>
-    </section>
+    </div>
   );
 }

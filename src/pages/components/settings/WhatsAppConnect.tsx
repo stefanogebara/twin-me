@@ -1,15 +1,17 @@
 /**
  * WhatsApp Connect — Self-Serve Phone Linking
  * ============================================
- * Settings card for linking/unlinking WhatsApp. Two-step, ownership-verified:
- * enter number → receive a code on WhatsApp → enter the code → linked.
- * Uses the shared useWhatsAppLink hook (/api/whatsapp-link endpoints).
+ * One row of the page kit (render it inside a List), and what it opens to.
+ * Two-step, ownership-verified: enter number → receive a code on WhatsApp →
+ * enter the code → linked. Uses the shared useWhatsAppLink hook
+ * (/api/whatsapp-link endpoints).
  */
 
 import React, { useState } from 'react';
-import { MessageCircle, Check, Loader2, ExternalLink } from 'lucide-react';
+import { MessageCircle, Loader2, ExternalLink } from 'lucide-react';
 import { TWIN_WHATSAPP_DISPLAY, TWIN_WHATSAPP_LINK } from '@/lib/whatsappConstants';
 import { useWhatsAppLink, isValidE164, normalizePhone } from '@/hooks/useWhatsAppLink';
+import { Row } from '@/components/register';
 
 const WhatsAppConnect: React.FC = () => {
   const wa = useWhatsAppLink();
@@ -21,7 +23,7 @@ const WhatsAppConnect: React.FC = () => {
 
   const submitPhone = async () => {
     if (phoneInput.trim() && !isValidE164(normalizePhone(phoneInput))) {
-      setPhoneFormatError('Invalid format. Use E.164 (e.g., +5511999999999).');
+      setPhoneFormatError('Use international format, for example +5511999999999.');
       return;
     }
     const ok = await wa.requestCode(phoneInput);
@@ -35,60 +37,40 @@ const WhatsAppConnect: React.FC = () => {
 
   if (wa.loading) {
     return (
-      <div className="py-4 text-center text-[12px]" style={{ color: 'var(--text-secondary)' }}>
-        Loading...
-      </div>
+      <li className="rs-note">
+        <Loader2 className="animate-spin" aria-hidden="true" />
+        Checking WhatsApp
+      </li>
     );
   }
 
   const linked = wa.step === 'linked';
+  const fieldError = wa.error || phoneFormatError;
 
   return (
-    <div>
-      {/* Header row */}
-      <div
-        className="flex items-center justify-between py-4"
-        style={{ borderBottom: '1px solid var(--border-glass)' }}
-      >
-        <div className="flex items-center gap-3">
-          <MessageCircle className="w-4 h-4" style={{ color: '#25D366' }} />
-          <div>
-            <span className="text-sm" style={{ color: 'var(--foreground)' }}>WhatsApp</span>
-            <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-              {linked
-                ? 'Connected — twin sends insights here'
-                : 'Your twin will send you daily briefings and insights via WhatsApp'}
-            </p>
-          </div>
-        </div>
-
-        {linked && (
-          <div className="flex items-center gap-2">
-            <span
-              className="flex items-center gap-1 text-[11px]"
-              style={{ color: 'rgba(16,183,127,0.8)' }}
-            >
-              <Check className="w-3 h-3" /> {wa.linkedPhone}
-            </span>
-            <button
-              onClick={wa.unlink}
-              className="text-[11px] transition-opacity hover:opacity-60"
-              style={{ color: 'var(--text-secondary)' }}
-            >
-              Unlink
-            </button>
-          </div>
-        )}
-      </div>
+    <>
+      <Row
+        icon={<MessageCircle />}
+        title="WhatsApp"
+        line={linked
+          ? <><span className="rs-ok">Connected</span> · {wa.linkedPhone}</>
+          : 'Daily briefings and insights on WhatsApp'}
+        action={linked ? (
+          <button type="button" onClick={wa.unlink} className="n-btn n-btn--ghost">Unlink</button>
+        ) : undefined}
+        className="rs-row-has-body"
+      />
 
       {/* Step 1: phone */}
       {wa.step === 'phone' && (
-        <div className="py-4 space-y-3" style={{ borderBottom: '1px solid var(--border-glass)' }}>
-          <div className="flex items-center gap-2">
+        <li className="rs-body">
+          <div className="rs-inline">
             <input
               type="tel"
               placeholder="+1 415 555 0100"
               value={phoneInput}
+              aria-label="Your WhatsApp number"
+              aria-invalid={!!fieldError}
               onChange={(e) => {
                 const next = e.target.value;
                 setPhoneInput(next);
@@ -96,102 +78,92 @@ const WhatsAppConnect: React.FC = () => {
                 if (!next.trim() || isValidE164(normalizePhone(next))) {
                   setPhoneFormatError(null);
                 } else {
-                  setPhoneFormatError('Invalid format. Use E.164 (e.g., +5511999999999).');
+                  setPhoneFormatError('Use international format, for example +5511999999999.');
                 }
               }}
               disabled={wa.busy}
-              className="flex-1 text-sm px-3 py-2 rounded-[6px] bg-transparent focus:outline-none"
-              style={{
-                backgroundColor: 'var(--surface)',
-                border: (wa.error || phoneFormatError) ? '1px solid rgba(239,68,68,0.5)' : '1px solid rgba(255,255,255,0.08)',
-                color: 'var(--foreground)',
-              }}
+              className="n-input"
               onKeyDown={(e) => { if (e.key === 'Enter' && !wa.busy) submitPhone(); }}
             />
             <button
+              type="button"
               onClick={submitPhone}
               disabled={wa.busy || !phoneInput.trim()}
-              className="text-[12px] px-3 py-2 rounded-[6px] transition-opacity hover:opacity-80 disabled:opacity-40 flex items-center gap-1.5"
-              style={{ backgroundColor: 'var(--n-steel)', color: 'var(--foreground)' }}
+              className="n-btn n-btn--ghost"
             >
-              {wa.busy ? (<><Loader2 className="w-3 h-3 animate-spin" />Sending...</>) : 'Send code'}
+              {wa.busy ? (<><Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />Sending</>) : 'Send code'}
             </button>
           </div>
-          {(wa.error || phoneFormatError) && (
-            <p className="text-[11px]" style={{ color: 'rgba(239,68,68,0.8)' }}>{wa.error || phoneFormatError}</p>
-          )}
-          <p className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
-            Enter your number in international format. We will send a code to confirm it is yours.
-          </p>
-        </div>
+          {fieldError
+            ? <p className="rs-bad" role="alert" style={{ margin: 0 }}>{fieldError}</p>
+            : <p className="rs-quiet">We send a code to confirm the number is yours.</p>}
+        </li>
       )}
 
       {/* Step 2: code */}
       {wa.step === 'code' && (
-        <div className="py-4 space-y-3" style={{ borderBottom: '1px solid var(--border-glass)' }}>
-          <div className="flex items-center gap-2">
+        <li className="rs-body">
+          <div className="rs-inline">
             <input
               type="text"
               inputMode="numeric"
               autoComplete="one-time-code"
               maxLength={6}
               placeholder="6-digit code"
+              aria-label="The 6-digit code"
               value={codeInput}
               onChange={(e) => { setCodeInput(e.target.value.replace(/\D/g, '')); wa.clearError(); }}
               disabled={wa.busy}
-              className="flex-1 text-sm px-3 py-2 rounded-[6px] bg-transparent focus:outline-none tracking-[0.3em]"
-              style={{
-                backgroundColor: 'var(--surface)',
-                border: wa.error ? '1px solid rgba(239,68,68,0.5)' : '1px solid rgba(255,255,255,0.08)',
-                color: 'var(--foreground)',
-              }}
+              className="n-input"
+              style={{ letterSpacing: '0.2em' }}
               onKeyDown={(e) => { if (e.key === 'Enter' && !wa.busy) submitCode(); }}
             />
             <button
+              type="button"
               onClick={submitCode}
               disabled={wa.busy || codeInput.length !== 6}
-              className="text-[12px] px-3 py-2 rounded-[6px] transition-opacity hover:opacity-80 disabled:opacity-40 flex items-center gap-1.5"
-              style={{ backgroundColor: 'rgba(37,211,102,0.15)', color: 'rgba(37,211,102,0.9)' }}
+              className="n-btn n-btn--ghost"
             >
-              {wa.busy ? (<><Loader2 className="w-3 h-3 animate-spin" />Verifying...</>) : 'Verify & connect'}
+              {wa.busy ? (<><Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />Verifying</>) : 'Verify'}
             </button>
           </div>
           {wa.info && !wa.error && (
-            <p className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
-              {wa.info} Sent to <span style={{ color: 'var(--foreground)' }}>{wa.pendingPhone}</span>.
+            <p className="rs-quiet">
+              {wa.info} Sent to <span className="rs-strong">{wa.pendingPhone}</span>.
             </p>
           )}
-          {wa.error && <p className="text-[11px]" style={{ color: 'rgba(239,68,68,0.8)' }}>{wa.error}</p>}
+          {wa.error && <p className="rs-bad" role="alert" style={{ margin: 0 }}>{wa.error}</p>}
           <button
+            type="button"
             onClick={() => { setCodeInput(''); wa.cancel(); }}
-            className="text-[11px] transition-opacity hover:opacity-60"
-            style={{ color: 'var(--text-secondary)' }}
+            className="rs-link"
+            style={{ justifySelf: 'start' }}
           >
             Use a different number
           </button>
-        </div>
+        </li>
       )}
 
       {/* Linked */}
       {linked && (
-        <div className="py-4 space-y-3" style={{ borderBottom: '1px solid var(--border-glass)' }}>
-          <p className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>
-            Message your twin at{' '}
-            <span style={{ color: 'var(--foreground)' }}>{TWIN_WHATSAPP_DISPLAY}</span>
-          </p>
-          <a
-            href={TWIN_WHATSAPP_LINK}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 text-[12px] px-3 py-1.5 rounded-[6px] transition-opacity hover:opacity-80"
-            style={{ backgroundColor: 'rgba(37,211,102,0.15)', color: 'rgba(37,211,102,0.9)' }}
-          >
-            <ExternalLink className="w-3 h-3" />
-            Message now
-          </a>
-        </div>
+        <li className="rs-body">
+          <div className="rs-inline" style={{ justifyContent: 'space-between' }}>
+            <p className="rs-quiet" style={{ color: 'var(--rg-ink-2)' }}>
+              Message your twin at <span className="rs-strong">{TWIN_WHATSAPP_DISPLAY}</span>
+            </p>
+            <a
+              href={TWIN_WHATSAPP_LINK}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="n-btn n-btn--ghost"
+            >
+              <ExternalLink className="w-4 h-4" aria-hidden="true" />
+              Message now
+            </a>
+          </div>
+        </li>
       )}
-    </div>
+    </>
   );
 };
 

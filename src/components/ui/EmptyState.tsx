@@ -24,6 +24,11 @@ export interface EmptyStateProps {
   animate?: boolean;
 }
 
+/**
+ * An empty state in the register: a 32px icon square on the field, a row title,
+ * one quiet line, and the actions as 32px buttons (ink for the primary). Keep the
+ * description to one short line; the register's own empty state is only that.
+ */
 export const EmptyState: React.FC<EmptyStateProps> = ({
   icon: Icon,
   iconClassName,
@@ -37,9 +42,9 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   className,
 }) => {
   const variantStyles = {
-    default: 'py-16 px-8',
-    compact: 'py-8 px-6',
-    centered: 'py-20 px-8 min-h-[400px] flex items-center justify-center'
+    default: 'py-10 px-6',
+    compact: 'py-6 px-4',
+    centered: 'py-16 px-6 min-h-[320px] flex items-center justify-center'
   };
 
   return (
@@ -52,44 +57,39 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
     >
       {/* Icon or Custom Illustration */}
       {illustration ? (
-        <div className="flex justify-center mb-6">
+        <div className="flex justify-center mb-4">
           {illustration}
         </div>
       ) : Icon ? (
-        <div className="flex justify-center mb-6">
+        <div className="flex justify-center mb-4">
           <div className={cn(
-            'w-16 h-16 rounded-full flex items-center justify-center',
+            'w-8 h-8 rounded-[var(--rg-radius-icon)] flex items-center justify-center bg-[var(--rg-field)]',
             iconClassName
-          )} style={{ backgroundColor: 'var(--surface)' }}>
-            <Icon className="w-8 h-8" style={{ color: 'var(--text-muted)' }} />
+          )}>
+            <Icon className="w-4 h-4 text-[var(--rg-ink)]" aria-hidden="true" />
           </div>
         </div>
       ) : null}
 
       {/* Title & Description */}
-      <div className="max-w-md mx-auto mb-6">
-        <h3 className="text-2xl text-foreground mb-2 font-medium">
+      <div className="max-w-md mx-auto mb-5">
+        <h3 className="text-[13px] leading-5 font-medium text-[var(--rg-ink)]">
           {title}
         </h3>
-        <p style={{ color: 'var(--text-muted)' }} className="text-base leading-relaxed">
+        <p className="text-[13px] leading-[19.5px] font-[350] text-[var(--rg-ink-3)]">
           {description}
         </p>
       </div>
 
       {/* Actions */}
       {(primaryAction || secondaryAction || tertiaryAction) && (
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-2">
           {primaryAction && (
             <Button
               onClick={primaryAction.onClick}
               variant={primaryAction.variant || 'default'}
-              className={cn(
-                primaryAction.variant === 'default' && 'text-white',
-                'min-w-[160px]'
-              )}
-              style={primaryAction.variant === 'default' ? { backgroundColor: 'var(--n-verdigris)', color: '#0a0f0a' } : undefined}
             >
-              {primaryAction.icon && <primaryAction.icon className="w-4 h-4 mr-2" />}
+              {primaryAction.icon && <primaryAction.icon className="w-4 h-4" />}
               {primaryAction.label}
             </Button>
           )}
@@ -98,9 +98,8 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
             <Button
               onClick={secondaryAction.onClick}
               variant={secondaryAction.variant || 'outline'}
-              className="min-w-[160px]"
             >
-              {secondaryAction.icon && <secondaryAction.icon className="w-4 h-4 mr-2" />}
+              {secondaryAction.icon && <secondaryAction.icon className="w-4 h-4" />}
               {secondaryAction.label}
             </Button>
           )}
@@ -109,9 +108,8 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
             <Button
               onClick={tertiaryAction.onClick}
               variant={tertiaryAction.variant || 'ghost'}
-              style={{ color: 'var(--text-muted)' }}
             >
-              {tertiaryAction.icon && <tertiaryAction.icon className="w-4 h-4 mr-2" />}
+              {tertiaryAction.icon && <tertiaryAction.icon className="w-4 h-4" />}
               {tertiaryAction.label}
             </Button>
           )}

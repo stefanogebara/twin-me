@@ -1,10 +1,11 @@
 import React from 'react';
 
 /**
- * The Nocturne canvas. Formerly the Claura ambient-orb painter; since the
- * Nocturne flip (2026-09-01) the app floats on flat obsidian — Law 1 of the
- * system: depth is a surface step, never a glow. No photography, no orbs,
- * no gradients. See src/styles/nocturne.css and /nocturne/system.
+ * The app's ground. Formerly the Claura ambient-orb painter, then Nocturne's
+ * flat obsidian; since the register (2026-09-12) the app sits on the warm page,
+ * #fbfaf9. No photography, no orbs, no gradient: a flat colour, painted from
+ * the token so this can never drift from the stylesheets. See
+ * src/styles/register.css and /system.
  */
 export const ClassicBackground: React.FC = () => (
   <div
@@ -13,7 +14,7 @@ export const ClassicBackground: React.FC = () => (
       position: 'fixed',
       inset: 0,
       zIndex: 0,
-      backgroundColor: '#0f1011',
+      backgroundColor: 'var(--rg-page)',
     }}
   />
 );
