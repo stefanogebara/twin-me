@@ -9,6 +9,9 @@
  * The drafts are read-only here: the wow is "look what your twin already wrote in
  * your voice" — acting on them happens in the inbox. Nothing is ever sent
  * automatically.
+ *
+ * In the register: the page kit's title and one grey line, the drafts as rows
+ * under the ink rule, one 48/12 call to action. No cards; loading is a line.
  */
 import React, { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -18,9 +21,9 @@ import { onboardingWowAPI, type WowDraft } from '@/services/api/onboardingWowAPI
 import { isAbortError } from '@/services/api/apiBase';
 import { useAnalytics } from '@/contexts/AnalyticsContext';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
-
-const glass =
-  'bg-[var(--surface)] border border-[var(--glass-surface-border)] rounded-[20px] backdrop-blur-[42px]';
+import { Page, PageHead, Section, List, Empty } from '@/components/register';
+import '@/styles/register-public.css';
+import '@/styles/register-settings.css';
 
 const OnboardingWowPage: React.FC = () => {
   const navigate = useNavigate();
@@ -61,31 +64,30 @@ const OnboardingWowPage: React.FC = () => {
   const goToday = () => navigate('/today');
 
   return (
-    <div className="min-h-screen w-full flex justify-center px-4 py-12 sm:py-16">
-      <div className="w-full max-w-[640px] flex flex-col gap-8">
-        {isLoading ? (
-          <LoadingState />
-        ) : !data ? (
-          // Error, timeout/abort, or empty payload — never trap the user here.
-          <ReadyFallback onContinue={goToday} degraded={isError && !isAbortError(error)} />
-        ) : (
-          <WowContent voiceRead={data.voiceRead} drafts={data.drafts} onContinue={goToday} />
-        )}
-      </div>
-    </div>
+    <Page className="rs">
+      {isLoading ? (
+        <LoadingState />
+      ) : !data ? (
+        // Error, timeout/abort, or empty payload — never trap the user here.
+        <ReadyFallback onContinue={goToday} degraded={isError && !isAbortError(error)} />
+      ) : (
+        <WowContent voiceRead={data.voiceRead} drafts={data.drafts} onContinue={goToday} />
+      )}
+    </Page>
   );
 };
 
+// No card: the title and one quiet line with the spinner.
 const LoadingState: React.FC = () => (
-  <div className={`${glass} px-6 py-12 flex flex-col items-center text-center gap-4`}>
-    <Loader2 className="w-7 h-7 text-[var(--text-secondary)] animate-spin" aria-hidden />
-    <div className="flex flex-col gap-1.5">
-      <h1 className="text-[var(--foreground)] text-[19px] font-medium tracking-tight">Meeting your twin</h1>
-      <p className="text-[var(--text-secondary)] text-sm max-w-[380px] leading-relaxed">
-        Reading how you write, and drafting your first replies in your voice. This takes a few seconds.
-      </p>
-    </div>
-  </div>
+  <PageHead
+    title="Meeting your twin"
+    line={
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+        <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+        Reading how you write, and drafting your first replies
+      </span>
+    }
+  />
 );
 
 const WowContent: React.FC<{ voiceRead: string; drafts: WowDraft[]; onContinue: () => void }> = ({
@@ -94,98 +96,67 @@ const WowContent: React.FC<{ voiceRead: string; drafts: WowDraft[]; onContinue: 
   onContinue,
 }) => (
   <>
-    <header className="flex flex-col gap-3 pt-2">
-      <span className="text-[11px] uppercase tracking-[0.14em] text-[var(--text-muted)]">Your voice</span>
-      <p className="narrative-voice text-[26px] sm:text-[30px] text-[rgba(245,245,244,0.92)] leading-[1.4]">
-        {voiceRead}
-      </p>
-    </header>
+    {/* The voice read is the page's title: ink, upright, the Cosmos heading. */}
+    <PageHead title={voiceRead} line="How your twin reads your writing." />
 
-    <section className="flex flex-col gap-3">
-      <div className="flex items-baseline justify-between px-1">
-        <h2 className="text-[var(--foreground)] text-[15px] font-medium tracking-tight">
-          {drafts.length > 0 ? 'Already drafted in your voice' : 'Ready when you are'}
-        </h2>
-        {drafts.length > 0 && (
-          <span className="text-[var(--text-muted)] text-xs tabular-nums">
-            {drafts.length} repl{drafts.length === 1 ? 'y' : 'ies'}
-          </span>
+    <Section
+      title={drafts.length > 0 ? 'Already drafted in your voice' : 'Ready when you are'}
+      line={drafts.length > 0 ? 'Nothing is sent. Review each one in Today.' : undefined}
+      action={drafts.length > 0 ? (
+        <span className="rs-quiet pb-figures">{drafts.length} repl{drafts.length === 1 ? 'y' : 'ies'}</span>
+      ) : undefined}
+    >
+      <List label="Drafted replies">
+        {drafts.length > 0 ? (
+          drafts.map((d) => <DraftPreview key={d.id} draft={d} />)
+        ) : (
+          <li>
+            <Empty>Your twin is set up. As emails arrive, it drafts replies in your voice for you to review.</Empty>
+          </li>
         )}
-      </div>
+      </List>
+    </Section>
 
-      {drafts.length > 0 ? (
-        drafts.map((d) => <DraftPreview key={d.id} draft={d} />)
-      ) : (
-        <div className={`${glass} px-5 py-6 text-center`}>
-          <p className="text-[var(--text-secondary)] text-sm leading-relaxed">
-            Your twin is set up. As emails arrive, it will draft replies in your voice for you to review here.
-          </p>
-        </div>
-      )}
-    </section>
-
-    <div className="flex flex-col gap-3">
-      {drafts.length > 0 && (
-        <p className="text-[var(--text-muted)] text-[13px] text-center px-4 leading-relaxed">
-          Nothing is sent automatically. Review each one in Today, then send, edit, or skip.
-        </p>
-      )}
+    <div className="rs-cta">
       <ContinueButton onClick={onContinue} />
     </div>
   </>
 );
 
-const DraftPreview: React.FC<{ draft: WowDraft }> = ({ draft }) => (
-  <article className={`${glass} px-5 py-4 flex flex-col gap-3`}>
-    <header className="flex items-center gap-2 text-[var(--text-muted)] text-xs">
-      <Mail size={13} aria-hidden />
-      <span className="tracking-tight">Draft reply</span>
-      <span className="ml-auto text-[10px] uppercase tracking-wide text-[var(--text-placeholder)]">Pending your review</span>
-    </header>
-
-    <p className="text-[var(--foreground)] text-[14.5px] leading-relaxed whitespace-pre-wrap">{draft.draft_text}</p>
-
-    {draft.why_signals?.length > 0 && (
-      <div className="flex flex-wrap gap-1.5">
-        {draft.why_signals.map((w, i) => (
-          <span
-            key={i}
-            className="inline-flex items-center rounded-[46px] bg-[var(--surface)] border border-[var(--glass-surface-border)] px-2.5 py-1 text-[11px] text-[var(--text-secondary)]"
-          >
-            <span className="text-[#c17e2c] mr-1.5 uppercase tracking-wide text-[9px]">{w.kind}</span>
-            {w.note}
-          </span>
-        ))}
-      </div>
-    )}
-  </article>
-);
+const DraftPreview: React.FC<{ draft: WowDraft }> = ({ draft }) => {
+  // Why it wrote it this way: one grey line, the kinds in sentence case.
+  const why = (draft.why_signals ?? [])
+    .map((w) => `${w.kind.charAt(0).toUpperCase()}${w.kind.slice(1)}: ${w.note}`)
+    .join('. ');
+  return (
+    <li className="rg-row" style={{ alignItems: 'start' }}>
+      <span className="rg-row-icon" aria-hidden="true"><Mail /></span>
+      <span className="rg-row-text" style={{ gap: 8 }}>
+        <p className="rs-prose">{draft.draft_text}</p>
+        {why && <span className="rg-row-line">{why}</span>}
+      </span>
+      <span />
+    </li>
+  );
+};
 
 const ReadyFallback: React.FC<{ onContinue: () => void; degraded: boolean }> = ({ onContinue, degraded }) => (
-  <div className="flex flex-col gap-6 pt-2">
-    <header className="flex flex-col gap-3">
-      <span className="text-[11px] uppercase tracking-[0.14em] text-[var(--text-muted)]">Your twin</span>
-      <p className="narrative-voice text-[26px] sm:text-[30px] text-[rgba(245,245,244,0.92)] leading-[1.4]">
-        Your twin is ready.
-      </p>
-    </header>
-    <div className={`${glass} px-5 py-6 text-center`}>
-      <p className="text-[var(--text-secondary)] text-sm leading-relaxed">
-        {degraded
-          ? "We couldn't draft your first replies just now, but your twin is set up. It will draft replies in your voice as your emails come in."
-          : 'Your twin is set up. It will draft replies in your voice as your emails come in — review them any time in Today.'}
-      </p>
+  <>
+    <PageHead
+      title="Your twin is ready."
+      line={degraded
+        ? "We couldn't draft your first replies just now. Your twin will draft them as your emails come in."
+        : 'It will draft replies in your voice as your emails come in. Review them any time in Today.'}
+    />
+    <div className="rs-cta" style={{ marginTop: 0 }}>
+      <ContinueButton onClick={onContinue} />
     </div>
-    <ContinueButton onClick={onContinue} />
-  </div>
+  </>
 );
 
 const ContinueButton: React.FC<{ onClick: () => void }> = ({ onClick }) => (
-  <button
-    onClick={onClick}
-    className="inline-flex items-center justify-center gap-2 bg-[image:var(--claura-bone)] text-[var(--claura-bone-ink)] rounded-[12px] px-5 py-3 text-[14px] font-medium hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-[rgba(255,255,255,0.4)] transition-opacity"
-  >
-    Go to Today <ArrowRight size={16} aria-hidden />
+  <button type="button" onClick={onClick} className="n-btn n-btn--primary pb-cta">
+    Go to Today <ArrowRight className="w-4 h-4" aria-hidden="true" />
   </button>
 );
 
