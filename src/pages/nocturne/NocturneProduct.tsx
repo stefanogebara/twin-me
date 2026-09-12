@@ -35,9 +35,11 @@ export interface NocturneProductProps {
 }
 
 /* The scrim rides in the plate's own stack: a flat layer of the old obsidian
-   at 45% over the photograph, so white type holds wherever it falls. */
+   over the photograph, so white type holds wherever it falls. 45% left the
+   13px line at 3.89:1 over the brightest part of the periwinkle plate; 55%
+   brings that ground to about 5.4:1. */
 const scrimmed = (plate: string) =>
-  `linear-gradient(rgb(9 10 11 / 0.45), rgb(9 10 11 / 0.45)), url('${plate}')`;
+  `linear-gradient(rgb(9 10 11 / 0.55), rgb(9 10 11 / 0.55)), url('${plate}')`;
 
 export const NocturneProduct = ({
   plate, badge, title, line, promptPlaceholder, sections,
