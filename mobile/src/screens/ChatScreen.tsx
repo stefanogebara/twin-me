@@ -708,7 +708,7 @@ export default function ChatScreen({ mode, onDone, onClose }: { mode: 'onboardin
           contentContainerStyle={[
             s.transcript,
             { paddingBottom: (composerShown ? 0 : insets.bottom) + cosmos.space.xl },
-            mode === 'ask' && !onClose ? { paddingTop: cosmos.chrome.capsule + cosmos.space.lg } : null,
+            mode === 'ask' && !onClose ? { paddingTop: cosmos.space.lg } : null,
           ]}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="interactive"
@@ -828,7 +828,7 @@ export default function ChatScreen({ mode, onDone, onClose }: { mode: 'onboardin
         </ScrollView>
 
         {composerShown ? (
-          <View style={[s.composer, { paddingBottom: insets.bottom + cosmos.space.sm }]}>
+          <View style={[s.composer, { paddingBottom: insets.bottom + cosmos.space.sm + (mode === 'ask' && !onClose ? cosmos.chrome.capsule : 0) }]}>
             <Prompt
               value={text}
               onChange={homeSearching ? searchHome : setText}

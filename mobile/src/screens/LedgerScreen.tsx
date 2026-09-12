@@ -237,7 +237,7 @@ export default function LedgerScreen() {
 // and every value here is a token.
 
 const layout = StyleSheet.create({
-  content: { paddingHorizontal: cosmos.space.lg, paddingTop: cosmos.chrome.capsule + cosmos.space.lg, paddingBottom: cosmos.chrome.door + cosmos.space.xl },
+  content: { paddingHorizontal: cosmos.space.lg, paddingTop: cosmos.space.lg, paddingBottom: cosmos.chrome.door + cosmos.space.xl },
   after: { marginTop: cosmos.space.md },
   afterSmall: { marginTop: cosmos.space.xs },
   afterLarge: { marginTop: cosmos.space.lg },
