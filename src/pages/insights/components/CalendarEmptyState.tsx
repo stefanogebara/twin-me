@@ -1,129 +1,21 @@
 import React from 'react';
-import { Calendar, Clock, CalendarDays } from 'lucide-react';
-
-const HEATMAP_OPACITIES = [
-  0.04, 0.08, 0.06, 0.10, 0.05,
-  0.09, 0.07, 0.11, 0.04, 0.08,
-  0.06, 0.05, 0.10, 0.07, 0.09,
-  0.04, 0.11, 0.06, 0.08, 0.05,
-  0.10, 0.07, 0.04, 0.09, 0.06,
-];
+import { InsightsNotice } from './InsightsKit';
 
 interface CalendarEmptyStateProps {
-  colors: {
-    text: string;
-    textSecondary: string;
-    calendarBlue: string;
-  };
   onConnect: () => void;
-  /** Backend `notConnected` flag — decides Connect CTA vs "collecting data" badge (audit-2026-06-10). */
+  /** Backend `notConnected` flag — decides Connect CTA vs "collecting data" row (audit-2026-06-10). */
   notConnected?: boolean;
 }
 
-export const CalendarEmptyState: React.FC<CalendarEmptyStateProps> = ({ colors, onConnect, notConnected = false }) => {
+export const CalendarEmptyState: React.FC<CalendarEmptyStateProps> = ({ onConnect, notConnected = false }) => {
   return (
-    <div className="space-y-4">
-      <div
-        className="text-center py-10 p-4 rounded-lg"
-        style={{ border: '1px solid var(--border-glass)', backgroundColor: 'var(--surface)' }}
-      >
-        <Calendar className="w-12 h-12 mx-auto mb-4" style={{ color: 'var(--text-secondary)' }} />
-        <h3 style={{ color: colors.text, fontFamily: "var(--font-heading)" }}>
-          Your twin is studying your schedule
-        </h3>
-        <p className="mt-2 mb-6 max-w-sm mx-auto" style={{ color: 'var(--text-secondary)' }}>
-          {notConnected
-            ? 'Connect Google Calendar and your twin will notice patterns in how you structure your time.'
-            : 'As your calendar fills with events, your twin will notice patterns in how you structure your time.'}
-        </p>
-        {notConnected ? (
-          <button
-            onClick={onConnect}
-            className="px-5 py-2.5 rounded-xl text-sm font-medium transition-all hover:scale-[1.02]"
-            style={{ backgroundColor: 'var(--n-verdigris)', color: '#0a0f0a' }}
-          >
-            Connect Calendar
-          </button>
-        ) : (
-          <div
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm"
-            style={{
-              backgroundColor: 'rgba(16, 183, 127, 0.05)',
-              color: 'var(--n-verdigris)',
-              border: '1px solid rgba(16, 183, 127, 0.2)',
-            }}
-          >
-            <div aria-hidden="true" className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: 'var(--n-verdigris)' }} />
-            Your twin is collecting data... check back soon
-          </div>
-        )}
-      </div>
-
-      <div aria-hidden="true" className="opacity-50 pointer-events-none space-y-3">
-        <span
-          className="text-[11px] font-medium tracking-widest uppercase block mb-4"
-          style={{ color: 'var(--n-verdigris)' }}
-        >
-          Preview of your insights
-        </span>
-        <div
-          className="p-4 rounded-lg"
-          style={{ border: '1px dashed var(--border-glass)', backgroundColor: 'var(--surface)' }}
-        >
-          <div className="flex items-center gap-2 mb-3">
-            <Clock className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
-            <span className="text-sm" style={{ color: 'var(--text-muted)' }}>Today's Schedule</span>
-          </div>
-          <div className="flex justify-between text-[10px] mb-1" style={{ color: 'var(--text-muted)' }}>
-            {['9AM', '12PM', '3PM', '6PM'].map(t => <span key={t}>{t}</span>)}
-          </div>
-          <div className="h-8 rounded-lg flex gap-1 overflow-hidden animate-pulse" style={{ backgroundColor: 'var(--glass-surface-bg)' }}>
-            <div className="h-full rounded" style={{ width: '20%', marginLeft: '10%', backgroundColor: `${colors.calendarBlue}30` }} />
-            <div className="h-full rounded" style={{ width: '15%', marginLeft: '5%', backgroundColor: 'rgba(52,168,83,0.3)' }} />
-            <div className="h-full rounded" style={{ width: '10%', marginLeft: '8%', backgroundColor: 'rgba(251,188,5,0.3)' }} />
-          </div>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div
-            className="p-4 rounded-lg"
-            style={{ border: '1px dashed var(--border-glass)', backgroundColor: 'var(--surface)' }}
-          >
-            <div className="flex items-center gap-2 mb-3">
-              <CalendarDays className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
-              <span className="text-sm" style={{ color: 'var(--text-muted)' }}>Time Split</span>
-            </div>
-            <div className="space-y-2">
-              {['Meetings', 'Focus', 'Personal'].map((type, i) => (
-                <div key={type} className="flex items-center gap-2">
-                  <span className="text-[10px] w-14" style={{ color: 'var(--text-muted)' }}>{type}</span>
-                  <div className="flex-1 h-3 rounded" style={{ backgroundColor: 'var(--surface)' }}>
-                    <div className="h-full rounded" style={{
-                      width: `${[55, 30, 15][i]}%`,
-                      backgroundColor: [`${colors.calendarBlue}30`, 'rgba(52,168,83,0.3)', 'rgba(147,52,233,0.3)'][i],
-                    }} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div
-            className="p-4 rounded-lg"
-            style={{ border: '1px dashed var(--border-glass)', backgroundColor: 'var(--surface)' }}
-          >
-            <div className="flex items-center gap-2 mb-3">
-              <Clock className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
-              <span className="text-sm" style={{ color: 'var(--text-muted)' }}>Busy Hours</span>
-            </div>
-            <div className="grid grid-cols-5 gap-0.5">
-              {Array.from({ length: 25 }).map((_, i) => (
-                <div key={i} className="h-3 rounded-sm" style={{
-                  backgroundColor: `rgba(255,255,255,${HEATMAP_OPACITIES[i % HEATMAP_OPACITIES.length] * 0.75})`,
-                }} />
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+    <InsightsNotice
+      notConnected={notConnected}
+      platform="Calendar"
+      connectLine="Your twin will notice how you structure your time."
+      title="Your twin is studying your schedule"
+      line="Patterns show up as your calendar fills."
+      onConnect={onConnect}
+    />
   );
 };
