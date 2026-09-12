@@ -84,10 +84,17 @@ const lstar = (v: string) => { const y = luminance(parseColor(v).rgb); return y 
     flat app screens, so three grounds went with the room they were measured
     on — the home plate (235,235,233), the onboarding room (214,213,207) and
     the home room (221,223,218). Their tightest ground is now the warm field
-    box, a flat fill read straight from --c-field below. */
+    box, a flat fill read straight from --c-field below.
+
+    2026-09-12, the register on the marketing pages: the demo's rows lost
+    their own 60% white boxes and its glass went from 0.62 to 0.8 white, so
+    every line inside it now sits on the glass itself. Both stage grounds were
+    re-measured (ALL=1, 402x874 and 1440x900): the meta lines' darkest is
+    (208,209,209), the head's caption (221,219,216). The old pins,
+    (227,224,221) and (191,183,175), were the boxes and the thinner glass. */
 const GROUND: Record<string, RGB> = {
-  stageRows: [227, 224, 221],  // demo rows over the photograph (/cosmos/demos, /cosmos/landing)
-  stageGlass: [191, 183, 175], // the demo head's caption, bare glass over the photograph
+  stageRows: [208, 209, 209],  // meta lines on the demo glass (/cosmos/demos, /cosmos/landing)
+  stageGlass: [221, 219, 216], // the demo head's caption, on the same glass
 };
 const AA = 4.5;
 const STEP = 5; // L* between two inks that should read as different steps

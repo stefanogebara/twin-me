@@ -1,4 +1,4 @@
-import { ArrowRight, ChevronDown, Play, Search } from 'lucide-react';
+import { ChevronDown, ChevronRight, Layers, Play, Quote, Search, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { discoveryScan, type QuickEnrichmentData } from '../../services/enrichmentService';
@@ -10,18 +10,21 @@ import '../../styles/presence-cosmos.css';
 /**
  * / — TwinMe in the Cosmos design language, built from the same components as
  * /presence (presence-cosmos.css, the `pc-*` vocabulary, the `presence-cosmos` root
- * class that scopes it). Nothing here is restyled: same nav, search pill, pinned hero
- * with polaroid tiles, film card, centered statements, strip, trio, know, marquee,
- * giant CTA, clipped wordmark. Only the content and the photographs are TwinMe's.
+ * class that scopes it). Same nav, search field, pinned hero with polaroid tiles,
+ * film card, centered statements, strip, trio, know, marquee, clipped wordmark. Only
+ * the content and the photographs are TwinMe's.
  *
  * Structure follows cosmos.so as read live on 2026-09-02 (1440): sticky hero with
  * scattered tiles fading into a paper scrim; "Watch our new film" link; the film card
- * scrolling over the hero; "Every search opens a new world." + olive strip; a lede;
- * "Search the way you think." + trio with floating UI + one-line captions; "Know what
- * you're looking at." right/portrait/left; logo strip; scattered-tile CTA with a giant
- * pill; footer links, mark, giant wordmark.
+ * scrolling over the hero; "Every search opens a new world." + olive strip; "Search the
+ * way you think." + trio with floating UI + one-line captions; "Know what you're looking
+ * at." right/portrait/left; logo strip; a closing call to action; footer links, mark,
+ * giant wordmark.
  *
- * The acquisition flow is unchanged: the nav pill takes the email -> discoveryScan ->
+ * 2026-09-12, the register: 13px body, 32/4 controls with one 48/12 call to action,
+ * a heading and one grey line per section, text lists as rows.
+ *
+ * The acquisition flow is unchanged: the nav field takes the email -> discoveryScan ->
  * RevealStory in the hero -> /auth with the reading in sessionStorage.
  *
  * Media under /images/twinme/ was generated to the Presence brief (35mm, natural
@@ -48,13 +51,20 @@ const SCAN_STATUS_LINES = [
   'Writing your first portrait',
 ];
 
+/* Five: the marquee loops at -50%, so half the track must outrun a 1440 screen. */
 const NOTES = [
-  { text: 'You loop the same three songs when a deadline is close. Focus, for you, sounds like ritual.', who: 'Spotify · 23:41 · repeat ×4' },
-  { text: 'Every Tuesday ends in back-to-back calls, and every Tuesday night your music turns ambient.', who: 'Calendar · Tuesdays · 6 weeks' },
-  { text: 'Your best work happens after midnight, in bursts, alone. Rest, for you, is momentum.', who: 'GitHub · 02:14' },
-  { text: 'You reply to four people within minutes and let everyone else wait a day. They are the same four every month.', who: 'Gmail · reply latency' },
-  { text: 'Recovery is lowest on Wednesdays. The runs are on Thursdays. You already knew.', who: 'Whoop · 8 weeks' },
-  { text: 'At 2am you watch the same documentary channel you never mention to anyone.', who: 'YouTube · late' },
+  { text: 'You loop the same three songs when a deadline is close.', who: 'Spotify, 23:41, four repeats' },
+  { text: 'Every Tuesday ends in back-to-back calls.', who: 'Calendar, six Tuesdays' },
+  { text: 'Your best work happens after midnight, alone.', who: 'GitHub, 02:14' },
+  { text: 'You answer four people within minutes. Everyone else waits a day.', who: 'Gmail, how fast you reply' },
+  { text: 'Recovery is lowest on Wednesdays. The runs are on Thursdays.', who: 'Whoop, eight weeks' },
+];
+
+/** What a reading is made of, as rows. */
+const MADE_OF = [
+  { icon: Layers, title: 'Five signatures', line: 'Motivation, personality, culture, social life, lifestyle.' },
+  { icon: Quote, title: 'Every line cites its source', line: 'Timestamped, never guessed.' },
+  { icon: Trash2, title: 'Yours to delete', line: 'Your data never trains a model.' },
 ];
 
 const IMG = {
@@ -182,16 +192,16 @@ export default function CosmosLanding() {
   };
 
   return (
-    <main ref={rootRef} className="presence-cosmos" id="main-content">
+    <main ref={rootRef} className="presence-cosmos pc-app" id="main-content">
       <header className="pc-nav" aria-label="Primary">
         <div className="pc-nav-left">
           <Link className="pc-brand" to="/" aria-label="TwinMe home"><Mark /></Link>
           <a className="pc-menu" href="#how">Menu <ChevronDown size={16} strokeWidth={2} /></a>
         </div>
 
-        {/* Cosmos's search pill carries TwinMe's one input: the email that gets read. */}
+        {/* Cosmos's search field carries TwinMe's one input: the email that gets read. */}
         <form className={`pc-search ${email ? 'has-value' : ''}`} onSubmit={handleScan} aria-label="Read your public footprint">
-          <Search size={18} strokeWidth={1.8} aria-hidden="true" />
+          <Search size={16} strokeWidth={1.8} aria-hidden="true" />
           <span className="pc-search-field">
             <input className="pc-search-input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} aria-label="Email address for a public reading" autoComplete="email" disabled={phase === 'scanning'} />
             <span className="pc-search-text" aria-hidden="true"><span className={`pc-shimmer pc-cycle ${hint.out ? 'is-out' : ''}`}>{hint.text}</span></span>
@@ -201,7 +211,7 @@ export default function CosmosLanding() {
 
         <div className="pc-nav-right">
           <Link className="pc-nav-login" to="/auth">Log in</Link>
-          <Link className="pc-btn pc-btn--primary" to="/auth">Sign up</Link>
+          <Link className="pc-btn pc-btn--secondary" to="/auth">Sign up</Link>
         </div>
       </header>
 
@@ -220,11 +230,11 @@ export default function CosmosLanding() {
           {phase !== 'revealed' && (
             <>
               <div className="pc-hero-actions">
-                <Link className="pc-btn pc-btn--primary pc-btn--cta" to="/auth">Get your signature</Link>
-                <a className="pc-btn pc-btn--ghost" href="#how">How it works</a>
+                <Link className="pc-btn pc-btn--cta" to="/auth">Get your signature</Link>
+                <a className="pc-textlink" href="#how">How it works <ChevronRight className="pc-chevron" aria-hidden="true" /></a>
               </div>
-              <p className="pc-cta-trust" aria-live="polite" style={{ marginTop: 22 }}>
-                {phase === 'scanning' ? SCAN_STATUS_LINES[statusIdx] : scanError || 'Your soul signature, measured from what you actually do.'}
+              <p className="pc-hero-line" aria-live="polite">
+                {phase === 'scanning' ? SCAN_STATUS_LINES[statusIdx] : scanError || 'Measured from what you actually do.'}
               </p>
             </>
           )}
@@ -235,7 +245,7 @@ export default function CosmosLanding() {
           )}
         </div>
         <a className="pc-hero-film-link" href="#film">
-          <Play size={14} fill="currentColor" strokeWidth={0} />
+          <Play size={12} fill="currentColor" strokeWidth={0} />
           Watch the film, with Marina, 31
           <ChevronDown size={14} />
         </a>
@@ -258,16 +268,13 @@ export default function CosmosLanding() {
       <div className="pc-body">
         <section className="pc-section" id="how" aria-labelledby="pc-world-title">
           <h2 className="pc-h2 pc-reveal" id="pc-world-title">Every signal opens a new reading.</h2>
+          <p className="pc-section-line pc-reveal">Your music, your hours, your work, your people.</p>
           <div className="pc-strip pc-reveal" style={{ '--d': '0.1s' } as React.CSSProperties} aria-label="Photographs from a week, and the reading they produced">
             <img className="pc-strip-a" src={IMG.desk} alt="Marina at her desk late at night with headphones on" loading="lazy" />
             <img className="pc-strip-b" src={IMG.records} alt="A hand pulling a record from the shelf at night, lit by a lamp" loading="lazy" />
             <img className="pc-strip-c" src={IMG.calendar} alt="A hand crossing a day off the kitchen calendar at night" loading="lazy" />
             <div className="pc-glass" aria-live="polite"><Wave /><span className={`pc-cycle ${chip.out ? 'is-out' : ''}`}>{chip.text}</span></div>
           </div>
-        </section>
-
-        <section className="pc-section pc-section--lede" aria-label="Summary">
-          <p className="pc-lede pc-reveal">Your music, your hours, your work, your people. Connected, measured, yours.</p>
         </section>
 
         <section className="pc-section" aria-labelledby="pc-think-title">
@@ -280,7 +287,7 @@ export default function CosmosLanding() {
             <article className="pc-card pc-reveal" style={{ '--d': '0.12s' } as React.CSSProperties}>
               <img src={IMG.kitchen} alt="Marina on her kitchen floor at night with a mug, lit by a lamp" loading="lazy" />
               <div className="pc-float">
-                <p className="pc-float-label">Saved reading · Tuesday</p>
+                <p className="pc-float-label">Saved reading, Tuesday</p>
                 <blockquote>“Every Tuesday ends in back-to-back calls, and every Tuesday night your music turns ambient.”</blockquote>
               </div>
             </article>
@@ -294,9 +301,9 @@ export default function CosmosLanding() {
             </article>
           </div>
           <div className="pc-trio-captions pc-reveal" style={{ '--d': '0.15s' } as React.CSSProperties}>
-            <p>From behaviour.</p>
-            <p>With evidence.</p>
-            <p>And never from a quiz.</p>
+            <p>From behaviour</p>
+            <p>With evidence</p>
+            <p>Never from a quiz</p>
           </div>
         </section>
 
@@ -309,9 +316,18 @@ export default function CosmosLanding() {
               <img src={IMG.room} alt="Marina's living room at dusk" loading="lazy" />
               <figcaption>Read from <span className="pc-glass">6 sources</span></figcaption>
             </figure>
-            <p className="pc-lede pc-reveal" style={{ '--d': '0.16s' } as React.CSSProperties}>
-              TwinMe reads your data from five directions, surfacing the pattern, the source, and the story.
-            </p>
+            <ul className="pc-list pc-know-list pc-reveal" style={{ '--d': '0.16s' } as React.CSSProperties}>
+              {MADE_OF.map(({ icon: Icon, title, line }) => (
+                <li className="pc-row" key={title}>
+                  <span className="pc-row-icon" aria-hidden="true"><Icon /></span>
+                  <div className="pc-row-text">
+                    <p className="pc-row-title">{title}</p>
+                    <p className="pc-row-line">{line}</p>
+                  </div>
+                  <span />
+                </li>
+              ))}
+            </ul>
           </div>
         </section>
 
@@ -327,13 +343,12 @@ export default function CosmosLanding() {
         </section>
 
         <section className="pc-section pc-cta" aria-labelledby="pc-cta-title">
-          <p className="pc-reveal" id="pc-cta-title">Meet yourself.</p>
-          <Link className="pc-cta-giant pc-reveal" style={{ '--d': '0.08s' } as React.CSSProperties} to="/auth">Get your signature</Link>
-          <Link className="pc-btn pc-btn--canvas pc-reveal" style={{ '--d': '0.16s' } as React.CSSProperties} to="/auth">Log in <ArrowRight size={16} /></Link>
-          <p className="pc-cta-trust pc-reveal" style={{ '--d': '0.22s' } as React.CSSProperties}>
-            Six platforms. Five signatures. Your data never trains a model, and you can delete any of it.
-          </p>
-          <Link className="pc-btn pc-btn--canvas pc-reveal" style={{ '--d': '0.3s' } as React.CSSProperties} to="/demo">See Stefano's Portrait <ArrowRight size={16} /></Link>
+          <h2 className="pc-h2 pc-reveal" id="pc-cta-title">Meet yourself.</h2>
+          <div className="pc-cta-actions pc-reveal" style={{ '--d': '0.08s' } as React.CSSProperties}>
+            <Link className="pc-btn pc-btn--cta" to="/auth">Get your signature</Link>
+            <Link className="pc-textlink" to="/auth">Log in <ChevronRight className="pc-chevron" aria-hidden="true" /></Link>
+            <Link className="pc-textlink" to="/demo">See Stefano's portrait <ChevronRight className="pc-chevron" aria-hidden="true" /></Link>
+          </div>
         </section>
 
         <footer className="pc-footer">

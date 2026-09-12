@@ -251,12 +251,12 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: 40px;
+  height: 32px;
   padding: 0 8px;
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 500;
-  letter-spacing: -0.02em;
-  border-radius: 999px;
+  letter-spacing: -0.176px;
+  border-radius: 4px;
   transition: background 0.2s;
 }
 
@@ -272,31 +272,21 @@
   transform: translateY(1px);
 }
 
-/* The center pill. Cosmos's search; here, the note a family sends into tomorrow's
-   conversation. Near-white with an inset highlight so it reads as a lit surface. */
+/* The center field. Cosmos's search; here, the note a family sends into
+   tomorrow's conversation (on TwinMe, the email that gets read). The cycling
+   hint doubles as its placeholder.
+   2026-09-12, the register: the warm field box — no border, no inset light,
+   no lift or shadow on hover, 4px corners, 44 tall, 13px. */
 .pc-search {
-  height: var(--c-header-h);
+  height: 44px;
   width: min(456px, 40vw);
-  padding: 0 14px 0 18px;
+  padding: 0 12px 0 14px;
   display: flex;
   align-items: center;
   gap: 10px;
-  border-radius: 999px;
-  background: var(--c-search);
-  border: 0.5px solid var(--c-border);
-  box-shadow:
-    inset 0 1px 1.5px rgba(255, 255, 255, 0.7),
-    inset 0 -1px 1.5px rgba(0, 0, 0, 0.03);
+  border-radius: 4px;
+  background: var(--c-field);
   color: var(--c-ink);
-  transition: transform 0.25s var(--c-ease-ui), box-shadow 0.25s;
-}
-
-.pc-search:hover {
-  transform: translateY(-1px);
-  box-shadow:
-    inset 0 1px 1.5px rgba(255, 255, 255, 0.7),
-    inset 0 -1px 1.5px rgba(0, 0, 0, 0.03),
-    0 8px 24px rgba(13, 13, 13, 0.06);
 }
 
 .pc-search > svg:first-child {
@@ -310,12 +300,13 @@
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 400;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.176px;
 }
 
-/* Shimmer sweep: the placeholder darkens letter by letter, left to right, on a loop. */
+/* Shimmer sweep: the placeholder darkens letter by letter, left to right, on a loop.
+   ink-3 on the field box is 4.83:1. */
 .pc-shimmer {
   background: linear-gradient(90deg, var(--c-ink-3) 0%, var(--c-ink-3) 42%, var(--c-ink) 50%, var(--c-ink-3) 58%, var(--c-ink-3) 100%);
   background-size: 260% 100%;
@@ -338,8 +329,8 @@
   color: var(--c-ink-2);
 }
 
-/* The pill is a real field: the note is typed here, kept across sign-in, and
-   handed to the first conversation. The cycling hint doubles as its placeholder. */
+/* The field is real: the note is typed here, kept across sign-in, and
+   handed to the first conversation. */
 .pc-search-field {
   position: relative;
   flex: 1;
@@ -358,8 +349,14 @@
   background: transparent;
   color: var(--c-ink);
   font: inherit;
-  font-size: 14px;
-  letter-spacing: -0.02em;
+  font-size: 13px;
+  letter-spacing: -0.176px;
+}
+
+/* The box shows the focus; the bare input inside it must not draw the base
+   sheet's 999px ring as well. */
+.presence-cosmos .pc-search-input:focus-visible {
+  outline: none;
 }
 
 .pc-search-field .pc-search-text {
@@ -375,10 +372,8 @@
 }
 
 .pc-search:focus-within {
-  box-shadow:
-    inset 0 1px 1.5px rgba(255, 255, 255, 0.7),
-    inset 0 -1px 1.5px rgba(0, 0, 0, 0.03),
-    0 8px 24px rgba(13, 13, 13, 0.08);
+  outline: 1px solid var(--c-ink);
+  outline-offset: 0;
 }
 
 button.pc-search-icons {
@@ -410,21 +405,26 @@ button.pc-search-icons {
 }
 
 .pc-nav-login {
-  height: 48px;
-  padding: 0 14px;
+  height: 32px;
+  padding: 0 10px;
   display: inline-flex;
   align-items: center;
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 500;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.176px;
   color: var(--c-ink-2);
-  border-radius: 999px;
+  border-radius: 4px;
   transition: color 0.2s, background 0.2s;
 }
 
 .pc-nav-login:hover {
   color: var(--c-ink);
   background: var(--c-hover-secondary);
+}
+
+.presence-cosmos .pc-nav-login:focus-visible,
+.presence-cosmos .pc-menu:focus-visible {
+  border-radius: 4px;
 }
 
 /* ============================================================
@@ -537,6 +537,44 @@ button.pc-search-icons {
 
 .presence-cosmos .pc-btn--cta:focus-visible {
   border-radius: 12px;
+}
+
+/* A second action beside the one call to action: text and a chevron, not a
+   second button (a 32px button beside the 48px CTA read as a mismatch).
+   Added 2026-09-12 with the marketing and sign-in pages; the foundation had
+   no text link. 13px weight 500 in ink, the chevron ink-2, 32 tall so the
+   target clears 24x24 (WCAG 2.5.8). */
+.presence-cosmos .pc-textlink {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  min-height: 32px;
+  padding: 0 4px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 20px;
+  letter-spacing: -0.176px;
+  color: var(--c-ink);
+  white-space: nowrap;
+}
+
+.presence-cosmos .pc-textlink:hover {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+}
+
+.presence-cosmos .pc-textlink .pc-chevron {
+  transition: transform 0.25s var(--c-ease-ui);
+}
+
+.presence-cosmos .pc-textlink:hover .pc-chevron {
+  transform: translateX(2px);
+}
+
+.presence-cosmos .pc-textlink:focus-visible {
+  border-radius: 4px;
 }
 
 /* ============================================================
@@ -1051,7 +1089,12 @@ select.pc-input {
 
 /* ============================================================
    Hero — pinned; the film card scrolls up over it
-   ============================================================ */
+   ============================================================
+   2026-09-12, the register on the marketing pages: the body is 13px Geist
+   with weight for hierarchy, the controls are 32/4 with one 48/12 call to
+   action, a section is a heading, one grey line, then its visual, and text
+   lists are rows. The Cosmos headings (.pc-hero h1, .pc-h2), the
+   photography, the film, the collage and the strip stay. */
 
 .pc-hero {
   position: sticky;
@@ -1069,8 +1112,8 @@ select.pc-input {
   background: var(--c-canvas);
 }
 
-/* The bottom of the hero fades into paper so the incoming card has a soft edge to
-   rise from. Cosmos does this with a blurred gradient scrim; same recipe. */
+/* The bottom of the hero fades into the page so the incoming card has a soft
+   edge to rise from. */
 .pc-hero::after {
   content: '';
   position: absolute;
@@ -1081,7 +1124,7 @@ select.pc-input {
   /* A plain gradient reads the same as the blurred scrim and costs no compositor
      layer: with the nav band and the glass chips this page already stacks enough
      backdrop-filters to stall older iPads. */
-  background: linear-gradient(rgba(249, 247, 243, 0) 0%, var(--c-paper) 52%);
+  background: linear-gradient(rgba(251, 250, 249, 0) 0%, var(--c-paper) 52%);
   pointer-events: none;
 }
 
@@ -1094,17 +1137,18 @@ select.pc-input {
   transform: translateY(-4vh);
 }
 
-.pc-kicker {
-  font-size: 16px;
+/* The product's name, in the row-title voice: sentence case, 13px, 500.
+   It was 16px uppercase and tracked. */
+.presence-cosmos .pc-kicker {
+  font-size: 13px;
   font-weight: 500;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-  line-height: 1;
+  line-height: 20px;
+  letter-spacing: -0.176px;
   color: var(--c-ink);
 }
 
 .pc-hero h1 {
-  margin: 10px 0 44px;
+  margin: 12px 0 32px;
   max-width: 14ch;
   font-size: clamp(46px, 6.3vw, 74px);
   font-weight: 300;
@@ -1113,10 +1157,20 @@ select.pc-input {
   text-wrap: balance;
 }
 
+/* One call to action, and the second way in as a text link beside it. */
 .pc-hero-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 20px;
+}
+
+/* One grey line under the actions (TwinMe's hero: the scan's status). */
+.presence-cosmos .pc-hero-line {
+  margin-top: 20px;
+  font-size: 13px;
+  line-height: 19.5px;
+  font-weight: 350;
+  color: var(--c-ink-2);
 }
 
 .pc-hero-film-link {
@@ -1128,10 +1182,10 @@ select.pc-input {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  font-size: 16px;
+  gap: 6px;
+  font-size: 13px;
   font-weight: 500;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.176px;
   color: var(--c-ink-2);
   transition: color 0.2s;
 }
@@ -1149,7 +1203,7 @@ select.pc-input {
 }
 
 /* Hero collage — polaroids pinned around the centered copy. The one place the
-   system casts shadows: the tiles read as physical objects on the linen wall. */
+   system casts shadows: the tiles read as physical objects on the wall. */
 .pc-hero-tiles {
   position: absolute;
   inset: 0;
@@ -1255,9 +1309,9 @@ select.pc-input {
   padding: 56px 16px 22px;
   background: linear-gradient(rgba(10, 12, 18, 0), rgba(10, 12, 18, 0.46));
   text-align: center;
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 500;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.176px;
   color: var(--c-white);
   text-shadow: 0 1px 14px rgba(0, 0, 0, 0.45);
   pointer-events: none;
@@ -1311,18 +1365,17 @@ select.pc-input {
   font-size: clamp(28px, 3.2vw, 38px);
 }
 
-.pc-lede {
-  max-width: 640px;
-  font-size: clamp(20px, 2.2vw, 26px);
-  font-weight: 400;
-  line-height: 1.2;
-  letter-spacing: -0.02em;
+/* A marketing section is a heading, one grey line, then its visual — the
+   register's section at marketing size. It replaced the 20-26px ledes: a
+   statement that followed a heading became that heading's one line. */
+.presence-cosmos .pc-section-line {
+  max-width: 60ch;
+  margin-top: 8px;
+  font-size: 13px;
+  line-height: 19.5px;
+  font-weight: 350;
   color: var(--c-ink-2);
   text-wrap: balance;
-}
-
-.pc-section--lede {
-  margin-top: clamp(64px, 9vw, 120px);
 }
 
 /* ============================================================
@@ -1334,7 +1387,7 @@ select.pc-input {
   width: 100%;
   max-width: 1168px;
   height: 420px;
-  margin-top: 64px;
+  margin-top: 40px;
   border-radius: 12px;
   background: var(--c-olive);
   overflow: hidden;
@@ -1357,22 +1410,24 @@ select.pc-input {
 .pc-strip:hover .pc-strip-b { transform: translateX(-50%) translateY(-6px); }
 .pc-strip-c { right: 64px; bottom: -58px; width: 278px; height: 387px; }
 
-/* On-media glass pill: the Cosmos recipe, verbatim. */
+/* On-media glass: the Cosmos recipe. It stays only where it holds text over a
+   photograph (the strip's note, the know caption, the trio's timer), at the
+   register's 13px. */
 .pc-glass {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  height: 54px;
-  padding: 0 22px 0 18px;
+  gap: 8px;
+  height: 40px;
+  padding: 0 16px 0 14px;
   border-radius: 999px;
   background: rgba(0, 0, 0, 0.2);
   backdrop-filter: blur(30px);
   -webkit-backdrop-filter: blur(30px);
   border: 0.5px solid rgba(255, 255, 255, 0.08);
   color: var(--c-white);
-  font-size: 16px;
-  font-weight: 400;
-  letter-spacing: -0.02em;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.176px;
   white-space: nowrap;
 }
 
@@ -1433,7 +1488,7 @@ select.pc-input {
 .pc-trio {
   width: 100%;
   max-width: 1168px;
-  margin-top: 64px;
+  margin-top: 40px;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
@@ -1467,7 +1522,7 @@ select.pc-input {
   object-position: 50% 28%;
 }
 
-/* Card 1: a big glass chip with the live timer — Cosmos's color-swatch chip. */
+/* Card 1: a big glass chip with the live timer, a readout on the photograph. */
 .pc-card .pc-glass--big {
   position: absolute;
   left: 32px;
@@ -1476,6 +1531,7 @@ select.pc-input {
   padding: 0 26px 0 22px;
   gap: 14px;
   font-size: 30px;
+  font-weight: 400;
   letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
 }
@@ -1488,14 +1544,15 @@ select.pc-input {
   width: 3px;
 }
 
-/* Cards 2 & 3: white floating cards at 16px radius. */
+/* Cards 2 & 3: a white card over the photograph. It keeps its text readable on
+   the photo, so it stays, in the register's type: a 13px title, then one line. */
 .pc-float {
   position: absolute;
   left: 16px;
   right: 16px;
   bottom: 16px;
-  padding: 16px;
-  border-radius: 16px;
+  padding: 14px 16px;
+  border-radius: 12px;
   background: var(--c-white);
   color: var(--c-ink);
   text-align: left;
@@ -1505,55 +1562,58 @@ select.pc-input {
   text-align: center;
 }
 
-.pc-float-label {
-  font-size: 14px;
+.presence-cosmos .pc-float-label {
+  font-size: 13px;
   font-weight: 500;
-  letter-spacing: -0.02em;
-  line-height: 1.43;
+  line-height: 20px;
+  letter-spacing: -0.176px;
 }
 
-.pc-float-sub {
-  font-size: 14px;
-  font-weight: 400;
-  letter-spacing: -0.02em;
-  line-height: 1.43;
+.presence-cosmos .pc-float-sub {
+  font-size: 13px;
+  font-weight: 350;
+  line-height: 19.5px;
+  letter-spacing: -0.176px;
   color: var(--c-ink-2);
 }
 
 .pc-float blockquote {
-  margin: 8px 0 0;
-  font-size: 17px;
+  margin: 4px 0 0;
+  font-size: 13px;
   font-weight: 400;
-  line-height: 1.3;
-  letter-spacing: -0.02em;
+  line-height: 19.5px;
+  letter-spacing: -0.176px;
+  color: var(--c-ink);
 }
 
-/* Segmented control: one black pill, the rest quiet. */
+/* Segmented control in the register's shape: 32 tall, 4px corners, one ink
+   segment with page-colour text. */
 .pc-segment {
   margin-top: 12px;
-  height: 48px;
-  padding: 4px;
+  height: 32px;
+  padding: 2px;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  border: 0.5px solid var(--c-border);
-  border-radius: 999px;
+  border: 1px solid var(--c-hairline);
+  border-radius: 4px;
   background: var(--c-white);
 }
 
 .pc-segment span {
   display: grid;
   place-items: center;
-  border-radius: 999px;
-  font-size: 14px;
-  font-weight: 500;
-  letter-spacing: -0.02em;
+  border-radius: 3px;
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: -0.176px;
   color: var(--c-ink);
   transition: background 0.2s;
 }
 
 .pc-segment span.is-active {
   background: var(--c-ink);
-  color: var(--c-white);
+  color: var(--c-paper);
+  font-weight: 500;
 }
 
 .pc-segment span:not(.is-active):hover {
@@ -1563,21 +1623,21 @@ select.pc-input {
 .pc-trio-captions {
   width: 100%;
   max-width: 1168px;
-  margin-top: 24px;
+  margin-top: 16px;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
 }
 
-.pc-trio-captions p {
-  font-size: 24px;
-  font-weight: 400;
-  letter-spacing: -0.04em;
-  line-height: 1;
+.presence-cosmos .pc-trio-captions p {
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 20px;
+  letter-spacing: -0.176px;
 }
 
 /* ============================================================
-   Know — big text right-aligned, portrait, lede left-aligned
+   Know — heading right-aligned, portrait, rows left-aligned
    ============================================================ */
 
 .pc-know {
@@ -1630,23 +1690,27 @@ select.pc-input {
   justify-content: center;
   gap: 8px;
   color: var(--c-white);
-  font-size: 16px;
-  font-weight: 400;
-  letter-spacing: -0.02em;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.176px;
   text-shadow: 0 1px 14px rgba(0, 0, 0, 0.4);
   background: linear-gradient(rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.46));
 }
 
 .pc-know-figure figcaption .pc-glass {
-  height: 34px;
-  padding: 0 12px;
+  height: 28px;
+  padding: 0 10px;
   gap: 0;
   border-color: rgba(255, 255, 255, 0.14);
 }
 
-.pc-know .pc-lede {
-  max-width: 300px;
+/* What the section promises, as rows beside the photograph. It was one
+   20-26px paragraph listing the same things. */
+.presence-cosmos .pc-know-list {
+  width: 100%;
+  max-width: 360px;
   justify-self: start;
+  text-align: left;
 }
 
 /* ============================================================
@@ -1656,7 +1720,7 @@ select.pc-input {
 .pc-marquee {
   position: relative;
   width: 100%;
-  margin-top: 48px;
+  margin-top: 40px;
   overflow: hidden;
   -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
   mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
@@ -1664,7 +1728,7 @@ select.pc-input {
 
 .pc-marquee-track {
   display: flex;
-  gap: 16px;
+  gap: 40px;
   width: max-content;
   animation: pc-marquee 46s linear infinite;
 }
@@ -1677,83 +1741,50 @@ select.pc-input {
   to { transform: translateX(-50%); }
 }
 
+/* A note is text under a 1px ink rule — the register's list rule, not a
+   white card. The note is prose; who sent it is its grey line. */
 .pc-note {
   flex: none;
-  width: 320px;
-  padding: 20px 22px;
-  border-radius: 16px;
-  background: var(--c-white);
-  border: 0.5px solid var(--c-border);
+  width: 280px;
+  padding-top: 16px;
+  border-top: 1px solid var(--c-ink);
   text-align: left;
 }
 
-.pc-note p {
-  font-size: 17px;
+.presence-cosmos .pc-note p {
+  font-size: 13px;
   font-weight: 400;
-  line-height: 1.3;
-  letter-spacing: -0.02em;
+  line-height: 19.5px;
+  letter-spacing: -0.176px;
+  color: var(--c-ink);
 }
 
-.pc-note span {
+.presence-cosmos .pc-note span {
   display: block;
-  margin-top: 12px;
-  font-size: 14px;
-  font-weight: 500;
-  letter-spacing: -0.02em;
-  color: var(--c-ink-3);
+  margin-top: 4px;
+  font-size: 13px;
+  font-weight: 350;
+  line-height: 19.5px;
+  letter-spacing: -0.176px;
+  color: var(--c-ink-2);
 }
 
 /* ============================================================
-   Giant CTA
+   The close — a heading, the one call to action again, and the
+   quiet way in beside it. The giant 80-122px pill is retired: the
+   register allows one 48/12 shape for the main action, nothing larger.
    ============================================================ */
 
 .pc-cta {
-  gap: 20px;
+  gap: 32px;
 }
 
-.pc-cta > p:first-child {
-  font-size: 26px;
-  font-weight: 400;
-  letter-spacing: -0.02em;
-  line-height: 1.15;
-}
-
-.pc-cta-giant {
-  display: inline-flex;
+.pc-cta-actions {
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  height: clamp(80px, 9vw, 122px);
-  padding: 0 clamp(28px, 4vw, 48px);
-  border-radius: 999px;
-  background: var(--c-ink);
-  color: var(--c-white) !important;
-  font-size: clamp(32px, 4.8vw, 58px);
-  font-weight: 400;
-  line-height: 1;
-  letter-spacing: -0.04em;
-  white-space: nowrap;
-  transition: background 0.2s, transform 0.72s var(--c-ease-out);
-}
-
-.pc-cta-giant:hover {
-  background: var(--c-hover-primary);
-  transform: scale(1.012);
-}
-
-.pc-cta-giant:active {
-  transform: scale(0.99);
-  transition-duration: 0.15s;
-}
-
-.pc-cta-trust {
-  margin-top: 12px;
-  max-width: 560px;
-  font-size: 16px;
-  font-weight: 400;
-  line-height: 1.5;
-  letter-spacing: -0.02em;
-  color: var(--c-ink-2);
-  text-wrap: balance;
+  gap: 12px 20px;
 }
 
 /* ============================================================
@@ -1778,9 +1809,9 @@ select.pc-input {
 .pc-footer-links {
   display: flex;
   gap: 24px;
-  font-size: 16px;
-  font-weight: 500;
-  letter-spacing: -0.02em;
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: -0.176px;
   color: var(--c-ink-2);
 }
 
@@ -1806,6 +1837,7 @@ select.pc-input {
   height: 40px;
 }
 
+/* The wordmark is the logotype, set as a graphic (aria-hidden), not a label. */
 .pc-wordmark {
   height: 0.6em;
   margin: 40px calc(var(--c-pad-x) * -1) 0;
@@ -1875,7 +1907,7 @@ select.pc-input {
      hero's opaque bottom scrim and disappears. */
   /* The centre tile sits directly above the kicker, which rides the vertically
      centred copy (measured: kicker top = 0.46 x hero height - 108px). A plain
-     percentage top fell onto "PRESENCE" below ~745px, i.e. Safari with its
+     percentage top fell onto the kicker below ~745px, i.e. Safari with its
      toolbars showing; this tracks the kicker and keeps an 18px gap. */
   .pc-tile:nth-child(5) { left: 41% !important; right: auto !important; top: calc(46% - 196px) !important; bottom: auto !important; width: 66px !important; height: 66px !important; }
 
@@ -1903,10 +1935,6 @@ select.pc-input {
   .pc-trio,
   .pc-trio-captions {
     grid-template-columns: 1fr;
-  }
-
-  .pc-trio-captions p {
-    font-size: 20px;
   }
 
   .pc-card {
@@ -1939,8 +1967,7 @@ select.pc-input {
     height: 480px;
   }
 
-  .pc-know .pc-lede {
-    max-width: 420px;
+  .presence-cosmos .pc-know-list {
     justify-self: center;
   }
 
@@ -1974,15 +2001,19 @@ select.pc-input {
   }
 
   .pc-hero h1 {
-    margin-bottom: 32px;
+    margin-bottom: 28px;
   }
 
-  .pc-hero-actions {
+  /* The call to action spans a 320px column; the text link sits under it. */
+  .pc-hero-actions,
+  .pc-cta-actions {
     flex-direction: column;
     width: min(100%, 320px);
+    gap: 12px;
   }
 
-  .pc-hero-actions .pc-btn {
+  .pc-hero-actions .pc-btn,
+  .pc-cta-actions .pc-btn {
     width: 100%;
   }
 
@@ -2008,7 +2039,7 @@ select.pc-input {
 
   .pc-strip {
     height: 300px;
-    margin-top: 40px;
+    margin-top: 32px;
   }
 
   .pc-strip-a { left: 12px; width: 150px; height: 208px; bottom: -22px; }
@@ -2016,9 +2047,8 @@ select.pc-input {
   .pc-strip-c { right: 12px; width: 146px; height: 204px; bottom: -34px; }
 
   .pc-strip .pc-glass {
-    height: 46px;
-    font-size: 14px;
-    padding: 0 16px 0 14px;
+    height: 36px;
+    padding: 0 14px 0 12px;
   }
 
   .pc-float {
@@ -2028,19 +2058,11 @@ select.pc-input {
   }
 
   .pc-note {
-    width: 260px;
-  }
-
-  .pc-cta-giant {
-    white-space: normal;
-    text-align: center;
-    height: auto;
-    padding: 22px 32px;
+    width: 240px;
   }
 
   .pc-footer-links {
     gap: 16px;
-    font-size: 15px;
   }
 
   .pc-wordmark {
@@ -4088,12 +4110,6 @@ select.pc-input {
   justify-items: start;
 }
 
-.pc-demo-proto-head > p:not(.pc-spec-n) {
-  font-size: 15px;
-  line-height: 1.5;
-  color: var(--c-ink-2);
-}
-
 .pc-demos {
   align-items: center;
 }
@@ -4112,9 +4128,14 @@ select.pc-input {
      The stage's own ladder is then 3.6 / 30.0 / 39.4 L*, so the caption still
      reads a step above the meta lines. Scoped to the stage, which only the
      Cosmos demo uses; the Portrait's glass is not inside one and keeps its own
-     cine inks. */
+     cine inks.
+     2026-09-12, the register: the rows lost their white boxes and the glass
+     went to 0.8 white, so every line sits on the glass itself, measured as
+     dark as rgb(208,209,209). The meta lines now take ink-2 (6.1:1 there);
+     ink-3 went from #605c5b (4.3:1 on that ground) to #5a5655 so the token
+     still holds AA where it is scoped. */
   --c-ink-2: #4a4644;
-  --c-ink-3: #605c5b;
+  --c-ink-3: #5a5655;
   position: relative;
   width: 100%;
   max-width: 1168px;
@@ -4513,6 +4534,260 @@ select.pc-input {
   .presence-cosmos .pc-demo-answer p {
     font-size: 16px;
   }
+}
+
+/* ---- the register inside the demo (2026-09-12) ------------------------------
+   Scoped to .pc-demos: the Portrait reuses the base .pc-demo-* rules above and
+   is restyled on its own. Inside the glass the interface is what the app now
+   is: rows under a 1px ink rule, sentence case, a warm field, 13px with weight
+   for hierarchy; the scene tabs are three rows of text, not three cards.
+   The glass stays (it holds text over a photograph) but loses its shadow, and
+   goes from 0.62 to 0.8 white: the rows no longer carry their own white boxes,
+   so the meta lines now sit on the glass itself. */
+
+.presence-cosmos .pc-demos .pc-demo-stage {
+  margin-top: 40px;
+}
+
+.presence-cosmos .pc-demos .pc-demo-glass {
+  min-height: 320px;
+  padding: 20px 20px 22px;
+  border-radius: 16px;
+  border: 0;
+  background: rgba(255, 255, 255, 0.8);
+  box-shadow: none;
+  gap: 16px;
+}
+
+.presence-cosmos .pc-demos .pc-demo-head {
+  font-size: 13px;
+  line-height: 20px;
+  letter-spacing: -0.176px;
+}
+
+.presence-cosmos .pc-demos .pc-demo-head em {
+  font-weight: 350;
+}
+
+.presence-cosmos .pc-demos .pc-demo-log {
+  gap: 0;
+  border-top: 1px solid var(--c-ink);
+}
+
+.presence-cosmos .pc-demos .pc-demo-row {
+  gap: 0;
+  padding: 8px 4px;
+  border: 0;
+  border-bottom: 1px solid var(--c-border);
+  border-radius: 0;
+  background: none;
+}
+
+.presence-cosmos .pc-demos .pc-demo-row p {
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 500;
+  letter-spacing: -0.176px;
+}
+
+.presence-cosmos .pc-demos .pc-demo-row span,
+.presence-cosmos .pc-demos .pc-demo-reading > span,
+.presence-cosmos .pc-demos .pc-demo-answer > span {
+  font-size: 13px;
+  line-height: 19.5px;
+  letter-spacing: -0.176px;
+  text-transform: none;
+}
+
+.presence-cosmos .pc-demos .pc-demo-row span {
+  font-weight: 350;
+  color: var(--c-ink-2);
+}
+
+.presence-cosmos .pc-demos .pc-demo-reading > span,
+.presence-cosmos .pc-demos .pc-demo-answer > span {
+  font-weight: 500;
+  color: var(--c-ink);
+}
+
+.presence-cosmos .pc-demos .pc-demo-reading,
+.presence-cosmos .pc-demos .pc-demo-answer {
+  gap: 4px;
+  padding: 4px 4px 0;
+  border-radius: 0;
+  background: none;
+}
+
+.presence-cosmos .pc-demos .pc-demo-reading p,
+.presence-cosmos .pc-demos .pc-demo-answer p {
+  min-height: 19.5px;
+  font-size: 13px;
+  line-height: 19.5px;
+  letter-spacing: -0.176px;
+}
+
+/* The sources are a grey line, not pills. */
+.presence-cosmos .pc-demos .pc-demo-chips {
+  gap: 0 12px;
+  margin-top: 2px;
+}
+
+.presence-cosmos .pc-demos .pc-demo-chips b {
+  height: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  font-size: 13px;
+  line-height: 19.5px;
+  font-weight: 350;
+  letter-spacing: -0.176px;
+  color: var(--c-ink-2);
+}
+
+/* The ask box is the warm field with a 32px send button. */
+.presence-cosmos .pc-demos .pc-demo-ask,
+.presence-cosmos .pc-demos .pc-demo-ask.is-sent {
+  min-height: 44px;
+  padding: 0 6px 0 14px;
+  border: 0;
+  border-radius: 4px;
+  background: var(--c-field);
+}
+
+.presence-cosmos .pc-demos .pc-demo-ask p {
+  font-size: 13px;
+  letter-spacing: -0.176px;
+}
+
+.presence-cosmos .pc-demos .pc-demo-ask button {
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  color: var(--c-paper);
+}
+
+.presence-cosmos .pc-demos .pc-demo-sig {
+  gap: 0;
+  padding: 0;
+  border-top: 1px solid var(--c-ink);
+}
+
+.presence-cosmos .pc-demos .pc-demo-sig-row {
+  padding: 10px 4px;
+  border-bottom: 1px solid var(--c-border);
+}
+
+.presence-cosmos .pc-demos .pc-demo-sig-row > span {
+  font-size: 13px;
+  letter-spacing: -0.176px;
+}
+
+.presence-cosmos .pc-demos .pc-demo-sig-row small {
+  font-size: 13px;
+  font-weight: 350;
+}
+
+.presence-cosmos .pc-demos .pc-demo-bar {
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(37, 31, 33, 0.1);
+}
+
+.presence-cosmos .pc-demos .pc-demo-bar b {
+  border-radius: 2px;
+}
+
+/* The scene tabs: three rows of text side by side, a hairline on top of
+   each. The running one draws its progress over that line in ink; a held
+   one (a pick, or reduced motion) keeps the line in ink. */
+.presence-cosmos .pc-demos .pc-demo-tabs {
+  margin-top: 24px;
+  gap: 24px;
+}
+
+.presence-cosmos .pc-demos .pc-demo-tab {
+  gap: 2px;
+  padding: 14px 0 0;
+  border: 0;
+  border-top: 1px solid var(--c-hairline);
+  border-radius: 0;
+  background: none;
+  overflow: visible;
+}
+
+.presence-cosmos .pc-demos .pc-demo-tab:hover {
+  background: none;
+}
+
+.presence-cosmos .pc-demos .pc-demo-tab:hover strong {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+}
+
+.presence-cosmos .pc-demos .pc-demo-tab.is-active:not(.is-running) {
+  border-top-color: var(--c-ink);
+}
+
+.presence-cosmos .pc-demos .pc-demo-tab strong {
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 500;
+  letter-spacing: -0.176px;
+  color: var(--c-ink-2);
+}
+
+.presence-cosmos .pc-demos .pc-demo-tab.is-active strong {
+  color: var(--c-ink);
+}
+
+.presence-cosmos .pc-demos .pc-demo-tab small {
+  font-size: 13px;
+  line-height: 19.5px;
+  font-weight: 350;
+  letter-spacing: -0.176px;
+  color: var(--c-ink-2);
+}
+
+.presence-cosmos .pc-demos .pc-demo-tab-fill {
+  top: -1px;
+  height: 2px;
+}
+
+.presence-cosmos .pc-demos .pc-demo-tab:focus-visible {
+  border-radius: 4px;
+}
+
+.presence-cosmos .pc-demos .pc-demo-note {
+  margin-top: 24px;
+  font-size: 13px;
+  line-height: 19.5px;
+  font-weight: 350;
+  color: var(--c-ink-3);
+}
+
+/* The prototype page's own head: a page title, one line, a way back. */
+.presence-cosmos .pc-demo-proto-head {
+  max-width: 820px;
+  margin: 0 auto 24px;
+  gap: 0;
+}
+
+.presence-cosmos .pc-demo-proto-head .pc-btn {
+  margin-top: 20px;
+}
+
+/* On the prototype page the section follows a page head, not another
+   section: the app's 72px apart, not the marketing gap. */
+.presence-cosmos.pc-demos-page .pc-demos {
+  margin-top: 72px;
+}
+
+/* What the twin writes is prose: 400, not the row title's 500. */
+.presence-cosmos .pc-demos .pc-demo-reading p,
+.presence-cosmos .pc-demos .pc-demo-answer p {
+  font-weight: 400;
 }
 
 /* ============================================================
