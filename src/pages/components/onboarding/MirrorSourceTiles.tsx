@@ -62,7 +62,7 @@ const MirrorTile: React.FC<MirrorTileProps> = ({
       className="flex-shrink-0 w-11 h-11 rounded-xl flex items-center justify-center"
       style={{
         backgroundColor: 'var(--surface)',
-        color: connected ? color : 'rgba(255, 255, 255, 0.55)',
+        color: connected ? color : 'var(--rg-ink-2)', // was white at 55%: invisible on the light page
       }}
     >
       {icon}
@@ -86,7 +86,7 @@ const MirrorTile: React.FC<MirrorTileProps> = ({
       </div>
       <span
         className="text-[12px] leading-relaxed line-clamp-2 block mt-0.5"
-        style={{ color: connected ? 'rgba(255,255,255,0.60)' : 'rgba(255,255,255,0.50)', fontFamily: FONT }}
+        style={{ color: 'var(--rg-ink-2)', fontFamily: FONT }}
       >
         {description}
       </span>

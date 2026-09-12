@@ -150,7 +150,7 @@ const PersonalityAxes: React.FC<PersonalityAxesProps> = ({ className = '', delay
                   <span
                     className="text-[13px] flex-1 leading-snug"
                     style={{
-                      color: isTop ? 'rgba(255,255,255,0.85)' : 'var(--text-secondary)',
+                      color: isTop ? 'var(--rg-ink)' : 'var(--text-secondary)',
                       fontFamily: "'Inter', sans-serif",
                       fontWeight: isTop ? 500 : 400,
                     }}

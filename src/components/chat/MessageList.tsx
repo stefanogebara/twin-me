@@ -206,7 +206,8 @@ export const MessageList = memo(forwardRef<HTMLDivElement, MessageListProps>(
                       className="whitespace-pre-wrap text-right"
                       style={{
                         fontSize: '13px',
-                        color: message.failed ? '#EF4444' : '#EDEDED',
+                        // The register: ink on the page. #EDEDED was near-white and vanished once the page went light.
+                        color: message.failed ? 'var(--rg-danger)' : 'var(--rg-ink)',
                         opacity: message.failed ? 0.8 : 1,
                         lineHeight: 1.7,
                       }}

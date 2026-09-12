@@ -110,7 +110,7 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
       </div>
 
       {error && (
-        <div className="flex items-center gap-2 mb-4 text-sm" style={{ color: '#ef4444' }}>
+        <div className="flex items-center gap-2 mb-4 text-sm" style={{ color: 'var(--rg-danger)' }}>
           <AlertCircle className="w-4 h-4" />
           {error}
         </div>
@@ -159,8 +159,8 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
                           style={{
                             color:
                               confirmingId === connector.id
-                                ? '#ef4444'
-                                : 'rgba(255, 255, 255, 0.55)',
+                                ? 'var(--rg-danger)'
+                                : 'var(--rg-ink-2)',
                           }}
                         >
                           {disconnectingService === connector.id
@@ -223,7 +223,7 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
                 className="text-[11px] min-h-[44px] px-2 transition-opacity hover:opacity-60 flex-shrink-0"
                 style={{
                   color:
-                    confirmingId === platform ? '#ef4444' : 'rgba(255, 255, 255, 0.55)',
+                    confirmingId === platform ? 'var(--rg-danger)' : 'var(--rg-ink-2)',
                 }}
               >
                 {disconnectingService === platform

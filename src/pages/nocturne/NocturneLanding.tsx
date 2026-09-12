@@ -336,7 +336,7 @@ const NocturneLanding = () => {
           <p className="n-lead" style={{ marginTop: 12 }}>
             how often the twin picks the same answer its human does
           </p>
-          <p className="n-micro" style={{ marginTop: 12, color: '#6a6b6b' }}>
+          <p className="n-micro" style={{ marginTop: 12 }}>
             25 self-report items · one session · measured, not a vibe
           </p>
         </div>

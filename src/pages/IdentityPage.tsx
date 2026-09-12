@@ -232,7 +232,7 @@ const RevealOverlay: React.FC<{ archetypeName: string; tagline: string; onDismis
   return (
     <motion.div
       className="fixed inset-0 z-50 flex flex-col items-center justify-center px-6"
-      style={{ background: '#0a0909' }}
+      style={{ background: 'var(--rg-page)' /* was #0a0909: the title is ink now */ }}
       initial={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.6, ease: 'easeInOut' }}
@@ -967,7 +967,7 @@ const IdentityPage: React.FC = () => {
                 <SectionLabel>Your Rhythms</SectionLabel>
                 <span
                   className="inline-block px-3 py-1.5 rounded-full text-xs font-medium mb-3"
-                  style={{ background: 'var(--surface)', color: '#E8E0D4', fontFamily: "'Inter', sans-serif" }}
+                  style={{ background: 'var(--surface)', color: 'var(--rg-ink)', fontFamily: "'Inter', sans-serif" }}
                 >
                   {formatChronotype(layers.rhythms.chronotype)}
                 </span>
@@ -1048,7 +1048,7 @@ const IdentityPage: React.FC = () => {
                 <SectionLabel>How You Connect</SectionLabel>
                 <span
                   className="inline-block px-3 py-1.5 rounded-full text-xs font-medium mb-3"
-                  style={{ background: 'var(--surface)', color: '#E8E0D4', fontFamily: "'Inter', sans-serif" }}
+                  style={{ background: 'var(--surface)', color: 'var(--rg-ink)', fontFamily: "'Inter', sans-serif" }}
                 >
                   {formatConnectionStyle(layers.connections.style)}
                 </span>
