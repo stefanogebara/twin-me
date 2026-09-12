@@ -1,19 +1,19 @@
 /* ==========================================================================
-   The front door, on the web, at Instinct's own sign-in measurements: a narrow
-   column, a 32px heading, a 15px line under it, a 48 tall field with a 4 corner
-   and a 48 tall ink button with a 12. Tokens and the pill come from
+   The front door, on the web, in the money-v2 register: a narrow column on
+   the warm page, the title in the Cosmos voice, one grey line under it,
+   Continue with Google as the one 48 tall ink button with a 12 corner, and
+   everything else at 32 with a 4. Tokens, the field and the buttons come from
    money-v2.css (the page is wrapped in .mv).
    ========================================================================== */
 
 .mv.au { min-height: 100dvh; display: grid; }
-/* The column is the measure Instinct uses for this page. The paper is the whole
-   screen; only the words are held. */
+/* The paper is the whole screen; only the words are held. */
 .au-col {
   min-height: 100dvh;
   display: grid;
   align-content: center;
-  gap: 28px;
-  width: min(380px, 100% - 48px);
+  gap: 24px;
+  width: min(360px, 100% - 48px);
   margin: 0 auto;
   padding: clamp(40px, 8vh, 96px) 0 clamp(20px, 4vh, 40px);
   box-sizing: border-box;
@@ -21,38 +21,19 @@
 
 /* Title, line, controls and fine print are one block, centred together, the way their
    own sign-in page sets it. Pinned to the bottom instead, the controls left a hole. */
-.au-room { display: grid; gap: 12px; }
-.au-room h1 { font-size: 32px; line-height: 36.8px; letter-spacing: -0.022em; font-weight: 500; text-wrap: balance; }
-.au-room .mv-lede { font-size: 15px; line-height: 24.375px; color: var(--ink-2); text-wrap: pretty; }
+.au-room { display: grid; }
 
 .au-controls { display: grid; gap: 12px; justify-items: stretch; }
 .au-controls .mv-pill { width: 100%; }
-.au-controls .mv-pill:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+.au-form { display: grid; gap: 8px; width: 100%; }
 
-/* One field: 48 tall, a 4 corner, a hairline. */
-.au-form { display: grid; gap: 12px; width: 100%; }
-.au-field {
-  width: 100%; box-sizing: border-box; height: 48px; padding: 0 14px;
-  border: 1px solid var(--rule); border-radius: 4px; background: #fff;
-  font: inherit; font-size: 16px; line-height: 24px; letter-spacing: -0.011em; color: var(--ink);
-}
-.au-field::placeholder { color: var(--ink-3); }
-.au-field:focus-visible { outline: none; border-color: var(--ink); }
-.au-field:disabled { opacity: 0.6; }
-
-.au-note { font-size: 14px; line-height: 22.75px; color: var(--ink-2); }
-.au-note--error { color: var(--ink); }
-
-.au-foot { font-size: 14px; line-height: 22.75px; color: var(--ink-3); }
+.mv .au-note { color: var(--ink-2); font-weight: 350; }
+.mv .au-note--error { color: var(--danger); }
+.mv .au-foot { color: var(--ink-3); font-weight: 350; }
 
 /* Entrance: a fade and eight pixels of rise, and nothing else. */
 .au-enter { animation: au-enter 0.42s cubic-bezier(0.2, 0.7, 0.2, 1) both; animation-delay: calc(var(--i, 0) * 40ms); }
 @keyframes au-enter { from { opacity: 0; translate: 0 8px; } to { opacity: 1; translate: 0 0; } }
 @media (prefers-reduced-motion: reduce) {
   .au-enter { animation: none; }
-  .mv.au .mv-pill { transition: none; }
-}
-
-@media (max-width: 640px) {
-  .au-col { width: min(380px, 100% - 40px); padding-top: clamp(56px, 12vh, 96px); }
 }

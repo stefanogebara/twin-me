@@ -1,223 +1,204 @@
 /* ==========================================================================
-   Money, in the register measured off app.instinct.co: a white page, warm
-   panels, one ink at three strengths, hairlines, Geist at 400 and 500 and
-   never heavier. No display serif, no uppercase tracked labels, no shadow,
-   no gradient, nothing rotated. Colour appears only inside a brand mark.
+   Money, in the register measured signed in on app.instinct.co (Workspace,
+   Vault, Preferences), with the headings kept in the Cosmos voice: a warm
+   page, 13px Geist with weight making the hierarchy, rows under a 1px ink
+   rule instead of cards, 32 tall buttons with a 4 corner. No panels, no
+   shadow, no gradient, no uppercase tracked labels. Colour appears only in
+   state, and only where it passes AA.
 
-   Every other money stylesheet reads its tokens from here.
+   Every other money stylesheet, and the sign-in page, reads its tokens and
+   primitives from here. Spec: .claude/plans/2026-09-11-instinct-register/
    ========================================================================== */
 .mv {
-  /* Grounds and ink. Secondary text is the ink at 60 percent and the quietest
-     at 38, so the page has one colour rather than a family of greys. */
-  --canvas: #ffffff;
-  --panel: #faf9f7;
-  --panel-2: #f6f5f3;
-  /* --card is the old name for the warm panel; kept so the setup and chat
-     stylesheets keep working while they use it. */
-  --card: #faf9f7;
-  --ink: #101113;
-  --ink-2: rgba(16, 17, 19, 0.6);
-  --ink-3: rgba(16, 17, 19, 0.38);
-  --rule: #e5e7eb;
-  --hover: rgba(16, 17, 19, 0.05);
-  --pressed: rgba(16, 17, 19, 0.1);
+  /* Grounds. --canvas and --panel survive as the old names for the page and
+     the warm field, so nothing that still reads them breaks. */
+  --page: #fbfaf9;
+  --canvas: var(--page);
+  --white: #ffffff;
+  --field: #f4efec;
+  --panel: var(--field);
+  /* Ink at three strengths. On the page: ink 15.5:1, ink-2 7.3:1, ink-3 5.3:1
+     (4.8:1 on a field). --quiet is Instinct's own grey at 2.9:1, which fails AA
+     as text: it marks disabled and decorative things only. */
+  --ink: #251f21;
+  --ink-2: #585254;
+  --ink-3: #6c6867;
+  --quiet: #969394;
+  --rule: #eae9ea;
+  --hover: rgba(37, 31, 33, 0.04);
+  /* State. Instinct's red (#ed313e, 3.9:1) and green (#73a89a, 2.6:1) fail as
+     13px text, so they stay lines; the text versions are darkened until they
+     pass: danger 5.5:1 and ok 5.1:1 on the page, 5.0:1 and 4.7:1 on a field. */
+  --danger-line: #f5aaae;
+  --danger: #c42533;
+  --ok-line: #73a89a;
+  --ok: #3d7566;
   --sans: 'Geist', 'Inter Tight', 'Inter', system-ui, sans-serif;
   /* Monospace survives for one job: a capture key, which is a string to copy
      rather than a label to read. */
   --mono: 'Geist Mono', 'DM Mono', ui-monospace, monospace;
-  --col: 840px;
+  --track: -0.176px;
+  --col: 820px;
+  --side: 200px;
+  --gutter: 24px;
+  --section: 72px;
 
-  min-height: 100vh; background: var(--canvas); color: var(--ink); font-family: var(--sans);
-  font-size: 16px; line-height: 24px; letter-spacing: -0.011em; -webkit-font-smoothing: antialiased; overflow-x: clip;
+  min-height: 100vh; background: var(--page); color: var(--ink); font-family: var(--sans);
+  font-size: 13px; line-height: 19.5px; font-weight: 400; letter-spacing: var(--track);
+  font-variant-numeric: tabular-nums; -webkit-font-smoothing: antialiased; overflow-x: clip;
 }
-.mv h1, .mv h2, .mv p, .mv ul, .mv ol, .mv li, .mv span, .mv small, .mv b, .mv em, .mv a, .mv code, .mv button { color: inherit; margin: 0; }
-/* index.css styles h1/h2/p by element, and an element rule beats inheritance from .mv,
-   so the display type has to name the family here or it renders in Inter. */
-.mv h1, .mv h2, .mv p { font-family: var(--sans); }
-.mv ul, .mv ol { list-style: none; padding: 0; }
-.mv a { text-decoration: none; }
-.mv button { font: inherit; background: none; border: 0; cursor: pointer; }
-.mv button span, .mv a span { white-space: normal; overflow: visible; }
-.mv h1, .mv h2 { font-weight: 500; letter-spacing: -0.022em; line-height: 1.15; }
+/* index.css styles h1/h2/p/label by element and truncates every button span. :where()
+   holds these resets at the weight of one class, so every rule below still wins. */
+.mv :where(h1, h2, h3, p, ul, ol, li, span, small, b, em, a, code, button, label) { color: inherit; margin: 0; }
+.mv :where(h1, h2, h3, p, li, label, small, span, input, textarea, button) { font-family: var(--sans); }
+.mv :where(p, label, li) { font-size: inherit; line-height: inherit; font-weight: inherit; letter-spacing: inherit; }
+.mv :where(ul, ol) { list-style: none; padding: 0; }
+.mv :where(a) { text-decoration: none; }
+.mv :where(button) { font: inherit; letter-spacing: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+.mv :where(button span, a span, label span) { white-space: normal; overflow: visible; }
+.mv :where(input, textarea) { font: inherit; letter-spacing: inherit; color: var(--ink); }
+.mv :focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 
-/* One primary action: ink, 48 tall, corner 12. Everything else is a hairline pill. */
+/* Headings keep the Cosmos voice rather than Instinct's serif: Geist 300 for a page
+   title, 400 for a section, tight tracking, balanced. App screens take the small sizes. */
+.mv :where(h1) { font-size: clamp(32px, 2.8vw, 40px); font-weight: 300; line-height: 1; letter-spacing: -0.05em; text-wrap: balance; }
+.mv :where(h2) { font-size: clamp(28px, 3.2vw, 38px); font-weight: 400; line-height: 1.08; letter-spacing: -0.04em; text-wrap: balance; }
+
+/* 13px throughout; weight makes the hierarchy, never size. */
+.mv .mv-sub { margin-top: 4px; color: var(--ink-2); font-weight: 350; }
+.mv .mv-quiet { color: var(--ink-3); font-weight: 350; }
+.mv .mv-note { margin-top: 16px; color: var(--ink-2); font-weight: 350; }
+.mv .mv-sr { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+/* Buttons: 32 tall, a 4 corner, 13px. Primary is ink with page-colour text, once a
+   screen; ghost is the secondary, white with a hairline; danger keeps the pink line.
+   --lg is the one exception, the main call to action of a sign-in page, at Instinct's
+   own 48 tall, 12 corner, 15px 500. */
 .mv .mv-pill {
-  display: inline-flex; align-items: center; justify-content: center; height: 48px; padding: 0 22px;
-  border-radius: 12px; background: var(--ink); color: #fff; font-size: 15px; font-weight: 500;
-  letter-spacing: -0.011em; transition: opacity 0.18s ease;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px; box-sizing: border-box;
+  height: 32px; padding: 0 16px; border-radius: 4px; border: 1px solid var(--ink);
+  background: var(--ink); color: var(--page); font-size: 13px; line-height: 1; font-weight: 500;
+  letter-spacing: var(--track); white-space: nowrap; cursor: pointer;
+  transition: opacity 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
 }
 .mv .mv-pill:hover { opacity: 0.86; }
 .mv .mv-pill:disabled { opacity: 0.4; cursor: default; }
-.mv .mv-pill--ghost { background: #fff; color: var(--ink); border: 1px solid var(--rule); border-radius: 999px; }
-.mv .mv-pill--ghost:hover { opacity: 1; background: var(--hover); }
-.mv .mv-pill--sm { height: 34px; padding: 0 14px; font-size: 14px; border-radius: 999px; }
-.mv .mv-quiet { font-size: 15px; line-height: 24.375px; color: var(--ink-2); }
-/* A label is a sentence in the interface voice, not a tracked shout. */
-.mv .mv-kicker { font-size: 15px; font-weight: 500; color: var(--ink); }
-.mv .mv-card-kicker { display: block; font-size: 14px; line-height: 22.75px; color: var(--ink-2); }
-
-/* Nav: the mark, the links, one hairline under it */
-.mv-nav { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 24px; width: min(var(--col), 100% - 48px); margin: 0 auto; padding: 18px 0; border-bottom: 1px solid var(--rule); position: relative; z-index: 3; }
-.mv-mark { display: grid; grid-template-columns: repeat(3, 6px); gap: 3px; width: 24px; }
-.mv-mark i { width: 6px; height: 6px; border-radius: 50%; background: var(--ink); }
-.mv-nav nav { display: flex; gap: 20px; font-size: 15px; color: var(--ink-2); }
-.mv-nav nav a:hover { color: var(--ink); }
-.mv-nav .mv-pill { height: 36px; padding: 0 16px; font-size: 14px; }
-
-/* This month: the figure, then one sentence about it */
-.mv-hero { width: min(var(--col), 100% - 48px); margin: 0 auto; display: grid; justify-items: start; gap: 10px; padding: 44px 0 8px; }
-.mv-hero h1 { font-size: clamp(40px, 5.4vw, 60px); font-weight: 400; line-height: 1.08; font-variant-numeric: tabular-nums; }
-.mv-hero .mv-lede { max-width: 60ch; font-size: 16px; line-height: 24px; color: var(--ink); }
-.mv-ctas { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
-
-/* The band: ink to what has gone, grey to where the month lands. A tick nobody
-   could read used to sit on top of it. */
-.mv-band { width: min(var(--col), 100% - 48px); margin: 20px auto 0; display: grid; gap: 8px; }
-.mv-band-track { position: relative; height: 6px; border-radius: 999px; background: var(--panel-2); overflow: hidden; }
-.mv-band-likely { position: absolute; top: 0; left: 0; height: 100%; border-radius: 999px; background: var(--rule); }
-.mv-band-spent { position: absolute; top: 0; left: 0; height: 100%; border-radius: 999px; background: var(--ink); }
-.mv-band-labels { display: flex; justify-content: space-between; font-size: 14px; line-height: 22.75px; color: var(--ink-2); }
-
-/* Sections: a heading, a line under it, then the object */
-.mv-section { width: min(var(--col), 100% - 48px); margin: 40px auto 0; display: grid; gap: 24px; justify-items: start; }
-.mv-section h2 { font-size: 32px; line-height: 36.8px; text-wrap: balance; }
-.mv-section > .mv-quiet { max-width: 60ch; margin-top: -18px; }
-
-/* Ledger rows */
-.mv-ledger { width: 100%; border-top: 1px solid var(--rule); }
-.mv-row { border-bottom: 1px solid var(--rule); }
-.mv-row-head { width: 100%; display: grid; grid-template-columns: 72px minmax(0, 1fr) auto; gap: 16px; align-items: baseline; padding: 14px 4px; text-align: left; }
-.mv-row-head:hover { background: var(--hover); }
-.mv-row-date { font-size: 14px; color: var(--ink-3); }
-.mv-row-merchant { font-size: 15px; display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
-.mv-row-merchant small { font-size: 14px; color: var(--ink-3); }
-.mv-row-merchant .mv-verdict-tag.is-worth_it { color: var(--ink); }
-.mv-row-amount { font-size: 15px; font-variant-numeric: tabular-nums; }
-.mv-row.is-in .mv-row-amount { color: var(--ink-2); }
-.mv-row-body { display: grid; gap: 14px; padding: 0 4px 18px 88px; }
-.mv-receipts { display: grid; gap: 0; border-top: 1px solid var(--rule); }
-.mv-receipts li { display: grid; gap: 2px; padding: 11px 0; border-bottom: 1px solid var(--rule); }
-.mv-receipts li:last-child { border-bottom: 0; }
-.mv-receipts span { font-size: 14px; color: var(--ink-3); }
-.mv-receipts p { font-size: 14px; line-height: 22.75px; color: var(--ink-2); }
-.mv-verdicts { display: flex; gap: 8px; }
-
-/* Recurring: a card with a hairline, not a floating tile */
-.mv-grid { width: 100%; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
-.mv-card { display: grid; gap: 4px; padding: 16px; border-radius: 16px; background: #fff; border: 1px solid var(--rule); }
-.mv-card b { font-weight: 500; font-size: 15px; line-height: 24px; }
-.mv-card em { font-style: normal; font-size: 24px; font-weight: 400; letter-spacing: -0.022em; line-height: 1.2; font-variant-numeric: tabular-nums; margin-top: 2px; }
-.mv-card small { font-size: 14px; line-height: 22.75px; color: var(--ink-2); margin-top: 4px; }
-
-/* Sources: two panels on the warm ground */
-.mv-sources { width: 100%; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
-.mv-source { display: grid; gap: 12px; align-content: start; padding: 22px; border-radius: 16px; background: var(--panel); border: 1px solid var(--rule); }
-.mv-source b { font-weight: 500; font-size: 15px; line-height: 24px; }
-.mv-source p { font-size: 14px; line-height: 22.75px; color: var(--ink-2); max-width: 60ch; }
-.mv-source .mv-ctas { justify-content: flex-start; margin-top: 2px; }
-.mv-accounts { display: grid; border-top: 1px solid var(--rule); }
-.mv-accounts li { display: flex; justify-content: space-between; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--rule); font-size: 15px; }
-.mv-accounts li:last-child { border-bottom: 0; }
-.mv-accounts small { font-size: 14px; color: var(--ink-3); }
-.mv-key { display: grid; gap: 6px; padding: 14px 16px; border-radius: 16px; background: #fff; border: 1px solid var(--rule); }
-.mv-key code { font-family: var(--mono); font-size: 14px; word-break: break-all; }
-.mv-key small { font-size: 14px; color: var(--ink-3); }
-.mv-steps { display: grid; gap: 8px; counter-reset: step; font-size: 14px; line-height: 22.75px; color: var(--ink-2); padding-left: 0; }
-.mv-steps li { position: relative; padding-left: 26px; }
-.mv-steps li::before { counter-increment: step; content: counter(step); position: absolute; left: 0; top: 1px; width: 18px; height: 18px; border-radius: 50%; border: 1px solid var(--rule); font-size: 12px; display: grid; place-items: center; color: var(--ink-2); }
-.mv-steps code { font-family: var(--mono); font-size: 13px; background: var(--panel); padding: 1px 6px; border-radius: 4px; }
-.mv-note { color: var(--ink); }
-
-.mv-footer { display: flex; justify-content: space-between; gap: 24px; width: min(var(--col), 100% - 48px); margin: 56px auto 0; padding: 20px 0 40px; border-top: 1px solid var(--rule); font-size: 14px; color: var(--ink-2); }
-.mv-footer nav { display: flex; gap: 20px; }
-
-@media (max-width: 900px) {
-  .mv-nav nav { display: none; }
-  .mv-grid, .mv-sources { grid-template-columns: 1fr; }
-  .mv-row-head { grid-template-columns: 56px minmax(0, 1fr) auto; }
-  .mv-row-body { padding-left: 4px; }
-}
-@media (max-width: 640px) {
-  .mv-nav { grid-template-columns: auto 1fr; }
-  .mv-nav .mv-pill { justify-self: end; }
-  .mv-hero h1 { font-size: clamp(34px, 9vw, 44px); }
-}
-
-/* What the money says: one sentence, the payments under it, a verdict */
-.mv-readings { width: 100%; display: grid; gap: 14px; }
-.mv-reading { display: grid; gap: 10px; padding: 16px; border-radius: 16px; background: #fff; border: 1px solid var(--rule); }
-.mv .mv-reading-line { font-size: 16px; line-height: 24px; }
-.mv .mv-reading-detail { font-size: 14px; line-height: 22.75px; color: var(--ink-2); }
-.mv-reading-receipts { display: grid; gap: 0; margin-top: 2px; border-top: 1px solid var(--rule); }
-.mv-reading-receipts li { display: grid; grid-template-columns: 62px minmax(0, 1fr) auto; gap: 12px; align-items: baseline; padding: 11px 0; border-bottom: 1px solid var(--rule); font-size: 15px; }
-.mv-reading-receipts li:last-child { border-bottom: 0; }
-.mv-reading-receipts span { font-size: 14px; color: var(--ink-3); }
-.mv-reading-receipts em { font-style: normal; font-variant-numeric: tabular-nums; }
-.mv-reading-foot { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; margin-top: 2px; }
-.mv-reading-evidence { font-size: 14px; color: var(--ink-3); }
-
-/* Month by month: a name, a bar, what left and what came in */
-.mv-months { width: 100%; display: grid; gap: 0; }
-.mv-months li { display: grid; grid-template-columns: 8.5rem minmax(60px, 1fr) auto auto 7.5rem; gap: 16px; align-items: center; padding: 12px 4px; border-bottom: 1px solid var(--rule); }
-.mv-month-name { font-size: 15px; }
-.mv-months li.is-running .mv-month-name::after { content: ' ·'; color: var(--ink-3); }
-.mv-month-bar { height: 6px; border-radius: 999px; background: var(--panel-2); overflow: hidden; }
-.mv-month-bar i { display: block; height: 100%; border-radius: 999px; background: var(--ink); }
-.mv-month-out { font-size: 15px; font-variant-numeric: tabular-nums; }
-.mv-month-in { font-size: 14px; color: var(--ink-2); font-variant-numeric: tabular-nums; min-width: 5rem; text-align: right; }
-.mv-month-lines { font-size: 14px; color: var(--ink-3); text-align: right; }
-
-/* The ledger, a month at a time */
-.mv-ledger-group { border-bottom: 1px solid var(--rule); }
-.mv-ledger-group > ol { display: block; }
-.mv-ledger-head { display: flex; justify-content: space-between; gap: 16px; padding: 20px 4px 8px; font-size: 14px; color: var(--ink-3); }
-.mv-ledger-group:first-child .mv-ledger-head { padding-top: 8px; }
-.mv-ledger-group .mv-row:last-child { border-bottom: 0; }
-
-@media (max-width: 640px) {
-  .mv-months li { grid-template-columns: 1fr auto; gap: 6px 12px; }
-  .mv-month-bar, .mv-month-lines { display: none; }
-  .mv-month-in { text-align: left; min-width: 0; }
-  .mv-reading-receipts li { grid-template-columns: 54px minmax(0, 1fr) auto; gap: 8px; }
-}
-
-/* A recurring card opens to every charge it has made */
-.mv .mv-card--open { text-align: left; width: 100%; cursor: pointer; transition: background 0.18s ease; }
-.mv .mv-card--open:hover { background: var(--hover); }
-.mv-charges { display: grid; gap: 0; margin-top: 10px; border-top: 1px solid var(--rule); }
-.mv-charges li { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; padding: 9px 0; border-bottom: 1px solid var(--rule); }
-.mv-charges li:last-child { border-bottom: 0; }
-.mv-charges span { font-size: 14px; color: var(--ink-3); }
-.mv-charges em { font-style: normal; font-size: 14px; font-variant-numeric: tabular-nums; }
-
-/* Where it went: a category, a bar, what it took, who took it */
-.mv-cats { width: 100%; display: grid; gap: 0; }
-.mv-cats li { display: grid; grid-template-columns: 8.5rem minmax(50px, 1fr) auto 2.6rem minmax(0, 12rem); gap: 14px; align-items: center; padding: 12px 4px; border-bottom: 1px solid var(--rule); }
-.mv-cats li.is-unknown { color: var(--ink-2); }
-.mv-cat-name { font-size: 15px; }
-.mv-cat-bar { height: 6px; border-radius: 999px; background: var(--panel-2); overflow: hidden; }
-.mv-cat-bar i { display: block; height: 100%; border-radius: 999px; background: var(--ink); }
-.mv-cat-amount { font-size: 15px; font-variant-numeric: tabular-nums; }
-.mv-cat-share, .mv-cat-who { font-size: 14px; color: var(--ink-3); }
-.mv-cat-who { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-/* Adding a statement, inside the bank panel */
-.mv-upload { display: grid; gap: 8px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--rule); }
-.mv-upload b { font-weight: 500; font-size: 15px; }
-.mv .mv-upload p { font-size: 14px; line-height: 22.75px; color: var(--ink-2); }
-.mv .mv-pill--file { position: relative; overflow: hidden; cursor: pointer; justify-self: start; height: 40px; font-size: 14px; }
+.mv .mv-pill--ghost { background: var(--white); color: var(--ink); border-color: var(--rule); font-weight: 400; }
+.mv .mv-pill--ghost:hover { opacity: 1; border-color: var(--quiet); }
+/* A pressed choice is state, not a second primary: the field fill and an ink line. */
+.mv .mv-pill--ghost[aria-pressed="true"] { background: var(--field); border-color: var(--ink); font-weight: 500; }
+.mv .mv-pill--danger { background: var(--white); color: var(--danger); border-color: var(--danger-line); font-weight: 400; }
+.mv .mv-pill--lg { height: 48px; padding: 0 22px; border-radius: 12px; font-size: 15px; font-weight: 500; letter-spacing: -0.011em; }
+.mv .mv-pill--file { position: relative; overflow: hidden; }
 .mv .mv-pill--file input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.mv .mv-pill--file:focus-within { outline: 2px solid var(--ink); outline-offset: 2px; }
+/* A section action: a 16px icon in a 32px target. */
+.mv .mv-icon-btn { display: inline-grid; place-items: center; width: 32px; height: 32px; border-radius: 4px; color: var(--ink); }
+.mv .mv-icon-btn:hover { background: var(--hover); }
+.mv .mv-icon-btn:disabled { color: var(--quiet); background: none; cursor: default; }
 
-@media (max-width: 900px) {
-  .mv-cats li { grid-template-columns: 7rem minmax(40px, 1fr) auto; }
-  .mv-cat-share, .mv-cat-who { display: none; }
+/* A field has no border: a warm box, 44 tall, a 4 corner. */
+.mv .mv-field {
+  display: block; width: 100%; box-sizing: border-box; height: 44px; padding: 11px 14px; border: 0;
+  border-radius: 4px; background: var(--field); color: var(--ink); font-size: 13px; line-height: 19.5px;
+  letter-spacing: var(--track);
+}
+.mv .mv-field::placeholder { color: var(--ink-3); opacity: 1; }
+.mv .mv-field:focus-visible { outline: 2px solid var(--ink); outline-offset: 0; }
+.mv .mv-field:disabled { color: var(--ink-3); }
+.mv .mv-label { display: block; font-weight: 500; }
+
+/* The frame: a 200px sidebar of plain text links sits 80px to the left of an 820px
+   column. The current link is underlined; nothing is filled. */
+.mv-shell { display: grid; grid-template-columns: var(--side) minmax(0, var(--col)); column-gap: 80px; justify-content: center; padding: 0 var(--gutter); }
+.mv-col { min-width: 0; padding-top: 40px; }
+.mv-side { position: sticky; top: 0; align-self: start; display: grid; gap: 24px; padding-top: 40px; }
+.mv-side-bar { display: flex; align-items: center; justify-content: space-between; min-height: 32px; }
+.mv .mv-side-toggle { display: none; }
+.mv-side-links { display: grid; }
+.mv .mv-side-links a { display: flex; align-items: center; min-height: 32px; color: var(--ink-2); }
+.mv .mv-side-links a:hover { color: var(--ink); }
+.mv .mv-side-links a.is-sub { padding-left: 12px; color: var(--ink-3); font-weight: 350; }
+.mv .mv-side-links a[aria-current="page"] { color: var(--ink); font-weight: 500; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 4px; }
+.mv-mark { display: grid; grid-template-columns: repeat(3, 6px); gap: 3px; width: 24px; padding: 8px 0; }
+.mv-mark i { width: 6px; height: 6px; border-radius: 50%; background: var(--ink); }
+
+/* A section: a heading, one grey line 4px under it, then a list under a 1px ink
+   rule 24px further down. Sections sit 72px apart. */
+.mv-section { margin-top: var(--section); }
+.mv-head { display: flex; align-items: center; justify-content: space-between; gap: 8px 16px; flex-wrap: wrap; }
+.mv-list { margin-top: 24px; border-top: 1px solid var(--ink); }
+.mv-list > li { border-bottom: 1px solid var(--rule); }
+.mv-sublist > li { border-top: 1px solid var(--rule); }
+
+/* A row, not a card: [32px icon] [title and one grey line] [one action], 80 tall at
+   least. A sub-row sits under its parent, indented, about 57 tall. */
+.mv .mv-item {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; align-items: center;
+  box-sizing: border-box; width: 100%; min-height: 80px; padding: 20px 12px; text-align: left;
+}
+.mv .mv-item--icon { grid-template-columns: 32px minmax(0, 1fr) auto; }
+.mv .mv-item--sub { min-height: 57px; padding: 12px 12px 12px 50px; }
+.mv .mv-item--tight { min-height: 57px; padding: 12px; }
+.mv button.mv-item { transition: background-color 0.2s ease; }
+.mv button.mv-item:hover { background: var(--hover); }
+.mv button.mv-item:active { transform: none; }
+.mv button.mv-item:focus-visible { outline-offset: -2px; }
+.mv-item-text { display: grid; min-width: 0; }
+.mv .mv-item-title { font-weight: 500; line-height: 20px; overflow-wrap: anywhere; }
+.mv .mv-item-sub { color: var(--ink-2); font-weight: 350; overflow-wrap: anywhere; }
+.mv .mv-item-end { display: inline-flex; align-items: center; justify-self: end; gap: 12px; white-space: nowrap; }
+.mv .mv-chev { flex: none; color: var(--ink-2); transition: transform 0.2s ease; }
+.mv [aria-expanded="true"] .mv-chev { transform: rotate(90deg); }
+.mv .mv-icon { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 8px; background: var(--field); color: var(--ink); font-weight: 500; }
+.mv .is-in .mv-amount { color: var(--ok); }
+.mv .is-unknown .mv-item-title { color: var(--ink-2); }
+/* An empty list is one quiet line, about 30px under the rule. */
+.mv .mv-empty { padding: 29px 12px 0; color: var(--ink-3); font-weight: 350; }
+
+/* What a row opens to: quiet lines and sub-rows, never another card. */
+.mv-body { display: grid; gap: 12px; padding: 0 12px 20px; }
+.mv-body--icon { padding-left: 60px; }
+.mv-body--sub { padding-left: 50px; }
+.mv .mv-body .mv-item--tight { padding-left: 0; padding-right: 0; }
+.mv-body-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.mv-verdicts { display: flex; gap: 8px; }
+.mv-receipts { display: grid; gap: 12px; }
+.mv-receipts li { display: grid; }
+.mv .mv-receipts p { color: var(--ink-2); font-weight: 350; overflow-wrap: anywhere; }
+
+/* This month: the figure, one grey line, the band */
+.mv-hero { display: grid; justify-items: start; }
+.mv .mv-eyebrow { margin-bottom: 12px; font-weight: 500; }
+.mv-ctas { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 24px; }
+/* Ink to what has gone, the quiet grey to where the month lands. */
+.mv-band { display: grid; gap: 8px; width: 100%; margin-top: 24px; }
+.mv-band-track { position: relative; height: 4px; border-radius: 2px; background: var(--rule); overflow: hidden; }
+.mv-band-likely, .mv-band-spent { position: absolute; top: 0; left: 0; height: 100%; }
+.mv-band-likely { background: var(--quiet); }
+.mv-band-spent { background: var(--ink); }
+.mv-band-labels { display: flex; justify-content: space-between; gap: 16px; color: var(--ink-2); font-weight: 350; }
+
+/* The phone key and the steps that use it */
+.mv .mv-code { display: block; padding: 11px 14px; border-radius: 4px; background: var(--field); font-family: var(--mono); font-size: 12px; line-height: 18px; word-break: break-all; }
+.mv ol.mv-steps { display: grid; gap: 8px; padding: 0 12px 20px 68px; list-style: decimal; color: var(--ink-2); font-weight: 350; }
+.mv .mv-steps code { padding: 1px 4px; border-radius: 4px; background: var(--field); color: var(--ink); font-family: var(--mono); font-size: 12px; overflow-wrap: anywhere; }
+
+.mv-foot { display: flex; gap: 20px; margin-top: var(--section); padding: 20px 0 40px; border-top: 1px solid var(--rule); color: var(--ink-3); }
+.mv .mv-foot a:hover { color: var(--ink); }
+
+/* Phone: 24px gutters, the navigation behind a menu button, every other size unchanged. */
+@media (max-width: 767px) {
+  .mv { --section: 56px; }
+  .mv-shell { grid-template-columns: minmax(0, 1fr); }
+  .mv-side { position: static; gap: 0; padding-top: 12px; }
+  .mv .mv-side-toggle { display: inline-flex; }
+  .mv-side-links { display: none; padding: 8px 0; border-bottom: 1px solid var(--rule); }
+  .mv-side.is-open .mv-side-links { display: grid; }
+  .mv .mv-side-links a { min-height: 44px; }
+  .mv-col { padding-top: 24px; }
 }
 
-/* Whether a subscription was used, and the honest gap where nothing can look */
-.mv-usage { width: 100%; display: grid; gap: 14px; }
-.mv-usage li { display: grid; gap: 4px; padding: 16px; border-radius: 16px; background: #fff; border: 1px solid var(--rule); }
-.mv-usage b { font-weight: 500; font-size: 15px; line-height: 24px; }
-.mv .mv-usage p { font-size: 14px; line-height: 22.75px; color: var(--ink-2); }
-.mv-unseen { width: 100%; display: grid; gap: 6px; padding: 16px; border-radius: 16px; background: var(--panel); border: 1px solid var(--rule); }
-.mv-unseen b { font-weight: 500; font-size: 15px; line-height: 24px; }
-.mv .mv-unseen p { font-size: 14px; line-height: 22.75px; color: var(--ink-2); max-width: 60ch; }
+@media (prefers-reduced-motion: reduce) {
+  .mv .mv-pill, .mv .mv-chev, .mv button.mv-item { transition: none; }
+}

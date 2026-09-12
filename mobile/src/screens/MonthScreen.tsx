@@ -249,7 +249,7 @@ export default function MonthScreen({ onOpenQuestions, questionCount, onOpenLedg
             schedule, and until it is authorised again nothing can be read. */}
         {needsReconnect ? (
           <Enter index={1} style={layout.afterLarge}>
-            <Small>The bank connection has ended, so nothing new has come in. Reconnect it on the You page to start reading again.</Small>
+            <Small>The bank connection has ended. Reconnect it on the You page.</Small>
           </Enter>
         ) : null}
 

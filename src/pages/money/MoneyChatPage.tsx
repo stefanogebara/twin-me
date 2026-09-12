@@ -3,8 +3,8 @@
  *
  * The same questions as /money/setup, asked one at a time in a transcript that keeps what
  * you already said. While you answer, the engine is reading the ledger for itself, and the
- * right-hand panel shows that work as it happens: real steps, real counts, nothing invented.
- * If the trace stream is not there, the panel says so and the conversation carries on.
+ * right-hand column shows that work as it happens: real steps, real counts, nothing invented.
+ * If the trace stream is not there, the column says so and the conversation carries on.
  *
  * Spec: .claude/plans/2026-09-07-money-twin/README.md
  */
@@ -15,6 +15,7 @@ import { authFetch } from '../../services/api/apiBase';
 import { ArrowUp } from 'lucide-react';
 import '../../styles/money-v2.css';
 import '../../styles/money-chat.css';
+import MoneyNav, { type MoneyNavLink } from './MoneyNav';
 import { moneyAPI, euro, shortDay, type MoneyFact, type MoneyQuestion } from '../../services/api/moneyAPI';
 
 /** The words a kind of place can be given, matching what the categoriser itself uses. */
@@ -35,6 +36,12 @@ const FACT_WORD: Record<string, string> = {
   income: 'comes in', shared_cost: 'shared', person: 'who that is', merchant_kind: 'kind of place', goal: 'this term',
 };
 
+const NAV: MoneyNavLink[] = [
+  { to: '/money', label: 'This month' },
+  { to: '/money/setup', label: 'Questions' },
+  { to: '/money/chat', label: 'Conversation', current: true },
+];
+
 type ListRow = { key: string; label: string; amount: string; day: string; share: string };
 
 let rowSeq = 0;
@@ -44,6 +51,7 @@ function blankRow(): ListRow { rowSeq += 1; return { key: `r${rowSeq}`, label: '
 function slug(s: string) { return s.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'unnamed'; }
 function listColumns(input: string) { return input.slice('list:'.length).split(',').map((c) => c.trim()).filter(Boolean); }
 function choiceOptions(input: string) { return input.slice('choice:'.length).split(',').map((c) => c.trim()).filter(Boolean); }
+function cap(s: string) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
 /** People write 49,25 as often as 49.25, and both mean the same money. */
 function parseAmount(s: string): number | undefined {
   const n = Number(s.replace(/\s/g, '').replace(',', '.'));
@@ -158,19 +166,23 @@ function useLedgerTrace(): { steps: TraceStep[]; reading: boolean } {
   return { steps, reading };
 }
 
+/* A heading, one grey line, then the steps as rows under the ink rule. The step in
+   progress is the one in ink at 500; the rest have gone quiet. */
 function TracePanel({ steps, reading }: { steps: TraceStep[]; reading: boolean }) {
   return (
-    <aside className="mc-trace">
+    <aside className="mc-trace" aria-label="What it is doing">
       <p className="mc-trace-head">What it is doing</p>
       {steps.length === 0 ? (
-        <p className="mc-trace-idle">The ledger is not being read right now.</p>
+        <p className="mv-sub">Not reading the ledger right now.</p>
       ) : (
-        <ul className="mc-steps" aria-live="polite">
+        <ul className="mv-list mc-steps" aria-live="polite">
           {steps.map((s) => (
-            <li key={s.step} className={reading && !s.done ? 'mc-step is-live' : 'mc-step'}>
-              <span className="mc-step-label">{s.label}</span>
-              {s.detail ? <span className="mc-step-detail">{s.detail}</span> : null}
-              {s.count === null ? null : <span className="mc-step-count">{s.count}</span>}
+            <li key={s.step} className={`mv-item mv-item--tight mc-step${reading && !s.done ? ' is-live' : ''}`}>
+              <span className="mv-item-text">
+                <span className="mv-item-title">{s.label}</span>
+                {s.detail ? <span className="mv-item-sub">{s.detail}</span> : null}
+              </span>
+              {s.count === null ? null : <span className="mv-item-end">{s.count}</span>}
             </li>
           ))}
         </ul>
@@ -344,265 +356,251 @@ export default function MoneyChatPage() {
 
   return (
     <main className="mv mc">
-      <header className="mv-nav">
-        <Link to="/money" className="mv-mark" aria-label="TwinMe"><i /><i /><i /><i /><i /><i /></Link>
-        <span aria-hidden="true" />
-        <Link to="/money" className="mv-pill mv-pill--ghost">The month</Link>
-      </header>
-
-      <div className="mc-columns">
-        <section className="mc-thread">
-          <div className="mc-scroll">
-            {!loaded ? (
-              <p className="mc-quiet-line">Reading the ledger...</p>
-            ) : failed ? (
-              <div className="mc-msg mc-msg--ask">
-                <p className="mc-ask">The questions did not load.</p>
-                <p className="mc-why">Nothing was lost. Come back to this in a moment.</p>
-                <div className="mc-actions"><Link to="/money" className="mv-pill">Back to the month</Link></div>
-              </div>
-            ) : queue.length === 0 ? (
-              <div className="mc-msg mc-msg--ask">
-                <p className="mc-ask">Nothing it cannot explain.</p>
-                <p className="mc-why">
-                  {answeredBefore > 0
-                    ? `You have answered ${answeredBefore} ${answeredBefore === 1 ? 'thing' : 'things'} already, and every line the ledger has read since then it could read on its own.`
-                    : 'The ledger reads rhythm, price and place from your payments without asking. When a line arrives that it cannot read, it asks here.'}
-                </p>
-                <div className="mc-actions"><Link to="/money" className="mv-pill">Back to the month</Link></div>
-              </div>
-            ) : (
-              queue.slice(0, index + 1).map((q, at) => {
-                const answered = at < index;
-                const ledgerBorn = at >= openingCount;
-                return (
-                  <div className="mc-turn" key={`${q.id}-${at}`}>
-                    <motion.div className="mc-msg mc-msg--ask" {...rise}>
-                      <p className="mc-kicker">{ledgerBorn ? 'From your ledger' : 'What only you know'}</p>
-                      <p className="mc-ask">{q.ask}</p>
-                      <p className="mc-why">{q.why}</p>
-                      {q.help ? <p className="mc-help">{q.help}</p> : null}
+      <div className="mv-shell">
+        <MoneyNav links={NAV} />
+        <div className="mv-col">
+          <div className="mc-columns">
+            <section className="mc-thread">
+              <div className="mc-scroll">
+                {!loaded ? (
+                  <p className="mv-quiet">Reading your payments…</p>
+                ) : failed ? (
+                  <div className="mc-turn">
+                    <h1>The questions did not load.</h1>
+                    <p className="mv-sub">Nothing was lost. Try again in a moment.</p>
+                    <div className="mc-actions"><Link to="/money" className="mv-pill">Back to the month</Link></div>
+                  </div>
+                ) : queue.length === 0 ? (
+                  <div className="mc-turn">
+                    <h1>Nothing to ask.</h1>
+                    <p className="mv-sub">
+                      {answeredBefore > 0
+                        ? `You answered ${answeredBefore} already. Everything since reads on its own.`
+                        : 'When a payment arrives that it cannot read, it asks here.'}
+                    </p>
+                    <div className="mc-actions"><Link to="/money" className="mv-pill">Back to the month</Link></div>
+                  </div>
+                ) : (
+                  /* What was asked and answered goes quiet; only the newest question speaks
+                     at heading size. */
+                  queue.slice(0, index + 1).map((q, at) => (at < index ? (
+                    <div className="mc-turn mc-turn--past" key={`${q.id}-${at}`}>
+                      <motion.p className="mc-past-ask" {...rise}>{q.ask}</motion.p>
+                      <motion.p className="mc-said" {...rise}>{said[at] || 'Answered.'}</motion.p>
+                    </div>
+                  ) : (
+                    <motion.div className="mc-turn" key={`${q.id}-${at}`} {...rise}>
+                      <p className="mc-count">{at + 1} of {queue.length}{at >= openingCount ? ', from your payments' : ''}</p>
+                      <h1>{q.ask}</h1>
+                      {q.help || q.why ? <p className="mv-sub">{q.help || q.why}</p> : null}
                       {q.receipts && q.receipts.length ? (
-                        <ul className="mv-reading-receipts" aria-label="The payments behind this question">
+                        <ul className="mv-list" aria-label="The payments behind this question">
                           {q.receipts.map((r) => (
-                            <li key={r.id}>
-                              <span>{shortDay(r.occurred_at)}</span>
-                              {r.merchant_raw || r.merchant_key}
-                              <em>{euro(r.amount)}</em>
+                            <li key={r.id} className="mv-item mv-item--tight">
+                              <span className="mv-item-text">
+                                <span className="mv-item-title">{r.merchant_raw || r.merchant_key}</span>
+                                <span className="mv-item-sub">{shortDay(r.occurred_at)}</span>
+                              </span>
+                              <span className="mv-item-end">{euro(r.amount)}</span>
                             </li>
                           ))}
                         </ul>
                       ) : null}
                     </motion.div>
+                  )))
+                )}
 
-                    {answered ? (
-                      <motion.div className="mc-msg mc-msg--said" {...rise}>
-                        <p>{said[at] || 'Answered.'}</p>
-                      </motion.div>
-                    ) : null}
-                  </div>
-                );
-              })
-            )}
-
-            {question && !done ? (
-              <div className="mc-answer">
-                {isCards ? (
-                  <div className="mc-cards" role="group" aria-label={question.input === 'category' ? 'Pick the kind of place' : 'Pick one'}>
-                    {(question.input === 'category' ? CATEGORIES : options).map((word) => (
-                      <button
-                        key={word}
-                        type="button"
-                        className="mc-card"
-                        disabled={busy}
-                        onClick={() => void sendValue(word)}
-                      >
-                        <span>{word}</span>
-                      </button>
-                    ))}
-                  </div>
-                ) : null}
-
-                {isList ? (
-                  <form className="mc-rows" onSubmit={(e) => { e.preventDefault(); void sendRows(); }}>
-                    {rows.map((row) => (
-                      <div key={row.key} className={`mc-row ${columns.includes('share') ? 'mc-row--share' : 'mc-row--three'}`}>
-                        <div className="mc-field">
-                          <label className="mc-label" htmlFor={`mc-${row.key}-label`}>{columns[0]}</label>
-                          <input
-                            id={`mc-${row.key}-label`}
-                            className="mc-input"
-                            type="text"
-                            autoComplete="off"
-                            placeholder={PLACEHOLDER[columns[0]] || ''}
-                            value={row.label}
-                            onChange={(e) => setRows((all) => all.map((r) => (r.key === row.key ? { ...r, label: e.target.value } : r)))}
-                          />
-                        </div>
-
-                        {columns.includes('amount') ? (
-                          <div className="mc-field">
-                            <label className="mc-label" htmlFor={`mc-${row.key}-amount`}>amount, euros</label>
-                            <input
-                              id={`mc-${row.key}-amount`}
-                              className="mc-input mc-input--num"
-                              type="text"
-                              inputMode="decimal"
-                              autoComplete="off"
-                              placeholder={PLACEHOLDER.amount}
-                              value={row.amount}
-                              onChange={(e) => setRows((all) => all.map((r) => (r.key === row.key ? { ...r, amount: e.target.value } : r)))}
-                            />
-                          </div>
-                        ) : null}
-
-                        {columns.includes('day') ? (
-                          <div className="mc-field">
-                            <label className="mc-label" htmlFor={`mc-${row.key}-day`}>day</label>
-                            <input
-                              id={`mc-${row.key}-day`}
-                              className="mc-input mc-input--num"
-                              type="text"
-                              inputMode="numeric"
-                              autoComplete="off"
-                              placeholder={PLACEHOLDER.day}
-                              value={row.day}
-                              onChange={(e) => setRows((all) => all.map((r) => (r.key === row.key ? { ...r, day: e.target.value } : r)))}
-                            />
-                          </div>
-                        ) : null}
-
-                        {columns.includes('share') ? (
-                          <div className="mc-field">
-                            <label className="mc-label" htmlFor={`mc-${row.key}-share`}>your share</label>
-                            <div className="mc-pct">
-                              <input
-                                id={`mc-${row.key}-share`}
-                                className="mc-input mc-input--num"
-                                type="text"
-                                inputMode="numeric"
-                                autoComplete="off"
-                                value={row.share}
-                                onChange={(e) => setRows((all) => all.map((r) => (r.key === row.key ? { ...r, share: e.target.value } : r)))}
-                              />
-                              <span>%</span>
-                            </div>
-                          </div>
-                        ) : null}
-
-                        {columns.includes('share') ? (
-                          <div className="mc-quick">
-                            {SHARES.map(([word, pct]) => (
-                              <button
-                                key={word}
-                                type="button"
-                                className={`mv-pill mv-pill--sm ${Number(row.share) === pct ? '' : 'mv-pill--ghost'}`}
-                                aria-pressed={Number(row.share) === pct}
-                                onClick={() => setRows((all) => all.map((r) => (r.key === row.key ? { ...r, share: String(pct) } : r)))}
-                              >
-                                <span>{word}</span>
-                              </button>
-                            ))}
-                          </div>
-                        ) : null}
-
-                        {rows.length > 1 ? (
-                          <button type="button" className="mc-drop" onClick={() => setRows((all) => all.filter((r) => r.key !== row.key))}>
-                            <span>Remove</span>
+                {question && !done ? (
+                  <div className="mc-answer">
+                    {isCards ? (
+                      <div className="mc-cards" role="group" aria-label={question.input === 'category' ? 'Pick the kind of place' : 'Pick one'}>
+                        {(question.input === 'category' ? CATEGORIES : options).map((word) => (
+                          <button
+                            key={word}
+                            type="button"
+                            className="mv-pill mv-pill--ghost"
+                            disabled={busy}
+                            onClick={() => void sendValue(word)}
+                          >
+                            <span>{cap(word)}</span>
                           </button>
-                        ) : null}
+                        ))}
                       </div>
-                    ))}
-                    <div className="mc-actions">
-                      <button type="button" className="mv-pill mv-pill--ghost mv-pill--sm" onClick={() => setRows((all) => [...all, blankRow()])}>
-                        <span>Add another</span>
+                    ) : null}
+
+                    {isList ? (
+                      <form className="mc-rows" onSubmit={(e) => { e.preventDefault(); void sendRows(); }}>
+                        {rows.map((row) => (
+                          <div key={row.key} className={`mc-row ${columns.includes('share') ? 'mc-row--share' : 'mc-row--three'}`}>
+                            <div className="mc-field">
+                              <label className="mv-label" htmlFor={`mc-${row.key}-label`}>{cap(columns[0])}</label>
+                              <input
+                                id={`mc-${row.key}-label`}
+                                className="mv-field"
+                                type="text"
+                                autoComplete="off"
+                                placeholder={PLACEHOLDER[columns[0]] || ''}
+                                value={row.label}
+                                onChange={(e) => setRows((all) => all.map((r) => (r.key === row.key ? { ...r, label: e.target.value } : r)))}
+                              />
+                            </div>
+
+                            {columns.includes('amount') ? (
+                              <div className="mc-field">
+                                <label className="mv-label" htmlFor={`mc-${row.key}-amount`}>Amount, €</label>
+                                <input
+                                  id={`mc-${row.key}-amount`}
+                                  className="mv-field"
+                                  type="text"
+                                  inputMode="decimal"
+                                  autoComplete="off"
+                                  placeholder={PLACEHOLDER.amount}
+                                  value={row.amount}
+                                  onChange={(e) => setRows((all) => all.map((r) => (r.key === row.key ? { ...r, amount: e.target.value } : r)))}
+                                />
+                              </div>
+                            ) : null}
+
+                            {columns.includes('day') ? (
+                              <div className="mc-field">
+                                <label className="mv-label" htmlFor={`mc-${row.key}-day`}>Day</label>
+                                <input
+                                  id={`mc-${row.key}-day`}
+                                  className="mv-field"
+                                  type="text"
+                                  inputMode="numeric"
+                                  autoComplete="off"
+                                  placeholder={PLACEHOLDER.day}
+                                  value={row.day}
+                                  onChange={(e) => setRows((all) => all.map((r) => (r.key === row.key ? { ...r, day: e.target.value } : r)))}
+                                />
+                              </div>
+                            ) : null}
+
+                            {columns.includes('share') ? (
+                              <div className="mc-field">
+                                <label className="mv-label" htmlFor={`mc-${row.key}-share`}>Your share</label>
+                                <div className="mc-pct">
+                                  <input
+                                    id={`mc-${row.key}-share`}
+                                    className="mv-field"
+                                    type="text"
+                                    inputMode="numeric"
+                                    autoComplete="off"
+                                    value={row.share}
+                                    onChange={(e) => setRows((all) => all.map((r) => (r.key === row.key ? { ...r, share: e.target.value } : r)))}
+                                  />
+                                  <span>%</span>
+                                </div>
+                              </div>
+                            ) : null}
+
+                            {columns.includes('share') ? (
+                              <div className="mc-quick">
+                                {SHARES.map(([word, pct]) => (
+                                  <button
+                                    key={word}
+                                    type="button"
+                                    className="mv-pill mv-pill--ghost"
+                                    aria-pressed={Number(row.share) === pct}
+                                    onClick={() => setRows((all) => all.map((r) => (r.key === row.key ? { ...r, share: String(pct) } : r)))}
+                                  >
+                                    <span>{cap(word)}</span>
+                                  </button>
+                                ))}
+                              </div>
+                            ) : null}
+
+                            {rows.length > 1 ? (
+                              <button type="button" className="mv-pill mv-pill--ghost mc-drop" onClick={() => setRows((all) => all.filter((r) => r.key !== row.key))}>
+                                <span>Remove</span>
+                              </button>
+                            ) : null}
+                          </div>
+                        ))}
+                        <div className="mc-actions">
+                          <button type="button" className="mv-pill mv-pill--ghost" onClick={() => setRows((all) => [...all, blankRow()])}>
+                            <span>Add another</span>
+                          </button>
+                          <button type="submit" className="mv-pill" disabled={busy || (filledRows.length === 0 && !skippable)}>
+                            <span>{busy ? 'Saving…' : 'That is all of them'}</span>
+                          </button>
+                        </div>
+                      </form>
+                    ) : null}
+
+                    {skippable ? (
+                      <button type="button" className="mv-pill mv-pill--ghost" onClick={() => void skip()} disabled={busy}>
+                        <span>Skip this</span>
                       </button>
-                      <button type="submit" className="mv-pill mv-pill--sm" disabled={busy || (filledRows.length === 0 && !skippable)}>
-                        <span>{busy ? 'Saving...' : 'That is all of them'}</span>
-                      </button>
-                    </div>
-                  </form>
+                    ) : null}
+                    {note ? <p className="mc-note" role="alert">{note}</p> : null}
+                  </div>
                 ) : null}
 
-                <div className="mc-actions">
-                  {skippable ? (
-                    <button type="button" className="mc-skip" onClick={() => void skip()} disabled={busy}>
-                      <span>Skip this</span>
-                    </button>
-                  ) : null}
-                  <span className="mc-changes">changes {question.changes}</span>
-                  <span className="mc-changes">{index + 1} of {queue.length}</span>
-                </div>
-                {note ? <p className="mc-note">{note}</p> : null}
+                {done ? (
+                  <motion.div className="mc-turn" {...rise}>
+                    <h1>That is enough to change the numbers.</h1>
+                    <p className="mv-sub">
+                      {facts && facts.length
+                        ? `It now holds ${facts.length} ${facts.length === 1 ? 'thing' : 'things'} you told it.`
+                        : 'Nothing was recorded. It carries on with what it reads.'}
+                    </p>
+                    {facts && facts.length ? (
+                      <ul className="mv-list">
+                        {facts.map((f) => (
+                          <li key={f.id} className="mv-item">
+                            <span className="mv-item-text">
+                              <span className="mv-item-title">
+                                {f.subject_label || f.value || f.subject || 'unnamed'}
+                                {f.subject_label && f.value ? `, ${f.value}` : ''}
+                                {f.day ? `, on the ${ordinal(f.day)}` : ''}
+                                {f.share ? `, ${Math.round(Number(f.share) * 100)}% yours` : ''}
+                              </span>
+                              <span className="mv-item-sub">{f.check_note || cap(FACT_WORD[f.kind] || f.kind)}</span>
+                            </span>
+                            <span className="mv-item-end">{f.amount ? euro(f.amount) : ''}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
+                    <div className="mc-actions"><Link to="/money" className="mv-pill">See the month</Link></div>
+                  </motion.div>
+                ) : null}
+
+                <div ref={endRef} className="mc-end" />
               </div>
-            ) : null}
 
-            {done ? (
-              <motion.div className="mc-msg mc-msg--ask" {...rise}>
-                <p className="mc-kicker">Done</p>
-                <p className="mc-ask">That is enough to change the numbers.</p>
-                <p className="mc-why">
-                  {facts && facts.length
-                    ? `It now holds ${facts.length} ${facts.length === 1 ? 'thing' : 'things'} you told it, next to everything it read for itself.`
-                    : 'Nothing was recorded this time. The ledger carries on with what it can read for itself.'}
-                </p>
-                {facts && facts.length ? (
-                  <ul className="mc-facts">
-                    {facts.map((f) => (
-                      <li key={f.id}>
-                        <span className="mc-fact-kind">{FACT_WORD[f.kind] || f.kind}</span>
-                        <span className="mc-fact-what">
-                          {f.subject_label || f.value || f.subject || 'unnamed'}
-                          {f.subject_label && f.value ? `, ${f.value}` : ''}
-                          {f.day ? `, on the ${ordinal(f.day)}` : ''}
-                          {f.share ? `, ${Math.round(Number(f.share) * 100)}% yours` : ''}
-                        </span>
-                        <span className="mc-fact-amount">{f.amount ? euro(f.amount) : ''}</span>
-                        {f.check_note ? <span className="mc-fact-note">{f.check_note}</span> : null}
-                      </li>
-                    ))}
-                  </ul>
-                ) : null}
-                <div className="mc-actions"><Link to="/money" className="mv-pill">See the month</Link></div>
-              </motion.div>
-            ) : null}
+              <div className="mc-composer">
+                <form
+                  className="mc-composer-inner"
+                  onSubmit={(e) => { e.preventDefault(); submitComposer(); }}
+                >
+                  <label className="mv-sr" htmlFor="mc-say">Your answer</label>
+                  <textarea
+                    id="mc-say"
+                    ref={boxRef}
+                    className="mc-say"
+                    rows={1}
+                    value={text}
+                    placeholder={composerPlaceholder}
+                    disabled={!isText || busy || done}
+                    onChange={(e) => setText(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitComposer(); }
+                    }}
+                  />
+                  <button type="submit" className="mv-pill mc-send" disabled={!isText || busy || done || !text.trim()} aria-label="Send this answer">
+                    <ArrowUp size={16} strokeWidth={2} aria-hidden="true" />
+                  </button>
+                </form>
+              </div>
+            </section>
 
-            <div ref={endRef} className="mc-end" />
+            <TracePanel steps={trace.steps} reading={trace.reading} />
           </div>
-
-          <div className="mc-composer">
-            <form
-              className="mc-composer-inner"
-              onSubmit={(e) => { e.preventDefault(); submitComposer(); }}
-            >
-              <label className="mc-sr" htmlFor="mc-say">Your answer</label>
-              <textarea
-                id="mc-say"
-                ref={boxRef}
-                className="mc-say"
-                rows={1}
-                value={text}
-                placeholder={composerPlaceholder}
-                disabled={!isText || busy || done}
-                onChange={(e) => setText(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitComposer(); }
-                }}
-              />
-              <button type="submit" className="mc-send" disabled={!isText || busy || done || !text.trim()} aria-label="Send this answer">
-                <ArrowUp size={18} strokeWidth={2} aria-hidden="true" />
-              </button>
-            </form>
-          </div>
-        </section>
-
-        <TracePanel steps={trace.steps} reading={trace.reading} />
+        </div>
       </div>
-
-      <footer className="mv-footer">
-        <span>twinme, 2026</span>
-        <nav><Link to="/money">The month</Link><Link to="/money/setup">One at a time</Link></nav>
-      </footer>
     </main>
   );
 }

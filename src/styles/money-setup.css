@@ -1,79 +1,42 @@
 /* ==========================================================================
-   Money setup, in the money-v2 register: one question per screen, centred,
-   the question in display type, its evidence quiet underneath. No new colours,
-   no shadows on the question itself, hairlines and the black pill as elsewhere.
-   Vars (--ink, --card, --sans, --mono) come from .mv, which is on the root.
+   Money setup, in the money-v2 register: one question per screen, the
+   question as the page title, one grey line under it, its payments as rows
+   under the ink rule, then the answer. No panels: repeatable answers are rows
+   between hairlines too. Tokens and primitives come from money-v2.css (.mv).
    ========================================================================== */
-
-/* index.css styles h1/h2/p by element and truncates every button span, so both
-   have to be named again inside this scope or the page renders in Inter with
-   clipped pills. */
-.ms h1, .ms h2, .ms p, .ms li, .ms label, .ms small, .ms span { font-family: var(--sans); }
-.ms input { font-family: var(--sans); color: var(--ink); }
-.ms button span, .ms label span { white-space: normal; overflow: visible; }
-.ms { display: grid; grid-template-rows: auto 1fr auto; }
-.ms :focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
-.ms .mv-footer { margin-top: 40px; }
-
-/* The stage: one question, held in the middle of the screen */
-.ms-stage { width: min(680px, 100% - 40px); margin: 0 auto; padding: 48px 0 64px; display: grid; align-content: center; justify-items: start; gap: 16px; }
-.ms-stage form { display: grid; gap: 16px; width: 100%; justify-items: start; }
-.ms-count { font-size: 14px; line-height: 22.75px; color: var(--ink-3); }
-.ms .ms-ask { font-size: 32px; font-weight: 500; letter-spacing: -0.022em; line-height: 36.8px; text-wrap: balance; }
-.ms .ms-why { font-size: 16px; line-height: 24px; color: var(--ink); max-width: 60ch; }
-.ms .ms-help { font-size: 14px; line-height: 22.75px; color: var(--ink-2); max-width: 60ch; }
-.ms .ms-turn { font-size: 15px; line-height: 24.375px; color: var(--ink-2); max-width: 60ch; }
-.ms-changes { font-size: 14px; line-height: 22.75px; color: var(--ink-3); }
-.ms-stage-inner { display: grid; gap: 16px; width: 100%; justify-items: start; animation: ms-rise 0.3s ease both; }
+.ms-stage { padding-bottom: 72px; }
+.ms-stage-inner { display: grid; justify-items: start; animation: ms-rise 0.3s ease both; }
+.ms-stage-inner > .mv-list, .ms-stage-inner > .ms-form { width: 100%; }
 @keyframes ms-rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.ms .ms-count { margin-bottom: 12px; color: var(--ink-3); font-weight: 350; }
 
-/* Fields */
-.ms-field { display: grid; gap: 7px; width: 100%; }
-.ms-label { font-size: 14px; line-height: 22.75px; color: var(--ink-2); }
-.ms .ms-input { width: 100%; height: 48px; padding: 0 14px; border-radius: 4px; border: 1px solid var(--rule); background: #fff; font-size: 16px; line-height: 24px; letter-spacing: -0.011em; }
-.ms .ms-input::placeholder { color: var(--ink-3); }
-.ms .ms-input:focus { border-color: var(--ink); }
-.ms .ms-input--sm { height: 44px; padding: 0 12px; font-size: 15px; border-radius: 4px; }
-.ms .ms-input--num { font-variant-numeric: tabular-nums; }
-.ms-choices { display: flex; flex-wrap: wrap; gap: 8px; width: 100%; }
+/* The answer */
+.ms-form { display: grid; gap: 16px; margin-top: 24px; }
+.ms-choices { display: flex; flex-wrap: wrap; gap: 8px; }
 
 /* Repeatable rows, for what leaves every month and what comes in */
-.ms-rows { display: grid; gap: 10px; width: 100%; }
-.ms-row { display: grid; gap: 12px; align-items: end; padding: 14px 16px; border-radius: 16px; background: var(--panel); border: 1px solid var(--rule); }
+.ms-rows { display: grid; justify-items: stretch; border-top: 1px solid var(--ink); }
+.ms-row { display: grid; gap: 12px 16px; align-items: end; padding: 16px 0; border-bottom: 1px solid var(--rule); }
 .ms-row--three { grid-template-columns: minmax(0, 1fr) 7.5rem 5rem; }
 .ms-row--share { grid-template-columns: minmax(0, 1fr) 8rem; }
-.ms-share-quick { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px; }
+.ms-field { display: grid; gap: 8px; min-width: 0; }
 .ms-pct { display: flex; align-items: center; gap: 8px; }
-.ms-pct span { font-size: 14px; color: var(--ink-3); }
-.ms .ms-drop { grid-column: 1 / -1; justify-self: end; font-size: 14px; color: var(--ink-3); padding: 0; }
-.ms .ms-drop:hover { color: var(--ink); }
-.ms .ms-add { justify-self: start; }
+.ms .ms-pct span { color: var(--ink-2); }
+.ms-quick { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px; }
+.ms .ms-drop { grid-column: 1 / -1; justify-self: end; }
+.ms .ms-add { justify-self: start; margin-top: 16px; }
 
 /* Actions, and what the save had to say */
-.ms-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 6px; }
-.ms .ms-note { font-size: 14px; line-height: 22.75px; color: var(--ink-2); }
+.ms-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 24px; }
+.ms-form .ms-actions { margin-top: 8px; }
+.ms .ms-note { color: var(--danger); }
 
-/* What it now knows */
-.ms-facts { width: 100%; display: grid; gap: 2px; border-top: 1px solid var(--rule); }
-.ms-facts li { display: grid; grid-template-columns: 9rem minmax(0, 1fr) auto; gap: 14px; align-items: baseline; padding: 13px 4px; border-bottom: 1px solid var(--rule); }
-.ms-fact-kind { font-size: 14px; color: var(--ink-3); }
-.ms-fact-what { font-size: 15px; }
-.ms-fact-amount { font-size: 15px; font-variant-numeric: tabular-nums; }
-.ms .ms-fact-note { grid-column: 2 / -1; font-size: 14px; line-height: 22.75px; color: var(--ink-3); }
-
-@media (max-width: 640px) {
-  .ms-stage { width: min(680px, 100% - 32px); padding: 28px 0 48px; }
-  .ms .ms-why { font-size: 16px; }
+@media (max-width: 767px) {
   .ms-row--three { grid-template-columns: 1fr 1fr; }
   .ms-row--three > :first-child { grid-column: 1 / -1; }
   .ms-row--share { grid-template-columns: 1fr auto; }
-  .ms-facts li { grid-template-columns: minmax(0, 1fr) auto; }
-  .ms-fact-kind { grid-column: 1 / -1; }
-  .ms .ms-fact-note { grid-column: 1 / -1; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .ms-stage-inner { animation: none; }
-  .ms .mv-pill { transition: none; }
-  .ms .mv-pill:hover { transform: none; }
 }
