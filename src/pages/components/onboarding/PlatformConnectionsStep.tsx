@@ -1,6 +1,7 @@
 /**
- * PlatformConnectionsStep — Step 1: Lists all platform categories with
- * connected/disconnected tiles, Google Workspace, data upload, and verification.
+ * PlatformConnectionsStep — Step 1, in the page kit: the soul score, then what
+ * is connected, then what is left to connect (the extension, Google Workspace
+ * and every platform category as one list), then the historical upload.
  */
 
 import React, { useEffect, useState } from 'react';
@@ -17,13 +18,13 @@ import {
 import SoulRichnessBar from '../../../components/onboarding/SoulRichnessBar';
 import { DataUploadPanel } from '@/components/brain/DataUploadPanel';
 import GoogleWorkspaceConnect from '../settings/GoogleWorkspaceConnect';
-import { SectionLabel, Divider } from './SectionLabel';
 import { MirrorSourceTiles } from './MirrorSourceTiles';
 import { RETIRED_PLATFORMS } from '@/lib/retiredPlatforms';
+import { Section, List } from '@/components/register';
 
 /**
  * Mirror sources (replan-2026-06-10 Track C): synthetic 'web' / 'desktop'
- * breakdown entries get dedicated first-class cards, NOT generic connected
+ * breakdown entries get a dedicated first-class row, NOT generic connected
  * tiles (they have no token to manage and no catalog entry to fall back on).
  */
 const MIRROR_PLATFORMS = new Set(['web', 'desktop']);
@@ -48,10 +49,10 @@ function staleAttentionCopy(entry: PlatformBreakdownEntry): string {
   if (entry.lastSyncAt) {
     const days = Math.floor((Date.now() - new Date(entry.lastSyncAt).getTime()) / (24 * 60 * 60 * 1000));
     if (days > 0) {
-      return `No sync in ${days}d — your twin may be working from older data.`;
+      return `No sync in ${days} ${days === 1 ? 'day' : 'days'}`;
     }
   }
-  return 'Has not synced recently — your twin may be working from older data.';
+  return 'Not synced lately';
 }
 
 function sortConnectors(
@@ -76,7 +77,6 @@ export const PlatformConnectionsStep: React.FC<PlatformConnectionsStepProps> = (
   userId,
   connectedServices,
   connectingProvider,
-  disconnectingProvider,
   discoveredSet,
   connectService,
   disconnectService,
@@ -85,11 +85,11 @@ export const PlatformConnectionsStep: React.FC<PlatformConnectionsStepProps> = (
   // Canonical platform state (batch-3 state-unification): per-tile expired/stale
   // comes from the /platforms/summary breakdown — no local re-derivation of the
   // stale threshold, which previously drifted from the backend's classification.
-  const { data: summary, isLoading: summaryLoading } = usePlatformsSummary();
+  const { data: summary } = usePlatformsSummary();
   const platformEntries = byPlatform(summary);
 
-  // Mirror entries drive the first-class extension/desktop cards; everything
-  // else flows through the generic connected/unconnected tile lists.
+  // The mirror entry drives the extension row; everything else flows through
+  // the generic connected/unconnected tile lists.
   const webEntry = platformEntries['web'];
   // Retired platforms (Track C portfolio cut) render NOTHING here — their
   // connection rows still exist in the DB but are no longer polled; Settings
@@ -98,15 +98,20 @@ export const PlatformConnectionsStep: React.FC<PlatformConnectionsStepProps> = (
     p => !MIRROR_PLATFORMS.has(p) && !RETIRED_PLATFORMS.has(p)
   );
 
-  // For the DISCOVERY sections (unconnected tiles) we still hide coming-soon
-  // entries — and the browser extension, which now lives in the Always-On
-  // Sources cards above instead of a generic tile. But the CONNECTED list
-  // MUST show every row from the DB, even those marked comingSoon in the
-  // catalog (e.g. slack, oura, notion) — otherwise platforms the user
-  // actually connected silently disappear from /connect (audit-2026-05-12 H5).
-  // unlisted = demoted platforms (Discord, Outlook): connected rows still
-  // render via connectorByProvider below, but no discovery tile invites new
-  // connections (replan-2026-06-10 Track C).
+  // Google Workspace sits with the connected rows once any Google service is
+  // live (bundled scopes; only 'expired' counts as not connected).
+  const isAnyGoogleConnected = !!summary?.breakdown.some(
+    (entry) => entry.platform.startsWith('google_') && entry.state !== 'expired'
+  );
+
+  // For the DISCOVERY list (unconnected tiles) we still hide coming-soon
+  // entries — and the browser extension, which has its own row. But the
+  // CONNECTED list MUST show every row from the DB, even those marked
+  // comingSoon in the catalog (e.g. slack, oura, notion) — otherwise platforms
+  // the user actually connected silently disappear from /connect
+  // (audit-2026-05-12 H5). unlisted = demoted platforms (Discord, Outlook):
+  // connected rows still render via connectorByProvider below, but no
+  // discovery tile invites new connections (replan-2026-06-10 Track C).
   const availableConnectors = AVAILABLE_CONNECTORS.filter(
     c => !c.comingSoon && !c.unlisted && c.provider !== 'browser_extension'
   );
@@ -127,53 +132,34 @@ export const PlatformConnectionsStep: React.FC<PlatformConnectionsStepProps> = (
   }, [userId]);
   const sort = (list: typeof AVAILABLE_CONNECTORS) => sortConnectors(list, connectedServices, discoveredSet);
 
-  const entertainmentConnectors = sort(availableConnectors.filter(c => c.category === 'entertainment'));
-  const healthConnectors = sort(availableConnectors.filter(c => c.category === 'health'));
-  const socialConnectors = sort(availableConnectors.filter(c => c.category === 'social'));
-  const professionalConnectors = sort(availableConnectors.filter(c => c.category === 'professional'));
-
-  const renderUnconnectedTiles = (connectors: typeof AVAILABLE_CONNECTORS) =>
-    sort(connectors)
+  // Every category, in the old section order, as one list of what is left.
+  const unconnected = ['entertainment', 'health', 'social', 'professional'].flatMap(category =>
+    sort(availableConnectors.filter(c => c.category === category))
       .filter(c => !connectedServices.includes(c.provider))
-      .map(c => (
-        <PlatformTile
-          key={c.provider}
-          name={c.name}
-          description={c.description}
-          icon={c.icon}
-          color={c.color}
-          connected={false}
-          comingSoon={c.comingSoon}
-          syncing={connectingProvider === c.provider}
-          pitchHook={pitchHooks[c.provider] || null}
-          note={c.note || null}
-          onConnect={() => connectService(c.provider)}
-        />
-      ));
+  );
+
+  const hasConnected = !!webEntry || isAnyGoogleConnected || oauthConnectedServices.length > 0;
 
   return (
-    <div className="space-y-8">
+    <div>
       {/* Self-sufficient since batch-3 step 6: reads the canonical platforms
           summary itself and renders the shared Soul Score number. */}
-      <SoulRichnessBar />
+      <Section>
+        <SoulRichnessBar />
+      </Section>
 
-      {/* Always-On Sources — the browser extension mirror as a first-class card
-          (replan-2026-06-10 Track C: it sees everything; treat it like the
-          moat, not a buried "Connect" tile). */}
-      <SectionLabel label="Always-On Sources" />
-      <MirrorSourceTiles
-        webEntry={webEntry}
-        onInstallExtension={() => connectService('browser_extension')}
-      />
-      <Divider />
-
-      {/* Connected Section — list every platform_connections row for the user,
-          including providers marked comingSoon in the catalog (H5). Mirrors
-          are excluded — they render in Always-On Sources above. */}
-      {oauthConnectedServices.length > 0 && (
-        <>
-          <SectionLabel label="Connected" />
-          <div className="space-y-2">
+      {/* Connected — list every platform_connections row for the user,
+          including providers marked comingSoon in the catalog (H5). */}
+      {hasConnected && (
+        <Section title="Connected" line="Always on, and what you have linked.">
+          <List label="Connected" className="pb-stack">
+            {webEntry && (
+              <MirrorSourceTiles
+                webEntry={webEntry}
+                onInstallExtension={() => connectService('browser_extension')}
+              />
+            )}
+            {isAnyGoogleConnected && <GoogleWorkspaceConnect summary={summary} navigate={navigate} />}
             {oauthConnectedServices.map(provider => {
               const c = connectorByProvider.get(provider);
               const entry = platformEntries[provider];
@@ -184,9 +170,9 @@ export const PlatformConnectionsStep: React.FC<PlatformConnectionsStepProps> = (
               // shouldn't normally happen, but keeps connected rows visible.
               const display = c ?? {
                 name: provider.replace(/_/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase()),
-                description: 'Connected via OAuth.',
+                description: 'Connected',
                 icon: <Link2 className="w-6 h-6" />,
-                color: 'var(--text-secondary)',
+                color: 'var(--rg-ink-2)',
               };
               return (
                 <PlatformTile
@@ -205,81 +191,44 @@ export const PlatformConnectionsStep: React.FC<PlatformConnectionsStepProps> = (
                 />
               );
             })}
-          </div>
-          <Divider />
-        </>
+          </List>
+        </Section>
       )}
 
-      {/* Google Workspace */}
-      <SectionLabel label="Google Workspace" />
-      <p
-        className="text-[13px] -mt-2 mb-4 leading-relaxed"
-        style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-ui)' }}
-      >
-        Access your email and calendar — your twin reads and understands your schedule and communication patterns
-      </p>
-      <GoogleWorkspaceConnect
-        summary={summary}
-        navigate={navigate}
-      />
-      <p
-        className="text-[11px] mt-3"
-        style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-ui)' }}
-      >
-        Your data stays yours. We never train AI on your personal data or sell it.
-      </p>
-
-      {/* Entertainment */}
-      {entertainmentConnectors.some(c => !connectedServices.includes(c.provider)) && (
-        <>
-          <Divider />
-          <SectionLabel label="Entertainment" />
-          <div className="space-y-2">
-            {renderUnconnectedTiles(entertainmentConnectors)}
-          </div>
-        </>
-      )}
-
-      {/* Health & Fitness */}
-      {healthConnectors.some(c => !connectedServices.includes(c.provider)) && (
-        <>
-          <Divider />
-          <SectionLabel label="Health & Fitness" />
-          <div className="space-y-2">
-            {renderUnconnectedTiles(healthConnectors)}
-          </div>
-        </>
-      )}
-
-      {/* Social & Community */}
-      {socialConnectors.some(c => !connectedServices.includes(c.provider)) && (
-        <>
-          <Divider />
-          <SectionLabel label="Social & Community" />
-          <div className="space-y-2">
-            {renderUnconnectedTiles(socialConnectors)}
-          </div>
-        </>
-      )}
-
-      {/* Professional */}
-      {professionalConnectors.some(c => !connectedServices.includes(c.provider)) && (
-        <>
-          <Divider />
-          <SectionLabel label="Professional" />
-          <div className="space-y-2">
-            {renderUnconnectedTiles(professionalConnectors)}
-          </div>
-        </>
-      )}
+      {/* What is left: the extension and Google Workspace first, then every
+          category's unconnected platforms. */}
+      <Section title="More to connect" line="Your data stays yours. We never train on it or sell it.">
+        <List label="More to connect" className="pb-stack">
+          {!webEntry && (
+            <MirrorSourceTiles
+              webEntry={webEntry}
+              onInstallExtension={() => connectService('browser_extension')}
+            />
+          )}
+          {!isAnyGoogleConnected && <GoogleWorkspaceConnect summary={summary} navigate={navigate} />}
+          {unconnected.map(c => (
+            <PlatformTile
+              key={c.provider}
+              name={c.name}
+              description={c.description}
+              icon={c.icon}
+              color={c.color}
+              connected={false}
+              comingSoon={c.comingSoon}
+              syncing={connectingProvider === c.provider}
+              pitchHook={pitchHooks[c.provider] || null}
+              note={c.note || null}
+              onConnect={() => connectService(c.provider)}
+            />
+          ))}
+        </List>
+      </Section>
 
       {/* Upload historical data */}
       {userId && (
-        <>
-          <Divider />
-          <SectionLabel label="Upload Historical Data" />
+        <Section title="Upload your history" line="The years the platforms cannot send.">
           <DataUploadPanel userId={userId} />
-        </>
+        </Section>
       )}
     </div>
   );
