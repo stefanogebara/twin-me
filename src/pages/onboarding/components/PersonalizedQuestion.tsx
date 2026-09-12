@@ -49,13 +49,14 @@ const TypewriterText: React.FC<{ text: string; onComplete?: () => void }> = ({ t
       {!done && (
         <span
           className="inline-block w-0.5 h-5 ml-0.5 align-middle animate-pulse"
-          style={{ backgroundColor: 'var(--text-secondary)' }}
+          style={{ backgroundColor: 'var(--rg-ink-2)' }}
         />
       )}
     </span>
   );
 };
 
+/** One question at a time: a quiet domain line, the question, 32/4 choices. */
 const PersonalizedQuestions: React.FC<PersonalizedQuestionProps> = ({
   questions,
   onAnswer,
@@ -99,109 +100,64 @@ const PersonalizedQuestions: React.FC<PersonalizedQuestionProps> = ({
 
   if (!currentQuestion) return null;
 
+  const domain = currentQuestion.domain || 'motivation';
+
   return (
-    <div className="w-full">
-      {/* Progress dots */}
-      <div className="flex items-center justify-center gap-2 mb-8">
-        {questions.map((_, i) => (
-          <div
-            key={i}
-            className="rounded-full transition-all duration-300"
-            style={{
-              width: i === currentIndex ? 10 : 6,
-              height: i === currentIndex ? 10 : 6,
-              backgroundColor: i < currentIndex
-                ? 'var(--text-secondary)'
-                : i === currentIndex
-                  ? 'var(--text-primary)'
-                  : 'rgba(255,255,255,0.14)',
-            }}
-          />
-        ))}
+    <div className="w-full" style={{ textAlign: 'left' }}>
+      {/* Progress: which question of how many, and a dot per question */}
+      <div className="flex items-center gap-3 mb-8">
+        <div className="flex items-center gap-2" aria-hidden="true">
+          {questions.map((_, i) => (
+            <div
+              key={i}
+              className="rounded-full transition-all duration-300"
+              style={{
+                width: i === currentIndex ? 10 : 6,
+                height: i === currentIndex ? 10 : 6,
+                backgroundColor: i <= currentIndex ? 'var(--rg-ink)' : 'var(--rg-mark)',
+              }}
+            />
+          ))}
+        </div>
+        <span className="rs-quiet pb-figures">{currentIndex + 1} of {totalQuestions}</span>
       </div>
 
-      {/* Question card */}
-      <div
-        key={currentQuestion.id}
-        className="mb-6"
-      >
-        {/* Domain icon + label */}
-        <div className="flex items-center gap-2 mb-4">
-          <span style={{ color: 'var(--text-muted)' }}>
-            {DOMAIN_ICONS[currentQuestion.domain] || DOMAIN_ICONS.motivation}
-          </span>
-          <span
-            className="text-xs uppercase tracking-widest"
-            style={{
-              color: 'var(--text-muted)',
-              fontFamily: "'Inter', sans-serif",
-              letterSpacing: '0.15em',
-            }}
-          >
-            {currentQuestion.domain}
-          </span>
-        </div>
+      {/* Question */}
+      <div key={currentQuestion.id} className="mb-6">
+        {/* Domain icon + label, sentence case */}
+        <p className="rs-flow-line flex items-center gap-2 mb-3">
+          <span aria-hidden="true">{DOMAIN_ICONS[domain] || DOMAIN_ICONS.motivation}</span>
+          {domain.charAt(0).toUpperCase() + domain.slice(1)}
+        </p>
 
         {/* Question text with typewriter */}
-        <p
-          className="text-lg md:text-xl mb-6 min-h-[3rem]"
-          style={{
-            fontFamily: 'var(--font-heading)',
-            color: 'var(--text-narrative)',
-            lineHeight: 1.4,
-          }}
-        >
+        <p className="rs-flow-q mb-6 min-h-[3rem]">
           <TypewriterText
             text={currentQuestion.text}
             onComplete={() => setTypingDone(true)}
           />
         </p>
 
-        {/* Answer options */}
+        {/* Answer options: 32/4 choices, pressed is the field with an ink line */}
         {typingDone && (
-          <div
-            className="flex flex-wrap gap-2"
-          >
-            {currentQuestion.options.map((option) => {
-              const isSelected = answers[currentQuestion.id] === option;
-              return (
-                <button
-                  key={option}
-                  onClick={() => handleSelect(option)}
-                  className="px-5 py-2.5 rounded-full text-sm transition-all duration-200"
-                  style={{
-                    backgroundColor: isSelected
-                      ? 'rgba(255,255,255,0.16)'
-                      : 'rgba(255,255,255,0.05)',
-                    border: isSelected
-                      ? '1px solid var(--text-muted)'
-                      : '1px solid rgba(255,255,255,0.14)',
-                    color: isSelected
-                      ? 'var(--text-primary)'
-                      : 'var(--text-secondary)',
-                    fontFamily: "'Inter', sans-serif",
-                  }}
-                >
-                  {option}
-                </button>
-              );
-            })}
+          <div className="rs-choices">
+            {currentQuestion.options.map((option) => (
+              <button
+                key={option}
+                type="button"
+                onClick={() => handleSelect(option)}
+                aria-pressed={answers[currentQuestion.id] === option}
+                className="n-btn n-btn--ghost rs-choice"
+              >
+                {option}
+              </button>
+            ))}
           </div>
         )}
 
         {/* Twin reaction beat — the answer taught it something */}
         {reaction && (
-          <p
-            className="mt-5 text-[15px] animate-in fade-in duration-300"
-            style={{
-              fontFamily: 'var(--font-heading)',
-              fontStyle: 'italic',
-              color: 'var(--text-narrative)',
-              lineHeight: 1.5,
-            }}
-          >
-            {reaction}
-          </p>
+          <p className="rs-prose mt-5 animate-in fade-in duration-300">{reaction}</p>
         )}
       </div>
     </div>

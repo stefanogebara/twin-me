@@ -10,57 +10,35 @@ interface DataRevealItemProps {
 }
 
 const iconMap: Record<string, React.ReactNode> = {
-  name: <User className="w-4 h-4" />,
-  company: <Building2 className="w-4 h-4" />,
-  title: <Briefcase className="w-4 h-4" />,
-  location: <MapPin className="w-4 h-4" />,
-  bio: <FileText className="w-4 h-4" />,
-  github: <Github className="w-4 h-4" />,
-  twitter: <Twitter className="w-4 h-4" />,
-  education: <GraduationCap className="w-4 h-4" />,
-  career: <Briefcase className="w-4 h-4" />,
-  skills: <Award className="w-4 h-4" />,
-  photo: <User className="w-4 h-4" />,
+  name: <User />,
+  company: <Building2 />,
+  title: <Briefcase />,
+  location: <MapPin />,
+  bio: <FileText />,
+  github: <Github />,
+  twitter: <Twitter />,
+  education: <GraduationCap />,
+  career: <Briefcase />,
+  skills: <Award />,
+  photo: <User />,
 };
 
+/**
+ * One found fact as a compact row of the page kit: render inside a List.
+ * The value is the title; the label (sentence case) is its grey line.
+ */
 const DataRevealItem: React.FC<DataRevealItemProps> = ({ icon, label, value }) => {
-  const iconElement = iconMap[icon] || <FileText className="w-4 h-4" />;
+  const iconElement = iconMap[icon] || <FileText />;
 
   return (
-    <div
-      className="flex items-center gap-3 py-2"
-    >
-      <div
-        className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center"
-        style={{
-          backgroundColor: 'rgba(255,255,255,0.08)',
-          color: 'var(--text-secondary)',
-        }}
-      >
-        {iconElement}
-      </div>
-      <div className="flex-1 min-w-0">
-        <span
-          className="text-xs uppercase tracking-wider block"
-          style={{
-            color: 'var(--text-muted)',
-            fontFamily: "'Inter', sans-serif",
-            letterSpacing: '0.08em',
-          }}
-        >
-          {label}
-        </span>
-        <span
-          className="text-sm block"
-          style={{
-            color: 'var(--text-narrative)',
-            fontFamily: "'Inter', sans-serif",
-          }}
-        >
-          {value}
-        </span>
-      </div>
-    </div>
+    <li className="rg-row">
+      <span className="rg-row-icon" aria-hidden="true">{iconElement}</span>
+      <span className="rg-row-text">
+        <span className="rg-row-title">{value}</span>
+        <span className="rg-row-line">{label}</span>
+      </span>
+      <span />
+    </li>
   );
 };
 
