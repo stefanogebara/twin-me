@@ -68,7 +68,7 @@ export const AudioFeaturesRadar: React.FC<AudioFeaturesRadarProps> = ({
             color: 'var(--foreground)'
           }}
         >
-          <p className="text-sm font-medium" style={{ fontFamily: "'Inter', sans-serif" }}>
+          <p className="text-sm font-medium" style={{ fontFamily: 'var(--font-ui)' }}>
             {payload[0].payload.feature}
           </p>
           <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
@@ -109,7 +109,7 @@ export const AudioFeaturesRadar: React.FC<AudioFeaturesRadarProps> = ({
           <Activity className="w-5 h-5 text-[#1DB954]" />
         </div>
         <div>
-          <h3 className="text-lg font-medium" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>
+          <h3 className="text-lg font-medium" style={{ fontFamily: 'var(--font-ui)', color: 'var(--foreground)' }}>
             Audio Personality
           </h3>
           <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
@@ -124,7 +124,7 @@ export const AudioFeaturesRadar: React.FC<AudioFeaturesRadarProps> = ({
             <PolarGrid stroke="#E5E7EB" strokeWidth={1} />
             <PolarAngleAxis
               dataKey="feature"
-              tick={{ fill: '#57534E', fontSize: 12, fontFamily: "'Inter', sans-serif" }}
+              tick={{ fill: '#57534E', fontSize: 12, fontFamily: 'var(--font-ui)' }}
             />
             <PolarRadiusAxis
               angle={90}
@@ -155,7 +155,7 @@ export const AudioFeaturesRadar: React.FC<AudioFeaturesRadarProps> = ({
               Musical Personality
             </span>
           </div>
-          <p className="text-base font-medium" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>
+          <p className="text-base font-medium" style={{ fontFamily: 'var(--font-ui)', color: 'var(--foreground)' }}>
             {getPersonalityInsight()}
           </p>
         </div>
@@ -170,7 +170,7 @@ export const AudioFeaturesRadar: React.FC<AudioFeaturesRadarProps> = ({
             >
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-[#1DB954]" />
-                <span className="text-xs" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--text-muted)' }}>
+                <span className="text-xs" style={{ fontFamily: 'var(--font-ui)', color: 'var(--text-muted)' }}>
                   {item.feature}
                 </span>
               </div>

@@ -1,0 +1,198 @@
+/* ==========================================================================
+   Presence onboarding (/presence/onboarding, PresenceExperience in
+   src/pages/preview/PresencePrototype.tsx) in the register. An app screen:
+   flat, no cards, no glass, no gradient ground. A 200px sidebar of plain text
+   steps 80px left of the 820 column, the current step underlined; each step
+   is the kit's page title with one grey line, then rows under a 1px ink rule,
+   fields with no border and 32/4 choices. One primary per screen: the footer's
+   Continue. Replaces the .presence-* half of presence-system.css (Manrope, a
+   Newsreader serif, 9-10px tracked caps, blue as the only state).
+   ========================================================================== */
+
+.po {
+  min-height: 100dvh;
+  background: var(--rg-page);
+  color: var(--rg-ink);
+  font-family: var(--rg-sans);
+  font-size: var(--rg-text);
+  line-height: var(--rg-line);
+  letter-spacing: var(--rg-track);
+}
+
+/* ---- the bar ---- */
+.po-nav {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 56px;
+  padding: 12px var(--rg-gutter);
+  background: var(--rg-page);
+  border-bottom: 1px solid var(--rg-rule);
+}
+.po-brand { display: inline-flex; align-items: center; gap: 10px; min-height: 32px; padding: 0; border: 0; background: none; font: inherit; font-weight: var(--rg-weight-title); color: var(--rg-ink); cursor: pointer; }
+.po-mark { width: 20px; height: 20px; }
+.po-note { display: inline-flex; align-items: center; gap: 6px; font-weight: var(--rg-weight-line); color: var(--rg-ink-2); }
+.po-nav .n-btn { margin-left: auto; }
+
+/* ---- the frame: steps on the left, the column on the right ---- */
+.po-frame {
+  display: grid;
+  grid-template-columns: var(--rg-side) minmax(0, var(--rg-col));
+  column-gap: var(--rg-side-gap);
+  justify-content: center;
+  padding: 0 var(--rg-gutter);
+}
+.po-side { position: sticky; top: 56px; align-self: start; display: grid; gap: 12px; padding-top: 40px; }
+.po-progress { display: flex; justify-content: space-between; gap: 12px; margin: 0; font-weight: var(--rg-weight-line); color: var(--rg-ink-2); font-variant-numeric: tabular-nums; }
+.po-track { height: 2px; background: var(--rg-rule); }
+.po-track > span { display: block; height: 100%; background: var(--rg-ink); transition: width 0.24s ease; }
+.po-steps { display: grid; margin-top: 12px; }
+.po-steps button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 32px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  text-align: left;
+  color: var(--rg-ink-2);
+  cursor: pointer;
+  transition: color var(--rg-quick);
+}
+.po-steps button > span:first-child { width: 16px; display: inline-grid; place-items: center; color: var(--rg-ink-3); font-variant-numeric: tabular-nums; }
+.po-steps button:hover,
+.po-steps button.is-complete { color: var(--rg-ink); }
+.po-steps button.is-complete > span:first-child { color: var(--rg-ink); }
+.po-steps button[aria-current='step'] { color: var(--rg-ink); font-weight: var(--rg-weight-title); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 4px; }
+
+.po-stage { min-width: 0; display: grid; grid-template-rows: 1fr auto; min-height: calc(100dvh - 56px); padding-top: 40px; }
+.po-step { animation: po-reveal 200ms ease-out both; }
+@keyframes po-reveal { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+.po .rg-apphead { margin-bottom: 40px; }
+.po-duration { font-weight: var(--rg-weight-line); color: var(--rg-ink-3); white-space: nowrap; }
+.po-gap { margin-top: 56px; }
+.po-compact .rg-row { min-height: var(--rg-row-sub); padding: 12px; }
+
+/* ---- words ---- */
+.po-label { display: block; font-weight: var(--rg-weight-title); color: var(--rg-ink); }
+.po-hint { margin: 0; font-weight: var(--rg-weight-line); color: var(--rg-ink-2); }
+.po-meta { display: flex; justify-content: space-between; gap: 16px; margin: 0; font-weight: var(--rg-weight-line); color: var(--rg-ink-2); font-variant-numeric: tabular-nums; }
+.po-meta .is-recording { font-weight: var(--rg-weight-title); color: var(--rg-danger); }
+.po-read,
+.po-quote { margin: 0; font-size: 20px; line-height: 1.3; font-weight: 400; letter-spacing: -0.02em; text-wrap: balance; color: var(--rg-ink); }
+.po-question { margin: 0; font-family: var(--rg-sans); font-size: var(--rg-section-title); font-weight: 400; line-height: 1.08; letter-spacing: var(--rg-section-track); text-wrap: balance; color: var(--rg-ink); }
+.po-error { margin: 0; color: var(--rg-danger); }
+.po-ok { display: inline-flex; align-items: center; gap: 8px; margin: 0; color: var(--rg-ok); }
+.po-status { display: inline-flex; align-items: center; gap: 8px; margin: 0; color: var(--rg-ink-2); }
+
+/* ---- fields and choices ---- */
+.po-form { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px 16px; }
+.po-field { display: grid; gap: 8px; min-width: 0; margin: 0; padding: 0; border: 0; }
+.po-field > legend { padding: 0; margin-bottom: 8px; }
+.po-field--wide { grid-column: 1 / -1; }
+.po-field.po-gap { margin-top: 56px; }
+.po-input {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  height: var(--rg-field-height);
+  padding: 11px 14px;
+  border: 0;
+  border-radius: var(--rg-radius);
+  background: var(--rg-field);
+  font: inherit;
+  color: var(--rg-ink);
+}
+.po-input:focus-visible { outline: 2px solid var(--rg-ink); outline-offset: 0; }
+.po-area { height: auto; min-height: 104px; resize: vertical; }
+.po-choices { display: flex; flex-wrap: wrap; gap: 8px; }
+.po-choice {
+  display: inline-flex;
+  align-items: center;
+  height: var(--rg-button);
+  padding: 0 16px;
+  border: 1px solid var(--rg-rule);
+  border-radius: var(--rg-radius);
+  background: var(--rg-white);
+  font: inherit;
+  color: var(--rg-ink);
+  cursor: pointer;
+  transition: border-color var(--rg-quick), background-color var(--rg-quick);
+}
+.po-choice:hover { border-color: var(--rg-quiet); }
+.po-choice[aria-pressed='true'] { background: var(--rg-field); border-color: var(--rg-ink); font-weight: var(--rg-weight-title); }
+
+/* ---- buttons the kit has no class for ---- */
+.n-btn.po-icon { width: var(--rg-button); padding: 0; }
+.n-btn.po-danger { background: var(--rg-white); border-color: var(--rg-danger-line); color: var(--rg-danger); }
+
+/* ---- the voice step ---- */
+.po-voice { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 40px; align-items: start; }
+.po-block { display: grid; gap: 16px; padding: 20px 12px; border-top: 1px solid var(--rg-ink); border-bottom: 1px solid var(--rg-rule); }
+.po-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-height: 32px; }
+.po-wave { display: flex; align-items: center; gap: 3px; height: 44px; }
+.po-wave > span { width: 2px; min-height: 3px; max-height: 100%; background: var(--rg-quiet); transform: scaleY(0.5); transform-origin: center; }
+.po-wave.is-active > span { background: var(--rg-danger); animation: po-wave 760ms ease-in-out infinite alternate; }
+/* The relay's compact wave is the Presence listening, not a recording: ink, not red. */
+.po-wave.is-compact.is-active > span { background: var(--rg-ink); }
+@keyframes po-wave { to { transform: scaleY(1); } }
+.po-dots { display: flex; gap: 4px; }
+.po-dots button { position: relative; width: 24px; height: 24px; padding: 0; border: 0; background: none; cursor: pointer; }
+.po-dots button::after { content: ''; position: absolute; inset: 9px; border-radius: 50%; background: var(--rg-quiet); }
+.po-dots button.is-current::after { background: var(--rg-ink); }
+.po-bar { display: block; height: 2px; margin-top: 8px; background: var(--rg-rule); }
+.po-bar > i { display: block; height: 100%; background: var(--rg-ink); }
+.po-consent { display: flex; align-items: flex-start; gap: 10px; margin-top: 16px; font-weight: var(--rg-weight-line); color: var(--rg-ink-2); cursor: pointer; }
+.po-consent input { flex: none; width: 16px; height: 16px; margin: 2px 0 0; accent-color: var(--rg-ink); }
+
+/* ---- the interview step ---- */
+.po-interview-controls { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; align-items: center; }
+
+/* ---- the relay step ---- */
+.po-relay { display: grid; grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr); gap: 40px; align-items: start; }
+.po-initials { display: grid; place-items: center; width: 32px; height: 32px; border-radius: var(--rg-radius-icon); background: var(--rg-field); font-weight: var(--rg-weight-title); color: var(--rg-ink); }
+.po-reply { position: relative; display: grid; gap: 4px; padding: 12px 56px 12px 14px; border-radius: var(--rg-radius); background: var(--rg-field); }
+.po-reply p { margin: 0; color: var(--rg-ink); }
+.po-reply .n-btn { position: absolute; top: 50%; right: 8px; transform: translateY(-50%); }
+.po-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; margin: 32px 0 0; padding: 16px 0 0; list-style: none; border-top: 1px solid var(--rg-rule); font-weight: var(--rg-weight-line); color: var(--rg-ink-2); }
+.po-legend li { display: inline-flex; align-items: center; gap: 8px; }
+.po-key { width: 8px; height: 8px; border-radius: 50%; }
+.po-key--family { background: var(--rg-ink); }
+.po-key--ai { border: 1px solid var(--rg-mark); }
+
+/* ---- the footer: back, a line, the one primary ---- */
+.po-foot { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 16px; margin-top: 56px; padding: 20px 0 32px; border-top: 1px solid var(--rg-rule); }
+.po-foot > .po-hint { text-align: center; }
+.po-foot .n-btn:disabled { visibility: hidden; }
+
+@media (max-width: 960px) {
+  .po-voice,
+  .po-relay { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (max-width: 767px) {
+  .po-note { display: none; }
+  .po-frame { grid-template-columns: minmax(0, 1fr); }
+  .po-side { position: static; padding-top: 20px; }
+  .po-steps { display: none; }
+  .po-stage { min-height: 0; padding-top: 32px; }
+  .po-form { grid-template-columns: minmax(0, 1fr); }
+  .po-interview-controls { grid-template-columns: auto minmax(0, 1fr); }
+  .po-interview-controls > :last-child { grid-column: 1 / -1; justify-self: start; }
+  .po-foot { grid-template-columns: auto minmax(0, 1fr); }
+  .po-foot > .po-hint { display: none; }
+  .po-foot > :last-child { justify-self: end; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .po-step,
+  .po-wave.is-active > span { animation: none; }
+  .po-track > span,
+  .po-steps button,
+  .po-choice { transition: none; }
+}

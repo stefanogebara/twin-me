@@ -4,13 +4,12 @@
  * history in any user-grantable scope), LinkedIn (gutted developer API),
  * Instagram (Graph API is Creator-only).
  *
- * Pattern per card:
- *   1. Title + privacy contract one-liner
- *   2. Numbered step-by-step instructions for requesting the export
- *   3. Drop zone / click-to-browse for the resulting zip
- *   4. Once parsed: status badge, observation count, last parsed date,
- *      and a 'remove' button that wipes both the row and its
- *      derived observations
+ * In the register, one row per platform (no cards), opening to:
+ *   1. Three short steps for requesting the export, and a link to the portal
+ *   2. A drop zone (the warm field) / click-to-browse for the resulting zip
+ *   3. Once parsed: the row's line carries the date and memory count, and its
+ *      one action is Remove, which wipes both the row and its derived
+ *      observations
  *
  * Wires to:
  *   GET    /api/exports          → list parsed exports
@@ -23,13 +22,16 @@ import { Briefcase, Hash, Instagram, Upload, Trash2, ExternalLink, Loader2, Chec
 import { exportsAPI, type ExportPlatform, type ExportRow } from '@/services/api/exportsAPI';
 import { isAbortError } from '@/services/api/apiBase';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { Page, PageHead, List, Row, Empty } from '@/components/register';
+import '@/styles/register-public.css';
+import '@/styles/register-settings.css';
 
 interface PlatformCardConfig {
   id: ExportPlatform;
   label: string;
+  /** Brand colour: the one place colour appears, the 32px icon square. */
   color: string;
   icon: JSX.Element;
-  oneLiner: string;
   privacyNote: string;
   exportPortalUrl: string;
   steps: string[];
@@ -41,18 +43,13 @@ const PLATFORMS: PlatformCardConfig[] = [
     id: 'discord_export',
     label: 'Discord',
     color: '#5865F2',
-    icon: <Hash size={18} color="#fff" />,
-    oneLiner:
-      'Every server, every channel, every DM — the message history Discord’s OAuth scope refuses to give your twin.',
-    privacyNote:
-      'Only timestamps and counts are kept. Message content never reaches the parser.',
+    icon: <Hash size={16} />,
+    privacyNote: 'Keeps times and counts, never your messages',
     exportPortalUrl: 'https://discord.com/settings/privacy-and-safety',
     steps: [
-      'Open Discord (desktop or web) and go to User Settings (gear icon).',
-      'Navigate to Privacy & Safety.',
-      'Scroll to the bottom and click "Request all of my Data".',
-      'Wait for the email from discord-data@discord.com (24h–30 days).',
-      'Upload the package.zip from that email here.',
+      'In Discord, open User Settings, then Privacy & Safety.',
+      'Choose "Request all of my Data". The email takes up to 30 days.',
+      'Upload the package.zip it sends you.',
     ],
     expectedFile: 'package.zip',
   },
@@ -60,18 +57,13 @@ const PLATFORMS: PlatformCardConfig[] = [
     id: 'linkedin_export',
     label: 'LinkedIn',
     color: '#0A66C2',
-    icon: <Briefcase size={18} color="#fff" />,
-    oneLiner:
-      'Full career trajectory, network shape, post history, search patterns — everything the LinkedIn developer API has gutted.',
-    privacyNote:
-      'Messages.csv is intentionally never read. Connection lists and post counts only.',
+    icon: <Briefcase size={16} />,
+    privacyNote: 'Never reads your messages. Connections and post counts only.',
     exportPortalUrl: 'https://www.linkedin.com/mypreferences/d/download-my-data',
     steps: [
-      'Go to LinkedIn Settings → Data Privacy.',
-      'Click "Get a copy of your data".',
-      'Choose "Fast file only" (the comma-separated CSVs).',
-      'Wait for the email (typically 10–20 minutes).',
-      'Upload the Basic_LinkedInDataExport_*.zip here.',
+      'In LinkedIn, open Settings, then Data privacy.',
+      'Choose "Get a copy of your data", then the fast file only.',
+      'Upload the zip from the email, about 20 minutes later.',
     ],
     expectedFile: 'Basic_LinkedInDataExport_*.zip',
   },
@@ -79,18 +71,13 @@ const PLATFORMS: PlatformCardConfig[] = [
     id: 'instagram_export',
     label: 'Instagram',
     color: '#E4405F',
-    icon: <Instagram size={18} color="#fff" />,
-    oneLiner:
-      'Posts, reels, stories, likes given, saved content, search topics — the visual identity Instagram’s Graph API gates behind Creator accounts.',
-    privacyNote:
-      'Captions and comment bodies are never read. Counts, timestamps, and your search queries only.',
+    icon: <Instagram size={16} />,
+    privacyNote: 'Never reads captions or comments. Counts and searches only.',
     exportPortalUrl: 'https://accountscenter.facebook.com/info_and_permissions/dyi',
     steps: [
-      'Go to Meta Accounts Center → Your information and permissions.',
-      'Click "Download your information".',
-      'Choose JSON format. Date range: All time.',
-      'Wait for the email (2–14 days).',
-      'Upload the instagram-*.zip here.',
+      'In Meta Accounts Center, open Your information and permissions.',
+      'Choose Download your information, as JSON, for all time.',
+      'Upload the zip from the email, 2 to 14 days later.',
     ],
     expectedFile: 'instagram-*.zip',
   },
@@ -127,149 +114,90 @@ const PlatformCard = ({
   const isParsed = row?.status === 'parsed';
   const isUploading = status.state === 'uploading';
 
-  return (
-    <div
-      className="rounded-[20px] px-5 py-5"
-      style={{
-        background: 'var(--glass-surface-bg)',
-        border: '1px solid var(--glass-surface-border)',
-        backdropFilter: 'blur(42px)',
-        WebkitBackdropFilter: 'blur(42px)',
-      }}
-    >
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex items-start gap-3">
-          <div
-            className="mt-0.5 flex-shrink-0 w-9 h-9 rounded-[10px] flex items-center justify-center"
-            style={{ background: config.color }}
-          >
-            {config.icon}
-          </div>
-          <div>
-            <div className="text-[15px] font-medium" style={{ color: 'var(--text-primary)' }}>
-              {config.label}
-            </div>
-            <div
-              className="text-[13px] mt-1 leading-relaxed max-w-[520px]"
-              style={{ color: 'var(--text-secondary)' }}
-            >
-              {config.oneLiner}
-            </div>
-          </div>
-        </div>
+  const line = isParsed && row?.parsed_at
+    ? <><span className="rs-ok">Imported</span> · {new Date(row.parsed_at).toLocaleDateString()}, {row.observation_count} memories</>
+    : row?.status === 'failed'
+      ? <span className="rs-bad">Failed: {row.error_message ?? 'unknown error'}</span>
+      : config.privacyNote;
 
-        {isParsed && (
-          <button
-            onClick={onDelete}
-            className="flex-shrink-0 inline-flex items-center gap-1.5 text-[12px] px-2 py-1 rounded-[6px] hover:bg-[var(--surface)]"
-            style={{ color: 'var(--text-muted)' }}
-            title="Remove this export"
-          >
-            <Trash2 size={12} />
+  return (
+    <>
+      <Row
+        icon={
+          <span style={{ display: 'grid', placeItems: 'center', width: 32, height: 32, borderRadius: 8, background: config.color, color: 'var(--rg-white)' }}>
+            {config.icon}
+          </span>
+        }
+        title={config.label}
+        line={line}
+        action={isParsed ? (
+          <button type="button" onClick={onDelete} className="n-btn rs-danger" title="Remove this export">
+            <Trash2 className="w-4 h-4" aria-hidden="true" />
             Remove
           </button>
-        )}
-      </div>
-
-      <div className="mt-4 grid gap-4" style={{ gridTemplateColumns: '1fr auto' }}>
-        <ol className="space-y-1.5 text-[13px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-          {config.steps.map((s, i) => (
-            <li key={i} className="flex gap-2.5">
-              <span
-                className="inline-flex items-center justify-center w-[18px] h-[18px] rounded-full text-[11px] flex-shrink-0 mt-0.5"
-                style={{
-                  background: 'var(--surface)',
-                  color: 'var(--text-primary)',
-                  border: '1px solid var(--border-glass)',
-                }}
-              >
-                {i + 1}
-              </span>
-              <span>{s}</span>
-            </li>
-          ))}
-          <li className="pt-1">
-            <a
-              href={config.exportPortalUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1.5 text-[12px] hover:underline"
-              style={{ color: 'var(--text-primary)' }}
-            >
-              Open {config.label} portal <ExternalLink size={11} />
-            </a>
-          </li>
+        ) : undefined}
+        className="rs-row-has-body"
+      />
+      <li className="rs-body">
+        <ol className="rs-steps">
+          {config.steps.map((s, i) => <li key={i}>{s}</li>)}
         </ol>
-      </div>
+        <a href={config.exportPortalUrl} target="_blank" rel="noreferrer" className="rs-link" style={{ justifySelf: 'start' }}>
+          Open {config.label} settings <ExternalLink className="inline w-3.5 h-3.5 ml-0.5" aria-hidden="true" />
+        </a>
 
-      <div
-        className={`mt-4 rounded-[14px] border border-dashed px-4 py-5 text-center transition-colors cursor-pointer ${
-          dragging ? 'bg-white/[0.04]' : 'hover:bg-white/[0.02]'
-        }`}
-        style={{
-          borderColor: dragging ? 'rgba(255,255,255,0.30)' : 'rgba(255,255,255,0.14)',
-        }}
-        role="button"
-        tabIndex={0}
-        aria-label={`Upload ${config.label} export`}
-        onClick={() => inputRef.current?.click()}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            inputRef.current?.click();
-          }
-        }}
-        onDrop={onDrop}
-        onDragOver={onDragOver}
-        onDragLeave={onDragLeave}
-      >
-        <input
-          ref={inputRef}
-          type="file"
-          accept=".zip,application/zip"
-          className="hidden"
-          onChange={(e: ChangeEvent<HTMLInputElement>) => {
-            const f = e.target.files?.[0];
-            if (f) onPickFile(f);
-            e.target.value = '';
+        <div
+          className={`rs-drop${dragging ? ' is-over' : ''}`}
+          role="button"
+          tabIndex={0}
+          aria-label={`Upload ${config.label} export`}
+          onClick={() => inputRef.current?.click()}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              inputRef.current?.click();
+            }
           }}
-        />
+          onDrop={onDrop}
+          onDragOver={onDragOver}
+          onDragLeave={onDragLeave}
+        >
+          <input
+            ref={inputRef}
+            type="file"
+            accept=".zip,application/zip"
+            className="hidden"
+            onChange={(e: ChangeEvent<HTMLInputElement>) => {
+              const f = e.target.files?.[0];
+              if (f) onPickFile(f);
+              e.target.value = '';
+            }}
+          />
 
-        {isUploading ? (
-          <div className="inline-flex items-center gap-2 text-[13px]" style={{ color: 'var(--text-primary)' }}>
-            <Loader2 size={14} className="animate-spin" />
-            Parsing {config.label} export…
-          </div>
-        ) : status.state === 'success' ? (
-          <div className="inline-flex items-center gap-2 text-[13px]" style={{ color: 'var(--text-primary)' }}>
-            <CheckCircle2 size={14} />
-            Parsed — {status.observations} observations stored.
-          </div>
-        ) : status.state === 'error' ? (
-          <div className="inline-flex items-center gap-2 text-[13px]" style={{ color: '#dc2626' }}>
-            <AlertCircle size={14} />
-            {status.message}
-          </div>
-        ) : (
-          <div className="inline-flex items-center gap-2 text-[13px]" style={{ color: 'var(--text-secondary)' }}>
-            <Upload size={14} />
-            Drop your {config.expectedFile} here, or click to browse.
-          </div>
-        )}
-      </div>
-
-      <div className="mt-3 flex items-center justify-between text-[12px]" style={{ color: 'var(--text-muted)' }}>
-        <span>{config.privacyNote}</span>
-        {isParsed && row?.parsed_at && (
-          <span>
-            Parsed {new Date(row.parsed_at).toLocaleDateString()} · {row.observation_count} obs
-          </span>
-        )}
-        {row?.status === 'failed' && (
-          <span style={{ color: '#dc2626' }}>Failed: {row.error_message ?? 'unknown error'}</span>
-        )}
-      </div>
-    </div>
+          {isUploading ? (
+            <span className="rs-strong" style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+              <Loader2 className="animate-spin" aria-hidden="true" />
+              Reading your {config.label} export
+            </span>
+          ) : status.state === 'success' ? (
+            <span className="rs-ok" style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+              <CheckCircle2 aria-hidden="true" />
+              Done. {status.observations} memories added.
+            </span>
+          ) : status.state === 'error' ? (
+            <span className="rs-bad" style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+              <AlertCircle aria-hidden="true" />
+              {status.message}
+            </span>
+          ) : (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+              <Upload aria-hidden="true" />
+              Drop {config.expectedFile} here, or choose it
+            </span>
+          )}
+        </div>
+      </li>
+    </>
   );
 };
 
@@ -319,7 +247,7 @@ export default function DataExportsPage() {
     if (file.size > 100 * 1024 * 1024) {
       setStatuses((s) => ({
         ...s,
-        [platform]: { state: 'error', message: 'File exceeds the 100MB direct-upload limit.' },
+        [platform]: { state: 'error', message: 'The file is over the 100 MB limit.' },
       }));
       return;
     }
@@ -359,71 +287,27 @@ export default function DataExportsPage() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
-      {/* Claura zoned photography — train-field, both appearances (/preview/history). */}
-      <header className="mb-6">
-        <h1
-          className="text-[32px] leading-[1.1] tracking-[-0.64px]"
-          style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-heading)' }}
-        >
-          One-time history import
-        </h1>
-        <p className="text-[14px] mt-2 max-w-[600px]" style={{ color: 'var(--text-secondary)' }}>
-          The browser extension already captures your live activity on Discord, LinkedIn and
-          Instagram while you browse. Use this page for the one-time retroactive sweep — years of
-          history from before you installed TwinMe — by uploading the platform's own GDPR export.
-          The zip is parsed in memory and discarded.
-        </p>
-      </header>
+    <Page className="rs">
+      <PageHead
+        title="Import your history"
+        line="Upload a platform's own export. We read it once, then delete the file."
+      />
 
       {listError && (
-        <div
-          className="mb-6 rounded-[14px] px-4 py-3 text-[12.5px] leading-relaxed flex items-start gap-3"
-          style={{
-            background: 'rgb(var(--n-danger-rgb) / 0.08)',
-            border: '1px solid rgb(var(--n-danger-rgb) / 0.25)',
-            color: 'var(--text-secondary)',
-          }}
-          role="alert"
-        >
-          <AlertCircle size={14} className="mt-0.5 flex-shrink-0" style={{ color: 'var(--destructive)' }} />
-          <span className="flex-1">{listError}</span>
-          <button
-            type="button"
-            onClick={() => setListError(null)}
-            aria-label="Dismiss"
-            className="flex-shrink-0 hover:opacity-70 transition-opacity"
-            style={{ color: 'var(--text-muted)' }}
-          >
-            <X size={14} />
+        <p className="rs-bad" role="alert" style={{ display: 'flex', alignItems: 'flex-start', gap: 8, margin: '0 0 24px' }}>
+          <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" aria-hidden="true" />
+          <span style={{ flex: 1 }}>{listError}</span>
+          <button type="button" onClick={() => setListError(null)} aria-label="Dismiss" className="rg-iconbtn">
+            <X aria-hidden="true" />
           </button>
-        </div>
+        </p>
       )}
 
-      <div
-        className="mb-6 rounded-[14px] px-4 py-3 text-[12.5px] leading-relaxed flex items-start gap-3"
-        style={{
-          background: 'var(--surface)',
-          border: '1px solid var(--border-glass)',
-          color: 'var(--text-secondary)',
-        }}
-      >
-        <Upload size={14} className="mt-0.5 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
-        <span>
-          The TwinMe browser extension already streams ongoing activity (channel visits, post
-          reactions, search queries) without any upload step. Install it once and your twin keeps
-          learning automatically. This page is the one-shot backfill for everything that happened
-          before then.
-        </span>
-      </div>
-
-      {loading ? (
-        <div className="flex items-center justify-center py-16" style={{ color: 'var(--text-muted)' }}>
-          <Loader2 size={18} className="animate-spin" />
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {PLATFORMS.map((c) => (
+      <List label="Exports" className="pb-stack">
+        {loading ? (
+          <li><Empty>Loading your imports</Empty></li>
+        ) : (
+          PLATFORMS.map((c) => (
             <PlatformCard
               key={c.id}
               config={c}
@@ -444,9 +328,9 @@ export default function DataExportsPage() {
               onDragLeave={() => setDragging(null)}
               onDelete={() => handleDelete(c.id)}
             />
-          ))}
-        </div>
-      )}
-    </div>
+          ))
+        )}
+      </List>
+    </Page>
   );
 }

@@ -3,6 +3,8 @@
  * =========================================
  * Internal tool at /eval for scoring the twin's accuracy on 10 standard questions.
  * Also provides feature flag toggles for A/B testing cognitive pipeline features.
+ * In the register: the chart sits in a list item, flags are rows with a
+ * switch, scores are 32/4 choices, and there is one ink primary at a time.
  */
 
 import React, { useState } from 'react';
@@ -10,18 +12,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { authFetch } from '@/services/api/apiBase';
 import { toast } from 'sonner';
-import {
-  ClipboardCheck,
-  Play,
-  ChevronDown,
-  ChevronUp,
-  TrendingUp,
-  TrendingDown,
-  AlertCircle,
-  ToggleLeft,
-  ToggleRight,
-  Loader2,
-} from 'lucide-react';
+import { Play, ChevronDown, ChevronRight, Loader2 } from 'lucide-react';
+import { Page, PageHead, Section, List, Row, Empty } from '@/components/register';
+import '@/styles/register-insights.css';
 
 // -- Types --
 
@@ -49,28 +42,27 @@ interface FeatureFlag {
 }
 
 const FLAG_LABELS: Record<string, { label: string; description: string }> = {
-  expert_routing: { label: 'Expert Routing', description: 'Domain-specific memory injection via platform experts' },
-  identity_context: { label: 'Identity Context', description: 'Life stage & cultural conditioning layer' },
-  emotional_state: { label: 'Emotional State', description: 'Real-time emotional fingerprint injection' },
-  ebbinghaus_decay: { label: 'Ebbinghaus Decay', description: 'Time-decay weighting in memory retrieval' },
+  expert_routing: { label: 'Expert routing', description: 'Domain-specific memory injection via platform experts' },
+  identity_context: { label: 'Identity context', description: 'Life stage and cultural conditioning layer' },
+  emotional_state: { label: 'Emotional state', description: 'Real-time emotional fingerprint injection' },
+  ebbinghaus_decay: { label: 'Ebbinghaus decay', description: 'Time-decay weighting in memory retrieval' },
 };
 
-const TYPE_COLORS: Record<string, string> = {
-  factual: '#6366F1',
-  preference: '#C9B99A',
-  behavioral: '#10B981',
-  value: '#8B5CF6',
-  prediction: '#F43F5E',
-};
+/* SVG presentation attributes do not resolve var(): register.css's hex values.
+   --rg-signal for the line (3.3:1 on the page), --rg-rule for the grid, --rg-ink-2 for ticks. */
+const SIGNAL = '#0096ba';
+const RULE = '#eae9ea';
+const INK_2 = '#585254';
 
-const ScoreButton = ({ value, current, onClick }: { value: number; current: number | null; onClick: () => void }) => (
+const capitalize = (s: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
+
+const ScoreButton = ({ value, current, label, onClick }: { value: number; current: number | null; label: string; onClick: () => void }) => (
   <button
+    type="button"
     onClick={onClick}
-    className={`w-8 h-8 rounded-lg text-sm font-semibold transition-colors ${
-      current === value
-        ? 'bg-[var(--accent-amber)] text-[#110f0f]'
-        : 'bg-white/8 text-muted-foreground hover:bg-white/10'
-    }`}
+    className="ri-choice"
+    aria-pressed={current === value}
+    aria-label={`${label} ${value}`}
   >
     {value}
   </button>
@@ -232,233 +224,205 @@ export default function EvalDashboard() {
   const trend = historyData?.trend;
 
   return (
-    <div>
-      <div className="max-w-4xl mx-auto px-4 py-8 space-y-8">
-
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[rgba(193,126,44,0.18)] flex items-center justify-center">
-              <ClipboardCheck className="w-5 h-5 text-[var(--accent-amber)]" />
-            </div>
-            <div>
-              <h1 className="text-xl font-semibold text-foreground">Twin Accuracy Eval</h1>
-              <p className="text-sm text-muted-foreground">Internal tool — run monthly to track quality</p>
-            </div>
-          </div>
-          {trend !== null && trend !== undefined && (
-            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium ${
-              // Dark-glass chips: translucent tint + saturated text — the old
-              // emerald-50/red-700 combos were light-mode colors that glared
-              // (and failed contrast) on the dark theme (audit-2026-07-03).
-              trend >= 0
-                ? 'bg-[rgba(16,185,129,0.08)] text-[#10B981]'
-                : 'bg-[rgba(239,68,68,0.08)] text-[#EF4444]'
-            }`}>
-              {trend >= 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
-              {trend >= 0 ? '+' : ''}{trend}% vs last run
-            </div>
-          )}
-        </div>
-
-        {/* Score History Chart */}
-        <div
-          className="p-6 rounded-lg"
-          style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
-        >
-          <h2 className="text-sm font-semibold text-muted-foreground mb-4">Score History</h2>
-          {historyChartData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={160}>
-              <LineChart data={historyChartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-                <XAxis dataKey="date" tick={{ fontSize: 11 }} />
-                <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} unit="%" />
-                <Tooltip formatter={(val: number) => [`${val}%`, 'score']} />
-                <Line type="monotone" dataKey="score" stroke="#6366F1" strokeWidth={2} dot={{ fill: '#6366F1', r: 4 }} />
-              </LineChart>
-            </ResponsiveContainer>
+    <Page>
+      <PageHead
+        title="Twin accuracy"
+        line={
+          trend !== null && trend !== undefined ? (
+            <>
+              Run it monthly.{' '}
+              <span className={trend >= 0 ? 'ri-ok' : 'ri-danger'}>
+                {trend >= 0 ? 'Up' : 'Down'} {Math.abs(trend)}% on the last run.
+              </span>
+            </>
           ) : (
-            <div className="flex flex-col items-center justify-center py-8 text-center">
-              <AlertCircle className="w-8 h-8 text-muted-foreground mb-3 opacity-40" />
-              <p className="text-sm text-muted-foreground">No scored eval runs yet</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Run an eval below and score the responses to see your history chart.
-              </p>
-            </div>
-          )}
-        </div>
+            'Run it monthly to track quality.'
+          )
+        }
+      />
 
-        {/* Feature Flags */}
-        <div
-          className="p-6 rounded-lg"
-          style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
-        >
-          <h2 className="text-sm font-semibold text-muted-foreground mb-4">Feature Flags (A/B)</h2>
-          <p className="text-xs text-muted-foreground mb-4">Toggle features off, run an eval, compare scores to measure impact.</p>
-          <div className="grid md:grid-cols-2 gap-3">
-            {(flagsData?.flags || []).map(flag => {
-              const meta = FLAG_LABELS[flag.flag_name] || { label: flag.flag_name, description: '' };
-              return (
-                <div key={flag.flag_name} className="flex items-center justify-between p-3 rounded-lg" style={{ backgroundColor: 'rgba(255,255,255,0.02)' }}>
-                  <div>
-                    <div className="text-sm font-medium text-foreground">{meta.label}</div>
-                    <div className="text-xs text-muted-foreground">{meta.description}</div>
-                  </div>
+      {/* Score History Chart */}
+      <Section title="Score history" line="Scored runs, out of 100.">
+        {historyChartData.length > 0 ? (
+          <List>
+            <li className="ri-block">
+              <ResponsiveContainer width="100%" height={160}>
+                <LineChart data={historyChartData} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={RULE} />
+                  <XAxis dataKey="date" tick={{ fontSize: 13, fill: INK_2 }} axisLine={false} tickLine={false} />
+                  <YAxis domain={[0, 100]} tick={{ fontSize: 13, fill: INK_2 }} unit="%" axisLine={false} tickLine={false} width={48} />
+                  <Tooltip
+                    formatter={(val: number) => [`${val}%`, 'score']}
+                    contentStyle={{ backgroundColor: 'var(--rg-white)', border: '1px solid var(--rg-rule)', borderRadius: 4, boxShadow: 'none', fontSize: 13 }}
+                    labelStyle={{ color: 'var(--rg-ink)', fontWeight: 500 }}
+                    itemStyle={{ color: 'var(--rg-ink-2)' }}
+                  />
+                  <Line type="monotone" dataKey="score" stroke={SIGNAL} strokeWidth={2} dot={{ fill: SIGNAL, r: 4 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </li>
+          </List>
+        ) : (
+          <>
+            <List>{null}</List>
+            <Empty>No scored runs yet. Run one below and score it.</Empty>
+          </>
+        )}
+      </Section>
+
+      {/* Feature Flags */}
+      <Section title="Feature flags" line="Turn one off, run an eval, compare the scores.">
+        <List>
+          {(flagsData?.flags || []).map(flag => {
+            const meta = FLAG_LABELS[flag.flag_name] || { label: flag.flag_name, description: '' };
+            return (
+              <Row
+                key={flag.flag_name}
+                title={meta.label}
+                line={meta.description || undefined}
+                action={
                   <button
+                    type="button"
+                    role="switch"
+                    aria-checked={flag.enabled}
+                    aria-label={meta.label}
                     onClick={() => flagMutation.mutate({ flag_name: flag.flag_name, enabled: !flag.enabled })}
                     disabled={flagMutation.isPending}
-                    className="ml-3 flex-shrink-0"
+                    className="ri-switch"
                     title={flag.enabled ? 'Disable' : 'Enable'}
-                  >
-                    {flag.enabled
-                      ? <ToggleRight className="w-8 h-8 text-[var(--accent-amber)]" />
-                      : <ToggleLeft className="w-8 h-8 text-muted-foreground" />}
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+                  />
+                }
+              />
+            );
+          })}
+        </List>
+      </Section>
 
-        {/* Start Eval Run */}
-        <div
-          className="p-6 rounded-lg"
-          style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
-        >
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-sm font-semibold text-muted-foreground">Run New Eval</h2>
-            {activeRun && (
-              <span className="text-xs text-muted-foreground">
-                {scoredCount}/{questionCount} scored
-              </span>
+      {/* Start Eval Run */}
+      <Section title="Run an eval" line="The twin answers 10 questions; you score each from 1 to 5.">
+        <div className="ri-ruled">
+          <div className="ri-actions">
+            <button
+              type="button"
+              onClick={() => runMutation.mutate()}
+              disabled={runMutation.isPending}
+              className={`n-btn ${activeRun ? 'n-btn--ghost' : 'n-btn--primary'}`}
+            >
+              {runMutation.isPending
+                ? <><Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> Running 10 questions...</>
+                : <><Play className="w-4 h-4" aria-hidden="true" /> Start eval run</>}
+            </button>
+            {runMutation.isPending && (
+              <span className="ri-q">This takes 30 to 60 seconds.</span>
             )}
           </div>
-          <p className="text-xs text-muted-foreground mb-4">
-            Asks the twin 10 standard questions and captures responses. You then score each on Accuracy, Specificity, and Voice (1–5).
-          </p>
-          <button
-            onClick={() => runMutation.mutate()}
-            disabled={runMutation.isPending}
-            className="flex items-center gap-2 px-4 py-2.5 bg-[var(--accent-amber)] text-[#110f0f] rounded-lg text-sm font-medium hover:opacity-85 transition-colors disabled:opacity-60"
-          >
-            {runMutation.isPending
-              ? <><Loader2 className="w-4 h-4 animate-spin" /> Running 10 questions...</>
-              : <><Play className="w-4 h-4" /> Start Eval Run</>}
-          </button>
-          {runMutation.isPending && (
-            <p className="text-xs text-muted-foreground mt-2">This may take 30–60 seconds while the twin answers each question.</p>
-          )}
         </div>
+      </Section>
 
-        {/* Active Run: Score Questions */}
-        {activeRun && (
-          <div
-            className="p-6 space-y-4 rounded-lg"
-            style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
-          >
-            <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-muted-foreground">Score Responses</h2>
-              {activeRun.total_score !== null && (
-                <div className="px-3 py-1 bg-[rgba(193,126,44,0.18)] text-[var(--accent-amber)] rounded-lg text-sm font-bold">
-                  {activeRun.total_score.toFixed(1)}%
-                </div>
-              )}
-            </div>
-
+      {/* Active Run: Score Questions */}
+      {activeRun && (
+        <Section
+          title="Score responses"
+          line={`${scoredCount} of ${questionCount} scored${activeRun.total_score !== null ? ` · ${activeRun.total_score.toFixed(1)}%` : ''}`}
+        >
+          <List>
             {activeRun.questions.map(q => {
               const local = localScores[q.id] || { accuracy: null, specificity: null, voice: null };
               const isExpanded = expandedQ === q.id;
+              const scored = local.accuracy !== null && local.specificity !== null && local.voice !== null;
+              const Chevron = isExpanded ? ChevronDown : ChevronRight;
               return (
-                <div key={q.id} className="border border-white/10 rounded-xl overflow-hidden">
-                  <button
-                    className="w-full flex items-center justify-between p-4 transition-colors text-left"
-                    style={{ backgroundColor: 'transparent' }}
-                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.03)'; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
-                    onClick={() => setExpandedQ(isExpanded ? null : q.id)}
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className={`w-2 h-2 rounded-full flex-shrink-0`} style={{ background: TYPE_COLORS[q.type] || '#9CA3AF' }} />
-                      <span className="text-sm font-medium text-foreground">{q.question}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {local.accuracy !== null && local.specificity !== null && local.voice !== null && (
-                        <span className="text-xs text-emerald-600 font-medium">✓ scored</span>
-                      )}
-                      {isExpanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
-                    </div>
-                  </button>
+                <React.Fragment key={q.id}>
+                  <li>
+                    <button
+                      type="button"
+                      className="rg-row rg-row--plain rg-row--link"
+                      aria-expanded={isExpanded}
+                      onClick={() => setExpandedQ(isExpanded ? null : q.id)}
+                    >
+                      <span className="rg-row-text">
+                        <span className="rg-row-title">{q.question}</span>
+                        <span className="rg-row-line">
+                          {capitalize(q.type)}
+                          {scored && <span className="ri-ok"> · Scored</span>}
+                        </span>
+                      </span>
+                      <span className="rg-row-action">
+                        <Chevron className="rg-chevron" aria-hidden="true" />
+                      </span>
+                    </button>
+                  </li>
 
                   {isExpanded && (
-                    <div className="border-t p-4 space-y-4" style={{ borderColor: 'var(--border-glass)' }}>
-                      <div className="rounded-lg p-3" style={{ backgroundColor: 'rgba(255,255,255,0.02)' }}>
-                        <div className="text-xs text-muted-foreground mb-1 font-medium">Twin's response:</div>
-                        <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">{q.twinResponse}</p>
-                      </div>
-
-                      <div className="grid grid-cols-3 gap-4">
+                    <li className="ri-block">
+                      <span className="rg-row-title">The twin said</span>
+                      <p className="ri-prose whitespace-pre-wrap" style={{ margin: '0 0 20px' }}>{q.twinResponse}</p>
+                      <div className="grid gap-4 sm:grid-cols-3">
                         {(['accuracy', 'specificity', 'voice'] as const).map(dim => (
-                          <div key={dim}>
-                            <div className="text-xs font-medium text-muted-foreground mb-2 capitalize">{dim}</div>
+                          <div key={dim} role="group" aria-label={capitalize(dim)}>
+                            <div className="rg-row-line" style={{ marginBottom: 8 }}>{capitalize(dim)}</div>
                             <div className="flex gap-1">
                               {[1, 2, 3, 4, 5].map(v => (
-                                <ScoreButton key={v} value={v} current={local[dim]} onClick={() => setScore(q.id, dim, v)} />
+                                <ScoreButton key={v} value={v} current={local[dim]} label={capitalize(dim)} onClick={() => setScore(q.id, dim, v)} />
                               ))}
                             </div>
                           </div>
                         ))}
                       </div>
-                    </div>
+                    </li>
                   )}
-                </div>
+                </React.Fragment>
               );
             })}
+          </List>
 
-            <div className="pt-2 border-t" style={{ borderColor: 'var(--border-glass)' }}>
+          <div className="ri-form" style={{ gridTemplateColumns: 'minmax(0, 1fr)' }}>
+            <div className="ri-field">
+              <label className="ri-label" htmlFor="eval-notes">Notes</label>
               <textarea
+                id="eval-notes"
                 value={notes}
                 onChange={e => setNotes(e.target.value)}
                 placeholder="Optional notes about this eval run..."
                 rows={2}
-                className="w-full text-sm border rounded-lg p-3 resize-none text-muted-foreground placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[var(--accent-amber)]"
-                style={{ borderColor: 'var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+                className="ri-input"
               />
+            </div>
+            <div className="ri-actions">
               <button
+                type="button"
                 onClick={() => scoreMutation.mutate()}
                 disabled={scoreMutation.isPending || scoredCount === 0}
-                className="mt-3 flex items-center gap-2 px-4 py-2.5 bg-[var(--accent-amber)] text-[#110f0f] rounded-lg text-sm font-medium hover:opacity-85 transition-colors disabled:opacity-60"
+                className="n-btn n-btn--primary"
               >
                 {scoreMutation.isPending
-                  ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</>
-                  : `Save Scores (${scoredCount}/${questionCount} answered)`}
+                  ? <><Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> Saving...</>
+                  : `Save scores (${scoredCount} of ${questionCount})`}
               </button>
             </div>
           </div>
-        )}
+        </Section>
+      )}
 
-        {/* History Table */}
-        {(historyData?.runs || []).length > 0 && (
-          <div
-            className="p-6 rounded-lg"
-            style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
-          >
-            <h2 className="text-sm font-semibold text-muted-foreground mb-4">Past Runs</h2>
-            <div className="space-y-2">
-              {historyData.runs.map((run: any) => (
-                <div key={run.id} className="flex items-center justify-between p-3 rounded-lg" style={{ backgroundColor: 'rgba(255,255,255,0.02)' }}>
-                  <div>
-                    <div className="text-sm text-muted-foreground">{new Date(run.run_at).toLocaleString('en-US')}</div>
-                    {run.notes && <div className="text-xs text-muted-foreground mt-0.5">{run.notes}</div>}
-                  </div>
-                  <div className="text-sm font-bold text-foreground">
+      {/* History */}
+      {(historyData?.runs || []).length > 0 && (
+        <Section title="Past runs">
+          <List>
+            {historyData.runs.map((run: any) => (
+              <Row
+                key={run.id}
+                title={new Date(run.run_at).toLocaleString('en-US')}
+                line={run.notes || undefined}
+                action={
+                  <span className="ri-figures" style={{ fontWeight: 500 }}>
                     {run.total_score !== null ? `${run.total_score.toFixed(1)}%` : '—'}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
+                  </span>
+                }
+              />
+            ))}
+          </List>
+        </Section>
+      )}
+    </Page>
   );
 }

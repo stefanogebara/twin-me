@@ -15,70 +15,28 @@ interface LimitReachedBannerProps {
   chatUsage: ChatUsage | null;
 }
 
+/* The register: one row under an ink rule (a 32px icon, the title, one grey
+   line) and the one ink primary. No glass card, no shadow. */
 export const LimitReachedBanner: React.FC<LimitReachedBannerProps> = ({ chatUsage }) => (
-  <div className="flex justify-center px-6 py-6" role="alert">
-    <div
-      className="flex flex-col items-center text-center gap-3 px-5 py-4 max-w-sm w-full"
-      style={{
-        background: 'var(--glass-surface-bg)',
-        backdropFilter: 'blur(42px)',
-        WebkitBackdropFilter: 'blur(42px)',
-        border: '1px solid var(--glass-surface-border)',
-        borderRadius: '20px',
-        boxShadow: '0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 var(--border-glass)',
-      }}
-    >
-      <div
-        className="flex items-center justify-center w-10 h-10 rounded-full"
-        style={{ background: 'var(--accent-vibrant-glow)' }}
-      >
-        <Clock className="w-5 h-5" style={{ color: 'var(--accent-vibrant)' }} />
-      </div>
-
-      <h3
-        className="text-[20px] tracking-tight"
-        style={{ fontFamily: "var(--font-heading)", color: 'var(--foreground)' }}
-      >
-        You've reached this month's limit
-      </h3>
-
-      <p
-        className="text-sm leading-relaxed"
-        style={{ fontFamily: 'Inter, sans-serif', color: 'var(--text-muted)' }}
-      >
-        Upgrade your plan for more conversations with your twin.
-      </p>
-
-      {chatUsage && (
-        <span
-          className="text-xs px-3 py-1.5 rounded-[46px] mt-1"
-          style={{
-            border: '1px solid var(--glass-surface-border)',
-            color: 'var(--text-muted)',
-            fontFamily: 'Inter, sans-serif',
-          }}
-        >
-          {/* Audit bug C2: guard against null limit (unlimited tiers). */}
-          {typeof chatUsage.limit === 'number'
-            ? `${chatUsage.used}/${chatUsage.limit} messages used`
-            : `${chatUsage.used} messages used`}
+  <div className="px-3 sm:px-6 py-6 max-w-3xl mx-auto w-full" role="alert">
+    <ul className="rg-list">
+      <li className="rg-row">
+        <span className="rg-row-icon" aria-hidden="true"><Clock /></span>
+        <span className="rg-row-text">
+          <span className="rg-row-title">You've reached this month's limit</span>
+          <span className="rg-row-line" style={{ fontVariantNumeric: 'tabular-nums' }}>
+            {/* Audit bug C2: guard against null limit (unlimited tiers). */}
+            {chatUsage
+              ? typeof chatUsage.limit === 'number'
+                ? `${chatUsage.used} of ${chatUsage.limit} messages used. Upgrade for more.`
+                : `${chatUsage.used} messages used. Upgrade for more.`
+              : 'Upgrade your plan for more conversations with your twin.'}
+          </span>
         </span>
-      )}
-
-      <Link
-        to="/pricing"
-        className="mt-2 inline-flex items-center justify-center px-5 py-2 rounded-[100px] min-w-[140px] transition-all duration-150 hover:opacity-90"
-        style={{
-          background: 'var(--accent-vibrant)',
-          color: 'var(--primary-foreground)',
-          fontFamily: 'Inter, sans-serif',
-          fontWeight: 500,
-          fontSize: '14px',
-          textDecoration: 'none',
-        }}
-      >
-        Upgrade plan
-      </Link>
-    </div>
+        <span className="rg-row-action">
+          <Link to="/pricing" className="n-btn n-btn--primary">Upgrade plan</Link>
+        </span>
+      </li>
+    </ul>
   </div>
 );

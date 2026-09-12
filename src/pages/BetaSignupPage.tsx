@@ -1,8 +1,17 @@
-import { useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Loader2, ArrowLeft, Check, ClipboardCopy } from 'lucide-react';
+import { Loader2, Check, ClipboardCopy } from 'lucide-react';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { API_URL } from '@/services/api/apiBase';
+import '../styles/money-v2.css';
+import '../styles/auth.css';
+
+/**
+ * /beta, in the sign-in frame of /auth (auth.css inside money-v2's .mv): the
+ * title and one grey line, a label over each field, the platforms as 32/4
+ * choices (white with a hairline; pressed is the field with an ink line), and
+ * Apply as the one 48/12 call to action. The application itself is unchanged.
+ */
 
 const PLATFORMS = [
   { id: 'spotify', label: 'Spotify' },
@@ -40,22 +49,9 @@ function CopyableInviteCode({ code }: { code: string }) {
   }, [code]);
 
   return (
-    <button
-      onClick={handleCopy}
-      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg font-mono text-lg tracking-[2px] transition-colors hover:bg-[var(--surface-solid)]"
-      style={{
-        backgroundColor: 'var(--surface)',
-        border: '1px solid var(--glass-surface-border)',
-        color: 'var(--foreground)',
-      }}
-      title="Click to copy"
-    >
+    <button type="button" onClick={handleCopy} className="mv-pill mv-pill--ghost au-code" title="Click to copy">
       {code}
-      {copied ? (
-        <Check className="w-4 h-4 text-[var(--n-verdigris)]" />
-      ) : (
-        <ClipboardCopy className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
-      )}
+      {copied ? <Check className="w-4 h-4" aria-label="Copied" /> : <ClipboardCopy className="w-4 h-4" aria-hidden="true" />}
     </button>
   );
 }
@@ -119,191 +115,78 @@ function BetaSignupPage() {
   }, [name, email, selectedPlatforms, reason]);
 
   return (
-    <div
-      className="min-h-screen flex items-center justify-center px-6 py-16"
-    >
-      <div className="w-full max-w-[480px]">
-        {/* Logo */}
-        <div className="flex items-center justify-center gap-2 mb-12">
-          <div className="w-7 h-7 rounded-full overflow-hidden flex-shrink-0">
-            <img
-              src="/images/backgrounds/flower.png"
-              alt="TwinMe"
-              className="w-full h-full object-cover"
-            />
-          </div>
-          <span
-            style={{
-              fontFamily: "var(--font-heading)",
-              fontSize: '22px',
-              letterSpacing: '-0.5px',
-              color: 'var(--foreground)',
-            }}
-          >
-            TwinMe
-          </span>
-        </div>
-
+    <main className="mv au" id="main-content">
+      <div className="au-col">
         {success ? (
           /* ── Success State ── */
-          <div className="text-center">
-            <h1
-              className="mb-3"
-              style={{
-                fontFamily: "var(--font-heading)",
-                fontSize: '36px',
-                fontWeight: 400,
-                letterSpacing: '-0.02em',
-                color: 'var(--foreground)',
-                lineHeight: 1.2,
-              }}
-            >
-              {success.pendingReview ? 'Application received' : success.alreadyApplied ? 'Welcome back' : "You're in"}
-            </h1>
-            <p
-              className="text-sm mb-8"
-              style={{
-                color: 'var(--text-muted)',
-                fontFamily: 'var(--font-ui)',
-                lineHeight: 1.6,
-              }}
-            >
-              {success.pendingReview
-                ? (success.message || "Your application is being reviewed. We'll be in touch soon.")
-                : success.alreadyApplied
-                  ? 'You already have a beta invite. Use the code below to sign in.'
-                  : 'Your beta access is ready. Copy the invite code below and use it to sign in.'}
-            </p>
+          <>
+            <section className="au-room" role="status">
+              <h1>
+                {success.pendingReview ? 'Application received.' : success.alreadyApplied ? 'Welcome back.' : "You're in."}
+              </h1>
+              <p className="mv-sub">
+                {success.pendingReview
+                  ? (success.message || "Your application is being reviewed. We'll be in touch soon.")
+                  : success.alreadyApplied
+                    ? 'You already have a beta invite. Use the code below to sign in.'
+                    : 'Your beta access is ready. Copy the invite code below and use it to sign in.'}
+              </p>
+            </section>
 
             {!success.pendingReview && success.inviteCode && (
-              <>
-                <div className="mb-6">
-                  <p
-                    className="text-[11px] uppercase tracking-[0.12em] mb-3"
-                    style={{ color: 'var(--text-muted)' }}
-                  >
-                    Your invite code
-                  </p>
-                  <CopyableInviteCode code={success.inviteCode} />
-                </div>
-
+              <section className="au-controls" aria-label="Your invite code">
+                <p className="mv-label">Your invite code</p>
+                <CopyableInviteCode code={success.inviteCode} />
                 <button
+                  type="button"
                   onClick={() => {
                     sessionStorage.setItem('beta_invite_code', success.inviteCode!);
                     navigate('/auth');
                   }}
-                  className="text-[14px] font-medium px-6 py-3 rounded-[100px] cursor-pointer transition-all duration-150 ease-out hover:brightness-110 active:scale-[0.97]"
-                  style={{
-                    background: 'var(--claura-bone)',
-                    color: 'var(--claura-bone-ink)',
-                    border: 'none',
-                  }}
+                  className="mv-pill mv-pill--lg"
                 >
                   Sign in to get started
                 </button>
-              </>
+              </section>
             )}
-          </div>
+          </>
         ) : (
           /* ── Application Form ── */
           <>
-            <div className="text-center mb-10">
-              <h1
-                className="mb-3"
-                style={{
-                  fontFamily: "var(--font-heading)",
-                  fontSize: '36px',
-                  fontWeight: 400,
-                  letterSpacing: '-0.02em',
-                  color: 'var(--foreground)',
-                  lineHeight: 1.2,
-                }}
-              >
-                Join the TwinMe Beta
-              </h1>
-              <p
-                className="text-sm"
-                style={{
-                  color: 'var(--text-muted)',
-                  fontFamily: 'var(--font-ui)',
-                  lineHeight: 1.6,
-                }}
-              >
-                Your AI twin that acts for you.
-              </p>
-            </div>
+            <section className="au-room">
+              <h1 className="au-enter" style={{ '--i': 0 } as React.CSSProperties}>Join the beta.</h1>
+              <p className="mv-sub au-enter" style={{ '--i': 1 } as React.CSSProperties}>Your AI twin that acts for you.</p>
+            </section>
 
-            {error && (
-              <div
-                className="text-sm mb-6 py-3 px-4 rounded-lg"
-                style={{
-                  backgroundColor: 'rgba(239, 68, 68, 0.08)',
-                  border: '1px solid rgba(239, 68, 68, 0.15)',
-                  color: '#fca5a5',
-                }}
-              >
-                {error}
-              </div>
-            )}
-
-            <form onSubmit={handleSubmit} className="space-y-5">
-              {/* Name */}
-              <div>
-                <label
-                  className="block text-[12px] mb-1.5"
-                  style={{ color: 'var(--text-muted)' }}
-                >
-                  Your name
-                </label>
+            <form onSubmit={handleSubmit} className="au-form au-form--long au-enter" style={{ '--i': 2 } as React.CSSProperties}>
+              <label className="au-field">
+                <span className="mv-label">Your name</span>
                 <input
+                  className="mv-field"
                   type="text"
                   value={name}
                   onChange={e => { setName(e.target.value); setError(''); }}
                   placeholder="First Last"
-                  className="w-full h-11 px-3 rounded-[6px] text-[14px] outline-none transition-all focus:ring-1"
-                  style={{
-                    backgroundColor: 'var(--surface)',
-                    border: '1px solid var(--border-glass)',
-                    color: 'var(--foreground)',
-                    fontFamily: 'var(--font-ui)',
-                    '--tw-ring-color': 'rgba(255,255,255,0.25)',
-                  } as React.CSSProperties}
+                  autoComplete="name"
                 />
-              </div>
+              </label>
 
-              {/* Email */}
-              <div>
-                <label
-                  className="block text-[12px] mb-1.5"
-                  style={{ color: 'var(--text-muted)' }}
-                >
-                  Email
-                </label>
+              <label className="au-field">
+                <span className="mv-label">Email</span>
                 <input
+                  className="mv-field"
                   type="email"
                   value={email}
                   onChange={e => { setEmail(e.target.value); setError(''); }}
                   placeholder="you@example.com"
-                  className="w-full h-11 px-3 rounded-[6px] text-[14px] outline-none transition-all focus:ring-1"
-                  style={{
-                    backgroundColor: 'var(--surface)',
-                    border: '1px solid var(--border-glass)',
-                    color: 'var(--foreground)',
-                    fontFamily: 'var(--font-ui)',
-                    '--tw-ring-color': 'rgba(255,255,255,0.25)',
-                  } as React.CSSProperties}
+                  autoComplete="email"
+                  inputMode="email"
                 />
-              </div>
+              </label>
 
-              {/* Platforms */}
-              <div>
-                <label
-                  className="block text-[12px] mb-2"
-                  style={{ color: 'var(--text-muted)' }}
-                >
-                  Which platforms do you use?
-                </label>
-                <div className="flex flex-wrap gap-2">
+              <fieldset className="au-field">
+                <legend className="mv-label">Which platforms do you use?</legend>
+                <div className="au-choices">
                   {PLATFORMS.map(p => {
                     const isSelected = selectedPlatforms.includes(p.id);
                     return (
@@ -311,99 +194,46 @@ function BetaSignupPage() {
                         key={p.id}
                         type="button"
                         onClick={() => togglePlatform(p.id)}
-                        className="px-3 py-2 rounded-[46px] text-[13px] font-medium transition-all duration-150 ease-out cursor-pointer"
-                        style={{
-                          backgroundColor: isSelected
-                            ? 'rgba(255,255,255,0.12)'
-                            : 'rgba(255,255,255,0.04)',
-                          border: isSelected
-                            ? '1px solid rgba(255,255,255,0.20)'
-                            : '1px solid rgba(255,255,255,0.08)',
-                          color: isSelected
-                            ? 'var(--foreground)'
-                            : 'var(--text-secondary)',
-                          fontFamily: 'var(--font-ui)',
-                        }}
+                        aria-pressed={isSelected}
+                        className="mv-pill mv-pill--ghost"
                       >
                         {p.label}
                       </button>
                     );
                   })}
                 </div>
-              </div>
+              </fieldset>
 
-              {/* Reason */}
-              <div>
-                <label
-                  className="block text-[12px] mb-1.5"
-                  style={{ color: 'var(--text-muted)' }}
-                >
-                  Why do you want a personal AI?
-                </label>
+              <label className="au-field">
+                <span className="mv-label">Why do you want a personal AI?</span>
                 <textarea
+                  className="mv-field mv-field--area"
                   value={reason}
                   onChange={e => setReason(e.target.value)}
                   placeholder="I want to understand my patterns, automate decisions, get personalized insights..."
                   rows={3}
-                  className="w-full px-3 py-2.5 rounded-[6px] text-[14px] outline-none transition-all focus:ring-1 resize-none"
-                  style={{
-                    backgroundColor: 'var(--surface)',
-                    border: '1px solid var(--border-glass)',
-                    color: 'var(--foreground)',
-                    fontFamily: 'var(--font-ui)',
-                    '--tw-ring-color': 'rgba(255,255,255,0.25)',
-                  } as React.CSSProperties}
                 />
-              </div>
+              </label>
 
-              {/* Submit */}
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full h-11 rounded-[100px] text-[14px] font-medium transition-all duration-150 ease-out hover:brightness-110 active:scale-[0.97] disabled:opacity-50"
-                style={{
-                  background: 'var(--claura-bone)',
-                  color: 'var(--claura-bone-ink)',
-                  border: 'none',
-                  fontFamily: 'var(--font-ui)',
-                  cursor: loading ? 'wait' : 'pointer',
-                }}
-              >
-                {loading ? (
-                  <Loader2 className="w-4 h-4 animate-spin inline" />
-                ) : (
-                  'Apply for Beta'
-                )}
+              {error ? <p className="au-note au-note--error" role="alert">{error}</p> : null}
+
+              <button type="submit" disabled={loading} className="mv-pill mv-pill--lg">
+                {loading ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : null}
+                {loading ? 'Sending your application' : 'Apply for the beta'}
               </button>
             </form>
           </>
         )}
 
-        {/* Footer nav */}
-        <div className="flex items-center justify-center gap-4 mt-10">
-          <button
-            onClick={() => navigate('/auth')}
-            className="inline-flex items-center gap-1.5 text-[13px] transition-opacity hover:opacity-70"
-            style={{
-              color: 'var(--text-muted)',
-              fontFamily: 'var(--font-ui)',
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-            }}
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
+        <div className="au-controls">
+          <button type="button" onClick={() => navigate('/auth')} className="mv-pill mv-pill--ghost">
             Already have a code? Sign in
           </button>
         </div>
 
-        <div className="mt-12 text-center">
-          <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-            &copy; 2026 TwinMe Inc.
-          </span>
-        </div>
+        <footer className="au-foot">&copy; 2026 TwinMe Inc.</footer>
       </div>
-    </div>
+    </main>
   );
 }
 

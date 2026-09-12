@@ -96,7 +96,7 @@ export const AVAILABLE_CONNECTORS: ConnectorConfig[] = [
   {
     provider: 'browser_extension',
     name: 'Browser Extension',
-    description: 'Track everything you browse — pages visited, reading time, content topics, search queries, and engagement patterns',
+    description: 'The pages you read, and for how long',
     icon: <BrowserExtensionLogo className="w-6 h-6" />,
     color: 'var(--accent-vibrant)',
     dataTypes: ['Browsing History', 'Reading Depth', 'Search Queries', 'Content Topics'],
@@ -109,7 +109,7 @@ export const AVAILABLE_CONNECTORS: ConnectorConfig[] = [
   {
     provider: 'spotify',
     name: 'Spotify',
-    description: 'Your music reveals your mood patterns, energy levels, and authentic taste',
+    description: 'What you listen to, and when',
     icon: <SpotifyLogo className="w-6 h-6" />,
     color: '#1DB954',
     dataTypes: ['Music Taste', 'Mood Patterns', 'Energy Levels'],
@@ -121,7 +121,7 @@ export const AVAILABLE_CONNECTORS: ConnectorConfig[] = [
   {
     provider: 'google_calendar',
     name: 'Google Calendar',
-    description: 'Your schedule reveals work patterns, social habits, and how you manage time',
+    description: 'How you spend your time',
     icon: <CalendarLogo className="w-6 h-6" />,
     color: '#4285F4',
     dataTypes: ['Work Patterns', 'Time Management', 'Event Context'],
@@ -133,7 +133,7 @@ export const AVAILABLE_CONNECTORS: ConnectorConfig[] = [
   {
     provider: 'youtube' as DataProvider,
     name: 'YouTube',
-    description: 'Your viewing patterns reveal learning interests, entertainment preferences, and content curiosities',
+    description: 'What you watch and learn from',
     icon: <YoutubeLogo className="w-6 h-6" />,
     color: '#FF0000',
     dataTypes: ['Watch History', 'Subscriptions', 'Liked Videos'],
@@ -145,7 +145,7 @@ export const AVAILABLE_CONNECTORS: ConnectorConfig[] = [
   {
     provider: 'discord' as DataProvider,
     name: 'Discord',
-    description: 'Your server activity reveals community interests, communication style, and social identity',
+    description: 'Your communities and how you talk',
     icon: <DiscordLogo className="w-6 h-6" />,
     color: '#5865F2',
     dataTypes: ['Server Activity', 'Interests', 'Community'],
@@ -161,7 +161,7 @@ export const AVAILABLE_CONNECTORS: ConnectorConfig[] = [
   {
     provider: 'instagram' as DataProvider,
     name: 'Instagram',
-    description: 'Your saved posts and aesthetic — what you bookmark reveals your taste, interests, and the worlds you return to',
+    description: 'What you save and come back to',
     icon: <span className="w-6 h-6 inline-flex items-center justify-center text-[var(--foreground)]">IG</span>,
     color: '#E4405F',
     dataTypes: ['Saved Posts', 'Your Posts'],
@@ -173,7 +173,7 @@ export const AVAILABLE_CONNECTORS: ConnectorConfig[] = [
   {
     provider: 'google_gmail' as DataProvider,
     name: 'Gmail',
-    description: 'Email patterns reveal communication habits, network breadth, and how you organize your digital life',
+    description: 'Who you write to, and how',
     icon: <GmailLogo className="w-6 h-6" />,
     color: '#EA4335',
     dataTypes: ['Email Patterns', 'Network Breadth', 'Communication Style'],
@@ -188,7 +188,7 @@ export const AVAILABLE_CONNECTORS: ConnectorConfig[] = [
   {
     provider: 'github' as DataProvider,
     name: 'GitHub',
-    description: 'Your repositories and activity reveal how you think about problems and what you build',
+    description: 'What you build, and when',
     icon: <GithubLogo className="w-6 h-6" />,
     color: '#24292F',
     dataTypes: ['Projects', 'Coding Patterns', 'Tech Interests'],
@@ -204,7 +204,7 @@ export const AVAILABLE_CONNECTORS: ConnectorConfig[] = [
   {
     provider: 'whoop' as DataProvider,
     name: 'Whoop',
-    description: 'Recovery, strain, and sleep data reveal how your body responds to stress and shapes your daily energy',
+    description: 'Sleep, recovery and strain',
     icon: <WhoopLogo className="w-6 h-6" />,
     color: '#44A8B3',
     dataTypes: ['Recovery Score', 'Strain', 'Sleep Quality', 'HRV Trends'],
@@ -222,7 +222,7 @@ export const AVAILABLE_CONNECTORS: ConnectorConfig[] = [
   {
     provider: 'microsoft_outlook' as DataProvider,
     name: 'Outlook',
-    description: 'Email patterns and calendar events reveal how you structure your professional life and communicate',
+    description: 'Email and calendar',
     icon: <OutlookLogo className="w-6 h-6" />,
     color: '#0078D4',
     dataTypes: ['Email Patterns', 'Calendar Events', 'Communication Style'],

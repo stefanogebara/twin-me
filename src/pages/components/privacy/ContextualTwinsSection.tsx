@@ -1,8 +1,8 @@
 /**
  * Contextual Twins Section
  *
- * Displays a grid of twin buttons allowing the user to activate/deactivate
- * contextual twins (professional, social, dating, etc.).
+ * One row per contextual twin (professional, social, dating, etc.), each with a
+ * 32/4 choice that activates it; choosing the active one again deactivates it.
  */
 
 import React from 'react';
@@ -13,12 +13,7 @@ import {
   Globe,
   Sparkles,
 } from 'lucide-react';
-
-// --- Design tokens (shared with parent) ---
-const TEXT_PRIMARY = 'var(--foreground)';
-const TEXT_SECONDARY = 'rgba(255,255,255,0.4)';
-const BORDER_COLOR = 'var(--border-glass)';
-const CARD_BG = 'rgba(255,255,255,0.02)';
+import { Section, List, Row, Empty } from '@/components/register';
 
 const TWIN_ICONS: Record<string, React.ComponentType<{ size?: number; style?: React.CSSProperties }>> = {
   professional: Briefcase,
@@ -26,14 +21,6 @@ const TWIN_ICONS: Record<string, React.ComponentType<{ size?: number; style?: Re
   dating: Heart,
   public: Globe,
   custom: Sparkles,
-};
-
-const TWIN_COLORS: Record<string, string> = {
-  professional: '#60a5fa',
-  social: '#34d399',
-  dating: '#f472b6',
-  public: '#9ca3af',
-  custom: '#a78bfa',
 };
 
 // --- Types ---
@@ -58,93 +45,41 @@ const ContextualTwinsSection: React.FC<ContextualTwinsSectionProps> = ({
   activeTwinName,
   onActivateTwin,
 }) => (
-  <section
-    style={{
-      background: CARD_BG,
-      borderRadius: 16,
-      border: `1px solid ${BORDER_COLOR}`,
-      padding: '20px 24px',
-      marginBottom: 20,
-    }}
+  <Section
+    title="Contextual twins"
+    line={activeTwinId
+      ? `Your twin is showing your ${activeTwinName} side. Choose it again to stop.`
+      : 'Which side of you your twin shows.'}
   >
-    <h2 style={{ fontSize: 15, fontWeight: 700, color: TEXT_PRIMARY, margin: '0 0 4px' }}>
-      Contextual Twins
-    </h2>
-    <p style={{ fontSize: 12, color: TEXT_SECONDARY, margin: '0 0 16px' }}>
-      Choose which version of yourself to present
-    </p>
-
-    {twins.length === 0 ? (
-      <p style={{ fontSize: 13, color: TEXT_SECONDARY, fontStyle: 'italic' }}>
-        No contextual twins configured yet.
-      </p>
-    ) : (
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 10 }}>
-        {twins.map(twin => {
+    <List label="Contextual twins" className="rs-compact">
+      {twins.length === 0 ? (
+        <li><Empty>No contextual twins yet.</Empty></li>
+      ) : (
+        twins.map(twin => {
           const IconComponent = TWIN_ICONS[twin.twin_type] ?? Sparkles;
-          const twinColor = twin.color ?? TWIN_COLORS[twin.twin_type] ?? 'rgba(255,255,255,0.4)';
-          const isActive = twin.isActive;
-
           return (
-            <button
+            <Row
               key={twin.id}
-              onClick={() => onActivateTwin(twin.id)}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: 8,
-                padding: '14px 10px',
-                borderRadius: 12,
-                border: `1.5px solid ${isActive ? twinColor : BORDER_COLOR}`,
-                background: isActive ? `${twinColor}12` : 'transparent',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                position: 'relative',
-              }}
-            >
-              {isActive && (
-                <span
-                  style={{
-                    position: 'absolute',
-                    top: 6,
-                    right: 6,
-                    width: 6,
-                    height: 6,
-                    borderRadius: '50%',
-                    background: twinColor,
-                  }}
-                />
-              )}
-              <div
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 10,
-                  background: `${twinColor}20`,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: twinColor,
-                }}
-              >
-                <IconComponent size={18} />
-              </div>
-              <span style={{ fontSize: 12, fontWeight: 600, color: isActive ? twinColor : TEXT_PRIMARY }}>
-                {twin.name}
-              </span>
-            </button>
+              icon={<IconComponent />}
+              title={twin.name}
+              line={twin.isActive ? <span className="rs-ok">In use</span> : undefined}
+              action={
+                <button
+                  type="button"
+                  onClick={() => onActivateTwin(twin.id)}
+                  aria-pressed={twin.isActive}
+                  aria-label={`Use the ${twin.name} twin`}
+                  className="n-btn n-btn--ghost rs-choice"
+                >
+                  Use
+                </button>
+              }
+            />
           );
-        })}
-      </div>
-    )}
-
-    {activeTwinId && (
-      <p style={{ fontSize: 11, color: TEXT_SECONDARY, marginTop: 12, fontStyle: 'italic' }}>
-        Active: {activeTwinName} — click again to deactivate
-      </p>
-    )}
-  </section>
+        })
+      )}
+    </List>
+  </Section>
 );
 
 export default ContextualTwinsSection;

@@ -30,7 +30,7 @@ export const TopTracksCard: React.FC<TopTracksCardProps> = ({ tracks, className 
           <Music2 className="w-5 h-5 text-[#1DB954]" />
         </div>
         <div>
-          <h3 className="text-lg font-medium" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>Top Tracks</h3>
+          <h3 className="text-lg font-medium" style={{ fontFamily: 'var(--font-ui)', color: 'var(--foreground)' }}>Top Tracks</h3>
           <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Your most played songs</p>
         </div>
       </div>
@@ -50,7 +50,7 @@ export const TopTracksCard: React.FC<TopTracksCardProps> = ({ tracks, className 
                 {index + 1}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>
+                <p className="text-sm font-medium truncate" style={{ fontFamily: 'var(--font-ui)', color: 'var(--foreground)' }}>
                   {track.name}
                 </p>
                 <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>{track.artist}</p>

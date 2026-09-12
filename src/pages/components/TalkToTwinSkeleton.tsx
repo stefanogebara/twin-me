@@ -11,6 +11,9 @@
  * within 3.5s on first visit because the global Suspense fallback was a
  * centered pulsing flower with no input-shaped placeholder. Mobile users
  * (and audit scripts) now see the composer region from the first paint.
+ *
+ * The register: placeholders are the warm field on the page, and the
+ * composer is the field itself (no border, a 4 corner).
  */
 
 export function TalkToTwinSkeleton() {
@@ -31,8 +34,8 @@ export function TalkToTwinSkeleton() {
       <div className="flex-1 flex flex-col max-w-4xl mx-auto w-full">
         {/* Header bar */}
         <div className="px-3 sm:px-6 pt-4 pb-2 flex items-center justify-between">
-          <div className="h-6 w-28 rounded-md bg-white/[0.06] animate-pulse" />
-          <div className="h-6 w-6 rounded-full bg-white/[0.06] animate-pulse" />
+          <div className="h-6 w-28 rounded-[4px] animate-pulse" style={{ background: 'var(--rg-field)' }} />
+          <div className="h-6 w-6 rounded-[4px] animate-pulse" style={{ background: 'var(--rg-field)' }} />
         </div>
 
         {/* Message area placeholder — flex-1 reserves the scroll region */}
@@ -41,16 +44,16 @@ export function TalkToTwinSkeleton() {
         {/* Composer placeholder — matches ChatInputArea geometry */}
         <div className="px-3 sm:px-6 pb-6 pt-2 max-w-3xl mx-auto w-full">
           <div
-            className="flex items-center gap-3 rounded-[20px] px-5 py-3 border"
+            className="flex items-center gap-3"
             style={{
-              backgroundColor: 'var(--surface)',
-              borderColor: 'rgba(255,255,255,0.10)',
-              backdropFilter: 'blur(42px)',
-              WebkitBackdropFilter: 'blur(42px)',
+              background: 'var(--rg-field)',
+              borderRadius: 'var(--rg-radius)',
+              minHeight: 'var(--rg-field-height)',
+              padding: '6px 6px 6px 14px',
             }}
           >
-            <div className="flex-1 h-7 rounded-md bg-white/[0.04] animate-pulse" />
-            <div className="w-7 h-7 rounded-full bg-white/[0.10] animate-pulse flex-shrink-0" />
+            <div className="flex-1" />
+            <div className="w-8 h-8 rounded-[4px] flex-shrink-0" style={{ background: 'var(--rg-quiet)' }} />
           </div>
         </div>
 

@@ -1,13 +1,15 @@
 /**
- * InsightCards -- Swipeable Personality Moment Cards (Spotify Wrapped style)
- * ==========================================================================
- * Horizontal scrollable card strip with 4-5 bold visual insight cards.
- * Each card is a standalone "personality moment" with colored accent border.
+ * InsightCards -- personality moments, as register rows
+ * =====================================================
+ * Listening, energy rhythm, top dimension, data footprint and twin accuracy.
+ * Once a swipeable strip of glass cards with coloured borders; in the register
+ * each moment is a row (a 32px icon, the title, one grey line) under the list's
+ * ink rule. The name is kept for its caller.
  */
 
 import React from 'react';
-import { motion } from 'framer-motion';
-import { Music, Zap, Sparkles, Database, Target, Moon, Sun, CloudSun, Watch } from 'lucide-react';
+import { Music, Zap, Sparkles, Database, Target } from 'lucide-react';
+import { List, Row } from '@/components/register';
 
 // ── Types ────────────────────────────────────────────────────────────────
 
@@ -31,22 +33,12 @@ interface InsightCardsProps {
 function formatChronotype(raw: string | null | undefined): string {
   if (!raw) return 'Unknown';
   const labels: Record<string, string> = {
-    night_owl: 'Night Owl',
-    early_bird: 'Early Bird',
-    afternoon_peak: 'Afternoon Peak',
-    even_keel: 'Even Keel',
+    night_owl: 'Night owl',
+    early_bird: 'Early bird',
+    afternoon_peak: 'Afternoon peak',
+    even_keel: 'Even keel',
   };
-  return labels[raw] ?? raw.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-}
-
-// audit-2026-06-10: lucide icons only — emoji characters are banned in user-facing UI
-function chronotypeIcon(raw: string | null | undefined): React.ReactNode {
-  if (!raw) return null;
-  const iconProps = { className: 'w-6 h-6', style: { color: 'rgba(251,191,36,0.7)' } };
-  if (raw.includes('night') || raw.includes('owl')) return <Moon {...iconProps} />;
-  if (raw.includes('early') || raw.includes('bird')) return <Sun {...iconProps} />;
-  if (raw.includes('afternoon')) return <CloudSun {...iconProps} />;
-  return <Watch {...iconProps} />;
+  return labels[raw] ?? raw.replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase());
 }
 
 function daysSinceJoined(joinedAt: string | null | undefined): number {
@@ -67,14 +59,13 @@ function findMusicAxis(axes: PersonalityAxis[]): PersonalityAxis | null {
   );
 }
 
-// ── Card definitions ─────────────────────────────────────────────────────
+// ── Row definitions ──────────────────────────────────────────────────────
 
 interface CardDef {
   id: string;
   title: string;
-  accentColor: string;
   icon: React.ReactNode;
-  content: React.ReactNode;
+  line: string;
 }
 
 function buildCards(props: InsightCardsProps): CardDef[] {
@@ -89,175 +80,52 @@ function buildCards(props: InsightCardsProps): CardDef[] {
 
   const cards: CardDef[] = [];
 
-  // 1. Listening DNA
+  // 1. Listening
   const musicAxis = findMusicAxis(axes);
   cards.push({
     id: 'listening-dna',
-    title: 'Your Listening DNA',
-    accentColor: 'rgba(30,215,96,0.8)', // Spotify green
-    icon: <Music className="w-4 h-4" style={{ color: 'rgba(30,215,96,0.5)' }} />,
-    content: musicAxis ? (
-      <div>
-        <p
-          className="text-sm font-semibold mb-1"
-          style={{ color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}
-        >
-          {musicAxis.label}
-        </p>
-        <p
-          className="text-xs leading-relaxed"
-          style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
-        >
-          {musicAxis.description.length > 100
-            ? musicAxis.description.slice(0, 100) + '...'
-            : musicAxis.description}
-        </p>
-      </div>
-    ) : (
-      <p
-        className="text-xs"
-        style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
-      >
-        Connect Spotify to discover
-      </p>
-    ),
+    title: 'Your listening',
+    icon: <Music aria-hidden="true" />,
+    line: musicAxis ? musicAxis.label : 'Connect Spotify to discover',
   });
 
-  // 2. Energy Rhythm
+  // 2. Energy rhythm
   cards.push({
     id: 'energy-rhythm',
-    title: 'Your Energy Rhythm',
-    accentColor: 'rgba(251,191,36,0.8)', // amber
-    icon: <Zap className="w-4 h-4" style={{ color: 'rgba(251,191,36,0.5)' }} />,
-    content: (
-      <div className="flex items-center gap-3">
-        {chronotypeIcon(chronotype)}
-        <p
-          className="text-sm font-semibold"
-          style={{ color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}
-        >
-          {formatChronotype(chronotype)}
-        </p>
-      </div>
-    ),
+    title: 'Your energy rhythm',
+    icon: <Zap aria-hidden="true" />,
+    line: formatChronotype(chronotype),
   });
 
-  // 3. Top Dimension
+  // 3. Top dimension
   if (axes.length > 0) {
-    const topAxis = axes[0];
     cards.push({
       id: 'top-dimension',
-      title: 'Your Top Dimension',
-      accentColor: 'rgba(199,146,234,0.8)', // purple/lavender
-      icon: <Sparkles className="w-4 h-4" style={{ color: 'rgba(199,146,234,0.5)' }} />,
-      content: (
-        <div>
-          <p
-            className="text-sm font-semibold mb-1"
-            style={{ color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}
-          >
-            {topAxis.label}
-          </p>
-          <p
-            className="text-xs leading-relaxed"
-            style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
-          >
-            {topAxis.description.length > 90
-              ? topAxis.description.slice(0, 90) + '...'
-              : topAxis.description}
-          </p>
-        </div>
-      ),
+      title: 'Your top dimension',
+      icon: <Sparkles aria-hidden="true" />,
+      line: axes[0].label,
     });
   }
 
-  // 4. Data Footprint
+  // 4. Data footprint
   const days = daysSinceJoined(joinedAt);
   cards.push({
     id: 'data-footprint',
-    title: 'Your Data Footprint',
-    accentColor: 'rgba(245,158,11,0.8)', // amber/orange
-    icon: <Database className="w-4 h-4" style={{ color: 'rgba(245,158,11,0.5)' }} />,
-    content: (
-      <div className="flex gap-4">
-        <div>
-          <p
-            className="text-lg font-semibold"
-            style={{ color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}
-          >
-            {memoryCount.toLocaleString('en-US')}
-          </p>
-          <p
-            className="text-[10px] uppercase tracking-wider"
-            style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
-          >
-            memories
-          </p>
-        </div>
-        <div>
-          <p
-            className="text-lg font-semibold"
-            style={{ color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}
-          >
-            {platformCount}
-          </p>
-          <p
-            className="text-[10px] uppercase tracking-wider"
-            style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
-          >
-            platforms
-          </p>
-        </div>
-        {days > 0 && (
-          <div>
-            <p
-              className="text-lg font-semibold"
-              style={{ color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}
-            >
-              {days}
-            </p>
-            <p
-              className="text-[10px] uppercase tracking-wider"
-              style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
-            >
-              days
-            </p>
-          </div>
-        )}
-      </div>
-    ),
+    title: 'Your data footprint',
+    icon: <Database aria-hidden="true" />,
+    line: [
+      `${memoryCount.toLocaleString('en-US')} memories`,
+      `${platformCount} platform${platformCount === 1 ? '' : 's'}`,
+      days > 0 ? `${days} days` : null,
+    ].filter(Boolean).join(' · '),
   });
 
-  // 5. Twin Accuracy
+  // 5. Twin accuracy
   cards.push({
     id: 'twin-accuracy',
-    title: 'Twin Accuracy',
-    accentColor: 'rgba(45,212,191,0.8)', // teal
-    icon: <Target className="w-4 h-4" style={{ color: 'rgba(45,212,191,0.5)' }} />,
-    content:
-      fidelityScore != null ? (
-        <div>
-          <p
-            className="text-2xl font-semibold"
-            style={{ color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}
-          >
-            {Math.round(fidelityScore * 100)}%
-          </p>
-          <p
-            className="text-[10px] uppercase tracking-wider"
-            style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
-          >
-            fidelity score
-          </p>
-        </div>
-      ) : (
-        <p
-          className="text-xs"
-          style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
-        >
-          Chat more to measure accuracy
-        </p>
-      ),
+    title: 'Twin accuracy',
+    icon: <Target aria-hidden="true" />,
+    line: fidelityScore != null ? `${Math.round(fidelityScore * 100)}% fidelity score` : 'Chat more to measure accuracy',
   });
 
   return cards;
@@ -272,51 +140,11 @@ const InsightCards: React.FC<InsightCardsProps> = (props) => {
   if (cards.length === 0) return null;
 
   return (
-    <motion.div
-      className={className}
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-    >
-      <div
-        className="flex gap-4 overflow-x-auto snap-x snap-mandatory pb-4"
-        style={{ scrollbarWidth: 'none' }}
-      >
-        {cards.map((card, index) => (
-          <motion.div
-            key={card.id}
-            className="snap-start flex-shrink-0 w-[280px] transition-transform duration-300 hover:translate-y-[-3px]"
-            style={{
-              background: 'var(--surface)',
-              border: '1px solid var(--glass-surface-border)',
-              borderRadius: '18px',
-              padding: '22px',
-              borderLeft: `4px solid ${card.accentColor}`,
-              backdropFilter: 'blur(42px)',
-              WebkitBackdropFilter: 'blur(42px)',
-              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), 0 4px 12px rgba(0,0,0,0.12)',
-            }}
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.4, delay: index * 0.1, ease: 'easeOut' }}
-          >
-            {/* Header row */}
-            <div className="flex items-center justify-between mb-3">
-              <span
-                className="text-[13px] font-semibold"
-                style={{ color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}
-              >
-                {card.title}
-              </span>
-              <span className="opacity-60">{card.icon}</span>
-            </div>
-
-            {/* Content area */}
-            <div className="min-h-[80px] flex items-start">{card.content}</div>
-          </motion.div>
-        ))}
-      </div>
-    </motion.div>
+    <List className={className} label="Insights">
+      {cards.map((card) => (
+        <Row key={card.id} icon={card.icon} title={card.title} line={card.line} />
+      ))}
+    </List>
   );
 };
 

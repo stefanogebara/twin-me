@@ -76,52 +76,44 @@ const PWAInstallPrompt: React.FC = () => {
 
   if (isChatPage || !visible) return null;
 
+  // In the register: white with a hairline and an 8px corner, one grey line, a
+  // 32px ink Install and a 32px dismiss. No glass, no shadow.
   return (
     <div
-      className="fixed bottom-28 lg:bottom-4 left-4 right-4 z-50 flex items-center justify-between gap-3 px-4 py-3 max-w-md mx-auto"
+      className="fixed bottom-24 lg:bottom-4 left-4 right-4 z-50 flex items-center justify-between gap-3 px-4 py-3 max-w-md mx-auto"
       style={{
-        borderRadius: '16px',
-        background: 'var(--surface)',
-        backdropFilter: 'blur(42px)',
-        WebkitBackdropFilter: 'blur(42px)',
-        border: '1px solid var(--glass-surface-border)',
-        boxShadow: '0 4px 24px rgba(0,0,0,0.4)',
+        borderRadius: 'var(--rg-radius-icon)',
+        background: 'var(--rg-white)',
+        border: '1px solid var(--rg-rule)',
       }}
     >
       <div className="flex items-center gap-3 min-w-0 flex-1">
         <Download
           className="w-4 h-4 flex-shrink-0"
-          style={{ color: 'var(--text-secondary)' }}
+          style={{ color: 'var(--rg-ink-2)' }}
+          aria-hidden="true"
         />
-        <span
-          className="text-[12px] font-medium"
-          style={{
-            color: 'var(--text-secondary)',
-            fontFamily: "'Inter', sans-serif",
-          }}
-        >
+        <span className="text-[13px]" style={{ color: 'var(--rg-ink-2)' }}>
           Install TwinMe for the best experience
         </span>
       </div>
 
-      <div className="flex items-center gap-2 flex-shrink-0">
+      <div className="flex items-center gap-1 flex-shrink-0">
         <button
           onClick={handleInstall}
-          className="px-3 py-1.5 rounded-full text-[11px] font-medium transition-opacity hover:opacity-90 cursor-pointer"
+          className="h-8 px-3 text-[13px] font-medium transition-opacity hover:opacity-[0.86] cursor-pointer"
           style={{
-            background: 'var(--claura-bone)',
-            color: 'var(--claura-bone-ink)',
-            fontFamily: "'Inter', sans-serif",
+            background: 'var(--rg-ink)',
+            color: 'var(--rg-page)',
+            borderRadius: 'var(--rg-radius)',
           }}
         >
           Install
         </button>
         <button
           onClick={handleDismiss}
-          className="p-1 rounded-full transition-colors cursor-pointer"
-          style={{ color: 'var(--text-muted)' }}
-          onMouseEnter={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.6)'; }}
-          onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.3)'; }}
+          className="inline-grid place-items-center w-8 h-8 transition-colors cursor-pointer text-[var(--rg-ink-2)] hover:text-[var(--rg-ink)] hover:bg-[var(--rg-hover)]"
+          style={{ borderRadius: 'var(--rg-radius)' }}
           aria-label="Dismiss install prompt"
         >
           <X className="w-3.5 h-3.5" />

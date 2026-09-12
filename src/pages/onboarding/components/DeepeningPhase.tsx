@@ -24,6 +24,14 @@ interface DeepeningPhaseProps {
   onGoDeeper: () => void;
 }
 
+const Spinner: React.FC<{ label: string }> = ({ label }) => (
+  <p className="rs-flow-line flex items-center justify-center gap-3 py-8">
+    <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+    {label}
+  </p>
+);
+
+/** The quick questions, then the soul signature as a reading under the ink rule. */
 const DeepeningPhase: React.FC<DeepeningPhaseProps> = ({
   signature,
   generatingSignature,
@@ -37,39 +45,26 @@ const DeepeningPhase: React.FC<DeepeningPhaseProps> = ({
   onComplete,
   onGoDeeper,
 }) => {
+  const goDeeper = (
+    <button type="button" onClick={onGoDeeper} className="n-btn n-btn--ghost">
+      <Sparkles className="w-4 h-4" aria-hidden="true" />
+      Go deeper: let your twin really know you
+    </button>
+  );
+
   return (
-    <div className="w-full max-w-lg transition-all duration-500">
+    <div className="rs-flow w-full max-w-lg">
       {/* Heading */}
-      <div className="text-center mb-8">
-        <h2
-          className="text-2xl md:text-3xl mb-2"
-          style={{ fontFamily: 'var(--font-heading)', color: 'var(--text-primary)' }}
-        >
-          {signature ? 'Your Soul Signature' : 'A few quick taps'}
-        </h2>
-        {!signature && (
-          <p
-            className="text-sm opacity-50"
-            style={{ fontFamily: 'var(--font-body)', color: 'var(--text-primary)' }}
-          >
-            Help your twin understand who you are
-          </p>
-        )}
+      <div className="text-center mb-10" style={{ display: 'grid', gap: 4 }}>
+        <h2 className="rs-flow-title">{signature ? 'Your soul signature' : 'A few quick taps'}</h2>
+        {!signature && <p className="rs-flow-line">So your twin understands who you are</p>}
       </div>
 
       {/* Personalized Questions */}
       {!allQAnswered && (
         <>
           {loadingQuestions ? (
-            <div className="flex items-center justify-center gap-3 py-12">
-              <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--text-primary)' }} />
-              <span
-                className="text-sm"
-                style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-body)' }}
-              >
-                Preparing your questions...
-              </span>
-            </div>
+            <Spinner label="Preparing your questions" />
           ) : personalizedQuestions.length > 0 ? (
             <PersonalizedQuestions
               questions={personalizedQuestions}
@@ -78,174 +73,65 @@ const DeepeningPhase: React.FC<DeepeningPhaseProps> = ({
             />
           ) : (
             /* Questions unavailable (skip path or fetch failure) — never dead-end the phase (audit-2026-06-10) */
-            <div className="flex flex-col gap-3 mb-8">
-              <p
-                className="text-sm text-center mb-2"
-                style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-body)' }}
-              >
-                We couldn't load your questions right now. You can continue — your twin will keep learning as you go.
+            <div className="flex flex-col items-center gap-4 mb-8">
+              <p className="rs-flow-line text-center">
+                We couldn't load your questions. You can go on; your twin keeps learning as you go.
               </p>
-              <button
-                onClick={onComplete}
-                className="w-full px-6 py-4 rounded-xl text-base font-medium transition-all duration-200 hover:scale-[1.01] flex items-center justify-center gap-2"
-                style={{
-                  background: 'var(--claura-bone)',
-                  color: 'var(--claura-bone-ink)',
-                  fontFamily: 'var(--font-body)',
-                }}
-              >
+              <button type="button" onClick={onComplete} className="n-btn n-btn--primary pb-cta">
                 Continue
-                <ArrowRight className="w-4 h-4" />
+                <ArrowRight className="w-4 h-4" aria-hidden="true" />
               </button>
-              <button
-                onClick={onGoDeeper}
-                className="w-full px-6 py-3 rounded-xl text-sm transition-all duration-200 hover:scale-[1.01] flex items-center justify-center gap-2"
-                style={{
-                  background: 'transparent',
-                  border: '1px solid rgba(255,255,255,0.16)',
-                  color: 'var(--text-secondary)',
-                  fontFamily: 'var(--font-body)',
-                }}
-              >
-                <Sparkles className="w-4 h-4" />
-                Go Deeper — Let your twin really know you
-              </button>
+              {goDeeper}
             </div>
           )}
         </>
       )}
 
       {/* Generating signature spinner */}
-      {generatingSignature && (
-        <div className="flex items-center justify-center gap-3 py-6">
-          <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--text-primary)' }} />
-          <span
-            className="text-sm"
-            style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-body)' }}
-          >
-            Crafting your soul signature...
-          </span>
-        </div>
-      )}
+      {generatingSignature && <Spinner label="Writing your soul signature" />}
 
-      {/* Soul Signature Card */}
+      {/* Soul Signature: a reading under the ink rule, no card */}
       {signature && (
         <div
-          className="rounded-2xl p-6 mb-6 transition-all duration-500"
-          style={{
-            backgroundColor: 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(255,255,255,0.14)',
-          }}
+          className="mb-8"
+          style={{ display: 'grid', gap: 8, padding: '20px 12px', borderTop: '1px solid var(--rg-ink)', borderBottom: '1px solid var(--rg-rule)', textAlign: 'left' }}
         >
-          <p
-            className="text-xs uppercase tracking-widest mb-3"
-            style={{
-              color: 'var(--text-muted)',
-              fontFamily: 'var(--font-body)',
-              letterSpacing: '0.15em',
-            }}
-          >
-            Your Soul Signature
+          <h3 style={{ margin: 0 }}>{signature.archetype_name}</h3>
+          <p className="rs-flow-line">
+            {signature.signature_quote.replace(/^["'"]+|["'"]+$/g, '')}
           </p>
-          <h3
-            className="text-xl mb-2"
-            style={{ fontFamily: 'var(--font-heading)', color: 'var(--text-primary)' }}
-          >
-            {signature.archetype_name}
-          </h3>
-          <p
-            className="text-sm mb-3"
-            style={{
-              color: 'var(--text-secondary)',
-              fontFamily: 'var(--font-heading)',
-              fontStyle: 'italic',
-            }}
-          >
-            "{signature.signature_quote.replace(/^["'"]+|["'"]+$/g, '')}"
-          </p>
-          <p
-            className="text-sm leading-relaxed"
-            style={{
-              color: 'var(--text-secondary)',
-              fontFamily: 'var(--font-body)',
-            }}
-          >
-            {signature.first_impression}
-          </p>
+          <p className="rs-prose">{signature.first_impression}</p>
         </div>
       )}
 
       {/* Post-signature: Go Deeper or Enter World */}
       {signature && (
-        <div className="flex flex-col gap-3 mb-8 transition-all duration-300">
-          <button
-            onClick={onComplete}
-            className="w-full px-6 py-4 rounded-xl text-base font-medium transition-all duration-200 hover:scale-[1.01] flex items-center justify-center gap-2"
-            style={{
-              background: 'var(--claura-bone)',
-              color: 'var(--claura-bone-ink)',
-              fontFamily: 'var(--font-body)',
-            }}
-          >
-            Enter My World
-            <ArrowRight className="w-4 h-4" />
+        <div className="flex flex-col items-center gap-4 mb-8">
+          <button type="button" onClick={onComplete} className="n-btn n-btn--primary pb-cta">
+            Enter my world
+            <ArrowRight className="w-4 h-4" aria-hidden="true" />
           </button>
-
-          <button
-            onClick={onGoDeeper}
-            className="w-full px-6 py-3 rounded-xl text-sm transition-all duration-200 hover:scale-[1.01] flex items-center justify-center gap-2"
-            style={{
-              background: 'transparent',
-              border: '1px solid rgba(255,255,255,0.16)',
-              color: 'var(--text-secondary)',
-              fontFamily: 'var(--font-body)',
-            }}
-          >
-            <Sparkles className="w-4 h-4" />
-            Go Deeper — Let your twin really know you
-          </button>
+          {goDeeper}
         </div>
       )}
 
       {/* Pre-signature: questions done, generation failed or about to start (audit-2026-06-10) */}
       {!signature && !generatingSignature && allQAnswered && (
         signatureError ? (
-          <div className="flex flex-col gap-3 mb-8">
-            <p
-              className="text-sm text-center mb-2"
-              style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-body)' }}
-            >
-              {signatureError}
-            </p>
-            <button
-              onClick={onRetrySignature}
-              className="w-full px-6 py-4 rounded-xl text-base font-medium transition-all duration-200 hover:scale-[1.01] flex items-center justify-center gap-2"
-              style={{
-                background: 'var(--claura-bone)',
-                color: 'var(--claura-bone-ink)',
-                fontFamily: 'var(--font-body)',
-              }}
-            >
+          <div className="flex flex-col items-center gap-4 mb-8">
+            <p className="rs-bad text-center" style={{ margin: 0 }}>{signatureError}</p>
+            <button type="button" onClick={onRetrySignature} className="n-btn n-btn--primary pb-cta">
               Try again
             </button>
-            <button
-              onClick={onComplete}
-              className="w-full px-6 py-3 rounded-xl text-sm transition-all duration-200 hover:scale-[1.01] flex items-center justify-center gap-2"
-              style={{
-                background: 'transparent',
-                border: '1px solid rgba(255,255,255,0.16)',
-                color: 'var(--text-secondary)',
-                fontFamily: 'var(--font-body)',
-              }}
-            >
+            <button type="button" onClick={onComplete} className="n-btn n-btn--ghost">
               Continue without it
-              <ArrowRight className="w-4 h-4" />
+              <ArrowRight className="w-4 h-4" aria-hidden="true" />
             </button>
           </div>
         ) : (
           /* Momentary: render gap between allQAnswered flipping and generateSignature starting */
           <div className="flex items-center justify-center gap-3 py-6 mb-8">
-            <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--text-primary)' }} />
+            <Loader2 className="w-4 h-4 animate-spin" style={{ color: 'var(--rg-ink-2)' }} aria-label="Loading" />
           </div>
         )
       )}

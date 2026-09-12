@@ -3,12 +3,16 @@
  *
  * Read-only view of the beta program: overview metrics, department adoption,
  * and per-user activity. Backed by /api/admin/beta/{overview,users,departments}.
+ * In the register: figures are rows, the two tables sit under a section
+ * heading on the list's ink rule.
  */
 
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { RefreshCw, ArrowUpDown } from 'lucide-react';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { authFetch, isAbortError } from '@/services/api/apiBase';
+import { Page, PageHead, Section, List, Row, Empty } from '@/components/register';
+import '@/styles/register-insights.css';
 
 // ────────────────────────────────────────────────────────────
 // Types
@@ -51,17 +55,8 @@ interface DepartmentRow {
 type UserSortKey = 'lastActivity' | 'signupDate' | 'proposalsReceived' | 'totalCostUSD' | 'email';
 
 // ────────────────────────────────────────────────────────────
-// Constants & helpers
+// Helpers
 // ────────────────────────────────────────────────────────────
-
-const CARD_STYLE = {
-  border: '1px solid var(--border-glass)',
-  backgroundColor: 'rgba(255,255,255,0.02)',
-} as const;
-const TABLE_BORDER = '1px solid var(--border-glass)';
-const SECTION_LABEL = 'text-[11px] font-medium tracking-widest uppercase';
-const TH_CLASS = 'text-left py-2 px-3 font-medium';
-const TH_STYLE = { color: 'var(--text-muted)' } as const;
 
 function formatCost(usd: number | null | undefined): string {
   if (usd == null || Number.isNaN(usd)) return '—';
@@ -102,47 +97,22 @@ function formatPercent(p: number | null | undefined): string {
 // Sub-components
 // ────────────────────────────────────────────────────────────
 
-function MetricCard({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-[20px] px-5 py-4" style={CARD_STYLE}>
-      <div className={SECTION_LABEL} style={{ color: 'var(--text-muted)' }}>{label}</div>
-      <div
-        className="mt-2"
-        style={{
-          fontFamily: "var(--font-heading)",
-          fontSize: '40px',
-          lineHeight: '1',
-          letterSpacing: '-0.02em',
-          color: 'var(--foreground)',
-        }}
-      >
-        {value}
-      </div>
-    </div>
-  );
+/** A figure as a row: the value, then what it counts. */
+function Metric({ label, value }: { label: string; value: string }) {
+  return <Row title={value} line={label} />;
 }
 
-function SectionHeader({ label, count }: { label: string; count?: number }) {
+function SortHeader({
+  label,
+  active,
+  dir,
+  onClick,
+}: { label: string; active: boolean; dir: 'asc' | 'desc'; onClick: () => void }) {
   return (
-    <div className="flex items-center gap-2 mb-4">
-      <span className={SECTION_LABEL} style={{ color: 'var(--text-muted)' }}>{label}</span>
-      {count != null && (
-        <span className="text-[11px]" style={{ color: 'var(--text-placeholder)' }}>({count})</span>
-      )}
-    </div>
-  );
-}
-
-function SortHeader({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
-  return (
-    <th className={TH_CLASS} style={TH_STYLE}>
-      <button
-        onClick={onClick}
-        className="inline-flex items-center gap-1 hover:text-white/80 transition-colors"
-        style={{ color: active ? 'var(--foreground)' : 'var(--text-muted)' }}
-      >
+    <th aria-sort={active ? (dir === 'asc' ? 'ascending' : 'descending') : undefined}>
+      <button type="button" onClick={onClick} className="ri-sort">
         {label}
-        <ArrowUpDown className="w-3 h-3" />
+        <ArrowUpDown aria-hidden="true" />
       </button>
     </th>
   );
@@ -237,160 +207,134 @@ function AdminBetaPage() {
 
   if (loading && !overview) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <RefreshCw className="w-6 h-6 animate-spin" style={{ color: 'var(--text-muted)' }} />
-      </div>
+      <Page>
+        <PageHead title="Beta" />
+        <p className="rg-empty flex items-center gap-2" role="status">
+          <RefreshCw className="w-4 h-4 animate-spin" aria-hidden="true" />
+          Loading
+        </p>
+      </Page>
     );
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
-      {/* Header */}
-      <div className="mb-8 flex items-end justify-between">
-        <div>
-          <h1
-            className="tracking-tight"
-            style={{
-              fontFamily: "var(--font-heading)",
-              fontSize: '48px',
-              lineHeight: '1',
-              letterSpacing: '-0.02em',
-              color: 'var(--foreground)',
-            }}
-          >
-            Beta Admin
-          </h1>
-          <p className="text-[14px] mt-2" style={{ color: 'var(--text-secondary)' }}>
-            Monitoring overview — usage, proposals, and cost per user
-          </p>
-        </div>
-        <button
-          onClick={() => fetchAll()}
-          disabled={loading}
-          className="inline-flex items-center gap-2 px-3 py-2 rounded-[100px] text-[13px] font-medium transition-opacity disabled:opacity-50"
-          style={{
-            backgroundColor: 'rgba(255,255,255,0.08)',
-            color: 'var(--foreground)',
-            border: '1px solid rgba(255,255,255,0.10)',
-          }}
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
-        </button>
-      </div>
+    <Page>
+      <PageHead
+        title="Beta"
+        line="Usage, proposals and cost per user"
+        action={
+          <button type="button" onClick={() => fetchAll()} disabled={loading} className="n-btn n-btn--ghost">
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} aria-hidden="true" />
+            Refresh
+          </button>
+        }
+      />
 
       {error && (
-        <div
-          className="rounded-[12px] px-4 py-3 mb-6 text-[13px]"
-          style={{ backgroundColor: 'rgb(var(--n-danger-rgb) / 0.1)', border: '1px solid rgb(var(--n-danger-rgb) / 0.3)', color: '#f87171' }}
-        >
+        <p role="alert" className="rg-empty ri-danger" style={{ padding: '0 0 24px' }}>
           {error}
-        </div>
+        </p>
       )}
 
       {/* Overview metrics */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-        <MetricCard label="Total Users" value={formatNumber(overview?.totalUsers)} />
-        <MetricCard label="Active (7d)" value={formatNumber(overview?.activeUsers)} />
-        <MetricCard label="Proposals" value={formatNumber(overview?.proposalsGenerated)} />
-        <MetricCard label="Approval Rate" value={formatPercent(overview?.approvalRate)} />
-      </div>
-
-      {/* Cost row */}
-      {overview && (
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-10">
-          <MetricCard label="Approved" value={formatNumber(overview.proposalsApproved)} />
-          <MetricCard label="Total Cost (30d)" value={formatCost(overview.totalCostUSD)} />
-          <MetricCard label="Avg Cost / User" value={formatCost(overview.avgCostPerUser)} />
-        </div>
-      )}
+      <Section title="Overview" line="Cost covers the last 30 days.">
+        <List className="ri-compact ri-stats">
+          <Metric label="Users" value={formatNumber(overview?.totalUsers)} />
+          <Metric label="Active in the last 7 days" value={formatNumber(overview?.activeUsers)} />
+          <Metric label="Proposals" value={formatNumber(overview?.proposalsGenerated)} />
+          <Metric label="Approval rate" value={formatPercent(overview?.approvalRate)} />
+          {overview && (
+            <>
+              <Metric label="Approved" value={formatNumber(overview.proposalsApproved)} />
+              <Metric label="Total cost" value={formatCost(overview.totalCostUSD)} />
+              <Metric label="Average cost per user" value={formatCost(overview.avgCostPerUser)} />
+            </>
+          )}
+        </List>
+      </Section>
 
       {/* Departments */}
-      <div className="rounded-[20px] p-5 mb-10" style={CARD_STYLE}>
-        <SectionHeader label="Departments" count={departments.length} />
+      <Section title="Departments" line={`${departments.length} with activity`}>
         {departments.length === 0 ? (
-          <p className="text-[13px]" style={{ color: 'var(--text-muted)' }}>No department activity yet.</p>
+          <>
+            <List>{null}</List>
+            <Empty>No department activity yet.</Empty>
+          </>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-[13px]" style={{ color: 'var(--foreground)' }}>
+          <div className="ri-table-wrap">
+            <table className="ri-table">
               <thead>
-                <tr style={{ borderBottom: TABLE_BORDER }}>
-                  <th className={TH_CLASS} style={TH_STYLE}>Department</th>
-                  <th className={TH_CLASS} style={TH_STYLE}>Users Active</th>
-                  <th className={TH_CLASS} style={TH_STYLE}>Proposals</th>
-                  <th className={TH_CLASS} style={TH_STYLE}>Approval</th>
-                  <th className={TH_CLASS} style={TH_STYLE}>Avg Budget</th>
-                  <th className={TH_CLASS} style={TH_STYLE}>Avg Spent</th>
+                <tr>
+                  <th>Department</th>
+                  <th>Users active</th>
+                  <th>Proposals</th>
+                  <th>Approval</th>
+                  <th>Average budget</th>
+                  <th>Average spent</th>
                 </tr>
               </thead>
               <tbody>
                 {departments.map(d => (
-                  <tr key={d.department} style={{ borderBottom: TABLE_BORDER }}>
-                    <td className="py-2 px-3 capitalize">{d.department}</td>
-                    <td className="py-2 px-3">{formatNumber(d.usersActive)}</td>
-                    <td className="py-2 px-3">{formatNumber(d.totalProposals)}</td>
-                    <td className="py-2 px-3">{formatPercent(d.approvalRate)}</td>
-                    <td className="py-2 px-3">{formatCost(d.avgBudget)}</td>
-                    <td className="py-2 px-3">{formatCost(d.avgSpent)}</td>
+                  <tr key={d.department}>
+                    <td className="ri-strong capitalize">{d.department}</td>
+                    <td>{formatNumber(d.usersActive)}</td>
+                    <td>{formatNumber(d.totalProposals)}</td>
+                    <td>{formatPercent(d.approvalRate)}</td>
+                    <td>{formatCost(d.avgBudget)}</td>
+                    <td>{formatCost(d.avgSpent)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         )}
-      </div>
+      </Section>
 
       {/* Users */}
-      <div className="rounded-[20px] p-5" style={CARD_STYLE}>
-        <SectionHeader label="Users" count={users.length} />
+      <Section title="Users" line={`${users.length} ${users.length === 1 ? 'person' : 'people'}`}>
         {users.length === 0 ? (
-          <p className="text-[13px]" style={{ color: 'var(--text-muted)' }}>No beta applications yet.</p>
+          <>
+            <List>{null}</List>
+            <Empty>No beta applications yet.</Empty>
+          </>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-[13px]" style={{ color: 'var(--foreground)' }}>
+          <div className="ri-table-wrap">
+            <table className="ri-table">
               <thead>
-                <tr style={{ borderBottom: TABLE_BORDER }}>
-                  <SortHeader label="Email" active={sortKey === 'email'} onClick={() => toggleSort('email')} />
-                  <SortHeader label="Signed Up" active={sortKey === 'signupDate'} onClick={() => toggleSort('signupDate')} />
-                  <th className={TH_CLASS} style={TH_STYLE}>Platforms</th>
-                  <th className={TH_CLASS} style={TH_STYLE}>Depts</th>
-                  <SortHeader label="Proposals" active={sortKey === 'proposalsReceived'} onClick={() => toggleSort('proposalsReceived')} />
-                  <SortHeader label="Cost" active={sortKey === 'totalCostUSD'} onClick={() => toggleSort('totalCostUSD')} />
-                  <SortHeader label="Last Active" active={sortKey === 'lastActivity'} onClick={() => toggleSort('lastActivity')} />
+                <tr>
+                  <SortHeader label="Email" active={sortKey === 'email'} dir={sortDir} onClick={() => toggleSort('email')} />
+                  <SortHeader label="Signed up" active={sortKey === 'signupDate'} dir={sortDir} onClick={() => toggleSort('signupDate')} />
+                  <th>Platforms</th>
+                  <th>Departments</th>
+                  <SortHeader label="Proposals" active={sortKey === 'proposalsReceived'} dir={sortDir} onClick={() => toggleSort('proposalsReceived')} />
+                  <SortHeader label="Cost" active={sortKey === 'totalCostUSD'} dir={sortDir} onClick={() => toggleSort('totalCostUSD')} />
+                  <SortHeader label="Last active" active={sortKey === 'lastActivity'} dir={sortDir} onClick={() => toggleSort('lastActivity')} />
                 </tr>
               </thead>
               <tbody>
                 {sortedUsers.map(u => (
-                  <tr key={u.id} style={{ borderBottom: TABLE_BORDER }}>
-                    <td className="py-2 px-3">
-                      <div className="flex flex-col">
-                        <span>{u.email}</span>
-                        {u.name && (
-                          <span className="text-[12px]" style={{ color: 'var(--text-muted)' }}>{u.name}</span>
-                        )}
-                      </div>
+                  <tr key={u.id}>
+                    <td className="ri-strong">
+                      {u.email}
+                      {u.name && <span className="ri-sub">{u.name}</span>}
                     </td>
-                    <td className="py-2 px-3" style={{ color: 'var(--text-secondary)' }}>{formatDate(u.signupDate)}</td>
-                    <td className="py-2 px-3">{formatNumber(u.platformsConnected)}</td>
-                    <td className="py-2 px-3">{formatNumber(u.activeDepartments)}</td>
-                    <td className="py-2 px-3">
-                      <span>{formatNumber(u.proposalsReceived)}</span>
-                      {u.proposalsReceived > 0 && (
-                        <span className="text-[12px] ml-1" style={{ color: 'var(--text-muted)' }}>
-                          ({u.proposalsApproved} ok)
-                        </span>
-                      )}
+                    <td>{formatDate(u.signupDate)}</td>
+                    <td>{formatNumber(u.platformsConnected)}</td>
+                    <td>{formatNumber(u.activeDepartments)}</td>
+                    <td>
+                      {formatNumber(u.proposalsReceived)}
+                      {u.proposalsReceived > 0 && <span className="ri-q"> ({u.proposalsApproved} approved)</span>}
                     </td>
-                    <td className="py-2 px-3">{formatCost(u.totalCostUSD)}</td>
-                    <td className="py-2 px-3" style={{ color: 'var(--text-secondary)' }}>{formatRelative(u.lastActivity)}</td>
+                    <td>{formatCost(u.totalCostUSD)}</td>
+                    <td>{formatRelative(u.lastActivity)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         )}
-      </div>
-    </div>
+      </Section>
+    </Page>
   );
 }
 

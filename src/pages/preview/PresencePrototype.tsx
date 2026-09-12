@@ -10,10 +10,20 @@ import {
   Play,
   ShieldCheck,
   Square,
-  UserRound,
   Volume2,
 } from 'lucide-react';
-import '@/styles/presence-system.css';
+import { List, PageHead, Row, Section } from '@/components/register';
+import '@/styles/register-public.css';
+import '@/styles/presence-onboarding.css';
+
+/**
+ * PresenceExperience — the Presence onboarding (/presence/onboarding, and the
+ * prototype at /preview/presence). In the register since 2026-09-12
+ * (src/styles/presence-onboarding.css): an app screen, flat, the steps as plain
+ * text links on the left, each step the kit's title and one grey line over
+ * rows, fields and 32/4 choices. Every step, the saved draft, the recorder, the
+ * playback, the consent and the interview cycle work as before.
+ */
 
 type StepId = 'welcome' | 'relationship' | 'voice' | 'interview' | 'relay';
 type RecordingState = 'idle' | 'recording' | 'ready' | 'processing' | 'complete';
@@ -40,13 +50,15 @@ const DEFAULT_DRAFT: PresenceDraft = {
   tone: 'Gentle teasing',
 };
 
-const STEPS: Array<{ id: StepId; short: string; eyebrow: string }> = [
-  { id: 'welcome', short: 'Start', eyebrow: 'A new kind of presence' },
-  { id: 'relationship', short: 'Bond', eyebrow: 'The relationship' },
-  { id: 'voice', short: 'Voice', eyebrow: 'A familiar voice' },
-  { id: 'interview', short: 'Style', eyebrow: 'How you show up' },
-  { id: 'relay', short: 'Preview', eyebrow: 'The family relay' },
+const STEPS: Array<{ id: StepId; short: string }> = [
+  { id: 'welcome', short: 'Start' },
+  { id: 'relationship', short: 'Bond' },
+  { id: 'voice', short: 'Voice' },
+  { id: 'interview', short: 'Style' },
+  { id: 'relay', short: 'Preview' },
 ];
+
+const TONES = ['Gentle teasing', 'Very affectionate', 'Calm and practical', 'Storytelling'];
 
 const VOICE_PROMPTS = [
   'Hi Grandma. I wish I could sit with you for every story, even on the busiest days.',
@@ -94,10 +106,26 @@ function formatTime(totalSeconds: number) {
   return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 }
 
+/** Presence's dot cluster: a 3x3 grid with the centre removed. */
+function Mark() {
+  return (
+    <svg className="po-mark" viewBox="0 0 28 28" fill="currentColor" aria-hidden="true">
+      <circle cx="5" cy="5" r="2.7" />
+      <circle cx="14" cy="5" r="2.7" />
+      <circle cx="23" cy="5" r="2.7" />
+      <circle cx="23" cy="14" r="2.7" />
+      <circle cx="23" cy="23" r="2.7" />
+      <circle cx="14" cy="23" r="2.7" />
+      <circle cx="5" cy="23" r="2.7" />
+      <circle cx="5" cy="14" r="2.7" />
+    </svg>
+  );
+}
+
 function Waveform({ active = false, compact = false }: { active?: boolean; compact?: boolean }) {
   const bars = compact ? 18 : 34;
   return (
-    <div className={`presence-waveform ${active ? 'is-active' : ''}`} aria-hidden="true">
+    <div className={`po-wave${active ? ' is-active' : ''}${compact ? ' is-compact' : ''}`} aria-hidden="true">
       {Array.from({ length: bars }, (_, index) => (
         <span
           key={index}
@@ -110,6 +138,9 @@ function Waveform({ active = false, compact = false }: { active?: boolean; compa
     </div>
   );
 }
+
+/** A duration beside a step's title. */
+const Duration = ({ children }: { children: string }) => <span className="po-duration">{children}</span>;
 
 export function PresenceExperience({ persistDraft = false, onExit }: PresenceExperienceProps) {
   const [draft, setDraft] = useState<PresenceDraft>(() => loadPresenceDraft(persistDraft));
@@ -216,303 +247,298 @@ export function PresenceExperience({ persistDraft = false, onExit }: PresenceExp
   }
 
   return (
-    <main className="presence-shell" id="main-content">
-      <div className="presence-ambient" aria-hidden="true" />
-
-      <header className="presence-nav">
-        <button className="presence-wordmark" onClick={() => setStepIndex(0)} aria-label="Return to Presence start">
-          twin<span>me</span><small>Presence</small>
+    <main className="po" id="main-content">
+      <header className="po-nav">
+        <button type="button" className="po-brand" onClick={() => setStepIndex(0)} aria-label="Return to Presence start">
+          <Mark />
+          Presence
         </button>
-        <div className="presence-security-note">
-          <ShieldCheck size={14} />
+        <span className="po-note">
+          <ShieldCheck size={14} aria-hidden="true" />
           Consent stays visible
-        </div>
-        <button className="presence-exit" onClick={onExit ?? (() => window.history.back())}>
+        </span>
+        <button type="button" className="n-btn n-btn--ghost" onClick={onExit ?? (() => window.history.back())}>
           {persistDraft ? 'Save and exit' : 'Exit preview'}
         </button>
       </header>
 
-      <div className="presence-layout">
-        <aside className="presence-rail" aria-label="Onboarding progress">
-          <div className="presence-progress-copy">
+      <div className="po-frame">
+        <aside className="po-side" aria-label="Onboarding progress">
+          <p className="po-progress">
             <span>First presence</span>
-            <strong>{Math.round(progress)}%</strong>
-          </div>
-          <div className="presence-progress-track">
+            <span>{Math.round(progress)}%</span>
+          </p>
+          <div className="po-track" aria-hidden="true">
             <span style={{ width: `${progress}%` }} />
           </div>
-          <nav>
+          <nav className="po-steps" aria-label="Steps">
             {STEPS.map((step, index) => (
               <button
                 key={step.id}
-                className={index === stepIndex ? 'is-current' : index < stepIndex ? 'is-complete' : ''}
+                type="button"
+                className={index < stepIndex ? 'is-complete' : undefined}
+                aria-current={index === stepIndex ? 'step' : undefined}
                 onClick={() => setStepIndex(index)}
               >
-                <span>{index < stepIndex ? <Check size={13} /> : index + 1}</span>
+                <span>{index < stepIndex ? <Check size={13} aria-hidden="true" /> : index + 1}</span>
                 {step.short}
               </button>
             ))}
           </nav>
-          <blockquote>
-            “A long conversation for her. A small, real reply from you.”
-          </blockquote>
         </aside>
 
-        <section className="presence-stage" aria-live="polite">
-          <div className="presence-eyebrow">{currentStep.eyebrow}</div>
-
-          {currentStep.id === 'welcome' && (
-            <div className="presence-welcome presence-step">
-              <div className="presence-welcome-copy">
-                <h1>A little of your voice can carry a lot of love.</h1>
-                <p>
-                  Create a clearly identified AI presence that listens without rushing, keeps your relationship's language,
-                  and brings the important parts back to you.
-                </p>
-                <div className="presence-promise-row">
-                  <div><Clock3 size={17} /><span><strong>12 minutes</strong> to a first version</span></div>
-                  <div><Mic size={17} /><span><strong>2 minutes</strong> of voice to begin</span></div>
-                  <div><ShieldCheck size={17} /><span><strong>Your words</strong> stay attributable</span></div>
-                </div>
-              </div>
-              <div className="presence-call-card">
-                <div className="presence-call-topline">
-                  <span>Today, 4:42 PM</span>
-                  <span className="presence-live-dot">AI presence</span>
-                </div>
-                <div className="presence-portrait">
-                  <div className="presence-portrait-initials">SG</div>
-                  <span className="presence-portrait-ring" />
-                  <span className="presence-portrait-ring presence-portrait-ring--two" />
-                </div>
-                <h2>Stefano's Presence</h2>
-                <p>“I’m Stefano’s AI presence. He asked me to listen, and he’ll receive a short note after we talk.”</p>
-                <Waveform />
-                <button className="presence-round-button" aria-label="Preview voice"><Volume2 size={19} /></button>
-              </div>
-            </div>
-          )}
-
-          {currentStep.id === 'relationship' && (
-            <div className="presence-step presence-form-step">
-              <div className="presence-heading-row">
-                <div>
-                  <h1>Who are you showing up for?</h1>
-                  <p>We start with the bond, not a generic personality profile.</p>
-                </div>
-                <span className="presence-duration">About 2 minutes</span>
-              </div>
-
-              <div className="presence-form-grid">
-                <label>
-                  <span>The person you care for</span>
-                  <input value={caredForName} onChange={(event) => setDraft((current) => ({ ...current, caredForName: event.target.value }))} aria-label="The person you care for" />
-                </label>
-                <label>
-                  <span>Your relationship</span>
-                  <select value={relationship} onChange={(event) => setDraft((current) => ({ ...current, relationship: event.target.value }))} aria-label="Your relationship">
-                    <option value="grandmother">Grandmother</option>
-                    <option value="grandfather">Grandfather</option>
-                    <option value="parent">Parent</option>
-                    <option value="friend">Friend</option>
-                  </select>
-                </label>
-                <label className="presence-form-wide">
-                  <span>What does she call you?</span>
-                  <input value={callerName} onChange={(event) => setDraft((current) => ({ ...current, callerName: event.target.value }))} aria-label="What does she call you" />
-                  <small>The exact name the Presence will use aloud.</small>
-                </label>
-              </div>
-
-              <div className="presence-tone-panel">
-                <div>
-                  <UserRound size={18} />
-                  <span><strong>How are you together?</strong> Choose what feels true, not ideal.</span>
-                </div>
-                <div className="presence-chip-row">
-                  {['Gentle teasing', 'Very affectionate', 'Calm and practical', 'Storytelling'].map((option) => (
-                    <button key={option} className={tone === option ? 'is-selected' : ''} onClick={() => setDraft((current) => ({ ...current, tone: option }))}>
-                      {option}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {currentStep.id === 'voice' && (
-            <div className="presence-step presence-voice-step">
-              <div className="presence-heading-row">
-                <div>
-                  <h1>Give it a voice she knows.</h1>
-                  <p>Two useful minutes now. A higher-fidelity session can happen later.</p>
-                </div>
-                <span className="presence-duration">2–3 minutes</span>
-              </div>
-
-              <div className="presence-voice-grid">
-                <div className="presence-recorder-card">
-                  <div className="presence-recorder-header">
-                    <span>Sample {promptIndex + 1} of {VOICE_PROMPTS.length}</span>
-                    <span className={recordingState === 'recording' ? 'is-recording' : ''}>
-                      {recordingState === 'recording' ? formatTime(recordingSeconds) : 'Quiet room recommended'}
-                    </span>
-                  </div>
-                  <blockquote>{VOICE_PROMPTS[promptIndex]}</blockquote>
-                  <Waveform active={recordingState === 'recording'} />
-                  <div className="presence-recorder-actions">
-                    {recordingState === 'idle' && (
-                      <button className="presence-record-button" onClick={startRecording}><Mic size={18} /> Start recording</button>
-                    )}
-                    {recordingState === 'recording' && (
-                      <button className="presence-record-button is-stop" onClick={stopRecording}><Square size={16} fill="currentColor" /> Stop</button>
-                    )}
-                    {recordingState === 'ready' && (
-                      <>
-                        <button className="presence-icon-action" onClick={togglePlayback} aria-label="Play recorded sample">
-                          {isPlaying ? <Pause size={17} /> : <Play size={17} fill="currentColor" />}
+        <section className="po-stage" aria-live="polite">
+          <div>
+            {currentStep.id === 'welcome' && (
+              <div className="po-step">
+                <PageHead
+                  title="A little of your voice can carry a lot of love."
+                  line="A clearly named AI presence that listens without rushing and brings the important parts back to you."
+                />
+                <List label="What it takes" className="po-compact">
+                  <Row icon={<Clock3 />} title="12 minutes" line="to a first version" />
+                  <Row icon={<Mic />} title="2 minutes of voice" line="to begin" />
+                  <Row icon={<ShieldCheck />} title="Your words" line="stay attributable to you" />
+                </List>
+                <Section title="How it introduces itself" className="po-gap">
+                  <List label="The introduction" className="pb-stack">
+                    <Row
+                      icon={<span className="po-initials">SG</span>}
+                      title="Stefano's Presence"
+                      line="“I’m Stefano’s AI presence. He’ll get a short note after we talk.”"
+                      action={
+                        <button type="button" className="n-btn n-btn--ghost po-icon" aria-label="Preview voice">
+                          <Volume2 size={16} aria-hidden="true" />
                         </button>
-                        <button className="presence-text-action" onClick={startRecording}>Record again</button>
-                        <button className="presence-record-button" onClick={buildVoice}>Build first voice</button>
-                      </>
-                    )}
-                    {recordingState === 'processing' && (
-                      <div className="presence-processing"><AudioLines size={18} /> Cleaning room noise and measuring cadence…</div>
-                    )}
-                    {recordingState === 'complete' && (
-                      <div className="presence-voice-ready"><Check size={17} /> First voice profile ready for a live test</div>
-                    )}
-                  </div>
-                  {audioUrl && (
-                    <audio ref={audioRef} src={audioUrl} onEnded={() => setIsPlaying(false)} className="sr-only" />
-                  )}
-                  {micError && <p className="presence-mic-error">{micError}</p>}
-                  <div className="presence-prompt-dots">
-                    {VOICE_PROMPTS.map((_, index) => (
+                      }
+                    />
+                  </List>
+                </Section>
+              </div>
+            )}
+
+            {currentStep.id === 'relationship' && (
+              <div className="po-step">
+                <PageHead
+                  title="Who are you showing up for?"
+                  line="We start with the bond, not a generic personality profile."
+                  action={<Duration>About 2 minutes</Duration>}
+                />
+                <div className="po-form">
+                  <label className="po-field">
+                    <span className="po-label">The person you care for</span>
+                    <input className="po-input" value={caredForName} onChange={(event) => setDraft((current) => ({ ...current, caredForName: event.target.value }))} aria-label="The person you care for" />
+                  </label>
+                  <label className="po-field">
+                    <span className="po-label">Your relationship</span>
+                    <select className="po-input" value={relationship} onChange={(event) => setDraft((current) => ({ ...current, relationship: event.target.value }))} aria-label="Your relationship">
+                      <option value="grandmother">Grandmother</option>
+                      <option value="grandfather">Grandfather</option>
+                      <option value="parent">Parent</option>
+                      <option value="friend">Friend</option>
+                    </select>
+                  </label>
+                  <label className="po-field po-field--wide">
+                    <span className="po-label">What does she call you?</span>
+                    <input className="po-input" value={callerName} onChange={(event) => setDraft((current) => ({ ...current, callerName: event.target.value }))} aria-label="What does she call you" />
+                    <span className="po-hint">The exact name the Presence will use aloud.</span>
+                  </label>
+                </div>
+                <fieldset className="po-field po-gap">
+                  <legend className="po-label">How are you together?</legend>
+                  <p className="po-hint">Choose what feels true, not ideal.</p>
+                  <div className="po-choices">
+                    {TONES.map((option) => (
                       <button
-                        key={index}
-                        className={index === promptIndex ? 'is-current' : ''}
-                        onClick={() => setPromptIndex(index)}
-                        aria-label={`Use voice prompt ${index + 1}`}
-                      />
+                        key={option}
+                        type="button"
+                        className="po-choice"
+                        aria-pressed={tone === option}
+                        onClick={() => setDraft((current) => ({ ...current, tone: option }))}
+                      >
+                        {option}
+                      </button>
                     ))}
                   </div>
-                </div>
+                </fieldset>
+              </div>
+            )}
 
-                <aside className="presence-quality-card">
-                  <div className="presence-quality-score">
-                    <span>First-pass fidelity</span>
-                    <strong>{recordingState === 'complete' ? '82' : '—'}<small>/100</small></strong>
+            {currentStep.id === 'voice' && (
+              <div className="po-step">
+                <PageHead
+                  title="Give it a voice she knows."
+                  line="Two useful minutes now. A higher-fidelity session can happen later."
+                  action={<Duration>2–3 minutes</Duration>}
+                />
+                <div className="po-voice">
+                  <section className="po-block" aria-label="Voice sample">
+                    <p className="po-meta">
+                      <span>Sample {promptIndex + 1} of {VOICE_PROMPTS.length}</span>
+                      <span className={recordingState === 'recording' ? 'is-recording' : ''}>
+                        {recordingState === 'recording' ? formatTime(recordingSeconds) : 'Quiet room recommended'}
+                      </span>
+                    </p>
+                    <blockquote className="po-read">{VOICE_PROMPTS[promptIndex]}</blockquote>
+                    <Waveform active={recordingState === 'recording'} />
+                    <div className="po-actions">
+                      {recordingState === 'idle' && (
+                        <button type="button" className="n-btn n-btn--ghost" onClick={startRecording}><Mic size={16} aria-hidden="true" /> Start recording</button>
+                      )}
+                      {recordingState === 'recording' && (
+                        <button type="button" className="n-btn po-danger" onClick={stopRecording}><Square size={14} fill="currentColor" aria-hidden="true" /> Stop</button>
+                      )}
+                      {recordingState === 'ready' && (
+                        <>
+                          <button type="button" className="n-btn n-btn--ghost po-icon" onClick={togglePlayback} aria-label="Play recorded sample">
+                            {isPlaying ? <Pause size={16} aria-hidden="true" /> : <Play size={16} fill="currentColor" aria-hidden="true" />}
+                          </button>
+                          <button type="button" className="n-btn n-btn--ghost" onClick={startRecording}>Record again</button>
+                          <button type="button" className="n-btn n-btn--ghost" onClick={buildVoice}>Build first voice</button>
+                        </>
+                      )}
+                      {recordingState === 'processing' && (
+                        <p className="po-status"><AudioLines size={16} aria-hidden="true" /> Cleaning room noise and measuring cadence…</p>
+                      )}
+                      {recordingState === 'complete' && (
+                        <p className="po-ok"><Check size={16} aria-hidden="true" /> First voice profile ready for a live test</p>
+                      )}
+                    </div>
+                    {audioUrl && (
+                      <audio ref={audioRef} src={audioUrl} onEnded={() => setIsPlaying(false)} className="sr-only" />
+                    )}
+                    {micError && <p className="po-error" role="alert">{micError}</p>}
+                    <div className="po-dots">
+                      {VOICE_PROMPTS.map((_, index) => (
+                        <button
+                          key={index}
+                          type="button"
+                          className={index === promptIndex ? 'is-current' : ''}
+                          onClick={() => setPromptIndex(index)}
+                          aria-label={`Use voice prompt ${index + 1}`}
+                        />
+                      ))}
+                    </div>
+                  </section>
+
+                  <section aria-label="Voice quality">
+                    <ul className="rg-list po-compact pb-figures">
+                      <li className="rg-row rg-row--plain">
+                        <span className="rg-row-text"><span className="rg-row-title">First-pass fidelity</span></span>
+                        <span className="rg-row-action">{recordingState === 'complete' ? '82' : '—'} / 100</span>
+                      </li>
+                      {[['Clarity', 88], ['Cadence', 74], ['Warmth', 83]].map(([label, score]) => (
+                        <li key={label} className="rg-row rg-row--plain">
+                          <span className="rg-row-text">
+                            <span className="rg-row-title">{label}</span>
+                            <span className="po-bar" aria-hidden="true"><i style={{ width: `${score}%` }} /></span>
+                          </span>
+                          <span className="rg-row-action">{score}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    <p className="po-hint" style={{ marginTop: 16 }}>
+                      Prototype only. A production clone would require provider verification before this score is shown.
+                    </p>
+                    <label className="po-consent">
+                      <input type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} />
+                      <span>I am recording my own voice and consent to creating a clearly identified AI version.</span>
+                    </label>
+                  </section>
+                </div>
+              </div>
+            )}
+
+            {currentStep.id === 'interview' && (
+              <div className="po-step">
+                <PageHead
+                  title="Teach the relationship, one truth at a time."
+                  line="Short now. New questions appear only when they help the next conversation."
+                  action={<Duration>5 minutes now</Duration>}
+                />
+                <section className="po-block" aria-label="Interview">
+                  <p className="po-meta">
+                    <span>{INTERVIEW_CARDS[interviewIndex].label}</span>
+                    <span>{interviewIndex + 1} / {INTERVIEW_CARDS.length}</span>
+                  </p>
+                  <h2 className="po-question">{INTERVIEW_CARDS[interviewIndex].prompt}</h2>
+                  <textarea className="po-input po-area" defaultValue={INTERVIEW_CARDS[interviewIndex].answer} aria-label="Interview response" />
+                  <div className="po-interview-controls">
+                    <button type="button" className="n-btn n-btn--ghost po-icon" aria-label="Answer by voice"><Mic size={16} aria-hidden="true" /></button>
+                    <span className="po-hint">Speak or type. Natural answers teach tone better than polished ones.</span>
+                    <button
+                      type="button"
+                      className="n-btn n-btn--ghost"
+                      onClick={() => setInterviewIndex((index) => (index + 1) % INTERVIEW_CARDS.length)}
+                    >
+                      Save and ask another <ArrowRight size={15} aria-hidden="true" />
+                    </button>
                   </div>
-                  <div className="presence-quality-line"><span>Clarity</span><i style={{ '--score': '88%' } as React.CSSProperties} /></div>
-                  <div className="presence-quality-line"><span>Cadence</span><i style={{ '--score': '74%' } as React.CSSProperties} /></div>
-                  <div className="presence-quality-line"><span>Warmth</span><i style={{ '--score': '83%' } as React.CSSProperties} /></div>
-                  <p>Prototype only. A production clone would require provider verification before this score is shown.</p>
-                  <label className="presence-consent-row">
-                    <input type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} />
-                    <span>I am recording my own voice and consent to creating a clearly identified AI version.</span>
-                  </label>
-                </aside>
+                </section>
+                <Section title="Already learned" className="po-gap">
+                  <List label="Already learned" className="po-compact">
+                    <Row icon={<Check />} title="Gentle humor" />
+                    <Row icon={<Check />} title="“Nunu” is private language" />
+                    <Row icon={<Check />} title="Visits require approval" />
+                  </List>
+                </Section>
               </div>
-            </div>
-          )}
+            )}
 
-          {currentStep.id === 'interview' && (
-            <div className="presence-step presence-interview-step">
-              <div className="presence-heading-row">
-                <div>
-                  <h1>Teach the relationship, one truth at a time.</h1>
-                  <p>The first interview is short. New questions appear only when they can improve the next conversation.</p>
+            {currentStep.id === 'relay' && (
+              <div className="po-step">
+                <PageHead
+                  title="Forty minutes become one meaningful minute."
+                  line="The AI carries context between you. It never pretends a generated sentence came from family."
+                  action={<Duration>Live concept</Duration>}
+                />
+                <div className="po-relay">
+                  <section className="po-block" aria-label={`For ${caredForName}`}>
+                    <p className="po-meta"><span>For {caredForName}</span><span>12:46 elapsed</span></p>
+                    <span className="po-initials" aria-hidden="true">SG</span>
+                    <p className="po-quote">“And who taught you to make the cake that way?”</p>
+                    <p className="po-hint">Stefano's AI presence is listening</p>
+                    <Waveform active compact />
+                    <p className="po-status"><Mic size={15} aria-hidden="true" /> Listening patiently</p>
+                  </section>
+
+                  <section className="po-block" aria-label="For you">
+                    <p className="po-meta"><span>For you</span><span>Today</span></p>
+                    <h2 className="po-question">{caredForName} had a good, story-filled afternoon.</h2>
+                    <ul className="rg-list po-compact">
+                      <li className="rg-row rg-row--plain"><span className="rg-row-text"><span className="rg-row-line">She bought ingredients for a chocolate cake.</span></span><span /></li>
+                      <li className="rg-row rg-row--plain"><span className="rg-row-text"><span className="rg-row-line">She told a new detail about the family’s beach trip.</span></span><span /></li>
+                      <li className="rg-row rg-row--plain"><span className="rg-row-text"><span className="rg-row-title">She wants to know whether you can visit Sunday.</span></span><span /></li>
+                    </ul>
+                    <p className="po-ok"><ShieldCheck size={14} aria-hidden="true" /> Summary generated from today’s conversation</p>
+                    <div className="po-reply">
+                      <span className="po-label">Your real reply</span>
+                      <p>“Tell her Sunday works. I’ll come after lunch, and I want a large slice.”</p>
+                      <button type="button" className="n-btn n-btn--ghost po-icon" aria-label="Record a reply"><Mic size={16} aria-hidden="true" /></button>
+                    </div>
+                  </section>
                 </div>
-                <span className="presence-duration">5 minutes now</span>
+                <ul className="po-legend">
+                  <li><span className="po-key po-key--family" aria-hidden="true" /> Family-sent words</li>
+                  <li><span className="po-key po-key--ai" aria-hidden="true" /> AI-generated bridge language</li>
+                  <li>Promises, money, medicine and visits always require a verified family input.</li>
+                </ul>
               </div>
+            )}
+          </div>
 
-              <div className="presence-interview-card">
-                <div className="presence-interview-meta">
-                  <span>{INTERVIEW_CARDS[interviewIndex].label}</span>
-                  <span>{interviewIndex + 1} / {INTERVIEW_CARDS.length}</span>
-                </div>
-                <h2>{INTERVIEW_CARDS[interviewIndex].prompt}</h2>
-                <textarea defaultValue={INTERVIEW_CARDS[interviewIndex].answer} aria-label="Interview response" />
-                <div className="presence-interview-controls">
-                  <button className="presence-icon-action" aria-label="Answer by voice"><Mic size={17} /></button>
-                  <span>You can speak or type. Natural answers train tone better than polished ones.</span>
-                  <button
-                    onClick={() => setInterviewIndex((index) => (index + 1) % INTERVIEW_CARDS.length)}
-                  >
-                    Save and ask another <ArrowRight size={15} />
-                  </button>
-                </div>
-              </div>
-
-              <div className="presence-learning-strip">
-                <span>Already learned</span>
-                <div><Check size={14} /> Gentle humor</div>
-                <div><Check size={14} /> “Nunu” is private language</div>
-                <div><Check size={14} /> Visits require approval</div>
-              </div>
-            </div>
-          )}
-
-          {currentStep.id === 'relay' && (
-            <div className="presence-step presence-relay-step">
-              <div className="presence-heading-row">
-                <div>
-                  <h1>Forty minutes become one meaningful minute.</h1>
-                  <p>The AI carries context between you. It never pretends a generated sentence came from family.</p>
-                </div>
-                <span className="presence-duration">Live concept</span>
-              </div>
-
-              <div className="presence-relay-grid">
-                <article className="presence-elder-card">
-                  <div className="presence-card-label"><span>For {caredForName}</span><span>12:46 elapsed</span></div>
-                  <div className="presence-mini-avatar">SG</div>
-                  <h2>“And who taught you to make the cake that way?”</h2>
-                  <p>Stefano's AI presence is listening</p>
-                  <Waveform active compact />
-                  <div className="presence-listening-pill"><Mic size={15} /> Listening patiently</div>
-                </article>
-
-                <div className="presence-relay-line" aria-hidden="true"><span>Summarize</span></div>
-
-                <article className="presence-family-card">
-                  <div className="presence-card-label"><span>For you</span><span>Today</span></div>
-                  <h2>{caredForName} had a good, story-filled afternoon.</h2>
-                  <ul>
-                    <li>She bought ingredients for a chocolate cake.</li>
-                    <li>She told a new detail about the family’s beach trip.</li>
-                    <li><strong>She wants to know whether you can visit Sunday.</strong></li>
-                  </ul>
-                  <div className="presence-source-note"><ShieldCheck size={14} /> Summary generated from today’s conversation</div>
-                  <div className="presence-reply-box">
-                    <span>Your real reply</span>
-                    <p>“Tell her Sunday works. I’ll come after lunch, and I want a large slice.”</p>
-                    <button aria-label="Record a reply"><Mic size={16} /></button>
-                  </div>
-                </article>
-              </div>
-
-              <div className="presence-attribution-bar">
-                <div><span className="presence-key presence-key--family" /> Family-sent words</div>
-                <div><span className="presence-key presence-key--ai" /> AI-generated bridge language</div>
-                <p>Promises, money, medicine and visits always require a verified family input.</p>
-              </div>
-            </div>
-          )}
-
-          <footer className="presence-stage-footer">
-            <button onClick={previousStep} disabled={stepIndex === 0} className="presence-back-button">
-              <ArrowLeft size={16} /> Back
+          <footer className="po-foot">
+            <button type="button" onClick={previousStep} disabled={stepIndex === 0} className="n-btn n-btn--ghost">
+              <ArrowLeft size={16} aria-hidden="true" /> Back
             </button>
-            <span>{currentStep.id === 'voice' ? 'You can improve fidelity later without repeating onboarding.' : 'Changes save automatically in this prototype.'}</span>
+            <span className="po-hint">{currentStep.id === 'voice' ? 'You can improve fidelity later without repeating onboarding.' : 'Changes save automatically.'}</span>
             {stepIndex < STEPS.length - 1 ? (
-              <button onClick={nextStep} disabled={!canContinue} className="presence-next-button">
-                {stepIndex === 0 ? 'Create a first presence' : 'Continue'} <ArrowRight size={16} />
+              <button type="button" onClick={nextStep} disabled={!canContinue} className="n-btn n-btn--primary">
+                {stepIndex === 0 ? 'Create a first presence' : 'Continue'} <ArrowRight size={16} aria-hidden="true" />
               </button>
             ) : (
-              <button onClick={() => setStepIndex(0)} className="presence-next-button">
-                {persistDraft ? 'Review from the beginning' : 'Restart prototype'} <ArrowRight size={16} />
+              <button type="button" onClick={() => setStepIndex(0)} className="n-btn n-btn--primary">
+                {persistDraft ? 'Review from the beginning' : 'Restart prototype'} <ArrowRight size={16} aria-hidden="true" />
               </button>
             )}
           </footer>

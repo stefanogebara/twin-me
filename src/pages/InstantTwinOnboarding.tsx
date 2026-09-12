@@ -2,7 +2,8 @@
  * InstantTwinOnboarding - Connect Your Platforms
  *
  * Thin orchestrator: manages step/state progression and delegates
- * rendering to sub-components in components/onboarding/.
+ * rendering to sub-components in components/onboarding/. Laid out in the
+ * register's page kit: a page title, sections of rows, one call to action.
  */
 
 import React, { useState, useCallback } from 'react';
@@ -20,6 +21,9 @@ import {
 } from '../hooks/usePlatformsSummary';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { DataProvider } from '@/types/data-integration';
+import { Page } from '@/components/register';
+import '@/styles/register-public.css';
+import '@/styles/register-settings.css';
 
 import {
   OnboardingHeader,
@@ -98,7 +102,7 @@ const InstantTwinOnboarding = () => {
   const [revealedArchetype, setRevealedArchetype] = useState<RevealedArchetype | null>(null);
 
   // Provider of the just-completed OAuth connection. Drives the
-  // first-connection reveal card — the "wow, it already noticed something"
+  // first-connection reveal — the "wow, it already noticed something"
   // moment that makes the freshly connected data feel alive. Cleared when
   // the user dismisses or moves on.
   const [revealProvider, setRevealProvider] = useState<string | null>(null);
@@ -122,8 +126,8 @@ const InstantTwinOnboarding = () => {
         variant: "default",
       });
       setConnectingProvider(null);
-      // Show the "your twin just noticed..." reveal card above the platform
-      // grid. It polls the memory stream for observations created in the last
+      // Show the "your twin just noticed..." reveal above the platform list.
+      // It polls the memory stream for observations created in the last
       // few minutes tagged with this provider and surfaces up to 3.
       setRevealProvider(provider);
       // audit-2026-06-10: bust the canonical ['platforms'] cache so summary
@@ -295,8 +299,7 @@ const InstantTwinOnboarding = () => {
   // --- Render ---
   return (
     <>
-      {/* Claura zoned photography — cosmic-swirl by night, soul-waves by day (/preview/connect). */}
-      <div className="max-w-[680px] mx-auto px-4 sm:px-6 py-10 sm:py-16">
+      <Page className="rs">
         {/* Banner ONLY for genuine auth failures (state === 'expired');
             stale never demands a reconnect (batch-3 display convention). */}
         {(platformsSummary?.expired ?? 0) > 0 && (
@@ -308,19 +311,12 @@ const InstantTwinOnboarding = () => {
           activeCount={activeCount}
           reconnectCount={reconnectCount}
           currentStep={currentStep}
-        />
-
-        {currentStep === 1 && (
-          <div className="flex justify-end mb-4">
-            <button
-              onClick={() => navigate('/story')}
-              className="text-[12px] transition-opacity hover:opacity-70"
-              style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
-            >
-              Tell Your Story instead
+          action={currentStep === 1 ? (
+            <button type="button" onClick={() => navigate('/story')} className="n-btn n-btn--ghost">
+              Tell your story instead
             </button>
-          </div>
-        )}
+          ) : undefined}
+        />
 
         {currentStep === 2 && (
           <ArchetypeReveal
@@ -361,7 +357,7 @@ const InstantTwinOnboarding = () => {
             />
           </>
         )}
-      </div>
+      </Page>
 
       <InstagramConnectModal
         open={instagramModalOpen}

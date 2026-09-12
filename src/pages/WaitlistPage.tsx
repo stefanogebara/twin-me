@@ -1,9 +1,16 @@
 import React, { useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Loader2, ArrowLeft } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { useAnalytics } from '../contexts/AnalyticsContext';
 import { API_URL } from '@/services/api/apiBase';
+import '../styles/money-v2.css';
+import '../styles/auth.css';
 
+/**
+ * /waitlist, in the sign-in frame of /auth (auth.css inside money-v2's .mv): a
+ * narrow column on the page, the title and one grey line, the field, and Join
+ * as the one 48/12 call to action. The request itself is unchanged.
+ */
 const WaitlistPage = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -49,112 +56,56 @@ const WaitlistPage = () => {
   };
 
   return (
-    <div
-      className="min-h-screen flex items-center justify-center px-6"
-    >
-      <div className="w-full max-w-[420px] text-center">
-        {/* Logo */}
-        <div className="flex items-center justify-center gap-2 mb-12">
-          <div className="w-7 h-7 rounded-full overflow-hidden flex-shrink-0">
-            <img
-              src="/images/backgrounds/flower.png"
-              alt="TwinMe"
-              className="w-full h-full object-cover"
-            />
-          </div>
-          <span
-            style={{
-              fontFamily: "var(--font-heading)",
-              fontSize: '22px',
-              letterSpacing: '-0.5px',
-              color: 'var(--foreground)',
-            }}
-          >
-            TwinMe
-          </span>
-        </div>
-
+    <main className="mv au" id="main-content">
+      <div className="au-col">
         {submitted ? (
-          <>
-            <h1 className="n-heading mb-4" style={{ fontSize: '32px' }}>
-              <em>You're</em> on the list
-            </h1>
-            <p
-              className="text-sm mb-8"
-              style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif", lineHeight: 1.6 }}
-            >
-              We'll reach out when your spot opens up. In the meantime, we're building something that truly gets you.
+          <section className="au-room" role="status">
+            <h1 className="au-enter" style={{ '--i': 0 } as React.CSSProperties}>You're on the list.</h1>
+            <p className="mv-sub au-enter" style={{ '--i': 1 } as React.CSSProperties}>
+              We'll write when your spot opens.
             </p>
-          </>
+          </section>
         ) : (
           <>
-            <h1 className="n-heading mb-3" style={{ fontSize: '32px' }}>
-              We're <em>building</em> something worth the wait
-            </h1>
-            <p
-              className="text-sm mb-10"
-              style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif", lineHeight: 1.6 }}
-            >
-              TwinMe is in private beta. Join the waitlist to be among the first to meet your twin.
-            </p>
+            <section className="au-room">
+              <h1 className="au-enter" style={{ '--i': 0 } as React.CSSProperties}>Join the waitlist.</h1>
+              <p className="mv-sub au-enter" style={{ '--i': 1 } as React.CSSProperties}>
+                TwinMe is in private beta. We'll write when your spot opens.
+              </p>
+            </section>
 
-            {error && (
-              <div
-                className="text-sm mb-6 py-3 px-4 rounded-[10px] text-left"
-                style={{
-                  backgroundColor: 'rgb(var(--n-danger-rgb) / 0.10)',
-                  border: '1px solid rgb(var(--n-danger-rgb) / 0.35)',
-                  color: 'var(--claura-danger-ink)',
-                }}
-              >
-                {error}
-              </div>
-            )}
-
-            <form onSubmit={handleSubmit} className="flex gap-2">
+            <form className="au-controls au-enter" style={{ '--i': 2 } as React.CSSProperties} onSubmit={handleSubmit} aria-label="Join the waitlist">
               <input
+                className="mv-field"
                 type="email"
                 value={email}
                 onChange={(e) => { setEmail(e.target.value); setError(''); }}
-                placeholder="your@email.com"
+                placeholder="Email address"
                 aria-label="Email address"
+                autoComplete="email"
+                inputMode="email"
                 disabled={loading}
-                className="flex-1 h-11 px-4 rounded-[12px] text-sm outline-none disabled:opacity-50"
-                style={{
-                  backgroundColor: 'var(--input)',
-                  border: '1px solid var(--border)',
-                  color: 'var(--foreground)',
-                  fontFamily: "'Inter', sans-serif",
-                }}
               />
-              <button
-                type="submit"
-                disabled={loading}
-                className="n-btn n-btn--primary h-11"
-              >
-                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Join'}
+              <button type="submit" className="mv-pill mv-pill--lg" disabled={loading}>
+                {loading ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : null}
+                {loading ? 'Joining' : 'Join the waitlist'}
               </button>
+              {error ? <p className="au-note au-note--error" role="alert">{error}</p> : null}
             </form>
           </>
         )}
 
-        {/* Back to sign in */}
-        <button
-          onClick={() => navigate('/auth')}
-          className="n-label mt-8 inline-flex items-center gap-2 transition-opacity hover:opacity-70"
-          style={{ color: 'var(--n-ash)' }}
-        >
-          <ArrowLeft className="w-3.5 h-3.5" aria-hidden />
-          Have an invite code? Sign in
-        </button>
-
-        <div className="mt-16">
-          <span className="n-micro" style={{ color: 'var(--n-fog)' }}>
-            &copy; 2026 TwinMe Inc.
-          </span>
+        <div className="au-controls au-enter" style={{ '--i': 3 } as React.CSSProperties}>
+          <button type="button" className="mv-pill mv-pill--ghost" onClick={() => navigate('/auth')}>
+            Have an invite code? Sign in
+          </button>
         </div>
+
+        <footer className="au-foot au-enter" style={{ '--i': 4 } as React.CSSProperties}>
+          &copy; 2026 TwinMe Inc.
+        </footer>
       </div>
-    </div>
+    </main>
   );
 };
 

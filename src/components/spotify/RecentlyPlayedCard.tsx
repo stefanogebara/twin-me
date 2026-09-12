@@ -30,7 +30,7 @@ export const RecentlyPlayedCard: React.FC<RecentlyPlayedCardProps> = ({
           <Clock className="w-5 h-5 text-[#1DB954]" />
         </div>
         <div>
-          <h3 className="text-lg font-medium" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>Recently Played</h3>
+          <h3 className="text-lg font-medium" style={{ fontFamily: 'var(--font-ui)', color: 'var(--foreground)' }}>Recently Played</h3>
           <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Your latest listening activity</p>
         </div>
       </div>
@@ -54,7 +54,7 @@ export const RecentlyPlayedCard: React.FC<RecentlyPlayedCardProps> = ({
 
             {/* Content */}
             <div className="pb-4">
-              <p className="text-sm font-medium mb-0.5" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>
+              <p className="text-sm font-medium mb-0.5" style={{ fontFamily: 'var(--font-ui)', color: 'var(--foreground)' }}>
                 {item.track}
               </p>
               <p className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>{item.artist}</p>

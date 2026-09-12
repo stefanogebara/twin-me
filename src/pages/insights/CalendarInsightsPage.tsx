@@ -1,16 +1,16 @@
 /**
  * Calendar Insights Page
  *
- * "Time Patterns" - Conversational reflections from your twin
- * about what your schedule reveals about your priorities and rhythms.
- *
- * NO meeting counts. NO time stats. Just observations about time.
+ * "Your time" - the twin's reflection on what your schedule says about your
+ * priorities and rhythms, then today, what's coming up, and the shape of
+ * your week. The register's page kit: sections of rows, charts in a list item.
  */
 
 import React from 'react';
 import { usePlatformInsights } from '@/hooks/usePlatformInsights';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
-import { TwinReflection, PatternObservation, StatCard } from './components/TwinReflection';
+import { Page, Section, List } from '@/components/register';
+import { TwinReflection, StatCard } from './components/TwinReflection';
 import { EvidenceSection } from './components/EvidenceSection';
 import { InsightsPageHeader } from './components/InsightsPageHeader';
 import { UpcomingEventsSection } from './components/UpcomingEventsSection';
@@ -20,7 +20,9 @@ import { CalendarEmptyState } from './components/CalendarEmptyState';
 import { CalendarSkeleton } from './components/CalendarSkeleton';
 import { RefreshingIndicator } from './components/RefreshingIndicator';
 import { InsightsGenerationError } from './components/InsightsGenerationError';
-import { Calendar, AlertCircle, Clock, CalendarDays } from 'lucide-react';
+import { InsightsError, MixBar, PatternsSection, HistorySection, PendingReflection } from './components/InsightsKit';
+import { eventHue } from './components/calendarHues';
+import { Clock, CalendarDays } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface Reflection {
@@ -117,6 +119,8 @@ interface InsightsResponse {
   error?: string;
 }
 
+const TITLE = 'Your time';
+
 const CalendarInsightsPage: React.FC = () => {
   useDocumentTitle('Calendar Insights');
 
@@ -125,59 +129,32 @@ const CalendarInsightsPage: React.FC = () => {
   const { insights, loading, generating, isRefreshing, error, generationError, refresh } =
     usePlatformInsights<InsightsResponse>('calendar', 'Please sign in to see your time patterns');
 
-  const colors = {
-    text: 'var(--foreground)',
-    textSecondary: 'rgba(255, 255, 255, 0.55)',
-    calendarBlue: '#4285F4',
-    calendarBg: 'rgba(66, 133, 244, 0.1)'
-  };
-
   // Keep previous insights rendered during a refresh (audit-2026-06-10);
   // the skeleton is only for the no-data cold start.
   if ((loading || generating) && !insights) {
-    return (
-      <div className="max-w-[680px] mx-auto px-4 sm:px-6 py-10 sm:py-16">
-        <CalendarSkeleton />
-      </div>
-    );
+    return <CalendarSkeleton />;
   }
 
   // Generation failed with nothing to show — inline retry, not a connect CTA.
   if (generationError && !insights) {
-    return <InsightsGenerationError message={generationError} onRetry={refresh} retrying={isRefreshing} />;
+    return <InsightsGenerationError title={TITLE} message={generationError} onRetry={refresh} retrying={isRefreshing} />;
   }
 
   if (error) {
     return (
-      <div className="max-w-[680px] mx-auto px-4 sm:px-6 py-10 sm:py-16">
-        <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
-          <AlertCircle
-            className="w-12 h-12"
-            style={{ color: colors.textSecondary }}
-          />
-          <p style={{ color: colors.textSecondary }}>{error}</p>
-          <button
-            onClick={() => navigate('/get-started')}
-            className="px-4 py-2 rounded-lg font-medium transition-colors"
-            style={{ color: 'var(--n-verdigris)', border: '1px solid rgba(16,183,127,0.3)' }}
-          >
-            Connect Calendar
-          </button>
-        </div>
-      </div>
+      <InsightsError title={TITLE} message={error} actionLabel="Connect Calendar" onAction={() => navigate('/get-started')} />
     );
   }
 
+  const hasEvents = Boolean(insights?.todayEvents?.length || insights?.upcomingEvents?.length);
+  const hasHeatmap = Boolean(insights?.weeklyHeatmap && insights.weeklyHeatmap.length > 0);
+  const stats = insights?.scheduleStats;
+
   return (
-    <div className="max-w-[680px] mx-auto px-4 sm:px-6 py-10 sm:py-16">
+    <Page>
       <InsightsPageHeader
-        title="Time Patterns"
-        subtitle="How you structure your days"
-        icon={<Calendar className="w-6 h-6" style={{ color: colors.calendarBlue }} />}
-        iconColor={colors.calendarBlue}
-        iconBgColor={colors.calendarBg}
-        textColor={colors.text}
-        textSecondaryColor={colors.textSecondary}
+        title={TITLE}
+        line="How you structure your days"
         onBack={() => navigate('/identity')}
         onRefresh={refresh}
         isRefreshing={isRefreshing}
@@ -185,189 +162,75 @@ const CalendarInsightsPage: React.FC = () => {
 
       <RefreshingIndicator visible={isRefreshing} />
 
+      {/* Primary Reflection */}
+      {insights?.reflection?.text ? (
+        <TwinReflection
+          reflection={insights.reflection.text}
+          timestamp={insights.reflection.generatedAt}
+          confidence={insights.reflection.confidence}
+          isNew={true}
+        >
+          {insights?.evidence && insights.evidence.length > 0 && (
+            <EvidenceSection evidence={insights.evidence} crossPlatformContext={insights.crossPlatformContext} />
+          )}
+        </TwinReflection>
+      ) : hasEvents ? (
+        <PendingReflection what="schedule" />
+      ) : null}
+
       {insights?.todayEvents && insights.todayEvents.length > 0 && (
-        <TodayTimeline
-          events={insights.todayEvents}
-          colors={colors}
-        />
+        <TodayTimeline events={insights.todayEvents} />
       )}
 
       {insights?.upcomingEvents && insights.upcomingEvents.length > 0 && (
-        <UpcomingEventsSection
-          events={insights.upcomingEvents}
-          colors={colors}
-        />
+        <UpcomingEventsSection events={insights.upcomingEvents} />
       )}
 
-      {/* Event Type Distribution */}
+      {/* Event type distribution, as parts of one whole. The hue comes from
+          the event type (calendarHues), not the API's Google colours. */}
       {insights?.eventTypeDistribution && insights.eventTypeDistribution.length > 0 && (
-        <div
-          className="p-4 rounded-lg mb-6"
-          style={{ border: '1px solid var(--border-glass)', backgroundColor: 'var(--surface)' }}
-        >
-          <h3
-            className="text-[11px] font-medium tracking-widest uppercase mb-4"
-            style={{ color: 'var(--n-verdigris)' }}
-          >
-            How You Spend Your Time
-          </h3>
-          <div className="space-y-3">
-            {insights.eventTypeDistribution.map((item) => (
-              <div key={item.type} className="flex items-center gap-3">
-                <span className="text-sm w-24" style={{ color: colors.text }}>
-                  {item.type}
-                </span>
-                <div
-                  className="flex-1 h-5 rounded-lg overflow-hidden"
-                  style={{ backgroundColor: 'var(--glass-surface-bg)' }}
-                >
-                  <div
-                    className="h-full rounded-lg transition-all"
-                    style={{
-                      width: `${item.percentage}%`,
-                      backgroundColor: item.color,
-                    }}
-                  />
-                </div>
-                <span
-                  className="text-sm font-medium w-12 text-right"
-                  style={{ color: colors.textSecondary }}
-                >
-                  {item.percentage}%
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {insights?.weeklyHeatmap && insights.weeklyHeatmap.length > 0 && (
-        <WeeklyHeatmap
-          heatmap={insights.weeklyHeatmap}
-          colors={colors}
-        />
-      )}
-
-      {/* Schedule Stats */}
-      {insights?.scheduleStats && (
-        <div className="grid grid-cols-2 gap-3 mb-6">
-          {insights.scheduleStats.busiestDay && (
-            <StatCard
-              label="Busiest Day"
-              value={insights.scheduleStats.busiestDay}
-              icon={<CalendarDays className="w-4 h-4" />}
-              accentColor={colors.calendarBlue}
-            />
-          )}
-          {insights.scheduleStats.preferredMeetingTime && (
-            <StatCard
-              label="Peak Hours"
-              value={insights.scheduleStats.preferredMeetingTime}
-              icon={<Clock className="w-4 h-4" />}
-              accentColor={colors.calendarBlue}
-            />
-          )}
-        </div>
-      )}
-
-      {/* Primary Reflection */}
-      {insights?.reflection?.text ? (
-        <div className="mb-8">
-          <TwinReflection
-            reflection={insights.reflection.text}
-            timestamp={insights.reflection.generatedAt}
-            confidence={insights.reflection.confidence}
-            isNew={true}
-          />
-          {insights?.evidence && insights.evidence.length > 0 && (
-            <EvidenceSection
-              evidence={insights.evidence}
-              crossPlatformContext={insights.crossPlatformContext}
-              className="mt-4"
-            />
-          )}
-        </div>
-      ) : (insights?.todayEvents?.length || insights?.upcomingEvents?.length) ? (
-        <div
-          className="mb-8 p-4 rounded-lg"
-          style={{ border: '1px solid var(--border-glass)', backgroundColor: 'var(--surface)' }}
-        >
-          <p
-            className="text-[11px] font-medium tracking-widest uppercase mb-2"
-            style={{ color: 'var(--n-verdigris)' }}
-          >
-            Twin's Observation
-          </p>
-          <p className="text-sm leading-relaxed" style={{ color: colors.textSecondary }}>
-            Your twin is processing observations about your schedule. Check back soon for personalized insights about how you structure your time.
-          </p>
-        </div>
-      ) : null}
-
-      {/* Pattern Observations */}
-      {insights?.patterns && insights.patterns.length > 0 && (
-        <div className="mb-8">
-          <h3
-            className="text-[11px] font-medium tracking-widest uppercase mb-4"
-            style={{ color: 'var(--n-verdigris)' }}
-          >
-            Patterns I've Noticed
-          </h3>
-          <div className="space-y-3">
-            {insights.patterns.map(pattern => (
-              <PatternObservation
-                key={pattern.id}
-                text={pattern.text}
-                occurrences={pattern.occurrences}
+        <Section title="How you spend your time" line="Share of your events by kind.">
+          <List>
+            <li className="ri-block">
+              <MixBar
+                parts={insights.eventTypeDistribution.map((item) => ({
+                  key: item.type,
+                  label: `${item.type} ${item.percentage}%`,
+                  share: item.percentage,
+                  color: eventHue(item.type),
+                }))}
               />
-            ))}
-          </div>
-        </div>
+            </li>
+          </List>
+        </Section>
       )}
 
-      {/* Historical Reflections */}
-      {insights?.history && insights.history.length > 0 && (
-        <div>
-          <h3
-            className="text-[11px] font-medium tracking-widest uppercase mb-4"
-            style={{ color: 'var(--n-verdigris)' }}
-          >
-            Past Observations
-          </h3>
-          <div className="space-y-3">
-            {insights.history.map(past => (
-              <div
-                key={past.id}
-                className="p-4 rounded-lg"
-                style={{ border: '1px solid var(--border-glass)', backgroundColor: 'var(--surface)' }}
-              >
-                <p
-                  className="text-sm leading-relaxed"
-                  style={{ color: colors.textSecondary }}
-                >
-                  {past.text}
-                </p>
-                <p
-                  className="text-xs mt-2"
-                  style={{ color: colors.textSecondary }}
-                >
-                  {new Date(past.generatedAt).toLocaleDateString()}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
+      {/* The week: busy hours, then the busiest day and peak hours */}
+      {(hasHeatmap || stats?.busiestDay || stats?.preferredMeetingTime) && (
+        <Section title="Your week" line="When your days fill up.">
+          <List>
+            {hasHeatmap && <WeeklyHeatmap heatmap={insights!.weeklyHeatmap!} />}
+            {stats?.busiestDay && (
+              <StatCard label="Busiest day" value={stats.busiestDay} icon={<CalendarDays />} />
+            )}
+            {stats?.preferredMeetingTime && (
+              <StatCard label="Peak hours" value={stats.preferredMeetingTime} icon={<Clock />} />
+            )}
+          </List>
+        </Section>
       )}
+
+      <PatternsSection patterns={insights?.patterns} />
+      <HistorySection history={insights?.history} />
 
       {/* Empty State */}
-      {!insights?.reflection?.text && !insights?.todayEvents?.length && !insights?.upcomingEvents?.length && (
+      {!insights?.reflection?.text && !hasEvents && (
         <CalendarEmptyState
-          colors={colors}
           onConnect={() => navigate('/get-started')}
           notConnected={insights?.notConnected === true}
         />
       )}
-    </div>
+    </Page>
   );
 };
 

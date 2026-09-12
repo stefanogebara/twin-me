@@ -41,6 +41,11 @@ interface RevealPhaseProps {
   onSkipEnrichment: () => void;
 }
 
+/**
+ * In the register: a quiet status line (no tracked caps), the orb, an upright
+ * Cosmos headline, what was found as rows under the ink rule, and one 48/12
+ * call to action. No boxes, no italic.
+ */
 const RevealPhase: React.FC<RevealPhaseProps> = ({
   orbPhase,
   userName,
@@ -80,24 +85,17 @@ const RevealPhase: React.FC<RevealPhaseProps> = ({
   }, [orbPhase]);
 
   return (
-    <div className="flex flex-col items-center w-full max-w-lg transition-all duration-500">
-      {/* Status text */}
-      <p
-        className="text-sm uppercase tracking-widest mb-8 text-center transition-all duration-300"
-        style={{
-          color: 'var(--text-muted)',
-          fontFamily: 'var(--font-body)',
-          letterSpacing: '0.15em',
-        }}
-      >
-        {orbPhase === 'dormant' && 'Discovering you...'}
-        {orbPhase === 'awakening' && 'Piecing together your story...'}
+    <div className="rs-flow flex flex-col items-center w-full max-w-lg text-center">
+      {/* Status line */}
+      <p className="rs-flow-line mb-8" aria-live="polite">
+        {orbPhase === 'dormant' && 'Discovering you'}
+        {orbPhase === 'awakening' && 'Piecing together your story'}
         {orbPhase === 'alive' && (
           hasBriefing
-            ? 'Here\'s what we found'
+            ? 'Here is what we found'
             : dataPoints.length === 0
               ? `Hello, ${userName.split(' ')[0]}`
-              : `We found some info about ${userName.split(' ')[0]}`
+              : `We found some things about ${userName.split(' ')[0]}`
         )}
       </p>
 
@@ -108,126 +106,57 @@ const RevealPhase: React.FC<RevealPhaseProps> = ({
 
       {/* LinkedIn URL hint during awakening (helps disambiguate the right person) */}
       {orbPhase === 'awakening' && showLinkedInHint && (
-        <div
-          className="w-full max-w-sm mb-6 transition-all duration-500"
-          style={{ opacity: showLinkedInHint ? 1 : 0 }}
-        >
-          <p
-            className="text-xs text-center mb-2"
-            style={{
-              color: 'var(--text-muted)',
-              fontFamily: 'var(--font-body)',
-            }}
-          >
+        <div className="w-full max-w-sm mb-6" style={{ display: 'grid', gap: 8 }}>
+          <label htmlFor="reveal-linkedin" className="rs-flow-line" style={{ fontWeight: 350 }}>
             Have a LinkedIn? It helps us find the right you.
-          </p>
+          </label>
           <input
+            id="reveal-linkedin"
             type="url"
             value={userLinkedInUrl}
             onChange={(e) => onUserLinkedInChange(e.target.value)}
             placeholder="https://linkedin.com/in/yourprofile"
-            className="w-full px-4 py-2.5 rounded-xl text-sm outline-none transition-all duration-200"
-            style={{
-              background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(255,255,255,0.10)',
-              color: 'var(--text-narrative)',
-              fontFamily: 'var(--font-body)',
-            }}
+            className="n-input"
+            style={{ width: '100%' }}
           />
         </div>
       )}
 
       {/* ===== BRIEFING VIEW (when LLM briefing is available) ===== */}
       {revealSubView === 'data' && hasBriefing && (
-        <div className="w-full max-w-md mt-2 transition-all duration-500">
-          {/* Headline */}
-          <h2
-            className="text-2xl md:text-3xl leading-snug text-center mb-6"
-            style={{
-              fontFamily: 'var(--font-heading)',
-              fontStyle: 'italic',
-              color: 'var(--text-narrative)',
-              letterSpacing: '-0.02em',
-            }}
-          >
-            {briefing.headline}
-          </h2>
+        <div className="w-full mt-2" style={{ display: 'grid', gap: 24 }}>
+          <h2 className="rs-flow-title">{briefing.headline}</h2>
 
-          {/* Observations */}
-          <div className="space-y-3 mb-6">
+          <ul className="rg-list rs-compact">
             {briefing.observations.map((observation, idx) => (
-              <div
-                key={idx}
-                className="flex items-start gap-3 px-4 py-3 rounded-2xl transition-all duration-300"
-                style={{
-                  background: 'rgba(255,255,255,0.06)',
-                  border: '1px solid rgba(255,255,255,0.10)',
-                }}
-              >
-                <Sparkles
-                  className="w-4 h-4 mt-0.5 flex-shrink-0"
-                  style={{ color: 'var(--text-muted)' }}
-                />
-                <p
-                  className="text-sm leading-relaxed"
-                  style={{
-                    color: 'var(--text-secondary)',
-                    fontFamily: 'var(--font-body)',
-                  }}
-                >
-                  {observation}
-                </p>
-              </div>
+              <li key={idx} className="rg-row">
+                <span className="rg-row-icon" aria-hidden="true"><Sparkles /></span>
+                <span className="rg-row-text"><span className="rg-row-title">{observation}</span></span>
+                <span />
+              </li>
             ))}
-          </div>
+          </ul>
 
-          {/* Gaps */}
           {briefing.gaps.length > 0 && (
-            <div className="mb-6">
-              <p
-                className="text-xs uppercase tracking-widest mb-2 px-1"
-                style={{
-                  color: 'var(--text-muted)',
-                  fontFamily: 'var(--font-body)',
-                  letterSpacing: '0.12em',
-                }}
-              >
-                Connect more to unlock
-              </p>
-              <div className="space-y-2">
+            <div style={{ display: 'grid', gap: 12, textAlign: 'left' }}>
+              <p className="rs-strong" style={{ margin: 0 }}>Connect more to unlock</p>
+              <ul className="rg-list rs-compact">
                 {briefing.gaps.map((gap, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-start gap-3 px-4 py-2.5 rounded-xl"
-                    style={{
-                      background: 'rgba(255,255,255,0.04)',
-                      border: '1px dashed rgba(255,255,255,0.10)',
-                    }}
-                  >
-                    <Link2
-                      className="w-3.5 h-3.5 mt-0.5 flex-shrink-0"
-                      style={{ color: 'var(--text-muted)' }}
-                    />
-                    <p
-                      className="text-xs leading-relaxed"
-                      style={{
-                        color: 'var(--text-muted)',
-                        fontFamily: 'var(--font-body)',
-                      }}
-                    >
-                      {gap}
-                    </p>
-                  </div>
+                  <li key={idx} className="rg-row">
+                    <span className="rg-row-icon" aria-hidden="true"><Link2 /></span>
+                    <span className="rg-row-text"><span className="rg-row-line">{gap}</span></span>
+                    <span />
+                  </li>
                 ))}
-              </div>
+              </ul>
             </div>
           )}
         </div>
       )}
 
-      {/* ===== FALLBACK: Old data points view (when no briefing) ===== */}
+      {/* ===== FALLBACK: data points as rows (when no briefing) ===== */}
       {revealSubView === 'data' && !hasBriefing && dataPoints.length > 0 && (
-        <div className="w-full max-w-sm mt-4 transition-all duration-300">
+        <ul className="rg-list rs-compact w-full mt-4">
           {dataPoints.map((dp) => (
             <DataRevealItem
               key={dp.label}
@@ -236,19 +165,12 @@ const RevealPhase: React.FC<RevealPhaseProps> = ({
               value={dp.value}
             />
           ))}
-        </div>
+        </ul>
       )}
 
       {/* Narrative (only when no briefing — briefing replaces it) */}
       {revealSubView === 'data' && !hasBriefing && narrative && (
-        <p
-          className="text-base leading-relaxed mt-6 text-center max-w-md transition-all duration-500"
-          style={{
-            color: 'var(--text-secondary)',
-            fontFamily: 'var(--font-heading)',
-            fontStyle: 'italic',
-          }}
-        >
+        <p className="rs-prose mt-6" style={{ textAlign: 'left' }}>
           {narrative.length > 500
             ? (() => {
                 const chunk = narrative.slice(0, 500);
@@ -261,29 +183,13 @@ const RevealPhase: React.FC<RevealPhaseProps> = ({
 
       {/* Error message */}
       {revealSubView === 'data' && enrichError && dataPoints.length === 0 && !hasBriefing && (
-        <p
-          className="text-sm text-center mt-6 max-w-sm transition-all duration-300"
-          style={{
-            color: 'var(--text-muted)',
-            fontFamily: 'var(--font-body)',
-          }}
-        >
-          {enrichError}
-        </p>
+        <p className="rs-flow-line mt-6 max-w-sm">{enrichError}</p>
       )}
 
       {/* Empty state + LinkedIn input */}
       {revealSubView === 'data' && orbPhase === 'alive' && dataPoints.length === 0 && !enrichError && !hasBriefing && (
-        <div className="w-full max-w-sm mt-6 text-center transition-all duration-300">
-          <p
-            className="text-sm mb-5"
-            style={{
-              color: 'var(--text-muted)',
-              fontFamily: 'var(--font-body)',
-            }}
-          >
-            We couldn't find much yet — paste your LinkedIn to speed things up.
-          </p>
+        <div className="w-full max-w-sm mt-6" style={{ display: 'grid', gap: 16 }}>
+          <p className="rs-flow-line">We couldn't find much yet. Paste your LinkedIn to speed things up.</p>
           <LinkedInInputBox
             value={userLinkedInUrl}
             onChange={onUserLinkedInChange}
@@ -293,56 +199,24 @@ const RevealPhase: React.FC<RevealPhaseProps> = ({
         </div>
       )}
 
-      {/* Identity confirmation gate */}
+      {/* Identity confirmation gate: a line and two buttons, no box */}
       {revealSubView === 'data' && showContinue && (dataPoints.length > 0 || hasBriefing) && !identityConfirmed && (
-        <div className="w-full max-w-sm mt-8 transition-all duration-300">
-          <div
-            className="rounded-xl p-5 text-center"
-            style={{
-              background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(255,255,255,0.14)',
-            }}
-          >
-            <p
-              className="text-sm mb-4"
-              style={{ color: 'var(--text-narrative)', fontFamily: 'var(--font-body)' }}
-            >
-              Is this information about you?
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={onConfirmIdentity}
-                className="flex-1 py-2.5 rounded-[12px] text-sm font-medium transition-all duration-200 hover:scale-[1.02]"
-                style={{
-                  background: 'var(--claura-bone)',
-                  color: 'var(--claura-bone-ink)',
-                  fontFamily: 'var(--font-body)',
-                  cursor: 'pointer',
-                }}
-              >
-                Yes, that's me
-              </button>
-              <button
-                onClick={onNotMe}
-                className="flex-1 py-2.5 rounded-[12px] text-sm font-medium transition-all duration-200 hover:opacity-80"
-                style={{
-                  background: 'transparent',
-                  border: '1px solid rgba(255,255,255,0.22)',
-                  color: 'var(--text-secondary)',
-                  fontFamily: 'var(--font-body)',
-                  cursor: 'pointer',
-                }}
-              >
-                Not me
-              </button>
-            </div>
+        <div className="w-full max-w-sm mt-10" style={{ display: 'grid', gap: 16, justifyItems: 'center' }}>
+          <p className="rs-strong" style={{ margin: 0 }}>Is this you?</p>
+          <div className="rs-inline" style={{ justifyContent: 'center' }}>
+            <button type="button" onClick={onConfirmIdentity} className="n-btn n-btn--primary pb-cta">
+              Yes, that's me
+            </button>
+            <button type="button" onClick={onNotMe} className="n-btn n-btn--ghost">
+              Not me
+            </button>
           </div>
         </div>
       )}
 
-      {/* LinkedIn input — shown after identity confirmation OR when results are shown */}
+      {/* LinkedIn input — shown while the results wait for confirmation */}
       {revealSubView === 'data' && showContinue && (dataPoints.length > 0 || hasBriefing) && !identityConfirmed && (
-        <div className="w-full max-w-sm mt-4 transition-all duration-300">
+        <div className="w-full max-w-sm mt-6">
           <LinkedInInputBox
             value={userLinkedInUrl}
             onChange={onUserLinkedInChange}
@@ -355,21 +229,12 @@ const RevealPhase: React.FC<RevealPhaseProps> = ({
 
       {/* Continue button */}
       {revealSubView === 'data' && showContinue && (identityConfirmed || (dataPoints.length === 0 && !hasBriefing)) && (
-        <div className="flex flex-col items-center mt-8 transition-all duration-300">
-          <button
-            onClick={onAdvance}
-            className="px-8 py-3 rounded-[12px] text-base flex items-center gap-2 transition-all duration-200 hover:scale-[1.03]"
-            style={{
-              background: 'var(--claura-bone)',
-              color: 'var(--claura-bone-ink)',
-              fontFamily: 'var(--font-body)',
-              fontWeight: 500,
-            }}
-          >
+        <div className="flex flex-col items-center mt-10">
+          <button type="button" onClick={onAdvance} className="n-btn n-btn--primary pb-cta">
             {hasBriefing && briefing.cta
               ? briefing.cta.length > 30 ? 'Continue' : briefing.cta
               : 'Continue'}
-            <ArrowRight className="w-4 h-4" />
+            <ArrowRight className="w-4 h-4" aria-hidden="true" />
           </button>
         </div>
       )}
@@ -390,7 +255,7 @@ const RevealPhase: React.FC<RevealPhaseProps> = ({
   );
 };
 
-// ─── LinkedIn URL Input Box ─────────────────────────────────────────────────
+// ─── LinkedIn URL Input Box: the register's field and a secondary button ────
 const LinkedInInputBox: React.FC<{
   value: string;
   onChange: (v: string) => void;
@@ -402,61 +267,30 @@ const LinkedInInputBox: React.FC<{
   const canSubmit = value.trim().length > 0 && isValid && !isSearching;
 
   return (
-    <div
-      className={`rounded-xl ${compact ? 'p-3' : 'p-4'}`}
-      style={{
-        background: 'rgba(255,255,255,0.04)',
-        border: '1px solid rgba(255,255,255,0.10)',
-      }}
-    >
+    <div style={{ display: 'grid', gap: 8, textAlign: 'left' }}>
       {!compact && (
-        <div className="flex items-center gap-2 mb-3">
-          <Linkedin className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
-          <p
-            className="text-xs"
-            style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-body)' }}
-          >
-            Paste your LinkedIn URL for a more accurate profile
-          </p>
-        </div>
+        <p className="rs-quiet" style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--rg-ink-2)' }}>
+          <Linkedin className="w-4 h-4" aria-hidden="true" />
+          Your LinkedIn link makes the profile more accurate
+        </p>
       )}
-      <div className="flex gap-2">
+      <div className="rs-inline">
         <input
           type="url"
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter' && canSubmit) onSubmit(); }}
           placeholder={compact ? 'linkedin.com/in/you' : 'https://linkedin.com/in/yourprofile'}
-          className="flex-1 px-3 py-2 rounded-lg text-sm outline-none transition-all"
-          style={{
-            background: 'rgba(255,255,255,0.06)',
-            border: `1px solid ${value && !isValid ? 'rgba(239, 68, 68, 0.4)' : 'rgba(255,255,255,0.10)'}`,
-            color: 'var(--text-narrative)',
-            fontFamily: 'var(--font-body)',
-          }}
+          aria-label="Your LinkedIn link"
+          aria-invalid={!!value && !isValid}
+          className="n-input"
         />
-        <button
-          onClick={onSubmit}
-          disabled={!canSubmit}
-          className="px-4 py-2 rounded-lg text-xs font-medium transition-all duration-200 hover:scale-[1.02] disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1.5"
-          style={{
-            background: canSubmit ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(255,255,255,0.14)',
-            color: 'var(--text-narrative)',
-            fontFamily: 'var(--font-body)',
-          }}
-        >
-          {isSearching ? (
-            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-          ) : (
-            'Find me'
-          )}
+        <button type="button" onClick={onSubmit} disabled={!canSubmit} className="n-btn n-btn--ghost">
+          {isSearching ? <Loader2 className="w-4 h-4 animate-spin" aria-label="Searching" /> : 'Find me'}
         </button>
       </div>
       {value && !isValid && (
-        <p className="text-xs mt-1.5" style={{ color: 'rgba(239, 68, 68, 0.6)' }}>
-          Enter a valid LinkedIn URL (e.g. linkedin.com/in/yourname)
-        </p>
+        <p className="rs-bad" style={{ margin: 0 }}>Enter a LinkedIn profile link, like linkedin.com/in/yourname</p>
       )}
     </div>
   );

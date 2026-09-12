@@ -5,31 +5,33 @@
  *
  * The OAuth moment is the single highest-investment point in the user journey
  * (user just granted data access). Previously the UI only showed a toast and
- * kept the user on the same list of platforms. This card produces the "wow —
- * it already noticed something" moment by surfacing the 2–3 most recent
+ * kept the user on the same list of platforms. This section produces the
+ * "wow — it already noticed something" moment by surfacing the 2–3 most recent
  * observations the memory stream generated from the fresh data.
  *
  * Behavior:
- *   1. Renders for 60s after a connection event (driven by a URL param and
- *      cleared once the user dismisses).
+ *   1. Renders after a connection event (driven by a URL param and cleared
+ *      once the user dismisses).
  *   2. Polls /mem0/memories?limit=30 once on mount and every 6s for up to 5
  *      tries, filtering for observations tagged with this platform that were
  *      created in the last 5 minutes.
- *   3. Shows "Your twin is observing..." shimmer until observations appear.
- *   4. Shows up to 3 observations in the twin's second-person voice with a
- *      CTA to continue the conversation in /talk-to-twin.
+ *   3. Shows two loading rows until observations appear.
+ *   4. Shows up to 3 observations as rows, with a way to continue the
+ *      conversation in /talk-to-twin.
  *
  * If no observations appear within ~30s (platform may be slow to extract —
  * Gmail, LinkedIn, GitHub can take minutes) we fall back to a confident
- * "Observing in the background — come back shortly" message rather than
- * spinning indefinitely.
+ * "Observing in the background" line rather than spinning indefinitely.
+ *
+ * In the register: a section of the page kit, no card, no glow, no italic.
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, Sparkles, X } from 'lucide-react';
+import { ArrowRight, X } from 'lucide-react';
 import { authFetch } from '@/services/api/apiBase';
+import { Section, List, Empty } from '@/components/register';
 
 const DISPLAY_NAMES: Record<string, string> = {
   spotify: 'Spotify',
@@ -162,121 +164,53 @@ const ConnectionRevealCard: React.FC<Props> = ({ provider, onDismiss }) => {
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -8 }}
         transition={{ duration: 0.4, ease: 'easeOut' }}
-        className="relative mb-6 rounded-[20px] overflow-hidden"
-        style={{
-          background: 'var(--surface)',
-          backdropFilter: 'blur(42px)',
-          WebkitBackdropFilter: 'blur(42px)',
-          border: '1px solid var(--glass-surface-border)',
-          boxShadow: '0 4px 24px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.06)',
-        }}
+        style={{ marginBottom: 'var(--rg-section)' }}
       >
-        {/* Ambient accent band — visually signals this is a meaningful moment */}
-        <div
-          aria-hidden="true"
-          className="absolute inset-x-0 top-0 h-[2px]"
-          style={{
-            background: 'linear-gradient(90deg, rgba(255,132,0,0.0) 0%, rgba(255,132,0,0.8) 50%, rgba(255,132,0,0.0) 100%)',
-          }}
-        />
-
-        <button
-          onClick={onDismiss}
-          aria-label="Dismiss"
-          className="absolute top-3 right-3 p-1 rounded-full transition-opacity hover:opacity-80"
-          style={{ color: 'var(--text-secondary)' }}
+        <Section
+          title={observations.length > 0
+            ? 'Here is what your twin already noticed'
+            : givenUp
+              ? 'Observing in the background'
+              : 'Your twin is observing'}
+          line={`${platformLabel} connected`}
+          action={
+            <button type="button" onClick={onDismiss} aria-label="Dismiss" className="rg-iconbtn">
+              <X aria-hidden="true" />
+            </button>
+          }
         >
-          <X className="w-4 h-4" />
-        </button>
-
-        <div className="px-5 py-4 sm:px-6 sm:py-5">
-          <div className="flex items-center gap-2 mb-1.5">
-            <Sparkles className="w-4 h-4" style={{ color: 'var(--accent-vibrant)' }} />
-            <span
-              className="text-[11px] font-medium uppercase tracking-[0.14em]"
-              style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
-            >
-              {platformLabel} connected
-            </span>
-          </div>
-
-          <h3
-            style={{
-              fontFamily: "var(--font-heading)",
-              fontStyle: 'italic',
-              fontSize: 'clamp(22px, 3.2vw, 28px)',
-              fontWeight: 400,
-              color: 'var(--foreground)',
-              letterSpacing: '-0.01em',
-              lineHeight: 1.2,
-            }}
-          >
-            {observations.length > 0
-              ? 'Here is what your twin already noticed'
-              : givenUp
-                ? 'Observing in the background'
-                : 'Your twin is observing...'}
-          </h3>
-
-          <div className="mt-4 space-y-2.5">
-            {observations.length === 0 && !givenUp && (
-              <>
-                {[0, 1].map(i => (
-                  <div
-                    key={i}
-                    className="h-[52px] rounded-[12px] animate-pulse"
-                    style={{ background: 'var(--surface)' }}
-                  />
-                ))}
-              </>
-            )}
+          <List label={`What your twin noticed in ${platformLabel}`}>
+            {observations.length === 0 && !givenUp && [0, 1].map(i => (
+              <li key={i} className="rg-row rg-row--plain" aria-hidden="true">
+                <span className="rs-skel" style={{ width: i === 0 ? '80%' : '60%' }} />
+                <span />
+              </li>
+            ))}
 
             {observations.length === 0 && givenUp && (
-              <p
-                className="text-[13px] leading-relaxed"
-                style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
-              >
-                Extraction is still running — come back in a minute and your twin will have something to say about your {platformLabel} data. For now, you can connect more platforms or ask your twin anything.
-              </p>
+              <li>
+                <Empty>Still reading your {platformLabel} data. Come back in a minute, or connect more.</Empty>
+              </li>
             )}
 
             {observations.map((obs) => (
-              <div
-                key={obs.id}
-                className="px-3.5 py-2.5 rounded-[12px]"
-                style={{
-                  background: 'var(--surface)',
-                  border: '1px solid var(--border-glass)',
-                }}
-              >
-                <p
-                  className="text-[13px] leading-[1.55]"
-                  style={{ color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}
-                >
-                  {obs.content}
-                </p>
-              </div>
+              <li key={obs.id} className="rg-row rg-row--plain">
+                <p className="rs-prose">{obs.content}</p>
+                <span />
+              </li>
             ))}
-          </div>
+          </List>
 
-          <div className="mt-4 flex flex-wrap items-center gap-2.5">
-            <button
-              onClick={handleAskTwin}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-[100px] text-[13px] font-medium transition-all duration-150 hover:opacity-90 active:scale-[0.97]"
-              style={{ background: 'var(--claura-bone)', color: 'var(--claura-bone-ink)', fontFamily: "'Inter', sans-serif" }}
-            >
+          <div className="rs-inline" style={{ marginTop: 24 }}>
+            <button type="button" onClick={handleAskTwin} className="n-btn n-btn--ghost">
               Ask your twin about this
-              <ArrowRight className="w-3.5 h-3.5" />
+              <ArrowRight className="w-4 h-4" aria-hidden="true" />
             </button>
-            <button
-              onClick={onDismiss}
-              className="inline-flex items-center gap-1 px-3 py-2 rounded-[100px] text-[12px] font-medium transition-all duration-150 hover:opacity-80"
-              style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
-            >
+            <button type="button" onClick={onDismiss} className="rs-link">
               Connect another
             </button>
           </div>
-        </div>
+        </Section>
       </motion.div>
     </AnimatePresence>
   );

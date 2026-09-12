@@ -43,7 +43,7 @@ export const WatchPatternsCard: React.FC<WatchPatternsCardProps> = ({
           <TrendingUp className="w-5 h-5 text-[#FF0000]" />
         </div>
         <div>
-          <h3 className="text-lg font-medium" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>
+          <h3 className="text-lg font-medium" style={{ fontFamily: 'var(--font-ui)', color: 'var(--foreground)' }}>
             Watch Patterns
           </h3>
           <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
@@ -65,7 +65,7 @@ export const WatchPatternsCard: React.FC<WatchPatternsCardProps> = ({
             <p className="text-[11px] font-medium tracking-widest uppercase mb-0.5" style={{ color: 'var(--n-verdigris)' }}>
               Peak Hours
             </p>
-            <p className="text-sm font-medium" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>
+            <p className="text-sm font-medium" style={{ fontFamily: 'var(--font-ui)', color: 'var(--foreground)' }}>
               {formatPeakHours(patterns.peakHours.start, patterns.peakHours.end)}
             </p>
             <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
@@ -86,7 +86,7 @@ export const WatchPatternsCard: React.FC<WatchPatternsCardProps> = ({
             <p className="text-[11px] font-medium tracking-widest uppercase mb-0.5" style={{ color: 'var(--n-verdigris)' }}>
               Avg Videos Per Session
             </p>
-            <p className="text-xl font-medium" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>
+            <p className="text-xl font-medium" style={{ fontFamily: 'var(--font-ui)', color: 'var(--foreground)' }}>
               {patterns.avgVideosPerSession.toFixed(1)}
             </p>
           </div>
@@ -104,7 +104,7 @@ export const WatchPatternsCard: React.FC<WatchPatternsCardProps> = ({
             <p className="text-[11px] font-medium tracking-widest uppercase mb-0.5" style={{ color: 'var(--n-verdigris)' }}>
               Avg Watch Duration
             </p>
-            <p className="text-xl font-medium" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>
+            <p className="text-xl font-medium" style={{ fontFamily: 'var(--font-ui)', color: 'var(--foreground)' }}>
               {formatDuration(patterns.avgWatchDuration)}
             </p>
           </div>
@@ -122,7 +122,7 @@ export const WatchPatternsCard: React.FC<WatchPatternsCardProps> = ({
             <p className="text-[11px] font-medium tracking-widest uppercase mb-0.5" style={{ color: 'var(--n-verdigris)' }}>
               Completion Rate
             </p>
-            <p className="text-xl font-medium" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>
+            <p className="text-xl font-medium" style={{ fontFamily: 'var(--font-ui)', color: 'var(--foreground)' }}>
               {patterns.completionRate.toFixed(0)}%
             </p>
           </div>
@@ -143,7 +143,7 @@ export const WatchPatternsCard: React.FC<WatchPatternsCardProps> = ({
           {/* Horizontal bar chart */}
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <span className="text-xs w-16" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--text-muted)' }}>Weekday</span>
+              <span className="text-xs w-16" style={{ fontFamily: 'var(--font-ui)', color: 'var(--text-muted)' }}>Weekday</span>
               <div className="flex-1 h-6 bg-[var(--surface-solid)] rounded-full overflow-hidden">
                 <div
                   className="h-full bg-gradient-to-r from-[#FF0000] to-[#FF4444] rounded-full flex items-center justify-end pr-2 transition-all duration-600"
@@ -157,7 +157,7 @@ export const WatchPatternsCard: React.FC<WatchPatternsCardProps> = ({
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="text-xs w-16" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--text-muted)' }}>Weekend</span>
+              <span className="text-xs w-16" style={{ fontFamily: 'var(--font-ui)', color: 'var(--text-muted)' }}>Weekend</span>
               <div className="flex-1 h-6 bg-[var(--surface-solid)] rounded-full overflow-hidden">
                 <div
                   className="h-full bg-gradient-to-r from-[#CC0000] to-[#FF0000] rounded-full flex items-center justify-end pr-2 transition-all duration-600"

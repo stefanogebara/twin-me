@@ -1,0 +1,118 @@
+/* ============================================================================
+   THE REGISTER: TwinMe's design system since 2026-09-12
+   ============================================================================
+   Instinct's signed-in app (app.instinct.co, measured signed in on 2026-09-11)
+   with the Cosmos headings kept: a warm page, one warm ink at three
+   AA-safe strengths, 13px Geist with weight making the hierarchy, rows under
+   a 1px ink rule instead of cards, 32px buttons with a 4px corner, and very
+   little text. No uppercase tracked labels, no glass, no shadows, no serif.
+
+   This file is the one source of truth. nocturne.css resolves its --n-*
+   names to these values and nocturne-bridge.css resolves the semantic tokens
+   (--background, --primary, --muted-foreground...) to them, so every page
+   follows without being edited. money-v2.css aliases the same values.
+
+   Spec: .claude/plans/2026-09-11-instinct-register/. Living page: /system.
+   Contrast is pinned by tests/unit/registerContrast.test.ts, which reads the
+   values below: change one there and the test re-measures it.
+   ========================================================================== */
+
+:root {
+  /* ---- Grounds ---- */
+  --rg-page: #fbfaf9;        /* every screen's ground */
+  --rg-white: #ffffff;       /* a secondary button; the transitional card */
+  --rg-field: #f4efec;       /* the input box, a pressed choice, a skeleton */
+
+  /* ---- Ink, one warm ink at three strengths. Measured on page / white / field:
+     ink 15.5 / 16.2 / 14.2, ink-2 7.3 / 7.6 / 6.7, ink-3 5.3 / 5.5 / 4.8. ---- */
+  --rg-ink: #251f21;         /* text, the rule on top of a list, the primary fill */
+  --rg-ink-2: #585254;       /* the one grey line under a title */
+  --rg-ink-3: #6c6867;       /* quiet text: empty states, names, timestamps */
+  /* Instinct's own quiet grey. 2.9:1 on the page, so it FAILS as text: it marks
+     disabled and decorative things only. */
+  --rg-quiet: #969394;
+  /* The one grey a control is seen by: the switch's off track. 3.4:1 on the
+     page, 3.1:1 on the field, so it clears the 3:1 non-text floor. */
+  --rg-mark: #8c8889;
+  --rg-rule: #eae9ea;        /* the hairline between rows */
+  --rg-hover: rgba(37, 31, 33, 0.05);  /* ink at 5%, the hover wash */
+
+  /* ---- State. Instinct's red (#ed313e, 3.9:1) and green (#73a89a, 2.6:1) fail
+     as 13px text, so they stay lines; the text values are darkened until they
+     pass. danger 5.5 / 5.7 / 5.0, ok 5.1 / 5.3 / 4.7 on page / white / field.
+     White on a danger fill is 5.7:1. ---- */
+  --rg-danger: #c42533;
+  --rg-danger-line: #f5aaae; /* the danger button's border, never text */
+  --rg-ok: #3d7566;
+  --rg-ok-line: #73a89a;
+
+  /* ---- The five signatures, one per reflection expert, plus the data signal.
+     Domain and data colour only: tiles, strokes, brand-style icons. Nocturne
+     tuned them for obsidian; on the page they read 2.0-3.2:1, under the 3:1 a
+     stroke needs. Each is darkened in OKLCH lightness with hue and chroma kept,
+     until it clears 3.3:1 on the page (3.4 on white, 3.0 on the field). Any
+     text ON a tile is ink (4.7:1 on every one); white fails at 3.4. Never use
+     one of these as a text colour: none reaches 4.5:1. ---- */
+  --rg-ember: #c47833;       /* motivation & drive   (was #dd8f4c) */
+  --rg-iris: #8179fb;        /* personality & emotion (was #847dff) */
+  --rg-verdigris: #4c9786;   /* cultural identity    (was #55a08e) */
+  --rg-orchid: #ba70b6;      /* social dynamics      (was #dd90d8) */
+  --rg-periwinkle: #668cc2;  /* lifestyle & rhythms  (was #90b8f0) */
+  --rg-signal: #0096ba;      /* chart strokes only   (was #00b3dd) */
+  /* Channel triplets, so a call site can keep an alpha and still name the hue:
+     rgb(var(--rg-ember-rgb) / 0.2). var() does NOT resolve in SVG presentation
+     attributes or a canvas context: those need the hex written out. */
+  --rg-ink-rgb: 37 31 33;
+  --rg-page-rgb: 251 250 249;
+  --rg-danger-rgb: 196 37 51;
+  --rg-ember-rgb: 196 120 51;
+  --rg-iris-rgb: 129 121 251;
+  --rg-verdigris-rgb: 76 151 134;
+  --rg-orchid-rgb: 186 112 182;
+  --rg-periwinkle-rgb: 102 140 194;
+  --rg-signal-rgb: 0 150 186;
+
+  /* ---- Type. Everything is Geist, loaded as the variable range in index.html
+     so weight 350 renders. Monospace survives for one job: a value to copy. ---- */
+  --rg-sans: 'Geist', 'Inter Tight', 'Inter', system-ui, sans-serif;
+  --rg-mono: 'Geist Mono', 'DM Mono', ui-monospace, monospace;
+  --rg-text: 13px;           /* every interface size: weight makes the hierarchy */
+  --rg-line: 19.5px;         /* grey line, quiet, prose */
+  --rg-line-title: 20px;     /* row title */
+  --rg-track: -0.176px;      /* on 13px text */
+  --rg-weight-title: 500;    /* row title, label, primary button */
+  --rg-weight-line: 350;     /* the grey line and quiet text */
+  --rg-weight-prose: 400;    /* prose, only where a paragraph is unavoidable */
+  /* Headings are Cosmos, never a serif. Page title: Geist 300, line 1.0,
+     -0.05em. Section: Geist 400, line 1.08, -0.04em. Both balanced. App screens
+     take the small sizes; marketing pages the large ones. */
+  --rg-title: clamp(32px, 2.8vw, 40px);
+  --rg-title-marketing: clamp(46px, 6.3vw, 74px);
+  --rg-section-title: clamp(28px, 3.2vw, 38px);
+  --rg-section-title-marketing: clamp(38px, 5.5vw, 66px);
+  --rg-title-track: -0.05em;
+  --rg-section-track: -0.04em;
+
+  /* ---- Space and layout ---- */
+  --rg-col: 820px;           /* the content column */
+  --rg-side: 200px;          /* the sidebar of plain text links */
+  --rg-side-gap: 80px;       /* sidebar to column */
+  --rg-gutter: 24px;         /* phone side gutter */
+  --rg-section: 72px;        /* between sections; 56 on a phone */
+  --rg-section-phone: 56px;
+  --rg-title-to-line: 4px;   /* heading to its grey line */
+  --rg-line-to-rule: 24px;   /* grey line to the list's ink rule */
+  --rg-row: 80px;            /* a row's minimum height; padding 20px 12px */
+  --rg-row-sub: 57px;        /* a sub-row, indented 50px */
+
+  /* ---- Controls and shape ---- */
+  --rg-button: 32px;         /* every button: padding 0 16px, 4px corner, 13px */
+  --rg-cta: 48px;            /* the one sign-in / marketing CTA: 12px corner, 15px 500 */
+  --rg-field-height: 44px;   /* the input: padding 11px 14px, no border */
+  --rg-radius: 4px;          /* buttons, fields, menus */
+  --rg-radius-icon: 8px;     /* a 32px brand icon square, a transitional card */
+  --rg-radius-cta: 12px;
+  --rg-switch-w: 44px;       /* the switch: a pill, ink when on, 20px page knob */
+  --rg-switch-h: 26px;
+  --rg-quick: 0.2s ease;
+}

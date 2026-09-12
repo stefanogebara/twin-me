@@ -32,6 +32,7 @@ describe('design tokens referenced in src/ actually exist', () => {
   // bridge resolves to nothing and the fallback silently wins.
   const tokenSources = [
     'index.css',
+    'styles/register.css',
     'styles/nocturne.css',
     'styles/nocturne-bridge.css',
     'styles/claura.css',

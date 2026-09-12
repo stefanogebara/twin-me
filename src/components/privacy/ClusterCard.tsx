@@ -73,7 +73,7 @@ export const ClusterCard: React.FC<ClusterCardProps> = ({
             </div>
 
             <div className="flex-1">
-              <h3 className="text-lg font-medium text-[var(--foreground)] mb-1" style={{ fontFamily: "'Inter', sans-serif" }}>
+              <h3 className="text-lg font-medium text-[var(--foreground)] mb-1" style={{ fontFamily: 'var(--font-ui)' }}>
                 {cluster.name}
               </h3>
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -106,19 +106,19 @@ export const ClusterCard: React.FC<ClusterCardProps> = ({
         </div>
 
         {/* Description */}
-        <p className="text-sm text-muted-foreground mb-6 leading-relaxed" style={{ fontFamily: "'Inter', sans-serif" }}>
+        <p className="text-sm text-muted-foreground mb-6 leading-relaxed" style={{ fontFamily: 'var(--font-ui)' }}>
           {cluster.description}
         </p>
 
         {/* Intensity Slider */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <label className="text-sm font-medium" style={{ color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}>
+            <label className="text-sm font-medium" style={{ color: 'var(--foreground)', fontFamily: 'var(--font-ui)' }}>
               Reveal Level
             </label>
             <span
               className="text-2xl font-medium tabular-nums"
-              style={{ color: getIntensityColor(cluster.revealLevel), fontFamily: "'Inter', sans-serif" }}
+              style={{ color: getIntensityColor(cluster.revealLevel), fontFamily: 'var(--font-ui)' }}
             >
               {cluster.revealLevel}%
             </span>
@@ -171,7 +171,7 @@ export const ClusterCard: React.FC<ClusterCardProps> = ({
           <div className="mt-6 pt-6 border-t border-white/10">
             <div className="flex items-center gap-2 mb-3">
               <Eye className="w-4 h-4 text-muted-foreground" />
-              <span className="text-xs font-medium text-muted-foreground" style={{ fontFamily: "'Inter', sans-serif" }}>
+              <span className="text-xs font-medium text-muted-foreground" style={{ fontFamily: 'var(--font-ui)' }}>
                 What's revealed at this level
               </span>
             </div>
@@ -180,7 +180,7 @@ export const ClusterCard: React.FC<ClusterCardProps> = ({
                 <div
                   key={index}
                   className="flex items-start gap-2 text-sm text-muted-foreground"
-                  style={{ fontFamily: "'Inter', sans-serif" }}
+                  style={{ fontFamily: 'var(--font-ui)' }}
                 >
                   <span className="text-[var(--accent-vibrant)] mt-1">•</span>
                   <span>{item}</span>
@@ -195,14 +195,14 @@ export const ClusterCard: React.FC<ClusterCardProps> = ({
           <div className="mt-6 pt-6 border-t border-white/10">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
-                <p className="text-xs text-muted-foreground" style={{ fontFamily: "'Inter', sans-serif" }}>Category</p>
+                <p className="text-xs text-muted-foreground" style={{ fontFamily: 'var(--font-ui)' }}>Category</p>
                 <p className="text-sm font-medium text-muted-foreground capitalize">
                   {cluster.category}
                 </p>
               </div>
               {cluster.lastUpdated && (
                 <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground flex items-center gap-1" style={{ fontFamily: "'Inter', sans-serif" }}>
+                  <p className="text-xs text-muted-foreground flex items-center gap-1" style={{ fontFamily: 'var(--font-ui)' }}>
                     <Clock className="w-3 h-3" />
                     Last Updated
                   </p>

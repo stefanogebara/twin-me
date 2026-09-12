@@ -1,0 +1,131 @@
+/* ==========================================================================
+   The front door (/ and /nocturne) and its product pages (/nocturne/signature,
+   /nocturne/twin) in the register. A marketing page keeps its photography and
+   its film: the hero plate, the clip and the five photo tiles stay. Everything
+   else is the register: the large Cosmos headings, one grey line under each,
+   text as rows under a 1px ink rule, 32/4 buttons and one 48/12 call to action
+   (register-public.css). No eyebrows, no italic, no bands, no cards.
+   The hero keeps nocturne.css's .n-atmosphere, which re-scopes the ink names to
+   white over the photograph.
+   ========================================================================== */
+
+.fd { min-height: 100vh; background: var(--rg-page); color: var(--rg-ink); }
+
+/* ---- the hero, over the photograph ---- */
+.fd-hero-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 0 var(--rg-gutter);
+  text-align: center;
+}
+.fd-hero-copy .pb-cta { margin-top: 8px; }
+.fd-hero--product { min-height: 72svh; }
+.fd-prompt { width: min(560px, calc(100% - 48px)); margin-top: 48px; }
+.fd-reveal { width: min(600px, calc(100% - 48px)); margin-top: 48px; }
+.fd-status { margin: 16px 0 0; padding: 0 var(--rg-gutter); text-align: center; }
+
+/* ---- sections sit 72 apart (56 on a phone), not twice that ---- */
+.fd .n-section { padding-top: 0; padding-bottom: var(--rg-section); }
+.fd .n-atmosphere + .n-section { padding-top: var(--rg-section); }
+
+/* ---- the five photo tiles: three over two ---- */
+.fd-tiles { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 16px; }
+.fd-tiles > .n-tile { grid-column: span 2; min-height: 380px; }
+.fd-tiles > .n-tile:nth-child(n + 4) { grid-column: span 3; }
+
+/* ---- a data row: a thin bar in the domain's hue under the title ---- */
+.fd-bar { display: block; height: 2px; margin-top: 8px; background: var(--rg-rule); }
+.fd-bar > i { display: block; height: 100%; }
+
+/* ---- an exchange: the answer is the one paragraph a demo may hold ---- */
+.fd-answer { display: grid; gap: 8px; padding: 20px 12px; border-bottom: 1px solid var(--rg-rule); }
+.fd-answer-text { margin: 0; font-size: var(--rg-text); line-height: var(--rg-line); font-weight: var(--rg-weight-prose); color: var(--rg-ink); max-width: 60ch; }
+
+/* ---- a week: seven columns under the ink rule, no cards ---- */
+.fd-week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); border-top: 1px solid var(--rg-ink); border-bottom: 1px solid var(--rg-rule); }
+.fd-day { display: grid; justify-items: center; gap: 4px; padding: 20px 4px; min-width: 0; text-align: center; font-variant-numeric: tabular-nums; }
+.fd-day-name { font-weight: var(--rg-weight-title); color: var(--rg-ink); }
+.fd-day-date, .fd-day-peak { font-weight: var(--rg-weight-line); color: var(--rg-ink-2); }
+.fd-day-bar { display: flex; align-items: flex-end; justify-content: center; height: 64px; width: 100%; margin: 8px 0; }
+.fd-day-bar > i { width: 6px; border-radius: 3px; background: var(--rg-periwinkle); }
+
+/* ---- questions: disclosure rows under the ink rule ---- */
+.fd-faq { border-top: 1px solid var(--rg-ink); }
+.fd-faq .n-disclosure { border-top: 0; border-bottom: 1px solid var(--rg-rule); padding: 20px 12px; }
+.fd-faq-answer { margin-top: 8px; max-width: 60ch; }
+
+/* ---- the close and the footer ---- */
+.fd-close { display: grid; justify-items: start; gap: 24px; }
+.fd-close-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.fd .fd-foot { display: grid; gap: 12px; padding-top: 24px; padding-bottom: 48px; }
+.fd-foot::before { content: ''; display: block; height: 1px; margin-bottom: 12px; background: var(--rg-rule); }
+.fd-foot-links { display: flex; flex-wrap: wrap; gap: 8px 24px; }
+.fd-foot-links a { color: var(--rg-ink-2); text-decoration: none; }
+.fd-foot-links a:hover { color: var(--rg-ink); }
+
+@media (max-width: 900px) {
+  .fd-tiles { grid-template-columns: minmax(0, 1fr); }
+  .fd-tiles > .n-tile,
+  .fd-tiles > .n-tile:nth-child(n + 4) { grid-column: auto; min-height: 260px; }
+}
+
+@media (max-width: 767px) {
+  .fd .n-section { padding-bottom: var(--rg-section-phone); }
+  .fd .n-atmosphere + .n-section { padding-top: var(--rg-section-phone); }
+  .fd-day-bar { height: 48px; }
+}
+
+/* ==========================================================================
+   The first reading (src/components/landing/RevealStory.tsx), shown in the
+   hero after an email scan. The glass card becomes a plain panel on the page
+   colour, so its ink reads over any part of the photograph; the ink names are
+   scoped back from the hero's white.
+   ========================================================================== */
+
+.rv { width: 100%; text-align: left; }
+.rv-dots { display: flex; justify-content: center; gap: 8px; margin-bottom: 20px; color: var(--n-cloud); }
+.rv-dots > i { width: 6px; height: 6px; border-radius: 3px; background: currentColor; opacity: 0.35; transition: width 0.3s ease, opacity 0.3s ease; }
+.rv-dots > i.is-on { opacity: 1; }
+.rv-dots > i.is-current { width: 20px; opacity: 1; }
+
+.rv-panel {
+  --n-pure: var(--rg-ink);
+  --n-void: var(--rg-page);
+  --n-cloud: var(--rg-ink);
+  --n-ash: var(--rg-ink-2);
+  --n-fog: var(--rg-ink-3);
+  display: grid;
+  gap: 16px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 28px;
+  border: 0;
+  border-radius: var(--rg-radius-icon);
+  background: var(--rg-page);
+  color: var(--rg-ink);
+  font: inherit;
+  font-size: var(--rg-text);
+  line-height: var(--rg-line);
+  letter-spacing: var(--rg-track);
+  text-align: left;
+}
+button.rv-panel { cursor: pointer; }
+.rv-panel:focus-visible { outline: 2px solid var(--rg-white); outline-offset: 3px; }
+.rv-panel--center { justify-items: center; text-align: center; }
+
+.rv-meta { display: flex; justify-content: space-between; gap: 16px; margin: 0; font-weight: var(--rg-weight-title); color: var(--rg-ink); }
+.rv-meta > span + span { font-weight: var(--rg-weight-line); color: var(--rg-ink-3); font-variant-numeric: tabular-nums; }
+.rv-beat { margin: 0; font-size: clamp(20px, 2.2vw, 24px); line-height: 1.3; font-weight: 400; letter-spacing: -0.02em; color: var(--rg-ink); }
+.rv-more { display: inline-flex; align-items: center; gap: 6px; margin: 0; color: var(--rg-ink-2); }
+button.rv-panel:hover .rv-more { color: var(--rg-ink); }
+.rv-question { margin: 0; font-size: var(--rg-section-title); font-weight: 400; line-height: 1.08; letter-spacing: var(--rg-section-track); color: var(--rg-ink); }
+.rv-name { margin: 0; font-size: var(--rg-title); font-weight: 300; line-height: 1; letter-spacing: var(--rg-title-track); color: var(--rg-ink); }
+.rv-line { margin: 0; font-weight: var(--rg-weight-line); color: var(--rg-ink-2); }
+.rv-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.rv-rule { height: 1px; background: var(--rg-rule); }
+
+@media (prefers-reduced-motion: reduce) {
+  .rv-dots > i { transition: none; }
+}

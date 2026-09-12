@@ -4,7 +4,8 @@ import { toast } from 'sonner';
 import { useAuth } from '../contexts/AuthContext';
 import { API_URL, getAccessToken } from '@/services/api/apiBase';
 import { usePlatformsSummary, useDisconnectPlatform } from '../hooks/usePlatformsSummary';
-import { Download, Info, ArrowRight, Send, ExternalLink, Check, Brain } from 'lucide-react';
+import { Download, Send, ExternalLink, Brain, RefreshCw, Loader2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import ConnectedPlatformsSettings from './components/settings/ConnectedPlatformsSettings';
 import AutonomySettings from './components/settings/AutonomySettings';
 import UserRulesSettings from './components/settings/UserRulesSettings';
@@ -14,6 +15,10 @@ import ChatImportCard from './components/settings/ChatImportCard';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import TwinIntelligence from './components/settings/TwinIntelligence';
 import { markTimezoneSynced } from '@/utils/timezoneSync';
+import { Switch } from '@/components/ui/switch';
+import { Page, PageHead, Section, List, Row } from '@/components/register';
+import '@/styles/register-public.css';
+import '@/styles/register-settings.css';
 
 
 const getAuthHeaders = () => {
@@ -25,79 +30,9 @@ const getAuthHeaders = () => {
 
 // ── Sub-components ───────────────────────────────────────────────────────
 
-const SectionLabel: React.FC<{ label: string }> = ({ label }) => (
-  <h2
-    className="text-[11px] font-medium tracking-[0.1em] uppercase block mb-4"
-    style={{ color: 'var(--muted-foreground)', fontFamily: 'Inter, sans-serif', fontSize: '11px', lineHeight: 'normal' }}
-  >
-    {label}
-  </h2>
-);
-
-const Divider: React.FC = () => (
-  <div className="my-8" style={{ borderTop: '1px solid var(--border-glass)' }} />
-);
-
-const SettingsRow: React.FC<{
-  label: string;
-  description?: string;
-  children: React.ReactNode;
-}> = ({ label, description, children }) => (
-  <div
-    className="flex items-center justify-between gap-3 py-4 px-1 -mx-1 rounded-[4px] transition-colors"
-    style={{ borderBottom: '1px solid var(--border-glass)' }}
-    onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--accent)')}
-    onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
-  >
-    <div className="min-w-0 flex-1">
-      <span className="text-[14px]" style={{ color: 'var(--foreground)' }}>{label}</span>
-      {description && (
-        <p className="text-[12px] mt-0.5 line-clamp-2 sm:truncate" style={{ color: 'var(--muted-foreground)' }}>{description}</p>
-      )}
-    </div>
-    <div className="flex-shrink-0">
-      {children}
-    </div>
-  </div>
-);
-
-const ToggleSwitch: React.FC<{
-  enabled: boolean;
-  onChange: (val: boolean) => void;
-  disabled?: boolean;
-  label?: string;
-}> = ({ enabled, onChange, disabled, label }) => (
-  <button
-    role="switch"
-    aria-checked={enabled}
-    aria-label={label}
-    onClick={() => !disabled && onChange(!enabled)}
-    className="relative w-10 h-5 rounded-full transition-colors duration-200 ease-out active:scale-95"
-    style={{
-      backgroundColor: enabled ? 'var(--primary)' : 'var(--surface-solid)',
-      cursor: disabled ? 'not-allowed' : 'pointer',
-      opacity: disabled ? 0.5 : 1,
-    }}
-  >
-    <div
-      className="absolute top-0.5 w-4 h-4 rounded-full transition-all duration-200 ease-out"
-      style={{ left: enabled ? '22px' : '2px', backgroundColor: enabled ? 'var(--primary-foreground)' : 'var(--text-secondary)' }}
-    />
-  </button>
-);
-
-
-const AppearanceRow: React.FC = () => (
-  // Nocturne is single-appearance by design — the reference is a nocturnal
-  // gallery, and nocturne-bridge.css maps [data-theme='light'] to the same
-  // values as :root. So this used to be a three-way radio where two of the
-  // options repainted nothing: the user picked Light and the app stayed dark.
-  // A lit variant has to be DESIGNED, not toggled, so until it exists this
-  // row reports the fact rather than pretending to take input.
-  <SettingsRow label="Appearance" description="Nocturne is dark by design. A light variant is not a toggle.">
-    <span className="n-label" style={{ color: 'var(--n-ash)' }}>DARK</span>
-  </SettingsRow>
-);
+// The Appearance row is gone: it said "Nocturne is dark by design" with the
+// value DARK, which stopped being true when the register (a light page) shipped.
+// There is one appearance and nothing to choose, so there is no row.
 
 const TelegramConnect: React.FC = () => {
   const [status, setStatus] = useState<{ linked: boolean; enabled: boolean } | null>(null);
@@ -149,62 +84,46 @@ const TelegramConnect: React.FC = () => {
     }
   };
 
-  if (loading) return <div className="py-4 text-center text-[12px]" style={{ color: 'var(--text-secondary)' }}>Loading...</div>;
+  if (loading) {
+    return (
+      <li className="rs-note">
+        <Loader2 className="animate-spin" aria-hidden="true" />
+        Checking Telegram
+      </li>
+    );
+  }
 
   return (
-    <div>
-      <div className="flex items-center justify-between gap-3 py-4 px-1 -mx-1 rounded-[4px] transition-colors" style={{ borderBottom: '1px solid var(--border-glass)' }} onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--accent)')} onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}>
-        <div className="flex items-center gap-3 min-w-0 flex-1">
-          <Send className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
-          <div className="min-w-0">
-            <span className="text-sm" style={{ color: 'var(--foreground)' }}>Telegram</span>
-            <p className="text-[12px] mt-0.5 truncate" style={{ color: 'var(--text-secondary)' }}>
-              {status?.linked ? 'Connected — twin sends insights here' : 'Chat with your twin on Telegram'}
-            </p>
-          </div>
-        </div>
-        {status?.linked ? (
-          <div className="flex items-center gap-2">
-            <span className="flex items-center gap-1 text-[11px]" style={{ color: 'rgba(16,183,127,0.8)' }}>
-              <Check className="w-3 h-3" /> Linked
-            </span>
-            <button
-              onClick={handleUnlink}
-              className="text-[11px] transition-opacity hover:opacity-60"
-              style={{ color: 'var(--text-secondary)' }}
-            >
-              Unlink
-            </button>
-          </div>
+    <>
+      <Row
+        icon={<Send />}
+        title="Telegram"
+        line={status?.linked
+          ? <><span className="rs-ok">Connected</span> · Your twin sends insights here</>
+          : 'Talk to your twin on Telegram'}
+        action={status?.linked ? (
+          <button type="button" onClick={handleUnlink} className="n-btn n-btn--ghost">Unlink</button>
         ) : (
-          <button
-            onClick={generateCode}
-            disabled={!!linkCode}
-            className="text-[12px] px-3 py-1.5 rounded-[6px] transition-opacity hover:opacity-80 disabled:opacity-40"
-            style={{ backgroundColor: 'var(--n-steel)', color: 'var(--foreground)' }}
-          >
-            Connect
-          </button>
+          <button type="button" onClick={generateCode} disabled={!!linkCode} className="n-btn n-btn--ghost">Connect</button>
         )}
-      </div>
+        className={linkCode && !status?.linked ? 'rs-row-has-body' : undefined}
+      />
 
       {linkCode && !status?.linked && (
-        <div className="py-4 space-y-3" style={{ borderBottom: '1px solid var(--border-glass)' }}>
-          <div className="flex items-center justify-center gap-3 p-4 rounded-xl"
-            style={{ background: 'var(--glass-surface-bg)', border: '1px solid var(--glass-surface-border)' }}>
-            <span className="text-xl sm:text-2xl font-mono tracking-[0.2em] sm:tracking-[0.3em] font-semibold" style={{ color: 'var(--foreground)' }}>
-              {linkCode}
+        <li className="rs-body">
+          {/* The code is a value to type elsewhere: the one job monospace keeps. */}
+          <p className="rs-mono" style={{ margin: 0, padding: '11px 14px', borderRadius: 4, background: 'var(--rg-field)', color: 'var(--rg-ink)', fontSize: 16, letterSpacing: '0.2em', justifySelf: 'start' }}>
+            {linkCode}
+          </p>
+          <p className="rs-quiet" style={{ color: 'var(--rg-ink-2)', display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+            <ExternalLink className="w-4 h-4 mt-0.5 shrink-0" aria-hidden="true" />
+            <span>
+              In Telegram, find <span className="rs-strong">@{botUsername}</span> and send <span className="rs-strong">/start {linkCode}</span>
             </span>
-          </div>
-          <div className="flex items-start gap-2">
-            <ExternalLink className="w-3.5 h-3.5 mt-0.5 shrink-0" style={{ color: 'var(--text-secondary)' }} />
-            <p className="text-[12px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-              Open Telegram, search for <strong style={{ color: 'var(--foreground)' }}>@{botUsername}</strong>, and send: <strong style={{ color: 'var(--foreground)' }}>/start {linkCode}</strong>
-            </p>
-          </div>
-        </div>
+          </p>
+        </li>
       )}
-    </div>
+    </>
   );
 };
 
@@ -389,19 +308,19 @@ const Settings = () => {
     }
   };
 
-  // ── Section navigation config (desktop sidebar + mobile jump dropdown) ──
+  // ── Section navigation config (desktop sub-nav + phone jump select) ──
   const sections: { id: string; label: string }[] = [
     { id: 'section-account', label: 'Account' },
-    { id: 'section-twin-intelligence', label: 'Twin Intelligence' },
+    { id: 'section-twin-intelligence', label: 'Accuracy' },
     { id: 'section-plan', label: 'Plan' },
-    { id: 'section-platforms', label: 'Connected Platforms' },
-    { id: 'section-chat-voice', label: 'Chat Voice' },
-    { id: 'section-personality', label: 'Personality Engine' },
-    { id: 'section-autonomy', label: 'Twin Autonomy' },
-    { id: 'section-rules', label: 'Twin Rules' },
+    { id: 'section-platforms', label: 'Platforms' },
+    { id: 'section-chat-voice', label: 'Chat voice' },
+    { id: 'section-personality', label: 'Personality' },
+    { id: 'section-autonomy', label: 'Autonomy' },
+    { id: 'section-rules', label: 'Rules' },
     { id: 'section-messaging', label: 'Messaging' },
     { id: 'section-notifications', label: 'Notifications' },
-    { id: 'section-privacy', label: 'Data & Privacy' },
+    { id: 'section-privacy', label: 'Data and privacy' },
     { id: 'section-advanced', label: 'Advanced' },
   ];
 
@@ -412,7 +331,7 @@ const Settings = () => {
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  // IntersectionObserver — highlight whichever section is closest to the top
+  // IntersectionObserver — mark whichever section is closest to the top
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -447,415 +366,273 @@ const Settings = () => {
           calendar: 'Google Calendar',
         };
         const label = PLATFORM_LABELS[reconnectTarget] || 'your platform';
-        toast.info(`Reconnect ${label} under Connected Platforms to restore access.`);
+        toast.info(`Reconnect ${label} under Platforms to restore access.`);
       }
     }, 150);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const signInLine = user?.oauthProvider === 'magic_link'
+    ? 'With a link sent to your email'
+    : user?.oauthProvider === 'google'
+      ? 'With Google'
+      : user?.oauthProvider
+        ? `With ${user.oauthProvider.charAt(0).toUpperCase() + user.oauthProvider.slice(1)}`
+        : 'With OAuth';
+
+  const planName = PLAN_NAMES[subscription?.plan || 'free'] || 'Free';
+
   return (
-    <div className="max-w-[1100px] mx-auto px-4 sm:px-6 py-10 sm:py-16">
-      {/* Claura zoned photography — the forest, both appearances (see /preview/settings). */}
-
-      {/* Mobile jump-to-section dropdown (sticky top) — hidden on lg+ */}
-      <div
-        className="lg:hidden sticky top-2 z-20 mb-6 rounded-[12px] px-3 py-2"
-        style={{
-          background: 'var(--glass-surface-bg)',
-          backdropFilter: 'blur(42px)',
-          WebkitBackdropFilter: 'blur(42px)',
-          border: '1px solid var(--glass-surface-border)',
-        }}
-      >
-        <label className="block text-[11px] mb-1 tracking-[0.1em] uppercase" style={{ color: 'var(--text-secondary)' }}>
-          Jump to
-        </label>
-        <select
-          value={activeSection}
-          onChange={(e) => { setActiveSection(e.target.value); scrollToSection(e.target.value); }}
-          className="w-full text-[14px] bg-transparent focus:outline-none"
-          style={{ color: 'var(--foreground)', fontFamily: 'var(--font-ui)' }}
-        >
+    <Page className="rs rs-wide">
+      <div className="rs-frame">
+        {/* Sub-nav — wide screens only. The current item is underlined. */}
+        <nav className="rs-subnav" aria-label="Settings sections">
           {sections.map(s => (
-            <option key={s.id} value={s.id} style={{ background: 'var(--popover)', color: 'var(--foreground)' }}>
-              {s.label}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div className="flex gap-10">
-        {/* Sidebar — desktop only */}
-        <aside className="hidden lg:block w-[220px] flex-shrink-0">
-          <nav
-            className="sticky top-10 py-2"
-            aria-label="Settings sections"
-          >
-            <ul className="space-y-0.5">
-              {sections.map(s => {
-                const isActive = activeSection === s.id;
-                return (
-                  <li key={s.id}>
-                    <button
-                      onClick={() => scrollToSection(s.id)}
-                      className="w-full text-left px-3 py-2 rounded-[6px] transition-colors text-[13px]"
-                      style={{
-                        color: isActive ? 'var(--accent-vibrant, #c17e2c)' : 'var(--text-secondary)',
-                        background: isActive ? 'var(--accent-vibrant-glow, rgba(255,132,0,0.10))' : 'transparent',
-                        fontFamily: 'var(--font-ui)',
-                        fontWeight: isActive ? 500 : 400,
-                      }}
-                      onMouseEnter={(e) => {
-                        if (!isActive) e.currentTarget.style.backgroundColor = 'var(--accent)';
-                      }}
-                      onMouseLeave={(e) => {
-                        if (!isActive) e.currentTarget.style.backgroundColor = 'transparent';
-                      }}
-                    >
-                      {s.label}
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          </nav>
-        </aside>
-
-        {/* Content */}
-        <div className="flex-1 min-w-0 max-w-[680px]">
-
-      {/* Header */}
-      <h1
-        className="mb-12"
-        style={{
-          fontFamily: "var(--font-heading)",
-          fontStyle: 'italic',
-          fontSize: '28px',
-          fontWeight: 400,
-          color: 'var(--foreground)',
-          letterSpacing: '-0.02em',
-        }}
-      >
-        Settings
-      </h1>
-
-      {/* ── SECTION 1: ACCOUNT ── */}
-      <section id="section-account" className="scroll-mt-10">
-      <SectionLabel label="Account" />
-      <div className="mb-8">
-        <SettingsRow label="Email">
-          <span className="text-[14px] truncate max-w-[140px] sm:max-w-none inline-block" style={{ color: 'var(--text-secondary)' }}>
-            {user?.email ?? 'Not set'}
-          </span>
-        </SettingsRow>
-        <SettingsRow label="Display Name">
-          <span className="text-[14px] truncate max-w-[140px] sm:max-w-none inline-block" style={{ color: 'var(--text-secondary)' }}>
-            {user?.fullName || `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'Not set'}
-          </span>
-        </SettingsRow>
-        <SettingsRow
-          label="Authentication"
-          description={
-            user?.oauthProvider === 'magic_link'
-              ? 'Signed in via email magic link'
-              : user?.oauthProvider === 'google'
-                ? 'Managed via Google OAuth'
-                : user?.oauthProvider
-                  ? `Managed via ${user.oauthProvider}`
-                  : 'Managed via OAuth'
-          }
-        >
-          <span className="text-[14px]" style={{ color: 'var(--text-secondary)' }}>
-            {user?.oauthProvider === 'magic_link'
-              ? 'Email'
-              : user?.oauthProvider
-                ? user.oauthProvider.charAt(0).toUpperCase() + user.oauthProvider.slice(1)
-                : 'OAuth'}
-          </span>
-        </SettingsRow>
-        <SettingsRow label="Timezone" description="Used for morning briefings and greetings">
-          <div className="flex items-center gap-2">
-            <span className="text-[13px] truncate max-w-[130px] sm:max-w-none" style={{ color: 'var(--text-secondary)' }}>
-              {timezone || Intl.DateTimeFormat().resolvedOptions().timeZone}
-            </span>
             <button
-              onClick={handleAutoDetectTimezone}
-              disabled={savingTimezone}
-              className="text-[12px] px-2 py-1 rounded-[6px] transition-opacity hover:opacity-80 disabled:opacity-40"
-              style={{ background: 'var(--surface-solid)', color: 'var(--text-secondary)' }}
+              key={s.id}
+              type="button"
+              onClick={() => scrollToSection(s.id)}
+              aria-current={activeSection === s.id ? 'true' : undefined}
             >
-              {savingTimezone ? 'Saving…' : 'Auto-detect'}
+              {s.label}
             </button>
+          ))}
+        </nav>
+
+        <div className="rs-col">
+          <PageHead title="Settings" />
+
+          {/* Jump to a section — below the wide breakpoint */}
+          <div className="rs-jump">
+            <label htmlFor="settings-jump">Jump to</label>
+            <select
+              id="settings-jump"
+              value={activeSection}
+              onChange={(e) => { setActiveSection(e.target.value); scrollToSection(e.target.value); }}
+              className="rs-select rs-select--wide"
+            >
+              {sections.map(s => (
+                <option key={s.id} value={s.id}>{s.label}</option>
+              ))}
+            </select>
           </div>
-        </SettingsRow>
-        <SettingsRow label="User ID" description="Used by the browser extension">
-          <button
-            onClick={() => {
-              if (user?.id) {
-                navigator.clipboard.writeText(user.id);
-                toast.success('User ID copied');
-              }
-            }}
-            className="text-xs font-mono truncate max-w-[140px] sm:max-w-[240px] inline-block hover:opacity-80 transition-opacity cursor-pointer"
-            style={{ color: 'var(--text-secondary)' }}
-            title="Click to copy"
+
+          {/* ── ACCOUNT ── */}
+          <Section id="section-account" title="Account">
+            <List label="Account" className="pb-stack">
+              <Row title="Email" line={user?.email ?? 'Not set'} />
+              <Row
+                title="Name"
+                line={user?.fullName || `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'Not set'}
+              />
+              <Row title="Sign-in" line={signInLine} />
+              <Row
+                title="Timezone"
+                line={`${timezone || Intl.DateTimeFormat().resolvedOptions().timeZone}, for briefings`}
+                action={
+                  <button type="button" onClick={handleAutoDetectTimezone} disabled={savingTimezone} className="n-btn n-btn--ghost">
+                    {savingTimezone ? 'Saving' : 'Detect'}
+                  </button>
+                }
+              />
+              <Row
+                title="User ID"
+                line={<><span className="rs-mono">{user?.id ? `${user.id.slice(0, 8)}...${user.id.slice(-4)}` : 'Not available'}</span>, for the browser extension</>}
+                action={
+                  <button
+                    type="button"
+                    className="n-btn n-btn--ghost"
+                    onClick={() => {
+                      if (user?.id) {
+                        navigator.clipboard.writeText(user.id);
+                        toast.success('User ID copied');
+                      }
+                    }}
+                  >
+                    Copy
+                  </button>
+                }
+              />
+            </List>
+          </Section>
+
+          {/* ── TWIN INTELLIGENCE (TRIBE v2) ── */}
+          <Section id="section-twin-intelligence" title="Accuracy">
+            <List label="Twin accuracy">
+              <TwinIntelligence />
+            </List>
+          </Section>
+
+          {/* ── PLAN ── */}
+          <Section id="section-plan" title="Plan">
+            <List label="Plan">
+              <Row
+                title={planName}
+                line={subscription?.cancelAtPeriodEnd ? <span className="rs-bad">Ends with this billing period</span> : 'Your plan'}
+                action={subscription?.plan && subscription.plan !== 'free' ? (
+                  <button type="button" onClick={handleManageBilling} disabled={managingBilling} className="n-btn n-btn--ghost">
+                    {managingBilling ? 'Opening' : 'Manage'}
+                  </button>
+                ) : (
+                  <button type="button" onClick={() => navigate('/pricing')} className="n-btn n-btn--ghost">
+                    Upgrade
+                  </button>
+                )}
+              />
+            </List>
+          </Section>
+
+          {/* ── CONNECTED PLATFORMS ── */}
+          <Section
+            id="section-platforms"
+            title="Platforms"
+            action={
+              <button
+                type="button"
+                onClick={() => refetch()}
+                className="rg-iconbtn"
+                aria-label="Refresh platform connection status"
+                title="Refresh"
+              >
+                <RefreshCw aria-hidden="true" />
+              </button>
+            }
           >
-            {user?.id ? `${user.id.slice(0, 8)}...${user.id.slice(-4)}` : 'Not available'}
-          </button>
-        </SettingsRow>
-        <AppearanceRow />
-      </div>
+            <ConnectedPlatformsSettings
+              summary={platformsSummary}
+              isLoading={isLoading}
+              error={error}
+              disconnectingService={disconnectingService}
+              refetch={refetch}
+              navigate={navigate}
+              handleDisconnectService={handleDisconnectService}
+            />
+          </Section>
 
-      </section>
-
-      {/* ── SECTION 1.5: TWIN INTELLIGENCE (TRIBE v2) ── */}
-      <section id="section-twin-intelligence" className="scroll-mt-10">
-        <TwinIntelligence />
-      </section>
-
-      {/* ── SECTION 2: PLAN ── */}
-      <section id="section-plan" className="scroll-mt-10">
-      <div style={{ borderTop: '1px solid var(--border-glass)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
-        <SectionLabel label="Plan" />
-        <div
-          className="flex items-center justify-between gap-3 py-4 px-1 -mx-1 rounded-[4px] transition-colors"
-          style={{ borderBottom: '1px solid var(--border-glass)' }}
-          onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--accent)')}
-          onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
-        >
-          <div className="min-w-0 flex-1">
-            <span className="text-[14px] font-medium" style={{ color: 'var(--foreground)' }}>
-              {PLAN_NAMES[subscription?.plan || 'free'] || 'Free'}
-            </span>
-            {subscription?.cancelAtPeriodEnd && (
-              <p className="text-[12px] mt-0.5" style={{ color: 'rgba(239,68,68,0.6)' }}>
-                Cancels at end of period
-              </p>
-            )}
-          </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            {subscription?.plan && subscription.plan !== 'free' ? (
-              <button
-                onClick={handleManageBilling}
-                disabled={managingBilling}
-                className="text-[12px] px-3 py-1.5 rounded-[100px] transition-opacity hover:opacity-60 disabled:opacity-30"
-                style={{ border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
-              >
-                {managingBilling ? '...' : 'Manage'}
-              </button>
-            ) : (
-              <button
-                onClick={() => navigate('/pricing')}
-                className="text-[12px] px-3 py-1.5 rounded-[100px] font-medium transition-opacity hover:opacity-80"
-                style={{ background: 'rgba(196,162,101,0.15)', color: '#C4A265' }}
-              >
-                Upgrade
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-
-      </section>
-
-      {/* ── SECTION 3: CONNECTED PLATFORMS ── */}
-      <section id="section-platforms" className="scroll-mt-10">
-      <div style={{ borderTop: '1px solid var(--border-glass)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
-        <SectionLabel label="Connected Platforms" />
-        <ConnectedPlatformsSettings
-          summary={platformsSummary}
-          isLoading={isLoading}
-          error={error}
-          disconnectingService={disconnectingService}
-          refetch={refetch}
-          navigate={navigate}
-          handleDisconnectService={handleDisconnectService}
-        />
-      </div>
-
-      </section>
-
-      {/* ── SECTION 3B: CHAT VOICE IMPORT ── */}
-      <section id="section-chat-voice" className="scroll-mt-10">
-          <div style={{ borderTop: '1px solid var(--border-glass)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
-            <SectionLabel label="Chat Voice" />
+          {/* ── CHAT VOICE IMPORT ── */}
+          <Section id="section-chat-voice" title="Chat voice" line="One chat per kind of relationship, so your twin learns each voice.">
             <ChatImportCard />
-          </div>
-        </section>
+          </Section>
 
-      {/* ── SECTION 4: PERSONALITY ENGINE ── */}
-      <section id="section-personality" className="scroll-mt-10">
-      <div style={{ borderTop: '1px solid var(--border-glass)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
-        <SectionLabel label="Personality Engine" />
-        <SettingsRow
-          label="Enhanced Personality"
-          description="Use your fine-tuned model to make responses more authentically you (requires training data)"
-        >
-          <ToggleSwitch
-            enabled={featureToggles.personality_oracle}
-            onChange={() => handleToggleFeature('personality_oracle')}
-            label="Enable Enhanced Personality"
-          />
-        </SettingsRow>
-      </div>
+          {/* ── PERSONALITY ENGINE ── */}
+          <Section id="section-personality" title="Personality">
+            <List label="Personality">
+              <Row
+                title="Enhanced personality"
+                line="Replies from a model trained on your writing"
+                action={
+                  <Switch
+                    checked={featureToggles.personality_oracle}
+                    onCheckedChange={() => handleToggleFeature('personality_oracle')}
+                    aria-label="Enhanced personality"
+                  />
+                }
+              />
+            </List>
+          </Section>
 
-      </section>
-
-      {/* ── SECTION 5: TWIN AUTONOMY ── */}
-      <section id="section-autonomy" className="scroll-mt-10">
-      <div style={{ borderTop: '1px solid var(--border-glass)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
-        <SectionLabel label="Twin Autonomy" />
-        <AutonomySettings />
-      </div>
-      </section>
-
-      {/* ── SECTION 5B: USER RULES ── */}
-      <section id="section-rules" className="scroll-mt-10">
-      <div style={{ borderTop: '1px solid var(--border-glass)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
-        <SectionLabel label="Twin Rules" />
-        <UserRulesSettings />
-      </div>
-      </section>
-
-      {/* ── SECTION 6: MESSAGING CHANNELS ── */}
-      <section id="section-messaging" className="scroll-mt-10">
-      <div style={{ borderTop: '1px solid var(--border-glass)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
-        <SectionLabel label="Messaging" />
-        <TelegramConnect />
-        <WhatsAppConnect />
-      </div>
-      </section>
-
-      {/* ── SECTION 6B: NOTIFICATIONS ── */}
-      <section id="section-notifications" className="scroll-mt-10">
-      <div style={{ borderTop: '1px solid var(--border-glass)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
-        <SectionLabel label="Notifications" />
-        <NotificationSettings userId={user?.id || ''} />
-      </div>
-      </section>
-
-      {/* ── SECTION 7: DATA & PRIVACY ── */}
-      <section id="section-privacy" className="scroll-mt-10">
-      <div style={{ borderTop: '1px solid var(--border-glass)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
-        <SectionLabel label="Data & Privacy" />
-
-        {/* Privacy Spectrum — row with nav arrow */}
-        <button
-          onClick={() => navigate('/privacy-spectrum')}
-          className="w-full flex items-center justify-between gap-3 py-4 px-1 -mx-1 rounded-[4px] transition-colors text-left"
-          style={{ borderBottom: '1px solid var(--border-glass)', backgroundColor: 'transparent' }}
-          onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--accent)')}
-          onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
-        >
-          <div className="min-w-0 flex-1">
-            <span className="text-[14px]" style={{ color: 'var(--foreground)' }}>Privacy Spectrum</span>
-            <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-              Control what your twin knows and shares
-            </p>
-          </div>
-          <ArrowRight className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-secondary)' }} />
-        </button>
-
-        <SettingsRow label="Export My Data">
-          <button
-            onClick={handleExportData}
-            disabled={exporting}
-            className="flex items-center gap-1.5 text-[12px] transition-opacity hover:opacity-60 disabled:opacity-30"
-            style={{ color: 'var(--text-secondary)' }}
+          {/* ── TWIN AUTONOMY ── */}
+          <Section
+            id="section-autonomy"
+            title="Autonomy"
+            line={<>How much your twin does alone. Or <Link to="/talk-to-twin" className="rs-link">tell it in chat</Link>.</>}
           >
-            <Download className="w-3.5 h-3.5" />
-            {exporting ? 'Exporting...' : 'Download'}
-          </button>
-        </SettingsRow>
-        <SettingsRow label="Memory Count">
-          <span className="text-[14px]" style={{ color: 'var(--text-secondary)' }}>
-            {memoryCount != null ? `${memoryCount.toLocaleString('en-US')} memories` : '--'}
-          </span>
-        </SettingsRow>
+            <AutonomySettings />
+          </Section>
 
-        {/* Danger zone — subtle red border, no heavy card */}
-        <div
-          className="mt-4 p-4 rounded-[8px]"
-          style={{ border: '1px solid rgba(255,100,100,0.1)' }}
-        >
-          <SettingsRow label="Delete Account">
-            {!showDeleteConfirm ? (
-              <button
-                onClick={() => setShowDeleteConfirm(true)}
-                className="text-[12px] transition-opacity hover:opacity-60"
-                style={{ color: '#e05a3e' }}
-              >
-                Delete everything
-              </button>
-            ) : (
-              <div className="flex flex-wrap items-center gap-2">
-                <input
-                  type="text"
-                  placeholder='Type "DELETE"'
-                  value={deleteConfirmText}
-                  onChange={(e) => setDeleteConfirmText(e.target.value)}
-                  aria-label="Type DELETE to confirm account deletion"
-                  className="text-sm px-2 py-1 rounded w-24 sm:w-28 bg-transparent focus:outline-none"
-                  style={{ border: '1px solid rgba(193,69,44,0.3)', color: '#e05a3e' }}
-                />
-                <button
-                  onClick={handleDeleteAccount}
-                  disabled={deleteConfirmText !== 'DELETE' || deleting}
-                  className="text-[12px] px-3 py-1 rounded transition-opacity disabled:opacity-30 flex-shrink-0"
-                  style={{ backgroundColor: 'rgba(193,69,44,0.15)', color: '#e05a3e' }}
-                >
-                  {deleting ? '...' : 'Confirm'}
-                </button>
-                <button
-                  onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText(''); }}
-                  className="text-[12px] transition-opacity hover:opacity-60 flex-shrink-0"
-                  style={{ color: 'var(--text-secondary)' }}
-                >
-                  Cancel
-                </button>
-              </div>
-            )}
-          </SettingsRow>
+          {/* ── USER RULES ── */}
+          <Section id="section-rules" title="Rules" line="What your twin always keeps to.">
+            <UserRulesSettings />
+          </Section>
+
+          {/* ── MESSAGING CHANNELS ── */}
+          <Section id="section-messaging" title="Messaging">
+            <List label="Messaging" className="pb-stack">
+              <TelegramConnect />
+              <WhatsAppConnect />
+            </List>
+          </Section>
+
+          {/* ── NOTIFICATIONS ── */}
+          <Section id="section-notifications" title="Notifications">
+            <List label="Notifications">
+              <NotificationSettings userId={user?.id || ''} />
+            </List>
+          </Section>
+
+          {/* ── DATA & PRIVACY ── */}
+          <Section id="section-privacy" title="Data and privacy">
+            <List label="Data and privacy" className="pb-stack">
+              <Row to="/privacy-spectrum" title="Privacy spectrum" line="What your twin knows and shares" />
+              <Row
+                title="Export my data"
+                line="Everything, as one file"
+                action={
+                  <button type="button" onClick={handleExportData} disabled={exporting} className="n-btn n-btn--ghost">
+                    <Download className="w-4 h-4" aria-hidden="true" />
+                    {exporting ? 'Exporting' : 'Download'}
+                  </button>
+                }
+              />
+              <Row
+                title="Memories"
+                line={memoryCount != null ? `${memoryCount.toLocaleString('en-US')} memories` : '--'}
+              />
+              <Row
+                title="Delete account"
+                line="Your twin and all your data, for good"
+                className={showDeleteConfirm ? 'rs-row-has-body' : undefined}
+                action={!showDeleteConfirm ? (
+                  <button type="button" onClick={() => setShowDeleteConfirm(true)} className="n-btn rs-danger">
+                    Delete everything
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText(''); }}
+                    className="n-btn n-btn--ghost"
+                  >
+                    Cancel
+                  </button>
+                )}
+              />
+              {showDeleteConfirm && (
+                <li className="rs-body rs-body--plain">
+                  <div className="rs-inline">
+                    <input
+                      type="text"
+                      placeholder='Type "DELETE"'
+                      value={deleteConfirmText}
+                      onChange={(e) => setDeleteConfirmText(e.target.value)}
+                      aria-label="Type DELETE to confirm account deletion"
+                      className="n-input"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleDeleteAccount}
+                      disabled={deleteConfirmText !== 'DELETE' || deleting}
+                      className="n-btn rs-danger"
+                    >
+                      {deleting ? 'Deleting' : 'Confirm'}
+                    </button>
+                  </div>
+                </li>
+              )}
+            </List>
+          </Section>
+
+          {/* ── Advanced ── */}
+          <Section id="section-advanced" title="Advanced">
+            <List label="Advanced">
+              <Row to="/brain" icon={<Brain />} title="Memory explorer" line="Browse and search every memory" />
+            </List>
+          </Section>
+
+          <p className="rs-quiet rs-foot">TwinMe v0.9</p>
         </div>
       </div>
-
-      </section>
-
-      {/* ── Advanced ── */}
-      <section id="section-advanced" className="scroll-mt-10">
-        <div style={{ borderTop: '1px solid var(--border-glass)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
-          <SectionLabel label="Advanced" />
-          <button
-            onClick={() => navigate('/brain')}
-            className="w-full flex items-center justify-between gap-3 py-4 px-1 -mx-1 rounded-[4px] transition-colors text-left"
-            style={{ borderBottom: '1px solid var(--border-glass)', backgroundColor: 'transparent' }}
-            onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--accent)')}
-            onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
-          >
-            <div className="flex items-center gap-3 min-w-0 flex-1">
-              <Brain className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-secondary)' }} />
-              <div className="min-w-0">
-                <span className="text-[14px]" style={{ color: 'var(--foreground)' }}>Memory Explorer</span>
-                <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-                  Browse and search your raw memory stream
-                </p>
-              </div>
-            </div>
-            <ArrowRight className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-secondary)' }} />
-          </button>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <div className="mt-16 text-center">
-        <span className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
-          TwinMe v0.9
-        </span>
-      </div>
-        </div>
-      </div>
-    </div>
+    </Page>
   );
 };
 

@@ -1,14 +1,19 @@
 /**
- * SoulScore -- Identity Richness Score + Contributor Cards
- * =========================================================
+ * SoulScore -- Identity Richness Score + Contributors
+ * ====================================================
  * Inspired by Oura Ring readiness score + contributor cards.
- * Shows a composite "Soul Score" (0-100) with an animated SVG ring
- * and 6 domain contributor cards in a responsive grid.
+ * A composite "Soul Score" (0-100) as an SVG ring, and the six domains that
+ * contribute to it.
+ *
+ * In the register: a section whose heading carries the ring at its right end,
+ * and the six domains as rows under the ink rule (an icon, the domain, one grey
+ * line, a lock when it is not connected). No glass cards, no glow, and the
+ * domain labels are ink (they were #F5F5F4 on white).
  */
 
 import React, { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
+import { useMotionValue, useTransform, animate } from 'framer-motion';
 import {
   Music,
   Heart,
@@ -22,6 +27,7 @@ import {
 import { authFetch } from '@/services/api/apiBase';
 import { usePlatformsSummary } from '@/hooks/usePlatformsSummary';
 import { computeSoulScore, computeDomainScore } from '@/lib/soulScoring';
+import { Section, List, Row } from '@/components/register';
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -36,7 +42,6 @@ interface ContributorDomain {
   id: string;
   label: string;
   icon: LucideIcon;
-  color: string;
   platformKey: string;
   alwaysUnlocked?: boolean;
 }
@@ -45,16 +50,13 @@ interface ContributorDomain {
 /*  Constants                                                          */
 /* ------------------------------------------------------------------ */
 
-const RING_RADIUS = 52;
-const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
-
 const DOMAINS: ContributorDomain[] = [
-  { id: 'music', label: 'Music', icon: Music, color: '#1DB954', platformKey: 'spotify' },
-  { id: 'body', label: 'Body', icon: Heart, color: '#00B4D8', platformKey: 'whoop' },
-  { id: 'social', label: 'Social', icon: Users, color: '#4285F4', platformKey: 'google_calendar' },
-  { id: 'focus', label: 'Focus', icon: Brain, color: '#A78BFA', platformKey: 'github' },
-  { id: 'curiosity', label: 'Curiosity', icon: Lightbulb, color: '#F59E0B', platformKey: 'youtube' },
-  { id: 'drive', label: 'Drive', icon: Flame, color: '#EF4444', platformKey: '__always__', alwaysUnlocked: true },
+  { id: 'music', label: 'Music', icon: Music, platformKey: 'spotify' },
+  { id: 'body', label: 'Body', icon: Heart, platformKey: 'whoop' },
+  { id: 'social', label: 'Social', icon: Users, platformKey: 'google_calendar' },
+  { id: 'focus', label: 'Focus', icon: Brain, platformKey: 'github' },
+  { id: 'curiosity', label: 'Curiosity', icon: Lightbulb, platformKey: 'youtube' },
+  { id: 'drive', label: 'Drive', icon: Flame, platformKey: '__always__', alwaysUnlocked: true },
 ];
 
 // Proper display names for each platform key (raw keys like "google_calendar"
@@ -71,10 +73,12 @@ const PLATFORM_DISPLAY_NAMES: Record<string, string> = {
 /*  Helpers                                                            */
 /* ------------------------------------------------------------------ */
 
+// SVG presentation attributes do not resolve var(), so the ring's strokes are
+// register.css's hex values written out: verdigris, ember, and the mark grey.
 function getRingColor(score: number): string {
-  if (score > 70) return 'var(--n-verdigris)';
-  if (score >= 40) return '#f59e0b';
-  return 'rgba(255,255,255,0.20)';
+  if (score > 70) return '#4c9786';
+  if (score >= 40) return '#c47833';
+  return '#8c8889';
 }
 
 /* ------------------------------------------------------------------ */
@@ -107,30 +111,23 @@ const AnimatedCounter: React.FC<{ target: number }> = ({ target }) => {
 
 const ScoreRing: React.FC<{ score: number; compact?: boolean }> = ({ score, compact }) => {
   const ringColor = getRingColor(score);
-  const size = compact ? 120 : 160;
-  const r = compact ? 50 : 68;
+  const size = compact ? 88 : 120;
+  const r = compact ? 38 : 52;
 
   return (
-    <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
-      <div
-        className="absolute inset-0 rounded-full"
-        style={{
-          background: `radial-gradient(circle, ${ringColor}15 0%, transparent 70%)`,
-          filter: 'blur(20px)',
-        }}
-      />
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-        <circle
-          cx={size / 2} cy={size / 2} r={r}
-          fill="none"
-          style={{ stroke: 'var(--border-glass)' }}
-          strokeWidth={compact ? 5 : 6}
-        />
+    <div
+      className="relative flex items-center justify-center"
+      style={{ width: size, height: size }}
+      role="img"
+      aria-label={`Soul score ${score} out of 100`}
+    >
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden="true">
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#eae9ea" strokeWidth={4} />
         <circle
           cx={size / 2} cy={size / 2} r={r}
           fill="none"
           stroke={ringColor}
-          strokeWidth={compact ? 5 : 6}
+          strokeWidth={4}
           strokeDasharray={Math.PI * 2 * r}
           strokeDashoffset={Math.PI * 2 * r * (1 - score / 100)}
           strokeLinecap="round"
@@ -138,110 +135,21 @@ const ScoreRing: React.FC<{ score: number; compact?: boolean }> = ({ score, comp
           style={{ transition: 'stroke-dashoffset 1.5s ease-out' }}
         />
       </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span
-          className={`font-normal tracking-[-1px] ${compact ? 'text-[32px]' : 'text-[44px]'}`}
-          style={{ fontFamily: "var(--font-heading)", color: 'var(--foreground)' }}
-        >
-          <AnimatedCounter target={score} />
-        </span>
-      </div>
+      <span
+        aria-hidden="true"
+        className="absolute inset-0 flex items-center justify-center"
+        style={{
+          fontFamily: 'var(--rg-sans)',
+          fontSize: compact ? 28 : 36,
+          fontWeight: 300,
+          letterSpacing: '-0.05em',
+          fontVariantNumeric: 'tabular-nums',
+          color: 'var(--rg-ink)',
+        }}
+      >
+        <AnimatedCounter target={score} />
+      </span>
     </div>
-  );
-};
-
-/* ------------------------------------------------------------------ */
-/*  Contributor Card                                                   */
-/* ------------------------------------------------------------------ */
-
-interface ContributorCardProps {
-  domain: ContributorDomain;
-  connected: boolean;
-  score: number;
-  index: number;
-  compact?: boolean;
-}
-
-const ContributorCard: React.FC<ContributorCardProps> = ({ domain, connected, score, index, compact }) => {
-  const Icon = domain.icon;
-  const locked = !connected;
-  // Connected domains read as a neutral "Contributing" status. Per-domain
-  // memory depth isn't available on the client, so we no longer claim a
-  // depth tier (Deep/Growing/New) that was identical across every unlocked
-  // card (audit-2026-06-10).
-  const label = { text: 'Contributing', color: 'var(--text-secondary)' };
-  const platformName = domain.platformKey === '__always__'
-    ? ''
-    : PLATFORM_DISPLAY_NAMES[domain.platformKey] ?? domain.platformKey.replace(/_/g, ' ');
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.3 + index * 0.1, duration: 0.5, ease: 'easeOut' }}
-      style={{
-        background: locked ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.06)',
-        border: '1px solid var(--glass-surface-border)',
-        backdropFilter: 'blur(42px)',
-        WebkitBackdropFilter: 'blur(42px)',
-        borderRadius: 20,
-        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), 0 4px 12px rgba(0,0,0,0.15)',
-      }}
-      className={`${compact ? 'px-3 py-3' : 'px-5 py-5'} flex flex-col gap-2 transition-all duration-300 hover:translate-y-[-2px] hover:shadow-lg cursor-default`}
-    >
-      {/* Header row */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Icon
-            size={18}
-            style={{ color: locked ? 'rgba(255,255,255,0.15)' : domain.color }}
-          />
-          <span
-            className="text-[13px] font-medium"
-            style={{
-              fontFamily: "'Inter', sans-serif",
-              color: locked ? 'var(--text-secondary)' : '#F5F5F4',
-            }}
-          >
-            {domain.label}
-          </span>
-        </div>
-        {locked && (
-          <Lock size={14} style={{ color: 'var(--text-muted)' }} />
-        )}
-      </div>
-
-      {/* Status */}
-      {locked ? (
-        <span
-          className="text-[11px]"
-          style={{ fontFamily: "'Inter', sans-serif", color: 'var(--text-secondary)' }}
-        >
-          Connect {platformName} to unlock
-        </span>
-      ) : (
-        <div className="flex items-center gap-2">
-          <span
-            className="text-[13px] font-medium"
-            style={{ fontFamily: "'Inter', sans-serif", color: label.color }}
-          >
-            {label.text}
-          </span>
-          <div
-            className="flex-1 h-1 rounded-full"
-            style={{ backgroundColor: 'var(--surface)' }}
-          >
-            <motion.div
-              className="h-full rounded-full"
-              initial={{ width: 0 }}
-              animate={{ width: `${score}%` }}
-              transition={{ delay: 0.5 + index * 0.1, duration: 1, ease: 'easeOut' }}
-              style={{ backgroundColor: domain.color, opacity: 0.7 }}
-            />
-          </div>
-        </div>
-      )}
-    </motion.div>
   );
 };
 
@@ -278,7 +186,7 @@ const SoulScore: React.FC<SoulScoreProps> = ({ className = '', compact = false }
   // /wiki, /dashboard, etc.
   const { data: platformsSummary } = usePlatformsSummary({ enabled: !!userId });
 
-  // Backward-compatible connector map for ContributorCard locked/unlocked logic.
+  // Backward-compatible connector map for the contributor locked/unlocked logic.
   const connectors = useMemo(() => {
     const map: Record<string, { connected: boolean; tokenExpired: boolean }> = {};
     for (const p of platformsSummary?.breakdown ?? []) {
@@ -288,7 +196,7 @@ const SoulScore: React.FC<SoulScoreProps> = ({ className = '', compact = false }
   }, [platformsSummary]);
 
   // Platform-level inputs from the canonical summary.
-  // - connectedPlatforms (unlocks the contributor card): includes ALL connected
+  // - connectedPlatforms (unlocks the contributor): includes ALL connected
   //   regardless of token state, so the user can see what they've linked even
   //   when a token has expired.
   // - activeCount (feeds the Soul Score numerator): only platforms that are
@@ -311,58 +219,38 @@ const SoulScore: React.FC<SoulScoreProps> = ({ className = '', compact = false }
   const connectedSet = new Set(connectedPlatforms);
 
   return (
-    <motion.section
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6, ease: 'easeOut' }}
+    <Section
+      title="Soul score"
+      // Sources = ACTIVELY syncing platforms (summary.active), matching the
+      // score numerator — total counted expired/stale rows ("10 sources" bug,
+      // batch-3 display convention).
+      line={`Identity richness across ${activeCount} source${activeCount !== 1 ? 's' : ''}.`}
+      action={<ScoreRing score={score} compact={compact} />}
       className={className}
     >
-      {/* Section label */}
-      <div className="flex items-center gap-2 mb-6">
-        <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: getRingColor(score) }} />
-        <h2
-          className="text-[11px] font-medium tracking-widest uppercase"
-          style={{ color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}
-        >
-          Soul Score
-        </h2>
-      </div>
-
-      {/* Score ring + subtitle */}
-      <div className={`flex flex-col items-center gap-2 ${compact ? 'mb-5' : 'mb-8'}`}>
-        <ScoreRing score={score} compact={compact} />
-        <p
-          className="text-[13px]"
-          style={{ fontFamily: "'Inter', sans-serif", color: 'var(--text-secondary)' }}
-        >
-          {/* Sources = ACTIVELY syncing platforms (summary.active), matching the
-              score numerator — total counted expired/stale rows ("10 sources" bug,
-              batch-3 display convention). */}
-          Identity richness across {activeCount} source{activeCount !== 1 ? 's' : ''}
-        </p>
-      </div>
-
-      {/* Contributor grid */}
-      <div className={`grid ${compact ? 'grid-cols-2 gap-2' : 'grid-cols-2 sm:grid-cols-3 gap-3'}`}>
-        {DOMAINS.map((domain, i) => {
+      <List label="What feeds your score">
+        {DOMAINS.map((domain) => {
           const connected = domain.alwaysUnlocked || connectedSet.has(domain.platformKey);
           // Binary per-domain signal: per-domain memory volume is not available
           // on the client, so a connected domain reads as "contributing" rather
           // than fabricating a per-domain depth (audit-2026-06-10).
-          const domainScore = computeDomainScore(connected);
+          const contributing = computeDomainScore(connected) > 0;
+          const platformName = domain.platformKey === '__always__'
+            ? ''
+            : PLATFORM_DISPLAY_NAMES[domain.platformKey] ?? domain.platformKey.replace(/_/g, ' ');
+          const Icon = domain.icon;
           return (
-            <ContributorCard
+            <Row
               key={domain.id}
-              domain={domain}
-              connected={connected}
-              score={domainScore}
-              index={i}
-              compact={compact}
+              icon={<Icon aria-hidden="true" />}
+              title={domain.label}
+              line={connected && contributing ? 'Contributing' : `Connect ${platformName} to unlock`}
+              action={connected ? undefined : <Lock className="rg-chevron" aria-label="Locked" />}
             />
           );
         })}
-      </div>
-    </motion.section>
+      </List>
+    </Section>
   );
 };
 

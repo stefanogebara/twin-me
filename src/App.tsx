@@ -161,8 +161,8 @@ const App = () => {
                         href="#main-content"
                         className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:px-4 focus:py-2 focus:rounded-lg focus:text-sm focus:font-medium"
                         style={{
-                          backgroundColor: 'var(--accent-vibrant)',
-                          color: '#0a0909',
+                          backgroundColor: 'var(--primary)',
+                          color: 'var(--primary-foreground)',
                         }}
                       >
                         Skip to main content
@@ -206,6 +206,8 @@ const App = () => {
             <Route path="/preview/stardust-hero" element={<div className="w-full min-h-screen" style={{ background: 'var(--background)' }}><StardustHero /></div>} />
             <Route path="/preview/stardust" element={<StardustLanding />} />
             <Route path="/nocturne" element={<Suspense fallback={null}><NocturneLanding /></Suspense>} />
+            {/* The register's living spec. /nocturne/system is its old address and keeps working. */}
+            <Route path="/system" element={<Suspense fallback={null}><NocturneSpec /></Suspense>} />
             <Route path="/nocturne/system" element={<Suspense fallback={null}><NocturneSpec /></Suspense>} />
             <Route path="/nocturne/signature" element={<Suspense fallback={null}><NocturneSignature /></Suspense>} />
             <Route path="/nocturne/twin" element={<Suspense fallback={null}><NocturneTwin /></Suspense>} />

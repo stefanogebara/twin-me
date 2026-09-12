@@ -265,13 +265,11 @@ export function WorkspaceActionCard({ action }: WorkspaceActionCardProps) {
       <motion.div
         initial={{ opacity: 0, y: 4 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-[var(--surface)] rounded-[20px] border border-[var(--border-glass)] px-5 py-4 mb-3"
-        style={{ boxShadow: 'inset 0 0 7px 1px rgba(255,255,255,0.1)' }}
-      >
+        className="bg-[var(--rg-white)] rounded-[4px] border border-[var(--rg-rule)] px-4 py-3 mb-3"      >
         <div className="flex items-center gap-2 animate-pulse">
           <Icon className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
           <span
-            className="text-[11px] uppercase tracking-[0.15em] font-medium"
+            className="text-[13px] font-medium"
             style={{ color: 'var(--text-muted)' }}
           >
             {config.executingLabel}
@@ -291,14 +289,12 @@ export function WorkspaceActionCard({ action }: WorkspaceActionCardProps) {
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="bg-[var(--surface)] rounded-[20px] border border-[var(--border-glass)] px-5 py-4 mb-3"
-          style={{ boxShadow: 'inset 0 0 7px 1px rgba(255,255,255,0.1)' }}
-        >
+          className="bg-[var(--rg-white)] rounded-[4px] border border-[var(--rg-rule)] px-4 py-3 mb-3"        >
           <div className="flex items-center gap-2">
-            <Clock className="w-4 h-4" style={{ color: 'rgb(var(--n-ember-rgb) / 0.7)' }} aria-hidden="true" />
+            <Clock className="w-4 h-4" style={{ color: 'var(--rg-ember)' }} aria-hidden="true" />
             <span
-              className="text-[11px] uppercase tracking-[0.15em] font-medium"
-              style={{ color: 'rgb(var(--n-ember-rgb) / 0.7)' }}
+              className="text-[13px] font-medium"
+              style={{ color: 'var(--rg-ink)' }}
             >
               {config.label} lookup timed out
             </span>
@@ -316,14 +312,12 @@ export function WorkspaceActionCard({ action }: WorkspaceActionCardProps) {
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="bg-[var(--surface)] rounded-[20px] border border-[var(--border-glass)] px-5 py-4 mb-3"
-        style={{ boxShadow: 'inset 0 0 7px 1px rgba(255,255,255,0.1)' }}
-      >
+        className="bg-[var(--rg-white)] rounded-[4px] border border-[var(--rg-rule)] px-4 py-3 mb-3"      >
         <div className="flex items-center gap-2">
-          <Icon className="w-4 h-4" style={{ color: 'rgba(239,68,68,0.6)' }} />
+          <Icon className="w-4 h-4" style={{ color: 'var(--rg-danger)' }} aria-hidden="true" />
           <span
-            className="text-[11px] uppercase tracking-[0.15em] font-medium"
-            style={{ color: 'rgba(239,68,68,0.6)' }}
+            className="text-[13px] font-medium"
+            style={{ color: 'var(--rg-danger)' }}
           >
             {config.label} failed
           </span>
@@ -337,13 +331,11 @@ export function WorkspaceActionCard({ action }: WorkspaceActionCardProps) {
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="bg-[var(--surface)] rounded-[20px] border border-[var(--border-glass)] px-5 py-4 mb-3"
-        style={{ boxShadow: 'inset 0 0 7px 1px rgba(255,255,255,0.1)' }}
-      >
+        className="bg-[var(--rg-white)] rounded-[4px] border border-[var(--rg-rule)] px-4 py-3 mb-3"      >
         <div className="flex items-center gap-2 mb-1">
           <Icon className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
           <span
-            className="text-[11px] uppercase tracking-[0.15em] font-medium"
+            className="text-[13px] font-medium"
             style={{ color: 'var(--text-muted)' }}
           >
             {config.label} {action.elapsedMs != null ? `\u00b7 ${action.elapsedMs}ms` : ''}
@@ -361,14 +353,12 @@ export function WorkspaceActionCard({ action }: WorkspaceActionCardProps) {
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="bg-[var(--surface)] rounded-[20px] border border-[var(--border-glass)] px-5 py-4 mb-3"
-        style={{ boxShadow: 'inset 0 0 7px 1px rgba(255,255,255,0.1)' }}
-      >
+        className="bg-[var(--rg-white)] rounded-[4px] border border-[var(--rg-rule)] px-4 py-3 mb-3"      >
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             <Icon className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
             <span
-              className="text-[11px] uppercase tracking-[0.15em] font-medium"
+              className="text-[13px] font-medium"
               style={{ color: 'var(--text-muted)' }}
             >
               {config.label} {'\u00b7'} {items.length} result{items.length !== 1 ? 's' : ''}
@@ -416,7 +406,7 @@ export function WorkspaceActionCard({ action }: WorkspaceActionCardProps) {
                     <ChevronLeft className="w-3.5 h-3.5" aria-hidden="true" />
                   </button>
                   <span
-                    className="text-[10px] uppercase tracking-[0.15em]"
+                    className="text-[13px] tabular-nums"
                     style={{ color: 'var(--text-muted)' }}
                   >
                     {page + 1} of {totalPages}
@@ -447,13 +437,11 @@ export function WorkspaceActionCard({ action }: WorkspaceActionCardProps) {
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="bg-[var(--surface)] rounded-[20px] border border-[var(--border-glass)] px-5 py-4 mb-3"
-        style={{ boxShadow: 'inset 0 0 7px 1px rgba(255,255,255,0.1)' }}
-      >
+        className="bg-[var(--rg-white)] rounded-[4px] border border-[var(--rg-rule)] px-4 py-3 mb-3"      >
         <div className="flex items-center gap-2 mb-1">
           <Icon className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
           <span
-            className="text-[11px] uppercase tracking-[0.15em] font-medium"
+            className="text-[13px] font-medium"
             style={{ color: 'var(--text-muted)' }}
           >
             {config.label}
@@ -471,13 +459,11 @@ export function WorkspaceActionCard({ action }: WorkspaceActionCardProps) {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="bg-[var(--surface)] rounded-[20px] border border-[var(--border-glass)] px-5 py-4 mb-3"
-        style={{ boxShadow: 'inset 0 0 7px 1px rgba(255,255,255,0.1)' }}
-    >
+      className="bg-[var(--rg-white)] rounded-[4px] border border-[var(--rg-rule)] px-4 py-3 mb-3"    >
       <div className="flex items-center gap-2">
         <Icon className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
         <span
-          className="text-[11px] uppercase tracking-[0.15em] font-medium"
+          className="text-[13px] font-medium"
           style={{ color: 'var(--text-muted)' }}
         >
           {config.label}

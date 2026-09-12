@@ -1,17 +1,15 @@
 /**
  * TwinReflection Component
  *
- * Displays a conversational reflection from the digital twin.
- * Redesigned to be visual and engaging - NOT like a textbook.
- *
- * Features:
- * - No quote marks - natural, conversational tone
- * - Visual variety with different section styles
- * - Specific data highlights when available
+ * The twin's reflection in the register: a section whose list holds the one
+ * paragraph the page keeps, under the list's ink rule. Patterns and figures
+ * around it are rows. No cards, no tinted labels, no quote marks.
  */
 
 import React from 'react';
-import { Sparkles, TrendingUp, Heart, Lightbulb, Music } from 'lucide-react';
+import type { ReactNode } from 'react';
+import { TrendingUp, Heart, Lightbulb } from 'lucide-react';
+import { Section, List, Row } from '@/components/register';
 
 interface TwinReflectionProps {
   reflection: string;
@@ -19,6 +17,8 @@ interface TwinReflectionProps {
   confidence?: 'high' | 'medium' | 'low';
   isNew?: boolean;
   className?: string;
+  /** More rows under the paragraph (the evidence). */
+  children?: ReactNode;
 }
 
 /**
@@ -37,101 +37,38 @@ function formatTimeAgo(date: Date | string): string {
   return `Observed on ${then.toLocaleDateString()}`;
 }
 
+const CONFIDENCE_LABEL = {
+  high: 'high confidence',
+  medium: 'an emerging pattern',
+  low: 'an early observation',
+} as const;
+
 export const TwinReflection: React.FC<TwinReflectionProps> = ({
   reflection,
   timestamp,
   confidence,
-  isNew = false,
-  className = ''
+  className,
+  children,
 }) => {
-  const colors = {
-    text: 'var(--foreground)',
-    textMuted: 'rgba(255, 255, 255, 0.55)',
-    iconBg: 'rgba(139, 92, 246, 0.1)',
-    // audit-2026-07-03 H5: this violet is the "Your Twin's Observation" LABEL
-    // text, not just the icon. #8B5CF6 = 3.80:1 on the glass card (fails AA).
-    // violet-400 #A78BFA = 5.92:1 on the 0.06 panel, same hue family.
-    iconColor: '#A78BFA',
-    highlight: 'rgba(139, 92, 246, 0.1)'
-  };
+  const line = [timestamp ? formatTimeAgo(timestamp) : null, confidence ? CONFIDENCE_LABEL[confidence] : null]
+    .filter(Boolean)
+    .join(', ');
 
   return (
-    <div
-      className={`p-5 rounded-[20px] ${className}`}
-      style={{
-        border: '1px solid var(--border-glass)',
-        backgroundColor: 'var(--surface)',
-        backdropFilter: 'blur(42px)',
-        WebkitBackdropFilter: 'blur(42px)'
-      }}
-    >
-      <div className="space-y-4">
-        {/* Header with Twin Icon */}
-        <div className="flex items-center gap-3">
-          <div
-            className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-            style={{ backgroundColor: colors.iconBg }}
-          >
-            <Sparkles
-              className="w-4 h-4"
-              style={{ color: colors.iconColor }}
-            />
-          </div>
-          <div className="flex-1 flex items-center justify-between">
-            <span
-              className="text-xs font-medium uppercase tracking-wider"
-              style={{ color: colors.iconColor }}
-            >
-              Your Twin's Observation
-            </span>
-            {timestamp && (
-              <span
-                className="text-xs"
-                style={{ color: colors.textMuted }}
-              >
-                {formatTimeAgo(timestamp)}
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* Main Reflection - No quotes, natural text */}
-        <p
-          className="text-base leading-relaxed"
-          style={{
-            color: colors.text,
-            fontFamily: "'Inter', sans-serif"
-          }}
-        >
-          {reflection}
-        </p>
-
-        {/* Confidence indicator */}
-        {confidence && (
-          <div className="flex items-center gap-2">
-            <div
-              className="w-2 h-2 rounded-full"
-              style={{
-                backgroundColor: confidence === 'high' ? '#4ade80' :
-                  confidence === 'medium' ? '#fbbf24' : '#94a3b8'
-              }}
-            />
-            <span
-              className="text-xs"
-              style={{ color: colors.textMuted }}
-            >
-              {confidence === 'high' ? 'High confidence observation' :
-                confidence === 'medium' ? 'Emerging pattern' : 'Early observation'}
-            </span>
-          </div>
-        )}
-      </div>
-    </div>
+    <Section title="What your twin noticed" line={line || undefined} className={className}>
+      <List>
+        <li className="ri-block">
+          <p className="ri-prose">{reflection}</p>
+        </li>
+        {children}
+      </List>
+    </Section>
   );
 };
 
 /**
- * Pattern observation - visual card style instead of quoted text
+ * Pattern observation - one row: the pattern, then how often it shows up.
+ * Render inside a List.
  */
 interface PatternObservationProps {
   text: string;
@@ -139,348 +76,32 @@ interface PatternObservationProps {
   className?: string;
 }
 
+const occurrenceLabel = {
+  often: 'Recurring pattern',
+  sometimes: 'Sometimes noticed',
+  noticed: 'New observation',
+};
+
 export const PatternObservation: React.FC<PatternObservationProps> = ({
   text,
   occurrences = 'noticed',
-  className = ''
+  className,
 }) => {
-  const colors = {
-    text: 'var(--foreground)',
-    textMuted: 'rgba(255, 255, 255, 0.55)',
-    iconColor: occurrences === 'often' ? '#8B5CF6' :
-      occurrences === 'sometimes' ? '#06b6d4' : '#a78bfa'
-  };
-
-  // Icon based on occurrence type
-  const Icon = occurrences === 'often' ? TrendingUp :
-    occurrences === 'sometimes' ? Heart : Lightbulb;
-
-  const occurrenceLabel = {
-    often: 'Recurring pattern',
-    sometimes: 'Sometimes noticed',
-    noticed: 'New observation'
-  };
-
-  return (
-    <div
-      className={`p-4 rounded-xl flex items-start gap-3 ${className}`}
-      style={{
-        backgroundColor: 'var(--surface)',
-        border: '1px solid var(--border-glass)'
-      }}
-    >
-      {/* Icon */}
-      <div
-        className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-        style={{
-          backgroundColor: `${colors.iconColor}15`
-        }}
-      >
-        <Icon
-          className="w-4 h-4"
-          style={{ color: colors.iconColor }}
-        />
-      </div>
-
-      {/* Content */}
-      <div className="flex-1 min-w-0">
-        <p
-          className="text-sm leading-relaxed"
-          style={{ color: colors.text }}
-        >
-          {text}
-        </p>
-        <span
-          className="text-xs mt-1 inline-block"
-          style={{ color: colors.textMuted }}
-        >
-          {occurrenceLabel[occurrences]}
-        </span>
-      </div>
-    </div>
-  );
+  const Icon = occurrences === 'often' ? TrendingUp : occurrences === 'sometimes' ? Heart : Lightbulb;
+  return <Row icon={<Icon />} title={text} line={occurrenceLabel[occurrences]} className={className} />;
 };
 
 /**
- * DataHighlight - Shows specific data in a visual, engaging way
- */
-interface DataHighlightProps {
-  label: string;
-  items: string[];
-  icon?: React.ReactNode;
-  accentColor?: string;
-  className?: string;
-}
-
-export const DataHighlight: React.FC<DataHighlightProps> = ({
-  label,
-  items,
-  icon,
-  accentColor = '#8B5CF6',
-  className = ''
-}) => {
-  const colors = {
-    text: 'var(--foreground)',
-    textMuted: 'rgba(255, 255, 255, 0.55)',
-    itemBg: 'var(--glass-surface-bg)'
-  };
-
-  if (!items || items.length === 0) return null;
-
-  return (
-    <div className={className}>
-      <div className="flex items-center gap-2 mb-3">
-        {icon && (
-          <span style={{ color: accentColor }}>{icon}</span>
-        )}
-        <span
-          className="text-xs font-medium uppercase tracking-wider"
-          style={{ color: colors.textMuted }}
-        >
-          {label}
-        </span>
-      </div>
-      <div className="flex flex-wrap gap-2">
-        {items.slice(0, 5).map((item) => (
-          <span
-            key={item}
-            className="px-3 py-1.5 rounded-full text-sm"
-            style={{
-              backgroundColor: colors.itemBg,
-              color: colors.text
-            }}
-          >
-            {item}
-          </span>
-        ))}
-        {items.length > 5 && (
-          <span
-            className="px-3 py-1.5 rounded-full text-sm"
-            style={{
-              backgroundColor: `${accentColor}20`,
-              color: accentColor
-            }}
-          >
-            +{items.length - 5} more
-          </span>
-        )}
-      </div>
-    </div>
-  );
-};
-
-/**
- * StatCard - Mini card showing a key stat
+ * StatCard - one figure as a row: what it is, then the value. Render inside a List.
  */
 interface StatCardProps {
   label: string;
   value: string;
-  icon?: React.ReactNode;
-  accentColor?: string;
-  subtitle?: string;
-  className?: string;
+  icon?: ReactNode;
 }
 
-export const StatCard: React.FC<StatCardProps> = ({
-  label,
-  value,
-  icon,
-  accentColor = '#8B5CF6',
-  subtitle,
-  className = ''
-}) => {
-  const colors = {
-    text: 'var(--foreground)',
-    textMuted: 'rgba(255, 255, 255, 0.55)',
-    bg: 'rgba(255,255,255,0.04)',
-    border: 'rgba(255,255,255,0.04)'
-  };
-
-  return (
-    <div
-      className={`p-4 rounded-xl ${className}`}
-      style={{
-        backgroundColor: colors.bg,
-        border: `1px solid ${colors.border}`
-      }}
-    >
-      <div className="flex items-center gap-2 mb-2">
-        {icon && (
-          <span style={{ color: accentColor }}>{icon}</span>
-        )}
-        <span
-          className="text-xs font-medium uppercase tracking-wider"
-          style={{ color: colors.textMuted }}
-        >
-          {label}
-        </span>
-      </div>
-      <div
-        className="text-xl font-medium"
-        style={{ color: colors.text }}
-      >
-        {value}
-      </div>
-      {subtitle && (
-        <div
-          className="text-xs mt-1"
-          style={{ color: colors.textMuted }}
-        >
-          {subtitle}
-        </div>
-      )}
-    </div>
-  );
-};
-
-/**
- * TrackCard - Shows a specific song/track visually
- */
-interface TrackCardProps {
-  name: string;
-  artist: string;
-  context?: string;
-  className?: string;
-}
-
-export const TrackCard: React.FC<TrackCardProps> = ({
-  name,
-  artist,
-  context,
-  className = ''
-}) => {
-  const colors = {
-    text: 'var(--foreground)',
-    textMuted: 'rgba(255, 255, 255, 0.55)',
-    spotifyGreen: '#1DB954',
-    bg: 'rgba(29, 185, 84, 0.05)',
-    border: 'rgba(29, 185, 84, 0.1)'
-  };
-
-  return (
-    <div
-      className={`p-3 rounded-lg flex items-center gap-3 ${className}`}
-      style={{
-        backgroundColor: colors.bg,
-        border: `1px solid ${colors.border}`
-      }}
-    >
-      {/* Music icon placeholder */}
-      <div
-        className="w-10 h-10 rounded flex items-center justify-center flex-shrink-0"
-        style={{ backgroundColor: `${colors.spotifyGreen}20` }}
-      >
-        <Music className="w-[18px] h-[18px]" style={{ color: colors.spotifyGreen }} />
-      </div>
-
-      <div className="flex-1 min-w-0">
-        <div
-          className="text-sm font-medium truncate"
-          style={{ color: colors.text }}
-        >
-          {name}
-        </div>
-        <div
-          className="text-xs truncate"
-          style={{ color: colors.textMuted }}
-        >
-          {artist}
-        </div>
-      </div>
-
-      {context && (
-        <span
-          className="text-xs px-2 py-0.5 rounded-full flex-shrink-0"
-          style={{
-            backgroundColor: `${colors.spotifyGreen}15`,
-            color: colors.spotifyGreen
-          }}
-        >
-          {context}
-        </span>
-      )}
-    </div>
-  );
-};
-
-/**
- * EventCard - Shows a calendar event visually
- */
-interface EventCardProps {
-  title: string;
-  time: string;
-  type?: 'meeting' | 'focus' | 'personal' | 'other';
-  className?: string;
-}
-
-export const EventCard: React.FC<EventCardProps> = ({
-  title,
-  time,
-  type = 'other',
-  className = ''
-}) => {
-  const typeConfig: Record<string, { color: string; icon: string; label: string }> = {
-    meeting: { color: '#4285F4', icon: 'M', label: 'Meeting' },
-    focus: { color: '#34A853', icon: 'F', label: 'Focus' },
-    personal: { color: '#EA4335', icon: 'P', label: 'Personal' },
-    presentation: { color: '#FBBC04', icon: 'PR', label: 'Presentation' },
-    workout: { color: '#EA4335', icon: 'W', label: 'Workout' },
-    interview: { color: '#4285F4', icon: 'I', label: 'Interview' },
-    other: { color: '#9AA0A6', icon: '·', label: 'Event' }
-  };
-
-  // Default to 'other' if type is not recognized
-  const config = typeConfig[type || 'other'] || typeConfig.other;
-
-  const colors = {
-    text: 'var(--foreground)',
-    textMuted: 'rgba(255, 255, 255, 0.55)',
-    bg: `${config.color}10`,
-    border: `${config.color}20`
-  };
-
-  return (
-    <div
-      className={`p-3 rounded-lg flex items-center gap-3 ${className}`}
-      style={{
-        backgroundColor: colors.bg,
-        border: `1px solid ${colors.border}`
-      }}
-    >
-      {/* Event icon */}
-      <div
-        className="w-10 h-10 rounded flex items-center justify-center flex-shrink-0"
-        style={{ backgroundColor: `${config.color}20` }}
-      >
-        <span style={{ fontSize: '13px', fontWeight: 600, color: config.color, fontFamily: 'Geist, Inter, sans-serif' }}>{config.icon}</span>
-      </div>
-
-      <div className="flex-1 min-w-0">
-        <div
-          className="text-sm font-medium truncate"
-          style={{ color: colors.text }}
-        >
-          {title}
-        </div>
-        <div
-          className="text-xs truncate"
-          style={{ color: colors.textMuted }}
-        >
-          {time}
-        </div>
-      </div>
-
-      <span
-        className="text-xs px-2 py-0.5 rounded-full flex-shrink-0"
-        style={{
-          backgroundColor: `${config.color}15`,
-          color: config.color
-        }}
-      >
-        {config.label}
-      </span>
-    </div>
-  );
-};
+export const StatCard: React.FC<StatCardProps> = ({ label, value, icon }) => (
+  <Row icon={icon} title={label} line={value} />
+);
 
 export default TwinReflection;

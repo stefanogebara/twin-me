@@ -37,6 +37,11 @@ const PLANS = [
 
 interface Props { isOpen: boolean; }
 
+/**
+ * The paywall, in the register: the page colour with a hairline, a Cosmos section
+ * title, two plans as white boxes with a hairline (the highlighted one takes the
+ * ink line), and one ink primary. No gold gradient, no glow, no shadow.
+ */
 const PaywallModal: React.FC<Props> = ({ isOpen }) => {
   const [loading, setLoading] = useState<string | null>(null);
 
@@ -60,35 +65,35 @@ const PaywallModal: React.FC<Props> = ({ isOpen }) => {
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: 'rgba(0,0,0,0.45)' }}>
+      style={{ background: 'rgb(var(--rg-ink-rgb) / 0.32)' }}>
       <div
-        className="max-w-xl w-full rounded-3xl p-8 space-y-8"
-        style={{ background: 'var(--background)', border: '1px solid var(--border-glass)', boxShadow: '0 24px 80px rgba(0,0,0,0.15)' }}>
+        className="max-w-xl w-full p-6 space-y-6"
+        style={{ background: 'var(--rg-page)', border: '1px solid var(--rg-rule)', borderRadius: 'var(--rg-radius-icon)' }}>
 
         {/* Header */}
-        <div className="text-center space-y-2">
-          <p className="text-xs uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>Your twin is ready</p>
-          <h2 className="text-4xl font-normal tracking-tight" style={{ fontFamily: "var(--font-heading)" }}>Keep the conversation going.</h2>
-          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Unlock full access to everything your twin can do.</p>
+        <div className="space-y-1">
+          <p className="text-[13px] font-medium" style={{ color: 'var(--rg-ink)' }}>Your twin is ready</p>
+          <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: 'var(--rg-section-title)', fontWeight: 400, lineHeight: 1.08, letterSpacing: 'var(--rg-section-track)', color: 'var(--rg-ink)' }}>
+            Keep the conversation going.
+          </h2>
+          <p className="text-[13px] font-[350]" style={{ color: 'var(--rg-ink-2)' }}>Unlock full access to everything your twin can do.</p>
         </div>
 
-        {/* Plan cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* Plans */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {PLANS.map(plan => (
-            <div key={plan.key} className="rounded-2xl p-6 space-y-4"
-              style={plan.highlight
-                ? { background: 'rgba(196,162,101,0.06)', border: '1px solid rgba(196,162,101,0.3)' }
-                : { background: 'var(--surface)', border: '1px solid var(--border-glass)' }}>
+            <div key={plan.key} className="p-5 space-y-4"
+              style={{
+                background: 'var(--rg-white)',
+                border: `1px solid ${plan.highlight ? 'var(--rg-ink)' : 'var(--rg-rule)'}`,
+                borderRadius: 'var(--rg-radius-icon)',
+              }}>
 
               {/* Plan name */}
               <div className="flex items-center gap-2">
-                <p className="text-xs font-medium uppercase tracking-widest"
-                  style={{ color: plan.highlight ? 'var(--accent-vibrant)' : 'rgba(255,255,255,0.4)' }}>
-                  {plan.name}
-                </p>
+                <p className="text-[13px] font-medium" style={{ color: 'var(--rg-ink)' }}>{plan.name}</p>
                 {plan.highlight && (
-                  <span className="text-xs rounded-full px-2 py-0.5"
-                    style={{ background: 'rgba(196,162,101,0.12)', color: '#C4A265' }}>
+                  <span className="text-[13px] font-[350] px-2" style={{ background: 'var(--rg-field)', color: 'var(--rg-ink-2)', borderRadius: 'var(--rg-radius)' }}>
                     Best value
                   </span>
                 )}
@@ -96,43 +101,37 @@ const PaywallModal: React.FC<Props> = ({ isOpen }) => {
 
               {/* Price */}
               <div className="flex items-baseline gap-1">
-                <span className="text-4xl font-normal" style={{ fontFamily: "var(--font-heading)" }}>{plan.price}</span>
-                <span className="text-sm" style={{ color: 'var(--text-muted)' }}>{plan.period}</span>
+                <span style={{ fontFamily: 'var(--font-heading)', fontSize: 32, fontWeight: 300, lineHeight: 1, letterSpacing: 'var(--rg-title-track)', color: 'var(--rg-ink)' }}>{plan.price}</span>
+                <span className="text-[13px] font-[350]" style={{ color: 'var(--rg-ink-3)' }}>{plan.period}</span>
               </div>
 
               {/* Description */}
-              <p className="text-sm" style={{ color: 'var(--text-muted)' }}>{plan.description}</p>
+              <p className="text-[13px] font-[350]" style={{ color: 'var(--rg-ink-2)' }}>{plan.description}</p>
 
               {/* Features */}
-              <ul className="space-y-1.5">
+              <ul className="space-y-1">
                 {plan.features.map(f => (
-                  <li key={f} className="text-sm flex gap-2 items-start">
-                    <span style={{ color: plan.highlight ? 'var(--accent-vibrant)' : 'rgba(255,255,255,0.4)' }}>&#10003;</span>
+                  <li key={f} className="text-[13px] flex gap-2 items-start" style={{ color: 'var(--rg-ink)' }}>
+                    <span aria-hidden="true" style={{ color: 'var(--rg-ink-2)' }}>&#10003;</span>
                     <span>{f}</span>
                   </li>
                 ))}
               </ul>
 
-              {/* CTA */}
-              {plan.highlight ? (
-                <button onClick={() => upgrade(plan.key)} disabled={loading === plan.key}
-                  className="w-full py-3 rounded-xl font-medium text-white disabled:opacity-50 transition-opacity"
-                  style={{ background: 'linear-gradient(135deg, #C4A265, #B39255)', boxShadow: '0 4px 20px rgba(196,162,101,0.25)' }}>
-                  {loading === plan.key ? 'Loading...' : plan.cta}
-                </button>
-              ) : (
-                <button onClick={() => upgrade(plan.key)} disabled={loading === plan.key}
-                  className="w-full py-3 rounded-xl font-medium disabled:opacity-50"
-                  style={{ backgroundColor: 'var(--n-verdigris)', color: '#0a0f0a' }}>
-                  {loading === plan.key ? 'Loading...' : plan.cta}
-                </button>
-              )}
+              {/* CTA: the highlighted plan is the one primary; the other is the secondary. */}
+              <button onClick={() => upgrade(plan.key)} disabled={loading === plan.key}
+                className="w-full h-8 px-4 text-[13px] disabled:opacity-40 transition-opacity hover:opacity-[0.86]"
+                style={plan.highlight
+                  ? { background: 'var(--rg-ink)', color: 'var(--rg-page)', border: '1px solid var(--rg-ink)', borderRadius: 'var(--rg-radius)', fontWeight: 500 }
+                  : { background: 'var(--rg-white)', color: 'var(--rg-ink)', border: '1px solid var(--rg-rule)', borderRadius: 'var(--rg-radius)' }}>
+                {loading === plan.key ? 'Loading...' : plan.cta}
+              </button>
             </div>
           ))}
         </div>
 
         {/* Footer */}
-        <p className="text-xs text-center" style={{ color: 'var(--text-muted)' }}>
+        <p className="text-[13px] font-[350]" style={{ color: 'var(--rg-ink-3)' }}>
           {/* audit-2026-06-10: monthly billing only — no annual checkout exists */}
           Cancel anytime.
         </p>

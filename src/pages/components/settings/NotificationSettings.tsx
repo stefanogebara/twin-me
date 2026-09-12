@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Bell, BellOff, Mail, AlertCircle } from 'lucide-react';
+import { Bell, BellOff, Mail } from 'lucide-react';
 import { API_URL, getAccessToken } from '@/services/api/apiBase';
+import { Switch } from '@/components/ui/switch';
+import { Row } from '@/components/register';
 
 
 const getAuthHeaders = () => {
@@ -16,6 +18,7 @@ interface NotificationSettingsProps {
 
 const PUSH_SUPPORTED = typeof window !== 'undefined' && 'Notification' in window && 'serviceWorker' in navigator;
 
+/** Two rows of the page kit: render inside a List. */
 const NotificationSettings: React.FC<NotificationSettingsProps> = ({ userId }) => {
   // Email notification state
   const [emailEnabled, setEmailEnabled] = useState(true);
@@ -109,14 +112,14 @@ const NotificationSettings: React.FC<NotificationSettingsProps> = ({ userId }) =
           const result = await Notification.requestPermission();
           setPushPermission(result);
           if (result !== 'granted') {
-            setPushError('Notifications are blocked — enable them in your browser settings.');
+            setPushError('Notifications are blocked. Allow them in your browser settings.');
             return;
           }
         }
 
         if (Notification.permission !== 'granted') {
           setPushPermission(Notification.permission);
-          setPushError('Notifications are blocked — enable them in your browser settings.');
+          setPushError('Notifications are blocked. Allow them in your browser settings.');
           return;
         }
 
@@ -177,118 +180,43 @@ const NotificationSettings: React.FC<NotificationSettingsProps> = ({ userId }) =
     }
   }, []);
 
+  const pushLine = !PUSH_SUPPORTED
+    ? 'Not supported in this browser'
+    : pushPermission === 'denied'
+      ? 'Blocked. Allow it in your browser settings.'
+      : 'Insights as they happen, in this browser';
+
   return (
-    <div>
-      {/* ── Email Notifications ── */}
-      <SettingRow
-        icon={<Mail className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />}
-        label="Email Notifications"
-        description="Get notified when your twin notices something important"
-        error={emailError}
-      >
-        <ToggleSwitch
-          enabled={emailEnabled}
-          onChange={handleEmailToggle}
-          disabled={emailLoading}
-          label="Toggle email notifications"
-        />
-      </SettingRow>
-
-      {/* ── Push Notifications ── */}
-      <SettingRow
-        icon={
-          pushEnabled
-            ? <Bell className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
-            : <BellOff className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
+    <>
+      <Row
+        icon={<Mail />}
+        title="Email"
+        line={emailError ? <span className="rs-bad">{emailError}</span> : 'When your twin notices something important'}
+        action={
+          <Switch
+            checked={emailEnabled}
+            onCheckedChange={handleEmailToggle}
+            disabled={emailLoading}
+            aria-label="Email notifications"
+          />
         }
-        label="Push Notifications"
-        description={
-          !PUSH_SUPPORTED
-            ? 'Not supported in this browser'
-            : pushPermission === 'denied'
-              ? 'Blocked by browser — enable in browser settings'
-              : 'Browser notifications for real-time insights'
+      />
+      <Row
+        icon={pushEnabled ? <Bell /> : <BellOff />}
+        title="Browser"
+        line={pushError ? <span className="rs-bad">{pushError}</span> : pushLine}
+        action={
+          <Switch
+            checked={pushEnabled}
+            onCheckedChange={handlePushToggle}
+            disabled={pushLoading || !PUSH_SUPPORTED || pushPermission === 'denied'}
+            aria-label="Browser notifications"
+          />
         }
-        error={pushError}
-        isLast
-      >
-        <ToggleSwitch
-          enabled={pushEnabled}
-          onChange={handlePushToggle}
-          disabled={pushLoading || !PUSH_SUPPORTED || pushPermission === 'denied'}
-          label="Toggle push notifications"
-        />
-      </SettingRow>
-
-    </div>
+      />
+    </>
   );
 };
-
-// ── Sub-components ───────────────────────────────────────────────────────
-
-interface SettingRowProps {
-  icon: React.ReactNode;
-  label: string;
-  description: string;
-  error?: string | null;
-  isLast?: boolean;
-  children: React.ReactNode;
-}
-
-const SettingRow: React.FC<SettingRowProps> = ({ icon, label, description, error, isLast, children }) => (
-  <div
-    className="flex items-center justify-between py-4"
-    style={{ borderBottom: isLast ? 'none' : '1px solid rgba(255,255,255,0.04)' }}
-  >
-    <div className="flex items-center gap-3 min-w-0">
-      <div className="shrink-0">{icon}</div>
-      <div className="min-w-0">
-        <span className="text-sm block" style={{ color: 'var(--foreground)' }}>
-          {label}
-        </span>
-        <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-          {description}
-        </p>
-        {error && (
-          <p className="flex items-center gap-1 text-[11px] mt-1" style={{ color: '#ef4444' }}>
-            <AlertCircle className="w-3 h-3" />
-            {error}
-          </p>
-        )}
-      </div>
-    </div>
-    <div className="flex-shrink-0 ml-4">
-      {children}
-    </div>
-  </div>
-);
-
-interface ToggleSwitchProps {
-  enabled: boolean;
-  onChange: (val: boolean) => void;
-  disabled?: boolean;
-  label?: string;
-}
-
-const ToggleSwitch: React.FC<ToggleSwitchProps> = ({ enabled, onChange, disabled, label }) => (
-  <button
-    role="switch"
-    aria-checked={enabled}
-    aria-label={label}
-    onClick={() => !disabled && onChange(!enabled)}
-    className="relative w-10 h-5 rounded-full transition-colors duration-200 ease-out active:scale-95"
-    style={{
-      backgroundColor: enabled ? 'rgba(245,245,244,0.9)' : 'rgba(255,255,255,0.18)',
-      cursor: disabled ? 'not-allowed' : 'pointer',
-      opacity: disabled ? 0.5 : 1,
-    }}
-  >
-    <div
-      className="absolute top-0.5 w-4 h-4 rounded-full transition-all duration-200 ease-out"
-      style={{ left: enabled ? '22px' : '2px', backgroundColor: enabled ? '#110f0f' : '#A8A29E' }}
-    />
-  </button>
-);
 
 // ── Helpers ──────────────────────────────────────────────────────────────
 

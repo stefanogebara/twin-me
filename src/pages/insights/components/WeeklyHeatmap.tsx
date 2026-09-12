@@ -1,5 +1,4 @@
 import React from 'react';
-import { Clock } from 'lucide-react';
 
 interface WeeklyHeatmapDay {
   day: string;
@@ -8,79 +7,51 @@ interface WeeklyHeatmapDay {
 
 interface WeeklyHeatmapProps {
   heatmap: WeeklyHeatmapDay[];
-  theme?: string;
-  colors: {
-    textSecondary: string;
-  };
 }
 
-export const WeeklyHeatmap: React.FC<WeeklyHeatmapProps> = ({ heatmap, colors }) => {
-  const intensityColors = [
-    'rgba(255,255,255,0.04)',
-    'rgba(66, 133, 244, 0.3)',
-    'rgba(66, 133, 244, 0.6)',
-    'rgba(66, 133, 244, 0.9)',
-  ];
+const SLOTS = ['8-10', '10-12', '12-2', '2-4', '4-6'];
+const LEVELS = ['Free', 'Light', 'Moderate', 'Busy'];
 
+/* A busier slot fills more of its cell, in one hue: height carries the
+   intensity, so every level's mark is the same periwinkle at 3.3:1 on the
+   page instead of a pale tint no one can see. */
+const fill = (intensity: number) => `${Math.max(0, Math.min(3, intensity)) * (100 / 3)}%`;
+
+/** The week's busy hours, as a list item (goes inside a List). */
+export const WeeklyHeatmap: React.FC<WeeklyHeatmapProps> = ({ heatmap }) => {
   return (
-    <div
-      className="p-4 rounded-[20px] mb-6"
-      style={{ border: '1px solid var(--border-glass)', backgroundColor: 'var(--surface)', backdropFilter: 'blur(42px)', WebkitBackdropFilter: 'blur(42px)' }}
-    >
-      <span
-        className="text-[11px] font-medium tracking-widest uppercase block mb-4"
-        style={{ color: 'var(--n-verdigris)' }}
-      >
-        <Clock className="w-4 h-4 inline-block mr-2" />
-        Weekly Busy Hours
-      </span>
-      <div className="overflow-x-auto">
-        <div className="min-w-[280px]">
-          <div className="flex mb-2">
-            <div className="w-10" />
-            {['8-10', '10-12', '12-2', '2-4', '4-6'].map(slot => (
-              <div
-                key={slot}
-                className="flex-1 text-center text-xs"
-                style={{ color: 'var(--text-secondary)' }}
+    <li className="ri-block">
+      <div className="ri-heat">
+        <span aria-hidden="true" />
+        {SLOTS.map(slot => (
+          <span key={slot} className="ri-heat-head">{slot}</span>
+        ))}
+        {heatmap.map((day, dayIndex) => (
+          <React.Fragment key={dayIndex}>
+            <span>{day.day}</span>
+            {(day.slots || []).map((slot, slotIndex) => (
+              <span
+                key={slotIndex}
+                className="ri-cell"
+                role="img"
+                aria-label={`${day.day} ${slot.slot}: ${LEVELS[slot.intensity] ?? LEVELS[0]}`}
+                title={`${day.day} ${slot.slot}: ${LEVELS[slot.intensity] ?? LEVELS[0]}`}
               >
-                {slot}
-              </div>
+                <i style={{ height: fill(slot.intensity) }} />
+              </span>
             ))}
-          </div>
-          {heatmap.map((day, dayIndex) => (
-            <div key={dayIndex} className="flex items-center mb-1">
-              <div
-                className="w-10 text-xs"
-                style={{ color: 'var(--text-secondary)' }}
-              >
-                {day.day}
-              </div>
-              {(day.slots || []).map((slot, slotIndex) => (
-                <div
-                  key={slotIndex}
-                  className="flex-1 h-6 rounded mx-0.5"
-                  style={{ backgroundColor: intensityColors[slot.intensity] }}
-                  title={`${day.day} ${slot.slot}: ${['Free', 'Light', 'Moderate', 'Busy'][slot.intensity]}`}
-                />
-              ))}
-            </div>
-          ))}
-          <div className="flex items-center justify-end gap-2 mt-3">
-            <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>Free</span>
-            <div className="flex gap-1">
-              {[0, 1, 2, 3].map(i => (
-                <div
-                  key={i}
-                  className="w-4 h-3 rounded"
-                  style={{ backgroundColor: intensityColors[i] }}
-                />
-              ))}
-            </div>
-            <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>Busy</span>
-          </div>
-        </div>
+          </React.Fragment>
+        ))}
       </div>
-    </div>
+      <div className="ri-heat-key" aria-hidden="true">
+        <span>Free</span>
+        {[0, 1, 2, 3].map(i => (
+          <span key={i} className="ri-cell">
+            <i style={{ height: fill(i) }} />
+          </span>
+        ))}
+        <span>Busy</span>
+      </div>
+    </li>
   );
 };

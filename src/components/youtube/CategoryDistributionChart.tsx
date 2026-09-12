@@ -56,7 +56,7 @@ export const CategoryDistributionChart: React.FC<CategoryDistributionChartProps>
             color: 'var(--foreground)'
           }}
         >
-          <p className="text-sm font-medium" style={{ fontFamily: "'Inter', sans-serif" }}>
+          <p className="text-sm font-medium" style={{ fontFamily: 'var(--font-ui)' }}>
             {payload[0].name}
           </p>
           <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
@@ -78,7 +78,7 @@ export const CategoryDistributionChart: React.FC<CategoryDistributionChartProps>
           <LayoutGrid className="w-5 h-5 text-[#FF0000]" />
         </div>
         <div>
-          <h3 className="text-lg font-medium" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>
+          <h3 className="text-lg font-medium" style={{ fontFamily: 'var(--font-ui)', color: 'var(--foreground)' }}>
             Category Distribution
           </h3>
           <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
@@ -126,7 +126,7 @@ export const CategoryDistributionChart: React.FC<CategoryDistributionChartProps>
                     className="w-3 h-3 rounded-full flex-shrink-0 group-hover:scale-110 transition-transform"
                     style={{ backgroundColor: category.color }}
                   />
-                  <span className="text-sm truncate" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--text-muted)' }}>
+                  <span className="text-sm truncate" style={{ fontFamily: 'var(--font-ui)', color: 'var(--text-muted)' }}>
                     {category.name}
                   </span>
                 </div>

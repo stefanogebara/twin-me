@@ -1,0 +1,250 @@
+/* ============================================================================
+   THE REGISTER'S PAGE KIT
+   ============================================================================
+   The few shapes every app screen is built from, so every page reads as one
+   product: a centred 820px column, a page title with one grey line, sections
+   of a heading and one grey line over a list, and rows under the list's 1px
+   ink rule. No cards, no panels, no shadows. Values come from register.css;
+   the React side is src/components/register (Page, PageHead, Section, List,
+   Row, SubRow, Empty). Ported from the Cosmos branch's pc-row primitives.
+   ========================================================================== */
+
+/* ---- the column ---- */
+
+.rg-page {
+  width: 100%;
+  max-width: calc(var(--rg-col) + 2 * var(--rg-gutter));
+  margin: 0 auto;
+  padding: 60px var(--rg-gutter) 96px;
+  font-family: var(--rg-sans);
+  font-size: var(--rg-text);
+  line-height: var(--rg-line);
+  letter-spacing: var(--rg-track);
+  color: var(--rg-ink);
+}
+
+/* ---- the page title: Cosmos, never a serif ---- */
+
+.rg-apphead {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 16px;
+  margin-bottom: var(--rg-section);
+}
+
+.rg-apphead-title {
+  grid-column: 1;
+  margin: 0;
+  font-family: var(--rg-sans);
+  font-size: var(--rg-title);
+  font-weight: 300;
+  font-style: normal;
+  line-height: 1;
+  letter-spacing: var(--rg-title-track);
+  text-wrap: balance;
+  color: var(--rg-ink);
+}
+
+.rg-apphead-line {
+  grid-column: 1;
+  margin: 8px 0 0;
+  font-size: var(--rg-text);
+  line-height: var(--rg-line);
+  font-weight: var(--rg-weight-line);
+  color: var(--rg-ink-2);
+}
+
+.rg-apphead-action {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: center;
+}
+
+/* ---- sections: a heading, one grey line, then the list ---- */
+
+.rg-section + .rg-section {
+  margin-top: var(--rg-section);
+}
+
+.rg-sechead {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 16px;
+  margin-bottom: var(--rg-line-to-rule);
+}
+
+.rg-sechead-title {
+  grid-column: 1;
+  margin: 0;
+  font-family: var(--rg-sans);
+  font-size: var(--rg-section-title);
+  font-weight: 400;
+  font-style: normal;
+  line-height: 1.08;
+  letter-spacing: var(--rg-section-track);
+  text-wrap: balance;
+  color: var(--rg-ink);
+}
+
+.rg-sechead-line {
+  grid-column: 1;
+  margin: var(--rg-title-to-line) 0 0;
+  font-size: var(--rg-text);
+  line-height: var(--rg-line);
+  font-weight: var(--rg-weight-line);
+  color: var(--rg-ink-2);
+}
+
+/* The section's one action (add): at the right end of the heading line. */
+.rg-sechead-action {
+  grid-column: 2;
+  grid-row: 1;
+  align-self: center;
+}
+
+/* A 24x24 icon button (WCAG 2.5.8), a 16px glyph. */
+.rg-iconbtn {
+  width: 24px;
+  height: 24px;
+  display: inline-grid;
+  place-items: center;
+  border: 0;
+  border-radius: var(--rg-radius);
+  background: none;
+  color: var(--rg-ink);
+  cursor: pointer;
+  transition: background var(--rg-quick);
+}
+
+.rg-iconbtn:hover { background: var(--rg-hover); }
+.rg-iconbtn:disabled { color: var(--rg-quiet); background: none; cursor: default; }
+.rg-iconbtn svg { width: 16px; height: 16px; }
+
+/* ---- the list and its rows ---- */
+
+.rg-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--rg-ink);
+}
+
+/* [32px icon] [title + one grey line] [one action]. The action is a chevron,
+   one 32px button or a menu: never two, never one that squeezes the line. */
+.rg-row {
+  min-height: var(--rg-row);
+  padding: 20px 12px;
+  border-bottom: 1px solid var(--rg-rule);
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) auto;
+  column-gap: 16px;
+  align-items: center;
+  color: var(--rg-ink);
+}
+
+.rg-row--plain { grid-template-columns: minmax(0, 1fr) auto; }
+
+.rg-row-icon {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--rg-radius-icon);
+  background: var(--rg-field);
+  color: var(--rg-ink-2);
+}
+
+.rg-row-icon svg { width: 16px; height: 16px; }
+
+.rg-row-text { min-width: 0; display: grid; }
+
+.rg-row-title {
+  margin: 0;
+  font-size: var(--rg-text);
+  line-height: var(--rg-line-title);
+  font-weight: var(--rg-weight-title);
+  color: var(--rg-ink);
+  overflow-wrap: anywhere;
+}
+
+.rg-row-line {
+  margin: 0;
+  font-size: var(--rg-text);
+  line-height: var(--rg-line);
+  font-weight: var(--rg-weight-line);
+  color: var(--rg-ink-2);
+  overflow-wrap: anywhere;
+}
+
+/* One line, cut with an ellipsis: data whose full text is one click further in. */
+.rg-row-line--clip {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rg-row-action {
+  justify-self: end;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rg-chevron { width: 16px; height: 16px; color: var(--rg-ink-2); }
+
+/* A whole row that is one link or button. */
+.rg-row--link {
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  background: none;
+  border-left: 0;
+  border-right: 0;
+  border-top: 0;
+  cursor: pointer;
+  transition: background var(--rg-quick);
+}
+
+.rg-row--link:hover { background: var(--rg-hover); }
+
+.rg-row--link:focus-visible {
+  outline: 2px solid var(--rg-ink);
+  outline-offset: -2px;
+  border-radius: var(--rg-radius);
+}
+
+/* An account under a service, a detail under a row. */
+.rg-subrow {
+  min-height: var(--rg-row-sub);
+  padding: 12px 12px 12px 50px;
+  border-bottom: 1px solid var(--rg-rule);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 16px;
+  align-items: center;
+}
+
+/* One quiet line, about 30px under the rule. */
+.rg-empty {
+  margin: 0;
+  padding: 28px 12px 0;
+  font-size: var(--rg-text);
+  line-height: var(--rg-line);
+  font-weight: var(--rg-weight-line);
+  color: var(--rg-ink-3);
+}
+
+@media (max-width: 767px) {
+  .rg-page { padding-top: 24px; }
+  .rg-apphead { margin-bottom: var(--rg-section-phone); }
+  .rg-section + .rg-section { margin-top: var(--rg-section-phone); }
+
+  /* iOS Safari zooms into any field under 16px on focus, and the register's
+     13px fields would trigger it on every tap. index.html does not cap zoom,
+     so the fields are 16px on phones instead. */
+  input:not([type='checkbox']):not([type='radio']):not([type='range']),
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}

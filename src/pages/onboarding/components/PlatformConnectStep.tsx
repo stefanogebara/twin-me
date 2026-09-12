@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { CheckCircle2, Loader2, ChevronRight } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { API_URL, getAccessToken } from '@/services/api/apiBase';
 import { safeRedirect } from '@/lib/safeRedirect';
 import { usePlatformsSummary, connectedProviders } from '@/hooks/usePlatformsSummary';
+import { Row } from '@/components/register';
 
 
 interface Platform {
@@ -41,10 +42,10 @@ const PLATFORMS: Platform[] = [
     color: '#1DB954',
     icon: <SpotifyIcon />,
     category: 'entertainment',
-    teaser: 'Your taste in music reveals more than you think',
+    teaser: 'Your taste in music says more than you think',
     details: [
-      'Top genres, artists, and the moods behind them',
-      'What you listen to at 2am vs. Monday morning',
+      'Your top genres and artists, and the moods behind them',
+      'What you play at 2am, and on Monday morning',
       'How your energy shifts across the week',
     ],
   },
@@ -54,11 +55,11 @@ const PLATFORMS: Platform[] = [
     color: '#4285F4',
     icon: <CalendarIcon />,
     category: 'google',
-    teaser: 'Your calendar is a map of what you actually value',
+    teaser: 'Your calendar shows what you actually value',
     details: [
-      'How you structure your days and protect your time',
-      'Work-life rhythm and what you say yes to',
-      'Your relationship with commitments and spontaneity',
+      'How you shape your days and protect your time',
+      'Your work and life rhythm, and what you say yes to',
+      'How you handle plans and surprises',
     ],
   },
   {
@@ -69,9 +70,9 @@ const PLATFORMS: Platform[] = [
     category: 'entertainment',
     teaser: "What you watch when no one's watching",
     details: [
-      'Topics you rabbit-hole into late at night',
-      "How you learn and what you're curious about",
-      'The niche interests that define your taste',
+      'The topics you fall into late at night',
+      "How you learn, and what you're curious about",
+      'The niche interests that make your taste',
     ],
   },
 ];
@@ -81,6 +82,7 @@ interface PlatformConnectStepProps {
   onContinue: (connectedPlatforms: string[]) => void;
 }
 
+/** Three platforms as rows of the page kit, then the step's one call to action. */
 const PlatformConnectStep: React.FC<PlatformConnectStepProps> = ({ userId, onContinue }) => {
   const [connecting, setConnecting] = useState<string | null>(null);
   const [connected, setConnected] = useState<string[]>([]);
@@ -160,180 +162,90 @@ const PlatformConnectStep: React.FC<PlatformConnectStepProps> = ({ userId, onCon
   const allConnected = PLATFORMS.every(p => connectedAll.includes(p.id));
 
   return (
-    <div
-      className="w-full max-w-lg"
-    >
+    <div className="rs-flow w-full max-w-lg">
       {/* Heading */}
-      <div
-        className="text-center mb-8"
-      >
-        <h2
-          className="text-2xl md:text-3xl mb-3"
-          style={{ fontFamily: 'var(--font-heading)', color: 'var(--text-primary)' }}
-        >
-          I've seen what the internet knows about you.
-        </h2>
-        <p
-          className="text-sm opacity-60 leading-relaxed"
-          style={{ fontFamily: "'Inter', sans-serif", color: 'var(--text-primary)' }}
-        >
-          Now let me see what only you can show me.
-        </p>
+      <div className="text-center mb-10" style={{ display: 'grid', gap: 4 }}>
+        <h2 className="rs-flow-title">I've seen what the internet knows about you.</h2>
+        <p className="rs-flow-line">Now let me see what only you can show me.</p>
         {/* Negative assurance (Plaid trust-gap research): say what we CANNOT
             do, not just what we read — this is what moves connect rates. */}
-        <p
-          className="text-xs mt-3 leading-relaxed"
-          style={{ fontFamily: "'Inter', sans-serif", color: 'var(--text-muted)' }}
-        >
-          Read-only access. I can never post, change, or delete anything — and you can
-          disconnect any platform at any time.
+        <p className="rs-quiet" style={{ marginTop: 8 }}>
+          Read-only. I can never post, change or delete anything, and you can disconnect any time.
         </p>
       </div>
 
-      {/* Platform cards */}
-      <div className="flex flex-col gap-3 mb-8">
-        {PLATFORMS.map((platform, i) => {
+      {/* Platforms as rows */}
+      <ul className="rg-list pb-stack mb-10">
+        {PLATFORMS.map((platform) => {
           const isConnected = connectedAll.includes(platform.id);
           const isConnecting = connecting === platform.id;
           const isExpanded = expanded === platform.id;
 
           return (
-            <div
-              key={platform.id}
-              className="rounded-2xl overflow-hidden"
-              style={{
-                backgroundColor: isConnected
-                  ? 'rgba(255,255,255,0.08)'
-                  : 'rgba(255,255,255,0.04)',
-                border: isConnected
-                  ? `1px solid ${platform.color}55`
-                  : '1px solid rgba(255,255,255,0.10)',
-              }}
-            >
-              {/* Card header row */}
-              <div className="flex items-center gap-4 px-5 py-4">
-                <div style={{ color: platform.color }}>{platform.icon}</div>
-
-                <div className="flex-1 min-w-0">
-                  <div
-                    className="text-sm font-medium mb-0.5"
-                    style={{ color: 'var(--text-primary)', fontFamily: "'Inter', sans-serif" }}
-                  >
-                    {platform.name}
-                  </div>
-                  <div
-                    className="text-xs opacity-50 truncate"
-                    style={{ color: 'var(--text-primary)', fontFamily: "'Inter', sans-serif" }}
-                  >
-                    {platform.teaser}
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  {/* Expand toggle */}
-                  {!isConnected && (
+            <React.Fragment key={platform.id}>
+              <Row
+                // The brand colour lives in the icon square only.
+                icon={<span style={{ display: 'grid', placeItems: 'center', color: platform.color }}>{platform.icon}</span>}
+                title={platform.name}
+                line={isConnected ? (
+                  <span className="rs-ok">Connected</span>
+                ) : (
+                  <>
+                    {platform.teaser}{' '}
                     <button
+                      type="button"
                       onClick={() => setExpanded(isExpanded ? null : platform.id)}
-                      className="opacity-30 hover:opacity-60 transition-opacity"
-                      aria-label="Show details"
+                      aria-expanded={isExpanded}
+                      className="rs-link"
                     >
-                      <ChevronRight
-                        className="w-4 h-4 transition-transform duration-200"
-                        style={{
-                          color: 'var(--text-primary)',
-                          transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
-                        }}
-                      />
+                      What it reads
                     </button>
-                  )}
-
-                  {/* Connect / connected button */}
-                  {isConnected ? (
-                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg" style={{ backgroundColor: `${platform.color}22` }}>
-                      <CheckCircle2 className="w-3.5 h-3.5" style={{ color: platform.color }} />
-                      <span className="text-xs" style={{ color: platform.color, fontFamily: "'Inter', sans-serif" }}>
-                        Connected
-                      </span>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => handleConnect(platform)}
-                      disabled={!!connecting}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all duration-200 hover:opacity-90 disabled:opacity-50"
-                      style={{
-                        backgroundColor: platform.color,
-                        color: 'var(--foreground)',
-                        fontFamily: "'Inter', sans-serif",
-                      }}
-                    >
-                      {isConnecting ? (
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      ) : null}
-                      <span className="text-xs font-medium">
-                        {isConnecting ? 'Connecting...' : 'Connect'}
-                      </span>
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Expandable detail bullets */}
-                {isExpanded && !isConnected && (
-                  <div
-                    className="overflow-hidden"
-                  >
-                    <div
-                      className="px-5 pb-4 pt-0 border-t"
-                      style={{ borderColor: 'rgba(255,255,255,0.08)' }}
-                    >
-                      <ul className="mt-3 space-y-1.5">
-                        {platform.details.map((detail, j) => (
-                          <li
-                            key={j}
-                            className="flex items-start gap-2 text-xs opacity-50"
-                            style={{ color: 'var(--text-primary)', fontFamily: "'Inter', sans-serif" }}
-                          >
-                            <span className="mt-0.5 shrink-0" style={{ color: platform.color }}>·</span>
-                            {detail}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
+                  </>
                 )}
-            </div>
+                action={isConnected ? undefined : (
+                  <button
+                    type="button"
+                    onClick={() => handleConnect(platform)}
+                    disabled={!!connecting}
+                    className="n-btn n-btn--ghost"
+                  >
+                    {isConnecting ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : null}
+                    {isConnecting ? 'Connecting' : 'Connect'}
+                  </button>
+                )}
+                className={isExpanded && !isConnected ? 'rs-row-has-body' : undefined}
+              />
+
+              {/* What it reads: quiet lines under the row */}
+              {isExpanded && !isConnected && (
+                <li className="rs-body">
+                  <ul className="rs-steps" style={{ listStyle: 'disc' }}>
+                    {platform.details.map((detail, j) => <li key={j}>{detail}</li>)}
+                  </ul>
+                </li>
+              )}
+            </React.Fragment>
           );
         })}
-      </div>
+      </ul>
 
       {/* Continue CTA */}
-      <div
-        className="flex flex-col items-center gap-3"
-      >
+      <div className="flex flex-col items-center gap-3">
         <button
+          type="button"
           onClick={() => onContinue(connectedAll)}
-          className="w-full py-3.5 rounded-xl text-sm font-medium transition-all duration-200 hover:opacity-90"
-          style={{
-            background: connectedAll.length > 0 ? 'var(--claura-bone)' : 'rgba(255,255,255,0.10)',
-            color: connectedAll.length > 0 ? 'var(--claura-bone-ink)' : 'var(--text-muted)',
-            fontFamily: "'Inter', sans-serif",
-            border: connectedAll.length > 0 ? 'none' : '1px solid rgba(255,255,255,0.14)',
-          }}
+          className={`n-btn pb-cta ${connectedAll.length > 0 ? 'n-btn--primary' : 'n-btn--ghost'}`}
         >
           {allConnected
-            ? "Perfect — let's go deeper"
+            ? "Perfect, let's go deeper"
             : connectedAll.length > 0
-            ? `Continue with ${connectedAll.length} platform${connectedAll.length > 1 ? 's' : ''} connected`
+            ? `Continue with ${connectedAll.length} platform${connectedAll.length > 1 ? 's' : ''}`
             : 'Continue'}
         </button>
 
         {connectedAll.length === 0 && (
-          <button
-            onClick={() => onContinue([])}
-            className="text-xs opacity-25 hover:opacity-50 transition-opacity"
-            style={{ color: 'var(--text-primary)', fontFamily: "'Inter', sans-serif" }}
-          >
-            Skip — I'll connect later
+          <button type="button" onClick={() => onContinue([])} className="rs-link">
+            Skip, I'll connect later
           </button>
         )}
       </div>

@@ -7,9 +7,16 @@ import SoulOrb from './SoulOrb';
  * Tolan's endowment ritual, adapted: after the interview, the twin exists —
  * the user names it and commits with a press-and-hold. Effort + naming +
  * a physical gesture turn "a twin" into "my twin" before the first chat.
+ *
+ * In the register: a quiet status line, the upright Cosmos heading, the
+ * borderless field, and an ink hold button with an ink progress ring.
  */
 
 const HOLD_MS = 1200;
+
+// SVG presentation attributes do not resolve var(): register.css's hex.
+const RING_TRACK = '#eae9ea'; // --rg-rule
+const RING_INK = '#251f21';   // --rg-ink
 
 /** Trim, collapse whitespace, cap at 40 chars. Empty -> null. */
 export function sanitizeTwinName(raw: string): string | null {
@@ -66,22 +73,14 @@ const HatchingPhase: React.FC<HatchingPhaseProps> = ({ userFirstName, onCommit }
   const CIRC = 2 * Math.PI * R;
 
   return (
-    <div className="flex flex-col items-center w-full max-w-md text-center">
-      <p
-        className="text-sm uppercase tracking-widest mb-8"
-        style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-body)', letterSpacing: '0.15em' }}
-      >
-        Something is waking up
-      </p>
+    <div className="rs-flow flex flex-col items-center w-full max-w-md text-center">
+      <p className="rs-flow-line mb-8">Something is waking up</p>
 
       <div className="mb-8">
         <SoulOrb phase="alive" dataPointCount={committed ? 12 : 6} />
       </div>
 
-      <h2
-        className="text-2xl md:text-3xl mb-3"
-        style={{ fontFamily: 'var(--font-heading)', color: 'var(--text-primary)' }}
-      >
+      <h2 className="rs-flow-title mb-3">
         {committed
           ? (sanitizeTwinName(name) ? `${sanitizeTwinName(name)} is awake.` : 'Your twin is awake.')
           : 'Your twin exists.'}
@@ -89,12 +88,9 @@ const HatchingPhase: React.FC<HatchingPhaseProps> = ({ userFirstName, onCommit }
 
       {!committed && (
         <>
-          <p
-            className="text-sm mb-8 max-w-sm leading-relaxed"
-            style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-body)' }}
-          >
+          <p className="rs-flow-line mb-8 max-w-sm">
             It knows {userFirstName ? `what ${userFirstName} shows the world` : 'your public surface'} and
-            what you just told it. Give it a name — or keep it nameless — then hold to wake it.
+            what you just told it. Name it, or leave it nameless, then hold to wake it.
           </p>
 
           <input
@@ -104,13 +100,8 @@ const HatchingPhase: React.FC<HatchingPhaseProps> = ({ userFirstName, onCommit }
             placeholder="Name your twin (optional)"
             maxLength={40}
             aria-label="Twin name"
-            className="w-full max-w-xs px-4 py-2.5 rounded-[12px] text-sm text-center outline-none transition-all duration-200 mb-8"
-            style={{
-              background: 'rgba(255,255,255,0.08)',
-              border: '1px solid rgba(255,255,255,0.10)',
-              color: 'var(--text-primary)',
-              fontFamily: 'var(--font-body)',
-            }}
+            className="n-input mb-8"
+            style={{ width: '100%', maxWidth: 320, textAlign: 'center' }}
           />
 
           {/* Hold-to-wake */}
@@ -125,11 +116,11 @@ const HatchingPhase: React.FC<HatchingPhaseProps> = ({ userFirstName, onCommit }
             className="relative flex flex-col items-center gap-3 cursor-pointer select-none bg-transparent border-none"
           >
             <span className="relative inline-flex items-center justify-center" style={{ width: 72, height: 72 }}>
-              <svg width="72" height="72" viewBox="0 0 72 72" className="absolute inset-0 -rotate-90">
-                <circle cx="36" cy="36" r={R} fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="3" />
+              <svg width="72" height="72" viewBox="0 0 72 72" className="absolute inset-0 -rotate-90" aria-hidden="true">
+                <circle cx="36" cy="36" r={R} fill="none" stroke={RING_TRACK} strokeWidth="3" />
                 <circle
                   cx="36" cy="36" r={R} fill="none"
-                  stroke="#F1EBE1" strokeWidth="3" strokeLinecap="round"
+                  stroke={RING_INK} strokeWidth="3" strokeLinecap="round"
                   strokeDasharray={CIRC}
                   strokeDashoffset={CIRC * (1 - progress)}
                 />
@@ -139,26 +130,19 @@ const HatchingPhase: React.FC<HatchingPhaseProps> = ({ userFirstName, onCommit }
                 style={{
                   width: 44 + progress * 8,
                   height: 44 + progress * 8,
-                  background: 'var(--claura-bone)',
-                  boxShadow: progress > 0 ? `0 0 ${20 * progress}px rgba(210,145,55,${0.5 * progress})` : 'none',
+                  background: 'var(--rg-ink)',
                 }}
               />
             </span>
-            <span
-              className="text-xs uppercase tracking-widest"
-              style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-body)', letterSpacing: '0.14em' }}
-            >
-              {progress > 0 ? 'Keep holding...' : 'Hold to wake'}
+            <span className="rs-flow-line">
+              {progress > 0 ? 'Keep holding' : 'Hold to wake'}
             </span>
           </button>
         </>
       )}
 
       {committed && (
-        <p
-          className="text-sm max-w-sm leading-relaxed"
-          style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-body)' }}
-        >
+        <p className="rs-flow-line max-w-sm">
           It will keep learning from everything you connected.
         </p>
       )}

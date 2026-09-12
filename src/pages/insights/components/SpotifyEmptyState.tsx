@@ -1,101 +1,24 @@
 import React from 'react';
-import { Music, Users, PieChart, BarChart3 } from 'lucide-react';
+import { InsightsNotice } from './InsightsKit';
 
 interface SpotifyEmptyStateProps {
-  colors: {
-    text: string;
-    textSecondary: string;
-    spotifyGreen: string;
-  };
   navigate: (path: string) => void;
-  /** Backend `notConnected` flag — decides Connect CTA vs "collecting data" badge (audit-2026-06-10). */
+  /** Backend `notConnected` flag — decides Connect CTA vs "collecting data" row (audit-2026-06-10). */
   notConnected?: boolean;
 }
 
 export const SpotifyEmptyState: React.FC<SpotifyEmptyStateProps> = ({
-  colors,
   navigate,
   notConnected = false,
 }) => {
   return (
-    <div className="space-y-4">
-      <div className="text-center py-10 rounded-lg" style={{ border: '1px solid var(--border-glass)', backgroundColor: 'var(--surface)' }}>
-        <Music className="w-12 h-12 mx-auto mb-4" style={{ color: colors.textSecondary }} />
-        <h3 style={{ color: colors.text, fontFamily: "var(--font-heading)", fontStyle: 'italic', fontWeight: 400, letterSpacing: '-0.02em' }}>
-          Your twin is listening
-        </h3>
-        <p className="mt-2 mb-6 max-w-sm mx-auto" style={{ color: colors.textSecondary }}>
-          {notConnected
-            ? 'Connect Spotify and your twin will notice patterns in your listening and share observations.'
-            : 'As you listen to music, your twin will notice patterns and share observations.'}
-        </p>
-        {notConnected ? (
-          <button
-            onClick={() => navigate('/get-started')}
-            className="px-5 py-2.5 rounded-xl text-sm font-medium transition-all hover:scale-[1.02]"
-            style={{ backgroundColor: colors.spotifyGreen, color: 'var(--foreground)' }}
-          >
-            Connect Spotify
-          </button>
-        ) : (
-          <div
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm"
-            style={{
-              backgroundColor: 'rgba(29, 185, 84, 0.05)',
-              color: colors.spotifyGreen,
-              border: '1px solid rgba(29, 185, 84, 0.2)',
-            }}
-          >
-            <div aria-hidden="true" className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: colors.spotifyGreen }} />
-            Your twin is collecting data... check back soon
-          </div>
-        )}
-      </div>
-
-      {/* Preview cards showing what insights will look like */}
-      <div aria-hidden="true" className="opacity-50 pointer-events-none space-y-3">
-        <p className="text-xs uppercase tracking-wider" style={{ color: colors.textSecondary }}>
-          Preview of your insights
-        </p>
-        {/* Placeholder: Top Artists */}
-        <div className="p-4 rounded-lg" style={{ border: '1px dashed var(--glass-surface-border)' }}>
-          <div className="flex items-center gap-2 mb-3">
-            <Users className="w-4 h-4" style={{ color: colors.textSecondary }} />
-            <span className="text-sm" style={{ color: colors.textSecondary }}>Top Artists</span>
-          </div>
-          <div className="space-y-2">
-            {[80, 60, 40].map((width, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <div className="w-20 h-3 rounded animate-pulse" style={{ backgroundColor: 'var(--surface)' }} />
-                <div className="flex-1 h-4 rounded-lg overflow-hidden animate-pulse" style={{ backgroundColor: 'var(--glass-surface-bg)' }}>
-                  <div className="h-full rounded-lg" style={{ width: `${width}%`, backgroundColor: `${colors.spotifyGreen}40` }} />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-        {/* Placeholder: Genre + Listening Hours */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="p-4 rounded-lg" style={{ border: '1px dashed var(--glass-surface-border)' }}>
-            <div className="flex items-center gap-2 mb-3">
-              <PieChart className="w-4 h-4" style={{ color: colors.textSecondary }} />
-              <span className="text-sm" style={{ color: colors.textSecondary }}>Genres</span>
-            </div>
-            <div className="w-16 h-16 mx-auto rounded-full" style={{ border: '3px dashed var(--border-glass)' }} />
-          </div>
-          <div className="p-4 rounded-lg" style={{ border: '1px dashed var(--glass-surface-border)' }}>
-            <div className="flex items-center gap-2 mb-3">
-              <BarChart3 className="w-4 h-4" style={{ color: colors.textSecondary }} />
-              <span className="text-sm" style={{ color: colors.textSecondary }}>Peak Hours</span>
-            </div>
-            <div className="flex items-end gap-1 h-12">
-              {[3, 5, 8, 6, 4, 7, 3].map((h, i) => (
-                <div key={i} className="flex-1 rounded-t" style={{ height: `${h * 12}%`, backgroundColor: `${colors.spotifyGreen}20` }} />
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+    <InsightsNotice
+      notConnected={notConnected}
+      platform="Spotify"
+      connectLine="Your twin will notice patterns in your listening."
+      title="Your twin is listening"
+      line="Patterns show up as your music syncs."
+      onConnect={() => navigate('/get-started')}
+    />
   );
 };

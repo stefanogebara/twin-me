@@ -10,8 +10,9 @@ export type BackgroundVariant = 'daynight' | 'ambient';
  */
 export function pickBackgroundVariant(_mode: BackgroundMode, _resolvedTheme: ResolvedTheme): BackgroundVariant {
   // Nocturne flip (2026-09-01): one canvas, no photography. The DayNight photo
-  // set is retired with the rest of the legacy backgrounds; 'ambient' now
-  // paints flat obsidian (see ClassicBackground). Signature intact so callers
-  // and the bg_mode preference plumbing stay untouched.
+  // set is retired with the rest of the legacy backgrounds; 'ambient' paints
+  // the flat ground (the register's warm page since 2026-09-12, see
+  // ClassicBackground). Signature intact so callers and the bg_mode
+  // preference plumbing stay untouched.
   return 'ambient';
 }

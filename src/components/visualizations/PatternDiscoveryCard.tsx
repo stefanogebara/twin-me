@@ -47,7 +47,7 @@ export function PatternDiscoveryCard({ pattern, className = '' }: PatternDiscove
           <div className="flex-1">
             <div className="flex items-center space-x-2 mb-2">
               <Sparkles className="w-5 h-5 text-muted-foreground" />
-              <h4 className="text-lg font-semibold text-foreground" style={{ fontFamily: "'Inter', sans-serif" }}>
+              <h4 className="text-lg font-semibold text-foreground" style={{ fontFamily: 'var(--font-ui)' }}>
                 {pattern.title}
               </h4>
             </div>
