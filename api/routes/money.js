@@ -215,6 +215,9 @@ router.post('/bank/refresh-if-stale', async (req, res) => {
     if (error.code === 'bank_session_expired') {
       return res.json({ success: true, data: { pulled: false, reason: 'needs reconnect', needs_reconnect: true } });
     }
+    if (error.code === 'bank_session_unreachable') {
+      return res.json({ success: true, data: { pulled: false, reason: 'session belongs to another application' } });
+    }
     log.error('refresh-if-stale failed', { error: error.message });
     res.status(500).json({ success: false, error: 'Internal server error' });
   }

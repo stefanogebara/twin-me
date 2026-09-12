@@ -60,7 +60,7 @@ router.all('/', async (req, res) => {
         }
       } catch (err) {
         /* A spent budget is the normal state near the end of a day, not a failure. */
-        if (err.code === 'feed_budget_spent') skipped += 1;
+        if (err.code === 'feed_budget_spent' || err.code === 'bank_session_unreachable') skipped += 1;
         else log.warn('pull failed', { userId, error: err.message });
       }
     }

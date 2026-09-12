@@ -364,7 +364,9 @@ export async function pullBankFeed(userId, { since, attended = false } = {}) {
       } while (key);
     } catch (error) {
       /* A dead session is recorded so the product can say what is wrong, and the read is not
-         counted as a successful one. The caller decides what to tell the person. */
+         counted as a successful one. A session this application cannot see is not recorded:
+         it is not evidence about the connection, and a row here would both spend the
+         person's read budget and tell them to reconnect a bank that is fine. */
       if (error.code === 'bank_session_expired') {
         await recordAccess(userId, acc.id, { attended, rowsSeen: 0, outcome: 'session_expired' });
       }
