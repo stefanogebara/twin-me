@@ -1,16 +1,17 @@
 /**
  * TwinIntelligence — Twin Fidelity Score (Settings)
  * ==================================================
- * Shows twin accuracy in Settings. The "Personal Model" training UI was
- * removed in replan-2026-06-10 cycle 4 along with the DPO/fine-tuning
- * backend it called (/finetuning/readiness and /finetuning/train no longer
- * exist).
+ * Shows twin accuracy in Settings, as one row of the page kit (render it inside
+ * a List). The "Personal Model" training UI was removed in replan-2026-06-10
+ * cycle 4 along with the DPO/fine-tuning backend it called (/finetuning/readiness
+ * and /finetuning/train no longer exist).
  */
 
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Brain, Activity, Loader2 } from 'lucide-react';
+import { Brain, Loader2 } from 'lucide-react';
 import { authFetch } from '@/services/api/apiBase';
+import { Row } from '@/components/register';
 
 interface FidelityData {
   fidelity_score: number;
@@ -62,73 +63,35 @@ const TwinIntelligence: React.FC = () => {
     ? Math.round(fidelity.fidelity_score * 100)
     : null;
 
+  // The score is ink: the signature hues fail as text (the old pink was 1.97:1).
+  const action = loadingFidelity ? (
+    <Loader2 className="w-4 h-4 animate-spin" style={{ color: 'var(--rg-ink-2)' }} aria-label="Loading" />
+  ) : fidelityPercent != null ? (
+    <span className="rs-figure">{fidelityPercent}%</span>
+  ) : (
+    <button
+      type="button"
+      className="n-btn n-btn--ghost"
+      onClick={() => measureMutation.mutate()}
+      disabled={measureMutation.isPending}
+    >
+      {measureMutation.isPending ? (
+        <><Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> Measuring</>
+      ) : 'Measure'}
+    </button>
+  );
+
   return (
-    <div className="mb-10">
-      {/* Section label — matches other SectionLabel components in Settings */}
-      <h2
-        className="text-[11px] font-medium tracking-[0.1em] uppercase block mb-4"
-        style={{ color: 'var(--text-secondary)', fontFamily: 'Inter, sans-serif', lineHeight: 'normal' }}
-      >
-        Twin Intelligence
-      </h2>
-
-      <div>
-        {/* Fidelity Score */}
-        <div className="flex items-center justify-between py-3 -mx-1 px-1 rounded-[4px] transition-colors" style={{ borderBottom: '1px solid var(--border-glass)' }} onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.025)')} onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}>
-          <div className="flex items-center gap-3">
-            <Brain className="w-4 h-4 flex-shrink-0" style={{ color: 'rgba(199,146,234,0.7)' }} />
-            <div>
-              <p className="text-sm font-medium" style={{ color: 'var(--foreground)', fontFamily: 'Inter, sans-serif' }}>
-                Twin Accuracy
-              </p>
-              <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-                {fidelity
-                  ? `Based on ${fidelity.probe_count} behavioral probes`
-                  : 'How well your twin predicts your responses'}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            {loadingFidelity ? (
-              <Loader2 className="w-3 h-3 animate-spin" style={{ color: 'var(--text-secondary)' }} />
-            ) : fidelityPercent != null ? (
-              <span
-                className="text-lg font-semibold tabular-nums"
-                style={{
-                  color: fidelityPercent >= 70 ? 'rgba(120,200,170,0.9)'
-                    : fidelityPercent >= 40 ? 'rgba(255,183,130,0.9)'
-                    : 'rgba(255,140,160,0.9)',
-                  fontFamily: 'Inter, sans-serif',
-                }}
-              >
-                {fidelityPercent}%
-              </span>
-            ) : (
-              <button
-                onClick={() => measureMutation.mutate()}
-                disabled={measureMutation.isPending}
-                className="px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-150 hover:opacity-80 active:scale-[0.97] flex items-center gap-1.5"
-                style={{
-                  background: 'var(--surface)',
-                  border: '1px solid var(--glass-surface-border)',
-                  color: 'var(--text-secondary)',
-                }}
-              >
-                {measureMutation.isPending ? (
-                  <><Loader2 className="w-3 h-3 animate-spin" /> Measuring...</>
-                ) : (
-                  <><Activity className="w-3 h-3" /> Measure</>
-                )}
-              </button>
-            )}
-          </div>
-        </div>
-
-        {measureError && (
-          <p className="text-xs py-2" style={{ color: 'rgba(255,140,160,0.8)' }}>{measureError}</p>
-        )}
-      </div>
-    </div>
+    <Row
+      icon={<Brain />}
+      title="Twin accuracy"
+      line={measureError
+        ? <span className="rs-bad">{measureError}</span>
+        : fidelity
+          ? `Based on ${fidelity.probe_count} test questions`
+          : 'How well your twin predicts your answers'}
+      action={action}
+    />
   );
 };
 

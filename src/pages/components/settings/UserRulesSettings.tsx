@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Shield, Plus, X, Check } from 'lucide-react';
+import { Plus, X } from 'lucide-react';
 import { API_URL, getAccessToken } from '@/services/api/apiBase';
+import { List, Row, Empty } from '@/components/register';
 
 
 const getAuthHeaders = () => {
@@ -79,93 +80,62 @@ const UserRulesSettings: React.FC = () => {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center gap-2 py-4 justify-center">
-        <div className="w-4 h-4 rounded-full animate-pulse" style={{ background: 'var(--glass-surface-border)' }} />
-        <span className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>Loading rules...</span>
-      </div>
-    );
+    return <List label="Rules"><li><Empty>Loading rules</Empty></li></List>;
   }
 
   return (
-    <div>
-      {/* Explainer */}
-      <div
-        className="flex items-start gap-3 mb-4 p-3 rounded-xl"
-        style={{ background: 'var(--surface)', border: '1px solid var(--border-glass)' }}
-      >
-        <Shield className="w-4 h-4 mt-0.5 shrink-0" style={{ color: 'var(--text-secondary)' }} />
-        <p className="text-[12px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-          Rules your twin will <strong style={{ color: 'var(--text-secondary)' }}>always</strong> follow.
-          Say things like "I'm vegan" or "Never mention my ex". You can also tell your twin in chat.
-        </p>
-      </div>
-
-      {/* Rules list */}
-      {rules.length > 0 ? (
-        <div className="flex flex-col gap-1 mb-3">
-          {rules.map((rule, i) => (
-            <div
+    <div style={{ display: 'grid', gap: 16 }}>
+      <List label="Rules" className="rs-compact">
+        {rules.length > 0 ? (
+          rules.map((rule, i) => (
+            <Row
               key={i}
-              className="flex items-center gap-2 py-2 px-3 rounded-lg group"
-              style={{ background: 'var(--surface)' }}
-            >
-              <Check className="w-3 h-3 shrink-0" style={{ color: 'var(--text-secondary)' }} />
-              <span className="text-[13px] flex-1" style={{ color: 'var(--text-secondary)' }}>
-                {rule}
-              </span>
-              <button
-                onClick={() => handleDelete(i)}
-                className="p-1 rounded-md bg-transparent border-none cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
-                aria-label={`Remove rule: ${rule}`}
-                title="Remove rule"
-              >
-                <X className="w-3 h-3" style={{ color: 'var(--text-secondary)' }} aria-hidden="true" />
-              </button>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <p className="text-[12px] text-center py-3 mb-3" style={{ color: 'var(--text-secondary)' }}>
-          No rules yet. Add one below or tell your twin in chat.
-        </p>
-      )}
+              title={rule}
+              action={
+                <button
+                  type="button"
+                  onClick={() => handleDelete(i)}
+                  className="rg-iconbtn"
+                  aria-label={`Remove rule: ${rule}`}
+                  title="Remove rule"
+                >
+                  <X aria-hidden="true" />
+                </button>
+              }
+            />
+          ))
+        ) : (
+          <li><Empty>No rules yet. Add one here, or tell your twin in chat.</Empty></li>
+        )}
+      </List>
 
       {/* Add new rule */}
-      <div className="flex gap-2">
+      <div className="rs-inline">
         <input
           type="text"
           value={newRule}
           onChange={(e) => setNewRule(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
-          placeholder="e.g. I'm allergic to shellfish"
+          placeholder="For example, I'm vegan"
           disabled={rules.length >= maxRules}
           aria-label="New rule for your twin"
-          className="flex-1 text-[13px] px-3 py-2 rounded-lg border-none outline-none"
-          style={{
-            background: 'var(--sidebar)',
-            color: 'var(--foreground)',
-          }}
+          className="n-input"
           maxLength={120}
         />
         <button
+          type="button"
           onClick={handleAdd}
           disabled={adding || !newRule.trim() || rules.length >= maxRules}
-          className="px-3 py-2 rounded-lg border-none cursor-pointer transition-opacity disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1.5"
-          style={{ background: 'var(--glass-surface-border)', color: 'var(--foreground)' }}
+          className="n-btn n-btn--ghost"
         >
-          <Plus className="w-3.5 h-3.5" />
-          <span className="text-[12px]">Add</span>
+          <Plus className="w-4 h-4" aria-hidden="true" />
+          Add
         </button>
       </div>
 
-      {error && (
-        <p className="text-[11px] mt-2" style={{ color: 'rgba(239,68,68,0.7)' }}>{error}</p>
-      )}
+      {error && <p className="rs-bad" role="alert" style={{ margin: 0 }}>{error}</p>}
 
-      <p className="text-[10px] mt-2" style={{ color: 'var(--text-secondary)' }}>
-        {rules.length}/{maxRules} rules
-      </p>
+      <p className="rs-quiet">{rules.length} of {maxRules} rules</p>
     </div>
   );
 };

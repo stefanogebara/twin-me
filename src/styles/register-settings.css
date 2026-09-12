@@ -1,0 +1,223 @@
+/* ==========================================================================
+   What the signed-in settings, privacy, connections and data pages need that
+   the page kit (register-kit.css) and register-public.css do not carry yet.
+   Built from register.css tokens only; each rule names the gap it fills so it
+   can move into the kit and leave here. Put .rs on the page root.
+   ========================================================================== */
+
+/* index.css truncates every span inside a button or a link (one line, an
+   ellipsis). A row that is one link or button keeps its grey line whole. */
+.rs .rg-row--link .rg-row-title,
+.rs .rg-row--link .rg-row-line:not(.rg-row-line--clip) { white-space: normal; overflow: visible; text-overflow: clip; }
+.rs .rg-section { scroll-margin-top: 24px; }
+
+/* register-public's .pb-stack drops a row's button under its text on a phone.
+   A whole-row link has only a chevron, which never squeezes the line: it stays
+   at the end. */
+@media (max-width: 560px) {
+  .pb-stack .rg-row--link.rg-row--plain { grid-template-columns: minmax(0, 1fr) auto; }
+  .pb-stack .rg-row--link:not(.rg-row--plain) { grid-template-columns: 32px minmax(0, 1fr) auto; }
+  .pb-stack .rg-row--link .rg-row-action { grid-column: auto; justify-self: end; }
+}
+
+/* ---- buttons ---- */
+
+/* The danger button: white, the pink danger line, danger text (5.7:1 on white). */
+.n-btn.rs-danger { background: var(--rg-white); border-color: var(--rg-danger-line); color: var(--rg-danger); }
+.n-btn.rs-danger:hover { border-color: var(--rg-danger); }
+
+/* A 32/4 choice: the secondary button; pressed is the field with an ink line. */
+.rs-choices { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.n-btn.rs-choice[aria-pressed='true'] { background: var(--rg-field); border-color: var(--rg-ink); font-weight: var(--rg-weight-title); }
+
+/* A text button inside a line: underlined ink. */
+.rs-link {
+  display: inline; padding: 0; border: 0; background: none; font: inherit; letter-spacing: inherit;
+  color: var(--rg-ink); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; cursor: pointer;
+}
+.rs-link:hover { color: var(--rg-ink-2); }
+.rs-link:active { transform: none; }
+
+/* ---- words ---- */
+
+.rs-ok { color: var(--rg-ok); font-weight: var(--rg-weight-title); }       /* 5.1:1 on the page */
+.rs-bad { color: var(--rg-danger); }                                        /* 5.5:1 on the page */
+.rs-strong { color: var(--rg-ink); font-weight: var(--rg-weight-title); }
+.rs-quiet { margin: 0; color: var(--rg-ink-3); font-weight: var(--rg-weight-line); }
+.rs-figure { color: var(--rg-ink); font-weight: var(--rg-weight-title); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.rs-mono { font-family: var(--rg-mono); font-size: 12px; letter-spacing: 0; }
+.rs-prose { margin: 0; max-width: 64ch; color: var(--rg-ink); font-weight: var(--rg-weight-prose); white-space: pre-wrap; overflow-wrap: anywhere; }
+
+/* A line in a list that is not a row: a note, an error, a loading state. */
+.rs-note {
+  display: flex; align-items: center; gap: 8px; margin: 0; padding: 16px 12px;
+  border-bottom: 1px solid var(--rg-rule); color: var(--rg-ink-2); font-weight: var(--rg-weight-line);
+}
+.rs-note svg { width: 16px; height: 16px; flex: none; }
+.rs-foot { margin-top: var(--rg-section); }
+
+/* A small square of a domain's colour before a label: the label stays ink. */
+.rs-mark { display: inline-block; flex: none; width: 8px; height: 8px; border-radius: 2px; }
+
+/* ---- rows ---- */
+
+/* Compact rows, about 57 tall: short items such as rules and figures. */
+.rs-compact .rg-row { min-height: var(--rg-row-sub); padding: 12px; }
+
+/* What a row opens to: fields, steps and quiet lines, indented to the text,
+   never another card. Sits in the list as its own item. */
+.rs-body { display: grid; gap: 12px; padding: 0 12px 20px 60px; border-bottom: 1px solid var(--rg-rule); }
+.rs-body--plain { padding-left: 12px; }
+.rs-row-has-body > .rg-row, .rs-row-has-body.rg-row { border-bottom: 0; }
+
+/* A field with its button beside it, wrapping on a phone. */
+.rs-inline { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.rs-inline > .n-input { flex: 1 1 220px; min-width: 0; }
+.rs .n-input { width: 100%; }
+.rs-inline > .n-input { width: auto; }
+
+/* A select: the field, 32 tall, an ink chevron. */
+.rs-select {
+  height: var(--rg-button); max-width: 100%; padding: 0 30px 0 10px; border: 0; border-radius: var(--rg-radius);
+  background: var(--rg-field) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23251f21' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 9px center;
+  appearance: none; font: inherit; font-size: var(--rg-text); letter-spacing: var(--rg-track); color: var(--rg-ink); cursor: pointer;
+}
+.rs-select:focus-visible { outline: 2px solid var(--rg-ink); outline-offset: 2px; }
+.rs-select:disabled { opacity: 0.4; cursor: default; }
+.rs-select--wide { width: 100%; height: var(--rg-field-height); padding-left: 14px; }
+
+/* Numbered steps: quiet, decimal, no circles. */
+.rs-steps { margin: 0; padding-left: 18px; list-style: decimal; display: grid; gap: 4px; color: var(--rg-ink-2); font-weight: var(--rg-weight-line); }
+.rs-steps li { padding-left: 2px; }
+
+/* A drop zone is the warm field; dragging over it draws the ink line. */
+.rs-drop {
+  display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 72px; padding: 16px;
+  border-radius: var(--rg-radius); background: var(--rg-field); color: var(--rg-ink-2); text-align: center; cursor: pointer;
+  transition: outline-color var(--rg-quick);
+}
+.rs-drop svg { width: 16px; height: 16px; flex: none; }
+.rs-drop:hover { outline: 1px solid var(--rg-quiet); outline-offset: -1px; }
+.rs-drop.is-over { outline: 1px solid var(--rg-ink); outline-offset: -1px; }
+.rs-drop:focus-visible { outline: 2px solid var(--rg-ink); outline-offset: 2px; }
+
+/* A thin bar under a row's title (the soul score): ink on the hairline. */
+.rs-bar { display: block; height: 2px; margin-top: 8px; background: var(--rg-rule); }
+.rs-bar > i { display: block; height: 100%; background: var(--rg-ink); }
+
+/* ---- the settings frame: a sub-nav of plain links beside the column ---- */
+
+.rg-page.rs-wide { max-width: calc(var(--rg-side) + var(--rg-side-gap) + var(--rg-col) + 2 * var(--rg-gutter)); }
+.rs-frame { display: grid; grid-template-columns: minmax(0, 1fr); }
+.rs-frame > .rs-col { width: 100%; max-width: var(--rg-col); margin: 0 auto; min-width: 0; }
+.rs-subnav { display: none; }
+.rs-jump {
+  position: sticky; top: 0; z-index: 20; display: grid; gap: 8px; margin: 0 0 var(--rg-section-phone);
+  padding: 8px 0 12px; background: var(--rg-page);
+}
+@media (min-width: 1360px) {
+  .rs-frame { grid-template-columns: var(--rg-side) minmax(0, var(--rg-col)); column-gap: var(--rg-side-gap); justify-content: center; }
+  .rs-frame > .rs-col { margin: 0; }
+  .rs-subnav { position: sticky; top: 60px; align-self: start; display: grid; }
+  .rs-jump { display: none; }
+}
+/* The current item is underlined, as in the main sidebar; nothing is filled. */
+.rs-subnav button {
+  display: flex; align-items: center; min-height: 32px; padding: 0; border: 0; background: none; text-align: left;
+  font: inherit; letter-spacing: inherit; color: var(--rg-ink-2); cursor: pointer;
+}
+.rs-subnav button:hover { color: var(--rg-ink); }
+.rs-subnav button:active { transform: none; }
+.rs-subnav button[aria-current='true'] {
+  color: var(--rg-ink); font-weight: var(--rg-weight-title);
+  text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 4px;
+}
+
+/* A row whose menu is open sits above its neighbours. */
+.rs-menu-open { position: relative; z-index: 50; }
+
+/* The page's one call to action, at its foot (48/12 via .pb-cta). */
+.rs-cta { display: grid; justify-items: start; gap: 12px; margin-top: var(--rg-section); }
+
+/* A loading row: a field-coloured bar where the text will be. */
+.rs-skel { display: block; height: 20px; border-radius: var(--rg-radius); background: var(--rg-field); }
+
+/* ---- a menu and a dialog: white, a hairline, no shadow ---- */
+
+.rs-menu {
+  position: absolute; right: 0; top: calc(100% + 4px); z-index: 50; min-width: 168px; display: grid; padding: 4px;
+  background: var(--rg-white); border: 1px solid var(--rg-rule); border-radius: var(--rg-radius);
+}
+.rs-menu button {
+  display: flex; align-items: center; gap: 8px; min-height: 32px; padding: 0 10px; border: 0; border-radius: var(--rg-radius);
+  background: none; font: inherit; letter-spacing: inherit; color: var(--rg-ink); text-align: left; cursor: pointer;
+}
+.rs-menu button:hover { background: var(--rg-hover); }
+.rs-menu button.rs-bad { color: var(--rg-danger); }
+.rs-menu svg { width: 16px; height: 16px; }
+
+.rs-overlay { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 24px; background: rgb(var(--rg-ink-rgb) / 0.4); }
+.rs-dialog {
+  position: relative; width: 100%; max-width: 440px; display: grid; gap: 16px; padding: 24px;
+  background: var(--rg-white); border: 1px solid var(--rg-rule); border-radius: var(--rg-radius-icon); color: var(--rg-ink);
+  font-size: var(--rg-text); line-height: var(--rg-line); letter-spacing: var(--rg-track);
+}
+.rs-dialog h2 { margin: 0; padding-right: 32px; font-family: var(--rg-sans); font-size: 24px; font-weight: 400; line-height: 1.08; letter-spacing: var(--rg-section-track); color: var(--rg-ink); }
+.rs-dialog p { margin: 0; color: var(--rg-ink-2); font-weight: var(--rg-weight-line); }
+.rs-dialog .rg-iconbtn { position: absolute; top: 20px; right: 20px; }
+.rs-checks { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.rs-checks li { display: flex; align-items: center; gap: 10px; }
+.rs-checks li > span:first-child { display: grid; place-items: center; width: 20px; height: 20px; border-radius: var(--rg-radius); background: var(--rg-field); }
+.rs-checks svg { width: 12px; height: 12px; color: var(--rg-ink); }
+
+/* ---- privacy: sliders with an ink thumb edge (3:1 non-text) ---- */
+
+.rs-slider [role='slider'] { border: 2px solid var(--rg-ink); background: var(--rg-page); }
+.rs-slider > span:first-child { height: 4px; background: var(--rg-rule); }
+.rs-slider[data-disabled] [role='slider'] { border-color: var(--rg-mark); }
+.rs-level { display: grid; gap: 16px; padding: 20px 12px; border-bottom: 1px solid var(--rg-rule); }
+.rs-level-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; }
+.rs-cluster {
+  display: grid; grid-template-columns: 32px minmax(0, 200px) minmax(0, 1fr) 44px; column-gap: 16px; align-items: center;
+  min-height: var(--rg-row-sub); padding: 12px; border-bottom: 1px solid var(--rg-rule);
+}
+.rs-cluster-name { min-width: 0; overflow-wrap: anywhere; font-weight: var(--rg-weight-title); color: var(--rg-ink); }
+.rs-cluster.is-off .rs-cluster-name { color: var(--rg-ink-3); font-weight: var(--rg-weight-line); }
+.rs-cluster .rs-figure { justify-self: end; }
+.rs-cluster.is-off .rs-figure { color: var(--rg-ink-3); }
+.rs-group { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 48px; padding: 12px; border: 0; border-bottom: 1px solid var(--rg-rule); background: none; font: inherit; letter-spacing: inherit; text-align: left; color: var(--rg-ink); cursor: pointer; }
+.rs-group:hover { background: var(--rg-hover); }
+.rs-group:active { transform: none; }
+.rs-group > .rs-chev { margin-left: auto; width: 16px; height: 16px; color: var(--rg-ink-2); }
+.rs-toggle {
+  display: grid; place-items: center; width: 32px; height: 32px; border: 1px solid var(--rg-rule); border-radius: var(--rg-radius);
+  background: var(--rg-white); color: var(--rg-ink); cursor: pointer;
+}
+.rs-toggle[aria-pressed='true'] { background: var(--rg-field); border-color: var(--rg-ink); }
+.rs-toggle svg { width: 16px; height: 16px; }
+
+/* ---- the soul-reveal flow: a centred narrow column, Cosmos headings ---- */
+
+.rs-flow-h1 { font-family: var(--rg-sans); font-size: var(--rg-title); font-weight: 300; line-height: 1; letter-spacing: var(--rg-title-track); text-wrap: balance; color: var(--rg-ink); }
+.rs-flow-title { font-family: var(--rg-sans); font-size: var(--rg-section-title); font-weight: 400; line-height: 1.08; letter-spacing: var(--rg-section-track); text-wrap: balance; color: var(--rg-ink); }
+.rs-flow-q { font-family: var(--rg-sans); font-size: 20px; font-weight: 400; line-height: 1.3; letter-spacing: -0.02em; color: var(--rg-ink); }
+.rs-flow-line { color: var(--rg-ink-2); font-weight: var(--rg-weight-line); }
+.rs-flow .rg-list { text-align: left; }
+
+/* ---- money: the chart sits under the ink rule, no box ---- */
+
+.rs-chart { padding-top: 20px; border-top: 1px solid var(--rg-ink); }
+.rs-legend { display: flex; flex-wrap: wrap; gap: 8px 20px; margin: 12px 0 0; padding: 0; list-style: none; color: var(--rg-ink-2); font-weight: var(--rg-weight-line); }
+.rs-legend li { display: inline-flex; align-items: center; gap: 8px; }
+.rs-key { display: inline-block; flex: none; width: 14px; height: 2px; }
+
+@media (max-width: 767px) {
+  .rs-body { padding-left: 12px; }
+}
+@media (max-width: 560px) {
+  /* The page head's action would squeeze the title and its line: it drops under. */
+  .rs .rg-apphead { grid-template-columns: minmax(0, 1fr); }
+  .rs .rg-apphead-action { grid-column: 1; grid-row: auto; justify-self: start; margin-top: 16px; }
+  .rs-cluster { grid-template-columns: 32px minmax(0, 1fr) 44px; row-gap: 8px; }
+  .rs-cluster .rs-slider { grid-column: 2 / 4; grid-row: 2; }
+}
