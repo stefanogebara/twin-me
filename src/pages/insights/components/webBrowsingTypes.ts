@@ -70,15 +70,3 @@ export interface InsightsResponse {
   hasExtensionData?: boolean;
   error?: string;
 }
-
-export const CATEGORY_COLORS: Record<string, string> = {
-  Learning: '#60a5fa',
-  News: '#C9B99A',
-  Shopping: '#D4CBBE',
-  Social: '#a78bfa',
-  Entertainment: '#ec4899',
-  Productivity: 'var(--n-verdigris)',
-  Health: '#14b8a6',
-  Reference: '#8b5cf6',
-  Other: '#6b7280'
-};

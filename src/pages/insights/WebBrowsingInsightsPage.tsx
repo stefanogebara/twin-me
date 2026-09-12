@@ -1,23 +1,29 @@
 /**
  * Web Browsing Insights Page
  *
- * "Your Digital Life" - Visual insights from your twin
- * about what your browsing patterns reveal about you.
+ * "What you read" - the twin's reflection on your browsing, then what it
+ * read: interests, searches, reading habits, domains, topics, recent pages.
+ * The register's page kit: sections of rows.
  */
 
 import React from 'react';
 import { usePlatformInsights } from '@/hooks/usePlatformInsights';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
-import { TwinReflection, PatternObservation } from './components/TwinReflection';
+import { Page, Section, List, Row } from '@/components/register';
+import { TwinReflection } from './components/TwinReflection';
 import { EvidenceSection } from './components/EvidenceSection';
 import { WebBrowsingSkeleton } from './components/WebBrowsingSkeleton';
 import { WebBrowsingErrorState } from './components/WebBrowsingErrorState';
 import { WebBrowsingCharts } from './components/WebBrowsingCharts';
 import { RefreshingIndicator } from './components/RefreshingIndicator';
 import { InsightsGenerationError } from './components/InsightsGenerationError';
+import { InsightsPageHeader } from './components/InsightsPageHeader';
+import { HistorySection, InsightsNotice, PatternsSection } from './components/InsightsKit';
 import type { InsightsResponse } from './components/webBrowsingTypes';
-import { Globe, RefreshCw, Layout } from 'lucide-react';
+import { Layout } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+
+const TITLE = 'What you read';
 
 const WebBrowsingInsightsPage: React.FC = () => {
   useDocumentTitle('Web Browsing Insights');
@@ -27,13 +33,6 @@ const WebBrowsingInsightsPage: React.FC = () => {
   const { insights, loading, generating, isRefreshing, error, generationError, refresh } =
     usePlatformInsights<InsightsResponse>('web', 'Please sign in to see your digital life insights');
 
-  const colors = {
-    text: 'var(--foreground)',
-    textSecondary: 'rgba(255, 255, 255, 0.55)',
-    webAccent: '#6366f1',
-    webBg: 'rgba(99, 102, 241, 0.1)'
-  };
-
   // Keep previous insights rendered during a refresh (audit-2026-06-10);
   // the skeleton is only for the no-data cold start.
   if ((loading || generating) && !insights) {
@@ -42,149 +41,69 @@ const WebBrowsingInsightsPage: React.FC = () => {
 
   // Generation failed with nothing to show — inline retry, not a connect CTA.
   if (generationError && !insights) {
-    return <InsightsGenerationError message={generationError} onRetry={refresh} retrying={isRefreshing} />;
+    return <InsightsGenerationError title={TITLE} message={generationError} onRetry={refresh} retrying={isRefreshing} />;
   }
 
   if (error) {
-    return <WebBrowsingErrorState colors={colors} navigate={navigate} />;
+    return <WebBrowsingErrorState navigate={navigate} />;
   }
 
   return (
-    <div className="max-w-[680px] mx-auto px-4 sm:px-6 py-10 sm:py-16">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-2">
-        <h1 style={{ fontFamily: "var(--font-heading)", fontStyle: 'italic', fontSize: '28px', fontWeight: 400, color: 'var(--foreground)', letterSpacing: '-0.02em' }}>
-          Your Digital Life
-        </h1>
-        <button onClick={refresh} disabled={isRefreshing} className="p-2 rounded-lg transition-opacity hover:opacity-60" style={{ color: 'var(--text-muted)' }} title="Refresh" aria-label={isRefreshing ? 'Refreshing insights' : 'Refresh insights'}>
-          <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-        </button>
-      </div>
-      <p className="text-sm mb-10" style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
-        What your browsing reveals about you
-      </p>
-      <div style={{ borderTop: '1px solid var(--border-glass)' }} className="mb-8" />
+    <Page>
+      <InsightsPageHeader
+        title={TITLE}
+        line="What your browsing says about you"
+        onBack={() => navigate('/identity')}
+        onRefresh={refresh}
+        isRefreshing={isRefreshing}
+      />
 
       <RefreshingIndicator visible={isRefreshing} />
 
-      {/* Extension Install Banner */}
+      {/* Extension install row (a button: keyboard parity comes with it) */}
       {!insights?.hasExtensionData && (
-        <div
-          role="button"
-          tabIndex={0}
-          className="p-4 mb-6 rounded-xl cursor-pointer transition-opacity hover:opacity-80"
-          style={{ border: '1px solid var(--border-glass)', backgroundColor: 'var(--surface)', borderLeft: `3px solid ${colors.webAccent}` }}
-          onClick={() => navigate('/get-started')}
-          onKeyDown={(e) => {
-            // Keyboard parity for the clickable banner (audit-2026-07-03)
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              navigate('/get-started');
-            }
-          }}
-        >
-          <div className="flex items-center gap-3">
-            <Layout className="w-5 h-5 flex-shrink-0" style={{ color: colors.webAccent }} />
-            <div className="flex-1">
-              <p className="text-sm font-medium" style={{ color: colors.text }}>
-                Install the browser extension to unlock your digital life
-              </p>
-              <p className="text-xs mt-0.5" style={{ color: colors.textSecondary }}>
-                Capture browsing patterns, reading habits, search queries, and content preferences to discover what your digital footprint reveals about you.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Charts & Data Visualizations */}
-      {insights && (
-        <WebBrowsingCharts insights={insights} colors={colors} />
+        <Section>
+          <List>
+            <Row
+              icon={<Layout />}
+              title="Install the browser extension"
+              line="Your twin reads what you browse and search through it."
+              onClick={() => navigate('/get-started')}
+            />
+          </List>
+        </Section>
       )}
 
       {/* Primary Reflection */}
       {insights?.reflection && (
-        <div className="mb-8">
-          <TwinReflection
-            reflection={insights.reflection.text}
-            timestamp={insights.reflection.generatedAt}
-            confidence={insights.reflection.confidence}
-            isNew={true}
-          />
-          {insights?.evidence && insights.evidence.length > 0 && (
-            <EvidenceSection evidence={insights.evidence} className="mt-4" />
-          )}
-        </div>
+        <TwinReflection
+          reflection={insights.reflection.text}
+          timestamp={insights.reflection.generatedAt}
+          confidence={insights.reflection.confidence}
+          isNew={true}
+        >
+          {insights?.evidence && insights.evidence.length > 0 && <EvidenceSection evidence={insights.evidence} />}
+        </TwinReflection>
       )}
 
-      {/* Pattern Observations */}
-      {insights?.patterns && insights.patterns.length > 0 && (
-        <div className="mb-8">
-          <h3
-            className="text-xs uppercase tracking-wider mb-4"
-            style={{ color: 'var(--n-verdigris)', fontVariant: 'small-caps', letterSpacing: '0.08em' }}
-          >
-            Patterns I've Noticed
-          </h3>
-          <div className="space-y-3">
-            {insights.patterns.map(pattern => (
-              <PatternObservation
-                key={pattern.id}
-                text={pattern.text}
-                occurrences={pattern.occurrences}
-              />
-            ))}
-          </div>
-        </div>
-      )}
+      {/* Charts & data */}
+      {insights && <WebBrowsingCharts insights={insights} />}
 
-      {/* Historical Reflections */}
-      {insights?.history && insights.history.length > 0 && (
-        <div>
-          <h3
-            className="text-xs uppercase tracking-wider mb-4"
-            style={{ color: 'var(--n-verdigris)', fontVariant: 'small-caps', letterSpacing: '0.08em' }}
-          >
-            Past Observations
-          </h3>
-          <div className="space-y-3">
-            {insights.history.map(past => (
-              <div
-                key={past.id}
-                className="p-4 rounded-xl"
-                style={{ border: '1px solid var(--border-glass)', backgroundColor: 'var(--surface)' }}
-              >
-                <p
-                  className="text-sm leading-relaxed"
-                  style={{ color: 'var(--text-secondary)' }}
-                >
-                  {past.text}
-                </p>
-                <p className="text-xs mt-2" style={{ color: colors.textSecondary }}>
-                  {new Date(past.generatedAt).toLocaleDateString()}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      <PatternsSection patterns={insights?.patterns} />
+      <HistorySection history={insights?.history} />
 
       {/* Empty State */}
       {!insights?.reflection && (
-        <div
-          className="text-center py-12 rounded-xl"
-          style={{ border: '1px solid var(--border-glass)', backgroundColor: 'var(--surface)' }}
-        >
-          <Globe className="w-12 h-12 mx-auto mb-4" style={{ color: colors.textSecondary }} />
-          <h3 style={{ color: colors.text, fontFamily: "var(--font-heading)" }}>
-            Your twin is exploring
-          </h3>
-          <p className="mt-2" style={{ color: colors.textSecondary }}>
-            As your browsing data flows in, your twin will discover patterns and share observations about your digital life.
-          </p>
-        </div>
+        <InsightsNotice
+          notConnected={false}
+          platform="Browsing"
+          connectLine=""
+          title="Your twin is exploring"
+          line="Patterns show up as your browsing data flows in."
+          onConnect={() => navigate('/get-started')}
+        />
       )}
-    </div>
+    </Page>
   );
 };
 
