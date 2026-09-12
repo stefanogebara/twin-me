@@ -20,7 +20,7 @@ export const WebBrowsingCharts: React.FC<WebBrowsingChartsProps> = ({ insights }
       {/* Interest categories, a bar each by share */}
       {insights?.webTopCategories && insights.webTopCategories.length > 0 && (
         <Section title="Your interests" line="Share of the pages you visit.">
-          <List className="ri-compact">
+          <List className="rg-compact">
             {insights.webTopCategories.slice(0, 8).map((cat, index) => (
               <BarRow key={index} title={cat.category} share={cat.percentage} end={`${cat.percentage}%`} />
             ))}
@@ -42,7 +42,7 @@ export const WebBrowsingCharts: React.FC<WebBrowsingChartsProps> = ({ insights }
       {/* Reading profile, one figure a row */}
       {profile && (
         <Section title="How you read">
-          <List className="ri-compact ri-stats">
+          <List className="rg-compact ri-stats">
             {profile.dominantBehavior && (
               <StatCard label="Reading style" value={profile.dominantBehavior.replace('_', ' ').replace(/^\w/, c => c.toUpperCase())} />
             )}
@@ -62,7 +62,7 @@ export const WebBrowsingCharts: React.FC<WebBrowsingChartsProps> = ({ insights }
       {/* Top domains, a bar each by visits */}
       {insights?.webTopDomains && insights.webTopDomains.length > 0 && (
         <Section title="Where you go">
-          <List className="ri-compact">
+          <List className="rg-compact">
             {insights.webTopDomains.slice(0, 15).map((item, index) => (
               <BarRow
                 key={index}

@@ -187,7 +187,7 @@ const Screen2: React.FC = () => (
       {STEPS.map((step) => (
         <Row
           key={step.number}
-          icon={<span className="rs-strong pb-figures">{step.number}</span>}
+          icon={<span className="rs-strong rg-figures">{step.number}</span>}
           title={step.title}
           line={step.description}
         />
@@ -215,7 +215,7 @@ const Screen3: React.FC = () => (
       </p>
     </div>
 
-    <ul className="rg-list rs-compact w-full" style={{ textAlign: 'left' }}>
+    <ul className="rg-list rg-compact w-full" style={{ textAlign: 'left' }}>
       {TRUST_BADGES.map((badge) => (
         <Row key={badge.label} icon={<badge.icon />} title={badge.label} />
       ))}

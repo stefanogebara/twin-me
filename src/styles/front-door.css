@@ -35,9 +35,7 @@
 .fd-tiles > .n-tile { grid-column: span 2; min-height: 380px; }
 .fd-tiles > .n-tile:nth-child(n + 4) { grid-column: span 3; }
 
-/* ---- a data row: a thin bar in the domain's hue under the title ---- */
-.fd-bar { display: block; height: 2px; margin-top: 8px; background: var(--rg-rule); }
-.fd-bar > i { display: block; height: 100%; }
+/* A data row's thin bar is the kit's .rg-bar; its fill takes the domain's hue. */
 
 /* ---- an exchange: the answer is the one paragraph a demo may hold ---- */
 .fd-answer { display: grid; gap: 8px; padding: 20px 12px; border-bottom: 1px solid var(--rg-rule); }

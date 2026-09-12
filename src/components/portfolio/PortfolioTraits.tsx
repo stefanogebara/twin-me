@@ -24,7 +24,7 @@ const PortfolioTraits: React.FC<PortfolioTraitsProps> = ({ traits }) => {
 
   return (
     <Section title="Defining traits">
-      <List label="Defining traits" className="pb-figures">
+      <List label="Defining traits" className="rg-figures">
         {visibleTraits.map((trait, i) => {
           const score = typeof trait.score === 'number' ? Math.round(Math.min(100, Math.max(0, trait.score))) : null;
           const SourceLogo = trait.source ? getPlatformLogo(trait.source) : null;

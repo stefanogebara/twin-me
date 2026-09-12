@@ -178,7 +178,7 @@ const YouTubeInsightsPage: React.FC = () => {
       {/* Recent watch history (extension data): how much of each you watched */}
       {insights?.youtubeWatchHistory && insights.youtubeWatchHistory.length > 0 && (
         <Section title="Watched lately">
-          <List className="ri-compact">
+          <List className="rg-compact">
             {insights.youtubeWatchHistory.slice(0, 8).map((item, index) => {
               const title = item.title || item.videoId || 'Unknown video';
               const time = item.watchDuration != null && item.watchDuration > 0 ? duration(item.watchDuration) : null;

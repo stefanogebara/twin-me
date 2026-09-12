@@ -501,6 +501,10 @@ A screen stays under about 150 words, a sign-in under 50 (count `innerText` of
 ### Rules for AI code generation
 1. Build new surfaces on `--rg-*` tokens and the `.mv` / shadcn primitives. The
    `--n-*`, `n-*` and `claura-*` names still resolve, but never add new uses.
+   The shapes more than one page needed live once in `register-kit.css`:
+   `.rg-compact` (57px rows), `.rg-choice` / `.rg-choices` (on
+   `.n-btn.n-btn--ghost`, `--num` for figures), `.rg-input`, `.rg-bar`,
+   `.rg-danger`, `.rg-figures`. Use them; never re-cut one in a page sheet.
 2. NO EMOJIS in user-facing UI (unchanged, permanent).
 3. Never a serif, never bolder than 500, never a signature hue as text, never a
    shadow, glass or gradient on an app screen.

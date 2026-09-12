@@ -119,7 +119,7 @@ const PersonalizedQuestions: React.FC<PersonalizedQuestionProps> = ({
             />
           ))}
         </div>
-        <span className="rs-quiet pb-figures">{currentIndex + 1} of {totalQuestions}</span>
+        <span className="rs-quiet rg-figures">{currentIndex + 1} of {totalQuestions}</span>
       </div>
 
       {/* Question */}
@@ -140,14 +140,14 @@ const PersonalizedQuestions: React.FC<PersonalizedQuestionProps> = ({
 
         {/* Answer options: 32/4 choices, pressed is the field with an ink line */}
         {typingDone && (
-          <div className="rs-choices">
+          <div className="rg-choices">
             {currentQuestion.options.map((option) => (
               <button
                 key={option}
                 type="button"
                 onClick={() => handleSelect(option)}
                 aria-pressed={answers[currentQuestion.id] === option}
-                className="n-btn n-btn--ghost rs-choice"
+                className="n-btn n-btn--ghost rg-choice"
               >
                 {option}
               </button>

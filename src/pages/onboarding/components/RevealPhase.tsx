@@ -127,7 +127,7 @@ const RevealPhase: React.FC<RevealPhaseProps> = ({
         <div className="w-full mt-2" style={{ display: 'grid', gap: 24 }}>
           <h2 className="rs-flow-title">{briefing.headline}</h2>
 
-          <ul className="rg-list rs-compact">
+          <ul className="rg-list rg-compact">
             {briefing.observations.map((observation, idx) => (
               <li key={idx} className="rg-row">
                 <span className="rg-row-icon" aria-hidden="true"><Sparkles /></span>
@@ -140,7 +140,7 @@ const RevealPhase: React.FC<RevealPhaseProps> = ({
           {briefing.gaps.length > 0 && (
             <div style={{ display: 'grid', gap: 12, textAlign: 'left' }}>
               <p className="rs-strong" style={{ margin: 0 }}>Connect more to unlock</p>
-              <ul className="rg-list rs-compact">
+              <ul className="rg-list rg-compact">
                 {briefing.gaps.map((gap, idx) => (
                   <li key={idx} className="rg-row">
                     <span className="rg-row-icon" aria-hidden="true"><Link2 /></span>
@@ -156,7 +156,7 @@ const RevealPhase: React.FC<RevealPhaseProps> = ({
 
       {/* ===== FALLBACK: data points as rows (when no briefing) ===== */}
       {revealSubView === 'data' && !hasBriefing && dataPoints.length > 0 && (
-        <ul className="rg-list rs-compact w-full mt-4">
+        <ul className="rg-list rg-compact w-full mt-4">
           {dataPoints.map((dp) => (
             <DataRevealItem
               key={dp.label}

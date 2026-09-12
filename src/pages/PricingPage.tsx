@@ -98,7 +98,7 @@ const PricingPage: React.FC = () => {
     <Page>
       <PageHead title="Plans" line="Start free. Upgrade when you are ready." />
 
-      <List label="Plans" className="pb-stack pb-figures">
+      <List label="Plans" className="pb-stack rg-figures">
         {PLANS.map((plan) => {
           const isCurrent = !planLoading && plan.id === currentPlanId;
           // While the subscription is loading every CTA is disabled so a

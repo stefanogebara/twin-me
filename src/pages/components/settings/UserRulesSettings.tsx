@@ -85,7 +85,7 @@ const UserRulesSettings: React.FC = () => {
 
   return (
     <div style={{ display: 'grid', gap: 16 }}>
-      <List label="Rules" className="rs-compact">
+      <List label="Rules" className="rg-compact">
         {rules.length > 0 ? (
           rules.map((rule, i) => (
             <Row

@@ -103,7 +103,7 @@ const WowContent: React.FC<{ voiceRead: string; drafts: WowDraft[]; onContinue: 
       title={drafts.length > 0 ? 'Already drafted in your voice' : 'Ready when you are'}
       line={drafts.length > 0 ? 'Nothing is sent. Review each one in Today.' : undefined}
       action={drafts.length > 0 ? (
-        <span className="rs-quiet pb-figures">{drafts.length} repl{drafts.length === 1 ? 'y' : 'ies'}</span>
+        <span className="rs-quiet rg-figures">{drafts.length} repl{drafts.length === 1 ? 'y' : 'ies'}</span>
       ) : undefined}
     >
       <List label="Drafted replies">

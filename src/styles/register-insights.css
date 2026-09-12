@@ -2,15 +2,13 @@
    What the insights and admin pages need that the page kit (register-kit.css)
    does not carry yet. Built from register.css tokens only; each rule names the
    gap it fills so it can move into the kit and leave here. Siblings of
-   register-public.css, share.css (.sh-compact), front-door.css (.fd-bar) and
-   presence-onboarding.css (.po-choice, .po-input).
+   register-public.css, register-settings.css, share.css, front-door.css and
+   presence-onboarding.css. The shapes they all wanted (the compact row, the
+   choice, the field, the thin bar, tabular figures) now live in the kit.
    ========================================================================== */
 
 /* The back control above a page title: PageHead has no leading slot. */
 .ri-back { margin: 0 0 16px -4px; }
-
-/* Compact rows, about 57 tall, for a list of many short facts (.sh-compact). */
-.ri-compact .rg-row { min-height: var(--rg-row-sub); padding: 12px; }
 
 /* Quiet text at a row's end: a time, a count, a share. */
 .ri-end {
@@ -30,7 +28,8 @@
 .ri-block > .rg-row-title { display: block; margin-bottom: 12px; }
 .ri-prose { margin: 0; max-width: 64ch; font-weight: var(--rg-weight-prose); color: var(--rg-ink); }
 
-/* A thin data bar under a row title (.fd-bar, thicker so the fill reads). Every
+/* A thin data bar under a row title (the kit's .rg-bar, thicker so the fill
+   reads). Every
    fill is a signature hue: 3.3:1 on the page, 3.0:1 on the field track. */
 .ri-bar {
   display: block;
@@ -64,7 +63,6 @@
 .ri-ok { color: var(--rg-ok); }
 .ri-danger { color: var(--rg-danger); }
 .ri-q { color: var(--rg-ink-3); font-weight: var(--rg-weight-line); }
-.ri-figures { font-variant-numeric: tabular-nums; }
 
 /* ---- a day on a line: the axis, then the day's events as signature marks ---- */
 .ri-axis { position: relative; height: 20px; margin-bottom: 8px; color: var(--rg-ink-3); font-weight: var(--rg-weight-line); }
@@ -169,50 +167,15 @@
 .ri-switch:disabled { opacity: 0.4; cursor: default; }
 .ri-switch:focus-visible { outline: 2px solid var(--rg-ink); outline-offset: 2px; }
 
-/* A choice (.po-choice): 32/4, white with a hairline; pressed is the field and an ink line. */
-.ri-choice {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 32px;
-  height: var(--rg-button);
-  padding: 0 12px;
-  border: 1px solid var(--rg-rule);
-  border-radius: var(--rg-radius);
-  background: var(--rg-white);
-  font: inherit;
-  color: var(--rg-ink);
-  font-variant-numeric: tabular-nums;
-  cursor: pointer;
-  transition: border-color var(--rg-quick), background-color var(--rg-quick);
-}
-.ri-choice:hover { border-color: var(--rg-quiet); }
-.ri-choice[aria-pressed='true'] { background: var(--rg-field); border-color: var(--rg-ink); font-weight: var(--rg-weight-title); }
-
 /* A block that is not a list (a form) still starts on the list's ink rule. */
 .ri-ruled { border-top: 1px solid var(--rg-ink); }
 .ri-ruled > .ri-actions { padding: 20px 12px; border-bottom: 1px solid var(--rg-rule); }
 
-/* A field (.po-input): no border, the warm box, 44 tall. */
+/* A form's fields are the kit's .rg-input, two up on a wide screen. */
 .ri-form { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px 16px; padding: 20px 12px; border-bottom: 1px solid var(--rg-rule); }
 @media (min-width: 640px) { .ri-form { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .ri-field { display: grid; gap: 8px; min-width: 0; }
 .ri-label { font-weight: var(--rg-weight-title); color: var(--rg-ink); }
-.ri-input {
-  display: block;
-  width: 100%;
-  box-sizing: border-box;
-  height: var(--rg-field-height);
-  padding: 11px 14px;
-  border: 0;
-  border-radius: var(--rg-radius);
-  background: var(--rg-field);
-  font: inherit;
-  color: var(--rg-ink);
-}
-.ri-input::placeholder { color: var(--rg-ink-3); }
-.ri-input:focus-visible { outline: 2px solid var(--rg-ink); outline-offset: 0; }
-textarea.ri-input { height: auto; min-height: 88px; resize: vertical; }
 
 /* A value to copy: the one job monospace keeps. */
 .ri-code {

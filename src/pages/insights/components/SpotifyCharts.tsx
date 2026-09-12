@@ -43,7 +43,7 @@ export const SpotifyCharts: React.FC<SpotifyChartsProps> = ({ insights }) => {
       {/* Top artists, a bar each by plays */}
       {insights?.topArtistsWithPlays && insights.topArtistsWithPlays.length > 0 && (
         <Section title="Top artists">
-          <List className="ri-compact">
+          <List className="rg-compact">
             {insights.topArtistsWithPlays.slice(0, 5).map((artist) => {
               const maxPlays = insights.topArtistsWithPlays![0].plays;
               return (

@@ -133,7 +133,7 @@ const MoneyInsightsPage: React.FC = () => {
           ? subsSynthesis
           : 'From your statements, with how you were doing when each began.'}
       >
-        <List label="Monthly charges" className="pb-figures">
+        <List label="Monthly charges" className="rg-figures">
           {loading && subs.length === 0 ? (
             <li><Empty>Loading</Empty></li>
           ) : subs.length === 0 ? (

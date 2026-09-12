@@ -66,7 +66,7 @@ const GlobalPrivacySection: React.FC<GlobalPrivacySectionProps> = ({
         />
 
         {/* Preset choices: pressed is the field with an ink line */}
-        <div className="rs-choices" role="group" aria-label="Presets">
+        <div className="rg-choices" role="group" aria-label="Presets">
           {(presets.length > 0 ? presets : BUILT_IN_PRESETS).map(preset => {
             const key = preset.preset_key
               ?? preset.key
@@ -84,7 +84,7 @@ const GlobalPrivacySection: React.FC<GlobalPrivacySectionProps> = ({
                 type="button"
                 onClick={() => onPresetApply(level)}
                 aria-pressed={currentGlobal === level}
-                className="n-btn n-btn--ghost rs-choice"
+                className="n-btn n-btn--ghost rg-choice"
               >
                 {label}
               </button>

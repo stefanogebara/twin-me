@@ -38,7 +38,6 @@
 /* The radar beside its scores; the scores are rows, so the chart carries no text. */
 .sh-radar { display: grid; grid-template-columns: minmax(0, 240px) minmax(0, 1fr); gap: 40px; align-items: center; }
 .sh-radar svg { display: block; width: 100%; height: auto; }
-.sh-compact .rg-row { min-height: var(--rg-row-sub); padding: 12px; }
 
 .sh-foot { display: grid; gap: 12px; margin-top: var(--rg-section); }
 .sh-foot-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }

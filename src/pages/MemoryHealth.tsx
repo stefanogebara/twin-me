@@ -171,7 +171,7 @@ export default function MemoryHealth() {
 
           {/* Quality indicators */}
           <Section title="Quality">
-            <List className="ri-compact ri-stats">
+            <List className="rg-compact ri-stats">
               <Row title={`${(data.retrievalCoverage * 100).toFixed(1)}%`} line="Used at least once" />
               <Row
                 title={`${(data.stalePct * 100).toFixed(1)}%`}
@@ -206,7 +206,7 @@ export default function MemoryHealth() {
           {/* Average importance by kind, a bar each out of 10 */}
           {importanceData.length > 0 && (
             <Section title="Importance" line="Average by kind, out of 10.">
-              <List className="ri-compact">
+              <List className="rg-compact">
                 {importanceData.map(entry => (
                   <BarRow key={entry.type} title={entry.name} share={entry.avg * 10} end={entry.avg.toFixed(1)} />
                 ))}
@@ -217,7 +217,7 @@ export default function MemoryHealth() {
           {/* Expert breakdown */}
           {Object.keys(data.expertBreakdown).length > 0 && (
             <Section title="Reflections by expert">
-              <List className="ri-compact ri-stats">
+              <List className="rg-compact ri-stats">
                 {Object.entries(data.expertBreakdown)
                   .sort((a, b) => b[1] - a[1])
                   .map(([name, count]) => (

@@ -47,7 +47,7 @@ const PortfolioPlatforms: React.FC<PortfolioPlatformsProps> = ({ platforms }) =>
 
   return (
     <Section title="Where it comes from">
-      <List label="Data sources" className="pb-figures">
+      <List label="Data sources" className="rg-figures">
         {platformsWithFeatures.map((platform) => {
           const Logo = getPlatformLogo(platform.name);
           const displayName = PLATFORM_DISPLAY_NAMES[platform.name.toLowerCase()] || platform.name;

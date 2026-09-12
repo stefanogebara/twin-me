@@ -229,7 +229,7 @@ const NocturneLanding = () => {
       {/* ─────────────── PLANS ─────────────── */}
       <div className="n-section pb-marketing" id="pricing">
         <Section title="Plans" line="Start free. Pay when you want more.">
-          <List label="Plans" className="pb-stack pb-figures">
+          <List label="Plans" className="pb-stack rg-figures">
             {PLANS.map((plan) => (
               <Row
                 key={plan.name}

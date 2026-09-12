@@ -238,7 +238,7 @@ function AdminBetaPage() {
 
       {/* Overview metrics */}
       <Section title="Overview" line="Cost covers the last 30 days.">
-        <List className="ri-compact ri-stats">
+        <List className="rg-compact ri-stats">
           <Metric label="Users" value={formatNumber(overview?.totalUsers)} />
           <Metric label="Active in the last 7 days" value={formatNumber(overview?.activeUsers)} />
           <Metric label="Proposals" value={formatNumber(overview?.proposalsGenerated)} />
