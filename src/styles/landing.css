@@ -123,9 +123,8 @@ html:has(main.ld), body:has(main.ld), #root:has(main.ld) { background: #0b0d12; 
 /* The room is fixed and cropped differently at every screen shape, so the backing
    belongs to the text: a soft pool that reaches transparent at its own edge. Without
    it the thin white lines measured 2.4:1 where the lamp sits behind them. */
-.ld-stage h1, .ld-close h2 { position: relative; isolation: isolate; }
-.ld-stage h1::before,
-.ld-close h2::before { content: ''; position: absolute; inset: -34% -10%; z-index: -1; pointer-events: none; background: radial-gradient(closest-side, rgba(8, 10, 14, 0.56), rgba(8, 10, 14, 0.42) 55%, transparent); }
+.ld-stage h1 { position: relative; isolation: isolate; }
+.ld-stage h1::before { content: ''; position: absolute; inset: -34% -10%; z-index: -1; pointer-events: none; background: radial-gradient(closest-side, rgba(8, 10, 14, 0.56), rgba(8, 10, 14, 0.42) 55%, transparent); }
 /* White, not grey: a grey label on the room measured 2.3:1 on phones. */
 .ld-stage .ld-label { color: rgba(255, 255, 255, 0.9); text-shadow: 0 0 12px rgba(0, 0, 0, 0.6), 0 0 2px rgba(0, 0, 0, 0.6); }
 .ld-stage .ld-row { margin-top: 28px; align-items: end; }
