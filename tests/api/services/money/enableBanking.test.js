@@ -2,7 +2,7 @@
  * enableBanking.toSighting: a Berlin-Group-shaped feed row becomes a bankfeed sighting.
  */
 import { describe, it, expect } from 'vitest';
-import { toSighting, isConfigured, startAuthorisation } from '../../../../api/services/money/feeds/enableBanking.js';
+import { toSighting, isConfigured, startAuthorisation, fetchTransactions, resetApplicationEnvironment } from '../../../../api/services/money/feeds/enableBanking.js';
 
 describe('toSighting', () => {
   it('maps a debit with a creditor name', () => {
@@ -69,5 +69,44 @@ describe('startAuthorisation', () => {
       if (saved.key) process.env.ENABLE_BANKING_PRIVATE_KEY = saved.key; else delete process.env.ENABLE_BANKING_PRIVATE_KEY;
       if (saved.redirect) process.env.ENABLE_BANKING_REDIRECT_URL = saved.redirect; else delete process.env.ENABLE_BANKING_REDIRECT_URL;
     }
+  });
+});
+
+
+/* A session belongs to the application that created it. The sandbox application answers
+   SESSION_DOES_NOT_EXIST for every production session, which is the same words a genuinely
+   ended session gets, and on 2026-09-11 a dev machine on the sandbox key recorded a healthy
+   Santander connection as expired in the shared database. Only production may say "ended". */
+describe('fetchTransactions on a session the application cannot see', () => {
+  const withApp = async (environment, run) => {
+    const saved = { fetch: global.fetch, id: process.env.ENABLE_BANKING_APP_ID, key: process.env.ENABLE_BANKING_PRIVATE_KEY };
+    const { generateKeyPairSync } = await import('node:crypto');
+    const { privateKey } = generateKeyPairSync('rsa', { modulusLength: 2048, privateKeyEncoding: { type: 'pkcs8', format: 'pem' }, publicKeyEncoding: { type: 'spki', format: 'pem' } });
+    process.env.ENABLE_BANKING_APP_ID = 'test-app';
+    process.env.ENABLE_BANKING_PRIVATE_KEY = privateKey;
+    resetApplicationEnvironment();
+    global.fetch = async (url) => {
+      const u = String(url);
+      if (u.endsWith('/application')) return { ok: true, status: 200, text: async () => JSON.stringify({ name: 'TwinMe', environment }) };
+      return { ok: false, status: 404, text: async () => JSON.stringify({ code: 404, message: 'No session found matching provided id', error: 'SESSION_DOES_NOT_EXIST' }) };
+    };
+    try { return await run(); } finally {
+      global.fetch = saved.fetch;
+      resetApplicationEnvironment();
+      if (saved.id) process.env.ENABLE_BANKING_APP_ID = saved.id; else delete process.env.ENABLE_BANKING_APP_ID;
+      if (saved.key) process.env.ENABLE_BANKING_PRIVATE_KEY = saved.key; else delete process.env.ENABLE_BANKING_PRIVATE_KEY;
+    }
+  };
+
+  it('is "ended" only when the production application says so', async () => {
+    await withApp('PRODUCTION', async () => {
+      await expect(fetchTransactions('acc-1', '2026-09-01')).rejects.toMatchObject({ code: 'bank_session_expired' });
+    });
+  });
+
+  it('is "unreachable", never "ended", from the sandbox application', async () => {
+    await withApp('SANDBOX', async () => {
+      await expect(fetchTransactions('acc-1', '2026-09-01')).rejects.toMatchObject({ code: 'bank_session_unreachable' });
+    });
   });
 });

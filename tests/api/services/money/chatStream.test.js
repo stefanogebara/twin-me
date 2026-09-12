@@ -19,7 +19,13 @@ const store = {
   listReadings: vi.fn(), listFacts: vi.fn(), questionsFor: vi.fn(), listPlaces: vi.fn(),
   setVerdict: vi.fn(), setPlaceCategory: vi.fn(), answerQuestion: vi.fn(),
 };
-vi.mock('../../../../api/services/money/store.js', () => store);
+/* One kind for a payment, and the real resolver decides it: the month page and the chat
+   disagreed about the same euros while each had its own copy, so the mock must not hold a
+   second one. Everything else the chat reads from the store is still stubbed. */
+vi.mock('../../../../api/services/money/store.js', async (importOriginal) => {
+  const { categoryOfPayment } = await importOriginal();
+  return { ...store, categoryOfPayment };
+});
 
 const { answerStream, textStreamer, completeSentences } = await import('../../../../api/services/money/chat.js');
 

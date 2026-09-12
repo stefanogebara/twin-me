@@ -159,6 +159,8 @@ export type MoneyCategories = {
 export type MoneyAccount = {
   id: string; provider: string; name: string | null; iban_mask: string | null; currency: string;
   consent_expires_at: string | null; last_pulled_at: string | null;
+  /** The bank ended the session: nothing can be read until the person authorises it again. */
+  needs_reconnect?: boolean;
 };
 export type MoneyQuestionReceipt = {
   id: string;
@@ -402,6 +404,8 @@ export const moneyApi = {
   /** The map picture for a spot. The route answers PNG bytes behind the session, so the
       Image is handed the token in its headers rather than a public URL. */
   today: () => authFetch('/money/today').then((r) => json<MoneyToday>(r)),
+  /** Opening the app spends the read the schedule leaves for it, but only when one is due. */
+  refreshIfStale: () => post('/money/bank/refresh-if-stale', {}).then((r) => json<{ pulled: boolean; created?: number; reason?: string; needs_reconnect?: boolean }>(r)),
   homeMapSource: async (lat: number, lng: number, zoom = 14): Promise<ImageSource> => {
     const token = await SecureStore.getItemAsync(STORAGE_KEYS.AUTH_TOKEN);
     const uri = `${API_URL}/money/home/map?lat=${encodeURIComponent(String(lat))}&lng=${encodeURIComponent(String(lng))}&zoom=${zoom}`;

@@ -45,14 +45,15 @@ import LedgerScreen from './src/screens/LedgerScreen';
 import YouScreen from './src/screens/YouScreen';
 
 type Setup = 'checking' | 'bank' | 'phone' | 'questions' | 'done';
-type Place = 'month' | 'ledger' | 'you';
-type Sheet = 'phone' | 'bank' | 'ask' | null;
+type Place = 'month' | 'ledger' | 'ask' | 'you';
+type Sheet = 'phone' | 'bank' | null;
 
 const PHONE_SEEN = 'twinme_money_phone_step_seen';
 const BANK_SKIPPED = 'twinme_money_bank_step_skipped';
 const PLACES: { id: Place; label: string }[] = [
   { id: 'month', label: 'Month' },
   { id: 'ledger', label: 'Ledger' },
+  { id: 'ask', label: 'Ask' },
   { id: 'you', label: 'You' },
 ];
 
@@ -109,7 +110,7 @@ function Layer({ active, children }: { active: boolean; children: React.ReactNod
  * -------------------------------------------------------------------------------------- */
 
 function Capsule({ place, onChange }: { place: Place; onChange: (p: Place) => void }) {
-  const [boxes, setBoxes] = useState<Record<Place, { x: number; w: number } | undefined>>({ month: undefined, ledger: undefined, you: undefined });
+  const [boxes, setBoxes] = useState<Record<Place, { x: number; w: number } | undefined>>({ month: undefined, ledger: undefined, ask: undefined, you: undefined });
   const x = useSharedValue(0);
   const w = useSharedValue(0);
   useEffect(() => {
@@ -215,7 +216,7 @@ function Shell() {
       const m = url.match(/^twinme:\/\/dev\/(\w+)(?:\?(.*))?$/);
       if (!m) return;
       const q = query(m[2]);
-      if (m[1] === 'place') { if (q.p === 'ask') setSheet('ask'); else setPlace(q.p as Place); }
+      if (m[1] === 'place') setPlace(q.p as Place);
       else if (m[1] === 'sheet') setSheet((q.s && q.s !== 'none' ? q.s : null) as Sheet);
       else if (m[1] === 'setup') setSetup(q.s as Setup);
       else if (m[1] === 'signout') void logout();
@@ -226,8 +227,8 @@ function Shell() {
       else if (m[1] === 'tour') {
         const beat = Number(q.ms) || 1400;
         const steps: Array<() => void> = [
-          () => setPlace('month'), () => setPlace('ledger'), () => setPlace('you'), () => setPlace('month'),
-          () => setSheet('ask'), () => setSheet(null),
+          () => setPlace('month'), () => setPlace('ledger'), () => setPlace('ask'),
+          () => setPlace('you'), () => setPlace('month'),
         ];
         steps.forEach((step, i) => setTimeout(step, i * beat));
       }
@@ -270,19 +271,21 @@ function Shell() {
     surface = <StepFrame onNext={() => setSheet(null)} nextLabel="Done"><PhoneCaptureScreen /></StepFrame>;
   } else if (sheet === 'bank') {
     surface = <BankScreen onDone={() => { setSheet(null); void decide(); }} onSkip={() => setSheet(null)} />;
-  } else if (sheet === 'ask') {
-    /* The conversation is a page of its own: no capsule, its own header, and it remembers
-       what was said when it closes. */
-    surface = <ChatScreen mode="ask" onClose={() => setSheet(null)} />;
   } else {
     surface = (
       <View style={styles.fill}>
         <View style={styles.fill}>
           <Layer active={place === 'month'}>
-            <MonthScreen questionCount={questionCount} onOpenQuestions={() => setSheet('ask')} onOpenLedger={() => setPlace('ledger')} />
+            <MonthScreen questionCount={questionCount} onOpenQuestions={() => setPlace('ask')} onOpenLedger={() => setPlace('ledger')} />
           </Layer>
           <Layer active={place === 'ledger'}>
             <LedgerScreen />
+          </Layer>
+          {/* The conversation is a place, not a sheet over one. Kept mounted like the others,
+              so leaving it and coming back finds the transcript where it was, and so opening
+              it does not throw the month away and read the ledger again. */}
+          <Layer active={place === 'ask'}>
+            <ChatScreen mode="ask" />
           </Layer>
           <Layer active={place === 'you'}>
             <YouScreen
@@ -290,16 +293,20 @@ function Shell() {
               onSignOut={() => { void logout(); }}
               onOpenPhone={() => setSheet('phone')}
               onOpenBank={() => setSheet('bank')}
-              onOpenQuestions={() => setSheet('ask')}
+              onOpenQuestions={() => setPlace('ask')}
             />
           </Layer>
         </View>
         {/* The chrome floats: content scrolls beneath the capsule and the door, and both are
             glass, so what is beneath shows through the way it does under the system's bars. */}
         <Capsule place={place} onChange={setPlace} />
-        <View style={[styles.askBar, { paddingBottom: Platform.OS === 'ios' ? insets.bottom : cosmos.space.md }]} pointerEvents="box-none">
-          <PromptButton label="Ask about your money" onPress={() => setSheet('ask')} />
-        </View>
+        {/* The door is a way in, so it is not there once you are inside: the conversation has
+            a field of its own, and two of them on one screen is one too many. */}
+        {place === 'ask' ? null : (
+          <View style={[styles.askBar, { paddingBottom: Platform.OS === 'ios' ? insets.bottom : cosmos.space.md }]} pointerEvents="box-none">
+            <PromptButton label="Ask about your money" onPress={() => setPlace('ask')} />
+          </View>
+        )}
       </View>
     );
   }

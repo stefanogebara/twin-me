@@ -9,6 +9,7 @@
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { ChevronRight, FileText, Landmark, Plus, Smartphone } from 'lucide-react';
 import '../../styles/money-v2.css';
 import MoneyNav, { type MoneyNavLink } from './MoneyNav';
@@ -53,6 +54,9 @@ function lastDay(iso: string) { const d = new Date(iso); return new Date(Date.UT
 function Chevron() { return <ChevronRight className="mv-chev" size={16} strokeWidth={1.75} aria-hidden="true" />; }
 
 export default function MoneyV2Page() {
+  /* The tab said "Discover Your Soul Signature" over a page of euros, which is the front
+     door's old promise showing through the new product. */
+  useDocumentTitle('Money');
   const [forecast, setForecast] = useState<MoneyForecast | null>(null);
   const [ledger, setLedger] = useState<MoneyTransaction[]>([]);
   const [recurring, setRecurring] = useState<MoneyRecurring[]>([]);
@@ -61,6 +65,7 @@ export default function MoneyV2Page() {
   const [readings, setReadings] = useState<MoneyReading[]>([]);
   const [openReading, setOpenReading] = useState<string | null>(null);
   const [openSeries, setOpenSeries] = useState<string | null>(null);
+  const [needsReconnect, setNeedsReconnect] = useState(false);
   const [monthOpen, setMonthOpen] = useState<Record<string, boolean>>({});
   const [showSteps, setShowSteps] = useState(false);
   const [categories, setCategories] = useState<MoneyCategories | null>(null);
@@ -72,6 +77,12 @@ export default function MoneyV2Page() {
   const [key, setKey] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
+
+  /* Two ways to learn the connection has ended, and the page must not depend on the luckier
+     one. The refresh call says so when it is the call that hits the dead session; the accounts
+     row says so from the last recorded read, which survives a day when the read budget is
+     already spent and no call is made at all. */
+  const reconnect = needsReconnect || accounts.some((a) => a.needs_reconnect);
 
   const load = useCallback(async () => {
     const [f, l, r, a, m, rd, c, u] = await Promise.allSettled([
@@ -89,6 +100,21 @@ export default function MoneyV2Page() {
     setLoaded(true);
   }, []);
   useEffect(() => { void load(); }, [load]);
+
+  /* The month should not be days old because nobody pressed anything. On open, ask the server
+     whether a read is due; it spends one only when the last is old and the budget allows, and
+     the page reloads only if that read brought something. */
+  useEffect(() => {
+    let live = true;
+    moneyAPI.refreshIfStale()
+      .then((r) => {
+        if (!live) return;
+        if (r.needs_reconnect) setNeedsReconnect(true);
+        if (r.pulled && (r.created ?? 0) > 0) void load();
+      })
+      .catch(() => {});
+    return () => { live = false; };
+  }, [load]);
 
   /* The bank sends the person back here through the callback, which says how it went. */
   useEffect(() => {
@@ -124,12 +150,6 @@ export default function MoneyV2Page() {
       segment: months.find((m) => m.month.slice(0, 7) === key) || null,
     }));
   }, [ledger, months]);
-
-  async function readingVerdict(r: MoneyReading, v: 'true' | 'not_me') {
-    const next = r.verdict === v ? null : v;
-    setReadings((rows) => rows.map((x) => (x.id === r.id ? { ...x, verdict: next } : x)));
-    try { await moneyAPI.readingVerdict(r.id, next); } catch { setReadings((rows) => rows.map((x) => (x.id === r.id ? { ...x, verdict: r.verdict } : x))); }
-  }
 
   async function toggle(id: string) {
     if (open === id) { setOpen(null); return; }
@@ -216,6 +236,9 @@ export default function MoneyV2Page() {
                       : 'Too early to say where the month lands.'}
                   </p>
                 ) : null}
+                {/* A month that stopped moving must say why: the bank ends its session on its
+                    own schedule, and nothing can be read until it is authorised again. */}
+                {reconnect ? <p className="mv-sub">The bank connection has ended. Reconnect it under Sources.</p> : null}
               </>
             )}
             {forecast && !empty ? (
@@ -242,7 +265,6 @@ export default function MoneyV2Page() {
           {readings.length ? (
             <section className="mv-section" id="readings">
               <h2>What the money says.</h2>
-              <p className="mv-sub">Counted from your payments, not guessed.</p>
               <ul className="mv-list">
                 {readings.map((r) => {
                   const isOpen = openReading === r.id;
@@ -272,10 +294,6 @@ export default function MoneyV2Page() {
                           ) : null}
                           <div className="mv-body-foot">
                             <span className="mv-quiet">From {r.evidence_count} {r.evidence_count === 1 ? 'payment' : 'payments'}</span>
-                            <div className="mv-verdicts">
-                              <button type="button" className="mv-pill mv-pill--ghost" aria-pressed={r.verdict === 'true'} onClick={() => void readingVerdict(r, 'true')}>True</button>
-                              <button type="button" className="mv-pill mv-pill--ghost" aria-pressed={r.verdict === 'not_me'} onClick={() => void readingVerdict(r, 'not_me')}>Not me</button>
-                            </div>
                           </div>
                         </div>
                       ) : null}
@@ -413,7 +431,7 @@ export default function MoneyV2Page() {
               <div className="mv-list"><p className="mv-empty">A charge counts once it has come back three times at the same rhythm.</p></div>
             ) : (
               <>
-                <p className="mv-sub">{monthlyLoad ? `${euro(monthlyLoad)} of it leaves every month.` : 'Press one to see every charge it made.'}</p>
+                {monthlyLoad ? <p className="mv-sub">{`${euro(monthlyLoad)} of it leaves every month.`}</p> : null}
                 <ul className="mv-list">
                   {[...subscriptions, ...bills].map((r) => {
                     const isOpen = openSeries === r.merchant_key;

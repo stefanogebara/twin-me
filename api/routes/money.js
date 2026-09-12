@@ -46,6 +46,7 @@ import { isConfigured, listBanks, startAuthorisation, createSession } from '../s
 import { answer as chatAnswer, answerStream as chatAnswerStream, act as chatAct } from '../services/money/chat.js';
 import { ahead as calendarAhead, learnEventSpend } from '../services/money/calendar.js';
 import { todayAllowance } from '../services/money/allowance.js';
+import { bankNeedsReconnect } from '../services/money/store.js';
 import { guessHome, savedHome, searchAreas, staticMap, saveHome } from '../services/money/home.js';
 import { encryptState } from '../services/encryption.js';
 import { getAppUrl } from '../utils/oauthUtils.js';
@@ -167,8 +168,59 @@ router.post('/bank/connect', async (req, res) => {
 });
 
 router.get('/bank/accounts', async (req, res) => {
-  try { res.json({ success: true, data: await listBankAccounts(req.user.id) }); }
-  catch (error) { log.error('bank accounts failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
+  try {
+    const [accounts, needsReconnect] = await Promise.all([
+      listBankAccounts(req.user.id),
+      bankNeedsReconnect(req.user.id).catch(() => false),
+    ]);
+    /* The connection's state travels with the accounts: a month that stopped moving because
+       the bank ended the session must be able to say so wherever it is shown. */
+    res.json({ success: true, data: accounts.map((a) => ({ ...a, needs_reconnect: needsReconnect })) });
+  } catch (error) { log.error('bank accounts failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
+});
+
+/* Opening the app should not show a three day old month. The bank allows four unattended
+   reads a day and the cron takes three, so this spends the fourth, and only when the last
+   read is genuinely old. The policy lives here rather than in each client, so the phone and
+   the web cannot drift apart on what "stale" means. */
+export const STALE_AFTER_HOURS = 4;
+
+router.post('/bank/refresh-if-stale', async (req, res) => {
+  if (!isConfigured()) return res.json({ success: true, data: { pulled: false, reason: 'not configured' } });
+  try {
+    const accounts = await listBankAccounts(req.user.id);
+    if (!accounts.length) return res.json({ success: true, data: { pulled: false, reason: 'no account' } });
+    const newest = accounts
+      .map((a) => a.last_pulled_at)
+      .filter(Boolean)
+      .sort()
+      .pop();
+    const ageHours = newest ? (Date.now() - new Date(newest).getTime()) / 3600000 : Infinity;
+    if (ageHours < STALE_AFTER_HOURS) {
+      return res.json({ success: true, data: { pulled: false, reason: 'fresh', age_hours: Math.round(ageHours * 10) / 10 } });
+    }
+    const budget = await feedBudget(req.user.id);
+    if (budget.left <= 0) {
+      return res.json({ success: true, data: { pulled: false, reason: 'budget spent', resets_at: budget.resets_at } });
+    }
+    const pulled = await pullBankFeed(req.user.id);
+    const created = pulled.reduce((n, p) => n + (p.created || 0), 0);
+    if (created > 0) {
+      await enrichPlaces(req.user.id, { limit: 8 }).catch((e) => log.warn('places after refresh failed', { error: e.message }));
+      await refreshReadings(req.user.id).catch((e) => log.warn('readings after refresh failed', { error: e.message }));
+    }
+    res.json({ success: true, data: { pulled: true, created, budget: await feedBudget(req.user.id) } });
+  } catch (error) {
+    if (error.code === 'feed_budget_spent') return res.json({ success: true, data: { pulled: false, reason: 'budget spent' } });
+    if (error.code === 'bank_session_expired') {
+      return res.json({ success: true, data: { pulled: false, reason: 'needs reconnect', needs_reconnect: true } });
+    }
+    if (error.code === 'bank_session_unreachable') {
+      return res.json({ success: true, data: { pulled: false, reason: 'session belongs to another application' } });
+    }
+    log.error('refresh-if-stale failed', { error: error.message });
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
 });
 
 router.post('/bank/pull', async (req, res) => {

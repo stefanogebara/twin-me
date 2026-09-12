@@ -265,6 +265,32 @@ export async function saveBankAccounts(userId, { sessionId, validUntil, accounts
   return data || [];
 }
 
+/**
+ * Everyone with a bank the schedule can read. The cron asks for this rather than reaching
+ * into the table itself: a route that queries the database directly is a route that can
+ * drift from the rules the store keeps around these rows.
+ */
+export async function bankFeedUserIds() {
+  const { data, error } = await supabaseAdmin
+    .from('money_accounts')
+    .select('user_id')
+    .eq('provider', 'enablebanking');
+  if (error) throw new Error(`bank accounts read failed: ${error.message}`);
+  return [...new Set((data || []).map((a) => a.user_id))];
+}
+
+/** Whether the last read of this person's bank failed because the connection had ended. */
+export async function bankNeedsReconnect(userId) {
+  const { data } = await supabaseAdmin
+    .from('money_feed_accesses')
+    .select('outcome, at')
+    .eq('user_id', userId)
+    .order('at', { ascending: false })
+    .limit(1);
+  const last = (data || [])[0];
+  return Boolean(last && last.outcome === 'session_expired');
+}
+
 export async function listBankAccounts(userId) {
   const { data } = await supabaseAdmin.from('money_accounts').select('id, provider, provider_account_id, name, iban_mask, currency, consent_expires_at, last_pulled_at').eq('user_id', userId).eq('provider', 'enablebanking');
   /* A reconnect gives the same account a new provider id. One account is one row to the
@@ -328,13 +354,24 @@ export async function pullBankFeed(userId, { since, attended = false } = {}) {
   for (const acc of accounts) {
     const from = since || (acc.last_pulled_at ? acc.last_pulled_at.slice(0, 10) : new Date(Date.now() - 90 * 86400000).toISOString().slice(0, 10));
     let key = null; let seen = 0; let created = 0;
-    do {
-      const page = await fetchTransactions(acc.provider_account_id, from, key);
-      const batch = page.rows.map((row) => toSighting(row, acc.id)).filter((s) => s.occurred_at && s.amount);
-      const r = await ingestSightings(userId, batch);
-      seen += r.seen; created += r.created;
-      key = page.continuationKey;
-    } while (key);
+    try {
+      do {
+        const page = await fetchTransactions(acc.provider_account_id, from, key);
+        const batch = page.rows.map((row) => toSighting(row, acc.id)).filter((s) => s.occurred_at && s.amount);
+        const r = await ingestSightings(userId, batch);
+        seen += r.seen; created += r.created;
+        key = page.continuationKey;
+      } while (key);
+    } catch (error) {
+      /* A dead session is recorded so the product can say what is wrong, and the read is not
+         counted as a successful one. A session this application cannot see is not recorded:
+         it is not evidence about the connection, and a row here would both spend the
+         person's read budget and tell them to reconnect a bank that is fine. */
+      if (error.code === 'bank_session_expired') {
+        await recordAccess(userId, acc.id, { attended, rowsSeen: 0, outcome: 'session_expired' });
+      }
+      throw error;
+    }
     await supabaseAdmin.from('money_accounts').update({ last_pulled_at: new Date().toISOString() }).eq('id', acc.id);
     await recordAccess(userId, acc.id, { attended, rowsSeen: seen });
     summary.push({ account: acc.name || acc.iban_mask, seen, created });
@@ -495,6 +532,17 @@ export async function moneyContext(userId, now = new Date()) {
 const CHANNEL_CATEGORY = { transfer: 'transfers', bizum: 'transfers', cash: 'cash', fee: 'fees', direct_debit: 'bills' };
 
 /**
+ * The one place a payment is given its kind. A person's correction beats the lookup, the
+ * lookup beats the channel, and a payment nothing can speak for stays unplaced rather than
+ * being filed under "other". Every surface that groups spending must call this: the month
+ * page and the chat once disagreed about the same euros because each had its own version.
+ */
+export function categoryOfPayment(place, channel) {
+  const fromPlace = place ? (place.category_override || place.category || null) : null;
+  return fromPlace || CHANNEL_CATEGORY[channel] || null;
+}
+
+/**
  * Where a month's money went, by kind of place. The kind comes from money_places, one row
  * per merchant, so this is a join and not a guess; a merchant nobody has looked up yet
  * counts as "not read yet" rather than being quietly filed under "other" — the difference
@@ -529,10 +577,9 @@ export async function categorySpend(userId, { month = null } = {}) {
     const place = byKey.get(r.merchant_key);
     /* A merchant that was looked up and not found is still unread, not "other": a miss is
        recorded so the same question is not asked twice, and it must not pass for an answer. */
-    const place_category = place ? (place.category_override || place.category || null) : null;
     /* A transfer to a person is a transfer, whatever a places provider thinks: the channel
        the bank recorded is itself an answer, and a truthful one. */
-    const category = place_category || CHANNEL_CATEGORY[r.channel] || null;
+    const category = categoryOfPayment(place, r.channel);
     if (category) read += amount;
     const key = category || 'not read yet';
     if (!groups.has(key)) groups.set(key, { category: key, known: Boolean(category), spent: 0, lines: 0, merchants: new Map() });

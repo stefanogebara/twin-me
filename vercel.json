@@ -187,6 +187,10 @@
     {
       "path": "/api/cron/llm-usage-log-cleanup",
       "schedule": "30 5 * * 0"
+    },
+    {
+      "path": "/api/cron/money-pull",
+      "schedule": "0 0,8,16 * * *"
     }
   ]
 }

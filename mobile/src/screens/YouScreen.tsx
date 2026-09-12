@@ -139,10 +139,12 @@ export default function YouScreen({ user, onSignOut, onOpenPhone, onOpenBank, on
                         inset
                         glyph={<CardGlyph />}
                         label={a.provider === 'enablebanking' ? 'Santander' : (a.name || 'Bank account')}
-                        sub={[
-                          a.iban_mask ? `Ending ${a.iban_mask.slice(-4)}` : '',
-                          a.consent_expires_at ? `until ${monthYear(a.consent_expires_at)}` : '',
-                        ].filter(Boolean).join(', ')}
+                        sub={a.needs_reconnect
+                          ? 'Ended. Tap to reconnect'
+                          : [
+                            a.iban_mask ? `Ending ${a.iban_mask.slice(-4)}` : '',
+                            a.consent_expires_at ? `until ${monthYear(a.consent_expires_at)}` : '',
+                          ].filter(Boolean).join(', ')}
                         onPress={onOpenBank}
                       />
                     ))

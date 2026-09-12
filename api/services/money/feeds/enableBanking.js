@@ -47,6 +47,27 @@ async function api(path, init = {}) {
   return json;
 }
 
+/**
+ * Which application these credentials belong to, asked once per process. A session is owned
+ * by the application that created it: the sandbox app cannot see the production app's
+ * sessions and answers SESSION_DOES_NOT_EXIST for every one of them, which is the same
+ * answer a genuinely ended session gives. So a dev machine on the sandbox key, sharing the
+ * production database, once recorded every real session as expired and told the person to
+ * reconnect a bank that was fine. Callers ask this before believing a 404.
+ */
+let environmentPromise = null;
+export function applicationEnvironment() {
+  if (!environmentPromise) {
+    environmentPromise = api('/application')
+      .then((j) => String(j?.environment || 'UNKNOWN').toUpperCase())
+      .catch(() => { environmentPromise = null; return 'UNKNOWN'; });
+  }
+  return environmentPromise;
+}
+export async function isProduction() { return (await applicationEnvironment()) === 'PRODUCTION'; }
+/** Tests swap the credentials mid-process; the answer must not outlive them. */
+export function resetApplicationEnvironment() { environmentPromise = null; }
+
 /** Banks available in a country. */
 export async function listBanks(country = 'ES') {
   const j = await api(`/aspsps?country=${encodeURIComponent(country)}`);
@@ -77,11 +98,36 @@ export async function createSession(code) {
 }
 
 /** One page of transactions for an account since a date (YYYY-MM-DD). */
+/* The bank ends a session on its own schedule, and after that every read answers 404 with
+   SESSION_DOES_NOT_EXIST or ACCOUNT_DOES_NOT_EXIST. That is not a server fault and must not
+   read as one: it means the person has to authorise the bank again, and the product has to
+   say so rather than keep showing a month that stopped moving. */
+export function isSessionGone(error) {
+  const m = String(error?.message || '');
+  return /SESSION_DOES_NOT_EXIST|ACCOUNT_DOES_NOT_EXIST/.test(m);
+}
+
 export async function fetchTransactions(accountUid, dateFrom, continuationKey = null) {
   const qs = new URLSearchParams({ date_from: dateFrom });
   if (continuationKey) qs.set('continuation_key', continuationKey);
-  const j = await api(`/accounts/${encodeURIComponent(accountUid)}/transactions?${qs}`);
-  return { rows: j.transactions || [], continuationKey: j.continuation_key || null };
+  try {
+    const j = await api(`/accounts/${encodeURIComponent(accountUid)}/transactions?${qs}`);
+    return { rows: j.transactions || [], continuationKey: j.continuation_key || null };
+  } catch (error) {
+    if (isSessionGone(error)) {
+      /* Only the production application can say a real session has ended; any other
+         application simply cannot see it, and must not say more than that. */
+      if (await isProduction()) {
+        const err = new Error('The bank connection has ended. It needs to be authorised again.');
+        err.code = 'bank_session_expired';
+        throw err;
+      }
+      const err = new Error('This environment cannot read that bank session; it belongs to another application.');
+      err.code = 'bank_session_unreachable';
+      throw err;
+    }
+    throw error;
+  }
 }
 
 /**

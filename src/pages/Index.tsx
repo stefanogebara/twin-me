@@ -10,7 +10,7 @@ import NocturneLanding from './nocturne/NocturneLanding';
  */
 const Index = () => {
   const { isSignedIn, isLoaded } = useAuth();
-  if (isLoaded && isSignedIn) return <Navigate to="/today" replace />;
+  if (isLoaded && isSignedIn) return <Navigate to="/money" replace />;
   return <NocturneLanding />;
 };
 

@@ -29,7 +29,7 @@ import { complete, stream as streamComplete, TIER_CHAT } from '../llmGateway.js'
 import { createLogger } from '../logger.js';
 import {
   listTransactions, months, forecast, categorySpend, refreshRecurring, listReadings, listFacts,
-  questionsFor, listPlaces, setVerdict, setPlaceCategory, answerQuestion,
+  questionsFor, listPlaces, setVerdict, setPlaceCategory, answerQuestion, categoryOfPayment,
 } from './store.js';
 import { learnMerchants, learnPatterns, predictNext, describeForTwin } from './brain.js';
 import { describeContext } from './context.js';
@@ -109,7 +109,7 @@ export async function gather(userId, now = new Date()) {
  */
 export function assemble({ transactions = [], segments = [], forecast: cast = null, recurring = [], readings = [], facts = [], questions = null, places = [], categories = null, now = new Date() } = {}) {
   const placeByKey = new Map((places || []).map((p) => [p.merchant_key, p]));
-  const categoryOf = (t) => placeByKey.get(t.merchant_key)?.category || null;
+  const categoryOf = (t) => categoryOfPayment(placeByKey.get(t.merchant_key), t.channel);
   const profiles = learnMerchants(transactions, { now, categoryOf });
   const patterns = learnPatterns({ transactions, profiles, categoryOf, now });
   const predictions = predictNext(profiles, { now });
@@ -176,7 +176,12 @@ export function buildFigure(request, ctx) {
     const byMerchant = request.by === 'merchant' || request.by === 'merchants';
     const groups = new Map();
     for (const t of inMonth) {
-      const label = byMerchant ? (ctx.placeByKey.get(t.merchant_key)?.name || nameOf(t)) : (ctx.placeByKey.get(t.merchant_key)?.category || 'not read yet');
+      /* The same resolver the month page uses, so a share the twin quotes is the share the
+         page shows. Reading the place's category alone once folded every transfer into
+         "not read yet" here while the page listed them as transfers. */
+      const label = byMerchant
+        ? (ctx.placeByKey.get(t.merchant_key)?.name || nameOf(t))
+        : (categoryOfPayment(ctx.placeByKey.get(t.merchant_key), t.channel) || 'not read yet');
       if (!groups.has(label)) groups.set(label, { value: 0, rows: [] });
       const g = groups.get(label);
       g.value += abs(t);
@@ -336,7 +341,7 @@ export function contextText(ctx) {
   if (recent.length) {
     lines.push('Recent payments (id, date, place, amount, kind):');
     for (const t of recent) {
-      const cat = ctx.placeByKey.get(t.merchant_key)?.category || t.channel || 'not read yet';
+      const cat = categoryOfPayment(ctx.placeByKey.get(t.merchant_key), t.channel) || 'not read yet';
       lines.push(`${t.id} ${dayMonth(t.occurred_at)} ${ctx.placeByKey.get(t.merchant_key)?.name || nameOf(t)} ${out(t) ? '-' : '+'}${amountText(t.amount)} ${cat}${t.verdict ? ` (${t.verdict})` : ''}`);
     }
   }

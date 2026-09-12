@@ -22,7 +22,6 @@ import { cosmos, dayMonth, euro } from '../constants/cosmos';
 import {
   moneyApi, currentMonthStart,
   type MoneyCategories, type MoneyForecast, type MoneyReading, type MoneyRecurring, type MoneyToday,
-  type ReadingVerdict,
 } from '../services/moneyApi';
 import { Body, Counting, Display, Enter, Hairline, Micro, Page, Pill, Row, Section, Small, Title } from '../ui/primitives';
 import { Band } from '../ui/figures';
@@ -94,6 +93,7 @@ export default function MonthScreen({ onOpenQuestions, questionCount, onOpenLedg
   const [recurring, setRecurring] = useState<MoneyRecurring[]>([]);
 
   const [today, setToday] = useState<MoneyToday | null>(null);
+  const [needsReconnect, setNeedsReconnect] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [unreachable, setUnreachable] = useState(false);
@@ -102,15 +102,20 @@ export default function MonthScreen({ onOpenQuestions, questionCount, onOpenLedg
   const loadAll = useCallback(async () => {
     /* One failing endpoint must not take the screen down with it, so each is settled on
        its own. Only a clean sweep of failures is worth telling the person about. */
-    const [f, l, rd, c, rc, td] = await Promise.allSettled([
+    const [f, l, rd, c, rc, td, ac] = await Promise.allSettled([
       moneyApi.forecast(),
       moneyApi.ledger(),
       moneyApi.readings(),
       moneyApi.categories(currentMonthStart()),
       moneyApi.recurring(),
       moneyApi.today(),
+      moneyApi.accounts(),
     ]);
     if (td.status === 'fulfilled') setToday(td.value);
+    /* The refresh call only learns the session has ended when it is the call that hits it;
+       once the day's read budget is spent no call is made at all. The account row carries the
+       last recorded outcome, so the month still says why it stopped moving. */
+    if (ac.status === 'fulfilled' && ac.value.some((a) => a.needs_reconnect)) setNeedsReconnect(true);
     if (f.status === 'fulfilled') setForecast(f.value);
     if (l.status === 'fulfilled') setLedgerLines(l.value.length);
     if (rd.status === 'fulfilled') setReadings(rd.value);
@@ -122,6 +127,21 @@ export default function MonthScreen({ onOpenQuestions, questionCount, onOpenLedg
   }, []);
 
   useEffect(() => { void loadAll(); }, [loadAll]);
+
+  /* The month should not be three days old because nobody pressed anything. On open, ask the
+     server whether a read is due; it spends one only if the last is old and the budget allows,
+     and we read the ledger again only when it actually brought something. */
+  useEffect(() => {
+    let live = true;
+    moneyApi.refreshIfStale()
+      .then((r) => {
+        if (!live) return;
+        if (r.needs_reconnect) setNeedsReconnect(true);
+        if (r.pulled && (r.created ?? 0) > 0) void loadAll();
+      })
+      .catch(() => {});
+    return () => { live = false; };
+  }, [loadAll]);
 
   const empty = !loading && (ledgerLines ?? 0) === 0;
   /* One purchase makes p10, p50 and p90 the same euro, and reading the same number three
@@ -139,18 +159,6 @@ export default function MonthScreen({ onOpenQuestions, questionCount, onOpenLedg
     });
     return [...charges, ...events];
   }, [forecast]);
-
-  async function setReadingVerdict(r: MoneyReading, v: 'true' | 'not_me') {
-    const next: ReadingVerdict = r.verdict === v ? null : v;
-    setReadings((rows) => rows.map((x) => (x.id === r.id ? { ...x, verdict: next } : x)));
-    try {
-      await moneyApi.readingVerdict(r.id, next);
-      /* A verdict can move the month's total, and the number should count to where it lands. */
-      moneyApi.forecast().then(setForecast).catch(() => {});
-    } catch {
-      setReadings((rows) => rows.map((x) => (x.id === r.id ? { ...x, verdict: r.verdict } : x)));
-    }
-  }
 
   const label = forecast ? monthName(forecast.month) : new Date().toLocaleDateString('en-GB', { month: 'long' });
   const last = forecast ? lastDay(forecast.month) : 30;
@@ -237,6 +245,14 @@ export default function MonthScreen({ onOpenQuestions, questionCount, onOpenLedg
           )}
         </Enter>
 
+        {/* A month that stopped moving must say why. The bank ends its session on its own
+            schedule, and until it is authorised again nothing can be read. */}
+        {needsReconnect ? (
+          <Enter index={1} style={layout.afterLarge}>
+            <Small>The bank connection has ended. Reconnect it on the You page.</Small>
+          </Enter>
+        ) : null}
+
         {/* Something the ledger cannot work out for itself. */}
         {questionCount > 0 ? (
           <Enter index={1} style={layout.afterLarge}>
@@ -259,18 +275,8 @@ export default function MonthScreen({ onOpenQuestions, questionCount, onOpenLedg
                 <Small>A reading appears once there are enough payments behind it to count one.</Small>
               ) : (
                 <>
-                  <Small>Every line here is counted, not guessed. The payments behind it are underneath.</Small>
                   {readings.map((r, i) => (
                     <Enter key={r.id} index={i} style={layout.block}>
-                      {r.verdict === 'not_me' ? (
-                        /* Rejected: the reading folds away to one line, with a way back for a
-                           mis-tap. It is gone from the next reading of the ledger. */
-                        <View style={layout.foot}>
-                          <Small style={layout.shrink}>Not yours. It will not come back.</Small>
-                          <Pill small ghost label="Undo" onPress={() => void setReadingVerdict(r, 'not_me')} />
-                        </View>
-                      ) : (
-                      <>
                       <Body>{r.sentence}</Body>
                       {r.detail ? <Small style={layout.afterSmall}>{r.detail}</Small> : null}
                       {r.receipts.map((t) => (
@@ -282,23 +288,9 @@ export default function MonthScreen({ onOpenQuestions, questionCount, onOpenLedg
                           quiet
                         />
                       ))}
-                      <View style={layout.foot}>
-                        <Micro style={layout.shrink}>
-                          read from {r.evidence_count} {r.evidence_count === 1 ? 'payment' : 'payments'}
-                        </Micro>
-                        {/* Answered is answered: a question that keeps asking after it has been
-                            answered reads as a control that did nothing. */}
-                        {r.verdict === 'true' ? (
-                          <Micro>Confirmed</Micro>
-                        ) : (
-                          <View style={layout.pills}>
-                            <Pill small ghost label="True" onPress={() => void setReadingVerdict(r, 'true')} />
-                            <Pill small ghost label="Not me" onPress={() => void setReadingVerdict(r, 'not_me')} />
-                          </View>
-                        )}
-                      </View>
-                      </>
-                      )}
+                      <Micro style={layout.foot}>
+                        read from {r.evidence_count} {r.evidence_count === 1 ? 'payment' : 'payments'}
+                      </Micro>
                     </Enter>
                   ))}
                 </>
@@ -311,11 +303,9 @@ export default function MonthScreen({ onOpenQuestions, questionCount, onOpenLedg
                 <Small>Nothing is placed this month yet. A payment joins a row here once its shop has a kind of place behind it.</Small>
               ) : (
                 <>
-                  <Small>
-                    {categories.read < categories.total
-                      ? `${euro(categories.read)} of ${euro(categories.total)} is placed so far. The rest is waiting on a lookup.`
-                      : 'Every payment this month has a kind of place behind it.'}
-                  </Small>
+                  {categories.read < categories.total ? (
+                    <Small>{`${euro(categories.read)} of ${euro(categories.total)} is placed so far. The rest is waiting on a lookup.`}</Small>
+                  ) : null}
                   {categories.groups.map((g, i) => (
                     <Enter key={g.category} index={i}>
                       <Row
@@ -337,7 +327,6 @@ export default function MonthScreen({ onOpenQuestions, questionCount, onOpenLedg
                 <Small>A charge becomes recurring after it has come back three times at the same rhythm.</Small>
               ) : (
                 <>
-                  <Small>Press one to see every charge it has made.</Small>
                   {recurring.map((r, i) => {
                     const open = openSeries === r.merchant_key;
                     /* One line, and it has to fit at 372 points: the cadence and the next date.
