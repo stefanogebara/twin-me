@@ -1,25 +1,30 @@
-@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;1,6..72,400&display=swap');
+/* ==========================================================================
+   Presence's design-system preview (/preview/presence-system, dev only).
+   Since 2026-09-12 its tokens are the register's (register.css): Manrope and
+   the Newsreader serif are no longer loaded, and every value below resolves
+   to the page, the three inks, the rule and Geist. The Presence onboarding
+   that used to share this file lives in presence-onboarding.css.
+   ========================================================================== */
 
-.ps-system,
-.presence-shell {
-  --ps-paper: #f2f0eb;
-  --ps-raised: #f8f7f3;
-  --ps-ink: #161714;
-  --ps-graphite: #666761;
-  --ps-faint: #92938d;
-  --ps-rule: #d4d2cb;
-  --ps-rule-strong: #a6a59f;
-  --ps-blue: #2f35ff;
-  --ps-blue-soft: #e7e8ff;
-  --ps-coral: #d75d45;
-  --ps-coral-soft: #f4ded8;
-  --ps-moss: #66745d;
-  --ps-font-ui: 'Manrope', 'Inter', system-ui, sans-serif;
-  --ps-font-story: 'Newsreader', Georgia, serif;
-  --ps-radius-control: 10px;
-  --ps-radius-field: 16px;
-  --ps-radius-card: 24px;
-  --ps-radius-panel: 28px;
+.ps-system {
+  --ps-paper: var(--rg-page);
+  --ps-raised: var(--rg-white);
+  --ps-ink: var(--rg-ink);
+  --ps-graphite: var(--rg-ink-2);
+  --ps-faint: var(--rg-ink-3);
+  --ps-rule: var(--rg-rule);
+  --ps-rule-strong: var(--rg-quiet);
+  --ps-blue: var(--rg-ink);
+  --ps-blue-soft: var(--rg-field);
+  --ps-coral: var(--rg-danger);
+  --ps-coral-soft: rgb(var(--rg-danger-rgb) / 0.08);
+  --ps-moss: var(--rg-ok);
+  --ps-font-ui: var(--rg-sans);
+  --ps-font-story: var(--rg-sans);
+  --ps-radius-control: var(--rg-radius);
+  --ps-radius-field: var(--rg-radius);
+  --ps-radius-card: var(--rg-radius-icon);
+  --ps-radius-panel: var(--rg-radius-icon);
   --ps-radius-pill: 999px;
   --ps-ease: cubic-bezier(.4, 0, .2, 1);
   color: var(--ps-ink);
@@ -29,8 +34,7 @@
   -webkit-font-smoothing: antialiased;
 }
 
-.ps-system *,
-.presence-shell * { box-sizing: border-box; }
+.ps-system * { box-sizing: border-box; }
 
 .ps-system a { color: inherit; text-decoration: none; }
 .ps-system button,
@@ -42,8 +46,7 @@
 .ps-system h5,
 .ps-system h6 { color: var(--ps-ink); }
 
-.ps-topbar,
-.presence-nav {
+.ps-topbar {
   position: fixed;
   inset: 0 0 auto 0;
   z-index: 20;
@@ -52,12 +55,10 @@
   grid-template-columns: 230px minmax(0, 1fr) auto;
   align-items: center;
   border-bottom: 1px solid var(--ps-rule);
-  background: rgba(242,240,235,.94);
-  backdrop-filter: blur(12px);
+  background: var(--ps-paper);
 }
 
-.ps-brand,
-.presence-wordmark {
+.ps-brand {
   height: 100%;
   display: flex;
   align-items: center;
@@ -98,8 +99,7 @@
   letter-spacing: .12em;
 }
 
-.ps-inline-link,
-.presence-exit {
+.ps-inline-link {
   height: 100%;
   min-width: 160px;
   padding: 0 24px !important;
@@ -113,11 +113,9 @@
   font: 500 12px/1 var(--ps-font-ui) !important;
   transition: background 160ms var(--ps-ease), color 160ms var(--ps-ease);
 }
-.ps-inline-link:hover,
-.presence-exit:hover { background: var(--ps-ink) !important; color: var(--ps-paper) !important; }
+.ps-inline-link:hover { background: var(--ps-ink) !important; color: var(--ps-paper) !important; }
 
-.ps-sidenav,
-.presence-rail {
+.ps-sidenav {
   position: fixed;
   inset: 64px auto 0 0;
   z-index: 10;
@@ -136,11 +134,9 @@
   font-variant-numeric: tabular-nums;
 }
 
-.ps-sidenav nav,
-.presence-rail nav { display: grid; gap: 2px; }
+.ps-sidenav nav { display: grid; gap: 2px; }
 
-.ps-sidenav nav a,
-.presence-rail nav button {
+.ps-sidenav nav a {
   position: relative;
   min-height: 30px !important;
   padding: 0 !important;
@@ -155,8 +151,7 @@
   gap: 10px;
 }
 
-.ps-sidenav nav a::before,
-.presence-rail nav button::before {
+.ps-sidenav nav a::before {
   content: '';
   position: absolute;
   width: 2px;
@@ -165,13 +160,10 @@
   top: 8px;
   background: transparent;
 }
-.ps-sidenav nav a.is-active,
-.presence-rail nav button.is-current { color: var(--ps-blue) !important; }
-.ps-sidenav nav a.is-active::before,
-.presence-rail nav button.is-current::before { background: var(--ps-blue); }
+.ps-sidenav nav a.is-active { color: var(--ps-blue) !important; }
+.ps-sidenav nav a.is-active::before { background: var(--ps-blue); }
 
-.ps-sidenav > p,
-.presence-rail blockquote {
+.ps-sidenav > p {
   margin: auto 0 0 !important;
   padding: 20px 0 0 !important;
   border-top: 1px solid var(--ps-rule) !important;
@@ -321,164 +313,20 @@
 .ps-provenance-list p { margin: 0; color: var(--ps-graphite); font: 400 14px var(--ps-font-story); }
 .ps-provenance-list > div > span { color: var(--ps-faint); font-size: 10px; text-align: right; text-transform: uppercase; letter-spacing: .08em; }
 
-/* Presence product application */
-.presence-shell { min-height: 100vh; position: relative; overflow: hidden; }
-.presence-ambient { position: fixed; inset: 0; z-index: 0; background: var(--ps-paper); pointer-events: none; }
-.presence-ambient::after { content: ''; position: absolute; inset: 64px 0 0 230px; background-image: linear-gradient(to right, transparent calc(100% - 1px), rgba(212,210,203,.44) 1px); background-size: calc((100vw - 230px) / 6) 100%; }
-.presence-nav { padding: 0 !important; }
-.presence-wordmark { appearance: none; cursor: pointer; }
-.presence-wordmark::before { content: ''; width: 20px; height: 20px; background: radial-gradient(circle at 50% 8%,var(--ps-ink) 0 3px,transparent 3.2px),radial-gradient(circle at 92% 40%,var(--ps-ink) 0 3px,transparent 3.2px),radial-gradient(circle at 76% 90%,var(--ps-ink) 0 3px,transparent 3.2px),radial-gradient(circle at 24% 90%,var(--ps-ink) 0 3px,transparent 3.2px),radial-gradient(circle at 8% 40%,var(--ps-ink) 0 3px,transparent 3.2px); }
-.presence-wordmark > span { display: none; }
-.presence-wordmark small { border: 0 !important; margin: 0 !important; padding: 0 !important; color: inherit !important; font: inherit !important; letter-spacing: inherit !important; text-transform: none !important; }
-.presence-wordmark { font-size: 0 !important; }
-.presence-wordmark small { font-size: 14px !important; }
-.presence-security-note { color: var(--ps-graphite) !important; font-size: 11px !important; }
-.presence-layout { min-height: 100vh; position: relative; z-index: 1; display: block !important; }
-.presence-rail { padding: 28px 24px !important; }
-.presence-progress-copy { display: flex; justify-content: space-between; margin-bottom: 10px; color: var(--ps-faint); font-size: 10px; text-transform: uppercase; letter-spacing: .1em; }
-.presence-progress-copy strong { font-weight: 500; font-variant-numeric: tabular-nums; }
-.presence-progress-track { height: 1px; margin-bottom: 42px; background: var(--ps-rule); }
-.presence-progress-track span { display: block; height: 1px; background: var(--ps-blue); transition: width 240ms var(--ps-ease); }
-.presence-rail nav button { appearance: none; cursor: pointer; }
-.presence-rail nav button > span { width: 20px; color: var(--ps-faint); font-size: 10px; font-variant-numeric: tabular-nums; }
-.presence-rail nav button.is-complete > span { color: var(--ps-ink); }
-.presence-stage { min-height: 100vh; margin-left: 230px; padding: 64px 0 0 76px !important; display: grid; grid-template-rows: 58px minmax(0,1fr) 64px; }
-.presence-eyebrow { padding: 28px 0 0 18px; border-left: 1px solid var(--ps-rule); color: var(--ps-faint); font-size: 10px; text-transform: uppercase; letter-spacing: .12em; }
-.presence-step { width: min(980px,calc(100% - 80px)); margin: auto; animation: ps-reveal 200ms ease-out both; }
-@keyframes ps-reveal { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
-.presence-step h1 { margin: 0; max-width: 840px; color: var(--ps-ink); font: 400 clamp(42px,5.5vw,72px)/.98 var(--ps-font-ui); letter-spacing: -.055em; text-wrap: balance; }
-.presence-step h1 + p,.presence-heading-row > div > p { max-width: 650px; margin: 18px 0 0; color: var(--ps-graphite); font: 400 18px/1.35 var(--ps-font-story); }
-.presence-welcome { display: grid; grid-template-columns: 1.08fr .75fr; gap: 64px; align-items: center; }
-.presence-promise-row { display: grid; grid-template-columns: repeat(3,1fr); margin-top: 48px; border-top: 1px solid var(--ps-rule); }
-.presence-promise-row > div { min-height: 84px; padding: 14px 12px 0 0; border-right: 1px solid var(--ps-rule); display: flex; gap: 9px; color: var(--ps-faint); font-size: 10px; }
-.presence-promise-row > div:last-child { border-right: 0; padding-left: 12px; }
-.presence-promise-row > div:nth-child(2) { padding-left: 12px; }
-.presence-promise-row strong { display: block; color: var(--ps-ink); font-weight: 500; }
-.presence-call-card,.presence-recorder-card,.presence-quality-card,.presence-interview-card,.presence-elder-card,.presence-family-card { overflow: hidden; border: 1px solid var(--ps-rule-strong); border-radius: var(--ps-radius-card) !important; background: var(--ps-raised); box-shadow: 0 1px 2px rgba(36,36,31,.04), 0 18px 48px rgba(36,36,31,.06) !important; backdrop-filter: none !important; }
-.presence-call-card { min-height: 430px; padding: 18px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-.presence-call-card::before { display: none !important; }
-.presence-call-topline,.presence-recorder-header,.presence-card-label { position: static !important; width: 100%; display: flex; justify-content: space-between; color: var(--ps-faint); font-size: 9px; text-transform: uppercase; letter-spacing: .1em; }
-.presence-live-dot::before { content: ''; display: inline-block; width: 6px; height: 6px; margin-right: 6px; border-radius: 50%; background: var(--ps-blue); }
-.presence-portrait { width: 124px; height: 124px; margin-top: 52px; position: relative; display: grid; place-items: center; }
-.presence-portrait-initials,.presence-mini-avatar { width: 82px; height: 82px; border-radius: 50%; border: 1px solid var(--ps-rule-strong); background: var(--ps-paper); display: grid; place-items: center; font: 400 italic 28px/1 var(--ps-font-story); }
-.presence-portrait-ring { position: absolute; inset: 10px; border: 1px solid var(--ps-rule); border-radius: 50%; }
-.presence-portrait-ring--two { inset: 0; }
-.presence-call-card h2 { margin: 18px 0 7px; font: 400 16px/1.2 var(--ps-font-ui); letter-spacing: -.02em; }
-.presence-call-card > p { max-width: 310px; margin: 0; color: var(--ps-graphite); font: 400 15px/1.3 var(--ps-font-story); }
-.presence-waveform { width: 100%; height: 42px; margin: 20px 0; display: flex; align-items: center; justify-content: center; gap: 3px; }
-.presence-waveform span { width: 2px; max-height: 100%; min-height: 3px; background: var(--ps-rule-strong); transform: scaleY(.5); transform-origin: center; }
-.presence-waveform.is-active span { background: var(--ps-coral); animation: ps-wave 760ms ease-in-out infinite alternate; }
-@keyframes ps-wave { to { transform: scaleY(1); } }
-.presence-round-button,.presence-icon-action,.presence-reply-box button { appearance: none; width: 44px; height: 44px; border: 1px solid var(--ps-ink) !important; border-radius: 50%; background: transparent !important; color: var(--ps-ink) !important; display: grid; place-items: center; cursor: pointer; }
-.presence-heading-row { display: flex; justify-content: space-between; gap: 32px; margin-bottom: 32px; }
-.presence-heading-row h1 { font-size: clamp(38px,4.3vw,56px); }
-.presence-duration { flex: 0 0 auto; color: var(--ps-faint); font-size: 10px; text-transform: uppercase; letter-spacing: .1em; }
-.presence-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.presence-form-grid label { min-height: 92px; padding: 14px; border: 1px solid var(--ps-rule); border-radius: var(--ps-radius-field); background: var(--ps-raised); }
-.presence-form-grid label > span,.presence-reply-box > span { display: block; margin-bottom: 18px; color: var(--ps-faint); font-size: 9px; text-transform: uppercase; letter-spacing: .1em; }
-.presence-form-grid input,.presence-form-grid select,.presence-interview-card textarea { width: 100%; border: 0; outline: 0; background: transparent; color: var(--ps-ink); font: 400 15px/1.3 var(--ps-font-ui); }
-.presence-form-wide { grid-column: 1/-1; }
-.presence-form-grid small { display: block; margin-top: 7px; color: var(--ps-faint); font-size: 9px; }
-.presence-tone-panel { margin-top: 20px; padding: 18px; border: 1px solid var(--ps-rule); border-radius: var(--ps-radius-card); background: rgba(248,247,243,.45); }
-.presence-tone-panel > div:first-child { display: flex; gap: 9px; align-items: center; color: var(--ps-graphite); font-size: 11px; }
-.presence-tone-panel strong { color: var(--ps-ink); font-weight: 500; }
-.presence-chip-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
-.presence-chip-row button { min-height: 38px; padding: 0 13px; border: 1px solid var(--ps-rule-strong); border-radius: var(--ps-radius-pill); background: transparent; color: var(--ps-graphite); font-size: 10px; }
-.presence-chip-row button.is-selected { border-color: var(--ps-blue); color: var(--ps-blue); background: var(--ps-blue-soft); }
-.presence-voice-grid { display: grid; grid-template-columns: 1.35fr .65fr; }
-.presence-recorder-card,.presence-quality-card { min-height: 330px; padding: 20px; }
-.presence-recorder-card { display: flex; flex-direction: column; }
-.presence-recorder-card blockquote { max-width: 620px; margin: 46px auto 10px; text-align: center; font: 400 27px/1.2 var(--ps-font-story); }
-.presence-recorder-actions { min-height: 48px; display: flex; align-items: center; justify-content: center; gap: 10px; }
-.presence-record-button,.presence-next-button { appearance: none; min-height: 44px; padding: 0 16px; border: 1px solid var(--ps-ink); border-radius: var(--ps-radius-control); background: var(--ps-ink); color: var(--ps-paper); font: 500 11px/1 var(--ps-font-ui); display: inline-flex; align-items: center; justify-content: center; gap: 12px; cursor: pointer; }
-.presence-record-button.is-stop { border-color: var(--ps-coral); background: var(--ps-coral); color: white; }
-.presence-text-action { border: 0; background: transparent; color: var(--ps-graphite); font-size: 10px; }
-.presence-processing,.presence-voice-ready { display: flex; align-items: center; gap: 9px; color: var(--ps-graphite); font-size: 10px; }
-.presence-voice-ready { color: var(--ps-blue); }
-.presence-mic-error { color: var(--ps-coral); font-size: 10px; text-align: center; }
-.presence-prompt-dots { display: flex; justify-content: center; gap: 10px; margin-top: auto; }
-.presence-prompt-dots button { width: 18px; height: 18px; padding: 0; border: 0; background: transparent; position: relative; }
-.presence-prompt-dots button::after { content: ''; position: absolute; inset: 7px; background: var(--ps-rule-strong); border-radius: 50%; }
-.presence-prompt-dots button.is-current::after { background: var(--ps-blue); }
-.presence-quality-card { display: flex; flex-direction: column; }
-.presence-quality-score { display: flex; justify-content: space-between; padding-bottom: 18px; border-bottom: 1px solid var(--ps-rule); }
-.presence-quality-score > span { color: var(--ps-faint); font-size: 9px; text-transform: uppercase; letter-spacing: .1em; }
-.presence-quality-score strong { font: 400 36px/1 var(--ps-font-ui); font-variant-numeric: tabular-nums; }
-.presence-quality-score small { color: var(--ps-faint); font: 10px var(--ps-font-ui); }
-.presence-quality-line { display: grid; grid-template-columns: 62px 1fr; gap: 10px; align-items: center; margin-top: 17px; color: var(--ps-graphite); font-size: 9px; }
-.presence-quality-line i { height: 1px; background: var(--ps-rule); position: relative; }
-.presence-quality-line i::after { content: ''; position: absolute; inset: 0; width: var(--score); background: var(--ps-blue); }
-.presence-quality-card > p { margin: 20px 0; color: var(--ps-faint); font: 400 12px/1.3 var(--ps-font-story); }
-.presence-consent-row { margin-top: auto; padding-top: 16px; border-top: 1px solid var(--ps-rule); display: flex; gap: 8px; color: var(--ps-graphite); font-size: 9px; line-height: 1.4; }
-.presence-consent-row input { accent-color: var(--ps-blue); }
-.presence-interview-card { padding: 22px; }
-.presence-interview-meta { display: flex; justify-content: space-between; color: var(--ps-faint); font-size: 9px; text-transform: uppercase; letter-spacing: .1em; }
-.presence-interview-card h2 { max-width: 760px; margin: 38px 0 22px; font: 400 30px/1.15 var(--ps-font-story); }
-.presence-interview-card textarea { min-height: 105px; resize: none; padding: 14px; border: 1px solid var(--ps-rule); border-radius: var(--ps-radius-field); background: var(--ps-paper); }
-.presence-interview-controls { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; margin-top: 14px; }
-.presence-interview-controls > span { color: var(--ps-faint); font-size: 9px; }
-.presence-interview-controls > button:last-child { min-height: 40px; padding: 0 13px; border: 1px solid var(--ps-ink); border-radius: var(--ps-radius-control); background: transparent; color: var(--ps-ink); font-size: 10px; display: flex; align-items: center; gap: 8px; }
-.presence-learning-strip { display: flex; gap: 0; margin-top: 20px; border-top: 1px solid var(--ps-rule); border-bottom: 1px solid var(--ps-rule); }
-.presence-learning-strip > span,.presence-learning-strip > div { min-height: 42px; padding: 0 12px; border-right: 1px solid var(--ps-rule); display: flex; align-items: center; gap: 6px; color: var(--ps-graphite); font-size: 9px; }
-.presence-learning-strip > span { color: var(--ps-faint); text-transform: uppercase; letter-spacing: .1em; }
-.presence-relay-grid { display: grid; grid-template-columns: .82fr 60px 1.18fr; }
-.presence-elder-card,.presence-family-card { min-height: 338px; padding: 18px; }
-.presence-elder-card { text-align: center; }
-.presence-mini-avatar { margin: 40px auto 18px; }
-.presence-elder-card h2 { max-width: 330px; margin: 0 auto; font: 400 26px/1.16 var(--ps-font-story); }
-.presence-elder-card > p { color: var(--ps-faint); font-size: 9px; }
-.presence-elder-card .presence-waveform { height: 30px; margin: 8px 0; }
-.presence-listening-pill { width: max-content; margin: 0 auto; display: flex; align-items: center; gap: 7px; color: var(--ps-coral); font-size: 9px; }
-.presence-relay-line { display: flex; flex-direction: column; align-items: center; color: var(--ps-faint); font-size: 8px; text-transform: uppercase; letter-spacing: .1em; }
-.presence-relay-line::before,.presence-relay-line::after { content: ''; width: 1px; flex: 1; background: var(--ps-rule); }
-.presence-relay-line span { padding: 8px 0; writing-mode: vertical-rl; }
-.presence-family-card h2 { margin: 40px 0 20px; font: 400 28px/1.14 var(--ps-font-story); }
-.presence-family-card ul { margin: 0; padding: 0; list-style: none; }
-.presence-family-card li { padding: 9px 0; border-top: 1px solid var(--ps-rule); color: var(--ps-graphite); font-size: 11px; }
-.presence-family-card strong { color: var(--ps-ink); font-weight: 500; }
-.presence-source-note { margin: 15px 0; display: flex; align-items: center; gap: 6px; color: var(--ps-moss); font-size: 9px; }
-.presence-reply-box { position: relative; padding: 13px 52px 13px 13px; border: 1px solid var(--ps-blue); border-radius: var(--ps-radius-field); background: var(--ps-blue-soft); }
-.presence-reply-box > span { margin-bottom: 7px; color: var(--ps-blue); }
-.presence-reply-box p { margin: 0; font: 400 14px/1.3 var(--ps-font-story); }
-.presence-reply-box button { position: absolute; right: 9px; top: 50%; transform: translateY(-50%); border-color: var(--ps-blue) !important; color: var(--ps-blue) !important; }
-.presence-attribution-bar { display: flex; gap: 18px; align-items: center; margin-top: 14px; color: var(--ps-faint); font-size: 9px; }
-.presence-attribution-bar > div { display: flex; gap: 6px; align-items: center; white-space: nowrap; }
-.presence-attribution-bar p { margin: 0 0 0 auto; }
-.presence-key { width: 7px; height: 7px; border-radius: 50%; }
-.presence-key--family { background: var(--ps-blue); }
-.presence-key--ai { border: 1px solid var(--ps-rule-strong); }
-.presence-stage-footer { min-height: 64px; display: grid; grid-template-columns: 140px 1fr 190px; align-items: center; gap: 16px; border-top: 1px solid var(--ps-rule); }
-.presence-stage-footer > span { color: var(--ps-faint); font-size: 9px; text-align: center; }
-.presence-back-button { border: 0; background: transparent; color: var(--ps-graphite); font-size: 10px; display: flex; align-items: center; gap: 7px; }
-.presence-back-button:disabled { opacity: 0; }
-.presence-next-button { justify-self: end; min-width: 184px; }
-.presence-next-button:disabled { opacity: .35; }
-
 @media (max-width: 920px) {
-  .ps-topbar,.presence-nav { grid-template-columns: 190px 1fr auto; }
-  .ps-sidenav,.presence-rail { width: 190px; }
+  .ps-topbar { grid-template-columns: 190px 1fr auto; }
+  .ps-sidenav { width: 190px; }
   .ps-system-content { padding-left: 190px; }
-  .presence-stage { margin-left: 190px; }
-  .presence-ambient::after { left: 190px; }
   .ps-color-grid { grid-template-columns: repeat(2,1fr); }
   .ps-principle-grid,.ps-voice-states { grid-template-columns: 1fr 1fr; }
-  .presence-stage { padding-left: 48px !important; }
-  .presence-welcome { grid-template-columns: 1fr; padding: 40px 0; }
-  .presence-call-card { min-height: 380px; }
-  .presence-voice-grid { grid-template-columns: 1fr; }
-  .presence-recorder-card { border-right: 1px solid var(--ps-rule-strong); border-bottom: 0; }
-  .presence-relay-grid { grid-template-columns: 1fr; gap: 12px; }
-  .presence-relay-line { height: 34px; flex-direction: row; }
-  .presence-relay-line::before,.presence-relay-line::after { width: auto; height: 1px; }
-  .presence-relay-line span { writing-mode: initial; padding: 0 8px; }
 }
 
 @media (max-width: 680px) {
-  .ps-topbar,.presence-nav { grid-template-columns: 1fr auto; }
-  .ps-topbar-title,.presence-security-note { display: none; }
-  .ps-brand,.presence-wordmark { border-right: 0 !important; }
-  .ps-inline-link,.presence-exit { min-width: 116px; }
-  .ps-sidenav,.presence-rail { display: none; }
+  .ps-topbar { grid-template-columns: 1fr auto; }
+  .ps-topbar-title { display: none; }
+  .ps-brand { border-right: 0 !important; }
+  .ps-inline-link { min-width: 116px; }
+  .ps-sidenav { display: none; }
   .ps-system-content { padding-left: 0; background-size: calc(100vw / 4) 100%; }
   .ps-section { grid-template-columns: 40px 1fr; }
   .ps-section-number { padding-left: 10px; }
@@ -493,45 +341,4 @@
   .ps-border-notes { grid-template-columns: 1fr 1fr; gap: 24px; }
   .ps-provenance-list > div { grid-template-columns: 18px 1fr; padding: 12px 0; }
   .ps-provenance-list p,.ps-provenance-list > div > span { grid-column: 2; text-align: left; }
-  .presence-ambient::after { left: 0; background-size: calc(100vw / 4) 100%; }
-  .presence-stage { margin-left: 0; padding: 64px 0 0 40px !important; }
-  .presence-eyebrow { padding-left: 12px; }
-  .presence-step { width: calc(100% - 38px); }
-  .presence-step h1 { font-size: 42px; }
-  .presence-form-grid,.presence-promise-row { grid-template-columns: 1fr; }
-  .presence-form-wide { grid-column: auto; }
-  .presence-heading-row { display: block; }
-  .presence-duration { display: inline-block; margin-top: 14px; }
-  .presence-interview-controls { grid-template-columns: auto 1fr; }
-  .presence-interview-controls > button:last-child { grid-column: 1/-1; justify-content: center; }
-  .presence-learning-strip { flex-wrap: wrap; }
-  .presence-attribution-bar { flex-wrap: wrap; }
-  .presence-attribution-bar p { width: 100%; margin: 0; }
-  .presence-stage-footer { grid-template-columns: auto 1fr; }
-  .presence-stage-footer > span { display: none; }
-  .presence-next-button { width: 100%; min-width: 0; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .presence-step,.presence-waveform.is-active span { animation: none; }
-  .presence-progress-track span { transition: none; }
-}
-
-/* Presence atmosphere: the onboarding shares the monsoon palette without using the hero photo behind forms. */
-.presence-ambient {
-  background:
-    radial-gradient(circle at 86% 12%, rgba(152,175,199,.52), transparent 34%),
-    radial-gradient(circle at 58% 74%, rgba(255,255,255,.72), transparent 38%),
-    linear-gradient(145deg, #e9ecef 0%, #dce5eb 46%, #f2f0eb 100%);
-}
-.presence-ambient::before {
-  content: '';
-  position: absolute;
-  width: 42vw;
-  height: 42vw;
-  right: -10vw;
-  top: 12vh;
-  border-radius: 50%;
-  background: rgba(48,82,130,.12);
-  filter: blur(90px);
 }
