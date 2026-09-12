@@ -74,7 +74,7 @@ const PortfolioHero: React.FC<PortfolioHeroProps> = ({
       {/* Pre-header */}
       <p
         className="text-sm uppercase tracking-wider mb-4 opacity-50"
-        style={{ fontFamily: "'Inter', sans-serif", color: '#E8D5B7', fontSize: '14px' }}
+        style={{ fontFamily: 'var(--font-ui)', color: '#E8D5B7', fontSize: '14px' }}
       >
         {firstName ? `${firstName}'s Soul Signature` : 'A Soul Signature'}
       </p>

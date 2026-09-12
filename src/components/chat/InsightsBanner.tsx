@@ -54,7 +54,7 @@ export function InsightsBanner({ insights, onQuickAction, onEngage }: InsightsBa
         <Lightbulb className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--text-muted)' }} />
         <span
           className="text-xs flex-1"
-          style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
+          style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-ui)' }}
         >
           Your twin has {insights.length} thing{insights.length !== 1 ? 's' : ''} to share
         </span>

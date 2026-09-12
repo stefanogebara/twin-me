@@ -46,7 +46,7 @@ const PortfolioFooter: React.FC<PortfolioFooterProps> = ({ updatedAt, colorSchem
         {/* Powered by */}
         <p
           className="text-xs opacity-30"
-          style={{ fontFamily: "'Inter', sans-serif", color: '#E8D5B7' }}
+          style={{ fontFamily: 'var(--font-ui)', color: '#E8D5B7' }}
         >
           Powered by TwinMe
         </p>
@@ -59,7 +59,7 @@ const PortfolioFooter: React.FC<PortfolioFooterProps> = ({ updatedAt, colorSchem
             style={{
               background: `linear-gradient(135deg, ${colorScheme.accent} 0%, ${colorScheme.primary} 100%)`,
               color: '#0C0C0C',
-              fontFamily: "'Inter', sans-serif",
+              fontFamily: 'var(--font-ui)',
               fontWeight: 500,
               textDecoration: 'none',
             }}
@@ -85,7 +85,7 @@ const PortfolioFooter: React.FC<PortfolioFooterProps> = ({ updatedAt, colorSchem
         {shareFailed && (
           <p
             className="text-xs text-center break-all max-w-xs opacity-50"
-            style={{ fontFamily: "'Inter', sans-serif", color: '#E8D5B7' }}
+            style={{ fontFamily: 'var(--font-ui)', color: '#E8D5B7' }}
           >
             Copy this link: {shareFailed}
           </p>
@@ -95,7 +95,7 @@ const PortfolioFooter: React.FC<PortfolioFooterProps> = ({ updatedAt, colorSchem
         {updatedDate && (
           <p
             className="text-xs opacity-25"
-            style={{ fontFamily: "'Inter', sans-serif", color: '#E8D5B7' }}
+            style={{ fontFamily: 'var(--font-ui)', color: '#E8D5B7' }}
           >
             Updated {updatedDate}
           </p>

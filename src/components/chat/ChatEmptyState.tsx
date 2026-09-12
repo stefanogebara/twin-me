@@ -103,7 +103,7 @@ export const ChatEmptyState = ({
         style={{
           fontSize: '13px',
           color: 'var(--text-secondary)',
-          fontFamily: "'Inter', sans-serif",
+          fontFamily: 'var(--font-ui)',
         }}
       >
         {dateStr}
@@ -135,7 +135,7 @@ export const ChatEmptyState = ({
             fontSize: '15px',
             color: 'var(--text-secondary)',
             fontWeight: 300,
-            fontFamily: "'Inter', sans-serif",
+            fontFamily: 'var(--font-ui)',
           }}
         >
           {twinName

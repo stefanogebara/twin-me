@@ -24,7 +24,7 @@ const PortfolioTraits: React.FC<PortfolioTraitsProps> = ({ traits, colorScheme }
         {/* Section label */}
         <p
           className="text-xs uppercase tracking-wider text-center mb-10 opacity-50"
-          style={{ fontFamily: "'Inter', sans-serif", color: '#E8D5B7' }}
+          style={{ fontFamily: 'var(--font-ui)', color: '#E8D5B7' }}
         >
           What Makes You, You
         </p>
@@ -44,7 +44,7 @@ const PortfolioTraits: React.FC<PortfolioTraitsProps> = ({ traits, colorScheme }
                 <div className="flex items-center gap-2">
                   <span
                     className="text-sm font-medium"
-                    style={{ color: '#E8D5B7', fontFamily: "'Inter', sans-serif" }}
+                    style={{ color: '#E8D5B7', fontFamily: 'var(--font-ui)' }}
                   >
                     {trait.trait}
                   </span>
@@ -72,7 +72,7 @@ const PortfolioTraits: React.FC<PortfolioTraitsProps> = ({ traits, colorScheme }
                 {trait.evidence && (
                   <p
                     className="text-xs opacity-40 leading-relaxed"
-                    style={{ color: '#E8D5B7', fontFamily: "'Inter', sans-serif" }}
+                    style={{ color: '#E8D5B7', fontFamily: 'var(--font-ui)' }}
                   >
                     {trait.evidence}
                   </p>

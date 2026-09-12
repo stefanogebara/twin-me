@@ -28,7 +28,7 @@ export const YouTubeInsights: React.FC<YouTubeInsightsProps> = ({
           <div className="w-16 h-16 rounded-full bg-[#FF0000]/10 flex items-center justify-center mb-4">
             <Loader2 className="w-8 h-8 text-[#FF0000] animate-spin" />
           </div>
-          <h3 className="text-lg font-medium mb-2" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>
+          <h3 className="text-lg font-medium mb-2" style={{ fontFamily: 'var(--font-ui)', color: 'var(--foreground)' }}>
             Analyzing Your Learning Journey
           </h3>
           <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
@@ -47,7 +47,7 @@ export const YouTubeInsights: React.FC<YouTubeInsightsProps> = ({
           <div className="w-16 h-16 rounded-full bg-red-900/20 flex items-center justify-center mb-4">
             <AlertCircle className="w-8 h-8 text-[var(--n-danger-ink)]" />
           </div>
-          <h3 className="text-lg font-medium mb-2" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>
+          <h3 className="text-lg font-medium mb-2" style={{ fontFamily: 'var(--font-ui)', color: 'var(--foreground)' }}>
             Unable to Load YouTube Insights
           </h3>
           <p className="text-sm mb-6 max-w-md" style={{ color: 'var(--text-muted)' }}>
@@ -73,7 +73,7 @@ export const YouTubeInsights: React.FC<YouTubeInsightsProps> = ({
           <div className="w-16 h-16 rounded-full bg-[#FF0000]/10 flex items-center justify-center mb-4">
             <Youtube className="w-8 h-8 text-[#FF0000]" />
           </div>
-          <h3 className="text-lg font-medium mb-2" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>
+          <h3 className="text-lg font-medium mb-2" style={{ fontFamily: 'var(--font-ui)', color: 'var(--foreground)' }}>
             No YouTube Data Yet
           </h3>
           <p className="text-sm mb-6 max-w-md" style={{ color: 'var(--text-muted)' }}>
@@ -112,10 +112,10 @@ export const YouTubeInsights: React.FC<YouTubeInsightsProps> = ({
               <Youtube className="w-7 h-7 text-white" />
             </div>
             <div>
-              <h2 className="text-2xl font-medium mb-2" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>
+              <h2 className="text-2xl font-medium mb-2" style={{ fontFamily: 'var(--font-ui)', color: 'var(--foreground)' }}>
                 Learning & Discovery Journey
               </h2>
-              <p className="text-base mb-3" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--text-muted)' }}>
+              <p className="text-base mb-3" style={{ fontFamily: 'var(--font-ui)', color: 'var(--text-muted)' }}>
                 Your authentic curiosity patterns from YouTube
               </p>
               <div className="flex items-center gap-4 text-xs" style={{ color: 'var(--text-muted)' }}>
@@ -142,7 +142,7 @@ export const YouTubeInsights: React.FC<YouTubeInsightsProps> = ({
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-2 text-xs text-[#FF0000] hover:text-[#CC0000] transition-colors"
-            style={{ fontFamily: "'Inter', sans-serif" }}
+            style={{ fontFamily: 'var(--font-ui)' }}
           >
             View on YouTube
             <ExternalLink className="w-3.5 h-3.5" />

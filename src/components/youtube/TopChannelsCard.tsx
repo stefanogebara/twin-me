@@ -35,7 +35,7 @@ export const TopChannelsCard: React.FC<TopChannelsCardProps> = ({
           <Users className="w-5 h-5 text-[#FF0000]" />
         </div>
         <div>
-          <h3 className="text-lg font-medium" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>
+          <h3 className="text-lg font-medium" style={{ fontFamily: 'var(--font-ui)', color: 'var(--foreground)' }}>
             Top Channels
           </h3>
           <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
@@ -52,11 +52,11 @@ export const TopChannelsCard: React.FC<TopChannelsCardProps> = ({
           >
             <div className="flex items-start justify-between mb-2 gap-3">
               <div className="flex items-start gap-2 flex-1 min-w-0">
-                <span className="text-sm font-medium flex-shrink-0 mt-0.5" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--text-muted)' }}>
+                <span className="text-sm font-medium flex-shrink-0 mt-0.5" style={{ fontFamily: 'var(--font-ui)', color: 'var(--text-muted)' }}>
                   {index + 1}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium truncate mb-1" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>
+                  <p className="text-sm font-medium truncate mb-1" style={{ fontFamily: 'var(--font-ui)', color: 'var(--foreground)' }}>
                     {channel.channel}
                   </p>
                   <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>

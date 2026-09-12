@@ -27,7 +27,7 @@ export const TopVideosCard: React.FC<TopVideosCardProps> = ({ videos, className 
           <Video className="w-5 h-5 text-[#FF0000]" />
         </div>
         <div>
-          <h3 className="text-lg font-medium" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>
+          <h3 className="text-lg font-medium" style={{ fontFamily: 'var(--font-ui)', color: 'var(--foreground)' }}>
             Top Videos
           </h3>
           <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
@@ -44,11 +44,11 @@ export const TopVideosCard: React.FC<TopVideosCardProps> = ({ videos, className 
           >
             <div className="flex items-start justify-between mb-2 gap-3">
               <div className="flex items-start gap-2 flex-1 min-w-0">
-                <span className="text-sm font-medium flex-shrink-0 mt-0.5" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--text-muted)' }}>
+                <span className="text-sm font-medium flex-shrink-0 mt-0.5" style={{ fontFamily: 'var(--font-ui)', color: 'var(--text-muted)' }}>
                   {index + 1}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium line-clamp-2 mb-1" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>
+                  <p className="text-sm font-medium line-clamp-2 mb-1" style={{ fontFamily: 'var(--font-ui)', color: 'var(--foreground)' }}>
                     {video.title}
                   </p>
                   <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>

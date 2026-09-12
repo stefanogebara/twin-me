@@ -63,7 +63,7 @@ const PortfolioRadar: React.FC<PortfolioRadarProps> = ({ personality, platformCo
         {/* Section label */}
         <p
           className="text-xs uppercase tracking-wider text-center mb-8 opacity-50"
-          style={{ fontFamily: "'Inter', sans-serif", color: '#E8D5B7' }}
+          style={{ fontFamily: 'var(--font-ui)', color: '#E8D5B7' }}
         >
           Personality Profile
         </p>
@@ -140,7 +140,7 @@ const PortfolioRadar: React.FC<PortfolioRadarProps> = ({ personality, platformCo
                   dominantBaseline="middle"
                   fill="rgba(232, 213, 183, 0.6)"
                   fontSize="10"
-                  fontFamily="'Inter', sans-serif"
+                  fontFamily='var(--font-ui)'
                 >
                   {label}
                 </text>
@@ -159,7 +159,7 @@ const PortfolioRadar: React.FC<PortfolioRadarProps> = ({ personality, platformCo
                   dominantBaseline="middle"
                   fill={colorScheme.primary}
                   fontSize="9"
-                  fontFamily="'Inter', sans-serif"
+                  fontFamily='var(--font-ui)'
                   fontWeight="600"
                 >
                   {Math.round(score)}
@@ -178,7 +178,7 @@ const PortfolioRadar: React.FC<PortfolioRadarProps> = ({ personality, platformCo
                 backgroundColor: `${colorScheme.primary}15`,
                 border: `1px solid ${colorScheme.primary}30`,
                 color: colorScheme.primary,
-                fontFamily: "'Inter', sans-serif",
+                fontFamily: 'var(--font-ui)',
               }}
             >
               {personality.mbti_code}
@@ -189,7 +189,7 @@ const PortfolioRadar: React.FC<PortfolioRadarProps> = ({ personality, platformCo
         {/* Platform count */}
         <p
           className="text-xs text-center opacity-40"
-          style={{ fontFamily: "'Inter', sans-serif", color: '#E8D5B7' }}
+          style={{ fontFamily: 'var(--font-ui)', color: '#E8D5B7' }}
         >
           Based on {platformCount} platform{platformCount !== 1 ? 's' : ''}
         </p>

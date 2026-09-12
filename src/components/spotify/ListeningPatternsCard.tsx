@@ -42,7 +42,7 @@ export const ListeningPatternsCard: React.FC<ListeningPatternsCardProps> = ({
           <Clock className="w-5 h-5 text-[#1DB954]" />
         </div>
         <div>
-          <h3 className="text-lg font-medium" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>
+          <h3 className="text-lg font-medium" style={{ fontFamily: 'var(--font-ui)', color: 'var(--foreground)' }}>
             Listening Patterns
           </h3>
           <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
@@ -61,7 +61,7 @@ export const ListeningPatternsCard: React.FC<ListeningPatternsCardProps> = ({
             </span>
           </div>
           <div className="bg-gradient-to-r from-[#1DB954]/5 to-[#1DB954]/10 rounded-lg p-3 border border-[#1DB954]/20">
-            <p className="text-lg font-medium" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>
+            <p className="text-lg font-medium" style={{ fontFamily: 'var(--font-ui)', color: 'var(--foreground)' }}>
               {formatHour(patterns.peakHours.start)} - {formatHour(patterns.peakHours.end)}
             </p>
             <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
@@ -92,7 +92,7 @@ export const ListeningPatternsCard: React.FC<ListeningPatternsCardProps> = ({
                   )}
                 </div>
               </div>
-              <span className="text-xs w-16 text-right" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--text-muted)' }}>
+              <span className="text-xs w-16 text-right" style={{ fontFamily: 'var(--font-ui)', color: 'var(--text-muted)' }}>
                 Weekday
               </span>
             </div>
@@ -109,7 +109,7 @@ export const ListeningPatternsCard: React.FC<ListeningPatternsCardProps> = ({
                   )}
                 </div>
               </div>
-              <span className="text-xs w-16 text-right" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--text-muted)' }}>
+              <span className="text-xs w-16 text-right" style={{ fontFamily: 'var(--font-ui)', color: 'var(--text-muted)' }}>
                 Weekend
               </span>
             </div>
@@ -124,11 +124,11 @@ export const ListeningPatternsCard: React.FC<ListeningPatternsCardProps> = ({
           >
             <div className="flex items-center gap-2 mb-1">
               <Headphones className="w-3.5 h-3.5 text-[#1DB954]" />
-              <span className="text-xs" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--text-muted)' }}>
+              <span className="text-xs" style={{ fontFamily: 'var(--font-ui)', color: 'var(--text-muted)' }}>
                 Total Listened
               </span>
             </div>
-            <p className="text-lg font-medium" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>
+            <p className="text-lg font-medium" style={{ fontFamily: 'var(--font-ui)', color: 'var(--foreground)' }}>
               {totalHours}h {remainingMinutes}m
             </p>
           </div>
@@ -139,11 +139,11 @@ export const ListeningPatternsCard: React.FC<ListeningPatternsCardProps> = ({
           >
             <div className="flex items-center gap-2 mb-1">
               <Clock className="w-3.5 h-3.5 text-[#1DB954]" />
-              <span className="text-xs" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--text-muted)' }}>
+              <span className="text-xs" style={{ fontFamily: 'var(--font-ui)', color: 'var(--text-muted)' }}>
                 Avg Session
               </span>
             </div>
-            <p className="text-lg font-medium" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>
+            <p className="text-lg font-medium" style={{ fontFamily: 'var(--font-ui)', color: 'var(--foreground)' }}>
               {sessionMinutes}m {sessionSeconds}s
             </p>
           </div>

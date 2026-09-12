@@ -109,7 +109,7 @@ export const ContextualTwinSelector: React.FC<ContextualTwinSelectorProps> = ({
           <h3 className="text-2xl font-medium text-[var(--foreground)] mb-2">
             Contextual Twins
           </h3>
-          <p className="text-sm text-muted-foreground leading-relaxed" style={{ fontFamily: "'Inter', sans-serif" }}>
+          <p className="text-sm text-muted-foreground leading-relaxed" style={{ fontFamily: 'var(--font-ui)' }}>
             Different versions of your soul signature for different audiences
           </p>
         </div>
@@ -118,7 +118,7 @@ export const ContextualTwinSelector: React.FC<ContextualTwinSelectorProps> = ({
           <button
             onClick={onCreateTwin}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm shadow-md hover:shadow-lg transition-all duration-200"
-            style={{ backgroundColor: 'var(--n-verdigris)', color: '#0a0f0a', fontFamily: "'Inter', sans-serif" }}
+            style={{ backgroundColor: 'var(--n-verdigris)', color: '#0a0f0a', fontFamily: 'var(--font-ui)' }}
           >
             <Plus className="w-4 h-4" />
             Create Twin
@@ -146,10 +146,10 @@ export const ContextualTwinSelector: React.FC<ContextualTwinSelectorProps> = ({
             </div>
           </div>
           <div className="flex-1">
-            <h4 className="text-lg font-medium text-[var(--foreground)] mb-1" style={{ fontFamily: "'Inter', sans-serif" }}>
+            <h4 className="text-lg font-medium text-[var(--foreground)] mb-1" style={{ fontFamily: 'var(--font-ui)' }}>
               Currently Active: {activeTwin.name}
             </h4>
-            <p className="text-sm text-muted-foreground" style={{ fontFamily: "'Inter', sans-serif" }}>
+            <p className="text-sm text-muted-foreground" style={{ fontFamily: 'var(--font-ui)' }}>
               {activeTwin.description}
             </p>
           </div>
@@ -157,7 +157,7 @@ export const ContextualTwinSelector: React.FC<ContextualTwinSelectorProps> = ({
             className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-900/20 text-[var(--n-verdigris)]"
           >
             <Check className="w-4 h-4" />
-            <span className="text-sm font-medium" style={{ fontFamily: "'Inter', sans-serif" }}>Active</span>
+            <span className="text-sm font-medium" style={{ fontFamily: 'var(--font-ui)' }}>Active</span>
           </div>
         </div>
 
@@ -166,7 +166,7 @@ export const ContextualTwinSelector: React.FC<ContextualTwinSelectorProps> = ({
           {Object.entries(activeTwin.clusterLevels).map(([cluster, level]) => (
             <div key={cluster} className="space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-medium capitalize" style={{ color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}>
+                <span className="text-xs font-medium capitalize" style={{ color: 'var(--foreground)', fontFamily: 'var(--font-ui)' }}>
                   {cluster}
                 </span>
                 <span className="text-xs font-bold" style={{ color: 'var(--foreground)' }}>
@@ -216,11 +216,11 @@ export const ContextualTwinSelector: React.FC<ContextualTwinSelectorProps> = ({
                       </div>
                     </div>
                     <div>
-                      <h5 className="text-base font-medium text-[var(--foreground)] mb-0.5" style={{ fontFamily: "'Inter', sans-serif" }}>
+                      <h5 className="text-base font-medium text-[var(--foreground)] mb-0.5" style={{ fontFamily: 'var(--font-ui)' }}>
                         {twin.name}
                       </h5>
                       {twin.isDefault && (
-                        <span className="text-xs text-muted-foreground" style={{ fontFamily: "'Inter', sans-serif" }}>
+                        <span className="text-xs text-muted-foreground" style={{ fontFamily: 'var(--font-ui)' }}>
                           Default preset
                         </span>
                       )}
@@ -258,7 +258,7 @@ export const ContextualTwinSelector: React.FC<ContextualTwinSelectorProps> = ({
                   )}
                 </div>
 
-                <p className="text-sm text-muted-foreground leading-relaxed mb-4" style={{ fontFamily: "'Inter', sans-serif" }}>
+                <p className="text-sm text-muted-foreground leading-relaxed mb-4" style={{ fontFamily: 'var(--font-ui)' }}>
                   {twin.description}
                 </p>
 
@@ -296,7 +296,7 @@ export const ContextualTwinSelector: React.FC<ContextualTwinSelectorProps> = ({
 
       {/* Info Banner */}
       <div className="p-4 rounded-xl bg-[var(--surface)] border border-[var(--glass-surface-border)] backdrop-blur-[42px]">
-        <p className="text-sm text-[var(--text-narrative-secondary)] leading-relaxed" style={{ fontFamily: "'Inter', sans-serif" }}>
+        <p className="text-sm text-[var(--text-narrative-secondary)] leading-relaxed" style={{ fontFamily: 'var(--font-ui)' }}>
           <strong className="font-medium">Pro tip:</strong> Switch between twins
           based on your context. Your twin will automatically adjust what
           it reveals about you to match the selected audience.

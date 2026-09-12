@@ -57,7 +57,7 @@ const PortfolioPlatforms: React.FC<PortfolioPlatformsProps> = ({ platforms }) =>
         {/* Section label */}
         <p
           className="text-xs uppercase tracking-wider text-center mb-10 opacity-50"
-          style={{ fontFamily: "'Inter', sans-serif", color: '#E8D5B7' }}
+          style={{ fontFamily: 'var(--font-ui)', color: '#E8D5B7' }}
         >
           Data Sources
         </p>
@@ -92,7 +92,7 @@ const PortfolioPlatforms: React.FC<PortfolioPlatformsProps> = ({ platforms }) =>
                   )}
                   <span
                     className="text-sm font-medium"
-                    style={{ color: '#E8D5B7', fontFamily: "'Inter', sans-serif" }}
+                    style={{ color: '#E8D5B7', fontFamily: 'var(--font-ui)' }}
                   >
                     {displayName}
                   </span>
@@ -108,7 +108,7 @@ const PortfolioPlatforms: React.FC<PortfolioPlatformsProps> = ({ platforms }) =>
                         backgroundColor: `${brandColor}12`,
                         color: brandColor,
                         border: `1px solid ${brandColor}25`,
-                        fontFamily: "'Inter', sans-serif",
+                        fontFamily: 'var(--font-ui)',
                       }}
                     >
                       {formatFeatureType(feat.type)}: {formatFeatureValue(feat.value)}
