@@ -1,217 +1,335 @@
-import '../../styles/nocturne.css';
+import { useEffect, useState } from 'react';
+import { ChevronRight, Menu, Plus } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
+import '../../styles/money-v2.css';
 
 /**
- * NocturneSpec — the living reference for the Nocturne design system.
- * Route: /nocturne/system. Every token and component, rendered from the same
- * CSS the product uses, annotated with its role rules. If a surface ever
- * disagrees with this page, the surface is wrong.
+ * /system (and /nocturne/system): the living spec of the register, TwinMe's
+ * design system since 2026-09-12. Instinct's signed-in app with the Cosmos
+ * headings. Every value on this page is read live from the stylesheet
+ * (src/styles/register.css) and every ratio is measured from those values in
+ * the browser, so the page cannot drift from what ships. The layout is the
+ * register's own: money-v2.css's frame, sections and rows, and the shared
+ * shadcn controls every page uses. If a surface disagrees with this page, the
+ * surface is wrong.
+ *
+ * Nocturne, which this route used to document, was retired the same day; its
+ * --n-* names and the bridge's semantic tokens now resolve to the register.
  */
 
-const SURFACES = [
-  ['Obsidian', '#0f1011', 'page canvas'],
-  ['Abyss', '#090a0b', 'alternating bands'],
-  ['Graphite', '#1c1d1f', 'elevated card'],
-  ['Steel', '#2c2d2f', 'hover / pressed'],
-  ['Silver', '#cacaca', 'inverted — max 1-2 per page'],
+type Token = { name: string; label: string; role: string };
+
+const GROUNDS: Token[] = [
+  { name: '--rg-page', label: 'Page', role: 'Every screen' },
+  { name: '--rg-white', label: 'White', role: 'A secondary button; a card until it becomes rows' },
+  { name: '--rg-field', label: 'Field', role: 'An input, a pressed choice' },
+];
+const INKS: Token[] = [
+  { name: '--rg-ink', label: 'Ink', role: 'Text, the rule over a list, the primary fill' },
+  { name: '--rg-ink-2', label: 'Ink 2', role: 'The one grey line under a title' },
+  { name: '--rg-ink-3', label: 'Ink 3', role: 'Quiet: empty states, names, times' },
+];
+const MARKS: Token[] = [
+  { name: '--rg-rule', label: 'Hairline', role: 'Between rows' },
+  { name: '--rg-mark', label: 'Mark', role: 'The switch off; never text' },
+  { name: '--rg-quiet', label: 'Quiet grey', role: 'Disabled and decorative only; fails as text' },
+];
+const STATE: Token[] = [
+  { name: '--rg-danger', label: 'Danger', role: 'Error text, a danger button\'s label' },
+  { name: '--rg-danger-line', label: 'Danger line', role: 'A danger button\'s border' },
+  { name: '--rg-ok', label: 'OK', role: 'Money in, a good state, as text' },
+];
+const SIGNATURES: Token[] = [
+  { name: '--rg-ember', label: 'Ember', role: 'Motivation and drive' },
+  { name: '--rg-iris', label: 'Iris', role: 'Personality and emotion' },
+  { name: '--rg-verdigris', label: 'Verdigris', role: 'Cultural identity' },
+  { name: '--rg-orchid', label: 'Orchid', role: 'Social dynamics' },
+  { name: '--rg-periwinkle', label: 'Periwinkle', role: 'Lifestyle and rhythms' },
+  { name: '--rg-signal', label: 'Signal', role: 'Chart strokes only' },
+];
+const LAYOUT: Token[] = [
+  { name: '--rg-col', label: 'Column', role: 'The content column\'s width' },
+  { name: '--rg-side', label: 'Sidebar', role: 'Plain text links, 80px left of the column' },
+  { name: '--rg-section', label: 'Section gap', role: '56px on a phone' },
+  { name: '--rg-title-to-line', label: 'Title to grey line', role: 'Then 24px to the list rule' },
+  { name: '--rg-row', label: 'Row', role: 'Minimum height; padding 20 12' },
+  { name: '--rg-gutter', label: 'Phone gutter', role: 'Nothing else changes size' },
+];
+const ALL = [...GROUNDS, ...INKS, ...MARKS, ...STATE, ...SIGNATURES, ...LAYOUT].map((t) => t.name)
+  .concat(['--rg-title', '--rg-section-title', '--rg-sans', '--rg-mono']);
+
+const SECTIONS = [
+  ['colour', 'Colour'],
+  ['type', 'Type'],
+  ['rows', 'Rows'],
+  ['controls', 'Controls'],
+  ['layout', 'Layout'],
+  ['rules', 'Rules'],
 ] as const;
 
-const INKS = [
-  ['Pure', '#ffffff', 'primary action fill; display on photos'],
-  ['Cloud', '#fafafa', 'display + heading ink'],
-  ['Ash', '#9f9fa0', 'body — never full white'],
-  ['Fog', '#6a6b6b', 'muted, annotations'],
-] as const;
+/* WCAG contrast from the live values. */
+const rgb = (hex: string) => {
+  const h = hex.replace('#', '');
+  return h.length === 6 ? [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16)) : null;
+};
+const lum = (c: number[]) => {
+  const f = (v: number) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
+  return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]);
+};
+const ratio = (a?: string, b?: string) => {
+  const x = a && rgb(a), y = b && rgb(b);
+  if (!x || !y) return null;
+  const l1 = lum(x), l2 = lum(y);
+  return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+};
+const fmt = (r: number | null) => (r === null ? '' : `${r.toFixed(1)}:1`);
 
-const SIGNATURES = [
-  ['Ember', '#dd8f4c', 'Motivation & Drive'],
-  ['Iris', '#847dff', 'Personality & Emotion'],
-  ['Verdigris', '#55a08e', 'Cultural Identity'],
-  ['Orchid', '#dd90d8', 'Social Dynamics'],
-  ['Periwinkle', '#90b8f0', 'Lifestyle & Rhythms'],
-] as const;
+function useTokens() {
+  const [values, setValues] = useState<Record<string, string>>({});
+  useEffect(() => {
+    const cs = getComputedStyle(document.documentElement);
+    setValues(Object.fromEntries(ALL.map((n) => [n, cs.getPropertyValue(n).trim()])));
+  }, []);
+  return values;
+}
 
-const Section = ({ id, title, note, children }: { id: string; title: string; note: string; children: React.ReactNode }) => (
-  <section style={{ marginBottom: 100 }} id={id}>
-    <p className="n-micro" style={{ marginBottom: 8 }}>{id}</p>
-    <h2 className="n-heading" style={{ marginBottom: 8 }}>{title}</h2>
-    <p className="n-body n-body-sm" style={{ maxWidth: 560, marginBottom: 32 }}>{note}</p>
-    {children}
-  </section>
+const Swatch = ({ colour }: { colour: string }) => (
+  <span
+    aria-hidden="true"
+    className="mv-icon"
+    style={{ background: `var(${colour})`, boxShadow: 'inset 0 0 0 1px var(--rg-rule)' }}
+  />
 );
 
-const Swatch = ({ name, hex, role, light }: { name: string; hex: string; role: string; light?: boolean }) => (
-  <div style={{ borderRadius: 'var(--n-r-card)', overflow: 'hidden', border: '1px solid var(--n-line)' }}>
-    <div style={{ background: hex, height: 96 }} />
-    <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 2 }}>
-      <span className="n-label">{name}</span>
-      <span className="n-micro">{hex}</span>
-      <span className="n-body-sm" style={{ color: light ? 'var(--n-ash)' : 'var(--n-ash)' }}>{role}</span>
-    </div>
-  </div>
-);
+const NocturneSpec = () => {
+  const v = useTokens();
+  const [open, setOpen] = useState(false);
+  const [on, setOn] = useState(true);
+  const [off, setOff] = useState(false);
+  const page = v['--rg-page'], white = v['--rg-white'], field = v['--rg-field'], ink = v['--rg-ink'];
 
-const NocturneSpec = () => (
-  <div style={{ background: 'var(--n-obsidian)', minHeight: '100vh' }}>
-    <div className="n-section" style={{ paddingTop: 100 }}>
-      <header style={{ marginBottom: 100 }}>
-        <p className="n-micro">TwinMe design system · v1 · 2026-09</p>
-        <h1 className="n-display" style={{ margin: '16px 0' }}><em>Nocturne</em></h1>
-        <p className="n-lead">A midnight gallery of the self.</p>
-        <p className="n-body" style={{ maxWidth: 620, marginTop: 12 }}>
-          Three voices — serif for emotion, sans for interface, mono for data. Flat
-          elevation by surface step. One white action. Chromatic color only where a
-          soul domain speaks. Reference: Origin Financial, adapted; audit and
-          decision ledger in the PR that introduced this file.
-        </p>
-        <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
-          <a className="n-btn n-btn--primary" href="/nocturne">See the flagship</a>
+  const colourRow = (t: Token, measure: string) => (
+    <li key={t.name}>
+      <div className="mv-item mv-item--icon mv-item--tight">
+        <Swatch colour={t.name} />
+        <div className="mv-item-text">
+          <span className="mv-item-title">{t.label}</span>
+          <span className="mv-item-sub">{v[t.name] || t.name} · {t.role}</span>
         </div>
-      </header>
+        <span className="mv-item-end mv-quiet">{measure}</span>
+      </div>
+    </li>
+  );
 
-      <Section id="01" title="The five laws" note="Break one and it stops being Nocturne.">
-        <ol style={{ display: 'flex', flexDirection: 'column', gap: 12, margin: 0, paddingLeft: 20 }}>
-          {[
-            'Elevation is a color step, never a shadow.',
-            'White-on-black is the only primary action.',
-            'Chromatic color exists only as signature tiles and data strokes — never text under 18px, never borders.',
-            'The italic marks one word per display line: the verb of self-knowledge.',
-            'Anything smaller than 13px speaks mono, uppercase, tracked.',
-          ].map((law) => (
-            <li key={law} className="n-body" style={{ color: 'var(--n-cloud)' }}>{law}</li>
-          ))}
-        </ol>
-      </Section>
+  return (
+    <div className="mv">
+      <div className="mv-shell">
+        <aside className={`mv-side${open ? ' is-open' : ''}`}>
+          <div className="mv-side-bar">
+            <a href="/system" className="mv-mark" aria-label="The register">
+              {Array.from({ length: 9 }).map((_, i) => <i key={i} />)}
+            </a>
+            <button type="button" className="mv-icon-btn mv-side-toggle" aria-expanded={open} aria-label="Sections" onClick={() => setOpen((o) => !o)}>
+              <Menu size={16} aria-hidden="true" />
+            </button>
+          </div>
+          <nav className="mv-side-links" aria-label="Sections">
+            {SECTIONS.map(([id, label]) => <a key={id} href={`#${id}`} onClick={() => setOpen(false)}>{label}</a>)}
+          </nav>
+        </aside>
 
-      <Section id="02" title="Surfaces" note="The elevation ladder. Depth is which step you stand on, not how far you float.">
-        <div className="n-grid-3" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
-          {SURFACES.map(([name, hex, role]) => <Swatch key={name} name={name} hex={hex} role={role} />)}
-        </div>
-      </Section>
+        <main className="mv-col" id="main-content">
+          <h1>The register</h1>
+          <p className="mv-sub">TwinMe's design system since 2026-09-12. Every value is read live from register.css.</p>
 
-      <Section id="03" title="Ink" note="Body text never reaches full white — Ash carries prose, Cloud carries headings, Pure is saved for actions.">
-        <div className="n-grid-3" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
-          {INKS.map(([name, hex, role]) => <Swatch key={name} name={name} hex={hex} role={role} />)}
-        </div>
-      </Section>
+          <section className="mv-section" id="colour">
+            <h2>Colour</h2>
+            <p className="mv-sub">One warm ink at three strengths, on three grounds. Ratios on the page / white / field.</p>
+            <ul className="mv-list">
+              {GROUNDS.map((t) => colourRow(t, t.name === '--rg-page' ? `ink ${fmt(ratio(ink, page))}` : `ink ${fmt(ratio(ink, v[t.name]))}`))}
+              {INKS.map((t) => colourRow(t, [page, white, field].map((g) => ratio(v[t.name], g)?.toFixed(1)).join(' / ')))}
+              {MARKS.map((t) => colourRow(t, fmt(ratio(v[t.name], page))))}
+              {STATE.map((t) => colourRow(t, fmt(ratio(v[t.name], page))))}
+            </ul>
+          </section>
 
-      <Section id="04" title="The five signatures" note="One hue per reflection expert. Tile fills and data strokes only — a signature color in running text is a violation.">
-        <div className="n-grid-3" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
-          {SIGNATURES.map(([name, hex, role]) => <Swatch key={name} name={name} hex={hex} role={role} />)}
-        </div>
-        <p className="n-micro" style={{ marginTop: 16 }}>
-          Plus Signal #00b3dd — chart strokes and sparklines only.
-        </p>
-      </Section>
+          <section className="mv-section" id="signatures">
+            <h2>The five signatures</h2>
+            <p className="mv-sub">Domain and data colour only. Strokes clear 3:1 on the page; text on a tile is ink.</p>
+            <ul className="mv-list">
+              {SIGNATURES.map((t) => colourRow(t, `${fmt(ratio(v[t.name], page))} · ink ${fmt(ratio(ink, v[t.name]))}`))}
+            </ul>
+          </section>
 
-      <Section id="05" title="Typography" note="Fraunces 300 (never bolder), Inter 400/500, Roboto Mono uppercase. Three voices, no crossover.">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 40 }}>
-          <div>
-            <p className="n-micro" style={{ marginBottom: 12 }}>display · fraunces 300 · 96/0.9 · italic verb</p>
-            <p className="n-display"><em>Know</em> yourself.</p>
-          </div>
-          <div>
-            <p className="n-micro" style={{ marginBottom: 12 }}>heading · fraunces 300 · 38/0.95</p>
-            <p className="n-heading">The taste underneath your taste.</p>
-          </div>
-          <div>
-            <p className="n-micro" style={{ marginBottom: 12 }}>lead · inter 500 · 18/1.5</p>
-            <p className="n-lead">Five signatures. One person.</p>
-          </div>
-          <div>
-            <p className="n-micro" style={{ marginBottom: 12 }}>body · inter 400 · 16/1.5 · ash</p>
-            <p className="n-body" style={{ maxWidth: 560 }}>
-              It reads what you actually do — the music, the hours, the work, the
-              people — and builds a portrait no questionnaire could.
-            </p>
-          </div>
-          <div>
-            <p className="n-micro" style={{ marginBottom: 12 }}>label + micro · roboto mono · uppercase</p>
-            <p className="n-label">SPOTIFY · 23:41 · REPEAT ×4</p>
-            <p className="n-micro" style={{ marginTop: 6 }}>25 self-report items · one session · measured, not a vibe</p>
-          </div>
-        </div>
-      </Section>
+          <section className="mv-section" id="type">
+            <h2>Type</h2>
+            <p className="mv-sub">Geist throughout. Headings are Cosmos; everything else is 13px, and weight makes the hierarchy.</p>
+            <ul className="mv-list">
+              {[
+                { sample: 'A page title', spec: `Geist 300 · ${v['--rg-title'] || ''} · line 1.0 · -0.05em`, style: { fontSize: 'var(--rg-title)', fontWeight: 300, lineHeight: 1, letterSpacing: 'var(--rg-title-track)' } },
+                { sample: 'A section', spec: `Geist 400 · ${v['--rg-section-title'] || ''} · line 1.08 · -0.04em`, style: { fontSize: 'var(--rg-section-title)', fontWeight: 400, lineHeight: 1.08, letterSpacing: 'var(--rg-section-track)' } },
+                { sample: 'Row title', spec: '13 / 20 · 500 · ink', style: { fontWeight: 500, lineHeight: '20px' } },
+                { sample: 'The grey line under a title', spec: '13 / 19.5 · 350 · ink 2', style: { fontWeight: 350, color: 'var(--rg-ink-2)' } },
+                { sample: 'Quiet, for empty states and names', spec: '13 / 19.5 · 350 · ink 3', style: { fontWeight: 350, color: 'var(--rg-ink-3)' } },
+                { sample: 'tm_live_4f9a2c', spec: 'Geist Mono · only for a value to copy', style: { fontFamily: 'var(--rg-mono)', fontSize: 12 } },
+              ].map((r) => (
+                <li key={r.sample}>
+                  <div className="mv-item">
+                    <div className="mv-item-text">
+                      <span style={r.style}>{r.sample}</span>
+                      <span className="mv-item-sub">{r.spec}</span>
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </section>
 
-      <Section id="06" title="Controls" note="Primary is the page's brightest object. Ghost is a white-10% fill with no border. Both speak mono.">
-        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'center' }}>
-          <button className="n-btn n-btn--primary">Get your signature</button>
-          <button className="n-btn n-btn--ghost">More about the signal</button>
-          <span className="n-badge">Private beta — invite only</span>
-        </div>
-        <div className="n-prompt" style={{ maxWidth: 560, marginTop: 32 }}>
-          <input placeholder="Ask your twin anything…" aria-label="Prompt example" />
-          <button aria-label="Submit">↑</button>
-        </div>
-        <input className="n-input" placeholder="you@example.com" style={{ marginTop: 24, width: 320 }} aria-label="Input example" />
-      </Section>
-
-      <Section id="07" title="Cards & tiles" note="Graphite for content, Silver to break the rhythm (sparingly), signature tiles for the five domains — flat chromatic panels, color is the only differentiator. Every Nocturne background is built in code; no image assets.">
-        <div className="n-grid-3">
-          <div className="n-card">
-            <p className="n-micro" style={{ marginBottom: 8 }}>Graphite card</p>
-            <p className="n-lead">A quiet module.</p>
-            <p className="n-body n-body-sm" style={{ marginTop: 8 }}>Content sits a single surface step above the canvas. No shadow.</p>
-          </div>
-          <div className="n-card--inverted" style={{ padding: 'var(--n-card-pad)' }}>
-            <p className="n-micro" style={{ marginBottom: 8, color: '#6a6b6b' }}>Silver inverted</p>
-            <p className="n-lead">The rhythm break.</p>
-            <p className="n-body n-body-sm" style={{ marginTop: 8 }}>One or two per page, for the stat that must land.</p>
-          </div>
-          <article className="n-tile n-tile--ember" style={{ minHeight: 260 }}>
-            <span className="n-tile__glyph" aria-hidden="true">M</span>
-            <div className="n-tile__caption">
-              <p className="n-micro">Motivation & Drive</p>
-              <p className="n-lead">Signature tile.</p>
+          <section className="mv-section" id="rows">
+            <div className="mv-head">
+              <h2>Rows, not cards</h2>
+              <button type="button" className="mv-icon-btn" aria-label="Add a row (example)"><Plus size={16} aria-hidden="true" /></button>
             </div>
-          </article>
-        </div>
-      </Section>
+            <p className="mv-sub">A heading, one grey line, then rows under a 1px ink rule.</p>
+            <ul className="mv-list">
+              <li>
+                <div className="mv-item mv-item--icon">
+                  <span className="mv-icon" aria-hidden="true">S</span>
+                  <div className="mv-item-text">
+                    <span className="mv-item-title">Spotify</span>
+                    <span className="mv-item-sub">Listening, read every hour</span>
+                  </div>
+                  <span className="mv-item-end"><ChevronRight size={16} className="mv-chev" aria-hidden="true" /></span>
+                </div>
+                <ul className="mv-sublist">
+                  <li>
+                    <div className="mv-item mv-item--sub">
+                      <div className="mv-item-text">
+                        <span className="mv-item-title">stefano</span>
+                        <span className="mv-item-sub">Connected in March</span>
+                      </div>
+                      <span className="mv-item-end"><Button variant="outline">Disconnect</Button></span>
+                    </div>
+                  </li>
+                </ul>
+              </li>
+              <li>
+                <div className="mv-item mv-item--icon">
+                  <span className="mv-icon" aria-hidden="true">C</span>
+                  <div className="mv-item-text">
+                    <span className="mv-item-title">Calendar</span>
+                    <span className="mv-item-sub">Not connected</span>
+                  </div>
+                  <span className="mv-item-end"><Button>Connect</Button></span>
+                </div>
+              </li>
+            </ul>
+            <ul className="mv-list" aria-label="An empty list">
+              <li style={{ borderBottom: 0 }}><p className="mv-empty">Nothing here yet.</p></li>
+            </ul>
+          </section>
 
-      <Section id="07b" title="Imagery" note="Generated in-house, never stock: nocturnal atmospheric plates, one per signature, desaturated to near-black so type always wins. Photography appears only as an atmospheric hero or under a tile wash — never as decoration, never behind body copy.">
-        <div className="n-grid-3" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
-          {[
-            ['atmosphere.jpg', 'Atmosphere', 'hero plate — landing'],
-            ['sig-ember.jpg', 'Ember', 'motivation & drive'],
-            ['sig-iris.jpg', 'Iris', 'personality & emotion'],
-            ['sig-verdigris.jpg', 'Verdigris', 'cultural identity'],
-            ['sig-orchid.jpg', 'Orchid', 'social dynamics'],
-            ['sig-periwinkle.jpg', 'Periwinkle', 'lifestyle & rhythms'],
-          ].map(([file, name, role]) => (
-            <div key={file} style={{ borderRadius: 'var(--n-r-card)', overflow: 'hidden', border: '1px solid var(--n-line)' }}>
-              <div style={{ height: 132, backgroundImage: `url('/images/nocturne/${file}')`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
-              <div style={{ padding: '12px 16px' }}>
-                <p className="n-label">{name}</p>
-                <p className="n-micro" style={{ marginTop: 4 }}>{role}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </Section>
+          <section className="mv-section" id="controls">
+            <h2>Controls</h2>
+            <p className="mv-sub">The shared components. 32 tall, a 4 corner; one ink primary a screen.</p>
+            <ul className="mv-list">
+              <li>
+                <div className="mv-item">
+                  <div className="mv-item-text">
+                    <span className="mv-item-title">Buttons</span>
+                    <span className="mv-item-sub">Primary, secondary, danger</span>
+                  </div>
+                  <span className="mv-item-end" style={{ flexWrap: 'wrap', whiteSpace: 'normal', gap: 8 }}>
+                    <Button>Save</Button>
+                    <Button variant="outline">Cancel</Button>
+                    <Button variant="destructive">Delete</Button>
+                  </span>
+                </div>
+              </li>
+              <li>
+                <div className="mv-item">
+                  <div className="mv-item-text">
+                    <span className="mv-item-title">The main call to action</span>
+                    <span className="mv-item-sub">Sign-in and marketing only: 48 tall, a 12 corner</span>
+                  </div>
+                  <span className="mv-item-end"><Button size="lg">Continue with Google</Button></span>
+                </div>
+              </li>
+              <li>
+                <div className="mv-item">
+                  <div className="mv-item-text" style={{ gap: 8 }}>
+                    <label className="mv-item-title" htmlFor="system-field">Field</label>
+                    <Input id="system-field" placeholder="No border, the warm box, 44 tall" />
+                  </div>
+                </div>
+              </li>
+              <li>
+                <div className="mv-item">
+                  <div className="mv-item-text">
+                    <span className="mv-item-title">Switch</span>
+                    <span className="mv-item-sub">44 by 26, ink when on</span>
+                  </div>
+                  <span className="mv-item-end">
+                    <Switch checked={on} onCheckedChange={setOn} aria-label="Example switch, on" />
+                    <Switch checked={off} onCheckedChange={setOff} aria-label="Example switch, off" />
+                  </span>
+                </div>
+              </li>
+            </ul>
+          </section>
 
-      <Section id="08" title="The reading" note="Nocturne's own component — a mono source annotation over an italic serif statement. Data becomes portrait.">
-        <div className="n-reading" style={{ maxWidth: 640 }}>
-          <p className="n-micro">GITHUB · 02:14 · BRANCH: still-awake</p>
-          <p className="n-reading__statement">
-            Your best commits happen after midnight, in bursts, alone. Rest, for you, is momentum.
-          </p>
-        </div>
-      </Section>
+          <section className="mv-section" id="layout">
+            <h2>Layout</h2>
+            <p className="mv-sub">On a phone the sidebar goes behind a menu button and nothing else changes size.</p>
+            <ul className="mv-list">
+              {LAYOUT.map((t) => (
+                <li key={t.name}>
+                  <div className="mv-item mv-item--tight">
+                    <div className="mv-item-text">
+                      <span className="mv-item-title">{t.label}</span>
+                      <span className="mv-item-sub">{t.role}</span>
+                    </div>
+                    <span className="mv-item-end mv-quiet">{v[t.name]}</span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </section>
 
-      <Section id="09" title="Motion" note="0.2s ease for every state. 2.5s atmospheric ease for hero reveals. Nothing bounces, nothing loops, reduced-motion respected.">
-        <div style={{ display: 'flex', gap: 16 }}>
-          <button className="n-btn n-btn--ghost">Hover me — 0.2s ease</button>
-        </div>
-      </Section>
+          <section className="mv-section" id="rules">
+            <h2>Rules</h2>
+            <p className="mv-sub">What must hold on every page.</p>
+            <ul className="mv-list">
+              {[
+                ['Text reaches 4.5:1', '3:1 at 24px and up. Measure with scripts/audit-cosmos-ink.mjs'],
+                ['Never a serif', 'Geist for everything; the heading names resolve to it'],
+                ['No uppercase tracked labels', 'Labels are sentence case, a row title or a grey line'],
+                ['No cards, glass, shadows or gradients', 'On app screens. Marketing pages keep their photography'],
+                ['Colour only in state and domain', 'A signature is never text; state text is darkened to pass'],
+                ['Very little text', 'One grey line a row, about 60 characters; a screen under 150 words'],
+              ].map(([title, line]) => (
+                <li key={title}>
+                  <div className="mv-item mv-item--tight">
+                    <div className="mv-item-text">
+                      <span className="mv-item-title">{title}</span>
+                      <span className="mv-item-sub">{line}</span>
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </section>
 
-      <footer>
-        <hr className="n-hairline" style={{ marginBottom: 24 }} />
-        <p className="n-micro">
-          Nocturne v1 · source: src/styles/nocturne.css · reference: Origin Financial
-          (Refero extraction + live audit) · this page is the contract.
-        </p>
-      </footer>
+          <footer className="mv-foot">
+            <span>Source: src/styles/register.css</span>
+            <span>Nocturne retired 2026-09-12</span>
+          </footer>
+        </main>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 export default NocturneSpec;
