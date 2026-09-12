@@ -15,18 +15,22 @@ export interface StandardButtonProps extends React.ButtonHTMLAttributes<HTMLButt
   rightIcon?: React.ReactNode;
 }
 
+// The register's buttons: 32 tall, a 4px corner, 13px. Primary is ink with
+// page-colour text, once a screen; secondary and outline are white with a
+// hairline; danger is white with the pink line and red text. lg is the one
+// marketing / sign-in call to action, 48 tall with a 12px corner.
 const variants = {
-  primary: 'bg-[var(--accent-vibrant)] hover:bg-[var(--accent-vibrant-hover)] text-white',
-  secondary: 'bg-[var(--text-muted)] hover:bg-[var(--foreground)] text-white',
-  outline: 'border-2 border-[var(--accent-vibrant)] text-[var(--accent-vibrant)] hover:bg-[var(--accent-vibrant)] hover:text-white',
-  ghost: 'text-[var(--foreground)] hover:bg-[var(--glass-surface-bg-subtle)]',
-  danger: 'bg-[var(--n-danger)] hover:bg-red-700 text-white'
+  primary: 'border-[var(--rg-ink)] bg-[var(--rg-ink)] text-[var(--rg-page)] font-medium hover:opacity-[0.86]',
+  secondary: 'border-[var(--rg-rule)] bg-[var(--rg-white)] text-[var(--rg-ink)] hover:border-[var(--rg-quiet)]',
+  outline: 'border-[var(--rg-rule)] bg-[var(--rg-white)] text-[var(--rg-ink)] hover:border-[var(--rg-quiet)]',
+  ghost: 'border-transparent text-[var(--rg-ink)] hover:bg-[var(--rg-hover)]',
+  danger: 'border-[var(--rg-danger-line)] bg-[var(--rg-white)] text-[var(--rg-danger)] hover:border-[var(--rg-danger)]'
 };
 
 const sizes = {
-  sm: 'px-3 py-1.5 text-sm',
-  md: 'px-4 py-2 text-base',
-  lg: 'px-6 py-3 text-lg'
+  sm: 'h-8 px-3 text-[13px]',
+  md: 'h-8 px-4 text-[13px]',
+  lg: 'h-12 px-[22px] text-[15px] font-medium rounded-[var(--rg-radius-cta)]'
 };
 
 export const StandardButton: React.FC<StandardButtonProps> = ({
@@ -44,11 +48,11 @@ export const StandardButton: React.FC<StandardButtonProps> = ({
     <button
       className={cn(
         // Base styles
-        'inline-flex items-center justify-center rounded-lg',
-        'font-[family-name:var(--font-ui)] font-medium',
-        'transition-all duration-200',
-        'focus:outline-none focus:ring-2 focus:ring-[var(--accent-vibrant)] focus:ring-offset-2',
-        'disabled:opacity-50 disabled:cursor-not-allowed',
+        'inline-flex items-center justify-center rounded-[var(--rg-radius)] border',
+        'font-[family-name:var(--font-ui)] font-normal tracking-[-0.176px]',
+        'transition-[opacity,background-color,border-color] duration-200',
+        'focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--rg-ink)] focus-visible:ring-offset-2',
+        'disabled:opacity-40 disabled:cursor-not-allowed',
 
         // Variant styles
         variants[variant],

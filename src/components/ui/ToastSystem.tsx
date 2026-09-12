@@ -236,14 +236,14 @@ export function ToastExamples() {
     <div className="space-y-2">
       <button
         onClick={() => toast.success('Profile Updated', 'Your soul signature has been refreshed')}
-        className="px-4 py-2 bg-green-600 text-white rounded"
+        className="h-8 px-4 rounded-[var(--rg-radius)] border border-[var(--rg-ink)] bg-[var(--rg-ink)] text-[13px] text-[var(--rg-page)]"
       >
         Show Success
       </button>
 
       <button
         onClick={() => toast.error('Connection Failed', 'Unable to connect to Spotify. Please try again.')}
-        className="px-4 py-2 bg-[var(--n-danger)] text-white rounded"
+        className="h-8 px-4 rounded-[var(--rg-radius)] border border-[var(--rg-danger-line)] bg-[var(--rg-white)] text-[13px] text-[var(--rg-danger)]"
       >
         Show Error
       </button>
@@ -259,7 +259,7 @@ export function ToastExamples() {
             }
           );
         }}
-        className="px-4 py-2 bg-[var(--accent-amber)] text-[#110f0f] rounded"
+        className="h-8 px-4 rounded-[var(--rg-radius)] border border-[var(--rg-rule)] bg-[var(--rg-white)] text-[13px] text-[var(--rg-ink)]"
       >
         Show Promise
       </button>
@@ -276,7 +276,7 @@ export function ToastExamples() {
             },
           })
         }
-        className="px-4 py-2 bg-[#C9B99A] text-white rounded"
+        className="h-8 px-4 rounded-[var(--rg-radius)] border border-[var(--rg-rule)] bg-[var(--rg-white)] text-[13px] text-[var(--rg-ink)]"
       >
         Show with Action
       </button>

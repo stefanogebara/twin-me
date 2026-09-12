@@ -26,10 +26,11 @@ export const Spinner: React.FC<SpinnerProps> = ({
     xl: 'w-12 h-12',
   };
 
+  // `white` is the spinner on an ink fill, so it is the page colour now.
   const colors = {
     default: 'text-[var(--text-muted)]',
     primary: 'text-[var(--accent-vibrant)]',
-    white: 'text-white',
+    white: 'text-[var(--rg-page)]',
   };
 
   return (
@@ -52,16 +53,16 @@ export const PageLoader: React.FC<PageLoaderProps> = ({
   icon,
 }) => {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--background)]/80 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgb(var(--rg-page-rgb)_/_0.9)]">
       <div className="text-center">
         <div className="mb-4">
-          {icon || <Loader2 className="w-12 h-12 mx-auto text-[var(--accent-vibrant)] animate-spin" />}
+          {icon || <Loader2 className="w-6 h-6 mx-auto text-[var(--accent-vibrant)] animate-spin" />}
         </div>
-        <h3 className="text-lg font-medium font-[family-name:var(--font-heading)] text-[var(--foreground)]">
+        <h3 className="text-[13px] leading-5 font-medium text-[var(--foreground)]">
           {message}
         </h3>
         {submessage && (
-          <p className="mt-2 text-sm text-[var(--text-muted)] font-[family-name:var(--font-body)]">
+          <p className="text-[13px] font-[350] text-[var(--text-muted)] font-[family-name:var(--font-body)]">
             {submessage}
           </p>
         )}
@@ -151,16 +152,17 @@ export const ExtractionLoader: React.FC<ExtractionLoaderProps> = ({
   return (
     <div className="flex flex-col items-center justify-center p-8 text-center">
       <div className="mb-4">{currentStage.icon}</div>
-      <h3 className="text-lg font-medium font-[family-name:var(--font-heading)] text-[var(--foreground)]">
+      <h3 className="text-[13px] leading-5 font-medium text-[var(--foreground)]">
         {currentStage.message}
       </h3>
-      <p className="mt-2 text-sm text-[var(--text-muted)] font-[family-name:var(--font-body)]">
+      <p className="text-[13px] font-[350] text-[var(--text-muted)] font-[family-name:var(--font-body)]">
         {currentStage.submessage}
       </p>
-      <div className="mt-6 flex gap-1">
-        <div className="w-2 h-2 bg-[var(--accent-vibrant)] rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-        <div className="w-2 h-2 bg-[var(--accent-vibrant)] rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-        <div className="w-2 h-2 bg-[var(--accent-vibrant)] rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+      {/* Nothing bounces: three dots that breathe. */}
+      <div className="mt-5 flex gap-1" aria-hidden="true">
+        <div className="w-1.5 h-1.5 bg-[var(--accent-vibrant)] rounded-full animate-pulse" style={{ animationDelay: '0ms' }} />
+        <div className="w-1.5 h-1.5 bg-[var(--accent-vibrant)] rounded-full animate-pulse" style={{ animationDelay: '150ms' }} />
+        <div className="w-1.5 h-1.5 bg-[var(--accent-vibrant)] rounded-full animate-pulse" style={{ animationDelay: '300ms' }} />
       </div>
     </div>
   );
@@ -187,13 +189,13 @@ export const LoadingButton: React.FC<LoadingButtonProps> = ({
   return (
     <button
       className={cn(
-        'inline-flex items-center justify-center px-4 py-2 rounded-lg',
-        'bg-[var(--accent-vibrant)] text-white',
-        'hover:bg-[var(--accent-vibrant-hover)]',
+        'inline-flex h-8 items-center justify-center px-4 rounded-[var(--rg-radius)] border',
+        'border-[var(--rg-ink)] bg-[var(--rg-ink)] text-[var(--rg-page)] text-[13px] tracking-[-0.176px]',
+        'hover:opacity-[0.86]',
         'font-[family-name:var(--font-ui)] font-medium',
-        'transition-all duration-200',
-        'focus:outline-none focus:ring-2 focus:ring-[var(--accent-vibrant)] focus:ring-offset-2',
-        'disabled:opacity-50 disabled:cursor-not-allowed',
+        'transition-opacity duration-200',
+        'focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--rg-ink)] focus-visible:ring-offset-2',
+        'disabled:opacity-40 disabled:cursor-not-allowed',
         className
       )}
       disabled={disabled || isLoading}
@@ -231,11 +233,12 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
   variant = 'default',
   size = 'md',
 }) => {
+  // Fills are state colour at 3:1 or better on the field track.
   const colors = {
     default: 'bg-[var(--accent-vibrant)]',
-    success: 'bg-green-500',
-    warning: 'bg-stone-500',
-    error: 'bg-red-500',
+    success: 'bg-[var(--rg-ok)]',
+    warning: 'bg-[var(--rg-ember)]',
+    error: 'bg-[var(--rg-danger)]',
   };
 
   const sizes = {
@@ -249,12 +252,12 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
       {(label || showPercentage) && (
         <div className="flex justify-between mb-2">
           {label && (
-            <span className="text-sm font-medium font-[family-name:var(--font-ui)] text-[var(--foreground)]">
+            <span className="text-[13px] font-medium font-[family-name:var(--font-ui)] text-[var(--foreground)]">
               {label}
             </span>
           )}
           {showPercentage && (
-            <span className="text-sm font-medium font-[family-name:var(--font-ui)] text-[var(--text-muted)]">
+            <span className="text-[13px] font-[350] font-[family-name:var(--font-ui)] text-[var(--text-muted)]">
               {Math.round(value)}%
             </span>
           )}
@@ -305,7 +308,7 @@ export const CircularProgress: React.FC<CircularProgressProps> = ({
           stroke="currentColor"
           strokeWidth={strokeWidth}
           fill="none"
-          className="text-gray-200"
+          className="text-[var(--rg-rule)]"
         />
         <circle
           cx={dimension / 2}
@@ -322,7 +325,7 @@ export const CircularProgress: React.FC<CircularProgressProps> = ({
       </svg>
       {showValue && (
         <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-sm font-semibold font-[family-name:var(--font-ui)] text-[var(--foreground)]">
+          <span className="text-[13px] font-medium font-[family-name:var(--font-ui)] text-[var(--foreground)]">
             {Math.round(value)}%
           </span>
         </div>

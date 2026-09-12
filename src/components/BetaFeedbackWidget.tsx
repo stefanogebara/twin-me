@@ -58,21 +58,25 @@ const BetaFeedbackWidget: React.FC = () => {
     }
   };
 
+  // In the register: the trigger is a 32px secondary button, the panel the page
+  // colour under a hairline with an 8px corner, the categories 32px choices (a
+  // pressed one takes the field and an ink line), the message the warm field, and
+  // Send the one ink primary. No glass, no shadow, no pills.
   return (
     <>
       {/* Floating trigger button */}
       {!open && (
         <button
           onClick={() => setOpen(true)}
-          className="fixed bottom-[108px] lg:bottom-5 right-5 z-50 flex items-center gap-2 px-3.5 py-2 rounded-full text-xs font-medium transition-all hover:scale-105 active:scale-95"
+          className="fixed bottom-[88px] lg:bottom-5 right-5 z-50 flex items-center gap-2 h-8 px-3 text-[13px] transition-colors hover:border-[var(--rg-quiet)]"
           style={{
-            backgroundColor: 'var(--accent-vibrant-glow)',
-            color: 'var(--accent-vibrant)',
-            border: '1px solid rgba(232,224,212,0.2)',
-            fontFamily: "'Inter', sans-serif",
+            backgroundColor: 'var(--rg-white)',
+            color: 'var(--rg-ink)',
+            border: '1px solid var(--rg-rule)',
+            borderRadius: 'var(--rg-radius)',
           }}
         >
-          <MessageSquarePlus className="w-3.5 h-3.5" />
+          <MessageSquarePlus className="w-3.5 h-3.5" aria-hidden="true" />
           Feedback
         </button>
       )}
@@ -80,25 +84,25 @@ const BetaFeedbackWidget: React.FC = () => {
       {/* Feedback panel */}
       {open && (
         <div
-          className="fixed bottom-[108px] lg:bottom-5 right-5 z-50 w-[320px] rounded-2xl overflow-hidden"
+          className="fixed bottom-[88px] lg:bottom-5 right-5 z-50 w-[320px] overflow-hidden"
           style={{
-            backgroundColor: 'var(--background)',
-            border: '1px solid var(--border)',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+            backgroundColor: 'var(--rg-page)',
+            border: '1px solid var(--rg-rule)',
+            borderRadius: 'var(--rg-radius-icon)',
           }}
         >
           {/* Header */}
           <div
             className="flex items-center justify-between px-4 py-3"
-            style={{ borderBottom: '1px solid var(--border-glass)' }}
+            style={{ borderBottom: '1px solid var(--rg-rule)' }}
           >
-            <span className="text-sm font-medium" style={{ color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}>
+            <span className="text-[13px] font-medium" style={{ color: 'var(--rg-ink)' }}>
               Send feedback
             </span>
             <button
               onClick={() => setOpen(false)}
-              className="p-1 transition-opacity hover:opacity-60"
-              style={{ color: 'var(--text-muted)' }}
+              className="inline-grid place-items-center w-8 h-8 transition-colors hover:bg-[var(--rg-hover)]"
+              style={{ color: 'var(--rg-ink-2)', borderRadius: 'var(--rg-radius)' }}
               aria-label="Close feedback panel"
             >
               <X className="w-4 h-4" aria-hidden="true" />
@@ -107,23 +111,25 @@ const BetaFeedbackWidget: React.FC = () => {
 
           <div className="px-4 py-3">
             {sent ? (
-              <p className="text-sm text-center py-6" style={{ color: 'var(--accent-vibrant)', fontFamily: "'Inter', sans-serif" }}>
-                Thank you! Your feedback helps us improve.
+              <p className="text-[13px] text-center py-6" style={{ color: 'var(--rg-ink-2)' }}>
+                Thank you. Your feedback helps us improve.
               </p>
             ) : (
               <>
-                {/* Category pills */}
+                {/* Categories */}
                 <div className="flex gap-1.5 mb-3">
                   {CATEGORIES.map(cat => (
                     <button
                       key={cat}
                       onClick={() => setCategory(cat)}
-                      className="px-2.5 py-1 rounded-full text-[11px] font-medium transition-all"
+                      aria-pressed={category === cat}
+                      className="h-8 px-3 text-[13px] transition-colors"
                       style={{
-                        backgroundColor: category === cat ? 'rgba(232,224,212,0.15)' : 'rgba(255,255,255,0.04)',
-                        color: category === cat ? 'var(--accent-vibrant)' : 'rgba(255,255,255,0.4)',
-                        border: `1px solid ${category === cat ? 'rgba(232,224,212,0.3)' : 'var(--border-glass)'}`,
-                        fontFamily: "'Inter', sans-serif",
+                        backgroundColor: category === cat ? 'var(--rg-field)' : 'var(--rg-white)',
+                        color: 'var(--rg-ink)',
+                        fontWeight: category === cat ? 500 : 400,
+                        border: `1px solid ${category === cat ? 'var(--rg-ink)' : 'var(--rg-rule)'}`,
+                        borderRadius: 'var(--rg-radius)',
                       }}
                     >
                       {CATEGORY_LABELS[cat]}
@@ -137,12 +143,12 @@ const BetaFeedbackWidget: React.FC = () => {
                   onChange={e => setMessage(e.target.value)}
                   placeholder="What's on your mind?"
                   rows={3}
-                  className="w-full text-sm rounded-lg px-3 py-2 outline-none resize-none"
+                  className="w-full text-[13px] px-[14px] py-[11px] outline-none resize-none focus-visible:ring-2 focus-visible:ring-[var(--rg-ink)]"
                   style={{
-                    backgroundColor: 'rgba(218,217,215,0.06)',
-                    border: '1px solid var(--border-glass)',
-                    color: 'var(--foreground)',
-                    fontFamily: "'Inter', sans-serif",
+                    backgroundColor: 'var(--rg-field)',
+                    border: 0,
+                    borderRadius: 'var(--rg-radius)',
+                    color: 'var(--rg-ink)',
                   }}
                 />
 
@@ -150,11 +156,11 @@ const BetaFeedbackWidget: React.FC = () => {
                 <button
                   onClick={handleSubmit}
                   disabled={loading || message.trim().length < 3}
-                  className="w-full mt-2 h-9 rounded-lg text-sm font-medium transition-opacity hover:opacity-90 disabled:opacity-40"
+                  className="w-full mt-2 h-8 text-[13px] font-medium transition-opacity hover:opacity-[0.86] disabled:opacity-40"
                   style={{
-                    backgroundColor: 'var(--accent-vibrant)',
-                    color: 'var(--foreground)',
-                    fontFamily: "'Inter', sans-serif",
+                    backgroundColor: 'var(--rg-ink)',
+                    color: 'var(--rg-page)',
+                    borderRadius: 'var(--rg-radius)',
                   }}
                 >
                   {loading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'Send'}
