@@ -29,7 +29,6 @@ import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanima
 import { cosmos } from './src/constants/cosmos';
 import { fade, spring } from './src/ui/motion';
 import { Glass, Micro, Pill, Press } from './src/ui/primitives';
-import { PromptButton } from './src/ui/prompt';
 import { useAuth } from './src/hooks/useAuth';
 import { requestMagicLink } from './src/services/api';
 import { moneyApi } from './src/services/moneyApi';
@@ -110,6 +109,7 @@ function Layer({ active, children }: { active: boolean; children: React.ReactNod
  * -------------------------------------------------------------------------------------- */
 
 function Capsule({ place, onChange }: { place: Place; onChange: (p: Place) => void }) {
+  const insets = useSafeAreaInsets();
   const [boxes, setBoxes] = useState<Record<Place, { x: number; w: number } | undefined>>({ month: undefined, ledger: undefined, ask: undefined, you: undefined });
   const x = useSharedValue(0);
   const w = useSharedValue(0);
@@ -121,7 +121,7 @@ function Capsule({ place, onChange }: { place: Place; onChange: (p: Place) => vo
   }, [place, boxes, x, w]);
   const line = useAnimatedStyle(() => ({ transform: [{ translateX: x.value }], width: w.value }));
   return (
-    <View style={styles.capsuleRow} pointerEvents="box-none">
+    <View style={[styles.capsuleRow, { bottom: (Platform.OS === 'ios' ? insets.bottom : cosmos.space.md) + cosmos.space.sm }]} pointerEvents="box-none">
     <Glass style={styles.capsule}>
       {PLACES.map((p) => (
         <Press
@@ -297,16 +297,11 @@ function Shell() {
             />
           </Layer>
         </View>
-        {/* The chrome floats: content scrolls beneath the capsule and the door, and both are
-            glass, so what is beneath shows through the way it does under the system's bars. */}
+        {/* The one piece of chrome, at the bottom where the thumb is: four words and an
+            underline, glass, so content scrolls beneath it the way it does under the system's
+            bars. The conversation is one of the four places, so there is no second door to it
+            on every page; its field lives on its own page and nowhere else. */}
         <Capsule place={place} onChange={setPlace} />
-        {/* The door is a way in, so it is not there once you are inside: the conversation has
-            a field of its own, and two of them on one screen is one too many. */}
-        {place === 'ask' ? null : (
-          <View style={[styles.askBar, { paddingBottom: Platform.OS === 'ios' ? insets.bottom : cosmos.space.md }]} pointerEvents="box-none">
-            <PromptButton label="Ask about your money" onPress={() => setPlace('ask')} />
-          </View>
-        )}
       </View>
     );
   }
@@ -348,8 +343,7 @@ export default function App() {
 
 const styles = StyleSheet.create({
   fill: { flex: 1, backgroundColor: cosmos.color.canvas },
-  askBar: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: cosmos.space.lg },
-  capsuleRow: { position: 'absolute', top: cosmos.space.sm, left: 0, right: 0, alignItems: 'center' },
+  capsuleRow: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
   capsule: {
     flexDirection: 'row', alignItems: 'center', gap: cosmos.space.md,
     paddingHorizontal: cosmos.space.md, height: cosmos.chrome.capsule - cosmos.space.sm, position: 'relative',

@@ -37,6 +37,7 @@ const FACT_WORD: Record<string, string> = {
 const NAV: MoneyNavLink[] = [
   { to: '/money', label: 'This month' },
   { to: '/money/setup', label: 'Questions', current: true },
+  { to: '/money/chat', label: 'Ask' },
   { to: '/portrait', label: 'Portrait' },
 ];
 

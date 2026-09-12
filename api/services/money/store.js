@@ -10,6 +10,7 @@ import { detectRecurring } from './recurring.js';
 import { projectMonth } from './projection.js';
 import { fetchTransactions, toSighting } from './feeds/enableBanking.js';
 import { readLedger, monthSegments } from './analyst.js';
+import { spendingRule, markCounted } from './spending.js';
 import { tellTwin } from './twinBridge.js';
 import { lookupPlace, providerFor, categoryFromBrand, PROVIDER_NONE } from './places.js';
 import { readUsage, unmeasurable, platformForMerchant } from './usage.js';
@@ -203,8 +204,6 @@ export async function forecast(userId, now = new Date()) {
   const income = facts.filter((f) => f.kind === 'income' && f.amount);
   const shares = new Map(facts.filter((f) => f.kind === 'shared_cost' && f.share != null)
     .map((f) => [String(f.subject || '').toLowerCase(), Number(f.share)]));
-  const roles = new Map(facts.filter((f) => f.kind === 'person' && f.value)
-    .map((f) => [String(f.subject || '').toLowerCase(), f.value]));
 
   const shareOf = (t) => {
     const exact = shares.get(t.merchant_key);
@@ -213,14 +212,9 @@ export async function forecast(userId, now = new Date()) {
        will not match; the caller resolves that, and an unmatched payment is wholly theirs. */
     return 1;
   };
-  /* Money handed to a flatmate or a parent moved between people; it is not a purchase.
-     A friend paid back is the same. Landlord and work are real spending and stay. */
-  const NOT_SPENDING = new Set(['flatmate', 'family', 'friend', 'partner']);
-  const isSpending = (t) => {
-    if (!['transfer', 'bizum'].includes(t.channel)) return true;
-    const role = roles.get(t.merchant_key);
-    return !(role && NOT_SPENDING.has(role));
-  };
+  /* Which transfers are not spending at all is one rule for the whole product; see
+     spending.js. The forecast must never be the only place that knows it. */
+  const isSpending = spendingRule(facts);
 
   const result = projectMonth({ transactions: rows, recurring: rec, commitments, income, shareOf, isSpending, now });
   /* What is still to come is named on the hero, so it needs a name and not a key. */
@@ -386,9 +380,10 @@ export async function pullBankFeed(userId, { since, attended = false } = {}) {
  * A verdict the person already gave is kept.
  */
 export async function refreshReadings(userId, now = new Date()) {
-  const [transactions, recurring] = await Promise.all([
+  const [transactions, recurring, facts] = await Promise.all([
     listTransactions(userId, { limit: 5000 }),
     supabaseAdmin.from('money_recurring').select('*').eq('user_id', userId).then((r) => r.data || []),
+    listFacts(userId).catch(() => []),
   ]);
   const names = new Map();
   for (const t of transactions) if (t.merchant_raw && !names.has(t.merchant_key)) names.set(t.merchant_key, t.merchant_raw);
@@ -401,7 +396,7 @@ export async function refreshReadings(userId, now = new Date()) {
     : { data: [] };
   const categories = new Map((places || []).map((p) => [p.merchant_key, p.category_override || p.category || null]));
   const categoryOf = (t) => categories.get(t.merchant_key) || CHANNEL_CATEGORY[t.channel] || null;
-  const { segments, findings } = readLedger({ transactions, recurring: withNames, categoryOf, now });
+  const { segments, findings } = readLedger({ transactions, recurring: withNames, categoryOf, now, isSpending: spendingRule(facts) });
   /* A finding with no month (a subscription load, a weekday shape) has month NULL, and
      Postgres counts NULLs as distinct: an upsert on (kind, month) inserted a fresh copy
      every run. So the write is an explicit update-or-insert, which also keeps the id and
@@ -460,8 +455,8 @@ export async function setReadingVerdict(userId, readingId, verdict) {
 
 /** Money in and out per calendar month, for the page that asks for it per month. */
 export async function months(userId, now = new Date()) {
-  const transactions = await listTransactions(userId, { limit: 5000 });
-  return monthSegments(transactions, now);
+  const [transactions, facts] = await Promise.all([listTransactions(userId, { limit: 5000 }), listFacts(userId).catch(() => [])]);
+  return monthSegments(transactions, now, spendingRule(facts));
 }
 
 /**
@@ -477,12 +472,12 @@ export async function moneyContext(userId, now = new Date()) {
       .order('computed_at', { ascending: false }).limit(4).then((r) => r.data || []),
   ]);
   if (!transactions.length) return null;
-  const segments = monthSegments(transactions, now);
-  const here = segments[0];
-  const before = segments[1] || null;
   /* What the person said about their own money, kept apart from what was read, because a
      typed number and an observed payment must never be quoted with the same certainty. */
   const facts = await listFacts(userId).catch(() => []);
+  const segments = monthSegments(transactions, now, spendingRule(facts));
+  const here = segments[0];
+  const before = segments[1] || null;
   const said = describeContext(facts);
   /* The calendar, as last read: the days ahead with what they tend to cost, and the kinds of
      event the ledger has learned. Kept short; this rides in a prompt. */
@@ -557,9 +552,13 @@ export async function categorySpend(userId, { month = null } = {}) {
     const end = new Date(Date.UTC(Number(start.slice(0, 4)), Number(start.slice(5, 7)), 1)).toISOString().slice(0, 10);
     q = q.gte('occurred_at', `${start}T00:00:00Z`).lt('occurred_at', `${end}T00:00:00Z`);
   }
-  const { data: rows, error } = await q;
+  const { data: all, error } = await q;
   if (error) throw new Error(error.message);
-  if (!rows?.length) return { month, total: 0, read: 0, groups: [] };
+  /* A transfer to a friend is not where the money went; it is money that moved. The same
+     rule the forecast uses, so the hero and this list add up to the same euros. */
+  const counts = spendingRule(await listFacts(userId).catch(() => []));
+  const rows = (all || []).filter(counts);
+  if (!rows.length) return { month, total: 0, read: 0, groups: [] };
 
   const keys = [...new Set(rows.map((r) => r.merchant_key))];
   const { data: places } = await supabaseAdmin

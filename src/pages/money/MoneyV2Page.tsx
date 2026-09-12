@@ -25,6 +25,7 @@ const NAV: MoneyNavLink[] = [
   { to: '#recurring', label: 'What comes back', sub: true },
   { to: '#sources', label: 'Sources', sub: true },
   { to: '/money/setup', label: 'Questions' },
+  { to: '/money/chat', label: 'Ask' },
   { to: '/portrait', label: 'Portrait' },
 ];
 

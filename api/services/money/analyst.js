@@ -41,7 +41,7 @@ function ordinal(d) {
  * when they say "per month": what left, what came in, how many lines, and the days
  * covered so a half month is never compared with a whole one.
  */
-export function monthSegments(transactions, now = new Date()) {
+export function monthSegments(transactions, now = new Date(), isSpending = null) {
   const byMonth = new Map();
   for (const t of transactions) {
     if (!t.occurred_at) continue;
@@ -50,6 +50,8 @@ export function monthSegments(transactions, now = new Date()) {
     const m = byMonth.get(key);
     m.lines += 1;
     if (out(t)) {
+      /* A transfer that is not spending stays a line of the month, and no part of its sum. */
+      if (isSpending && !isSpending(t)) continue;
       m.spent += abs(t);
       if (!m.biggest || abs(t) > abs(m.biggest)) m.biggest = t;
     } else m.received += abs(t);
@@ -329,18 +331,21 @@ export function categoryShape(transactions, categoryOf, now, days = 120) {
  * its evidence rule is absent, not softened: silence is the honest output when there
  * is nothing yet to see.
  */
-export function readLedger({ transactions = [], recurring = [], categoryOf = null, now = new Date() } = {}) {
+export function readLedger({ transactions = [], recurring = [], categoryOf = null, now = new Date(), isSpending = null } = {}) {
   const rows = transactions.filter((t) => t.occurred_at);
-  const segments = monthSegments(rows, now);
+  const segments = monthSegments(rows, now, isSpending);
+  /* Every finding speaks about spending, so a transfer the rule sets aside is not a line
+     it may count, name as the biggest, or call a small payment. */
+  const counted = isSpending ? rows.filter((t) => Number(t.amount) >= 0 || isSpending(t)) : rows;
   const findings = [
-    monthPace(rows, now, segments),
-    subscriptionLoad(recurring, rows),
-    categoryOf ? categoryShape(rows, categoryOf, now) : null,
-    weekdayShape(rows, now),
-    smallPayments(rows, segments),
-    biggestLine(rows, now),
-    newMerchant(rows, segments),
-    dormantCharge(recurring, rows, now),
+    monthPace(counted, now, segments),
+    subscriptionLoad(recurring, counted),
+    categoryOf ? categoryShape(counted, categoryOf, now) : null,
+    weekdayShape(counted, now),
+    smallPayments(counted, segments),
+    biggestLine(counted, now),
+    newMerchant(counted, segments),
+    dormantCharge(recurring, counted, now),
   ].filter(Boolean);
   return { segments, findings };
 }

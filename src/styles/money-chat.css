@@ -77,3 +77,44 @@
   .mc-row--three > :first-child { grid-column: 1 / -1; }
   .mc-row--share { grid-template-columns: 1fr auto; }
 }
+
+/* ----------------------------------------------------------------------- ask
+   The conversation about the money itself: your line a step in from the margin, the
+   ledger's line at full width, a figure under it when there is one, the payments it
+   stands on under that. Same ink, same rule, same 13px. */
+.mc-line { display: grid; gap: 8px; }
+.mc-line--you { padding-left: 24px; }
+.mc .mc-line-who { color: var(--ink-3); font-weight: 350; }
+.mc .mc-line--you .mc-line-text { color: var(--ink-2); }
+.mc .mc-line-text { max-width: 40rem; white-space: pre-wrap; overflow-wrap: anywhere; }
+.mc .mc-line-text.is-pending { color: var(--ink-3); }
+.mc-offers { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+
+.mc-figure { margin: 8px 0 0; display: grid; gap: 8px; max-width: 40rem; }
+.mc-figure > figcaption { margin: 0; }
+.mc .mc-figure-list { margin-top: 0; }
+
+.mc-bars { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 8px; align-items: end; height: 120px; }
+.mc-bar { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; height: 100%; gap: 4px; text-align: center; min-width: 0; }
+.mc .mc-bar-value { color: var(--ink-3); font-size: 11px; line-height: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mc-bar-track { display: flex; align-items: flex-end; min-height: 0; }
+.mc-bar-track > i { display: block; width: 100%; background: var(--track); border-radius: 2px 2px 0 0; }
+.mc-bar.is-current .mc-bar-track > i { background: var(--ink); }
+.mc .mc-bar-label { color: var(--ink-2); font-size: 11px; line-height: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.mc-shares { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.mc-share { display: grid; gap: 4px; }
+.mc-share-head { display: flex; justify-content: space-between; gap: 12px; font-weight: 500; }
+.mc-share-track { display: block; height: 3px; background: var(--track); border-radius: 2px; overflow: hidden; }
+.mc-share-track > i { display: block; height: 100%; background: var(--ink); }
+.mc .mc-share-pct { color: var(--ink-3); font-size: 11px; line-height: 14px; }
+
+.mc-band { display: grid; gap: 6px; }
+.mc-band-track { position: relative; display: block; height: 6px; background: var(--track); border-radius: 3px; overflow: hidden; }
+.mc-band-track > i { position: absolute; left: 0; top: 0; bottom: 0; display: block; border-radius: 3px; }
+.mc-band-likely { background: var(--ink-3); opacity: 0.5; }
+.mc-band-spent { background: var(--ink); }
+.mc .mc-band-labels { display: flex; justify-content: space-between; color: var(--ink-2); font-weight: 350; }
+
+.mc-receipts { display: grid; gap: 4px; max-width: 40rem; }
+.mc .mc-receipts > .mv-list { margin-top: 4px; }

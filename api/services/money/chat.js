@@ -34,6 +34,7 @@ import {
 import { learnMerchants, learnPatterns, predictNext, describeForTwin } from './brain.js';
 import { describeContext } from './context.js';
 import { CATEGORIES } from './places.js';
+import { markCounted } from './spending.js';
 import { calendarLines } from './calendar.js';
 import { safeToSpend, allowanceLine } from './allowance.js';
 
@@ -56,7 +57,8 @@ const DECIMAL = new Intl.NumberFormat('es-ES', { minimumFractionDigits: 2, maxim
 /* ------------------------------------------------------------------------ basics */
 
 const round2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
-const out = (t) => Number(t.amount) < 0;
+/* An outflow that counts as spending: rows arrive marked by assemble, see spending.js. */
+const out = (t) => Number(t.amount) < 0 && t.counts !== false;
 const abs = (t) => Math.abs(Number(t.amount) || 0);
 const at = (t) => new Date(t.occurred_at).getTime();
 /** An amount as the prompt reads it: es-ES digits and the currency spelled, ASCII throughout. */
@@ -107,7 +109,10 @@ export async function gather(userId, now = new Date()) {
  * The pure half of gathering: the same rows, learned and indexed. Tests hand rows straight
  * to this and skip the database.
  */
-export function assemble({ transactions = [], segments = [], forecast: cast = null, recurring = [], readings = [], facts = [], questions = null, places = [], categories = null, now = new Date() } = {}) {
+export function assemble({ transactions: rawTransactions = [], segments = [], forecast: cast = null, recurring = [], readings = [], facts = [], questions = null, places = [], categories = null, now = new Date() } = {}) {
+  /* The same rule the month page uses decides which transfers are spending, so a share the
+     twin quotes and the hero above it are the same euros. */
+  const transactions = markCounted(rawTransactions, facts);
   const placeByKey = new Map((places || []).map((p) => [p.merchant_key, p]));
   const categoryOf = (t) => categoryOfPayment(placeByKey.get(t.merchant_key), t.channel);
   const profiles = learnMerchants(transactions, { now, categoryOf });

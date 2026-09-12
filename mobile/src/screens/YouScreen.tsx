@@ -211,7 +211,7 @@ export default function YouScreen({ user, onSignOut, onOpenPhone, onOpenBank, on
 
 /* Layout only. Every colour, size and curve is the primitives'. */
 const s = StyleSheet.create({
-  content: { padding: cosmos.space.lg, paddingTop: cosmos.chrome.capsule + cosmos.space.lg, paddingBottom: cosmos.chrome.door + cosmos.space.xl },
+  content: { padding: cosmos.space.lg, paddingTop: cosmos.space.lg, paddingBottom: cosmos.chrome.door + cosmos.space.xl },
   empty: { gap: cosmos.space.md, alignItems: 'flex-start' },
   prose: { gap: cosmos.space.sm },
   end: { gap: cosmos.space.md, alignItems: 'flex-start', marginTop: cosmos.space.xxl },

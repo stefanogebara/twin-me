@@ -147,3 +147,84 @@ export function shortDay(iso: string | null | undefined): string {
   const d = new Date(iso);
   return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 }
+
+/* ------------------------------------------------------------ the conversation
+   The same wire the phone reads: one question, the ledger's answer in pieces, the figures
+   it asked for, and the payments it stands on. */
+export type FigurePoint = { label: string; value: number; current?: boolean };
+export type FigureShare = { label: string; value: number; share: number };
+export type FigureRecurring = { label: string; amount: number; cadence: string; next?: string | null };
+export type FigureDay = { label: string; value: number; today?: boolean };
+export type FigureAhead = { label: string; day: string; amount: number; basis?: string | null };
+export type ChatFigure =
+  | { kind: 'week'; title?: string; days: FigureDay[] }
+  | { kind: 'ahead'; title?: string; items: FigureAhead[] }
+  | { kind: 'months'; title?: string; points: FigurePoint[] }
+  | { kind: 'weekdays'; title?: string; points: FigurePoint[] }
+  | { kind: 'history'; title?: string; points: FigurePoint[] }
+  | { kind: 'shares'; title?: string; items: FigureShare[] }
+  | { kind: 'recurring'; title?: string; items: FigureRecurring[] }
+  | { kind: 'band'; title?: string; month?: string; spent: number; likely: number; low?: number; high?: number };
+export type ChatReceipt = { id: string; occurred_at: string; merchant: string; amount: number | string };
+export type ChatAction = { kind: string; label: string; payload?: Record<string, unknown> };
+export type ChatTurn = { role: 'user' | 'twin'; text: string };
+export type ChatReply = { text: string; figures?: ChatFigure[]; actions?: ChatAction[]; receipts?: ChatReceipt[] };
+/** One answer, in the pieces the server sends. The phases arrive in this order. */
+export type ChatStreamEvent =
+  | { phase: 'reading' }
+  | { phase: 'text'; delta: string }
+  | { phase: 'figures'; figures?: ChatFigure[] }
+  | { phase: 'actions'; actions?: ChatAction[]; receipts?: ChatReceipt[] }
+  | { phase: 'done' }
+  | { phase: 'failed'; detail?: string };
+
+export const moneyChat = {
+  /** The whole answer at once; the fallback when the stream is not there. */
+  ask: (message: string, history: ChatTurn[]) =>
+    authFetch('/money/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message, history: history.slice(-10) }) })
+      .then((r) => json<ChatReply>(r)),
+  /**
+   * The answer as it is written. A browser's fetch streams its body, so this reads the
+   * "data:" blocks as they land and hands each to the caller. Returns a way to stop it;
+   * a stopped stream ends with ok=false and the caller decides what to keep.
+   */
+  stream(message: string, history: ChatTurn[], handlers: { onEvent: (e: ChatStreamEvent) => void; onEnd: (ok: boolean) => void }): () => void {
+    const control = new AbortController();
+    (async () => {
+      let ok = false;
+      try {
+        const res = await authFetch('/money/chat/stream', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
+          body: JSON.stringify({ message, history: history.slice(-10) }),
+          signal: control.signal,
+        });
+        if (!res.ok || !res.body) throw new Error(`stream ${res.status}`);
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        for (;;) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          let cut = buffer.indexOf('\n\n');
+          while (cut >= 0) {
+            const block = buffer.slice(0, cut);
+            buffer = buffer.slice(cut + 2);
+            const line = block.split('\n').find((l) => l.startsWith('data:'));
+            if (line) {
+              try { handlers.onEvent(JSON.parse(line.slice(5).trim()) as ChatStreamEvent); } catch { /* a torn line waits for the next chunk */ }
+            }
+            cut = buffer.indexOf('\n\n');
+          }
+        }
+        ok = true;
+      } catch {
+        ok = false;
+      } finally {
+        handlers.onEnd(ok);
+      }
+    })();
+    return () => control.abort();
+  },
+};
