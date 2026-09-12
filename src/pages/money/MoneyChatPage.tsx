@@ -1,12 +1,17 @@
 /**
- * Money setup, as a conversation.
+ * Ask.
  *
- * The same questions as /money/setup, asked one at a time in a transcript that keeps what
- * you already said. While you answer, the engine is reading the ledger for itself, and the
- * right-hand column shows that work as it happens: real steps, real counts, nothing invented.
- * If the trace stream is not there, the column says so and the conversation carries on.
+ * The conversation about the money itself: any month, any shop, anything that leaves the
+ * account, answered from the person's own payments with a figure when one says it better
+ * and the payments underneath. The same conversation the phone has as its own place.
  *
- * Spec: .claude/plans/2026-09-07-money-twin/README.md
+ * The questions the ledger cannot work out on its own live on /money/setup; when there
+ * are any, this page says how many and points there, and otherwise stays out of the way.
+ * This page used to be that setup flow again as a transcript, which was the same page
+ * twice under two names in the sidebar.
+ *
+ * The right-hand column shows the engine reading the ledger as it happens: real steps,
+ * real counts, nothing invented. If the trace stream is not there, the column says so.
  */
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -16,75 +21,22 @@ import { ArrowUp } from 'lucide-react';
 import '../../styles/money-v2.css';
 import '../../styles/money-chat.css';
 import MoneyNav, { type MoneyNavLink } from './MoneyNav';
-import { moneyAPI, euro, shortDay, type MoneyFact, type MoneyQuestion } from '../../services/api/moneyAPI';
-
-/** The words a kind of place can be given, matching what the categoriser itself uses. */
-const CATEGORIES = [
-  'groceries', 'eating out', 'coffee', 'transport', 'taxi', 'fuel', 'health', 'pharmacy',
-  'sport', 'education', 'clothing', 'home', 'electronics', 'entertainment', 'software',
-  'advertising', 'travel', 'lodging', 'cash', 'fees', 'transfers', 'bills', 'other',
-];
-
-/** Shares a person actually names out loud, so the common answer is one press. */
-const SHARES: [string, number][] = [['a half', 50], ['a third', 33], ['a quarter', 25], ['two thirds', 67]];
-
-const PLACEHOLDER: Record<string, string> = {
-  name: 'Rent', source: 'Family', what: 'The weekly shop', amount: '500', day: '1',
-};
-const FACT_WORD: Record<string, string> = {
-  home_area: 'lives in', study_place: 'studies at', work_place: 'works at', commitment: 'every month',
-  income: 'comes in', shared_cost: 'shared', person: 'who that is', merchant_kind: 'kind of place', goal: 'this term',
-};
+import { moneyAPI, moneyChat, euro, shortDay, type ChatFigure, type ChatReceipt, type ChatTurn } from '../../services/api/moneyAPI';
+import { Figure } from './MoneyFigures';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 const NAV: MoneyNavLink[] = [
   { to: '/money', label: 'This month' },
   { to: '/money/setup', label: 'Questions' },
-  { to: '/money/chat', label: 'Conversation', current: true },
+  { to: '/money/chat', label: 'Ask', current: true },
 ];
 
-type ListRow = { key: string; label: string; amount: string; day: string; share: string };
+/** One line of the conversation: yours, or the ledger's with what it drew and what it stands on. */
+type AskLine = { id: string; who: 'you' | 'twin'; text: string; pending?: boolean; figures?: ChatFigure[]; receipts?: ChatReceipt[] };
 
-let rowSeq = 0;
-function blankRow(): ListRow { rowSeq += 1; return { key: `r${rowSeq}`, label: '', amount: '', day: '', share: '50' }; }
-
-/** A stable key for a fact the person named, so the same rent typed twice is one fact. */
-function slug(s: string) { return s.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'unnamed'; }
-function listColumns(input: string) { return input.slice('list:'.length).split(',').map((c) => c.trim()).filter(Boolean); }
-function choiceOptions(input: string) { return input.slice('choice:'.length).split(',').map((c) => c.trim()).filter(Boolean); }
-function cap(s: string) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
-/** People write 49,25 as often as 49.25, and both mean the same money. */
-function parseAmount(s: string): number | undefined {
-  const n = Number(s.replace(/\s/g, '').replace(',', '.'));
-  return Number.isFinite(n) && n !== 0 ? Math.abs(n) : undefined;
-}
-function parseDay(s: string): number | undefined {
-  const n = Math.round(Number(s));
-  return Number.isFinite(n) && n >= 1 && n <= 31 ? n : undefined;
-}
-function parseShare(s: string): number | undefined {
-  const n = Number(s.replace(',', '.'));
-  if (!Number.isFinite(n) || n <= 0) return undefined;
-  return Math.min(1, Math.round(n) / 100);
-}
-
-/** The 1st, not the 1. A system that cannot spell a date is not trusted with a number. */
-function ordinal(n: number): string {
-  if (n % 10 === 1 && n !== 11) return `${n}st`;
-  if (n % 10 === 2 && n !== 12) return `${n}nd`;
-  if (n % 10 === 3 && n !== 13) return `${n}rd`;
-  return `${n}th`;
-}
-
-/** What a saved row reads as once it is back in the transcript. */
-function rowSummary(row: ListRow, columns: string[]): string {
-  const bits: string[] = [row.label.trim()];
-  if (columns.includes('amount')) { const a = parseAmount(row.amount); if (a !== undefined) bits.push(euro(a)); }
-  if (columns.includes('day')) { const d = parseDay(row.day); if (d !== undefined) bits.push(`on the ${ordinal(d)}`); }
-  if (columns.includes('share')) { const s = parseShare(row.share); if (s !== undefined) bits.push(`${Math.round(s * 100)}% yours`); }
-  return bits.join(', ');
-}
-
-/* ---------------------------------------------------------------- the trace */
+/** What a person tends to ask first. Each is offered once and never after it was asked. */
+const OFFERS = ['Where did the money go?', 'What comes back every month?', 'How does this month compare?', 'What is still to come?'];
+let askSeq = 0;
 
 type TraceStep = { step: string; label: string; detail: string | null; count: number | null; done: boolean };
 
@@ -191,61 +143,37 @@ function TracePanel({ steps, reading }: { steps: TraceStep[]; reading: boolean }
   );
 }
 
-/* ---------------------------------------------------------------- the page */
-
 export default function MoneyChatPage() {
-  const [queue, setQueue] = useState<MoneyQuestion[]>([]);
-  const [openingCount, setOpeningCount] = useState(0);
-  const [answeredBefore, setAnsweredBefore] = useState(0);
-  const [index, setIndex] = useState(0);
-  const [said, setSaid] = useState<Record<number, string>>({});
-  const [loaded, setLoaded] = useState(false);
-  const [failed, setFailed] = useState(false);
+  useDocumentTitle('Ask');
+  const [openQuestions, setOpenQuestions] = useState(0);
+  const [lines, setLines] = useState<AskLine[]>([]);
+  const [asking, setAsking] = useState(false);
   const [text, setText] = useState('');
-  const [rows, setRows] = useState<ListRow[]>([]);
-  const [busy, setBusy] = useState(false);
-  const [note, setNote] = useState<string | null>(null);
-  const [facts, setFacts] = useState<MoneyFact[] | null>(null);
 
-  const trace = useLedgerTrace();
-  const stillMotion = useReducedMotion();
+  const stop = useRef<(() => void) | null>(null);
   const boxRef = useRef<HTMLTextAreaElement | null>(null);
   const endRef = useRef<HTMLDivElement | null>(null);
+  const trace = useLedgerTrace();
+  const stillMotion = useReducedMotion();
 
+  /* How many things the ledger still cannot work out on its own. Answering them is a page
+     of its own; this one only says they are waiting. */
   useEffect(() => {
     let live = true;
     moneyAPI.questions()
-      .then((q) => {
-        if (!live) return;
-        setQueue([...q.opening, ...q.fromLedger]);
-        setOpeningCount(q.opening.length);
-        setAnsweredBefore(q.answered);
-      })
-      .catch(() => { if (live) setFailed(true); })
-      .finally(() => { if (live) setLoaded(true); });
+      .then((q) => { if (live) setOpenQuestions(q.opening.length + q.fromLedger.length); })
+      .catch(() => { /* the count is a courtesy, not a condition */ });
     return () => { live = false; };
   }, []);
 
-  const question = queue[index] || null;
-  const done = loaded && !failed && queue.length > 0 && index >= queue.length;
+  /* A stream in flight when the page goes is stopped; nothing writes into a transcript
+     nobody is looking at. */
+  useEffect(() => () => { stop.current?.(); }, []);
 
-  /* Every question starts from an empty answer, and a list question starts with one row
-     already open so there is nothing to press before you can type. */
-  useEffect(() => {
-    setNote(null);
-    setText('');
-    setRows(question && question.input.startsWith('list:') ? [blankRow()] : []);
-  }, [question]);
-
-  useEffect(() => {
-    if (!done || facts !== null) return;
-    void moneyAPI.facts().then(setFacts).catch(() => setFacts([]));
-  }, [done, facts]);
-
-  /* The newest question should sit where the eye already is. */
+  /* The newest line should sit where the eye already is. */
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: stillMotion ? 'auto' : 'smooth', block: 'end' });
-  }, [index, done, loaded, stillMotion]);
+  }, [lines, stillMotion]);
 
   /* An auto-growing composer: no scrollbar until it has earned one. */
   useLayoutEffect(() => {
@@ -255,104 +183,51 @@ export default function MoneyChatPage() {
     box.style.height = `${Math.min(box.scrollHeight, 168)}px`;
   }, [text]);
 
-  const columns = useMemo(() => (question && question.input.startsWith('list:') ? listColumns(question.input) : []), [question]);
-  const options = useMemo(() => (question && question.input.startsWith('choice:') ? choiceOptions(question.input) : []), [question]);
-  const isText = question?.input === 'text';
-  const isList = Boolean(question?.input.startsWith('list:'));
-  const isCards = Boolean(question) && (question.input === 'category' || question.input.startsWith('choice:'));
-  const fromLedger = Boolean(question) && index >= openingCount;
-  const skippable = Boolean(question?.optional) || fromLedger;
+  const asked = useMemo(() => new Set(lines.filter((l) => l.who === 'you').map((l) => l.text.trim().toLowerCase())), [lines]);
+  /* Three offers before the first question, two after, so they read as prompts, not a menu. */
+  const offers = useMemo(() => OFFERS.filter((q) => !asked.has(q.toLowerCase())).slice(0, asked.size === 0 ? 3 : 2), [asked]);
+  const last = lines[lines.length - 1];
+  const offersShown = offers.length > 0 && !asking && (!last || (last.who === 'twin' && !last.pending));
 
-  /* A ledger question carries the merchant's own spelling on its receipts; that reads
-     better in the summary than the key the ledger files it under. */
-  const subjectLabel = question?.receipts?.[0]?.merchant_raw || undefined;
-  const filledRows = rows.filter((r) => r.label.trim());
-
-  function keep(at: number, summary: string) {
-    setSaid((all) => ({ ...all, [at]: summary }));
-    setIndex((i) => i + 1);
-  }
-
-  async function sendValue(value: string) {
-    if (!question || busy) return;
-    setBusy(true);
-    setNote(null);
-    const at = index;
-    try {
-      await moneyAPI.answerQuestion({
-        questionId: question.id,
-        kind: question.kind,
-        value,
-        ...(question.subject ? { subject: question.subject } : {}),
-        ...(subjectLabel ? { subjectLabel } : {}),
-      });
-      keep(at, value);
-    } catch (e) {
-      setNote((e as Error).message || 'That answer did not save. Try it again.');
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function sendRows() {
-    if (!question || busy) return;
-    if (filledRows.length === 0) { void skip(); return; }
-    setBusy(true);
-    setNote(null);
-    const at = index;
-    try {
-      /* Each row is its own fact: one rent, one phone bill, one grant, each with its
-         own amount and day, so the projection can carry them separately. */
-      for (const row of filledRows) {
-        const label = row.label.trim();
-        const amount = columns.includes('amount') ? parseAmount(row.amount) : undefined;
-        const day = columns.includes('day') ? parseDay(row.day) : undefined;
-        const share = columns.includes('share') ? parseShare(row.share) : undefined;
-        await moneyAPI.answerQuestion({
-          questionId: question.id,
-          kind: question.kind,
-          subject: slug(label),
-          subjectLabel: label,
-          ...(amount === undefined ? {} : { amount }),
-          ...(day === undefined ? {} : { day }),
-          ...(share === undefined ? {} : { share }),
-        });
-      }
-      keep(at, filledRows.map((r) => rowSummary(r, columns)).join(' / '));
-    } catch (e) {
-      setNote((e as Error).message || 'That answer did not save. Try it again.');
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function skip() {
-    if (!question || busy) return;
-    setBusy(true);
-    setNote(null);
-    const at = index;
-    try { await moneyAPI.skipQuestion(question.id); keep(at, 'Skipped this one.'); }
-    catch { setNote('That did not go through. Try it again.'); }
-    finally { setBusy(false); }
-  }
-
-  function submitComposer() {
-    const value = text.trim();
-    if (!isText || !value || busy) return;
-    void sendValue(value);
+  function ask(value: string) {
+    const said = value.trim();
+    if (asking || !said) return;
+    const history: ChatTurn[] = lines.filter((l) => !l.pending).map((l) => ({ role: l.who === 'you' ? 'user' : 'twin', text: l.text }));
+    askSeq += 1;
+    const twinId = `twin-${askSeq}`;
+    setLines((all) => [...all, { id: `you-${askSeq}`, who: 'you', text: said }, { id: twinId, who: 'twin', text: 'Reading the ledger.', pending: true }]);
+    setAsking(true);
+    setText('');
+    const amend = (patch: (l: AskLine) => AskLine) => setLines((all) => all.map((l) => (l.id === twinId ? patch(l) : l)));
+    let wrote = false;
+    stop.current = moneyChat.stream(said, history, {
+      onEvent: (e) => {
+        if (e.phase === 'text') {
+          /* Decided now, not when React applies the update: two deltas in one tick would
+             both see wrote=true and the first would append to "Reading the ledger." */
+          const first = !wrote;
+          wrote = true;
+          amend((l) => ({ ...l, pending: false, text: first ? e.delta : l.text + e.delta }));
+        } else if (e.phase === 'figures') {
+          amend((l) => ({ ...l, figures: e.figures || [] }));
+        } else if (e.phase === 'actions') {
+          amend((l) => ({ ...l, receipts: e.receipts || [] }));
+        } else if (e.phase === 'failed') {
+          amend((l) => ({ ...l, pending: false, text: e.detail || 'That could not be read right now.' }));
+          wrote = true;
+        }
+      },
+      onEnd: (ok) => {
+        stop.current = null;
+        if (!ok && !wrote) amend((l) => ({ ...l, pending: false, text: 'That could not be read right now.' }));
+        setAsking(false);
+      },
+    });
   }
 
   const rise = stillMotion
     ? {}
     : { initial: { opacity: 0, y: 10 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.32, ease: [0.2, 0.7, 0.3, 1] as const } };
-
-  const composerPlaceholder = done
-    ? 'That is everything for now.'
-    : isText && question
-      ? question.ask
-      : question
-        ? 'Answer it above to carry on'
-        : 'Nothing to answer';
 
   return (
     <main className="mv mc">
@@ -362,235 +237,70 @@ export default function MoneyChatPage() {
           <div className="mc-columns">
             <section className="mc-thread">
               <div className="mc-scroll">
-                {!loaded ? (
-                  <p className="mv-quiet">Reading your payments…</p>
-                ) : failed ? (
-                  <div className="mc-turn">
-                    <h1>The questions did not load.</h1>
-                    <p className="mv-sub">Nothing was lost. Try again in a moment.</p>
-                    <div className="mc-actions"><Link to="/money" className="mv-pill">Back to the month</Link></div>
-                  </div>
-                ) : queue.length === 0 ? (
-                  <div className="mc-turn">
-                    <h1>Nothing to ask.</h1>
-                    <p className="mv-sub">
-                      {answeredBefore > 0
-                        ? `You answered ${answeredBefore} already. Everything since reads on its own.`
-                        : 'When a payment arrives that it cannot read, it asks here.'}
-                    </p>
-                    <div className="mc-actions"><Link to="/money" className="mv-pill">Back to the month</Link></div>
-                  </div>
-                ) : (
-                  /* What was asked and answered goes quiet; only the newest question speaks
-                     at heading size. */
-                  queue.slice(0, index + 1).map((q, at) => (at < index ? (
-                    <div className="mc-turn mc-turn--past" key={`${q.id}-${at}`}>
-                      <motion.p className="mc-past-ask" {...rise}>{q.ask}</motion.p>
-                      <motion.p className="mc-said" {...rise}>{said[at] || 'Answered.'}</motion.p>
+                <div className="mc-turn">
+                  <h1>Ask.</h1>
+                  <p className="mv-sub">Any month, any shop, anything that leaves your account. Answers come from your own payments, with the payments underneath.</p>
+                  {openQuestions > 0 ? (
+                    <div className="mc-actions">
+                      <Link to="/money/setup" className="mv-pill mv-pill--ghost">
+                        <span>{openQuestions} {openQuestions === 1 ? 'thing' : 'things'} it cannot work out on its own</span>
+                      </Link>
                     </div>
-                  ) : (
-                    <motion.div className="mc-turn" key={`${q.id}-${at}`} {...rise}>
-                      <p className="mc-count">{at + 1} of {queue.length}{at >= openingCount ? ', from your payments' : ''}</p>
-                      <h1>{q.ask}</h1>
-                      {q.help || q.why ? <p className="mv-sub">{q.help || q.why}</p> : null}
-                      {q.receipts && q.receipts.length ? (
-                        <ul className="mv-list" aria-label="The payments behind this question">
-                          {q.receipts.map((r) => (
+                  ) : null}
+                </div>
+
+                {lines.map((l) => (
+                  <motion.div key={l.id} className={`mc-line ${l.who === 'you' ? 'mc-line--you' : ''}`} {...rise}>
+                    <span className="mc-line-who">{l.who === 'you' ? 'You' : 'The ledger'}</span>
+                    <p className={`mc-line-text ${l.pending ? 'is-pending' : ''}`}>{l.text}</p>
+                    {l.figures?.map((f, k) => <Figure key={k} figure={f} />)}
+                    {l.receipts && l.receipts.length ? (
+                      <div className="mc-receipts">
+                        <span className="mv-quiet">{`Read from ${l.receipts.length} ${l.receipts.length === 1 ? 'payment' : 'payments'}`}</span>
+                        <ul className="mv-list">
+                          {l.receipts.slice(0, 8).map((r) => (
                             <li key={r.id} className="mv-item mv-item--tight">
                               <span className="mv-item-text">
-                                <span className="mv-item-title">{r.merchant_raw || r.merchant_key}</span>
+                                <span className="mv-item-title">{r.merchant}</span>
                                 <span className="mv-item-sub">{shortDay(r.occurred_at)}</span>
                               </span>
                               <span className="mv-item-end">{euro(r.amount)}</span>
                             </li>
                           ))}
                         </ul>
-                      ) : null}
-                    </motion.div>
-                  )))
-                )}
-
-                {question && !done ? (
-                  <div className="mc-answer">
-                    {isCards ? (
-                      <div className="mc-cards" role="group" aria-label={question.input === 'category' ? 'Pick the kind of place' : 'Pick one'}>
-                        {(question.input === 'category' ? CATEGORIES : options).map((word) => (
-                          <button
-                            key={word}
-                            type="button"
-                            className="mv-pill mv-pill--ghost"
-                            disabled={busy}
-                            onClick={() => void sendValue(word)}
-                          >
-                            <span>{cap(word)}</span>
-                          </button>
-                        ))}
                       </div>
                     ) : null}
-
-                    {isList ? (
-                      <form className="mc-rows" onSubmit={(e) => { e.preventDefault(); void sendRows(); }}>
-                        {rows.map((row) => (
-                          <div key={row.key} className={`mc-row ${columns.includes('share') ? 'mc-row--share' : 'mc-row--three'}`}>
-                            <div className="mc-field">
-                              <label className="mv-label" htmlFor={`mc-${row.key}-label`}>{cap(columns[0])}</label>
-                              <input
-                                id={`mc-${row.key}-label`}
-                                className="mv-field"
-                                type="text"
-                                autoComplete="off"
-                                placeholder={PLACEHOLDER[columns[0]] || ''}
-                                value={row.label}
-                                onChange={(e) => setRows((all) => all.map((r) => (r.key === row.key ? { ...r, label: e.target.value } : r)))}
-                              />
-                            </div>
-
-                            {columns.includes('amount') ? (
-                              <div className="mc-field">
-                                <label className="mv-label" htmlFor={`mc-${row.key}-amount`}>Amount, €</label>
-                                <input
-                                  id={`mc-${row.key}-amount`}
-                                  className="mv-field"
-                                  type="text"
-                                  inputMode="decimal"
-                                  autoComplete="off"
-                                  placeholder={PLACEHOLDER.amount}
-                                  value={row.amount}
-                                  onChange={(e) => setRows((all) => all.map((r) => (r.key === row.key ? { ...r, amount: e.target.value } : r)))}
-                                />
-                              </div>
-                            ) : null}
-
-                            {columns.includes('day') ? (
-                              <div className="mc-field">
-                                <label className="mv-label" htmlFor={`mc-${row.key}-day`}>Day</label>
-                                <input
-                                  id={`mc-${row.key}-day`}
-                                  className="mv-field"
-                                  type="text"
-                                  inputMode="numeric"
-                                  autoComplete="off"
-                                  placeholder={PLACEHOLDER.day}
-                                  value={row.day}
-                                  onChange={(e) => setRows((all) => all.map((r) => (r.key === row.key ? { ...r, day: e.target.value } : r)))}
-                                />
-                              </div>
-                            ) : null}
-
-                            {columns.includes('share') ? (
-                              <div className="mc-field">
-                                <label className="mv-label" htmlFor={`mc-${row.key}-share`}>Your share</label>
-                                <div className="mc-pct">
-                                  <input
-                                    id={`mc-${row.key}-share`}
-                                    className="mv-field"
-                                    type="text"
-                                    inputMode="numeric"
-                                    autoComplete="off"
-                                    value={row.share}
-                                    onChange={(e) => setRows((all) => all.map((r) => (r.key === row.key ? { ...r, share: e.target.value } : r)))}
-                                  />
-                                  <span>%</span>
-                                </div>
-                              </div>
-                            ) : null}
-
-                            {columns.includes('share') ? (
-                              <div className="mc-quick">
-                                {SHARES.map(([word, pct]) => (
-                                  <button
-                                    key={word}
-                                    type="button"
-                                    className="mv-pill mv-pill--ghost"
-                                    aria-pressed={Number(row.share) === pct}
-                                    onClick={() => setRows((all) => all.map((r) => (r.key === row.key ? { ...r, share: String(pct) } : r)))}
-                                  >
-                                    <span>{cap(word)}</span>
-                                  </button>
-                                ))}
-                              </div>
-                            ) : null}
-
-                            {rows.length > 1 ? (
-                              <button type="button" className="mv-pill mv-pill--ghost mc-drop" onClick={() => setRows((all) => all.filter((r) => r.key !== row.key))}>
-                                <span>Remove</span>
-                              </button>
-                            ) : null}
-                          </div>
-                        ))}
-                        <div className="mc-actions">
-                          <button type="button" className="mv-pill mv-pill--ghost" onClick={() => setRows((all) => [...all, blankRow()])}>
-                            <span>Add another</span>
-                          </button>
-                          <button type="submit" className="mv-pill" disabled={busy || (filledRows.length === 0 && !skippable)}>
-                            <span>{busy ? 'Saving…' : 'That is all of them'}</span>
-                          </button>
-                        </div>
-                      </form>
-                    ) : null}
-
-                    {skippable ? (
-                      <button type="button" className="mv-pill mv-pill--ghost" onClick={() => void skip()} disabled={busy}>
-                        <span>Skip this</span>
-                      </button>
-                    ) : null}
-                    {note ? <p className="mc-note" role="alert">{note}</p> : null}
-                  </div>
-                ) : null}
-
-                {done ? (
-                  <motion.div className="mc-turn" {...rise}>
-                    <h1>That is enough to change the numbers.</h1>
-                    <p className="mv-sub">
-                      {facts && facts.length
-                        ? `It now holds ${facts.length} ${facts.length === 1 ? 'thing' : 'things'} you told it.`
-                        : 'Nothing was recorded. It carries on with what it reads.'}
-                    </p>
-                    {facts && facts.length ? (
-                      <ul className="mv-list">
-                        {facts.map((f) => (
-                          <li key={f.id} className="mv-item">
-                            <span className="mv-item-text">
-                              <span className="mv-item-title">
-                                {f.subject_label || f.value || f.subject || 'unnamed'}
-                                {f.subject_label && f.value ? `, ${f.value}` : ''}
-                                {f.day ? `, on the ${ordinal(f.day)}` : ''}
-                                {f.share ? `, ${Math.round(Number(f.share) * 100)}% yours` : ''}
-                              </span>
-                              <span className="mv-item-sub">{f.check_note || cap(FACT_WORD[f.kind] || f.kind)}</span>
-                            </span>
-                            <span className="mv-item-end">{f.amount ? euro(f.amount) : ''}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : null}
-                    <div className="mc-actions"><Link to="/money" className="mv-pill">See the month</Link></div>
                   </motion.div>
+                ))}
+
+                {offersShown ? (
+                  <div className="mc-offers" role="group" aria-label="Things to ask">
+                    {offers.map((q) => (
+                      <button key={q} type="button" className="mv-pill mv-pill--ghost" onClick={() => ask(q)}><span>{q}</span></button>
+                    ))}
+                  </div>
                 ) : null}
 
                 <div ref={endRef} className="mc-end" />
               </div>
 
               <div className="mc-composer">
-                <form
-                  className="mc-composer-inner"
-                  onSubmit={(e) => { e.preventDefault(); submitComposer(); }}
-                >
-                  <label className="mv-sr" htmlFor="mc-say">Your answer</label>
+                <form className="mc-composer-inner" onSubmit={(e) => { e.preventDefault(); ask(text); }}>
+                  <label className="mv-sr" htmlFor="mc-say">Ask about your money</label>
                   <textarea
                     id="mc-say"
                     ref={boxRef}
                     className="mc-say"
                     rows={1}
                     value={text}
-                    placeholder={composerPlaceholder}
-                    disabled={!isText || busy || done}
+                    placeholder="Ask about your money"
+                    disabled={asking}
                     onChange={(e) => setText(e.target.value)}
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitComposer(); }
+                      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); ask(text); }
                     }}
                   />
-                  <button type="submit" className="mv-pill mc-send" disabled={!isText || busy || done || !text.trim()} aria-label="Send this answer">
+                  <button type="submit" className="mv-pill mc-send" disabled={asking || !text.trim()} aria-label="Ask">
                     <ArrowUp size={16} strokeWidth={2} aria-hidden="true" />
                   </button>
                 </form>

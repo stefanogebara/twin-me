@@ -145,7 +145,8 @@ export function openingQuestions(facts = []) {
 }
 
 function nameOf(t) { return t.merchant_raw || t.merchant_key; }
-function isOut(t) { return Number(t.amount) < 0; }
+/* Rows arrive marked by their caller (see spending.js); an unmarked row counts. */
+function isOut(t) { return Number(t.amount) < 0 && t.counts !== false; }
 function abs(t) { return Math.abs(Number(t.amount) || 0); }
 
 /**
