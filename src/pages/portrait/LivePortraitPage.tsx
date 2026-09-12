@@ -68,22 +68,32 @@ export default function LivePortraitPage() {
   }
 
   if (state.status === 'loading') {
-    return <main className="presence-cosmos pc-portrait pc-pt-empty" id="main-content"><p>Reading what you did.</p></main>;
+    return (
+      <main className="presence-cosmos pc-app pc-portrait" id="main-content">
+        <div className="pc-pt-state"><p className="pc-empty">Reading what you did.</p></div>
+      </main>
+    );
   }
   if (state.status === 'error') {
     return (
-      <main className="presence-cosmos pc-portrait pc-pt-empty" id="main-content">
-        <p>{state.message}</p>
-        <Link className="pc-btn pc-btn--ghost" to="/today">Back</Link>
+      <main className="presence-cosmos pc-app pc-portrait" id="main-content">
+        <div className="pc-pt-state">
+          <p className="pc-pt-state-line">{state.message}</p>
+          <Link className="pc-btn pc-btn--secondary" to="/today">Back</Link>
+        </div>
       </main>
     );
   }
   if (state.data.readings.length === 0) {
     return (
-      <main className="presence-cosmos pc-portrait pc-pt-empty" id="main-content">
-        <h1>Nothing to read yet.</h1>
-        <p>A reading needs at least two real events behind it. Connect a source and give it a few days.</p>
-        <Link className="pc-btn pc-btn--primary" to="/connect">Connect a source</Link>
+      <main className="presence-cosmos pc-app pc-portrait" id="main-content">
+        <div className="pc-pt-state">
+          <header className="pc-apphead">
+            <h1 className="pc-apphead-title">Nothing to read yet.</h1>
+            <p className="pc-apphead-line">Connect a source and give it a few days.</p>
+          </header>
+          <Link className="pc-btn pc-btn--primary" to="/connect">Connect a source</Link>
+        </div>
       </main>
     );
   }

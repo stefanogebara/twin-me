@@ -4516,394 +4516,180 @@ select.pc-input {
 }
 
 /* ============================================================
-   Portrait — the product's one page (/demo first), 2026-09-03
-   Paper, one column of 720px, the ask pill pinned, bands with
-   the section rhythm, evidence cards from the demo recipe.
-   ============================================================ */
+   Portrait — in the register (2026-09-12)
+   ============================================================
+   /demo and /portrait as a flat app screen on the app primitives: the
+   #fbfaf9 page, a 200px sidebar of links to its sections, the headline
+   reading as the title, and every reading a row under a 1px ink rule —
+   the reading as its title, one grey line for what it was read from. A
+   press opens its receipts and the verdict as sub-rows.
 
-.pc-portrait {
-  padding: 0 var(--c-pad-x) 120px;
-}
+   Gone with the room (2026-09-03 to 09-10): the photograph and its clip,
+   the glass stage and its three scenes, the floating receipts, the phone,
+   the ledger's card stack, the scrims and the shadows. The Portrait paints
+   no image, no glass, no gradient and no shadow;
+   tests/unit/cosmosInkContrast.test.ts fails if one comes back.
 
-.pc-pt-banner {
+   Everything else comes from the app primitives; only what they lack is
+   here, scoped `.presence-cosmos .pc-pt-*` like them. */
+
+/* The demo's one line of context, on the page itself, above everything. */
+.presence-cosmos .pc-pt-banner {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
   justify-content: center;
-  gap: 8px 16px;
-  margin: 0 calc(-1 * var(--c-pad-x));
-  padding: 12px var(--c-pad-x);
-  background: var(--c-ink);
-  color: var(--c-white);
-  font-size: 14px;
-  letter-spacing: -0.01em;
+  gap: 4px 16px;
+  padding: 10px 24px;
+  border-bottom: 1px solid var(--c-hairline);
+  font-size: var(--c-text);
+  line-height: var(--c-lh-text);
+  font-weight: var(--c-w-line);
+  color: var(--c-ink-2);
   text-align: center;
 }
 
-.pc-pt-banner a {
-  color: var(--c-white);
+.presence-cosmos .pc-pt-banner a {
+  color: var(--c-ink);
+  font-weight: 500;
   text-decoration: underline;
-  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
 }
 
-.pc-pt-nav {
-  display: flex;
-  align-items: center;
-  gap: 24px;
-  height: var(--c-header-outer);
-  max-width: 720px;
-  margin: 0 auto;
+.presence-cosmos .pc-pt-banner a:focus-visible {
+  border-radius: 4px;
 }
 
-.pc-pt-nav .pc-mark {
-  width: 28px;
-  height: 28px;
-  color: var(--c-ink);
+/* A jump from the sidebar or from Ask lands with room above it. */
+.presence-cosmos.pc-portrait .pc-appsection,
+.presence-cosmos .pc-pt-reading {
+  scroll-margin-top: 48px;
 }
 
-.pc-pt-nav nav {
-  display: flex;
-  gap: 18px;
-  font-size: 15px;
-  font-weight: 500;
-  color: var(--c-ink-2);
-}
-
-.pc-pt-nav nav a.is-active {
-  color: var(--c-ink);
-}
-
-.pc-pt-ask {
-  position: sticky;
-  top: 0;
-  z-index: 20;
-  max-width: 720px;
-  margin: 8px auto 0;
-  padding: 12px 0 10px;
-  display: grid;
-  gap: 10px;
-  background: var(--c-paper);
-  box-shadow: 0 12px 16px -12px rgba(13, 13, 13, 0.08);
-}
-
-/* The reply sits under the pinned pill and scrolls with the page. */
-.pc-pt-reply {
-  max-width: 720px;
-  margin: 16px auto 0;
-}
-
-.pc-pt-ask .pc-search {
-  width: 100%;
-}
-
-.pc-pt-ask-hints {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 6px;
-}
-
-.pc-pt-ask-hints button {
-  height: 30px;
-  padding: 0 12px;
-  border-radius: 999px;
-  border: 0.5px solid var(--c-border);
-  background: var(--c-paper);
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--c-ink-2);
-  transition: background 0.2s, color 0.2s;
-}
-
-.pc-pt-ask-hints button:hover {
-  background: var(--c-hover-secondary);
-  color: var(--c-ink);
-}
-
-.pc-pt-question,
-.pc-pt-signature,
-.pc-pt-ledger,
-.pc-pt-sources {
-  max-width: 720px;
-  margin: 96px auto 0;
-}
-
-.pc-pt-question {
-  padding: 24px 26px 26px;
-  border-radius: 16px;
-  background: var(--c-white);
-  border: 0.5px solid var(--c-border);
-}
-
-.presence-cosmos .pc-pt-evidence-line {
-  margin-top: 10px;
-  font-size: 14px;
-  color: var(--c-ink-2);
-}
-
-.presence-cosmos .pc-pt-question h2 {
-  margin-top: 10px;
-  font-size: 26px;
-  font-weight: 400;
-  line-height: 1.25;
-  letter-spacing: -0.03em;
-}
-
-.pc-pt-answers {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 20px;
-}
-
-.presence-cosmos .pc-pt-answered {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 18px;
-  font-size: 15px;
-  color: var(--c-ink-2);
-}
-
-.presence-cosmos .pc-pt-signature h1 {
-  font-size: clamp(38px, 5vw, 56px);
-  font-weight: 300;
-  line-height: 1;
-  letter-spacing: -0.04em;
-}
-
-.pc-pt-signature ol {
-  list-style: none;
-  margin: 32px 0 0;
+/* A list under a row: its sub-rows carry the hairlines, it carries none. */
+.presence-cosmos .pc-pt-sub {
+  margin: 0;
   padding: 0;
-  display: grid;
-  gap: 22px;
+  list-style: none;
 }
 
-.pc-pt-signature li {
-  display: grid;
-  grid-template-columns: 10px minmax(0, 1fr);
-  gap: 14px;
-  align-items: start;
+/* A reading Ask cited: the row's hover fill, held. */
+.presence-cosmos .pc-pt-reading.is-lit > .pc-row {
+  background: var(--c-hover-secondary);
 }
 
-.pc-pt-signature li i {
-  width: 10px;
-  height: 10px;
-  margin-top: 9px;
-  border-radius: 50%;
+/* A receipt: what happened in ink, the source and the day in the quiet ink. */
+.presence-cosmos .pc-pt-receipt-event {
+  margin: 0;
+  font-size: var(--c-text);
+  line-height: var(--c-lh-text);
+  font-weight: 400;
+  color: var(--c-ink);
+  overflow-wrap: anywhere;
 }
 
-.presence-cosmos .pc-pt-signature li p {
-  font-size: 22px;
-  line-height: 1.3;
-  letter-spacing: -0.03em;
-}
-
-.pc-pt-signature li small {
-  display: block;
-  margin-top: 4px;
-  font-size: 13px;
+.presence-cosmos .pc-pt-receipt-when {
+  margin: 0;
+  font-size: var(--c-text);
+  line-height: var(--c-lh-text);
+  font-weight: var(--c-w-line);
   color: var(--c-ink-3);
+  white-space: nowrap;
 }
 
-.pc-pt-signature li span {
-  display: flex;
-  gap: 6px;
-  margin-top: 6px;
-}
-
-.pc-pt-signature li span a {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--c-ink-2);
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
-.pc-pt-group {
-  margin-top: 28px;
-  display: grid;
-  gap: 8px;
-}
-
-.presence-cosmos .pc-pt-ledger .pc-h2,
-.presence-cosmos .pc-pt-sources .pc-h2 {
-  text-align: left;
-}
-
-.pc-pt-row {
-  border-radius: 16px;
-  background: var(--c-white);
-  border: 0.5px solid var(--c-border);
-  transition: border-color 0.2s, box-shadow 0.4s var(--c-ease-ui);
-}
-
-.pc-pt-row.is-lit {
-  border-color: var(--c-ink);
-  box-shadow: 0 0 0 3px rgba(13, 13, 13, 0.06);
-}
-
-.pc-pt-row-head {
-  width: 100%;
-  display: grid;
-  grid-template-columns: 10px minmax(0, 1fr) 16px;
-  gap: 6px 14px;
-  align-items: start;
-  padding: 16px 18px;
-  text-align: left;
-}
-
-.pc-pt-row-head i {
-  width: 10px;
-  height: 10px;
-  margin-top: 7px;
-  border-radius: 50%;
-}
-
-.presence-cosmos .pc-pt-row-head p {
-  font-size: 17px;
-  line-height: 1.35;
-  letter-spacing: -0.02em;
-}
-
-.pc-pt-row-head span {
-  grid-column: 2;
-  font-size: 13px;
-  color: var(--c-ink-3);
-}
-
-.pc-pt-row-head svg {
-  grid-column: 3;
-  grid-row: 1;
-  margin-top: 4px;
-  color: var(--c-ink-3);
-  transition: transform 0.25s var(--c-ease-ui);
-}
-
-.pc-pt-row.is-open .pc-pt-row-head svg {
-  transform: rotate(180deg);
-}
-
-.pc-pt-row-body {
-  padding: 0 18px 18px 42px;
-  display: grid;
-  gap: 14px;
-}
-
-.pc-pt-verdict {
+/* The verdict and today's answers: one question, one group of 32px buttons. */
+.presence-cosmos .pc-pt-choice {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: 8px 16px;
 }
 
-.pc-pt-verdict small {
-  margin-right: 6px;
-  font-size: 13px;
-  color: var(--c-ink-3);
-}
-
-.pc-pt-verdict .pc-btn {
-  height: 40px;
-  padding: 0 16px;
-  gap: 6px;
-}
-
-.pc-pt-verdict .pc-btn.is-active {
-  background: var(--c-ink);
-  color: var(--c-white) !important; /* the ghost recipe pins its ink with !important */
-  border-color: var(--c-ink);
-}
-
-.pc-pt-source-list {
-  margin-top: 24px;
-  display: grid;
-  gap: 8px;
-}
-
-.pc-pt-source {
-  display: grid;
-  grid-template-columns: 110px minmax(0, 1fr) auto;
-  gap: 2px 16px;
-  align-items: baseline;
-  padding: 14px 18px;
-  border-radius: 16px;
-  background: var(--c-white);
-  border: 0.5px solid var(--c-border);
-  font-size: 14px;
-}
-
-.pc-pt-source strong {
-  font-weight: 500;
-}
-
-.pc-pt-source span {
+.presence-cosmos .pc-pt-choice-label,
+.presence-cosmos .pc-pt-answer,
+.presence-cosmos .pc-pt-state-line {
+  margin: 0;
+  font-size: var(--c-text);
+  line-height: var(--c-lh-text);
+  font-weight: var(--c-w-line);
   color: var(--c-ink-2);
 }
 
-.pc-pt-source small {
-  grid-column: 2;
-  font-size: 13px;
-  color: var(--c-ink-3);
+.presence-cosmos .pc-pt-choice-label {
+  margin-right: auto;
 }
 
-.pc-pt-source em {
-  grid-column: 3;
-  grid-row: 1;
-  font-style: normal;
-  font-size: 13px;
+.presence-cosmos .pc-pt-choice-buttons,
+.presence-cosmos .pc-pt-confirm {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* The chosen verdict: an ink line and the title's weight, never a second
+   fill — the page keeps one primary. */
+.presence-cosmos .pc-pt-choice .pc-btn[aria-pressed='true'] {
+  border-color: var(--c-ink);
   font-weight: 500;
-  color: var(--c-ink-3);
 }
 
-@media (max-width: 640px) {
-  .pc-portrait { padding: 0 20px 96px; }
-  .pc-pt-banner { margin: 0 -20px; padding: 12px 20px; }
-  .pc-pt-question, .pc-pt-signature, .pc-pt-ledger, .pc-pt-sources { margin-top: 64px; }
-  .pc-pt-source { grid-template-columns: minmax(0, 1fr) auto; }
-  .pc-pt-source span, .pc-pt-source small { grid-column: 1; }
-  .pc-pt-row-body { padding-left: 18px; }
+/* Ask: the field and its button on one line. */
+.presence-cosmos .pc-pt-askrow {
+  grid-template-columns: minmax(0, 1fr);
 }
 
+.presence-cosmos .pc-pt-ask {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+}
+
+/* Loading, the error and nothing-yet: the column alone, without the shell. */
+.presence-cosmos .pc-pt-state {
+  max-width: calc(820px + 80px);
+  margin: 0 auto;
+  padding: 96px 40px;
+  display: grid;
+  justify-items: start;
+  gap: 24px;
+}
+
+.presence-cosmos .pc-pt-state .pc-apphead {
+  margin: 0;
+}
+
+.presence-cosmos .pc-pt-state .pc-empty {
+  padding: 0;
+}
+
+@media (max-width: 767px) {
+  .presence-cosmos.pc-portrait .pc-appsection,
+  .presence-cosmos .pc-pt-reading {
+    scroll-margin-top: 16px;
+  }
+
+  /* At 402 wide a receipt and its day do not fit on one line: the day goes under. */
+  .presence-cosmos .pc-pt-receipt {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .presence-cosmos .pc-pt-receipt-when {
+    white-space: normal;
+  }
+
+  .presence-cosmos .pc-pt-state {
+    padding: 56px 24px;
+  }
+}
 
 /* ============================================================
-   Portrait — the product inside the front door's glass (2026-09-05)
-   The stage and the liquid-glass recipe are the demo's (.pc-demo-*);
-   these rules only adapt them to a real, interactive interface.
-   ============================================================ */
+   Shared rules that sat inside the Portrait's old section
+   ============================================================
+   The demo's pressable chips and its ask field (/cosmos/demos), the glass
+   recipe (/proto) and the fade-rise entrance. The Portrait no longer uses
+   any of them; they stay, unchanged, for the pages that do. */
 
-.pc-pt-stage-wrap {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 24px var(--c-pad-x) 0;
-}
-
-.pc-pt-stage {
-  margin-top: 0;
-}
-
-.pc-pt-stage > img {
-  object-position: 55% 42%;
-}
-
-.pc-pt-glass {
-  width: min(680px, calc(100% - 40px));
-  min-height: 380px;
-}
-
-/* Rows arrive the way the demo's do, one after another. */
-@keyframes pc-pt-arrive {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: none; }
-}
-
-.pc-pt-arrive {
-  animation: pc-pt-arrive 0.45s var(--c-ease-ui) both;
-}
-
-/* The answers and the question hints are the demo's chips, but pressable. */
 .pc-demo-chips button {
   display: inline-flex;
   align-items: center;
@@ -4923,17 +4709,14 @@ select.pc-input {
 
 .pc-demo-chips button:hover { opacity: 0.84; }
 
-.pc-demo-chips button.is-quiet,
-.pc-pt-hints button {
+.pc-demo-chips button.is-quiet {
   background: var(--c-paper);
   border-color: var(--c-border);
   color: var(--c-ink-2);
 }
 
-.pc-demo-chips button.is-quiet:hover,
-.pc-pt-hints button:hover { opacity: 1; border-color: var(--c-ink-3); color: var(--c-ink); }
+.pc-demo-chips button.is-quiet:hover { opacity: 1; border-color: var(--c-ink-3); color: var(--c-ink); }
 
-/* The real input inside the demo's ask capsule. */
 .pc-demo-ask input {
   flex: 1;
   min-width: 0;
@@ -4948,366 +4731,6 @@ select.pc-input {
 
 .pc-demo-ask input::placeholder { color: var(--c-ink-3); }
 
-/* The signature: the demo's row (dot, bar, sources) over the line it measures. */
-.pc-pt-sig { gap: 14px; }
-
-.pc-pt-sig-item {
-  display: grid;
-  gap: 6px;
-  padding: 12px 14px 12px;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.6);
-  border: 0.5px solid rgba(13, 13, 13, 0.08);
-}
-
-.presence-cosmos .pc-pt-sig-line {
-  font-size: 16px;
-  line-height: 1.4;
-  letter-spacing: -0.02em;
-  color: var(--c-ink);
-}
-
-.pc-pt-sig-jump {
-  margin-left: 8px;
-  padding: 0;
-  border: 0;
-  background: none;
-  font: inherit;
-  font-size: 13px;
-  color: var(--c-ink-3);
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  cursor: pointer;
-}
-
-.pc-pt-sig-jump:hover { color: var(--c-ink); }
-
-/* Deletion, one source at a time, with a second look. */
-.pc-pt-source em button {
-  padding: 0;
-  border: 0;
-  background: none;
-  font: inherit;
-  color: inherit;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  cursor: pointer;
-}
-
-.pc-pt-source-confirm { display: inline-flex; gap: 12px; align-items: baseline; }
-
-.presence-cosmos .pc-pt-source-note {
-  max-width: 560px;
-  margin: 28px auto 0;
-  font-size: 14px;
-  line-height: 1.5;
-  text-align: center;
-  color: var(--c-ink-3);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .pc-pt-arrive { animation: none; }
-}
-
-@media (max-width: 640px) {
-  .pc-pt-stage-wrap { padding: 16px 12px 0; }
-  .pc-pt-glass { width: calc(100% - 24px); min-height: 0; }
-}
-
-/* The Ask scene is as tall as its capsule until there is an answer to hold. */
-.pc-pt-glass.pc-demo-glass.is-ask { min-height: 0; }
-
-
-/* ============================================================
-   Portrait — pixel audit, 2026-09-05
-   Every value below answers a measurement: fractional line-heights
-   put text on half pixels; half-pixel hairlines vanish at 1x; the
-   ash labels sat at 2.6:1; three columns disagreed; sizes changed
-   without moving. Scoped to .pc-portrait so the front door keeps
-   its own recipe.
-   ============================================================ */
-
-/* One column. The paper column is 720; the glass is the same 720. */
-.pc-portrait .pc-pt-glass {
-  width: min(720px, calc(100% - 48px));
-  min-height: 0;
-  padding: 0;
-  overflow: hidden;
-}
-
-.pc-portrait .pc-pt-glass-inner {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding: 20px 22px 22px;
-  transition: opacity 140ms cubic-bezier(0.4, 0, 1, 1), transform 140ms cubic-bezier(0.4, 0, 1, 1);
-}
-
-.pc-portrait .pc-pt-glass-inner.is-leaving {
-  opacity: 0;
-  transform: translateY(-4px);
-}
-
-.pc-portrait .pc-pt-glass-inner.is-showing {
-  animation: pc-pt-scene-in 320ms cubic-bezier(0.32, 0.72, 0, 1) both;
-}
-
-@keyframes pc-pt-scene-in {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: none; }
-}
-
-/* The stage is a fixed frame, 16:10 of its own width, and the glass floats in its
-   centre: a scene change breathes inside the photograph and moves nothing below it.
-   The frame is a min-height in container units rather than an aspect-ratio, because
-   Chrome will not grow an aspect-ratio box to content that is taller than the ratio
-   (measured: a 902px glass left the stage at 730). A taller glass grows this one. */
-.pc-portrait .pc-pt-stage-wrap { container-type: inline-size; }
-
-.pc-portrait .pc-pt-stage {
-  aspect-ratio: auto;
-  min-height: calc(min(1168px, 100cqw) * 0.625);
-  padding: 24px;
-  display: grid;
-  place-items: center;
-  overflow: clip;
-}
-
-/* The still drifts a little, forty seconds out and forty back. */
-.pc-portrait .pc-pt-stage > img.pc-pt-drift {
-  animation: pc-pt-drift 40s ease-in-out infinite alternate;
-  will-change: transform;
-}
-
-@keyframes pc-pt-drift {
-  from { transform: scale(1.02) translate3d(0, 0, 0); }
-  to { transform: scale(1.07) translate3d(-1%, -1%, 0); }
-}
-
-/* Integer type: every line height a whole number of pixels. */
-.pc-portrait .pc-pt-nav nav a { font-size: 15px; line-height: 20px; }
-.pc-portrait .pc-demo-head { font-size: 14px; line-height: 20px; }
-.pc-portrait .pc-demo-head em { font-size: 13px; line-height: 20px; }
-.pc-portrait .pc-demo-row { padding: 10px 14px 11px; gap: 3px; }
-.pc-portrait .pc-demo-row span,
-.pc-portrait .pc-demo-reading > span,
-.pc-portrait .pc-demo-answer > span { font-size: 12px; line-height: 16px; letter-spacing: 0.06em; }
-.presence-cosmos.pc-portrait .pc-demo-row p { font-size: 15px; line-height: 22px; }
-.pc-portrait .pc-demo-reading,
-.pc-portrait .pc-demo-answer { padding: 16px 18px 18px; gap: 8px; }
-.presence-cosmos.pc-portrait .pc-demo-reading p,
-.presence-cosmos.pc-portrait .pc-demo-answer p { font-size: 18px; line-height: 26px; min-height: 26px; }
-.pc-portrait .pc-demo-chips { gap: 8px; margin-top: 4px; }
-.pc-portrait .pc-demo-chips b,
-.pc-portrait .pc-demo-chips button { height: 32px; font-size: 13px; line-height: 16px; }
-.pc-portrait .pc-demo-tab { padding: 18px 20px; gap: 6px; }
-.pc-portrait .pc-demo-tab strong { font-size: 16px; line-height: 22px; }
-.pc-portrait .pc-demo-tab small { font-size: 14px; line-height: 20px; }
-.presence-cosmos.pc-portrait .pc-pt-ledger h2,
-.presence-cosmos.pc-portrait .pc-pt-sources h2 { font-size: 38px; line-height: 44px; }
-.pc-portrait .pc-spec-n { font-size: 13px; line-height: 20px; }
-.presence-cosmos.pc-portrait .pc-pt-row-head p { font-size: 17px; line-height: 24px; }
-.pc-portrait .pc-pt-row-head span { font-size: 13px; line-height: 18px; }
-.pc-portrait .pc-pt-source strong,
-.pc-portrait .pc-pt-source span,
-.pc-portrait .pc-pt-source small,
-.pc-portrait .pc-pt-source em { font-size: 14px; line-height: 20px; }
-.pc-portrait .pc-pt-source-note { font-size: 14px; line-height: 20px; }
-.presence-cosmos.pc-portrait .pc-pt-sig-line { font-size: 16px; line-height: 22px; }
-.pc-portrait .pc-demo-sig-row > span { font-size: 14px; line-height: 20px; }
-.pc-portrait .pc-demo-sig-row small { font-size: 13px; line-height: 20px; }
-.pc-portrait .pc-demo-ask { min-height: 56px; }
-.presence-cosmos.pc-portrait .pc-demo-ask input { font-size: 16px; line-height: 24px; }
-
-/* Hairlines that exist at 1x: one device-independent pixel, lighter. */
-.pc-portrait .pc-demo-row,
-.pc-portrait .pc-demo-tab,
-.pc-portrait .pc-pt-row,
-.pc-portrait .pc-pt-source,
-.pc-portrait .pc-pt-sig-item,
-.pc-portrait .pc-demo-ask,
-.pc-portrait .pc-demo-chips b,
-.pc-portrait .pc-demo-chips button,
-.pc-portrait .pc-pt-verdict .pc-btn { border-width: 1px; }
-.pc-portrait .pc-pt-glass { border: 1px solid rgba(13, 13, 13, 0.08); }
-.pc-portrait .pc-demo-row { border-color: rgba(13, 13, 13, 0.06); }
-.pc-portrait .pc-demo-tab,
-.pc-portrait .pc-pt-row,
-.pc-portrait .pc-pt-source { border-color: rgba(13, 13, 13, 0.08); }
-
-/* Small caps you can read: 4.6:1 on white, not 2.6:1. */
-.pc-portrait .pc-demo-row span,
-.pc-portrait .pc-demo-reading > span,
-.pc-portrait .pc-demo-answer > span,
-.pc-portrait .pc-pt-row-head span,
-.pc-portrait .pc-spec-n,
-.pc-portrait .pc-pt-source-note { color: #6e6b69; }
-
-/* A reading opens by height. */
-.pc-portrait .pc-pt-row-fold {
-  display: grid;
-  grid-template-rows: 0fr;
-  transition: grid-template-rows 380ms cubic-bezier(0.32, 0.72, 0, 1);
-}
-
-.pc-portrait .pc-pt-row.is-open .pc-pt-row-fold {
-  grid-template-rows: 1fr;
-}
-
-.pc-portrait .pc-pt-row-fold-inner {
-  min-height: 0;
-  overflow: hidden;
-}
-
-.pc-portrait .pc-pt-row-body {
-  opacity: 0;
-  transition: opacity 240ms ease 60ms;
-}
-
-.pc-portrait .pc-pt-row.is-open .pc-pt-row-body {
-  opacity: 1;
-}
-
-.pc-portrait .pc-pt-row-head svg {
-  transition: transform 320ms cubic-bezier(0.32, 0.72, 0, 1);
-}
-
-/* Inside a fold, receipts are already there as it opens: quick, tight arrivals. */
-.pc-portrait .pc-pt-row-body .pc-pt-arrive { animation-duration: 260ms; }
-
-/* A citation chip carries its reading's hue. */
-.pc-portrait .pc-demo-chips button { gap: 7px; }
-.pc-portrait .pc-demo-chips button i { width: 6px; height: 6px; border-radius: 50%; flex: none; }
-
-/* Presses register: a small settle, never a bounce. */
-.pc-portrait .pc-demo-chips button,
-.pc-portrait .pc-demo-tab,
-.pc-portrait .pc-pt-verdict .pc-btn,
-.pc-portrait .pc-demo-ask button {
-  transition: transform 160ms cubic-bezier(0.32, 0.72, 0, 1), background-color 160ms ease, border-color 160ms ease, opacity 160ms ease;
-}
-
-.pc-portrait .pc-demo-chips button:active,
-.pc-portrait .pc-demo-tab:active,
-.pc-portrait .pc-pt-verdict .pc-btn:active,
-.pc-portrait .pc-demo-ask button:active { transform: scale(0.97); }
-
-.pc-portrait .pc-demo-tab.is-active { border-color: rgba(13, 13, 13, 0.9); }
-
-/* Tabs at the glass's width, under it, as one object. */
-.pc-portrait .pc-pt-tabs { max-width: 720px; margin-top: 16px; gap: 12px; }
-
-@media (prefers-reduced-motion: reduce) {
-  .pc-portrait .pc-pt-glass-inner,
-  .pc-portrait .pc-pt-row-fold,
-  .pc-portrait .pc-pt-row-body,
-  .pc-portrait .pc-pt-row-head svg { transition: none; animation: none; }
-  .pc-portrait .pc-pt-glass-inner.is-showing { animation: none; }
-}
-
-@media (max-width: 760px) {
-  .pc-portrait .pc-pt-stage { padding: 20px 12px; }
-  .pc-portrait .pc-pt-glass { width: calc(100% - 0px); }
-  .pc-portrait .pc-pt-glass-inner { padding: 16px 14px 18px; }
-  .pc-portrait .pc-pt-tabs { grid-template-columns: 1fr; }
-}
-
-/* The nav sits on the stage's edge, not on the readings column's. */
-.pc-pt-nav { max-width: min(1168px, calc(100% - 48px)); }
-
-/* The door stands off the last source card and reads as the page's one action. */
-.presence-cosmos .pc-pt-source-door { margin: 28px 0 0; font-size: 17px; font-weight: 500; letter-spacing: -0.02em; }
-.presence-cosmos .pc-pt-source-door a { color: var(--c-ink); }
-.presence-cosmos .pc-pt-source-door a:hover { opacity: 0.7; }
-
-/* ---- The page's end on one axis; provenance that is never cut ------------- */
-.presence-cosmos .pc-pt-source-note { margin: 22px 0 0; text-align: left; max-width: 640px; }
-.presence-cosmos .pc-pt-source-door { display: flex; align-items: baseline; justify-content: space-between; gap: 24px; }
-.pc-portrait .pc-pt-manage { font: inherit; font-size: 14px; color: var(--c-ink-3); background: none; border: 0; padding: 0; cursor: pointer; }
-.pc-portrait .pc-pt-manage:hover { color: var(--c-ink); }
-.pc-portrait .pc-pt-row-head span { white-space: normal; overflow: visible; text-overflow: clip; }
-
-/* Skip is a way out, not a peer of the three answers. */
-.pc-portrait .pc-demo-chips button.pc-pt-skip {
-  background: none;
-  border: 0;
-  box-shadow: none;
-  padding: 0 4px;
-  color: var(--c-ink-3);
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  text-decoration-thickness: 0.5px;
-}
-.pc-portrait .pc-demo-chips button.pc-pt-skip:hover { color: var(--c-ink); opacity: 1; }
-
-/* ---- The cinematic first screen ------------------------------------------ */
-/* A fullscreen looping clip is the ground; nothing is laid over it. The chrome
-   is liquid glass, the line is Instrument Serif at display scale, the body is
-   Inter. Tokens are the reference's, in HSL, scoped to this screen. */
-.pc-pt-cine {
-  --background: 201 100% 13%;
-  --foreground: 0 0% 100%;
-  --muted-foreground: 240 4% 66%;
-  --font-display: 'Instrument Serif', serif;
-  --font-body: 'Inter', sans-serif;
-  position: relative;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background: hsl(var(--background));
-  color: hsl(var(--foreground));
-  font-family: var(--font-body);
-  overflow: hidden;
-  isolation: isolate;
-}
-
-.pc-cine-ground {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  z-index: 0;
-}
-
-.pc-pt-cine .pc-cine-nav {
-  position: relative;
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 32px;
-  width: 100%;
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 24px 32px;
-  height: auto;
-}
-
-.presence-cosmos .pc-cine-mark {
-  font-family: var(--font-display);
-  font-size: 30px;
-  letter-spacing: -0.02em;
-  color: hsl(var(--foreground)) !important;
-  text-decoration: none;
-}
-
-.presence-cosmos .pc-cine-mark sup { font-size: 12px; margin-left: 2px; }
-
-.pc-pt-cine .pc-cine-nav nav { display: none; gap: 28px; }
-.pc-pt-cine .pc-cine-nav nav a {
-  font-family: var(--font-body);
-  font-size: 14px;
-  color: var(--pt-on-3) !important;
-  text-decoration: none;
-  transition: color 0.15s var(--pt-ease);
-}
-.pc-pt-cine .pc-cine-nav nav a:hover,
-.pc-pt-cine .pc-cine-nav nav a.is-active { color: hsl(var(--foreground)) !important; }
-
-@media (min-width: 768px) { .pc-pt-cine .pc-cine-nav nav { display: flex; } }
-
-/* Liquid glass, as specified. */
 .liquid-glass {
   background: rgba(255, 255, 255, 0.01);
   background-blend-mode: luminosity;
@@ -5334,57 +4757,6 @@ select.pc-input {
   pointer-events: none;
 }
 
-.presence-cosmos .pc-cine-pill {
-  display: inline-flex;
-  align-items: center;
-  border-radius: 999px;
-  padding: 10px 24px;
-  font-family: var(--font-body);
-  font-size: 14px;
-  font-weight: 500;
-  color: hsl(var(--foreground)) !important;
-  text-decoration: none;
-  transition: transform 0.2s var(--pt-ease);
-}
-.presence-cosmos .pc-cine-pill:hover { transform: scale(1.03); }
-
-.pc-cine-body {
-  position: relative;
-  z-index: 10;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  padding: 90px 24px;
-}
-
-.presence-cosmos .pc-cine-h1 {
-  max-width: 1280px;
-  margin: 0;
-  font-family: var(--font-display);
-  font-weight: 400;
-  font-size: clamp(48px, 8vw, 96px);
-  line-height: 0.95;
-  letter-spacing: -2.46px;
-  color: hsl(var(--foreground));
-  text-wrap: balance;
-}
-
-.presence-cosmos .pc-cine-h1 .pc-cine-muted { font-style: normal; color: hsl(var(--muted-foreground)); }
-
-.presence-cosmos .pc-cine-sub {
-  max-width: 42rem;
-  margin: 32px 0 0;
-  font-family: var(--font-body);
-  font-size: clamp(16px, 1.25vw, 18px);
-  line-height: 1.6;
-  color: hsl(var(--muted-foreground));
-}
-
-.presence-cosmos .pc-cine-cta { margin-top: 48px; padding: 20px 56px; font-size: 16px; cursor: pointer; }
-
 @keyframes fade-rise {
   from { opacity: 0; transform: translateY(24px); }
   to { opacity: 1; transform: translateY(0); }
@@ -5396,834 +4768,3 @@ select.pc-input {
 @media (prefers-reduced-motion: reduce) {
   .animate-fade-rise, .animate-fade-rise-delay, .animate-fade-rise-delay-2 { animation: none; }
 }
-
-/* The stage follows the first screen; it no longer carries the page's nav. */
-.pc-pt-cine + .pc-pt-stage-wrap { margin-top: 24px; }
-
-/* The first screen bleeds to the viewport's edges, whatever the page's own gutter. */
-.pc-portrait .pc-pt-cine { width: 100vw; margin-left: calc(50% - 50vw); margin-right: calc(50% - 50vw); }
-
-/* At phone size the display tracking eases; -2.46px is a desktop measure. */
-@media (max-width: 640px) {
-  .presence-cosmos .pc-cine-h1 { letter-spacing: -1.2px; font-size: clamp(40px, 12vw, 56px); }
-  .pc-pt-cine .pc-cine-nav { padding: 20px 20px; }
-  .presence-cosmos .pc-cine-cta { padding: 16px 36px; }
-}
-
-/* ---- One ground, one object ------------------------------------------------ */
-/* The room is the whole first screen; the line sits on its left, the glass on
-   its right, off the window. No stage frame, no tab cards, no seam. */
-.pc-pt-cine .pc-cine-body--split {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 560px);
-  gap: 56px;
-  align-items: center;
-  width: 100%;
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 40px 32px 72px;
-  text-align: left;
-}
-
-.pc-pt-cine .pc-cine-copy { display: grid; gap: 28px; }
-.presence-cosmos .pc-cine-body--split .pc-cine-h1 { text-align: left; font-size: clamp(44px, 5.6vw, 76px); max-width: 12ch; }
-.presence-cosmos .pc-cine-body--split .pc-cine-sub { margin: 0; max-width: 34rem; }
-
-.pc-pt-cine .pc-cine-panel { min-width: 0; }
-.pc-pt-cine .pc-cine-panel .pc-demo-glass { width: 100%; max-width: none; margin: 0; }
-
-/* The scene switcher lives in the glass, three words in a capsule. */
-.pc-cine-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
-.pc-cine-tabs {
-  display: inline-flex;
-  gap: 2px;
-  padding: 3px;
-  border-radius: 999px;
-  background: rgba(var(--c-on-rgb), 0.06);
-  box-shadow: inset 0 0 0 0.5px rgba(var(--c-on-rgb), 0.1);
-}
-.pc-portrait .pc-cine-tabs button {
-  height: 28px;
-  padding: 0 12px;
-  border: 0;
-  border-radius: 999px;
-  background: transparent;
-  font: inherit;
-  font-size: 13px;
-  font-weight: 500;
-  color: rgba(var(--c-on-rgb), 0.6);
-  cursor: pointer;
-  transition: background 0.15s var(--pt-ease), color 0.15s var(--pt-ease);
-}
-.pc-portrait .pc-cine-tabs button.is-active { background: rgba(255, 255, 255, 0.9); color: #111; }
-.pc-portrait .pc-cine-tabs button:hover { color: var(--c-on); }
-
-.pc-pt-cine + .pc-pt-stage-wrap { margin-top: 0; }
-
-@media (max-width: 960px) {
-  .pc-pt-cine .pc-cine-body--split { grid-template-columns: 1fr; gap: 32px; padding: 24px 20px 48px; }
-  .presence-cosmos .pc-cine-body--split .pc-cine-h1 { max-width: none; }
-}
-
-/* ---- The room runs under the whole page ------------------------------------ */
-.pc-portrait { position: relative; background: #0b0d10; }
-.pc-pt-room-ground {
-  position: fixed;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  z-index: 0;
-  filter: brightness(0.62) saturate(1.05);
-  pointer-events: none;
-}
-.pc-portrait > *:not(.pc-pt-room-ground) { position: relative; z-index: 1; }
-
-/* The paper is one panel lifted out of the room, not a second page. */
-.pc-pt-paper-panel {
-  width: min(1168px, calc(100% - 48px));
-  margin: 24px auto 24px;
-  padding: 24px 0 56px;
-  border-radius: 28px;
-  background: var(--c-paper, #f7f5f3);
-}
-.pc-pt-paper-panel .pc-pt-source-note { color: var(--c-ink-3); }
-
-/* What is read is serif; the heads stop announcing themselves. */
-.presence-cosmos .pc-pt-head {
-  font-family: 'Instrument Serif', serif;
-  font-weight: 400;
-  font-size: 34px;
-  letter-spacing: -0.012em;
-}
-
-/* The panel's top edge is pinned; only its bottom moves between scenes. */
-.pc-pt-cine .pc-cine-body--split { align-items: start; padding-top: 72px; }
-.pc-pt-cine .pc-cine-copy { padding-top: 48px; }
-
-/* The accented word is white italic, not a tint that dies over the window. */
-.presence-cosmos .pc-cine-h1 .pc-cine-muted { font-style: italic; color: rgba(255, 255, 255, 0.92); }
-
-/* The send control is a hairline mark, not a black circle. */
-.pc-portrait .pc-demo-ask button {
-  background: transparent;
-  color: var(--c-ink);
-  box-shadow: inset 0 0 0 0.5px rgba(var(--c-on-rgb, 20, 19, 17), 0.3);
-}
-
-/* Hairlines, not shadows, under the paper cards. */
-.pc-portrait .pc-pt-row, .pc-portrait .pc-pt-source, .pc-portrait .pc-demo-tab { box-shadow: none; }
-
-/* On a phone the paper panel meets the edges. */
-@media (max-width: 760px) {
-  .pc-pt-paper-panel { width: calc(100% - 16px); margin: 12px auto; border-radius: 22px; }
-  .pc-pt-cine .pc-cine-body--split { padding-top: 24px; }
-  .pc-pt-cine .pc-cine-copy { padding-top: 0; }
-}
-
-/* One image: the hero is transparent over the page's ground, so there is no seam where it ends. */
-.pc-pt-cine { background: transparent; }
-.pc-pt-room-ground { filter: brightness(0.74) saturate(1.05); }
-
-/* ---- The readings are set as type, the sources as a ledger, the page gets an ending ---- */
-.pc-pt-paper-panel { width: min(880px, calc(100% - 48px)); padding: 32px 0 64px; }
-.pc-pt-paper-panel .pc-pt-ledger { margin-top: 40px; }
-.pc-pt-paper-panel .pc-pt-sources { margin-top: 88px; }
-
-/* Provenance is mono, all of it: the index, the support line, the counts, the group label. */
-.pc-portrait .pc-pt-row-head .pc-pt-row-n,
-.pc-portrait .pc-pt-row-head .pc-pt-row-meta,
-.pc-portrait .pc-pt-source span,
-.pc-portrait .pc-pt-group > .pc-spec-n,
-.pc-portrait .pc-pt-sig-foot {
-  font-family: 'Geist Mono', var(--font-mono, ui-monospace, monospace);
-  font-size: 12px;
-  line-height: 18px;
-  letter-spacing: 0.02em;
-  font-weight: 400;
-  color: var(--c-ink-3);
-}
-
-/* A numbered column, hairline rules, the serif carrying the sentence. */
-.pc-portrait .pc-pt-group { gap: 0; margin-top: 24px; }
-.pc-portrait .pc-pt-group > .pc-spec-n { margin: 0; padding: 0 0 10px; }
-.pc-portrait .pc-pt-row { background: transparent; border: 0; border-top: 1px solid var(--c-border); border-radius: 0; }
-.pc-portrait .pc-pt-row:last-child { border-bottom: 1px solid var(--c-border); }
-.pc-portrait .pc-pt-row.is-lit { border-color: var(--c-ink); box-shadow: none; }
-.pc-portrait .pc-pt-row-head { grid-template-columns: 40px minmax(0, 1fr); gap: 8px 16px; padding: 22px 0 20px; }
-.pc-portrait .pc-pt-row-head .pc-pt-row-n { grid-column: 1; grid-row: 1; margin-top: 7px; }
-.presence-cosmos.pc-portrait .pc-pt-row-head p { grid-column: 2; font-family: 'Instrument Serif', serif; font-size: 24px; line-height: 30px; letter-spacing: -0.012em; }
-.pc-portrait .pc-pt-row-head .pc-pt-row-meta { grid-column: 2; display: inline-flex; align-items: center; gap: 8px; }
-.pc-portrait .pc-pt-row-meta i { width: 7px; height: 7px; margin: 0; border-radius: 50%; flex: none; }
-.pc-portrait .pc-pt-row-body { padding: 0 0 22px 56px; }
-
-/* Sources: name and count on one line, what is read beneath, one hairline between rows. */
-.pc-portrait .pc-pt-src-head { display: flex; align-items: baseline; justify-content: space-between; gap: 24px; }
-.pc-portrait .pc-pt-source-list { gap: 0; margin-top: 24px; border-top: 1px solid var(--c-border); }
-.pc-portrait .pc-pt-source { grid-template-columns: minmax(0, 1fr) auto auto; gap: 4px 20px; padding: 16px 0; background: transparent; border: 0; border-bottom: 1px solid var(--c-border); border-radius: 0; }
-.pc-portrait .pc-pt-source strong { font-size: 16px; line-height: 24px; letter-spacing: -0.02em; }
-.pc-portrait .pc-pt-source span { grid-column: 2; grid-row: 1; align-self: center; }
-.pc-portrait .pc-pt-source small { grid-column: 1 / span 3; grid-row: 2; font-size: 14px; line-height: 20px; color: var(--c-ink-2); }
-.pc-portrait .pc-pt-source em { grid-column: 3; grid-row: 1; align-self: center; }
-
-/* The ending: one line on the room, one door, the mark. */
-.pc-portrait .pc-pt-close { display: grid; justify-items: center; gap: 28px; padding: 104px 24px 80px; text-align: center; }
-.presence-cosmos .pc-pt-close-line { margin: 0; max-width: 18ch; font-family: 'Instrument Serif', serif; font-size: clamp(34px, 4vw, 52px); line-height: 1.05; letter-spacing: -0.02em; color: rgba(255, 255, 255, 0.94); text-wrap: balance; }
-.presence-cosmos .pc-pt-close-line em { font-style: italic; }
-.presence-cosmos .pc-pt-close .pc-cine-pill { color: #fff !important; font-size: 15px; padding: 14px 28px; }
-.pc-portrait .pc-pt-close-mark { margin-top: 20px; font-family: 'Instrument Serif', serif; font-size: 22px; letter-spacing: -0.02em; color: var(--pt-on-3); }
-
-/* The nav sits in its own glass, so it reads over the window. */
-.pc-pt-cine .pc-cine-nav nav.pc-cine-navcap { border-radius: 999px; padding: 10px 22px; gap: 24px; }
-
-/* The panel and the headline share a top edge. */
-.pc-pt-cine .pc-cine-copy { padding-top: 6px; }
-
-/* Inside the glass the receipts are near-opaque, so frost does not sit on frost over the window. */
-.pc-pt-cine .pc-demo-row { background: rgba(255, 255, 255, 0.86); }
-.pc-pt-cine .pc-pt-under { margin-top: 12px; }
-
-/* Ask: the three suggestions stack, one hairline each, no orphan. */
-.pc-portrait .pc-pt-hints { flex-direction: column; align-items: stretch; gap: 0; margin-top: 10px; }
-.pc-portrait .pc-pt-hints button { justify-content: flex-start; height: 40px; padding: 0 2px; border: 0; border-top: 1px solid rgba(13, 13, 13, 0.08); border-radius: 0; background: transparent; text-align: left; color: var(--c-ink-2); }
-.pc-portrait .pc-pt-hints button:last-child { border-bottom: 1px solid rgba(13, 13, 13, 0.08); }
-.pc-portrait .pc-pt-hints button:hover { color: var(--c-ink); background: transparent; }
-
-/* Signature: no bars; the receipts count is the measure. */
-.pc-portrait .pc-demo-sig-row { grid-template-columns: minmax(0, 1fr) auto; }
-.pc-portrait .pc-pt-sig-foot { margin: 6px 0 0; }
-
-/* The ground drifts (the old selector needed a stage that no longer exists), and the poster leaves the frame. */
-.pc-portrait .pc-pt-room-ground.pc-pt-drift { animation: pc-pt-drift 40s ease-in-out infinite alternate; will-change: transform; }
-.pc-portrait .pc-pt-room-ground { left: -9%; width: 109%; object-position: 50% 58%; }
-
-@media (max-width: 640px) {
-  .pc-portrait .pc-pt-row-head { grid-template-columns: 30px minmax(0, 1fr); gap: 6px 12px; padding: 18px 0 16px; }
-  .presence-cosmos.pc-portrait .pc-pt-row-head p { font-size: 21px; line-height: 26px; }
-  .pc-portrait .pc-pt-row-body { padding-left: 0; }
-  .pc-portrait .pc-pt-close { padding: 72px 20px 56px; }
-  .pc-pt-paper-panel .pc-pt-ledger { margin-top: 24px; }
-  .pc-pt-paper-panel .pc-pt-sources { margin-top: 64px; }
-}
-
-/* The still with no accidents: lamp, cobalt window, dark walls. The display type takes the window; the glass takes the wall. */
-.pc-portrait .pc-pt-room-ground { left: -12%; width: 112%; object-position: 50% 46%; filter: brightness(0.92) saturate(1.04); }
-.pc-pt-cine .pc-pt-sig-item { background: rgba(255, 255, 255, 0.86); }
-.pc-pt-cine .pc-pt-sig-foot { color: var(--c-ink-2); }
-@media (max-width: 640px) {
-  .pc-pt-paper-panel { padding: 24px 18px 56px; }
-}
-.pc-portrait .pc-demo-row span,
-.pc-portrait .pc-demo-reading > span,
-.pc-portrait .pc-demo-answer > span { font-family: 'Geist Mono', var(--font-mono, ui-monospace, monospace); }
-
-/* One sentence and one room: the provenance is a kicker above the headline, not a paragraph under it. */
-.presence-cosmos .pc-cine-kicker { margin: 0 0 -6px; font-family: var(--font-body); font-size: 14px; line-height: 20px; letter-spacing: 0.01em; color: var(--pt-on-3); }
-.pc-pt-cine .pc-cine-copy { gap: 22px; }
-.pc-pt-cine .pc-pt-sig-foot { color: rgba(13, 13, 13, 0.62); }
-.pc-portrait .pc-pt-room-ground { max-width: none; } /* the preflight's img { max-width: 100% } was capping the wider box */
-
-/* ---- The glass is liquid and dark, so the room reads through it; what is written sits on white inside ---- */
-.pc-pt-cine .pc-pt-glass.pc-demo-glass {
-  --c-on: #fff; --c-on-rgb: 255, 255, 255;
-  --c-ink: #fff; --c-ink-2: var(--pt-on-2); --c-ink-3: var(--pt-on-3);
-  min-height: 440px;
-  border-radius: 28px;
-  background: rgba(255, 255, 255, 0.09);
-  backdrop-filter: blur(22px) saturate(1.3);
-  -webkit-backdrop-filter: blur(22px) saturate(1.3);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.14);
-  color: #fff;
-}
-.pc-pt-cine .pc-demo-row,
-.pc-pt-cine .pc-demo-reading,
-.pc-pt-cine .pc-demo-answer,
-.pc-pt-cine .pc-pt-sig-item,
-.pc-pt-cine .pc-demo-ask {
-  --c-on: #0d0d0d; --c-on-rgb: 13, 13, 13;
-  --c-ink: #0d0d0d; --c-ink-2: rgba(13, 13, 13, 0.62); --c-ink-3: rgba(13, 13, 13, 0.5);
-  color: var(--c-ink);
-  background: #fff;
-  border-color: rgba(13, 13, 13, 0.06);
-}
-.pc-pt-cine .pc-demo-ask.is-sent { background: rgba(255, 255, 255, 0.92); }
-.pc-pt-cine .pc-cine-tabs { background: rgba(255, 255, 255, 0.08); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12); }
-.pc-portrait .pc-pt-cine .pc-cine-tabs button { color: var(--pt-on-3); }
-.pc-portrait .pc-pt-cine .pc-cine-tabs button:hover { color: #fff; }
-.pc-portrait .pc-pt-cine .pc-cine-tabs button.is-active { background: rgba(255, 255, 255, 0.94); color: #0d0d0d; }
-.pc-pt-cine .pc-pt-sig-foot { color: var(--pt-on-3); }
-.pc-portrait .pc-pt-cine .pc-pt-hints button { color: var(--pt-on-2); border-color: rgba(255, 255, 255, 0.14); }
-.pc-portrait .pc-pt-cine .pc-pt-hints button:hover { color: #fff; }
-.pc-portrait .pc-pt-cine .pc-pt-glass { border: 1px solid rgba(255, 255, 255, 0.16); }
-
-/* The send control is a word, not the circled arrow every chat ships. */
-.pc-portrait .pc-demo-ask .pc-pt-send {
-  width: auto; height: 32px; padding: 0 12px; border-radius: 999px;
-  background: transparent; color: var(--c-ink); box-shadow: none;
-  font: inherit; font-size: 14px; font-weight: 500; letter-spacing: -0.01em; cursor: pointer;
-}
-.pc-portrait .pc-demo-ask .pc-pt-send:hover { background: rgba(13, 13, 13, 0.06); }
-.pc-portrait .pc-demo-ask .pc-pt-send span { white-space: normal; overflow: visible; }
-
-/* The nav capsule is centred on the viewport, not between two unequal neighbours. */
-@media (min-width: 768px) {
-  .pc-pt-cine .pc-cine-nav { position: relative; }
-  .pc-pt-cine .pc-cine-nav nav.pc-cine-navcap { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); }
-}
-
-/* Evidence sentences are small sans; mono stays for what a machine wrote: the index, the labels, the counts. */
-.pc-portrait .pc-pt-row-head .pc-pt-row-meta { font-family: var(--c-font); font-size: 13px; line-height: 18px; letter-spacing: -0.01em; color: var(--c-ink-3); }
-.pc-portrait .pc-pt-sig-foot { font-family: var(--c-font); font-size: 13px; letter-spacing: -0.01em; }
-
-/* Fewer readings, set larger. */
-.presence-cosmos.pc-portrait .pc-pt-row-head p { font-size: 27px; line-height: 33px; }
-.pc-portrait .pc-pt-row-head { padding: 24px 0 22px; }
-
-/* The hero gives back a little of its height, so the paper is not a screen away from the glass. */
-.pc-pt-cine { min-height: calc(100vh - 56px); }
-.pc-pt-cine .pc-cine-body--split { padding-top: 88px; }
-
-/* The bottom edge: a hairline and one small row, so the scroll ends rather than dies. */
-.pc-portrait .pc-pt-close { padding-bottom: 0; gap: 24px; }
-.pc-portrait .pc-pt-close-mark { margin-top: 12px; }
-.pc-portrait .pc-pt-foot {
-  justify-self: stretch; width: min(880px, 100%); margin: 40px auto 0;
-  display: flex; gap: 22px; align-items: center; padding: 20px 0 28px;
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
-  font-size: 13px; line-height: 18px; color: var(--pt-on-3);
-}
-.presence-cosmos .pc-pt-foot a { color: var(--pt-on-3); text-decoration: none; }
-.presence-cosmos .pc-pt-foot a:hover { color: #fff; }
-.pc-portrait .pc-pt-foot span { margin-right: auto; }
-
-/* Phone: the counts sit at the right edge, as on the desk. */
-@media (max-width: 640px) {
-  .pc-portrait .pc-pt-source { grid-template-columns: minmax(0, 1fr) auto auto; }
-  .pc-portrait .pc-pt-source span { grid-column: 2; grid-row: 1; justify-self: end; text-align: right; }
-  .pc-portrait .pc-pt-source small { grid-column: 1 / span 3; grid-row: 2; }
-  .presence-cosmos.pc-portrait .pc-pt-row-head p { font-size: 22px; line-height: 27px; }
-  .pc-portrait .pc-pt-foot { flex-wrap: wrap; gap: 12px 18px; }
-}
-
-/* The count ends where the rule ends: the Delete column exists only while managing. */
-.pc-portrait .pc-pt-source { grid-template-columns: minmax(0, 1fr) auto; }
-.pc-portrait .pc-pt-source:has(em) { grid-template-columns: minmax(0, 1fr) auto auto; }
-.pc-portrait .pc-pt-source small { grid-column: 1 / -1; }
-@media (max-width: 640px) {
-  .pc-portrait .pc-pt-source { grid-template-columns: minmax(0, 1fr) auto; }
-  .pc-portrait .pc-pt-source:has(em) { grid-template-columns: minmax(0, 1fr) auto auto; }
-  .pc-portrait .pc-pt-source small { grid-column: 1 / -1; }
-  /* The old page's side padding has no job now that the paper carries its own. */
-  .presence-cosmos.pc-portrait { padding-left: 0; padding-right: 0; }
-}
-
-/* ---- One grid: the hero, the paper and the footer share the 880 column. The headline runs across the window; the glass sits under it, right. ---- */
-.pc-pt-cine .pc-cine-nav { width: min(880px, calc(100% - 48px)); max-width: none; padding: 24px 0; }
-.pc-pt-cine .pc-cine-body--stack {
-  display: grid; grid-template-columns: minmax(0, 1fr); justify-items: start; align-items: start; align-content: start;
-  width: min(880px, calc(100% - 48px)); margin: 0 auto; padding: 36px 0 72px; gap: 0; text-align: left;
-}
-.pc-pt-cine .pc-cine-body--stack .pc-cine-copy { display: grid; gap: 18px; width: 100%; padding-top: 0; }
-.presence-cosmos .pc-cine-body--stack .pc-cine-h1 { text-align: left; max-width: 100%; font-size: clamp(40px, 4.4vw, 64px); line-height: 0.98; letter-spacing: -0.032em; }
-.pc-pt-cine .pc-cine-body--stack .pc-cine-panel { justify-self: end; width: min(560px, 100%); min-width: 0; margin-top: 44px; }
-.pc-pt-cine { min-height: 100vh; }
-
-/* ---- The glass is the surface. Nothing inside it is a card: white type, hairlines, the room behind. ---- */
-.pc-pt-cine .pc-pt-glass.pc-demo-glass { min-height: 0; }
-.pc-pt-cine .pc-demo-row,
-.pc-pt-cine .pc-demo-reading,
-.pc-pt-cine .pc-demo-answer,
-.pc-pt-cine .pc-pt-sig-item,
-.pc-pt-cine .pc-demo-ask {
-  --c-on: #fff; --c-on-rgb: 255, 255, 255;
-  --c-ink: #fff; --c-ink-2: var(--pt-on-2); --c-ink-3: var(--pt-on-3);
-  color: #fff; background: transparent; border: 0; border-radius: 0; box-shadow: none;
-  border-top: 1px solid rgba(255, 255, 255, 0.14); padding: 14px 0 14px;
-}
-.pc-pt-cine .pc-demo-log { gap: 0; }
-.pc-pt-cine .pc-pt-under { margin-top: 4px; }
-.pc-pt-cine .pc-demo-reading { border-top: 0; padding: 6px 0 16px; }
-.presence-cosmos .pc-pt-cine .pc-demo-reading p,
-.presence-cosmos .pc-pt-cine .pc-pt-sig-line { font-family: 'Instrument Serif', serif; font-size: 26px; line-height: 31px; letter-spacing: -0.012em; color: #fff; }
-.presence-cosmos .pc-pt-cine .pc-demo-reading > span,
-.presence-cosmos .pc-pt-cine .pc-demo-row span,
-.presence-cosmos .pc-pt-cine .pc-demo-answer > span { color: var(--pt-on-3); }
-.presence-cosmos .pc-pt-cine .pc-demo-row p,
-.presence-cosmos .pc-pt-cine .pc-demo-answer p { color: #fff; }
-/* The answers are words, not a survey row. */
-.pc-pt-cine .pc-pt-answers { gap: 22px; margin-top: 12px; }
-.pc-portrait .pc-pt-cine .pc-pt-answers button {
-  height: auto; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none;
-  color: var(--pt-on-2); font-size: 14px; font-weight: 500;
-  text-decoration: underline; text-underline-offset: 5px; text-decoration-color: rgba(255, 255, 255, 0.3);
-}
-.pc-portrait .pc-pt-cine .pc-pt-answers button:hover { color: #fff; text-decoration-color: #fff; opacity: 1; }
-.pc-portrait .pc-pt-cine .pc-pt-answers b { height: auto; padding: 0; border: 0; background: transparent; color: var(--pt-on-2); font-size: 14px; }
-/* Ask: a hairline field, white words. */
-.pc-pt-cine .pc-demo-ask { padding: 0; min-height: 52px; border-top: 0; border-bottom: 1px solid rgba(255, 255, 255, 0.3); }
-.pc-pt-cine .pc-demo-ask.is-sent { background: transparent; }
-.presence-cosmos .pc-pt-cine .pc-demo-ask input { color: #fff; }
-.presence-cosmos .pc-pt-cine .pc-demo-ask input::placeholder { color: var(--pt-on-3); }
-.pc-portrait .pc-pt-cine .pc-demo-ask .pc-pt-send { color: #fff; }
-.pc-portrait .pc-pt-cine .pc-demo-ask .pc-pt-send:hover { background: rgba(255, 255, 255, 0.1); }
-.pc-portrait .pc-pt-cine .pc-pt-hints { margin-top: 0; }
-.pc-portrait .pc-pt-cine .pc-pt-hints button:first-child { border-top: 0; }
-.pc-portrait .pc-pt-cine .pc-demo-answer .pc-demo-chips button { background: transparent; border: 1px solid rgba(255, 255, 255, 0.25); color: #fff; }
-.pc-portrait .pc-pt-cine .pc-demo-answer .pc-demo-chips b { background: transparent; border-color: rgba(255, 255, 255, 0.25); color: var(--pt-on-2); }
-/* Signature: hairline rows, the count in grey, no underline in a panel. */
-.pc-pt-cine .pc-pt-sig { gap: 0; padding: 0; }
-.pc-pt-cine .pc-pt-sig-item { padding: 14px 0 16px; gap: 8px; }
-.pc-pt-cine .pc-pt-sig-item:first-child { border-top: 0; padding-top: 4px; }
-.pc-portrait .pc-pt-cine .pc-demo-sig-row > span { color: rgba(255, 255, 255, 0.9); }
-.pc-portrait .pc-pt-cine .pc-demo-sig-row small { color: var(--pt-on-3); }
-.pc-portrait .pc-pt-sig-jump { text-decoration: none; color: var(--c-ink-3); }
-.pc-portrait .pc-pt-cine .pc-pt-sig-jump { color: var(--pt-on-3); font-family: 'Geist', var(--c-font); font-size: 13px; margin-left: 10px; }
-.pc-portrait .pc-pt-cine .pc-pt-sig-jump:hover { color: #fff; }
-.pc-pt-cine .pc-pt-sig-foot { margin-top: 12px; padding-top: 14px; border-top: 1px solid rgba(255, 255, 255, 0.14); }
-
-/* The paper is frosted for real: the room shows through it. */
-.pc-pt-paper-panel { background: rgba(247, 245, 243, 0.9); backdrop-filter: blur(36px) saturate(1.1); -webkit-backdrop-filter: blur(36px) saturate(1.1); }
-
-/* Sources: the count alone at the right; when it began joins the description. */
-.pc-portrait .pc-pt-source span { letter-spacing: 0.03em; }
-
-/* One wordmark at the end: the footer row. */
-.pc-portrait .pc-pt-foot { margin-top: 48px; }
-
-@media (max-width: 640px) {
-  /* No frame on a phone: the scenes sit on the room. */
-  .pc-pt-cine .pc-pt-glass.pc-demo-glass { background: transparent; border: 0; backdrop-filter: none; -webkit-backdrop-filter: none; box-shadow: none; border-radius: 0; }
-  .pc-portrait .pc-pt-cine .pc-pt-glass-inner { padding: 4px 0 0; }
-  .pc-pt-cine .pc-cine-body--stack { padding: 12px 0 40px; }
-  .pc-pt-cine .pc-cine-body--stack .pc-cine-panel { margin-top: 32px; width: 100%; }
-  .presence-cosmos .pc-pt-cine .pc-demo-reading p, .presence-cosmos .pc-pt-cine .pc-pt-sig-line { font-size: 23px; line-height: 28px; }
-  /* The numeral hangs above the line instead of taking a gutter. */
-  .pc-portrait .pc-pt-row-head { grid-template-columns: minmax(0, 1fr); gap: 6px; }
-  .pc-portrait .pc-pt-row-head .pc-pt-row-n { grid-column: 1; grid-row: 1; margin: 0; }
-  .presence-cosmos.pc-portrait .pc-pt-row-head p { grid-column: 1; grid-row: 2; }
-  .pc-portrait .pc-pt-row-head .pc-pt-row-meta { grid-column: 1; grid-row: 3; }
-  .pc-portrait .pc-pt-row-body { padding-left: 0; }
-}
-
-/* The signature fits the first screen: four lines, tighter. */
-.pc-pt-cine .pc-pt-sig-item { padding: 11px 0 13px; gap: 5px; }
-.presence-cosmos .pc-pt-cine .pc-pt-sig-line { font-size: 22px; line-height: 27px; }
-.pc-portrait .pc-pt-cine .pc-demo-sig-row > span { font-size: 13px; }
-.pc-portrait .pc-pt-cine .pc-demo-sig-row small { font-size: 12px; }
-.pc-pt-cine .pc-pt-sig-foot { margin-top: 8px; padding-top: 12px; }
-.pc-pt-cine .pc-cine-body--stack { padding-top: 28px; }
-.pc-pt-cine .pc-cine-body--stack .pc-cine-panel { margin-top: 36px; }
-.pc-pt-cine .pc-pt-sig-item { padding: 9px 0 11px; gap: 4px; }
-.presence-cosmos .pc-pt-cine .pc-pt-sig-line { font-size: 20px; line-height: 25px; }
-.pc-pt-cine .pc-pt-sig-foot { margin-top: 6px; padding-top: 10px; }
-.pc-pt-cine .pc-cine-body--stack { padding-top: 22px; }
-.pc-pt-cine .pc-cine-body--stack .pc-cine-panel { margin-top: 30px; }
-
-/* The glass tints toward the room's dark, so white type holds where the panel crosses the window. */
-.pc-pt-cine .pc-pt-glass.pc-demo-glass { background: rgba(12, 14, 20, 0.28); border-color: rgba(255, 255, 255, 0.14); }
-/* The footer row keeps off the lamp: everything sits at the right. */
-.pc-portrait .pc-pt-foot { justify-content: flex-end; }
-.pc-portrait .pc-pt-foot span { margin-right: 4px; }
-
-/* ---- Under the fold: opaque paper, readings under running heads, the sources as a stanza ---- */
-.pc-pt-paper-panel { background: #f7f5f3; backdrop-filter: none; -webkit-backdrop-filter: none; }
-.presence-cosmos .pc-pt-head { font-size: 52px; line-height: 56px; letter-spacing: -0.02em; }
-.pc-pt-paper-panel .pc-pt-ledger { margin-top: 48px; }
-/* Running heads: mono, small, the group's plain name. */
-.pc-portrait .pc-pt-group { margin-top: 40px; }
-.pc-portrait .pc-pt-group:first-of-type { margin-top: 32px; }
-.pc-portrait .pc-pt-run {
-  margin: 0; padding: 0 0 10px;
-  font-family: 'Geist Mono', var(--font-mono, ui-monospace, monospace); font-size: 11px; line-height: 16px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--c-ink-3);
-}
-/* Rows: the group opens on its strongest line, set larger; the rest follow smaller. */
-.pc-portrait .pc-pt-row-head { grid-template-columns: minmax(0, 1fr); gap: 8px; padding: 20px 0 18px; }
-.presence-cosmos.pc-portrait .pc-pt-row-head p { font-size: 23px; line-height: 29px; }
-.presence-cosmos.pc-portrait .pc-pt-row.is-lead .pc-pt-row-head p { font-size: 32px; line-height: 37px; letter-spacing: -0.018em; }
-.pc-portrait .pc-pt-row.is-lead .pc-pt-row-head { padding: 22px 0 20px; }
-.pc-portrait .pc-pt-row-head .pc-pt-row-meta { font-family: 'Geist Mono', var(--font-mono, ui-monospace, monospace); font-size: 11px; line-height: 16px; letter-spacing: 0.04em; color: var(--c-ink-3); }
-.pc-portrait .pc-pt-row-body { padding-left: 0; }
-/* Sources: a stanza, not a table. Names in the serif, counts in mono, one line on what is read. */
-.pc-portrait .pc-pt-src-stanza { margin-top: 28px; }
-.pc-portrait .pc-pt-src-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px 24px; margin: 0; }
-.pc-portrait .pc-pt-src-grid > div { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--c-border); }
-.presence-cosmos .pc-pt-src-grid dt { margin: 0; font-family: 'Instrument Serif', serif; font-size: 26px; line-height: 30px; letter-spacing: -0.012em; color: var(--c-ink); }
-.presence-cosmos .pc-pt-src-grid dd { margin: 0; font-family: 'Geist Mono', var(--font-mono, ui-monospace, monospace); font-size: 12px; letter-spacing: 0.03em; color: var(--c-ink-3); white-space: nowrap; }
-.presence-cosmos .pc-pt-src-kinds { margin: 22px 0 0; max-width: 60ch; font-size: 15px; line-height: 22px; color: var(--c-ink-2); }
-.pc-portrait .pc-pt-source-list[hidden] { display: none; }
-.pc-pt-paper-panel .pc-pt-sources { margin-top: 96px; }
-
-/* The glass: one height for all three scenes, and frost that holds white type over the sash. */
-.pc-pt-cine .pc-pt-glass.pc-demo-glass { min-height: 520px; background: rgba(12, 14, 20, 0.42); backdrop-filter: blur(40px) saturate(1.2); -webkit-backdrop-filter: blur(40px) saturate(1.2); }
-
-/* A phone keeps its nav: the capsule sits beside the mark. */
-@media (max-width: 767px) {
-  .pc-pt-cine .pc-cine-nav nav.pc-cine-navcap { display: flex; position: static; transform: none; padding: 8px 14px; gap: 14px; }
-  .pc-pt-cine .pc-cine-nav nav a { font-size: 13px; }
-  .presence-cosmos .pc-cine-mark { font-size: 24px; }
-}
-@media (max-width: 640px) {
-  .presence-cosmos .pc-pt-head { font-size: 40px; line-height: 44px; }
-  .presence-cosmos.pc-portrait .pc-pt-row.is-lead .pc-pt-row-head p { font-size: 27px; line-height: 32px; }
-  .presence-cosmos.pc-portrait .pc-pt-row-head p { font-size: 21px; line-height: 27px; }
-  .pc-portrait .pc-pt-src-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 18px; }
-  .presence-cosmos .pc-pt-src-grid dt { font-size: 22px; line-height: 26px; }
-  .pc-pt-cine .pc-pt-glass.pc-demo-glass { min-height: 0; }
-}
-/* One column in the row: an older rule still sent the sentence and its provenance to a second, implicit one. */
-.presence-cosmos.pc-portrait .pc-pt-row-head p,
-.pc-portrait .pc-pt-row-head .pc-pt-row-meta { grid-column: 1; }
-
-/* ---- The glass is content-sized again (empty glass is the most visible flaw), and frosts harder ---- */
-.pc-pt-cine .pc-pt-glass.pc-demo-glass { min-height: 0; background: rgba(12, 14, 20, 0.5); backdrop-filter: blur(60px) saturate(1.2); -webkit-backdrop-filter: blur(60px) saturate(1.2); }
-/* Monochrome: the Signature names its domains in words; the pips go. Its provenance is mono like the rest. */
-.pc-pt-cine .pc-demo-sig-row > span i { display: none; }
-.pc-pt-cine .pc-demo-sig-row > span { gap: 0; }
-.pc-portrait .pc-pt-cine .pc-demo-sig-row small,
-.pc-portrait .pc-pt-cine .pc-pt-sig-jump { font-family: 'Geist Mono', var(--font-mono, ui-monospace, monospace); font-size: 11px; letter-spacing: 0.04em; margin-left: 0; }
-/* The answers are pills like everything else pressable. */
-.pc-portrait .pc-pt-cine .pc-pt-answers button {
-  height: 30px; padding: 0 12px; border: 1px solid rgba(255, 255, 255, 0.28); border-radius: 999px;
-  text-decoration: none; color: var(--pt-on-2);
-}
-.pc-portrait .pc-pt-cine .pc-pt-answers button:hover { border-color: #fff; color: #fff; }
-.pc-pt-cine .pc-pt-answers { gap: 8px; }
-.pc-portrait .pc-demo-ask .pc-pt-send { font-weight: 500; }
-/* The ledger: a group boundary is not a row boundary. The label stands alone; the first row has no rule above it. */
-.pc-portrait .pc-pt-group { margin-top: 56px; }
-.pc-portrait .pc-pt-group:first-of-type { margin-top: 36px; }
-.pc-portrait .pc-pt-run { padding-bottom: 6px; }
-.pc-portrait .pc-pt-group > .pc-pt-row:first-of-type { border-top: 0; }
-.pc-portrait .pc-pt-group > .pc-pt-row:first-of-type .pc-pt-row-head { padding-top: 6px; }
-/* Two panels with the room between them, so the ground comes back mid-scroll. */
-.pc-pt-paper-panel--sources { margin-top: 160px; padding-top: 8px; }
-.pc-pt-paper-panel .pc-pt-sources { margin-top: 48px; }
-.pc-pt-paper-panel:not(.pc-pt-paper-panel--sources) { padding-bottom: 72px; }
-@media (max-width: 640px) {
-  .pc-pt-paper-panel--sources { margin-top: 96px; }
-}
-
-/* ---- Three serif sizes: 64 for the two headlines, 32 for heads and lead lines, 24 for the rest ---- */
-.presence-cosmos .pc-pt-close-line { font-size: clamp(40px, 4.4vw, 64px); line-height: 0.98; max-width: 22ch; }
-.presence-cosmos .pc-pt-head { font-size: 32px; line-height: 37px; letter-spacing: -0.018em; }
-.presence-cosmos.pc-portrait .pc-pt-row-head p { font-size: 24px; line-height: 30px; }
-.presence-cosmos.pc-portrait .pc-pt-row.is-lead .pc-pt-row-head p { font-size: 32px; line-height: 37px; }
-.presence-cosmos .pc-pt-src-grid dt { font-size: 24px; line-height: 30px; }
-.presence-cosmos .pc-pt-cine .pc-demo-reading p,
-.presence-cosmos .pc-pt-cine .pc-pt-sig-line { font-size: 24px; line-height: 30px; }
-/* Section names are editorial, so they are sans small caps; mono stays for what a machine wrote. */
-.pc-portrait .pc-pt-run { font-family: var(--c-font); font-size: 12px; line-height: 16px; letter-spacing: 0.08em; font-weight: 500; color: var(--c-ink-3); }
-.presence-cosmos .pc-pt-head-note { margin: 10px 0 0; max-width: 52ch; font-size: 15px; line-height: 22px; color: var(--c-ink-2); }
-/* Rules separate; they do not terminate. */
-.pc-portrait .pc-pt-group:last-of-type > .pc-pt-row:last-child { border-bottom: 0; }
-.pc-portrait .pc-pt-cine .pc-pt-hints button:last-child { border-bottom: 0; }
-.pc-pt-paper-panel:not(.pc-pt-paper-panel--sources) { padding-bottom: 56px; }
-/* The eyebrow reads over the window. */
-.presence-cosmos .pc-cine-kicker { color: var(--pt-on-2); }
-/* The coda sits on the open sky, not the roofline. */
-.pc-portrait .pc-pt-close { padding-top: 40px; }
-/* Sources: what was read sits under each name. */
-.pc-portrait .pc-pt-src-grid > div { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; gap: 4px 12px; padding-bottom: 14px; }
-.pc-portrait .pc-pt-src-grid > div small { grid-column: 1 / -1; font-size: 13px; line-height: 18px; color: var(--c-ink-2); }
-.pc-portrait .pc-pt-src-grid { gap: 22px 28px; }
-@media (max-width: 640px) {
-  .presence-cosmos .pc-pt-head { font-size: 28px; line-height: 32px; }
-  .presence-cosmos.pc-portrait .pc-pt-row.is-lead .pc-pt-row-head p { font-size: 27px; line-height: 32px; }
-  .presence-cosmos.pc-portrait .pc-pt-row-head p { font-size: 21px; line-height: 27px; }
-  .presence-cosmos .pc-pt-src-grid dt { font-size: 21px; line-height: 26px; }
-}
-
-/* ---- Execution: one label system, a roomier glass, a selected tab without a white pill, one filled answer ---- */
-.pc-portrait .pc-pt-cine .pc-pt-glass-inner { padding: 28px 32px 30px; }
-.presence-cosmos .pc-pt-cine .pc-demo-reading > span,
-.presence-cosmos .pc-pt-cine .pc-demo-answer > span { font-family: var(--c-font); font-size: 11px; letter-spacing: 0.08em; font-weight: 500; text-transform: uppercase; }
-.pc-portrait .pc-pt-cine .pc-cine-tabs button.is-active { background: transparent; color: #fff; font-weight: 500; }
-.pc-portrait .pc-pt-cine .pc-cine-tabs button { color: var(--pt-on-3); }
-.pc-pt-cine .pc-cine-tabs { background: transparent; box-shadow: none; padding: 0; gap: 18px; }
-.pc-portrait .pc-pt-cine .pc-pt-answers button:first-child { background: rgba(255, 255, 255, 0.94); color: #0d0d0d; border-color: transparent; }
-.pc-portrait .pc-pt-cine .pc-pt-answers button:first-child:hover { background: #fff; color: #0d0d0d; }
-/* Sources: the date joins the count in mono; the description stays one line. */
-.presence-cosmos .pc-pt-src-grid dd { font-size: 11px; }
-.pc-portrait .pc-pt-src-grid > div small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.pc-pt-paper-panel--sources { padding-top: 32px; }
-/* A phone keeps a rounded glass, so the scene does not end on a hard seam against the window. */
-@media (max-width: 640px) {
-  .pc-pt-cine .pc-pt-glass.pc-demo-glass { background: rgba(12, 14, 20, 0.5); border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 22px; backdrop-filter: blur(40px) saturate(1.2); -webkit-backdrop-filter: blur(40px) saturate(1.2); }
-  .pc-portrait .pc-pt-cine .pc-pt-glass-inner { padding: 18px 18px 20px; }
-}
-
-/* Sources on a phone: one column, so the count never prints over the name and no description is cut. */
-.pc-portrait .pc-pt-src-grid > div small { white-space: normal; overflow: visible; text-overflow: clip; }
-@media (max-width: 640px) {
-  .pc-portrait .pc-pt-src-grid { grid-template-columns: minmax(0, 1fr); gap: 14px; }
-  .pc-portrait .pc-pt-src-grid > div { grid-template-columns: minmax(0, 1fr) auto; }
-}
-
-/* ==== The room is the page. Below the fold, glass on the photograph; the camera turns as the page is read. ==== */
-.pc-portrait .pc-pt-room-ground--alt { opacity: 0; transition: opacity 1.4s ease; animation: none; }
-.pc-portrait .pc-pt-room-ground--alt.is-on { opacity: 1; }
-
-.pc-pt-scene {
-  position: relative; z-index: 1;
-  width: min(880px, calc(100% - 48px)); margin: 0 auto; padding: 96px 0 40px;
-  display: grid; grid-template-columns: minmax(0, 1fr); gap: 28px; justify-items: start;
-}
-.pc-pt-scene-head { width: min(560px, 100%); margin-bottom: 8px; }
-.presence-cosmos .pc-pt-head--room { color: #fff; }
-.pc-pt-scene-head .pc-pt-head-note { color: var(--pt-on-3); }
-
-/* A glass card: the hero's glass, repeated. White type, hairlines, the room behind. */
-.pc-pt-glasscard {
-  --c-on: #fff; --c-on-rgb: 255, 255, 255;
-  --c-ink: #fff; --c-ink-2: var(--pt-on-2); --c-ink-3: var(--pt-on-3);
-  --c-border: rgba(255, 255, 255, 0.14); --c-paper: transparent; --c-white: transparent;
-  width: min(640px, 100%); padding: 26px 32px 28px; border-radius: 28px; color: #fff;
-  background: rgba(12, 14, 20, 0.5);
-  backdrop-filter: blur(60px) saturate(1.2); -webkit-backdrop-filter: blur(60px) saturate(1.2);
-  border: 1px solid rgba(255, 255, 255, 0.14); box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.12);
-}
-.pc-pt-glasscard--wide { width: 100%; }
-.pc-pt-scene > .pc-pt-glasscard:nth-of-type(even) { justify-self: end; }
-.pc-portrait .pc-pt-group.pc-pt-glasscard { margin-top: 0; }
-.pc-portrait .pc-pt-glasscard .pc-pt-run { color: var(--pt-on-3); padding-bottom: 4px; }
-.presence-cosmos .pc-pt-glasscard .pc-pt-row-head p { color: #fff; }
-.pc-portrait .pc-pt-glasscard .pc-pt-row-head .pc-pt-row-meta { color: var(--pt-on-3); }
-.pc-portrait .pc-pt-glasscard .pc-pt-row { border-color: rgba(255, 255, 255, 0.14); }
-.pc-portrait .pc-pt-glasscard .pc-pt-row.is-lit { border-color: rgba(255, 255, 255, 0.6); }
-.pc-portrait .pc-pt-glasscard .pc-pt-row-head { padding: 18px 0 16px; }
-.pc-portrait .pc-pt-glasscard .pc-pt-row.is-lead .pc-pt-row-head { padding-top: 6px; }
-.presence-cosmos.pc-portrait .pc-pt-glasscard .pc-pt-row.is-lead .pc-pt-row-head p { font-size: 30px; line-height: 35px; }
-.presence-cosmos.pc-portrait .pc-pt-glasscard .pc-pt-row-head p { font-size: 22px; line-height: 28px; }
-.pc-portrait .pc-pt-glasscard .pc-pt-group > .pc-pt-row:last-child,
-.pc-portrait .pc-pt-glasscard > .pc-pt-row:last-child { border-bottom: 0; }
-.pc-portrait .pc-pt-glasscard .pc-pt-row-body { padding-bottom: 18px; }
-.pc-portrait .pc-pt-glasscard .pc-demo-row { background: transparent; border: 0; border-top: 1px solid rgba(255, 255, 255, 0.12); border-radius: 0; padding: 10px 0 10px; color: #fff; }
-.presence-cosmos .pc-pt-glasscard .pc-demo-row span { color: var(--pt-on-3); }
-.presence-cosmos .pc-pt-glasscard .pc-demo-row p { color: #fff; }
-.pc-portrait .pc-pt-glasscard .pc-demo-log { gap: 0; }
-.pc-portrait .pc-pt-glasscard .pc-pt-verdict small { color: var(--pt-on-3); }
-.pc-portrait .pc-pt-glasscard .pc-pt-verdict .pc-btn { background: transparent; border: 1px solid rgba(255, 255, 255, 0.28); color: #fff !important; height: 32px; padding: 0 12px; border-radius: 999px; }
-.pc-portrait .pc-pt-glasscard .pc-pt-verdict .pc-btn.is-active { background: rgba(255, 255, 255, 0.94); color: #0d0d0d !important; border-color: transparent; }
-/* Sources on glass */
-.presence-cosmos .pc-pt-glasscard .pc-pt-head { color: #fff; }
-.pc-portrait .pc-pt-glasscard .pc-pt-manage { color: var(--pt-on-3); }
-.pc-portrait .pc-pt-glasscard .pc-pt-manage:hover { color: #fff; }
-.presence-cosmos .pc-pt-glasscard .pc-pt-src-grid dt { color: #fff; }
-.presence-cosmos .pc-pt-glasscard .pc-pt-src-grid dd { color: var(--pt-on-3); }
-.pc-portrait .pc-pt-glasscard .pc-pt-src-grid > div { border-color: rgba(255, 255, 255, 0.14); }
-.pc-portrait .pc-pt-glasscard .pc-pt-src-grid > div small { color: var(--pt-on-2); }
-.pc-portrait .pc-pt-glasscard .pc-pt-source-note { color: var(--pt-on-3); margin-top: 24px; }
-.pc-portrait .pc-pt-glasscard .pc-pt-source { border-color: rgba(255, 255, 255, 0.14); color: #fff; }
-.pc-portrait .pc-pt-glasscard .pc-pt-source small { color: var(--pt-on-2); }
-.pc-portrait .pc-pt-glasscard .pc-pt-source em button { color: var(--pt-on-2); }
-
-/* The phone: the real Today scene at phone size, on the room, tilted a little. */
-.pc-pt-scene--phone { grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 64px; padding: 120px 0 80px; }
-.pc-pt-phone {
-  width: 300px; aspect-ratio: 390 / 844; border-radius: 46px; padding: 9px; background: #0a0a0b;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14), 0 40px 80px rgba(0, 0, 0, 0.45);
-  transform: rotate(-3deg); flex: none;
-}
-.pc-pt-phone-screen { position: relative; width: 100%; height: 100%; border-radius: 38px; overflow: hidden; background: #0b0d10; }
-.pc-pt-phone-screen > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 42% 50%; filter: brightness(0.92); }
-.pc-pt-phone-ui { position: absolute; inset: 0; display: grid; grid-template-rows: auto 1fr; padding: 16px 14px; }
-.pc-pt-phone-bar { display: flex; justify-content: space-between; align-items: baseline; padding: 4px 6px 0; font-family: 'Instrument Serif', serif; font-size: 18px; color: #fff; }
-.pc-pt-phone-time { font-family: 'Geist Mono', var(--font-mono, monospace); font-size: 11px; letter-spacing: 0.04em; color: var(--pt-on-2); }
-.pc-pt-phone-glass {
-  align-self: end; display: grid; gap: 8px; padding: 14px 14px 12px; border-radius: 20px; color: #fff;
-  background: rgba(12, 14, 20, 0.5); backdrop-filter: blur(30px) saturate(1.2); -webkit-backdrop-filter: blur(30px) saturate(1.2);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-}
-.pc-pt-phone-label { font-family: var(--c-font); font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 500; color: var(--pt-on-3); }
-.presence-cosmos .pc-pt-phone-glass > p { margin: 0; font-family: 'Instrument Serif', serif; font-size: 17px; line-height: 21px; color: #fff; }
-.pc-pt-phone-answers { display: flex; gap: 6px; }
-.pc-pt-phone-answers b { font-weight: 500; font-size: 10px; line-height: 22px; padding: 0 9px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, 0.28); color: rgba(255, 255, 255, 0.9); }
-.pc-pt-phone-answers b:first-child { background: rgba(255, 255, 255, 0.94); color: #0d0d0d; border-color: transparent; }
-.pc-pt-phone-receipt { border-top: 1px solid rgba(255, 255, 255, 0.14); padding-top: 8px; display: grid; gap: 2px; }
-.pc-pt-phone-receipt span { font-family: 'Geist Mono', var(--font-mono, monospace); font-size: 8px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--pt-on-3); }
-.presence-cosmos .pc-pt-phone-receipt p { margin: 0; font-size: 11px; line-height: 15px; color: #fff; }
-.pc-pt-scene-copy { display: grid; gap: 14px; max-width: 26ch; }
-.presence-cosmos .pc-pt-scene-line { margin: 0; font-family: 'Instrument Serif', serif; font-size: clamp(32px, 3vw, 44px); line-height: 1.02; letter-spacing: -0.02em; color: #fff; }
-.presence-cosmos .pc-pt-scene-line em { font-style: italic; }
-.pc-pt-scene-copy .pc-pt-head-note { color: var(--pt-on-3); }
-
-.pc-portrait .pc-pt-close { padding-top: 96px; }
-
-@media (max-width: 760px) {
-  .pc-pt-scene { padding: 64px 0 24px; gap: 20px; }
-  .pc-pt-glasscard { padding: 18px 18px 20px; border-radius: 22px; }
-  .pc-pt-scene > .pc-pt-glasscard:nth-of-type(even) { justify-self: start; }
-  .pc-pt-scene--phone { grid-template-columns: 1fr; justify-items: center; gap: 36px; padding: 80px 0 40px; }
-  .pc-pt-phone { width: 260px; transform: none; }
-  .pc-pt-scene-copy { text-align: center; justify-items: center; }
-}
-.pc-pt-phone-ui { grid-template-rows: auto auto 1fr; gap: 14px; }
-.presence-cosmos .pc-pt-phone-head { margin: 6px 6px 0; font-family: 'Instrument Serif', serif; font-size: 25px; line-height: 1; letter-spacing: -0.02em; color: #fff; text-wrap: balance; }
-.presence-cosmos .pc-pt-phone-head .pc-cine-muted { font-style: italic; color: rgba(255, 255, 255, 0.92); }
-
-/* ==== One glass. The nav capsule's recipe, on every panel: near-clear, a light blur, a hairline that catches light. ==== */
-.pc-pt-cine .pc-pt-glass.pc-demo-glass,
-.pc-pt-glasscard,
-.pc-pt-phone-glass,
-.pc-pt-tile,
-.pc-pt-chip {
-  background: rgba(255, 255, 255, 0.045);
-  background-blend-mode: luminosity;
-  backdrop-filter: blur(18px) saturate(1.15);
-  -webkit-backdrop-filter: blur(18px) saturate(1.15);
-  border: none;
-  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1);
-}
-.pc-pt-cine .pc-pt-glass.pc-demo-glass { min-height: 0; }
-.pc-portrait .pc-pt-cine .pc-pt-glass { border: none; }
-.pc-portrait .pc-pt-glass.liquid-glass { overflow: hidden; }
-/* Over the window the recipe needs a breath more tint to hold white type. */
-.pc-pt-cine .pc-pt-glass.pc-demo-glass { background: rgba(10, 12, 18, 0.22); backdrop-filter: blur(22px) saturate(1.15); -webkit-backdrop-filter: blur(22px) saturate(1.15); }
-.pc-pt-glasscard { background: rgba(10, 12, 18, 0.18); }
-
-/* ---- Scene: the field of receipts ---- */
-.pc-pt-scene--field { grid-template-columns: 1fr; justify-items: center; padding: 120px 0 40px; gap: 36px; }
-.pc-pt-scene-copy--center { text-align: center; justify-items: center; max-width: 34ch; }
-.pc-pt-scene-copy--center .pc-pt-scene-line { text-align: center; }
-.pc-pt-field { position: relative; width: min(1180px, 100vw - 48px); height: 520px; margin: 0 calc(50% - min(590px, 50vw - 24px)); }
-.pc-pt-chip {
-  position: absolute; display: grid; gap: 3px; max-width: 280px; padding: 10px 14px 11px; border-radius: 16px; color: #fff;
-  transform: rotate(var(--r, 0deg));
-  animation: pc-pt-float 9s ease-in-out infinite alternate; animation-delay: var(--d, 0s);
-}
-.pc-pt-chip span { font-family: 'Geist Mono', var(--font-mono, monospace); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--pt-on-3); }
-.presence-cosmos .pc-pt-chip p { margin: 0; font-size: 14px; line-height: 18px; color: #fff; white-space: nowrap; }
-@keyframes pc-pt-float {
-  from { translate: 0 0; }
-  to { translate: 0 -14px; }
-}
-
-/* ---- Scene: the readings, a sticky index beside the panels ---- */
-.pc-pt-scene--ledger { grid-template-columns: 280px minmax(0, 1fr); align-items: start; gap: 48px; padding: 120px 0 60px; }
-.pc-pt-index { position: sticky; top: 96px; display: grid; gap: 20px; }
-.pc-pt-index-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
-.pc-pt-index-list a { display: flex; gap: 14px; align-items: baseline; padding: 8px 0; font-size: 17px; line-height: 24px; letter-spacing: -0.01em; color: var(--pt-on-3) !important; text-decoration: none; transition: color 0.3s ease; }
-.pc-pt-index-list a span { font-family: 'Geist Mono', var(--font-mono, monospace); font-size: 11px; letter-spacing: 0.04em; color: var(--pt-on-3); }
-.pc-pt-index-list li.is-active a, .pc-pt-index-list a:hover { color: #fff !important; }
-.pc-pt-index .pc-pt-head-note { color: var(--pt-on-3); font-size: 14px; }
-.pc-pt-ledger-stack { display: grid; gap: 28px; width: 100%; }
-.pc-pt-ledger-stack .pc-pt-glasscard { width: 100%; justify-self: stretch; opacity: 0.82; transition: opacity 0.5s ease; }
-.pc-pt-ledger-stack .pc-pt-glasscard.is-active { opacity: 1; }
-.pc-pt-scene > .pc-pt-glasscard:nth-of-type(even) { justify-self: start; }
-
-/* ---- Scene: the sources as tiles ---- */
-.pc-pt-scene--sources { grid-template-columns: 1fr; justify-items: center; gap: 36px; padding: 120px 0 40px; }
-.pc-pt-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; width: 100%; }
-.pc-pt-tile { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 12px; align-items: baseline; padding: 20px 22px 18px; border-radius: 22px; color: #fff; }
-.pc-pt-tile strong { font-family: 'Instrument Serif', serif; font-weight: 400; font-size: 26px; line-height: 30px; letter-spacing: -0.012em; }
-.pc-pt-tile span { font-family: 'Geist Mono', var(--font-mono, monospace); font-size: 12px; letter-spacing: 0.03em; color: var(--pt-on-3); }
-.pc-pt-tile small { grid-column: 1 / -1; font-size: 13px; line-height: 18px; color: var(--pt-on-3); }
-.pc-portrait .pc-pt-scene--sources .pc-pt-manage { color: var(--pt-on-3); }
-.pc-portrait .pc-pt-scene--sources .pc-pt-manage:hover { color: #fff; }
-.pc-portrait .pc-pt-source-note--room { color: var(--pt-on-3); text-align: center; justify-self: center; margin: 0; }
-.pc-pt-scene--sources .pc-pt-glasscard[hidden] { display: none; }
-
-/* The coda comes sooner; the eye has had its scroll. */
-.pc-portrait .pc-pt-close { padding-top: 120px; }
-
-@media (max-width: 900px) {
-  .pc-pt-scene--ledger { grid-template-columns: 1fr; gap: 24px; }
-  .pc-pt-index { position: static; }
-  .pc-pt-index-list { display: flex; flex-wrap: wrap; gap: 4px 18px; }
-  .pc-pt-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-@media (max-width: 640px) {
-  .pc-pt-field { height: 440px; }
-  .pc-pt-chip { max-width: 220px; padding: 8px 11px 9px; }
-  .presence-cosmos .pc-pt-chip p { font-size: 12px; line-height: 16px; white-space: normal; }
-  .pc-pt-tiles { grid-template-columns: 1fr; }
-  .pc-pt-scene--field, .pc-pt-scene--sources { padding: 72px 0 24px; }
-}
-/* On a phone the receipts flow in two columns instead of floating; the tilt stays. */
-@media (max-width: 640px) {
-  .pc-pt-field { height: auto; width: 100%; margin: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 10px; padding: 8px 4px; }
-  .pc-pt-chip { position: static; max-width: none; animation: none; }
-  .pc-pt-chip:nth-child(n + 9) { display: none; }
-}
-
-
-/* ==========================================================================
-   Portrait text on the photograph — readable, measured (2026-09-10)
-   ==========================================================================
-   The audit (scripts/audit-cosmos-ink.mjs, ALL=1, every text run judged by its
-   rendered colour, pixel by pixel) found 46 real runs under WCAG AA on /demo:
-   white text at 40-66% over a room photograph whose window is a bright
-   saturated blue and whose lamp throws a warm glow. Even solid white on that
-   blue is only 4.05:1, so raising the inks alone could not fix it.
-
-   Two moves, agreed with Stefano:
-   - Inks: every white text colour under 90% maps onto two tokens. They were
-     fifteen one-off alphas, the lightest 0.4.
-   - Scrim: a soft dark pool behind each block of type that sits straight on
-     the photograph. It belongs to the TEXT, not the photo, so it follows the
-     type through the fixed, drifting, object-fit-cropped room at any screen
-     shape. The nav capsule gets the same as a tint.
-   The ledger stack's back cards are content, so they fade to 0.82, not 0.55.
-
-   Re-run the audit before changing any value here. */
-.pc-portrait {
-  --pt-on-2: rgba(255, 255, 255, 0.92);   /* secondary white on media */
-  --pt-on-3: rgba(255, 255, 255, 0.84);   /* meta, labels, notes on media */
-}
-.pc-pt-cine .pc-cine-navcap { background: rgba(10, 12, 18, 0.34); }
-.pc-portrait :is(.pc-cine-copy, .pc-pt-scene-copy, .pc-pt-index, .pc-pt-source-note--room, .pc-pt-close) { isolation: isolate; }
-/* The index is sticky on desktop (which positions it) but static at 900px and
-   below, where its backing would otherwise anchor to the whole ledger section. */
-@media (max-width: 900px) { .pc-portrait .pc-pt-index { position: relative; } }
-
-/* Pass 2, measured at 1440x900, 1280x800 and 390x844. What pass 1 left:
-   - glass over the window was nearly clear (tiles 4.5% white, reading cards
-     18%), so even solid white on it failed. Tinted just enough to read through;
-     the back cards of the ledger stack darker still, so they read as behind.
-   - at 1280 the lamp slides under the readings index, so its pool (on its
-     base rule, with the other backings below) is fuller and stronger. The inactive links keep --pt-on-3 so white still marks the
-     active one; the note, which has no active state, goes up a step.
-   - the phone scene's note sits over the lit windows across the street.
-   - the pills never had a tint; they get the nav capsule's. */
-.pc-portrait .pc-pt-tile { background: rgba(10, 12, 18, 0.3); }
-.pc-portrait .pc-pt-glasscard { background: rgba(10, 12, 18, 0.34); }
-.pc-portrait .pc-pt-ledger-stack .pc-pt-glasscard { background: rgba(10, 12, 18, 0.5); }
-.pc-pt-cine .pc-cine-pill,
-.pc-portrait .pc-pt-close .pc-cine-pill { background: rgba(10, 12, 18, 0.34); }
-.pc-portrait .pc-pt-index .pc-pt-head-note { color: var(--pt-on-2); }
-.pc-portrait .pc-pt-scene-copy:not(.pc-pt-scene-copy--center)::before {
-  background: radial-gradient(closest-side, rgba(8, 10, 14, 0.7), rgba(8, 10, 14, 0.5) 60%, rgba(8, 10, 14, 0)); }
-.pc-portrait .pc-pt-scene-copy .pc-pt-head-note { color: #fff; }
-
-/* Phones (767px and down): the header held the mark, a three-link capsule and
-   the pill in 342px, so the capsule shrank to 118px and clipped "Readings" and
-   "Sources" off the edge, onto the bare window, while the pill's label wrapped
-   into a three-line blob. The capsule now takes its own centred row at its
-   natural width, and the pill keeps its label on one line. */
-@media (max-width: 767px) {
-  .pc-pt-cine .pc-cine-nav { flex-wrap: wrap; row-gap: 14px; }
-  .pc-pt-cine .pc-cine-nav nav.pc-cine-navcap { order: 3; flex: none; margin-inline: auto; }
-  .pc-pt-cine .pc-cine-pill { white-space: nowrap; }
-}
-.pc-portrait .pc-cine-copy { position: relative; }
-.pc-portrait .pc-cine-copy::before { content: ''; position: absolute; inset: -18% -14%; z-index: -1; pointer-events: none;
-  background: radial-gradient(closest-side, rgba(8, 10, 14, 0.5), rgba(8, 10, 14, 0.32) 60%, rgba(8, 10, 14, 0)); }
-.pc-portrait .pc-pt-scene-copy { position: relative; }
-.pc-portrait .pc-pt-scene-copy::before { content: ''; position: absolute; inset: -18% -14%; z-index: -1; pointer-events: none;
-  background: radial-gradient(closest-side, rgba(8, 10, 14, 0.5), rgba(8, 10, 14, 0.32) 60%, rgba(8, 10, 14, 0)); }
-/* The index gets a fuller, stronger pool than the other blocks, reaching down
-   past its note: at 1280px the lamp slides under the whole column. This is
-   its only backing rule — an override of it placed above this line would
-   lose to it on source order (same specificity), which is exactly what
-   happened to the first attempt. closest-side, never a fixed ellipse: an
-   ellipse wider than half the box is still dark at the box's edge and gets
-   cut off there, which drew a hard rectangle across the lamp. */
-.pc-portrait .pc-pt-index::before { content: ''; position: absolute; inset: -24% -20% -34%; z-index: -1; pointer-events: none;
-  background: radial-gradient(closest-side at 50% 54%, rgba(8, 10, 14, 0.74), rgba(8, 10, 14, 0.6) 55%, rgba(8, 10, 14, 0)); }
-.pc-portrait .pc-pt-source-note--room { position: relative; }
-.pc-portrait .pc-pt-source-note--room::before { content: ''; position: absolute; inset: -18% -14%; z-index: -1; pointer-events: none;
-  background: radial-gradient(closest-side, rgba(8, 10, 14, 0.5), rgba(8, 10, 14, 0.32) 60%, rgba(8, 10, 14, 0)); }
-.pc-portrait .pc-pt-close { position: relative; }
-.pc-portrait .pc-pt-close::before { content: ''; position: absolute; inset: -18% -14%; z-index: -1; pointer-events: none;
-  background: radial-gradient(closest-side, rgba(8, 10, 14, 0.5), rgba(8, 10, 14, 0.32) 60%, rgba(8, 10, 14, 0)); }
