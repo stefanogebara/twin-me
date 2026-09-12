@@ -1,24 +1,23 @@
 import { Link } from 'react-router-dom';
-import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { DOMAIN_HUE, DOMAIN_LABEL, SOURCE_LABEL, type Evidence, type PortraitData, type Reading, type Verdict } from '../../data/demoPortrait';
-import { deriveState, receiptLine, groupByDomain, DOMAIN_HEAD, daysSince, findScripted } from '../../lib/portrait';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Check, ChevronDown, ChevronRight, ChevronUp, Eye, EyeOff, Loader2, Plus } from 'lucide-react';
+import { SOURCE_LABEL, type Evidence, type PortraitData, type Reading, type Verdict } from '../../data/demoPortrait';
+import { deriveState, groupByDomain, DOMAIN_HEAD, DOMAIN_ORDER, daysSince, findScripted } from '../../lib/portrait';
 import '../../styles/presence-cosmos.css';
 
 /**
- * The Portrait: the product's one page, built the way the front door shows it — a
- * liquid-glass panel on the room photograph, holding the real interface. The panel has
- * three scenes, the same three the front door demos: today's question (a reading and what
- * it was read from), Ask (the twin answers in your words and shows what it cites), and
- * your signature (five lines, each measured from named sources). Beneath the stage, on
- * paper, the ledger of every reading with its evidence and your verdict, and the sources.
+ * The Portrait, in the register (2026-09-12): a flat app screen, rows under a 1px ink
+ * rule. No room, no clip, no panels over a picture.
  *
- * The glass, the arriving rows, the typing: the same recipe as /cosmos/demos, but nothing
- * here is scripted — every row is a receipt, every answer comes from the readings.
+ * Composition:
+ *   sidebar — links to the sections; a menu on phones
+ *   title   — the headline reading, and how many places it was read from
+ *   column  — today's question, the readings in their five domains (each domain's
+ *             signature line is its section's grey line), Ask, and what is read and
+ *             never read
  *
- * Motion rules, measured rather than assumed: nothing on this page changes size without
- * animating that size. The glass keeps its top edge and grows or shrinks to the scene it
- * holds; the old scene fades out before the new one rises in; a reading opens by height,
- * not by appearing. Everything respects prefers-reduced-motion by settling instantly.
+ * Every reading is a row: the reading as its title, one grey line for what it was read
+ * from. A press opens its receipts and the verdict as sub-rows.
  *
  * Verdicts and today's answer update locally first; the live page wires the same props to
  * the API through PortraitHandlers. Without onAsk, Ask answers from the export's scripts.
@@ -35,23 +34,10 @@ export type PortraitHandlers = {
   onDeleteSource?: (platform: string) => Promise<void> | void;
 };
 
-type Scene = 'question' | 'ask' | 'signature';
-
-const SCENES: { id: Scene; label: string; caption: string }[] = [
-  { id: 'question', label: "Today's question", caption: 'One new reading, and what it was read from. Say whether it is you.' },
-  { id: 'ask', label: 'Ask your twin', caption: 'It answers as you, in your words, and shows what it read to say so.' },
-  { id: 'signature', label: 'Your signature', caption: 'One line per domain, each measured from named sources. Nothing from a quiz.' },
-];
-
 const VERDICT_LABEL: Record<Exclude<Verdict, null>, string> = { true: 'That is me', partly: 'Partly', wrong: 'Not me' };
 
 /** Prompts for Ask when the data carries none of its own. They only prefill the question. */
 const DEFAULT_HINTS = ['What do I do when work piles up?', 'Am I resting enough?', 'Who do I actually talk to?'];
-
-/** One easing for every size change on the page: quick out of the gate, long settle. */
-const EASE = 'cubic-bezier(0.32, 0.72, 0, 1)';
-const GROW_MS = 460;
-const FADE_OUT_MS = 140;
 
 function Mark() {
   return (
@@ -60,10 +46,6 @@ function Mark() {
       <circle cx="23" cy="23" r="2.7" /><circle cx="14" cy="23" r="2.7" /><circle cx="5" cy="23" r="2.7" /><circle cx="5" cy="14" r="2.7" />
     </svg>
   );
-}
-
-function Wave() {
-  return <span className="pc-wave" aria-hidden="true"><i /><i /><i /><i /><i /></span>;
 }
 
 function usePrefersReducedMotion() {
@@ -77,7 +59,7 @@ function usePrefersReducedMotion() {
   return reduced;
 }
 
-/** Text arriving at a typist's pace, the way the front door shows a reading being written. */
+/** Text arriving at a typist's pace: the twin's answer, as it is written. */
 function useTyped(text: string, cps: number, enabled: boolean) {
   const [n, setN] = useState(enabled ? 0 : text.length);
   useEffect(() => {
@@ -96,114 +78,8 @@ function useTyped(text: string, cps: number, enabled: boolean) {
   return { shown: text.slice(0, n), done: n >= text.length };
 }
 
-/**
- * A box that never changes height without animating it. After every render, and whenever
- * its content resizes on its own (typing, arriving rows), it compares the content's height
- * with the last one it painted; if they differ it pins the old height and transitions to
- * the new. The top edge stays where it is. Reduced motion settles instantly.
- */
-function AnimatedHeight({ children, className, reduced, duration = GROW_MS }: { children: React.ReactNode; className?: string; reduced: boolean; duration?: number }) {
-  const outer = useRef<HTMLDivElement>(null);
-  const inner = useRef<HTMLDivElement>(null);
-  const last = useRef<number | null>(null);
-  const settle = useRef<(() => void) | null>(null);
-
-  const glide = (o: HTMLDivElement, from: number, to: number) => {
-    // Mid-glide, start from where the box is now, not from where it was going.
-    const start = settle.current ? o.getBoundingClientRect().height : from;
-    settle.current?.();
-    if (document.hidden) return; // a hidden tab does not run transitions; leave the height alone
-    o.style.transition = 'none';
-    o.style.height = `${start}px`;
-    void o.offsetHeight; // commit the pinned height before the transition starts
-    o.style.transition = `height ${duration}ms ${EASE}`;
-    o.style.height = `${to}px`;
-    let timer = 0;
-    const done = (e?: TransitionEvent) => {
-      // Children's transitions bubble here; only the box's own height ends the glide.
-      if (e && (e.target !== o || e.propertyName !== 'height')) return;
-      window.clearTimeout(timer);
-      o.style.transition = ''; o.style.height = ''; o.removeEventListener('transitionend', done); settle.current = null;
-    };
-    settle.current = () => done();
-    o.addEventListener('transitionend', done);
-    // If the end event never comes (tab hidden mid-glide), the pinned height still lets go.
-    timer = window.setTimeout(() => done(), duration + 120);
-  };
-
-  // The box's own border is outside the content it measures; the target includes it.
-  const target = (o: HTMLDivElement, i: HTMLDivElement) => Math.round(i.getBoundingClientRect().height) + (o.offsetHeight - o.clientHeight);
-
-  useLayoutEffect(() => {
-    const o = outer.current; const i = inner.current;
-    if (!o || !i) return;
-    const next = target(o, i);
-    const prev = last.current;
-    last.current = next;
-    if (prev === null || prev === next || reduced) return;
-    glide(o, prev, next);
-  });
-
-  useEffect(() => {
-    const o = outer.current; const i = inner.current;
-    if (!o || !i || typeof ResizeObserver === 'undefined') return;
-    const ro = new ResizeObserver(() => {
-      const next = target(o, i);
-      const prev = last.current;
-      last.current = next;
-      if (prev === null || prev === next || reduced) return;
-      glide(o, prev, next);
-    });
-    ro.observe(i);
-    return () => ro.disconnect();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reduced, duration]);
-
-  return (
-    <div ref={outer} className={className} style={{ overflow: 'hidden' }}>
-      <div ref={inner}>{children}</div>
-    </div>
-  );
-}
-
-/**
- * Scenes cross rather than swap: the leaving scene fades in FADE_OUT_MS, then the entering
- * one rises in. Only one scene is in the tree at a time, so the height box above sees a
- * single content change per switch.
- */
-function useSceneCross(scene: Scene, reduced: boolean) {
-  const [shown, setShown] = useState(scene);
-  const [leaving, setLeaving] = useState(false);
-  useEffect(() => {
-    if (scene === shown) return;
-    if (reduced) { setShown(scene); return; }
-    setLeaving(true);
-    const t = window.setTimeout(() => { setShown(scene); setLeaving(false); }, FADE_OUT_MS);
-    return () => window.clearTimeout(t);
-  }, [scene, shown, reduced]);
-  return { shown, leaving };
-}
-
-/** The first words of a line, cut at a word, for a chip that names the reading it opens. */
-function shortLine(text: string, max = 36) {
-  if (text.length <= max) return text;
-  const cut = text.slice(0, max);
-  const at = cut.lastIndexOf(' ');
-  return `${(at > 12 ? cut.slice(0, at) : cut).replace(/[,;:.]$/, '')}\u2026`;
-}
-
-/** "11 Aug" from an ISO date: a receipt is dated the way a person says a day. */
-/** The ground of the first screen: a looping clip, the room still as its poster and its reduced-motion stand-in. */
-const HERO_VIDEO: string | null = '/images/twinme/cosmos-08-window.mp4'; // the room, blue hour deepening to night and back, 12s loop
-// The other angles of the same room; the page turns toward them as it is read.
-const GROUNDS = [
-  { id: 'lamp', src: '/images/twinme/cosmos-10-lamp.jpg' },
-  { id: 'chair', src: '/images/twinme/cosmos-11-chair.jpg' },
-  { id: 'night', src: '/images/twinme/cosmos-12-night.jpg' },
-];
-
 /** The value of `data-<attr>` on whichever element sits under the middle of the screen. */
-function useCentered(attr: string, fallback: string, reduced: boolean) {
+function useCentered(attr: string, fallback: string) {
   const [value, setValue] = useState(fallback);
   useEffect(() => {
     let raf = 0;
@@ -216,156 +92,131 @@ function useCentered(attr: string, fallback: string, reduced: boolean) {
     };
     const onScroll = () => { if (!raf) raf = window.requestAnimationFrame(pick); };
     pick();
-    if (reduced && attr === 'ground') return;
     window.addEventListener('scroll', onScroll, { passive: true });
     window.addEventListener('resize', onScroll);
     return () => { window.removeEventListener('scroll', onScroll); window.removeEventListener('resize', onScroll); if (raf) window.cancelAnimationFrame(raf); };
-  }, [attr, fallback, reduced]);
+  }, [attr, fallback]);
   return value;
 }
 
-// Where the receipt chips float, as fractions of the field, with a small tilt each.
-const CHIP_SPOTS: [number, number, number][] = [
-  [3, 6, -3], [30, 2, 2], [60, 9, -2], [82, 4, 3], [10, 40, 2], [42, 34, -3], [70, 42, 2], [88, 52, -2], [18, 74, -2], [50, 68, 3], [76, 80, -3], [34, 88, 2],
-];
-
-function ReceiptField({ evidence }: { evidence: Evidence[] }) {
-  return (
-    <div className="pc-pt-field" aria-hidden="true">
-      {evidence.slice(0, CHIP_SPOTS.length).map((e, i) => {
-        const [x, y, r] = CHIP_SPOTS[i];
-        return (
-          <div key={`${e.source}-${e.at}-${i}`} className="liquid-glass pc-pt-chip" style={{ left: `${x}%`, top: `${y}%`, '--r': `${r}deg`, '--d': `${(i % 5) * -1.7}s` } as React.CSSProperties}>
-            <span>{SOURCE_LABEL[e.source] ?? e.source} · {spokenDay(e.at)}</span>
-            <p>{e.event}</p>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function PhoneMock({ now, lead, question, source, answers, receipts }: { now: Date; lead: string | null; question: string; source?: string; answers: string[]; receipts: Evidence[] }) {
-  const time = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-  return (
-    <div className="pc-pt-phone" aria-hidden="true">
-      <div className="pc-pt-phone-screen">
-        <img src="/images/twinme/cosmos-12-night.jpg" alt="" />
-        <div className="pc-pt-phone-ui">
-          <div className="pc-pt-phone-bar"><span>TwinMe</span><span className="pc-pt-phone-time">{time}</span></div>
-          {lead ? <p className="pc-pt-phone-head"><CineLine text={lead} /></p> : null}
-          <div className="liquid-glass pc-pt-phone-glass">
-            <span className="pc-pt-phone-label">New this week{source ? ` · ${source}` : ''}</span>
-            <p>{question}</p>
-            <div className="pc-pt-phone-answers">{answers.map((a) => <b key={a}>{a}</b>)}</div>
-            {receipts.slice(0, 2).map((e, i) => (
-              <div key={i} className="pc-pt-phone-receipt"><span>{SOURCE_LABEL[e.source] ?? e.source} · {spokenDay(e.at)}</span><p>{e.event}</p></div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-const CINE_STOP = new Set('you your yours the a an and then for of in on to it is are with that this into at by but so as from when they their not just like'.split(' '));
-
-/** The lead line with its two most particular words set in the muted ink, the way the reference sets "dreams" and "through the silence". */
-function CineLine({ text }: { text: string }) {
-  const tokens = text.split(/(\s+)/);
-  const lastWord = tokens.map((t) => /\S/.test(t)).lastIndexOf(true);
-  const words = tokens.map((t, i) => ({ t, i, w: t.replace(/[^A-Za-z'-]/g, '') })).filter((x) => x.w && x.i !== lastWord && !CINE_STOP.has(x.w.toLowerCase()));
-  const picks = new Set([...words].sort((a, b) => b.w.length - a.w.length).slice(0, 1).map((x) => x.i));
-  return <>{tokens.map((t, i) => picks.has(i) ? <em key={i} className="pc-cine-muted">{t}</em> : <React.Fragment key={i}>{t}</React.Fragment>)}</>;
+/** The first words of a line, cut at a word, for a row that names the reading it opens. */
+function shortLine(text: string, max = 36) {
+  if (text.length <= max) return text;
+  const cut = text.slice(0, max);
+  const at = cut.lastIndexOf(' ');
+  return `${(at > 12 ? cut.slice(0, at) : cut).replace(/[,;:.]$/, '')}…`;
 }
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-function monthName(iso: string) {
-  const m = Number(String(iso).slice(5, 7));
+function monthName(iso: string | undefined) {
+  const m = Number(String(iso ?? '').slice(5, 7));
   return MONTHS[m - 1] ?? '';
 }
 
+/** "11 Aug" from an ISO date: a receipt is dated the way a person says a day. */
 function spokenDay(iso: string) {
   const d = new Date(`${iso.slice(0, 10)}T00:00:00Z`);
   return Number.isNaN(d.getTime()) ? iso.slice(0, 10) : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
 }
 
-/** A receipt as the front door shows one: source and day over the event. `pace` is the ms between arrivals. */
-function ReceiptRow({ e, i, pace = 110 }: { e: Evidence; i: number; pace?: number }) {
+/** "A, B and C". */
+function listWords(words: string[]) {
+  return words.length < 2 ? (words[0] ?? '') : `${words.slice(0, -1).join(', ')} and ${words[words.length - 1]}`;
+}
+
+/** A source as a person says it: "your calendar", not "Calendar". */
+const SOURCE_SPOKEN: Record<string, string> = { google_calendar: 'your calendar', google_gmail: 'your email', web: 'the web' };
+
+/** "From your calendar and Spotify": what a line was read from, in plain words. */
+function fromLine(evidence: Evidence[]) {
+  const names = [...new Set(evidence.map((e) => SOURCE_SPOKEN[e.source] ?? SOURCE_LABEL[e.source] ?? e.source))];
+  return names.length ? `From ${listWords(names)}` : '';
+}
+
+/** A receipt: what happened, then the source and the day. */
+function ReceiptRow({ e }: { e: Evidence }) {
   return (
-    <div className="pc-demo-row is-in pc-pt-arrive" style={{ animationDelay: `${i * pace}ms` }}>
-      <span>{SOURCE_LABEL[e.source] ?? e.source} · {spokenDay(e.at)}</span>
-      <p>{e.event}</p>
-    </div>
+    <li className="pc-subrow pc-pt-receipt">
+      <p className="pc-pt-receipt-event">{e.event}</p>
+      <p className="pc-pt-receipt-when">{SOURCE_LABEL[e.source] ?? e.source}, {spokenDay(e.at)}</p>
+    </li>
   );
 }
 
-function ReadingRow({ reading, lead, now, verdict, onVerdict, open, onToggle, lit }: {
-  reading: Reading; lead: boolean; now: Date; verdict: Verdict; onVerdict: (v: Verdict) => void; open: boolean; onToggle: () => void; lit: boolean;
+function ReadingRow({ reading, now, verdict, onVerdict, open, onToggle, lit }: {
+  reading: Reading; now: Date; verdict: Verdict; onVerdict: (v: Verdict) => void; open: boolean; onToggle: () => void; lit: boolean;
 }) {
   const state = deriveState({ ...reading, verdict }, now);
   const age = daysSince(reading.supportedAt, now);
-  // Receipts stay in the tree while the fold closes, so the height it animates from is the height it had.
-  const [mounted, setMounted] = useState(open);
-  useEffect(() => {
-    if (open) { setMounted(true); return; }
-    const t = window.setTimeout(() => setMounted(false), 420);
-    return () => window.clearTimeout(t);
-  }, [open]);
   return (
-    <article className={`pc-pt-row ${lead ? 'is-lead' : ''} ${open ? 'is-open' : ''} ${lit ? 'is-lit' : ''}`} id={`reading-${reading.id}`}>
-      <button type="button" className="pc-pt-row-head" onClick={onToggle} aria-expanded={open}>
-        <p>{reading.text}</p>
-        <span className="pc-pt-row-meta">{receiptLine(reading)}{state === 'fading' ? ` · last supported ${age} days ago` : ''}</span>
+    <li className={`pc-pt-reading${lit ? ' is-lit' : ''}`} id={`reading-${reading.id}`}>
+      <button type="button" className="pc-row pc-row--plain pc-row--link" onClick={onToggle} aria-expanded={open}>
+        <span className="pc-row-text">
+          <span className="pc-row-title">{reading.text}</span>
+          <span className="pc-row-line">{fromLine(reading.evidence)}{state === 'fading' ? `, last seen ${age} days ago` : ''}</span>
+        </span>
+        {open ? <ChevronUp className="pc-chevron" aria-hidden="true" /> : <ChevronDown className="pc-chevron" aria-hidden="true" />}
       </button>
-      {/* Always in the tree so the height animates both ways; inert to readers and the keyboard when shut. */}
-      <div className="pc-pt-row-fold" aria-hidden={!open}>
-        <div className="pc-pt-row-fold-inner">
-          <div className="pc-pt-row-body">
-            <div className="pc-demo-log" aria-label="Evidence">
-              {mounted ? reading.evidence.map((e, i) => <ReceiptRow key={i} e={e} i={i} pace={40} />) : null}
-            </div>
-            <div className="pc-pt-verdict" role="group" aria-label="Your verdict">
-              <small>{verdict ? 'Your verdict' : 'Not yet reviewed'}</small>
+      {open ? (
+        <ul className="pc-pt-sub" aria-label="What it was read from">
+          {reading.evidence.map((e, i) => <ReceiptRow key={i} e={e} />)}
+          <li className="pc-subrow pc-pt-choice">
+            <p className="pc-pt-choice-label">Is this you?</p>
+            <div className="pc-pt-choice-buttons" role="group" aria-label="Your verdict">
               {(['true', 'partly', 'wrong'] as const).map((v) => (
-                <button key={v} type="button" tabIndex={open ? 0 : -1} className={`pc-btn pc-btn--ghost ${verdict === v ? 'is-active' : ''}`} onClick={() => onVerdict(verdict === v ? null : v)}>
-                  {VERDICT_LABEL[v]}
+                <button key={v} type="button" className="pc-btn pc-btn--secondary" aria-pressed={verdict === v} onClick={() => onVerdict(verdict === v ? null : v)}>
+                  {verdict === v ? <Check size={14} aria-hidden="true" /> : null}{VERDICT_LABEL[v]}
                 </button>
               ))}
             </div>
-          </div>
-        </div>
-      </div>
-    </article>
+          </li>
+        </ul>
+      ) : null}
+    </li>
   );
 }
 
 export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, onDeleteSource }: { data: PortraitData; now: Date; banner?: React.ReactNode } & PortraitHandlers) {
   const reduced = usePrefersReducedMotion();
-  const ground = useCentered('ground', 'window', reduced);
-  const activeGroup = useCentered('group', '', reduced);
+  const active = useCentered('group', '');
   const [verdicts, setVerdicts] = useState<Record<string, Verdict>>(() => Object.fromEntries(data.readings.map((r) => [r.id, r.verdict])));
   const [open, setOpen] = useState<string | null>(null);
   const [answer, setAnswer] = useState<string | null>(data.question?.yourAnswer ?? null);
+  const [questionOpen, setQuestionOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [reply, setReply] = useState<{ a: string; cites: string[] } | null>(null);
   const [asking, setAsking] = useState(false);
   const [lit, setLit] = useState<string[]>([]);
-  const [scene, setScene] = useState<Scene>(data.question ? 'question' : 'signature');
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
-  const [managing, setManaging] = useState(false);
-  const { shown, leaving } = useSceneCross(scene, reduced);
+  const [sourcesOpen, setSourcesOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const readings = useMemo(() => data.readings.map((r) => ({ ...r, verdict: verdicts[r.id] ?? null })), [data.readings, verdicts]);
   const byId = useMemo(() => new Map(readings.map((r) => [r.id, r])), [readings]);
-  // The headline is the first reading; the ledger does not say it a second time.
+  // The headline is the first reading; the page does not say it a second time.
   const lead = data.lead ?? data.signature[0]?.line ?? data.readings[0]?.text ?? null;
-  // What the first screen already says is not said again below it: the headline, and today's question.
-  const onFirstScreen = useMemo(() => new Set(data.question?.fromReadings ?? []), [data.question]);
-  const groups = useMemo(() => groupByDomain(readings.filter((r) => r.text !== lead && !onFirstScreen.has(r.id))), [readings, lead, onFirstScreen]);
+  // Today's question already stands on its readings; they are not listed again below it.
+  const inQuestion = useMemo(() => new Set(data.question?.fromReadings ?? []), [data.question]);
+  const groups = useMemo(() => groupByDomain(readings.filter((r) => r.text !== lead && !inQuestion.has(r.id))), [readings, lead, inQuestion]);
   // A source with nothing read is not a source yet.
   const readSources = data.sources.filter((s) => (parseInt(s.read, 10) || 0) > 0);
   const sourceCount = readSources.length;
+  const sources = [...readSources].sort((a, b) => (parseInt(b.read, 10) || 0) - (parseInt(a.read, 10) || 0));
+  const since = monthName(readSources.map((s) => s.since).sort()[0]);
+
+  // One section per domain, its signature line under the heading. The headline is not said twice.
+  const domains = useMemo(() => {
+    const sig = new Map(data.signature.filter((s) => s.line !== lead).map((s) => [s.domain, s.line]));
+    const byDomain = new Map(groups.map((g) => [g.domain, g.readings]));
+    return DOMAIN_ORDER.filter((d) => byDomain.has(d) || sig.has(d)).map((domain) => {
+      const rows = byDomain.get(domain) ?? [];
+      const said = sig.get(domain);
+      // A signature line that is also one of the rows below would be said twice in a row:
+      // the row keeps it, and the heading says where the section was read from instead.
+      const isSig = !!said && !rows.some((r) => r.text === said);
+      return { domain, readings: rows, isSig, line: isSig ? said! : fromLine(rows.flatMap((r) => r.evidence)) };
+    });
+  }, [data.signature, groups, lead]);
 
   // What today's question was read from: the receipts behind its readings, newest first.
   const questionReceipts = useMemo(() => {
@@ -374,28 +225,15 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
     return [...from.flatMap((r) => r.evidence)].sort((a, b) => b.at.localeCompare(a.at)).slice(0, 4);
   }, [data.question, byId]);
 
-  // The field of receipts: every distinct receipt, the short ones first so they read as chips.
-  const fieldReceipts = useMemo(() => {
-    const seen = new Set<string>();
-    return readings.flatMap((r) => r.evidence).filter((e) => { const k = `${e.source}|${e.event}`; if (seen.has(k)) return false; seen.add(k); return true; })
-      .filter((e) => e.event.length <= 46).sort((a, b) => b.at.localeCompare(a.at));
-  }, [readings]);
-  const receiptCount = useMemo(() => readings.reduce((n, r) => n + r.evidence.length, 0), [readings]);
-
-  // The signature's bars: how much stands behind each line, against the fullest.
-  const signature = useMemo(() => {
-    const rows = data.signature.map((s) => {
-      const from = readings.filter((r) => s.from.includes(r.id) && deriveState(r, now) !== 'disputed');
-      const receipts = from.reduce((n, r) => n + r.evidence.length, 0);
-      const sources = [...new Set(from.flatMap((r) => r.evidence.map((e) => SOURCE_LABEL[e.source] ?? e.source)))];
-      return { ...s, from, receipts, sources };
-    });
-    const max = Math.max(1, ...rows.map((r) => r.receipts));
-    return rows.map((r) => ({ ...r, share: r.receipts / max }));
-  }, [data.signature, readings, now]);
-
-  const question = useTyped(data.question?.question ?? '', 38, !reduced && shown === 'question');
   const twin = useTyped(reply?.a ?? '', 46, !reduced);
+  const hints = data.ask.length ? data.ask.map((s) => s.q) : DEFAULT_HINTS;
+
+  const nav = [
+    ...(data.question ? [{ id: 'today', href: '#today', label: 'Today' }] : []),
+    ...domains.map((d) => ({ id: d.domain, href: `#group-${d.domain}`, label: DOMAIN_HEAD[d.domain] })),
+    { id: 'ask', href: '#ask', label: 'Ask' },
+    { id: 'sources', href: '#sources', label: 'Sources' },
+  ];
 
   function verdict(id: string, v: Verdict) {
     setVerdicts((s) => ({ ...s, [id]: v }));
@@ -415,7 +253,6 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
 
   async function ask(q: string) {
     if (!q.trim()) return;
-    setScene('ask');
     if (onAsk) {
       setAsking(true);
       try { showReply(await onAsk(q)); } catch { showReply({ a: 'Something went wrong on my side. Ask again in a moment.', cites: [] }); } finally { setAsking(false); }
@@ -429,248 +266,226 @@ export function PortraitPage({ data, now, banner, onVerdict, onAnswer, onAsk, on
   function jumpTo(id: string) {
     setOpen(id);
     setLit([id]);
-    (document.getElementById(`reading-${id}`) ?? document.getElementById('readings'))?.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'center' });
+    // A reading behind today's question lives in that section: open its receipts instead.
+    if (inQuestion.has(id)) setQuestionOpen(true);
+    (document.getElementById(`reading-${id}`) ?? document.getElementById('today'))?.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'center' });
   }
 
-  const current = SCENES.find((s) => s.id === scene)!;
-
   return (
-    <main className="presence-cosmos pc-portrait" id="main-content">
-      {HERO_VIDEO && !reduced ? (
-        <video className="pc-pt-room-ground" autoPlay loop muted playsInline poster="/images/twinme/cosmos-08-window.jpg" aria-hidden="true">
-          <source src={HERO_VIDEO} type="video/mp4" />
-        </video>
-      ) : (
-        <img className={`pc-pt-room-ground ${reduced ? '' : 'pc-pt-drift'}`} src="/images/twinme/cosmos-08-window.jpg" alt="" aria-hidden="true" />
-      )}
-      {GROUNDS.map((g) => (
-        <img key={g.id} className={`pc-pt-room-ground pc-pt-room-ground--alt ${ground === g.id ? 'is-on' : ''}`} src={g.src} alt="" aria-hidden="true" loading="lazy" />
-      ))}
+    <main className="presence-cosmos pc-app pc-portrait" id="main-content">
       {banner}
-      <section className="pc-pt-cine" id="portrait" data-ground="window" aria-label="Your portrait">
-        <header className="pc-pt-nav pc-cine-nav">
-          <a href="/" className="pc-cine-mark">TwinMe</a>
-          <nav aria-label="Portrait" className="liquid-glass pc-cine-navcap">
-            <a href="#portrait" className={scene !== 'ask' ? 'is-active' : ''} onClick={() => setScene(data.question ? 'question' : 'signature')}>Portrait</a>
-            <a href="#readings">Readings</a>
-            <a href="#sources">Sources</a>
+      <div className="pc-shell">
+        <div className="pc-topbar">
+          <Link className="pc-side-brand" to="/" aria-label="TwinMe"><Mark /></Link>
+          <button type="button" className="pc-btn pc-btn--ghost" onClick={() => setMenuOpen((o) => !o)} aria-expanded={menuOpen} aria-controls="pc-pt-nav">
+            Menu
+          </button>
+        </div>
+        <aside className={`pc-side${menuOpen ? ' is-open' : ''}`} id="pc-pt-nav">
+          <Link className="pc-side-brand" to="/" aria-label="TwinMe"><Mark /></Link>
+          <nav className="pc-side-nav" aria-label="Portrait">
+            {nav.map((item) => (
+              <a key={item.id} className="pc-side-link" href={item.href} aria-current={active === item.id ? 'location' : undefined} onClick={() => setMenuOpen(false)}>
+                {item.label}
+              </a>
+            ))}
           </nav>
-          {banner ? <Link to="/" className="liquid-glass pc-cine-pill">Read your own</Link> : <span />}
-        </header>
-        <div className="pc-cine-body pc-cine-body--stack">
-          <div className="pc-cine-copy">
-            <p className="pc-cine-kicker animate-fade-rise">{banner ? `${data.owner}’s` : 'Your'} portrait, read from {sourceCount} source{sourceCount === 1 ? '' : 's'}</p>
-            <h1 className="pc-cine-h1 animate-fade-rise-delay"><CineLine text={lead ?? `${data.owner}.`} /></h1>
-          </div>
-          <div className="pc-cine-panel animate-fade-rise-delay-2">
-          <AnimatedHeight className="liquid-glass pc-demo-glass pc-pt-glass" reduced={reduced}>
-            <div role="group" aria-label={current.label} className={`pc-pt-glass-inner ${leaving ? 'is-leaving' : 'is-showing'}`}>
-              <div className="pc-demo-head pc-cine-head">
-                <div className="pc-cine-tabs" role="tablist" aria-label="Portrait">
-                  {SCENES.map((t) => (
-                    <button key={t.id} type="button" role="tab" aria-selected={t.id === scene} className={t.id === scene ? 'is-active' : ''} onClick={() => setScene(t.id)} title={t.caption}>
-                      {t.id === 'question' ? 'Today' : t.id === 'ask' ? 'Ask' : 'Signature'}
-                    </button>
-                  ))}
-                </div>
-              </div>
+        </aside>
 
-              {shown === 'question' ? (
-                <div className="pc-demo-scene" key="question">
-                  {data.question ? (
-                    <>
-                      <div className="pc-demo-reading is-in pc-pt-arrive" style={{ animationDelay: '80ms' }}>
-                        <span>{question.done ? 'New this week' : 'Writing a reading'}{!question.done ? <Wave /> : null}{data.question.source ? ` · ${data.question.source}` : ''}</span>
-                        <p>{question.shown}{!question.done ? <i className="pc-demo-caret" /> : null}</p>
-                        <div className={`pc-demo-chips pc-pt-answers ${question.done ? 'is-in' : ''}`}>
-                          {answer ? (
-                            <b>{answer === 'skipped' ? 'Skipped for today' : `In your words: ${answer}`}</b>
-                          ) : (
-                            <>
-                              {data.question.answers.map((a) => (
-                                <button key={a} type="button" className="is-quiet" onClick={() => answerToday(a)}>{a}</button>
-                              ))}
-                            </>
-                          )}
-                        </div>
-                      </div>
-                      <div className="pc-demo-log pc-pt-under" aria-label="What it was read from">
-                        {questionReceipts.map((e, i) => <ReceiptRow key={`${e.source}-${e.at}-${i}`} e={e} i={i + 3} />)}
-                      </div>
-                    </>
+        <div className="pc-col">
+          <header className="pc-apphead">
+            <h1 className="pc-apphead-title">{lead ?? `${data.owner}.`}</h1>
+            <p className="pc-apphead-line">{banner ? `${data.owner}’s` : 'Your'} portrait, read from {sourceCount} source{sourceCount === 1 ? '' : 's'}</p>
+          </header>
+
+          {data.question ? (
+            <section className="pc-appsection" id="today" data-group="today" aria-labelledby="pc-pt-today">
+              <div className="pc-sechead">
+                <h2 className="pc-sechead-title" id="pc-pt-today">Today&rsquo;s question</h2>
+                <p className="pc-sechead-line">New this week.</p>
+              </div>
+              <ul className="pc-list">
+                <li>
+                  <div className="pc-row pc-row--plain">
+                    <div className="pc-row-text">
+                      <p className="pc-row-title">{data.question.question}</p>
+                      <p className="pc-row-line">{fromLine(questionReceipts)}</p>
+                    </div>
+                    <div className="pc-row-action">
+                      <button type="button" className="pc-iconbtn" onClick={() => setQuestionOpen((o) => !o)} aria-expanded={questionOpen}
+                        aria-label={questionOpen ? 'Hide what it was read from' : 'Show what it was read from'}>
+                        {questionOpen ? <ChevronUp /> : <ChevronDown />}
+                      </button>
+                    </div>
+                  </div>
+                  {answer ? (
+                    <div className="pc-subrow">
+                      <p className="pc-pt-answer">{answer === 'skipped' ? 'Skipped for today' : `In your words: ${answer}`}</p>
+                    </div>
                   ) : (
-                    <div className="pc-demo-reading is-in">
-                      <span>This week</span>
-                      <p>Nothing new to ask you yet. Every line below still keeps its receipts.</p>
+                    <div className="pc-subrow pc-pt-choice">
+                      <div className="pc-pt-choice-buttons" role="group" aria-label="Your answer">
+                        {data.question.answers.map((a) => (
+                          <button key={a} type="button" className="pc-btn pc-btn--secondary" onClick={() => answerToday(a)}>{a}</button>
+                        ))}
+                      </div>
                     </div>
                   )}
-                </div>
-              ) : null}
-
-              {shown === 'ask' ? (
-                <div className="pc-demo-scene" key="ask">
-                  <form className={`pc-demo-ask ${reply || asking ? 'is-sent' : ''}`} onSubmit={(e) => { e.preventDefault(); void ask(query); }}>
-                    <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Your question" aria-label="Ask your twin" />
-                    <button type="submit" className="pc-pt-send">Send</button>
-                  </form>
-                  {!reply && !asking ? (
-                    <div className="pc-demo-chips is-in pc-pt-hints">
-                      {(data.ask.length ? data.ask.map((s) => s.q) : DEFAULT_HINTS).map((q) => <button key={q} type="button" onClick={() => { setQuery(q); void ask(q); }}>{q}</button>)}
-                    </div>
+                  {questionOpen ? (
+                    <ul className="pc-pt-sub" aria-label="What it was read from">
+                      {questionReceipts.map((e, i) => <ReceiptRow key={`${e.source}-${e.at}-${i}`} e={e} />)}
+                    </ul>
                   ) : null}
-                  {asking ? (
-                    <div className="pc-demo-answer is-in pc-pt-arrive"><span>Your twin<Wave /></span><p>&nbsp;</p></div>
-                  ) : null}
-                  {reply ? (
-                    <div className="pc-demo-answer is-in pc-pt-arrive" aria-live="polite">
-                      <span>Your twin{!twin.done ? <Wave /> : null}</span>
-                      <p>{twin.shown}{!twin.done ? <i className="pc-demo-caret" /> : null}</p>
-                      <div className={`pc-demo-chips ${twin.done ? 'is-in' : ''}`}>
-                        {reply.cites.length
-                          ? reply.cites.map((id) => {
-                            const r = byId.get(id);
-                            if (!r) return null;
-                            return (
-                              <button key={id} type="button" onClick={() => jumpTo(id)} aria-label={`Open the reading: ${r.text}`}>
-                                <i style={{ background: DOMAIN_HUE[r.domain] }} aria-hidden="true" />{shortLine(r.text)}
-                              </button>
-                            );
-                          })
-                          : <b>Nothing it read supports more than this</b>}
-                      </div>
-                    </div>
-                  ) : null}
-                </div>
-              ) : null}
-
-              {shown === 'signature' ? (
-                <div className="pc-demo-scene" key="signature">
-                  <div className="pc-demo-sig pc-pt-sig">
-                    {signature.filter((s) => s.line !== lead).map((s, i) => (
-                      <div key={s.domain} className="pc-pt-sig-item pc-pt-arrive" style={{ animationDelay: `${i * 120}ms` }}>
-                        <div className="pc-demo-sig-row is-in">
-                          <span>{DOMAIN_HEAD[s.domain]}</span>
-                          <small>
-                            {s.sources.join(', ')}
-                            {s.from[0] ? <> · <button type="button" className="pc-pt-sig-jump" onClick={() => jumpTo(s.from[0].id)} aria-label={`Open the reading behind ${DOMAIN_LABEL[s.domain]}`}>{s.receipts} receipt{s.receipts === 1 ? '' : 's'}</button></> : null}
-                          </small>
-                        </div>
-                        <p className="pc-pt-sig-line">{s.line}</p>
-                      </div>
-                    ))}
-                  </div>
-                  <p className="pc-pt-sig-foot pc-pt-arrive" style={{ animationDelay: `${signature.length * 120 + 80}ms` }}>
-                    {signature.reduce((n, s) => n + s.receipts, 0)} receipts behind {signature.length} lines, the headline among them.
-                  </p>
-                </div>
-              ) : null}
-            </div>
-          </AnimatedHeight>
-          </div>
-        </div>
-      </section>
-
-
-      <section className="pc-pt-scene pc-pt-scene--field" data-ground="window" aria-label="The receipts">
-        <div className="pc-pt-scene-copy pc-pt-scene-copy--center">
-          <p className="pc-pt-scene-line">{receiptCount} receipts, read from {sourceCount} <em>places</em>.</p>
-          <p className="pc-pt-head-note">Nothing self-reported. Every line on this page keeps the receipts it was read from.</p>
-        </div>
-        <ReceiptField evidence={fieldReceipts} />
-      </section>
-
-      <section className="pc-pt-scene pc-pt-scene--ledger" id="readings" data-ground="lamp" aria-labelledby="pc-pt-ledger-title">
-        <div className="pc-pt-index">
-          <h2 id="pc-pt-ledger-title" className="pc-pt-head pc-pt-head--room">The readings</h2>
-          <ol className="pc-pt-index-list">
-            {groups.map((g, i) => (
-              <li key={g.domain} className={activeGroup === g.domain ? 'is-active' : ''}>
-                <a href={`#group-${g.domain}`}><span>{String(i + 1).padStart(2, '0')}</span>{DOMAIN_HEAD[g.domain]}</a>
-              </li>
-            ))}
-          </ol>
-          <p className="pc-pt-head-note">Open a line to see what it was read from, and say whether it is you.</p>
-        </div>
-        <div className="pc-pt-ledger-stack">
-          {groups.map((g) => (
-            <div key={g.domain} id={`group-${g.domain}`} data-group={g.domain} className={`pc-pt-group liquid-glass pc-pt-glasscard ${activeGroup === g.domain ? 'is-active' : ''}`}>
-              <p className="pc-pt-run">{DOMAIN_HEAD[g.domain]}</p>
-              {g.readings.map((r, i) => (
-                <ReadingRow key={r.id} reading={r} lead={i === 0} now={now} verdict={verdicts[r.id] ?? null}
-                  onVerdict={(v) => verdict(r.id, v)}
-                  open={open === r.id} onToggle={() => setOpen(open === r.id ? null : r.id)} lit={lit.includes(r.id)} />
-              ))}
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {data.question ? (
-        <section className="pc-pt-scene pc-pt-scene--phone" data-ground="chair" aria-label="The portrait on a phone">
-          <PhoneMock now={now} lead={lead} question={data.question.question} source={data.question.source} answers={data.question.answers} receipts={questionReceipts} />
-          <div className="pc-pt-scene-copy">
-            <p className="pc-pt-scene-line">The same portrait, on your <em>phone</em>.</p>
-            <p className="pc-pt-head-note">Today&rsquo;s question and its receipts, wherever you open it.</p>
-          </div>
-        </section>
-      ) : null}
-
-      <section className="pc-pt-scene pc-pt-scene--sources" id="sources" data-ground="night" aria-labelledby="pc-pt-src-title">
-        <div className="pc-pt-scene-copy pc-pt-scene-copy--center">
-          <h2 id="pc-pt-src-title" className="pc-pt-scene-line">Read from {sourceCount} places since <em>{monthName(readSources.map((s) => s.since).sort()[0])}</em>.</h2>
-          {onDeleteSource ? (
-            <button type="button" className="pc-pt-manage" onClick={() => { setManaging((m) => !m); setConfirmDelete(null); }}>
-              {managing ? 'Done' : 'Manage sources'}
-            </button>
+                </li>
+              </ul>
+            </section>
           ) : null}
-        </div>
-        {!managing ? (
-          <div className="pc-pt-tiles">
-            {[...readSources].sort((a, b) => (parseInt(b.read, 10) || 0) - (parseInt(a.read, 10) || 0)).map((s) => (
-              <div key={s.platform} className="liquid-glass pc-pt-tile">
-                <strong>{s.label}</strong>
-                <span>{parseInt(s.read, 10) || 0}</span>
-                <small>{s.kinds}</small>
+
+          {domains.map((d) => (
+            <section key={d.domain} className="pc-appsection" id={`group-${d.domain}`} data-group={d.domain} aria-labelledby={`pc-pt-h-${d.domain}`}>
+              <div className="pc-sechead">
+                <h2 className="pc-sechead-title" id={`pc-pt-h-${d.domain}`}>{DOMAIN_HEAD[d.domain]}</h2>
+                {d.line ? <p className={`pc-sechead-line${d.isSig ? ' pc-pt-sigline' : ''}`}>{d.line}</p> : null}
               </div>
-            ))}
-          </div>
-        ) : null}
-        <div className="liquid-glass pc-pt-glasscard pc-pt-glasscard--wide" hidden={!managing}>
-        <div className="pc-pt-source-list">
-          {readSources.map((s) => (
-            <div key={s.platform} className="pc-pt-source">
-              <strong>{s.label}</strong>
-              <span>{s.read}</span>
-              <small>{s.kinds}, since {spokenDay(s.since)}</small>
-              {onDeleteSource && managing ? (
-                confirmDelete === s.platform ? (
-                  <em className="pc-pt-source-confirm">
-                    Delete everything read from {s.label}?
-                    <button type="button" onClick={async () => { await onDeleteSource(s.platform); setConfirmDelete(null); }}>Yes, delete</button>
-                    <button type="button" onClick={() => setConfirmDelete(null)}>Keep</button>
-                  </em>
-                ) : (
-                  <em><button type="button" onClick={() => setConfirmDelete(s.platform)}>Delete</button></em>
-                )
+              {d.readings.length ? (
+                <ul className="pc-list">
+                  {d.readings.map((r) => (
+                    <ReadingRow key={r.id} reading={r} now={now} verdict={verdicts[r.id] ?? null}
+                      onVerdict={(v) => verdict(r.id, v)}
+                      open={open === r.id} onToggle={() => setOpen(open === r.id ? null : r.id)} lit={lit.includes(r.id)} />
+                  ))}
+                </ul>
+              ) : (
+                <div className="pc-list"><p className="pc-empty">No other readings here yet.</p></div>
+              )}
+            </section>
+          ))}
+
+          <section className="pc-appsection" id="ask" data-group="ask" aria-labelledby="pc-pt-ask">
+            <div className="pc-sechead">
+              <h2 className="pc-sechead-title" id="pc-pt-ask">Ask your twin</h2>
+              <p className="pc-sechead-line">It answers as you, and shows what it read.</p>
+            </div>
+            <ul className="pc-list">
+              <li className="pc-row pc-row--plain pc-pt-askrow">
+                <form className="pc-pt-ask" onSubmit={(e) => { e.preventDefault(); void ask(query); }}>
+                  <input className="pc-input" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Your question" aria-label="Ask your twin" />
+                  <button type="submit" className="pc-btn pc-btn--primary" disabled={asking}>Ask</button>
+                </form>
+              </li>
+              {!reply && !asking ? hints.map((q) => (
+                <li key={q}>
+                  <button type="button" className="pc-row pc-row--plain pc-row--link" onClick={() => { setQuery(q); void ask(q); }}>
+                    <span className="pc-row-text"><span className="pc-row-title">{q}</span></span>
+                    <ChevronRight className="pc-chevron" aria-hidden="true" />
+                  </button>
+                </li>
+              )) : null}
+              {asking ? (
+                <li className="pc-row pc-row--plain">
+                  <div className="pc-row-text">
+                    <p className="pc-row-title">Your twin</p>
+                    <p className="pc-row-line">Reading what you did</p>
+                  </div>
+                  <Loader2 className="pc-chevron pc-spin" aria-hidden="true" />
+                </li>
+              ) : null}
+              {reply ? (
+                <li aria-live="polite">
+                  <div className="pc-row pc-row--plain">
+                    <div className="pc-row-text">
+                      <p className="pc-row-title">{twin.shown}</p>
+                      <p className="pc-row-line">
+                        {reply.cites.length ? `Your twin, from ${reply.cites.length} reading${reply.cites.length === 1 ? '' : 's'}` : 'Your twin. Nothing it read supports more than this.'}
+                      </p>
+                    </div>
+                    <span />
+                  </div>
+                  {twin.done && reply.cites.length ? (
+                    <ul className="pc-pt-sub" aria-label="What it cites">
+                      {reply.cites.map((id) => {
+                        const r = byId.get(id);
+                        if (!r) return null;
+                        return (
+                          <li key={id}>
+                            <button type="button" className="pc-subrow pc-row--link" onClick={() => jumpTo(id)} aria-label={`Open the reading: ${r.text}`}>
+                              <span className="pc-row-line">{shortLine(r.text, 60)}</span>
+                              <ChevronRight className="pc-chevron" aria-hidden="true" />
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  ) : null}
+                </li>
+              ) : null}
+            </ul>
+          </section>
+
+          <section className="pc-appsection" id="sources" data-group="sources" aria-labelledby="pc-pt-src">
+            <div className="pc-sechead">
+              <h2 className="pc-sechead-title" id="pc-pt-src">Sources</h2>
+              <p className="pc-sechead-line">{since ? `Reading since ${since}.` : 'Nothing read yet.'}</p>
+              {!banner ? (
+                <Link className="pc-iconbtn pc-sechead-add" to="/sources" aria-label="Connect another source"><Plus /></Link>
               ) : null}
             </div>
-          ))}
+            <ul className="pc-list">
+              <li>
+                <div className="pc-row">
+                  <span className="pc-row-icon" aria-hidden="true"><Eye /></span>
+                  <div className="pc-row-text">
+                    <p className="pc-row-title">Reads from {sourceCount} place{sourceCount === 1 ? '' : 's'}</p>
+                    <p className="pc-row-line">{listWords(sources.map((s) => s.label))}</p>
+                  </div>
+                  <div className="pc-row-action">
+                    <button type="button" className="pc-iconbtn" onClick={() => { setSourcesOpen((o) => !o); setConfirmDelete(null); }} aria-expanded={sourcesOpen}
+                      aria-label={sourcesOpen ? 'Hide each source' : onDeleteSource ? 'Manage sources' : 'Show each source'}>
+                      {sourcesOpen ? <ChevronUp /> : <ChevronDown />}
+                    </button>
+                  </div>
+                </div>
+                {sourcesOpen ? (
+                  <ul className="pc-pt-sub" aria-label="Each source">
+                    {sources.map((s) => (
+                      <li key={s.platform} className="pc-subrow">
+                        <div className="pc-row-text">
+                          <p className="pc-row-title">{s.label}</p>
+                          <p className="pc-row-line">
+                            {confirmDelete === s.platform
+                              ? `Delete everything read from ${s.label}?`
+                              : `${parseInt(s.read, 10) || 0} read since ${spokenDay(s.since)}: ${s.kinds.charAt(0).toLowerCase()}${s.kinds.slice(1)}`}
+                          </p>
+                        </div>
+                        {onDeleteSource ? (
+                          confirmDelete === s.platform ? (
+                            <div className="pc-pt-confirm">
+                              <button type="button" className="pc-btn pc-btn--secondary" onClick={() => setConfirmDelete(null)}>Keep</button>
+                              <button type="button" className="pc-btn pc-btn--danger" onClick={async () => { await onDeleteSource(s.platform); setConfirmDelete(null); }}>Yes, delete</button>
+                            </div>
+                          ) : (
+                            <button type="button" className="pc-btn pc-btn--secondary" onClick={() => setConfirmDelete(s.platform)}>Delete</button>
+                          )
+                        ) : <span />}
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </li>
+              <li>
+                <Link className="pc-row pc-row--link" to="/privacy-policy">
+                  <span className="pc-row-icon" aria-hidden="true"><EyeOff /></span>
+                  <span className="pc-row-text">
+                    <span className="pc-row-title">Never reads</span>
+                    <span className="pc-row-line">Messages, photos or location. Nothing here trains a model.</span>
+                  </span>
+                  <ChevronRight className="pc-chevron" aria-hidden="true" />
+                </Link>
+              </li>
+            </ul>
+          </section>
         </div>
-        </div>
-        <p className="pc-pt-source-note pc-pt-source-note--room">Messages, photos and location are never read, and nothing here trains a model.</p>
-      </section>
-
-      <footer className="pc-pt-close" data-ground="window">
-        <p className="pc-pt-close-line">Every line here was <em>read</em>, not asked.</p>
-        {banner
-          ? <Link to="/" className="liquid-glass pc-cine-pill">Read your own portrait</Link>
-          : <Link to="/sources" className="liquid-glass pc-cine-pill">Connect one more source</Link>}
-        <div className="pc-pt-foot">
-          <span>TwinMe, 2026</span>
-          <Link to="/privacy-policy">Privacy</Link>
-          <Link to="/terms">Terms</Link>
-        </div>
-      </footer>
+      </div>
     </main>
   );
 }

@@ -91,7 +91,10 @@ const lstar = (v: string) => { const y = luminance(parseColor(v).rgb); return y 
     every line inside it now sits on the glass itself. Both stage grounds were
     re-measured (ALL=1, 402x874 and 1440x900): the meta lines' darkest is
     (208,209,209), the head's caption (221,219,216). The old pins,
-    (227,224,221) and (191,183,175), were the boxes and the thinner glass. */
+    (227,224,221) and (191,183,175), were the boxes and the thinner glass.
+
+    2026-09-12: the Portrait followed, and its two photo grounds went too
+    (see the Portrait block at the end). */
 const GROUND: Record<string, RGB> = {
   stageRows: [208, 209, 209],  // meta lines on the demo glass (/cosmos/demos, /cosmos/landing)
   stageGlass: [221, 219, 216], // the demo head's caption, on the same glass
@@ -183,107 +186,68 @@ describe('app screens are flat (home, onboarding)', () => {
 });
 
 /* ---------------------------------------------------------------------------
- * The Portrait (/demo, /portrait): white type on glass over a room photograph.
+ * The Portrait (/demo, /portrait) was white type on glass over a room
+ * photograph until 2026-09-12. It pinned two photo grounds here — the
+ * saturated window behind its panels (0,127,245) and the lamp under a tile
+ * (201,159,92 under the title, 123,112,97 under the detail line) — and
+ * checked its white-on-media inks (--pt-on-2, --pt-on-3) and the glass tints
+ * of its tiles, cards, nav capsule, pills and ledger stack over them.
  *
- * Its failures were a different shape from the shared ramp's. The type is
- * white at an alpha, the panels are tinted glass, and behind them the photo
- * has two hot spots. Those spots are pinned here as the colour BEHIND the
- * glass before any tint, backed out of the grounds the browser audit measured
- * on 2026-09-10 (e.g. rgb(11,133,245) under a 4.5% white tile -> the window).
- * Each panel is then rebuilt the way the browser paints it: tint over the
- * spot, and for the ledger stack's back cards the whole card at its opacity.
- *
- * Not modelled: the soft dark pools behind blocks of type that sit straight
- * on the photo (radial gradients). The browser audit covers those.
+ * The register made it a flat app screen: the photograph, the clip, the glass
+ * and the card stack were removed on purpose, so those grounds, tints and
+ * inks went with them. Its text now sits on the page, white and the field
+ * box, which the shared ramp above covers. What keeps that true is that the
+ * Portrait stays flat: if a photograph, glass, a gradient or a shadow comes
+ * back, its text needs an audited ground again, and this fails first.
  * ------------------------------------------------------------------------- */
-const PHOTO: Record<string, RGB> = {
-  window: [0, 127, 245],         // the saturated blue window, blurred behind the panels
-  /* The lamp slides under the Spotify tile at 1280px, and the tile's two lines
-     sit on different parts of it: the title over the bright core, the detail
-     line lower down over the dimmer edge. Backed out of the 1280px measurement
-     under the 30% tile, where the model reproduces the browser exactly (title
-     4.44:1, detail 6.02:1). One value for both would fail a line that passes. */
-  lampUnderTitle: [201, 159, 92],
-  lampUnderDetail: [123, 112, 97],
-};
 
-/** A plain property from the last all-widths rule whose selector list contains `selector`. */
-function decl(css: string, selector: string, prop: string): string {
-  let found: string | null = null;
-  let depth = 0, start = 0, sel = '';
-  for (let i = 0; i < css.length; i++) {
-    const ch = css[i];
-    if (ch === '{') {
-      if (depth === 0) { sel = css.slice(start, i).trim(); start = i + 1; }
-      depth++;
-    } else if (ch === '}') {
-      depth--;
-      if (depth === 0) {
-        const body = css.slice(start, i);
-        if (!sel.startsWith('@') && sel.split(',').map(x => x.trim().replace(/\s+/g, ' ')).includes(selector)) {
-          const m = new RegExp(`(?:^|[;{\\s])${prop}\\s*:\\s*([^;]+);`).exec(body);
-          if (m) found = m[1].trim();
+/** The declarations of every rule whose selector matches `match`, at any width. */
+function rulesFor(css: string, match: RegExp): string {
+  const out: string[] = [];
+  const walk = (text: string) => {
+    let depth = 0, start = 0, open = -1;
+    for (let i = 0; i < text.length; i++) {
+      const ch = text[i];
+      if (ch === '{') { if (depth === 0) open = i; depth++; }
+      else if (ch === '}') {
+        if (--depth === 0) {
+          const sel = text.slice(start, open).trim();
+          const body = text.slice(open + 1, i);
+          if (/^@(media|supports)/.test(sel)) walk(body);
+          else if (match.test(sel)) out.push(body);
+          start = i + 1;
         }
-        start = i + 1;
-      }
-    } else if (ch === ';' && depth === 0) start = i + 1;
-  }
-  if (found === null) throw new Error(`${prop} not found on ${selector}`);
-  return found;
-}
-/** `fg` (with its alpha) painted over `bg`. */
-const paint = (fg: string, bg: RGB): RGB => {
-  const c = parseColor(fg);
-  return c.rgb.map((ch, i) => ch * c.a + bg[i] * (1 - c.a)) as RGB;
-};
-const rgbStr = (c: RGB) => `rgb(${c.map(Math.round).join(', ')})`;
-const mix = (a: number, top: RGB, under: RGB): RGB => top.map((ch, i) => ch * a + under[i] * (1 - a)) as RGB;
-
-const portrait = tokens(cosmos, '.pc-portrait');
-const panels = {
-  tile: decl(cosmos, '.pc-portrait .pc-pt-tile', 'background'),
-  readingCard: decl(cosmos, '.pc-portrait .pc-pt-glasscard', 'background'),
-  navCapsule: decl(cosmos, '.pc-pt-cine .pc-cine-navcap', 'background'),
-  pill: decl(cosmos, '.pc-pt-cine .pc-cine-pill', 'background'),
-  stackCard: decl(cosmos, '.pc-portrait .pc-pt-ledger-stack .pc-pt-glasscard', 'background'),
-};
-const stackOpacity = parseFloat(decl(cosmos, '.pc-pt-ledger-stack .pc-pt-glasscard', 'opacity'));
-
-describe('portrait: white type on glass over the photograph', () => {
-  it('reads its two white-on-media inks', () => {
-    expect(portrait['--pt-on-2']).toBeTruthy();
-    expect(portrait['--pt-on-3']).toBeTruthy();
-  });
-
-  it('meta ink clears AA on every panel that crosses the window', () => {
-    for (const [name, tint] of Object.entries({ tile: panels.tile, 'reading card': panels.readingCard, 'nav capsule': panels.navCapsule })) {
-      expectAA(`--pt-on-3 on the ${name}`, portrait['--pt-on-3'], paint(tint, PHOTO.window), `${name} over the window`);
+      } else if (ch === ';' && depth === 0) start = i + 1;
     }
+  };
+  walk(css);
+  return out.join('\n');
+}
+
+const PORTRAIT_PAGES = resolve(__dirname, '../../src/pages/portrait');
+
+describe('the Portrait is flat (/demo, /portrait)', () => {
+  const css = rulesFor(cosmos, /pc-portrait|pc-pt-/);
+
+  it('finds its rules', () => {
+    expect(css.trim().length).toBeGreaterThan(0);
   });
 
-  it('the pills carry solid white over the window', () => {
-    expectAA('pill label', '#fff', paint(panels.pill, PHOTO.window), 'a pill over the window');
+  it('paints no photograph, glass, gradient or shadow', () => {
+    expect(css, 'the Portrait paints an image').not.toMatch(/url\(/);
+    expect(css, 'the Portrait uses glass').not.toMatch(/backdrop-filter/);
+    expect(css, 'the Portrait paints a gradient').not.toMatch(/gradient\(/);
+    expect(css, 'the Portrait casts a shadow').not.toMatch(/box-shadow\s*:\s*(?!none)/);
   });
 
-  it('tiles hold up over the lamp too (1280px crop)', () => {
-    expectAA('tile detail --pt-on-3', portrait['--pt-on-3'], paint(panels.tile, PHOTO.lampUnderDetail), 'a tile over the lamp');
-    const title = contrast('#fff', paint(panels.tile, PHOTO.lampUnderTitle));
-    expect(title, `tile title (26px, 3:1 floor) over the lamp's core: ${title.toFixed(2)}:1`).toBeGreaterThanOrEqual(3);
-  });
-
-  it('the ledger stack\'s back cards stay readable at their opacity', () => {
-    const card = paint(panels.stackCard, PHOTO.window);
-    const ground = mix(stackOpacity, card, PHOTO.window);
-    const glyph = mix(stackOpacity, paint(portrait['--pt-on-3'], card), PHOTO.window);
-    const l1 = luminance(glyph), l2 = luminance(ground);
-    const ratio = (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
-    expect(ratio, `back-card meta at opacity ${stackOpacity}: ${ratio.toFixed(2)}:1 on ${rgbStr(ground)}`).toBeGreaterThanOrEqual(AA);
-  });
-
-  it('inactive nav links stay a visible step below the active white', () => {
-    const ground = paint(panels.navCapsule, PHOTO.window);
-    const inactive = lstar(rgbStr(paint(portrait['--pt-on-3'], ground)));
-    const active = lstar('#ffffff');
-    expect(active - inactive, `active vs inactive link: ${(active - inactive).toFixed(1)} L*`).toBeGreaterThanOrEqual(STEP);
+  it('its pages load no photograph or clip, and put nothing on glass', () => {
+    const pages = readdirSync(PORTRAIT_PAGES).filter(f => f.endsWith('.tsx'));
+    expect(pages.length).toBeGreaterThan(0);
+    for (const f of pages) {
+      const src = readFileSync(resolve(PORTRAIT_PAGES, f), 'utf8');
+      expect(src, `${f} loads an image`).not.toMatch(/\/images\/|<img\b/);
+      expect(src, `${f} plays a clip`).not.toMatch(/<video\b/);
+      expect(src, `${f} uses the glass class`).not.toMatch(/liquid-glass/);
+    }
   });
 });

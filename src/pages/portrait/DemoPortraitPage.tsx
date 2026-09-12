@@ -16,8 +16,8 @@ export default function DemoPortraitPage() {
   }, []);
   const banner = (
     <div className="pc-pt-banner" role="note">
-      <span>This is Stefano's Portrait, read from {DEMO_PORTRAIT.sources.length} sources. Evidence selected from real events.</span>
-      <Link to="/">Your own starts from your email on the front door</Link>
+      <span>This is Stefano&rsquo;s Portrait, with evidence picked from real events.</span>
+      <Link to="/">Read your own</Link>
     </div>
   );
   return <PortraitPage data={DEMO_PORTRAIT} now={new Date('2026-09-04T12:00:00Z')} banner={banner} />;
