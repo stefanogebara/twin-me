@@ -28,6 +28,19 @@ const NAV: MoneyNavLink[] = [
   { to: '/money/chat', label: 'Ask' },
 ];
 
+/* What is still to come this month, as dated rows: detected charges, stated commitments,
+   income, and diary events with a learned cost. A band without the rows under it is a
+   range nobody can act on; with them the month reads as a calendar of money. */
+type Ahead = { on: string; name: string; amount: number; kind: 'charge' | 'stated' | 'income' | 'diary' };
+function stillToCome(f: MoneyForecast): Ahead[] {
+  const rows: Ahead[] = [];
+  for (const c of f.committed_items || []) rows.push({ on: c.next_expected.slice(0, 10), name: merchantLabel(c), amount: -Math.abs(Number(c.typical_amount)), kind: 'charge' });
+  for (const c of f.commitment_items || []) rows.push({ on: c.due_on, name: c.subject || 'A standing charge', amount: -Math.abs(Number(c.amount)), kind: 'stated' });
+  for (const i of f.income_items || []) rows.push({ on: i.due_on, name: i.subject || i.source || 'Comes in', amount: Math.abs(Number(i.amount)), kind: 'income' });
+  for (const e of f.calendar_items || []) if (e.expected && Number(e.expected.amount) > 0) rows.push({ on: e.on.slice(0, 10), name: e.label || e.title || 'In the diary', amount: -Math.abs(Number(e.expected.amount)), kind: 'diary' });
+  return rows.filter((r) => Number.isFinite(r.amount) && r.on).sort((a, b) => (a.on < b.on ? -1 : a.on > b.on ? 1 : Math.abs(b.amount) - Math.abs(a.amount))).slice(0, 8);
+}
+
 function merchantLabel(t: { merchant_name?: string | null; merchant_raw?: string | null; merchant_key: string }) {
   const s = t.merchant_name || t.merchant_raw || t.merchant_key;
   const base = s.length > 2 && s === s.toUpperCase() ? s.toLowerCase() : s;
@@ -288,12 +301,20 @@ export default function MoneyV2Page() {
                 </div>
                 <div className="mv-band-labels">
                   <span>Spent {euro(forecast.spent)}</span>
-                  <span>
-                    {forecast.committed_items.length
-                      ? `${nameList(forecast.committed_items.map((c) => merchantLabel(c)))} still to come`
-                      : `Likely ${euro(Math.max(forecast.projected_p50, forecast.spent + forecast.committed))}`}
-                  </span>
+                  {/* The charges still to come are named in the rows below; the label keeps the figure. */}
+                  <span>{`Likely ${euro(Math.max(forecast.projected_p50, forecast.spent + forecast.committed))}`}</span>
                 </div>
+                {stillToCome(forecast).length ? (
+                  <ul className="mv-list mv-ahead" aria-label="Still to come this month">
+                    {stillToCome(forecast).map((r) => (
+                      <li key={`${r.kind}-${r.on}-${r.name}`} className="mv-item mv-item--tight">
+                        <span className="mv-ahead-day">{shortDay(r.on)}</span>
+                        <span className="mv-item-text"><span className="mv-item-title">{r.name}</span></span>
+                        <span className={`mv-item-end mv-figures${r.amount > 0 ? ' mv-ahead-in' : ''}`}>{r.amount > 0 ? '+' : ''}{euro(Math.abs(r.amount))}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
               </div>
             ) : null}
           </section>
