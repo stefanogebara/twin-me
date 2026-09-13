@@ -181,6 +181,11 @@
 .mv-band-likely { background: var(--quiet); }
 .mv-band-spent { background: var(--ink); }
 .mv-band-labels { display: flex; justify-content: space-between; gap: 16px; color: var(--ink-2); font-weight: 350; }
+/* The dated rows under the band: day, name, amount; income marked with a plus and ok ink. */
+.mv .mv-ahead { margin-top: 8px; }
+.mv .mv-ahead .mv-item { grid-template-columns: 56px minmax(0, 1fr) auto; }
+.mv .mv-ahead-day { color: var(--ink-3); font-weight: 350; }
+.mv .mv-ahead-in { color: var(--ok); }
 
 /* The phone key and the steps that use it */
 .mv .mv-code { display: block; padding: 11px 14px; border-radius: 4px; background: var(--field); font-family: var(--mono); font-size: 12px; line-height: 18px; word-break: break-all; }
