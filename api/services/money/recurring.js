@@ -6,6 +6,16 @@
  * theirs. Cadence comes from the median interval. A recurring merchant that
  * maps to a connected platform is a subscription, and subscriptions are what
  * get measured against use. Pure.
+ *
+ * One merchant is not one series. Amazon is a 4,99 subscription and a 89,00 purchase;
+ * Higgsfield is two plans. Read as one list of amounts those fail the spread test and
+ * nothing is found, so the charges are first grouped by amount (Ibrain, Hernandez and
+ * Peinado, BBVA AI Factory, ICAIF 2024: split a beneficiary's charges into homogeneous
+ * sub-series before forecasting them), and the largest group that keeps a rhythm is
+ * the merchant's series. The other groups are counted on it as `variants`, so a reader
+ * can say "and another charge at 89,00" without a second row: the ledger keeps one
+ * series per merchant. The rows in the series are named by id, so only those are
+ * flagged recurring and the odd purchase stays in the day's spending.
  */
 
 export const MIN_OCCURRENCES = 3;
@@ -19,6 +29,22 @@ export function median(xs) {
   const m = Math.floor(s.length / 2);
   return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
 }
+/**
+ * Amounts grouped so that every member sits within AMOUNT_CV of its group's median:
+ * sorted, then split wherever the next amount is too far from the running group.
+ * Pure; the order of groups is by size, largest first.
+ */
+export function amountGroups(rows) {
+  const sorted = [...rows].sort((a, b) => a.amount - b.amount);
+  const groups = [];
+  for (const r of sorted) {
+    const g = groups[groups.length - 1];
+    if (g && Math.abs(r.amount - median(g.map((x) => x.amount))) <= AMOUNT_CV * median(g.map((x) => x.amount))) g.push(r);
+    else groups.push([r]);
+  }
+  return groups.sort((a, b) => b.length - a.length || median(b.map((x) => x.amount)) - median(a.map((x) => x.amount)));
+}
+
 function cv(xs) {
   const m = xs.reduce((a, b) => a + b, 0) / xs.length;
   if (!m) return Infinity;
@@ -51,20 +77,31 @@ export function detectRecurring(transactions, opts = {}) {
     const at = new Date(t.occurred_at).getTime();
     if (at < since) continue;
     if (!byMerchant.has(t.merchant_key)) byMerchant.set(t.merchant_key, []);
-    byMerchant.get(t.merchant_key).push({ at, amount: Math.abs(Number(t.amount)) });
+    byMerchant.get(t.merchant_key).push({ id: t.id, at, amount: Math.abs(Number(t.amount)) });
   }
   const out = [];
-  for (const [key, rows] of byMerchant) {
-    if (rows.length < MIN_OCCURRENCES) continue;
-    rows.sort((a, b) => a.at - b.at);
-    const amounts = rows.map((r) => r.amount);
-    if (cv(amounts) > AMOUNT_CV) continue;
-    const intervals = rows.slice(1).map((r, i) => (r.at - rows[i].at) / DAY);
-    if (cv(intervals) > INTERVAL_CV) continue;
-    const med = median(intervals);
-    const cadence = cadenceOf(med);
-    if (!cadence) continue;
+  for (const [key, all] of byMerchant) {
+    if (all.length < MIN_OCCURRENCES) continue;
+    /* Each amount group is tried for a rhythm; the largest that has one is the series. */
+    const groups = amountGroups(all);
+    let found = null;
+    for (const rows of groups) {
+      if (rows.length < MIN_OCCURRENCES) break;
+      rows.sort((a, b) => a.at - b.at);
+      const amounts = rows.map((r) => r.amount);
+      if (cv(amounts) > AMOUNT_CV) continue;
+      const intervals = rows.slice(1).map((r, i) => (r.at - rows[i].at) / DAY);
+      if (cv(intervals) > INTERVAL_CV) continue;
+      const med = median(intervals);
+      const cadence = cadenceOf(med);
+      if (!cadence) continue;
+      found = { rows, amounts, med, cadence };
+      break;
+    }
+    if (!found) continue;
+    const { rows, amounts, med, cadence } = found;
     const last = rows[rows.length - 1].at;
+    const others = all.filter((r) => !rows.includes(r));
     out.push({
       merchant_key: key,
       cadence,
@@ -75,6 +112,11 @@ export function detectRecurring(transactions, opts = {}) {
       next_expected: new Date(last + Math.round(med) * DAY).toISOString().slice(0, 10),
       is_subscription: Boolean(platforms[key]),
       platform: platforms[key] || null,
+      transaction_ids: rows.map((r) => r.id).filter(Boolean),
+      /* The charges at this merchant that are not the series: their count and their
+         amounts, so a card can say what else the name carries. */
+      variants: others.length,
+      variant_amounts: [...new Set(others.map((r) => Math.round(r.amount * 100) / 100))].sort((a, b) => b - a).slice(0, 3),
     });
   }
   return out.sort((a, b) => b.typical_amount - a.typical_amount);
