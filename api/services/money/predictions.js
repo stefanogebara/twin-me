@@ -21,6 +21,7 @@ import { createLogger } from '../logger.js';
 import { spendingRule } from './spending.js';
 import { forecast, listTransactions, listFacts, months, scorePredictions as scoreCharges } from './store.js';
 import { safeToSpend } from './allowance.js';
+import { TWIN_PREDICTION_CONFIDENCE } from './brain.js';
 
 const log = createLogger('MoneyPredictions');
 /** A charge counts as on the day if it lands within this many days of when it was expected. */
@@ -94,7 +95,10 @@ export function scoreOne(prediction, transactions, counts, now = new Date()) {
  *                             typical_amount, happened, happened_on, happened_amount
  */
 export function summarise(figures = [], charges = []) {
-  const scoredCharges = (charges || []).filter((p) => p.happened !== null && p.happened !== undefined);
+  /* Only the charges the twin would have said count against it. A guess it kept to itself,
+     below the confidence it speaks at, is scored for learning and not held as a miss. */
+  const scoredCharges = (charges || []).filter((p) => p.happened !== null && p.happened !== undefined
+    && (p.confidence === undefined || p.confidence === null || Number(p.confidence) >= TWIN_PREDICTION_CONFIDENCE));
   const arrived = scoredCharges.filter((p) => p.happened === true);
   const onDay = arrived.filter((p) => p.happened_on && Math.abs(daysBetween(p.happened_on, p.expected_on)) <= ON_DAY_DAYS);
   const onAmount = arrived.filter((p) => isAmount(p.happened_amount) && Math.abs(Number(p.happened_amount) - Number(p.typical_amount)) <= Math.max(1, Number(p.typical_amount) * 0.1));
@@ -161,7 +165,7 @@ export async function scoreFigures(userId, { transactions, facts = [], now = new
 export async function accuracy(userId) {
   const { data: charges } = await supabaseAdmin
     .from('money_predictions')
-    .select('expected_on, typical_amount, happened, happened_on, happened_amount')
+    .select('expected_on, typical_amount, confidence, happened, happened_on, happened_amount')
     .eq('user_id', userId).not('happened', 'is', null)
     .order('expected_on', { ascending: false }).limit(200);
   let figures = [];

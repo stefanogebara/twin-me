@@ -62,6 +62,8 @@ describe('summarise', () => {
       { expected_on: '2026-09-01', typical_amount: 18.63, happened: true, happened_on: '2026-09-03', happened_amount: 18.63 },
       { expected_on: '2026-09-02', typical_amount: 6.09, happened: false, happened_on: null, happened_amount: null },
       { expected_on: '2026-09-20', typical_amount: 53.96, happened: null },
+      /* Kept to itself: below the confidence the twin speaks at, so not held as a miss. */
+      { expected_on: '2026-09-09', typical_amount: 6, confidence: 0.17, happened: false, happened_on: null, happened_amount: null },
     ];
     const figures = [
       { kind: 'month_total', predicted_for: '2026-08-31', value: 600, low: 500, high: 700, actual: 582.87, hit: true, scored_at: 'x' },
