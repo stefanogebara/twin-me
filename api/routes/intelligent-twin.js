@@ -19,7 +19,6 @@ import userContextAggregator from '../services/userContextAggregator.js';
 import intelligentMusicService from '../services/intelligentMusicService.js';
 import spotifyInsightGenerator from '../services/spotifyInsightGenerator.js';
 import specialistOrchestrator from '../services/specialists/SpecialistOrchestrator.js';
-import { getAllSoulSignatures } from '../services/soulSignatureService.js';
 import { crossPlatformInferenceService } from '../services/crossPlatformInferenceService.js';
 import purposeLearningService from '../services/purposeLearningService.js';
 import { createLogger } from '../services/logger.js';
@@ -390,85 +389,6 @@ router.get('/memory-stats', authenticateUser, async (req, res) => {
     res.json({ success: true, totalMemories: totalCount || 0, byPlatform });
   } catch (err) {
     log.error('memory-stats error:', err);
-    res.status(500).json({ success: false, error: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error' });
-  }
-});
-
-/**
- * GET /api/twin/evolution
- * Returns personality score snapshots over time, soul signature history,
- * and weekly memory growth — powering the EvolutionSection on the dashboard.
- */
-router.get('/evolution', authenticateUser, async (req, res) => {
-  try {
-    const userId = req.user?.id;
-    if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized' });
-
-    // 1. Personality snapshots (up to 30, oldest first for chart ordering)
-    const { data: snapshots, error: snapErr } = await supabase
-      .from('personality_score_snapshots')
-      .select('id, openness, conscientiousness, extraversion, agreeableness, neuroticism, archetype_name, memory_count, created_at')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: true })
-      .limit(30);
-    if (snapErr) throw snapErr;
-
-    // 2. Soul signature history (archetype evolution — chronological order for chart)
-    const signatures = await getAllSoulSignatures(userId, {
-      columns: 'archetype_name, archetype_subtitle, created_at',
-      order: 'asc',
-    });
-
-    // 3. Weekly memory growth: count memories per ISO week for the last 12 weeks
-    const twelveWeeksAgo = new Date(Date.now() - 84 * 24 * 60 * 60 * 1000).toISOString();
-    const { data: weeklyRows, error: weekErr } = await supabase
-      .from('user_memories')
-      .select('created_at')
-      .eq('user_id', userId)
-      .gte('created_at', twelveWeeksAgo)
-      .order('created_at', { ascending: true });
-    if (weekErr) throw weekErr;
-
-    // Group into ISO week buckets
-    const weekBuckets = {};
-    for (const row of weeklyRows || []) {
-      const d = new Date(row.created_at);
-      // Monday of that week as bucket key
-      const day = d.getDay(); // 0=Sun
-      const offset = (day === 0 ? -6 : 1 - day);
-      const monday = new Date(d);
-      monday.setDate(d.getDate() + offset);
-      const key = monday.toISOString().substring(0, 10);
-      weekBuckets[key] = (weekBuckets[key] || 0) + 1;
-    }
-    const weeklyGrowth = Object.entries(weekBuckets)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([week, count]) => ({ week, count }));
-
-    // 4. First memory date (for "known you X days" widget)
-    const { data: firstMemRow } = await supabase
-      .from('user_memories')
-      .select('created_at')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: true })
-      .limit(1)
-      .single();
-
-    const firstMemoryAt = firstMemRow?.created_at || null;
-    const daysKnown = firstMemoryAt
-      ? Math.floor((Date.now() - new Date(firstMemoryAt).getTime()) / 86400000)
-      : null;
-
-    res.json({
-      success: true,
-      snapshots: snapshots || [],
-      signatures: signatures || [],
-      weeklyGrowth,
-      firstMemoryAt,
-      daysKnown,
-    });
-  } catch (err) {
-    log.error('evolution error:', err);
     res.status(500).json({ success: false, error: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error' });
   }
 });
