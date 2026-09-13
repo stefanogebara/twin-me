@@ -121,11 +121,16 @@ function useLedgerTrace(): { steps: TraceStep[]; reading: boolean } {
 /* A heading, one grey line, then the steps as rows under the ink rule. The step in
    progress is the one in ink at 500; the rest have gone quiet. */
 function TracePanel({ steps, reading }: { steps: TraceStep[]; reading: boolean }) {
+  /* Six rows of zeros ending in Done is what a new account saw here: machinery with
+     nothing in it. Until something has been read, the panel is one quiet line. */
+  const idle = steps.length > 0 && steps.every((s) => !s.count);
   return (
     <aside className="mc-trace" aria-label="What it is doing">
       <p className="mc-trace-head">What it is doing</p>
       {steps.length === 0 ? (
         <p className="mv-sub">Not reading the ledger right now.</p>
+      ) : idle ? (
+        <p className="mv-sub">Nothing to read yet. Connect Santander under Sources.</p>
       ) : (
         <ul className="mv-list mc-steps" aria-live="polite">
           {steps.map((s) => (
