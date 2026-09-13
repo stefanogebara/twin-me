@@ -206,3 +206,16 @@ describe('the rest of the month is the median of three readings', () => {
     expect(r.projected_p10).toBeLessThanOrEqual(r.projected_p50);
   });
 });
+
+describe('money coming back is not income', () => {
+  it('leaves a settlement out of what came in this month', () => {
+    const now = new Date('2026-09-14T12:00:00Z');
+    const transactions = [
+      { id: 'd', occurred_at: '2026-09-10T21:00:00Z', amount: -60, merchant_key: 'la tasca', is_recurring: false },
+      { id: 'b', occurred_at: '2026-09-11T09:00:00Z', amount: 15, merchant_key: 'ana', channel: 'bizum', is_recurring: false },
+      { id: 'p', occurred_at: '2026-09-12T09:00:00Z', amount: 100, merchant_key: 'family', channel: 'transfer', is_recurring: false },
+    ];
+    expect(projectMonth({ transactions, recurring: [], now }).received).toBe(115);
+    expect(projectMonth({ transactions, recurring: [], now, isIncome: (t) => t.id !== 'b' }).received).toBe(100);
+  });
+});

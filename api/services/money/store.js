@@ -4,6 +4,7 @@
  */
 
 import { supabaseAdmin } from '../database.js';
+import { splitShareOf, reimbursementIds, splitFindings, SPLIT_OPEN } from './bizum.js';
 import { createLogger } from '../logger.js';
 import { reconcile } from './ledger.js';
 import { detectRecurring } from './recurring.js';
@@ -218,7 +219,13 @@ export async function forecast(userId, now = new Date()) {
   const shares = new Map(facts.filter((f) => f.kind === 'shared_cost' && f.share != null)
     .map((f) => [String(f.subject || '').toLowerCase(), Number(f.share)]));
 
+  const ownShare = splitShareOf(facts);
+  const settlements = reimbursementIds(facts, rows, { now });
+  const isIncome = (t) => !settlements.has(t.id);
   const shareOf = (t) => {
+    /* A payment the person said was split so many ways is theirs by one part. */
+    const split = ownShare(t);
+    if (split != null) return split;
     const exact = shares.get(t.merchant_key);
     if (exact != null) return Math.min(Math.max(exact, 0), 1);
     /* A named split can also be a whole category ("groceries"), which the merchant key
@@ -238,7 +245,7 @@ export async function forecast(userId, now = new Date()) {
     .order('predicted_for', { ascending: true }).limit(400);
   const band = calibrate(scoredDays || []);
 
-  const result = projectMonth({ transactions: rows, recurring: rec, commitments, income, shareOf, isSpending, now, widen: band.widen });
+  const result = projectMonth({ transactions: rows, recurring: rec, commitments, income, shareOf, isSpending, isIncome, now, widen: band.widen });
   result.band_calibration = { widen: band.widen, days: band.days, coverage: band.coverage, trusted: band.trusted };
   /* What is still to come is named on the hero, so it needs a name and not a key. */
   const names = new Map();
@@ -419,13 +426,15 @@ export async function refreshReadings(userId, now = new Date()) {
     : { data: [] };
   const categories = new Map((places || []).map((p) => [p.merchant_key, p.category_override || p.category || null]));
   const categoryOf = (t) => categories.get(t.merchant_key) || CHANNEL_CATEGORY[t.channel] || null;
-  const { segments, findings: read } = readLedger({ transactions, recurring: withNames, categoryOf, now, isSpending: spendingRule(facts) });
+  const settled = reimbursementIds(facts, transactions, { now });
+  const { segments, findings: read } = readLedger({ transactions, recurring: withNames, categoryOf, now, isSpending: spendingRule(facts), isIncome: (t) => !settled.has(t.id) });
   /* The two lines with a trial behind them (nudges.js): a week's charges the month cannot
      carry, and the largest named charge due within three days. Both need the forecast and
      the allowance; neither is spoken without a basis. */
   const cast = await forecast(userId, now).catch(() => null);
   const allowance = cast ? safeToSpend({ cast, segments, facts, now }) : null;
-  const findings = read.concat(nudgeFindings({ cast, allowance, now }));
+  /* Who still owes what for a shared payment (bizum.js): said while it is open, quiet once settled. */
+  const findings = read.concat(nudgeFindings({ cast, allowance, now }), splitFindings(facts, transactions, { now }));
   /* A finding with no month (a subscription load, a weekday shape) has month NULL, and
      Postgres counts NULLs as distinct: an upsert on (kind, month) inserted a fresh copy
      every run. So the write is an explicit update-or-insert, which also keeps the id and
@@ -454,7 +463,7 @@ export async function refreshReadings(userId, now = new Date()) {
   /* A finding that no longer holds should stop being shown, not linger from last week. A
      nudge is dated, so a past one is harmless on its own and is kept: the record of what
      was said and whether it was muted is what the retirement rule reads. */
-  const stale = (existing || []).filter((r) => !seen.has(keyOf(r.kind, r.month)) && !NUDGE_KINDS.includes(r.kind)).map((r) => r.id);
+  const stale = (existing || []).filter((r) => !seen.has(keyOf(r.kind, r.month)) && !NUDGE_KINDS.includes(r.kind) && r.kind !== SPLIT_OPEN).map((r) => r.id);
   if (stale.length) await supabaseAdmin.from('money_readings').delete().in('id', stale);
   /* The twin should know what the money says, in the same stream as everything else it
      knows. Duplicate content inside a day is skipped by the memory stream itself. */

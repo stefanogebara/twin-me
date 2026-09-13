@@ -41,7 +41,7 @@ function ordinal(d) {
  * when they say "per month": what left, what came in, how many lines, and the days
  * covered so a half month is never compared with a whole one.
  */
-export function monthSegments(transactions, now = new Date(), isSpending = null) {
+export function monthSegments(transactions, now = new Date(), isSpending = null, isIncome = null) {
   const byMonth = new Map();
   for (const t of transactions) {
     if (!t.occurred_at) continue;
@@ -54,7 +54,7 @@ export function monthSegments(transactions, now = new Date(), isSpending = null)
       if (isSpending && !isSpending(t)) continue;
       m.spent += abs(t);
       if (!m.biggest || abs(t) > abs(m.biggest)) m.biggest = t;
-    } else m.received += abs(t);
+    } else if (!isIncome || isIncome(t)) m.received += abs(t);
   }
   const thisMonth = monthKey(now.toISOString());
   return [...byMonth.values()]
@@ -331,9 +331,9 @@ export function categoryShape(transactions, categoryOf, now, days = 120) {
  * its evidence rule is absent, not softened: silence is the honest output when there
  * is nothing yet to see.
  */
-export function readLedger({ transactions = [], recurring = [], categoryOf = null, now = new Date(), isSpending = null } = {}) {
+export function readLedger({ transactions = [], recurring = [], categoryOf = null, now = new Date(), isSpending = null, isIncome = null } = {}) {
   const rows = transactions.filter((t) => t.occurred_at);
-  const segments = monthSegments(rows, now, isSpending);
+  const segments = monthSegments(rows, now, isSpending, isIncome);
   /* Every finding speaks about spending, so a transfer the rule sets aside is not a line
      it may count, name as the biggest, or call a small payment. */
   const counted = isSpending ? rows.filter((t) => Number(t.amount) >= 0 || isSpending(t)) : rows;

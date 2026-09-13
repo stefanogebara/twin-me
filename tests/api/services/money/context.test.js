@@ -214,3 +214,22 @@ describe('the vocabulary', () => {
     expect(PERSON_ROLES).toContain('landlord');
   });
 });
+
+describe('a split raised by the ledger', () => {
+  const NOW2 = new Date('2026-09-14T20:00:00Z');
+  const t = (id, occurred_at, amount, merchant_raw, channel = 'card') => ({ id, occurred_at, amount, merchant_raw, merchant_key: merchant_raw.toLowerCase(), channel });
+  const rows = [
+    t('d1', '2026-09-10T21:30:00Z', -62.4, 'La Tasca'),
+    t('b1', '2026-09-10T23:10:00Z', 15.6, 'Ana Lopez', 'bizum'),
+    t('b2', '2026-09-11T09:00:00Z', 15.6, 'Luis Perez', 'bizum'),
+  ];
+  it('asks how many ways, with the payment and the Bizums back as receipts, and stops once answered', () => {
+    const qs = ledgerQuestions({ transactions: rows, now: NOW2 });
+    const q = qs.find((x) => x.id === 'split:d1');
+    expect(q).toBeTruthy();
+    expect(q.kind).toBe('split');
+    expect(q.receipts.map((r) => r.id)).toEqual(['d1', 'b1', 'b2']);
+    expect(ledgerQuestions({ transactions: rows, facts: [{ kind: 'split', subject: 'd1', value: '4' }], now: NOW2 }).some((x) => x.id === 'split:d1')).toBe(false);
+    expect(ledgerQuestions({ transactions: rows, facts: [{ kind: 'split', subject: 'd1', value: 'not split' }], now: NOW2 }).some((x) => x.id === 'split:d1')).toBe(false);
+  });
+});

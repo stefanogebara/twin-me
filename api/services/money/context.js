@@ -38,6 +38,8 @@
  * Pure: definitions and decisions in, questions out. No Supabase, no LLM, no network.
  */
 
+import { detectSplits, splitQuestions } from './bizum.js';
+
 const DAY = 86400000;
 /** Below this a monthly charge is a subscription, not a roof. */
 export const RENT_FLOOR = 200;
@@ -65,6 +67,7 @@ export const FACT_KINDS = Object.freeze([
   'person',           // who a name on a transfer actually is
   'merchant_kind',    // what a place is, when no provider could say
   'goal',             // what this term is for
+  'split',            // a payment shared with others: subject the payment id, value the number of ways
 ]);
 
 /** How a person is related to the money, which is what changes the reading. */
@@ -162,6 +165,10 @@ export function ledgerQuestions({ transactions = [], facts = [], placeOf = () =>
   const knownKinds = new Set(facts.filter((f) => f.kind === 'merchant_kind').map((f) => f.subject));
   const rows = transactions.filter((t) => t.occurred_at);
   const questions = [];
+
+  /* A payment followed by equal Bizums back looks split; only the person knows how many
+     ways, so the ledger asks with the receipts (bizum.js). */
+  questions.push(...splitQuestions(detectSplits(rows, facts, { now }), { now }));
 
   /* Money arriving from a person is the largest thing the ledger cannot read. Six transfers
      of 100 EUR from one name is either a parent or a debt being repaid, and the two mean
