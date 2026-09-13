@@ -49,6 +49,15 @@ router.post('/', authenticateUser, async (req, res) => {
   const userId = req.user.id;
   const { name = 'Claude Desktop MCP' } = req.body;
 
+  /* A phone has one key. Making another for the same purpose replaces the last one rather
+     than adding to it: five abandoned "Phone capture" keys once filled the cap below, and
+     the button that makes them started refusing. The old key stops working the moment the
+     new one exists, which is what a person pressing "Make a key" again expects. */
+  if (/^Phone capture/i.test(String(name))) {
+    await supabaseAdmin.from('api_keys').update({ is_active: false })
+      .eq('user_id', userId).eq('name', name).eq('is_active', true);
+  }
+
   // Limit: max 5 active keys per user
   const { count } = await supabaseAdmin
     .from('api_keys')
