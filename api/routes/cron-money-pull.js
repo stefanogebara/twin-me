@@ -20,6 +20,7 @@ import { logCronExecution, wasRecentlyRun } from '../services/cronLogger.js';
 import { createLogger } from '../services/logger.js';
 import { pullBankFeed, enrichPlaces, refreshReadings, bankFeedUserIds } from '../services/money/store.js';
 import { isConfigured } from '../services/money/feeds/enableBanking.js';
+import { learnFromLedger } from '../services/money/predictions.js';
 
 const log = createLogger('CronMoneyPull');
 const router = express.Router();
@@ -58,6 +59,10 @@ router.all('/', async (req, res) => {
           await refreshReadings(userId)
             .catch((e) => log.warn('readings after pull failed', { userId, error: e.message }));
         }
+        /* Whether or not the bank had news, a day has passed: what it said for today is
+           written down, and what it said for yesterday is scored against what happened. */
+        await learnFromLedger(userId)
+          .catch((e) => log.warn('learning after pull failed', { userId, error: e.message }));
       } catch (err) {
         /* A spent budget is the normal state near the end of a day, not a failure. */
         if (err.code === 'feed_budget_spent' || err.code === 'bank_session_unreachable') skipped += 1;
