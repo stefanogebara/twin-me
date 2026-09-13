@@ -5,6 +5,7 @@
 
 import { supabaseAdmin } from '../database.js';
 import { splitShareOf, reimbursementIds, splitFindings, SPLIT_OPEN } from './bizum.js';
+import { accuracy, ownScoreFinding } from './predictions.js';
 import { createLogger } from '../logger.js';
 import { reconcile } from './ledger.js';
 import { detectRecurring } from './recurring.js';
@@ -434,7 +435,10 @@ export async function refreshReadings(userId, now = new Date()) {
   const cast = await forecast(userId, now).catch(() => null);
   const allowance = cast ? safeToSpend({ cast, segments, facts, now }) : null;
   /* Who still owes what for a shared payment (bizum.js): said while it is open, quiet once settled. */
-  const findings = read.concat(nudgeFindings({ cast, allowance, now }), splitFindings(facts, transactions, { now }));
+  /* What it got wrong, in its own numbers (predictions.js): one line, only once there is a
+     scored month or enough scored charges to be worth saying. */
+  const own = ownScoreFinding(await accuracy(userId).catch(() => null));
+  const findings = read.concat(nudgeFindings({ cast, allowance, now }), splitFindings(facts, transactions, { now }), own ? [own] : []);
   /* A finding with no month (a subscription load, a weekday shape) has month NULL, and
      Postgres counts NULLs as distinct: an upsert on (kind, month) inserted a fresh copy
      every run. So the write is an explicit update-or-insert, which also keeps the id and

@@ -129,6 +129,49 @@ export function summarise(figures = [], charges = []) {
   };
 }
 
+/* ------------------------------------------------------------------ saying it out loud */
+
+export const OWN_SCORE = 'own_score';
+const EURF = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' });
+const euro = (n) => EURF.format(Math.abs(Number(n) || 0)).replace(/[\u00a0\u202f]/g, ' ').replace('\u20ac', 'EUR');
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+/**
+ * What the twin got wrong, in its own numbers: the last month it forecast against what
+ * happened, the charges it expected against the ones that came, the range against the
+ * days. Every product in the market hides this record; this one keeps it and says it.
+ * Null until there is something scored worth a sentence: a finished month, or at least
+ * five charges the person would have heard about. Pure.
+ * @param {object|null} summary  from summarise()
+ */
+export function ownScoreFinding(summary) {
+  if (!summary) return null;
+  const m = summary.last_month;
+  const c = summary.charges || { expected: 0, arrived: 0, on_day: 0 };
+  const band = summary.band || { days: 0, coverage: null };
+  if (!m && c.expected < 5) return null;
+  const parts = [];
+  let sentence;
+  if (m) {
+    const diff = r2(m.actual - m.said);
+    const monthName = MONTHS[Number(m.month.slice(5, 7)) - 1];
+    sentence = `In ${monthName} it said ${euro(m.said)}; it was ${euro(m.actual)}, ${euro(Math.abs(diff))} ${diff >= 0 ? 'over' : 'under'}, ${m.within_band ? 'inside' : 'outside'} the range it gave.`;
+  } else {
+    sentence = `Of ${c.expected} charges it expected, ${c.arrived} came${c.on_day ? `, ${c.on_day} on the day` : ''}.`;
+  }
+  if (m && c.expected) parts.push(`Of ${c.expected} charges it expected, ${c.arrived} came${c.on_day ? `, ${c.on_day} on the day` : ''}.`);
+  if (band.days >= 14 && band.coverage !== null) parts.push(`The day range held on ${Math.round(band.coverage * band.days)} of ${band.days} days.`);
+  return {
+    kind: OWN_SCORE,
+    month: m ? `${m.month}-01` : null,
+    sentence,
+    detail: parts.join(' ') || null,
+    numbers: { last_month: m, charges: c, band },
+    receipts: [],
+    evidence_count: (m ? 1 : 0) + c.expected + band.days,
+  };
+}
+
 /* ------------------------------------------------------------------ rows */
 
 let tableMissing = false;

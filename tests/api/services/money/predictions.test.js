@@ -3,7 +3,7 @@
  * scored, and how the record reads together with the charges the store already scores.
  */
 import { describe, it, expect } from 'vitest';
-import { predictionsFrom, scoreOne, summarise } from '../../../../api/services/money/predictions.js';
+import { predictionsFrom, scoreOne, summarise, ownScoreFinding } from '../../../../api/services/money/predictions.js';
 
 const NOW = new Date('2026-09-13T12:00:00Z');
 const counts = () => true;
@@ -97,5 +97,26 @@ describe('the day, written down and scored', () => {
     const figures = Array.from({ length: 5 }, (_, i) => ({ kind: 'day_total', predicted_for: `2026-09-0${i + 1}`, value: 20, low: 10, high: 30, actual: 22, hit: true, scored_at: '2026-09-10T00:00:00Z' }));
     const s = summarise(figures, []);
     expect(s.band).toEqual({ days: 5, coverage: 1, widen: 0, trusted: false });
+  });
+});
+
+describe('what it got wrong, said out loud', () => {
+  it('reads the last month against what happened, with the charges and the range under it', () => {
+    const f = ownScoreFinding({
+      last_month: { month: '2026-09', said: 1075.86, actual: 1140.2, low: 911.37, high: 1318.21, within_band: true },
+      charges: { expected: 12, arrived: 9, on_day: 7, on_amount: 8 },
+      band: { days: 24, coverage: 0.75, widen: 3.2, trusted: false },
+    });
+    expect(f.kind).toBe('own_score');
+    expect(f.month).toBe('2026-09-01');
+    expect(f.sentence).toBe('In September it said 1075,86 EUR; it was 1140,20 EUR, 64,34 EUR over, inside the range it gave.');
+    expect(f.detail).toBe('Of 12 charges it expected, 9 came, 7 on the day. The day range held on 18 of 24 days.');
+  });
+  it('speaks on charges alone once there are enough, and not before', () => {
+    expect(ownScoreFinding({ last_month: null, charges: { expected: 4, arrived: 0, on_day: 0 }, band: { days: 3, coverage: 1 } })).toBeNull();
+    const f = ownScoreFinding({ last_month: null, charges: { expected: 6, arrived: 2, on_day: 1 }, band: { days: 3, coverage: 1 } });
+    expect(f.sentence).toBe('Of 6 charges it expected, 2 came, 1 on the day.');
+    expect(f.month).toBeNull();
+    expect(ownScoreFinding(null)).toBeNull();
   });
 });
