@@ -394,7 +394,7 @@ export default function MoneyV2Page() {
                                     <span className="mv-item-title">{merchantLabel(t)}</span>
                                     <span className="mv-item-sub">
                                       {shortDay(t.occurred_at)}
-                                      {t.is_recurring ? ', recurring' : ''}
+                                      {t.posted_at ? '' : ', pending'}{t.is_recurring ? ', recurring' : ''}
                                       {t.verdict ? `, ${t.verdict === 'worth_it' ? 'worth it' : 'not me'}` : ''}
                                     </span>
                                   </span>

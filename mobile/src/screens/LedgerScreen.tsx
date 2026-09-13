@@ -148,7 +148,7 @@ export default function LedgerScreen() {
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
-            onRefresh={() => { setRefreshing(true); void loadAll(); }}
+            onRefresh={() => { setRefreshing(true); moneyApi.refreshIfStale().catch(() => {}).finally(() => { void loadAll(); }); }}
             tintColor={cosmos.color.ink3}
           />
         }
@@ -186,7 +186,7 @@ export default function LedgerScreen() {
               {group.rows.map((t, i) => {
                 const inflow = Number(t.amount) > 0;
                 const open = openRow === t.id;
-                const tags = [t.is_recurring ? 'recurring' : '', verdictWord(t.verdict)].filter(Boolean).join(', ');
+                const tags = [t.posted_at ? '' : 'pending', t.is_recurring ? 'recurring' : '', verdictWord(t.verdict)].filter(Boolean).join(', ');
                 const seen = receipts[t.id];
                 return (
                   <Enter key={t.id} index={i}>

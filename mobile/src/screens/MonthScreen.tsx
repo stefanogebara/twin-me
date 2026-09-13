@@ -187,7 +187,7 @@ export default function MonthScreen({ onOpenQuestions, questionCount, onOpenLedg
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
-            onRefresh={() => { setRefreshing(true); void loadAll(); }}
+            onRefresh={() => { setRefreshing(true); moneyApi.refreshIfStale().catch(() => {}).finally(() => { void loadAll(); }); }}
             tintColor={cosmos.color.ink3}
           />
         }

@@ -332,7 +332,7 @@ async function recordAccess(userId, accountId, { attended = false, rowsSeen = nu
   if (error) log.warn(`feed access log failed: ${error.message}`);
 }
 
-export async function pullBankFeed(userId, { since, attended = false } = {}) {
+export async function pullBankFeed(userId, { since, attended = false, psu = null } = {}) {
   const accounts = await listBankAccounts(userId);
   if (!accounts.length) return [];
   if (!attended) {
@@ -350,7 +350,7 @@ export async function pullBankFeed(userId, { since, attended = false } = {}) {
     let key = null; let seen = 0; let created = 0;
     try {
       do {
-        const page = await fetchTransactions(acc.provider_account_id, from, key);
+        const page = await fetchTransactions(acc.provider_account_id, from, key, { psu: attended ? psu : null });
         const batch = page.rows.map((row) => toSighting(row, acc.id)).filter((s) => s.occurred_at && s.amount);
         const r = await ingestSightings(userId, batch);
         seen += r.seen; created += r.created;

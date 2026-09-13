@@ -110,3 +110,68 @@ describe('fetchTransactions on a session the application cannot see', () => {
     });
   });
 });
+
+/* A read made with the person present is not one of the bank's four background reads a
+   day; Enable Banking tells the two apart by the PSU headers alone. And a card payment
+   should show the day it is made, so booked and pending rows are both asked for. */
+describe('fetchTransactions, attended and with pending rows', () => {
+  const withFetch = async (impl, run) => {
+    const saved = { fetch: global.fetch, id: process.env.ENABLE_BANKING_APP_ID, key: process.env.ENABLE_BANKING_PRIVATE_KEY };
+    const { generateKeyPairSync } = await import('node:crypto');
+    const { privateKey } = generateKeyPairSync('rsa', { modulusLength: 2048, privateKeyEncoding: { type: 'pkcs8', format: 'pem' }, publicKeyEncoding: { type: 'spki', format: 'pem' } });
+    process.env.ENABLE_BANKING_APP_ID = 'test-app';
+    process.env.ENABLE_BANKING_PRIVATE_KEY = privateKey;
+    global.fetch = impl;
+    try { return await run(); } finally {
+      global.fetch = saved.fetch;
+      if (saved.id) process.env.ENABLE_BANKING_APP_ID = saved.id; else delete process.env.ENABLE_BANKING_APP_ID;
+      if (saved.key) process.env.ENABLE_BANKING_PRIVATE_KEY = saved.key; else delete process.env.ENABLE_BANKING_PRIVATE_KEY;
+    }
+  };
+
+  it('sends the person\'s address and agent, and asks for booked and pending', async () => {
+    const calls = [];
+    await withFetch(async (url, init) => {
+      calls.push({ url: String(url), headers: init.headers });
+      return { ok: true, status: 200, text: async () => JSON.stringify({ transactions: [], continuation_key: null }) };
+    }, async () => {
+      await fetchTransactions('acc-1', '2026-09-01', null, { psu: { ip: '81.9.1.2', userAgent: 'TwinMe/1.0' } });
+    });
+    expect(calls[0].url).toContain('transaction_status=BOTH');
+    expect(calls[0].headers['Psu-Ip-Address']).toBe('81.9.1.2');
+    expect(calls[0].headers['Psu-User-Agent']).toBe('TwinMe/1.0');
+  });
+
+  it('sends no PSU header for a background read', async () => {
+    const calls = [];
+    await withFetch(async (url, init) => {
+      calls.push({ url: String(url), headers: init.headers });
+      return { ok: true, status: 200, text: async () => JSON.stringify({ transactions: [] }) };
+    }, async () => { await fetchTransactions('acc-1', '2026-09-01'); });
+    expect(calls[0].headers['Psu-Ip-Address']).toBeUndefined();
+  });
+
+  it('asks again without the status filter when the bank refuses it', async () => {
+    const calls = [];
+    await withFetch(async (url) => {
+      calls.push(String(url));
+      if (calls.length === 1) return { ok: false, status: 422, text: async () => JSON.stringify({ code: 422, message: 'transaction_status not supported' }) };
+      return { ok: true, status: 200, text: async () => JSON.stringify({ transactions: [{ status: 'BOOK' }] }) };
+    }, async () => {
+      const r = await fetchTransactions('acc-1', '2026-09-01');
+      expect(r.rows).toHaveLength(1);
+    });
+    expect(calls[0]).toContain('transaction_status=BOTH');
+    expect(calls[1]).not.toContain('transaction_status');
+  });
+});
+
+describe('toSighting on a pending row', () => {
+  it('keys it by its own day and amount, marks it less certain, and keeps the status', () => {
+    const s = toSighting({ status: 'PDNG', transaction_amount: { amount: '19.99', currency: 'EUR' }, credit_debit_indicator: 'DBIT', remittance_information: ['PAGO MOVIL EN CABIFY, MADRID ES, TARJ. :*741245'], transaction_date: '2026-09-13' }, 'a1');
+    expect(s.source_ref.startsWith('pend:')).toBe(true);
+    expect(s.parse_confidence).toBe(0.85);
+    expect(s.raw_json.status).toBe('PDNG');
+    expect(s.amount).toBe(19.99);
+  });
+});

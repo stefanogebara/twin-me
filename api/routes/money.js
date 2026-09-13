@@ -210,11 +210,22 @@ router.get('/bank/accounts', async (req, res) => {
   } catch (error) { log.error('bank accounts failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
 });
 
-/* Opening the app should not show a three day old month. The bank allows four unattended
-   reads a day and the cron takes three, so this spends the fourth, and only when the last
-   read is genuinely old. The policy lives here rather than in each client, so the phone and
-   the web cannot drift apart on what "stale" means. */
-export const STALE_AFTER_HOURS = 4;
+/**
+ * Who is holding the phone, for the bank. PSD2 counts background reads, four a day; a read
+ * made while the person is in the app is not background, and the bank tells the two apart
+ * by these two headers alone. Behind Vercel the address is the first in the forwarded list.
+ */
+function psuOf(req) {
+  const forwarded = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
+  return { ip: forwarded || req.ip || null, userAgent: req.get('user-agent') || null };
+}
+
+/* Opening the app should not show a stale month. A read made with the person present is
+   not one of the bank's four background reads a day, so the app reads on every open and on
+   every pull down, held only to a short cooldown so a page opened twice in a minute does
+   not ask the bank twice. The policy lives here rather than in each client, so the phone
+   and the web cannot drift apart on what "stale" means. */
+export const STALE_AFTER_MINUTES = 10;
 
 router.post('/bank/refresh-if-stale', async (req, res) => {
   if (!isConfigured()) return res.json({ success: true, data: { pulled: false, reason: 'not configured' } });
@@ -226,21 +237,17 @@ router.post('/bank/refresh-if-stale', async (req, res) => {
       .filter(Boolean)
       .sort()
       .pop();
-    const ageHours = newest ? (Date.now() - new Date(newest).getTime()) / 3600000 : Infinity;
-    if (ageHours < STALE_AFTER_HOURS) {
-      return res.json({ success: true, data: { pulled: false, reason: 'fresh', age_hours: Math.round(ageHours * 10) / 10 } });
+    const ageMinutes = newest ? (Date.now() - new Date(newest).getTime()) / 60000 : Infinity;
+    if (ageMinutes < STALE_AFTER_MINUTES) {
+      return res.json({ success: true, data: { pulled: false, reason: 'fresh', age_minutes: Math.round(ageMinutes) } });
     }
-    const budget = await feedBudget(req.user.id);
-    if (budget.left <= 0) {
-      return res.json({ success: true, data: { pulled: false, reason: 'budget spent', resets_at: budget.resets_at } });
-    }
-    const pulled = await pullBankFeed(req.user.id);
+    const pulled = await pullBankFeed(req.user.id, { attended: true, psu: psuOf(req) });
     const created = pulled.reduce((n, p) => n + (p.created || 0), 0);
     if (created > 0) {
       await enrichPlaces(req.user.id, { limit: 8 }).catch((e) => log.warn('places after refresh failed', { error: e.message }));
       await refreshReadings(req.user.id).catch((e) => log.warn('readings after refresh failed', { error: e.message }));
     }
-    res.json({ success: true, data: { pulled: true, created, budget: await feedBudget(req.user.id) } });
+    res.json({ success: true, data: { pulled: true, attended: true, created, budget: await feedBudget(req.user.id) } });
   } catch (error) {
     if (error.code === 'feed_budget_spent') return res.json({ success: true, data: { pulled: false, reason: 'budget spent' } });
     if (error.code === 'bank_session_expired') {
@@ -257,7 +264,7 @@ router.post('/bank/refresh-if-stale', async (req, res) => {
 router.post('/bank/pull', async (req, res) => {
   if (!isConfigured()) return res.status(503).json({ success: false, error: 'Bank feed not configured' });
   try {
-    const data = await pullBankFeed(req.user.id, { since: typeof req.body?.since === 'string' ? req.body.since : undefined });
+    const data = await pullBankFeed(req.user.id, { since: typeof req.body?.since === 'string' ? req.body.since : undefined, attended: true, psu: psuOf(req) });
     /* A read is worth something only once it has been read: place the new merchants, then
        recompute what it says. The lookup is capped so the request still fits in its minute. */
     if (data.some((d) => d.created > 0)) {
