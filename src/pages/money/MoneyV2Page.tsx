@@ -79,12 +79,22 @@ export default function MoneyV2Page() {
   const [key, setKey] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
+  /* What the last Read now brought back, said on the Santander row itself. The note at the
+     foot of the section sat below the fold, so a read that found nothing looked like a
+     button that did nothing. */
+  const [read, setRead] = useState<{ seen: number; created: number } | null>(null);
 
   /* Two ways to learn the connection has ended, and the page must not depend on the luckier
      one. The refresh call says so when it is the call that hits the dead session; the accounts
      row says so from the last recorded read, which survives a day when the read budget is
      already spent and no call is made at all. */
   const reconnect = needsReconnect || accounts.some((a) => a.needs_reconnect);
+  const newest = ledger.reduce<string | null>((m, t) => (!m || t.occurred_at > m ? t.occurred_at : m), null);
+  const bankLine = !bankReady ? 'The bank feed is not switched on yet.'
+    : busy === 'connect' ? 'Opening Santander.'
+    : busy === 'pull' ? 'Reading the bank.'
+    : read ? (read.created ? `${read.created} new just now.` : `Nothing new${newest ? ` since ${shortDay(newest)}` : ' yet'}. Cards post on working days.`)
+    : 'Read four times a day. You confirm it every six months.';
 
   const load = useCallback(async () => {
     const [f, l, r, a, m, rd, c, u] = await Promise.allSettled([
@@ -176,8 +186,12 @@ export default function MoneyV2Page() {
   }
   async function pull() {
     setBusy('pull'); setNote(null);
-    try { const r = await moneyAPI.pull(); setNote(r.length ? `${r.reduce((n, x) => n + x.seen, 0)} rows read, ${r.reduce((n, x) => n + x.created, 0)} new.` : 'No account to pull from yet.'); await load(); }
-    catch { setNote('The pull did not go through.'); }
+    try {
+      const r = await moneyAPI.pull();
+      if (r.length) setRead({ seen: r.reduce((n, x) => n + x.seen, 0), created: r.reduce((n, x) => n + x.created, 0) });
+      else setNote('No account to pull from yet.');
+      await load();
+    } catch { setNote('The pull did not go through.'); }
     finally { setBusy(null); }
   }
   async function importStatement(file: File | null) {
@@ -531,7 +545,7 @@ export default function MoneyV2Page() {
                   <span className="mv-icon" aria-hidden="true"><Landmark size={16} /></span>
                   <span className="mv-item-text">
                     <span className="mv-item-title">Santander</span>
-                    <span className="mv-item-sub">{bankReady ? 'Read four times a day. You confirm it every six months.' : 'The bank feed is not switched on yet.'}</span>
+                    <span className="mv-item-sub" aria-live="polite">{bankLine}</span>
                   </span>
                   {/* Only once the accounts are in: before that the row offered a black Connect
                       that turned into Read now a moment later. */}
