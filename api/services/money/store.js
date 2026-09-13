@@ -11,6 +11,7 @@ import { projectMonth } from './projection.js';
 import { fetchTransactions, toSighting } from './feeds/enableBanking.js';
 import { readLedger, monthSegments } from './analyst.js';
 import { spendingRule, markCounted } from './spending.js';
+import { calibrate } from './calibration.js';
 import { tellTwin } from './twinBridge.js';
 import { lookupPlace, providerFor, categoryFromBrand, PROVIDER_NONE } from './places.js';
 import { readUsage, unmeasurable, platformForMerchant } from './usage.js';
@@ -216,7 +217,17 @@ export async function forecast(userId, now = new Date()) {
      spending.js. The forecast must never be the only place that knows it. */
   const isSpending = spendingRule(facts);
 
-  const result = projectMonth({ transactions: rows, recurring: rec, commitments, income, shareOf, isSpending, now });
+  /* What the band has earned from its scored days: one widening in euros per person, from
+     calibration.js. A missing table or an empty record is a widening of zero. */
+  const { data: scoredDays } = await supabaseAdmin
+    .from('money_figure_scores')
+    .select('predicted_for, value, low, high, actual')
+    .eq('user_id', userId).eq('kind', 'day_total').not('scored_at', 'is', null)
+    .order('predicted_for', { ascending: true }).limit(400);
+  const band = calibrate(scoredDays || []);
+
+  const result = projectMonth({ transactions: rows, recurring: rec, commitments, income, shareOf, isSpending, now, widen: band.widen });
+  result.band_calibration = { widen: band.widen, days: band.days, coverage: band.coverage, trusted: band.trusted };
   /* What is still to come is named on the hero, so it needs a name and not a key. */
   const names = new Map();
   for (const t of rows) if (t.merchant_raw && !names.has(t.merchant_key)) names.set(t.merchant_key, t.merchant_raw);

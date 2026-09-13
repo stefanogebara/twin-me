@@ -1,8 +1,10 @@
 /**
  * The twin grades its own homework.
  * =================================
- * It says three kinds of thing about the future: where the month lands, when each recurring
- * charge comes back and for how much, and what is safe to spend today. The charges were
+ * It says four kinds of thing about the future: where the month lands, when each recurring
+ * charge comes back and for how much, what is safe to spend today, and what tomorrow will
+ * cost (the day is the one figure scored often enough for the band to learn from; see
+ * calibration.js). The charges were
  * already written down and scored (money_predictions, store.js, since the 8th). The two
  * figures were said and forgotten. Every figure is now written down with the day it is
  * about, and when that day has passed the actual is written beside it. That is the learning
@@ -22,6 +24,7 @@ import { spendingRule } from './spending.js';
 import { forecast, listTransactions, listFacts, months, scorePredictions as scoreCharges } from './store.js';
 import { safeToSpend } from './allowance.js';
 import { TWIN_PREDICTION_CONFIDENCE } from './brain.js';
+import { dayForecast, dayActual, calibrate } from './calibration.js';
 
 const log = createLogger('MoneyPredictions');
 /** A charge counts as on the day if it lands within this many days of when it was expected. */
@@ -43,9 +46,10 @@ const isAmount = (v) => v !== null && v !== undefined && Number.isFinite(Number(
  * @param {object} p
  * @param {object|null} p.cast        forecast(): month, projected_p10/p50/p90
  * @param {object|null} p.allowance   safeToSpend(): amount for today
+ * @param {object|null} p.day         dayForecast(): tomorrow's discretionary spending with its band
  * @param {Date} p.now
  */
-export function predictionsFrom({ cast = null, allowance = null, now = new Date() } = {}) {
+export function predictionsFrom({ cast = null, allowance = null, day: dayCast = null, now = new Date() } = {}) {
   const madeOn = day(now);
   const rows = [];
   if (cast && isAmount(cast.projected_p50)) {
@@ -56,6 +60,9 @@ export function predictionsFrom({ cast = null, allowance = null, now = new Date(
   }
   if (allowance && isAmount(allowance.amount)) {
     rows.push({ kind: 'safe_today', predicted_for: madeOn, predicted_on: madeOn, value: r2(allowance.amount), low: null, high: null });
+  }
+  if (dayCast && isAmount(dayCast.value) && dayCast.predicted_for > madeOn) {
+    rows.push({ kind: 'day_total', predicted_for: dayCast.predicted_for, predicted_on: madeOn, value: r2(dayCast.value), low: r2(dayCast.low ?? dayCast.value), high: r2(dayCast.high ?? dayCast.value) });
   }
   return rows;
 }
@@ -85,6 +92,13 @@ export function scoreOne(prediction, transactions, counts, now = new Date()) {
     const actual = r2(transactions.filter((t) => out(t) && day(t.occurred_at) === prediction.predicted_for).reduce((s, t) => s + Math.abs(Number(t.amount)), 0));
     return { actual, error: r2(actual - prediction.value), hit: actual <= prediction.value };
   }
+  if (prediction.kind === 'day_total') {
+    if (today <= prediction.predicted_for) return null;
+    /* The same definition the forecast used: discretionary, recurring charges left out. */
+    const actual = r2(dayActual(transactions, prediction.predicted_for, { isSpending: counts }));
+    const low = Number(prediction.low ?? prediction.value); const high = Number(prediction.high ?? prediction.value);
+    return { actual, error: r2(actual - prediction.value), hit: actual >= low && actual <= high };
+  }
   return null;
 }
 
@@ -105,11 +119,13 @@ export function summarise(figures = [], charges = []) {
   const scored = (figures || []).filter((p) => p.scored_at);
   const monthsScored = scored.filter((p) => p.kind === 'month_total').sort((a, b) => (a.predicted_for < b.predicted_for ? 1 : -1));
   const days = scored.filter((p) => p.kind === 'safe_today');
+  const band = calibrate(scored.filter((p) => p.kind === 'day_total'));
   const m = monthsScored[0];
   return {
     charges: { expected: scoredCharges.length, arrived: arrived.length, on_day: onDay.length, on_amount: onAmount.length },
     last_month: m ? { month: m.predicted_for.slice(0, 7), said: Number(m.value), actual: Number(m.actual), low: Number(m.low), high: Number(m.high), within_band: Boolean(m.hit) } : null,
     days: { counted: days.length, kept: days.filter((p) => p.hit).length },
+    band: { days: band.days, coverage: band.coverage, widen: band.widen, trusted: band.trusted },
   };
 }
 
@@ -126,9 +142,9 @@ const missing = (error) => {
 };
 
 /** Write today's figures for one person. Idempotent per day. */
-export async function recordPredictions(userId, { cast, allowance, now = new Date() }) {
+export async function recordPredictions(userId, { cast, allowance, day = null, now = new Date() }) {
   if (tableMissing) return { recorded: 0 };
-  const rows = predictionsFrom({ cast, allowance, now });
+  const rows = predictionsFrom({ cast, allowance, day, now });
   if (!rows.length) return { recorded: 0 };
   const { error } = await supabaseAdmin
     .from('money_figure_scores')
@@ -196,7 +212,9 @@ export async function learnFromLedger(userId, now = new Date()) {
     months(userId, now).catch(() => []),
   ]);
   const allowance = cast ? safeToSpend({ cast, segments, facts, now }) : null;
-  const recorded = await recordPredictions(userId, { cast, allowance, now });
+  const tomorrow = new Date(now.getTime() + 86400000);
+  const dayCast = dayForecast(transactions, tomorrow, { isSpending: spendingRule(facts) });
+  const recorded = await recordPredictions(userId, { cast, allowance, day: dayCast, now });
   const scored = await scoreFigures(userId, { transactions, facts, now });
   return { recorded: recorded.recorded, scored: scored.scored, charges };
 }
