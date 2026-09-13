@@ -244,7 +244,11 @@ export default function MoneyV2Page() {
           {/* This month: one figure, one grey line, the band */}
           <section className="mv-hero" id="month">
             <p className="mv-eyebrow">{monthLabel}</p>
-            {empty ? (
+            {!loaded ? (
+              /* The first seconds of a new account are the month being read; an ellipsis
+                 where the number goes read as a broken figure to a stranger. */
+              <h1>Reading your month.</h1>
+            ) : empty ? (
               <>
                 <h1>Nothing read yet.</h1>
                 <p className="mv-sub">Connect Santander, or let your phone send each purchase as it happens.</p>
