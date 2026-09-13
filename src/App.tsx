@@ -5,6 +5,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from "react-router-dom";
 import { useEffect, useRef, lazy, Suspense } from "react";
+import Wait from "@/components/Wait";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { SidebarLayout } from "./components/layout/SidebarLayout";
 import { LoadingProvider } from "./contexts/LoadingContext";
@@ -170,7 +171,7 @@ const App = () => {
                       <PostHogPageTracker />
                       <SidebarProvider>
                       <NavigationProvider>
-          <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><img src="/images/backgrounds/flower-hero.png" alt="Loading" className="w-12 h-12 animate-pulse" /></div>}>
+          <Suspense fallback={<Wait />}>
           <Routes>
             {/* Authentication */}
             <Route path="/auth" element={<CustomAuth />} />

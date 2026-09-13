@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import Wait from '@/components/Wait';
 import { toast } from 'sonner';
 import { useAnalytics } from '@/contexts/AnalyticsContext';
 import { API_URL, setAccessToken, pushRefreshTokenToDesktop } from '@/services/api/apiBase';
@@ -618,89 +618,12 @@ const OAuthCallback = () => {
     handleOAuthCallback();
   }, [searchParams, navigate]);
 
-  const getStatusIcon = () => {
-    // Don't show error icon until showError is true (prevents 401 flash)
-    const displayStatus = status === 'error' && !showError ? 'loading' : status;
-    switch (displayStatus) {
-      case 'loading':
-        return <Loader2 className="w-12 h-12 animate-spin" style={{ color: 'var(--foreground)' }} />;
-      case 'success':
-        return <CheckCircle className="w-12 h-12" style={{ color: 'var(--foreground)' }} />;
-      case 'error':
-        return <XCircle className="w-12 h-12" style={{ color: 'var(--foreground)' }} />;
-    }
-  };
-
-  return (
-    <div className="min-h-screen flex items-center justify-center" >
-      <div
-        className="max-w-md w-full mx-4 p-8 text-center"
-        style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-glass)' }}
-      >
-        {/* Logo */}
-        <div className="flex items-center justify-center gap-3 mb-8">
-          <img
-            src="/images/backgrounds/flower-hero.png"
-            alt="Twin Me"
-            className="w-10 h-10 object-contain drop-shadow-md"
-          />
-          <h1
-            className="text-2xl"
-            style={{ fontFamily: "var(--font-heading)", fontWeight: 400 }}
-          >
-            Twin Me
-          </h1>
-        </div>
-
-        {/* Status Icon */}
-        <div className="flex justify-center mb-6">
-          {getStatusIcon()}
-        </div>
-
-        {/* Status Message - use displayStatus to prevent error flash */}
-        {(() => {
-          const displayStatus = status === 'error' && !showError ? 'loading' : status;
-          const displayMessage = status === 'error' && !showError ? 'Processing authentication...' : message;
-          return (
-            <>
-              <h2
-                className="text-xl mb-2"
-                style={{ fontFamily: "var(--font-heading)", fontWeight: 400 }}
-              >
-                {displayStatus === 'loading' && 'Authenticating...'}
-                {displayStatus === 'success' && 'Welcome!'}
-                {displayStatus === 'error' && 'Authentication Failed'}
-              </h2>
-
-              <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                {displayMessage}
-              </p>
-            </>
-          );
-        })()}
-
-        {/* Progress indicator for loading state */}
-        {(status === 'loading' || (status === 'error' && !showError)) && (
-          <div className="mt-6">
-            <div className="w-full rounded-full h-1.5 overflow-hidden" style={{ backgroundColor: 'var(--glass-surface-bg)' }}>
-              <div className="h-1.5 rounded-full w-2/3 animate-pulse" style={{ backgroundColor: 'var(--accent-vibrant)' }} />
-            </div>
-          </div>
-        )}
-
-        {/* Error state - show retry button only after delay */}
-        {status === 'error' && showError && (
-          <button
-            onClick={() => navigate('/auth')}
-            className="mt-6 px-6 py-2 rounded-full"
-            style={{ background: 'var(--claura-bone)', color: 'var(--claura-bone-ink)', fontWeight: 600 }}
-          >
-            Try Again
-          </button>
-        )}
-      </div>
-    </div>
-  );
+  /* The page between pressing and arriving, in the register the arrival is in. An error
+     is not shown until showError, so a transient 401 during the claim never flashes. */
+  const displayStatus = status === 'error' && !showError ? 'loading' : status;
+  if (displayStatus === 'loading') return <Wait line="Signing you in." />;
+  if (displayStatus === 'success') return <Wait line="Signed in." sub="Taking you to your month." />;
+  return <Wait line="That sign-in did not go through." sub={message} action={{ label: 'Try again', onClick: () => navigate('/auth') }} />;
 };
 
 export default OAuthCallback;

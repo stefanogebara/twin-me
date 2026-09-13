@@ -1,4 +1,5 @@
 import React, { ReactNode } from 'react';
+import Wait from '@/components/Wait';
 import { useAuth } from '../contexts/AuthContext';
 import { Navigate, useLocation } from 'react-router-dom';
 
@@ -42,24 +43,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   // This prevents showing content then redirecting (the "session expired" feeling)
   if (!isLoaded) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-5">
-          {/* Pulsing brand mark */}
-          <div className="relative">
-            <img
-              src="/images/backgrounds/flower-hero.webp"
-              alt="Twin Me"
-              className="w-12 h-12 animate-pulse"
-              style={{ objectFit: 'contain' }}
-            />
-          </div>
-          {/* Skeleton content shimmer */}
-          <div className="flex flex-col items-center gap-2">
-            <div className="h-2 w-24 rounded-full bg-foreground/10 animate-pulse" />
-            <div className="h-2 w-16 rounded-full bg-foreground/5 animate-pulse" style={{ animationDelay: '150ms' }} />
-          </div>
-        </div>
-      </div>
+      <Wait />
     );
   }
 
