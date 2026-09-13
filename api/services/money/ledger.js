@@ -54,6 +54,13 @@ export function findMatch(sighting, transactions) {
  * @returns {{ action: 'create'|'attach', transaction: object, sighting: object }}
  *   create: transaction is a new row to insert; attach: transaction is the existing row with the fields to update.
  */
+/** A bank row the bank has actually booked. A pending one is seen, not yet settled. */
+function booked(sighting) {
+  if (sighting.source === 'statement') return true;
+  if (sighting.source !== 'bankfeed') return false;
+  return String(sighting.raw_json?.status || 'BOOK').toUpperCase() !== 'PDNG';
+}
+
 export function reconcile(sighting, transactions, primarySightingSource = null) {
   const match = findMatch(sighting, transactions);
   if (!match) {
@@ -61,7 +68,7 @@ export function reconcile(sighting, transactions, primarySightingSource = null) 
       action: 'create',
       transaction: {
         occurred_at: sighting.occurred_at,
-        posted_at: sighting.source === 'bankfeed' || sighting.source === 'statement' ? sighting.occurred_at : null,
+        posted_at: booked(sighting) ? sighting.occurred_at : null,
         amount: signedAmount(sighting),
         currency: sighting.currency || 'EUR',
         merchant_raw: sighting.merchant_raw || null,
@@ -78,13 +85,15 @@ export function reconcile(sighting, transactions, primarySightingSource = null) 
   const update = {};
   if (incoming > current) {
     update.amount = signedAmount(sighting);
-    if (sighting.source === 'bankfeed' || sighting.source === 'statement') update.posted_at = sighting.occurred_at;
+    if (booked(sighting)) update.posted_at = sighting.occurred_at;
     if (sighting.merchant_raw && (!match.merchant_raw || sighting.source === 'bankfeed')) update.merchant_raw = sighting.merchant_raw;
     update.primary_sighting_id = sighting.id ?? null;
   }
   if ((sighting.source === 'phone' || sighting.source === 'bizum') && match.posted_at && !match.occurred_from_phone) {
     update.occurred_at = sighting.occurred_at; // the swipe, not the booking
   }
+  /* The booked row arriving after its pending twin settles the line, whoever saw it first. */
+  if (booked(sighting) && !match.posted_at) update.posted_at = sighting.occurred_at;
   if (!match.card_last4 && sighting.card_last4) update.card_last4 = sighting.card_last4;
   return { action: 'attach', transaction: { id: match.id, ...update }, sighting };
 }

@@ -107,11 +107,39 @@ export function isSessionGone(error) {
   return /SESSION_DOES_NOT_EXIST|ACCOUNT_DOES_NOT_EXIST/.test(m);
 }
 
-export async function fetchTransactions(accountUid, dateFrom, continuationKey = null) {
+/**
+ * The headers that tell the bank a person is present. PSD2 caps background reads at four a
+ * day; a read made while the person is in the app is not background, and Enable Banking
+ * decides which is which purely by the presence of these headers. So a read on open, or
+ * on pull-to-refresh, carries the person's address and user agent, and is not counted.
+ */
+export function psuHeaders(psu) {
+  if (!psu || !psu.ip) return {};
+  const h = { 'Psu-Ip-Address': String(psu.ip).slice(0, 64) };
+  if (psu.userAgent) h['Psu-User-Agent'] = String(psu.userAgent).slice(0, 256);
+  return h;
+}
+
+/**
+ * One page of an account's transactions. Booked and pending both, so a card payment shows
+ * the day it is made rather than the day the bank books it; a bank that refuses the
+ * status filter gets asked again without it. `psu` marks the read as attended (see above).
+ */
+export async function fetchTransactions(accountUid, dateFrom, continuationKey = null, { psu = null, status = 'BOTH' } = {}) {
   const qs = new URLSearchParams({ date_from: dateFrom });
   if (continuationKey) qs.set('continuation_key', continuationKey);
+  if (status) qs.set('transaction_status', status);
+  const headers = psuHeaders(psu);
   try {
-    const j = await api(`/accounts/${encodeURIComponent(accountUid)}/transactions?${qs}`);
+    let j;
+    try {
+      j = await api(`/accounts/${encodeURIComponent(accountUid)}/transactions?${qs}`, { headers });
+    } catch (error) {
+      if (status && /\b422\b/.test(String(error.message)) && /transaction_status|TransactionStatus/i.test(String(error.message))) {
+        qs.delete('transaction_status');
+        j = await api(`/accounts/${encodeURIComponent(accountUid)}/transactions?${qs}`, { headers });
+      } else throw error;
+    }
     return { rows: j.transactions || [], continuationKey: j.continuation_key || null };
   } catch (error) {
     if (isSessionGone(error)) {
@@ -149,9 +177,15 @@ export function toSighting(row, accountId) {
   const said = [counterparty, remittance].filter(Boolean).join(' ');
   const read = parseNarrative(narrative);
   const name = counterparty ? prettyMerchant(counterparty) : (read.merchant || narrative);
+  /* A pending row has no stable reference yet; the bank hands one out when it books. Its
+     own key keeps a pending row from being read twice, and the booked row that follows
+     finds the same line by amount and day, then gives it its posting date. */
+  const pending = String(row.status || 'BOOK').toUpperCase() === 'PDNG';
   return {
     source: 'bankfeed',
-    source_ref: row.entry_reference || row.transaction_id || `${date}|${amt}|${narrative}`,
+    source_ref: pending
+      ? `pend:${date}|${amt}|${narrative}`
+      : (row.entry_reference || row.transaction_id || `${date}|${amt}|${narrative}`),
     account_id: accountId,
     raw_json: row,
     raw_text: remittance || counterparty || null,
@@ -162,7 +196,7 @@ export function toSighting(row, accountId) {
     merchant_key: merchantKey(name),
     occurred_at: date ? new Date(`${date}T12:00:00Z`).toISOString() : null,
     card_last4: cardFrom(said),
-    parse_confidence: 1,
+    parse_confidence: pending ? 0.85 : 1,
     channel: channelFrom(said),
   };
 }

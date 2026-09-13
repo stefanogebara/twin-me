@@ -63,3 +63,28 @@ describe('clusterEpisodes', () => {
     expect(eps[1]).toMatchObject({ total: 4, transaction_count: 1 });
   });
 });
+
+/* A pending bank row is seen, not settled: it opens the line without a posting date, and
+   the booked row that follows it, with the bank's own reference, settles the same line. */
+describe('reconcile, pending then booked', () => {
+  const pending = { source: 'bankfeed', amount: 19.99, direction: 'out', merchant_key: 'cabify', merchant_raw: 'Cabify', occurred_at: '2026-09-13T12:00:00Z', raw_json: { status: 'PDNG' } };
+  const bookedRow = { source: 'bankfeed', amount: 19.99, direction: 'out', merchant_key: 'cabify', merchant_raw: 'Cabify', occurred_at: '2026-09-14T12:00:00Z', raw_json: { status: 'BOOK' } };
+  it('opens the line without a posting date', () => {
+    const d = reconcile(pending, []);
+    expect(d.action).toBe('create');
+    expect(d.transaction.posted_at).toBe(null);
+    expect(d.transaction.amount).toBe(-19.99);
+  });
+  it('the booked row settles the pending line', () => {
+    const line = { id: 't1', amount: -19.99, merchant_key: 'cabify', occurred_at: '2026-09-13T12:00:00Z', posted_at: null };
+    const d = reconcile(bookedRow, [line], 'bankfeed');
+    expect(d.action).toBe('attach');
+    expect(d.transaction.id).toBe('t1');
+    expect(d.transaction.posted_at).toBe('2026-09-14T12:00:00Z');
+  });
+  it('a pending row never gives a settled line a posting date of its own', () => {
+    const line = { id: 't2', amount: -19.99, merchant_key: 'cabify', occurred_at: '2026-09-13T12:00:00Z', posted_at: null };
+    const d = reconcile(pending, [line], 'phone');
+    expect(d.transaction.posted_at).toBeUndefined();
+  });
+});
