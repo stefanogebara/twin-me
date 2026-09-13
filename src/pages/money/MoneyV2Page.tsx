@@ -10,7 +10,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
-import { ChevronRight, FileText, Landmark, Plus, Smartphone } from 'lucide-react';
+import { ChevronRight, FileText, Landmark, Mail, Plus, Smartphone } from 'lucide-react';
 import '../../styles/money-v2.css';
 import MoneyNav, { type MoneyNavLink } from './MoneyNav';
 import { moneyAPI, euro, shortDay, type MoneyAccount, type MoneyCategories, type MoneyForecast, type MoneyMonth, type MoneyReading, type MoneyRecurring, type MoneySighting, type MoneyTransaction, type MoneyUsage } from '../../services/api/moneyAPI';
@@ -68,6 +68,8 @@ export default function MoneyV2Page() {
   const [needsReconnect, setNeedsReconnect] = useState(false);
   const [monthOpen, setMonthOpen] = useState<Record<string, boolean>>({});
   const [showSteps, setShowSteps] = useState(false);
+  const [inbox, setInbox] = useState<{ address: string; receiving: boolean } | null>(null);
+  const [copied, setCopied] = useState(false);
   const [categories, setCategories] = useState<MoneyCategories | null>(null);
   const [usage, setUsage] = useState<MoneyUsage | null>(null);
   const [bankReady, setBankReady] = useState(true);
@@ -100,6 +102,11 @@ export default function MoneyV2Page() {
     setLoaded(true);
   }, []);
   useEffect(() => { void load(); }, [load]);
+  useEffect(() => { moneyAPI.inbox().then(setInbox).catch(() => setInbox(null)); }, []);
+  const copyInbox = useCallback(async () => {
+    if (!inbox) return;
+    try { await navigator.clipboard.writeText(inbox.address); setCopied(true); setTimeout(() => setCopied(false), 1600); } catch { /* the address is on the page to select */ }
+  }, [inbox]);
 
   /* The month should not be days old because nobody pressed anything. On open, ask the server
      whether a read is due; it spends one only when the last is old and the budget allows, and
@@ -571,6 +578,21 @@ export default function MoneyV2Page() {
                   </span>
                 </div>
               </li>
+              {inbox ? (
+                <li>
+                  <div className="mv-item mv-item--icon">
+                    <span className="mv-icon" aria-hidden="true"><Mail size={16} /></span>
+                    <span className="mv-item-text">
+                      <span className="mv-item-title">Receipts by email</span>
+                      <span className="mv-item-sub">{inbox.receiving ? 'Forward a receipt or invoice; the line items join the ledger.' : 'Forward receipts here once the domain is switched on.'}</span>
+                    </span>
+                    <span className="mv-item-end">
+                      <button type="button" className="mv-pill mv-pill--ghost" onClick={() => void copyInbox()}>{copied ? 'Copied' : 'Copy address'}</button>
+                    </span>
+                  </div>
+                  <div className="mv-body mv-body--icon"><code className="mv-code">{inbox.address}</code></div>
+                </li>
+              ) : null}
               <li>
                 <div className="mv-item mv-item--icon">
                   <span className="mv-icon" aria-hidden="true"><Smartphone size={16} /></span>

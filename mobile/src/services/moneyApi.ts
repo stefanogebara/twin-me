@@ -405,6 +405,8 @@ export const moneyApi = {
       Image is handed the token in its headers rather than a public URL. */
   today: () => authFetch('/money/today').then((r) => json<MoneyToday>(r)),
   /** Opening the app spends the read the schedule leaves for it, but only when one is due. */
+  /** The person's own receipts address, for forwarding. */
+  inbox: () => authFetch('/money/inbox').then((r) => json<{ address: string; domain: string; receiving: boolean }>(r)),
   refreshIfStale: () => post('/money/bank/refresh-if-stale', {}).then((r) => json<{ pulled: boolean; created?: number; reason?: string; needs_reconnect?: boolean }>(r)),
   homeMapSource: async (lat: number, lng: number, zoom = 14): Promise<ImageSource> => {
     const token = await SecureStore.getItemAsync(STORAGE_KEYS.AUTH_TOKEN);

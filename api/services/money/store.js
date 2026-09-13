@@ -870,7 +870,7 @@ export async function predictionAccuracy(userId) {
 /** What the person has told the system about their own money. */
 /* Rows the calendar lens keeps for itself. They are working memory, not things the person
    said, and they never appear where facts are shown or phrased. */
-export const INTERNAL_FACT_KINDS = Object.freeze(['event_spend', 'event_spend_meta', 'home_point']);
+export const INTERNAL_FACT_KINDS = Object.freeze(['event_spend', 'event_spend_meta', 'home_point', 'inbox_address']);
 
 export async function listFacts(userId, { includeInternal = false } = {}) {
   const { data } = await supabaseAdmin.from('money_facts').select('*').eq('user_id', userId).order('answered_at');

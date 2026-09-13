@@ -353,6 +353,7 @@ app.use(express.json({
     if (req.originalUrl.startsWith('/api/whatsapp/webhook') ||
         req.originalUrl.startsWith('/api/whatsapp-twin/webhook') ||
         req.originalUrl.startsWith('/api/telegram/webhook') ||
+        req.originalUrl.startsWith('/api/money/inbox/resend') ||
         req.originalUrl.startsWith('/api/nango-webhooks')) {
       req.rawBody = buf.toString('utf8');
     }
