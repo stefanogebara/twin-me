@@ -12,63 +12,16 @@
 > 13/13/11/11 valem. O campo **Toca** de cada um está preenchido em
 > `BACKLOG.md`, com uma nota do que a leitura do código mudou no spike. O estado
 > do repositório e as divergências com o config estão em `STATE.md`.
+>
+> **Passadas de 2026-08-31 e 2026-09-07: zero candidatos novos em ambas.** O
+> feed segue devolvendo os mesmos oito itens de 22/08, todos já em
+> `seen.jsonl` — nenhum analista foi acionado. As duas passadas serviram só
+> para o estado do repositório (`STATE.md`) e para fechar, por código e não
+> por texto, dois itens que estavam em aberto — movidos pro Arquivo abaixo.
+> A passada de 08-31 abriu PR (#273) que nunca foi mergeado; esta passada
+> absorve o mesmo conteúdo e deveria substituí-lo.
 
 ## Em aberto — precisa de decisão do Stefano
-
-> Dois itens desta seção foram **decididos em 2026-08-25** e estão marcados
-> DECIDIDO no corpo: o número público de fidelidade e o vocabulário "digital
-> twin". Ficam aqui para registro do raciocínio; não precisam ser rediscutidos.
-
-### [DISCUTIR 10/15] Um processo mira o número de acurácia, não a inferência
-**Data:** 2026-08-24 · **Eixos:** P2 A2 D2 E2 L2
-**Fonte:** [petição inicial, Surber v. Oura, 3:26-cv-08686 N.D. Cal.](https://clarksonlawfirm.com/wp-content/uploads/2026/08/COMPLAINT-26-cv-08686-Surber-v.-Oura-Inc.-et-al.pdf) · [TechCrunch](https://techcrunch.com/2026/08/21/oura-faces-lawsuit-accusing-it-of-misleading-consumers-about-sleep-tracking-accuracy/)
-
-**O que é:** ação de sete counts (fraude, UCL, FAL, CLRA, garantia expressa, Song-Beverly)
-ajuizada em 20/08. A teoria não é "você inferiu algo sobre a pessoa" — é mais estreita e
-mais perigosa: a Oura anunciou **números falsificáveis de acurácia** ("95% Sleep Staging
-Accuracy", "79% agreement with polysomnography") contra um gold standard reconhecido, e
-estudos independentes medem ~50%. O segundo pilar é categórico: o anel não tem EEG/EOG,
-então aplica "a proprietary, undisclosed machine learning algorithm" a sinal periférico e
-vende, no texto da petição, "faulty AI-based inference as reliable science".
-
-**Por que toca este projeto:** duas superfícies concretas.
-1. `src/pages/PortfolioPage.tsx` renderiza o `twin_accuracy` **cru** em 40px, com a
-   legenda "measured by a blind test-retest battery", servido **sem auth** por
-   `/p/:userId` a quem tiver o UUID — enquanto o denominador honesto,
-   `normalized_fidelity` (`twin_accuracy / self_consistency`), está gravado na mesma
-   linha em `api/services/fidelityBatteryService.js` e é descartado no payload. A bateria
-   tem 25 itens de autorrelato, n=1, uma wave, e o gabarito é a própria resposta do
-   usuário.
-2. `api/services/evidenceGeneratorService.js` **fabrica** números específicos a partir do
-   valor normalizado (`raw.avg_tempo = Math.round(60 + val * 140)`, `raw.hrv_avg = 30 +
-   val * 70`) e os interpola em texto do tipo "{avg_tempo} BPM avg". Número inventado
-   apresentado como medição — literalmente a teoria do caso. Hoje é inócuo porque
-   `behavioral_evidence` é write-only; **vira risco no dia em que o spike
-   `pgmem-proveniencia` abrir o caminho de leitura.** Entrou como critério de aceite lá.
-
-**O que a fonte não prova:** é petição inicial, nada adjudicado, sem certificação de
-classe; a Oura respondeu citando quatro estudos próprios validados contra PSG. E a
-analogia é imperfeita — Big Five não tem equivalente de polissonografia, então a perna
-mais forte do caso (contradição contra gold standard) não transfere. O que transfere é a
-perna do claim quantificado autoproduzido.
-
-**DECIDIDO em 2026-08-25 (PR #266) — opção (a).** O número fica e ficou honesto: o
-payload publica `normalized_fidelity` quando existe, com `self_consistency`, n, wave e
-data, sob "Not a clinical measure"; o bruto virou fallback rotulado.
-
-A investigação achou algo pior que a legenda. `wave` reinicia em 1 a cada revisão de
-bateria, e as duas leituras ordenavam só por `wave` — com as três checagens reais empatadas
-em wave 1, o Postgres escolhia. A página pública servia **0.825 da bateria v1 aposentada
-(20 itens, 3/ago)** enquanto a v3 corrente media **0.610 (12/ago)**: o maior dos três, de
-uma versão que não existe mais, sem data até a correção da legenda. As duas queries agora
-ordenam `battery_version, wave, created_at`, com teste de regressão que grava as chamadas
-de `order()`.
-
-(b) tirar o número e (c) aceitar o risco continuam disponíveis — o bloco está a um delete
-de (b). (a) foi escolhida por ser a única que não exige juízo de negócio: torna a afirmação
-verdadeira em vez de removê-la ou defendê-la.
-
----
 
 ### [DISCUTIR 10/15] Um traço de persona é um slot com um valor corrente?
 **Data:** 2026-08-24 · **Eixos:** P3 A2 D2 E2 L1
@@ -181,39 +134,6 @@ roadmap dos próximos 30 dias.
 
 ---
 
-### [DISCUTIR 10/15] O autor do Generative Agents virou concorrente com US$ 2 bi
-**Data:** 2026-08-22 · **Eixos:** P3 A1 D3 E1 L2
-**Fonte:** [TechCrunch, 30/jul](https://techcrunch.com/2026/07/30/synthetic-user-startup-simile-raises-200m-at-2b-valuation-5-months-after-100m-series-a/)
-
-**O que é:** a Simile, fundada por Joon Sung Park — autor do paper de
-Generative Agents em que a arquitetura do TwinMe se apoia —, levantou US$ 200
-milhões liderados pela Greenoaks a US$ 2 bilhões, cinco meses depois de um
-Series A de US$ 100 milhões. Meta declarada: simular "todas as 8 bilhões de
-pessoas" via gêmeos agênticos.
-
-**Por que toca este projeto:** não invalida a aposta nº 1 — a Simile é
-hetero-referente (gêmeos sintéticos para pesquisa e teste de produto), o
-TwinMe é auto-referente. A separação que você apostou continua de pé, e agora
-tem um player de US$ 2 bi provando que o outro lado dela é grande. O custo é
-de linguagem: "gêmeo digital" e "generative agents" passam a significar
-publicamente a coisa da Simile.
-
-**O que a fonte não prova:** é reportagem de rodada, não benchmark. Nada sobre
-qualidade da simulação nem sobre roadmap de produto ao consumidor.
-
-**DECIDIDO em 2026-08-25 (PR #266).** "digital twin" saiu da UI — 11 strings viraram
-"your twin" / "soul signature" em notificações, waitlist, onboarding, progresso e privacidade.
-
-Ficou deliberadamente em dois lugares: **Terms e Privacy**, onde é a definição em linguagem
-simples do que o serviço faz (reescrever definição legal para ganhar discussão de
-posicionamento deixa o documento menos exato, não mais atual), e nos **prompts de LLM**
-(`TWIN_BASE_INSTRUCTIONS` etc.), que nenhum usuário lê e onde mudar texto é mudar
-comportamento — deve ao harness de fidelidade uma rodada, e a regra de `settled` é que flag
-só entra se mover o score. Se o termo sair dos prompts, que seja de carona numa mudança que
-já vá ser avaliada.
-
----
-
 ## Fila de trabalho
 
 Spikes escritos em `BACKLOG.md`, os quatro com âncora preenchida em 2026-08-24.
@@ -252,4 +172,18 @@ Novos em 2026-08-24:
 
 ## Arquivo
 
-_vazio_
+- `2026-08-31` **[Resolvido por código] Um processo mira o número de acurácia, não a
+  inferência** (DISCUTIR 10/15, 24/08, gatilho: petição Surber v. Oura) — `6bcf030` e
+  `555f12d` escolheram a opção (a) da própria pergunta: `/p/:userId` agora lidera com
+  `normalized_fidelity` quando existe, nomeia o denominador, e mostra n/sessões/wave/data
+  sob "Not a clinical measure" em vez do `twin_accuracy` cru em 40px. De quebra, corrigiu
+  um bug mais grave que a pergunta não sabia que existia: os dois caminhos de leitura
+  ordenavam só por `wave` — que reinicia em 1 a cada revisão de bateria — então a página
+  pública servia havia dias o **maior de três scores**, de uma versão de bateria já
+  aposentada (v1 0.825 contra v3 atual 0.610).
+- `2026-08-31` **[Resolvido por código] O autor do Generative Agents virou concorrente com
+  US$ 2 bi** (DISCUTIR 10/15, 22/08, gatilho: rodada da Simile) — `6bcf030` respondeu a
+  pergunta de nomenclatura: "digital twin" sai de 11 strings de UI (notificações, waitlist,
+  onboarding, progresso, privacidade), fica "your twin" / "soul signature". Termos legais
+  (Terms/Privacy) e prompts de sistema do LLM deliberadamente intocados — mudança de
+  wording ali é mudança de comportamento, que ainda deve ao eval uma rodada.
