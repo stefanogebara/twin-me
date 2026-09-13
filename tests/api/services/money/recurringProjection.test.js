@@ -145,3 +145,16 @@ describe('projectMonth: what the person said, made to count', () => {
     expect(named.spent).toBe(20);
   });
 });
+
+describe('a band that has earned a widening', () => {
+  it('widens by the square root of the days left, never below what is already spent', () => {
+    const now = new Date('2026-09-14T12:00:00Z');
+    const transactions = Array.from({ length: 60 }, (_, i) => ({ occurred_at: new Date(now.getTime() - (i + 1) * 86400000).toISOString(), amount: -10, merchant_key: 'shop', is_recurring: false }));
+    const plain = projectMonth({ transactions, recurring: [], now });
+    const wide = projectMonth({ transactions, recurring: [], now, widen: 3 });
+    expect(wide.band_widened_by).toBe(Math.round(3 * Math.sqrt(plain.days_left) * 100) / 100);
+    expect(wide.projected_p90 - plain.projected_p90).toBeCloseTo(wide.band_widened_by, 2);
+    expect(wide.projected_p10).toBeGreaterThanOrEqual(plain.spent);
+    expect(wide.projected_p50).toBe(plain.projected_p50);
+  });
+});

@@ -79,3 +79,23 @@ describe('summarise', () => {
     expect(summarise([], []).last_month).toBe(null);
   });
 });
+
+describe('the day, written down and scored', () => {
+  it('records tomorrow with its band, never a day already here', () => {
+    const rows = predictionsFrom({ day: { predicted_for: '2026-09-14', value: 18, low: 4, high: 40 }, now: NOW });
+    expect(rows).toEqual([{ kind: 'day_total', predicted_for: '2026-09-14', predicted_on: '2026-09-13', value: 18, low: 4, high: 40 }]);
+    expect(predictionsFrom({ day: { predicted_for: '2026-09-13', value: 18, low: 4, high: 40 }, now: NOW })).toEqual([]);
+  });
+  it('scores the day on discretionary spending, recurring charges left out', () => {
+    const p = { kind: 'day_total', predicted_for: '2026-09-12', value: 18, low: 4, high: 40 };
+    const rows = [t('a', '2026-09-12T10:00:00Z', -12.5, 'cafe'), t('b', '2026-09-12T18:00:00Z', -20, 'shop'), { ...t('c', '2026-09-12T09:00:00Z', -9.99, 'spotify'), is_recurring: true }];
+    expect(scoreOne(p, rows, counts, NOW)).toEqual({ actual: 32.5, error: 14.5, hit: true });
+    expect(scoreOne(p, rows.concat([t('d', '2026-09-12T20:00:00Z', -30, 'bar')]), counts, NOW)).toMatchObject({ actual: 62.5, hit: false });
+    expect(scoreOne({ ...p, predicted_for: '2026-09-13' }, rows, counts, NOW)).toBeNull();
+  });
+  it('summarises the band from the scored days', () => {
+    const figures = Array.from({ length: 5 }, (_, i) => ({ kind: 'day_total', predicted_for: `2026-09-0${i + 1}`, value: 20, low: 10, high: 30, actual: 22, hit: true, scored_at: '2026-09-10T00:00:00Z' }));
+    const s = summarise(figures, []);
+    expect(s.band).toEqual({ days: 5, coverage: 1, widen: 0, trusted: false });
+  });
+});

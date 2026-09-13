@@ -44,6 +44,8 @@ export function dailyTotals(transactions, from, to) {
  * @param {number} [p.historyWeeks=12]
  * @param {number} [p.samples=500]
  * @param {number} [p.seed=42]
+ * @param {number} [p.widen=0]     euros per remaining day the band has earned from its scored
+ *                                 misses (calibration.js); the month band widens by the square root
  */
 /** A stated commitment and a detected series are the same thing when the money matches. */
 function sameThing(series, commitment) {
@@ -144,6 +146,7 @@ export function projectMonth(p) {
   sums.sort((a, b) => a - b);
   const fixed = spent + committed + expected + commitmentTotal;
   const r2 = (x) => Math.round(x * 100) / 100;
+  const widen = Math.max(0, Number(p.widen) || 0) * Math.sqrt(daysLeft);
   return {
     month: monthStart.toISOString().slice(0, 10),
     as_of: now.toISOString(),
@@ -159,9 +162,10 @@ export function projectMonth(p) {
     income_ahead: r2(incomeAhead),
     income_items: incomeItems.map(({ due, ...i }) => ({ ...i, due_on: due.toISOString().slice(0, 10) })),
     baseline_rest: r2(baselineRest),
-    projected_p10: r2(fixed + (sums.length ? quantile(sums, 0.1) : baselineRest)),
+    projected_p10: r2(Math.max(fixed, fixed + (sums.length ? quantile(sums, 0.1) : baselineRest) - widen)),
     projected_p50: r2(fixed + (sums.length ? quantile(sums, 0.5) : baselineRest)),
-    projected_p90: r2(fixed + (sums.length ? quantile(sums, 0.9) : baselineRest)),
+    projected_p90: r2(fixed + (sums.length ? quantile(sums, 0.9) : baselineRest) + widen),
+    band_widened_by: r2(widen),
     history_days: history.length,
   };
 }
