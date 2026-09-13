@@ -39,6 +39,7 @@ import crypto from 'node:crypto';
 import multer from 'multer';
 import { authenticateUser } from '../middleware/auth.js';
 import { inboxAddress, inboxDomain, isInboxConfigured, verifySvix, ingestReceivedEmail } from '../services/money/inbox.js';
+import { accuracy } from '../services/money/predictions.js';
 import { createLogger } from '../services/logger.js';
 import { parseCapture, parseStructured } from '../services/money/captureParser.js';
 import { ingestSighting, ingestSightings, listTransactions, sightingsFor, refreshRecurring, forecast, setVerdict, userForCaptureKey, saveBankAccounts, listBankAccounts, pullBankFeed, refreshReadings, listReadings, setReadingVerdict, months, feedBudget, categorySpend, listPlaces, setPlaceCategory, enrichPlaces, subscriptionUsage, questionsFor, answerQuestion, skipQuestion, listFacts, learn } from '../services/money/store.js';
@@ -119,6 +120,12 @@ router.post('/inbox/resend', async (req, res) => {
 });
 
 router.use(authenticateUser);
+
+/** How well it has been reading this person: the scored record, summarised. Null until scored. */
+router.get('/accuracy', async (req, res) => {
+  try { res.json({ success: true, data: await accuracy(req.user.id) }); }
+  catch (error) { log.error('accuracy failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
+});
 
 /** The person's own receipts address, minted on first ask. */
 router.get('/inbox', async (req, res) => {
