@@ -263,6 +263,12 @@ export default function MoneyV2Page() {
                       : 'Too early to say where the month lands.'}
                   </p>
                 ) : null}
+                {/* The band's own record, once it has one: how many days it has been checked
+                    against, and how many it held. A range nobody scores is a range nobody
+                    should trust, so the number is printed as soon as there is one. */}
+                {forecast?.band_calibration && forecast.band_calibration.days >= 14 && forecast.band_calibration.coverage !== null ? (
+                  <p className="mv-sub">{`The range has held on ${Math.round(forecast.band_calibration.coverage * forecast.band_calibration.days)} of the last ${forecast.band_calibration.days} days.`}</p>
+                ) : null}
                 {/* A month that stopped moving must say why: the bank ends its session on its
                     own schedule, and nothing can be read until it is authorised again. */}
                 {reconnect ? <p className="mv-sub">The bank connection has ended. Reconnect it under Sources.</p> : null}
