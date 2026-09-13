@@ -164,10 +164,19 @@ export async function refreshRecurring(userId, now = new Date()) {
   const names = new Map();
   for (const t of rows) if (t.merchant_raw && !names.has(t.merchant_key)) names.set(t.merchant_key, t.merchant_raw);
   if (series.length) {
-    const { error } = await supabaseAdmin.from('money_recurring').upsert(series.map((s) => ({ user_id: userId, ...s, platform: undefined, updated_at: now.toISOString() })).map(({ platform, ...s }) => s), { onConflict: 'user_id,merchant_key' });
+    const { error } = await supabaseAdmin.from('money_recurring').upsert(series.map((s) => ({ user_id: userId, ...s, platform: undefined, transaction_ids: undefined, variants: undefined, variant_amounts: undefined, updated_at: now.toISOString() })).map(({ platform, transaction_ids, variants, variant_amounts, ...s }) => s), { onConflict: 'user_id,merchant_key' });
     if (error) log.warn(`recurring upsert failed: ${error.message}`);
+    /* Only the rows in the series are recurring. The odd purchase at the same name stays a
+       purchase, in the day's spending and the baseline; a row flagged by the old rule that
+       marked the whole name is unflagged. */
     const keys = series.map((s) => s.merchant_key);
-    await supabaseAdmin.from('money_transactions').update({ is_recurring: true }).eq('user_id', userId).in('merchant_key', keys);
+    const ids = series.flatMap((s) => s.transaction_ids || []);
+    if (ids.length) {
+      await supabaseAdmin.from('money_transactions').update({ is_recurring: true }).eq('user_id', userId).in('id', ids);
+      await supabaseAdmin.from('money_transactions').update({ is_recurring: false }).eq('user_id', userId).in('merchant_key', keys).not('id', 'in', `(${ids.join(',')})`);
+    } else {
+      await supabaseAdmin.from('money_transactions').update({ is_recurring: true }).eq('user_id', userId).in('merchant_key', keys);
+    }
   }
   /* A card says a charge comes back every month; the person then asks which payments those
      were, when the next one lands and what it has cost so far. The transactions are already

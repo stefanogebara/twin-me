@@ -158,3 +158,26 @@ describe('a band that has earned a widening', () => {
     expect(wide.projected_p50).toBe(plain.projected_p50);
   });
 });
+
+describe('one merchant, more than one kind of charge', () => {
+  const NOW = new Date('2026-09-13T12:00:00Z');
+  const row = (id, d, amount) => ({ id, merchant_key: 'amazon', amount: -amount, occurred_at: `${d}T10:00:00Z` });
+  it('finds the monthly charge behind an odd purchase at the same name, and names its rows', () => {
+    const rows = [row('a', '2026-06-04', 4.99), row('b', '2026-07-04', 4.99), row('c', '2026-08-04', 4.99), row('d', '2026-09-04', 4.99), row('e', '2026-08-19', 89)];
+    const [s] = detectRecurring(rows, { now: NOW });
+    expect(s).toMatchObject({ merchant_key: 'amazon', cadence: 'monthly', typical_amount: 4.99, occurrences: 4, variants: 1, variant_amounts: [89] });
+    expect(s.transaction_ids).toEqual(['a', 'b', 'c', 'd']);
+  });
+  it('picks the larger group when two plans run at one name', () => {
+    const rows = [
+      row('a', '2026-06-01', 12), row('b', '2026-07-01', 12), row('c', '2026-08-01', 12), row('d', '2026-09-01', 12),
+      row('e', '2026-07-15', 54), row('f', '2026-08-15', 54), row('g', '2026-09-15', 54),
+    ];
+    const [s] = detectRecurring(rows, { now: NOW });
+    expect(s).toMatchObject({ typical_amount: 12, occurrences: 4, variants: 3, variant_amounts: [54] });
+  });
+  it('still says nothing when no group keeps a rhythm', () => {
+    const rows = [row('a', '2026-06-01', 12), row('b', '2026-06-03', 12), row('c', '2026-09-01', 12), row('d', '2026-08-19', 89)];
+    expect(detectRecurring(rows, { now: NOW })).toEqual([]);
+  });
+});
