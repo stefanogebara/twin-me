@@ -26,6 +26,7 @@
  */
 
 import { complete, stream as streamComplete, TIER_CHAT } from '../llmGateway.js';
+import { balances, describeBetweenPeople, splitFindings, MIN_WAYS, MAX_WAYS } from './bizum.js';
 import { createLogger } from '../logger.js';
 import {
   listTransactions, months, forecast, categorySpend, refreshRecurring, listReadings, listFacts,
@@ -41,7 +42,7 @@ import { safeToSpend, allowanceLine } from './allowance.js';
 const log = createLogger('money-chat');
 
 export const FIGURE_KINDS = Object.freeze(['months', 'shares', 'weekdays', 'recurring', 'band', 'history']);
-export const ACTION_KINDS = Object.freeze(['not_me', 'recategorise', 'answer']);
+export const ACTION_KINDS = Object.freeze(['not_me', 'recategorise', 'answer', 'split']);
 
 /** How many receipts ride under one answer, and how many of anything the context carries. */
 export const MAX_RECEIPTS = 8;
@@ -267,6 +268,12 @@ export function validateAction(action, ctx) {
     if (!place || !CATEGORIES.includes(category)) return null;
     return { kind: 'recategorise', merchant_key: place.merchant_key, category, label: label || `File ${place.name} under ${category}` };
   }
+  if (action.kind === 'split') {
+    const t = ctx.byId.get(action.transaction_id);
+    const ways = Number(action.ways);
+    if (!t || Number(t.amount) >= 0 || !Number.isInteger(ways) || ways < MIN_WAYS || ways > MAX_WAYS) return null;
+    return { kind: 'split', transaction_id: t.id, ways, label: label || `Split ${nameOf(t)}, ${amountText(t.amount)}, ${ways} ways` };
+  }
   if (action.kind === 'answer') {
     const q = ctx.questions.find((x) => x.id === action.question_id);
     const value = action.value == null ? '' : String(action.value).trim();
@@ -331,6 +338,10 @@ export function contextText(ctx) {
 
   const said = describeContext(ctx.facts);
   if (said) lines.push(`The person said: ${said.replace(/\u20ac/g, 'EUR')}`);
+  /* Money between people: who sent what, who paid back, what is still open (bizum.js). */
+  const between = describeBetweenPeople(balances(ctx.transactions, ctx.facts, { now: ctx.now }));
+  if (between.length) lines.push('Between people, 90 days: ' + between.join(' '));
+  for (const f of splitFindings(ctx.facts, ctx.transactions, { now: ctx.now }).slice(0, 3)) lines.push(`Shared payment still open: ${f.sentence.replace(/\u20ac/g, 'EUR')}`);
 
   lines.push(...calendarLines(ctx.facts, { now: ctx.now }));
   /* What today can carry, worked out from what is already here: no extra query, and the twin
@@ -371,7 +382,7 @@ export const RULES = [
   'When the calendar lines say what a kind of event usually costs, you may say what the days ahead are likely to cost, always as "usually about", never as a promise.',
   'When a figure would show the thing better than words, ask for it by kind. Kinds: months (spent per month), shares (where a month went; add month, and by: "merchant" for places), weekdays (spend by weekday), recurring (what comes back), band (this month so far and likely), history (one merchant over time; add merchant). Ask for at most two, and only when they add something.',
   'Actions are offers the person taps, never things you did: the text must not claim to have changed, marked or recorded anything. Say something like "If that is right, mark it below." and leave the doing to the card.',
-  'Propose an action only when the person asks to fix or record something: not_me with transaction_id from the recent payments; recategorise with merchant_key from the places and a category from: ' + CATEGORIES.join(', ') + '; answer with question_id from the open questions and the value they gave.',
+  'Propose an action only when the person asks to fix or record something: not_me with transaction_id from the recent payments; recategorise with merchant_key from the places and a category from: ' + CATEGORIES.join(', ') + '; answer with question_id from the open questions and the value they gave; split with transaction_id from the recent payments and ways (2 to 12, the person included) when they say a payment was shared, for a dinner, a shop, a present.',
   'Reply with one JSON object and nothing else: {"text": string, "figures": [{"kind": string, "month"?: string, "by"?: string, "merchant"?: string}], "actions": [{"kind": string, "label": string, ...}], "cites"?: [transaction ids]}',
 ].join('\n');
 
@@ -848,6 +859,12 @@ export async function act(userId, action, { now = new Date() } = {}) {
     await setPlaceCategory(checked.merchant_key, checked.category);
     const place = ctx.placeByKey.get(checked.merchant_key);
     return { done: true, said: `${place.name} now counts as ${checked.category}, here and from now on.` };
+  }
+  if (checked.kind === 'split') {
+    const t = ctx.byId.get(checked.transaction_id);
+    await answerQuestion(userId, { questionId: `split:${t.id}`, kind: 'split', subject: String(t.id), subjectLabel: nameOf(t), value: String(checked.ways) });
+    const share = round2(abs(t) / checked.ways);
+    return { done: true, said: euroGlyphs(`${nameOf(t)}, ${amountText(t.amount)}, counts as ${amountText(share)} of yours. Bizums back for ${amountText(share)} will count as the others paying, and it will say who still owes.`) };
   }
   const q = ctx.questions.find((x) => x.id === checked.question_id);
   await answerQuestion(userId, { questionId: q.id, kind: q.kind, subject: q.subject, subjectLabel: q.subjectLabel || q.receipts?.[0]?.merchant_raw, value: checked.value });

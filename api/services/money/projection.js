@@ -79,6 +79,8 @@ export function projectMonth(p) {
      makes every total wrong in a way the person can see and the system cannot explain. */
   const shareOf = p.shareOf || (() => 1);
   const isSpending = p.isSpending || (() => true);
+  /* A Bizum back for a shared dinner is a settlement, not income; the caller says which. */
+  const isIncome = p.isIncome || (() => true);
   const mine = (t) => Math.abs(Number(t.amount)) * shareOf(t);
 
   const spentRows = p.transactions
@@ -123,7 +125,7 @@ export function projectMonth(p) {
     .filter((i) => i.due > today && i.due <= monthEnd);
   const incomeAhead = incomeItems.reduce((s, i) => s + Math.abs(Number(i.amount) || 0), 0);
   const receivedSoFar = p.transactions
-    .filter((t) => Number(t.amount) > 0 && new Date(t.occurred_at) >= monthStart && new Date(t.occurred_at) <= now)
+    .filter((t) => Number(t.amount) > 0 && isIncome(t) && new Date(t.occurred_at) >= monthStart && new Date(t.occurred_at) <= now)
     .reduce((s, t) => s + Number(t.amount), 0);
 
   // Baselines by weekday from the history window ending yesterday.

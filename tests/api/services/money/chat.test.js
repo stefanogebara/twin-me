@@ -389,3 +389,18 @@ describe('the ledger does not repeat itself', () => {
     expect(withoutRepeats('Spotify is 11,99 EUR.', [{ role: 'user', text: 'hi' }])).toBe('Spotify is 11,99 EUR.');
   });
 });
+
+describe('a payment the person says was shared', () => {
+  it('becomes a split action against a real outgoing row, within two and twelve ways', () => {
+    const a = validateAction({ kind: 'split', transaction_id: 't1', ways: 4 }, ctx());
+    expect(a).toMatchObject({ kind: 'split', transaction_id: 't1', ways: 4 });
+    expect(a.label).toMatch(/^Split El Corte Ingles, .*4 ways$/);
+    expect(validateAction({ kind: 'split', transaction_id: 'nope', ways: 4 }, ctx())).toBe(null);
+    expect(validateAction({ kind: 'split', transaction_id: 't1', ways: 1 }, ctx())).toBe(null);
+    expect(validateAction({ kind: 'split', transaction_id: 't1', ways: 13 }, ctx())).toBe(null);
+    expect(validateAction({ kind: 'split', transaction_id: 't1', ways: 'four' }, ctx())).toBe(null);
+  });
+  it('is offered to the model as an action it may propose', () => {
+    expect(String(typeof RULES === 'string' ? RULES : JSON.stringify(RULES))).toMatch(/split with transaction_id/);
+  });
+});
