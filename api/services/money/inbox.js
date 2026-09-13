@@ -9,6 +9,9 @@
  * Nothing here reads anyone's mailbox. The address only ever receives what the person
  * chose to forward, which is the whole point: the value of email without the scope.
  *
+ * A bank's own alert (Santander's "Compra realizada con tu tarjeta...") is read by the phone
+ * parser first: same text the phone would forward, no model in the loop.
+ *
  * Wire: Resend receives mail for the domain, posts an `email.received` event to
  * /api/money/inbox/resend, and this fetches the message by id and reads it. The read is a
  * model extraction with a deterministic gate: an amount the email does not literally contain
@@ -24,7 +27,7 @@ import { supabaseAdmin } from '../database.js';
 import { createLogger } from '../logger.js';
 import { complete, TIER_EXTRACTION } from '../llmGateway.js';
 import { ingestSighting } from './store.js';
-import { merchantKey } from './captureParser.js';
+import { merchantKey, parseCapture } from './captureParser.js';
 
 const log = createLogger('MoneyInbox');
 
@@ -199,6 +202,35 @@ export async function extractReceipt({ subject, from, text, html, userId }) {
   return gateReceipt(parsed, body);
 }
 
+/* ------------------------------------------------------------------ a bank alert */
+
+/** Senders whose alerts the phone parser already knows the shape of. */
+const BANK_SENDER = /santander|bizum|openbank|bbva|caixabank|sabadell|bankinter|ing\.es|revolut|n26/i;
+/** The full shape: a verb, a shop and a card or Bizum, which the parser scores at 0.9. A verb and a shop alone (0.85) pass only from a bank. */
+const FULL_SHAPE = 0.9;
+const BANK_SHAPE = 0.7;
+
+/**
+ * A card or Bizum alert the bank sent, forwarded here by the person or by the bank itself.
+ * The phone parser reads it: same text, same shape, no model, no cost, and the amount is the
+ * one the bank wrote. Returns null when the email is not an alert, so the receipt reading
+ * can have it. Pure.
+ */
+export function bankAlertSighting({ subject, from, text, html }, { emailId, receivedAt }) {
+  const body = messageText({ subject, text, html });
+  const parsed = parseCapture(body, { receivedAt: receivedAt || new Date(), source: 'email' });
+  if (!parsed) return null;
+  const fromBank = BANK_SENDER.test(String(from || ''));
+  if (parsed.parse_confidence < (fromBank ? BANK_SHAPE : FULL_SHAPE)) return null;
+  return {
+    ...parsed,
+    source: 'email',
+    source_ref: `email:${crypto.createHash('sha256').update(String(emailId)).digest('hex').slice(0, 32)}`,
+    raw_text: parsed.raw_text.slice(0, 500),
+    raw_json: { kind: 'bank_alert', from: from || null, subject: subject || null },
+  };
+}
+
 /* ------------------------------------------------------------------ the sighting */
 
 /** A gated receipt as the ledger's own row. Pure. */
@@ -237,6 +269,12 @@ export async function ingestReceivedEmail(event) {
   const id = data.email_id || data.id;
   if (!id) return { outcome: 'no_id' };
   const message = await fetchReceivedEmail(id);
+  const alert = bankAlertSighting(message, { emailId: id, receivedAt: message.created_at });
+  if (alert) {
+    const result = await ingestSighting(userId, alert);
+    log.info('bank alert read', { userId, action: result.action });
+    return { outcome: 'read', userId, kind: 'bank_alert', action: result.action, transaction_id: result.transaction?.id || null };
+  }
   const receipt = await extractReceipt({ subject: message.subject, from: message.from, text: message.text, html: message.html, userId });
   if (!receipt) return { outcome: 'not_a_receipt', userId };
   const sighting = receiptToSighting(receipt, { emailId: id, from: message.from, subject: message.subject, receivedAt: message.created_at });

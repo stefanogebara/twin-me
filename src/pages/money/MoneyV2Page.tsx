@@ -89,12 +89,18 @@ export default function MoneyV2Page() {
      row says so from the last recorded read, which survives a day when the read budget is
      already spent and no call is made at all. */
   const reconnect = needsReconnect || accounts.some((a) => a.needs_reconnect);
-  const newest = ledger.reduce<string | null>((m, t) => (!m || t.occurred_at > m ? t.occurred_at : m), null);
+  /* How far the bank has booked, and what the phone or the inbox saw after that. The bank
+     posts card payments on working days, so a weekend's spending is here before it is there. */
+  const bookedTo = ledger.reduce<string | null>((m, t) => (t.posted_at && (!m || t.occurred_at > m) ? t.occurred_at : m), null);
+  const since = bookedTo ? ledger.filter((t) => !t.posted_at && t.occurred_at > bookedTo).length : 0;
+  const bookedLine = bookedTo
+    ? `Booked to ${shortDay(bookedTo)}${since ? `, ${since} ${since === 1 ? 'alert' : 'alerts'} since` : ''}. Cards post on working days.`
+    : 'Read four times a day. You confirm it every six months.';
   const bankLine = !bankReady ? 'The bank feed is not switched on yet.'
     : busy === 'connect' ? 'Opening Santander.'
     : busy === 'pull' ? 'Reading the bank.'
-    : read ? (read.created ? `${read.created} new just now.` : `Nothing new${newest ? ` since ${shortDay(newest)}` : ' yet'}. Cards post on working days.`)
-    : 'Read four times a day. You confirm it every six months.';
+    : read ? (read.created ? `${read.created} new just now.` : `Nothing new just now. ${bookedLine}`)
+    : bookedLine;
 
   const load = useCallback(async () => {
     const [f, l, r, a, m, rd, c, u] = await Promise.allSettled([

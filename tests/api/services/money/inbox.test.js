@@ -4,7 +4,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import crypto from 'node:crypto';
-import { verifySvix, gateReceipt, amountsIn, messageText, receiptToSighting } from '../../../../api/services/money/inbox.js';
+import { verifySvix, gateReceipt, amountsIn, messageText, receiptToSighting, bankAlertSighting } from '../../../../api/services/money/inbox.js';
 
 describe('verifySvix', () => {
   const secret = `whsec_${Buffer.from('a-test-secret-of-some-length-xx').toString('base64')}`;
@@ -82,5 +82,29 @@ describe('receiptToSighting', () => {
     const r = gateReceipt({ kind: 'receipt', amount: 5, currency: 'EUR' }, 'total 5,00');
     const s = receiptToSighting(r, { emailId: 'e-2', from: 'Cabify <receipts@cabify.com>', subject: 'Trip' });
     expect(s.merchant_raw).toBe('cabify');
+  });
+});
+
+describe('a bank alert forwarded by email', () => {
+  const at = { emailId: 'e9', receivedAt: '2026-09-12T21:04:10.000Z' };
+  it('is read by the phone parser, not the model, with the same shape as a phone capture', () => {
+    const s = bankAlertSighting({
+      from: 'Banco Santander <alertas@santander.es>',
+      subject: 'Compra con tarjeta',
+      text: 'Compra realizada con tu tarjeta terminada en 4821 por 9,90€ en CABIFY el 12/09/2026 a las 23:02',
+    }, at);
+    expect(s).toMatchObject({ source: 'email', channel: 'card', direction: 'out', amount: 9.9, merchant_raw: 'CABIFY', card_last4: '4821' });
+    expect(s.occurred_at).toBe('2026-09-12T23:02:00.000Z');
+    expect(s.source_ref).toMatch(/^email:[0-9a-f]{32}$/);
+    expect(s.raw_json.kind).toBe('bank_alert');
+    expect(s.parse_confidence).toBeGreaterThanOrEqual(0.85);
+  });
+  it('takes a bank sender at a lower confidence, and a stranger only at the full shape', () => {
+    const bare = { subject: 'Aviso', text: 'Pago de 3,20 € con Apple Pay en METRO MADRID' };
+    expect(bankAlertSighting({ ...bare, from: 'alertas@santander.es' }, at)).not.toBeNull();
+    expect(bankAlertSighting({ ...bare, from: 'newsletter@shop.example' }, at)).toBeNull();
+  });
+  it('leaves a receipt with prices but no bank verb to the model', () => {
+    expect(bankAlertSighting({ from: 'no-reply@spotify.com', subject: 'Your receipt', text: 'Spotify Premium 11,99 EUR\nTotal 11,99 EUR' }, at)).toBeNull();
   });
 });
