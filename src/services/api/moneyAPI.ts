@@ -32,7 +32,7 @@ export type MoneyMonth = {
 };
 export type MoneyReading = {
   id: string; kind: string; month: string | null; sentence: string; detail: string | null;
-  numbers: Record<string, number | string>; evidence_count: number; verdict: 'true' | 'not_me' | null; computed_at: string;
+  numbers: Record<string, number | string>; evidence_count: number; verdict: 'true' | 'not_me' | null; computed_at: string; first_seen_at?: string;
   receipts: { id: string; occurred_at: string; amount: number | string; merchant_raw: string | null; merchant_key: string; channel: string | null }[];
 };
 export type MoneyBudget = { used: number; left: number; resets_at: string | null };
