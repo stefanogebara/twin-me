@@ -10,8 +10,7 @@ import {
   Settings,
   LogOut,
   ChevronsLeft,
-  ChevronsRight,
-} from 'lucide-react';
+  ChevronsRight, Wallet } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface NavItem {
@@ -35,6 +34,7 @@ interface CollapsibleSidebarProps {
 // Connect). Prior removals 2026-06-12: Knowledge, Inbox, Meetings — viewers
 // over backend intelligence, usage 1-3 of 21 users.
 const navItems: NavItem[] = [
+  { id: 'money',        label: 'Money',           icon: Wallet,        path: '/money' },
   { id: 'today',        label: 'Today',           icon: Home,          path: '/today' },
   { id: 'chat',         label: 'Talk to Twin',    icon: MessageCircle, path: '/talk-to-twin' },
   { id: 'me',           label: 'You',             icon: Sparkles,      path: '/identity' },

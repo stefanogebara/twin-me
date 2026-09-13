@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, MessageCircle, Link2, User, MoreHorizontal, Settings, X } from 'lucide-react';
+import { Home, MessageCircle, Link2, User, MoreHorizontal, Settings, Wallet, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface NavItem {
@@ -14,14 +14,17 @@ interface NavItem {
 // Today, Twin, You, Connect + Settings in the More drawer. Memories (/brain)
 // left nav in Phase 1 — it becomes an evidence view reached from You/Settings,
 // not a destination.
+/* Money is what the product sells, so it is the first tab. Four tabs and More is the
+   most a 390pt bar carries without truncating a label; Connect keeps Settings company. */
 const PRIMARY_NAV: NavItem[] = [
+  { id: 'money',     label: 'Money',   icon: Wallet,        path: '/money' },
   { id: 'today',     label: 'Today',   icon: Home,          path: '/today' },
   { id: 'chat',      label: 'Twin',    icon: MessageCircle, path: '/talk-to-twin' },
   { id: 'identity',  label: 'You',     icon: User,          path: '/identity' },
-  { id: 'connect',   label: 'Connect', icon: Link2,         path: '/connect' },
 ];
 
 const MORE_NAV: NavItem[] = [
+  { id: 'connect',  label: 'Connect',    icon: Link2,    path: '/connect' },
   { id: 'settings', label: 'Settings',   icon: Settings, path: '/settings' },
 ];
 

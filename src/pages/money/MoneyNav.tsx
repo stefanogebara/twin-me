@@ -33,6 +33,8 @@ export default function MoneyNav({ links }: { links: MoneyNavLink[] }) {
         ) : (
           <Link key={l.to} to={l.to} className={l.sub ? 'is-sub' : undefined} aria-current={l.current ? 'page' : undefined} onClick={close}>{l.label}</Link>
         )))}
+        {/* The one door back to the rest of TwinMe, so Money is not a room without an exit. */}
+        <Link to="/today" className="is-away" onClick={close}>Your twin</Link>
       </nav>
     </aside>
   );
