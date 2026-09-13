@@ -102,6 +102,9 @@ export default function MoneyV2Page() {
      row says so from the last recorded read, which survives a day when the read budget is
      already spent and no call is made at all. */
   const reconnect = needsReconnect || accounts.some((a) => a.needs_reconnect);
+  /* Days since the money last had something new to say: the newest first_seen_at. */
+  const newestSaid = readings.reduce<number | null>((m, r) => { const t = r.first_seen_at ? new Date(r.first_seen_at).getTime() : null; return t !== null && (m === null || t > m) ? t : m; }, null);
+  const quietDays = newestSaid === null ? null : Math.floor((Date.now() - newestSaid) / 86400000);
   /* How far the bank has booked, and what the phone or the inbox saw after that. The bank
      posts card payments on working days, so a weekend's spending is here before it is there. */
   const bookedTo = ledger.reduce<string | null>((m, t) => (t.posted_at && (!m || t.occurred_at > m) ? t.occurred_at : m), null);
@@ -323,6 +326,9 @@ export default function MoneyV2Page() {
           {readings.length ? (
             <section className="mv-section" id="readings">
               <h2>What the money says.</h2>
+              {/* Quiet is a feature. Every other app manufactures a daily line; this one says how
+                  long it has had nothing new to say, from the day each reading was first said. */}
+              {quietDays !== null && quietDays >= 2 ? <p className="mv-sub">{`Nothing new for ${quietDays} days.`}</p> : null}
               <ul className="mv-list">
                 {readings.map((r) => {
                   const isOpen = openReading === r.id;
