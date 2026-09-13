@@ -10,7 +10,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import {
-  merchantProfile, learnMerchants, predictNext, learnPatterns, describeForTwin,
+  merchantProfile, learnMerchants, predictNext, learnPatterns, describeForTwin, gapDistribution, gapCdf, chanceAround,
   MAX_PATTERNS, MAX_PREDICTIONS, MAX_TWIN_LINES,
 } from '../../../../api/services/money/brain.js';
 
@@ -167,12 +167,18 @@ describe('learnMerchants', () => {
 /* ---------------------------------------------------------------- predictions */
 
 describe('predictNext: what the ledger expects, from cadence alone', () => {
-  it('dates the next visit from the last one plus the middle gap', () => {
+  it('dates the next visit from the gaps, given the silence so far', () => {
+    /* The plain middle gap would say the 12th; three days have already passed without a
+       visit, so the median of what is left of the gap distribution lands on the 13th. */
     const profiles = learnMerchants(renfe(), { now: NOW });
     const [next] = predictNext(profiles, { now: NOW, days: 14 });
-    expect(next).toMatchObject({ merchant_key: 'renfe cercanias', name: 'Renfe Cercanias', expected_on: '2026-09-12', typical_amount: 1.7 });
-    expect(next.confidence).toBeGreaterThan(0.5);
-    expect(next.confidence).toBeLessThanOrEqual(1);
+    expect(next).toMatchObject({ merchant_key: 'renfe cercanias', name: 'Renfe Cercanias', expected_on: '2026-09-13', typical_amount: 1.7 });
+    /* Gaps of 8 to 13 days give a one-in-three chance of a specific day, and a near
+       certainty inside the fortnight. The old formula said 0.6 for the day, and the scored
+       record said otherwise. */
+    expect(next.confidence).toBeGreaterThan(0.3);
+    expect(next.confidence).toBeLessThan(0.5);
+    expect(next.chance_by_horizon).toBeGreaterThan(0.9);
   });
 
   it('keeps the horizon: a monthly charge is not expected inside a fortnight', () => {
@@ -181,10 +187,35 @@ describe('predictNext: what the ledger expects, from cadence alone', () => {
     expect(predictNext(profiles, { now: NOW, days: 40 })[0]).toMatchObject({ merchant_key: 'spotify', expected_on: '2026-10-05' });
   });
 
-  it('rolls an overdue merchant forward rather than printing a day that has passed', () => {
+  it('gives no date to a merchant whose silence has outlasted its rhythm', () => {
+    /* Weekly until 17 August, then nothing for four weeks: the gym is quiet, not due Monday.
+       The old rule rolled the gap forward and printed 14 September. */
     const weekly = ['2026-08-03', '2026-08-10', '2026-08-17'].map((d) => tx(d, 9, 'Gym'));
-    const [next] = predictNext(learnMerchants(weekly, { now: NOW }), { now: NOW, days: 14 });
+    const [gym] = learnMerchants(weekly, { now: NOW });
+    expect(gym.is_quiet).toBe(true);
+    expect(gym.gap_passed).toBeGreaterThanOrEqual(0.95);
+    expect(predictNext([gym], { now: NOW, days: 14 })).toEqual([]);
+  });
+
+  it('is a probability, in the window the score measures, and decays with the silence', () => {
+    const weekly = ['2026-08-24', '2026-08-31', '2026-09-07'].map((d) => tx(d, 9, 'Gym'));
+    const profiles = learnMerchants(weekly, { now: NOW });
+    const [next] = predictNext(profiles, { now: NOW, days: 14 });
     expect(next.expected_on).toBe('2026-09-14');
+    expect(next.confidence).toBeGreaterThan(0.3);
+    expect(next.chance_by_horizon).toBeGreaterThan(0.9);
+    /* Two days later than expected with no visit, the chance of the next few days is lower. */
+    const later = predictNext(learnMerchants(weekly, { now: new Date('2026-09-17T12:00:00Z') }), { now: new Date('2026-09-17T12:00:00Z'), days: 14 });
+    expect(later.length === 0 || later[0].confidence < next.confidence).toBe(true);
+  });
+
+  it('fits the gaps as a log-normal with a day of jitter, and reads the chance around a day', () => {
+    const monthly = gapDistribution([30, 31, 30, 31]);
+    expect(Math.exp(monthly.mu)).toBeCloseTo(30.5, 0);
+    expect(gapCdf(30.5, monthly)).toBeCloseTo(0.5, 1);
+    expect(chanceAround(30.5, 10, monthly)).toBeGreaterThan(0.6);
+    expect(chanceAround(30.5, 10, monthly)).toBeLessThan(1);
+    expect(gapDistribution([7])).toBeNull();
   });
 
   it('says nothing under three visits, and nothing when the gaps do not hold', () => {
@@ -426,7 +457,7 @@ describe('describeForTwin', () => {
   it('writes the Renfe fixture as one recallable line', () => {
     const lines = block(renfe()).split('\n');
     expect(lines[0]).toBe('Money, read on 8 September.');
-    expect(lines[1]).toBe('Renfe Cercanias: 8 times since 22 June, always 1,70 EUR, weekdays. Next expected around 12 September.');
+    expect(lines[1]).toBe('Renfe Cercanias: 8 times since 22 June, always 1,70 EUR, weekdays. Next expected around 13 September.');
   });
 
   it('names the day when a merchant has one, and the lateness when it has none', () => {

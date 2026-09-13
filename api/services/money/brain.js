@@ -10,7 +10,10 @@
  * Three structures come out of it, in order of how much they compound:
  *   1. `merchantProfile` / `learnMerchants` -- everything the ledger knows about one
  *      place: its price, its day, its gap, whether it is late.
- *   2. `predictNext` -- what the ledger expects next, from cadence alone.
+ *   2. `predictNext` -- what the ledger expects next: each merchant's gaps as a
+ *      log-normal, the next date as the conditional median given the silence so far, the
+ *      confidence as the mass within a day of it, and no date at all once the silence has
+ *      outlasted the rhythm.
  *   3. `learnPatterns` -- the claims worth saying out loud, each with an evidence
  *      rule that can refuse, each carrying receipts.
  *   4. `describeForTwin` -- the same knowledge as plain lines a model can be handed
@@ -53,6 +56,18 @@ export const WEEKDAY_SHARE = 0.5;
 export const DAY_OF_MONTH_DRIFT = 3;
 /** Half again past the usual gap. Under that, a merchant is merely between visits. */
 export const OVERDUE_MULTIPLE = 1.5;
+/* When this much of a merchant's own gap distribution has passed in silence, the rhythm
+   is over rather than late: no date is printed for it, and the silence is a finding.
+   (TSB, Babai, Syntetos and Teunter 2014: a probability that decays on the days nothing
+   happens; Kekuda et al. 2026: time-to-repurchase as a log-normal.) */
+export const QUIET_MASS = 0.95;
+/* A prediction is scored as on the day when the charge lands within this many days. The
+   confidence printed is the probability mass inside that window, so it means the thing
+   the score measures. */
+export const ON_DAY_WINDOW = 1;
+/* Jitter of one day relative to the gap, so a subscription on the same date each month
+   still has a spread of a day, and a daily habit a spread of a day too. */
+const MIN_LOG_SIGMA_DAYS = 1;
 /** Three visits give two gaps, which is the fewest that can have a middle at all. */
 export const MIN_GAP_VISITS = 3;
 /** The same interval spread recurring.js uses, for the same reason: past 40% the
@@ -143,6 +158,59 @@ function mode(values) {
 
 /** Coefficient of variation: the spread of a series against its own size, so a gap of
  *  30 days that wobbles by 3 and a gap of 7 that wobbles by 3 are not called equal. */
+/* The standard normal CDF, Abramowitz and Stegun 7.1.26, good to 1.5e-7. */
+function normalCdf(z) {
+  const t = 1 / (1 + 0.2316419 * Math.abs(z));
+  const poly = t * (0.319381530 + t * (-0.356563782 + t * (1.781477937 + t * (-1.821255978 + t * 1.330274429))));
+  const tail = Math.exp(-0.5 * z * z) / Math.sqrt(2 * Math.PI) * poly;
+  return z >= 0 ? 1 - tail : tail;
+}
+
+/**
+ * The gaps between a merchant's charges as a log-normal: mu and sigma of their logs, with
+ * a floor of one day's jitter relative to the middle gap so a perfectly regular series
+ * is not claimed to the minute. Null under two gaps.
+ */
+export function gapDistribution(gaps) {
+  const xs = (gaps || []).filter((g) => Number.isFinite(g)).map((g) => Math.max(g, 0.5));
+  if (xs.length < 2) return null;
+  const logs = xs.map((g) => Math.log(g));
+  const mu = logs.reduce((a, b) => a + b, 0) / logs.length;
+  const variance = logs.reduce((a, l) => a + (l - mu) ** 2, 0) / (logs.length - 1);
+  const floor = Math.log(1 + MIN_LOG_SIGMA_DAYS / Math.exp(mu));
+  return { mu, sigma: Math.max(Math.sqrt(variance), floor) };
+}
+
+/** P(gap <= days) under the fitted log-normal. */
+export function gapCdf(days, dist) {
+  if (!dist || !(days > 0)) return 0;
+  return normalCdf((Math.log(days) - dist.mu) / dist.sigma);
+}
+
+/**
+ * P(the next charge lands within `window` days of `day`, given that `since` days have
+ * passed without one). The conditional mass, which is what a scored prediction measures.
+ */
+export function chanceAround(day, since, dist, window = ON_DAY_WINDOW) {
+  const passed = gapCdf(since, dist);
+  const rest = 1 - passed;
+  if (rest <= 0) return 0;
+  const lo = Math.max(since, day - window);
+  const hi = day + window;
+  return Math.max(0, (gapCdf(hi, dist) - gapCdf(lo, dist)) / rest);
+}
+
+/** The day by which half of what is left of the distribution has arrived. */
+export function conditionalMedianGap(since, dist) {
+  const passed = gapCdf(since, dist);
+  const target = passed + 0.5 * (1 - passed);
+  let lo = Math.max(since, 0.5);
+  let hi = Math.max(lo * 2, Math.exp(dist.mu + 4 * dist.sigma));
+  for (let i = 0; i < 60 && gapCdf(hi, dist) < target; i += 1) hi *= 2;
+  for (let i = 0; i < 60; i += 1) { const mid = (lo + hi) / 2; if (gapCdf(mid, dist) < target) lo = mid; else hi = mid; }
+  return (lo + hi) / 2;
+}
+
 function spread(values) {
   if (values.length < 2) return 0;
   const mean = values.reduce((a, b) => a + b, 0) / values.length;
@@ -235,6 +303,9 @@ export function merchantProfile(transactions, merchantKey, opts = {}) {
   const lastGap = gaps.length ? Math.round(gaps[gaps.length - 1] * 10) / 10 : null;
   const lastSeen = rows[rows.length - 1].occurred_at;
   const daysSinceLast = Math.floor((now.getTime() - at(rows[rows.length - 1])) / DAY);
+  const dist = gapDistribution(gaps);
+  /* How much of this merchant's own gap distribution has already passed in silence. */
+  const passed = dist ? Math.round(gapCdf((now.getTime() - at(rows[rows.length - 1])) / DAY, dist) * 1000) / 1000 : null;
 
   return {
     merchant_key: merchantKey,
@@ -261,6 +332,11 @@ export function merchantProfile(transactions, merchantKey, opts = {}) {
     last_gap_days: lastGap,
     days_since_last: daysSinceLast,
     is_overdue: rows.length >= MIN_GAP_VISITS && medianGap > 0 && daysSinceLast > medianGap * OVERDUE_MULTIPLE,
+    gap_log_mu: dist ? Math.round(dist.mu * 1000) / 1000 : null,
+    gap_log_sigma: dist ? Math.round(dist.sigma * 1000) / 1000 : null,
+    gap_passed: passed,
+    /* The rhythm is over, not late: the silence has outlasted nearly all of its own gaps. */
+    is_quiet: rows.length >= MIN_GAP_VISITS && passed !== null && passed >= QUIET_MASS,
   };
 }
 
@@ -289,32 +365,39 @@ export function predictNext(profiles = [], opts = {}) {
   const now = opts.now ? new Date(opts.now) : new Date();
   const days = opts.days ?? 14;
   const horizon = now.getTime() + days * DAY;
-  const today = now.getTime();
 
   const rows = [];
   for (const p of profiles || []) {
     if (!p || p.times < MIN_GAP_VISITS) continue;
     if (!p.median_gap_days || p.median_gap_days <= 0) continue;
     if (p.gap_spread === null || p.gap_spread >= PREDICT_SPREAD) continue;
+    const dist = p.gap_log_mu !== null && p.gap_log_mu !== undefined && p.gap_log_sigma
+      ? { mu: p.gap_log_mu, sigma: p.gap_log_sigma }
+      : null;
+    if (!dist) continue;
 
-    const gapMs = p.median_gap_days * DAY;
-    let expected = new Date(p.last_seen).getTime() + gapMs;
-    /* A merchant that is late still has a next date: roll the gap forward rather than
-       print a day that has already passed. The loop is bounded so a gap of hours in a
-       ledger years old cannot spin. */
-    for (let i = 0; expected < today && i < 400; i += 1) expected += gapMs;
+    /* Days of silence so far, as a fraction of a day: the distribution is continuous. */
+    const since = Math.max(0, (now.getTime() - new Date(p.last_seen).getTime()) / DAY);
+    /* A merchant whose silence has outlasted its rhythm gets no date. Printing one would
+       be the old overdue multiple in disguise; the silence is a finding, not a due date. */
+    if (gapCdf(since, dist) >= QUIET_MASS) continue;
+
+    const dueGap = conditionalMedianGap(since, dist);
+    const expected = new Date(p.last_seen).getTime() + dueGap * DAY;
     if (expected > horizon) continue;
 
-    /* Two halves, both computed: how tight the gaps are, and how many of them there
-       are. Three visits with perfect gaps is still only three visits. */
-    const stability = 1 - Math.min(p.gap_spread / PREDICT_SPREAD, 1);
+    /* The confidence is the probability the charge lands within a day of the date, given
+       the silence so far, which is exactly what the score later measures; three visits
+       still count for less than nine, so the support scales it. */
+    const mass = chanceAround(dueGap, since, dist);
     const support = Math.min((p.times - 2) / 6, 1);
     rows.push({
       merchant_key: p.merchant_key,
       name: p.name,
       expected_on: isoDate(expected),
       typical_amount: p.typical_amount,
-      confidence: Math.round((0.6 * stability + 0.4 * support) * 100) / 100,
+      confidence: Math.round(mass * (0.6 + 0.4 * support) * 100) / 100,
+      chance_by_horizon: Math.round(Math.max(0, (gapCdf(days + since, dist) - gapCdf(since, dist)) / (1 - gapCdf(since, dist))) * 100) / 100,
     });
   }
 
