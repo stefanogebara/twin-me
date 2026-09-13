@@ -164,6 +164,24 @@ export async function fetchTransactions(accountUid, dateFrom, continuationKey = 
  * credit_debit_indicator CRDT|DBIT, booking_date, value_date, creditor {name}, debtor {name},
  * remittance_information [string], entry_reference / transaction_id.
  */
+/**
+ * Two pending rows can be identical to the byte: 0,50 to the same person twice in a day,
+ * two coffees at the same price at the same shop. Their keys would collide and Postgres
+ * refuses a batch that touches one row twice. The second and later copies get an ordinal,
+ * in the order the bank gave them, so both are kept and each books against its own line
+ * when the bank hands out references. Booked rows already carry the bank's reference.
+ * Pure.
+ */
+export function distinctPending(sightings = []) {
+  const seen = new Map();
+  return (sightings || []).map((s) => {
+    if (!s || !String(s.source_ref || '').startsWith('pend:')) return s;
+    const n = (seen.get(s.source_ref) || 0) + 1;
+    seen.set(s.source_ref, n);
+    return n === 1 ? s : { ...s, source_ref: `${s.source_ref}#${n}` };
+  });
+}
+
 export function toSighting(row, accountId) {
   const amt = Math.abs(Number(row.transaction_amount?.amount ?? row.amount ?? 0));
   const isCredit = (row.credit_debit_indicator || '').toUpperCase() === 'CRDT';

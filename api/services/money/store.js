@@ -10,7 +10,7 @@ import { createLogger } from '../logger.js';
 import { reconcile } from './ledger.js';
 import { detectRecurring } from './recurring.js';
 import { projectMonth } from './projection.js';
-import { fetchTransactions, toSighting } from './feeds/enableBanking.js';
+import { fetchTransactions, toSighting, distinctPending } from './feeds/enableBanking.js';
 import { readLedger, monthSegments } from './analyst.js';
 import { spendingRule, markCounted } from './spending.js';
 import { calibrate } from './calibration.js';
@@ -382,7 +382,7 @@ export async function pullBankFeed(userId, { since, attended = false, psu = null
     try {
       do {
         const page = await fetchTransactions(acc.provider_account_id, from, key, { psu: attended ? psu : null });
-        const batch = page.rows.map((row) => toSighting(row, acc.id)).filter((s) => s.occurred_at && s.amount);
+        const batch = distinctPending(page.rows.map((row) => toSighting(row, acc.id)).filter((s) => s.occurred_at && s.amount));
         const r = await ingestSightings(userId, batch);
         seen += r.seen; created += r.created;
         key = page.continuationKey;
