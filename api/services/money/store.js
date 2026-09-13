@@ -12,6 +12,7 @@ import { fetchTransactions, toSighting } from './feeds/enableBanking.js';
 import { readLedger, monthSegments } from './analyst.js';
 import { spendingRule, markCounted } from './spending.js';
 import { calibrate } from './calibration.js';
+import { poolMerchantPriors } from './priors.js';
 import { tellTwin } from './twinBridge.js';
 import { lookupPlace, providerFor, categoryFromBrand, PROVIDER_NONE } from './places.js';
 import { readUsage, unmeasurable, platformForMerchant } from './usage.js';
@@ -817,7 +818,14 @@ export async function learn(userId, now = new Date()) {
   const categories = new Map((places || []).map((x) => [x.merchant_key, x.category_override || x.category || null]));
   const categoryOf = (t) => categories.get(t.merchant_key) || CHANNEL_CATEGORY[t.channel] || null;
 
-  const profiles = learnMerchants(transactions, { now, categoryOf });
+  /* What other people's ledgers say about these places, as aggregates and never rows:
+     leave-one-out, so a person alone gets no prior and nothing changes for them. */
+  const { data: others } = keys.length
+    ? await supabaseAdmin.from('money_merchant_profiles').select('user_id, merchant_key, times, typical_amount, median_gap_days').in('merchant_key', keys).neq('user_id', userId).limit(5000)
+    : { data: [] };
+  const priors = poolMerchantPriors(others || []);
+
+  const profiles = learnMerchants(transactions, { now, categoryOf, priors });
   const predictions = predictNext(profiles, { now });
   const patterns = learnPatterns({ transactions, profiles, categoryOf, now });
   const summary = describeForTwin({ profiles, patterns, predictions, now });

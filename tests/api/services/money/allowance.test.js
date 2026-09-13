@@ -157,3 +157,19 @@ describe('safe to spend today', () => {
     expect(allowanceLine(a)).toBe(null);
   });
 });
+
+describe('a student month before the ledger has two of its own', () => {
+  it('reads against a typical student month on top of the rent, and says so', () => {
+    const cast = { spent: 300, committed: 0, days_left: 15, calendar_ahead: 0, calendar_items: [] };
+    const facts = [{ kind: 'commitment', subject: 'Habitacion', amount: 600 }];
+    const a = safeToSpend({ cast, segments: [], facts, now: new Date('2026-09-15T12:00:00Z') });
+    expect(a.basis).toBe('student_prior');
+    expect(a.budget).toBe(1100);
+    expect(a.amount).toBe(50);
+    expect(a.sentence).toMatch(/typical student month in Madrid on top of your rent/);
+  });
+  it('still says nothing when the rent is unknown', () => {
+    const cast = { spent: 300, committed: 0, days_left: 15, calendar_ahead: 0, calendar_items: [] };
+    expect(safeToSpend({ cast, segments: [], facts: [], now: new Date('2026-09-15T12:00:00Z') }).amount).toBeNull();
+  });
+});

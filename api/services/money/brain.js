@@ -32,6 +32,7 @@
  */
 
 import { median, cadenceOf } from './recurring.js';
+import { applyPriors } from './priors.js';
 
 const DAY = 86400000;
 const HOUR = 3600000;
@@ -344,10 +345,12 @@ export function merchantProfile(transactions, merchantKey, opts = {}) {
  *  money in, which is by what it cost them and not by how often it happened. */
 export function learnMerchants(transactions = [], opts = {}) {
   const keys = [...new Set((transactions || []).filter((t) => t && t.occurred_at && out(t) && t.merchant_key).map((t) => t.merchant_key))];
-  return keys
+  /* Other people's ledgers, as aggregates only, lean on a thin profile (priors.js). */
+  const pooled = (profiles) => (opts.priors && opts.priors.size ? applyPriors(profiles, opts.priors) : profiles);
+  return pooled(keys
     .map((key) => merchantProfile(transactions, key, opts))
     .filter(Boolean)
-    .sort((a, b) => b.total - a.total);
+    .sort((a, b) => b.total - a.total));
 }
 
 /* ------------------------------------------------------------------ predictions */
