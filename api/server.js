@@ -425,7 +425,6 @@ import intelligentTwinRoutes from './routes/intelligent-twin.js';
 import onboardingQuestionsRoutes from './routes/onboarding-questions.js';
 import bigFiveRoutes from './routes/big-five.js';
 import platformInsightsRoutes from './routes/platform-insights.js';
-import twinPipelineRoutes from './routes/twin-pipeline.js';
 import notificationsRoutes from './routes/notifications.js';
 import deviceTokensRoutes from './routes/device-tokens.js';
 import desktopDownloadRoutes from './routes/desktop-download.js';
@@ -705,7 +704,6 @@ app.use('/api/money', bankCallback); // the bank's redirect arrives without a se
 app.use('/api/money', moneyRoutes); // Money Twin v2, from zero: sightings → ledger, recurring, forecast (spec 2026-09-07)
 app.use('/api/revelations', revelationsRoutes); // "What your twin sees" PULL surface — first-party self-revelations, ungated by the interrupt-Editor
 app.use('/api/checkin', checkinRoutes); // Daily mood check-in (50 moods)
-app.use('/api/twin', twinPipelineRoutes); // Twin formation pipeline (form, status, profile, evolution)
 app.use('/api/extraction', extractionStatusRoutes); // Extraction status and job history
 app.use('/api/notifications', notificationsRoutes); // User notifications (token expiry, sync issues)
 app.use('/api/device-tokens', deviceTokensRoutes);  // FCM/Expo push token registration
