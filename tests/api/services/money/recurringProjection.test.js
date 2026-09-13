@@ -181,3 +181,28 @@ describe('one merchant, more than one kind of charge', () => {
     expect(detectRecurring(rows, { now: NOW })).toEqual([]);
   });
 });
+
+describe('the rest of the month is the median of three readings', () => {
+  const now = new Date('2026-09-14T12:00:00Z');
+  const flat = (perDay) => Array.from({ length: 70 }, (_, i) => ({ occurred_at: new Date(now.getTime() - (i + 1) * 86400000).toISOString(), amount: -perDay, merchant_key: 'shop', is_recurring: false }));
+  it('agrees with itself on a flat history and shows the three', () => {
+    const r = projectMonth({ transactions: flat(10), recurring: [], now });
+    expect(r.baseline_readings.weekday).toBe(10 * r.days_left);
+    expect(r.baseline_readings.recent).toBe(10 * r.days_left);
+    expect(r.baseline_readings.same_days_last_month).toBe(10 * r.days_left);
+    expect(r.baseline_rest).toBe(10 * r.days_left);
+    expect(r.projected_p50).toBe(r.spent + r.baseline_rest);
+  });
+  it('moves with the middle reading when the recent weeks run hot, and the band moves with it', () => {
+    /* Ten a day for ten weeks, then thirty a day for the last four: the weekday medians
+       still say ten, the recent level and last month say more; the median is the middle. */
+    const rows = flat(10).map((t, i) => (i < 28 ? { ...t, amount: -30 } : t));
+    const r = projectMonth({ transactions: rows, recurring: [], now });
+    const readings = [r.baseline_readings.weekday, r.baseline_readings.recent, r.baseline_readings.same_days_last_month].sort((a, b) => a - b);
+    expect(r.baseline_rest).toBe(readings[1]);
+    expect(r.baseline_rest).toBeGreaterThan(r.baseline_readings.weekday);
+    expect(r.projected_p50).toBe(Math.round((r.spent + r.baseline_rest) * 100) / 100);
+    expect(r.projected_p90).toBeGreaterThan(r.projected_p50);
+    expect(r.projected_p10).toBeLessThanOrEqual(r.projected_p50);
+  });
+});
