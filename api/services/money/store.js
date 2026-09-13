@@ -13,6 +13,8 @@ import { readLedger, monthSegments } from './analyst.js';
 import { spendingRule, markCounted } from './spending.js';
 import { calibrate } from './calibration.js';
 import { poolMerchantPriors } from './priors.js';
+import { nudgeFindings, retiredKinds, NUDGE_KINDS } from './nudges.js';
+import { safeToSpend } from './allowance.js';
 import { tellTwin } from './twinBridge.js';
 import { lookupPlace, providerFor, categoryFromBrand, PROVIDER_NONE } from './places.js';
 import { readUsage, unmeasurable, platformForMerchant } from './usage.js';
@@ -417,16 +419,25 @@ export async function refreshReadings(userId, now = new Date()) {
     : { data: [] };
   const categories = new Map((places || []).map((p) => [p.merchant_key, p.category_override || p.category || null]));
   const categoryOf = (t) => categories.get(t.merchant_key) || CHANNEL_CATEGORY[t.channel] || null;
-  const { segments, findings } = readLedger({ transactions, recurring: withNames, categoryOf, now, isSpending: spendingRule(facts) });
+  const { segments, findings: read } = readLedger({ transactions, recurring: withNames, categoryOf, now, isSpending: spendingRule(facts) });
+  /* The two lines with a trial behind them (nudges.js): a week's charges the month cannot
+     carry, and the largest named charge due within three days. Both need the forecast and
+     the allowance; neither is spoken without a basis. */
+  const cast = await forecast(userId, now).catch(() => null);
+  const allowance = cast ? safeToSpend({ cast, segments, facts, now }) : null;
+  const findings = read.concat(nudgeFindings({ cast, allowance, now }));
   /* A finding with no month (a subscription load, a weekday shape) has month NULL, and
      Postgres counts NULLs as distinct: an upsert on (kind, month) inserted a fresh copy
      every run. So the write is an explicit update-or-insert, which also keeps the id and
      the verdict the person already gave. */
-  const { data: existing } = await supabaseAdmin.from('money_readings').select('id, kind, month').eq('user_id', userId);
+  const { data: existing } = await supabaseAdmin.from('money_readings').select('id, kind, month, verdict').eq('user_id', userId);
   const keyOf = (kind, month) => `${kind}|${month || ''}`;
   const byKey = new Map((existing || []).map((r) => [keyOf(r.kind, r.month), r.id]));
+  /* A kind this person has muted more than acted on, over thirty deliveries, is not
+     computed again. The rows that retired it are kept: they are the reason. */
+  const retired = retiredKinds(existing || []);
   const seen = new Set();
-  for (const f of findings) {
+  for (const f of findings.filter((x) => !retired.has(x.kind))) {
     const row = {
       sentence: f.sentence, detail: f.detail || null, numbers: f.numbers || {},
       receipt_ids: f.receipts.map((r) => r.id).filter(Boolean), evidence_count: f.evidence_count || 0,
@@ -440,8 +451,10 @@ export async function refreshReadings(userId, now = new Date()) {
       : await supabaseAdmin.from('money_readings').insert({ user_id: userId, kind: f.kind, month: f.month, ...row });
     if (error) log.warn(`reading write failed (${f.kind}): ${error.message}`);
   }
-  /* A finding that no longer holds should stop being shown, not linger from last week. */
-  const stale = (existing || []).filter((r) => !seen.has(keyOf(r.kind, r.month))).map((r) => r.id);
+  /* A finding that no longer holds should stop being shown, not linger from last week. A
+     nudge is dated, so a past one is harmless on its own and is kept: the record of what
+     was said and whether it was muted is what the retirement rule reads. */
+  const stale = (existing || []).filter((r) => !seen.has(keyOf(r.kind, r.month)) && !NUDGE_KINDS.includes(r.kind)).map((r) => r.id);
   if (stale.length) await supabaseAdmin.from('money_readings').delete().in('id', stale);
   /* The twin should know what the money says, in the same stream as everything else it
      knows. Duplicate content inside a day is skipped by the memory stream itself. */
