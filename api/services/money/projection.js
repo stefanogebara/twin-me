@@ -3,9 +3,16 @@
  * ====================================
  *   projected = spent so far
  *             + recurring charges still due this month
- *             + Σ remaining days · baseline(weekday)
+ *             + the rest of the month's discretionary spending
  *             + calendar-expected spends
  *   band      = bootstrap of the last twelve weeks' daily discretionary totals
+ *
+ * The rest of the month is the median of three cheap readings of the same history, never
+ * a weighted blend: the weekday medians summed over the days left, the last four weeks'
+ * daily mean times the days left, and what the same calendar days cost last month. With
+ * a few hundred rows, estimating weights adds more error than it removes (Wang, Hyndman,
+ * Li and Kang 2022, the forecast combination puzzle); the median is robust to one of the
+ * three being wrong. All three are returned so the reader can see them disagree.
  * Pure and deterministic (seeded RNG) so it can be tested and called on every
  * ledger write without cost. No LLM.
  */
@@ -127,9 +134,25 @@ export function projectMonth(p) {
   const byWeekday = Array.from({ length: 7 }, (_, w) => history.filter((d) => d.weekday === w).map((d) => d.total));
   const baseline = byWeekday.map((xs) => (xs.length ? median(xs) : median(history.map((d) => d.total))));
 
-  let baselineRest = 0;
+  let weekdayRest = 0;
   const remainingDays = [];
-  for (let i = 1; i <= daysLeft; i += 1) { const d = new Date(today.getTime() + i * DAY); remainingDays.push(d); baselineRest += baseline[d.getUTCDay()]; }
+  for (let i = 1; i <= daysLeft; i += 1) { const d = new Date(today.getTime() + i * DAY); remainingDays.push(d); weekdayRest += baseline[d.getUTCDay()]; }
+
+  /* Two more readings of the same history. The recent level: the last four weeks' daily
+     mean, times the days left. The same days last month: what the calendar days still to
+     come cost a month ago, zero-filled, only when that month is in the history. */
+  const recent = history.slice(-28);
+  const recentRest = recent.length ? (recent.reduce((s, d) => s + d.total, 0) / recent.length) * daysLeft : null;
+  const lastMonthStart = new Date(Date.UTC(year, month - 1, 1));
+  const lastMonthEnd = new Date(Date.UTC(year, month, 0));
+  let sameDaysRest = null;
+  if (lastMonthStart >= histFrom && daysLeft > 0) {
+    const lastMonth = dailyTotals(p.transactions, lastMonthStart, lastMonthEnd);
+    const wanted = new Set(remainingDays.map((d) => d.getUTCDate()));
+    sameDaysRest = lastMonth.filter((d) => wanted.has(Number(d.date.slice(8, 10)))).reduce((s, d) => s + d.total, 0);
+  }
+  const readings = [weekdayRest, recentRest, sameDaysRest].filter((x) => x !== null && Number.isFinite(x));
+  const baselineRest = readings.length ? median(readings) : weekdayRest;
 
   // Bootstrap: resample each remaining weekday's history to get a band around the rest of the month.
   const rand = rng(p.seed ?? 42);
@@ -144,6 +167,9 @@ export function projectMonth(p) {
     sums.push(sum);
   }
   sums.sort((a, b) => a - b);
+  /* The bootstrap is drawn from the weekday pools, so its middle is the weekday reading;
+     the band keeps its shape and moves with the median of the three. */
+  const shift = sums.length ? baselineRest - quantile(sums, 0.5) : 0;
   const fixed = spent + committed + expected + commitmentTotal;
   const r2 = (x) => Math.round(x * 100) / 100;
   const widen = Math.max(0, Number(p.widen) || 0) * Math.sqrt(daysLeft);
@@ -162,9 +188,10 @@ export function projectMonth(p) {
     income_ahead: r2(incomeAhead),
     income_items: incomeItems.map(({ due, ...i }) => ({ ...i, due_on: due.toISOString().slice(0, 10) })),
     baseline_rest: r2(baselineRest),
-    projected_p10: r2(Math.max(fixed, fixed + (sums.length ? quantile(sums, 0.1) : baselineRest) - widen)),
-    projected_p50: r2(fixed + (sums.length ? quantile(sums, 0.5) : baselineRest)),
-    projected_p90: r2(fixed + (sums.length ? quantile(sums, 0.9) : baselineRest) + widen),
+    baseline_readings: { weekday: r2(weekdayRest), recent: recentRest === null ? null : r2(recentRest), same_days_last_month: sameDaysRest === null ? null : r2(sameDaysRest) },
+    projected_p10: r2(Math.max(fixed, fixed + (sums.length ? quantile(sums, 0.1) + shift : baselineRest) - widen)),
+    projected_p50: r2(fixed + (sums.length ? quantile(sums, 0.5) + shift : baselineRest)),
+    projected_p90: r2(fixed + (sums.length ? quantile(sums, 0.9) + shift : baselineRest) + widen),
     band_widened_by: r2(widen),
     history_days: history.length,
   };
