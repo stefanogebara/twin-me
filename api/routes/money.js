@@ -38,6 +38,7 @@ import { Router } from 'express';
 import crypto from 'node:crypto';
 import multer from 'multer';
 import { authenticateUser } from '../middleware/auth.js';
+import { inboxAddress, inboxDomain, isInboxConfigured, verifySvix, ingestReceivedEmail } from '../services/money/inbox.js';
 import { createLogger } from '../services/logger.js';
 import { parseCapture, parseStructured } from '../services/money/captureParser.js';
 import { ingestSighting, ingestSightings, listTransactions, sightingsFor, refreshRecurring, forecast, setVerdict, userForCaptureKey, saveBankAccounts, listBankAccounts, pullBankFeed, refreshReadings, listReadings, setReadingVerdict, months, feedBudget, categorySpend, listPlaces, setPlaceCategory, enrichPlaces, subscriptionUsage, questionsFor, answerQuestion, skipQuestion, listFacts, learn } from '../services/money/store.js';
@@ -98,7 +99,37 @@ router.post('/capture', authenticateUserOrKey, async (req, res) => {
   }
 });
 
+/**
+ * Resend posts here when mail arrives for the money domain. No session: the caller is
+ * Resend, proven by the Svix signature over the raw body. Always 200 once verified, so a
+ * receipt that cannot be read is not retried for a week; the reason goes to the log.
+ */
+router.post('/inbox/resend', async (req, res) => {
+  if (!isInboxConfigured()) return res.status(503).json({ success: false, error: 'Inbox not configured' });
+  const ok = verifySvix({ rawBody: req.rawBody, headers: req.headers, secret: process.env.RESEND_WEBHOOK_SECRET });
+  if (!ok) return res.status(401).json({ success: false, error: 'Bad signature' });
+  if (req.body?.type !== 'email.received') return res.json({ success: true, data: { outcome: 'ignored' } });
+  try {
+    const result = await ingestReceivedEmail(req.body);
+    res.json({ success: true, data: result });
+  } catch (error) {
+    log.error('inbox failed', { error: error.message });
+    res.json({ success: true, data: { outcome: 'failed' } });
+  }
+});
+
 router.use(authenticateUser);
+
+/** The person's own receipts address, minted on first ask. */
+router.get('/inbox', async (req, res) => {
+  try {
+    const address = await inboxAddress(req.user.id);
+    res.json({ success: true, data: { address, domain: inboxDomain(), receiving: isInboxConfigured() } });
+  } catch (error) {
+    log.error('inbox address failed', { error: error.message });
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
 
 router.get('/ledger', async (req, res) => {
   try {

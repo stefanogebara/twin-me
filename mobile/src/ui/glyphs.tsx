@@ -33,6 +33,15 @@ export const PhoneGlyph = () => (
   </View>
 );
 
+/** An envelope: the receipts a person forwards. */
+export const MailGlyph = () => (
+  <View style={g.box}>
+    <View style={[g.frame, { top: 4, bottom: 4, left: 1, right: 1, borderRadius: 3 }]} />
+    <View style={[g.line, { top: 9, left: 3, width: 11, transform: [{ rotate: '32deg' }] }]} />
+    <View style={[g.line, { top: 9, right: 3, width: 11, transform: [{ rotate: '-32deg' }] }]} />
+  </View>
+);
+
 /** A diary: the week that costs something. */
 export const CalendarGlyph = () => (
   <View style={g.box}>

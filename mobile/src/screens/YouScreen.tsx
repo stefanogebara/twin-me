@@ -12,12 +12,12 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { Platform, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { Platform, RefreshControl, ScrollView, Share, StyleSheet, View } from 'react-native';
 import Constants from 'expo-constants';
 import * as WebBrowser from 'expo-web-browser';
 import { cosmos, dayMonth, euro, monthYear } from '../constants/cosmos';
 import { Enter, List, Micro, Page, Panel, Pill, Row, Section, Small, Title } from '../ui/primitives';
-import { CalendarGlyph, CardGlyph, PhoneGlyph } from '../ui/glyphs';
+import { CalendarGlyph, CardGlyph, PhoneGlyph, MailGlyph } from '../ui/glyphs';
 import { moneyApi, type MoneyAccount, type MoneyCalendar, type MoneyFact } from '../services/moneyApi';
 import type { User } from '../types';
 
@@ -67,13 +67,16 @@ export default function YouScreen({ user, onSignOut, onOpenPhone, onOpenBank, on
   const [facts, setFacts] = useState<MoneyFact[]>([]);
   /* null until read; a server without the calendar lens reads as not connected. */
   const [calendar, setCalendar] = useState<MoneyCalendar | null>(null);
+  /* The receipts address, once the server has minted it; null until then. */
+  const [inbox, setInbox] = useState<{ address: string; receiving: boolean } | null>(null);
   const [connecting, setConnecting] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [failed, setFailed] = useState(false);
 
   const load = useCallback(async () => {
-    const [a, f, c] = await Promise.allSettled([moneyApi.accounts(), moneyApi.facts(), moneyApi.calendar()]);
+    const [a, f, c, i] = await Promise.allSettled([moneyApi.accounts(), moneyApi.facts(), moneyApi.calendar(), moneyApi.inbox()]);
+    if (i.status === 'fulfilled') setInbox(i.value);
     if (a.status === 'fulfilled') setAccounts(a.value);
     if (f.status === 'fulfilled') setFacts(f.value);
     setCalendar(c.status === 'fulfilled' ? c.value : { connected: false, ahead: [] });
@@ -150,6 +153,16 @@ export default function YouScreen({ user, onSignOut, onOpenPhone, onOpenBank, on
                     ))
                   )}
                   <Row inset glyph={<PhoneGlyph />} label="This phone" sub={PHONE_SUB} onPress={onOpenPhone} />
+                  {inbox ? (
+                    /* The address is the whole instruction: press to hand it to Mail. */
+                    <Row
+                      inset
+                      glyph={<MailGlyph />}
+                      label="Receipts by email"
+                      sub={inbox.address}
+                      onPress={() => { void Share.share({ message: inbox.address }); }}
+                    />
+                  ) : null}
                   {calendar ? (
                     <Row
                       inset
