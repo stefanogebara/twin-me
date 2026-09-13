@@ -3,7 +3,6 @@ import { CollapsibleSidebar } from './CollapsibleSidebar';
 import { BottomNav } from './BottomNav';
 import BetaFeedbackWidget from '../BetaFeedbackWidget';
 import PWAInstallPrompt from '../PWAInstallPrompt';
-import { Menu } from 'lucide-react';
 
 interface SidebarLayoutProps {
   children: ReactNode;
@@ -14,8 +13,6 @@ const SIDEBAR_WIDTH_EXPANDED = 200;
 const SIDEBAR_WIDTH_COLLAPSED = 64;
 
 export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     if (typeof window === 'undefined') return false;
     return localStorage.getItem('sidebar_collapsed') === 'true';
@@ -37,32 +34,10 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
     <div
       className="flex min-h-screen w-full overflow-x-hidden"
     >
-      {/* The menu button, phones only: the page colour with a hairline, a 4px
-          corner. No glass, no shadow. */}
-      <button
-        type="button"
-        onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="fixed top-4 left-4 z-50 inline-grid place-items-center w-10 h-10 lg:hidden transition-colors duration-150 ease-out hover:bg-[var(--rg-field)]"
-        style={{
-          backgroundColor: 'var(--rg-page)',
-          border: '1px solid var(--rg-rule)',
-          borderRadius: 'var(--rg-radius)',
-        }}
-        aria-label={sidebarOpen ? "Close navigation menu" : "Open navigation menu"}
-        aria-expanded={sidebarOpen}
-      >
-        <Menu
-          className="w-4 h-4"
-          style={{ color: 'var(--rg-ink)' }}
-          aria-hidden="true"
-        />
-      </button>
-
-      {/* The sidebar: plain text links on the page */}
-      <CollapsibleSidebar
-        isOpen={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-      />
+      {/* One way to move on each screen: the sidebar on a desktop, the tab bar on a phone.
+          The hamburger that used to open the sidebar over the tab bar was a second bar
+          leading to the same places. */}
+      <CollapsibleSidebar isOpen={false} onClose={() => {}} />
 
       {/* Main Content Area - fixed margin for always-expanded sidebar */}
       <main
@@ -81,7 +56,7 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
             }
           }
         `}</style>
-        <div className="min-h-full pt-16 pb-24 lg:pt-0 lg:pb-0">
+        <div className="min-h-full pt-6 pb-24 lg:pt-0 lg:pb-0">
           {children}
         </div>
       </main>

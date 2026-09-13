@@ -121,6 +121,7 @@
 .mv .mv-side-links a { display: flex; align-items: center; min-height: 32px; color: var(--ink-2); }
 .mv .mv-side-links a:hover { color: var(--ink); }
 .mv .mv-side-links a.is-sub { padding-left: 12px; color: var(--ink-3); font-weight: 350; }
+.mv .mv-side-links a.is-away { margin-top: 16px; color: var(--ink-3); }
 .mv .mv-side-links a[aria-current="page"] { color: var(--ink); font-weight: 500; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 4px; }
 .mv-mark { display: grid; grid-template-columns: repeat(3, 6px); gap: 3px; width: 24px; padding: 8px 0; }
 .mv-mark i { width: 6px; height: 6px; border-radius: 50%; background: var(--ink); }
