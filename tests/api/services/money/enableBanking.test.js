@@ -2,7 +2,7 @@
  * enableBanking.toSighting: a Berlin-Group-shaped feed row becomes a bankfeed sighting.
  */
 import { describe, it, expect } from 'vitest';
-import { toSighting, isConfigured, startAuthorisation, fetchTransactions, resetApplicationEnvironment } from '../../../../api/services/money/feeds/enableBanking.js';
+import { toSighting, isConfigured, startAuthorisation, fetchTransactions, resetApplicationEnvironment, distinctPending } from '../../../../api/services/money/feeds/enableBanking.js';
 
 describe('toSighting', () => {
   it('maps a debit with a creditor name', () => {
@@ -173,5 +173,20 @@ describe('toSighting on a pending row', () => {
     expect(s.parse_confidence).toBe(0.85);
     expect(s.raw_json.status).toBe('PDNG');
     expect(s.amount).toBe(19.99);
+  });
+});
+
+describe('two identical pending rows in one read', () => {
+  it('get distinct keys, in order, so the batch can be written; booked rows are untouched', () => {
+    const row = { status: 'PDNG', transaction_amount: { amount: '0.50', currency: 'EUR' }, credit_debit_indicator: 'DBIT', remittance_information: ['BIZUM A FAVOR DE SEBASTIAN ALFONSO IZURIETA SAENZ CONCEPTO Sin concepto'], transaction_date: '2026-09-14' };
+    const booked = { status: 'BOOK', entry_reference: 'ref-1', transaction_amount: { amount: '1.70', currency: 'EUR' }, credit_debit_indicator: 'DBIT', remittance_information: ['PAGO MOVIL EN RENFE, MADRID ES'], transaction_date: '2026-09-11' };
+    const batch = distinctPending([toSighting(row, 'a1'), toSighting(booked, 'a1'), toSighting(row, 'a1'), toSighting(row, 'a1')]);
+    const refs = batch.map((s) => s.source_ref);
+    expect(new Set(refs).size).toBe(4);
+    expect(refs[0].startsWith('pend:')).toBe(true);
+    expect(refs[2]).toBe(`${refs[0]}#2`);
+    expect(refs[3]).toBe(`${refs[0]}#3`);
+    expect(refs[1]).toBe('ref-1');
+    expect(distinctPending([])).toEqual([]);
   });
 });
