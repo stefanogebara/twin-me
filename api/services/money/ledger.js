@@ -3,14 +3,17 @@
  * ======================================
  * A sighting is what one channel saw. A transaction is the reconciled fact.
  * reconcile() matches a new sighting to an existing transaction when merchant
- * key, amount (within 1%) and time (within 36 hours) agree, otherwise it opens
+ * key, amount (within 1%) and time (within four days) agree, otherwise it opens
  * a new transaction. The bank feed wins on amount and posting date; the phone
  * wins on the minute. Pure: arrays in, decisions out; store.js applies them.
  */
 
-export const MATCH_WINDOW_MS = 36 * 60 * 60 * 1000;
+/* Four days, not 36 hours: a card alert on Friday night is booked by the bank on Monday,
+   sometimes Tuesday, and the merchant key and amount must still agree, so the wider window
+   costs little. A week is too far; the same coffee twice is two coffees. */
+export const MATCH_WINDOW_MS = 4 * 24 * 60 * 60 * 1000;
 export const AMOUNT_TOLERANCE = 0.01;
-const SOURCE_PRIORITY = { bankfeed: 3, statement: 2, phone: 1, bizum: 1, gmail: 0 };
+const SOURCE_PRIORITY = { bankfeed: 3, statement: 2, phone: 1, bizum: 1, email: 1, gmail: 0 };
 
 /** Signed amount: out is negative, in is positive. */
 export function signedAmount(s) {

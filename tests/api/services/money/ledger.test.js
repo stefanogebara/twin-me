@@ -36,11 +36,11 @@ describe('reconcile', () => {
     expect(d.transaction.occurred_at).toBe(phone.occurred_at);
     expect(d.transaction.amount).toBeUndefined(); // the bank's amount stands
   });
-  it('does not match a different amount, a different sign, or a purchase two days away', () => {
+  it('does not match a different amount, a different sign, or a purchase a week away', () => {
     const base = { id: 't1', amount: -12.5, merchant_key: 'mercadona', occurred_at: phone.occurred_at };
     expect(findMatch({ ...phone, amount: 13.5 }, [base])).toBeNull();
     expect(findMatch({ ...phone, direction: 'in' }, [base])).toBeNull();
-    expect(findMatch({ ...phone, occurred_at: '2026-09-10T19:41:00Z' }, [base])).toBeNull();
+    expect(findMatch({ ...phone, occurred_at: '2026-08-31T19:41:00Z' }, [base])).toBeNull();
   });
   it('tolerates a one-percent rounding difference', () => {
     const base = { id: 't1', amount: -100, merchant_key: 'renfe', occurred_at: phone.occurred_at };
@@ -86,5 +86,18 @@ describe('reconcile, pending then booked', () => {
     const line = { id: 't2', amount: -19.99, merchant_key: 'cabify', occurred_at: '2026-09-13T12:00:00Z', posted_at: null };
     const d = reconcile(pending, [line], 'phone');
     expect(d.transaction.posted_at).toBeUndefined();
+  });
+});
+
+describe('a weekend between the alert and the booking', () => {
+  it('still matches a Friday night alert to the row the bank books on Monday', () => {
+    const alert = { amount: 9.9, direction: 'out', merchant_key: 'cabify', occurred_at: '2026-09-11T23:02:00.000Z' };
+    const booked = [{ id: 't1', amount: -9.9, merchant_key: 'cabify', occurred_at: '2026-09-14T12:00:00.000Z' }];
+    expect(findMatch(alert, booked)?.id).toBe('t1');
+  });
+  it('does not reach across a whole week', () => {
+    const alert = { amount: 9.9, direction: 'out', merchant_key: 'cabify', occurred_at: '2026-09-04T23:02:00.000Z' };
+    const booked = [{ id: 't1', amount: -9.9, merchant_key: 'cabify', occurred_at: '2026-09-14T12:00:00.000Z' }];
+    expect(findMatch(alert, booked)).toBeNull();
   });
 });
