@@ -14,7 +14,7 @@ import { spendingRule, markCounted } from './spending.js';
 import { tellTwin } from './twinBridge.js';
 import { lookupPlace, providerFor, categoryFromBrand, PROVIDER_NONE } from './places.js';
 import { readUsage, unmeasurable, platformForMerchant } from './usage.js';
-import { learnMerchants, predictNext, learnPatterns, describeForTwin } from './brain.js';
+import { learnMerchants, predictNext, learnPatterns, describeForTwin, TWIN_PREDICTION_CONFIDENCE } from './brain.js';
 import { openingQuestions, ledgerQuestions, checkCommitment, describeContext } from './context.js';
 import { calendarForecast, calendarFromFacts } from './calendar.js';
 
@@ -499,6 +499,7 @@ export async function moneyContext(userId, now = new Date()) {
     .from('money_predictions')
     .select('name, expected_on, typical_amount, confidence')
     .eq('user_id', userId).is('happened', null).gte('expected_on', now.toISOString().slice(0, 10))
+    .gte('confidence', TWIN_PREDICTION_CONFIDENCE)
     .order('expected_on').limit(5);
 
   return {
