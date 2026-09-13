@@ -101,18 +101,30 @@ export async function ingestSightings(userId, sightings) {
     .lte('occurred_at', new Date(Math.max(...times) + 48 * 3600000).toISOString());
 
   const pool = [...(existing || [])];
+  /* Which lines each source already backs: one bank row is one payment, so a second bank
+     sighting never folds onto a line the bank already saw, however alike. Seeded from the
+     rows in the window, then kept current as this batch creates and attaches. */
+  const taken = new Map();
+  const take = (source, id) => { if (!taken.has(source)) taken.set(source, new Set()); taken.get(source).add(id); };
+  const poolIds = pool.map((t) => t.id);
+  if (poolIds.length) {
+    const { data: backing } = await supabaseAdmin.from('money_sightings').select('source, transaction_id').eq('user_id', userId).in('transaction_id', poolIds);
+    for (const b of backing || []) if (b.transaction_id) take(b.source, b.transaction_id);
+  }
   const creates = [];                     // { tmp, row, sightingIds: [] }
   const attaches = [];                    // { id, update, sightingId }
   for (const s of saved) {
     if (s.transaction_id) continue;
-    const decision = reconcile(s, pool, null);
+    const decision = reconcile(s, pool, null, { exclude: taken.get(s.source) });
     if (decision.action === 'create') {
       const tmp = `tmp:${creates.length}`;
       creates.push({ tmp, row: { user_id: userId, account_id: s.account_id || null, primary_sighting_id: s.id, ...decision.transaction }, sightingIds: [s.id] });
       pool.push({ id: tmp, ...decision.transaction });
+      take(s.source, tmp);
       continue;
     }
     const { id, ...update } = decision.transaction;
+    take(s.source, id);
     const pending = creates.find((c) => c.tmp === id);
     if (pending) { pending.sightingIds.push(s.id); continue; }   // folds into a line this batch just made
     attaches.push({ id, update, sightingId: s.id });
