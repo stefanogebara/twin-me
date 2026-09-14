@@ -24,14 +24,14 @@ describe('capFindings', () => {
   it('reads each cap against the month, with what is left per day and the receipts', () => {
     const facts = [{ kind: 'cap', subject: 'eating out', amount: 120 }, { kind: 'cap', subject: 'Cabify', amount: 30 }];
     const [eat, cab] = capFindings({ facts, transactions: rows, categoryOf: (x) => x.category, cast, now: NOW });
-    expect(eat.sentence).toBe('Eating out: 78,00 EUR of the 120,00 EUR you said, 16 days left.');
-    expect(eat.detail).toBe('That leaves 42,00 EUR, 2,47 EUR a day.');
+    expect(eat.sentence).toBe('Eating out: 78,00\u00a0\u20ac of the 120,00\u00a0\u20ac you said, 16 days left.');
+    expect(eat.detail).toBe('That leaves 42,00\u00a0\u20ac, 2,47\u00a0\u20ac a day.');
     expect(eat.receipts.map((r) => r.id)).toEqual(['a', 'b']);
-    expect(cab.sentence).toBe('Cabify: 9,90 EUR of the 30,00 EUR you said, 16 days left.');
+    expect(cab.sentence).toBe('Cabify: 9,90\u00a0\u20ac of the 30,00\u00a0\u20ac you said, 16 days left.');
   });
   it('says when a cap is passed, and nothing when none was set', () => {
     const [f] = capFindings({ facts: [{ kind: 'cap', subject: 'eating out', amount: 60 }], transactions: rows, categoryOf: (x) => x.category, cast, now: NOW });
-    expect(f.sentence).toBe('Eating out: 78,00 EUR, past the 60,00 EUR you said by 18,00 EUR.');
+    expect(f.sentence).toBe('Eating out: 78,00\u00a0\u20ac, past the 60,00\u00a0\u20ac you said by 18,00\u00a0\u20ac.');
     expect(f.numbers.over).toBe(true);
     expect(capFindings({ facts: [], transactions: rows, cast, now: NOW })).toEqual([]);
   });
@@ -41,8 +41,8 @@ describe('keepFinding and the allowance', () => {
   it('measures the forecast against what they want left', () => {
     const facts = [{ kind: 'keep', amount: 200 }, { kind: 'income', amount: 1300 }];
     const f = keepFinding({ facts, cast, income: 1300 });
-    expect(f.sentence).toBe('You wanted 200,00 EUR left; at this pace the month ends with 150,00 EUR, 50,00 EUR short.');
-    expect(keepFinding({ facts: [{ kind: 'keep', amount: 100 }], cast, income: 1300 }).sentence).toBe('You wanted 100,00 EUR left; at this pace the month ends with 150,00 EUR.');
+    expect(f.sentence).toBe('You wanted 200,00\u00a0\u20ac left; at this pace the month ends with 150,00\u00a0\u20ac, 50,00\u00a0\u20ac short.');
+    expect(keepFinding({ facts: [{ kind: 'keep', amount: 100 }], cast, income: 1300 }).sentence).toBe('You wanted 100,00\u00a0\u20ac left; at this pace the month ends with 150,00\u00a0\u20ac.');
     expect(keepFinding({ facts, cast, income: null })).toBeNull();
     expect(intentionFindings({ facts: [], transactions: rows, cast, income: null }).length).toBe(0);
   });

@@ -61,7 +61,7 @@ describe('the ledger\'s own guess', () => {
     expect(c.repayments.map((m) => m.id)).toEqual(['b1', 'b2', 'b3']);
     const [q] = splitQuestions([c], { now: NOW });
     expect(q).toMatchObject({ id: 'split:d1', kind: SPLIT_KIND, subject: 'd1', suggested: '4', weight: 62.4 });
-    expect(q.ask).toBe('You paid 62,40 EUR at La Tasca Thursday, and Ana L., Luis P. and Marta R. sent you 15,60 EUR each. Was that split?');
+    expect(q.ask).toBe('You paid 62,40\u00a0\u20ac at La Tasca Thursday, and Ana L., Luis P. and Marta R. sent you 15,60\u00a0\u20ac each. Was that split?');
     expect(q.input).toBe(`choice:2,3,4,5,6,7,8,${NOT_SPLIT}`);
     expect(q.receipts.map((r) => r.id)).toEqual(['d1', 'b1', 'b2']);
   });
@@ -78,7 +78,7 @@ describe('what it says', () => {
     const facts = [{ kind: SPLIT_KIND, subject: 'd1', value: '4' }];
     const [f] = splitFindings(facts, [dinner, backs[0], backs[1], ...noise], { now: NOW });
     expect(f.kind).toBe(SPLIT_OPEN);
-    expect(f.sentence).toBe('La Tasca Thursday, 62,40 EUR split 4 ways: Ana L. and Luis P. have paid, 15,60 EUR still open.');
+    expect(f.sentence).toBe('La Tasca Thursday, 62,40\u00a0\u20ac split 4 ways: Ana L. and Luis P. have paid, 15,60\u00a0\u20ac still open.');
     expect(f.numbers).toMatchObject({ ways: 4, share: 15.6, paid: 2, expected: 3, open: 15.6 });
     /* Declared five ways when the Bizums back are quarter shares: they are not that split's shares. */
     expect(splitFindings([{ kind: SPLIT_KIND, subject: 'd1', value: '5' }], ledger, { now: NOW })[0].numbers.paid).toBe(0);
@@ -89,6 +89,6 @@ describe('what it says', () => {
     const rows = balances(ledger, facts, { now: NOW });
     expect(rows[0]).toMatchObject({ name: 'Mauad G.', role: 'family', received: 100, settlements: 0, sent: 0, net: 100 });
     expect(rows.find((r) => r.name === 'Ana L.')).toMatchObject({ received: 0, settlements: 15.6, net: 15.6 });
-    expect(describeBetweenPeople(rows)[0]).toBe('Mauad G. (family): sent you 100,00 EUR in 90 days.');
+    expect(describeBetweenPeople(rows)[0]).toBe('Mauad G. (family): sent you 100,00\u00a0\u20ac in 90 days.');
   });
 });

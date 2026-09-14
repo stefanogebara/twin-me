@@ -133,7 +133,8 @@ export function summarise(figures = [], charges = []) {
 
 export const OWN_SCORE = 'own_score';
 const EURF = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' });
-const euro = (n) => EURF.format(Math.abs(Number(n) || 0)).replace(/[\u00a0\u202f]/g, ' ').replace('\u20ac', 'EUR');
+/* The same form the analyst uses on the screen: Intl's own, sign and no-break space kept. */
+const euro = (n) => EURF.format(Math.abs(Number(n) || 0));
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
 /**

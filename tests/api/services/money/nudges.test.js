@@ -51,7 +51,7 @@ describe('namedExpense', () => {
   it('names the largest charge due within three days, above the floor', () => {
     const f = namedExpense({ cast, now: NOW });
     expect(f).toMatchObject({ kind: NAMED_EXPENSE, month: '2026-09-16', numbers: { name: 'Higgsfield', amount: 53.96 } });
-    expect(f.sentence).toBe('Higgsfield, 53,96 EUR, leaves Wednesday.');
+    expect(f.sentence).toBe('Higgsfield, 53,96\u00a0\u20ac, leaves Wednesday.');
   });
   it('is quiet under the floor and beyond three days', () => {
     expect(namedExpense({ cast: { committed_items: [{ merchant_name: 'Metro', typical_amount: 1.7, next_expected: '2026-09-15' }] }, now: NOW })).toBeNull();

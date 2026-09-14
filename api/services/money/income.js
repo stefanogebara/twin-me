@@ -30,7 +30,8 @@ export const HORIZON_DAYS = 45;
 
 const DAY = 86400000;
 const EUR = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' });
-const euro = (n) => EUR.format(Math.abs(Number(n) || 0)).replace(/[\u00a0\u202f]/g, ' ').replace('\u20ac', 'EUR');
+/* The same form the analyst uses on the screen: Intl's own, sign and no-break space kept. */
+const euro = (n) => EUR.format(Math.abs(Number(n) || 0));
 const r2 = (n) => Math.round(Number(n) * 100) / 100;
 const dayOf = (d) => new Date(d).toISOString().slice(0, 10);
 const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();

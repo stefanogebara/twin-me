@@ -50,7 +50,7 @@ describe('incomeFindings', () => {
   it('says a stated income has not come once its usual day and the margin have passed', () => {
     const [f] = incomeFindings({ facts, transactions: family, isIncome, now: NOW });
     expect(f.kind).toBe(INCOME_LATE);
-    expect(f.sentence).toBe('Family, usually about 400,00 EUR on the 3rd, has not come this month.');
+    expect(f.sentence).toBe('Family, usually about 400,00\u00a0\u20ac on the 3rd, has not come this month.');
     expect(f.detail).toBe('The last 3 came on the 2nd, 5th, 3rd.');
     expect(f.receipts.map((r) => r.id)).toEqual(['f3', 'f2', 'f1']);
     expect(f.numbers).toMatchObject({ typical_day: 3, days_late: 11 });
