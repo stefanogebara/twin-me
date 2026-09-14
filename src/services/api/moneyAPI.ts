@@ -78,7 +78,16 @@ export type MoneyAnswer = {
   questionId?: string; kind: string; subject?: string; subjectLabel?: string;
   value?: string; amount?: number; day?: number; share?: number;
 };
-export type MoneyAccount = { id: string; provider: string; name: string | null; iban_mask: string | null; currency: string; consent_expires_at: string | null; last_pulled_at: string | null; needs_reconnect?: boolean };
+export type MoneyAccount = { id: string; provider: string; name: string | null; iban_mask: string | null; currency: string; consent_expires_at: string | null; last_pulled_at: string | null; needs_reconnect?: boolean; bank_name?: string | null };
+/** A pasted calendar link: Canvas, Blackboard, or any .ics. Only ever a label and a link. */
+export type MoneyCalendarFeed = { id: string; kind: string; label: string; url: string; added_at: string | null };
+export type MoneyCalendar = { connected: boolean; google?: boolean; feeds?: MoneyCalendarFeed[]; needsReconnect?: boolean; routine?: string | null; total_expected?: number | null; ahead?: unknown[] };
+/** The two banks the product offers by name; the aggregator lists more, by country. */
+export const BANKS = [{ name: 'Banco Santander', label: 'Santander' }, { name: 'Revolut', label: 'Revolut' }] as const;
+export function bankLabel(name: string | null | undefined): string {
+  const b = BANKS.find((x) => x.name === name);
+  return b ? b.label : (name || 'Santander');
+}
 
 async function json<T>(res: Response): Promise<T> {
   const body = await res.json().catch(() => ({}));
@@ -136,6 +145,12 @@ export const moneyAPI = {
     authFetch('/money/bank/connect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bank, country }) }).then((r) => json<{ url: string }>(r)),
   /** The person's own receipts address: forward a receipt or invoice there and it joins the ledger. */
   inbox: () => authFetch('/money/inbox').then((r) => json<{ address: string; domain: string; receiving: boolean }>(r)),
+  /* The calendar lens: Google, or links pasted from Canvas and Blackboard. */
+  calendar: () => authFetch('/money/calendar').then((r) => json<MoneyCalendar>(r)),
+  calendarConnect: () => authFetch('/money/calendar/connect').then((r) => json<{ url: string }>(r)),
+  addCalendarFeed: (url: string) =>
+    authFetch('/money/calendar/feed', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url }) }).then((r) => json<MoneyCalendarFeed & { events: number | null; already: boolean }>(r)),
+  removeCalendarFeed: (id: string) => authFetch(`/money/calendar/feed/${encodeURIComponent(id)}`, { method: 'DELETE' }).then((r) => json<unknown>(r)),
   /** Opening the page spends the read the schedule leaves for it, but only when one is due. */
   refreshIfStale: () => authFetch('/money/bank/refresh-if-stale', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).then((r) => json<{ pulled: boolean; created?: number; reason?: string; needs_reconnect?: boolean }>(r)),
   pull: () => authFetch('/money/bank/pull', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).then((r) => json<{ account: string; seen: number; created: number }[]>(r)),

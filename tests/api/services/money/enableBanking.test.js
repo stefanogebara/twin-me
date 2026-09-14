@@ -190,3 +190,24 @@ describe('two identical pending rows in one read', () => {
     expect(distinctPending([])).toEqual([]);
   });
 });
+
+describe('createSession', () => {
+  it('keeps the bank\'s name the session came back with, so a second bank is told apart', async () => {
+    const saved = { fetch: global.fetch, id: process.env.ENABLE_BANKING_APP_ID, key: process.env.ENABLE_BANKING_PRIVATE_KEY };
+    const { generateKeyPairSync } = await import('node:crypto');
+    const { privateKey } = generateKeyPairSync('rsa', { modulusLength: 2048, privateKeyEncoding: { type: 'pkcs8', format: 'pem' }, publicKeyEncoding: { type: 'spki', format: 'pem' } });
+    process.env.ENABLE_BANKING_APP_ID = 'test-app';
+    process.env.ENABLE_BANKING_PRIVATE_KEY = privateKey;
+    global.fetch = async () => ({ ok: true, status: 200, text: async () => JSON.stringify({ session_id: 's9', access: { valid_until: '2027-03-01T00:00:00Z' }, aspsp: { name: 'Revolut', country: 'ES' }, accounts: [{ uid: 'u-1', account_id: { iban: 'LT123456789012345678' }, name: 'Main', currency: 'EUR' }] }) });
+    try {
+      const { createSession } = await import('../../../../api/services/money/feeds/enableBanking.js');
+      const s = await createSession('code');
+      expect(s).toMatchObject({ sessionId: 's9', bankName: 'Revolut', validUntil: '2027-03-01T00:00:00Z' });
+      expect(s.accounts[0]).toMatchObject({ uid: 'u-1', iban: 'LT123456789012345678', name: 'Main' });
+    } finally {
+      global.fetch = saved.fetch;
+      if (saved.id) process.env.ENABLE_BANKING_APP_ID = saved.id; else delete process.env.ENABLE_BANKING_APP_ID;
+      if (saved.key) process.env.ENABLE_BANKING_PRIVATE_KEY = saved.key; else delete process.env.ENABLE_BANKING_PRIVATE_KEY;
+    }
+  });
+});

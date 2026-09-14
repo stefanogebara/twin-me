@@ -307,10 +307,11 @@ export async function userForCaptureKey(keyHash) {
 }
 
 /** Persist the accounts a bank authorisation returned. */
-export async function saveBankAccounts(userId, { sessionId, validUntil, accounts }) {
+export async function saveBankAccounts(userId, { sessionId, validUntil, accounts, bankName = null }) {
   const rows = accounts.map((a) => ({
     user_id: userId, provider: 'enablebanking', provider_account_id: a.uid, name: a.name, currency: a.currency || 'EUR',
     iban_mask: a.iban ? `${a.iban.slice(0, 4)} **** ${a.iban.slice(-4)}` : null, consent_expires_at: validUntil, session_id: sessionId,
+    bank_name: bankName,
   }));
   const { data, error } = await supabaseAdmin.from('money_accounts').upsert(rows, { onConflict: 'user_id,provider,provider_account_id' }).select();
   if (error) throw new Error(`accounts upsert failed: ${error.message}`);
@@ -344,7 +345,7 @@ export async function bankNeedsReconnect(userId) {
 }
 
 export async function listBankAccounts(userId) {
-  const { data } = await supabaseAdmin.from('money_accounts').select('id, provider, provider_account_id, name, iban_mask, currency, consent_expires_at, last_pulled_at').eq('user_id', userId).eq('provider', 'enablebanking');
+  const { data } = await supabaseAdmin.from('money_accounts').select('id, provider, provider_account_id, name, iban_mask, currency, consent_expires_at, last_pulled_at, bank_name').eq('user_id', userId).eq('provider', 'enablebanking');
   /* A reconnect gives the same account a new provider id. One account is one row to the
      person: the most recently read row per IBAN speaks for all of them. */
   const byIban = new Map();
@@ -368,21 +369,42 @@ export async function listBankAccounts(userId) {
  */
 export const FEED_BUDGET = 4;
 
-export async function feedBudget(userId, now = new Date()) {
+/**
+ * The reads of the last 24 hours, per account: the four-a-day rule is the bank's rule on
+ * one consent, so a second bank has its own four. Rows without an account id (the first
+ * days of the feed) count against every account.
+ */
+async function accessesByAccount(userId, now = new Date()) {
   const from = new Date(now.getTime() - 24 * 3600000).toISOString();
   const { data } = await supabaseAdmin
     .from('money_feed_accesses')
-    .select('at, outcome')
+    .select('at, outcome, account_id')
     .eq('user_id', userId).eq('attended', false)
     .gte('at', from)
     .order('at', { ascending: true });
-  const used = (data || []).length;
-  const oldest = data?.[0]?.at || null;
-  return {
-    used,
-    left: Math.max(0, FEED_BUDGET - used),
-    resets_at: oldest ? new Date(new Date(oldest).getTime() + 24 * 3600000).toISOString() : null,
-  };
+  const by = new Map();
+  const shared = [];
+  for (const row of data || []) {
+    if (!row.account_id) { shared.push(row); continue; }
+    if (!by.has(row.account_id)) by.set(row.account_id, []);
+    by.get(row.account_id).push(row);
+  }
+  return { by, shared };
+}
+
+function budgetOf(rows) {
+  const used = rows.length;
+  const oldest = rows[0]?.at || null;
+  return { used, left: Math.max(0, FEED_BUDGET - used), resets_at: oldest ? new Date(new Date(oldest).getTime() + 24 * 3600000).toISOString() : null };
+}
+
+/** The person's budget as one figure: the account with the least left speaks for all. */
+export async function feedBudget(userId, now = new Date()) {
+  const [{ by, shared }, accounts] = await Promise.all([accessesByAccount(userId, now), listBankAccounts(userId)]);
+  const ids = accounts.length ? accounts.map((a) => a.id) : [...by.keys()];
+  if (!ids.length) return budgetOf(shared);
+  const budgets = ids.map((id) => budgetOf(shared.concat(by.get(id) || []).sort((a, b) => (a.at < b.at ? -1 : 1))));
+  return budgets.reduce((worst, b) => (b.left < worst.left ? b : worst), budgets[0]);
 }
 
 async function recordAccess(userId, accountId, { attended = false, rowsSeen = null, outcome = 'ok' } = {}) {
@@ -391,16 +413,20 @@ async function recordAccess(userId, accountId, { attended = false, rowsSeen = nu
 }
 
 export async function pullBankFeed(userId, { since, attended = false, psu = null } = {}) {
-  const accounts = await listBankAccounts(userId);
+  let accounts = await listBankAccounts(userId);
   if (!accounts.length) return [];
   if (!attended) {
-    const budget = await feedBudget(userId);
-    if (budget.left <= 0) {
+    /* Each account has its own four a day. The ones with reads left are read; when none has,
+       the day is spent and the caller hears so. */
+    const { by, shared } = await accessesByAccount(userId);
+    const spent = new Set(accounts.filter((a) => budgetOf(shared.concat(by.get(a.id) || [])).left <= 0).map((a) => a.id));
+    if (spent.size === accounts.length) {
       const err = new Error('The bank allows four reads a day and today\'s are used.');
       err.code = 'feed_budget_spent';
-      err.budget = budget;
+      err.budget = await feedBudget(userId);
       throw err;
     }
+    accounts = accounts.filter((a) => !spent.has(a.id));
   }
   const summary = [];
   for (const acc of accounts) {
@@ -965,7 +991,7 @@ export async function predictionAccuracy(userId) {
 /** What the person has told the system about their own money. */
 /* Rows the calendar lens keeps for itself. They are working memory, not things the person
    said, and they never appear where facts are shown or phrased. */
-export const INTERNAL_FACT_KINDS = Object.freeze(['event_spend', 'event_spend_meta', 'home_point', 'inbox_address']);
+export const INTERNAL_FACT_KINDS = Object.freeze(['event_spend', 'event_spend_meta', 'calendar_feed', 'home_point', 'inbox_address']);
 
 export async function listFacts(userId, { includeInternal = false } = {}) {
   const { data } = await supabaseAdmin.from('money_facts').select('*').eq('user_id', userId).order('answered_at');

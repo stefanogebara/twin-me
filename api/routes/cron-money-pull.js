@@ -25,6 +25,7 @@ import { createLogger } from '../services/logger.js';
 import { pullBankFeed, enrichPlaces, refreshReadings, bankFeedUserIds } from '../services/money/store.js';
 import { isConfigured } from '../services/money/feeds/enableBanking.js';
 import { learnFromLedger } from '../services/money/predictions.js';
+import { refreshIfStale as refreshCalendar } from '../services/money/calendar.js';
 
 const log = createLogger('CronMoneyPull');
 const router = express.Router();
@@ -74,6 +75,12 @@ router.all('/', async (req, res) => {
       }
       /* New rows, or the day's first run: what the ledger says is recomputed. A bank that
          refused the read does not stop the clock-driven readings from moving. */
+      /* The calendar's read, once a day, so the diary cost and the covariates move for a
+         person who never opens the calendar. Google or a pasted link; quiet without either. */
+      if (daily) {
+        await refreshCalendar(userId)
+          .catch((e) => log.warn('calendar refresh failed', { userId, error: e.message }));
+      }
       if (fresh > 0 || daily) {
         const ok = await refreshReadings(userId).then(() => true)
           .catch((e) => { log.warn('readings refresh failed', { userId, error: e.message }); return false; });

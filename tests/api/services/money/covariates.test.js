@@ -37,4 +37,10 @@ describe('weekWord', () => {
     expect(weekWord([lecture], NOW)).toBeNull();
     expect(weekWord([exams], new Date('2026-09-25T12:00:00Z'))).toBeNull();
   });
+  it('calls a week with two things due a deadline week, below an exam week', () => {
+    const due = [ev('Assignment 3 [Derecho]', '2026-09-10T00:00:00Z', '2026-09-11T00:00:00Z', true), ev('Due: Essay 1', '2026-09-12T22:00:00Z', '2026-09-12T22:01:00Z')];
+    expect(weekWord(due, NOW)).toBe('a deadline week');
+    expect(weekWord(due.slice(0, 1), NOW)).toBeNull();
+    expect(weekWord([...due, exams], NOW)).toBe('an exam week');
+  });
 });

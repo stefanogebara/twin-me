@@ -14,7 +14,9 @@
  */
 
 import { supabaseAdmin } from '../database.js';
-import { awayWindows, weekWord, AWAY_WORDS, EXAM_WORDS, AWAY_MIN_DAYS } from './covariates.js';
+import { awayWindows, weekWord, AWAY_WORDS, EXAM_WORDS, DEADLINE_WORDS, AWAY_MIN_DAYS } from './covariates.js';
+import { parseIcs, feedKind, isFeedUrl, looksLikeIcs, FEED_LABELS } from './ics.js';
+import crypto from 'node:crypto';
 import { createLogger } from '../logger.js';
 import { createCalendarClient } from '../calendar/client.js';
 import { getValidAccessToken } from '../tokenRefreshService.js';
@@ -38,6 +40,12 @@ export const SNAPSHOT_DAYS = 31;
 /** Facts kinds this module owns. */
 export const FACT_KIND = 'event_spend';
 export const META_KIND = 'event_spend_meta';
+/** A calendar link the person pasted (Canvas, Blackboard, any .ics): one fact per link. */
+export const FEED_KIND = 'calendar_feed';
+export const MAX_FEEDS = 4;
+/** A feed larger than this is not a student's calendar. */
+export const FEED_MAX_BYTES = 2 * 1024 * 1024;
+export const FEED_TIMEOUT_MS = 10000;
 
 const CHANNELS_NOT_SPENDING = new Set(['transfer', 'bizum']);
 
@@ -343,28 +351,104 @@ async function token(userId) {
   return { accessToken: r.accessToken, needsReconnect: false, error: null };
 }
 
-/** Whether a usable Google Calendar connection exists. */
+/* ------------------------------------------------------------------------ feeds: pasted links */
+
+/** The links the person pasted, from their facts. Pure. */
+export function feedsFromFacts(facts) {
+  return (Array.isArray(facts) ? facts : [])
+    .filter((f) => f.kind === FEED_KIND && f.value)
+    .map((f) => ({ id: f.subject, kind: f.subject_label || feedKind(f.value), label: FEED_LABELS[f.subject_label || feedKind(f.value)] || FEED_LABELS.ics, url: f.value, added_at: f.answered_at || null }));
+}
+
+export async function listFeeds(userId) {
+  return feedsFromFacts(await listFacts(userId, { includeInternal: true }));
+}
+
+/** One link, fetched with a size cap and a timeout, parsed. Throws with a plain message. */
+export async function fetchFeed(url, { fetchImpl = fetch } = {}) {
+  if (!isFeedUrl(url)) throw new Error('That is not a link this can read. It has to start with https.');
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), FEED_TIMEOUT_MS);
+  let text;
+  try {
+    const r = await fetchImpl(url, { signal: controller.signal, redirect: 'follow', headers: { accept: 'text/calendar, text/plain;q=0.5, */*;q=0.1' } });
+    if (!r.ok) throw new Error(`The link answered ${r.status}.`);
+    const len = Number(r.headers.get('content-length') || 0);
+    if (len > FEED_MAX_BYTES) throw new Error('That calendar is too large to be a person\'s.');
+    text = await r.text();
+  } catch (e) {
+    throw new Error(e.name === 'AbortError' ? 'The link did not answer in time.' : e.message);
+  } finally { clearTimeout(timer); }
+  if (text.length > FEED_MAX_BYTES) throw new Error('That calendar is too large to be a person\'s.');
+  if (!looksLikeIcs(text)) throw new Error('The link did not return a calendar. In Canvas it is under Calendar, Calendar feed; in Blackboard under Calendar, Get external calendar link.');
+  const kind = feedKind(url);
+  return { kind, events: parseIcs(text, { source: kind }) };
+}
+
+/** Add a link: fetched once to prove it reads, then kept as one fact. */
+export async function addFeed(userId, url, { fetchImpl = fetch } = {}) {
+  const existing = await listFeeds(userId);
+  if (existing.some((f) => f.url === url)) return { ...existing.find((f) => f.url === url), events: null, already: true };
+  if (existing.length >= MAX_FEEDS) throw new Error(`Four links is the most; remove one first.`);
+  const { kind, events } = await fetchFeed(url, { fetchImpl });
+  const id = crypto.createHash('sha256').update(String(url)).digest('hex').slice(0, 16);
+  const nowIso = new Date().toISOString();
+  const { error } = await supabaseAdmin.from('money_facts').upsert(
+    { user_id: userId, kind: FEED_KIND, subject: id, subject_label: kind, value: url, amount: null, source: 'asked', answered_at: nowIso },
+    { onConflict: 'user_id,kind,subject' },
+  );
+  if (error) throw new Error(error.message);
+  return { id, kind, label: FEED_LABELS[kind], url, added_at: nowIso, events: events.length, already: false };
+}
+
+export async function removeFeed(userId, id) {
+  const { error } = await supabaseAdmin.from('money_facts').delete().eq('user_id', userId).eq('kind', FEED_KIND).eq('subject', String(id));
+  if (error) throw new Error(error.message);
+}
+
+/** Every feed's events inside a window; a feed that fails is skipped and named in the log. */
+export async function feedEvents(feeds, fromISO, toISO, { fetchImpl = fetch } = {}) {
+  const from = ms(fromISO); const to = ms(toISO);
+  const out = [];
+  for (const f of feeds || []) {
+    try {
+      const { events } = await fetchFeed(f.url, { fetchImpl });
+      for (const e of events) if (ms(e.end || e.start) >= from && ms(e.start) <= to) out.push(e);
+    } catch (e) {
+      log.warn(`calendar feed skipped: ${f.label}: ${e.message}`);
+    }
+  }
+  return out;
+}
+
+/** Whether any calendar source exists: Google, or a pasted link. */
 export async function calendarStatus(userId) {
-  const t = await token(userId);
-  return { connected: Boolean(t.accessToken), needsReconnect: t.needsReconnect };
+  const [t, feeds] = await Promise.all([token(userId), listFeeds(userId).catch(() => [])]);
+  return { connected: Boolean(t.accessToken) || feeds.length > 0, google: Boolean(t.accessToken), needsReconnect: t.needsReconnect, feeds };
 }
 
 /**
- * Events between two moments, from the primary calendar, normalised. One request to Google.
+ * Events between two moments, from every source: Google's primary calendar (one request)
+ * and each pasted link, normalised to one shape and sorted.
  */
-export async function eventsFor(userId, fromISO, toISO, { accessToken = null } = {}) {
+export async function eventsFor(userId, fromISO, toISO, { accessToken = null, feeds = null } = {}) {
   const tok = accessToken || (await token(userId)).accessToken;
-  if (!tok) return [];
-  const client = createCalendarClient({ accessToken: tok });
-  const params = new URLSearchParams({
-    timeMin: new Date(fromISO).toISOString(),
-    timeMax: new Date(toISO).toISOString(),
-    singleEvents: 'true',
-    orderBy: 'startTime',
-    maxResults: '2500',
-  });
-  const data = await client.get(`/calendars/primary/events?${params.toString()}`);
-  return (data?.items || []).map(normaliseEvent).filter(Boolean);
+  let google = [];
+  if (tok) {
+    const client = createCalendarClient({ accessToken: tok });
+    const params = new URLSearchParams({
+      timeMin: new Date(fromISO).toISOString(),
+      timeMax: new Date(toISO).toISOString(),
+      singleEvents: 'true',
+      orderBy: 'startTime',
+      maxResults: '2500',
+    });
+    const data = await client.get(`/calendars/primary/events?${params.toString()}`);
+    google = (data?.items || []).map(normaliseEvent).filter(Boolean);
+  }
+  const links = feeds || (await listFeeds(userId).catch(() => []));
+  const fromFeeds = links.length ? await feedEvents(links, fromISO, toISO) : [];
+  return google.concat(fromFeeds).sort((a, b) => ms(a.start) - ms(b.start));
 }
 
 async function categoryLookup(transactions) {
@@ -413,7 +497,7 @@ export async function learnEventSpend(userId, { now = new Date(), events = null 
   /* The past kept slim, for the covariates: only events that are windows or name a kind
      of week (covariates.js), as title and dates. The ninety days of the rest are not stored. */
   const past = evs
-    .filter((e) => ms(e.start) < now.getTime() && (AWAY_WORDS.test(String(e.title).toLowerCase()) || EXAM_WORDS.test(String(e.title).toLowerCase()) || (e.all_day && (ms(e.end) - ms(e.start)) / DAY_MS >= AWAY_MIN_DAYS)))
+    .filter((e) => ms(e.start) < now.getTime() && (AWAY_WORDS.test(String(e.title).toLowerCase()) || EXAM_WORDS.test(String(e.title).toLowerCase()) || DEADLINE_WORDS.test(String(e.title).toLowerCase()) || (e.all_day && (ms(e.end) - ms(e.start)) / DAY_MS >= AWAY_MIN_DAYS)))
     .map((e) => ({ title: e.title, start: e.start, end: e.end, all_day: e.all_day }));
   const meta = { learned_at: now.toISOString(), routine: routineSummary(evs, { now }), events_seen: evs.length, snapshot, past };
   await persist(userId, learned, meta);
@@ -429,11 +513,11 @@ export async function ahead(userId, days = 7, { now = new Date() } = {}) {
   const facts = await listFacts(userId, { includeInternal: true });
   const stored = calendarFromFacts(facts, { now });
   if (!status.connected) {
-    return { connected: false, needsReconnect: status.needsReconnect, ahead: [], free_days: [], routine: stored.routine, learned: stored.learned, total_expected: 0 };
+    return { connected: false, google: false, feeds: [], needsReconnect: status.needsReconnect, ahead: [], free_days: [], routine: stored.routine, learned: stored.learned, total_expected: 0 };
   }
   const from = new Date(now.getTime() - LEARN_DAYS * DAY_MS).toISOString();
   const to = new Date(now.getTime() + Math.max(days, SNAPSHOT_DAYS) * DAY_MS).toISOString();
-  const events = await eventsFor(userId, from, to);
+  const events = await eventsFor(userId, from, to, { feeds: status.feeds });
   let learned = stored.learned;
   const stale = !stored.learned_at || now.getTime() - ms(stored.learned_at) > LEARN_STALE_MS;
   if (stale) {
@@ -446,5 +530,19 @@ export async function ahead(userId, days = 7, { now = new Date() } = {}) {
   }
   const window = aheadFrom(events, learned, { now, days });
   const routine = stale ? routineSummary(events, { now }) : stored.routine;
-  return { connected: true, needsReconnect: false, ...window, routine, learned: learned.slice(0, 8) };
+  return { connected: true, google: status.google, feeds: status.feeds, needsReconnect: false, ...window, routine, learned: learned.slice(0, 8) };
+}
+
+/**
+ * The daily pass for the cron: learn again from every source when the last pass is older
+ * than the stale window, so the covariates move for a person who never opens the calendar.
+ * Silent when nothing is connected.
+ */
+export async function refreshIfStale(userId, { now = new Date() } = {}) {
+  const status = await calendarStatus(userId);
+  if (!status.connected) return { refreshed: false, reason: 'not connected' };
+  const stored = calendarFromFacts(await listFacts(userId, { includeInternal: true }), { now });
+  if (stored.learned_at && now.getTime() - ms(stored.learned_at) <= LEARN_STALE_MS) return { refreshed: false, reason: 'fresh' };
+  const r = await learnEventSpend(userId, { now });
+  return { refreshed: true, ...r };
 }

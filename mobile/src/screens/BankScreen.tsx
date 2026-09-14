@@ -23,6 +23,7 @@ export interface BankScreenProps {
 interface BankAccount {
   id: string;
   name: string | null;
+  bank_name?: string | null;
   iban_mask: string | null;
   consent_expires_at: string | null;
 }
@@ -35,10 +36,10 @@ type Phase =
 const RETURN_URL = 'twinme://bank';
 const FAILED = 'The bank did not answer. Try again in a moment.';
 
-async function startAuthorisation(): Promise<string | null> {
+async function startAuthorisation(bank: string = 'Banco Santander'): Promise<string | null> {
   const res = await authFetch('/money/bank/connect', {
     method: 'POST',
-    body: JSON.stringify({ bank: 'Banco Santander', country: 'ES' }),
+    body: JSON.stringify({ bank, country: 'ES' }),
   });
   if (!res.ok) return null;
   const json = (await res.json().catch(() => null)) as { success?: boolean; data?: { url?: string } } | null;
@@ -61,10 +62,10 @@ export default function BankScreen({ onDone, onSkip }: BankScreenProps) {
   const insets = useSafeAreaInsets();
   const [phase, setPhase] = useState<Phase>({ kind: 'idle', failed: false });
 
-  const connect = useCallback(async () => {
+  const connect = useCallback(async (bank: string = 'Banco Santander') => {
     setPhase({ kind: 'atBank' });
     try {
-      const url = await startAuthorisation();
+      const url = await startAuthorisation(bank);
       if (!url) { setPhase({ kind: 'idle', failed: true }); return; }
       const result = await WebBrowser.openAuthSessionAsync(url, RETURN_URL);
       const accounts = await listAccounts();
@@ -115,7 +116,7 @@ export default function BankScreen({ onDone, onSkip }: BankScreenProps) {
                   <React.Fragment key={a.id}>
                     <Row
                       lead={ending(a.iban_mask)}
-                      label={a.name || 'Santander'}
+                      label={a.bank_name === 'Revolut' ? 'Revolut' : (a.name || 'Santander')}
                       sub={until ? `Confirm again by ${until}.` : undefined}
                     />
                     <Hairline />
@@ -130,9 +131,12 @@ export default function BankScreen({ onDone, onSkip }: BankScreenProps) {
         ) : (
           <View style={s.controls}>
             <Enter index={2}>
-              <Pill label="Connect Santander" onPress={connect} />
+              <Pill label="Connect Santander" onPress={() => void connect('Banco Santander')} />
             </Enter>
             <Enter index={3}>
+              <Pill label="Connect Revolut" ghost onPress={() => void connect('Revolut')} />
+            </Enter>
+            <Enter index={4}>
               <Pill label="Not now" ghost onPress={onSkip} />
             </Enter>
             {phase.failed ? (
