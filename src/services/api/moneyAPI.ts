@@ -85,7 +85,11 @@ export type MoneyAnswer = {
   /** Their own words, when a choice was not enough. */
   note?: string;
 };
-export type MoneyAccount = { id: string; provider: string; name: string | null; iban_mask: string | null; currency: string; consent_expires_at: string | null; last_pulled_at: string | null; needs_reconnect?: boolean; bank_name?: string | null };
+export type MoneyAccount = {
+  id: string; provider: string; name: string | null; iban_mask: string | null; currency: string; consent_expires_at: string | null; last_pulled_at: string | null; needs_reconnect?: boolean; bank_name?: string | null;
+  /** The bank's own figure for what is in the account, read with the person present; the type says what it counts. */
+  balance?: number | string | null; balance_type?: string | null; balance_at?: string | null;
+};
 /** A pasted calendar link: Canvas, Blackboard, or any .ics. Only ever a label and a link. */
 export type MoneyCalendarFeed = { id: string; kind: string; label: string; added_at: string | null };
 export type MoneyCalendar = { connected: boolean; google?: boolean; feeds?: MoneyCalendarFeed[]; needsReconnect?: boolean; routine?: string | null; total_expected?: number | null; ahead?: unknown[] };

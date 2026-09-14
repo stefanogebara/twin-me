@@ -191,6 +191,22 @@ describe('two identical pending rows in one read', () => {
   });
 });
 
+describe('pickBalance', () => {
+  it('prefers the available figure, then expected, then the accounting balance, and marks a credit line', async () => {
+    const { pickBalance } = await import('../../../../api/services/money/feeds/enableBanking.js');
+    const santander = [
+      { name: 'closingBooked', balance_amount: { currency: 'EUR', amount: '1250.00' }, balance_type: 'CLBD', reference_date: '2026-09-14' },
+      { name: 'expected', balance_amount: { currency: 'EUR', amount: '1198.55' }, balance_type: 'XPCD', last_change_date_time: '2026-09-14T17:47:00Z' },
+    ];
+    expect(pickBalance(santander)).toMatchObject({ amount: 1198.55, type: 'XPCD', credit_included: false, at: '2026-09-14T17:47:00Z' });
+    const revolut = [{ balance_amount: { currency: 'EUR', amount: '210.4' }, balance_type: 'ITAV' }, { balance_amount: { currency: 'EUR', amount: '210.4' }, balance_type: 'CLBD' }];
+    expect(pickBalance(revolut)).toMatchObject({ amount: 210.4, type: 'ITAV', at: null });
+    expect(pickBalance([{ balance_amount: { currency: 'EUR', amount: '500' }, balance_type: 'CLBD', credit_limit_included: true }]).credit_included).toBe(true);
+    expect(pickBalance([])).toBeNull();
+    expect(pickBalance([{ balance_amount: { amount: 'nan' }, balance_type: 'ITAV' }])).toBeNull();
+  });
+});
+
 describe('createSession', () => {
   it('keeps the bank\'s name the session came back with, so a second bank is told apart', async () => {
     const saved = { fetch: global.fetch, id: process.env.ENABLE_BANKING_APP_ID, key: process.env.ENABLE_BANKING_PRIVATE_KEY };

@@ -14,7 +14,7 @@ import { createLogger } from '../logger.js';
 import { reconcile } from './ledger.js';
 import { detectRecurring } from './recurring.js';
 import { projectMonth } from './projection.js';
-import { fetchTransactions, toSighting, distinctPending } from './feeds/enableBanking.js';
+import { fetchTransactions, toSighting, distinctPending, fetchBalances } from './feeds/enableBanking.js';
 import { readLedger, monthSegments } from './analyst.js';
 import { spendingRule, markCounted, personRoles } from './spending.js';
 import { calibrate, dayStrip } from './calibration.js';
@@ -358,7 +358,7 @@ export function newestConsent(rows) {
 }
 
 export async function listBankAccounts(userId) {
-  const { data } = await supabaseAdmin.from('money_accounts').select('id, provider, provider_account_id, name, iban_mask, currency, consent_expires_at, last_pulled_at, bank_name, session_id, created_at').eq('user_id', userId).eq('provider', 'enablebanking');
+  const { data } = await supabaseAdmin.from('money_accounts').select('id, provider, provider_account_id, name, iban_mask, currency, consent_expires_at, last_pulled_at, bank_name, session_id, created_at, balance, balance_type, balance_at').eq('user_id', userId).eq('provider', 'enablebanking');
   /* A reconnect gives the same account a new provider id and a fresh row with nothing read
      yet. One account is one row to the person, and the row that speaks for it is the one
      whose consent runs longest: a reconnect took effect the moment it was saved. */
@@ -504,9 +504,19 @@ export async function pullBankFeed(userId, { since, attended = false, psu = null
       summary.push({ account: acc.name || acc.iban_mask, bank: acc.bank_name || null, seen: 0, created: 0, error: error.code || 'read_failed' });
       continue;
     }
-    await supabaseAdmin.from('money_accounts').update({ last_pulled_at: new Date().toISOString() }).eq('id', acc.id);
+    const stamp = { last_pulled_at: new Date().toISOString() };
+    /* The bank's own figure for what is in the account, read only with the person present so
+       it never spends one of the four unattended reads. A failure here is not a failed pull. */
+    let balance = null;
+    if (attended) {
+      try {
+        balance = await fetchBalances(acc.provider_account_id, { psu });
+        if (balance) Object.assign(stamp, { balance: balance.amount, balance_type: balance.type + (balance.credit_included ? '/credit' : ''), balance_at: new Date().toISOString() });
+      } catch (error) { log.warn(`balance not read: ${error.message.slice(0, 120)}`); }
+    }
+    await supabaseAdmin.from('money_accounts').update(stamp).eq('id', acc.id);
     await recordAccess(userId, acc.id, { attended, rowsSeen: seen });
-    summary.push({ account: acc.name || acc.iban_mask, bank: acc.bank_name || null, seen, created });
+    summary.push({ account: acc.name || acc.iban_mask, bank: acc.bank_name || null, seen, created, balance: balance ? balance.amount : null });
   }
   if (failures.length && failures.length === accounts.length) throw failures[0];
   return summary;

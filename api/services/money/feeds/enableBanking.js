@@ -98,6 +98,39 @@ export async function createSession(code) {
   };
 }
 
+/**
+ * The balance types, in the order that best says "money available now": ISO 20022 interim
+ * available, then the Berlin Group's expected (booked plus pending, what Santander sends
+ * beside its closing booked), then closing available, then the accounting balance.
+ * Source: enablebanking.com/docs/api/reference, Redsys Santander TPP guide 1.9.4.1 s.9.6.
+ */
+export const BALANCE_PREFERENCE = Object.freeze(['ITAV', 'XPCD', 'CLAV', 'ITBD', 'CLBD', 'OTHR']);
+
+/** Pick the one balance to show from a HalBalances array. Pure. Null when nothing usable. */
+export function pickBalance(balances = []) {
+  const rows = (balances || []).filter((b) => b && b.balance_amount && Number.isFinite(Number(b.balance_amount.amount)));
+  if (!rows.length) return null;
+  const rank = (t) => { const i = BALANCE_PREFERENCE.indexOf(String(t || '').toUpperCase()); return i === -1 ? BALANCE_PREFERENCE.length : i; };
+  const best = [...rows].sort((a, b) => rank(a.balance_type) - rank(b.balance_type))[0];
+  return {
+    amount: Math.round(Number(best.balance_amount.amount) * 100) / 100,
+    currency: best.balance_amount.currency || 'EUR',
+    type: String(best.balance_type || 'OTHR').toUpperCase(),
+    /* A figure with an overdraft line inside it is not the person's money. */
+    credit_included: Boolean(best.credit_limit_included),
+    at: best.last_change_date_time || (best.reference_date ? `${best.reference_date}T00:00:00Z` : null),
+  };
+}
+
+/**
+ * The account's balances. Called only with the person present (PSU headers): a balance
+ * read is an account access like any other, and the four a day are spent on transactions.
+ */
+export async function fetchBalances(accountUid, { psu = null } = {}) {
+  const j = await api(`/accounts/${encodeURIComponent(accountUid)}/balances`, { headers: psuHeaders(psu) });
+  return pickBalance(j?.balances || []);
+}
+
 /** One page of transactions for an account since a date (YYYY-MM-DD). */
 /* The bank ends a session on its own schedule, and after that every read answers 404 with
    SESSION_DOES_NOT_EXIST or ACCOUNT_DOES_NOT_EXIST. That is not a server fault and must not

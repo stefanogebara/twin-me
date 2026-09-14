@@ -21,7 +21,7 @@ import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { cosmos, dayMonth, euro } from '../constants/cosmos';
 import {
   moneyApi, currentMonthStart,
-  type MoneyCategories, type MoneyForecast, type MoneyMonth, type MoneyReading, type MoneyRecurring, type MoneyToday,
+  type MoneyAccount, type MoneyCategories, type MoneyForecast, type MoneyMonth, type MoneyReading, type MoneyRecurring, type MoneyToday,
 } from '../services/moneyApi';
 import { Body, Counting, Display, Enter, Hairline, Micro, Page, Pill, Row, Section, Small, Title } from '../ui/primitives';
 import { Band, Strip } from '../ui/figures';
@@ -118,6 +118,17 @@ export default function MonthScreen({ onOpenQuestions, questionCount, onOpenLedg
 
   const [today, setToday] = useState<MoneyToday | null>(null);
   const [needsReconnect, setNeedsReconnect] = useState(false);
+  const [accounts, setAccounts] = useState<MoneyAccount[]>([]);
+  /* What the bank says is in each account, named as available, never as safe to spend. */
+  const balanceLine = useMemo(() => {
+    const withBalance = accounts.filter((a) => a.balance !== null && a.balance !== undefined && !(a.balance_type || '').includes('/credit'));
+    if (!withBalance.length) return null;
+    const parts = withBalance.map((a) => `${euro(Number(a.balance))} in ${a.bank_name === 'Revolut' ? 'Revolut' : 'Santander'}`);
+    const newest = withBalance.map((a) => a.balance_at).filter(Boolean).sort().pop();
+    const when = newest ? new Date(newest as string).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : null;
+    const pendingIn = withBalance.some((a) => /^(XPCD|ITAV)/.test(a.balance_type || ''));
+    return `${parts.join(', ')} available${when ? `, read at ${when}` : ''}${pendingIn ? ', pending charges included.' : ', pending charges not yet counted.'}`;
+  }, [accounts]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [unreachable, setUnreachable] = useState(false);
@@ -141,7 +152,7 @@ export default function MonthScreen({ onOpenQuestions, questionCount, onOpenLedg
     /* The refresh call only learns the session has ended when it is the call that hits it;
        once the day's read budget is spent no call is made at all. The account row carries the
        last recorded outcome, so the month still says why it stopped moving. */
-    if (ac.status === 'fulfilled' && ac.value.some((a) => a.needs_reconnect)) setNeedsReconnect(true);
+    if (ac.status === 'fulfilled') { setAccounts(ac.value); if (ac.value.some((a) => a.needs_reconnect)) setNeedsReconnect(true); }
     if (f.status === 'fulfilled') setForecast(f.value);
     if (l.status === 'fulfilled') setLedgerLines(l.value.length);
     if (rd.status === 'fulfilled') setReadings(rd.value);
@@ -288,6 +299,7 @@ export default function MonthScreen({ onOpenQuestions, questionCount, onOpenLedg
                         {today.over ? 'Nothing.' : euro(today.amount)}
                       </Title>
                       {today.sentence ? <Small style={layout.afterSmall}>{today.sentence}</Small> : null}
+                      {balanceLine ? <Small style={layout.afterSmall}>{balanceLine}</Small> : null}
                     </>
                   )}
                 </View>

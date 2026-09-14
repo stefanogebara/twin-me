@@ -192,6 +192,17 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
   }, [load]);
 
   const empty = loaded && ledger.length === 0;
+  /* What the bank says is in each account, freshest read named. XPCD and ITAV include pending
+     charges; a figure with a credit line in it is not shown as the person's. */
+  const balanceLine = useMemo(() => {
+    const withBalance = accounts.filter((a) => a.balance !== null && a.balance !== undefined && !(a.balance_type || '').includes('/credit'));
+    if (!withBalance.length) return null;
+    const parts = withBalance.map((a) => `${euro(Number(a.balance))} in ${bankLabel(a.bank_name)}${withBalance.filter((b) => (b.bank_name || null) === (a.bank_name || null)).length > 1 && a.iban_mask ? ` ${a.iban_mask.slice(-4)}` : ''}`);
+    const newest = withBalance.map((a) => a.balance_at).filter(Boolean).sort().pop();
+    const when = newest ? new Date(newest).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : null;
+    const pendingIn = withBalance.some((a) => /^(XPCD|ITAV)/.test(a.balance_type || ''));
+    return `${parts.join(', ')} available${when ? `, read at ${when}` : ''}${pendingIn ? ', pending charges included' : ', pending charges not yet counted'}.`;
+  }, [accounts]);
   /* The same days of every month, for the pair bars on the month rows. */
   const todayDay = new Date().getUTCDate();
   const pairMax = Math.max(0, ...months.map((m) => Number(m.spent_to_day) || 0));
@@ -410,6 +421,9 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                     <h1>{today.over ? 'Nothing today.' : `${euro(today.amount)} today.`}</h1>
                     {/* One line: the basis. The month lives in the band's two labels below. */}
                     {today.sentence ? <p className="mv-sub">{today.sentence}</p> : null}
+                    {/* The real thing under it: what the bank says is in the account, read with you
+                        present, named as available and never as safe to spend. */}
+                    {balanceLine ? <p className="mv-sub">{balanceLine}</p> : null}
                   </>
                 ) : (
                   <>
