@@ -107,7 +107,7 @@ export function parseIcs(text, opts = {}) {
           end,
           location: ev.location || null,
           attendees_count: 0,
-          recurring: ev.rrule ? `${source}:${ev.id || ev.title || ''}` : null,
+          recurring: ev.rrule ? `${source}:${String(ev.id || ev.title || '').toLowerCase().replace(/[^a-z0-9_-]+/g, '-').slice(0, 60)}` : null,
           all_day: Boolean(ev.all_day),
           source,
         });

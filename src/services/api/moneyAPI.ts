@@ -85,7 +85,7 @@ export type MoneyAnswer = {
 };
 export type MoneyAccount = { id: string; provider: string; name: string | null; iban_mask: string | null; currency: string; consent_expires_at: string | null; last_pulled_at: string | null; needs_reconnect?: boolean; bank_name?: string | null };
 /** A pasted calendar link: Canvas, Blackboard, or any .ics. Only ever a label and a link. */
-export type MoneyCalendarFeed = { id: string; kind: string; label: string; url: string; added_at: string | null };
+export type MoneyCalendarFeed = { id: string; kind: string; label: string; added_at: string | null };
 export type MoneyCalendar = { connected: boolean; google?: boolean; feeds?: MoneyCalendarFeed[]; needsReconnect?: boolean; routine?: string | null; total_expected?: number | null; ahead?: unknown[] };
 /** The two banks the product offers by name; the aggregator lists more, by country. */
 export const BANKS = [{ name: 'Banco Santander', label: 'Santander' }, { name: 'Revolut', label: 'Revolut' }] as const;

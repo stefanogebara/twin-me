@@ -22,6 +22,8 @@ vi.mock('../../../api/services/money/store.js', () => ({
 vi.mock('../../../api/services/money/feeds/enableBanking.js', () => ({ isConfigured: () => true }));
 vi.mock('../../../api/services/money/predictions.js', () => ({ learnFromLedger: (...a) => learn(...a) }));
 vi.mock('../../../api/services/cronLogger.js', () => ({ wasRecentlyRun: async () => false, logCronExecution: async () => {} }));
+const calendar = vi.fn();
+vi.mock('../../../api/services/money/calendar.js', () => ({ refreshIfStale: (...a) => calendar(...a) }));
 
 const { default: router, isDailyRun } = await import('../../../api/routes/cron-money-pull.js');
 
@@ -34,7 +36,7 @@ const AUTH = { Authorization: 'Bearer test-cron-secret' };
 
 describe('cron-money-pull', () => {
   beforeEach(() => {
-    pull.mockReset(); refresh.mockReset(); places.mockReset(); learn.mockReset();
+    pull.mockReset(); refresh.mockReset(); places.mockReset(); learn.mockReset(); calendar.mockReset(); calendar.mockResolvedValue({ refreshed: false });
     places.mockResolvedValue({ placed: 0, left: 0 });
     refresh.mockResolvedValue({ findings: [] });
     learn.mockResolvedValue({ recorded: 0, scored: 0 });
@@ -56,6 +58,7 @@ describe('cron-money-pull', () => {
     expect(refresh.mock.calls.map((c) => c[0])).toEqual(['u1']);
     expect(places).toHaveBeenCalledTimes(1);
     expect(learn).toHaveBeenCalledTimes(2);
+    expect(calendar).not.toHaveBeenCalled();
   });
 
   it('on the day\'s first run, recomputes every reading, even for a bank that refused the read', async () => {
@@ -69,6 +72,7 @@ describe('cron-money-pull', () => {
     expect(refresh.mock.calls.map((c) => c[0])).toEqual(['u1', 'u2']);
     expect(places).not.toHaveBeenCalled();
     expect(learn).toHaveBeenCalledTimes(2);
+    expect(calendar.mock.calls.map((c) => c[0])).toEqual(['u1', 'u2']);
   });
 
   it('a refresh that fails is counted as not refreshed and does not stop the run', async () => {

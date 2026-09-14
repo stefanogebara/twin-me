@@ -50,7 +50,7 @@ import { isConfigured, listBanks, startAuthorisation, createSession } from '../s
 import { answer as chatAnswer, answerStream as chatAnswerStream, act as chatAct } from '../services/money/chat.js';
 import { ahead as calendarAhead, learnEventSpend, addFeed as addCalendarFeed, removeFeed as removeCalendarFeed } from '../services/money/calendar.js';
 import { todayAllowance } from '../services/money/allowance.js';
-import { bankNeedsReconnect } from '../services/money/store.js';
+import { reconnectByAccount } from '../services/money/store.js';
 import { guessHome, savedHome, searchAreas, staticMap, saveHome } from '../services/money/home.js';
 import { encryptState } from '../services/encryption.js';
 import { getAppUrl } from '../utils/oauthUtils.js';
@@ -209,13 +209,14 @@ router.post('/bank/connect', async (req, res) => {
 
 router.get('/bank/accounts', async (req, res) => {
   try {
-    const [accounts, needsReconnect] = await Promise.all([
+    const [accounts, gone] = await Promise.all([
       listBankAccounts(req.user.id),
-      bankNeedsReconnect(req.user.id).catch(() => false),
+      reconnectByAccount(req.user.id).catch(() => new Set()),
     ]);
-    /* The connection's state travels with the accounts: a month that stopped moving because
-       the bank ended the session must be able to say so wherever it is shown. */
-    res.json({ success: true, data: accounts.map((a) => ({ ...a, needs_reconnect: needsReconnect })) });
+    /* The connection's state travels with the accounts, each with its own: a month that
+       stopped moving because one bank ended its session must say which bank, and not send
+       the person to reconnect the other. */
+    res.json({ success: true, data: accounts.map(({ session_id, created_at, ...a }) => ({ ...a, needs_reconnect: gone.has(a.id) })) });
   } catch (error) { log.error('bank accounts failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
 });
 
@@ -615,8 +616,13 @@ router.post('/calendar/feed', async (req, res) => {
     await learnEventSpend(req.user.id).catch((e) => log.warn('calendar learn after feed failed', { error: e.message }));
     res.json({ success: true, data: feed });
   } catch (error) {
-    log.warn('calendar feed refused', { error: error.message });
-    res.status(400).json({ success: false, error: error.message });
+    /* The person hears one of the two sentences about their link, or that four is the most;
+       a failure of ours is a 500 and stays in the log. */
+    if (error.code === 'feed_unreadable' || error.code === 'feed_not_calendar' || error.code === 'feed_limit') {
+      return res.status(400).json({ success: false, error: error.message });
+    }
+    log.error('calendar feed failed', { error: error.message });
+    res.status(500).json({ success: false, error: 'Internal server error' });
   }
 });
 router.delete('/calendar/feed/:id', async (req, res) => {

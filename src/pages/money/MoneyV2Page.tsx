@@ -140,7 +140,8 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
   useEffect(() => { void load(); }, [load]);
   useEffect(() => { moneyAPI.inbox().then(setInbox).catch(() => setInbox(null)); }, []);
   const loadCalendar = useCallback(() => moneyAPI.calendar().then(setCalendar).catch(() => setCalendar({ connected: false })), []);
-  useEffect(() => { void loadCalendar(); }, [loadCalendar]);
+  /* Only You shows the calendar, and reading it fetches every pasted link: not on every page. */
+  useEffect(() => { if (view === 'you') void loadCalendar(); }, [view, loadCalendar]);
   const loadYou = useCallback(async () => {
     const [f, q] = await Promise.allSettled([moneyAPI.facts(), moneyAPI.questions()]);
     setFacts(f.status === 'fulfilled' ? f.value : []);
@@ -149,8 +150,11 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
   useEffect(() => { if (view === 'you') void loadYou(); }, [view, loadYou]);
   async function forget(f: MoneyFact) {
     setBusy(`forget:${f.id}`); setNote(null);
-    try { await moneyAPI.deleteFact(f.id); await loadYou(); await load(); }
-    catch { setNote('That could not be forgotten. Try again.'); }
+    try {
+      const r = await moneyAPI.deleteFact(f.id);
+      if (!r.deleted) setNote('That one is not yours to forget here.');
+      await loadYou(); await load();
+    } catch { setNote('That could not be forgotten. Try again.'); }
     finally { setBusy(null); }
   }
   const copyInbox = useCallback(async () => {
@@ -178,7 +182,9 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
     const params = new URLSearchParams(window.location.search);
     const outcome = params.get('bank');
     if (!outcome) return;
-    setNote(outcome === 'connected' ? `${bankLabel(params.get('name'))} is connected. The first read is on its way.` : 'The bank connection did not go through. Try it again.');
+    /* The name comes back through the URL, so only a bank this page offers is said by name. */
+    const known = BANKS.find((b) => b.name === params.get('name'));
+    setNote(outcome === 'connected' ? `${known ? known.label : 'The bank'} is connected. The first read is on its way.` : 'The bank connection did not go through. Try it again.');
     window.history.replaceState(null, '', window.location.pathname + window.location.hash);
     if (outcome === 'connected') void moneyAPI.pull().then(() => load()).catch(() => { /* the note already says where we are */ });
   }, [load]);
@@ -190,7 +196,11 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
   /* The readings that changed something today come first: a change against the person's own
      past, an income that has not come, a cap or a keep, a charge the month cannot carry, a
      split still open, then the twin's own score, then the standing shapes of the ledger. */
-  const shown = useMemo(() => [...readings].sort((a, b) => readingRank(a.kind) - readingRank(b.kind)).slice(0, 3), [readings]);
+  const ranked = useMemo(() => [...readings].sort((a, b) => readingRank(a.kind) - readingRank(b.kind)), [readings]);
+  /* Only a reading that moved belongs under "What changed"; on a quiet week the heading says
+     what the list is instead of promising a change it does not hold. */
+  const changed = useMemo(() => ranked.filter((r) => readingRank(r.kind) < CHANGE_BOUNDARY), [ranked]);
+  const shown = (changed.length ? changed : ranked).slice(0, 3);
   /* One purchase makes p10, p50 and p90 the same euro, and reading the same number three
      times looks broken rather than honest. Say nothing about the month until the band opens. */
   const projectable = Boolean(forecast && forecast.projected_p90 - forecast.projected_p10 > 0.5);
@@ -398,7 +408,7 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
               the three that changed something today; the month carries all of them. */}
           {(view === 'today' || view === 'month') && readings.length ? (
             <section className="mv-section" id="readings">
-              <h2>{view === 'today' ? 'What changed.' : 'What the money says.'}</h2>
+              <h2>{view === 'today' && changed.length ? 'What changed.' : 'What the money says.'}</h2>
               {/* Quiet is a feature. Every other app manufactures a daily line; this one says how
                   long it has had nothing new to say, from the day each reading was first said. */}
               {quietDays !== null && quietDays >= 2 ? <p className="mv-sub">{`Nothing new for ${quietDays} days.`}</p> : null}
@@ -719,7 +729,8 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                       <span className="mv-icon" aria-hidden="true">{hasMark(MARK_FOR[bank.label]) ? <Mark name={MARK_FOR[bank.label]} /> : <Landmark size={16} />}</span>
                       <span className="mv-item-text">
                         <span className="mv-item-title">{bank.label}</span>
-                        <span className="mv-item-sub" aria-live="polite">{mine.length || first ? bankLine : 'Read four times a day, like the other.'}</span>
+                        {/* The booked line describes the accounts under this row, not the other bank's. */}
+                        <span className="mv-item-sub" aria-live="polite">{mine.length ? bankLine : first ? 'Read four times a day. You confirm it every six months.' : 'Read four times a day, like the other.'}</span>
                       </span>
                       {/* Only once the accounts are in: before that the row offered a black Connect
                           that turned into Read now a moment later. */}
@@ -912,6 +923,8 @@ function readingRank(kind: string) {
   const i = READING_ORDER.indexOf(kind);
   return i === -1 ? READING_ORDER.length : i;
 }
+/** Everything ranked before the twin's own score is a change; from there on it is a standing shape. */
+const CHANGE_BOUNDARY = READING_ORDER.indexOf('own_score');
 
 /** Where a euro amount falls on the band, 0..100, with the projected p90 as the right edge. */
 function pct(v: number, f: MoneyForecast) {
