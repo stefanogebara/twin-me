@@ -43,6 +43,8 @@ export const HABIT_MIN_TIMES = 6;
 export const WEEKDAY_MIN_PREVIOUS = 4;
 export const MAX_DELTAS = 3;
 
+import { awayDaysBetween } from './covariates.js';
+
 const DAY = 86400000;
 const EUR = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' });
 const euro = (n) => EUR.format(Math.abs(Number(n) || 0)).replace(/[\u00a0\u202f]/g, ' ').replace('\u20ac', 'EUR');
@@ -118,20 +120,24 @@ export function categoryDeltas(transactions, { categoryOf, now, isSpending } = {
   return out;
 }
 
-export function silenceDeltas(profiles, { now } = {}) {
+export function silenceDeltas(profiles, { now, away = [] } = {}) {
   const out = [];
   for (const p of profiles || []) {
     if (!p || !p.median_gap_days || p.median_gap_days > HABIT_MAX_GAP_DAYS || (p.times || 0) < HABIT_MIN_TIMES) continue;
-    const since = (now.getTime() - new Date(p.last_seen).getTime()) / DAY;
+    const lastMs = new Date(p.last_seen).getTime();
+    /* Days away (covariates.js) do not count against a habit: the clock runs on days here. */
+    const awayDays = awayDaysBetween(away, lastMs, now.getTime());
+    const since = (now.getTime() - lastMs) / DAY - awayDays;
     if (since < SILENCE_MIN_DAYS || since < SILENCE_GAPS * p.median_gap_days) continue;
     const days = Math.floor(since);
     const gap = Math.round(p.median_gap_days);
+    const awayWord = awayDays >= 1 ? `, ${Math.round(awayDays)} away not counted` : '';
     out.push({
       kind: 'delta_silence',
       month: dayOf(new Date(p.last_seen).getTime()),
-      sentence: `No ${p.name} in ${days} days; usually every ${gap === 1 ? 'day' : `${gap} days`}.`,
+      sentence: `No ${p.name} in ${days} days${awayWord}; usually every ${gap === 1 ? 'day' : `${gap} days`}.`,
       detail: `${p.times} times since ${new Date(p.first_seen).toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })}, about ${euro(p.typical_amount)} each.`,
-      numbers: { merchant_key: p.merchant_key, days_since: days, usual_gap_days: p.median_gap_days, times: p.times, typical_amount: p.typical_amount },
+      numbers: { merchant_key: p.merchant_key, days_since: days, away_days: awayDays, usual_gap_days: p.median_gap_days, times: p.times, typical_amount: p.typical_amount },
       receipts: [],
       evidence_count: p.times,
       change: (p.typical_amount || 0) * Math.max(1, days / Math.max(1, p.median_gap_days)),
@@ -191,12 +197,17 @@ export function paceDelta(transactions, { now, isSpending } = {}) {
 }
 
 /** The lines worth saying, largest change first, three at most. */
-export function deltaFindings({ transactions = [], profiles = [], categoryOf = null, isSpending = null, now = new Date() } = {}) {
+export function deltaFindings({ transactions = [], profiles = [], categoryOf = null, isSpending = null, now = new Date(), away = [], week = null } = {}) {
   const all = [
     ...categoryDeltas(transactions, { categoryOf, now, isSpending }),
-    ...silenceDeltas(profiles, { now }),
+    ...silenceDeltas(profiles, { now, away }),
     weekdayDelta(transactions, { now, isSpending }),
     paceDelta(transactions, { now, isSpending }),
   ].filter(Boolean);
-  return all.sort((a, b) => b.change - a.change).slice(0, MAX_DELTAS).map(({ change, ...f }) => f);
+  /* The calendar's word for the week (covariates.js) goes on the week's comparisons, so
+     "eating out up" in an exam week is read as what it is. */
+  const weekKinds = new Set(['delta_category', 'delta_pace']);
+  return all.sort((a, b) => b.change - a.change).slice(0, MAX_DELTAS).map(({ change, ...f }) => (
+    week && weekKinds.has(f.kind) ? { ...f, detail: `${f.detail} It was ${week}.`, numbers: { ...f.numbers, week } } : f
+  ));
 }

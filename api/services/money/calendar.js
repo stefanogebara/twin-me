@@ -14,6 +14,7 @@
  */
 
 import { supabaseAdmin } from '../database.js';
+import { awayWindows, weekWord, AWAY_WORDS, EXAM_WORDS, AWAY_MIN_DAYS } from './covariates.js';
 import { createLogger } from '../logger.js';
 import { createCalendarClient } from '../calendar/client.js';
 import { getValidAccessToken } from '../tokenRefreshService.js';
@@ -290,12 +291,17 @@ export function calendarFromFacts(facts, { now = new Date() } = {}) {
   let meta = null;
   if (metaRow) { try { meta = JSON.parse(metaRow.value || 'null'); } catch { meta = null; } }
   const snapshot = (meta?.snapshot || []).filter((i) => i && ms(i.start) >= now.getTime());
+  /* Windows and week words are read from the slim past plus everything ahead. */
+  const past = Array.isArray(meta?.past) ? meta.past : [];
+  const events = past.concat(meta?.snapshot || []);
   return {
     connected: Boolean(meta),
     learned_at: meta?.learned_at || null,
     routine: meta?.routine || null,
     learned,
     snapshot,
+    away: awayWindows(events),
+    week: weekWord(events, now),
   };
 }
 
@@ -404,7 +410,12 @@ export async function learnEventSpend(userId, { now = new Date(), events = null 
     .sort((a, b) => ms(a.start) - ms(b.start))
     .slice(0, 60)
     .map((e) => ({ id: e.id, label: shapeLabel(shapeKey(e)), title: e.title, start: e.start, end: e.end, all_day: e.all_day, expected: expectFor(byKey.get(shapeKey(e)) || null) }));
-  const meta = { learned_at: now.toISOString(), routine: routineSummary(evs, { now }), events_seen: evs.length, snapshot };
+  /* The past kept slim, for the covariates: only events that are windows or name a kind
+     of week (covariates.js), as title and dates. The ninety days of the rest are not stored. */
+  const past = evs
+    .filter((e) => ms(e.start) < now.getTime() && (AWAY_WORDS.test(String(e.title).toLowerCase()) || EXAM_WORDS.test(String(e.title).toLowerCase()) || (e.all_day && (ms(e.end) - ms(e.start)) / DAY_MS >= AWAY_MIN_DAYS)))
+    .map((e) => ({ title: e.title, start: e.start, end: e.end, all_day: e.all_day }));
+  const meta = { learned_at: now.toISOString(), routine: routineSummary(evs, { now }), events_seen: evs.length, snapshot, past };
   await persist(userId, learned, meta);
   return { learned: learned.length, events: evs.length, snapshot: snapshot.length };
 }

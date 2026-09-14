@@ -57,6 +57,14 @@ describe('silenceDeltas', () => {
     expect(f.sentence).toBe('No Renfe Cercanias in 9 days; usually every 3 days.');
     expect(f.numbers).toMatchObject({ days_since: 9, usual_gap_days: 3 });
   });
+  it('does not count days away against a habit, and says so', () => {
+    const away = [{ from: '2026-09-06', to: '2026-09-12', title: 'Viaje' }];
+    expect(silenceDeltas([renfe], { now: NOW, away })).toEqual([]);
+    const tenDays = { ...renfe, last_seen: new Date(NOW.getTime() - 16 * DAY).toISOString() };
+    const [f] = silenceDeltas([tenDays], { now: NOW, away });
+    expect(f.sentence).toBe('No Renfe Cercanias in 10 days, 6 away not counted; usually every 3 days.');
+    expect(f.numbers).toMatchObject({ days_since: 10, away_days: 6 });
+  });
   it('ignores a merchant seen recently, a rare one, and a slow rhythm', () => {
     expect(silenceDeltas([{ ...renfe, last_seen: new Date(NOW.getTime() - 4 * DAY).toISOString() }], { now: NOW })).toEqual([]);
     expect(silenceDeltas([{ ...renfe, times: 3 }], { now: NOW })).toEqual([]);
@@ -86,5 +94,14 @@ describe('weekdayDelta and paceDelta', () => {
     /* Category and pace tie at 56 EUR of change and keep their order; yesterday's Sunday (48 against 20) comes third. */
     expect(out.map((f) => f.kind)).toEqual(['delta_category', 'delta_pace', 'delta_weekday']);
     expect(out[0]).not.toHaveProperty('change');
+  });
+});
+
+describe('the calendar\'s word for the week', () => {
+  it('goes on the week comparisons and nowhere else', () => {
+    const [f] = deltaFindings({ transactions: eatingOut(), categoryOf: (t) => t.category, now: NOW, week: 'an exam week' });
+    expect(f.kind).toBe('delta_category');
+    expect(f.detail).toBe('3 payments in seven days; usually 2. It was an exam week.');
+    expect(f.numbers.week).toBe('an exam week');
   });
 });

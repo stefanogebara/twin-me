@@ -179,6 +179,15 @@ describe('the persisted form', () => {
     expect(c.connected).toBe(true);
     expect(c.learned[0].median).toBe(38.2);
     expect(c.snapshot.map((i) => i.id)).toEqual(['f1', 'f9']);
+    expect(c.away).toEqual([]);
+    expect(c.week).toBeNull();
+  });
+  it('reads the away windows and the week\'s word from the slim past kept in the meta', () => {
+    const meta = JSON.parse(facts[1].value);
+    meta.past = [{ title: 'Viaje a Lisboa', start: '2026-09-04T00:00:00Z', end: '2026-09-08T00:00:00Z', all_day: true }, { title: 'Examen final', start: '2026-09-07T09:00:00Z', end: '2026-09-07T11:00:00Z', all_day: false }];
+    const c = calendarFromFacts([facts[0], { kind: META_KIND, subject: '', value: JSON.stringify(meta) }], { now: NOW });
+    expect(c.away).toEqual([{ from: '2026-09-04', to: '2026-09-08', title: 'Viaje a Lisboa' }]);
+    expect(c.week).toBe('an exam week');
   });
   it('adds to the forecast only what lands before the month ends', () => {
     const f = calendarForecast(facts, { now: NOW });
