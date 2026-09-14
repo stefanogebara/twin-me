@@ -12,7 +12,8 @@ import { Link } from 'react-router-dom';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { CalendarDays, ChevronRight, FileText, Landmark, Mail, Smartphone } from 'lucide-react';
 import '../../styles/money-v2.css';
-import MoneyNav, { MONEY_NAV, type MoneyView } from './MoneyNav';
+import MoneyNav from './MoneyNav';
+import { MONEY_NAV, type MoneyView } from './navLinks';
 import { moneyAPI, euro, shortDay, bankLabel, BANKS, type MoneyAccount, type MoneyCalendar, type MoneyCategories, type MoneyDayStrip, type MoneyForecast, type MoneyToday, type MoneyMonth, type MoneyReading, type MoneyRecurring, type MoneySighting, type MoneyTransaction, type MoneyUsage } from '../../services/api/moneyAPI';
 
 const CADENCE: Record<string, string> = { weekly: 'every week', biweekly: 'every two weeks', monthly: 'every month', quarterly: 'every quarter', yearly: 'every year' };

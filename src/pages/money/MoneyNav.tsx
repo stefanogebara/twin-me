@@ -8,7 +8,6 @@ import { Link } from 'react-router-dom';
 import { Menu, X } from 'lucide-react';
 
 export type MoneyNavLink = { to: string; label: string; current?: boolean; sub?: boolean };
-export { MONEY_NAV, type MoneyView } from './navLinks';
 
 
 
