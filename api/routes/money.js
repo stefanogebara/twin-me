@@ -729,8 +729,9 @@ bankCallback.get('/bank/callback', async (req, res) => {
   try {
     const session = await createSession(code);
     await saveBankAccounts(userId, session);
-    /* Back to the page the connection was started from, which is the Money surface. */
-    res.redirect(302, '/money?bank=connected');
+    /* Back to the page the connection was started from, which is the Money surface, with
+       the bank's name so the page can say which one is connected. */
+    res.redirect(302, `/money?bank=connected${session.bankName ? `&name=${encodeURIComponent(session.bankName)}` : ''}`);
   } catch (error) {
     log.error('bank callback failed', { error: error.message });
     res.redirect(302, '/money?bank=failed');

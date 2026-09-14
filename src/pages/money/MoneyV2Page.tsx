@@ -13,7 +13,7 @@ import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { CalendarDays, ChevronRight, FileText, Landmark, Mail, Smartphone } from 'lucide-react';
 import '../../styles/money-v2.css';
 import MoneyNav, { type MoneyNavLink } from './MoneyNav';
-import { moneyAPI, euro, shortDay, bankLabel, BANKS, type MoneyAccount, type MoneyCalendar, type MoneyCategories, type MoneyDayStrip, type MoneyForecast, type MoneyMonth, type MoneyReading, type MoneyRecurring, type MoneySighting, type MoneyTransaction, type MoneyUsage } from '../../services/api/moneyAPI';
+import { moneyAPI, euro, shortDay, bankLabel, BANKS, type MoneyAccount, type MoneyCalendar, type MoneyCategories, type MoneyDayStrip, type MoneyForecast, type MoneyToday, type MoneyMonth, type MoneyReading, type MoneyRecurring, type MoneySighting, type MoneyTransaction, type MoneyUsage } from '../../services/api/moneyAPI';
 
 const CADENCE: Record<string, string> = { weekly: 'every week', biweekly: 'every two weeks', monthly: 'every month', quarterly: 'every quarter', yearly: 'every year' };
 const SOURCE: Record<string, string> = { phone: 'Your phone', bizum: 'Bizum', bankfeed: 'Santander', gmail: 'Gmail', statement: 'Statement' };
@@ -72,6 +72,8 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
      door's old promise showing through the new product. */
   useDocumentTitle(view === 'today' ? 'Money' : view === 'month' ? 'Money, the month' : 'Money, you');
   const [forecast, setForecast] = useState<MoneyForecast | null>(null);
+  /* The one number a person opens the app for. It leads Today; the month sits under it. */
+  const [today, setToday] = useState<MoneyToday | null>(null);
   const [ledger, setLedger] = useState<MoneyTransaction[]>([]);
   const [recurring, setRecurring] = useState<MoneyRecurring[]>([]);
   const [accounts, setAccounts] = useState<MoneyAccount[]>([]);
@@ -123,11 +125,12 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
     : bookedLine;
 
   const load = useCallback(async () => {
-    const [f, l, r, a, m, rd, c, u] = await Promise.allSettled([
+    const [f, l, r, a, m, rd, c, u, td] = await Promise.allSettled([
       moneyAPI.forecast(), moneyAPI.ledger(), moneyAPI.recurring(), moneyAPI.accounts(), moneyAPI.months(), moneyAPI.readings(),
-      moneyAPI.categories(`${new Date().toISOString().slice(0, 7)}-01`), moneyAPI.usage(),
+      moneyAPI.categories(`${new Date().toISOString().slice(0, 7)}-01`), moneyAPI.usage(), moneyAPI.today(),
     ]);
     if (f.status === 'fulfilled') setForecast(f.value);
+    if (td.status === 'fulfilled') setToday(td.value);
     if (l.status === 'fulfilled') setLedger(l.value);
     if (r.status === 'fulfilled') setRecurring(r.value);
     if (a.status === 'fulfilled') setAccounts(a.value);
@@ -163,14 +166,19 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
 
   /* The bank sends the person back here through the callback, which says how it went. */
   useEffect(() => {
-    const outcome = new URLSearchParams(window.location.search).get('bank');
+    const params = new URLSearchParams(window.location.search);
+    const outcome = params.get('bank');
     if (!outcome) return;
-    setNote(outcome === 'connected' ? 'Santander is connected. The first read is on its way.' : 'The bank connection did not go through. Try it again.');
+    setNote(outcome === 'connected' ? `${bankLabel(params.get('name'))} is connected. The first read is on its way.` : 'The bank connection did not go through. Try it again.');
     window.history.replaceState(null, '', window.location.pathname + window.location.hash);
     if (outcome === 'connected') void moneyAPI.pull().then(() => load()).catch(() => { /* the note already says where we are */ });
   }, [load]);
 
   const empty = loaded && ledger.length === 0;
+  /* The readings that changed something today come first: a change against the person's own
+     past, an income that has not come, a cap or a keep, a charge the month cannot carry, a
+     split still open, then the twin's own score, then the standing shapes of the ledger. */
+  const shown = useMemo(() => [...readings].sort((a, b) => readingRank(a.kind) - readingRank(b.kind)).slice(0, 3), [readings]);
   /* One purchase makes p10, p50 and p90 the same euro, and reading the same number three
      times looks broken rather than honest. Say nothing about the month until the band opens. */
   const projectable = Boolean(forecast && forecast.projected_p90 - forecast.projected_p10 > 0.5);
@@ -308,14 +316,31 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
               </>
             ) : (
               <>
-                <h1>{forecast ? euro(forecast.spent) : '…'} so far.</h1>
-                {forecast ? (
-                  <p className="mv-sub">
-                    {projectable
-                      ? `Likely ${euro(forecast.projected_p50)} by the ${last}${ordinalSuffix(last)}, somewhere from ${euro(forecast.projected_p10)} to ${euro(forecast.projected_p90)}.`
-                      : 'Too early to say where the month lands.'}
-                  </p>
-                ) : null}
+                {/* Safe to spend today leads, with the basis it rests on; the month is the line
+                    under it. Until a month can be read, the month figure leads as before. */}
+                {today && today.amount !== null ? (
+                  <>
+                    <h1>{today.over ? 'Nothing today.' : `${euro(today.amount)} today.`}</h1>
+                    {today.sentence ? <p className="mv-sub">{today.sentence}</p> : null}
+                    {forecast ? (
+                      <p className="mv-sub">
+                        {`${euro(forecast.spent)} so far this month${projectable ? `; likely ${euro(forecast.projected_p50)} by the ${last}${ordinalSuffix(last)}, from ${euro(forecast.projected_p10)} to ${euro(forecast.projected_p90)}.` : '.'}`}
+                      </p>
+                    ) : null}
+                  </>
+                ) : (
+                  <>
+                    <h1>{forecast ? euro(forecast.spent) : '\u2026'} so far.</h1>
+                    {forecast ? (
+                      <p className="mv-sub">
+                        {projectable
+                          ? `Likely ${euro(forecast.projected_p50)} by the ${last}${ordinalSuffix(last)}, somewhere from ${euro(forecast.projected_p10)} to ${euro(forecast.projected_p90)}.`
+                          : 'Too early to say where the month lands.'}
+                      </p>
+                    ) : null}
+                    {today && today.why ? <p className="mv-sub">{today.why}</p> : null}
+                  </>
+                )}
                 {/* The band's own record, once it has one: how many days it has been checked
                     against, and how many it held. A range nobody scores is a range nobody
                     should trust, so the number is printed as soon as there is one. */}
@@ -357,15 +382,16 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
           </section>
           ) : null}
 
-          {/* What the ledger says, with the payments that say it one press away */}
-          {view === 'today' && readings.length ? (
+          {/* What the ledger says, with the payments that say it one press away. Today carries
+              the three that changed something today; the month carries all of them. */}
+          {(view === 'today' || view === 'month') && readings.length ? (
             <section className="mv-section" id="readings">
-              <h2>What the money says.</h2>
+              <h2>{view === 'today' ? 'What changed.' : 'What the money says.'}</h2>
               {/* Quiet is a feature. Every other app manufactures a daily line; this one says how
                   long it has had nothing new to say, from the day each reading was first said. */}
               {quietDays !== null && quietDays >= 2 ? <p className="mv-sub">{`Nothing new for ${quietDays} days.`}</p> : null}
               <ul className="mv-list">
-                {readings.map((r) => {
+                {(view === 'today' ? shown : readings).map((r) => {
                   const isOpen = openReading === r.id;
                   return (
                     <li key={r.id}>
@@ -399,6 +425,14 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                     </li>
                   );
                 })}
+                {view === 'today' && readings.length > shown.length ? (
+                  <li>
+                    <Link to="/money/month#readings" className="mv-item">
+                      <span className="mv-item-text"><span className="mv-item-title">{`All ${readings.length} readings`}</span></span>
+                      <span className="mv-item-end"><Chevron /></span>
+                    </Link>
+                  </li>
+                ) : null}
               </ul>
             </section>
           ) : null}
@@ -813,6 +847,13 @@ function DayStrip({ strip, tomorrow }: { strip: MoneyDayStrip; tomorrow: MoneyFo
       <figcaption className="mv-sub">{line}</figcaption>
     </figure>
   );
+}
+
+/** The order readings take on Today: what moved first, what stands last. */
+const READING_ORDER = ['delta_category', 'delta_silence', 'delta_weekday', 'delta_pace', 'income_late', 'cap_month', 'keep_month', 'charge_ahead', 'named_expense', 'split_open', 'own_score', 'month_pace', 'new_merchant', 'biggest_line', 'dormant_charge', 'subscriptions', 'small_payments', 'category_shape', 'weekday_shape'];
+function readingRank(kind: string) {
+  const i = READING_ORDER.indexOf(kind);
+  return i === -1 ? READING_ORDER.length : i;
 }
 
 /** Where a euro amount falls on the band, 0..100, with the projected p90 as the right edge. */
