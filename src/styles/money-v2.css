@@ -188,6 +188,8 @@
 .mv .mv-mark-small { display: inline-grid; place-items: center; width: 12px; height: 12px; margin-right: 6px; vertical-align: -1px; color: var(--ink); }
 /* A second grey line inside a section, above a second list. */
 .mv .mv-more { margin-top: 24px; }
+/* A small select in a row's end: the field, 32 tall, sized to its words. */
+.mv .mv-field--select { width: auto; height: 32px; padding: 6px 28px 6px 12px; -webkit-appearance: none; appearance: none; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23585254' stroke-width='2'><path d='m6 9 6 6 6-6'/></svg>"); background-repeat: no-repeat; background-position: right 10px center; }
 /* A page that opens on a section, not a hero, starts at the top like the hero does. */
 .mv .mv-col > .mv-section:first-child { margin-top: 0; }
 /* This month: the figure, one grey line, the band */

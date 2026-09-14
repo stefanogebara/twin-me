@@ -352,7 +352,8 @@ router.post('/places/:merchantKey/category', async (req, res) => {
   if (category !== null && (typeof category !== 'string' || category.length > 40)) {
     return res.status(400).json({ success: false, error: 'category must be a short word or null' });
   }
-  try { res.json({ success: true, data: await setPlaceCategory(req.params.merchantKey, category) }); }
+  const name = typeof req.body?.name === 'string' ? req.body.name.slice(0, 120) : null;
+  try { res.json({ success: true, data: await setPlaceCategory(String(req.params.merchantKey).slice(0, 120), category, { name }) }); }
   catch (error) { log.error('place category failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
 });
 

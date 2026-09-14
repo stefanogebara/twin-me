@@ -16,7 +16,7 @@ import { detectRecurring } from './recurring.js';
 import { projectMonth } from './projection.js';
 import { fetchTransactions, toSighting, distinctPending } from './feeds/enableBanking.js';
 import { readLedger, monthSegments } from './analyst.js';
-import { spendingRule, markCounted } from './spending.js';
+import { spendingRule, markCounted, personRoles } from './spending.js';
 import { calibrate, dayStrip } from './calibration.js';
 import { poolMerchantPriors } from './priors.js';
 import { nudgeFindings, retiredKinds, NUDGE_KINDS } from './nudges.js';
@@ -699,8 +699,11 @@ const CHANNEL_CATEGORY = { transfer: 'transfers', bizum: 'transfers', cash: 'cas
  * being filed under "other". Every surface that groups spending must call this: the month
  * page and the chat once disagreed about the same euros because each had its own version.
  */
-export function categoryOfPayment(place, channel) {
+export function categoryOfPayment(place, channel, role = null) {
   const fromPlace = place ? (place.category_override || place.category || null) : null;
+  /* A transfer to the person named as the landlord is the rent, not "transfers": the one
+     category a student's month is built around, and the one a places provider can never see. */
+  if (!fromPlace && role === 'landlord' && (channel === 'transfer' || channel === 'bizum')) return 'rent';
   return fromPlace || CHANNEL_CATEGORY[channel] || null;
 }
 
@@ -723,7 +726,9 @@ export async function categorySpend(userId, { month = null } = {}) {
   if (error) throw new Error(error.message);
   /* A transfer to a friend is not where the money went; it is money that moved. The same
      rule the forecast uses, so the hero and this list add up to the same euros. */
-  const counts = spendingRule(await listFacts(userId).catch(() => []));
+  const facts = await listFacts(userId).catch(() => []);
+  const counts = spendingRule(facts);
+  const roles = personRoles(facts);
   const rows = (all || []).filter(counts);
   if (!rows.length) return { month, total: 0, read: 0, groups: [] };
 
@@ -745,7 +750,7 @@ export async function categorySpend(userId, { month = null } = {}) {
        recorded so the same question is not asked twice, and it must not pass for an answer. */
     /* A transfer to a person is a transfer, whatever a places provider thinks: the channel
        the bank recorded is itself an answer, and a truthful one. */
-    const category = categoryOfPayment(place, r.channel);
+    const category = categoryOfPayment(place, r.channel, roles.get(String(r.merchant_key || '').toLowerCase()) || null);
     if (category) read += amount;
     const key = category || 'not read yet';
     if (!groups.has(key)) groups.set(key, { category: key, known: Boolean(category), spent: 0, lines: 0, merchants: new Map() });
@@ -753,7 +758,9 @@ export async function categorySpend(userId, { month = null } = {}) {
     g.spent += amount;
     g.lines += 1;
     const name = place?.name || r.merchant_raw || r.merchant_key;
-    g.merchants.set(name, (g.merchants.get(name) || 0) + amount);
+    const m = g.merchants.get(name) || { spent: 0, merchant_key: r.merchant_key };
+    m.spent += amount;
+    g.merchants.set(name, m);
   }
   return {
     month,
@@ -766,7 +773,7 @@ export async function categorySpend(userId, { month = null } = {}) {
         spent: Math.round(g.spent * 100) / 100,
         lines: g.lines,
         share: total > 0 ? Math.round((g.spent / total) * 100) : 0,
-        merchants: [...g.merchants.entries()].sort((a, b) => b[1] - a[1]).slice(0, 4).map(([name, spent]) => ({ name, spent: Math.round(spent * 100) / 100 })),
+        merchants: [...g.merchants.entries()].sort((a, b) => b[1].spent - a[1].spent).slice(0, g.known ? 4 : 12).map(([name, m]) => ({ name, merchant_key: m.merchant_key, spent: Math.round(m.spent * 100) / 100 })),
       }))
       .sort((a, b) => b.spent - a.spent),
   };
@@ -806,12 +813,18 @@ export async function listPlaces(userId) {
 }
 
 /** A person's correction to a category outlives the next lookup. */
-export async function setPlaceCategory(merchantKey, category) {
+export async function setPlaceCategory(merchantKey, category, { name = null } = {}) {
   const { data, error } = await supabaseAdmin.from('money_places')
     .update({ category_override: category, overridden_at: category ? new Date().toISOString() : null })
     .eq('merchant_key', merchantKey).select().maybeSingle();
   if (error) throw new Error(error.message);
-  return data;
+  if (data) return data;
+  /* A merchant no provider has ever placed has no row: the person's word makes one. */
+  const { data: made, error: e2 } = await supabaseAdmin.from('money_places')
+    .insert({ merchant_key: merchantKey, name: name || merchantKey, provider: 'person', category_override: category, overridden_at: category ? new Date().toISOString() : null })
+    .select().maybeSingle();
+  if (e2) throw new Error(e2.message);
+  return made;
 }
 
 /**
