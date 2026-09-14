@@ -19,6 +19,17 @@ function tx(date, amount, merchant = 'Shop', extra = {}) {
 }
 
 describe('monthSegments', () => {
+  it('keeps what was spent by the same day of each month, so half months compare with half months', () => {
+    const now = new Date('2026-09-14T12:00:00Z');
+    const rows = [
+      { id: 'a', occurred_at: '2026-09-03T10:00:00Z', amount: -10, merchant_key: 'x' },
+      { id: 'b', occurred_at: '2026-08-03T10:00:00Z', amount: -20, merchant_key: 'x' },
+      { id: 'c', occurred_at: '2026-08-20T10:00:00Z', amount: -30, merchant_key: 'x' },
+    ];
+    const segs = monthSegments(rows, now);
+    expect(segs[0]).toMatchObject({ month: '2026-09-01', spent: 10, spent_to_day: 10 });
+    expect(segs[1]).toMatchObject({ month: '2026-08-01', spent: 50, spent_to_day: 20 });
+  });
   it('splits money in and out by calendar month, newest first', () => {
     const rows = [tx('2026-09-02', -20, 'A'), tx('2026-09-03', -5, 'B'), tx('2026-09-04', 1000, 'Salary'), tx('2026-08-15', -50, 'C')];
     const segs = monthSegments(rows, NOW);

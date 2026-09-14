@@ -46,13 +46,15 @@ export function monthSegments(transactions, now = new Date(), isSpending = null,
   for (const t of transactions) {
     if (!t.occurred_at) continue;
     const key = monthKey(t.occurred_at);
-    if (!byMonth.has(key)) byMonth.set(key, { month: `${key}-01`, spent: 0, received: 0, lines: 0, biggest: null, days_covered: 0 });
+    if (!byMonth.has(key)) byMonth.set(key, { month: `${key}-01`, spent: 0, spent_to_day: 0, received: 0, lines: 0, biggest: null, days_covered: 0 });
     const m = byMonth.get(key);
     m.lines += 1;
     if (out(t)) {
       /* A transfer that is not spending stays a line of the month, and no part of its sum. */
       if (isSpending && !isSpending(t)) continue;
       m.spent += abs(t);
+      /* The same days of every month, so a half month is compared with half months. */
+      if (new Date(t.occurred_at).getUTCDate() <= now.getUTCDate()) m.spent_to_day += abs(t);
       if (!m.biggest || abs(t) > abs(m.biggest)) m.biggest = t;
     } else if (!isIncome || isIncome(t)) m.received += abs(t);
   }
@@ -65,6 +67,7 @@ export function monthSegments(transactions, now = new Date(), isSpending = null,
       return {
         ...m,
         spent: Math.round(m.spent * 100) / 100,
+        spent_to_day: Math.round(m.spent_to_day * 100) / 100,
         received: Math.round(m.received * 100) / 100,
         days_covered: covered,
         days_in_month: daysInMonth,

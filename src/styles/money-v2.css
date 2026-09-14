@@ -170,6 +170,11 @@
 .mv-receipts li { display: grid; }
 .mv .mv-receipts p { color: var(--ink-2); font-weight: 350; overflow-wrap: anywhere; }
 
+/* The two drawings that carry a number: a share of the month under a kind of place, and
+   this month to today's date against the same days of the others, on the month rows. */
+.mv .mv-share, .mv .mv-pair { display: block; height: 2px; margin-top: 8px; background: var(--rule); max-width: 320px; }
+.mv .mv-share > i, .mv .mv-pair > i { display: block; height: 100%; background: var(--ink); }
+.mv .mv-mark-small { display: inline-grid; place-items: center; width: 12px; height: 12px; margin-right: 6px; vertical-align: -1px; color: var(--ink); }
 /* A second grey line inside a section, above a second list. */
 .mv .mv-more { margin-top: 24px; }
 /* A page that opens on a section, not a hero, starts at the top like the hero does. */
