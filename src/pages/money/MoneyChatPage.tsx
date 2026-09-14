@@ -169,10 +169,12 @@ export default function MoneyChatPage() {
     moneyChat.history()
       .then((turns) => {
         if (!live || !turns.length) return;
-        setLines(turns.map((t) => ({
+        const kept: AskLine[] = turns.map((t) => ({
           id: `kept-${t.id}`, who: t.role === 'twin' ? 'twin' : 'you', text: t.text,
-          figures: t.figures || undefined, thinking: t.thinking || undefined, basis: t.basis || undefined,
-        })));
+          figures: t.figures || undefined, receipts: t.receipts || undefined, thinking: t.thinking || undefined, basis: t.basis || undefined,
+        }));
+        /* Whatever was typed while this loaded stays: the kept turns go in front of it. */
+        setLines((all) => (all.length ? [...kept, ...all] : kept));
       })
       .catch(() => { /* a fresh page is fine */ });
     return () => { live = false; };
@@ -252,7 +254,8 @@ export default function MoneyChatPage() {
   /* An offer tapped: the ledger checks it again and says what it did; the offers go, the
      sentence stays under the answer. */
   async function take(lineId: string, action: ChatAction) {
-    setLines((all) => all.map((l) => (l.id === lineId ? { ...l, acted: 'Doing it.' } : l)));
+    /* The offers go the moment one is tapped, so a second tap cannot run it twice. */
+    setLines((all) => all.map((l) => (l.id === lineId ? { ...l, actions: [], acted: 'Doing it.' } : l)));
     try {
       const r = await moneyChat.act(action);
       setLines((all) => all.map((l) => (l.id === lineId ? { ...l, actions: [], acted: r.said } : l)));

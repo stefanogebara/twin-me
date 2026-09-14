@@ -22,7 +22,7 @@ vi.mock('../../../../api/services/money/store.js', async (importOriginal) => {
 });
 
 const {
-  assemble, buildFigure, validateAction, receiptsFor, parseReply, shortCircuit, assembleReply, contextText, euroGlyphs, answer, act, FIGURE_KINDS, RULES, asksWhereItWent,
+  assemble, buildFigure, validateAction, receiptsFor, parseReply, shortCircuit, assembleReply, contextText, euroGlyphs, answer, act, FIGURE_KINDS, RULES, asksWhereItWent, basisOf, amountKey,
 } = await import('../../../../api/services/money/chat.js');
 
 const NOW = new Date('2026-09-08T12:00:00Z');
@@ -422,5 +422,36 @@ describe('the offers a correction becomes', () => {
     expect(validateAction({ kind: 'forget', fact_id: 'not-a-fact' }, c)).toBeNull();
     const withFact = { ...c, facts: [{ id: 'f1', kind: 'person', subject: 'x', value: 'other' }] };
     expect(validateAction({ kind: 'forget', fact_id: 'f1' }, withFact)).toMatchObject({ kind: 'forget', fact_id: 'f1' });
+  });
+});
+
+describe('basisOf', () => {
+  it('matches amounts, not their digits: a grouped five-figure sum never finds a coffee', () => {
+    expect(amountKey('12.500,75')).toBe('12500,75');
+    expect(amountKey('12,50')).toBe('12,50');
+    expect(amountKey('1,250.75')).toBe('1250,75');
+    const c = ctx();
+    const lines = basisOf('You spent 12.500,75 EUR this year.', c);
+    for (const l of lines) expect(l).not.toMatch(/\b12,50\b|\b0,75\b/);
+    expect(basisOf('Nothing numeric here.', c)).toEqual([]);
+    const withFacts = { ...c, facts: [{ id: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee', kind: 'income', subject: 'family', value: null, amount: 116.76, source: 'asked' }] };
+    for (const l of basisOf('Clothing took 116,76 EUR.', withFacts)) expect(l).not.toMatch(/aaaaaaaa-bbbb/);
+  });
+});
+
+describe('act on the new offers', () => {
+  it('keeps a remember note under a hashed subject, and names a person against the question the ledger would have asked', async () => {
+    store.answerQuestion.mockClear();
+    const c = ctx();
+    const person = c.transactions.find((t) => (t.channel === 'transfer' || t.channel === 'bizum') && Number(t.amount) < 0);
+    await act('u1', { kind: 'remember', text: 'I stop eating out in exam weeks' }, { now: NOW });
+    const note = store.answerQuestion.mock.calls.at(-1)[1];
+    expect(note).toMatchObject({ kind: 'note', value: 'I stop eating out in exam weeks', questionId: null });
+    expect(note.subject).toMatch(/^i-stop-eating-out-in-exam-weeks-[0-9a-f]{8}$/);
+    if (person) {
+      await act('u1', { kind: 'person', merchant_key: person.merchant_key, role: 'landlord', note: 'the flat' }, { now: NOW });
+      const said = store.answerQuestion.mock.calls.at(-1)[1];
+      expect(said).toMatchObject({ kind: 'person', value: 'landlord', note: 'the flat', questionId: `person_out:${person.merchant_key}` });
+    }
   });
 });

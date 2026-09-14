@@ -199,13 +199,19 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
   /* What the bank says is in each account, freshest read named. XPCD and ITAV include pending
      charges; a figure with a credit line in it is not shown as the person's. */
   const balanceLine = useMemo(() => {
-    const withBalance = accounts.filter((a) => a.balance !== null && a.balance !== undefined && !(a.balance_type || '').includes('/credit'));
-    if (!withBalance.length) return null;
-    const parts = withBalance.map((a) => `${euro(Number(a.balance))} in ${bankLabel(a.bank_name)}${withBalance.filter((b) => (b.bank_name || null) === (a.bank_name || null)).length > 1 && a.iban_mask ? ` ${a.iban_mask.slice(-4)}` : ''}`);
-    const newest = withBalance.map((a) => a.balance_at).filter(Boolean).sort().pop();
-    const when = newest ? new Date(newest).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : null;
-    const pendingIn = withBalance.some((a) => /^(XPCD|ITAV)/.test(a.balance_type || ''));
-    return `${parts.join(', ')} available${when ? `, read at ${when}` : ''}${pendingIn ? ', pending charges included' : ', pending charges not yet counted'}.`;
+    /* A balance older than two days is not "available": it is not shown at all. */
+    const fresh = accounts.filter((a) => a.balance !== null && a.balance !== undefined && !(a.balance_type || '').includes('/credit') && a.balance_at && Date.now() - new Date(a.balance_at).getTime() < 48 * 3600000);
+    if (!fresh.length) return null;
+    /* A signed figure: an account in its overdraft is said as overdrawn, never as money in it. */
+    const signed = (n: number) => (n < 0 ? `${euro(Math.abs(n))} overdrawn` : euro(n));
+    const parts = fresh.map((a) => `${signed(Number(a.balance))} in ${bankLabel(a.bank_name)}${fresh.filter((b) => (b.bank_name || null) === (a.bank_name || null)).length > 1 && a.iban_mask ? ` ${a.iban_mask.slice(-4)}` : ''}`);
+    const newest = fresh.map((a) => a.balance_at as string).sort().pop() as string;
+    const d = new Date(newest);
+    const today = d.toDateString() === new Date().toDateString();
+    const when = today ? `read at ${d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}` : `read ${shortDay(newest)}`;
+    const pendingIn = fresh.some((a) => /^(XPCD|ITAV)/.test(a.balance_type || ''));
+    const anyNegative = fresh.some((a) => Number(a.balance) < 0);
+    return `${parts.join(', ')}${anyNegative ? '' : ' available'}, ${when}${pendingIn ? ', pending charges included' : ', pending charges not yet counted'}.`;
   }, [accounts]);
   /* The same days of every month, for the pair bars on the month rows. */
   const todayDay = new Date().getUTCDate();

@@ -27,6 +27,7 @@
 
 import { complete, stream as streamComplete, TIER_CHAT } from '../llmGateway.js';
 import { balances, describeBetweenPeople, splitFindings, MIN_WAYS, MAX_WAYS } from './bizum.js';
+import crypto from 'node:crypto';
 import { createLogger } from '../logger.js';
 import {
   listTransactions, months, forecast, categorySpend, refreshRecurring, listReadings, listFacts,
@@ -50,6 +51,8 @@ const MAX_SHARE_ITEMS = 8;
 const MAX_HISTORY_POINTS = 24;
 const MAX_CONTEXT_LINES = 40;
 const MAX_HISTORY_TURNS = 10;
+/** The model's reasoning under each answer, on unless the environment says off. */
+export const REASONING_ON = String(process.env.MONEY_CHAT_REASONING || 'on').toLowerCase() !== 'off';
 
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -559,10 +562,15 @@ export async function answer(userId, message, history = [], { now = new Date() }
   const text = String(message || '').trim();
   if (!text) return { text: NO_ANSWER, figures: [], actions: [], receipts: [] };
   const ctx = await gather(userId, now);
-  if (!ctx.transactions.length) return { text: EMPTY_LEDGER, figures: [], actions: [], receipts: [] };
+  const keep = async (reply) => {
+    await saveChatTurn(userId, { role: 'user', text }).catch(() => null);
+    await saveChatTurn(userId, { role: 'twin', text: reply.text, figures: reply.figures || null, actions: reply.actions || null, basis: reply.basis || null, receipts: reply.receipts || null }).catch(() => null);
+    return reply;
+  };
+  if (!ctx.transactions.length) return keep({ text: EMPTY_LEDGER, figures: [], actions: [], receipts: [] });
 
   const quick = shortCircuit(text, ctx);
-  if (quick) return quick;
+  if (quick) return keep(quick);
 
   const system = `${RULES}\n\nWhat the ledger knows:\n${contextText(ctx)}`;
   const turns = (Array.isArray(history) ? history : []).slice(-MAX_HISTORY_TURNS)
@@ -586,10 +594,7 @@ export async function answer(userId, message, history = [], { now = new Date() }
   }
   const reply = assembleReply(parsed, ctx, text);
   const finalText = withoutRepeats(reply.text, history);
-  const basis = basisOf(finalText, ctx);
-  await saveChatTurn(userId, { role: 'user', text }).catch(() => null);
-  await saveChatTurn(userId, { role: 'twin', text: finalText, figures: reply.figures || null, actions: reply.actions || null, basis }).catch(() => null);
-  return { ...reply, text: finalText, basis };
+  return keep({ ...reply, text: finalText, basis: basisOf(finalText, ctx) });
 }
 
 /* ------------------------------------------------------------------ streaming */
@@ -615,6 +620,7 @@ export function textStreamer() {
   let state = 'start';
   let hunt = '';
   let esc = '';
+  let held = '';
   /* Prose arrives with whatever spacing the model felt like; the finished answer has none of
      it, so a run of space is one space and a leading one is nothing. */
   let spaced = true;
@@ -630,11 +636,17 @@ export function textStreamer() {
           state = ch === '{' || ch === '`' ? 'seek' : 'prose';
           if (state === 'seek') continue;
         }
+        if (state === 'held') {
+          /* A brace in prose is held with what follows it. If "text" turns up within forty
+             characters this is the object the model writes after its answer, and nothing more
+             reaches the screen; otherwise it was a brace in a sentence and it is let through. */
+          held += ch;
+          if (held.includes('"text"')) { state = 'closed'; break; }
+          if (held.length >= 40) { revealed += held; held = ''; state = 'prose'; spaced = false; }
+          continue;
+        }
         if (state === 'prose') {
-          /* Prose, then the object: the model sometimes writes the answer and then the JSON
-             that repeats it. The prose is the answer; from the brace on, nothing reaches the
-             screen, and the object still gives its figures and offers at the end. */
-          if (ch === '{') { state = 'closed'; break; }
+          if (ch === '{') { state = 'held'; held = '{'; continue; }
           if (PROSE_MARKS.test(ch)) continue;
           if (/\s/.test(ch)) { if (!spaced) { revealed += ' '; spaced = true; } continue; }
           revealed += ch;
@@ -738,7 +750,17 @@ export async function answerStream(userId, message, history = [], { now = new Da
     send({ phase: 'figures', figures: reply.figures || [] });
     send({ phase: 'actions', actions: reply.actions || [], receipts: reply.receipts || [], basis: reply.basis || [] });
     send({ phase: 'done' });
+    /* Every answer that reaches the person is kept, whichever path made it. */
+    keep(reply);
     return reply;
+  };
+  let kept = false;
+  const keep = (reply) => {
+    if (kept || !reply || !reply.text) return;
+    kept = true;
+    saveChatTurn(userId, { role: 'user', text: asked })
+      .then(() => saveChatTurn(userId, { role: 'twin', text: reply.text, figures: reply.figures || null, actions: reply.actions || null, thinking: reply.thinking || null, basis: reply.basis || null, receipts: reply.receipts || null }))
+      .catch(() => null);
   };
 
   if (!asked) return closeWith({ text: (whole(NO_ANSWER), NO_ANSWER), figures: [], actions: [], receipts: [] });
@@ -840,11 +862,12 @@ export async function answerStream(userId, message, history = [], { now = new Da
   let thinking = '';
   try {
     const result = await streamComplete({
-      tier: TIER_CHAT, system, messages, maxTokens: 600, temperature: 0.3, userId,
-      serviceName: 'money-chat-stream',
       /* The model's own reasoning, low effort, shown as it comes: the train of thought under
-         the answer, never mistaken for the answer. */
-      reasoning: { effort: 'low' },
+         the answer, never mistaken for the answer. It shares the token budget with the
+         answer, so the budget grows with it; MONEY_CHAT_REASONING=off turns it off. */
+      tier: TIER_CHAT, system, messages, maxTokens: REASONING_ON ? 1400 : 600, temperature: 0.3, userId,
+      serviceName: 'money-chat-stream',
+      ...(REASONING_ON ? { reasoning: { effort: 'low' } } : {}),
       onReasoning: (piece) => { thinking += piece; send({ phase: 'thinking', delta: piece }); },
       onChunk: (delta) => {
         const revealed = reader.push(delta);
@@ -882,10 +905,11 @@ export async function answerStream(userId, message, history = [], { now = new Da
   if (!shown.length) whole(guarded);
   const finalText = shown.length ? asShown(shown) : guarded;
   const basis = basisOf(finalText, ctx);
-  /* Both turns kept, so the conversation can be picked up where it stood. */
-  await saveChatTurn(userId, { role: 'user', text: asked }).catch(() => null);
-  await saveChatTurn(userId, { role: 'twin', text: finalText, figures: reply.figures || null, actions: reply.actions || null, thinking: thinking || null, basis }).catch(() => null);
-  return closeWith({ ...reply, text: finalText, basis, thinking: thinking || null });
+  const closed = closeWith({ ...reply, text: finalText, basis, thinking: thinking || null });
+  /* The kept turns are written after the wire closes; on a serverless host the caller awaits
+     this function, so the write still lands. */
+  await new Promise((r) => setTimeout(r, 0));
+  return closed;
 }
 
 /* ------------------------------------------------------------------------ basis */
@@ -894,13 +918,22 @@ export async function answerStream(userId, message, history = [], { now = new Da
  * The lines of the context an answer stood on: every line that shares a number with the
  * text. Computed, not claimed; shown under "How it got there" with the model's own reasoning.
  */
+const AMOUNT_TOKEN = /\d{1,3}(?:\.\d{3})+,\d{2}|\d+,\d{2}|\d{1,3}(?:,\d{3})+\.\d{2}|\d+\.\d{2}/g;
+/** An amount as a comparable key: grouping separators gone, the decimal a comma. */
+export function amountKey(token) {
+  const t = String(token);
+  if (/^\d{1,3}(?:\.\d{3})+,\d{2}$/.test(t)) return t.replace(/\./g, '');
+  if (/^\d{1,3}(?:,\d{3})+\.\d{2}$/.test(t)) return t.replace(/,/g, '').replace('.', ',');
+  return t.replace('.', ',');
+}
 export function basisOf(text, ctx) {
-  const numbers = new Set((String(text || '').match(/\d+[,.]\d{2}/g) || []).map((n) => n.replace('.', ',')));
+  const numbers = new Set((String(text || '').match(AMOUNT_TOKEN) || []).map(amountKey));
   if (!numbers.size) return [];
-  return contextText(ctx).split('\n').filter((line) => {
-    const inLine = line.match(/\d+[,.]\d{2}/g) || [];
-    return inLine.some((n) => numbers.has(n.replace('.', ',')));
-  }).slice(0, 8);
+  return contextText(ctx).split('\n')
+    /* The line of fact ids is for the model's offers, never for a person to read. */
+    .filter((line) => !line.startsWith('Facts they gave'))
+    .filter((line) => (line.match(AMOUNT_TOKEN) || []).some((n) => numbers.has(amountKey(n))))
+    .slice(0, 8);
 }
 
 /* ------------------------------------------------------------------------ act */
@@ -928,14 +961,19 @@ export async function act(userId, action, { now = new Date() } = {}) {
     return { done: true, said: euroGlyphs(`${nameOf(t)}, ${amountText(t.amount)}, counts as ${amountText(share)} of yours. Bizums back for ${amountText(share)} will count as the others paying, and it will say who still owes.`) };
   }
   if (checked.kind === 'person') {
-    await answerQuestion(userId, { questionId: `person_out:${checked.merchant_key}`, kind: 'person', subject: checked.merchant_key, subjectLabel: checked.name, value: checked.role, note: checked.note });
+    /* The question this answers is the one the ledger would have asked: money out or money in. */
+    const sent = ctx.transactions.some((t) => String(t.merchant_key || '').toLowerCase() === checked.merchant_key.toLowerCase() && Number(t.amount) < 0);
+    await answerQuestion(userId, { questionId: `${sent ? 'person_out' : 'person_in'}:${checked.merchant_key}`, kind: 'person', subject: checked.merchant_key, subjectLabel: checked.name, value: checked.role, note: checked.note });
     const said = checked.role === 'landlord' ? `${checked.name} is your landlord: transfers to them read as rent from now on.`
       : ['family', 'friend', 'flatmate', 'partner'].includes(checked.role) ? `${checked.name} is ${checked.role}: money between you is not spending.`
         : `${checked.name} is ${checked.role}. Noted${checked.note ? `, with what you said` : ''}.`;
     return { done: true, said };
   }
   if (checked.kind === 'remember') {
-    const subject = checked.text.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 60);
+    /* Thirty notes is a memory; more is a diary the prompt cannot carry. */
+    if ((ctx.facts || []).filter((f) => f.kind === 'note').length >= 30) return { done: false, said: 'It holds thirty of your notes already. Forget one on You and it will take this.' };
+    const hash = crypto.createHash('sha256').update(checked.text).digest('hex').slice(0, 8);
+    const subject = `${checked.text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 50) || 'note'}-${hash}`;
     await answerQuestion(userId, { questionId: null, kind: 'note', subject, subjectLabel: null, value: checked.text });
     return { done: true, said: 'Kept, in your words. It reads with that from now on.' };
   }

@@ -107,8 +107,10 @@ export async function createSession(code) {
 export const BALANCE_PREFERENCE = Object.freeze(['ITAV', 'XPCD', 'CLAV', 'ITBD', 'CLBD', 'OTHR']);
 
 /** Pick the one balance to show from a HalBalances array. Pure. Null when nothing usable. */
-export function pickBalance(balances = []) {
-  const rows = (balances || []).filter((b) => b && b.balance_amount && Number.isFinite(Number(b.balance_amount.amount)));
+export function pickBalance(balances = [], { currency = null } = {}) {
+  const all = (balances || []).filter((b) => b && b.balance_amount && Number.isFinite(Number(b.balance_amount.amount)));
+  /* A multi-currency account lists one balance per currency; only the account's own counts. */
+  const rows = currency ? all.filter((b) => !b.balance_amount.currency || String(b.balance_amount.currency).toUpperCase() === String(currency).toUpperCase()) : all;
   if (!rows.length) return null;
   const rank = (t) => { const i = BALANCE_PREFERENCE.indexOf(String(t || '').toUpperCase()); return i === -1 ? BALANCE_PREFERENCE.length : i; };
   const best = [...rows].sort((a, b) => rank(a.balance_type) - rank(b.balance_type))[0];
@@ -126,9 +128,13 @@ export function pickBalance(balances = []) {
  * The account's balances. Called only with the person present (PSU headers): a balance
  * read is an account access like any other, and the four a day are spent on transactions.
  */
-export async function fetchBalances(accountUid, { psu = null } = {}) {
-  const j = await api(`/accounts/${encodeURIComponent(accountUid)}/balances`, { headers: psuHeaders(psu) });
-  return pickBalance(j?.balances || []);
+export async function fetchBalances(accountUid, { psu = null, currency = null } = {}) {
+  const headers = psuHeaders(psu);
+  /* Without the person's address the bank counts this as one of the four: refused here, so
+     the budget the store plans stays true. */
+  if (!Object.keys(headers).length) throw Object.assign(new Error('balance read needs the person present'), { code: 'psu_required' });
+  const j = await api(`/accounts/${encodeURIComponent(accountUid)}/balances`, { headers });
+  return pickBalance(j?.balances || [], { currency });
 }
 
 /** One page of transactions for an account since a date (YYYY-MM-DD). */

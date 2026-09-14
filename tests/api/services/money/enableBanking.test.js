@@ -202,6 +202,10 @@ describe('pickBalance', () => {
     const revolut = [{ balance_amount: { currency: 'EUR', amount: '210.4' }, balance_type: 'ITAV' }, { balance_amount: { currency: 'EUR', amount: '210.4' }, balance_type: 'CLBD' }];
     expect(pickBalance(revolut)).toMatchObject({ amount: 210.4, type: 'ITAV', at: null });
     expect(pickBalance([{ balance_amount: { currency: 'EUR', amount: '500' }, balance_type: 'CLBD', credit_limit_included: true }]).credit_included).toBe(true);
+    /* An overdraft keeps its sign; the screen says overdrawn, never available. */
+    expect(pickBalance([{ balance_amount: { currency: 'EUR', amount: '-120.00' }, balance_type: 'XPCD' }]).amount).toBe(-120);
+    /* A multi-currency account: only the account's own currency counts. */
+    expect(pickBalance([{ balance_amount: { currency: 'USD', amount: '900' }, balance_type: 'ITAV' }, { balance_amount: { currency: 'EUR', amount: '210.4' }, balance_type: 'ITAV' }], { currency: 'EUR' }).amount).toBe(210.4);
     expect(pickBalance([])).toBeNull();
     expect(pickBalance([{ balance_amount: { amount: 'nan' }, balance_type: 'ITAV' }])).toBeNull();
   });
@@ -225,5 +229,13 @@ describe('createSession', () => {
       if (saved.id) process.env.ENABLE_BANKING_APP_ID = saved.id; else delete process.env.ENABLE_BANKING_APP_ID;
       if (saved.key) process.env.ENABLE_BANKING_PRIVATE_KEY = saved.key; else delete process.env.ENABLE_BANKING_PRIVATE_KEY;
     }
+  });
+});
+
+describe('fetchBalances', () => {
+  it('refuses to read without the person present, so the four a day stay true', async () => {
+    const { fetchBalances } = await import('../../../../api/services/money/feeds/enableBanking.js');
+    await expect(fetchBalances('acc-1', { psu: null })).rejects.toMatchObject({ code: 'psu_required' });
+    await expect(fetchBalances('acc-1', { psu: { ip: null, userAgent: 'x' } })).rejects.toMatchObject({ code: 'psu_required' });
   });
 });
