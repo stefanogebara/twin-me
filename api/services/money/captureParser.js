@@ -19,7 +19,7 @@ const AMOUNT = /(\d{1,3}(?:\.\d{3})*(?:,\d{1,2})?|\d+(?:[.,]\d{1,2})?)\s?(?:€|
 const CARD = /(?:terminada en|acabada en|\*{1,4}|tarjeta\s+\*?)\s?(\d{4})\b/i;
 const DATE_ES = /\bel\s+(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(?:a las\s+)?(\d{1,2}):(\d{2}))?/i;
 const IN_WORDS = /\b(has recibido|recibido|ingreso|abono|transferencia recibida|devoluci[oó]n|reembolso)\b/i;
-const OUT_WORDS = /\b(compra|pago|cargo|retirada|has enviado|enviado|domiciliaci[oó]n|recibo|adeudo|transferencia (?:enviada|realizada))\b/i;
+const OUT_WORDS = /\b(compra|pago|pagado|has pagado|cargo|retirada|has enviado|enviado|domiciliaci[oó]n|recibo|adeudo|transferencia (?:enviada|realizada))\b/i;
 
 export const CHANNEL_WORDS = [
   [/\bbizum\b/i, 'bizum'],

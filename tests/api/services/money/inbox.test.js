@@ -108,3 +108,29 @@ describe('a bank alert forwarded by email', () => {
     expect(bankAlertSighting({ from: 'no-reply@spotify.com', subject: 'Your receipt', text: 'Spotify Premium 11,99 EUR\nTotal 11,99 EUR' }, at)).toBeNull();
   });
 });
+
+describe('Santander\'s own alert emails, as received on 2026-09-14', () => {
+  const at = { emailId: 'e-santander-1', receivedAt: '2026-09-14T07:13:25.972Z' };
+  const footer = '\nGracias por confiar en nosotros.\n?Te ha resultado interesante esta comunicacion?\nhttps://click.emailing.bancosantander-mail.es/?qs=x\nBanco Santander, S.A. Paseo de Pereda 9-12, Santander. Retirada de efectivo en cajero sin comision.';
+  it('reads the card payment email: amount with a dot, the card, the shop, nothing from the footer', () => {
+    const s = bankAlertSighting({
+      from: 'SantanderInforma@emailing.bancosantander-mail.es',
+      subject: '!Pago realizado con tu tarjeta!',
+      text: 'Santander\nEste email es para ti, Stefano.\n Stefano, \n te confirmamos que has pagado 1.70 EUR con tu tarjeta terminada en 1245 en RENFE CERCANIAS. \n Consulta todos tus detalles y movimientos en tu Banca Online.' + footer,
+    }, at);
+    expect(s).toMatchObject({ source: 'email', amount: 1.7, direction: 'out', channel: 'card', card_last4: '1245', merchant_raw: 'RENFE CERCANIAS' });
+    expect(s.parse_confidence).toBeGreaterThanOrEqual(0.8);
+  });
+  it('reads the account movement email as an amount with no name: unknown merchant, no channel, no card', () => {
+    const s = bankAlertSighting({
+      from: 'SantanderInforma@emailing.bancosantander-mail.es',
+      subject: 'Ha habido un nuevo movimiento en tu cuenta',
+      text: 'Santander\nEste email es para ti, Stefano.\n Stefano, te informamos de que se ha realizado un movimiento de -0.5 EUR en tu cuenta acabada en 7516.\n Para mas informacion, entra en tu App Santander.' + footer,
+    }, { emailId: 'e-santander-2', receivedAt: '2026-09-14T07:42:12.846Z' });
+    expect(s).toMatchObject({ source: 'email', amount: 0.5, direction: 'out', channel: null, card_last4: null, merchant_raw: null, merchant_key: 'unknown' });
+    expect(s.raw_json.kind).toBe('bank_alert');
+    expect(s.raw_json.account_last4).toBe('7516');
+    const inflow = bankAlertSighting({ from: 'SantanderInforma@emailing.bancosantander-mail.es', subject: 'Ha habido un nuevo movimiento en tu cuenta', text: 'se ha realizado un movimiento de 100 EUR en tu cuenta acabada en 7516.' + footer }, at);
+    expect(inflow).toMatchObject({ amount: 100, direction: 'in' });
+  });
+});
