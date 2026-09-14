@@ -148,24 +148,33 @@ export default function MonthScreen({ onOpenQuestions, questionCount, onOpenLedg
      times looks broken rather than honest. Say nothing about the month until the band opens. */
   const projectable = Boolean(forecast && forecast.projected_p90 - forecast.projected_p10 > 0.5);
 
+  /* What is still to come this month, as dated rows under the band: detected charges,
+     stated commitments, income with a plus, and diary events with a learned cost. A band
+     without the rows under it is a range nobody can act on. Eight at most. */
   const ahead = useMemo(() => {
-    if (!forecast) return [] as string[];
-    /* Charges the ledger knows are due, then what the calendar says is coming and what such
-       things have cost before, so the one sentence holds both. */
-    const charges = [...(forecast.committed_items || []), ...(forecast.commitment_items || [])].map((c) => merchantLabel(c));
-    const events = (forecast.calendar_items || []).map((c) => {
-      const amount = Number(c.amount);
-      return amount > 0 ? `${c.title} (about ${euro(amount)})` : c.title;
-    });
-    return [...charges, ...events];
+    if (!forecast) return [] as { on: string; name: string; amount: number; income: boolean }[];
+    const rows: { on: string; name: string; amount: number; income: boolean }[] = [];
+    for (const c of forecast.committed_items || []) if (c.next_expected) rows.push({ on: String(c.next_expected).slice(0, 10), name: merchantLabel(c), amount: Math.abs(Number(c.typical_amount ?? c.amount ?? 0)), income: false });
+    for (const c of forecast.commitment_items || []) if (c.due_on) rows.push({ on: String(c.due_on).slice(0, 10), name: merchantLabel(c), amount: Math.abs(Number(c.amount ?? c.typical_amount ?? 0)), income: false });
+    for (const i of forecast.income_items || []) rows.push({ on: i.due_on, name: i.subject || i.source || 'Comes in', amount: Math.abs(Number(i.amount)), income: true });
+    for (const e of forecast.calendar_items || []) {
+      const amount = Number(e.amount);
+      const on = String(e.start || '').slice(0, 10);
+      if (amount > 0 && on) rows.push({ on, name: e.title, amount, income: false });
+    }
+    return rows.filter((r) => r.on && Number.isFinite(r.amount) && r.amount > 0).sort((a, b) => (a.on < b.on ? -1 : a.on > b.on ? 1 : b.amount - a.amount)).slice(0, 8);
   }, [forecast]);
+  /* Days since the money last had something new to say, from when each line was first said. */
+  const quietDays = useMemo(() => {
+    const newest = readings.reduce<number | null>((m, r) => { const t = r.first_seen_at ? new Date(r.first_seen_at).getTime() : null; return t !== null && (m === null || t > m) ? t : m; }, null);
+    return newest === null ? null : Math.floor((Date.now() - newest) / 86400000);
+  }, [readings]);
 
   const label = forecast ? monthName(forecast.month) : new Date().toLocaleDateString('en-GB', { month: 'long' });
   const last = forecast ? lastDay(forecast.month) : 30;
   /* The other side of the month, assembled as one sentence so an absent half leaves no gap. */
   const otherSide = forecast
     ? [
-      ahead.length ? `${nameList(ahead)} ${ahead.length === 1 ? 'is' : 'are'} still to come.` : '',
       forecast.received ? `${euro(forecast.received)} came in this month.` : '',
       forecast.income_ahead ? `${euro(forecast.income_ahead)} is due in before the ${last}${ordinalSuffix(last)}.` : '',
     ].filter(Boolean).join(' ')
@@ -219,6 +228,17 @@ export default function MonthScreen({ onOpenQuestions, questionCount, onOpenLedg
               <View style={layout.band}>
                 <Band spent={forecast.spent} likely={Math.max(forecast.projected_p50, forecast.spent + forecast.committed)} high={forecast.projected_p90} />
               </View>
+              {ahead.length ? (
+                <View style={layout.afterSmall}>
+                  {ahead.map((r) => (
+                    <Row key={`${r.on}-${r.name}`} lead={dayMonth(r.on)} label={r.name} trail={`${r.income ? '+' : ''}${euro(r.amount)}`} quiet={!r.income} />
+                  ))}
+                </View>
+              ) : null}
+              {/* The band's own record, once it has a fortnight of days behind it. */}
+              {forecast.band_calibration && forecast.band_calibration.days >= 14 && forecast.band_calibration.coverage !== null ? (
+                <Small style={layout.afterSmall}>{`The range has held on ${Math.round(forecast.band_calibration.coverage * forecast.band_calibration.days)} of the last ${forecast.band_calibration.days} days.`}</Small>
+              ) : null}
               {otherSide ? <Small style={layout.after}>{otherSide}</Small> : null}
 
               {/* The one number a person opens the app for. It sits under the month rather than
@@ -270,7 +290,7 @@ export default function MonthScreen({ onOpenQuestions, questionCount, onOpenLedg
         {empty || unreachable ? null : (
           <>
             {/* What the money says */}
-            <Section title="What the money says">
+            <Section title="What the money says" aside={quietDays !== null && quietDays >= 2 ? `Nothing new for ${quietDays} days` : undefined}>
               {readings.length === 0 ? (
                 <Small>A reading appears once there are enough payments behind it to count one.</Small>
               ) : (
