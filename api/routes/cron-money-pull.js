@@ -11,7 +11,11 @@
  * records every read, so a user who has spent theirs is skipped rather than refused.
  *
  * No model runs here. A read that brings nothing new costs one bank call and nothing else;
- * only a read with new rows pays for placing merchants and recomputing what they say.
+ * a read with new rows pays for placing merchants and recomputing what they say. The
+ * readings also carry the clock (a habit gone quiet, an income that has not come, the days
+ * left against a cap), so the first run of each day recomputes them for everyone whether
+ * or not the bank had news. That is the only place the clock-driven readings move: a page
+ * open never waits on a recompute.
  */
 
 import express from 'express';
@@ -27,6 +31,9 @@ const router = express.Router();
 
 /** Places looked up per user per run: enough to clear a day's new shops, cheap enough to fit. */
 export const PLACE_LOOKUPS_PER_RUN = 8;
+/** The run before this hour (UTC) is the day's first, and recomputes every reading. */
+export const DAILY_REFRESH_BEFORE_HOUR = 8;
+export const isDailyRun = (now = new Date()) => now.getUTCHours() < DAILY_REFRESH_BEFORE_HOUR;
 
 router.all('/', async (req, res) => {
   const startedAt = Date.now();
@@ -44,36 +51,44 @@ router.all('/', async (req, res) => {
 
     const userIds = await bankFeedUserIds();
 
+    const daily = isDailyRun();
     let read = 0;
     let created = 0;
     let skipped = 0;
+    let refreshed = 0;
     for (const userId of userIds) {
+      let fresh = 0;
       try {
         const pulled = await pullBankFeed(userId);
         read += 1;
-        const fresh = pulled.reduce((n, p) => n + (p.created || 0), 0);
+        fresh = pulled.reduce((n, p) => n + (p.created || 0), 0);
         created += fresh;
         if (fresh > 0) {
           await enrichPlaces(userId, { limit: PLACE_LOOKUPS_PER_RUN })
             .catch((e) => log.warn('places after pull failed', { userId, error: e.message }));
-          await refreshReadings(userId)
-            .catch((e) => log.warn('readings after pull failed', { userId, error: e.message }));
         }
-        /* Whether or not the bank had news, a day has passed: what it said for today is
-           written down, and what it said for yesterday is scored against what happened. */
-        await learnFromLedger(userId)
-          .catch((e) => log.warn('learning after pull failed', { userId, error: e.message }));
       } catch (err) {
         /* A spent budget is the normal state near the end of a day, not a failure. */
         if (err.code === 'feed_budget_spent' || err.code === 'bank_session_unreachable') skipped += 1;
         else log.warn('pull failed', { userId, error: err.message });
       }
+      /* New rows, or the day's first run: what the ledger says is recomputed. A bank that
+         refused the read does not stop the clock-driven readings from moving. */
+      if (fresh > 0 || daily) {
+        const ok = await refreshReadings(userId).then(() => true)
+          .catch((e) => { log.warn('readings refresh failed', { userId, error: e.message }); return false; });
+        if (ok) refreshed += 1;
+      }
+      /* Whether or not the bank had news, a day has passed: what it said for today is
+         written down, and what it said for yesterday is scored against what happened. */
+      await learnFromLedger(userId)
+        .catch((e) => log.warn('learning after pull failed', { userId, error: e.message }));
     }
 
     const elapsed = Date.now() - startedAt;
-    log.info('money pull complete', { users: userIds.length, read, created, skipped, elapsedMs: elapsed });
-    await logCronExecution('money-pull', 'success', elapsed, { users: userIds.length, read, created, skipped });
-    return res.json({ success: true, users: userIds.length, read, created, skipped, elapsedMs: elapsed });
+    log.info('money pull complete', { users: userIds.length, read, created, skipped, refreshed, daily, elapsedMs: elapsed });
+    await logCronExecution('money-pull', 'success', elapsed, { users: userIds.length, read, created, skipped, refreshed, daily });
+    return res.json({ success: true, users: userIds.length, read, created, skipped, refreshed, daily, elapsedMs: elapsed });
   } catch (err) {
     const elapsed = Date.now() - startedAt;
     await logCronExecution('money-pull', 'error', elapsed, null, err.message);
