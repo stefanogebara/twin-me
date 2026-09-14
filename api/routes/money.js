@@ -44,7 +44,7 @@ import { inboxAddress, inboxDomain, isInboxConfigured, verifySvix, ingestReceive
 import { accuracy } from '../services/money/predictions.js';
 import { createLogger } from '../services/logger.js';
 import { parseCapture, parseStructured } from '../services/money/captureParser.js';
-import { ingestSighting, ingestSightings, listTransactions, sightingsFor, refreshRecurring, forecast, setVerdict, userForCaptureKey, saveBankAccounts, listBankAccounts, pullBankFeed, refreshReadings, listReadings, setReadingVerdict, months, feedBudget, categorySpend, listPlaces, setPlaceCategory, enrichPlaces, subscriptionUsage, questionsFor, answerQuestion, skipQuestion, listFacts, deleteFact, recordCallbackFailure, learn } from '../services/money/store.js';
+import { ingestSighting, ingestSightings, listTransactions, sightingsFor, refreshRecurring, forecast, setVerdict, userForCaptureKey, saveBankAccounts, listBankAccounts, pullBankFeed, refreshReadings, listReadings, setReadingVerdict, months, feedBudget, categorySpend, listPlaces, setPlaceCategory, enrichPlaces, subscriptionUsage, questionsFor, answerQuestion, skipQuestion, listFacts, deleteFact, recordCallbackFailure, listChatTurns, learn } from '../services/money/store.js';
 import { parseDelimited, parseWorkbook, toSightings } from '../services/money/statements/importer.js';
 import { isConfigured, listBanks, startAuthorisation, createSession } from '../services/money/feeds/enableBanking.js';
 import { answer as chatAnswer, answerStream as chatAnswerStream, act as chatAct } from '../services/money/chat.js';
@@ -491,9 +491,9 @@ router.get('/questions', async (req, res) => {
 });
 
 router.post('/questions/answer', async (req, res) => {
-  const { questionId, kind, subject, subjectLabel, value, amount, day, share } = req.body || {};
+  const { questionId, kind, subject, subjectLabel, value, amount, day, share, note } = req.body || {};
   if (!kind) return res.status(400).json({ success: false, error: 'kind is required' });
-  try { res.json({ success: true, data: await answerQuestion(req.user.id, { questionId, kind, subject, subjectLabel, value, amount, day, share }) }); }
+  try { res.json({ success: true, data: await answerQuestion(req.user.id, { questionId, kind, subject, subjectLabel, value, amount, day, share, note: typeof note === 'string' ? note : undefined }) }); }
   catch (error) { log.error('answer failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
 });
 
@@ -513,6 +513,12 @@ router.delete('/facts/:id', async (req, res) => {
 });
 
 /* The ledger, asked. The numbers are computed; the model only phrases (services/money/chat.js). */
+/* The conversation so far, oldest first, so Ask opens where it stood. */
+router.get('/chat/history', async (req, res) => {
+  try { res.json({ success: true, data: await listChatTurns(req.user.id, { limit: 30 }) }); }
+  catch (error) { log.error('chat history failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
+});
+
 router.post('/chat', async (req, res) => {
   const { message, history } = req.body || {};
   if (typeof message !== 'string' || !message.trim()) return res.status(400).json({ success: false, error: 'message is required' });

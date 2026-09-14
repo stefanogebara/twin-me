@@ -24,7 +24,7 @@ const store = {
    second one. Everything else the chat reads from the store is still stubbed. */
 vi.mock('../../../../api/services/money/store.js', async (importOriginal) => {
   const { categoryOfPayment } = await importOriginal();
-  return { ...store, categoryOfPayment };
+  return { ...store, categoryOfPayment, saveChatTurn: async () => null, listChatTurns: async () => [], deleteFact: async () => ({ deleted: true }) };
 });
 
 const { answerStream, textStreamer, completeSentences } = await import('../../../../api/services/money/chat.js');
@@ -277,11 +277,12 @@ describe('the streamed answer', () => {
     expect(reply.figures).toEqual([]);
   });
 
-  it('sends only the six named fields, never a row or an id of its own', async () => {
+  it('sends only the seven named fields, never a row or an id of its own', async () => {
     streamCall.mockImplementation(streamsIn(['{"text":"Clothing took 116,76 EUR.","figures":[{"kind":"months"}],"actions":[],"cites":["t1"]}']));
     const { events, onEvent } = recorder();
     await answerStream('u1', 'where did september go?', [], { now: NOW, onEvent });
-    const allowed = new Set(['phase', 'delta', 'figures', 'actions', 'receipts', 'detail']);
+    /* basis: the context lines the answer stood on, computed, so the person can see how it got there. */
+    const allowed = new Set(['phase', 'delta', 'figures', 'actions', 'receipts', 'detail', 'basis']);
     for (const e of events) for (const key of Object.keys(e)) expect(allowed.has(key)).toBe(true);
   });
 
@@ -300,6 +301,19 @@ describe('the streamed answer', () => {
     expect(streamCall).not.toHaveBeenCalled();
     expect(textOf(events)).toMatch(/Spotify|comes back/i);
     expect(events.find((e) => e.phase === 'figures').figures[0].kind).toBe('recurring');
+    expect(phases(events).at(-1)).toBe('done');
+  });
+});
+
+describe('prose and then the object', () => {
+  it('shows the prose and never the brace, and still takes the offers from the object', async () => {
+    streamCall.mockImplementation(streamsIn(['I see the 200,00 EUR is your rent. If that is right, mark it below. ', '{"text":"I see the 200,00 EUR is your rent. If that is right, mark it below.","figures":[],"actions":[]}']));
+    const { events, onEvent } = recorder();
+    await answerStream('u1', 'the 200 to maria is my rent', [], { now: NOW, onEvent });
+    const text = textOf(events);
+    expect(text).toContain('your rent');
+    expect(text).not.toContain('{');
+    expect(text).not.toContain('"text"');
     expect(phases(events).at(-1)).toBe('done');
   });
 });

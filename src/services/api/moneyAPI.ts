@@ -82,6 +82,8 @@ export type MoneyFact = {
 export type MoneyAnswer = {
   questionId?: string; kind: string; subject?: string; subjectLabel?: string;
   value?: string; amount?: number; day?: number; share?: number;
+  /** Their own words, when a choice was not enough. */
+  note?: string;
 };
 export type MoneyAccount = { id: string; provider: string; name: string | null; iban_mask: string | null; currency: string; consent_expires_at: string | null; last_pulled_at: string | null; needs_reconnect?: boolean; bank_name?: string | null };
 /** A pasted calendar link: Canvas, Blackboard, or any .ics. Only ever a label and a link. */
@@ -209,20 +211,28 @@ export type ChatFigure =
   | { kind: 'recurring'; title?: string; items: FigureRecurring[] }
   | { kind: 'band'; title?: string; month?: string; spent: number; likely: number; low?: number; high?: number };
 export type ChatReceipt = { id: string; occurred_at: string; merchant: string; amount: number | string };
-export type ChatAction = { kind: string; label: string; payload?: Record<string, unknown> };
+export type ChatAction = { kind: string; label: string; [key: string]: unknown };
 export type ChatTurn = { role: 'user' | 'twin'; text: string };
-export type ChatReply = { text: string; figures?: ChatFigure[]; actions?: ChatAction[]; receipts?: ChatReceipt[] };
+export type ChatReply = { text: string; figures?: ChatFigure[]; actions?: ChatAction[]; receipts?: ChatReceipt[]; basis?: string[]; thinking?: string | null };
+/** One kept turn of the conversation, as the server hands it back. */
+export type ChatTurnKept = { id: string; role: 'user' | 'twin'; text: string; figures?: ChatFigure[] | null; actions?: ChatAction[] | null; thinking?: string | null; basis?: string[] | null; created_at: string };
 /** One answer, in the pieces the server sends. The phases arrive in this order. */
 export type ChatStreamEvent =
   | { phase: 'reading' }
   | { phase: 'text'; delta: string }
+  | { phase: 'thinking'; delta: string }
   | { phase: 'figures'; figures?: ChatFigure[] }
-  | { phase: 'actions'; actions?: ChatAction[]; receipts?: ChatReceipt[] }
+  | { phase: 'actions'; actions?: ChatAction[]; receipts?: ChatReceipt[]; basis?: string[] }
   | { phase: 'done' }
   | { phase: 'failed'; detail?: string };
 
 export const moneyChat = {
   /** The whole answer at once; the fallback when the stream is not there. */
+  /** The conversation so far, oldest first. */
+  history: () => authFetch('/money/chat/history').then((r) => json<ChatTurnKept[]>(r)),
+  /** Run an offer the person tapped; the ledger checks it again and says what it did. */
+  act: (action: ChatAction) =>
+    authFetch('/money/chat/act', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action }) }).then((r) => json<{ done: boolean; said: string }>(r)),
   ask: (message: string, history: ChatTurn[]) =>
     authFetch('/money/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message, history: history.slice(-10) }) })
       .then((r) => json<ChatReply>(r)),

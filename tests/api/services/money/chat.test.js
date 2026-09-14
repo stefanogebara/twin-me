@@ -18,7 +18,7 @@ const store = {
    second one. Everything else the chat reads from the store is still stubbed. */
 vi.mock('../../../../api/services/money/store.js', async (importOriginal) => {
   const { categoryOfPayment } = await importOriginal();
-  return { ...store, categoryOfPayment };
+  return { ...store, categoryOfPayment, saveChatTurn: async () => null, listChatTurns: async () => [], deleteFact: async () => ({ deleted: true }) };
 });
 
 const {
@@ -402,5 +402,25 @@ describe('a payment the person says was shared', () => {
   });
   it('is offered to the model as an action it may propose', () => {
     expect(String(typeof RULES === 'string' ? RULES : JSON.stringify(RULES))).toMatch(/split with transaction_id/);
+  });
+});
+
+describe('the offers a correction becomes', () => {
+  it('person offer: a role for somebody the ledger has seen, with their words', () => {
+    const c = ctx();
+    const person = c.transactions.find((t) => t.channel === 'transfer' || t.channel === 'bizum');
+    if (!person) return;
+    const a = validateAction({ kind: 'person', merchant_key: person.merchant_key, role: 'landlord', note: 'the flat in Recoletos' }, c);
+    expect(a).toMatchObject({ kind: 'person', merchant_key: person.merchant_key, role: 'landlord', note: 'the flat in Recoletos' });
+    expect(validateAction({ kind: 'person', merchant_key: person.merchant_key, role: 'boss' }, c)).toBeNull();
+    expect(validateAction({ kind: 'person', merchant_key: 'nobody', role: 'friend' }, c)).toBeNull();
+  });
+  it('remember keeps their words; forget needs a fact the ledger holds', () => {
+    const c = ctx();
+    expect(validateAction({ kind: 'remember', text: 'I stop eating out in exam weeks' }, c)).toMatchObject({ kind: 'remember', text: 'I stop eating out in exam weeks' });
+    expect(validateAction({ kind: 'remember', text: 'no' }, c)).toBeNull();
+    expect(validateAction({ kind: 'forget', fact_id: 'not-a-fact' }, c)).toBeNull();
+    const withFact = { ...c, facts: [{ id: 'f1', kind: 'person', subject: 'x', value: 'other' }] };
+    expect(validateAction({ kind: 'forget', fact_id: 'f1' }, withFact)).toMatchObject({ kind: 'forget', fact_id: 'f1' });
   });
 });
