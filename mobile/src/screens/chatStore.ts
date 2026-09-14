@@ -31,6 +31,10 @@ export type Line = {
   /** What happened to an action once it was pressed, by its index in `actions`. */
   acted?: Record<number, string>;
   receipts?: ChatReceipt[];
+  /** The model's own reasoning and the ledger lines the answer stood on: How it got there. */
+  thinking?: string;
+  basis?: string[];
+  howOpen?: boolean;
   trace?: TraceStep[];
   /** The question this line asks, when it asks one. Drives the cards and fields under it. */
   question?: MoneyQuestion;

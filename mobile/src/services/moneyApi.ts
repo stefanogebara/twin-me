@@ -331,10 +331,18 @@ export function readLedgerStream(onEvent: (e: LedgerStreamEvent) => void, onEnd:
 export type ChatStreamEvent =
   | { phase: 'reading' }
   | { phase: 'text'; delta: string }
+  /** The model's own reasoning, as it comes: shown under the answer, never as the answer. */
+  | { phase: 'thinking'; delta: string }
   | { phase: 'figures'; figures?: ChatFigure[] }
-  | { phase: 'actions'; actions?: ChatAction[]; receipts?: ChatReceipt[] }
+  | { phase: 'actions'; actions?: ChatAction[]; receipts?: ChatReceipt[]; basis?: string[] }
   | { phase: 'done' }
   | { phase: 'failed'; detail?: string };
+
+/** One kept turn of the conversation, as the server hands it back, oldest first. */
+export type ChatTurnKept = {
+  id: string; role: 'user' | 'twin'; text: string; figures?: ChatFigure[] | null; receipts?: ChatReceipt[] | null;
+  thinking?: string | null; basis?: string[] | null; created_at: string;
+};
 
 /**
  * Ask, and take the answer as it is written. `onEnd(false)` means the stream did not reach
@@ -422,6 +430,8 @@ export const moneyApi = {
     post('/money/chat', { message, history: history.slice(-10) }).then((r) => json<ChatReply>(r)),
   /** Do one of the things the twin proposed. */
   chatAct: (action: ChatAction) => post('/money/chat/act', { action }).then((r) => json<ChatActResult>(r)),
+  /** The conversation so far, so Ask opens where it stood. */
+  chatHistory: () => authFetch('/money/chat/history').then((r) => json<ChatTurnKept[]>(r)),
   /** The calendar lens: connected or not, and the week ahead with what it usually costs. */
   calendar: () => authFetch('/money/calendar').then((r) => json<MoneyCalendar>(r)),
   /** Where to send the person to connect their calendar. */
