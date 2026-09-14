@@ -42,7 +42,8 @@ export const NOT_SPLIT = 'not split';
 const DAY = 86400000;
 const PERSON_CHANNELS = new Set(['bizum', 'transfer']);
 const EUR = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' });
-const euro = (n) => EUR.format(Math.abs(Number(n) || 0)).replace(/[\u00a0\u202f]/g, ' ').replace('\u20ac', 'EUR');
+/* The same form the analyst uses on the screen: Intl's own, sign and no-break space kept. */
+const euro = (n) => EUR.format(Math.abs(Number(n) || 0));
 const r2 = (n) => Math.round(Number(n) * 100) / 100;
 const abs = (t) => Math.abs(Number(t.amount) || 0);
 const at = (t) => new Date(t.occurred_at).getTime();

@@ -42,7 +42,8 @@ export const RETIRE_AFTER = 30;
 const DAY = 86400000;
 const EUR = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' });
 /* The formatter puts a narrow no-break space before the sign; a sentence wants a plain one. */
-const euro = (n) => EUR.format(Math.abs(Number(n) || 0)).replace(/[\u00a0\u202f]/g, ' ').replace('\u20ac', 'EUR');
+/* The same form the analyst uses on the screen: Intl's own, sign and no-break space kept. */
+const euro = (n) => EUR.format(Math.abs(Number(n) || 0));
 const r2 = (n) => Math.round(Number(n) * 100) / 100;
 const dayOf = (d) => new Date(d).toISOString().slice(0, 10);
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];

@@ -367,7 +367,9 @@ export function contextText(ctx) {
     lines.push('Places (merchant_key: name, kind): ' + placed.map((p) => `${p.merchant_key}: ${p.name}, ${p.category || 'not read yet'}`).join('; '));
   }
 
-  return lines.slice(0, MAX_CONTEXT_LINES + 60).join('\n');
+  /* The prompt is ASCII whatever a sentence was written for: the screen keeps the sign and
+     the no-break space, the model reads the letters and a plain space. */
+  return lines.slice(0, MAX_CONTEXT_LINES + 60).join('\n').replace(/[\u00a0\u202f]/g, ' ').replace(/\u20ac/g, 'EUR');
 }
 
 export const RULES = [

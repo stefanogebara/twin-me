@@ -109,7 +109,7 @@ describe('what it got wrong, said out loud', () => {
     });
     expect(f.kind).toBe('own_score');
     expect(f.month).toBe('2026-09-01');
-    expect(f.sentence).toBe('In September it said 1075,86 EUR; it was 1140,20 EUR, 64,34 EUR over, inside the range it gave.');
+    expect(f.sentence).toBe('In September it said 1075,86\u00a0\u20ac; it was 1140,20\u00a0\u20ac, 64,34\u00a0\u20ac over, inside the range it gave.');
     expect(f.detail).toBe('Of 12 charges it expected, 9 came, 7 on the day. The day range held on 18 of 24 days.');
   });
   it('speaks on charges alone once there are enough, and not before', () => {

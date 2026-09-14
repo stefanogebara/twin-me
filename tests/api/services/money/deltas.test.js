@@ -8,7 +8,7 @@ import { categoryDeltas, silenceDeltas, weekdayDelta, paceDelta, deltaFindings, 
 const NOW = new Date('2026-09-14T12:00:00Z'); // Monday noon
 const DAY = 86400000;
 const tx = (daysAgo, amount, merchant, category, extra = {}) => ({ id: `${merchant}-${daysAgo}-${amount}`, occurred_at: new Date(NOW.getTime() - daysAgo * DAY + 3600000).toISOString(), amount: -amount, merchant_raw: merchant, merchant_key: merchant.toLowerCase(), category, ...extra });
-/* Four baseline weeks of 40 EUR eating out (two 20s a week), then a 96 EUR week. */
+/* Four baseline weeks of 40\u00a0\u20ac eating out (two 20s a week), then a 96\u00a0\u20ac week. */
 function eatingOut() {
   const rows = [];
   for (let w = 1; w <= 4; w += 1) { rows.push(tx(w * 7 + 1, 20, 'La Tasca', 'eating out')); rows.push(tx(w * 7 + 4, 20, 'Bar Pepe', 'eating out')); }
@@ -36,7 +36,7 @@ describe('categoryDeltas', () => {
   it('says a kind of place is up against its usual week, with the receipts', () => {
     const [f] = categoryDeltas(eatingOut(), { categoryOf: (t) => t.category, now: NOW });
     expect(f.kind).toBe('delta_category');
-    expect(f.sentence).toBe('Eating out: 96,00 EUR this week, usually 40,00 EUR.');
+    expect(f.sentence).toBe('Eating out: 96,00\u00a0\u20ac this week, usually 40,00\u00a0\u20ac.');
     expect(f.detail).toBe('3 payments in seven days; usually 2.');
     expect(f.receipts.map((r) => r.merchant_raw)).toEqual(['La Tasca', 'Bar Pepe', 'Cafe Sol']);
     expect(f.numbers).toMatchObject({ category: 'eating out', current: 96, usual: 40, ratio: 2.4 });
@@ -79,19 +79,19 @@ describe('weekdayDelta and paceDelta', () => {
     for (let w = 1; w <= 6; w += 1) rows.push(tx(1 + 7 * w, 40, 'Mercado', 'groceries'));
     rows.push(tx(1, 12, 'Mercado', 'groceries'));
     const f = weekdayDelta(rows, { now: NOW });
-    expect(f.sentence).toBe('Sunday cost 12,00 EUR; the six before, 40,00 EUR in the middle.');
+    expect(f.sentence).toBe('Sunday cost 12,00\u00a0\u20ac; the six before, 40,00\u00a0\u20ac in the middle.');
     expect(f.detail).toBe('1 payment: Mercado.');
     expect(weekdayDelta(rows.slice(0, 3), { now: NOW })).toBeNull();
   });
   it('reads the week against a usual week', () => {
     const f = paceDelta(eatingOut(), { now: NOW });
-    expect(f.sentence).toBe('96,00 EUR in the last seven days; a usual week of yours is 40,00 EUR.');
+    expect(f.sentence).toBe('96,00\u00a0\u20ac in the last seven days; a usual week of yours is 40,00\u00a0\u20ac.');
   });
   it('keeps three at most, largest change first', () => {
     const rows = eatingOut();
     const out = deltaFindings({ transactions: rows, profiles: [], categoryOf: (t) => t.category, now: NOW });
     expect(out.length).toBeLessThanOrEqual(3);
-    /* Category and pace tie at 56 EUR of change and keep their order; yesterday's Sunday (48 against 20) comes third. */
+    /* Category and pace tie at 56\u00a0\u20ac of change and keep their order; yesterday's Sunday (48 against 20) comes third. */
     expect(out.map((f) => f.kind)).toEqual(['delta_category', 'delta_pace', 'delta_weekday']);
     expect(out[0]).not.toHaveProperty('change');
   });

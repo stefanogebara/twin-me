@@ -134,7 +134,7 @@ describe('the ledger replayed day by day', () => {
   it('reads the intention against the month every day, and the dear week as a change', () => {
     const caps = said.filter((s) => s.kind === 'cap_month');
     expect(caps.length).toBe(DAYS - 60);
-    expect(caps[caps.length - 1].text).toMatch(/^Eating out: \d+,\d\d EUR/);
+    expect(caps[caps.length - 1].text).toMatch(/^Eating out: \d+,\d\d\u00a0\u20ac/);
     const lastWeek = said.filter((s) => s.today >= '2026-09-13' && (s.kind === 'delta_category' || s.kind === 'delta_pace'));
     expect(lastWeek.length).toBeGreaterThan(0);
   });
