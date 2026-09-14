@@ -27,6 +27,8 @@
  * POST /api/money/bank/connect { bank? }   start PSD2 authorisation at the bank → { url }
  * GET  /api/money/bank/callback?code&state the bank sends the person back here; accounts are saved
  * GET  /api/money/bank/accounts            connected accounts and when consent expires
+ * POST /api/money/calendar/feed { url }    a Canvas, Blackboard or .ics link, read with the calendar
+ * DELETE /api/money/calendar/feed/:id      forget a link
  * POST /api/money/bank/pull                pull the feed now (PSD2: four unattended pulls a day)
  * POST /api/money/chat { message, history? } a question or a correction, answered with figures and receipts
  * POST /api/money/chat/act { action }      run an action the person confirmed from a chat reply
@@ -46,7 +48,7 @@ import { ingestSighting, ingestSightings, listTransactions, sightingsFor, refres
 import { parseDelimited, parseWorkbook, toSightings } from '../services/money/statements/importer.js';
 import { isConfigured, listBanks, startAuthorisation, createSession } from '../services/money/feeds/enableBanking.js';
 import { answer as chatAnswer, answerStream as chatAnswerStream, act as chatAct } from '../services/money/chat.js';
-import { ahead as calendarAhead, learnEventSpend } from '../services/money/calendar.js';
+import { ahead as calendarAhead, learnEventSpend, addFeed as addCalendarFeed, removeFeed as removeCalendarFeed } from '../services/money/calendar.js';
 import { todayAllowance } from '../services/money/allowance.js';
 import { bankNeedsReconnect } from '../services/money/store.js';
 import { guessHome, savedHome, searchAreas, staticMap, saveHome } from '../services/money/home.js';
@@ -593,6 +595,30 @@ router.get('/calendar/connect', async (req, res) => {
   } catch (error) {
     log.error('calendar connect failed', { error: error.message });
     res.status(500).json({ success: false, error: 'Could not start the calendar connection' });
+  }
+});
+
+/* A Canvas, Blackboard or any .ics link, pasted. Fetched once to prove it reads, then kept
+   as one fact and read with the rest of the calendar. Removing it removes the fact. */
+router.post('/calendar/feed', async (req, res) => {
+  const url = typeof req.body?.url === 'string' ? req.body.url.trim().slice(0, 2000) : '';
+  if (!url) return res.status(400).json({ success: false, error: 'Paste the calendar link.' });
+  try {
+    const feed = await addCalendarFeed(req.user.id, url);
+    learnEventSpend(req.user.id).catch((e) => log.warn('calendar learn after feed failed', { error: e.message }));
+    res.json({ success: true, data: feed });
+  } catch (error) {
+    log.warn('calendar feed refused', { error: error.message });
+    res.status(400).json({ success: false, error: error.message });
+  }
+});
+router.delete('/calendar/feed/:id', async (req, res) => {
+  try {
+    await removeCalendarFeed(req.user.id, String(req.params.id).slice(0, 32));
+    res.json({ success: true });
+  } catch (error) {
+    log.error('calendar feed remove failed', { error: error.message });
+    res.status(500).json({ success: false, error: 'Internal server error' });
   }
 });
 

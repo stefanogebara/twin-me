@@ -17,8 +17,9 @@ import Constants from 'expo-constants';
 import * as WebBrowser from 'expo-web-browser';
 import { cosmos, dayMonth, euro, monthYear } from '../constants/cosmos';
 import { Enter, List, Micro, Page, Panel, Pill, Row, Section, Small, Title } from '../ui/primitives';
+import { Prompt } from '../ui/prompt';
 import { CalendarGlyph, CardGlyph, PhoneGlyph, MailGlyph } from '../ui/glyphs';
-import { moneyApi, type MoneyAccount, type MoneyCalendar, type MoneyFact } from '../services/moneyApi';
+import { moneyApi, bankLabel, type MoneyAccount, type MoneyCalendar, type MoneyFact } from '../services/moneyApi';
 import type { User } from '../types';
 
 
@@ -70,6 +71,11 @@ export default function YouScreen({ user, onSignOut, onOpenPhone, onOpenBank, on
   /* The receipts address, once the server has minted it; null until then. */
   const [inbox, setInbox] = useState<{ address: string; receiving: boolean } | null>(null);
   const [connecting, setConnecting] = useState(false);
+  /* A Canvas or Blackboard link, pasted: the field opens under the calendar row. */
+  const [feedOpen, setFeedOpen] = useState(false);
+  const [feedUrl, setFeedUrl] = useState('');
+  const [feedBusy, setFeedBusy] = useState(false);
+  const [feedNote, setFeedNote] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -98,6 +104,22 @@ export default function YouScreen({ user, onSignOut, onOpenPhone, onOpenBank, on
     } catch { /* the row keeps saying not connected */ }
     finally { setConnecting(false); void load(); }
   }, [connecting, load]);
+
+  const addFeed = useCallback(async () => {
+    const url = feedUrl.trim();
+    if (!url || feedBusy) return;
+    setFeedBusy(true); setFeedNote(null);
+    try {
+      const f = await moneyApi.addCalendarFeed(url);
+      setFeedUrl(''); setFeedOpen(false);
+      setFeedNote(f.already ? 'That link is already here.' : `${f.label} added, ${f.events ?? 0} events read.`);
+      await load();
+    } catch (e) { setFeedNote((e as Error).message || 'That link could not be read.'); }
+    finally { setFeedBusy(false); }
+  }, [feedUrl, feedBusy, load]);
+  const removeFeed = useCallback(async (id: string) => {
+    try { await moneyApi.removeCalendarFeed(id); await load(); } catch { /* the row stays */ }
+  }, [load]);
 
   const name = firstName(user);
 
@@ -141,7 +163,7 @@ export default function YouScreen({ user, onSignOut, onOpenPhone, onOpenBank, on
                         key={a.id}
                         inset
                         glyph={<CardGlyph />}
-                        label={a.provider === 'enablebanking' ? 'Santander' : (a.name || 'Bank account')}
+                        label={a.provider === 'enablebanking' ? bankLabel(a.bank_name) : (a.name || 'Bank account')}
                         sub={a.needs_reconnect
                           ? 'Ended. Tap to reconnect'
                           : [
@@ -168,11 +190,29 @@ export default function YouScreen({ user, onSignOut, onOpenPhone, onOpenBank, on
                       inset
                       glyph={<CalendarGlyph />}
                       label="Your calendar"
-                      sub={calendar.connected
-                        ? (routine || 'Connected')
-                        : connecting ? 'Opening' : 'Learn what your week costs'}
-                      onPress={calendar.connected ? undefined : () => void connectCalendar()}
+                      sub={calendar.google
+                        ? (routine || 'Google connected')
+                        : connecting ? 'Opening' : 'Google: learn what your week costs'}
+                      onPress={calendar.google ? undefined : () => void connectCalendar()}
                     />
+                  ) : null}
+                  {(calendar?.feeds || []).map((f) => (
+                    <Row key={f.id} inset glyph={<CalendarGlyph />} label={f.label} sub="Read once a day. Tap to remove" onPress={() => void removeFeed(f.id)} />
+                  ))}
+                  {calendar ? (
+                    <Row
+                      inset
+                      glyph={<CalendarGlyph />}
+                      label="A Canvas or Blackboard link"
+                      sub={feedNote || 'Exams and deadlines come in; nothing goes out'}
+                      onPress={() => { setFeedOpen((o) => !o); setFeedNote(null); }}
+                    />
+                  ) : null}
+                  {feedOpen ? (
+                    <View style={s.feed}>
+                      <Prompt value={feedUrl} onChange={setFeedUrl} onSubmit={() => void addFeed()} placeholder="https://" busy={feedBusy} autoFocus />
+                      <Micro quiet>Canvas: Calendar, then Calendar feed. Blackboard: Calendar, then Get external calendar link.</Micro>
+                    </View>
                   ) : null}
                 </Panel>
               </Section>
@@ -227,5 +267,6 @@ const s = StyleSheet.create({
   content: { padding: cosmos.space.lg, paddingTop: cosmos.space.lg, paddingBottom: cosmos.chrome.door + cosmos.space.xl },
   empty: { gap: cosmos.space.md, alignItems: 'flex-start' },
   prose: { gap: cosmos.space.sm },
+  feed: { gap: cosmos.space.sm, paddingHorizontal: cosmos.space.md, paddingBottom: cosmos.space.md },
   end: { gap: cosmos.space.md, alignItems: 'flex-start', marginTop: cosmos.space.xxl },
 });

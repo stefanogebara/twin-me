@@ -111,8 +111,13 @@ export type MoneyCalendarItem = {
 };
 
 /** GET /money/calendar: whether a calendar is connected and what the week ahead looks like. */
+/** A pasted calendar link: Canvas, Blackboard, or any .ics. Only ever a label and a link. */
+export type MoneyCalendarFeed = { id: string; kind: string; label: string; url: string; added_at: string | null };
 export type MoneyCalendar = {
   connected: boolean;
+  /** Google is one source; pasted links are the other. */
+  google?: boolean;
+  feeds?: MoneyCalendarFeed[];
   ahead: MoneyCalendarItem[];
   free_days?: number | null;
   routine?: string | null;
@@ -175,7 +180,14 @@ export type MoneyAccount = {
   consent_expires_at: string | null; last_pulled_at: string | null;
   /** The bank ended the session: nothing can be read until the person authorises it again. */
   needs_reconnect?: boolean;
+  /** As the aggregator names it: 'Banco Santander', 'Revolut'. Rows from before carry none. */
+  bank_name?: string | null;
 };
+export const BANKS = [{ name: 'Banco Santander', label: 'Santander' }, { name: 'Revolut', label: 'Revolut' }] as const;
+export function bankLabel(name: string | null | undefined): string {
+  const b = BANKS.find((x) => x.name === name);
+  return b ? b.label : (name || 'Santander');
+}
 export type MoneyQuestionReceipt = {
   id: string;
   occurred_at: string;
@@ -408,6 +420,9 @@ export const moneyApi = {
   calendar: () => authFetch('/money/calendar').then((r) => json<MoneyCalendar>(r)),
   /** Where to send the person to connect their calendar. */
   calendarConnect: () => authFetch('/money/calendar/connect').then((r) => json<{ url: string }>(r)),
+  /** A Canvas, Blackboard or .ics link, read once to prove it reads, then kept. */
+  addCalendarFeed: (url: string) => authFetch('/money/calendar/feed', { method: 'POST', body: JSON.stringify({ url }) }).then((r) => json<MoneyCalendarFeed & { events: number | null; already: boolean }>(r)),
+  removeCalendarFeed: (id: string) => authFetch(`/money/calendar/feed/${encodeURIComponent(id)}`, { method: 'DELETE' }).then((r) => json<unknown>(r)),
   /** Home: the ledger's guess from where the person shops, and what they have confirmed. */
   home: () => authFetch('/money/home').then((r) => json<MoneyHome>(r)),
   /** Districts and towns matching a few typed letters. */

@@ -197,6 +197,10 @@
 .mv .mv-ahead-day { color: var(--ink-3); font-weight: 350; }
 .mv .mv-ahead-in { color: var(--ok); }
 
+/* The pasted calendar link: a label, the field with its one button, one quiet line. */
+.mv .mv-feed { display: grid; gap: 8px; width: 100%; padding: 4px 0 8px; }
+.mv .mv-feed-row { display: flex; gap: 8px; align-items: center; }
+.mv .mv-feed-row .mv-field { flex: 1 1 auto; min-width: 0; }
 /* The phone key and the steps that use it */
 .mv .mv-code { display: block; padding: 11px 14px; border-radius: 4px; background: var(--field); font-family: var(--mono); font-size: 12px; line-height: 18px; word-break: break-all; }
 .mv ol.mv-steps { display: grid; gap: 8px; padding: 0 12px 20px 68px; list-style: decimal; color: var(--ink-2); font-weight: 350; }

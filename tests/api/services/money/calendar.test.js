@@ -29,6 +29,7 @@ const cal = await import('../../../../api/services/money/calendar.js');
 const {
   normaliseEvent, shapeKey, joinEventsToPayments, learnShapes, expectFor, aheadFrom, routineSummary,
   calendarFromFacts, calendarForecast, calendarLines, learnEventSpend, ahead, MIN_OCCURRENCES, MIN_PAID, FACT_KIND, META_KIND,
+  feedsFromFacts, eventsFor, calendarStatus, FEED_KIND,
 } = cal;
 
 const NOW = new Date('2026-09-08T12:00:00Z');
@@ -255,5 +256,36 @@ describe('learnEventSpend and ahead against Google and the store', () => {
     const r = await ahead('u1', 7, { now: NOW });
     expect(r.connected).toBe(false);
     expect(get).not.toHaveBeenCalled();
+  });
+});
+
+describe('pasted calendar links', () => {
+  const ICS = 'BEGIN:VCALENDAR\nBEGIN:VEVENT\nUID:a1\nDTSTART;VALUE=DATE:20260910\nSUMMARY:Assignment 1\nEND:VEVENT\nBEGIN:VEVENT\nUID:far\nDTSTART;VALUE=DATE:20270101\nSUMMARY:Next year\nEND:VEVENT\nEND:VCALENDAR';
+  const feedFact = { kind: FEED_KIND, subject: 'abc123', subject_label: 'canvas', value: 'https://ie.instructure.com/feeds/calendars/user_x.ics', answered_at: '2026-09-01T00:00:00Z' };
+  it('reads the links back from the facts, as a label and never more', () => {
+    const [f] = feedsFromFacts([feedFact, { kind: 'home_area', value: 'x' }]);
+    expect(f).toMatchObject({ id: 'abc123', kind: 'canvas', label: 'Canvas', url: feedFact.value });
+  });
+  it('counts a link as a calendar source, and merges its events with Google\'s inside the window', async () => {
+    token.mockResolvedValue({ success: false });
+    store.listFacts.mockResolvedValue([feedFact]);
+    const realFetch = globalThis.fetch;
+    globalThis.fetch = async () => ({ ok: true, headers: { get: () => '0' }, text: async () => ICS });
+    try {
+      const status = await calendarStatus('u1');
+      expect(status).toMatchObject({ connected: true, google: false });
+      expect(status.feeds).toHaveLength(1);
+      const events = await eventsFor('u1', '2026-09-01T00:00:00Z', '2026-10-01T00:00:00Z');
+      expect(events.map((e) => e.title)).toEqual(['Assignment 1']);
+      expect(events[0].source).toBe('canvas');
+    } finally { globalThis.fetch = realFetch; }
+  });
+  it('skips a link that does not answer with a calendar, without failing the read', async () => {
+    token.mockResolvedValue({ success: false });
+    store.listFacts.mockResolvedValue([feedFact]);
+    const realFetch = globalThis.fetch;
+    globalThis.fetch = async () => ({ ok: true, headers: { get: () => '0' }, text: async () => '<html>login</html>' });
+    try { expect(await eventsFor('u1', '2026-09-01T00:00:00Z', '2026-10-01T00:00:00Z')).toEqual([]); }
+    finally { globalThis.fetch = realFetch; }
   });
 });

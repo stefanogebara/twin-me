@@ -10,10 +10,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
-import { ChevronRight, FileText, Landmark, Mail, Plus, Smartphone } from 'lucide-react';
+import { CalendarDays, ChevronRight, FileText, Landmark, Mail, Smartphone } from 'lucide-react';
 import '../../styles/money-v2.css';
 import MoneyNav, { type MoneyNavLink } from './MoneyNav';
-import { moneyAPI, euro, shortDay, type MoneyAccount, type MoneyCategories, type MoneyDayStrip, type MoneyForecast, type MoneyMonth, type MoneyReading, type MoneyRecurring, type MoneySighting, type MoneyTransaction, type MoneyUsage } from '../../services/api/moneyAPI';
+import { moneyAPI, euro, shortDay, bankLabel, BANKS, type MoneyAccount, type MoneyCalendar, type MoneyCategories, type MoneyDayStrip, type MoneyForecast, type MoneyMonth, type MoneyReading, type MoneyRecurring, type MoneySighting, type MoneyTransaction, type MoneyUsage } from '../../services/api/moneyAPI';
 
 const CADENCE: Record<string, string> = { weekly: 'every week', biweekly: 'every two weeks', monthly: 'every month', quarterly: 'every quarter', yearly: 'every year' };
 const SOURCE: Record<string, string> = { phone: 'Your phone', bizum: 'Bizum', bankfeed: 'Santander', gmail: 'Gmail', statement: 'Statement' };
@@ -83,6 +83,9 @@ export default function MoneyV2Page() {
   const [showSteps, setShowSteps] = useState(false);
   const [inbox, setInbox] = useState<{ address: string; receiving: boolean } | null>(null);
   const [copied, setCopied] = useState(false);
+  /* The calendar lens: Google, or links pasted from Canvas and Blackboard. */
+  const [calendar, setCalendar] = useState<MoneyCalendar | null>(null);
+  const [feedUrl, setFeedUrl] = useState('');
   const [categories, setCategories] = useState<MoneyCategories | null>(null);
   const [usage, setUsage] = useState<MoneyUsage | null>(null);
   const [bankReady, setBankReady] = useState(true);
@@ -113,7 +116,7 @@ export default function MoneyV2Page() {
     ? `Booked to ${shortDay(bookedTo)}${since ? `, ${since} ${since === 1 ? 'alert' : 'alerts'} since` : ''}. Cards post on working days.`
     : 'Read four times a day. You confirm it every six months.';
   const bankLine = !bankReady ? 'The bank feed is not switched on yet.'
-    : busy === 'connect' ? 'Opening Santander.'
+    : busy === 'connect' ? 'Opening the bank.'
     : busy === 'pull' ? 'Reading the bank.'
     : read ? (read.created ? `${read.created} new just now.` : `Nothing new just now. ${bookedLine}`)
     : bookedLine;
@@ -135,6 +138,8 @@ export default function MoneyV2Page() {
   }, []);
   useEffect(() => { void load(); }, [load]);
   useEffect(() => { moneyAPI.inbox().then(setInbox).catch(() => setInbox(null)); }, []);
+  const loadCalendar = useCallback(() => moneyAPI.calendar().then(setCalendar).catch(() => setCalendar({ connected: false })), []);
+  useEffect(() => { void loadCalendar(); }, [loadCalendar]);
   const copyInbox = useCallback(async () => {
     if (!inbox) return;
     try { await navigator.clipboard.writeText(inbox.address); setCopied(true); setTimeout(() => setCopied(false), 1600); } catch { /* the address is on the page to select */ }
@@ -200,10 +205,35 @@ export default function MoneyV2Page() {
     setLedger((rows) => rows.map((r) => (r.id === t.id ? { ...r, verdict: next } : r)));
     try { await moneyAPI.verdict(t.id, next); } catch { setLedger((rows) => rows.map((r) => (r.id === t.id ? { ...r, verdict: t.verdict } : r))); }
   }
-  async function connect() {
+  async function connect(bank: string = BANKS[0].name) {
     setBusy('connect'); setNote(null);
-    try { const { url } = await moneyAPI.connect(); window.location.assign(url); }
+    try { const { url } = await moneyAPI.connect(bank); window.location.assign(url); }
     catch (e) { const err = e as Error & { status?: number }; if (err.status === 503) setBankReady(false); setNote(err.status === 503 ? 'The bank feed is not switched on yet.' : 'The bank did not answer. Try again in a moment.'); }
+    finally { setBusy(null); }
+  }
+  async function connectCalendar() {
+    setBusy('calendar'); setNote(null);
+    try { const { url } = await moneyAPI.calendarConnect(); window.location.assign(url); }
+    catch { setNote('The calendar connection is not switched on yet.'); }
+    finally { setBusy(null); }
+  }
+  async function addFeed(e: React.FormEvent) {
+    e.preventDefault();
+    const url = feedUrl.trim();
+    if (!url) return;
+    setBusy('feed'); setNote(null);
+    try {
+      const f = await moneyAPI.addCalendarFeed(url);
+      setFeedUrl('');
+      setNote(f.already ? 'That link is already here.' : `${f.label} added: ${f.events ?? 0} events read.`);
+      await loadCalendar();
+    } catch (err) { setNote((err as Error).message || 'That link could not be read.'); }
+    finally { setBusy(null); }
+  }
+  async function removeFeed(id: string) {
+    setBusy('feed'); setNote(null);
+    try { await moneyAPI.removeCalendarFeed(id); await loadCalendar(); }
+    catch { setNote('That link could not be removed. Try again.'); }
     finally { setBusy(null); }
   }
   async function pull() {
@@ -267,9 +297,10 @@ export default function MoneyV2Page() {
             ) : empty ? (
               <>
                 <h1>Nothing read yet.</h1>
-                <p className="mv-sub">Connect Santander, or let your phone send each purchase as it happens.</p>
+                <p className="mv-sub">Connect Santander or Revolut, or let your phone send each purchase as it happens.</p>
                 <div className="mv-ctas">
-                  <button type="button" className="mv-pill" onClick={connect} disabled={busy === 'connect' || !bankReady}>Connect Santander</button>
+                  <button type="button" className="mv-pill" onClick={() => void connect(BANKS[0].name)} disabled={busy === 'connect' || !bankReady}>Connect Santander</button>
+                  <button type="button" className="mv-pill mv-pill--ghost" onClick={() => void connect(BANKS[1].name)} disabled={busy === 'connect' || !bankReady}>Or Revolut</button>
                   <a href="#sources" className="mv-pill mv-pill--ghost">Set up the phone</a>
                 </div>
               </>
@@ -575,46 +606,85 @@ export default function MoneyV2Page() {
           {/* Sources */}
           <section className="mv-section" id="sources">
             <div className="mv-head">
-              <h2>Read from two places.</h2>
-              {accounts.length ? (
-                <button type="button" className="mv-icon-btn" aria-label="Connect another account" onClick={connect} disabled={busy === 'connect' || !bankReady}>
-                  <Plus size={16} aria-hidden="true" />
-                </button>
-              ) : null}
+              <h2>Read from a few places.</h2>
             </div>
             <p className="mv-sub">Counts and amounts only. Remove a source and what it read goes too.</p>
             <ul className="mv-list">
+              {BANKS.map((bank, i) => {
+                /* Rows from before the second bank carry no name; they were all Santander. */
+                const mine = accounts.filter((a) => (a.bank_name || BANKS[0].name) === bank.name);
+                const first = i === 0;
+                return (
+                  <li key={bank.name}>
+                    <div className="mv-item mv-item--icon">
+                      <span className="mv-icon" aria-hidden="true"><Landmark size={16} /></span>
+                      <span className="mv-item-text">
+                        <span className="mv-item-title">{bank.label}</span>
+                        <span className="mv-item-sub" aria-live="polite">{mine.length || first ? bankLine : 'Read four times a day, like the other.'}</span>
+                      </span>
+                      {/* Only once the accounts are in: before that the row offered a black Connect
+                          that turned into Read now a moment later. */}
+                      <span className="mv-item-end">
+                        {!loaded ? null : mine.length ? (
+                          first || !accounts.some((a) => (a.bank_name || BANKS[0].name) === BANKS[0].name)
+                            ? <button key="read" type="button" className="mv-pill mv-pill--ghost" onClick={pull} disabled={busy === 'pull'}>Read now</button>
+                            : null
+                        ) : (
+                          <button key="connect" type="button" className={`mv-pill ${empty && first ? 'mv-pill--ghost' : 'mv-pill--ghost'}`} onClick={() => void connect(bank.name)} disabled={busy === 'connect' || !bankReady}>Connect</button>
+                        )}
+                      </span>
+                    </div>
+                    {mine.length ? (
+                      <ul className="mv-sublist">
+                        {mine.map((a) => (
+                          <li key={a.id} className="mv-item mv-item--sub">
+                            <span className="mv-item-text">
+                              <span className="mv-item-title">{a.name || 'Account'} {a.iban_mask || ''}</span>
+                              <span className="mv-item-sub">
+                                {[a.consent_expires_at ? `Confirmed to ${shortDay(a.consent_expires_at)}` : '', a.last_pulled_at ? `last read ${shortDay(a.last_pulled_at)}` : ''].filter(Boolean).join(', ')}
+                              </span>
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
+                  </li>
+                );
+              })}
               <li>
                 <div className="mv-item mv-item--icon">
-                  <span className="mv-icon" aria-hidden="true"><Landmark size={16} /></span>
+                  <span className="mv-icon" aria-hidden="true"><CalendarDays size={16} /></span>
                   <span className="mv-item-text">
-                    <span className="mv-item-title">Santander</span>
-                    <span className="mv-item-sub" aria-live="polite">{bankLine}</span>
+                    <span className="mv-item-title">Your calendar</span>
+                    <span className="mv-item-sub">
+                      {calendar?.google ? 'Google connected. The diary says what a week usually costs.' : 'What a week costs, and when a quiet habit is only a trip.'}
+                    </span>
                   </span>
-                  {/* Only once the accounts are in: before that the row offered a black Connect
-                      that turned into Read now a moment later. */}
                   <span className="mv-item-end">
-                    {!loaded ? null : accounts.length ? (
-                      <button key="read" type="button" className="mv-pill mv-pill--ghost" onClick={pull} disabled={busy === 'pull'}>Read now</button>
-                    ) : (
-                      <button key="connect" type="button" className={`mv-pill ${empty ? 'mv-pill--ghost' : ''}`} onClick={connect} disabled={busy === 'connect' || !bankReady}>Connect</button>
-                    )}
+                    {calendar && !calendar.google ? <button type="button" className="mv-pill mv-pill--ghost" onClick={() => void connectCalendar()} disabled={busy === 'calendar'}>Connect Google</button> : null}
                   </span>
                 </div>
-                {accounts.length ? (
-                  <ul className="mv-sublist">
-                    {accounts.map((a) => (
-                      <li key={a.id} className="mv-item mv-item--sub">
-                        <span className="mv-item-text">
-                          <span className="mv-item-title">{a.name || 'Account'} {a.iban_mask || ''}</span>
-                          <span className="mv-item-sub">
-                            {[a.consent_expires_at ? `Confirmed to ${shortDay(a.consent_expires_at)}` : '', a.last_pulled_at ? `last read ${shortDay(a.last_pulled_at)}` : ''].filter(Boolean).join(', ')}
-                          </span>
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : null}
+                <ul className="mv-sublist">
+                  {(calendar?.feeds || []).map((f) => (
+                    <li key={f.id} className="mv-item mv-item--sub">
+                      <span className="mv-item-text">
+                        <span className="mv-item-title">{f.label}</span>
+                        <span className="mv-item-sub">{f.added_at ? `Added ${shortDay(f.added_at)}, read once a day.` : 'Read once a day.'}</span>
+                      </span>
+                      <span className="mv-item-end"><button type="button" className="mv-pill mv-pill--ghost" onClick={() => void removeFeed(f.id)} disabled={busy === 'feed'}>Remove</button></span>
+                    </li>
+                  ))}
+                  <li className="mv-item mv-item--sub">
+                    <form className="mv-feed" onSubmit={(e) => void addFeed(e)}>
+                      <label className="mv-label" htmlFor="mv-feed-url">A Canvas or Blackboard link</label>
+                      <div className="mv-feed-row">
+                        <input id="mv-feed-url" className="mv-field" type="url" inputMode="url" placeholder="https://" value={feedUrl} onChange={(e) => setFeedUrl(e.target.value)} disabled={busy === 'feed'} />
+                        <button type="submit" className="mv-pill mv-pill--ghost" disabled={busy === 'feed' || !feedUrl.trim()}>{busy === 'feed' ? 'Reading' : 'Add'}</button>
+                      </div>
+                      <p className="mv-quiet">Canvas: Calendar, Calendar feed. Blackboard: Calendar, Get external calendar link. Read once a day; nothing goes out.</p>
+                    </form>
+                  </li>
+                </ul>
               </li>
               <li>
                 <div className="mv-item mv-item--icon">

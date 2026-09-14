@@ -23,6 +23,8 @@ const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0
 export const AWAY_WORDS = /\b(viaje|trip|travel|vacaciones|holiday|holidays|vuelo|flight|fin de semana fuera|weekend away|pueblo|casa de|erasmus|conference|congreso)\b/;
 /** Titles that say the week is an exam week. */
 export const EXAM_WORDS = /\b(examen|examenes|exam|exams|parcial|parciales|final|finals|prueba|midterm|midterms|evaluacion)\b/;
+/** Titles that say something is due: what Canvas and Blackboard calendars are made of. */
+export const DEADLINE_WORDS = /\b(due|deadline|entrega|assignment|homework|quiz|practica|project|proyecto|submission|essay|ensayo|hand in)\b/;
 /** An all-day event this long or longer is a window, whatever it is called. */
 export const AWAY_MIN_DAYS = 2;
 
@@ -69,21 +71,24 @@ export function awayAt(windows = [], atMs) {
 }
 
 /**
- * The calendar's word for the last seven days: 'an exam week', 'a week away', or null.
- * Read from any event overlapping the window whose title says so.
+ * The calendar's word for the last seven days: 'an exam week', 'a week away', 'a deadline
+ * week' (two or more things due), or null. Read from any event overlapping the window
+ * whose title says so.
  */
 export function weekWord(events = [], now = new Date()) {
   const to = now.getTime(); const from = to - 7 * DAY;
-  let exam = false; let away = false;
+  let exam = false; let away = false; let due = 0;
   for (const e of events || []) {
     if (!e || !e.start) continue;
     const s = ms(e.start); const en = Math.max(ms(e.end || e.start), s + (e.all_day ? DAY : 0));
     if (en < from || s > to) continue;
     const t = norm(e.title);
     if (EXAM_WORDS.test(t)) exam = true;
+    else if (DEADLINE_WORDS.test(t)) due += 1;
     if (AWAY_WORDS.test(t) || (e.all_day && (en - s) / DAY >= AWAY_MIN_DAYS)) away = true;
   }
   if (exam) return 'an exam week';
   if (away) return 'a week away';
+  if (due >= 2) return 'a deadline week';
   return null;
 }

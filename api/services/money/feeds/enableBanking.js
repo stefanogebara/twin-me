@@ -93,6 +93,7 @@ export async function createSession(code) {
   return {
     sessionId: j.session_id,
     validUntil: j.access?.valid_until || null,
+    bankName: j.aspsp?.name || null,
     accounts: (j.accounts || []).map((a) => ({ uid: a.uid, iban: a.account_id?.iban || null, name: a.name || a.product || null, currency: a.currency || 'EUR' })),
   };
 }
