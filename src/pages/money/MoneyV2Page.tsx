@@ -12,22 +12,12 @@ import { Link } from 'react-router-dom';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { CalendarDays, ChevronRight, FileText, Landmark, Mail, Smartphone } from 'lucide-react';
 import '../../styles/money-v2.css';
-import MoneyNav, { type MoneyNavLink } from './MoneyNav';
+import MoneyNav, { MONEY_NAV, type MoneyView } from './MoneyNav';
 import { moneyAPI, euro, shortDay, bankLabel, BANKS, type MoneyAccount, type MoneyCalendar, type MoneyCategories, type MoneyDayStrip, type MoneyForecast, type MoneyToday, type MoneyMonth, type MoneyReading, type MoneyRecurring, type MoneySighting, type MoneyTransaction, type MoneyUsage } from '../../services/api/moneyAPI';
 
 const CADENCE: Record<string, string> = { weekly: 'every week', biweekly: 'every two weeks', monthly: 'every month', quarterly: 'every quarter', yearly: 'every year' };
 const SOURCE: Record<string, string> = { phone: 'Your phone', bizum: 'Bizum', bankfeed: 'Santander', gmail: 'Gmail', statement: 'Statement' };
 
-/* Three pages and Ask, the shape the phone already has. The month page was one scroll of
-   eight sections and a thousand words; the sidebar pretended to be pages. Now it is. */
-export type MoneyView = 'today' | 'month' | 'you';
-export const MONEY_NAV = (current: string): MoneyNavLink[] => [
-  { to: '/money', label: 'Today', current: current === 'today' },
-  { to: '/money/month', label: 'Month', current: current === 'month' },
-  { to: '/money/you', label: 'You', current: current === 'you' },
-  { to: '/money/setup', label: 'Questions', current: current === 'questions' },
-  { to: '/money/chat', label: 'Ask', current: current === 'ask' },
-];
 
 /* What is still to come this month, as dated rows: detected charges, stated commitments,
    income, and diary events with a learned cost. A band without the rows under it is a
@@ -467,27 +457,6 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
             </section>
           ) : null}
 
-          {/* Month by month */}
-          {view === 'month' && months.length > 1 ? (
-            <section className="mv-section" id="months">
-              <h2>Month by month.</h2>
-              <ol className="mv-list">
-                {months.map((m) => (
-                  <li key={m.month} className="mv-item">
-                    <span className="mv-item-text">
-                      <span className="mv-item-title">{monthYear(m.month)}</span>
-                      <span className="mv-item-sub">
-                        {m.complete ? `${m.lines} payments` : `${m.lines} payments in ${m.days_covered} of ${m.days_in_month} days`}
-                        {m.received ? `, ${euro(m.received)} in` : ''}
-                      </span>
-                    </span>
-                    <span className="mv-item-end">{euro(m.spent)}</span>
-                  </li>
-                ))}
-              </ol>
-            </section>
-          ) : null}
-
           {/* Ledger */}
           {view === 'month' ? (
           <section className="mv-section" id="ledger">
@@ -496,10 +465,13 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
               <div className="mv-list"><p className="mv-empty">Fills as the bank and the phone send what they saw.</p></div>
             ) : (
               <>
-                <p className="mv-sub">Press a payment to see what the bank and the phone saw.</p>
+                <p className="mv-sub">Open a month, then a payment, to see what the bank and the phone saw.</p>
                 <ol className="mv-list">
-                  {byMonth.map((group, i) => {
-                    const isOpen = monthOpen[group.key] ?? i === 0;
+                  {byMonth.map((group) => {
+                    /* Closed until opened: the month page is for reading the month, and sixty
+                       rows of it open by default were 4 400 px before the next heading. */
+                    const isOpen = monthOpen[group.key] ?? false;
+                    const seg = group.segment;
                     return (
                       <li key={group.key}>
                         <button type="button" className="mv-item" aria-expanded={isOpen} onClick={() => setMonthOpen((all) => ({ ...all, [group.key]: !isOpen }))}>
@@ -507,10 +479,11 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                             <span className="mv-item-title">{monthYear(`${group.key}-01T12:00:00Z`)}</span>
                             <span className="mv-item-sub">
                               {group.rows.length} {group.rows.length === 1 ? 'payment' : 'payments'}
-                              {group.segment ? `, ${euro(group.segment.spent)} out${group.segment.received ? `, ${euro(group.segment.received)} in` : ''}` : ''}
+                              {seg && !seg.complete && seg.days_covered ? ` in ${seg.days_covered} of ${seg.days_in_month} days` : ''}
+                              {seg && seg.received ? `, ${euro(seg.received)} in` : ''}
                             </span>
                           </span>
-                          <span className="mv-item-end"><Chevron /></span>
+                          <span className="mv-item-end mv-figures">{seg ? euro(seg.spent) : ''}<Chevron /></span>
                         </button>
                         {isOpen ? (
                           <ol className="mv-sublist">
@@ -611,17 +584,14 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                 </ul>
               </>
             )}
-          </section>
-          ) : null}
-
-          {/* Whether a subscription was used, and the honest gap where nothing can look */}
-          {view === 'month' && usage && (usage.findings.length || unmeasured.length) ? (
-            <section className="mv-section" id="usage">
-              <h2>Whether it gets used.</h2>
-              <p className="mv-sub">
+            {/* Whether a subscription was used, and the honest gap where nothing can look: the
+                same section, one grey line further down, not a heading of its own. */}
+            {usage && (usage.findings.length || unmeasured.length) ? (
+              <>
+              <p className="mv-sub mv-more" id="usage">
                 {unmeasured.length
-                  ? `${euro(unmeasured.reduce((sum, x) => sum + Number(x.typical_amount || 0), 0))} a month goes where nothing here can look.`
-                  : 'Read from the accounts it can see.'}
+                  ? `Whether it gets used: ${euro(unmeasured.reduce((sum, x) => sum + Number(x.typical_amount || 0), 0))} a month goes where nothing here can look.`
+                  : 'Whether it gets used, read from the accounts it can see.'}
               </p>
               <ul className="mv-list">
                 {usage.findings.map((f) => (
@@ -641,7 +611,9 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                   </li>
                 ) : null}
               </ul>
-            </section>
+              </>
+            ) : null}
+          </section>
           ) : null}
 
           {/* Sources */}
