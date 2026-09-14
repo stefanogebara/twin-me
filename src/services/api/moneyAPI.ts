@@ -25,7 +25,16 @@ export type MoneyForecast = {
   income_items?: { subject?: string | null; source?: string | null; amount: number | string; due_on: string }[];
   calendar_items?: { label?: string | null; title?: string | null; on: string; expected?: { amount: number | string } | null }[];
   band_calibration?: { widen: number; days: number; coverage: number | null; trusted: boolean } | null;
+  /** The last thirty days as marks: what each cost, and the range it was given the night before. */
+  days?: MoneyDayStrip | null;
+  /** The range given for tomorrow, widened by what the band has earned. */
+  tomorrow?: { day: string; value: number; low: number; high: number } | null;
 };
+export type MoneyDayMark = {
+  day: string; weekday: number; total: number; count: number; today: boolean;
+  said: { value: number; low: number; high: number } | null; hit: boolean | null;
+};
+export type MoneyDayStrip = { from: string; to: string; days: MoneyDayMark[]; total: number; days_with_spend: number; said_days: number; held: number };
 export type MoneyMonth = {
   month: string; spent: number; received: number; lines: number; days_covered: number; days_in_month: number; complete: boolean;
   biggest: { id: string; merchant: string; amount: number } | null;

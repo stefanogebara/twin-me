@@ -13,7 +13,7 @@ import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { ChevronRight, FileText, Landmark, Mail, Plus, Smartphone } from 'lucide-react';
 import '../../styles/money-v2.css';
 import MoneyNav, { type MoneyNavLink } from './MoneyNav';
-import { moneyAPI, euro, shortDay, type MoneyAccount, type MoneyCategories, type MoneyForecast, type MoneyMonth, type MoneyReading, type MoneyRecurring, type MoneySighting, type MoneyTransaction, type MoneyUsage } from '../../services/api/moneyAPI';
+import { moneyAPI, euro, shortDay, type MoneyAccount, type MoneyCategories, type MoneyDayStrip, type MoneyForecast, type MoneyMonth, type MoneyReading, type MoneyRecurring, type MoneySighting, type MoneyTransaction, type MoneyUsage } from '../../services/api/moneyAPI';
 
 const CADENCE: Record<string, string> = { weekly: 'every week', biweekly: 'every two weeks', monthly: 'every month', quarterly: 'every quarter', yearly: 'every year' };
 const SOURCE: Record<string, string> = { phone: 'Your phone', bizum: 'Bizum', bankfeed: 'Santander', gmail: 'Gmail', statement: 'Statement' };
@@ -307,6 +307,7 @@ export default function MoneyV2Page() {
                   {/* The charges still to come are named in the rows below; the label keeps the figure. */}
                   <span>{`Likely ${euro(Math.max(forecast.projected_p50, forecast.spent + forecast.committed))}`}</span>
                 </div>
+                {forecast.days && forecast.days.days.length ? <DayStrip strip={forecast.days} tomorrow={forecast.tomorrow ?? null} /> : null}
                 {stillToCome(forecast).length ? (
                   <ul className="mv-list mv-ahead" aria-label="Still to come this month">
                     {stillToCome(forecast).map((r) => (
@@ -695,6 +696,42 @@ export default function MoneyV2Page() {
         </div>
       </div>
     </main>
+  );
+}
+
+/**
+ * The last thirty days as marks under the band: a bar for what each day cost, and behind
+ * it, on the days the twin had said a range the night before, that range as a grey segment.
+ * A day that broke its range is drawn in the danger ink. Every value is in the title of
+ * its column and in the one grey line under the strip, so the figure is never the only
+ * place a number lives. Built from elements, not SVG, so the register's tokens resolve.
+ */
+function DayStrip({ strip, tomorrow }: { strip: MoneyDayStrip; tomorrow: MoneyForecast['tomorrow'] }) {
+  const max = Math.max(1, ...strip.days.map((d) => Math.max(d.total, d.said ? d.said.high : 0)));
+  const h = (v: number) => `${Math.max(0, Math.min(100, (v / max) * 100))}%`;
+  const dayName = (iso: string) => new Date(`${iso}T12:00:00Z`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+  const line = [
+    `${euro(strip.total)} over the last ${strip.days.length - 1} days, on ${strip.days_with_spend} of them.`,
+    strip.said_days ? `The range was given on ${strip.said_days} ${strip.said_days === 1 ? 'day' : 'days'} and held on ${strip.held}.` : '',
+    tomorrow ? (tomorrow.value > 0 ? `Tomorrow: usually ${euro(tomorrow.value)}, up to ${euro(tomorrow.high)}.` : `Tomorrow is usually quiet, up to ${euro(tomorrow.high)}.`) : '',
+  ].filter(Boolean).join(' ');
+  return (
+    <figure className="mv-strip" aria-label="The last thirty days">
+      <div className="mv-strip-days">
+        {strip.days.map((d) => (
+          <span
+            key={d.day}
+            className={`mv-strip-day${d.today ? ' mv-strip-day--today' : ''}${d.hit === false ? ' mv-strip-day--miss' : ''}`}
+            title={`${dayName(d.day)}${d.today ? ', so far' : ''}: ${euro(d.total)}${d.count ? `, ${d.count} ${d.count === 1 ? 'payment' : 'payments'}` : ''}${d.said ? `. Said ${euro(d.said.low)} to ${euro(d.said.high)}, ${d.hit ? 'held' : 'broke'}.` : ''}`}
+          >
+            {d.said ? <i className="mv-strip-said" style={{ bottom: h(d.said.low), height: h(d.said.high - d.said.low) }} /> : null}
+            <b className="mv-strip-bar" style={{ height: h(d.total) }} />
+          </span>
+        ))}
+      </div>
+      <div className="mv-band-labels"><span>{shortDay(strip.from)}</span><span>Today</span></div>
+      <figcaption className="mv-sub">{line}</figcaption>
+    </figure>
   );
 }
 

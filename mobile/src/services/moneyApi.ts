@@ -86,7 +86,16 @@ export type MoneyForecast = {
   income_items?: { subject?: string | null; source?: string | null; amount: number | string; due_on: string }[];
   /** What the band has earned from its scored days: how many, how many held, the widening. */
   band_calibration?: { widen: number; days: number; coverage: number | null; trusted: boolean } | null;
+  /** The last thirty days as marks: what each cost, and the range it was given the night before. */
+  days?: MoneyDayStrip | null;
+  /** The range given for tomorrow, widened by what the band has earned. */
+  tomorrow?: { day: string; value: number; low: number; high: number } | null;
 };
+export type MoneyDayMark = {
+  day: string; weekday: number; total: number; count: number; today: boolean;
+  said: { value: number; low: number; high: number } | null; hit: boolean | null;
+};
+export type MoneyDayStrip = { from: string; to: string; days: MoneyDayMark[]; total: number; days_with_spend: number; said_days: number; held: number };
 
 /** One upcoming calendar event the ledger can put a likely cost on. */
 export type MoneyCalendarItem = {

@@ -14,7 +14,7 @@ import React, { useEffect, useState } from 'react';
 import { Image, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import { cosmos, dayMonth, euro } from '../constants/cosmos';
 import { Body, Hairline, Micro, Row, Small } from './primitives';
-import { moneyApi, type ImageSource } from '../services/moneyApi';
+import { moneyApi, type ImageSource, type MoneyDayStrip } from '../services/moneyApi';
 
 /* ----------------------------------------------------------------------------------------
  * The shapes a figure can arrive in. Mirrors what POST /money/chat returns.
@@ -62,6 +62,42 @@ export function Band({ spent, likely, high }: { spent: number; likely: number; h
         <Micro tabular>Spent {euro(spent)}</Micro>
         <Micro tabular>Likely {euro(likely)}</Micro>
       </View>
+    </View>
+  );
+}
+
+/* ----------------------------------------------------------------------------------------
+ * Strip. The last thirty days under the band: a bar for what each day cost, and behind it,
+ * on the days the twin had said a range the night before, that range in the hairline grey.
+ * A day that broke its range is drawn in the strong hairline so it reads without colour;
+ * the line under the strip says the counts, so the figure is never the only place they live.
+ * -------------------------------------------------------------------------------------- */
+
+const STRIP_HEIGHT = 44;
+
+export function Strip({ strip, tomorrow }: { strip: MoneyDayStrip; tomorrow?: { value: number; high: number } | null }) {
+  const max = Math.max(1, ...strip.days.map((d) => Math.max(d.total, d.said ? d.said.high : 0)));
+  const h = (v: number) => Math.round(Math.max(0, Math.min(1, v / max)) * STRIP_HEIGHT);
+  const line = [
+    `${euro(strip.total)} over the last ${strip.days.length - 1} days, on ${strip.days_with_spend} of them.`,
+    strip.said_days ? `The range was given on ${strip.said_days} ${strip.said_days === 1 ? 'day' : 'days'} and held on ${strip.held}.` : '',
+    tomorrow ? (tomorrow.value > 0 ? `Tomorrow: usually ${euro(tomorrow.value)}, up to ${euro(tomorrow.high)}.` : `Tomorrow is usually quiet, up to ${euro(tomorrow.high)}.`) : '',
+  ].filter(Boolean).join(' ');
+  return (
+    <View style={s.strip} accessibilityLabel="The last thirty days">
+      <View style={s.stripDays}>
+        {strip.days.map((d) => (
+          <View key={d.day} style={s.stripDay}>
+            {d.said ? <View style={[s.stripSaid, { bottom: h(d.said.low), height: Math.max(2, h(d.said.high) - h(d.said.low)) }]} /> : null}
+            <View style={[s.stripBar, { height: h(d.total) }, d.today ? s.stripBarToday : null, d.hit === false ? s.stripBarMiss : null]} />
+          </View>
+        ))}
+      </View>
+      <View style={s.between}>
+        <Micro quiet tabular>{dayMonth(strip.from)}</Micro>
+        <Micro quiet tabular>Today</Micro>
+      </View>
+      <Small>{line}</Small>
     </View>
   );
 }
@@ -236,6 +272,13 @@ const s = StyleSheet.create({
   bandLikely: { position: 'absolute', top: 0, left: 0, height: 6, borderRadius: cosmos.radius.pill, backgroundColor: cosmos.color.rule },
   bandSpent: { position: 'absolute', top: 0, left: 0, height: 6, borderRadius: cosmos.radius.pill, backgroundColor: cosmos.color.ink },
   between: { flexDirection: 'row', justifyContent: 'space-between' },
+  strip: { gap: 8 },
+  stripDays: { flexDirection: 'row', alignItems: 'flex-end', gap: 2, height: STRIP_HEIGHT, borderBottomWidth: 1, borderBottomColor: cosmos.color.rule },
+  stripDay: { flex: 1, height: STRIP_HEIGHT, position: 'relative' },
+  stripSaid: { position: 'absolute', left: 0, right: 0, backgroundColor: cosmos.color.rule },
+  stripBar: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: cosmos.color.ink },
+  stripBarToday: { backgroundColor: cosmos.color.ink3 },
+  stripBarMiss: { backgroundColor: cosmos.color.ruleStrong },
 
   bars: { flexDirection: 'row', alignItems: 'flex-end', gap: cosmos.space.xs },
   barCol: { flex: 1, alignItems: 'center', gap: cosmos.space.xs },

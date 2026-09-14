@@ -24,7 +24,7 @@ import {
   type MoneyCategories, type MoneyForecast, type MoneyReading, type MoneyRecurring, type MoneyToday,
 } from '../services/moneyApi';
 import { Body, Counting, Display, Enter, Hairline, Micro, Page, Pill, Row, Section, Small, Title } from '../ui/primitives';
-import { Band } from '../ui/figures';
+import { Band, Strip } from '../ui/figures';
 
 const CADENCE: Record<string, string> = {
   weekly: 'every week',
@@ -228,6 +228,9 @@ export default function MonthScreen({ onOpenQuestions, questionCount, onOpenLedg
               <View style={layout.band}>
                 <Band spent={forecast.spent} likely={Math.max(forecast.projected_p50, forecast.spent + forecast.committed)} high={forecast.projected_p90} />
               </View>
+              {forecast.days && forecast.days.days.length ? (
+                <View style={layout.afterSmall}><Strip strip={forecast.days} tomorrow={forecast.tomorrow ?? null} /></View>
+              ) : null}
               {ahead.length ? (
                 <View style={layout.afterSmall}>
                   {ahead.map((r) => (
