@@ -5,7 +5,7 @@
 import { describe, it, expect, vi } from 'vitest';
 vi.mock('../../../../api/services/database.js', () => ({ supabaseAdmin: { from: () => ({}) }, serverDb: {} }));
 vi.mock('../../../../api/services/logger.js', () => ({ createLogger: () => ({ warn() {}, info() {}, error() {}, debug() {} }) }));
-const { planReads, newestConsent, categoryOfPayment, FEED_BUDGET } = await import('../../../../api/services/money/store.js');
+const { planReads, newestConsent, categoryOfPayment, answerQuestion, ANSWERABLE_KINDS, FEED_BUDGET } = await import('../../../../api/services/money/store.js');
 
 const at = (h) => `2026-09-14T${String(h).padStart(2, '0')}:00:00Z`;
 const acc = (id, session, last) => ({ id, session_id: session, last_pulled_at: last, iban_mask: `ES** ${id}` });
@@ -56,5 +56,16 @@ describe('categoryOfPayment', () => {
     expect(categoryOfPayment(null, 'card', 'landlord')).toBeNull();
     expect(categoryOfPayment({ category: 'groceries' }, 'card', null)).toBe('groceries');
     expect(categoryOfPayment({ category: 'groceries', category_override: 'home' }, 'card', null)).toBe('home');
+  });
+});
+
+describe('answerQuestion refuses what a person does not write', () => {
+  it('rejects the ledger\'s own kinds and unknown ones before touching the database', async () => {
+    expect(ANSWERABLE_KINDS).not.toContain('inbox_address');
+    expect(ANSWERABLE_KINDS).not.toContain('calendar_feed');
+    expect(ANSWERABLE_KINDS).toContain('note');
+    await expect(answerQuestion('u1', { kind: 'inbox_address', value: 'r-x@in.twinme.me' })).rejects.toMatchObject({ status: 400 });
+    await expect(answerQuestion('u1', { kind: 'made_up', value: 'x' })).rejects.toMatchObject({ status: 400 });
+    await expect(answerQuestion('u1', { kind: 'income', amount: 'lots' })).rejects.toMatchObject({ status: 400 });
   });
 });

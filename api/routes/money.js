@@ -426,7 +426,8 @@ router.get('/stream', async (req, res) => {
          saying the wrong one sends somebody to reconnect an account that is already there. */
       let pulled;
       try {
-        pulled = await pullBankFeed(userId);
+        /* The person is watching this list: an attended read, outside the four a day. */
+        pulled = await pullBankFeed(userId, { attended: true, psu: psuOf(req) });
       } catch (error) {
         /* The provider's message carries a URL with the account identifier in it. A person
            reading "what it is doing" needs to know the read failed, not to be shown the
@@ -494,7 +495,10 @@ router.post('/questions/answer', async (req, res) => {
   const { questionId, kind, subject, subjectLabel, value, amount, day, share, note } = req.body || {};
   if (!kind) return res.status(400).json({ success: false, error: 'kind is required' });
   try { res.json({ success: true, data: await answerQuestion(req.user.id, { questionId, kind, subject, subjectLabel, value, amount, day, share, note: typeof note === 'string' ? note : undefined }) }); }
-  catch (error) { log.error('answer failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
+  catch (error) {
+    if (error.status === 400) return res.status(400).json({ success: false, error: error.message });
+    log.error('answer failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' });
+  }
 });
 
 router.post('/questions/:id/skip', async (req, res) => {

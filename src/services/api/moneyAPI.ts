@@ -78,6 +78,8 @@ export type MoneyFact = {
   id: string; kind: string; subject: string | null; subject_label: string | null;
   value: string | null; amount: number | string | null; day: number | null; share: number | null;
   check_status: string | null; check_note: string | null;
+  /** Their own words on it, when a choice was not enough. */
+  note?: string | null;
 };
 export type MoneyAnswer = {
   questionId?: string; kind: string; subject?: string; subjectLabel?: string;
@@ -219,7 +221,7 @@ export type ChatAction = { kind: string; label: string; [key: string]: unknown }
 export type ChatTurn = { role: 'user' | 'twin'; text: string };
 export type ChatReply = { text: string; figures?: ChatFigure[]; actions?: ChatAction[]; receipts?: ChatReceipt[]; basis?: string[]; thinking?: string | null };
 /** One kept turn of the conversation, as the server hands it back. */
-export type ChatTurnKept = { id: string; role: 'user' | 'twin'; text: string; figures?: ChatFigure[] | null; actions?: ChatAction[] | null; thinking?: string | null; basis?: string[] | null; created_at: string };
+export type ChatTurnKept = { id: string; role: 'user' | 'twin'; text: string; figures?: ChatFigure[] | null; actions?: ChatAction[] | null; receipts?: ChatReceipt[] | null; thinking?: string | null; basis?: string[] | null; created_at: string };
 /** One answer, in the pieces the server sends. The phases arrive in this order. */
 export type ChatStreamEvent =
   | { phase: 'reading' }

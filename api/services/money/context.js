@@ -406,9 +406,9 @@ export function describeContext(facts = []) {
   if (people.length) lines.push(`People on the statement: ${people.map((p) => `${p.subject_label || p.subject} is ${p.value}${p.note ? ` (${p.note})` : ''}`).join(', ')}.`);
   /* What they said in their own words, on a fact or on its own: read back as they said it. */
   const notes = facts.filter((f) => f.kind === 'note' && f.value);
-  if (notes.length) lines.push(`They said: ${notes.map((n) => `"${String(n.value).slice(0, 160)}"`).join('; ')}.`);
+  if (notes.length) lines.push(`They said: ${notes.slice(-10).map((n) => `"${String(n.value).slice(0, 160)}"`).join('; ')}.`);
   const noted = facts.filter((f) => f.kind !== 'person' && f.kind !== 'note' && f.note);
-  if (noted.length) lines.push(`Notes: ${noted.map((f) => `${f.subject_label || f.subject || f.kind}: ${f.note}`).join('; ')}.`);
+  if (noted.length) lines.push(`Notes: ${noted.slice(0, 10).map((f) => `${f.subject_label || f.subject || f.kind}: ${String(f.note).slice(0, 160)}`).join('; ')}.`);
 
   const goal = one('goal');
   if (goal) lines.push(`This term is for: ${goal.value}.`);

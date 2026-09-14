@@ -676,6 +676,7 @@ export async function stream({
           prompt_tokens: chunk.usage.prompt_tokens || 0,
           completion_tokens: chunk.usage.completion_tokens || 0,
           cached_tokens: chunk.usage.prompt_tokens_details?.cached_tokens || 0,
+          reasoning_tokens: chunk.usage.completion_tokens_details?.reasoning_tokens || 0,
           total_tokens: chunk.usage.total_tokens || 0,
         };
       }
@@ -703,7 +704,7 @@ export async function stream({
 
     log.info('LLM stream complete', {
       serviceName: serviceName || 'unknown', tier, model,
-      tokens: usage.total_tokens, cachedTokens: usage.cached_tokens,
+      tokens: usage.total_tokens, cachedTokens: usage.cached_tokens, reasoningTokens: usage.reasoning_tokens || 0,
       cacheHit: promptCacheHit, cost: cost.toFixed(4), latencyMs,
     });
 

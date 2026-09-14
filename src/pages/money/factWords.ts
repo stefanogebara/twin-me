@@ -7,7 +7,7 @@ import type { MoneyFact } from '../../services/api/moneyAPI';
 export const FACT_WORD: Record<string, string> = {
   home_area: 'lives in', study_place: 'studies at', work_place: 'works at', commitment: 'every month',
   income: 'comes in', shared_cost: 'shared', person: 'who that is', merchant_kind: 'kind of place', goal: 'this term',
-  keep: 'to have left at the end of the month', cap: 'the most it should take this month', split: 'split', spending: 'what counts as spending',
+  keep: 'to have left at the end of the month', cap: 'the most it should take this month', split: 'split', spending: 'what counts as spending', note: 'in your words',
 };
 
 export function ordinal(n: number): string {
@@ -28,6 +28,8 @@ export function factRank(f: MoneyFact): number {
 
 /** The title of a fact row: what they said, in their words where there are any. */
 export function factTitle(f: MoneyFact): string {
+  /* A note is their sentence; the row keeps its first sixty characters and opens for the rest. */
+  if (f.kind === 'note') { const v = String(f.value || ''); return v.length > 60 ? `${v.slice(0, 57).trim()}...` : v; }
   return [
     cap(f.subject_label || f.value || f.subject || 'unnamed'),
     f.subject_label && f.value ? f.value : '',
@@ -38,5 +40,7 @@ export function factTitle(f: MoneyFact): string {
 
 /** The grey word under it: the ledger's own verdict on the claim when it has one, else the kind. */
 export function factWord(f: MoneyFact): string {
-  return f.check_note || cap(FACT_WORD[f.kind] || f.kind.replace(/_/g, ' '));
+  if (f.check_note) return f.check_note;
+  const word = cap(FACT_WORD[f.kind] || f.kind.replace(/_/g, ' '));
+  return f.note ? `${word}, ${f.note}` : word;
 }

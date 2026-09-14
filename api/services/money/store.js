@@ -25,7 +25,7 @@ import { tellTwin } from './twinBridge.js';
 import { lookupPlace, providerFor, categoryFromBrand, PROVIDER_NONE } from './places.js';
 import { readUsage, unmeasurable, platformForMerchant } from './usage.js';
 import { learnMerchants, predictNext, learnPatterns, describeForTwin, TWIN_PREDICTION_CONFIDENCE } from './brain.js';
-import { openingQuestions, ledgerQuestions, checkCommitment, describeContext } from './context.js';
+import { openingQuestions, ledgerQuestions, checkCommitment, describeContext, FACT_KINDS } from './context.js';
 import { calendarForecast, calendarFromFacts } from './calendar.js';
 
 const log = createLogger('money-store');
@@ -358,7 +358,10 @@ export function newestConsent(rows) {
 }
 
 export async function listBankAccounts(userId) {
-  const { data } = await supabaseAdmin.from('money_accounts').select('id, provider, provider_account_id, name, iban_mask, currency, consent_expires_at, last_pulled_at, bank_name, session_id, created_at, balance, balance_type, balance_at').eq('user_id', userId).eq('provider', 'enablebanking');
+  const { data, error } = await supabaseAdmin.from('money_accounts').select('id, provider, provider_account_id, name, iban_mask, currency, consent_expires_at, last_pulled_at, bank_name, session_id, created_at, balance, balance_type, balance_at').eq('user_id', userId).eq('provider', 'enablebanking');
+  /* An empty list because the read failed would show every screen "no bank connected" and
+     stop the cron in silence, the worst failure this product has. It is said out loud. */
+  if (error) { log.error(`bank accounts read failed: ${error.message}`); throw new Error(`bank accounts read failed: ${error.message}`); }
   /* A reconnect gives the same account a new provider id and a fresh row with nothing read
      yet. One account is one row to the person, and the row that speaks for it is the one
      whose consent runs longest: a reconnect took effect the moment it was saved. */
@@ -508,11 +511,11 @@ export async function pullBankFeed(userId, { since, attended = false, psu = null
     /* The bank's own figure for what is in the account, read only with the person present so
        it never spends one of the four unattended reads. A failure here is not a failed pull. */
     let balance = null;
-    if (attended) {
+    if (attended && psu && psu.ip) {
       try {
-        balance = await fetchBalances(acc.provider_account_id, { psu });
+        balance = await fetchBalances(acc.provider_account_id, { psu, currency: acc.currency || 'EUR' });
         if (balance) Object.assign(stamp, { balance: balance.amount, balance_type: balance.type + (balance.credit_included ? '/credit' : ''), balance_at: new Date().toISOString() });
-      } catch (error) { log.warn(`balance not read: ${error.message.slice(0, 120)}`); }
+      } catch (error) { log.warn(`balance not read: ${/\b(\d{3})\b/.exec(error.message)?.[1] || 'error'}`); }
     }
     await supabaseAdmin.from('money_accounts').update(stamp).eq('id', acc.id);
     await recordAccess(userId, acc.id, { attended, rowsSeen: seen });
@@ -1104,7 +1107,14 @@ export async function questionsFor(userId, now = new Date()) {
 }
 
 /** Record an answer, and check it against the ledger where it is checkable. */
+/** The kinds a person may write; the ledger's own rows are not among them. */
+export const ANSWERABLE_KINDS = Object.freeze(FACT_KINDS.filter((k) => !INTERNAL_FACT_KINDS.includes(k)));
+const cut = (v, n) => (typeof v === 'string' ? v.trim().slice(0, n) : v);
+
 export async function answerQuestion(userId, { questionId, kind, subject, subjectLabel, value, amount, day, share, note }) {
+  if (!ANSWERABLE_KINDS.includes(kind)) throw Object.assign(new Error('That is not something a person writes here.'), { status: 400 });
+  subject = cut(subject, 120); subjectLabel = cut(subjectLabel, 120); value = cut(value, 240); questionId = cut(questionId, 120);
+  if (amount !== undefined && amount !== null && !Number.isFinite(Number(amount))) throw Object.assign(new Error('amount must be a number'), { status: 400 });
   /* The rent question is a choice, and a choice carries no amount. "Not fixed" is a decline
      that should not be asked again; the other two answers take their amount and day from
      the ledger lines that raised the question. */
@@ -1177,10 +1187,12 @@ export async function deleteFact(userId, factId) {
 /* ------------------------------------------------------------------ the conversation, kept */
 
 /** One turn of the conversation with the ledger, kept so it can be picked up again. */
-export async function saveChatTurn(userId, { role, text, figures = null, actions = null, thinking = null, basis = null }) {
+export async function saveChatTurn(userId, { role, text, figures = null, actions = null, thinking = null, basis = null, receipts = null }) {
+  if (receipts && receipts.length) figures = { figures: figures || [], receipts: receipts.slice(0, 8) };
   if (!text || !String(text).trim()) return null;
+  const small = (v, n) => { if (v == null) return null; const j = JSON.stringify(v); return j.length > n ? null : v; };
   const { data, error } = await supabaseAdmin.from('money_chat_turns')
-    .insert({ user_id: userId, role, text: String(text).slice(0, 4000), figures, actions, thinking: thinking ? String(thinking).slice(0, 4000) : null, basis })
+    .insert({ user_id: userId, role, text: String(text).slice(0, 4000), figures: small(figures, 20000), actions: small(actions, 8000), thinking: thinking ? String(thinking).slice(0, 4000) : null, basis: small(basis, 8000) })
     .select('id, created_at').maybeSingle();
   if (error) { log.warn(`chat turn not kept: ${error.message}`); return null; }
   return data;
@@ -1190,9 +1202,13 @@ export async function saveChatTurn(userId, { role, text, figures = null, actions
 export async function listChatTurns(userId, { limit = 30 } = {}) {
   const { data, error } = await supabaseAdmin.from('money_chat_turns')
     .select('id, role, text, figures, actions, thinking, basis, created_at')
-    .eq('user_id', userId).order('created_at', { ascending: false }).limit(limit);
+    .eq('user_id', userId).order('created_at', { ascending: false }).order('id', { ascending: false }).limit(limit);
   if (error) { log.warn(`chat turns not read: ${error.message}`); return []; }
-  return (data || []).reverse();
+  /* Receipts ride inside the figures column; they come back out here. */
+  return (data || []).reverse().map((t) => {
+    if (t.figures && !Array.isArray(t.figures) && Array.isArray(t.figures.figures)) return { ...t, figures: t.figures.figures, receipts: t.figures.receipts || [] };
+    return { ...t, receipts: [] };
+  });
 }
 
 /** The person's own words about their money, for the twin. */

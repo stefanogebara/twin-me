@@ -20,7 +20,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { cosmos, dayMonth, euro } from '../constants/cosmos';
 import {
-  moneyApi, currentMonthStart,
+  moneyApi, currentMonthStart, bankLabel,
   type MoneyAccount, type MoneyCategories, type MoneyForecast, type MoneyMonth, type MoneyReading, type MoneyRecurring, type MoneyToday,
 } from '../services/moneyApi';
 import { Body, Counting, Display, Enter, Hairline, Micro, Page, Pill, Row, Section, Small, Title } from '../ui/primitives';
@@ -121,13 +121,16 @@ export default function MonthScreen({ onOpenQuestions, questionCount, onOpenLedg
   const [accounts, setAccounts] = useState<MoneyAccount[]>([]);
   /* What the bank says is in each account, named as available, never as safe to spend. */
   const balanceLine = useMemo(() => {
-    const withBalance = accounts.filter((a) => a.balance !== null && a.balance !== undefined && !(a.balance_type || '').includes('/credit'));
-    if (!withBalance.length) return null;
-    const parts = withBalance.map((a) => `${euro(Number(a.balance))} in ${a.bank_name === 'Revolut' ? 'Revolut' : 'Santander'}`);
-    const newest = withBalance.map((a) => a.balance_at).filter(Boolean).sort().pop();
-    const when = newest ? new Date(newest as string).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : null;
-    const pendingIn = withBalance.some((a) => /^(XPCD|ITAV)/.test(a.balance_type || ''));
-    return `${parts.join(', ')} available${when ? `, read at ${when}` : ''}${pendingIn ? ', pending charges included.' : ', pending charges not yet counted.'}`;
+    const fresh = accounts.filter((a) => a.balance !== null && a.balance !== undefined && !(a.balance_type || '').includes('/credit') && a.balance_at && Date.now() - new Date(a.balance_at).getTime() < 48 * 3600000);
+    if (!fresh.length) return null;
+    const signed = (n: number) => (n < 0 ? `${euro(Math.abs(n))} overdrawn` : euro(n));
+    const parts = fresh.map((a) => `${signed(Number(a.balance))} in ${bankLabel(a.bank_name)}`);
+    const newest = fresh.map((a) => a.balance_at as string).sort().pop() as string;
+    const d = new Date(newest);
+    const when = d.toDateString() === new Date().toDateString() ? `read at ${d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}` : `read ${dayMonth(newest)}`;
+    const pendingIn = fresh.some((a) => /^(XPCD|ITAV)/.test(a.balance_type || ''));
+    const anyNegative = fresh.some((a) => Number(a.balance) < 0);
+    return `${parts.join(', ')}${anyNegative ? '' : ' available'}, ${when}${pendingIn ? ', pending charges included.' : ', pending charges not yet counted.'}`;
   }, [accounts]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
