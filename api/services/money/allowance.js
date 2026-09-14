@@ -122,6 +122,10 @@ export function safeToSpend({ cast = null, segments = [], facts = [], now = new 
   return {
     amount: over ? 0 : amount,
     basis: income !== null ? 'income' : typical !== null ? 'typical' : 'student_prior',
+    /* The month the budget rests on, before the keep comes off: what they said comes in, or
+       their typical month, or the student prior. The screen draws the month against it. */
+    base: r2(base),
+    keep: keep ?? null,
     budget,
     free,
     over,

@@ -192,6 +192,10 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
   }, [load]);
 
   const empty = loaded && ledger.length === 0;
+  /* What they said comes in each month is the band's right edge; the month is drawn against
+     it, not against its own worst case. Without a stated income the band keeps its old edge. */
+  const incomeEdge = today && today.basis === 'income' && today.base ? Number(today.base) : null;
+  const edge = incomeEdge ? Math.max(incomeEdge, forecast ? forecast.projected_p90 : 0) : null;
   /* What the bank says is in each account, freshest read named. XPCD and ITAV include pending
      charges; a figure with a credit line in it is not shown as the person's. */
   const balanceLine = useMemo(() => {
@@ -454,14 +458,21 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                 {/* Ink for what has gone, grey to where the month lands. The spread stays in the
                     line above: drawn as a third layer it left a hole that read as a fault. */}
                 <div className="mv-band-track">
-                  <div className="mv-band-likely" style={{ width: `${pct(Math.max(forecast.projected_p50, forecast.spent + forecast.committed), forecast)}%` }} />
-                  <div className="mv-band-spent" style={{ width: `${pct(forecast.spent, forecast)}%` }} />
+                  <div className="mv-band-likely" style={{ width: `${pct(Math.max(forecast.projected_p50, forecast.spent + forecast.committed), forecast, edge)}%` }} />
+                  <div className="mv-band-spent" style={{ width: `${pct(forecast.spent, forecast, edge)}%` }} />
+                  {/* Where what they want left begins, when they said so: the month has a wall
+                      before the end of the track. */}
+                  {incomeEdge && today?.keep ? <i className="mv-band-mark" style={{ left: `${pct(incomeEdge - today.keep, forecast, edge)}%` }} title={`Keeping ${euro(today.keep)}`} /> : null}
                 </div>
                 <div className="mv-band-labels">
                   <span>{`Spent ${euro(forecast.spent)}`}</span>
-                  {/* The charges still to come are named in the rows below; the label keeps the
-                      figure and, when the band has a spread, where it could reach. */}
-                  <span>{`Likely ${euro(Math.max(forecast.projected_p50, forecast.spent + forecast.committed))} by the ${last}${ordinalSuffix(last)}${projectable ? `, up to ${euro(forecast.projected_p90)}` : ''}`}</span>
+                  {/* The track ends at what comes in when they said it; the likely figure and its
+                      reach stay in the label so the band reads as spent, likely, and the wall. */}
+                  <span>
+                    {incomeEdge
+                      ? `Likely ${euro(Math.max(forecast.projected_p50, forecast.spent + forecast.committed))}${projectable ? `, up to ${euro(forecast.projected_p90)}` : ''}; ${euro(incomeEdge)} comes in`
+                      : `Likely ${euro(Math.max(forecast.projected_p50, forecast.spent + forecast.committed))} by the ${last}${ordinalSuffix(last)}${projectable ? `, up to ${euro(forecast.projected_p90)}` : ''}`}
+                  </span>
                 </div>
                 {forecast.days && forecast.days.days.length ? <DayStrip strip={forecast.days} tomorrow={forecast.tomorrow ?? null} /> : null}
                 {stillToCome(forecast).length ? (
@@ -487,7 +498,8 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
           {view === 'month' ? (
           <section className="mv-hero" id="month-title">
             <p className="mv-eyebrow">Month</p>
-            <h1>{`${monthLabel}, ${forecast ? euro(forecast.spent) : (months[0] ? euro(months[0].spent) : '\u2026')}.`}</h1>
+            <h1>{`${monthLabel}, ${forecast ? euro(forecast.spent) : (months[0] ? euro(months[0].spent) : '\u2026')}${incomeEdge ? ` of ${euro(incomeEdge)}` : ''}.`}</h1>
+            {incomeEdge ? <p className="mv-sub">{`${euro(incomeEdge)} is what you said comes in${today?.keep ? `, ${euro(today.keep)} of it to keep` : ''}.`}</p> : null}
             {months[0] && months[1] && typeof months[1].spent_to_day === 'number' ? (
               <>
                 <p className="mv-sub">{`By the ${todayDay}${ordinalSuffix(todayDay)}: ${euro(months[0].spent_to_day ?? months[0].spent)}; by the ${todayDay}${ordinalSuffix(todayDay)} of ${monthName(months[1].month)}, ${euro(months[1].spent_to_day)}.`}</p>
@@ -1046,7 +1058,7 @@ function readingStake(r: MoneyReading): number {
 }
 
 /** Where a euro amount falls on the band, 0..100, with the projected p90 as the right edge. */
-function pct(v: number, f: MoneyForecast) {
-  const max = Math.max(f.projected_p90, f.spent + f.committed, 1) * 1.08;
+function pct(v: number, f: MoneyForecast, edge: number | null = null) {
+  const max = edge ? Math.max(edge, f.spent + f.committed, 1) : Math.max(f.projected_p90, f.spent + f.committed, 1) * 1.08;
   return Math.max(0, Math.min(100, (v / max) * 100));
 }

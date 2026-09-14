@@ -47,7 +47,7 @@ export type MoneyReading = {
 export type MoneyBudget = { used: number; left: number; resets_at: string | null };
 /** Safe to spend today, with the basis it rests on; amount null until a month can be read. */
 export type MoneyToday = {
-  amount: number | null; basis: 'income' | 'typical' | 'student_prior' | null; budget: number | null; free: number | null; over: boolean;
+  amount: number | null; basis: 'income' | 'typical' | 'student_prior' | null; base?: number | null; keep?: number | null; budget: number | null; free: number | null; over: boolean;
   days_left: number | null; today_events: { title: string; amount: number }[]; sentence: string | null; why: string | null;
 };
 export type MoneyUsage = {
