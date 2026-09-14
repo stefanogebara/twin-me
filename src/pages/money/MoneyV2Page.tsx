@@ -14,7 +14,7 @@ import { CalendarDays, ChevronRight, FileText, Landmark, Mail, Smartphone } from
 import '../../styles/money-v2.css';
 import MoneyNav from './MoneyNav';
 import { MONEY_NAV, type MoneyView } from './navLinks';
-import { factTitle, factWord } from './factWords';
+import { factRank, factTitle, factWord } from './factWords';
 import { moneyAPI, euro, shortDay, bankLabel, BANKS, type MoneyAccount, type MoneyCalendar, type MoneyCategories, type MoneyDayStrip, type MoneyFact, type MoneyForecast, type MoneyQuestions, type MoneyToday, type MoneyMonth, type MoneyReading, type MoneyRecurring, type MoneySighting, type MoneyTransaction, type MoneyUsage } from '../../services/api/moneyAPI';
 
 const CADENCE: Record<string, string> = { weekly: 'every week', biweekly: 'every two weeks', monthly: 'every month', quarterly: 'every quarter', yearly: 'every year' };
@@ -643,18 +643,30 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
             <ul className="mv-list">
               {facts === null ? null : facts.length === 0 ? (
                 <li><p className="mv-empty">Nothing yet. The questions are where this fills.</p></li>
-              ) : facts.map((f) => (
-                <li key={f.id} className="mv-item">
-                  <span className="mv-item-text">
-                    <span className="mv-item-title">{factTitle(f)}</span>
-                    <span className="mv-item-sub">{factWord(f)}</span>
-                  </span>
-                  <span className="mv-item-end mv-figures">
-                    {f.amount ? euro(f.amount) : ''}
-                    <button type="button" className="mv-pill mv-pill--ghost" onClick={() => void forget(f)} disabled={busy === `forget:${f.id}`}>Forget</button>
-                  </span>
-                </li>
-              ))}
+              ) : [...facts].sort((a, b) => factRank(a) - factRank(b)).map((f) => {
+                /* A row of fifteen identical buttons is a form, not a list: the fact opens, and
+                   Forget waits inside it with the ledger's note. */
+                const isOpen = open === `fact:${f.id}`;
+                return (
+                  <li key={f.id}>
+                    <button type="button" className="mv-item" aria-expanded={isOpen} onClick={() => setOpen(isOpen ? null : `fact:${f.id}`)}>
+                      <span className="mv-item-text">
+                        <span className="mv-item-title">{factTitle(f)}</span>
+                        <span className="mv-item-sub">{factWord(f)}</span>
+                      </span>
+                      <span className="mv-item-end mv-figures">{f.amount ? euro(f.amount) : ''}<Chevron /></span>
+                    </button>
+                    {isOpen ? (
+                      <div className="mv-body">
+                        <div className="mv-body-foot">
+                          <span className="mv-quiet">{f.check_status ? `The ledger has it as ${f.check_status}.` : 'Said, not yet seen in the ledger.'}</span>
+                          <button type="button" className="mv-pill mv-pill--ghost" onClick={() => void forget(f)} disabled={busy === `forget:${f.id}`}>Forget</button>
+                        </div>
+                      </div>
+                    ) : null}
+                  </li>
+                );
+              })}
               {questions ? (
                 <li>
                   <Link to="/money/setup" className="mv-item">

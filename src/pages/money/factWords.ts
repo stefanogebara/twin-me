@@ -19,10 +19,17 @@ export function ordinal(n: number): string {
 
 export function cap(s: string) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
 
+/** The order facts take on You: money first, then places, then people, then kinds of place. */
+const KIND_ORDER = ['income', 'commitment', 'keep', 'cap', 'shared_cost', 'split', 'goal', 'home_area', 'study_place', 'work_place', 'person', 'merchant_kind', 'spending'];
+export function factRank(f: MoneyFact): number {
+  const i = KIND_ORDER.indexOf(f.kind);
+  return i === -1 ? KIND_ORDER.length : i;
+}
+
 /** The title of a fact row: what they said, in their words where there are any. */
 export function factTitle(f: MoneyFact): string {
   return [
-    f.subject_label || f.value || f.subject || 'unnamed',
+    cap(f.subject_label || f.value || f.subject || 'unnamed'),
     f.subject_label && f.value ? f.value : '',
     f.day ? `on the ${ordinal(f.day)}` : '',
     f.share ? `${Math.round(Number(f.share) * 100)}% yours` : '',
