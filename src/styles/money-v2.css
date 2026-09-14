@@ -170,6 +170,8 @@
 .mv-receipts li { display: grid; }
 .mv .mv-receipts p { color: var(--ink-2); font-weight: 350; overflow-wrap: anywhere; }
 
+/* A page that opens on a section, not a hero, starts at the top like the hero does. */
+.mv .mv-col > .mv-section:first-child { margin-top: 0; }
 /* This month: the figure, one grey line, the band */
 .mv-hero { display: grid; justify-items: start; }
 .mv .mv-eyebrow { margin-bottom: 12px; font-weight: 500; }

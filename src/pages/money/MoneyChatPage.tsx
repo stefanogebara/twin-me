@@ -21,15 +21,12 @@ import { ArrowUp } from 'lucide-react';
 import '../../styles/money-v2.css';
 import '../../styles/money-chat.css';
 import MoneyNav, { type MoneyNavLink } from './MoneyNav';
+import { MONEY_NAV } from './MoneyV2Page';
 import { moneyAPI, moneyChat, euro, shortDay, type ChatFigure, type ChatReceipt, type ChatTurn } from '../../services/api/moneyAPI';
 import { Figure } from './MoneyFigures';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
-const NAV: MoneyNavLink[] = [
-  { to: '/money', label: 'This month' },
-  { to: '/money/setup', label: 'Questions' },
-  { to: '/money/chat', label: 'Ask', current: true },
-];
+const NAV: MoneyNavLink[] = MONEY_NAV('ask');
 
 /** One line of the conversation: yours, or the ledger's with what it drew and what it stands on. */
 type AskLine = { id: string; who: 'you' | 'twin'; text: string; pending?: boolean; figures?: ChatFigure[]; receipts?: ChatReceipt[] };
