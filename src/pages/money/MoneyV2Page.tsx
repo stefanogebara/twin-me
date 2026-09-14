@@ -294,6 +294,15 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
   }
   /* The free provider allows one request a second, so the button comes back for the rest
      rather than holding a request open until it finishes. */
+  async function placeAs(merchantKey: string, category: string, name: string) {
+    if (!category) return;
+    setBusy('category'); setNote(null);
+    try {
+      await moneyAPI.setPlaceCategory(merchantKey, category, name);
+      setCategories(await moneyAPI.categories(`${new Date().toISOString().slice(0, 7)}-01`));
+    } catch { setNote('That could not be saved. Try again.'); }
+    finally { setBusy(null); }
+  }
   async function lookupPlaces() {
     setBusy('places'); setNote(null);
     try {
@@ -507,14 +516,37 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
               </p>
               <ol className="mv-list">
                 {categories.groups.map((g) => (
-                  <li key={g.category} className={`mv-item ${g.known ? '' : 'is-unknown'}`}>
-                    <span className="mv-item-text">
-                      <span className="mv-item-title">{cap(g.category)}</span>
-                      <span className="mv-item-sub">{g.share}%{g.merchants.length ? `, ${g.merchants.map((m) => m.name).slice(0, 3).join(', ')}` : ''}</span>
-                      {/* Two pixels of ink for the share: the number above it, drawn. */}
-                      <span className="mv-share" aria-hidden="true"><i style={{ width: `${Math.max(0, Math.min(100, Number(g.share) || 0))}%` }} /></span>
-                    </span>
-                    <span className="mv-item-end">{euro(g.spent)}</span>
+                  <li key={g.category} className={g.known ? '' : 'is-unknown'}>
+                    <div className="mv-item">
+                      <span className="mv-item-text">
+                        <span className="mv-item-title">{cap(g.category)}</span>
+                        <span className="mv-item-sub">{g.share}%{g.merchants.length ? `, ${g.merchants.map((m) => m.name).slice(0, 3).join(', ')}` : ''}</span>
+                        {/* Two pixels of ink for the share: the number above it, drawn. */}
+                        <span className="mv-share" aria-hidden="true"><i style={{ width: `${Math.max(0, Math.min(100, Number(g.share) || 0))}%` }} /></span>
+                      </span>
+                      <span className="mv-item-end">{euro(g.spent)}</span>
+                    </div>
+                    {/* What no provider could place, the person can: one word per merchant, kept
+                        as their own and never overwritten by a lookup. */}
+                    {!g.known && g.merchants.length ? (
+                      <ul className="mv-sublist">
+                        {g.merchants.filter((m) => m.merchant_key && m.merchant_key !== 'unknown').map((m) => (
+                          <li key={m.merchant_key || m.name} className="mv-item mv-item--sub">
+                            <span className="mv-item-text">
+                              <span className="mv-item-title">{m.name}</span>
+                              <span className="mv-item-sub">{euro(m.spent)}</span>
+                            </span>
+                            <span className="mv-item-end">
+                              <label className="mv-sr" htmlFor={`cat-${m.merchant_key || m.name}`}>What kind of place is {m.name}?</label>
+                              <select id={`cat-${m.merchant_key || m.name}`} className="mv-field mv-field--select" defaultValue="" disabled={busy === 'category'} onChange={(e) => void placeAs(m.merchant_key || m.name, e.target.value, m.name)}>
+                                <option value="" disabled>Kind of place</option>
+                                {moneyAPI.CATEGORIES.map((c) => <option key={c} value={c}>{cap(c)}</option>)}
+                              </select>
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
                   </li>
                 ))}
               </ol>

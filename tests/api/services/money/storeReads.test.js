@@ -5,7 +5,7 @@
 import { describe, it, expect, vi } from 'vitest';
 vi.mock('../../../../api/services/database.js', () => ({ supabaseAdmin: { from: () => ({}) }, serverDb: {} }));
 vi.mock('../../../../api/services/logger.js', () => ({ createLogger: () => ({ warn() {}, info() {}, error() {}, debug() {} }) }));
-const { planReads, newestConsent, FEED_BUDGET } = await import('../../../../api/services/money/store.js');
+const { planReads, newestConsent, categoryOfPayment, FEED_BUDGET } = await import('../../../../api/services/money/store.js');
 
 const at = (h) => `2026-09-14T${String(h).padStart(2, '0')}:00:00Z`;
 const acc = (id, session, last) => ({ id, session_id: session, last_pulled_at: last, iban_mask: `ES** ${id}` });
@@ -45,5 +45,16 @@ describe('newestConsent', () => {
     expect(newestConsent([fresh, old]).map((r) => r.id)).toEqual(['n']);
     const other = { id: 'r', iban_mask: 'LT** 1234', consent_expires_at: '2027-03-01T00:00:00Z', created_at: '2026-09-14T13:00:00Z' };
     expect(newestConsent([old, fresh, other]).map((r) => r.id).sort()).toEqual(['n', 'r']);
+  });
+});
+
+describe('categoryOfPayment', () => {
+  it('names a transfer to the landlord as rent, and leaves every other transfer a transfer', () => {
+    expect(categoryOfPayment(null, 'transfer', 'landlord')).toBe('rent');
+    expect(categoryOfPayment(null, 'bizum', 'landlord')).toBe('rent');
+    expect(categoryOfPayment(null, 'transfer', 'friend')).toBe('transfers');
+    expect(categoryOfPayment(null, 'card', 'landlord')).toBeNull();
+    expect(categoryOfPayment({ category: 'groceries' }, 'card', null)).toBe('groceries');
+    expect(categoryOfPayment({ category: 'groceries', category_override: 'home' }, 'card', null)).toBe('home');
   });
 });

@@ -55,7 +55,7 @@ export type MoneyUsage = {
   unmeasurable: { merchant_key: string; name: string; typical_amount: number }[];
   measured: string[];
 };
-export type MoneyCategoryGroup = { category: string; known: boolean; spent: number; lines: number; share: number; merchants: { name: string; spent: number }[] };
+export type MoneyCategoryGroup = { category: string; known: boolean; spent: number; lines: number; share: number; merchants: { name: string; merchant_key?: string; spent: number }[] };
 export type MoneyCategories = { month: string | null; total: number; read: number; groups: MoneyCategoryGroup[] };
 export type MoneyPlace = {
   merchant_key: string; name: string; city: string | null; kind: string | null; category: string | null;
@@ -120,6 +120,11 @@ export const moneyAPI = {
   usage: () => authFetch('/money/usage').then((r) => json<MoneyUsage>(r)),
   categories: (month?: string) => authFetch(`/money/categories${month ? `?month=${encodeURIComponent(month)}` : ''}`).then((r) => json<MoneyCategories>(r)),
   places: () => authFetch('/money/places').then((r) => json<MoneyPlace[]>(r)),
+  /** The person's word on what kind of place a merchant is; null clears it. */
+  setPlaceCategory: (merchantKey: string, category: string | null, name?: string) =>
+    authFetch(`/money/places/${encodeURIComponent(merchantKey)}/category`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ category, name }) }).then((r) => json<unknown>(r)),
+  /** The kinds of place the product knows, for a person to pick from. */
+  CATEGORIES: ['groceries', 'eating out', 'coffee', 'transport', 'taxi', 'fuel', 'health', 'pharmacy', 'sport', 'education', 'clothing', 'home', 'rent', 'electronics', 'entertainment', 'software', 'advertising', 'travel', 'lodging', 'cash', 'fees', 'bills', 'other'] as const,
   lookupPlaces: (limit = 12) =>
     authFetch('/money/places/lookup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ limit }) })
       .then((r) => json<{ looked: number; placed: number; left: number; provider: string }>(r)),
