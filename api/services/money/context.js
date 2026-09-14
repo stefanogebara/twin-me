@@ -68,6 +68,8 @@ export const FACT_KINDS = Object.freeze([
   'merchant_kind',    // what a place is, when no provider could say
   'goal',             // what this term is for
   'split',            // a payment shared with others: subject the payment id, value the number of ways
+  'keep',             // what they want to have left at the end of the month, one amount
+  'cap',              // what a kind of place, or one place, should stay under this month: subject the name, amount the cap
 ]);
 
 /** How a person is related to the money, which is what changes the reading. */
@@ -127,6 +129,26 @@ export const OPENING_QUESTIONS = Object.freeze([
     why: 'A shop split three ways is not all your money, and counting it as yours makes every total wrong.',
     changes: 'what a payment actually cost you',
     input: 'list:what,share',
+    optional: true,
+  },
+  {
+    id: 'keep',
+    kind: 'keep',
+    ask: 'What do you want to have left at the end of the month?',
+    help: 'One number. Leave it empty if you would rather just see the month.',
+    why: 'With it the month has a target instead of only a past; without it nothing here says you should have spent less.',
+    changes: 'what safe to spend today is measured against',
+    input: 'list:amount',
+    optional: true,
+  },
+  {
+    id: 'cap',
+    kind: 'cap',
+    ask: 'Anything you want to keep under this month?',
+    help: 'A kind of place, like eating out or taxis, or one place, and the most you want it to take.',
+    why: 'A line you set is the only budget that is yours; the month is then read against it every day.',
+    changes: 'a line under What the money says, with where you stand',
+    input: 'list:what,amount',
     optional: true,
   },
   {

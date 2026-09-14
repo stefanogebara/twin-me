@@ -7,6 +7,8 @@ import { supabaseAdmin } from '../database.js';
 import { splitShareOf, reimbursementIds, splitFindings, SPLIT_OPEN } from './bizum.js';
 import { accuracy, ownScoreFinding } from './predictions.js';
 import { deltaFindings } from './deltas.js';
+import { intentionFindings } from './intention.js';
+import { statedIncome } from './allowance.js';
 import { createLogger } from '../logger.js';
 import { reconcile } from './ledger.js';
 import { detectRecurring } from './recurring.js';
@@ -455,7 +457,9 @@ export async function refreshReadings(userId, now = new Date()) {
      against its usual week, a habit gone quiet, a weekday out of line, the week's pace. */
   const profiles = learnMerchants(transactions, { now, categoryOf });
   const deltas = deltaFindings({ transactions, profiles, categoryOf, isSpending: spendingRule(facts), now });
-  const findings = read.concat(nudgeFindings({ cast, allowance, now }), splitFindings(facts, transactions, { now }), own ? [own] : [], deltas);
+  /* What they said they want, read against the month (intention.js): silent without a fact. */
+  const intent = intentionFindings({ facts, transactions, categoryOf, cast, now, isSpending: spendingRule(facts), income: statedIncome(facts) });
+  const findings = read.concat(intent, nudgeFindings({ cast, allowance, now }), splitFindings(facts, transactions, { now }), own ? [own] : [], deltas);
   /* A finding with no month (a subscription load, a weekday shape) has month NULL, and
      Postgres counts NULLs as distinct: an upsert on (kind, month) inserted a fresh copy
      every run. So the write is an explicit update-or-insert, which also keeps the id and
