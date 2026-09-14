@@ -11,6 +11,5 @@ export const MONEY_NAV = (current: string): MoneyNavLink[] => [
   { to: '/money', label: 'Today', current: current === 'today' },
   { to: '/money/month', label: 'Month', current: current === 'month' },
   { to: '/money/you', label: 'You', current: current === 'you' },
-  { to: '/money/setup', label: 'Questions', current: current === 'questions' },
   { to: '/money/chat', label: 'Ask', current: current === 'ask' },
 ];

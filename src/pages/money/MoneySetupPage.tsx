@@ -32,7 +32,7 @@ const PLACEHOLDER: Record<string, string> = {
   name: 'Rent', source: 'Family', what: 'The weekly shop', amount: '500', day: '1',
 };
 
-const NAV: MoneyNavLink[] = MONEY_NAV('questions');
+const NAV: MoneyNavLink[] = MONEY_NAV('you');
 
 type ListRow = { key: string; label: string; amount: string; day: string; share: string };
 

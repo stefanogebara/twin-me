@@ -10,6 +10,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { useAuth } from '@/contexts/AuthContext';
 import { CalendarDays, ChevronRight, FileText, Landmark, Mail, Smartphone } from 'lucide-react';
 import '../../styles/money-v2.css';
 import MoneyNav from './MoneyNav';
@@ -65,6 +66,7 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
   /* The tab said "Discover Your Soul Signature" over a page of euros, which is the front
      door's old promise showing through the new product. */
   useDocumentTitle(view === 'today' ? 'Money' : view === 'month' ? 'Money, the month' : 'Money, you');
+  const { user } = useAuth();
   const [forecast, setForecast] = useState<MoneyForecast | null>(null);
   /* The one number a person opens the app for. It leads Today; the month sits under it. */
   const [today, setToday] = useState<MoneyToday | null>(null);
@@ -316,6 +318,56 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
   const last = forecast ? lastDay(forecast.month) : 30;
   const unmeasured = usage?.unmeasurable || [];
 
+  /* What the ledger says, with the payments that say it one press away. Today carries the
+     three that changed something today, the one that moved most as the heading; the month
+     carries all of them, last, after where the money went. */
+  const readingsSection = readings.length ? (
+            <section className="mv-section" id="readings">
+              {view === 'today' && lead ? (
+                <>
+                  {/* The reading that moved the most money is the heading, not a row among rows: it is
+                      the one sentence to read on the way out. Its receipts open under it. */}
+                  <p className="mv-eyebrow">What changed</p>
+                  <button type="button" className="mv-lead" aria-expanded={openReading === lead.id} onClick={() => setOpenReading(openReading === lead.id ? null : lead.id)}>
+                    <h2>{lead.sentence}</h2>
+                    {lead.detail ? <p className="mv-sub">{lead.detail}</p> : null}
+                  </button>
+                  {openReading === lead.id ? <ReadingBody r={lead} /> : null}
+                </>
+              ) : (
+                <h2>What the money says.</h2>
+              )}
+              {/* Quiet is a feature. Every other app manufactures a daily line; this one says how
+                  long it has had nothing new to say, from the day each reading was first said. */}
+              {quietDays !== null && quietDays >= 2 && !lead ? <p className="mv-sub">{`Nothing new for ${quietDays} days.`}</p> : null}
+              <ul className="mv-list">
+                {(view === 'today' ? rest : readings).map((r) => {
+                  const isOpen = openReading === r.id;
+                  return (
+                    <li key={r.id}>
+                      <button type="button" className="mv-item" aria-expanded={isOpen} onClick={() => setOpenReading(isOpen ? null : r.id)}>
+                        <span className="mv-item-text">
+                          <span className="mv-item-title">{r.sentence}</span>
+                          {r.detail ? <span className="mv-item-sub">{r.detail}</span> : null}
+                        </span>
+                        <span className="mv-item-end"><Chevron /></span>
+                      </button>
+                      {isOpen ? <ReadingBody r={r} /> : null}
+                    </li>
+                  );
+                })}
+                {view === 'today' && readings.length > shown.length ? (
+                  <li>
+                    <Link to="/money/month#readings" className="mv-item">
+                      <span className="mv-item-text"><span className="mv-item-title">{`All ${readings.length} readings`}</span></span>
+                      <span className="mv-item-end"><Chevron /></span>
+                    </Link>
+                  </li>
+                ) : null}
+              </ul>
+            </section>
+  ) : null;
+
   return (
     <main className="mv">
       <div className="mv-shell">
@@ -405,53 +457,36 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
           </section>
           ) : null}
 
-          {/* What the ledger says, with the payments that say it one press away. Today carries
-              the three that changed something today; the month carries all of them. */}
-          {(view === 'today' || view === 'month') && readings.length ? (
-            <section className="mv-section" id="readings">
-              {view === 'today' && lead ? (
-                <>
-                  {/* The reading that moved the most money is the heading, not a row among rows: it is
-                      the one sentence to read on the way out. Its receipts open under it. */}
-                  <p className="mv-eyebrow">What changed</p>
-                  <button type="button" className="mv-lead" aria-expanded={openReading === lead.id} onClick={() => setOpenReading(openReading === lead.id ? null : lead.id)}>
-                    <h2>{lead.sentence}</h2>
-                    {lead.detail ? <p className="mv-sub">{lead.detail}</p> : null}
-                  </button>
-                  {openReading === lead.id ? <ReadingBody r={lead} /> : null}
-                </>
-              ) : (
-                <h2>What the money says.</h2>
-              )}
-              {/* Quiet is a feature. Every other app manufactures a daily line; this one says how
-                  long it has had nothing new to say, from the day each reading was first said. */}
-              {quietDays !== null && quietDays >= 2 && !lead ? <p className="mv-sub">{`Nothing new for ${quietDays} days.`}</p> : null}
-              <ul className="mv-list">
-                {(view === 'today' ? rest : readings).map((r) => {
-                  const isOpen = openReading === r.id;
-                  return (
-                    <li key={r.id}>
-                      <button type="button" className="mv-item" aria-expanded={isOpen} onClick={() => setOpenReading(isOpen ? null : r.id)}>
-                        <span className="mv-item-text">
-                          <span className="mv-item-title">{r.sentence}</span>
-                          {r.detail ? <span className="mv-item-sub">{r.detail}</span> : null}
-                        </span>
-                        <span className="mv-item-end"><Chevron /></span>
-                      </button>
-                      {isOpen ? <ReadingBody r={r} /> : null}
-                    </li>
-                  );
-                })}
-                {view === 'today' && readings.length > shown.length ? (
-                  <li>
-                    <Link to="/money/month#readings" className="mv-item">
-                      <span className="mv-item-text"><span className="mv-item-title">{`All ${readings.length} readings`}</span></span>
-                      <span className="mv-item-end"><Chevron /></span>
-                    </Link>
-                  </li>
-                ) : null}
-              </ul>
-            </section>
+          {view === 'today' ? readingsSection : null}
+
+          {/* The month opens on its figure, with the one drawing that says how it compares:
+              this month to today's date against the same days of last month. */}
+          {view === 'month' ? (
+          <section className="mv-hero" id="month-title">
+            <p className="mv-eyebrow">Month</p>
+            <h1>{`${monthLabel}, ${forecast ? euro(forecast.spent) : (months[0] ? euro(months[0].spent) : '\u2026')}.`}</h1>
+            {months[0] && months[1] && typeof months[1].spent_to_day === 'number' ? (
+              <>
+                <p className="mv-sub">{`By the ${todayDay}${ordinalSuffix(todayDay)}: ${euro(months[0].spent_to_day ?? months[0].spent)}; by the ${todayDay}${ordinalSuffix(todayDay)} of ${monthName(months[1].month)}, ${euro(months[1].spent_to_day)}.`}</p>
+                <div className="mv-pairs" aria-hidden="true">
+                  {[months[0], months[1]].map((m) => (
+                    <div key={m.month} className="mv-pairs-row">
+                      <span className="mv-pairs-label">{monthName(m.month)}</span>
+                      <span className="mv-pair mv-pair--wide"><i style={{ width: `${pairMax > 0 ? ((Number(m.spent_to_day) || 0) / pairMax) * 100 : 0}%` }} /></span>
+                      <span className="mv-pairs-end mv-figures">{euro(m.spent_to_day ?? 0)}</span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : null}
+          </section>
+          ) : null}
+          {view === 'you' ? (
+          <section className="mv-hero" id="you-title">
+            <p className="mv-eyebrow">You</p>
+            <h1>{user?.firstName ? `${user.firstName}.` : 'You.'}</h1>
+            <p className="mv-sub">What it knows in your words, and where it reads from.</p>
+          </section>
           ) : null}
 
           {/* Where it went, by kind of place */}
@@ -653,13 +688,15 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
           </section>
           ) : null}
 
+          {view === 'month' ? readingsSection : null}
+
           {/* What it knows: the person's own words, each one forgettable; then what it still
               wants to ask. The facts are claims the ledger checks, so the grey word under each
               is the ledger's verdict when it has one. */}
           {view === 'you' ? (
           <section className="mv-section" id="knows">
             <h2>What it knows.</h2>
-            <p className="mv-sub">In your words. Forget one and it asks again.</p>
+            <p className="mv-sub">Forget one and it asks again.</p>
             <ul className="mv-list">
               {facts === null ? null : facts.length === 0 ? (
                 <li><p className="mv-empty">Nothing yet. The questions are where this fills.</p></li>
@@ -869,6 +906,8 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
           <footer className="mv-foot">
             <Link to="/privacy-policy">Privacy</Link>
             <Link to="/terms">Terms</Link>
+            {/* The one door back to the rest of TwinMe, so Money is not a room without an exit. */}
+            <Link to="/today">Your twin</Link>
           </footer>
         </div>
       </div>

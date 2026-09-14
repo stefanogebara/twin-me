@@ -176,6 +176,11 @@
 .mv .mv-lead:hover h2 { color: var(--ink-2); }
 .mv .mv-lead:focus-visible { outline: 2px solid var(--ink); outline-offset: 4px; }
 .mv .mv-lead + .mv-body { margin-top: 16px; }
+/* The month's one drawing: this month to today's date against the same days of last month. */
+.mv .mv-pairs { display: grid; gap: 10px; width: 100%; max-width: 480px; margin-top: 20px; }
+.mv .mv-pairs-row { display: grid; grid-template-columns: 88px minmax(0, 1fr) auto; gap: 12px; align-items: center; color: var(--ink-2); font-weight: 350; }
+.mv .mv-pair--wide { margin-top: 0; max-width: none; height: 4px; }
+.mv .mv-pairs-end { color: var(--ink); }
 /* The two drawings that carry a number: a share of the month under a kind of place, and
    this month to today's date against the same days of the others, on the month rows. */
 .mv .mv-share, .mv .mv-pair { display: block; height: 2px; margin-top: 8px; background: var(--rule); max-width: 320px; }
