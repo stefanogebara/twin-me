@@ -14,6 +14,7 @@ import { Link } from 'react-router-dom';
 import '../../styles/money-v2.css';
 import '../../styles/money-setup.css';
 import MoneyNav, { type MoneyNavLink } from './MoneyNav';
+import { MONEY_NAV } from './MoneyV2Page';
 import { moneyAPI, euro, shortDay, type MoneyFact, type MoneyQuestion } from '../../services/api/moneyAPI';
 
 /** The words a kind of place can be given, matching what the categoriser itself uses. */
@@ -34,11 +35,7 @@ const FACT_WORD: Record<string, string> = {
   income: 'comes in', shared_cost: 'shared', person: 'who that is', merchant_kind: 'kind of place', goal: 'this term',
 };
 
-const NAV: MoneyNavLink[] = [
-  { to: '/money', label: 'This month' },
-  { to: '/money/setup', label: 'Questions', current: true },
-  { to: '/money/chat', label: 'Ask' },
-];
+const NAV: MoneyNavLink[] = MONEY_NAV('questions');
 
 type ListRow = { key: string; label: string; amount: string; day: string; share: string };
 

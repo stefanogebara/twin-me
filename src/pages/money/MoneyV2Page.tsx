@@ -18,14 +18,15 @@ import { moneyAPI, euro, shortDay, bankLabel, BANKS, type MoneyAccount, type Mon
 const CADENCE: Record<string, string> = { weekly: 'every week', biweekly: 'every two weeks', monthly: 'every month', quarterly: 'every quarter', yearly: 'every year' };
 const SOURCE: Record<string, string> = { phone: 'Your phone', bizum: 'Bizum', bankfeed: 'Santander', gmail: 'Gmail', statement: 'Statement' };
 
-const NAV: MoneyNavLink[] = [
-  { to: '/money', label: 'This month', current: true },
-  { to: '#where', label: 'Where it went', sub: true },
-  { to: '#ledger', label: 'Every euro', sub: true },
-  { to: '#recurring', label: 'What comes back', sub: true },
-  { to: '#sources', label: 'Sources', sub: true },
-  { to: '/money/setup', label: 'Questions' },
-  { to: '/money/chat', label: 'Ask' },
+/* Three pages and Ask, the shape the phone already has. The month page was one scroll of
+   eight sections and a thousand words; the sidebar pretended to be pages. Now it is. */
+export type MoneyView = 'today' | 'month' | 'you';
+export const MONEY_NAV = (current: string): MoneyNavLink[] => [
+  { to: '/money', label: 'Today', current: current === 'today' },
+  { to: '/money/month', label: 'Month', current: current === 'month' },
+  { to: '/money/you', label: 'You', current: current === 'you' },
+  { to: '/money/setup', label: 'Questions', current: current === 'questions' },
+  { to: '/money/chat', label: 'Ask', current: current === 'ask' },
 ];
 
 /* What is still to come this month, as dated rows: detected charges, stated commitments,
@@ -66,10 +67,10 @@ function lastDay(iso: string) { const d = new Date(iso); return new Date(Date.UT
 
 function Chevron() { return <ChevronRight className="mv-chev" size={16} strokeWidth={1.75} aria-hidden="true" />; }
 
-export default function MoneyV2Page() {
+export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {}) {
   /* The tab said "Discover Your Soul Signature" over a page of euros, which is the front
      door's old promise showing through the new product. */
-  useDocumentTitle('Money');
+  useDocumentTitle(view === 'today' ? 'Money' : view === 'month' ? 'Money, the month' : 'Money, you');
   const [forecast, setForecast] = useState<MoneyForecast | null>(null);
   const [ledger, setLedger] = useState<MoneyTransaction[]>([]);
   const [recurring, setRecurring] = useState<MoneyRecurring[]>([]);
@@ -284,10 +285,11 @@ export default function MoneyV2Page() {
   return (
     <main className="mv">
       <div className="mv-shell">
-        <MoneyNav links={NAV} />
+        <MoneyNav links={MONEY_NAV(view)} />
         <div className="mv-col">
 
           {/* This month: one figure, one grey line, the band */}
+          {view === 'today' ? (
           <section className="mv-hero" id="month">
             <p className="mv-eyebrow">{monthLabel}</p>
             {!loaded ? (
@@ -301,7 +303,7 @@ export default function MoneyV2Page() {
                 <div className="mv-ctas">
                   <button type="button" className="mv-pill" onClick={() => void connect(BANKS[0].name)} disabled={busy === 'connect' || !bankReady}>Connect Santander</button>
                   <button type="button" className="mv-pill mv-pill--ghost" onClick={() => void connect(BANKS[1].name)} disabled={busy === 'connect' || !bankReady}>Or Revolut</button>
-                  <a href="#sources" className="mv-pill mv-pill--ghost">Set up the phone</a>
+                  <Link to="/money/you#sources" className="mv-pill mv-pill--ghost">Set up the phone</Link>
                 </div>
               </>
             ) : (
@@ -353,9 +355,10 @@ export default function MoneyV2Page() {
               </div>
             ) : null}
           </section>
+          ) : null}
 
           {/* What the ledger says, with the payments that say it one press away */}
-          {readings.length ? (
+          {view === 'today' && readings.length ? (
             <section className="mv-section" id="readings">
               <h2>What the money says.</h2>
               {/* Quiet is a feature. Every other app manufactures a daily line; this one says how
@@ -401,7 +404,7 @@ export default function MoneyV2Page() {
           ) : null}
 
           {/* Where it went, by kind of place */}
-          {categories && categories.groups.length ? (
+          {view === 'month' && categories && categories.groups.length ? (
             <section className="mv-section" id="where">
               <div className="mv-head">
                 <h2>Where it went this month.</h2>
@@ -431,7 +434,7 @@ export default function MoneyV2Page() {
           ) : null}
 
           {/* Month by month */}
-          {months.length > 1 ? (
+          {view === 'month' && months.length > 1 ? (
             <section className="mv-section" id="months">
               <h2>Month by month.</h2>
               <ol className="mv-list">
@@ -452,6 +455,7 @@ export default function MoneyV2Page() {
           ) : null}
 
           {/* Ledger */}
+          {view === 'month' ? (
           <section className="mv-section" id="ledger">
             <h2>Every euro, with its receipts.</h2>
             {ledger.length === 0 ? (
@@ -519,8 +523,10 @@ export default function MoneyV2Page() {
               </>
             )}
           </section>
+          ) : null}
 
           {/* Recurring */}
+          {view === 'month' ? (
           <section className="mv-section" id="recurring">
             <h2>What comes back on its own.</h2>
             {recurring.length === 0 ? (
@@ -572,9 +578,10 @@ export default function MoneyV2Page() {
               </>
             )}
           </section>
+          ) : null}
 
           {/* Whether a subscription was used, and the honest gap where nothing can look */}
-          {usage && (usage.findings.length || unmeasured.length) ? (
+          {view === 'month' && usage && (usage.findings.length || unmeasured.length) ? (
             <section className="mv-section" id="usage">
               <h2>Whether it gets used.</h2>
               <p className="mv-sub">
@@ -604,6 +611,7 @@ export default function MoneyV2Page() {
           ) : null}
 
           {/* Sources */}
+          {view === 'you' ? (
           <section className="mv-section" id="sources">
             <div className="mv-head">
               <h2>Read from a few places.</h2>
@@ -756,8 +764,10 @@ export default function MoneyV2Page() {
                 </ul>
               </li>
             </ul>
-            {note ? <p className="mv-note" role="status">{note}</p> : null}
           </section>
+          ) : null}
+          {/* What a press just did or failed to do, on whichever page the press was made. */}
+          {note ? <p className="mv-note" role="status">{note}</p> : null}
 
           <footer className="mv-foot">
             <Link to="/privacy-policy">Privacy</Link>

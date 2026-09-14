@@ -390,7 +390,23 @@ const App = () => {
             <Route path="/money" element={
               <ProtectedRoute>
                 <ErrorBoundary>
-                  <Suspense fallback={null}><MoneyV2Page /></Suspense>
+                  <Suspense fallback={null}><MoneyV2Page view="today" /></Suspense>
+                </ErrorBoundary>
+              </ProtectedRoute>
+            } />
+            {/* The same page in three views, the shape the phone already has: today, the
+                month, and you (what it knows and where it reads from). */}
+            <Route path="/money/month" element={
+              <ProtectedRoute>
+                <ErrorBoundary>
+                  <Suspense fallback={null}><MoneyV2Page view="month" /></Suspense>
+                </ErrorBoundary>
+              </ProtectedRoute>
+            } />
+            <Route path="/money/you" element={
+              <ProtectedRoute>
+                <ErrorBoundary>
+                  <Suspense fallback={null}><MoneyV2Page view="you" /></Suspense>
                 </ErrorBoundary>
               </ProtectedRoute>
             } />
