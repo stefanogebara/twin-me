@@ -1080,6 +1080,20 @@ export async function skipQuestion(userId, questionId) {
   return { skipped: questionId };
 }
 
+/**
+ * Forget one thing the person said. The fact goes, and the question that produced it is
+ * open again, so a wrong answer can be given again rather than argued with. Internal rows
+ * (the calendar's read, the receipts address) are not the person's words and stay.
+ */
+export async function deleteFact(userId, factId) {
+  const { data: fact } = await supabaseAdmin.from('money_facts').select('id, kind, question_id').eq('user_id', userId).eq('id', factId).maybeSingle();
+  if (!fact || INTERNAL_FACT_KINDS.includes(fact.kind)) return { deleted: false };
+  const { error } = await supabaseAdmin.from('money_facts').delete().eq('user_id', userId).eq('id', factId);
+  if (error) throw new Error(error.message);
+  if (fact.question_id) await supabaseAdmin.from('money_questions_asked').delete().eq('user_id', userId).eq('question_id', fact.question_id);
+  return { deleted: true };
+}
+
 /** The person's own words about their money, for the twin. */
 export async function contextBlock(userId) {
   const facts = await listFacts(userId);

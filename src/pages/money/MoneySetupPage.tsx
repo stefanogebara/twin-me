@@ -15,6 +15,7 @@ import '../../styles/money-v2.css';
 import '../../styles/money-setup.css';
 import MoneyNav, { type MoneyNavLink } from './MoneyNav';
 import { MONEY_NAV } from './navLinks';
+import { cap, factTitle, factWord } from './factWords';
 import { moneyAPI, euro, shortDay, type MoneyFact, type MoneyQuestion } from '../../services/api/moneyAPI';
 
 /** The words a kind of place can be given, matching what the categoriser itself uses. */
@@ -30,10 +31,6 @@ const SHARES: [string, number][] = [['a half', 50], ['a third', 33], ['a quarter
 const PLACEHOLDER: Record<string, string> = {
   name: 'Rent', source: 'Family', what: 'The weekly shop', amount: '500', day: '1',
 };
-const FACT_WORD: Record<string, string> = {
-  home_area: 'lives in', study_place: 'studies at', work_place: 'works at', commitment: 'every month',
-  income: 'comes in', shared_cost: 'shared', person: 'who that is', merchant_kind: 'kind of place', goal: 'this term',
-};
 
 const NAV: MoneyNavLink[] = MONEY_NAV('questions');
 
@@ -46,7 +43,6 @@ function blankRow(): ListRow { rowSeq += 1; return { key: `r${rowSeq}`, label: '
 function slug(s: string) { return s.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'unnamed'; }
 function listColumns(input: string) { return input.slice('list:'.length).split(',').map((c) => c.trim()).filter(Boolean); }
 function choiceOptions(input: string) { return input.slice('choice:'.length).split(',').map((c) => c.trim()).filter(Boolean); }
-function cap(s: string) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
 /** People write 49,25 as often as 49.25, and both mean the same money. */
 function parseAmount(s: string): number | undefined {
   const n = Number(s.replace(/\s/g, '').replace(',', '.'));
@@ -63,12 +59,6 @@ function parseShare(s: string): number | undefined {
 }
 
 /** The 1st, not the 1. A system that cannot spell a date is not trusted with a number. */
-function ordinal(n: number): string {
-  if (n % 10 === 1 && n !== 11) return `${n}st`;
-  if (n % 10 === 2 && n !== 12) return `${n}nd`;
-  if (n % 10 === 3 && n !== 13) return `${n}rd`;
-  return `${n}th`;
-}
 
 export default function MoneySetupPage() {
   const [queue, setQueue] = useState<MoneyQuestion[]>([]);
@@ -214,7 +204,7 @@ export default function MoneySetupPage() {
                     ? `You answered ${answeredBefore} already. Everything since reads on its own.`
                     : 'When a payment arrives that it cannot read, it asks here.'}
                 </p>
-                <div className="ms-actions"><Link to="/money" className="mv-pill">Back to the month</Link></div>
+                <div className="ms-actions"><Link to="/money/you" className="mv-pill">See what it knows</Link></div>
               </div>
             ) : done ? (
               <div className="ms-stage-inner">
@@ -229,20 +219,15 @@ export default function MoneySetupPage() {
                     {facts.map((f) => (
                       <li key={f.id} className="mv-item">
                         <span className="mv-item-text">
-                          <span className="mv-item-title">
-                            {f.subject_label || f.value || f.subject || 'unnamed'}
-                            {f.subject_label && f.value ? `, ${f.value}` : ''}
-                            {f.day ? `, on the ${ordinal(f.day)}` : ''}
-                            {f.share ? `, ${Math.round(Number(f.share) * 100)}% yours` : ''}
-                          </span>
-                          <span className="mv-item-sub">{f.check_note || cap(FACT_WORD[f.kind] || f.kind)}</span>
+                          <span className="mv-item-title">{factTitle(f)}</span>
+                          <span className="mv-item-sub">{factWord(f)}</span>
                         </span>
                         <span className="mv-item-end">{f.amount ? euro(f.amount) : ''}</span>
                       </li>
                     ))}
                   </ul>
                 ) : null}
-                <div className="ms-actions"><Link to="/money" className="mv-pill">See the month</Link></div>
+                <div className="ms-actions"><Link to="/money" className="mv-pill">See today</Link></div>
               </div>
             ) : question ? (
               <div className="ms-stage-inner" key={question.id}>
