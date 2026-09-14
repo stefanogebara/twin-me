@@ -124,6 +124,14 @@ export default function YouScreen({ user, onSignOut, onOpenPhone, onOpenBank, on
     ]);
   }, [load]);
 
+  /* A fact is the person's own word; pressing it offers to forget it, which reopens its question. */
+  const forget = useCallback((f: MoneyFact) => {
+    Alert.alert(factLabel(f), `${kindWord(f.kind)}. Forget it and the question is asked again.`, [
+      { text: 'Keep', style: 'cancel' },
+      { text: 'Forget', style: 'destructive', onPress: () => { moneyApi.deleteFact(f.id).then(() => load()).catch(() => { /* the row stays */ }); } },
+    ]);
+  }, [load]);
+
   const name = firstName(user);
 
   /* The lens writes a sentence; the row has room for its first clause. Trimming here rather
@@ -237,6 +245,7 @@ export default function YouScreen({ user, onSignOut, onOpenPhone, onOpenBank, on
                       label={factLabel(f)}
                       trail={f.amount !== null && f.amount !== undefined ? euro(f.amount) : undefined}
                       sub={f.check_note || undefined}
+                      onPress={() => forget(f)}
                     />
                     ))}
                   </List>

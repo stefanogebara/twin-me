@@ -127,6 +127,8 @@ export type MoneyCalendar = {
 export type MoneyMonth = {
   month: string;
   spent: number;
+  /** Spend on the days up to today's day-of-month, so half months compare with half months. */
+  spent_to_day?: number;
   received: number;
   lines: number;
   days_covered: number;
@@ -410,6 +412,8 @@ export const moneyApi = {
   skipQuestion: (id: string) =>
     post(`/money/questions/${encodeURIComponent(id)}/skip`, {}).then((r) => json<{ skipped: string }>(r)),
   facts: () => authFetch('/money/facts').then((r) => json<MoneyFact[]>(r)),
+  /** Forget one thing they said; the question that produced it is asked again. */
+  deleteFact: (id: string) => authFetch(`/money/facts/${encodeURIComponent(id)}`, { method: 'DELETE' }).then((r) => json<{ deleted: boolean }>(r)),
   months: () => authFetch('/money/months').then((r) => json<MoneyMonth[]>(r)),
   /** Ask the ledger something in words. History is the last few turns, newest last. */
   chat: (message: string, history: ChatTurn[]) =>
