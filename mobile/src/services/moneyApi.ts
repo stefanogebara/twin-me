@@ -184,6 +184,8 @@ export type MoneyAccount = {
   needs_reconnect?: boolean;
   /** As the aggregator names it: 'Banco Santander', 'Revolut'. Rows from before carry none. */
   bank_name?: string | null;
+  /** The bank's own figure for what is in the account, read with the person present. */
+  balance?: number | string | null; balance_type?: string | null; balance_at?: string | null;
 };
 export const BANKS = [{ name: 'Banco Santander', label: 'Santander' }, { name: 'Revolut', label: 'Revolut' }] as const;
 export function bankLabel(name: string | null | undefined): string {
