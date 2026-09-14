@@ -146,6 +146,8 @@ export const moneyAPI = {
   skipQuestion: (id: string) =>
     authFetch(`/money/questions/${encodeURIComponent(id)}/skip`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).then((r) => json<{ skipped: string }>(r)),
   facts: () => authFetch('/money/facts').then((r) => json<MoneyFact[]>(r)),
+  /** Forget one thing they said; the question that produced it is asked again. */
+  deleteFact: (id: string) => authFetch(`/money/facts/${encodeURIComponent(id)}`, { method: 'DELETE' }).then((r) => json<{ deleted: boolean }>(r)),
   accounts: () => authFetch('/money/bank/accounts').then((r) => json<MoneyAccount[]>(r)),
   connect: (bank = 'Banco Santander', country = 'ES') =>
     authFetch('/money/bank/connect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bank, country }) }).then((r) => json<{ url: string }>(r)),

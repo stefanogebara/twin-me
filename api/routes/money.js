@@ -44,7 +44,7 @@ import { inboxAddress, inboxDomain, isInboxConfigured, verifySvix, ingestReceive
 import { accuracy } from '../services/money/predictions.js';
 import { createLogger } from '../services/logger.js';
 import { parseCapture, parseStructured } from '../services/money/captureParser.js';
-import { ingestSighting, ingestSightings, listTransactions, sightingsFor, refreshRecurring, forecast, setVerdict, userForCaptureKey, saveBankAccounts, listBankAccounts, pullBankFeed, refreshReadings, listReadings, setReadingVerdict, months, feedBudget, categorySpend, listPlaces, setPlaceCategory, enrichPlaces, subscriptionUsage, questionsFor, answerQuestion, skipQuestion, listFacts, learn } from '../services/money/store.js';
+import { ingestSighting, ingestSightings, listTransactions, sightingsFor, refreshRecurring, forecast, setVerdict, userForCaptureKey, saveBankAccounts, listBankAccounts, pullBankFeed, refreshReadings, listReadings, setReadingVerdict, months, feedBudget, categorySpend, listPlaces, setPlaceCategory, enrichPlaces, subscriptionUsage, questionsFor, answerQuestion, skipQuestion, listFacts, deleteFact, learn } from '../services/money/store.js';
 import { parseDelimited, parseWorkbook, toSightings } from '../services/money/statements/importer.js';
 import { isConfigured, listBanks, startAuthorisation, createSession } from '../services/money/feeds/enableBanking.js';
 import { answer as chatAnswer, answerStream as chatAnswerStream, act as chatAct } from '../services/money/chat.js';
@@ -503,6 +503,11 @@ router.post('/questions/:id/skip', async (req, res) => {
 router.get('/facts', async (req, res) => {
   try { res.json({ success: true, data: await listFacts(req.user.id) }); }
   catch (error) { log.error('facts failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
+});
+/* Forget one thing they said; its question is open again. */
+router.delete('/facts/:id', async (req, res) => {
+  try { res.json({ success: true, data: await deleteFact(req.user.id, String(req.params.id).slice(0, 64)) }); }
+  catch (error) { log.error('fact delete failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
 });
 
 /* The ledger, asked. The numbers are computed; the model only phrases (services/money/chat.js). */

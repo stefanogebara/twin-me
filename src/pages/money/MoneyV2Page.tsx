@@ -14,7 +14,8 @@ import { CalendarDays, ChevronRight, FileText, Landmark, Mail, Smartphone } from
 import '../../styles/money-v2.css';
 import MoneyNav from './MoneyNav';
 import { MONEY_NAV, type MoneyView } from './navLinks';
-import { moneyAPI, euro, shortDay, bankLabel, BANKS, type MoneyAccount, type MoneyCalendar, type MoneyCategories, type MoneyDayStrip, type MoneyForecast, type MoneyToday, type MoneyMonth, type MoneyReading, type MoneyRecurring, type MoneySighting, type MoneyTransaction, type MoneyUsage } from '../../services/api/moneyAPI';
+import { factRank, factTitle, factWord } from './factWords';
+import { moneyAPI, euro, shortDay, bankLabel, BANKS, type MoneyAccount, type MoneyCalendar, type MoneyCategories, type MoneyDayStrip, type MoneyFact, type MoneyForecast, type MoneyQuestions, type MoneyToday, type MoneyMonth, type MoneyReading, type MoneyRecurring, type MoneySighting, type MoneyTransaction, type MoneyUsage } from '../../services/api/moneyAPI';
 
 const CADENCE: Record<string, string> = { weekly: 'every week', biweekly: 'every two weeks', monthly: 'every month', quarterly: 'every quarter', yearly: 'every year' };
 const SOURCE: Record<string, string> = { phone: 'Your phone', bizum: 'Bizum', bankfeed: 'Santander', gmail: 'Gmail', statement: 'Statement' };
@@ -79,6 +80,9 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
   const [copied, setCopied] = useState(false);
   /* The calendar lens: Google, or links pasted from Canvas and Blackboard. */
   const [calendar, setCalendar] = useState<MoneyCalendar | null>(null);
+  /* What it knows, in the person's words, and what it still wants to ask: the You page. */
+  const [facts, setFacts] = useState<MoneyFact[] | null>(null);
+  const [questions, setQuestions] = useState<MoneyQuestions | null>(null);
   const [feedUrl, setFeedUrl] = useState('');
   const [categories, setCategories] = useState<MoneyCategories | null>(null);
   const [usage, setUsage] = useState<MoneyUsage | null>(null);
@@ -135,6 +139,18 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
   useEffect(() => { moneyAPI.inbox().then(setInbox).catch(() => setInbox(null)); }, []);
   const loadCalendar = useCallback(() => moneyAPI.calendar().then(setCalendar).catch(() => setCalendar({ connected: false })), []);
   useEffect(() => { void loadCalendar(); }, [loadCalendar]);
+  const loadYou = useCallback(async () => {
+    const [f, q] = await Promise.allSettled([moneyAPI.facts(), moneyAPI.questions()]);
+    setFacts(f.status === 'fulfilled' ? f.value : []);
+    setQuestions(q.status === 'fulfilled' ? q.value : null);
+  }, []);
+  useEffect(() => { if (view === 'you') void loadYou(); }, [view, loadYou]);
+  async function forget(f: MoneyFact) {
+    setBusy(`forget:${f.id}`); setNote(null);
+    try { await moneyAPI.deleteFact(f.id); await loadYou(); await load(); }
+    catch { setNote('That could not be forgotten. Try again.'); }
+    finally { setBusy(null); }
+  }
   const copyInbox = useCallback(async () => {
     if (!inbox) return;
     try { await navigator.clipboard.writeText(inbox.address); setCopied(true); setTimeout(() => setCopied(false), 1600); } catch { /* the address is on the page to select */ }
@@ -614,6 +630,59 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
               </ul>
               </>
             ) : null}
+          </section>
+          ) : null}
+
+          {/* What it knows: the person's own words, each one forgettable; then what it still
+              wants to ask. The facts are claims the ledger checks, so the grey word under each
+              is the ledger's verdict when it has one. */}
+          {view === 'you' ? (
+          <section className="mv-section" id="knows">
+            <h2>What it knows.</h2>
+            <p className="mv-sub">In your words. Forget one and it asks again.</p>
+            <ul className="mv-list">
+              {facts === null ? null : facts.length === 0 ? (
+                <li><p className="mv-empty">Nothing yet. The questions are where this fills.</p></li>
+              ) : [...facts].sort((a, b) => factRank(a) - factRank(b)).map((f) => {
+                /* A row of fifteen identical buttons is a form, not a list: the fact opens, and
+                   Forget waits inside it with the ledger's note. */
+                const isOpen = open === `fact:${f.id}`;
+                return (
+                  <li key={f.id}>
+                    <button type="button" className="mv-item" aria-expanded={isOpen} onClick={() => setOpen(isOpen ? null : `fact:${f.id}`)}>
+                      <span className="mv-item-text">
+                        <span className="mv-item-title">{factTitle(f)}</span>
+                        <span className="mv-item-sub">{factWord(f)}</span>
+                      </span>
+                      <span className="mv-item-end mv-figures">{f.amount ? euro(f.amount) : ''}<Chevron /></span>
+                    </button>
+                    {isOpen ? (
+                      <div className="mv-body">
+                        <div className="mv-body-foot">
+                          <span className="mv-quiet">{f.check_status ? `The ledger has it as ${f.check_status}.` : 'Said, not yet seen in the ledger.'}</span>
+                          <button type="button" className="mv-pill mv-pill--ghost" onClick={() => void forget(f)} disabled={busy === `forget:${f.id}`}>Forget</button>
+                        </div>
+                      </div>
+                    ) : null}
+                  </li>
+                );
+              })}
+              {questions ? (
+                <li>
+                  <Link to="/money/setup" className="mv-item">
+                    <span className="mv-item-text">
+                      <span className="mv-item-title">
+                        {questions.opening.length + questions.fromLedger.length
+                          ? `${questions.opening.length + questions.fromLedger.length} ${questions.opening.length + questions.fromLedger.length === 1 ? 'question' : 'questions'} it still has`
+                          : 'Nothing to ask right now'}
+                      </span>
+                      <span className="mv-item-sub">{(questions.opening[0] || questions.fromLedger[0])?.ask || 'When a payment arrives that it cannot read, it asks.'}</span>
+                    </span>
+                    <span className="mv-item-end"><Chevron /></span>
+                  </Link>
+                </li>
+              ) : null}
+            </ul>
           </section>
           ) : null}
 
