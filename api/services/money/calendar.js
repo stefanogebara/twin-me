@@ -19,6 +19,7 @@ import { parseIcs, feedKind, isFeedUrl, looksLikeIcs, FEED_LABELS } from './ics.
 import crypto from 'node:crypto';
 import { encryptToken, decryptToken } from '../encryption.js';
 import dns from 'node:dns/promises';
+import { Agent } from 'undici';
 import net from 'node:net';
 import { createLogger } from '../logger.js';
 import { createCalendarClient } from '../calendar/client.js';
@@ -428,7 +429,11 @@ export function isPrivateAddress(ip) {
   return true;
 }
 
-/** The link is fetchable only if its name resolves to public addresses, all of them. */
+/**
+ * The link is fetchable only if its name resolves to public addresses, all of them. Returns
+ * the addresses, so the connection can be pinned to one of them: checking a name and then
+ * letting the socket resolve it again would leave a window for the answer to change.
+ */
 async function assertPublic(url, lookupImpl) {
   if (!isFeedUrl(url)) { const e = new Error(FEED_UNREADABLE); e.code = 'feed_unreadable'; throw e; }
   const host = new URL(url).hostname;
@@ -438,6 +443,13 @@ async function assertPublic(url, lookupImpl) {
     log.warn(`calendar feed refused: ${host} resolves to nothing public`);
     const e = new Error(FEED_UNREADABLE); e.code = 'feed_unreadable'; throw e;
   }
+  return addresses;
+}
+
+/** A dispatcher whose sockets go only to the addresses already checked. */
+function pinnedTo(addresses) {
+  const list = addresses.map((a) => ({ address: a.address, family: a.family || (net.isIPv6(a.address) ? 6 : 4) }));
+  return new Agent({ connect: { lookup: (_host, _opts, cb) => cb(null, list) } });
 }
 
 /** The body, read as a stream and cut at the cap, so a link cannot fill the memory. */
@@ -471,11 +483,13 @@ export async function fetchFeed(url, { fetchImpl = fetch, lookupImpl = (h, o) =>
   let current = String(url || '');
   let text = null;
   for (let hop = 0; hop <= FEED_MAX_HOPS; hop += 1) {
-    await assertPublic(current, lookupImpl);
+    const addresses = await assertPublic(current, lookupImpl);
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), FEED_TIMEOUT_MS);
+    /* The real fetch is pinned to the checked addresses; a test's fetchImpl gets the same option and may ignore it. */
+    const dispatcher = fetchImpl === fetch ? pinnedTo(addresses) : undefined;
     try {
-      const r = await fetchImpl(current, { signal: controller.signal, redirect: 'manual', headers: { accept: 'text/calendar, text/plain;q=0.5, */*;q=0.1' } });
+      const r = await fetchImpl(current, { signal: controller.signal, redirect: 'manual', headers: { accept: 'text/calendar, text/plain;q=0.5, */*;q=0.1' }, ...(dispatcher ? { dispatcher } : {}) });
       if (r.status >= 300 && r.status < 400) {
         const next = r.headers.get('location');
         if (!next || hop === FEED_MAX_HOPS) { log.warn(`calendar feed refused: redirect without a place to go, or too many hops`); throw Object.assign(new Error(FEED_UNREADABLE), { code: 'feed_unreadable' }); }
