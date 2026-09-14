@@ -36,7 +36,7 @@ export type MoneyDayMark = {
 };
 export type MoneyDayStrip = { from: string; to: string; days: MoneyDayMark[]; total: number; days_with_spend: number; said_days: number; held: number };
 export type MoneyMonth = {
-  month: string; spent: number; received: number; lines: number; days_covered: number; days_in_month: number; complete: boolean;
+  month: string; spent: number; spent_to_day?: number; received: number; lines: number; days_covered: number; days_in_month: number; complete: boolean;
   biggest: { id: string; merchant: string; amount: number } | null;
 };
 export type MoneyReading = {

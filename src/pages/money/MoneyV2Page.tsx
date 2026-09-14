@@ -15,6 +15,8 @@ import '../../styles/money-v2.css';
 import MoneyNav from './MoneyNav';
 import { MONEY_NAV, type MoneyView } from './navLinks';
 import { factRank, factTitle, factWord } from './factWords';
+import Mark from './Mark';
+import { MARK_FOR, hasMark } from './markPaths';
 import { moneyAPI, euro, shortDay, bankLabel, BANKS, type MoneyAccount, type MoneyCalendar, type MoneyCategories, type MoneyDayStrip, type MoneyFact, type MoneyForecast, type MoneyQuestions, type MoneyToday, type MoneyMonth, type MoneyReading, type MoneyRecurring, type MoneySighting, type MoneyTransaction, type MoneyUsage } from '../../services/api/moneyAPI';
 
 const CADENCE: Record<string, string> = { weekly: 'every week', biweekly: 'every two weeks', monthly: 'every month', quarterly: 'every quarter', yearly: 'every year' };
@@ -182,6 +184,9 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
   }, [load]);
 
   const empty = loaded && ledger.length === 0;
+  /* The same days of every month, for the pair bars on the month rows. */
+  const todayDay = new Date().getUTCDate();
+  const pairMax = Math.max(0, ...months.map((m) => Number(m.spent_to_day) || 0));
   /* The readings that changed something today come first: a change against the person's own
      past, an income that has not come, a cap or a keep, a charge the month cannot carry, a
      split still open, then the twin's own score, then the standing shapes of the ledger. */
@@ -466,6 +471,8 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                     <span className="mv-item-text">
                       <span className="mv-item-title">{cap(g.category)}</span>
                       <span className="mv-item-sub">{g.share}%{g.merchants.length ? `, ${g.merchants.map((m) => m.name).slice(0, 3).join(', ')}` : ''}</span>
+                      {/* Two pixels of ink for the share: the number above it, drawn. */}
+                      <span className="mv-share" aria-hidden="true"><i style={{ width: `${Math.max(0, Math.min(100, Number(g.share) || 0))}%` }} /></span>
                     </span>
                     <span className="mv-item-end">{euro(g.spent)}</span>
                   </li>
@@ -499,6 +506,14 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                               {seg && !seg.complete && seg.days_covered ? ` in ${seg.days_covered} of ${seg.days_in_month} days` : ''}
                               {seg && seg.received ? `, ${euro(seg.received)} in` : ''}
                             </span>
+                            {/* Two short bars: this month to today's date, and the same days of that
+                                month, against the largest of them. What "By the 14th you had spent"
+                                says, drawn, on every month at once. */}
+                            {seg && typeof seg.spent_to_day === 'number' && pairMax > 0 ? (
+                              <span className="mv-pair" aria-hidden="true" title={`${euro(seg.spent_to_day)} by the ${todayDay}${ordinalSuffix(todayDay)}`}>
+                                <i style={{ width: `${(seg.spent_to_day / pairMax) * 100}%` }} />
+                              </span>
+                            ) : null}
                           </span>
                           <span className="mv-item-end mv-figures">{seg ? euro(seg.spent) : ''}<Chevron /></span>
                         </button>
@@ -701,7 +716,7 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                 return (
                   <li key={bank.name}>
                     <div className="mv-item mv-item--icon">
-                      <span className="mv-icon" aria-hidden="true"><Landmark size={16} /></span>
+                      <span className="mv-icon" aria-hidden="true">{hasMark(MARK_FOR[bank.label]) ? <Mark name={MARK_FOR[bank.label]} /> : <Landmark size={16} />}</span>
                       <span className="mv-item-text">
                         <span className="mv-item-title">{bank.label}</span>
                         <span className="mv-item-sub" aria-live="polite">{mine.length || first ? bankLine : 'Read four times a day, like the other.'}</span>
@@ -737,7 +752,7 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
               })}
               <li>
                 <div className="mv-item mv-item--icon">
-                  <span className="mv-icon" aria-hidden="true"><CalendarDays size={16} /></span>
+                  <span className="mv-icon" aria-hidden="true">{calendar?.google ? <Mark name="google_calendar" /> : <CalendarDays size={16} />}</span>
                   <span className="mv-item-text">
                     <span className="mv-item-title">Your calendar</span>
                     <span className="mv-item-sub">
@@ -752,7 +767,7 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                   {(calendar?.feeds || []).map((f) => (
                     <li key={f.id} className="mv-item mv-item--sub">
                       <span className="mv-item-text">
-                        <span className="mv-item-title">{f.label}</span>
+                        <span className="mv-item-title">{hasMark(f.kind) ? <span className="mv-mark-small" aria-hidden="true"><Mark name={f.kind} size={12} /></span> : null}{f.label}</span>
                         <span className="mv-item-sub">{f.added_at ? `Added ${shortDay(f.added_at)}, read once a day.` : 'Read once a day.'}</span>
                       </span>
                       <span className="mv-item-end"><button type="button" className="mv-pill mv-pill--ghost" onClick={() => void removeFeed(f.id)} disabled={busy === 'feed'}>Remove</button></span>
