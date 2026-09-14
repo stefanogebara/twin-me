@@ -118,9 +118,26 @@ function distance(event, when) {
  * spending (a transfer to a flatmate during dinner is not the dinner). A payment near two
  * events goes to the closer one; a payment near none goes to none.
  */
+/** Sources whose events are a timetable, not a plan: they never learn a cost. */
+export const LMS_SOURCES = new Set(['canvas', 'blackboard', 'moodle']);
+/** Titles that are a class, whatever calendar they sit in. */
+export const TIMETABLE_WORDS = /(\(ses\.?\s*\d|\bses\.\s*\d|live in-person|asynchronous|\blecture\b|\bseminar\b|\bclase\b|\bclass\b|\btutorial\b|\bworkshop\b)/i;
+
+/**
+ * Whether an event is the kind of thing that costs money. A class is not: the first
+ * Blackboard link joined a coffee and a taxi to "DATA ANALYSIS FOR ECONOMICS (Ses. 27)"
+ * and read 412 EUR of lectures into the month. Exams, deadlines and trips from a timetable
+ * still count as covariates; they just do not learn a price.
+ */
+export function spendable(event) {
+  if (!event) return false;
+  if (event.source && LMS_SOURCES.has(event.source)) return false;
+  return !TIMETABLE_WORDS.test(String(event.title || ''));
+}
+
 export function joinEventsToPayments(events, transactions) {
   const pairs = [];
-  const evs = (events || []).filter(Boolean);
+  const evs = (events || []).filter(spendable);
   for (const t of transactions || []) {
     if (!(num(t.amount) < 0)) continue;
     if (CHANNELS_NOT_SPENDING.has(t.channel)) continue;
@@ -493,7 +510,7 @@ export async function learnEventSpend(userId, { now = new Date(), events = null 
     .filter((e) => ms(e.start) >= now.getTime())
     .sort((a, b) => ms(a.start) - ms(b.start))
     .slice(0, 60)
-    .map((e) => ({ id: e.id, label: shapeLabel(shapeKey(e)), title: e.title, start: e.start, end: e.end, all_day: e.all_day, expected: expectFor(byKey.get(shapeKey(e)) || null) }));
+    .map((e) => ({ id: e.id, label: shapeLabel(shapeKey(e)), title: e.title, start: e.start, end: e.end, all_day: e.all_day, expected: spendable(e) ? expectFor(byKey.get(shapeKey(e)) || null) : null }));
   /* The past kept slim, for the covariates: only events that are windows or name a kind
      of week (covariates.js), as title and dates. The ninety days of the rest are not stored. */
   const past = evs
