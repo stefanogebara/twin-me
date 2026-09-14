@@ -28,7 +28,7 @@ const PrivacyPolicy = () => {
           Back
         </button>
 
-        <PageHead title="Privacy policy" line="Last updated: September 12, 2026" />
+        <PageHead title="Privacy policy" line="Last updated: September 14, 2026" />
 
         <div className="lg-doc">
           <section>
@@ -103,6 +103,7 @@ const PrivacyPolicy = () => {
               <li><strong>Your bank,</strong> through Enable Banking, a licensed European account provider. You approve the connection at your own bank and we never see your bank login. We read balances and transactions: the amount, the date, the name and text the bank sends, the last four digits of the card, and the account name and IBAN. The connection is read-only — we cannot move money.</li>
               <li><strong>Statements you upload</strong> (CSV, Excel or OFX)</li>
               <li><strong>Bank notifications you forward</strong> from your phone, as the text your bank wrote</li>
+              <li><strong>Emails sent to your receipts address.</strong> Money gives you an address of your own ending in in.twinme.me. Anything sent there is read as a payment: a receipt or invoice you forward, or the alert your bank sends when you point its alerts at that address. We keep the amount, the shop, the date, the line items and the order reference, and the message itself for as long as your account exists. Receipts from shops are read by a language model that may only return numbers present in the email; your bank's alerts are read by fixed rules. Nothing is sent to that address unless you or your bank send it, and we never read any other mailbox for this.</li>
             </ul>
             <p>
               To place a purchase on a map, we send the merchant name and city — never the amount,
@@ -199,7 +200,8 @@ const PrivacyPolicy = () => {
               </li>
               <li>
                 <strong>Resend</strong> (email) - Sends your sign-in links and the emails the
-                product sends you.
+                product sends you, and receives the emails sent to your receipts address if you
+                use Money, holding each message so we can read it.
               </li>
               <li>
                 <strong>Enable Banking</strong> (open banking) - A licensed European account
