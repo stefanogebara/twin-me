@@ -14,7 +14,7 @@ import { Link } from 'react-router-dom';
 import '../../styles/money-v2.css';
 import '../../styles/money-setup.css';
 import MoneyNav, { type MoneyNavLink } from './MoneyNav';
-import { MONEY_NAV } from './MoneyV2Page';
+import { MONEY_NAV } from './navLinks';
 import { moneyAPI, euro, shortDay, type MoneyFact, type MoneyQuestion } from '../../services/api/moneyAPI';
 
 /** The words a kind of place can be given, matching what the categoriser itself uses. */

@@ -9,6 +9,8 @@ import { Menu, X } from 'lucide-react';
 
 export type MoneyNavLink = { to: string; label: string; current?: boolean; sub?: boolean };
 
+
+
 export default function MoneyNav({ links }: { links: MoneyNavLink[] }) {
   const [open, setOpen] = useState(false);
   const close = () => setOpen(false);

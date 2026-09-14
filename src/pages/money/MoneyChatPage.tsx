@@ -21,7 +21,7 @@ import { ArrowUp } from 'lucide-react';
 import '../../styles/money-v2.css';
 import '../../styles/money-chat.css';
 import MoneyNav, { type MoneyNavLink } from './MoneyNav';
-import { MONEY_NAV } from './MoneyV2Page';
+import { MONEY_NAV } from './navLinks';
 import { moneyAPI, moneyChat, euro, shortDay, type ChatFigure, type ChatReceipt, type ChatTurn } from '../../services/api/moneyAPI';
 import { Figure } from './MoneyFigures';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';

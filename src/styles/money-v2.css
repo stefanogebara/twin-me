@@ -170,6 +170,8 @@
 .mv-receipts li { display: grid; }
 .mv .mv-receipts p { color: var(--ink-2); font-weight: 350; overflow-wrap: anywhere; }
 
+/* A second grey line inside a section, above a second list. */
+.mv .mv-more { margin-top: 24px; }
 /* A page that opens on a section, not a hero, starts at the top like the hero does. */
 .mv .mv-col > .mv-section:first-child { margin-top: 0; }
 /* This month: the figure, one grey line, the band */
