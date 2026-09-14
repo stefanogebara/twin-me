@@ -32,6 +32,7 @@
  */
 
 import { median, cadenceOf } from './recurring.js';
+import { awayDaysBetween } from './covariates.js';
 import { applyPriors } from './priors.js';
 
 const DAY = 86400000;
@@ -361,7 +362,7 @@ export function learnMerchants(transactions = [], opts = {}) {
  * is ahead of today, and only for merchants whose gaps hold together.
  *
  * @param {object[]} profiles  from learnMerchants
- * @param {object} [opts] { now, days = 14 }
+ * @param {object} [opts] { now, days = 14, away: windows from covariates.js }
  * @returns {{merchant_key: string, name: string, expected_on: string, typical_amount: number, confidence: number}[]}
  */
 export function predictNext(profiles = [], opts = {}) {
@@ -379,14 +380,17 @@ export function predictNext(profiles = [], opts = {}) {
       : null;
     if (!dist) continue;
 
-    /* Days of silence so far, as a fraction of a day: the distribution is continuous. */
-    const since = Math.max(0, (now.getTime() - new Date(p.last_seen).getTime()) / DAY);
+    /* Days of silence so far, as a fraction of a day: the distribution is continuous. Days
+       the calendar says were spent away (covariates.js) are not silence and are not counted. */
+    const lastMs = new Date(p.last_seen).getTime();
+    const since = Math.max(0, (now.getTime() - lastMs) / DAY - awayDaysBetween(opts.away || [], lastMs, now.getTime()));
     /* A merchant whose silence has outlasted its rhythm gets no date. Printing one would
        be the old overdue multiple in disguise; the silence is a finding, not a due date. */
     if (gapCdf(since, dist) >= QUIET_MASS) continue;
 
     const dueGap = conditionalMedianGap(since, dist);
-    const expected = new Date(p.last_seen).getTime() + dueGap * DAY;
+    /* The date is counted in days here, so the days away are put back on the calendar. */
+    const expected = now.getTime() + Math.max(0, dueGap - since) * DAY;
     if (expected > horizon) continue;
 
     /* The confidence is the probability the charge lands within a day of the date, given

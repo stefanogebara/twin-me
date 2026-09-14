@@ -181,6 +181,16 @@ describe('predictNext: what the ledger expects, from cadence alone', () => {
     expect(next.chance_by_horizon).toBeGreaterThan(0.9);
   });
 
+  it('stops the silence clock while the calendar says the person was away', () => {
+    /* The same Renfe rhythm; two of the three days since the last visit were spent away, so
+       the silence is one day, not three, and the expected date moves out by the days away. */
+    const profiles = learnMerchants(renfe(), { now: NOW });
+    const away = [{ from: '2026-09-06', to: '2026-09-08', title: 'Viaje' }];
+    const [plain] = predictNext(profiles, { now: NOW, days: 14 });
+    const [withAway] = predictNext(profiles, { now: NOW, days: 14, away });
+    expect(plain.expected_on).toBe('2026-09-13');
+    expect(withAway.expected_on).toBe('2026-09-15');
+  });
   it('keeps the horizon: a monthly charge is not expected inside a fortnight', () => {
     const profiles = learnMerchants(spotify(), { now: NOW });
     expect(predictNext(profiles, { now: NOW, days: 14 })).toEqual([]);

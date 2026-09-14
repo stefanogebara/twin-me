@@ -9,6 +9,7 @@ import { accuracy, ownScoreFinding } from './predictions.js';
 import { deltaFindings } from './deltas.js';
 import { intentionFindings } from './intention.js';
 import { statedIncome } from './allowance.js';
+import { incomeEvents, incomeFindings } from './income.js';
 import { createLogger } from '../logger.js';
 import { reconcile } from './ledger.js';
 import { detectRecurring } from './recurring.js';
@@ -224,20 +225,25 @@ export async function forecast(userId, now = new Date()) {
   const [rows, rec, facts] = await Promise.all([
     listTransactions(userId, { since, limit: 5000 }),
     supabaseAdmin.from('money_recurring').select('*').eq('user_id', userId).then((r) => r.data || []),
-    listFacts(userId),
+    /* With the internal rows: the calendar's snapshot lives in one, and without it the
+       forecast never saw what the diary said was coming. */
+    listFacts(userId, { includeInternal: true }),
   ]);
 
   /* What the person told us, turned into the four things it changes: money already spoken
      for, money coming in, the share of a split cost that is actually theirs, and which
      transfers are not spending at all. */
   const commitments = facts.filter((f) => f.kind === 'commitment' && f.amount);
-  const income = facts.filter((f) => f.kind === 'income' && f.amount);
   const shares = new Map(facts.filter((f) => f.kind === 'shared_cost' && f.share != null)
     .map((f) => [String(f.subject || '').toLowerCase(), Number(f.share)]));
 
   const ownShare = splitShareOf(facts);
   const settlements = reimbursementIds(facts, rows, { now });
   const isIncome = (t) => !settlements.has(t.id);
+  /* What comes in, as dated events (income.js): the stated incomes on the day and amount
+     their arrivals support, with a confidence, and the regular senders nobody mentioned. */
+  const income = incomeEvents({ facts, transactions: rows, isIncome, now })
+    .map((e) => ({ subject: e.source, source: e.source, amount: e.amount, day: e.day, due_on: e.due_on, confidence: e.confidence, basis: e.basis, said: e.said }));
   const shareOf = (t) => {
     /* A payment the person said was split so many ways is theirs by one part. */
     const split = ownShare(t);
@@ -435,7 +441,7 @@ export async function refreshReadings(userId, now = new Date()) {
   const [transactions, recurring, facts] = await Promise.all([
     listTransactions(userId, { limit: 5000 }),
     supabaseAdmin.from('money_recurring').select('*').eq('user_id', userId).then((r) => r.data || []),
-    listFacts(userId).catch(() => []),
+    listFacts(userId, { includeInternal: true }).catch(() => []),
   ]);
   const names = new Map();
   for (const t of transactions) if (t.merchant_raw && !names.has(t.merchant_key)) names.set(t.merchant_key, t.merchant_raw);
@@ -462,10 +468,15 @@ export async function refreshReadings(userId, now = new Date()) {
   /* What changed against the person's own past (deltas.js): a kind of place up or down
      against its usual week, a habit gone quiet, a weekday out of line, the week's pace. */
   const profiles = learnMerchants(transactions, { now, categoryOf });
-  const deltas = deltaFindings({ transactions, profiles, categoryOf, isSpending: spendingRule(facts), now });
+  /* The calendar as a covariate (covariates.js): days away stop a habit's silence clock,
+     and the week's comparisons say when it was an exam week or a week away. */
+  const { away, week } = calendarFromFacts(facts, { now });
+  const deltas = deltaFindings({ transactions, profiles, categoryOf, isSpending: spendingRule(facts), now, away, week });
   /* What they said they want, read against the month (intention.js): silent without a fact. */
   const intent = intentionFindings({ facts, transactions, categoryOf, cast, now, isSpending: spendingRule(facts), income: statedIncome(facts) });
-  const findings = read.concat(intent, nudgeFindings({ cast, allowance, now }), splitFindings(facts, transactions, { now }), own ? [own] : [], deltas);
+  /* A stated income that usually comes by now and has not (income.js). */
+  const lateIncome = incomeFindings({ facts, transactions, isIncome: (t) => !settled.has(t.id), now });
+  const findings = read.concat(intent, nudgeFindings({ cast, allowance, now }), splitFindings(facts, transactions, { now }), own ? [own] : [], deltas, lateIncome);
   /* A finding with no month (a subscription load, a weekday shape) has month NULL, and
      Postgres counts NULLs as distinct: an upsert on (kind, month) inserted a fresh copy
      every run. So the write is an explicit update-or-insert, which also keeps the id and
@@ -879,7 +890,9 @@ export async function learn(userId, now = new Date()) {
   const priors = poolMerchantPriors(others || []);
 
   const profiles = learnMerchants(transactions, { now, categoryOf, priors });
-  const predictions = predictNext(profiles, { now });
+  /* Days the calendar says were spent away are not silence (covariates.js). */
+  const { away } = calendarFromFacts(await listFacts(userId, { includeInternal: true }).catch(() => []), { now });
+  const predictions = predictNext(profiles, { now, away });
   const patterns = learnPatterns({ transactions, profiles, categoryOf, now });
   const summary = describeForTwin({ profiles, patterns, predictions, now });
 
