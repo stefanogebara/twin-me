@@ -29,7 +29,7 @@ const cal = await import('../../../../api/services/money/calendar.js');
 const {
   normaliseEvent, shapeKey, joinEventsToPayments, learnShapes, expectFor, aheadFrom, routineSummary,
   calendarFromFacts, calendarForecast, calendarLines, learnEventSpend, ahead, MIN_OCCURRENCES, MIN_PAID, FACT_KIND, META_KIND,
-  feedsFromFacts, eventsFor, calendarStatus, FEED_KIND,
+  feedsFromFacts, eventsFor, calendarStatus, FEED_KIND, spendable,
 } = cal;
 
 const NOW = new Date('2026-09-08T12:00:00Z');
@@ -287,5 +287,21 @@ describe('pasted calendar links', () => {
     globalThis.fetch = async () => ({ ok: true, headers: { get: () => '0' }, text: async () => '<html>login</html>' });
     try { expect(await eventsFor('u1', '2026-09-01T00:00:00Z', '2026-10-01T00:00:00Z')).toEqual([]); }
     finally { globalThis.fetch = realFetch; }
+  });
+});
+
+describe('a class is not a plan', () => {
+  it('never joins a payment to a timetable event, from a link or by its title', () => {
+    const lecture = { id: 'l1', title: 'DATA ANALYSIS FOR ECONOMICS (Ses. 27) Live in-person', start: '2026-09-08T09:30:00Z', end: '2026-09-08T11:00:00Z', all_day: false, source: 'blackboard' };
+    const seminar = { id: 'l2', title: 'Marketing seminar', start: '2026-09-08T09:30:00Z', end: '2026-09-08T11:00:00Z', all_day: false };
+    const dinner = { id: 'd1', title: 'Dinner with the flat', start: '2026-09-08T19:30:00Z', end: '2026-09-08T22:00:00Z', all_day: false };
+    expect(spendable(lecture)).toBe(false);
+    expect(spendable(seminar)).toBe(false);
+    expect(spendable({ ...lecture, title: 'Final Exam', source: 'blackboard' })).toBe(false);
+    expect(spendable(dinner)).toBe(true);
+    const coffee = { id: 't1', occurred_at: '2026-09-08T10:05:00Z', amount: -2.2, merchant_key: 'cafe', channel: 'card' };
+    const tapas = { id: 't2', occurred_at: '2026-09-08T20:10:00Z', amount: -38.2, merchant_key: 'la tasca', channel: 'card' };
+    const pairs = joinEventsToPayments([lecture, seminar, dinner], [coffee, tapas]);
+    expect(pairs.map((p) => [p.event.id, p.transaction.id])).toEqual([['d1', 't2']]);
   });
 });
