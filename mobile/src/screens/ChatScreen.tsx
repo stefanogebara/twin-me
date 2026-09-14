@@ -277,7 +277,20 @@ export default function ChatScreen({ mode, onDone, onClose }: { mode: 'onboardin
     let live = true;
     if (mode === 'ask') {
       if (readLines('ask').length === 0) {
-        say({ who: 'twin', text: 'Ask about any month, any shop, anything that leaves your account. Answers come from your own payments, with the payments underneath.' });
+        /* The conversation is kept on the server: open where it stood, or on the floor. */
+        moneyApi.chatHistory().then((turns) => {
+          if (!live) return;
+          if (!turns.length) {
+            say({ who: 'twin', text: 'Ask about any month, any shop, anything that leaves your account. Answers come from your own payments, with the payments underneath.' });
+            return;
+          }
+          setLines((all) => (all.length ? all : turns.map((t) => ({
+            id: `kept-${t.id}`, who: t.role === 'twin' ? 'twin' as const : 'you' as const, text: t.text, lead: t.role === 'twin' ? leadOf(t.text) : undefined,
+            figures: t.figures || undefined, receipts: t.receipts || undefined, thinking: t.thinking || undefined, basis: t.basis || undefined,
+          }))));
+        }).catch(() => {
+          if (live) say({ who: 'twin', text: 'Ask about any month, any shop, anything that leaves your account. Answers come from your own payments, with the payments underneath.' });
+        });
       }
       setPhase('asking');
       return () => { live = false; };
@@ -569,10 +582,12 @@ export default function ChatScreen({ mode, onDone, onClose }: { mode: 'onboardin
           if (e.phase === 'text') {
             grown += e.delta || '';
             amend(pendingId, { pending: false, text: grown, lead: leadOf(grown) });
+          } else if (e.phase === 'thinking') {
+            setLines((all) => all.map((l) => (l.id === pendingId ? { ...l, thinking: (l.thinking || '') + (e.delta || '') } : l)));
           } else if (e.phase === 'figures') {
             amend(pendingId, { figures: e.figures || [] });
           } else if (e.phase === 'actions') {
-            amend(pendingId, { actions: e.actions || [], receipts: e.receipts || [] });
+            amend(pendingId, { actions: e.actions || [], receipts: e.receipts || [], basis: e.basis || [] });
           } else if (e.phase === 'done') {
             finished = true;
           }
@@ -753,6 +768,21 @@ export default function ChatScreen({ mode, onDone, onClose }: { mode: 'onboardin
 
                 {l.figures?.map((f, k) => <Figure key={k} figure={f} />)}
                 {l.receipts && l.receipts.length ? <Receipts receipts={l.receipts} /> : null}
+                {/* How it got there: the model's own words and the ledger lines the answer stood on,
+                    behind one quiet press, never mistaken for the answer. */}
+                {l.who === 'twin' && !l.pending && ((l.thinking && l.thinking.trim()) || (l.basis && l.basis.length)) ? (
+                  <View style={s.how}>
+                    <Press onPress={() => amend(l.id, { howOpen: !l.howOpen })} accessibilityRole="button" accessibilityState={{ expanded: Boolean(l.howOpen) }}>
+                      <Micro quiet>{l.howOpen ? 'How it got there, closed' : 'How it got there'}</Micro>
+                    </Press>
+                    {l.howOpen ? (
+                      <View style={s.howBody}>
+                        {l.thinking && l.thinking.trim() ? <Small muted>{l.thinking.trim()}</Small> : null}
+                        {(l.basis || []).map((b, k) => <Micro key={k} quiet>{b}</Micro>)}
+                      </View>
+                    ) : null}
+                  </View>
+                ) : null}
                 {l.actions && l.actions.length ? (
                   <View style={s.cards}>
                     {l.actions.map((a, k) => (
@@ -863,6 +893,8 @@ const s = StyleSheet.create({
   lineYou: { paddingLeft: cosmos.space.lg },
   answer: { gap: cosmos.space.md, paddingTop: cosmos.space.xs },
   cards: { flexDirection: 'row', flexWrap: 'wrap', gap: cosmos.space.sm },
+  how: { marginTop: cosmos.space.sm, gap: cosmos.space.xs },
+  howBody: { gap: cosmos.space.xs, paddingLeft: cosmos.space.md, borderLeftWidth: 1, borderLeftColor: cosmos.color.rule },
   rows: { gap: cosmos.space.md },
   listRow: { gap: cosmos.space.xs },
   fieldsLine: { flexDirection: 'row', gap: cosmos.space.sm, alignItems: 'flex-end' },
