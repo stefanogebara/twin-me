@@ -27,7 +27,7 @@ import { supabaseAdmin } from '../database.js';
 import { createLogger } from '../logger.js';
 import { complete, TIER_EXTRACTION } from '../llmGateway.js';
 import { ingestSighting } from './store.js';
-import { merchantKey, parseCapture } from './captureParser.js';
+import { merchantKey, parseCapture, parseEuroAmount } from './captureParser.js';
 
 const log = createLogger('MoneyInbox');
 
@@ -218,14 +218,45 @@ const BANK_SHAPE = 0.7;
  */
 export function bankAlertSighting({ subject, from, text, html }, { emailId, receivedAt }) {
   const body = messageText({ subject, text, html });
-  const parsed = parseCapture(body, { receivedAt: receivedAt || new Date(), source: 'email' });
-  if (!parsed) return null;
+  const ref = `email:${crypto.createHash('sha256').update(String(emailId)).digest('hex').slice(0, 32)}`;
   const fromBank = BANK_SENDER.test(String(from || ''));
+
+  /* Santander's account movement email, as received on 2026-09-14: "se ha realizado un
+     movimiento de -0.5 EUR en tu cuenta acabada en 7516". An amount and a sign, no name and
+     no channel. It is still worth a row the minute it arrives: the bank's own pending row
+     finds it by amount and settles it with the name. Nothing is invented for the gaps. */
+  const movement = body.match(/movimiento de\s*(-?\s?\d[\d.,]*)\s*EUR\s+en tu cuenta(?:\s+acabada en\s*(\d{4}))?/i);
+  if (movement) {
+    const amount = Math.abs(parseEuroAmount(movement[1].replace(/\s+/g, '').replace(/^-/, '')) || 0);
+    if (amount > 0) {
+      return {
+        source: 'email',
+        source_ref: ref,
+        raw_text: movement[0].slice(0, 500),
+        raw_json: { kind: 'bank_alert', from: from || null, subject: subject || null, account_last4: movement[2] || null },
+        amount,
+        currency: 'EUR',
+        direction: /^-/.test(movement[1].trim()) ? 'out' : 'in',
+        channel: null,
+        merchant_raw: null,
+        merchant_key: 'unknown',
+        card_last4: null,
+        occurred_at: new Date(receivedAt || Date.now()).toISOString(),
+        parse_confidence: 0.6,
+      };
+    }
+  }
+
+  /* Only the sentences that carry an amount are read: a bank's footer names its head
+     office, its cash machines and its commissions, and none of that is the payment. */
+  const relevant = body.split(/(?<=[.!?\n])\s+/).filter((line) => /\d\s?(?:EUR|\u20ac|euros?)\b/i.test(line)).join(' ') || body;
+  const parsed = parseCapture(relevant, { receivedAt: receivedAt || new Date(), source: 'email' });
+  if (!parsed) return null;
   if (parsed.parse_confidence < (fromBank ? BANK_SHAPE : FULL_SHAPE)) return null;
   return {
     ...parsed,
     source: 'email',
-    source_ref: `email:${crypto.createHash('sha256').update(String(emailId)).digest('hex').slice(0, 32)}`,
+    source_ref: ref,
     raw_text: parsed.raw_text.slice(0, 500),
     raw_json: { kind: 'bank_alert', from: from || null, subject: subject || null },
   };
