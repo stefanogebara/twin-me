@@ -18,6 +18,11 @@ vi.mock('../../../../api/services/database.js', () => ({
   },
 }));
 vi.mock('../../../../api/services/logger.js', () => ({ createLogger: () => ({ warn() {}, info() {}, error() {}, debug() {} }) }));
+/* The platform's key is not in a test: a reversible stand-in with the same shape (three parts). */
+vi.mock('../../../../api/services/encryption.js', () => ({
+  encryptToken: (t) => `iv:tag:${Buffer.from(String(t)).toString('base64')}`,
+  decryptToken: (v) => { const p = String(v).split(':'); if (p.length !== 3) throw new Error('bad'); return Buffer.from(p[2], 'base64').toString(); },
+}));
 /* A test never asks the real resolver: every name is public unless a test says otherwise. */
 vi.mock('node:dns/promises', () => ({ default: { lookup: async () => [{ address: '93.184.216.34', family: 4 }] } }));
 const token = vi.fn();
@@ -31,7 +36,7 @@ const cal = await import('../../../../api/services/money/calendar.js');
 const {
   normaliseEvent, shapeKey, joinEventsToPayments, learnShapes, expectFor, aheadFrom, routineSummary,
   calendarFromFacts, calendarForecast, calendarLines, learnEventSpend, ahead, MIN_OCCURRENCES, MIN_PAID, FACT_KIND, META_KIND,
-  feedsFromFacts, eventsFor, calendarStatus, FEED_KIND, spendable, fetchFeed, isPrivateAddress, publicFeeds, FEED_UNREADABLE, FEED_NOT_CALENDAR,
+  feedsFromFacts, eventsFor, calendarStatus, FEED_KIND, spendable, fetchFeed, isPrivateAddress, publicFeeds, FEED_UNREADABLE, FEED_NOT_CALENDAR, sealFeedUrl, readFeedUrl,
 } = cal;
 
 const NOW = new Date('2026-09-08T12:00:00Z');
@@ -345,5 +350,22 @@ describe('fetchFeed refuses to be pointed inside', () => {
   });
   it('never hands the link itself back', () => {
     expect(publicFeeds([{ id: 'a', kind: 'canvas', label: 'Canvas', url: 'https://secret', added_at: null }])).toEqual([{ id: 'a', kind: 'canvas', label: 'Canvas', added_at: null }]);
+  });
+});
+
+describe('the link rests sealed', () => {
+  it('reads a sealed link and a plain one from before, and drops what it cannot read', () => {
+    const url = 'https://ie.instructure.com/feeds/calendars/user_x.ics';
+    const sealed = sealFeedUrl(url);
+    expect(sealed).not.toContain('instructure');
+    expect(readFeedUrl(sealed)).toBe(url);
+    expect(readFeedUrl(url)).toBe(url);
+    expect(readFeedUrl('garbage')).toBeNull();
+    const feeds = feedsFromFacts([
+      { kind: FEED_KIND, subject: 'a', subject_label: 'canvas', value: sealed, answered_at: null },
+      { kind: FEED_KIND, subject: 'b', subject_label: 'ics', value: 'https://example.edu/c.ics', answered_at: null },
+      { kind: FEED_KIND, subject: 'c', subject_label: 'ics', value: 'broken', answered_at: null },
+    ]);
+    expect(feeds.map((f) => [f.id, f.url])).toEqual([['a', url], ['b', 'https://example.edu/c.ics']]);
   });
 });

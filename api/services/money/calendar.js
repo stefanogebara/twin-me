@@ -17,6 +17,7 @@ import { supabaseAdmin } from '../database.js';
 import { awayWindows, weekWord, AWAY_WORDS, EXAM_WORDS, DEADLINE_WORDS, AWAY_MIN_DAYS } from './covariates.js';
 import { parseIcs, feedKind, isFeedUrl, looksLikeIcs, FEED_LABELS } from './ics.js';
 import crypto from 'node:crypto';
+import { encryptToken, decryptToken } from '../encryption.js';
 import dns from 'node:dns/promises';
 import net from 'node:net';
 import { createLogger } from '../logger.js';
@@ -372,11 +373,30 @@ async function token(userId) {
 
 /* ------------------------------------------------------------------------ feeds: pasted links */
 
-/** The links the person pasted, from their facts. Pure. */
+/**
+ * The link as stored: a Canvas or Blackboard address is a bearer credential to that
+ * student's whole calendar, so it rests encrypted (AES-GCM, the platform's key). Rows from
+ * before this are plain and still read; they are rewritten the next time they are saved.
+ */
+export function sealFeedUrl(url) { return encryptToken(String(url)); }
+export function readFeedUrl(value) {
+  const v = String(value || '');
+  if (!v) return null;
+  if (/^https?:\/\//i.test(v)) return v;
+  try { return decryptToken(v); } catch { return null; }
+}
+
+/** The links the person pasted, from their facts. Pure but for the key. */
 export function feedsFromFacts(facts) {
   return (Array.isArray(facts) ? facts : [])
     .filter((f) => f.kind === FEED_KIND && f.value)
-    .map((f) => ({ id: f.subject, kind: f.subject_label || feedKind(f.value), label: FEED_LABELS[f.subject_label || feedKind(f.value)] || FEED_LABELS.ics, url: f.value, added_at: f.answered_at || null }));
+    .map((f) => {
+      const url = readFeedUrl(f.value);
+      if (!url) return null;
+      const kind = f.subject_label || feedKind(url);
+      return { id: f.subject, kind, label: FEED_LABELS[kind] || FEED_LABELS.ics, url, added_at: f.answered_at || null };
+    })
+    .filter(Boolean);
 }
 
 /** The same, without the link: a Canvas address is a bearer credential and no screen needs it. */
@@ -479,18 +499,27 @@ export async function fetchFeed(url, { fetchImpl = fetch, lookupImpl = (h, o) =>
 }
 
 /** Add a link: fetched once to prove it reads, then kept as one fact. */
-export async function addFeed(userId, url, { fetchImpl = fetch } = {}) {
+export async function addFeed(userId, url, { fetchImpl = fetch, now = new Date(), learn = true } = {}) {
   const existing = await listFeeds(userId);
   if (existing.some((f) => f.url === url)) return { ...publicFeeds([existing.find((f) => f.url === url)])[0], events: null, already: true };
   if (existing.length >= MAX_FEEDS) throw Object.assign(new Error('Four links is the most; remove one first.'), { code: 'feed_limit' });
   const { kind, events } = await fetchFeed(url, { fetchImpl });
   const id = crypto.createHash('sha256').update(String(url)).digest('hex').slice(0, 16);
-  const nowIso = new Date().toISOString();
+  const nowIso = now.toISOString();
   const { error } = await supabaseAdmin.from('money_facts').upsert(
-    { user_id: userId, kind: FEED_KIND, subject: id, subject_label: kind, value: url, amount: null, source: 'asked', answered_at: nowIso },
+    { user_id: userId, kind: FEED_KIND, subject: id, subject_label: kind, value: sealFeedUrl(url), amount: null, source: 'asked', answered_at: nowIso },
     { onConflict: 'user_id,kind,subject' },
   );
   if (error) throw new Error(error.message);
+  /* Learned now, with the events this read already holds: the other sources are read once
+     and the new link is not fetched a second time. On Vercel this must finish before the
+     answer, so the caller awaits it. */
+  if (learn) {
+    const from = now.getTime() - LEARN_DAYS * DAY_MS; const to = now.getTime() + SNAPSHOT_DAYS * DAY_MS;
+    const mine = events.filter((e) => ms(e.end || e.start) >= from && ms(e.start) <= to);
+    const others = await eventsFor(userId, new Date(from).toISOString(), new Date(to).toISOString(), { feeds: existing }).catch(() => []);
+    await learnEventSpend(userId, { now, events: others.concat(mine) }).catch((e) => log.warn(`calendar learn after feed failed: ${e.message}`));
+  }
   return { id, kind, label: FEED_LABELS[kind], added_at: nowIso, events: events.length, already: false };
 }
 
