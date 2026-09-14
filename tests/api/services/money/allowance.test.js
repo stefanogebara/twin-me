@@ -173,3 +173,12 @@ describe('a student month before the ledger has two of its own', () => {
     expect(safeToSpend({ cast, segments: [], facts: [], now: new Date('2026-09-15T12:00:00Z') }).amount).toBeNull();
   });
 });
+
+describe('the base the budget rests on', () => {
+  it('is what they said comes in, with the keep beside it', async () => {
+    const { safeToSpend } = await import('../../../../api/services/money/allowance.js');
+    const cast = { spent: 800, committed: 100, calendar_ahead: 0, calendar_items: [], days_left: 10, month: '2026-09-01', projected_p50: 1200 };
+    const a = safeToSpend({ cast, segments: [], facts: [{ kind: 'income', amount: 1750 }, { kind: 'keep', amount: 200 }], now: new Date('2026-09-20T12:00:00Z') });
+    expect(a).toMatchObject({ basis: 'income', base: 1750, keep: 200, budget: 1550 });
+  });
+});

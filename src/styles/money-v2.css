@@ -198,10 +198,12 @@
 .mv-ctas { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 24px; }
 /* Ink to what has gone, the quiet grey to where the month lands. */
 .mv-band { display: grid; gap: 8px; width: 100%; margin-top: 24px; }
-.mv-band-track { position: relative; height: 4px; border-radius: 2px; background: var(--rule); overflow: hidden; }
+.mv-band-track { position: relative; height: 4px; border-radius: 2px; background: var(--rule); }
 .mv-band-likely, .mv-band-spent { position: absolute; top: 0; left: 0; height: 100%; }
 .mv-band-likely { background: var(--quiet); }
 .mv-band-spent { background: var(--ink); }
+/* The keep: a 1px wall on the track where what they want left begins. */
+.mv .mv-band-mark { position: absolute; top: -3px; width: 1px; height: 10px; background: var(--ink); }
 .mv-band-labels { display: flex; justify-content: space-between; gap: 16px; color: var(--ink-2); font-weight: 350; }
 /* The last thirty days under the band: ink bars for what each day cost, the range the twin
    gave a day as a grey segment behind its bar, a broken range in the danger ink. */
