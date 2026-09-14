@@ -605,7 +605,9 @@ router.post('/calendar/feed', async (req, res) => {
   if (!url) return res.status(400).json({ success: false, error: 'Paste the calendar link.' });
   try {
     const feed = await addCalendarFeed(req.user.id, url);
-    learnEventSpend(req.user.id).catch((e) => log.warn('calendar learn after feed failed', { error: e.message }));
+    /* Learned before answering: on Vercel the function ends with the response, and a read
+       left running in the background never lands. A link takes a couple of seconds. */
+    await learnEventSpend(req.user.id).catch((e) => log.warn('calendar learn after feed failed', { error: e.message }));
     res.json({ success: true, data: feed });
   } catch (error) {
     log.warn('calendar feed refused', { error: error.message });

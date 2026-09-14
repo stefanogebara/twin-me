@@ -19,12 +19,15 @@ const ms = (iso) => new Date(iso).getTime();
 const dayOf = (t) => new Date(t).toISOString().slice(0, 10);
 const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
-/** Titles that say the person is somewhere else. */
-export const AWAY_WORDS = /\b(viaje|trip|travel|vacaciones|holiday|holidays|vuelo|flight|fin de semana fuera|weekend away|pueblo|casa de|erasmus|conference|congreso)\b/;
+/** Titles that say the person is somewhere else. 'Holiday' alone is not here: Google's
+    holiday calendars write "Spain: La Merce (Regional Holiday)" on days nobody travels. */
+export const AWAY_WORDS = /\b(viaje|trip|travel|vacaciones|vacation|vuelo|flight|fin de semana fuera|weekend away|pueblo|casa de|erasmus|conference|congreso)\b/;
+/** A public-holiday calendar's entries: a day off, never a window and never a week's word. */
+export const HOLIDAY_CALENDAR = /\b(regional holiday|public holiday|bank holiday|national holiday|observance|dia festivo|festivo)\b/;
 /** Titles that say the week is an exam week. */
-export const EXAM_WORDS = /\b(examen|examenes|exam|exams|parcial|parciales|final|finals|prueba|midterm|midterms|evaluacion)\b/;
+export const EXAM_WORDS = /\b(examen|examenes|exam|exams|parcial|parciales|finals|final exam|final test|mock test|prueba|midterm|midterms|evaluacion)\b/;
 /** Titles that say something is due: what Canvas and Blackboard calendars are made of. */
-export const DEADLINE_WORDS = /\b(due|deadline|entrega|assignment|homework|quiz|practica|project|proyecto|submission|essay|ensayo|hand in)\b/;
+export const DEADLINE_WORDS = /\b(due|deadline|entrega|assignment|assigment|homework|quiz|practica|project|proyecto|submission|essay|ensayo|hand in|deliverable|presentation|report|pitch)\b/;
 /** An all-day event this long or longer is a window, whatever it is called. */
 export const AWAY_MIN_DAYS = 2;
 
@@ -38,6 +41,7 @@ export function awayWindows(events = []) {
     if (!e || !e.start) continue;
     const start = ms(e.start); const end = Math.max(ms(e.end || e.start), start);
     const span = (end - start) / DAY;
+    if (HOLIDAY_CALENDAR.test(norm(e.title))) continue;
     const away = AWAY_WORDS.test(norm(e.title));
     if (e.all_day && span >= AWAY_MIN_DAYS) raw.push({ from: dayOf(start), to: dayOf(end), title: e.title });
     else if (away && span >= 1) raw.push({ from: dayOf(start), to: dayOf(end + (e.all_day ? 0 : DAY)), title: e.title });
@@ -83,6 +87,7 @@ export function weekWord(events = [], now = new Date()) {
     const s = ms(e.start); const en = Math.max(ms(e.end || e.start), s + (e.all_day ? DAY : 0));
     if (en < from || s > to) continue;
     const t = norm(e.title);
+    if (HOLIDAY_CALENDAR.test(t)) continue;
     if (EXAM_WORDS.test(t)) exam = true;
     else if (DEADLINE_WORDS.test(t)) due += 1;
     if (AWAY_WORDS.test(t) || (e.all_day && (en - s) / DAY >= AWAY_MIN_DAYS)) away = true;
