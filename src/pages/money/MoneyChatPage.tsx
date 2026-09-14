@@ -32,7 +32,7 @@ const NAV: MoneyNavLink[] = MONEY_NAV('ask');
 type AskLine = { id: string; who: 'you' | 'twin'; text: string; pending?: boolean; figures?: ChatFigure[]; receipts?: ChatReceipt[] };
 
 /** What a person tends to ask first. Each is offered once and never after it was asked. */
-const OFFERS = ['Where did the money go?', 'What comes back every month?', 'How does this month compare?', 'What is still to come?'];
+const OFFERS = ['What can I spend today?', 'What changed this week?', 'Where did the money go?', 'What comes back every month?', 'How does this month compare?', 'What is still to come?'];
 let askSeq = 0;
 
 type TraceStep = { step: string; label: string; detail: string | null; count: number | null; done: boolean };
@@ -123,7 +123,6 @@ function TracePanel({ steps, reading }: { steps: TraceStep[]; reading: boolean }
   const idle = steps.length > 0 && steps.every((s) => !s.count);
   return (
     <aside className="mc-trace" aria-label="What it is doing">
-      <p className="mc-trace-head">What it is doing</p>
       {steps.length === 0 ? (
         <p className="mv-sub">Not reading the ledger right now.</p>
       ) : idle ? (
@@ -149,6 +148,7 @@ export default function MoneyChatPage() {
   useDocumentTitle('Ask');
   const [openQuestions, setOpenQuestions] = useState(0);
   const [lines, setLines] = useState<AskLine[]>([]);
+  const [traceOpen, setTraceOpen] = useState(false);
   const [asking, setAsking] = useState(false);
   const [text, setText] = useState('');
 
@@ -238,7 +238,7 @@ export default function MoneyChatPage() {
         <div className="mv-col">
           <div className="mc-columns">
             <section className="mc-thread">
-              <div className="mc-scroll">
+              <div className={`mc-scroll${lines.length ? '' : ' is-empty'}`}>
                 <div className="mc-turn">
                   <h1>Ask.</h1>
                   <p className="mv-sub">Any month, any shop, anything that leaves your account. Answers come from your own payments, with the payments underneath.</p>
@@ -309,7 +309,11 @@ export default function MoneyChatPage() {
               </div>
             </section>
 
-            <TracePanel steps={trace.steps} reading={trace.reading} />
+            {/* The ledger's own progress is for the curious, not the default: one link opens it. */}
+            <aside className="mc-side">
+              <button type="button" className="mc-trace-toggle" aria-expanded={traceOpen} onClick={() => setTraceOpen((o) => !o)}>What it is doing</button>
+              {traceOpen ? <TracePanel steps={trace.steps} reading={trace.reading} /> : null}
+            </aside>
           </div>
         </div>
       </div>
