@@ -21,7 +21,7 @@ import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { cosmos, dayMonth, euro } from '../constants/cosmos';
 import {
   moneyApi, currentMonthStart,
-  type MoneyCategories, type MoneyForecast, type MoneyReading, type MoneyRecurring, type MoneyToday,
+  type MoneyCategories, type MoneyForecast, type MoneyMonth, type MoneyReading, type MoneyRecurring, type MoneyToday,
 } from '../services/moneyApi';
 import { Body, Counting, Display, Enter, Hairline, Micro, Page, Pill, Row, Section, Small, Title } from '../ui/primitives';
 import { Band, Strip } from '../ui/figures';
@@ -79,6 +79,29 @@ function ShareBar({ share, quiet }: { share: number; quiet: boolean }) {
   );
 }
 
+/** This month to today's date against the same days of last month, drawn against the larger. */
+function Pair({ months }: { months: MoneyMonth[] }) {
+  const values = months.map((m) => Number(m.spent_to_day ?? m.spent) || 0);
+  const max = Math.max(1, ...values);
+  const day = new Date().getUTCDate();
+  const monthName = (iso: string) => new Date(iso).toLocaleDateString('en-GB', { month: 'long', timeZone: 'UTC' });
+  return (
+    <View style={layout.pair}>
+      <Small>{`By the ${day}${ordinalSuffix(day)}: ${euro(values[0])}; by the ${day}${ordinalSuffix(day)} of ${monthName(months[1].month)}, ${euro(values[1])}.`}</Small>
+      {months.map((m, i) => (
+        <View key={m.month} style={layout.pairRow}>
+          <Micro quiet style={layout.pairLabel}>{monthName(m.month)}</Micro>
+          <View style={layout.pairTrack}>
+            <View style={[layout.pairFill, { flex: Math.max(0.0001, values[i] / max) }]} />
+            <View style={{ flex: Math.max(0.0001, 1 - values[i] / max) }} />
+          </View>
+          <Micro tabular>{euro(values[i])}</Micro>
+        </View>
+      ))}
+    </View>
+  );
+}
+
 // -- Screen ------------------------------------------------------------------
 
 export default function MonthScreen({ onOpenQuestions, questionCount, onOpenLedger }: {
@@ -90,6 +113,7 @@ export default function MonthScreen({ onOpenQuestions, questionCount, onOpenLedg
   const [ledgerLines, setLedgerLines] = useState<number | null>(null);
   const [readings, setReadings] = useState<MoneyReading[]>([]);
   const [categories, setCategories] = useState<MoneyCategories | null>(null);
+  const [months, setMonths] = useState<MoneyMonth[]>([]);
   const [recurring, setRecurring] = useState<MoneyRecurring[]>([]);
 
   const [today, setToday] = useState<MoneyToday | null>(null);
@@ -102,7 +126,7 @@ export default function MonthScreen({ onOpenQuestions, questionCount, onOpenLedg
   const loadAll = useCallback(async () => {
     /* One failing endpoint must not take the screen down with it, so each is settled on
        its own. Only a clean sweep of failures is worth telling the person about. */
-    const [f, l, rd, c, rc, td, ac] = await Promise.allSettled([
+    const [f, l, rd, c, rc, td, ac, mo] = await Promise.allSettled([
       moneyApi.forecast(),
       moneyApi.ledger(),
       moneyApi.readings(),
@@ -110,7 +134,9 @@ export default function MonthScreen({ onOpenQuestions, questionCount, onOpenLedg
       moneyApi.recurring(),
       moneyApi.today(),
       moneyApi.accounts(),
+      moneyApi.months(),
     ]);
+    if (mo.status === 'fulfilled') setMonths(mo.value);
     if (td.status === 'fulfilled') setToday(td.value);
     /* The refresh call only learns the session has ended when it is the call that hits it;
        once the day's read budget is spent no call is made at all. The account row carries the
@@ -243,6 +269,10 @@ export default function MonthScreen({ onOpenQuestions, questionCount, onOpenLedg
                 <Small style={layout.afterSmall}>{`The range has held on ${Math.round(forecast.band_calibration.coverage * forecast.band_calibration.days)} of the last ${forecast.band_calibration.days} days.`}</Small>
               ) : null}
               {otherSide ? <Small style={layout.after}>{otherSide}</Small> : null}
+              {/* The month against the same days of last month: two bars, the figures beside them. */}
+              {months.length > 1 && typeof months[1].spent_to_day === 'number' ? (
+                <Pair months={months.slice(0, 2)} />
+              ) : null}
 
               {/* The one number a person opens the app for. It sits under the month rather than
                   over it: the month is what happened, this is what today can carry. */}
@@ -415,6 +445,11 @@ const layout = StyleSheet.create({
   afterLarge: { marginTop: cosmos.space.lg },
   block: { gap: 0, paddingTop: cosmos.space.sm },
   today: { marginTop: cosmos.space.lg },
+  pair: { marginTop: cosmos.space.md, gap: cosmos.space.sm },
+  pairRow: { flexDirection: 'row', alignItems: 'center', gap: cosmos.space.sm },
+  pairLabel: { width: 80 },
+  pairTrack: { flex: 1, flexDirection: 'row', height: 4, borderRadius: cosmos.radius.pill, backgroundColor: cosmos.color.panelDeep, overflow: 'hidden' },
+  pairFill: { height: 4, backgroundColor: cosmos.color.ink },
   shrink: { flexShrink: 1 },
   foot: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: cosmos.space.sm, marginTop: cosmos.space.sm },
   pills: { flexDirection: 'row', gap: cosmos.space.sm },
