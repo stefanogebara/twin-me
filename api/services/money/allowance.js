@@ -18,6 +18,7 @@
 
 import { forecast, months, listFacts } from './store.js';
 import { studentMonth } from './priors.js';
+import { keepAmount } from './intention.js';
 
 /** Two complete months is the least that can stand for "a typical month" of this person. */
 export const MIN_MONTHS_FOR_TYPICAL = 2;
@@ -73,7 +74,10 @@ export function safeToSpend({ cast = null, segments = [], facts = [], now = new 
      still be read against a typical student month on top of that rent (priors.js). The
      sentence names it as typical, never as theirs. */
   const student = income === null && typical === null ? studentMonth(facts) : null;
-  const budget = income ?? typical ?? (student ? student.amount : null);
+  /* What they said they want left comes off the top: a budget is what may go, not what comes in. */
+  const keep = keepAmount(facts);
+  const base = income ?? typical ?? (student ? student.amount : null);
+  const budget = base === null ? null : r2(base - (keep ?? 0));
   if (budget === null) {
     return none('It does not know what a month of yours looks like yet. Tell it what comes in, or give it one more full month.');
   }
@@ -95,11 +99,12 @@ export function safeToSpend({ cast = null, segments = [], facts = [], now = new 
   const amount = r2(Math.max(0, perDay - todaysCost));
   const over = free < 0;
 
+  const keepWord = keep ? `, keeping ${money(keep)}` : '';
   const basisWord = income !== null
-    ? `the ${money(budget)} you said comes in`
+    ? `the ${money(base)} you said comes in${keepWord}`
     : typical !== null
-      ? `your usual month of ${money(budget)}`
-      : `${student.label}, ${money(budget)}`;
+      ? `your usual month of ${money(base)}${keepWord}`
+      : `${student.label}, ${money(base)}${keepWord}`;
   const spoken = [];
   if (committed > 0) spoken.push(`${money(committed)} still to be charged`);
   if (calendarAhead > 0) spoken.push(`${money(calendarAhead)} the diary expects`);
