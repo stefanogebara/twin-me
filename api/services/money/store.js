@@ -985,6 +985,12 @@ export async function answerQuestion(userId, { questionId, kind, subject, subjec
   /* The rent question is a choice, and a choice carries no amount. "Not fixed" is a decline
      that should not be asked again; the other two answers take their amount and day from
      the ledger lines that raised the question. */
+  /* The keep is typed as a number in a text field; it is stored as the amount it is. */
+  if (kind === 'keep' && !amount && value != null) {
+    const n = Number(String(value).replace(/[^0-9.,]/g, '').replace(/\.(?=\d{3}\b)/g, '').replace(',', '.'));
+    if (!Number.isFinite(n) || n <= 0) return skipQuestion(userId, questionId);
+    amount = Math.round(n * 100) / 100; value = null; subject = subject || '';
+  }
   if (kind === 'commitment' && String(questionId || '').startsWith('rent:')) {
     if (String(value || '').toLowerCase() === 'not fixed') return skipQuestion(userId, questionId);
     if (!amount && subject) {

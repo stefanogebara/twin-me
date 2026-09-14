@@ -135,10 +135,10 @@ export const OPENING_QUESTIONS = Object.freeze([
     id: 'keep',
     kind: 'keep',
     ask: 'What do you want to have left at the end of the month?',
-    help: 'One number. Leave it empty if you would rather just see the month.',
+    help: 'One number, like 200. Leave it empty if you would rather just see the month.',
     why: 'With it the month has a target instead of only a past; without it nothing here says you should have spent less.',
     changes: 'what safe to spend today is measured against',
-    input: 'list:amount',
+    input: 'text',
     optional: true,
   },
   {
