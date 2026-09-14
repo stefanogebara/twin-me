@@ -8,6 +8,29 @@ spikes estão abertos. Ver `STATE.md` para o estado do repositório.
 
 ---
 
+### banda-conformal-pid — A banda de gasto aprende com os erros, sem o chão que a impede de estreitar
+**Origem:** INTEL 2026-09-14 · **Veredito:** PROTOTIPAR 14/15 (P3 A3 D3 E3 L2; cairia em IMPLEMENTAR, mas a trava exige problema já escrito em BACKLOG/known_gaps, e o money twin não estava em nenhum)
+**Fonte:** [Angelopoulos, Candès, Tibshirani, Conformal PID Control for Time Series Prediction, 2023](https://arxiv.org/abs/2307.16895) · [código MIT](https://github.com/aangelopoulos/conformal-time-series)
+
+**O mecanismo:** o quantil do erro é um controlador: q_(t+1) = q_t + eta·(err_t − alpha) (P), com integrador saturante (I) e um "scorecaster" (D). Proposição 1: sem hipótese sobre os dados, com scores em [−b, b], a cobertura média satisfaz |1/T Σ(err_t − alpha)| ≤ (b+eta)/(eta·T). Medido: COVID Forecast Hub (CDC falhou 8 de 10 semanas no inverno 2020/21, o PID 3), demanda elétrica NSW com 90% e bandas mais estreitas que o ACI; repositório regenera as figuras.
+
+**Já no código:** `api/services/money/calibration.js` (PR #326) roda a regra P sobre `money_figure_scores` (kind `day_total`), com eta = 0,1 × maior resíduo em 60 dias e `widen` alargando `projection.js` por sqrt(dias restantes).
+
+**Hipótese:** se o `widen` puder ficar negativo (quantile tracking puro, sem `max(0, ·)`), e/ou com o integrador tan do paper, então sobre o ledger real a cobertura fica em 0,8 ± 0,1 com interval score menor que o P-only atual.
+
+**Spike (4h):** script no scratchpad: para o usuário de teste, gerar `dayForecast` para cada dia dos últimos N dias (via `listTransactions`), pontuar com `dayActual`, e rodar `calibrate()` em três variantes: (a) atual, (b) sem chão, (c) integrador tan com K_I e C_sat do Apêndice B. Registrar coverage, interval score médio e o bound 11/T por variante.
+
+**Medir:** interval score médio cai ≥ 10% em (b) ou (c) com coverage em [0,7, 0,9]. E reavaliar `trusted`: com eta = 0,1·b o bound é 11/T, ±0,18 aos 60 dias; proposta, `trusted` quando 11/T ≤ 0,1, ou seja T ≥ 110 (hoje MIN_DAYS_TO_TRUST = 60).
+
+**Parar se:** menos de 60 dias reais com transação no ledger (só sintético, sem conclusão), ou diferença entre variantes < 3% no interval score.
+
+**Toca:** `api/services/money/calibration.js`, `api/services/money/projection.js`, `api/services/money/predictions.js`, `tests/api/services/money/calibration.test.js`, `src/pages/money/MoneyV2Page.tsx`
+
+**Status:** aberto
+
+---
+
+
 ### pgmem-proveniencia — Cada traço OCEAN aponta pra evidência que o gerou
 **Origem:** INTEL 2026-08-22 · **Veredito:** PROTOTIPAR 13/15 (P3 A2 D3 E2 L3)
 **Fonte:** [PGMem, arXiv 2608.01708, 03/ago](https://arxiv.org/abs/2608.01708) — Choi et al., Korea University

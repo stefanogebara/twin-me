@@ -15,6 +15,32 @@
 
 ## Em aberto — precisa de decisão do Stefano
 
+> **Passada de 2026-09-14 (money twin).** Rodada a partir da revisão de pesquisa de 13/09
+> (cinco agentes; página em https://claude.ai/code/artifact/39ccecb0-ffdd-4cc9-a177-e09a48eb3043),
+> um analista por item, seis itens. Manutenção: `intel.config.json` ainda diz em `settled`
+> que "agregadores bancários estão fora; captura financeira é por WhatsApp (4a74a4d6)". O
+> money twin lê o Santander pelo Enable Banking em produção desde 2026-09-08 e o endereço
+> de recibos recebe os alertas do banco desde 13/09. Um dos analistas raciocinou a partir
+> da linha velha. **Cabe ao Stefano reabrir e reescrever essa entrada; ela não foi editada.**
+
+### [DISCUTIR 10/15] O charge-ahead quer ser o alerta da FCA, ou é uma linha de orçamento com citação emprestada?
+**Data:** 2026-09-14 · **Fonte:** [FCA Occasional Paper 36](https://www.fca.org.uk/publication/occasional-papers/occasional-paper-36.pdf) · **Eixos:** P2 A2 D3 E2 L1
+**O que é:** dois bancos britânicos auto-inscreveram 1,5 milhão de clientes em SMS na manhã em que um débito não tem saldo, ou na manhã seguinte ao saldo cair abaixo de zero. Efeitos fixos em três vias: tarifas de item devolvido -21% a -24%, descoberto não autorizado -25%, episódios de 2+ dias -19,7%; usuários raros -27% a -51%, pesados -10% a -20% e muitas vezes não significativo. Nenhum efeito em saldo médio ou logins: o mecanismo é antecipar uma transação no próprio dia (54% resolvem no mesmo dia), não mudar hábito. Não é ITT, dados confidenciais, e a fonte **não cobre** um aviso dias antes da cobrança.
+**Por que toca este projeto:** `api/services/money/nudges.js` (PR #332) cita este paper para a linha "charge ahead", que compara as cobranças dos próximos 7 dias com o que sobra do mês, sem saldo (`allowance.js:7`) e recusando qualquer "pague agora". Nenhum dos três ingredientes medidos (saldo real, mesmo dia, ação que fecha o buraco antes do corte) está lá. Nota do mesmo analista: a regra de aposentar uma linha silenciada lê `money_readings.verdict`, e nada em `src/` nem em `api/routes/money.js` escreve esse campo desde que os controles True / Not me saíram; a regra está ligada e inerte.
+**A pergunta:** a linha é o alerta da FCA (então o spike é um sinal de saldo, a coluna "saldo" do extrato Santander em `importer.js:128` ou o que o feed devolve, e janela de um dia) ou é uma linha de orçamento (então a citação sai e o comentário para de prometer um quarto a menos de tarifas)? E o mute: um "Not me" quieto na linha, ou a não-ação como sinal?
+
+### [DISCUTIR 10/15] Emprestar força: pooling entre usuários é código morto com um ledger só. Muda de eixo?
+**Data:** 2026-09-14 · **Fontes:** [Bai e Chu, TSB hierárquico](https://arxiv.org/abs/2511.12749) · [Zhang et al., IBM/WageGoal 2018](https://arxiv.org/abs/1806.05362) · **Eixos:** P3 A2 D2 E2 L1 (fundidos: dois itens, o mesmo movimento)
+**O que é:** o TSB-HB encolhe cada série intermitente para o prior do seu grupo com peso n/(n+phi), phi estimado por empirical Bayes; RMSE -5,5% sobre o TSB no UCI Online Retail, mas MAE +3,5% e RMSSE -0,3%, sem teste de significância. O paper da IBM (19 usuários, 25 janelas, sem código) mostra que uma média aparada com recorrentes fixados nos seus dias bate Prophet e ARMA, e que o pooling por sequência entre usuários só paga em contas com ritmo de salário, exigindo dezenas de históricos de saldo.
+**Por que toca este projeto:** `api/services/money/priors.js` (PR #331) implementa exatamente o n/(n+phi) com PHI = 4 fixado à mão e `MIN_POOL_USERS = 2`, leave-one-out; em produção há um ledger, então o prior cruzado é inerte até haver o segundo usuário. O paper faz a taxonomia dentro de um só histórico (classes ADI/CV²), o que funcionaria hoje por `money_places.category`. `projection.js` usa medianas por dia da semana onde a IBM usa média aparada do decil superior; `calibration.js` já pontua previsões diárias, então a comparação cabe numa tarde.
+**A pergunta:** o money twin será multiusuário cedo o bastante para valer estimar phi por empirical Bayes entre pessoas, ou o pooling muda de eixo agora, comerciantes de um mesmo usuário encolhidos para a categoria dele? E vale a checagem barata primeiro: média aparada da IBM contra a mediana por dia da semana, pontuada com os `day_total` que já existem no seu ledger?
+
+### [DISCUTIR 8/15] O endereço de recibos fica só leitura, ou ganha um lado de envio?
+**Data:** 2026-09-14 · **Fonte:** [Noah Shinn, 8/set](https://x.com/noahrshinn/status/2097443132816396649) · **Eixos:** P2 A1 D2 E1 L2
+**O que é:** cada Instinct recebe um endereço em mail.instinct.com (vivo, 302 para app.instinct.com/mailbox) com o qual cria contas, confirma reservas e contata negócios em nome da pessoa; "primeiro passo para o Instinct possuir e operar as próprias contas", encadeado com Vault/1Password (4/set), Stripe Link com cartão de uso único (28/ago) e TOTP (11/set). Copy de lançamento, zero números.
+**Por que toca este projeto:** o money twin shipou o mesmo primitivo uma semana depois (`api/services/money/inbox.js`, PR #324: `r-<hex>@in.twinme.me` por pessoa) com semântica oposta: só lê o que a pessoa ou o banco mandam, não envia nada, e `PrivacyPolicy.tsx` promete isso. O Instinct usa o endereço para agir e por isso vê a compra na origem.
+**A pergunta:** o endereço fica só leitura por desenho (o leitor de recibos que não age) ou ganha envio: responder a um aviso de aumento de preço, pedir a fatura, cancelar a assinatura que a leitura apontou? A segunda exige reescrever a linha de privacidade e decidir se o twin fala com terceiros em nome da pessoa, o que hoje não está em `settled` nem em `bets`.
+
 > Dois itens desta seção foram **decididos em 2026-08-25** e estão marcados
 > DECIDIDO no corpo: o número público de fidelidade e o vocabulário "digital
 > twin". Ficam aqui para registro do raciocínio; não precisam ser rediscutidos.
@@ -215,6 +241,7 @@ já vá ser avaliada.
 ---
 
 ## Fila de trabalho
+- [PROTOTIPAR 14/15] Conformal PID: banda de gasto que aprende com os erros → `BACKLOG.md#banda-conformal-pid` (2026-09-14)
 
 Spikes escritos em `BACKLOG.md`, os quatro com âncora preenchida em 2026-08-24.
 
@@ -245,6 +272,7 @@ Novos em 2026-08-24:
   · âncora: `api/mcp-server/src/server.ts`, `api/routes/api-keys.js`
 
 ## Radar
+- `2026-09-14` BBVA AI Factory (ICAIF 2024): separar as cobranças de um beneficiário em sub-séries (memo, valor, periodicidade) antes de prever data e valor, mediana de intervalos com tolerância por cadência; já adotado em parte em `recurring.js` (#328); paper inacessível (403), write-up sem números, teto REGISTRAR. [fonte](https://www.bbvaaifactory.com/financial-habits-analysis/)
 
 - `2026-08-24` **Supabase passa a ignorar VERSION em CREATE EXTENSION** — entrada de 22/07, vigente 05/08; a versão pedida é ignorada e a default do projeto é instalada, com warning. Nenhuma das três árvores de migração do TwinMe pina versão, então nada muda aqui — resta confirmar que a default do projeto é pgvector ≥ 0.8.2, que corrigiu o CVE-2026-3172 no build paralelo de HNSW. [changelog](https://supabase.com/changelog) · 7/15
 
