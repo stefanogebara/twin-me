@@ -197,10 +197,14 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
      past, an income that has not come, a cap or a keep, a charge the month cannot carry, a
      split still open, then the twin's own score, then the standing shapes of the ledger. */
   const ranked = useMemo(() => [...readings].sort((a, b) => readingRank(a.kind) - readingRank(b.kind)), [readings]);
-  /* Only a reading that moved belongs under "What changed"; on a quiet week the heading says
-     what the list is instead of promising a change it does not hold. */
-  const changed = useMemo(() => ranked.filter((r) => readingRank(r.kind) < CHANGE_BOUNDARY), [ranked]);
+  /* Only a reading that moved belongs under "What changed", and among those the one that
+     moved the most money comes first: a week 300 EUR over its usual outranks a kind of place
+     30 EUR under. On a quiet week the heading says what the list is instead of promising a
+     change it does not hold. */
+  const changed = useMemo(() => ranked.filter((r) => readingRank(r.kind) < CHANGE_BOUNDARY).sort((a, b) => readingStake(b) - readingStake(a)), [ranked]);
   const shown = (changed.length ? changed : ranked).slice(0, 3);
+  const lead = changed.length ? shown[0] : null;
+  const rest = lead ? shown.slice(1) : shown;
   /* One purchase makes p10, p50 and p90 the same euro, and reading the same number three
      times looks broken rather than honest. Say nothing about the month until the band opens. */
   const projectable = Boolean(forecast && forecast.projected_p90 - forecast.projected_p10 > 0.5);
@@ -343,12 +347,8 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                 {today && today.amount !== null ? (
                   <>
                     <h1>{today.over ? 'Nothing today.' : `${euro(today.amount)} today.`}</h1>
+                    {/* One line: the basis. The month lives in the band's two labels below. */}
                     {today.sentence ? <p className="mv-sub">{today.sentence}</p> : null}
-                    {forecast ? (
-                      <p className="mv-sub">
-                        {`${euro(forecast.spent)} so far this month${projectable ? `; likely ${euro(forecast.projected_p50)} by the ${last}${ordinalSuffix(last)}, from ${euro(forecast.projected_p10)} to ${euro(forecast.projected_p90)}.` : '.'}`}
-                      </p>
-                    ) : null}
                   </>
                 ) : (
                   <>
@@ -383,9 +383,10 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                   <div className="mv-band-spent" style={{ width: `${pct(forecast.spent, forecast)}%` }} />
                 </div>
                 <div className="mv-band-labels">
-                  <span>Spent {euro(forecast.spent)}</span>
-                  {/* The charges still to come are named in the rows below; the label keeps the figure. */}
-                  <span>{`Likely ${euro(Math.max(forecast.projected_p50, forecast.spent + forecast.committed))}`}</span>
+                  <span>{`Spent ${euro(forecast.spent)}`}</span>
+                  {/* The charges still to come are named in the rows below; the label keeps the
+                      figure and, when the band has a spread, where it could reach. */}
+                  <span>{`Likely ${euro(Math.max(forecast.projected_p50, forecast.spent + forecast.committed))} by the ${last}${ordinalSuffix(last)}${projectable ? `, up to ${euro(forecast.projected_p90)}` : ''}`}</span>
                 </div>
                 {forecast.days && forecast.days.days.length ? <DayStrip strip={forecast.days} tomorrow={forecast.tomorrow ?? null} /> : null}
                 {stillToCome(forecast).length ? (
@@ -408,12 +409,25 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
               the three that changed something today; the month carries all of them. */}
           {(view === 'today' || view === 'month') && readings.length ? (
             <section className="mv-section" id="readings">
-              <h2>{view === 'today' && changed.length ? 'What changed.' : 'What the money says.'}</h2>
+              {view === 'today' && lead ? (
+                <>
+                  {/* The reading that moved the most money is the heading, not a row among rows: it is
+                      the one sentence to read on the way out. Its receipts open under it. */}
+                  <p className="mv-eyebrow">What changed</p>
+                  <button type="button" className="mv-lead" aria-expanded={openReading === lead.id} onClick={() => setOpenReading(openReading === lead.id ? null : lead.id)}>
+                    <h2>{lead.sentence}</h2>
+                    {lead.detail ? <p className="mv-sub">{lead.detail}</p> : null}
+                  </button>
+                  {openReading === lead.id ? <ReadingBody r={lead} /> : null}
+                </>
+              ) : (
+                <h2>What the money says.</h2>
+              )}
               {/* Quiet is a feature. Every other app manufactures a daily line; this one says how
                   long it has had nothing new to say, from the day each reading was first said. */}
-              {quietDays !== null && quietDays >= 2 ? <p className="mv-sub">{`Nothing new for ${quietDays} days.`}</p> : null}
+              {quietDays !== null && quietDays >= 2 && !lead ? <p className="mv-sub">{`Nothing new for ${quietDays} days.`}</p> : null}
               <ul className="mv-list">
-                {(view === 'today' ? shown : readings).map((r) => {
+                {(view === 'today' ? rest : readings).map((r) => {
                   const isOpen = openReading === r.id;
                   return (
                     <li key={r.id}>
@@ -424,26 +438,7 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                         </span>
                         <span className="mv-item-end"><Chevron /></span>
                       </button>
-                      {isOpen ? (
-                        <div className="mv-body">
-                          {r.receipts.length ? (
-                            <ul className="mv-sublist">
-                              {r.receipts.map((t) => (
-                                <li key={t.id} className="mv-item mv-item--tight">
-                                  <span className="mv-item-text">
-                                    <span className="mv-item-title">{t.merchant_raw || t.merchant_key}</span>
-                                    <span className="mv-item-sub">{shortDay(t.occurred_at)}</span>
-                                  </span>
-                                  <span className="mv-item-end">{euro(t.amount)}</span>
-                                </li>
-                              ))}
-                            </ul>
-                          ) : null}
-                          <div className="mv-body-foot">
-                            <span className="mv-quiet">From {r.evidence_count} {r.evidence_count === 1 ? 'payment' : 'payments'}</span>
-                          </div>
-                        </div>
-                      ) : null}
+                      {isOpen ? <ReadingBody r={r} /> : null}
                     </li>
                   );
                 })}
@@ -917,6 +912,30 @@ function DayStrip({ strip, tomorrow }: { strip: MoneyDayStrip; tomorrow: MoneyFo
   );
 }
 
+/** The payments a reading stands on, and how many: shared by the lead and the rows. */
+function ReadingBody({ r }: { r: MoneyReading }) {
+  return (
+    <div className="mv-body">
+      {r.receipts.length ? (
+        <ul className="mv-sublist">
+          {r.receipts.map((t) => (
+            <li key={t.id} className="mv-item mv-item--tight">
+              <span className="mv-item-text">
+                <span className="mv-item-title">{t.merchant_raw || t.merchant_key}</span>
+                <span className="mv-item-sub">{shortDay(t.occurred_at)}</span>
+              </span>
+              <span className="mv-item-end">{euro(t.amount)}</span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      <div className="mv-body-foot">
+        <span className="mv-quiet">From {r.evidence_count} {r.evidence_count === 1 ? 'payment' : 'payments'}</span>
+      </div>
+    </div>
+  );
+}
+
 /** The order readings take on Today: what moved first, what stands last. */
 const READING_ORDER = ['delta_category', 'delta_silence', 'delta_weekday', 'delta_pace', 'income_late', 'cap_month', 'keep_month', 'charge_ahead', 'named_expense', 'split_open', 'own_score', 'month_pace', 'new_merchant', 'biggest_line', 'dormant_charge', 'subscriptions', 'small_payments', 'category_shape', 'weekday_shape'];
 function readingRank(kind: string) {
@@ -925,6 +944,21 @@ function readingRank(kind: string) {
 }
 /** Everything ranked before the twin's own score is a change; from there on it is a standing shape. */
 const CHANGE_BOUNDARY = READING_ORDER.indexOf('own_score');
+/** The euros a reading moved, from the numbers it carries, so what changed most is said first. */
+function readingStake(r: MoneyReading): number {
+  const n = (k: string) => Math.abs(Number(r.numbers?.[k]) || 0);
+  switch (r.kind) {
+    case 'delta_category': case 'delta_pace': case 'delta_weekday': return Math.abs(n('current') - n('usual'));
+    case 'delta_silence': return n('typical_amount') * Math.max(1, n('days_since') / Math.max(1, n('usual_gap_days')));
+    case 'income_late': return n('typical_amount');
+    case 'cap_month': return r.numbers?.over ? Math.abs(n('spent') - n('cap')) : 0;
+    case 'keep_month': return n('gap');
+    case 'charge_ahead': return n('total');
+    case 'named_expense': return n('amount');
+    case 'split_open': return n('open');
+    default: return 0;
+  }
+}
 
 /** Where a euro amount falls on the band, 0..100, with the projected p90 as the right edge. */
 function pct(v: number, f: MoneyForecast) {
