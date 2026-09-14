@@ -17,6 +17,8 @@ import { supabaseAdmin } from '../database.js';
 import { awayWindows, weekWord, AWAY_WORDS, EXAM_WORDS, DEADLINE_WORDS, AWAY_MIN_DAYS } from './covariates.js';
 import { parseIcs, feedKind, isFeedUrl, looksLikeIcs, FEED_LABELS } from './ics.js';
 import crypto from 'node:crypto';
+import dns from 'node:dns/promises';
+import net from 'node:net';
 import { createLogger } from '../logger.js';
 import { createCalendarClient } from '../calendar/client.js';
 import { getValidAccessToken } from '../tokenRefreshService.js';
@@ -377,27 +379,101 @@ export function feedsFromFacts(facts) {
     .map((f) => ({ id: f.subject, kind: f.subject_label || feedKind(f.value), label: FEED_LABELS[f.subject_label || feedKind(f.value)] || FEED_LABELS.ics, url: f.value, added_at: f.answered_at || null }));
 }
 
+/** The same, without the link: a Canvas address is a bearer credential and no screen needs it. */
+export function publicFeeds(feeds) {
+  return (feeds || []).map(({ url, ...f }) => f);
+}
+
 export async function listFeeds(userId) {
   return feedsFromFacts(await listFacts(userId, { includeInternal: true }));
 }
 
-/** One link, fetched with a size cap and a timeout, parsed. Throws with a plain message. */
-export async function fetchFeed(url, { fetchImpl = fetch } = {}) {
-  if (!isFeedUrl(url)) throw new Error('That is not a link this can read. It has to start with https.');
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), FEED_TIMEOUT_MS);
-  let text;
-  try {
-    const r = await fetchImpl(url, { signal: controller.signal, redirect: 'follow', headers: { accept: 'text/calendar, text/plain;q=0.5, */*;q=0.1' } });
-    if (!r.ok) throw new Error(`The link answered ${r.status}.`);
-    const len = Number(r.headers.get('content-length') || 0);
-    if (len > FEED_MAX_BYTES) throw new Error('That calendar is too large to be a person\'s.');
-    text = await r.text();
-  } catch (e) {
-    throw new Error(e.name === 'AbortError' ? 'The link did not answer in time.' : e.message);
-  } finally { clearTimeout(timer); }
-  if (text.length > FEED_MAX_BYTES) throw new Error('That calendar is too large to be a person\'s.');
-  if (!looksLikeIcs(text)) throw new Error('The link did not return a calendar. In Canvas it is under Calendar, Calendar feed; in Blackboard under Calendar, Get external calendar link.');
+/** The two things a person is told about a link that did not read; the rest stays in the log. */
+export const FEED_UNREADABLE = 'That link could not be read. Check it opens in a browser and starts with https.';
+export const FEED_NOT_CALENDAR = 'The link did not return a calendar. In Canvas it is under Calendar, Calendar feed; in Blackboard under Calendar, Get external calendar link.';
+export const FEED_MAX_HOPS = 2;
+
+/** Whether an address is inside a network this server must never be made to reach. */
+export function isPrivateAddress(ip) {
+  if (net.isIPv4(ip)) {
+    const [a, b] = ip.split('.').map(Number);
+    return a === 0 || a === 10 || a === 127 || (a === 169 && b === 254) || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || (a === 100 && b >= 64 && b <= 127) || a >= 224;
+  }
+  if (net.isIPv6(ip)) {
+    const v = ip.toLowerCase();
+    if (v === '::' || v === '::1' || v.startsWith('fe80') || v.startsWith('fc') || v.startsWith('fd')) return true;
+    const m = v.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/);
+    return m ? isPrivateAddress(m[1]) : false;
+  }
+  return true;
+}
+
+/** The link is fetchable only if its name resolves to public addresses, all of them. */
+async function assertPublic(url, lookupImpl) {
+  if (!isFeedUrl(url)) { const e = new Error(FEED_UNREADABLE); e.code = 'feed_unreadable'; throw e; }
+  const host = new URL(url).hostname;
+  let addresses;
+  try { addresses = await lookupImpl(host, { all: true }); } catch { addresses = []; }
+  if (!addresses.length || addresses.some((a) => isPrivateAddress(a.address))) {
+    log.warn(`calendar feed refused: ${host} resolves to nothing public`);
+    const e = new Error(FEED_UNREADABLE); e.code = 'feed_unreadable'; throw e;
+  }
+}
+
+/** The body, read as a stream and cut at the cap, so a link cannot fill the memory. */
+async function readCapped(r) {
+  if (!r.body || typeof r.body.getReader !== 'function') {
+    const t = await r.text();
+    if (Buffer.byteLength(t, 'utf8') > FEED_MAX_BYTES) throw Object.assign(new Error(FEED_UNREADABLE), { code: 'feed_unreadable', why: 'too large' });
+    return t;
+  }
+  const reader = r.body.getReader();
+  const chunks = [];
+  let size = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    size += value.byteLength;
+    if (size > FEED_MAX_BYTES) { await reader.cancel().catch(() => {}); throw Object.assign(new Error(FEED_UNREADABLE), { code: 'feed_unreadable', why: 'too large' }); }
+    chunks.push(value);
+  }
+  return Buffer.concat(chunks.map((c) => Buffer.from(c))).toString('utf8');
+}
+
+/**
+ * One link, fetched and parsed. The link is a name the person typed, so before every hop
+ * it is resolved and refused unless every address is public; redirects are followed by
+ * hand, two at most, each re-checked, and a downgrade to http is refused. The body is read
+ * to a cap. Whatever went wrong, the person hears one of two sentences and the log keeps
+ * the rest. Throws with `code` 'feed_unreadable' or 'feed_not_calendar'.
+ */
+export async function fetchFeed(url, { fetchImpl = fetch, lookupImpl = (h, o) => dns.lookup(h, o) } = {}) {
+  let current = String(url || '');
+  let text = null;
+  for (let hop = 0; hop <= FEED_MAX_HOPS; hop += 1) {
+    await assertPublic(current, lookupImpl);
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), FEED_TIMEOUT_MS);
+    try {
+      const r = await fetchImpl(current, { signal: controller.signal, redirect: 'manual', headers: { accept: 'text/calendar, text/plain;q=0.5, */*;q=0.1' } });
+      if (r.status >= 300 && r.status < 400) {
+        const next = r.headers.get('location');
+        if (!next || hop === FEED_MAX_HOPS) { log.warn(`calendar feed refused: redirect without a place to go, or too many hops`); throw Object.assign(new Error(FEED_UNREADABLE), { code: 'feed_unreadable' }); }
+        current = new URL(next, current).toString();
+        continue;
+      }
+      if (!r.ok) { log.warn(`calendar feed answered ${r.status}`); throw Object.assign(new Error(FEED_UNREADABLE), { code: 'feed_unreadable' }); }
+      const len = Number(r.headers.get('content-length') || 0);
+      if (len > FEED_MAX_BYTES) throw Object.assign(new Error(FEED_UNREADABLE), { code: 'feed_unreadable', why: 'too large' });
+      text = await readCapped(r);
+      break;
+    } catch (e) {
+      if (e.code === 'feed_unreadable') throw e;
+      log.warn(`calendar feed failed: ${e.name === 'AbortError' ? 'timeout' : e.message}`);
+      throw Object.assign(new Error(FEED_UNREADABLE), { code: 'feed_unreadable' });
+    } finally { clearTimeout(timer); }
+  }
+  if (text === null || !looksLikeIcs(text)) throw Object.assign(new Error(FEED_NOT_CALENDAR), { code: 'feed_not_calendar' });
   const kind = feedKind(url);
   return { kind, events: parseIcs(text, { source: kind }) };
 }
@@ -405,8 +481,8 @@ export async function fetchFeed(url, { fetchImpl = fetch } = {}) {
 /** Add a link: fetched once to prove it reads, then kept as one fact. */
 export async function addFeed(userId, url, { fetchImpl = fetch } = {}) {
   const existing = await listFeeds(userId);
-  if (existing.some((f) => f.url === url)) return { ...existing.find((f) => f.url === url), events: null, already: true };
-  if (existing.length >= MAX_FEEDS) throw new Error(`Four links is the most; remove one first.`);
+  if (existing.some((f) => f.url === url)) return { ...publicFeeds([existing.find((f) => f.url === url)])[0], events: null, already: true };
+  if (existing.length >= MAX_FEEDS) throw Object.assign(new Error('Four links is the most; remove one first.'), { code: 'feed_limit' });
   const { kind, events } = await fetchFeed(url, { fetchImpl });
   const id = crypto.createHash('sha256').update(String(url)).digest('hex').slice(0, 16);
   const nowIso = new Date().toISOString();
@@ -415,7 +491,7 @@ export async function addFeed(userId, url, { fetchImpl = fetch } = {}) {
     { onConflict: 'user_id,kind,subject' },
   );
   if (error) throw new Error(error.message);
-  return { id, kind, label: FEED_LABELS[kind], url, added_at: nowIso, events: events.length, already: false };
+  return { id, kind, label: FEED_LABELS[kind], added_at: nowIso, events: events.length, already: false };
 }
 
 export async function removeFeed(userId, id) {
@@ -426,15 +502,12 @@ export async function removeFeed(userId, id) {
 /** Every feed's events inside a window; a feed that fails is skipped and named in the log. */
 export async function feedEvents(feeds, fromISO, toISO, { fetchImpl = fetch } = {}) {
   const from = ms(fromISO); const to = ms(toISO);
+  const results = await Promise.allSettled((feeds || []).map((f) => fetchFeed(f.url, { fetchImpl })));
   const out = [];
-  for (const f of feeds || []) {
-    try {
-      const { events } = await fetchFeed(f.url, { fetchImpl });
-      for (const e of events) if (ms(e.end || e.start) >= from && ms(e.start) <= to) out.push(e);
-    } catch (e) {
-      log.warn(`calendar feed skipped: ${f.label}: ${e.message}`);
-    }
-  }
+  results.forEach((r, i) => {
+    if (r.status !== 'fulfilled') { log.warn(`calendar feed skipped: ${(feeds || [])[i]?.label}: ${r.reason?.message}`); return; }
+    for (const e of r.value.events) if (ms(e.end || e.start) >= from && ms(e.start) <= to) out.push(e);
+  });
   return out;
 }
 
@@ -489,7 +562,7 @@ async function persist(userId, learned, meta) {
   /* Shapes that no longer clear the floors leave, so the twin does not quote last season. */
   const keep = learned.map((s) => s.key);
   let stale = supabaseAdmin.from('money_facts').delete().eq('user_id', userId).eq('kind', FACT_KIND);
-  if (keep.length) stale = stale.not('subject', 'in', `(${keep.map((k) => `"${k.replace(/"/g, '')}"`).join(',')})`);
+  if (keep.length) stale = stale.not('subject', 'in', `(${keep.slice(0, 60).map((k) => `"${k.replace(/["(),\\]/g, '')}"`).join(',')})`);
   await stale.then(({ error: e }) => { if (e) log.warn(`stale shapes not removed: ${e.message}`); });
 }
 
@@ -547,7 +620,7 @@ export async function ahead(userId, days = 7, { now = new Date() } = {}) {
   }
   const window = aheadFrom(events, learned, { now, days });
   const routine = stale ? routineSummary(events, { now }) : stored.routine;
-  return { connected: true, google: status.google, feeds: status.feeds, needsReconnect: false, ...window, routine, learned: learned.slice(0, 8) };
+  return { connected: true, google: status.google, feeds: publicFeeds(status.feeds), needsReconnect: false, ...window, routine, learned: learned.slice(0, 8) };
 }
 
 /**

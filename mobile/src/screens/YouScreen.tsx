@@ -12,7 +12,7 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { Platform, RefreshControl, ScrollView, Share, StyleSheet, View } from 'react-native';
+import { Alert, Platform, RefreshControl, ScrollView, Share, StyleSheet, View } from 'react-native';
 import Constants from 'expo-constants';
 import * as WebBrowser from 'expo-web-browser';
 import { cosmos, dayMonth, euro, monthYear } from '../constants/cosmos';
@@ -117,8 +117,11 @@ export default function YouScreen({ user, onSignOut, onOpenPhone, onOpenBank, on
     } catch (e) { setFeedNote((e as Error).message || 'That link could not be read.'); }
     finally { setFeedBusy(false); }
   }, [feedUrl, feedBusy, load]);
-  const removeFeed = useCallback(async (id: string) => {
-    try { await moneyApi.removeCalendarFeed(id); await load(); } catch { /* the row stays */ }
+  const removeFeed = useCallback((id: string, label: string) => {
+    Alert.alert(`Remove ${label}?`, 'Its events leave the calendar read. You can paste the link again any time.', [
+      { text: 'Keep', style: 'cancel' },
+      { text: 'Remove', style: 'destructive', onPress: () => { moneyApi.removeCalendarFeed(id).then(() => load()).catch(() => { /* the row stays */ }); } },
+    ]);
   }, [load]);
 
   const name = firstName(user);
@@ -197,7 +200,7 @@ export default function YouScreen({ user, onSignOut, onOpenPhone, onOpenBank, on
                     />
                   ) : null}
                   {(calendar?.feeds || []).map((f) => (
-                    <Row key={f.id} inset glyph={<CalendarGlyph />} label={f.label} sub="Read once a day. Tap to remove" onPress={() => void removeFeed(f.id)} />
+                    <Row key={f.id} inset glyph={<CalendarGlyph />} label={f.label} sub="Read once a day. Tap to remove" onPress={() => removeFeed(f.id, f.label)} />
                   ))}
                   {calendar ? (
                     <Row

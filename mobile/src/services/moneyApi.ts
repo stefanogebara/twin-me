@@ -112,7 +112,7 @@ export type MoneyCalendarItem = {
 
 /** GET /money/calendar: whether a calendar is connected and what the week ahead looks like. */
 /** A pasted calendar link: Canvas, Blackboard, or any .ics. Only ever a label and a link. */
-export type MoneyCalendarFeed = { id: string; kind: string; label: string; url: string; added_at: string | null };
+export type MoneyCalendarFeed = { id: string; kind: string; label: string; added_at: string | null };
 export type MoneyCalendar = {
   connected: boolean;
   /** Google is one source; pasted links are the other. */

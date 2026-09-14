@@ -344,17 +344,38 @@ export async function bankNeedsReconnect(userId) {
   return Boolean(last && last.outcome === 'session_expired');
 }
 
-export async function listBankAccounts(userId) {
-  const { data } = await supabaseAdmin.from('money_accounts').select('id, provider, provider_account_id, name, iban_mask, currency, consent_expires_at, last_pulled_at, bank_name').eq('user_id', userId).eq('provider', 'enablebanking');
-  /* A reconnect gives the same account a new provider id. One account is one row to the
-     person: the most recently read row per IBAN speaks for all of them. */
+/** Of two rows for one account, the one whose consent runs longest, then the newest. Pure. */
+export function newestConsent(rows) {
   const byIban = new Map();
-  for (const row of data || []) {
+  for (const row of rows || []) {
     const key = row.iban_mask || row.provider_account_id || row.id;
     const seen = byIban.get(key);
-    if (!seen || String(row.last_pulled_at || '') > String(seen.last_pulled_at || '')) byIban.set(key, row);
+    const later = (a, b) => String(a.consent_expires_at || '') > String(b.consent_expires_at || '')
+      || (String(a.consent_expires_at || '') === String(b.consent_expires_at || '') && String(a.created_at || '') > String(b.created_at || ''));
+    if (!seen || later(row, seen)) byIban.set(key, row);
   }
   return [...byIban.values()];
+}
+
+export async function listBankAccounts(userId) {
+  const { data } = await supabaseAdmin.from('money_accounts').select('id, provider, provider_account_id, name, iban_mask, currency, consent_expires_at, last_pulled_at, bank_name, session_id, created_at').eq('user_id', userId).eq('provider', 'enablebanking');
+  /* A reconnect gives the same account a new provider id and a fresh row with nothing read
+     yet. One account is one row to the person, and the row that speaks for it is the one
+     whose consent runs longest: a reconnect took effect the moment it was saved. */
+  return newestConsent(data || []);
+}
+
+/** Which accounts' last read found the session gone, from each account's own last row. */
+export async function reconnectByAccount(userId) {
+  const { data } = await supabaseAdmin
+    .from('money_feed_accesses')
+    .select('account_id, outcome, at')
+    .eq('user_id', userId).not('account_id', 'is', null)
+    .order('at', { ascending: false })
+    .limit(200);
+  const last = new Map();
+  for (const row of data || []) if (!last.has(row.account_id)) last.set(row.account_id, row.outcome);
+  return new Set([...last.entries()].filter(([, o]) => o === 'session_expired').map(([id]) => id));
 }
 
 /**
@@ -369,12 +390,8 @@ export async function listBankAccounts(userId) {
  */
 export const FEED_BUDGET = 4;
 
-/**
- * The reads of the last 24 hours, per account: the four-a-day rule is the bank's rule on
- * one consent, so a second bank has its own four. Rows without an account id (the first
- * days of the feed) count against every account.
- */
-async function accessesByAccount(userId, now = new Date()) {
+/** The unattended reads of the last 24 hours, oldest first. */
+async function recentAccesses(userId, now = new Date()) {
   const from = new Date(now.getTime() - 24 * 3600000).toISOString();
   const { data } = await supabaseAdmin
     .from('money_feed_accesses')
@@ -382,14 +399,7 @@ async function accessesByAccount(userId, now = new Date()) {
     .eq('user_id', userId).eq('attended', false)
     .gte('at', from)
     .order('at', { ascending: true });
-  const by = new Map();
-  const shared = [];
-  for (const row of data || []) {
-    if (!row.account_id) { shared.push(row); continue; }
-    if (!by.has(row.account_id)) by.set(row.account_id, []);
-    by.get(row.account_id).push(row);
-  }
-  return { by, shared };
+  return data || [];
 }
 
 function budgetOf(rows) {
@@ -398,13 +408,47 @@ function budgetOf(rows) {
   return { used, left: Math.max(0, FEED_BUDGET - used), resets_at: oldest ? new Date(new Date(oldest).getTime() + 24 * 3600000).toISOString() : null };
 }
 
-/** The person's budget as one figure: the account with the least left speaks for all. */
+/**
+ * The four-a-day rule is the bank's rule on one consent, and a consent is a session: every
+ * account under it shares the four. This plans a run: per consent, how many reads are left
+ * and which of its accounts get them (the longest unread first), so three scheduled runs
+ * over a consent with three accounts cannot make nine reads of it. Rows without an account
+ * id, from the feed's first days, count against every consent. Pure.
+ * @returns {{ budgets: Map<string, object>, pull: object[], skipped: object[] }}
+ */
+export function planReads(accounts, accesses) {
+  const shared = accesses.filter((r) => !r.account_id);
+  const sessionOf = new Map(accounts.map((a) => [a.id, a.session_id || a.id]));
+  const bySession = new Map();
+  for (const a of accounts) {
+    const key = sessionOf.get(a.id);
+    if (!bySession.has(key)) bySession.set(key, { accounts: [], rows: [...shared] });
+    bySession.get(key).accounts.push(a);
+  }
+  for (const r of accesses) {
+    if (!r.account_id) continue;
+    const key = sessionOf.get(r.account_id);
+    if (key && bySession.has(key)) bySession.get(key).rows.push(r);
+  }
+  const budgets = new Map();
+  const pull = [];
+  const skipped = [];
+  for (const [key, group] of bySession) {
+    const budget = budgetOf(group.rows.sort((a, b) => (a.at < b.at ? -1 : 1)));
+    budgets.set(key, budget);
+    const order = [...group.accounts].sort((a, b) => String(a.last_pulled_at || '') < String(b.last_pulled_at || '') ? -1 : 1);
+    pull.push(...order.slice(0, budget.left));
+    skipped.push(...order.slice(budget.left));
+  }
+  return { budgets, pull, skipped };
+}
+
+/** The person's budget as one figure: the consent with the least left speaks for all. */
 export async function feedBudget(userId, now = new Date()) {
-  const [{ by, shared }, accounts] = await Promise.all([accessesByAccount(userId, now), listBankAccounts(userId)]);
-  const ids = accounts.length ? accounts.map((a) => a.id) : [...by.keys()];
-  if (!ids.length) return budgetOf(shared);
-  const budgets = ids.map((id) => budgetOf(shared.concat(by.get(id) || []).sort((a, b) => (a.at < b.at ? -1 : 1))));
-  return budgets.reduce((worst, b) => (b.left < worst.left ? b : worst), budgets[0]);
+  const [accesses, accounts] = await Promise.all([recentAccesses(userId, now), listBankAccounts(userId)]);
+  if (!accounts.length) return budgetOf(accesses.filter((r) => !r.account_id));
+  const { budgets } = planReads(accounts, accesses);
+  return [...budgets.values()].reduce((worst, b) => (b.left < worst.left ? b : worst));
 }
 
 /** A bank authorisation that came back and could not be saved, kept where the reads are, so
@@ -422,19 +466,21 @@ export async function pullBankFeed(userId, { since, attended = false, psu = null
   let accounts = await listBankAccounts(userId);
   if (!accounts.length) return [];
   if (!attended) {
-    /* Each account has its own four a day. The ones with reads left are read; when none has,
-       the day is spent and the caller hears so. */
-    const { by, shared } = await accessesByAccount(userId);
-    const spent = new Set(accounts.filter((a) => budgetOf(shared.concat(by.get(a.id) || [])).left <= 0).map((a) => a.id));
-    if (spent.size === accounts.length) {
+    /* Each consent has its four a day, shared by its accounts (planReads). The accounts with
+       a read left are read; when no consent has one, the day is spent and the caller hears so. */
+    const { pull, budgets } = planReads(accounts, await recentAccesses(userId));
+    if (!pull.length) {
       const err = new Error('The bank allows four reads a day and today\'s are used.');
       err.code = 'feed_budget_spent';
-      err.budget = await feedBudget(userId);
+      err.budget = [...budgets.values()].reduce((worst, b) => (b.left < worst.left ? b : worst));
       throw err;
     }
-    accounts = accounts.filter((a) => !spent.has(a.id));
+    accounts = pull;
   }
   const summary = [];
+  /* A consent that has ended must not stop the other bank's read: each account's failure is
+     kept on its own line, and the error is thrown only when every account failed. */
+  const failures = [];
   for (const acc of accounts) {
     const from = since || (acc.last_pulled_at ? acc.last_pulled_at.slice(0, 10) : new Date(Date.now() - 90 * 86400000).toISOString().slice(0, 10));
     let key = null; let seen = 0; let created = 0;
@@ -454,12 +500,15 @@ export async function pullBankFeed(userId, { since, attended = false, psu = null
       if (error.code === 'bank_session_expired') {
         await recordAccess(userId, acc.id, { attended, rowsSeen: 0, outcome: 'session_expired' });
       }
-      throw error;
+      failures.push(error);
+      summary.push({ account: acc.name || acc.iban_mask, bank: acc.bank_name || null, seen: 0, created: 0, error: error.code || 'read_failed' });
+      continue;
     }
     await supabaseAdmin.from('money_accounts').update({ last_pulled_at: new Date().toISOString() }).eq('id', acc.id);
     await recordAccess(userId, acc.id, { attended, rowsSeen: seen });
-    summary.push({ account: acc.name || acc.iban_mask, seen, created });
+    summary.push({ account: acc.name || acc.iban_mask, bank: acc.bank_name || null, seen, created });
   }
+  if (failures.length && failures.length === accounts.length) throw failures[0];
   return summary;
 }
 

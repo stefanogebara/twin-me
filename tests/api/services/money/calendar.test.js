@@ -18,6 +18,8 @@ vi.mock('../../../../api/services/database.js', () => ({
   },
 }));
 vi.mock('../../../../api/services/logger.js', () => ({ createLogger: () => ({ warn() {}, info() {}, error() {}, debug() {} }) }));
+/* A test never asks the real resolver: every name is public unless a test says otherwise. */
+vi.mock('node:dns/promises', () => ({ default: { lookup: async () => [{ address: '93.184.216.34', family: 4 }] } }));
 const token = vi.fn();
 vi.mock('../../../../api/services/tokenRefreshService.js', () => ({ getValidAccessToken: (...a) => token(...a) }));
 const get = vi.fn();
@@ -29,7 +31,7 @@ const cal = await import('../../../../api/services/money/calendar.js');
 const {
   normaliseEvent, shapeKey, joinEventsToPayments, learnShapes, expectFor, aheadFrom, routineSummary,
   calendarFromFacts, calendarForecast, calendarLines, learnEventSpend, ahead, MIN_OCCURRENCES, MIN_PAID, FACT_KIND, META_KIND,
-  feedsFromFacts, eventsFor, calendarStatus, FEED_KIND, spendable,
+  feedsFromFacts, eventsFor, calendarStatus, FEED_KIND, spendable, fetchFeed, isPrivateAddress, publicFeeds, FEED_UNREADABLE, FEED_NOT_CALENDAR,
 } = cal;
 
 const NOW = new Date('2026-09-08T12:00:00Z');
@@ -303,5 +305,45 @@ describe('a class is not a plan', () => {
     const tapas = { id: 't2', occurred_at: '2026-09-08T20:10:00Z', amount: -38.2, merchant_key: 'la tasca', channel: 'card' };
     const pairs = joinEventsToPayments([lecture, seminar, dinner], [coffee, tapas]);
     expect(pairs.map((p) => [p.event.id, p.transaction.id])).toEqual([['d1', 't2']]);
+  });
+});
+
+describe('fetchFeed refuses to be pointed inside', () => {
+  const ICS = 'BEGIN:VCALENDAR\nBEGIN:VEVENT\nUID:a\nDTSTART;VALUE=DATE:20260910\nSUMMARY:Assignment 1\nEND:VEVENT\nEND:VCALENDAR';
+  const ok = (body, extra = {}) => ({ status: 200, ok: true, headers: { get: (h) => (h === 'content-length' ? String(extra.length ?? Buffer.byteLength(body)) : null) }, text: async () => body });
+  const publicLookup = async () => [{ address: '93.184.216.34', family: 4 }];
+  it('knows the private ranges', () => {
+    for (const ip of ['127.0.0.1', '10.0.0.5', '172.16.0.1', '192.168.1.1', '169.254.169.254', '::1', 'fd00::1', '::ffff:10.0.0.1', '0.0.0.0']) expect(isPrivateAddress(ip)).toBe(true);
+    for (const ip of ['93.184.216.34', '8.8.8.8', '2606:4700::1111', '172.32.0.1']) expect(isPrivateAddress(ip)).toBe(false);
+  });
+  it('refuses a name that resolves to a private address, whatever it is called', async () => {
+    const lookupImpl = async () => [{ address: '127.0.0.1', family: 4 }];
+    await expect(fetchFeed('https://127.0.0.1.nip.io/x.ics', { fetchImpl: async () => ok(ICS), lookupImpl })).rejects.toThrow(FEED_UNREADABLE);
+    await expect(fetchFeed('http://ie.instructure.com/x.ics', { fetchImpl: async () => ok(ICS), lookupImpl: publicLookup })).rejects.toThrow(FEED_UNREADABLE);
+  });
+  it('follows a redirect only to another public https address, and at most twice', async () => {
+    const calls = [];
+    const fetchImpl = async (url) => {
+      calls.push(url);
+      if (url === 'https://a.example.edu/x.ics') return { status: 302, ok: false, headers: { get: (h) => (h === 'location' ? 'http://169.254.169.254/latest' : null) } };
+      if (url === 'https://b.example.edu/x.ics') return { status: 302, ok: false, headers: { get: (h) => (h === 'location' ? 'https://c.example.edu/y.ics' : null) } };
+      if (url === 'https://c.example.edu/y.ics') return ok(ICS);
+      if (url.startsWith('https://loop')) return { status: 302, ok: false, headers: { get: (h) => (h === 'location' ? url + '/again' : null) } };
+      return ok(ICS);
+    };
+    await expect(fetchFeed('https://a.example.edu/x.ics', { fetchImpl, lookupImpl: publicLookup })).rejects.toThrow(FEED_UNREADABLE);
+    expect(calls.filter((u) => u.startsWith('http://'))).toEqual([]);
+    const r = await fetchFeed('https://b.example.edu/x.ics', { fetchImpl, lookupImpl: publicLookup });
+    expect(r.events).toHaveLength(1);
+    await expect(fetchFeed('https://loop.example.edu/x', { fetchImpl, lookupImpl: publicLookup })).rejects.toThrow(FEED_UNREADABLE);
+  });
+  it('says one of two sentences: unreadable for a status, a timeout or a size; not a calendar for a page', async () => {
+    await expect(fetchFeed('https://x.example.edu/a.ics', { fetchImpl: async () => ({ status: 403, ok: false, headers: { get: () => null } }), lookupImpl: publicLookup })).rejects.toThrow(FEED_UNREADABLE);
+    await expect(fetchFeed('https://x.example.edu/a.ics', { fetchImpl: async () => { const e = new Error('aborted'); e.name = 'AbortError'; throw e; }, lookupImpl: publicLookup })).rejects.toThrow(FEED_UNREADABLE);
+    await expect(fetchFeed('https://x.example.edu/a.ics', { fetchImpl: async () => ok(ICS, { length: 5 * 1024 * 1024 }), lookupImpl: publicLookup })).rejects.toThrow(FEED_UNREADABLE);
+    await expect(fetchFeed('https://x.example.edu/a.ics', { fetchImpl: async () => ok('<html>login</html>'), lookupImpl: publicLookup })).rejects.toThrow(FEED_NOT_CALENDAR);
+  });
+  it('never hands the link itself back', () => {
+    expect(publicFeeds([{ id: 'a', kind: 'canvas', label: 'Canvas', url: 'https://secret', added_at: null }])).toEqual([{ id: 'a', kind: 'canvas', label: 'Canvas', added_at: null }]);
   });
 });
