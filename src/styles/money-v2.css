@@ -170,6 +170,12 @@
 .mv-receipts li { display: grid; }
 .mv .mv-receipts p { color: var(--ink-2); font-weight: 350; overflow-wrap: anywhere; }
 
+/* The lead reading: the section's heading is the sentence, its receipts open under it. */
+.mv .mv-lead { display: grid; gap: 4px; justify-items: start; text-align: left; padding: 0; background: none; border: 0; font: inherit; color: inherit; cursor: pointer; max-width: 100%; }
+.mv .mv-lead h2 { margin: 0; }
+.mv .mv-lead:hover h2 { color: var(--ink-2); }
+.mv .mv-lead:focus-visible { outline: 2px solid var(--ink); outline-offset: 4px; }
+.mv .mv-lead + .mv-body { margin-top: 16px; }
 /* The two drawings that carry a number: a share of the month under a kind of place, and
    this month to today's date against the same days of the others, on the month rows. */
 .mv .mv-share, .mv .mv-pair { display: block; height: 2px; margin-top: 8px; background: var(--rule); max-width: 320px; }
