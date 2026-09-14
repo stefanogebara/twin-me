@@ -39,11 +39,16 @@ function sameMerchant(a, b) {
  * @param {object} sighting  { amount, direction, merchant_key, occurred_at }
  * @param {object[]} transactions  candidate rows { id, amount, merchant_key, occurred_at }
  */
-export function findMatch(sighting, transactions) {
+export function findMatch(sighting, transactions, opts = {}) {
   const t0 = new Date(sighting.occurred_at).getTime();
   const signed = signedAmount(sighting);
+  /* Lines already backed by a sighting from this same source are not candidates: one bank
+     row is one payment, and two identical bank rows in a day are two payments, however
+     alike. The phone and the bank still meet on one line. */
+  const exclude = opts.exclude || null;
   let best = null; let bestDt = Infinity;
   for (const t of transactions) {
+    if (exclude && exclude.has(t.id)) continue;
     if (!closeEnough(Number(t.amount), signed) || Math.sign(Number(t.amount)) !== Math.sign(signed)) continue;
     if (!sameMerchant(t.merchant_key, sighting.merchant_key) && sighting.merchant_key !== 'unknown' && t.merchant_key !== 'unknown') continue;
     const dt = Math.abs(new Date(t.occurred_at).getTime() - t0);
@@ -64,8 +69,8 @@ function booked(sighting) {
   return String(sighting.raw_json?.status || 'BOOK').toUpperCase() !== 'PDNG';
 }
 
-export function reconcile(sighting, transactions, primarySightingSource = null) {
-  const match = findMatch(sighting, transactions);
+export function reconcile(sighting, transactions, primarySightingSource = null, opts = {}) {
+  const match = findMatch(sighting, transactions, opts);
   if (!match) {
     return {
       action: 'create',
