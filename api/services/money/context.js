@@ -58,6 +58,7 @@ function ordinal(d) {
 /** Every fact the person can hold about their own money. */
 export const FACT_KINDS = Object.freeze([
   'home_area',        // the district or town they live in, never an address
+  'note',             // something they told the ledger in their own words, kept as said
   'home_point',       // where that is on a map, for the ledger's own use; never shown as a fact
   'study_place',      // campus or school, by name
   'work_place',       // employer or office, by name
@@ -402,7 +403,12 @@ export function describeContext(facts = []) {
   if (shared.length) lines.push(`Splits: ${shared.map((s) => `${s.subject} (${s.value})`).join(', ')}.`);
 
   const people = many('person');
-  if (people.length) lines.push(`People on the statement: ${people.map((p) => `${p.subject_label || p.subject} is ${p.value}`).join(', ')}.`);
+  if (people.length) lines.push(`People on the statement: ${people.map((p) => `${p.subject_label || p.subject} is ${p.value}${p.note ? ` (${p.note})` : ''}`).join(', ')}.`);
+  /* What they said in their own words, on a fact or on its own: read back as they said it. */
+  const notes = facts.filter((f) => f.kind === 'note' && f.value);
+  if (notes.length) lines.push(`They said: ${notes.map((n) => `"${String(n.value).slice(0, 160)}"`).join('; ')}.`);
+  const noted = facts.filter((f) => f.kind !== 'person' && f.kind !== 'note' && f.note);
+  if (noted.length) lines.push(`Notes: ${noted.map((f) => `${f.subject_label || f.subject || f.kind}: ${f.note}`).join('; ')}.`);
 
   const goal = one('goal');
   if (goal) lines.push(`This term is for: ${goal.value}.`);

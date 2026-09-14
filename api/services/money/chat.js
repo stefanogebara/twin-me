@@ -30,10 +30,10 @@ import { balances, describeBetweenPeople, splitFindings, MIN_WAYS, MAX_WAYS } fr
 import { createLogger } from '../logger.js';
 import {
   listTransactions, months, forecast, categorySpend, refreshRecurring, listReadings, listFacts,
-  questionsFor, listPlaces, setVerdict, setPlaceCategory, answerQuestion, categoryOfPayment,
+  questionsFor, listPlaces, setVerdict, setPlaceCategory, answerQuestion, categoryOfPayment, deleteFact, saveChatTurn,
 } from './store.js';
 import { learnMerchants, learnPatterns, predictNext, describeForTwin } from './brain.js';
-import { describeContext } from './context.js';
+import { describeContext, PERSON_ROLES } from './context.js';
 import { CATEGORIES } from './places.js';
 import { markCounted } from './spending.js';
 import { calendarLines } from './calendar.js';
@@ -42,7 +42,7 @@ import { safeToSpend, allowanceLine } from './allowance.js';
 const log = createLogger('money-chat');
 
 export const FIGURE_KINDS = Object.freeze(['months', 'shares', 'weekdays', 'recurring', 'band', 'history']);
-export const ACTION_KINDS = Object.freeze(['not_me', 'recategorise', 'answer', 'split']);
+export const ACTION_KINDS = Object.freeze(['not_me', 'recategorise', 'answer', 'split', 'person', 'remember', 'forget']);
 
 /** How many receipts ride under one answer, and how many of anything the context carries. */
 export const MAX_RECEIPTS = 8;
@@ -280,6 +280,28 @@ export function validateAction(action, ctx) {
     if (!q || !value) return null;
     return { kind: 'answer', question_id: q.id, value, label: label || `Record: ${value}` };
   }
+  /* Who somebody on the statement is, in the person's words: a role from the list, and
+     whatever else they said about them. The key must be a person the ledger has seen. */
+  if (action.kind === 'person') {
+    const key = String(action.merchant_key || '').toLowerCase().trim();
+    const t = ctx.transactions.find((x) => String(x.merchant_key || '').toLowerCase() === key && (x.channel === 'transfer' || x.channel === 'bizum'));
+    const role = String(action.role || '').toLowerCase().trim();
+    if (!t || !PERSON_ROLES.includes(role)) return null;
+    const note = typeof action.note === 'string' && action.note.trim() ? action.note.trim().slice(0, 240) : null;
+    return { kind: 'person', merchant_key: t.merchant_key, name: nameOf(t), role, note, label: label || `${nameOf(t)} is ${role}${note ? `, ${note}` : ''}` };
+  }
+  /* Something they told the ledger that fits no question: kept in their words, read back to the model. */
+  if (action.kind === 'remember') {
+    const text = typeof action.text === 'string' ? action.text.trim().slice(0, 240) : '';
+    if (text.length < 3) return null;
+    return { kind: 'remember', text, label: label || `Remember: ${text}` };
+  }
+  /* A fact they gave and now say is wrong: it goes, and its question is open again. */
+  if (action.kind === 'forget') {
+    const f = (ctx.facts || []).find((x) => x.id === action.fact_id);
+    if (!f) return null;
+    return { kind: 'forget', fact_id: f.id, label: label || `Forget: ${f.subject_label || f.value || f.subject || f.kind}` };
+  }
   return null;
 }
 
@@ -337,6 +359,8 @@ export function contextText(ctx) {
   for (const r of ctx.readings.slice(0, 4)) if (r?.sentence) lines.push(`Reading${r.verdict === 'true' ? ' (they confirmed this)' : ''}: ${r.sentence}${r.detail ? ` ${r.detail}` : ''}`.replace(/\u20ac/g, 'EUR'));
 
   const said = describeContext(ctx.facts);
+  const theirs = (ctx.facts || []).filter((f) => f.id && f.source === 'asked' && !['event_spend', 'event_spend_meta', 'calendar_feed', 'home_point', 'inbox_address'].includes(f.kind)).slice(0, 30);
+  if (theirs.length) lines.push('Facts they gave (fact_id: what): ' + theirs.map((f) => `${f.id}: ${f.kind} ${f.subject_label || f.subject || ''} ${f.value || ''} ${f.amount ? amountText(f.amount) : ''}`.replace(/\s+/g, ' ').trim()).join(' | '));
   if (said) lines.push(`The person said: ${said.replace(/\u20ac/g, 'EUR')}`);
   /* Money between people: who sent what, who paid back, what is still open (bizum.js). */
   const between = describeBetweenPeople(balances(ctx.transactions, ctx.facts, { now: ctx.now }));
@@ -385,6 +409,8 @@ export const RULES = [
   'When a figure would show the thing better than words, ask for it by kind. Kinds: months (spent per month), shares (where a month went; add month, and by: "merchant" for places), weekdays (spend by weekday), recurring (what comes back), band (this month so far and likely), history (one merchant over time; add merchant). Ask for at most two, and only when they add something.',
   'Actions are offers the person taps, never things you did: the text must not claim to have changed, marked or recorded anything. Say something like "If that is right, mark it below." and leave the doing to the card.',
   'Propose an action only when the person asks to fix or record something: not_me with transaction_id from the recent payments; recategorise with merchant_key from the places and a category from: ' + CATEGORIES.join(', ') + '; answer with question_id from the open questions and the value they gave; split with transaction_id from the recent payments and ways (2 to 12, the person included) when they say a payment was shared, for a dinner, a shop, a present.',
+  'When the person tells you who somebody on the statement is, or what a transfer to them was for, propose person with merchant_key (the key of that person in the recent payments), role from: ' + PERSON_ROLES.join(', ') + ', and note with what they said about it. When they tell you something about their money that fits none of these (a plan, a reason, a rule of theirs), propose remember with text in their words. When they say something the ledger holds is wrong (their words, on What it knows), propose forget with the fact_id from the facts list.',
+  'When the person points out a mistake, say what you will read differently once they confirm, and propose the action; do not argue. When they ask for a chart or a graph, ask for the figure kind that shows it.',
   'Reply with one JSON object and nothing else: {"text": string, "figures": [{"kind": string, "month"?: string, "by"?: string, "merchant"?: string}], "actions": [{"kind": string, "label": string, ...}], "cites"?: [transaction ids]}',
 ].join('\n');
 
@@ -559,7 +585,11 @@ export async function answer(userId, message, history = [], { now = new Date() }
     return { text: prose ? euroGlyphs(prose) : NO_ANSWER, figures: [], actions: [], receipts: [] };
   }
   const reply = assembleReply(parsed, ctx, text);
-  return { ...reply, text: withoutRepeats(reply.text, history) };
+  const finalText = withoutRepeats(reply.text, history);
+  const basis = basisOf(finalText, ctx);
+  await saveChatTurn(userId, { role: 'user', text }).catch(() => null);
+  await saveChatTurn(userId, { role: 'twin', text: finalText, figures: reply.figures || null, actions: reply.actions || null, basis }).catch(() => null);
+  return { ...reply, text: finalText, basis };
 }
 
 /* ------------------------------------------------------------------ streaming */
@@ -601,6 +631,10 @@ export function textStreamer() {
           if (state === 'seek') continue;
         }
         if (state === 'prose') {
+          /* Prose, then the object: the model sometimes writes the answer and then the JSON
+             that repeats it. The prose is the answer; from the brace on, nothing reaches the
+             screen, and the object still gives its figures and offers at the end. */
+          if (ch === '{') { state = 'closed'; break; }
           if (PROSE_MARKS.test(ch)) continue;
           if (/\s/.test(ch)) { if (!spaced) { revealed += ' '; spaced = true; } continue; }
           revealed += ch;
@@ -702,7 +736,7 @@ export async function answerStream(userId, message, history = [], { now = new Da
   const whole = (text) => { if (text) send({ phase: 'text', delta: text }); };
   const closeWith = (reply) => {
     send({ phase: 'figures', figures: reply.figures || [] });
-    send({ phase: 'actions', actions: reply.actions || [], receipts: reply.receipts || [] });
+    send({ phase: 'actions', actions: reply.actions || [], receipts: reply.receipts || [], basis: reply.basis || [] });
     send({ phase: 'done' });
     return reply;
   };
@@ -803,10 +837,15 @@ export async function answerStream(userId, message, history = [], { now = new Da
   };
 
   let raw = '';
+  let thinking = '';
   try {
     const result = await streamComplete({
       tier: TIER_CHAT, system, messages, maxTokens: 600, temperature: 0.3, userId,
       serviceName: 'money-chat-stream',
+      /* The model's own reasoning, low effort, shown as it comes: the train of thought under
+         the answer, never mistaken for the answer. */
+      reasoning: { effort: 'low' },
+      onReasoning: (piece) => { thinking += piece; send({ phase: 'thinking', delta: piece }); },
       onChunk: (delta) => {
         const revealed = reader.push(delta);
         if (revealed) emit(revealed);
@@ -841,7 +880,27 @@ export async function answerStream(userId, message, history = [], { now = new Da
      and the app cannot tell the difference except in timing. */
   const guarded = withoutRepeats(reply.text, history);
   if (!shown.length) whole(guarded);
-  return closeWith({ ...reply, text: shown.length ? asShown(shown) : guarded });
+  const finalText = shown.length ? asShown(shown) : guarded;
+  const basis = basisOf(finalText, ctx);
+  /* Both turns kept, so the conversation can be picked up where it stood. */
+  await saveChatTurn(userId, { role: 'user', text: asked }).catch(() => null);
+  await saveChatTurn(userId, { role: 'twin', text: finalText, figures: reply.figures || null, actions: reply.actions || null, thinking: thinking || null, basis }).catch(() => null);
+  return closeWith({ ...reply, text: finalText, basis, thinking: thinking || null });
+}
+
+/* ------------------------------------------------------------------------ basis */
+
+/**
+ * The lines of the context an answer stood on: every line that shares a number with the
+ * text. Computed, not claimed; shown under "How it got there" with the model's own reasoning.
+ */
+export function basisOf(text, ctx) {
+  const numbers = new Set((String(text || '').match(/\d+[,.]\d{2}/g) || []).map((n) => n.replace('.', ',')));
+  if (!numbers.size) return [];
+  return contextText(ctx).split('\n').filter((line) => {
+    const inLine = line.match(/\d+[,.]\d{2}/g) || [];
+    return inLine.some((n) => numbers.has(n.replace('.', ',')));
+  }).slice(0, 8);
 }
 
 /* ------------------------------------------------------------------------ act */
@@ -867,6 +926,22 @@ export async function act(userId, action, { now = new Date() } = {}) {
     await answerQuestion(userId, { questionId: `split:${t.id}`, kind: 'split', subject: String(t.id), subjectLabel: nameOf(t), value: String(checked.ways) });
     const share = round2(abs(t) / checked.ways);
     return { done: true, said: euroGlyphs(`${nameOf(t)}, ${amountText(t.amount)}, counts as ${amountText(share)} of yours. Bizums back for ${amountText(share)} will count as the others paying, and it will say who still owes.`) };
+  }
+  if (checked.kind === 'person') {
+    await answerQuestion(userId, { questionId: `person_out:${checked.merchant_key}`, kind: 'person', subject: checked.merchant_key, subjectLabel: checked.name, value: checked.role, note: checked.note });
+    const said = checked.role === 'landlord' ? `${checked.name} is your landlord: transfers to them read as rent from now on.`
+      : ['family', 'friend', 'flatmate', 'partner'].includes(checked.role) ? `${checked.name} is ${checked.role}: money between you is not spending.`
+        : `${checked.name} is ${checked.role}. Noted${checked.note ? `, with what you said` : ''}.`;
+    return { done: true, said };
+  }
+  if (checked.kind === 'remember') {
+    const subject = checked.text.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 60);
+    await answerQuestion(userId, { questionId: null, kind: 'note', subject, subjectLabel: null, value: checked.text });
+    return { done: true, said: 'Kept, in your words. It reads with that from now on.' };
+  }
+  if (checked.kind === 'forget') {
+    const r = await deleteFact(userId, checked.fact_id);
+    return { done: true, said: r.deleted ? 'Forgotten. If it matters, it will ask again.' : 'That one is not yours to forget here.' };
   }
   const q = ctx.questions.find((x) => x.id === checked.question_id);
   await answerQuestion(userId, { questionId: q.id, kind: q.kind, subject: q.subject, subjectLabel: q.subjectLabel || q.receipts?.[0]?.merchant_raw, value: checked.value });

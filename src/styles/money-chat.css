@@ -124,3 +124,15 @@
 
 .mc-receipts { display: grid; gap: 4px; max-width: 40rem; }
 .mc .mc-receipts > .mv-list { margin-top: 4px; }
+
+/* The offers under an answer, and the sentence the ledger says once one is taken. */
+.mc .mc-acts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.mc .mc-acted { margin-top: 12px; color: var(--ink-2); font-weight: 350; }
+/* The train of thought: one quiet link, then the model's own words in grey and the lines
+   of the ledger the answer stood on. Never mistaken for the answer. */
+.mc .mc-how { margin-top: 12px; display: grid; gap: 8px; justify-items: start; }
+.mc .mc-how-toggle { color: var(--ink-3); font-weight: 350; padding: 0; background: none; border: 0; font: inherit; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.mc .mc-how-toggle:hover, .mc .mc-how-toggle[aria-expanded="true"] { color: var(--ink); }
+.mc .mc-how-body { display: grid; gap: 10px; padding: 12px 14px; border-left: 1px solid var(--rule); max-width: 66ch; }
+.mc .mc-how-thought { color: var(--ink-2); font-weight: 350; white-space: pre-wrap; margin: 0; }
+.mc .mc-how-basis { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; color: var(--ink-3); font-weight: 350; }

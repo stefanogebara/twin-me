@@ -40,3 +40,6 @@
 @media (prefers-reduced-motion: reduce) {
   .ms-stage-inner { animation: none; }
 }
+
+/* Room to say more under a choice. */
+.ms .ms-note { margin-top: 16px; max-width: 480px; }

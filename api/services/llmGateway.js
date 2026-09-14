@@ -601,6 +601,10 @@ export async function stream({
   userId,
   serviceName,
   onChunk,
+  /** Called with each piece of the model's own reasoning, when `reasoning` asks for it. */
+  onReasoning,
+  /** OpenRouter's reasoning request, e.g. { effort: 'low' }; the reasoning streams in `delta.reasoning`. */
+  reasoning,
   modelOverride,
 }) {
   let effectiveTier = tier;
@@ -658,9 +662,11 @@ export async function stream({
       messages: formatMessages(system, messages),
       stream: true,
       stream_options: { include_usage: true },
+      ...(reasoning ? { reasoning } : {}),
     }, { signal: abortController.signal });
 
     let fullContent = '';
+    let fullReasoning = '';
     let usage = { prompt_tokens: 0, completion_tokens: 0, cached_tokens: 0, total_tokens: 0 };
 
     for await (const chunk of streamResponse) {
@@ -674,6 +680,11 @@ export async function stream({
         };
       }
 
+      const thought = chunk.choices?.[0]?.delta?.reasoning;
+      if (thought) {
+        fullReasoning += thought;
+        if (onReasoning) onReasoning(thought);
+      }
       const delta = chunk.choices?.[0]?.delta?.content;
       if (delta) {
         fullContent += delta;
@@ -702,7 +713,9 @@ export async function stream({
     // Circuit breaker success (4B)
     recordCircuitBreakerSuccess();
 
-    return { content: fullContent, model, usage, cost, cacheHit: promptCacheHit };
+    return {
+      content: fullContent,
+      reasoning: fullReasoning || null, model, usage, cost, cacheHit: promptCacheHit };
 
   } catch (error) {
     const latencyMs = Date.now() - startTime;

@@ -22,14 +22,18 @@ import '../../styles/money-v2.css';
 import '../../styles/money-chat.css';
 import MoneyNav, { type MoneyNavLink } from './MoneyNav';
 import { MONEY_NAV } from './navLinks';
-import { moneyAPI, moneyChat, euro, shortDay, type ChatFigure, type ChatReceipt, type ChatTurn } from '../../services/api/moneyAPI';
+import { moneyAPI, moneyChat, euro, shortDay, type ChatFigure, type ChatReceipt, type ChatTurn , type ChatAction } from '../../services/api/moneyAPI';
 import { Figure } from './MoneyFigures';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 const NAV: MoneyNavLink[] = MONEY_NAV('ask');
 
 /** One line of the conversation: yours, or the ledger's with what it drew and what it stands on. */
-type AskLine = { id: string; who: 'you' | 'twin'; text: string; pending?: boolean; figures?: ChatFigure[]; receipts?: ChatReceipt[] };
+type AskLine = {
+  id: string; who: 'you' | 'twin'; text: string; pending?: boolean; figures?: ChatFigure[]; receipts?: ChatReceipt[];
+  /** The offers under an answer, the model's own reasoning, and the context lines it stood on. */
+  actions?: ChatAction[]; thinking?: string; basis?: string[]; acted?: string; howOpen?: boolean;
+};
 
 /** What a person tends to ask first. Each is offered once and never after it was asked. */
 const OFFERS = ['What can I spend today?', 'What changed this week?', 'Where did the money go?', 'What comes back every month?', 'How does this month compare?', 'What is still to come?'];
@@ -158,6 +162,22 @@ export default function MoneyChatPage() {
   const trace = useLedgerTrace();
   const stillMotion = useReducedMotion();
 
+  /* The conversation is kept on the server: open where it stood, offers not repeated since
+     the ledger may have moved on. */
+  useEffect(() => {
+    let live = true;
+    moneyChat.history()
+      .then((turns) => {
+        if (!live || !turns.length) return;
+        setLines(turns.map((t) => ({
+          id: `kept-${t.id}`, who: t.role === 'twin' ? 'twin' : 'you', text: t.text,
+          figures: t.figures || undefined, thinking: t.thinking || undefined, basis: t.basis || undefined,
+        })));
+      })
+      .catch(() => { /* a fresh page is fine */ });
+    return () => { live = false; };
+  }, []);
+
   /* How many things the ledger still cannot work out on its own. Answering them is a page
      of its own; this one only says they are waiting. */
   useEffect(() => {
@@ -210,10 +230,12 @@ export default function MoneyChatPage() {
           const first = !wrote;
           wrote = true;
           amend((l) => ({ ...l, pending: false, text: first ? e.delta : l.text + e.delta }));
+        } else if (e.phase === 'thinking') {
+          amend((l) => ({ ...l, thinking: (l.thinking || '') + e.delta }));
         } else if (e.phase === 'figures') {
           amend((l) => ({ ...l, figures: e.figures || [] }));
         } else if (e.phase === 'actions') {
-          amend((l) => ({ ...l, receipts: e.receipts || [] }));
+          amend((l) => ({ ...l, receipts: e.receipts || [], actions: e.actions || [], basis: e.basis || [] }));
         } else if (e.phase === 'failed') {
           amend((l) => ({ ...l, pending: false, text: e.detail || 'That could not be read right now.' }));
           wrote = true;
@@ -226,6 +248,19 @@ export default function MoneyChatPage() {
       },
     });
   }
+
+  /* An offer tapped: the ledger checks it again and says what it did; the offers go, the
+     sentence stays under the answer. */
+  async function take(lineId: string, action: ChatAction) {
+    setLines((all) => all.map((l) => (l.id === lineId ? { ...l, acted: 'Doing it.' } : l)));
+    try {
+      const r = await moneyChat.act(action);
+      setLines((all) => all.map((l) => (l.id === lineId ? { ...l, actions: [], acted: r.said } : l)));
+    } catch (e) {
+      setLines((all) => all.map((l) => (l.id === lineId ? { ...l, acted: (e as Error).message || 'That could not be done.' } : l)));
+    }
+  }
+  const toggleHow = (lineId: string) => setLines((all) => all.map((l) => (l.id === lineId ? { ...l, howOpen: !l.howOpen } : l)));
 
   const rise = stillMotion
     ? {}
@@ -256,6 +291,29 @@ export default function MoneyChatPage() {
                     <span className="mc-line-who">{l.who === 'you' ? 'You' : 'The ledger'}</span>
                     <p className={`mc-line-text ${l.pending ? 'is-pending' : ''}`}>{l.text}</p>
                     {l.figures?.map((f, k) => <Figure key={k} figure={f} />)}
+                    {l.who === 'twin' && l.actions && l.actions.length ? (
+                      <div className="mc-acts" role="group" aria-label="What it can do">
+                        {l.actions.map((a, k) => (
+                          <button key={k} type="button" className="mv-pill mv-pill--ghost" onClick={() => void take(l.id, a)}><span>{a.label}</span></button>
+                        ))}
+                      </div>
+                    ) : null}
+                    {l.acted ? <p className="mc-acted">{l.acted}</p> : null}
+                    {l.who === 'twin' && !l.pending && ((l.thinking && l.thinking.trim()) || (l.basis && l.basis.length)) ? (
+                      <div className="mc-how">
+                        <button type="button" className="mc-how-toggle" aria-expanded={Boolean(l.howOpen)} onClick={() => toggleHow(l.id)}>How it got there</button>
+                        {l.howOpen ? (
+                          <div className="mc-how-body">
+                            {l.thinking && l.thinking.trim() ? <p className="mc-how-thought">{l.thinking.trim()}</p> : null}
+                            {l.basis && l.basis.length ? (
+                              <ul className="mc-how-basis">
+                                {l.basis.map((b, k) => <li key={k}>{b}</li>)}
+                              </ul>
+                            ) : null}
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : null}
                     {l.receipts && l.receipts.length ? (
                       <div className="mc-receipts">
                         <span className="mv-quiet">{`Read from ${l.receipts.length} ${l.receipts.length === 1 ? 'payment' : 'payments'}`}</span>

@@ -69,6 +69,8 @@ export default function MoneySetupPage() {
   const [failed, setFailed] = useState(false);
   const [text, setText] = useState('');
   const [choice, setChoice] = useState<string | null>(null);
+  /* Their own words when a choice is not enough: who that is, what it was for. */
+  const [extra, setExtra] = useState('');
   const [rows, setRows] = useState<ListRow[]>([]);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
@@ -96,7 +98,7 @@ export default function MoneySetupPage() {
   useEffect(() => {
     setNote(null);
     setText('');
-    setChoice(null);
+    setChoice(null); setExtra('');
     setRows(question && question.input.startsWith('list:') ? [blankRow()] : []);
   }, [question]);
 
@@ -163,6 +165,7 @@ export default function MoneySetupPage() {
           questionId: question.id, kind: question.kind, value: choice,
           ...(question.subject ? { subject: question.subject } : {}),
           ...(subjectLabel ? { subjectLabel } : {}),
+          ...(extra.trim() ? { note: extra.trim() } : {}),
         });
       }
       advance();
@@ -278,6 +281,14 @@ export default function MoneySetupPage() {
                           <span>{cap(word)}</span>
                         </button>
                       ))}
+                    </div>
+                  ) : null}
+                  {/* A choice made, and room to say more: who that is, what it was for. It is kept
+                      beside the answer and read by the ledger, not filed under a word. */}
+                  {choice && question.input.startsWith('choice:') ? (
+                    <div className="ms-field ms-note">
+                      <label className="mv-label" htmlFor="ms-note">{choice === 'other' ? 'Who is that, or what was it for?' : 'Anything else about it? Optional.'}</label>
+                      <input id="ms-note" className="mv-field" type="text" autoComplete="off" maxLength={240} placeholder={choice === 'other' ? 'My landlord, the deposit for the ski trip' : ''} value={extra} onChange={(e) => setExtra(e.target.value)} />
                     </div>
                   ) : null}
 

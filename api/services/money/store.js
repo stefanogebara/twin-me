@@ -1094,7 +1094,7 @@ export async function questionsFor(userId, now = new Date()) {
 }
 
 /** Record an answer, and check it against the ledger where it is checkable. */
-export async function answerQuestion(userId, { questionId, kind, subject, subjectLabel, value, amount, day, share }) {
+export async function answerQuestion(userId, { questionId, kind, subject, subjectLabel, value, amount, day, share, note }) {
   /* The rent question is a choice, and a choice carries no amount. "Not fixed" is a decline
      that should not be asked again; the other two answers take their amount and day from
      the ledger lines that raised the question. */
@@ -1121,6 +1121,8 @@ export async function answerQuestion(userId, { questionId, kind, subject, subjec
   const row = {
     user_id: userId, kind, subject: subject || '', subject_label: subjectLabel || null,
     value: value ?? null, amount: amount ?? null, day: day ?? null, share: share ?? null,
+    /* Their own words on it, when a choice was not enough: "my landlord", "the ski trip deposit". */
+    note: typeof note === 'string' && note.trim() ? note.trim().slice(0, 240) : null,
     source: 'asked', question_id: questionId || null, answered_at: new Date().toISOString(),
   };
   if (kind === 'commitment' && amount) {
@@ -1160,6 +1162,27 @@ export async function deleteFact(userId, factId) {
   if (error) throw new Error(error.message);
   if (fact.question_id) await supabaseAdmin.from('money_questions_asked').delete().eq('user_id', userId).eq('question_id', fact.question_id);
   return { deleted: true };
+}
+
+/* ------------------------------------------------------------------ the conversation, kept */
+
+/** One turn of the conversation with the ledger, kept so it can be picked up again. */
+export async function saveChatTurn(userId, { role, text, figures = null, actions = null, thinking = null, basis = null }) {
+  if (!text || !String(text).trim()) return null;
+  const { data, error } = await supabaseAdmin.from('money_chat_turns')
+    .insert({ user_id: userId, role, text: String(text).slice(0, 4000), figures, actions, thinking: thinking ? String(thinking).slice(0, 4000) : null, basis })
+    .select('id, created_at').maybeSingle();
+  if (error) { log.warn(`chat turn not kept: ${error.message}`); return null; }
+  return data;
+}
+
+/** The last turns, oldest first, for the page to open on where the conversation stood. */
+export async function listChatTurns(userId, { limit = 30 } = {}) {
+  const { data, error } = await supabaseAdmin.from('money_chat_turns')
+    .select('id, role, text, figures, actions, thinking, basis, created_at')
+    .eq('user_id', userId).order('created_at', { ascending: false }).limit(limit);
+  if (error) { log.warn(`chat turns not read: ${error.message}`); return []; }
+  return (data || []).reverse();
 }
 
 /** The person's own words about their money, for the twin. */
