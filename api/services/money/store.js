@@ -407,6 +407,12 @@ export async function feedBudget(userId, now = new Date()) {
   return budgets.reduce((worst, b) => (b.left < worst.left ? b : worst), budgets[0]);
 }
 
+/** A bank authorisation that came back and could not be saved, kept where the reads are, so
+    it can be seen later without the platform's logs. The message is trimmed and has no ids. */
+export async function recordCallbackFailure(userId, message) {
+  await recordAccess(userId, null, { attended: true, rowsSeen: 0, outcome: `callback_failed: ${String(message || '').replace(/[0-9a-f-]{20,}/g, '').slice(0, 120)}` });
+}
+
 async function recordAccess(userId, accountId, { attended = false, rowsSeen = null, outcome = 'ok' } = {}) {
   const { error } = await supabaseAdmin.from('money_feed_accesses').insert({ user_id: userId, account_id: accountId, attended, rows_seen: rowsSeen, outcome });
   if (error) log.warn(`feed access log failed: ${error.message}`);

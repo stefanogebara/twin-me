@@ -44,7 +44,7 @@ import { inboxAddress, inboxDomain, isInboxConfigured, verifySvix, ingestReceive
 import { accuracy } from '../services/money/predictions.js';
 import { createLogger } from '../services/logger.js';
 import { parseCapture, parseStructured } from '../services/money/captureParser.js';
-import { ingestSighting, ingestSightings, listTransactions, sightingsFor, refreshRecurring, forecast, setVerdict, userForCaptureKey, saveBankAccounts, listBankAccounts, pullBankFeed, refreshReadings, listReadings, setReadingVerdict, months, feedBudget, categorySpend, listPlaces, setPlaceCategory, enrichPlaces, subscriptionUsage, questionsFor, answerQuestion, skipQuestion, listFacts, deleteFact, learn } from '../services/money/store.js';
+import { ingestSighting, ingestSightings, listTransactions, sightingsFor, refreshRecurring, forecast, setVerdict, userForCaptureKey, saveBankAccounts, listBankAccounts, pullBankFeed, refreshReadings, listReadings, setReadingVerdict, months, feedBudget, categorySpend, listPlaces, setPlaceCategory, enrichPlaces, subscriptionUsage, questionsFor, answerQuestion, skipQuestion, listFacts, deleteFact, recordCallbackFailure, learn } from '../services/money/store.js';
 import { parseDelimited, parseWorkbook, toSightings } from '../services/money/statements/importer.js';
 import { isConfigured, listBanks, startAuthorisation, createSession } from '../services/money/feeds/enableBanking.js';
 import { answer as chatAnswer, answerStream as chatAnswerStream, act as chatAct } from '../services/money/chat.js';
@@ -739,6 +739,7 @@ bankCallback.get('/bank/callback', async (req, res) => {
     res.redirect(302, `/money?bank=connected${session.bankName ? `&name=${encodeURIComponent(session.bankName)}` : ''}`);
   } catch (error) {
     log.error('bank callback failed', { error: error.message });
+    await recordCallbackFailure(userId, error.message).catch(() => {});
     res.redirect(302, '/money?bank=failed');
   }
 });

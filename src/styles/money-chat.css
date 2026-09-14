@@ -14,6 +14,13 @@
    the top instead, the first question sat alone at the ceiling with the composer far below
    it and a field of empty paper between the two. */
 .mc-scroll { display: grid; align-content: end; gap: 40px; padding-bottom: 24px; }
+/* Nothing asked yet: the heading, the offers and the prompt sit at the top, not the foot of an empty screen. */
+.mc-scroll.is-empty { align-content: start; gap: 24px; }
+.mc-thread:has(.mc-scroll.is-empty) { grid-template-rows: auto auto; align-content: start; }
+.mc-thread:has(.mc-scroll.is-empty) .mc-composer { position: static; padding-top: 0; }
+.mc-side { display: grid; gap: 16px; align-self: start; position: sticky; top: 40px; justify-items: start; }
+.mc .mc-trace-toggle { color: var(--ink-3); font-weight: 350; padding: 0; background: none; border: 0; font: inherit; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.mc .mc-trace-toggle:hover, .mc .mc-trace-toggle[aria-expanded="true"] { color: var(--ink); }
 .mc-end { height: 1px; }
 
 /* The transcript: it asks, you answered, both stay */
@@ -62,15 +69,14 @@
 
 /* --------------------------------------------------------------------- trace
    Real steps only. The one in progress is in ink at 500; the rest go quiet. */
-.mc-trace { position: sticky; top: 40px; align-self: start; display: grid; }
-.mc .mc-trace-head { font-weight: 500; }
+.mc-trace { display: grid; width: 100%; }
 .mc .mc-steps { margin-top: 16px; }
 .mc .mc-step .mv-item-title { color: var(--ink-2); font-weight: 400; }
 .mc .mc-step.is-live .mv-item-title { color: var(--ink); font-weight: 500; }
 
 @media (max-width: 1099px) {
   .mc-columns { grid-template-columns: minmax(0, 1fr); gap: 40px; }
-  .mc-trace { position: static; padding-bottom: 40px; }
+  .mc-side { position: static; padding-bottom: 40px; }
 }
 @media (max-width: 767px) {
   .mc-row--three { grid-template-columns: 1fr 1fr; }
