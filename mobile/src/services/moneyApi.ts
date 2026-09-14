@@ -83,6 +83,9 @@ export type MoneyForecast = {
   commitment_items?: MoneyCommitment[];
   /** What the calendar says is coming this month and what such things have cost before. */
   calendar_items?: MoneyCalendarItem[];
+  income_items?: { subject?: string | null; source?: string | null; amount: number | string; due_on: string }[];
+  /** What the band has earned from its scored days: how many, how many held, the widening. */
+  band_calibration?: { widen: number; days: number; coverage: number | null; trusted: boolean } | null;
 };
 
 /** One upcoming calendar event the ledger can put a likely cost on. */
@@ -130,6 +133,8 @@ export type MoneyReading = {
   id: string;
   kind: string;
   month?: string | null;
+  /** The day this line was first said; it does not move when the line is recomputed. */
+  first_seen_at?: string;
   sentence: string;
   detail: string | null;
   numbers?: Record<string, number | string>;
