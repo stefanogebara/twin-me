@@ -16,7 +16,7 @@ import { projectMonth } from './projection.js';
 import { fetchTransactions, toSighting, distinctPending } from './feeds/enableBanking.js';
 import { readLedger, monthSegments } from './analyst.js';
 import { spendingRule, markCounted } from './spending.js';
-import { calibrate } from './calibration.js';
+import { calibrate, dayStrip } from './calibration.js';
 import { poolMerchantPriors } from './priors.js';
 import { nudgeFindings, retiredKinds, NUDGE_KINDS } from './nudges.js';
 import { safeToSpend } from './allowance.js';
@@ -254,15 +254,21 @@ export async function forecast(userId, now = new Date()) {
 
   /* What the band has earned from its scored days: one widening in euros per person, from
      calibration.js. A missing table or an empty record is a widening of zero. */
-  const { data: scoredDays } = await supabaseAdmin
+  const { data: figureDays } = await supabaseAdmin
     .from('money_figure_scores')
-    .select('predicted_for, value, low, high, actual')
-    .eq('user_id', userId).eq('kind', 'day_total').not('scored_at', 'is', null)
+    .select('predicted_for, predicted_on, value, low, high, actual, scored_at')
+    .eq('user_id', userId).eq('kind', 'day_total')
     .order('predicted_for', { ascending: true }).limit(400);
-  const band = calibrate(scoredDays || []);
+  const band = calibrate((figureDays || []).filter((r) => r.scored_at));
 
   const result = projectMonth({ transactions: rows, recurring: rec, commitments, income, shareOf, isSpending, isIncome, now, widen: band.widen });
   result.band_calibration = { widen: band.widen, days: band.days, coverage: band.coverage, trusted: band.trusted };
+  /* The last thirty days as marks, with the range the twin gave each one and whether it
+     held, and the range it has given tomorrow, widened by what it has earned so far. */
+  result.days = dayStrip(rows, band.record, { now, isSpending });
+  const tomorrowKey = new Date(now.getTime() + 86400000).toISOString().slice(0, 10);
+  const open = (figureDays || []).filter((r) => !r.scored_at && r.predicted_for === tomorrowKey).pop();
+  result.tomorrow = open ? { day: open.predicted_for, value: Number(open.value), low: Math.max(0, Number(open.low ?? open.value) - band.widen), high: Number(open.high ?? open.value) + band.widen } : null;
   /* What is still to come is named on the hero, so it needs a name and not a key. */
   const names = new Map();
   for (const t of rows) if (t.merchant_raw && !names.has(t.merchant_key)) names.set(t.merchant_key, t.merchant_raw);

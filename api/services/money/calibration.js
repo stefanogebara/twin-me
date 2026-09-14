@@ -108,6 +108,7 @@ export function calibrate(scoredDays = [], opts = {}) {
   let hits = 0;
   let scoreSum = 0;
   const residuals = [];
+  const record = [];
   for (const r of rows) {
     const t = new Date(`${r.predicted_for}T00:00:00Z`).getTime();
     const low = Number(r.low ?? r.value) - widen;
@@ -115,6 +116,8 @@ export function calibrate(scoredDays = [], opts = {}) {
     const y = Number(r.actual);
     const miss = y < low || y > high ? 1 : 0;
     if (!miss) hits += 1;
+    /* The day as it was judged: the band it was given plus the widening it had earned by then. */
+    record.push({ predicted_for: r.predicted_for, value: r2(Number(r.value)), low: r2(Math.max(0, low)), high: r2(high), actual: r2(y), hit: !miss });
     scoreSum += intervalScore(low, high, y, alpha);
     residuals.push({ t, abs: Math.abs(y - Number(r.value)) });
     const recent = residuals.filter((x) => t - x.t <= ETA_WINDOW_DAYS * DAY).map((x) => x.abs);
@@ -128,6 +131,57 @@ export function calibrate(scoredDays = [], opts = {}) {
     coverage: days ? r2(hits / days) : null,
     interval_score: days ? r2(scoreSum / days) : null,
     trusted: days >= MIN_DAYS_TO_TRUST,
+    record,
+  };
+}
+
+/** How many days the strip shows, today included. */
+export const STRIP_DAYS = 30;
+
+/**
+ * The last thirty days, one mark each: what the day cost on the forecast's own definition,
+ * how many payments made it, and where the twin had said a range the night before, that
+ * range and whether it held. The band's record is a number on the hero; this is the same
+ * record laid out so a person can see which days broke it. Today is partial and says so.
+ * @param {object[]} transactions  ledger rows
+ * @param {object[]} record        calibrate().record, the scored days as they were judged
+ * @param {object} [opts]          { now, isSpending, days = STRIP_DAYS }
+ */
+export function dayStrip(transactions, record = [], opts = {}) {
+  const now = opts.now ? new Date(opts.now) : new Date();
+  const n = opts.days ?? STRIP_DAYS;
+  const today = new Date(`${dayOf(now)}T00:00:00Z`);
+  const from = new Date(today.getTime() - (n - 1) * DAY);
+  const rows = opts.isSpending ? (transactions || []).filter((t) => Number(t.amount) >= 0 || opts.isSpending(t)) : (transactions || []);
+  const counts = new Map();
+  for (const t of rows) {
+    if (Number(t.amount) >= 0 || t.is_recurring) continue;
+    const k = dayOf(t.occurred_at);
+    counts.set(k, (counts.get(k) || 0) + 1);
+  }
+  const said = new Map((record || []).map((r) => [r.predicted_for, r]));
+  const days = dailyTotals(rows, from, today).map((d) => {
+    const s = said.get(d.date) || null;
+    return {
+      day: d.date,
+      weekday: d.weekday,
+      total: d.total,
+      count: counts.get(d.date) || 0,
+      today: d.date === dayOf(today),
+      said: s ? { value: s.value, low: s.low, high: s.high } : null,
+      hit: s ? s.hit : null,
+    };
+  });
+  const finished = days.filter((d) => !d.today);
+  const judged = finished.filter((d) => d.said);
+  return {
+    from: dayOf(from),
+    to: dayOf(today),
+    days,
+    total: r2(finished.reduce((s, d) => s + d.total, 0)),
+    days_with_spend: finished.filter((d) => d.total > 0).length,
+    said_days: judged.length,
+    held: judged.filter((d) => d.hit).length,
   };
 }
 

@@ -3,7 +3,7 @@
  * and the record of hits and misses turns into one widening in euros.
  */
 import { describe, it, expect } from 'vitest';
-import { dayForecast, dayActual, calibrate, intervalScore, widenOver, ALPHA } from '../../../../api/services/money/calibration.js';
+import { dayForecast, dayActual, calibrate, intervalScore, widenOver, dayStrip, ALPHA, STRIP_DAYS } from '../../../../api/services/money/calibration.js';
 
 const DAY = 86400000;
 /* Twelve weeks ending Saturday 12 Sept 2026: weekdays cost 10, Fridays 40, Sundays 0. */
@@ -49,7 +49,7 @@ describe('intervalScore', () => {
 describe('calibrate', () => {
   const day = (i, value, low, high, actual) => ({ predicted_for: new Date(Date.UTC(2026, 8, 1 + i)).toISOString().slice(0, 10), value, low, high, actual });
   it('is zero with no record, and stays near zero when the band keeps its promise', () => {
-    expect(calibrate([])).toEqual({ widen: 0, days: 0, coverage: null, interval_score: null, trusted: false });
+    expect(calibrate([])).toEqual({ widen: 0, days: 0, coverage: null, interval_score: null, trusted: false, record: [] });
     const kept = Array.from({ length: 20 }, (_, i) => day(i, 20, 10, 30, 20));
     const c = calibrate(kept);
     expect(c.widen).toBe(0);
@@ -71,6 +71,14 @@ describe('calibrate', () => {
     expect(c.widen).toBeGreaterThanOrEqual(4);
     expect(c.coverage).toBeGreaterThan(0);
   });
+  it('keeps the record of each day as it was judged, widening included', () => {
+    const rows = Array.from({ length: 30 }, (_, i) => day(i, 20, 10, 30, 34));
+    const { record } = calibrate(rows);
+    expect(record).toHaveLength(30);
+    expect(record[0]).toMatchObject({ predicted_for: '2026-09-01', value: 20, low: 10, high: 30, actual: 34, hit: false });
+    expect(record[29].high).toBeGreaterThan(30);
+    expect(record.some((r) => r.hit)).toBe(true);
+  });
   it('is trusted after sixty scored days', () => {
     expect(calibrate(Array.from({ length: 60 }, (_, i) => day(i, 20, 10, 30, 21))).trusted).toBe(true);
   });
@@ -81,5 +89,33 @@ describe('widenOver', () => {
     expect(widenOver(4, 16)).toBe(16);
     expect(widenOver(4, 0)).toBe(0);
     expect(widenOver(null, 9)).toBe(0);
+  });
+});
+
+describe('dayStrip', () => {
+  const NOW = new Date('2026-09-14T15:00:00Z');
+  it('lays out the last thirty days, today partial, each with its count and the range it was given', () => {
+    const record = [
+      { predicted_for: '2026-09-12', value: 10, low: 0, high: 15, actual: 10, hit: true },
+      { predicted_for: '2026-09-13', value: 0, low: 0, high: 5, actual: 0, hit: true },
+      { predicted_for: '2026-09-11', value: 40, low: 30, high: 50, actual: 40, hit: true },
+    ];
+    const strip = dayStrip(ledger(), record, { now: NOW });
+    expect(strip.days).toHaveLength(STRIP_DAYS);
+    expect(strip).toMatchObject({ from: '2026-08-16', to: '2026-09-14', said_days: 3, held: 3 });
+    const last = strip.days[STRIP_DAYS - 1];
+    expect(last).toMatchObject({ day: '2026-09-14', today: true, total: 0, count: 0, said: null, hit: null });
+    const friday = strip.days.find((d) => d.day === '2026-09-11');
+    expect(friday).toMatchObject({ weekday: 5, total: 40, count: 1, said: { value: 40, low: 30, high: 50 }, hit: true });
+    /* Recurring charges are left out of the day, as the forecast leaves them out. */
+    expect(strip.days.find((d) => d.day === '2026-09-13')).toMatchObject({ total: 0, count: 0 });
+    expect(strip.days_with_spend).toBe(24);
+    expect(strip.total).toBe(360);
+  });
+  it('marks a day whose range broke, and applies the spending rule', () => {
+    const record = [{ predicted_for: '2026-09-11', value: 10, low: 0, high: 15, actual: 40, hit: false }];
+    const strip = dayStrip(ledger(), record, { now: NOW, isSpending: (t) => t.merchant_key !== 'shop' });
+    expect(strip.days.find((d) => d.day === '2026-09-11')).toMatchObject({ total: 0, hit: false });
+    expect(strip).toMatchObject({ said_days: 1, held: 0, total: 0, days_with_spend: 0 });
   });
 });
