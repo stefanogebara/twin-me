@@ -31,7 +31,7 @@ import crypto from 'node:crypto';
 import { createLogger } from '../logger.js';
 import {
   listTransactions, months, forecast, categorySpend, refreshRecurring, listReadings, listFacts,
-  questionsFor, listPlaces, setVerdict, setPlaceCategory, answerQuestion, categoryOfPayment, deleteFact, saveChatTurn,
+  questionsFor, listPlaces, setVerdict, setPlaceCategory, answerQuestion, categoryOfPayment, deleteFact, saveChatTurn, listBankAccounts,
 } from './store.js';
 import { learnMerchants, learnPatterns, predictNext, describeForTwin } from './brain.js';
 import { describeContext, PERSON_ROLES } from './context.js';
@@ -111,16 +111,23 @@ export async function gather(userId, now = new Date()) {
     settled(questionsFor(userId, now), { opening: [], fromLedger: [], answered: 0 }),
     settled(listPlaces(userId), []),
   ]);
+  const accounts = await settled(Promise.resolve().then(() => listBankAccounts(userId)), []);
   const thisMonth = cast?.month || `${now.toISOString().slice(0, 7)}-01`;
-  const categories = await settled(categorySpend(userId, { month: thisMonth }), { month: thisMonth, total: 0, read: 0, groups: [] });
-  return assemble({ transactions, segments, forecast: cast, recurring, readings, facts, questions, places, categories, now });
+  const lastMonth = (() => { const d = new Date(`${thisMonth}T12:00:00Z`); d.setUTCMonth(d.getUTCMonth() - 1); return d.toISOString().slice(0, 8) + '01'; })();
+  /* Last month's kinds of place go in beside this month's: asked "and last month?" the model
+     attributed September's groceries to August, because August had no line of its own. */
+  const [categories, lastCategories] = await Promise.all([
+    settled(categorySpend(userId, { month: thisMonth }), { month: thisMonth, total: 0, read: 0, groups: [] }),
+    settled(categorySpend(userId, { month: lastMonth }), { month: lastMonth, total: 0, read: 0, groups: [] }),
+  ]);
+  return assemble({ transactions, segments, forecast: cast, recurring, readings, facts, questions, places, categories, lastCategories, accounts, now });
 }
 
 /**
  * The pure half of gathering: the same rows, learned and indexed. Tests hand rows straight
  * to this and skip the database.
  */
-export function assemble({ transactions: rawTransactions = [], segments = [], forecast: cast = null, recurring = [], readings = [], facts = [], questions = null, places = [], categories = null, now = new Date() } = {}) {
+export function assemble({ transactions: rawTransactions = [], segments = [], forecast: cast = null, recurring = [], readings = [], facts = [], questions = null, places = [], categories = null, lastCategories = null, accounts = [], now = new Date() } = {}) {
   /* The same rule the month page uses decides which transfers are spending, so a share the
      twin quotes and the hero above it are the same euros. */
   const transactions = markCounted(rawTransactions, facts);
@@ -133,7 +140,7 @@ export function assemble({ transactions: rawTransactions = [], segments = [], fo
   const open = [...(questions?.opening || []), ...(questions?.fromLedger || [])];
   return {
     now, transactions, byId, segments, forecast: cast, recurring, readings, facts,
-    questions: open, places: places || [], placeByKey, categories, profiles, patterns, predictions,
+    questions: open, places: places || [], placeByKey, categories, lastCategories, accounts: accounts || [], profiles, patterns, predictions,
   };
 }
 
@@ -338,6 +345,14 @@ export function contextText(ctx) {
   const today = ctx.now;
   lines.push(`Today is ${dayMonth(today.toISOString())} ${today.getUTCFullYear()}. Amounts are in EUR.`);
 
+  /* What the bank says is in the account, when it was read in the last two days: the one
+     figure the person means by "how much do I have". A balance with a credit line inside
+     is not theirs and is not said. */
+  const fresh = (ctx.accounts || []).filter((a) => a && a.balance !== null && a.balance !== undefined && a.balance_at && !String(a.balance_type || '').includes('/credit') && (ctx.now.getTime() - new Date(a.balance_at).getTime()) < 48 * 3600000);
+  if (fresh.length) {
+    lines.push('In the bank now: ' + fresh.map((a) => `${amountText(a.balance)} ${Number(a.balance) < 0 ? 'overdrawn ' : ''}in ${a.bank_name || 'Santander'}${a.iban_mask ? ` ${String(a.iban_mask).slice(-4)}` : ''} (${String(a.balance_type || '').startsWith('CLBD') ? 'booked' : 'available'}, read ${dayMonth(a.balance_at)})`).join('; ') + '. Payments still pending are not in a booked figure.');
+  }
+
   const f = ctx.forecast;
   if (f) {
     const spread = f.projected_p90 - f.projected_p10 > 0.5;
@@ -355,6 +370,10 @@ export function contextText(ctx) {
   const groups = ctx.categories?.groups || [];
   if (groups.length) {
     lines.push('This month by kind of place: ' + groups.slice(0, 8).map((g) => `${g.category} ${amountText(g.spent)} (${g.share}%)`).join('; ') + '.');
+  }
+  const lastGroups = ctx.lastCategories?.groups || [];
+  if (lastGroups.length) {
+    lines.push(`${monthLabel(ctx.lastCategories.month)} by kind of place: ` + lastGroups.slice(0, 8).map((g) => `${g.category} ${amountText(g.spent)} (${g.share}%)`).join('; ') + '.');
   }
 
   if (ctx.recurring.length) {
@@ -412,6 +431,11 @@ export const RULES = [
   'Every number you write must appear in the context above. Never estimate, round differently, or add up numbers yourself; if the context does not hold the number, say the ledger cannot tell.',
   'Write amounts exactly as the context does, like 12,50 EUR.',
   'Do not say "always" for an amount that varies; say "usually" or "about".',
+  'Never add numbers up: if a total would need adding, give the parts and say the ledger has no total for that. Never work out a daily amount or a difference yourself.',
+  'On a greeting, a thanks, an "ok" or a message with no question in it, answer in one short line with no numbers and no figure.',
+  'When the person tells you something, begin by saying back in a few words what they told you, in their terms ("Spotify is your flatmate\'s, not yours"), then say what the ledger will do with it, then the offer. Never answer a statement with what the ledger currently thinks as if they had asked.',
+  'A plan, a trip, a visit, an exam, a change in their life, even with no money in it: propose remember with their words, and say the ledger will read those days with it in mind.',
+  'When they say what they want to keep at the end of the month, or a limit for a kind of place, propose answer with the keep or cap question id from the questions list if it is there, else remember.',
   'An answer is a claim: prefer naming the payments behind it.',
   'The earlier turns are the conversation so far. Do not restate the question, do not repeat a number or a sentence you already said unless asked for it again, and do not explain again what the ledger is or where answers come from.',
   'Vary your openings; never begin two answers the same way. On a follow-up ("and last month?", "why?", "and Spotify?") answer only what is new.',
@@ -421,6 +445,8 @@ export const RULES = [
   'Propose an action only when the person asks to fix or record something: not_me with transaction_id from the recent payments; recategorise with merchant_key from the places and a category from: ' + CATEGORIES.join(', ') + '; answer with question_id from the open questions and the value they gave; split with transaction_id from the recent payments and ways (2 to 12, the person included) when they say a payment was shared, for a dinner, a shop, a present.',
   'When the person tells you who somebody on the statement is, or what a transfer to them was for, propose person with merchant_key (the key of that person in the recent payments), role from: ' + PERSON_ROLES.join(', ') + ', and note with what they said about it. When they tell you something about their money that fits none of these (a plan, a reason, a rule of theirs), propose remember with text in their words. When they say something the ledger holds is wrong (their words, on What it knows), propose forget with the fact_id from the facts list.',
   'When the person points out a mistake, say what you will read differently once they confirm, and propose the action; do not argue. When they ask for a chart or a graph, ask for the figure kind that shows it.',
+  'When they say a payment is not theirs, or is somebody else\'s, propose not_me with the transaction_id of the newest such payment in the recent payments. Propose forget only for a fact in the list of what they said, never for a payment or a charge.',
+  'Answer in the language the person wrote in. A single word like "ok" is answered in English unless the earlier turns were in Spanish.',
   'Reply with one JSON object and nothing else: {"text": string, "figures": [{"kind": string, "month"?: string, "by"?: string, "merchant"?: string}], "actions": [{"kind": string, "label": string, ...}], "cites"?: [transaction ids]}',
 ].join('\n');
 
@@ -614,11 +640,15 @@ export async function answer(userId, message, history = [], { now = new Date() }
 
   const parsed = parseReply(raw);
   if (!parsed) {
+    /* Prose where an object was asked for is still an answer: kept, grounded, with its basis. */
     const prose = plainProse(raw);
-    return { text: prose ? euroGlyphs(prose) : NO_ANSWER, figures: [], actions: [], receipts: [] };
+    const grounded = prose ? dropUngrounded(euroGlyphs(prose), ctx) : { text: '', dropped: 0 };
+    const said = grounded.text || (grounded.dropped ? NO_TOTAL : NO_ANSWER);
+    return keep({ text: said, figures: [], actions: [], receipts: [], basis: basisOf(said, ctx) });
   }
   const reply = assembleReply(parsed, ctx, text);
-  const finalText = withoutRepeats(reply.text, history);
+  const grounded = dropUngrounded(withoutRepeats(reply.text, history), ctx);
+  const finalText = grounded.text || (grounded.dropped ? NO_TOTAL : reply.text);
   return keep({ ...reply, text: finalText, basis: basisOf(finalText, ctx) });
 }
 
@@ -847,6 +877,11 @@ export async function answerStream(userId, message, history = [], { now = new Da
     shown.push(delta);
   };
 
+  /* A sentence whose amount the ledger does not hold never reaches the wire: the rules
+     forbid the model to add up or work out, and when it does anyway the sentence goes. */
+  const known = amountsInText(contextText(ctx));
+  const grounded = (s) => amountsInText(s).every((a) => known.some((k) => Math.abs(k - a) < 0.005));
+  let droppedSentences = 0;
   const emit = (revealed, { final = false } = {}) => {
     pending += revealed;
     const [ready, rest] = completeSentences(pending);
@@ -854,8 +889,9 @@ export async function answerStream(userId, message, history = [], { now = new Da
       /* Compared after the currency is written the way the finished answer writes it: the
          previous turn holds euro signs, and "116,76 EUR" would not have matched them. */
       const full = euroGlyphs(sentence);
-      if (released > 0) put(full.slice(released), true);
-      else if (!said.has(shapeOf(full))) put(full, false);
+      if (released > 0) { put(full.slice(released), true); released = 0; continue; }
+      if (!grounded(full)) { droppedSentences += 1; continue; }
+      if (!said.has(shapeOf(full))) put(full, false);
       released = 0;
     }
     pending = rest;
@@ -865,14 +901,19 @@ export async function answerStream(userId, message, history = [], { now = new Da
       const tail = converted.slice(released).replace(/\s+$/, '');
       if (tail.trim()) {
         if (released > 0) put(tail, true);
+        else if (!grounded(converted)) droppedSentences += 1;
         else if (!said.has(shapeOf(converted.trim()))) put(tail.trim(), false);
       }
       pending = '';
       released = 0;
+      /* Everything it said stood on a number the ledger does not hold: say so, once. */
+      if (!shown.length && droppedSentences) { whole(NO_TOTAL); shown.push(NO_TOTAL); }
       return;
     }
 
     if (couldRepeat(pending)) return;
+    /* A sentence still being written is held whole until its amounts can be checked. */
+    if (amountsInText(pending).length && !grounded(euroGlyphs(pending))) return;
     const converted = euroGlyphs(pending);
     /* The last two words are held back: an amount written "422,20 EUR" is rewritten with a
        euro sign once both of its words have arrived, and a number already on the screen
@@ -943,16 +984,19 @@ export async function answerStream(userId, message, history = [], { now = new Da
   const parsed = parseReply(raw);
   if (!parsed) {
     const prose = plainProse(raw);
-    const text = prose ? euroGlyphs(prose) : NO_ANSWER;
+    const g = prose ? dropUngrounded(euroGlyphs(prose), ctx) : { text: '', dropped: 0 };
+    const text = g.text || (g.dropped ? NO_TOTAL : NO_ANSWER);
     if (!shown.length) whole(text);
-    return closeWith({ text: shown.length ? asShown(shown) : text, figures: [], actions: [], receipts: [] });
+    const said = shown.length ? asShown(shown) : text;
+    return closeWith({ text: said, figures: [], actions: [], receipts: [], basis: basisOf(said, ctx) });
   }
 
   const reply = assembleReply(parsed, ctx, asked);
   /* A gateway that cannot stream, or a whole object that arrived in one piece before the
      reader saw a boundary, leaves nothing shown: the guarded reply then goes as one event,
      and the app cannot tell the difference except in timing. */
-  const guarded = withoutRepeats(reply.text, history);
+  const g = dropUngrounded(withoutRepeats(reply.text, history), ctx);
+  const guarded = g.text || (g.dropped ? NO_TOTAL : reply.text);
   if (!shown.length) whole(guarded);
   const finalText = shown.length ? asShown(shown) : guarded;
   const basis = basisOf(finalText, ctx);
@@ -962,6 +1006,34 @@ export async function answerStream(userId, message, history = [], { now = new Da
   await new Promise((r) => setTimeout(r, 0));
   return closed;
 }
+
+/* ------------------------------------------------------------------- grounding */
+
+/** Every amount a text holds, as numbers: "12,50" -> 12.5, "1.011,02" -> 1011.02. Pure. */
+export function amountsInText(text) {
+  const out = [];
+  for (const m of String(text || '').matchAll(/(\d{1,3}(?:\.\d{3})+|\d+),(\d{2})\b/g)) out.push(Number(`${m[1].replace(/\./g, '')}.${m[2]}`));
+  return out;
+}
+
+/**
+ * The sentences of a reply whose every amount the context holds. The rules tell the model
+ * never to add numbers up or work out a difference; when it does anyway ("that leaves
+ * 361,24 EUR", "283,51 EUR on food"), the sentence goes, because a number the ledger did
+ * not compute must never reach the screen. Returns the kept text and how many sentences
+ * went; empty when nothing survived. Pure.
+ */
+export function dropUngrounded(text, ctx) {
+  const known = amountsInText(contextText(ctx));
+  const has = (a) => known.some((k) => Math.abs(k - a) < 0.005);
+  const kept = [];
+  let dropped = 0;
+  for (const s of sentencesOf(String(text || ''))) {
+    if (amountsInText(s).every(has)) kept.push(s); else dropped += 1;
+  }
+  return { text: kept.join(' ').trim(), dropped };
+}
+const NO_TOTAL = 'The ledger has no total for that; it can only name the parts it holds.';
 
 /* ------------------------------------------------------------------------ basis */
 

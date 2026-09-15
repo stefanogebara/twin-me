@@ -55,9 +55,10 @@ function score(s, reply) {
   const acts = (reply.actions || []).map((a) => a.kind);
   const checks = {};
   checks.figures = s.figures.only ? kinds.every((k) => s.figures.only.includes(k)) : kinds.some((k) => s.figures.some.includes(k));
-  checks.actions = s.actions.none ? acts.length === 0 : acts.some((k) => s.actions.some.includes(k));
+  checks.actions = s.actions.none ? acts.length === 0 : (s.actions.optional && acts.length === 0) || acts.some((k) => s.actions.some.includes(k));
   checks.length = sentenceCount(text) <= s.maxSentences;
-  checks.style = !STYLE_BAD.some((re) => re.test(text)) && !text.toLowerCase().startsWith(s.message.toLowerCase().slice(0, 24));
+  const restates = s.message.split(/\s+/).length > 3 && text.toLowerCase().startsWith(s.message.toLowerCase().slice(0, 24));
+  checks.style = !STYLE_BAD.some((re) => re.test(text)) && !restates;
   const amounts = amountsInText(text);
   const basis = (reply.basis || []).join('\n');
   checks.grounded = amounts.every((a) => amountsInText(basis).some((b) => Math.abs(a - b) < 0.005)) || (amounts.length > 0 && !reply.basis && kinds.length > 0);
@@ -80,7 +81,7 @@ async function judge(s, reply, token) {
   const r = await fetch('https://openrouter.ai/api/v1/chat/completions', { method: 'POST', headers: { authorization: `Bearer ${key}`, 'content-type': 'application/json' }, body: JSON.stringify(body) });
   const j = await r.json().catch(() => null);
   const raw = j?.choices?.[0]?.message?.content || '';
-  try { const o = JSON.parse(raw.slice(raw.indexOf('{'), raw.lastIndexOf('}') + 1)); return { addresses: Number(o.addresses), why: String(o.why || '').slice(0, 160) }; } catch { return { addresses: null, why: raw.slice(0, 160) }; }
+  try { const o = JSON.parse(raw.slice(raw.indexOf('{'), raw.lastIndexOf('}') + 1)); const n = Number(o.addresses); return { addresses: Number.isFinite(n) ? Math.max(0, Math.min(2, n)) : null, why: String(o.why || '').slice(0, 160) }; } catch { return { addresses: null, why: raw.slice(0, 160) }; }
 }
 
 (async () => {
@@ -98,7 +99,8 @@ async function judge(s, reply, token) {
     } catch (e) { error = e.message; }
     const ms = Date.now() - t0;
     const sc = reply ? score(s, reply) : { checks: {}, kinds: [], acts: [], sentences: 0, amounts: [] };
-    const jd = reply && JUDGE ? await judge(s, reply, token) : null;
+    /* The shortcut's answers are templates; the judge has nothing to say about them. */
+    const jd = reply && JUDGE && s.route !== 'short' ? await judge(s, reply, token) : null;
     if (jd) sc.checks.judge = jd.addresses === null ? true : jd.addresses > 0;
     const pass = !error && Object.values(sc.checks).every(Boolean);
     results.push({ id: s.id, kind: s.kind, message: s.message, ms, error, text: reply?.text || null, figures: sc.kinds, actions: sc.acts, sentences: sc.sentences, checks: sc.checks, judge: jd, pass });

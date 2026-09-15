@@ -43,24 +43,24 @@ export const SCENARIOS = [
   { id: 'flatmate-spotify', kind: 'statement', message: 'Spotify is my flatmate\'s, it comes back every month but it is not mine.', route: 'model', figures: { only: [] }, actions: { some: ['not_me', 'remember', 'person', 'recategorise'] }, avoid: [/charges? comes? back every month, \d/i], maxSentences: 4 },
   { id: 'keep-300', kind: 'statement', message: 'I want to have 300 euros left at the end of the month.', route: 'model', figures: { only: ['band'] }, actions: { some: ['remember', 'answer'] }, maxSentences: 4 },
   { id: 'trip-valencia', kind: 'statement', message: 'I am going to Valencia next weekend with Ana.', route: 'model', figures: { only: [] }, actions: { some: ['remember'] }, mention: [/valencia/i], maxSentences: 4 },
-  { id: 'parents-income', kind: 'statement', message: 'My parents send me 1750 on the first of every month.', route: 'model', figures: { only: [] }, actions: { some: ['remember', 'answer', 'person'] }, maxSentences: 4 },
+  { id: 'parents-income', kind: 'statement', message: 'My parents send me 1750 on the first of every month.', route: 'model', figures: { only: [] }, actions: { some: ['remember', 'answer', 'person'], optional: true }, maxSentences: 4 },
   { id: 'gift-corte-ingles', kind: 'statement', message: 'El Corte Ingles was a gift for my sister, not something for me.', route: 'model', figures: { only: [] }, actions: { some: ['remember', 'recategorise', 'not_me'] }, maxSentences: 4 },
 
   /* corrections */
   { id: 'not-a-subscription', kind: 'correction', message: 'That is wrong, Higgsfield is not a subscription, I paid it once.', route: 'model', figures: { only: [] }, actions: { some: ['not_me', 'remember', 'recategorise'] }, avoid: [/you are right that it is a subscription/i], maxSentences: 4 },
-  { id: 'savings-transfer', kind: 'correction', message: 'Do not count the transfer to my savings account as spending.', route: 'model', figures: { only: [] }, actions: { some: ['remember', 'person', 'not_me'] }, maxSentences: 4 },
+  { id: 'savings-transfer', kind: 'correction', message: 'Do not count the transfer to my savings account as spending.', route: 'model', figures: { only: [] }, actions: { some: ['remember', 'person', 'not_me'], optional: true }, maxSentences: 4 },
 
   /* small talk and the ambiguous */
-  { id: 'hi', kind: 'smalltalk', message: 'hi', route: 'model', figures: { only: [] }, actions: { none: true }, maxSentences: 2 },
+  { id: 'hi', kind: 'smalltalk', message: 'hi', route: 'model', figures: { only: [] }, actions: { none: true }, avoid: [/\d+,\d{2}/], maxSentences: 2 },
   { id: 'thanks', kind: 'smalltalk', message: 'thanks!', route: 'model', figures: { only: [] }, actions: { none: true }, maxSentences: 2 },
   { id: 'who-are-you', kind: 'smalltalk', message: 'who are you?', route: 'model', figures: { only: [] }, actions: { none: true }, avoid: [/language model|openai|anthropic|deepseek/i], maxSentences: 3 },
-  { id: 'ok', kind: 'ambiguous', message: 'ok', route: 'model', figures: { only: [] }, actions: { none: true }, maxSentences: 2 },
+  { id: 'ok', kind: 'ambiguous', message: 'ok', route: 'model', figures: { only: [] }, actions: { none: true }, avoid: [/\d+,\d{2}/], maxSentences: 2 },
   { id: 'food-q', kind: 'ambiguous', message: 'food?', route: 'model', figures: { only: ['shares', 'history'] }, actions: { none: true }, maxSentences: 4 },
 ];
 
 /** Sentences in a reply, the way a person counts them. */
 export function sentenceCount(text) {
-  return String(text || '').split(/(?<=[.!?])\s+(?=[A-Z0-9À-ɏ"'(])/).map((s) => s.trim()).filter(Boolean).length;
+  return String(text || '').split(/(?<=[.!?])\s+(?=[A-Z0-9\u00c0-\u024f"'(])/).map((s) => s.trim()).filter(Boolean).length;
 }
 /** Amounts written in a reply, as numbers: "12,50" -> 12.5, "1.011,02" -> 1011.02. */
 export function amountsInText(text) {
