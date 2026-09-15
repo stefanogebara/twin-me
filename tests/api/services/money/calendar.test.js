@@ -68,6 +68,20 @@ const payments = [
   pay('p6', '2026-09-01T10:30:00Z', 15.0, 'bizum in', { channel: 'bizum' }),
 ];
 
+describe('calendarFromFacts, notes on days', () => {
+  it('a note written on a day of the plan is an away window and a week word when its words say so', () => {
+    const now = new Date('2026-09-15T12:00:00Z');
+    const facts = [
+      { kind: 'note', subject: 'day-2026-09-26', value: 'Trip to Valencia with Ana' },
+      { kind: 'note', subject: 'day-2026-09-12', value: 'Final exam, statistics' },
+      { kind: 'note', subject: 'rent-abc', value: 'trip that is not on a day' },
+    ];
+    const c = calendarFromFacts(facts, { now });
+    expect(c.away).toEqual([{ from: '2026-09-26', to: '2026-09-27', title: 'Trip to Valencia with Ana' }]);
+    expect(c.week).toMatch(/exam/i);
+  });
+});
+
 describe('normaliseEvent', () => {
   it('keeps a count of attendees and drops the description', () => {
     const e = normaliseEvent({ id: 'x', summary: 'Dinner', description: 'Ana and Luis, bring wine', attendees: [{ email: 'ana@x' }, { email: 'luis@x' }], start: { dateTime: '2026-09-10T19:30:00Z' }, end: { dateTime: '2026-09-10T22:00:00Z' } });
