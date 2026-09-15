@@ -402,8 +402,28 @@ export type MoneyToday = {
   why: string | null;
 };
 
+/** The month as a calendar (services/money/plan.js): every day a cell, computed on the server. */
+export type MoneyPlanItem = { kind: 'charge' | 'commitment' | 'income' | 'calendar'; label: string; amount: number; cadence?: string | null; said?: boolean; confidence?: number | null };
+export type MoneyPlanCell = {
+  day: string; dom: number; weekday: number; past: boolean; today: boolean;
+  spent: number; count: number; received: number; said: { low: number; high: number } | null; hit: boolean | null;
+  expected: number; items: MoneyPlanItem[]; rows: { id: string; merchant: string | null; amount: number; occurred_at: string }[];
+  note: { id: string | null; text: string } | null;
+};
+export type MoneyPlan = {
+  month: string; days_in_month: number; first_weekday: number; today: string | null; cells: MoneyPlanCell[];
+  totals: { spent_to_day: number; expected_rest: number; income_ahead: number; days_ahead: number };
+  peak: { day: string; amount: number } | null; line: string;
+};
+
 export const moneyApi = {
   forecast: () => authFetch('/money/forecast').then((r) => json<MoneyForecast>(r)),
+  /** The month as a calendar; no month means the current one. */
+  plan: (month?: string | null) =>
+    authFetch(`/money/plan${month ? `?month=${encodeURIComponent(month)}` : ''}`).then((r) => json<MoneyPlan>(r)),
+  /** A note on a day, in the person's words: a fact the ledger reads with everything else. */
+  noteDay: (day: string, text: string) =>
+    post('/money/questions/answer', { questionId: null, kind: 'note', subject: `day-${day.slice(0, 10)}`, value: text }).then((r) => json<{ id?: string }>(r)),
   ledger: (since?: string) =>
     authFetch(`/money/ledger${since ? `?since=${encodeURIComponent(since)}` : ''}`).then((r) => json<MoneyTransaction[]>(r)),
   readings: () => authFetch('/money/readings').then((r) => json<MoneyReading[]>(r)),
