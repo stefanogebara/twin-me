@@ -11,7 +11,7 @@ vi.mock('../../../../api/services/logger.js', () => ({ createLogger: () => ({ wa
 const store = {
   listTransactions: vi.fn(), months: vi.fn(), forecast: vi.fn(), categorySpend: vi.fn(), refreshRecurring: vi.fn(),
   listReadings: vi.fn(), listFacts: vi.fn(), questionsFor: vi.fn(), listPlaces: vi.fn(),
-  setVerdict: vi.fn(), setPlaceCategory: vi.fn(), answerQuestion: vi.fn(),
+  setVerdict: vi.fn(), setPlaceCategory: vi.fn(), answerQuestion: vi.fn(), listBankAccounts: vi.fn(),
 };
 /* One kind for a payment, and the real resolver decides it: the month page and the chat
    disagreed about the same euros while each had its own copy, so the mock must not hold a
@@ -22,7 +22,7 @@ vi.mock('../../../../api/services/money/store.js', async (importOriginal) => {
 });
 
 const {
-  assemble, buildFigure, validateAction, receiptsFor, parseReply, shortCircuit, assembleReply, contextText, euroGlyphs, answer, act, FIGURE_KINDS, RULES, asksWhereItWent, basisOf, amountKey,
+  assemble, buildFigure, validateAction, receiptsFor, parseReply, shortCircuit, assembleReply, contextText, euroGlyphs, answer, act, FIGURE_KINDS, RULES, asksWhereItWent, basisOf, amountKey, isShortAsk, dropUngrounded, amountsInText, isStatement,
 } = await import('../../../../api/services/money/chat.js');
 
 const NOW = new Date('2026-09-08T12:00:00Z');
@@ -268,6 +268,85 @@ describe('the rules', () => {
   });
 });
 
+describe('contextText, last month', () => {
+  it('names last month by kind of place beside this month, so "and last month?" has its own line', () => {
+    const ctx = assemble({ transactions, segments, recurring, places, questions, categories, lastCategories: { month: '2026-08-01', total: 60.87, read: 60.87, groups: [{ category: 'groceries', spent: 48.88, share: 80 }, { category: 'transport', spent: 11.99, share: 20 }] }, now: NOW });
+    const text = contextText(ctx);
+    expect(text).toMatch(/This month by kind of place: clothing 116,76 EUR/);
+    expect(text).toMatch(/Aug by kind of place: groceries 48,88 EUR \(80%\); transport 11,99 EUR \(20%\)\./);
+  });
+});
+
+describe('dropUngrounded', () => {
+  const ctx = assemble({ transactions, segments, recurring, places, questions, categories, now: NOW });
+  it('keeps the sentences whose amounts the ledger holds and drops the ones it made up', () => {
+    const r = dropUngrounded('Clothing took 116,76 EUR this month. That leaves 283,51 EUR for the rest. Spotify is 11,99 EUR a month.', ctx);
+    expect(r.text).toBe('Clothing took 116,76 EUR this month. Spotify is 11,99 EUR a month.');
+    expect(r.dropped).toBe(1);
+  });
+  it('a sentence with no amount always stays; a text of nothing but invented sums is emptied', () => {
+    expect(dropUngrounded('You are spending more than usual. Take it easy this week.', ctx)).toEqual({ text: 'You are spending more than usual. Take it easy this week.', dropped: 0 });
+    expect(dropUngrounded('That leaves 283,51 EUR. Or 30,58 EUR a day.', ctx)).toEqual({ text: '', dropped: 2 });
+    expect(amountsInText('1.011,02 EUR and 77,41 EUR')).toEqual([1011.02, 77.41]);
+  });
+  it('the answer path drops the invented total and keeps the rest, with its basis', async () => {
+    complete.mockResolvedValue({ content: '{"text":"Clothing took 116,76 EUR. Together with Spotify that is 128,75 EUR, so 283,51 EUR would be too much.","figures":[],"actions":[]}' });
+    const reply = await answer('u1', 'how much on clothes and spotify?', [], { now: NOW });
+    /* The second sentence carried the invented 283,51: the whole sentence goes, the first stays. */
+    expect(reply.text).toBe('Clothing took 116,76 \u20ac.');
+    expect(reply.basis.length).toBeGreaterThan(0);
+  });
+});
+
+describe('contextText, the bank', () => {
+  it('says what is in the bank when it was read in the last two days, never a figure with a credit line in it', () => {
+    const ctx = assemble({ transactions, segments, recurring, places, questions, categories, now: NOW, accounts: [
+      { bank_name: 'Banco Santander', iban_mask: 'ES53 **** 7516', balance: 641.69, balance_type: 'CLBD', balance_at: '2026-09-08T10:00:00Z' },
+      { bank_name: 'Revolut', iban_mask: null, balance: 90, balance_type: 'ITAV/credit', balance_at: '2026-09-08T10:00:00Z' },
+      { bank_name: 'Revolut', iban_mask: null, balance: 12, balance_type: 'ITAV', balance_at: '2026-09-01T10:00:00Z' },
+    ] });
+    const text = contextText(ctx);
+    expect(text).toMatch(/In the bank now: 641,69 EUR in Banco Santander 7516 \(booked, read 8 Sep\)\. Payments still pending are not in a booked figure\./);
+    expect(text).not.toMatch(/90,00|12,00/);
+  });
+});
+
+describe('a statement always carries a way to keep it', () => {
+  const ctx = assemble({ transactions, segments, recurring, places, questions, categories, now: NOW });
+  it('offers the person\'s own words as a note when the model attached no learning offer', () => {
+    const reply = assembleReply({ text: 'Spotify is your flatmate\'s, not yours. If that is right, mark it below.', figures: [], actions: [], cites: [] }, ctx, 'Spotify is my flatmate\'s, it is not mine.');
+    expect(reply.actions.map((a) => a.kind)).toEqual(['remember']);
+    expect(reply.actions[0].text).toBe('Spotify is my flatmate\'s, it is not mine.');
+  });
+  it('adds nothing to a question, and nothing when the model already offered a way to learn', () => {
+    expect(assembleReply({ text: 'Clothing took 116,76 EUR.', figures: [], actions: [], cites: [] }, ctx, 'what was biggest?').actions).toEqual([]);
+    const withOffer = assembleReply({ text: 'Noted.', figures: [], actions: [{ kind: 'remember', text: 'The trip is in October' }], cites: [] }, ctx, 'I am going to Valencia in October with Ana.');
+    expect(withOffer.actions.map((a) => a.kind)).toEqual(['remember']);
+    expect(withOffer.actions[0].text).toBe('The trip is in October');
+    expect(isStatement('Do not count the transfer to my savings account as spending.')).toBe(true);
+    expect(isStatement('What can I spend today?')).toBe(false);
+    expect(isStatement('ok')).toBe(false);
+  });
+});
+
+describe('isShortAsk', () => {
+  it('a short question or request is an ask; a statement that teaches is not', () => {
+    expect(isShortAsk('What comes back every month?')).toBe(true);
+    expect(isShortAsk('what comes back every month')).toBe(true);
+    expect(isShortAsk('subscriptions')).toBe(true);
+    expect(isShortAsk('How does this month compare?')).toBe(true);
+    expect(isShortAsk('Give me a chart of my spending by category')).toBe(true);
+    expect(isStatement('Give me a chart of my spending by category')).toBe(false);
+    expect(isShortAsk('maria dolores is the woman who gets me the real madrid tickets for 50 euros per person, so many times see if money comes back from 50 euro transfers or 200 euro to me as friends sometimes buy from me')).toBe(false);
+    expect(isShortAsk('Spotify is my flatmate\'s, it comes back every month but it is not mine')).toBe(false);
+    expect(isShortAsk('')).toBe(false);
+  });
+  it('the shortcut never answers a statement with the list of subscriptions', () => {
+    const ctx = { recurring: [{ merchant_key: 'spotify', merchant_name: 'Spotify', cadence: 'monthly', typical_amount: 11.99, charges: [] }], segments: [], transactions: [], questions: { opening: [], fromLedger: [] } };
+    expect(shortCircuit('maria dolores is the woman who gets me the real madrid tickets, see if money comes back from 50 euro transfers to me', ctx)).toBe(null);
+  });
+});
+
 describe('shortCircuit', () => {
   it('answers what comes back without a model', () => {
     const r = shortCircuit('what subscriptions do I have?', ctx());
@@ -331,7 +410,7 @@ describe('answer', () => {
   it('falls back to plain text when the model does not return JSON', async () => {
     complete.mockResolvedValue({ content: '**Clothing** was the biggest, at 116,76 EUR.' });
     const r = await answer('u1', 'what was biggest?', [], { now: NOW });
-    expect(r).toEqual({ text: 'Clothing was the biggest, at 116,76 €.', figures: [], actions: [], receipts: [] });
+    expect(r).toMatchObject({ text: 'Clothing was the biggest, at 116,76 €.', figures: [], actions: [], receipts: [] });
   });
 
   it('says it cannot answer when the gateway fails', async () => {

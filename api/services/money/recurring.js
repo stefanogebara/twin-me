@@ -66,6 +66,14 @@ export function cadenceOf(medianDays) {
  * @param {object} [opts] { now, windowDays = 400, platforms: { merchant_key: platform } }
  * @returns {object[]} series: { merchant_key, cadence, typical_amount, occurrences, first_seen, last_seen, next_expected, is_subscription, platform }
  */
+/** The first date on the series' beat that is not before now. Pure. */
+export function nextAfter(lastMs, stepMs, now) {
+  let next = lastMs + stepMs;
+  const floor = new Date(now).getTime() - 12 * 3600000;
+  for (let i = 0; i < 24 && next < floor && stepMs > 0; i += 1) next += stepMs;
+  return new Date(next);
+}
+
 export function detectRecurring(transactions, opts = {}) {
   const now = opts.now ? new Date(opts.now) : new Date();
   const windowDays = opts.windowDays ?? 400;
@@ -109,7 +117,9 @@ export function detectRecurring(transactions, opts = {}) {
       occurrences: rows.length,
       first_seen: new Date(rows[0].at).toISOString(),
       last_seen: new Date(last).toISOString(),
-      next_expected: new Date(last + Math.round(med) * DAY).toISOString().slice(0, 10),
+      /* Rolled forward past today: a biweekly last seen on 22 August is next due in the
+         future, not "around 5 September" said on the 15th. */
+      next_expected: nextAfter(last, Math.round(med) * DAY, now).toISOString().slice(0, 10),
       is_subscription: Boolean(platforms[key]),
       platform: platforms[key] || null,
       transaction_ids: rows.map((r) => r.id).filter(Boolean),

@@ -17,7 +17,7 @@ vi.mock('../../../../api/services/logger.js', () => ({ createLogger: () => ({ wa
 const store = {
   listTransactions: vi.fn(), months: vi.fn(), forecast: vi.fn(), categorySpend: vi.fn(), refreshRecurring: vi.fn(),
   listReadings: vi.fn(), listFacts: vi.fn(), questionsFor: vi.fn(), listPlaces: vi.fn(),
-  setVerdict: vi.fn(), setPlaceCategory: vi.fn(), answerQuestion: vi.fn(),
+  setVerdict: vi.fn(), setPlaceCategory: vi.fn(), answerQuestion: vi.fn(), listBankAccounts: vi.fn(),
 };
 /* One kind for a payment, and the real resolver decides it: the month page and the chat
    disagreed about the same euros while each had its own copy, so the mock must not hold a
@@ -76,7 +76,13 @@ beforeEach(() => {
   store.forecast.mockResolvedValue(cast);
   store.categorySpend.mockResolvedValue(categories);
   store.refreshRecurring.mockResolvedValue(recurring);
-  store.listReadings.mockResolvedValue([]);
+  /* Readings put the amounts these tests speak of into the context: since 2026-09-15 a sentence
+     whose amount the ledger does not hold is dropped before it reaches the wire. */
+  store.listReadings.mockResolvedValue([
+    { sentence: 'You spent 422,20 EUR so far.', detail: null, verdict: null },
+    { sentence: 'Taxis came to 58,65 EUR: Cabify 24,65 EUR, Bolt 16,60 EUR.', detail: null, verdict: null },
+    { sentence: 'Rent is 200,00 EUR a month.', detail: null, verdict: null },
+  ]);
   store.listFacts.mockResolvedValue([]);
   store.questionsFor.mockResolvedValue(questions);
   store.listPlaces.mockResolvedValue(places);
@@ -319,6 +325,21 @@ describe('the streamed answer', () => {
     expect(reply).toBe(null);
     expect(textOf(events).trim()).not.toMatch(/[a-z0-9]/i);
     expect(events.find((e) => e.phase === 'failed').detail).toBe('That could not be read right now.');
+  });
+
+  it('a sentence with an amount the ledger does not hold never reaches the wire', async () => {
+    streamCall.mockImplementation(streamsIn(['Clothing took 116,76 EUR. ', 'That leaves 283,51 EUR for the rest of the month. ', 'Spotify is 11,99 EUR a month.']));
+    const { events, onEvent } = recorder();
+    const reply = await answerStream('u1', 'how much on clothes?', [], { now: NOW, onEvent });
+    expect(textOf(events)).toBe('Clothing took 116,76 \u20ac. Spotify is 11,99 \u20ac a month.');
+    expect(reply.text).toBe(textOf(events));
+  });
+
+  it('a reply that stood only on invented sums says so once', async () => {
+    streamCall.mockImplementation(streamsIn(['That leaves 283,51 EUR. ', 'About 30,58 EUR a day.']));
+    const { events, onEvent } = recorder();
+    await answerStream('u1', 'how much can I spend?', [], { now: NOW, onEvent });
+    expect(textOf(events)).toBe('The ledger has no total for that; it can only name the parts it holds.');
   });
 
   it('keeps what the person already read when the stream breaks midway', async () => {
