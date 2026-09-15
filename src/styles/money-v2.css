@@ -285,3 +285,45 @@
 /* One warm accent for now: today's bar in the strip, and the keep's wall on the band. Last, so it wins. */
 .mv .mv-strip-day--today .mv-strip-bar { background: var(--rg-ember); }
 .mv .mv-band-mark { background: var(--rg-ember); }
+
+/* ------------------------------------------------------------------ the plan
+   The month as cells, seven across, Monday first. A past day is a filled bar for what it
+   cost with the range it was given as a faint band behind (red when it broke); a coming
+   day a hollow bar for what is expected, with marks for what. Today is the ember bar.
+   Every figure is the server's; the cell carries a number only where it earns one. */
+.mv .mv-plan-top { margin-bottom: 0; }
+.mv .mv-plan-months { display: flex; gap: 16px; margin-top: 12px; }
+.mv .mv-plan { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 0 4px; margin-top: 32px; border-bottom: 1px solid var(--rule); }
+.mv .mv-plan-head { padding: 0 8px 8px; color: var(--ink-3); font-weight: 350; }
+.mv .mv-plan-day { position: relative; display: block; min-height: 96px; padding: 8px 8px 0; border: 0; border-top: 1px solid var(--ink); background: none; text-align: left; font: inherit; letter-spacing: inherit; color: var(--ink); cursor: pointer; overflow: visible; }
+.mv .mv-plan-day.is-blank { border-top-color: transparent; cursor: default; }
+.mv .mv-plan-day:hover, .mv .mv-plan-day.is-picked { background: rgb(37 31 33 / 5%); }
+.mv .mv-plan-day:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
+.mv .mv-plan-dom { color: var(--ink-3); font-weight: 350; }
+.mv .mv-plan-day.is-today .mv-plan-dom { color: var(--ink); font-weight: 500; }
+.mv .mv-plan-day.is-ahead .mv-plan-dom { color: var(--ink-2); }
+.mv .mv-plan-figure { position: absolute; top: 8px; right: 8px; color: var(--ink-2); font-weight: 350; font-size: 12px; line-height: 20px; }
+.mv .mv-plan-marks { position: absolute; top: 34px; left: 8px; display: flex; gap: 3px; }
+.mv .mv-plan-mark { display: block; width: 5px; height: 5px; background: var(--ink); }
+.mv .mv-plan-mark--income { background: var(--ok); }
+.mv .mv-plan-mark--calendar { background: none; border: 1px solid var(--ink); box-sizing: border-box; }
+.mv .mv-plan-mark--note { background: none; border: 1px solid var(--ink-2); border-radius: 50%; box-sizing: border-box; }
+.mv .mv-plan-said { position: absolute; left: 8px; right: 8px; background: var(--rg-mark); opacity: 0.35; }
+.mv .mv-plan-bar { position: absolute; left: 8px; right: 8px; bottom: 0; background: var(--ink); }
+.mv .mv-plan-day.is-ahead .mv-plan-bar { background: none; border: 1px solid var(--ink-3); border-bottom: 0; box-sizing: border-box; }
+.mv .mv-plan-day.is-miss .mv-plan-bar { background: var(--danger); }
+.mv .mv-plan-day.is-today .mv-plan-bar { background: var(--rg-ember); }
+.mv .mv-plan-note { margin-top: 24px; }
+.mv .mv-plan-note-form { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; }
+.mv .mv-in { color: var(--ok); }
+@media (max-width: 767px) {
+  .mv .mv-plan { gap: 0 2px; }
+  .mv .mv-plan-day { min-height: 72px; padding: 6px 4px 0; }
+  .mv .mv-plan-figure { display: none; }
+  .mv .mv-plan-said, .mv .mv-plan-bar { left: 4px; right: 4px; }
+  .mv .mv-plan-marks { left: 4px; top: 28px; }
+}
+/* A quiet text link that is a button: the month before and after on the plan. */
+.mv .mv-link { padding: 0; border: 0; background: none; font: inherit; letter-spacing: inherit; color: var(--ink-2); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.mv .mv-link:hover { color: var(--ink); }
+.mv .mv-link:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }

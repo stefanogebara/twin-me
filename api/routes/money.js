@@ -53,6 +53,8 @@ import { isConfigured, listBanks, startAuthorisation, createSession } from '../s
 import { answer as chatAnswer, answerStream as chatAnswerStream, act as chatAct } from '../services/money/chat.js';
 import { ahead as calendarAhead, learnEventSpend, addFeed as addCalendarFeed, removeFeed as removeCalendarFeed } from '../services/money/calendar.js';
 import { todayAllowance } from '../services/money/allowance.js';
+import { monthPlan, planLine } from '../services/money/plan.js';
+import { spendingRule } from '../services/money/spending.js';
 import { reconnectByAccount } from '../services/money/store.js';
 import { guessHome, savedHome, searchAreas, staticMap, saveHome } from '../services/money/home.js';
 import { encryptState } from '../services/encryption.js';
@@ -175,6 +177,23 @@ router.get('/recurring', async (req, res) => {
 router.get('/forecast', async (req, res) => {
   try { res.json({ success: true, data: await forecast(req.user.id) }); }
   catch (error) { log.error('forecast failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
+});
+
+/**
+ * The month as a calendar: what each day cost, what the coming days carry (charges,
+ * commitments, money in, diary days with a learned cost, tomorrow's range) and the notes
+ * the person wrote on days. ?month=YYYY-MM for another month; the projection's items only
+ * apply to the current one. Everything computed; the page draws cells.
+ */
+router.get('/plan', async (req, res) => {
+  try {
+    const now = new Date();
+    const month = /^\d{4}-\d{2}$/.test(String(req.query.month || '')) ? String(req.query.month) : null;
+    const start = month ? `${month}-01T00:00:00Z` : new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
+    const [cast, rows, facts] = await Promise.all([forecast(req.user.id), listTransactions(req.user.id, { since: start, limit: 1000 }), listFacts(req.user.id)]);
+    const plan = monthPlan({ forecast: cast, transactions: rows, facts, month, now, isSpending: spendingRule(facts) });
+    res.json({ success: true, data: { ...plan, line: planLine(plan, { now }) } });
+  } catch (error) { log.error('plan failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
 });
 
 router.get('/banks', async (req, res) => {
