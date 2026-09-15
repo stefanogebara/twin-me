@@ -320,9 +320,15 @@ export function calendarFromFacts(facts, { now = new Date() } = {}) {
   let meta = null;
   if (metaRow) { try { meta = JSON.parse(metaRow.value || 'null'); } catch { meta = null; } }
   const snapshot = (meta?.snapshot || []).filter((i) => i && ms(i.start) >= now.getTime());
-  /* Windows and week words are read from the slim past plus everything ahead. */
+  /* Windows and week words are read from the slim past plus everything ahead, and from the
+     notes the person wrote on days of the plan ("Trip to Valencia with Ana" on the 26th):
+     a note is a day-long event in their words, so a trip written down moves the week's
+     reading before any payment arrives. */
   const past = Array.isArray(meta?.past) ? meta.past : [];
-  const events = past.concat(meta?.snapshot || []);
+  const noted = rows
+    .filter((f) => f.kind === 'note' && /^day-\d{4}-\d{2}-\d{2}$/.test(String(f.subject || '')) && String(f.value || '').trim())
+    .map((f) => { const day = String(f.subject).slice(4); return { title: String(f.value).trim(), start: `${day}T12:00:00Z`, end: `${day}T12:00:00Z`, all_day: false, noted: true }; });
+  const events = past.concat(meta?.snapshot || [], noted);
   return {
     connected: Boolean(meta),
     learned_at: meta?.learned_at || null,
