@@ -112,7 +112,7 @@ beforeEach(() => {
   });
   store.getLatestVoiceConsentKind.mockResolvedValue(ok([{ kind: 'own_voice' }]));
   store.getVoiceState.mockResolvedValue(ok(null));
-  store.findOpenAsk.mockResolvedValue(ok({ id: ASK_ID, question: 'Who is "Teresa"? She mentioned them in conversation.' }));
+  store.findOpenAsk.mockResolvedValue(ok({ id: ASK_ID, question: 'Quem é "Teresa"? Ela falou dessa pessoa na conversa.' }));
   voiceService.isEnabled.mockReturnValue(true);
   voiceService.deleteVoice.mockResolvedValue({ success: true });
   llm.complete.mockResolvedValue(extraction());

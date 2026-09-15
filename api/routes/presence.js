@@ -767,7 +767,9 @@ router.post('/:id/asks/:factId', authenticateUser, async (req, res) => {
       return res.json({ success: true, dismissed: true });
     }
 
-    const parsedName = (ask.question.match(/Who is "(.+?)"\?/) || [])[1] || '';
+    // The card's question is written by the summarizer (presence-call.js) as
+    // `Quem é "<name>"? Ela falou dessa pessoa na conversa.`; older cards used the English form.
+    const parsedName = (ask.question.match(/(?:Quem é|Who is) "(.+?)"\?/) || [])[1] || '';
     const name = clip(req.body?.name || parsedName, 120).trim();
     const relation = clip(req.body?.relation, 80).trim();
     const calledBy = clip(req.body?.called_by, 120).trim();

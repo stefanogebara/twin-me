@@ -10,10 +10,10 @@ describe('deriveReadiness', () => {
     expect(r.score).toBe(0);
     expect(r.knows).toEqual([]);
     expect(r.missing).toEqual(expect.arrayContaining([
-      expect.stringContaining('Nobody in her family map'),
-      expect.stringContaining('first call will be small talk'),
-      expect.stringContaining('tone with her is not set'),
-      expect.stringContaining('voice note fills most of this'),
+      expect.stringContaining('Ninguém no mapa da família'),
+      expect.stringContaining('primeira conversa vai ser só conversa fiada'),
+      expect.stringContaining('tom com ela não está definido'),
+      expect.stringContaining('recado de voz de dois minutos preenche'),
     ]));
   });
 
@@ -33,10 +33,10 @@ describe('deriveReadiness', () => {
   it('flags a single mapped person as a confusion risk', () => {
     const r = deriveReadiness({ caredForName: 'Sofia', tone: 'x', counts: { ...base, people: 1, anchors: 2 }, hasIntro: true });
     expect(r.ready).toBe(false);
-    expect(r.missing.some((m) => m.includes('Only one person mapped'))).toBe(true);
+    expect(r.missing.some((m) => m.includes('Só uma pessoa no mapa'))).toBe(true);
   });
 
-  it('scores a fully seeded presence at 100 and speaks in plain language', () => {
+  it('scores a fully seeded presence at 100 and speaks plain Portuguese', () => {
     const r = deriveReadiness({
       caredForName: 'Sofia', tone: 'Storytelling',
       counts: { ...base, people: 4, anchors: 3, boundaries: 2, biography: 12, conversations: 2 },
@@ -44,9 +44,9 @@ describe('deriveReadiness', () => {
     });
     expect(r.score).toBe(100);
     expect(r.missing).toEqual([]);
-    expect(r.knows.join(' ')).toMatch(/4 people in Sofia's life/);
-    expect(r.knows.join(' ')).toMatch(/12 facts/);
-    expect(r.knows.join(' ')).toMatch(/2 past conversations/);
+    expect(r.knows.join(' ')).toMatch(/4 pessoas na vida da Sofia/);
+    expect(r.knows.join(' ')).toMatch(/12 fatos/);
+    expect(r.knows.join(' ')).toMatch(/2 conversas anteriores/);
   });
 
   it('never exceeds 100 and clamps each component', () => {

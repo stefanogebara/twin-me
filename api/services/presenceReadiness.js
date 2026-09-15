@@ -1,5 +1,5 @@
 /**
- * Presence readiness — pure scoring + plain-language mirror.
+ * Presence readiness — pure scoring + plain-language mirror, in Brazilian Portuguese.
  * No I/O: presence.js fetches the counts and calls deriveReadiness(); tests call it directly.
  *
  * Thresholds are deliberately low (a widow with one child must not be blocked):
@@ -17,28 +17,28 @@ export const READY_MIN_ANCHORS = 2;
  * @param {boolean} input.hasIntro  any biography fact exists (voice note or learned)
  */
 export function deriveReadiness({ caredForName, tone, counts, hasIntro }) {
-  const her = caredForName?.trim() || 'her';
+  const her = caredForName?.trim() || 'ela';
   const toneSet = Boolean(tone?.trim());
   const knows = [];
   const missing = [];
 
-  if (counts.people > 0) knows.push(`${counts.people} ${counts.people === 1 ? 'person' : 'people'} in ${her}'s life, and what she calls them`);
-  else missing.push('Nobody in her family map yet — the Presence cannot safely mention anyone');
-  if (counts.people === 1) missing.push('Only one person mapped — add at least one more so she is never confused');
+  if (counts.people > 0) knows.push(`${counts.people} ${counts.people === 1 ? 'pessoa' : 'pessoas'} na vida da ${her}, e como ela chama cada uma`);
+  else missing.push('Ninguém no mapa da família ainda: a Presença não pode falar de ninguém com segurança');
+  if (counts.people === 1) missing.push('Só uma pessoa no mapa: acrescente pelo menos mais uma, para ela nunca se confundir');
 
-  if (counts.anchors >= READY_MIN_ANCHORS) knows.push(`${counts.anchors} stories from her world to open conversations with`);
-  else missing.push(counts.anchors === 0 ? 'No stories from her world — the first call will be small talk' : 'Only one story anchor — add one more');
+  if (counts.anchors >= READY_MIN_ANCHORS) knows.push(`${counts.anchors} histórias do mundo dela para abrir a conversa`);
+  else missing.push(counts.anchors === 0 ? 'Nenhuma história do mundo dela: a primeira conversa vai ser só conversa fiada' : 'Só uma história: acrescente mais uma');
 
-  if (toneSet) knows.push(`How you are together: ${tone}`);
-  else missing.push('Your tone with her is not set');
+  if (toneSet) knows.push(`Como vocês são juntos: ${tone}`);
+  else missing.push('O seu tom com ela não está definido');
 
-  if (counts.boundaries > 0) knows.push(`${counts.boundaries} family-set ${counts.boundaries === 1 ? 'boundary' : 'boundaries'} beyond the defaults`);
-  else missing.push('No boundaries beyond the defaults (visits, money, medicine are always protected)');
+  if (counts.boundaries > 0) knows.push(`${counts.boundaries} ${counts.boundaries === 1 ? 'limite' : 'limites'} da família além dos padrões`);
+  else missing.push('Nenhum limite além dos padrões (visitas, dinheiro e remédios estão sempre protegidos)');
 
-  if (hasIntro) knows.push(`Background about her life in your own words${counts.biography > 1 ? ` (${counts.biography} facts)` : ''}`);
-  else missing.push('Nothing about her daily life yet — the two-minute voice note fills most of this');
+  if (hasIntro) knows.push(`O que você contou sobre a vida dela, nas suas palavras${counts.biography > 1 ? ` (${counts.biography} fatos)` : ''}`);
+  else missing.push('Nada sobre o dia a dia dela ainda: o recado de voz de dois minutos preenche quase tudo isso');
 
-  if (counts.conversations > 0) knows.push(`${counts.conversations} past ${counts.conversations === 1 ? 'conversation' : 'conversations'} she can build on`);
+  if (counts.conversations > 0) knows.push(`${counts.conversations} ${counts.conversations === 1 ? 'conversa anterior' : 'conversas anteriores'} para ela continuar`);
 
   const score = Math.min(100, Math.round(
     Math.min(counts.people, 3) / 3 * 30 +

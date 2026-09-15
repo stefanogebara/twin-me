@@ -338,6 +338,34 @@ describe('urgency', () => {
 });
 
 describe('background summary', () => {
+  it('writes the ask card for an unknown person in Portuguese', async () => {
+    llm.complete.mockResolvedValue({ content: JSON.stringify({ summary: 'x', her_recap: 'y', needs_family: [], learned_facts: [], unknown_people: ['Teresa'] }) });
+
+    const res = await complete({
+      transcript: [{ role: 'assistant', content: 'Oi' }, { role: 'user', content: 'A Teresa passou aqui.' }],
+      duration_seconds: 90,
+    });
+
+    expect(res.status).toBe(201);
+    await vi.waitFor(() => expect(store.addFacts).toHaveBeenCalled());
+    expect(store.addFacts.mock.calls[0][0]).toEqual([
+      expect.objectContaining({ confidence: 'ask', question: 'Quem é "Teresa"? Ela falou dessa pessoa na conversa.' }),
+    ]);
+  });
+
+  it('asks for the family summary in Brazilian Portuguese', async () => {
+    const res = await complete({
+      transcript: [{ role: 'assistant', content: 'Oi' }, { role: 'user', content: 'Fui à feira hoje.' }],
+      duration_seconds: 90,
+    });
+
+    expect(res.status).toBe(201);
+    await vi.waitFor(() => expect(llm.complete).toHaveBeenCalled());
+    const { system } = llm.complete.mock.calls[0][0];
+    expect(system).toMatch(/em português do Brasil/);
+    expect(system).not.toMatch(/in English/);
+  });
+
   it('logs when the empty-call summary cannot be saved', async () => {
     store.saveConversationSummary.mockResolvedValue(fail('connection reset'));
 
