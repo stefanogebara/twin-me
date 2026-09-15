@@ -22,6 +22,9 @@ import { markFor } from './carvedKinds';
 import { MARK_FOR, hasMark } from './markPaths';
 import { moneyAPI, euro, shortDay, bankLabel, BANKS, type MoneyAccount, type MoneyCalendar, type MoneyCategories, type MoneyDayStrip, type MoneyFact, type MoneyForecast, type MoneyQuestions, type MoneyToday, type MoneyMonth, type MoneyReading, type MoneyRecurring, type MoneySighting, type MoneyTransaction, type MoneyUsage } from '../../services/api/moneyAPI';
 import LedgerOrb from '../../components/LedgerOrb';
+import DayGlobe from './figures/DayGlobe';
+import Fortnight from './figures/Fortnight';
+import MonthPlanet from './figures/MonthPlanet';
 
 const CADENCE: Record<string, string> = { weekly: 'every week', biweekly: 'every two weeks', monthly: 'every month', quarterly: 'every quarter', yearly: 'every year' };
 const SOURCE: Record<string, string> = { phone: 'Your phone', bizum: 'Bizum', bankfeed: 'Santander', gmail: 'Gmail', statement: 'Statement' };
@@ -110,6 +113,8 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
   const [note, setNote] = useState<string | null>(null);
   /* Which bank is being opened, so the connecting orb sits on that bank's row and no other. */
   const [connecting, setConnecting] = useState<string | null>(null);
+  /* The globe opens the day's payments under the hero. */
+  const [dayOpen, setDayOpen] = useState(false);
   /* What the last Read now brought back, said on the Santander row itself. The note at the
      foot of the section sat below the fold, so a read that found nothing looked like a
      button that did nothing. */
@@ -445,7 +450,7 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
           {/* This month: one figure, one grey line, the band */}
           {view === 'today' ? (
           <section className="mv-hero" id="month">
-            <Stamp mark="cash" />
+            {/* the globe stands where the stamp stood */}
             <p className="mv-eyebrow">{monthLabel}</p>
             {!loaded ? (
               /* The first seconds of a new account are the month being read; an ellipsis
@@ -467,12 +472,47 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                     under it. Until a month can be read, the month figure leads as before. */}
                 {today && today.amount !== null ? (
                   <>
+                    {/* The day as a globe: the number inside it, ember filling from the bottom as
+                        the day is spent. Tapping it opens today's payments under the hero. */}
+                    {(() => {
+                      const mark = forecast?.days?.days.find((d) => d.today);
+                      const spentToday = mark ? mark.total : 0;
+                      return (
+                        <div className="mv-globe-slot">
+                          <DayGlobe
+                            left={today.over ? -(today.free ?? 0) : today.amount}
+                            spent={spentToday}
+                            over={Boolean(today.over)}
+                            label={`${today.over ? 'Over today' : `${euro(today.amount)} left today`}, ${euro(spentToday)} spent. Tap to see the payments.`}
+                            onTap={() => setDayOpen((o) => !o)}
+                            open={dayOpen}
+                          />
+                        </div>
+                      );
+                    })()}
                     <h1>{today.over ? 'Nothing today.' : `${euro(today.amount)} today.`}</h1>
                     {/* One line: the basis. The month lives in the band's two labels below. */}
                     {today.sentence ? <p className="mv-sub">{today.sentence}</p> : null}
                     {/* The real thing under it: what the bank says is in the account, read with you
                         present, named as available and never as safe to spend. */}
                     {balanceLine ? <p className="mv-sub">{balanceLine}</p> : null}
+                    {dayOpen ? (() => {
+                      const todayKey = new Date().toISOString().slice(0, 10);
+                      const rows = ledger.filter((t) => t.occurred_at.slice(0, 10) === todayKey && Number(t.amount) < 0);
+                      return rows.length ? (
+                        <ul className="mv-list mv-day-rows" aria-label="Today's payments">
+                          {rows.map((t) => (
+                            <li key={t.id} className="mv-item mv-item--tight">
+                              <span className="mv-item-text">
+                                <span className="mv-item-title">{t.merchant_name || t.merchant_raw || 'Unknown'}</span>
+                                <span className="mv-item-sub">{new Date(t.occurred_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</span>
+                              </span>
+                              <span className="mv-item-end">{euro(Math.abs(Number(t.amount)))}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : <p className="mv-sub">Nothing paid yet today.</p>;
+                    })() : null}
                   </>
                 ) : (
                   <>
@@ -519,7 +559,7 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                       : `Likely ${euro(Math.max(forecast.projected_p50, forecast.spent + forecast.committed))} by the ${last}${ordinalSuffix(last)}${projectable ? `, up to ${euro(forecast.projected_p90)}` : ''}`}
                   </span>
                 </div>
-                {forecast.days && forecast.days.days.length ? <DayStrip strip={forecast.days} tomorrow={forecast.tomorrow ?? null} /> : null}
+                {forecast.days && forecast.days.days.length ? <Fortnight strip={forecast.days} tomorrow={forecast.tomorrow ?? null} /> : null}
                 {stillToCome(forecast).length ? (
                   <>
                   <p className="mv-sub mv-ahead-head">Still to come this month</p>
@@ -546,7 +586,11 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
               this month to today's date against the same days of last month. */}
           {view === 'month' ? (
           <section className="mv-hero" id="month-title">
-            <Stamp mark="diary" />
+            {(() => {
+              const key = (forecast?.month || new Date().toISOString()).slice(0, 7);
+              const rows = ledger.filter((t) => t.occurred_at.slice(0, 7) === key);
+              return rows.length ? <div className="mv-planet-slot"><MonthPlanet rows={rows} size={220} label={`${monthLabel} as a globe of payments`} /></div> : null;
+            })()}
             <p className="mv-eyebrow">Month</p>
             <h1>{`${monthLabel}, ${forecast ? euro(forecast.spent) : (months[0] ? euro(months[0].spent) : '\u2026')}${incomeEdge ? ` of ${euro(incomeEdge)}` : ''}.`}</h1>
             {incomeEdge ? <p className="mv-sub">{`${euro(incomeEdge)} is what you said comes in${today?.keep ? `, ${euro(today.keep)} of it to keep` : ''}.`}</p> : null}
@@ -1029,53 +1073,6 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
   );
 }
 
-/**
- * The last thirty days as marks under the band: a bar for what each day cost, and behind
- * it, on the days the twin had said a range the night before, that range as a grey segment.
- * A day that broke its range is drawn in the danger ink. Every value is in the title of
- * its column and in the one grey line under the strip, so the figure is never the only
- * place a number lives. Built from elements, not SVG, so the register's tokens resolve.
- */
-function DayStrip({ strip, tomorrow }: { strip: MoneyDayStrip; tomorrow: MoneyForecast['tomorrow'] }) {
-  const max = Math.max(1, ...strip.days.map((d) => Math.max(d.total, d.said ? d.said.high : 0)));
-  const h = (v: number) => `${Math.max(0, Math.min(100, (v / max) * 100))}%`;
-  const dayName = (iso: string) => new Date(`${iso}T12:00:00Z`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
-  /* The day under the finger says its figure in the caption; the largest day carries its
-     figure on the bar, so the strip is never a shape without a number. */
-  const [picked, setPicked] = useState<string | null>(null);
-  const biggest = strip.days.reduce((m, d) => (d.total > (m?.total ?? 0) ? d : m), null as MoneyDayStrip['days'][number] | null);
-  const day = picked ? strip.days.find((d) => d.day === picked) : null;
-  const line = day
-    ? `${dayName(day.day)}${day.today ? ', so far' : ''}: ${euro(day.total)}${day.count ? `, ${day.count} ${day.count === 1 ? 'payment' : 'payments'}` : ''}${day.said ? `. It said ${euro(day.said.low)} to ${euro(day.said.high)}, and ${day.hit ? 'held' : 'broke'}.` : '.'}`
-    : [
-      `${euro(strip.total)} over the last ${strip.days.length - 1} days, on ${strip.days_with_spend} of them.`,
-      strip.said_days ? `The range was given on ${strip.said_days} ${strip.said_days === 1 ? 'day' : 'days'} and held on ${strip.held}.` : '',
-      tomorrow ? (tomorrow.value > 0 ? `Tomorrow: usually ${euro(tomorrow.value)}, up to ${euro(tomorrow.high)}.` : `Tomorrow is usually quiet, up to ${euro(tomorrow.high)}.`) : '',
-    ].filter(Boolean).join(' ');
-  return (
-    <figure className="mv-strip" aria-label="The last thirty days" onMouseLeave={() => setPicked(null)}>
-      <div className="mv-strip-days">
-        {strip.days.map((d) => (
-          <button
-            type="button"
-            key={d.day}
-            className={`mv-strip-day${d.today ? ' mv-strip-day--today' : ''}${d.hit === false ? ' mv-strip-day--miss' : ''}${picked === d.day ? ' is-picked' : ''}`}
-            aria-label={`${dayName(d.day)}: ${euro(d.total)}`}
-            onMouseEnter={() => setPicked(d.day)}
-            onFocus={() => setPicked(d.day)}
-            onClick={() => setPicked(picked === d.day ? null : d.day)}
-          >
-            {d.said ? <i className="mv-strip-said" style={{ bottom: h(d.said.low), height: h(d.said.high - d.said.low) }} /> : null}
-            <b className="mv-strip-bar" style={{ height: h(d.total) }} />
-            {biggest && d.day === biggest.day && d.total > 0 ? <span className="mv-strip-figure mv-figures">{euro(d.total)}</span> : null}
-          </button>
-        ))}
-      </div>
-      <div className="mv-band-labels"><span>{shortDay(strip.from)}</span><span>Today</span></div>
-      <figcaption className="mv-sub">{line}</figcaption>
-    </figure>
-  );
-}
 
 /** The payments a reading stands on, and how many: shared by the lead and the rows. */
 function ReadingBody({ r }: { r: MoneyReading }) {

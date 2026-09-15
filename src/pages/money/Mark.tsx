@@ -7,11 +7,12 @@
  * Never a redrawn logo.
  */
 import React from 'react';
-import { PATHS } from './markPaths';
+import { PATHS, FILE_MARKS } from './markPaths';
 
 /** The mark alone, 16px, in the current text colour. Decorative: the name sits beside it. */
 export default function Mark({ name, size = 16 }: { name: string; size?: number }) {
   const d = PATHS[name];
+  if (!d && FILE_MARKS[name]) return <img src={FILE_MARKS[name]} width={size} height={size} alt="" aria-hidden="true" onError={(e) => { (e.currentTarget as HTMLImageElement).hidden = true; }} />;
   if (!d) return null;
   return (
     <svg viewBox="0 0 24 24" width={size} height={size} aria-hidden="true" focusable="false">
