@@ -65,6 +65,8 @@ import {
   recordVoiceSample,
   recordVoiceRevoked,
   deletePresence,
+  listRecentCalls,
+  getOwnerWhatsApp,
 } from '../services/presenceStore.js';
 import { createLogger } from '../services/logger.js';
 import { deriveReadiness } from '../services/presenceReadiness.js';
@@ -74,6 +76,41 @@ const router = express.Router();
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const PATCHABLE_FIELDS = ['cared_for_name', 'relationship', 'caller_name', 'tone', 'status'];
+// Her phone and the call schedule (Phase 1): validated apart from the text fields.
+const SCHEDULE_FIELDS = ['elder_phone', 'call_hour', 'call_days', 'call_timezone'];
+const E164_RE = /^\+[1-9][0-9]{7,14}$/;
+const TIMEZONES = new Set(typeof Intl.supportedValuesOf === 'function' ? Intl.supportedValuesOf('timeZone') : []);
+
+/** "+55 (11) 99999-0000" -> "+5511999990000"; null clears; anything else is invalid. */
+function parseSchedulePatch(body) {
+  const patch = {};
+  if (body.elder_phone !== undefined) {
+    if (body.elder_phone === null || body.elder_phone === '') {
+      patch.elder_phone = null;
+    } else {
+      const digits = String(body.elder_phone).replace(/[^\d+]/g, '');
+      const phone = digits.startsWith('+') ? `+${digits.slice(1).replace(/\+/g, '')}` : `+${digits}`;
+      if (!E164_RE.test(phone)) return { error: 'Invalid phone: use the international form, +55 11 99999 0000' };
+      patch.elder_phone = phone;
+    }
+  }
+  if (body.call_hour !== undefined) {
+    const hour = Number(body.call_hour);
+    if (!Number.isInteger(hour) || hour < 0 || hour > 23) return { error: 'Invalid hour' };
+    patch.call_hour = hour;
+  }
+  if (body.call_days !== undefined) {
+    const days = Array.isArray(body.call_days) ? [...new Set(body.call_days.map(Number))].sort((a, b) => a - b) : null;
+    if (!days || days.length === 0 || days.some((d) => !Number.isInteger(d) || d < 0 || d > 6)) return { error: 'Invalid days' };
+    patch.call_days = days;
+  }
+  if (body.call_timezone !== undefined) {
+    const tz = String(body.call_timezone);
+    if (!TIMEZONES.has(tz)) return { error: 'Invalid timezone' };
+    patch.call_timezone = tz;
+  }
+  return { patch };
+}
 const VALID_STATUSES = new Set(['draft', 'active', 'paused', 'deleted']);
 const VALID_CONSENT_KINDS = new Set(['own_voice', 'own_voice_revoked', 'ai_disclosure']);
 const VALID_FACT_KINDS = new Set(['tone', 'language', 'boundary', 'anchor', 'biography', 'care_signal']);
@@ -243,6 +280,11 @@ router.patch('/:id', authenticateUser, async (req, res) => {
         patch[field] = clip(req.body[field], field === 'relationship' ? 40 : field === 'tone' ? 80 : 120);
       }
     }
+    if (SCHEDULE_FIELDS.some((field) => req.body?.[field] !== undefined)) {
+      const schedule = parseSchedulePatch(req.body);
+      if (schedule.error) return res.status(400).json({ success: false, error: schedule.error });
+      Object.assign(patch, schedule.patch);
+    }
     if (Object.keys(patch).length === 0) {
       return res.status(400).json({ success: false, error: 'No patchable fields provided' });
     }
@@ -393,8 +435,15 @@ router.get('/:id/overview', authenticateUser, async (req, res) => {
     const owned = await loadOwned(req, res);
     if (!owned) return;
 
-    const { presence, people, voice, facts, notes, conversations, error } = await getOverview(owned.id);
+    const [overview, calls, whatsapp] = await Promise.all([
+      getOverview(owned.id),
+      listRecentCalls(owned.id, 10),
+      getOwnerWhatsApp(req.user.id),
+    ]);
+    const { presence, people, voice, facts, notes, conversations, error } = overview;
     if (error) throw error;
+    if (calls.error) throw calls.error;
+    if (whatsapp.error) throw whatsapp.error;
 
     res.json({
       success: true,
@@ -404,6 +453,12 @@ router.get('/:id/overview', authenticateUser, async (req, res) => {
       facts: facts.data || [],
       notes: notes.data || [],
       conversations: conversations.data || [],
+      calls: calls.data || [],
+      // The family member's own number, never the whole of it back to the page.
+      whatsapp: {
+        linked: Boolean(whatsapp.data?.channel_id),
+        phone_last4: whatsapp.data?.channel_id ? String(whatsapp.data.channel_id).slice(-4) : null,
+      },
     });
   } catch (err) {
     log.error('GET overview failed', { error: err.message });

@@ -32,7 +32,7 @@ const { store, log, voiceService, llm } = vi.hoisted(() => {
     'supersedeFamilyIntroduction', 'findOpenAsk', 'dismissFact', 'supersedeFact', 'queueNote',
     'getConversationTranscript', 'recordConsent', 'appendConsent',
     'getLatestVoiceConsentKind', 'getVoiceState', 'getClonedVoiceId',
-    'recordVoiceSample', 'recordVoiceRevoked', 'deletePresence',
+    'recordVoiceSample', 'recordVoiceRevoked', 'deletePresence', 'listRecentCalls', 'getOwnerWhatsApp',
   ];
   return {
     store: Object.fromEntries(names.map((name) => [name, vi.fn()])),
@@ -577,6 +577,63 @@ describe('POST /:id/asks/:factId — the card closes only after its answer is sa
     const order = [store.addPeople, store.addFacts, store.supersedeFact].map((fn) => fn.mock.invocationCallOrder[0]);
     expect(order).toEqual([...order].sort((a, b) => a - b));
     expect(store.supersedeFact).toHaveBeenCalledWith(ASK_ID);
+  });
+});
+
+describe('PATCH /:id — her phone and the call schedule', () => {
+  it('saves her phone, hour, days and timezone', async () => {
+    store.updatePresence.mockResolvedValue(ok({ ...OWNED, elder_phone: '+5511999990000', call_hour: 10 }));
+
+    const res = await api('patch', `/${PRESENCE_ID}`).send({ elder_phone: '+55 (11) 99999-0000', call_hour: 10, call_days: [1, 2, 3, 4, 5], call_timezone: 'America/Sao_Paulo' });
+
+    expect(res.status).toBe(200);
+    expect(store.updatePresence).toHaveBeenCalledWith(PRESENCE_ID, expect.objectContaining({
+      elder_phone: '+5511999990000', call_hour: 10, call_days: [1, 2, 3, 4, 5], call_timezone: 'America/Sao_Paulo',
+    }));
+  });
+
+  it('clears her phone with null', async () => {
+    store.updatePresence.mockResolvedValue(ok(OWNED));
+
+    const res = await api('patch', `/${PRESENCE_ID}`).send({ elder_phone: null });
+
+    expect(res.status).toBe(200);
+    expect(store.updatePresence).toHaveBeenCalledWith(PRESENCE_ID, expect.objectContaining({ elder_phone: null }));
+  });
+
+  it.each([
+    [{ elder_phone: '11 99999' }, 'phone'],
+    [{ call_hour: 24 }, 'hour'],
+    [{ call_days: [7] }, 'days'],
+    [{ call_days: [] }, 'days'],
+    [{ call_timezone: 'Mars/Olympus' }, 'timezone'],
+  ])('answers 400 for %j', async (body) => {
+    const res = await api('patch', `/${PRESENCE_ID}`).send(body);
+
+    expect(res.status).toBe(400);
+    expect(store.updatePresence).not.toHaveBeenCalled();
+  });
+});
+
+describe('GET /:id/overview — the calls and the family\'s WhatsApp', () => {
+  it('returns the recent calls and whether WhatsApp is linked, with the number\'s last digits only', async () => {
+    store.listRecentCalls.mockResolvedValue(ok([{ id: 'call-1', scheduled_for: '2026-09-15T13:00:00Z', attempt: 1, status: 'completed', direction: 'outbound', failure_reason: null, conversation_id: 'c-1' }]));
+    store.getOwnerWhatsApp.mockResolvedValue(ok({ channel_id: '+5511988887777', preferences: {} }));
+
+    const res = await api('get', `/${PRESENCE_ID}/overview`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.calls).toEqual([expect.objectContaining({ id: 'call-1', status: 'completed' })]);
+    expect(res.body.whatsapp).toEqual({ linked: true, phone_last4: '7777' });
+  });
+
+  it('says WhatsApp is not linked when there is no channel', async () => {
+    store.listRecentCalls.mockResolvedValue(ok([]));
+    store.getOwnerWhatsApp.mockResolvedValue(ok(null));
+
+    const res = await api('get', `/${PRESENCE_ID}/overview`);
+
+    expect(res.body.whatsapp).toEqual({ linked: false, phone_last4: null });
   });
 });
 
