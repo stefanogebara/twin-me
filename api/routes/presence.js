@@ -39,6 +39,7 @@ import {
   getResumeDetails,
   getOverview,
   listActivePeople,
+  listActiveFacts,
   replaceActivePeople,
   addPeople,
   enrichPerson,
@@ -133,6 +134,12 @@ async function loadOwned(req, res) {
 }
 
 const clip = (value, max) => String(value ?? '').slice(0, max);
+
+/** Identity of a fact for de-duplication: kind, question and answer, case- and space-insensitive. */
+function factKey({ kind, question, answer }) {
+  const norm = (v) => String(v || '').normalize('NFC').trim().toLowerCase();
+  return JSON.stringify([norm(kind), norm(question), norm(answer)]);
+}
 
 /** Find an existing person whose name is the same as, or a whole-word part of, the candidate. */
 function findSamePerson(people, candidateName) {
@@ -543,11 +550,18 @@ router.post('/:id/about', authenticateUser, aboutUpload.single('audio'), async (
       if (addError) throw addError;
     }
 
+    // A second description re-extracts what the first one already stored. Only what is
+    // new is inserted; the introduction always is, since it supersedes the older one.
+    const { data: knownFacts, error: knownError } = await listActiveFacts(owned.id);
+    if (knownError) throw knownError;
+    const known = new Set((knownFacts || []).map(factKey));
     const factRows = [
       { kind: 'biography', question: 'Family introduction', answer: transcript.slice(0, 4000) },
-      ...extracted.anchors.map((a) => ({ kind: 'anchor', question: a.kind === 'other' ? 'From her world' : `A ${a.kind} that matters`, answer: a.value })),
-      ...extracted.boundaries.map((b) => ({ kind: 'boundary', question: 'From the family', answer: b })),
-      ...extracted.facts.map((f) => ({ kind: 'biography', question: f.question, answer: f.answer })),
+      ...[
+        ...extracted.anchors.map((a) => ({ kind: 'anchor', question: a.kind === 'other' ? 'From her world' : `A ${a.kind} that matters`, answer: a.value })),
+        ...extracted.boundaries.map((b) => ({ kind: 'boundary', question: 'From the family', answer: b })),
+        ...extracted.facts.map((f) => ({ kind: 'biography', question: f.question, answer: f.answer })),
+      ].filter((r) => !known.has(factKey(r))),
     ];
     const { data: savedFacts, error: factError } = await addFacts(
       factRows.map((r) => ({ presence_id: owned.id, source: 'family_onboarding', confidence: 'committed', ...r })),

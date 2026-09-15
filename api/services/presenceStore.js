@@ -235,6 +235,12 @@ export async function saveFact(presenceId, { kind, question, answer, source }) {
     .single();
 }
 
+/** The active facts, unordered: what is already known, so a re-description adds only what is new. */
+export async function listActiveFacts(presenceId) {
+  return supabaseAdmin.from('presence_facts')
+    .select('kind, question, answer').eq('presence_id', presenceId).eq('status', 'active');
+}
+
 /** Insert one fact or many; returns each row's created_at (one insert shares one timestamp). */
 export async function addFacts(rowOrRows) {
   return supabaseAdmin.from('presence_facts').insert(rowOrRows).select('created_at');

@@ -28,7 +28,7 @@ const { store, log, voiceService, llm } = vi.hoisted(() => {
   const names = [
     'findLivePresenceById', 'getLatestPresenceForOwner', 'createPresence', 'updatePresence',
     'setCallToken', 'setPresenceTone', 'getReadinessSources', 'getResumeDetails', 'getOverview',
-    'listActivePeople', 'replaceActivePeople', 'addPeople', 'enrichPerson', 'saveFact', 'addFacts',
+    'listActivePeople', 'listActiveFacts', 'replaceActivePeople', 'addPeople', 'enrichPerson', 'saveFact', 'addFacts',
     'supersedeFamilyIntroduction', 'findOpenAsk', 'dismissFact', 'supersedeFact', 'queueNote',
     'getConversationTranscript', 'recordConsent', 'appendConsent', 'getLatestVoiceConsent',
     'getLatestVoiceConsentKind', 'getVoiceState', 'getClonedVoiceId', 'recordVoiceStatus',
@@ -100,6 +100,7 @@ beforeEach(() => {
   for (const fn of Object.values(store)) fn.mockResolvedValue(ok(null));
   store.findLivePresenceById.mockResolvedValue(ok(OWNED));
   store.listActivePeople.mockResolvedValue(ok([]));
+  store.listActiveFacts.mockResolvedValue(ok([]));
   store.addFacts.mockResolvedValue(ok([{ created_at: '2026-09-11T10:00:00.000001+00:00' }]));
   store.getReadinessSources.mockResolvedValue({
     people: { count: 0, error: null }, facts: ok([]), notes: { count: 0, error: null },
@@ -178,6 +179,32 @@ describe('POST /:id/facts — one fact per (kind, question)', () => {
     const res = await api('post', `/${PRESENCE_ID}/facts`).send({ kind: 'tone', question: 'q', answer: 'a' });
 
     expect(res.status).toBe(500);
+  });
+});
+
+describe('POST /:id/about — describing her again does not duplicate what is known', () => {
+  it('inserts only the introduction when every extracted fact already exists', async () => {
+    store.listActiveFacts.mockResolvedValue(ok([
+      { kind: 'anchor', question: 'A place that matters', answer: 'the beach house in ubatuba ' },
+      { kind: 'boundary', question: 'From the family', answer: 'Never mention the hospital' },
+    ]));
+
+    const res = await api('post', `/${PRESENCE_ID}/about`).send({ text: 'She loves the beach.' });
+
+    expect(res.status).toBe(201);
+    const rows = store.addFacts.mock.calls[0][0];
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ kind: 'biography', question: 'Family introduction' });
+    expect(res.body.saved.facts).toBe(1);
+  });
+
+  it('answers 500 and inserts nothing when the known facts cannot be read', async () => {
+    store.listActiveFacts.mockResolvedValue(fail('connection reset'));
+
+    const res = await api('post', `/${PRESENCE_ID}/about`).send({ text: 'She loves the beach.' });
+
+    expect(res.status).toBe(500);
+    expect(store.addFacts).not.toHaveBeenCalled();
   });
 });
 

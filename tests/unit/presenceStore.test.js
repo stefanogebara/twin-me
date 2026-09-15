@@ -336,6 +336,19 @@ describe('presenceStore', () => {
     });
   });
 
+  describe('listActiveFacts', () => {
+    it('reads kind, question and answer of the active facts', async () => {
+      await store.listActiveFacts(PRESENCE_ID);
+
+      expect(calls[0].table).toBe('presence_facts');
+      expect(calls[0].ops).toEqual([
+        ['select', 'kind, question, answer'],
+        ['eq', 'presence_id', PRESENCE_ID],
+        ['eq', 'status', 'active'],
+      ]);
+    });
+  });
+
   describe('supersedeFamilyIntroduction', () => {
     it('retires only active introductions written before the given time', async () => {
       await store.supersedeFamilyIntroduction(PRESENCE_ID, '2026-09-11T10:00:00.000001+00:00');
