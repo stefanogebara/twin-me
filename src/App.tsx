@@ -58,6 +58,7 @@ const loadMoneyPage = () => import("./pages/MoneyPage");
 const MoneyV2Page = lazy(() => import("./pages/money/MoneyV2Page"));
 const MoneySetupPage = lazy(() => import("./pages/money/MoneySetupPage"));
 const MoneyChatPage = lazy(() => import("./pages/money/MoneyChatPage"));
+const PlanPage = lazy(() => import("./pages/money/PlanPage"));
 const loadMoneyInsightsPage = () => import("./pages/MoneyInsightsPage");
 
 const Settings = lazy(() => import("./pages/Settings"));
@@ -400,6 +401,13 @@ const App = () => {
               <ProtectedRoute>
                 <ErrorBoundary>
                   <Suspense fallback={<Wait line="" />}><MoneyV2Page view="month" /></Suspense>
+                </ErrorBoundary>
+              </ProtectedRoute>
+            } />
+            <Route path="/money/plan" element={
+              <ProtectedRoute>
+                <ErrorBoundary>
+                  <Suspense fallback={<Wait line="" />}><PlanPage /></Suspense>
                 </ErrorBoundary>
               </ProtectedRoute>
             } />

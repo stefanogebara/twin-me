@@ -35,6 +35,19 @@ export type MoneyDayMark = {
   said: { value: number; low: number; high: number } | null; hit: boolean | null;
 };
 export type MoneyDayStrip = { from: string; to: string; days: MoneyDayMark[]; total: number; days_with_spend: number; said_days: number; held: number };
+/** The month as a calendar (services/money/plan.js): every day a cell, computed. */
+export type MoneyPlanItem = { kind: 'charge' | 'commitment' | 'income' | 'calendar'; label: string; amount: number; cadence?: string | null; said?: boolean; confidence?: number | null };
+export type MoneyPlanCell = {
+  day: string; dom: number; weekday: number; past: boolean; today: boolean;
+  spent: number; count: number; received: number; said: { low: number; high: number } | null; hit: boolean | null;
+  expected: number; items: MoneyPlanItem[]; rows: { id: string; merchant: string | null; amount: number; occurred_at: string }[];
+  note: { id: string | null; text: string } | null;
+};
+export type MoneyPlan = {
+  month: string; days_in_month: number; first_weekday: number; today: string | null; cells: MoneyPlanCell[];
+  totals: { spent_to_day: number; expected_rest: number; income_ahead: number; days_ahead: number };
+  peak: { day: string; amount: number } | null; line: string;
+};
 export type MoneyMonth = {
   month: string; spent: number; spent_to_day?: number; received: number; lines: number; days_covered: number; days_in_month: number; complete: boolean;
   biggest: { id: string; merchant: string; amount: number } | null;
@@ -125,6 +138,10 @@ export const moneyAPI = {
     authFetch(`/money/readings/${id}/verdict`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ verdict }) }).then((r) => json<MoneyReading>(r)),
   budget: () => authFetch('/money/bank/budget').then((r) => json<MoneyBudget>(r)),
   today: () => authFetch('/money/today').then((r) => json<MoneyToday>(r)),
+  plan: (month?: string | null) => authFetch(`/money/plan${month ? `?month=${encodeURIComponent(month)}` : ''}`).then((r) => json<MoneyPlan>(r)),
+  /** A note on a day, in the person's words: a fact the ledger reads with everything else. */
+  noteDay: (day: string, text: string) =>
+    authFetch('/money/questions/answer', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ questionId: null, kind: 'note', subject: `day-${day.slice(0, 10)}`, value: text }) }).then((r) => json<{ id?: string }>(r)),
   usage: () => authFetch('/money/usage').then((r) => json<MoneyUsage>(r)),
   categories: (month?: string) => authFetch(`/money/categories${month ? `?month=${encodeURIComponent(month)}` : ''}`).then((r) => json<MoneyCategories>(r)),
   places: () => authFetch('/money/places').then((r) => json<MoneyPlace[]>(r)),
