@@ -10,7 +10,9 @@
  * Schedule: 0 * * * * (vercel.json). Security: CRON_SECRET.
  * Cost: one query when nothing is due; no LLM call here. PRESENCE_CALLS_ENABLED
  * gates dialing (off by default), MAX_DIALS_PER_RUN caps a runaway.
- * Env: ELEVENLABS_PRESENCE_AGENT_ID, ELEVENLABS_PRESENCE_PHONE_NUMBER_ID.
+ * Env: ELEVENLABS_PRESENCE_AGENT_ID, ELEVENLABS_PRESENCE_PHONE_NUMBER_ID, and
+ * ELEVENLABS_PRESENCE_PHONE_PROVIDER ('sip_trunk' by default, 'twilio' for a
+ * number imported through ElevenLabs' native Twilio integration).
  */
 
 import express from 'express';
@@ -73,6 +75,7 @@ export async function dialDuePresences(now = new Date()) {
       toNumber: presence.elder_phone,
       overrides: overridesFor(brief),
       dynamicVariables: { presence_id: presence.id },
+      provider: process.env.ELEVENLABS_PRESENCE_PHONE_PROVIDER === 'twilio' ? 'twilio' : 'sip_trunk',
     });
     const row = {
       presence_id: presence.id,

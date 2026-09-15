@@ -133,4 +133,16 @@ describe('voiceService.startOutboundCall', () => {
 
     await expect(service.startOutboundCall(input)).resolves.toEqual({ success: false, error: 'invalid to_number' });
   });
+
+  // A Brazilian number a CPF can buy (Zadarma, Directcall, Vono, Telnyx) reaches
+  // ElevenLabs as a SIP trunk, which has its own outbound endpoint and returns a
+  // SIP call id instead of a Twilio call sid.
+  it('dials through the SIP-trunk endpoint for a SIP-trunk number', async () => {
+    axios.post.mockResolvedValue({ data: { success: true, message: 'ok', conversation_id: 'conv-2', sip_call_id: 'sip-1' } });
+
+    await expect(service.startOutboundCall({ ...input, provider: 'sip_trunk' }))
+      .resolves.toEqual({ success: true, conversationId: 'conv-2', callSid: 'sip-1' });
+    expect(axios.post.mock.calls[0][0]).toBe('https://api.elevenlabs.io/v1/convai/sip-trunk/outbound-call');
+    expect(axios.post.mock.calls[0][1]).toMatchObject({ agent_id: 'agent-1', agent_phone_number_id: 'phone-1', to_number: '+5511999990000' });
+  });
 });

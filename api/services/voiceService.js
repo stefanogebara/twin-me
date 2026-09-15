@@ -246,18 +246,21 @@ class VoiceService {
   }
 
   /**
-   * Place a phone call from the agent through ElevenLabs' native Twilio
-   * integration. The brief travels as overrides (the agent must allow them in
-   * its Security tab) and the presence id as a dynamic variable, which the
-   * post-call webhook hands back.
+   * Place a phone call from the agent through the provider the number was
+   * imported with: ElevenLabs' native Twilio integration, or a SIP trunk (every
+   * Brazilian number an individual can buy arrives that way — Twilio's +55
+   * numbers are sold to companies only). The brief travels as overrides (the
+   * agent must allow them in its Security tab) and the presence id as a dynamic
+   * variable, which the post-call webhook hands back.
    */
-  async startOutboundCall({ agentId, phoneNumberId, toNumber, overrides, dynamicVariables }) {
+  async startOutboundCall({ agentId, phoneNumberId, toNumber, overrides, dynamicVariables, provider = 'twilio' }) {
     if (!this.enabled) {
       throw new Error('Voice service not available - API key not configured');
     }
+    const path = provider === 'sip_trunk' ? 'convai/sip-trunk/outbound-call' : 'convai/twilio/outbound-call';
     try {
       const response = await axios.post(
-        `${this.baseUrl}/convai/twilio/outbound-call`,
+        `${this.baseUrl}/${path}`,
         {
           agent_id: agentId,
           agent_phone_number_id: phoneNumberId,
@@ -274,7 +277,8 @@ class VoiceService {
       if (!data.success) {
         return { success: false, error: data.message || 'ElevenLabs refused the call' };
       }
-      return { success: true, conversationId: data.conversation_id, callSid: data.callSid };
+      // Twilio answers with callSid, a SIP trunk with sip_call_id; both name the leg.
+      return { success: true, conversationId: data.conversation_id, callSid: data.callSid || data.sip_call_id || null };
     } catch (error) {
       log.error('Outbound call request failed:', error);
       return { success: false, error: error.response?.data?.detail || error.message };

@@ -98,10 +98,21 @@ describe('cron presence-calls', () => {
       toNumber: '+5511999990000',
       overrides: { agent: { prompt: { prompt: 'PROMPT' }, first_message: 'Oi, Lurdes!', language: 'pt-br' } },
       dynamicVariables: { presence_id: 'p-1' },
+      // Every Brazilian number an individual can buy reaches ElevenLabs as a SIP trunk.
+      provider: 'sip_trunk',
     });
     expect(store.createCall).toHaveBeenCalledWith(expect.objectContaining({
       presence_id: 'p-1', attempt: 1, status: 'dialing', direction: 'outbound', provider_conversation_id: 'conv-1', call_sid: 'CA1',
     }));
+  });
+
+  it('dials through the provider the number was imported with', async () => {
+    process.env.ELEVENLABS_PRESENCE_PHONE_PROVIDER = 'sip_trunk';
+
+    await run();
+
+    expect(voiceService.startOutboundCall.mock.calls[0][0]).toMatchObject({ provider: 'sip_trunk' });
+    delete process.env.ELEVENLABS_PRESENCE_PHONE_PROVIDER;
   });
 
   it('sends her cloned voice when the brief has one', async () => {
