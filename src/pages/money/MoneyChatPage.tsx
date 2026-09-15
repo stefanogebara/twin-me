@@ -24,6 +24,7 @@ import MoneyNav, { type MoneyNavLink } from './MoneyNav';
 import { MONEY_NAV } from './navLinks';
 import { moneyAPI, moneyChat, euro, shortDay, type ChatFigure, type ChatReceipt, type ChatTurn , type ChatAction } from '../../services/api/moneyAPI';
 import { Figure } from './MoneyFigures';
+import LedgerOrb from '../../components/LedgerOrb';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 const NAV: MoneyNavLink[] = MONEY_NAV('ask');
@@ -59,17 +60,18 @@ async function shrink(file: File): Promise<Blob> {
 }
 
 /**
- * The ledger at work, in view: the step it is on with a slow pulse, and, once the model
- * starts reasoning, its train of thought as it is written, the newest lines kept in view.
- * When the answer starts, this gives way to it and the thought folds into How it got there.
+ * The ledger at work, in view: the orb in the state of the work (searching while the rows
+ * are read, solving once the model reasons), the step in words beside it, and the train of
+ * thought as it is written, the newest lines kept in view. When the answer starts, this
+ * gives way to it and the thought folds into How it got there.
  */
 function Pending({ status, thinking, still }: { status: string; thinking?: string; still: boolean }) {
   const thought = (thinking || '').trim();
   return (
     <div className="mc-pending" aria-live="polite">
       <p className="mc-line-text is-pending">
+        <LedgerOrb state={thought ? 'solving' : 'searching'} size={20} paused={still} label="" />
         <span>{thought ? 'Working it out' : status}</span>
-        <span className={`mc-dots${still ? ' is-still' : ''}`} aria-hidden="true"><i /><i /><i /></span>
       </p>
       {thought ? (
         <motion.div className="mc-thinking" initial={still ? false : { opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.28 }}>
@@ -185,7 +187,7 @@ function TracePanel({ steps, reading }: { steps: TraceStep[]; reading: boolean }
                 <span className="mv-item-title">{s.label}</span>
                 {s.detail ? <span className="mv-item-sub">{s.detail}</span> : null}
               </span>
-              {s.count === null ? null : <span className="mv-item-end">{s.count}</span>}
+              {reading && !s.done ? <LedgerOrb state="searching" size={20} label="" /> : s.count === null ? null : <span className="mv-item-end">{s.count}</span>}
             </li>
           ))}
         </ul>
@@ -398,7 +400,7 @@ export default function MoneyChatPage() {
                     {l.pending ? (
                       <Pending status={l.text} thinking={l.thinking} still={Boolean(stillMotion)} />
                     ) : (
-                      <p className={`mc-line-text${l.writing ? ' is-writing' : ''}`}>{l.text}</p>
+                      <p className="mc-line-text">{l.text}{l.writing ? <LedgerOrb state="composing" size={16} className="mc-writing" label="Writing" /> : null}</p>
                     )}
                     {l.file?.url ? <img className="mc-file" src={l.file.url} alt="" /> : null}
                     {l.figures?.map((f, k) => <Figure key={k} figure={f} />)}

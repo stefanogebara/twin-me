@@ -19,6 +19,7 @@ import { useAnalytics } from '../contexts/AnalyticsContext';
 import { API_URL } from '@/services/api/apiBase';
 import '../styles/money-v2.css';
 import '../styles/auth.css';
+import LedgerOrb from '../components/LedgerOrb';
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -175,8 +176,9 @@ const CustomAuth = () => {
         </button>
 
         {sentTo ? (
-          <p className="au-note au-enter" role="status" style={{ '--i': 3 } as React.CSSProperties}>
-            A sign-in link is on its way to {sentTo}. Open it on this device.
+          <p className="au-note au-enter au-waiting" role="status" style={{ '--i': 3 } as React.CSSProperties}>
+            <LedgerOrb state="connecting" size={20} label="Waiting for the email" />
+            <span>A sign-in link is on its way to {sentTo}. Open it on this device.</span>
           </p>
         ) : (
           <form className="au-form au-enter" style={{ '--i': 3 } as React.CSSProperties} onSubmit={(e) => void requestLink(e)}>
